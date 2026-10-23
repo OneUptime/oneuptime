@@ -33366,5 +33366,15 @@
   "Paid from the project's balance, unless the project's default Twilio Config makes calls.": "プロジェクトのデフォルトの Twilio 設定が通話を発信しない限り、プロジェクトの残高から支払われます。",
   "Twilio Used For": "Twilio の用途",
   "Twilio account for on-call alerts": "オンコールアラート用の Twilio アカウント",
-  "Used for calls only: OneUptime sends subscriber text messages.": "通話のみに使用: 購読者への SMS は OneUptime が送信します。"
+  "Used for calls only: OneUptime sends subscriber text messages.": "通話のみに使用: 購読者への SMS は OneUptime が送信します。",
+  "Assign {{role}}": "{{role}} を割り当て",
+  "By {{name}}": "{{name}} による",
+  "Edit what happened": "何が起きたかを編集",
+  "No description yet.": "説明はまだありません。",
+  "Not identified yet.": "まだ特定されていません。",
+  "Root cause": "根本原因",
+  "Shown on the status pages this incident appears on.": "このインシデントが表示されるステータスページに表示されます。",
+  "What happened": "何が起きたか",
+  "Why it happened, once you know.": "原因が分かったら、なぜ起きたかを記入します。",
+  "{{duration}} after impact began": "影響の開始から {{duration}}"
 }

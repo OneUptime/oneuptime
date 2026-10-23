@@ -13687,7 +13687,7 @@
   "Not a column on this model": "Not a column on this model",
   "Not a valid cron expression": "Not a valid cron expression",
   "Not allowed": "Not allowed",
-  "Not assigned": "Not assigned",
+  "Not assigned": "असाइन नहीं किया गया",
   "Not available on this engine": "Not available on this engine",
   "Not checked": "Not checked",
   "Not collected": "Not collected",
@@ -33366,5 +33366,15 @@
   "Paid from the project's balance, unless the project's default Twilio Config makes calls.": "प्रोजेक्ट के बैलेंस से भुगतान होता है, जब तक कि प्रोजेक्ट का डिफ़ॉल्ट Twilio कॉन्फ़िगरेशन कॉल न करता हो।",
   "Twilio Used For": "Twilio का उपयोग",
   "Twilio account for on-call alerts": "ऑन-कॉल अलर्ट के लिए Twilio खाता",
-  "Used for calls only: OneUptime sends subscriber text messages.": "केवल कॉल के लिए इस्तेमाल होता है: सब्सक्राइबर टेक्स्ट मैसेज OneUptime भेजता है।"
+  "Used for calls only: OneUptime sends subscriber text messages.": "केवल कॉल के लिए इस्तेमाल होता है: सब्सक्राइबर टेक्स्ट मैसेज OneUptime भेजता है।",
+  "Assign {{role}}": "{{role}} असाइन करें",
+  "By {{name}}": "{{name}} द्वारा",
+  "Edit what happened": "क्या हुआ, संपादित करें",
+  "No description yet.": "अभी कोई विवरण नहीं है।",
+  "Not identified yet.": "अभी पहचाना नहीं गया है।",
+  "Root cause": "मूल कारण",
+  "Shown on the status pages this incident appears on.": "उन स्थिति पृष्ठों पर दिखता है जिन पर यह घटना दिखाई देती है।",
+  "What happened": "क्या हुआ",
+  "Why it happened, once you know.": "यह क्यों हुआ, जब आपको पता चल जाए।",
+  "{{duration}} after impact began": "प्रभाव शुरू होने के {{duration}} बाद"
 }

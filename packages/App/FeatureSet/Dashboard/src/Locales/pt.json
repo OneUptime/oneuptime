@@ -13687,7 +13687,7 @@
   "Not a column on this model": "Not a column on this model",
   "Not a valid cron expression": "Not a valid cron expression",
   "Not allowed": "Not allowed",
-  "Not assigned": "Not assigned",
+  "Not assigned": "Não atribuído",
   "Not available on this engine": "Not available on this engine",
   "Not checked": "Not checked",
   "Not collected": "Not collected",
@@ -33366,5 +33366,15 @@
   "Paid from the project's balance, unless the project's default Twilio Config makes calls.": "Pago com o saldo do projeto, a menos que a configuração padrão do Twilio do projeto faça chamadas.",
   "Twilio Used For": "Uso do Twilio",
   "Twilio account for on-call alerts": "Conta Twilio para alertas de plantão",
-  "Used for calls only: OneUptime sends subscriber text messages.": "Usada apenas para chamadas: o OneUptime envia os SMS aos assinantes."
+  "Used for calls only: OneUptime sends subscriber text messages.": "Usada apenas para chamadas: o OneUptime envia os SMS aos assinantes.",
+  "Assign {{role}}": "Atribuir {{role}}",
+  "By {{name}}": "Por {{name}}",
+  "Edit what happened": "Editar o que aconteceu",
+  "No description yet.": "Ainda sem descrição.",
+  "Not identified yet.": "Ainda não identificada.",
+  "Root cause": "Causa raiz",
+  "Shown on the status pages this incident appears on.": "Exibida nas páginas de status em que este incidente aparece.",
+  "What happened": "O que aconteceu",
+  "Why it happened, once you know.": "Por que aconteceu, quando você souber.",
+  "{{duration}} after impact began": "{{duration}} após o início do impacto"
 }

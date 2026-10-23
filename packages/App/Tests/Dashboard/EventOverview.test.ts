@@ -15,6 +15,7 @@ import {
   getEarliestTimelineDate,
   getEventCreatorName,
   getEventResponseTimes,
+  getEventStartTileParts,
   getEventStartTileText,
   getEventStartedByText,
   getImpactBeforeStartParts,
@@ -728,22 +729,24 @@ describe("who or what started a record", () => {
   test("says by whom under the start, in the reader's words", () => {
     expect(
       getEventStartedByText({ probe: { name: "eu-west-1 probe" } }, ENGLISH),
-    ).toBe("by eu-west-1 probe");
+    ).toBe("By eu-west-1 probe");
     expect(
       getEventStartedByText({ user: { name: "Maya Chen" } }, ENGLISH),
-    ).toBe("by Maya Chen");
+    ).toBe("By Maya Chen");
+    // Its own key: "by {{name}}" belongs to other sentences in other languages.
+    expect(EVENT_STARTED_BY_TEMPLATE).toBe("By {{name}}");
 
     const german: Translator = createTranslator((text: string) => {
       return (
         {
-          [EVENT_STARTED_BY_TEMPLATE]: "von {{name}}",
+          [EVENT_STARTED_BY_TEMPLATE]: "Von {{name}}",
           [EVENT_STARTED_AUTOMATICALLY]: "Automatisch",
         } as Record<string, string>
       )[text];
     }, "de");
 
     expect(getEventStartedByText({ user: { name: "Maya Chen" } }, german)).toBe(
-      "von Maya Chen",
+      "Von Maya Chen",
     );
     expect(
       getEventStartedByText({ isCreatedAutomatically: true }, german),
@@ -760,10 +763,10 @@ describe("who or what started a record", () => {
         { isCreatedAutomatically: true, probe: { name: "eu-west-1 probe" } },
         ENGLISH,
       ),
-    ).toBe("by eu-west-1 probe");
+    ).toBe("By eu-west-1 probe");
   });
 
-  test("says nothing, rather than by Unknown, when nothing is on record", () => {
+  test("says nothing, rather than By Unknown, when nothing is on record", () => {
     expect(getEventStartedByText({}, ENGLISH)).toBeUndefined();
     expect(
       getEventStartedByText({ isCreatedAutomatically: false }, ENGLISH),
@@ -882,7 +885,21 @@ describe("the start tile's time", () => {
         new Date("2026-09-14T18:01:00.000Z"),
         new Date("2026-09-14T18:20:00.000Z"),
       ),
-    ).toBe(`Sep${NBSP}14, 06:01${NBSP}PM${NBSP}UTC`);
+    ).toBe(`Sep${NBSP}14, 06:01${NBSP}PM UTC`);
+  });
+
+  test("gives the tile the date and time, and the zone it draws smaller after them", () => {
+    OneUptimeDate.setUserTimezone("UTC" as Timezone);
+    jest
+      .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+      .mockReturnValue(true);
+
+    expect(
+      getEventStartTileParts(
+        new Date("2026-09-14T18:01:00.000Z"),
+        new Date("2026-09-14T18:20:00.000Z"),
+      ),
+    ).toEqual({ dateTime: `Sep${NBSP}14, 06:01${NBSP}PM`, zone: "UTC" });
   });
 
   test("adds the year for a record from another year", () => {
@@ -896,7 +913,7 @@ describe("the start tile's time", () => {
         new Date("2025-12-31T23:30:00.000Z"),
         new Date("2026-01-01T00:10:00.000Z"),
       ),
-    ).toBe(`Dec${NBSP}31${NBSP}2025, 11:30${NBSP}PM${NBSP}UTC`);
+    ).toBe(`Dec${NBSP}31${NBSP}2025, 11:30${NBSP}PM UTC`);
   });
 
   test("follows a 24-hour clock and the reader's own time zone, daylight saving included", () => {
@@ -910,14 +927,14 @@ describe("the start tile's time", () => {
         new Date("2026-09-14T18:01:00.000Z"),
         new Date("2026-09-14T18:20:00.000Z"),
       ),
-    ).toBe(`Sep${NBSP}14, 20:01${NBSP}CEST`);
+    ).toBe(`Sep${NBSP}14, 20:01 CEST`);
     // In January the same zone is an hour ahead of UTC, not two.
     expect(
       getEventStartTileText(
         new Date("2026-01-14T18:01:00.000Z"),
         new Date("2026-01-14T18:20:00.000Z"),
       ),
-    ).toBe(`Jan${NBSP}14, 19:01${NBSP}CET`);
+    ).toBe(`Jan${NBSP}14, 19:01 CET`);
   });
 
   test("decides this year in the reader's zone, where the year may already have turned", () => {
@@ -932,10 +949,10 @@ describe("the start tile's time", () => {
         new Date("2025-12-31T12:00:00.000Z"),
         new Date("2025-12-31T13:00:00.000Z"),
       ),
-    ).toBe(`Jan${NBSP}01, 01:00${NBSP}NZDT`);
+    ).toBe(`Jan${NBSP}01, 01:00 NZDT`);
   });
 
-  test("breaks only after the date's comma, never inside the date or the time", () => {
+  test("breaks after the date's comma and before the zone, never inside the date, the time or the zone", () => {
     OneUptimeDate.setUserTimezone("UTC" as Timezone);
     jest
       .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
@@ -946,10 +963,41 @@ describe("the start tile's time", () => {
       new Date("2026-09-14T18:20:00.000Z"),
     );
 
-    expect(text.split(" ")).toEqual([
-      `Sep${NBSP}14,`,
-      `06:01${NBSP}PM${NBSP}UTC`,
-    ]);
+    expect(text.split(" ")).toEqual([`Sep${NBSP}14,`, `06:01${NBSP}PM`, "UTC"]);
     expect(NBSP).toBe(String.fromCharCode(0xa0));
+  });
+
+  test("a zone of more than one word holds together too", () => {
+    OneUptimeDate.setUserTimezone("UTC" as Timezone);
+    jest
+      .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+      .mockReturnValue(false);
+    jest
+      .spyOn(OneUptimeDate, "getZoneAbbrByTimezone")
+      .mockReturnValue("GMT+5 30");
+
+    expect(
+      getEventStartTileParts(
+        new Date("2026-09-14T18:01:00.000Z"),
+        new Date("2026-09-14T18:20:00.000Z"),
+      ).zone,
+    ).toBe(`GMT+5${NBSP}30`);
+  });
+
+  test("a time with no zone to name is the date and the time alone", () => {
+    OneUptimeDate.setUserTimezone("UTC" as Timezone);
+    jest
+      .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+      .mockReturnValue(false);
+    jest.spyOn(OneUptimeDate, "getZoneAbbrByTimezone").mockReturnValue("");
+
+    const startedAt: Date = new Date("2026-09-14T18:01:00.000Z");
+    const now: Date = new Date("2026-09-14T18:20:00.000Z");
+
+    expect(getEventStartTileParts(startedAt, now)).toEqual({
+      dateTime: `Sep${NBSP}14, 18:01`,
+      zone: "",
+    });
+    expect(getEventStartTileText(startedAt, now)).toBe(`Sep${NBSP}14, 18:01`);
   });
 });

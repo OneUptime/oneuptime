@@ -33366,5 +33366,15 @@
   "Paid from the project's balance, unless the project's default Twilio Config makes calls.": "Se paga con el saldo del proyecto, salvo que la configuración de Twilio predeterminada del proyecto haga llamadas.",
   "Twilio Used For": "Uso de Twilio",
   "Twilio account for on-call alerts": "Cuenta de Twilio para alertas de guardia",
-  "Used for calls only: OneUptime sends subscriber text messages.": "Solo se usa para llamadas: OneUptime envía los SMS a los suscriptores."
+  "Used for calls only: OneUptime sends subscriber text messages.": "Solo se usa para llamadas: OneUptime envía los SMS a los suscriptores.",
+  "Assign {{role}}": "Asignar {{role}}",
+  "By {{name}}": "Por {{name}}",
+  "Edit what happened": "Editar lo que pasó",
+  "No description yet.": "Aún no hay descripción.",
+  "Not identified yet.": "Aún no identificada.",
+  "Root cause": "Causa raíz",
+  "Shown on the status pages this incident appears on.": "Se muestra en las páginas de estado donde aparece este incidente.",
+  "What happened": "Qué pasó",
+  "Why it happened, once you know.": "Por qué pasó, cuando lo sepas.",
+  "{{duration}} after impact began": "{{duration}} después del inicio del impacto"
 }

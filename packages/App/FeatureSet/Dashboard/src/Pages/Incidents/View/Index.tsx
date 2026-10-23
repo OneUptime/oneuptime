@@ -126,12 +126,12 @@ import {
   VisibleItems,
   getAcknowledgedAfterPagingText,
   getEventResponseTimes,
-  getEventStartTileText,
   getEventStartedByText,
   getImpactBeforeStartText,
   getTimeToStateText,
   splitVisibleItems,
 } from "../../../Utils/EventOverview";
+import EventStartTileValue from "../../../Components/EventView/EventStartTileValue";
 import EventWhatHappenedCard from "../../../Components/EventView/EventWhatHappenedCard";
 import {
   EVENT_ROLES_CARD_ID,
@@ -319,7 +319,7 @@ const IncidentView: FunctionComponent<
   const [incidentImpactStartedAt, setIncidentImpactStartedAt] = useState<
     Date | undefined
   >(undefined);
-  // Who or what declared it, for "by eu-west-1 probe" under the Declared tile.
+  // Who or what declared it, for "By eu-west-1 probe" under the Declared tile.
   const [incidentDeclaredBy, setIncidentDeclaredBy] = useState<
     EventStartedByInput | undefined
   >(undefined);
@@ -1135,7 +1135,11 @@ const IncidentView: FunctionComponent<
           label="Declared"
           icon={IconProp.Calendar}
           value={
-            incidentStartedAt ? getEventStartTileText(incidentStartedAt) : "-"
+            incidentStartedAt ? (
+              <EventStartTileValue startedAt={incidentStartedAt} />
+            ) : (
+              "-"
+            )
           }
           note={getImpactBeforeStartText(
             {
@@ -1199,7 +1203,7 @@ const IncidentView: FunctionComponent<
             modelId={modelId}
             description={incidentDescription}
             rootCause={incidentRootCause}
-            descriptionFieldHelp="Shown on your status page."
+            isDescriptionOnStatusPages={true}
             onSaved={() => {
               refreshData();
               // An edited root cause is a new feed entry.

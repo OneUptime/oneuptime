@@ -2516,7 +2516,7 @@ describe("incident-only behaviour", () => {
       name: INCIDENT_CASE.statBarName,
     }).children[0]!;
 
-    expect(declared).toHaveTextContent("by Probe US");
+    expect(declared).toHaveTextContent("By Probe US");
     expect(declared).toHaveTextContent("3 minutes after impact began");
 
     // What the page asked for, to say it: no read of its own beyond the row.
@@ -2558,7 +2558,7 @@ describe("incident-only behaviour", () => {
       name: INCIDENT_CASE.statBarName,
     }).children[0]!;
 
-    expect(declared).toHaveTextContent("by Maya Chen");
+    expect(declared).toHaveTextContent("By Maya Chen");
     expect(declared).not.toHaveTextContent("after impact began");
 
     getItemMock.mockImplementation(() => {
@@ -3531,7 +3531,7 @@ describe("alert-only behaviour", () => {
     }).children[0]!;
 
     expect(created).toHaveTextContent("Created");
-    expect(created).toHaveTextContent("by Probe EU");
+    expect(created).toHaveTextContent("By Probe EU");
   });
 
   test("the episode row never selects columns a relation query cannot read", async () => {

@@ -314,6 +314,7 @@ import PositiveNumber from "Common/Types/PositiveNumber";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import { APP_API_URL } from "Common/UI/Config";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -4655,6 +4656,24 @@ ModelAPI.createOrUpdate = async (options) => {
     data: serialize(data),
     miscDataProps: serialize(options.miscDataProps),
   });
+  /*
+   * An edit form's save (What happened's Edit): the record it edits takes
+   * the fields the form sent, as the server's update does, instead of a
+   * second row with the same id - so the page's refresh reads what was saved.
+   */
+  if (options.formType === FormType.Update) {
+    const edited = (tables.get(modelName)?.records || []).find((item) => {
+      return String(item._id) === String(options.model._id);
+    });
+    if (edited) {
+      for (const key of Object.keys(data)) {
+        if (key !== "_id" && options.model[key] !== undefined) {
+          edited[key] = options.model[key];
+        }
+      }
+      return new HTTPResponse(200, {}, {});
+    }
+  }
   const record = { ...options.model, projectId: projectObjectId };
   if (!record._id) {
     record._id = rowId();
@@ -6534,6 +6553,11 @@ const STUB_PAGES = [
   [PageMap.USER_VIEW, "User"],
   [PageMap.TEAM_VIEW, "Team"],
   [PageMap.INCIDENT_VIEW_ROLES, "Incident Roles"],
+  // Where the header's owners lead: "+3 more", and Add when there are none.
+  [PageMap.INCIDENT_VIEW_OWNERS, "Incident Owners"],
+  [PageMap.ALERT_VIEW_OWNERS, "Alert Owners"],
+  [PageMap.INCIDENT_EPISODE_VIEW_OWNERS, "Episode Owners"],
+  [PageMap.ALERT_EPISODE_VIEW_OWNERS, "Episode Owners"],
   [PageMap.INCIDENT_VIEW_STATE_TIMELINE, "Incident State Timeline"],
   [PageMap.ALERT_VIEW_STATE_TIMELINE, "Alert State Timeline"],
   [PageMap.INCIDENT_EPISODE_VIEW_INCIDENTS, "Episode Member Incidents"],

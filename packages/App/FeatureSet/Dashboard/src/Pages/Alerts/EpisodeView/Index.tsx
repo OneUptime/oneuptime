@@ -49,10 +49,8 @@ import useEventOwners, {
   EventOwnersState,
 } from "../../../Components/EventView/useEventOwners";
 import { EventStatusFact } from "../../../Components/EventView/EventStatusPanel";
-import {
-  getEventStartTileText,
-  getEventStartedByText,
-} from "../../../Utils/EventOverview";
+import { getEventStartedByText } from "../../../Utils/EventOverview";
+import EventStartTileValue from "../../../Components/EventView/EventStartTileValue";
 import { getOwnersFact } from "../../../Components/EventView/EventPeopleFacts";
 import AlertEpisodeOwnerTeam from "Common/Models/DatabaseModels/AlertEpisodeOwnerTeam";
 import AlertEpisodeOwnerUser from "Common/Models/DatabaseModels/AlertEpisodeOwnerUser";
@@ -234,6 +232,7 @@ const AlertEpisodeView: FunctionComponent<
               name: true,
               email: true,
             },
+            isManuallyCreated: true,
           },
         }),
       ]);
@@ -450,15 +449,20 @@ const AlertEpisodeView: FunctionComponent<
           label="Created"
           icon={IconProp.Calendar}
           value={
-            timing.durationStartsAt
-              ? getEventStartTileText(timing.durationStartsAt)
-              : "-"
+            timing.durationStartsAt ? (
+              <EventStartTileValue startedAt={timing.durationStartsAt} />
+            ) : (
+              "-"
+            )
           }
           description={getEventStartedByText(
             {
               user: episode?.createdByUser,
-              // Nobody on record: a grouping rule opened it.
-              isCreatedAutomatically: !episode?.createdByUser,
+              /*
+               * A grouping rule opened it. A manual episode whose creator
+               * is not on record says nothing rather than Automatically.
+               */
+              isCreatedAutomatically: episode?.isManuallyCreated === false,
             },
             translator,
           )}

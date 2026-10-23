@@ -74,6 +74,7 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
 });
 
 import EventWhatHappenedCard, {
+  STATUS_PAGE_DESCRIPTION_HELP,
   WHAT_HAPPENED_CARD_TITLE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventWhatHappenedCard";
 import Incident from "../../../Models/DatabaseModels/Incident";
@@ -108,7 +109,7 @@ function renderCard(props: {
   rootCause?: string;
   onSaved?: () => void;
   modelType?: typeof Incident | typeof Alert;
-  descriptionFieldHelp?: string;
+  isDescriptionOnStatusPages?: boolean;
 }): RenderResult {
   return render(
     <EventWhatHappenedCard<Incident | Alert>
@@ -116,7 +117,7 @@ function renderCard(props: {
       modelId={new ObjectID(INCIDENT_ID)}
       description={props.description}
       rootCause={props.rootCause}
-      descriptionFieldHelp={props.descriptionFieldHelp}
+      isDescriptionOnStatusPages={props.isDescriptionOnStatusPages}
       onSaved={props.onSaved || ((): void => {})}
     />,
   );
@@ -314,7 +315,7 @@ describe("editing", () => {
   test("Edit opens one dialog for the description and the root cause, on this record", () => {
     renderCard({
       description: "Checkout is slow.",
-      descriptionFieldHelp: "Shown on your status page.",
+      isDescriptionOnStatusPages: true,
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
@@ -342,9 +343,15 @@ describe("editing", () => {
     for (const field of props.formProps.fields) {
       expect(field.required).toBe(false);
     }
-    // An incident's description shows on its status page; the form says so.
+    /*
+     * An incident's description shows on the status pages it appears on;
+     * the form says so, in a key of its own the dialog translates.
+     */
     expect(props.formProps.fields[0]!.description).toBe(
-      "Shown on your status page.",
+      "Shown on the status pages this incident appears on.",
+    );
+    expect(props.formProps.fields[0]!.description).toBe(
+      STATUS_PAGE_DESCRIPTION_HELP,
     );
   });
 

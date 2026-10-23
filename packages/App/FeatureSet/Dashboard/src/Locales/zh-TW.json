@@ -13687,7 +13687,7 @@
   "Not a column on this model": "Not a column on this model",
   "Not a valid cron expression": "Not a valid cron expression",
   "Not allowed": "Not allowed",
-  "Not assigned": "Not assigned",
+  "Not assigned": "未指派",
   "Not available on this engine": "Not available on this engine",
   "Not checked": "Not checked",
   "Not collected": "Not collected",
@@ -33366,5 +33366,15 @@
   "Paid from the project's balance, unless the project's default Twilio Config makes calls.": "從專案餘額中支付，除非專案的預設 Twilio 設定會撥打電話。",
   "Twilio Used For": "Twilio 用途",
   "Twilio account for on-call alerts": "用於待命警示的 Twilio 帳戶",
-  "Used for calls only: OneUptime sends subscriber text messages.": "僅用於通話：由 OneUptime 傳送訂閱者簡訊。"
+  "Used for calls only: OneUptime sends subscriber text messages.": "僅用於通話：由 OneUptime 傳送訂閱者簡訊。",
+  "Assign {{role}}": "指派 {{role}}",
+  "By {{name}}": "發起者：{{name}}",
+  "Edit what happened": "編輯事件經過",
+  "No description yet.": "尚無描述。",
+  "Not identified yet.": "尚未查明。",
+  "Root cause": "根本原因",
+  "Shown on the status pages this incident appears on.": "會顯示在展示此事件的狀態頁面上。",
+  "What happened": "事件經過",
+  "Why it happened, once you know.": "查明後，填寫發生的原因。",
+  "{{duration}} after impact began": "影響開始後 {{duration}}"
 }

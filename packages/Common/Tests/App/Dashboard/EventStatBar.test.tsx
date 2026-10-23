@@ -484,6 +484,7 @@ describe("EventStatTile in the reader's language", () => {
           translation: {
             Declared: "Erklärt",
             Duration: "Dauer",
+            "Incident response times": "Reaktionszeiten bei Vorfällen",
           },
         },
       },
@@ -510,6 +511,26 @@ describe("EventStatTile in the reader's language", () => {
     expect(screen.getByText("Dauer")).toBeInTheDocument();
     expect(screen.queryByText("Declared")).toBeNull();
     expect(screen.queryByText("Duration")).toBeNull();
+  });
+
+  test("the bar names its group in the reader's language too", async () => {
+    const german: i18n = await createGerman();
+
+    render(
+      <I18nextProvider i18n={german}>
+        <EventStatBar columns={2} ariaLabel="Incident response times">
+          <EventStatTile variant="segment" label="Declared" value="18:01" />
+          <EventStatTile variant="segment" label="Duration" value="3m" />
+        </EventStatBar>
+      </I18nextProvider>,
+    );
+
+    expect(
+      screen.getByRole("group", { name: "Reaktionszeiten bei Vorfällen" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("group", { name: "Incident response times" }),
+    ).toBeNull();
   });
 
   test("a label already in the reader's words reads as given", async () => {

@@ -173,6 +173,7 @@ const pageProps: PageComponentProps = {
 interface EpisodeSpec {
   severity?: AlertSeverity | null | undefined;
   state?: AlertState | null | undefined;
+  isManuallyCreated?: boolean | undefined;
 }
 
 type BuildSeverityFunction = (
@@ -239,6 +240,8 @@ const buildEpisode: BuildEpisodeFunction = (
   episode.episodeNumberWithPrefix = "#7";
   episode.alertCount = 0;
   episode.createdAt = new Date("2026-01-01T00:00:00.000Z");
+  // The column's default: nobody made it by hand.
+  episode.isManuallyCreated = spec.isManuallyCreated ?? false;
 
   if (spec.severity) {
     episode.alertSeverity = spec.severity;
@@ -524,6 +527,19 @@ describe("Alert Episode detail page: severity (issue #3374)", () => {
     // The ID is no longer a field of the card: it is the card's ID line.
     expect(screen.queryByText("Episode ID")).toBeNull();
     expect(screen.getByTestId("detail-id-value")).toHaveTextContent(EPISODE_ID);
+    expectNoCrash();
+  });
+
+  test("a manual episode whose creator is not on record says nothing under Created, not Automatically", async () => {
+    await renderPage({
+      state: buildState("Created", new Color("#4b5563")),
+      isManuallyCreated: true,
+    });
+
+    expect(fieldValue("Episode Number")).toContain("#7");
+    expect(statCellText("Created")).toContain("Created");
+    expect(statCellText("Created")).not.toContain("Automatically");
+    expect(statCellText("Created")).not.toContain("By ");
     expectNoCrash();
   });
 

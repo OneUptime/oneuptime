@@ -13,7 +13,7 @@ import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -39,7 +39,16 @@ import React, {
  * Show more, so it never pushes the rest of the page out of sight.
  */
 
-export const WHAT_HAPPENED_CARD_TITLE: string = "What happened";
+export const WHAT_HAPPENED_CARD_TITLE: string = translationKey("What happened");
+
+/*
+ * What the edit dialog says under an incident's Description: a status page
+ * that shows the incident shows its description too. Said where the text is
+ * written, so nobody puts there what the public should not read.
+ */
+export const STATUS_PAGE_DESCRIPTION_HELP: string = translationKey(
+  "Shown on the status pages this incident appears on.",
+);
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
   modelType: { new (): TBaseModel };
@@ -47,10 +56,11 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   description?: string | undefined;
   rootCause?: string | undefined;
   /*
-   * What the edit dialog says under Description: an incident's description
-   * is shown on its status pages, an alert's nowhere outside OneUptime.
+   * Whether a status page shows the description: an incident's does, on
+   * the pages it appears on, so the edit dialog says so under Description;
+   * an alert's or an episode's is seen nowhere outside OneUptime.
    */
-  descriptionFieldHelp?: string | undefined;
+  isDescriptionOnStatusPages?: boolean | undefined;
   // After a save: the page reads the record again, and its feed.
   onSaved: () => void;
 }
@@ -208,7 +218,9 @@ const EventWhatHappenedCard: <TBaseModel extends BaseModel>(
       fieldType: FormFieldSchemaType.Markdown,
       required: false,
       placeholder: "Description",
-      description: props.descriptionFieldHelp,
+      description: props.isDescriptionOnStatusPages
+        ? STATUS_PAGE_DESCRIPTION_HELP
+        : undefined,
     },
     {
       field: {

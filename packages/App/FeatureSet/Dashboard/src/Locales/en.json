@@ -33366,5 +33366,15 @@
   "Paid from the project's balance, unless the project's default Twilio Config makes calls.": "Paid from the project's balance, unless the project's default Twilio Config makes calls.",
   "Twilio Used For": "Twilio Used For",
   "Twilio account for on-call alerts": "Twilio account for on-call alerts",
-  "Used for calls only: OneUptime sends subscriber text messages.": "Used for calls only: OneUptime sends subscriber text messages."
+  "Used for calls only: OneUptime sends subscriber text messages.": "Used for calls only: OneUptime sends subscriber text messages.",
+  "Assign {{role}}": "Assign {{role}}",
+  "By {{name}}": "By {{name}}",
+  "Edit what happened": "Edit what happened",
+  "No description yet.": "No description yet.",
+  "Not identified yet.": "Not identified yet.",
+  "Root cause": "Root cause",
+  "Shown on the status pages this incident appears on.": "Shown on the status pages this incident appears on.",
+  "What happened": "What happened",
+  "Why it happened, once you know.": "Why it happened, once you know.",
+  "{{duration}} after impact began": "{{duration}} after impact began"
 }

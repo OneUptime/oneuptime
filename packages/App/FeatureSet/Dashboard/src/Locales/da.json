@@ -13687,7 +13687,7 @@
   "Not a column on this model": "Not a column on this model",
   "Not a valid cron expression": "Not a valid cron expression",
   "Not allowed": "Not allowed",
-  "Not assigned": "Not assigned",
+  "Not assigned": "Ikke tildelt",
   "Not available on this engine": "Not available on this engine",
   "Not checked": "Not checked",
   "Not collected": "Not collected",
@@ -33366,5 +33366,15 @@
   "Paid from the project's balance, unless the project's default Twilio Config makes calls.": "Betales af projektets saldo, medmindre projektets standard-Twilio-konfiguration foretager opkald.",
   "Twilio Used For": "Twilio-brug",
   "Twilio account for on-call alerts": "Twilio-konto til vagtalarmer",
-  "Used for calls only: OneUptime sends subscriber text messages.": "Bruges kun til opkald: OneUptime sender sms'er til abonnenter."
+  "Used for calls only: OneUptime sends subscriber text messages.": "Bruges kun til opkald: OneUptime sender sms'er til abonnenter.",
+  "Assign {{role}}": "Tildel {{role}}",
+  "By {{name}}": "Af {{name}}",
+  "Edit what happened": "Rediger hvad der skete",
+  "No description yet.": "Ingen beskrivelse endnu.",
+  "Not identified yet.": "Endnu ikke fastlagt.",
+  "Root cause": "Grundårsag",
+  "Shown on the status pages this incident appears on.": "Vises på de statussider, hvor denne hændelse optræder.",
+  "What happened": "Hvad der skete",
+  "Why it happened, once you know.": "Hvorfor det skete, når du ved det.",
+  "{{duration}} after impact began": "{{duration}} efter at påvirkningen begyndte"
 }

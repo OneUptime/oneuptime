@@ -127,11 +127,11 @@ import {
   EventStartedByInput,
   getAcknowledgedAfterPagingText,
   getEventResponseTimes,
-  getEventStartTileText,
   getEventStartedByText,
   getImpactBeforeStartText,
   getTimeToStateText,
 } from "../../../Utils/EventOverview";
+import EventStartTileValue from "../../../Components/EventView/EventStartTileValue";
 import EventWhatHappenedCard from "../../../Components/EventView/EventWhatHappenedCard";
 import { getOwnersFact } from "../../../Components/EventView/EventPeopleFacts";
 import useEventOwners, {
@@ -966,7 +966,13 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           variant="segment"
           label="Created"
           icon={IconProp.Calendar}
-          value={alertStartedAt ? getEventStartTileText(alertStartedAt) : "-"}
+          value={
+            alertStartedAt ? (
+              <EventStartTileValue startedAt={alertStartedAt} />
+            ) : (
+              "-"
+            )
+          }
           note={getImpactBeforeStartText(
             {
               impactStartedAt: alertImpactStartedAt,

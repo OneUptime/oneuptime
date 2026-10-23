@@ -17,6 +17,8 @@ import {
 } from "@testing-library/react";
 import React, { ReactElement, ReactNode } from "react";
 import { Mock } from "jest-mock";
+import { createInstance, i18n } from "i18next";
+import { I18nextProvider } from "react-i18next";
 
 /*
  * The people row of an incident's, alert's or episode's header: who commands
@@ -356,6 +358,104 @@ describe("getOwnersFact", () => {
     const view: RenderResult = render(<>{fact!.value}</>);
 
     expect(view.container).toHaveTextContent("None");
+  });
+});
+
+/*
+ * In the reader's language: what the values say, and the role's name in
+ * what Assign is heard as - the name the header's label shows, which the
+ * panel looks up. The instance reaches the values through I18nextProvider
+ * only, so German never leaks into the other suites of this worker.
+ */
+describe("in the reader's language", () => {
+  const createGerman: () => Promise<i18n> = async (): Promise<i18n> => {
+    const instance: i18n = createInstance();
+
+    await instance.init({
+      lng: "de",
+      resources: {
+        de: {
+          translation: {
+            "Not assigned": "Nicht zugewiesen",
+            Assign: "Zuweisen",
+            "Assign {{role}}": "{{role}} zuweisen",
+            "Incident Commander": "Vorfall-Kommandant",
+            None: "Keine",
+            Add: "Hinzufügen",
+            "Add owners": "Eigentümer hinzufügen",
+          },
+        },
+      },
+      keySeparator: false,
+      nsSeparator: false,
+    });
+
+    return instance;
+  };
+
+  test("Not assigned, and Assign heard with the role's name as the header shows it", async () => {
+    const german: i18n = await createGerman();
+
+    render(
+      <I18nextProvider i18n={german}>
+        <CommanderFactValue
+          members={[]}
+          roleName="Incident Commander"
+          onAssign={(): void => {}}
+        />
+      </I18nextProvider>,
+    );
+
+    expect(screen.getByText("Nicht zugewiesen")).toBeVisible();
+
+    const assign: HTMLElement = screen.getByRole("button", {
+      name: "Vorfall-Kommandant zuweisen",
+    });
+
+    expect(assign).toHaveTextContent("Zuweisen");
+  });
+
+  test("a project's own role name, with no entry of its own, reads as written", async () => {
+    const german: i18n = await createGerman();
+
+    render(
+      <I18nextProvider i18n={german}>
+        <CommanderFactValue
+          members={[]}
+          roleName="Incident Lead"
+          onAssign={(): void => {}}
+        />
+      </I18nextProvider>,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Incident Lead zuweisen" }),
+    ).toBeVisible();
+  });
+
+  test("None, and Add heard as Add owners", async () => {
+    const german: i18n = await createGerman();
+
+    render(
+      <I18nextProvider i18n={german}>
+        <OwnersFactValue
+          owners={[]}
+          ownersRoute={OWNERS_ROUTE}
+          canAddOwners={true}
+        />
+      </I18nextProvider>,
+    );
+
+    expect(screen.getByText("Keine")).toBeVisible();
+
+    const add: HTMLElement = screen.getByRole("link", {
+      name: "Eigentümer hinzufügen",
+    });
+
+    expect(add).toHaveAttribute("href", OWNERS_ROUTE.toString());
+    expect(screen.getByTestId("event-owners-add")).toHaveTextContent(
+      "HinzufügenEigentümer hinzufügen",
+    );
   });
 });
 

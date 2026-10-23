@@ -149,7 +149,13 @@ export const CommanderFactValue: FunctionComponent<CommanderFactValueProps> = (
             data-testid="event-commander-assign"
             onClick={props.onAssign}
             aria-label={translator.translateTemplate("Assign {{role}}", {
-              role: props.roleName,
+              /*
+               * The role's name as the header's label shows it: the panel
+               * looks a fact's label up, so the seeded "Incident Commander"
+               * reads in the reader's language and a project's own name as
+               * written.
+               */
+              role: translator.translateText(props.roleName) || props.roleName,
             })}
             className={LINK_CLASS_NAME}
           >

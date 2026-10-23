@@ -442,8 +442,9 @@ describe.each(PAGES)("%s overview layout", (_name: string, page: EventPage) => {
 
     expect(startTile).toContain(`label="${page.startLabel}"`);
     expect(startTile).toContain("icon={IconProp.Calendar}");
+    // The time, then its zone, smaller (EventStartTileValue).
     expect(startTile).toContain(
-      `${page.startedAt} ? getEventStartTileText(${page.startedAt}) : "-"`,
+      `${page.startedAt} ? (<EventStartTileValue startedAt={${page.startedAt}} />) : ("-")`,
     );
     expect(startTile).toContain(
       `note={getImpactBeforeStartText({ impactStartedAt: ${page.impactStartedAt}, startedAt: ${page.startedAt}, }, translator)}`,

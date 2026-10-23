@@ -263,11 +263,12 @@ describe("episode overview layout", () => {
 
       expect(startTile).toContain(`label="${page.startLabel}"`);
       expect(startTile).toContain("icon={IconProp.Calendar}");
+      // The time, then its zone, smaller (EventStartTileValue).
       expect(startTile).toContain(
-        'timing.durationStartsAt ? getEventStartTileText(timing.durationStartsAt) : "-"',
+        'timing.durationStartsAt ? (<EventStartTileValue startedAt={timing.durationStartsAt} />) : ("-")',
       );
       expect(startTile).toContain(
-        "description={getEventStartedByText({ user: episode?.createdByUser, isCreatedAutomatically: !episode?.createdByUser, }, translator)}",
+        "description={getEventStartedByText({ user: episode?.createdByUser, isCreatedAutomatically: episode?.isManuallyCreated === false, }, translator)}",
       );
       expect(source).not.toContain('label="Duration"');
       expect(source).not.toContain("<LiveDuration");
@@ -460,6 +461,8 @@ describe("episode overview layout", () => {
         "description: true,",
         "rootCause: true,",
         "createdByUser: { name: true, email: true, },",
+        // Whether a grouping rule opened it, for Automatically.
+        "isManuallyCreated: true,",
       ]) {
         expect(read.slice(0, 700)).toContain(column);
       }

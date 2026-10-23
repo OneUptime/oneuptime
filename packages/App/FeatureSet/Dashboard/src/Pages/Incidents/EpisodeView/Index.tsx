@@ -53,10 +53,8 @@ import useEventOwners, {
   EventOwnersState,
 } from "../../../Components/EventView/useEventOwners";
 import { EventStatusFact } from "../../../Components/EventView/EventStatusPanel";
-import {
-  getEventStartTileText,
-  getEventStartedByText,
-} from "../../../Utils/EventOverview";
+import { getEventStartedByText } from "../../../Utils/EventOverview";
+import EventStartTileValue from "../../../Components/EventView/EventStartTileValue";
 import {
   EVENT_ROLES_CARD_ID,
   getCommanderFact,
@@ -266,6 +264,7 @@ const IncidentEpisodeView: FunctionComponent<
               name: true,
               email: true,
             },
+            isManuallyCreated: true,
             // A private episode takes no public notes: see its feed.
             isPrivate: true,
           },
@@ -512,15 +511,20 @@ const IncidentEpisodeView: FunctionComponent<
           label="Declared"
           icon={IconProp.Calendar}
           value={
-            timing.durationStartsAt
-              ? getEventStartTileText(timing.durationStartsAt)
-              : "-"
+            timing.durationStartsAt ? (
+              <EventStartTileValue startedAt={timing.durationStartsAt} />
+            ) : (
+              "-"
+            )
           }
           description={getEventStartedByText(
             {
               user: episode?.createdByUser,
-              // Nobody on record: a grouping rule opened it.
-              isCreatedAutomatically: !episode?.createdByUser,
+              /*
+               * A grouping rule opened it. A manual episode whose creator
+               * is not on record says nothing rather than Automatically.
+               */
+              isCreatedAutomatically: episode?.isManuallyCreated === false,
             },
             translator,
           )}
