@@ -30,10 +30,19 @@
  * that lists Platform, Database and Frontend, and one saved before anyone
  * asked a rule to add something, which adds nothing.
  *
+ * The episode create forms are here as well: Create Incident Episode, whose
+ * Owners waits under More fields, and Create Alert Episode, whose Owners is on
+ * its On-Call & Owners step. One episode owner rule each adds someone.
+ *
  * Steered by the query string:
  *   - form=alert   Create Alert (default: Declare Incident)
- *   - form=incident-rules|alert-rules   the owner rules pages
- *   - teams=none|one|many
+ *   - form=incident-episode|alert-episode   Create Incident Episode, Create
+ *     Alert Episode
+ *   - form=incident-rules|alert-rules   the owner rules pages; a rule's own
+ *     page is .../owner-rules/<rule id>
+ *   - teams=none|one|many|lots   (lots: eight teams, some with long names)
+ *   - admin=1      the person signed in is a master admin, whom OneUptime
+ *                  does not make an owner of what they create
  *   - rules=none   no rule adds anyone
  *   - rules=error  the preview fails (a 500)
  *   - rules=denied the person may not read the owner rules (a 422)
@@ -61,6 +70,8 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import IncidentCreate from "../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Create";
 import AlertCreate from "../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Create";
+import IncidentEpisodeCreate from "../../../App/FeatureSet/Dashboard/src/Pages/Incidents/EpisodeCreate";
+import AlertEpisodeCreate from "../../../App/FeatureSet/Dashboard/src/Pages/Alerts/EpisodeCreate";
 import IncidentOwnerRulesPage from "../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentOwnerRules";
 import AlertOwnerRulesPage from "../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Settings/AlertOwnerRules";
 import AlertOwnerRule from "Common/Models/DatabaseModels/AlertOwnerRule";
@@ -98,15 +109,21 @@ const PROJECT_ID = "10000000-0000-4000-8000-0000000000c7";
 const ADA_ID = "20000000-0000-4000-8000-0000000000c7";
 
 const params = new URLSearchParams(window.location.search);
-const form = ["alert", "incident-rules", "alert-rules"].includes(
-  params.get("form"),
-)
+const form = [
+  "alert",
+  "incident-episode",
+  "alert-episode",
+  "incident-rules",
+  "alert-rules",
+].includes(params.get("form"))
   ? params.get("form")
   : "incident";
 const isRulesPage = form === "incident-rules" || form === "alert-rules";
-const teamsMode = ["none", "one"].includes(params.get("teams"))
+const isAlertSide = ["alert", "alert-episode", "alert-rules"].includes(form);
+const teamsMode = ["none", "one", "lots"].includes(params.get("teams"))
   ? params.get("teams")
   : "many";
+const isMasterAdmin = params.get("admin") === "1";
 const rulesMode = params.get("rules") || "some";
 const language = params.get("lang") === "de" ? "de" : "en";
 
@@ -120,7 +137,7 @@ window.__fixture = {
 
 const HELD = [Permission.ProjectOwner];
 
-UserUtil.isMasterAdmin = () => false;
+UserUtil.isMasterAdmin = () => isMasterAdmin;
 UserUtil.isLoggedIn = () => true;
 UserUtil.getUserId = () => new ObjectID(ADA_ID);
 UserUtil.getName = () => new Name("Ada Lovelace");
@@ -202,13 +219,25 @@ const DATABASE = record(Team, "40", { name: "Database" });
 const SRE = record(Team, "40", { name: "SRE On-call" });
 const MEMBERS = record(Team, "40", { name: "Members" });
 const FRONTEND = record(Team, "40", { name: "Frontend" });
+// Teams only a crowded project has (?teams=lots), some with long names.
+const CROWDED_TEAMS = [
+  "Customer Experience and Support (Europe, Middle East and Africa)",
+  "Site Reliability Engineering - Payments",
+  "Mobile",
+  "Data Platform Ingestion",
+  "Security",
+].map((name) => {
+  return record(Team, "40", { name });
+});
 
 const MY_TEAMS =
   teamsMode === "none"
     ? []
     : teamsMode === "one"
       ? [PLATFORM]
-      : [PLATFORM, DATABASE, MEMBERS];
+      : teamsMode === "lots"
+        ? [PLATFORM, DATABASE, MEMBERS, ...CROWDED_TEAMS]
+        : [PLATFORM, DATABASE, MEMBERS];
 
 function membership(user, team) {
   return record(TeamMember, "50", {
@@ -258,7 +287,7 @@ const INCIDENT_OWNER_RULES = [
 
 const TABLES = {
   User: [ADA, GRACE, LINUS],
-  Team: [PLATFORM, DATABASE, SRE, MEMBERS, FRONTEND],
+  Team: [PLATFORM, DATABASE, SRE, MEMBERS, FRONTEND, ...CROWDED_TEAMS],
   TeamMember: [
     ...MY_TEAMS.map((team) => membership(ADA, team)),
     membership(GRACE, DATABASE),
@@ -551,6 +580,49 @@ function alertRules() {
   ];
 }
 
+// An episode has no creator's team: its rules name whom they add.
+function incidentEpisodeRules() {
+  return [
+    {
+      ruleId: "a0000000-0000-4000-8000-0000000000c4",
+      ruleName: "Every episode",
+      userIds: [GRACE._id],
+      teamIds: [DATABASE._id],
+      creatorTeamIds: [],
+      notifiesOwners: true,
+    },
+  ];
+}
+
+function alertEpisodeRules() {
+  return [
+    {
+      ruleId: "a0000000-0000-4000-8000-0000000000c5",
+      ruleName: "Alert episodes",
+      userIds: [],
+      teamIds: [SRE._id],
+      creatorTeamIds: [],
+      notifiesOwners: true,
+    },
+  ];
+}
+
+function previewRules(url, draft) {
+  if (url.endsWith("/incident-episode/owner-rule-preview")) {
+    return incidentEpisodeRules();
+  }
+
+  if (url.endsWith("/alert-episode/owner-rule-preview")) {
+    return alertEpisodeRules();
+  }
+
+  if (url.endsWith("/incident/owner-rule-preview")) {
+    return incidentRules(draft);
+  }
+
+  return alertRules();
+}
+
 API.post = async (options) => {
   const url = String(options.url);
 
@@ -590,11 +662,7 @@ API.post = async (options) => {
 
     return new HTTPResponse(
       200,
-      {
-        rules: url.endsWith("/incident/owner-rule-preview")
-          ? incidentRules(options.data || {})
-          : alertRules(),
-      },
+      { rules: previewRules(url, options.data || {}) },
       {},
     );
   }
@@ -643,27 +711,43 @@ await i18next.use(initReactI18next).init({
 });
 document.documentElement.lang = language;
 
+const CREATE_PAGES = {
+  incident: IncidentCreate,
+  alert: AlertCreate,
+  "incident-episode": IncidentEpisodeCreate,
+  "alert-episode": AlertEpisodeCreate,
+};
+
 function Shell() {
   Navigation.setNavigateHook(useNavigate());
   Navigation.setLocation(useLocation());
-  Navigation.setParams(useParams());
+  const routeParams = useParams();
+  Navigation.setParams(routeParams);
 
   if (isRulesPage) {
     const RulesPage =
       form === "alert-rules" ? AlertOwnerRulesPage : IncidentOwnerRulesPage;
+    // A rule's own page is the rules page, drawn for that one rule.
+    const ruleViewModelType = routeParams.modelId
+      ? form === "alert-rules"
+        ? AlertOwnerRule
+        : IncidentOwnerRule
+      : undefined;
 
     return (
       <main className="mx-auto max-w-[1200px] px-4 py-8 sm:px-8">
         <RulesPage
+          key={routeParams.modelId || "list"}
           pageRoute={Navigation.getCurrentRoute()}
           currentProject={project}
           hasPaymentMethod={true}
+          ruleViewModelType={ruleViewModelType}
         />
       </main>
     );
   }
 
-  const Create = form === "alert" ? AlertCreate : IncidentCreate;
+  const Create = CREATE_PAGES[form];
 
   return (
     <main className="mx-auto max-w-[1200px] px-4 py-8 sm:px-8">
@@ -676,11 +760,19 @@ function Shell() {
   );
 }
 
-const target = `/dashboard/${PROJECT_ID}/${
-  form === "alert" || form === "alert-rules" ? "alerts" : "incidents"
-}/${isRulesPage ? "settings/owner-rules" : "create"}`;
+const target = `/dashboard/${PROJECT_ID}/${isAlertSide ? "alerts" : "incidents"}/${
+  isRulesPage
+    ? "settings/owner-rules"
+    : form.endsWith("episode")
+      ? "episodes/create"
+      : "create"
+}`;
 
-if (window.location.pathname !== target) {
+// A rule's own page (target/<rule id>) is opened as it is.
+if (
+  window.location.pathname !== target &&
+  !(isRulesPage && window.location.pathname.startsWith(`${target}/`))
+) {
   window.history.replaceState(null, "", target + window.location.search);
 }
 
@@ -701,6 +793,22 @@ createRoot(document.getElementById("root")).render(
       />
       <PageRoute
         path="/dashboard/:projectId/alerts/settings/owner-rules"
+        element={<Shell />}
+      />
+      <PageRoute
+        path="/dashboard/:projectId/incidents/settings/owner-rules/:modelId"
+        element={<Shell />}
+      />
+      <PageRoute
+        path="/dashboard/:projectId/alerts/settings/owner-rules/:modelId"
+        element={<Shell />}
+      />
+      <PageRoute
+        path="/dashboard/:projectId/incidents/episodes/create"
+        element={<Shell />}
+      />
+      <PageRoute
+        path="/dashboard/:projectId/alerts/episodes/create"
         element={<Shell />}
       />
       <PageRoute

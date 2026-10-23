@@ -33423,5 +33423,7 @@
   "Your teams:": "आपकी टीमें:",
   "Your teams:_one": "आपकी टीम:",
   "Optionally assign owners from related entities, or the creator's team, to the incident.": "वैकल्पिक रूप से, संबंधित एंटिटी के मालिकों या निर्माता की टीम को घटना का मालिक बनाएँ।",
-  "Optionally assign owners from related entities, or the creator's team, to the alert.": "वैकल्पिक रूप से, संबंधित एंटिटी के मालिकों या निर्माता की टीम को अलर्ट का मालिक बनाएँ।"
+  "Optionally assign owners from related entities, or the creator's team, to the alert.": "वैकल्पिक रूप से, संबंधित एंटिटी के मालिकों या निर्माता की टीम को अलर्ट का मालिक बनाएँ।",
+  "Add your team, or anyone else who should own it.": "अपनी टीम या किसी और को जोड़ें जिसे इसका मालिक होना चाहिए।",
+  "Everyone it adds is already an owner.": "यह नियम जिन्हें जोड़ता है, वे सभी पहले से मालिक हैं।"
 }

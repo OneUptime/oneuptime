@@ -3,9 +3,10 @@ import Field from "Common/UI/Components/Forms/Types/Field";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getOwnersPeoplePickerConfig } from "Common/UI/Components/PeoplePicker/OwnersFormField";
 import { PeoplePickerFieldConfig } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
+import UserUtil from "Common/UI/Utils/User";
 import React, { ReactElement } from "react";
 import { getMyTeamSuggestionsFooter } from "./MyTeamSuggestions";
-import { OWNERS_ON_CREATE_DESCRIPTIONS } from "./OwnersOnCreateRules";
+import { getOwnersOnCreateDescription } from "./OwnersOnCreateRules";
 import OwnersOnCreateSummary from "./OwnersOnCreateSummary";
 
 /*
@@ -41,7 +42,11 @@ export const getOwnersOnCreateFieldOptions: <TEntity>(
   const config: PeoplePickerFieldConfig = getOwnersPeoplePickerConfig();
 
   return {
-    description: OWNERS_ON_CREATE_DESCRIPTIONS[event],
+    // "You become an owner..." only to someone OneUptime makes one.
+    description: getOwnersOnCreateDescription(
+      event,
+      Boolean(UserUtil.isMasterAdmin()),
+    ),
     getFooterElement: getMyTeamSuggestionsFooter<TEntity>(config),
     /*
      * Listed on the review step whatever it holds, folded or not: the owner

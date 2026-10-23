@@ -33423,5 +33423,7 @@
   "Your teams:": "Ваши команды:",
   "Your teams:_one": "Ваша команда:",
   "Optionally assign owners from related entities, or the creator's team, to the incident.": "При необходимости назначьте инциденту владельцев из связанных сущностей или команду создателя.",
-  "Optionally assign owners from related entities, or the creator's team, to the alert.": "При необходимости назначьте оповещению владельцев из связанных сущностей или команду создателя."
+  "Optionally assign owners from related entities, or the creator's team, to the alert.": "При необходимости назначьте оповещению владельцев из связанных сущностей или команду создателя.",
+  "Add your team, or anyone else who should own it.": "Добавьте свою команду или любого, кто должен им владеть.",
+  "Everyone it adds is already an owner.": "Все, кого добавляет это правило, уже владельцы."
 }

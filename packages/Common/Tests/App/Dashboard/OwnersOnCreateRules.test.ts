@@ -11,9 +11,11 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 /*
  * The rules behind the Owners field of the create forms (Dashboard
  * Components/OwnersOnCreate): the event as the preview asks about it, which
- * rules are worth a line, which of the creator's teams are offered, and
- * where the preview is asked - each event's route, written out so the
- * tenant-header sweep can see it, and the same route the server registers.
+ * rules are worth a line and whom each line names, which of the creator's
+ * teams are offered, what the field says to someone OneUptime makes an
+ * owner and to a master admin, whom it does not, and where the preview is
+ * asked - each event's route, written out so the tenant-header sweep can
+ * see it, and the same route the server registers.
  */
 
 const postMock: MockFunction = getJestMockFunction();
@@ -49,9 +51,13 @@ import {
   getOwnerRulePreviewDraft,
   getOwnerRulePreviewRequestKey,
   getOwnerRulesToShow,
+  getOwnersNewFromRule,
+  getOwnersOnCreateDescription,
   getTeamsToSuggest,
   isCreatorMadeOwner,
   MyTeam,
+  OWNER_RULE_ADDS_NOBODY_NEW,
+  OWNERS_ON_CREATE_ADD_DESCRIPTION,
   OWNERS_ON_CREATE_DESCRIPTIONS,
   OWNERS_SUMMARY_NOBODY_ELSE_PICKED,
   OWNERS_SUMMARY_NOBODY_PICKED,
@@ -79,6 +85,9 @@ const SERVICE: string = "a0000000-0000-4000-8000-000000000007";
 const PLATFORM: string = "b0000000-0000-4000-8000-000000000001";
 const SRE: string = "b0000000-0000-4000-8000-000000000002";
 const PAYMENTS: string = "b0000000-0000-4000-8000-000000000003";
+const CREATOR: string = "d0000000-0000-4000-8000-000000000001";
+const GRACE: string = "d0000000-0000-4000-8000-000000000002";
+const LINUS: string = "d0000000-0000-4000-8000-000000000003";
 
 const EVENTS: Array<OwnerRulePreviewEvent> = [
   OwnerRulePreviewEvent.Incident,
@@ -212,6 +221,98 @@ describe("the owner rules worth a line", () => {
   });
 });
 
+describe("whom a rule's line on the review names", () => {
+  const RULE: OwnerRulePreviewRule = {
+    ruleId: "c0000000-0000-4000-8000-000000000002",
+    ruleName: "Checkout owners",
+    userIds: [CREATOR, GRACE, LINUS],
+    teamIds: [PLATFORM, SRE],
+    creatorTeamIds: [PLATFORM],
+    notifiesOwners: true,
+  };
+
+  test("with nobody picked and no creator made an owner, everyone the rule adds, in its order", () => {
+    expect(
+      getOwnersNewFromRule({
+        rule: RULE,
+        pickedUserIds: undefined,
+        pickedTeamIds: undefined,
+        creatorUserId: null,
+      }),
+    ).toEqual({
+      userIds: [CREATOR, GRACE, LINUS],
+      teamIds: [PLATFORM, SRE],
+    });
+  });
+
+  test("leaves out the people and teams picked - they are owners already", () => {
+    expect(
+      getOwnersNewFromRule({
+        rule: RULE,
+        pickedUserIds: [GRACE],
+        pickedTeamIds: [SRE],
+        creatorUserId: null,
+      }),
+    ).toEqual({
+      userIds: [CREATOR, LINUS],
+      teamIds: [PLATFORM],
+    });
+  });
+
+  test("leaves out the person creating it when OneUptime makes them an owner", () => {
+    expect(
+      getOwnersNewFromRule({
+        rule: RULE,
+        pickedUserIds: [],
+        pickedTeamIds: [],
+        creatorUserId: CREATOR,
+      }).userIds,
+    ).toEqual([GRACE, LINUS]);
+  });
+
+  test("matches picks whatever shape or case the form keeps them in", () => {
+    expect(
+      getOwnersNewFromRule({
+        rule: RULE,
+        pickedUserIds: [{ _id: GRACE.toUpperCase() }, new ObjectID(LINUS)],
+        pickedTeamIds: [{ value: PLATFORM, label: "Platform" }],
+        creatorUserId: CREATOR.toUpperCase(),
+      }),
+    ).toEqual({ userIds: [], teamIds: [SRE] });
+  });
+
+  test("is nobody once everyone it adds is picked - the line says so instead", () => {
+    expect(
+      getOwnersNewFromRule({
+        rule: RULE,
+        pickedUserIds: [GRACE, LINUS],
+        pickedTeamIds: [PLATFORM, SRE],
+        creatorUserId: CREATOR,
+      }),
+    ).toEqual({ userIds: [], teamIds: [] });
+    expect(OWNER_RULE_ADDS_NOBODY_NEW).toBe(
+      "Everyone it adds is already an owner.",
+    );
+  });
+
+  test("never changes the rule it reads", () => {
+    const rule: OwnerRulePreviewRule = {
+      ...RULE,
+      userIds: [...RULE.userIds],
+      teamIds: [...RULE.teamIds],
+    };
+
+    getOwnersNewFromRule({
+      rule: rule,
+      pickedUserIds: [GRACE],
+      pickedTeamIds: [SRE],
+      creatorUserId: CREATOR,
+    });
+
+    expect(rule).toEqual(RULE);
+  });
+});
+
 describe("the creator's teams offered under the picker", () => {
   const MY_TEAMS: Array<MyTeam> = [
     { id: PLATFORM, name: "Platform" },
@@ -268,12 +369,22 @@ describe("the creator's teams offered under the picker", () => {
 
 describe("what the Owners field says", () => {
   test("an incident's and an alert's creator is made an owner; an episode's is not", () => {
-    expect(isCreatorMadeOwner(OwnerRulePreviewEvent.Incident)).toBe(true);
-    expect(isCreatorMadeOwner(OwnerRulePreviewEvent.Alert)).toBe(true);
-    expect(isCreatorMadeOwner(OwnerRulePreviewEvent.IncidentEpisode)).toBe(
+    expect(isCreatorMadeOwner(OwnerRulePreviewEvent.Incident, false)).toBe(
+      true,
+    );
+    expect(isCreatorMadeOwner(OwnerRulePreviewEvent.Alert, false)).toBe(true);
+    expect(
+      isCreatorMadeOwner(OwnerRulePreviewEvent.IncidentEpisode, false),
+    ).toBe(false);
+    expect(isCreatorMadeOwner(OwnerRulePreviewEvent.AlertEpisode, false)).toBe(
       false,
     );
-    expect(isCreatorMadeOwner(OwnerRulePreviewEvent.AlertEpisode)).toBe(false);
+  });
+
+  test("a master admin is never made the owner of what they create (DatabaseService.autoOwnerOnCreate)", () => {
+    for (const event of EVENTS) {
+      expect(isCreatorMadeOwner(event, true)).toBe(false);
+    }
   });
 
   test("says so on the field, in each event's words", () => {
@@ -283,21 +394,56 @@ describe("what the Owners field says", () => {
     expect(OWNERS_ON_CREATE_DESCRIPTIONS[OwnerRulePreviewEvent.Alert]).toBe(
       "You become an owner when you create it. Add your team, or anyone else who should own it.",
     );
+
+    for (const event of EVENTS) {
+      expect(getOwnersOnCreateDescription(event, false)).toBe(
+        OWNERS_ON_CREATE_DESCRIPTIONS[event],
+      );
+    }
+  });
+
+  test("tells a master admin only to add owners - they do not become one", () => {
+    expect(OWNERS_ON_CREATE_ADD_DESCRIPTION).toBe(
+      "Add your team, or anyone else who should own it.",
+    );
+    expect(
+      getOwnersOnCreateDescription(OwnerRulePreviewEvent.Incident, true),
+    ).toBe(OWNERS_ON_CREATE_ADD_DESCRIPTION);
+    expect(
+      getOwnersOnCreateDescription(OwnerRulePreviewEvent.Alert, true),
+    ).toBe(OWNERS_ON_CREATE_ADD_DESCRIPTION);
+    // An episode's line never said the creator owns it.
+    expect(
+      getOwnersOnCreateDescription(OwnerRulePreviewEvent.IncidentEpisode, true),
+    ).toBe(
+      OWNERS_ON_CREATE_DESCRIPTIONS[OwnerRulePreviewEvent.IncidentEpisode],
+    );
+    expect(
+      getOwnersOnCreateDescription(OwnerRulePreviewEvent.AlertEpisode, true),
+    ).toBe(OWNERS_ON_CREATE_DESCRIPTIONS[OwnerRulePreviewEvent.AlertEpisode]);
   });
 
   test("on the review with nobody picked, says nobody else is - or nobody, on an episode", () => {
-    expect(getNobodyPickedText(OwnerRulePreviewEvent.Incident)).toBe(
+    expect(getNobodyPickedText(OwnerRulePreviewEvent.Incident, false)).toBe(
       OWNERS_SUMMARY_NOBODY_ELSE_PICKED,
     );
-    expect(getNobodyPickedText(OwnerRulePreviewEvent.Alert)).toBe(
+    expect(getNobodyPickedText(OwnerRulePreviewEvent.Alert, false)).toBe(
       OWNERS_SUMMARY_NOBODY_ELSE_PICKED,
     );
-    expect(getNobodyPickedText(OwnerRulePreviewEvent.IncidentEpisode)).toBe(
+    expect(
+      getNobodyPickedText(OwnerRulePreviewEvent.IncidentEpisode, false),
+    ).toBe(OWNERS_SUMMARY_NOBODY_PICKED);
+    expect(getNobodyPickedText(OwnerRulePreviewEvent.AlertEpisode, false)).toBe(
       OWNERS_SUMMARY_NOBODY_PICKED,
     );
-    expect(getNobodyPickedText(OwnerRulePreviewEvent.AlertEpisode)).toBe(
-      OWNERS_SUMMARY_NOBODY_PICKED,
-    );
+  });
+
+  test("on a master admin's review with nobody picked, says nobody is", () => {
+    for (const event of EVENTS) {
+      expect(getNobodyPickedText(event, true)).toBe(
+        OWNERS_SUMMARY_NOBODY_PICKED,
+      );
+    }
   });
 });
 

@@ -33423,5 +33423,7 @@
   "Your teams:": "Teamene dine:",
   "Your teams:_one": "Teamet ditt:",
   "Optionally assign owners from related entities, or the creator's team, to the incident.": "Tildel eventuelt hendelsen eiere fra relaterte enheter eller oppretterens team.",
-  "Optionally assign owners from related entities, or the creator's team, to the alert.": "Tildel eventuelt varselet eiere fra relaterte enheter eller oppretterens team."
+  "Optionally assign owners from related entities, or the creator's team, to the alert.": "Tildel eventuelt varselet eiere fra relaterte enheter eller oppretterens team.",
+  "Add your team, or anyone else who should own it.": "Legg til teamet ditt eller andre som skal være eiere.",
+  "Everyone it adds is already an owner.": "Alle den legger til, er allerede eiere."
 }

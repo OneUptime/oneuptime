@@ -14,15 +14,20 @@ import {
   readPeoplePickerFormValue,
 } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import UserUtil from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import {
   getNobodyPickedText,
   getOwnerRulePreviewDraft,
   getOwnerRulesToShow,
+  getOwnersNewFromRule,
+  isCreatorMadeOwner,
+  OWNER_RULE_ADDS_NOBODY_NEW,
   OWNER_RULES_ADD_HEADING,
   OWNER_RULES_CHECKING,
   OWNER_RULES_COULD_NOT_CHECK,
+  OwnerRuleNewOwners,
   UNNAMED_OWNER_RULE,
 } from "./OwnersOnCreateRules";
 import useOwnerRulePreview, {
@@ -35,7 +40,10 @@ import useOwnerRulePreview, {
  * fields, then each owner rule that matches what was filled in, by name,
  * with whom it adds - worked out by the server, by the code the create
  * runs (useOwnerRulePreview). The row's own line, above it, says that the
- * person creating an incident or an alert becomes an owner too.
+ * person creating an incident or an alert becomes an owner too, so a
+ * rule's line leaves them out, and everyone picked: it names whom the rule
+ * adds that is not an owner already (getOwnersNewFromRule), or says that
+ * everyone it adds is.
  *
  * The rules are advisory: while they are worked out the row says so, a
  * failure says so in a line and never blocks the create, and someone who
@@ -59,11 +67,20 @@ const OwnersOnCreateSummary: FunctionComponent<OwnersOnCreateSummaryProps> = (
   props: OwnersOnCreateSummaryProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const isMasterAdmin: boolean = Boolean(UserUtil.isMasterAdmin());
 
   const picked: PeoplePickerValue = readPeoplePickerFormValue(
     props.config,
     props.values,
   );
+
+  // The person creating it, when OneUptime makes them an owner.
+  const creatorUserId: string | null = isCreatorMadeOwner(
+    props.event,
+    isMasterAdmin,
+  )
+    ? UserUtil.getUserId()?.toString() || null
+    : null;
 
   const draft: OwnerRulePreviewDraft = getOwnerRulePreviewDraft(
     props.event,
@@ -90,7 +107,9 @@ const OwnersOnCreateSummary: FunctionComponent<OwnersOnCreateSummaryProps> = (
           className="text-sm text-gray-500"
           data-testid="owners-on-create-nobody-picked"
         >
-          {translator.translateText(getNobodyPickedText(props.event))}
+          {translator.translateText(
+            getNobodyPickedText(props.event, isMasterAdmin),
+          )}
         </p>
       )}
 
@@ -130,6 +149,13 @@ const OwnersOnCreateSummary: FunctionComponent<OwnersOnCreateSummaryProps> = (
           </p>
           <ul className="mt-1.5 space-y-2">
             {rules.map((rule: OwnerRulePreviewRule): ReactElement => {
+              const newOwners: OwnerRuleNewOwners = getOwnersNewFromRule({
+                rule: rule,
+                pickedUserIds: picked[PeoplePickerKind.User],
+                pickedTeamIds: picked[PeoplePickerKind.Team],
+                creatorUserId: creatorUserId,
+              });
+
               return (
                 <li
                   key={rule.ruleId}
@@ -138,20 +164,30 @@ const OwnersOnCreateSummary: FunctionComponent<OwnersOnCreateSummaryProps> = (
                   data-rule-id={rule.ruleId}
                 >
                   <span
-                    className="min-w-0 break-words text-sm text-gray-600 sm:w-56 sm:shrink-0"
+                    className="min-w-0 break-words text-sm text-gray-600 sm:w-64 sm:shrink-0"
                     data-testid="owner-rule-preview-rule-name"
                   >
                     {rule.ruleName ||
                       translator.translateText(UNNAMED_OWNER_RULE)}
                   </span>
-                  <PeopleListFromIds
-                    kinds={OWNER_KINDS}
-                    value={{
-                      [PeoplePickerKind.User]: rule.userIds,
-                      [PeoplePickerKind.Team]: rule.teamIds,
-                    }}
-                    dataTestId="owner-rule-preview-owners"
-                  />
+                  {newOwners.userIds.length > 0 ||
+                  newOwners.teamIds.length > 0 ? (
+                    <PeopleListFromIds
+                      kinds={OWNER_KINDS}
+                      value={{
+                        [PeoplePickerKind.User]: newOwners.userIds,
+                        [PeoplePickerKind.Team]: newOwners.teamIds,
+                      }}
+                      dataTestId="owner-rule-preview-owners"
+                    />
+                  ) : (
+                    <span
+                      className="text-sm text-gray-500"
+                      data-testid="owner-rule-preview-nobody-new"
+                    >
+                      {translator.translateText(OWNER_RULE_ADDS_NOBODY_NEW)}
+                    </span>
+                  )}
                 </li>
               );
             })}

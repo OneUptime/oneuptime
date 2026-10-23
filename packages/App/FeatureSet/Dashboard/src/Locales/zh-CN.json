@@ -33423,5 +33423,7 @@
   "Your teams:": "你的团队：",
   "Your teams:_one": "你的团队：",
   "Optionally assign owners from related entities, or the creator's team, to the incident.": "可选：将相关实体的所有者或创建者的团队设为该事件的所有者。",
-  "Optionally assign owners from related entities, or the creator's team, to the alert.": "可选：将相关实体的所有者或创建者的团队设为该警报的所有者。"
+  "Optionally assign owners from related entities, or the creator's team, to the alert.": "可选：将相关实体的所有者或创建者的团队设为该警报的所有者。",
+  "Add your team, or anyone else who should own it.": "添加你的团队，或任何应拥有它的其他人。",
+  "Everyone it adds is already an owner.": "它添加的所有人都已是所有者。"
 }

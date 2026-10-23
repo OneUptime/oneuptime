@@ -28,9 +28,14 @@ import path from "path";
  *     offered to someone in no team;
  *   - the review step's Owners row always says who will own it: the owners
  *     picked, then each owner rule that will run, by name, with whom it
- *     adds - worked out by the server for what was filled in (a label brings
- *     a rule in); while it asks, when it cannot, and to someone who may not
- *     see the rules, it says so, or nothing;
+ *     adds that is not an owner already - worked out by the server for what
+ *     was filled in (a label brings a rule in); while it asks, when it
+ *     cannot, and to someone who may not see the rules, it says so, or
+ *     nothing;
+ *   - a master admin, whom OneUptime does not make an owner, is not told
+ *     they will be one;
+ *   - Create Incident Episode (Owners under More fields) and Create Alert
+ *     Episode (Owners on its On-Call & Owners step), the same way;
  *   - what the preview is asked, and what a create sends: the owners picked,
  *     as ownerUsers and ownerTeams;
  *   - all of it at a 390px phone's width, in dark mode and in German.
@@ -38,13 +43,15 @@ import path from "path";
  * And the other half, Settings > Owner Rules: an incident or alert owner
  * rule lists teams under Creator's Team, last in its Inherit Owners fold -
  * whose folded line says so - and a rule that lists only a team there adds
- * someone: it saves, is named after it, reads back on Edit, and is not
- * marked "Adds nothing".
+ * someone: it saves, is named after it, reads back on Edit and on its own
+ * page, and is not marked "Adds nothing".
  */
 
 const PROJECT_ID: string = "10000000-0000-4000-8000-0000000000c7";
 const INCIDENT_PATH: string = `/dashboard/${PROJECT_ID}/incidents/create`;
 const ALERT_PATH: string = `/dashboard/${PROJECT_ID}/alerts/create`;
+const INCIDENT_EPISODE_PATH: string = `/dashboard/${PROJECT_ID}/incidents/episodes/create`;
+const ALERT_EPISODE_PATH: string = `/dashboard/${PROJECT_ID}/alerts/episodes/create`;
 const INCIDENT_RULES_PATH: string = `/dashboard/${PROJECT_ID}/incidents/settings/owner-rules`;
 const ALERT_RULES_PATH: string = `/dashboard/${PROJECT_ID}/alerts/settings/owner-rules`;
 const PORT: string = process.env["OWNERS_ON_CREATE_FIXTURE_PORT"] || "4253";
@@ -69,6 +76,13 @@ const INCIDENT_LINE: string =
   "You become an owner when you declare it. Add your team, or anyone else who should own it.";
 const ALERT_LINE: string =
   "You become an owner when you create it. Add your team, or anyone else who should own it.";
+// The line for someone OneUptime does not make an owner: a master admin.
+const ADD_ONLY_LINE: string =
+  "Add your team, or anyone else who should own it.";
+const EPISODE_LINE: string =
+  "Who owns this episode. They are notified when it is created or updated.";
+// A rule's line on the review when it brings nobody who is not an owner yet.
+const NOBODY_NEW: string = "Everyone it adds is already an owner.";
 
 // The owner rule form's words for the creator's team, on each kind of rule.
 const RULE_FOLD_LINES: Record<"incident" | "alert", string> = {
@@ -163,18 +177,28 @@ async function screenshot(page: Page, name: string): Promise<void> {
   });
 }
 
+type CreateForm = "incident" | "alert" | "incident-episode" | "alert-episode";
+
+const CREATE_PATHS: Record<CreateForm, string> = {
+  incident: INCIDENT_PATH,
+  alert: ALERT_PATH,
+  "incident-episode": INCIDENT_EPISODE_PATH,
+  "alert-episode": ALERT_EPISODE_PATH,
+};
+
 async function openForm(
   page: Page,
-  data: { form?: "incident" | "alert"; query?: string } = {},
+  data: { form?: CreateForm; query?: string } = {},
 ): Promise<void> {
-  const form: "incident" | "alert" = data.form || "incident";
-  const query: string = [form === "alert" ? "form=alert" : "", data.query || ""]
+  const form: CreateForm = data.form || "incident";
+  const query: string = [
+    form === "incident" ? "" : `form=${form}`,
+    data.query || "",
+  ]
     .filter(Boolean)
     .join("&");
 
-  await page.goto(
-    `${form === "alert" ? ALERT_PATH : INCIDENT_PATH}${query ? `?${query}` : ""}`,
-  );
+  await page.goto(`${CREATE_PATHS[form]}${query ? `?${query}` : ""}`);
   await page.evaluate(async (): Promise<void> => {
     await document.fonts.ready;
   });
@@ -284,9 +308,10 @@ async function eventSaves(
 
 async function toSummary(
   page: Page,
-  form: "incident" | "alert" = "incident",
+  form: CreateForm = "incident",
 ): Promise<void> {
-  const steps: number = form === "alert" ? 2 : 3;
+  // Declare Incident walks three steps to its summary; the others two.
+  const steps: number = form === "incident" ? 3 : 2;
 
   for (let index: number = 0; index < steps; index++) {
     await page.getByRole("button", { name: "Next", exact: true }).click();
@@ -307,14 +332,16 @@ async function ruleRows(
 
   for (let index: number = 0; index < (await rows.count()); index++) {
     const row: Locator = rows.nth(index);
+    // Whom it adds, or - everyone it adds an owner already - the line saying so.
+    const owners: Locator = row
+      .getByTestId("owner-rule-preview-owners")
+      .or(row.getByTestId("owner-rule-preview-nobody-new"));
 
     result.push({
       name: (
         await row.getByTestId("owner-rule-preview-rule-name").innerText()
       ).trim(),
-      owners: (
-        await row.getByTestId("owner-rule-preview-owners").innerText()
-      ).replace(/\s+/g, " "),
+      owners: (await owners.innerText()).replace(/\s+/g, " ").trim(),
     });
   }
 
@@ -559,6 +586,10 @@ test.describe("Declare Incident", () => {
       ownersRow(page).getByTestId("owner-rule-preview"),
     ).toContainText("Added by owner rules");
 
+    /*
+     * Each rule names whom it adds that is not an owner yet: the creator's
+     * team rule brings Platform and Database, and Platform is picked.
+     */
     await expect
       .poll(() => {
         return ruleRows(page);
@@ -570,11 +601,13 @@ test.describe("Declare Incident", () => {
         },
         {
           name: "Add the creator's team as an owner",
-          owners: expect.stringMatching(
-            /Platform.*Database|Database.*Platform/,
-          ),
+          owners: expect.stringMatching(/Database/),
         },
       ]);
+    expect(
+      (await ruleRows(page))[1]!.owners,
+      "Platform is picked already",
+    ).not.toContain("Platform");
 
     await screenshot(page, "incident-review-owners-1280");
 
@@ -588,6 +621,34 @@ test.describe("Declare Incident", () => {
     expect(asked.body["title"]).toBe("Checkout is down");
     expect(asked.body["severityId"]).toBeTruthy();
     expect(asked.body["labelIds"]).toEqual([record.ids.databaseLabel]);
+  });
+
+  test("a rule whose owners are all picked already says so, rather than naming them again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openForm(page);
+    await fillDetails(page);
+    await openMoreFields(page);
+    await page.getByTestId("my-team-suggestions-add-all").click();
+    await expect
+      .poll(() => {
+        return pickedNames(page);
+      })
+      .toHaveLength(3);
+
+    await toSummary(page);
+
+    await expect
+      .poll(() => {
+        return ruleRows(page);
+      })
+      .toEqual([
+        { name: "Add the creator's team as an owner", owners: NOBODY_NEW },
+      ]);
+
+    await screenshot(page, "incident-review-owners-already-1280");
   });
 
   test("declaring sends the owners picked - and none picked by itself", async ({
@@ -740,6 +801,181 @@ test.describe("Create Alert", () => {
   });
 });
 
+test.describe("as a master admin", () => {
+  test("is not told they become an owner - OneUptime does not make them one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openForm(page, { query: "admin=1" });
+    await fillDetails(page);
+    await openMoreFields(page);
+
+    await expect(page.getByText(ADD_ONLY_LINE, { exact: true })).toBeVisible();
+    await expect(page.getByText(INCIDENT_LINE)).toBeHidden();
+    // Their teams are still one click away.
+    expect(await suggestedTeams(page)).toEqual([
+      "Database",
+      "Members",
+      "Platform",
+    ]);
+
+    await toSummary(page);
+
+    await expect(
+      ownersRow(page).getByTestId("owners-on-create-nobody-picked"),
+    ).toHaveText("Nobody picked.");
+    await expect
+      .poll(() => {
+        return ruleRows(page);
+      })
+      .toEqual([
+        {
+          name: "Add the creator's team as an owner",
+          owners: expect.stringMatching(/Platform.*Database/),
+        },
+      ]);
+  });
+});
+
+test.describe("Create Incident Episode", () => {
+  test("keeps Owners under More fields, offers the creator's teams, says which rules add whom, and sends the owners picked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openForm(page, { form: "incident-episode" });
+
+    await expect(moreFields(page)).toHaveAttribute("aria-expanded", "false");
+    await expect(moreFields(page)).toContainText("Owners");
+
+    await fillDetails(page);
+    await openMoreFields(page);
+
+    await expect(page.getByText(EPISODE_LINE)).toBeVisible();
+    expect(await suggestedTeams(page)).toEqual([
+      "Database",
+      "Members",
+      "Platform",
+    ]);
+
+    await suggestions(page)
+      .getByRole("button", { name: "Add Platform as an owner" })
+      .click();
+    await expect
+      .poll(() => {
+        return pickedNames(page);
+      })
+      .toEqual(["Platform"]);
+
+    await screenshot(page, "incident-episode-owners-1280");
+
+    await toSummary(page, "incident-episode");
+
+    await expect(
+      ownersRow(page).getByTestId("owners-on-create-picked"),
+    ).toHaveText(/Platform/);
+    await expect
+      .poll(() => {
+        return ruleRows(page);
+      })
+      .toEqual([
+        {
+          name: "Every episode",
+          owners: expect.stringMatching(/Grace Hopper.*Database/),
+        },
+      ]);
+
+    await screenshot(page, "incident-episode-review-owners-1280");
+
+    const record: FixtureRecord = await fixture(page);
+
+    expect(record.previews[record.previews.length - 1]!.url).toMatch(
+      /\/incident-episode\/owner-rule-preview$/,
+    );
+
+    await page.getByRole("button", { name: "Create Episode" }).click();
+
+    await expect
+      .poll(async () => {
+        return (await eventSaves(page, "IncidentEpisode")).length;
+      })
+      .toBe(1);
+
+    const created: FixtureRecord["saves"][number] = (
+      await eventSaves(page, "IncidentEpisode")
+    )[0]!;
+
+    expect(created.miscDataProps["ownerTeams"]).toEqual([record.ids.platform]);
+  });
+});
+
+test.describe("Create Alert Episode", () => {
+  test("asks for owners on On-Call & Owners, with the creator's teams, and says which rules add whom", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openForm(page, { form: "alert-episode" });
+    await fillDetails(page, "alert");
+    await page.getByRole("button", { name: "Next", exact: true }).click();
+
+    await expect(page.getByText(EPISODE_LINE)).toBeVisible();
+    expect(await suggestedTeams(page)).toEqual([
+      "Database",
+      "Members",
+      "Platform",
+    ]);
+
+    await suggestions(page)
+      .getByRole("button", { name: "Add Database as an owner" })
+      .click();
+    await expect
+      .poll(() => {
+        return pickedNames(page);
+      })
+      .toEqual(["Database"]);
+
+    await screenshot(page, "alert-episode-owners-1280");
+
+    await page.getByRole("button", { name: "Next", exact: true }).click();
+    await expect(ownersRow(page)).toBeVisible();
+
+    await expect
+      .poll(() => {
+        return ruleRows(page);
+      })
+      .toEqual([
+        {
+          name: "Alert episodes",
+          owners: expect.stringMatching(/SRE On-call/),
+        },
+      ]);
+
+    await screenshot(page, "alert-episode-review-owners-1280");
+
+    const record: FixtureRecord = await fixture(page);
+
+    expect(record.previews[record.previews.length - 1]!.url).toMatch(
+      /\/alert-episode\/owner-rule-preview$/,
+    );
+
+    await page.getByRole("button", { name: "Create Episode" }).click();
+
+    await expect
+      .poll(async () => {
+        return (await eventSaves(page, "AlertEpisode")).length;
+      })
+      .toBe(1);
+
+    const created: FixtureRecord["saves"][number] = (
+      await eventSaves(page, "AlertEpisode")
+    )[0]!;
+
+    expect(created.miscDataProps["ownerTeams"]).toEqual([record.ids.database]);
+  });
+});
+
 test.describe("Owner rules", () => {
   test("a rule that adds only the creator's team is not listed as adding nothing", async ({
     page,
@@ -889,6 +1125,41 @@ test.describe("Owner rules", () => {
       .toEqual([ids.platform, ids.database, ids.frontend]);
   });
 
+  test("a rule's own page lists its Creator's Team", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRulesPage(page, "incident");
+
+    await page
+      .getByRole("row", { name: new RegExp(CREATOR_TEAM_RULE_NAME) })
+      .getByRole("button", { name: /^View / })
+      .click();
+
+    const teams: Locator = page.getByTestId("detail-field").filter({
+      has: page.getByText("Creator's Team", { exact: true }),
+    });
+
+    await expect(teams).toBeVisible();
+    // Each chip reads its avatar's letter, the team's name and "Team".
+    await expect
+      .poll(async () => {
+        return (await teams.getByTestId("people-chip").allInnerTexts()).map(
+          (text: string): string => {
+            return text.replace(/\s+/g, " ").trim();
+          },
+        );
+      })
+      .toEqual([
+        expect.stringMatching(/Platform Team$/),
+        expect.stringMatching(/Database Team$/),
+        expect.stringMatching(/Frontend Team$/),
+      ]);
+
+    await screenshot(page, "incident-owner-rule-view-1280");
+  });
+
   test("an alert rule's creator is whoever creates the alert", async ({
     page,
   }: {
@@ -994,12 +1265,15 @@ test.describe("at a phone's width", () => {
     await openForm(page);
     await fillDetails(page);
     await openMoreFields(page);
-    await page.getByTestId("my-team-suggestions-add-all").click();
+    // Platform picked: the creator's team rule still brings Database.
+    await suggestions(page)
+      .getByRole("button", { name: "Add Platform as an owner" })
+      .click();
     await expect
       .poll(() => {
         return pickedNames(page);
       })
-      .toHaveLength(3);
+      .toEqual(["Platform"]);
     await toSummary(page);
 
     const row: Locator = ownersRow(page)

@@ -46,9 +46,9 @@ When a rule matches:
 - If \`Inherit Owners From Docker Hosts\` is on, every owner of the incident's affected Docker hosts is also added.
 - If \`Inherit Owners From Podman Hosts\` is on, every owner of the incident's affected Podman hosts is also added.
 - If \`Inherit Owners From Services\` is on, every owner of the incident's affected services is also added.
-- Under \`Creator's Team\`, of the teams listed, each one the person who declares the incident is a member of is also added. An incident a monitor, a workflow or an API key declares has no creator.
+- Under \`Creator's Team\`, each listed team that the person who declares the incident is a member of is also added. An incident declared by a monitor, a workflow or an API key has no creator, so it gets none of these teams.
 
-Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified. Multiple matching rules all fire — the union of their owners ends up assigned. The person who declares an incident is made an owner whatever the rules say, and the Declare Incident form lists the rules that will run before the incident is declared.
+Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified. Multiple matching rules all fire — the union of their owners ends up assigned. Whoever declares an incident becomes one of its owners whatever the rules say, and the summary step of Declare Incident lists each rule that will run, and whom it will add.
 `;
 
 const incidentEpisodeOwnerDocumentation: string = `

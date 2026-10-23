@@ -33423,5 +33423,7 @@
   "Your teams:": "내 팀:",
   "Your teams:_one": "내 팀:",
   "Optionally assign owners from related entities, or the creator's team, to the incident.": "필요에 따라 관련 엔터티의 소유자 또는 생성자의 팀을 인시던트에 할당합니다.",
-  "Optionally assign owners from related entities, or the creator's team, to the alert.": "필요에 따라 관련 엔터티의 소유자 또는 생성자의 팀을 알림에 할당합니다."
+  "Optionally assign owners from related entities, or the creator's team, to the alert.": "필요에 따라 관련 엔터티의 소유자 또는 생성자의 팀을 알림에 할당합니다.",
+  "Add your team, or anyone else who should own it.": "본인의 팀이나 소유자가 되어야 할 다른 사람을 추가하세요.",
+  "Everyone it adds is already an owner.": "추가하는 모든 대상이 이미 소유자입니다."
 }

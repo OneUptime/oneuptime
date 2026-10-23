@@ -27,9 +27,11 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     each, Add all for two or more - nothing picked by itself, and nothing
  *     offered to someone in no team;
  *   - the review step's Owners row: who is picked, then each owner rule
- *     that will run - by name, with whom it adds, worked out by the server
- *     - and what it says while it asks, when it cannot, and when the person
- *     may not see the rules (nothing).
+ *     that will run - by name, with whom it adds that is not an owner
+ *     already, worked out by the server - and what it says while it asks,
+ *     when it cannot, and when the person may not see the rules (nothing);
+ *   - a master admin, whom OneUptime does not make the owner of what they
+ *     create, is not told they will be one.
  */
 
 const postMock: MockFunction = getJestMockFunction();
@@ -678,6 +680,108 @@ describe("the review step's Owners row", () => {
     );
   });
 
+  test("names only whom a rule adds that is not an owner already", async () => {
+    postMock.mockResolvedValue(previewAnswer(PLATFORM_RULE));
+
+    renderSummary({
+      values: { title: "Checkout is down", ownerTeams: [PLATFORM] },
+    });
+
+    const rows: Array<HTMLElement> = await screen.findAllByTestId(
+      "owner-rule-preview-rule",
+    );
+
+    // The first rule brings Ada and Platform; Platform is picked.
+    await waitFor(() => {
+      expect(
+        within(rows[0]!).getByTestId("owner-rule-preview-owners"),
+      ).toHaveTextContent("Ada Lovelace");
+    });
+    expect(
+      within(rows[0]!).getByTestId("owner-rule-preview-owners"),
+    ).not.toHaveTextContent("Platform");
+    expect(
+      within(rows[0]!)
+        .getAllByTestId("people-chip")
+        .map((chip: HTMLElement): string | null => {
+          return chip.getAttribute("data-id");
+        }),
+    ).toEqual([ADA]);
+  });
+
+  test("says so when everyone a rule adds is an owner already", async () => {
+    postMock.mockResolvedValue(previewAnswer(PLATFORM_RULE));
+
+    renderSummary({
+      values: {
+        title: "Checkout is down",
+        ownerUsers: [ADA],
+        ownerTeams: [PLATFORM, SRE],
+      },
+    });
+
+    const rows: Array<HTMLElement> = await screen.findAllByTestId(
+      "owner-rule-preview-rule",
+    );
+
+    // Both rules still have their line: they run, and add nobody new.
+    expect(rows).toHaveLength(2);
+
+    for (const row of rows) {
+      expect(
+        within(row).getByTestId("owner-rule-preview-nobody-new"),
+      ).toHaveTextContent("Everyone it adds is already an owner.");
+      expect(within(row).queryByTestId("owner-rule-preview-owners")).toBeNull();
+    }
+  });
+
+  test("leaves the person declaring it out of a rule's line - OneUptime makes them an owner", async () => {
+    jest.spyOn(UserUtil, "getUserId").mockReturnValue(new ObjectID(ADA));
+    postMock.mockResolvedValue(previewAnswer(PLATFORM_RULE));
+
+    renderSummary({ values: { title: "Checkout is down" } });
+
+    const rows: Array<HTMLElement> = await screen.findAllByTestId(
+      "owner-rule-preview-rule",
+    );
+
+    await waitFor(() => {
+      expect(
+        within(rows[0]!).getByTestId("owner-rule-preview-owners"),
+      ).toHaveTextContent("Platform");
+    });
+    expect(
+      within(rows[0]!)
+        .getAllByTestId("people-chip")
+        .map((chip: HTMLElement): string | null => {
+          return chip.getAttribute("data-id");
+        }),
+    ).toEqual([PLATFORM]);
+  });
+
+  test("tells a master admin nobody is picked, and names them where a rule adds them", async () => {
+    jest.spyOn(UserUtil, "isMasterAdmin").mockReturnValue(true);
+    jest.spyOn(UserUtil, "getUserId").mockReturnValue(new ObjectID(ADA));
+    postMock.mockResolvedValue(previewAnswer(PLATFORM_RULE));
+
+    renderSummary({ values: { title: "Checkout is down" } });
+
+    expect(
+      screen.getByTestId("owners-on-create-nobody-picked"),
+    ).toHaveTextContent("Nobody picked.");
+
+    const rows: Array<HTMLElement> = await screen.findAllByTestId(
+      "owner-rule-preview-rule",
+    );
+
+    // OneUptime does not make a master admin an owner: the rule does.
+    await waitFor(() => {
+      expect(
+        within(rows[0]!).getByTestId("owner-rule-preview-owners"),
+      ).toHaveTextContent("Ada Lovelace");
+    });
+  });
+
   test.each([403, 422])(
     "says nothing about rules to someone who may not see them (%s)",
     async (statusCode: number) => {
@@ -723,6 +827,23 @@ describe("the Owners field of a create form", () => {
     );
     expect(ownersField(OwnerRulePreviewEvent.Alert).description).toContain(
       "You become an owner when you create it.",
+    );
+  });
+
+  test("tells a master admin only to add owners: OneUptime does not make them one", () => {
+    jest.spyOn(UserUtil, "isMasterAdmin").mockReturnValue(true);
+
+    for (const event of [
+      OwnerRulePreviewEvent.Incident,
+      OwnerRulePreviewEvent.Alert,
+    ]) {
+      expect(ownersField(event).description).toBe(
+        "Add your team, or anyone else who should own it.",
+      );
+    }
+
+    expect(ownersField(OwnerRulePreviewEvent.IncidentEpisode).description).toBe(
+      "Who owns this episode. They are notified when it is created or updated.",
     );
   });
 });

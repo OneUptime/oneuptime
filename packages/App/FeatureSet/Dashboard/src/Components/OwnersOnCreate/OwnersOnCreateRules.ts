@@ -28,9 +28,10 @@ import { getIdsFromFormValue } from "../Incident/IncidentStatusPageScopeForm";
  *     anything was picked: the person creating an incident or an alert
  *     (OneUptime makes them an owner, DatabaseService.autoOwnerOnCreate),
  *     the owners picked, and each owner rule that matches what was filled
- *     in, by name, with whom it adds. The rules are worked out by the
- *     server, by the code the create runs (OwnerRulePreviewApi, Types/
- *     Rules/OwnerRulePreview) - never in the browser.
+ *     in, by name, with whom it adds that is not an owner already. The
+ *     rules are worked out by the server, by the code the create runs
+ *     (OwnerRulePreviewApi, Types/Rules/OwnerRulePreview) - never in the
+ *     browser.
  *
  * The picks travel as the form's ownerUsers and ownerTeams, as misc data:
  * the server asks whether the creator may add them before the event is
@@ -61,18 +62,59 @@ export const OWNERS_ON_CREATE_DESCRIPTIONS: Record<
 };
 
 /*
+ * The line on an incident's or alert's form for someone OneUptime does not
+ * make an owner of what they create - a master admin: the usual line,
+ * without its first sentence.
+ */
+export const OWNERS_ON_CREATE_ADD_DESCRIPTION: string = translationKey(
+  "Add your team, or anyone else who should own it.",
+);
+
+/*
  * Whether OneUptime makes the person creating the event an owner: an
  * incident and an alert are operational resources, whose creator is made an
- * owner when they are saved (DatabaseService.autoOwnerOnCreate). An episode
- * is not.
+ * owner when they are saved (DatabaseService.autoOwnerOnCreate) - unless
+ * the creator is a master admin, whom it never makes the owner of what they
+ * create (the first person to sign up to a self-hosted OneUptime is one).
+ * An episode's creator is not made an owner either.
  */
-export const isCreatorMadeOwner: (event: OwnerRulePreviewEvent) => boolean = (
+export const isCreatorMadeOwner: (
   event: OwnerRulePreviewEvent,
+  isMasterAdmin: boolean,
+) => boolean = (
+  event: OwnerRulePreviewEvent,
+  isMasterAdmin: boolean,
 ): boolean => {
+  if (isMasterAdmin) {
+    return false;
+  }
+
   return (
     event === OwnerRulePreviewEvent.Incident ||
     event === OwnerRulePreviewEvent.Alert
   );
+};
+
+/*
+ * The Owners field's line: on an incident or an alert, it says that the
+ * person creating it becomes an owner - only when they do.
+ */
+export const getOwnersOnCreateDescription: (
+  event: OwnerRulePreviewEvent,
+  isMasterAdmin: boolean,
+) => string = (
+  event: OwnerRulePreviewEvent,
+  isMasterAdmin: boolean,
+): string => {
+  const isEpisode: boolean =
+    event === OwnerRulePreviewEvent.IncidentEpisode ||
+    event === OwnerRulePreviewEvent.AlertEpisode;
+
+  if (isEpisode || isCreatorMadeOwner(event, isMasterAdmin)) {
+    return OWNERS_ON_CREATE_DESCRIPTIONS[event];
+  }
+
+  return OWNERS_ON_CREATE_ADD_DESCRIPTION;
 };
 
 // The suggestions line under the Owners picker, by how many teams it offers.
@@ -112,10 +154,14 @@ export const OWNERS_SUMMARY_NOBODY_PICKED: string =
   translationKey("Nobody picked.");
 
 // What the review says while nothing is picked, on each event's form.
-export const getNobodyPickedText: (event: OwnerRulePreviewEvent) => string = (
+export const getNobodyPickedText: (
   event: OwnerRulePreviewEvent,
+  isMasterAdmin: boolean,
+) => string = (
+  event: OwnerRulePreviewEvent,
+  isMasterAdmin: boolean,
 ): string => {
-  return isCreatorMadeOwner(event)
+  return isCreatorMadeOwner(event, isMasterAdmin)
     ? OWNERS_SUMMARY_NOBODY_ELSE_PICKED
     : OWNERS_SUMMARY_NOBODY_PICKED;
 };
@@ -134,6 +180,11 @@ export const OWNER_RULES_COULD_NOT_CHECK: string = translationKey(
 
 // A rule saved without a name, as its line calls it.
 export const UNNAMED_OWNER_RULE: string = translationKey("Unnamed rule");
+
+// A rule's line when everyone it adds is an owner already.
+export const OWNER_RULE_ADDS_NOBODY_NEW: string = translationKey(
+  "Everyone it adds is already an owner.",
+);
 
 // A team of the person filling in the form.
 export interface MyTeam {
@@ -238,6 +289,56 @@ export const getOwnerRulesToShow: (
   return rules.filter((rule: OwnerRulePreviewRule): boolean => {
     return rule.userIds.length > 0 || rule.teamIds.length > 0;
   });
+};
+
+// The people and teams a rule's line on the review names.
+export interface OwnerRuleNewOwners {
+  userIds: Array<string>;
+  teamIds: Array<string>;
+}
+
+/*
+ * Whom a rule will add that is not an owner already. The people and teams
+ * picked in the field are owners whatever the rules say, and so is the
+ * person creating an incident or an alert (isCreatorMadeOwner); OneUptime
+ * adds an owner once. So a rule's line names only the rest - "Platform"
+ * picked, a rule bringing Platform and Database reads "Database" - and says
+ * so when that is nobody (OWNER_RULE_ADDS_NOBODY_NEW).
+ */
+export const getOwnersNewFromRule: (data: {
+  rule: OwnerRulePreviewRule;
+  pickedUserIds: unknown;
+  pickedTeamIds: unknown;
+  // The person creating the event, when OneUptime makes them an owner.
+  creatorUserId: string | null;
+}) => OwnerRuleNewOwners = (data: {
+  rule: OwnerRulePreviewRule;
+  pickedUserIds: unknown;
+  pickedTeamIds: unknown;
+  creatorUserId: string | null;
+}): OwnerRuleNewOwners => {
+  const ownerUserIds: Set<string> = new Set<string>(
+    getIdsFromFormValue([
+      ...getIdsFromFormValue(data.pickedUserIds),
+      ...(data.creatorUserId ? [data.creatorUserId] : []),
+    ]),
+  );
+  const ownerTeamIds: Set<string> = new Set<string>(
+    getIdsFromFormValue(data.pickedTeamIds),
+  );
+
+  const isNew: (owners: Set<string>) => (id: string) => boolean = (
+    owners: Set<string>,
+  ): ((id: string) => boolean) => {
+    return (id: string): boolean => {
+      return !owners.has(id.toLowerCase());
+    };
+  };
+
+  return {
+    userIds: data.rule.userIds.filter(isNew(ownerUserIds)),
+    teamIds: data.rule.teamIds.filter(isNew(ownerTeamIds)),
+  };
 };
 
 /*

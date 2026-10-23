@@ -33423,5 +33423,7 @@
   "Your teams:": "I tuoi team:",
   "Your teams:_one": "Il tuo team:",
   "Optionally assign owners from related entities, or the creator's team, to the incident.": "Facoltativamente, assegna all'incidente proprietari da entità correlate o il team del creatore.",
-  "Optionally assign owners from related entities, or the creator's team, to the alert.": "Facoltativamente, assegna all'avviso proprietari da entità correlate o il team del creatore."
+  "Optionally assign owners from related entities, or the creator's team, to the alert.": "Facoltativamente, assegna all'avviso proprietari da entità correlate o il team del creatore.",
+  "Add your team, or anyone else who should own it.": "Aggiungi il tuo team o chiunque altro debba esserne proprietario.",
+  "Everyone it adds is already an owner.": "Tutti quelli che aggiunge sono già proprietari."
 }

@@ -33423,5 +33423,7 @@
   "Your teams:": "تیم‌های شما:",
   "Your teams:_one": "تیم شما:",
   "Optionally assign owners from related entities, or the creator's team, to the incident.": "در صورت تمایل، مالکانی از موجودیت‌های مرتبط یا تیم سازنده را به حادثه اختصاص دهید.",
-  "Optionally assign owners from related entities, or the creator's team, to the alert.": "در صورت تمایل، مالکانی از موجودیت‌های مرتبط یا تیم سازنده را به هشدار اختصاص دهید."
+  "Optionally assign owners from related entities, or the creator's team, to the alert.": "در صورت تمایل، مالکانی از موجودیت‌های مرتبط یا تیم سازنده را به هشدار اختصاص دهید.",
+  "Add your team, or anyone else who should own it.": "تیم خود یا هر کس دیگری را که باید مالک آن باشد بیفزایید.",
+  "Everyone it adds is already an owner.": "همه کسانی که این قاعده می‌افزاید از پیش مالک هستند."
 }
