@@ -1,28 +1,36 @@
 /*
- * Offline fixture for the auto remediation rules on Incidents -> AI ->
- * Settings and Alerts -> AI -> Settings: which new incidents (or alerts)
- * OneUptime AI fixes, and whether it asks first. The pages
- * (Pages/Incidents/Settings/IncidentAISettings and
- * Pages/Alerts/Settings/AlertAISettings), their More settings fold, the Auto
- * remediation rules table (Components/AutoRemediation/AutoRemediationRulesTable),
- * its create and edit dialogs, its More fields and the Runner picker
+ * Offline fixture for the AI rules on Incidents -> AI -> Settings and
+ * Alerts -> AI -> Settings: which new incidents (or alerts) OneUptime AI
+ * investigates, and whether - and how - it fixes them. The investigation
+ * rules and the auto remediation rules became one AI rule, in the auto
+ * remediation rules' table: a rule matches, investigates (right away, or
+ * only if still open after a wait) and fixes (or not, asking first or not).
+ * The pages (Pages/Incidents/Settings/IncidentAISettings and
+ * Pages/Alerts/Settings/AlertAISettings), their More settings fold, the AI
+ * rules table (Components/AISettings/AiRulesTable), its create and edit
+ * dialogs, its More fields and the Runner picker
  * (Components/Runner/RunnerPicker) are the production ones from this
  * branch; only the ModelAPI / API data boundary and the signed-in user's
  * permissions are replaced.
  *
  * Steered by the query string:
  *   - lane=alert      Alerts -> AI -> Settings (Incidents by default)
- *   - rules=saved     the project has four rules saved before this change:
- *                     one that runs its runbooks every time, a OneUptime AI
- *                     rule with runbooks and a Runner, and the two shapes
- *                     from before rules were simplified (AI composes
- *                     commands on Runners, AI picks a runbook); none by
- *                     default
+ *   - rules=saved     the project has four rules that were auto remediation
+ *                     rules before they became AI rules: one that runs its
+ *                     runbooks every time, a OneUptime AI rule with
+ *                     runbooks and a Runner (merged with an investigation
+ *                     rule of the same conditions, so it investigates too),
+ *                     and the two shapes from before rules were simplified
+ *                     (AI composes commands on Runners, AI picks a
+ *                     runbook). The three not merged only fix, as the
+ *                     upgrade leaves a rule in a lane whose investigation
+ *                     rules decided what is investigated. None by default
  *   - investigationRules=saved
- *                     the lane's investigation rules (issue #5074): one
- *                     that investigates right away, and one that
- *                     investigates only the records still open after 10
- *                     minutes; none by default
+ *                     the lane's rules that only investigate, as the
+ *                     upgrade made of its investigation rules (issue
+ *                     #5074): one that investigates right away, and one
+ *                     that investigates only the records still open after
+ *                     10 minutes; none by default
  *   - investigationRules=many
  *                     those two and three more, as a full table looks: a
  *                     long name with three conditions that waits 90
@@ -89,7 +97,6 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import IncidentAISettings from "../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentAISettings";
 import AlertAISettings from "../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Settings/AlertAISettings";
-import AIInvestigationRule from "Common/Models/DatabaseModels/AIInvestigationRule";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
@@ -495,13 +502,15 @@ const SAVED_RULE_IDS = {
 };
 
 const SAVED_RULES = [
-  // Saved with Fix With set to Runbooks: it runs them every time.
+  // Saved with Fix With set to Runbooks: it runs them every time, and only fixes.
   record(AutoRemediationRule, {
     _id: SAVED_RULE_IDS.everyTime,
     projectId: new ObjectID(PROJECT_ID),
     name: "Restart checkout every time",
     isEnabled: true,
     triggerEntityType: trigger,
+    investigates: false,
+    fixes: true,
     remediationAction: "Runbooks",
     executionMode: "FullAuto",
     aiComposesCommands: false,
@@ -512,13 +521,19 @@ const SAVED_RULES = [
     openTelemetryPullRequests: true,
     criteria: null,
   }),
-  // OneUptime AI, allowed two runbooks, with a Runner for its commands.
+  /*
+   * OneUptime AI, allowed two runbooks, with a Runner for its commands: an
+   * investigation rule of the same conditions was merged into it, so it
+   * investigates too, right away.
+   */
   record(AutoRemediationRule, {
     _id: SAVED_RULE_IDS.aiWithRunner,
     projectId: new ObjectID(PROJECT_ID),
     name: "Fix database incidents",
     isEnabled: true,
     triggerEntityType: trigger,
+    investigates: true,
+    fixes: true,
     remediationAction: "OneUptimeAI",
     executionMode: "Suggest",
     aiComposesCommands: false,
@@ -555,6 +570,8 @@ const SAVED_RULES = [
     name: "Commands on the bastion",
     isEnabled: true,
     triggerEntityType: trigger,
+    investigates: false,
+    fixes: true,
     remediationAction: "OneUptimeAI",
     executionMode: "Suggest",
     aiComposesCommands: true,
@@ -572,6 +589,8 @@ const SAVED_RULES = [
     name: "AI picks a runbook",
     isEnabled: false,
     triggerEntityType: trigger,
+    investigates: false,
+    fixes: true,
     remediationAction: "OneUptimeAI",
     executionMode: "FullAuto",
     aiComposesCommands: false,
@@ -584,34 +603,49 @@ const SAVED_RULES = [
 ];
 
 /*
- * The lane's investigation rules (issue #5074): one that investigates right
- * away (no wait stored, as every rule saved before rules could wait), and one
- * that investigates only the records still open after 10 minutes.
+ * The lane's rules that only investigate - its investigation rules, as the
+ * upgrade copied them (MergeInvestigationRulesIntoAiRules: they investigate,
+ * fix nothing, and hold an auto remediation rule's defaults for the rest):
+ * one that investigates right away (no wait stored, as every rule saved
+ * before rules could wait), and one that investigates only the records
+ * still open after 10 minutes (issue #5074).
  */
 const SAVED_INVESTIGATION_RULE_IDS = {
   rightAway: "91000000-0000-4000-8000-000000000e01",
   waits: "91000000-0000-4000-8000-000000000e02",
 };
 
-const SAVED_INVESTIGATION_RULES = [
-  record(AIInvestigationRule, {
-    _id: SAVED_INVESTIGATION_RULE_IDS.rightAway,
+function investigationOnlyRule(fields) {
+  return record(AutoRemediationRule, {
     projectId: new ObjectID(PROJECT_ID),
+    triggerEntityType: trigger,
+    investigates: true,
+    fixes: false,
+    executionMode: "Suggest",
+    remediationAction: "OneUptimeAI",
+    aiComposesCommands: false,
+    aiSelectsRunbook: false,
+    runbooks: [],
+    openCodeFixPullRequests: true,
+    openTelemetryPullRequests: true,
+    criteria: null,
+    ...fields,
+  });
+}
+
+const SAVED_INVESTIGATION_RULES = [
+  investigationOnlyRule({
+    _id: SAVED_INVESTIGATION_RULE_IDS.rightAway,
     name: lane === "alert" ? "Production alerts" : "Production incidents",
     isEnabled: true,
-    triggerEntityType: trigger,
     // The LLM provider it investigates with (?rulePick=): none by default.
     llmProviderId: RULE_PICK,
-    criteria: null,
   }),
-  record(AIInvestigationRule, {
+  investigationOnlyRule({
     _id: SAVED_INVESTIGATION_RULE_IDS.waits,
-    projectId: new ObjectID(PROJECT_ID),
     name: "Flapping checks",
     isEnabled: true,
-    triggerEntityType: trigger,
     onlyIfOpenAfterMinutes: 10,
-    criteria: null,
   }),
 ];
 
@@ -621,12 +655,10 @@ const SAVED_INVESTIGATION_RULES = [
  * longest a rule may wait, on a disabled rule.
  */
 const MORE_INVESTIGATION_RULES = [
-  record(AIInvestigationRule, {
+  investigationOnlyRule({
     _id: "91000000-0000-4000-8000-000000000e03",
-    projectId: new ObjectID(PROJECT_ID),
     name: "Payments and checkout incidents on the eu-west-1 cluster after a deploy",
     isEnabled: true,
-    triggerEntityType: trigger,
     onlyIfOpenAfterMinutes: 90,
     criteria: {
       schemaVersion: 1,
@@ -648,41 +680,37 @@ const MORE_INVESTIGATION_RULES = [
       ],
     },
   }),
-  record(AIInvestigationRule, {
+  investigationOnlyRule({
     _id: "91000000-0000-4000-8000-000000000e04",
-    projectId: new ObjectID(PROJECT_ID),
     name: "Batch jobs",
     isEnabled: true,
-    triggerEntityType: trigger,
     onlyIfOpenAfterMinutes: 120,
-    criteria: null,
   }),
-  record(AIInvestigationRule, {
+  investigationOnlyRule({
     _id: "91000000-0000-4000-8000-000000000e05",
-    projectId: new ObjectID(PROJECT_ID),
     name: "Nightly backups",
     isEnabled: false,
-    triggerEntityType: trigger,
     onlyIfOpenAfterMinutes: 1440,
-    criteria: null,
   }),
 ];
 
+// One table holds them all: the AI rules.
 const TABLES = {
   Project: [project],
-  AutoRemediationRule: hasSavedRules ? SAVED_RULES : [],
+  AutoRemediationRule: [
+    ...(hasSavedRules ? SAVED_RULES : []),
+    ...(investigationRuleSet === "many"
+      ? [...SAVED_INVESTIGATION_RULES, ...MORE_INVESTIGATION_RULES]
+      : investigationRuleSet === "saved"
+        ? SAVED_INVESTIGATION_RULES
+        : []),
+  ],
   Runbook: RUNBOOKS,
   Runner: RUNNERS,
   IncidentSeverity: INCIDENT_SEVERITIES,
   AlertSeverity: ALERT_SEVERITIES,
   Label: LABELS,
   Monitor: MONITORS,
-  AIInvestigationRule:
-    investigationRuleSet === "many"
-      ? [...SAVED_INVESTIGATION_RULES, ...MORE_INVESTIGATION_RULES]
-      : investigationRuleSet === "saved"
-        ? SAVED_INVESTIGATION_RULES
-        : [],
   ExternalMcpServer: MCP_SERVERS,
   CodeRepository: CODE_REPOSITORIES,
   AIPostmortemRule: [],
