@@ -1,12 +1,17 @@
 import {
+  OWNER_CHIP_GROUPS,
   OWNER_KEY_PREFIX,
   buildOwnerFacetQuery,
+  getOwnerChipOption,
   getOwnerKey,
   getPickedOwners,
   mergeOwnerFacetIntoQuery,
   parseOwnerKey,
 } from "../../FeatureSet/Dashboard/src/Components/ResourceOwners/OwnerFacetQuery";
-import { FilterOperator } from "../../FeatureSet/Dashboard/src/Components/ResourceOwners/FilterChipDropdownTypes";
+import {
+  FilterChipDropdownOption,
+  FilterOperator,
+} from "../../FeatureSet/Dashboard/src/Components/ResourceOwners/FilterChipDropdownTypes";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import OwnedBy, {
   MAX_OWNED_BY_IDS,
@@ -282,6 +287,102 @@ describe("OwnerFacetQuery - the Owner chip's filter", () => {
       );
 
       expect(new Set([ofSre, ofPayments, noneOfSre]).size).toBe(3);
+    });
+  });
+
+  /*
+   * How the chip lists a person or a team: picked by the key the filter
+   * reads, under People or Teams, and drawn as the Owners column draws them
+   * (the option's `person`, which FilterChipDropdown hands to PeopleAvatar)
+   * - not as initials on a colour of the chip's own, which gave Ada one
+   * colour in the chip and another in the column under it, and drew a team
+   * as a coloured circle like a person's.
+   */
+  describe("getOwnerChipOption", () => {
+    test("a person: picked as user:<id>, under People, drawn as a person with their picture", () => {
+      const option: FilterChipDropdownOption = getOwnerChipOption({
+        kind: "user",
+        id: ADA,
+        name: "Ada Lovelace",
+        hasProfilePicture: true,
+      });
+
+      expect(option).toEqual({
+        value: user(ADA),
+        label: "Ada Lovelace",
+        group: "People",
+        person: { kind: "user", userId: ADA, hasProfilePicture: true },
+      });
+      expect(parseOwnerKey(option.value)).toEqual({ kind: "user", id: ADA });
+    });
+
+    test("a team: picked as team:<id>, under Teams, drawn as a team - no user id, no picture", () => {
+      const option: FilterChipDropdownOption = getOwnerChipOption({
+        kind: "team",
+        id: SRE_TEAM,
+        name: "SRE",
+        // A team has no picture, whatever it is handed.
+        hasProfilePicture: true,
+      });
+
+      expect(option).toEqual({
+        value: team(SRE_TEAM),
+        label: "SRE",
+        group: "Teams",
+        person: { kind: "team", userId: undefined, hasProfilePicture: false },
+      });
+      expect(parseOwnerKey(option.value)).toEqual({
+        kind: "team",
+        id: SRE_TEAM,
+      });
+    });
+
+    test("no initials, colour or icon of the chip's own: the person's avatar is the one thing drawn", () => {
+      for (const option of [
+        getOwnerChipOption({ kind: "user", id: GRACE, name: "Grace Hopper" }),
+        getOwnerChipOption({
+          kind: "team",
+          id: PAYMENTS_TEAM,
+          name: "Payments",
+        }),
+      ]) {
+        expect(option.initials).toBeUndefined();
+        expect(option.color).toBeUndefined();
+        expect(option.icon).toBeUndefined();
+        expect(option.person).toBeDefined();
+      }
+    });
+
+    test("a person with no picture says so", () => {
+      expect(
+        getOwnerChipOption({ kind: "user", id: GRACE, name: "Grace Hopper" })
+          .person,
+      ).toEqual({ kind: "user", userId: GRACE, hasProfilePicture: false });
+    });
+
+    test("the headings are the owners picker's own, People then Teams", () => {
+      expect(OWNER_CHIP_GROUPS).toEqual({ user: "People", team: "Teams" });
+    });
+
+    test("a picked option's key is the one the filter reads", () => {
+      const options: Array<FilterChipDropdownOption> = [
+        getOwnerChipOption({ kind: "user", id: ADA, name: "Ada Lovelace" }),
+        getOwnerChipOption({ kind: "team", id: SRE_TEAM, name: "SRE" }),
+      ];
+
+      expect(
+        buildOwnerFacetQuery({
+          operator: "is",
+          ownerKeys: options.map((option: FilterChipDropdownOption): string => {
+            return option.value;
+          }),
+        })?.toJSON(),
+      ).toEqual({
+        _type: "OwnedBy",
+        match: OwnedByMatch.AnyOf,
+        userIds: [ADA],
+        teamIds: [SRE_TEAM],
+      });
     });
   });
 });

@@ -5,7 +5,6 @@ import {
   getArchivableValueFacetOptions,
 } from "../ArchivableValue/ArchivedValueFacetOptions";
 import Team from "Common/Models/DatabaseModels/Team";
-import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -58,13 +57,37 @@ import {
   sanitizeFacetSelectionState,
 } from "./FacetSelectionState";
 import {
-  OWNER_KEY_PREFIX,
-  OwnerKey,
+  getOwnerChipOption,
+  getPickedOwners,
   mergeOwnerFacetIntoQuery,
-  parseOwnerKey,
 } from "./OwnerFacetQuery";
+import { getPeoplePickerKindDefinition } from "Common/UI/Components/PeoplePicker/PeoplePickerKinds";
+import {
+  PeoplePickerKind,
+  PeoplePickerOption,
+} from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
 
 const PICKER_PAGE_SIZE: number = 50;
+
+// What the Owner chip offers: people, then teams, as the owners picker does.
+const OWNER_PICKER_KINDS: Array<PeoplePickerKind> = [
+  PeoplePickerKind.User,
+  PeoplePickerKind.Team,
+];
+
+// A person or a team the owners picker found, as the Owner chip lists it.
+const toOwnerChipOption: (
+  option: PeoplePickerOption,
+) => FilterChipDropdownOption = (
+  option: PeoplePickerOption,
+): FilterChipDropdownOption => {
+  return getOwnerChipOption({
+    kind: option.kind === PeoplePickerKind.Team ? "team" : "user",
+    id: option.id,
+    name: option.name,
+    hasProfilePicture: option.hasProfilePicture,
+  });
+};
 
 /*
  * The three "what does this chip write" helpers now live in FacetColumnQuery,
@@ -78,24 +101,6 @@ export {
   buildEntityFacetQuery,
   buildEnumFacetQuery,
 } from "./FacetColumnQuery";
-
-const getInitials: (name: string) => string = (name: string): string => {
-  const parts: Array<string> = name
-    .trim()
-    .split(/\s+/)
-    .filter((p: string) => {
-      return p.length > 0;
-    });
-  if (parts.length === 0) {
-    return "?";
-  }
-  if (parts.length === 1) {
-    return parts[0]!.charAt(0).toUpperCase();
-  }
-  return (
-    parts[0]!.charAt(0) + parts[parts.length - 1]!.charAt(0)
-  ).toUpperCase();
-};
 
 type OwnerJunctionModel = BaseModel & {
   user?: User;
@@ -1080,10 +1085,13 @@ const useResourceOwners: <TResource extends BaseModel>(
     setFacetMatchingIds({});
   }, []);
 
-  /**
-   * Server-side search for the Owner chip. Matches users by name or email
-   * (via TeamMember) and teams by name, in parallel, dedups users, and returns
-   * up to 50 of each kind.
+  /*
+   * The Owner chip's people and teams, as the owners picker finds them
+   * (PeoplePickerKinds): people among the project's team members by name or
+   * email, listed once each and in name order, teams by name - up to 50 of
+   * each - with what their avatars need. A read that fails reaches the chip,
+   * which says so and offers to try again, rather than an empty list that
+   * read as though the project had nobody in it.
    */
   const loadOwners: (
     searchTerm: string,
@@ -1094,119 +1102,27 @@ const useResourceOwners: <TResource extends BaseModel>(
         return [];
       }
 
-      const trimmed: string = searchTerm.trim();
-
-      /*
-       * Project members are searched through TeamMember — the only
-       * project-scoped link to User (the User model itself isn't listable by
-       * project members). We match the term against BOTH the user's name and
-       * email. There's no OR across two relation fields in a single query, so
-       * we run one query per field and union the results, deduping users who
-       * appear on multiple teams or match on both fields.
-       */
-      const userQueries: Array<Query<TeamMember>> = trimmed
-        ? [
-            {
+      const found: Array<Array<PeoplePickerOption>> = await Promise.all(
+        OWNER_PICKER_KINDS.map(
+          (kind: PeoplePickerKind): Promise<Array<PeoplePickerOption>> => {
+            return getPeoplePickerKindDefinition(kind).search({
               projectId: projectId,
-              user: { name: new Search(trimmed) },
-            } as unknown as Query<TeamMember>,
-            {
-              projectId: projectId,
-              user: { email: new Search(trimmed) },
-            } as unknown as Query<TeamMember>,
-          ]
-        : [{ projectId: projectId } as Query<TeamMember>];
-
-      const teamQuery: Query<Team> = {
-        projectId: projectId,
-      } as Query<Team>;
-      if (trimmed) {
-        (teamQuery as unknown as Record<string, unknown>)["name"] = new Search(
-          trimmed,
-        );
-      }
-
-      try {
-        const [teamMemberResults, teamsResult]: [
-          Array<ListResult<TeamMember>>,
-          ListResult<Team>,
-        ] = await Promise.all([
-          Promise.all(
-            userQueries.map((q: Query<TeamMember>) => {
-              return ModelAPI.getList<TeamMember>({
-                modelType: TeamMember,
-                query: q,
-                limit: PICKER_PAGE_SIZE,
-                skip: 0,
-                select: {
-                  _id: true,
-                  user: {
-                    _id: true,
-                    name: true,
-                    email: true,
-                  },
-                },
-                sort: {},
-              });
-            }),
-          ),
-          ModelAPI.getList<Team>({
-            modelType: Team,
-            query: teamQuery,
-            limit: PICKER_PAGE_SIZE,
-            skip: 0,
-            select: {
-              _id: true,
-              name: true,
-            },
-            sort: { name: SortOrder.Ascending },
-          }),
-        ]);
-
-        const seenUserIds: Set<string> = new Set<string>();
-        const userResults: Array<FilterChipDropdownOption> = [];
-        for (const teamMembersResult of teamMemberResults) {
-          for (const tm of teamMembersResult.data) {
-            const userId: string | undefined = tm.user?._id?.toString();
-            if (!userId || seenUserIds.has(userId)) {
-              continue;
-            }
-            seenUserIds.add(userId);
-            const label: string =
-              tm.user?.name?.toString() || tm.user?.email?.toString() || "";
-            userResults.push({
-              value: `${OWNER_KEY_PREFIX.user}${userId}`,
-              label: label,
-              initials: getInitials(label),
-              icon: IconProp.User,
-              group: "People",
+              searchText: searchTerm,
+              limit: PICKER_PAGE_SIZE,
             });
-          }
-        }
+          },
+        ),
+      );
 
-        const teamResults: Array<FilterChipDropdownOption> =
-          teamsResult.data.map((t: Team) => {
-            const label: string = t.name?.toString() || "";
-            return {
-              value: `${OWNER_KEY_PREFIX.team}${t._id as string}`,
-              label: label,
-              initials: getInitials(label),
-              icon: IconProp.Team,
-              group: "Teams",
-            };
-          });
-
-        return [...userResults, ...teamResults];
-      } catch {
-        return [];
-      }
+      return found.flat().map(toOwnerChipOption);
     },
     [],
   );
 
-  /**
-   * Resolve a set of saved Owner keys back into labeled options. Splits
-   * by user:/team: prefix and fetches each kind in one query.
+  /*
+   * The people and teams a link or a saved view picked, by their keys, for
+   * the chip to name them. Keys that name nobody are left out
+   * (getPickedOwners), and the chip shows what it cannot name as it was.
    */
   const resolveOwners: (
     keys: Array<string>,
@@ -1217,87 +1133,28 @@ const useResourceOwners: <TResource extends BaseModel>(
         return [];
       }
 
-      const userIds: Array<string> = [];
-      const teamIds: Array<string> = [];
-      for (const k of keys) {
-        const parsed: OwnerKey | null = parseOwnerKey(k);
-        if (parsed?.kind === "user") {
-          userIds.push(parsed.id);
-        } else if (parsed?.kind === "team") {
-          teamIds.push(parsed.id);
-        }
-      }
+      const picked: { userIds: Array<string>; teamIds: Array<string> } =
+        getPickedOwners(keys);
 
-      const results: Array<FilterChipDropdownOption> = [];
+      const found: Array<Array<PeoplePickerOption>> = await Promise.all(
+        OWNER_PICKER_KINDS.map(
+          (kind: PeoplePickerKind): Promise<Array<PeoplePickerOption>> => {
+            const ids: Array<string> =
+              kind === PeoplePickerKind.Team ? picked.teamIds : picked.userIds;
 
-      try {
-        if (userIds.length > 0) {
-          const teamMembersResult: ListResult<TeamMember> =
-            await ModelAPI.getList<TeamMember>({
-              modelType: TeamMember,
-              query: {
-                projectId: projectId,
-                userId: new Includes(userIds),
-              } as Query<TeamMember>,
-              limit: userIds.length,
-              skip: 0,
-              select: {
-                _id: true,
-                user: {
-                  _id: true,
-                  name: true,
-                  email: true,
-                },
-              },
-              sort: {},
-            });
-          const seen: Set<string> = new Set<string>();
-          for (const tm of teamMembersResult.data) {
-            const userId: string | undefined = tm.user?._id?.toString();
-            if (!userId || seen.has(userId)) {
-              continue;
+            if (ids.length === 0) {
+              return Promise.resolve([]);
             }
-            seen.add(userId);
-            const label: string =
-              tm.user?.name?.toString() || tm.user?.email?.toString() || "";
-            results.push({
-              value: `${OWNER_KEY_PREFIX.user}${userId}`,
-              label: label,
-              initials: getInitials(label),
-              icon: IconProp.User,
-              group: "People",
-            });
-          }
-        }
 
-        if (teamIds.length > 0) {
-          const teamsResult: ListResult<Team> = await ModelAPI.getList<Team>({
-            modelType: Team,
-            query: {
+            return getPeoplePickerKindDefinition(kind).getByIds({
               projectId: projectId,
-              _id: new Includes(teamIds),
-            } as Query<Team>,
-            limit: teamIds.length,
-            skip: 0,
-            select: { _id: true, name: true },
-            sort: {},
-          });
-          for (const t of teamsResult.data) {
-            const label: string = t.name?.toString() || "";
-            results.push({
-              value: `${OWNER_KEY_PREFIX.team}${t._id as string}`,
-              label: label,
-              initials: getInitials(label),
-              icon: IconProp.Team,
-              group: "Teams",
+              ids: ids,
             });
-          }
-        }
-      } catch {
-        // ignore — chip will fall back to raw value as label
-      }
+          },
+        ),
+      );
 
-      return results;
+      return found.flat().map(toOwnerChipOption);
     },
     [],
   );
@@ -1322,37 +1179,34 @@ const useResourceOwners: <TResource extends BaseModel>(
         );
       }
 
-      try {
-        const result: ListResult<Label> = await ModelAPI.getList<Label>({
-          modelType: Label,
-          query: query,
-          limit: PICKER_PAGE_SIZE,
-          skip: 0,
-          select: {
-            _id: true,
-            name: true,
-            color: true,
-            ...ARCHIVED_FACET_SELECT,
-          },
-          sort: { name: SortOrder.Ascending },
-        });
-        /*
-         * Archived labels too - records keep them, and stay findable by
-         * them - listed last, under Archived.
-         */
-        return getArchivableValueFacetOptions({
-          values: result.data,
-          toOption: (l: Label): FilterChipDropdownOption => {
-            return {
-              value: l._id as string,
-              label: l.name?.toString() || "",
-              color: l.color?.toString() || "#9ca3af",
-            };
-          },
-        });
-      } catch {
-        return [];
-      }
+      // A read that fails reaches the chip, which offers to try again.
+      const result: ListResult<Label> = await ModelAPI.getList<Label>({
+        modelType: Label,
+        query: query,
+        limit: PICKER_PAGE_SIZE,
+        skip: 0,
+        select: {
+          _id: true,
+          name: true,
+          color: true,
+          ...ARCHIVED_FACET_SELECT,
+        },
+        sort: { name: SortOrder.Ascending },
+      });
+      /*
+       * Archived labels too - records keep them, and stay findable by
+       * them - listed last, under Archived.
+       */
+      return getArchivableValueFacetOptions({
+        values: result.data,
+        toOption: (l: Label): FilterChipDropdownOption => {
+          return {
+            value: l._id as string,
+            label: l.name?.toString() || "",
+            color: l.color?.toString() || "#9ca3af",
+          };
+        },
+      });
     },
     [],
   );

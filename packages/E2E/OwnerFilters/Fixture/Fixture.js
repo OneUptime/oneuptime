@@ -29,10 +29,12 @@
  *   - role=noowners
  *                 the member may read the schedules (and labels and teams)
  *                 but not who owns them - a custom role
+ *   - fail=people the first read of the project's people fails (a 502)
  *
  * Recorded on window.__fixture: every list read (`listRequests`, its query
- * as the API would carry it) and every read of a table this fixture does not
- * model (`unhandled`; the spec fails on any).
+ * as the API would carry it), every read of a table this fixture does not
+ * model (`unhandled`; the spec fails on any) and the reads it failed on
+ * purpose (`failedReads`).
  */
 import "Common/UI/Styles/Theme.css";
 import React from "react";
@@ -85,10 +87,16 @@ const pickerDelay = Number(params.get("delay") || 0);
 const hasNoSchedules = params.get("schedules") === "0";
 // ?role=noowners: a member who may read the schedules but not their owners.
 const mayNotReadOwners = params.get("role") === "noowners";
+/*
+ * ?fail=people: the first read of the project's people fails (a 502), as a
+ * flaky network would; every read after it works.
+ */
+let peopleReadsToFail = params.get("fail") === "people" ? 1 : 0;
 
 window.__fixture = {
   listRequests: [],
   unhandled: [],
+  failedReads: 0,
 };
 
 // ---- who is signed in -------------------------------------------------------
@@ -457,6 +465,12 @@ ModelAPI.getList = async (options) => {
 
   if (pickerDelay > 0 && (name === "TeamMember" || name === "Team")) {
     await new Promise((resolve) => setTimeout(resolve, pickerDelay));
+  }
+
+  if (peopleReadsToFail > 0 && name === "TeamMember") {
+    peopleReadsToFail--;
+    window.__fixture.failedReads++;
+    throw new Error("502 Bad Gateway");
   }
 
   const items = rowsFor(name, query).map((item) => copyOf(item, modelType));

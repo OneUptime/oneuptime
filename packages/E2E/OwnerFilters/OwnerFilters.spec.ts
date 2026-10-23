@@ -80,6 +80,8 @@ interface ListRequest {
 interface FixtureRecord {
   listRequests: Array<ListRequest>;
   unhandled: Array<Record<string, unknown>>;
+  // The reads ?fail= failed on purpose.
+  failedReads: number;
 }
 
 const pageErrors: Map<Page, Array<string>> = new Map();
@@ -831,4 +833,144 @@ test.describe("On-Call Schedules, filtered by its owners", () => {
       ),
     ).toEqual([]);
   });
+
+  /*
+   * The chip's people and teams look as the Owners column under it draws
+   * them: Ada Lovelace was violet in the chip and red in the column, and
+   * the SRE team a green circle - a person's look - where the column draws
+   * a dark tile with a people badge.
+   */
+  test("the chip draws people and teams as the Owners column does", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page);
+
+    // Ada owns Database On-Call alone; the SRE team owns SRE Weekdays alone.
+    const adaInColumn: Locator = rows(page)
+      .filter({ hasText: "Database On-Call" })
+      .getByText("AL", { exact: true });
+    const sreInColumn: Locator = rows(page)
+      .filter({ hasText: "SRE Weekdays" })
+      .getByText("S", { exact: true });
+
+    const popover: Locator = await openChip(page, "Owner");
+
+    await expect(offered(popover)).toHaveCount(5);
+
+    const adaInChip: Locator = offered(popover)
+      .filter({ hasText: "Ada Lovelace" })
+      .getByText("AL", { exact: true });
+    const sreOption: Locator = offered(popover).filter({ hasText: "SRE" });
+    const sreInChip: Locator = sreOption.getByText("S", { exact: true });
+
+    expect(await fillOf(adaInChip)).toBe(await fillOf(adaInColumn));
+    expect(await fillOf(sreInChip)).toBe(await fillOf(sreInColumn));
+    // A person and a team never look alike.
+    expect(await fillOf(adaInChip)).not.toBe(await fillOf(sreInChip));
+
+    // The team's people badge, as in the column.
+    await expect(sreOption.locator("svg")).toHaveCount(1);
+    await expect(
+      offered(popover).filter({ hasText: "Ada Lovelace" }).locator("svg"),
+    ).toHaveCount(0);
+
+    // Picked, the chip shows the team's tile beside its name.
+    await sreOption.click();
+    await closePopover(page);
+
+    const picked: Locator = chip(page, "Owner").getByText("S", {
+      exact: true,
+    });
+
+    expect(await fillOf(picked)).toBe(await fillOf(sreInColumn));
+    expect((await boxOf(picked)).width).toBeCloseTo(16, 0);
+
+    await screenshot(page, "owner-chip-avatars-1280");
+  });
+
+  /*
+   * A popover hangs from its chip's left edge. On a 390px phone Labels sits
+   * right of Owner, and its popover ran past the screen's edge: the whole
+   * page scrolled sideways, the search box half off the screen.
+   */
+  test("on a 390px phone every chip's popover stays on the screen, 16px from its edge", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page, { width: 390 });
+
+    for (const label of ["Labels", "Owner"]) {
+      const popover: Locator = await openChip(page, label);
+
+      await expect(offered(popover).first()).toBeVisible();
+      await finishFirstPaintTransitions(page);
+
+      const box: Box = await boxOf(popover);
+
+      expect(box.x).toBeGreaterThanOrEqual(16 - 1);
+      expect(box.x + box.width).toBeLessThanOrEqual(390 - 16 + 1);
+      expect(await horizontalOverflow(page)).toBe(0);
+      expect(
+        await page.evaluate((): number => {
+          return window.scrollX;
+        }),
+      ).toBe(0);
+
+      // Its search box is where the reader can type into it.
+      const search: Box = await boxOf(popover.getByRole("textbox"));
+
+      expect(search.x + search.width).toBeLessThanOrEqual(390);
+
+      if (label === "Labels") {
+        await screenshot(page, "labels-chip-open-390");
+      }
+
+      await closePopover(page);
+    }
+
+    // Still filters from there.
+    await pick(page, "Labels", "night-shift");
+    await closePopover(page);
+    await expectListed(page, ["SRE Weekends", "Nights"]);
+    expect(await horizontalOverflow(page)).toBe(0);
+  });
+
+  test("when the people and teams cannot be read, the chip says so, and Try again reads them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page, { query: "?fail=people" });
+
+    const popover: Locator = await openChip(page, "Owner");
+
+    await expect(popover.getByText("Couldn't load this list.")).toBeVisible();
+    await expect(popover.getByText("Nothing to show")).toHaveCount(0);
+    await expect(popover.getByText("No options available")).toHaveCount(0);
+    expect((await fixture(page)).failedReads).toBe(1);
+
+    await screenshot(page, "owner-chip-could-not-load-1280");
+
+    await popover.getByRole("button", { name: "Try again" }).click();
+
+    await expect(offered(popover)).toHaveCount(5);
+    await expect(popover.getByText("Couldn't load this list.")).toHaveCount(0);
+
+    // And it filters as ever.
+    await offered(popover).filter({ hasText: "SRE" }).click();
+    await closePopover(page);
+    await expectListed(page, ["SRE Weekdays", "SRE Weekends"]);
+  });
 });
+
+// The fill an avatar is drawn with: its gradient, or its colour.
+async function fillOf(locator: Locator): Promise<string> {
+  return await locator.evaluate((element: Element): string => {
+    const style: CSSStyleDeclaration = getComputedStyle(element);
+
+    return `${style.backgroundImage} ${style.backgroundColor}`;
+  });
+}

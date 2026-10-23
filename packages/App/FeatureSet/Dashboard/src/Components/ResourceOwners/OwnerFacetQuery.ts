@@ -1,10 +1,14 @@
-import { FilterOperator } from "./FilterChipDropdownTypes";
+import {
+  FilterChipDropdownOption,
+  FilterOperator,
+} from "./FilterChipDropdownTypes";
 import OwnedBy, {
   MAX_OWNED_BY_IDS,
   OwnedByMatch,
   OWNED_BY_QUERY_KEY,
 } from "Common/Types/BaseDatabase/OwnedBy";
 import ObjectID from "Common/Types/ObjectID";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * WHAT THE OWNER CHIP PUTS IN A LIST'S QUERY.
@@ -65,6 +69,42 @@ export const getOwnerKey: (owner: OwnerKey) => string = (
   owner: OwnerKey,
 ): string => {
   return `${OWNER_KEY_PREFIX[owner.kind]}${owner.id}`;
+};
+
+// A person or a team the chip can offer, as the people picker found them.
+export interface OwnerChipCandidate extends OwnerKey {
+  name: string;
+  hasProfilePicture?: boolean | undefined;
+}
+
+// The headings the chip lists people and teams under, as the picker does.
+export const OWNER_CHIP_GROUPS: Record<OwnerSelectionKind, string> = {
+  user: translationKey("People"),
+  team: translationKey("Teams"),
+};
+
+/*
+ * A person or a team as the Owner chip lists it: picked by its key, under
+ * People or Teams, and drawn with the avatar the Owners column beside the
+ * chip gives them (FilterChipDropdownOption.person) - the same colour for
+ * the same person, a team as a team.
+ */
+export const getOwnerChipOption: (
+  candidate: OwnerChipCandidate,
+) => FilterChipDropdownOption = (
+  candidate: OwnerChipCandidate,
+): FilterChipDropdownOption => {
+  return {
+    value: getOwnerKey({ kind: candidate.kind, id: candidate.id }),
+    label: candidate.name,
+    group: OWNER_CHIP_GROUPS[candidate.kind],
+    person: {
+      kind: candidate.kind,
+      userId: candidate.kind === "user" ? candidate.id : undefined,
+      hasProfilePicture:
+        candidate.kind === "user" && Boolean(candidate.hasProfilePicture),
+    },
+  };
 };
 
 /*

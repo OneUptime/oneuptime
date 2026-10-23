@@ -14,6 +14,7 @@ import {
   FILTER_CHIP_POPOVER_CLASSES,
 } from "./FilterChipStyles";
 import FilterChipButton from "./FilterChipButton";
+import useChipPopoverShift from "./useChipPopoverShift";
 import {
   translatableTerm,
   Translator,
@@ -76,6 +77,8 @@ const FilterChipValueInput: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const { ref, isComponentVisible, setIsComponentVisible } =
     useComponentOutsideClick(false);
+  // Moves the open popover left where it would cross the screen's edge.
+  useChipPopoverShift(ref, isComponentVisible);
 
   const committedValue: string = readCommittedValue(props.values);
   const operator: FilterOperator = props.operator || "is";

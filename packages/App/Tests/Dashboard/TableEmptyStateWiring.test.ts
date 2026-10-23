@@ -118,9 +118,15 @@ describe("tables under a facet bar tell their empty state about the chips", () =
     );
 
     expect(hook).toContain("emptyState: EmptyStateOptions;");
+    /*
+     * And asks the table to leave the chips out while the list has nothing
+     * in it at all (BaseModelTable, hideTopContentWhileEmpty): there is
+     * nothing to filter, and the empty state's way forward is the one thing
+     * to see.
+     */
     expect(hook).toContain(
       squash(
-        "return { isFiltered: hasActiveFilters, onClearFilters: clearAllFacets, };",
+        "return { isFiltered: hasActiveFilters, onClearFilters: clearAllFacets, hideTopContentWhileEmpty: true, };",
       ),
     );
     expect(hook).toContain("[hasActiveFilters, clearAllFacets]");

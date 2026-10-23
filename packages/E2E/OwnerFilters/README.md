@@ -29,15 +29,21 @@ owns, never its members', a person's the ones they own, "is not" the rest
 
 - the Owner and Labels chips over the list, and the Owners column;
 - the chip's people and teams, apart, and its search;
+- the chip's people and teams drawn as the Owners column draws them - the same
+  colour for the same person, a team as a dark tile with a people badge - in
+  the list and in the chip once picked;
 - "Loading..." from the moment the chip opens - never "Nothing to show" while
   its people and teams are read (`?delay=<ms>` slows that read);
+- a read of the people that fails (`?fail=people`): "Couldn't load this list."
+  with Try again, which reads them once more;
 - a team, a person, both, and the operators is not, is empty and is not empty,
   with the rows that stay and the one filter each read sends - never ids the
   page worked out;
 - the chips kept in the address across a reload, and clearing them;
 - a filter that matches nothing;
 - a 390px phone (no sideways scrolling, the popover and the chip inside the
-  screen), dark mode, and German.
+  screen - every chip's popover, Labels right of Owner too, 16px from the
+  screen's edge), dark mode, and German.
 
 `Fixture/Fixture.js` records every list read on `window.__fixture.listRequests`
 and every read of a table it does not model on `window.__fixture.unhandled` (the
@@ -62,4 +68,4 @@ node OwnerFilters/Fixture/server.js
 
 Then open
 `http://127.0.0.1:4481/dashboard/10000000-0000-4000-8000-0000000000f1/on-call-duty/schedules`,
-adding `?lang=de`, `?theme=dark` or `?delay=1500`.
+adding `?lang=de`, `?theme=dark`, `?delay=1500` or `?fail=people`.

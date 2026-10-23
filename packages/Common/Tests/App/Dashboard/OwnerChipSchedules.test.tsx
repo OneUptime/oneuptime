@@ -225,6 +225,9 @@ const teamMember: (member: User) => TeamMember = (member: User): TeamMember => {
   return value;
 };
 
+// A team's dark tile (PeopleAvatar's group palette).
+const TEAM_TILE_STOP: RegExp = /from-(?:slate|gray|stone|zinc|neutral)-700/;
+
 const ADA: User = user(ADA_ID, "Ada Lovelace");
 const GRACE: User = user(GRACE_ID, "Grace Hopper");
 const SRE: Team = team(SRE_TEAM_ID, "SRE");
@@ -811,5 +814,200 @@ describe("On-Call Schedules: when the chips stay out of the way", () => {
         teamIds: [SRE_TEAM_ID],
       });
     });
+  });
+});
+
+/*
+ * The chip's people and teams are the ones the owners picker offers
+ * (PeoplePickerKinds): people in name order, their pictures read with them,
+ * drawn as the Owners column draws them. And a read that fails says so,
+ * with Try again - it used to show "Nothing to show", as though the project
+ * had nobody in it.
+ */
+describe("On-Call Schedules: the Owner chip's people and teams", () => {
+  const OWNER_NAMES: Array<string> = [
+    "Ada Lovelace",
+    "Grace Hopper",
+    "SRE",
+    "Payments",
+  ];
+
+  // The names the open chip lists, in its order (not its operator's).
+  const listedOwners: (dialog: HTMLElement) => Array<string> = (
+    dialog: HTMLElement,
+  ): Array<string> => {
+    return within(within(dialog).getByRole("listbox"))
+      .getAllByRole("option")
+      .map((option: HTMLElement): string => {
+        return (
+          OWNER_NAMES.find((name: string): boolean => {
+            return (option.textContent || "").endsWith(name);
+          }) || `?${option.textContent}`
+        );
+      });
+  };
+
+  test("people are listed by name, as the owners picker lists them, then the teams", async () => {
+    const answer: ((...args: Array<unknown>) => unknown) | undefined =
+      getListMock.getMockImplementation();
+
+    // The server answers in no particular order.
+    getListMock.mockImplementation((...args: Array<unknown>) => {
+      const request: ListRequest = args[0] as ListRequest;
+
+      if (request.modelType.name === TeamMember.name) {
+        const data: Array<TeamMember> = [teamMember(GRACE), teamMember(ADA)];
+        return Promise.resolve({ data, count: 2, skip: 0, limit: 50 });
+      }
+
+      return answer!(...args);
+    });
+
+    renderPage();
+
+    const dialog: HTMLElement = openChip("Owner");
+
+    await within(dialog).findByText("Ada Lovelace");
+
+    expect(listedOwners(dialog)).toEqual([
+      "Ada Lovelace",
+      "Grace Hopper",
+      "SRE",
+      "Payments",
+    ]);
+  });
+
+  test("a person's picture is read with them, so the chip can show it", async () => {
+    renderPage();
+
+    const dialog: HTMLElement = openChip("Owner");
+
+    await within(dialog).findByText("Ada Lovelace");
+
+    expect(requestsOf(TeamMember).length).toBeGreaterThan(0);
+    for (const request of requestsOf(TeamMember)) {
+      expect(request.select).toEqual(
+        expect.objectContaining({
+          user: expect.objectContaining({
+            _id: true,
+            name: true,
+            email: true,
+            profilePictureId: true,
+          }),
+        }),
+      );
+    }
+  });
+
+  test("a person and a team are drawn as the Owners column draws them", async () => {
+    renderPage();
+
+    const dialog: HTMLElement = openChip("Owner");
+    const ada: HTMLElement = (
+      await within(dialog).findByText("Ada Lovelace")
+    ).closest('[role="option"]') as HTMLElement;
+    const sre: HTMLElement = within(dialog)
+      .getByText("SRE")
+      .closest('[role="option"]') as HTMLElement;
+
+    // A person: their initials on their gradient, no badge.
+    expect(ada.innerHTML).toContain("bg-gradient-to-br");
+    expect(ada.querySelectorAll("div[aria-hidden='true']")).toHaveLength(1);
+
+    // A team: the dark tile, and its people badge.
+    expect(sre.innerHTML).toMatch(TEAM_TILE_STOP);
+    expect(
+      sre.querySelectorAll("div[aria-hidden='true']").length,
+    ).toBeGreaterThanOrEqual(2);
+  });
+
+  test("a read that fails says so, and Try again reads the people and teams again", async () => {
+    const answer: ((...args: Array<unknown>) => unknown) | undefined =
+      getListMock.getMockImplementation();
+    let isFailing: boolean = true;
+
+    getListMock.mockImplementation((...args: Array<unknown>) => {
+      const request: ListRequest = args[0] as ListRequest;
+
+      if (
+        isFailing &&
+        (request.modelType.name === TeamMember.name ||
+          request.modelType.name === Team.name)
+      ) {
+        return Promise.reject(new Error("502 Bad Gateway"));
+      }
+
+      return answer!(...args);
+    });
+
+    renderPage();
+
+    const dialog: HTMLElement = openChip("Owner");
+
+    expect(
+      await within(dialog).findByText("Couldn't load this list."),
+    ).toBeVisible();
+    expect(within(dialog).queryByText("Nothing to show")).toBeNull();
+    expect(within(dialog).queryByText("No options available")).toBeNull();
+
+    isFailing = false;
+
+    await act(async () => {
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: "Try again" }),
+      );
+    });
+
+    expect(await within(dialog).findByText("Ada Lovelace")).toBeVisible();
+    expect(within(dialog).getByText("SRE")).toBeVisible();
+    expect(within(dialog).queryByText("Couldn't load this list.")).toBeNull();
+  });
+
+  test("picks a link brings back are named by one lookup of each kind", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      `/dashboard/${PROJECT_ID.toString()}/on-call-duty/schedules`,
+    );
+
+    renderPage();
+    await pick("Owner", "Ada Lovelace");
+    await pick("Owner", "SRE");
+
+    await waitFor(() => {
+      expect(
+        new URLSearchParams(window.location.search).has(
+          TableFilterUrlState.getParamName("on-call-schedules-table", "facets"),
+        ),
+      ).toBe(true);
+    });
+
+    const address: string = window.location.pathname + window.location.search;
+
+    cleanup();
+    getListMock.mockClear();
+    window.history.replaceState(null, "", address);
+
+    renderPage();
+
+    expect(
+      await screen.findByRole("button", { name: /^Owner · Ada Lovelace, SRE/ }),
+    ).toBeVisible();
+
+    const peopleLookups: Array<ListRequest> = requestsOf(TeamMember).filter(
+      (request: ListRequest): boolean => {
+        return request.query["userId"] !== undefined;
+      },
+    );
+    const teamLookups: Array<ListRequest> = requestsOf(Team).filter(
+      (request: ListRequest): boolean => {
+        return request.query["_id"] !== undefined;
+      },
+    );
+
+    expect(peopleLookups).toHaveLength(1);
+    expect(peopleLookups[0]!.query["userId"]).toEqual(new Includes([ADA_ID]));
+    expect(teamLookups).toHaveLength(1);
+    expect(teamLookups[0]!.query["_id"]).toEqual(new Includes([SRE_TEAM_ID]));
   });
 });
