@@ -272,9 +272,9 @@ describe("reporting a walk", () => {
   test("the list request declares that this probe walks", async () => {
     await fetchAndRunDiagnostics();
 
-    const listBody: JSONObject = (fetchSpy.mock.calls[0]![0] as JSONObject)[
-      "data"
-    ] as JSONObject;
+    const listBody: JSONObject = (
+      fetchSpy.mock.calls[0]![0] as unknown as JSONObject
+    )["data"] as JSONObject;
     expect(listBody["probeCapabilities"]).toContain("snmpWalk");
   });
 });

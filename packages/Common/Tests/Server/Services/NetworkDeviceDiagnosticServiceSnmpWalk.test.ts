@@ -81,8 +81,16 @@ function buildService(runningWalks: number = 0): {
   };
 }
 
+/*
+ * Columns to set on a test device; undefined clears one (the tests take a
+ * device's credentials or probe away).
+ */
+type DeviceOverrides = {
+  [Column in keyof NetworkDevice]?: NetworkDevice[Column] | undefined;
+};
+
 // A device with an SNMP v2c community of its own unless told otherwise.
-function deviceRow(overrides: Partial<NetworkDevice> = {}): NetworkDevice {
+function deviceRow(overrides: DeviceOverrides = {}): NetworkDevice {
   const device: NetworkDevice = new NetworkDevice(DEVICE_ID);
   device.projectId = PROJECT_ID;
   device.hostname = "10.0.0.1";
@@ -298,7 +306,7 @@ describe("whether the device can be walked", () => {
     ],
   ])(
     "a device with %s is refused, saying where to add them",
-    async (_label: string, overrides: Partial<NetworkDevice>) => {
+    async (_label: string, overrides: DeviceOverrides) => {
       const { internals } = buildService();
       stubDevice(deviceRow(overrides));
 

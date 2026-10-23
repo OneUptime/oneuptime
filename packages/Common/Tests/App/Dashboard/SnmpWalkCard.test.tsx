@@ -165,7 +165,15 @@ function completedWalk(
   });
 }
 
-function device(overrides: Partial<NetworkDevice> = {}): NetworkDevice {
+/*
+ * Columns to set on the test device; undefined clears one (a device with no
+ * probe).
+ */
+type DeviceOverrides = {
+  [Column in keyof NetworkDevice]?: NetworkDevice[Column] | undefined;
+};
+
+function device(overrides: DeviceOverrides = {}): NetworkDevice {
   return Object.assign(
     new NetworkDevice(),
     {
