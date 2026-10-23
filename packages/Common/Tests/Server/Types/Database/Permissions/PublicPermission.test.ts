@@ -209,6 +209,19 @@ describe("PublicPermission", () => {
       }
     });
 
+    it("lets a root/system operation with no userId through for every operation", () => {
+      for (const type of allRequestTypes) {
+        const props: DatabaseCommonInteractionProps = {
+          isRoot: true,
+        };
+        expect(props.userId).toBeUndefined();
+
+        expect(() => {
+          PublicPermission.checkIfUserIsLoggedIn(LogPipeline, props, type);
+        }).not.toThrow();
+      }
+    });
+
     it("lets a logged-in user through for every operation", () => {
       for (const type of allRequestTypes) {
         expect(() => {
