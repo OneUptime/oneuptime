@@ -14272,9 +14272,7 @@
   "Optional: the cluster's CA certificate (pve-root-ca.pem), mounted into the container, to verify the API's certificate against. Setting it turns verification on.": "اختیاری: گواهی CA خوشه (pve-root-ca.pem) که در کانتینر mount شده است، برای اعتبارسنجی گواهی API. تنظیم آن، اعتبارسنجی را روشن می‌کند.",
   "Optional: the datacenter commands use when they name none; set it when this vCenter has more than one.": "اختیاری: مرکز داده‌ای که فرمان‌ها وقتی مرکز داده‌ای را مشخص نکنند از آن استفاده می‌کنند؛ اگر این vCenter بیش از یک مرکز داده دارد، آن را تنظیم کنید.",
   "Optional: the same key under its other name; the first of ONEUPTIME_API_KEY and ONEUPTIME_TELEMETRY_INGESTION_KEY that is set is used.": "اختیاری: همان کلید با نام دیگرش؛ از میان ONEUPTIME_API_KEY و ONEUPTIME_TELEMETRY_INGESTION_KEY، اولین موردی که تنظیم شده باشد به کار می‌رود.",
-  "Optionally assign owners from related entities to the alert.": "Optionally assign owners from related entities to the alert.",
   "Optionally assign owners from related entities to the event.": "Optionally assign owners from related entities to the event.",
-  "Optionally assign owners from related entities to the incident.": "Optionally assign owners from related entities to the incident.",
   "Optionally assign users to incident roles. These users will be automatically assigned when the incident is created.": "Optionally assign users to incident roles. These users will be automatically assigned when the incident is created.",
   "Optionally copy labels from related entities onto the alert.": "Optionally copy labels from related entities onto the alert.",
   "Optionally copy labels from related entities onto the event.": "Optionally copy labels from related entities onto the event.",
@@ -33412,5 +33410,7 @@
   "You become an owner when you create it. Add your team, or anyone else who should own it.": "با ساختن آن، خودتان مالک می‌شوید. تیم خود یا هر کس دیگری را که باید مالک آن باشد بیفزایید.",
   "You become an owner when you declare it. Add your team, or anyone else who should own it.": "با اعلام آن، خودتان مالک می‌شوید. تیم خود یا هر کس دیگری را که باید مالک آن باشد بیفزایید.",
   "Your teams:": "تیم‌های شما:",
-  "Your teams:_one": "تیم شما:"
+  "Your teams:_one": "تیم شما:",
+  "Optionally assign owners from related entities, or the creator's team, to the incident.": "در صورت تمایل، مالکانی از موجودیت‌های مرتبط یا تیم سازنده را به حادثه اختصاص دهید.",
+  "Optionally assign owners from related entities, or the creator's team, to the alert.": "در صورت تمایل، مالکانی از موجودیت‌های مرتبط یا تیم سازنده را به هشدار اختصاص دهید."
 }

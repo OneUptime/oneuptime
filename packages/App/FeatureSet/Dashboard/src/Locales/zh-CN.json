@@ -14272,9 +14272,7 @@
   "Optional: the cluster's CA certificate (pve-root-ca.pem), mounted into the container, to verify the API's certificate against. Setting it turns verification on.": "可选：挂载到容器中的集群 CA 证书（pve-root-ca.pem），用于验证 API 的证书。设置后即开启验证。",
   "Optional: the datacenter commands use when they name none; set it when this vCenter has more than one.": "可选：命令未指定数据中心时使用的数据中心；此 vCenter 有多个数据中心时请设置。",
   "Optional: the same key under its other name; the first of ONEUPTIME_API_KEY and ONEUPTIME_TELEMETRY_INGESTION_KEY that is set is used.": "可选：同一密钥的另一个名称；将使用 ONEUPTIME_API_KEY 和 ONEUPTIME_TELEMETRY_INGESTION_KEY 中第一个已设置的值。",
-  "Optionally assign owners from related entities to the alert.": "Optionally assign owners from related entities to the alert.",
   "Optionally assign owners from related entities to the event.": "Optionally assign owners from related entities to the event.",
-  "Optionally assign owners from related entities to the incident.": "Optionally assign owners from related entities to the incident.",
   "Optionally assign users to incident roles. These users will be automatically assigned when the incident is created.": "Optionally assign users to incident roles. These users will be automatically assigned when the incident is created.",
   "Optionally copy labels from related entities onto the alert.": "Optionally copy labels from related entities onto the alert.",
   "Optionally copy labels from related entities onto the event.": "Optionally copy labels from related entities onto the event.",
@@ -33412,5 +33410,7 @@
   "You become an owner when you create it. Add your team, or anyone else who should own it.": "创建后你会成为所有者。添加你的团队，或任何应拥有它的其他人。",
   "You become an owner when you declare it. Add your team, or anyone else who should own it.": "声明后你会成为所有者。添加你的团队，或任何应拥有它的其他人。",
   "Your teams:": "你的团队：",
-  "Your teams:_one": "你的团队："
+  "Your teams:_one": "你的团队：",
+  "Optionally assign owners from related entities, or the creator's team, to the incident.": "可选：将相关实体的所有者或创建者的团队设为该事件的所有者。",
+  "Optionally assign owners from related entities, or the creator's team, to the alert.": "可选：将相关实体的所有者或创建者的团队设为该警报的所有者。"
 }

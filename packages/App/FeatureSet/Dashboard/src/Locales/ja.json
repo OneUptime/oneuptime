@@ -14272,9 +14272,7 @@
   "Optional: the cluster's CA certificate (pve-root-ca.pem), mounted into the container, to verify the API's certificate against. Setting it turns verification on.": "任意: API の証明書を検証するための、クラスターの CA 証明書（pve-root-ca.pem、コンテナにマウント）。設定すると検証が有効になります。",
   "Optional: the datacenter commands use when they name none; set it when this vCenter has more than one.": "任意: コマンドでデータセンターを指定しなかった場合に使うデータセンター。この vCenter に複数ある場合に設定してください。",
   "Optional: the same key under its other name; the first of ONEUPTIME_API_KEY and ONEUPTIME_TELEMETRY_INGESTION_KEY that is set is used.": "任意: 同じキーの別名。ONEUPTIME_API_KEY と ONEUPTIME_TELEMETRY_INGESTION_KEY のうち、最初に設定されているものが使われます。",
-  "Optionally assign owners from related entities to the alert.": "必要に応じて、関連するエンティティの所有者をアラートに割り当てます。",
   "Optionally assign owners from related entities to the event.": "必要に応じて、関連するエンティティの所有者をイベントに割り当てます。",
-  "Optionally assign owners from related entities to the incident.": "必要に応じて、関連するエンティティの所有者をインシデントに割り当てます。",
   "Optionally assign users to incident roles. These users will be automatically assigned when the incident is created.": "必要に応じて、ユーザーをインシデントロールに割り当てます。これらのユーザーは、インシデントの作成時に自動的に割り当てられます。",
   "Optionally copy labels from related entities onto the alert.": "必要に応じて、関連するエンティティのラベルをアラートにコピーします。",
   "Optionally copy labels from related entities onto the event.": "必要に応じて、関連するエンティティのラベルをイベントにコピーします。",
@@ -33412,5 +33410,7 @@
   "You become an owner when you create it. Add your team, or anyone else who should own it.": "作成すると、あなたが所有者になります。あなたのチームや、所有者にすべきほかの人を追加します。",
   "You become an owner when you declare it. Add your team, or anyone else who should own it.": "宣言すると、あなたが所有者になります。あなたのチームや、所有者にすべきほかの人を追加します。",
   "Your teams:": "あなたのチーム:",
-  "Your teams:_one": "あなたのチーム:"
+  "Your teams:_one": "あなたのチーム:",
+  "Optionally assign owners from related entities, or the creator's team, to the incident.": "必要に応じて、関連するエンティティの所有者または作成者のチームをインシデントに割り当てます。",
+  "Optionally assign owners from related entities, or the creator's team, to the alert.": "必要に応じて、関連するエンティティの所有者または作成者のチームをアラートに割り当てます。"
 }

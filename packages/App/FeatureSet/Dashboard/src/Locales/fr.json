@@ -14272,9 +14272,7 @@
   "Optional: the cluster's CA certificate (pve-root-ca.pem), mounted into the container, to verify the API's certificate against. Setting it turns verification on.": "Facultatif : le certificat CA du cluster (pve-root-ca.pem), monté dans le conteneur, pour vérifier le certificat de l'API. Le définir active la vérification.",
   "Optional: the datacenter commands use when they name none; set it when this vCenter has more than one.": "Facultatif : le datacenter utilisé par les commandes qui n'en indiquent aucun ; définissez-le lorsque ce vCenter en a plusieurs.",
   "Optional: the same key under its other name; the first of ONEUPTIME_API_KEY and ONEUPTIME_TELEMETRY_INGESTION_KEY that is set is used.": "Facultatif : la même clé sous son autre nom ; la première de ONEUPTIME_API_KEY et ONEUPTIME_TELEMETRY_INGESTION_KEY qui est définie est utilisée.",
-  "Optionally assign owners from related entities to the alert.": "Attribuer éventuellement à l'alerte des propriétaires issus d'entités liées.",
   "Optionally assign owners from related entities to the event.": "Attribuer éventuellement à l'événement des propriétaires issus d'entités liées.",
-  "Optionally assign owners from related entities to the incident.": "Attribuer éventuellement à l'incident des propriétaires issus d'entités liées.",
   "Optionally assign users to incident roles. These users will be automatically assigned when the incident is created.": "Affectez éventuellement des utilisateurs à des rôles d'incident. Ces utilisateurs seront affectés automatiquement à la création de l'incident.",
   "Optionally copy labels from related entities onto the alert.": "Copier éventuellement sur l'alerte des étiquettes issues d'entités liées.",
   "Optionally copy labels from related entities onto the event.": "Copier éventuellement sur l'événement des étiquettes issues d'entités liées.",
@@ -33412,5 +33410,7 @@
   "You become an owner when you create it. Add your team, or anyone else who should own it.": "Vous devenez propriétaire en la créant. Ajoutez votre équipe, ou toute autre personne qui doit en être propriétaire.",
   "You become an owner when you declare it. Add your team, or anyone else who should own it.": "Vous devenez propriétaire en le déclarant. Ajoutez votre équipe, ou toute autre personne qui doit en être propriétaire.",
   "Your teams:": "Vos équipes :",
-  "Your teams:_one": "Votre équipe :"
+  "Your teams:_one": "Votre équipe :",
+  "Optionally assign owners from related entities, or the creator's team, to the incident.": "Attribuer éventuellement à l'incident des propriétaires issus d'entités liées, ou l'équipe du créateur.",
+  "Optionally assign owners from related entities, or the creator's team, to the alert.": "Attribuer éventuellement à l'alerte des propriétaires issus d'entités liées, ou l'équipe du créateur."
 }

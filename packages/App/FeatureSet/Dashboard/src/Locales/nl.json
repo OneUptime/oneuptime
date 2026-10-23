@@ -14272,9 +14272,7 @@
   "Optional: the cluster's CA certificate (pve-root-ca.pem), mounted into the container, to verify the API's certificate against. Setting it turns verification on.": "Optioneel: het CA-certificaat van het cluster (pve-root-ca.pem), in de container gemount, waarmee het certificaat van de API wordt geverifieerd. Als u dit instelt, wordt verificatie ingeschakeld.",
   "Optional: the datacenter commands use when they name none; set it when this vCenter has more than one.": "Optioneel: het datacenter dat opdrachten gebruiken als ze er zelf geen noemen; stel dit in als deze vCenter er meer dan één heeft.",
   "Optional: the same key under its other name; the first of ONEUPTIME_API_KEY and ONEUPTIME_TELEMETRY_INGESTION_KEY that is set is used.": "Optioneel: dezelfde sleutel onder zijn andere naam; de eerste van ONEUPTIME_API_KEY en ONEUPTIME_TELEMETRY_INGESTION_KEY die is ingesteld, wordt gebruikt.",
-  "Optionally assign owners from related entities to the alert.": "Optionally assign owners from related entities to the alert.",
   "Optionally assign owners from related entities to the event.": "Optionally assign owners from related entities to the event.",
-  "Optionally assign owners from related entities to the incident.": "Optionally assign owners from related entities to the incident.",
   "Optionally assign users to incident roles. These users will be automatically assigned when the incident is created.": "Optionally assign users to incident roles. These users will be automatically assigned when the incident is created.",
   "Optionally copy labels from related entities onto the alert.": "Optionally copy labels from related entities onto the alert.",
   "Optionally copy labels from related entities onto the event.": "Optionally copy labels from related entities onto the event.",
@@ -33412,5 +33410,7 @@
   "You become an owner when you create it. Add your team, or anyone else who should own it.": "Je wordt eigenaar wanneer je de waarschuwing aanmaakt. Voeg je team toe, of iemand anders die eigenaar moet zijn.",
   "You become an owner when you declare it. Add your team, or anyone else who should own it.": "Je wordt eigenaar wanneer je het incident meldt. Voeg je team toe, of iemand anders die eigenaar moet zijn.",
   "Your teams:": "Jouw teams:",
-  "Your teams:_one": "Jouw team:"
+  "Your teams:_one": "Jouw team:",
+  "Optionally assign owners from related entities, or the creator's team, to the incident.": "Wijs optioneel eigenaren uit gerelateerde entiteiten of het team van de maker toe aan het incident.",
+  "Optionally assign owners from related entities, or the creator's team, to the alert.": "Wijs optioneel eigenaren uit gerelateerde entiteiten of het team van de maker toe aan de waarschuwing."
 }

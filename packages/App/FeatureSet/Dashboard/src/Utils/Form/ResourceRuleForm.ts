@@ -301,13 +301,18 @@ export const LABEL_INHERITANCE_WORDING: Record<
   },
 };
 
+/*
+ * An incident's or alert's Inherit Owners fold also holds the Creator's
+ * Team (getCreatorTeamsFields), so its line names it: folded, it is the
+ * only place a rule's author reads that a rule can add the creator's team.
+ */
 export const OWNER_INHERITANCE_WORDING: Record<
   InheritingRuleRecord,
   RuleInheritanceWording
 > = {
   incident: {
     sectionDescription: translationKey(
-      "Optionally assign owners from related entities to the incident.",
+      "Optionally assign owners from related entities, or the creator's team, to the incident.",
     ),
     monitorsTitle: translationKey("Inherit Owners From Monitors"),
     monitors: translationKey(
@@ -331,7 +336,7 @@ export const OWNER_INHERITANCE_WORDING: Record<
   },
   alert: {
     sectionDescription: translationKey(
-      "Optionally assign owners from related entities to the alert.",
+      "Optionally assign owners from related entities, or the creator's team, to the alert.",
     ),
     monitorsTitle: translationKey("Inherit Owners From Monitor"),
     monitors: translationKey(

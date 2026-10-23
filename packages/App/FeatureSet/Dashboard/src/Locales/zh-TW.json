@@ -14272,9 +14272,7 @@
   "Optional: the cluster's CA certificate (pve-root-ca.pem), mounted into the container, to verify the API's certificate against. Setting it turns verification on.": "選填：掛載到容器中的叢集 CA 憑證（pve-root-ca.pem），用來驗證 API 的憑證。設定後即會啟用驗證。",
   "Optional: the datacenter commands use when they name none; set it when this vCenter has more than one.": "選填：指令未指定資料中心時使用的資料中心；若此 vCenter 有多個資料中心，請設定此項。",
   "Optional: the same key under its other name; the first of ONEUPTIME_API_KEY and ONEUPTIME_TELEMETRY_INGESTION_KEY that is set is used.": "選填：同一金鑰的另一個名稱；ONEUPTIME_API_KEY 與 ONEUPTIME_TELEMETRY_INGESTION_KEY 中第一個已設定者會被使用。",
-  "Optionally assign owners from related entities to the alert.": "Optionally assign owners from related entities to the alert.",
   "Optionally assign owners from related entities to the event.": "Optionally assign owners from related entities to the event.",
-  "Optionally assign owners from related entities to the incident.": "Optionally assign owners from related entities to the incident.",
   "Optionally assign users to incident roles. These users will be automatically assigned when the incident is created.": "Optionally assign users to incident roles. These users will be automatically assigned when the incident is created.",
   "Optionally copy labels from related entities onto the alert.": "Optionally copy labels from related entities onto the alert.",
   "Optionally copy labels from related entities onto the event.": "Optionally copy labels from related entities onto the event.",
@@ -33412,5 +33410,7 @@
   "You become an owner when you create it. Add your team, or anyone else who should own it.": "建立後你會成為擁有者。新增你的團隊，或任何應擁有它的其他人。",
   "You become an owner when you declare it. Add your team, or anyone else who should own it.": "宣告後你會成為擁有者。新增你的團隊，或任何應擁有它的其他人。",
   "Your teams:": "你的團隊：",
-  "Your teams:_one": "你的團隊："
+  "Your teams:_one": "你的團隊：",
+  "Optionally assign owners from related entities, or the creator's team, to the incident.": "可選：將相關實體的擁有者或建立者的團隊設為該事件的擁有者。",
+  "Optionally assign owners from related entities, or the creator's team, to the alert.": "可選：將相關實體的擁有者或建立者的團隊設為該警示的擁有者。"
 }

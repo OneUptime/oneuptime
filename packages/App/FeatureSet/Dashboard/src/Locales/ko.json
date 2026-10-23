@@ -14272,9 +14272,7 @@
   "Optional: the cluster's CA certificate (pve-root-ca.pem), mounted into the container, to verify the API's certificate against. Setting it turns verification on.": "선택 사항: API 인증서를 검증하는 데 사용할 클러스터의 CA 인증서(pve-root-ca.pem, 컨테이너에 마운트). 설정하면 검증이 켜집니다.",
   "Optional: the datacenter commands use when they name none; set it when this vCenter has more than one.": "선택 사항: 명령에 데이터센터가 지정되지 않았을 때 사용할 데이터센터. 이 vCenter에 데이터센터가 둘 이상이면 설정하세요.",
   "Optional: the same key under its other name; the first of ONEUPTIME_API_KEY and ONEUPTIME_TELEMETRY_INGESTION_KEY that is set is used.": "선택 사항: 같은 키의 다른 이름. ONEUPTIME_API_KEY, ONEUPTIME_TELEMETRY_INGESTION_KEY 순으로 확인해 처음으로 설정된 키가 사용됩니다.",
-  "Optionally assign owners from related entities to the alert.": "Optionally assign owners from related entities to the alert.",
   "Optionally assign owners from related entities to the event.": "Optionally assign owners from related entities to the event.",
-  "Optionally assign owners from related entities to the incident.": "Optionally assign owners from related entities to the incident.",
   "Optionally assign users to incident roles. These users will be automatically assigned when the incident is created.": "Optionally assign users to incident roles. These users will be automatically assigned when the incident is created.",
   "Optionally copy labels from related entities onto the alert.": "Optionally copy labels from related entities onto the alert.",
   "Optionally copy labels from related entities onto the event.": "Optionally copy labels from related entities onto the event.",
@@ -33412,5 +33410,7 @@
   "You become an owner when you create it. Add your team, or anyone else who should own it.": "생성하면 본인이 소유자가 됩니다. 본인의 팀이나 소유자가 되어야 할 다른 사람을 추가하세요.",
   "You become an owner when you declare it. Add your team, or anyone else who should own it.": "선언하면 본인이 소유자가 됩니다. 본인의 팀이나 소유자가 되어야 할 다른 사람을 추가하세요.",
   "Your teams:": "내 팀:",
-  "Your teams:_one": "내 팀:"
+  "Your teams:_one": "내 팀:",
+  "Optionally assign owners from related entities, or the creator's team, to the incident.": "필요에 따라 관련 엔터티의 소유자 또는 생성자의 팀을 인시던트에 할당합니다.",
+  "Optionally assign owners from related entities, or the creator's team, to the alert.": "필요에 따라 관련 엔터티의 소유자 또는 생성자의 팀을 알림에 할당합니다."
 }
