@@ -90,6 +90,12 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   // See ModelSwitchRow.
   locksWhenPlanNeeded?: boolean | undefined;
   lockedReason?: string | undefined;
+  /*
+   * The card's place on its page (Card's `id`, Utils/PageAnchor): a link
+   * naming it after the address's "#" lands on this switch - and opens the
+   * More settings it is in.
+   */
+  cardId?: string | undefined;
 }
 
 interface ReadOptions {
@@ -324,7 +330,11 @@ const ModelSwitchCard: <TBaseModel extends BaseModel>(
   };
 
   return (
-    <Card title={props.cardTitle} description={props.cardDescription}>
+    <Card
+      id={props.cardId}
+      title={props.cardTitle}
+      description={props.cardDescription}
+    >
       <div data-testid={`${props.dataTestId}-card`}>{getBody()}</div>
     </Card>
   );

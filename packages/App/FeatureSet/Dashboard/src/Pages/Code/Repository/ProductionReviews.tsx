@@ -4,6 +4,7 @@ import CodeApi, {
 } from "../../../Components/Code/CodeApi";
 import { CODE_COLUMN_CLASS_NAME } from "../../../Components/Code/CodeAskBox";
 import { getRepositorySettingsRoute } from "../../../Components/Code/CodePaths";
+import { CodeRepositorySetting } from "../../../Components/Code/CodeRepositorySettingsCopy";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -113,10 +114,16 @@ const CodeRepositoryProductionReviews: FunctionComponent<
       {getProductionReviewCommand()}
     </code>
   );
-  // Off, the one thing to do is to turn it on.
+  /*
+   * Off, the one thing to do is to turn it on. Either way the link lands
+   * on the switch itself, with More settings, where it is, open.
+   */
   const settingsLink: ReactElement = (
     <Link
-      to={getRepositorySettingsRoute(repositoryId)}
+      to={getRepositorySettingsRoute(
+        repositoryId,
+        CodeRepositorySetting.ProductionReview,
+      )}
       dataTestId="code-production-reviews-settings"
       className="font-medium text-indigo-600 hover:text-indigo-500"
     >

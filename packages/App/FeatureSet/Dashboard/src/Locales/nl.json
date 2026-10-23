@@ -33233,7 +33233,6 @@
   "What to watch": "Aandachtspunten",
   "When someone with write access opens or updates a pull request, OneUptime comments with what production shows of the code it changes.": "Wanneer iemand met schrijfrechten een pull request opent of bijwerkt, reageert OneUptime met wat productie laat zien van de gewijzigde code.",
   "When the playbook runs on its own.": "Wanneer het playbook vanzelf wordt uitgevoerd.",
-  "Where AI's pull requests open, how many may be open at once, the label that hands an issue to the GitHub App, and what production reviews post.": "Waar de pull requests van AI worden geopend, hoeveel er tegelijk open mogen zijn, het label dat een issue aan de GitHub App geeft, en wat productiebeoordelingen plaatsen.",
   "Which security cases are open, and which look most urgent?": "Welke beveiligingszaken zijn open, en welke lijken het meest urgent?",
   "Which users or hosts had unusual security activity in the last 24 hours?": "Welke gebruikers of hosts hadden in de afgelopen 24 uur ongewone beveiligingsactiviteit?",
   "You are still being paged. Please try again.": "U wordt nog steeds opgeroepen. Probeer het opnieuw.",
@@ -33562,5 +33561,6 @@
   "These API keys get {{applied}} of this role's {{count}} permissions: those scoped to “{{scope}}” don't apply to a key.": "Deze API-sleutels krijgen {{applied}} van de {{count}} machtigingen van deze rol: die met het bereik ‘{{scope}}’ gelden niet voor een sleutel.",
   "These API keys get {{applied}} of this role's {{count}} permissions: those scoped to “{{scope}}” don't apply to a key._one": "Deze API-sleutels krijgen {{applied}} van {{count}} machtiging van deze rol: die met het bereik ‘{{scope}}’ gelden niet voor een sleutel.",
   "This project has no API key yet": "Dit project heeft nog geen API-sleutel",
-  "This project has no API key yet. Create one on the API Keys page.": "Dit project heeft nog geen API-sleutel. Maak er een op de pagina API-sleutels."
+  "This project has no API key yet. Create one on the API Keys page.": "Dit project heeft nog geen API-sleutel. Maak er een op de pagina API-sleutels.",
+  "GitHub commands and production reviews, the Runner AI works on, and where AI's pull requests open.": "GitHub-opdrachten en productiebeoordelingen, de Runner waarop AI werkt, en waar de pull requests van AI openen."
 }

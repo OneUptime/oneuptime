@@ -33233,7 +33233,6 @@
   "What to watch": "需要留意的問題",
   "When someone with write access opens or updates a pull request, OneUptime comments with what production shows of the code it changes.": "當擁有寫入權限的人建立或更新拉取請求時，OneUptime 會留言說明正式環境中與所改程式碼相關的資料。",
   "When the playbook runs on its own.": "Playbook 自動執行的時機。",
-  "Where AI's pull requests open, how many may be open at once, the label that hands an issue to the GitHub App, and what production reviews post.": "AI 的拉取請求在哪裡建立、最多可同時開啟幾個、將議題交給 GitHub App 的標籤，以及正式環境審查發布的內容。",
   "Which security cases are open, and which look most urgent?": "哪些安全案例尚未結案？哪些看起來最緊急？",
   "Which users or hosts had unusual security activity in the last 24 hours?": "過去 24 小時內哪些使用者或主機有異常的安全活動？",
   "You are still being paged. Please try again.": "您仍會收到通知。請再試一次。",
@@ -33562,5 +33561,6 @@
   "These API keys get {{applied}} of this role's {{count}} permissions: those scoped to “{{scope}}” don't apply to a key.": "這些 API 金鑰獲得此角色 {{count}} 項權限中的 {{applied}} 項：範圍為「{{scope}}」的權限不適用於金鑰。",
   "These API keys get {{applied}} of this role's {{count}} permissions: those scoped to “{{scope}}” don't apply to a key._one": "這些 API 金鑰獲得此角色 {{count}} 項權限中的 {{applied}} 項：範圍為「{{scope}}」的權限不適用於金鑰。",
   "This project has no API key yet": "此專案還沒有 API 金鑰",
-  "This project has no API key yet. Create one on the API Keys page.": "此專案還沒有 API 金鑰。請在「API 金鑰」頁面建立一個。"
+  "This project has no API key yet. Create one on the API Keys page.": "此專案還沒有 API 金鑰。請在「API 金鑰」頁面建立一個。",
+  "GitHub commands and production reviews, the Runner AI works on, and where AI's pull requests open.": "GitHub 指令和正式環境審查、AI 工作所在的 Runner，以及 AI 的 Pull Request 在哪裡開啟。"
 }

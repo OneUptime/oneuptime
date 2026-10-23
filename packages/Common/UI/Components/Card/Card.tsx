@@ -2,6 +2,7 @@ import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import ShortcutKey from "../ShortcutKey/ShortcutKey";
 import { useIsCardSection } from "./CardSurface";
 import IconProp from "../../../Types/Icon/IconProp";
+import { PAGE_ANCHOR_SCROLL_MARGIN_TOP } from "../../Utils/PageAnchor";
 import useTranslateValue from "../../Utils/Translation";
 import React, {
   FunctionComponent,
@@ -108,7 +109,26 @@ export interface ComponentProps {
    * the section it is.
    */
   isHeaderHidden?: boolean | undefined;
+  /*
+   * The card's place on its page (Utils/PageAnchor): a link to the page
+   * that names it after its "#" lands on the card, its top clear of the
+   * page's sticky header - and opens the More settings it is in. A plain
+   * name, unique on the page ("runner").
+   */
+  id?: string | undefined;
 }
+
+/*
+ * What a card with a place of its own on the page (`id`) carries, so a link
+ * to it lands with the card's top under the sticky header, not behind it.
+ */
+const getCardAnchorStyle: (
+  id: string | undefined,
+) => React.CSSProperties | undefined = (
+  id: string | undefined,
+): React.CSSProperties | undefined => {
+  return id ? { scrollMarginTop: PAGE_ANCHOR_SCROLL_MARGIN_TOP } : undefined;
+};
 
 /*
  * The header's class names, exported so the layout tests and the guard
@@ -697,6 +717,8 @@ const Card: FunctionComponent<ComponentProps> = (
   if (isSection) {
     return (
       <div
+        id={props.id}
+        style={getCardAnchorStyle(props.id)}
         data-testid="card"
         data-card-surface="section"
         className={`${CARD_SECTION_CLASS_NAME} ${props.className || ""}`}
@@ -718,6 +740,8 @@ const Card: FunctionComponent<ComponentProps> = (
   return (
     <React.Fragment>
       <div
+        id={props.id}
+        style={getCardAnchorStyle(props.id)}
         data-testid="card"
         data-fill-height={fillsHeight ? "true" : undefined}
         className={frameBoxClassName}

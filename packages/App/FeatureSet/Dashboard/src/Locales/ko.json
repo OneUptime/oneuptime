@@ -33233,7 +33233,6 @@
   "What to watch": "주의할 점",
   "When someone with write access opens or updates a pull request, OneUptime comments with what production shows of the code it changes.": "쓰기 권한이 있는 사람이 풀 리퀘스트를 열거나 업데이트하면, OneUptime이 변경된 코드에 대해 프로덕션이 보여 주는 내용을 댓글로 남깁니다.",
   "When the playbook runs on its own.": "플레이북이 자동으로 실행되는 시점입니다.",
-  "Where AI's pull requests open, how many may be open at once, the label that hands an issue to the GitHub App, and what production reviews post.": "AI의 풀 리퀘스트가 열리는 위치, 동시에 열 수 있는 수, 이슈를 GitHub App에 넘기는 레이블, 프로덕션 리뷰가 게시하는 내용입니다.",
   "Which security cases are open, and which look most urgent?": "어떤 보안 케이스가 열려 있고, 어떤 케이스가 가장 시급해 보이나요?",
   "Which users or hosts had unusual security activity in the last 24 hours?": "지난 24시간 동안 이례적인 보안 활동이 있었던 사용자나 호스트는 무엇인가요?",
   "You are still being paged. Please try again.": "계속 알림을 받습니다. 다시 시도해 주세요.",
@@ -33562,5 +33561,6 @@
   "These API keys get {{applied}} of this role's {{count}} permissions: those scoped to “{{scope}}” don't apply to a key.": "이 API 키들에는 이 역할의 권한 {{count}}개 중 {{applied}}개가 적용됩니다. 범위가 ‘{{scope}}’인 권한은 키에 적용되지 않습니다.",
   "These API keys get {{applied}} of this role's {{count}} permissions: those scoped to “{{scope}}” don't apply to a key._one": "이 API 키들에는 이 역할의 권한 {{count}}개 중 {{applied}}개가 적용됩니다. 범위가 ‘{{scope}}’인 권한은 키에 적용되지 않습니다.",
   "This project has no API key yet": "이 프로젝트에는 아직 API 키가 없습니다",
-  "This project has no API key yet. Create one on the API Keys page.": "이 프로젝트에는 아직 API 키가 없습니다. API 키 페이지에서 만드세요."
+  "This project has no API key yet. Create one on the API Keys page.": "이 프로젝트에는 아직 API 키가 없습니다. API 키 페이지에서 만드세요.",
+  "GitHub commands and production reviews, the Runner AI works on, and where AI's pull requests open.": "GitHub 명령과 프로덕션 리뷰, AI가 작업하는 Runner, AI의 풀 리퀘스트가 열리는 곳입니다."
 }

@@ -33233,7 +33233,6 @@
   "What to watch": "注意すべき点",
   "When someone with write access opens or updates a pull request, OneUptime comments with what production shows of the code it changes.": "書き込み権限のある人がプルリクエストを作成または更新すると、変更されたコードについて本番環境が示す情報を OneUptime がコメントします。",
   "When the playbook runs on its own.": "プレイブックが自動で実行されるタイミング。",
-  "Where AI's pull requests open, how many may be open at once, the label that hands an issue to the GitHub App, and what production reviews post.": "AI のプルリクエストを作成するブランチ、同時に開ける数、Issue を GitHub App に渡すラベル、本番レビューが投稿する内容です。",
   "Which security cases are open, and which look most urgent?": "どのセキュリティケースが未解決で、どれが最も緊急に見えますか？",
   "Which users or hosts had unusual security activity in the last 24 hours?": "過去 24 時間に異常なセキュリティ活動があったユーザーやホストはどれですか？",
   "You are still being paged. Please try again.": "引き続き通知されます。もう一度お試しください。",
@@ -33562,5 +33561,6 @@
   "These API keys get {{applied}} of this role's {{count}} permissions: those scoped to “{{scope}}” don't apply to a key.": "これらの API キーには、このロールの {{count}} 個の権限のうち {{applied}} 個が適用されます。スコープが「{{scope}}」の権限はキーには適用されません。",
   "These API keys get {{applied}} of this role's {{count}} permissions: those scoped to “{{scope}}” don't apply to a key._one": "これらの API キーには、このロールの {{count}} 個の権限のうち {{applied}} 個が適用されます。スコープが「{{scope}}」の権限はキーには適用されません。",
   "This project has no API key yet": "このプロジェクトにはまだ API キーがありません",
-  "This project has no API key yet. Create one on the API Keys page.": "このプロジェクトにはまだ API キーがありません。「API キー」ページで作成してください。"
+  "This project has no API key yet. Create one on the API Keys page.": "このプロジェクトにはまだ API キーがありません。「API キー」ページで作成してください。",
+  "GitHub commands and production reviews, the Runner AI works on, and where AI's pull requests open.": "GitHub コマンドと本番レビュー、AI が作業する Runner、AI のプルリクエストの作成先です。"
 }
