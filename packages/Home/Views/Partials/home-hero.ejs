@@ -9,10 +9,10 @@
         <span class="text-gray-400" aria-hidden="true">&rarr;</span>
       </a>
 
-      <h1 id="hero-title" class="mt-8 text-balance text-[2.5rem] font-semibold leading-[1.08] tracking-[-0.03em] text-gray-950 sm:text-6xl sm:leading-[1.05] lg:text-[3.75rem]">Less downtime. Fewer tools. <span class="text-gray-500 lg:block">No lock-in.</span></h1>
+      <h1 id="hero-title" class="mt-8 text-balance text-[2.5rem] font-semibold leading-[1.08] tracking-[-0.03em] text-gray-950 sm:text-6xl sm:leading-[1.05] lg:text-[3.75rem]">AI-native observability. <span class="text-gray-500 lg:block">From the first alert to the fix.</span></h1>
 
       <p class="mx-auto mt-6 max-w-2xl text-lg leading-8 text-gray-600">
-        OneUptime is one open-source platform for uptime monitoring, status pages, on-call, incidents, logs, metrics and traces, with an AI agent that helps you fix what breaks. Run it in our cloud or on your own servers.
+        OneUptime is one open-source platform for uptime monitoring, status pages, on-call, incidents, logs, metrics and traces. Its AI agent finds the root cause and opens the fix for your team to review.
       </p>
 
       <div class="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -29,8 +29,12 @@
   <!-- The product, on a stage -->
   <div class="mx-auto mt-16 max-w-6xl px-4 pb-8 sm:mt-20 sm:px-6 sm:pb-12 lg:px-8">
     <div class="rounded-[1.75rem] bg-gradient-to-b from-slate-100 via-slate-50 to-emerald-50/70 p-2 ring-1 ring-inset ring-gray-200/70 sm:p-6 lg:p-10">
-      <div class="mx-auto max-w-5xl">
+      <div class="relative mx-auto max-w-5xl">
         <%- include('./home-mocks/mock-hero') -%>
+        <%# OneUptime AI's report on the same incident, laid over the Home page from a laptop up. -%>
+        <div class="absolute -bottom-8 -right-6 w-[21rem] max-lg:hidden lg:block xl:-right-8">
+          <%- include('./home-mocks/mock-ai-summary') -%>
+        </div>
       </div>
     </div>
   </div>
