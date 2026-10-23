@@ -94,8 +94,8 @@ Eine Regel alarmiert, sobald eine Warnung zu ihr passt. Damit sie stattdessen au
 
 **Eigentümerregeln** fügen passenden neuen Warnungen Eigentümer-Benutzer und -Teams hinzu, und **Beschriftungsregeln** fügen Beschriftungen hinzu. Das Erstellen hat zwei Schritte: **Übereinstimmung**, die Bedingungen, dann **Eigentümer** oder **Beschriftungen**, was die Regel hinzufügt. Der **Name** der Regel folgt Ihrer Auswahl, bis Sie einen eigenen eingeben.
 
-- **Eine Regel kann erben.** Unter **Eigentümer erben** oder **Beschriftungen erben** eingeklappt, geben sechs Schalter die Eigentümer oder Beschriftungen des Monitors, der Hosts, Kubernetes-Cluster, Docker-Hosts, Podman-Hosts und Dienste der Warnung weiter. Episodenregeln haben keine solchen Schalter.
-- **Eine neue Regel muss etwas hinzufügen**: Wählen Sie mindestens einen Eigentümer oder eine Beschriftung, oder schalten Sie einen Schalter ein.
+- **Eine Regel kann erben.** Unter **Eigentümer erben** oder **Beschriftungen erben** eingeklappt, geben sechs Schalter die Eigentümer oder Beschriftungen des Monitors, der Hosts, Kubernetes-Cluster, Docker-Hosts, Podman-Hosts und Dienste der Warnung weiter. Episodenregeln haben keine solchen Schalter. Der Abschnitt **Eigentümer erben** einer Eigentümerregel endet mit **Team des Erstellers**: Von den dort aufgeführten Teams wird jedes, in dem die Person ist, die die Warnung erstellt, ebenfalls Eigentümer.
+- **Eine neue Regel muss etwas hinzufügen**: Wählen Sie mindestens einen Eigentümer oder eine Beschriftung, oder schalten Sie einen Schalter ein. Bei einer Eigentümerregel für Vorfälle oder Warnungen genügt auch ein Team unter **Team des Erstellers**.
 - **Eigentümer benachrichtigen**, unter **Weitere Felder** einer Eigentümerregel, entscheidet, ob die hinzugefügten Personen informiert werden.
 
 [Beschriftungs- und Eigentümerregeln](/docs/configuration/label-and-owner-rules) beschreibt das Formular Schritt für Schritt, für jede Art von Ressource.

@@ -94,8 +94,8 @@ Una regla avisa en cuanto una alerta coincide con ella. Para que espere al horar
 
 Las **Reglas del propietario** añaden usuarios y equipos propietarios a las alertas nuevas que coinciden, y las **Reglas de etiquetas** añaden etiquetas. Crear una lleva dos pasos: **Coincidencia**, las condiciones, y después **Propietarios** o **Etiquetas**, lo que añade la regla. El **Nombre** de la regla sigue lo que elijas hasta que escribas uno propio.
 
-- **Una regla puede heredar.** Plegados en **Heredar propietarios** o **Heredar etiquetas**, seis interruptores transmiten los propietarios o las etiquetas del monitor, los hosts, los clústeres de Kubernetes, los hosts de Docker, los hosts de Podman y los servicios de la alerta. Las reglas de episodios no tienen esos interruptores.
-- **Una regla nueva tiene que añadir algo**: elige al menos un propietario o una etiqueta, o activa un interruptor.
+- **Una regla puede heredar.** Plegados en **Heredar propietarios** o **Heredar etiquetas**, seis interruptores transmiten los propietarios o las etiquetas del monitor, los hosts, los clústeres de Kubernetes, los hosts de Docker, los hosts de Podman y los servicios de la alerta. Las reglas de episodios no tienen esos interruptores. La sección **Heredar propietarios** de una regla de propietarios termina con **Equipo del creador**: de los equipos que figuran ahí, cada uno en el que está la persona que crea la alerta también pasa a ser propietario.
+- **Una regla nueva tiene que añadir algo**: elige al menos un propietario o una etiqueta, o activa un interruptor. En una regla de propietarios de incidentes o alertas, también basta un equipo en **Equipo del creador**.
 - **Notificar a los propietarios**, en **Más campos** de una regla de propietario, decide si se avisa a las personas añadidas.
 
 [Reglas de etiquetas y propietarios](/docs/configuration/label-and-owner-rules) explica el formulario paso a paso, para cada tipo de recurso.
