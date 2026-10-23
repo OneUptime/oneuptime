@@ -733,6 +733,63 @@ export default class AlertOwnerRule extends RuleBaseModel {
   })
   public ownerTeams?: Array<Team> = undefined;
 
+  /*
+   * The creator's team: of these teams, each one the person who creates a
+   * matching alert is a member of becomes an owner too (Server/Utils/Rules/
+   * CreatorTeams). A list rather than "every team of the creator": people
+   * are in the project's Members team by default, which would make everyone
+   * an owner. An alert a monitor, a workflow or an API key creates has no
+   * creator, and gets none of these teams.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAlertOwnerRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.AlertViewer,
+      Permission.ReadAlertOwnerRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAlertOwnerRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Team,
+    title: "Creator's Teams",
+    description:
+      "Teams added as owners when the person who creates a matching alert is a member of them. A team the creator is not in is not added. An alert a monitor, a workflow or an API key creates has no creator.",
+  })
+  @ManyToMany(
+    () => {
+      return Team;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AlertOwnerRuleCreatorTeam",
+    inverseJoinColumn: {
+      name: "teamId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "alertOwnerRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public creatorTeams?: Array<Team> = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

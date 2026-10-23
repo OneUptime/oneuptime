@@ -7,7 +7,9 @@ import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBas
  * the people and teams it lists (ownerUsers, ownerTeams). An incident,
  * alert or scheduled maintenance rule can also inherit: six switches add the
  * labels - or the owners - of the monitors, hosts, Kubernetes clusters,
- * Docker and Podman hosts and services the event touches.
+ * Docker and Podman hosts and services the event touches. An incident or
+ * alert owner rule can also list teams for the creator's team
+ * (creatorTeams): the ones the person who created the event is in.
  *
  * A rule that adds nothing matches and does nothing, so a NEW rule must add
  * something wherever it is made: the Dashboard's form asks for it
@@ -30,6 +32,15 @@ export const LABEL_RULE_LIST_COLUMNS: ReadonlyArray<string> = ["labelsToAdd"];
 export const OWNER_RULE_LIST_COLUMNS: ReadonlyArray<string> = [
   "ownerUsers",
   "ownerTeams",
+];
+
+/*
+ * An incident or alert owner rule's Creator's Team: teams added when the
+ * event's creator is a member of them. A rule that lists one adds something,
+ * as one that names an owner does.
+ */
+export const CREATOR_TEAM_LIST_COLUMNS: ReadonlyArray<string> = [
+  "creatorTeams",
 ];
 
 // An incident, alert or scheduled maintenance label rule's Inherit Labels.
@@ -109,7 +120,10 @@ export const getRuleActionColumns: (
     hasEveryColumn(model, OWNER_RULE_LIST_COLUMNS)
   ) {
     return {
-      listColumns: [...OWNER_RULE_LIST_COLUMNS],
+      listColumns: [
+        ...OWNER_RULE_LIST_COLUMNS,
+        ...columnsOf(model, CREATOR_TEAM_LIST_COLUMNS),
+      ],
       switchColumns: columnsOf(model, INHERITED_OWNER_COLUMNS),
     };
   }

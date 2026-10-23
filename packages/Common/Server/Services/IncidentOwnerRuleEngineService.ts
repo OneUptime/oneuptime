@@ -1,44 +1,15 @@
-import DockerHost from "../../Models/DatabaseModels/DockerHost";
-import DockerHostOwnerTeam from "../../Models/DatabaseModels/DockerHostOwnerTeam";
-import DockerHostOwnerUser from "../../Models/DatabaseModels/DockerHostOwnerUser";
-import Host from "../../Models/DatabaseModels/Host";
-import HostOwnerTeam from "../../Models/DatabaseModels/HostOwnerTeam";
-import HostOwnerUser from "../../Models/DatabaseModels/HostOwnerUser";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentOwnerRule from "../../Models/DatabaseModels/IncidentOwnerRule";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
-import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
-import KubernetesClusterOwnerTeam from "../../Models/DatabaseModels/KubernetesClusterOwnerTeam";
-import KubernetesClusterOwnerUser from "../../Models/DatabaseModels/KubernetesClusterOwnerUser";
 import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
-import MonitorOwnerTeam from "../../Models/DatabaseModels/MonitorOwnerTeam";
-import MonitorOwnerUser from "../../Models/DatabaseModels/MonitorOwnerUser";
-import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
-import PodmanHostOwnerTeam from "../../Models/DatabaseModels/PodmanHostOwnerTeam";
-import PodmanHostOwnerUser from "../../Models/DatabaseModels/PodmanHostOwnerUser";
-import Service from "../../Models/DatabaseModels/Service";
-import ServiceOwnerTeam from "../../Models/DatabaseModels/ServiceOwnerTeam";
-import ServiceOwnerUser from "../../Models/DatabaseModels/ServiceOwnerUser";
 import Team from "../../Models/DatabaseModels/Team";
 import User from "../../Models/DatabaseModels/User";
-import DockerHostOwnerTeamService from "./DockerHostOwnerTeamService";
-import DockerHostOwnerUserService from "./DockerHostOwnerUserService";
-import HostOwnerTeamService from "./HostOwnerTeamService";
-import HostOwnerUserService from "./HostOwnerUserService";
 import IncidentFeedService from "./IncidentFeedService";
 import IncidentOwnerRuleService from "./IncidentOwnerRuleService";
 import IncidentOwnerTeamService from "./IncidentOwnerTeamService";
 import IncidentOwnerUserService from "./IncidentOwnerUserService";
 import IncidentService from "./IncidentService";
-import KubernetesClusterOwnerTeamService from "./KubernetesClusterOwnerTeamService";
-import KubernetesClusterOwnerUserService from "./KubernetesClusterOwnerUserService";
-import MonitorOwnerTeamService from "./MonitorOwnerTeamService";
-import MonitorOwnerUserService from "./MonitorOwnerUserService";
-import PodmanHostOwnerTeamService from "./PodmanHostOwnerTeamService";
-import PodmanHostOwnerUserService from "./PodmanHostOwnerUserService";
-import ServiceOwnerTeamService from "./ServiceOwnerTeamService";
-import ServiceOwnerUserService from "./ServiceOwnerUserService";
 import TeamService from "./TeamService";
 import UserService from "./UserService";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
@@ -69,6 +40,14 @@ import {
 } from "../Utils/Rules/RuleRun/RuleApplication";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
+import OwnerRulePlanBuilder, {
+  OwnerIdSets,
+  OwnerRuleInheritSource,
+  OwnerRulePlan,
+  OwnerRulePlanEntry,
+} from "../Utils/Rules/OwnerRulePlan";
+import CreatorTeams from "../Utils/Rules/CreatorTeams";
+import InheritedOwners from "../Utils/Rules/InheritedOwners";
 
 /*
  * Whether any owner that was actually added came from one inherited source.
@@ -114,6 +93,7 @@ class IncidentOwnerRuleEngineServiceClass
     monitorDescriptionPattern: true,
     ownerUsers: { _id: true },
     ownerTeams: { _id: true },
+    creatorTeams: { _id: true },
     inheritOwnersFromMonitors: true,
     inheritOwnersFromHosts: true,
     inheritOwnersFromKubernetesClusters: true,
@@ -126,7 +106,8 @@ class IncidentOwnerRuleEngineServiceClass
    * Matching and inheritance read all of these straight off the incident they
    * are handed instead of re-reading it, so a run has to load every one: a
    * column left out here is a criterion a run silently never matches on, or
-   * a resource it silently never inherits owners from.
+   * a resource it silently never inherits owners from. Who declared it
+   * decides the creator's team a rule adds.
    */
   public readonly resourceSelectForRuleRun: Select<Incident> = {
     _id: true,
@@ -134,6 +115,7 @@ class IncidentOwnerRuleEngineServiceClass
     title: true,
     description: true,
     incidentSeverityId: true,
+    createdByUserId: true,
     labels: { _id: true },
     monitors: { _id: true },
     hosts: { _id: true },
@@ -142,6 +124,35 @@ class IncidentOwnerRuleEngineServiceClass
     podmanHosts: { _id: true },
     services: { _id: true },
   };
+
+  /*
+   * The project's enabled rules, as every evaluation of a new incident reads
+   * them - the create and the declare form's preview alike.
+   */
+  @CaptureSpan()
+  public async getEnabledRules(
+    projectId: ObjectID,
+  ): Promise<Array<IncidentOwnerRule>> {
+    const rules: Array<IncidentOwnerRule> =
+      await IncidentOwnerRuleService.findBy({
+        query: {
+          projectId: projectId,
+          isEnabled: true,
+        },
+        props: { isRoot: true },
+        select: this.ruleSelect,
+        limit: MAX_RULES_EVALUATED_PER_PROJECT,
+        skip: 0,
+      });
+
+    logIfRuleReadWasTruncated({
+      ruleKind: "IncidentOwnerRule",
+      projectId: projectId,
+      rulesRead: rules.length,
+    });
+
+    return rules;
+  }
 
   /**
    * Evaluates IncidentOwnerRule rows for the given incident and adds matched
@@ -155,23 +166,9 @@ class IncidentOwnerRuleEngineServiceClass
     }
 
     try {
-      const rules: Array<IncidentOwnerRule> =
-        await IncidentOwnerRuleService.findBy({
-          query: {
-            projectId: incident.projectId,
-            isEnabled: true,
-          },
-          props: { isRoot: true },
-          select: this.ruleSelect,
-          limit: MAX_RULES_EVALUATED_PER_PROJECT,
-          skip: 0,
-        });
-
-      logIfRuleReadWasTruncated({
-        ruleKind: "IncidentOwnerRule",
-        projectId: incident.projectId,
-        rulesRead: rules.length,
-      });
+      const rules: Array<IncidentOwnerRule> = await this.getEnabledRules(
+        incident.projectId,
+      );
 
       if (rules.length === 0) {
         return;
@@ -214,7 +211,102 @@ class IncidentOwnerRuleEngineServiceClass
     }
   }
 
+  /*
+   * What the project's owner rules would add to an incident that is not
+   * declared yet - the one the Declare Incident form holds - worked out by
+   * the plan the create carries out (planRules), and nothing written: each
+   * rule that would add someone, and who. The incident names its project and
+   * the person declaring it (createdByUserId) as the create would.
+   */
+  @CaptureSpan()
+  public async previewRules(
+    incident: Incident,
+  ): Promise<Array<OwnerRulePlanEntry<IncidentOwnerRule>>> {
+    if (!incident.projectId) {
+      return [];
+    }
+
+    const rules: Array<IncidentOwnerRule> = await this.getEnabledRules(
+      incident.projectId,
+    );
+
+    if (rules.length === 0) {
+      return [];
+    }
+
+    const plan: OwnerRulePlan<IncidentOwnerRule> = await this.planRules({
+      incident: incident,
+      rules: rules,
+      allowOwnerNotification: true,
+    });
+
+    return plan.entries;
+  }
+
+  /*
+   * Which of `rules` match the incident, and who each of them brings
+   * (OwnerRulePlan) - read, never written. The create, a run and the
+   * declare form's preview all go through here.
+   */
   @RuleEvaluation()
+  public async planRules(data: {
+    incident: Incident;
+    rules: Array<IncidentOwnerRule>;
+    allowOwnerNotification: boolean;
+  }): Promise<OwnerRulePlan<IncidentOwnerRule>> {
+    const { incident, rules } = data;
+
+    const builder: OwnerRulePlanBuilder<IncidentOwnerRule> =
+      new OwnerRulePlanBuilder<IncidentOwnerRule>(data.allowOwnerNotification);
+
+    const creatorTeams: CreatorTeams = new CreatorTeams({
+      projectId: incident.projectId,
+      creatorUserId: incident.createdByUserId,
+    });
+
+    for (const rule of rules) {
+      const matches: boolean = await this.doesIncidentMatchRule(incident, rule);
+
+      if (!matches) {
+        continue;
+      }
+
+      builder.addMatch({
+        rule: rule,
+        notifyOwners: rule.notifyOwners,
+        userIds: OwnerRulePlanBuilder.idsOf(rule.ownerUsers),
+        teamIds: OwnerRulePlanBuilder.idsOf(rule.ownerTeams),
+        listsCreatorTeams: (rule.creatorTeams || []).length > 0,
+        creatorTeamIds: await creatorTeams.pick(rule.creatorTeams),
+        inheritsFrom: OwnerRulePlanBuilder.getInheritSources(rule),
+      });
+    }
+
+    return builder.build(
+      await this.readInheritedOwners(incident, builder.getSourcesToInherit()),
+    );
+  }
+
+  // Who owns the incident's resources, for the sources a matched rule inherits from.
+  private async readInheritedOwners(
+    incident: Incident,
+    sources: Set<OwnerRuleInheritSource>,
+  ): Promise<Map<OwnerRuleInheritSource, OwnerIdSets>> {
+    return await InheritedOwners.read({
+      sources: sources,
+      resources: {
+        monitorIds: InheritedOwners.idsOf(incident.monitors),
+        hostIds: InheritedOwners.idsOf(incident.hosts),
+        kubernetesClusterIds: InheritedOwners.idsOf(
+          incident.kubernetesClusters,
+        ),
+        dockerHostIds: InheritedOwners.idsOf(incident.dockerHosts),
+        podmanHostIds: InheritedOwners.idsOf(incident.podmanHosts),
+        serviceIds: InheritedOwners.idsOf(incident.services),
+      },
+    });
+  }
+
   private async applyRules(data: {
     incident: Incident;
     rules: Array<IncidentOwnerRule>;
@@ -226,391 +318,16 @@ class IncidentOwnerRuleEngineServiceClass
       return RuleApplicationResultUtil.noMatch();
     }
 
-    const usersByNotify: Map<boolean, Set<string>> = new Map([
-      [true, new Set()],
-      [false, new Set()],
-    ]);
-    const teamsByNotify: Map<boolean, Set<string>> = new Map([
-      [true, new Set()],
-      [false, new Set()],
-    ]);
+    const plan: OwnerRulePlan<IncidentOwnerRule> = await this.planRules(data);
 
-    const matchedRules: Array<IncidentOwnerRule> = [];
-    const allUserIds: Set<string> = new Set();
-    const allTeamIds: Set<string> = new Set();
-    let inheritFromMonitors: boolean = false;
-    let inheritFromHosts: boolean = false;
-    let inheritFromKubernetesClusters: boolean = false;
-    let inheritFromDockerHosts: boolean = false;
-    let inheritFromPodmanHosts: boolean = false;
-    let inheritFromServices: boolean = false;
-    const inheritNotifyMode: { value: boolean | null } = { value: null };
-    let anyRuleMatched: boolean = false;
-
-    for (const rule of rules) {
-      const matches: boolean = await this.doesIncidentMatchRule(incident, rule);
-      if (!matches) {
-        continue;
-      }
-      anyRuleMatched = true;
-      let ruleAddedAny: boolean = false;
-      const notify: boolean =
-        rule.notifyOwners !== false && data.allowOwnerNotification;
-      for (const user of rule.ownerUsers || []) {
-        if (user.id) {
-          usersByNotify.get(notify)!.add(user.id.toString());
-          allUserIds.add(user.id.toString());
-          ruleAddedAny = true;
-        }
-      }
-      for (const team of rule.ownerTeams || []) {
-        if (team.id) {
-          teamsByNotify.get(notify)!.add(team.id.toString());
-          allTeamIds.add(team.id.toString());
-          ruleAddedAny = true;
-        }
-      }
-      if (rule.inheritOwnersFromMonitors) {
-        inheritFromMonitors = true;
-        ruleAddedAny = true;
-        inheritNotifyMode.value =
-          inheritNotifyMode.value === true ? true : notify;
-      }
-      if (rule.inheritOwnersFromHosts) {
-        inheritFromHosts = true;
-        ruleAddedAny = true;
-        inheritNotifyMode.value =
-          inheritNotifyMode.value === true ? true : notify;
-      }
-      if (rule.inheritOwnersFromKubernetesClusters) {
-        inheritFromKubernetesClusters = true;
-        ruleAddedAny = true;
-        inheritNotifyMode.value =
-          inheritNotifyMode.value === true ? true : notify;
-      }
-      if (rule.inheritOwnersFromDockerHosts) {
-        inheritFromDockerHosts = true;
-        ruleAddedAny = true;
-        inheritNotifyMode.value =
-          inheritNotifyMode.value === true ? true : notify;
-      }
-      if (rule.inheritOwnersFromPodmanHosts) {
-        inheritFromPodmanHosts = true;
-        ruleAddedAny = true;
-        inheritNotifyMode.value =
-          inheritNotifyMode.value === true ? true : notify;
-      }
-      if (rule.inheritOwnersFromServices) {
-        inheritFromServices = true;
-        ruleAddedAny = true;
-        inheritNotifyMode.value =
-          inheritNotifyMode.value === true ? true : notify;
-      }
-      if (ruleAddedAny) {
-        matchedRules.push(rule);
-      }
-    }
-
-    if (!anyRuleMatched) {
+    if (!plan.anyRuleMatched) {
       return RuleApplicationResultUtil.noMatch();
     }
 
-    const inheritedFromMonitorUserIds: Set<string> = new Set();
-    const inheritedFromMonitorTeamIds: Set<string> = new Set();
-    const inheritedFromHostUserIds: Set<string> = new Set();
-    const inheritedFromHostTeamIds: Set<string> = new Set();
-    const inheritedFromKubernetesClusterUserIds: Set<string> = new Set();
-    const inheritedFromKubernetesClusterTeamIds: Set<string> = new Set();
-    const inheritedFromDockerHostUserIds: Set<string> = new Set();
-    const inheritedFromDockerHostTeamIds: Set<string> = new Set();
-    const inheritedFromPodmanHostUserIds: Set<string> = new Set();
-    const inheritedFromPodmanHostTeamIds: Set<string> = new Set();
-    const inheritedFromServiceUserIds: Set<string> = new Set();
-    const inheritedFromServiceTeamIds: Set<string> = new Set();
-
-    if (inheritFromMonitors && incident.monitors?.length) {
-      const monitorIds: Array<ObjectID> = incident.monitors
-        .map((m: Monitor) => {
-          return m.id;
-        })
-        .filter((id: ObjectID | null | undefined): id is ObjectID => {
-          return Boolean(id);
-        });
-      if (monitorIds.length > 0) {
-        const [monitorOwnerUsers, monitorOwnerTeams]: [
-          Array<MonitorOwnerUser>,
-          Array<MonitorOwnerTeam>,
-        ] = await Promise.all([
-          MonitorOwnerUserService.findBy({
-            query: { monitorId: QueryHelper.any(monitorIds) },
-            select: { userId: true },
-            props: { isRoot: true },
-            limit: LIMIT_MAX,
-            skip: 0,
-          }),
-          MonitorOwnerTeamService.findBy({
-            query: { monitorId: QueryHelper.any(monitorIds) },
-            select: { teamId: true },
-            props: { isRoot: true },
-            limit: LIMIT_MAX,
-            skip: 0,
-          }),
-        ]);
-        for (const ownerUser of monitorOwnerUsers) {
-          if (ownerUser.userId) {
-            inheritedFromMonitorUserIds.add(ownerUser.userId.toString());
-          }
-        }
-        for (const ownerTeam of monitorOwnerTeams) {
-          if (ownerTeam.teamId) {
-            inheritedFromMonitorTeamIds.add(ownerTeam.teamId.toString());
-          }
-        }
-      }
-    }
-
-    if (inheritFromHosts && incident.hosts?.length) {
-      const hostIds: Array<ObjectID> = incident.hosts
-        .map((h: Host) => {
-          return h.id;
-        })
-        .filter((id: ObjectID | null | undefined): id is ObjectID => {
-          return Boolean(id);
-        });
-      if (hostIds.length > 0) {
-        const [hostOwnerUsers, hostOwnerTeams]: [
-          Array<HostOwnerUser>,
-          Array<HostOwnerTeam>,
-        ] = await Promise.all([
-          HostOwnerUserService.findBy({
-            query: { hostId: QueryHelper.any(hostIds) },
-            select: { userId: true },
-            props: { isRoot: true },
-            limit: LIMIT_MAX,
-            skip: 0,
-          }),
-          HostOwnerTeamService.findBy({
-            query: { hostId: QueryHelper.any(hostIds) },
-            select: { teamId: true },
-            props: { isRoot: true },
-            limit: LIMIT_MAX,
-            skip: 0,
-          }),
-        ]);
-        for (const ownerUser of hostOwnerUsers) {
-          if (ownerUser.userId) {
-            inheritedFromHostUserIds.add(ownerUser.userId.toString());
-          }
-        }
-        for (const ownerTeam of hostOwnerTeams) {
-          if (ownerTeam.teamId) {
-            inheritedFromHostTeamIds.add(ownerTeam.teamId.toString());
-          }
-        }
-      }
-    }
-
-    if (inheritFromKubernetesClusters && incident.kubernetesClusters?.length) {
-      const clusterIds: Array<ObjectID> = incident.kubernetesClusters
-        .map((c: KubernetesCluster) => {
-          return c.id;
-        })
-        .filter((id: ObjectID | null | undefined): id is ObjectID => {
-          return Boolean(id);
-        });
-      if (clusterIds.length > 0) {
-        const [clusterOwnerUsers, clusterOwnerTeams]: [
-          Array<KubernetesClusterOwnerUser>,
-          Array<KubernetesClusterOwnerTeam>,
-        ] = await Promise.all([
-          KubernetesClusterOwnerUserService.findBy({
-            query: { kubernetesClusterId: QueryHelper.any(clusterIds) },
-            select: { userId: true },
-            props: { isRoot: true },
-            limit: LIMIT_MAX,
-            skip: 0,
-          }),
-          KubernetesClusterOwnerTeamService.findBy({
-            query: { kubernetesClusterId: QueryHelper.any(clusterIds) },
-            select: { teamId: true },
-            props: { isRoot: true },
-            limit: LIMIT_MAX,
-            skip: 0,
-          }),
-        ]);
-        for (const ownerUser of clusterOwnerUsers) {
-          if (ownerUser.userId) {
-            inheritedFromKubernetesClusterUserIds.add(
-              ownerUser.userId.toString(),
-            );
-          }
-        }
-        for (const ownerTeam of clusterOwnerTeams) {
-          if (ownerTeam.teamId) {
-            inheritedFromKubernetesClusterTeamIds.add(
-              ownerTeam.teamId.toString(),
-            );
-          }
-        }
-      }
-    }
-
-    if (inheritFromDockerHosts && incident.dockerHosts?.length) {
-      const dockerHostIds: Array<ObjectID> = incident.dockerHosts
-        .map((d: DockerHost) => {
-          return d.id;
-        })
-        .filter((id: ObjectID | null | undefined): id is ObjectID => {
-          return Boolean(id);
-        });
-      if (dockerHostIds.length > 0) {
-        const [dockerHostOwnerUsers, dockerHostOwnerTeams]: [
-          Array<DockerHostOwnerUser>,
-          Array<DockerHostOwnerTeam>,
-        ] = await Promise.all([
-          DockerHostOwnerUserService.findBy({
-            query: { dockerHostId: QueryHelper.any(dockerHostIds) },
-            select: { userId: true },
-            props: { isRoot: true },
-            limit: LIMIT_MAX,
-            skip: 0,
-          }),
-          DockerHostOwnerTeamService.findBy({
-            query: { dockerHostId: QueryHelper.any(dockerHostIds) },
-            select: { teamId: true },
-            props: { isRoot: true },
-            limit: LIMIT_MAX,
-            skip: 0,
-          }),
-        ]);
-        for (const ownerUser of dockerHostOwnerUsers) {
-          if (ownerUser.userId) {
-            inheritedFromDockerHostUserIds.add(ownerUser.userId.toString());
-          }
-        }
-        for (const ownerTeam of dockerHostOwnerTeams) {
-          if (ownerTeam.teamId) {
-            inheritedFromDockerHostTeamIds.add(ownerTeam.teamId.toString());
-          }
-        }
-      }
-    }
-
-    if (inheritFromPodmanHosts && incident.podmanHosts?.length) {
-      const podmanHostIds: Array<ObjectID> = incident.podmanHosts
-        .map((p: PodmanHost) => {
-          return p.id;
-        })
-        .filter((id: ObjectID | null | undefined): id is ObjectID => {
-          return Boolean(id);
-        });
-      if (podmanHostIds.length > 0) {
-        const [podmanHostOwnerUsers, podmanHostOwnerTeams]: [
-          Array<PodmanHostOwnerUser>,
-          Array<PodmanHostOwnerTeam>,
-        ] = await Promise.all([
-          PodmanHostOwnerUserService.findBy({
-            query: { podmanHostId: QueryHelper.any(podmanHostIds) },
-            select: { userId: true },
-            props: { isRoot: true },
-            limit: LIMIT_MAX,
-            skip: 0,
-          }),
-          PodmanHostOwnerTeamService.findBy({
-            query: { podmanHostId: QueryHelper.any(podmanHostIds) },
-            select: { teamId: true },
-            props: { isRoot: true },
-            limit: LIMIT_MAX,
-            skip: 0,
-          }),
-        ]);
-        for (const ownerUser of podmanHostOwnerUsers) {
-          if (ownerUser.userId) {
-            inheritedFromPodmanHostUserIds.add(ownerUser.userId.toString());
-          }
-        }
-        for (const ownerTeam of podmanHostOwnerTeams) {
-          if (ownerTeam.teamId) {
-            inheritedFromPodmanHostTeamIds.add(ownerTeam.teamId.toString());
-          }
-        }
-      }
-    }
-
-    if (inheritFromServices && incident.services?.length) {
-      const serviceIds: Array<ObjectID> = incident.services
-        .map((s: Service) => {
-          return s.id;
-        })
-        .filter((id: ObjectID | null | undefined): id is ObjectID => {
-          return Boolean(id);
-        });
-      if (serviceIds.length > 0) {
-        const [serviceOwnerUsers, serviceOwnerTeams]: [
-          Array<ServiceOwnerUser>,
-          Array<ServiceOwnerTeam>,
-        ] = await Promise.all([
-          ServiceOwnerUserService.findBy({
-            query: { serviceId: QueryHelper.any(serviceIds) },
-            select: { userId: true },
-            props: { isRoot: true },
-            limit: LIMIT_MAX,
-            skip: 0,
-          }),
-          ServiceOwnerTeamService.findBy({
-            query: { serviceId: QueryHelper.any(serviceIds) },
-            select: { teamId: true },
-            props: { isRoot: true },
-            limit: LIMIT_MAX,
-            skip: 0,
-          }),
-        ]);
-        for (const ownerUser of serviceOwnerUsers) {
-          if (ownerUser.userId) {
-            inheritedFromServiceUserIds.add(ownerUser.userId.toString());
-          }
-        }
-        for (const ownerTeam of serviceOwnerTeams) {
-          if (ownerTeam.teamId) {
-            inheritedFromServiceTeamIds.add(ownerTeam.teamId.toString());
-          }
-        }
-      }
-    }
-
-    const inheritedUserIds: Set<string> = new Set([
-      ...inheritedFromMonitorUserIds,
-      ...inheritedFromHostUserIds,
-      ...inheritedFromKubernetesClusterUserIds,
-      ...inheritedFromDockerHostUserIds,
-      ...inheritedFromPodmanHostUserIds,
-      ...inheritedFromServiceUserIds,
-    ]);
-    const inheritedTeamIds: Set<string> = new Set([
-      ...inheritedFromMonitorTeamIds,
-      ...inheritedFromHostTeamIds,
-      ...inheritedFromKubernetesClusterTeamIds,
-      ...inheritedFromDockerHostTeamIds,
-      ...inheritedFromPodmanHostTeamIds,
-      ...inheritedFromServiceTeamIds,
-    ]);
-
-    if (inheritedUserIds.size > 0 || inheritedTeamIds.size > 0) {
-      // A run that did not opt in to notifications adds inherited owners silently too.
-      const inheritNotify: boolean =
-        inheritNotifyMode.value === true && data.allowOwnerNotification;
-      for (const id of inheritedUserIds) {
-        usersByNotify.get(inheritNotify)!.add(id);
-        allUserIds.add(id);
-      }
-      for (const id of inheritedTeamIds) {
-        teamsByNotify.get(inheritNotify)!.add(id);
-        allTeamIds.add(id);
-      }
-    }
+    const { usersByNotify, teamsByNotify, allUserIds, allTeamIds } = plan;
 
     if (
-      matchedRules.length === 0 ||
+      plan.matchedRules.length === 0 ||
       (allUserIds.size === 0 && allTeamIds.size === 0)
     ) {
       return RuleApplicationResultUtil.alreadyApplied();
@@ -692,46 +409,32 @@ class IncidentOwnerRuleEngineServiceClass
     const addedUserIdSet: Set<string> = new Set(addedUserIds);
     const addedTeamIdSet: Set<string> = new Set(addedTeamIds);
 
+    const addedAnyFrom: (source: OwnerRuleInheritSource) => boolean = (
+      source: OwnerRuleInheritSource,
+    ): boolean => {
+      const owners: OwnerIdSets | undefined = plan.inherited.get(source);
+
+      return addedAnyInheritedOwner({
+        addedUserIds: addedUserIdSet,
+        addedTeamIds: addedTeamIdSet,
+        inheritedUserIds: owners?.userIds || new Set<string>(),
+        inheritedTeamIds: owners?.teamIds || new Set<string>(),
+      });
+    };
+
     await this.createRuleExecutedFeedItem({
       incident,
-      matchedRules,
+      matchedRules: plan.matchedRules,
       userIds: addedUserIds,
       teamIds: addedTeamIds,
-      inheritedFromMonitors: addedAnyInheritedOwner({
-        addedUserIds: addedUserIdSet,
-        addedTeamIds: addedTeamIdSet,
-        inheritedUserIds: inheritedFromMonitorUserIds,
-        inheritedTeamIds: inheritedFromMonitorTeamIds,
-      }),
-      inheritedFromHosts: addedAnyInheritedOwner({
-        addedUserIds: addedUserIdSet,
-        addedTeamIds: addedTeamIdSet,
-        inheritedUserIds: inheritedFromHostUserIds,
-        inheritedTeamIds: inheritedFromHostTeamIds,
-      }),
-      inheritedFromKubernetesClusters: addedAnyInheritedOwner({
-        addedUserIds: addedUserIdSet,
-        addedTeamIds: addedTeamIdSet,
-        inheritedUserIds: inheritedFromKubernetesClusterUserIds,
-        inheritedTeamIds: inheritedFromKubernetesClusterTeamIds,
-      }),
-      inheritedFromDockerHosts: addedAnyInheritedOwner({
-        addedUserIds: addedUserIdSet,
-        addedTeamIds: addedTeamIdSet,
-        inheritedUserIds: inheritedFromDockerHostUserIds,
-        inheritedTeamIds: inheritedFromDockerHostTeamIds,
-      }),
-      inheritedFromPodmanHosts: addedAnyInheritedOwner({
-        addedUserIds: addedUserIdSet,
-        addedTeamIds: addedTeamIdSet,
-        inheritedUserIds: inheritedFromPodmanHostUserIds,
-        inheritedTeamIds: inheritedFromPodmanHostTeamIds,
-      }),
-      inheritedFromServices: addedAnyInheritedOwner({
-        addedUserIds: addedUserIdSet,
-        addedTeamIds: addedTeamIdSet,
-        inheritedUserIds: inheritedFromServiceUserIds,
-        inheritedTeamIds: inheritedFromServiceTeamIds,
+      inheritedFromMonitors: addedAnyFrom("monitors"),
+      inheritedFromHosts: addedAnyFrom("hosts"),
+      inheritedFromKubernetesClusters: addedAnyFrom("kubernetesClusters"),
+      inheritedFromDockerHosts: addedAnyFrom("dockerHosts"),
+      inheritedFromPodmanHosts: addedAnyFrom("podmanHosts"),
+      inheritedFromServices: addedAnyFrom("services"),
+      addedCreatorTeams: addedTeamIds.some((teamId: string): boolean => {
+        return plan.creatorTeamIds.has(teamId);
       }),
     });
 
@@ -750,6 +453,8 @@ class IncidentOwnerRuleEngineServiceClass
     inheritedFromDockerHosts: boolean;
     inheritedFromPodmanHosts: boolean;
     inheritedFromServices: boolean;
+    // Some owner it added is a team of the person who declared the incident.
+    addedCreatorTeams: boolean;
   }): Promise<void> {
     const {
       incident,
@@ -762,6 +467,7 @@ class IncidentOwnerRuleEngineServiceClass
       inheritedFromDockerHosts,
       inheritedFromPodmanHosts,
       inheritedFromServices,
+      addedCreatorTeams,
     } = data;
     if (
       !incident.id ||
@@ -833,6 +539,10 @@ class IncidentOwnerRuleEngineServiceClass
           ? mdText`\n\n_Some owners were inherited from the incident's ${FeedMarkdown.join(inheritedSources)}._`
           : FeedMarkdown.empty();
 
+      const creatorTeamNote: MarkdownText = addedCreatorTeams
+        ? mdText`\n\n_Some teams were added because the person who declared the incident is a member._`
+        : FeedMarkdown.empty();
+
       const feedInfoInMarkdown: MarkdownText = mdText`${RuleFeedMarkdown.executedLine(
         {
           emoji: "🛡️",
@@ -841,7 +551,7 @@ class IncidentOwnerRuleEngineServiceClass
         },
       )}\n\nAssigned the following owner${
         users.length + teams.length === 1 ? "" : "s"
-      } to the incident:\n${RuleFeedMarkdown.ownersList({ users: users, teams: teams })}${inheritedNote}`;
+      } to the incident:\n${RuleFeedMarkdown.ownersList({ users: users, teams: teams })}${inheritedNote}${creatorTeamNote}`;
 
       await IncidentFeedService.createIncidentFeedItem({
         incidentId: incident.id,
