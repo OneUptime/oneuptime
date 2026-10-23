@@ -6,7 +6,7 @@ import {
 import {
   SelfHostedUsageOutcome,
   SelfHostedUsageReport,
-} from "Common/Server/Utils/Marketplace/SelfHosted/SelfHostedMarketplaceReporter";
+} from "./Reporters/SelfHostedMarketplaceReporter";
 
 /*
  * The bookkeeping of billing a self-hosted installation's users through the

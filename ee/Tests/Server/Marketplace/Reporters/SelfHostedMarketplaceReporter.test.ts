@@ -1,24 +1,24 @@
-import CloudMarketplace from "../../../../../Types/Marketplace/CloudMarketplace";
-import GoogleCloudMarketplaceAPI from "../../../../../Server/Utils/Marketplace/GoogleCloud/GoogleCloudMarketplaceAPI";
-import MarketplaceApiError from "../../../../../Server/Utils/Marketplace/MarketplaceApiError";
-import { MarketplaceHttpRequest } from "../../../../../Server/Utils/Marketplace/MarketplaceHttp";
-import AwsContainerMeteringAPI from "../../../../../Server/Utils/Marketplace/SelfHosted/AwsContainerMeteringAPI";
-import AwsWorkloadCredentialsProvider from "../../../../../Server/Utils/Marketplace/SelfHosted/AwsWorkloadCredentials";
-import AzureKubernetesAppMeteringAPI from "../../../../../Server/Utils/Marketplace/SelfHosted/AzureKubernetesAppMeteringAPI";
+import CloudMarketplace from "Common/Types/Marketplace/CloudMarketplace";
+import GoogleCloudMarketplaceAPI from "Common/Server/Utils/Marketplace/GoogleCloud/GoogleCloudMarketplaceAPI";
+import MarketplaceApiError from "Common/Server/Utils/Marketplace/MarketplaceApiError";
+import { MarketplaceHttpRequest } from "Common/Server/Utils/Marketplace/MarketplaceHttp";
+import AwsContainerMeteringAPI from "../../../../Server/Marketplace/Reporters/AwsContainerMeteringAPI";
+import AwsWorkloadCredentialsProvider from "../../../../Server/Marketplace/Reporters/AwsWorkloadCredentials";
+import AzureKubernetesAppMeteringAPI from "../../../../Server/Marketplace/Reporters/AzureKubernetesAppMeteringAPI";
 import {
   AwsSelfHostedReporter,
   AzureSelfHostedReporter,
   GoogleCloudSelfHostedReporter,
   SelfHostedUsageOutcome,
   SelfHostedUsageReport,
-} from "../../../../../Server/Utils/Marketplace/SelfHosted/SelfHostedMarketplaceReporter";
+} from "../../../../Server/Marketplace/Reporters/SelfHostedMarketplaceReporter";
 import {
   FakeAnswer,
   FakeHttpClient,
   TestSigningKey,
   createFakeHttpClient,
   createSigningKey,
-} from "../MarketplaceTestKeys";
+} from "Common/Tests/Server/Utils/Marketplace/MarketplaceTestKeys";
 import { describe, expect, it } from "@jest/globals";
 
 /*

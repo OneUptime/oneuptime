@@ -1,12 +1,12 @@
 import fs from "fs";
-import AwsSecurityHubClient from "../../SecurityEvent/Connectors/AwsSecurityHub/AwsSecurityHubClient";
-import MarketplaceApiError from "../MarketplaceApiError";
+import AwsSecurityHubClient from "Common/Server/Utils/SecurityEvent/Connectors/AwsSecurityHub/AwsSecurityHubClient";
+import MarketplaceApiError from "Common/Server/Utils/Marketplace/MarketplaceApiError";
 import {
   MarketplaceHttp,
   MarketplaceHttpClient,
   MarketplaceHttpResponse,
   defaultMarketplaceHttpClient,
-} from "../MarketplaceHttp";
+} from "Common/Server/Utils/Marketplace/MarketplaceHttp";
 
 /*
  * AWS credentials for a self-hosted OneUptime that runs in the buyer's own

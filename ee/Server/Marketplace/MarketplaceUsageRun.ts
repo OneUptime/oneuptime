@@ -8,11 +8,11 @@ import logger from "Common/Server/Utils/Logger";
 import SelfHostedMarketplaceConfig, {
   SelfHostedMarketplaceConfigResult,
   SelfHostedMarketplaceSettings,
-} from "Common/Server/Utils/Marketplace/SelfHosted/SelfHostedMarketplaceConfig";
+} from "./Reporters/SelfHostedMarketplaceConfig";
 import {
   SelfHostedMarketplaceReporter,
   SelfHostedUsageOutcome,
-} from "Common/Server/Utils/Marketplace/SelfHosted/SelfHostedMarketplaceReporter";
+} from "./Reporters/SelfHostedMarketplaceReporter";
 import EnterpriseMarketplaceBillingUtil, {
   EnterpriseMarketplaceBillingState,
   EnterpriseMarketplaceUsageReport,

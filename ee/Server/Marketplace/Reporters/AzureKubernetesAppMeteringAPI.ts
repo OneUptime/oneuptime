@@ -1,11 +1,11 @@
 import crypto from "crypto";
-import MarketplaceApiError from "../MarketplaceApiError";
+import MarketplaceApiError from "Common/Server/Utils/Marketplace/MarketplaceApiError";
 import {
   MarketplaceHttp,
   MarketplaceHttpClient,
   MarketplaceHttpResponse,
   defaultMarketplaceHttpClient,
-} from "../MarketplaceHttp";
+} from "Common/Server/Utils/Marketplace/MarketplaceHttp";
 
 /*
  * The Microsoft Marketplace metering service as a self-hosted OneUptime

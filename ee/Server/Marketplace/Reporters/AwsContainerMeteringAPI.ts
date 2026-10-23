@@ -1,14 +1,14 @@
 import AwsSecurityHubClient, {
   AwsSigV4SignResult,
-} from "../../SecurityEvent/Connectors/AwsSecurityHub/AwsSecurityHubClient";
-import AwsMarketplaceAPI from "../AWS/AwsMarketplaceAPI";
-import MarketplaceApiError from "../MarketplaceApiError";
+} from "Common/Server/Utils/SecurityEvent/Connectors/AwsSecurityHub/AwsSecurityHubClient";
+import AwsMarketplaceAPI from "Common/Server/Utils/Marketplace/AWS/AwsMarketplaceAPI";
+import MarketplaceApiError from "Common/Server/Utils/Marketplace/MarketplaceApiError";
 import {
   MarketplaceHttp,
   MarketplaceHttpClient,
   MarketplaceHttpResponse,
   defaultMarketplaceHttpClient,
-} from "../MarketplaceHttp";
+} from "Common/Server/Utils/Marketplace/MarketplaceHttp";
 import AwsWorkloadCredentialsProvider, {
   AwsWorkloadCredentials,
 } from "./AwsWorkloadCredentials";

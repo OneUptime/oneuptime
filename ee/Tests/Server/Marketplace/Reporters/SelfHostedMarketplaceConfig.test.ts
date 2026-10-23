@@ -1,15 +1,15 @@
-import CloudMarketplace from "../../../../../Types/Marketplace/CloudMarketplace";
+import CloudMarketplace from "Common/Types/Marketplace/CloudMarketplace";
 import SelfHostedMarketplaceConfig, {
   AWS_SELF_HOSTED_PRODUCT_CODES,
   SelfHostedMarketplaceConfigResult,
   SelfHostedMarketplaceEnvironment,
-} from "../../../../../Server/Utils/Marketplace/SelfHosted/SelfHostedMarketplaceConfig";
+} from "../../../../Server/Marketplace/Reporters/SelfHostedMarketplaceConfig";
 import {
   AwsSelfHostedReporter,
   AzureSelfHostedReporter,
   GoogleCloudSelfHostedReporter,
-} from "../../../../../Server/Utils/Marketplace/SelfHosted/SelfHostedMarketplaceReporter";
-import { createSigningKey } from "../MarketplaceTestKeys";
+} from "../../../../Server/Marketplace/Reporters/SelfHostedMarketplaceReporter";
+import { createSigningKey } from "Common/Tests/Server/Utils/Marketplace/MarketplaceTestKeys";
 import { describe, expect, it } from "@jest/globals";
 
 /*

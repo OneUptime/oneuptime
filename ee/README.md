@@ -443,7 +443,7 @@ and the release steps are in
   installation that names a marketplace. It runs every 15 minutes and at
   startup, under a Valkey lock: it notes the installation's user count and
   reports each clock hour once, at the most users seen, through the reporters
-  in `packages/Common/Server/Utils/Marketplace/SelfHosted`. Its state is the
+  in `Server/Marketplace/Reporters`. Its state is the
   root-only license column `GlobalConfig.enterpriseMarketplaceBilling`. Each
   report is claimed before it is sent and carries an idempotency key derived
   from the installation and the hour, so no hour is billed twice.

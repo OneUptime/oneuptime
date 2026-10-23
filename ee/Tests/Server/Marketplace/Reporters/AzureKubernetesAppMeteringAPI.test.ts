@@ -2,14 +2,14 @@ import AzureKubernetesAppMeteringAPI, {
   AZURE_MARKETPLACE_METERING_RESOURCE,
   AzureUsageEvent,
   AzureUsageEventResult,
-} from "../../../../../Server/Utils/Marketplace/SelfHosted/AzureKubernetesAppMeteringAPI";
-import MarketplaceApiError from "../../../../../Server/Utils/Marketplace/MarketplaceApiError";
-import { MarketplaceHttpRequest } from "../../../../../Server/Utils/Marketplace/MarketplaceHttp";
+} from "../../../../Server/Marketplace/Reporters/AzureKubernetesAppMeteringAPI";
+import MarketplaceApiError from "Common/Server/Utils/Marketplace/MarketplaceApiError";
+import { MarketplaceHttpRequest } from "Common/Server/Utils/Marketplace/MarketplaceHttp";
 import {
   FakeAnswer,
   FakeHttpClient,
   createFakeHttpClient,
-} from "../MarketplaceTestKeys";
+} from "Common/Tests/Server/Utils/Marketplace/MarketplaceTestKeys";
 import { describe, expect, it } from "@jest/globals";
 
 /*

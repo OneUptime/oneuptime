@@ -2,7 +2,7 @@ import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import logger from "Common/Server/Utils/Logger";
 import SelfHostedMarketplaceConfig, {
   SelfHostedMarketplaceConfigResult,
-} from "Common/Server/Utils/Marketplace/SelfHosted/SelfHostedMarketplaceConfig";
+} from "./Reporters/SelfHostedMarketplaceConfig";
 import { CloudMarketplaceUtil } from "Common/Types/Marketplace/CloudMarketplace";
 import EnterpriseArea from "../Types/EnterpriseArea";
 import { REPORT_MARKETPLACE_USAGE_JOB_NAME } from "./MarketplaceUsageRun";

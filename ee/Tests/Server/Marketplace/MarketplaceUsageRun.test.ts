@@ -7,12 +7,12 @@ import { StoredMarketplaceBilling } from "../../../Server/Marketplace/Marketplac
 import {
   SelfHostedMarketplaceConfigResult,
   SelfHostedMarketplaceSettings,
-} from "Common/Server/Utils/Marketplace/SelfHosted/SelfHostedMarketplaceConfig";
+} from "../../../Server/Marketplace/Reporters/SelfHostedMarketplaceConfig";
 import {
   SelfHostedMarketplaceReporter,
   SelfHostedUsageOutcome,
   SelfHostedUsageReport,
-} from "Common/Server/Utils/Marketplace/SelfHosted/SelfHostedMarketplaceReporter";
+} from "../../../Server/Marketplace/Reporters/SelfHostedMarketplaceReporter";
 import EnterpriseMarketplaceBillingUtil, {
   EnterpriseMarketplaceBillingState,
 } from "Common/Types/EnterpriseLicense/EnterpriseMarketplaceBilling";

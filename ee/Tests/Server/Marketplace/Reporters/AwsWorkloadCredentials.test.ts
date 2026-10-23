@@ -2,10 +2,10 @@ import AwsWorkloadCredentialsProvider, {
   AWS_WEB_IDENTITY_SESSION_DURATION_IN_SECONDS,
   AwsWorkloadCredentials,
   AwsWorkloadEnvironment,
-} from "../../../../../Server/Utils/Marketplace/SelfHosted/AwsWorkloadCredentials";
-import MarketplaceApiError from "../../../../../Server/Utils/Marketplace/MarketplaceApiError";
-import { MarketplaceHttpRequest } from "../../../../../Server/Utils/Marketplace/MarketplaceHttp";
-import { FakeHttpClient, createFakeHttpClient } from "../MarketplaceTestKeys";
+} from "../../../../Server/Marketplace/Reporters/AwsWorkloadCredentials";
+import MarketplaceApiError from "Common/Server/Utils/Marketplace/MarketplaceApiError";
+import { MarketplaceHttpRequest } from "Common/Server/Utils/Marketplace/MarketplaceHttp";
+import { FakeHttpClient, createFakeHttpClient } from "Common/Tests/Server/Utils/Marketplace/MarketplaceTestKeys";
 import { describe, expect, it } from "@jest/globals";
 
 /*
