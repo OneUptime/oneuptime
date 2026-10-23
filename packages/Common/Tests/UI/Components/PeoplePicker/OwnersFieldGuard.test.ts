@@ -576,8 +576,15 @@ describe("the project's forms", () => {
     },
   );
 
+  /*
+   * An incident's and an alert's owner rule also list teams for the
+   * creator's team: a second picker, of teams only, folded under Creator's
+   * Team on the same step (Dashboard Utils/Form/ResourceRuleForm).
+   */
   test("every owner rule form asks for its owners with one picker, on its Owners step", () => {
     const ownerRulesLabel: RegExp = / Owner Rules$/;
+    const creatorTeamRulesLabel: RegExp =
+      /Settings > (Incident|Alert) Owner Rules$/;
     const ownerRuleForms: Array<FormFacts> = forms.filter(
       (form: FormFacts): boolean => {
         return ownerRulesLabel.test(form.label);
@@ -585,6 +592,11 @@ describe("the project's forms", () => {
     );
 
     expect(ownerRuleForms.length).toBeGreaterThanOrEqual(30);
+    expect(
+      ownerRuleForms.filter((form: FormFacts): boolean => {
+        return creatorTeamRulesLabel.test(form.label);
+      }),
+    ).toHaveLength(2);
 
     for (const form of ownerRuleForms) {
       const pickers: Array<FormFieldFacts> = peoplePickers([form]);
@@ -596,8 +608,57 @@ describe("the project's forms", () => {
         }),
       }).toEqual({
         form: `${form.file} ${form.label}`,
-        pickers: ["Owners on owners"],
+        pickers: creatorTeamRulesLabel.test(form.label)
+          ? ["Owners on owners", "Teams on owners"]
+          : ["Owners on owners"],
       });
+    }
+  });
+
+  /*
+   * Owners on create: Declare Incident, Create Alert and Create Incident
+   * Episode ask for them with the owners picker folded under More fields at
+   * the end of their first step - hidden until opened, the creator's teams
+   * one click away under it (Components/OwnersOnCreate). Create Alert
+   * Episode keeps them on its On-Call & Owners step, where it always asked.
+   */
+  test("the incident and alert create forms, and their episodes', ask for owners with one picker", () => {
+    const CREATE_FORMS: Array<[string, string]> = [
+      [
+        "Pages/Incidents/Create.tsx",
+        `Owners: ${PEOPLE_PICKER_FIELD_TYPE} on incident-details, folded: true`,
+      ],
+      [
+        "Pages/Alerts/Create.tsx",
+        `Owners: ${PEOPLE_PICKER_FIELD_TYPE} on alert-details, folded: true`,
+      ],
+      [
+        "Pages/Incidents/EpisodeCreate.tsx",
+        `Owners: ${PEOPLE_PICKER_FIELD_TYPE} on episode-details, folded: true`,
+      ],
+      [
+        "Pages/Alerts/EpisodeCreate.tsx",
+        `Owners: ${PEOPLE_PICKER_FIELD_TYPE} on on-call, folded: false`,
+      ],
+    ];
+
+    for (const [file, expected] of CREATE_FORMS) {
+      const form: FormFacts | undefined = forms.find(
+        (candidate: FormFacts): boolean => {
+          return (
+            candidate.file.endsWith(file) && candidate.host === "ModelForm"
+          );
+        },
+      );
+
+      expect({ file, found: Boolean(form) }).toEqual({ file, found: true });
+
+      expect({
+        file,
+        pickers: peoplePickers([form!]).map((field: FormFieldFacts): string => {
+          return `${field.title}: ${field.fieldType} on ${field.stepId}, folded: ${field.collapsibleSection !== undefined}`;
+        }),
+      }).toEqual({ file, pickers: [expected] });
     }
   });
 

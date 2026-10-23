@@ -29,8 +29,8 @@ import { getIdsFromFormValue } from "../Incident/IncidentStatusPageScopeForm";
  *     (OneUptime makes them an owner, DatabaseService.autoOwnerOnCreate),
  *     the owners picked, and each owner rule that matches what was filled
  *     in, by name, with whom it adds. The rules are worked out by the
- *     server, by the code the create runs (POST /<event>/owner-rule-preview,
- *     Types/Rules/OwnerRulePreview) - never in the browser.
+ *     server, by the code the create runs (OwnerRulePreviewApi, Types/
+ *     Rules/OwnerRulePreview) - never in the browser.
  *
  * The picks travel as the form's ownerUsers and ownerTeams, as misc data:
  * the server asks whether the creator may add them before the event is

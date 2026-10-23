@@ -2,7 +2,7 @@ import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
 import {
-  getInheritingOwnerRuleActionFields,
+  getCreatorTeamOwnerRuleActionFields,
   getOwnerRuleActionFields,
   getOwnerRuleFormSteps,
 } from "../../../Utils/Form/ResourceRuleForm";
@@ -229,7 +229,7 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
           required: false,
           placeholder: "production|critical",
         },
-        ...getInheritingOwnerRuleActionFields<IncidentOwnerRule>("incident"),
+        ...getCreatorTeamOwnerRuleActionFields<IncidentOwnerRule>("incident"),
       ]}
       showRefreshButton={true}
     />

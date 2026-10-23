@@ -85,6 +85,7 @@ import {
  * become owners (Common/Server/Utils/Rules/CreatorTeams). A list, not "every
  * team of the creator": people are in the project's Members team by default.
  * A rule that adds only that is named "Add the creator's team as an owner".
+ * Its page takes getCreatorTeamOwnerRuleActionFields instead.
  *
  * Only a NEW rule must add something - here, and on the server for a rule
  * made any other way (the API, Terraform, a workflow, a label rule import:
@@ -1425,19 +1426,18 @@ export const getInheritingLabelRuleActionFields: <TEntity>(
   ];
 };
 
-/**
- * The Owners step of an incident, alert or scheduled maintenance owner
- * rule: the people and teams it adds, then - folded under Inherit Owners -
- * whose owners among the event's monitors, hosts, clusters and services to
- * add too, then the rest of every owner rule's step. A new rule must add
- * someone: an owner picked, or an Inherit Owners switch turned on. One that
- * only inherits is named after what it inherits from (getInheritingRuleName).
+/*
+ * The start of an inheriting owner rule's Owners step: the owners picker,
+ * then the six Inherit Owners switches, folded.
  */
-export const getInheritingOwnerRuleActionFields: <TEntity>(
-  record: InheritingRuleRecord,
-) => Array<Field<TEntity>> = <TEntity>(
-  record: InheritingRuleRecord,
-): Array<Field<TEntity>> => {
+const getOwnersAndInheritFields: <TEntity>(data: {
+  record: InheritingRuleRecord;
+  ownersDescription: string;
+}) => Array<Field<TEntity>> = <TEntity>(data: {
+  record: InheritingRuleRecord;
+  ownersDescription: string;
+}): Array<Field<TEntity>> => {
+  const record: InheritingRuleRecord = data.record;
   const wording: RuleInheritanceWording = OWNER_INHERITANCE_WORDING[record];
 
   // As the Inherit Labels fold: folded until something in it is on.
@@ -1468,9 +1468,7 @@ export const getInheritingOwnerRuleActionFields: <TEntity>(
       stepId: "owners",
       required: isOwnerPickRequired,
       doNotRequireWhenEditing: true,
-      description: hasCreatorTeams(record)
-        ? OWNER_RULE_CREATOR_OWNERS_DESCRIPTION
-        : OWNER_RULE_INHERITING_OWNERS_DESCRIPTION,
+      description: data.ownersDescription,
       onChange: followPicksWithRuleName<TEntity>(
         getOwnerRuleName,
         (values: Record<string, unknown>): string => {
@@ -1553,7 +1551,56 @@ export const getInheritingOwnerRuleActionFields: <TEntity>(
       collapsibleSection: inheritSection,
       onChange: followSwitch("inheritOwnersFromServices"),
     },
-    ...(hasCreatorTeams(record) ? getCreatorTeamsFields<TEntity>(record) : []),
+  ];
+};
+
+/**
+ * The Owners step of a scheduled maintenance owner rule: the people and
+ * teams it adds, then - folded under Inherit Owners - whose owners among the
+ * event's monitors, hosts, clusters and services to add too, then the rest
+ * of every owner rule's step. A new rule must add someone: an owner picked,
+ * or an Inherit Owners switch turned on. One that only inherits is named
+ * after what it inherits from (getInheritingRuleName).
+ *
+ * An incident's or alert's owner rule takes
+ * getCreatorTeamOwnerRuleActionFields: the same, with its Creator's Team.
+ * Each page calls the one its rule has, so the form a page draws is the one
+ * its source says (Tests/Helpers/FormStepsScan reads it).
+ */
+export const getInheritingOwnerRuleActionFields: <TEntity>(
+  record: InheritingRuleRecord,
+) => Array<Field<TEntity>> = <TEntity>(
+  record: InheritingRuleRecord,
+): Array<Field<TEntity>> => {
+  return [
+    ...getOwnersAndInheritFields<TEntity>({
+      record: record,
+      ownersDescription: OWNER_RULE_INHERITING_OWNERS_DESCRIPTION,
+    }),
+    ...getOwnerRuleNameAndMoreFields<TEntity>(
+      OWNER_RULE_INHERITING_NAME_DESCRIPTION,
+    ),
+  ];
+};
+
+/**
+ * The Owners step of an incident's or alert's owner rule: as every owner
+ * rule that can inherit, with - folded under Creator's Team, after Inherit
+ * Owners - the teams that become owners when the person who created the
+ * event is in them. A new rule must add someone: an owner picked, an Inherit
+ * Owners switch turned on, or a team listed there.
+ */
+export const getCreatorTeamOwnerRuleActionFields: <TEntity>(
+  record: CreatorTeamRuleRecord,
+) => Array<Field<TEntity>> = <TEntity>(
+  record: CreatorTeamRuleRecord,
+): Array<Field<TEntity>> => {
+  return [
+    ...getOwnersAndInheritFields<TEntity>({
+      record: record,
+      ownersDescription: OWNER_RULE_CREATOR_OWNERS_DESCRIPTION,
+    }),
+    ...getCreatorTeamsFields<TEntity>(record),
     ...getOwnerRuleNameAndMoreFields<TEntity>(
       OWNER_RULE_INHERITING_NAME_DESCRIPTION,
     ),

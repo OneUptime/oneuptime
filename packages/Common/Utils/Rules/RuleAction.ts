@@ -259,6 +259,10 @@ export const OWNER_RULE_ADDS_NOTHING_MESSAGE: string =
 export const INHERITING_OWNER_RULE_ADDS_NOTHING_MESSAGE: string =
   "This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch.";
 
+// An incident or alert owner rule, which can also add the creator's team.
+export const CREATOR_TEAM_OWNER_RULE_ADDS_NOTHING_MESSAGE: string =
+  "This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, a team in Creator's Teams, or turn on an Inherit Owners switch.";
+
 export const getRuleAddsNothingMessage: (
   action: RuleActionColumns,
 ) => string = (action: RuleActionColumns): string => {
@@ -268,6 +272,16 @@ export const getRuleAddsNothingMessage: (
     return inherits
       ? INHERITING_LABEL_RULE_ADDS_NOTHING_MESSAGE
       : LABEL_RULE_ADDS_NOTHING_MESSAGE;
+  }
+
+  const listsCreatorTeams: boolean = CREATOR_TEAM_LIST_COLUMNS.every(
+    (column: string): boolean => {
+      return action.listColumns.includes(column);
+    },
+  );
+
+  if (listsCreatorTeams) {
+    return CREATOR_TEAM_OWNER_RULE_ADDS_NOTHING_MESSAGE;
   }
 
   return inherits
