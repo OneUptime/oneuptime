@@ -15,12 +15,9 @@ import SessionReplayConsentMode from "../../../Types/Rum/SessionReplayConsentMod
 import SessionReplayMaskingMode, {
   parseSessionReplayMaskingMode,
 } from "../../../Types/Rum/SessionReplayMaskingMode";
-import {
-  DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS,
-  SESSION_REPLAY_ALLOWED_RETENTION_DAYS,
-} from "../../../Types/Rum/SessionReplay";
-import SessionIdentity from "../../../Utils/Rum/SessionIdentity";
+import { DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS } from "../../../Types/Rum/SessionReplay";
 import OriginAllowList from "../../../Utils/Telemetry/OriginAllowList";
+import { getApplicationSessionReplayRetentionInDays } from "./SessionReplayRetention";
 
 /*
  * RumApplication.sessionReplaySamplePercentage's column default. Declared
@@ -514,10 +511,9 @@ export default class SessionReplayGateCache {
         captureUserIdentity:
           appView["sessionReplayCaptureUserIdentity"] === true,
         captureGeo: appView["sessionReplayCaptureGeo"] === true,
-        retentionInDays: SessionIdentity.clampRetentionDays(
+        // The same rule usage billing prices replay retention with.
+        retentionInDays: getApplicationSessionReplayRetentionInDays(
           requestedRetentionDays,
-          SESSION_REPLAY_ALLOWED_RETENTION_DAYS,
-          DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS,
         ),
         monthlyBudgetInGB: this.readNullableNumber(
           appView["sessionReplayMonthlyBudgetInGB"],

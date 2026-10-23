@@ -76,6 +76,7 @@ import SessionReplayGateCache, {
 import SessionReplayGateCacheStore from "../../../../Server/Utils/SessionReplay/SessionReplayGateCacheStore";
 import SessionReplayCaptureTrigger from "../../../../Types/Rum/SessionReplayCaptureTrigger";
 import SessionReplayConsentMode from "../../../../Types/Rum/SessionReplayConsentMode";
+import { getApplicationSessionReplayRetentionInDays } from "../../../../Server/Utils/SessionReplay/SessionReplayRetention";
 
 const isProjectKilledMock: jest.Mock =
   SessionReplayGateCacheStore.isProjectKilled as unknown as jest.Mock;
@@ -474,4 +475,52 @@ describe("SessionReplayGateCache same-origin trace propagation switch", (): void
 
     expect(policy).toBeNull();
   });
+});
+
+/*
+ * Usage billing prices replay at getApplicationSessionReplayRetentionInDays.
+ * The gate stamps recordings' expiry from the policy's retentionInDays, so
+ * the two must agree for every value the column can hold, or customers are
+ * billed for days their recordings are not kept.
+ */
+describe("SessionReplayGateCache retention is the one usage billing prices", (): void => {
+  beforeEach((): void => {
+    jest.clearAllMocks();
+    projectFindOneByMock.mockResolvedValue(projectRow());
+  });
+
+  it.each([
+    [null, 7],
+    [undefined, 7],
+    [1, 1],
+    [7, 7],
+    [10, 14],
+    [30, 30],
+    ["90", 90],
+    [365, 90],
+    [0, 7],
+  ])(
+    "a sessionReplayRetentionInDays of %p keeps recordings %i days",
+    async (column: unknown, expectedDays: number): Promise<void> => {
+      appFindOneByMock.mockResolvedValue(
+        appRow({ sessionReplayRetentionInDays: column }),
+      );
+
+      const policy: SessionReplayGatePolicy | null =
+        await SessionReplayGateCache.getPolicy({
+          projectId: PROJECT_ID,
+          appIdentifier: "checkout-web",
+        });
+
+      expect(policy?.retentionInDays).toBe(expectedDays);
+
+      if (typeof column !== "string") {
+        expect(policy?.retentionInDays).toBe(
+          getApplicationSessionReplayRetentionInDays(
+            column as number | null | undefined,
+          ),
+        );
+      }
+    },
+  );
 });

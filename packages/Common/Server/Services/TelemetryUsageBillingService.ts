@@ -45,6 +45,9 @@ import IoTFleet from "../../Models/DatabaseModels/IoTFleet";
 import CephCluster from "../../Models/DatabaseModels/CephCluster";
 import StorageArray from "../../Models/DatabaseModels/StorageArray";
 import DatabaseServer from "../../Models/DatabaseModels/DatabaseServer";
+import RumApplicationService from "./RumApplicationService";
+import RumApplication from "../../Models/DatabaseModels/RumApplication";
+import { getApplicationSessionReplayRetentionInDays } from "../Utils/SessionReplay/SessionReplayRetention";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import SessionReplayBudgetMetricTypeUtil from "../../Utils/SessionReplay/SessionReplayBudgetMetricType";
 import {
@@ -435,11 +438,20 @@ export class Service extends DatabaseService<Model> {
      * KubernetesCluster overrides), defaulting to the project default for
      * everything else — including the unattributed bucket. Retention
      * scales the billed cost, so we honor per-resource overrides.
+     *
+     * Session replay is the exception: ingest keeps recordings for the RUM
+     * application's replay retention and never for the telemetry retention
+     * above, so replay is billed at that (7 days unless changed) rather than
+     * at the project's telemetry default.
      */
-    const retentionByServiceId: Map<string, number> =
-      await this.buildTelemetryRetentionMap(data.projectId);
-    const projectDefaultRetentionInDays: number =
-      await this.getProjectDefaultRetentionInDays(data.projectId);
+    const isSessionReplay: boolean =
+      data.productType === ProductType.SessionReplay;
+    const retentionByServiceId: Map<string, number> = isSessionReplay
+      ? await this.buildSessionReplayRetentionMap(data.projectId)
+      : await this.buildTelemetryRetentionMap(data.projectId);
+    const defaultRetentionInDays: number = isSessionReplay
+      ? getApplicationSessionReplayRetentionInDays(undefined)
+      : await this.getProjectDefaultRetentionInDays(data.projectId);
 
     /*
      * Skip serviceIds already staged for this day so re-runs of the cron
@@ -491,7 +503,7 @@ export class Service extends DatabaseService<Model> {
       }
 
       const retentionInDays: number =
-        retentionByServiceId.get(serviceIdStr) ?? projectDefaultRetentionInDays;
+        retentionByServiceId.get(serviceIdStr) ?? defaultRetentionInDays;
 
       /*
        * Legacy rows (pre-discriminator) and any null primaryEntityType are
@@ -720,6 +732,42 @@ export class Service extends DatabaseService<Model> {
     }
 
     return retentionByServiceId;
+  }
+
+  /*
+   * Map of RUM application id -> the days its session replays are kept, by
+   * the same rule the session replay gate stamps them with
+   * (getApplicationSessionReplayRetentionInDays). An application missing
+   * from the map - deleted since it recorded - is billed at the replay
+   * default.
+   */
+  @CaptureSpan()
+  private async buildSessionReplayRetentionMap(
+    projectId: ObjectID,
+  ): Promise<Map<string, number>> {
+    const retentionByApplicationId: Map<string, number> = new Map();
+
+    const applications: Array<RumApplication> =
+      await RumApplicationService.findBy({
+        query: { projectId: projectId },
+        select: { _id: true, sessionReplayRetentionInDays: true },
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: { isRoot: true },
+      });
+
+    for (const application of applications) {
+      if (application.id) {
+        retentionByApplicationId.set(
+          application.id.toString(),
+          getApplicationSessionReplayRetentionInDays(
+            application.sessionReplayRetentionInDays,
+          ),
+        );
+      }
+    }
+
+    return retentionByApplicationId;
   }
 
   @CaptureSpan()
