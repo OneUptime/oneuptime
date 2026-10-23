@@ -1,10 +1,22 @@
 import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/NetworkDeviceMetricDescriptions";
+import AssetFactValue from "../Inventory/AssetFactValue";
+import {
+  getFoundByLine,
+  getOtherMachineLine,
+} from "../Inventory/AssetFactSourceText";
+import { NETWORK_DEVICE_ASSET_FACT_COLUMNS } from "../Inventory/NetworkDeviceAssetSelect";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import {
-  NetworkDeviceAssetFacts,
-  getNetworkDeviceAssetFacts,
+  NetworkDeviceDiscoverySighting,
+  NetworkDeviceOtherMachineSighting,
+} from "Common/Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
+import {
+  NetworkDeviceAssetFactKey,
+  NetworkDeviceFactDetail,
+  NetworkDeviceSystemKey,
+  getNetworkDeviceFactDetails,
 } from "Common/Utils/NetworkDevice/NetworkDeviceAssetFacts";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -64,20 +76,25 @@ export const InventoryUptimeValue: FunctionComponent<
 
 /*
  * Read-only inventory card for the device Overview: vendor, model, serial,
- * firmware/software versions, SNMP system fields, uptime, and freshness.
- * Every field is probe-managed (enriched from SNMP walks), so the card is
- * deliberately not editable — edits happen on the next poll, not here.
+ * firmware/software versions, SNMP system fields, uptime, and freshness -
+ * each with where it came from (OneUptime issue #5185). The card is
+ * deliberately not editable: its values are read, by the device's own poll
+ * or by discovery, not typed here.
  *
  * Vendor, model, operating system and versions are the device's asset facts
  * (Common/Utils/NetworkDevice/NetworkDeviceAssetFacts, issue #4569): what
  * ENTITY-MIB reported, else what the sysDescr names - a Meraki MX implements
- * no ENTITY-MIB, and its sysDescr is "Meraki MX85". The device's Inventory
- * item shows the same values, so the two pages never disagree about what
- * the box is.
+ * no ENTITY-MIB, and its sysDescr is "Meraki MX85". A device its probe only
+ * pings has none of those columns, and takes what the discovery scan of its
+ * address read about it instead, said as such. The device's Inventory item
+ * shows the same values, so the two pages never disagree about what the box
+ * is.
  */
 const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   type GetUptimeElementFunction = (item: NetworkDevice) => ReactElement;
 
   const getUptimeElement: GetUptimeElementFunction = (
@@ -94,27 +111,63 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
     );
   };
 
-  type FactElementFunction = (
-    item: NetworkDevice,
-    fact: keyof NetworkDeviceAssetFacts,
-  ) => ReactElement;
+  type DetailOfFunction = (item: NetworkDevice) => NetworkDeviceFactDetail;
 
-  const factElement: FactElementFunction = (
-    item: NetworkDevice,
-    fact: keyof NetworkDeviceAssetFacts,
+  // A fact's value with its source, or a dash when it has none.
+  const detailElement: (
+    detail: NetworkDeviceFactDetail,
+    testId: string,
+  ) => ReactElement = (
+    detail: NetworkDeviceFactDetail,
+    testId: string,
   ): ReactElement => {
-    return <span>{getNetworkDeviceAssetFacts(item)[fact] || "-"}</span>;
+    if (!detail.value) {
+      return <span>-</span>;
+    }
+
+    return (
+      <AssetFactValue
+        value={detail.value}
+        source={detail.source}
+        discoveredDifferent={detail.discoveredDifferent}
+        testId={testId}
+      />
+    );
   };
 
-  type HasFactFunction = (
-    fact: keyof NetworkDeviceAssetFacts,
-  ) => (item: NetworkDevice) => boolean;
+  const fact: (key: NetworkDeviceAssetFactKey) => DetailOfFunction = (
+    key: NetworkDeviceAssetFactKey,
+  ): DetailOfFunction => {
+    return (item: NetworkDevice): NetworkDeviceFactDetail => {
+      return getNetworkDeviceFactDetails(item).facts[key];
+    };
+  };
 
-  const hasFact: HasFactFunction = (
-    fact: keyof NetworkDeviceAssetFacts,
-  ): ((item: NetworkDevice) => boolean) => {
-    return (item: NetworkDevice): boolean => {
-      return Boolean(getNetworkDeviceAssetFacts(item)[fact]);
+  const system: (key: NetworkDeviceSystemKey) => DetailOfFunction = (
+    key: NetworkDeviceSystemKey,
+  ): DetailOfFunction => {
+    return (item: NetworkDevice): NetworkDeviceFactDetail => {
+      return getNetworkDeviceFactDetails(item).system[key];
+    };
+  };
+
+  // The field of one fact: its value and source, shown only when known.
+  type FactField = {
+    getElement: (item: NetworkDevice) => ReactElement;
+    showIf: (item: NetworkDevice) => boolean;
+  };
+
+  const factField: (
+    detailOf: DetailOfFunction,
+    testId: string,
+  ) => FactField = (detailOf: DetailOfFunction, testId: string): FactField => {
+    return {
+      getElement: (item: NetworkDevice): ReactElement => {
+        return detailElement(detailOf(item), testId);
+      },
+      showIf: (item: NetworkDevice): boolean => {
+        return Boolean(detailOf(item).value);
+      },
     };
   };
 
@@ -124,17 +177,20 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
       cardProps={{
         title: "Inventory",
         description:
-          "Hardware, software, and location details discovered from this device via SNMP.",
+          "Hardware, software and location details from this device's SNMP poll and from discovery.",
       }}
       isEditable={false}
       modelDetailProps={{
         modelType: NetworkDevice,
         id: "network-device-inventory",
         modelId: props.modelId,
-        // What the asset facts read beyond the columns shown.
+        /*
+         * Every column the asset facts read, and what discovery read with
+         * when the device's poll last did, so each value says where it came
+         * from (NetworkDeviceAssetSelect).
+         */
         selectMoreFields: {
-          sysDescr: true,
-          sysObjectId: true,
+          ...NETWORK_DEVICE_ASSET_FACT_COLUMNS,
         },
         fields: [
           {
@@ -143,10 +199,7 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
             },
             title: "Vendor",
             fieldType: FieldType.Element,
-            getElement: (item: NetworkDevice): ReactElement => {
-              return factElement(item, "manufacturer");
-            },
-            showIf: hasFact("manufacturer"),
+            ...factField(fact("manufacturer"), "device-inventory-vendor"),
           },
           {
             field: {
@@ -154,20 +207,15 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
             },
             title: "Model",
             fieldType: FieldType.Element,
-            getElement: (item: NetworkDevice): ReactElement => {
-              return factElement(item, "model");
-            },
-            showIf: hasFact("model"),
+            ...factField(fact("model"), "device-inventory-model"),
           },
           {
             field: {
               serialNumber: true,
             },
             title: "Serial Number",
-            fieldType: FieldType.Text,
-            showIf: (item: NetworkDevice): boolean => {
-              return Boolean(item.serialNumber);
-            },
+            fieldType: FieldType.Element,
+            ...factField(fact("serialNumber"), "device-inventory-serial"),
           },
           {
             field: {
@@ -175,10 +223,7 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
             },
             title: "Firmware Version",
             fieldType: FieldType.Element,
-            getElement: (item: NetworkDevice): ReactElement => {
-              return factElement(item, "firmwareVersion");
-            },
-            showIf: hasFact("firmwareVersion"),
+            ...factField(fact("firmwareVersion"), "device-inventory-firmware"),
           },
           {
             field: {
@@ -186,10 +231,7 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
             },
             title: "Operating System",
             fieldType: FieldType.Element,
-            getElement: (item: NetworkDevice): ReactElement => {
-              return factElement(item, "operatingSystem");
-            },
-            showIf: hasFact("operatingSystem"),
+            ...factField(fact("operatingSystem"), "device-inventory-os"),
           },
           {
             field: {
@@ -197,40 +239,31 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
             },
             title: "Software Version",
             fieldType: FieldType.Element,
-            getElement: (item: NetworkDevice): ReactElement => {
-              return factElement(item, "osVersion");
-            },
-            showIf: hasFact("osVersion"),
+            ...factField(fact("osVersion"), "device-inventory-software"),
           },
           {
             field: {
               sysObjectId: true,
             },
             title: "sysObjectID",
-            fieldType: FieldType.Text,
-            showIf: (item: NetworkDevice): boolean => {
-              return Boolean(item.sysObjectId);
-            },
+            fieldType: FieldType.Element,
+            ...factField(system("sysObjectId"), "device-inventory-sysobjectid"),
           },
           {
             field: {
               sysLocation: true,
             },
             title: "Location (sysLocation)",
-            fieldType: FieldType.Text,
-            showIf: (item: NetworkDevice): boolean => {
-              return Boolean(item.sysLocation);
-            },
+            fieldType: FieldType.Element,
+            ...factField(system("sysLocation"), "device-inventory-location"),
           },
           {
             field: {
               sysContact: true,
             },
             title: "Contact (sysContact)",
-            fieldType: FieldType.Text,
-            showIf: (item: NetworkDevice): boolean => {
-              return Boolean(item.sysContact);
-            },
+            fieldType: FieldType.Element,
+            ...factField(system("sysContact"), "device-inventory-contact"),
           },
           {
             field: {
@@ -251,6 +284,54 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
             fieldType: FieldType.DateTime,
             showIf: (item: NetworkDevice): boolean => {
               return Boolean(item.lastSeenAt);
+            },
+          },
+          /*
+           * The device's discovery source (issue #5185): the scan that last
+           * found it at its address, and when - so "where does this record
+           * come from, and is it still true" has an answer on the page. And,
+           * in amber under it, a scan that found ANOTHER machine answering at
+           * the address, with what that machine said it was.
+           */
+          {
+            field: {
+              discoveredDetails: true,
+            },
+            title: "Discovery",
+            fieldType: FieldType.Element,
+            getElement: (item: NetworkDevice): ReactElement => {
+              const foundBy: NetworkDeviceDiscoverySighting | undefined =
+                getNetworkDeviceFactDetails(item).foundBy;
+              const otherMachine:
+                | NetworkDeviceOtherMachineSighting
+                | undefined = getNetworkDeviceFactDetails(item).otherMachine;
+
+              return (
+                <div className="space-y-1 text-sm">
+                  {foundBy ? (
+                    <p
+                      className="text-gray-900"
+                      data-testid="device-inventory-found-by"
+                    >
+                      {getFoundByLine(foundBy, translator)}
+                    </p>
+                  ) : null}
+                  {otherMachine ? (
+                    <p
+                      className="text-amber-700"
+                      data-testid="device-inventory-other-machine"
+                    >
+                      {getOtherMachineLine(otherMachine, translator)}
+                    </p>
+                  ) : null}
+                </div>
+              );
+            },
+            showIf: (item: NetworkDevice): boolean => {
+              const facts: { foundBy?: unknown; otherMachine?: unknown } =
+                getNetworkDeviceFactDetails(item);
+
+              return Boolean(facts.foundBy || facts.otherMachine);
             },
           },
         ],
