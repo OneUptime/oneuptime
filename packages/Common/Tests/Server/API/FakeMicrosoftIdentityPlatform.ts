@@ -13,8 +13,8 @@ import { JSONObject } from "../../../Types/JSON";
  *  - An app registered for one organization ("Accounts in this
  *    organizational directory only", signInAudience AzureADMyOrg) is refused
  *    at Microsoft's endpoints for every organization with AADSTS50194: sent
- *    back to the redirect URI as error=invalid_request before anybody signs
- *    in, which is what issue #5202's server log shows for `common`. The
+ *    back to the redirect URI as error=invalid_request, which is what issue
+ *    #5202's server log shows for `common`. The
  *    fake refuses `organizations` the same way, which Microsoft documents
  *    for multitenant apps only - stricter than needed is safe for a test.
  *  - At a tenant's own endpoint, the tenant's members and guests sign in.
@@ -25,8 +25,10 @@ import { JSONObject } from "../../../Types/JSON";
  *    (AADSTS700016, on Microsoft's own page).
  *  - At `common` or `organizations`, a multitenant app signs a person in
  *    to their home tenant.
- *  - A code is exchanged once, at the authority that issued it, by the app
- *    it was issued to, with its secret and the same redirect URI.
+ *  - A code is exchanged once, by the app it was issued to, with its secret
+ *    and the same redirect URI - and, stricter than Microsoft needs to be,
+ *    only at the authority that issued it, which is where OneUptime
+ *    exchanges it.
  *  - The access token reads /me as the account the code was issued for.
  *
  * Codes and tokens are counters, not random: nothing here is a secret.

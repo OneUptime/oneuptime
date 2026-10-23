@@ -21,10 +21,14 @@ import path from "path";
  * MicrosoftTeamsSignInAuthority, which never names `common`.
  */
 
-const COMMON_ENDPOINTS: Array<string> = [
-  "login.microsoftonline.com/common",
-  "login.microsoftonline.us/common",
-];
+// Microsoft's common endpoint, on its commercial and US Government sign-in hosts.
+const COMMON_ENDPOINT: RegExp = /login\.microsoftonline\.(?:com|us)\/common\b/;
+
+// A path into `common`, however the host in front of it is written.
+const COMMON_PATH: RegExp = /\/common\//;
+
+// Microsoft's sign-in host, written out.
+const MICROSOFT_LOGIN_HOST: RegExp = /login\.microsoftonline\.com/;
 
 /*
  * The product files that may sign in at `common`, each with why: its app
@@ -59,11 +63,7 @@ describe("Microsoft's common endpoint in product code", () => {
   test("is named only where the sign-in is meant for every Microsoft account", () => {
     const naming: Array<string> = listProductFiles()
       .filter((file: string): boolean => {
-        const text: string = read(file);
-
-        return COMMON_ENDPOINTS.some((endpoint: string): boolean => {
-          return text.includes(endpoint);
-        });
+        return COMMON_ENDPOINT.test(read(file));
       })
       .sort();
 
@@ -74,9 +74,7 @@ describe("Microsoft's common endpoint in product code", () => {
     for (const file of Object.keys(SIGNS_IN_ANY_ACCOUNT)) {
       expect({ file, names: true }).toEqual({
         file,
-        names: COMMON_ENDPOINTS.some((endpoint: string): boolean => {
-          return read(file).includes(endpoint);
-        }),
+        names: COMMON_ENDPOINT.test(read(file)),
       });
     }
   });
@@ -85,14 +83,12 @@ describe("Microsoft's common endpoint in product code", () => {
     for (const file of TEAMS_SIGN_IN_FILES) {
       expect({ file, common: false }).toEqual({
         file,
-        common: read(file).includes("/common/"),
+        common: COMMON_PATH.test(read(file)),
       });
     }
 
     // The Teams API builds every Microsoft sign-in URL through the one module.
-    expect(read(TEAMS_SIGN_IN_FILES[0]!)).not.toContain(
-      "login.microsoftonline.com",
-    );
+    expect(read(TEAMS_SIGN_IN_FILES[0]!)).not.toMatch(MICROSOFT_LOGIN_HOST);
     expect(read(TEAMS_SIGN_IN_FILES[1]!)).toMatch(
       MICROSOFT_LOGIN_ORIGIN_DECLARATION,
     );

@@ -55,9 +55,12 @@ describe("what is a tenant", () => {
     ).toBe(true);
   });
 
-  test.each(NOT_TENANTS)("%s is not a tenant id", (_label, value) => {
-    expect(MicrosoftTeamsSignInAuthorityUtil.isTenantId(value)).toBe(false);
-  });
+  test.each(NOT_TENANTS)(
+    "%s is not a tenant id",
+    (_label: string, value: unknown) => {
+      expect(MicrosoftTeamsSignInAuthorityUtil.isTenantId(value)).toBe(false);
+    },
+  );
 
   test("a tenant domain name is a tenant, but not a tenant id", () => {
     expect(
@@ -79,9 +82,12 @@ describe("what is a tenant", () => {
     ).toBe("contoso.onmicrosoft.com");
   });
 
-  test.each(NOT_TENANTS)("%s is not a tenant", (_label, value) => {
-    expect(MicrosoftTeamsSignInAuthorityUtil.readTenant(value)).toBeNull();
-  });
+  test.each(NOT_TENANTS)(
+    "%s is not a tenant",
+    (_label: string, value: unknown) => {
+      expect(MicrosoftTeamsSignInAuthorityUtil.readTenant(value)).toBeNull();
+    },
+  );
 
   test("a long hostile value is refused at once", () => {
     /*
@@ -205,9 +211,13 @@ describe("where the sign-in goes", () => {
     );
   });
 
-  test.each(NOT_TENANTS.filter(([, value]) => typeof value === "string"))(
+  test.each(
+    NOT_TENANTS.filter(([, value]: [string, unknown]): boolean => {
+      return typeof value === "string";
+    }),
+  )(
     "%s never becomes the authority: the endpoint for any organization does",
-    (_label, value) => {
+    (_label: string, value: unknown) => {
       const url: globalThis.URL = new globalThis.URL(
         MicrosoftTeamsSignInAuthorityUtil.getAuthorizeUrl(value as string),
       );
@@ -220,7 +230,7 @@ describe("where the sign-in goes", () => {
 
   test("whatever is stored or configured, the sign-in goes to a real tenant or the endpoint for any organization - never common", () => {
     const inputs: Array<unknown> = [
-      ...NOT_TENANTS.map(([, value]) => {
+      ...NOT_TENANTS.map(([, value]: [string, unknown]): unknown => {
         return value;
       }),
       CONTOSO,

@@ -420,7 +420,7 @@ function connection(): WorkspaceProjectAuthToken | null {
     tenantId: connectedTenantId,
     adminConsentGranted: true,
     availableTeams: {},
-  } as unknown as WorkspaceProjectAuthToken["miscData"];
+  } as unknown as NonNullable<WorkspaceProjectAuthToken["miscData"]>;
   return row;
 }
 
@@ -928,7 +928,7 @@ describe("a self-hosted server, its app registered for one organization as the g
     expect(linkedObjectIds()).toEqual([ADA_AT_CONTOSO.objectId]);
   });
 
-  test("the Connect button the bot answered with: pressed, signed in at the organization, the press answered, then oncall", async () => {
+  test("the Connect button the bot answered with: pressed, signed in at the organization, the press spent, then oncall", async () => {
     const ada: TeamsSender = { account: ADA_AT_CONTOSO, teamsId: "29:ada" };
     const prompt: { answer: string; connectUrl: string | null } =
       await botAnswers("oncall", ada);
@@ -1109,7 +1109,7 @@ describe("no tenant configured at all", () => {
     expect(linkedObjectIds()).toEqual([GRACE_AT_FABRIKAM.objectId]);
   });
 
-  test("a single-tenant app: refused there too (AADSTS50194) - why the guide asks for MICROSOFT_TEAMS_APP_TENANT_ID", async () => {
+  test("a single-tenant app: organizations is for multitenant apps (the fake refuses it as AADSTS50194) - why the guide asks for MICROSOFT_TEAMS_APP_TENANT_ID", async () => {
     microsoft.registerApp(SELF_HOSTED_APP);
 
     const connected: Connected = await connectAs("ada");
@@ -1160,7 +1160,7 @@ describe("the code is exchanged where the sign-in started, and nowhere else", ()
     expect(links).toEqual([]);
   });
 
-  test("a code is redeemed only at the authority that issued it: the fake refuses any other, as Microsoft does", async () => {
+  test("a code is redeemed only at the authority that issued it: the fake refuses any other, and OneUptime redeems it there", async () => {
     microsoft.registerApp(CLOUD_APP);
     connectedTenantId = FABRIKAM;
 

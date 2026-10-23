@@ -155,6 +155,13 @@ function withQuery(path: string, query: Record<string, string>): string {
   return `${path}?${new URLSearchParams(query).toString()}`;
 }
 
+// An absolute URL without its query: the endpoint it opens.
+function endpointOf(url: string): string {
+  const parsed: globalThis.URL = new globalThis.URL(url);
+
+  return `${parsed.origin}${parsed.pathname}`;
+}
+
 describe("Microsoft Teams OAuth state", () => {
   let app: RunningApp;
   let projectId: ObjectID;
@@ -1157,11 +1164,9 @@ describe("Microsoft Teams OAuth state", () => {
        * organization - never `common` (#5202). Where it goes otherwise is
        * MicrosoftTeamsSignInTenantEndToEnd's.
        */
-      expect(
-        url.startsWith(
-          "https://login.microsoftonline.com/organizations/oauth2/v2.0/authorize?",
-        ),
-      ).toBe(true);
+      expect(endpointOf(url)).toBe(
+        "https://login.microsoftonline.com/organizations/oauth2/v2.0/authorize",
+      );
       expect(queryOf(url).get("redirect_uri")).toBe(
         `${AppApiClientUrl.toString()}/microsoft-teams/auth`,
       );
@@ -1182,11 +1187,9 @@ describe("Microsoft Teams OAuth state", () => {
 
       const { state, url, browser } = await startFlow(SIGN_IN_START);
 
-      expect(
-        url.startsWith(
-          `https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/authorize?`,
-        ),
-      ).toBe(true);
+      expect(endpointOf(url)).toBe(
+        `https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/authorize`,
+      );
 
       const stored: JSONObject = JSON.parse(
         Array.from(mockCacheStore.values())[0]!.value,

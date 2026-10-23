@@ -4,11 +4,11 @@
  * A Microsoft sign-in URL names an authority: one tenant
  * (login.microsoftonline.com/<tenant>/...), or an endpoint for every
  * organization - `organizations` (any work or school account) and `common`
- * (personal accounts too). Microsoft only lets a multitenant app use the
- * endpoints for every organization. An app registered for one organization -
- * "Accounts in this organizational directory only (Single tenant)", what the
- * self-hosted guide asks for - is refused there with AADSTS50194 ("Usage of
- * the /common endpoint is not supported for such applications").
+ * (personal accounts too), which Microsoft documents for multitenant apps.
+ * An app registered for one organization - "Accounts in this organizational
+ * directory only (Single tenant)", what the self-hosted guide asks for - is
+ * refused at `common` with AADSTS50194 ("Usage of the /common endpoint is
+ * not supported for such applications").
  *
  * "Connect my account with Microsoft Teams", and the Connect button the bot
  * answers an unconnected account with, used to sign in at `common`. So on a
@@ -35,7 +35,7 @@
  *     the project is connected, so this is for a sign-in started some other
  *     way.
  *  3. Nothing names a tenant: Microsoft's endpoint for a work or school
- *     account of any organization, which only a multitenant app may use.
+ *     account of any organization, which is for multitenant apps.
  *
  * The authority is chosen once, when the sign-in starts, and pinned to its
  * state (WorkspaceOAuthState.tenantId): the callback exchanges the code at
