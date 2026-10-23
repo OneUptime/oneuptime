@@ -33468,8 +33468,6 @@
   "Find OIDs with an SNMP walk": "Find OIDs with an SNMP walk",
   "Host resources": "Host resources",
   "In the {{template}} template": "In the {{template}} template",
-  "It answered for {{count}} OIDs, then went quiet. A busy device sometimes does: continue walking to read the rest.": "It answered for {{count}} OIDs, then went quiet. A busy device sometimes does: continue walking to read the rest.",
-  "It answered for {{count}} OIDs, then went quiet. A busy device sometimes does: continue walking to read the rest._one": "It answered for {{count}} OID, then went quiet. A busy device sometimes does: continue walking to read the rest.",
   "Kept for two days": "Kept for two days",
   "More actions for {{oid}}": "More actions for {{oid}}",
   "No OIDs match \"{{query}}\".": "No OIDs match \"{{query}}\".",
@@ -33532,8 +33530,13 @@
   "{{count}} rules could not be added_one": "{{count}} rule could not be added",
   "The others were added.": "The others were added.",
   "The playbook could not be added": "The playbook could not be added",
-  "{{name}} is collected by every device using {{template}}, from their next poll on.": "{{name}} is collected by every device using {{template}}, from their next poll on.",
-  "{{name}} is collected on every poll from the next one on, so you can alert on its value.": "{{name}} is collected on every poll from the next one on, so you can alert on its value.",
-  "{{name}} is collected on every poll from the next one on. It is charted on the device's Metrics page.": "{{name}} is collected on every poll from the next one on. It is charted on the device's Metrics page.",
-  "{{vendor}} MIB": "{{vendor}} MIB"
+  "{{vendor}} MIB": "{{vendor}} MIB",
+  "Collected from the next poll on, and charted on the device's Metrics page.": "Collected from the next poll on, and charted on the device's Metrics page.",
+  "Collected from the next poll on, so you can alert on its value.": "Collected from the next poll on, so you can alert on its value.",
+  "Every device using {{template}} collects it from its next poll on.": "Every device using {{template}} collects it from its next poll on.",
+  "A busy device sometimes goes quiet part of the way. Continue walking to read the rest.": "A busy device sometimes goes quiet part of the way. Continue walking to read the rest.",
+  "This device has no SNMP credentials to walk it with. Add a community string or an SNMPv3 user in its Settings, or give it (or its site) an SNMP credential profile.": "This device has no SNMP credentials to walk it with. Add a community string or an SNMPv3 user in its Settings, or give it (or its site) an SNMP credential profile.",
+  "This device's SNMP credential profile could not be read just now. Try the walk again in a moment.": "This device's SNMP credential profile could not be read just now. Try the walk again in a moment.",
+  "This device is already being walked. Wait for that walk to finish, then walk it again.": "This device is already being walked. Wait for that walk to finish, then walk it again.",
+  "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.": "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again."
 }

@@ -240,17 +240,24 @@ describe("the SNMP Walk page in the dark theme", () => {
         "bg-gray-100",
         "text-gray-900",
         "text-gray-500",
-        // The links, and the outcome boxes in their four tones.
+        // The links, and the failure boxes in their two tones.
         "text-indigo-600",
         "hover:text-indigo-800",
         "bg-red-50",
         "border-red-200",
         "bg-amber-50",
         "border-amber-200",
-        "bg-green-50",
-        "border-green-200",
+        // The chosen starting point.
         "bg-indigo-50",
         "border-indigo-200",
+        // A collected OID's badge, and what Collect came to in its row.
+        "bg-green-50",
+        "text-green-700",
+        "text-green-600",
+        "text-red-700",
+        // "Alert on it", drawn as the small button Collect is.
+        "border-gray-300",
+        "hover:bg-gray-50",
       ]),
     );
     expect(unmapped).toEqual([]);

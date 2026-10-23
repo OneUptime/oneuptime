@@ -2,6 +2,7 @@ import {
   SNMP_WALK_ROWS_PER_PAGE,
   SNMP_WALK_VALUE_PREVIEW_LENGTH,
   SnmpWalkRowLabels,
+  SnmpWalkRowNotice,
   SnmpWalkRowView,
   filterSnmpWalkRows,
   getSnmpWalkRowLabels,
@@ -37,21 +38,18 @@ import React, {
  * type, its value - and what can be done with it: collect it on every poll,
  * then alert on it.
  *
- * Rows rather than a table, each its own grid with fixed column widths so
- * the columns line up: from md, OID | type | value | monitoring; on a phone,
- * the name with its actions beside it, and the type and value under it - a
- * small card per OID instead of a table scrolling sideways. A walk can hold
- * thousands of OIDs, so SNMP_WALK_ROWS_PER_PAGE are drawn at a time.
+ * The layout follows the width of the results themselves, not the window's
+ * (a container query, as ExternalStatusPageMonitorView does): on a device
+ * page the side menu takes about 330 pixels from md up, so a 768 to 1100
+ * pixel window leaves the results only 430 to 700 pixels. Below 44rem each
+ * OID is a small card - the name across the row with its menu in the
+ * corner, the type and the value under it, and the row's action under
+ * those, never squeezing the name. From 44rem it is a table: OID | type |
+ * value | action | menu, one grid whose rows are subgrids, so every column
+ * lines up and the type and action columns are as wide as their widest
+ * entry in any language. A walk can hold thousands of OIDs, so
+ * SNMP_WALK_ROWS_PER_PAGE are drawn at a time.
  */
-
-/*
- * The columns, shared by the header and every row so they line up. The
- * monitoring column is wide enough for "Collected", "Alert on it" and the
- * ⋯ menu on one line in English, and wraps rather than widens in a longer
- * language.
- */
-const ROW_GRID: string =
-  "grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1.5 md:grid-cols-[minmax(0,5fr)_7rem_minmax(0,5fr)_12.5rem] md:gap-x-4";
 
 export interface SnmpWalkRowActions {
   // The OIDs the device already collects, normalized.
@@ -73,12 +71,25 @@ export interface ComponentProps {
   rows: Array<SnmpWalkRow>;
   views: Array<SnmpWalkRowView>;
   actions: SnmpWalkRowActions;
+  /*
+   * What collecting an OID from this page came to, shown in that OID's
+   * row: the reader is looking at the row they pressed Collect in, which
+   * can be hundreds of rows below the top of the page.
+   */
+  notice?: SnmpWalkRowNotice | undefined;
+  /*
+   * Drawn where the list ends - only once every OID read so far (that the
+   * filter keeps) is on screen, so "read more from the device" never sits
+   * next to "show more of what was read".
+   */
+  listEnd?: ReactElement | undefined;
 }
 
 interface RowProps {
   row: SnmpWalkRow;
   view: SnmpWalkRowView;
   actions: SnmpWalkRowActions;
+  notice?: SnmpWalkRowNotice | undefined;
   translator: Translator;
 }
 
@@ -87,8 +98,12 @@ interface PartProps {
   translator: Translator;
 }
 
-const SnmpWalkRowName: FunctionComponent<PartProps> = (
-  props: PartProps,
+interface NameProps extends PartProps {
+  isCollected: boolean;
+}
+
+const SnmpWalkRowName: FunctionComponent<NameProps> = (
+  props: NameProps,
 ): ReactElement => {
   const labels: SnmpWalkRowLabels = getSnmpWalkRowLabels(
     props.view,
@@ -97,7 +112,7 @@ const SnmpWalkRowName: FunctionComponent<PartProps> = (
 
   return (
     <div className="min-w-0">
-      <div className="flex flex-wrap items-baseline gap-x-2">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <span
           className={`font-medium text-gray-900 [overflow-wrap:anywhere] ${
             labels.isTitleTheOid ? "font-mono text-xs" : "text-sm"
@@ -108,6 +123,22 @@ const SnmpWalkRowName: FunctionComponent<PartProps> = (
         </span>
         {labels.titleModule ? (
           <span className="text-xs text-gray-400">{labels.titleModule}</span>
+        ) : (
+          <></>
+        )}
+        {/*
+         * Whether every poll collects the OID is a fact about the OID, so
+         * it is said beside its name - where a reader scanning the list
+         * looks - and the action column keeps only the next step.
+         */}
+        {props.isCollected ? (
+          <span
+            className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700"
+            data-testid="snmp-walk-row-collected"
+          >
+            <Icon icon={IconProp.Check} className="h-3 w-3" />
+            {props.translator.translateText("Collected")}
+          </span>
         ) : (
           <></>
         )}
@@ -156,7 +187,7 @@ const SnmpWalkRowType: FunctionComponent<TypeProps> = (
 ): ReactElement => {
   return (
     <span
-      className="inline-flex shrink-0 rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-700"
+      className="inline-flex shrink-0 whitespace-nowrap rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-700"
       data-testid={props.testId}
     >
       {props.view.typeLabel}
@@ -216,10 +247,23 @@ const SnmpWalkRowValue: FunctionComponent<PartProps> = (
       ) : (
         <></>
       )}
+      {view.isCut && (isExpanded || !isLong) ? (
+        <span className="mt-0.5 block text-xs text-gray-500">
+          {props.translator.translateText(
+            "The device's value is longer: the walk keeps its first 1,024 characters.",
+          )}
+        </span>
+      ) : (
+        <></>
+      )}
+      {/*
+       * On a line of its own, at the value's left edge: beside a value that
+       * wraps it would start a line indented by its own margin.
+       */}
       {isLong ? (
         <button
           type="button"
-          className="ml-2 text-xs font-medium text-indigo-600 hover:text-indigo-800 focus:outline-none focus-visible:underline"
+          className="mt-1 block text-xs font-medium text-indigo-600 hover:text-indigo-800 focus:outline-none focus-visible:underline"
           data-testid="snmp-walk-row-value-toggle"
           aria-expanded={isExpanded}
           onClick={() => {
@@ -233,29 +277,49 @@ const SnmpWalkRowValue: FunctionComponent<PartProps> = (
       ) : (
         <></>
       )}
-      {view.isCut && (isExpanded || !isLong) ? (
-        <span className="mt-0.5 block text-xs text-gray-500">
-          {props.translator.translateText(
-            "The device's value is longer: the walk keeps its first 1,024 characters.",
-          )}
-        </span>
-      ) : (
-        <></>
-      )}
     </div>
   );
 };
 
+/*
+ * The row's cells, placed for both layouts. Narrow: a two-column grid -
+ * the name and the menu share the first line, the value takes the second,
+ * the action the third, a notice the fourth. Wide (the results 44rem or
+ * more): the row is a subgrid of the table's five columns.
+ */
+const ROW_CLASS_NAME: string =
+  "grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2 py-3 [@container(min-width:44rem)]:col-span-full [@container(min-width:44rem)]:grid-cols-subgrid [@container(min-width:44rem)]:gap-x-4 [@container(min-width:44rem)]:gap-y-1.5";
+const NAME_CELL_CLASS_NAME: string = "col-start-1 row-start-1 min-w-0";
+const TYPE_CELL_CLASS_NAME: string =
+  "[@container(max-width:43.99rem)]:hidden [@container(min-width:44rem)]:col-start-2 [@container(min-width:44rem)]:row-start-1";
+const VALUE_CELL_CLASS_NAME: string =
+  "col-span-2 row-start-2 flex min-w-0 items-start gap-2 [@container(min-width:44rem)]:col-span-1 [@container(min-width:44rem)]:col-start-3 [@container(min-width:44rem)]:row-start-1";
+const PHONE_TYPE_CLASS_NAME: string = "[@container(min-width:44rem)]:hidden";
+const ACTION_CELL_CLASS_NAME: string =
+  "col-span-2 row-start-3 flex [@container(min-width:44rem)]:col-span-1 [@container(min-width:44rem)]:col-start-4 [@container(min-width:44rem)]:row-start-1 [@container(min-width:44rem)]:justify-end";
+const MENU_CELL_CLASS_NAME: string =
+  "col-start-2 row-start-1 -my-1 [@container(min-width:44rem)]:col-start-5";
+const NOTICE_CELL_CLASS_NAME: string =
+  "col-span-2 row-start-4 [@container(min-width:44rem)]:col-span-full [@container(min-width:44rem)]:row-start-2";
+
+/*
+ * "Alert on it" goes to another page, so it is a link - drawn as the
+ * small button "Collect" is, as the same column's next step.
+ */
+const ACTION_LINK_CLASS_NAME: string =
+  "inline-flex items-center whitespace-nowrap rounded-md border border-gray-300 bg-white px-2 py-1 text-sm font-medium text-gray-700 shadow-sm transition-colors duration-150 ease-out hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
+
 const SnmpWalkResultRow: FunctionComponent<RowProps> = (
   props: RowProps,
 ): ReactElement => {
-  const { row, view, actions, translator } = props;
+  const { row, view, actions, notice, translator } = props;
   const clipboard: ClipboardCopy = useClipboardCopy({ copiedForMs: 1500 });
   const isCollected: boolean = actions.collectedOids.has(view.oid);
   const isCollecting: boolean = actions.collectingOid === view.oid;
   const alertRoute: Route | undefined = isCollected
     ? actions.getAlertRoute?.(row)
     : undefined;
+  const canCollect: boolean = !isCollected && actions.canCollect;
 
   const menuItems: Array<ReactElement> = [
     <MoreMenuItem
@@ -280,7 +344,7 @@ const SnmpWalkResultRow: FunctionComponent<RowProps> = (
     menuItems.push(
       <MoreMenuItem
         key="collect-on-template"
-        icon={IconProp.Template}
+        icon={IconProp.Layers}
         text={translator.translateTemplate(
           "Collect on every device using {{template}}",
           { template: actions.templateName },
@@ -293,71 +357,75 @@ const SnmpWalkResultRow: FunctionComponent<RowProps> = (
     );
   }
 
+  const getAction: () => ReactElement = (): ReactElement => {
+    if (canCollect) {
+      return (
+        <Button
+          title="Collect"
+          buttonSize={ButtonSize.Small}
+          buttonStyle={ButtonStyleType.NORMAL}
+          dataTestId="snmp-walk-row-collect"
+          className="!ml-0 !w-auto whitespace-nowrap !text-sm"
+          isLoading={isCollecting}
+          disabled={Boolean(actions.collectingOid) && !isCollecting}
+          tooltip="Collect this OID on every poll, so it is charted and can be alerted on."
+          onClick={() => {
+            actions.onCollect(row);
+          }}
+        />
+      );
+    }
+
+    if (alertRoute) {
+      return (
+        <Link
+          to={alertRoute}
+          className={ACTION_LINK_CLASS_NAME}
+          dataTestId="snmp-walk-row-alert"
+        >
+          {translator.translateText("Alert on it")}
+        </Link>
+      );
+    }
+
+    return <></>;
+  };
+
+  const hasAction: boolean = canCollect || Boolean(alertRoute);
+  const isNoticeHere: boolean = Boolean(notice && notice.oid === view.oid);
+
   return (
     <li
-      className={`${ROW_GRID} py-3 md:items-start`}
+      className={ROW_CLASS_NAME}
       data-testid="snmp-walk-row"
       data-oid={view.oid}
     >
-      <div className="col-start-1 row-start-1 min-w-0">
-        <SnmpWalkRowName view={view} translator={translator} />
+      <div className={NAME_CELL_CLASS_NAME}>
+        <SnmpWalkRowName
+          view={view}
+          translator={translator}
+          isCollected={isCollected}
+        />
       </div>
-      <div className="max-md:hidden md:col-start-2 md:row-start-1">
+      <div className={TYPE_CELL_CLASS_NAME}>
         <SnmpWalkRowType view={view} testId="snmp-walk-row-type" />
       </div>
-      <div className="col-span-2 row-start-2 flex min-w-0 items-start gap-2 md:col-span-1 md:col-start-3 md:row-start-1">
+      <div className={VALUE_CELL_CLASS_NAME}>
         {/*
-         * On a phone the type sits before the value, on one line, instead
-         * of taking a line of its own; from md it has its column.
+         * Narrow, the type sits before the value on its line instead of
+         * taking a line of its own; wide, it has its column.
          */}
-        <div className="md:hidden">
+        <div className={PHONE_TYPE_CLASS_NAME}>
           <SnmpWalkRowType view={view} testId="snmp-walk-row-type-phone" />
         </div>
         <SnmpWalkRowValue view={view} translator={translator} />
       </div>
-      {/*
-       * The ⋯ menu keeps its corner; what is beside it wraps under itself
-       * rather than pushing the menu onto a line of its own.
-       */}
-      <div className="col-start-2 row-start-1 flex items-start justify-end gap-2 md:col-start-4">
-        <div className="flex min-h-[1.75rem] flex-wrap items-center justify-end gap-x-3 gap-y-1">
-          {isCollected ? (
-            <span
-              className="inline-flex items-center gap-1 text-xs font-medium text-green-700"
-              data-testid="snmp-walk-row-collected"
-            >
-              <Icon icon={IconProp.Check} className="h-3.5 w-3.5" />
-              {translator.translateText("Collected")}
-            </span>
-          ) : actions.canCollect ? (
-            <Button
-              title="Collect"
-              buttonSize={ButtonSize.Small}
-              buttonStyle={ButtonStyleType.NORMAL}
-              dataTestId="snmp-walk-row-collect"
-              className="!ml-0"
-              isLoading={isCollecting}
-              disabled={Boolean(actions.collectingOid) && !isCollecting}
-              tooltip="Collect this OID on every poll, so it is charted and can be alerted on."
-              onClick={() => {
-                actions.onCollect(row);
-              }}
-            />
-          ) : (
-            <></>
-          )}
-          {alertRoute ? (
-            <Link
-              to={alertRoute}
-              className="text-xs font-medium text-indigo-600 hover:text-indigo-800"
-              dataTestId="snmp-walk-row-alert"
-            >
-              {translator.translateText("Alert on it")}
-            </Link>
-          ) : (
-            <></>
-          )}
-        </div>
+      {hasAction ? (
+        <div className={ACTION_CELL_CLASS_NAME}>{getAction()}</div>
+      ) : (
+        <></>
+      )}
+      <div className={MENU_CELL_CLASS_NAME}>
         <MoreMenu
           text=""
           ariaLabel={translator.translateTemplate("More actions for {{oid}}", {
@@ -370,6 +438,27 @@ const SnmpWalkResultRow: FunctionComponent<RowProps> = (
           {menuItems}
         </MoreMenu>
       </div>
+      {isNoticeHere && notice ? (
+        <div
+          className={`${NOTICE_CELL_CLASS_NAME} flex items-start gap-1.5 text-xs ${
+            notice.kind === "success" ? "text-gray-600" : "text-red-700"
+          }`}
+          data-testid="snmp-walk-collect-notice"
+          role={notice.kind === "success" ? "status" : "alert"}
+        >
+          <Icon
+            icon={
+              notice.kind === "success" ? IconProp.CheckCircle : IconProp.Alert
+            }
+            className={`mt-px h-4 w-4 shrink-0 ${
+              notice.kind === "success" ? "text-green-600" : "text-red-600"
+            }`}
+          />
+          <span className="[overflow-wrap:anywhere]">{notice.text}</span>
+        </div>
+      ) : (
+        <></>
+      )}
     </li>
   );
 };
@@ -399,9 +488,13 @@ const SnmpWalkResults: FunctionComponent<ComponentProps> = (
   }, [query]);
 
   const shown: Array<SnmpWalkRowView> = matching.slice(0, shownCount);
+  const isEveryMatchShown: boolean = matching.length <= shown.length;
 
   return (
-    <div data-testid="snmp-walk-results">
+    <div
+      data-testid="snmp-walk-results"
+      className="[container-type:inline-size]"
+    >
       <div className="max-w-md">
         <Input
           value={query}
@@ -432,21 +525,9 @@ const SnmpWalkResults: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
-      <div
-        className={`${ROW_GRID} mt-3 border-b border-gray-200 pb-2 text-xs font-medium uppercase tracking-wide text-gray-500 max-md:hidden`}
-        aria-hidden="true"
-      >
-        <span>{translator.translateText("OID")}</span>
-        <span>{translator.translateText("Type")}</span>
-        <span>{translator.translateText("Value")}</span>
-        <span className="text-right">
-          {translator.translateText("Monitoring")}
-        </span>
-      </div>
-
       {shown.length === 0 ? (
         <p
-          className="py-6 text-center text-sm text-gray-500"
+          className="py-6 text-center text-sm text-gray-500 [overflow-wrap:anywhere]"
           data-testid="snmp-walk-no-match"
         >
           {translator.translateTemplate('No OIDs match "{{query}}".', {
@@ -454,25 +535,43 @@ const SnmpWalkResults: FunctionComponent<ComponentProps> = (
           })}
         </p>
       ) : (
-        <ul
-          className="divide-y divide-gray-100 max-md:mt-2"
-          data-testid="snmp-walk-rows"
-        >
-          {shown.map((view: SnmpWalkRowView): ReactElement => {
-            return (
-              <SnmpWalkResultRow
-                key={view.oid}
-                row={rowsByOid.get(view.oid)!}
-                view={view}
-                actions={props.actions}
-                translator={translator}
-              />
-            );
-          })}
-        </ul>
+        <div className="mt-3 [@container(min-width:44rem)]:grid [@container(min-width:44rem)]:grid-cols-[minmax(0,5fr)_auto_minmax(0,5fr)_auto_auto] [@container(min-width:44rem)]:gap-x-4">
+          {/*
+           * The table's header, wide only: a narrow row reads as a card on
+           * its own. The action and menu columns need no title.
+           */}
+          <div
+            className="border-b border-gray-200 pb-2 text-xs font-medium uppercase tracking-wide text-gray-500 [@container(max-width:43.99rem)]:hidden [@container(min-width:44rem)]:col-span-full [@container(min-width:44rem)]:grid [@container(min-width:44rem)]:grid-cols-subgrid [@container(min-width:44rem)]:gap-x-4"
+            aria-hidden="true"
+            data-testid="snmp-walk-results-header"
+          >
+            <span>{translator.translateText("OID")}</span>
+            <span>{translator.translateText("Type")}</span>
+            <span>{translator.translateText("Value")}</span>
+          </div>
+          <ul
+            className="divide-y divide-gray-100 [@container(min-width:44rem)]:col-span-full [@container(min-width:44rem)]:grid [@container(min-width:44rem)]:grid-cols-subgrid"
+            data-testid="snmp-walk-rows"
+          >
+            {shown.map((view: SnmpWalkRowView): ReactElement => {
+              return (
+                <SnmpWalkResultRow
+                  key={view.oid}
+                  row={rowsByOid.get(view.oid)!}
+                  view={view}
+                  actions={props.actions}
+                  notice={props.notice}
+                  translator={translator}
+                />
+              );
+            })}
+          </ul>
+        </div>
       )}
 
-      {matching.length > shown.length ? (
+      {isEveryMatchShown ? (
+        <></>
+      ) : (
         <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-gray-100 pt-3">
           <span className="text-xs text-gray-500">
             {translator.translateTemplate("Showing {{shown}} of {{total}}", {
@@ -491,7 +590,7 @@ const SnmpWalkResults: FunctionComponent<ComponentProps> = (
             })}
             buttonSize={ButtonSize.Small}
             buttonStyle={ButtonStyleType.NORMAL}
-            className="!ml-0"
+            className="!ml-0 !w-auto !text-sm"
             dataTestId="snmp-walk-show-more"
             onClick={() => {
               setShownCount((count: number) => {
@@ -500,9 +599,9 @@ const SnmpWalkResults: FunctionComponent<ComponentProps> = (
             }}
           />
         </div>
-      ) : (
-        <></>
       )}
+
+      {isEveryMatchShown && props.listEnd ? props.listEnd : <></>}
     </div>
   );
 };

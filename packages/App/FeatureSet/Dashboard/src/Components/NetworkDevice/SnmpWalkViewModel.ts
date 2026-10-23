@@ -363,16 +363,15 @@ export function describeSnmpWalkFailure(
   translator: Translator,
 ): SnmpWalkMessage {
   if (failure.kind === SnmpWalkFailureKind.Timeout && rowsRead > 0) {
+    /*
+     * How much it read is the summary's to say, right above; this says why
+     * the walk stopped and what to do about it.
+     */
     return {
       title: translator.translateText("The device stopped answering")!,
-      detail: translator.translatePlural(
-        {
-          one: "It answered for {{count}} OID, then went quiet. A busy device sometimes does: continue walking to read the rest.",
-          other:
-            "It answered for {{count}} OIDs, then went quiet. A busy device sometimes does: continue walking to read the rest.",
-        },
-        rowsRead,
-      ),
+      detail: translator.translateText(
+        "A busy device sometimes goes quiet part of the way. Continue walking to read the rest.",
+      )!,
       isFixedInSettings: false,
     };
   }
@@ -487,6 +486,53 @@ export function snmpWalkTimeoutMessage(
   return translator.translateText(
     "This device's probe did not report the walk within two minutes. Check that the probe is online and runs a version that can walk SNMP.",
   )!;
+}
+
+/*
+ * The sentences the server answers with when it cannot run a walk - on the
+ * page when the walk is asked for, or on the walk's row when an old probe
+ * claims it (Common/Types/NetworkDevice/NetworkDeviceSnmpWalk.ts) - as
+ * locale keys, so the page says them in the reader's language like the
+ * rest of it. A test holds them to the server's wording.
+ */
+export const SNMP_WALK_SERVER_MESSAGES: Array<string> = [
+  translationKey(
+    "This device has no SNMP credentials to walk it with. Add a community string or an SNMPv3 user in its Settings, or give it (or its site) an SNMP credential profile.",
+  ),
+  translationKey(
+    "This device's SNMP credential profile could not be read just now. Try the walk again in a moment.",
+  ),
+  translationKey(
+    "This device is already being walked. Wait for that walk to finish, then walk it again.",
+  ),
+  translationKey(
+    "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.",
+  ),
+];
+
+/*
+ * A message from the server in the reader's language when it is one of the
+ * walk's own sentences; anything else as the server wrote it.
+ */
+export function translateSnmpWalkServerMessage(
+  message: string,
+  translator: Translator,
+): string {
+  if (!SNMP_WALK_SERVER_MESSAGES.includes(message)) {
+    return message;
+  }
+
+  return translator.translateText(message) || message;
+}
+
+/*
+ * What collecting an OID from the page came to, said in that OID's row -
+ * where the reader pressed Collect, however far down the list.
+ */
+export interface SnmpWalkRowNotice {
+  oid: string;
+  kind: "success" | "error";
+  text: string;
 }
 
 /*

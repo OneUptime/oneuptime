@@ -60,6 +60,9 @@ jest.mock("../../../UI/Utils/API/API", () => {
   };
 });
 
+// A grid's columns switched by the window's width rather than the results'.
+const VIEWPORT_GRID_COLUMNS: RegExp = /^(?:sm|md|lg|xl|2xl):grid-cols-/;
+
 const DEVICE_ID: string = "11111111-1111-4111-8111-111111111111";
 const WALK_ID: string = "22222222-2222-4222-8222-222222222222";
 const OLD_WALK_ID: string = "33333333-3333-4333-8333-333333333333";
@@ -454,6 +457,44 @@ describe("walking", () => {
     expect(within(cpu).getByTestId("snmp-walk-row-source")).toHaveTextContent(
       "In the Cisco IOS / IOS-XE template",
     );
+
+    // The header titles the data; the action and menu columns need none.
+    const header: HTMLElement = screen.getByTestId("snmp-walk-results-header");
+    expect(header).toHaveAttribute("aria-hidden", "true");
+    expect(
+      Array.from(header.children).map((child: Element): string => {
+        return child.textContent || "";
+      }),
+    ).toEqual(["OID", "Type", "Value"]);
+  });
+
+  test("the results are laid out by their own width, not the window's", async () => {
+    getListMock.mockResolvedValue({
+      data: [completedWalk(OLD_WALK_ID)],
+      count: 1,
+      skip: 0,
+      limit: 5,
+    });
+
+    await renderCard();
+
+    /*
+     * On a device page the side menu takes a third of a laptop's window,
+     * so the table switches on the results' width (a container query),
+     * and each row is a subgrid of one grid, so its columns line up.
+     */
+    expect(screen.getByTestId("snmp-walk-results").className).toContain(
+      "[container-type:inline-size]",
+    );
+    const rowClasses: Array<string> = rowFor(SYS_NAME.oid).className.split(" ");
+    expect(rowClasses).toContain(
+      "[@container(min-width:44rem)]:grid-cols-subgrid",
+    );
+    expect(
+      rowClasses.some((name: string): boolean => {
+        return VIEWPORT_GRID_COLUMNS.test(name);
+      }),
+    ).toBe(false);
   });
 
   test("a start point picks the subtree to walk", async () => {
@@ -528,6 +569,95 @@ describe("walking", () => {
       "This device has no SNMP credentials to walk it with.",
     );
     expect(screen.getByTestId("snmp-walk-start")).not.toBeDisabled();
+  });
+
+  test("a walk the server refuses keeps the last walk on the page, under the reason", async () => {
+    getListMock.mockResolvedValue({
+      data: [completedWalk(OLD_WALK_ID)],
+      count: 1,
+      skip: 0,
+      limit: 5,
+    });
+    createMock.mockRejectedValue(
+      new Error(
+        "This device is already being walked. Wait for that walk to finish, then walk it again.",
+      ),
+    );
+
+    await renderCard();
+    expect(rowsShown()).toHaveLength(3);
+
+    await click(screen.getByTestId("snmp-walk-start"));
+
+    const error: HTMLElement = screen.getByTestId("snmp-walk-error");
+    expect(error).toHaveTextContent("This device is already being walked.");
+    // What the device answered last time is still worth reading.
+    expect(rowsShown()).toEqual([SYS_UPTIME.oid, SYS_NAME.oid, CISCO_CPU.oid]);
+    expect(screen.getByTestId("snmp-walk-summary")).toHaveTextContent(
+      "3 OIDs under 1.3.6.1.",
+    );
+    expect(
+      error.compareDocumentPosition(screen.getByTestId("snmp-walk-result")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("a fresh walk hides the last walk while it runs, and a walk the probe cannot run brings it back", async () => {
+    getListMock.mockResolvedValue({
+      data: [completedWalk(OLD_WALK_ID)],
+      count: 1,
+      skip: 0,
+      limit: 5,
+    });
+    getWalkMock
+      .mockResolvedValueOnce(walk(WALK_ID, { status: "In Progress" }))
+      .mockResolvedValueOnce(
+        walk(WALK_ID, {
+          status: "Failed",
+          statusMessage:
+            "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.",
+        }),
+      );
+
+    await renderCard();
+    await click(screen.getByTestId("snmp-walk-start"));
+
+    // The rows on screen are never mistaken for what this walk reads.
+    expect(screen.getByTestId("snmp-walk-running")).toBeInTheDocument();
+    expect(rowsShown()).toEqual([]);
+    expect(screen.queryByTestId("snmp-walk-result")).not.toBeInTheDocument();
+
+    await tick();
+    expect(rowsShown()).toEqual([]);
+
+    await tick();
+
+    expect(screen.getByTestId("snmp-walk-error")).toHaveTextContent(
+      "Update the probe to the latest version",
+    );
+    expect(rowsShown()).toEqual([SYS_UPTIME.oid, SYS_NAME.oid, CISCO_CPU.oid]);
+  });
+
+  test("a fresh walk that lands replaces the last walk's rows", async () => {
+    getListMock.mockResolvedValue({
+      data: [completedWalk(OLD_WALK_ID)],
+      count: 1,
+      skip: 0,
+      limit: 5,
+    });
+    getWalkMock.mockResolvedValue(
+      completedWalk(WALK_ID, { rootOid: "1.3.6.1.4.1", rows: [CISCO_CPU] }),
+    );
+
+    await renderCard();
+    await click(screen.getByTestId("snmp-walk-start-point-1.3.6.1.4.1"));
+    await click(screen.getByTestId("snmp-walk-start"));
+    await tick();
+
+    expect(rowsShown()).toEqual([CISCO_CPU.oid]);
+    expect(screen.getByTestId("snmp-walk-summary")).toHaveTextContent(
+      "1 OID under 1.3.6.1.4.1.",
+    );
   });
 
   test("a walk the probe could not run says the probe's reason", async () => {
@@ -665,6 +795,13 @@ describe("what a failed walk shows", () => {
     ).toBeInTheDocument();
     expect(screen.queryByTestId("snmp-walk-summary")).not.toBeInTheDocument();
     expect(screen.queryByTestId("snmp-walk-continue")).not.toBeInTheDocument();
+
+    // When the walk ran reads first, then why it read nothing.
+    const meta: HTMLElement = screen.getByTestId("snmp-walk-meta");
+    expect(meta).toHaveTextContent("SNMP v3");
+    expect(
+      meta.compareDocumentPosition(failure) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   test("a device that went quiet partway keeps what it read, and offers to continue", async () => {
@@ -687,12 +824,21 @@ describe("what a failed walk shows", () => {
 
     await renderCard();
 
-    expect(screen.getByTestId("snmp-walk-failure")).toHaveTextContent(
-      "The device stopped answering",
+    const failure: HTMLElement = screen.getByTestId("snmp-walk-failure");
+    expect(failure).toHaveTextContent("The device stopped answering");
+    expect(failure).toHaveTextContent(
+      "A busy device sometimes goes quiet part of the way. Continue walking to read the rest.",
     );
-    expect(screen.getByTestId("snmp-walk-summary")).toHaveTextContent(
+    const summary: HTMLElement = screen.getByTestId("snmp-walk-summary");
+    expect(summary).toHaveTextContent(
       "2 OIDs read under 1.3.6.1 before the walk stopped.",
     );
+    // How much it read is said once, in the summary above the box.
+    expect(failure).not.toHaveTextContent("2 OIDs");
+    expect(
+      summary.compareDocumentPosition(failure) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(rowsShown()).toEqual([SYS_UPTIME.oid, SYS_NAME.oid]);
 
     await click(screen.getByTestId("snmp-walk-continue"));
@@ -893,9 +1039,47 @@ describe("collecting what a walk found", () => {
     expect(
       within(cpu).queryByTestId("snmp-walk-row-collect"),
     ).not.toBeInTheDocument();
-    expect(screen.getByTestId("snmp-walk-collect-notice")).toHaveTextContent(
-      "CPU 5-min % is collected on every poll from the next one on. It is charted on the device's Metrics page.",
+
+    /*
+     * Said in the row Collect was pressed in - however far down the list -
+     * which names the OID already, so the sentence says when and where.
+     */
+    const notice: HTMLElement = within(cpu).getByTestId(
+      "snmp-walk-collect-notice",
     );
+    expect(notice).toHaveTextContent(
+      "Collected from the next poll on, and charted on the device's Metrics page.",
+    );
+    expect(notice).toHaveAttribute("role", "status");
+    expect(screen.getAllByTestId("snmp-walk-collect-notice")).toHaveLength(1);
+  });
+
+  test("Collected sits beside the OID's name, and the action column keeps the next step", async () => {
+    getDeviceMock.mockResolvedValue(
+      device({ snmpOids: [{ oid: CISCO_CPU.oid, name: "CPU 5-min %" }] }),
+    );
+
+    await renderCard();
+
+    const cpu: HTMLElement = rowFor(CISCO_CPU.oid);
+    const name: HTMLElement = within(cpu).getByTestId("snmp-walk-row-name");
+    const collected: HTMLElement = within(cpu).getByTestId(
+      "snmp-walk-row-collected",
+    );
+
+    // On the name's own line, not in the column of buttons.
+    expect(collected.parentElement).toBe(name.parentElement);
+    expect(collected).toHaveTextContent("Collected");
+    // The action column offers what comes next: one action a row.
+    expect(within(cpu).getByTestId("snmp-walk-row-alert")).not.toContainElement(
+      collected,
+    );
+    expect(
+      within(cpu).queryByTestId("snmp-walk-row-collect"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(rowFor(SYS_NAME.oid)).queryByTestId("snmp-walk-row-collected"),
+    ).not.toBeInTheDocument();
   });
 
   test("a collected OID offers Alert on it, opening a monitor on it", async () => {
@@ -1000,8 +1184,10 @@ describe("collecting what a walk found", () => {
         { oid: SYS_NAME.oid, name: "sysName.0" },
       ],
     });
-    expect(screen.getByTestId("snmp-walk-collect-notice")).toHaveTextContent(
-      "sysName.0 is collected by every device using Cisco Catalyst 9300",
+    expect(
+      within(rowFor(SYS_NAME.oid)).getByTestId("snmp-walk-collect-notice"),
+    ).toHaveTextContent(
+      "Every device using Cisco Catalyst 9300 collects it from its next poll on.",
     );
   });
 
@@ -1018,12 +1204,18 @@ describe("collecting what a walk found", () => {
     );
     await flush();
 
-    expect(screen.getByTestId("snmp-walk-collect-notice")).toHaveTextContent(
-      "51 OIDs is more than the limit of 50.",
+    // In the row it was pressed in, as an alert: nothing changed.
+    const notice: HTMLElement = within(rowFor(SYS_NAME.oid)).getByTestId(
+      "snmp-walk-collect-notice",
     );
+    expect(notice).toHaveTextContent("51 OIDs is more than the limit of 50.");
+    expect(notice).toHaveAttribute("role", "alert");
     expect(
       within(rowFor(SYS_NAME.oid)).getByTestId("snmp-walk-row-collect"),
     ).toBeInTheDocument();
+    expect(
+      within(rowFor(SYS_UPTIME.oid)).queryByTestId("snmp-walk-collect-notice"),
+    ).not.toBeInTheDocument();
   });
 
   test("a text OID is collected to alert on, not to chart", async () => {
@@ -1033,9 +1225,26 @@ describe("collecting what a walk found", () => {
     );
     await flush();
 
-    expect(screen.getByTestId("snmp-walk-collect-notice")).toHaveTextContent(
-      "sysName.0 is collected on every poll from the next one on, so you can alert on its value.",
+    expect(
+      within(rowFor(SYS_NAME.oid)).getByTestId("snmp-walk-collect-notice"),
+    ).toHaveTextContent(
+      "Collected from the next poll on, so you can alert on its value.",
     );
+  });
+
+  test("a new walk clears what the last Collect said", async () => {
+    await renderCard();
+    await click(
+      within(rowFor(SYS_NAME.oid)).getByTestId("snmp-walk-row-collect"),
+    );
+    await flush();
+    expect(screen.getByTestId("snmp-walk-collect-notice")).toBeInTheDocument();
+
+    await click(screen.getByTestId("snmp-walk-start"));
+
+    expect(
+      screen.queryByTestId("snmp-walk-collect-notice"),
+    ).not.toBeInTheDocument();
   });
 
   test.each([
@@ -1088,6 +1297,89 @@ describe("reading a long walk", () => {
     await click(screen.getByTestId("snmp-walk-show-more"));
     expect(rowsShown()).toHaveLength(250);
     expect(screen.queryByTestId("snmp-walk-show-more")).not.toBeInTheDocument();
+  });
+
+  describe("a walk with more to read", () => {
+    beforeEach(() => {
+      getListMock.mockResolvedValue({
+        data: [
+          completedWalk(OLD_WALK_ID, {
+            rows: MANY,
+            stopReason: SnmpWalkStopReason.OidLimit,
+            nextOid: MANY[MANY.length - 1]!.oid,
+          }),
+        ],
+        count: 1,
+        skip: 0,
+        limit: 5,
+      });
+    });
+
+    test("offers the way on where the list ends only once every row read is shown", async () => {
+      await renderCard();
+
+      // At the top, always.
+      expect(screen.getByTestId("snmp-walk-continue")).toBeInTheDocument();
+      // Never beside "Show 100 more" of what was already read.
+      expect(screen.getByTestId("snmp-walk-show-more")).toBeInTheDocument();
+      expect(
+        screen.queryByTestId("snmp-walk-continue-bottom"),
+      ).not.toBeInTheDocument();
+
+      await click(screen.getByTestId("snmp-walk-show-more"));
+      expect(
+        screen.queryByTestId("snmp-walk-continue-bottom"),
+      ).not.toBeInTheDocument();
+
+      await click(screen.getByTestId("snmp-walk-show-more"));
+
+      expect(
+        screen.queryByTestId("snmp-walk-show-more"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByTestId("snmp-walk-continue-bottom"),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId("snmp-walk-list-end")).toHaveTextContent(
+        "Reads up to 1,000 more OIDs, after 1.3.6.1.2.1.2.2.1.10.250.",
+      );
+    });
+
+    test("a filter whose matches are all shown ends at the way on, too", async () => {
+      await renderCard();
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("snmp-walk-filter"), {
+          target: { value: "no such thing" },
+        });
+      });
+
+      // Not read yet is not "not there": the rest may hold it.
+      expect(screen.getByTestId("snmp-walk-no-match")).toBeInTheDocument();
+      expect(
+        screen.getByTestId("snmp-walk-continue-bottom"),
+      ).toBeInTheDocument();
+    });
+
+    test("continuing from the end of the list says, there, that it runs", async () => {
+      getWalkMock.mockResolvedValue(walk(WALK_ID, { status: "In Progress" }));
+
+      await renderCard();
+      await click(screen.getByTestId("snmp-walk-show-more"));
+      await click(screen.getByTestId("snmp-walk-show-more"));
+      await click(screen.getByTestId("snmp-walk-continue-bottom"));
+
+      expect(createdModel().snmpWalkAfterOid).toBe(MANY[MANY.length - 1]!.oid);
+
+      const listEnd: HTMLElement = screen.getByTestId("snmp-walk-list-end");
+      expect(listEnd).toHaveTextContent(
+        "Walking on under 1.3.6.1 from where the last walk stopped…",
+      );
+      expect(
+        screen.queryByTestId("snmp-walk-continue-bottom"),
+      ).not.toBeInTheDocument();
+      // What was read stays while the rest is read.
+      expect(rowsShown()).toHaveLength(250);
+    });
   });
 
   test("the filter narrows the rows and counts what matches", async () => {

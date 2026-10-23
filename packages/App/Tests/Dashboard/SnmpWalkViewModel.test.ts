@@ -6,7 +6,11 @@ import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
 import { NetworkDeviceDiagnosticStatus } from "Common/Types/NetworkDevice/NetworkDeviceDiagnosticStatus";
 import {
   NetworkDeviceDiagnosticSnmpWalkResult,
+  SNMP_WALK_ALREADY_RUNNING_MESSAGE,
+  SNMP_WALK_CREDENTIALS_UNREADABLE_MESSAGE,
   SNMP_WALK_DEFAULT_ROOT_OID,
+  SNMP_WALK_NO_CREDENTIALS_MESSAGE,
+  SNMP_WALK_PROBE_UPGRADE_MESSAGE,
   SnmpWalkAuthenticationReason,
   SnmpWalkFailureKind,
   SnmpWalkRow,
@@ -25,6 +29,7 @@ import {
   SNMP_WALK_MAX_MONITOR_VALUE_LENGTH,
   SNMP_WALK_MAX_POLL_ATTEMPTS,
   SNMP_WALK_POLL_INTERVAL_IN_MS,
+  SNMP_WALK_SERVER_MESSAGES,
   SNMP_WALK_START_POINTS,
   SNMP_WALK_WAIT_IN_MS,
   SnmpWalkAlertPrefill,
@@ -53,6 +58,7 @@ import {
   snmpWalkTimeoutMessage,
   toSnmpWalkRowView,
   toWalkRoot,
+  translateSnmpWalkServerMessage,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/SnmpWalkViewModel";
 
 /*
@@ -496,7 +502,13 @@ describe("what a failure means", () => {
     });
 
     expect(quiet.title).toBe("The device stopped answering");
-    expect(quiet.detail).toContain("12 OIDs");
+    /*
+     * How much it read is the summary's to say, right above the box: the
+     * box says why it stopped and what to do.
+     */
+    expect(quiet.detail).toBe(
+      "A busy device sometimes goes quiet part of the way. Continue walking to read the rest.",
+    );
     expect(quiet.detail).not.toContain("community");
     expect(quiet.isFixedInSettings).toBe(false);
   });
@@ -540,6 +552,47 @@ describe("what a failure means", () => {
     expect(snmpWalkTimeoutMessage(undefined, translator)).toContain(
       "This device's probe did not report the walk",
     );
+  });
+});
+
+describe("the server's own refusals", () => {
+  /*
+   * The server words a refused walk in English. The page knows those
+   * sentences as locale keys, so a reader sees them in their language - as
+   * long as the two wordings stay the same, which this holds.
+   */
+  test("are the sentences the server writes, word for word", () => {
+    expect([...SNMP_WALK_SERVER_MESSAGES].sort()).toEqual(
+      [
+        SNMP_WALK_NO_CREDENTIALS_MESSAGE,
+        SNMP_WALK_CREDENTIALS_UNREADABLE_MESSAGE,
+        SNMP_WALK_ALREADY_RUNNING_MESSAGE,
+        SNMP_WALK_PROBE_UPGRADE_MESSAGE,
+      ].sort(),
+    );
+  });
+
+  test("read in the reader's language, and anything else as written", () => {
+    const german: Translator = createTranslator((text: string | undefined) => {
+      return text === SNMP_WALK_ALREADY_RUNNING_MESSAGE
+        ? "Für dieses Gerät läuft bereits ein Walk."
+        : text;
+    }, "de");
+
+    expect(
+      translateSnmpWalkServerMessage(SNMP_WALK_ALREADY_RUNNING_MESSAGE, german),
+    ).toBe("Für dieses Gerät läuft bereits ein Walk.");
+    // Not one of the walk's sentences: never looked up, never reworded.
+    expect(
+      translateSnmpWalkServerMessage("Server Error. Please try again", german),
+    ).toBe("Server Error. Please try again");
+    // English, or a language without the key, keeps the server's words.
+    expect(
+      translateSnmpWalkServerMessage(
+        SNMP_WALK_NO_CREDENTIALS_MESSAGE,
+        translator,
+      ),
+    ).toBe(SNMP_WALK_NO_CREDENTIALS_MESSAGE);
   });
 });
 

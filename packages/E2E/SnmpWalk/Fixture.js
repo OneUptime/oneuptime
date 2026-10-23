@@ -34,13 +34,17 @@ import UserUtil from "Common/UI/Utils/User";
  *
  *   ?scenario=  done (default) | empty | more | auth | timeout | partial
  *               | running | noprobe | refused | upgrade | nothing | template
+ *               | busy
  *   ?role=      owner (default) | viewer | walker
+ *   ?frame=     the card's width in pixels, as the device page's side menu
+ *               leaves it (430 at a 768-pixel window, 634 at 1024)
  *   ?theme=dark   ?lang=ja|de
  */
 
 const params = new URLSearchParams(window.location.search);
 const scenario = params.get("scenario") || "done";
 const role = params.get("role") || "owner";
+const frameWidth = Number(params.get("frame")) || undefined;
 const language = ["ja", "de"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
@@ -255,7 +259,7 @@ function walk(fields) {
   return item;
 }
 
-if (scenario === "done" || scenario === "template") {
+if (scenario === "done" || scenario === "template" || scenario === "busy") {
   walk({ snmpWalkResult: result({}) });
 } else if (scenario === "more") {
   walk({
@@ -462,6 +466,18 @@ ModelAPI.create = async (args) => {
     );
   }
 
+  // Another tab, or another person, is walking the device right now.
+  if (scenario === "busy") {
+    throw new HTTPErrorResponse(
+      400,
+      {
+        message:
+          "This device is already being walked. Wait for that walk to finish, then walk it again.",
+      },
+      {},
+    );
+  }
+
   const item = walk({
     status: "Pending",
     createdAt: new Date(),
@@ -502,7 +518,11 @@ function Shell() {
 
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-6 sm:px-8">
-      <div className="mx-auto max-w-6xl space-y-6" data-testid="fixture-page">
+      <div
+        className="mx-auto max-w-6xl space-y-6"
+        data-testid="fixture-page"
+        style={frameWidth ? { maxWidth: `${frameWidth}px` } : undefined}
+      >
         <SnmpWalkCard
           networkDeviceId={new ObjectID(DEVICE_ID)}
           canWalk={may.canWalk}

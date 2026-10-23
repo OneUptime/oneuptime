@@ -8,6 +8,7 @@ import {
   SnmpWalkHistoryEntry,
   SnmpWalkMessage,
   SnmpWalkPage,
+  SnmpWalkRowNotice,
   SnmpWalkRowView,
   SnmpWalkStartPoint,
   addWalkedOid,
@@ -24,6 +25,7 @@ import {
   snmpWalkTimeoutMessage,
   toSnmpWalkRowView,
   toWalkRoot,
+  translateSnmpWalkServerMessage,
 } from "./SnmpWalkViewModel";
 import { formatRelativeTime } from "../Home/HomeRelativeTime";
 import PageMap from "../../Utils/PageMap";
@@ -53,7 +55,6 @@ import {
   SnmpWalkRow,
 } from "Common/Types/NetworkDevice/NetworkDeviceSnmpWalk";
 import ObjectID from "Common/Types/ObjectID";
-import SnmpOidNameUtil from "Common/Utils/NetworkDevice/SnmpOidNameUtil";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -108,11 +109,6 @@ interface PollData {
   isContinuation: boolean;
   attempt: number;
   consecutiveFailures: number;
-}
-
-interface CollectNotice {
-  kind: "success" | "error";
-  text: string;
 }
 
 const DEVICE_SELECT: Select<NetworkDevice> = {
@@ -176,9 +172,10 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
   const [collectingOid, setCollectingOid] = useState<string | undefined>(
     undefined,
   );
-  const [collectNotice, setCollectNotice] = useState<CollectNotice | null>(
-    null,
-  );
+  // What the last Collect came to, said in its OID's row.
+  const [collectNotice, setCollectNotice] = useState<
+    SnmpWalkRowNotice | undefined
+  >(undefined);
   /*
    * OIDs collected from this page: shown as collected at once, whatever
    * the device read that follows the write answers.
@@ -264,7 +261,7 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
     setRunning(null);
 
     if (data.error) {
-      setWalkError(data.error);
+      setWalkError(translateSnmpWalkServerMessage(data.error, translator));
       return;
     }
 
@@ -279,8 +276,9 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
       !row.snmpWalkResult
     ) {
       setWalkError(
-        row.statusMessage ||
-          translator.translateText("The probe could not run this walk.")!,
+        row.statusMessage
+          ? translateSnmpWalkServerMessage(row.statusMessage, translator)
+          : translator.translateText("The probe could not run this walk.")!,
       );
       return;
     }
@@ -437,10 +435,11 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
               getSnmpWalkContinueAfter(chain) === newest.snmpWalkAfterOid,
           );
 
-          if (!isContinuation) {
-            setPages([]);
-          }
-
+          /*
+           * A fresh walk's rows replace the last walk's when it lands; the
+           * last walk stays meanwhile (hidden while the new one runs), so a
+           * walk that fails brings it back rather than an empty page.
+           */
           setStartOid(newest.snmpWalkRootOid || "");
           setRunning({
             runId: runIdRef.current,
@@ -491,12 +490,13 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
     const isContinuation: boolean = Boolean(data.afterOid);
 
     setWalkError("");
-    setCollectNotice(null);
+    setCollectNotice(undefined);
 
-    if (!isContinuation) {
-      setPages([]);
-    }
-
+    /*
+     * The last walk's rows stay until this one lands - hidden while a fresh
+     * walk runs - so a walk the server refuses, or the probe cannot run,
+     * leaves them on the page under the reason.
+     */
     setRunning({
       runId: runId,
       diagnosticId: ObjectID.generate(),
@@ -578,7 +578,7 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
     row: SnmpWalkRow,
   ): Promise<void> => {
     setCollectingOid(row.oid);
-    setCollectNotice(null);
+    setCollectNotice(undefined);
 
     try {
       const current: NetworkDevice | null =
@@ -603,21 +603,23 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
         setJustCollected((current: Array<string>) => {
           return [...current, row.oid];
         });
+        // The row names the OID; this says when and where it shows up.
         setCollectNotice({
+          oid: row.oid,
           kind: "success",
-          text: translator.translateTemplate(
-            isNumericSnmpWalkRow(row)
-              ? "{{name}} is collected on every poll from the next one on. It is charted on the device's Metrics page."
-              : "{{name}} is collected on every poll from the next one on, so you can alert on its value.",
-            {
-              name: SnmpOidNameUtil.suggestedHealthOidName(row.oid) || row.oid,
-            },
-          ),
+          text: isNumericSnmpWalkRow(row)
+            ? translator.translateText(
+                "Collected from the next poll on, and charted on the device's Metrics page.",
+              )!
+            : translator.translateText(
+                "Collected from the next poll on, so you can alert on its value.",
+              )!,
         });
       }
     } catch (err) {
       if (isMountedRef.current) {
         setCollectNotice({
+          oid: row.oid,
           kind: "error",
           text: API.getFriendlyMessage(err),
         });
@@ -644,7 +646,7 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
     }
 
     setCollectingOid(row.oid);
-    setCollectNotice(null);
+    setCollectNotice(undefined);
 
     try {
       const template: NetworkDeviceOidTemplate | null =
@@ -670,19 +672,18 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
           return [...current, row.oid];
         });
         setCollectNotice({
+          oid: row.oid,
           kind: "success",
           text: translator.translateTemplate(
-            "{{name}} is collected by every device using {{template}}, from their next poll on.",
-            {
-              name: SnmpOidNameUtil.suggestedHealthOidName(row.oid) || row.oid,
-              template: device?.oidTemplate?.name || "",
-            },
+            "Every device using {{template}} collects it from its next poll on.",
+            { template: device?.oidTemplate?.name || "" },
           ),
         });
       }
     } catch (err) {
       if (isMountedRef.current) {
         setCollectNotice({
+          oid: row.oid,
           kind: "error",
           text: API.getFriendlyMessage(err),
         });
@@ -907,42 +908,37 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
     testId: string;
     title: string;
     detail?: string | undefined;
-    tone: "error" | "warning" | "success";
+    tone: "error" | "warning";
     showSettingsLink?: boolean | undefined;
   }) => ReactElement = (data: {
     testId: string;
     title: string;
     detail?: string | undefined;
-    tone: "error" | "warning" | "success";
+    tone: "error" | "warning";
     showSettingsLink?: boolean | undefined;
   }): ReactElement => {
     const toneClasses: Record<string, string> = {
       error: "border-red-200 bg-red-50",
       warning: "border-amber-200 bg-amber-50",
-      success: "border-green-200 bg-green-50",
     };
     const titleClasses: Record<string, string> = {
       error: "text-red-800",
       warning: "text-amber-800",
-      success: "text-green-800",
     };
     const iconClasses: Record<string, string> = {
       error: "text-red-600",
       warning: "text-amber-600",
-      success: "text-green-600",
     };
 
     return (
       <div
         className={`mt-4 flex gap-3 rounded-md border p-3 ${toneClasses[data.tone]}`}
         data-testid={data.testId}
-        role={data.tone === "success" ? "status" : "alert"}
+        role="alert"
       >
         <div className="pt-0.5">
           <Icon
-            icon={
-              data.tone === "success" ? IconProp.CheckCircle : IconProp.Alert
-            }
+            icon={IconProp.Alert}
             className={`h-5 w-5 ${iconClasses[data.tone]}`}
           />
         </div>
@@ -975,6 +971,69 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * Where a long list ends: the way on, again, so nobody scrolls back up a
+   * thousand OIDs for it - and, while a walk read from here runs, that it
+   * runs. The results draw it only once every OID read so far is on screen,
+   * so it never sits next to "Show 100 more" of what was already read.
+   */
+  const getListEnd: () => ReactElement | undefined = ():
+    | ReactElement
+    | undefined => {
+    if (!continueAfter || !props.canWalk || !lastResult) {
+      return undefined;
+    }
+
+    return (
+      <div
+        className="mt-4 flex flex-col items-center gap-1 border-t border-gray-100 pt-4 text-center"
+        data-testid="snmp-walk-list-end"
+      >
+        {running?.afterOid ? (
+          <div className="flex items-center gap-3 text-sm text-gray-600">
+            <Loader loaderType={LoaderType.Beats} size={8} />
+            <span className="[overflow-wrap:anywhere]">
+              {translator.translateTemplate(
+                "Walking on under {{oid}} from where the last walk stopped…",
+                { oid: running.rootOid },
+              )}
+            </span>
+          </div>
+        ) : (
+          <>
+            <div className="[&>button]:ml-0 [&>button]:md:ml-0">
+              <Button
+                title="Continue walking"
+                icon={IconProp.ChevronDown}
+                buttonStyle={ButtonStyleType.NORMAL}
+                buttonSize={ButtonSize.Small}
+                dataTestId="snmp-walk-continue-bottom"
+                disabled={Boolean(running)}
+                onClick={() => {
+                  startWalk({
+                    rootOid: lastResult.rootOid,
+                    afterOid: continueAfter,
+                  }).catch(() => {
+                    // startWalk reports its own failures.
+                  });
+                }}
+              />
+            </div>
+            <p className="text-xs text-gray-500 [overflow-wrap:anywhere]">
+              {translator.translateTemplate(
+                "Reads up to {{count}} more OIDs, after {{oid}}.",
+                {
+                  count: translator.formatNumber(SNMP_WALK_MAX_OIDS),
+                  oid: continueAfter,
+                },
+              )}
+            </p>
+          </>
+        )}
+      </div>
+    );
+  };
+
   const getResults: () => ReactElement = (): ReactElement => {
     if (!lastResult) {
       return <></>;
@@ -982,22 +1041,14 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
 
     const walkedAt: Date | undefined = lastPage?.createdAt;
 
+    /*
+     * What the last walk read and when, then - if it stopped short - why:
+     * the line that says when a walk ran reads first, never left under the
+     * reason as an afterthought.
+     */
     return (
       <div className="mt-6" data-testid="snmp-walk-result">
-        {failureMessage ? (
-          getMessageBox({
-            testId: "snmp-walk-failure",
-            title: failureMessage.title,
-            detail: failureMessage.detail,
-            // What was read before the walk stopped is still worth reading.
-            tone: rows.length > 0 ? "warning" : "error",
-            showSettingsLink: failureMessage.isFixedInSettings,
-          })
-        ) : (
-          <></>
-        )}
-
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             {summary ? (
               <p
@@ -1009,7 +1060,10 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
             ) : (
               <></>
             )}
-            <p className="mt-0.5 text-xs text-gray-500">
+            <p
+              className={`text-xs text-gray-500 ${summary ? "mt-0.5" : ""}`}
+              data-testid="snmp-walk-meta"
+            >
               {[
                 walkedAt
                   ? translator.translateTemplate("Walked {{time}}", {
@@ -1058,11 +1112,14 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
           )}
         </div>
 
-        {collectNotice ? (
+        {failureMessage ? (
           getMessageBox({
-            testId: "snmp-walk-collect-notice",
-            title: collectNotice.text,
-            tone: collectNotice.kind === "success" ? "success" : "error",
+            testId: "snmp-walk-failure",
+            title: failureMessage.title,
+            detail: failureMessage.detail,
+            // What was read before the walk stopped is still worth reading.
+            tone: rows.length > 0 ? "warning" : "error",
+            showSettingsLink: failureMessage.isFixedInSettings,
           })
         ) : (
           <></>
@@ -1073,6 +1130,8 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
             <SnmpWalkResults
               rows={rows}
               views={views}
+              notice={collectNotice}
+              listEnd={getListEnd()}
               actions={{
                 collectedOids: collectedOids,
                 canCollect: props.canEditDevice && isProbePolled,
@@ -1099,44 +1158,6 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
                   : undefined,
               }}
             />
-          </div>
-        ) : (
-          <></>
-        )}
-
-        {/*
-         * The way on, again where a long list ends, so nobody scrolls back
-         * up a thousand OIDs for it.
-         */}
-        {continueAfter && props.canWalk && rows.length > 0 ? (
-          <div className="mt-4 flex flex-col items-center gap-1 border-t border-gray-100 pt-4 text-center">
-            <div className="[&>button]:ml-0 [&>button]:md:ml-0">
-              <Button
-                title="Continue walking"
-                icon={IconProp.ChevronDown}
-                buttonStyle={ButtonStyleType.NORMAL}
-                buttonSize={ButtonSize.Small}
-                dataTestId="snmp-walk-continue-bottom"
-                disabled={Boolean(running)}
-                onClick={() => {
-                  startWalk({
-                    rootOid: lastResult.rootOid,
-                    afterOid: continueAfter,
-                  }).catch(() => {
-                    // startWalk reports its own failures.
-                  });
-                }}
-              />
-            </div>
-            <p className="text-xs text-gray-500 [overflow-wrap:anywhere]">
-              {translator.translateTemplate(
-                "Reads up to {{count}} more OIDs, after {{oid}}.",
-                {
-                  count: translator.formatNumber(SNMP_WALK_MAX_OIDS),
-                  oid: continueAfter,
-                },
-              )}
-            </p>
           </div>
         ) : (
           <></>
@@ -1206,7 +1227,12 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
-        {getResults()}
+        {/*
+         * A fresh walk's rows replace the last walk's: those are not shown
+         * as if they were what it is reading. A walk continuing the last
+         * one keeps them on screen - it adds to them.
+         */}
+        {running && !running.afterOid ? <></> : getResults()}
         {!running && !walkError && !lastResult && props.canWalk ? (
           <p
             className="mt-6 text-sm text-gray-500"

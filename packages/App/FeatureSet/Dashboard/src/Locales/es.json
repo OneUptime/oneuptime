@@ -33468,8 +33468,6 @@
   "Find OIDs with an SNMP walk": "Encontrar OID con un recorrido SNMP",
   "Host resources": "Recursos del host",
   "In the {{template}} template": "En la plantilla {{template}}",
-  "It answered for {{count}} OIDs, then went quiet. A busy device sometimes does: continue walking to read the rest.": "El dispositivo respondió para {{count}} OID y luego dejó de responder. Un dispositivo ocupado a veces lo hace: continúa el recorrido para leer el resto.",
-  "It answered for {{count}} OIDs, then went quiet. A busy device sometimes does: continue walking to read the rest._one": "El dispositivo respondió para {{count}} OID y luego dejó de responder. Un dispositivo ocupado a veces lo hace: continúa el recorrido para leer el resto.",
   "Kept for two days": "Se conserva dos días",
   "More actions for {{oid}}": "Más acciones para {{oid}}",
   "No OIDs match \"{{query}}\".": "Ningún OID coincide con «{{query}}».",
@@ -33532,8 +33530,13 @@
   "{{count}} rules could not be added_one": "No se pudo añadir {{count}} regla",
   "The others were added.": "Las demás se añadieron.",
   "The playbook could not be added": "No se pudo añadir el playbook",
-  "{{name}} is collected by every device using {{template}}, from their next poll on.": "{{name}} lo recopila cada dispositivo que usa {{template}}, desde su siguiente sondeo.",
-  "{{name}} is collected on every poll from the next one on, so you can alert on its value.": "{{name}} se recopila en cada sondeo a partir del siguiente, así que puedes crear alertas sobre su valor.",
-  "{{name}} is collected on every poll from the next one on. It is charted on the device's Metrics page.": "{{name}} se recopila en cada sondeo a partir del siguiente. Se grafica en la página Métricas del dispositivo.",
-  "{{vendor}} MIB": "MIB de {{vendor}}"
+  "{{vendor}} MIB": "MIB de {{vendor}}",
+  "Collected from the next poll on, and charted on the device's Metrics page.": "Se recopila desde el siguiente sondeo y se grafica en la página Métricas del dispositivo.",
+  "Collected from the next poll on, so you can alert on its value.": "Se recopila desde el siguiente sondeo, así que puedes crear alertas sobre su valor.",
+  "Every device using {{template}} collects it from its next poll on.": "Cada dispositivo que usa {{template}} lo recopila desde su siguiente sondeo.",
+  "A busy device sometimes goes quiet part of the way. Continue walking to read the rest.": "Un dispositivo ocupado a veces deja de responder a mitad de camino. Continúa el recorrido para leer el resto.",
+  "This device has no SNMP credentials to walk it with. Add a community string or an SNMPv3 user in its Settings, or give it (or its site) an SNMP credential profile.": "Este dispositivo no tiene credenciales SNMP con las que recorrerlo. Añade una cadena de comunidad o un usuario SNMPv3 en sus ajustes, o asígnale (a él o a su sitio) un perfil de credenciales SNMP.",
+  "This device's SNMP credential profile could not be read just now. Try the walk again in a moment.": "No se pudo leer ahora el perfil de credenciales SNMP de este dispositivo. Vuelve a intentar el recorrido en un momento.",
+  "This device is already being walked. Wait for that walk to finish, then walk it again.": "Este dispositivo ya se está recorriendo. Espera a que termine ese recorrido y vuelve a recorrerlo.",
+  "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.": "La sonda de este dispositivo ejecuta una versión que no puede hacer recorridos SNMP. Actualiza la sonda a la última versión y vuelve a hacer el recorrido."
 }

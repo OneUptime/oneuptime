@@ -33468,8 +33468,6 @@
   "Find OIDs with an SNMP walk": "SNMP ウォークで OID を探す",
   "Host resources": "ホストリソース",
   "In the {{template}} template": "{{template}} テンプレート内",
-  "It answered for {{count}} OIDs, then went quiet. A busy device sometimes does: continue walking to read the rest.": "{{count}} 個の OID に応答した後、応答しなくなりました。負荷の高いデバイスではよくあることです。ウォークを続けて残りを読み取ってください。",
-  "It answered for {{count}} OIDs, then went quiet. A busy device sometimes does: continue walking to read the rest._one": "{{count}} 個の OID に応答した後、応答しなくなりました。負荷の高いデバイスではよくあることです。ウォークを続けて残りを読み取ってください。",
   "Kept for two days": "2 日間保存",
   "More actions for {{oid}}": "{{oid}} のその他の操作",
   "No OIDs match \"{{query}}\".": "「{{query}}」に一致する OID はありません。",
@@ -33532,8 +33530,13 @@
   "{{count}} rules could not be added_one": "{{count}} 件のルールを追加できませんでした",
   "The others were added.": "ほかのルールは追加されました。",
   "The playbook could not be added": "プレイブックを追加できませんでした",
-  "{{name}} is collected by every device using {{template}}, from their next poll on.": "次回のポーリングから、{{template}} を使うすべてのデバイスが {{name}} を収集します。",
-  "{{name}} is collected on every poll from the next one on, so you can alert on its value.": "次回から毎回のポーリングで {{name}} を収集するため、その値にアラートを設定できます。",
-  "{{name}} is collected on every poll from the next one on. It is charted on the device's Metrics page.": "次回から毎回のポーリングで {{name}} を収集します。デバイスの「メトリクス」ページでグラフ表示されます。",
-  "{{vendor}} MIB": "{{vendor}} の MIB"
+  "{{vendor}} MIB": "{{vendor}} の MIB",
+  "Collected from the next poll on, and charted on the device's Metrics page.": "次回のポーリングから収集し、デバイスの「メトリクス」ページでグラフ表示します。",
+  "Collected from the next poll on, so you can alert on its value.": "次回のポーリングから収集するため、その値にアラートを設定できます。",
+  "Every device using {{template}} collects it from its next poll on.": "{{template}} を使うすべてのデバイスが、次回のポーリングからこれを収集します。",
+  "A busy device sometimes goes quiet part of the way. Continue walking to read the rest.": "負荷の高いデバイスは途中で応答しなくなることがあります。ウォークを続けて残りを読み取ってください。",
+  "This device has no SNMP credentials to walk it with. Add a community string or an SNMPv3 user in its Settings, or give it (or its site) an SNMP credential profile.": "このデバイスにはウォークに使う SNMP 認証情報がありません。デバイスの設定でコミュニティ文字列か SNMPv3 ユーザーを追加するか、デバイス（またはそのサイト）に SNMP 認証情報プロファイルを割り当ててください。",
+  "This device's SNMP credential profile could not be read just now. Try the walk again in a moment.": "このデバイスの SNMP 認証情報プロファイルを今は読み取れませんでした。少し待ってからもう一度ウォークしてください。",
+  "This device is already being walked. Wait for that walk to finish, then walk it again.": "このデバイスはすでにウォーク中です。そのウォークが終わるのを待ってから、もう一度ウォークしてください。",
+  "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.": "このデバイスのプローブは SNMP ウォークに対応していないバージョンで動作しています。プローブを最新バージョンに更新してから、もう一度ウォークしてください。"
 }
