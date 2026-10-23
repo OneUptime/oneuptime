@@ -214,6 +214,16 @@ const HomeFeatureSet: FeatureSet = {
           req.path,
           res.locals["homeUrl"] as string,
         );
+        /*
+         * The GitHub numbers the jobs keep fresh (Jobs/FetchGitHubStars.ts,
+         * Jobs/FetchGitHubStats.ts), for any page that shows them. Read from
+         * the cache: nothing here asks GitHub.
+         */
+        res.locals["githubStars"] = formatStarCount(getGitHubStarsCount());
+        res.locals["githubContributors"] = formatCount(
+          getGitHubContributorsCount(),
+        );
+        res.locals["githubCommits"] = formatCount(getGitHubCommitsCount());
         next();
       },
     );
@@ -491,6 +501,8 @@ const HomeFeatureSet: FeatureSet = {
         githubStars,
         githubContributors,
         githubCommits,
+        // The homepage's air-gapped section states the air-gapped page's own facts.
+        airGapped: getAirGappedContent(),
       });
     });
 

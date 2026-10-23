@@ -4,6 +4,8 @@ import TeamCustomRole from "../../../../Models/DatabaseModels/TeamCustomRole";
 import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
 import TeamPermission from "../../../../Models/DatabaseModels/TeamPermission";
 import AccessTokenService from "../../../../Server/Services/AccessTokenService";
+import ApiKeyCustomRoleService from "../../../../Server/Services/ApiKeyCustomRoleService";
+import ApiKeyPermissionService from "../../../../Server/Services/ApiKeyPermissionService";
 import CustomRolePermissionService from "../../../../Server/Services/CustomRolePermissionService";
 import TeamCustomRoleService from "../../../../Server/Services/TeamCustomRoleService";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
@@ -24,7 +26,8 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * CustomRoleSync with the database stood in for: the order it writes in,
  * what it writes the copies as, whose cached permissions it rebuilds, and
  * what it does when Valkey or a rebuild fails. The same sync against a real
- * Postgres is CustomRolesPostgres.test.ts.
+ * Postgres is CustomRolesPostgres.test.ts. No API key is given the role
+ * here: the keys' half of the sync is CustomRoleSyncApiKeys.test.ts.
  */
 
 const PROJECT: ObjectID = new ObjectID("0a000000-0000-4000-8000-000000000001");
@@ -107,6 +110,24 @@ describe("CustomRoleSync", () => {
         return createBy.data;
       },
     );
+    // No API key holds the role, nor a copy of it.
+    getJestSpyOn(ApiKeyCustomRoleService, "findAllBy").mockResolvedValue([]);
+    getJestSpyOn(ApiKeyPermissionService, "findAllBy").mockResolvedValue([]);
+    getJestSpyOn(ApiKeyPermissionService, "deleteBy").mockImplementation(
+      async (): Promise<number> => {
+        writes.push("delete-key-copy");
+        return 1;
+      },
+    );
+    getJestSpyOn(ApiKeyPermissionService, "create").mockImplementation(
+      async (): Promise<never> => {
+        throw new Error("No key holds the role: no key copy is made.");
+      },
+    );
+    getJestSpyOn(
+      ApiKeyPermissionService,
+      "forgetPermissionsOfProjects",
+    ).mockResolvedValue(undefined);
     getJestSpyOn(TeamMemberService, "findAllBy").mockImplementation(
       async (findAllBy: FindAllBy<TeamMember>): Promise<Array<TeamMember>> => {
         // Only accepted members hold the project's permissions.
@@ -330,6 +351,22 @@ describe("CustomRoleSync", () => {
     expect(TeamCustomRoleService.findAllBy).not.toHaveBeenCalled();
     expect(TeamMemberService.findAllBy).not.toHaveBeenCalled();
     expect(TeamPermissionService.findAllBy).not.toHaveBeenCalled();
+    expect(ApiKeyCustomRoleService.findAllBy).not.toHaveBeenCalled();
+    expect(ApiKeyPermissionService.findAllBy).not.toHaveBeenCalled();
+  });
+
+  test("with no key given the role, the keys' half reads the role's permissions no second time and forgets no key's permissions", async () => {
+    await CustomRoleSync.syncRoles({
+      projectId: PROJECT,
+      customRoleIds: [ROLE],
+    });
+
+    // Once, for the teams.
+    expect(CustomRolePermissionService.findAllBy).toHaveBeenCalledTimes(1);
+    expect(
+      ApiKeyPermissionService.forgetPermissionsOfProjects,
+    ).not.toHaveBeenCalled();
+    expect(writes).not.toContain("delete-key-copy");
   });
 
   test("removes the copies of the role permissions about to change, from every team, and says which teams", async () => {

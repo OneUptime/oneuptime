@@ -23,7 +23,8 @@ import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
- * A CUSTOM ROLE: A SET OF PERMISSIONS NAMED ONCE AND GIVEN TO TEAMS.
+ * A CUSTOM ROLE: A SET OF PERMISSIONS NAMED ONCE AND GIVEN TO TEAMS AND API
+ * KEYS.
  *
  * "Incident Responder" or "Team Lead": a name, a description and the
  * permissions in it (CustomRolePermission, each with the scope and labels a
@@ -36,13 +37,19 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * permissions directly - every check that reads a team's permissions reads
  * the role's too, with nothing of its own to get wrong.
  *
+ * An API key is given a role the same way (ApiKeyCustomRole): it holds a
+ * copy of each of the role's permissions as ordinary API key permission
+ * rows, kept equal to the role by the same sync - all but those the role
+ * limits to what its holder owns, which give a key nothing: a key owns
+ * nothing.
+ *
  * Managed by whoever may change what teams can do (Project Owner, Project
  * Admin, Edit Team Permissions), read by whoever may read a team's
  * permissions. Nobody puts into a role, or gives through one, a permission
- * they could not give a team directly: the grant ceiling of team
- * permissions decides both (TeamPermissionService.assertCanGrantPermission).
- * API keys are not given custom roles: a key's reach changes only when
- * someone changes that key.
+ * they could not give a team or a key directly: the grant ceilings of team
+ * and API key permissions decide (TeamPermissionService
+ * .assertCanGrantPermission, ApiKeyPermissionService
+ * .assertCallerCanGrantPermission).
  */
 @TableBillingAccessControl({
   create: PlanType.Scale,
@@ -98,7 +105,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   pluralName: "Custom Roles",
   icon: IconProp.Identification,
   tableDescription:
-    "A set of permissions you name once, such as Incident Responder, and give to teams. Changing a role changes every team that has it.",
+    "A set of permissions you name once, such as Incident Responder, and give to teams and API keys. Changing a role changes every team and key that has it.",
 })
 export default class CustomRole extends BaseModel {
   @ColumnAccessControl({
@@ -306,11 +313,17 @@ export default class CustomRole extends BaseModel {
     ],
     update: [],
   })
+  /*
+   * Read through a relation too: a team's and an API key's Custom Roles
+   * cards say "Incident Responder - 6 permissions" from the row that gives
+   * the role (TeamCustomRole, ApiKeyCustomRole).
+   */
   @TableColumn({
     type: TableColumnType.Number,
     required: true,
     isDefaultValueColumn: true,
     computed: true,
+    canReadOnRelationQuery: true,
     title: "Permission Count",
     description:
       "How many permissions the role holds. OneUptime keeps it as permissions are added to the role and taken out of it.",
