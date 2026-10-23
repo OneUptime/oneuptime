@@ -72,7 +72,9 @@ Apri un elemento e il suo menu laterale ha la sua **Panoramica** (tipo, fonte e 
 Un host o un dispositivo di rete ha una scheda **Dettagli dell'asset** che li descrive entrambi allo stesso modo: hostname, indirizzo IP, indirizzo MAC, numero di serie, produttore, modello, versione del firmware, sistema operativo, versione del sistema operativo, tipo di dispositivo e posizione. Un dato che nulla ha segnalato si legge **Sconosciuto**, e la scheda spiega come si compilano quelli sconosciuti.
 
 - I dati di un host vengono dagli attributi di risorsa della sua telemetria: i suoi indirizzi IP e MAC, l'architettura e il sistema operativo fin da subito, e il numero di serie, la marca, il modello e il firmware una volta che li apponi.
-- I dati di un dispositivo di rete vengono dal suo polling SNMP, dal suo ruolo e dal suo sito. Un dispositivo senza ENTITY-MIB, come un Meraki MX, ricava comunque marca e modello dalla sua descrizione di sistema. Il suo indirizzo IP non viene mai mostrato come hostname.
+- I dati di un dispositivo di rete vengono dal suo polling SNMP, dal suo ruolo e dal suo sito. Ciò che il suo polling non ha letto viene dal rilevamento: l'ultima scansione del suo indirizzo, la tabella ARP di un router o la risoluzione DNS della sua sonda. Un dispositivo senza ENTITY-MIB, come un Meraki MX, ricava comunque marca e modello dalla sua descrizione di sistema. Il suo indirizzo IP non viene mai mostrato come hostname.
+
+Sotto ogni dato, la scheda indica da dove viene e quando: una scansione di rilevamento, la tabella ARP di un router, un valore salvato sul dispositivo. Il collector di un host e il polling SNMP proprio di un dispositivo di rete vengono nominati una sola volta, sotto i dati. Un valore salvato su un dispositivo di rete non viene mai sostituito da ciò che legge il rilevamento, e quando i due differiscono, la scheda li mostra entrambi.
 
 Gli stessi dati sono colonne dell'elenco **All Items**, nascoste finché non le attivi, e finiscono nella sua esportazione CSV. [Esportare in un CMDB](/docs/inventory/cmdb-sync#dettagli-dellasset) elenca le loro chiavi.
 

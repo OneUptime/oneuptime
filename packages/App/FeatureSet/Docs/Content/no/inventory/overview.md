@@ -72,7 +72,9 @@ En relasjon OneUptime har oppdaget, fjernes når den ikke er sett igjen på 30 d
 En vert eller en nettverksenhet har et kort **Eiendelsdetaljer** som beskriver begge på samme måte: vertsnavn, IP-adresse, MAC-adresse, serienummer, produsent, modell, fastvareversjon, operativsystem, OS-versjon, enhetstype og plassering. En opplysning som ingenting har rapportert, står som **Ukjent**, og kortet forklarer hvordan de ukjente fylles ut.
 
 - En verts opplysninger kommer fra ressursattributtene i telemetrien: IP- og MAC-adressene, arkitekturen og operativsystemet fra start, og serienummer, merke, modell og fastvare når du stempler dem på.
-- En nettverksenhets opplysninger kommer fra SNMP-pollingen, rollen og stedet. En enhet uten ENTITY-MIB, som en Meraki MX, får likevel merke og modell fra systembeskrivelsen sin. IP-adressen vises aldri som vertsnavnet.
+- En nettverksenhets opplysninger kommer fra SNMP-pollingen, rollen og stedet. Det pollingen ikke har lest, kommer fra discovery: den siste skanningen av adressen, en ruters ARP-tabell eller sondens DNS-oppslag. En enhet uten ENTITY-MIB, som en Meraki MX, får likevel merke og modell fra systembeskrivelsen sin. IP-adressen vises aldri som vertsnavnet.
+
+Under hver opplysning viser kortet hvor den kom fra, og når: en discovery-skanning, en ruters ARP-tabell, en verdi lagret på enheten. En verts collector og en nettverksenhets egen SNMP-polling nevnes én gang, under opplysningene. En verdi som er lagret på en nettverksenhet, erstattes aldri av det discovery leser, og når de to er forskjellige, viser kortet begge.
 
 De samme opplysningene er kolonner i listen **All Items**, skjult til du slår dem på, og de blir med i CSV-eksporten. [Eksportere til en CMDB](/docs/inventory/cmdb-sync#eiendelsdetaljer) viser nøklene deres.
 
