@@ -107,6 +107,22 @@ export function rememberSecurityGetStartedDismissed(): void {
 }
 
 /*
+ * The Overview's Set up Security, on a project nothing watches yet: the
+ * reader wants the card back, so it is no longer put away.
+ */
+export function forgetSecurityGetStartedDismissed(): void {
+  try {
+    const key: string | null = getDismissKey();
+
+    if (key) {
+      LocalStorage.removeItem(key);
+    }
+  } catch {
+    // Nothing remembered to forget, or a storage that cannot be written.
+  }
+}
+
+/*
  * Who may make the one click: whoever may turn your logs on, add rules and
  * add a playbook - the same rule the server holds the route to.
  */

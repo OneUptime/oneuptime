@@ -71,16 +71,18 @@ history is laid out from it with a seeded generator, so every run draws the same
 
 ## Scenarios
 
-| Parameter  | Values                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `?theme=`  | `dark` adds `html.dark` (done in `server.js`, before the bundle runs)                                                                                                                                                                                                                                                                                                                                                              |
-| `?empty=`  | `1`: a project that has set nothing up - no cases, detections, playbooks or rules                                                                                                                                                                                                                                                                                                                                                  |
-| `?quiet=`  | `1`: a project that has set Security up (a connection, its logs, rules, playbooks) and that nothing has happened to: no cases, detections or runs                                                                                                                                                                                                                                                                                  |
-| `?role=`   | `owner` (default) or `viewer`: Security Viewer only, so it reads but cannot decide a held step                                                                                                                                                                                                                                                                                                                                     |
-| `?lists=`  | `all`: the project reads every free list already, so Threat Intel shows no Free Lists card                                                                                                                                                                                                                                                                                                                                         |
-| `?ai=`     | `off`: the project's Enable AI is off, so no AI card, AI Verdict, Draft with AI or AI trigger is drawn, and AI Settings says AI is off                                                                                                                                                                                                                                                                                             |
-| `?setup=`  | Turn on recommended that cannot do everything: `partly` (the first click leaves Password spraying and Enrich New Cases undone, the Rule Library's first Add of Password spraying fails, and the Playbooks page's first template is refused by the role; the next click, Add or pick does them) or `fail` (the first click cannot reach the server; the next one turns everything on)                                               |
-| `?triage=` | the case AI card's other states: `failed` (CASE-141's only triage stopped with an error), `provider`, `credits` or `limit` (no LLM provider, no AI credits, the daily AI limit: nothing can be triaged), `injection` (CASE-137's data held text written to steer an AI; its benign read set aside for Inconclusive), `retry` (CASE-142's latest triage stopped; the read before it stays) and `auto-off` (Triage new cases is off) |
+| Parameter   | Values                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `?theme=`   | `dark` adds `html.dark` (done in `server.js`, before the bundle runs)                                                                                                                                                                                                                                                                                                                                                              |
+| `?empty=`   | `1`: a project that has set nothing up - no cases, detections, playbooks or rules                                                                                                                                                                                                                                                                                                                                                  |
+| `?quiet=`   | `1`: a project that has set Security up (a connection, its logs, rules, playbooks) and that nothing has happened to: no cases, detections or runs                                                                                                                                                                                                                                                                                  |
+| `?role=`    | `owner` (default) or `viewer`: Security Viewer only, so it reads but cannot decide a held step                                                                                                                                                                                                                                                                                                                                     |
+| `?lists=`   | `all`: the project reads every free list already, so Threat Intel shows no Free Lists card                                                                                                                                                                                                                                                                                                                                         |
+| `?ai=`      | `off`: the project's Enable AI is off, so no AI card, AI Verdict, Draft with AI or AI trigger is drawn, and AI Settings says AI is off                                                                                                                                                                                                                                                                                             |
+| `?sources=` | `silent`: the sources sent their last security event three days ago and nothing since (the Overview's top says when, and the Sources cell says it in amber)                                                                                                                                                                                                                                                                        |
+| `?fail=`    | `status` or `overview`: the Overview's set-up figures, or its overview, cannot be read the first time (a 500); Try again reads them again and they answer                                                                                                                                                                                                                                                                          |
+| `?setup=`   | Turn on recommended that cannot do everything: `partly` (the first click leaves Password spraying and Enrich New Cases undone, the Rule Library's first Add of Password spraying fails, and the Playbooks page's first template is refused by the role; the next click, Add or pick does them) or `fail` (the first click cannot reach the server; the next one turns everything on)                                               |
+| `?triage=`  | the case AI card's other states: `failed` (CASE-141's only triage stopped with an error), `provider`, `credits` or `limit` (no LLM provider, no AI credits, the daily AI limit: nothing can be triaged), `injection` (CASE-137's data held text written to steer an AI; its benign read set aside for Inconclusive), `retry` (CASE-142's latest triage stopped; the read before it stays) and `auto-off` (Triage new cases is off) |
 
 ## What the fixture records
 
@@ -93,9 +95,21 @@ that list is not empty.
 
 `SecurityOperations.spec.ts`:
 
-- **Overview**: the pipeline across the top (sources, detections, cases, playbooks, each figure
-  linked to its page); what needs someone now, each count in words that agree with it ("1 playbook
-  step"); the KPIs and the queue's counts from the same rows; the three routes it reads; dark theme.
+- **Overview**: one card at the top - a band that says what needs someone now under Needs
+  attention, each count a link in words that agree with it ("1 playbook step"), or All quiet; and
+  under it the pipeline (sources, detections, cases, playbooks, each cell a link to its page); the
+  KPIs and the queue's counts from the same rows; the three routes it reads; dark theme. The card
+  in both themes at 1280 and 390: the band, then four cells on one hairline grid in one row with a
+  chevron centred on each line between them, two by two on a phone with none, nothing scrolling
+  sideways, each thing waiting for someone on one line at 1280; the band's disc on the same left
+  edge as the cells' names and the figures' card below; All quiet's test attack on the band's
+  right on a laptop and under its words (which keep the band's width) on a tablet and a phone;
+  a project nothing watches (Get started put away) says so in grey, never All quiet, its Detections
+  cell opens the Rule Library, and Set up Security brings Get started back for good; sources that
+  went silent (`?sources=silent`) are said beside All quiet and in amber on the Sources cell; the
+  set-up figures (`?fail=status`) or the overview (`?fail=overview`) that cannot be read say so in
+  the product's words with Try again, which reads them again; a test attack from the quiet band
+  turns it to Needs attention and keeps the line to its case; each cell opens its part's page.
   A new project sets Security up from Get started in two clicks - Turn on recommended, then Send a
   test attack, whose case opens - in light, dark and on a phone; a click that cannot do everything
   (`?setup=partly`) names each thing it could not do with why, says the rest is on and makes Try
@@ -181,6 +195,9 @@ might be running, stop it first or run with `CI=1`.
 
 Screenshots (2x) land in `output/playwright/security-operations-ui/`, named `*-synthetic.png`
 because everything in them is fabricated: among them `overview-desktop`, `overview-dark`,
+`overview-top-1280`, `overview-top-1280-dark`, `overview-top-390`, `overview-top-390-dark`,
+`overview-not-watched`, `overview-sources-silent`, `overview-sources-silent-dark`,
+`overview-status-failed`, `overview-failed`, `overview-test-attack-from-band`,
 `side-menu-desktop`, `side-menu-dark`, `side-menu-mobile`, `overview-turn-on-partly`,
 `overview-turn-on-partly-dark`, `overview-turn-on-partly-phone`, `overview-turn-on-partly-phone-dark`,
 `overview-turn-on-failed`, `rule-library-add-failed`, `rule-library-add-all-failed`,
