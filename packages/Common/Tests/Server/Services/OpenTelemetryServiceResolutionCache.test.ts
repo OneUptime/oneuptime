@@ -2,6 +2,7 @@ import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
 import ProjectService from "../../../Server/Services/ProjectService";
 import ServiceService from "../../../Server/Services/ServiceService";
 import OTelIngestService from "../../../Server/Services/OpenTelemetryIngestService";
+import DiscoveredResourceIdCache from "../../../Server/Utils/Telemetry/DiscoveredResourceIdCache";
 import Service from "../../../Models/DatabaseModels/Service";
 import ObjectID from "../../../Types/ObjectID";
 import { JSONObject } from "../../../Types/JSON";
@@ -583,6 +584,131 @@ describe("OTelIngestService service-resolution cache", () => {
     // Oldest-wins remains the tiebreak if duplicates ever exist.
     expect(args.sort).toEqual({ createdAt: "ASC" });
     expect(args.props).toEqual({ isRoot: true });
+  });
+
+  /*
+   * Issue #5214: a service deleted while its telemetry still arrives kept
+   * resolving to the deleted id for up to the cache's five minutes, stamping
+   * it onto every row. A delete in this process now forgets it in both
+   * layers (DiscoveredResourceIdCache tells this cache's L1), so the next
+   * batch finds no row and creates the service again.
+   */
+  describe("a service deleted in this process", () => {
+    beforeEach(() => {
+      (GlobalCache.deleteKey as unknown as jest.Mock).mockImplementation(
+        async (namespace: string, key: string): Promise<void> => {
+          fakeRedis.delete(cacheKey(namespace, key));
+        },
+      );
+    });
+
+    test("is forgotten in both layers: the next batch resolves it from Postgres again", async () => {
+      const projectId: ObjectID = ObjectID.generate();
+      const deleted: Service = buildService();
+      const recreated: Service = buildService();
+      findOneBy.mockResolvedValueOnce(deleted).mockResolvedValueOnce(recreated);
+
+      const first: { primaryEntityId: ObjectID } =
+        await OTelIngestService.telemetryServiceFromName({
+          serviceName: "checkout-api",
+          projectId,
+        });
+      expect(first.primaryEntityId.toString()).toBe(deleted._id);
+
+      await DiscoveredResourceIdCache.afterDelete({
+        tableName: "Service",
+        rows: [{ _id: deleted._id, projectId, name: "Checkout-API" }],
+      });
+
+      expect(GlobalCache.deleteKey).toHaveBeenCalledWith(
+        SERVICE_RESOLUTION_NAMESPACE,
+        resolutionKey(projectId, "checkout-api"),
+      );
+      expect(
+        fakeRedis.has(
+          cacheKey(
+            SERVICE_RESOLUTION_NAMESPACE,
+            resolutionKey(projectId, "checkout-api"),
+          ),
+        ),
+      ).toBe(false);
+
+      const second: { primaryEntityId: ObjectID } =
+        await OTelIngestService.telemetryServiceFromName({
+          serviceName: "checkout-api",
+          projectId,
+        });
+
+      expect(findOneBy).toHaveBeenCalledTimes(2);
+      expect(second.primaryEntityId.toString()).toBe(recreated._id);
+    });
+
+    test("a renamed service forgets its old name and its new one", async () => {
+      const projectId: ObjectID = ObjectID.generate();
+      findOneBy.mockResolvedValue(buildService());
+
+      await OTelIngestService.telemetryServiceFromName({
+        serviceName: "checkout",
+        projectId,
+      });
+      await OTelIngestService.telemetryServiceFromName({
+        serviceName: "checkout-v2",
+        projectId,
+      });
+      expect(findOneBy).toHaveBeenCalledTimes(2);
+
+      await DiscoveredResourceIdCache.afterUpdate({
+        tableName: "Service",
+        rowsBefore: [
+          {
+            _id: ObjectID.generate().toString(),
+            projectId,
+            name: "checkout",
+          },
+        ],
+        written: { name: "checkout-v2" },
+      });
+
+      await OTelIngestService.telemetryServiceFromName({
+        serviceName: "checkout",
+        projectId,
+      });
+      await OTelIngestService.telemetryServiceFromName({
+        serviceName: "checkout-v2",
+        projectId,
+      });
+
+      expect(findOneBy).toHaveBeenCalledTimes(4);
+    });
+
+    test("another project's service of the same name keeps its entry", async () => {
+      const projectId: ObjectID = ObjectID.generate();
+      const otherProjectId: ObjectID = ObjectID.generate();
+      findOneBy.mockResolvedValue(buildService());
+
+      await OTelIngestService.telemetryServiceFromName({
+        serviceName: "checkout-api",
+        projectId: otherProjectId,
+      });
+
+      await DiscoveredResourceIdCache.afterDelete({
+        tableName: "Service",
+        rows: [
+          {
+            _id: ObjectID.generate().toString(),
+            projectId,
+            name: "checkout-api",
+          },
+        ],
+      });
+
+      await OTelIngestService.telemetryServiceFromName({
+        serviceName: "checkout-api",
+        projectId: otherProjectId,
+      });
+
+      expect(findOneBy).toHaveBeenCalledTimes(1);
+    });
   });
 
   test("still heartbeats lastSeen on a cache hit", async () => {

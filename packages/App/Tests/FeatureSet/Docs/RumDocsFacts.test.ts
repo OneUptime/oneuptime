@@ -619,7 +619,7 @@ describe("RUM Overview: how OneUptime recognises RUM", () => {
     const base: string = source("otelIngestBase");
 
     expect(base).toContain(
-      'const clientName: string | null =\n          this.getStringAttribute(data.attributes, "browser.platform") ||\n          this.getStringAttribute(data.attributes, "device.model.identifier");',
+      'const clientName: string | null =\n        this.getStringAttribute(data.attributes, "browser.platform") ||\n        this.getStringAttribute(data.attributes, "device.model.identifier");',
     );
     expect(
       rowOf(

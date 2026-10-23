@@ -43,7 +43,9 @@ import logger, { LogAttributes } from "../Utils/Logger";
 import ResourceFeedUtil from "../Utils/ResourceFeed/ResourceFeedUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ReceivingCoverage from "../Utils/Telemetry/ReceivingCoverage";
-import ResourceHeartbeat from "../Utils/Telemetry/ResourceHeartbeat";
+import ResourceHeartbeat, {
+  ResourceHeartbeatResult,
+} from "../Utils/Telemetry/ResourceHeartbeat";
 import URL from "../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
@@ -1013,7 +1015,7 @@ export class Service extends ProjectReferencesService<Model> {
       dbVersion?: string | undefined;
       dbSystem?: string | undefined;
     },
-  ): Promise<void> {
+  ): Promise<ResourceHeartbeatResult> {
     const agentVersion: string | null = cleanShortText(extra?.agentVersion);
     const dbVersion: string | null = cleanShortText(extra?.dbVersion);
 
@@ -1050,7 +1052,7 @@ export class Service extends ProjectReferencesService<Model> {
      * fail-closed split and the liveness-only fallback all live in
      * ResourceHeartbeat.
      */
-    await ResourceHeartbeat.write({
+    const heartbeat: ResourceHeartbeatResult = await ResourceHeartbeat.write({
       service: this,
       id: databaseServerId,
       cacheNamespace: LAST_SEEN_CACHE_NAMESPACE,
@@ -1061,7 +1063,14 @@ export class Service extends ProjectReferencesService<Model> {
       describe: `database ${databaseServerId.toString()}`,
     });
 
+    // Nothing to reconcile on a row that is gone; the caller resolves again.
+    if (heartbeat.isRowGone) {
+      return heartbeat;
+    }
+
     await this.reconcileAfterHeartbeat(databaseServerId, extra?.dbSystem);
+
+    return heartbeat;
   }
 
   /**

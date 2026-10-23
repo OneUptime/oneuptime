@@ -15,6 +15,7 @@ import MetricPipelineRule from "Common/Models/DatabaseModels/MetricPipelineRule"
 import MetricPipelineRuleType from "Common/Types/Metrics/MetricPipelineRuleType";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import { HEARTBEAT_ROW_PRESENT } from "Common/Server/Utils/Telemetry/ResourceHeartbeat";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import StorageSystem from "Common/Types/StorageArray/StorageSystem";
 import { afterEach, describe, expect, test } from "@jest/globals";
@@ -477,7 +478,7 @@ function setupIngestMocks(data: {
     .mockResolvedValue(0);
   const updateLastSeen: jest.SpyInstance = jest
     .spyOn(StorageArrayService, "updateLastSeen")
-    .mockResolvedValue(undefined);
+    .mockResolvedValue(HEARTBEAT_ROW_PRESENT);
 
   return {
     bulkUpsert,
@@ -1338,7 +1339,7 @@ describe("autoDiscoverStorageArray — the platform is left to the metrics", () 
       .mockRejectedValue(new Error("the cached id should have been used"));
     const updateLastSeen: jest.SpyInstance = jest
       .spyOn(StorageArrayService, "updateLastSeen")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue(HEARTBEAT_ROW_PRESENT);
     return { updateLastSeen, findOrCreateByName };
   }
 

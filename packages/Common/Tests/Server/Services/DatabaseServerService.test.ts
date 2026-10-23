@@ -2918,7 +2918,7 @@ describe("DatabaseServerService liveness", () => {
 
       await expect(
         DatabaseServerService.recordCollectorHeartbeat(DATABASE_ID),
-      ).resolves.toBeUndefined();
+      ).resolves.toEqual({ isRowGone: false });
     });
   });
 

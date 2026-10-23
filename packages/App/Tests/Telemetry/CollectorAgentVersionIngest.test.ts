@@ -51,6 +51,7 @@ import StorageArrayService from "Common/Server/Services/StorageArrayService";
 import VMwareVCenterService from "Common/Server/Services/VMwareVCenterService";
 import Host from "Common/Models/DatabaseModels/Host";
 import ObjectID from "Common/Types/ObjectID";
+import { HEARTBEAT_ROW_PRESENT } from "Common/Server/Utils/Telemetry/ResourceHeartbeat";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import fs from "fs";
 import path from "path";
@@ -326,6 +327,7 @@ describe("runBatchHostEnrichment carries the host collector's version", () => {
       .spyOn(HostService, "updateLastSeen")
       .mockImplementation(async (_id: ObjectID, extra?: unknown) => {
         calls.push((extra ?? {}) as Record<string, unknown>);
+        return HEARTBEAT_ROW_PRESENT;
       });
     jest.spyOn(HostService, "attachLabels").mockResolvedValue(undefined);
     jest.spyOn(LabelService, "findOrCreateLabelsByNames").mockResolvedValue([]);

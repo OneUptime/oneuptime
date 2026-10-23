@@ -46,6 +46,7 @@ import HostService from "Common/Server/Services/HostService";
 import LabelService from "Common/Server/Services/LabelService";
 import Host from "Common/Models/DatabaseModels/Host";
 import ObjectID from "Common/Types/ObjectID";
+import { HEARTBEAT_ROW_PRESENT } from "Common/Server/Utils/Telemetry/ResourceHeartbeat";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import {
   afterEach,
@@ -155,6 +156,7 @@ function mockHostWrites(): void {
         hostId: hostId,
         extra: (extra ?? {}) as Record<string, unknown>,
       });
+      return HEARTBEAT_ROW_PRESENT;
     });
 
   jest.spyOn(HostService, "attachLabels").mockResolvedValue(undefined);
