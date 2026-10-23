@@ -1,0 +1,80 @@
+<%
+  // What OneUptime does, one product area per row, each beside its screen.
+  const features = [
+    {
+      id: 'monitoring',
+      title: 'Uptime and performance monitoring',
+      body: 'Check your websites, APIs and servers from locations around the world, as often as every 10 seconds. Synthetic checks run through real user flows, like signing in or checking out, so you hear about a broken page before your customers do.',
+      points: ['Website, API, ping, port, DNS and SSL certificate checks', 'Synthetic browser checks written with Playwright', 'Alert rules, so you are only paged when it matters'],
+      links: [{ href: '/product/monitoring', text: 'Learn about monitoring' }],
+      mock: 'mock-detect',
+    },
+    {
+      id: 'status-pages',
+      title: 'Status pages',
+      body: 'Tell customers what is happening on a status page with your own domain and branding. It updates from your monitors automatically, and subscribers are notified by email, SMS or RSS.',
+      points: ['Custom domain and branding', 'Public or private pages', 'Scheduled maintenance notices'],
+      links: [{ href: '/product/status-page', text: 'Learn about status pages' }],
+      mock: 'mock-communicate',
+    },
+    {
+      id: 'incidents',
+      title: 'On-call and incident management',
+      body: 'Alert whoever is on call by phone, SMS, email, push, Slack or Microsoft Teams, and escalate automatically when nobody responds. Each incident has one timeline, so everyone can see what happened and what is being done.',
+      points: ['On-call schedules, rotations and overrides', 'Escalation policies', 'Incident timelines and postmortem notes'],
+      links: [{ href: '/product/on-call', text: 'Learn about on-call' }, { href: '/product/incident-management', text: 'Learn about incidents' }],
+      mock: 'mock-respond',
+    },
+    {
+      id: 'observability',
+      title: 'Logs, metrics and traces',
+      body: 'Send OpenTelemetry data from your services and go from an alert to the slow request and the exact log line without switching tools. Errors are grouped, so one bug shows up once.',
+      points: ['OpenTelemetry-native ingestion', 'Error tracking with grouped exceptions', 'Dashboards for any metric'],
+      links: [{ href: '/product/observability', text: 'Learn about observability' }],
+      mock: 'mock-diagnose',
+    },
+    {
+      id: 'ai',
+      title: 'AI that helps you find the fix',
+      body: 'OneUptime\'s AI agent looks at the traces, logs and code related to an incident, explains the likely root cause, and can open a pull request with a proposed fix. Nothing is merged until someone on your team reviews it.',
+      points: ['Read-only investigations, with secrets redacted', 'Use your own LLM provider and keys', 'Works with GitHub and GitLab repositories'],
+      links: [{ href: '/product/ai-agent', text: 'Learn about OneUptime AI' }],
+      mock: 'mock-autofix',
+    },
+  ];
+-%>
+<section id="features" class="border-t border-gray-100 bg-white py-20 sm:py-28" aria-labelledby="features-title">
+  <div class="mx-auto max-w-6xl px-6 lg:px-8">
+    <div class="mx-auto max-w-2xl text-center">
+      <h2 id="features-title" class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Everything you need to run reliable services</h2>
+      <p class="mt-4 text-lg leading-8 text-gray-600">Monitoring, alerting, status pages, incident management and observability in one product, so you do not have to connect separate tools.</p>
+    </div>
+
+    <div class="mt-12 sm:mt-16">
+      <% features.forEach(function (feature, index) { -%>
+      <div id="<%= feature.id %>" class="grid grid-cols-1 items-center gap-10 py-14 lg:grid-cols-12 lg:gap-16 <%= index > 0 ? 'border-t border-gray-100' : '' %>">
+        <div class="lg:col-span-5">
+          <h3 class="text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl"><%= feature.title %></h3>
+          <p class="mt-4 text-base leading-7 text-gray-600"><%= feature.body %></p>
+          <ul class="mt-6 space-y-3">
+            <% feature.points.forEach(function (point) { -%>
+            <li class="flex gap-3 text-sm leading-6 text-gray-700">
+              <svg class="mt-1 h-4 w-4 flex-none text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+              <%= point %>
+            </li>
+            <% }); -%>
+          </ul>
+          <div class="mt-8 flex flex-wrap gap-x-6 gap-y-3">
+            <% feature.links.forEach(function (link) { -%>
+            <a href="<%= link.href %>" class="text-sm font-semibold text-gray-900 hover:text-gray-600"><%= link.text %> <span aria-hidden="true">&rarr;</span></a>
+            <% }); -%>
+          </div>
+        </div>
+        <div class="lg:col-span-7 <%= index % 2 === 1 ? 'lg:order-first' : '' %>">
+          <%- include('./home-mocks/' + feature.mock) -%>
+        </div>
+      </div>
+      <% }); -%>
+    </div>
+  </div>
+</section>

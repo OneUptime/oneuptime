@@ -66,7 +66,7 @@ describe("the homepage", () => {
     expect(hero).not.toBeNull();
     expect(hero.querySelectorAll("img, picture, video")).toHaveLength(0);
     expect(hero.querySelector("h1")!.textContent!.trim()).toBe(
-      "Find it first. Fix it fast.",
+      "Open-source observability and incident management",
     );
   });
 
@@ -104,8 +104,8 @@ describe("the homepage", () => {
       return image.closest("header") === null;
     });
 
-    // The logo roll twice over, a hundred and fifty review stars, the footer's logo.
-    expect(later.length).toBeGreaterThan(150);
+    // The customer logos and the footer's logo.
+    expect(later.length).toBeGreaterThan(10);
 
     const eager: Array<string> = later
       .filter((image: Element): boolean => {

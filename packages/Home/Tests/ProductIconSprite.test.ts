@@ -259,8 +259,6 @@ describe("where the sprite is used", () => {
    */
   const USING_THE_SPRITE: Array<string> = [
     "Blog/Partials/BlogCta.ejs",
-    "Partials/home-consolidate.ejs",
-    "Partials/home-platform.ejs",
     "Partials/home-products.ejs",
     "nav.ejs",
   ];
@@ -334,7 +332,7 @@ describe("where the sprite is used", () => {
               hero.compareDocumentPosition(use) &
                 document.defaultView!.Node.DOCUMENT_POSITION_FOLLOWING,
             ) &&
-            Boolean(use.closest("#platform, #products, #consolidate"));
+            Boolean(use.closest("#products"));
 
           return !hiddenMenu && !belowTheHero;
         })
@@ -345,15 +343,12 @@ describe("where the sprite is used", () => {
       expect(atFirstPaint).toEqual([]);
     });
 
-    test.each(["#platform", "#products", "#consolidate"])(
-      "%s draws its product icons from it",
-      (section: string) => {
-        const element: Element = document.querySelector(section)!;
+    test("the product index draws its product icons from it", () => {
+      const products: Element = document.querySelector("#products")!;
 
-        expect(element).not.toBeNull();
-        expect(element.querySelectorAll("use").length).toBeGreaterThan(5);
-      },
-    );
+      expect(products).not.toBeNull();
+      expect(products.querySelectorAll("use").length).toBeGreaterThan(5);
+    });
 
     test("and points at an icon the sprite has", async () => {
       const sprite: ProductIconSprite = await buildProductIconSprite();

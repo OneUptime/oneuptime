@@ -1,103 +1,22 @@
-<section class="relative isolate overflow-hidden bg-white" id="hero-section" aria-labelledby="hero-title">
-  <!-- Backdrop: a fine grid that fades out under the headline, and the brand's green as light -->
-  <div class="absolute inset-0 -z-10 bg-[linear-gradient(to_right,#f1f5f9_1px,transparent_1px),linear-gradient(to_bottom,#f1f5f9_1px,transparent_1px)] bg-[size:4.5rem_4.5rem] [mask-image:radial-gradient(ellipse_75%_60%_at_50%_0%,#000_40%,transparent_100%)]" aria-hidden="true"></div>
-  <div class="absolute left-1/2 top-0 -z-10 h-[34rem] w-[72rem] max-w-none -translate-x-1/2 -translate-y-1/3 rounded-full blur-3xl pointer-events-none" style="background: radial-gradient(closest-side, rgb(126 217 87 / 0.20), rgb(16 185 129 / 0.08) 55%, transparent);" aria-hidden="true"></div>
-  <div class="absolute right-0 top-40 -z-10 h-80 w-80 rounded-full blur-3xl pointer-events-none max-lg:hidden lg:block" style="background: radial-gradient(closest-side, rgb(99 102 241 / 0.10), transparent);" aria-hidden="true"></div>
-
-  <div class="mx-auto max-w-7xl px-6 pb-16 pt-14 sm:pb-20 sm:pt-20 lg:px-8 lg:pt-24">
-    <div class="mx-auto max-w-4xl text-center">
-      <!-- Open source, with the live star count -->
-      <div data-reveal class="flex justify-center">
-        <a href="https://github.com/oneuptime/oneuptime" target="_blank" rel="noopener noreferrer" class="group inline-flex items-center gap-2 rounded-full bg-white/80 py-1 pl-1 pr-3 text-xs font-medium text-gray-600 shadow-sm ring-1 ring-gray-200 backdrop-blur transition hover:ring-gray-300 hover:text-gray-900">
-          <span class="inline-flex items-center gap-1.5 rounded-full bg-gray-950 px-2.5 py-1 text-white">
-            <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
-            </svg>
-            <% if (githubStars) { %><span class="tabular-nums"><%= githubStars %></span><% } else { %><span>GitHub</span><% } %>
-          </span>
-          <span>Open source &middot; Apache 2.0</span>
-          <svg class="h-3 w-3 text-gray-400 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
-        </a>
-      </div>
-
-      <h1 id="hero-title" data-reveal data-reveal-delay="60" class="mt-8 text-[2.65rem] font-semibold leading-[1.02] tracking-[-0.045em] text-gray-950 sm:text-7xl sm:leading-[0.98] lg:text-[5.75rem]"><span class="block">Find it first.</span> <span class="relative block"><span class="absolute inset-x-[18%] bottom-[18%] top-[30%] -z-10 rounded-full bg-[#7ed957]/25 blur-2xl" aria-hidden="true"></span><span class="bg-gradient-to-r from-emerald-700 via-emerald-600 to-green-600 bg-clip-text pb-2 text-transparent">Fix it fast.</span></span></h1>
-
-      <p data-reveal data-reveal-delay="120" class="mx-auto mt-6 max-w-2xl text-lg leading-8 text-gray-600 sm:text-xl sm:leading-9">
-        OneUptime is the open-source observability platform that catches outages in seconds, pages the right engineer, keeps your customers in the loop, and has AI open the fix&nbsp;&mdash; all in one place.
+<section class="bg-white" id="hero-section" aria-labelledby="hero-title">
+  <div class="mx-auto max-w-6xl px-6 pb-16 pt-16 sm:pb-24 sm:pt-24 lg:px-8">
+    <div class="mx-auto max-w-3xl text-center">
+      <h1 id="hero-title" class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">Open-source observability and incident management</h1>
+      <p class="mx-auto mt-6 max-w-2xl text-lg leading-8 text-gray-600">
+        Monitor your websites, APIs and servers, alert the right person when something breaks, keep customers informed with status pages, and find the cause with logs, metrics and traces. Use OneUptime Cloud, or host it yourself.
       </p>
-
-      <div data-reveal data-reveal-delay="180" class="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-        <a href="/accounts/register" class="btn-shine inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gray-950 px-7 text-[15px] font-medium text-white shadow-lg shadow-gray-950/20 transition hover:-translate-y-px hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 sm:w-auto">
-          Start for free
-          <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
-        </a>
-        <a href="/enterprise/demo" class="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-white px-7 text-[15px] font-medium text-gray-800 shadow-sm ring-1 ring-inset ring-gray-200 transition hover:-translate-y-px hover:bg-gray-50 hover:ring-gray-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 sm:w-auto">
-          <svg class="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"></path></svg>
-          Book a demo
-        </a>
+      <div class="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <a href="/accounts/register" class="inline-flex h-11 w-full items-center justify-center rounded-lg bg-gray-900 px-6 text-sm font-semibold text-white hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 sm:w-auto">Get started free</a>
+        <a href="/enterprise/demo" class="inline-flex h-11 w-full items-center justify-center rounded-lg bg-white px-6 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 sm:w-auto">Book a demo</a>
       </div>
-
-      <ul data-reveal data-reveal-delay="240" class="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-gray-500">
-        <li class="inline-flex items-center gap-1.5">
-          <svg class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-          Free forever plan
-        </li>
-        <li class="inline-flex items-center gap-1.5">
-          <svg class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-          No credit card required
-        </li>
-        <li class="inline-flex items-center gap-1.5">
-          <svg class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-          Self-host anytime
-        </li>
-      </ul>
+      <p class="mt-6 text-sm text-gray-500">
+        Free plan, no credit card required.
+        <a href="https://github.com/oneuptime/oneuptime" target="_blank" rel="noopener noreferrer" class="font-medium text-gray-700 underline decoration-gray-300 underline-offset-4 hover:text-gray-900">Open source on GitHub<% if (githubStars) { %> (<%= githubStars %> stars)<% } %></a>.
+      </p>
     </div>
 
-    <!-- The product, mid-incident -->
-    <div data-reveal data-reveal-delay="320" class="relative mx-auto mt-14 max-w-6xl sm:mt-16">
-      <div class="absolute -inset-x-6 -top-10 bottom-10 -z-10 rounded-[3rem] blur-2xl pointer-events-none" style="background: radial-gradient(60% 55% at 50% 35%, rgb(126 217 87 / 0.16), rgb(99 102 241 / 0.06) 55%, transparent 80%);" aria-hidden="true"></div>
-      <div class="hero-stage relative">
-        <%- include('./home-mocks/mock-hero') -%>
-
-        <!-- The same night, in four notifications -->
-        <div class="float-a absolute -left-4 -top-8 items-center xl:-left-12 gap-3 rounded-2xl bg-white/95 px-4 py-3 shadow-xl shadow-gray-900/10 ring-1 ring-gray-200 backdrop-blur max-lg:hidden lg:flex" aria-hidden="true">
-          <span class="relative flex h-2.5 w-2.5 flex-none">
-            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75"></span>
-            <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-500"></span>
-          </span>
-          <span class="text-left">
-            <span class="block text-xs font-semibold text-gray-900">Checkout API degraded</span>
-            <span class="block font-mono text-[10px] tabular-nums text-gray-500">2:47 AM &middot; detected by 4 probes</span>
-          </span>
-        </div>
-        <div class="float-b absolute -right-4 -top-8 items-center xl:-right-12 gap-3 rounded-2xl bg-white/95 px-4 py-3 shadow-xl shadow-gray-900/10 ring-1 ring-gray-200 backdrop-blur max-lg:hidden lg:flex" aria-hidden="true">
-          <span class="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-rose-50 ring-1 ring-inset ring-rose-200">
-            <svg class="h-4 w-4 text-rose-600" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>
-          </span>
-          <span class="text-left">
-            <span class="block text-xs font-semibold text-gray-900">Sarah K. answered the page</span>
-            <span class="block font-mono text-[10px] tabular-nums text-gray-500">2:48 AM &middot; in 38 seconds</span>
-          </span>
-        </div>
-        <div class="float-a absolute -bottom-8 -left-4 items-center xl:-left-12 gap-3 rounded-2xl bg-white/95 px-4 py-3 shadow-xl shadow-gray-900/10 ring-1 ring-gray-200 backdrop-blur max-xl:hidden xl:flex" aria-hidden="true">
-          <span class="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-emerald-50 ring-1 ring-inset ring-emerald-200">
-            <svg class="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 01-1.44-4.282m3.102.069a18.03 18.03 0 01-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 018.835 2.535M10.34 6.66a23.847 23.847 0 008.835-2.535m0 0A23.74 23.74 0 0018.795 3m.38 1.125a23.91 23.91 0 011.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 001.014-5.395m0-3.46c.495.413.811 1.035.811 1.73 0 .695-.316 1.317-.811 1.73m0-3.46a24.347 24.347 0 010 3.46" /></svg>
-          </span>
-          <span class="text-left">
-            <span class="block text-xs font-semibold text-gray-900">Status page updated</span>
-            <span class="block font-mono text-[10px] tabular-nums text-gray-500">2:49 AM &middot; 2,847 subscribers told</span>
-          </span>
-        </div>
-        <div class="float-b absolute -bottom-8 -right-4 items-center xl:-right-12 gap-3 rounded-2xl bg-gray-950 px-4 py-3 shadow-xl shadow-gray-900/20 ring-1 ring-white/10 max-lg:hidden lg:flex" aria-hidden="true">
-          <span class="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-white/10 ring-1 ring-inset ring-white/15">
-            <svg class="h-4 w-4 text-[#7ed957]" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" /></svg>
-          </span>
-          <span class="text-left">
-            <span class="block text-xs font-semibold text-white">AI agent opened PR #1284 with the fix</span>
-            <span class="block font-mono text-[10px] tabular-nums text-gray-400">3:26 AM &middot; all checks passed</span>
-          </span>
-        </div>
-      </div>
+    <div class="mx-auto mt-16 max-w-5xl sm:mt-20">
+      <%- include('./home-mocks/mock-hero') -%>
     </div>
   </div>
 </section>

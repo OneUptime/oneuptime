@@ -1,72 +1,41 @@
 <%
-  /*
-   * The security review checklist. Every status here is the one the claims
-   * matrix (Utils/Claims.ts) gives it, and links to the page behind it.
-   */
+  // The security review checklist, worded as the claims matrix (Utils/Claims.ts) states each item.
   const assurances = [
-    { href: '/legal/iso-27001', title: 'ISO 27001 · 27017 · 27018', note: 'Certified', status: true, icon: 'M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z' },
-    { href: '/legal/soc-2', title: 'SOC 2 Type II', note: 'Report on request', status: true, icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z' },
-    { href: '/legal/hipaa', title: 'HIPAA', note: 'BAA available', status: true, icon: 'M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z' },
-    { href: '/legal/gdpr', title: 'GDPR', note: 'DPA available', status: true, icon: 'M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418' },
-    { href: null, title: 'Single sign-on', note: 'SAML & OIDC - Okta, Microsoft Entra ID, Google', status: false, icon: 'M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z' },
-    { href: null, title: 'Access control', note: 'Role-based permissions and audit-ready timelines', status: false, icon: 'M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z' },
-    { href: '/legal/data-residency', title: 'Data residency', note: 'US, EU, or your own datacenter', status: false, icon: 'M15 10.5a3 3 0 11-6 0 3 3 0 016 0z M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z' },
-    { href: '/legal/sla', title: 'Enterprise support', note: '99.95% uptime target, 24/7 P1 response target', status: false, icon: 'M16.712 4.33a9.027 9.027 0 011.652 1.306c.51.51.944 1.064 1.306 1.652M16.712 4.33l-3.448 4.138m3.448-4.138a9.014 9.014 0 00-9.424 0M19.67 7.288l-4.138 3.448m4.138-3.448a9.014 9.014 0 010 9.424m-4.138-5.976a3.736 3.736 0 00-.88-1.388 3.737 3.737 0 00-1.388-.88m2.268 2.268a3.765 3.765 0 010 2.528m-2.268-4.796a3.765 3.765 0 00-2.528 0m4.796 4.796c-.181.506-.475.982-.88 1.388a3.736 3.736 0 01-1.388.88m2.268-2.268l4.138 3.448m0 0a9.027 9.027 0 01-1.306 1.652c-.51.51-1.064.944-1.652 1.306m0 0l-3.448-4.138m3.448 4.138a9.014 9.014 0 01-9.424 0m5.976-4.138a3.765 3.765 0 01-2.528 0m0 0a3.736 3.736 0 01-1.388-.88 3.737 3.737 0 01-.88-1.388m2.268 2.268L7.288 19.67m0 0a9.024 9.024 0 01-1.652-1.306 9.027 9.027 0 01-1.306-1.652m0 0l4.138-3.448M4.33 16.712a9.014 9.014 0 010-9.424m4.138 5.976a3.765 3.765 0 010-2.528m0 0c.181-.506.475-.982.88-1.388a3.736 3.736 0 011.388-.88m-2.268 2.268L4.33 7.288m6.406 1.18L7.288 4.33m0 0a9.024 9.024 0 00-1.652 1.306A9.025 9.025 0 004.33 7.288' },
+    { title: 'ISO 27001, 27017 and 27018', text: 'Certified information security management for OneUptime Cloud.', href: '/legal/iso-27001' },
+    { title: 'SOC 2 Type II', text: 'Our report is available on request, under NDA.', href: '/legal/soc-2' },
+    { title: 'HIPAA', text: 'A Business Associate Agreement is available for covered entities.', href: '/legal/hipaa' },
+    { title: 'GDPR', text: 'A Data Processing Addendum is available for every customer.', href: '/legal/gdpr' },
+    { title: 'Single sign-on', text: 'SAML and OIDC, with providers like Okta, Microsoft Entra ID and Google.', href: null },
+    { title: 'Access control', text: 'Role-based permissions, and a timeline of every action on an incident.', href: null },
+    { title: 'Data residency', text: 'Enterprise customers choose the region their data is stored in.', href: '/legal/data-residency' },
+    { title: 'Support', text: 'A one-hour first-response target for P1 issues, 24/7, on paid plans.', href: '/legal/sla' },
   ];
 -%>
-<section id="enterprise" class="relative overflow-hidden bg-white py-24 scroll-mt-20 sm:py-32" aria-labelledby="enterprise-title">
-  <div class="mx-auto max-w-7xl px-6 lg:px-8">
-    <div class="grid grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-16">
-      <div data-reveal class="lg:col-span-4">
-        <p class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-medium text-gray-600 shadow-sm ring-1 ring-gray-200">
-          <span class="h-1.5 w-1.5 rounded-full bg-gray-900" aria-hidden="true"></span>
-          Enterprise ready
-        </p>
-        <h2 id="enterprise-title" class="mt-6 text-4xl font-semibold tracking-tight text-balance text-gray-950 sm:text-5xl">
-          Built to pass your security review.
-        </h2>
-        <p class="mt-6 text-lg leading-8 text-gray-600">
-          Certifications, single sign-on, audit-ready timelines and data residency - the checklist, already checked. We'll share the evidence under NDA.
-        </p>
-        <div class="mt-10 flex flex-wrap items-center gap-4">
-          <a href="/enterprise/demo" class="inline-flex h-11 items-center justify-center rounded-xl bg-gray-950 px-6 text-sm font-medium text-white shadow-sm transition hover:-translate-y-px hover:bg-gray-800">Talk to sales</a>
-          <a href="/trust" class="group inline-flex items-center gap-1 text-sm font-medium text-gray-900 hover:text-gray-600">
-            Visit the Trust Center
-            <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
-          </a>
+<section id="enterprise" class="border-t border-gray-100 bg-white py-20 scroll-mt-20 sm:py-28" aria-labelledby="enterprise-title">
+  <div class="mx-auto max-w-6xl px-6 lg:px-8">
+    <div class="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
+      <div class="lg:col-span-4">
+        <h2 id="enterprise-title" class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Security and compliance</h2>
+        <p class="mt-4 text-lg leading-8 text-gray-600">OneUptime Cloud is built to pass enterprise security reviews. We complete questionnaires and share reports and policies under NDA.</p>
+        <div class="mt-6 flex flex-wrap gap-x-6 gap-y-3">
+          <a href="/trust" class="text-sm font-semibold text-gray-900 hover:text-gray-600">Visit the Trust Center <span aria-hidden="true">&rarr;</span></a>
+          <a href="/enterprise/demo" class="text-sm font-semibold text-gray-900 hover:text-gray-600">Talk to sales <span aria-hidden="true">&rarr;</span></a>
         </div>
       </div>
-
-      <ul class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:col-span-8">
-        <% assurances.forEach(function (item, index) { -%>
-        <li data-reveal data-reveal-delay="<%= (index % 2) * 80 %>">
-          <% if (item.href) { -%>
-          <a href="<%= item.href %>" class="group flex h-full items-center gap-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200 transition hover:-translate-y-0.5 hover:shadow-md hover:ring-gray-300">
-          <% } else { -%>
-          <div class="flex h-full items-center gap-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
-          <% } -%>
-            <span class="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-gray-950">
-              <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="<%= item.icon %>" /></svg>
-            </span>
-            <span class="min-w-0 flex-1">
-              <span class="block text-sm font-semibold text-gray-900"><%= item.title %></span>
-              <% if (item.status) { -%>
-              <span class="mt-1 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true"></span><%= item.note %></span>
-              <% } else { -%>
-              <span class="mt-0.5 block text-xs leading-5 text-gray-500"><%= item.note %></span>
-              <% } -%>
-            </span>
+      <dl class="grid grid-cols-1 gap-x-10 gap-y-8 sm:grid-cols-2 lg:col-span-8">
+        <% assurances.forEach(function (item) { -%>
+        <div class="border-t border-gray-200 pt-4">
+          <dt class="text-sm font-semibold text-gray-900">
             <% if (item.href) { -%>
-            <svg class="h-4 w-4 flex-none text-gray-300 transition group-hover:translate-x-0.5 group-hover:text-gray-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+            <a href="<%= item.href %>" class="hover:underline"><%= item.title %></a>
+            <% } else { -%>
+            <%= item.title %>
             <% } -%>
-          <% if (item.href) { -%>
-          </a>
-          <% } else { -%>
-          </div>
-          <% } -%>
-        </li>
+          </dt>
+          <dd class="mt-1 text-sm leading-6 text-gray-600"><%= item.text %></dd>
+        </div>
         <% }); -%>
-      </ul>
+      </dl>
     </div>
   </div>
 </section>

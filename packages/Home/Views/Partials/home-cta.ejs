@@ -1,41 +1,10 @@
-<section class="relative bg-white pb-24 sm:pb-32" aria-labelledby="final-cta-title">
-  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-    <div data-reveal class="relative isolate overflow-hidden rounded-[2rem] bg-gray-950 px-6 py-20 text-center shadow-2xl shadow-gray-950/20 sm:px-16 sm:py-24">
-      <div class="absolute inset-0 -z-10 bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] [mask-image:radial-gradient(ellipse_60%_70%_at_50%_100%,#000_20%,transparent_100%)]" aria-hidden="true"></div>
-      <div class="glow-breathe absolute bottom-0 left-1/2 -z-10 h-[28rem] w-[56rem] max-w-none -translate-x-1/2 translate-y-1/2 rounded-full blur-3xl pointer-events-none" style="background: radial-gradient(closest-side, rgb(126 217 87 / 0.35), rgb(16 185 129 / 0.12) 55%, transparent);" aria-hidden="true"></div>
-      <div class="absolute inset-x-0 top-0 -z-10 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" aria-hidden="true"></div>
-
-      <h2 id="final-cta-title" class="mx-auto max-w-3xl text-4xl font-semibold tracking-tight text-white sm:text-6xl sm:leading-[1.05]">
-        Downtime is expensive. <span class="block text-[#7ed957]">Peace of mind isn't.</span>
-      </h2>
-      <p class="mx-auto mt-6 max-w-xl text-lg leading-8 text-gray-400">
-        Start free on OneUptime Cloud in minutes, or run it on your own infrastructure with a single command.
-      </p>
-
-      <div class="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-        <a href="/accounts/register" class="btn-shine inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-white px-7 text-[15px] font-medium text-gray-950 shadow-lg transition hover:-translate-y-px hover:bg-gray-100 sm:w-auto">
-          Start for free
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
-        </a>
-        <a href="/enterprise/demo" class="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-white/5 px-7 text-[15px] font-medium text-white ring-1 ring-inset ring-white/15 transition hover:-translate-y-px hover:bg-white/10 sm:w-auto">
-          Book a demo
-        </a>
-      </div>
-
-      <ul class="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-gray-400">
-        <li class="inline-flex items-center gap-1.5"><svg class="h-4 w-4 text-[#7ed957]" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>Free forever plan</li>
-        <li class="inline-flex items-center gap-1.5"><svg class="h-4 w-4 text-[#7ed957]" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>No credit card required</li>
-        <li class="inline-flex items-center gap-1.5"><svg class="h-4 w-4 text-[#7ed957]" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>Cancel anytime</li>
-      </ul>
-
-      <div class="mx-auto mt-12 flex max-w-xl items-center gap-3 rounded-2xl bg-white/5 p-2 pl-4 text-left ring-1 ring-inset ring-white/10">
-        <code class="min-w-0 flex-1 overflow-x-auto whitespace-nowrap font-mono text-[13px] text-gray-300"><span class="text-[#7ed957]">$</span> curl -sSL <%= locals.homeUrl || 'https://oneuptime.com' %>/install.sh | bash</code>
-        <button type="button" data-copy="curl -sSL <%= locals.homeUrl || 'https://oneuptime.com' %>/install.sh | bash" class="inline-flex h-9 flex-none items-center gap-1.5 rounded-xl bg-white/10 px-3 text-xs font-medium text-white transition hover:bg-white/20">
-          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" /></svg>
-          <span data-copy-label aria-live="polite">Copy</span>
-        </button>
-      </div>
-      <p class="mt-3 text-xs text-gray-500">Prefer to self-host? Try it with one command - Kubernetes and Helm for production.</p>
+<section class="border-t border-gray-100 bg-gray-50" aria-labelledby="final-cta-title">
+  <div class="mx-auto max-w-6xl px-6 py-20 text-center sm:py-24 lg:px-8">
+    <h2 id="final-cta-title" class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Start monitoring in minutes</h2>
+    <p class="mx-auto mt-4 max-w-xl text-lg leading-8 text-gray-600">Create a free account, add your first monitor, and invite your team. No credit card required.</p>
+    <div class="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+      <a href="/accounts/register" class="inline-flex h-11 w-full items-center justify-center rounded-lg bg-gray-900 px-6 text-sm font-semibold text-white hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 sm:w-auto">Get started free</a>
+      <a href="/enterprise/demo" class="inline-flex h-11 w-full items-center justify-center rounded-lg bg-white px-6 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 sm:w-auto">Book a demo</a>
     </div>
   </div>
 </section>

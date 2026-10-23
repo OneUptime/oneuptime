@@ -46,36 +46,27 @@
     },
   ];
 -%>
-<section id="faq" class="relative bg-white py-24 scroll-mt-20 sm:py-32" aria-labelledby="faq-title">
-  <div class="mx-auto max-w-7xl px-6 lg:px-8">
+<section id="faq" class="border-t border-gray-100 bg-white py-20 scroll-mt-20 sm:py-28" aria-labelledby="faq-title">
+  <div class="mx-auto max-w-6xl px-6 lg:px-8">
     <div class="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
-      <div data-reveal class="lg:col-span-4">
-        <p class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-medium text-gray-600 shadow-sm ring-1 ring-gray-200">
-          <span class="h-1.5 w-1.5 rounded-full bg-sky-500" aria-hidden="true"></span>
-          FAQ
-        </p>
-        <h2 id="faq-title" class="mt-6 text-4xl font-semibold tracking-tight text-gray-950 sm:text-5xl">Questions, answered.</h2>
-        <p class="mt-6 text-lg leading-8 text-gray-600">
-          Can't find what you're looking for? <a href="/enterprise/demo" class="font-medium text-gray-900 underline decoration-gray-300 underline-offset-4 hover:decoration-gray-500">Talk to our team</a> or <a href="/docs" class="font-medium text-gray-900 underline decoration-gray-300 underline-offset-4 hover:decoration-gray-500">read the docs</a>.
+      <div class="lg:col-span-4">
+        <h2 id="faq-title" class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Frequently asked questions</h2>
+        <p class="mt-4 text-lg leading-8 text-gray-600">
+          Something else on your mind? <a href="/enterprise/demo" class="font-medium text-gray-900 underline decoration-gray-300 underline-offset-4 hover:decoration-gray-500">Talk to our team</a> or <a href="/docs" class="font-medium text-gray-900 underline decoration-gray-300 underline-offset-4 hover:decoration-gray-500">read the docs</a>.
         </p>
       </div>
 
-      <div data-reveal data-reveal-delay="100" class="divide-y divide-gray-200 border-y border-gray-200 lg:col-span-8">
-        <% faqs.forEach(function (faq, index) { -%>
-        <details class="faq-item group"<%= index === 0 ? ' open' : '' %>>
-          <summary class="flex cursor-pointer list-none items-start justify-between gap-6 py-6 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-            <span class="text-base font-semibold leading-7 text-gray-950 sm:text-lg"><%= faq.question %></span>
-            <span class="mt-1 flex h-6 w-6 flex-none items-center justify-center rounded-full bg-gray-100 text-gray-600 transition group-hover:bg-gray-200" aria-hidden="true">
-              <svg class="faq-chevron h-3.5 w-3.5 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-            </span>
+      <div class="divide-y divide-gray-200 border-y border-gray-200 lg:col-span-8">
+        <% faqs.forEach(function (faq) { -%>
+        <details class="group">
+          <summary class="flex cursor-pointer list-none items-start justify-between gap-6 py-5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 [&::-webkit-details-marker]:hidden">
+            <span class="text-base font-semibold leading-7 text-gray-900"><%= faq.question %></span>
+            <svg class="mt-1.5 h-4 w-4 flex-none text-gray-500 transition-transform group-open:rotate-45" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
           </summary>
-          <div class="-mt-2 pb-6 pr-12">
+          <div class="pb-6 pr-10">
             <p class="text-base leading-7 text-gray-600"><%= faq.answer %></p>
             <% if (faq.link) { -%>
-            <a href="<%= faq.link.href %>" class="group/link mt-3 inline-flex items-center gap-1 text-sm font-medium text-gray-900 hover:text-gray-600">
-              <%= faq.link.text %>
-              <svg class="h-4 w-4 transition-transform group-hover/link:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
-            </a>
+            <a href="<%= faq.link.href %>" class="mt-3 inline-block text-sm font-semibold text-gray-900 hover:text-gray-600"><%= faq.link.text %> <span aria-hidden="true">&rarr;</span></a>
             <% } -%>
           </div>
         </details>

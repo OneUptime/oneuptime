@@ -1342,8 +1342,8 @@ describe("VMware on every product surface", () => {
   /*
    * There is no single product registry on the marketing site: the nav, the
    * footer, the features table, the homepage hero grid, the homepage product
-   * list, the homepage's infrastructure chips, the product showcase and the
-   * topology page each list products by hand. Render each and check the link.
+   * list, the product showcase and the topology page each list products by
+   * hand. Render each and check the link.
    */
   test("the navigation lists VMware in both the mobile grid and the flyout", async () => {
     const nav: string = await render("nav.ejs", { homeUrl: HOME_URL });
@@ -1370,7 +1370,6 @@ describe("VMware on every product surface", () => {
     "Partials/product-showcase.ejs",
     "Partials/hero-cards/product-grid.ejs",
     "Partials/home-products.ejs",
-    "Partials/home-platform.ejs",
   ])("%s links to the VMware product", async (templateFileName: string) => {
     const partial: string = await render(templateFileName, {
       homeUrl: HOME_URL,
@@ -2046,7 +2045,6 @@ describe("Databases on every product surface", () => {
     "Partials/product-showcase.ejs",
     "Partials/hero-cards/product-grid.ejs",
     "Partials/home-products.ejs",
-    "Partials/home-platform.ejs",
   ])(
     "%s links to the Databases product with its glyph",
     async (templateFileName: string) => {
@@ -2065,17 +2063,11 @@ describe("Databases on every product surface", () => {
     const products: string = await render("Partials/home-products.ejs", {
       homeUrl: HOME_URL,
     });
-    const chips: string = await render("Partials/home-platform.ejs", {
-      homeUrl: HOME_URL,
-    });
+    const links: Array<string> = productLinksIn(products);
 
-    for (const partial of [products, chips]) {
-      const links: Array<string> = productLinksIn(partial);
-
-      expect(links[links.indexOf("/product/host") + 1]).toBe(
-        "/product/databases",
-      );
-    }
+    expect(links[links.indexOf("/product/host") + 1]).toBe(
+      "/product/databases",
+    );
   });
 
   test("the hero card and icon partials render on their own", async () => {
@@ -3087,7 +3079,6 @@ describe("Queues on every product surface", () => {
     "Partials/product-showcase.ejs",
     "Partials/hero-cards/product-grid.ejs",
     "Partials/home-products.ejs",
-    "Partials/home-platform.ejs",
   ])(
     "%s links to the Queues product with its glyph",
     async (templateFileName: string) => {
@@ -3105,7 +3096,6 @@ describe("Queues on every product surface", () => {
   test("the homepage and the hero grid list Queues next to Databases", async () => {
     for (const templateFileName of [
       "Partials/home-products.ejs",
-      "Partials/home-platform.ejs",
       "Partials/hero-cards/product-grid.ejs",
     ]) {
       const partial: string = await render(templateFileName, {
