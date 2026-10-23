@@ -1,6 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 import {
   SESSION_REPLAY_CUSTOM_EVENT_TAGS,
+  SESSION_REPLAY_NAVIGATION_TYPES,
   SESSION_REPLAY_RRWEB_CUSTOM_EVENT_TYPE,
   SessionReplayCustomEventTag,
   SessionReplayIdlePausedPayload,
@@ -21,6 +22,7 @@ import {
   isSessionReplayIdentifyPayload,
   isSessionReplayIdlePausedPayload,
   isSessionReplayIdleResumedPayload,
+  isSessionReplayNavigationType,
   isSessionReplayNetworkPayload,
   isSessionReplayPerformanceBudgetPayload,
   isSessionReplayPerformancePayload,
@@ -324,6 +326,65 @@ describe("payload guards accept what the recorder builds", () => {
         kind: "long-task",
         durationMs: 320,
         budgetMs: 200,
+      }),
+    ).toBe(true);
+  });
+
+  /*
+   * Issue #5181: every vital names the kind of page view it describes, in
+   * the web-vitals library's terms. Stored payloads quote these strings,
+   * so the list only ever grows, and the player reads them through the
+   * one guard.
+   */
+  it("performance: the kinds of page view a vital can describe", () => {
+    expect(SESSION_REPLAY_NAVIGATION_TYPES).toEqual([
+      "hard",
+      "soft",
+      "prerender",
+      "back-forward-cache",
+    ]);
+
+    for (const navigationType of SESSION_REPLAY_NAVIGATION_TYPES) {
+      expect(isSessionReplayNavigationType(navigationType)).toBe(true);
+
+      const vital: SessionReplayWebVitalPayload = {
+        kind: "web-vital",
+        metric: "FCP",
+        value: 68,
+        rating: "good",
+        navigationType: navigationType,
+      };
+
+      expect(isSessionReplayWebVitalPayload(vital)).toBe(true);
+    }
+
+    /* The library's own words for a load are not ours; neither is junk. */
+    for (const value of [
+      "navigate",
+      "reload",
+      "back-forward",
+      "restore",
+      "soft-navigation",
+      "Prerender",
+      "",
+      null,
+      undefined,
+      1,
+      {},
+    ]) {
+      expect(isSessionReplayNavigationType(value)).toBe(false);
+    }
+
+    /*
+     * A vital without one - from a recorder older than the field - is
+     * still a vital.
+     */
+    expect(
+      isSessionReplayWebVitalPayload({
+        kind: "web-vital",
+        metric: "FCP",
+        value: 2068,
+        rating: "needs-improvement",
       }),
     ).toBe(true);
   });

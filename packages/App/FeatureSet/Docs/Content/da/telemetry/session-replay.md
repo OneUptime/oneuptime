@@ -863,7 +863,13 @@ Under standardudløseren _Always_ uploades hver samplet session, så disse budge
 
 Hvert budget er slået fra ved `0` (standard). Sessioner, der fanges på denne måde, vises med udløserens årsag `performance` (_Slow_ i listen). Mislykkede og annullerede forespørgsler tælles ikke her — en 5xx eller en netværksfejl udløser allerede via fejlvejen.
 
-Uafhængigt af budgetterne rapporterer optageren hver sides Core Web Vitals — LCP, CLS, INP, FCP og TTFB med deres vurdering good / needs-improvement / poor — som **Perf**-rækker. Vitals udløser aldrig en upload af sig selv.
+Uafhængigt af budgetterne rapporterer optageren hver sides Core Web Vitals — LCP, CLS, INP, FCP og TTFB med deres vurdering good / needs-improvement / poor — som **Perf**-rækker. Vitals udløser aldrig en upload af sig selv. CLS og INP dækker hele sidens levetid: vokser en af dem, efter at den besøgende er vendt tilbage til fanen, rapporteres den igen som en ny række, og de to rækkers detaljer linker til hinanden.
+
+Optageren måler hver vital, som Googles bibliotek `web-vitals` gør, så en optagelse giver de samme tal som din egen web-vitals-telemetri for det samme besøg. Tre slags sideindlæsning måles anderledes end en almindelig:
+
+- En side, som browseren har forhåndsgengivet, før den besøgende åbnede den, sådan som Chrome gør med en side, den forventer bliver åbnet fra adresselinjen, måles fra det øjeblik, den blev åbnet: dens FCP, LCP og TTFB udelader den tid, den ventede uset, og det gør LCP-budgettet også. Hver af dens vitals siger det i sine detaljer.
+- En side, der blev åbnet i en fane i baggrunden, rapporterer ingen FCP, LCP eller CLS. Browseren tegner først en skjult side, når den bliver vist, så de tal ville måle fanen, ikke siden.
+- En side, der blev gendannet fra back/forward-cachen, rapporterer sit eget sæt: TTFB 0, FCP og LCP frem til dens første billede tilbage på skærmen, derefter CLS og INP for det besøg. Hver af dem siger det i sine detaljer.
 
 INP rapporteres pr. visning, ikke pr. sideindlæsning. I en enkeltsidesapp lukker hvert ruteskift (`pushState`, `replaceState`, tilbage/frem eller en hashrute `#/`) den aktuelle visning og starter en ny, så et besøg gennem fem ruter får op til fem INP-rækker, hver mærket med sin rute. En interaktion tilhører den visning, den startede i: det klik, der navigerede fra `/products` til `/cart`, tæller for `/products`, som er den side, der var langsom til at svare. Hver INP-række siger også, hvad den langsomme interaktion var — markør eller tastatur, elementet (en strukturel selektor som `div#checkout > button.pay`, bygget som et kliks og uden nogensinde at indeholde tekst eller attributværdier), og hvordan dens tid fordelte sig på inputforsinkelse, behandling og præsentation. En visning rapporteres omkring et sekund efter, at brugeren forlader den, eller når fanen skjules.
 

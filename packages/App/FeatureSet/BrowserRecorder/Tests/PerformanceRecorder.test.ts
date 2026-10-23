@@ -12,6 +12,7 @@ import PerformanceRecorder, {
   WebVitalEvent,
   rateWebVital,
 } from "../src/PerformanceRecorder";
+import { resetDocumentState, userInput } from "./TrustedEvents";
 
 /*
  * A controllable PerformanceObserver stand-in. jsdom has no
@@ -201,6 +202,7 @@ describe("PerformanceRecorder", (): void => {
     }
 
     removeObserver(window);
+    resetDocumentState();
     jest.restoreAllMocks();
   });
 
@@ -247,13 +249,23 @@ describe("PerformanceRecorder", (): void => {
     recorder = makeRecorder({});
     recorder.start(window);
 
+    /*
+     * first-input beside event timing, as web-vitals observes them: the
+     * first interaction is delivered whatever its duration.
+     */
     expect(
       handles
         .map((handle: FakeObserverHandle): string | null => {
           return handle.entryType;
         })
         .sort(),
-    ).toEqual(["event", "largest-contentful-paint", "layout-shift", "paint"]);
+    ).toEqual([
+      "event",
+      "first-input",
+      "largest-contentful-paint",
+      "layout-shift",
+      "paint",
+    ]);
 
     /* No longtask observer: that one is a budget, and the budget is 0. */
     expect(handleFor(handles, "longtask")).toBeUndefined();
@@ -353,7 +365,7 @@ describe("PerformanceRecorder", (): void => {
 
       /* A later, larger candidate is the page's real LCP. */
       handles[0]?.emit([{ startTime: 3100 }]);
-      document.dispatchEvent(new Event("pointerdown"));
+      userInput("pointerdown");
 
       expect(vital("LCP")?.value).toBe(3100);
       expect(handles[0]?.isDisconnected).toBe(true);
@@ -625,8 +637,8 @@ describe("PerformanceRecorder", (): void => {
     recorder = makeRecorder({ lcp: 1000, longTask: 100 });
     recorder.start(window);
 
-    /* lcp, longtask, paint, layout-shift, event (first-input is the fallback). */
-    expect(handles).toHaveLength(5);
+    /* lcp, longtask, paint, layout-shift, and event with first-input beside it. */
+    expect(handles).toHaveLength(6);
 
     recorder.stop();
 
@@ -690,6 +702,7 @@ describe("PerformanceRecorder", (): void => {
             value: 640,
             rating: "good",
             occurredAtUnixMs: 1_700_000_000_640,
+            navigationType: "hard",
           },
         ]);
 
@@ -714,6 +727,7 @@ describe("PerformanceRecorder", (): void => {
           value: 1900,
           rating: "poor",
           occurredAtUnixMs: 1_700_000_001_900,
+          navigationType: "hard",
         });
       });
 
@@ -774,6 +788,7 @@ describe("PerformanceRecorder", (): void => {
             value: 1900,
             rating: "needs-improvement",
             occurredAtUnixMs: atOrigin(1900.4),
+            navigationType: "hard",
           },
         ]);
         expect(handles[0]?.isDisconnected).toBe(true);
@@ -795,7 +810,7 @@ describe("PerformanceRecorder", (): void => {
         /* Nothing yet: the browser may still issue a larger candidate. */
         expect(vitals()).toHaveLength(0);
 
-        document.dispatchEvent(new Event("keydown"));
+        userInput("keydown");
 
         expect(vitals()).toEqual([
           {
@@ -804,12 +819,13 @@ describe("PerformanceRecorder", (): void => {
             value: 2600,
             rating: "needs-improvement",
             occurredAtUnixMs: atOrigin(2600),
+            navigationType: "hard",
           },
         ]);
         expect(handles[0]?.isDisconnected).toBe(true);
 
         /* Once per page: neither a second input nor a hide adds another. */
-        document.dispatchEvent(new Event("click"));
+        userInput("click");
         window.dispatchEvent(new Event("pagehide"));
 
         expect(vitals()).toHaveLength(1);
@@ -851,6 +867,7 @@ describe("PerformanceRecorder", (): void => {
           value: 4300,
           rating: "poor",
           occurredAtUnixMs: atOrigin(4300),
+          navigationType: "hard",
         });
       });
 
@@ -867,15 +884,27 @@ describe("PerformanceRecorder", (): void => {
     });
 
     describe("CLS", (): void => {
+      /*
+       * CLS is reported for a page whose FCP was reported, as web-vitals
+       * and CrUX report it, so each case paints first.
+       */
+      function paintFirst(handles: Array<FakeObserverHandle>): void {
+        handleFor(handles, "paint")?.emit([
+          { name: "first-contentful-paint", startTime: 400 },
+        ]);
+      }
+
       it("sums shifts within a session window, takes the largest window, and reports it where it shifted", (): void => {
         const handles: Array<FakeObserverHandle> = installFakeObserver(window, [
           "layout-shift",
+          "paint",
         ]);
 
         recorder = makeRecorder({});
         recorder.start(window);
+        paintFirst(handles);
 
-        handles[0]?.emit([
+        handleFor(handles, "layout-shift")?.emit([
           { value: 0.05, startTime: 1000, hadRecentInput: false },
           /* 500ms later: same session -> 0.09. */
           { value: 0.04, startTime: 1500, hadRecentInput: false },
@@ -896,16 +925,19 @@ describe("PerformanceRecorder", (): void => {
           value: 0.09,
           rating: "good",
           occurredAtUnixMs: atOrigin(1500),
+          navigationType: "hard",
         });
       });
 
       it("starts a new window after 5 seconds even without a gap", (): void => {
         const handles: Array<FakeObserverHandle> = installFakeObserver(window, [
           "layout-shift",
+          "paint",
         ]);
 
         recorder = makeRecorder({});
         recorder.start(window);
+        paintFirst(handles);
 
         const shifts: Array<Record<string, unknown>> = [];
 
@@ -918,7 +950,7 @@ describe("PerformanceRecorder", (): void => {
           });
         }
 
-        handles[0]?.emit(shifts);
+        handleFor(handles, "layout-shift")?.emit(shifts);
         window.dispatchEvent(new Event("pagehide"));
 
         /* 7 shifts fit under 5s (0..4800ms): 0.21, not 0.33. */
@@ -927,10 +959,14 @@ describe("PerformanceRecorder", (): void => {
       });
 
       it("reports a measured 0 when shifts were observable but none happened", (): void => {
-        installFakeObserver(window, ["layout-shift"]);
+        const handles: Array<FakeObserverHandle> = installFakeObserver(window, [
+          "layout-shift",
+          "paint",
+        ]);
 
         recorder = makeRecorder({});
         recorder.start(window);
+        paintFirst(handles);
 
         window.dispatchEvent(new Event("pagehide"));
 
@@ -962,10 +998,16 @@ describe("PerformanceRecorder", (): void => {
         const handles: Array<FakeObserverHandle> = installFakeObserver(window, [
           "layout-shift",
           "event",
+          "paint",
         ]);
 
         recorder = makeRecorder({});
         recorder.start(window);
+
+        /* CLS waits on a reported FCP, as web-vitals' does. */
+        handleFor(handles, "paint")?.emit([
+          { name: "first-contentful-paint", startTime: 400 },
+        ]);
 
         handleFor(handles, "layout-shift")?.emit([
           { value: 0.05, startTime: 1000, hadRecentInput: false },
@@ -986,10 +1028,16 @@ describe("PerformanceRecorder", (): void => {
       });
 
       it("reports a page-level vital once, however often it is asked", (): void => {
-        installFakeObserver(window, ["layout-shift"]);
+        const handles: Array<FakeObserverHandle> = installFakeObserver(window, [
+          "layout-shift",
+          "paint",
+        ]);
 
         recorder = makeRecorder({});
         recorder.start(window);
+        handleFor(handles, "paint")?.emit([
+          { name: "first-contentful-paint", startTime: 400 },
+        ]);
 
         recorder.finaliseVitalsNow();
         recorder.finaliseVitalsNow();
@@ -1069,8 +1117,14 @@ describe("PerformanceRecorder", (): void => {
         );
         expect(handle?.buffered).toBe(true);
 
-        /* first-input is the fallback only; never both. */
-        expect(handleFor(handles, "first-input")).toBeUndefined();
+        /*
+         * first-input beside it, with no threshold: the browser hands over
+         * the first interaction whatever its duration.
+         */
+        expect(handleFor(handles, "first-input")?.observeOptions).toEqual({
+          type: "first-input",
+          buffered: true,
+        });
 
         handle?.emit([
           /* Not an interaction (hover, mousemove): excluded. */
@@ -1126,11 +1180,15 @@ describe("PerformanceRecorder", (): void => {
         "largest-contentful-paint",
         "layout-shift",
         "event",
+        "paint",
       ]);
 
       recorder = makeRecorder({});
       recorder.start(window);
 
+      handleFor(handles, "paint")?.emit([
+        { name: "first-contentful-paint", startTime: 1000 },
+      ]);
       handleFor(handles, "largest-contentful-paint")?.emit([
         { startTime: 1500 },
       ]);
@@ -1147,8 +1205,13 @@ describe("PerformanceRecorder", (): void => {
         vitals().map((event: WebVitalEvent): string => {
           return `${event.metric}:${event.value}:${event.rating}`;
         }),
-      ).toEqual(["LCP:1500:good", "CLS:0.3:poor", "INP:700:poor"]);
-      expect(recorder.getWebVitalCount()).toBe(3);
+      ).toEqual([
+        "FCP:1000:good",
+        "LCP:1500:good",
+        "CLS:0.3:poor",
+        "INP:700:poor",
+      ]);
+      expect(recorder.getWebVitalCount()).toBe(4);
       expect(issues).toHaveLength(0);
     });
 
@@ -1222,7 +1285,7 @@ describe("PerformanceRecorder", (): void => {
 
       /* A candidate delivered late by a fake that ignores disconnect. */
       handles[0]?.emit([{ startTime: 3000 }]);
-      document.dispatchEvent(new Event("pointerdown"));
+      userInput("pointerdown");
       window.dispatchEvent(new Event("pagehide"));
 
       expect(vital("LCP")).toBeNull();
