@@ -153,7 +153,7 @@ export function needsTurnOnRetry(data: {
 }): boolean {
   return (
     Boolean(data.error) ||
-    Boolean(data.turnedOn && data.turnedOn.problems.length > 0)
+    Boolean(data.turnedOn && (data.turnedOn.problems || []).length > 0)
   );
 }
 
@@ -191,9 +191,8 @@ const SecurityGettingStarted: FunctionComponent<ComponentProps> = (
     return step.isDone;
   }).length;
   const isAllDone: boolean = doneCount === steps.length;
-  const problems: Array<TurnOnRecommendedProblem> = turnedOn
-    ? turnedOn.problems
-    : [];
+  const problems: Array<TurnOnRecommendedProblem> =
+    turnedOn?.problems || [];
   const showTryAgain: boolean = needsTurnOnRetry({ turnedOn, error });
   const showTurnOn: boolean = !showTryAgain && needsTurnOnRecommended(steps);
 

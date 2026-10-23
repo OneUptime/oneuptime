@@ -373,7 +373,7 @@ const RuleLibraryPage: FunctionComponent<
           detections: true,
           playbook: false,
         });
-      setProblems(result.problems);
+      setProblems(result.problems || []);
       setReadCount((count: number): number => {
         return count + 1;
       });

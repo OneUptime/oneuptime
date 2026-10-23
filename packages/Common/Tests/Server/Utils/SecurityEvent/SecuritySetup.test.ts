@@ -23,10 +23,18 @@ import SecuritySetup, {
   TurnOnRecommendedResult,
   buildDetectionRuleFromLibrary,
   buildSetupTestEvents,
+  describeTurnOnRecommendedFailure,
   isRuleFromLibraryEntry,
 } from "../../../../Server/Utils/SecurityEvent/SecuritySetup";
+import logger from "../../../../Server/Utils/Logger";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OneUptimeDate from "../../../../Types/Date";
+import BadDataException from "../../../../Types/Exception/BadDataException";
+import BadRequestException from "../../../../Types/Exception/BadRequestException";
+import ForbiddenException from "../../../../Types/Exception/ForbiddenException";
+import NotAuthenticatedException from "../../../../Types/Exception/NotAuthenticatedException";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
+import PaymentRequiredException from "../../../../Types/Exception/PaymentRequiredException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
@@ -42,10 +50,17 @@ import {
   SETUP_TEST_PRODUCT_NAME,
   SETUP_TEST_SOURCE_IP,
 } from "../../../../Types/SecurityEvent/SecuritySetupTest";
+import * as SecurityPlaybookTemplates from "../../../../Types/SecurityPlaybook/SecurityPlaybookTemplates";
 import {
   ENRICH_NEW_CASES_TEMPLATE_KEY,
   getSecurityPlaybookTemplateDefinition,
 } from "../../../../Types/SecurityPlaybook/SecurityPlaybookTemplates";
+import {
+  TurnOnRecommendedAction,
+  TurnOnRecommendedPart,
+  TurnOnRecommendedProblem,
+  TurnOnRecommendedReason,
+} from "../../../../Types/SecurityEvent/TurnOnRecommended";
 import ServiceType from "../../../../Types/Telemetry/ServiceType";
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -390,6 +405,7 @@ describe("SecuritySetup.turnOnRecommended", () => {
       logsTurnedOn: true,
       playbookAdded: true,
       playbookTurnedOn: false,
+      problems: [],
     });
     expect(
       writes.rulesCreated.map((created: DetectionRule): string => {
@@ -457,6 +473,7 @@ describe("SecuritySetup.turnOnRecommended", () => {
       logsTurnedOn: false,
       playbookAdded: false,
       playbookTurnedOn: false,
+      problems: [],
     });
     expect(writes.rulesCreated).toHaveLength(0);
     expect(writes.logSourcesCreated).toHaveLength(0);
@@ -545,6 +562,495 @@ describe("SecuritySetup.turnOnRecommended", () => {
     expect(writes.logSourcesCreated).toHaveLength(0);
     expect(writes.playbooksCreated).toHaveLength(1);
   });
+
+  // The library's own 53-character title, against the old 50-character name.
+  const SEQUENCE_TITLE: string =
+    "Failed sign-ins, then a success from the same address";
+
+  function failCreatingRules(
+    writes: Writes,
+    fail: (rule: DetectionRule) => Error | null,
+  ): void {
+    jest
+      .spyOn(DetectionRuleService, "create")
+      .mockImplementation(
+        async (data: { data: DetectionRule; props: unknown }) => {
+          const error: Error | null = fail(data.data);
+
+          if (error) {
+            throw error;
+          }
+
+          writes.rulesCreated.push(data.data);
+          writes.propsSeen.push(data.props);
+          return data.data as never;
+        },
+      );
+  }
+
+  test("a rule that cannot be added is said, with why, and every part after it is still done", async () => {
+    const writes: Writes = install({});
+    failCreatingRules(writes, (rule: DetectionRule): Error | null => {
+      return rule.name === SEQUENCE_TITLE
+        ? new BadDataException("name length cannot be more than 50 characters")
+        : null;
+    });
+    const recommended: Array<DetectionRuleLibraryEntry> =
+      getRecommendedDetectionRules();
+
+    const result: TurnOnRecommendedResult =
+      await SecuritySetup.turnOnRecommended({
+        projectId: PROJECT_ID,
+        props: PROPS,
+        options: { logs: true, detections: true, playbook: true },
+      });
+
+    expect(result).toEqual({
+      rulesAdded: recommended.length - 1,
+      rulesTurnedOn: 0,
+      logsTurnedOn: true,
+      playbookAdded: true,
+      playbookTurnedOn: false,
+      problems: [
+        {
+          part: TurnOnRecommendedPart.Rule,
+          action: TurnOnRecommendedAction.Add,
+          name: SEQUENCE_TITLE,
+          reason: TurnOnRecommendedReason.Refused,
+          detail: "name length cannot be more than 50 characters",
+        },
+      ],
+    });
+
+    // The rules after it were still added, in the library's order, and the playbook.
+    expect(
+      writes.rulesCreated.map((created: DetectionRule): string => {
+        return created.name!;
+      }),
+    ).toEqual(
+      recommended
+        .filter((entry: DetectionRuleLibraryEntry): boolean => {
+          return entry.title !== SEQUENCE_TITLE;
+        })
+        .map((entry: DetectionRuleLibraryEntry): string => {
+          return entry.title;
+        }),
+    );
+    expect(writes.playbooksCreated).toHaveLength(1);
+    expect(writes.logSourcesCreated).toHaveLength(1);
+  });
+
+  test("clicking again after a failure does only what was left, and nothing twice", async () => {
+    const writes: Writes = install({});
+    let isFixed: boolean = false;
+    failCreatingRules(writes, (rule: DetectionRule): Error | null => {
+      return rule.name === SEQUENCE_TITLE && !isFixed
+        ? new Error("connection reset")
+        : null;
+    });
+
+    const first: TurnOnRecommendedResult =
+      await SecuritySetup.turnOnRecommended({
+        projectId: PROJECT_ID,
+        props: PROPS,
+        options: { logs: false, detections: true, playbook: false },
+      });
+
+    expect(first.problems).toHaveLength(1);
+
+    // The second click reads what the first one added.
+    const added: Array<DetectionRule> = writes.rulesCreated.map(
+      (created: DetectionRule, index: number): DetectionRule => {
+        return rule({
+          name: created.name!,
+          isEnabled: true,
+          sigmaRuleYaml: created.sigmaRuleYaml,
+          idSuffix: String(5000 + index),
+        });
+      },
+    );
+    jest.spyOn(DetectionRuleService, "findBy").mockResolvedValue(added as never);
+    writes.rulesCreated.length = 0;
+    isFixed = true;
+
+    const second: TurnOnRecommendedResult =
+      await SecuritySetup.turnOnRecommended({
+        projectId: PROJECT_ID,
+        props: PROPS,
+        options: { logs: false, detections: true, playbook: false },
+      });
+
+    expect(second).toEqual({
+      rulesAdded: 1,
+      rulesTurnedOn: 0,
+      logsTurnedOn: false,
+      playbookAdded: false,
+      playbookTurnedOn: false,
+      problems: [],
+    });
+    expect(
+      writes.rulesCreated.map((created: DetectionRule): string => {
+        return created.name!;
+      }),
+    ).toEqual([SEQUENCE_TITLE]);
+  });
+
+  test("your logs that cannot be turned on keep nothing else off, and the server's own failure is never the reader's to read", async () => {
+    const writes: Writes = install({});
+    jest
+      .spyOn(SecurityLogSourceService, "create")
+      .mockRejectedValue(new Error("connection reset by peer at 10.0.0.12"));
+
+    const result: TurnOnRecommendedResult =
+      await SecuritySetup.turnOnRecommended({
+        projectId: PROJECT_ID,
+        props: PROPS,
+        options: { logs: true, detections: true, playbook: true },
+      });
+
+    expect(result.problems).toEqual([
+      {
+        part: TurnOnRecommendedPart.Logs,
+        action: TurnOnRecommendedAction.Add,
+        name: "",
+        reason: TurnOnRecommendedReason.Failed,
+        detail: "",
+      },
+    ]);
+    expect(result.logsTurnedOn).toBe(false);
+    expect(result.rulesAdded).toBe(getRecommendedDetectionRules().length);
+    expect(result.playbookAdded).toBe(true);
+    expect(writes.playbooksCreated).toHaveLength(1);
+    expect(JSON.stringify(result)).not.toContain("connection reset");
+    expect(JSON.stringify(result)).not.toContain("10.0.0.12");
+  });
+
+  test("when the project's rules cannot be read, no rule is added - it would copy the ones there - and it says so", async () => {
+    const writes: Writes = install({});
+    jest
+      .spyOn(DetectionRuleService, "findBy")
+      .mockRejectedValue(
+        new NotAuthorizedException("You do not have permission to read rules"),
+      );
+
+    const result: TurnOnRecommendedResult =
+      await SecuritySetup.turnOnRecommended({
+        projectId: PROJECT_ID,
+        props: PROPS,
+        options: { logs: true, detections: true, playbook: true },
+      });
+
+    expect(result.problems).toEqual([
+      {
+        part: TurnOnRecommendedPart.Rule,
+        action: TurnOnRecommendedAction.Check,
+        name: "",
+        reason: TurnOnRecommendedReason.NotAllowed,
+        detail: "",
+      },
+    ]);
+    expect(writes.rulesCreated).toHaveLength(0);
+    expect(result.rulesAdded).toBe(0);
+    // Your logs and the playbook do not depend on it.
+    expect(result.logsTurnedOn).toBe(true);
+    expect(result.playbookAdded).toBe(true);
+  });
+
+  test("a rule turned off that the role may not turn back on is named as the project names it", async () => {
+    const recommended: Array<DetectionRuleLibraryEntry> =
+      getRecommendedDetectionRules();
+    const off: DetectionRule = rule({
+      name: "Renamed by the team",
+      sigmaRuleYaml: recommended[0]!.sigmaRuleYaml,
+      isEnabled: false,
+      idSuffix: "2101",
+    });
+    const writes: Writes = install({ rules: [off] });
+    jest
+      .spyOn(DetectionRuleService, "updateOneById")
+      .mockRejectedValue(new NotAuthorizedException("not allowed"));
+
+    const result: TurnOnRecommendedResult =
+      await SecuritySetup.turnOnRecommended({
+        projectId: PROJECT_ID,
+        props: PROPS,
+        options: { logs: false, detections: true, playbook: false },
+      });
+
+    expect(result.problems).toEqual([
+      {
+        part: TurnOnRecommendedPart.Rule,
+        action: TurnOnRecommendedAction.TurnOn,
+        name: "Renamed by the team",
+        reason: TurnOnRecommendedReason.NotAllowed,
+        detail: "",
+      },
+    ]);
+    expect(result.rulesTurnedOn).toBe(0);
+    // Never copied: the other rules are added, that one is not.
+    expect(result.rulesAdded).toBe(recommended.length - 1);
+    expect(
+      writes.rulesCreated.some((created: DetectionRule): boolean => {
+        return created.name === recommended[0]!.title;
+      }),
+    ).toBe(false);
+  });
+
+  test("a plan that does not include rules is said once per rule, in the plan's own words", async () => {
+    install({});
+    jest
+      .spyOn(DetectionRuleService, "create")
+      .mockRejectedValue(
+        new PaymentRequiredException(
+          "Please upgrade your plan to Growth to access this feature",
+        ),
+      );
+
+    const result: TurnOnRecommendedResult =
+      await SecuritySetup.turnOnRecommended({
+        projectId: PROJECT_ID,
+        props: PROPS,
+        options: { logs: false, detections: true, playbook: false },
+      });
+
+    expect(result.rulesAdded).toBe(0);
+    expect(result.problems).toHaveLength(getRecommendedDetectionRules().length);
+
+    for (const problem of result.problems) {
+      expect(problem).toMatchObject({
+        part: TurnOnRecommendedPart.Rule,
+        action: TurnOnRecommendedAction.Add,
+        reason: TurnOnRecommendedReason.Plan,
+        detail: "Please upgrade your plan to Growth to access this feature",
+      });
+    }
+  });
+
+  test("Enrich New Cases that cannot be added is said by its name", async () => {
+    install({});
+    jest
+      .spyOn(SecurityPlaybookService, "create")
+      .mockRejectedValue(new ForbiddenException("Forbidden"));
+
+    const result: TurnOnRecommendedResult =
+      await SecuritySetup.turnOnRecommended({
+        projectId: PROJECT_ID,
+        props: PROPS,
+        options: { logs: false, detections: false, playbook: true },
+      });
+
+    expect(result.playbookAdded).toBe(false);
+    expect(result.problems).toEqual([
+      {
+        part: TurnOnRecommendedPart.Playbook,
+        action: TurnOnRecommendedAction.Add,
+        name: "Enrich New Cases",
+        reason: TurnOnRecommendedReason.NotAllowed,
+        detail: "",
+      },
+    ]);
+  });
+
+  test("Enrich New Cases turned off that cannot be turned back on is said by the name the project gave it", async () => {
+    const off: SecurityPlaybook = {
+      name: "Enrich new cases",
+      isEnabled: false,
+      id: ObjectID.generate(),
+    } as SecurityPlaybook;
+    const writes: Writes = install({ playbooks: [off] });
+    jest
+      .spyOn(SecurityPlaybookService, "updateOneById")
+      .mockRejectedValue(new Error("deadlock detected"));
+
+    const result: TurnOnRecommendedResult =
+      await SecuritySetup.turnOnRecommended({
+        projectId: PROJECT_ID,
+        props: PROPS,
+        options: { logs: false, detections: false, playbook: true },
+      });
+
+    expect(writes.playbooksCreated).toHaveLength(0);
+    expect(result.problems).toEqual([
+      {
+        part: TurnOnRecommendedPart.Playbook,
+        action: TurnOnRecommendedAction.TurnOn,
+        name: "Enrich new cases",
+        reason: TurnOnRecommendedReason.Failed,
+        detail: "",
+      },
+    ]);
+  });
+
+  test("the project's playbooks that cannot be read add no copy of Enrich New Cases", async () => {
+    const writes: Writes = install({});
+    jest
+      .spyOn(SecurityPlaybookService, "findBy")
+      .mockRejectedValue(new Error("statement timeout"));
+
+    const result: TurnOnRecommendedResult =
+      await SecuritySetup.turnOnRecommended({
+        projectId: PROJECT_ID,
+        props: PROPS,
+        options: { logs: false, detections: false, playbook: true },
+      });
+
+    expect(writes.playbooksCreated).toHaveLength(0);
+    expect(result.problems).toEqual([
+      {
+        part: TurnOnRecommendedPart.Playbook,
+        action: TurnOnRecommendedAction.Check,
+        name: "Enrich New Cases",
+        reason: TurnOnRecommendedReason.Failed,
+        detail: "",
+      },
+    ]);
+  });
+
+  test("a missing Enrich New Cases template is said, never thrown", async () => {
+    install({});
+    jest
+      .spyOn(SecurityPlaybookTemplates, "getSecurityPlaybookTemplateDefinition")
+      .mockReturnValue(undefined);
+
+    const result: TurnOnRecommendedResult =
+      await SecuritySetup.turnOnRecommended({
+        projectId: PROJECT_ID,
+        props: PROPS,
+        options: { logs: false, detections: false, playbook: true },
+      });
+
+    expect(result.problems).toEqual([
+      {
+        part: TurnOnRecommendedPart.Playbook,
+        action: TurnOnRecommendedAction.Add,
+        name: "",
+        reason: TurnOnRecommendedReason.Failed,
+        detail: "",
+      },
+    ]);
+  });
+
+  test("a failure on OneUptime's side is logged as an error; a refusal by the role, the plan or a check as a warning", async () => {
+    install({});
+    const errors: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(logger, "error")
+      .mockImplementation(() => {
+        return undefined;
+      });
+    const warnings: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(logger, "warn")
+      .mockImplementation(() => {
+        return undefined;
+      });
+    jest
+      .spyOn(SecurityLogSourceService, "create")
+      .mockRejectedValue(new Error("connection reset"));
+    jest
+      .spyOn(SecurityPlaybookService, "create")
+      .mockRejectedValue(new NotAuthorizedException("not allowed"));
+
+    const result: TurnOnRecommendedResult =
+      await SecuritySetup.turnOnRecommended({
+        projectId: PROJECT_ID,
+        props: PROPS,
+        options: { logs: true, detections: false, playbook: true },
+      });
+
+    expect(result.problems).toHaveLength(2);
+    expect(String(errors.mock.calls[0]![0])).toContain(
+      `could not add logs in project ${PROJECT_ID.toString()} (failed)`,
+    );
+    expect(String(warnings.mock.calls[0]![0])).toContain(
+      'could not add playbook "Enrich New Cases"',
+    );
+  });
+
+  test("every problem names a part, an action and a reason the Dashboard words", async () => {
+    install({});
+    jest.spyOn(DetectionRuleService, "create").mockRejectedValue(new Error("x"));
+    jest
+      .spyOn(SecurityLogSourceService, "create")
+      .mockRejectedValue(new BadRequestException("Bad request"));
+    jest
+      .spyOn(SecurityPlaybookService, "create")
+      .mockRejectedValue(new NotAuthenticatedException("Sign in"));
+
+    const result: TurnOnRecommendedResult =
+      await SecuritySetup.turnOnRecommended({
+        projectId: PROJECT_ID,
+        props: PROPS,
+        options: { logs: true, detections: true, playbook: true },
+      });
+
+    for (const problem of result.problems as Array<TurnOnRecommendedProblem>) {
+      expect(Object.values(TurnOnRecommendedPart)).toContain(problem.part);
+      expect(Object.values(TurnOnRecommendedAction)).toContain(problem.action);
+      expect(Object.values(TurnOnRecommendedReason)).toContain(problem.reason);
+      expect(typeof problem.name).toBe("string");
+      expect(typeof problem.detail).toBe("string");
+    }
+  });
+});
+
+describe("describeTurnOnRecommendedFailure", () => {
+  test.each([
+    [
+      "a role that may not",
+      new NotAuthorizedException("You do not have permissions"),
+      TurnOnRecommendedReason.NotAllowed,
+      "",
+    ],
+    [
+      "a refusal of the request",
+      new ForbiddenException("Forbidden"),
+      TurnOnRecommendedReason.NotAllowed,
+      "",
+    ],
+    [
+      "a session that ended",
+      new NotAuthenticatedException("Not signed in"),
+      TurnOnRecommendedReason.NotAllowed,
+      "",
+    ],
+    [
+      "a plan, in its own words",
+      new PaymentRequiredException("Please upgrade your plan to Scale"),
+      TurnOnRecommendedReason.Plan,
+      "Please upgrade your plan to Scale",
+    ],
+    [
+      "a record refused, in its own words",
+      new BadDataException("Sigma rule YAML is required."),
+      TurnOnRecommendedReason.Refused,
+      "Sigma rule YAML is required.",
+    ],
+    [
+      "a bad request, in its own words",
+      new BadRequestException("Bad request"),
+      TurnOnRecommendedReason.Refused,
+      "Bad request",
+    ],
+    [
+      "anything else, never in its own words",
+      new Error("ECONNREFUSED 10.0.0.5:5432"),
+      TurnOnRecommendedReason.Failed,
+      "",
+    ],
+    ["something that is not an error at all", "boom", TurnOnRecommendedReason.Failed, ""],
+  ])(
+    "%s",
+    (
+      _label: string,
+      error: unknown,
+      reason: TurnOnRecommendedReason,
+      detail: string,
+    ) => {
+      expect(describeTurnOnRecommendedFailure(error)).toEqual({
+        reason,
+        detail,
+      });
+    },
+  );
 });
 
 describe("SecuritySetup.runTest", () => {

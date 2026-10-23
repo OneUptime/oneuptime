@@ -23,10 +23,18 @@ import { RECOMMENDED_FILTER } from "../../../../App/FeatureSet/Dashboard/src/Com
 import RuleLibraryPage, {
   RULE_LIBRARY_CATEGORY_SELECT_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/RuleLibrary";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DetectionRule from "../../../Models/DatabaseModels/DetectionRule";
 import Project from "../../../Models/DatabaseModels/Project";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  TurnOnRecommendedAction,
+  TurnOnRecommendedPart,
+  TurnOnRecommendedReason,
+} from "../../../Types/SecurityEvent/TurnOnRecommended";
+import { buildDetectionRuleFromLibrary } from "../../../Utils/SecurityEvent/SecurityTemplateRecords";
 import {
   DETECTION_RULE_LIBRARY,
   DETECTION_RULE_LIBRARY_CATEGORIES,
@@ -50,19 +58,27 @@ const PROJECT_ID: ObjectID = new ObjectID(
 );
 
 let ruleNames: Array<string> = [];
+// Rules with their Sigma YAML, beside the ones known by name alone.
+let ruleRecords: Array<DetectionRule> = [];
 
 beforeEach(() => {
   ruleNames = [];
+  ruleRecords = [];
   jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
   jest.spyOn(PermissionGate, "check").mockReturnValue({ isAllowed: true });
   jest.spyOn(ModelAPI, "getList").mockImplementation(async () => {
-    return {
-      data: ruleNames.map((name: string): DetectionRule => {
+    const data: Array<DetectionRule> = [
+      ...ruleNames.map((name: string): DetectionRule => {
         const rule: DetectionRule = new DetectionRule();
         rule.name = name;
         return rule;
       }),
-      count: ruleNames.length,
+      ...ruleRecords,
+    ];
+
+    return {
+      data,
+      count: data.length,
       skip: 0,
       limit: 100,
     } as never;
@@ -165,6 +181,7 @@ describe("recommended rules in the Rule Library", () => {
           logsTurnedOn: false,
           playbookAdded: false,
           playbookTurnedOn: false,
+          problems: [],
         };
       });
     await renderPage();
@@ -362,5 +379,290 @@ describe("recommended rules in the Rule Library", () => {
         name: `Add All ${DETECTION_RULE_LIBRARY.length - RECOMMENDED.length} Rules`,
       }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("adding from the Rule Library", () => {
+  const SEQUENCE: DetectionRuleLibraryEntry = DETECTION_RULE_LIBRARY.find(
+    (entry: DetectionRuleLibraryEntry): boolean => {
+      return (
+        entry.title === "Failed sign-ins, then a success from the same address"
+      );
+    },
+  )!;
+
+  function entryCard(entry: DetectionRuleLibraryEntry): HTMLElement {
+    return screen.getByTestId(`rule-library-entry-${entry.id}`);
+  }
+
+  function problemRows(): Array<string> {
+    return within(screen.getByTestId("rule-library-problems"))
+      .queryAllByTestId("security-turn-on-problem")
+      .map((row: HTMLElement): string => {
+        return (row.textContent || "").trim();
+      });
+  }
+
+  // Each created rule, as the page sent it.
+  function recordCreates(
+    fail: (rule: DetectionRule) => HTTPErrorResponse | null = (): null => {
+      return null;
+    },
+  ): Array<DetectionRule> {
+    const created: Array<DetectionRule> = [];
+
+    jest
+      .spyOn(ModelAPI, "create")
+      .mockImplementation(async (options: { model: BaseModel }) => {
+        const rule: DetectionRule = options.model as DetectionRule;
+        const failure: HTTPErrorResponse | null = fail(rule);
+
+        if (failure) {
+          throw failure;
+        }
+
+        created.push(rule);
+        return { data: {} } as never;
+      });
+
+    return created;
+  }
+
+  test("reads every rule with its Sigma YAML, so a rule the team renamed is still known", async () => {
+    await renderPage();
+
+    expect(ModelAPI.getList).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: { _id: true, name: true, sigmaRuleYaml: true },
+      }),
+    );
+  });
+
+  test("a recommended rule the team renamed reads as Added, and is not offered again", async () => {
+    const renamed: DetectionRule = new DetectionRule();
+    renamed.name = "Our brute force rule";
+    renamed.sigmaRuleYaml = RECOMMENDED[0]!.sigmaRuleYaml;
+    ruleRecords = [renamed];
+
+    await renderPage();
+
+    await waitFor(() => {
+      expect(
+        within(entryCard(RECOMMENDED[0]!)).getByTestId(
+          `rule-library-added-${RECOMMENDED[0]!.id}`,
+        ),
+      ).toHaveTextContent("Added");
+    });
+    expect(
+      within(entryCard(RECOMMENDED[0]!)).queryByRole("button", {
+        name: "Add Rule",
+      }),
+    ).toBeNull();
+    // The server would not add it either: it is not counted among the missing.
+    expect(
+      screen.getByRole("button", {
+        name: `Add ${RECOMMENDED.length - 1} Recommended Rules`,
+      }),
+    ).toBeInTheDocument();
+  });
+
+  test("Add Rule creates the very rule Turn on recommended adds: the sequence under its whole 53-character title", async () => {
+    const created: Array<DetectionRule> = recordCreates();
+    await renderPage();
+
+    await act(async () => {
+      fireEvent.click(
+        within(entryCard(SEQUENCE)).getByRole("button", { name: "Add Rule" }),
+      );
+    });
+
+    expect(created).toHaveLength(1);
+    expect(created[0]!.name).toBe(SEQUENCE.title);
+    expect(created[0]!.name!.length).toBe(53);
+    expect(
+      BaseModel.toJSON(created[0]!, DetectionRule),
+    ).toEqual(
+      BaseModel.toJSON(
+        buildDetectionRuleFromLibrary({ projectId: PROJECT_ID, entry: SEQUENCE }),
+        DetectionRule,
+      ),
+    );
+    await waitFor(() => {
+      expect(
+        within(entryCard(SEQUENCE)).getByTestId(
+          `rule-library-added-${SEQUENCE.id}`,
+        ),
+      ).toHaveTextContent("Added");
+    });
+    expect(screen.queryByTestId("rule-library-problems")).toBeNull();
+  });
+
+  test("Add All adds every rule it can, then says which it could not add and why; adding again adds only those", async () => {
+    let isFixed: boolean = false;
+    const created: Array<DetectionRule> = recordCreates(
+      (rule: DetectionRule): HTTPErrorResponse | null => {
+        if (isFixed) {
+          return null;
+        }
+
+        if (rule.name === RECOMMENDED[1]!.title) {
+          return new HTTPErrorResponse(500, { message: "Server Error" }, {});
+        }
+
+        if (rule.name === SEQUENCE.title) {
+          return new HTTPErrorResponse(
+            400,
+            { message: "name length cannot be more than 50 characters" },
+            {},
+          );
+        }
+
+        return null;
+      },
+    );
+    await renderPage();
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: `Add All ${DETECTION_RULE_LIBRARY.length} Rules`,
+        }),
+      );
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Add Rules" }));
+    });
+
+    // Every other rule was added: it did not stop at the first it could not.
+    expect(created).toHaveLength(DETECTION_RULE_LIBRARY.length - 2);
+    await waitFor(() => {
+      expect(screen.getByTestId("rule-library-problems")).toHaveTextContent(
+        "Not every rule could be added",
+      );
+    });
+    expect(problemRows()).toEqual([
+      `${RECOMMENDED[1]!.title} - Something went wrong while adding it.`,
+      `${SEQUENCE.title} - OneUptime could not save it: name length cannot be more than 50 characters`,
+    ]);
+    expect(screen.getByTestId("rule-library-problems")).toHaveTextContent(
+      "Adding them again adds only what is still missing.",
+    );
+    expect(screen.getByTestId("rule-library-problems")).toHaveAttribute(
+      "role",
+      "alert",
+    );
+    // The two left out still offer Add Rule; the rest read Added.
+    expect(
+      within(entryCard(SEQUENCE)).getByRole("button", { name: "Add Rule" }),
+    ).toBeInTheDocument();
+    expect(
+      within(entryCard(RECOMMENDED[0]!)).getByTestId(
+        `rule-library-added-${RECOMMENDED[0]!.id}`,
+      ),
+    ).toBeInTheDocument();
+
+    // Adding again: the two that were left, and nothing twice.
+    isFixed = true;
+    created.length = 0;
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Add All 2 Rules" }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Add Rules" }));
+    });
+
+    expect(
+      created.map((rule: DetectionRule): string => {
+        return rule.name!;
+      }),
+    ).toEqual([RECOMMENDED[1]!.title, SEQUENCE.title]);
+    expect(screen.queryByTestId("rule-library-problems")).toBeNull();
+  });
+
+  test("a rule the role cannot add says so, by its name", async () => {
+    recordCreates((): HTTPErrorResponse => {
+      return new HTTPErrorResponse(
+        422,
+        { message: "You do not have permissions to create DetectionRule." },
+        {},
+      );
+    });
+    await renderPage();
+
+    await act(async () => {
+      fireEvent.click(
+        within(entryCard(RECOMMENDED[0]!)).getByRole("button", {
+          name: "Add Rule",
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(problemRows()).toEqual([
+        `${RECOMMENDED[0]!.title} - Your role cannot add it.`,
+      ]);
+    });
+  });
+
+  test("the recommended rules through the server: what it could not add is said the same way", async () => {
+    jest.spyOn(SecurityCaseApi, "turnOnRecommended").mockResolvedValue({
+      rulesAdded: RECOMMENDED.length - 1,
+      rulesTurnedOn: 0,
+      logsTurnedOn: false,
+      playbookAdded: false,
+      playbookTurnedOn: false,
+      problems: [
+        {
+          part: TurnOnRecommendedPart.Rule,
+          action: TurnOnRecommendedAction.Add,
+          name: RECOMMENDED[1]!.title,
+          reason: TurnOnRecommendedReason.Failed,
+          detail: "",
+        },
+      ],
+    });
+    await renderPage();
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: `Add ${RECOMMENDED.length} Recommended Rules`,
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(problemRows()).toEqual([
+        `${RECOMMENDED[1]!.title} - Something went wrong while adding it.`,
+      ]);
+    });
+    expect(screen.getByTestId("rule-library-problems")).toHaveTextContent(
+      "Not every rule could be added",
+    );
+  });
+
+  test("a server that cannot be reached: the rules could not be added, in its sentence", async () => {
+    jest
+      .spyOn(SecurityCaseApi, "turnOnRecommended")
+      .mockRejectedValue(
+        new Error("Error connecting to server. Please try again in few minutes."),
+      );
+    await renderPage();
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: `Add ${RECOMMENDED.length} Recommended Rules`,
+        }),
+      );
+    });
+
+    const box: HTMLElement = await screen.findByTestId("rule-library-problems");
+
+    expect(box).toHaveTextContent("The rules could not be added");
+    expect(box).toHaveTextContent(
+      "Error connecting to server. Please try again in few minutes.",
+    );
+    expect(problemRows()).toEqual([]);
   });
 });

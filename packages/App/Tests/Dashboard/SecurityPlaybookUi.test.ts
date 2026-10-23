@@ -732,11 +732,36 @@ describe("the rule library page", () => {
     expect(isLibraryRuleAdded(first, ["Something else"])).toBe(false);
   });
 
+  test("marks a rule added when the project's rule carries its Sigma id, however the team renamed it", () => {
+    // As Turn on recommended knows it on the server, so neither adds it twice.
+    expect(
+      isLibraryRuleAdded(first, [
+        { name: "Our own name for it", sigmaRuleYaml: first.sigmaRuleYaml },
+      ]),
+    ).toBe(true);
+    expect(
+      isLibraryRuleAdded(first, [
+        { name: "Something else", sigmaRuleYaml: "title: x\nid: another-id" },
+      ]),
+    ).toBe(false);
+    expect(
+      getLibraryRuleViews({
+        category: "",
+        search: first.title,
+        existingRules: [
+          { name: "Renamed", sigmaRuleYaml: first.sigmaRuleYaml },
+        ],
+      }).find((view: LibraryRuleView) => {
+        return view.entry.id === first.id;
+      })?.isAdded,
+    ).toBe(true);
+  });
+
   test("filters by category", () => {
     const identity: Array<LibraryRuleView> = getLibraryRuleViews({
       category: DetectionRuleLibraryCategory.Identity,
       search: "",
-      existingRuleNames: [],
+      existingRules: [],
     });
 
     expect(identity.length).toBeGreaterThan(0);
@@ -746,7 +771,7 @@ describe("the rule library page", () => {
       }),
     ).toBe(true);
     expect(
-      getLibraryRuleViews({ category: "", search: "", existingRuleNames: [] }),
+      getLibraryRuleViews({ category: "", search: "", existingRules: [] }),
     ).toHaveLength(DETECTION_RULE_LIBRARY.length);
   });
 

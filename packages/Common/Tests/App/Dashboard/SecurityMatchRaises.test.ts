@@ -14,6 +14,10 @@ import {
   raisesIncident,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityMatchRaises";
 import { DETECTION_RULE_LIBRARY } from "../../../Types/SecurityEvent/DetectionRuleLibrary";
+import {
+  DETECTION_RULE_NAME_MAX_LENGTH,
+  fitDetectionRuleName,
+} from "../../../Types/SecurityEvent/DetectionRuleName";
 
 /*
  * What a security match raises (SecurityMatchRaises): one choice of four
@@ -137,6 +141,39 @@ describe("a detection rule's name, from its Sigma rule's title", () => {
         nextYaml: "logsource:",
       }),
     ).toBeNull();
+  });
+
+  test("a title longer than a name may be is cut to fit, and still followed until a name of one's own is typed", () => {
+    // SigmaHQ's longest title, 103 characters.
+    const long: string =
+      "CVE-2023-1389 Potential Exploitation Attempt - Unauthenticated Command Injection In TP-Link Archer AX21";
+    const fitted: string = fitDetectionRuleName(long);
+
+    expect(fitted.length).toBeLessThanOrEqual(DETECTION_RULE_NAME_MAX_LENGTH);
+    expect(
+      getDetectionRuleNameAfterYamlChange({
+        name: "",
+        previousYaml: "",
+        nextYaml: `title: ${long}`,
+      }),
+    ).toBe(fitted);
+    // The cut name is still the form's own: the next title replaces it.
+    expect(
+      getDetectionRuleNameAfterYamlChange({
+        name: fitted,
+        previousYaml: `title: ${long}`,
+        nextYaml: "title: Shorter",
+      }),
+    ).toBe("Shorter");
+    // The library's 53-character title is the name whole.
+    expect(
+      getDetectionRuleNameAfterYamlChange({
+        name: "",
+        previousYaml: "",
+        nextYaml:
+          "title: Failed sign-ins, then a success from the same address",
+      }),
+    ).toBe("Failed sign-ins, then a success from the same address");
   });
 
   test("reads a long rule line by line", () => {

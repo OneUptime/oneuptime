@@ -4,15 +4,31 @@ import {
   SecurityPipelineStage,
   SecuritySetupStatus,
   SecuritySetupStep,
+  TURN_ON_RECOMMENDED_LOGS_SUBJECT,
+  TURN_ON_RECOMMENDED_PLAYBOOK_SUBJECT,
+  TURN_ON_RECOMMENDED_RULES_SUBJECT,
+  TurnOnRecommendedProblem,
+  TurnOnRecommendedProblemWords,
   countSecuritySources,
+  describeAddFailure,
+  didTurnOnAnything,
   getSecurityPipelineStages,
   getSecuritySetupSteps,
+  getTurnOnRecommendedProblemWords,
   hasSecuritySources,
   isSecuritySetUp,
   parseSecuritySetupStatus,
   parseSetupTestResult,
   parseTurnOnRecommendedResult,
 } from "../../FeatureSet/Dashboard/src/Components/SecurityOverview/SecuritySetupModel";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import {
+  TURN_ON_RECOMMENDED_ACTIONS,
+  TURN_ON_RECOMMENDED_REASONS,
+  TurnOnRecommendedAction,
+  TurnOnRecommendedPart,
+  TurnOnRecommendedReason,
+} from "Common/Types/SecurityEvent/TurnOnRecommended";
 
 /*
  * What the Overview's pipeline and "Get started" are drawn from: the steps
@@ -240,6 +256,7 @@ describe("reading the server's answers", () => {
       logsTurnedOn: true,
       playbookAdded: false,
       playbookTurnedOn: true,
+      problems: [],
     });
     expect(parseTurnOnRecommendedResult({})).toEqual({
       rulesAdded: 0,
@@ -247,6 +264,7 @@ describe("reading the server's answers", () => {
       logsTurnedOn: false,
       playbookAdded: false,
       playbookTurnedOn: false,
+      problems: [],
     });
     expect(
       parseSetupTestResult({
@@ -266,6 +284,241 @@ describe("reading the server's answers", () => {
       caseId: null,
       caseNumber: null,
       ruleAdded: false,
+    });
+  });
+});
+
+function problem(
+  overrides: Partial<TurnOnRecommendedProblem> = {},
+): TurnOnRecommendedProblem {
+  return {
+    part: TurnOnRecommendedPart.Rule,
+    action: TurnOnRecommendedAction.Add,
+    name: "Password spraying",
+    reason: TurnOnRecommendedReason.Failed,
+    detail: "",
+    ...overrides,
+  };
+}
+
+describe("what Turn on recommended could not do", () => {
+  test("is read as the server sent it, in its order", () => {
+    expect(
+      parseTurnOnRecommendedResult({
+        rulesAdded: 19,
+        problems: [
+          {
+            part: "rule",
+            action: "add",
+            name: "Password spraying",
+            reason: "refused",
+            detail: "Sigma rule YAML is required.",
+          },
+          {
+            part: "playbook",
+            action: "turn-on",
+            name: "Enrich New Cases",
+            reason: "not-allowed",
+            detail: "",
+          },
+          {
+            part: "logs",
+            action: "check",
+            name: "",
+            reason: "plan",
+            detail: "Please upgrade your plan to Growth",
+          },
+        ],
+      }).problems,
+    ).toEqual([
+      problem({
+        reason: TurnOnRecommendedReason.Refused,
+        detail: "Sigma rule YAML is required.",
+      }),
+      problem({
+        part: TurnOnRecommendedPart.Playbook,
+        action: TurnOnRecommendedAction.TurnOn,
+        name: "Enrich New Cases",
+        reason: TurnOnRecommendedReason.NotAllowed,
+      }),
+      problem({
+        part: TurnOnRecommendedPart.Logs,
+        action: TurnOnRecommendedAction.Check,
+        name: "",
+        reason: TurnOnRecommendedReason.Plan,
+        detail: "Please upgrade your plan to Growth",
+      }),
+    ]);
+  });
+
+  test("is read defensively: an unknown reason is a failure, an unknown action an add, an entry of no known part is left out", () => {
+    expect(
+      parseTurnOnRecommendedResult({
+        problems: [
+          { part: "rule", action: "dance", name: "A", reason: "gremlins" },
+          { part: "something-new", action: "add", name: "B", reason: "failed" },
+          { part: "playbook", name: 7, detail: false },
+          "not a problem",
+          null,
+          ["nor this"],
+        ],
+      }).problems,
+    ).toEqual([
+      problem({ name: "A" }),
+      problem({
+        part: TurnOnRecommendedPart.Playbook,
+        name: "",
+      }),
+    ]);
+    expect(
+      parseTurnOnRecommendedResult({ problems: "none" }).problems,
+    ).toEqual([]);
+  });
+
+  test("a click that turned on nothing at all is told from one that did some", () => {
+    const nothing: ReturnType<typeof parseTurnOnRecommendedResult> =
+      parseTurnOnRecommendedResult({});
+
+    expect(didTurnOnAnything(nothing)).toBe(false);
+    expect(didTurnOnAnything({ ...nothing, rulesAdded: 1 })).toBe(true);
+    expect(didTurnOnAnything({ ...nothing, rulesTurnedOn: 1 })).toBe(true);
+    expect(didTurnOnAnything({ ...nothing, logsTurnedOn: true })).toBe(true);
+    expect(didTurnOnAnything({ ...nothing, playbookAdded: true })).toBe(true);
+    expect(didTurnOnAnything({ ...nothing, playbookTurnedOn: true })).toBe(
+      true,
+    );
+  });
+
+  test("names each thing as the reader knows it: the rule or playbook by its name, your logs by their switch", () => {
+    expect(
+      getTurnOnRecommendedProblemWords(problem({ name: "Port scan" })),
+    ).toMatchObject({ subject: "Port scan", isSubjectTranslated: false });
+    expect(
+      getTurnOnRecommendedProblemWords(
+        problem({ part: TurnOnRecommendedPart.Logs, name: "" }),
+      ),
+    ).toMatchObject({
+      subject: TURN_ON_RECOMMENDED_LOGS_SUBJECT,
+      isSubjectTranslated: true,
+    });
+    expect(TURN_ON_RECOMMENDED_LOGS_SUBJECT).toBe(
+      "Find security events in your logs",
+    );
+    // With no name: the recommended rules as a whole, or the playbook.
+    expect(
+      getTurnOnRecommendedProblemWords(
+        problem({ action: TurnOnRecommendedAction.Check, name: "" }),
+      ),
+    ).toMatchObject({
+      subject: TURN_ON_RECOMMENDED_RULES_SUBJECT,
+      isSubjectTranslated: true,
+    });
+    expect(
+      getTurnOnRecommendedProblemWords(
+        problem({ part: TurnOnRecommendedPart.Playbook, name: "" }),
+      ),
+    ).toMatchObject({
+      subject: TURN_ON_RECOMMENDED_PLAYBOOK_SUBJECT,
+      isSubjectTranslated: true,
+    });
+  });
+
+  test("says why in a sentence for every reason and every action, never the server's raw failure", () => {
+    const expected: Record<string, string> = {
+      "not-allowed/add": "Your role cannot add it.",
+      "not-allowed/turn-on":
+        "It is turned off, and your role cannot turn it back on.",
+      "not-allowed/check":
+        "Your role cannot read what the project already has, so nothing was added.",
+      "plan/add": "Your plan does not include it.",
+      "plan/turn-on": "Your plan does not include it.",
+      "plan/check": "Your plan does not include it.",
+      "refused/add": "OneUptime could not save it.",
+      "refused/turn-on": "OneUptime could not save it.",
+      "refused/check": "OneUptime could not save it.",
+      "failed/add": "Something went wrong while adding it.",
+      "failed/turn-on": "Something went wrong while turning it back on.",
+      "failed/check":
+        "Something went wrong while reading what the project already has, so nothing was added.",
+    };
+
+    for (const reason of TURN_ON_RECOMMENDED_REASONS) {
+      for (const action of TURN_ON_RECOMMENDED_ACTIONS) {
+        const words: TurnOnRecommendedProblemWords =
+          getTurnOnRecommendedProblemWords(problem({ reason, action }));
+
+        expect({ reason, action, sentence: words.reason }).toEqual({
+          reason,
+          action,
+          sentence: expected[`${reason}/${action}`],
+        });
+        expect(words.values).toEqual({});
+      }
+    }
+  });
+
+  test("a record refused, or a plan, says the server's own sentence", () => {
+    expect(
+      getTurnOnRecommendedProblemWords(
+        problem({
+          reason: TurnOnRecommendedReason.Refused,
+          detail: "Sigma rule YAML is required.",
+        }),
+      ),
+    ).toMatchObject({
+      reason: "OneUptime could not save it: {{detail}}",
+      values: { detail: "Sigma rule YAML is required." },
+    });
+    expect(
+      getTurnOnRecommendedProblemWords(
+        problem({
+          reason: TurnOnRecommendedReason.Plan,
+          detail: "Please upgrade your plan to Growth to access this feature",
+        }),
+      ),
+    ).toMatchObject({
+      reason: "Please upgrade your plan to Growth to access this feature",
+      values: {},
+    });
+    // A failure's detail is never shown, even if a server sent one.
+    expect(
+      getTurnOnRecommendedProblemWords(
+        problem({ detail: "ECONNREFUSED 10.0.0.5:5432" }),
+      ).reason,
+    ).toBe("Something went wrong while adding it.");
+  });
+});
+
+describe("why the Rule Library could not add a rule itself", () => {
+  function failed(statusCode: number, message: string): HTTPErrorResponse {
+    return new HTTPErrorResponse(statusCode, { message }, {});
+  }
+
+  test.each([
+    [401, TurnOnRecommendedReason.NotAllowed, ""],
+    [403, TurnOnRecommendedReason.NotAllowed, ""],
+    [422, TurnOnRecommendedReason.NotAllowed, ""],
+    [402, TurnOnRecommendedReason.Plan, "Please upgrade your plan"],
+    [400, TurnOnRecommendedReason.Refused, "Please upgrade your plan"],
+    [500, TurnOnRecommendedReason.Failed, ""],
+    [502, TurnOnRecommendedReason.Failed, ""],
+  ])(
+    "an answer of %i reads as %s",
+    (statusCode: number, reason: TurnOnRecommendedReason, detail: string) => {
+      expect(
+        describeAddFailure(failed(statusCode, "Please upgrade your plan")),
+      ).toEqual({ reason, detail });
+    },
+  );
+
+  test("anything that is not an API answer is a failure, its message unread", () => {
+    expect(describeAddFailure(new Error("Network Error"))).toEqual({
+      reason: TurnOnRecommendedReason.Failed,
+      detail: "",
+    });
+    expect(describeAddFailure("boom")).toEqual({
+      reason: TurnOnRecommendedReason.Failed,
+      detail: "",
     });
   });
 });

@@ -167,6 +167,8 @@ interface OpenOptions {
     | "injection"
     | "retry"
     | "auto-off";
+  // Turn on recommended that cannot do everything (the fixture's SETUP_SCENARIOS).
+  setup?: "partly" | "fail";
 }
 
 test.use({ deviceScaleFactor: 2, actionTimeout: 15000 });
@@ -258,6 +260,9 @@ async function open(
   }
   if (options.triage) {
     params.set("triage", options.triage);
+  }
+  if (options.setup) {
+    params.set("setup", options.setup);
   }
   const query: string = params.toString();
   await page.goto(query ? `${pathname}?${query}` : pathname);
@@ -435,6 +440,14 @@ function stage(page: Page, key: string): Locator {
 function gettingStarted(page: Page): Locator {
   return page.getByTestId("security-getting-started");
 }
+
+// What Turn on recommended could not do: one line each, the name then why.
+function problemRows(scope: Locator): Locator {
+  return scope.getByTestId("security-turn-on-problem");
+}
+
+// The recommended rule the fixture's partly scenario leaves undone the first time.
+const PARTLY_UNDONE_RULE: string = "Password spraying";
 
 // The card of a page, by its title.
 function cardTitled(page: Page, title: string): Locator {
@@ -723,6 +736,158 @@ test.describe("the overview", () => {
     await open(page, OVERVIEW_PATH, { empty: true });
     await expect(page.getByTestId("security-pipeline")).toBeVisible();
     await expect(gettingStarted(page)).toHaveCount(0);
+  });
+
+  test("a click that cannot do everything says what is missing and why, and Try again does only that", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, OVERVIEW_PATH, { empty: true, setup: "partly" });
+    await page.getByTestId("security-turn-on-recommended").click();
+
+    // What could not be done, by the names the lists show, each with why.
+    const problems: Locator = gettingStarted(page).getByTestId(
+      "security-turn-on-problems",
+    );
+    await expect(problems).toBeVisible();
+    await expect(problems).toHaveAttribute("role", "alert");
+    await expect(problems).toContainText("Not everything could be turned on");
+    await expect(problemRows(problems)).toHaveText([
+      `${PARTLY_UNDONE_RULE} - Something went wrong while adding it.`,
+      "Enrich New Cases - Something went wrong while adding it.",
+    ]);
+    await expect(problems).toContainText(
+      "Everything else is on. Try again turns on only what is still missing.",
+    );
+    // No "Done", and no server sentence on its own.
+    await expect(page.getByTestId("security-turned-on")).toHaveCount(0);
+    await expect(problems).not.toContainText("Server Error");
+
+    // Your logs and every other rule are on: the steps say so.
+    await expect(gettingStarted(page)).toContainText("2 of 4 done");
+    await expect(
+      page.getByTestId("security-setup-step-detections"),
+    ).toHaveAttribute("data-done", "true");
+    await expect(
+      page.getByTestId("security-setup-step-responses"),
+    ).toHaveAttribute("data-done", "false");
+    // The main button is Try again now, the test beside it.
+    await expect(
+      page.getByTestId("security-getting-started-actions").getByRole("button"),
+    ).toHaveText(["Try again", "Send a test attack"]);
+    await screenshot(page, "overview-turn-on-partly");
+
+    // Try again does what is left, and nothing twice: exactly the recommended rules are on.
+    await page.getByTestId("security-turn-on-try-again").click();
+    await expect(page.getByTestId("security-turned-on")).toContainText(
+      `Done. ${RECOMMENDED_RULES} detection rules are on, your logs are checked for security events and every new case is enriched.`,
+    );
+    await expect(problems).toHaveCount(0);
+    await expect(gettingStarted(page)).toContainText("3 of 4 done");
+    await expect(
+      page.getByTestId("security-getting-started-actions").getByRole("button"),
+    ).toHaveText(["Send a test attack"]);
+
+    const turnOns: Array<string> = (await fixture(page)).apiRequests
+      .map((request: { url: string }): string => {
+        return new URL(request.url).pathname;
+      })
+      .filter((pathname: string): boolean => {
+        return pathname.endsWith("/security-case/setup/turn-on-recommended");
+      });
+    expect(turnOns).toHaveLength(2);
+  });
+
+  test("a click that fails whole says so in the card, and Try again turns everything on", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, OVERVIEW_PATH, { empty: true, setup: "fail" });
+    await page.getByTestId("security-turn-on-recommended").click();
+
+    const problems: Locator = gettingStarted(page).getByTestId(
+      "security-turn-on-problems",
+    );
+    await expect(problems).toContainText("Turn on recommended did not finish");
+    await expect(
+      problems.getByTestId("security-turn-on-problems-error"),
+    ).toHaveText("Error connecting to server. Please try again in few minutes.");
+    await expect(problems).toContainText(
+      "Try again turns on only what is still missing.",
+    );
+    await expect(gettingStarted(page)).toContainText("0 of 4 done");
+    await expect(
+      page.getByTestId("security-getting-started-actions").getByRole("button"),
+    ).toHaveText(["Try again", "Send a test attack"]);
+    await screenshot(page, "overview-turn-on-failed");
+
+    await page.getByTestId("security-turn-on-try-again").click();
+    await expect(page.getByTestId("security-turned-on")).toContainText(
+      `Done. ${RECOMMENDED_RULES} detection rules are on`,
+    );
+    await expect(problems).toHaveCount(0);
+    await expect(gettingStarted(page)).toContainText("3 of 4 done");
+  });
+
+  test("what a click could not do reads in the dark theme and on a phone, inside the card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const layout of [
+      { width: 1280, theme: "dark" as const, name: "overview-turn-on-partly-dark" },
+      { width: 390, theme: undefined, name: "overview-turn-on-partly-phone" },
+      {
+        width: 390,
+        theme: "dark" as const,
+        name: "overview-turn-on-partly-phone-dark",
+      },
+    ]) {
+      await open(page, OVERVIEW_PATH, {
+        empty: true,
+        setup: "partly",
+        width: layout.width,
+        theme: layout.theme,
+      });
+      await page.getByTestId("security-turn-on-recommended").click();
+
+      const problems: Locator = gettingStarted(page).getByTestId(
+        "security-turn-on-problems",
+      );
+      await expect(problemRows(problems)).toHaveCount(2);
+
+      // Inside the card, nothing running off a phone's screen.
+      const card: Box = await boxOf(gettingStarted(page));
+      const box: Box = await boxOf(problems);
+      expect(box.x).toBeGreaterThanOrEqual(card.x);
+      expect(box.x + box.width).toBeLessThanOrEqual(card.x + card.width + 0.5);
+      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      expect(await overflowOf(problems)).toBeLessThanOrEqual(0);
+
+      // The dark theme draws the box dark, never a light amber tile on slate.
+      const background: string = await problems.evaluate(
+        (element: Element): string => {
+          return getComputedStyle(element).backgroundColor;
+        },
+      );
+      if (layout.theme === "dark") {
+        expect(background).not.toBe("rgb(255, 251, 235)");
+      } else {
+        expect(background).toBe("rgb(255, 251, 235)");
+      }
+
+      // On a phone Try again is on the first screen, above the box.
+      const tryAgain: Box = await boxOf(
+        page.getByTestId("security-turn-on-try-again"),
+      );
+      expect(tryAgain.y).toBeLessThan(box.y);
+      if (layout.width === 390) {
+        expect(tryAgain.y + tryAgain.height).toBeLessThan(844);
+      }
+      await screenshot(page, layout.name);
+    }
   });
 
   test("a viewer is shown who can set Security up, not only grey buttons", async ({
@@ -1277,6 +1442,34 @@ test.describe("playbooks", () => {
     await screenshot(page, "playbooks-desktop");
   });
 
+  test("a template becomes a working playbook in one click, built as Turn on recommended builds Enrich New Cases", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, PLAYBOOKS_PATH);
+    await page.getByTestId("security-playbook-template-known-bad").click();
+
+    // It opens on the new playbook's page.
+    await expect(page).toHaveURL(
+      new RegExp(`${escapeRegExp(PLAYBOOKS_PATH)}/[0-9a-f-]{36}$`),
+    );
+
+    const created: Array<{ modelName: string; data: Record<string, unknown> }> =
+      (await fixture(page)).creates.filter(
+        (create: { modelName: string }): boolean => {
+          return create.modelName === "SecurityPlaybook";
+        },
+      );
+    expect(created).toHaveLength(1);
+    expect(created[0]!.data).toMatchObject({
+      name: "Escalate Known-Bad Indicators",
+      isEnabled: true,
+      trigger: "Detection Added",
+    });
+    expect((created[0]!.data["steps"] as Array<unknown>).length).toBe(3);
+  });
+
   test("a playbook's page: when it runs, its steps and its latest runs", async ({
     page,
   }: {
@@ -1480,7 +1673,12 @@ test.describe("detections", () => {
     await expect(page.getByText("Added").first()).toBeVisible({
       timeout: 30000,
     });
-    await expect(page.getByText("Added", { exact: true })).toHaveCount(6);
+    /*
+     * The six library rules, and the one the team renamed "Legacy VPN brute
+     * force": its YAML carries the library rule's id, so it is that rule,
+     * added - the library never offers to add it a second time.
+     */
+    await expect(page.getByText("Added", { exact: true })).toHaveCount(7);
 
     /*
      * The two buttons share the title's line and the description runs under
@@ -1538,6 +1736,58 @@ test.describe("detections", () => {
     await expect(
       page.getByRole("button", { name: /Recommended Rules?$/ }),
     ).toHaveCount(0);
+  });
+
+  test("an Add that cannot add a rule says which and why, adds the rest, and adding again adds only it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, RULE_LIBRARY_PATH, { empty: true, setup: "partly" });
+    await page.getByTestId("rule-library-category").selectOption("recommended");
+
+    const spraying: Locator = page
+      .locator('[data-testid^="rule-library-entry-"]')
+      .filter({ hasText: PARTLY_UNDONE_RULE });
+    await spraying.getByRole("button", { name: "Add Rule" }).click();
+
+    const problems: Locator = page.getByTestId("rule-library-problems");
+    await expect(problems).toContainText("Not every rule could be added");
+    await expect(problemRows(problems)).toHaveText([
+      `${PARTLY_UNDONE_RULE} - Something went wrong while adding it.`,
+    ]);
+    await expect(problems).toContainText(
+      "Adding them again adds only what is still missing.",
+    );
+    // Not added: its card still offers Add Rule.
+    await expect(
+      spraying.getByRole("button", { name: "Add Rule" }),
+    ).toBeVisible();
+    await screenshot(page, "rule-library-add-failed");
+
+    await spraying.getByRole("button", { name: "Add Rule" }).click();
+    await expect(spraying.getByText("Added", { exact: true })).toBeVisible();
+    await expect(problems).toHaveCount(0);
+
+    // The recommended rules through the server: what it could not add is said the same way.
+    await open(page, RULE_LIBRARY_PATH, { empty: true, setup: "partly" });
+    await page
+      .getByRole("button", {
+        name: `Add ${RECOMMENDED_RULES} Recommended Rules`,
+      })
+      .click();
+    await expect(problemRows(page.getByTestId("rule-library-problems"))).toHaveText(
+      [`${PARTLY_UNDONE_RULE} - Something went wrong while adding it.`],
+    );
+    // Every other recommended rule is added; the button offers the one left.
+    await expect(
+      page.getByRole("button", { name: "Add 1 Recommended Rule" }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Add 1 Recommended Rule" }).click();
+    await expect(
+      page.getByRole("button", { name: /Recommended Rules?$/ }),
+    ).toHaveCount(0);
+    await expect(page.getByTestId("rule-library-problems")).toHaveCount(0);
   });
 
   test("the rule library narrows by one select beside its search, which a phone puts under it", async ({
