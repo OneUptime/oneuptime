@@ -101,7 +101,7 @@ oneuptime context delete <name>
 
 ### `oneuptime <resource> list`
 
-Viser poster, de nyeste først.
+Viser poster, de nyeste først. Etiketter vises i stedet efter navn, nummererede etiketter først (`2. Team` før `10. Owner`).
 
 ```bash
 oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [-o <format>]

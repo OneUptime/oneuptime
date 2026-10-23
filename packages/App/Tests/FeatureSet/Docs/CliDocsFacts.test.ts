@@ -27,6 +27,13 @@ import {
   sourceFilesUnder,
   tableWithHeader,
 } from "./InventoryAndApiDocsSupport";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import {
+  LABEL_NAME_COLUMN,
+  LABEL_NAME_SORT_KEY_COLUMN,
+  getLabelListSort,
+  sortLabelNames,
+} from "Common/Utils/LabelOrder";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -873,15 +880,23 @@ describe("Resource Operations", () => {
 
   it("lists ten records by default, newest first, up to the API's limit of 10,000", () => {
     const limit: string = readRepoFile("Common/Types/Database/LimitMax.ts");
+    const databaseService: string = flat(
+      readRepoFile("Common/Server/Services/DatabaseService.ts"),
+    );
 
     expect(limit).toContain("export const LIMIT_PER_PROJECT: number = 10000;");
     expect(resources).toContain(
       '.option("--limit <n>", "Max results to return", "10")',
     );
-    expect(
-      flat(readRepoFile("Common/Server/Services/DatabaseService.ts")),
-    ).toContain(
-      "if (!findBy.sort || Object.keys(findBy.sort).length === 0) { findBy.sort = { createdAt: SortOrder.Descending, }; }",
+    // A read that asks for no order - the CLI sends {} - comes back newest first.
+    expect(databaseService).toContain(
+      "protected getReadSort(sort: Sort<TBaseModel> | undefined): Sort<TBaseModel> { if (!sort || Object.keys(sort).length === 0) { return { createdAt: SortOrder.Descending, } as Sort<TBaseModel>; } return sort; }",
+    );
+    expect(databaseService).toContain(
+      "findBy.sort = this.getReadSort(findBy.sort);",
+    );
+    expect(flat(readRepoFile(`${CLI}/Core/ApiClient.ts`))).toContain(
+      "sort: options.sort || {},",
     );
     expect(
       readRepoFile("Common/Server/Services/AnalyticsDatabaseService.ts"),
@@ -899,6 +914,52 @@ describe("Resource Operations", () => {
 
     expect(englishPage(CLI_OVERVIEW)).toContain(
       "The ten newest incidents appear as a table.",
+    );
+  });
+
+  /*
+   * Labels are the one exception: LabelService reads them by name, in
+   * natural order, when asked for no order (OneUptime issue #5183), so
+   * `oneuptime label list` is not newest first, and both pages say so. A
+   * service that takes an order of its own fails this until the pages name
+   * it too.
+   */
+  it("lists labels by name, numbered labels first, unless --sort asks for another order", () => {
+    const ownOrders: Array<string> = sourceFilesUnder("Common/Server").filter(
+      (file: string): boolean => {
+        return readRepoFile(file).includes("override getReadSort(");
+      },
+    );
+
+    expect(ownOrders).toEqual(["Common/Server/Services/LabelService.ts"]);
+    expect(recordCommands()).toContain("label");
+    expect(
+      flat(readRepoFile("Common/Server/Services/LabelService.ts")),
+    ).toContain(
+      "protected override getReadSort(sort: Sort<Model> | undefined): Sort<Model> { return getLabelListSort( sort as Record<string, SortOrder | undefined> | undefined, ) as Sort<Model>; }",
+    );
+
+    // No order asked for, as the CLI sends it: by name, numbered names first.
+    expect(getLabelListSort({})).toEqual({
+      [LABEL_NAME_SORT_KEY_COLUMN]: SortOrder.Ascending,
+      [LABEL_NAME_COLUMN]: SortOrder.Ascending,
+    });
+    expect(sortLabelNames(["b", "10. Owner", "A", "2. Team"])).toEqual([
+      "2. Team",
+      "10. Owner",
+      "A",
+      "b",
+    ]);
+    // An order asked for with --sort is the order read.
+    expect(getLabelListSort({ createdAt: SortOrder.Descending })).toEqual({
+      createdAt: SortOrder.Descending,
+    });
+
+    expect(englishPage(COMMAND_REFERENCE)).toContain(
+      "Lists records, newest first. Labels are listed by name instead, numbered labels first (`2. Team` before `10. Owner`).",
+    );
+    expect(englishPage(RESOURCE_OPERATIONS)).toContain(
+      "Labels are listed by name rather than newest first: labels whose names start with a number come first, in the order of that number (`2. Team` before `10. Owner`), then the others alphabetically. To list them in another order, give `--sort`.",
     );
   });
 
