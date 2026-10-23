@@ -45,7 +45,7 @@ import { DataSource } from "typeorm";
  * endpoint from NETWORK_DEVICE_DISCOVERED_DETAILS_TEST_DATABASE_HOST / _PORT
  * (default localhost:5400).
  */
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_NETWORK_DEVICE_DISCOVERED_DETAILS_TESTS"] === "true"
     ? describe
     : describe.skip;
