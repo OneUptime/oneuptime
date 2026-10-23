@@ -125,6 +125,7 @@ import RecordContainerPercentMetricUnits from "./RecordContainerPercentMetricUni
 import MoveRunbookSecretsAndCredentialsToVariables from "./MoveRunbookSecretsAndCredentialsToVariables";
 import RemoveRunbookCredentials from "./RemoveRunbookCredentials";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
+import BackfillLabelNameSortKeys from "./BackfillLabelNameSortKeys";
 import BackfillFirstPagedAt from "./BackfillFirstPagedAt";
 import AddAuditLogWorkflowColumns from "./AddAuditLogWorkflowColumns";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
@@ -821,6 +822,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    * itself.
    */
   new AddDefaultPostmortemStatusesToExistingProjects(),
+  /*
+   * Labels are read in natural order by name - numbered labels first, by
+   * their numbers, then the others alphabetically (OneUptime issue #5183) -
+   * by a sort key every create and rename writes (Label.nameSortKey, schema
+   * migration AddLabelNameSortKey). This writes the key of every label made
+   * before. Postgres-only and idempotent; a label it cannot write is logged,
+   * never failing the run. No ordering requirement, so it sits above the
+   * runbook moves, which keep their places right before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new BackfillLabelNameSortKeys(),
   /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step

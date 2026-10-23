@@ -13,6 +13,7 @@ import Permission from "../../../../Types/Permission";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
+import { sortLabelNames } from "../../../../Utils/LabelOrder";
 import { isOnCallDirectPage } from "../../../../Types/OnCallDutyPolicy/OnCallDirectPage";
 import {
   AIChatCitationTargetType,
@@ -391,14 +392,12 @@ export const QueryOnCallPoliciesTool: ObservabilityTool = {
       const rules: Array<OnCallDutyPolicyEscalationRule> =
         escalation.rulesByPolicyId.get(onCallPolicyId.toString()) || [];
 
-      const policyLabels: string = (policy?.labels || [])
-        .map((label: { name?: string }) => {
+      // In natural order, as labels are listed everywhere (Utils/LabelOrder).
+      const policyLabels: string = sortLabelNames(
+        (policy?.labels || []).map((label: { name?: string }) => {
           return label.name || "";
-        })
-        .filter((value: string) => {
-          return value.length > 0;
-        })
-        .join(", ");
+        }),
+      ).join(", ");
 
       const rows: Array<JSONObject> = policy
         ? [

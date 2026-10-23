@@ -33391,5 +33391,7 @@
   "Used for calls only: OneUptime sends subscriber text messages.": "Used for calls only: OneUptime sends subscriber text messages.",
   "Events appear here as the Kubernetes agent sends them.": "Events appear here as the Kubernetes agent sends them.",
   "Try another namespace, kind or reason, or a longer time range.": "Try another namespace, kind or reason, or a longer time range.",
-  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes."
+  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.",
+  "{{count}} more labels": "{{count}} more labels",
+  "{{count}} more labels_one": "{{count}} more label"
 }

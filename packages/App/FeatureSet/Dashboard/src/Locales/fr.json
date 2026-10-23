@@ -33391,5 +33391,7 @@
   "Used for calls only: OneUptime sends subscriber text messages.": "Utilisée pour les appels uniquement : OneUptime envoie les SMS aux abonnés.",
   "Events appear here as the Kubernetes agent sends them.": "Les événements apparaissent ici à mesure que l'agent Kubernetes les envoie.",
   "Try another namespace, kind or reason, or a longer time range.": "Essayez un autre espace de noms, type ou motif, ou une période plus longue.",
-  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Ce que Kubernetes a signalé sur les nœuds, charges de travail, autoscalers et volumes de ce cluster."
+  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Ce que Kubernetes a signalé sur les nœuds, charges de travail, autoscalers et volumes de ce cluster.",
+  "{{count}} more labels": "{{count}} autres étiquettes",
+  "{{count}} more labels_one": "{{count}} autre étiquette"
 }

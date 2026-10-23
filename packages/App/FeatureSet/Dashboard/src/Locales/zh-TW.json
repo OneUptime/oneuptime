@@ -33391,5 +33391,7 @@
   "Used for calls only: OneUptime sends subscriber text messages.": "僅用於通話：由 OneUptime 傳送訂閱者簡訊。",
   "Events appear here as the Kubernetes agent sends them.": "Kubernetes 代理程式傳送事件後，事件會顯示在這裡。",
   "Try another namespace, kind or reason, or a longer time range.": "請嘗試其他 Namespace、種類或原因，或選擇更長的時間範圍。",
-  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Kubernetes 回報的此叢集節點、工作負載、自動擴縮器和磁碟區的相關事件。"
+  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Kubernetes 回報的此叢集節點、工作負載、自動擴縮器和磁碟區的相關事件。",
+  "{{count}} more labels": "另外 {{count}} 個標籤",
+  "{{count}} more labels_one": "另外 {{count}} 個標籤"
 }

@@ -71,6 +71,8 @@ Klicka på **Skapa Etikett**. Ge den ett **Namn** och, om du vill, en **Beskrivn
 
 I OneUptime Cloud kräver det Growth-planen att skapa och ändra etiketter. Se [Etiketter](/docs/permissions/index#etiketter) för hur etiketter begränsar behörigheter, och [Etikett- och ägarregler](/docs/configuration/label-and-owner-rules) för att sätta etiketter på resurser när de skapas.
 
+I en lista visas en posts etiketter under varandra; är de fler än fyra visas de tre första med en länk till resten. Överallt där etiketter listas (i listor, på en posts sida och i varje etikettväljare) står de i naturlig ordning: etiketter vars namn börjar med en siffra kommer först, i ordning efter talet (`2. Team` före `10. Owner`), sedan de övriga i bokstavsordning, oavsett versaler och gemener. Vill du bestämma ordningen på dina etiketter börjar du namnen med en siffra, som `1. Category` och `2. Subcategory`.
+
 ### Arkivera en etikett
 
 För att fasa ut en etikett arkiverar du den från radens meny **⋯** i stället för att ta bort den. Allt som har etiketten behåller den, och du kan fortfarande filtrera på den, men ingen kan lägga till den på något igen: Varje etikettväljare utelämnar den, och API:et, Terraform och MCP avvisar den. Dialogen listar de regler och behörigheter som är inställda på att använda etiketten, och som fortsätter att använda den tills du ändrar dem. Arkiverade etiketter listas för sig, i det hopfällda avsnittet **Arkiverade etiketter**, där **Avarkivera** återställer en. **Ta bort** listar först allt som etiketten skulle tas bort från och erbjuder **Arkivera i stället**.

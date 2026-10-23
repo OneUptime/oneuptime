@@ -725,6 +725,26 @@ describe("MaintenanceCalendar.buildDocument: the calendar", () => {
     ).toBe(true);
   });
 
+  /*
+   * In natural order, as labels are listed everywhere (Utils/LabelOrder,
+   * OneUptime issue #5183): numbered labels first, by their numbers.
+   */
+  test("labels become CATEGORIES in natural order", () => {
+    const event: ICalendarEvent = MaintenanceCalendar.toEvent(
+      baseEvent({
+        labels: ["Database", "10. Owner", "2. Team", "1. Region"],
+      }),
+      MaintenanceCalendarAudience.Team,
+    );
+
+    expect(event.categories).toEqual([
+      "1. Region",
+      "2. Team",
+      "10. Owner",
+      "Database",
+    ]);
+  });
+
   test("labels become CATEGORIES, each once", () => {
     const event: ICalendarEvent = MaintenanceCalendar.toEvent(
       baseEvent({ labels: ["Database", "EU, West", "Database", ""] }),

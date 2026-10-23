@@ -71,6 +71,8 @@ Fai clic su **Crea: Etichetta**. Dalle un **Nome** e, se vuoi, una **Descrizione
 
 Su OneUptime Cloud, creare e modificare etichette richiede il piano Growth. Vedi [Etichette](/docs/permissions/index#etichette) per come le etichette limitano i permessi, e [Regole per etichette e proprietari](/docs/configuration/label-and-owner-rules) per etichettare le risorse quando vengono create.
 
+In un elenco, le etichette di un record sono mostrate una sotto l'altra; quando sono più di quattro, compaiono le prime tre con un link alle altre. Ovunque le etichette siano elencate (negli elenchi, nella pagina di un record e in ogni selettore di etichette), sono in ordine naturale: prima le etichette il cui nome inizia con un numero, nell'ordine di quel numero (`2. Team` prima di `10. Owner`), poi le altre in ordine alfabetico, senza distinguere maiuscole e minuscole. Per scegliere l'ordine delle tue etichette, fai iniziare il loro nome con un numero, come `1. Category` e `2. Subcategory`.
+
 ### Archiviare un'etichetta
 
 Per ritirare un'etichetta, archiviala dal menu **⋯** della sua riga invece di eliminarla. Tutto ciò che ha l'etichetta la mantiene e puoi ancora filtrare in base a essa, ma nessuno può più aggiungerla a nulla: ogni selettore di etichette la esclude, e l'API, Terraform e MCP la rifiutano. La finestra di dialogo elenca le regole e le autorizzazioni configurate per usare l'etichetta, che continuano a usarla finché non le modifichi. Le etichette archiviate sono elencate a parte, nella sezione compressa **Etichette archiviate**, dove **Annulla archiviazione** ne ripristina una. **Elimina** elenca prima tutto ciò da cui l'etichetta verrebbe rimossa, e offre **Archivia invece**.

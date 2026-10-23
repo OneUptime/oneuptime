@@ -33391,5 +33391,7 @@
   "Used for calls only: OneUptime sends subscriber text messages.": "Brukes bare til anrop: OneUptime sender SMS til abonnenter.",
   "Events appear here as the Kubernetes agent sends them.": "Hendelser vises her etter hvert som Kubernetes-agenten sender dem.",
   "Try another namespace, kind or reason, or a longer time range.": "Prøv et annet namespace, en annen type eller årsak, eller et lengre tidsrom.",
-  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Hva Kubernetes har rapportert om denne klyngens noder, arbeidsbelastninger, autoskalerere og volumer."
+  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Hva Kubernetes har rapportert om denne klyngens noder, arbeidsbelastninger, autoskalerere og volumer.",
+  "{{count}} more labels": "{{count}} etiketter til",
+  "{{count}} more labels_one": "{{count}} etikett til"
 }

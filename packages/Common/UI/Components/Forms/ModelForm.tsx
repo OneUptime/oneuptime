@@ -67,6 +67,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import Typeof from "../../../Types/Typeof";
+import { compareNaturally } from "../../../Utils/NaturalOrder";
 import React, { MutableRefObject, ReactElement, useRef, useState } from "react";
 import {
   composedValue,
@@ -1132,14 +1133,17 @@ const ModelForm: <TBaseModel extends BaseModel>(
                 }
               }
 
-              // sort category by name.
-
+              /*
+               * The labels in natural order by name, as labels are listed
+               * everywhere (Utils/LabelOrder): numbered ones first, by their
+               * numbers, then the others alphabetically.
+               */
               localLabels = localLabels.sort(
                 (a: AccessControlModel, b: AccessControlModel) => {
-                  return a
-                    .getColumnValue("name")!
-                    .toString()
-                    .localeCompare(b.getColumnValue("name")?.toString() || "");
+                  return compareNaturally(
+                    a.getColumnValue("name")?.toString() || "",
+                    b.getColumnValue("name")?.toString() || "",
+                  );
                 },
               );
 
