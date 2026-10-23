@@ -1,15 +1,18 @@
 import CustomRoleLeftoverCopy, {
+  API_KEY_CUSTOM_ROLES_LEFTOVER_TEST_ID,
   PROJECT_CUSTOM_ROLES_LEFTOVER_TEST_ID,
   TEAM_CUSTOM_ROLES_LEFTOVER_TEST_ID,
 } from "./CustomRoleLeftoverCopy";
 import {
   getPermissionCountText,
   getRoleDeleteReachSentence,
+  getRoleRemoveFromApiKeySentence,
   getRoleRemoveFromTeamSentence,
 } from "./CustomRoleCopy";
 import { CustomRoleReachDetails, loadCustomRoleReach } from "./CustomRoleReach";
 import { CUSTOM_ROLES_REQUIRED_PLAN } from "../../Enterprise/EnterpriseEligibility";
 import { EnterpriseSettingLeftoverReason } from "../EnterpriseEdition/EnterpriseSettingLeftoverCopy";
+import ApiKeyCustomRole from "Common/Models/DatabaseModels/ApiKeyCustomRole";
 import CustomRole from "Common/Models/DatabaseModels/CustomRole";
 import TeamCustomRole from "Common/Models/DatabaseModels/TeamCustomRole";
 import ObjectID from "Common/Types/ObjectID";
@@ -40,6 +43,8 @@ import React, {
  *                                says first who loses what (CustomRoleReach).
  *   TeamCustomRolesLeftover      on a team's Permissions page: the roles the
  *                                team has, each with Remove.
+ *   ApiKeyCustomRolesLeftover    on an API key's page: the roles the key
+ *                                has, each with Remove.
  *
  * Each counts its rows once when it opens. None - as for nearly every
  * project - or a count that fails draws nothing.
@@ -51,6 +56,10 @@ export interface ComponentProps {
 
 export interface TeamComponentProps extends ComponentProps {
   teamId: ObjectID;
+}
+
+export interface ApiKeyComponentProps extends ComponentProps {
+  apiKeyId: ObjectID;
 }
 
 const getDescription: (data: {
@@ -313,6 +322,110 @@ export const TeamCustomRolesLeftover: FunctionComponent<TeamComponentProps> = (
           },
         ]}
         noItemsMessage="This team has no custom role."
+      />
+    </div>
+  );
+};
+
+export const ApiKeyCustomRolesLeftover: FunctionComponent<
+  ApiKeyComponentProps
+> = (props: ApiKeyComponentProps): ReactElement => {
+  const translator: Translator = useTranslator();
+  const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+  const hasRows: boolean | null = useHasRows(
+    async (): Promise<number> => {
+      if (!projectId) {
+        return 0;
+      }
+
+      return await ModelAPI.count<ApiKeyCustomRole>({
+        modelType: ApiKeyCustomRole,
+        query: { apiKeyId: props.apiKeyId, projectId: projectId },
+      });
+    },
+    `${projectId?.toString() || ""}-${props.apiKeyId.toString()}`,
+  );
+
+  if (!hasRows || !projectId) {
+    return <></>;
+  }
+
+  return (
+    <div data-testid={API_KEY_CUSTOM_ROLES_LEFTOVER_TEST_ID}>
+      <ModelTable<ApiKeyCustomRole>
+        modelType={ApiKeyCustomRole}
+        id="api-key-custom-roles-leftover-table"
+        userPreferencesKey="api-key-custom-roles-leftover-table"
+        name="Settings > API Key > Custom Roles > Still in force"
+        isDeleteable={true}
+        isEditable={false}
+        isCreateable={false}
+        isViewable={false}
+        singularName="Custom Role"
+        pluralName="Custom Roles"
+        deleteButtonText="Remove"
+        cardProps={{
+          title: CustomRoleLeftoverCopy.apiKeyTitle,
+          description: getDescription({
+            translator,
+            reason: props.reason,
+            editionDescription: CustomRoleLeftoverCopy.apiKeyEditionDescription,
+            planDescription: CustomRoleLeftoverCopy.apiKeyPlanDescription,
+          }),
+        }}
+        query={{
+          apiKeyId: props.apiKeyId,
+          projectId: projectId,
+        }}
+        getDeleteConfirmation={async (
+          item: ApiKeyCustomRole,
+        ): Promise<DeleteConfirmation> => {
+          return {
+            title: translator.translateTemplate("Remove {{role}}", {
+              role: item.customRole?.name || "",
+            }),
+            description: getRoleRemoveFromApiKeySentence(translator, {
+              roleName: item.customRole?.name || "",
+              apiKeyName:
+                translator.translateText("This API key") || "This API key",
+            }),
+            submitButtonText: "Remove",
+          };
+        }}
+        showRefreshButton={true}
+        filters={[]}
+        columns={[
+          {
+            field: {
+              customRole: {
+                name: true,
+                permissionCount: true,
+              },
+            },
+            title: "Role",
+            type: FieldType.Element,
+            wrapContent: true,
+            wrapMaxWidthClassName: "max-w-xl",
+            hideTitleOnMobile: true,
+            getElement: (item: ApiKeyCustomRole): ReactElement => {
+              return (
+                <div className="min-w-0">
+                  <p className="font-medium text-gray-900 break-words">
+                    {item.customRole?.name || ""}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {getPermissionCountText(
+                      translator,
+                      item.customRole?.permissionCount,
+                    )}
+                  </p>
+                </div>
+              );
+            },
+          },
+        ]}
+        noItemsMessage="This API key has no custom role."
       />
     </div>
   );

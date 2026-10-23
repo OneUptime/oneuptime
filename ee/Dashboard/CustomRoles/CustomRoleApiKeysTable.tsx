@@ -7,15 +7,15 @@ import {
   NO_API_KEY_IN_PROJECT_DESCRIPTION,
   NO_API_KEY_IN_PROJECT_TITLE,
   NO_API_KEY_IN_PROJECT_TOOLTIP,
-} from "./CustomRoleCopy";
+} from "@oneuptime/dashboard/Components/CustomRole/CustomRoleCopy";
 import {
   getApiKeyRoleCoverage,
   loadApiKeyIdsGivenCustomRole,
   loadCustomRoleGrants,
-} from "./CustomRoleOptions";
-import AppLink from "../AppLink/AppLink";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+} from "@oneuptime/dashboard/Components/CustomRole/CustomRoleOptions";
+import AppLink from "@oneuptime/dashboard/Components/AppLink/AppLink";
+import PageMap from "@oneuptime/dashboard/Utils/PageMap";
+import RouteMap, { RouteUtil } from "@oneuptime/dashboard/Utils/RouteMap";
 import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import ApiKeyCustomRole from "Common/Models/DatabaseModels/ApiKeyCustomRole";
 import Route from "Common/Types/API/Route";
@@ -86,6 +86,12 @@ export interface ComponentProps {
   onApiKeysChange?: (() => void) | undefined;
   // Changes whenever the role's permissions are read again.
   permissionsChangeToggle?: number | undefined;
+  /*
+   * With a lapsed Enterprise license, or one that leaves custom roles out,
+   * the role cannot be given to another key, and can still be taken from
+   * one.
+   */
+  isReadOnly?: boolean | undefined;
 }
 
 export const CUSTOM_ROLE_API_KEYS_TEST_ID: string = "custom-role-api-keys";
@@ -306,7 +312,7 @@ const CustomRoleApiKeysTable: FunctionComponent<ComponentProps> = (
           cardProps={{
             title: "API Keys with this Role",
             description: getRoleApiKeysCardDescription(translator, coverage),
-            buttons: giveButton ? [giveButton] : [],
+            buttons: giveButton && !props.isReadOnly ? [giveButton] : [],
           }}
           noItemsMessage="No API key has this role yet. Give it to a key to let the key do what the role allows."
           emptyState={noApiKeyEmptyState}

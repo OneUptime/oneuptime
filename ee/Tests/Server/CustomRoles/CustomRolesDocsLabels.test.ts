@@ -96,6 +96,22 @@ describe("the labels the custom roles steps name, as the Enterprise screens draw
       file: "TeamCustomRoleTable.tsx",
       source: 'title: "Add Custom Role"',
     },
+    {
+      // An API key's page has it too.
+      label: "Add Custom Role",
+      file: "ApiKeyCustomRoleTable.tsx",
+      source: 'title: "Add Custom Role"',
+    },
+    {
+      label: "Give to an API Key",
+      file: "CustomRoleApiKeysTable.tsx",
+      source: 'title: "Give to an API Key"',
+    },
+    {
+      label: "API Keys with this Role",
+      file: "CustomRoleApiKeysTable.tsx",
+      source: 'title: "API Keys with this Role"',
+    },
   ];
 
   test.each(DRAWN_BY)(

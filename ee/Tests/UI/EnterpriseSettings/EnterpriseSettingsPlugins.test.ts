@@ -58,11 +58,12 @@ const AREAS: Array<Area> = [
   {
     directory: "CustomRoles",
     plugins: CustomRolesPlugins,
-    keys: ["TeamRoles", "TeamRoleView", "TeamCustomRoles"],
+    keys: ["TeamRoles", "TeamRoleView", "TeamCustomRoles", "ApiKeyCustomRoles"],
     shells: [
       "@oneuptime/dashboard/Pages/Teams/Roles",
       "@oneuptime/dashboard/Pages/Teams/RoleView",
       "@oneuptime/dashboard/Components/Team/TeamCustomRolesSettings",
+      "@oneuptime/dashboard/Components/ApiKey/ApiKeyCustomRolesSettings",
     ],
   },
   {
@@ -185,6 +186,8 @@ describe("what moved out of core", () => {
     ["Components/CustomRole/CustomRolePermissionPicker.ts"],
     ["Components/CustomRole/CustomRolePermissionTable.tsx"],
     ["Components/CustomRole/CustomRoleTeamsTable.tsx"],
+    ["Components/CustomRole/CustomRoleApiKeysTable.tsx"],
+    ["Components/ApiKey/ApiKeyCustomRoleTable.tsx"],
     ["Components/FormBuilder/FormPlan.ts"],
   ])("%s is no longer in the Community Dashboard", (file: string) => {
     expect(fs.existsSync(path.join(DASHBOARD_SRC, file))).toBe(false);
@@ -196,6 +199,7 @@ describe("what moved out of core", () => {
     ["Components/StatusPage/StatusPageSessionLengthSettings.tsx"],
     ["Components/StatusPage/SubscriberRestrictionsSettings.tsx"],
     ["Components/Team/TeamCustomRolesSettings.tsx"],
+    ["Components/ApiKey/ApiKeyCustomRolesSettings.tsx"],
     ["Pages/Teams/Roles.tsx"],
     ["Pages/Teams/RoleView.tsx"],
   ])(

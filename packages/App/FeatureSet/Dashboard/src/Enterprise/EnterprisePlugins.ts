@@ -87,6 +87,11 @@ export interface TeamCustomRolesProps {
   teamId: ObjectID;
 }
 
+// Props of an API key's custom roles card, on the key's page.
+export interface ApiKeyCustomRolesProps {
+  apiKeyId: ObjectID;
+}
+
 // Props of a status page card that edits one page's settings.
 export interface StatusPageSettingCardProps {
   statusPageId: ObjectID;
@@ -186,6 +191,11 @@ export interface DashboardEnterprisePlugins {
   // A team's Permissions page: the custom roles the team is given.
   TeamCustomRoles?: EnterprisePluginComponent<TeamCustomRolesProps> | undefined;
 
+  // An API key's page: the custom roles the key is given.
+  ApiKeyCustomRoles?:
+    | EnterprisePluginComponent<ApiKeyCustomRolesProps>
+    | undefined;
+
   /*
    * The IP allow-list card of a private status page (Security > Access), a
    * public dashboard (Sharing) and a form (Share).
@@ -241,6 +251,7 @@ const PLUGIN_KEY_SET: Record<DashboardEnterprisePluginKey, true> = {
   TeamRoles: true,
   TeamRoleView: true,
   TeamCustomRoles: true,
+  ApiKeyCustomRoles: true,
   IpAllowlistCard: true,
   StatusPagePoweredBy: true,
   StatusPageSessionLength: true,

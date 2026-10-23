@@ -45,6 +45,7 @@ import Team from "../../../../../Models/DatabaseModels/Team";
 import TeamComplianceSetting from "../../../../../Models/DatabaseModels/TeamComplianceSetting";
 import CustomRole from "../../../../../Models/DatabaseModels/CustomRole";
 import CustomRolePermission from "../../../../../Models/DatabaseModels/CustomRolePermission";
+import ApiKeyCustomRole from "../../../../../Models/DatabaseModels/ApiKeyCustomRole";
 import TeamCustomRole from "../../../../../Models/DatabaseModels/TeamCustomRole";
 import TeamPermission from "../../../../../Models/DatabaseModels/TeamPermission";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -138,6 +139,7 @@ const ENTERPRISE_MODELS: ReadonlyArray<[string, ModelType, EnterpriseFeature]> =
       EnterpriseFeature.CustomRoles,
     ],
     ["TeamCustomRole", TeamCustomRole, EnterpriseFeature.CustomRoles],
+    ["ApiKeyCustomRole", ApiKeyCustomRole, EnterpriseFeature.CustomRoles],
   ];
 
 // Community Edition configuration: never gated by the edition check.

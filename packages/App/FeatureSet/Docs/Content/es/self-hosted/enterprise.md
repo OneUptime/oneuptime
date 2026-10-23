@@ -43,7 +43,7 @@ Esta página explica qué incluye cada edición, cómo ejecutar la Enterprise Ed
 | Ajustes de cumplimiento de equipos | No | Sí | Plan Scale y superiores |
 | Registros de auditoría | No | Sí | Plan Enterprise |
 | Anulaciones de retención: retención por tipo de telemetría (logs, trazas, métricas, perfiles, con reglas por gravedad del log y estado de la traza) y retención por servicio y por recurso | No | Sí | Plan Scale y superiores |
-| Roles personalizados: conjuntos de permisos a los que pone nombre una vez y que da a equipos | No | Sí | Plan Scale y superiores |
+| Roles personalizados: conjuntos de permisos a los que pone nombre una vez y que da a equipos y claves de API | No | Sí | Plan Scale y superiores |
 | Listas de IP permitidas para páginas de estado, paneles públicos y formularios | No | Sí | Plan Scale y superiores |
 | Controles de acceso de las páginas de estado: cuánto tiempo siguen con la sesión iniciada los lectores de una página de estado privada, y quién puede suscribirse | No | Sí | Plan Scale y superiores |
 | Ocultar «Powered by OneUptime» en las páginas de estado | No | Sí | Plan Scale y superiores |

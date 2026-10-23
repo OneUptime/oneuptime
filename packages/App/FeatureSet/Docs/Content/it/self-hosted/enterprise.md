@@ -43,7 +43,7 @@ Questa pagina spiega cosa include ogni edizione, come eseguire la Enterprise Edi
 | Impostazioni di conformità dei team | No | Sì | Piano Scale e superiori |
 | Log di audit | No | Sì | Piano Enterprise |
 | Sostituzioni della conservazione: conservazione per tipo di telemetria (log, trace, metriche, profili, con regole per gravità del log e stato della trace) e conservazione per servizio e per risorsa | No | Sì | Piano Scale e superiori |
-| Ruoli personalizzati: insiemi di autorizzazioni a cui date un nome una volta e che assegnate ai team | No | Sì | Piano Scale e superiori |
+| Ruoli personalizzati: insiemi di autorizzazioni a cui date un nome una volta e che assegnate ai team e alle chiavi API | No | Sì | Piano Scale e superiori |
 | Liste di IP consentiti per pagine di stato, dashboard pubbliche e moduli | No | Sì | Piano Scale e superiori |
 | Controlli di accesso delle pagine di stato: per quanto tempo i lettori di una pagina di stato privata restano connessi, e chi può iscriversi | No | Sì | Piano Scale e superiori |
 | Nascondere «Powered by OneUptime» sulle pagine di stato | No | Sì | Piano Scale e superiori |

@@ -321,6 +321,7 @@ describe("a workflow's step naming a setting that holds credentials", () => {
  * until it is looked at and added here.
  */
 const WORKFLOW_RECORDS_NAMING_CREDENTIAL_SETTINGS: Array<string> = [
+  "ApiKeyCustomRole.apiKey -> ApiKey",
   "ApiKeyPermission.apiKey -> ApiKey",
   "IncomingCallPolicy.projectCallSMSConfig -> ProjectCallSMSConfig",
   "StatusPage.callSmsConfig -> ProjectCallSMSConfig",

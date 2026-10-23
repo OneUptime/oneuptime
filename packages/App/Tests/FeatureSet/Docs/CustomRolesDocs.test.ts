@@ -295,12 +295,15 @@ describe("the labels the steps name", () => {
     );
   });
 
+  /*
+   * The card itself is an Enterprise screen (ee/Dashboard/CustomRoles
+   * /ApiKeyCustomRoleTable): ee/Tests/Server/CustomRoles
+   * /CustomRolesDocsLabels.test.ts holds its Add Custom Role. The key's
+   * page draws it through core's shell.
+   */
   test("an API key's page has Add Custom Role, as a team's Permissions page does", () => {
-    expect(readSource("Components/ApiKey/ApiKeyCustomRoleTable.tsx")).toContain(
-      'title: "Add Custom Role"',
-    );
     expect(readSource("Pages/Settings/APIKeyView.tsx")).toContain(
-      "<ApiKeyCustomRoleTable",
+      "<ApiKeyCustomRolesSettings apiKeyId={modelId} />",
     );
     expect(englishSection()).toContain(
       "A team's **Permissions** page and an API key's page have **Add Custom Role** too",

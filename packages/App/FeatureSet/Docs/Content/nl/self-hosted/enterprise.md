@@ -43,7 +43,7 @@ Deze pagina beschrijft wat elke editie bevat, hoe u de Enterprise Edition draait
 | Instellingen voor team-compliance | Nee | Ja | Abonnement Scale en hoger |
 | Auditlogboeken | Nee | Ja | Abonnement Enterprise |
 | Bewaar-overschrijvingen: bewaartermijn per telemetrietype (logs, traces, metrics, profielen, met regels per logernst en tracestatus) en bewaartermijn per service en per resource | Nee | Ja | Abonnement Scale en hoger |
-| Aangepaste rollen: sets machtigingen die u één keer een naam geeft en aan teams geeft | Nee | Ja | Abonnement Scale en hoger |
+| Aangepaste rollen: sets machtigingen die u één keer een naam geeft en aan teams en API-sleutels geeft | Nee | Ja | Abonnement Scale en hoger |
 | IP-toelatingslijsten voor statuspagina's, openbare dashboards en formulieren | Nee | Ja | Abonnement Scale en hoger |
 | Toegangsbeheer voor statuspagina's: hoe lang lezers van een privé-statuspagina aangemeld blijven, en wie zich kan abonneren | Nee | Ja | Abonnement Scale en hoger |
 | "Powered by OneUptime" verbergen op statuspagina's | Nee | Ja | Abonnement Scale en hoger |

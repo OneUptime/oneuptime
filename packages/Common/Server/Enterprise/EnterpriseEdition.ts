@@ -34,13 +34,15 @@ const ENTERPRISE_FEATURE_BY_TABLE_NAME: ReadonlyMap<string, EnterpriseFeature> =
     ["StatusPageSCIM", EnterpriseFeature.SCIM],
     ["TeamComplianceSetting", EnterpriseFeature.TeamCompliance],
     /*
-     * A custom role, the permissions in it and the teams it is given to.
-     * What a team already holds through a role is its own TeamPermission
-     * rows (CustomRoleSync), so it keeps applying in every edition.
+     * A custom role, the permissions in it, and the teams and API keys it
+     * is given to. What a team or a key already holds through a role is
+     * its own TeamPermission or ApiKeyPermission rows (CustomRoleSync), so
+     * it keeps applying in every edition.
      */
     ["CustomRole", EnterpriseFeature.CustomRoles],
     ["CustomRolePermission", EnterpriseFeature.CustomRoles],
     ["TeamCustomRole", EnterpriseFeature.CustomRoles],
+    ["ApiKeyCustomRole", EnterpriseFeature.CustomRoles],
   ]);
 
 /*

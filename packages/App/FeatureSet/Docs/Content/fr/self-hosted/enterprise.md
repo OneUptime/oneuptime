@@ -43,7 +43,7 @@ Cette page décrit ce que comprend chaque édition, comment exécuter l'Enterpri
 | Paramètres de conformité d'équipe | Non | Oui | Plan Scale et supérieurs |
 | Journaux d'audit | Non | Oui | Plan Enterprise |
 | Remplacements de rétention : rétention par type de télémétrie (journaux, traces, métriques, profils, avec des règles par gravité de journal et statut de trace), et rétention par service et par ressource | Non | Oui | Plan Scale et supérieurs |
-| Rôles personnalisés : des ensembles d'autorisations que vous nommez une fois et donnez à des équipes | Non | Oui | Plan Scale et supérieurs |
+| Rôles personnalisés : des ensembles d'autorisations que vous nommez une fois et donnez à des équipes et des clés API | Non | Oui | Plan Scale et supérieurs |
 | Listes d'autorisation IP pour les pages de statut, les tableaux de bord publics et les formulaires | Non | Oui | Plan Scale et supérieurs |
 | Contrôles d'accès des pages de statut : combien de temps les lecteurs d'une page de statut privée restent connectés, et qui peut s'abonner | Non | Oui | Plan Scale et supérieurs |
 | Masquer « Powered by OneUptime » sur les pages de statut | Non | Oui | Plan Scale et supérieurs |

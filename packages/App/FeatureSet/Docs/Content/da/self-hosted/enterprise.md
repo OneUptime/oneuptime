@@ -43,7 +43,7 @@ Denne side beskriver, hvad hver udgave indeholder, hvordan du kører Enterprise 
 | Indstillinger for team-compliance | Nej | Ja | Abonnementet Scale og derover |
 | Auditlogs | Nej | Ja | Abonnementet Enterprise |
 | Tilsidesættelser af opbevaring: opbevaring efter telemetritype (logs, traces, metrikker, profiler, med regler efter logalvorlighed og trace-status) samt opbevaring pr. tjeneste og pr. ressource | Nej | Ja | Abonnementet Scale og derover |
-| Brugerdefinerede roller: sæt af tilladelser, du navngiver én gang og giver til teams | Nej | Ja | Abonnementet Scale og derover |
+| Brugerdefinerede roller: sæt af tilladelser, du navngiver én gang og giver til teams og API-nøgler | Nej | Ja | Abonnementet Scale og derover |
 | IP-tilladelseslister for statussider, offentlige dashboards og formularer | Nej | Ja | Abonnementet Scale og derover |
 | Adgangskontrol for statussider: hvor længe læsere af en privat statusside forbliver logget ind, og hvem der kan abonnere | Nej | Ja | Abonnementet Scale og derover |
 | Skjul "Powered by OneUptime" på statussider | Nej | Ja | Abonnementet Scale og derover |

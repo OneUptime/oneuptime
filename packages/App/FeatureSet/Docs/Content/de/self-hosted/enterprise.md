@@ -43,7 +43,7 @@ Diese Seite beschreibt, was jede Edition enthält, wie Sie die Enterprise Editio
 | Team-Compliance-Einstellungen | Nein | Ja | Ab dem Plan Scale |
 | Audit-Logs | Nein | Ja | Plan Enterprise |
 | Aufbewahrungs-Überschreibungen: Aufbewahrung nach Telemetrietyp (Logs, Traces, Metriken, Profile, mit Regeln nach Log-Schweregrad und Trace-Status) sowie Aufbewahrung pro Dienst und pro Ressource | Nein | Ja | Ab dem Plan Scale |
-| Benutzerdefinierte Rollen: Sätze von Berechtigungen, die Sie einmal benennen und Teams geben | Nein | Ja | Ab dem Plan Scale |
+| Benutzerdefinierte Rollen: Sätze von Berechtigungen, die Sie einmal benennen und Teams und API-Schlüsseln geben | Nein | Ja | Ab dem Plan Scale |
 | IP-Zulassungslisten für Statusseiten, öffentliche Dashboards und Formulare | Nein | Ja | Ab dem Plan Scale |
 | Zugriffssteuerung für Statusseiten: wie lange Leser einer privaten Statusseite angemeldet bleiben und wer abonnieren kann | Nein | Ja | Ab dem Plan Scale |
 | „Powered by OneUptime“ auf Statusseiten ausblenden | Nein | Ja | Ab dem Plan Scale |

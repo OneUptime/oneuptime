@@ -8,6 +8,7 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
+import TableEditionAccessControl from "../../Types/Database/AccessControl/TableEditionAccessControl";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableAuditLog from "../../Types/Database/EnableAuditLog";
@@ -46,7 +47,16 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * the role and every permission it gives the key is one they could give
  * the key directly (ApiKeyCustomRoleService). Nothing of it is changed in
  * place: a key is given a role, or it is not.
+ *
+ * Custom roles are an Enterprise feature: a key is given one only on the
+ * Enterprise Edition with a license that includes custom roles (or in its
+ * trial or grace period). A key keeps what it already holds in every
+ * edition - the copies are its own ApiKeyPermission rows - and a role can
+ * always be taken from a key.
  */
+@TableEditionAccessControl({
+  requiresEnterprise: true,
+})
 @TableBillingAccessControl({
   create: PlanType.Scale,
   read: PlanType.Free,

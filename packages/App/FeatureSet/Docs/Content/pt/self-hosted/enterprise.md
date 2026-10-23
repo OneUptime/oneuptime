@@ -43,7 +43,7 @@ Esta página explica o que cada edição inclui, como executar a Enterprise Edit
 | Configurações de conformidade de equipes | Não | Sim | Plano Scale e superiores |
 | Logs de auditoria | Não | Sim | Plano Enterprise |
 | Substituições de retenção: retenção por tipo de telemetria (logs, traces, métricas, perfis, com regras por severidade do log e status do trace) e retenção por serviço e por recurso | Não | Sim | Plano Scale e superiores |
-| Funções personalizadas: conjuntos de permissões que você nomeia uma vez e dá a equipes | Não | Sim | Plano Scale e superiores |
+| Funções personalizadas: conjuntos de permissões que você nomeia uma vez e dá a equipes e chaves de API | Não | Sim | Plano Scale e superiores |
 | Listas de IPs permitidos para páginas de status, painéis públicos e formulários | Não | Sim | Plano Scale e superiores |
 | Controles de acesso das páginas de status: por quanto tempo os leitores de uma página de status privada continuam conectados, e quem pode se inscrever | Não | Sim | Plano Scale e superiores |
 | Ocultar «Powered by OneUptime» nas páginas de status | Não | Sim | Plano Scale e superiores |

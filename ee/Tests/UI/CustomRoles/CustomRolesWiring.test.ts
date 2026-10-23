@@ -155,6 +155,8 @@ describe("the area's imports", () => {
   test("the moved screens are all here", () => {
     expect(AREA_FILES).toEqual(
       [
+        "ApiKeyCustomRoleTable.tsx",
+        "CustomRoleApiKeysTable.tsx",
         "CustomRoleCreateForm.ts",
         "CustomRoleCreateNotice.tsx",
         "CustomRolePermissionPicker.ts",
@@ -203,6 +205,7 @@ describe("the area's imports", () => {
         "@oneuptime/dashboard/Pages/Teams/Roles",
         "@oneuptime/dashboard/Pages/Teams/RoleView",
         "@oneuptime/dashboard/Components/Team/TeamCustomRolesSettings",
+        "@oneuptime/dashboard/Components/ApiKey/ApiKeyCustomRolesSettings",
         "@oneuptime/dashboard/Enterprise/Plugins",
       ];
 

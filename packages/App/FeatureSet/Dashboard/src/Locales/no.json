@@ -33644,5 +33644,10 @@
   "Your email domains": "Your email domains",
   "Your identity provider decides again at every new sign-in.": "Your identity provider decides again at every new sign-in.",
   "Your schedule": "Your schedule",
-  "The list holds no address, so no network can open the form.": "Listen inneholder ingen adresse, så ingen nettverk kan åpne skjemaet."
+  "The list holds no address, so no network can open the form.": "Listen inneholder ingen adresse, så ingen nettverk kan åpne skjemaet.",
+  "Custom roles of this API key": "Custom roles of this API key",
+  "This API key": "This API key",
+  "This API key has no custom role.": "This API key has no custom role.",
+  "This API key keeps the permissions of these roles. Giving custom roles to API keys needs the Enterprise Edition. You can still remove them from this key.": "This API key keeps the permissions of these roles. Giving custom roles to API keys needs the Enterprise Edition. You can still remove them from this key.",
+  "This API key keeps the permissions of these roles. Giving custom roles to API keys needs the {{planName}} plan. You can still remove them from this key.": "This API key keeps the permissions of these roles. Giving custom roles to API keys needs the {{planName}} plan. You can still remove them from this key."
 }

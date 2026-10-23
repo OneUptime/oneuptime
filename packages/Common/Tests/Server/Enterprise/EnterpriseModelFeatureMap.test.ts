@@ -84,6 +84,7 @@ describe("EnterpriseEdition.getModelFeature against the real models", () => {
         "CustomRole",
         "CustomRolePermission",
         "TeamCustomRole",
+        "ApiKeyCustomRole",
       ].sort(),
     );
   });
@@ -171,6 +172,7 @@ describe("EnterpriseEdition.getModelFeature against the real models", () => {
         "CustomRole",
         "CustomRolePermission",
         "TeamCustomRole",
+        "ApiKeyCustomRole",
       ].sort(),
     );
   });

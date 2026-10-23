@@ -1,4 +1,11 @@
-import { expect, Locator, Page, test } from "@playwright/test";
+import {
+  APIRequestContext,
+  APIResponse,
+  expect,
+  Locator,
+  Page,
+  test,
+} from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
 
@@ -84,9 +91,28 @@ interface FixtureLog {
   listRequests: Array<RecordedList>;
 }
 
+/*
+ * Custom roles are an Enterprise feature (ee/Dashboard/CustomRoles): the
+ * fixture serves the Enterprise pages only where ee/ is checked out, and
+ * /edition.json says which. Everything here is about them, so it skips on
+ * the Community Edition - the Dashboard Offline UI jobs run without ee/ -
+ * where core's jest suites hold what is drawn instead (the upsell, and the
+ * roles a team or key still has, to remove).
+ */
+let edition: string = "";
+
+test.beforeAll(async ({ request }: { request: APIRequestContext }) => {
+  const response: APIResponse = await request.get("/edition.json");
+  edition = ((await response.json()) as { edition: string }).edition;
+});
+
 const pageErrors: Map<Page, Array<string>> = new Map();
 
 test.beforeEach(({ page }: { page: Page }) => {
+  test.skip(
+    edition !== "enterprise",
+    "Custom roles are an Enterprise feature: ee/ is not checked out.",
+  );
   const errors: Array<string> = [];
   pageErrors.set(page, errors);
   page.on("pageerror", (error: Error) => {

@@ -757,6 +757,7 @@ describe("EnterpriseEdition model to feature map", () => {
     ["CustomRole", EnterpriseFeature.CustomRoles],
     ["CustomRolePermission", EnterpriseFeature.CustomRoles],
     ["TeamCustomRole", EnterpriseFeature.CustomRoles],
+    ["ApiKeyCustomRole", EnterpriseFeature.CustomRoles],
   ] as Array<[string, EnterpriseFeature]>)(
     "table %s is gated by %s",
     (tableName: string, feature: EnterpriseFeature) => {
@@ -764,7 +765,7 @@ describe("EnterpriseEdition model to feature map", () => {
     },
   );
 
-  test("maps exactly the six enterprise configuration tables", () => {
+  test("maps exactly the seven enterprise configuration tables", () => {
     expect(EnterpriseEdition.getMappedTableNames().sort()).toEqual(
       [
         "ProjectSCIM",
@@ -773,6 +774,7 @@ describe("EnterpriseEdition model to feature map", () => {
         "CustomRole",
         "CustomRolePermission",
         "TeamCustomRole",
+        "ApiKeyCustomRole",
       ].sort(),
     );
   });

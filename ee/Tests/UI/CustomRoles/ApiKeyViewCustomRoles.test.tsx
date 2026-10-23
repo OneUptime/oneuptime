@@ -18,7 +18,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import getJestMockFunction, { MockFunction } from "../../MockType";
+import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
 
 /*
  * AN API KEY'S CUSTOM ROLES, on the key's real page with only the network
@@ -43,10 +43,45 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     role's copies.
  */
 
+// A valid license, unless a test lets it lapse.
+let licenseModeForTest: string = "editable";
+
+(
+  globalThis as unknown as { __licenseModeForTest: () => string }
+).__licenseModeForTest = (): string => {
+  return licenseModeForTest;
+};
+
+jest.mock(
+  "../../../Dashboard/Identity/License/UseEnterpriseLicenseMode",
+  () => {
+    return {
+      __esModule: true,
+      default: (): string => {
+        return (
+          globalThis as unknown as { __licenseModeForTest: () => string }
+        ).__licenseModeForTest();
+      },
+    };
+  },
+);
+
+/*
+ * The Enterprise Edition, self-hosted: the key's page draws the Enterprise
+ * card through its core shell (ApiKeyCustomRolesSettings).
+ */
+jest.mock("Common/UI/Config", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "Common/UI/Config",
+  ) as Record<string, unknown>;
+
+  return { ...actual, BILLING_ENABLED: false, IS_ENTERPRISE_EDITION: true };
+});
+
 let allPermissionsForTest: Array<string> = [];
 let projectPermissionsForTest: unknown = null;
 
-jest.mock("../../../UI/Utils/Permission", () => {
+jest.mock("Common/UI/Utils/Permission", () => {
   return {
     __esModule: true,
     default: {
@@ -63,7 +98,7 @@ jest.mock("../../../UI/Utils/Permission", () => {
   };
 });
 
-jest.mock("../../../UI/Utils/User", () => {
+jest.mock("Common/UI/Utils/User", () => {
   return {
     __esModule: true,
     default: {
@@ -77,7 +112,7 @@ jest.mock("../../../UI/Utils/User", () => {
   };
 });
 
-jest.mock("../../../UI/Utils/Translation", () => {
+jest.mock("Common/UI/Utils/Translation", () => {
   return {
     __esModule: true,
     default: () => {
@@ -98,7 +133,7 @@ const getItemMock: MockFunction = getJestMockFunction();
 const createOrUpdateMock: MockFunction = getJestMockFunction();
 const deleteItemMock: MockFunction = getJestMockFunction();
 
-jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
+jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,
     default: {
@@ -127,7 +162,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
-jest.mock("../../../UI/Utils/Project", () => {
+jest.mock("Common/UI/Utils/Project", () => {
   return {
     __esModule: true,
     default: {
@@ -148,30 +183,30 @@ jest.mock("../../../UI/Utils/Project", () => {
   };
 });
 
-import APIKeyViewPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/APIKeyView";
+import APIKeyViewPage from "@oneuptime/dashboard/Pages/Settings/APIKeyView";
 import {
   API_KEY_CUSTOM_ROLES_TEST_ID,
   API_KEY_ROLE_OWNED_REASON_TEST_ID,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/ApiKey/ApiKeyCustomRoleTable";
-import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
-import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
-import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
-import ApiKey from "../../../Models/DatabaseModels/ApiKey";
-import ApiKeyCustomRole from "../../../Models/DatabaseModels/ApiKeyCustomRole";
-import ApiKeyPermission from "../../../Models/DatabaseModels/ApiKeyPermission";
-import CustomRole from "../../../Models/DatabaseModels/CustomRole";
-import CustomRolePermission from "../../../Models/DatabaseModels/CustomRolePermission";
-import Project from "../../../Models/DatabaseModels/Project";
-import Route from "../../../Types/API/Route";
-import IsNull from "../../../Types/BaseDatabase/IsNull";
-import OneUptimeDate from "../../../Types/Date";
-import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
-import ObjectID from "../../../Types/ObjectID";
-import Permission, { UserPermission } from "../../../Types/Permission";
-import Navigation from "../../../UI/Utils/Navigation";
-import PermissionGate from "../../../UI/Utils/PermissionGate";
-import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
-import { getJestSpyOn } from "../../Spy";
+} from "../../../Dashboard/CustomRoles/ApiKeyCustomRoleTable";
+import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
+import PageMap from "@oneuptime/dashboard/Utils/PageMap";
+import RouteMap from "@oneuptime/dashboard/Utils/RouteMap";
+import ApiKey from "Common/Models/DatabaseModels/ApiKey";
+import ApiKeyCustomRole from "Common/Models/DatabaseModels/ApiKeyCustomRole";
+import ApiKeyPermission from "Common/Models/DatabaseModels/ApiKeyPermission";
+import CustomRole from "Common/Models/DatabaseModels/CustomRole";
+import CustomRolePermission from "Common/Models/DatabaseModels/CustomRolePermission";
+import Project from "Common/Models/DatabaseModels/Project";
+import Route from "Common/Types/API/Route";
+import IsNull from "Common/Types/BaseDatabase/IsNull";
+import OneUptimeDate from "Common/Types/Date";
+import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope";
+import ObjectID from "Common/Types/ObjectID";
+import Permission, { UserPermission } from "Common/Types/Permission";
+import Navigation from "Common/UI/Utils/Navigation";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
+import TableFilterUrlState from "Common/UI/Utils/TableFilterUrlState";
+import { getJestSpyOn } from "Common/Tests/Spy";
 
 jest.setTimeout(30000);
 
@@ -273,6 +308,7 @@ function auditor(): CustomRole {
 }
 
 beforeEach(() => {
+  licenseModeForTest = "editable";
   holding([Permission.ProjectOwner]);
   roles = [];
   rolePermissions = [];
@@ -393,6 +429,27 @@ function listCallsFor(modelType: unknown): Array<any> {
 }
 
 describe("an API key's custom roles", () => {
+  test("with a lapsed license, the key's roles stay, and Add Custom Role is gone", async () => {
+    licenseModeForTest = "read-only";
+    const incidentResponder: CustomRole = responder();
+    roles = [auditor(), incidentResponder];
+    givenRows = [givenToKey(incidentResponder)];
+
+    await renderPage();
+    const card: HTMLElement = await customRolesCard();
+
+    expect(
+      await within(card).findByRole("link", { name: "Incident Responder" }),
+    ).toBeInTheDocument();
+    expect(
+      within(card)
+        .queryAllByTestId("card-button")
+        .filter((button: HTMLElement): boolean => {
+          return (button.textContent || "").trim() === "Add Custom Role";
+        }),
+    ).toEqual([]);
+  });
+
   test("a project with no custom role sees the key's page as before: no Custom Roles card", async () => {
     await renderPage();
 

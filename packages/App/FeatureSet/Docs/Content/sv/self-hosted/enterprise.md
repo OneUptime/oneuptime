@@ -43,7 +43,7 @@ Den här sidan beskriver vad varje utgåva innehåller, hur du kör Enterprise E
 | Inställningar för teamefterlevnad | Nej | Ja | Planen Scale och högre |
 | Granskningsloggar | Nej | Ja | Planen Enterprise |
 | Åsidosättningar av lagringstid: lagringstid per telemetrityp (loggar, spår, mätvärden, profiler, med regler per loggallvarlighet och spårstatus) samt lagringstid per tjänst och per resurs | Nej | Ja | Planen Scale och högre |
-| Anpassade roller: uppsättningar behörigheter som du namnger en gång och ger till team | Nej | Ja | Planen Scale och högre |
+| Anpassade roller: uppsättningar behörigheter som du namnger en gång och ger till team och API-nycklar | Nej | Ja | Planen Scale och högre |
 | IP-tillåtelselistor för statussidor, offentliga instrumentpaneler och formulär | Nej | Ja | Planen Scale och högre |
 | Åtkomstkontroller för statussidor: hur länge läsare av en privat statussida förblir inloggade, och vem som kan prenumerera | Nej | Ja | Planen Scale och högre |
 | Dölja "Powered by OneUptime" på statussidor | Nej | Ja | Planen Scale och högre |

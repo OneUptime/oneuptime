@@ -18,7 +18,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import getJestMockFunction, { MockFunction } from "../../MockType";
+import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
 
 /*
  * THE API KEYS A CUSTOM ROLE IS GIVEN TO, on the role's real page with only
@@ -42,10 +42,33 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     and nothing names a key.
  */
 
+// A valid license, unless a test lets it lapse.
+let licenseModeForTest: string = "editable";
+
+(
+  globalThis as unknown as { __licenseModeForTest: () => string }
+).__licenseModeForTest = (): string => {
+  return licenseModeForTest;
+};
+
+jest.mock(
+  "../../../Dashboard/Identity/License/UseEnterpriseLicenseMode",
+  () => {
+    return {
+      __esModule: true,
+      default: (): string => {
+        return (
+          globalThis as unknown as { __licenseModeForTest: () => string }
+        ).__licenseModeForTest();
+      },
+    };
+  },
+);
+
 let allPermissionsForTest: Array<string> = [];
 let projectPermissionsForTest: unknown = null;
 
-jest.mock("../../../UI/Utils/Permission", () => {
+jest.mock("Common/UI/Utils/Permission", () => {
   return {
     __esModule: true,
     default: {
@@ -62,7 +85,7 @@ jest.mock("../../../UI/Utils/Permission", () => {
   };
 });
 
-jest.mock("../../../UI/Utils/User", () => {
+jest.mock("Common/UI/Utils/User", () => {
   return {
     __esModule: true,
     default: {
@@ -76,7 +99,7 @@ jest.mock("../../../UI/Utils/User", () => {
   };
 });
 
-jest.mock("../../../UI/Utils/Translation", () => {
+jest.mock("Common/UI/Utils/Translation", () => {
   return {
     __esModule: true,
     default: () => {
@@ -99,7 +122,7 @@ const createOrUpdateMock: MockFunction = getJestMockFunction();
 // How many API keys the project has, as ModelAPI.count answers.
 let apiKeyCountForTest: number = 2;
 
-jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
+jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,
     default: {
@@ -128,7 +151,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
-jest.mock("../../../UI/Utils/Project", () => {
+jest.mock("Common/UI/Utils/Project", () => {
   return {
     __esModule: true,
     default: {
@@ -149,26 +172,26 @@ jest.mock("../../../UI/Utils/Project", () => {
   };
 });
 
-import TeamRoleView from "../../../../App/FeatureSet/Dashboard/src/Pages/Teams/RoleView";
+import TeamRoleView from "../../../Dashboard/CustomRoles/RoleViewPage";
 import CustomRoleApiKeysTable, {
   CUSTOM_ROLE_API_KEYS_TEST_ID,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/CustomRole/CustomRoleApiKeysTable";
-import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
-import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
-import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
-import ApiKey from "../../../Models/DatabaseModels/ApiKey";
-import ApiKeyCustomRole from "../../../Models/DatabaseModels/ApiKeyCustomRole";
-import CustomRole from "../../../Models/DatabaseModels/CustomRole";
-import CustomRolePermission from "../../../Models/DatabaseModels/CustomRolePermission";
-import Route from "../../../Types/API/Route";
-import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
-import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
-import ObjectID from "../../../Types/ObjectID";
-import Permission, { UserPermission } from "../../../Types/Permission";
-import Navigation from "../../../UI/Utils/Navigation";
-import PermissionGate from "../../../UI/Utils/PermissionGate";
-import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
-import { getJestSpyOn } from "../../Spy";
+} from "../../../Dashboard/CustomRoles/CustomRoleApiKeysTable";
+import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
+import PageMap from "@oneuptime/dashboard/Utils/PageMap";
+import RouteMap from "@oneuptime/dashboard/Utils/RouteMap";
+import ApiKey from "Common/Models/DatabaseModels/ApiKey";
+import ApiKeyCustomRole from "Common/Models/DatabaseModels/ApiKeyCustomRole";
+import CustomRole from "Common/Models/DatabaseModels/CustomRole";
+import CustomRolePermission from "Common/Models/DatabaseModels/CustomRolePermission";
+import Route from "Common/Types/API/Route";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope";
+import ObjectID from "Common/Types/ObjectID";
+import Permission, { UserPermission } from "Common/Types/Permission";
+import Navigation from "Common/UI/Utils/Navigation";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
+import TableFilterUrlState from "Common/UI/Utils/TableFilterUrlState";
+import { getJestSpyOn } from "Common/Tests/Spy";
 
 jest.setTimeout(30000);
 
@@ -251,6 +274,7 @@ function givenToDeployBot(): ApiKeyCustomRole {
 }
 
 beforeEach(() => {
+  licenseModeForTest = "editable";
   holding([Permission.ProjectOwner]);
   apiKeysReadable = true;
   apiKeyCountForTest = 2;
@@ -390,6 +414,24 @@ function listCallsFor(modelType: unknown): Array<any> {
 }
 
 describe("a custom role's API keys", () => {
+  test("with a lapsed license, the keys stay listed, and Give to an API Key is gone", async () => {
+    licenseModeForTest = "read-only";
+
+    await renderPage();
+    const card: HTMLElement = await apiKeysCard();
+
+    expect(
+      await within(card).findByRole("link", { name: "Deploy bot" }),
+    ).toBeInTheDocument();
+    expect(
+      within(card)
+        .queryAllByTestId("card-button")
+        .filter((button: HTMLElement): boolean => {
+          return (button.textContent || "").trim() === "Give to an API Key";
+        }),
+    ).toEqual([]);
+  });
+
   test("lists the keys given the role, each a link to the key's page", async () => {
     await renderPage();
     const card: HTMLElement = await apiKeysCard();

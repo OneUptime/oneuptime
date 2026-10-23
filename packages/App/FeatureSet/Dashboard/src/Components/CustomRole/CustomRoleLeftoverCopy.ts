@@ -5,11 +5,11 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * changed: on the Community Edition, and on OneUptime Cloud below the plan
  * that sells them (CustomRoleLeftovers).
  *
- * A custom role keeps giving the teams that have it its permissions there:
- * a team holds a copy of each as its own permission rows (CustomRoleSync),
- * which every edition reads. So the roles are listed, with the move every
- * edition allows - removing them, which takes their permissions away at
- * once.
+ * A custom role keeps giving the teams and API keys that have it its
+ * permissions there: each holds a copy of them as its own permission rows
+ * (CustomRoleSync), which every edition reads. So the roles are listed,
+ * with the move every edition allows - removing them, which takes their
+ * permissions away at once.
  *
  * Kept free of React so the components and the tests read these exact
  * strings. Every sentence is wrapped in translationKey() so npm run
@@ -23,6 +23,9 @@ export const CustomRoleLeftoverCopy: {
   teamTitle: string;
   teamEditionDescription: string;
   teamPlanDescription: string;
+  apiKeyTitle: string;
+  apiKeyEditionDescription: string;
+  apiKeyPlanDescription: string;
 } = {
   projectTitle: translationKey("Custom roles still in force"),
   projectEditionDescription: translationKey(
@@ -38,6 +41,13 @@ export const CustomRoleLeftoverCopy: {
   teamPlanDescription: translationKey(
     "This team keeps the permissions of these roles. Giving custom roles to teams needs the {{planName}} plan. You can still remove them from this team.",
   ),
+  apiKeyTitle: translationKey("Custom roles of this API key"),
+  apiKeyEditionDescription: translationKey(
+    "This API key keeps the permissions of these roles. Giving custom roles to API keys needs the Enterprise Edition. You can still remove them from this key.",
+  ),
+  apiKeyPlanDescription: translationKey(
+    "This API key keeps the permissions of these roles. Giving custom roles to API keys needs the {{planName}} plan. You can still remove them from this key.",
+  ),
 };
 
 export const PROJECT_CUSTOM_ROLES_LEFTOVER_TEST_ID: string =
@@ -45,5 +55,8 @@ export const PROJECT_CUSTOM_ROLES_LEFTOVER_TEST_ID: string =
 
 export const TEAM_CUSTOM_ROLES_LEFTOVER_TEST_ID: string =
   "team-custom-roles-leftover";
+
+export const API_KEY_CUSTOM_ROLES_LEFTOVER_TEST_ID: string =
+  "api-key-custom-roles-leftover";
 
 export default CustomRoleLeftoverCopy;

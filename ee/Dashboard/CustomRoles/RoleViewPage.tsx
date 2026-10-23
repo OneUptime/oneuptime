@@ -14,13 +14,13 @@ import {
   getRoleReachSentence,
   isRoleGivenToAnyone,
 } from "@oneuptime/dashboard/Components/CustomRole/CustomRoleCopy";
-import CustomRoleApiKeysTable from "@oneuptime/dashboard/Components/CustomRole/CustomRoleApiKeysTable";
 import { getCustomRoleEditFormFields } from "./CustomRoleCreateForm";
 import CustomRolePermissionTable from "./CustomRolePermissionTable";
 import {
   CustomRoleReachDetails,
   loadCustomRoleReach,
 } from "@oneuptime/dashboard/Components/CustomRole/CustomRoleReach";
+import CustomRoleApiKeysTable from "./CustomRoleApiKeysTable";
 import CustomRoleTeamsTable from "./CustomRoleTeamsTable";
 import CustomRole from "Common/Models/DatabaseModels/CustomRole";
 import Route from "Common/Types/API/Route";
@@ -216,6 +216,7 @@ const TeamRoleView: FunctionComponent<PageComponentProps> = (
         roleName={roleName}
         onApiKeysChange={readReach}
         permissionsChangeToggle={permissionsChangeToggle}
+        isReadOnly={isReadOnly}
       />
 
       <ModelDelete

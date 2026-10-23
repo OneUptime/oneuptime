@@ -43,7 +43,7 @@ This page covers what each edition includes, how to run the Enterprise Edition, 
 | Team compliance settings | No | Yes | Scale plan and above |
 | Audit logs | No | Yes | Enterprise plan |
 | Retention overrides: retention by telemetry type (logs, traces, metrics, profiles, with rules by log severity and trace status), and per-service and per-resource retention | No | Yes | Scale plan and above |
-| Custom roles: sets of permissions you name once and give to teams | No | Yes | Scale plan and above |
+| Custom roles: sets of permissions you name once and give to teams and API keys | No | Yes | Scale plan and above |
 | IP allowlists for status pages, public dashboards and forms | No | Yes | Scale plan and above |
 | Status page access controls: how long readers of a private status page stay signed in, and who can subscribe | No | Yes | Scale plan and above |
 | Hiding "Powered by OneUptime" on status pages | No | Yes | Scale plan and above |

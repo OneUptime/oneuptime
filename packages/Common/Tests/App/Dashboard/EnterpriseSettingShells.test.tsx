@@ -187,6 +187,7 @@ import StatusPagePoweredBySettings, {
   STATUS_PAGE_POWERED_BY_UPSELL,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPagePoweredBySettings";
 import TeamCustomRolesSettings from "../../../../App/FeatureSet/Dashboard/src/Components/Team/TeamCustomRolesSettings";
+import ApiKeyCustomRolesSettings from "../../../../App/FeatureSet/Dashboard/src/Components/ApiKey/ApiKeyCustomRolesSettings";
 import TeamRoles, {
   CUSTOM_ROLES_UPSELL,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Teams/Roles";
@@ -201,6 +202,7 @@ import {
   isEnterpriseSettingSet,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/EnterpriseEdition/EnterpriseSettingLeftover";
 import CustomRoleLeftoverCopy, {
+  API_KEY_CUSTOM_ROLES_LEFTOVER_TEST_ID,
   PROJECT_CUSTOM_ROLES_LEFTOVER_TEST_ID,
   TEAM_CUSTOM_ROLES_LEFTOVER_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomRole/CustomRoleLeftoverCopy";
@@ -221,6 +223,9 @@ const RECORD_ID: ObjectID = new ObjectID(
   "22222222-0000-4000-8000-000000000001",
 );
 const TEAM_ID: ObjectID = new ObjectID("33333333-0000-4000-8000-000000000001");
+const API_KEY_ID: ObjectID = new ObjectID(
+  "44444444-0000-4000-8000-000000000001",
+);
 
 const COMMUNITY_EDITION_CTA: string = "Learn about Enterprise Edition";
 
@@ -1102,5 +1107,119 @@ describe("the custom role shells", () => {
         "This team keeps the permissions of these roles. Giving custom roles to teams needs the Scale plan. You can still remove them from this team.",
       ),
     ).toBeInTheDocument();
+  });
+  test("an API key's custom roles, Community Edition, with roles: listed to remove, no upsell", async () => {
+    countMock.mockResolvedValue(2 as never);
+
+    renderInRouter(<ApiKeyCustomRolesSettings apiKeyId={API_KEY_ID} />);
+
+    expect(
+      await screen.findByTestId(API_KEY_CUSTOM_ROLES_LEFTOVER_TEST_ID),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(CustomRoleLeftoverCopy.apiKeyTitle),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(CustomRoleLeftoverCopy.apiKeyEditionDescription),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(CUSTOM_ROLES_UPSELL.featureName),
+    ).not.toBeInTheDocument();
+    expect(countMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: { apiKeyId: API_KEY_ID, projectId: PROJECT_ID },
+      }),
+    );
+  });
+
+  test("an API key's custom roles, Community Edition, none: nothing at all", async () => {
+    renderInRouter(<ApiKeyCustomRolesSettings apiKeyId={API_KEY_ID} />);
+
+    await waitFor(() => {
+      expect(countMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(
+      screen.queryByTestId(API_KEY_CUSTOM_ROLES_LEFTOVER_TEST_ID),
+    ).not.toBeInTheDocument();
+  });
+
+  test("an API key's custom roles, Enterprise Edition: the Enterprise card, for this key", async () => {
+    enterpriseEditionForTest = true;
+    const plugin: ReturnType<typeof stubPlugin> = stubPlugin(
+      "api-key-roles-plugin",
+    );
+    pluginsForTest = { ApiKeyCustomRoles: plugin.component };
+
+    renderInRouter(<ApiKeyCustomRolesSettings apiKeyId={API_KEY_ID} />);
+
+    expect(
+      await screen.findByTestId("api-key-roles-plugin"),
+    ).toBeInTheDocument();
+    expect(plugin.calls[0]).toEqual({ apiKeyId: API_KEY_ID });
+    expect(countMock).not.toHaveBeenCalled();
+  });
+
+  test("an API key's custom roles, Enterprise build on the Community Edition: the roles left, never the card", async () => {
+    pluginsForTest = {
+      ApiKeyCustomRoles: stubPlugin("api-key-roles-plugin").component,
+    };
+    countMock.mockResolvedValue(1 as never);
+
+    renderInRouter(<ApiKeyCustomRolesSettings apiKeyId={API_KEY_ID} />);
+
+    expect(
+      await screen.findByTestId(API_KEY_CUSTOM_ROLES_LEFTOVER_TEST_ID),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("api-key-roles-plugin"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("an API key's custom roles, OneUptime Cloud while the plan loads: nothing, and nothing read", () => {
+    pinCloud(null);
+    pluginsForTest = {
+      ApiKeyCustomRoles: stubPlugin("api-key-roles-plugin").component,
+    };
+
+    renderInRouter(<ApiKeyCustomRolesSettings apiKeyId={API_KEY_ID} />);
+
+    expect(
+      screen.queryByTestId("api-key-roles-plugin"),
+    ).not.toBeInTheDocument();
+    expect(countMock).not.toHaveBeenCalled();
+  });
+
+  test("an API key's custom roles, OneUptime Cloud below Scale: listed with the plan named", async () => {
+    pinCloud(PlanType.Growth);
+    pluginsForTest = {
+      ApiKeyCustomRoles: stubPlugin("api-key-roles-plugin").component,
+    };
+    countMock.mockResolvedValue(1 as never);
+
+    renderInRouter(<ApiKeyCustomRolesSettings apiKeyId={API_KEY_ID} />);
+
+    expect(
+      await screen.findByTestId(API_KEY_CUSTOM_ROLES_LEFTOVER_TEST_ID),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "This API key keeps the permissions of these roles. Giving custom roles to API keys needs the Scale plan. You can still remove them from this key.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("an API key's custom roles, OneUptime Cloud on Scale: the Enterprise card", async () => {
+    pinCloud(PlanType.Scale);
+    pluginsForTest = {
+      ApiKeyCustomRoles: stubPlugin("api-key-roles-plugin").component,
+    };
+
+    renderInRouter(<ApiKeyCustomRolesSettings apiKeyId={API_KEY_ID} />);
+
+    expect(
+      await screen.findByTestId("api-key-roles-plugin"),
+    ).toBeInTheDocument();
+    expect(countMock).not.toHaveBeenCalled();
   });
 });

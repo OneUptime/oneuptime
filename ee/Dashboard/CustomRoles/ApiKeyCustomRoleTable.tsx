@@ -1,20 +1,25 @@
 import {
+  isEnterpriseConfigurationReadOnly,
+  LicensedFeature,
+} from "../Identity/License/EnterpriseLicenseMode";
+import useEnterpriseLicenseMode from "../Identity/License/UseEnterpriseLicenseMode";
+import {
   CustomRoleSummary,
   getCustomRoleCardSelectOption,
   getOwnedPermissionCounts,
   loadCustomRoleGrants,
   loadCustomRoleIdsOfApiKey,
   loadCustomRoles,
-} from "../CustomRole/CustomRoleOptions";
+} from "@oneuptime/dashboard/Components/CustomRole/CustomRoleOptions";
 import {
   getAddRoleToApiKeyDescription,
   getApiKeyOwnedScopeReason,
   getApiKeyRolePermissionCountText,
   getRoleRemoveFromApiKeySentence,
-} from "../CustomRole/CustomRoleCopy";
-import AppLink from "../AppLink/AppLink";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+} from "@oneuptime/dashboard/Components/CustomRole/CustomRoleCopy";
+import AppLink from "@oneuptime/dashboard/Components/AppLink/AppLink";
+import PageMap from "@oneuptime/dashboard/Utils/PageMap";
+import RouteMap, { RouteUtil } from "@oneuptime/dashboard/Utils/RouteMap";
 import ApiKeyCustomRole from "Common/Models/DatabaseModels/ApiKeyCustomRole";
 import Route from "Common/Types/API/Route";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -52,8 +57,7 @@ import React, {
 /*
  * AN API KEY'S CUSTOM ROLES, on its page above what it was given directly:
  * "Incident Responder - 6 permissions", each a link to the role - as a
- * team's Permissions page lists the team's (Components/Team
- * /TeamCustomRoleTable).
+ * team's Permissions page lists the team's (TeamCustomRoleTable).
  *
  * Add Custom Role picks one of the project's roles from cards that say how
  * many of its permissions the key would hold; Remove takes it away. The key
@@ -74,6 +78,12 @@ import React, {
  * dialog is the card's own ("Add a Custom Role"), not the table's create
  * form, whose title would read "Add New Custom Role" - as if a role were
  * made here.
+ *
+ * Custom roles are an Enterprise feature: this is the Enterprise card, and
+ * core keeps the slot on the key's page (Components/ApiKey
+ * /ApiKeyCustomRolesSettings). With a lapsed license, or one that leaves
+ * custom roles out, no role can be given to the key; the roles it has keep
+ * applying and can still be taken away.
  */
 
 export interface ComponentProps {
@@ -90,6 +100,9 @@ const ApiKeyCustomRoleTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const isReadOnly: boolean = isEnterpriseConfigurationReadOnly(
+    useEnterpriseLicenseMode(LicensedFeature.CustomRoles),
+  );
   const [roles, setRoles] = useState<Array<CustomRoleSummary> | null>(null);
   const [isAdding, setIsAdding] = useState<boolean>(false);
   const [refreshToggle, setRefreshToggle] = useState<string>("");
@@ -259,7 +272,7 @@ const ApiKeyCustomRoleTable: FunctionComponent<ComponentProps> = (
                 }}
               />
             ),
-            buttons: addButton ? [addButton] : [],
+            buttons: addButton && !isReadOnly ? [addButton] : [],
           }}
           noItemsMessage="This key has no custom role yet. Add one to give it everything the role allows."
           getDeleteConfirmation={async (

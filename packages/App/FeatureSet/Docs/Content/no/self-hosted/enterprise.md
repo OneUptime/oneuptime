@@ -43,7 +43,7 @@ Denne siden beskriver hva hver utgave inneholder, hvordan du kjører Enterprise 
 | Innstillinger for teamsamsvar | Nei | Ja | Abonnementet Scale og høyere |
 | Revisjonslogger | Nei | Ja | Abonnementet Enterprise |
 | Overstyringer av oppbevaring: oppbevaring etter telemetritype (logger, sporinger, metrikker, profiler, med regler etter loggalvorlighet og sporingsstatus) og oppbevaring per tjeneste og per ressurs | Nei | Ja | Abonnementet Scale og høyere |
-| Egendefinerte roller: sett med tillatelser du gir navn én gang og gir til team | Nei | Ja | Abonnementet Scale og høyere |
+| Egendefinerte roller: sett med tillatelser du gir navn én gang og gir til team og API-nøkler | Nei | Ja | Abonnementet Scale og høyere |
 | IP-tillatelseslister for statussider, offentlige dashbord og skjemaer | Nei | Ja | Abonnementet Scale og høyere |
 | Tilgangskontroll for statussider: hvor lenge lesere av en privat statusside forblir pålogget, og hvem som kan abonnere | Nei | Ja | Abonnementet Scale og høyere |
 | Skjule "Powered by OneUptime" på statussider | Nei | Ja | Abonnementet Scale og høyere |
