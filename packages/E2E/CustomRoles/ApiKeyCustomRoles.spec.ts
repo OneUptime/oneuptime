@@ -413,7 +413,9 @@ test.describe("an API key's page", () => {
     await expect(
       row(roles, "Team Lead").getByTestId("api-key-role-owned-reason"),
     ).toHaveCount(1);
-    await expect(reason).toHaveAccessibleName("About the permissions that apply to this key");
+    await expect(reason).toHaveAccessibleName(
+      "About the permissions that apply to this key",
+    );
 
     await reason.hover();
     await expect(page.getByRole("tooltip")).toHaveText(OWNED_REASON);
