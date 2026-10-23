@@ -4,6 +4,7 @@ import NetworkPathMonitor, {
   NetworkPathMonitorOptions,
 } from "../../Utils/Monitors/MonitorTypes/NetworkPathMonitor";
 import PingMonitor from "../../Utils/Monitors/MonitorTypes/PingMonitor";
+import SnmpMonitor from "../../Utils/Monitors/MonitorTypes/SnmpMonitor";
 import Hostname from "Common/Types/API/Hostname";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
@@ -23,6 +24,7 @@ import {
 } from "Common/Types/NetworkDevice/NetworkDeviceDiagnosticResult";
 import { NetworkDeviceDiagnosticStatus } from "Common/Types/NetworkDevice/NetworkDeviceDiagnosticStatus";
 import NetworkDeviceDiagnosticType from "Common/Types/NetworkDevice/NetworkDeviceDiagnosticType";
+import { NetworkDeviceDiagnosticSnmpWalkResult } from "Common/Types/NetworkDevice/NetworkDeviceSnmpWalk";
 import API from "Common/Utils/API";
 import { EVERY_TEN_SECONDS } from "Common/Utils/CronTime";
 import BasicCron from "Common/Server/Utils/BasicCron";
@@ -30,7 +32,8 @@ import logger from "Common/Server/Utils/Logger";
 
 /*
  * The probe's half of on-demand device diagnostics (issue #3745): the Ping
- * and Traceroute buttons on the topology map and the device page.
+ * and Traceroute buttons on the topology map and the device page, and the
+ * SNMP walk of the device's SNMP Walk page (issue #5184).
  *
  * Every ten seconds, fetch the NetworkDeviceDiagnostic rows the dashboard
  * has created for this probe's devices (the server claims them atomically
@@ -244,9 +247,13 @@ export async function runDiagnostic(
       return await runTracerouteDiagnostic(job);
     }
 
+    if (job.diagnosticType === NetworkDeviceDiagnosticType.SnmpWalk) {
+      return await runSnmpWalkDiagnostic(job);
+    }
+
     return buildFailedReport(
       job,
-      `Unsupported diagnostic type "${job.diagnosticType}". This probe supports Ping and Traceroute.`,
+      `Unsupported diagnostic type "${job.diagnosticType}". This probe supports Ping, Traceroute and SNMP Walk.`,
     );
   } catch (err) {
     const message: string = (err as Error).message || String(err);
@@ -317,6 +324,41 @@ async function runTracerouteDiagnostic(
     networkDeviceDiagnosticId: job.id,
     status: NetworkDeviceDiagnosticStatus.Completed,
     traceRouteResult: trace,
+  };
+}
+
+/*
+ * An SNMP walk with the credentials and bounds the server handed over.
+ * SnmpMonitor.walkOidTree never rejects: a device that refuses the
+ * credentials or does not answer is a Completed walk whose result says so
+ * (and keeps whatever was read first), exactly as an unanswered ping is a
+ * Completed ping. Only a job missing what a walk needs is Failed - a server
+ * that sent a walk without credentials, which no server does.
+ */
+async function runSnmpWalkDiagnostic(
+  job: NetworkDeviceDiagnosticJob,
+): Promise<NetworkDeviceDiagnosticReport> {
+  if (!job.snmpMonitor || !job.snmpWalk) {
+    return buildFailedReport(
+      job,
+      "The server sent this SNMP walk without the device's SNMP credentials, so there is nothing to walk it with.",
+    );
+  }
+
+  const snmpWalkResult: NetworkDeviceDiagnosticSnmpWalkResult =
+    await SnmpMonitor.walkOidTree(
+      {
+        ...job.snmpMonitor,
+        // The address the walk was asked against, as for a ping.
+        hostname: job.hostname,
+      },
+      job.snmpWalk,
+    );
+
+  return {
+    networkDeviceDiagnosticId: job.id,
+    status: NetworkDeviceDiagnosticStatus.Completed,
+    snmpWalkResult: snmpWalkResult,
   };
 }
 

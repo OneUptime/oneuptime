@@ -206,12 +206,13 @@ describe("fetchAndPollDevices — fetching this probe's due devices", () => {
    * devices to a probe that says it can ping them — an older probe would
    * walk such a device with community "public" and report it Down.
    */
-  test("declares the networkDevicePing and snmpTables capabilities on the list fetch", async () => {
+  test("declares the networkDevicePing, snmpTables and snmpWalk capabilities on the list fetch", async () => {
     await fetchAndPollDevices();
 
     expect(fetchCalls()[0]!.body["probeCapabilities"]).toEqual([
       "networkDevicePing",
       "snmpTables",
+      "snmpWalk",
     ]);
   });
 

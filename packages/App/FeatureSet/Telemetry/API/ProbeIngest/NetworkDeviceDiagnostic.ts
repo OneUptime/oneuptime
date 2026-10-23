@@ -1,8 +1,14 @@
 import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
 import { ProbeExpressRequest } from "../../Types/Request";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceDiagnostic from "Common/Models/DatabaseModels/NetworkDeviceDiagnostic";
 import NetworkDeviceDiagnosticService from "Common/Server/Services/NetworkDeviceDiagnosticService";
+import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import NetworkDeviceHydrationUtil, {
+  ResolvedDeviceSnmpCredentials,
+  ResolvedSnmpCredentialsForBatch,
+} from "Common/Server/Utils/Monitor/NetworkDeviceHydrationUtil";
 import Express, {
   ExpressResponse,
   ExpressRouter,
@@ -31,7 +37,25 @@ import {
 import NetworkDeviceDiagnosticType, {
   NetworkDeviceDiagnosticTypeUtil,
 } from "Common/Types/NetworkDevice/NetworkDeviceDiagnosticType";
+import {
+  NetworkDeviceDiagnosticSnmpWalkResult,
+  NetworkDeviceSnmpWalkRequest,
+  SNMP_WALK_CREDENTIALS_UNREADABLE_MESSAGE,
+  SNMP_WALK_MAX_OIDS,
+  SNMP_WALK_MAX_REPETITIONS,
+  SNMP_WALK_NO_CREDENTIALS_MESSAGE,
+  SNMP_WALK_PAUSE_BETWEEN_REQUESTS_IN_MS,
+  SNMP_WALK_PROBE_UPGRADE_MESSAGE,
+  SNMP_WALK_REQUEST_TIMEOUT_IN_MS,
+  SNMP_WALK_TIME_BUDGET_IN_MS,
+} from "Common/Types/NetworkDevice/NetworkDeviceSnmpWalk";
 import ObjectID from "Common/Types/ObjectID";
+import ProbeCapability, {
+  ProbeCapabilityUtil,
+} from "Common/Types/Probe/ProbeCapability";
+import SnmpWalkResultUtil, {
+  SnmpWalkStart,
+} from "Common/Utils/NetworkDevice/SnmpWalkResultUtil";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -104,7 +128,8 @@ async function failClaimedDiagnostic(data: {
  * Everything the probe needs to run one diagnostic, in one payload. The
  * timeouts and counts travel with the job rather than living on the probe
  * so a probe never has to guess a default, and so the server can change
- * them without a probe release.
+ * them without a probe release. A walk's credentials and bounds are added
+ * by buildSnmpWalkJob.
  */
 function buildDiagnosticJob(data: {
   diagnosticType: NetworkDeviceDiagnosticType;
@@ -122,12 +147,14 @@ function buildDiagnosticJob(data: {
     timeoutInMs:
       data.diagnosticType === NetworkDeviceDiagnosticType.Traceroute
         ? NETWORK_DEVICE_DIAGNOSTIC_TRACEROUTE_TIMEOUT_IN_MS
-        : NETWORK_DEVICE_DIAGNOSTIC_PING_TIMEOUT_IN_MS,
+        : data.diagnosticType === NetworkDeviceDiagnosticType.SnmpWalk
+          ? SNMP_WALK_TIME_BUDGET_IN_MS
+          : NETWORK_DEVICE_DIAGNOSTIC_PING_TIMEOUT_IN_MS,
   };
 
   if (data.diagnosticType === NetworkDeviceDiagnosticType.Traceroute) {
     job.maxHops = NETWORK_DEVICE_DIAGNOSTIC_TRACEROUTE_MAX_HOPS;
-  } else {
+  } else if (data.diagnosticType === NetworkDeviceDiagnosticType.Ping) {
     job.packetCount = NETWORK_DEVICE_DIAGNOSTIC_PING_PACKET_COUNT;
   }
 
@@ -135,8 +162,155 @@ function buildDiagnosticJob(data: {
 }
 
 /*
+ * A claimed diagnostic that passed the checks every type gets, waiting for
+ * its job to be built. Walks wait for their devices' credentials, which are
+ * read for the whole batch at once.
+ */
+interface ClaimedDiagnostic {
+  row: NetworkDeviceDiagnostic;
+  id: ObjectID;
+  projectId: ObjectID;
+  networkDeviceId: ObjectID;
+  diagnosticType: NetworkDeviceDiagnosticType;
+  hostname: string;
+}
+
+/*
+ * The SNMP credentials of the devices a batch's walks are for, resolved
+ * the way a poll of each device resolves them (its own, its credential
+ * profile's, its site's). Null when the devices could not be read: every
+ * walk of the batch is then settled with a reason, and the rest of the
+ * batch still reaches the probe.
+ */
+async function resolveWalkCredentials(
+  walks: Array<ClaimedDiagnostic>,
+): Promise<{
+  devicesById: Map<string, NetworkDevice>;
+  credentials: ResolvedSnmpCredentialsForBatch;
+} | null> {
+  const deviceIds: Array<string> = Array.from(
+    new Set(
+      walks.map((walk: ClaimedDiagnostic): string => {
+        return walk.networkDeviceId.toString();
+      }),
+    ),
+  );
+
+  try {
+    const devices: Array<NetworkDevice> = await NetworkDeviceService.findBy({
+      query: {
+        _id: QueryHelper.any(deviceIds),
+      },
+      select: NetworkDeviceHydrationUtil.snmpConfigSelect,
+      limit: deviceIds.length,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const devicesById: Map<string, NetworkDevice> = new Map();
+
+    for (const device of devices) {
+      if (device.id) {
+        devicesById.set(device.id.toString(), device);
+      }
+    }
+
+    return {
+      devicesById: devicesById,
+      credentials:
+        await NetworkDeviceHydrationUtil.resolveSnmpCredentials(devices),
+    };
+  } catch (err) {
+    logger.error(
+      `Could not read the SNMP credentials of ${deviceIds.length} device(s) for their SNMP walks.`,
+    );
+    logger.error(err);
+    return null;
+  }
+}
+
+/*
+ * A walk's job: the common fields, the device's credentials hydrated into
+ * the config a poll of it is walked with, and where to walk with the
+ * bounds to keep. Answers the reason instead when the walk cannot be run.
+ */
+function buildSnmpWalkJob(data: {
+  walk: ClaimedDiagnostic;
+  device: NetworkDevice | undefined;
+  credentials: ResolvedSnmpCredentialsForBatch;
+}): NetworkDeviceDiagnosticJob | { reason: string } {
+  const deviceId: string = data.walk.networkDeviceId.toString();
+
+  /*
+   * The device is read as root, so its project is checked against the
+   * row's rather than trusted: another project's credentials must never be
+   * put on this probe's wire.
+   */
+  if (
+    !data.device ||
+    data.device.projectId?.toString() !== data.walk.projectId.toString()
+  ) {
+    return { reason: "This device no longer exists." };
+  }
+
+  if (data.credentials.unresolvedDeviceIds.has(deviceId)) {
+    return { reason: SNMP_WALK_CREDENTIALS_UNREADABLE_MESSAGE };
+  }
+
+  const resolved: ResolvedDeviceSnmpCredentials | undefined =
+    data.credentials.byDeviceId.get(deviceId);
+
+  if (!resolved || resolved.pollMode !== "snmp") {
+    return { reason: SNMP_WALK_NO_CREDENTIALS_MESSAGE };
+  }
+
+  let start: SnmpWalkStart;
+
+  try {
+    start = SnmpWalkResultUtil.resolveStart({
+      rootOid: data.walk.row.snmpWalkRootOid,
+      afterOid: data.walk.row.snmpWalkAfterOid,
+    });
+  } catch (err) {
+    return { reason: (err as Error).message };
+  }
+
+  const snmpWalk: NetworkDeviceSnmpWalkRequest = {
+    rootOid: start.rootOid,
+    maxOids: SNMP_WALK_MAX_OIDS,
+    timeBudgetInMs: SNMP_WALK_TIME_BUDGET_IN_MS,
+    requestTimeoutInMs: SNMP_WALK_REQUEST_TIMEOUT_IN_MS,
+    maxRepetitions: SNMP_WALK_MAX_REPETITIONS,
+    pauseBetweenRequestsInMs: SNMP_WALK_PAUSE_BETWEEN_REQUESTS_IN_MS,
+  };
+
+  if (start.afterOid) {
+    snmpWalk.afterOid = start.afterOid;
+  }
+
+  const job: NetworkDeviceDiagnosticJob = buildDiagnosticJob(data.walk);
+
+  job.snmpMonitor = {
+    ...NetworkDeviceHydrationUtil.buildSnmpMonitorConfig({
+      // The address the walk was asked against, as for a ping.
+      hostname: data.walk.hostname,
+      credentials: resolved.carrier,
+      oids: [],
+      monitorInterfaces: false,
+    }),
+    timeout: SNMP_WALK_REQUEST_TIMEOUT_IN_MS,
+  };
+  job.snmpWalk = snmpWalk;
+
+  return job;
+}
+
+/*
  * Hands the requesting probe its Pending on-demand diagnostics (ping /
- * traceroute requests made from the topology map or the device page) as
+ * traceroute requests made from the topology map or the device page, and
+ * SNMP walks from the device's SNMP Walk page) as
  * `{ diagnostics: Array<NetworkDeviceDiagnosticJob> }`.
  *
  * Claiming is atomic (FOR UPDATE SKIP LOCKED, see
@@ -146,6 +320,11 @@ function buildDiagnosticJob(data: {
  * type this server does not know — is settled as Failed here rather than
  * handed out, because the probe would only fail it anyway and the operator
  * is waiting on the answer now.
+ *
+ * Capability gate: a walk goes, with the device's credentials, only to a
+ * probe that declares `snmpWalk`. An older probe would fail it as a type it
+ * does not know - after having been handed the credentials - so its walks
+ * are settled here instead, saying to update the probe.
  */
 router.post(
   "/probe/network-device-diagnostic/list",
@@ -194,6 +373,8 @@ router.post(
             networkDeviceId: true,
             diagnosticType: true,
             hostname: true,
+            snmpWalkRootOid: true,
+            snmpWalkAfterOid: true,
           },
           props: {
             isRoot: true,
@@ -205,7 +386,12 @@ router.post(
           },
         });
 
-      const jobs: Array<NetworkDeviceDiagnosticJob> = [];
+      const probeCanWalk: boolean = ProbeCapabilityUtil.has(
+        ProbeCapabilityUtil.parse(req.body["probeCapabilities"]),
+        ProbeCapability.SnmpWalk,
+      );
+
+      const claimed: Array<ClaimedDiagnostic> = [];
 
       for (const row of rows) {
         // `_id` is selected, so this only guards the type.
@@ -251,15 +437,69 @@ router.post(
           continue;
         }
 
-        jobs.push(
-          buildDiagnosticJob({
-            diagnosticType: diagnosticType,
-            hostname: hostname,
-            id: row.id,
-            projectId: row.projectId,
-            networkDeviceId: row.networkDeviceId,
-          }),
-        );
+        if (
+          diagnosticType === NetworkDeviceDiagnosticType.SnmpWalk &&
+          !probeCanWalk
+        ) {
+          await failClaimedDiagnostic({
+            probeId: probeId,
+            diagnosticId: row.id,
+            reason: SNMP_WALK_PROBE_UPGRADE_MESSAGE,
+          });
+          continue;
+        }
+
+        claimed.push({
+          row: row,
+          id: row.id,
+          projectId: row.projectId,
+          networkDeviceId: row.networkDeviceId,
+          diagnosticType: diagnosticType,
+          hostname: hostname,
+        });
+      }
+
+      const walks: Array<ClaimedDiagnostic> = claimed.filter(
+        (entry: ClaimedDiagnostic): boolean => {
+          return entry.diagnosticType === NetworkDeviceDiagnosticType.SnmpWalk;
+        },
+      );
+
+      const walkCredentials: {
+        devicesById: Map<string, NetworkDevice>;
+        credentials: ResolvedSnmpCredentialsForBatch;
+      } | null = walks.length > 0 ? await resolveWalkCredentials(walks) : null;
+
+      const jobs: Array<NetworkDeviceDiagnosticJob> = [];
+
+      // In claim order, oldest first, walks included.
+      for (const entry of claimed) {
+        if (entry.diagnosticType !== NetworkDeviceDiagnosticType.SnmpWalk) {
+          jobs.push(buildDiagnosticJob(entry));
+          continue;
+        }
+
+        const walkJob: NetworkDeviceDiagnosticJob | { reason: string } =
+          walkCredentials
+            ? buildSnmpWalkJob({
+                walk: entry,
+                device: walkCredentials.devicesById.get(
+                  entry.networkDeviceId.toString(),
+                ),
+                credentials: walkCredentials.credentials,
+              })
+            : { reason: SNMP_WALK_CREDENTIALS_UNREADABLE_MESSAGE };
+
+        if ("reason" in walkJob) {
+          await failClaimedDiagnostic({
+            probeId: probeId,
+            diagnosticId: entry.id,
+            reason: walkJob.reason,
+          });
+          continue;
+        }
+
+        jobs.push(walkJob);
       }
 
       logger.debug(
@@ -397,6 +637,28 @@ router.post(
         );
       }
 
+      /*
+       * A walk's result is checked and trimmed rather than stored as sent:
+       * it is the one result a probe fills with what a device said, up to a
+       * thousand OIDs of it (SnmpWalkResultUtil.sanitize).
+       */
+      const rawSnmpWalkResult: unknown = body["snmpWalkResult"];
+
+      if (
+        rawSnmpWalkResult !== undefined &&
+        rawSnmpWalkResult !== null &&
+        !isJsonObject(rawSnmpWalkResult)
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("snmpWalkResult must be an object"),
+        );
+      }
+
+      const snmpWalkResult: NetworkDeviceDiagnosticSnmpWalkResult | null =
+        SnmpWalkResultUtil.sanitize(rawSnmpWalkResult);
+
       const report: NetworkDeviceDiagnosticReport = {
         networkDeviceDiagnosticId: networkDeviceDiagnosticId,
         status: status as string,
@@ -408,6 +670,7 @@ router.post(
         traceRouteResult: isJsonObject(traceRouteResult)
           ? (traceRouteResult as unknown as NetworkPathTrace)
           : undefined,
+        snmpWalkResult: snmpWalkResult || undefined,
       };
 
       const recorded: boolean =
