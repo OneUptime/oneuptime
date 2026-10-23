@@ -104,8 +104,11 @@ const OLD_DOCS_SIDEBAR_CLASS: string =
 const NEW_DOCS_SIDEBAR_CLASS: string =
   "docs-layout-sidebar max-lg:hidden lg:relative lg:block lg:flex-none";
 
-// The website's primary nav, after the fix.
-const HOME_PRIMARY_NAV_CLASS: string = "max-md:hidden space-x-10 md:flex";
+/*
+ * The website's primary nav, after the fix. It shows from lg (1024px): at md
+ * its links squeezed the logo to nothing, so tablets get the menu button.
+ */
+const HOME_PRIMARY_NAV_CLASS: string = "max-lg:hidden space-x-10 lg:flex";
 
 // The visible labels that were `sr-only <bp>:not-sr-only`, after the fix.
 const NEW_SM_LABEL_CLASS: string = "max-sm:sr-only sm:not-sr-only";
@@ -134,6 +137,8 @@ const API_REFERENCE_PAGE_VIEW: string =
 const API_REFERENCE_CODE_TABS_VIEW: string =
   "packages/App/FeatureSet/APIReference/views/partials/code-tabs.ejs";
 const HOME_NAV_VIEW: string = "packages/Home/Views/nav.ejs";
+// Its critical CSS comment names `max-md:hidden md:flex`: text, not a class attribute.
+const HOME_CRITICAL_CSS_VIEW: string = "packages/Home/Views/head-basic.ejs";
 const DASHBOARD_OFFLINE_PAGE: string =
   "packages/App/FeatureSet/Dashboard/public/offline.html";
 
@@ -1837,6 +1842,7 @@ describe("ForeignHiddenRuleGuard over the real source tree", () => {
         return `${site.file}:${site.line} ${site.text}`;
       }),
     );
+    const changedFiles: Set<string> = new Set<string>();
     const failingFiles: Set<string> = new Set<string>();
     const srOnlyFiles: Set<string> = new Set<string>();
     const disagreements: Array<string> = [];
@@ -1856,6 +1862,7 @@ describe("ForeignHiddenRuleGuard over the real source tree", () => {
       }
 
       const relative: string = toRelativePath(REPOSITORY_ROOT, file);
+      changedFiles.add(relative);
       const findings: Array<ForeignHiddenRuleFinding> =
         findForeignHiddenRuleHazards(relative, reverted);
 
@@ -1923,7 +1930,18 @@ describe("ForeignHiddenRuleGuard over the real source tree", () => {
       ).toBe(`${viewRoot}: true`);
     }
 
-    expect(failingViews.length).toBeGreaterThan(85);
+    /*
+     * Every view the revert changes fails, but one. A count of them would
+     * follow the website's pages instead: a homepage redesign replaced 14
+     * partials and took it under the floor this used to set. The exception
+     * is the critical CSS in head-basic.ejs, which names the shipped form in
+     * a comment.
+     */
+    expect(
+      [...changedFiles].filter((relative: string): boolean => {
+        return isMarkupFile(relative) && !failingFiles.has(relative);
+      }),
+    ).toEqual([HOME_CRITICAL_CSS_VIEW]);
     expect(failingFiles.size - failingViews.length).toBeGreaterThan(60);
     expect(disagreements).toEqual([]);
 
