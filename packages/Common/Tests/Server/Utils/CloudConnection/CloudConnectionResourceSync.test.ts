@@ -18,6 +18,7 @@ import {
 import { CloudResourceKind } from "../../../../Types/Cloud/CloudResourceKind";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import { HEARTBEAT_ROW_PRESENT } from "../../../../Server/Utils/Telemetry/ResourceHeartbeat";
 
 /*
  * The resources a connection holds, kept in step with what its reads find:
@@ -181,7 +182,7 @@ beforeEach(() => {
     });
   sighting = jest
     .spyOn(CloudResourceService, "recordMonitoredResourceSighting")
-    .mockResolvedValue(undefined);
+    .mockResolvedValue(HEARTBEAT_ROW_PRESENT);
   query = jest.fn(async (_sql: string, parameters: Array<unknown>) => {
     // UPDATE ... RETURNING answers [rows, count] through TypeORM's query().
     const ids: Array<string> = (parameters.find(Array.isArray) ||
