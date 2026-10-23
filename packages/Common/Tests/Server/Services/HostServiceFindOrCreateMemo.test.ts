@@ -19,6 +19,8 @@ jest.mock("../../../Server/Utils/PasswordHash", () => {
 });
 
 import HostService from "../../../Server/Services/HostService";
+import DiscoveredResourceIdCache from "../../../Server/Utils/Telemetry/DiscoveredResourceIdCache";
+import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
 import Host from "../../../Models/DatabaseModels/Host";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -410,6 +412,121 @@ describe("HostService.findOrCreateByHostIdentifier L1 memo", () => {
       // The row keeps its legacy casing; both calls agree on it.
       expect(resolved.hostIdentifier).toBe("PRIMARY01");
       expect(hit.hostIdentifier).toBe("PRIMARY01");
+      expect(findOneBy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  /*
+   * Issue #5214: a host deleted in this process is forgotten by the memo at
+   * once (DiscoveredResourceIdCache tells HostService's local layer), so the
+   * agent's next batch finds no row and creates the host again - instead of
+   * being handed the deleted id for up to a minute, which ingest would cache
+   * for a day.
+   */
+  describe("a host deleted in this process", () => {
+    beforeEach(() => {
+      jest.spyOn(GlobalCache, "deleteKeyIfValue").mockResolvedValue(true);
+      jest.spyOn(GlobalCache, "deleteKey").mockResolvedValue(undefined);
+    });
+
+    test("is forgotten by the memo: the next lookup asks Postgres, and creates it again", async () => {
+      const projectId: ObjectID = ObjectID.generate();
+      const deleted: Host = buildHost({ hostIdentifier: "web-01" });
+      const recreated: Host = buildHost({ hostIdentifier: "web-01" });
+      findOneBy.mockResolvedValueOnce(deleted).mockResolvedValueOnce(null);
+      create.mockResolvedValue(recreated);
+
+      const first: Host = await HostService.findOrCreateByHostIdentifier({
+        projectId,
+        hostIdentifier: "web-01",
+      });
+      expect(first._id).toBe(deleted._id);
+
+      await DiscoveredResourceIdCache.afterDelete({
+        tableName: "Host",
+        rows: [
+          {
+            _id: deleted._id,
+            projectId: projectId,
+            hostIdentifier: "WEB-01",
+          },
+        ],
+      });
+
+      const second: Host = await HostService.findOrCreateByHostIdentifier({
+        projectId,
+        hostIdentifier: "web-01",
+      });
+
+      expect(findOneBy).toHaveBeenCalledTimes(2);
+      expect(create).toHaveBeenCalledTimes(1);
+      expect(second._id).toBe(recreated._id);
+    });
+
+    test("a host renamed in this process is forgotten under its old and its new name", async () => {
+      const projectId: ObjectID = ObjectID.generate();
+      findOneBy.mockResolvedValue(buildHost({ hostIdentifier: "web-01" }));
+
+      await HostService.findOrCreateByHostIdentifier({
+        projectId,
+        hostIdentifier: "web-01",
+      });
+      await HostService.findOrCreateByHostIdentifier({
+        projectId,
+        hostIdentifier: "web-02",
+      });
+      expect(findOneBy).toHaveBeenCalledTimes(2);
+
+      await DiscoveredResourceIdCache.afterUpdate({
+        tableName: "Host",
+        rowsBefore: [
+          {
+            _id: ObjectID.generate().toString(),
+            projectId: projectId,
+            hostIdentifier: "web-01",
+          },
+        ],
+        written: { hostIdentifier: "web-02" },
+      });
+
+      await HostService.findOrCreateByHostIdentifier({
+        projectId,
+        hostIdentifier: "web-01",
+      });
+      await HostService.findOrCreateByHostIdentifier({
+        projectId,
+        hostIdentifier: "web-02",
+      });
+
+      expect(findOneBy).toHaveBeenCalledTimes(4);
+    });
+
+    test("another project's host of the same name keeps its memo", async () => {
+      const projectId: ObjectID = ObjectID.generate();
+      const otherProjectId: ObjectID = ObjectID.generate();
+      findOneBy.mockResolvedValue(buildHost({ hostIdentifier: "web-01" }));
+
+      await HostService.findOrCreateByHostIdentifier({
+        projectId: otherProjectId,
+        hostIdentifier: "web-01",
+      });
+
+      await DiscoveredResourceIdCache.afterDelete({
+        tableName: "Host",
+        rows: [
+          {
+            _id: ObjectID.generate().toString(),
+            projectId: projectId,
+            hostIdentifier: "web-01",
+          },
+        ],
+      });
+
+      await HostService.findOrCreateByHostIdentifier({
+        projectId: otherProjectId,
+        hostIdentifier: "web-01",
+      });
+
       expect(findOneBy).toHaveBeenCalledTimes(1);
     });
   });
