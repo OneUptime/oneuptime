@@ -2229,9 +2229,8 @@ test("a prerendered page's vitals name their view, and a CLS reported again link
     "true",
   );
 
-  const fcpDetail: Locator = vitalRow("FCP 68ms good").getByTestId(
-    "rail-row-detail",
-  );
+  const fcpDetail: Locator =
+    vitalRow("FCP 68ms good").getByTestId("rail-row-detail");
 
   await expect(fcpDetail).toContainText("View");
   await expect(fcpDetail).toContainText(
