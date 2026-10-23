@@ -434,7 +434,7 @@ describe("state changes are logged once per change", () => {
       "The OneUptime Enterprise license has lapsed (status: expired)",
     );
     expect(message).toContain(
-      "SCIM provisioning, audit logging and retention overrides have stopped until a license is activated",
+      "SCIM provisioning, audit logging, retention overrides and removing Powered by OneUptime from status pages have stopped until a license is activated",
     );
     // Single sign-on is Community Edition: a lapse never touches it.
     expect(message).not.toMatch(/\bSSO\b/);
@@ -474,7 +474,7 @@ describe("state changes are logged once per change", () => {
     EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM);
     EnterpriseEdition.isFeatureActive(EnterpriseFeature.AuditLogs);
     expect(infos()).toEqual([
-      "The OneUptime Enterprise license covers SCIM provisioning, audit logging and retention overrides again: they have resumed.",
+      "The OneUptime Enterprise license covers SCIM provisioning, audit logging, retention overrides and removing Powered by OneUptime from status pages again: they have resumed.",
     ]);
 
     fake.setSnapshot(createLicenseSnapshotWithStatus("invalid"));
@@ -492,6 +492,7 @@ describe("state changes are logged once per change", () => {
           EnterpriseFeature.SCIM,
           EnterpriseFeature.AuditLogs,
           EnterpriseFeature.TeamCompliance,
+          EnterpriseFeature.StatusPageBranding,
         ],
       }),
     });
@@ -518,6 +519,7 @@ describe("state changes are logged once per change", () => {
           EnterpriseFeature.AuditLogs,
           EnterpriseFeature.TeamCompliance,
           EnterpriseFeature.TelemetryRetention,
+          EnterpriseFeature.StatusPageBranding,
         ],
       }),
     });
@@ -593,6 +595,7 @@ describe("onFeatureStateChange", () => {
           EnterpriseFeature.SCIM,
           EnterpriseFeature.AuditLogs,
           EnterpriseFeature.TelemetryRetention,
+          EnterpriseFeature.StatusPageBranding,
         ],
         resumed: [],
         snapshot: lapsed,
@@ -608,6 +611,7 @@ describe("onFeatureStateChange", () => {
       EnterpriseFeature.SCIM,
       EnterpriseFeature.AuditLogs,
       EnterpriseFeature.TelemetryRetention,
+      EnterpriseFeature.StatusPageBranding,
     ]);
   });
 

@@ -343,11 +343,14 @@ export interface LicenseStateCase {
 
 /*
  * A license that entitles everything except the runtime features (SCIM, audit
- * logs, retention overrides).
+ * logs, retention overrides, status pages without Powered by OneUptime).
  */
 export const FEATURES_WITHOUT_RUNTIME_FEATURES: Array<EnterpriseFeature> = [
   EnterpriseFeature.TeamCompliance,
   EnterpriseFeature.InstanceHealth,
+  EnterpriseFeature.CustomRoles,
+  EnterpriseFeature.IpAllowlists,
+  EnterpriseFeature.StatusPageAccessControls,
 ];
 
 export const LICENSE_STATE_CASES: ReadonlyArray<LicenseStateCase> = [

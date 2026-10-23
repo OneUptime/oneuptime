@@ -9,6 +9,7 @@ import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccess
 import PermissionScope from "../../Types/Database/AccessControl/PermissionScope";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
+import TableEditionAccessControl from "../../Types/Database/AccessControl/TableEditionAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -41,6 +42,9 @@ import {
  * Only what a team is allowed: a role holds no block permissions - a team's
  * blocks stay on the team. Nor Project Owner, which the Owners team gives.
  */
+@TableEditionAccessControl({
+  requiresEnterprise: true,
+})
 @TableBillingAccessControl({
   create: PlanType.Scale,
   read: PlanType.Free,
