@@ -57,6 +57,28 @@ interface LicensesBeforeWrite {
   licenses: Array<EnterpriseLicense>;
 }
 
+/*
+ * Writes an audit line, never failing the write it describes: the hooks
+ * below run once a license is created, changed or deleted, and a TypeError
+ * there would turn a write that happened into an error the admin retries
+ * (see onCreateSuccess). A line that cannot be built is reported instead.
+ */
+export const writeEnterpriseLicenseAuditLine: (
+  buildLine: () => string | null,
+) => void = (buildLine: () => string | null): void => {
+  try {
+    const line: string | null = buildLine();
+
+    if (line) {
+      logger.info(line);
+    }
+  } catch (err) {
+    logger.error(
+      `EnterpriseLicenseService: could not write an audit line for an enterprise license change: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+};
+
 export const ENTERPRISE_LICENSE_USAGE_AGGREGATION_LOCK_OPTIONS: Readonly<{
   namespace: string;
   lockTimeout: number;
@@ -140,12 +162,12 @@ export class Service extends DatabaseService<EnterpriseLicense> {
     createdItem: EnterpriseLicense,
   ): Promise<EnterpriseLicense> {
     // Who issued it, beside the deletes and changes (EnterpriseLicenseAudit).
-    logger.info(
-      buildLicenseIssuedAuditLine({
+    writeEnterpriseLicenseAuditLine((): string => {
+      return buildLicenseIssuedAuditLine({
         license: createdItem,
-        props: onCreate.createBy.props,
-      }),
-    );
+        props: onCreate?.createBy?.props || {},
+      });
+    });
 
     /*
      * The outbound enterprise_license_issued conversion.
@@ -241,12 +263,12 @@ export class Service extends DatabaseService<EnterpriseLicense> {
         continue;
       }
 
-      logger.info(
-        buildLicenseDeletedAuditLine({
+      writeEnterpriseLicenseAuditLine((): string => {
+        return buildLicenseDeletedAuditLine({
           license,
           props: onDelete.deleteBy.props,
-        }),
-      );
+        });
+      });
     }
 
     return onDelete;
@@ -300,15 +322,13 @@ export class Service extends DatabaseService<EnterpriseLicense> {
         continue;
       }
 
-      const line: string | null = buildLicenseUpdatedAuditLine({
-        before: license,
-        written: onUpdate.updateBy.data as unknown as JSONObject,
-        props: onUpdate.updateBy.props,
+      writeEnterpriseLicenseAuditLine((): string | null => {
+        return buildLicenseUpdatedAuditLine({
+          before: license,
+          written: onUpdate.updateBy.data as unknown as JSONObject,
+          props: onUpdate.updateBy.props,
+        });
       });
-
-      if (line) {
-        logger.info(line);
-      }
     }
 
     return onUpdate;
