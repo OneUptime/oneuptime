@@ -275,9 +275,12 @@ describe("the default actions", () => {
   test("are Enable and Disable, with the icons the monitors list uses, in the safe part of the menu", () => {
     let actions: Array<BulkActionButtonSchema<Workflow>> = [];
 
-    renderWorkflows([workflow(0, true)], (given) => {
-      actions = given;
-    });
+    renderWorkflows(
+      [workflow(0, true)],
+      (given: Array<BulkActionButtonSchema<Workflow>>) => {
+        actions = given;
+      },
+    );
 
     expect(
       actions.map((action: BulkActionButtonSchema<Workflow>) => {
@@ -383,7 +386,9 @@ describe("the confirmation", () => {
     ).toBeVisible();
     expect(
       within(dialog()).getByTestId("bulk-switch-consequence"),
-    ).toHaveTextContent("An enabled workflow runs every time its trigger fires.");
+    ).toHaveTextContent(
+      "An enabled workflow runs every time its trigger fires.",
+    );
   });
 
   test("its button is the action, and Cancel writes nothing", async () => {
@@ -406,11 +411,7 @@ describe("the confirmation", () => {
 
 describe("the run", () => {
   test("writes the column on each row it changes, one after another, in selection order", async () => {
-    renderWorkflows([
-      workflow(0, true),
-      workflow(1, false),
-      workflow(2, true),
-    ]);
+    renderWorkflows([workflow(0, true), workflow(1, false), workflow(2, true)]);
     openMenu();
     fireEvent.click(screen.getByRole("menuitem", { name: "Disable" }));
     fireEvent.click(within(dialog()).getByRole("button", { name: "Disable" }));
@@ -440,9 +441,9 @@ describe("the run", () => {
 
     await screen.findByText("Completed");
 
-    expect(
-      screen.getByTestId("bulk-action-succeeded-count"),
-    ).toHaveTextContent("2 Workflows disabled");
+    expect(screen.getByTestId("bulk-action-succeeded-count")).toHaveTextContent(
+      "2 Workflows disabled",
+    );
   });
 
   test("lists a row already in the state asked for as not changed, with why", async () => {
@@ -472,16 +473,20 @@ describe("the run", () => {
         "You do not have permission to edit this workflow. Its labels are not ones you can edit.",
     };
 
-    renderWorkflows([workflow(0, false), workflow(1, false), workflow(2, false)]);
+    renderWorkflows([
+      workflow(0, false),
+      workflow(1, false),
+      workflow(2, false),
+    ]);
     openMenu();
     fireEvent.click(screen.getByRole("menuitem", { name: "Enable" }));
     fireEvent.click(within(dialog()).getByRole("button", { name: "Enable" }));
 
     await screen.findByText("Completed");
 
-    expect(
-      screen.getByTestId("bulk-action-succeeded-count"),
-    ).toHaveTextContent("2 Workflows enabled");
+    expect(screen.getByTestId("bulk-action-succeeded-count")).toHaveTextContent(
+      "2 Workflows enabled",
+    );
     expect(screen.getByTestId("bulk-action-failed-count")).toHaveTextContent(
       "1 Workflow not enabled",
     );
@@ -510,9 +515,9 @@ describe("the run", () => {
 
     await screen.findByText("Completed");
 
-    expect(
-      screen.getByTestId("bulk-action-succeeded-count"),
-    ).toHaveTextContent("1 Workflow disabled");
+    expect(screen.getByTestId("bulk-action-succeeded-count")).toHaveTextContent(
+      "1 Workflow disabled",
+    );
     // Refused for one reason: said once, both names under it.
     expect(
       screen.getAllByTestId("bulk-action-failed-items-group"),
@@ -526,9 +531,12 @@ describe("permissions", () => {
 
     let actions: Array<BulkActionButtonSchema<Workflow>> = [];
 
-    renderWorkflows([workflow(0, true), workflow(1, false)], (given) => {
-      actions = given;
-    });
+    renderWorkflows(
+      [workflow(0, true), workflow(1, false)],
+      (given: Array<BulkActionButtonSchema<Workflow>>) => {
+        actions = given;
+      },
+    );
 
     for (const action of actions) {
       expect(action.disabled).toBe(true);
@@ -546,25 +554,35 @@ describe("permissions", () => {
   test("a project owner and a master admin may use them", () => {
     let actions: Array<BulkActionButtonSchema<Workflow>> = [];
 
-    renderWorkflows([workflow(0, true)], (given) => {
-      actions = given;
-    });
+    renderWorkflows(
+      [workflow(0, true)],
+      (given: Array<BulkActionButtonSchema<Workflow>>) => {
+        actions = given;
+      },
+    );
 
-    expect(actions.every((action) => {
-      return !action.disabled;
-    })).toBe(true);
+    expect(
+      actions.every((action: BulkActionButtonSchema<Workflow>) => {
+        return !action.disabled;
+      }),
+    ).toBe(true);
 
     cleanup();
     permissionsForTest = [];
     isMasterAdminForTest = true;
 
-    renderWorkflows([workflow(0, true)], (given) => {
-      actions = given;
-    });
+    renderWorkflows(
+      [workflow(0, true)],
+      (given: Array<BulkActionButtonSchema<Workflow>>) => {
+        actions = given;
+      },
+    );
 
-    expect(actions.every((action) => {
-      return !action.disabled;
-    })).toBe(true);
+    expect(
+      actions.every((action: BulkActionButtonSchema<Workflow>) => {
+        return !action.disabled;
+      }),
+    ).toBe(true);
   });
 
   test("before the permissions have loaded the actions stay open: the server still decides each row", () => {
@@ -572,13 +590,18 @@ describe("permissions", () => {
 
     let actions: Array<BulkActionButtonSchema<Workflow>> = [];
 
-    renderWorkflows([workflow(0, true)], (given) => {
-      actions = given;
-    });
+    renderWorkflows(
+      [workflow(0, true)],
+      (given: Array<BulkActionButtonSchema<Workflow>>) => {
+        actions = given;
+      },
+    );
 
-    expect(actions.every((action) => {
-      return !action.disabled;
-    })).toBe(true);
+    expect(
+      actions.every((action: BulkActionButtonSchema<Workflow>) => {
+        return !action.disabled;
+      }),
+    ).toBe(true);
   });
 });
 
@@ -633,7 +656,9 @@ describe("a switch the other way round: a monitor's Disable Monitoring", () => {
       updateCalls.map((call: UpdateCall) => {
         return [call.modelName, call.id, call.data];
       }),
-    ).toEqual([["Monitor", WORKFLOW_IDS[0], { disableActiveMonitoring: true }]]);
+    ).toEqual([
+      ["Monitor", WORKFLOW_IDS[0], { disableActiveMonitoring: true }],
+    ]);
   });
 
   test("Enable writes it off, and a monitor already checked is left alone", async () => {
@@ -643,9 +668,11 @@ describe("a switch the other way round: a monitor's Disable Monitoring", () => {
     fireEvent.click(within(dialog()).getByRole("button", { name: "Enable" }));
     await screen.findByText("Completed");
 
-    expect(updateCalls.map((call: UpdateCall) => {
-      return call.data;
-    })).toEqual([{ disableActiveMonitoring: false }]);
+    expect(
+      updateCalls.map((call: UpdateCall) => {
+        return call.data;
+      }),
+    ).toEqual([{ disableActiveMonitoring: false }]);
     expect(screen.getByTestId("bulk-action-unchanged-items")).toHaveTextContent(
       "Monitor 1",
     );
@@ -653,14 +680,20 @@ describe("a switch the other way round: a monitor's Disable Monitoring", () => {
 });
 
 describe("Unsubscribe on a list of subscribers", () => {
-  const subscriber: (index: number, isUnsubscribed: boolean) => StatusPageSubscriber =
-    (index: number, isUnsubscribed: boolean): StatusPageSubscriber => {
-      const row: StatusPageSubscriber = new StatusPageSubscriber();
-      row._id = WORKFLOW_IDS[index]!;
-      row.isUnsubscribed = isUnsubscribed;
-      (row as unknown as { name: string }).name = `person${index + 1}@example.com`;
-      return row;
-    };
+  const subscriber: (
+    index: number,
+    isUnsubscribed: boolean,
+  ) => StatusPageSubscriber = (
+    index: number,
+    isUnsubscribed: boolean,
+  ): StatusPageSubscriber => {
+    const row: StatusPageSubscriber = new StatusPageSubscriber();
+    row._id = WORKFLOW_IDS[index]!;
+    row.isUnsubscribed = isUnsubscribed;
+    (row as unknown as { name: string }).name =
+      `person${index + 1}@example.com`;
+    return row;
+  };
 
   const renderSubscribers: (items: Array<StatusPageSubscriber>) => void = (
     items: Array<StatusPageSubscriber>,
@@ -703,7 +736,9 @@ describe("Unsubscribe on a list of subscribers", () => {
     openMenu();
     fireEvent.click(screen.getByRole("menuitem", { name: "Unsubscribe" }));
 
-    expect(within(dialog()).getByText("Unsubscribe 2 Subscribers")).toBeVisible();
+    expect(
+      within(dialog()).getByText("Unsubscribe 2 Subscribers"),
+    ).toBeVisible();
     expect(
       within(dialog()).getByText(
         "Are you sure you want to unsubscribe 2 subscribers?",
@@ -720,15 +755,17 @@ describe("Unsubscribe on a list of subscribers", () => {
     );
     await screen.findByText("Completed");
 
-    expect(updateCalls.map((call: UpdateCall) => {
-      return [call.id, call.data];
-    })).toEqual([
+    expect(
+      updateCalls.map((call: UpdateCall) => {
+        return [call.id, call.data];
+      }),
+    ).toEqual([
       [WORKFLOW_IDS[0], { isUnsubscribed: true }],
       [WORKFLOW_IDS[2], { isUnsubscribed: true }],
     ]);
-    expect(
-      screen.getByTestId("bulk-action-succeeded-count"),
-    ).toHaveTextContent("2 Subscribers unsubscribed");
+    expect(screen.getByTestId("bulk-action-succeeded-count")).toHaveTextContent(
+      "2 Subscribers unsubscribed",
+    );
     expect(screen.getByTestId("bulk-action-unchanged-items")).toHaveTextContent(
       "Already unsubscribed.",
     );
@@ -827,16 +864,15 @@ describe("in the reader's language", () => {
 
     renderWorkflows([workflow(0, true), workflow(1, true), workflow(2, false)]);
     fireEvent.click(screen.getByText(german["Bulk Actions"]!));
-    fireEvent.click(
-      screen.getByRole("menuitem", { name: german["Disable"]! }),
-    );
+    fireEvent.click(screen.getByRole("menuitem", { name: german["Disable"]! }));
 
     // "Disable {{count}} {{itemsName}}", the count and the plural name filled in.
     expect(
       within(dialog()).getByText(
-        german["Disable {{count}} {{itemsName}}"]!
-          .replace("{{count}}", "2")
-          .replace("{{itemsName}}", german["Workflows"]!),
+        german["Disable {{count}} {{itemsName}}"]!.replace(
+          "{{count}}",
+          "2",
+        ).replace("{{itemsName}}", german["Workflows"]!),
       ),
     ).toBeVisible();
     expect(

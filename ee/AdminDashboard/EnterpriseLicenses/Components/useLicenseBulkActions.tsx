@@ -18,7 +18,10 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { ReactElement, useState } from "react";
-import LicenseBulkCopy, { expiresOnDay, toCalendarDay } from "./LicenseBulkCopy";
+import LicenseBulkCopy, {
+  expiresOnDay,
+  toCalendarDay,
+} from "./LicenseBulkCopy";
 
 /*
  * Bulk Actions of the Enterprise Licenses list, besides Delete (which the

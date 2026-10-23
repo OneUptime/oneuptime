@@ -79,16 +79,19 @@ const deleteBy: () => DeleteBy<EnterpriseLicense> =
     } as unknown as DeleteBy<EnterpriseLicense>;
   };
 
-const updateBy: (data: Record<string, unknown>) => UpdateBy<EnterpriseLicense> =
-  (data: Record<string, unknown>): UpdateBy<EnterpriseLicense> => {
-    return {
-      query: { _id: LICENSE_A },
-      data,
-      limit: 1,
-      skip: 0,
-      props: { isMasterAdmin: true, userId: ADMIN_ID },
-    } as unknown as UpdateBy<EnterpriseLicense>;
-  };
+const updateBy: (
+  data: Record<string, unknown>,
+) => UpdateBy<EnterpriseLicense> = (
+  data: Record<string, unknown>,
+): UpdateBy<EnterpriseLicense> => {
+  return {
+    query: { _id: LICENSE_A },
+    data,
+    limit: 1,
+    skip: 0,
+    props: { isMasterAdmin: true, userId: ADMIN_ID },
+  } as unknown as UpdateBy<EnterpriseLicense>;
+};
 
 let infoLines: Array<string> = [];
 let errorLines: Array<string> = [];
@@ -160,10 +163,9 @@ describe("a license deleted", () => {
       { deleteBy: deleteBy(), carryForward: { licenses: [] } },
       [],
     );
-    await hooks.onDeleteSuccess(
-      { deleteBy: deleteBy(), carryForward: null },
-      [new ObjectID(LICENSE_A)],
-    );
+    await hooks.onDeleteSuccess({ deleteBy: deleteBy(), carryForward: null }, [
+      new ObjectID(LICENSE_A),
+    ]);
 
     expect(infoLines).toEqual([]);
   });
@@ -242,7 +244,12 @@ describe("a license issued", () => {
     const created: EnterpriseLicense = license(LICENSE_A, KEY_A);
 
     await hooks.onCreateSuccess(
-      { createBy: { data: created, props: { isMasterAdmin: true, userId: ADMIN_ID } } },
+      {
+        createBy: {
+          data: created,
+          props: { isMasterAdmin: true, userId: ADMIN_ID },
+        },
+      },
       created,
     );
 
@@ -253,7 +260,9 @@ describe("a license issued", () => {
   });
 
   it("a hook handed no create (as older callers do) still finishes", async () => {
-    jest.spyOn(MarketingEventUtil, "emitInBackground").mockReturnValue(undefined);
+    jest
+      .spyOn(MarketingEventUtil, "emitInBackground")
+      .mockReturnValue(undefined);
 
     const created: EnterpriseLicense = license(LICENSE_A, KEY_A);
 

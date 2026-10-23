@@ -726,7 +726,9 @@ describe("Managing Applications: label rules and owner rules", () => {
     // The page says where the bulk actions are, in the Dashboard's words.
     const owners: string = section(RUM_APPLICATIONS, "### Owners");
 
-    expect(owners).toContain("**Add Owner** or **Remove Owner** under **Bulk Actions**");
+    expect(owners).toContain(
+      "**Add Owner** or **Remove Owner** under **Bulk Actions**",
+    );
     expect(owners).not.toContain("no page to add them by hand");
     expect(englishPage(RUM_APPLICATIONS)).toContain(
       "choose **Add Labels** under **Bulk Actions**",

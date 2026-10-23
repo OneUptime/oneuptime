@@ -1,4 +1,5 @@
 import { APIResponse, expect, Locator, Page, test } from "@playwright/test";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs";
 import path from "path";
 
@@ -109,10 +110,6 @@ async function screenshot(page: Page, name: string): Promise<void> {
 async function openList(page: Page, search: string = ""): Promise<void> {
   await page.goto(`${LICENSES}${search}`);
   await expect(page.getByRole("checkbox").first()).toBeVisible();
-}
-
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /*

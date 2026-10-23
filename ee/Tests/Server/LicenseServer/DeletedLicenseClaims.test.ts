@@ -33,7 +33,9 @@ import { DELETE_CONSEQUENCES } from "Common/UI/Components/DeleteConfirmation/Del
 
 const EE_ROOT: string = path.resolve(__dirname, "../../..");
 
-const read: (relativePath: string) => string = (relativePath: string): string => {
+const read: (relativePath: string) => string = (
+  relativePath: string,
+): string => {
   return fs.readFileSync(path.join(EE_ROOT, relativePath), "utf8");
 };
 
@@ -93,7 +95,10 @@ describe("what the code does when a license is deleted", () => {
     const job: string = read("Server/License/Jobs/ReportUserCount.ts");
     const refused: number = job.indexOf("if (!response.isSuccess()) {");
     const returned: number = job.indexOf("return;", refused);
-    const stored: number = job.indexOf("await GlobalConfigService.updateOneById({", refused);
+    const stored: number = job.indexOf(
+      "await GlobalConfigService.updateOneById({",
+      refused,
+    );
 
     expect(refused).toBeGreaterThan(0);
     expect(returned).toBeGreaterThan(refused);
@@ -111,7 +116,10 @@ describe("what the code does when a license is deleted", () => {
       "throw new BadDataException(errorMessage);",
       refused,
     );
-    const stored: number = validate.indexOf("await LicenseClient.store(", refused);
+    const stored: number = validate.indexOf(
+      "await LicenseClient.store(",
+      refused,
+    );
 
     expect(refused).toBeGreaterThan(0);
     expect(thrown).toBeGreaterThan(refused);
@@ -120,7 +128,9 @@ describe("what the code does when a license is deleted", () => {
 
   it("the behaviour is exercised where it lives", () => {
     expect(
-      read("Tests/Server/LicenseServer/EnterpriseLicenseReportUserCount.test.ts"),
+      read(
+        "Tests/Server/LicenseServer/EnterpriseLicenseReportUserCount.test.ts",
+      ),
     ).toContain('it("rejects an unknown license key"');
     expect(read("Tests/Server/License/ReportUserCount.test.ts")).toContain(
       'it("keeps the stored license state when the call home fails"',

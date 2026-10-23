@@ -78,28 +78,38 @@ interface CatalogEntry {
 
 const ENTRIES: Array<CatalogEntry> = Object.entries(
   BULK_SWITCH_CONSEQUENCES,
-).flatMap(([tableName, columns]) => {
-  return Object.entries(columns).flatMap(
-    ([column, consequence]: [string, BulkSwitchConsequence]) => {
-      const entries: Array<CatalogEntry> = [];
+).flatMap(
+  ([tableName, columns]: [
+    string,
+    Readonly<Record<string, BulkSwitchConsequence>>,
+  ]) => {
+    return Object.entries(columns).flatMap(
+      ([column, consequence]: [string, BulkSwitchConsequence]) => {
+        const entries: Array<CatalogEntry> = [];
 
-      if (consequence.on) {
-        entries.push({ tableName, column, side: "on", sentence: consequence.on });
-      }
+        if (consequence.on) {
+          entries.push({
+            tableName,
+            column,
+            side: "on",
+            sentence: consequence.on,
+          });
+        }
 
-      if (consequence.off) {
-        entries.push({
-          tableName,
-          column,
-          side: "off",
-          sentence: consequence.off,
-        });
-      }
+        if (consequence.off) {
+          entries.push({
+            tableName,
+            column,
+            side: "off",
+            sentence: consequence.off,
+          });
+        }
 
-      return entries;
-    },
-  );
-});
+        return entries;
+      },
+    );
+  },
+);
 
 const readSource: (relativePath: string) => string = (
   relativePath: string,
@@ -133,9 +143,11 @@ describe("BulkSwitchConsequences: the catalog", () => {
     );
   });
 
-  test.each(ENTRIES.map((entry: CatalogEntry) => {
-    return [`${entry.tableName}.${entry.column}`, entry];
-  }))(
+  test.each(
+    ENTRIES.map((entry: CatalogEntry): [string, CatalogEntry] => {
+      return [`${entry.tableName}.${entry.column}`, entry];
+    }),
+  )(
     "%s is a boolean column of a real model",
     (_name: string, entry: CatalogEntry) => {
       const modelType: ModelClass | undefined = modelsByTable.get(
@@ -144,19 +156,21 @@ describe("BulkSwitchConsequences: the catalog", () => {
 
       expect(modelType).toBeDefined();
 
-      const metadata: TableColumnMetadata | null | undefined = new modelType!()
-        .getTableColumnMetadata(entry.column) as
-        | TableColumnMetadata
-        | null
-        | undefined;
+      const metadata: TableColumnMetadata | null | undefined =
+        new modelType!().getTableColumnMetadata(entry.column) as
+          | TableColumnMetadata
+          | null
+          | undefined;
 
       expect(metadata?.type).toBe(TableColumnType.Boolean);
     },
   );
 
-  test.each(ENTRIES.map((entry: CatalogEntry) => {
-    return [entry.sentence, entry];
-  }))(
+  test.each(
+    ENTRIES.map((entry: CatalogEntry): [string, CatalogEntry] => {
+      return [entry.sentence, entry];
+    }),
+  )(
     "%s is about the kind, as one sentence or two ending in a full stop",
     (_sentence: string, entry: CatalogEntry) => {
       expect(entry.sentence).toMatch(
@@ -236,19 +250,24 @@ describe("BulkSwitchConsequences: the words", () => {
     }),
   );
 
-  test.each(ENTRIES.map((entry: CatalogEntry) => {
-    return [entry.sentence];
-  }))("%s is a Dashboard key, translated in every language", (sentence: string) => {
-    expect(english[sentence]).toBe(sentence);
+  test.each(
+    ENTRIES.map((entry: CatalogEntry) => {
+      return [entry.sentence];
+    }),
+  )(
+    "%s is a Dashboard key, translated in every language",
+    (sentence: string) => {
+      expect(english[sentence]).toBe(sentence);
 
-    for (const language of LANGUAGES) {
-      expect({ language, translated: locales[language]![sentence] }).toEqual({
-        language,
-        translated: expect.any(String),
-      });
-      expect(locales[language]![sentence]).not.toBe(sentence);
-    }
-  });
+      for (const language of LANGUAGES) {
+        expect({ language, translated: locales[language]![sentence] }).toEqual({
+          language,
+          translated: expect.any(String),
+        });
+        expect(locales[language]![sentence]).not.toBe(sentence);
+      }
+    },
+  );
 
   test("Japanese and Chinese sentences end the way those languages end one", () => {
     for (const entry of ENTRIES) {
@@ -271,7 +290,9 @@ describe("BulkSwitchConsequences: what the sentences claim", () => {
     expect(
       readSource("App/FeatureSet/Telemetry/API/ProbeIngest/Monitor.ts"),
     ).toContain("...MonitorService.getEnabledMonitorQuery(),");
-    expect(readSource("Common/Server/Utils/Monitor/MonitorResource.ts")).toContain(
+    expect(
+      readSource("Common/Server/Utils/Monitor/MonitorResource.ts"),
+    ).toContain(
       "throw new BadDataException(ExceptionMessages.MonitorDisabled);",
     );
   });
@@ -311,7 +332,9 @@ describe("BulkSwitchConsequences: what the sentences claim", () => {
       "App/FeatureSet/Notification/API/IncomingCall.ts",
     );
     const branch: string =
-      incomingCall.split("if (!policy.isEnabled) {")[1]?.split("return res.send(twiml);")[0] || "";
+      incomingCall
+        .split("if (!policy.isEnabled) {")[1]
+        ?.split("return res.send(twiml);")[0] || "";
 
     expect(branch).toContain("IncomingCallStatusMessage.PolicyDisabled");
     expect(branch).toContain("provider.generateHangupResponse(");
@@ -344,8 +367,14 @@ describe("BulkSwitchConsequences: what the sentences claim", () => {
 
   test.each([
     ["LogPipeline", "App/FeatureSet/Telemetry/Services/LogPipelineService.ts"],
-    ["TracePipeline", "App/FeatureSet/Telemetry/Services/TracePipelineService.ts"],
-    ["LogDropFilter", "App/FeatureSet/Telemetry/Services/LogDropFilterService.ts"],
+    [
+      "TracePipeline",
+      "App/FeatureSet/Telemetry/Services/TracePipelineService.ts",
+    ],
+    [
+      "LogDropFilter",
+      "App/FeatureSet/Telemetry/Services/LogDropFilterService.ts",
+    ],
     [
       "TraceDropFilter",
       "App/FeatureSet/Telemetry/Services/TraceDropFilterService.ts",

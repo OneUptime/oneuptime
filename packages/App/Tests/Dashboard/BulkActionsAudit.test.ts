@@ -89,7 +89,8 @@ const OWNERS_NOT_OFFERED: Record<string, string> = {
  * Archived pages list records that are out of service and offer Unarchive
  * alone: rules 1 and 2 are for the live lists.
  */
-const ARCHIVED_PAGE: RegExp = /\/Archived\.tsx$|OnCallDutyPoliciesArchived\.tsx$/;
+const ARCHIVED_PAGE: RegExp =
+  /\/Archived\.tsx$|OnCallDutyPoliciesArchived\.tsx$/;
 
 // A list drawn for both the live list and its Archived page (isArchivedView).
 const ARCHIVED_VIEW_TABLES: Array<string> = [
@@ -218,11 +219,14 @@ const eeUses: Array<ListUse> = eeFiles.flatMap((file: string) => {
 
 type ModelClass = { new (): BaseModel };
 
+// A modelType that is a model's name ("Workflow"), not an expression.
+const MODEL_NAME: RegExp = /^[A-Z][A-Za-z]+$/;
+
 // The model a list draws, when its modelType is a model's name.
 const modelOf: (use: ListUse) => ModelClass | null = (
   use: ListUse,
 ): ModelClass | null => {
-  if (!/^[A-Z][A-Za-z]+$/.test(use.modelType)) {
+  if (!MODEL_NAME.test(use.modelType)) {
     return null;
   }
 
@@ -233,8 +237,11 @@ const hasBooleanColumn: (modelType: ModelClass, column: string) => boolean = (
   modelType: ModelClass,
   column: string,
 ): boolean => {
-  const metadata: TableColumnMetadata | null | undefined = new modelType()
-    .getTableColumnMetadata(column) as TableColumnMetadata | null | undefined;
+  const metadata: TableColumnMetadata | null | undefined =
+    new modelType().getTableColumnMetadata(column) as
+      | TableColumnMetadata
+      | null
+      | undefined;
 
   return metadata?.type === TableColumnType.Boolean;
 };
@@ -242,8 +249,11 @@ const hasBooleanColumn: (modelType: ModelClass, column: string) => boolean = (
 const hasLabels: (modelType: ModelClass) => boolean = (
   modelType: ModelClass,
 ): boolean => {
-  const metadata: TableColumnMetadata | null | undefined = new modelType()
-    .getTableColumnMetadata("labels") as TableColumnMetadata | null | undefined;
+  const metadata: TableColumnMetadata | null | undefined =
+    new modelType().getTableColumnMetadata("labels") as
+      | TableColumnMetadata
+      | null
+      | undefined;
 
   return metadata?.type === TableColumnType.EntityArray;
 };
@@ -349,11 +359,13 @@ describe("1. a list of records switched on and off offers Enable and Disable", (
       },
     );
 
-    expect(without).toEqual(Object.keys(SWITCH_NOT_OFFERED).sort().filter(
-      (file: string): boolean => {
-        return !ARCHIVED_PAGE.test(file);
-      },
-    ));
+    expect(without).toEqual(
+      Object.keys(SWITCH_NOT_OFFERED)
+        .sort()
+        .filter((file: string): boolean => {
+          return !ARCHIVED_PAGE.test(file);
+        }),
+    );
   });
 
   test("the lists the audit gave it", () => {
@@ -387,8 +399,12 @@ describe("1. a list of records switched on and off offers Enable and Disable", (
 
     expect(monitorTable).toContain("useBulkSwitchActions<Monitor>({");
     expect(monitorTable).toContain('column: "disableActiveMonitoring",');
-    expect(monitorTable).toContain("{ ...ENABLE_SWITCH_ACTION, value: false },");
-    expect(monitorTable).toContain("{ ...DISABLE_SWITCH_ACTION, value: true },");
+    expect(monitorTable).toContain(
+      "{ ...ENABLE_SWITCH_ACTION, value: false },",
+    );
+    expect(monitorTable).toContain(
+      "{ ...DISABLE_SWITCH_ACTION, value: true },",
+    );
     expect(monitorTable).toContain("...monitorSwitchBulkActions,");
   });
 
@@ -439,12 +455,18 @@ describe("2. a list of labelled or owned records offers Add and Remove Labels an
     ["Dashboard/src/Pages/Rum/RumApplications.tsx", "RumApplication"],
     ["Dashboard/src/Pages/Cloud/CloudResources.tsx", "CloudResource"],
     ["Dashboard/src/Pages/Cloud/MonitoredResources.tsx", "CloudResource"],
-    ["Dashboard/src/Pages/Serverless/ServerlessFunctions.tsx", "ServerlessFunction"],
+    [
+      "Dashboard/src/Pages/Serverless/ServerlessFunctions.tsx",
+      "ServerlessFunction",
+    ],
     ["Dashboard/src/Pages/Runbook/Runbooks.tsx", "Runbook"],
   ])(
     "%s, which the audit found without them, offers labels and owners",
     (file: string, model: string) => {
-      const source: string = fs.readFileSync(path.join(FEATURE_SET_DIR, file), "utf8");
+      const source: string = fs.readFileSync(
+        path.join(FEATURE_SET_DIR, file),
+        "utf8",
+      );
 
       expect(source).toContain(`useBulkLabelActions<${model}>(`);
       expect(source).toContain(`useBulkOwnerActions<${model}>(`);
@@ -459,12 +481,21 @@ describe("2. a list of labelled or owned records offers Add and Remove Labels an
   test.each([
     ["Dashboard/src/Pages/Monitor/Settings/MonitorProbes.tsx", "Probe"],
     ["Dashboard/src/Pages/NetworkDevice/Devices.tsx", "NetworkDevice"],
-    ["Dashboard/src/Components/IncidentEpisode/IncidentEpisodesTable.tsx", "IncidentEpisode"],
-    ["Dashboard/src/Components/AlertEpisode/AlertEpisodesTable.tsx", "AlertEpisode"],
+    [
+      "Dashboard/src/Components/IncidentEpisode/IncidentEpisodesTable.tsx",
+      "IncidentEpisode",
+    ],
+    [
+      "Dashboard/src/Components/AlertEpisode/AlertEpisodesTable.tsx",
+      "AlertEpisode",
+    ],
   ])(
     "%s, which offered labels alone, offers owners too",
     (file: string, model: string) => {
-      const source: string = fs.readFileSync(path.join(FEATURE_SET_DIR, file), "utf8");
+      const source: string = fs.readFileSync(
+        path.join(FEATURE_SET_DIR, file),
+        "utf8",
+      );
 
       expect(source).toContain(`useBulkOwnerActions<${model}>(`);
       expect(source).toContain("...ownerBulkActions");
@@ -516,7 +547,10 @@ describe("4. subscriber lists offer Unsubscribe, and nothing subscribes people a
   });
 
   test.each(SUBSCRIBER_PAGES)("%s offers Unsubscribe", (file: string) => {
-    const source: string = fs.readFileSync(path.join(FEATURE_SET_DIR, file), "utf8");
+    const source: string = fs.readFileSync(
+      path.join(FEATURE_SET_DIR, file),
+      "utf8",
+    );
 
     expect(source).toContain("useSubscriberBulkActions();");
     expect(source).toContain("buttons: [...subscriberBulkActions],");
@@ -525,7 +559,12 @@ describe("4. subscriber lists offer Unsubscribe, and nothing subscribes people a
 
   test("Unsubscribe is the subscribers' one bulk switch", () => {
     const hook: string = fs.readFileSync(
-      path.join(DASHBOARD_SRC, "Components", "StatusPage", "useSubscriberBulkActions.tsx"),
+      path.join(
+        DASHBOARD_SRC,
+        "Components",
+        "StatusPage",
+        "useSubscriberBulkActions.tsx",
+      ),
       "utf8",
     );
 
@@ -549,7 +588,9 @@ describe("5. Admin Dashboard > Enterprise Licenses", () => {
 
       expect(list!.isDeleteable).toBe("true");
       expect(list!.bulkActions).toContain("...licenseBulkActions");
-      expect(list!.bulkActions).toContain("ModalTableBulkDefaultActions.Delete");
+      expect(list!.bulkActions).toContain(
+        "ModalTableBulkDefaultActions.Delete",
+      );
       expect(list!.getItemName).toContain("getLicenseItemName(");
       expect(list!.source).toContain("{licenseBulkModals}");
     },

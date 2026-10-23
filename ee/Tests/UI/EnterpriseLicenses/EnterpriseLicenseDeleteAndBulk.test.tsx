@@ -42,8 +42,7 @@ import { MemoryRouter } from "react-router-dom";
 let refusedDeletes: Record<string, string> = {};
 let refusedUpdates: Record<string, string> = {};
 const deleteRequests: Array<string> = [];
-const updateRequests: Array<{ id: string; data: Record<string, unknown> }> =
-  [];
+const updateRequests: Array<{ id: string; data: Record<string, unknown> }> = [];
 
 jest.mock("react-i18next", () => {
   return {
@@ -270,7 +269,11 @@ beforeEach(() => {
   updateRequests.length = 0;
 
   window.localStorage.clear();
-  window.history.replaceState(window.history.state, "", "/admin/enterprise-licenses");
+  window.history.replaceState(
+    window.history.state,
+    "",
+    "/admin/enterprise-licenses",
+  );
   Navigation.setLocation({
     pathname: window.location.pathname,
     search: "",
@@ -375,7 +378,9 @@ beforeEach(() => {
         return row._id === id
           ? {
               ...row,
-              expiresAt: new Date(`${String(request.data["expiresAt"])}T00:00:00.000Z`),
+              expiresAt: new Date(
+                `${String(request.data["expiresAt"])}T00:00:00.000Z`,
+              ),
             }
           : row;
       });
@@ -416,7 +421,9 @@ describe("a row's ⋯ menu", () => {
       `Are you sure you want to delete ${NAME_B}?`,
     );
     expect(message).not.toHaveTextContent(NAME_A);
-    expect(screen.getByTestId("delete-confirmation-consequence")).toHaveTextContent(
+    expect(
+      screen.getByTestId("delete-confirmation-consequence"),
+    ).toHaveTextContent(
       "Deleting a license also deletes the instances listed under it. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.",
     );
     expect(getDeleteConsequence("EnterpriseLicense")).toContain(
@@ -454,7 +461,8 @@ describe("a row's ⋯ menu", () => {
 
   test("a refused delete says why, in the row's own dialog, and the license stays", async () => {
     refusedDeletes = {
-      [NETLOCK_A._id]: "You do not have permissions to delete Enterprise License.",
+      [NETLOCK_A._id]:
+        "You do not have permissions to delete Enterprise License.",
     };
 
     await renderPage();
@@ -494,7 +502,9 @@ describe("Bulk Actions", () => {
     openBulkActions();
     fireEvent.click(menuItem("Delete"));
 
-    expect(within(dialog()).getByText("Delete 2 Enterprise Licenses")).toBeVisible();
+    expect(
+      within(dialog()).getByText("Delete 2 Enterprise Licenses"),
+    ).toBeVisible();
     expect(
       within(dialog()).getByText(
         "Are you sure you want to delete 2 enterprise licenses? This action cannot be undone.",
@@ -507,7 +517,9 @@ describe("Bulk Actions", () => {
           return item.textContent || "";
         }),
     ).toEqual([NAME_A, NAME_B]);
-    expect(within(dialog()).getByTestId("bulk-delete-consequence")).toHaveTextContent(
+    expect(
+      within(dialog()).getByTestId("bulk-delete-consequence"),
+    ).toHaveTextContent(
       "Installations that use its key keep the license they already hold until it expires",
     );
 
@@ -547,31 +559,35 @@ describe("Bulk Actions", () => {
     const failed: HTMLElement = screen.getByTestId("bulk-action-failed-items");
 
     expect(within(failed).getByText(listed(NAME_B))).toBeVisible();
-    expect(within(failed).getByText("Enterprise License not found.")).toBeVisible();
+    expect(
+      within(failed).getByText("Enterprise License not found."),
+    ).toBeVisible();
   });
 });
 
 describe("Change Expiry Date", () => {
-  const openChangeExpiry: (names: Array<string>) => Promise<HTMLElement> =
-    async (names: Array<string>): Promise<HTMLElement> => {
-      await renderPage();
+  const openChangeExpiry: (
+    names: Array<string>,
+  ) => Promise<HTMLElement> = async (
+    names: Array<string>,
+  ): Promise<HTMLElement> => {
+    await renderPage();
 
-      for (const name of names) {
-        select(name);
-      }
+    for (const name of names) {
+      select(name);
+    }
 
-      openBulkActions();
-      fireEvent.click(menuItem("Change Expiry Date"));
+    openBulkActions();
+    fireEvent.click(menuItem("Change Expiry Date"));
 
-      return await screen.findByRole("dialog");
-    };
+    return await screen.findByRole("dialog");
+  };
 
   const dateInput: (modal: HTMLElement) => HTMLInputElement = (
     modal: HTMLElement,
   ): HTMLInputElement => {
-    const input: HTMLInputElement | null = modal.querySelector(
-      'input[type="date"]',
-    );
+    const input: HTMLInputElement | null =
+      modal.querySelector('input[type="date"]');
 
     if (!input) {
       throw new Error("No date field");
@@ -618,7 +634,9 @@ describe("Change Expiry Date", () => {
     fireEvent.click(within(modal).getByTestId("modal-footer-submit-button"));
 
     expect(
-      await within(modal).findByText("New Expiry Date should be a future date."),
+      await within(modal).findByText(
+        "New Expiry Date should be a future date.",
+      ),
     ).toBeInTheDocument();
     expect(updateRequests).toEqual([]);
   });
@@ -642,7 +660,8 @@ describe("Change Expiry Date", () => {
 
   test("a license already expiring that day is left alone and listed, and a refused one says why", async () => {
     refusedUpdates = {
-      [NETLOCK_B._id]: "You do not have permissions to update Enterprise License.",
+      [NETLOCK_B._id]:
+        "You do not have permissions to update Enterprise License.",
     };
 
     const modal: HTMLElement = await openChangeExpiry([

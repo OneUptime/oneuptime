@@ -13,7 +13,7 @@ import path from "path";
  *
  * The Enterprise Licenses specs need ee/ and are skipped without it.
  */
-const port: string = process.env["BULK_ACTIONS_FIXTURE_PORT"] || "4318";
+const port: string = process.env["BULK_ACTIONS_FIXTURE_PORT"] || "4458";
 
 export default defineConfig({
   testDir: "./BulkActions",

@@ -7,7 +7,9 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import { getRecordDisplayName } from "../../Utils/ModelDisplayName";
-import PermissionGate, { PermissionGateResult } from "../../Utils/PermissionGate";
+import PermissionGate, {
+  PermissionGateResult,
+} from "../../Utils/PermissionGate";
 import {
   PluralTemplate,
   translatableTerm,
@@ -261,9 +263,7 @@ function useBulkSwitchActions<T extends BaseModel>(
           return true;
         }
 
-        return (
-          getRowsToChange(items, config.column, action.value).length > 0
-        );
+        return getRowsToChange(items, config.column, action.value).length > 0;
       },
       confirmTitle: (items: Array<T>): string => {
         const count: number = getRowsToChange(
@@ -327,8 +327,7 @@ function useBulkSwitchActions<T extends BaseModel>(
             }
 
             if (
-              getRowsToChange([item], config.column, action.value).length ===
-              0
+              getRowsToChange([item], config.column, action.value).length === 0
             ) {
               return bulkItemUnchanged(
                 translator.translateText(action.alreadyReason) ||

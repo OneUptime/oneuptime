@@ -1,12 +1,6 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
-import {
-  act,
-  cleanup,
-  render,
-  screen,
-  within,
-} from "@testing-library/react";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
 import { createInstance, i18n } from "i18next";
 import { I18nextProvider } from "react-i18next";
 import fs from "fs";
@@ -105,7 +99,10 @@ const LICENSE_KEYS: Array<[string, string]> = [
   ],
   [LicenseBulkCopy.alreadyExpiresOnDay, LicenseBulkCopy.alreadyExpiresOnDay],
   [LicenseBulkCopy.updatedCount.other, LicenseBulkCopy.updatedCount.other],
-  [`${LicenseBulkCopy.updatedCount.other}_one`, LicenseBulkCopy.updatedCount.one],
+  [
+    `${LicenseBulkCopy.updatedCount.other}_one`,
+    LicenseBulkCopy.updatedCount.one,
+  ],
   [
     LicenseBulkCopy.notUpdatedCount.other,
     LicenseBulkCopy.notUpdatedCount.other,
@@ -114,7 +111,10 @@ const LICENSE_KEYS: Array<[string, string]> = [
     `${LicenseBulkCopy.notUpdatedCount.other}_one`,
     LicenseBulkCopy.notUpdatedCount.one,
   ],
-  [getDeleteConsequence("EnterpriseLicense"), getDeleteConsequence("EnterpriseLicense")],
+  [
+    getDeleteConsequence("EnterpriseLicense"),
+    getDeleteConsequence("EnterpriseLicense"),
+  ],
   ["Enterprise License", "Enterprise License"],
   ["Enterprise Licenses", "Enterprise Licenses"],
 ];
@@ -158,24 +158,30 @@ describe("naming a license", () => {
 
   test("two licenses of one company read apart", () => {
     expect(
-      getLicenseItemName({ companyName: "Netlock.hu", licenseKey: "da74aaaabbbb7c7a" }),
+      getLicenseItemName({
+        companyName: "Netlock.hu",
+        licenseKey: "da74aaaabbbb7c7a",
+      }),
     ).not.toBe(
-      getLicenseItemName({ companyName: "Netlock.hu", licenseKey: "e639aaaabbbbe1f4" }),
+      getLicenseItemName({
+        companyName: "Netlock.hu",
+        licenseKey: "e639aaaabbbbe1f4",
+      }),
     );
   });
 
   test("never by the key itself", () => {
     const key: string = `1d94${"9".repeat(56)}91eb`;
 
-    expect(getLicenseItemName({ companyName: "Portainer.io", licenseKey: key })).not.toContain(
-      key,
-    );
+    expect(
+      getLicenseItemName({ companyName: "Portainer.io", licenseKey: key }),
+    ).not.toContain(key);
   });
 
   test("either half alone when the other is missing", () => {
-    expect(getLicenseItemName({ companyName: " Edarat Group ", licenseKey: "" })).toBe(
-      "Edarat Group",
-    );
+    expect(
+      getLicenseItemName({ companyName: " Edarat Group ", licenseKey: "" }),
+    ).toBe("Edarat Group");
     expect(getLicenseItemName({ licenseKey: "0734aaaabbbb8516" })).toBe(
       "0734••••8516",
     );
@@ -185,7 +191,9 @@ describe("naming a license", () => {
 
 describe("the day a license expires", () => {
   test("is the calendar day of its stored midnight, and of the day picked", () => {
-    expect(toCalendarDay(new Date("2027-10-14T00:00:00.000Z"))).toBe("2027-10-14");
+    expect(toCalendarDay(new Date("2027-10-14T00:00:00.000Z"))).toBe(
+      "2027-10-14",
+    );
     expect(toCalendarDay("2027-10-14T00:00:00.000Z")).toBe("2027-10-14");
     expect(toCalendarDay("2027-10-14")).toBe("2027-10-14");
     expect(toCalendarDay("")).toBe("");
@@ -195,7 +203,9 @@ describe("the day a license expires", () => {
   });
 
   test("a license already expiring on the day picked is told apart from one that is not", () => {
-    expect(expiresOnDay(new Date("2027-10-14T00:00:00.000Z"), "2027-10-14")).toBe(true);
+    expect(
+      expiresOnDay(new Date("2027-10-14T00:00:00.000Z"), "2027-10-14"),
+    ).toBe(true);
     expect(expiresOnDay("2027-10-14T00:00:00.000Z", "2027-10-15")).toBe(false);
     expect(expiresOnDay(undefined, "2027-10-14")).toBe(false);
     expect(expiresOnDay(new Date("2027-10-14T00:00:00.000Z"), "")).toBe(false);

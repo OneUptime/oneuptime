@@ -130,7 +130,9 @@ const isMasterAdminOnly: (kind: [string, ModelType]) => boolean = ([
   ,
   modelType,
 ]: [string, ModelType]): boolean => {
-  return Boolean(modelType) && new modelType().getDeletePermissions().length === 0;
+  return (
+    Boolean(modelType) && new modelType().getDeletePermissions().length === 0
+  );
 };
 
 const KINDS: Array<[string, ModelType]> = ALL_KINDS.filter(
@@ -200,7 +202,10 @@ describe("the kinds only a master admin deletes", () => {
     "%s: a project owner's DELETE is refused",
     (_tableName: string, modelType: ModelType) => {
       expect(
-        deleteRefusal(modelType, [Permission.ProjectOwner, Permission.ProjectAdmin]),
+        deleteRefusal(modelType, [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+        ]),
       ).toBeInstanceOf(NotAuthorizedException);
     },
   );

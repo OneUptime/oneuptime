@@ -27,7 +27,8 @@ const output = path.join(
   repository,
   "output/playwright/bulk-actions-ui/fixture",
 );
-const port = Number(process.env.BULK_ACTIONS_FIXTURE_PORT || 4318);
+// Not 4318: that is the OpenTelemetry collector's HTTP port.
+const port = Number(process.env.BULK_ACTIONS_FIXTURE_PORT || 4458);
 
 const enterprise = resolveEnterpriseBuild({
   frontendDir: path.join(repository, "packages/App/FeatureSet/AdminDashboard"),
