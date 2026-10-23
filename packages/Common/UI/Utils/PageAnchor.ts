@@ -234,9 +234,10 @@ export function bringPageAnchorIntoView(
 export const PAGE_ANCHOR_LANDED_ATTRIBUTE: string = "data-page-anchor-landed";
 
 /*
- * What a place carries while it holds the focus a landing gave it: no
- * focus ring of its own (Theme.css) - it is not a control, and the tint
- * says where it is. It goes, with the tabindex that let the place take the
+ * What a place carries while it holds the focus a landing gave it: after a
+ * link followed with the keyboard, Theme.css rings it inside its edge, as
+ * a row's focus ring is drawn, so the card it is a section of does not
+ * clip the ring. It goes, with the tabindex that let the place take the
  * focus, when the focus moves on.
  */
 export const PAGE_ANCHOR_FOCUSED_ATTRIBUTE: string = "data-page-anchor-focused";

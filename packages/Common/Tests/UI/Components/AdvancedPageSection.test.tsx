@@ -630,6 +630,7 @@ describe("opens by itself at a card the page's address names", () => {
             {
               title: "Change limits",
               buttonStyle: ButtonStyleType.NORMAL,
+              icon: IconProp.Edit,
               onClick: (): void => {
                 // Nothing to change here.
               },

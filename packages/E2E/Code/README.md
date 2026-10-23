@@ -66,7 +66,9 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
   was typed; every reason AI cannot work said above the request box with the
   link that fixes it, and nothing sendable;
 - a repository's Runner in its settings, reached as Pick a Runner reaches it
-  (`#runner`, More settings open): Global Runner and how it is doing,
+  (`#runner`, More settings open, the Runner card as high as the page lets
+  it go, marked and holding the focus, so Tab goes on to its Edit): Global
+  Runner and how it is doing,
   the Runner card's Edit, a project that turned global Runners off
   (`?uses=0`), a server with none (`?global=0`) or one not heard from
   (`?gstatus=disconnected`), and a pick the page is not shown

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import { declaredValue } from "./ThemeStylesheet";
+import { declaredValue, selectorsDeclaring } from "./ThemeStylesheet";
 import {
   PAGE_ANCHOR_FOCUSED_ATTRIBUTE,
   PAGE_ANCHOR_LANDED_ATTRIBUTE,
@@ -14,9 +14,11 @@ import {
  * one of six settings under More settings. On a tall screen the page cannot
  * scroll it to the top, so the setting the link was for is tinted and the
  * tint fades - over the time the mark is held - in both themes; a reader
- * who asks for less motion gets the tint held still instead, and the focus
- * the landing gives the place draws no ring of its own (it is no control:
- * the tint says where it is, and Tab goes on to its controls' own rings).
+ * who asks for less motion gets the tint held still instead. The focus the
+ * landing gives the place is ringed for a keyboard reader inside its edge,
+ * as a row's focus ring is, so the card it is a section of does not clip
+ * it - and no focus ring anywhere is silenced for it (ChartFocusRing holds
+ * that only charts silence theirs).
  *
  * The @keyframes and @media blocks are read from the sheet's text (the
  * shared reader collects top-level rules only).
@@ -74,7 +76,9 @@ describe("the place a link landed on, in Theme.css", () => {
     expect(PAGE_ANCHOR_LANDED_ATTRIBUTE).toBe("data-page-anchor-landed");
     expect(PAGE_ANCHOR_FOCUSED_ATTRIBUTE).toBe("data-page-anchor-focused");
     expect(THEME_CSS).toContain(`${LANDED} {`);
-    expect(THEME_CSS).toContain(`[${PAGE_ANCHOR_FOCUSED_ATTRIBUTE}]:focus {`);
+    expect(THEME_CSS).toContain(
+      `[${PAGE_ANCHOR_FOCUSED_ATTRIBUTE}]:focus-visible {`,
+    );
   });
 
   test("a tint of the product's indigo in each theme - light on white, lighter on the dark card", () => {
@@ -128,11 +132,22 @@ describe("the place a link landed on, in Theme.css", () => {
     ]);
   });
 
-  test("the focus a landing gives the place draws no ring of its own", () => {
-    expect(
-      declaredValue(`[${PAGE_ANCHOR_FOCUSED_ATTRIBUTE}]:focus`, "outline"),
-    ).toBe("none");
-    // Only while it holds that focus: never on every focused element.
+  test("the focus a landing gives the place is ringed for a keyboard reader, inside its edge, in each theme's indigo", () => {
+    const focused: string = `[${PAGE_ANCHOR_FOCUSED_ATTRIBUTE}]:focus-visible`;
+
+    expect(declaredValue(focused, "outline")).toBe("2px solid #6366f1");
+    // Inside the edge: the card it is a section of clips what reaches past.
+    expect(declaredValue(focused, "outline-offset")).toBe("-2px");
+    expect(declaredValue(`html.dark ${focused}`, "outline-color")).toBe(
+      "#818cf8",
+    );
+  });
+
+  test("no focus ring is silenced for it: the browser's ring for a mouse click stays the browser's", () => {
+    for (const selector of selectorsDeclaring("outline", "none")) {
+      expect(selector).not.toContain(PAGE_ANCHOR_FOCUSED_ATTRIBUTE);
+      expect(selector).not.toContain(PAGE_ANCHOR_LANDED_ATTRIBUTE);
+    }
     expect(declaredValue(LANDED, "outline")).toBeUndefined();
   });
 

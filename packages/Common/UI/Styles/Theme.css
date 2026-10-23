@@ -1752,12 +1752,21 @@ html.dark [data-page-anchor-landed] {
 }
 
 /*
- * The focus a landing gives the place is not a control's: no ring of its
- * own (the tint says where it is). Tab goes on from it to its controls,
- * whose rings are their own.
+ * The focus a landing gives the place, after a link followed with the
+ * keyboard: a ring in the product's indigo, drawn inside its edge as a
+ * row's focus ring is (ring-2 ring-inset ring-indigo-500), so the card it
+ * is a section of - which clips what reaches past its edges - does not cut
+ * it. A link clicked with the mouse draws none: the browser rings a place
+ * it focused only for a keyboard reader. Tab goes on from it to its
+ * controls, whose rings are their own.
  */
-[data-page-anchor-focused]:focus {
-  outline: none;
+[data-page-anchor-focused]:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: -2px;
+}
+
+html.dark [data-page-anchor-focused]:focus-visible {
+  outline-color: #818cf8;
 }
 
 /*
