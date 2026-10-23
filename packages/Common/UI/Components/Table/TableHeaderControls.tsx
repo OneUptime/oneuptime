@@ -81,6 +81,18 @@ export const TABLE_HEADER_BUTTONS_CLASS_NAME: string =
   "max-w-[600px] gap-3 opacity-100 max-md:flex-wrap max-md:justify-end max-md:[&>button]:w-auto max-md:[&>*>button]:w-auto";
 
 /*
+ * The main button and the ⋯, one item of that row
+ * (renderTableHeaderMainAndMore): where the row wraps they move to the
+ * next line together, and a main button too long to share its line with
+ * the ⋯ - "Create Scheduled Maintenance Event" on a 390px phone - breaks
+ * its words beside it, as All Events' Create does. As two items of the
+ * row, the ⋯ wrapped onto a line of its own under a main button that
+ * filled the line. Each as wide as its words, as in the row.
+ */
+export const TABLE_HEADER_MAIN_AND_MORE_CLASS_NAME: string =
+  "flex items-center gap-3 max-md:[&>button]:w-auto max-md:[&>*>button]:w-auto";
+
+/*
  * Every control in the row is one height: 42px on a phone and 38px from md
  * up, the height of a card's buttons (Button's normal size) and of the ⋯
  * (CARD_MORE_MENU_TRIGGER_CLASS_NAME). A picker drawn beside them - a time
@@ -300,6 +312,35 @@ export function renderTableHeaderMoreMenu(
     <CardMoreMenu key="model-table-more-menu" dataTestId={options?.dataTestId}>
       {children}
     </CardMoreMenu>
+  );
+}
+
+/*
+ * The main button and the ⋯ beside it, kept together in a toolbar's row
+ * (TABLE_HEADER_MAIN_AND_MORE_CLASS_NAME). Either one alone is drawn as
+ * it is; null when there is neither.
+ */
+export function renderTableHeaderMainAndMore(
+  main: CardButtonSchema | null | undefined,
+  moreMenu: ReactElement | null | undefined,
+): ReactElement | null {
+  if (!main) {
+    return moreMenu || null;
+  }
+
+  if (!moreMenu) {
+    return renderTableHeaderMainButton(main);
+  }
+
+  return (
+    <div
+      key="model-table-main-and-more"
+      data-testid="model-table-main-and-more"
+      className={TABLE_HEADER_MAIN_AND_MORE_CLASS_NAME}
+    >
+      {renderTableHeaderMainButton(main)}
+      {moreMenu}
+    </div>
   );
 }
 

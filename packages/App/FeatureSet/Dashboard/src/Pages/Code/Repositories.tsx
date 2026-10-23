@@ -28,6 +28,7 @@ import {
   TABLE_HEADER_SEARCH_CLEAR_BUTTON_CLASS_NAME,
   TableHeaderSearchSlot,
   TableHeaderToolbar,
+  renderTableHeaderMainAndMore,
   renderTableHeaderMainButton,
   renderTableHeaderMoreMenu,
   useTableHeaderSearchShortcut,
@@ -284,8 +285,7 @@ const CodeRepositoriesPage: FunctionComponent<
           ) : undefined
         }
       >
-        {connectButton ? renderTableHeaderMainButton(connectButton) : <></>}
-        {moreMenu || <></>}
+        {renderTableHeaderMainAndMore(connectButton, moreMenu)}
       </TableHeaderToolbar>
     );
   };
