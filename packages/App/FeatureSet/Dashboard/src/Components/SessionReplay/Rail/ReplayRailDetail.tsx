@@ -31,15 +31,18 @@ import {
   ReplayServerErrorSignalDetail,
   ReplaySpanSignalDetail,
   ReplayTraceWaterfallSpan,
+  ReplayVitalReports,
   buildErrorCounterpartIndex,
   findErrorAfterInteraction,
   findErrorLogsForTrace,
+  findVitalReports,
   formatPerformanceMeasure,
   formatSignalBytes,
   formatSignalDuration,
   formatVitalRating,
   indexTraceSignalsByTraceId,
   pairClientAndServerErrors,
+  showsVitalView,
 } from "./ReplaySignals";
 
 /*
@@ -102,8 +105,9 @@ const Fact: FunctionComponent<{
   return (
     <div className="flex gap-2 text-[11px] leading-5">
       <dt className="w-20 shrink-0 text-gray-400">{props.label}</dt>
+      {/* text-pretty: a value that wraps never leaves one word alone. */}
       <dd
-        className={`min-w-0 flex-1 break-words text-gray-700 ${
+        className={`min-w-0 flex-1 text-pretty break-words text-gray-700 ${
           props.mono ? "font-mono" : ""
         }`}
       >
@@ -520,6 +524,22 @@ const NavigationDetail: FunctionComponent<{
     });
   }, [props.signals, props.signal]);
 
+  /*
+   * A CLS or INP reported again when it changed (issue #5181): the later
+   * report is the page's value, so an earlier one says it was updated.
+   */
+  const updatedVitalIds: Set<string> = useMemo(() => {
+    const ids: Set<string> = new Set<string>();
+
+    for (const vital of vitals) {
+      if (findVitalReports(props.signals, vital).later) {
+        ids.add(vital.id);
+      }
+    }
+
+    return ids;
+  }, [props.signals, vitals]);
+
   const kindLabel: string =
     detail.kind === "full-load"
       ? "full page load"
@@ -563,6 +583,11 @@ const NavigationDetail: FunctionComponent<{
                   >
                     {vital.title}
                     {vital.subtitle ? ` ${vital.subtitle}` : ""}
+                    {updatedVitalIds.has(vital.id) && (
+                      <span className="text-gray-400">
+                        {" · "}updated later
+                      </span>
+                    )}
                   </button>
                 </li>
               );
@@ -678,11 +703,53 @@ const InteractionDetail: FunctionComponent<{
   );
 };
 
-const PerformanceDetail: FunctionComponent<{ signal: ReplaySignal }> = (props: {
+/*
+ * Another report of the same view's CLS or INP, as a row of the rail:
+ * "CLS 0.35 poor at 1:04.2" selects it, as a navigation's vitals do.
+ */
+const VitalReportLink: FunctionComponent<{
+  report: ReplaySignal;
+  testId: string;
+  onSelectSignal: (signalId: string) => void;
+}> = (props: {
+  report: ReplaySignal;
+  testId: string;
+  onSelectSignal: (signalId: string) => void;
+}): ReactElement => {
+  return (
+    <button
+      type="button"
+      className="text-left text-indigo-700 hover:underline"
+      data-testid={props.testId}
+      onClick={(): void => {
+        props.onSelectSignal(props.report.id);
+      }}
+    >
+      {props.report.title} at {formatReplayOffsetPrecise(props.report.offsetMs)}
+    </button>
+  );
+};
+
+const PerformanceDetail: FunctionComponent<{
   signal: ReplaySignal;
+  signals: Array<ReplaySignal>;
+  onSelectSignal: (signalId: string) => void;
+}> = (props: {
+  signal: ReplaySignal;
+  signals: Array<ReplaySignal>;
+  onSelectSignal: (signalId: string) => void;
 }): ReactElement => {
   const detail: ReplayPerformanceSignalDetail = props.signal
     .detail as ReplayPerformanceSignalDetail;
+
+  /*
+   * CLS and INP are reported again when they changed after the visitor
+   * came back to the tab, so one view can have two rows: each names the
+   * other, the later one being the view's value (issue #5181).
+   */
+  const reports: ReplayVitalReports = useMemo(() => {
+    return findVitalReports(props.signals, props.signal);
+  }, [props.signals, props.signal]);
 
   return (
     <dl>
@@ -707,22 +774,41 @@ const PerformanceDetail: FunctionComponent<{ signal: ReplaySignal }> = (props: {
       {detail.rating && (
         <Fact label="Rating">{formatVitalRating(detail.rating)}</Fact>
       )}
+      {reports.earlier && (
+        <Fact label="Earlier">
+          <VitalReportLink
+            report={reports.earlier}
+            testId="rail-vital-earlier"
+            onSelectSignal={props.onSelectSignal}
+          />
+        </Fact>
+      )}
+      {reports.later && (
+        <Fact label="Updated">
+          <VitalReportLink
+            report={reports.later}
+            testId="rail-vital-updated"
+            onSelectSignal={props.onSelectSignal}
+          />
+        </Fact>
+      )}
       {detail.url && (
         <Fact label="URL" mono={true}>
           {detail.url}
         </Fact>
       )}
       {/*
-       * The kind of page view the vital describes. A prerendered page is
-       * timed from when the visitor opened it, which is why its FCP can
-       * read 68 ms when its navigation began seconds before (issue #5181).
+       * The kind of page view the vital describes, when that says
+       * something (see showsVitalView). A prerendered page is measured
+       * from when the visitor opened it, which is why its FCP can read
+       * 68 ms when its navigation began seconds before (issue #5181).
        */}
-      {detail.navigationType && (
+      {showsVitalView(detail) && (
         <Fact label="View">
           {detail.navigationType === "soft"
             ? "Route change (single-page app)"
             : detail.navigationType === "prerender"
-              ? "Prerendered page load (timed from when it was opened)"
+              ? "Prerendered page load (measured from when it was opened)"
               : detail.navigationType === "back-forward-cache"
                 ? "Restored from back/forward cache"
                 : "Page load"}
@@ -1277,7 +1363,13 @@ const ReplayRailDetail: FunctionComponent<ReplayRailDetailProps> = (
       );
       break;
     case "performance":
-      body = <PerformanceDetail signal={signal} />;
+      body = (
+        <PerformanceDetail
+          signal={signal}
+          signals={props.signals}
+          onSelectSignal={props.onSelectSignal}
+        />
+      );
       break;
     case "client-error":
     case "server-error":

@@ -1287,21 +1287,36 @@ describe("Session Replay docs page", (): void => {
     /*
      * CLS and INP over the page's whole life: reported again, as another
      * row, when they grew after the visitor came back - CLS when its value
-     * differs from the one last reported, INP when its interaction does.
+     * differs from the one last reported, INP when its interaction does -
+     * and the rail's detail of each report names the other (Earlier /
+     * Updated, ReplaySignals.findVitalReports).
      */
     expect(vitals).toContain(
-      "CLS and INP cover the page's whole life: if either grows after the visitor comes back to the tab, it is reported again as a new row.",
+      "CLS and INP cover the page's whole life: if either grows after the visitor comes back to the tab, it is reported again as a new row, and the two rows' details link to each other.",
     );
     expect(performance).toContain("rounded === this.reportedClsValue");
     expect(performance).toContain(
       "view.reportedLatencyMs === interaction.latencyMs",
     );
+    expect(railDetail).toContain("findVitalReports(props.signals");
+    expect(railDetail).toContain('<Fact label="Earlier">');
+    expect(railDetail).toContain('<Fact label="Updated">');
 
-    /* "a vital's details say which kind it was": the rail's View row. */
-    expect(vitals).toContain("a vital's details say which kind it was");
+    /*
+     * The details name a prerendered or a restored page - the rail's View
+     * row - and nothing claims they name a page opened in a background
+     * tab: no vital of that page says so.
+     */
+    expect(vitals).toContain(
+      "and so does the LCP budget. Each of its vitals says so in its details.",
+    );
+    expect(vitals).toContain(
+      "then CLS and INP for that visit. Each of them says so in its details.",
+    );
+    expect(vitals).not.toContain("a vital's details say which kind it was");
 
     for (const words of [
-      "Prerendered page load (timed from when it was opened)",
+      "Prerendered page load (measured from when it was opened)",
       "Restored from back/forward cache",
       "Route change (single-page app)",
       "Page load",
