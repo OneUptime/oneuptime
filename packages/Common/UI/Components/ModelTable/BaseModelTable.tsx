@@ -96,6 +96,7 @@ import {
   TableHeaderButtonSplit,
   TableHeaderSearchSlot,
   TableHeaderToolbar,
+  renderTableHeaderMainAndMore,
   renderTableHeaderMainButton,
   renderTableHeaderMoreMenu,
   splitTableHeaderButtons,
@@ -5175,8 +5176,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         }
       >
         {savedViewsElement}
-        {main && renderTableHeaderMainButton(main)}
-        {moreMenu}
+        {renderTableHeaderMainAndMore(main, moreMenu)}
       </TableHeaderToolbar>
     );
 

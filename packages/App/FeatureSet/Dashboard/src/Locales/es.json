@@ -33401,6 +33401,8 @@
   "Shown on the status pages this incident appears on.": "Se muestra en las páginas de estado donde aparece este incidente.",
   "What happened": "Qué pasó",
   "Why it happened, once you know.": "Por qué pasó, cuando lo sepas.",
+  "{{count}} more labels": "{{count}} etiquetas más",
+  "{{count}} more labels_one": "{{count}} etiqueta más",
   "{{duration}} after impact began": "{{duration}} después del inicio del impacto",
   "Shown on the status pages this episode appears on.": "Se muestra en las páginas de estado donde aparece este episodio."
 }

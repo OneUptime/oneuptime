@@ -927,7 +927,7 @@
   "Create from Template": "Aus Vorlage erstellen",
   "View Documentation": "Dokumentation anzeigen",
   "Watch Demo": "Demo ansehen",
-  "No labels attached.": "Keine Labels angehängt.",
+  "No labels attached.": "Keine Beschriftungen angehängt.",
   "more label": "weiteres Label",
   "more labels": "weitere Labels",
   "more Runners": "weitere Runbook-Agenten",
@@ -33401,6 +33401,8 @@
   "Shown on the status pages this incident appears on.": "Wird auf den Statusseiten angezeigt, auf denen dieser Vorfall erscheint.",
   "What happened": "Hergang",
   "Why it happened, once you know.": "Warum es passiert ist, sobald Sie es wissen.",
+  "{{count}} more labels": "{{count}} weitere Beschriftungen",
+  "{{count}} more labels_one": "{{count}} weitere Beschriftung",
   "{{duration}} after impact began": "{{duration}} nach Beginn der Auswirkung",
   "Shown on the status pages this episode appears on.": "Wird auf den Statusseiten angezeigt, auf denen diese Episode erscheint."
 }

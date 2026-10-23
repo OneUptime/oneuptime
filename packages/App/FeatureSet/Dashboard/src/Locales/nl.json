@@ -33401,6 +33401,8 @@
   "Shown on the status pages this incident appears on.": "Getoond op de statuspagina's waarop dit incident verschijnt.",
   "What happened": "Wat er gebeurde",
   "Why it happened, once you know.": "Waarom het gebeurde, zodra u het weet.",
+  "{{count}} more labels": "Nog {{count}} labels",
+  "{{count}} more labels_one": "Nog {{count}} label",
   "{{duration}} after impact began": "{{duration}} na het begin van de impact",
   "Shown on the status pages this episode appears on.": "Getoond op de statuspagina's waarop deze episode verschijnt."
 }

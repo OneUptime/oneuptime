@@ -33401,6 +33401,8 @@
   "Shown on the status pages this incident appears on.": "會顯示在展示此事件的狀態頁面上。",
   "What happened": "事件經過",
   "Why it happened, once you know.": "查明後，填寫發生的原因。",
+  "{{count}} more labels": "另外 {{count}} 個標籤",
+  "{{count}} more labels_one": "另外 {{count}} 個標籤",
   "{{duration}} after impact began": "影響開始後 {{duration}}",
   "Shown on the status pages this episode appears on.": "會顯示在展示此片段的狀態頁面上。"
 }

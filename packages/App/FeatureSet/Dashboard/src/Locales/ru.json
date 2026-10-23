@@ -33401,6 +33401,8 @@
   "Shown on the status pages this incident appears on.": "Отображается на страницах состояния, где показан этот инцидент.",
   "What happened": "Что произошло",
   "Why it happened, once you know.": "Почему это произошло, когда станет известно.",
+  "{{count}} more labels": "Ещё меток: {{count}}",
+  "{{count}} more labels_one": "Ещё {{count}} метка",
   "{{duration}} after impact began": "{{duration}} после начала воздействия",
   "Shown on the status pages this episode appears on.": "Отображается на страницах состояния, где показан этот эпизод."
 }

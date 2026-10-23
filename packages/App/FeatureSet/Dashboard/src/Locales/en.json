@@ -33401,6 +33401,8 @@
   "Shown on the status pages this incident appears on.": "Shown on the status pages this incident appears on.",
   "What happened": "What happened",
   "Why it happened, once you know.": "Why it happened, once you know.",
+  "{{count}} more labels": "{{count}} more labels",
+  "{{count}} more labels_one": "{{count}} more label",
   "{{duration}} after impact began": "{{duration}} after impact began",
   "Shown on the status pages this episode appears on.": "Shown on the status pages this episode appears on."
 }

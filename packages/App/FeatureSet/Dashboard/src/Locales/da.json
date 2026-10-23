@@ -927,7 +927,7 @@
   "Create from Template": "Opret fra skabelon",
   "View Documentation": "Vis dokumentation",
   "Watch Demo": "Se demo",
-  "No labels attached.": "Ingen mærkater tilknyttet.",
+  "No labels attached.": "Ingen etiketter tilknyttet.",
   "more label": "mere mærkat",
   "more labels": "flere mærkater",
   "more Runners": "flere runbook-agenter",
@@ -33401,6 +33401,8 @@
   "Shown on the status pages this incident appears on.": "Vises på de statussider, hvor denne hændelse optræder.",
   "What happened": "Hvad der skete",
   "Why it happened, once you know.": "Hvorfor det skete, når du ved det.",
+  "{{count}} more labels": "{{count}} etiketter mere",
+  "{{count}} more labels_one": "{{count}} etiket mere",
   "{{duration}} after impact began": "{{duration}} efter at påvirkningen begyndte",
   "Shown on the status pages this episode appears on.": "Vises på de statussider, hvor denne episode optræder."
 }

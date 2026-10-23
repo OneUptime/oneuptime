@@ -15,6 +15,7 @@ import { JSONObject } from "../../Types/JSON";
 import SubscriberNotificationTemplateCompiler from "../../Types/StatusPage/SubscriberNotificationTemplateCompiler";
 
 import FeedMarkdown from "../Markdown/FeedMarkdown";
+import { sortLabelNames } from "../LabelOrder";
 /*
  * The {{placeholders}} an incident note template can carry, and their values
  * for one incident. The note template's own example has always shown
@@ -262,7 +263,11 @@ export const buildIncidentNoteTemplateVariables: BuildIncidentNoteTemplateVariab
       setText("incident.startedAt", formatDateTime(declaredAt));
     }
 
-    setList("incident.labels", source.labelNames);
+    // In natural order, as labels are listed everywhere (Utils/LabelOrder).
+    setList(
+      "incident.labels",
+      source.labelNames ? sortLabelNames(source.labelNames) : undefined,
+    );
     setList("incident.affectedStatusPages", source.affectedStatusPageNames);
 
     /*

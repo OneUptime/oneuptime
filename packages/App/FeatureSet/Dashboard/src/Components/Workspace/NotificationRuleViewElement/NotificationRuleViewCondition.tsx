@@ -17,6 +17,7 @@ import IncidentStateElement from "../../IncidentState/IncidentStateElement";
 import ScheduledMaintenanceStateElement from "../../ScheduledMaintenanceState/ScheduledMaintenanceStateElement";
 import MonitorStatusElement from "../../MonitorStatus/MonitorStatusElement";
 import LabelElement from "Common/UI/Components/Label/Label";
+import { sortLabels } from "Common/Utils/LabelOrder";
 import MonitorElement from "../../Monitor/Monitor";
 import {
   SecurityCasePriorityPill,
@@ -242,10 +243,11 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
       checkOn === NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels ||
       checkOn === NotificationRuleConditionCheckOn.SecurityCaseLabels
     ) {
-      const selectedLabels: Array<Label> = props.labels.filter(
-        (label: Label) => {
+      // In natural order, as labels are listed everywhere (Utils/LabelOrder).
+      const selectedLabels: Array<Label> = sortLabels<Label>(
+        props.labels.filter((label: Label) => {
           return selectedIds.includes(label.id!.toString());
-        },
+        }),
       );
 
       valueElement = (

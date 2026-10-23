@@ -33401,6 +33401,8 @@
   "Shown on the status pages this incident appears on.": "このインシデントが表示されるステータスページに表示されます。",
   "What happened": "何が起きたか",
   "Why it happened, once you know.": "原因が分かったら、なぜ起きたかを記入します。",
+  "{{count}} more labels": "ほか {{count}} 件のラベル",
+  "{{count}} more labels_one": "ほか {{count}} 件のラベル",
   "{{duration}} after impact began": "影響の開始から {{duration}}",
   "Shown on the status pages this episode appears on.": "このエピソードが表示されるステータスページに表示されます。"
 }

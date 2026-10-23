@@ -33401,6 +33401,8 @@
   "Shown on the status pages this incident appears on.": "Visas på statussidorna där den här incidenten syns.",
   "What happened": "Vad som hände",
   "Why it happened, once you know.": "Varför det hände, när du vet det.",
+  "{{count}} more labels": "{{count}} etiketter till",
+  "{{count}} more labels_one": "{{count}} etikett till",
   "{{duration}} after impact began": "{{duration}} efter att påverkan började",
   "Shown on the status pages this episode appears on.": "Visas på statussidorna där den här episoden syns."
 }
