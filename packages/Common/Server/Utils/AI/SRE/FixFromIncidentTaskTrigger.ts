@@ -354,7 +354,7 @@ export default class FixFromIncidentTaskTrigger {
 
     if (!input.hasConnectedRepository) {
       return skip(
-        "project has no GitHub-App-connected repository the auto remediation rules allow",
+        "project has no GitHub-App-connected repository the AI rules allow",
       );
     }
 

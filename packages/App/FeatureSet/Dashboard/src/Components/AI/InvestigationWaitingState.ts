@@ -149,9 +149,9 @@ export const INVESTIGATION_WAITING_COPY: Record<
       "OneUptime AI investigates shortly if this incident is still open",
     ),
     description: {
-      one: "An investigation rule makes OneUptime AI wait {{count}} minute, so incidents resolved by then are not investigated.",
+      one: "An AI rule makes OneUptime AI wait {{count}} minute, so incidents resolved by then are not investigated.",
       other:
-        "An investigation rule makes OneUptime AI wait {{count}} minutes, so incidents resolved by then are not investigated.",
+        "An AI rule makes OneUptime AI wait {{count}} minutes, so incidents resolved by then are not investigated.",
     },
     whoCanStart: translationKey(
       "Someone who can edit this incident can start the investigation now.",
@@ -168,9 +168,9 @@ export const INVESTIGATION_WAITING_COPY: Record<
       "OneUptime AI investigates shortly if this alert is still open",
     ),
     description: {
-      one: "An investigation rule makes OneUptime AI wait {{count}} minute, so alerts resolved by then are not investigated.",
+      one: "An AI rule makes OneUptime AI wait {{count}} minute, so alerts resolved by then are not investigated.",
       other:
-        "An investigation rule makes OneUptime AI wait {{count}} minutes, so alerts resolved by then are not investigated.",
+        "An AI rule makes OneUptime AI wait {{count}} minutes, so alerts resolved by then are not investigated.",
     },
     whoCanStart: translationKey(
       "Someone who can edit this alert can start the investigation now.",

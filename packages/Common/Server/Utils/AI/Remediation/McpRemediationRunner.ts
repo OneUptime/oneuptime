@@ -652,8 +652,8 @@ export default class McpRemediationRunner {
     lines.push("");
     lines.push(
       suggestion.autoRemediationRuleId
-        ? `Matched auto-remediation rule: ${suggestion.ruleNameSnapshot || "N/A"}`
-        : "No auto-remediation rule is set up: OneUptime AI fixes every new signal, and asks before every change.",
+        ? `Matched AI rule: ${suggestion.ruleNameSnapshot || "N/A"}`
+        : "No AI rule is set up: OneUptime AI fixes every new signal, and asks before every change.",
     );
 
     return ToolResultSerializer.redact(lines.join("\n")).text;

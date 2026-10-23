@@ -1897,7 +1897,7 @@ export const NOT_INVESTIGATED_REASONS: Record<
       "The project had reached its own daily AI limit.",
     ),
     no_investigation_rule_matched: translationKey(
-      "They matched none of the investigation rules.",
+      "They matched no AI rule that investigates.",
     ),
     severity_below_threshold: translationKey(
       "They were below the minimum severity to investigate.",
@@ -1907,7 +1907,7 @@ export const NOT_INVESTIGATED_REASONS: Record<
     ),
     created_resolved: translationKey("They were created already resolved."),
     resolved_before_investigation: translationKey(
-      "They were resolved during an investigation rule's wait.",
+      "They were resolved during an AI rule's wait.",
     ),
     daily_budget_exhausted: translationKey(
       "The daily AI token limit was reached.",
@@ -1936,7 +1936,7 @@ export const NOT_INVESTIGATED_REASONS: Record<
       "The project had reached its own daily AI limit.",
     ),
     no_investigation_rule_matched: translationKey(
-      "They matched none of the investigation rules.",
+      "They matched no AI rule that investigates.",
     ),
     severity_below_threshold: translationKey(
       "They were below the minimum severity to investigate.",
@@ -1946,7 +1946,7 @@ export const NOT_INVESTIGATED_REASONS: Record<
     ),
     created_resolved: translationKey("They were created already resolved."),
     resolved_before_investigation: translationKey(
-      "They were resolved during an investigation rule's wait.",
+      "They were resolved during an AI rule's wait.",
     ),
     daily_budget_exhausted: translationKey(
       "The daily AI token limit was reached.",

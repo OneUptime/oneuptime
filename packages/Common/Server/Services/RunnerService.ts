@@ -77,7 +77,7 @@ export const BUNDLED_GLOBAL_RUNNER_DELETE_MESSAGE: string =
   "This global Runner comes with this server, which sets it up again on its next start. To turn it off, set globalRunner.enabled to false in the Helm chart, or GLOBAL_RUNNER_REPLICAS=0 in Docker Compose's config.env.";
 
 export const GLOBAL_RUNNER_CAPABILITY_MESSAGE: string =
-  "A global Runner runs runbook steps only, never OneUptime AI's commands: they act in a project's own systems, so they run on a Runner of that project's own that an auto remediation rule picks.";
+  "A global Runner runs runbook steps only, never OneUptime AI's commands: they act in a project's own systems, so they run on a Runner of that project's own that an AI rule picks.";
 
 // The global Runner columns anyone signed in may read (RunnerAPI's listing).
 export const GLOBAL_RUNNER_PUBLIC_SELECT: Select<Model> = {

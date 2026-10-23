@@ -92,6 +92,8 @@ import {
   tableName: "AutoRemediationRule",
   singularName: "AI Rule",
   pluralName: "AI Rules",
+  // Terraform's oneuptime_auto_remediation_rule keeps working, deprecated.
+  formerSingularName: "Auto Remediation Rule",
   icon: IconProp.Sparkles,
   tableDescription:
     "Which new incidents or alerts OneUptime AI investigates and fixes, and how. A rule investigates what it matches (right away, or only if still open after a wait), and fixes it or not, asking first or not. A fix may run the project's runbooks (only the rule's, when it names some), Bash commands on a Runner the rule picks, the tools of the project's external MCP servers (only the rule's, when it names some), and open fix and telemetry pull requests in the project's code repositories (only the rule's, when it names some). With no rule, OneUptime AI investigates every one, and fixes every one while automatic fixing is on. These were auto remediation rules, and investigation rules are AI rules now too.",

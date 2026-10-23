@@ -1289,7 +1289,7 @@ class AutoRemediationRuleEngineServiceClass {
         lane: AutoRemediationDecisionLane.Project,
         reason: AutoRemediationDecisionReason.EvaluationFailed,
       });
-      logger.error(`Error applying auto-remediation rules: ${error}`, {
+      logger.error(`Error applying AI rules: ${error}`, {
         projectId: incident.projectId?.toString(),
         incidentId: incident.id?.toString(),
       } as LogAttributes);
@@ -1324,7 +1324,7 @@ class AutoRemediationRuleEngineServiceClass {
         lane: AutoRemediationDecisionLane.Project,
         reason: AutoRemediationDecisionReason.EvaluationFailed,
       });
-      logger.error(`Error applying auto-remediation rules: ${error}`, {
+      logger.error(`Error applying AI rules: ${error}`, {
         projectId: alert.projectId?.toString(),
         alertId: alert.id?.toString(),
       } as LogAttributes);
@@ -1672,7 +1672,7 @@ class AutoRemediationRuleEngineServiceClass {
     );
     const askFirst: RuleAskFirst | undefined = askingRule
       ? {
-          reason: `Auto Remediation Rule "${askingRule.name || ""}" asks before fixing`,
+          reason: `AI rule "${askingRule.name || ""}" asks before fixing`,
           ruleName: askingRule.name || "",
         }
       : undefined;
@@ -2138,7 +2138,7 @@ class AutoRemediationRuleEngineServiceClass {
           projectId: data.projectId,
           records: rule.runbooks,
           modelType: Runbook,
-          description: `runbooks of auto-remediation rule ${rule.id?.toString() || ""}`,
+          description: `runbooks of AI rule ${rule.id?.toString() || ""}`,
           logAttributes: {
             projectId: data.projectId.toString(),
           } as LogAttributes,
@@ -3336,7 +3336,7 @@ class AutoRemediationRuleEngineServiceClass {
       suggestion.autoRemediationRuleId = data.rule.id;
     }
     suggestion.ruleNameSnapshot = data.rule
-      ? data.rule.name || "Auto Remediation Rule"
+      ? data.rule.name || "AI rule"
       : DEFAULT_RUNBOOK_PICK_NAME;
     suggestion.status = AutoRemediationSuggestionStatus.Planning;
     suggestion.executionMode = data.executionMode;
@@ -3399,7 +3399,7 @@ class AutoRemediationRuleEngineServiceClass {
         projectId: data.projectId,
         linkage: data.linkage,
         markdown:
-          mdText`⚡ **Auto Remediation Rule "${data.rule.name}" matched.** AI is picking the most applicable runbook — a suggestion will appear here shortly.`.toString(),
+          mdText`⚡ **AI rule "${data.rule.name}" matched.** AI is picking the most applicable runbook — a suggestion will appear here shortly.`.toString(),
         pingWorkspace: false,
       });
     }
@@ -3608,7 +3608,7 @@ class AutoRemediationRuleEngineServiceClass {
       suggestion.autoRemediationRuleId = data.rule.id;
     }
     suggestion.ruleNameSnapshot = data.rule
-      ? data.rule.name || "Auto Remediation Rule"
+      ? data.rule.name || "AI rule"
       : DEFAULT_RUNBOOK_PICK_NAME;
     suggestion.status = AutoRemediationSuggestionStatus.Planning;
     suggestion.suggestionType = AutoRemediationSuggestionType.McpToolCalls;
@@ -3716,7 +3716,7 @@ class AutoRemediationRuleEngineServiceClass {
       new AutoRemediationSuggestion();
     suggestion.projectId = data.projectId;
     suggestion.autoRemediationRuleId = data.rule.id!;
-    suggestion.ruleNameSnapshot = data.rule.name || "Auto Remediation Rule";
+    suggestion.ruleNameSnapshot = data.rule.name || "AI rule";
     suggestion.status = AutoRemediationSuggestionStatus.Planning;
     suggestion.suggestionType = AutoRemediationSuggestionType.CommandPlan;
     // The LLM provider the rule picks.
@@ -3777,7 +3777,7 @@ class AutoRemediationRuleEngineServiceClass {
       projectId: data.projectId,
       linkage: data.linkage,
       markdown:
-        mdText`⚡ **Auto Remediation Rule "${data.rule.name}" matched.** AI is diagnosing the signal and composing remediation commands — a suggestion will appear here shortly.`.toString(),
+        mdText`⚡ **AI rule "${data.rule.name}" matched.** AI is diagnosing the signal and composing remediation commands — a suggestion will appear here shortly.`.toString(),
       pingWorkspace: false,
     });
 
@@ -3860,7 +3860,7 @@ class AutoRemediationRuleEngineServiceClass {
       new AutoRemediationSuggestion();
     suggestion.projectId = data.projectId;
     suggestion.autoRemediationRuleId = data.rule.id!;
-    suggestion.ruleNameSnapshot = data.rule.name || "Auto Remediation Rule";
+    suggestion.ruleNameSnapshot = data.rule.name || "AI rule";
     suggestion.runbookId = data.runbook.id!;
     suggestion.runbookNameSnapshot = data.runbook.name || "Runbook";
     suggestion.status = AutoRemediationSuggestionStatus.Suggested;
@@ -3872,7 +3872,7 @@ class AutoRemediationRuleEngineServiceClass {
       data.rule.autoResolveOnVerifiedRecovery === true;
     suggestion.rationaleMarkdown = data.downgradedByCircuitBreaker
       ? "Proposed by a FullAuto rule that was downgraded to suggest-only by the hourly circuit breaker (too many recent auto-executions). Approve to start the runbook."
-      : "Proposed by a matching auto-remediation rule. Approve to start the runbook.";
+      : "Proposed by a matching AI rule. Approve to start the runbook.";
     if (data.linkage.incidentId) {
       suggestion.incidentId = data.linkage.incidentId;
     }
@@ -3889,7 +3889,7 @@ class AutoRemediationRuleEngineServiceClass {
       projectId: data.projectId,
       linkage: data.linkage,
       markdown:
-        mdText`⚡ **Auto Remediation Rule "${data.rule.name}" proposed runbook "${data.runbook.name}".** Review and approve it with one click to start remediation.`.toString(),
+        mdText`⚡ **AI rule "${data.rule.name}" proposed runbook "${data.runbook.name}".** Review and approve it with one click to start remediation.`.toString(),
       pingWorkspace: true,
     });
   }
@@ -3931,7 +3931,7 @@ class AutoRemediationRuleEngineServiceClass {
         projectId: data.projectId,
         linkage: data.linkage,
         markdown:
-          mdText`⚡ **Auto Remediation Rule "${data.rule.name}" matched, but runbook "${data.runbook.name}" could not be started** (it may be disabled or have no steps).`.toString(),
+          mdText`⚡ **AI rule "${data.rule.name}" matched, but runbook "${data.runbook.name}" could not be started** (it may be disabled or have no steps).`.toString(),
         pingWorkspace: false,
       });
       return false;
@@ -3941,7 +3941,7 @@ class AutoRemediationRuleEngineServiceClass {
       new AutoRemediationSuggestion();
     suggestion.projectId = data.projectId;
     suggestion.autoRemediationRuleId = data.rule.id!;
-    suggestion.ruleNameSnapshot = data.rule.name || "Auto Remediation Rule";
+    suggestion.ruleNameSnapshot = data.rule.name || "AI rule";
     suggestion.runbookId = data.runbook.id!;
     suggestion.runbookNameSnapshot = data.runbook.name || "Runbook";
     suggestion.status = AutoRemediationSuggestionStatus.AutoExecuted;
@@ -3960,7 +3960,7 @@ class AutoRemediationRuleEngineServiceClass {
         DEFAULT_VERIFICATION_WINDOW_MINUTES,
     );
     suggestion.rationaleMarkdown =
-      "Automatically executed by a FullAuto auto-remediation rule.";
+      "Automatically executed by an AI rule that fixes without asking.";
     if (data.linkage.incidentId) {
       suggestion.incidentId = data.linkage.incidentId;
     }
@@ -3977,7 +3977,7 @@ class AutoRemediationRuleEngineServiceClass {
       projectId: data.projectId,
       linkage: data.linkage,
       markdown:
-        mdText`⚡ **Auto Remediation Rule "${data.rule.name}" automatically started runbook "${data.runbook.name}".** Follow its progress on the runbook execution page.`.toString(),
+        mdText`⚡ **AI rule "${data.rule.name}" automatically started runbook "${data.runbook.name}".** Follow its progress on the runbook execution page.`.toString(),
       pingWorkspace: true,
     });
 
@@ -4038,7 +4038,7 @@ class AutoRemediationRuleEngineServiceClass {
     return await IncidentAlertRuleMatcher.doesIncidentMatch(
       incident,
       rule,
-      "auto-remediation rule",
+      "AI rule",
     );
   }
 
@@ -4049,7 +4049,7 @@ class AutoRemediationRuleEngineServiceClass {
     return await IncidentAlertRuleMatcher.doesAlertMatch(
       alert,
       rule,
-      "auto-remediation rule",
+      "AI rule",
     );
   }
 }

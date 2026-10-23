@@ -2,9 +2,9 @@ import { readCodeRepositoryIds } from "Common/Types/CodeRepository/CodeRepositor
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
- * What a rule's "Code Repositories" field says - an auto remediation rule's
- * and an investigation rule's, both under More fields - React-free, so the
- * tables, the field and App's tests read these exact strings.
+ * What a rule's "Code Repositories" field says - an AI rule's, under More
+ * fields - React-free, so the table, the field and App's tests read these
+ * exact strings.
  *
  * The maintainer: "there should be a dropdown here to select the code repo
  * for remediation and also investigation rules, if no code repo is selected
@@ -15,7 +15,7 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 export const RULE_CODE_REPOSITORIES_FIELD_COPY: {
   title: string;
   placeholder: string;
-  investigationDescription: string;
+  // What OneUptime AI may do with them: read them, investigating and fixing.
   remediationDescription: string;
   manageHint: string;
   hiddenRepository: string;
@@ -23,9 +23,6 @@ export const RULE_CODE_REPOSITORIES_FIELD_COPY: {
 } = {
   title: translationKey("Code Repositories"),
   placeholder: translationKey("All connected repositories"),
-  investigationDescription: translationKey(
-    "OneUptime AI may read all of your connected repositories while it investigates. Pick some to let it read only those.",
-  ),
   remediationDescription: translationKey(
     "OneUptime AI may read all of your connected repositories, and open pull requests in them. Pick some to let it use only those.",
   ),

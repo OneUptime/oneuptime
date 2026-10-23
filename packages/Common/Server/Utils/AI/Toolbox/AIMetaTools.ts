@@ -395,7 +395,7 @@ export const GetAIInvestigationTool: ObservabilityTool = {
 
       return {
         dataForLlm: waiting
-          ? `No AI investigation has started for ${subject.label} yet: an investigation rule makes OneUptime AI wait ${waiting.waitMinutes} ${waiting.waitMinutes === 1 ? "minute" : "minutes"} after it was created, and investigate it at ${waiting.waitUntil.toISOString()} only if it is still open then. If the user wants the investigation now, offer to start it with start_investigation, which starts it at once.`
+          ? `No AI investigation has started for ${subject.label} yet: an AI rule makes OneUptime AI wait ${waiting.waitMinutes} ${waiting.waitMinutes === 1 ? "minute" : "minutes"} after it was created, and investigate it at ${waiting.waitUntil.toISOString()} only if it is still open then. If the user wants the investigation now, offer to start it with start_investigation, which starts it at once.`
           : `No AI investigation runs exist for ${subject.label}. The automatic gates may have skipped it (severity floor, dedupe window, the project's automatic-investigation setting being off, or the daily AI budget). You can offer to start one with start_investigation.`,
         rowCount: 0,
         citationLabel: `AI investigation for ${subject.label} (none found)`,

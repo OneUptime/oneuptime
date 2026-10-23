@@ -195,6 +195,8 @@ export default class DatabaseBaseModel extends BaseEntity {
   public pluralName!: string | null;
   // Set by @TableMetadata's displayNameColumn; see getDisplayNameColumn.
   public displayNameColumn!: string | null;
+  // Set by @TableMetadata's formerSingularName: what the model was called before.
+  public formerSingularName!: string | null;
 
   // realtime events.
   public enableRealtimeEventsOn!: EnableRealtimeEventsOn | null;

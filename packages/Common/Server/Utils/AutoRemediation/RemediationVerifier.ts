@@ -1279,7 +1279,7 @@ export default class RemediationVerifier {
           : `runbook "${suggestion.runbookNameSnapshot || "Runbook"}"`;
 
     const rootCause: string =
-      mdText`Auto-resolved by auto-remediation: ${remediationDescription} (rule "${suggestion.ruleNameSnapshot || "Auto Remediation Rule"}") completed and the monitor(s) recovered within the verification window.`.toString();
+      mdText`Auto-resolved by auto-remediation: ${remediationDescription} (rule "${suggestion.ruleNameSnapshot || "AI rule"}") completed and the monitor(s) recovered within the verification window.`.toString();
 
     try {
       if (suggestion.incidentId && suggestion.projectId) {

@@ -310,7 +310,7 @@ export default class RemediationPlanRunner {
           suggestion,
           runbook: null,
           rationaleMarkdown:
-            "The auto-remediation rule behind this suggestion was deleted before planning ran — no runbook was proposed.",
+            "The AI rule behind this suggestion was deleted before planning ran — no runbook was proposed.",
           isQuietWhenNone: false,
         });
         await AIRunService.attemptStatusTransition({
@@ -540,14 +540,14 @@ export default class RemediationPlanRunner {
     proposalNote?: string | null | undefined;
   }): string {
     const ruleName: string =
-      data.suggestion.ruleNameSnapshot || "Auto Remediation Rule";
+      data.suggestion.ruleNameSnapshot || "AI rule";
     const runbookName: string = data.runbook.name || "Runbook";
 
     if (data.suggestion.autoRemediationRuleId) {
       return (
         data.proposalNote
-          ? mdText`⚡ **Auto Remediation Rule "${ruleName}": AI proposed runbook "${runbookName}".** ${data.proposalNote} Approve it with one click to start remediation.`
-          : mdText`⚡ **Auto Remediation Rule "${ruleName}": AI proposed runbook "${runbookName}".** Review the reasoning and approve it with one click to start remediation.`
+          ? mdText`⚡ **AI rule "${ruleName}": AI proposed runbook "${runbookName}".** ${data.proposalNote} Approve it with one click to start remediation.`
+          : mdText`⚡ **AI rule "${ruleName}": AI proposed runbook "${runbookName}".** Review the reasoning and approve it with one click to start remediation.`
       ).toString();
     }
 
@@ -563,7 +563,7 @@ export default class RemediationPlanRunner {
     runbook: Runbook;
   }): string {
     return data.suggestion.autoRemediationRuleId
-      ? mdText`⚡ **Auto Remediation Rule "${data.suggestion.ruleNameSnapshot || "Auto Remediation Rule"}": AI started runbook "${data.runbook.name}".** The rule fixes without asking and allows this runbook. Follow its progress on the runbook execution page.`.toString()
+      ? mdText`⚡ **AI rule "${data.suggestion.ruleNameSnapshot || "AI rule"}": AI started runbook "${data.runbook.name}".** The rule fixes without asking and allows this runbook. Follow its progress on the runbook execution page.`.toString()
       : mdText`⚡ **OneUptime AI started runbook "${data.runbook.name}".** Follow its progress on the runbook execution page.`.toString();
   }
 
@@ -575,9 +575,9 @@ export default class RemediationPlanRunner {
     }
 
     const ruleName: string =
-      suggestion.ruleNameSnapshot || "Auto Remediation Rule";
+      suggestion.ruleNameSnapshot || "AI rule";
 
-    return mdText`⚡ **Auto Remediation Rule "${ruleName}": AI evaluated the candidate runbooks and none applies.** No remediation was proposed.`.toString();
+    return mdText`⚡ **AI rule "${ruleName}": AI evaluated the candidate runbooks and none applies.** No remediation was proposed.`.toString();
   }
 
   /*
@@ -992,8 +992,8 @@ export default class RemediationPlanRunner {
     lines.push("");
     lines.push(
       data.suggestion.autoRemediationRuleId
-        ? `Matched auto-remediation rule: ${data.suggestion.ruleNameSnapshot || "N/A"}`
-        : "No auto-remediation rule is set up: OneUptime AI fixes every new signal, with any of the project's runbooks.",
+        ? `Matched AI rule: ${data.suggestion.ruleNameSnapshot || "N/A"}`
+        : "No AI rule is set up: OneUptime AI fixes every new signal, with any of the project's runbooks.",
     );
 
     lines.push("");
@@ -1252,7 +1252,7 @@ export default class RemediationPlanRunner {
       return suggestion.ruleNameSnapshot || "AI remediation";
     }
 
-    return `Auto Remediation Rule "${suggestion.ruleNameSnapshot || "Auto Remediation Rule"}"`;
+    return `AI rule "${suggestion.ruleNameSnapshot || "AI rule"}"`;
   }
 
   // Why a Planning suggestion counts as stranded — or null if it does not.

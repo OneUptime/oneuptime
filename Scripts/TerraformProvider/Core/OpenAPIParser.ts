@@ -238,8 +238,11 @@ export class OpenAPIParser {
   }
 
   /*
-   * Resource names that changed when type names started keeping mixed-case
-   * words whole: new name -> the name it had before (iot_fleet ->
+   * Resource names that changed: new name -> the name it had before. A
+   * model renamed in the product names its former name on its tag
+   * (x-former-names: "Auto Remediation Rule" for ai_rule), spelled the way
+   * the provider always spelled it; otherwise a name changed when type
+   * names started keeping mixed-case words whole (iot_fleet ->
    * io_t_fleet). The old name stays registered as a deprecated alias.
    */
   private getLegacyNames(): Map<string, string> {
@@ -249,7 +252,10 @@ export class OpenAPIParser {
         continue;
       }
       const name: string = StringUtils.toSnakeCase(tag.name);
-      const legacyName: string = StringUtils.toLegacySnakeCase(tag.name);
+      const formerName: string | undefined = (tag["x-former-names"] || [])[0];
+      const legacyName: string = formerName
+        ? StringUtils.toLegacySnakeCase(formerName)
+        : StringUtils.toLegacySnakeCase(tag.name);
       if (legacyName !== name) {
         map.set(name, legacyName);
       }

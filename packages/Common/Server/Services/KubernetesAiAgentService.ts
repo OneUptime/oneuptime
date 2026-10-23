@@ -1780,7 +1780,7 @@ export class Service extends DatabaseService<Model> {
 
       if (rulesNamingIt > 0) {
         logger.info(
-          `KubernetesAiAgent: kept the previous in-cluster Runner ${legacyRunner.id.toString()} of cluster ${cluster.id.toString()}: ${rulesNamingIt} auto-remediation rule(s) name it.`,
+          `KubernetesAiAgent: kept the previous in-cluster Runner ${legacyRunner.id.toString()} of cluster ${cluster.id.toString()}: ${rulesNamingIt} AI rule(s) name it.`,
         );
         return "legacy_runner_in_rule";
       }

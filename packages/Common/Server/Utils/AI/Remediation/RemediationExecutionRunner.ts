@@ -3020,7 +3020,7 @@ export default class RemediationExecutionRunner {
     } else {
       lines.push("");
       lines.push(
-        `Matched auto-remediation rule: ${data.suggestion.ruleNameSnapshot || "N/A"}`,
+        `Matched AI rule: ${data.suggestion.ruleNameSnapshot || "N/A"}`,
       );
 
       if (data.mode === "FullAuto") {
@@ -3505,7 +3505,7 @@ export default class RemediationExecutionRunner {
     if (isResourceRemediationRound(suggestion)) {
       return suggestion.ruleNameSnapshot || "AI remediation";
     }
-    return `Auto Remediation Rule "${suggestion.ruleNameSnapshot || "Auto Remediation Rule"}"`;
+    return `AI rule "${suggestion.ruleNameSnapshot || "AI rule"}"`;
   }
 
   private static async completeRunQuietly(aiRunId: ObjectID): Promise<void> {
