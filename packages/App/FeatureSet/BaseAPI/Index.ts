@@ -586,6 +586,7 @@ import DetectionRuleAPI from "Common/Server/API/DetectionRuleAPI";
 import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectionAPI";
 import LlmObservabilityConnectionAPI from "Common/Server/API/LlmObservabilityConnectionAPI";
 import CloudConnectionAPI from "Common/Server/API/CloudConnectionAPI";
+import NetworkControllerConnectionAPI from "Common/Server/API/NetworkControllerConnectionAPI";
 import ExternalMcpServerAPI from "Common/Server/API/ExternalMcpServerAPI";
 import SecurityEventDestinationAPI from "Common/Server/API/SecurityEventDestinationAPI";
 import SecurityLogSourceService, {
@@ -3310,6 +3311,12 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new CloudConnectionAPI().getRouter(),
+    );
+
+    // Network controller connections: Meraki organizations read on a schedule.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new NetworkControllerConnectionAPI().getRouter(),
     );
 
     // External MCP servers OneUptime AI may use, and their connection test.

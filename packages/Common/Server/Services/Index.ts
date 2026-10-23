@@ -84,6 +84,7 @@ import NetworkDeviceLinkService from "./NetworkDeviceLinkService";
 import NetworkDeviceLinkRuleService from "./NetworkDeviceLinkRuleService";
 import NetworkTopologySuppressionService from "./NetworkTopologySuppressionService";
 import NetworkSiteAssignmentRuleService from "./NetworkSiteAssignmentRuleService";
+import NetworkControllerConnectionService from "./NetworkControllerConnectionService";
 import PodmanHostService from "./PodmanHostService";
 import PodmanHostOwnerRuleService from "./PodmanHostOwnerRuleService";
 import PodmanHostOwnerUserService from "./PodmanHostOwnerUserService";
@@ -465,6 +466,7 @@ import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideS
 
 import MonitorLogService from "./MonitorLogService";
 import NetworkFlowService from "./NetworkFlowService";
+import NetworkTrafficUsageService from "./NetworkTrafficUsageService";
 
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import ProjectSCIMLogService from "./ProjectSCIMLogService";
@@ -620,6 +622,7 @@ const services: Array<BaseService> = [
   NetworkDeviceLinkRuleService,
   NetworkTopologySuppressionService,
   NetworkSiteAssignmentRuleService,
+  NetworkControllerConnectionService,
   PodmanHostService,
   PodmanHostOwnerRuleService,
   PodmanHostOwnerUserService,
@@ -1046,6 +1049,7 @@ export const AnalyticsServices: Array<
   KubernetesCostAllocationService,
   MonitorLogService,
   NetworkFlowService,
+  NetworkTrafficUsageService,
   ProfileService,
   ProfileSampleService,
   /*
