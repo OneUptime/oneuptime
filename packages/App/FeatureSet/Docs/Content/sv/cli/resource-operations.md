@@ -65,6 +65,8 @@ oneuptime incident list -o json
 
 En lista ber OneUptime om varje fält i varje post som nyckeln får läsa. En tabell visar sex av dem; JSON visar alla (se [Utdataformat](/docs/cli/output-formats)). För att bläddra igenom alla poster ökar du `--skip` med `--limit` tills en sida kommer tillbaka tom; `count` säger hur många det finns.
 
+Etiketter listas efter namn i stället för de nyaste först: etiketter vars namn börjar med en siffra kommer först, i ordning efter talet (`2. Team` före `10. Owner`), sedan de övriga i bokstavsordning. Vill du ha dem i en annan ordning anger du `--sort`.
+
 ### Filtrera en lista
 
 `--query` tar samma filter som API:et: ett fält med ett värde matchar det värdet, och ett objekt med en `_type` jämför.

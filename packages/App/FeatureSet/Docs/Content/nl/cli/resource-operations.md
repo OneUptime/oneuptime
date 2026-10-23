@@ -65,6 +65,8 @@ oneuptime incident list -o json
 
 Een lijst vraagt OneUptime om elk veld van elk record dat de sleutel mag lezen. Een tabel toont er zes van; JSON toont ze allemaal (zie [Uitvoerformaten](/docs/cli/output-formats)). Om door alle records te bladeren, verhoog je `--skip` met `--limit` tot een pagina leeg terugkomt; `count` zegt hoeveel het er zijn.
 
+Labels worden op naam getoond in plaats van de nieuwste eerst: labels waarvan de naam met een getal begint komen eerst, in de volgorde van dat getal (`2. Team` vóór `10. Owner`), daarna de andere alfabetisch. Wil je ze in een andere volgorde, geef dan `--sort` op.
+
 ### Een lijst filteren
 
 `--query` neemt hetzelfde filter als de API: een veld met een waarde past bij die waarde, en een object met een `_type` vergelijkt.
