@@ -84,17 +84,21 @@ export const BULK_SWITCH_CONSEQUENCES: Readonly<
       ),
     },
   },
+  /*
+   * A pipeline transforms what it matches as it is ingested (the docs'
+   * words); off, nothing it would change is changed.
+   */
   LogPipeline: {
     isEnabled: {
       off: translationKey(
-        "A disabled pipeline leaves new logs as they arrive, until it is enabled again.",
+        "A disabled pipeline no longer transforms new logs: they are stored as they arrive.",
       ),
     },
   },
   TracePipeline: {
     isEnabled: {
       off: translationKey(
-        "A disabled pipeline leaves new spans as they arrive, until it is enabled again.",
+        "A disabled pipeline no longer transforms new spans: they are stored as they arrive.",
       ),
     },
   },

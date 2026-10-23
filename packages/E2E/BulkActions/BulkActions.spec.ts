@@ -294,7 +294,7 @@ test.describe("the Workflows list", () => {
     ]);
     await choose(page, "Disable");
 
-    // The one already off is not counted, and not named.
+    // The one already off is not counted, and not named...
     await expect(dialog(page)).toContainText("Disable 2 Workflows");
     await expect(page.getByTestId("confirm-modal-description")).toHaveText(
       "Are you sure you want to disable 2 workflows?",
@@ -303,6 +303,10 @@ test.describe("the Workflows list", () => {
       "Page the on-call team",
       "Post incidents to Slack",
     ]);
+    // ...but said, so three selected and two asked about add up.
+    await expect(dialog(page).getByTestId("bulk-switch-already")).toHaveText(
+      "1 selected workflow is already disabled.",
+    );
     await expect(consequence(page)).toHaveText(WORKFLOW_DISABLED);
     await expect(
       dialog(page).getByTestId("modal-footer-submit-button"),
@@ -374,6 +378,10 @@ test.describe("the Workflows list", () => {
     await expect(dialog(page)).toContainText("Enable 2 Workflows");
     await expect(page.getByTestId("confirm-modal-description")).toHaveText(
       "Are you sure you want to enable 2 workflows?",
+    );
+    // Every selected workflow changes: nothing to say about the others.
+    await expect(dialog(page).getByTestId("bulk-switch-already")).toHaveCount(
+      0,
     );
     await expect(consequence(page)).toHaveText(WORKFLOW_ENABLED);
     await confirm(page);
@@ -463,6 +471,9 @@ test.describe("the Monitors list", () => {
 
     await expect(dialog(page)).toContainText("Disable 1 Monitor");
     await expect(rowNames(page)).toHaveText(["Checkout API"]);
+    await expect(dialog(page).getByTestId("bulk-switch-already")).toHaveText(
+      "1 selected monitor is already disabled.",
+    );
     await expect(consequence(page)).toHaveText(MONITOR_DISABLED);
     await confirm(page);
 
@@ -553,6 +564,9 @@ test.describe("a status page's Email Subscribers", () => {
       "ops@example.com",
       "site03-all@example.com",
     ]);
+    await expect(dialog(page).getByTestId("bulk-switch-already")).toHaveText(
+      "1 selected subscriber is already unsubscribed.",
+    );
     await expect(consequence(page)).toHaveText(SUBSCRIBERS_UNSUBSCRIBED);
     await screenshot(page, "subscribers-unsubscribe-dialog");
     await confirm(page);
@@ -658,24 +672,31 @@ test.describe("in dark mode", () => {
       ]);
       await choose(page, "Disable");
 
-      const colours: { panel: string; text: string } = await page.evaluate(
-        (): { panel: string; text: string } => {
-          return {
-            panel: getComputedStyle(
-              document.querySelector('[data-testid="modal"]') as Element,
-            ).backgroundColor,
-            text: getComputedStyle(
-              document.querySelector(
-                '[data-testid="bulk-switch-consequence"]',
-              ) as Element,
-            ).color,
-          };
-        },
-      );
+      const colours: { panel: string; text: string; note: string } =
+        await page.evaluate(
+          (): { panel: string; text: string; note: string } => {
+            return {
+              panel: getComputedStyle(
+                document.querySelector('[data-testid="modal"]') as Element,
+              ).backgroundColor,
+              text: getComputedStyle(
+                document.querySelector(
+                  '[data-testid="bulk-switch-consequence"]',
+                ) as Element,
+              ).color,
+              note: getComputedStyle(
+                document.querySelector(
+                  '[data-testid="bulk-switch-already"]',
+                ) as Element,
+              ).color,
+            };
+          },
+        );
 
-      // A dark panel, and light words on it.
+      // A dark panel, and light words on it - the quieter note too.
       expect(luminance(colours.panel)).toBeLessThan(0.1);
       expect(luminance(colours.text)).toBeGreaterThan(0.5);
+      expect(luminance(colours.note)).toBeGreaterThan(0.3);
       await screenshot(page, `workflows-disable-dialog-dark-${viewport.width}`);
 
       await confirm(page);
@@ -711,6 +732,10 @@ test.describe("in German", () => {
       .click();
 
     await expect(consequence(page)).toHaveText(german[WORKFLOW_DISABLED]!);
+    // The one already off, in German, the noun keeping its capital.
+    await expect(dialog(page).getByTestId("bulk-switch-already")).toHaveText(
+      "Von Ihrer Auswahl ist 1 Arbeitsablauf bereits deaktiviert.",
+    );
     await expect(dialog(page)).not.toContainText(WORKFLOW_DISABLED);
     await expect(dialog(page)).not.toContainText("Are you sure");
     await screenshot(page, "workflows-disable-dialog-german");

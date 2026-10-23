@@ -1066,5 +1066,5 @@
   "{{count}} {{itemsName}} updated_one": "已更新 {{count}} 個{{itemName}}",
   "{{count}} {{itemsName}} not updated": "{{count}} 個{{itemsName}}未更新",
   "{{count}} {{itemsName}} not updated_one": "{{count}} 個{{itemName}}未更新",
-  "Deleting a license also deletes the instances listed under it. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.": "刪除授權也會刪除其下列出的執行個體。使用其金鑰的安裝會保留已持有的授權直到到期，但無法再重新整理或重新啟用它，且其席次報告會被拒絕。"
+  "Deleting a license also deletes its instances. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.": "刪除授權也會刪除其執行個體。使用其金鑰的安裝會保留已持有的授權直到到期，但無法再重新整理或重新啟用它，且其席次報告會被拒絕。"
 }

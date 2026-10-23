@@ -1066,5 +1066,5 @@
   "{{count}} {{itemsName}} updated_one": "{{count}} مورد به‌روز شد ({{itemName}})",
   "{{count}} {{itemsName}} not updated": "{{count}} مورد به‌روز نشد ({{itemsName}})",
   "{{count}} {{itemsName}} not updated_one": "{{count}} مورد به‌روز نشد ({{itemName}})",
-  "Deleting a license also deletes the instances listed under it. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.": "حذف یک مجوز، نمونه‌هایی را که زیر آن فهرست شده‌اند نیز حذف می‌کند. نصب‌هایی که از کلید آن استفاده می‌کنند مجوزی را که دارند تا زمان انقضا نگه می‌دارند، اما دیگر نمی‌توانند آن را تازه‌سازی یا دوباره فعال کنند و گزارش‌های نشست آن‌ها رد می‌شود."
+  "Deleting a license also deletes its instances. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.": "حذف یک مجوز، نمونه‌های آن را نیز حذف می‌کند. نصب‌هایی که از کلید آن استفاده می‌کنند مجوزی را که دارند تا زمان انقضا نگه می‌دارند، اما دیگر نمی‌توانند آن را تازه‌سازی یا دوباره فعال کنند و گزارش‌های نشست آن‌ها رد می‌شود."
 }

@@ -1066,5 +1066,5 @@
   "{{count}} {{itemsName}} updated_one": "{{itemName}}: {{count}} 件更新",
   "{{count}} {{itemsName}} not updated": "{{itemsName}}: {{count}} 件更新できず",
   "{{count}} {{itemsName}} not updated_one": "{{itemName}}: {{count}} 件更新できず",
-  "Deleting a license also deletes the instances listed under it. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.": "ライセンスを削除すると、その下に表示されているインスタンスも削除されます。そのキーを使うインストールは、すでに持っているライセンスを期限まで使えますが、更新や再有効化はできなくなり、シート数の報告は拒否されます。"
+  "Deleting a license also deletes its instances. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.": "ライセンスを削除すると、そのインスタンスも削除されます。そのキーを使うインストールは、すでに持っているライセンスを期限まで使えますが、更新や再有効化はできなくなり、シート数の報告は拒否されます。"
 }

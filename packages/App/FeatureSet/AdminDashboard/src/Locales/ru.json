@@ -1066,5 +1066,5 @@
   "{{count}} {{itemsName}} updated_one": "Обновлено: {{count}} ({{itemName}})",
   "{{count}} {{itemsName}} not updated": "Не обновлено: {{count}} ({{itemsName}})",
   "{{count}} {{itemsName}} not updated_one": "Не обновлено: {{count}} ({{itemName}})",
-  "Deleting a license also deletes the instances listed under it. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.": "При удалении лицензии удаляются и экземпляры, перечисленные под ней. Установки, использующие её ключ, сохраняют уже имеющуюся лицензию до окончания её срока, но больше не могут обновить или повторно активировать её, а их отчёты о местах отклоняются."
+  "Deleting a license also deletes its instances. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.": "При удалении лицензии удаляются и её экземпляры. Установки, использующие её ключ, сохраняют уже имеющуюся лицензию до окончания её срока, но больше не могут обновить или повторно активировать её, а их отчёты о местах отклоняются."
 }

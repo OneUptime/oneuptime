@@ -1066,5 +1066,5 @@
   "{{count}} {{itemsName}} updated_one": "{{itemName}} actualizado: {{count}}",
   "{{count}} {{itemsName}} not updated": "{{itemsName}} sin actualizar: {{count}}",
   "{{count}} {{itemsName}} not updated_one": "{{itemName}} sin actualizar: {{count}}",
-  "Deleting a license also deletes the instances listed under it. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.": "Al eliminar una licencia también se eliminan las instancias que aparecen bajo ella. Las instalaciones que usan su clave conservan la licencia que ya tienen hasta que caduca, pero ya no pueden actualizarla ni reactivarla, y sus informes de asientos se rechazan."
+  "Deleting a license also deletes its instances. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.": "Al eliminar una licencia también se eliminan sus instancias. Las instalaciones que usan su clave conservan la licencia que ya tienen hasta que caduca, pero ya no pueden actualizarla ni reactivarla, y sus informes de puestos se rechazan."
 }

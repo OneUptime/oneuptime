@@ -1066,5 +1066,5 @@
   "{{count}} {{itemsName}} updated_one": "{{itemName}} mis à jour : {{count}}",
   "{{count}} {{itemsName}} not updated": "{{itemsName}} non mis à jour : {{count}}",
   "{{count}} {{itemsName}} not updated_one": "{{itemName}} non mis à jour : {{count}}",
-  "Deleting a license also deletes the instances listed under it. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.": "La suppression d'une licence supprime aussi les instances listées sous elle. Les installations qui utilisent sa clé conservent la licence qu'elles détiennent déjà jusqu'à son expiration, mais ne peuvent plus l'actualiser ni la réactiver, et leurs rapports de sièges sont refusés."
+  "Deleting a license also deletes its instances. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.": "La suppression d'une licence supprime aussi ses instances. Les installations qui utilisent sa clé conservent la licence qu'elles détiennent déjà jusqu'à son expiration, mais ne peuvent plus l'actualiser ni la réactiver, et leurs rapports de sièges sont refusés."
 }

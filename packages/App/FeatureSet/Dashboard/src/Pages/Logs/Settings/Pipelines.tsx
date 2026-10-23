@@ -137,8 +137,8 @@ const LogPipelines: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   /*
-   * Enable and Disable in Bulk Actions: a disabled pipeline leaves new logs as they arrive.
-   * The list selects isEnabled for its Enabled column.
+   * Enable and Disable in Bulk Actions: a disabled pipeline no longer
+   * transforms new logs. The list selects isEnabled for its Enabled column.
    */
   const switchBulkActions: Array<BulkActionButtonSchema<LogPipeline>> =
     useBulkSwitchActions<LogPipeline>({

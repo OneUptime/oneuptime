@@ -1066,5 +1066,5 @@
   "{{count}} {{itemsName}} updated_one": "{{count}} {{itemName}} opdateret",
   "{{count}} {{itemsName}} not updated": "{{count}} {{itemsName}} ikke opdateret",
   "{{count}} {{itemsName}} not updated_one": "{{count}} {{itemName}} ikke opdateret",
-  "Deleting a license also deletes the instances listed under it. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.": "Når en licens slettes, slettes også de instanser, der står under den. Installationer, der bruger dens nøgle, beholder den licens, de allerede har, indtil den udløber, men kan ikke længere opdatere eller genaktivere den, og deres rapporter om pladser afvises."
+  "Deleting a license also deletes its instances. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.": "Når en licens slettes, slettes også dens instanser. Installationer, der bruger dens nøgle, beholder den licens, de allerede har, indtil den udløber, men kan ikke længere opdatere eller genaktivere den, og deres rapporter om pladser afvises."
 }

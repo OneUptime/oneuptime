@@ -13,10 +13,10 @@ import { DELETE_CONSEQUENCES } from "Common/UI/Components/DeleteConfirmation/Del
  * (DeleteConsequences, EnterpriseLicense) - held to the code that makes each
  * part of the sentence true:
  *
- *   "Deleting a license also deletes the instances listed under it.
- *    Installations that use its key keep the license they already hold until
- *    it expires, but can no longer refresh or reactivate it, and their seat
- *    reports are refused."
+ *   "Deleting a license also deletes its instances. Installations that
+ *    use its key keep the license they already hold until it expires, but
+ *    can no longer refresh or reactivate it, and their seat reports are
+ *    refused."
  *
  *   - the instances go with it: EnterpriseLicenseInstance's relation to the
  *     license is ON DELETE CASCADE;
@@ -44,7 +44,7 @@ const SENTENCE: string = DELETE_CONSEQUENCES["EnterpriseLicense"]!.sentence!;
 describe("what deleting a license is said to do", () => {
   it("is the sentence every Delete of a license says", () => {
     expect(SENTENCE).toBe(
-      "Deleting a license also deletes the instances listed under it. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.",
+      "Deleting a license also deletes its instances. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.",
     );
     expect(DELETE_CONSEQUENCES["EnterpriseLicense"]!.deletedWith).toEqual([
       "EnterpriseLicenseInstance",

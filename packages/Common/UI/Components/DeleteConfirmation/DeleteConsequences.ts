@@ -462,12 +462,13 @@ export const DELETE_CONSEQUENCES: Readonly<Record<string, DeleteConsequence>> =
      * What stops is everything the key is asked for: the license server
      * answers "License key is invalid" to Refresh license, to activation and
      * to the daily seat report (ee/Server/LicenseServer/EnterpriseLicenseAPI),
-     * and the instances it listed go with it. ee/Tests/Server/LicenseServer/
-     * DeletedLicenseClaims holds those claims to the code.
+     * and its instances (the license page's Instances card) go with it.
+     * ee/Tests/Server/LicenseServer/DeletedLicenseClaims holds those claims
+     * to the code.
      */
     EnterpriseLicense: {
       sentence: translationKey(
-        "Deleting a license also deletes the instances listed under it. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.",
+        "Deleting a license also deletes its instances. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.",
       ),
       deletedWith: ["EnterpriseLicenseInstance"],
     },

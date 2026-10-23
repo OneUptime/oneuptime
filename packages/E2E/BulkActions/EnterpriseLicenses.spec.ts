@@ -49,7 +49,7 @@ const NAMES: Record<string, string> = {
 
 // DeleteConsequences' sentence for a license.
 const LICENSE_CONSEQUENCE: string =
-  "Deleting a license also deletes the instances listed under it. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.";
+  "Deleting a license also deletes its instances. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.";
 
 const NEW_EXPIRY_DESCRIPTION: string =
   "A date after today. Installations get it with their daily report, or at once when their admin presses Refresh license.";
@@ -256,6 +256,42 @@ test.describe("Bulk Actions", () => {
       "Delete",
     ]);
     await screenshot(page, "bulk-menu");
+  });
+
+  /*
+   * The file reads like the list: every key masked as its row shows it -
+   * never a key an installation activates with - and the type, status and
+   * seats in the list's words.
+   */
+  test("Export CSV writes the licenses as the list shows them, keys masked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openList(page);
+    await select(page, [NAMES["netlockA"]!, NAMES["govtech"]!]);
+    const menu: Locator = await openBulkMenu(page);
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      menu.getByRole("menuitem", { name: "Export CSV", exact: true }).click(),
+    ]);
+    const csv: string = fs.readFileSync(
+      (await download.path()) as string,
+      "utf-8",
+    );
+    const lines: Array<string> = csv
+      .replace(String.fromCharCode(0xfeff), "")
+      .split("\r\n");
+
+    expect(lines[0]).toBe(
+      "Company,Email,License Key,Type,Status,Seats,Expires At,Last Report",
+    );
+    expect(lines.slice(1)).toEqual([
+      `Netlock.hu,,da74••••7c7a,Evaluation,Expired,0 / 50 users,"Sep 30, 2026",`,
+      `GovTech Singapore,,832c••••8915,Production,Active,13 / 150 users,"Oct 09, 2099",`,
+    ]);
+    // The fixture's keys are the masked ends around 56 zeros.
+    expect(csv).not.toContain("0".repeat(56));
   });
 
   test("a bulk Delete names each license, says what deleting does, and deletes exactly those", async ({

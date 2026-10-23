@@ -124,7 +124,12 @@ jest.mock("Common/UI/Components/ModelDetail/CardModelDetail", () => {
 });
 
 import EnterpriseLicenses from "../../../AdminDashboard/EnterpriseLicenses/Pages/Index";
+import {
+  getLicenseStatusText,
+  getSeatUsageText,
+} from "../../../AdminDashboard/EnterpriseLicenses/Components/LicenseUtil";
 import AdminModelAPI from "@oneuptime/admin-dashboard/Utils/ModelAPI";
+import TableColumnsToCsv from "Common/UI/Utils/TableColumnsToCsv";
 import EnterpriseLicense from "Common/Models/DatabaseModels/EnterpriseLicense";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import OneUptimeDate from "Common/Types/Date";
@@ -424,7 +429,7 @@ describe("a row's ⋯ menu", () => {
     expect(
       screen.getByTestId("delete-confirmation-consequence"),
     ).toHaveTextContent(
-      "Deleting a license also deletes the instances listed under it. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.",
+      "Deleting a license also deletes its instances. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.",
     );
     expect(getDeleteConsequence("EnterpriseLicense")).toContain(
       "their seat reports are refused",
@@ -712,5 +717,189 @@ describe("Change Expiry Date", () => {
       expect(screen.queryByRole("dialog")).toBeNull();
     });
     expect(updateRequests).toEqual([]);
+  });
+});
+
+/*
+ * Export CSV, which Bulk Actions offers with the rest: the file reads like
+ * the list. A license key is shown masked everywhere a list or an email
+ * shows one, so a file of the selected licenses - handed around, attached
+ * to a ticket - never carries a key an installation activates with; and the
+ * Type, Status and Seats columns say what their cells say, not the raw
+ * columns under them ("true", a timestamp, a bare count).
+ */
+describe("Export CSV", () => {
+  // One CSV line's cells, quotes and doubled quotes undone (RFC 4180).
+  const cellsOf: (line: string) => Array<string> = (
+    line: string,
+  ): Array<string> => {
+    const cells: Array<string> = [];
+    let cell: string = "";
+    let isQuoted: boolean = false;
+
+    for (let index: number = 0; index < line.length; index++) {
+      const character: string = line[index]!;
+
+      if (isQuoted) {
+        if (character === '"' && line[index + 1] === '"') {
+          cell += '"';
+          index++;
+        } else if (character === '"') {
+          isQuoted = false;
+        } else {
+          cell += character;
+        }
+      } else if (character === '"') {
+        isQuoted = true;
+      } else if (character === ",") {
+        cells.push(cell);
+        cell = "";
+      } else {
+        cell += character;
+      }
+    }
+
+    cells.push(cell);
+
+    return cells;
+  };
+
+  const exportSelection: (
+    names: Array<string>,
+  ) => Promise<Array<Array<string>>> = async (
+    names: Array<string>,
+  ): Promise<Array<Array<string>>> => {
+    const downloads: Array<{ csv: string; filename: string }> = [];
+
+    jest
+      .spyOn(TableColumnsToCsv, "downloadCsv")
+      .mockImplementation((data: { csv: string; filename: string }): void => {
+        downloads.push(data);
+      });
+
+    await renderPage();
+
+    for (const name of names) {
+      select(name);
+    }
+
+    openBulkActions();
+    fireEvent.click(menuItem("Export CSV"));
+
+    await waitFor(() => {
+      expect(downloads).toHaveLength(1);
+    });
+
+    const csv: string = downloads[0]!.csv;
+
+    // Never a whole key, whichever rows were exported.
+    for (const row of [NETLOCK_A, NETLOCK_B, GOVTECH]) {
+      expect(csv).not.toContain(row.licenseKey);
+    }
+
+    return csv.split("\r\n").map(cellsOf);
+  };
+
+  // A license's cell under a column, found by its company.
+  const cellOf: (
+    lines: Array<Array<string>>,
+    company: string,
+    title: string,
+  ) => string = (
+    lines: Array<Array<string>>,
+    company: string,
+    title: string,
+  ): string => {
+    const header: Array<string> = lines[0]!;
+    const line: Array<string> | undefined = lines
+      .slice(1)
+      .find((candidate: Array<string>): boolean => {
+        return candidate[header.indexOf("Company")] === company;
+      });
+
+    expect({ company, title, isThere: Boolean(line) }).toEqual({
+      company,
+      title,
+      isThere: true,
+    });
+    expect(header).toContain(title);
+
+    return line![header.indexOf(title)] || "";
+  };
+
+  test("writes each license's key masked, as the row shows it", async () => {
+    const lines: Array<Array<string>> = await exportSelection([
+      NAME_A,
+      NAME_GOVTECH,
+    ]);
+
+    expect(lines).toHaveLength(3);
+    expect(cellOf(lines, "Netlock.hu", "License Key")).toBe("da74••••7c7a");
+    expect(cellOf(lines, "GovTech Singapore", "License Key")).toBe(
+      "832c••••8915",
+    );
+  });
+
+  test("writes the type, the status and the seats in the list's words", async () => {
+    rows = [
+      NETLOCK_A,
+      {
+        ...GOVTECH,
+        canBeWhiteLabelled: true,
+      },
+    ];
+
+    const lines: Array<Array<string>> = await exportSelection([
+      NAME_A,
+      NAME_GOVTECH,
+    ]);
+
+    expect(cellOf(lines, "Netlock.hu", "Type")).toBe("Evaluation");
+    expect(cellOf(lines, "Netlock.hu", "Status")).toBe("Expired");
+    expect(cellOf(lines, "Netlock.hu", "Seats")).toBe("0 / 50 users");
+    expect(cellOf(lines, "GovTech Singapore", "Type")).toBe(
+      "Production, White-label",
+    );
+    expect(cellOf(lines, "GovTech Singapore", "Status")).toBe("Active");
+    expect(cellOf(lines, "GovTech Singapore", "Seats")).toBe("13 / 150 users");
+  });
+});
+
+describe("a license's status and seats in words", () => {
+  test("the status reads as its pill does", () => {
+    expect(getLicenseStatusText(null)).toBe("");
+    expect(
+      getLicenseStatusText({ state: "expired", daysUntilExpiry: -3 }),
+    ).toBe("Expired");
+    expect(
+      getLicenseStatusText({ state: "expiring-soon", daysUntilExpiry: 0 }),
+    ).toBe("Expires today");
+    expect(
+      getLicenseStatusText({ state: "expiring-soon", daysUntilExpiry: 1 }),
+    ).toBe("Expires in 1 day");
+    expect(
+      getLicenseStatusText({ state: "expiring-soon", daysUntilExpiry: 8 }),
+    ).toBe("Expires in 8 days");
+    expect(
+      getLicenseStatusText({ state: "active", daysUntilExpiry: 300 }),
+    ).toBe("Active");
+  });
+
+  test("the seats read as the meter's line does", () => {
+    expect(
+      getSeatUsageText({ currentUserCount: undefined, userLimit: undefined }),
+    ).toBe("");
+    expect(getSeatUsageText({ currentUserCount: 13, userLimit: 150 })).toBe(
+      "13 / 150 users",
+    );
+    expect(
+      getSeatUsageText({ currentUserCount: undefined, userLimit: 25 }),
+    ).toBe("0 / 25 users");
+    expect(getSeatUsageText({ currentUserCount: 4, userLimit: 0 })).toBe(
+      "4 users, no limit",
+    );
+    expect(
+      getSeatUsageText({ currentUserCount: 4, userLimit: undefined }),
+    ).toBe("4 users, no limit");
   });
 });

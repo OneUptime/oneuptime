@@ -8,6 +8,8 @@ import {
   SeatUsageMeter,
   WhiteLabelBadge,
   getLicenseLifecycle,
+  getLicenseStatusText,
+  getSeatUsageText,
   isOverUserLimit,
 } from "../Components/LicenseUtil";
 import { getLicenseItemName } from "../Components/LicenseBulkCopy";
@@ -423,6 +425,13 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
               title: "Email",
               type: FieldType.Email,
             },
+            /*
+             * Export CSV (in Bulk Actions) writes these columns as the list
+             * shows them: the key masked, as everywhere a list or an email
+             * shows one, never the whole key an installation activates
+             * with; the type, status and seats in words, not the raw
+             * columns under them.
+             */
             {
               field: {
                 licenseKey: true,
@@ -438,6 +447,11 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
                   </span>
                 );
               },
+              getExportValue: (item: EnterpriseLicense): string => {
+                return item.licenseKey
+                  ? EnterpriseLicenseUsageUtil.maskLicenseKey(item.licenseKey)
+                  : "";
+              },
             },
             {
               field: {
@@ -445,6 +459,16 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
               },
               title: "Type",
               type: FieldType.Element,
+              getExportValue: (item: EnterpriseLicense): string => {
+                return [
+                  item.isEvaluationLicense ? "Evaluation" : "Production",
+                  item.canBeWhiteLabelled ? "White-label" : "",
+                ]
+                  .filter((part: string): boolean => {
+                    return part.length > 0;
+                  })
+                  .join(", ");
+              },
               getElement: (item: EnterpriseLicense): ReactElement => {
                 return (
                   <span className="inline-flex flex-wrap items-center gap-1">
@@ -468,6 +492,11 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
               },
               title: "Status",
               type: FieldType.Element,
+              getExportValue: (item: EnterpriseLicense): string => {
+                return getLicenseStatusText(
+                  getLicenseLifecycle(item.expiresAt, reminderDays),
+                );
+              },
               getElement: (item: EnterpriseLicense): ReactElement => {
                 return (
                   <LicenseStatusPill
@@ -483,6 +512,12 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
               },
               title: "Seats",
               type: FieldType.Element,
+              getExportValue: (item: EnterpriseLicense): string => {
+                return getSeatUsageText({
+                  currentUserCount: item.currentUserCount,
+                  userLimit: item.userLimit,
+                });
+              },
               getElement: (item: EnterpriseLicense): ReactElement => {
                 return (
                   <SeatUsageMeter

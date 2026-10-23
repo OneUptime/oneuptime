@@ -73,6 +73,13 @@ export interface BulkSwitchAction {
   confirmQuestion: PluralTemplate;
   // Why a row already in that state is left alone: "Already disabled."
   alreadyReason: string;
+  /*
+   * Under the names, when some of the selection is in that state already:
+   * "1 selected workflow is already disabled." The question counts only the
+   * rows it changes, so without it "Disable 2 Workflows" over three selected
+   * rows read as if one had been lost.
+   */
+  alreadyNote: PluralTemplate;
   // The result's counts: "3 Workflows disabled", "1 Workflow not disabled".
   resultLabels: {
     succeeded: PluralTemplate;
@@ -95,6 +102,10 @@ export const ENABLE_SWITCH_ACTION: BulkSwitchAction = {
     other: "Are you sure you want to enable {{count}} {{itemsName}}?",
   },
   alreadyReason: translationKey("Already enabled."),
+  alreadyNote: {
+    one: "{{count}} selected {{itemName}} is already enabled.",
+    other: "{{count}} selected {{itemsName}} are already enabled.",
+  },
   resultLabels: {
     succeeded: {
       one: "{{count}} {{itemName}} enabled",
@@ -120,6 +131,10 @@ export const DISABLE_SWITCH_ACTION: BulkSwitchAction = {
     other: "Are you sure you want to disable {{count}} {{itemsName}}?",
   },
   alreadyReason: translationKey("Already disabled."),
+  alreadyNote: {
+    one: "{{count}} selected {{itemName}} is already disabled.",
+    other: "{{count}} selected {{itemsName}} are already disabled.",
+  },
   resultLabels: {
     succeeded: {
       one: "{{count}} {{itemName}} disabled",
@@ -152,6 +167,10 @@ export const UNSUBSCRIBE_SWITCH_ACTION: BulkSwitchAction = {
     other: "Are you sure you want to unsubscribe {{count}} {{itemsName}}?",
   },
   alreadyReason: translationKey("Already unsubscribed."),
+  alreadyNote: {
+    one: "{{count}} selected {{itemName}} is already unsubscribed.",
+    other: "{{count}} selected {{itemsName}} are already unsubscribed.",
+  },
   resultLabels: {
     succeeded: {
       one: "{{count}} {{itemName}} unsubscribed",
@@ -287,13 +306,17 @@ function useBulkSwitchActions<T extends BaseModel>(
           ...nounValues(true),
         });
       },
-      // Which rows change, then what the change does to them.
+      /*
+       * Which rows change, how many of the selection are in that state
+       * already, then what the change does to them.
+       */
       confirmDetails: (items: Array<T>): ReactElement => {
         const rows: Array<T> = getRowsToChange(
           items,
           config.column,
           action.value,
         );
+        const alreadyCount: number = items.length - rows.length;
 
         return (
           <div className="space-y-3">
@@ -303,6 +326,18 @@ function useBulkSwitchActions<T extends BaseModel>(
               })}
               totalCount={rows.length}
             />
+            {alreadyCount > 0 ? (
+              <p
+                data-testid="bulk-switch-already"
+                className="text-sm text-gray-500"
+              >
+                {translator.translatePlural(action.alreadyNote, alreadyCount, {
+                  ...nounValues(true),
+                })}
+              </p>
+            ) : (
+              <></>
+            )}
             {consequence ? (
               <p
                 data-testid="bulk-switch-consequence"

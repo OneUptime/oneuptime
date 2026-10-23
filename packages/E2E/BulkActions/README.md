@@ -40,7 +40,12 @@ menu and in Bulk Actions, both naming each license by its company and masked
 key and saying what deleting one does to the installations that use its key;
 and the bulk Change Expiry Date, which asks for a day after today, writes it to
 each license, leaves one already expiring that day alone, and lists one the
-server refuses. At 1280 and 390 pixels, light and dark, and in German.
+server refuses; and Export CSV, whose file reads like the list, every key
+masked. At 1280 and 390 pixels, light and dark, and in German.
+
+A switch's question counts only the rows it changes, and says how many of the
+selection are in that state already ("1 selected workflow is already
+disabled."), so the count under the question and the count in the bar add up.
 
 The Enterprise Licenses screen ships in the Enterprise Edition. The server
 resolves the Admin Dashboard's plugin as its build does

@@ -1066,5 +1066,5 @@
   "{{count}} {{itemsName}} updated_one": "已更新 {{count}} 个{{itemName}}",
   "{{count}} {{itemsName}} not updated": "{{count}} 个{{itemsName}}未更新",
   "{{count}} {{itemsName}} not updated_one": "{{count}} 个{{itemName}}未更新",
-  "Deleting a license also deletes the instances listed under it. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.": "删除许可证也会删除其下列出的实例。使用其密钥的安装会保留已持有的许可证直到过期，但无法再刷新或重新激活它，且其席位报告会被拒绝。"
+  "Deleting a license also deletes its instances. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.": "删除许可证也会删除其实例。使用其密钥的安装会保留已持有的许可证直到过期，但无法再刷新或重新激活它，且其席位报告会被拒绝。"
 }

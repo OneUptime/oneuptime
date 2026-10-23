@@ -44,6 +44,8 @@ let isMasterAdminForTest: boolean = false;
 let permissionsForTest: Array<unknown> = [];
 // English unless a test sets a lookup (the reader's language).
 let lookupForTest: ((text: string) => string | undefined) | null = null;
+// The reader's language, which decides how a noun is cased mid-sentence.
+let languageForTest: string = "en";
 
 interface UpdateCall {
   modelName: string;
@@ -104,7 +106,7 @@ jest.mock("../../../UI/Utils/Translation", () => {
         translateValue: (value: unknown): unknown => {
           return value;
         },
-        language: "en",
+        language: languageForTest,
       };
     },
   };
@@ -170,6 +172,9 @@ const DASHBOARD_LOCALES: string = path.resolve(
   __dirname,
   "../../../../App/FeatureSet/Dashboard/src/Locales",
 );
+
+// A sentence's {{placeholders}}, as i18next fills them.
+const PLACEHOLDER: RegExp = /{{\s*\w+\s*}}/g;
 
 const WORKFLOW_IDS: Array<string> = [
   "7b0e1a52-0f3c-4d6e-9a41-000000000001",
@@ -261,6 +266,7 @@ beforeEach(() => {
   isMasterAdminForTest = false;
   permissionsForTest = [Permission.ProjectOwner];
   lookupForTest = null;
+  languageForTest = "en";
   refusalsForTest = {};
   updateCalls.length = 0;
   clock = 0;
@@ -389,6 +395,71 @@ describe("the confirmation", () => {
     ).toHaveTextContent(
       "An enabled workflow runs every time its trigger fires.",
     );
+  });
+
+  /*
+   * The question counts only the rows it changes, so a mixed selection reads
+   * "Disable 3 Workflows" under "5 Workflows Selected": the dialog says
+   * where the other two went.
+   */
+  test("says how many of the selection are in that state already", () => {
+    renderWorkflows(MIXED());
+    openMenu();
+    fireEvent.click(screen.getByRole("menuitem", { name: "Disable" }));
+
+    expect(
+      within(dialog()).getByTestId("bulk-switch-already"),
+    ).toHaveTextContent("2 selected workflows are already disabled.");
+  });
+
+  test("one row already in that state reads in the singular", () => {
+    renderWorkflows([workflow(0, true), workflow(1, false), workflow(2, true)]);
+    openMenu();
+    fireEvent.click(screen.getByRole("menuitem", { name: "Disable" }));
+
+    expect(
+      within(dialog()).getByTestId("bulk-switch-already"),
+    ).toHaveTextContent("1 selected workflow is already disabled.");
+  });
+
+  test("the note sits between the names and what the change does", () => {
+    renderWorkflows(MIXED());
+    openMenu();
+    fireEvent.click(screen.getByRole("menuitem", { name: "Enable" }));
+
+    const order: Array<string> = Array.from(
+      dialog().querySelectorAll(
+        "[data-testid='delete-confirmation-items'], [data-testid='bulk-switch-already'], [data-testid='bulk-switch-consequence']",
+      ),
+    ).map((element: Element): string => {
+      return element.getAttribute("data-testid") || "";
+    });
+
+    expect(order).toEqual([
+      "delete-confirmation-items",
+      "bulk-switch-already",
+      "bulk-switch-consequence",
+    ]);
+    expect(
+      within(dialog()).getByTestId("bulk-switch-already"),
+    ).toHaveTextContent("3 selected workflows are already enabled.");
+  });
+
+  test("says nothing of the kind when every selected row changes", () => {
+    renderWorkflows([workflow(0, true), workflow(1, true)]);
+    openMenu();
+    fireEvent.click(screen.getByRole("menuitem", { name: "Disable" }));
+
+    expect(within(dialog()).queryByTestId("bulk-switch-already")).toBeNull();
+  });
+
+  test("rows that do not say whether they are on are all changed, so none is counted as already there", () => {
+    renderWorkflows([workflow(0, undefined), workflow(1, undefined)]);
+    openMenu();
+    fireEvent.click(screen.getByRole("menuitem", { name: "Enable" }));
+
+    expect(within(dialog()).getByText("Enable 2 Workflows")).toBeVisible();
+    expect(within(dialog()).queryByTestId("bulk-switch-already")).toBeNull();
   });
 
   test("its button is the action, and Cancel writes nothing", async () => {
@@ -643,6 +714,10 @@ describe("a switch the other way round: a monitor's Disable Monitoring", () => {
     fireEvent.click(screen.getByRole("menuitem", { name: "Disable" }));
 
     expect(within(dialog()).getByText("Disable 1 Monitor")).toBeVisible();
+    // Monitor 2's Disable Monitoring is on: it is the one already disabled.
+    expect(
+      within(dialog()).getByTestId("bulk-switch-already"),
+    ).toHaveTextContent("1 selected monitor is already disabled.");
     expect(
       within(dialog()).getByTestId("bulk-switch-consequence"),
     ).toHaveTextContent(
@@ -665,6 +740,9 @@ describe("a switch the other way round: a monitor's Disable Monitoring", () => {
     renderMonitors([monitor(0, false), monitor(1, true)]);
     openMenu();
     fireEvent.click(screen.getByRole("menuitem", { name: "Enable" }));
+    expect(
+      within(dialog()).getByTestId("bulk-switch-already"),
+    ).toHaveTextContent("1 selected monitor is already enabled.");
     fireEvent.click(within(dialog()).getByRole("button", { name: "Enable" }));
     await screen.findByText("Completed");
 
@@ -744,6 +822,9 @@ describe("Unsubscribe on a list of subscribers", () => {
         "Are you sure you want to unsubscribe 2 subscribers?",
       ),
     ).toBeVisible();
+    expect(
+      within(dialog()).getByTestId("bulk-switch-already"),
+    ).toHaveTextContent("1 selected subscriber is already unsubscribed.");
     expect(
       within(dialog()).getByTestId("bulk-switch-consequence"),
     ).toHaveTextContent(
@@ -861,6 +942,8 @@ describe("in the reader's language", () => {
     lookupForTest = (text: string): string | undefined => {
       return german[text] || text;
     };
+    // German nouns keep their capital in the middle of a sentence.
+    languageForTest = "de";
 
     renderWorkflows([workflow(0, true), workflow(1, true), workflow(2, false)]);
     fireEvent.click(screen.getByText(german["Bulk Actions"]!));
@@ -875,6 +958,19 @@ describe("in the reader's language", () => {
         ).replace("{{itemsName}}", german["Workflows"]!),
       ),
     ).toBeVisible();
+    // One of the three is off already: the one form, with the German noun.
+    expect(
+      within(dialog()).getByTestId("bulk-switch-already"),
+    ).toHaveTextContent(
+      german[
+        "{{count}} selected {{itemsName}} are already disabled._one"
+      ]!.replace("{{count}}", "1").replace("{{itemName}}", german["Workflow"]!),
+    );
+    expect(
+      within(dialog()).getByTestId("bulk-switch-already"),
+    ).toHaveTextContent(
+      "Von Ihrer Auswahl ist 1 Arbeitsablauf bereits deaktiviert.",
+    );
     expect(
       within(dialog()).getByTestId("bulk-switch-consequence"),
     ).toHaveTextContent(
@@ -896,5 +992,108 @@ describe("in the reader's language", () => {
     expect(screen.getByTestId("bulk-action-unchanged-items")).toHaveTextContent(
       german["Already disabled."]!,
     );
+  });
+
+  /*
+   * Every sentence the three presets say, in both of its forms, is a
+   * Dashboard key that every language words, with the English placeholders:
+   * a sentence one language lacks reads English there, noun and all.
+   */
+  test("every preset sentence is translated in every Dashboard language", () => {
+    const localesDir: string = DASHBOARD_LOCALES;
+    const english: Record<string, string> = JSON.parse(
+      fs.readFileSync(path.join(localesDir, "en.json"), "utf8"),
+    ) as Record<string, string>;
+    const languages: Array<string> = fs
+      .readdirSync(localesDir)
+      .filter((file: string): boolean => {
+        return file.endsWith(".json") && file !== "en.json";
+      })
+      .map((file: string): string => {
+        return file.replace(".json", "");
+      });
+
+    expect(languages).toHaveLength(16);
+
+    const placeholdersOf: (text: string) => Array<string> = (
+      text: string,
+    ): Array<string> => {
+      return (text.match(PLACEHOLDER) || []).sort();
+    };
+
+    const sentences: Array<[string, string]> = [];
+
+    for (const action of [
+      ENABLE_SWITCH_ACTION,
+      DISABLE_SWITCH_ACTION,
+      UNSUBSCRIBE_SWITCH_ACTION,
+    ]) {
+      for (const template of [
+        action.confirmTitle,
+        action.confirmQuestion,
+        action.alreadyNote,
+        action.resultLabels.succeeded,
+        action.resultLabels.failed,
+      ]) {
+        sentences.push([template.other, template.other]);
+        sentences.push([`${template.other}_one`, template.one]);
+      }
+
+      sentences.push([action.alreadyReason, action.alreadyReason]);
+    }
+
+    const locales: Record<string, Record<string, string>> = Object.fromEntries(
+      languages.map((language: string): [string, Record<string, string>] => {
+        return [
+          language,
+          JSON.parse(
+            fs.readFileSync(path.join(localesDir, `${language}.json`), "utf8"),
+          ) as Record<string, string>,
+        ];
+      }),
+    );
+
+    for (const [key, englishText] of sentences) {
+      expect({ key, english: english[key] }).toEqual({
+        key,
+        english: englishText,
+      });
+
+      for (const language of languages) {
+        const translated: string | undefined = locales[language]![key];
+
+        expect({
+          language,
+          key,
+          isText: typeof translated === "string",
+        }).toEqual({ language, key, isText: true });
+        expect({
+          language,
+          key,
+          placeholders: placeholdersOf(translated || ""),
+        }).toEqual({
+          language,
+          key,
+          placeholders: placeholdersOf(englishText),
+        });
+
+        /*
+         * Japanese, Korean and Chinese never read a one form, which may
+         * stay English; every other form is in the language.
+         */
+        if (
+          !(
+            key.endsWith("_one") &&
+            ["ja", "ko", "zh-CN", "zh-TW"].includes(language)
+          )
+        ) {
+          expect({ language, key, same: translated === englishText }).toEqual({
+            language,
+            key,
+            same: false,
+          });
+        }
+      }
+    }
   });
 });
