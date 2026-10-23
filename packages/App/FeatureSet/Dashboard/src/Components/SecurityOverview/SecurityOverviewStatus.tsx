@@ -3,6 +3,11 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import SecurityPipeline from "./SecurityPipeline";
 import {
+  ATTENTION_LIST_LABEL,
+  OVERVIEW_READ_FAILED_TITLE,
+  SET_UP_SECURITY,
+  SIEM_DESTINATIONS,
+  STATUS_READ_FAILED,
   SecurityAttentionItem,
   SecurityHeadline,
   SecurityHeadlineAction,
@@ -24,20 +29,12 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export const SECURITY_OVERVIEW_STATUS_ID: string = "security-overview-status";
 export const SECURITY_STATUS_HEADLINE_ID: string = "security-status-headline";
-
-export const STATUS_READ_FAILED: string = translationKey(
-  "We could not load how Security is set up.",
-);
-
-export const OVERVIEW_READ_FAILED_TITLE: string = translationKey(
-  "We could not load the Security overview",
-);
 
 interface ToneClassNames {
   // The band behind the headline.
@@ -115,7 +112,7 @@ const AttentionLink: FunctionComponent<{ item: SecurityAttentionItem }> = (
             icon={props.item.icon}
             className={`mt-0.5 h-4 w-4 flex-none ${ATTENTION_ICON_CLASS_NAMES[props.item.tone]}`}
           />
-          <span className="min-w-0 text-gray-700 group-hover:text-gray-900 group-hover:underline">
+          <span className="min-w-0 text-gray-700 group-hover:underline">
             <span className="font-semibold tabular-nums text-gray-900">
               {translator.formatNumber(props.item.count)}
             </span>{" "}
@@ -228,9 +225,7 @@ const SecurityOverviewStatus: FunctionComponent<ComponentProps> = (
               {headline.items.length > 0 ? (
                 <ul
                   className="mt-2 space-y-1.5"
-                  aria-label={translator.translateText(
-                    "What needs someone now",
-                  )}
+                  aria-label={translator.translateText(ATTENTION_LIST_LABEL)}
                 >
                   {headline.items.map(
                     (item: SecurityAttentionItem): ReactElement => {
@@ -253,7 +248,7 @@ const SecurityOverviewStatus: FunctionComponent<ComponentProps> = (
           {headline.action === SecurityHeadlineAction.SetUp ? (
             <div className={BUTTON_ROW}>
               <Button
-                title="Set up Security"
+                title={SET_UP_SECURITY}
                 icon={IconProp.ShieldCheck}
                 buttonStyle={ButtonStyleType.PRIMARY}
                 dataTestId="security-status-set-up"
@@ -337,10 +332,7 @@ const SecurityOverviewStatus: FunctionComponent<ComponentProps> = (
             className="hover:text-gray-700 hover:underline"
           >
             {translator.translatePlural(
-              {
-                one: "Security events are also sent to {{count}} SIEM.",
-                other: "Security events are also sent to {{count}} SIEMs.",
-              },
+              SIEM_DESTINATIONS,
               props.status.destinations,
             )}
           </AppLink>

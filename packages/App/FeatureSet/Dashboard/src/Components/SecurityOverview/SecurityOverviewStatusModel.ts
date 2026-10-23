@@ -151,6 +151,9 @@ export const NOT_SET_UP_SUMMARY: string = translationKey(
   "Turn on what most teams need in one click: your logs as a source, the recommended detection rules and a playbook that enriches every new case.",
 );
 
+// The not-watched band's button: Get started again.
+export const SET_UP_SECURITY: string = translationKey("Set up Security");
+
 export const QUIET_TITLE: string = translationKey("All quiet");
 
 // With a playbook on, the band can say what runs when a case opens.
@@ -171,6 +174,26 @@ export const QUIET_SUMMARY_SOURCES_SILENT: string = translationKey(
   "No open case and nothing waiting for an approval, but the last security event arrived {{time}}.",
 );
 
+// What the list of things waiting for a person is called, for a screen reader.
+export const ATTENTION_LIST_LABEL: string = translationKey(
+  "What needs someone now",
+);
+
+export const MY_OPEN_CASES_LABEL: PluralTemplate = {
+  one: "open case assigned to you",
+  other: "open cases assigned to you",
+};
+
+export const UNASSIGNED_OPEN_CASES_LABEL: PluralTemplate = {
+  one: "open case nobody has picked up",
+  other: "open cases nobody has picked up",
+};
+
+export const STEPS_WAITING_LABEL: PluralTemplate = {
+  one: "playbook step waiting for approval",
+  other: "playbook steps waiting for approval",
+};
+
 /*
  * The three things that can wait for a person, in the order the docs name
  * them: the cases that are yours, the ones nobody has picked up, and the
@@ -185,10 +208,7 @@ export function getSecurityAttentionItems(
       key: SecurityAttentionKey.Mine,
       icon: IconProp.User,
       count: queue.myOpenCases,
-      label: {
-        one: "open case assigned to you",
-        other: "open cases assigned to you",
-      },
+      label: MY_OPEN_CASES_LABEL,
       page: PageMap.SECURITY_CASES_ASSIGNED_TO_ME,
       tone: SecurityStatusTone.Info,
     },
@@ -196,10 +216,7 @@ export function getSecurityAttentionItems(
       key: SecurityAttentionKey.Unassigned,
       icon: IconProp.Inbox,
       count: queue.unassignedOpenCases,
-      label: {
-        one: "open case nobody has picked up",
-        other: "open cases nobody has picked up",
-      },
+      label: UNASSIGNED_OPEN_CASES_LABEL,
       page: PageMap.SECURITY_CASES_UNASSIGNED,
       tone: SecurityStatusTone.Danger,
     },
@@ -207,10 +224,7 @@ export function getSecurityAttentionItems(
       key: SecurityAttentionKey.Approvals,
       icon: IconProp.PauseCircle,
       count: queue.runsWaitingForApproval,
-      label: {
-        one: "playbook step waiting for approval",
-        other: "playbook steps waiting for approval",
-      },
+      label: STEPS_WAITING_LABEL,
       page: PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL,
       tone: SecurityStatusTone.Warning,
     },
@@ -368,6 +382,53 @@ export const URGENT_OPEN_CASES: string = translationKey(
 export const NONE_URGENT: string = translationKey("None critical or high");
 export const NOTHING_WAITING: string = translationKey("Nothing waiting");
 
+// The figures under each part, in words that agree with the number.
+export const SOURCES_FIGURE: PluralTemplate = {
+  one: "{{count}} source",
+  other: "{{count}} sources",
+};
+
+export const EVENTS_IN_24_HOURS: PluralTemplate = {
+  one: "{{count}} event in 24 hours",
+  other: "{{count}} events in 24 hours",
+};
+
+export const RULES_ON_FIGURE: PluralTemplate = {
+  one: "{{count}} rule on",
+  other: "{{count}} rules on",
+};
+
+export const OPEN_CASES_FIGURE: PluralTemplate = {
+  one: "{{count}} open case",
+  other: "{{count}} open cases",
+};
+
+export const PLAYBOOKS_ON_FIGURE: PluralTemplate = {
+  one: "{{count}} playbook on",
+  other: "{{count}} playbooks on",
+};
+
+// Short enough for one line beside the side menu; the band says it in full.
+export const STEPS_TO_APPROVE: PluralTemplate = {
+  one: "{{count}} step to approve",
+  other: "{{count}} steps to approve",
+};
+
+export const SIEM_DESTINATIONS: PluralTemplate = {
+  one: "Security events are also sent to {{count}} SIEM.",
+  other: "Security events are also sent to {{count}} SIEMs.",
+};
+
+// The set-up figures could not be read: said in the pipeline's place.
+export const STATUS_READ_FAILED: string = translationKey(
+  "We could not load how Security is set up.",
+);
+
+// The overview could not be read at all: the page's place.
+export const OVERVIEW_READ_FAILED_TITLE: string = translationKey(
+  "We could not load the Security overview",
+);
+
 // How long a source may send nothing before the strip says it has gone quiet.
 export const QUIET_SOURCE_AFTER_IN_MS: number = 24 * 60 * 60 * 1000;
 
@@ -425,7 +486,7 @@ function getSourcesFigures(
   now: Date,
 ): StageFigures {
   const figure: SecurityOverviewText = {
-    plural: { one: "{{count}} source", other: "{{count}} sources" },
+    plural: SOURCES_FIGURE,
     count: countSecuritySources(status),
   };
 
@@ -434,10 +495,7 @@ function getSourcesFigures(
       figure,
       figureTone: SecurityStatusTone.Success,
       status: {
-        plural: {
-          one: "{{count}} event in 24 hours",
-          other: "{{count}} events in 24 hours",
-        },
+        plural: EVENTS_IN_24_HOURS,
         count: status.eventsLast24Hours,
       },
       statusIcon: IconProp.CheckCircle,
@@ -487,7 +545,7 @@ function getDetectionsFigures(status: SecuritySetupStatus): StageFigures {
 
   return {
     figure: {
-      plural: { one: "{{count}} rule on", other: "{{count}} rules on" },
+      plural: RULES_ON_FIGURE,
       count: status.enabledRules,
     },
     figureTone: SecurityStatusTone.Success,
@@ -528,7 +586,7 @@ function getCasesFigures(
   }
 
   const figure: SecurityOverviewText = {
-    plural: { one: "{{count}} open case", other: "{{count}} open cases" },
+    plural: OPEN_CASES_FIGURE,
     count: status.openCases,
   };
 
@@ -566,7 +624,7 @@ function getPlaybooksFigures(
   queue: SecurityOverviewQueue,
 ): StageFigures {
   const figure: SecurityOverviewText = {
-    plural: { one: "{{count}} playbook on", other: "{{count}} playbooks on" },
+    plural: PLAYBOOKS_ON_FIGURE,
     count: status.enabledPlaybooks,
   };
 
@@ -574,12 +632,8 @@ function getPlaybooksFigures(
     return {
       figure,
       figureTone: SecurityStatusTone.Success,
-      // Short enough for one line beside the side menu; the band says it in full.
       status: {
-        plural: {
-          one: "{{count}} step to approve",
-          other: "{{count}} steps to approve",
-        },
+        plural: STEPS_TO_APPROVE,
         count: queue.runsWaitingForApproval,
       },
       statusIcon: IconProp.PauseCircle,
