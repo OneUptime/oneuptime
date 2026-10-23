@@ -50,6 +50,23 @@ export const STATUS_PAGE_DESCRIPTION_HELP: string = translationKey(
   "Shown on the status pages this incident appears on.",
 );
 
+/*
+ * The root cause the server writes into an incident or an alert that
+ * somebody opened by hand without one (IncidentService, AlertService):
+ * "Incident created by [Maya Chen](<their page>)", and nothing else. It says
+ * who opened it - which the stat bar's Declared / Created tile already says
+ * - not why it happened, so the card reads it as no root cause yet. The Root
+ * Cause page still shows it as stored.
+ */
+const OPENED_BY_ROOT_CAUSE: RegExp =
+  /^(?:Incident|Alert) created by \[[^\]\n]*\]\([^)\s]*\)$/;
+
+export const isOpenedByRootCause: (rootCause: string) => boolean = (
+  rootCause: string,
+): boolean => {
+  return OPENED_BY_ROOT_CAUSE.test(rootCause.trim());
+};
+
 export interface ComponentProps<TBaseModel extends BaseModel> {
   modelType: { new (): TBaseModel };
   modelId: ObjectID;
@@ -264,7 +281,10 @@ const EventWhatHappenedCard: <TBaseModel extends BaseModel>(
   }
 
   const description: string = props.description?.trim() || "";
-  const rootCause: string = props.rootCause?.trim() || "";
+  const storedRootCause: string = props.rootCause?.trim() || "";
+  const rootCause: string = isOpenedByRootCause(storedRootCause)
+    ? ""
+    : storedRootCause;
 
   return (
     <>

@@ -76,6 +76,7 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
 import EventWhatHappenedCard, {
   STATUS_PAGE_DESCRIPTION_HELP,
   WHAT_HAPPENED_CARD_TITLE,
+  isOpenedByRootCause,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventWhatHappenedCard";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import Alert from "../../../Models/DatabaseModels/Alert";
@@ -308,6 +309,62 @@ describe("a long description or root cause", () => {
       "aria-expanded",
       "false",
     );
+  });
+});
+
+/*
+ * An incident or alert somebody opened by hand without a root cause is given
+ * one by the server: "Incident created by [Maya Chen](...)". That says who,
+ * which the Declared / Created tile already says - not why.
+ */
+describe("the root cause the server writes for a record opened by hand", () => {
+  const MAYA_LINK: string =
+    "[Maya Chen](https://oneuptime.example/dashboard/10000000-0000-4000-8000-000000000001/settings/users/80000000-0000-4000-8000-000000000001)";
+
+  test("reads as no root cause yet, for an incident and for an alert", () => {
+    for (const stored of [
+      `Incident created by ${MAYA_LINK}`,
+      `Alert created by ${MAYA_LINK}`,
+      `  Incident created by ${MAYA_LINK}\n`,
+    ]) {
+      const view: RenderResult = renderCard({
+        description: "Checkout is slow.",
+        rootCause: stored,
+      });
+
+      expect(
+        view.getByTestId("what-happened-root-cause-empty"),
+      ).toHaveTextContent("Not identified yet.");
+      expect(view.queryByTestId("what-happened-root-cause-value")).toBeNull();
+      expect(view.container).not.toHaveTextContent("created by");
+
+      view.unmount();
+    }
+  });
+
+  test("a root cause somebody wrote is shown, even one that starts the same way", () => {
+    for (const written of [
+      "Incident created by a bad deploy of checkout-api.",
+      `Incident created by ${MAYA_LINK}, who rolled back the pool size change.`,
+      `The pool was cut to 10.\n\nIncident created by ${MAYA_LINK}`,
+    ]) {
+      const view: RenderResult = renderCard({ rootCause: written });
+
+      expect(
+        view.getByTestId("what-happened-root-cause-value"),
+      ).toBeInTheDocument();
+      expect(view.queryByTestId("what-happened-root-cause-empty")).toBeNull();
+
+      view.unmount();
+    }
+  });
+
+  test("knows the server's sentence and nothing else", () => {
+    expect(isOpenedByRootCause(`Incident created by ${MAYA_LINK}`)).toBe(true);
+    expect(isOpenedByRootCause(`Alert created by ${MAYA_LINK}`)).toBe(true);
+    expect(isOpenedByRootCause("Incident created by Maya Chen")).toBe(false);
+    expect(isOpenedByRootCause(`Episode created by ${MAYA_LINK}`)).toBe(false);
+    expect(isOpenedByRootCause("")).toBe(false);
   });
 });
 

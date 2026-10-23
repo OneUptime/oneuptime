@@ -214,7 +214,7 @@ describe("useEventOwners", () => {
     });
 
     const hook: RenderHookResult<EventOwnersState, UseEventOwnersOptions> =
-      renderHook(useEventOwners, {
+      renderHook<EventOwnersState, UseEventOwnersOptions>(useEventOwners, {
         initialProps: {
           ownerUserModelType: AlertOwnerUser,
           ownerTeamModelType: AlertOwnerTeam,
