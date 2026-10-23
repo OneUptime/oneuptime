@@ -83,7 +83,7 @@ Targets are compared by their full names: `nginx` is `nginx.service`, a process 
 
 1. In `/opt/oneuptime-host-ai-agent/.env` set `ONEUPTIME_AI_ALLOW_WRITES=true` and `ONEUPTIME_AI_FIXES` to whether each fix needs approval (`ask-for-approval`, `automatic` or `bypass-approval`), and optionally `ONEUPTIME_AI_WRITE_TARGETS` to the units fixes may touch (comma-separated globs such as `nginx.service,app-*`; empty means any unit that is not protected).
 2. `cd /opt/oneuptime-host-ai-agent && sudo docker compose up -d`.
-3. The host's **AI → AI agent** page in OneUptime then shows what the agent allows, read-only; **Change** there shows these lines for each option. In **Automatic** mode you may also allow specific commands to run without approval there; loosening that list needs Project Owner, Project Admin or the Edit Auto Remediation Rule permission.
+3. The host's **AI → AI agent** page in OneUptime then shows what the agent allows, read-only; **Change** there shows these lines for each option. In **Automatic** mode you may also allow specific commands to run without approval there; loosening that list needs Project Owner, Project Admin or the Edit AI Rule permission.
 
 The agent never changes, whatever the settings: every OneUptime unit (`oneuptime-*`, including its own `oneuptime-host-ai-agent.service`), the OpenTelemetry collector (`otelcol-contrib.service`, `otelcol.service`), the Docker engine it runs in (`docker.service`, `docker.socket`, `containerd.service`), its own process and the processes above it, and anything in `ONEUPTIME_AI_PROTECTED_TARGETS`. `curl -s http://127.0.0.1:3877/status` lists them (`protectedTargets`).
 

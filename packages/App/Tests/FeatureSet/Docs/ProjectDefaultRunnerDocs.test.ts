@@ -261,7 +261,7 @@ describe("the project's default Runner on runbooks/agents", () => {
 
   it("says only runbook steps use the default", () => {
     expect(SECTION).toContain(
-      "Only runbook steps use the default. A code repository picks its Runner in its settings in Code, and an auto remediation rule picks its own.",
+      "Only runbook steps use the default. A code repository picks its Runner in its settings in Code, and an AI rule picks its own.",
     );
   });
 });

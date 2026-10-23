@@ -258,7 +258,7 @@ describe("Docs: who owns a resource, and a setting that holds credentials", () =
       "The owners of a resource - the user and team owner records of a monitor, an on-call policy, a dashboard and every other resource with owners - are read through the resource they own the same way",
       "an owner record of a resource you may not read is answered as if it did not exist.",
       "A setting that holds credentials - an SMTP server, a call and SMS provider, SNMP credentials, a video call connection, an API key, an external MCP server - is named only by a caller who may read that kind of setting",
-      "a status page's `smtpConfig` and `callSmsConfig`, an incoming call policy's `projectCallSMSConfig`, a network device's or site's `snmpCredentialProfile`, an incident's or alert's video call `videoCallConnection`, an API key permission's `apiKey`, and an investigation or auto remediation rule's `externalMcpServers`.",
+      "a status page's `smtpConfig` and `callSmsConfig`, an incoming call policy's `projectCallSMSConfig`, a network device's or site's `snmpCredentialProfile`, an incident's or alert's video call `videoCallConnection`, an API key permission's `apiKey`, and an AI rule's `externalMcpServers`.",
       "is refused with the same `400`, under either of its names; a change that keeps the setting a record names already is not asked about.",
       "The number search and the owned-number list of an incoming call policy take the same read of the Call/SMS config they name.",
     ]) {

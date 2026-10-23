@@ -74,7 +74,7 @@ Un runbook peut tous les mélanger. La force des runbooks est d'entremêler des 
 | Une règle de runbook | **Incidents**, **Alertes** ou **Maintenance planifiée** → **Règles** → **Règles de runbook** | Le nouvel incident, la nouvelle alerte ou le nouvel événement |
 | **Exécuter le Runbook** | La page **Runbooks** d'un incident, d'une alerte ou d'un événement de maintenance planifiée | Cet événement |
 | **Run Now** | La page **Vue d'ensemble** du runbook | Rien : une exécution ponctuelle |
-| Une règle de remédiation automatique | Voir [AI SRE](/docs/ai/ai-sre) | L'incident ou l'alerte |
+| Une règle IA | Voir [AI SRE](/docs/ai/ai-sre) | L'incident ou l'alerte |
 | La planification du runbook | La page **Déclencheurs** du runbook, voir [Déclencheurs de runbook](/docs/runbooks/triggers#exécuter-selon-une-planification) | Rien : une exécution sans surveillance |
 | Un appel à l'URL de webhook du runbook | La page **Déclencheurs** du runbook, voir [Déclencheurs de runbook](/docs/runbooks/triggers#appeler-le-webhook) | Rien : l'exécution conserve les valeurs envoyées par l'appel |
 

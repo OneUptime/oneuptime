@@ -74,7 +74,7 @@ A runbook can mix all of them. The strength of runbooks is interleaving human ch
 | A runbook rule | **Incidents**, **Alerts** or **Scheduled Maintenance** → **Rules** → **Runbook Rules** | The new incident, alert or event |
 | **Run Runbook** | The **Runbooks** page of an incident, alert or scheduled maintenance event | That event |
 | **Run Now** | The runbook's **Overview** page | Nothing: an ad-hoc run |
-| An auto-remediation rule | See [AI SRE](/docs/ai/ai-sre) | The incident or alert |
+| An AI rule | See [AI SRE](/docs/ai/ai-sre) | The incident or alert |
 | The runbook's schedule | The runbook's **Triggers** page, see [Runbook Triggers](/docs/runbooks/triggers#run-on-a-schedule) | Nothing: an unattended run |
 | A call to the runbook's webhook URL | The runbook's **Triggers** page, see [Runbook Triggers](/docs/runbooks/triggers#call-the-webhook) | Nothing: the run keeps the values the call sent |
 

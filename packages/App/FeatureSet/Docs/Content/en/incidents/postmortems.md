@@ -86,7 +86,7 @@ With **Draft a postmortem when an incident resolves** on, OneUptime AI drafts th
 
 With no rule, every resolved incident gets a draft, in OneUptime AI's standard outline. **Postmortem rules**, under **More settings** on the same page, change that:
 
-- A rule matches **All incidents**, or **Only incidents that match conditions** on monitors, severities, labels, monitor labels, title and description, as an investigation rule does.
+- A rule matches **All incidents**, or **Only incidents that match conditions** on monitors, severities, labels, monitor labels, title and description, as an AI rule does.
 - Its **Templates** are the postmortem templates the draft may follow. With none, the draft follows the standard outline; with one, that template; with several, the one OneUptime AI finds fits the incident best. The draft's post in the feed names the template it followed.
 - Its **LLM Provider**, under **More fields**, is the provider OneUptime AI writes the draft and picks its template with. With none picked, it is the project's default provider, else the global one. The draft's post in the feed names the provider a rule picked, or the one used instead and why. See [Which LLM provider a rule uses](/docs/ai/ai-sre#which-llm-provider-a-rule-uses).
 - The first enabled rule that matches the incident decides, from the top of the list: drag a rule to change its place. An incident that no rule matches gets no draft, and so does every incident while the rules cannot be read.

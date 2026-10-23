@@ -97,7 +97,7 @@ Gå til **Runbooks → Runbook-agenter**, og opprett en ny agent. Klikk **Oppret
 | **Kjører runbooks** | Under **Flere felt** | Slått på som standard. Lar denne Runneren ta runbook-trinn. |
 | **Etiketter** | Under **Flere felt** | Valgfritt. |
 
-En Runner henter en endring i funksjonene sine ved neste heartbeat; den trenger ikke å startes på nytt. AI er ikke en funksjon. Et koderepositorium velger i innstillingene sine i Kode Runneren AI jobber i det på, og siden til Runneren viser repositoriene som velger den. En regel for automatisk utbedring velger Runneren OneUptime AI kjører kommandoene sine på: Det er valget av en Runner der som lar kommandoene til OneUptime AI kjøre på den.
+En Runner henter en endring i funksjonene sine ved neste heartbeat; den trenger ikke å startes på nytt. AI er ikke en funksjon. Et koderepositorium velger i innstillingene sine i Kode Runneren AI jobber i det på, og siden til Runneren viser repositoriene som velger den. En AI-regel velger Runneren OneUptime AI kjører kommandoene sine på: Det er valget av en Runner der som lar kommandoene til OneUptime AI kjøre på den.
 
 ### 2. Kopier installasjonskommandoen
 
@@ -171,7 +171,7 @@ Et trinn som har valgt en Runner, beholder den, uansett hva standarden er, og et
 
 Standarden er en av prosjektets egne Runnere som kjører runbook-trinn: ikke en global Runner, ikke Runneren i klyngen som Kubernetes-agenten installerte, og ikke en med **Kjører runbooks** slått av. Så lenge en Runner er standarden, forblir **Kjører runbooks** slått på. Når standarden ikke er tilkoblet, sier nedtrekkslisten i et trinn det, og et trinn på den venter på den, som på enhver Runner, til claim timeout er gått.
 
-Bare runbook-trinn bruker standarden. Et koderepositorium velger Runneren sin i innstillingene sine i Kode, og en regel for automatisk utbedring velger sin egen.
+Bare runbook-trinn bruker standarden. Et koderepositorium velger Runneren sin i innstillingene sine i Kode, og en AI-regel velger sin egen.
 
 ## Driftsmerknader
 

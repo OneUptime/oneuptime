@@ -86,7 +86,7 @@ Med **Skriv et udkast til en postmortem, når en hændelse er løst** slået til
 
 Uden regler får hver løst hændelse et udkast i OneUptime AI's standardopbygning. **Postmortem-regler** under **Yderligere indstillinger** på samme side ændrer det:
 
-- En regel matcher **Alle hændelser** eller **Kun hændelser, der opfylder betingelserne** på monitorer, alvorligheder, labels, monitorlabels, titel og beskrivelse, som en undersøgelsesregel gør.
+- En regel matcher **Alle hændelser** eller **Kun hændelser, der opfylder betingelserne** på monitorer, alvorligheder, labels, monitorlabels, titel og beskrivelse, som en AI-regel gør.
 - Dens **Skabeloner** er de postmortem-skabeloner, udkastet må følge. Uden nogen følger udkastet standardopbygningen; med én følger det den skabelon; med flere den, som OneUptime AI finder passer bedst til hændelsen. Udkastets indlæg i feedet nævner den skabelon, det fulgte.
 - Dens **LLM-udbyder** under **Flere felter** er den udbyder, OneUptime AI skriver udkastet og vælger dets skabelon med. Med ingen valgt er det projektets standardudbyder, ellers den globale. Udkastets indlæg i feedet nævner den udbyder, en regel valgte, eller den, der blev brugt i stedet, og hvorfor. Se [Hvilken LLM-udbyder en regel bruger](/docs/ai/ai-sre#hvilken-llm-udbyder-en-regel-bruger).
 - Den første aktiverede regel, der matcher hændelsen, afgør det, regnet fra toppen af listen: træk en regel for at flytte den. En hændelse, som ingen regel matcher, får intet udkast, og det får ingen hændelse, så længe reglerne ikke kan læses.

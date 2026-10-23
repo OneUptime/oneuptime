@@ -102,7 +102,11 @@ const ROLES_AND_PERMISSIONS: Array<string> = [
   "Create Alert State Timeline",
   "Create On-Call Duty Policy Execution Log",
   "Create Runbook Execution",
-  "Edit Auto Remediation Rule",
+  // The AI rules' permissions, which were the auto remediation rules'.
+  "Create AI Rule",
+  "Edit AI Rule",
+  "Delete AI Rule",
+  "Read AI Rule",
 ];
 
 /*
@@ -180,6 +184,26 @@ const RULES_THE_UPGRADE_ADDS: Array<string> = [
   // The rules that keep a project's pull request choice.
   "All incidents",
   "All alerts",
+  /*
+   * The rules that keep what a project investigated and fixed when its
+   * investigation rules became AI rules (MergeInvestigationRulesIntoAiRules).
+   */
+  "Investigate every incident",
+  "Investigate every alert",
+  "Fix every incident",
+  "Fix every alert",
+];
+
+/*
+ * Labels the Dashboard drew before and draws no more, named by the notes on
+ * what changed: the tables of rules the AI rules replaced, and the step a
+ * rule asked before fixing became a step of the AI rules. A translation
+ * names them as its Dashboard drew them then.
+ */
+const FORMER_DASHBOARD_LABELS: Array<string> = [
+  "Auto Remediation Rules",
+  "Investigation Rules",
+  "Approval",
 ];
 
 /*
@@ -1027,6 +1051,15 @@ describe("the lists this test keeps", () => {
     }
   });
 
+  it("call former labels only what the Dashboard no longer draws", () => {
+    for (const label of FORMER_DASHBOARD_LABELS) {
+      expect({ label, isLabel: false }).toEqual({
+        label,
+        isLabel: isDashboardLabel(label),
+      });
+    }
+  });
+
   it("list only bold words the English page has", () => {
     const labels: Array<string> = boldLabels(englishPage());
 
@@ -1034,6 +1067,7 @@ describe("the lists this test keeps", () => {
       ...KEPT_IN_ENGLISH,
       ...PROSE,
       ...PROSE_LEADS,
+      ...FORMER_DASHBOARD_LABELS,
       ...ADMIN_PATHS,
       ...Object.keys(MARK_AS),
       ...Object.keys(KEPT_IN_ENGLISH_SOME_TIMES),
@@ -1050,6 +1084,7 @@ describe("the lists this test keeps", () => {
       ...KEPT_IN_ENGLISH,
       ...PROSE,
       ...PROSE_LEADS,
+      ...FORMER_DASHBOARD_LABELS,
       ...ADMIN_PATHS,
       ...Object.keys(MARK_AS),
     ];

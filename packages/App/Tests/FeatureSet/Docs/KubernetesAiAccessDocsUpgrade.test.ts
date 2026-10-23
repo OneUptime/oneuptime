@@ -402,7 +402,7 @@ describe("the upgrade notes on the docs site", () => {
     it("says the Runner comes back only within a week, and how to bind it after that", () => {
       for (const expected of [
         "Within a week of the upgrade, the rollback brings the in-cluster Runner back, and it reconnects on its own once the AI agent has stopped.",
-        "After that, OneUptime may have removed the old Runner, and the rolled-back one is not used until you bind it to the cluster again with the API or Terraform (the cluster's **AI Access Runner**; a Project Owner, a Project Admin or **Edit Auto Remediation Rule** may do it), or you upgrade the chart again.",
+        "After that, OneUptime may have removed the old Runner, and the rolled-back one is not used until you bind it to the cluster again with the API or Terraform (the cluster's **AI Access Runner**; a Project Owner, a Project Admin or **Edit AI Rule** may do it), or you upgrade the chart again.",
       ]) {
         expect({ expected, said: flat.includes(expected) }).toEqual({
           expected,
@@ -481,7 +481,7 @@ describe("the Kubernetes agent page's Upgrading section", () => {
       "Within a week of the upgrade, the rollback brings the in-cluster Runner back, and it reconnects on its own once the AI agent has stopped.",
     );
     expect(flat).toContain(
-      "After that, OneUptime may have removed the old Runner (the cluster's **Feed** says when). The rolled-back Runner then connects but is not used until you bind it to the cluster again with the API or Terraform (the cluster's **AI Access Runner**; a Project Owner, a Project Admin or **Edit Auto Remediation Rule** may do it), or you upgrade the chart again.",
+      "After that, OneUptime may have removed the old Runner (the cluster's **Feed** says when). The rolled-back Runner then connects but is not used until you bind it to the cluster again with the API or Terraform (the cluster's **AI Access Runner**; a Project Owner, a Project Admin or **Edit AI Rule** may do it), or you upgrade the chart again.",
     );
   });
 

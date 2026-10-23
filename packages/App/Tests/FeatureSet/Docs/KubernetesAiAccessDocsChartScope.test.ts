@@ -569,7 +569,7 @@ describe("the legacy in-cluster Runner, in the Runner README", () => {
       "cannot be renamed",
       "**Runs Runbooks**",
       "no code repository can pick it",
-      "never accepted as an auto-remediation rule's command Runner",
+      "never accepted as an AI rule's command Runner",
     ]) {
       expect({ expected, said: section.includes(expected) }).toEqual({
         expected,

@@ -66,7 +66,7 @@ flowchart TB
 | | Werkzeuge, die nur lesen | Werkzeuge, die etwas ändern können |
 | --- | --- | --- |
 | **Untersuchungen** | Genutzt, neben OneUptimes eigenen Daten | Nie genutzt: OneUptime lehnt den Aufruf ab |
-| **Behebungen** | Genutzt, um die Behebung auszuarbeiten | Zur Genehmigung vorgeschlagen oder sofort genutzt, wie die **Genehmigung** der Auto-Behebungsregel es vorgibt |
+| **Behebungen** | Genutzt, um die Behebung auszuarbeiten | Zur Genehmigung vorgeschlagen oder sofort genutzt, wie die **Behebung** der KI-Regel es vorgibt |
 
 **In einer Untersuchung** listet OneUptime AI die Werkzeuge der Server auf, die es nutzen darf, und ruft die lesenden auf, um sich anzusehen, was OneUptime selbst nicht sieht: Ihr Cloud-Konto, ein Deployment, einen Issue-Tracker. Was sie antworten, nutzt es in seiner Ursachenanalyse. Siehe [AI SRE](/docs/ai/ai-sre).
 
@@ -81,12 +81,12 @@ Damit OneUptime AI einen Server nicht mehr nutzt, schalten Sie **OneUptime AI di
 
 ## Die Server wählen, die eine Regel nutzen darf
 
-Untersuchungsregeln und Auto-Behebungsregeln können jeweils die MCP-Server nennen, die OneUptime AI für das nutzen darf, worauf sie passen. Das Feld ist **MCP-Server** unter **Weitere Felder**. Bis Sie einige auswählen, darf OneUptime AI alle nutzen, und der eingeklappte Abschnitt sagt das.
+Jede KI-Regel kann die MCP-Server nennen, die OneUptime AI für das nutzen darf, worauf sie passt. Das Feld ist **MCP-Server** unter **Weitere Felder**. Bis Sie einige auswählen, darf OneUptime AI alle nutzen, und der eingeklappte Abschnitt sagt das.
 
 - **Keiner ausgewählt** – alle eingeschalteten Server des Projekts.
-- **Einige ausgewählt** – nur diese. Bei einer Auto-Behebungsregel, die ohne Nachfrage behebt, ist das Nennen ihrer Server auch das, was OneUptime AI deren Änderungen ohne Nachfrage vornehmen lässt.
+- **Einige ausgewählt** – nur diese. Bei einer KI-Regel, die ohne Nachfrage behebt, ist das Nennen ihrer Server auch das, was OneUptime AI deren Änderungen ohne Nachfrage vornehmen lässt.
 
-Passen mehrere Untersuchungsregeln, darf OneUptime AI jeden Server nutzen, den eine von ihnen erlaubt; können die Regeln nicht gelesen werden, nutzt die Untersuchung gar keinen MCP-Server. Jede passende Auto-Behebungsregel arbeitet ihre eigene Behebung über ihre Server aus, und die Regeln, die keinen nennen, teilen sich eine Behebung über alle.
+Passen mehrere Regeln, die untersuchen, darf OneUptime AI jeden Server nutzen, den eine von ihnen erlaubt; können die Regeln nicht gelesen werden, nutzt die Untersuchung gar keinen MCP-Server. Jede passende Regel, die behebt, arbeitet ihre eigene Behebung über ihre Server aus, und die Regeln, die keinen nennen, teilen sich eine Behebung über alle.
 
 ## Sicherheit
 

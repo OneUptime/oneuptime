@@ -39,7 +39,7 @@ Uma nova execução fica **Agendado** até que um Worker a assuma e a marque com
 
 Uma execução de runbook é criada de cinco maneiras:
 
-1. **Automaticamente por uma regra**: uma [regra de runbook](/docs/runbooks/rules) a inicia quando é criado um incidente, alerta ou evento de manutenção programada que corresponde. Uma regra de remediação automática também pode iniciar uma; consulte [AI SRE](/docs/ai/ai-sre).
+1. **Automaticamente por uma regra**: uma [regra de runbook](/docs/runbooks/rules) a inicia quando é criado um incidente, alerta ou evento de manutenção programada que corresponde. Uma regra de IA também pode iniciar uma; consulte [AI SRE](/docs/ai/ai-sre).
 2. **Manualmente a partir de um evento**: clique em **Executar Runbook** em um incidente, alerta ou evento de manutenção programada. A execução fica ligada a esse evento.
 3. **Manualmente a partir da página do runbook**: clique em **Run Now** na página **Visão geral** de um runbook. A execução não fica ligada a nenhum incidente, alerta ou evento de manutenção programada.
 4. **Por agendamento**: o agendamento do runbook a inicia em horários definidos. Veja [Executar por agendamento](/docs/runbooks/triggers#executar-por-agendamento).

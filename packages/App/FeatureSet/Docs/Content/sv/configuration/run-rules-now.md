@@ -19,7 +19,7 @@ flowchart TB
 - **Monitor Rules** på en statussida. De synkroniserar redan om sidan varje gång en regel sparas; att köra en synkroniserar den direkt.
 - **Monitor Rules** på en SLO. De synkroniserar redan om SLO:n varje gång en regel sparas; att köra en synkroniserar SLO:ns monitorer direkt. Se [Monitorer och monitorregler](/docs/slo/monitor-rules).
 
-Regler som utför en åtgärd i stället för att beskriva en resurs (**Jourregler**, **Runbook-regler**, **Regler för automatisk åtgärd** och **Grupperingsregler**) kan inte köras på befintliga poster. Att köra dem skulle larma personer, köra runbooks, starta åtgärder eller organisera om episoder för incidenter som redan är över.
+Regler som utför en åtgärd i stället för att beskriva en resurs (**Jourregler**, **Runbook-regler**, **AI-regler** och **Grupperingsregler**) kan inte köras på befintliga poster. Att köra dem skulle larma personer, köra runbooks, starta åtgärder eller organisera om episoder för incidenter som redan är över.
 
 ## Innan du börjar
 

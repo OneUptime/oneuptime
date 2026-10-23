@@ -138,7 +138,8 @@ describe("Run Rules on Existing Resources docs page", () => {
     for (const [title, tableName] of [
       ["On-Call Rules", "IncidentOnCallRule"],
       ["Runbook Rules", "RunbookRule"],
-      ["Auto remediation rules", "AutoRemediationRule"],
+      // The AI rules: the auto remediation rules, which investigate too now.
+      ["AI rules", "AutoRemediationRule"],
       ["Grouping Rules", "IncidentGroupingRule"],
     ] as Array<[string, string]>) {
       expect(page).toContain(`**${title}**`);

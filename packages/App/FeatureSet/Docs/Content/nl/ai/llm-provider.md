@@ -32,7 +32,7 @@ flowchart TB
 
 Een provider is de standaard van een project wanneer **Instellen als standaard** aan staat, wat voor elke nieuwe provider zo is. Een project waarvan bij alle providers de standaard uit staat, valt terug op de globale provider, alsof het er geen had.
 
-Elke OneUptime AI-regel – onderzoeksregels, regels voor automatisch herstel en postmortem-regels – kan in plaats daarvan onder **Meer velden** een eigen provider kiezen: een van de providers van het project of een globale, die wordt gebruikt voor alles wat de regel start. Een regel die er geen kiest, gebruikt de standaardprovider, en een gekozen provider die niet meer gebruikt kan worden, valt daarop terug. Zie [Welke LLM-provider een regel gebruikt](/docs/ai/ai-sre#welke-llm-provider-een-regel-gebruikt).
+Elke OneUptime AI-regel – AI-regels en postmortem-regels – kan in plaats daarvan onder **Meer velden** een eigen provider kiezen: een van de providers van het project of een globale, die wordt gebruikt voor alles wat de regel start. Een regel die er geen kiest, gebruikt de standaardprovider, en een gekozen provider die niet meer gebruikt kan worden, valt daarop terug. Zie [Welke LLM-provider een regel gebruikt](/docs/ai/ai-sre#welke-llm-provider-een-regel-gebruikt).
 
 ## OneUptime Cloud
 

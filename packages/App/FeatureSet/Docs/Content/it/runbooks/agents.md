@@ -97,7 +97,7 @@ Vai in **Runbook → Agenti di runbook** e crea un nuovo agente. Fai clic su **C
 | **Esegue i runbook** | In **Altri campi** | Attivo per impostazione predefinita. Consente a questo Runner di prendere passaggi di runbook. |
 | **Etichette** | In **Altri campi** | Facoltative. |
 
-Un Runner applica una modifica alle sue funzionalità al successivo heartbeat; non serve riavviarlo. L'IA non è una funzionalità. Un repository di codice sceglie, nelle sue impostazioni in Codice, il Runner su cui l'IA ci lavora, e la pagina del Runner elenca i repository che lo scelgono. Una regola di rimedio automatico sceglie il Runner su cui OneUptime AI esegue i suoi comandi: è scegliere lì un Runner a permettere ai comandi di OneUptime AI di eseguirsi su di esso.
+Un Runner applica una modifica alle sue funzionalità al successivo heartbeat; non serve riavviarlo. L'IA non è una funzionalità. Un repository di codice sceglie, nelle sue impostazioni in Codice, il Runner su cui l'IA ci lavora, e la pagina del Runner elenca i repository che lo scelgono. Una regola IA sceglie il Runner su cui OneUptime AI esegue i suoi comandi: è scegliere lì un Runner a permettere ai comandi di OneUptime AI di eseguirsi su di esso.
 
 ### 2. Copia il comando di installazione
 
@@ -171,7 +171,7 @@ Un passaggio che ha scelto un Runner lo mantiene, qualunque sia il predefinito, 
 
 Il predefinito è uno dei Runner propri del progetto che esegue i passaggi di runbook: non un Runner globale, non il Runner nel cluster installato dall'agente Kubernetes, e non uno con **Esegue i runbook** disattivato. Finché un Runner è il predefinito, il suo **Esegue i runbook** resta attivo. Quando il predefinito non è connesso, il menu a discesa di un passaggio lo dice, e un passaggio su di esso lo attende, come per qualsiasi Runner, finché non scade il suo claim timeout.
 
-Solo i passaggi di runbook usano il predefinito. Un repository di codice sceglie il suo Runner nelle sue impostazioni in Codice, e una regola di rimedio automatico sceglie il proprio.
+Solo i passaggi di runbook usano il predefinito. Un repository di codice sceglie il suo Runner nelle sue impostazioni in Codice, e una regola IA sceglie il proprio.
 
 ## Note operative
 
