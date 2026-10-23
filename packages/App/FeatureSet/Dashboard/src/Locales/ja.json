@@ -33392,6 +33392,17 @@
   "Events appear here as the Kubernetes agent sends them.": "イベントは Kubernetes エージェントが送信するとここに表示されます。",
   "Try another namespace, kind or reason, or a longer time range.": "別の Namespace、種類、理由を選ぶか、より長い時間範囲を選んでください。",
   "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "このクラスターのノード、ワークロード、オートスケーラー、ボリュームについて Kubernetes が報告した内容です。",
+  "Assign {{role}}": "{{role}} を割り当て",
+  "By {{name}}": "{{name}} による",
+  "Edit what happened": "何が起きたかを編集",
+  "No description yet.": "説明はまだありません。",
+  "Not identified yet.": "まだ特定されていません。",
+  "Root cause": "根本原因",
+  "Shown on the status pages this incident appears on.": "このインシデントが表示されるステータスページに表示されます。",
+  "What happened": "何が起きたか",
+  "Why it happened, once you know.": "原因が分かったら、なぜ起きたかを記入します。",
   "{{count}} more labels": "ほか {{count}} 件のラベル",
-  "{{count}} more labels_one": "ほか {{count}} 件のラベル"
+  "{{count}} more labels_one": "ほか {{count}} 件のラベル",
+  "{{duration}} after impact began": "影響の開始から {{duration}}",
+  "Shown on the status pages this episode appears on.": "このエピソードが表示されるステータスページに表示されます。"
 }

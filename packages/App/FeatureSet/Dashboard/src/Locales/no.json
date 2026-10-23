@@ -13687,7 +13687,7 @@
   "Not a column on this model": "Not a column on this model",
   "Not a valid cron expression": "Not a valid cron expression",
   "Not allowed": "Not allowed",
-  "Not assigned": "Not assigned",
+  "Not assigned": "Ikke tildelt",
   "Not available on this engine": "Not available on this engine",
   "Not checked": "Not checked",
   "Not collected": "Not collected",
@@ -33392,6 +33392,17 @@
   "Events appear here as the Kubernetes agent sends them.": "Hendelser vises her etter hvert som Kubernetes-agenten sender dem.",
   "Try another namespace, kind or reason, or a longer time range.": "Prøv et annet namespace, en annen type eller årsak, eller et lengre tidsrom.",
   "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Hva Kubernetes har rapportert om denne klyngens noder, arbeidsbelastninger, autoskalerere og volumer.",
+  "Assign {{role}}": "Tildel {{role}}",
+  "By {{name}}": "Av {{name}}",
+  "Edit what happened": "Rediger hva som skjedde",
+  "No description yet.": "Ingen beskrivelse ennå.",
+  "Not identified yet.": "Ikke fastslått ennå.",
+  "Root cause": "Rotårsak",
+  "Shown on the status pages this incident appears on.": "Vises på statussidene som viser denne hendelsen.",
+  "What happened": "Hva som skjedde",
+  "Why it happened, once you know.": "Hvorfor det skjedde, når du vet det.",
   "{{count}} more labels": "{{count}} etiketter til",
-  "{{count}} more labels_one": "{{count}} etikett til"
+  "{{count}} more labels_one": "{{count}} etikett til",
+  "{{duration}} after impact began": "{{duration}} etter at påvirkningen startet",
+  "Shown on the status pages this episode appears on.": "Vises på statussidene som viser denne episoden."
 }

@@ -13687,7 +13687,7 @@
   "Not a column on this model": "Not a column on this model",
   "Not a valid cron expression": "Not a valid cron expression",
   "Not allowed": "Not allowed",
-  "Not assigned": "Not assigned",
+  "Not assigned": "Не назначен",
   "Not available on this engine": "Not available on this engine",
   "Not checked": "Not checked",
   "Not collected": "Not collected",
@@ -33392,6 +33392,17 @@
   "Events appear here as the Kubernetes agent sends them.": "События появляются здесь по мере того, как их отправляет агент Kubernetes.",
   "Try another namespace, kind or reason, or a longer time range.": "Выберите другое пространство имён, вид или причину или более длинный период.",
   "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Что Kubernetes сообщал об узлах, рабочих нагрузках, автомасштабировщиках и томах этого кластера.",
+  "Assign {{role}}": "Назначить: {{role}}",
+  "By {{name}}": "Инициатор: {{name}}",
+  "Edit what happened": "Редактировать: что произошло",
+  "No description yet.": "Описания пока нет.",
+  "Not identified yet.": "Пока не установлена.",
+  "Root cause": "Корневая причина",
+  "Shown on the status pages this incident appears on.": "Отображается на страницах состояния, где показан этот инцидент.",
+  "What happened": "Что произошло",
+  "Why it happened, once you know.": "Почему это произошло, когда станет известно.",
   "{{count}} more labels": "Ещё меток: {{count}}",
-  "{{count}} more labels_one": "Ещё {{count}} метка"
+  "{{count}} more labels_one": "Ещё {{count}} метка",
+  "{{duration}} after impact began": "{{duration}} после начала воздействия",
+  "Shown on the status pages this episode appears on.": "Отображается на страницах состояния, где показан этот эпизод."
 }

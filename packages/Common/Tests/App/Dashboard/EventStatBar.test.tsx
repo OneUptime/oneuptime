@@ -8,6 +8,8 @@ import { cleanup, render, screen } from "@testing-library/react";
 import React from "react";
 import { afterEach, describe, expect, test } from "@jest/globals";
 import IconProp from "../../../Types/Icon/IconProp";
+import { createInstance, i18n } from "i18next";
+import { I18nextProvider } from "react-i18next";
 
 /*
  * The incident, alert, scheduled maintenance and episode overview pages show
@@ -457,5 +459,95 @@ describe("EventStatBar", () => {
 
     expect(screen.getByText(LONG_VALUE)).toHaveTextContent(LONG_VALUE);
     expect(screen.getByText(LONG_VALUE)).not.toHaveClass("truncate");
+  });
+});
+
+/*
+ * A tile's label is English where a page writes it - "Declared", "Duration"
+ * - and the tile looks it up where it draws it, as the event header does its
+ * facts' labels. It used to draw the label as given, so every overview's
+ * stat bar read "Duration" in German too. A label the page already put in
+ * the reader's words ("{{stateName}} in") has no entry of its own, and
+ * reads as given.
+ *
+ * The instance reaches the tile through I18nextProvider only, so German
+ * never leaks into the other suites of this worker.
+ */
+describe("EventStatTile in the reader's language", () => {
+  const createGerman: () => Promise<i18n> = async (): Promise<i18n> => {
+    const instance: i18n = createInstance();
+
+    await instance.init({
+      lng: "de",
+      resources: {
+        de: {
+          translation: {
+            Declared: "Erklärt",
+            Duration: "Dauer",
+            "Incident response times": "Reaktionszeiten bei Vorfällen",
+          },
+        },
+      },
+      keySeparator: false,
+      nsSeparator: false,
+    });
+
+    return instance;
+  };
+
+  test("looks its label up, in both variants", async () => {
+    const german: i18n = await createGerman();
+
+    render(
+      <I18nextProvider i18n={german}>
+        <EventStatBar columns={2}>
+          <EventStatTile variant="segment" label="Declared" value="18:01" />
+          <EventStatTile label="Duration" value="3m" />
+        </EventStatBar>
+      </I18nextProvider>,
+    );
+
+    expect(screen.getByText("Erklärt")).toBeInTheDocument();
+    expect(screen.getByText("Dauer")).toBeInTheDocument();
+    expect(screen.queryByText("Declared")).toBeNull();
+    expect(screen.queryByText("Duration")).toBeNull();
+  });
+
+  test("the bar names its group in the reader's language too", async () => {
+    const german: i18n = await createGerman();
+
+    render(
+      <I18nextProvider i18n={german}>
+        <EventStatBar columns={2} ariaLabel="Incident response times">
+          <EventStatTile variant="segment" label="Declared" value="18:01" />
+          <EventStatTile variant="segment" label="Duration" value="3m" />
+        </EventStatBar>
+      </I18nextProvider>,
+    );
+
+    expect(
+      screen.getByRole("group", { name: "Reaktionszeiten bei Vorfällen" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("group", { name: "Incident response times" }),
+    ).toBeNull();
+  });
+
+  test("a label already in the reader's words reads as given", async () => {
+    const german: i18n = await createGerman();
+
+    render(
+      <I18nextProvider i18n={german}>
+        <EventStatTile variant="segment" label="Bestätigt in" value="3 Min." />
+      </I18nextProvider>,
+    );
+
+    expect(screen.getByText("Bestätigt in")).toBeInTheDocument();
+  });
+
+  test("an English reader sees the label as written", () => {
+    render(<EventStatTile variant="segment" label="Declared" value="18:01" />);
+
+    expect(screen.getByText("Declared")).toBeInTheDocument();
   });
 });
