@@ -441,14 +441,21 @@ describe("isKubernetesEventAboutWorkload: what a workload runs, by its names", (
     ["Pod", "web", false],
     ["Pod", "webapp-5d9c7b8f6-x2x7q", false],
     ["Service", "web", false],
-  ])("a Deployment's page: %s %s is %s", (kind, name, expected) => {
-    expect(
-      isKubernetesEventAboutWorkload(
-        { objectKind: kind as string, objectName: name as string },
-        deployment,
-      ),
-    ).toBe(expected);
-  });
+  ])(
+    "a Deployment's page: %s %s is %s",
+    (
+      kind: string | boolean,
+      name: string | boolean,
+      expected: string | boolean,
+    ) => {
+      expect(
+        isKubernetesEventAboutWorkload(
+          { objectKind: kind as string, objectName: name as string },
+          deployment,
+        ),
+      ).toBe(expected);
+    },
+  );
 
   test.each([
     ["StatefulSet", "db", true],
@@ -456,28 +463,42 @@ describe("isKubernetesEventAboutWorkload: what a workload runs, by its names", (
     ["Pod", "db-12", true],
     ["Pod", "db-backup-0", false],
     ["Pod", "db-x2x7q", false],
-  ])("a StatefulSet's page: %s %s is %s", (kind, name, expected) => {
-    expect(
-      isKubernetesEventAboutWorkload(
-        { objectKind: kind as string, objectName: name as string },
-        { kind: KubernetesWorkloadKind.StatefulSet, name: "db" },
-      ),
-    ).toBe(expected);
-  });
+  ])(
+    "a StatefulSet's page: %s %s is %s",
+    (
+      kind: string | boolean,
+      name: string | boolean,
+      expected: string | boolean,
+    ) => {
+      expect(
+        isKubernetesEventAboutWorkload(
+          { objectKind: kind as string, objectName: name as string },
+          { kind: KubernetesWorkloadKind.StatefulSet, name: "db" },
+        ),
+      ).toBe(expected);
+    },
+  );
 
   test.each([
     ["DaemonSet", "node-agent", true],
     ["Pod", "node-agent-x2x7q", true],
     ["Pod", "node-agent-0", false],
     ["Pod", "node-agent-metrics-x2x7q", false],
-  ])("a DaemonSet's page: %s %s is %s", (kind, name, expected) => {
-    expect(
-      isKubernetesEventAboutWorkload(
-        { objectKind: kind as string, objectName: name as string },
-        { kind: KubernetesWorkloadKind.DaemonSet, name: "node-agent" },
-      ),
-    ).toBe(expected);
-  });
+  ])(
+    "a DaemonSet's page: %s %s is %s",
+    (
+      kind: string | boolean,
+      name: string | boolean,
+      expected: string | boolean,
+    ) => {
+      expect(
+        isKubernetesEventAboutWorkload(
+          { objectKind: kind as string, objectName: name as string },
+          { kind: KubernetesWorkloadKind.DaemonSet, name: "node-agent" },
+        ),
+      ).toBe(expected);
+    },
+  );
 
   test.each([
     ["Job", "migrate", true],
@@ -485,14 +506,21 @@ describe("isKubernetesEventAboutWorkload: what a workload runs, by its names", (
     // An indexed Job's Pod.
     ["Pod", "migrate-3-x2x7q", true],
     ["Pod", "migrate-v2-x2x7q", false],
-  ])("a Job's page: %s %s is %s", (kind, name, expected) => {
-    expect(
-      isKubernetesEventAboutWorkload(
-        { objectKind: kind as string, objectName: name as string },
-        { kind: KubernetesWorkloadKind.Job, name: "migrate" },
-      ),
-    ).toBe(expected);
-  });
+  ])(
+    "a Job's page: %s %s is %s",
+    (
+      kind: string | boolean,
+      name: string | boolean,
+      expected: string | boolean,
+    ) => {
+      expect(
+        isKubernetesEventAboutWorkload(
+          { objectKind: kind as string, objectName: name as string },
+          { kind: KubernetesWorkloadKind.Job, name: "migrate" },
+        ),
+      ).toBe(expected);
+    },
+  );
 
   test.each([
     ["CronJob", "nightly", true],
@@ -501,14 +529,21 @@ describe("isKubernetesEventAboutWorkload: what a workload runs, by its names", (
     ["Pod", "nightly-29353140-2-x2x7q", true],
     ["Job", "nightly-report", false],
     ["Pod", "nightly-report-x2x7q", false],
-  ])("a CronJob's page: %s %s is %s", (kind, name, expected) => {
-    expect(
-      isKubernetesEventAboutWorkload(
-        { objectKind: kind as string, objectName: name as string },
-        { kind: KubernetesWorkloadKind.CronJob, name: "nightly" },
-      ),
-    ).toBe(expected);
-  });
+  ])(
+    "a CronJob's page: %s %s is %s",
+    (
+      kind: string | boolean,
+      name: string | boolean,
+      expected: string | boolean,
+    ) => {
+      expect(
+        isKubernetesEventAboutWorkload(
+          { objectKind: kind as string, objectName: name as string },
+          { kind: KubernetesWorkloadKind.CronJob, name: "nightly" },
+        ),
+      ).toBe(expected);
+    },
+  );
 
   test("every workload's page asks for the Kinds it keeps", () => {
     for (const kind of Object.values(KubernetesWorkloadKind)) {

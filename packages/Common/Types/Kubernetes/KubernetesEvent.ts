@@ -65,8 +65,10 @@ enum KubernetesEventAttribute {
   // When it first and last happened, as ISO 8601.
   FirstSeen = "k8s.event.first_seen",
   LastSeen = "k8s.event.last_seen",
-  // Who reported it: the controller (kubelet, kernel-monitor,
-  // horizontal-pod-autoscaler) and the instance of it (usually a node).
+  /*
+   * Who reported it: the controller (kubelet, kernel-monitor,
+   * horizontal-pod-autoscaler) and the instance of it (usually a node).
+   */
   ReportingController = "k8s.event.reporting_controller",
   ReportingInstance = "k8s.event.reporting_instance",
 
