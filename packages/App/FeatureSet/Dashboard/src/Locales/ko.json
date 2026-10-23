@@ -33401,5 +33401,6 @@
   "Shown on the status pages this incident appears on.": "이 인시던트가 표시되는 상태 페이지에 표시됩니다.",
   "What happened": "발생 내용",
   "Why it happened, once you know.": "원인을 알게 되면 왜 발생했는지 적습니다.",
-  "{{duration}} after impact began": "영향 시작 후 {{duration}}"
+  "{{duration}} after impact began": "영향 시작 후 {{duration}}",
+  "Shown on the status pages this episode appears on.": "이 에피소드가 표시되는 상태 페이지에 표시됩니다."
 }

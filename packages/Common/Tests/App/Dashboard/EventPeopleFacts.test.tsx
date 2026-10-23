@@ -8,6 +8,7 @@ import {
   test,
 } from "@jest/globals";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -51,9 +52,11 @@ import {
   CommanderFactValue,
   EVENT_ROLES_CARD_ID,
   OwnersFactValue,
+  RoleAssignRequestState,
   getCommanderFact,
   getOwnersFact,
   scrollToEventRolesCard,
+  useRoleAssignRequest,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventPeopleFacts";
 import { EventStatusFact } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventStatusPanel";
 import { ResourceOwnerEntry } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceOwners/OwnerEntry";
@@ -111,6 +114,25 @@ function shownNames(container: HTMLElement): Array<string> {
     });
 }
 
+/*
+ * The empty place an open record shows where an avatar would be: a dashed
+ * circle with a plus, read as nothing (the word beside it is the action).
+ */
+function expectEmptyPlace(control: HTMLElement): void {
+  const place: HTMLElement = within(control).getByTestId("event-empty-place");
+
+  expect(place).toHaveAttribute("aria-hidden", "true");
+  expect(place).toHaveClass(
+    "h-6",
+    "w-6",
+    "-my-0.5",
+    "rounded-full",
+    "border",
+    "border-dashed",
+  );
+  expect(place.querySelector("svg")).not.toBeNull();
+}
+
 afterEach(() => {
   cleanup();
 });
@@ -144,7 +166,7 @@ describe("the commander", () => {
     ]);
   });
 
-  test("says Not assigned, and offers Assign while the record is open", () => {
+  test("while the record is open, the empty place and Assign stand where the commander would", () => {
     const onAssign: Mock<() => void> = jest.fn<() => void>();
 
     render(
@@ -155,14 +177,18 @@ describe("the commander", () => {
       />,
     );
 
-    expect(screen.getByText("Not assigned")).toBeVisible();
-
     // Visibly "Assign"; heard as which role it gives.
     const assign: HTMLElement = screen.getByRole("button", {
       name: "Assign Incident Commander",
     });
 
     expect(assign).toHaveTextContent("Assign");
+    // The dashed place and the word are one control, laid out like a person.
+    expectEmptyPlace(assign);
+    expect(assign).toHaveClass("group", "inline-flex", "gap-1.5");
+    // Said once: the place and its action, not "Not assigned" beside them.
+    expect(screen.queryByText("Not assigned")).toBeNull();
+    expect(screen.getByTestId("event-commander")).toHaveTextContent(/^Assign$/);
 
     fireEvent.click(assign);
 
@@ -172,8 +198,39 @@ describe("the commander", () => {
   test("a record that is over only says nobody held it", () => {
     render(<CommanderFactValue members={[]} roleName="Incident Commander" />);
 
-    expect(screen.getByText("Not assigned")).toBeVisible();
+    expect(screen.getByTestId("event-commander")).toHaveTextContent(
+      /^Not assigned$/,
+    );
     expect(screen.queryByRole("button")).toBeNull();
+    expect(screen.queryByTestId("event-empty-place")).toBeNull();
+  });
+
+  test("sits at the top of its line, so a name is level with its label", () => {
+    const people: RenderResult = render(
+      <CommanderFactValue members={[MAYA]} roleName="Incident Commander" />,
+    );
+
+    expect(people.getByTestId("event-commander")).toHaveClass(
+      "inline-flex",
+      "align-top",
+    );
+    // The 24px avatar takes a 20px line: the row is as tall as words.
+    expect(
+      people
+        .getByTestId("event-commander-person")
+        .querySelector("[aria-hidden='true']"),
+    ).toHaveClass("-my-0.5");
+    people.unmount();
+
+    const open: RenderResult = render(
+      <CommanderFactValue
+        members={[]}
+        roleName="Incident Commander"
+        onAssign={(): void => {}}
+      />,
+    );
+
+    expect(open.getByTestId("event-commander")).toHaveClass("align-top");
   });
 
   test("Assign names the project's own role", () => {
@@ -306,7 +363,7 @@ describe("the owners", () => {
     expect(more).toHaveAttribute("href", OWNERS_ROUTE.toString());
   });
 
-  test("says None, and offers Add owners while the record is open", () => {
+  test("while the record is open, the empty place and Add lead to the Owners page", () => {
     render(
       <OwnersFactValue
         owners={[]}
@@ -315,20 +372,39 @@ describe("the owners", () => {
       />,
     );
 
-    expect(screen.getByText("None")).toBeVisible();
-
-    // Visibly "Add" beside "None"; heard on its own as "Add owners".
+    // Visibly "Add" after "Owners"; heard on its own as "Add owners".
     const add: HTMLElement = screen.getByRole("link", { name: "Add owners" });
 
     expect(add).toHaveAttribute("href", OWNERS_ROUTE.toString());
     expect(within(add).getByText("Add")).toHaveAttribute("aria-hidden", "true");
+    expectEmptyPlace(add);
+    expect(add).toHaveClass("group", "inline-flex", "gap-1.5");
+    // Said once: no "None" beside the place that says it.
+    expect(screen.queryByText("None")).toBeNull();
+    expect(screen.getByTestId("event-owners")).toHaveClass("align-top");
   });
 
   test("a record that is over only says None", () => {
     render(<OwnersFactValue owners={[]} ownersRoute={OWNERS_ROUTE} />);
 
-    expect(screen.getByText("None")).toBeVisible();
+    expect(screen.getByTestId("event-owners")).toHaveTextContent(/^None$/);
     expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.queryByTestId("event-empty-place")).toBeNull();
+  });
+
+  test("owners sit at the top of their line, level with the label", () => {
+    render(
+      <OwnersFactValue
+        owners={[team("Checkout SRE", 1), person("Sam Rivera", 2)]}
+        ownersRoute={OWNERS_ROUTE}
+      />,
+    );
+
+    expect(screen.getByTestId("event-owners")).toHaveClass(
+      "inline-flex",
+      "flex-wrap",
+      "align-top",
+    );
   });
 });
 
@@ -350,14 +426,25 @@ describe("getOwnersFact", () => {
   });
 
   test("an empty list is a fact: the record has no owners", () => {
-    const fact: EventStatusFact | null = getOwnersFact({
+    const over: EventStatusFact | null = getOwnersFact({
+      owners: [],
+      ownersRoute: OWNERS_ROUTE,
+    });
+    const overView: RenderResult = render(<>{over!.value}</>);
+
+    expect(overView.container).toHaveTextContent("None");
+    overView.unmount();
+
+    const open: EventStatusFact | null = getOwnersFact({
       owners: [],
       ownersRoute: OWNERS_ROUTE,
       canAddOwners: true,
     });
-    const view: RenderResult = render(<>{fact!.value}</>);
+    const openView: RenderResult = render(<>{open!.value}</>);
 
-    expect(view.container).toHaveTextContent("None");
+    expect(
+      within(openView.container).getByRole("link", { name: "Add owners" }),
+    ).toBeVisible();
   });
 });
 
@@ -393,10 +480,10 @@ describe("in the reader's language", () => {
     return instance;
   };
 
-  test("Not assigned, and Assign heard with the role's name as the header shows it", async () => {
+  test("Assign heard with the role's name as the header shows it; Not assigned once it is over", async () => {
     const german: i18n = await createGerman();
 
-    render(
+    const open: RenderResult = render(
       <I18nextProvider i18n={german}>
         <CommanderFactValue
           members={[]}
@@ -406,13 +493,20 @@ describe("in the reader's language", () => {
       </I18nextProvider>,
     );
 
-    expect(screen.getByText("Nicht zugewiesen")).toBeVisible();
-
     const assign: HTMLElement = screen.getByRole("button", {
       name: "Vorfall-Kommandant zuweisen",
     });
 
     expect(assign).toHaveTextContent("Zuweisen");
+    open.unmount();
+
+    render(
+      <I18nextProvider i18n={german}>
+        <CommanderFactValue members={[]} roleName="Incident Commander" />
+      </I18nextProvider>,
+    );
+
+    expect(screen.getByText("Nicht zugewiesen")).toBeVisible();
   });
 
   test("a project's own role name, with no entry of its own, reads as written", async () => {
@@ -433,10 +527,10 @@ describe("in the reader's language", () => {
     ).toBeVisible();
   });
 
-  test("None, and Add heard as Add owners", async () => {
+  test("Add heard as Add owners; None once it is over", async () => {
     const german: i18n = await createGerman();
 
-    render(
+    const open: RenderResult = render(
       <I18nextProvider i18n={german}>
         <OwnersFactValue
           owners={[]}
@@ -446,8 +540,6 @@ describe("in the reader's language", () => {
       </I18nextProvider>,
     );
 
-    expect(screen.getByText("Keine")).toBeVisible();
-
     const add: HTMLElement = screen.getByRole("link", {
       name: "Eigentümer hinzufügen",
     });
@@ -456,6 +548,15 @@ describe("in the reader's language", () => {
     expect(screen.getByTestId("event-owners-add")).toHaveTextContent(
       "HinzufügenEigentümer hinzufügen",
     );
+    open.unmount();
+
+    render(
+      <I18nextProvider i18n={german}>
+        <OwnersFactValue owners={[]} ownersRoute={OWNERS_ROUTE} />
+      </I18nextProvider>,
+    );
+
+    expect(screen.getByText("Keine")).toBeVisible();
   });
 });
 
@@ -516,5 +617,64 @@ describe("Assign takes the reader to the roles card", () => {
       scrollToEventRolesCard();
     }).not.toThrow();
     expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The page's side of Assign (useRoleAssignRequest): each Assign is a new
+   * request for the role's picker, handed to the roles card, and the reader
+   * is taken to the card.
+   */
+  describe("useRoleAssignRequest", () => {
+    let latest: RoleAssignRequestState | undefined;
+
+    const Page: () => ReactElement = (): ReactElement => {
+      latest = useRoleAssignRequest();
+
+      return (
+        <div id={EVENT_ROLES_CARD_ID} tabIndex={-1} data-testid="roles">
+          Incident Roles
+        </div>
+      );
+    };
+
+    test("asks for nothing until Assign is pressed", () => {
+      render(<Page />);
+
+      expect(latest?.request).toBeUndefined();
+      expect(scrollIntoView).not.toHaveBeenCalled();
+    });
+
+    test("each Assign is a new request for the role, and takes the reader to the card", () => {
+      render(<Page />);
+
+      act(() => {
+        latest!.requestAssign("76000000-0000-4000-8000-000000000001");
+      });
+
+      expect(latest?.request).toEqual({
+        roleId: "76000000-0000-4000-8000-000000000001",
+        requestId: 1,
+      });
+      expect(scrollIntoView).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId("roles")).toHaveFocus();
+
+      // Pressed again (the picker was closed): a new request, so it reopens.
+      act(() => {
+        latest!.requestAssign("76000000-0000-4000-8000-000000000001");
+      });
+
+      expect(latest?.request?.requestId).toBe(2);
+      expect(scrollIntoView).toHaveBeenCalledTimes(2);
+    });
+
+    test("keeps the same function between renders, so a header built from it never changes for nothing", () => {
+      const view: RenderResult = render(<Page />);
+      const first: ((roleId: string) => void) | undefined =
+        latest?.requestAssign;
+
+      view.rerender(<Page />);
+
+      expect(latest?.requestAssign).toBe(first);
+    });
   });
 });

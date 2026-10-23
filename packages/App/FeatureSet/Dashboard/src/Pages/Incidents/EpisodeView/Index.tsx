@@ -57,12 +57,14 @@ import { getEventStartedByText } from "../../../Utils/EventOverview";
 import EventStartTileValue from "../../../Components/EventView/EventStartTileValue";
 import {
   EVENT_ROLES_CARD_ID,
+  RoleAssignRequestState,
   getCommanderFact,
   getOwnersFact,
-  scrollToEventRolesCard,
+  useRoleAssignRequest,
 } from "../../../Components/EventView/EventPeopleFacts";
 import {
   EventRolesSnapshot,
+  PrimaryRoleHolding,
   getPrimaryRoleHolding,
 } from "../../../Utils/EventPeople";
 import IncidentEpisodeOwnerTeam from "Common/Models/DatabaseModels/IncidentEpisodeOwnerTeam";
@@ -168,6 +170,8 @@ const IncidentEpisodeView: FunctionComponent<
     resourceIdField: "incidentEpisodeId",
     resourceId: modelId,
   });
+  // The header's Assign, which opens the commander's picker in the roles card.
+  const roleAssign: RoleAssignRequestState = useRoleAssignRequest();
   /*
    * The episode the page is on now. A callback from a card rendered for the
    * previous episode can still fire after the switch (a state change or a
@@ -428,13 +432,19 @@ const IncidentEpisodeView: FunctionComponent<
    * and Add owners are offered only while the episode is open.
    */
   const peopleFacts: Array<EventStatusFact> = [];
+  const primaryRole: PrimaryRoleHolding | null = getPrimaryRoleHolding(
+    rolesSnapshot?.subjectId === modelIdString
+      ? rolesSnapshot.value
+      : undefined,
+  );
   const commanderFact: EventStatusFact | null = getCommanderFact({
-    holding: getPrimaryRoleHolding(
-      rolesSnapshot?.subjectId === modelIdString
-        ? rolesSnapshot.value
-        : undefined,
-    ),
-    onAssign: timing.isResolved ? undefined : scrollToEventRolesCard,
+    holding: primaryRole,
+    onAssign:
+      timing.isResolved || !primaryRole
+        ? undefined
+        : () => {
+            roleAssign.requestAssign(primaryRole.role.id);
+          },
   });
 
   if (commanderFact) {
@@ -564,6 +574,8 @@ const IncidentEpisodeView: FunctionComponent<
             modelId={modelId}
             description={episode?.description}
             rootCause={episode?.rootCause}
+            // A status page that shows the episode shows its description.
+            statusPageRecord="episode"
             onSaved={() => {
               refreshInPlace();
               // An edited root cause is a new feed entry.
@@ -838,6 +850,7 @@ const IncidentEpisodeView: FunctionComponent<
             id={EVENT_ROLES_CARD_ID}
             // The header names the commander from what this card reads.
             onRolesLoaded={onRolesLoaded}
+            assignRequest={roleAssign.request}
             onMemberChange={async () => {
               // Role changes are recorded on the episode feed.
               setContentRefreshToken((token: number): number => {

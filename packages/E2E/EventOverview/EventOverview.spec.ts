@@ -13657,6 +13657,69 @@ const NO_BREAK_SPACE: string = String.fromCharCode(0xa0);
 // Where "+3 more" and Add lead: the record's Owners page.
 const INCIDENT_OWNERS_PATH: string = `${INCIDENT_PATH}/owners`;
 
+// Who the roles card can give a role to: Jordan Patel (Fixture.js people).
+const JORDAN_USER_ID: string = uuid("80000000", 3);
+// The project's primary role, Incident Commander (Fixture.js roles).
+const COMMANDER_ROLE_ID: string = uuid("76000000", 1);
+
+/*
+ * The empty place an open record shows where an avatar would be: a dashed
+ * circle as big as an avatar, read as nothing.
+ */
+async function expectEmptyPlace(action: Locator): Promise<void> {
+  const place: Locator = action.getByTestId("event-empty-place");
+  await expect(place).toHaveAttribute("aria-hidden", "true");
+  const look: { style: string; width: number; height: number } =
+    await place.evaluate(
+      (element: Element): { style: string; width: number; height: number } => {
+        const box: DOMRect = element.getBoundingClientRect();
+        return {
+          style: getComputedStyle(element).borderTopStyle,
+          width: Math.round(box.width),
+          height: Math.round(box.height),
+        };
+      },
+    );
+  expect(look).toEqual({ style: "dashed", width: 24, height: 24 });
+}
+
+/*
+ * Where a fact's label and its first name sit: the tops of their text, and
+ * the fact's own height.
+ */
+async function factTextTops(
+  fact: Locator,
+): Promise<{ label: number; value: number; height: number }> {
+  return fact.evaluate(
+    (
+      valueElement: Element,
+    ): { label: number; value: number; height: number } => {
+      const item: Element = valueElement.closest("dd")!.parentElement!;
+      const textTop: (root: Element) => number = (root: Element): number => {
+        const walker: TreeWalker = document.createTreeWalker(
+          root,
+          NodeFilter.SHOW_TEXT,
+        );
+        let node: Node | null = walker.nextNode();
+        while (node && !(node.textContent || "").trim()) {
+          node = walker.nextNode();
+        }
+        const range: Range = document.createRange();
+        range.selectNodeContents(node!);
+        return range.getBoundingClientRect().top;
+      };
+      const name: Element =
+        valueElement.querySelector("[data-testid='event-person-name']") ||
+        valueElement;
+      return {
+        label: textTop(item.querySelector("dt")!),
+        value: textTop(name),
+        height: item.getBoundingClientRect().height,
+      };
+    },
+  );
+}
+
 function commanderFact(page: Page): Locator {
   return hero(page).getByTestId("event-commander");
 }
@@ -13800,7 +13863,7 @@ test.describe("at a glance: who is on it", () => {
     await expectNoErrorStates(page);
   });
 
-  test("?commander=none&state=ongoing: Not assigned, and Assign takes the reader to the roles card", async ({
+  test("?commander=none&state=ongoing: the empty place and Assign, which opens the commander's picker in the roles card", async ({
     page,
   }: {
     page: Page;
@@ -13808,7 +13871,8 @@ test.describe("at a glance: who is on it", () => {
     await openReady(page, INCIDENT_PAGE, "commander=none&state=ongoing");
 
     const commander: Locator = commanderFact(page);
-    await expect(commander).toContainText("Not assigned");
+    // Said once: the place and its action, not "Not assigned" beside them.
+    await expect(commander).toHaveText("Assign");
     await expect(commander.getByTestId("event-person-name")).toHaveCount(0);
 
     // Visibly "Assign"; heard as which role it gives.
@@ -13816,18 +13880,97 @@ test.describe("at a glance: who is on it", () => {
       name: "Assign Incident Commander",
     });
     await expect(assign).toHaveText("Assign");
+    await expectEmptyPlace(assign);
     await screenshotElement(hero(page), "incident-commander-not-assigned");
 
     await assign.click();
 
-    // The roles card, where a role is given: in view, and focused.
+    /*
+     * The roles card, where a role is given: in view, with the commander's
+     * picker open and the cursor in it - one step from the header.
+     */
     const roles: Locator = page.locator("#event-roles-card");
-    await expect(roles).toBeFocused();
     await expect(roles).toBeInViewport();
-    await expect(
-      roles.getByRole("heading", { level: 2, name: "Incident Roles" }),
-    ).toBeVisible();
+    const picker: Locator = roles.getByRole("combobox", {
+      name: "Incident Commander",
+    });
+    await expect(picker).toBeFocused();
+    await expect(picker).toBeInViewport();
+    await screenshotElement(roles, "incident-commander-assign-picker");
+
+    // Choosing somebody gives the role, and the header names them at once.
+    await page.keyboard.type("Jordan");
+    await page.keyboard.press("Enter");
+    await roles.getByRole("button", { name: "Save", exact: true }).click();
+
+    await expect(commander.getByTestId("event-person-name")).toHaveText([
+      "Jordan Patel",
+    ]);
+    const given: Array<RecordedWrite> = (await fixture(page)).creates.filter(
+      (write: RecordedWrite): boolean => {
+        return write.modelName === "IncidentMember";
+      },
+    );
+    expect(given).toHaveLength(1);
+    expect(JSON.stringify(given[0]?.data)).toContain(JORDAN_USER_ID);
+    expect(JSON.stringify(given[0]?.data)).toContain(COMMANDER_ROLE_ID);
     await expectNoErrorStates(page);
+  });
+
+  test("?commander=none&state=ongoing: Assign works from the keyboard, and a second Assign reopens a picker the reader closed", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "commander=none&state=ongoing");
+
+    const assign: Locator = commanderFact(page).getByRole("button", {
+      name: "Assign Incident Commander",
+    });
+    await assign.focus();
+    await page.keyboard.press("Enter");
+
+    const roles: Locator = page.locator("#event-roles-card");
+    const picker: Locator = roles.getByRole("combobox", {
+      name: "Incident Commander",
+    });
+    await expect(picker).toBeFocused();
+
+    await roles.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(picker).toHaveCount(0);
+
+    await assign.click();
+    await expect(picker).toBeFocused();
+  });
+
+  test("names sit level with their labels, and a fact with people is as tall as one with words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openReady(page, INCIDENT_PAGE, "state=ongoing");
+
+    for (const fact of [commanderFact(page), ownersFact(page)]) {
+      const tops: { label: number; value: number; height: number } =
+        await factTextTops(fact);
+      expect(Math.abs(tops.label - tops.value)).toBeLessThanOrEqual(0.5);
+      // One 20px line: the 24px avatar does not grow the row.
+      expect(tops.height).toBeLessThanOrEqual(20.5);
+    }
+
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "state=ongoing&commander=none&owners=none",
+    );
+
+    for (const fact of [commanderFact(page), ownersFact(page)]) {
+      const tops: { label: number; value: number; height: number } =
+        await factTextTops(fact);
+      expect(Math.abs(tops.label - tops.value)).toBeLessThanOrEqual(0.5);
+      expect(tops.height).toBeLessThanOrEqual(20.5);
+    }
   });
 
   test("?commander=none: a resolved incident says only that nobody held the role", async ({
@@ -13841,7 +13984,7 @@ test.describe("at a glance: who is on it", () => {
     await expect(commanderFact(page).getByRole("button")).toHaveCount(0);
   });
 
-  test("?owners=none&state=ongoing: None, and Add opens the Owners page", async ({
+  test("?owners=none&state=ongoing: the empty place and Add, which opens the Owners page", async ({
     page,
   }: {
     page: Page;
@@ -13849,12 +13992,17 @@ test.describe("at a glance: who is on it", () => {
     await openReady(page, INCIDENT_PAGE, "owners=none&state=ongoing");
 
     const owners: Locator = ownersFact(page);
-    await expect(owners).toContainText("None");
+    // Said once: the place and its action, not "None" beside them.
+    await expect(owners.getByText("None", { exact: true })).toHaveCount(0);
 
-    // Visibly "Add" beside "None"; heard as what it adds.
+    // Visibly "Add" after "Owners"; heard as what it adds.
     const add: Locator = owners.getByRole("link", { name: "Add owners" });
     await expect(add).toHaveAttribute("href", INCIDENT_OWNERS_PATH);
-    await expect(add.locator("[aria-hidden='true']")).toHaveText("Add");
+    await expect(
+      add.locator("[data-testid='event-owners-add'] > [aria-hidden='true']"),
+    ).toHaveText("Add");
+    await expectEmptyPlace(add);
+    await screenshotElement(hero(page), "incident-owners-none");
 
     await add.click();
     await expect(page.getByTestId("stub-page")).toHaveAttribute(
@@ -13968,6 +14116,33 @@ test.describe("at a glance: who is on it", () => {
       }
     });
   }
+
+  test("an incident episode nobody commands: Assign opens the commander's picker in the episode's roles card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_EPISODE_PAGE,
+      "commander=none&state=ongoing",
+    );
+
+    const assign: Locator = commanderFact(page).getByRole("button", {
+      name: "Assign Incident Commander",
+    });
+    await expectEmptyPlace(assign);
+    await assign.click();
+
+    const roles: Locator = page.locator("#event-roles-card");
+    await expect(
+      roles.getByRole("heading", { level: 2, name: "Episode Roles" }),
+    ).toBeVisible();
+    await expect(
+      roles.getByRole("combobox", { name: "Incident Commander" }),
+    ).toBeFocused();
+    await expectNoErrorStates(page);
+  });
 });
 
 test.describe("at a glance: what happened", () => {
@@ -14178,6 +14353,32 @@ test.describe("at a glance: what happened", () => {
         whatHappened,
         "stat bar before What happened",
       );
+
+      /*
+       * Its edit dialog says the description is public where it is: an
+       * incident episode's shows on the status pages it appears on; an
+       * alert's and an alert episode's nowhere outside OneUptime.
+       */
+      await whatHappened
+        .getByTestId("card-header-actions")
+        .getByRole("button", { name: "Edit" })
+        .click();
+      const dialog: Locator = page.getByRole("dialog", {
+        name: "Edit what happened",
+      });
+      await expect(dialog).toContainText("Why it happened, once you know.");
+      if (eventPage === INCIDENT_EPISODE_PAGE) {
+        await expect(dialog).toContainText(
+          "Shown on the status pages this episode appears on.",
+        );
+      } else {
+        await expect(dialog).not.toContainText("status pages");
+      }
+      await dialog
+        .getByTestId("modal-footer")
+        .getByRole("button", { name: "Cancel" })
+        .click();
+      await expect(dialog).toHaveCount(0);
       // Nothing else in the left column comes first.
       const left: Box = await documentBox(whatHappened);
       const feed: Box = await documentBox(card(page, eventPage.feed));
@@ -14275,6 +14476,25 @@ test.describe("at a glance: when, and what it touched", () => {
       await expectNoHorizontalOverflow(page);
     });
   }
+
+  test("an episode's Declared tile, four to a row at 1280px, breaks after the date rather than leaving the zone on its own", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openReady(page, INCIDENT_EPISODE_PAGE);
+
+    const lines: Array<string> = await tileValueLines(
+      page,
+      INCIDENT_EPISODE_PAGE.statBar,
+      0,
+    );
+    expect(lines.join(" ")).toBe("Sep 14, 05:56 PM GMT");
+    // Balanced lines: the date over the time and its zone, never a lone zone.
+    expect(lines).not.toContain("GMT");
+    await expectNoHorizontalOverflow(page);
+  });
 
   test("Affected Resources leads the right column, with the monitor status the incident sets", async ({
     page,

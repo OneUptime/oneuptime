@@ -135,15 +135,17 @@ import EventStartTileValue from "../../../Components/EventView/EventStartTileVal
 import EventWhatHappenedCard from "../../../Components/EventView/EventWhatHappenedCard";
 import {
   EVENT_ROLES_CARD_ID,
+  RoleAssignRequestState,
   getCommanderFact,
   getOwnersFact,
-  scrollToEventRolesCard,
+  useRoleAssignRequest,
 } from "../../../Components/EventView/EventPeopleFacts";
 import useEventOwners, {
   EventOwnersState,
 } from "../../../Components/EventView/useEventOwners";
 import {
   EventRolesSnapshot,
+  PrimaryRoleHolding,
   getPrimaryRoleHolding,
 } from "../../../Utils/EventPeople";
 import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
@@ -357,6 +359,8 @@ const IncidentView: FunctionComponent<
     resourceIdField: "incidentId",
     resourceId: modelId,
   });
+  // The header's Assign, which opens the commander's picker in the roles card.
+  const roleAssign: RoleAssignRequestState = useRoleAssignRequest();
   const [affectedMonitorsState, setAffectedMonitorsState] =
     useState<SubjectValue<Array<Monitor>> | null>(null);
   const affectedMonitors: Array<Monitor> | undefined =
@@ -1007,9 +1011,16 @@ const IncidentView: FunctionComponent<
   const isResolved: boolean = Boolean(durationEndDate);
   const headerFacts: Array<EventStatusFact> = [];
 
+  const primaryRole: PrimaryRoleHolding | null =
+    getPrimaryRoleHolding(currentRolesSnapshot);
   const commanderFact: EventStatusFact | null = getCommanderFact({
-    holding: getPrimaryRoleHolding(currentRolesSnapshot),
-    onAssign: isResolved ? undefined : scrollToEventRolesCard,
+    holding: primaryRole,
+    onAssign:
+      isResolved || !primaryRole
+        ? undefined
+        : () => {
+            roleAssign.requestAssign(primaryRole.role.id);
+          },
   });
 
   if (commanderFact) {
@@ -1203,7 +1214,7 @@ const IncidentView: FunctionComponent<
             modelId={modelId}
             description={incidentDescription}
             rootCause={incidentRootCause}
-            isDescriptionOnStatusPages={true}
+            statusPageRecord="incident"
             onSaved={() => {
               refreshData();
               // An edited root cause is a new feed entry.
@@ -1875,6 +1886,7 @@ const IncidentView: FunctionComponent<
              * follows a change made here at once: no read of its own.
              */
             onRolesLoaded={onRolesLoaded}
+            assignRequest={roleAssign.request}
             onMemberChange={async () => {
               // A member change is also a new feed entry.
               refreshFeed();

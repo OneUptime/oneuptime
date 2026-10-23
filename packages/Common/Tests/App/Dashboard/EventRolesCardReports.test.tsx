@@ -197,12 +197,14 @@ describe.each([
     renderCard: (
       onRolesLoaded: (recordId: string, snapshot: EventRolesSnapshot) => void,
       id?: string,
+      assignRequest?: { roleId: string; requestId: number },
     ): RenderResult => {
       return render(
         <IncidentMemberRoleAssignment
           incidentId={new ObjectID(INCIDENT_ID)}
           onRolesLoaded={onRolesLoaded}
           id={id}
+          assignRequest={assignRequest}
         />,
       );
     },
@@ -214,12 +216,14 @@ describe.each([
     renderCard: (
       onRolesLoaded: (recordId: string, snapshot: EventRolesSnapshot) => void,
       id?: string,
+      assignRequest?: { roleId: string; requestId: number },
     ): RenderResult => {
       return render(
         <IncidentEpisodeMemberRoleAssignment
           incidentEpisodeId={new ObjectID(EPISODE_ID)}
           onRolesLoaded={onRolesLoaded}
           id={id}
+          assignRequest={assignRequest}
         />,
       );
     },
@@ -235,6 +239,7 @@ describe.each([
     renderCard: (
       onRolesLoaded: (recordId: string, snapshot: EventRolesSnapshot) => void,
       id?: string,
+      assignRequest?: { roleId: string; requestId: number },
     ) => RenderResult;
   }) => {
     test("reports the roles and who holds them, stamped with its record", async () => {
@@ -367,6 +372,19 @@ describe.each([
       expect(view.container.firstElementChild).toBe(
         view.getByTestId("roles-card"),
       );
+    });
+
+    test("hands the header's Assign to the card, which opens that role's picker", () => {
+      const request: { roleId: string; requestId: number } = {
+        roleId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+        requestId: 1,
+      };
+
+      card.renderCard(() => {}, "event-roles-card", request);
+
+      expect(
+        memberRoleProps[memberRoleProps.length - 1]!["assignRequest"],
+      ).toBe(request);
     });
   },
 );

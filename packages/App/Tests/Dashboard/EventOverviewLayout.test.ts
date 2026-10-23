@@ -602,6 +602,15 @@ describe.each(PAGES)("%s overview layout", (_name: string, page: EventPage) => {
     expect(cardProps).toContain(
       "onSaved={() => { refreshData(); refreshFeed(); }}",
     );
+    /*
+     * The edit dialog says the description is public where it is: an
+     * incident's shows on its status pages, an alert's nowhere.
+     */
+    if (page.model === "Incident") {
+      expect(cardProps).toContain('statusPageRecord="incident"');
+    } else {
+      expect(cardProps).not.toContain("statusPageRecord");
+    }
   });
 
   test("the page reads what the card and the start tile show with its own row", () => {
@@ -663,11 +672,18 @@ describe("incident-only layout", () => {
     expect(view).toContain(
       "rolesSnapshot?.subjectId === modelIdString ? rolesSnapshot.value : undefined;",
     );
+    /*
+     * The header's Assign asks the roles card to open the commander's
+     * picker: the card is handed the request.
+     */
     expect(view).toContain(
-      '<IncidentMemberRoleAssignment incidentId={modelId} headerLayout="stacked" id={EVENT_ROLES_CARD_ID} onRolesLoaded={onRolesLoaded}',
+      '<IncidentMemberRoleAssignment incidentId={modelId} headerLayout="stacked" id={EVENT_ROLES_CARD_ID} onRolesLoaded={onRolesLoaded} assignRequest={roleAssign.request}',
     );
     expect(view).toContain(
-      "getCommanderFact({ holding: getPrimaryRoleHolding(currentRolesSnapshot), onAssign: isResolved ? undefined : scrollToEventRolesCard, });",
+      "const roleAssign: RoleAssignRequestState = useRoleAssignRequest();",
+    );
+    expect(view).toContain(
+      "const primaryRole: PrimaryRoleHolding | null = getPrimaryRoleHolding(currentRolesSnapshot); const commanderFact: EventStatusFact | null = getCommanderFact({ holding: primaryRole, onAssign: isResolved || !primaryRole ? undefined : () => { roleAssign.requestAssign(primaryRole.role.id); }, });",
     );
     // The commander first, then the owners.
     expect(

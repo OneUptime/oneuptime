@@ -74,11 +74,15 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
 });
 
 import EventWhatHappenedCard, {
+  EPISODE_STATUS_PAGE_DESCRIPTION_HELP,
   STATUS_PAGE_DESCRIPTION_HELP,
+  StatusPageRecordKind,
   WHAT_HAPPENED_CARD_TITLE,
+  getStatusPageDescriptionHelp,
   isOpenedByRootCause,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventWhatHappenedCard";
 import Incident from "../../../Models/DatabaseModels/Incident";
+import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import ObjectID from "../../../Types/ObjectID";
 import { FormType } from "../../../UI/Components/Forms/ModelForm";
@@ -109,16 +113,16 @@ function renderCard(props: {
   description?: string;
   rootCause?: string;
   onSaved?: () => void;
-  modelType?: typeof Incident | typeof Alert;
-  isDescriptionOnStatusPages?: boolean;
+  modelType?: typeof Incident | typeof Alert | typeof IncidentEpisode;
+  statusPageRecord?: StatusPageRecordKind;
 }): RenderResult {
   return render(
-    <EventWhatHappenedCard<Incident | Alert>
+    <EventWhatHappenedCard<Incident | Alert | IncidentEpisode>
       modelType={(props.modelType || Incident) as typeof Incident}
       modelId={new ObjectID(INCIDENT_ID)}
       description={props.description}
       rootCause={props.rootCause}
-      isDescriptionOnStatusPages={props.isDescriptionOnStatusPages}
+      statusPageRecord={props.statusPageRecord}
       onSaved={props.onSaved || ((): void => {})}
     />,
   );
@@ -372,7 +376,7 @@ describe("editing", () => {
   test("Edit opens one dialog for the description and the root cause, on this record", () => {
     renderCard({
       description: "Checkout is slow.",
-      isDescriptionOnStatusPages: true,
+      statusPageRecord: "incident",
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
@@ -421,6 +425,32 @@ describe("editing", () => {
 
     expect(props.modelType).toBe(Alert);
     expect(props.formProps.fields[0]!.description).toBeUndefined();
+  });
+
+  test("an incident episode's dialog says its description shows on the status pages it appears on", () => {
+    renderCard({ modelType: IncidentEpisode, statusPageRecord: "episode" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+
+    const props: RecordedModalProps = modalProps[modalProps.length - 1]!;
+
+    expect(props.modelType).toBe(IncidentEpisode);
+    expect(props.formProps.fields[0]!.description).toBe(
+      "Shown on the status pages this episode appears on.",
+    );
+    expect(props.formProps.fields[0]!.description).toBe(
+      EPISODE_STATUS_PAGE_DESCRIPTION_HELP,
+    );
+  });
+
+  test("names the public record the description belongs to, or says nothing", () => {
+    expect(getStatusPageDescriptionHelp("incident")).toBe(
+      STATUS_PAGE_DESCRIPTION_HELP,
+    );
+    expect(getStatusPageDescriptionHelp("episode")).toBe(
+      EPISODE_STATUS_PAGE_DESCRIPTION_HELP,
+    );
+    expect(getStatusPageDescriptionHelp(undefined)).toBeUndefined();
   });
 
   test("a save closes the dialog and hands the page the refresh", () => {

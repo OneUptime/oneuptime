@@ -51,6 +51,36 @@ export const STATUS_PAGE_DESCRIPTION_HELP: string = translationKey(
 );
 
 /*
+ * The same for an incident episode: a status page that shows the episode
+ * shows its description (StatusPageAPI reads it for the episode's page).
+ */
+export const EPISODE_STATUS_PAGE_DESCRIPTION_HELP: string = translationKey(
+  "Shown on the status pages this episode appears on.",
+);
+
+/*
+ * Which public record a description belongs to, when a status page shows
+ * it: an incident, or an incident episode.
+ */
+export type StatusPageRecordKind = "incident" | "episode";
+
+export const getStatusPageDescriptionHelp: (
+  kind: StatusPageRecordKind | undefined,
+) => string | undefined = (
+  kind: StatusPageRecordKind | undefined,
+): string | undefined => {
+  if (kind === "incident") {
+    return STATUS_PAGE_DESCRIPTION_HELP;
+  }
+
+  if (kind === "episode") {
+    return EPISODE_STATUS_PAGE_DESCRIPTION_HELP;
+  }
+
+  return undefined;
+};
+
+/*
  * The root cause the server writes into an incident or an alert that
  * somebody opened by hand without one (IncidentService, AlertService):
  * "Incident created by [Maya Chen](<their page>)", and nothing else. It says
@@ -73,11 +103,12 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   description?: string | undefined;
   rootCause?: string | undefined;
   /*
-   * Whether a status page shows the description: an incident's does, on
-   * the pages it appears on, so the edit dialog says so under Description;
-   * an alert's or an episode's is seen nowhere outside OneUptime.
+   * Whose description a status page shows: an incident's and an incident
+   * episode's are, on the pages they appear on, so the edit dialog says so
+   * under Description; an alert's or an alert episode's is seen nowhere
+   * outside OneUptime.
    */
-  isDescriptionOnStatusPages?: boolean | undefined;
+  statusPageRecord?: StatusPageRecordKind | undefined;
   // After a save: the page reads the record again, and its feed.
   onSaved: () => void;
 }
@@ -235,9 +266,7 @@ const EventWhatHappenedCard: <TBaseModel extends BaseModel>(
       fieldType: FormFieldSchemaType.Markdown,
       required: false,
       placeholder: "Description",
-      description: props.isDescriptionOnStatusPages
-        ? STATUS_PAGE_DESCRIPTION_HELP
-        : undefined,
+      description: getStatusPageDescriptionHelp(props.statusPageRecord),
     },
     {
       field: {

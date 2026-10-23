@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import MemberRoleAssignment, {
   MemberRole,
+  MemberRoleAssignRequest,
   AssignedMember,
   AvailableUser,
 } from "Common/UI/Components/MemberRoleAssignment/MemberRoleAssignment";
@@ -48,6 +49,11 @@ export interface ComponentProps {
    * scrolls to it when the commander is not assigned yet (Assign).
    */
   id?: string | undefined;
+  /*
+   * The header's Assign: opens that role's picker in this card, with the
+   * cursor in it, so the commander is chosen in one step.
+   */
+  assignRequest?: MemberRoleAssignRequest | undefined;
 }
 
 const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
@@ -297,6 +303,7 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
       emptyStateMessage="Configure incident roles in Incidents → Settings → Incident Roles to start assigning team members."
       className={props.className || ""}
       headerLayout={props.headerLayout}
+      assignRequest={props.assignRequest}
     />
   );
 

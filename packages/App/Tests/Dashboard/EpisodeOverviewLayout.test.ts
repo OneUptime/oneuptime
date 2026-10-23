@@ -478,6 +478,15 @@ describe("episode overview layout", () => {
       // A save reloads in place and refreshes the feed: no skeleton.
       expect(cardProps).toContain("refreshInPlace();");
       expect(cardProps).toContain("setContentRefreshToken(");
+      /*
+       * A status page that shows an incident episode shows its description,
+       * so its edit dialog says so; an alert episode's is seen nowhere.
+       */
+      if (page.episodeModel === "IncidentEpisode") {
+        expect(cardProps).toContain('statusPageRecord="episode"');
+      } else {
+        expect(cardProps).not.toContain("statusPageRecord");
+      }
     },
   );
 
@@ -511,10 +520,14 @@ describe("episode overview layout", () => {
     const alert: string = readSquashed(EPISODE_PAGES[1]!.pagePath);
 
     expect(incident).toContain(
-      "getCommanderFact({ holding: getPrimaryRoleHolding( rolesSnapshot?.subjectId === modelIdString ? rolesSnapshot.value : undefined, ), onAssign: timing.isResolved ? undefined : scrollToEventRolesCard, });",
+      "const primaryRole: PrimaryRoleHolding | null = getPrimaryRoleHolding( rolesSnapshot?.subjectId === modelIdString ? rolesSnapshot.value : undefined, ); const commanderFact: EventStatusFact | null = getCommanderFact({ holding: primaryRole, onAssign: timing.isResolved || !primaryRole ? undefined : () => { roleAssign.requestAssign(primaryRole.role.id); }, });",
+    );
+    // Assign opens the commander's picker in the episode's roles card.
+    expect(incident).toContain(
+      "const roleAssign: RoleAssignRequestState = useRoleAssignRequest();",
     );
     expect(incident).toContain(
-      'headerLayout="stacked" id={EVENT_ROLES_CARD_ID} onRolesLoaded={onRolesLoaded}',
+      'headerLayout="stacked" id={EVENT_ROLES_CARD_ID} onRolesLoaded={onRolesLoaded} assignRequest={roleAssign.request}',
     );
     // The commander first, then the owners.
     expect(
@@ -523,6 +536,7 @@ describe("episode overview layout", () => {
 
     expect(alert).not.toContain("getCommanderFact");
     expect(alert).not.toContain("onRolesLoaded");
+    expect(alert).not.toContain("useRoleAssignRequest");
   });
 
   test("only the incident episode page has episode roles", () => {

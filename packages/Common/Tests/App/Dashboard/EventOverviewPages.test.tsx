@@ -928,6 +928,7 @@ function rolesReport(holder: string | null): EventRolesSnapshot {
 type RolesCardProps = {
   id?: string;
   onRolesLoaded: (recordId: string, snapshot: EventRolesSnapshot) => void;
+  assignRequest?: { roleId: string; requestId: number } | undefined;
 };
 
 type FactValueProps = {
@@ -2655,6 +2656,26 @@ describe("incident-only behaviour", () => {
 
     expect(factValueProps(commander).members).toEqual([]);
     expect(typeof factValueProps(commander).onAssign).toBe("function");
+    expect(latestProps<RolesCardProps>("Roles").assignRequest).toBeUndefined();
+
+    // Assign asks the roles card for the primary role's picker.
+    act(() => {
+      factValueProps(commander).onAssign!();
+    });
+
+    expect(latestProps<RolesCardProps>("Roles").assignRequest).toEqual({
+      roleId: "dddddddd-dddd-4ddd-8ddd-ddddddddddd1",
+      requestId: 1,
+    });
+
+    // Asked again after the reader closed it: a new request, so it reopens.
+    act(() => {
+      factValueProps(factsOf(INCIDENT_CASE)[0]).onAssign!();
+    });
+
+    expect(latestProps<RolesCardProps>("Roles").assignRequest?.requestId).toBe(
+      2,
+    );
 
     serve(INCIDENT_CASE, {
       timeline: [...REOPENED_TIMELINE, [RESOLVED_STATE_ID, 100]],

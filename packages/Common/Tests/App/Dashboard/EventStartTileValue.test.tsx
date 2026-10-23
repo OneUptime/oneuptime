@@ -48,6 +48,27 @@ describe("EventStartTileValue", () => {
     expect(zone.className).toContain("text-gray-500");
   });
 
+  test("balances its lines, so a tile too narrow for one breaks after the date, not before the zone", () => {
+    OneUptimeDate.setUserTimezone("UTC" as Timezone);
+    jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockReturnValue(new Date("2026-09-14T18:20:00.000Z"));
+
+    render(
+      <EventStartTileValue startedAt={new Date("2026-09-14T18:01:00.000Z")} />,
+    );
+
+    /*
+     * "Sep 14," over "06:01 PM UTC" rather than "Sep 14, 06:01 PM" over a
+     * lone "UTC" (an episode's four tiles at 1280px): text-wrap: balance
+     * applies to a block, so the value is one.
+     */
+    expect(screen.getByTestId("event-start-tile-value")).toHaveClass(
+      "block",
+      "text-balance",
+    );
+  });
+
   test("a time with no zone to name draws the date and the time alone", () => {
     OneUptimeDate.setUserTimezone("UTC" as Timezone);
     jest

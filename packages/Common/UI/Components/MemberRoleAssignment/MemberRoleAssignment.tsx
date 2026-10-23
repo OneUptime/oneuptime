@@ -1,8 +1,11 @@
 import React, {
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useState,
   useCallback,
+  useEffect,
+  useRef,
 } from "react";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -54,6 +57,17 @@ export interface AvailableUser {
   profilePictureUrl?: string;
 }
 
+/*
+ * Somebody outside the card asks for a role's picker - an incident
+ * overview's header, whose Assign gives the Incident Commander here. Each new
+ * requestId opens that role's picker, with the cursor in it, as the role's
+ * own Assign button does.
+ */
+export interface MemberRoleAssignRequest {
+  roleId: string;
+  requestId: number;
+}
+
 export interface ComponentProps {
   title?: string;
   description?: string;
@@ -69,12 +83,34 @@ export interface ComponentProps {
   className?: string;
   // Handed to the Card; "stacked" suits a narrow column.
   headerLayout?: CardHeaderLayout | undefined;
+  assignRequest?: MemberRoleAssignRequest | undefined;
 }
 
 interface ReassignState {
   member: AssignedMember;
   role: MemberRole;
 }
+
+// The element a role's picker is drawn in, so it can be given the cursor.
+export const getMemberRolePickerId: (roleId: ObjectID | string) => string = (
+  roleId: ObjectID | string,
+): string => {
+  return `member-role-picker-${roleId.toString()}`;
+};
+
+/*
+ * Whether a role takes another person: a live role that takes several, or
+ * one nobody holds yet. An archived role is given to nobody new.
+ */
+export const canRoleTakeMorePeople: (
+  role: MemberRole,
+  memberCount: number,
+) => boolean = (role: MemberRole, memberCount: number): boolean => {
+  return (
+    !role.isArchived &&
+    (Boolean(role.canAssignMultipleUsers) || memberCount === 0)
+  );
+};
 
 const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -94,6 +130,89 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
     null,
   );
   const [isReassigning, setIsReassigning] = useState<boolean>(false);
+
+  /*
+   * A picker that has just opened takes the cursor once it is drawn: the
+   * Assign button that opened it is gone, and a request from outside the
+   * card is somebody who wants to choose a person now.
+   */
+  const pickerAwaitingFocusRef: MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  const openRolePicker: (roleId: ObjectID) => void = (
+    roleId: ObjectID,
+  ): void => {
+    setActiveRoleDropdown(roleId);
+    setSelectedUserOption(null);
+    pickerAwaitingFocusRef.current = true;
+  };
+
+  /*
+   * A request the card was drawn with is not a new one: a card drawn again
+   * for the next record must not open its picker by itself.
+   */
+  const handledRequestIdRef: MutableRefObject<number | undefined> = useRef<
+    number | undefined
+  >(props.assignRequest?.requestId);
+
+  useEffect(() => {
+    const request: MemberRoleAssignRequest | undefined = props.assignRequest;
+
+    if (
+      !request ||
+      request.requestId === handledRequestIdRef.current ||
+      props.isLoading
+    ) {
+      return;
+    }
+
+    handledRequestIdRef.current = request.requestId;
+
+    const role: MemberRole | undefined = props.roles.find(
+      (candidate: MemberRole): boolean => {
+        return candidate.id.toString() === request.roleId;
+      },
+    );
+
+    if (!role) {
+      return;
+    }
+
+    const memberCount: number = props.assignedMembers.filter(
+      (member: AssignedMember): boolean => {
+        return member.roleId.toString() === role.id.toString();
+      },
+    ).length;
+
+    if (!canRoleTakeMorePeople(role, memberCount)) {
+      return;
+    }
+
+    openRolePicker(role.id);
+  }, [
+    props.assignRequest?.requestId,
+    props.isLoading,
+    props.roles,
+    props.assignedMembers,
+  ]);
+
+  useEffect(() => {
+    if (!activeRoleDropdown || !pickerAwaitingFocusRef.current) {
+      return;
+    }
+
+    const input: HTMLInputElement | null | undefined = document
+      .getElementById(getMemberRolePickerId(activeRoleDropdown))
+      ?.querySelector("input");
+
+    if (!input) {
+      return;
+    }
+
+    pickerAwaitingFocusRef.current = false;
+    // Where the picker is already in view, or being scrolled to.
+    input.focus({ preventScroll: true });
+  }, [activeRoleDropdown, props.isLoading]);
 
   const handleAssign: (userId: ObjectID, roleId: ObjectID) => Promise<void> =
     useCallback(
@@ -377,9 +496,10 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                   activeRoleDropdown?.toString() === role.id.toString();
                 const availableUsers: Array<DropdownOption> =
                   getAvailableUsersForRole(role.id);
-                const canAddMore: boolean =
-                  !role.isArchived &&
-                  (role.canAssignMultipleUsers || members.length === 0);
+                const canAddMore: boolean = canRoleTakeMorePeople(
+                  role,
+                  members.length,
+                );
 
                 return (
                   <div
@@ -454,7 +574,7 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                         <button
                           type="button"
                           onClick={() => {
-                            setActiveRoleDropdown(role.id);
+                            openRolePicker(role.id);
                           }}
                           className="ml-12 inline-flex flex-shrink-0 items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all shadow-sm text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400"
                         >
@@ -491,6 +611,13 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                           <div className="flex flex-wrap items-center gap-2">
                             <div className="min-w-[10rem] max-w-sm flex-1">
                               <Dropdown
+                                id={getMemberRolePickerId(role.id)}
+                                /*
+                                 * Named by the role it gives: the cursor
+                                 * lands here, and "Select member..." is
+                                 * only a placeholder.
+                                 */
+                                ariaLabel={role.name}
                                 options={availableUsers}
                                 placeholder="Select member..."
                                 onChange={(

@@ -1253,7 +1253,7 @@ describe("Incident Episode overview: who runs it, and what happened", () => {
     expectNoCrash();
   });
 
-  test("an open episode with nobody in command offers Assign", async () => {
+  test("an open episode with nobody in command offers Assign, which opens the commander's picker in the roles card", async () => {
     await renderPage({ state: buildState("Created", new Color("#4b5563")) });
 
     act((): void => {
@@ -1265,17 +1265,26 @@ describe("Incident Episode overview: who runs it, and what happened", () => {
     )[0]!;
 
     expect(commander.label).toBe("Incident Commander");
+    // Nothing asked of the roles card yet.
+    expect(rolesProps.current!["assignRequest"]).toBeUndefined();
 
     const rendered: ReturnType<typeof render> = render(<>{commander.value}</>);
+    const assign: HTMLElement = within(rendered.container).getByRole("button", {
+      name: "Assign Incident Commander",
+    });
 
-    expect(
-      within(rendered.container).getByText("Not assigned"),
-    ).toBeInTheDocument();
-    expect(
-      within(rendered.container).getByRole("button", {
-        name: "Assign Incident Commander",
-      }),
-    ).toBeInTheDocument();
+    // The empty place and Assign say it: no "Not assigned" beside them.
+    expect(within(rendered.container).queryByText("Not assigned")).toBeNull();
+
+    act((): void => {
+      fireEvent.click(assign);
+    });
+
+    // The roles card is asked for the episode's primary role's picker.
+    expect(rolesProps.current!["assignRequest"]).toEqual({
+      roleId: "88888888-8888-4888-8888-888888888881",
+      requestId: 1,
+    });
   });
 
   test("what happened leads the page, with the episode's own description and root cause", async () => {

@@ -1,13 +1,20 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
+import Icon from "Common/UI/Components/Icon/Icon";
+import { MemberRoleAssignRequest } from "Common/UI/Components/MemberRoleAssignment/MemberRoleAssignment";
 import PeopleAvatar, {
   PeopleAvatarItem,
 } from "Common/UI/Components/PeoplePicker/PeopleAvatar";
 import { PeoplePickerKind } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useState,
+} from "react";
 import AppLink from "../AppLink/AppLink";
 import { ResourceOwnerEntry } from "../ResourceOwners/OwnerEntry";
 import { EventStatusFact } from "./EventStatusPanel";
@@ -27,8 +34,16 @@ import { VisibleItems, splitVisibleItems } from "../../Utils/EventOverview";
  *
  * Both are drawn as an avatar and a name, the way the Owners page and the
  * owners column draw people and teams (PeopleAvatar). The avatar is 24px but
- * takes a text line's 20px in the row (-my-0.5), so a fact with people is as
- * tall as one with words and the row never jumps when they arrive.
+ * takes a text line's 20px in the row (-my-0.5), and the value sits at the
+ * top of its line (align-top) rather than on the avatar's initials, so a fact
+ * with people is as tall as one with words, its name level with its label,
+ * and the row never jumps when they arrive.
+ *
+ * While the record is open, a role nobody holds and a record nobody owns
+ * show the empty place itself - a dashed circle with a plus where the avatar
+ * would be, as the Owners page offers its next owner - and the word that
+ * fills it: "Assign", "Add". Once the record is over, they say "Not
+ * assigned" and "None".
  */
 
 /*
@@ -56,11 +71,76 @@ export const scrollToEventRolesCard: () => void = (): void => {
   rolesCard.focus({ preventScroll: true });
 };
 
+export interface RoleAssignRequestState {
+  // What the roles card is asked to open (MemberRoleAssignment).
+  request: MemberRoleAssignRequest | undefined;
+  /*
+   * The header's Assign: takes the reader to the roles card and opens the
+   * role's picker there, with the cursor in it - from the header to choosing
+   * the person in one step.
+   */
+  requestAssign: (roleId: string) => void;
+}
+
+export const useRoleAssignRequest: () => RoleAssignRequestState =
+  (): RoleAssignRequestState => {
+    const [request, setRequest] = useState<MemberRoleAssignRequest | undefined>(
+      undefined,
+    );
+
+    const requestAssign: (roleId: string) => void = useCallback(
+      (roleId: string): void => {
+        setRequest(
+          (
+            current: MemberRoleAssignRequest | undefined,
+          ): MemberRoleAssignRequest => {
+            return {
+              roleId: roleId,
+              requestId: (current?.requestId || 0) + 1,
+            };
+          },
+        );
+        scrollToEventRolesCard();
+      },
+      [],
+    );
+
+    return { request, requestAssign };
+  };
+
 const LINK_CLASS_NAME: string =
   "rounded-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
 
+/*
+ * Assign / Add: the empty place and its word as one control, laid out like
+ * a person (avatar, gap, name). The word is the link; hovering anywhere on
+ * the control underlines it and inks the circle.
+ */
+const EMPTY_PLACE_ACTION_CLASS_NAME: string =
+  "group inline-flex max-w-full items-center gap-1.5 rounded-sm font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
+
 // A quiet "Not assigned" / "None": a fact with nothing to name.
 const EMPTY_VALUE_CLASS_NAME: string = "font-normal text-gray-500";
+
+// The value's box: at the top of its line, so its name is level with the label.
+const VALUE_CLASS_NAME: string =
+  "inline-flex max-w-full flex-wrap items-center gap-x-3 gap-y-1 align-top";
+
+/*
+ * Where the avatar would be: a dashed circle with a plus. Decoration - the
+ * word beside it says what it does.
+ */
+const EmptyPlace: FunctionComponent = (): ReactElement => {
+  return (
+    <span
+      aria-hidden="true"
+      data-testid="event-empty-place"
+      className="-my-0.5 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-dashed border-gray-300 text-gray-400 transition-colors group-hover:border-indigo-400 group-hover:text-indigo-500"
+    >
+      <Icon icon={IconProp.Add} className="h-3.5 w-3.5" />
+    </span>
+  );
+};
 
 interface PersonProps {
   item: PeopleAvatarItem;
@@ -122,8 +202,8 @@ export interface CommanderFactValueProps {
   // The role's name, for what Assign says to a screen reader.
   roleName: string;
   /*
-   * Offered while the record is still open: takes the reader to the roles
-   * card, where the role is given. A record that is over says only that
+   * Offered while the record is still open: opens the role's picker in the
+   * roles card (useRoleAssignRequest). A record that is over says only that
    * nobody held it.
    */
   onAssign?: (() => void) | undefined;
@@ -135,44 +215,42 @@ export const CommanderFactValue: FunctionComponent<CommanderFactValueProps> = (
   const translator: Translator = useTranslator();
 
   if (props.members.length === 0) {
-    return (
-      <span
-        data-testid="event-commander"
-        className="inline-flex flex-wrap items-center gap-x-2"
-      >
-        <span className={EMPTY_VALUE_CLASS_NAME}>
+    if (!props.onAssign) {
+      return (
+        <span data-testid="event-commander" className={EMPTY_VALUE_CLASS_NAME}>
           {translator.translateText("Not assigned")}
         </span>
-        {props.onAssign ? (
-          <button
-            type="button"
-            data-testid="event-commander-assign"
-            onClick={props.onAssign}
-            aria-label={translator.translateTemplate("Assign {{role}}", {
-              /*
-               * The role's name as the header's label shows it: the panel
-               * looks a fact's label up, so the seeded "Incident Commander"
-               * reads in the reader's language and a project's own name as
-               * written.
-               */
-              role: translator.translateText(props.roleName) || props.roleName,
-            })}
-            className={LINK_CLASS_NAME}
-          >
+      );
+    }
+
+    return (
+      <span data-testid="event-commander" className={VALUE_CLASS_NAME}>
+        <button
+          type="button"
+          data-testid="event-commander-assign"
+          onClick={props.onAssign}
+          aria-label={translator.translateTemplate("Assign {{role}}", {
+            /*
+             * The role's name as the header's label shows it: the panel
+             * looks a fact's label up, so the seeded "Incident Commander"
+             * reads in the reader's language and a project's own name as
+             * written.
+             */
+            role: translator.translateText(props.roleName) || props.roleName,
+          })}
+          className={EMPTY_PLACE_ACTION_CLASS_NAME}
+        >
+          <EmptyPlace />
+          <span className="group-hover:underline">
             {translator.translateText("Assign")}
-          </button>
-        ) : (
-          <></>
-        )}
+          </span>
+        </button>
       </span>
     );
   }
 
   return (
-    <span
-      data-testid="event-commander"
-      className="inline-flex max-w-full flex-wrap items-center gap-x-3 gap-y-1"
-    >
+    <span data-testid="event-commander" className={VALUE_CLASS_NAME}>
       {props.members.map((member: EventRoleMember, index: number) => {
         return (
           <Person
@@ -200,30 +278,34 @@ export const OwnersFactValue: FunctionComponent<OwnersFactValueProps> = (
   const translator: Translator = useTranslator();
 
   if (props.owners.length === 0) {
-    return (
-      <span
-        data-testid="event-owners"
-        className="inline-flex flex-wrap items-center gap-x-2"
-      >
-        <span className={EMPTY_VALUE_CLASS_NAME}>
+    if (!props.canAddOwners) {
+      return (
+        <span data-testid="event-owners" className={EMPTY_VALUE_CLASS_NAME}>
           {translator.translateText("None")}
         </span>
-        {props.canAddOwners ? (
-          <AppLink to={props.ownersRoute} className={LINK_CLASS_NAME}>
-            {/*
-             * "Add" beside "Owners: None" reads whole; a screen reader,
-             * which may list the link on its own, hears "Add owners".
-             */}
-            <span data-testid="event-owners-add">
-              <span aria-hidden="true">{translator.translateText("Add")}</span>
-              <span className="sr-only">
-                {translator.translateText("Add owners")}
-              </span>
+      );
+    }
+
+    return (
+      <span data-testid="event-owners" className={VALUE_CLASS_NAME}>
+        <AppLink
+          to={props.ownersRoute}
+          className={EMPTY_PLACE_ACTION_CLASS_NAME}
+        >
+          <EmptyPlace />
+          {/*
+           * "Add" after "Owners" reads whole; a screen reader, which may
+           * list the link on its own, hears "Add owners".
+           */}
+          <span data-testid="event-owners-add">
+            <span aria-hidden="true" className="group-hover:underline">
+              {translator.translateText("Add")}
             </span>
-          </AppLink>
-        ) : (
-          <></>
-        )}
+            <span className="sr-only">
+              {translator.translateText("Add owners")}
+            </span>
+          </span>
+        </AppLink>
       </span>
     );
   }
@@ -234,10 +316,7 @@ export const OwnersFactValue: FunctionComponent<OwnersFactValueProps> = (
   );
 
   return (
-    <span
-      data-testid="event-owners"
-      className="inline-flex max-w-full flex-wrap items-center gap-x-3 gap-y-1"
-    >
+    <span data-testid="event-owners" className={VALUE_CLASS_NAME}>
       {shown.visible.map((owner: ResourceOwnerEntry, index: number) => {
         const key: string =
           owner.kind === "team"

@@ -132,7 +132,7 @@ Query parameters, parsed once per page load:
 
 ## What the spec covers
 
-`EventOverview.spec.ts` (437 tests):
+`EventOverview.spec.ts` (441 tests):
 
 - **AI investigation report**: the Summary (TL;DR as its lead line, no chip) as the card's
   first section, then the report's sections in order under the same plain h3 (the root cause
@@ -203,19 +203,25 @@ Query parameters, parsed once per page load:
   in-place refresh that never shows the skeleton, and `?fail=resend`.
 - **At a glance**: who is on it - the Incident Commander from the roles card's own read (no
   second read of who holds the roles) and the owners, teams first, each with an avatar, read
-  once per list for the record; `?commander=none` saying Not assigned, with Assign scrolling
-  to and focusing the roles card while the incident is open; `?owners=none` saying None, with
-  Add opening the Owners page while it is open; `?owners=many` showing three and "+3 more"
-  to the Owners page; an alert with owners and no commander; both episodes. What happened -
-  the description and root cause from the page's one read of the record, before the AI
-  card; `?what=empty`; `?what=long` folded at six lines and opened with Show more / Show
-  less; Edit saving both in one dialog that says the description is public where the
-  incident is, and the card showing what was saved; the alert and both episodes. When and
-  what it touched - the Declared tile with how long after the impact began and by whom,
-  said nowhere else; its date, time and zone never broken inside at 1024, 640 and 390px;
-  Affected Resources first, with the monitor status the incident sets. The header, stat
-  bar and What happened at 1280, 1024 and 390px, light and dark (a team's avatar lifted off
-  the dark card), and in German.
+  once per list for the record, each name level with its label and no taller than a line
+  of words; `?commander=none&state=ongoing` showing the empty place (a dashed circle where
+  the avatar would be) and Assign, which opens Incident Commander's picker in the roles card
+  with the cursor in it - by mouse and by keyboard, again after Cancel - and, once somebody
+  is chosen and saved, the header naming them; the same on incident episode #12; a resolved
+  incident saying Not assigned; `?owners=none&state=ongoing` showing the empty place and
+  Add, which opens the Owners page, and a resolved one saying None; `?owners=many` showing
+  three and "+3 more" to the Owners page; an alert with owners and no commander; both
+  episodes. What happened - the description and root cause from the page's one read of the
+  record, before the AI card; `?what=empty`; `?what=long` folded at six lines and opened
+  with Show more / Show less; Edit saving both in one dialog that says the description is
+  public where it is (an incident, an incident episode) and nothing about status pages
+  where it is not (an alert, an alert episode), and the card showing what was saved. When
+  and what it touched - the Declared tile with how long after the impact began and by whom,
+  said nowhere else; its date, time and zone never broken inside at 1024, 640 and 390px,
+  and an episode's, four tiles to a row at 1280px, breaking after the date rather than
+  leaving the zone on a line of its own; Affected Resources first, with the monitor status
+  the incident sets. The header, stat bar and What happened at 1280, 1024 and 390px, light
+  and dark (a team's avatar lifted off the dark card), and in German.
 - **Declare an incident from the alert hero**: in every alert state Declare Incident follows the
   state actions as a neutral outline button (the state action stays the only primary one, no
   More actions menu, nothing fetched to offer it) and opens the create-incident stub with

@@ -2101,7 +2101,11 @@ for (const [eventType, markdown, color, when] of incidentEpisodeFeed) {
     createdAt: when,
   });
 }
-// ?commander=none: nobody holds Incident Commander on episode #12 either.
+/*
+ * ?commander=none: nobody holds Incident Commander on episode #12 either -
+ * an episode nobody holds a role on, whose role list is read and empty.
+ */
+table(IncidentEpisodeRoleMember);
 if (commanderMode !== "none") {
   insert(IncidentEpisodeRoleMember, {
     incidentEpisodeId,
@@ -4677,6 +4681,19 @@ ModelAPI.createOrUpdate = async (options) => {
   const record = { ...options.model, projectId: projectObjectId };
   if (!record._id) {
     record._id = rowId();
+  }
+  /*
+   * A role given in a roles card (the header's Assign opens its picker)
+   * names its person by id; the card's read after it names them, as the
+   * server's join does.
+   */
+  if (record.userId && !record.user) {
+    const person = Object.values(people).find((candidate) => {
+      return String(candidate.id) === String(record.userId);
+    });
+    if (person) {
+      record.user = person;
+    }
   }
   record.createdAt = record.createdAt || NOW;
   applyStateChange(modelName, record);

@@ -33401,5 +33401,6 @@
   "Shown on the status pages this incident appears on.": "Отображается на страницах состояния, где показан этот инцидент.",
   "What happened": "Что произошло",
   "Why it happened, once you know.": "Почему это произошло, когда станет известно.",
-  "{{duration}} after impact began": "{{duration}} после начала воздействия"
+  "{{duration}} after impact began": "{{duration}} после начала воздействия",
+  "Shown on the status pages this episode appears on.": "Отображается на страницах состояния, где показан этот эпизод."
 }
