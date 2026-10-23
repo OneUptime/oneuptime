@@ -36,8 +36,8 @@ import { NetworkControllerSettings } from "../Utils/NetworkController/NetworkCon
  * another one is a connection of its own.
  */
 
-// The longest a connection's name is kept (ColumnLength.Name is 100).
-const MAX_NAME_LENGTH: number = 100;
+// The longest a connection's name is kept (ColumnLength.Name).
+const MAX_NAME_LENGTH: number = 50;
 
 export interface NetworkControllerSecrets {
   apiKey: string;
