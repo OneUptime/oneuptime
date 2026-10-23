@@ -124,6 +124,7 @@ interface PageAccess {
   ipWhitelist?: string;
   enableMasterPassword?: boolean;
   masterPassword?: HashedString;
+  requireSsoForLogin?: boolean;
 }
 
 let pageAccess: PageAccess = { isPublicStatusPage: true };
@@ -145,6 +146,7 @@ function mockPage(): void {
       page.isPublicStatusPage = Boolean(pageAccess.isPublicStatusPage);
       page.isArchived = Boolean(pageAccess.isArchived);
       page.enableMasterPassword = Boolean(pageAccess.enableMasterPassword);
+      page.requireSsoForLogin = Boolean(pageAccess.requireSsoForLogin);
       if (pageAccess.ipWhitelist) {
         page.ipWhitelist = pageAccess.ipWhitelist;
       }
@@ -336,6 +338,11 @@ describe("the status page summary route", () => {
     [
       "a private page, to a reader who has not signed in",
       { isPublicStatusPage: false },
+      NotAuthenticatedException,
+    ],
+    [
+      "a private page that signs readers in with SSO, to a reader who has not signed in",
+      { isPublicStatusPage: false, requireSsoForLogin: true },
       NotAuthenticatedException,
     ],
     [
