@@ -84,12 +84,38 @@ export default class TelemetryMeteredPlan extends ServerMeteredPlan {
       });
     }
 
-    await TelemetryUsageBillingService.stageTelemetryUsageForProject({
-      projectId: projectId,
-      productType: this.productType,
-      liveAuthorization: liveAuthorization,
-    });
+    /*
+     * Every day of the catch-up window that was never staged, not only
+     * yesterday. A day that fails to stage must not keep the days that did
+     * from being billed, so its error waits until they are reported.
+     */
+    let stagingError: unknown = null;
 
+    try {
+      await TelemetryUsageBillingService.stageUnstagedTelemetryUsageForProject({
+        projectId: projectId,
+        productType: this.productType,
+        liveAuthorization: liveAuthorization,
+        billingStartsAt: billingStartsAt,
+      });
+    } catch (error) {
+      stagingError = error;
+    }
+
+    await this.reportUnreportedUsage(projectId, liveAuthorization, options);
+
+    if (stagingError) {
+      throw stagingError;
+    }
+  }
+
+  private async reportUnreportedUsage(
+    projectId: ObjectID,
+    liveAuthorization: LiveUsageAuthorization,
+    options?: {
+      meteredPlanSubscriptionId?: string | undefined;
+    },
+  ): Promise<void> {
     const usageBillings: Array<TelemetryUsageBilling> =
       await TelemetryUsageBillingService.getUnreportedUsageBilling({
         projectId: projectId,
