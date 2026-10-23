@@ -863,7 +863,7 @@ Con il trigger _Always_ predefinito ogni sessione campionata viene inviata, quin
 
 Ogni budget è disattivato a `0` (il valore predefinito). Le sessioni catturate in questo modo compaiono con il motivo del trigger `performance` (_Slow_ nell'elenco). Le richieste fallite e annullate non vengono contate qui — un 5xx o un errore di rete fa già scattare il trigger tramite il percorso degli errori.
 
-Indipendentemente dai budget, il registratore segnala i Core Web Vitals di ogni pagina — LCP, CLS, INP, FCP e TTFB con la loro valutazione good / needs-improvement / poor — come righe **Perf**. I vitals non fanno mai scattare un invio da soli.
+Indipendentemente dai budget, il registratore segnala i Core Web Vitals di ogni pagina — LCP, CLS, INP, FCP e TTFB con la loro valutazione good / needs-improvement / poor — come righe **Perf**. I vitals non fanno mai scattare un invio da soli. CLS e INP coprono l'intera vita della pagina: se uno dei due cresce dopo che il visitatore è tornato alla scheda, viene segnalato di nuovo come una nuova riga.
 
 Il registratore misura ogni vital come fa la libreria `web-vitals` di Google, quindi una registrazione riporta gli stessi numeri della tua telemetria web-vitals per la stessa visita. Tre tipi di caricamento di pagina sono misurati in modo diverso da uno ordinario, e i dettagli di un vital dicono di quale si tratta:
 

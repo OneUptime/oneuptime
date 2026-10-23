@@ -863,7 +863,7 @@ Under standardutlösaren _Always_ laddas varje samplad session upp, så de här 
 
 Varje budget är avstängd vid `0` (standard). Sessioner som fångas på det här sättet visas med utlösarorsaken `performance` (_Slow_ i listan). Misslyckade och avbrutna förfrågningar räknas inte här — ett 5xx eller ett nätverksfel utlöser redan via felvägen.
 
-Oberoende av budgetarna rapporterar inspelaren varje sidas Core Web Vitals — LCP, CLS, INP, FCP och TTFB med bedömningen good / needs-improvement / poor — som **Perf**-rader. Vitals utlöser aldrig en uppladdning av sig själva.
+Oberoende av budgetarna rapporterar inspelaren varje sidas Core Web Vitals — LCP, CLS, INP, FCP och TTFB med bedömningen good / needs-improvement / poor — som **Perf**-rader. Vitals utlöser aldrig en uppladdning av sig själva. CLS och INP täcker hela sidans livstid: växer någon av dem efter att besökaren har kommit tillbaka till fliken rapporteras den igen som en ny rad.
 
 Inspelaren mäter varje vital så som Googles bibliotek `web-vitals` gör, så en inspelning ger samma siffror som din egen web-vitals-telemetri för samma besök. Tre slags sidladdning mäts annorlunda än en vanlig, och en vitals detaljer säger vilken sort det var:
 

@@ -115,9 +115,10 @@ const FORBIDDEN_IN_BUNDLE = [
  * src/PerformanceRecorder.ts): a page the browser prerendered is measured
  * from when the visitor opened it (FCP 68 ms had read 2.1 s), a page hidden
  * before it painted reports no FCP, LCP or CLS, a page restored from the
- * back/forward cache reports vitals of its own, only the visitor's input
- * settles LCP, and first-input gives a page of quick interactions its INP.
- * Measured after: recorder.js 329507 bytes raw / 98609 gzip; before it
+ * back/forward cache reports vitals of its own, CLS is reported again when
+ * it grew after the visitor came back, only the visitor's input settles
+ * LCP, and first-input gives a page of quick interactions its INP.
+ * Measured after: recorder.js 329727 bytes raw / 98655 gzip; before it
  * 325428 / 97660. The gzip budget below still holds it and is unchanged;
  * the raw one is the measured size plus about 1 KB, rounded up to a whole
  * KB, the rule the gzip raises below follow.

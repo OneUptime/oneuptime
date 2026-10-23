@@ -863,7 +863,7 @@ Under standardudløseren _Always_ uploades hver samplet session, så disse budge
 
 Hvert budget er slået fra ved `0` (standard). Sessioner, der fanges på denne måde, vises med udløserens årsag `performance` (_Slow_ i listen). Mislykkede og annullerede forespørgsler tælles ikke her — en 5xx eller en netværksfejl udløser allerede via fejlvejen.
 
-Uafhængigt af budgetterne rapporterer optageren hver sides Core Web Vitals — LCP, CLS, INP, FCP og TTFB med deres vurdering good / needs-improvement / poor — som **Perf**-rækker. Vitals udløser aldrig en upload af sig selv.
+Uafhængigt af budgetterne rapporterer optageren hver sides Core Web Vitals — LCP, CLS, INP, FCP og TTFB med deres vurdering good / needs-improvement / poor — som **Perf**-rækker. Vitals udløser aldrig en upload af sig selv. CLS og INP dækker hele sidens levetid: vokser en af dem, efter at den besøgende er vendt tilbage til fanen, rapporteres den igen som en ny række.
 
 Optageren måler hver vital, som Googles bibliotek `web-vitals` gør, så en optagelse giver de samme tal som din egen web-vitals-telemetri for det samme besøg. Tre slags sideindlæsning måles anderledes end en almindelig, og en vitals detaljer siger, hvilken slags det var:
 

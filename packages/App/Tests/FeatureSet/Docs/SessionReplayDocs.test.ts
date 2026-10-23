@@ -1284,6 +1284,19 @@ describe("Session Replay docs page", (): void => {
     );
     expect(performance).toContain('this.reportVital("TTFB", 0,');
 
+    /*
+     * CLS and INP over the page's whole life: reported again, as another
+     * row, when they grew after the visitor came back - CLS when its value
+     * differs from the one last reported, INP when its interaction does.
+     */
+    expect(vitals).toContain(
+      "CLS and INP cover the page's whole life: if either grows after the visitor comes back to the tab, it is reported again as a new row.",
+    );
+    expect(performance).toContain("rounded === this.reportedClsValue");
+    expect(performance).toContain(
+      "view.reportedLatencyMs === interaction.latencyMs",
+    );
+
     /* "a vital's details say which kind it was": the rail's View row. */
     expect(vitals).toContain("a vital's details say which kind it was");
 

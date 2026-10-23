@@ -863,7 +863,7 @@ Beim Standardauslöser _Always_ wird jede in die Stichprobe fallende Sitzung hoc
 
 Jedes Budget ist bei `0` (dem Standard) aus. Auf diese Weise erfasste Sitzungen erscheinen mit dem Auslösegrund `performance` (_Slow_ in der Liste). Fehlgeschlagene und abgebrochene Anfragen werden hier nicht gezählt — ein 5xx oder ein Netzwerkfehler löst bereits über den Fehlerpfad aus.
 
-Unabhängig von den Budgets meldet der Recorder die Core Web Vitals jeder Seite — LCP, CLS, INP, FCP und TTFB mit ihrer Bewertung gut / verbesserungsbedürftig / schlecht — als Zeilen im Tab **Perf**. Vitals lösen nie selbst einen Upload aus.
+Unabhängig von den Budgets meldet der Recorder die Core Web Vitals jeder Seite — LCP, CLS, INP, FCP und TTFB mit ihrer Bewertung gut / verbesserungsbedürftig / schlecht — als Zeilen im Tab **Perf**. Vitals lösen nie selbst einen Upload aus. CLS und INP decken die gesamte Lebensdauer der Seite ab: Wächst einer der beiden Werte, nachdem der Besucher zum Tab zurückgekehrt ist, wird er als neue Zeile erneut gemeldet.
 
 Der Recorder misst jeden Vital so, wie es Googles Bibliothek `web-vitals` tut, sodass eine Aufzeichnung für denselben Besuch dieselben Werte meldet wie Ihre eigene Web-Vitals-Telemetrie. Drei Arten von Seitenaufrufen werden anders gemessen als ein gewöhnlicher, und die Details eines Vitals nennen die Art:
 

@@ -863,7 +863,7 @@ Onder de standaardtrigger _Always_ wordt elke gesamplede sessie geüpload, dus d
 
 Elk budget staat uit bij `0` (de standaard). Sessies die op deze manier worden vastgelegd, verschijnen met de triggerreden `performance` (_Slow_ in de lijst). Mislukte en geannuleerde verzoeken worden hier niet geteld — een 5xx of een netwerkfout activeert al via het foutpad.
 
-Los van de budgetten meldt de recorder de Core Web Vitals van elke pagina — LCP, CLS, INP, FCP en TTFB met hun beoordeling good / needs-improvement / poor — als **Perf**-rijen. Vitals activeren nooit op zichzelf een upload.
+Los van de budgetten meldt de recorder de Core Web Vitals van elke pagina — LCP, CLS, INP, FCP en TTFB met hun beoordeling good / needs-improvement / poor — als **Perf**-rijen. Vitals activeren nooit op zichzelf een upload. CLS en INP beslaan het hele leven van de pagina: groeit een van beide nadat de bezoeker naar het tabblad is teruggekeerd, dan wordt die opnieuw gemeld als een nieuwe rij.
 
 De recorder meet elke vital zoals Googles bibliotheek `web-vitals` dat doet, zodat een opname voor hetzelfde bezoek dezelfde cijfers geeft als je eigen web-vitals-telemetrie. Drie soorten paginalading worden anders gemeten dan een gewone, en de details van een vital zeggen welke het was:
 

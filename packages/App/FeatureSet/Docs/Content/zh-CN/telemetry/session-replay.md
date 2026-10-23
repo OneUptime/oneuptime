@@ -863,7 +863,7 @@ flowchart TB
 
 每项预算在 `0` （默认）时关闭。以这种方式捕获的会话会以触发原因 `performance` 显示（在列表中为 _Slow_ ）。失败和中止的请求不在这里计数 — 5xx 或网络错误已经通过错误路径触发。
 
-与预算无关，录制器会把每个页面的核心 Web 指标 — 带有 good / needs-improvement / poor 评级的 LCP、CLS、INP、FCP 和 TTFB — 作为 **Perf** 行上报。Web 指标本身永远不会触发上传。
+与预算无关，录制器会把每个页面的核心 Web 指标 — 带有 good / needs-improvement / poor 评级的 LCP、CLS、INP、FCP 和 TTFB — 作为 **Perf** 行上报。Web 指标本身永远不会触发上传。CLS 和 INP 覆盖页面的整个生命周期：如果访问者回到该标签页后其中任何一个变大，它会作为新的一行再次上报。
 
 录制器按照 Google 的 `web-vitals` 库的方式测量每项 Web 指标，因此对于同一次访问，录制给出的数字与你自己的 web-vitals 遥测相同。有三种页面加载的测量方式与普通页面加载不同，Web 指标的详情会说明是哪一种：
 

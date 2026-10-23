@@ -863,7 +863,7 @@ Under the default _Always_ trigger every sampled session is uploaded, so these b
 
 Each budget is off at `0` (the default). Sessions captured this way appear with the trigger reason `performance` (_Slow_ in the list). Failed and cancelled requests are not counted here — a 5xx or a network failure already triggers via the error path.
 
-Independently of the budgets, the recorder reports the Core Web Vitals of every page — LCP, CLS, INP, FCP and TTFB with their good / needs-improvement / poor rating — as **Perf** rows. Vitals never trigger an upload on their own.
+Independently of the budgets, the recorder reports the Core Web Vitals of every page — LCP, CLS, INP, FCP and TTFB with their good / needs-improvement / poor rating — as **Perf** rows. Vitals never trigger an upload on their own. CLS and INP cover the page's whole life: if either grows after the visitor comes back to the tab, it is reported again as a new row.
 
 The recorder times every vital the way Google's `web-vitals` library does, so a recording reports the same numbers as your own web-vitals telemetry for the same visit. Three kinds of page load are timed differently from an ordinary one, and a vital's details say which kind it was:
 

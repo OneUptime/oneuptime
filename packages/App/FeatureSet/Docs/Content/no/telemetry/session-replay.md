@@ -863,7 +863,7 @@ Under standardutløseren _Always_ lastes hver samplet økt opp, så disse budsje
 
 Hvert budsjett er slått av ved `0` (standard). Økter som fanges på denne måten, vises med utløserårsaken `performance` (_Slow_ i listen). Mislykkede og avbrutte forespørsler telles ikke her — en 5xx eller en nettverksfeil utløser allerede via feilveien.
 
-Uavhengig av budsjettene rapporterer opptakeren hver sides Core Web Vitals — LCP, CLS, INP, FCP og TTFB med vurderingen good / needs-improvement / poor — som **Perf**-rader. Vitals utløser aldri en opplasting av seg selv.
+Uavhengig av budsjettene rapporterer opptakeren hver sides Core Web Vitals — LCP, CLS, INP, FCP og TTFB med vurderingen good / needs-improvement / poor — som **Perf**-rader. Vitals utløser aldri en opplasting av seg selv. CLS og INP dekker hele sidens levetid: vokser en av dem etter at den besøkende har kommet tilbake til fanen, rapporteres den på nytt som en ny rad.
 
 Opptakeren måler hver vital slik Googles bibliotek `web-vitals` gjør, så et opptak gir de samme tallene som din egen web-vitals-telemetri for det samme besøket. Tre slags sideinnlasting måles annerledes enn en vanlig, og detaljene til en vital sier hvilken slags det var:
 

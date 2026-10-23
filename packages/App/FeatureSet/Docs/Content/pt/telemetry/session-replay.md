@@ -863,7 +863,7 @@ Com o gatilho _Always_ padrão, toda sessão amostrada é enviada, então esses 
 
 Cada orçamento fica desligado em `0` (o padrão). As sessões capturadas desse jeito aparecem com o motivo de gatilho `performance` (_Slow_ na lista). Requisições com falha e canceladas não são contadas aqui — um 5xx ou uma falha de rede já dispara pelo caminho dos erros.
 
-Independentemente dos orçamentos, o gravador relata os Core Web Vitals de cada página — LCP, CLS, INP, FCP e TTFB com a avaliação good / needs-improvement / poor — como linhas **Perf**. Os vitals nunca disparam um envio sozinhos.
+Independentemente dos orçamentos, o gravador relata os Core Web Vitals de cada página — LCP, CLS, INP, FCP e TTFB com a avaliação good / needs-improvement / poor — como linhas **Perf**. Os vitals nunca disparam um envio sozinhos. CLS e INP cobrem toda a vida da página: se algum deles crescer depois de o visitante voltar à aba, é relatado de novo como uma nova linha.
 
 O gravador mede cada vital do jeito que a biblioteca `web-vitals` do Google faz, então uma gravação mostra os mesmos números que a sua própria telemetria de web-vitals para a mesma visita. Três tipos de carregamento de página são medidos de forma diferente de um comum, e os detalhes de um vital dizem qual foi:
 

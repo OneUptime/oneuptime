@@ -863,7 +863,7 @@ flowchart TB
 
 每項預算在 `0` （預設）時關閉。以這種方式擷取的工作階段會以觸發原因 `performance` 顯示（在清單中為 _Slow_ ）。失敗與取消的請求不在這裡計數 — 5xx 或網路錯誤已經透過錯誤路徑觸發。
 
-與預算無關，錄製器會把每個頁面的 Core Web Vitals — 帶有 good / needs-improvement / poor 評等的 LCP、CLS、INP、FCP 與 TTFB — 作為 **Perf** 行回報。Web 指標本身永遠不會觸發上傳。
+與預算無關，錄製器會把每個頁面的 Core Web Vitals — 帶有 good / needs-improvement / poor 評等的 LCP、CLS、INP、FCP 與 TTFB — 作為 **Perf** 行回報。Web 指標本身永遠不會觸發上傳。CLS 與 INP 涵蓋頁面的整個生命週期：如果訪客回到該分頁後其中任何一個變大，它會作為新的一行再次回報。
 
 錄製器依照 Google 的 `web-vitals` 程式庫的方式測量每項 Web 指標，因此對於同一次造訪，錄製給出的數字與你自己的 web-vitals 遙測相同。有三種頁面載入的測量方式與一般頁面載入不同，Web 指標的詳細資訊會說明是哪一種：
 

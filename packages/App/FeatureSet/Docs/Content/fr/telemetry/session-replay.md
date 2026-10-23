@@ -863,7 +863,7 @@ Avec le déclencheur _Always_ par défaut, chaque session échantillonnée est e
 
 Chaque budget est désactivé à `0` (le défaut). Les sessions capturées de cette façon apparaissent avec la raison de déclencheur `performance` (_Slow_ dans la liste). Les requêtes en échec et annulées ne sont pas comptées ici — un 5xx ou un échec réseau déclenche déjà par le chemin des erreurs.
 
-Indépendamment des budgets, l'enregistreur signale les Core Web Vitals de chaque page — LCP, CLS, INP, FCP et TTFB avec leur évaluation bonne / à améliorer / médiocre — sous forme de lignes **Perf**. Les vitals ne déclenchent jamais un envoi à elles seules.
+Indépendamment des budgets, l'enregistreur signale les Core Web Vitals de chaque page — LCP, CLS, INP, FCP et TTFB avec leur évaluation bonne / à améliorer / médiocre — sous forme de lignes **Perf**. Les vitals ne déclenchent jamais un envoi à elles seules. CLS et INP couvrent toute la vie de la page : si l'un d'eux augmente après le retour du visiteur sur l'onglet, il est de nouveau signalé, sur une nouvelle ligne.
 
 L'enregistreur mesure chaque vital comme le fait la bibliothèque `web-vitals` de Google, si bien qu'un enregistrement donne les mêmes chiffres que votre propre télémétrie web-vitals pour la même visite. Trois sortes de chargement de page sont mesurées autrement qu'un chargement ordinaire, et les détails d'un vital indiquent laquelle :
 

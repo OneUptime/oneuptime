@@ -863,7 +863,7 @@ Con el disparador _Always_ predeterminado se sube cada sesión muestreada, así 
 
 Cada presupuesto está desactivado con `0` (el valor predeterminado). Las sesiones capturadas así aparecen con el motivo de disparador `performance` (_Slow_ en la lista). Las solicitudes fallidas y canceladas no se cuentan aquí — un 5xx o un fallo de red ya dispara por la vía de los errores.
 
-Con independencia de los presupuestos, el grabador informa de las Core Web Vitals de cada página — LCP, CLS, INP, FCP y TTFB con su valoración good / needs-improvement / poor — como filas **Rendimiento**. Las vitals nunca disparan una subida por sí solas.
+Con independencia de los presupuestos, el grabador informa de las Core Web Vitals de cada página — LCP, CLS, INP, FCP y TTFB con su valoración good / needs-improvement / poor — como filas **Rendimiento**. Las vitals nunca disparan una subida por sí solas. CLS e INP abarcan toda la vida de la página: si alguna crece después de que el visitante vuelva a la pestaña, se informa de nuevo como una fila nueva.
 
 El grabador mide cada vital como lo hace la biblioteca `web-vitals` de Google, así que una grabación da las mismas cifras que tu propia telemetría de web-vitals para la misma visita. Tres tipos de carga de página se miden de forma distinta a una carga normal, y los detalles de una vital dicen de cuál se trata:
 

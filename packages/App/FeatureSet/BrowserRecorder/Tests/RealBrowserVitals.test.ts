@@ -457,6 +457,77 @@ describeInBrowser("web vitals in a real Chromium (issue #5181)", (): void => {
   }, 60000);
 
   /*
+   * The visitor switches to another tab and back, and only then does the
+   * page jump. CLS covers the page's whole life: the library reports it
+   * at the first hide (nothing had moved yet: 0) and again at the next,
+   * because it grew; the recorder reports the same two numbers.
+   */
+  it("a page the visitor comes back to: CLS reported again once it grew", async (): Promise<void> => {
+    const tab: Tab = await open("/measured.html");
+
+    await tab.waitFor<boolean>(
+      'document.readyState === "complete" && window.__recorder.some(function (v) { return v.metric === "FCP"; })',
+      "the page to load and paint",
+    );
+    await sleep(300);
+
+    const away: Tab = await bringAnotherTabToFront(
+      (browser as Browser).cdp,
+      site as Site,
+    );
+
+    tabs.push(away);
+    await tab.waitFor<boolean>(
+      'window.__library.some(function (v) { return v.metric === "CLS"; }) && window.__recorder.some(function (v) { return v.metric === "CLS"; })',
+      "CLS on both sides at the first hide",
+    );
+
+    await tab.bringToFront();
+    await tab.waitFor<boolean>(
+      'document.visibilityState === "visible"',
+      "the visitor to come back to the tab",
+    );
+    await sleep(500);
+
+    /*
+     * A banner pushes everything down, well after any input. Layout shifts
+     * are not on the performance timeline, so the test watches for its own
+     * entry with an observer of its own.
+     */
+    await tab.evaluate<void>(
+      '(function () { new PerformanceObserver(function (list) { if (list.getEntries().length > 0) { window.__shifted = true; } }).observe({ type: "layout-shift" }); var banner = document.createElement("div"); banner.style.height = "240px"; banner.textContent = "Late banner"; document.body.insertBefore(banner, document.body.firstChild); })()',
+    );
+    await tab.waitFor<boolean>(
+      "window.__shifted === true",
+      "the browser to record the layout shift",
+    );
+    await sleep(500);
+
+    tabs.push(
+      await bringAnotherTabToFront((browser as Browser).cdp, site as Site),
+    );
+    await tab.waitFor<boolean>(
+      'window.__library.filter(function (v) { return v.metric === "CLS"; }).length >= 2',
+      "the library's second CLS at the second hide",
+    );
+    await sleep(300);
+
+    const reports: { library: Array<number>; recorder: Array<number> } =
+      await tab.evaluate<{ library: Array<number>; recorder: Array<number> }>(
+        '({ library: window.__library.filter(function (v) { return v.metric === "CLS"; }).map(function (v) { return Math.round(v.value * 10000) / 10000; }), recorder: window.__recorder.filter(function (v) { return v.metric === "CLS"; }).map(function (v) { return v.value; }) })',
+      );
+
+    expect(reports.recorder).toEqual(reports.library);
+    expect(reports.recorder).toHaveLength(2);
+    expect(reports.recorder[0]).toBe(0);
+    expect(reports.recorder[1] as number).toBeGreaterThan(0);
+
+    const answers: PageAnswers = await readAnswers(tab);
+
+    expect(answers.recorder).toEqual(answers.library);
+  }, 60000);
+
+  /*
    * Away and back: the restored page reports a set of its own, TTFB 0 and
    * FCP and LCP to its first frame back, on both sides.
    */

@@ -863,7 +863,7 @@ flowchart TB
 
 각 예산은 `0`(기본값)에서 꺼집니다. 이렇게 캡처된 세션은 트리거 이유 `performance`(목록에서는 _Slow_)로 표시됩니다. 실패하거나 중단된 요청은 여기서 세지 않습니다. 5xx나 네트워크 오류는 이미 오류 경로로 발생하기 때문입니다.
 
-예산과 별개로, 레코더는 모든 페이지의 Core Web Vitals — good / needs-improvement / poor 등급이 있는 LCP, CLS, INP, FCP, TTFB — 를 **Perf** 행으로 보고합니다. Vitals만으로는 업로드가 시작되지 않습니다.
+예산과 별개로, 레코더는 모든 페이지의 Core Web Vitals — good / needs-improvement / poor 등급이 있는 LCP, CLS, INP, FCP, TTFB — 를 **Perf** 행으로 보고합니다. Vitals만으로는 업로드가 시작되지 않습니다. CLS와 INP는 페이지의 전체 수명을 다룹니다. 방문자가 탭으로 돌아온 뒤 둘 중 하나가 커지면 새 행으로 다시 보고됩니다.
 
 레코더는 Google의 `web-vitals` 라이브러리와 같은 방식으로 모든 Vitals를 측정하므로, 같은 방문에 대해 녹화는 여러분의 web-vitals 원격 측정과 같은 숫자를 보여 줍니다. 세 가지 페이지 로드는 일반 페이지 로드와 다르게 측정되며, Vitals의 세부 정보에 어느 쪽이었는지 나옵니다.
 
