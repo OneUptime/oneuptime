@@ -13687,7 +13687,7 @@
   "Not a column on this model": "Not a column on this model",
   "Not a valid cron expression": "Not a valid cron expression",
   "Not allowed": "Not allowed",
-  "Not assigned": "Not assigned",
+  "Not assigned": "تخصیص داده نشده",
   "Not available on this engine": "Not available on this engine",
   "Not checked": "Not checked",
   "Not collected": "Not collected",
@@ -33392,6 +33392,15 @@
   "Events appear here as the Kubernetes agent sends them.": "رویدادها با فرستادن عامل Kubernetes در اینجا نمایش داده می‌شوند.",
   "Try another namespace, kind or reason, or a longer time range.": "Namespace، نوع یا دلیل دیگری را امتحان کنید، یا بازهٔ زمانی بلندتری انتخاب کنید.",
   "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "آنچه Kubernetes دربارهٔ گره‌ها، بارهای کاری، مقیاس‌دهنده‌های خودکار و حجم‌های این خوشه گزارش کرده است.",
+  "Assign {{role}}": "تخصیص {{role}}",
+  "By {{name}}": "توسط {{name}}",
+  "Edit what happened": "ویرایش آنچه رخ داد",
+  "No description yet.": "هنوز توضیحی وجود ندارد.",
+  "Not identified yet.": "هنوز مشخص نشده است.",
+  "Root cause": "علت ریشه‌ای",
+  "Shown on the status pages this incident appears on.": "در صفحات وضعیتی که این حادثه در آن‌ها دیده می‌شود نمایش داده می‌شود.",
+  "What happened": "آنچه رخ داد",
+  "Why it happened, once you know.": "چرا رخ داد، وقتی دانستید.",
   "{{count}} more labels": "{{count}} برچسب دیگر",
   "{{count}} more labels_one": "{{count}} برچسب دیگر",
   "Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).": "ارائه‌دهندهٔ شناسایی‌شده (Atlassian Statuspage، incident.io، OneUptime Status Page، RSS، Atom).",
@@ -33400,5 +33409,7 @@
   "Component: {{component}}": "مؤلفه: {{component}}",
   "Group: {{group}}": "گروه: {{group}}",
   "Only watch components whose names contain this, e.g. 'API'. With a group set, only inside that group.": "فقط مؤلفه‌هایی را زیر نظر بگیرید که نامشان این متن را دارد، برای نمونه 'API'. اگر گروهی تعیین شده باشد، فقط درون همان گروه.",
-  "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)": "نشانی صفحه وضعیت خارجی که پایش می‌شود (برای نمونه https://www.githubstatus.com یا https://status.openai.com)"
+  "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)": "نشانی صفحه وضعیت خارجی که پایش می‌شود (برای نمونه https://www.githubstatus.com یا https://status.openai.com)",
+  "{{duration}} after impact began": "{{duration}} پس از شروع اثر",
+  "Shown on the status pages this episode appears on.": "در صفحات وضعیتی که این اپیزود در آن‌ها دیده می‌شود نمایش داده می‌شود."
 }

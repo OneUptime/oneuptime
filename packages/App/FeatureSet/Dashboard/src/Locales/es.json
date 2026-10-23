@@ -33392,6 +33392,15 @@
   "Events appear here as the Kubernetes agent sends them.": "Los eventos aparecen aquí a medida que el agente de Kubernetes los envía.",
   "Try another namespace, kind or reason, or a longer time range.": "Prueba con otro espacio de nombres, tipo o motivo, o con un intervalo de tiempo más largo.",
   "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Lo que Kubernetes informó sobre los nodos, las cargas de trabajo, los autoescaladores y los volúmenes de este clúster.",
+  "Assign {{role}}": "Asignar {{role}}",
+  "By {{name}}": "Por {{name}}",
+  "Edit what happened": "Editar lo que pasó",
+  "No description yet.": "Aún no hay descripción.",
+  "Not identified yet.": "Aún no identificada.",
+  "Root cause": "Causa raíz",
+  "Shown on the status pages this incident appears on.": "Se muestra en las páginas de estado donde aparece este incidente.",
+  "What happened": "Qué pasó",
+  "Why it happened, once you know.": "Por qué pasó, cuando lo sepas.",
   "{{count}} more labels": "{{count}} etiquetas más",
   "{{count}} more labels_one": "{{count}} etiqueta más",
   "Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).": "Proveedor detectado (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).",
@@ -33400,5 +33409,7 @@
   "Component: {{component}}": "Componente: {{component}}",
   "Group: {{group}}": "Grupo: {{group}}",
   "Only watch components whose names contain this, e.g. 'API'. With a group set, only inside that group.": "Vigilar solo los componentes cuyo nombre contenga esto, p. ej., 'API'. Con un grupo definido, solo dentro de ese grupo.",
-  "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)": "La URL de la página de estado externa que quieres monitorear (p. ej., https://www.githubstatus.com o https://status.openai.com)"
+  "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)": "La URL de la página de estado externa que quieres monitorear (p. ej., https://www.githubstatus.com o https://status.openai.com)",
+  "{{duration}} after impact began": "{{duration}} después del inicio del impacto",
+  "Shown on the status pages this episode appears on.": "Se muestra en las páginas de estado donde aparece este episodio."
 }

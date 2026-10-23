@@ -13687,7 +13687,7 @@
   "Not a column on this model": "Not a column on this model",
   "Not a valid cron expression": "Not a valid cron expression",
   "Not allowed": "Not allowed",
-  "Not assigned": "Not assigned",
+  "Not assigned": "Не назначен",
   "Not available on this engine": "Not available on this engine",
   "Not checked": "Not checked",
   "Not collected": "Not collected",
@@ -33392,6 +33392,15 @@
   "Events appear here as the Kubernetes agent sends them.": "События появляются здесь по мере того, как их отправляет агент Kubernetes.",
   "Try another namespace, kind or reason, or a longer time range.": "Выберите другое пространство имён, вид или причину или более длинный период.",
   "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Что Kubernetes сообщал об узлах, рабочих нагрузках, автомасштабировщиках и томах этого кластера.",
+  "Assign {{role}}": "Назначить: {{role}}",
+  "By {{name}}": "Инициатор: {{name}}",
+  "Edit what happened": "Редактировать: что произошло",
+  "No description yet.": "Описания пока нет.",
+  "Not identified yet.": "Пока не установлена.",
+  "Root cause": "Корневая причина",
+  "Shown on the status pages this incident appears on.": "Отображается на страницах состояния, где показан этот инцидент.",
+  "What happened": "Что произошло",
+  "Why it happened, once you know.": "Почему это произошло, когда станет известно.",
   "{{count}} more labels": "Ещё меток: {{count}}",
   "{{count}} more labels_one": "Ещё {{count}} метка",
   "Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).": "Обнаруженный провайдер (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).",
@@ -33400,5 +33409,7 @@
   "Component: {{component}}": "Компонент: {{component}}",
   "Group: {{group}}": "Группа: {{group}}",
   "Only watch components whose names contain this, e.g. 'API'. With a group set, only inside that group.": "Следить только за компонентами, в названии которых есть этот текст, например 'API'. Если задана группа — только внутри неё.",
-  "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)": "URL внешней страницы статуса для мониторинга (например, https://www.githubstatus.com или https://status.openai.com)"
+  "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)": "URL внешней страницы статуса для мониторинга (например, https://www.githubstatus.com или https://status.openai.com)",
+  "{{duration}} after impact began": "{{duration}} после начала воздействия",
+  "Shown on the status pages this episode appears on.": "Отображается на страницах состояния, где показан этот эпизод."
 }

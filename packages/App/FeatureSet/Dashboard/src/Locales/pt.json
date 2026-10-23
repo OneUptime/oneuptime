@@ -13687,7 +13687,7 @@
   "Not a column on this model": "Not a column on this model",
   "Not a valid cron expression": "Not a valid cron expression",
   "Not allowed": "Not allowed",
-  "Not assigned": "Not assigned",
+  "Not assigned": "Não atribuído",
   "Not available on this engine": "Not available on this engine",
   "Not checked": "Not checked",
   "Not collected": "Not collected",
@@ -33392,6 +33392,15 @@
   "Events appear here as the Kubernetes agent sends them.": "Os eventos aparecem aqui à medida que o agente Kubernetes os envia.",
   "Try another namespace, kind or reason, or a longer time range.": "Experimente outro namespace, tipo ou motivo, ou um intervalo de tempo maior.",
   "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "O que o Kubernetes reportou sobre os nós, cargas de trabalho, autoscalers e volumes deste cluster.",
+  "Assign {{role}}": "Atribuir {{role}}",
+  "By {{name}}": "Por {{name}}",
+  "Edit what happened": "Editar o que aconteceu",
+  "No description yet.": "Ainda sem descrição.",
+  "Not identified yet.": "Ainda não identificada.",
+  "Root cause": "Causa raiz",
+  "Shown on the status pages this incident appears on.": "Exibida nas páginas de status em que este incidente aparece.",
+  "What happened": "O que aconteceu",
+  "Why it happened, once you know.": "Por que aconteceu, quando você souber.",
   "{{count}} more labels": "Mais {{count}} rótulos",
   "{{count}} more labels_one": "Mais {{count}} rótulo",
   "Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).": "Provedor detectado (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).",
@@ -33400,5 +33409,7 @@
   "Component: {{component}}": "Componente: {{component}}",
   "Group: {{group}}": "Grupo: {{group}}",
   "Only watch components whose names contain this, e.g. 'API'. With a group set, only inside that group.": "Acompanhar só os componentes cujo nome contém isto, ex.: 'API'. Com um grupo definido, só dentro desse grupo.",
-  "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)": "A URL da página de status externa a monitorar (ex.: https://www.githubstatus.com ou https://status.openai.com)"
+  "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)": "A URL da página de status externa a monitorar (ex.: https://www.githubstatus.com ou https://status.openai.com)",
+  "{{duration}} after impact began": "{{duration}} após o início do impacto",
+  "Shown on the status pages this episode appears on.": "Exibida nas páginas de status em que este episódio aparece."
 }

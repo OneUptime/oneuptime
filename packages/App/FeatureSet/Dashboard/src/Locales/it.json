@@ -13687,7 +13687,7 @@
   "Not a column on this model": "Not a column on this model",
   "Not a valid cron expression": "Not a valid cron expression",
   "Not allowed": "Not allowed",
-  "Not assigned": "Not assigned",
+  "Not assigned": "Non assegnato",
   "Not available on this engine": "Not available on this engine",
   "Not checked": "Not checked",
   "Not collected": "Not collected",
@@ -33392,6 +33392,15 @@
   "Events appear here as the Kubernetes agent sends them.": "Gli eventi compaiono qui man mano che l'agente Kubernetes li invia.",
   "Try another namespace, kind or reason, or a longer time range.": "Prova un altro namespace, tipo o motivo, oppure un intervallo di tempo più lungo.",
   "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Ciò che Kubernetes ha segnalato su nodi, carichi di lavoro, autoscaler e volumi di questo cluster.",
+  "Assign {{role}}": "Assegna {{role}}",
+  "By {{name}}": "Da {{name}}",
+  "Edit what happened": "Modifica cosa è successo",
+  "No description yet.": "Ancora nessuna descrizione.",
+  "Not identified yet.": "Non ancora individuata.",
+  "Root cause": "Causa principale",
+  "Shown on the status pages this incident appears on.": "Mostrata nelle pagine di stato in cui compare questo incidente.",
+  "What happened": "Cosa è successo",
+  "Why it happened, once you know.": "Perché è successo, quando lo sai.",
   "{{count}} more labels": "{{count}} altre etichette",
   "{{count}} more labels_one": "{{count}} altra etichetta",
   "Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).": "Provider rilevato (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).",
@@ -33400,5 +33409,7 @@
   "Component: {{component}}": "Componente: {{component}}",
   "Group: {{group}}": "Gruppo: {{group}}",
   "Only watch components whose names contain this, e.g. 'API'. With a group set, only inside that group.": "Osserva solo i componenti il cui nome contiene questo testo, ad es. 'API'. Con un gruppo impostato, solo all'interno di quel gruppo.",
-  "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)": "L'URL della pagina di stato esterna da monitorare (ad es. https://www.githubstatus.com o https://status.openai.com)"
+  "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)": "L'URL della pagina di stato esterna da monitorare (ad es. https://www.githubstatus.com o https://status.openai.com)",
+  "{{duration}} after impact began": "{{duration}} dopo l'inizio dell'impatto",
+  "Shown on the status pages this episode appears on.": "Mostrata nelle pagine di stato in cui compare questo episodio."
 }

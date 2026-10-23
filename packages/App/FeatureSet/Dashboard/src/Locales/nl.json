@@ -13687,7 +13687,7 @@
   "Not a column on this model": "Not a column on this model",
   "Not a valid cron expression": "Not a valid cron expression",
   "Not allowed": "Not allowed",
-  "Not assigned": "Not assigned",
+  "Not assigned": "Niet toegewezen",
   "Not available on this engine": "Not available on this engine",
   "Not checked": "Not checked",
   "Not collected": "Not collected",
@@ -33392,6 +33392,15 @@
   "Events appear here as the Kubernetes agent sends them.": "Gebeurtenissen verschijnen hier zodra de Kubernetes-agent ze verstuurt.",
   "Try another namespace, kind or reason, or a longer time range.": "Probeer een andere namespace, soort of reden, of een langer tijdsbereik.",
   "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Wat Kubernetes meldde over de knooppunten, workloads, autoscalers en volumes van dit cluster.",
+  "Assign {{role}}": "{{role}} toewijzen",
+  "By {{name}}": "Door {{name}}",
+  "Edit what happened": "Wat er gebeurde bewerken",
+  "No description yet.": "Nog geen beschrijving.",
+  "Not identified yet.": "Nog niet vastgesteld.",
+  "Root cause": "Hoofdoorzaak",
+  "Shown on the status pages this incident appears on.": "Getoond op de statuspagina's waarop dit incident verschijnt.",
+  "What happened": "Wat er gebeurde",
+  "Why it happened, once you know.": "Waarom het gebeurde, zodra u het weet.",
   "{{count}} more labels": "Nog {{count}} labels",
   "{{count}} more labels_one": "Nog {{count}} label",
   "Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).": "Gedetecteerde provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).",
@@ -33400,5 +33409,7 @@
   "Component: {{component}}": "Component: {{component}}",
   "Group: {{group}}": "Groep: {{group}}",
   "Only watch components whose names contain this, e.g. 'API'. With a group set, only inside that group.": "Houd alleen componenten in de gaten waarvan de naam dit bevat, bijv. 'API'. Met een groep ingesteld, alleen binnen die groep.",
-  "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)": "De URL van de externe statuspagina die je wilt monitoren (bijv. https://www.githubstatus.com of https://status.openai.com)"
+  "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)": "De URL van de externe statuspagina die je wilt monitoren (bijv. https://www.githubstatus.com of https://status.openai.com)",
+  "{{duration}} after impact began": "{{duration}} na het begin van de impact",
+  "Shown on the status pages this episode appears on.": "Getoond op de statuspagina's waarop deze episode verschijnt."
 }

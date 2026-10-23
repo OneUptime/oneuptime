@@ -38,6 +38,12 @@ const tailwind = path.join(
 );
 // Production imports Theme.css from src/Index.tsx; serve the same file.
 const theme = path.join(repository, "packages/Common/UI/Styles/Theme.css");
+// The Dashboard's locales, which the page fetches for ?lang=.
+const locales = path.join(
+  repository,
+  "packages/App/FeatureSet/Dashboard/src/Locales",
+);
+const LOCALE_PATH = /^\/locales\/([a-zA-Z]{2}(?:-[a-zA-Z]{2})?)\.json$/;
 /*
  * The same tailwind.config production sets in
  * App/FeatureSet/Dashboard/views/index.ejs, so class-based dark mode and the
@@ -91,6 +97,17 @@ async function main() {
     if (url.pathname === "/theme.css") {
       response.setHeader("Content-Type", "text/css");
       fs.createReadStream(theme).pipe(response);
+      return;
+    }
+    const locale = LOCALE_PATH.exec(url.pathname);
+    if (locale) {
+      const file = path.join(locales, `${locale[1]}.json`);
+      if (!fs.existsSync(file)) {
+        response.writeHead(404).end();
+        return;
+      }
+      response.setHeader("Content-Type", "application/json");
+      fs.createReadStream(file).pipe(response);
       return;
     }
     if (url.pathname.startsWith("/dist/")) {

@@ -13687,7 +13687,7 @@
   "Not a column on this model": "Not a column on this model",
   "Not a valid cron expression": "Not a valid cron expression",
   "Not allowed": "Not allowed",
-  "Not assigned": "Not assigned",
+  "Not assigned": "未指派",
   "Not available on this engine": "Not available on this engine",
   "Not checked": "Not checked",
   "Not collected": "Not collected",
@@ -33392,6 +33392,15 @@
   "Events appear here as the Kubernetes agent sends them.": "Kubernetes 代理程式傳送事件後，事件會顯示在這裡。",
   "Try another namespace, kind or reason, or a longer time range.": "請嘗試其他 Namespace、種類或原因，或選擇更長的時間範圍。",
   "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Kubernetes 回報的此叢集節點、工作負載、自動擴縮器和磁碟區的相關事件。",
+  "Assign {{role}}": "指派 {{role}}",
+  "By {{name}}": "發起者：{{name}}",
+  "Edit what happened": "編輯事件經過",
+  "No description yet.": "尚無描述。",
+  "Not identified yet.": "尚未查明。",
+  "Root cause": "根本原因",
+  "Shown on the status pages this incident appears on.": "會顯示在展示此事件的狀態頁面上。",
+  "What happened": "事件經過",
+  "Why it happened, once you know.": "查明後，填寫發生的原因。",
   "{{count}} more labels": "另外 {{count}} 個標籤",
   "{{count}} more labels_one": "另外 {{count}} 個標籤",
   "Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).": "偵測到的提供者（Atlassian Statuspage、incident.io、OneUptime Status Page、RSS、Atom）。",
@@ -33400,5 +33409,7 @@
   "Component: {{component}}": "元件：{{component}}",
   "Group: {{group}}": "群組：{{group}}",
   "Only watch components whose names contain this, e.g. 'API'. With a group set, only inside that group.": "只關注名稱中包含此文字的元件，例如 'API'。設定了群組時，只在該群組內尋找。",
-  "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)": "要監測的外部狀態頁面 URL（例如 https://www.githubstatus.com 或 https://status.openai.com）"
+  "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)": "要監測的外部狀態頁面 URL（例如 https://www.githubstatus.com 或 https://status.openai.com）",
+  "{{duration}} after impact began": "影響開始後 {{duration}}",
+  "Shown on the status pages this episode appears on.": "會顯示在展示此片段的狀態頁面上。"
 }

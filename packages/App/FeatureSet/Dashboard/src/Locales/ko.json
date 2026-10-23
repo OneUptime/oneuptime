@@ -13687,7 +13687,7 @@
   "Not a column on this model": "Not a column on this model",
   "Not a valid cron expression": "Not a valid cron expression",
   "Not allowed": "Not allowed",
-  "Not assigned": "Not assigned",
+  "Not assigned": "할당되지 않음",
   "Not available on this engine": "Not available on this engine",
   "Not checked": "Not checked",
   "Not collected": "Not collected",
@@ -33392,6 +33392,15 @@
   "Events appear here as the Kubernetes agent sends them.": "Kubernetes 에이전트가 이벤트를 보내면 여기에 표시됩니다.",
   "Try another namespace, kind or reason, or a longer time range.": "다른 Namespace, 종류 또는 사유를 선택하거나 더 긴 시간 범위를 선택하세요.",
   "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "이 클러스터의 노드, 워크로드, 오토스케일러, 볼륨에 대해 Kubernetes가 보고한 내용입니다.",
+  "Assign {{role}}": "{{role}} 할당",
+  "By {{name}}": "작성자: {{name}}",
+  "Edit what happened": "발생 내용 편집",
+  "No description yet.": "아직 설명이 없습니다.",
+  "Not identified yet.": "아직 파악되지 않았습니다.",
+  "Root cause": "근본 원인",
+  "Shown on the status pages this incident appears on.": "이 인시던트가 표시되는 상태 페이지에 표시됩니다.",
+  "What happened": "발생 내용",
+  "Why it happened, once you know.": "원인을 알게 되면 왜 발생했는지 적습니다.",
   "{{count}} more labels": "레이블 {{count}}개 더",
   "{{count}} more labels_one": "레이블 {{count}}개 더",
   "Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).": "감지된 공급자(Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).",
@@ -33400,5 +33409,7 @@
   "Component: {{component}}": "구성 요소: {{component}}",
   "Group: {{group}}": "그룹: {{group}}",
   "Only watch components whose names contain this, e.g. 'API'. With a group set, only inside that group.": "이름에 이 내용이 포함된 구성 요소만 지켜봅니다(예: 'API'). 그룹을 설정하면 그 그룹 안에서만 찾습니다.",
-  "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)": "모니터링할 외부 상태 페이지의 URL (예: https://www.githubstatus.com 또는 https://status.openai.com)"
+  "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)": "모니터링할 외부 상태 페이지의 URL (예: https://www.githubstatus.com 또는 https://status.openai.com)",
+  "{{duration}} after impact began": "영향 시작 후 {{duration}}",
+  "Shown on the status pages this episode appears on.": "이 에피소드가 표시되는 상태 페이지에 표시됩니다."
 }

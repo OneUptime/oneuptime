@@ -33392,6 +33392,15 @@
   "Events appear here as the Kubernetes agent sends them.": "Events appear here as the Kubernetes agent sends them.",
   "Try another namespace, kind or reason, or a longer time range.": "Try another namespace, kind or reason, or a longer time range.",
   "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.",
+  "Assign {{role}}": "Assign {{role}}",
+  "By {{name}}": "By {{name}}",
+  "Edit what happened": "Edit what happened",
+  "No description yet.": "No description yet.",
+  "Not identified yet.": "Not identified yet.",
+  "Root cause": "Root cause",
+  "Shown on the status pages this incident appears on.": "Shown on the status pages this incident appears on.",
+  "What happened": "What happened",
+  "Why it happened, once you know.": "Why it happened, once you know.",
   "{{count}} more labels": "{{count}} more labels",
   "{{count}} more labels_one": "{{count}} more label",
   "Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).": "Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).",
@@ -33400,5 +33409,7 @@
   "Component: {{component}}": "Component: {{component}}",
   "Group: {{group}}": "Group: {{group}}",
   "Only watch components whose names contain this, e.g. 'API'. With a group set, only inside that group.": "Only watch components whose names contain this, e.g. 'API'. With a group set, only inside that group.",
-  "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)": "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)"
+  "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)": "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)",
+  "{{duration}} after impact began": "{{duration}} after impact began",
+  "Shown on the status pages this episode appears on.": "Shown on the status pages this episode appears on."
 }

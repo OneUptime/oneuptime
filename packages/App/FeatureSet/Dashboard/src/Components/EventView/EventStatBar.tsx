@@ -1,3 +1,4 @@
+import useTranslateValue from "Common/UI/Utils/Translation";
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 
 export type EventStatBarColumns = 1 | 2 | 3 | 4;
@@ -6,7 +7,11 @@ export interface ComponentProps {
   columns: EventStatBarColumns;
   children: ReactNode;
   className?: string | undefined;
-  // Names the group for assistive technology, e.g. "Incident timing".
+  /*
+   * Names the group for assistive technology, in English: "Incident
+   * response times". The bar looks it up in the reader's language where it
+   * draws it, as its tiles do their labels.
+   */
   ariaLabel?: string | undefined;
 }
 
@@ -50,6 +55,7 @@ export const getEventStatBarColumnClassName: (
 const EventStatBar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
   const cellCount: number = React.Children.toArray(props.children).length;
 
   if (cellCount === 0) {
@@ -64,7 +70,11 @@ const EventStatBar: FunctionComponent<ComponentProps> = (
   return (
     <div
       role={props.ariaLabel ? "group" : undefined}
-      aria-label={props.ariaLabel}
+      aria-label={
+        props.ariaLabel
+          ? translateString(props.ariaLabel) || props.ariaLabel
+          : undefined
+      }
       className={`grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-gray-200 bg-gray-100 shadow-sm ${columnClassName} ${
         props.className || ""
       }`}

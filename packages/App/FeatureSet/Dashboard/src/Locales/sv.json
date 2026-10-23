@@ -13687,7 +13687,7 @@
   "Not a column on this model": "Not a column on this model",
   "Not a valid cron expression": "Not a valid cron expression",
   "Not allowed": "Not allowed",
-  "Not assigned": "Not assigned",
+  "Not assigned": "Inte tilldelad",
   "Not available on this engine": "Not available on this engine",
   "Not checked": "Not checked",
   "Not collected": "Not collected",
@@ -33392,6 +33392,15 @@
   "Events appear here as the Kubernetes agent sends them.": "Händelser visas här när Kubernetes-agenten skickar dem.",
   "Try another namespace, kind or reason, or a longer time range.": "Prova ett annat namespace, en annan typ eller orsak, eller ett längre tidsintervall.",
   "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Vad Kubernetes har rapporterat om klustrets noder, arbetsbelastningar, autoskalare och volymer.",
+  "Assign {{role}}": "Tilldela {{role}}",
+  "By {{name}}": "Av {{name}}",
+  "Edit what happened": "Redigera vad som hände",
+  "No description yet.": "Ingen beskrivning än.",
+  "Not identified yet.": "Inte fastställd än.",
+  "Root cause": "Rotorsak",
+  "Shown on the status pages this incident appears on.": "Visas på statussidorna där den här incidenten syns.",
+  "What happened": "Vad som hände",
+  "Why it happened, once you know.": "Varför det hände, när du vet det.",
   "{{count}} more labels": "{{count}} etiketter till",
   "{{count}} more labels_one": "{{count}} etikett till",
   "Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).": "Identifierad leverantör (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).",
@@ -33400,5 +33409,7 @@
   "Component: {{component}}": "Komponent: {{component}}",
   "Group: {{group}}": "Grupp: {{group}}",
   "Only watch components whose names contain this, e.g. 'API'. With a group set, only inside that group.": "Bevaka bara komponenter vars namn innehåller detta, t.ex. 'API'. Med en grupp vald, bara inom den gruppen.",
-  "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)": "URL:en till den externa statussidan som ska övervakas (t.ex. https://www.githubstatus.com eller https://status.openai.com)"
+  "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)": "URL:en till den externa statussidan som ska övervakas (t.ex. https://www.githubstatus.com eller https://status.openai.com)",
+  "{{duration}} after impact began": "{{duration}} efter att påverkan började",
+  "Shown on the status pages this episode appears on.": "Visas på statussidorna där den här episoden syns."
 }

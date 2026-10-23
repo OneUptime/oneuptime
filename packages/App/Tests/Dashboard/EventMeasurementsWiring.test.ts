@@ -127,7 +127,8 @@ const OVERVIEW_PAGES: Array<OverviewPage> = [
     file: ["Pages", "Alerts", "View", "Index.tsx"],
     source: "ALERT_EVENT_MEASUREMENTS",
     detailsCard: 'name="Alert Details"',
-    nextCard: 'name="Affected Resources"',
+    // Affected Resources leads the column now, above the details.
+    nextCard: "<OverviewCustomFields",
     isEventOver: /isEventOver=\{Boolean\(durationEndDate\)\}/,
     refreshKey:
       "refreshKey={getEventMeasurementRefreshKey({ timeline: alertStateTimeline, })}",

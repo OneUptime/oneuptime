@@ -33392,6 +33392,15 @@
   "Events appear here as the Kubernetes agent sends them.": "Ereignisse erscheinen hier, sobald der Kubernetes-Agent sie sendet.",
   "Try another namespace, kind or reason, or a longer time range.": "Versuchen Sie einen anderen Namespace, eine andere Art oder einen anderen Grund oder einen längeren Zeitraum.",
   "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Was Kubernetes zu den Knoten, Workloads, Autoscalern und Volumes dieses Clusters gemeldet hat.",
+  "Assign {{role}}": "{{role}} zuweisen",
+  "By {{name}}": "Von {{name}}",
+  "Edit what happened": "Hergang bearbeiten",
+  "No description yet.": "Noch keine Beschreibung.",
+  "Not identified yet.": "Noch nicht ermittelt.",
+  "Root cause": "Grundursache",
+  "Shown on the status pages this incident appears on.": "Wird auf den Statusseiten angezeigt, auf denen dieser Vorfall erscheint.",
+  "What happened": "Hergang",
+  "Why it happened, once you know.": "Warum es passiert ist, sobald Sie es wissen.",
   "{{count}} more labels": "{{count}} weitere Beschriftungen",
   "{{count}} more labels_one": "{{count}} weitere Beschriftung",
   "Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).": "Erkannter Anbieter (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).",
@@ -33400,5 +33409,7 @@
   "Component: {{component}}": "Komponente: {{component}}",
   "Group: {{group}}": "Gruppe: {{group}}",
   "Only watch components whose names contain this, e.g. 'API'. With a group set, only inside that group.": "Nur Komponenten beobachten, deren Name dies enthält, z. B. 'API'. Ist eine Gruppe gesetzt, nur innerhalb dieser Gruppe.",
-  "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)": "Die URL der externen Statusseite, die überwacht werden soll (z. B. https://www.githubstatus.com oder https://status.openai.com)"
+  "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)": "Die URL der externen Statusseite, die überwacht werden soll (z. B. https://www.githubstatus.com oder https://status.openai.com)",
+  "{{duration}} after impact began": "{{duration}} nach Beginn der Auswirkung",
+  "Shown on the status pages this episode appears on.": "Wird auf den Statusseiten angezeigt, auf denen diese Episode erscheint."
 }

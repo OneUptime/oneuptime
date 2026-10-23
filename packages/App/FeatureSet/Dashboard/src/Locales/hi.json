@@ -13687,7 +13687,7 @@
   "Not a column on this model": "Not a column on this model",
   "Not a valid cron expression": "Not a valid cron expression",
   "Not allowed": "Not allowed",
-  "Not assigned": "Not assigned",
+  "Not assigned": "असाइन नहीं किया गया",
   "Not available on this engine": "Not available on this engine",
   "Not checked": "Not checked",
   "Not collected": "Not collected",
@@ -33392,6 +33392,15 @@
   "Events appear here as the Kubernetes agent sends them.": "Kubernetes एजेंट जैसे ही इवेंट भेजता है, वे यहाँ दिखते हैं।",
   "Try another namespace, kind or reason, or a longer time range.": "कोई दूसरा Namespace, प्रकार या कारण आज़माएँ, या लंबी समय सीमा चुनें।",
   "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Kubernetes ने इस क्लस्टर के नोड, वर्कलोड, ऑटोस्केलर और वॉल्यूम के बारे में जो बताया।",
+  "Assign {{role}}": "{{role}} असाइन करें",
+  "By {{name}}": "{{name}} द्वारा",
+  "Edit what happened": "क्या हुआ, संपादित करें",
+  "No description yet.": "अभी कोई विवरण नहीं है।",
+  "Not identified yet.": "अभी पहचाना नहीं गया है।",
+  "Root cause": "मूल कारण",
+  "Shown on the status pages this incident appears on.": "उन स्थिति पृष्ठों पर दिखता है जिन पर यह घटना दिखाई देती है।",
+  "What happened": "क्या हुआ",
+  "Why it happened, once you know.": "यह क्यों हुआ, जब आपको पता चल जाए।",
   "{{count}} more labels": "{{count}} और लेबल",
   "{{count}} more labels_one": "{{count}} और लेबल",
   "Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).": "पहचाना गया प्रदाता (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom)।",
@@ -33400,5 +33409,7 @@
   "Component: {{component}}": "घटक: {{component}}",
   "Group: {{group}}": "समूह: {{group}}",
   "Only watch components whose names contain this, e.g. 'API'. With a group set, only inside that group.": "केवल उन घटकों पर नज़र रखें जिनके नाम में यह शामिल हो, जैसे 'API'। समूह सेट होने पर, केवल उसी समूह के भीतर।",
-  "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)": "मॉनिटर करने के लिए बाहरी स्थिति पृष्ठ का URL (जैसे https://www.githubstatus.com या https://status.openai.com)"
+  "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)": "मॉनिटर करने के लिए बाहरी स्थिति पृष्ठ का URL (जैसे https://www.githubstatus.com या https://status.openai.com)",
+  "{{duration}} after impact began": "प्रभाव शुरू होने के {{duration}} बाद",
+  "Shown on the status pages this episode appears on.": "उन स्थिति पृष्ठों पर दिखता है जिन पर यह एपिसोड दिखाई देता है।"
 }
