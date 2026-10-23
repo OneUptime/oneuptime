@@ -33396,5 +33396,9 @@
   "{{count}} more labels_one": "另外 {{count}} 個標籤",
   "Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).": "偵測到的提供者（Atlassian Statuspage、incident.io、OneUptime Status Page、RSS、Atom）。",
   "How OneUptime reads this status page. 'Auto' detects the format for you.": "OneUptime 讀取此狀態頁面的方式。'Auto' 會自動辨識格式。",
-  "Only watch one component group, e.g. 'APIs'. RSS and Atom feeds have no groups.": "只關注一個元件群組，例如 'APIs'。RSS 和 Atom 訂閱來源沒有群組。"
+  "Only watch one component group, e.g. 'APIs'. RSS and Atom feeds have no groups.": "只關注一個元件群組，例如 'APIs'。RSS 和 Atom 訂閱來源沒有群組。",
+  "Component: {{component}}": "元件：{{component}}",
+  "Group: {{group}}": "群組：{{group}}",
+  "Only watch components whose names contain this, e.g. 'API'. With a group set, only inside that group.": "只關注名稱中包含此文字的元件，例如 'API'。設定了群組時，只在該群組內尋找。",
+  "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)": "要監測的外部狀態頁面 URL（例如 https://www.githubstatus.com 或 https://status.openai.com）"
 }

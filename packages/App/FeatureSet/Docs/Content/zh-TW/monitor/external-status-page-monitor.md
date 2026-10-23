@@ -74,7 +74,7 @@ flowchart TB
 
 ### 視需要限定範圍
 
-開啟 **更多欄位**，輸入 **Component Group Filter (Optional)**（例如 `APIs`），以及 **元件名稱篩選器（選填）** 來留意單一元件（如果設定了群組，則在該群組內）。
+開啟 **更多欄位**，輸入 **Component Group Filter**（例如 `APIs`），以及 **元件名稱篩選器** 來留意單一元件（如果設定了群組，則在該群組內）。
 
 ### 測試
 
@@ -95,8 +95,8 @@ flowchart TB
 | --- | --- | --- |
 | **狀態頁面 URL** | 狀態頁面的 URL。對於由 Atlassian Statuspage 和 incident.io 提供的網站，通常是根 URL（例如 `https://status.example.com`）。對於 RSS/Atom 摘要，請直接輸入摘要的 URL。 | — |
 | **提供者** | **Auto** 表示自動判斷格式；如果你知道格式，可選擇 **Atlassian Statuspage**、**incident.io**、**OneUptime Status Page**、**RSS** 或 **Atom**。 | **Auto** |
-| **Component Group Filter (Optional)** | 監測器限定到的群組。位於 **更多欄位** 下。 | 所有群組 |
-| **元件名稱篩選器（選填）** | 要留意的元件。位於 **更多欄位** 下。 | 範圍內的所有元件 |
+| **Component Group Filter** | 監測器限定到的群組。位於 **更多欄位** 下。 | 所有群組 |
+| **元件名稱篩選器** | 要留意的元件。位於 **更多欄位** 下。 | 範圍內的所有元件 |
 | **逾時（ms）** | 等待狀態頁面的最長時間。位於 **更多欄位** 下。 | `10000`（10 秒） |
 | **重試** | 第一次嘗試失敗後重試的次數，每次間隔一秒；`0` 表示只嘗試一次。位於 **更多欄位** 下。 | `3`（最多 4 次嘗試） |
 
@@ -148,7 +148,7 @@ flowchart TB
 
 若要監測用 OneUptime 製作的狀態頁面（另一個團隊的專案，或供應商在 OneUptime Cloud 或自行託管的 OneUptime 上的頁面），請把提供者選為 **OneUptime Status Page** ，或保留 **Auto** 。在 **狀態頁面 URL** 中輸入頁面本身的位址：有網域就輸入網域，例如 `https://status.example.com`，沒有就輸入 `https://oneuptime.com/status-page/<status-page-id>`。
 
-監測器讀取頁面的狀態概要 `/status-page-api/summary/<page>`（請參閱 [讀取狀態概要](/docs/status-pages/public-api#讀取狀態概要)）：只讀取頁面向訪客顯示的內容，不讀取另一個專案的其他任何內容。頁面上的每個資源（一個監測器或一個監測器群組）都是一個元件，使用頁面為它取的名稱，位於頁面的群組中；群組中的群組寫作 `Core / Databases`。用 **元件名稱篩選器（選填）** 監測一個資源，用 **Component Group Filter (Optional)** 監測一個群組。
+監測器讀取頁面的狀態概要 `/status-page-api/summary/<page>`（請參閱 [讀取狀態概要](/docs/status-pages/public-api#讀取狀態概要)）：只讀取頁面向訪客顯示的內容，不讀取另一個專案的其他任何內容。頁面上的每個資源（一個監測器或一個監測器群組）都是一個元件，使用頁面為它取的名稱，位於頁面的群組中；群組中的群組寫作 `Core / Databases`。用 **元件名稱篩選器** 監測一個資源，用 **Component Group Filter** 監測一個群組。
 
 元件的狀態是它在頁面上的狀態所代表的值，因此元件狀態條件的用法與任何狀態頁面相同：
 
@@ -180,7 +180,7 @@ flowchart TB
 
 ### 用測試監測器檢查
 
-在另一個專案有維護進行時點選 **測試監測器** ：受影響的元件會顯示 `under_maintenance`。
+在另一個專案有維護進行時點選 **測試監測器** ：受影響的元件會顯示 **Under Maintenance**。
 :::
 
 ### OneUptime 狀態頁面允許監測器讀取的內容

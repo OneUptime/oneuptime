@@ -33396,5 +33396,9 @@
   "{{count}} more labels_one": "{{count}} और लेबल",
   "Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).": "पहचाना गया प्रदाता (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom)।",
   "How OneUptime reads this status page. 'Auto' detects the format for you.": "OneUptime इस स्थिति पृष्ठ को कैसे पढ़ता है। 'Auto' आपके लिए फ़ॉर्मैट पहचान लेता है।",
-  "Only watch one component group, e.g. 'APIs'. RSS and Atom feeds have no groups.": "केवल एक कंपोनेंट समूह पर नज़र रखें, जैसे 'APIs'। RSS और Atom फ़ीड में समूह नहीं होते।"
+  "Only watch one component group, e.g. 'APIs'. RSS and Atom feeds have no groups.": "केवल एक कंपोनेंट समूह पर नज़र रखें, जैसे 'APIs'। RSS और Atom फ़ीड में समूह नहीं होते।",
+  "Component: {{component}}": "घटक: {{component}}",
+  "Group: {{group}}": "समूह: {{group}}",
+  "Only watch components whose names contain this, e.g. 'API'. With a group set, only inside that group.": "केवल उन घटकों पर नज़र रखें जिनके नाम में यह शामिल हो, जैसे 'API'। समूह सेट होने पर, केवल उसी समूह के भीतर।",
+  "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)": "मॉनिटर करने के लिए बाहरी स्थिति पृष्ठ का URL (जैसे https://www.githubstatus.com या https://status.openai.com)"
 }

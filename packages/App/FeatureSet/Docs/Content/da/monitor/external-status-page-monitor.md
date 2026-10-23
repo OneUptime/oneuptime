@@ -74,7 +74,7 @@ Angiv **Statusside-URL**. Lad **Udbyder** stå på **Auto**, medmindre du kender
 
 ### Afgræns den, hvis du har brug for det
 
-Åbn **Flere felter** for at angive et **Component Group Filter (Optional)**, som `APIs`, og et **Filter for komponentnavn (valgfrit)** for at holde øje med en enkelt komponent (inden for gruppen, hvis en gruppe er angivet).
+Åbn **Flere felter** for at angive et **Component Group Filter**, som `APIs`, og et **Filter for komponentnavn** for at holde øje med en enkelt komponent (inden for gruppen, hvis en gruppe er angivet).
 
 ### Test den
 
@@ -95,8 +95,8 @@ Vælg **Sonder** og et **Overvågningsinterval** — det starter på **Hvert 5. 
 | --- | --- | --- |
 | **Statusside-URL** | URL'en til statussiden. For sider, der kører på Atlassian Statuspage og incident.io, er det typisk rod-URL'en (f.eks. `https://status.example.com`). For RSS-/Atom-feeds skal du angive feedets URL direkte. | — |
 | **Udbyder** | **Auto** for at finde formatet, eller **Atlassian Statuspage**, **incident.io**, **OneUptime Status Page**, **RSS** eller **Atom**, hvis du kender det. | **Auto** |
-| **Component Group Filter (Optional)** | Den gruppe, monitoren afgrænses til. Under **Flere felter**. | Alle grupper |
-| **Filter for komponentnavn (valgfrit)** | Den komponent, der skal holdes øje med. Under **Flere felter**. | Alle komponenter inden for afgrænsningen |
+| **Component Group Filter** | Den gruppe, monitoren afgrænses til. Under **Flere felter**. | Alle grupper |
+| **Filter for komponentnavn** | Den komponent, der skal holdes øje med. Under **Flere felter**. | Alle komponenter inden for afgrænsningen |
 | **Timeout (ms)** | Den længste tid, der ventes på statussiden. Under **Flere felter**. | `10000` (10 sekunder) |
 | **Genforsøg** | Hvor mange gange der prøves igen, med et sekunds mellemrum, efter at det første forsøg er mislykkedes; `0` betyder et enkelt forsøg. Under **Flere felter**. | `3` (op til 4 forsøg) |
 
@@ -148,7 +148,7 @@ Fordi antallet af aktive hændelser og komponenternes status respekterer filtren
 
 Vælg **OneUptime Status Page** som udbyder, eller lad **Auto** stå, for at holde øje med en statusside, der er lavet med OneUptime: et andet teams projekt eller en leverandørs side på OneUptime Cloud eller på en selvhostet OneUptime. Indtast sidens egen adresse i **Statusside-URL**: dens domæne, som `https://status.example.com`, eller `https://oneuptime.com/status-page/<status-page-id>` for en side uden eget domæne.
 
-Monitoren læser sidens resumé, `/status-page-api/summary/<page>` (se [Læs resuméet](/docs/status-pages/public-api#læs-resuméet)): kun det, siden viser sine besøgende, og intet andet fra det andet projekt. Hver ressource på siden, en monitor eller en monitorgruppe, er en komponent under det navn, siden giver den, i sidens gruppe; en gruppe inde i en anden hedder `Core / Databases`. Hold øje med én ressource med **Filter for komponentnavn (valgfrit)** eller én gruppe med **Component Group Filter (Optional)**.
+Monitoren læser sidens resumé, `/status-page-api/summary/<page>` (se [Læs resuméet](/docs/status-pages/public-api#læs-resuméet)): kun det, siden viser sine besøgende, og intet andet fra det andet projekt. Hver ressource på siden, en monitor eller en monitorgruppe, er en komponent under det navn, siden giver den, i sidens gruppe; en gruppe inde i en anden hedder `Core / Databases`. Hold øje med én ressource med **Filter for komponentnavn** eller én gruppe med **Component Group Filter**.
 
 En komponents status er den værdi, dens status på siden står for, så kriterierne for komponentstatus virker som på enhver statusside:
 
@@ -180,7 +180,7 @@ Træk det nye kriterium op over de andre: det første kriterium, der passer, vin
 
 ### Tjek det med Test monitor
 
-Klik på **Test monitor**, mens det andet projekt har vedligeholdelse i gang: den komponent, den berører, viser `under_maintenance`.
+Klik på **Test monitor**, mens det andet projekt har vedligeholdelse i gang: den komponent, den berører, viser **Under Maintenance**.
 :::
 
 ### Hvad en OneUptime-statusside lader monitoren læse

@@ -74,7 +74,7 @@ Informe a **URL da Página de Status**. Deixe o **Provedor** em **Auto**, a meno
 
 ### Delimitar o escopo, se precisar
 
-Abra **Mais campos** para informar um **Component Group Filter (Optional)**, como `APIs`, e um **Filtro de nome de componente (opcional)** para acompanhar um único componente (dentro do grupo, se houver um grupo definido).
+Abra **Mais campos** para informar um **Component Group Filter**, como `APIs`, e um **Filtro de nome de componente** para acompanhar um único componente (dentro do grupo, se houver um grupo definido).
 
 ### Testar
 
@@ -95,8 +95,8 @@ Selecione as **Sondas** e um **Intervalo de monitoramento** (começa em **A cada
 | --- | --- | --- |
 | **URL da Página de Status** | A URL da página de status. Em sites baseados no Atlassian Statuspage e no incident.io, costuma ser a URL raiz (por exemplo, `https://status.example.com`). Para feeds RSS/Atom, informe diretamente a URL do feed. | — |
 | **Provedor** | **Auto** para detectar o formato, ou **Atlassian Statuspage**, **incident.io**, **OneUptime Status Page**, **RSS** ou **Atom** se você souber. | **Auto** |
-| **Component Group Filter (Optional)** | O grupo ao qual limitar o monitor. Em **Mais campos**. | Todos os grupos |
-| **Filtro de nome de componente (opcional)** | O componente a acompanhar. Em **Mais campos**. | Todos os componentes do escopo |
+| **Component Group Filter** | O grupo ao qual limitar o monitor. Em **Mais campos**. | Todos os grupos |
+| **Filtro de nome de componente** | O componente a acompanhar. Em **Mais campos**. | Todos os componentes do escopo |
 | **Tempo limite (ms)** | O tempo máximo de espera pela página de status. Em **Mais campos**. | `10000` (10 segundos) |
 | **Tentativas** | Quantas vezes tentar de novo, com um segundo de intervalo, depois que a primeira tentativa falha; `0` significa uma única tentativa. Em **Mais campos**. | `3` (até 4 tentativas) |
 
@@ -148,7 +148,7 @@ Como o número de incidentes ativos e os status dos componentes respeitam os fil
 
 Escolha **OneUptime Status Page** como provedor, ou deixe **Auto**, para acompanhar uma página de status criada com o OneUptime: o projeto de outra equipe, ou a página de um provedor no OneUptime Cloud ou num OneUptime auto-hospedado. Informe o endereço da própria página em **URL da Página de Status**: o domínio dela, como `https://status.example.com`, ou `https://oneuptime.com/status-page/<status-page-id>` para uma página sem domínio próprio.
 
-O monitor lê o resumo da página, `/status-page-api/summary/<page>` (veja [Ler o resumo](/docs/status-pages/public-api#ler-o-resumo)): só o que a página mostra aos visitantes, e nada mais do outro projeto. Cada recurso da página, um monitor ou um grupo de monitores, é um componente, com o nome que a página dá a ele, no grupo da página; um grupo dentro de outro fica `Core / Databases`. Acompanhe um recurso com **Filtro de nome de componente (opcional)**, ou um grupo com **Component Group Filter (Optional)**.
+O monitor lê o resumo da página, `/status-page-api/summary/<page>` (veja [Ler o resumo](/docs/status-pages/public-api#ler-o-resumo)): só o que a página mostra aos visitantes, e nada mais do outro projeto. Cada recurso da página, um monitor ou um grupo de monitores, é um componente, com o nome que a página dá a ele, no grupo da página; um grupo dentro de outro fica `Core / Databases`. Acompanhe um recurso com **Filtro de nome de componente**, ou um grupo com **Component Group Filter**.
 
 O status de um componente é o valor que o status dele na página representa, então os critérios de status de componente funcionam como em qualquer página de status:
 
@@ -180,7 +180,7 @@ Arraste o novo critério para cima dos outros: vence o primeiro critério que co
 
 ### Conferir com Testar monitor
 
-Clique em **Testar monitor** enquanto o outro projeto tem uma manutenção em andamento: o componente afetado mostra `under_maintenance`.
+Clique em **Testar monitor** enquanto o outro projeto tem uma manutenção em andamento: o componente afetado mostra **Under Maintenance**.
 :::
 
 ### O que uma página de status do OneUptime deixa o monitor ler

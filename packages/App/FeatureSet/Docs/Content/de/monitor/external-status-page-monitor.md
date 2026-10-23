@@ -74,7 +74,7 @@ Geben Sie die **Statusseiten-URL** ein. Lassen Sie den **Anbieter** auf **Auto**
 
 ### Den Umfang festlegen, falls nötig
 
-Öffnen Sie **Weitere Felder**, um einen **Komponentengruppenfilter (optional)** wie `APIs` einzugeben, und einen **Komponentenname-Filter (optional)**, um eine einzelne Komponente zu beobachten (innerhalb der Gruppe, falls eine Gruppe gesetzt ist).
+Öffnen Sie **Weitere Felder**, um einen **Komponentengruppenfilter** wie `APIs` einzugeben, und einen **Komponentenname-Filter**, um eine einzelne Komponente zu beobachten (innerhalb der Gruppe, falls eine Gruppe gesetzt ist).
 
 ### Es testen
 
@@ -95,8 +95,8 @@ Wählen Sie die **Sonden** und ein **Überwachungsintervall** — es beginnt bei
 | --- | --- | --- |
 | **Statusseiten-URL** | Die URL der Statusseite. Bei Seiten auf Basis von Atlassian Statuspage und incident.io ist das meist die Stamm-URL (z. B. `https://status.example.com`). Bei RSS-/Atom-Feeds geben Sie direkt die Feed-URL ein. | — |
 | **Anbieter** | **Auto**, um das Format zu erkennen, oder **Atlassian Statuspage**, **incident.io**, **OneUptime Status Page**, **RSS** oder **Atom**, wenn Sie es kennen. | **Auto** |
-| **Komponentengruppenfilter (optional)** | Die Gruppe, auf die der Monitor beschränkt wird. Unter **Weitere Felder**. | Alle Gruppen |
-| **Komponentenname-Filter (optional)** | Die Komponente, die beobachtet wird. Unter **Weitere Felder**. | Alle Komponenten im Umfang |
+| **Komponentengruppenfilter** | Die Gruppe, auf die der Monitor beschränkt wird. Unter **Weitere Felder**. | Alle Gruppen |
+| **Komponentenname-Filter** | Die Komponente, die beobachtet wird. Unter **Weitere Felder**. | Alle Komponenten im Umfang |
 | **Zeitüberschreitung (ms)** | Die längste Wartezeit auf die Statusseite. Unter **Weitere Felder**. | `10000` (10 Sekunden) |
 | **Wiederholungen** | Wie oft, im Abstand von einer Sekunde, nach einem fehlgeschlagenen ersten Versuch erneut versucht wird; `0` bedeutet einen einzigen Versuch. Unter **Weitere Felder**. | `3` (bis zu 4 Versuche) |
 
@@ -148,7 +148,7 @@ Weil die Zahl der aktiven Vorfälle und die Komponentenstatus die Filter für Ko
 
 Wählen Sie **OneUptime Status Page** als Anbieter oder lassen Sie **Auto** stehen, um eine mit OneUptime erstellte Statusseite zu beobachten: das Projekt eines anderen Teams oder die Seite eines Anbieters auf OneUptime Cloud oder einem selbst gehosteten OneUptime. Geben Sie unter **Statusseiten-URL** die eigene Adresse der Seite ein: ihre Domain, etwa `https://status.example.com`, oder `https://oneuptime.com/status-page/<status-page-id>` für eine Seite ohne eigene Domain.
 
-Der Monitor liest die Zusammenfassung der Seite, `/status-page-api/summary/<page>` (siehe [Die Zusammenfassung lesen](/docs/status-pages/public-api#die-zusammenfassung-lesen)): nur das, was die Seite ihren Besuchern zeigt, und sonst nichts vom anderen Projekt. Jede Ressource der Seite, ein Monitor oder eine Monitorgruppe, ist eine Komponente, unter dem Namen, den die Seite ihr gibt, in der Gruppe der Seite; eine Gruppe in einer anderen heißt `Core / Databases`. Beobachten Sie eine Ressource mit **Komponentenname-Filter (optional)** oder eine Gruppe mit **Komponentengruppenfilter (optional)**.
+Der Monitor liest die Zusammenfassung der Seite, `/status-page-api/summary/<page>` (siehe [Die Zusammenfassung lesen](/docs/status-pages/public-api#die-zusammenfassung-lesen)): nur das, was die Seite ihren Besuchern zeigt, und sonst nichts vom anderen Projekt. Jede Ressource der Seite, ein Monitor oder eine Monitorgruppe, ist eine Komponente, unter dem Namen, den die Seite ihr gibt, in der Gruppe der Seite; eine Gruppe in einer anderen heißt `Core / Databases`. Beobachten Sie eine Ressource mit **Komponentenname-Filter** oder eine Gruppe mit **Komponentengruppenfilter**.
 
 Der Status einer Komponente ist der Wert, für den ihr Status auf der Seite steht, sodass die Kriterien zum Komponentenstatus wie bei jeder anderen Statusseite funktionieren:
 
@@ -180,7 +180,7 @@ Ziehen Sie das neue Kriterium über die anderen: Das erste Kriterium, das zutrif
 
 ### Mit Monitor testen prüfen
 
-Klicken Sie auf **Monitor testen**, während beim anderen Projekt eine Wartung läuft: Die betroffene Komponente zeigt `under_maintenance`.
+Klicken Sie auf **Monitor testen**, während beim anderen Projekt eine Wartung läuft: Die betroffene Komponente zeigt **In Wartung**.
 :::
 
 ### Was eine OneUptime-Statusseite den Monitor lesen lässt

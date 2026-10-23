@@ -33396,5 +33396,9 @@
   "{{count}} more labels_one": "ほか {{count}} 件のラベル",
   "Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).": "検出されたプロバイダー（Atlassian Statuspage、incident.io、OneUptime Status Page、RSS、Atom）。",
   "How OneUptime reads this status page. 'Auto' detects the format for you.": "OneUptime がこのステータスページを読み取る方法。「自動」では形式が自動的に検出されます。",
-  "Only watch one component group, e.g. 'APIs'. RSS and Atom feeds have no groups.": "1 つのコンポーネントグループ ('APIs' など) だけを監視します。RSS と Atom のフィードにはグループがありません。"
+  "Only watch one component group, e.g. 'APIs'. RSS and Atom feeds have no groups.": "1 つのコンポーネントグループ ('APIs' など) だけを監視します。RSS と Atom のフィードにはグループがありません。",
+  "Component: {{component}}": "コンポーネント: {{component}}",
+  "Group: {{group}}": "グループ: {{group}}",
+  "Only watch components whose names contain this, e.g. 'API'. With a group set, only inside that group.": "名前にこの文字列を含むコンポーネント ('API' など) だけを監視します。グループを設定した場合は、そのグループ内だけです。",
+  "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)": "監視する外部ステータスページの URL（例：https://www.githubstatus.com、https://status.openai.com）"
 }

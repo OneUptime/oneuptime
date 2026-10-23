@@ -74,7 +74,7 @@ Skriv inn **URL til statusside**. La **Leverandør** stå på **Auto** med mindr
 
 ### Avgrens den, hvis du trenger det
 
-Åpne **Flere felt** for å skrive inn et **Component Group Filter (Optional)**, som `APIs`, og et **Filter for komponentnavn (valgfritt)** for å følge med på én enkelt komponent (innenfor gruppen, hvis en gruppe er angitt).
+Åpne **Flere felt** for å skrive inn et **Component Group Filter**, som `APIs`, og et **Filter for komponentnavn** for å følge med på én enkelt komponent (innenfor gruppen, hvis en gruppe er angitt).
 
 ### Test den
 
@@ -95,8 +95,8 @@ Velg **Sonder** og et **Overvåkingsintervall** — det starter på **Hvert 5. m
 | --- | --- | --- |
 | **URL til statusside** | URL-en til statussiden. For sider som kjører på Atlassian Statuspage og incident.io, er dette vanligvis rot-URL-en (f.eks. `https://status.example.com`). For RSS-/Atom-feeder skriver du inn URL-en til feeden direkte. | — |
 | **Leverandør** | **Auto** for å finne formatet, eller **Atlassian Statuspage**, **incident.io**, **OneUptime Status Page**, **RSS** eller **Atom** hvis du kjenner det. | **Auto** |
-| **Component Group Filter (Optional)** | Gruppen monitoren avgrenses til. Under **Flere felt**. | Alle grupper |
-| **Filter for komponentnavn (valgfritt)** | Komponenten du vil følge med på. Under **Flere felt**. | Alle komponenter innenfor avgrensningen |
+| **Component Group Filter** | Gruppen monitoren avgrenses til. Under **Flere felt**. | Alle grupper |
+| **Filter for komponentnavn** | Komponenten du vil følge med på. Under **Flere felt**. | Alle komponenter innenfor avgrensningen |
 | **Tidsavbrudd (ms)** | Den lengste tiden det ventes på statussiden. Under **Flere felt**. | `10000` (10 sekunder) |
 | **Nye forsøk** | Hvor mange ganger det prøves på nytt, med ett sekunds mellomrom, etter at det første forsøket har mislyktes; `0` betyr ett enkelt forsøk. Under **Flere felt**. | `3` (opptil 4 forsøk) |
 
@@ -148,7 +148,7 @@ Fordi antallet aktive hendelser og statusene til komponentene tar hensyn til fil
 
 Velg **OneUptime Status Page** som leverandør, eller la **Auto** stå, for å følge med på en statusside som er laget med OneUptime: prosjektet til et annet team, eller siden til en leverandør på OneUptime Cloud eller på en selvdriftet OneUptime. Skriv inn sidens egen adresse i **URL til statusside**: domenet, som `https://status.example.com`, eller `https://oneuptime.com/status-page/<status-page-id>` for en side uten eget domene.
 
-Monitoren leser sammendraget til siden, `/status-page-api/summary/<page>` (se [Les sammendraget](/docs/status-pages/public-api#les-sammendraget)): bare det siden viser de besøkende, og ingenting annet fra det andre prosjektet. Hver ressurs på siden, en monitor eller en monitorgruppe, er en komponent, med navnet siden gir den, i gruppen på siden; en gruppe inni en annen heter `Core / Databases`. Følg med på én ressurs med **Filter for komponentnavn (valgfritt)**, eller én gruppe med **Component Group Filter (Optional)**.
+Monitoren leser sammendraget til siden, `/status-page-api/summary/<page>` (se [Les sammendraget](/docs/status-pages/public-api#les-sammendraget)): bare det siden viser de besøkende, og ingenting annet fra det andre prosjektet. Hver ressurs på siden, en monitor eller en monitorgruppe, er en komponent, med navnet siden gir den, i gruppen på siden; en gruppe inni en annen heter `Core / Databases`. Følg med på én ressurs med **Filter for komponentnavn**, eller én gruppe med **Component Group Filter**.
 
 Statusen til en komponent er verdien som statusen på siden står for, så kriteriene for komponentstatus virker som på en hvilken som helst statusside:
 
@@ -180,7 +180,7 @@ Dra det nye kriteriet over de andre: det første kriteriet som treffer, vinner.
 
 ### Sjekk det med Test monitor
 
-Klikk **Test monitor** mens det andre prosjektet har vedlikehold i gang: komponenten det berører, viser `under_maintenance`.
+Klikk **Test monitor** mens det andre prosjektet har vedlikehold i gang: komponenten det berører, viser **Under Maintenance**.
 :::
 
 ### Hva en OneUptime-statusside lar monitoren lese

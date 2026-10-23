@@ -74,7 +74,7 @@ Ange **Statussidans URL**. Låt **Leverantör** stå kvar på **Auto** om du int
 
 ### Avgränsa den, om du behöver
 
-Öppna **Fler fält** för att ange ett **Component Group Filter (Optional)**, som `APIs`, och ett **Filter för komponentnamn (valfritt)** för att bevaka en enda komponent (inom gruppen, om en grupp är angiven).
+Öppna **Fler fält** för att ange ett **Component Group Filter**, som `APIs`, och ett **Filter för komponentnamn** för att bevaka en enda komponent (inom gruppen, om en grupp är angiven).
 
 ### Testa den
 
@@ -95,8 +95,8 @@ Välj **Sonder** och ett **Övervakningsintervall** — det börjar på **Var 5:
 | --- | --- | --- |
 | **Statussidans URL** | URL:en till statussidan. För webbplatser som drivs av Atlassian Statuspage och incident.io är det vanligtvis rot-URL:en (t.ex. `https://status.example.com`). För RSS-/Atom-flöden anger du flödets URL direkt. | — |
 | **Leverantör** | **Auto** för att identifiera formatet, eller **Atlassian Statuspage**, **incident.io**, **OneUptime Status Page**, **RSS** eller **Atom** om du känner till det. | **Auto** |
-| **Component Group Filter (Optional)** | Gruppen som monitorn avgränsas till. Under **Fler fält**. | Alla grupper |
-| **Filter för komponentnamn (valfritt)** | Komponenten som ska bevakas. Under **Fler fält**. | Alla komponenter inom avgränsningen |
+| **Component Group Filter** | Gruppen som monitorn avgränsas till. Under **Fler fält**. | Alla grupper |
+| **Filter för komponentnamn** | Komponenten som ska bevakas. Under **Fler fält**. | Alla komponenter inom avgränsningen |
 | **Timeout (ms)** | Den längsta tiden att vänta på statussidan. Under **Fler fält**. | `10000` (10 sekunder) |
 | **Återförsök** | Hur många gånger det ska försökas igen, med en sekunds mellanrum, efter att det första försöket misslyckats; `0` betyder ett enda försök. Under **Fler fält**. | `3` (upp till 4 försök) |
 
@@ -148,7 +148,7 @@ Eftersom antalet aktiva incidenter och komponenternas status tar hänsyn till fi
 
 Välj **OneUptime Status Page** som leverantör, eller låt **Auto** stå kvar, för att hålla koll på en statussida som är gjord med OneUptime: ett annat teams projekt, eller en leverantörs sida på OneUptime Cloud eller på en egen driftad OneUptime. Ange sidans egen adress i **Statussidans URL**: dess domän, som `https://status.example.com`, eller `https://oneuptime.com/status-page/<status-page-id>` för en sida utan egen domän.
 
-Monitorn läser sidans sammanfattning, `/status-page-api/summary/<page>` (se [Läs sammanfattningen](/docs/status-pages/public-api#läs-sammanfattningen)): bara det som sidan visar sina besökare, och inget annat från det andra projektet. Varje resurs på sidan, en monitor eller en monitorgrupp, är en komponent, med det namn som sidan ger den, i sidans grupp; en grupp inuti en annan heter `Core / Databases`. Håll koll på en resurs med **Filter för komponentnamn (valfritt)**, eller en grupp med **Component Group Filter (Optional)**.
+Monitorn läser sidans sammanfattning, `/status-page-api/summary/<page>` (se [Läs sammanfattningen](/docs/status-pages/public-api#läs-sammanfattningen)): bara det som sidan visar sina besökare, och inget annat från det andra projektet. Varje resurs på sidan, en monitor eller en monitorgrupp, är en komponent, med det namn som sidan ger den, i sidans grupp; en grupp inuti en annan heter `Core / Databases`. Håll koll på en resurs med **Filter för komponentnamn**, eller en grupp med **Component Group Filter**.
 
 En komponents status är det värde som dess status på sidan står för, så kriterierna för komponentstatus fungerar som på vilken statussida som helst:
 
@@ -180,7 +180,7 @@ Dra det nya kriteriet ovanför de andra: det första kriteriet som matchar vinne
 
 ### Kontrollera det med Testa monitor
 
-Klicka på **Testa monitor** medan det andra projektet har underhåll på gång: komponenten som berörs visar `under_maintenance`.
+Klicka på **Testa monitor** medan det andra projektet har underhåll på gång: komponenten som berörs visar **Under Maintenance**.
 :::
 
 ### Vad en OneUptime-statussida låter monitorn läsa

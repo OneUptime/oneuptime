@@ -294,7 +294,7 @@ describe.each(RSS_HANDLERS)(
       );
 
       expect(items[0]!.description).toBe(
-        "Scheduled from Sun, 25 Oct 2026 02:00 UTC to Sun, 25 Oct 2026 04:30 UTC.\n\nWrites pause for a few minutes.",
+        "Scheduled from Sun, 25 Oct 2026 02:00 to 04:30 UTC.\n\nWrites pause for a few minutes.",
       );
       expect(items[1]!.description).toBe("Payments take long.");
     });

@@ -23,6 +23,12 @@ import path from "path";
  * phone; and, start to finish, the steps the docs give for showing upstream
  * maintenance on your monitor, down to what Create Monitor sends.
  *
+ * Then what a check found (SummaryView/ExternalStatusPageMonitorView): the
+ * Summary card of the fixture's External Status Page monitor, which watches
+ * the Core group of another team's OneUptime status page while one of its
+ * resources is under maintenance, and the same view in Monitoring Logs'
+ * View Summary dialog - two widths of container at one screen width.
+ *
  * The same guards as the other specs here: a network fence, no uncaught
  * page errors, and no request the fixture does not model.
  */
@@ -34,24 +40,38 @@ const CREATE_PATH: string = `/dashboard/${PROJECT_ID}/monitors/create`;
 const CREATED_MONITOR_ID: string = "70000000-0000-4000-8000-000000000100";
 // The fixture's first probe, "Frankfurt (eu-central-1)".
 const FRANKFURT_PROBE_ID: string = "73000000-0000-4000-8000-000000000001";
+// The fixture's External Status Page monitor, "Platform team status".
+const STATUS_PAGE_MONITOR_PATH: string = `/dashboard/${PROJECT_ID}/monitors/70000000-0000-4000-8000-000000000011`;
 
 /*
- * The Provider dropdown's options, in the order a person reads them: the
- * enum's (ExternalStatusPageProviderType), Auto, the default, last.
+ * The Provider dropdown's options, in the order a person reads them: Auto,
+ * the default most monitors keep, first; then the enum's
+ * (ExternalStatusPageProviderType).
  */
 const PROVIDERS: Array<string> = [
+  "Auto",
   "Atlassian Statuspage",
   "incident.io",
   "OneUptime Status Page",
   "RSS",
   "Atom",
-  "Auto",
 ];
 
 const PROVIDER_DESCRIPTION: string =
   "How OneUptime reads this status page. 'Auto' detects the format for you.";
 const GROUP_FILTER_DESCRIPTION: string =
   "Only watch one component group, e.g. 'APIs'. RSS and Atom feeds have no groups.";
+
+// The criteria the docs' steps make, named after its filter's words.
+const MAINTENANCE_CRITERIA_NAME: string =
+  'External Status Page Component Status is "Under Maintenance"';
+
+// What the probe says of a private OneUptime status page.
+const PRIVATE_PAGE_MESSAGE: string =
+  "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.";
+
+// The digits of an "rgb(r, g, b)" colour.
+const RGB_CHANNEL: RegExp = /\d+(\.\d+)?/g;
 
 const SCREENSHOTS: string = path.resolve(
   __dirname,
@@ -62,6 +82,13 @@ interface RecordedCreate {
   modelName: string;
   data: Record<string, unknown>;
   miscDataProps: Record<string, unknown> | null;
+}
+
+interface Box {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
 const pageErrors: Map<Page, Array<string>> = new Map();
@@ -132,15 +159,35 @@ async function noSidewaysScroll(page: Page): Promise<void> {
   expect(overflow, "the page does not scroll sideways").toBeLessThanOrEqual(0);
 }
 
-async function boxOf(
-  locator: Locator,
-): Promise<{ x: number; y: number; width: number; height: number }> {
-  const box: { x: number; y: number; width: number; height: number } | null =
-    await locator.boundingBox();
+async function boxOf(locator: Locator): Promise<Box> {
+  const box: Box | null = await locator.boundingBox();
 
   expect(box, "the element is laid out").not.toBeNull();
 
   return box!;
+}
+
+// Relative luminance of an "rgb(r, g, b)" colour, 0 (black) to 1 (white).
+function luminance(rgb: string): number {
+  const channels: Array<number> = (rgb.match(RGB_CHANNEL) || [])
+    .slice(0, 3)
+    .map((value: string): number => {
+      const channel: number = Number(value) / 255;
+      return channel <= 0.03928
+        ? channel / 12.92
+        : Math.pow((channel + 0.055) / 1.055, 2.4);
+    });
+  return (
+    0.2126 * (channels[0] || 0) +
+    0.7152 * (channels[1] || 0) +
+    0.0722 * (channels[2] || 0)
+  );
+}
+
+async function backgroundColor(locator: Locator): Promise<string> {
+  return locator.evaluate((element: Element): string => {
+    return getComputedStyle(element).backgroundColor;
+  });
 }
 
 async function createsRecorded(page: Page): Promise<Array<RecordedCreate>> {
@@ -212,15 +259,20 @@ async function openStatusPageStep(page: Page): Promise<Locator> {
   return form;
 }
 
-// The Provider field: its label, its one line, and its dropdown.
-function providerField(form: Locator): Locator {
-  return form
-    .getByText(PROVIDER_DESCRIPTION, { exact: true })
-    .locator("xpath=ancestor::div[.//*[@role='combobox']][1]");
+// The Provider dropdown, by the name its label gives it.
+function providerBox(form: Locator): Locator {
+  return form.getByRole("combobox", { name: "Provider", exact: true });
+}
+
+// The react-select control around the Provider dropdown.
+function providerControl(form: Locator): Locator {
+  return providerBox(form).locator(
+    "xpath=ancestor::div[contains(@class, 'ou-select__control')][1]",
+  );
 }
 
 async function openProviders(page: Page, form: Locator): Promise<Locator> {
-  await providerField(form).getByRole("combobox").click();
+  await providerBox(form).click();
   const list: Locator = page.getByRole("listbox");
   await expect(list).toBeVisible();
   return list;
@@ -235,7 +287,7 @@ async function optionTexts(list: Locator): Promise<Array<string>> {
 }
 
 test.describe("Create Monitor: an External Status Page monitor's provider", () => {
-  test("offers OneUptime Status Page between incident.io and the feeds, and says what Auto does", async ({
+  test("offers Auto first, then OneUptime Status Page between incident.io and the feeds, and says what Auto does", async ({
     page,
   }: {
     page: Page;
@@ -245,10 +297,18 @@ test.describe("Create Monitor: an External Status Page monitor's provider", () =
 
     const form: Locator = await openStatusPageStep(page);
 
-    // Auto until a person picks another.
+    // Auto until a person picks another, and never empty: no clear button.
     await expect(
-      providerField(form).locator(".ou-select__single-value"),
+      providerControl(form).locator(".ou-select__single-value"),
     ).toHaveText("Auto");
+    await expect(
+      providerControl(form).locator(".ou-select__clear-indicator"),
+    ).toHaveCount(0);
+
+    // Always set, so its label says nothing of being optional.
+    await expect(
+      form.locator("label", { hasText: "Provider" }).first(),
+    ).toHaveText("Provider");
 
     const list: Locator = await openProviders(page, form);
     expect(await optionTexts(list)).toEqual(PROVIDERS);
@@ -263,7 +323,7 @@ test.describe("Create Monitor: an External Status Page monitor's provider", () =
     await oneUptime.click();
     await expect(page.getByRole("listbox")).toHaveCount(0);
     await expect(
-      providerField(form).locator(".ou-select__single-value"),
+      providerControl(form).locator(".ou-select__single-value"),
     ).toHaveText("OneUptime Status Page");
 
     // The group filter waits under More fields, and says which providers have groups.
@@ -278,15 +338,37 @@ test.describe("Create Monitor: an External Status Page monitor's provider", () =
       form.getByText(GROUP_FILTER_DESCRIPTION, { exact: true }),
     ).toBeVisible();
 
-    // The filters' titles say "(Optional)" once, not "(Optional) (Optional)".
+    /*
+     * Each optional field says "(Optional)" once, small and grey after its
+     * title, the way Timeout and Retries do - not in the title's own words
+     * - and its box is named by its label.
+     */
     for (const title of [
-      "Component Group Filter (Optional)",
-      "Component Name Filter (Optional)",
+      "Component Group Filter",
+      "Component Name Filter",
+      "Timeout (ms)",
+      "Retries",
     ]) {
-      await expect(moreFields.locator("label", { hasText: title })).toHaveText(
-        title,
+      const label: Locator = moreFields.locator("label", { hasText: title });
+      await expect(label).toHaveText(`${title} (Optional)`);
+      await expect(label.locator("span.text-gray-400")).toHaveText(
+        "(Optional)",
       );
+      await expect(
+        moreFields.getByRole(
+          title === "Retries" || title.startsWith("Timeout")
+            ? "spinbutton"
+            : "textbox",
+          {
+            name: `${title} (Optional)`,
+            exact: true,
+          },
+        ),
+      ).toBeVisible();
     }
+    await expect(
+      form.getByRole("textbox", { name: "Status Page URL", exact: true }),
+    ).toBeVisible();
 
     await screenshot(page, "external-status-page-oneuptime-1280");
   });
@@ -302,7 +384,7 @@ test.describe("Create Monitor: an External Status Page monitor's provider", () =
     const form: Locator = await openStatusPageStep(page);
     await noSidewaysScroll(page);
 
-    const description: { x: number; width: number } = await boxOf(
+    const description: Box = await boxOf(
       form.getByText(PROVIDER_DESCRIPTION, { exact: true }),
     );
     expect(description.x).toBeGreaterThanOrEqual(0);
@@ -312,7 +394,7 @@ test.describe("Create Monitor: an External Status Page monitor's provider", () =
     expect(await optionTexts(list)).toEqual(PROVIDERS);
 
     for (const name of PROVIDERS) {
-      const option: { x: number; width: number } = await boxOf(
+      const option: Box = await boxOf(
         list.getByRole("option", { name: name, exact: true }),
       );
       expect({ name: name, left: option.x >= 0 }).toEqual({
@@ -338,7 +420,7 @@ test.describe("Create Monitor: an External Status Page monitor's provider", () =
       .getByTestId("external-status-page-monitor-more-fields")
       .getByTestId("folded-section-header")
       .click();
-    const groupFilter: { x: number; width: number } = await boxOf(
+    const groupFilter: Box = await boxOf(
       form.getByText(GROUP_FILTER_DESCRIPTION, { exact: true }),
     );
     expect(groupFilter.x).toBeGreaterThanOrEqual(0);
@@ -352,7 +434,8 @@ test.describe("Create Monitor: an External Status Page monitor's provider", () =
    * The docs' "Show upstream maintenance on your monitor": Add Criteria,
    * External Status Page Component Status, Equal To, Under Maintenance -
    * and the criteria the monitor is created with compares the component
-   * status the probe reports, under_maintenance.
+   * status the probe reports, under_maintenance, under a name in the
+   * dropdown's words.
    */
   test("start to finish: a OneUptime status page, its group, and a criteria for its maintenance", async ({
     page,
@@ -365,7 +448,7 @@ test.describe("Create Monitor: an External Status Page monitor's provider", () =
     const form: Locator = await openStatusPageStep(page);
 
     await form
-      .getByPlaceholder("https://status.example.com", { exact: true })
+      .getByRole("textbox", { name: "Status Page URL", exact: true })
       .fill("https://status.platform.acme-commerce.example");
 
     await (await openProviders(page, form))
@@ -376,7 +459,12 @@ test.describe("Create Monitor: an External Status Page monitor's provider", () =
       .getByTestId("external-status-page-monitor-more-fields")
       .getByTestId("folded-section-header")
       .click();
-    await form.getByPlaceholder("e.g. APIs", { exact: true }).fill("Core");
+    await form
+      .getByRole("textbox", {
+        name: "Component Group Filter (Optional)",
+        exact: true,
+      })
+      .fill("Core");
 
     // Add Criteria opens the new criteria, to be filled in.
     await form
@@ -413,6 +501,11 @@ test.describe("Create Monitor: an External Status Page monitor's provider", () =
     await page
       .getByRole("option", { name: "Under Maintenance", exact: true })
       .click();
+
+    // Named after its filter in the dropdown's words, not "under_maintenance".
+    await expect(
+      page.getByTestId("monitor-criteria-name-input").last(),
+    ).toHaveValue(MAINTENANCE_CRITERIA_NAME);
 
     await screenshot(page, "external-status-page-maintenance-criteria-1280");
 
@@ -464,5 +557,307 @@ test.describe("Create Monitor: an External Status Page monitor's provider", () =
         );
       }),
     ).toHaveLength(1);
+
+    const criteriaNames: Array<unknown> = objectsWithKey(steps, "filters").map(
+      (criteria: Record<string, unknown>): unknown => {
+        return criteria["name"];
+      },
+    );
+    expect(criteriaNames).toContain(MAINTENANCE_CRITERIA_NAME);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * What a check of the status page found
+ * ---------------------------------------------------------------------------
+ */
+
+async function openStatusPageMonitor(
+  page: Page,
+  query: string = "",
+): Promise<Locator> {
+  await page.clock.setFixedTime(NOW);
+  await page.goto(
+    `${STATUS_PAGE_MONITOR_PATH}?type=external-status-page${query ? `&${query}` : ""}`,
+  );
+  await expect(page.getByTestId("synthetic-banner")).toBeVisible({
+    timeout: 60000,
+  });
+
+  const summary: Locator = page.getByTestId("external-status-page-summary");
+  await expect(summary).toBeVisible({ timeout: 60000 });
+  return summary;
+}
+
+function components(summary: Locator): Locator {
+  return summary.getByTestId("external-status-page-component");
+}
+
+/*
+ * The facts of a grid that share its first row: two to a row in a narrow
+ * container, four in a wide one.
+ */
+async function factsInFirstRow(grid: Locator): Promise<number> {
+  const cards: Array<Box> = await grid
+    .locator(":scope > *")
+    .evaluateAll((elements: Array<Element>): Array<Box> => {
+      return elements.map((element: Element): Box => {
+        const rect: DOMRect = element.getBoundingClientRect();
+        return {
+          x: rect.x,
+          y: rect.y,
+          width: rect.width,
+          height: rect.height,
+        };
+      });
+    });
+
+  return cards.filter((card: Box): boolean => {
+    return Math.abs(card.y - cards[0]!.y) < 1;
+  }).length;
+}
+
+// No fact's value runs past its card.
+async function expectFactsFit(summary: Locator): Promise<void> {
+  const overflowing: Array<string> = await summary
+    .locator(
+      "[data-testid='external-status-page-check-facts'] > *, [data-testid='external-status-page-page-facts'] > *",
+    )
+    .evaluateAll((cards: Array<Element>): Array<string> => {
+      return cards
+        .filter((card: Element): boolean => {
+          return card.scrollWidth > card.clientWidth + 1;
+        })
+        .map((card: Element): string => {
+          return (card.textContent || "").trim();
+        });
+    });
+
+  expect(overflowing, "facts whose value runs past the card").toEqual([]);
+}
+
+test.describe("an External Status Page monitor's Summary", () => {
+  /*
+   * The overview's Summary card is two thirds of the page wide: the facts
+   * go two to a row there, so overall status reads in one piece; each
+   * component in scope is a row, its status at the row's end in the words
+   * and colour of the Component Status criteria.
+   */
+  test("names each component's status in the criteria's words, the maintenance in progress among them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(180000);
+    await page.setViewportSize({ width: 1280, height: 900 });
+
+    const summary: Locator = await openStatusPageMonitor(page);
+
+    const checkFacts: Locator = summary.getByTestId(
+      "external-status-page-check-facts",
+    );
+    const pageFacts: Locator = summary.getByTestId(
+      "external-status-page-page-facts",
+    );
+    await expect(checkFacts).toContainText("Frankfurt (eu-central-1)");
+    await expect(checkFacts).toContainText("Online");
+    await expect(pageFacts).toContainText("OneUptime Status Page");
+    await expect(pageFacts).toContainText("under_maintenance");
+    await expect(pageFacts).toContainText("Group: Core");
+    expect(await factsInFirstRow(checkFacts)).toBe(2);
+    expect(await factsInFirstRow(pageFacts)).toBe(2);
+    await expectFactsFit(summary);
+
+    await expect(components(summary)).toHaveCount(2);
+    await expect(
+      summary.getByTestId("external-status-page-component-name"),
+    ).toHaveText(["Checkout API", "Orders database"]);
+    await expect(
+      summary.getByTestId("external-status-page-component-status"),
+    ).toHaveText(["Operational", "Under Maintenance"]);
+    await expect(
+      summary.getByTestId("external-status-page-component-status").nth(1),
+    ).toHaveAttribute("data-status", "under_maintenance");
+
+    /*
+     * The group, then what the page says - unless it only repeats the
+     * status: the Checkout API's "Operational" is said once.
+     */
+    await expect(
+      summary.getByTestId("external-status-page-component-detail"),
+    ).toHaveText([
+      "Core / APIs",
+      "Core / Databases · Under maintenance: Orders database upgrade",
+    ]);
+
+    // The status at the end of its row, on the name's line.
+    for (let index: number = 0; index < 2; index++) {
+      const row: Box = await boxOf(components(summary).nth(index));
+      const status: Box = await boxOf(
+        summary.getByTestId("external-status-page-component-status").nth(index),
+      );
+      const name: Box = await boxOf(
+        summary.getByTestId("external-status-page-component-name").nth(index),
+      );
+
+      expect(row.x + row.width - (status.x + status.width)).toBeLessThan(24);
+      expect(status.x).toBeGreaterThan(name.x + name.width);
+    }
+
+    await screenshot(page, "external-status-page-summary-1280");
+  });
+
+  test("on a phone, each status sits under its component's name, and nothing leaves the screen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(180000);
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    const summary: Locator = await openStatusPageMonitor(page);
+    await noSidewaysScroll(page);
+    await expectFactsFit(summary);
+
+    expect(
+      await factsInFirstRow(
+        summary.getByTestId("external-status-page-page-facts"),
+      ),
+    ).toBe(2);
+
+    for (let index: number = 0; index < 2; index++) {
+      const row: Box = await boxOf(components(summary).nth(index));
+      const name: Box = await boxOf(
+        summary.getByTestId("external-status-page-component-name").nth(index),
+      );
+      const status: Box = await boxOf(
+        summary.getByTestId("external-status-page-component-status").nth(index),
+      );
+
+      expect(status.y).toBeGreaterThanOrEqual(name.y + name.height);
+      expect(row.x).toBeGreaterThanOrEqual(0);
+      expect(row.x + row.width).toBeLessThanOrEqual(390);
+    }
+
+    await screenshot(page, "external-status-page-summary-390");
+  });
+
+  /*
+   * A page that went private: why comes right after the check's facts,
+   * before what the page said (nothing), and no component list is drawn.
+   */
+  test("a private page says why, between the check and what the page said", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(180000);
+    await page.setViewportSize({ width: 1280, height: 900 });
+
+    const summary: Locator = await openStatusPageMonitor(page, "state=offline");
+
+    const error: Locator = summary.getByText(PRIVATE_PAGE_MESSAGE, {
+      exact: true,
+    });
+    await expect(error).toBeVisible();
+    await expect(
+      summary.getByTestId("external-status-page-check-facts"),
+    ).toContainText("Offline");
+    await expect(components(summary)).toHaveCount(0);
+
+    const checkFacts: Box = await boxOf(
+      summary.getByTestId("external-status-page-check-facts"),
+    );
+    const errorBox: Box = await boxOf(error);
+    const pageFacts: Box = await boxOf(
+      summary.getByTestId("external-status-page-page-facts"),
+    );
+
+    expect(errorBox.y).toBeGreaterThan(checkFacts.y + checkFacts.height);
+    expect(pageFacts.y).toBeGreaterThan(errorBox.y + errorBox.height);
+
+    await screenshot(page, "external-status-page-summary-private-1280");
+  });
+
+  /*
+   * The same view in a wide dialog: Monitoring Logs' View Summary. Its own
+   * width, not the screen's, puts four facts to a row there - at the same
+   * 1280px screen that gives the Summary card two.
+   */
+  test("View Summary in Monitoring Logs puts four facts to a row in its wide dialog", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(180000);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.clock.setFixedTime(NOW);
+    await page.goto(
+      `${STATUS_PAGE_MONITOR_PATH}/logs?type=external-status-page`,
+    );
+    await expect(page.getByTestId("synthetic-banner")).toBeVisible({
+      timeout: 60000,
+    });
+
+    await page
+      .getByRole("button", { name: "View Summary" })
+      .first()
+      .click({ timeout: 60000 });
+    const dialog: Locator = page.getByRole("dialog");
+    const summary: Locator = dialog.getByTestId("external-status-page-summary");
+    await expect(summary).toBeVisible();
+
+    expect(
+      await factsInFirstRow(
+        summary.getByTestId("external-status-page-check-facts"),
+      ),
+    ).toBe(4);
+    expect(
+      await factsInFirstRow(
+        summary.getByTestId("external-status-page-page-facts"),
+      ),
+    ).toBe(4);
+    await expectFactsFit(summary);
+    await expect(
+      summary.getByTestId("external-status-page-component-status"),
+    ).toHaveText(["Operational", "Under Maintenance"]);
+
+    await screenshot(page, "external-status-page-view-summary-1280");
+  });
+
+  test("dark mode keeps the facts and the components on dark surfaces", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(180000);
+    await page.setViewportSize({ width: 1280, height: 900 });
+
+    const summary: Locator = await openStatusPageMonitor(page, "theme=dark");
+
+    const fact: Locator = summary
+      .getByTestId("external-status-page-page-facts")
+      .locator(":scope > *")
+      .first();
+    expect(luminance(await backgroundColor(fact))).toBeLessThan(0.1);
+
+    const list: Locator = summary.getByTestId(
+      "external-status-page-components",
+    );
+    const listBackground: string = await backgroundColor(list);
+    // A transparent list shows the dark card under it.
+    expect(
+      listBackground === "rgba(0, 0, 0, 0)" || luminance(listBackground) < 0.1,
+    ).toBe(true);
+    const nameColor: string = await summary
+      .getByTestId("external-status-page-component-name")
+      .first()
+      .evaluate((element: Element): string => {
+        return getComputedStyle(element).color;
+      });
+    expect(luminance(nameColor)).toBeGreaterThan(0.5);
+
+    await screenshot(page, "external-status-page-summary-dark-1280");
   });
 });

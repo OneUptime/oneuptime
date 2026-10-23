@@ -74,7 +74,7 @@ Voer de **URL statuspagina** in. Laat de **Provider** op **Auto** staan, tenzij 
 
 ### Afbakenen, als dat nodig is
 
-Open **Meer velden** om een **Component Group Filter (Optional)** in te voeren, zoals `APIs`, en een **Filter op componentnaam (optioneel)** om één component te volgen (binnen de groep, als er een groep is ingesteld).
+Open **Meer velden** om een **Component Group Filter** in te voeren, zoals `APIs`, en een **Filter op componentnaam** om één component te volgen (binnen de groep, als er een groep is ingesteld).
 
 ### Testen
 
@@ -95,8 +95,8 @@ Selecteer de **Sondes** en een **Bewakingsinterval** — dat begint op **Elke 5 
 | --- | --- | --- |
 | **URL statuspagina** | De URL van de statuspagina. Voor sites die draaien op Atlassian Statuspage en incident.io is dit meestal de hoofd-URL (bijv. `https://status.example.com`). Voer voor RSS-/Atom-feeds direct de URL van de feed in. | — |
 | **Provider** | **Auto** om het formaat vast te stellen, of **Atlassian Statuspage**, **incident.io**, **OneUptime Status Page**, **RSS** of **Atom** als u het kent. | **Auto** |
-| **Component Group Filter (Optional)** | De groep waartoe de monitor wordt afgebakend. Onder **Meer velden**. | Alle groepen |
-| **Filter op componentnaam (optioneel)** | Het component dat u volgt. Onder **Meer velden**. | Alle componenten binnen de afbakening |
+| **Component Group Filter** | De groep waartoe de monitor wordt afgebakend. Onder **Meer velden**. | Alle groepen |
+| **Filter op componentnaam** | Het component dat u volgt. Onder **Meer velden**. | Alle componenten binnen de afbakening |
 | **Time-out (ms)** | Hoe lang maximaal op de statuspagina wordt gewacht. Onder **Meer velden**. | `10000` (10 seconden) |
 | **Nieuwe pogingen** | Hoe vaak opnieuw wordt geprobeerd, met een seconde ertussen, nadat de eerste poging is mislukt; `0` betekent één poging. Onder **Meer velden**. | `3` (tot 4 pogingen) |
 
@@ -148,7 +148,7 @@ Omdat het aantal actieve incidenten en de componentstatussen de filters op compo
 
 Kies **OneUptime Status Page** als provider, of laat **Auto** staan, om een statuspagina te volgen die met OneUptime is gemaakt: het project van een ander team, of de pagina van een leverancier op OneUptime Cloud of op een zelf gehoste OneUptime. Vul het eigen adres van de pagina in bij **URL statuspagina**: haar domein, zoals `https://status.example.com`, of `https://oneuptime.com/status-page/<status-page-id>` voor een pagina zonder eigen domein.
 
-De monitor leest de samenvatting van de pagina, `/status-page-api/summary/<page>` (zie [De samenvatting lezen](/docs/status-pages/public-api#de-samenvatting-lezen)): alleen wat de pagina haar bezoekers laat zien, en verder niets van het andere project. Elke resource op de pagina, een monitor of een monitorgroep, is een component, onder de naam die de pagina eraan geeft, in de groep van de pagina; een groep binnen een andere heet `Core / Databases`. Volg één resource met **Filter op componentnaam (optioneel)**, of één groep met **Component Group Filter (Optional)**.
+De monitor leest de samenvatting van de pagina, `/status-page-api/summary/<page>` (zie [De samenvatting lezen](/docs/status-pages/public-api#de-samenvatting-lezen)): alleen wat de pagina haar bezoekers laat zien, en verder niets van het andere project. Elke resource op de pagina, een monitor of een monitorgroep, is een component, onder de naam die de pagina eraan geeft, in de groep van de pagina; een groep binnen een andere heet `Core / Databases`. Volg één resource met **Filter op componentnaam**, of één groep met **Component Group Filter**.
 
 De status van een component is de waarde waar zijn status op de pagina voor staat, zodat de criteria voor componentstatus werken zoals op elke statuspagina:
 
@@ -180,7 +180,7 @@ Sleep het nieuwe criterium boven de andere: het eerste criterium dat overeenkomt
 
 ### Het controleren met Monitor testen
 
-Klik op **Monitor testen** terwijl er bij het andere project onderhoud loopt: de component die het raakt, toont `under_maintenance`.
+Klik op **Monitor testen** terwijl er bij het andere project onderhoud loopt: de component die het raakt, toont **Under Maintenance**.
 :::
 
 ### Wat een OneUptime-statuspagina de monitor laat lezen

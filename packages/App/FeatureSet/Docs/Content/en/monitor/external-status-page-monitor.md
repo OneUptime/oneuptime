@@ -74,7 +74,7 @@ Enter the **Status Page URL**. Leave the **Provider** on **Auto** unless you kno
 
 ### Scope it, if you need to
 
-Open **More fields** to enter a **Component Group Filter (Optional)**, such as `APIs`, and a **Component Name Filter (Optional)** to watch a single component (within the group, if a group is set).
+Open **More fields** to enter a **Component Group Filter**, such as `APIs`, and a **Component Name Filter** to watch a single component (within the group, if a group is set).
 
 ### Test it
 
@@ -95,8 +95,8 @@ Select the **Probes** and a **Monitoring Interval** — it starts at **Every 5 M
 | --- | --- | --- |
 | **Status Page URL** | The URL of the status page. For Atlassian Statuspage and incident.io-powered sites, this is typically the root URL (e.g., `https://status.example.com`). For RSS/Atom feeds, enter the feed URL directly. | — |
 | **Provider** | **Auto** to detect the format, or **Atlassian Statuspage**, **incident.io**, **OneUptime Status Page**, **RSS** or **Atom** if you know it. | **Auto** |
-| **Component Group Filter (Optional)** | The group to scope the monitor to. Under **More fields**. | All groups |
-| **Component Name Filter (Optional)** | The component to watch. Under **More fields**. | All components in scope |
+| **Component Group Filter** | The group to scope the monitor to. Under **More fields**. | All groups |
+| **Component Name Filter** | The component to watch. Under **More fields**. | All components in scope |
 | **Timeout (ms)** | The maximum time to wait for the status page. Under **More fields**. | `10000` (10 seconds) |
 | **Retries** | How many times to retry, a second apart, after the first attempt fails; `0` means a single attempt. Under **More fields**. | `3` (up to 4 attempts) |
 
@@ -148,7 +148,7 @@ Because the active incident count and component statuses respect the component g
 
 Choose **OneUptime Status Page** as the provider, or leave **Auto**, to watch a status page made with OneUptime: another team's project, or a vendor's page on OneUptime Cloud or a self-hosted OneUptime. Enter the page's own address in **Status Page URL**: its domain, such as `https://status.example.com`, or `https://oneuptime.com/status-page/<status-page-id>` for a page without one.
 
-The monitor reads the page's summary, `/status-page-api/summary/<page>` (see [Read the summary](/docs/status-pages/public-api#read-the-summary)): only what the page shows its visitors, and nothing else of the other project. Each resource on the page, a monitor or a monitor group, is a component, by the name the page gives it, in the page's group; a group inside another reads `Core / Databases`. Watch one resource with **Component Name Filter (Optional)**, or one group with **Component Group Filter (Optional)**.
+The monitor reads the page's summary, `/status-page-api/summary/<page>` (see [Read the summary](/docs/status-pages/public-api#read-the-summary)): only what the page shows its visitors, and nothing else of the other project. Each resource on the page, a monitor or a monitor group, is a component, by the name the page gives it, in the page's group; a group inside another reads `Core / Databases`. Watch one resource with **Component Name Filter**, or one group with **Component Group Filter**.
 
 A component's status is the value its status on the page stands for, so the Component Status criteria work as on any status page:
 
@@ -180,7 +180,7 @@ Drag the new criteria above the others: the first criteria that matches wins.
 
 ### Check it with Test Monitor
 
-Click **Test Monitor** while the other project has maintenance in progress: the component it affects reads `under_maintenance`.
+Click **Test Monitor** while the other project has maintenance in progress: the component it affects reads **Under Maintenance**.
 :::
 
 ### What a OneUptime status page lets the monitor read

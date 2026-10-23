@@ -355,7 +355,7 @@ describe("StatusPageRssFeed.buildItems: each item dated as the page dates it", (
     expect(item).toEqual({
       title: "Scheduled Maintenance: Database upgrade",
       description:
-        "Scheduled from Sun, 25 Oct 2026 02:00 UTC to Sun, 25 Oct 2026 04:30 UTC.\n\nWrites pause for a few minutes.",
+        "Scheduled from Sun, 25 Oct 2026 02:00 to 04:30 UTC.\n\nWrites pause for a few minutes.",
       link: `${BASE_URL}/scheduled-events/s1`,
       date: new Date("2026-10-25T02:00:00.000Z"),
     });
@@ -535,6 +535,45 @@ describe("StatusPageRssFeed's dates and words", () => {
       ),
     ).toBe("");
   });
+
+  /*
+   * A window within one day names its day once; one that crosses midnight
+   * in UTC names both days, so neither reads as a window of minus hours.
+   */
+  test.each([
+    [
+      "2026-10-25T02:00:00.000Z",
+      "2026-10-25T04:30:00.000Z",
+      "Scheduled from Sun, 25 Oct 2026 02:00 to 04:30 UTC.",
+    ],
+    [
+      "2026-10-25T00:00:00.000Z",
+      "2026-10-25T23:59:00.000Z",
+      "Scheduled from Sun, 25 Oct 2026 00:00 to 23:59 UTC.",
+    ],
+    [
+      "2026-10-24T22:00:00.000Z",
+      "2026-10-25T02:00:00.000Z",
+      "Scheduled from Sat, 24 Oct 2026 22:00 UTC to Sun, 25 Oct 2026 02:00 UTC.",
+    ],
+    [
+      "2026-10-25T02:00:00.000Z",
+      "2026-11-01T02:00:00.000Z",
+      "Scheduled from Sun, 25 Oct 2026 02:00 UTC to Sun, 01 Nov 2026 02:00 UTC.",
+    ],
+    [
+      "2026-10-25T02:00:00.000Z",
+      "2027-10-25T02:00:00.000Z",
+      "Scheduled from Sun, 25 Oct 2026 02:00 UTC to Mon, 25 Oct 2027 02:00 UTC.",
+    ],
+  ])(
+    "describes the window from %s to %s",
+    (starts: string, ends: string, expected: string) => {
+      expect(
+        StatusPageRssFeed.describeWindow(new Date(starts), new Date(ends)),
+      ).toBe(expected);
+    },
+  );
 
   test.each([
     [new Date("2026-10-25T02:00:00.000Z"), "2026-10-25T02:00:00.000Z"],

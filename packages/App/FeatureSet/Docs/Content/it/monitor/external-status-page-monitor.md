@@ -74,7 +74,7 @@ Inserite l'**URL della pagina di stato**. Lasciate il **Provider** su **Auto** a
 
 ### Delimitarlo, se serve
 
-Aprite **Altri campi** per inserire un **Component Group Filter (Optional)**, come `APIs`, e un **Filtro nome componente (facoltativo)** per controllare un singolo componente (all'interno del gruppo, se ne è impostato uno).
+Aprite **Altri campi** per inserire un **Component Group Filter**, come `APIs`, e un **Filtro nome componente** per controllare un singolo componente (all'interno del gruppo, se ne è impostato uno).
 
 ### Testarlo
 
@@ -95,8 +95,8 @@ Selezionate le **Sonde** e un **Intervallo di monitoraggio** (parte da **Ogni 5 
 | --- | --- | --- |
 | **URL della pagina di stato** | L'URL della pagina di stato. Per i siti basati su Atlassian Statuspage e incident.io è di solito l'URL radice (ad es. `https://status.example.com`). Per i feed RSS/Atom, inserite direttamente l'URL del feed. | — |
 | **Provider** | **Auto** per riconoscere il formato, oppure **Atlassian Statuspage**, **incident.io**, **OneUptime Status Page**, **RSS** o **Atom** se lo conoscete. | **Auto** |
-| **Component Group Filter (Optional)** | Il gruppo a cui limitare il monitor. In **Altri campi**. | Tutti i gruppi |
-| **Filtro nome componente (facoltativo)** | Il componente da controllare. In **Altri campi**. | Tutti i componenti dell'ambito |
+| **Component Group Filter** | Il gruppo a cui limitare il monitor. In **Altri campi**. | Tutti i gruppi |
+| **Filtro nome componente** | Il componente da controllare. In **Altri campi**. | Tutti i componenti dell'ambito |
 | **Timeout (ms)** | Il tempo massimo di attesa della pagina di stato. In **Altri campi**. | `10000` (10 secondi) |
 | **Tentativi** | Quante volte ritentare, a un secondo di distanza, dopo che il primo tentativo fallisce; `0` significa un solo tentativo. In **Altri campi**. | `3` (fino a 4 tentativi) |
 
@@ -148,7 +148,7 @@ Poiché il numero di incidenti attivi e gli stati dei componenti rispettano i fi
 
 Scegliete **OneUptime Status Page** come provider, o lasciate **Auto**, per tenere d'occhio una pagina di stato creata con OneUptime: il progetto di un altro team, o la pagina di un provider su OneUptime Cloud o su un OneUptime self-hosted. Inserite l'indirizzo della pagina stessa in **URL della pagina di stato**: il suo dominio, come `https://status.example.com`, oppure `https://oneuptime.com/status-page/<status-page-id>` per una pagina che non ne ha uno.
 
-Il monitor legge il riepilogo della pagina, `/status-page-api/summary/<page>` (vedete [Leggere il riepilogo](/docs/status-pages/public-api#leggere-il-riepilogo)): solo ciò che la pagina mostra ai suoi visitatori, e nient'altro dell'altro progetto. Ogni risorsa della pagina, un monitor o un gruppo di monitor, è un componente, con il nome che la pagina le dà, nel gruppo della pagina; un gruppo dentro un altro si legge `Core / Databases`. Tenete d'occhio una risorsa con **Filtro nome componente (facoltativo)**, o un gruppo con **Component Group Filter (Optional)**.
+Il monitor legge il riepilogo della pagina, `/status-page-api/summary/<page>` (vedete [Leggere il riepilogo](/docs/status-pages/public-api#leggere-il-riepilogo)): solo ciò che la pagina mostra ai suoi visitatori, e nient'altro dell'altro progetto. Ogni risorsa della pagina, un monitor o un gruppo di monitor, è un componente, con il nome che la pagina le dà, nel gruppo della pagina; un gruppo dentro un altro si legge `Core / Databases`. Tenete d'occhio una risorsa con **Filtro nome componente**, o un gruppo con **Component Group Filter**.
 
 Lo stato di un componente è il valore che rappresenta il suo stato sulla pagina, così i criteri sullo stato dei componenti funzionano come su qualsiasi pagina di stato:
 
@@ -180,7 +180,7 @@ Trascinate il nuovo criterio sopra gli altri: vince il primo criterio che corris
 
 ### Verificarlo con Testa il monitor
 
-Fate clic su **Testa il monitor** mentre l'altro progetto ha una manutenzione in corso: il componente che riguarda mostra `under_maintenance`.
+Fate clic su **Testa il monitor** mentre l'altro progetto ha una manutenzione in corso: il componente che riguarda mostra **Under Maintenance**.
 :::
 
 ### Cosa una pagina di stato OneUptime lascia leggere al monitor

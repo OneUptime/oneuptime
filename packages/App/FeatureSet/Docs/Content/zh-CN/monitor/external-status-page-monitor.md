@@ -74,7 +74,7 @@ flowchart TB
 
 ### 如有需要，限定范围
 
-打开 **更多字段**，输入 **Component Group Filter (Optional)**（例如 `APIs`），以及 **组件名称过滤器（可选）** 来关注单个组件（如果设置了组，则在该组内）。
+打开 **更多字段**，输入 **Component Group Filter**（例如 `APIs`），以及 **组件名称过滤器** 来关注单个组件（如果设置了组，则在该组内）。
 
 ### 测试
 
@@ -95,8 +95,8 @@ flowchart TB
 | --- | --- | --- |
 | **状态页 URL** | 状态页的 URL。对于由 Atlassian Statuspage 和 incident.io 提供的站点，通常是根 URL（例如 `https://status.example.com`）。对于 RSS/Atom 订阅源，请直接输入订阅源的 URL。 | — |
 | **提供商** | **Auto** 表示自动识别格式；如果你知道格式，可选择 **Atlassian Statuspage**、**incident.io**、**OneUptime Status Page**、**RSS** 或 **Atom**。 | **Auto** |
-| **Component Group Filter (Optional)** | 监视器限定到的组。位于 **更多字段** 下。 | 所有组 |
-| **组件名称过滤器（可选）** | 要关注的组件。位于 **更多字段** 下。 | 范围内的所有组件 |
+| **Component Group Filter** | 监视器限定到的组。位于 **更多字段** 下。 | 所有组 |
+| **组件名称过滤器** | 要关注的组件。位于 **更多字段** 下。 | 范围内的所有组件 |
 | **超时（ms）** | 等待状态页的最长时间。位于 **更多字段** 下。 | `10000`（10 秒） |
 | **重试** | 第一次尝试失败后重试的次数，每次间隔一秒；`0` 表示只尝试一次。位于 **更多字段** 下。 | `3`（最多 4 次尝试） |
 
@@ -148,7 +148,7 @@ flowchart TB
 
 要监视用 OneUptime 制作的状态页（另一个团队的项目，或者服务商在 OneUptime Cloud 或自托管 OneUptime 上的页面），把提供商选为 **OneUptime Status Page** ，或保留 **Auto** 。在 **状态页 URL** 中输入页面自己的地址：有域名就输入域名，例如 `https://status.example.com`，没有就输入 `https://oneuptime.com/status-page/<status-page-id>`。
 
-监视器读取页面的摘要 `/status-page-api/summary/<page>`（参见 [读取摘要](/docs/status-pages/public-api#读取摘要)）：只读取页面向访客展示的内容，不读取另一个项目的其他任何内容。页面上的每个资源（一个监视器或一个监视器组）都是一个组件，使用页面为它起的名称，位于页面的分组中；一个分组中的分组写作 `Core / Databases`。用 **组件名称过滤器（可选）** 监视一个资源，用 **Component Group Filter (Optional)** 监视一个分组。
+监视器读取页面的摘要 `/status-page-api/summary/<page>`（参见 [读取摘要](/docs/status-pages/public-api#读取摘要)）：只读取页面向访客展示的内容，不读取另一个项目的其他任何内容。页面上的每个资源（一个监视器或一个监视器组）都是一个组件，使用页面为它起的名称，位于页面的分组中；一个分组中的分组写作 `Core / Databases`。用 **组件名称过滤器** 监视一个资源，用 **Component Group Filter** 监视一个分组。
 
 组件的状态是它在页面上的状态所代表的值，因此组件状态条件的用法与任何状态页相同：
 
@@ -180,7 +180,7 @@ flowchart TB
 
 ### 用测试监视器检查
 
-在另一个项目有维护进行时点击 **测试监视器** ：受影响的组件显示 `under_maintenance`。
+在另一个项目有维护进行时点击 **测试监视器** ：受影响的组件显示 **Under Maintenance**。
 :::
 
 ### OneUptime 状态页允许监视器读取的内容

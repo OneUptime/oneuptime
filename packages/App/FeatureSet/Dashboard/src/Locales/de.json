@@ -33396,5 +33396,9 @@
   "{{count}} more labels_one": "{{count}} weitere Beschriftung",
   "Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).": "Erkannter Anbieter (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).",
   "How OneUptime reads this status page. 'Auto' detects the format for you.": "Wie OneUptime diese Statusseite liest. „Auto“ erkennt das Format für Sie.",
-  "Only watch one component group, e.g. 'APIs'. RSS and Atom feeds have no groups.": "Nur eine Komponentengruppe beobachten, z. B. 'APIs'. RSS- und Atom-Feeds haben keine Gruppen."
+  "Only watch one component group, e.g. 'APIs'. RSS and Atom feeds have no groups.": "Nur eine Komponentengruppe beobachten, z. B. 'APIs'. RSS- und Atom-Feeds haben keine Gruppen.",
+  "Component: {{component}}": "Komponente: {{component}}",
+  "Group: {{group}}": "Gruppe: {{group}}",
+  "Only watch components whose names contain this, e.g. 'API'. With a group set, only inside that group.": "Nur Komponenten beobachten, deren Name dies enthält, z. B. 'API'. Ist eine Gruppe gesetzt, nur innerhalb dieser Gruppe.",
+  "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)": "Die URL der externen Statusseite, die überwacht werden soll (z. B. https://www.githubstatus.com oder https://status.openai.com)"
 }

@@ -221,8 +221,10 @@ export default class StatusPageRssFeed {
 
   /*
    * When a maintenance window is, in UTC: "Scheduled from Sun, 25 Oct 2026
-   * 02:00 UTC to Sun, 25 Oct 2026 04:00 UTC." - or "Scheduled for ..." when
-   * it has no end. Empty when it has no start.
+   * 02:00 to 04:00 UTC." for a window within one day, "Scheduled from Sat,
+   * 24 Oct 2026 22:00 UTC to Sun, 25 Oct 2026 02:00 UTC." for one that
+   * crosses midnight, or "Scheduled for ..." when it has no end. Empty when
+   * it has no start.
    */
   public static describeWindow(
     startsAt: Date | null,
@@ -236,20 +238,37 @@ export default class StatusPageRssFeed {
       return `Scheduled for ${StatusPageRssFeed.formatUtc(startsAt)}.`;
     }
 
+    if (
+      StatusPageRssFeed.formatUtcDay(startsAt) ===
+      StatusPageRssFeed.formatUtcDay(endsAt)
+    ) {
+      return `Scheduled from ${StatusPageRssFeed.formatUtcDay(startsAt)} ${StatusPageRssFeed.formatUtcTime(startsAt)} to ${StatusPageRssFeed.formatUtcTime(endsAt)} UTC.`;
+    }
+
     return `Scheduled from ${StatusPageRssFeed.formatUtc(startsAt)} to ${StatusPageRssFeed.formatUtc(endsAt)}.`;
   }
 
   // "Sun, 25 Oct 2026 02:00 UTC".
   public static formatUtc(date: Date): string {
-    const pad: (value: number) => string = (value: number): string => {
-      return value.toString().padStart(2, "0");
-    };
+    return `${StatusPageRssFeed.formatUtcDay(date)} ${StatusPageRssFeed.formatUtcTime(date)} UTC`;
+  }
 
-    return `${WEEKDAYS[date.getUTCDay()]}, ${pad(date.getUTCDate())} ${
-      MONTHS[date.getUTCMonth()]
-    } ${date.getUTCFullYear()} ${pad(date.getUTCHours())}:${pad(
+  // "Sun, 25 Oct 2026".
+  public static formatUtcDay(date: Date): string {
+    return `${WEEKDAYS[date.getUTCDay()]}, ${StatusPageRssFeed.pad(
+      date.getUTCDate(),
+    )} ${MONTHS[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
+  }
+
+  // "02:00", in UTC.
+  public static formatUtcTime(date: Date): string {
+    return `${StatusPageRssFeed.pad(date.getUTCHours())}:${StatusPageRssFeed.pad(
       date.getUTCMinutes(),
-    )} UTC`;
+    )}`;
+  }
+
+  private static pad(value: number): string {
+    return value.toString().padStart(2, "0");
   }
 
   /*

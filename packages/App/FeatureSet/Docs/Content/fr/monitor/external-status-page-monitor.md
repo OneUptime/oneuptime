@@ -74,7 +74,7 @@ Saisissez l'**URL de la page de statut**. Laissez le **Fournisseur** sur **Auto*
 
 ### Délimiter le périmètre, si nécessaire
 
-Ouvrez **Plus de champs** pour saisir un **Filtre de groupe de composants (facultatif)**, comme `APIs`, et un **Filtre par nom de composant (facultatif)** pour surveiller un seul composant (dans le groupe, si un groupe est défini).
+Ouvrez **Plus de champs** pour saisir un **Filtre de groupe de composants**, comme `APIs`, et un **Filtre par nom de composant** pour surveiller un seul composant (dans le groupe, si un groupe est défini).
 
 ### Le tester
 
@@ -95,8 +95,8 @@ Sélectionnez les **Sondes** et un **Intervalle de surveillance** — il commenc
 | --- | --- | --- |
 | **URL de la page de statut** | L'URL de la page de statut. Pour les sites propulsés par Atlassian Statuspage et incident.io, c'est généralement l'URL racine (p. ex. `https://status.example.com`). Pour les flux RSS/Atom, saisissez directement l'URL du flux. | — |
 | **Fournisseur** | **Auto** pour détecter le format, ou **Atlassian Statuspage**, **incident.io**, **OneUptime Status Page**, **RSS** ou **Atom** si vous le connaissez. | **Auto** |
-| **Filtre de groupe de composants (facultatif)** | Le groupe auquel limiter le moniteur. Sous **Plus de champs**. | Tous les groupes |
-| **Filtre par nom de composant (facultatif)** | Le composant à surveiller. Sous **Plus de champs**. | Tous les composants du périmètre |
+| **Filtre de groupe de composants** | Le groupe auquel limiter le moniteur. Sous **Plus de champs**. | Tous les groupes |
+| **Filtre par nom de composant** | Le composant à surveiller. Sous **Plus de champs**. | Tous les composants du périmètre |
 | **Délai d'expiration (ms)** | Le temps maximal d'attente de la page de statut. Sous **Plus de champs**. | `10000` (10 secondes) |
 | **Tentatives** | Combien de fois réessayer, à une seconde d'intervalle, après l'échec de la première tentative ; `0` signifie une seule tentative. Sous **Plus de champs**. | `3` (jusqu'à 4 tentatives) |
 
@@ -148,7 +148,7 @@ Comme le nombre d'incidents actifs et les statuts des composants respectent les 
 
 Choisissez **OneUptime Status Page** comme fournisseur, ou laissez **Auto**, pour surveiller une page de statut créée avec OneUptime : le projet d'une autre équipe, ou la page d'un fournisseur sur OneUptime Cloud ou sur un OneUptime auto-hébergé. Saisissez l'adresse propre de la page dans **URL de la page de statut** : son domaine, comme `https://status.example.com`, ou `https://oneuptime.com/status-page/<status-page-id>` pour une page qui n'en a pas.
 
-Le moniteur lit le résumé de la page, `/status-page-api/summary/<page>` (voir [Lire le résumé](/docs/status-pages/public-api#lire-le-résumé)) : seulement ce que la page montre à ses visiteurs, et rien d'autre de l'autre projet. Chaque ressource de la page, un moniteur ou un groupe de moniteurs, est un composant, sous le nom que la page lui donne, dans le groupe de la page ; un groupe placé dans un autre s'écrit `Core / Databases`. Surveillez une ressource avec **Filtre par nom de composant (facultatif)**, ou un groupe avec **Filtre de groupe de composants (facultatif)**.
+Le moniteur lit le résumé de la page, `/status-page-api/summary/<page>` (voir [Lire le résumé](/docs/status-pages/public-api#lire-le-résumé)) : seulement ce que la page montre à ses visiteurs, et rien d'autre de l'autre projet. Chaque ressource de la page, un moniteur ou un groupe de moniteurs, est un composant, sous le nom que la page lui donne, dans le groupe de la page ; un groupe placé dans un autre s'écrit `Core / Databases`. Surveillez une ressource avec **Filtre par nom de composant**, ou un groupe avec **Filtre de groupe de composants**.
 
 Le statut d'un composant est la valeur que représente son statut sur la page, si bien que les critères de statut de composant fonctionnent comme sur n'importe quelle page de statut :
 
@@ -180,7 +180,7 @@ Faites glisser le nouveau critère au-dessus des autres : le premier critère qu
 
 ### Le vérifier avec Tester le moniteur
 
-Cliquez sur **Tester le moniteur** pendant qu'une maintenance est en cours dans l'autre projet : le composant qu'elle touche affiche `under_maintenance`.
+Cliquez sur **Tester le moniteur** pendant qu'une maintenance est en cours dans l'autre projet : le composant qu'elle touche affiche **Under Maintenance**.
 :::
 
 ### Ce qu'une page de statut OneUptime laisse lire au moniteur

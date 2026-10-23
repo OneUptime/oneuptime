@@ -1,0 +1,537 @@
+import "@testing-library/jest-dom";
+import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  test,
+} from "@jest/globals";
+import i18next from "i18next";
+import { initReactI18next } from "react-i18next";
+import fs from "fs";
+import path from "path";
+import * as React from "react";
+import { CheckOn } from "../../../Types/Monitor/CriteriaFilter";
+import ExternalStatusPageMonitorResponse, {
+  ExternalStatusPageComponentStatus,
+} from "../../../Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
+import ExternalStatusPageProviderType from "../../../Types/Monitor/ExternalStatusPageProviderType";
+import MonitorType from "../../../Types/Monitor/MonitorType";
+import ObjectID from "../../../Types/ObjectID";
+import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
+import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
+import CriteriaFilterUtil from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
+import ExternalStatusPageMonitorView from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/ExternalStatusPageMonitorView";
+import SummaryInfo from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/SummaryInfo";
+
+/*
+ * What one check of an external status page found, as the monitor's
+ * Summary, Test Monitor's result and Monitoring Logs draw it
+ * (SummaryView/ExternalStatusPageMonitorView): the check's facts, why it
+ * failed when it did, what the page said, and each component in scope -
+ * its status in the words of the Component Status criteria's Value
+ * dropdown, never the raw value ("under_maintenance") the criteria compare.
+ *
+ * Issue #5176's OneUptime status page provider is the case it is drawn
+ * for: a resource under maintenance, groups nested as "Core / Databases",
+ * a status the page hides, and a page that went private. The layout a
+ * browser draws - two facts to a row, four in a wide dialog - is checked
+ * in packages/E2E/MonitorOverview/ExternalStatusPageMonitor.spec.ts; here,
+ * that the classes asking for it are there.
+ */
+
+const LOCALES_DIR: string = path.resolve(
+  __dirname,
+  "../../../../App/FeatureSet/Dashboard/src/Locales",
+);
+
+const DE: Record<string, string> = JSON.parse(
+  fs.readFileSync(path.join(LOCALES_DIR, "de.json"), "utf8"),
+) as Record<string, string>;
+
+const MONITORED_AT: Date = new Date("2026-10-20T09:30:00.000Z");
+
+const PRIVATE_PAGE_MESSAGE: string =
+  "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.";
+
+const DROPDOWN: Array<DropdownOption> =
+  CriteriaFilterUtil.getDropdownOptionsByCheckOn({
+    checkOn: CheckOn.ExternalStatusPageComponentStatus,
+  });
+
+const CORE_COMPONENTS: Array<ExternalStatusPageComponentStatus> = [
+  {
+    name: "Checkout API",
+    status: "operational",
+    description: "Operational",
+    groupName: "Core / APIs",
+  },
+  {
+    name: "Orders database",
+    status: "under_maintenance",
+    description: "Under maintenance: Database upgrade",
+    groupName: "Core / Databases",
+  },
+];
+
+function pageResponse(
+  overrides: Partial<ExternalStatusPageMonitorResponse> = {},
+): ExternalStatusPageMonitorResponse {
+  return {
+    isOnline: true,
+    overallStatus: "under_maintenance",
+    componentStatuses: CORE_COMPONENTS,
+    activeIncidentCount: 0,
+    responseTimeInMs: 411.6,
+    failureCause: "",
+    provider: ExternalStatusPageProviderType.OneUptime,
+    componentGroupName: "Core",
+    ...overrides,
+  };
+}
+
+function probeResponse(
+  response: ExternalStatusPageMonitorResponse,
+): ProbeMonitorResponse {
+  return {
+    projectId: new ObjectID("11111111-1111-4111-8111-111111111111"),
+    monitorId: new ObjectID("22222222-2222-4222-8222-222222222222"),
+    monitorStepId: new ObjectID("33333333-3333-4333-8333-333333333333"),
+    probeId: new ObjectID("44444444-4444-4444-8444-444444444444"),
+    isOnline: response.isOnline,
+    responseTimeInMs: response.responseTimeInMs,
+    failureCause: response.failureCause,
+    monitoredAt: MONITORED_AT,
+    externalStatusPageResponse: response,
+  } as ProbeMonitorResponse;
+}
+
+function renderView(
+  response: ExternalStatusPageMonitorResponse = pageResponse(),
+): void {
+  render(
+    <ExternalStatusPageMonitorView
+      probeMonitorResponse={probeResponse(response)}
+      probeName="Frankfurt (eu-central-1)"
+    />,
+  );
+}
+
+// The titles of a facts grid's cards, in order.
+function factTitles(testId: string): Array<string> {
+  return Array.from(screen.getByTestId(testId).children).map(
+    (card: Element): string => {
+      return (card.firstElementChild?.textContent || "").trim();
+    },
+  );
+}
+
+// A fact's value: the card's last child.
+function factValue(testId: string, index: number): HTMLElement {
+  return screen.getByTestId(testId).children[index]!
+    .lastElementChild as HTMLElement;
+}
+
+function statusTexts(): Array<string> {
+  return screen
+    .getAllByTestId("external-status-page-component-status")
+    .map((status: HTMLElement): string => {
+      return (status.textContent || "").trim();
+    });
+}
+
+beforeAll(async () => {
+  await i18next.use(initReactI18next).init({
+    lng: "en",
+    fallbackLng: "en",
+    resources: { de: { translation: DE } },
+    interpolation: { escapeValue: false },
+    keySeparator: false,
+    nsSeparator: false,
+  });
+});
+
+afterEach(() => {
+  cleanup();
+});
+
+afterAll(async () => {
+  await i18next.changeLanguage("en");
+});
+
+describe("a component's status", () => {
+  test("reads as the Component Status criteria's Value dropdown words it, each value its own", () => {
+    renderView(
+      pageResponse({
+        componentStatuses: DROPDOWN.map(
+          (
+            option: DropdownOption,
+            index: number,
+          ): ExternalStatusPageComponentStatus => {
+            return {
+              name: `Resource ${index + 1}`,
+              status: option.value.toString(),
+            };
+          },
+        ),
+      }),
+    );
+
+    expect(statusTexts()).toEqual(
+      DROPDOWN.map((option: DropdownOption): string => {
+        return option.label;
+      }),
+    );
+    expect(
+      screen
+        .getAllByTestId("external-status-page-component-status")
+        .map((status: HTMLElement): string | null => {
+          return status.getAttribute("data-status");
+        }),
+    ).toEqual(
+      DROPDOWN.map((option: DropdownOption): string => {
+        return option.value.toString();
+      }),
+    );
+    // The list never shows a value the way the criteria store it.
+    expect(
+      within(screen.getByTestId("external-status-page-components")).queryByText(
+        "under_maintenance",
+        { exact: false },
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a status the page hides reads Unknown; any other word a provider uses reads as a word", () => {
+    renderView(
+      pageResponse({
+        componentStatuses: [
+          { name: "Internal admin", status: "unknown" },
+          { name: "Feed item", status: "incident" },
+          { name: "Odd one", status: "on_fire_again" },
+          { name: "Blank", status: "" },
+        ],
+      }),
+    );
+
+    expect(statusTexts()).toEqual([
+      "Unknown",
+      "Incident",
+      "On fire again",
+      "Unknown",
+    ]);
+  });
+
+  test("each status is announced as a status", () => {
+    renderView();
+
+    expect(
+      screen.getByRole("status", { name: "Status: Under Maintenance" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("status", { name: "Status: Operational" }),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("the components in scope", () => {
+  test("keep the page's order, in a list named by its heading", () => {
+    renderView();
+
+    const list: HTMLElement = screen.getByRole("list", {
+      name: "Component Statuses",
+    });
+
+    expect(
+      within(list)
+        .getAllByTestId("external-status-page-component-name")
+        .map((name: HTMLElement): string => {
+          return name.textContent || "";
+        }),
+    ).toEqual(["Checkout API", "Orders database"]);
+    expect(statusTexts()).toEqual(["Operational", "Under Maintenance"]);
+  });
+
+  test("say their group and what the page says, unless that only repeats the status", () => {
+    renderView(
+      pageResponse({
+        componentStatuses: [
+          ...CORE_COMPONENTS,
+          // The page's own word for an outage says something: it stays.
+          {
+            name: "Payments webhooks",
+            status: "major_outage",
+            description: "Offline",
+          },
+          // Only the status again, in other casing: said once.
+          {
+            name: "Search",
+            status: "degraded_performance",
+            description: "degraded performance",
+          },
+          // Nothing to add at all.
+          { name: "Email delivery", status: "operational" },
+        ],
+      }),
+    );
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId(
+      "external-status-page-component",
+    );
+
+    expect(
+      rows.map((row: HTMLElement): string | null => {
+        return (
+          within(row).queryByTestId("external-status-page-component-detail")
+            ?.textContent || null
+        );
+      }),
+    ).toEqual([
+      "Core / APIs",
+      "Core / Databases · Under maintenance: Database upgrade",
+      "Offline",
+      null,
+      null,
+    ]);
+  });
+
+  test("put each status at the row's end from sm up, and under the name on a phone", () => {
+    renderView();
+
+    const row: HTMLElement = screen.getAllByTestId(
+      "external-status-page-component",
+    )[0]!;
+
+    expect(row).toHaveClass(
+      "flex",
+      "flex-col",
+      "sm:flex-row",
+      "sm:justify-between",
+    );
+    expect(
+      within(row).getByTestId("external-status-page-component-name"),
+    ).toHaveClass("break-words");
+  });
+
+  test("a page that reports none draws no list", () => {
+    renderView(pageResponse({ componentStatuses: [] }));
+
+    expect(
+      screen.queryByTestId("external-status-page-components"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Component Statuses")).not.toBeInTheDocument();
+  });
+});
+
+describe("the facts", () => {
+  test("first the check, then what the page said", () => {
+    renderView();
+
+    expect(factTitles("external-status-page-check-facts")).toEqual([
+      "Probe",
+      "Status",
+      "Response Time",
+      "Monitored At",
+    ]);
+    expect(factTitles("external-status-page-page-facts")).toEqual([
+      "Provider",
+      "Overall Status",
+      "Active Incidents",
+      "Scope",
+    ]);
+
+    expect(factValue("external-status-page-check-facts", 0)).toHaveTextContent(
+      "Frankfurt (eu-central-1)",
+    );
+    expect(factValue("external-status-page-check-facts", 1)).toHaveTextContent(
+      "Online",
+    );
+    expect(factValue("external-status-page-check-facts", 2)).toHaveTextContent(
+      "412 ms",
+    );
+    expect(factValue("external-status-page-page-facts", 0)).toHaveTextContent(
+      "OneUptime Status Page",
+    );
+    expect(factValue("external-status-page-page-facts", 2)).toHaveTextContent(
+      "0",
+    );
+    expect(factValue("external-status-page-page-facts", 3)).toHaveTextContent(
+      "Group: Core",
+    );
+  });
+
+  test("the overall status is the value the criteria compare, free to wrap after an underscore", () => {
+    renderView(pageResponse({ overallStatus: "degraded_performance" }));
+
+    const value: HTMLElement = factValue("external-status-page-page-facts", 1);
+
+    // Copied, it is the value as it is: <wbr> adds no character.
+    expect(value.textContent).toBe("degraded_performance");
+    expect(value.querySelectorAll("wbr")).toHaveLength(1);
+    expect(value.innerHTML.indexOf("_<wbr>")).toBeGreaterThan(0);
+  });
+
+  test("an overall status without an underscore, such as a Statuspage's, reads as it is", () => {
+    renderView(
+      pageResponse({
+        overallStatus: "All Systems Operational",
+        provider: ExternalStatusPageProviderType.AtlassianStatuspage,
+      }),
+    );
+
+    const value: HTMLElement = factValue("external-status-page-page-facts", 1);
+
+    expect(value.textContent).toBe("All Systems Operational");
+    expect(value.querySelectorAll("wbr")).toHaveLength(0);
+  });
+
+  test.each([
+    [
+      { componentGroupName: "Core", componentName: "Checkout" },
+      "Core › Checkout",
+    ],
+    [{ componentGroupName: "Core" }, "Group: Core"],
+    [{ componentName: "Checkout" }, "Component: Checkout"],
+    [{}, "All components"],
+  ])(
+    "the scope of %p reads %p",
+    (
+      scope: { componentGroupName?: string; componentName?: string },
+      expected: string,
+    ) => {
+      renderView(
+        pageResponse({
+          componentGroupName: scope.componentGroupName,
+          componentName: scope.componentName,
+        }),
+      );
+
+      expect(factValue("external-status-page-page-facts", 3)).toHaveTextContent(
+        expected,
+      );
+    },
+  );
+
+  /*
+   * Two to a row, four once the view itself is 64rem wide: it is drawn in
+   * the overview's Summary card and in wide dialogs at one screen width,
+   * so its own width decides. Values get a smaller size below 32rem.
+   */
+  test("sit two to a row, four in a wide view, by the view's own width", () => {
+    renderView();
+
+    expect(screen.getByTestId("external-status-page-summary")).toHaveClass(
+      "[container-type:inline-size]",
+    );
+
+    for (const testId of [
+      "external-status-page-check-facts",
+      "external-status-page-page-facts",
+    ]) {
+      expect(screen.getByTestId(testId)).toHaveClass(
+        "grid",
+        "grid-cols-2",
+        "[@container(min-width:64rem)]:grid-cols-4",
+      );
+      expect(screen.getByTestId(testId)).not.toHaveClass("lg:grid-cols-4");
+    }
+
+    expect(factValue("external-status-page-page-facts", 1)).toHaveClass(
+      "text-sm",
+      "break-words",
+      "[@container(min-width:32rem)]:text-base",
+    );
+  });
+});
+
+describe("a check that failed", () => {
+  test("says why between the check's facts and the page's, and lists nothing", () => {
+    renderView(
+      pageResponse({
+        isOnline: false,
+        overallStatus: "unknown",
+        componentStatuses: [],
+        failureCause: PRIVATE_PAGE_MESSAGE,
+        provider: undefined,
+      }),
+    );
+
+    const summary: HTMLElement = screen.getByTestId(
+      "external-status-page-summary",
+    );
+    const error: HTMLElement = screen.getByText(PRIVATE_PAGE_MESSAGE);
+    const checkFacts: HTMLElement = screen.getByTestId(
+      "external-status-page-check-facts",
+    );
+    const pageFacts: HTMLElement = screen.getByTestId(
+      "external-status-page-page-facts",
+    );
+    const children: Array<Element> = Array.from(summary.children);
+    const errorCard: Element = children.find((child: Element): boolean => {
+      return child.contains(error);
+    })!;
+
+    expect(children.indexOf(checkFacts)).toBe(0);
+    expect(children.indexOf(errorCard)).toBe(1);
+    expect(children.indexOf(pageFacts)).toBe(2);
+    expect(factValue("external-status-page-check-facts", 1)).toHaveTextContent(
+      "Offline",
+    );
+    expect(
+      screen.queryByTestId("external-status-page-components"),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("the summary every page draws", () => {
+  test("SummaryInfo draws this view for an External Status Page monitor, with the probe's name", () => {
+    render(
+      <SummaryInfo
+        monitorType={MonitorType.ExternalStatusPage}
+        probeMonitorResponses={[probeResponse(pageResponse())]}
+        probeName="Singapore (ap-southeast-1)"
+      />,
+    );
+
+    expect(
+      screen.getByTestId("external-status-page-summary"),
+    ).toBeInTheDocument();
+    expect(factValue("external-status-page-check-facts", 0)).toHaveTextContent(
+      "Singapore (ap-southeast-1)",
+    );
+    expect(statusTexts()).toEqual(["Operational", "Under Maintenance"]);
+  });
+});
+
+describe("in German", () => {
+  beforeAll(async () => {
+    await i18next.changeLanguage("de");
+  });
+
+  afterAll(async () => {
+    await i18next.changeLanguage("en");
+  });
+
+  test("the statuses, the scope and the list's heading read in German", () => {
+    renderView();
+
+    expect(statusTexts()).toEqual([DE["Operational"], DE["Under Maintenance"]]);
+    expect(statusTexts()).toEqual(["Betriebsbereit", "In Wartung"]);
+    expect(factValue("external-status-page-page-facts", 3)).toHaveTextContent(
+      DE["Group: {{group}}"]!.replace("{{group}}", "Core"),
+    );
+    expect(
+      screen.getByRole("list", { name: DE["Component Statuses"]! }),
+    ).toBeInTheDocument();
+  });
+
+  test("a whole page in scope says so in German", () => {
+    renderView(pageResponse({ componentGroupName: undefined }));
+
+    expect(factValue("external-status-page-page-facts", 3)).toHaveTextContent(
+      DE["All components"]!,
+    );
+  });
+});
