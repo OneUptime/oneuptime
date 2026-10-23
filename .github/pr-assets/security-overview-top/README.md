@@ -10,7 +10,9 @@ ratio, from the Security Operations offline fixture
 (`packages/E2E/SecurityOperations`), with the Dashboard's Tailwind build,
 `Theme.css` and Inter, at production widths (the fixture's own 1440px wrapper
 taken off, so 1280 is a 1280px window beside the side menu). The "before"
-frames are master's bundle at ce9fa0d8d6. Every record in them is made up.
+frames are master's bundle at ce9fa0d8d6. The "after" frames were shot again
+after the UI review (20px padding lined up with the cells, the band stacked
+below lg, the new wording). Every record in them is made up.
 
 | File | Shows |
 | --- | --- |
@@ -22,9 +24,12 @@ frames are master's bundle at ce9fa0d8d6. Every record in them is made up.
 | `needs-attention-1280-dark-before.png` / `-after.png` | The same in the dark theme. |
 | `needs-attention-390-before.png` / `-after.png` | The same on a phone. |
 | `quiet-1280-dark-before.png` / `-after.png` | A project set up and quiet, dark. |
+| `quiet-768-before.png` | A tablet beside the side menu: four squeezed cards whose figures wrap, and the banner's words in a column beside its button. |
+| `quiet-768-after.png` | The same: the cells two by two, and the band's words keep its width, its button under them at the right edge. |
 | `sources-silent-1280-before.png` | Sources that sent nothing for three days: "No events in 24 hours" in grey, under a green All quiet. |
 | `sources-silent-1280-after.png` | All quiet says when the last security event came, and the Sources cell says it in amber. |
-| `not-watched-1280-after.png` | No source and no rule, Get started put away: "Nothing is watched for threats yet" in grey with Set up Security, never All quiet. |
+| `not-watched-1280-after.png` | Nothing can open a case (no connection, and no rule or threat intel feed reading your logs), Get started put away: "Nothing is being watched for threats yet" in grey with Set up Security, never All quiet. |
+| `connection-only-1280-after.png` | A connected product (its alerts open cases from High up by default) and no rule of OneUptime's: watched, so All quiet; Detections offers its rules in grey. |
 | `in-hand-1280-after.png` | Cases open, every one someone else's: "Every open case is picked up", in indigo. |
 | `status-failed-1280-after.png` | The set-up figures cannot be read: the pipeline's place says so, with Try again (before: the strip was silently left out). |
 | `overview-failed-390-after.png` | The overview cannot be read: the product's sentence and Try again (before: a raw "Server Error"). |

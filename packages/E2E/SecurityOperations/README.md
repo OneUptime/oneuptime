@@ -101,7 +101,9 @@ that list is not empty.
   KPIs and the queue's counts from the same rows; the three routes it reads; dark theme. The card
   in both themes at 1280 and 390: the band, then four cells on one hairline grid in one row with a
   chevron centred on each line between them, two by two on a phone with none, nothing scrolling
-  sideways; All quiet's test attack on the band's right on a laptop and under its words on a phone;
+  sideways, each thing waiting for someone on one line at 1280; the band's disc on the same left
+  edge as the cells' names and the figures' card below; All quiet's test attack on the band's
+  right on a laptop and under its words (which keep the band's width) on a tablet and a phone;
   a project nothing watches (Get started put away) says so in grey, never All quiet, its Detections
   cell opens the Rule Library, and Set up Security brings Get started back for good; sources that
   went silent (`?sources=silent`) are said beside All quiet and in amber on the Sources cell; the
