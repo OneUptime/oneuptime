@@ -1,6 +1,10 @@
+import { PERMISSION_SCOPE_TITLES } from "../Permission/PermissionScopeChoice";
+import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope";
 import {
   composedValue,
   PluralTemplate,
+  TranslatableTerm,
+  translatableTerm,
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
@@ -325,6 +329,191 @@ export const getApiKeyRolePermissionCountText: (
     applied: translator.formatNumber(count - owned),
   });
 };
+
+/*
+ * WHY A KEY HOLDS LESS THAN ITS ROLE, wherever that is counted: a
+ * permission scoped to what someone owns reaches nothing for a key, which
+ * owns nothing. Said with the scope's own title, as a role's Scope column
+ * shows it ("Only resources they own"), so the reader can find those
+ * permissions on the role's page - "limited to resources someone owns"
+ * named nothing they could see there.
+ */
+export const API_KEY_OWNED_SCOPE_REASON: string = translationKey(
+  "Permissions scoped to “{{scope}}” don't apply to an API key: a key owns nothing.",
+);
+
+// The Owned scope's title, put into a sentence in that sentence's language.
+const ownedScopeTitle: () => TranslatableTerm = (): TranslatableTerm => {
+  return translatableTerm(PERMISSION_SCOPE_TITLES[PermissionScope.Owned]);
+};
+
+export const getApiKeyOwnedScopeReason: (translator: Translator) => string = (
+  translator: Translator,
+): string => {
+  return translator.translateTemplate(API_KEY_OWNED_SCOPE_REASON, {
+    scope: ownedScopeTitle(),
+  });
+};
+
+/*
+ * How much of a role an API key given it holds: all of its permissions but
+ * those scoped to what someone owns.
+ */
+export interface ApiKeyRoleCoverage {
+  permissionCount: number;
+  // Of them, those scoped to what someone owns: none of them reach a key.
+  ownedCount: number;
+}
+
+// The role's permissions, and how many of them a key holds.
+const readCoverage: (coverage: ApiKeyRoleCoverage | null | undefined) => {
+  count: number;
+  owned: number;
+} = (
+  coverage: ApiKeyRoleCoverage | null | undefined,
+): { count: number; owned: number } => {
+  const count: number = Math.max(0, coverage?.permissionCount || 0);
+
+  return {
+    count: count,
+    owned: Math.min(count, Math.max(0, coverage?.ownedCount || 0)),
+  };
+};
+
+/*
+ * Whether a key given the role misses some of it. False while the role's
+ * permissions are not known: the sentences then say what they always said.
+ */
+export const doesApiKeyMissPartOfRole: (
+  coverage: ApiKeyRoleCoverage | null | undefined,
+) => boolean = (coverage: ApiKeyRoleCoverage | null | undefined): boolean => {
+  return readCoverage(coverage).owned > 0;
+};
+
+/*
+ * The Add Custom Role dialog on a key's page: what a role gives the key.
+ * The Owned exception is said only when a role offered has such a
+ * permission - in most projects none has, and the sentence only lengthened
+ * the dialog.
+ */
+export const ADD_ROLE_TO_API_KEY_DESCRIPTION: string = translationKey(
+  "The key gets everything the role allows. Make or change roles on the Roles page.",
+);
+
+export const ADD_ROLE_TO_API_KEY_DESCRIPTION_OWNED: string = translationKey(
+  "The key gets everything the role allows, except permissions scoped to “{{scope}}”: a key owns nothing. Make or change roles on the Roles page.",
+);
+
+export const getAddRoleToApiKeyDescription: (
+  translator: Translator,
+  data: { isAnyOfferedRolePartlyOwned: boolean },
+) => string = (
+  translator: Translator,
+  data: { isAnyOfferedRolePartlyOwned: boolean },
+): string => {
+  if (!data.isAnyOfferedRolePartlyOwned) {
+    return text(translator, ADD_ROLE_TO_API_KEY_DESCRIPTION);
+  }
+
+  return translator.translateTemplate(ADD_ROLE_TO_API_KEY_DESCRIPTION_OWNED, {
+    scope: ownedScopeTitle(),
+  });
+};
+
+/*
+ * A role's API Keys card, under its title: what the keys given the role
+ * can do. "Everything this role allows" only when that is so - a role with
+ * a permission scoped to what someone owns gives its keys the rest, and
+ * the card says how much and why.
+ */
+export const API_KEYS_GET_EVERYTHING: string = translationKey(
+  "These API keys can do everything this role allows.",
+);
+
+export const API_KEYS_GET_PART_TEMPLATE: PluralTemplate = {
+  one: "These API keys get {{applied}} of this role's {{count}} permission: those scoped to “{{scope}}” don't apply to a key.",
+  other:
+    "These API keys get {{applied}} of this role's {{count}} permissions: those scoped to “{{scope}}” don't apply to a key.",
+};
+
+export const API_KEYS_GET_NOTHING: string = translationKey(
+  "None of this role's permissions apply to these API keys: each is scoped to “{{scope}}”.",
+);
+
+export const getRoleApiKeysCardDescription: (
+  translator: Translator,
+  coverage: ApiKeyRoleCoverage | null | undefined,
+) => string = (
+  translator: Translator,
+  coverage: ApiKeyRoleCoverage | null | undefined,
+): string => {
+  const { count, owned } = readCoverage(coverage);
+
+  if (owned <= 0) {
+    return text(translator, API_KEYS_GET_EVERYTHING);
+  }
+
+  if (owned >= count) {
+    return translator.translateTemplate(API_KEYS_GET_NOTHING, {
+      scope: ownedScopeTitle(),
+    });
+  }
+
+  return translator.translatePlural(API_KEYS_GET_PART_TEMPLATE, count, {
+    applied: translator.formatNumber(count - owned),
+    scope: ownedScopeTitle(),
+  });
+};
+
+/*
+ * The Give to an API Key dialog on a role's page: what the key gets from
+ * now on - with the Owned exception only for a role that has such a
+ * permission.
+ */
+export const GIVE_ROLE_TO_API_KEY_DESCRIPTION: string = translationKey(
+  "From now on the key can do everything this role allows.",
+);
+
+export const GIVE_ROLE_TO_API_KEY_DESCRIPTION_OWNED: string = translationKey(
+  "From now on the key can do everything this role allows, except permissions scoped to “{{scope}}”: a key owns nothing.",
+);
+
+export const getGiveRoleToApiKeyDescription: (
+  translator: Translator,
+  coverage: ApiKeyRoleCoverage | null | undefined,
+) => string = (
+  translator: Translator,
+  coverage: ApiKeyRoleCoverage | null | undefined,
+): string => {
+  if (!doesApiKeyMissPartOfRole(coverage)) {
+    return text(translator, GIVE_ROLE_TO_API_KEY_DESCRIPTION);
+  }
+
+  return translator.translateTemplate(GIVE_ROLE_TO_API_KEY_DESCRIPTION_OWNED, {
+    scope: ownedScopeTitle(),
+  });
+};
+
+/*
+ * Why Give to an API Key is off: the project has no key yet, or every key
+ * has the role already. The empty card says the first too, with a link to
+ * the API Keys page - a tooltip can't be read on a phone.
+ */
+export const NO_API_KEY_IN_PROJECT_TOOLTIP: string = translationKey(
+  "This project has no API key yet. Create one on the API Keys page.",
+);
+
+export const EVERY_API_KEY_HAS_ROLE_TOOLTIP: string = translationKey(
+  "Every API key has this role already.",
+);
+
+export const NO_API_KEY_IN_PROJECT_TITLE: string = translationKey(
+  "This project has no API key yet",
+);
+
+export const NO_API_KEY_IN_PROJECT_DESCRIPTION: string = translationKey(
+  "Create one on the {{apiKeys}} page, then give it this role here.",
+);
 
 // What taking a role from an API key does, said in the Remove dialog.
 export const getRoleRemoveFromApiKeySentence: (

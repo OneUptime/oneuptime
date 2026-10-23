@@ -51,7 +51,9 @@ import React, {
  *     team or key has it;
  *   - Teams with this Role: the teams given it (CustomRoleTeamsTable);
  *   - API Keys with this Role: the keys given it (CustomRoleApiKeysTable),
- *     for whoever may read the project's API keys;
+ *     for whoever may read the project's API keys, saying what a key gets
+ *     of the role - read again after every change of its permissions, as
+ *     an edited scope can change that;
  *   - Delete: what deleting it takes from whom, before it is pressed.
  */
 
@@ -62,6 +64,9 @@ const TeamRoleView: FunctionComponent<PageComponentProps> = (
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const [roleName, setRoleName] = useState<string>("");
   const [reach, setReach] = useState<CustomRoleReachDetails | null>(null);
+  // Counts the reads of the role's permissions: what its API keys get follows.
+  const [permissionsChangeToggle, setPermissionsChangeToggle] =
+    useState<number>(0);
 
   const readReach: () => void = useCallback((): void => {
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
@@ -170,6 +175,11 @@ const TeamRoleView: FunctionComponent<PageComponentProps> = (
         customRoleId={modelId}
         roleName={roleName}
         description={permissionsDescription}
+        onPermissionCountChange={() => {
+          setPermissionsChangeToggle((count: number): number => {
+            return count + 1;
+          });
+        }}
       />
 
       <CustomRoleTeamsTable
@@ -182,6 +192,7 @@ const TeamRoleView: FunctionComponent<PageComponentProps> = (
         customRoleId={modelId}
         roleName={roleName}
         onApiKeysChange={readReach}
+        permissionsChangeToggle={permissionsChangeToggle}
       />
 
       <ModelDelete

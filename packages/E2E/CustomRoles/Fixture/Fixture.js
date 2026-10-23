@@ -13,6 +13,7 @@
  * Steered by the query string:
  *   - roles=none        the project has no custom role yet
  *   - roles=many        thirty custom roles, for a long list and long pickers
+ *   - keys=none         the project has no API key yet
  *   - long=1            two roles with long names: a sentence of a name, and
  *                       a single word with nowhere to break - both given to
  *                       the Deploy bot key too
@@ -85,6 +86,7 @@ const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 const USER_ID = "80000000-0000-4000-8000-000000000001";
 const params = new URLSearchParams(window.location.search);
 const rolesScenario = params.get("roles") || "some";
+const hasNoApiKey = params.get("keys") === "none";
 const hasLongNames = params.get("long") === "1";
 const userKind = params.get("user") || "owner";
 const refusedPermission = params.get("refuse") || "";
@@ -383,10 +385,12 @@ function apiKey(id, name, description) {
   return record;
 }
 
-const apiKeys = [
-  apiKey(KEYS.deploy, "Deploy bot", "Ships releases from CI."),
-  apiKey(KEYS.terraform, "Terraform", "Manages monitors and status pages."),
-];
+const apiKeys = hasNoApiKey
+  ? []
+  : [
+      apiKey(KEYS.deploy, "Deploy bot", "Ships releases from CI."),
+      apiKey(KEYS.terraform, "Terraform", "Manages monitors and status pages."),
+    ];
 
 function apiKeyCustomRole(keyId, roleId) {
   const record = new ApiKeyCustomRole();
@@ -399,14 +403,14 @@ function apiKeyCustomRole(keyId, roleId) {
 
 const apiKeyCustomRoles = [];
 
-if (rolesScenario !== "none") {
+if (rolesScenario !== "none" && !hasNoApiKey) {
   apiKeyCustomRoles.push(
     apiKeyCustomRole(KEYS.deploy, ROLES.lead),
     apiKeyCustomRole(KEYS.deploy, ROLES.helper),
   );
 }
 
-if (hasLongNames) {
+if (hasLongNames && !hasNoApiKey) {
   LONG_NAMES.forEach((name, index) => {
     apiKeyCustomRoles.push(
       apiKeyCustomRole(
@@ -429,10 +433,12 @@ function apiKeyPermission(keyId, permission, extra) {
   return record;
 }
 
-const apiKeyPermissions = [
-  apiKeyPermission(KEYS.deploy, Permission.WorkflowViewer),
-  apiKeyPermission(KEYS.terraform, Permission.MonitorAdmin),
-];
+const apiKeyPermissions = hasNoApiKey
+  ? []
+  : [
+      apiKeyPermission(KEYS.deploy, Permission.WorkflowViewer),
+      apiKeyPermission(KEYS.terraform, Permission.MonitorAdmin),
+    ];
 
 /*
  * The copies CustomRoleSync keeps for a key: every permission of its roles

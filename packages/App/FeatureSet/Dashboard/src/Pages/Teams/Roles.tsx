@@ -53,10 +53,11 @@ import React, {
  *
  * A custom role names a set of permissions once - "Incident Responder",
  * "Team Lead" - so it is given to teams and API keys in one step, and
- * changed for every team and key that has it in one place. The page lists the project's roles with how
- * many permissions each holds, creates one from a name and the built-in roles
- * it bundles (Components/CustomRole/CustomRoleCreateForm), and opens each on
- * its own page, where its permissions and the teams given it are.
+ * changed for every team and key that has it in one place. The page lists
+ * the project's roles with how many permissions each holds, creates one
+ * from a name and the built-in roles it bundles
+ * (Components/CustomRole/CustomRoleCreateForm), and opens each on its own
+ * page, where its permissions and the teams and keys given it are.
  *
  * Under them, folded, are the roles every project has, read-only
  * (BuiltInRolesCard) - what a custom role is made of.

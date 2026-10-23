@@ -5,10 +5,10 @@ import Permission, { PermissionHelper, PermissionProps } from "../Permission";
  * WHAT A CUSTOM ROLE MAY HOLD, AND WHAT ITS NAME MAY BE.
  *
  * A custom role ("Incident Responder", "Team Lead") is a set of permissions
- * named once and given to teams and API keys. The server holds every role to these rules
- * (CustomRoleService, CustomRolePermissionService) and the Dashboard offers
- * only what they allow, so the two never disagree. React-free and
- * server-free: both read it.
+ * named once and given to teams and API keys. The server holds every role
+ * to these rules (CustomRoleService, CustomRolePermissionService) and the
+ * Dashboard offers only what they allow, so the two never disagree.
+ * React-free and server-free: both read it.
  *
  *   - A role holds what a team may be given (PermissionHelper's tenant
  *     permissions), allow only: a team's blocks stay on the team.

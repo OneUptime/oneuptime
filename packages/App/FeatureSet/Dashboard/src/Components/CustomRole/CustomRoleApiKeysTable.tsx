@@ -1,5 +1,18 @@
-import { getRoleRemoveFromApiKeySentence } from "./CustomRoleCopy";
-import { loadApiKeyIdsGivenCustomRole } from "./CustomRoleOptions";
+import {
+  ApiKeyRoleCoverage,
+  EVERY_API_KEY_HAS_ROLE_TOOLTIP,
+  getGiveRoleToApiKeyDescription,
+  getRoleApiKeysCardDescription,
+  getRoleRemoveFromApiKeySentence,
+  NO_API_KEY_IN_PROJECT_DESCRIPTION,
+  NO_API_KEY_IN_PROJECT_TITLE,
+  NO_API_KEY_IN_PROJECT_TOOLTIP,
+} from "./CustomRoleCopy";
+import {
+  getApiKeyRoleCoverage,
+  loadApiKeyIdsGivenCustomRole,
+  loadCustomRoleGrants,
+} from "./CustomRoleOptions";
 import AppLink from "../AppLink/AppLink";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -20,8 +33,12 @@ import {
   DeleteConfirmation,
   ModalTableBulkDefaultActions,
 } from "Common/UI/Components/ModelTable/BaseModelTable";
+import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import { TeamPermissionGrant } from "Common/UI/Utils/GrantablePermission";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -41,10 +58,21 @@ import React, {
  * Remove takes the role from one - from several at once in the bulk bar.
  * Give to an API Key offers only the keys that do not have the role.
  *
- * Giving the role hands the key everything in it but what the role limits
+ * Giving the role hands the key everything in it but what the role scopes
  * to resources someone owns (a key owns nothing), so the server weighs it as
  * giving the key each of those permissions directly: a role holding a
  * permission the user can't give is refused, in words that name it.
+ *
+ * The card and the Give dialog say what a key gets from this role: all of
+ * it, or - for a role with a permission scoped to "Only resources they
+ * own", as its Permissions card shows it - how many of its permissions, and
+ * why not the rest. Read again whenever the role's permissions change
+ * (permissionsChangeToggle), so the words follow an edit of a scope.
+ *
+ * Give to an API Key is off, saying why, when no key could take the role:
+ * every key has it, or the project has no key yet - then the empty card
+ * says so too, with a link to the API Keys page, where keys are made. An
+ * open dialog with an empty "No options." list was a dead end.
  *
  * Shown only to someone who may read the project's API keys: a change to
  * the role reaches the keys too, and the role's page says how many
@@ -56,6 +84,8 @@ export interface ComponentProps {
   roleName: string;
   // After a key is given the role or has it taken away.
   onApiKeysChange?: (() => void) | undefined;
+  // Changes whenever the role's permissions are read again.
+  permissionsChangeToggle?: number | undefined;
 }
 
 export const CUSTOM_ROLE_API_KEYS_TEST_ID: string = "custom-role-api-keys";
@@ -69,6 +99,12 @@ const CustomRoleApiKeysTable: FunctionComponent<ComponentProps> = (
   // The keys that have the role: Give to an API Key offers the others.
   const [givenApiKeyIds, setGivenApiKeyIds] = useState<Array<string>>([]);
   const [givenApiKeysToggle, setGivenApiKeysToggle] = useState<number>(0);
+  // Null until read, and when it can't be: the keys are then not judged.
+  const [givenApiKeyCount, setGivenApiKeyCount] = useState<number | null>(null);
+  // How many keys the project has; null until read, or when it can't be.
+  const [apiKeyCount, setApiKeyCount] = useState<number | null>(null);
+  // How much of the role a key holds; null while unknown.
+  const [coverage, setCoverage] = useState<ApiKeyRoleCoverage | null>(null);
 
   const mayReadApiKeys: boolean = PermissionGate.check(
     new ApiKeyCustomRole(),
@@ -88,16 +124,70 @@ const CustomRoleApiKeysTable: FunctionComponent<ComponentProps> = (
     })
       .then((ids: Set<string>) => {
         setGivenApiKeyIds(Array.from(ids));
+        setGivenApiKeyCount(ids.size);
       })
       .catch(() => {
         // Then every key is offered, and the server refuses one that has it.
         setGivenApiKeyIds([]);
+        setGivenApiKeyCount(null);
       });
   }, [
     refreshToggle,
     givenApiKeysToggle,
     mayReadApiKeys,
     props.customRoleId.toString(),
+  ]);
+
+  useEffect(() => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+    if (!projectId || !mayReadApiKeys) {
+      return;
+    }
+
+    ModelAPI.count<ApiKey>({
+      modelType: ApiKey,
+      query: {
+        projectId: projectId,
+      },
+    })
+      .then((count: number) => {
+        setApiKeyCount(count);
+      })
+      .catch(() => {
+        // Then Give to an API Key stays on, and its list says what it has.
+        setApiKeyCount(null);
+      });
+  }, [mayReadApiKeys]);
+
+  useEffect(() => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+    if (!projectId || !mayReadApiKeys) {
+      return;
+    }
+
+    loadCustomRoleGrants({
+      projectId: projectId,
+      customRoleId: props.customRoleId,
+    })
+      .then((grants: Map<string, Array<TeamPermissionGrant>>) => {
+        const roleGrants: Array<TeamPermissionGrant> = [];
+
+        for (const permissions of grants.values()) {
+          roleGrants.push(...permissions);
+        }
+
+        setCoverage(getApiKeyRoleCoverage(roleGrants));
+      })
+      .catch(() => {
+        // Then the card says what it always said.
+        setCoverage(null);
+      });
+  }, [
+    mayReadApiKeys,
+    props.customRoleId.toString(),
+    props.permissionsChangeToggle,
   ]);
 
   if (!mayReadApiKeys) {
@@ -110,6 +200,28 @@ const CustomRoleApiKeysTable: FunctionComponent<ComponentProps> = (
     apiKeyQuery._id = new IncludesNone(givenApiKeyIds);
   }
 
+  // The project has no key at all: there is nothing to give the role to.
+  const hasNoApiKey: boolean = apiKeyCount === 0;
+
+  // Every key the reader can see has the role already.
+  const hasEveryApiKeyTheRole: boolean =
+    apiKeyCount !== null &&
+    apiKeyCount > 0 &&
+    givenApiKeyCount !== null &&
+    givenApiKeyCount >= apiKeyCount;
+
+  const getGiveTooltip: () => string | undefined = (): string | undefined => {
+    if (hasNoApiKey) {
+      return NO_API_KEY_IN_PROJECT_TOOLTIP;
+    }
+
+    if (hasEveryApiKeyTheRole) {
+      return EVERY_API_KEY_HAS_ROLE_TOOLTIP;
+    }
+
+    return undefined;
+  };
+
   // Locked, with the missing permission as the tooltip, as ModelTable locks its own Create.
   const giveButton: CardButtonSchema | null = PermissionGate.gateCardButton(
     {
@@ -117,6 +229,8 @@ const CustomRoleApiKeysTable: FunctionComponent<ComponentProps> = (
       // NORMAL with the Add icon, so the empty table repeats it as its way on.
       icon: IconProp.Add,
       buttonStyle: ButtonStyleType.NORMAL,
+      disabled: hasNoApiKey || hasEveryApiKeyTheRole,
+      tooltip: getGiveTooltip(),
       onClick: () => {
         setIsGiving(true);
       },
@@ -141,6 +255,34 @@ const CustomRoleApiKeysTable: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * A project with no key yet: the way on is to make one, on the API Keys
+   * page - not a Give button whose list would be empty.
+   */
+  const noApiKeyEmptyState: EmptyStateOptions | undefined = hasNoApiKey
+    ? {
+        title: NO_API_KEY_IN_PROJECT_TITLE,
+        description: (
+          <TranslatedSentence
+            template={NO_API_KEY_IN_PROJECT_DESCRIPTION}
+            slots={{
+              apiKeys: (
+                <AppLink
+                  className="font-medium text-indigo-600 hover:underline"
+                  to={RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.SETTINGS_APIKEYS] as Route,
+                  )}
+                >
+                  {translator.translateText("API Keys") || "API Keys"}
+                </AppLink>
+              ),
+            }}
+          />
+        ),
+        hideCreateButton: true,
+      }
+    : undefined;
+
   return (
     <Fragment>
       <div data-testid={CUSTOM_ROLE_API_KEYS_TEST_ID}>
@@ -163,10 +305,11 @@ const CustomRoleApiKeysTable: FunctionComponent<ComponentProps> = (
           }}
           cardProps={{
             title: "API Keys with this Role",
-            description: "These API keys can do everything this role allows.",
+            description: getRoleApiKeysCardDescription(translator, coverage),
             buttons: giveButton ? [giveButton] : [],
           }}
           noItemsMessage="No API key has this role yet. Give it to a key to let the key do what the role allows."
+          emptyState={noApiKeyEmptyState}
           onItemDeleted={() => {
             setGivenApiKeysToggle((count: number): number => {
               return count + 1;
@@ -217,6 +360,8 @@ const CustomRoleApiKeysTable: FunctionComponent<ComponentProps> = (
               type: FieldType.Element,
               wrapContent: true,
               wrapMaxWidthClassName: "max-w-xl",
+              // The key's name says what each card is.
+              hideTitleOnMobile: true,
               getElement: (item: ApiKeyCustomRole): ReactElement => {
                 const apiKeyId: string = item.apiKeyId?.toString() || "";
 
@@ -242,7 +387,7 @@ const CustomRoleApiKeysTable: FunctionComponent<ComponentProps> = (
         <ModelFormModal<ApiKeyCustomRole>
           title={giveTitle}
           name="Give a custom role to an API key"
-          description="From now on the key can do everything this role allows, except what it limits to resources someone owns."
+          description={getGiveRoleToApiKeyDescription(translator, coverage)}
           modelType={ApiKeyCustomRole}
           submitButtonText="Give to API Key"
           onClose={() => {

@@ -1,9 +1,26 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  ADD_ROLE_TO_API_KEY_DESCRIPTION,
+  ADD_ROLE_TO_API_KEY_DESCRIPTION_OWNED,
   API_KEY_COUNT_TEMPLATE,
+  API_KEY_OWNED_SCOPE_REASON,
+  API_KEYS_GET_EVERYTHING,
+  API_KEYS_GET_NOTHING,
+  API_KEYS_GET_PART_TEMPLATE,
   APPLIED_PERMISSION_COUNT_TEMPLATE,
+  doesApiKeyMissPartOfRole,
+  EVERY_API_KEY_HAS_ROLE_TOOLTIP,
+  getAddRoleToApiKeyDescription,
+  getApiKeyOwnedScopeReason,
   getApiKeyRolePermissionCountText,
   getCustomRoleCardDescription,
+  getGiveRoleToApiKeyDescription,
+  getRoleApiKeysCardDescription,
+  GIVE_ROLE_TO_API_KEY_DESCRIPTION,
+  GIVE_ROLE_TO_API_KEY_DESCRIPTION_OWNED,
+  NO_API_KEY_IN_PROJECT_DESCRIPTION,
+  NO_API_KEY_IN_PROJECT_TITLE,
+  NO_API_KEY_IN_PROJECT_TOOLTIP,
   getPermissionCountText,
   getRoleDeleteReachSentence,
   getRoleReachSentence,
@@ -20,10 +37,14 @@ import {
   ROLE_GIVEN_TO_NOTHING,
   TEAM_COUNT_TEMPLATE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomRole/CustomRoleCopy";
+import { PERMISSION_SCOPE_TITLES } from "../../../../App/FeatureSet/Dashboard/src/Components/Permission/PermissionScopeChoice";
+import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import {
   createTranslator,
   Translator,
 } from "../../../UI/Utils/TranslateTemplate";
+import fs from "fs";
+import path from "path";
 
 /*
  * HOW A CUSTOM ROLE READS. The customer asked to name a set of permissions
@@ -69,6 +90,11 @@ const GERMAN_WORDS: Record<string, string> = {
     "Keine ihrer Berechtigungen gilt für diesen Schlüssel",
   "{{apiKey}} loses the permissions of {{role}}. Its other roles and permissions stay.":
     "{{apiKey}} verliert die Berechtigungen von {{role}}. Seine anderen Rollen und Berechtigungen bleiben.",
+  "Only resources they own": "Nur Ressourcen, die ihnen gehören",
+  "Permissions scoped to “{{scope}}” don't apply to an API key: a key owns nothing.":
+    "Berechtigungen mit dem Geltungsbereich „{{scope}}“ gelten nicht für einen API-Schlüssel: Ein Schlüssel besitzt nichts.",
+  "These API keys get {{applied}} of this role's {{count}} permissions: those scoped to “{{scope}}” don't apply to a key.":
+    "Diese API-Schlüssel erhalten {{applied}} der {{count}} Berechtigungen dieser Rolle: Die mit dem Geltungsbereich „{{scope}}“ gelten nicht für einen Schlüssel.",
 };
 
 const GERMAN: Translator = createTranslator(
@@ -461,6 +487,153 @@ describe("how much of a role an API key holds", () => {
         permissionsText: "",
       }),
     ).toBe("6 permissions");
+  });
+});
+
+describe("what an API key gets of a role, and why not the rest", () => {
+  const OWNED_TITLE: string = PERMISSION_SCOPE_TITLES[PermissionScope.Owned];
+
+  test("why: in the words the role's Scope column uses for what someone owns", () => {
+    expect(OWNED_TITLE).toBe("Only resources they own");
+    expect(getApiKeyOwnedScopeReason(ENGLISH)).toBe(
+      "Permissions scoped to “Only resources they own” don't apply to an API key: a key owns nothing.",
+    );
+  });
+
+  test("why is one sentence in the reader's language, the scope's title in it too", () => {
+    expect(getApiKeyOwnedScopeReason(GERMAN)).toBe(
+      "Berechtigungen mit dem Geltungsbereich „Nur Ressourcen, die ihnen gehören“ gelten nicht für einen API-Schlüssel: Ein Schlüssel besitzt nichts.",
+    );
+  });
+
+  test("a key misses part of a role only when the role holds a permission scoped to what someone owns", () => {
+    expect(doesApiKeyMissPartOfRole(null)).toBe(false);
+    expect(doesApiKeyMissPartOfRole(undefined)).toBe(false);
+    expect(
+      doesApiKeyMissPartOfRole({ permissionCount: 3, ownedCount: 0 }),
+    ).toBe(false);
+    expect(
+      doesApiKeyMissPartOfRole({ permissionCount: 3, ownedCount: 1 }),
+    ).toBe(true);
+    // A count held to the role's own: nothing to miss in an empty role.
+    expect(
+      doesApiKeyMissPartOfRole({ permissionCount: 0, ownedCount: 2 }),
+    ).toBe(false);
+  });
+
+  test("the role's API Keys card: everything only when that is so", () => {
+    for (const coverage of [
+      null,
+      undefined,
+      { permissionCount: 0, ownedCount: 0 },
+      { permissionCount: 4, ownedCount: 0 },
+    ]) {
+      expect(getRoleApiKeysCardDescription(ENGLISH, coverage)).toBe(
+        "These API keys can do everything this role allows.",
+      );
+    }
+
+    expect(
+      getRoleApiKeysCardDescription(ENGLISH, {
+        permissionCount: 3,
+        ownedCount: 1,
+      }),
+    ).toBe(
+      "These API keys get 2 of this role's 3 permissions: those scoped to “Only resources they own” don't apply to a key.",
+    );
+
+    for (const ownedCount of [2, 5]) {
+      expect(
+        getRoleApiKeysCardDescription(ENGLISH, {
+          permissionCount: 2,
+          ownedCount: ownedCount,
+        }),
+      ).toBe(
+        "None of this role's permissions apply to these API keys: each is scoped to “Only resources they own”.",
+      );
+    }
+  });
+
+  test("the role's API Keys card is one sentence in the reader's language", () => {
+    expect(
+      getRoleApiKeysCardDescription(GERMAN, {
+        permissionCount: 3,
+        ownedCount: 1,
+      }),
+    ).toBe(
+      "Diese API-Schlüssel erhalten 2 der 3 Berechtigungen dieser Rolle: Die mit dem Geltungsbereich „Nur Ressourcen, die ihnen gehören“ gelten nicht für einen Schlüssel.",
+    );
+  });
+
+  test("Give to an API Key: the Owned exception only for a role that has such a permission", () => {
+    expect(getGiveRoleToApiKeyDescription(ENGLISH, null)).toBe(
+      "From now on the key can do everything this role allows.",
+    );
+    expect(
+      getGiveRoleToApiKeyDescription(ENGLISH, {
+        permissionCount: 2,
+        ownedCount: 0,
+      }),
+    ).toBe("From now on the key can do everything this role allows.");
+    expect(
+      getGiveRoleToApiKeyDescription(ENGLISH, {
+        permissionCount: 2,
+        ownedCount: 1,
+      }),
+    ).toBe(
+      "From now on the key can do everything this role allows, except permissions scoped to “Only resources they own”: a key owns nothing.",
+    );
+  });
+
+  test("a key's Add Custom Role: the Owned exception only when a role on offer has such a permission", () => {
+    expect(
+      getAddRoleToApiKeyDescription(ENGLISH, {
+        isAnyOfferedRolePartlyOwned: false,
+      }),
+    ).toBe(
+      "The key gets everything the role allows. Make or change roles on the Roles page.",
+    );
+    expect(
+      getAddRoleToApiKeyDescription(ENGLISH, {
+        isAnyOfferedRolePartlyOwned: true,
+      }),
+    ).toBe(
+      "The key gets everything the role allows, except permissions scoped to “Only resources they own”: a key owns nothing. Make or change roles on the Roles page.",
+    );
+  });
+
+  test("every sentence is in the Dashboard's locale files, so each language words it", () => {
+    const english: Record<string, string> = JSON.parse(
+      fs.readFileSync(
+        path.join(
+          __dirname,
+          "../../../../App/FeatureSet/Dashboard/src/Locales/en.json",
+        ),
+        "utf-8",
+      ),
+    ) as Record<string, string>;
+
+    for (const sentence of [
+      API_KEY_OWNED_SCOPE_REASON,
+      API_KEYS_GET_EVERYTHING,
+      API_KEYS_GET_NOTHING,
+      API_KEYS_GET_PART_TEMPLATE.other,
+      ADD_ROLE_TO_API_KEY_DESCRIPTION,
+      ADD_ROLE_TO_API_KEY_DESCRIPTION_OWNED,
+      GIVE_ROLE_TO_API_KEY_DESCRIPTION,
+      GIVE_ROLE_TO_API_KEY_DESCRIPTION_OWNED,
+      NO_API_KEY_IN_PROJECT_TOOLTIP,
+      EVERY_API_KEY_HAS_ROLE_TOOLTIP,
+      NO_API_KEY_IN_PROJECT_TITLE,
+      NO_API_KEY_IN_PROJECT_DESCRIPTION,
+      OWNED_TITLE,
+    ]) {
+      expect(english[sentence]).toBe(sentence);
+    }
+
+    expect(english[`${API_KEYS_GET_PART_TEMPLATE.other}_one`]).toBe(
+      API_KEYS_GET_PART_TEMPLATE.one,
+    );
   });
 });
 

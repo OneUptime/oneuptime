@@ -3,6 +3,7 @@ import {
   canTeamTakeCustomRoles,
   CUSTOM_ROLE_ICON,
   CustomRoleSummary,
+  getApiKeyRoleCoverage,
   getApiKeyRoleGrants,
   getCustomRoleCardSelectOption,
   getOwnedPermissionCounts,
@@ -415,6 +416,65 @@ describe("every role's permissions, as the grant ceiling weighs them", () => {
     ]);
     expect(calls[0]!.modelType).toBe(CustomRolePermission);
     expect(calls[0]!.select["labels"]).toEqual({ _id: true });
+    // Every role's: no role named.
+    expect(calls[0]!.query["customRoleId"]).toBeUndefined();
+  });
+
+  test("one role's only, when a role's page asks what its API keys get", async () => {
+    const calls: Array<ListCall> = [];
+
+    const owned: CustomRolePermission = new CustomRolePermission();
+    owned.customRoleId = new ObjectID(LEAD_ID);
+    owned.permission = Permission.AlertMember;
+    owned.scope = PermissionScope.Owned;
+
+    const grants: Map<
+      string,
+      Array<TeamPermissionGrant>
+    > = await loadCustomRoleGrants({
+      projectId: PROJECT_ID,
+      customRoleId: new ObjectID(LEAD_ID),
+      modelAPI: listingModelAPI(
+        new Map<unknown, Array<unknown>>([[CustomRolePermission, [owned]]]),
+        calls,
+      ),
+    });
+
+    expect(String(calls[0]!.query["customRoleId"])).toBe(LEAD_ID);
+    expect(String(calls[0]!.query["projectId"])).toBe(PROJECT_ID.toString());
+    expect(grants.get(LEAD_ID)).toEqual([
+      {
+        permission: Permission.AlertMember,
+        scope: PermissionScope.Owned,
+        labelIds: [],
+      },
+    ]);
+  });
+});
+
+describe("how much of one role an API key holds", () => {
+  test("every permission but those scoped to what someone owns", () => {
+    expect(
+      getApiKeyRoleCoverage([
+        { permission: Permission.IncidentMember, scope: PermissionScope.All },
+        {
+          permission: Permission.MonitorViewer,
+          scope: PermissionScope.Labels,
+          labelIds: [LABEL_ID],
+        },
+        { permission: Permission.AlertMember, scope: PermissionScope.Owned },
+      ]),
+    ).toEqual({ permissionCount: 3, ownedCount: 1 });
+  });
+
+  test("a role with nothing scoped to what someone owns, and an empty role", () => {
+    expect(
+      getApiKeyRoleCoverage([{ permission: Permission.IncidentAdmin }]),
+    ).toEqual({ permissionCount: 1, ownedCount: 0 });
+    expect(getApiKeyRoleCoverage([])).toEqual({
+      permissionCount: 0,
+      ownedCount: 0,
+    });
   });
 });
 

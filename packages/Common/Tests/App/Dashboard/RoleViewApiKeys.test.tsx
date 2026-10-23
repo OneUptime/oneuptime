@@ -30,6 +30,13 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     Delete dialog says whom deleting it reaches, keys counted;
  *   - Give to an API Key offers only the keys without the role and gives
  *     the one picked (ApiKeyCustomRole);
+ *   - the card and the Give dialog say what a key gets of the role: all of
+ *     it, or - for a role with a permission scoped to "Only resources they
+ *     own" - how much, and why not the rest; read again when the role's
+ *     permissions change;
+ *   - Give to an API Key is off, saying why, when no key could take the
+ *     role: the project has none (the empty card says so, with a link to
+ *     the API Keys page) or every key has it;
  *   - Remove says what the key loses and keeps;
  *   - someone who may not read the project's API keys sees no keys card,
  *     and nothing names a key.
@@ -89,6 +96,9 @@ const getListMock: MockFunction = getJestMockFunction();
 const getItemMock: MockFunction = getJestMockFunction();
 const createOrUpdateMock: MockFunction = getJestMockFunction();
 
+// How many API keys the project has, as ModelAPI.count answers.
+let apiKeyCountForTest: number = 2;
+
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,
@@ -102,8 +112,8 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       getItem: (...args: Array<any>) => {
         return getItemMock(...args);
       },
-      count: async (): Promise<number> => {
-        return 0;
+      count: async (params: any): Promise<number> => {
+        return params.modelType?.name === "ApiKey" ? apiKeyCountForTest : 0;
       },
       deleteItem: async (): Promise<void> => {
         return undefined;
@@ -140,13 +150,16 @@ jest.mock("../../../UI/Utils/Project", () => {
 });
 
 import TeamRoleView from "../../../../App/FeatureSet/Dashboard/src/Pages/Teams/RoleView";
-import { CUSTOM_ROLE_API_KEYS_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomRole/CustomRoleApiKeysTable";
+import CustomRoleApiKeysTable, {
+  CUSTOM_ROLE_API_KEYS_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/CustomRole/CustomRoleApiKeysTable";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import ApiKey from "../../../Models/DatabaseModels/ApiKey";
 import ApiKeyCustomRole from "../../../Models/DatabaseModels/ApiKeyCustomRole";
 import CustomRole from "../../../Models/DatabaseModels/CustomRole";
+import CustomRolePermission from "../../../Models/DatabaseModels/CustomRolePermission";
 import Route from "../../../Types/API/Route";
 import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
@@ -173,6 +186,27 @@ const pageProps: PageComponentProps = {
 
 // Whether the reader may read the project's API keys: the server's answer.
 let apiKeysReadable: boolean = true;
+
+// The role's permissions, by scope, as CustomRolePermission rows answer.
+let rolePermissionScopes: Array<PermissionScope> = [];
+
+// The keys given the role.
+let givenRows: Array<ApiKeyCustomRole> = [];
+
+function rolePermissionRows(): Array<CustomRolePermission> {
+  return rolePermissionScopes.map(
+    (scope: PermissionScope, index: number): CustomRolePermission => {
+      const row: CustomRolePermission = new CustomRolePermission();
+      row._id = `0c000000-0000-4000-8000-0000000000c${index}`;
+      row.customRoleId = new ObjectID(ROLE_ID);
+      row.permission =
+        index % 2 === 0 ? Permission.IncidentMember : Permission.AlertMember;
+      row.scope = scope;
+      row.labels = [];
+      return row;
+    },
+  );
+}
 
 function holding(permissions: Array<Permission>): void {
   allPermissionsForTest = permissions;
@@ -219,6 +253,9 @@ function givenToDeployBot(): ApiKeyCustomRole {
 beforeEach(() => {
   holding([Permission.ProjectOwner]);
   apiKeysReadable = true;
+  apiKeyCountForTest = 2;
+  rolePermissionScopes = [];
+  givenRows = [givenToDeployBot()];
   PermissionGate.clearPermissionPropsCache();
   TableFilterUrlState.resetClaimedKeys();
   window.localStorage.clear();
@@ -260,11 +297,15 @@ beforeEach(() => {
         );
       }
 
-      return answer([givenToDeployBot()]);
+      return answer(givenRows);
     }
 
     if (params.modelType === ApiKey) {
       return answer([key(CI_KEY_ID, "CI bot")]);
+    }
+
+    if (params.modelType === CustomRolePermission) {
+      return answer(rolePermissionRows());
     }
 
     return answer([]);
@@ -425,9 +466,10 @@ describe("a custom role's API keys", () => {
     expect(
       within(modal).getByText("Give Incident Responder to an API Key"),
     ).toBeInTheDocument();
+    // The role holds nothing scoped to what someone owns: no exception said.
     expect(
       within(modal).getByText(
-        "From now on the key can do everything this role allows, except what it limits to resources someone owns.",
+        "From now on the key can do everything this role allows.",
       ),
     ).toBeInTheDocument();
 
@@ -463,6 +505,166 @@ describe("a custom role's API keys", () => {
     expect(sent.model.projectId.toString()).toBe(PROJECT_ID);
     // The key, as the form's relation: the server reads it as apiKeyId.
     expect(sent.model.apiKey?.id?.toString()).toBe(CI_KEY_ID);
+  });
+
+  test("a role with a permission scoped to what someone owns: the card and the Give dialog say how much a key gets, and why", async () => {
+    rolePermissionScopes = [PermissionScope.All, PermissionScope.Owned];
+
+    await renderPage();
+    const card: HTMLElement = await apiKeysCard();
+
+    expect(
+      await within(card).findByText(
+        "These API keys get 1 of this role's 2 permissions: those scoped to “Only resources they own” don't apply to a key.",
+        {},
+        { timeout: 10000 },
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(card).queryByText(
+        "These API keys can do everything this role allows.",
+      ),
+    ).toBeNull();
+
+    // This role's permissions only, read by the role.
+    const coverageReads: Array<any> = listCallsFor(CustomRolePermission).filter(
+      (call: any): boolean => {
+        return Boolean(call.select?.scope);
+      },
+    );
+    expect(coverageReads.length).toBeGreaterThan(0);
+    expect(coverageReads[0].query.customRoleId.toString()).toBe(ROLE_ID);
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(cardButton(card, "Give to an API Key"));
+    });
+
+    const modal: HTMLElement = await screen.findByTestId("modal");
+    expect(
+      within(modal).getByText(
+        "From now on the key can do everything this role allows, except permissions scoped to “Only resources they own”: a key owns nothing.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("a role whose every permission is scoped to what someone owns says none applies to its keys", async () => {
+    rolePermissionScopes = [PermissionScope.Owned, PermissionScope.Owned];
+
+    await renderPage();
+    const card: HTMLElement = await apiKeysCard();
+
+    expect(
+      await within(card).findByText(
+        "None of this role's permissions apply to these API keys: each is scoped to “Only resources they own”.",
+        {},
+        { timeout: 10000 },
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("what the card says follows a change of the role's permissions", async () => {
+    rolePermissionScopes = [PermissionScope.All];
+
+    const view: ReturnType<typeof render> = render(
+      <MemoryRouter
+        initialEntries={[`/dashboard/${PROJECT_ID}/teams/roles/${ROLE_ID}`]}
+      >
+        <CustomRoleApiKeysTable
+          customRoleId={new ObjectID(ROLE_ID)}
+          roleName="Incident Responder"
+          permissionsChangeToggle={0}
+        />
+      </MemoryRouter>,
+    );
+
+    const card: HTMLElement = await apiKeysCard();
+    expect(
+      await within(card).findByText(
+        "These API keys can do everything this role allows.",
+        {},
+        { timeout: 10000 },
+      ),
+    ).toBeInTheDocument();
+
+    // The role's one permission is scoped to what someone owns now.
+    rolePermissionScopes = [PermissionScope.Owned];
+
+    view.rerender(
+      <MemoryRouter
+        initialEntries={[`/dashboard/${PROJECT_ID}/teams/roles/${ROLE_ID}`]}
+      >
+        <CustomRoleApiKeysTable
+          customRoleId={new ObjectID(ROLE_ID)}
+          roleName="Incident Responder"
+          permissionsChangeToggle={1}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(
+      await within(card).findByText(
+        "None of this role's permissions apply to these API keys: each is scoped to “Only resources they own”.",
+        {},
+        { timeout: 10000 },
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("a project with no API key: the card says so, with the way to the API Keys page, and Give to an API Key is off", async () => {
+    apiKeyCountForTest = 0;
+    givenRows = [];
+
+    await renderPage();
+    const card: HTMLElement = await apiKeysCard();
+
+    expect(
+      await within(card).findByText(
+        "This project has no API key yet",
+        {},
+        { timeout: 10000 },
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(card).getByText(/then give it this role here\./),
+    ).toBeInTheDocument();
+    expect(
+      within(card).getByRole("link", { name: "API Keys" }).getAttribute("href"),
+    ).toBe(`/dashboard/${PROJECT_ID}/settings/api-keys`);
+
+    // No button under the empty card: a key has to be made first.
+    expect(within(card).queryByTestId("empty-table-create-button")).toBeNull();
+
+    // The card's own button is off, and says why.
+    await waitFor(() => {
+      expect(cardButton(card, "Give to an API Key")).toBeDisabled();
+    });
+    const give: HTMLElement = cardButton(card, "Give to an API Key");
+    fireEvent.mouseEnter(give.parentElement!);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "This project has no API key yet. Create one on the API Keys page.",
+    );
+
+    fireEvent.click(give);
+    await act(async (): Promise<void> => {});
+    expect(screen.queryByTestId("modal")).toBeNull();
+  });
+
+  test("when every API key has the role, Give to an API Key is off, and says why", async () => {
+    apiKeyCountForTest = 1;
+
+    await renderPage();
+    const card: HTMLElement = await apiKeysCard();
+    await within(card).findByRole("link", { name: "Deploy bot" });
+
+    await waitFor(() => {
+      expect(cardButton(card, "Give to an API Key")).toBeDisabled();
+    });
+
+    const give: HTMLElement = cardButton(card, "Give to an API Key");
+    fireEvent.mouseEnter(give.parentElement!);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "Every API key has this role already.",
+    );
   });
 
   test("Remove says what the key loses, and that its other roles and permissions stay", async () => {

@@ -1,4 +1,7 @@
-import { getCustomRoleCardDescription } from "./CustomRoleCopy";
+import {
+  ApiKeyRoleCoverage,
+  getCustomRoleCardDescription,
+} from "./CustomRoleCopy";
 import ApiKeyCustomRole from "Common/Models/DatabaseModels/ApiKeyCustomRole";
 import CustomRole from "Common/Models/DatabaseModels/CustomRole";
 import CustomRolePermission from "Common/Models/DatabaseModels/CustomRolePermission";
@@ -6,6 +9,7 @@ import Label from "Common/Models/DatabaseModels/Label";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamCustomRole from "Common/Models/DatabaseModels/TeamCustomRole";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
+import Query from "Common/Types/BaseDatabase/Query";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -259,11 +263,6 @@ export const loadApiKeyIdsGivenCustomRole: (data: {
 };
 
 /*
- * Of a role's permissions (loadCustomRoleGrants), the ones an API key given
- * the role holds: every one but those limited to what someone owns - a key
- * owns nothing (Types/Team/CustomRoleCopyPlan).
- */
-/*
  * How many of each role's permissions give an API key nothing - those
  * limited to what someone owns - by role id, from loadCustomRoleGrants.
  */
@@ -286,6 +285,11 @@ export const getOwnedPermissionCounts: (
   return counts;
 };
 
+/*
+ * Of a role's permissions (loadCustomRoleGrants), the ones an API key given
+ * the role holds: every one but those limited to what someone owns - a key
+ * owns nothing (Types/Team/CustomRoleCopyPlan).
+ */
 export const getApiKeyRoleGrants: (
   grants: ReadonlyArray<TeamPermissionGrant>,
 ) => Array<TeamPermissionGrant> = (
@@ -294,6 +298,22 @@ export const getApiKeyRoleGrants: (
   return grants.filter((grant: TeamPermissionGrant): boolean => {
     return isRolePermissionGivenToApiKeys(grant.scope);
   });
+};
+
+/*
+ * How much of one role a key given it holds, from that role's permissions
+ * (loadCustomRoleGrants): what a role's API Keys card and its Give to an
+ * API Key dialog say the keys get.
+ */
+export const getApiKeyRoleCoverage: (
+  grants: ReadonlyArray<TeamPermissionGrant>,
+) => ApiKeyRoleCoverage = (
+  grants: ReadonlyArray<TeamPermissionGrant>,
+): ApiKeyRoleCoverage => {
+  return {
+    permissionCount: grants.length,
+    ownedCount: grants.length - getApiKeyRoleGrants(grants).length,
+  };
 };
 
 // The teams a custom role is given to, by id.
@@ -336,22 +356,31 @@ export const loadTeamIdsGivenCustomRole: (data: {
 /*
  * Every role's permissions, by role, in the shape the grant ceiling weighs
  * a team's rows in (GrantablePermission.canCurrentUserGrantTeam): Create
- * Team offers only the roles the user could give.
+ * Team offers only the roles the user could give. With a customRoleId,
+ * that one role's only - a role's page asks what its keys get.
  */
 export const loadCustomRoleGrants: (data: {
   projectId: ObjectID;
+  customRoleId?: ObjectID | undefined;
   modelAPI?: typeof ModelAPI | undefined;
 }) => Promise<Map<string, Array<TeamPermissionGrant>>> = async (data: {
   projectId: ObjectID;
+  customRoleId?: ObjectID | undefined;
   modelAPI?: typeof ModelAPI | undefined;
 }): Promise<Map<string, Array<TeamPermissionGrant>>> => {
   const modelAPI: typeof ModelAPI = data.modelAPI || ModelAPI;
 
+  const query: Query<CustomRolePermission> = {
+    projectId: data.projectId,
+  };
+
+  if (data.customRoleId) {
+    query.customRoleId = data.customRoleId;
+  }
+
   const rows: ListResult<CustomRolePermission> = await modelAPI.getList({
     modelType: CustomRolePermission,
-    query: {
-      projectId: data.projectId,
-    },
+    query: query,
     select: {
       customRoleId: true,
       permission: true,

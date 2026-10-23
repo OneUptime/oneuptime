@@ -30,9 +30,12 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   - once it has one, a Custom Roles card above Permissions lists the
  *     key's roles, each a link to the role's page, saying how many of the
  *     role's permissions apply to the key when some are limited to what
- *     someone owns - which give a key nothing;
+ *     someone owns - which give a key nothing - with an (i) that says why,
+ *     in the words the role's Scope column uses;
  *   - Add Custom Role offers only the roles the key has not got, each card
  *     saying what it would give the key, and sends one ApiKeyCustomRole;
+ *     its dialog names the Owned exception only when a role it offers has
+ *     such a permission;
  *   - when the key has every role, Add Custom Role is off, and says why;
  *   - someone who may not change what a key can do sees it locked;
  *   - Remove says what the key loses and keeps;
@@ -146,7 +149,10 @@ jest.mock("../../../UI/Utils/Project", () => {
 });
 
 import APIKeyViewPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/APIKeyView";
-import { API_KEY_CUSTOM_ROLES_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/ApiKey/ApiKeyCustomRoleTable";
+import {
+  API_KEY_CUSTOM_ROLES_TEST_ID,
+  API_KEY_ROLE_OWNED_REASON_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ApiKey/ApiKeyCustomRoleTable";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
@@ -462,11 +468,13 @@ describe("an API key's custom roles", () => {
 
     const modal: HTMLElement = await screen.findByTestId("modal");
     expect(within(modal).getByText("Add a Custom Role")).toBeInTheDocument();
+    // Auditor, the one role offered, gives a key all of itself: no exception said.
     expect(
       within(modal).getByText(
-        "The key gets everything the role allows, except what the role limits to resources someone owns. Make or change roles on the Roles page.",
+        "The key gets everything the role allows. Make or change roles on the Roles page.",
       ),
     ).toBeInTheDocument();
+    expect(within(modal).queryByText(/Only resources they own/)).toBeNull();
 
     // Only Auditor: the key has Incident Responder.
     expect(
@@ -495,6 +503,97 @@ describe("an API key's custom roles", () => {
     expect(sent.model.apiKeyId.toString()).toBe(KEY_ID);
     expect(sent.model.customRoleId.toString()).toBe(AUDITOR_ID);
     expect(sent.model.projectId.toString()).toBe(PROJECT_ID);
+  });
+
+  test("a role that gives the key part of itself says why behind an (i), in the Scope column's words", async () => {
+    const incidentResponder: CustomRole = responder();
+    const auditorRole: CustomRole = auditor();
+    roles = [auditorRole, incidentResponder];
+    givenRows = [
+      givenToKey(incidentResponder),
+      (() => {
+        const given: ApiKeyCustomRole = givenToKey(auditorRole);
+        given._id = "0f000000-0000-4000-8000-0000000000b2";
+        return given;
+      })(),
+    ];
+
+    await renderPage();
+    const card: HTMLElement = await customRolesCard();
+    await within(card).findByText("4 of its 6 permissions apply to this key");
+
+    // One (i), on the role that gives the key part of itself; none on Auditor.
+    const reasons: Array<HTMLElement> = within(card).getAllByTestId(
+      API_KEY_ROLE_OWNED_REASON_TEST_ID,
+    );
+    expect(reasons).toHaveLength(1);
+    const reason: HTMLElement = reasons[0]!;
+    expect(reason.tagName).toBe("BUTTON");
+    expect(reason).toHaveAttribute(
+      "aria-label",
+      "About Permissions that apply",
+    );
+    expect(
+      within(card)
+        .getByText("4 of its 6 permissions apply to this key")
+        .closest("p"),
+    ).toContainElement(reason);
+    expect(
+      within(card)
+        .getByText("3 permissions")
+        .closest("p")!
+        .querySelector("button"),
+    ).toBeNull();
+
+    fireEvent.mouseEnter(reason);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "Permissions scoped to “Only resources they own” don't apply to an API key: a key owns nothing.",
+    );
+  });
+
+  test("a role whose every permission is owned-only says why too", async () => {
+    const ownedOnly: CustomRole = role(RESPONDER_ID, "Own Things", [
+      [Permission.MonitorViewer, PermissionScope.Owned],
+    ]);
+    roles = [ownedOnly];
+    givenRows = [givenToKey(ownedOnly)];
+
+    await renderPage();
+    const card: HTMLElement = await customRolesCard();
+    await within(card).findByText("None of its permissions apply to this key");
+
+    expect(
+      within(card).getByTestId(API_KEY_ROLE_OWNED_REASON_TEST_ID),
+    ).toBeInTheDocument();
+  });
+
+  test("Add Custom Role names the Owned exception when a role it offers has such a permission", async () => {
+    roles = [responder(), auditor()];
+    givenRows = [];
+
+    await renderPage();
+    const card: HTMLElement = await customRolesCard();
+
+    await waitFor(() => {
+      expect(addCustomRoleButton(card)).not.toBeDisabled();
+    });
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(addCustomRoleButton(card));
+    });
+
+    const modal: HTMLElement = await screen.findByTestId("modal");
+    expect(
+      await within(modal).findByText(
+        "The key gets everything the role allows, except permissions scoped to “Only resources they own”: a key owns nothing. Make or change roles on the Roles page.",
+      ),
+    ).toBeInTheDocument();
+    // And the card of that role says how much of it the key would hold.
+    expect(
+      within(
+        within(modal).getByTestId(`card-select-option-${RESPONDER_ID}`),
+      ).getByText(/4 of its 6 permissions apply to this key/),
+    ).toBeInTheDocument();
   });
 
   test("when the key has every role, Add Custom Role is off and says why", async () => {

@@ -180,8 +180,9 @@ describe("Terraform", () => {
     expect(grant.operations.create).toBeDefined();
     expect(grant.operations.read).toBeDefined();
     expect(grant.operations.delete).toBeDefined();
+    // What the key holds of the role, the Owned exception included.
     expect(grant.description).toBe(
-      "The custom roles an API key is given. The key can do everything the role allows.",
+      "The custom roles an API key is given. The key holds every permission of the role except those with the Owned scope: a key owns nothing.",
     );
 
     for (const [name, relation] of [

@@ -105,8 +105,12 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   singularName: "API Key Custom Role",
   pluralName: "API Key Custom Roles",
   icon: IconProp.Identification,
+  /*
+   * The API reference and the Terraform resource say it: a key holds a
+   * role's permissions but those with the Owned scope.
+   */
   tableDescription:
-    "The custom roles an API key is given. The key can do everything the role allows.",
+    "The custom roles an API key is given. The key holds every permission of the role except those with the Owned scope: a key owns nothing.",
 })
 export default class ApiKeyCustomRole extends BaseModel {
   @ColumnAccessControl({

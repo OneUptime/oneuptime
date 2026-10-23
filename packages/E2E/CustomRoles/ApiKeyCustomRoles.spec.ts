@@ -14,7 +14,10 @@ import path from "path";
  * when it is created - and holds everything the role allows but what the
  * role limits to resources someone owns, which gives a key nothing (a key
  * owns nothing). Every line that counts a role's permissions on a key says
- * how many apply to it.
+ * how many apply to it, and why not the rest - in the words the role's
+ * Scope column uses ("Only resources they own"): behind an (i) on the key's
+ * page, in the role's API Keys card and in the dialogs that give a role -
+ * which say nothing of it for a role that has no such permission.
  *
  * The fixture holds two keys: Deploy bot, given Team Lead (Incident Admin
  * and On-Call Admin, with Alert Member limited to what someone owns) and
@@ -46,6 +49,20 @@ const KEY_IDS: Record<string, string> = {
 
 const LONG_WORD_NAME: string =
   "incident-responders.eu-west-1.enterprise-platform.payments-and-identity-services";
+
+// Why a key holds less than a role, as every surface says it.
+const OWNED_REASON: string =
+  "Permissions scoped to “Only resources they own” don't apply to an API key: a key owns nothing.";
+
+// Team Lead's API Keys card: Alert Member is scoped to what someone owns.
+const LEAD_KEYS_GET: string =
+  "These API keys get 2 of this role's 3 permissions: those scoped to “Only resources they own” don't apply to a key.";
+
+const KEYS_GET_EVERYTHING: string =
+  "These API keys can do everything this role allows.";
+
+// Read by a screen reader, not drawn: a phone card's field name kept for it.
+const SCREEN_READER_ONLY: RegExp = /(^|\s)sr-only(\s|$)/;
 
 const SCREENSHOTS: string = path.resolve(
   __dirname,
@@ -327,8 +344,9 @@ test.describe("an API key's page", () => {
     await expect(form.getByTestId("modal-title")).toHaveText(
       "Add a Custom Role",
     );
+    // Team Lead, on offer, has a permission scoped to what someone owns.
     await expect(form).toContainText(
-      "The key gets everything the role allows, except what the role limits to resources someone owns.",
+      "The key gets everything the role allows, except permissions scoped to “Only resources they own”: a key owns nothing.",
     );
     expect((await offeredRoleIds(page)).sort()).toEqual(
       [
@@ -378,6 +396,54 @@ test.describe("an API key's page", () => {
       dialog(page).getByTestId(`card-select-option-${ROLE_IDS["lead"]}`),
     ).toBeVisible();
     expect(await offeredRoleIds(page)).not.toContain(ROLE_IDS["responder"]);
+  });
+
+  test("a role that gives the key part of itself says why behind an (i), on hover and on keyboard focus", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openKey(page, KEY_IDS["deploy"]!);
+
+    const roles: Locator = customRolesCard(page);
+    const reason: Locator = roles.getByTestId("api-key-role-owned-reason");
+
+    // Team Lead only: Incident Helper gives the key all of itself.
+    await expect(reason).toHaveCount(1);
+    await expect(
+      row(roles, "Team Lead").getByTestId("api-key-role-owned-reason"),
+    ).toHaveCount(1);
+    await expect(reason).toHaveAccessibleName("About Permissions that apply");
+
+    await reason.hover();
+    await expect(page.getByRole("tooltip")).toHaveText(OWNED_REASON);
+    await screenshot(page, "api-key-role-owned-reason", { screenOnly: true });
+
+    // Away and back by keyboard: the reason is not for mouse users only.
+    await page.mouse.move(0, 0);
+    await expect(page.getByRole("tooltip")).toHaveCount(0);
+    await reason.focus();
+    await expect(page.getByRole("tooltip")).toHaveText(OWNED_REASON);
+  });
+
+  test("Add Custom Role says nothing of what someone owns when no role on offer has such a permission", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // Deploy bot has Team Lead: Incident Responder and Auditor are offered.
+    await openKey(page, KEY_IDS["deploy"]!);
+
+    await customRolesCard(page)
+      .getByRole("button", { name: "Add Custom Role" })
+      .first()
+      .click();
+
+    const form: Locator = dialog(page);
+    await expect(form).toContainText(
+      "The key gets everything the role allows. Make or change roles on the Roles page.",
+    );
+    await expect(form).not.toContainText("Only resources they own");
   });
 
   test("Remove takes a role from the key, and says the key keeps the rest", async ({
@@ -444,9 +510,9 @@ test.describe("a role's page", () => {
     await expect(
       keys.getByRole("heading", { name: "API Keys with this Role" }),
     ).toBeVisible();
-    await expect(keys).toContainText(
-      "These API keys can do everything this role allows.",
-    );
+    // Alert Member is scoped to what someone owns: the keys get the rest.
+    await expect(keys).toContainText(LEAD_KEYS_GET);
+    await expect(keys).not.toContainText(KEYS_GET_EVERYTHING);
     await expect(keys.locator("tbody tr")).toHaveCount(1);
     await expect(
       keys.getByRole("link", { name: "Deploy bot", exact: true }),
@@ -476,7 +542,7 @@ test.describe("a role's page", () => {
     const form: Locator = dialog(page);
     await expect(form).toContainText("Give Team Lead to an API Key");
     await expect(form).toContainText(
-      "From now on the key can do everything this role allows, except what it limits to resources someone owns.",
+      "From now on the key can do everything this role allows, except permissions scoped to “Only resources they own”: a key owns nothing.",
     );
     await form.getByRole("combobox", { name: "API Key" }).click();
     // Not Deploy bot, which has the role already.
@@ -503,6 +569,87 @@ test.describe("a role's page", () => {
     await expect(card(page, "Permissions")).toContainText(
       "Given to 1 team (3 people) and 2 API keys.",
     );
+
+    // Every key has the role now: Give to an API Key is off, and says why.
+    const give: Locator = keys
+      .getByRole("button", { name: "Give to an API Key" })
+      .first();
+    await expect(give).toBeDisabled();
+    await keys.getByTestId("card-button-disabled-wrapper").first().hover();
+    await expect(page.getByRole("tooltip")).toHaveText(
+      "Every API key has this role already.",
+    );
+  });
+
+  test("a role with nothing scoped to what someone owns gives its keys everything, and says so", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRole(page, ROLE_IDS["responder"]!);
+
+    const keys: Locator = page.getByTestId("custom-role-api-keys");
+    await expect(keys).toContainText(KEYS_GET_EVERYTHING);
+
+    await keys
+      .getByRole("button", { name: "Give to an API Key" })
+      .first()
+      .click();
+    const form: Locator = dialog(page);
+    await expect(form).toContainText(
+      "From now on the key can do everything this role allows.",
+    );
+    await expect(form).not.toContainText("Only resources they own");
+  });
+
+  test("removing the role's owned-only permission: its keys get everything, said at once", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRole(page, ROLE_IDS["lead"]!);
+
+    const keys: Locator = page.getByTestId("custom-role-api-keys");
+    await expect(keys).toContainText(LEAD_KEYS_GET);
+
+    await row(card(page, "Permissions"), "Alert Member")
+      .getByTestId("row-actions-more-button")
+      .click();
+    await page.getByRole("menuitem", { name: "Delete" }).click();
+    await submitDialog(page);
+
+    await expect(row(card(page, "Permissions"), "Alert Member")).toHaveCount(0);
+    await expect(keys).toContainText(KEYS_GET_EVERYTHING);
+    await expect(keys).not.toContainText("Only resources they own");
+  });
+
+  test("a project with no API key: the card says so, links to the API Keys page, and Give to an API Key is off", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRole(page, ROLE_IDS["lead"]!, "?keys=none");
+
+    const keys: Locator = page.getByTestId("custom-role-api-keys");
+    await expect(keys).toContainText("This project has no API key yet");
+    await expect(keys).toContainText(
+      "Create one on the API Keys page, then give it this role here.",
+    );
+    // No button under it: a key is made on the API Keys page first.
+    await expect(keys.getByTestId("empty-table-create-button")).toHaveCount(0);
+
+    const give: Locator = keys
+      .getByRole("button", { name: "Give to an API Key" })
+      .first();
+    await expect(give).toBeDisabled();
+    await keys.getByTestId("card-button-disabled-wrapper").first().hover();
+    await expect(page.getByRole("tooltip")).toHaveText(
+      "This project has no API key yet. Create one on the API Keys page.",
+    );
+    await screenshot(page, "role-page-no-api-key");
+
+    await keys.getByRole("link", { name: "API Keys", exact: true }).click();
+    await expectPath(page, API_KEYS_ROUTE);
   });
 
   test("Remove takes the role from one key, and says what that key keeps", async ({
@@ -642,6 +789,14 @@ test.describe("on a phone and in dark mode", () => {
     expect(nameBox.x + nameBox.width).toBeLessThanOrEqual(
       cardBox.x + cardBox.width,
     );
+
+    // Each role's card leads with its name: no "Role" over every one.
+    const fieldNames: Locator = roles.locator("dl dt");
+    expect(await fieldNames.count()).toBeGreaterThan(0);
+    for (const fieldName of await fieldNames.all()) {
+      await expect(fieldName).toHaveText("Role");
+      await expect(fieldName).toHaveClass(SCREEN_READER_ONLY);
+    }
     await screenshot(page, "phone-api-key-custom-roles");
 
     await roles

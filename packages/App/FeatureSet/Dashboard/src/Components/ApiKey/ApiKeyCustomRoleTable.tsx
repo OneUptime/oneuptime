@@ -7,6 +7,8 @@ import {
   loadCustomRoles,
 } from "../CustomRole/CustomRoleOptions";
 import {
+  getAddRoleToApiKeyDescription,
+  getApiKeyOwnedScopeReason,
   getApiKeyRolePermissionCountText,
   getRoleRemoveFromApiKeySentence,
 } from "../CustomRole/CustomRoleCopy";
@@ -31,6 +33,7 @@ import {
   ModalTableBulkDefaultActions,
 } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -56,9 +59,15 @@ import React, {
  * many of its permissions the key would hold; Remove takes it away. The key
  * can do everything a role allows, and a change to the role changes the key
  * with it - so the role's permissions are changed on the role's page, never
- * here. A permission the role limits to what someone owns gives a key
+ * here. A permission the role scopes to what someone owns gives a key
  * nothing - a key owns nothing - and the role's line says how many of its
- * permissions apply to the key when that is not all of them.
+ * permissions apply to the key when that is not all of them, with an (i)
+ * that says why in the words the role's Scope column uses ("Only resources
+ * they own"). The dialog says it too, only when a role it offers has such a
+ * permission.
+ *
+ * On a phone each role is a card of its own, its name on top: the column's
+ * title over every card ("Role") said nothing the name does not.
  *
  * Only shown once the project has a custom role the reader may see: a
  * project that never makes one sees the key's page exactly as before. The
@@ -72,6 +81,10 @@ export interface ComponentProps {
 }
 
 export const API_KEY_CUSTOM_ROLES_TEST_ID: string = "api-key-custom-roles";
+
+// The (i) beside a role that gives the key only part of itself.
+export const API_KEY_ROLE_OWNED_REASON_TEST_ID: string =
+  "api-key-role-owned-reason";
 
 const ApiKeyCustomRoleTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -146,18 +159,29 @@ const ApiKeyCustomRoleTable: FunctionComponent<ComponentProps> = (
     return ownedCounts.get(customRoleId.toLowerCase()) || 0;
   };
 
-  const roleOptions: Array<CardSelectOption> = roles
-    .filter((role: CustomRoleSummary): boolean => {
+  const offeredRoles: Array<CustomRoleSummary> = roles.filter(
+    (role: CustomRoleSummary): boolean => {
       return !givenRoleIds.has(role.id.toLowerCase());
-    })
-    .map((role: CustomRoleSummary): CardSelectOption => {
+    },
+  );
+
+  // Whether a role on offer would give the key only part of itself.
+  const isAnyOfferedRolePartlyOwned: boolean = offeredRoles.some(
+    (role: CustomRoleSummary): boolean => {
+      return getOwnedCount(role.id) > 0;
+    },
+  );
+
+  const roleOptions: Array<CardSelectOption> = offeredRoles.map(
+    (role: CustomRoleSummary): CardSelectOption => {
       return getCustomRoleCardSelectOption(translator, role, {
         permissionsText: getApiKeyRolePermissionCountText(translator, {
           permissionCount: role.permissionCount,
           ownedCount: getOwnedCount(role.id),
         }),
       });
-    });
+    },
+  );
 
   const getRoleRoute: (customRoleId: string) => Route = (
     customRoleId: string,
@@ -279,8 +303,17 @@ const ApiKeyCustomRoleTable: FunctionComponent<ComponentProps> = (
               type: FieldType.Element,
               wrapContent: true,
               wrapMaxWidthClassName: "max-w-xl",
+              // The role's name says what each card is.
+              hideTitleOnMobile: true,
               getElement: (item: ApiKeyCustomRole): ReactElement => {
                 const roleId: string = item.customRoleId?.toString() || "";
+                const countText: string = getApiKeyRolePermissionCountText(
+                  translator,
+                  {
+                    permissionCount: item.customRole?.permissionCount,
+                    ownedCount: getOwnedCount(roleId),
+                  },
+                );
 
                 return (
                   <div className="min-w-0">
@@ -290,11 +323,22 @@ const ApiKeyCustomRoleTable: FunctionComponent<ComponentProps> = (
                     >
                       <span>{item.customRole?.name || ""}</span>
                     </AppLink>
-                    <p className="text-sm text-gray-500">
-                      {getApiKeyRolePermissionCountText(translator, {
-                        permissionCount: item.customRole?.permissionCount,
-                        ownedCount: getOwnedCount(roleId),
-                      })}
+                    <p className="flex items-center gap-1 text-sm text-gray-500">
+                      <span>{countText}</span>
+                      {/*
+                       * Why the key holds less than the role: asked for
+                       * where the count is, not said under every role.
+                       */}
+                      {getOwnedCount(roleId) > 0 &&
+                      (item.customRole?.permissionCount || 0) > 0 ? (
+                        <InfoTooltip
+                          label="Permissions that apply"
+                          text={getApiKeyOwnedScopeReason(translator)}
+                          dataTestId={API_KEY_ROLE_OWNED_REASON_TEST_ID}
+                        />
+                      ) : (
+                        <></>
+                      )}
                     </p>
                   </div>
                 );
@@ -308,7 +352,9 @@ const ApiKeyCustomRoleTable: FunctionComponent<ComponentProps> = (
         <ModelFormModal<ApiKeyCustomRole>
           title="Add a Custom Role"
           name="Add a custom role to an API key"
-          description="The key gets everything the role allows, except what the role limits to resources someone owns. Make or change roles on the Roles page."
+          description={getAddRoleToApiKeyDescription(translator, {
+            isAnyOfferedRolePartlyOwned: isAnyOfferedRolePartlyOwned,
+          })}
           modelType={ApiKeyCustomRole}
           modalWidth={ModalWidth.Large}
           submitButtonText="Add Role"
