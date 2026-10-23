@@ -82,15 +82,22 @@ export default class BackfillLabelNameSortKeys extends DataMigrationBase {
 
         cursor = label.id;
 
+        // A label always has a name (NOT NULL); one read without is skipped.
+        const name: string | undefined = label.name;
+
+        if (typeof name !== "string") {
+          continue;
+        }
+
         try {
           const isWritten: boolean =
             await LabelService.compareAndSetColumnsByIdWithoutHooks({
               id: label.id,
               data: {
-                nameSortKey: getNaturalSortKey(label.name),
+                nameSortKey: getNaturalSortKey(name),
               },
               expectedData: {
-                name: label.name,
+                name: name,
               },
               skipUpdateDateColumn: true,
             });
