@@ -68,7 +68,7 @@ Für eine stärkere Absicherung (eigene Konten pro Betrachter, ein Prüfpfad, we
 
 ## IP-Zulassungsliste
 
-Unter **Weitere Einstellungen** auf der Seite **Freigabe** beschränkt der Abschnitt **IP-Zulassungsliste** (die Spalte `ipWhitelist`) den öffentlichen Link auf die IP-Adressen oder IPv4-Bereiche, die Sie auflisten, einen pro Zeile, zum Beispiel `203.0.113.7` oder `10.0.0.0/8`. Sie gilt mit und ohne Passwort; angemeldete Projektmitglieder sind nicht betroffen. Lassen Sie sie leer, um jede Adresse zu erlauben. Sie speichert sich eigenständig, getrennt von der Wahl, und sie zu ändern braucht in OneUptime Cloud den Tarif **Scale**; sie zu leeren funktioniert in jedem Tarif. Solange eine Liste gilt, zeigt der eingeklappte Kopf von **Weitere Einstellungen** **IP-Zulassungsliste** mit der Anzahl ihrer Einträge.
+Unter **Weitere Einstellungen** auf der Seite **Freigabe** beschränkt der Abschnitt **IP-Zulassungsliste** (die Spalte `ipWhitelist`) den öffentlichen Link auf die IP-Adressen oder IPv4-Bereiche, die Sie auflisten, einen pro Zeile, zum Beispiel `203.0.113.7` oder `10.0.0.0/8`. Sie gilt mit und ohne Passwort; angemeldete Projektmitglieder sind nicht betroffen. Lassen Sie sie leer, um jede Adresse zu erlauben. Sie speichert sich eigenständig, getrennt von der Wahl, und sie zu ändern braucht in OneUptime Cloud den Tarif **Scale**; sie zu leeren funktioniert in jedem Tarif. Solange eine Liste gilt, zeigt der eingeklappte Kopf von **Weitere Einstellungen** **IP-Zulassungsliste** mit der Anzahl ihrer Einträge. Selbst gehostet gehört das Ändern zur Enterprise Edition: In der Community Edition gilt eine bereits gesetzte Liste weiter und kann nur entfernt werden.
 
 Verwenden Sie dies, wenn:
 

@@ -13,27 +13,27 @@ import {
   getPermissionNotAddedReason,
   getPickedRolePermissions,
   PermissionNotAdded,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/CustomRole/CustomRoleCreateForm";
-import { getRoleCardSelectOptions } from "../../../../App/FeatureSet/Dashboard/src/Components/Permission/RoleCardSelectOptions";
-import CustomRole from "../../../Models/DatabaseModels/CustomRole";
-import CustomRolePermission from "../../../Models/DatabaseModels/CustomRolePermission";
-import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
-import ObjectID from "../../../Types/ObjectID";
-import Permission from "../../../Types/Permission";
-import { CUSTOM_ROLE_NAME_MAX_LENGTH } from "../../../Types/Team/CustomRole";
-import { CardSelectOptionGroup } from "../../../UI/Components/CardSelect/CardSelect";
+} from "../../../Dashboard/CustomRoles/CustomRoleCreateForm";
+import { getRoleCardSelectOptions } from "@oneuptime/dashboard/Components/Permission/RoleCardSelectOptions";
+import CustomRole from "Common/Models/DatabaseModels/CustomRole";
+import CustomRolePermission from "Common/Models/DatabaseModels/CustomRolePermission";
+import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope";
+import ObjectID from "Common/Types/ObjectID";
+import Permission from "Common/Types/Permission";
+import { CUSTOM_ROLE_NAME_MAX_LENGTH } from "Common/Types/Team/CustomRole";
+import { CardSelectOptionGroup } from "Common/UI/Components/CardSelect/CardSelect";
 import {
   DropdownOption,
   DropdownOptionGroup,
-} from "../../../UI/Components/Dropdown/Dropdown";
-import { ModelField } from "../../../UI/Components/Forms/ModelForm";
-import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
-import { ADVANCED_FORM_SECTION_ID } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
-import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+} from "Common/UI/Components/Dropdown/Dropdown";
+import { ModelField } from "Common/UI/Components/Forms/ModelForm";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { ADVANCED_FORM_SECTION_ID } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import {
   createTranslator,
   Translator,
-} from "../../../UI/Utils/TranslateTemplate";
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * CREATE CUSTOM ROLE (Dashboard/src/Components/CustomRole/CustomRoleCreateForm).

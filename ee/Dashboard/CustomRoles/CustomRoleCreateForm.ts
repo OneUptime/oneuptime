@@ -1,4 +1,4 @@
-import { getRoleCardSelectOptions } from "../Permission/RoleCardSelectOptions";
+import { getRoleCardSelectOptions } from "@oneuptime/dashboard/Components/Permission/RoleCardSelectOptions";
 import CustomRole from "Common/Models/DatabaseModels/CustomRole";
 import CustomRolePermission from "Common/Models/DatabaseModels/CustomRolePermission";
 import PermissionScope from "Common/Types/Database/AccessControl/PermissionScope";

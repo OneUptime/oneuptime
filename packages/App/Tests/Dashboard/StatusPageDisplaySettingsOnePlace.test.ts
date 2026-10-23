@@ -187,9 +187,17 @@ const LIST_SWITCH_COLUMNS: Array<string> = [
 ];
 
 describe("the card's settings", () => {
-  test("are seventeen columns of the status page, each once", () => {
-    expect(DISPLAY_SETTING_COLUMNS).toHaveLength(17);
-    expect(new Set(DISPLAY_SETTING_COLUMNS).size).toBe(17);
+  /*
+   * Sixteen: the seventeenth, the Powered by OneUptime switch, has a card of
+   * its own under this one, because hiding the line is an Enterprise
+   * feature (StatusPagePoweredBySettings).
+   */
+  test("are sixteen columns of the status page, each once", () => {
+    expect(DISPLAY_SETTING_COLUMNS).toHaveLength(16);
+    expect(new Set(DISPLAY_SETTING_COLUMNS).size).toBe(16);
+    expect(DISPLAY_SETTING_COLUMNS as ReadonlyArray<string>).not.toContain(
+      "hidePoweredByOneUptimeBranding",
+    );
 
     const columns: Array<string> = new StatusPage().getTableColumns().columns;
 
@@ -235,7 +243,6 @@ describe("the card's settings", () => {
       showUptimeHistoryInDays: 90,
       showOverallUptimePercentOnStatusPage: false,
       overallUptimePercentPrecision: UptimePrecision.TWO_DECIMAL,
-      hidePoweredByOneUptimeBranding: false,
     };
 
     expect([...DISPLAY_VALUE_COLUMNS].sort()).toEqual(
@@ -306,7 +313,7 @@ describe("the card's settings", () => {
     expect(service).toContain("return !monitorStatus.isOperationalState;");
   });
 
-  test("come as a row per list, then uptime history, then the Powered by line", () => {
+  test("come as a row per list, then uptime history", () => {
     expect(
       DISPLAY_SECTIONS.map((section: DisplaySectionDefinition) => {
         return [
@@ -349,7 +356,6 @@ describe("the card's settings", () => {
         "showUptimeHistoryInDays",
         ["showOverallUptimePercentOnStatusPage"],
       ],
-      ["powered-by", "hidePoweredByOneUptimeBranding", undefined, []],
     ]);
   });
 
@@ -435,14 +441,24 @@ describe("the card's settings", () => {
     }
   });
 
-  test("every switch reads on = visitors see it: only the Powered by column is stored the other way round", () => {
+  /*
+   * The Powered by OneUptime switch, the one column stored the other way
+   * round, has a card of its own under this one: hiding the line is an
+   * Enterprise feature (StatusPagePoweredBySettings).
+   */
+  test("every switch reads on = visitors see it, and none is stored the other way round", () => {
     expect(
       DISPLAY_SWITCHES.filter((definition: DisplaySwitchDefinition) => {
         return definition.isInverted;
       }).map((definition: DisplaySwitchDefinition) => {
         return definition.column;
       }),
-    ).toEqual(["hidePoweredByOneUptimeBranding"]);
+    ).toEqual([]);
+    expect(
+      DISPLAY_SWITCHES.map((definition: DisplaySwitchDefinition) => {
+        return definition.column as string;
+      }),
+    ).not.toContain("hidePoweredByOneUptimeBranding");
 
     for (const definition of DISPLAY_SWITCHES) {
       expect(definition.title).toMatch(/^(Show|Only Show) /);

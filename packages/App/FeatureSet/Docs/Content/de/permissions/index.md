@@ -139,7 +139,7 @@ Die vollständige Liste steht in der [Berechtigungsreferenz](/docs/permissions/r
 
 ### Benutzerdefinierte Rollen
 
-Eine benutzerdefinierte Rolle ist eine Reihe von Berechtigungen, die Sie einmal benennen und Teams geben: etwa ein „Vorfallbearbeiter“ aus `IncidentMember`, `AlertMember` und `OnCallViewer` oder eine „Teamleitung“. Jedes Team, dem Sie sie geben, erhält dieselben Berechtigungen, und Sie ändern sie für alle diese Teams an einer Stelle. In OneUptime Cloud brauchen benutzerdefinierte Rollen den Scale-Tarif, wie das Ändern der Berechtigungen eines Teams.
+Eine benutzerdefinierte Rolle ist eine Reihe von Berechtigungen, die Sie einmal benennen und Teams geben: etwa ein „Vorfallbearbeiter“ aus `IncidentMember`, `AlertMember` und `OnCallViewer` oder eine „Teamleitung“. Jedes Team, dem Sie sie geben, erhält dieselben Berechtigungen, und Sie ändern sie für alle diese Teams an einer Stelle. In OneUptime Cloud brauchen benutzerdefinierte Rollen den Scale-Tarif, wie das Ändern der Berechtigungen eines Teams. Selbst gehostet gehören sie zur Enterprise Edition: In der Community Edition gelten die Rollen, die Ihre Teams bereits haben, weiter und lassen sich einem Team entziehen oder löschen, aber nicht anlegen oder ändern.
 
 :::steps
 1. Öffnen Sie **Teams** im Menü **Produkte** unter **Einstellungen**. Klappen Sie **Einstellungen** im Seitenmenü auf, wählen Sie **Rollen** und klicken Sie auf **Benutzerdefinierte Rolle erstellen**.

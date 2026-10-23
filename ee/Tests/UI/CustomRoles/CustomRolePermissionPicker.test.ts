@@ -4,15 +4,15 @@ import {
   CustomRolePermissionPickerType,
   getCustomRolePermissionPickerType,
   SINGLE_PERMISSION_FIELD_DESCRIPTION,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/CustomRole/CustomRolePermissionPicker";
+} from "../../../Dashboard/CustomRoles/CustomRolePermissionPicker";
 import Permission, {
   PermissionHelper,
   PermissionProps,
-} from "../../../Types/Permission";
+} from "Common/Types/Permission";
 import {
   createTranslator,
   Translator,
-} from "../../../UI/Utils/TranslateTemplate";
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * THE TWO PICKERS OF A CUSTOM ROLE'S PERMISSIONS CARD

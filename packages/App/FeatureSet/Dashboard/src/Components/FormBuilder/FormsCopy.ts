@@ -227,11 +227,11 @@ export const FormsCopy: {
   successMessageDescription: string;
   successMessageEmpty: string;
   accessDescription: string;
-  accessPlanNote: string;
   editIpAllowlist: string;
   ipAllowlistTitle: string;
   ipAllowlistDescription: string;
   ipAllowlistEmpty: string;
+  ipAllowlistNoAddress: string;
 
   // Submissions.
   submissionsTitle: string;
@@ -523,12 +523,13 @@ export const FormsCopy: {
   successMessageEmpty: "The standard thank-you message",
   accessDescription:
     "Limit the form to your own networks: only requests from these IP addresses can open and submit it.",
-  accessPlanNote: "Editing the IP allowlist needs the Scale plan.",
   editIpAllowlist: "Edit IP Allowlist",
   ipAllowlistTitle: "IP Allowlist",
   ipAllowlistDescription:
     "One IP address or IPv4 CIDR range per line, such as 203.0.113.7, 2001:db8::1 or 10.0.0.0/8. IPv6 ranges are not supported. Leave it empty to allow every network.",
   ipAllowlistEmpty: "Any network",
+  ipAllowlistNoAddress:
+    "The list holds no address, so no network can open the form.",
 
   submissionsTitle: "Submissions",
   submissionsDescription:

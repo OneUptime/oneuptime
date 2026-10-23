@@ -1,10 +1,10 @@
-import { RoleReach } from "../Permission/RoleCatalog";
-import { getRolePickerFormField } from "../Permission/RolePickerFormField";
+import { RoleReach } from "@oneuptime/dashboard/Components/Permission/RoleCatalog";
+import { getRolePickerFormField } from "@oneuptime/dashboard/Components/Permission/RolePickerFormField";
 import {
   getPermissionScopeFields,
   isScopeShownFor,
-} from "../Permission/PermissionScopeChoice";
-import PermissionScopeCell from "../Permission/PermissionScopeCell";
+} from "@oneuptime/dashboard/Components/Permission/PermissionScopeChoice";
+import PermissionScopeCell from "@oneuptime/dashboard/Components/Permission/PermissionScopeCell";
 import {
   CUSTOM_ROLE_PERMISSION_DIALOG_WORDS,
   CustomRolePermissionDialogWords,
@@ -79,6 +79,11 @@ export interface ComponentProps {
   description: string;
   // After every load: how many permissions the role holds.
   onPermissionCountChange?: ((count: number) => void) | undefined;
+  /*
+   * The Enterprise license has lapsed or leaves custom roles out: nothing
+   * can be added or changed, and permissions can still be removed.
+   */
+  isReadOnly?: boolean | undefined;
 }
 
 const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
@@ -191,7 +196,7 @@ const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
       userPreferencesKey="custom-role-permission-table"
       id="table-custom-role-permission"
       isDeleteable={true}
-      isEditable={true}
+      isEditable={!props.isReadOnly}
       isCreateable={false}
       showCreateForm={showCreateForm}
       createVerb="Add"
@@ -247,7 +252,7 @@ const CustomRolePermissionTable: FunctionComponent<ComponentProps> = (
       cardProps={{
         title: "Permissions",
         description: props.description,
-        buttons: createButtons,
+        buttons: props.isReadOnly ? [] : createButtons,
       }}
       noItemsMessage="This role gives nothing yet. Add a role or a single permission to it."
       formFields={

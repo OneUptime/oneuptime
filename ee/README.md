@@ -44,7 +44,7 @@ covered in [CONTRIBUTING](../.github/CONTRIBUTING.md#licensing-of-contributions)
 | `Server/WhiteLabel/` | White-labelling: whether the license allows it, the settings, their routes and the branding handed to core. See [White-labelling](#white-labelling). |
 | `Server/Marketplace/` | Billing of installations bought on a cloud marketplace: the `EnterpriseMarketplace:ReportUsage` job (`Jobs/`), the hourly billing state machine (`MarketplaceBilling.ts`), the run that drives it (`MarketplaceUsageRun.ts`) and its store. See [Cloud marketplace installations](#cloud-marketplace-installations). |
 | `Server/Workers/` | Enterprise cron jobs (PostgreSQL and Valkey/Redis health evaluation) and the probes they read: `InstanceHealth/PostgresHealth.ts` and the counter deltas in `InstanceHealth/RedisHealth.ts`. The Redis INFO read stays in core, because the admin health API uses it too. |
-| `Dashboard/`, `AdminDashboard/` | The Enterprise UI plugins for the two frontends, each assembled from per-area `Plugins.ts(x)` files. `Dashboard/TelemetryRetention/` holds the retention override cards (retention by telemetry type on Settings > Telemetry, and the retention cards of every service and resource Settings page) and the form and summary they share. `Dashboard/Identity/` holds the SCIM screens, their license banner and the one read-only incident action (**Reset Bearer Token**); its license-mode hooks are also used by `Dashboard/AuditLogs/`. One area is shared across the frontends by relative import: the license manager (`AdminDashboard/License/`, also used by the Dashboard). `AdminDashboard/WhiteLabel/` holds Settings > White Label. |
+| `Dashboard/`, `AdminDashboard/` | The Enterprise UI plugins for the two frontends, each assembled from per-area `Plugins.ts(x)` files. `Dashboard/TelemetryRetention/` holds the retention override cards (retention by telemetry type on Settings > Telemetry, and the retention cards of every service and resource Settings page) and the form and summary they share. `Dashboard/Identity/` holds the SCIM screens, their license banner and the one read-only incident action (**Reset Bearer Token**); its license-mode hooks are also used by `Dashboard/AuditLogs/`. `Dashboard/CustomRoles/` holds the custom role screens (Teams > Settings > Roles, a role's page, and a team's custom roles), `Dashboard/IpAllowlists/` the IP allowlist card that status pages, public dashboards and forms share, `Dashboard/StatusPageAccessControls/` a status page's reader session limit and subscriber restrictions, and `Dashboard/StatusPageBranding/` its Powered by OneUptime switch; `Dashboard/EnterpriseSettings/` holds the license notice those four show. Core keeps a shell for each (the Roles pages, `IpAllowlistSettings`, `StatusPageSessionLengthSettings`, `SubscriberRestrictionsSettings`, `StatusPagePoweredBySettings`, `TeamCustomRolesSettings`), which draws the upsell and, while a record still holds the setting, a card with the one move every edition allows: removing it. One area is shared across the frontends by relative import: the license manager (`AdminDashboard/License/`, also used by the Dashboard). `AdminDashboard/WhiteLabel/` holds Settings > White Label. |
 | `Scripts/` | Operator scripts, such as `GenerateLicenseSigningKey.ts`. |
 | `Tests/Server`, `Tests/UI` | The two jest projects in `jest.config.js`. |
 
@@ -53,7 +53,10 @@ and every enforcement site stay in core (Apache-2.0). That includes the
 retention overrides: the columns stay on core models, the write gate is core's
 `EditionPermissions.checkEnterpriseColumnPermissions`, and ingest drops the
 overrides in `OpenTelemetryIngestService.applyRetentionOverrideEdition` while
-the feature is not active. `ee/` holds behaviour,
+the feature is not active. The same goes for custom roles, IP allowlists and a status page's access
+controls: their tables and columns stay in core, core enforces what is set in
+every edition (a custom role's permissions are copied onto the teams that
+have it), and `EditionPermissions` gates only the writes. `ee/` holds behaviour,
 not schema, so switching editions never needs a migration.
 
 ## How core finds `ee/`
@@ -151,8 +154,10 @@ load creates an import cycle that crashes the Enterprise bundle.
   routers and jobs exist and which edition operators are told they run.
 - `EnterpriseEdition.isFeatureActive(feature)`: does the feature's runtime
   behaviour run right now? This governs SCIM provisioning and the SCIM Push
-  Groups team locks (`SCIM`), audit-log recording (`AuditLogs`) and whether
-  ingest applies retention overrides (`TelemetryRetention`). Core reads
+  Groups team locks (`SCIM`), audit-log recording (`AuditLogs`), whether
+  ingest applies retention overrides (`TelemetryRetention`) and whether a
+  status page may hide "Powered by OneUptime" (`StatusPageBranding`, read in
+  `packages/Common/Server/Utils/StatusPage/StatusPagePoweredBy.ts`). Core reads
   the SCIM team locks through
   `packages/Common/Server/Utils/EditionEnforcement.ts`.
 - `EnterpriseEdition.isFeatureAvailable(feature)` and
@@ -189,11 +194,16 @@ what `isFeatureAvailableSync` treats as unavailable. Then:
 - **Audit logging stops recording.**
 - **Retention overrides stop applying.** New telemetry gets the project's
   default retention; rows already written keep theirs.
+- **Status pages show "Powered by OneUptime" again**, whatever their switch
+  says. The switch is kept, so the line goes again with a license.
 - Enterprise configuration becomes read-only (`isFeatureAvailable`). For the
   retention overrides, which are columns of core models
   (`EnterpriseEdition.getEnterpriseColumnsForTableName`), that means a write
-  that sets one is refused, and one that clears it is not. The
-  Health dashboards and team compliance keep their own rules.
+  that sets one is refused, and one that clears it is not. Custom roles
+  (`CustomRoles`), IP allowlists (`IpAllowlists`) and a status page's access
+  controls (`StatusPageAccessControls`) work the same way, and what is set
+  keeps applying. The Health dashboards and team compliance keep their own
+  rules.
 
 Single sign-on is not affected: its routes have no license gate, and "Require
 SSO for login" stays enforced whatever the license state.

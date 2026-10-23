@@ -1,3 +1,9 @@
+import EnterpriseSettingLicenseNotice from "../EnterpriseSettings/EnterpriseSettingLicenseNotice";
+import {
+  EnterpriseLicenseMode,
+  LicensedFeature,
+} from "../Identity/License/EnterpriseLicenseMode";
+import useEnterpriseLicenseMode from "../Identity/License/UseEnterpriseLicenseMode";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { Yellow } from "Common/Types/BrandColors";
@@ -30,6 +36,7 @@ import PermissionGate, {
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -37,11 +44,11 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import StatusPageSwitchRow from "./StatusPageSwitchRow";
+import StatusPageSwitchRow from "@oneuptime/dashboard/Components/StatusPage/StatusPageSwitchRow";
 import {
   getStatusPageAccessSelect,
   getStatusPageAccessState,
-} from "./StatusPageAccessCopy";
+} from "@oneuptime/dashboard/Components/StatusPage/StatusPageAccessCopy";
 import {
   getStatusPageAccess,
   StatusPageAccess,
@@ -55,7 +62,7 @@ import SubscriberRestrictionsCopy, {
   PRIVATE_USERS_ONLY_SWITCH_TEST_ID,
   SUBSCRIBER_RESTRICTIONS_CARD_TEST_ID,
   toAllowedEmailDomainsText,
-} from "./SubscriberRestrictionsCopy";
+} from "@oneuptime/dashboard/Components/StatusPage/SubscriberRestrictionsCopy";
 
 /*
  * The Who Can Subscribe card on Subscribers -> Subscriber Settings (see
@@ -276,6 +283,9 @@ interface Settings {
 const SubscriberRestrictionsCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const licenseMode: EnterpriseLicenseMode = useEnterpriseLicenseMode(
+    LicensedFeature.StatusPageAccessControls,
+  );
   const ruledListClassName: string = useCardRuledListClassName();
   const translator: Translator = useTranslator();
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -379,12 +389,20 @@ const SubscriberRestrictionsCard: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <Card
-      title={SubscriberRestrictionsCopy.cardTitle}
-      description={SubscriberRestrictionsCopy.cardDescription}
-    >
-      <div data-testid={SUBSCRIBER_RESTRICTIONS_CARD_TEST_ID}>{getBody()}</div>
-    </Card>
+    <Fragment>
+      <EnterpriseSettingLicenseNotice
+        mode={licenseMode}
+        feature={LicensedFeature.StatusPageAccessControls}
+      />
+      <Card
+        title={SubscriberRestrictionsCopy.cardTitle}
+        description={SubscriberRestrictionsCopy.cardDescription}
+      >
+        <div data-testid={SUBSCRIBER_RESTRICTIONS_CARD_TEST_ID}>
+          {getBody()}
+        </div>
+      </Card>
+    </Fragment>
   );
 };
 

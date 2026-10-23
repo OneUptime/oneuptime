@@ -117,18 +117,25 @@ const SHARING_DIR: string = dashboardFile("Components", "Dashboard", "Sharing");
 describe("the Sharing page", () => {
   const page: string = readSource(SHARING_PAGE);
 
+  /*
+   * The IP allowlist is an Enterprise feature: its shell
+   * (Components/IpAllowlist/IpAllowlistSettings) renders the Enterprise card
+   * (ee/Dashboard/IpAllowlists/IpAllowlistCard), or the upsell with the
+   * allowlist the dashboard still has.
+   */
   test("opens on the one choice, then folds the IP allowlist under Advanced", () => {
     expect(page).toContain(
       "<DashboardSharingCard dashboardId={modelId} /> <AdvancedPageSection",
     );
-    expect(page.split("<CardModelDetail").length - 1).toBe(1);
+    expect(page.split("<IpAllowlistSettings").length - 1).toBe(1);
+    expect(page).not.toContain("<CardModelDetail");
     expect(page.indexOf("<AdvancedPageSection")).toBeLessThan(
-      page.indexOf("<CardModelDetail"),
+      page.indexOf("<IpAllowlistSettings"),
     );
     expect(page.indexOf("</AdvancedPageSection>")).toBeGreaterThan(
-      page.indexOf("<CardModelDetail"),
+      page.indexOf("<IpAllowlistSettings"),
     );
-    expect(page).toContain('name="Dashboard > IP Allowlist"');
+    expect(page).toContain('cardName="Dashboard > IP Allowlist"');
   });
 
   test("has no switch, no password button, no column of the choice and none of the old words", () => {
@@ -152,9 +159,14 @@ describe("the Sharing page", () => {
     }
   });
 
-  test("the IP allowlist refuses lines the server cannot read, by the rules the status page shares", () => {
-    expect(page).toContain("customValidation:");
-    expect(page).toContain("getIpAllowlistProblem(");
+  /*
+   * The card that refuses lines the server cannot read is the Enterprise one
+   * (ee/Tests/UI/IpAllowlists holds it to getIpAllowlistProblem); the page
+   * still reads the allowlist the way the server does, to say whether one is
+   * in force.
+   */
+  test("the page reads the allowlist the way the server does, by the rules the status page shares", () => {
+    expect(page).toContain("isIpAllowlistInForce(");
     expect(page).toContain(
       'from "../../../Components/IpAllowlist/IpAllowlistCopy"',
     );

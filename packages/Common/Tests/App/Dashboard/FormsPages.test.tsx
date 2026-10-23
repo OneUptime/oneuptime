@@ -31,9 +31,9 @@ const recorded: Record<string, Array<Record<string, unknown>>> = {
   shareLink: [],
   target: [],
   mapping: [],
+  ipAllowlist: [],
 };
 
-let mockIpAllowlistEditable: boolean = true;
 let mockStoredForm: Record<string, unknown> | null = null;
 
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
@@ -150,15 +150,15 @@ jest.mock(
   },
 );
 
+/*
+ * The IP allowlist is an Enterprise feature with a shell of its own
+ * (EnterpriseSettingShells holds the shell, ee/Tests/UI/IpAllowlists the
+ * card): this page only hands it the form and the form's words.
+ */
 jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/FormPlan",
+  "../../../../App/FeatureSet/Dashboard/src/Components/IpAllowlist/IpAllowlistSettings",
   () => {
-    return {
-      __esModule: true,
-      isFormIpAllowlistEditableOnCurrentPlan: (): boolean => {
-        return mockIpAllowlistEditable;
-      },
-    };
+    return { __esModule: true, default: mockRecorder("ipAllowlist") };
   },
 );
 
@@ -281,7 +281,6 @@ beforeEach(() => {
     recorded[key]!.length = 0;
   }
 
-  mockIpAllowlistEditable = true;
   mockStoredForm = null;
 });
 
@@ -501,7 +500,8 @@ describe("a form's pages", () => {
         recordedDetailCards.map((card: Record<string, unknown>) => {
           return card["name"];
         }),
-      ).toEqual(["Form > After Submitting", "Form > Access"]);
+      ).toEqual(["Form > After Submitting"]);
+      expect(recorded["ipAllowlist"]).toHaveLength(1);
     });
 
     test("turning the form on or off asks the link card to read it again", async () => {
@@ -529,52 +529,26 @@ describe("a form's pages", () => {
       });
     });
 
-    test("says nothing about the plan when it allows the IP allowlist", async () => {
+    test("hands the IP allowlist shell this form, in the form's own words", async () => {
       await renderAt(<FormShare {...PAGE_PROPS} />);
 
-      expect(
-        (recordedDetailCards[1]!["cardProps"] as { description: unknown })
-          .description,
-      ).toBe(FormsCopy.accessDescription);
-    });
+      const shell: Record<string, unknown> = recorded["ipAllowlist"]![0]!;
 
-    test("says, on the card and in the edit form, that the IP allowlist needs the Scale plan", async () => {
-      mockIpAllowlistEditable = false;
-
-      await renderAt(<FormShare {...PAGE_PROPS} />);
-
-      const card: Record<string, unknown> = recordedDetailCards[1]!;
-
-      render((card["cardProps"] as { description: ReactElement }).description);
-
-      expect(
-        screen.getByTestId("form-ip-allowlist-plan-note"),
-      ).toHaveTextContent(FormsCopy.accessPlanNote);
-    });
-
-    test("shows each allowlisted address on its own line, or that any network may open it", async () => {
-      await renderAt(<FormShare {...PAGE_PROPS} />);
-
-      const getElement: (item: Form) => ReactElement = (
-        recordedDetailCards[1]!["modelDetailProps"] as {
-          fields: Array<{ getElement: (item: Form) => ReactElement }>;
-        }
-      ).fields[0]!.getElement;
-
-      const listed: Form = new Form();
-      listed.ipWhitelist = "10.0.0.0/8\n203.0.113.7";
-
-      render(getElement(listed));
-
-      expect(screen.getByTestId("form-ip-allowlist")).toHaveTextContent(
-        "10.0.0.0/8 203.0.113.7",
-      );
-
-      cleanup();
-
-      render(getElement(new Form()));
-
-      expect(screen.getByText(FormsCopy.ipAllowlistEmpty)).toBeInTheDocument();
+      expect(shell["modelType"]).toBe(Form);
+      expect(String(shell["modelId"])).toBe(FORM_ID);
+      expect(shell).toMatchObject({
+        cardName: "Form > Access",
+        modelDetailId: "model-detail-form-access",
+        title: FormsCopy.ipAllowlistTitle,
+        // The card is Access, as the Share page always called it.
+        cardTitle: "Access",
+        description: FormsCopy.accessDescription,
+        editButtonText: FormsCopy.editIpAllowlist,
+        fieldDescription: FormsCopy.ipAllowlistDescription,
+        emptyText: FormsCopy.ipAllowlistEmpty,
+        noAddressText: FormsCopy.ipAllowlistNoAddress,
+        entriesTestId: "form-ip-allowlist",
+      });
     });
   });
 

@@ -278,7 +278,9 @@ describe("where it lives", () => {
 
   test("on the Access page, right after who can see the page and before the folded Advanced section", () => {
     const access: number = accessPage.indexOf("<StatusPageAccessCard");
-    const sessions: number = accessPage.indexOf("<StatusPageSessionLengthCard");
+    const sessions: number = accessPage.indexOf(
+      "<StatusPageSessionLengthSettings",
+    );
     const advanced: number = accessPage.indexOf("<AdvancedPageSection");
 
     expect(access).toBeGreaterThan(-1);
@@ -305,7 +307,7 @@ describe("where it lives", () => {
     walk(viewDir);
 
     const homes: Array<string> = files.filter((file: string): boolean => {
-      return readSource(file).includes("<StatusPageSessionLengthCard");
+      return readSource(file).includes("<StatusPageSessionLengthSettings");
     });
 
     expect(

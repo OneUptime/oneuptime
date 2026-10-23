@@ -414,7 +414,10 @@ describe("every place roles are offered reads them from here", () => {
    * picker (Components/Permission/RolePicker), which reads its roles, their
    * lines and their icons from here and the catalog. None of them draws a
    * grid of cards of its own any more: the forty look-alike cards the
-   * maintainer found "very confusing".
+   * maintainer found "very confusing". A custom role's Add Role and the
+   * roles a new custom role starts with are Enterprise screens
+   * (ee/Dashboard/CustomRoles), held to the same rules by
+   * ee/Tests/UI/CustomRoles/CustomRolesWiring.test.ts.
    */
   test.each([
     ["a team's", "Components/Team/TeamPermissionTable.tsx", "TeamPermission"],
@@ -422,11 +425,6 @@ describe("every place roles are offered reads them from here", () => {
       "an API key's",
       "Components/ApiKey/ApiKeyPermissionTable.tsx",
       "ApiKeyPermission",
-    ],
-    [
-      "a custom role's",
-      "Components/CustomRole/CustomRolePermissionTable.tsx",
-      "CustomRolePermission",
     ],
   ])(
     "%s Add Role is the role picker, not a grid of cards",
@@ -444,25 +442,6 @@ describe("every place roles are offered reads them from here", () => {
       expect(source).not.toContain("getRolePermissionProps");
     },
   );
-
-  test("the roles a new custom role starts with", () => {
-    // Read as one line, so a wrap the formatter picks does not matter.
-    const source: string = fs
-      .readFileSync(
-        path.join(
-          DASHBOARD_SRC,
-          "Components/CustomRole/CustomRoleCreateForm.ts",
-        ),
-        "utf8",
-      )
-      .split(/\s+/)
-      .join(" ");
-
-    expect(source).toContain(
-      "getRoleCardSelectOptions({ excludeRoles: PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE, })",
-    );
-    expect(source).not.toContain("getRolePermissionProps");
-  });
 
   test("the list is built from Permission's own roles", () => {
     const source: string = fs.readFileSync(

@@ -10,6 +10,7 @@ import {
 } from "./EnterpriseEligibility";
 import { EnterprisePluginComponent } from "./EnterprisePlugins";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import { BILLING_ENABLED } from "Common/UI/Config";
 import React, { ReactElement, ReactNode, Suspense } from "react";
 
 /*
@@ -76,6 +77,14 @@ export type ComponentProps<TPluginProps> = {
    * an edition upsell, nor while the plan loads.
    */
   belowPlan?: ReactNode | undefined;
+  /*
+   * The same for the Community Edition: drawn under the edition upsell on a
+   * self-hosted install (billing off), for configuration that keeps
+   * applying there - an IP allow-list or an access control still enforced,
+   * a custom role still giving teams its permissions - so it can be seen
+   * and removed, the moves the server allows in every edition.
+   */
+  communityLeftover?: ReactNode | undefined;
 } & UpsellProps;
 
 export const getUpgradeReason: (
@@ -116,6 +125,13 @@ const EnterprisePluginPage: <TPluginProps>(
         ? props.belowPlan
         : null;
 
+    const communityLeftover: ReactNode =
+      props.communityLeftover &&
+      !BILLING_ENABLED &&
+      reason === EnterpriseUpgradeReason.Edition
+        ? props.communityLeftover
+        : null;
+
     return (
       <>
         {props.renderUpsell ? (
@@ -128,6 +144,7 @@ const EnterprisePluginPage: <TPluginProps>(
           />
         )}
         {belowPlan || <></>}
+        {communityLeftover || <></>}
       </>
     );
   }

@@ -68,7 +68,7 @@ Per un controllo più forte (account separati per ogni visualizzatore, una tracc
 
 ## Lista di IP consentiti
 
-In **Altre impostazioni** nella pagina **Condivisione**, la sezione **Lista IP consentiti** (la colonna `ipWhitelist`) limita il link pubblico agli indirizzi IP o agli intervalli IPv4 che elenchi, uno per riga, per esempio `203.0.113.7` o `10.0.0.0/8`. Si applica con o senza password; i membri del progetto che accedono non sono interessati. Lasciala vuota per consentire ogni indirizzo. Si salva per conto suo, separatamente dalla scelta, e modificarla richiede il piano **Scale** su OneUptime Cloud; svuotarla funziona con ogni piano. Finché una lista è in vigore, l'intestazione chiusa di **Altre impostazioni** mostra **Lista IP consentiti** con il numero di voci che contiene.
+In **Altre impostazioni** nella pagina **Condivisione**, la sezione **Lista IP consentiti** (la colonna `ipWhitelist`) limita il link pubblico agli indirizzi IP o agli intervalli IPv4 che elenchi, uno per riga, per esempio `203.0.113.7` o `10.0.0.0/8`. Si applica con o senza password; i membri del progetto che accedono non sono interessati. Lasciala vuota per consentire ogni indirizzo. Si salva per conto suo, separatamente dalla scelta, e modificarla richiede il piano **Scale** su OneUptime Cloud; svuotarla funziona con ogni piano. Finché una lista è in vigore, l'intestazione chiusa di **Altre impostazioni** mostra **Lista IP consentiti** con il numero di voci che contiene. In self-hosting, modificarla fa parte della Enterprise Edition: nella Community Edition un elenco già impostato continua ad applicarsi e si può solo rimuovere.
 
 Usala quando:
 

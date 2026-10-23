@@ -97,6 +97,7 @@ OneUptime은 이제 애플리케이션을 두 가지 이미지로 제공합니�
 ### 업그레이드 전에 할 일
 
 - **SCIM 없는 Community Edition:** 없습니다. 평소처럼 업그레이드하십시오.
+- **사용자 정의 역할, IP 허용 목록, 상태 페이지 접근 제어를 쓰거나 Powered by OneUptime을 숨긴 Community Edition:** 사용자 정의 역할, IP 허용 목록, 상태 페이지 접근 제어는 Enterprise Edition으로 옮겨졌습니다. 이미 설정한 것은 계속 적용되며, 제거할 수는 있지만 만들거나 바꿀 수는 없습니다. 상태 페이지에는 다시 Powered by OneUptime이 표시됩니다. 계속 관리하려면 Enterprise 이미지로 바꾸십시오.
 - **`image.type: enterprise-edition` 을 쓰는 Helm:** 없습니다. 차트는 이미 `enterprise-` 이미지를 가져오며, 이제 이 이미지에 엔터프라이즈 모듈이 들어 있습니다.
 - **`IS_ENTERPRISE_EDITION=true` 를 쓰는 Docker Compose:** 업그레이드할 때 `config.env` 에서 `APP_TAG=enterprise-release` (또는 `enterprise-<version>`)를 설정해 Enterprise 이미지로 바꾸십시오. `APP_TAG=release` 는 Community 이미지이며, `IS_ENTERPRISE_EDITION=true` 는 더 이상 아무것도 켜지 않습니다. `IS_ENTERPRISE_EDITION=true` 인 동안에는 `npm run update` 가 이 변경을 대신 해 주며(`release` 는 `enterprise-release` 가 되고, 고정한 `13.0.7` 은 `enterprise-13.0.7` 이 됩니다), 바꾼 내용을 출력합니다. 이제 Community 이미지에 `IS_ENTERPRISE_EDITION=true` 가 설정되어 있으면, 애플리케이션은 SCIM 프로비저닝과 감사 로깅을 조용히 멈추는 대신 **시작을 거부합니다**. 오류 메시지는 설정할 내용을 알려 줍니다. Enterprise Edition을 계속 쓰려면 `APP_TAG=enterprise-<version>`, Community Edition을 실행하려면 `IS_ENTERPRISE_EDITION=false` 입니다.
 - **SCIM이 이미 설정된 Community 이미지:** 이 업그레이드로 디프로비저닝을 포함한 SCIM 프로비저닝이 멈춥니다. 계속 쓰려면 Enterprise 이미지로 바꾸십시오. 그렇지 않다면 업그레이드하기 전에 [Enterprise에서 Community로 전환](/docs/self-hosted/enterprise#enterprise에서-community로-전환) 을 읽으십시오. 무엇이 멈추는지, 누구를 먼저 제거해야 하는지 설명합니다. Community Edition을 실행하려면 `IS_ENTERPRISE_EDITION=false` 도 설정하십시오. 싱글 사인온에는 영향이 없습니다. Community 이미지도 싱글 사인온을 제공합니다.

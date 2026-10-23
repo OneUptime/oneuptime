@@ -94,7 +94,7 @@ Chaque ligne est l'une de celles-ci :
 
 Une adresse IPv4 doit être écrite comme telle : écrite à la manière IPv6, comme `::ffff:203.0.113.7`, elle est refusée. La liste est vérifiée à chaque enregistrement — depuis le tableau de bord, l'API, Terraform ou un flux de travail —, et une ligne qui ne pourrait jamais correspondre est refusée avec un message qui la nomme. Laissez la liste vide pour autoriser tous les réseaux. Dès qu'elle a une entrée, une requête dont l'adresse ne peut pas être établie est refusée.
 
-Sur OneUptime Cloud, définir la liste d'adresses IP autorisées demande le plan **Scale** — quand un formulaire est créé avec une liste par l'API comme quand il est modifié —, comme la liste d'adresses IP autorisées d'un [tableau de bord public](/docs/dashboards/sharing). La vider fonctionne sur tous les plans.
+Sur OneUptime Cloud, définir la liste d'adresses IP autorisées demande le plan **Scale** — quand un formulaire est créé avec une liste par l'API comme quand il est modifié —, comme la liste d'adresses IP autorisées d'un [tableau de bord public](/docs/dashboards/sharing). La vider fonctionne sur tous les plans. En auto-hébergement, la modifier fait partie de l'Enterprise Edition : sur la Community Edition, une liste déjà définie continue de s'appliquer et ne peut qu'être supprimée.
 
 ### Requêtes venant d'autres sites
 

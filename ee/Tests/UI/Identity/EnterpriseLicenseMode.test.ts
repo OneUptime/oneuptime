@@ -157,6 +157,14 @@ describe("the license features a screen is about", () => {
     expect(LicensedFeature.TelemetryRetention).toBe(
       EnterpriseFeature.TelemetryRetention,
     );
+    expect(LicensedFeature.CustomRoles).toBe(EnterpriseFeature.CustomRoles);
+    expect(LicensedFeature.IpAllowlists).toBe(EnterpriseFeature.IpAllowlists);
+    expect(LicensedFeature.StatusPageBranding).toBe(
+      EnterpriseFeature.StatusPageBranding,
+    );
+    expect(LicensedFeature.StatusPageAccessControls).toBe(
+      EnterpriseFeature.StatusPageAccessControls,
+    );
     expect(LICENSED_FEATURES_WILDCARD).toBe(ENTERPRISE_FEATURE_WILDCARD);
 
     const serverValues: Array<string> = Object.values(EnterpriseFeature);

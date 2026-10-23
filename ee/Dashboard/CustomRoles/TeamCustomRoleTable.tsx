@@ -1,17 +1,22 @@
 import {
+  isEnterpriseConfigurationReadOnly,
+  LicensedFeature,
+} from "../Identity/License/EnterpriseLicenseMode";
+import useEnterpriseLicenseMode from "../Identity/License/UseEnterpriseLicenseMode";
+import {
   canTeamTakeCustomRoles,
   CustomRoleSummary,
   getCustomRoleCardSelectOption,
   loadCustomRoleIdsOfTeam,
   loadCustomRoles,
-} from "../CustomRole/CustomRoleOptions";
+} from "@oneuptime/dashboard/Components/CustomRole/CustomRoleOptions";
 import {
   getPermissionCountText,
   getRoleRemoveFromTeamSentence,
-} from "../CustomRole/CustomRoleCopy";
-import AppLink from "../AppLink/AppLink";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+} from "@oneuptime/dashboard/Components/CustomRole/CustomRoleCopy";
+import AppLink from "@oneuptime/dashboard/Components/AppLink/AppLink";
+import PageMap from "@oneuptime/dashboard/Utils/PageMap";
+import RouteMap, { RouteUtil } from "@oneuptime/dashboard/Utils/RouteMap";
 import TeamCustomRole from "Common/Models/DatabaseModels/TeamCustomRole";
 import Route from "Common/Types/API/Route";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -47,6 +52,8 @@ import React, {
 /*
  * A TEAM'S CUSTOM ROLES, on its Permissions page above what it was given
  * directly: "Incident Responder - 6 permissions", each a link to the role.
+ * Custom roles are an Enterprise feature: this is the Enterprise card, and
+ * core keeps the slot on the page (Components/Team/TeamCustomRolesSettings).
  *
  * Add Custom Role picks one of the project's roles from cards that say how
  * many permissions each holds; Remove takes it away. The team's members get
@@ -71,6 +78,14 @@ const TeamCustomRoleTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * With a lapsed Enterprise license, or one that leaves custom roles out,
+   * no role can be given to the team; the roles it has keep applying and
+   * can still be taken away.
+   */
+  const isReadOnly: boolean = isEnterpriseConfigurationReadOnly(
+    useEnterpriseLicenseMode(LicensedFeature.CustomRoles),
+  );
   const [roles, setRoles] = useState<Array<CustomRoleSummary> | null>(null);
   const [isAdding, setIsAdding] = useState<boolean>(false);
   const [refreshToggle, setRefreshToggle] = useState<string>("");
@@ -215,7 +230,7 @@ const TeamCustomRoleTable: FunctionComponent<ComponentProps> = (
                 }}
               />
             ),
-            buttons: addButton ? [addButton] : [],
+            buttons: addButton && !isReadOnly ? [addButton] : [],
           }}
           noItemsMessage="This team has no custom role yet. Add one to give its members everything the role allows."
           getDeleteConfirmation={async (

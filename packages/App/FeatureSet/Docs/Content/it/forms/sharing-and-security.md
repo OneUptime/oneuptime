@@ -94,7 +94,7 @@ Ogni riga è una di queste:
 
 Un indirizzo IPv4 deve essere scritto come tale: scritto alla maniera IPv6, come `::ffff:203.0.113.7`, viene rifiutato. L'elenco viene controllato ogni volta che viene salvato — dalla dashboard, dall'API, da Terraform o da un flusso di lavoro —, e una riga che non potrebbe mai corrispondere viene rifiutata con un messaggio che la indica. Lascia l'elenco vuoto per consentire tutte le reti. Non appena ha una voce, una richiesta il cui indirizzo non può essere determinato viene rifiutata.
 
-Su OneUptime Cloud, impostare la lista IP consentiti richiede il piano **Scale** — sia quando un modulo viene creato con una tramite l'API sia quando viene modificato —, come la lista IP consentiti di una [dashboard pubblica](/docs/dashboards/sharing). Svuotarla funziona con qualsiasi piano.
+Su OneUptime Cloud, impostare la lista IP consentiti richiede il piano **Scale** — sia quando un modulo viene creato con una tramite l'API sia quando viene modificato —, come la lista IP consentiti di una [dashboard pubblica](/docs/dashboards/sharing). Svuotarla funziona con qualsiasi piano. In self-hosting, modificarla fa parte della Enterprise Edition: nella Community Edition un elenco già impostato continua ad applicarsi e si può solo rimuovere.
 
 ### Richieste da altri siti web
 

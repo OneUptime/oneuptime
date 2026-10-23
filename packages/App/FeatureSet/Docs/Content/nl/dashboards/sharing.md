@@ -68,7 +68,7 @@ Voor strengere toegang (een eigen account per kijker, een audittrail van wie wat
 
 ## IP-toelatingslijst
 
-Onder **Meer instellingen** op de pagina **Delen** beperkt de sectie **IP-toelatingslijst** (de kolom `ipWhitelist`) de openbare link tot de IP-adressen of IPv4-bereiken die je opgeeft, één per regel, bijvoorbeeld `203.0.113.7` of `10.0.0.0/8`. Ze geldt met of zonder wachtwoord; projectleden die zich aanmelden, merken er niets van. Laat haar leeg om elk adres toe te staan. Ze wordt apart van de keuze opgeslagen, en haar wijzigen vereist het abonnement **Scale** in OneUptime Cloud; haar leegmaken werkt in elk abonnement. Zolang er een lijst geldt, toont de ingeklapte kop van **Meer instellingen** **IP-toelatingslijst** met het aantal vermeldingen erin.
+Onder **Meer instellingen** op de pagina **Delen** beperkt de sectie **IP-toelatingslijst** (de kolom `ipWhitelist`) de openbare link tot de IP-adressen of IPv4-bereiken die je opgeeft, één per regel, bijvoorbeeld `203.0.113.7` of `10.0.0.0/8`. Ze geldt met of zonder wachtwoord; projectleden die zich aanmelden, merken er niets van. Laat haar leeg om elk adres toe te staan. Ze wordt apart van de keuze opgeslagen, en haar wijzigen vereist het abonnement **Scale** in OneUptime Cloud; haar leegmaken werkt in elk abonnement. Zolang er een lijst geldt, toont de ingeklapte kop van **Meer instellingen** **IP-toelatingslijst** met het aantal vermeldingen erin. Zelf gehost hoort het wijzigen bij de Enterprise Edition: in de Community Edition blijft een al ingestelde lijst gelden en kan die alleen worden verwijderd.
 
 Gebruik dit als:
 

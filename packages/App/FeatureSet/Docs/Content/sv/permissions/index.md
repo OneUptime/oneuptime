@@ -139,7 +139,7 @@ Hela listan finns i [Behörighetsreferensen](/docs/permissions/reference).
 
 ### Anpassade roller
 
-En anpassad roll är en uppsättning behörigheter som du namnger en gång och ger till team: till exempel en "Incidenthanterare" med `IncidentMember`, `AlertMember` och `OnCallViewer`, eller en "Teamledare". Varje team du ger den till får samma behörigheter, och du ändrar dem för alla de teamen på ett ställe. På OneUptime Cloud kräver anpassade roller Scale-planen, liksom att ändra ett teams behörigheter.
+En anpassad roll är en uppsättning behörigheter som du namnger en gång och ger till team: till exempel en "Incidenthanterare" med `IncidentMember`, `AlertMember` och `OnCallViewer`, eller en "Teamledare". Varje team du ger den till får samma behörigheter, och du ändrar dem för alla de teamen på ett ställe. På OneUptime Cloud kräver anpassade roller Scale-planen, liksom att ändra ett teams behörigheter. Självhostade ingår de i Enterprise Edition: i Community Edition fortsätter de roller som dina team redan har att gälla, och de kan tas från ett team eller tas bort, men inte skapas eller ändras.
 
 :::steps
 1. Öppna **Team** i menyn **Produkter**, under **Inställningar**. Fäll ut **Inställningar** i sidomenyn, välj **Roller** och klicka på **Skapa Anpassad roll**.

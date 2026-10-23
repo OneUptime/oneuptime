@@ -13,6 +13,7 @@ import { BrandingSwitchColumn } from "./StatusPageBrandingCopy";
 import { SubscriberNotificationsColumn } from "Common/Types/StatusPage/SubscriberNotificationsSwitch";
 import { LimitSubscribersToPrivateUsersColumn } from "Common/Types/StatusPage/SubscriberRestrictions";
 import { SubscriberChoiceColumn } from "./SubscriberChoicesCopy";
+import { PoweredBySwitchColumn } from "./StatusPagePoweredByCopy";
 
 /*
  * One switch for one of a status page's boolean columns, that saves the
@@ -41,7 +42,8 @@ export type StatusPageSwitchColumn =
   | BrandingSwitchColumn
   | SubscriberNotificationsColumn
   | LimitSubscribersToPrivateUsersColumn
-  | SubscriberChoiceColumn;
+  | SubscriberChoiceColumn
+  | PoweredBySwitchColumn;
 
 export interface ComponentProps {
   statusPageId: ObjectID;

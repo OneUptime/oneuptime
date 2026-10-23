@@ -1,6 +1,6 @@
-import { getRoleRemoveFromTeamSentence } from "./CustomRoleCopy";
-import { loadTeamIdsGivenCustomRole } from "./CustomRoleOptions";
-import TeamElement from "../Team/Team";
+import { getRoleRemoveFromTeamSentence } from "@oneuptime/dashboard/Components/CustomRole/CustomRoleCopy";
+import { loadTeamIdsGivenCustomRole } from "@oneuptime/dashboard/Components/CustomRole/CustomRoleOptions";
+import TeamElement from "@oneuptime/dashboard/Components/Team/Team";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamCustomRole from "Common/Models/DatabaseModels/TeamCustomRole";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
@@ -53,6 +53,11 @@ export interface ComponentProps {
   roleName: string;
   // After a team is given the role or has it taken away.
   onTeamsChange?: (() => void) | undefined;
+  /*
+   * The Enterprise license has lapsed or leaves custom roles out: the role
+   * cannot be given to another team, and can still be taken from one.
+   */
+  isReadOnly?: boolean | undefined;
 }
 
 export const CUSTOM_ROLE_TEAMS_TEST_ID: string = "custom-role-teams";
@@ -141,7 +146,7 @@ const CustomRoleTeamsTable: FunctionComponent<ComponentProps> = (
             title: "Teams with this Role",
             description:
               "Members of these teams can do everything this role allows.",
-            buttons: giveButton ? [giveButton] : [],
+            buttons: giveButton && !props.isReadOnly ? [giveButton] : [],
           }}
           noItemsMessage="No team has this role yet. Give it to a team to hand its members these permissions."
           onItemDeleted={() => {

@@ -1,3 +1,9 @@
+import EnterpriseSettingLicenseNotice from "../EnterpriseSettings/EnterpriseSettingLicenseNotice";
+import {
+  EnterpriseLicenseMode,
+  LicensedFeature,
+} from "../Identity/License/EnterpriseLicenseMode";
+import useEnterpriseLicenseMode from "../Identity/License/UseEnterpriseLicenseMode";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { Yellow } from "Common/Types/BrandColors";
@@ -29,6 +35,7 @@ import PermissionGate, {
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -44,7 +51,7 @@ import StatusPageSessionLengthCopy, {
   STATUS_PAGE_SESSION_LENGTH_CARD_TEST_ID,
   STATUS_PAGE_SESSION_LENGTH_SETTING_TEST_ID,
   toSessionLengthChoiceValue,
-} from "./StatusPageSessionLengthCopy";
+} from "@oneuptime/dashboard/Components/StatusPage/StatusPageSessionLengthCopy";
 
 /*
  * The Reader Sessions card on Security -> Access: "Sign readers out after", one
@@ -211,6 +218,9 @@ const SessionLengthSetting: FunctionComponent<SettingProps> = (
 const StatusPageSessionLengthCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const licenseMode: EnterpriseLicenseMode = useEnterpriseLicenseMode(
+    LicensedFeature.StatusPageAccessControls,
+  );
   const ruledListClassName: string = useCardRuledListClassName();
   const translator: Translator = useTranslator();
   const [lengthInHours, setLengthInHours] = useState<number | null>(null);
@@ -287,14 +297,20 @@ const StatusPageSessionLengthCard: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <Card
-      title={StatusPageSessionLengthCopy.cardTitle}
-      description={StatusPageSessionLengthCopy.cardDescription}
-    >
-      <div data-testid={STATUS_PAGE_SESSION_LENGTH_CARD_TEST_ID}>
-        {getBody()}
-      </div>
-    </Card>
+    <Fragment>
+      <EnterpriseSettingLicenseNotice
+        mode={licenseMode}
+        feature={LicensedFeature.StatusPageAccessControls}
+      />
+      <Card
+        title={StatusPageSessionLengthCopy.cardTitle}
+        description={StatusPageSessionLengthCopy.cardDescription}
+      >
+        <div data-testid={STATUS_PAGE_SESSION_LENGTH_CARD_TEST_ID}>
+          {getBody()}
+        </div>
+      </Card>
+    </Fragment>
   );
 };
 

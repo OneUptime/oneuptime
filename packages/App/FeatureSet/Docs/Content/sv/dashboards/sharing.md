@@ -68,7 +68,7 @@ För strängare åtkomstkontroll (separata konton per tittare, ett granskningssp
 
 ## IP-tillåtelselista
 
-Under **Fler inställningar** på sidan **Delning** begränsar avsnittet **IP-tillåtelselista** (kolumnen `ipWhitelist`) den offentliga länken till IP-adresserna eller IPv4-intervallen som du listar, en per rad, till exempel `203.0.113.7` eller `10.0.0.0/8`. Den gäller med eller utan lösenordet; projektmedlemmar som loggar in påverkas inte. Lämna den tom för att tillåta alla adresser. Den sparas för sig, separat från valet, och att ändra den kräver planen **Scale** på OneUptime Cloud; att tömma den fungerar på alla planer. Så länge en lista gäller visar den hopfällda rubriken för **Fler inställningar** **IP-tillåtelselista** med antalet poster den innehåller.
+Under **Fler inställningar** på sidan **Delning** begränsar avsnittet **IP-tillåtelselista** (kolumnen `ipWhitelist`) den offentliga länken till IP-adresserna eller IPv4-intervallen som du listar, en per rad, till exempel `203.0.113.7` eller `10.0.0.0/8`. Den gäller med eller utan lösenordet; projektmedlemmar som loggar in påverkas inte. Lämna den tom för att tillåta alla adresser. Den sparas för sig, separat från valet, och att ändra den kräver planen **Scale** på OneUptime Cloud; att tömma den fungerar på alla planer. Så länge en lista gäller visar den hopfällda rubriken för **Fler inställningar** **IP-tillåtelselista** med antalet poster den innehåller. Självhostat ingår det i Enterprise Edition att ändra den: i Community Edition fortsätter en redan angiven lista att gälla och kan bara tas bort.
 
 Använd den när:
 

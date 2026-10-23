@@ -1,4 +1,4 @@
-import { isBuiltInRolePermission } from "../Permission/RoleCardSelectOptions";
+import { isBuiltInRolePermission } from "@oneuptime/dashboard/Components/Permission/RoleCardSelectOptions";
 import Permission from "Common/Types/Permission";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 

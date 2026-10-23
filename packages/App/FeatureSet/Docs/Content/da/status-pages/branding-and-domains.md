@@ -19,7 +19,7 @@ Din statusside er den ene skærm i OneUptime, dine kunder kigger på, så den b�
 | **Brugerdefinerede domæner** | Dit eget domæne, dets DNS-post og dets gratis SSL-certifikat. |
 | **HTML, CSS og JavaScript** | Header-HTML, sidefods-HTML, brugerdefineret CSS, brugerdefineret JavaScript. |
 
-Tre ting, der ligner branding, ligger i stedet under **Statussider → din side → Avanceret → Avancerede indstillinger** (`{id}/settings`), fordi de afgør, hvad siden viser, og ikke hvordan den ser ud: den samlede oppetidsprocent, hvilke monitorstatusser der tæller mod oppetiden, og linjen "Powered by OneUptime". Alle tre er rækker på kortet **Hvad din statusside viser** der.
+Tre ting, der ligner branding, ligger i stedet under **Statussider → din side → Avanceret → Avancerede indstillinger** (`{id}/settings`), fordi de afgør, hvad siden viser, og ikke hvordan den ser ud: den samlede oppetidsprocent, hvilke monitorstatusser der tæller mod oppetiden, og linjen "Powered by OneUptime". De to første er rækker på kortet **Hvad din statusside viser** der, og linjen har sit eget kort lige under.
 
 Branding var tidligere delt over separate skærme for **Grundlæggende branding**, **Header**, **Sidefod**, **Oversigtsside** og **Sprog**. Deres gamle adresser (`{id}/header-style`, `{id}/footer-style`, `{id}/overview-page-branding` og `{id}/languages`) åbner nu siden **Branding**, så gamle bogmærker og links virker stadig.
 
@@ -295,7 +295,7 @@ Det samme gælder API-nøgler. En nøgle, der kun kan læse statussidedomæner, 
 
 ## Powered by OneUptime
 
-Linjen "Powered by OneUptime" er ikke en brandingindstilling. Den er den sidste kontakt på kortet **Hvad din statusside viser** under **Statussider → din side → Avanceret → Avancerede indstillinger** (`{id}/settings`): **Vis "Powered By OneUptime"-branding**, slået til som standard. Slå den fra for at skjule linjen; den gemmes med det samme. På OneUptime Cloud kræver det planen **Scale** at skjule den.
+Linjen "Powered by OneUptime" er ikke en brandingindstilling. Den har sit eget kort, **Powered by OneUptime**, under kortet **Hvad din statusside viser** under **Statussider → din side → Avanceret → Avancerede indstillinger** (`{id}/settings`): **Vis "Powered By OneUptime"-branding**, slået til som standard. Slå den fra for at skjule linjen; den gemmes med det samme. På OneUptime Cloud kræver det planen **Scale** at skjule den. Ved selvhosting er det en del af Enterprise Edition at skjule den: på Community Edition viser alle statussider linjen.
 
 ## Næste skridt
 

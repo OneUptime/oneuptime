@@ -19,7 +19,7 @@ Ihre Statusseite ist der eine OneUptime-Bildschirm, den Ihre Kunden ansehen; sie
 | **Benutzerdefinierte Domains** | Ihre eigene Domain, ihr DNS-Eintrag und ihr kostenloses SSL-Zertifikat. |
 | **HTML, CSS und JavaScript** | Header-HTML, Footer-HTML, eigenes CSS, eigenes JavaScript. |
 
-Drei Dinge, die nach Branding aussehen, liegen stattdessen unter **Statusseiten → Ihre Seite → Erweitert → Erweiterte Einstellungen** (`{id}/settings`), weil sie bestimmen, was die Seite zeigt, und nicht, wie sie aussieht: der Gesamtprozentsatz der Verfügbarkeit, welche Monitorstatus gegen die Verfügbarkeit zählen, und die Zeile „Powered by OneUptime“. Alle drei sind Zeilen der Karte **Was Ihre Statusseite zeigt** dort.
+Drei Dinge, die nach Branding aussehen, liegen stattdessen unter **Statusseiten → Ihre Seite → Erweitert → Erweiterte Einstellungen** (`{id}/settings`), weil sie bestimmen, was die Seite zeigt, und nicht, wie sie aussieht: der Gesamtprozentsatz der Verfügbarkeit, welche Monitorstatus gegen die Verfügbarkeit zählen, und die Zeile „Powered by OneUptime“. Die ersten beiden sind Zeilen der Karte **Was Ihre Statusseite zeigt** dort, und die Zeile hat direkt darunter eine eigene Karte.
 
 Das Branding war früher auf getrennte Bildschirme **Wesentliches Branding**, **Kopfzeile**, **Fußzeile**, **Übersichtsseite** und **Sprachen** verteilt. Ihre alten Adressen (`{id}/header-style`, `{id}/footer-style`, `{id}/overview-page-branding` und `{id}/languages`) öffnen jetzt die Seite **Branding**, sodass alte Lesezeichen und Links weiter funktionieren.
 
@@ -295,7 +295,7 @@ Dasselbe gilt für API-Schlüssel. Ein Schlüssel, der Statusseiten-Domains nur 
 
 ## Powered by OneUptime
 
-Die Zeile „Powered by OneUptime“ ist keine Branding-Einstellung. Sie ist der letzte Schalter der Karte **Was Ihre Statusseite zeigt** unter **Statusseiten → Ihre Seite → Erweitert → Erweiterte Einstellungen** (`{id}/settings`): **Branding "Powered By OneUptime" anzeigen**, standardmäßig an. Schalten Sie ihn aus, um die Zeile auszublenden; das wird sofort gespeichert. In OneUptime Cloud braucht das Ausblenden den Tarif **Scale**.
+Die Zeile „Powered by OneUptime“ ist keine Branding-Einstellung. Sie hat eine eigene Karte, **Powered by OneUptime**, unter der Karte **Was Ihre Statusseite zeigt** unter **Statusseiten → Ihre Seite → Erweitert → Erweiterte Einstellungen** (`{id}/settings`): **Branding "Powered By OneUptime" anzeigen**, standardmäßig an. Schalten Sie ihn aus, um die Zeile auszublenden; das wird sofort gespeichert. In OneUptime Cloud braucht das Ausblenden den Tarif **Scale**. Selbst gehostet gehört das Ausblenden zur Enterprise Edition: In der Community Edition zeigt jede Statusseite die Zeile.
 
 ## Nächste Schritte
 

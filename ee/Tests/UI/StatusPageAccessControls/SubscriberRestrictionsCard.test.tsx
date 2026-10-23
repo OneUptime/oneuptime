@@ -17,8 +17,8 @@ import {
   within,
 } from "@testing-library/react";
 import React from "react";
-import getJestMockFunction, { MockFunction } from "../../MockType";
-import { getJestSpyOn } from "../../Spy";
+import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
+import { getJestSpyOn } from "Common/Tests/Spy";
 
 /*
  * The Who Can Subscribe card on a status page's Subscriber Settings
@@ -36,7 +36,7 @@ import { getJestSpyOn } from "../../Spy";
 const getItemMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
 
-jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
+jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,
     default: {
@@ -60,9 +60,9 @@ const config: MutableConfig = { billingEnabled: false };
   globalThis as unknown as { __subscriberRestrictionsConfig: MutableConfig }
 ).__subscriberRestrictionsConfig = config;
 
-jest.mock("../../../UI/Config", () => {
+jest.mock("Common/UI/Config", () => {
   const mocked: Record<string, unknown> = {
-    ...(jest.requireActual("../../../UI/Config") as Record<string, unknown>),
+    ...(jest.requireActual("Common/UI/Config") as Record<string, unknown>),
   };
 
   Object.defineProperty(mocked, "BILLING_ENABLED", {
@@ -80,23 +80,36 @@ jest.mock("../../../UI/Config", () => {
   return mocked;
 });
 
-import SubscriberRestrictionsCard from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/SubscriberRestrictionsCard";
+// A valid Enterprise license: nothing above the card, and it can be changed.
+jest.mock(
+  "../../../Dashboard/Identity/License/UseEnterpriseLicenseMode",
+  () => {
+    return {
+      __esModule: true,
+      default: (): string => {
+        return "editable";
+      },
+    };
+  },
+);
+
+import SubscriberRestrictionsCard from "../../../Dashboard/StatusPageAccessControls/SubscriberRestrictionsCard";
 import SubscriberRestrictionsCopy, {
   ALLOWED_EMAIL_DOMAINS_SETTING_TEST_ID,
   PRIVATE_USERS_ONLY_SWITCH_TEST_ID,
   SUBSCRIBER_RESTRICTIONS_CARD_TEST_ID,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/SubscriberRestrictionsCopy";
-import StatusPage from "../../../Models/DatabaseModels/StatusPage";
+} from "@oneuptime/dashboard/Components/StatusPage/SubscriberRestrictionsCopy";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import SubscriptionPlan, {
   PlanType,
-} from "../../../Types/Billing/SubscriptionPlan";
-import ObjectID from "../../../Types/ObjectID";
-import { MAX_ALLOWED_SUBSCRIBER_EMAIL_DOMAINS } from "../../../Types/StatusPage/SubscriberRestrictions";
+} from "Common/Types/Billing/SubscriptionPlan";
+import ObjectID from "Common/Types/ObjectID";
+import { MAX_ALLOWED_SUBSCRIBER_EMAIL_DOMAINS } from "Common/Types/StatusPage/SubscriberRestrictions";
 import PermissionGate, {
   PermissionGateResult,
-} from "../../../UI/Utils/PermissionGate";
-import { getStatusPageAccessSelect } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageAccessCopy";
-import ProjectUtil from "../../../UI/Utils/Project";
+} from "Common/UI/Utils/PermissionGate";
+import { getStatusPageAccessSelect } from "@oneuptime/dashboard/Components/StatusPage/StatusPageAccessCopy";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 const STATUS_PAGE_ID: string = "8d8d8d8d-0000-4000-8000-0000000000dd";
 

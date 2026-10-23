@@ -94,7 +94,7 @@ Varje rad är något av följande:
 
 En IPv4-adress måste skrivas som en sådan: skriven på IPv6-sättet, som `::ffff:203.0.113.7`, avvisas den. Listan kontrolleras varje gång den sparas — från instrumentpanelen, API:et, Terraform eller ett arbetsflöde —, och en rad som aldrig kan matcha avvisas med ett meddelande som anger den. Lämna listan tom för att tillåta alla nätverk. Så snart den har en post avvisas en begäran vars adress inte kan fastställas.
 
-På OneUptime Cloud kräver det **Scale**-planen att ange IP-tillåtelselistan — både när ett formulär skapas med en via API:et och när det redigeras —, precis som IP-tillåtelselistan för en [offentlig instrumentpanel](/docs/dashboards/sharing). Att tömma den fungerar på alla planer.
+På OneUptime Cloud kräver det **Scale**-planen att ange IP-tillåtelselistan — både när ett formulär skapas med en via API:et och när det redigeras —, precis som IP-tillåtelselistan för en [offentlig instrumentpanel](/docs/dashboards/sharing). Att tömma den fungerar på alla planer. Självhostat ingår det i Enterprise Edition att ändra den: i Community Edition fortsätter en redan angiven lista att gälla och kan bara tas bort.
 
 ### Begäranden från andra webbplatser
 

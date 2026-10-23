@@ -17,8 +17,8 @@ import {
   within,
 } from "@testing-library/react";
 import React from "react";
-import getJestMockFunction, { MockFunction } from "../../MockType";
-import { getJestSpyOn } from "../../Spy";
+import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
+import { getJestSpyOn } from "Common/Tests/Spy";
 
 /*
  * The Reader Sessions card on a status page's Security -> Access page: "Sign
@@ -33,7 +33,7 @@ import { getJestSpyOn } from "../../Spy";
 const getItemMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
 
-jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
+jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,
     default: {
@@ -47,23 +47,36 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
-import StatusPageSessionLengthCard from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageSessionLengthCard";
+// A valid Enterprise license: nothing above the card, and it can be changed.
+jest.mock(
+  "../../../Dashboard/Identity/License/UseEnterpriseLicenseMode",
+  () => {
+    return {
+      __esModule: true,
+      default: (): string => {
+        return "editable";
+      },
+    };
+  },
+);
+
+import StatusPageSessionLengthCard from "../../../Dashboard/StatusPageAccessControls/StatusPageSessionLengthCard";
 import StatusPageSessionLengthCopy, {
   getSessionLengthChoices,
   getSessionLengthDescription,
   STATUS_PAGE_SESSION_LENGTH_CARD_TEST_ID,
   STATUS_PAGE_SESSION_LENGTH_SETTING_TEST_ID,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageSessionLengthCopy";
-import StatusPage from "../../../Models/DatabaseModels/StatusPage";
+} from "@oneuptime/dashboard/Components/StatusPage/StatusPageSessionLengthCopy";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import SubscriptionPlan, {
   PlanType,
-} from "../../../Types/Billing/SubscriptionPlan";
-import ObjectID from "../../../Types/ObjectID";
-import { PRIVATE_USER_SESSION_LENGTH_CHOICES_IN_HOURS } from "../../../Types/StatusPage/PrivateUserSessionLength";
+} from "Common/Types/Billing/SubscriptionPlan";
+import ObjectID from "Common/Types/ObjectID";
+import { PRIVATE_USER_SESSION_LENGTH_CHOICES_IN_HOURS } from "Common/Types/StatusPage/PrivateUserSessionLength";
 import PermissionGate, {
   PermissionGateResult,
-} from "../../../UI/Utils/PermissionGate";
-import ProjectUtil from "../../../UI/Utils/Project";
+} from "Common/UI/Utils/PermissionGate";
+import ProjectUtil from "Common/UI/Utils/Project";
 
 const STATUS_PAGE_ID: string = "7c7c7c7c-0000-4000-8000-0000000000cc";
 

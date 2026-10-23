@@ -25,8 +25,11 @@ import { getJestSpyOn } from "../../Spy";
  * Settings for what visitors see: a switch per list (incidents, episodes,
  * announcements, scheduled maintenance), how far back each goes, its labels,
  * the page's uptime - the uptime history window, the overall uptime
- * percentage with its precision, and which statuses count as downtime - and
- * the "Powered by OneUptime" line.
+ * percentage with its precision, and which statuses count as downtime. The
+ * "Powered by OneUptime" line has a card of its own under it, because hiding
+ * it is an Enterprise feature (StatusPagePoweredBySettings, held by
+ * EnterpriseSettingShells, and the Enterprise card by
+ * ee/Tests/UI/StatusPageBranding).
  *
  * It replaced eight cards with an Edit dialog each. Every control saves its
  * own column at once: switches when pressed, a number of days when the box
@@ -133,7 +136,6 @@ const NEW_PAGE: StoredColumns = {
   showUptimeHistoryInDays: 90,
   showOverallUptimePercentOnStatusPage: false,
   overallUptimePercentPrecision: UptimePrecision.TWO_DECIMAL,
-  hidePoweredByOneUptimeBranding: false,
 };
 
 // The project's monitor statuses, as the server lists them.
@@ -279,7 +281,7 @@ async function renderCard(): Promise<void> {
 async function loaded(): Promise<void> {
   await waitFor(() => {
     expect(
-      screen.getByTestId(getDisplaySectionTestId("powered-by")),
+      screen.getByTestId(getDisplaySectionTestId("uptime-history")),
     ).toBeInTheDocument();
   });
 }
@@ -475,7 +477,7 @@ const LIST_SWITCHES: Array<DisplaySwitchColumn> = [
 ];
 
 describe("reading the status page", () => {
-  test("asks once for the card's seventeen columns and nothing else", async () => {
+  test("asks once for the card's sixteen columns and nothing else", async () => {
     await renderCard();
     await loaded();
 
@@ -504,9 +506,8 @@ describe("reading the status page", () => {
       overallUptimePercentPrecision: true,
       // What each chip shows.
       downtimeMonitorStatuses: { _id: true, name: true, color: true },
-      hidePoweredByOneUptimeBranding: true,
     });
-    expect(DISPLAY_SETTING_COLUMNS).toHaveLength(17);
+    expect(DISPLAY_SETTING_COLUMNS).toHaveLength(16);
   });
 
   test("asks once for the project's monitor statuses, in their colours and priority order, for the downtime picker", async () => {
@@ -551,7 +552,7 @@ describe("reading the status page", () => {
     expect(screen.queryByTestId("card-button")).not.toBeInTheDocument();
   });
 
-  test("lists incidents, episodes, announcements, scheduled maintenance, uptime history, then the Powered by line", async () => {
+  test("lists incidents, episodes, announcements, scheduled maintenance, then uptime history", async () => {
     await renderCard();
     await loaded();
 
@@ -571,7 +572,6 @@ describe("reading the status page", () => {
       "status-page-display-section-announcements",
       "status-page-display-section-scheduled-maintenance",
       "status-page-display-section-uptime-history",
-      "status-page-display-section-powered-by",
     ]);
     expect(
       DISPLAY_SECTIONS.map((section: DisplaySectionDefinition): string => {
@@ -583,7 +583,6 @@ describe("reading the status page", () => {
       "announcements",
       "scheduled-maintenance",
       "uptime-history",
-      "powered-by",
     ]);
   });
 
@@ -603,7 +602,7 @@ describe("reading the status page", () => {
       );
     }
 
-    expect(screen.getAllByRole("switch")).toHaveLength(10);
+    expect(screen.getAllByRole("switch")).toHaveLength(9);
     expect(screen.getAllByRole("spinbutton")).toHaveLength(5);
 
     // The downtime picker; the precision only while the overall % is on.
@@ -625,7 +624,6 @@ describe("reading the status page", () => {
       "Show Scheduled Maintenance Events",
       "Show Event Labels",
       "Show Overall Uptime Percent",
-      "Show Powered By OneUptime Branding",
     ]);
 
     await renderCard();
@@ -638,7 +636,7 @@ describe("reading the status page", () => {
     ).toBeInTheDocument();
   });
 
-  test("a new page shows every list, with 14 days of history, no labels, all incidents, 90 days of uptime and the Powered by line", async () => {
+  test("a new page shows every list, with 14 days of history, no labels, all incidents and 90 days of uptime", async () => {
     await renderCard();
     await loaded();
 
@@ -673,11 +671,12 @@ describe("reading the status page", () => {
     // The statuses that are not operational count as downtime.
     expect(downtimeChips()).toEqual(["Degraded", "Offline"]);
 
-    // Stored as "do not hide it", shown as a switch that is on.
-    expect(switchFor("hidePoweredByOneUptimeBranding")).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
+    // The Powered by line has a card of its own now.
+    expect(
+      screen.queryByTestId(
+        "status-page-display-switch-hidePoweredByOneUptimeBranding",
+      ),
+    ).not.toBeInTheDocument();
   });
 
   test("shows each setting as the page has it", async () => {
@@ -695,7 +694,6 @@ describe("reading the status page", () => {
       showScheduledEventHistoryInDays: 7,
       showScheduledEventLabelsOnStatusPage: true,
       showUptimeHistoryInDays: 45,
-      hidePoweredByOneUptimeBranding: true,
     };
 
     await renderCard();
@@ -719,12 +717,6 @@ describe("reading the status page", () => {
     expect(switchFor(OVERALL)).toHaveAttribute("aria-checked", "true");
     expect(shownPrecision()).toBe("99.999%");
     expect(downtimeChips()).toEqual(["Offline"]);
-
-    // Hidden: the switch that shows it is off.
-    expect(switchFor("hidePoweredByOneUptimeBranding")).toHaveAttribute(
-      "aria-checked",
-      "false",
-    );
   });
 
   test("a page with no value for a setting shows the model's default for it", async () => {
@@ -746,10 +738,6 @@ describe("reading the status page", () => {
     );
     expect(daysFor("showIncidentHistoryInDays")).toHaveValue(14);
     expect(daysFor("showUptimeHistoryInDays")).toHaveValue(90);
-    expect(switchFor("hidePoweredByOneUptimeBranding")).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
   });
 
   test("a page with no value for any setting shows the overall uptime percentage off, the default", async () => {
@@ -841,38 +829,6 @@ describe("flipping a switch", () => {
       expect(request["data"]).toEqual({ [column]: stored });
     },
   );
-
-  test("turning the Powered by line off stores that it is hidden, and on again that it is not", async () => {
-    await renderCard();
-    await loaded();
-
-    await press("hidePoweredByOneUptimeBranding");
-
-    await waitFor(() => {
-      expect(lastUpdate()["data"]).toEqual({
-        hidePoweredByOneUptimeBranding: true,
-      });
-    });
-
-    await waitFor(() => {
-      expect(switchFor("hidePoweredByOneUptimeBranding")).not.toHaveAttribute(
-        "aria-disabled",
-        "true",
-      );
-    });
-
-    await press("hidePoweredByOneUptimeBranding");
-
-    await waitFor(() => {
-      expect(lastUpdate()["data"]).toEqual({
-        hidePoweredByOneUptimeBranding: false,
-      });
-    });
-    expect(switchFor("hidePoweredByOneUptimeBranding")).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
-  });
 
   test("is locked while the change is saved, without holding up the others", async () => {
     let finish: () => void = (): void => {};
@@ -2271,8 +2227,9 @@ describe("plans", () => {
 
     /*
      * As the model has it today: the four lists, their labels and how far
-     * back episodes go from Growth; hiding the Powered by line from Scale;
-     * the other history windows and the scope switch on every plan.
+     * back episodes go from Growth; the other history windows and the scope
+     * switch on every plan. (Hiding the Powered by line, from Scale, has a
+     * card of its own.)
      */
     for (const column of [
       ...LIST_SWITCHES,
@@ -2288,11 +2245,6 @@ describe("plans", () => {
     expect(
       within(daysRowFor("showEpisodeHistoryInDays")).getByTestId("pill"),
     ).toHaveTextContent("Growth Plan");
-    expect(
-      within(switchRowFor("hidePoweredByOneUptimeBranding")).getByTestId(
-        "pill",
-      ),
-    ).toHaveTextContent("Scale Plan");
 
     for (const column of [
       "showIncidentHistoryInDays",

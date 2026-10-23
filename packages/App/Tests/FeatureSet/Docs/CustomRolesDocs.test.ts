@@ -211,7 +211,12 @@ describe("what the section says", () => {
 describe("the labels the steps name", () => {
   /*
    * Each bold label of the section, with the Dashboard source that draws it
-   * - so a renamed button fails here, not in a reader's hands.
+   * - so a renamed button fails here, not in a reader's hands. The custom
+   * role screens themselves (the Roles table, the create form, a role's
+   * page, a team's custom roles) are Enterprise screens in
+   * ee/Dashboard/CustomRoles, which core CI never sees:
+   * ee/Tests/Server/CustomRoles/CustomRolesDocsLabels.test.ts holds the
+   * labels they draw to this section.
    */
   const DRAWN_BY: ReadonlyArray<{
     label: string;
@@ -222,52 +227,6 @@ describe("the labels the steps name", () => {
       label: "Roles",
       file: "Pages/Teams/SideMenu.tsx",
       source: 'title: "Roles"',
-    },
-    {
-      // The Roles table's create button: "Create" and its singular name.
-      label: "Create Custom Role",
-      file: "Pages/Teams/Roles.tsx",
-      source: 'singularName="Custom Role"',
-    },
-    {
-      label: "Name",
-      file: "Components/CustomRole/CustomRoleCreateForm.ts",
-      source: 'title: "Name"',
-    },
-    {
-      label: "Permissions",
-      file: "Components/CustomRole/CustomRoleCreateForm.ts",
-      source: 'title: "Permissions"',
-    },
-    {
-      label: "Add Role",
-      file: "Components/CustomRole/CustomRolePermissionTable.tsx",
-      source: 'title: "Add Role"',
-    },
-    {
-      label: "Add Permission",
-      file: "Components/CustomRole/CustomRolePermissionTable.tsx",
-      source: 'title: "Add Permission"',
-    },
-    {
-      label: "Give to a Team",
-      file: "Components/CustomRole/CustomRoleTeamsTable.tsx",
-      source: 'title: "Give to a Team"',
-    },
-    {
-      label: "Teams with this Role",
-      file: "Components/CustomRole/CustomRoleTeamsTable.tsx",
-      source: 'title: "Teams with this Role"',
-    },
-    {
-      label: "Remove",
-      file: "Components/CustomRole/CustomRoleTeamsTable.tsx",
-      source: 'deleteButtonText="Remove"',
-    },
-    {
-      label: "Add Custom Role",
-      file: "Components/Team/TeamCustomRoleTable.tsx",
-      source: 'title: "Add Custom Role"',
     },
     {
       label: "Built-in Roles",
@@ -283,17 +242,6 @@ describe("the labels the steps name", () => {
       expect(readSource(entry.file)).toContain(entry.source);
     },
   );
-
-  test("the description is folded under More fields, as the form folds it", () => {
-    const form: string = readSource(
-      "Components/CustomRole/CustomRoleCreateForm.ts",
-    );
-
-    expect(form).toContain("collapsibleSection: advanced");
-    expect(englishSection()).toContain(
-      "The description is under **More fields**.",
-    );
-  });
 
   test("Create Team offers the custom roles under Access", () => {
     const teams: string = readSource("Pages/Teams/Index.tsx");
