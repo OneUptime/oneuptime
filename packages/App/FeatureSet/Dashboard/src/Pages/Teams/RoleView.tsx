@@ -5,7 +5,9 @@ import { getTeamsBreadcrumbs } from "../../Utils/Breadcrumbs/TeamsBreadcrumbs";
 import {
   getRoleDeleteReachSentence,
   getRoleReachSentence,
+  isRoleGivenToAnyone,
 } from "../../Components/CustomRole/CustomRoleCopy";
+import CustomRoleApiKeysTable from "../../Components/CustomRole/CustomRoleApiKeysTable";
 import { getCustomRoleEditFormFields } from "../../Components/CustomRole/CustomRoleCreateForm";
 import CustomRolePermissionTable from "../../Components/CustomRole/CustomRolePermissionTable";
 import {
@@ -42,11 +44,14 @@ import React, {
  *
  *   - Custom Role Details: its name and description, edited in place;
  *   - Permissions: what the role gives (CustomRolePermissionTable), under a
- *     line that says who a change reaches - "Given to 3 teams (12 people).
- *     A change here changes what they can do at once." - read again after
- *     every change of the teams. A role no team has yet says only what it
- *     gives: the Teams card under it says no team has it;
+ *     line that says who a change reaches - "Given to 3 teams (12 people)
+ *     and 2 API keys. A change here changes what they can do at once." -
+ *     read again after every change of the teams and keys given it. A role
+ *     nothing has yet says only what it gives: the cards under it say no
+ *     team or key has it;
  *   - Teams with this Role: the teams given it (CustomRoleTeamsTable);
+ *   - API Keys with this Role: the keys given it (CustomRoleApiKeysTable),
+ *     for whoever may read the project's API keys;
  *   - Delete: what deleting it takes from whom, before it is pressed.
  */
 
@@ -104,7 +109,7 @@ const TeamRoleView: FunctionComponent<PageComponentProps> = (
   usePageBreadcrumbLinks(breadcrumbLinks);
 
   const permissionsDescription: string =
-    reach && reach.teamCount > 0
+    reach && isRoleGivenToAnyone(reach)
       ? translator.translateTemplate("What this role gives. {{reach}}", {
           reach: getRoleReachSentence(translator, reach),
         })
@@ -171,6 +176,12 @@ const TeamRoleView: FunctionComponent<PageComponentProps> = (
         customRoleId={modelId}
         roleName={roleName}
         onTeamsChange={readReach}
+      />
+
+      <CustomRoleApiKeysTable
+        customRoleId={modelId}
+        roleName={roleName}
+        onApiKeysChange={readReach}
       />
 
       <ModelDelete

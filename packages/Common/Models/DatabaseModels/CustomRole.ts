@@ -105,7 +105,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   pluralName: "Custom Roles",
   icon: IconProp.Identification,
   tableDescription:
-    "A set of permissions you name once, such as Incident Responder, and give to teams and API keys. Changing a role changes all of them.",
+    "A set of permissions you name once, such as Incident Responder, and give to teams and API keys. Changing a role changes every team and key that has it.",
 })
 export default class CustomRole extends BaseModel {
   @ColumnAccessControl({
