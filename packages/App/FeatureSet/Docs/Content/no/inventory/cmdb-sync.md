@@ -139,7 +139,7 @@ Verter og nettverksenheter beskrives med de samme opplysningene, lagret under de
 | Opplysning | Nøkkel | På en vert | På en nettverksenhet |
 | --- | --- | --- | --- |
 | Vertsnavn | `host.name` | Vertens navn. Det er vertens identitet, så det står i `identifyingAttributes` | Enhetens eget navn: SNMP-`sysName`, ellers NetBIOS- eller DNS-navnet oppdagelsen fant. Aldri IP-adressen |
-| IP-adresse | `host.ip` | Hver adresse collectoren rapporterer | Adressen OneUptime poller, når den er en IP-adresse |
+| IP-adresse | `host.ip` | Hver adresse collectoren rapporterer | Adressen OneUptime poller, når den er en IP-adresse, ellers adressen sonden slo opp DNS-navnet til |
 | MAC-adresse | `host.mac` | Oppdaget | Skrevet inn på enheten, eller lært fra ARP-tabellen i en gjennomgått ruter |
 | Serienummer | `host.serial_number` | Stemplet | ENTITY-MIB |
 | Manufacturer | `device.manufacturer` | Stemplet | ENTITY-MIB, ellers det `sysDescr` eller `sysObjectID` nevner |
@@ -189,7 +189,7 @@ En nettverksenhet (`entityType: network.device`) speiles fra Network Device-post
 | Felt | Nøkkel | Hvor det kommer fra |
 | --- | --- | --- |
 | Vertsnavn | `host.name` | Enhetens eget navn: SNMP-`sysName`, ellers NetBIOS- eller revers-DNS-navnet oppdagelsen fant. Utelates når bare IP-adressen navngir den |
-| IP-adresse | `host.ip` | Adressen OneUptime poller, når den er en IP-adresse |
+| IP-adresse | `host.ip` | Adressen OneUptime poller, når den er en IP-adresse. For en enhet som polles på et DNS-navn, adressen sonden sist slo opp navnet til |
 | DNS-navn | `net.device.dns_name` | Revers-DNS-navnet som ble funnet ved oppdagelsen, eller DNS-navnet OneUptime poller |
 | MAC-adresse | `host.mac` | Skrevet inn på enheten, eller lært fra ARP-tabellen i en gjennomgått ruter |
 | Merke | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`, ellers produsenten `sysDescr` nevner, ellers leverandøren til `sysObjectID` |
@@ -204,7 +204,9 @@ En nettverksenhet (`entityType: network.device`) speiles fra Network Device-post
 | Sted | `oneuptime.site.name` | Network Site som enheten er tildelt |
 | Pollet adresse | `net.device.hostname` | Adressen OneUptime poller: en IP-adresse eller et DNS-navn. Beholdt for synkroniseringer som ble skrevet før `host.name` og `host.ip` fantes |
 
-Maskinvareradene fylles ut etter enhetens første SNMP-walk, så en enhet som bare overvåkes med ping, eller en som er lagt til men ikke pollet ennå, viser ikke mye mer enn adressen sin. En enhet som ikke implementerer ENTITY-MIB, har ikke noe serienummer eller fastvare å rapportere. `sysDescr` nevner likevel modell og operativsystem for mange plattformer: en Cisco Meraki MX rapporterer `Meraki MX85`, som fyller ut merke og modell. En plattform der `sysDescr` ikke har en kjent form, legger ikke til noe, i stedet for å gjette.
+ENTITY-MIB-radene fylles ut etter enhetens første SNMP-walk. En enhet som ikke gjennomgås, fordi den bare overvåkes med ping eller ikke er pollet ennå, får likevel navn, merke, operativsystem og plassering fra det den siste discovery-skanningen av adressen leste over SNMP, og MAC-adressen fra ARP-tabellen i en gjennomgått ruter. En enhet som ikke implementerer ENTITY-MIB, har ikke noe serienummer eller fastvare å rapportere. `sysDescr` nevner likevel modell og operativsystem for mange plattformer: en Cisco Meraki MX rapporterer `Meraki MX85`, som fyller ut merke og modell. En plattform der `sysDescr` ikke har en kjent form, legger ikke til noe, i stedet for å gjette.
+
+En verdi som er lagret på enheten, skrevet inn eller satt via API-et, erstattes aldri av det discovery leser. Av en verdi enhetens egen walk leste og en en skanning leste, brukes den nyeste. Det en skanning leste, brukes bare når skanningen fant den samme maskinen på adressen: når systemnavnet, `sysObjectID` eller NetBIOS-navnet den leste, motsier enhetens, brukes ingenting av det den leste der. Elementets kort **Eiendelsdetaljer** viser hvor hver verdi kom fra, og når.
 
 Vertsnavnet er aldri IP-adressen. En enhet som bare adressen navngir, har `host.ip` og ikke noe `host.name`. Når SNMP-walken rapporterer et systemnavn, følger `host.name` ved neste gjennomgang.
 

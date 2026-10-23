@@ -48,6 +48,7 @@ const CHUNK_SIZE: number = 500;
 
 let findBySpy: jest.SpyInstance;
 let hookFreeUpdateSpy: jest.SpyInstance;
+let mergeSpy: jest.SpyInstance;
 
 function deviceRow(
   id: string,
@@ -156,6 +157,10 @@ function mockServices(rows: Array<NetworkDevice> = []): void {
   hookFreeUpdateSpy = jest
     .spyOn(NetworkDeviceService, "updateColumnsByIdWithoutHooks")
     .mockResolvedValue(undefined);
+  // The readings recorded in the devices' discovered details (issue #5185).
+  mergeSpy = jest
+    .spyOn(NetworkDeviceService, "mergeDiscoveredDetails")
+    .mockResolvedValue(0);
 }
 
 async function learn(
@@ -220,6 +225,8 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — the candidate re
       siteId: true,
       macAddress: true,
       isMacAddressLearned: true,
+      // What an earlier reading recorded, and when (issue #5185).
+      discoveredDetails: true,
     });
     expect(args["props"]).toEqual({ isRoot: true });
     expect(args["limit"]).toBe(LIMIT_MAX);
@@ -255,7 +262,11 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — the candidate re
 
     expect(findBySpy).not.toHaveBeenCalled();
     expect(hookFreeUpdateSpy).not.toHaveBeenCalled();
-    expect(result).toEqual({ candidateDeviceCount: 0, plannedCount: 0 });
+    expect(result).toEqual({
+      candidateDeviceCount: 0,
+      plannedCount: 0,
+      observationCount: 0,
+    });
   });
 
   test("bindings with only blank addresses issue no read either", async () => {
@@ -264,7 +275,11 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — the candidate re
     const result: MacLearningResult = await learn([binding("", REGISTER_MAC)]);
 
     expect(findBySpy).not.toHaveBeenCalled();
-    expect(result).toEqual({ candidateDeviceCount: 0, plannedCount: 0 });
+    expect(result).toEqual({
+      candidateDeviceCount: 0,
+      plannedCount: 0,
+      observationCount: 0,
+    });
   });
 
   test("1,001 distinct addresses are read in chunks of 500, and candidates from every chunk are planned", async () => {
@@ -303,7 +318,11 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — the candidate re
     expect(asked).toEqual(bound);
 
     // A device answered by the first chunk and one by the last both land.
-    expect(result).toEqual({ candidateDeviceCount: 2, plannedCount: 2 });
+    expect(result).toEqual({
+      candidateDeviceCount: 2,
+      plannedCount: 2,
+      observationCount: 2,
+    });
     expect(writtenDeviceIds().sort()).toEqual([REGISTER_ID, HANDSET_ID].sort());
   });
 
@@ -318,7 +337,11 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — the candidate re
       { observingSiteId: SITE_A },
     );
 
-    expect(result).toEqual({ candidateDeviceCount: 0, plannedCount: 0 });
+    expect(result).toEqual({
+      candidateDeviceCount: 0,
+      plannedCount: 0,
+      observationCount: 0,
+    });
     expect(hookFreeUpdateSpy).not.toHaveBeenCalled();
   });
 });
@@ -377,7 +400,11 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — the write", () =
       deletedAt: null,
     });
 
-    expect(result).toEqual({ candidateDeviceCount: 2, plannedCount: 2 });
+    expect(result).toEqual({
+      candidateDeviceCount: 2,
+      plannedCount: 2,
+      observationCount: 2,
+    });
   });
 
   test("the write goes through updateColumnsByIdWithoutHooks and never the hooked update", async () => {
@@ -408,7 +435,11 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — the write", () =
     );
 
     expect(hookFreeUpdateSpy).not.toHaveBeenCalled();
-    expect(result).toEqual({ candidateDeviceCount: 1, plannedCount: 0 });
+    expect(result).toEqual({
+      candidateDeviceCount: 1,
+      plannedCount: 0,
+      observationCount: 1,
+    });
   });
 
   test("a device in another site is a candidate but is never written", async () => {
@@ -420,7 +451,11 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — the write", () =
     );
 
     expect(hookFreeUpdateSpy).not.toHaveBeenCalled();
-    expect(result).toEqual({ candidateDeviceCount: 1, plannedCount: 0 });
+    expect(result).toEqual({
+      candidateDeviceCount: 1,
+      plannedCount: 0,
+      observationCount: 0,
+    });
   });
 
   test("the observing site is compared as a string, so an equal ObjectID matches", async () => {
@@ -436,7 +471,11 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — the write", () =
       { observingSiteId: new ObjectID(SITE_A.toString()) },
     );
 
-    expect(result).toEqual({ candidateDeviceCount: 1, plannedCount: 1 });
+    expect(result).toEqual({
+      candidateDeviceCount: 1,
+      plannedCount: 1,
+      observationCount: 1,
+    });
     expect(writtenDeviceIds()).toEqual([REGISTER_ID]);
   });
 
@@ -452,7 +491,11 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — the write", () =
     );
 
     expect(writtenDeviceIds()).toEqual([REGISTER_ID]);
-    expect(result).toEqual({ candidateDeviceCount: 2, plannedCount: 1 });
+    expect(result).toEqual({
+      candidateDeviceCount: 2,
+      plannedCount: 1,
+      observationCount: 1,
+    });
   });
 
   test("two devices at one address: neither is written, but both are counted as candidates", async () => {
@@ -467,7 +510,11 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — the write", () =
     );
 
     expect(hookFreeUpdateSpy).not.toHaveBeenCalled();
-    expect(result).toEqual({ candidateDeviceCount: 2, plannedCount: 0 });
+    expect(result).toEqual({
+      candidateDeviceCount: 2,
+      plannedCount: 0,
+      observationCount: 0,
+    });
   });
 
   test("nothing is written when no device is registered at any bound address", async () => {
@@ -480,7 +527,11 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — the write", () =
 
     expect(findBySpy).toHaveBeenCalledTimes(1);
     expect(hookFreeUpdateSpy).not.toHaveBeenCalled();
-    expect(result).toEqual({ candidateDeviceCount: 0, plannedCount: 0 });
+    expect(result).toEqual({
+      candidateDeviceCount: 0,
+      plannedCount: 0,
+      observationCount: 0,
+    });
   });
 
   test("a write that throws surfaces to the caller, after the writes before it landed", async () => {
@@ -539,7 +590,11 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — correcting a lea
       macAddress: STALE_MAC,
       deletedAt: null,
     });
-    expect(result).toEqual({ candidateDeviceCount: 1, plannedCount: 1 });
+    expect(result).toEqual({
+      candidateDeviceCount: 1,
+      plannedCount: 1,
+      observationCount: 1,
+    });
   });
 
   test("a typed MAC is never rewritten, however much the table disagrees", async () => {
@@ -555,7 +610,11 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — correcting a lea
     ]);
 
     expect(hookFreeUpdateSpy).not.toHaveBeenCalled();
-    expect(result).toEqual({ candidateDeviceCount: 1, plannedCount: 0 });
+    expect(result).toEqual({
+      candidateDeviceCount: 1,
+      plannedCount: 0,
+      observationCount: 1,
+    });
   });
 
   test("a learned MAC the table still agrees with is left alone", async () => {
@@ -569,5 +628,173 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — correcting a lea
     await learn([binding(REGISTER_IP, REGISTER_MAC)]);
 
     expect(hookFreeUpdateSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Each trusted reading of the table is also recorded in the device's
+ * discovered details (issue #5185): which router's table gave the device its
+ * MAC, and when - and, for a typed MAC the table contradicts, what the table
+ * says. In one batched merge, never into the MAC column of a typed device.
+ */
+describe("NetworkDeviceMacLearningUtil.learnFromArpBindings - recording the readings", () => {
+  const ROUTER_NAME: string = "core-rtr-01";
+
+  async function learnAsRouter(
+    ipBindings: Array<MacLearningIpBinding>,
+    observingSiteId?: ObjectID | undefined,
+  ): Promise<MacLearningResult> {
+    return NetworkDeviceMacLearningUtil.learnFromArpBindings({
+      projectId: new ObjectID(PROJECT_ID),
+      observingDeviceId: new ObjectID(ROUTER_ID),
+      observingDeviceName: ROUTER_NAME,
+      observingSiteId: observingSiteId,
+      ipBindings: ipBindings,
+    });
+  }
+
+  function mergedPatches(): Array<JSONObject> {
+    expect(mergeSpy).toHaveBeenCalledTimes(1);
+    const input: JSONObject = mergeSpy.mock.calls[0]![0] as JSONObject;
+    expect((input["projectId"] as ObjectID).toString()).toBe(PROJECT_ID);
+    return input["patches"] as Array<JSONObject>;
+  }
+
+  test("a MAC learned now is recorded with the router that taught it, and when", async () => {
+    mockServices([deviceRow(REGISTER_ID, REGISTER_IP, { siteId: SITE_A })]);
+
+    const before: number = Date.now();
+    const result: MacLearningResult = await learnAsRouter(
+      [binding(REGISTER_IP, "AA-BB-CC-DD-EE-01")],
+      SITE_A,
+    );
+
+    expect(result.observationCount).toBe(1);
+    const patches: Array<JSONObject> = mergedPatches();
+    expect(patches).toHaveLength(1);
+    expect(patches[0]!["deviceId"]).toBe(REGISTER_ID);
+
+    const entry: JSONObject = (patches[0]!["set"] as JSONObject)[
+      "macAddress"
+    ] as JSONObject;
+    expect(entry["value"]).toBe(REGISTER_MAC);
+    expect(entry["method"]).toBe("arpTable");
+    expect(entry["readBy"]).toEqual({
+      type: "networkDevice",
+      id: ROUTER_ID,
+      name: ROUTER_NAME,
+    });
+    expect(
+      new Date(entry["readAt"] as string).getTime(),
+    ).toBeGreaterThanOrEqual(before - 1000);
+  });
+
+  test("a typed MAC the table contradicts: the column is untouched, the reading recorded", async () => {
+    mockServices([
+      deviceRow(REGISTER_ID, REGISTER_IP, {
+        siteId: SITE_A,
+        macAddress: "00:11:22:33:44:55",
+        isMacAddressLearned: false,
+      }),
+    ]);
+
+    await learnAsRouter([binding(REGISTER_IP, REGISTER_MAC)], SITE_A);
+
+    expect(hookFreeUpdateSpy).not.toHaveBeenCalled();
+    const entry: JSONObject = (mergedPatches()[0]!["set"] as JSONObject)[
+      "macAddress"
+    ] as JSONObject;
+    expect(entry["value"]).toBe(REGISTER_MAC);
+  });
+
+  test("a reading recorded within the hour is not written again", async () => {
+    const row: NetworkDevice = deviceRow(REGISTER_ID, REGISTER_IP, {
+      siteId: SITE_A,
+      macAddress: REGISTER_MAC,
+      isMacAddressLearned: true,
+    });
+    row.discoveredDetails = {
+      macAddress: {
+        value: REGISTER_MAC,
+        method: "arpTable",
+        readBy: { type: "networkDevice", id: ROUTER_ID, name: ROUTER_NAME },
+        readAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+      },
+    };
+    mockServices([row]);
+
+    const result: MacLearningResult = await learnAsRouter(
+      [binding(REGISTER_IP, REGISTER_MAC)],
+      SITE_A,
+    );
+
+    expect(result.observationCount).toBe(0);
+    expect(mergeSpy).not.toHaveBeenCalled();
+  });
+
+  test("a reading over an hour old is written again", async () => {
+    const row: NetworkDevice = deviceRow(REGISTER_ID, REGISTER_IP, {
+      siteId: SITE_A,
+      macAddress: REGISTER_MAC,
+      isMacAddressLearned: true,
+    });
+    row.discoveredDetails = {
+      macAddress: {
+        value: REGISTER_MAC,
+        method: "arpTable",
+        readBy: { type: "networkDevice", id: ROUTER_ID, name: ROUTER_NAME },
+        readAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      },
+    };
+    mockServices([row]);
+
+    await learnAsRouter([binding(REGISTER_IP, REGISTER_MAC)], SITE_A);
+
+    expect(mergedPatches()).toHaveLength(1);
+  });
+
+  test("a device in another site is never credited with this table", async () => {
+    mockServices([deviceRow(REGISTER_ID, REGISTER_IP, { siteId: SITE_B })]);
+
+    await learnAsRouter([binding(REGISTER_IP, REGISTER_MAC)], SITE_A);
+
+    expect(mergeSpy).not.toHaveBeenCalled();
+  });
+
+  test("every reading of one table goes in one merge", async () => {
+    mockServices([
+      deviceRow(REGISTER_ID, REGISTER_IP, { siteId: SITE_A }),
+      deviceRow(HANDSET_ID, HANDSET_IP, { siteId: SITE_A }),
+    ]);
+
+    await learnAsRouter(
+      [binding(REGISTER_IP, REGISTER_MAC), binding(HANDSET_IP, HANDSET_MAC)],
+      SITE_A,
+    );
+
+    expect(
+      mergedPatches()
+        .map((patch: JSONObject): string => {
+          return patch["deviceId"] as string;
+        })
+        .sort(),
+    ).toEqual([REGISTER_ID, HANDSET_ID].sort());
+  });
+
+  test("a failed merge is logged and swallowed: the MACs learned stay learned", async () => {
+    mockServices([deviceRow(REGISTER_ID, REGISTER_IP, { siteId: SITE_A })]);
+    mergeSpy.mockRejectedValueOnce(new Error("connection reset"));
+
+    const result: MacLearningResult = await learnAsRouter(
+      [binding(REGISTER_IP, REGISTER_MAC)],
+      SITE_A,
+    );
+
+    expect(hookFreeUpdateSpy).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({
+      candidateDeviceCount: 1,
+      plannedCount: 1,
+      observationCount: 0,
+    });
   });
 });

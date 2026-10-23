@@ -18,6 +18,10 @@ import Query from "Common/Server/Types/Database/Query";
 import Select from "Common/Server/Types/Database/Select";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import { normalizeMac } from "Common/Utils/Monitor/EndpointAttachmentUtil";
+import {
+  NetworkDeviceEffectiveInputs,
+  getNetworkDeviceEffectiveInputs,
+} from "Common/Utils/NetworkDevice/NetworkDeviceAssetFacts";
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkInterfaceService from "Common/Server/Services/NetworkInterfaceService";
@@ -325,6 +329,16 @@ export default class NetworkDeviceTopologyAPI {
                  */
                 sysDescr: true,
                 sysObjectId: true,
+                /*
+                 * What discovery read about a device its own poll has not
+                 * (issue #5185) - a ping-only switch a scan read over SNMP -
+                 * so the map draws it as what Inventory says it is. Read
+                 * only by the role classifier, through the device's asset
+                 * facts; neighbour matching keeps to the device's own
+                 * columns.
+                 */
+                discoveredDetails: true,
+                lastSnmpSeenAt: true,
                 /*
                  * The operator's own answer, which beats the classifier
                  * above. Load-bearing for devices nothing walks: with no
@@ -718,6 +732,14 @@ export default class NetworkDeviceTopologyAPI {
 
           const topologyInput: Array<TopologyDeviceInput> = devices.map(
             (device: NetworkDevice) => {
+              /*
+               * The system description and object ID the role classifier
+               * reads: the device's own, or what discovery read when its
+               * poll has not (NetworkDeviceAssetFacts).
+               */
+              const classifierInputs: NetworkDeviceEffectiveInputs =
+                getNetworkDeviceEffectiveInputs(device);
+
               return {
                 id: device.id!.toString(),
                 name: device.name || device.hostname || "Unnamed device",
@@ -747,8 +769,8 @@ export default class NetworkDeviceTopologyAPI {
                 interfacesDown: device.interfacesDown,
                 vendor: device.vendor,
                 deviceModel: device.deviceModel,
-                sysDescr: device.sysDescr,
-                sysObjectId: device.sysObjectId,
+                sysDescr: classifierInputs.sysDescr.value,
+                sysObjectId: classifierInputs.sysObjectId.value,
                 deviceRole: device.networkDeviceRole?.key || device.deviceRole,
                 serialNumber: device.serialNumber,
                 isNeighborDiscoveryEnabled: device.walkInterfaces,
