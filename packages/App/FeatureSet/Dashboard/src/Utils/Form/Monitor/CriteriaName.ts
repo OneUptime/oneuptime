@@ -17,6 +17,8 @@ import {
   TRANSCEIVER_READING_UNITS,
   TransceiverReadingKind,
 } from "Common/Types/Monitor/SnmpMonitor/SnmpTransceiver";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import CriteriaFilterUtil from "./CriteriaFilter";
 
 // A threshold written as a plain number ("400", "-1", "99.5").
 const NUMERIC_VALUE: RegExp = /^-?\d+(\.\d+)?$/;
@@ -29,6 +31,17 @@ export interface CriteriaFiltersSnapshot {
 export interface MonitorStepsNamingResult {
   monitorSteps: MonitorSteps;
   didChange: boolean;
+}
+
+export interface CriteriaNameOptions {
+  /*
+   * Name a value picked from a fixed list (the Value dropdown of, say,
+   * External Status Page Component Status) by what is stored -
+   * "under_maintenance" - rather than by the words the dropdown shows. Names
+   * were made that way before, so a name made then still counts as the
+   * filters' own (isNameFromFilters) and keeps following them.
+   */
+  useStoredValues?: boolean | undefined;
 }
 
 /*
@@ -69,10 +82,13 @@ export default class CriteriaNameUtil {
    * "Response Time (in ms) is above 3000", or for several filters
    * "Is Online is false or Response Status Code is at least 400".
    */
-  public static getNameFromFilters(data: CriteriaFiltersSnapshot): string {
+  public static getNameFromFilters(
+    data: CriteriaFiltersSnapshot,
+    options?: CriteriaNameOptions,
+  ): string {
     const phrases: Array<string> = (data.filters || [])
       .map((criteriaFilter: CriteriaFilter) => {
-        return CriteriaNameUtil.describeFilter(criteriaFilter);
+        return CriteriaNameUtil.describeFilter(criteriaFilter, options);
       })
       .filter((phrase: string) => {
         return phrase.length > 0;
@@ -113,7 +129,8 @@ export default class CriteriaNameUtil {
 
   /*
    * True while the name is not the user's: empty, or still exactly what
-   * the filters gave it. Such a name is replaced when the filters change.
+   * the filters gave it - now, or before a picked value was named by its
+   * dropdown's words. Such a name is replaced when the filters change.
    */
   public static isNameFromFilters(
     data: CriteriaFiltersSnapshot & { name: string | undefined },
@@ -124,7 +141,11 @@ export default class CriteriaNameUtil {
       return true;
     }
 
-    return name === CriteriaNameUtil.getNameFromFilters(data);
+    return (
+      name === CriteriaNameUtil.getNameFromFilters(data) ||
+      name ===
+        CriteriaNameUtil.getNameFromFilters(data, { useStoredValues: true })
+    );
   }
 
   /*
@@ -224,13 +245,16 @@ export default class CriteriaNameUtil {
    * One filter as a short phrase: what it checks, then the condition and the
    * value in the words of the condition dropdown ("is above", "contains").
    */
-  public static describeFilter(criteriaFilter: CriteriaFilter): string {
+  public static describeFilter(
+    criteriaFilter: CriteriaFilter,
+    options?: CriteriaNameOptions,
+  ): string {
     if (!criteriaFilter?.checkOn) {
       return "";
     }
 
     const subject: string = CriteriaNameUtil.getSubject(criteriaFilter);
-    const value: string = CriteriaNameUtil.formatValue(criteriaFilter);
+    const value: string = CriteriaNameUtil.formatValue(criteriaFilter, options);
     const valueOrEllipsis: string = value || CriteriaNameUtil.ELLIPSIS;
 
     switch (criteriaFilter.filterType) {
@@ -369,20 +393,38 @@ export default class CriteriaNameUtil {
 
   /*
    * The filter's value as it reads in a name: numbers as they are, with the
-   * unit the threshold was entered in, and text in quotes so it cannot run
-   * into the words around it. Empty when there is no value yet.
+   * unit the threshold was entered in, a value picked from a fixed list by
+   * the words its dropdown shows ("Under Maintenance", not
+   * "under_maintenance"), and text in quotes so it cannot run into the words
+   * around it. Empty when there is no value yet.
    */
-  private static formatValue(criteriaFilter: CriteriaFilter): string {
+  private static formatValue(
+    criteriaFilter: CriteriaFilter,
+    options?: CriteriaNameOptions,
+  ): string {
     const rawValue: string | number | undefined = criteriaFilter.value;
 
     if (rawValue === undefined || rawValue === null) {
       return "";
     }
 
-    const value: string = String(rawValue).trim();
+    let value: string = String(rawValue).trim();
 
     if (!value) {
       return "";
+    }
+
+    if (!options?.useStoredValues) {
+      const pickedOption: DropdownOption | undefined =
+        CriteriaFilterUtil.getDropdownOptionsByCheckOn({
+          checkOn: criteriaFilter.checkOn,
+        }).find((option: DropdownOption): boolean => {
+          return String(option.value) === value;
+        });
+
+      if (pickedOption?.label) {
+        value = pickedOption.label;
+      }
     }
 
     const isNumeric: boolean = NUMERIC_VALUE.test(value);

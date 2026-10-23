@@ -14,6 +14,7 @@ import {
   render,
   RenderResult,
   screen,
+  within,
 } from "@testing-library/react";
 import * as React from "react";
 import Permission from "../../../Types/Permission";
@@ -608,5 +609,65 @@ describe("the poll does not outlive what the user is doing", () => {
 
     await tick();
     expect(getItemMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+// The open result dialog.
+function resultDialog(): HTMLElement {
+  const dialog: HTMLElement | null = screen
+    .getByText("Monitor Test Result")
+    .closest("[role='dialog']");
+
+  expect(dialog).not.toBeNull();
+
+  return dialog as HTMLElement;
+}
+
+describe("the result", () => {
+  /*
+   * It used to say "Probe: -": the result named no probe, though the person
+   * had just picked one. It names the probe the test ran on, as the
+   * monitor's Summary names the probe whose check it shows.
+   */
+  test("names the probe the test ran on", async () => {
+    getItemMock.mockResolvedValue(finishedRow());
+
+    renderForm();
+    await clickTestMonitor();
+    await runTestOnProbe("Frankfurt Probe");
+    await tick();
+
+    expect(
+      within(resultDialog()).getByText("Frankfurt Probe"),
+    ).toBeInTheDocument();
+    expect(
+      within(resultDialog()).queryByText("Ohio Probe"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("names the probe of the test that ran last, not of the one before", async () => {
+    getItemMock.mockResolvedValue(finishedRow());
+
+    renderForm();
+    await clickTestMonitor();
+    await runTestOnProbe("Ohio Probe");
+    await tick();
+
+    expect(within(resultDialog()).getByText("Ohio Probe")).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Close"));
+    });
+
+    await clickTestMonitor();
+    await runTestOnProbe("Frankfurt Probe");
+    await tick();
+
+    expect(
+      within(resultDialog()).getByText("Frankfurt Probe"),
+    ).toBeInTheDocument();
+    expect(
+      within(resultDialog()).queryByText("Ohio Probe"),
+    ).not.toBeInTheDocument();
   });
 });

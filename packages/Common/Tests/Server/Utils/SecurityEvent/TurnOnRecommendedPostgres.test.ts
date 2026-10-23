@@ -4,7 +4,7 @@ import SecurityPlaybook from "../../../../Models/DatabaseModels/SecurityPlaybook
 import CommonAPI from "../../../../Server/API/CommonAPI";
 import SecurityCaseAPI from "../../../../Server/API/SecurityCaseAPI";
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
-import { WidenDetectionRuleName1806300000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1806300000000-WidenDetectionRuleName";
+import { WidenDetectionRuleName1806400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1806400000000-WidenDetectionRuleName";
 import DetectionRuleService from "../../../../Server/Services/DetectionRuleService";
 import SecurityLogSourceService from "../../../../Server/Services/SecurityLogSourceService";
 import SecurityPlaybookService from "../../../../Server/Services/SecurityPlaybookService";
@@ -527,7 +527,7 @@ describePostgres("Turn on recommended against a migrated Postgres", () => {
       // The migration, on this copy (the search path reaches it first).
       const queryRunner: QueryRunner = database.createQueryRunner();
       try {
-        await new WidenDetectionRuleName1806300000000().up(queryRunner);
+        await new WidenDetectionRuleName1806400000000().up(queryRunner);
       } finally {
         await queryRunner.release();
       }

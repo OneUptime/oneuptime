@@ -139,6 +139,8 @@ På **Episodedetaljer** fyller du ut **Tittel** og, hvis du vil, en **Varselsalv
 
 På **Vakt og eiere** velger du en **Vaktpolicy** som skal kjøre når episoden opprettes, og **Eiere**. Klikk deretter på **Opprett episode**.
 
+Hvert team du er medlem av, er bare ett klikk unna under **Eiere**, og sammendraget nevner eierreglene som legger til flere.
+
 ### Legg til varslene
 
 Åpne episodens side **Medlemsvarsler**, klikk **Legg til varsler**, og huk av varslene som hører til den, så mange du trenger på én gang. Vil du heller starte fra varslene, velger du dem i listen **Varsler** og velger **Legg til i ny episode** under **Massehandlinger** (se [Episoder](/docs/incidents/episodes)).

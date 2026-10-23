@@ -75,7 +75,7 @@ Gå til **Advarsler → Alle advarsler**, og klik på **Opret advarsel**. Formul
 
 ### Beskriv advarslen
 
-Udfyld **Titel**, og vælg en **Advarselsalvor**; begge er påkrævede. Tilføj en **Beskrivelse**, hvis det hjælper. Under **Flere felter**, foldet sammen, kan du vælge en **Indledende tilstand**, tilføje **Etiketter** eller slå **Privat advarsel** til.
+Udfyld **Titel**, og vælg en **Advarselsalvor**; begge er påkrævede. Tilføj en **Beskrivelse**, hvis det hjælper. Under **Flere felter**, foldet sammen, kan du vælge en **Indledende tilstand**, tilføje **Etiketter** eller slå **Privat advarsel** til. Der venter også **Ejere**: du bliver alligevel ejer af den advarsel, du opretter, og hvert team, du er medlem af, er et enkelt klik væk under vælgeren.
 
 ### Vælg, hvad den berører, og hvem der tilkaldes
 
@@ -83,7 +83,7 @@ Klik på **Næste** for at komme til **Ressourcer og vagt**. Vælg den **Overvå
 
 ### Opret den
 
-Klik på **Næste** for at gennemse oversigten og derefter på **Opret advarsel**. Advarslens egen side åbner, og reglerne begynder at køre.
+Klik på **Næste** for at gennemse oversigten og derefter på **Opret advarsel**. Advarslens egen side åbner, og reglerne begynder at køre. I oversigten nævner rækken **Ejere** hver ejerregel, der vil tilføje nogen, og hvem: se [Hvem der ejer den](/docs/incidents/declaring-incidents#hvem-der-ejer-den).
 :::
 
 Lader du **Indledende tilstand** være tom, starter advarslen, hvor enhver ny advarsel gør: i din oprettelsestilstand, **Identified** i et nyt projekt. Vælger du en senere tilstand, registrerer du en advarsel, som nogen allerede håndterer, eller som allerede er overstået; se [Oprettet allerede bekræftet eller løst](#oprettet-allerede-bekræftet-eller-løst).

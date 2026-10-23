@@ -35,6 +35,10 @@ import {
 } from "../Utils/Rules/RuleRun/RuleApplication";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
+import OwnerRulePlanBuilder, {
+  OwnerRulePlan,
+  OwnerRulePlanEntry,
+} from "../Utils/Rules/OwnerRulePlan";
 
 class AlertEpisodeOwnerRuleEngineServiceClass
   implements RuleRunEngine<AlertEpisode, AlertEpisodeOwnerRule>
@@ -65,6 +69,35 @@ class AlertEpisodeOwnerRuleEngineServiceClass
     labels: { _id: true },
   };
 
+  /*
+   * The project's enabled rules, as every evaluation of a new episode reads
+   * them - the create and the create form's preview alike.
+   */
+  @CaptureSpan()
+  public async getEnabledRules(
+    projectId: ObjectID,
+  ): Promise<Array<AlertEpisodeOwnerRule>> {
+    const rules: Array<AlertEpisodeOwnerRule> =
+      await AlertEpisodeOwnerRuleService.findBy({
+        query: {
+          projectId: projectId,
+          isEnabled: true,
+        },
+        props: { isRoot: true },
+        select: this.ruleSelect,
+        limit: MAX_RULES_EVALUATED_PER_PROJECT,
+        skip: 0,
+      });
+
+    logIfRuleReadWasTruncated({
+      ruleKind: "AlertEpisodeOwnerRule",
+      projectId: projectId,
+      rulesRead: rules.length,
+    });
+
+    return rules;
+  }
+
   /**
    * Evaluates AlertEpisodeOwnerRule rows for the given episode and adds
    * matched owner users / teams via AlertEpisodeService.addOwners. Honors
@@ -77,23 +110,9 @@ class AlertEpisodeOwnerRuleEngineServiceClass
     }
 
     try {
-      const rules: Array<AlertEpisodeOwnerRule> =
-        await AlertEpisodeOwnerRuleService.findBy({
-          query: {
-            projectId: episode.projectId,
-            isEnabled: true,
-          },
-          props: { isRoot: true },
-          select: this.ruleSelect,
-          limit: MAX_RULES_EVALUATED_PER_PROJECT,
-          skip: 0,
-        });
-
-      logIfRuleReadWasTruncated({
-        ruleKind: "AlertEpisodeOwnerRule",
-        projectId: episode.projectId,
-        rulesRead: rules.length,
-      });
+      const rules: Array<AlertEpisodeOwnerRule> = await this.getEnabledRules(
+        episode.projectId,
+      );
 
       if (rules.length === 0) {
         return;
@@ -136,7 +155,71 @@ class AlertEpisodeOwnerRuleEngineServiceClass
     }
   }
 
+  /*
+   * What the project's owner rules would add to an episode that is not
+   * created yet - the one the Create Episode form holds - worked out by the
+   * plan the create carries out (planRules), and nothing written.
+   */
+  @CaptureSpan()
+  public async previewRules(
+    episode: AlertEpisode,
+  ): Promise<Array<OwnerRulePlanEntry<AlertEpisodeOwnerRule>>> {
+    if (!episode.projectId) {
+      return [];
+    }
+
+    const rules: Array<AlertEpisodeOwnerRule> = await this.getEnabledRules(
+      episode.projectId,
+    );
+
+    if (rules.length === 0) {
+      return [];
+    }
+
+    const plan: OwnerRulePlan<AlertEpisodeOwnerRule> = this.planRules({
+      episode: episode,
+      rules: rules,
+      allowOwnerNotification: true,
+    });
+
+    return plan.entries;
+  }
+
+  /*
+   * Which of `rules` match the episode, and who each of them brings
+   * (OwnerRulePlan) - read, never written. An episode rule names its owners:
+   * it inherits none, and has no creator's team.
+   */
   @RuleEvaluation()
+  public planRules(data: {
+    episode: AlertEpisode;
+    rules: Array<AlertEpisodeOwnerRule>;
+    allowOwnerNotification: boolean;
+  }): OwnerRulePlan<AlertEpisodeOwnerRule> {
+    const builder: OwnerRulePlanBuilder<AlertEpisodeOwnerRule> =
+      new OwnerRulePlanBuilder<AlertEpisodeOwnerRule>(
+        data.allowOwnerNotification,
+      );
+
+    for (const rule of data.rules) {
+      if (!this.doesEpisodeMatchRule(data.episode, rule)) {
+        continue;
+      }
+
+      builder.addMatch({
+        rule: rule,
+        notifyOwners: rule.notifyOwners,
+        userIds: OwnerRulePlanBuilder.idsOf(rule.ownerUsers),
+        teamIds: OwnerRulePlanBuilder.idsOf(rule.ownerTeams),
+        listsCreatorTeams: false,
+        creatorTeamIds: [],
+        inheritsFrom: [],
+      });
+    }
+
+    return builder.build(new Map());
+  }
+
   private async applyRules(data: {
     episode: AlertEpisode;
     rules: Array<AlertEpisodeOwnerRule>;
@@ -148,49 +231,19 @@ class AlertEpisodeOwnerRuleEngineServiceClass
       return RuleApplicationResultUtil.noMatch();
     }
 
-    const usersByNotify: Map<boolean, Set<string>> = new Map([
-      [true, new Set()],
-      [false, new Set()],
-    ]);
-    const teamsByNotify: Map<boolean, Set<string>> = new Map([
-      [true, new Set()],
-      [false, new Set()],
-    ]);
-    const matchedRules: Array<AlertEpisodeOwnerRule> = [];
-    const allUserIds: Set<string> = new Set();
-    const allTeamIds: Set<string> = new Set();
-    let anyRuleMatched: boolean = false;
+    const plan: OwnerRulePlan<AlertEpisodeOwnerRule> = this.planRules(data);
 
-    for (const rule of rules) {
-      if (!this.doesEpisodeMatchRule(episode, rule)) {
-        continue;
-      }
-      anyRuleMatched = true;
-      let ruleAddedAny: boolean = false;
-      const notify: boolean =
-        rule.notifyOwners !== false && data.allowOwnerNotification;
-      for (const user of rule.ownerUsers || []) {
-        if (user.id) {
-          usersByNotify.get(notify)!.add(user.id.toString());
-          allUserIds.add(user.id.toString());
-          ruleAddedAny = true;
-        }
-      }
-      for (const team of rule.ownerTeams || []) {
-        if (team.id) {
-          teamsByNotify.get(notify)!.add(team.id.toString());
-          allTeamIds.add(team.id.toString());
-          ruleAddedAny = true;
-        }
-      }
-      if (ruleAddedAny) {
-        matchedRules.push(rule);
-      }
-    }
-
-    if (!anyRuleMatched) {
+    if (!plan.anyRuleMatched) {
       return RuleApplicationResultUtil.noMatch();
     }
+
+    const {
+      matchedRules,
+      usersByNotify,
+      teamsByNotify,
+      allUserIds,
+      allTeamIds,
+    } = plan;
 
     if (
       matchedRules.length === 0 ||

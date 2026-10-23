@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useId } from "react";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import {
@@ -15,24 +15,64 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 export interface ComponentProps {
   monitorStepExternalStatusPageMonitor: MonitorStepExternalStatusPageMonitor;
   onChange: (value: MonitorStepExternalStatusPageMonitor) => void;
 }
 
+/*
+ * The Provider dropdown's choices: Auto first - it is what a new monitor
+ * starts on and what most people keep - then each format in the enum's
+ * order (ExternalStatusPageProviderType).
+ */
+export const getExternalStatusPageProviderOptions: () => Array<DropdownOption> =
+  (): Array<DropdownOption> => {
+    const options: Array<DropdownOption> =
+      DropdownUtil.getDropdownOptionsFromEnum(ExternalStatusPageProviderType);
+
+    return [
+      ...options.filter((option: DropdownOption): boolean => {
+        return option.value === ExternalStatusPageProviderType.Auto;
+      }),
+      ...options.filter((option: DropdownOption): boolean => {
+        return option.value !== ExternalStatusPageProviderType.Auto;
+      }),
+    ];
+  };
+
 const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const providerDropdownOptions: Array<DropdownOption> =
-    DropdownUtil.getDropdownOptionsFromEnum(ExternalStatusPageProviderType);
+    getExternalStatusPageProviderOptions();
+
+  /*
+   * Each field's label names its box for a screen reader. A monitor can
+   * have several steps on one page, so the ids are the step's own.
+   */
+  const idPrefix: string = useId();
+  const statusPageUrlLabelId: string = `${idPrefix}-status-page-url`;
+  const providerLabelId: string = `${idPrefix}-provider`;
+  const componentGroupLabelId: string = `${idPrefix}-component-group`;
+  const componentNameLabelId: string = `${idPrefix}-component-name`;
+  const timeoutLabelId: string = `${idPrefix}-timeout`;
+  const retriesLabelId: string = `${idPrefix}-retries`;
 
   return (
     <div className="space-y-5">
       <div>
+        {/*
+         * A key of its own: the extractor takes a description with "://"
+         * in it for a URL, so this one was never offered for translation.
+         */}
         <FieldLabelElement
+          id={statusPageUrlLabelId}
           title="Status Page URL"
-          description="The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)"
+          description={translationKey(
+            "The URL of the external status page to monitor (e.g. https://www.githubstatus.com or https://status.openai.com)",
+          )}
           required={true}
         />
         <Input
@@ -40,6 +80,7 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
             props.monitorStepExternalStatusPageMonitor.statusPageUrl
           }
           placeholder="https://status.example.com"
+          ariaLabelledby={statusPageUrlLabelId}
           onChange={(value: string) => {
             props.onChange({
               ...props.monitorStepExternalStatusPageMonitor,
@@ -50,10 +91,16 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
       </div>
 
       <div>
+        {/*
+         * Always set - Auto until a person picks a format - so it is
+         * neither marked optional nor clearable.
+         */}
         <FieldLabelElement
+          id={providerLabelId}
           title="Provider"
-          description="How OneUptime reads this status page. 'Auto' detects Atlassian Statuspage, incident.io, or an RSS/Atom feed automatically."
+          description="How OneUptime reads this status page. 'Auto' detects the format for you."
           required={false}
+          hideOptionalLabel={true}
         />
         <Dropdown
           initialValue={providerDropdownOptions.find((i: DropdownOption) => {
@@ -64,6 +111,8 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
             );
           })}
           options={providerDropdownOptions}
+          ariaLabelledby={providerLabelId}
+          isClearable={false}
           onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
             props.onChange({
               ...props.monitorStepExternalStatusPageMonitor,
@@ -91,8 +140,9 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
         <div className="space-y-4">
           <div>
             <FieldLabelElement
-              title="Component Group Filter (Optional)"
-              description="Only watch one component group, e.g. 'APIs'. Works with Atlassian Statuspage and incident.io."
+              id={componentGroupLabelId}
+              title="Component Group Filter"
+              description="Only watch one component group, e.g. 'APIs'. RSS and Atom feeds have no groups."
               required={false}
             />
             <Input
@@ -101,6 +151,7 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
                 ""
               }
               placeholder="e.g. APIs"
+              ariaLabelledby={componentGroupLabelId}
               onChange={(value: string) => {
                 props.onChange({
                   ...props.monitorStepExternalStatusPageMonitor,
@@ -112,8 +163,9 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
 
           <div>
             <FieldLabelElement
-              title="Component Name Filter (Optional)"
-              description="Filter to a specific component by name (applied within the component group when one is set). Leave blank to monitor all components in scope."
+              id={componentNameLabelId}
+              title="Component Name Filter"
+              description="Only watch components whose names contain this, e.g. 'API'. With a group set, only inside that group."
               required={false}
             />
             <Input
@@ -121,6 +173,7 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
                 props.monitorStepExternalStatusPageMonitor.componentName || ""
               }
               placeholder="e.g. API, Compute Engine, us-east-1"
+              ariaLabelledby={componentNameLabelId}
               onChange={(value: string) => {
                 props.onChange({
                   ...props.monitorStepExternalStatusPageMonitor,
@@ -132,6 +185,7 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
 
           <div>
             <FieldLabelElement
+              id={timeoutLabelId}
               title="Timeout (ms)"
               description="How long to wait for a response before timing out"
               required={false}
@@ -143,6 +197,7 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
               }
               placeholder="10000"
               type={InputType.NUMBER}
+              ariaLabelledby={timeoutLabelId}
               onChange={(value: string) => {
                 props.onChange({
                   ...props.monitorStepExternalStatusPageMonitor,
@@ -154,6 +209,7 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
 
           <div>
             <FieldLabelElement
+              id={retriesLabelId}
               title="Retries"
               description="Number of times to retry after the first attempt fails. For example, 2 means up to 3 attempts in total. Set to 0 for no retries. Defaults to 3."
               required={false}
@@ -165,6 +221,7 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
               }
               placeholder="3"
               type={InputType.NUMBER}
+              ariaLabelledby={retriesLabelId}
               onChange={(value: string) => {
                 props.onChange({
                   ...props.monitorStepExternalStatusPageMonitor,

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import DetectionRule from "../../../Models/DatabaseModels/DetectionRule";
 import { AddDetectionRuleAndGoogleSecOpsConnection1788000000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1788000000000-AddDetectionRuleAndGoogleSecOpsConnection";
-import { WidenDetectionRuleName1806300000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1806300000000-WidenDetectionRuleName";
+import { WidenDetectionRuleName1806400000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1806400000000-WidenDetectionRuleName";
 import SchemaMigrations from "../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import ColumnLength, {
   getMaxLengthFromTableColumnType,
@@ -27,7 +27,7 @@ import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArg
  *
  * TypeORM generates the change as DROP COLUMN "name" + ADD "name" NOT NULL,
  * which would drop every rule's name - and fail outright on a table holding
- * a rule. WidenDetectionRuleName1806300000000 is ALTER COLUMN ... TYPE: the
+ * a rule. WidenDetectionRuleName1806400000000 is ALTER COLUMN ... TYPE: the
  * same schema (the drift check passes), every name kept. Pure metadata and
  * recorded SQL here; TurnOnRecommendedPostgres runs it on a table that
  * holds rules.
@@ -99,9 +99,9 @@ describe("DetectionRule.name", () => {
   });
 });
 
-describe("WidenDetectionRuleName1806300000000", () => {
-  const migration: WidenDetectionRuleName1806300000000 =
-    new WidenDetectionRuleName1806300000000();
+describe("WidenDetectionRuleName1806400000000", () => {
+  const migration: WidenDetectionRuleName1806400000000 =
+    new WidenDetectionRuleName1806400000000();
 
   test("up() widens the column in place, keeping every name", async () => {
     const { runner, sql } = recordQueries();
@@ -149,7 +149,7 @@ describe("WidenDetectionRuleName1806300000000", () => {
       },
     );
     const widened: number = names.indexOf(
-      "WidenDetectionRuleName1806300000000",
+      "WidenDetectionRuleName1806400000000",
     );
     const created: number = names.indexOf(
       "AddDetectionRuleAndGoogleSecOpsConnection1788000000000",
@@ -161,6 +161,6 @@ describe("WidenDetectionRuleName1806300000000", () => {
   });
 
   test("its name carries its timestamp, as its file's does", () => {
-    expect(migration.name).toBe("WidenDetectionRuleName1806300000000");
+    expect(migration.name).toBe("WidenDetectionRuleName1806400000000");
   });
 });

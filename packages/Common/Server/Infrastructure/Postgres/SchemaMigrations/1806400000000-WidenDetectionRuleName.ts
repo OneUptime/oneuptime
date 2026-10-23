@@ -19,8 +19,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Same shape as WidenSecurityEventLastErrorColumns1789800000000 and
  * WidenInventoryResourceNameColumns1785930000000.
  */
-export class WidenDetectionRuleName1806300000000 implements MigrationInterface {
-  public name: string = "WidenDetectionRuleName1806300000000";
+export class WidenDetectionRuleName1806400000000 implements MigrationInterface {
+  public name: string = "WidenDetectionRuleName1806400000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

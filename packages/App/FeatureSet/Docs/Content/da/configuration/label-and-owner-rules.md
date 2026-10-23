@@ -57,7 +57,7 @@ I trinnet **Etiketter** vælger du **Etiketter at tilføje**. I en ejerregel hed
 I det sidste trin klikker du igen på knappen, der er opkaldt efter reglen, for eksempel **Opret Monitor Label Rule**. Reglen starter som aktiveret, og listen viser den med et grønt mærke **Aktiveret**.
 :::
 
-En ny regel skal tilføje noget: mindst én etiket (eller ejer) eller, i en regel for hændelser, alarmer eller planlagt vedligeholdelse, noget den nedarver (se nedenfor). For at sætte en regel på pause uden at slette den slår du **Aktiveret** fra i dens redigeringsformular; listen viser så et rødt mærke **Deaktiveret**.
+En ny regel skal tilføje noget: mindst én etiket (eller ejer) eller, i en regel for hændelser, alarmer eller planlagt vedligeholdelse, noget den nedarver (se nedenfor). For at sætte en regel på pause uden at slette den slår du **Aktiveret** fra i dens redigeringsformular; listen viser så et rødt mærke **Deaktiveret**. På en ejerregel for hændelser eller advarsler er et team under **Opretterens team** også nok.
 
 ### Uanset hvordan reglen oprettes
 
@@ -68,9 +68,10 @@ Det samme gælder for en regel, der oprettes via API'et, Terraform, et workflow 
 | Etiketregel | This label rule adds nothing. Choose at least one label in Labels to Add. |
 | Etiketregel for hændelser, alarmer eller planlagt vedligeholdelse | This label rule adds nothing. Choose at least one label in Labels to Add, or turn on an Inherit Labels switch. |
 | Ejerregel | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams. |
-| Ejerregel for hændelser, alarmer eller planlagt vedligeholdelse | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
+| Ejerregel for hændelser eller advarsler | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, a team in Creator's Teams, or turn on an Inherit Owners switch. |
+| Ejerregel for planlagt vedligeholdelse | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
 
-- **API**: sæt `labelsToAdd` (eller `ownerUsers` / `ownerTeams`) til mindst én post i projektet, eller en af reglens kontakter `inheritLabelsFrom…` (`inheritOwnersFrom…`) til `true`, en JSON-boolean.
+- **API**: sæt `labelsToAdd` (eller `ownerUsers` / `ownerTeams`) til mindst én post i projektet, eller en af reglens kontakter `inheritLabelsFrom…` (`inheritOwnersFrom…`) til `true`, en JSON-boolean. På en ejerregel for hændelser eller advarsler er et team i `creatorTeams` også nok.
 - **Terraform**: en ressource for en etiket- eller ejerregel, der ikke tilføjer noget, fejler ved `terraform apply` med beskeden ovenfor. Giv den `labels_to_add` (eller `owner_users` / `owner_teams`), eller slå en af dens nedarvningskontakter til.
 
 Regler, du allerede har, røres ikke: se [Rediger en regel](#rediger-en-regel).
@@ -93,6 +94,12 @@ En regel, der nedarver, kan lade **Etiketter at tilføje** (eller **Ejere**) væ
 | **Nedarv etiketter fra overvågning**, i en alarmregel | _Nedarv etiketter fra: overvågning_ |
 
 Navnet følger kontakterne, indtil du vælger en etiket (så får reglen navn efter sine etiketter) eller skriver et navn selv.
+
+### Opretterens team
+
+En ejerregel for hændelser eller advarsler har én post mere, sidst i sin sektion **Nedarv ejere**: **Opretterens team**, en liste over teams. Når den person, der erklærer en matchende hændelse eller opretter en matchende advarsel, er medlem af et team på listen, bliver det team også ejer. Det er en liste og ikke alle personens teams, fordi folk som standard kommer i projektets team **Medlemmer**, og det hjælper ingen at gøre alle til ejere. En hændelse eller advarsel, som en monitor, et workflow, en formular eller en API-nøgle opretter, har ingen opretter og får ingen af disse teams. De får besked, som reglens **Underret ejere** siger, og en regel, der kun tilføjer dem, hedder _Tilføj opretterens team som ejer_. Gennem API'et er listen `creatorTeams`.
+
+Den person, der erklærer en hændelse eller opretter en advarsel, bliver én af dens ejere, uanset hvad reglerne siger, og oprettelsesformularerne nævner i deres opsummering hver ejerregel, der vil køre, og hvem den vil tilføje: se [Hvem der ejer den](/docs/incidents/declaring-incidents#hvem-der-ejer-den).
 
 ## Rediger en regel
 

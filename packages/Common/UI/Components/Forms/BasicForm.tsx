@@ -38,7 +38,10 @@ import {
 } from "./Utils/SteppedFormFooter";
 import {
   getPeoplePickerValueKeys,
+  PeoplePickerFormValue,
+  PeoplePickerValue,
   toPeoplePickerFormValue,
+  toPeoplePickerFormValues,
 } from "../PeoplePicker/PeoplePickerTypes";
 import OneUptimeDate from "../../../Types/Date";
 import Dictionary from "../../../Types/Dictionary";
@@ -530,6 +533,13 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
      * FormField stores a pick - the field's own onChange first, with the
      * values as they are and, for a dropdown, what the pick changed as its
      * options name it (DropdownChange) - then the value itself.
+     *
+     * A people picker keeps its picks in a form value per kind (owners:
+     * ownerUsers and ownerTeams) and none under its own key, so its footer
+     * hands over the picker's whole value (PeoplePickerValue), as the picker
+     * itself does: each kind is written to its own form value, as FormField
+     * writes a pick - one-click picks under an Owners field ("Your teams")
+     * add to what is picked there.
      */
     const setFieldValueFromFooter: (
       field: Field<T>,
@@ -540,6 +550,37 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       fieldName: string,
       value: JSONValue,
     ): void => {
+      if (
+        field.fieldType === FormFieldSchemaType.PeoplePicker &&
+        field.peoplePicker
+      ) {
+        const pickerValues: Record<string, PeoplePickerFormValue> =
+          toPeoplePickerFormValues(
+            field.peoplePicker,
+            (value && typeof value === "object" && !Array.isArray(value)
+              ? value
+              : {}) as PeoplePickerValue,
+          );
+
+        if (field.onChange) {
+          field.onChange(
+            pickerValues as unknown as JSONValue,
+            refCurrentValue.current,
+            (values: FormValues<T>) => {
+              refCurrentValue.current = values;
+              setCurrentValue(refCurrentValue.current);
+            },
+            undefined,
+          );
+        }
+
+        for (const valueKey of Object.keys(pickerValues)) {
+          setFieldValue(valueKey, pickerValues[valueKey] as JSONValue);
+        }
+
+        return;
+      }
+
       if (field.onChange) {
         field.onChange(
           value,

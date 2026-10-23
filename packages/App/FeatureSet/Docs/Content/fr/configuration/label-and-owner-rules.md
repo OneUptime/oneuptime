@@ -57,7 +57,7 @@ Le **Nom** est rempli d'après vos choix (_Ajouter Production_, _Ajouter Platfor
 À la dernière étape, cliquez de nouveau sur le bouton qui porte le nom de la règle, par exemple **Créer : Règle d'étiquettes des moniteurs**. La règle démarre activée, et la liste l'affiche avec une pastille verte **Activé**.
 :::
 
-Une nouvelle règle doit ajouter quelque chose : au moins une étiquette (ou un propriétaire) ou, pour une règle d'incident, d'alerte ou de maintenance planifiée, quelque chose dont elle hérite (voir plus bas). Pour mettre une règle en pause sans la supprimer, désactivez **Activé** dans son formulaire de modification ; la liste affiche alors une pastille rouge **Désactivé**.
+Une nouvelle règle doit ajouter quelque chose : au moins une étiquette (ou un propriétaire) ou, pour une règle d'incident, d'alerte ou de maintenance planifiée, quelque chose dont elle hérite (voir plus bas). Pour mettre une règle en pause sans la supprimer, désactivez **Activé** dans son formulaire de modification ; la liste affiche alors une pastille rouge **Désactivé**. Sur une règle de propriétaires d'incident ou d'alerte, une équipe sous **Équipe du créateur** suffit aussi.
 
 ### Quelle que soit la façon dont la règle est créée
 
@@ -68,9 +68,10 @@ Il en va de même pour une règle créée par l'API, Terraform, un workflow ou u
 | Règle d'étiquettes | This label rule adds nothing. Choose at least one label in Labels to Add. |
 | Règle d'étiquettes d'incident, d'alerte ou de maintenance planifiée | This label rule adds nothing. Choose at least one label in Labels to Add, or turn on an Inherit Labels switch. |
 | Règle de propriétaires | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams. |
-| Règle de propriétaires d'incident, d'alerte ou de maintenance planifiée | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
+| Règle de propriétaires d'incident ou d'alerte | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, a team in Creator's Teams, or turn on an Inherit Owners switch. |
+| Règle de propriétaires de maintenance planifiée | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
 
-- **API** : définissez `labelsToAdd` (ou `ownerUsers` / `ownerTeams`) sur au moins un enregistrement du projet, ou l'un des interrupteurs `inheritLabelsFrom…` (`inheritOwnersFrom…`) de la règle sur `true`, un booléen JSON.
+- **API** : définissez `labelsToAdd` (ou `ownerUsers` / `ownerTeams`) sur au moins un enregistrement du projet, ou l'un des interrupteurs `inheritLabelsFrom…` (`inheritOwnersFrom…`) de la règle sur `true`, un booléen JSON. Sur une règle de propriétaires d'incident ou d'alerte, une équipe dans `creatorTeams` suffit aussi.
 - **Terraform** : une ressource de règle d'étiquettes ou de propriétaires qui n'ajoute rien échoue à `terraform apply` avec le message ci-dessus. Donnez-lui `labels_to_add` (ou `owner_users` / `owner_teams`) ou activez l'un de ses interrupteurs d'héritage.
 
 Les règles que vous avez déjà ne sont pas touchées : voir [Modifier une règle](#modifier-une-règle).
@@ -93,6 +94,12 @@ Une règle qui hérite peut laisser **Étiquettes à ajouter** (ou **Propriétai
 | **Hériter des étiquettes du moniteur**, pour une règle d'alerte | _Hériter des étiquettes : moniteur_ |
 
 Le nom suit les interrupteurs jusqu'à ce que vous choisissiez une étiquette (la règle est alors nommée d'après ses étiquettes) ou que vous saisissiez votre propre nom.
+
+### L'équipe du créateur
+
+Une règle de propriétaires d'incident ou d'alerte a une entrée de plus, la dernière de sa section **Hériter des propriétaires** : **Équipe du créateur**, une liste d'équipes. Quand la personne qui déclare un incident correspondant, ou crée une alerte correspondante, est membre d'une équipe de la liste, cette équipe devient elle aussi propriétaire. C'est une liste plutôt que toutes ses équipes, car chacun rejoint par défaut l'équipe **Membres** du projet, et rendre tout le monde propriétaire n'aide personne. Un incident ou une alerte créé par un moniteur, un workflow, un formulaire ou une clé API n'a pas de créateur, et ne reçoit donc aucune de ces équipes. Elles sont notifiées selon **Notifier les propriétaires** de la règle, et une règle qui n'ajoute qu'elles s'appelle _Ajouter l'équipe du créateur comme propriétaire_. Via l'API, la liste est `creatorTeams`.
+
+La personne qui déclare un incident ou crée une alerte en devient propriétaire quoi que disent les règles, et les formulaires de création listent dans leur récapitulatif chaque règle de propriétaire qui s'exécutera, et qui elle ajoutera : voir [Qui en sera propriétaire](/docs/incidents/declaring-incidents#qui-en-sera-propriétaire).
 
 ## Modifier une règle
 

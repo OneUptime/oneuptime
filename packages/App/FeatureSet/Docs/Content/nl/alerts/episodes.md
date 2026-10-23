@@ -139,6 +139,8 @@ Vul bij **Episodedetails** de **Titel** in en, als je wilt, een **Ernst van waar
 
 Kies bij **Bereikbaarheid en eigenaren** een **Bereikbaarheidsbeleid** dat draait wanneer de episode wordt aangemaakt, en haar **Eigenaren**. Klik daarna op **Episode aanmaken**.
 
+Elk team waarvan je lid bent, is onder **Eigenaren** één klik verwijderd, en de samenvatting noemt de eigenaarsregels die er meer zullen toevoegen.
+
 ### De waarschuwingen toevoegen
 
 Open de pagina **Lidwaarschuwingen** van de episode, klik op **Waarschuwingen toevoegen** en vink de waarschuwingen aan die erbij horen, zoveel als u tegelijk nodig hebt. Wilt u liever bij de waarschuwingen beginnen, selecteer ze dan in de lijst **Waarschuwingen** en kies **Aan nieuwe episode toevoegen** onder **Bulkacties** (zie [Episodes](/docs/incidents/episodes)).

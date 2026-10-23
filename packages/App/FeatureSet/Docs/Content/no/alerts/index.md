@@ -75,7 +75,7 @@ Gå til **Varsler → Alle varsler**, og klikk på **Opprett varsel**. Skjemaet 
 
 ### Beskriv varselet
 
-Fyll ut **Tittel**, og velg en **Varselsalvor**; begge er påkrevd. Legg til en **Beskrivelse** hvis det hjelper. Under **Flere felt**, sammenfoldet, kan du velge en **Innledende tilstand**, legge til **Etiketter** eller slå på **Privat varsel**.
+Fyll ut **Tittel**, og velg en **Varselsalvor**; begge er påkrevd. Legg til en **Beskrivelse** hvis det hjelper. Under **Flere felt**, sammenfoldet, kan du velge en **Innledende tilstand**, legge til **Etiketter** eller slå på **Privat varsel**. Der venter også **Eiere**: du blir uansett eier av varselet du oppretter, og hvert team du er medlem av, er bare ett klikk unna under velgeren.
 
 ### Velg hva det berører, og hvem som tilkalles
 
@@ -83,7 +83,7 @@ Klikk på **Neste** for å komme til **Ressurser og vakt**. Velg **Overvåking**
 
 ### Opprett det
 
-Klikk på **Neste** for å se gjennom sammendraget og deretter på **Opprett varsel**. Varselets egen side åpnes, og reglene begynner å kjøre.
+Klikk på **Neste** for å se gjennom sammendraget og deretter på **Opprett varsel**. Varselets egen side åpnes, og reglene begynner å kjøre. I sammendraget nevner raden **Eiere** hver eierregel som vil legge til noen, og hvem: se [Hvem som eier den](/docs/incidents/declaring-incidents#hvem-som-eier-den).
 :::
 
 Lar du **Innledende tilstand** stå tom, starter varselet der alle nye varsler gjør: i opprettelsestilstanden din, **Identified** i et nytt prosjekt. Velger du en senere tilstand, registrerer du et varsel som noen allerede håndterer, eller som allerede er over; se [Opprettet allerede bekreftet eller løst](#opprettet-allerede-bekreftet-eller-løst).

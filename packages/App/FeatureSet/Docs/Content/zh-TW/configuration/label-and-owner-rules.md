@@ -57,7 +57,7 @@ flowchart TB
 在最後一個步驟中，再次點選以規則命名的按鈕，例如 **建立Monitor Label Rule**。規則建立後即為啟用狀態，清單中會顯示綠色的 **已啟用** 標記。
 :::
 
-新規則必須新增一些內容：至少一個標籤（或擁有者），或者在事件、警示或排定維護規則中，至少繼承一項內容（見下文）。若要暫停規則而不刪除它，請在其編輯表單中關閉 **已啟用**；清單接著會顯示紅色的 **已停用** 標記。
+新規則必須新增一些內容：至少一個標籤（或擁有者），或者在事件、警示或排定維護規則中，至少繼承一項內容（見下文）。若要暫停規則而不刪除它，請在其編輯表單中關閉 **已啟用**；清單接著會顯示紅色的 **已停用** 標記。對於事件或警示擁有者規則，在 **建立者的團隊** 下列出一個團隊也就足夠。
 
 ### 無論規則如何建立
 
@@ -68,9 +68,10 @@ flowchart TB
 | 標籤規則 | This label rule adds nothing. Choose at least one label in Labels to Add. |
 | 事件、警示或排定維護標籤規則 | This label rule adds nothing. Choose at least one label in Labels to Add, or turn on an Inherit Labels switch. |
 | 擁有者規則 | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams. |
-| 事件、警示或排定維護擁有者規則 | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
+| 事件或警示擁有者規則 | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, a team in Creator's Teams, or turn on an Inherit Owners switch. |
+| 排定維護擁有者規則 | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
 
-- **API**：將 `labelsToAdd`（或 `ownerUsers` / `ownerTeams`）設為專案中的至少一筆紀錄，或將規則的某個 `inheritLabelsFrom…`（`inheritOwnersFrom…`）開關設為 `true`（JSON 布林值）。
+- **API**：將 `labelsToAdd`（或 `ownerUsers` / `ownerTeams`）設為專案中的至少一筆紀錄，或將規則的某個 `inheritLabelsFrom…`（`inheritOwnersFrom…`）開關設為 `true`（JSON 布林值）。對於事件或警示擁有者規則，在 `creatorTeams` 中列出一個團隊也就足夠。
 - **Terraform**：沒有任何新增內容的標籤規則或擁有者規則資源會在 `terraform apply` 時失敗，並顯示上述訊息。請為其設定 `labels_to_add`（或 `owner_users` / `owner_teams`），或開啟其中一個繼承開關。
 
 既有的規則不受影響，請參閱 [編輯規則](#編輯規則)。
@@ -93,6 +94,12 @@ flowchart TB
 | 警示規則上的 **從監測器繼承標籤** | *從 監測器 繼承標籤* |
 
 名稱會隨開關而變化，直到您選擇一個標籤（之後規則會以其標籤命名）或輸入自己的名稱為止。
+
+### 建立者的團隊
+
+事件或警示擁有者規則還多一個項目，位於其 **繼承擁有者** 區段的最後：**建立者的團隊**，即一份團隊清單。當宣告相符事件或建立相符警示的人是清單中某個團隊的成員時，該團隊也會成為擁有者。之所以用清單而不是此人的全部團隊，是因為人們預設會加入專案的 **成員** 團隊，而讓所有人都成為擁有者對誰都沒有幫助。由監視器、工作流程、表單或 API 金鑰建立的事件或警示沒有建立者，因此不會獲得這些團隊。這些團隊依規則的 **通知擁有者** 設定接收通知，只新增這些團隊的規則名為 _將建立者的團隊新增為擁有者_。透過 API，該清單為 `creatorTeams`。
+
+宣告事件或建立警示的人，無論規則如何，都會成為其擁有者之一；建立表單會在摘要中列出每條將執行的擁有者規則，以及它將新增誰：請參閱 [誰將成為擁有者](/docs/incidents/declaring-incidents#誰將成為擁有者)。
 
 ## 編輯規則
 

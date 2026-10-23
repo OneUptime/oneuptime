@@ -57,7 +57,7 @@ flowchart TB
 在最后一步，再次点击以规则命名的按钮，例如 **创建Monitor Label Rule**。规则创建后即为启用状态，列表中会显示绿色的 **已启用** 标记。
 :::
 
-新规则必须添加一些内容：至少一个标签（或所有者），或者在事件、警报或计划维护规则中，至少继承一项内容（见下文）。要暂停规则而不删除它，请在其编辑表单中关闭 **已启用**；列表随后会显示红色的 **已禁用** 标记。
+新规则必须添加一些内容：至少一个标签（或所有者），或者在事件、警报或计划维护规则中，至少继承一项内容（见下文）。要暂停规则而不删除它，请在其编辑表单中关闭 **已启用**；列表随后会显示红色的 **已禁用** 标记。对于事件或警报所有者规则，在 **创建者的团队** 下列出一个团队也足够。
 
 ### 无论规则如何创建
 
@@ -68,9 +68,10 @@ flowchart TB
 | 标签规则 | This label rule adds nothing. Choose at least one label in Labels to Add. |
 | 事件、警报或计划维护标签规则 | This label rule adds nothing. Choose at least one label in Labels to Add, or turn on an Inherit Labels switch. |
 | 所有者规则 | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams. |
-| 事件、警报或计划维护所有者规则 | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
+| 事件或警报所有者规则 | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, a team in Creator's Teams, or turn on an Inherit Owners switch. |
+| 计划维护所有者规则 | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
 
-- **API**：将 `labelsToAdd`（或 `ownerUsers` / `ownerTeams`）设置为项目中的至少一条记录，或将规则的某个 `inheritLabelsFrom…`（`inheritOwnersFrom…`）开关设置为 `true`（JSON 布尔值）。
+- **API**：将 `labelsToAdd`（或 `ownerUsers` / `ownerTeams`）设置为项目中的至少一条记录，或将规则的某个 `inheritLabelsFrom…`（`inheritOwnersFrom…`）开关设置为 `true`（JSON 布尔值）。对于事件或警报所有者规则，在 `creatorTeams` 中列出一个团队也足够。
 - **Terraform**：没有任何添加内容的标签规则或所有者规则资源会在 `terraform apply` 时失败，并显示上述消息。请为其设置 `labels_to_add`（或 `owner_users` / `owner_teams`），或开启其某个继承开关。
 
 已有的规则不受影响，请参阅 [编辑规则](#编辑规则)。
@@ -93,6 +94,12 @@ flowchart TB
 | 警报规则上的 **从监视器继承标签** | *从 监视器 继承标签* |
 
 名称会随开关而变化，直到您选择一个标签（之后规则会以其标签命名）或输入自己的名称。
+
+### 创建者的团队
+
+事件或警报所有者规则还多一个条目，位于其 **继承所有者** 部分的最后：**创建者的团队**，即一个团队列表。当声明匹配事件或创建匹配警报的人是列表中某个团队的成员时，该团队也会成为所有者。之所以用列表而不是此人的全部团队，是因为人们默认会加入项目的 **成员** 团队，而让所有人都成为所有者对谁都没有帮助。由监视器、工作流、表单或 API 密钥创建的事件或警报没有创建者，因此不会获得这些团队。这些团队按规则的 **通知所有者** 设置接收通知，只添加这些团队的规则名为 _将创建者的团队添加为所有者_。通过 API，该列表为 `creatorTeams`。
+
+声明事件或创建警报的人，无论规则如何，都会成为其所有者之一；创建表单会在摘要中列出每条将运行的所有者规则，以及它将添加谁：请参阅 [谁将成为所有者](/docs/incidents/declaring-incidents#谁将成为所有者)。
 
 ## 编辑规则
 

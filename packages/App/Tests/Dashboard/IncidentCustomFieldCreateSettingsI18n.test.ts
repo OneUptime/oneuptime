@@ -342,15 +342,18 @@ describe("the card, the wizard and the pages render the shared strings and wirin
     expect(create).toContain('delete initialValue["customFieldSettings"];');
   });
 
-  test("the Declare Incident page sends a template's owners where the server reads them", () => {
+  /*
+   * A template's owners start the Owners field under More fields (shown,
+   * and changeable), whose picks ModelForm sends as the ownerUsers and
+   * ownerTeams misc data IncidentService reads.
+   */
+  test("the Declare Incident page starts its Owners field with a template's owners, sent where the server reads them", () => {
     const create: string = readSource("Pages", "Incidents", "Create.tsx");
 
-    expect(create).toContain(
-      'miscDataProps["ownerUsers"] = templateOwners.userIds;',
-    );
-    expect(create).toContain(
-      'miscDataProps["ownerTeams"] = templateOwners.teamIds;',
-    );
+    expect(create).toContain("ownerUsers: usersListResult.data");
+    expect(create).toContain("ownerTeams: teamsListResult.data");
+    // The owners picker, keeping its picks in ownerUsers and ownerTeams.
+    expect(create).toContain("getOwnersFormField<Incident>({");
 
     const incidentService: string = fs
       .readFileSync(
