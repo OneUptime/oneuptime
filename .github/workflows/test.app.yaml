@@ -218,12 +218,18 @@ jobs:
           # minutes. Status Page Theme moved to group 6 when this group took
           # 24.3 minutes. On 2026-10-22 Event Overview alone took 25.9 and
           # 26.9 minutes on two runs, so it runs in halves: the first here,
-          # the second in group 10.
+          # the second in group 10. SNMP Walk (about 1.5 minutes locally with
+          # its bundle, Chromium only: a device's SNMP Walk page - walking a
+          # subtree, continuing a walk, Collect, Alert on it, Copy OID and why
+          # a walk failed - at 1280 and 390 pixels, dark, Japanese and German)
+          # joined it on 2026-10-23, the group with the most room once Event
+          # Overview ran in halves: about 15.
           - group: 1
             browsers: chromium
             event_overview_shard: 1/2
             suites: >-
               test-event-overview-ui
+              test-snmp-walk-ui
           # The Alerts suite also runs in Firefox, and so do Code Editor (the
           # editor's text layers must line up in both) and Diagrams. Diagrams
           # and Navigation Search (about 8 minutes together) moved here from
@@ -698,4 +704,6 @@ jobs:
             output/playwright/owners-on-create-ui/test-results
             output/playwright/kubernetes-events-ui/*.png
             output/playwright/kubernetes-events-ui/test-results
+            output/playwright/snmp-walk-ui/*.png
+            output/playwright/snmp-walk-ui/test-results
           retention-days: 7

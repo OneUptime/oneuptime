@@ -33498,7 +33498,7 @@
   "The device's SNMP credentials are incomplete": "Die SNMP-Anmeldedaten des Geräts sind unvollständig",
   "The device's access control does not let these credentials read this part of the tree.": "Die Zugriffskontrolle des Geräts erlaubt diesen Anmeldedaten nicht, diesen Teil des Baums zu lesen.",
   "The device's value is longer: the walk keeps its first 1,024 characters.": "Der Wert des Geräts ist länger: Der Walk behält die ersten 1.024 Zeichen.",
-  "The interface walk already charts this for every port.": "Die Schnittstellenabfrage zeigt dies bereits für jeden Port als Diagramm an.",
+  "The interface walk already charts this for every port.": "Der Schnittstellen-Walk zeigt dies bereits für jeden Port als Diagramm an.",
   "The privacy password or protocol does not match the device's.": "Das Verschlüsselungspasswort oder -protokoll stimmt nicht mit dem des Geräts überein.",
   "The probe \"{{probe}}\" did not report the walk within two minutes. Check that the probe is online and runs a version that can walk SNMP.": "Die Sonde „{{probe}}“ hat den Walk nicht innerhalb von zwei Minuten gemeldet. Prüfen Sie, ob die Sonde online ist und eine Version ausführt, die SNMP-Walks beherrscht.",
   "The probe could not reach the device": "Die Sonde konnte das Gerät nicht erreichen",
