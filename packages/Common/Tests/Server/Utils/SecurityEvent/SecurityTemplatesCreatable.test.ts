@@ -198,7 +198,8 @@ describe("a detection rule's name holds a Sigma title", () => {
   });
 
   test("it is wider than the title that broke Turn on recommended", () => {
-    const title: string = "Failed sign-ins, then a success from the same address";
+    const title: string =
+      "Failed sign-ins, then a success from the same address";
 
     expect(title.length).toBe(53);
     expect(title.length).toBeGreaterThan(ColumnLength.Name);
@@ -277,7 +278,7 @@ describe("the Rule Library", () => {
         // Renamed by the team, it is still this entry by its Sigma id.
         expect(
           isRuleFromLibraryEntry(
-            { name: "Our own name", sigmaRuleYaml: record.sigmaRuleYaml },
+            { name: "Our own name", sigmaRuleYaml: entry.sigmaRuleYaml },
             entry,
           ),
         ).toBe(true);

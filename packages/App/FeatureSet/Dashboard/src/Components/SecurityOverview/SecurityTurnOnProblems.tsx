@@ -64,7 +64,10 @@ const SecurityTurnOnProblems: FunctionComponent<ComponentProps> = (
             {translator.translateText(props.error) || props.error}
           </p>
         ) : (
-          <ul className="space-y-1" data-testid="security-turn-on-problems-list">
+          <ul
+            className="space-y-1"
+            data-testid="security-turn-on-problems-list"
+          >
             {shown.map(
               (
                 problem: TurnOnRecommendedProblem,
@@ -112,7 +115,9 @@ const SecurityTurnOnProblems: FunctionComponent<ComponentProps> = (
           </ul>
         )}
         {props.note ? (
-          <p className="text-amber-800">{translator.translateText(props.note)}</p>
+          <p className="text-amber-800">
+            {translator.translateText(props.note)}
+          </p>
         ) : (
           <></>
         )}

@@ -813,7 +813,9 @@ test.describe("the overview", () => {
     await expect(problems).toContainText("Turn on recommended did not finish");
     await expect(
       problems.getByTestId("security-turn-on-problems-error"),
-    ).toHaveText("Error connecting to server. Please try again in few minutes.");
+    ).toHaveText(
+      "Error connecting to server. Please try again in few minutes.",
+    );
     await expect(problems).toContainText(
       "Try again turns on only what is still missing.",
     );
@@ -837,7 +839,11 @@ test.describe("the overview", () => {
     page: Page;
   }) => {
     for (const layout of [
-      { width: 1280, theme: "dark" as const, name: "overview-turn-on-partly-dark" },
+      {
+        width: 1280,
+        theme: "dark" as const,
+        name: "overview-turn-on-partly-dark",
+      },
       { width: 390, theme: undefined, name: "overview-turn-on-partly-phone" },
       {
         width: 390,
@@ -1776,9 +1782,11 @@ test.describe("detections", () => {
         name: `Add ${RECOMMENDED_RULES} Recommended Rules`,
       })
       .click();
-    await expect(problemRows(page.getByTestId("rule-library-problems"))).toHaveText(
-      [`${PARTLY_UNDONE_RULE} - Something went wrong while adding it.`],
-    );
+    await expect(
+      problemRows(page.getByTestId("rule-library-problems")),
+    ).toHaveText([
+      `${PARTLY_UNDONE_RULE} - Something went wrong while adding it.`,
+    ]);
     // Every other recommended rule is added; the button offers the one left.
     await expect(
       page.getByRole("button", { name: "Add 1 Recommended Rule" }),

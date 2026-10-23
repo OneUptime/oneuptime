@@ -669,7 +669,9 @@ describe("SecuritySetup.turnOnRecommended", () => {
         });
       },
     );
-    jest.spyOn(DetectionRuleService, "findBy").mockResolvedValue(added as never);
+    jest
+      .spyOn(DetectionRuleService, "findBy")
+      .mockResolvedValue(added as never);
     writes.rulesCreated.length = 0;
     isFixed = true;
 
@@ -967,7 +969,9 @@ describe("SecuritySetup.turnOnRecommended", () => {
 
   test("every problem names a part, an action and a reason the Dashboard words", async () => {
     install({});
-    jest.spyOn(DetectionRuleService, "create").mockRejectedValue(new Error("x"));
+    jest
+      .spyOn(DetectionRuleService, "create")
+      .mockRejectedValue(new Error("x"));
     jest
       .spyOn(SecurityLogSourceService, "create")
       .mockRejectedValue(new BadRequestException("Bad request"));
@@ -1036,7 +1040,12 @@ describe("describeTurnOnRecommendedFailure", () => {
       TurnOnRecommendedReason.Failed,
       "",
     ],
-    ["something that is not an error at all", "boom", TurnOnRecommendedReason.Failed, ""],
+    [
+      "something that is not an error at all",
+      "boom",
+      TurnOnRecommendedReason.Failed,
+      "",
+    ],
   ])(
     "%s",
     (

@@ -26,7 +26,9 @@ import {
  * A rule the project has, as the library reads it: the rule (its name and
  * Sigma YAML), or just its name.
  */
-export type ExistingRule = string | Pick<DetectionRule, "name" | "sigmaRuleYaml">;
+export type ExistingRule =
+  | string
+  | Pick<DetectionRule, "name" | "sigmaRuleYaml">;
 
 export interface LibraryRuleView {
   entry: DetectionRuleLibraryEntry;

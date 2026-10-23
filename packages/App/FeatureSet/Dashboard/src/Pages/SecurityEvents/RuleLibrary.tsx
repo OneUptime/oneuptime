@@ -226,9 +226,7 @@ const RuleLibraryPage: FunctionComponent<
   const [search, setSearch] = useState<string>("");
   const [error, setError] = useState<string>("");
   // What the last Add could not add, and why; or why it failed whole.
-  const [problems, setProblems] = useState<Array<TurnOnRecommendedProblem>>(
-    [],
-  );
+  const [problems, setProblems] = useState<Array<TurnOnRecommendedProblem>>([]);
   const [addError, setAddError] = useState<string>("");
   const [addingIds, setAddingIds] = useState<Array<string>>([]);
   const [viewing, setViewing] = useState<DetectionRuleLibraryEntry | null>(

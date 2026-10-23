@@ -252,7 +252,10 @@ function getProblemSubject(problem: TurnOnRecommendedProblem): {
   isSubjectTranslated: boolean;
 } {
   if (problem.part === TurnOnRecommendedPart.Logs) {
-    return { subject: TURN_ON_RECOMMENDED_LOGS_SUBJECT, isSubjectTranslated: true };
+    return {
+      subject: TURN_ON_RECOMMENDED_LOGS_SUBJECT,
+      isSubjectTranslated: true,
+    };
   }
 
   if (problem.name) {

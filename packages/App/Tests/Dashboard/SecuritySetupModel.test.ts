@@ -370,9 +370,9 @@ describe("what Turn on recommended could not do", () => {
         name: "",
       }),
     ]);
-    expect(
-      parseTurnOnRecommendedResult({ problems: "none" }).problems,
-    ).toEqual([]);
+    expect(parseTurnOnRecommendedResult({ problems: "none" }).problems).toEqual(
+      [],
+    );
   });
 
   test("a click that turned on nothing at all is told from one that did some", () => {

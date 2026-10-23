@@ -639,7 +639,10 @@ describe("when Turn on recommended cannot do everything", () => {
       expect(step("sources")).toHaveAttribute("data-done", "true");
     });
     expect(step("responses")).toHaveAttribute("data-done", "false");
-    expect(buttonTitles(actions())).toEqual(["Try again", "Send a test attack"]);
+    expect(buttonTitles(actions())).toEqual([
+      "Try again",
+      "Send a test attack",
+    ]);
     expect(screen.queryByTestId("security-turn-on-recommended")).toBeNull();
 
     await act(async () => {
@@ -664,7 +667,9 @@ describe("when Turn on recommended cannot do everything", () => {
     jest
       .spyOn(SecurityCaseApi, "turnOnRecommended")
       .mockRejectedValue(
-        new Error("Turning on detection rules takes a role that can create them."),
+        new Error(
+          "Turning on detection rules takes a role that can create them.",
+        ),
       );
     await renderPage();
 
@@ -685,7 +690,10 @@ describe("when Turn on recommended cannot do everything", () => {
     );
     expect(box).not.toHaveTextContent("Everything else is on.");
     expect(rows(box)).toEqual([]);
-    expect(buttonTitles(actions())).toEqual(["Try again", "Send a test attack"]);
+    expect(buttonTitles(actions())).toEqual([
+      "Try again",
+      "Send a test attack",
+    ]);
 
     // The old centred grey line is gone from the card.
     expect(
@@ -790,7 +798,9 @@ describe("when Turn on recommended cannot do everything", () => {
   test("a test attack that fails says so in the card, in the same box", async () => {
     jest
       .spyOn(SecurityCaseApi, "runSetupTest")
-      .mockRejectedValue(new Error("Running a test takes a role that can read cases."));
+      .mockRejectedValue(
+        new Error("Running a test takes a role that can read cases."),
+      );
     await renderPage();
 
     await act(async () => {

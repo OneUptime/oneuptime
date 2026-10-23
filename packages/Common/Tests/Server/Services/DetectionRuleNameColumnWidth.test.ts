@@ -1,4 +1,4 @@
-import { describe, expect, jest, test } from "@jest/globals";
+import { describe, expect, test } from "@jest/globals";
 import DetectionRule from "../../../Models/DatabaseModels/DetectionRule";
 import { AddDetectionRuleAndGoogleSecOpsConnection1788000000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1788000000000-AddDetectionRuleAndGoogleSecOpsConnection";
 import { WidenDetectionRuleName1806300000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1806300000000-WidenDetectionRuleName";
@@ -10,7 +10,11 @@ import ColumnType from "../../../Types/Database/ColumnType";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import { DETECTION_RULE_NAME_MAX_LENGTH } from "../../../Types/SecurityEvent/DetectionRuleName";
-import { MigrationInterface, QueryRunner, getMetadataArgsStorage } from "typeorm";
+import {
+  MigrationInterface,
+  QueryRunner,
+  getMetadataArgsStorage,
+} from "typeorm";
 import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 
 /*
@@ -65,9 +69,8 @@ function recordQueries(): {
 
 describe("DetectionRule.name", () => {
   test("is a ShortText column: varchar(100), required, read on relations", () => {
-    const metadata: TableColumnMetadata = new DetectionRule().getTableColumnMetadata(
-      "name",
-    );
+    const metadata: TableColumnMetadata =
+      new DetectionRule().getTableColumnMetadata("name");
     const args: ColumnMetadataArgs = nameColumnArgs();
 
     expect(metadata.type).toBe(TableColumnType.ShortText);
@@ -79,9 +82,8 @@ describe("DetectionRule.name", () => {
   });
 
   test("every check, the form and the database agree on its width", () => {
-    const metadata: TableColumnMetadata = new DetectionRule().getTableColumnMetadata(
-      "name",
-    );
+    const metadata: TableColumnMetadata =
+      new DetectionRule().getTableColumnMetadata("name");
 
     // DatabaseService.checkMaxLengthOfFields and ModelForm read it from the type.
     expect(getMaxLengthFromTableColumnType(metadata.type)).toBe(100);
@@ -91,9 +93,9 @@ describe("DetectionRule.name", () => {
 
   test("is no longer the 50-character Name type it was", () => {
     expect(getMaxLengthFromTableColumnType(TableColumnType.Name)).toBe(50);
-    expect(
-      new DetectionRule().getTableColumnMetadata("name").type,
-    ).not.toBe(TableColumnType.Name);
+    expect(new DetectionRule().getTableColumnMetadata("name").type).not.toBe(
+      TableColumnType.Name,
+    );
   });
 });
 

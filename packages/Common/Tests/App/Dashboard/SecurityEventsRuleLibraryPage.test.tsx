@@ -479,11 +479,12 @@ describe("adding from the Rule Library", () => {
     expect(created).toHaveLength(1);
     expect(created[0]!.name).toBe(SEQUENCE.title);
     expect(created[0]!.name!.length).toBe(53);
-    expect(
-      BaseModel.toJSON(created[0]!, DetectionRule),
-    ).toEqual(
+    expect(BaseModel.toJSON(created[0]!, DetectionRule)).toEqual(
       BaseModel.toJSON(
-        buildDetectionRuleFromLibrary({ projectId: PROJECT_ID, entry: SEQUENCE }),
+        buildDetectionRuleFromLibrary({
+          projectId: PROJECT_ID,
+          entry: SEQUENCE,
+        }),
         DetectionRule,
       ),
     );
@@ -645,7 +646,9 @@ describe("adding from the Rule Library", () => {
     jest
       .spyOn(SecurityCaseApi, "turnOnRecommended")
       .mockRejectedValue(
-        new Error("Error connecting to server. Please try again in few minutes."),
+        new Error(
+          "Error connecting to server. Please try again in few minutes.",
+        ),
       );
     await renderPage();
 

@@ -112,7 +112,9 @@ describe("Get Started with Security", () => {
 
   it("says what the one click does when it cannot turn everything on: names it with why, and Try again does only what is missing", () => {
     const gettingStarted: string = flat(
-      source(`${DASHBOARD}/Components/SecurityOverview/SecurityGettingStarted.tsx`),
+      source(
+        `${DASHBOARD}/Components/SecurityOverview/SecurityGettingStarted.tsx`,
+      ),
     );
     const setup: string = flat(
       source("packages/Common/Server/Utils/SecurityEvent/SecuritySetup.ts"),

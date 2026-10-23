@@ -571,7 +571,9 @@ describePostgres("Turn on recommended against a migrated Postgres", () => {
       });
     }
 
-    expect(namesOf(await rules())).toEqual(titlesOf([...DETECTION_RULE_LIBRARY]));
+    expect(namesOf(await rules())).toEqual(
+      titlesOf([...DETECTION_RULE_LIBRARY]),
+    );
     expect(
       (await playbooks())
         .map((row: PlaybookRow): string => {
