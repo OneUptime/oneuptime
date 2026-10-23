@@ -9,7 +9,10 @@ import {
   ENTERPRISE_LICENSE_AUDITED_COLUMNS,
   formatAuditedValue,
   getAuditedColumnsWritten,
+  LICENSE_RECORD_COLUMNS,
+  LICENSE_SERVER_BOOKKEEPING_COLUMNS,
 } from "../../../../Server/Utils/EnterpriseLicense/EnterpriseLicenseAudit";
+import TableColumnType from "../../../../Types/Database/TableColumnType";
 import Email from "../../../../Types/Email";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -29,9 +32,27 @@ import ObjectID from "../../../../Types/ObjectID";
 
 const LICENSE_ID: string = "4d2e7f0a-5b9c-4c1d-8e3f-a1b2c3d4e5f6";
 const ADMIN_ID: string = "9a8b7c6d-5e4f-4a3b-9c2d-1e0f9a8b7c6d";
-const KEY: string = "da74c0ffee0123456789abcdef0123456789abcdef0123456789abcdef7c7a";
+const KEY: string =
+  "da74c0ffee0123456789abcdef0123456789abcdef0123456789abcdef7c7a";
 
-const license: (overrides?: Partial<Record<string, unknown>>) => EnterpriseLicense = (
+/*
+ * The license's switches besides the evaluation one, read off the model:
+ * the audit records every term, and this file, like the rest of core, names
+ * only the ones it has a reason to.
+ */
+const OTHER_SWITCHES: Array<string> = ENTERPRISE_LICENSE_AUDITED_COLUMNS.filter(
+  (column: string): boolean => {
+    return (
+      column !== "isEvaluationLicense" &&
+      new EnterpriseLicense().getTableColumnMetadata(column).type ===
+        TableColumnType.Boolean
+    );
+  },
+);
+
+const license: (
+  overrides?: Partial<Record<string, unknown>>,
+) => EnterpriseLicense = (
   overrides?: Partial<Record<string, unknown>>,
 ): EnterpriseLicense => {
   const row: EnterpriseLicense = new EnterpriseLicense();
@@ -41,9 +62,12 @@ const license: (overrides?: Partial<Record<string, unknown>>) => EnterpriseLicen
   row.expiresAt = new Date("2026-09-30T00:00:00.000Z");
   row.userLimit = 50;
   row.isEvaluationLicense = true;
-  row.canBeWhiteLabelled = false;
   row.annualContractValue = 12000;
   row.email = new Email("komaromi.adam@netlock.hu");
+
+  for (const column of OTHER_SWITCHES) {
+    (row as unknown as Record<string, unknown>)[column] = false;
+  }
 
   for (const [key, value] of Object.entries(overrides || {})) {
     (row as unknown as Record<string, unknown>)[key] = value;
@@ -116,20 +140,21 @@ describe("the lines", () => {
     );
   });
 
-  test("every term that changed, in the order the forms ask them", () => {
+  test("every term that changed, in the order the model declares them", () => {
+    const otherSwitch: string = OTHER_SWITCHES[0] as string;
     const line: string | null = buildLicenseUpdatedAuditLine({
       before: license(),
       written: {
         userLimit: 100,
         isEvaluationLicense: false,
         companyName: "NetLock Kft.",
-        canBeWhiteLabelled: true,
+        [otherSwitch]: true,
       },
       props: masterAdmin,
     });
 
     expect(line).toBe(
-      `Enterprise license ${LICENSE_ID} (Netlock.hu, key da74••••7c7a) changed by master admin ${ADMIN_ID}: companyName Netlock.hu -> NetLock Kft.; isEvaluationLicense true -> false; userLimit 50 -> 100; canBeWhiteLabelled false -> true.`,
+      `Enterprise license ${LICENSE_ID} (Netlock.hu, key da74••••7c7a) changed by master admin ${ADMIN_ID}: companyName Netlock.hu -> NetLock Kft.; isEvaluationLicense true -> false; ${otherSwitch} false -> true; userLimit 50 -> 100.`,
     );
   });
 
@@ -178,7 +203,10 @@ describe("the lines", () => {
     expect(
       buildLicenseUpdatedAuditLine({
         before: license(),
-        written: { currentUserCount: 12, userCountUpdatedAt: new Date() } as unknown as JSONObject,
+        written: {
+          currentUserCount: 12,
+          userCountUpdatedAt: new Date(),
+        } as unknown as JSONObject,
         props: masterAdmin,
       }),
     ).toBeNull();
@@ -186,7 +214,33 @@ describe("the lines", () => {
 });
 
 describe("which writes are audited", () => {
-  test("the terms the license forms and the bulk expiry change write", () => {
+  test("every term of the license: its columns but the record's own and the license server's bookkeeping", () => {
+    const columns: Array<string> = new EnterpriseLicense().getTableColumns()
+      .columns;
+
+    // What is left out is really there to leave out.
+    for (const column of [
+      ...LICENSE_RECORD_COLUMNS,
+      ...LICENSE_SERVER_BOOKKEEPING_COLUMNS,
+    ]) {
+      expect({ column, isColumn: columns.includes(column) }).toEqual({
+        column,
+        isColumn: true,
+      });
+    }
+
+    expect([...ENTERPRISE_LICENSE_AUDITED_COLUMNS]).toEqual(
+      columns.filter((column: string): boolean => {
+        return (
+          !LICENSE_RECORD_COLUMNS.includes(column) &&
+          !(
+            LICENSE_SERVER_BOOKKEEPING_COLUMNS as ReadonlyArray<string>
+          ).includes(column)
+        );
+      }),
+    );
+
+    // The terms the forms and the bulk expiry change write, and one switch more.
     expect([...ENTERPRISE_LICENSE_AUDITED_COLUMNS]).toEqual([
       "companyName",
       "email",
@@ -194,9 +248,10 @@ describe("which writes are audited", () => {
       "expiresAt",
       "annualContractValue",
       "isEvaluationLicense",
+      ...OTHER_SWITCHES,
       "userLimit",
-      "canBeWhiteLabelled",
     ]);
+    expect(OTHER_SWITCHES).toHaveLength(1);
   });
 
   test("an update's audited columns, and none for the license server's own usage figures", () => {
@@ -214,9 +269,9 @@ describe("which writes are audited", () => {
   });
 
   test("values print as a reader checks them: days, masked keys, none", () => {
-    expect(formatAuditedValue("expiresAt", new Date("2027-10-14T00:00:00Z"))).toBe(
-      "2027-10-14",
-    );
+    expect(
+      formatAuditedValue("expiresAt", new Date("2027-10-14T00:00:00Z")),
+    ).toBe("2027-10-14");
     expect(formatAuditedValue("expiresAt", "2027-10-14")).toBe("2027-10-14");
     expect(formatAuditedValue("expiresAt", "not a date")).toBe("not a date");
     expect(formatAuditedValue("licenseKey", KEY)).toBe("da74••••7c7a");

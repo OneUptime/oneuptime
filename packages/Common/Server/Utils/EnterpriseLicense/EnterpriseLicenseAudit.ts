@@ -22,22 +22,48 @@ import EnterpriseLicenseUsageUtil from "../../../Utils/EnterpriseLicense/Enterpr
  * people than the license screens are.
  */
 
+// Every record's own columns: its id, its timestamps and its version.
+export const LICENSE_RECORD_COLUMNS: ReadonlyArray<string> = [
+  "_id",
+  "createdAt",
+  "updatedAt",
+  "deletedAt",
+  "version",
+];
+
 /*
- * The license terms a person sets on the Admin Dashboard's license forms -
- * and the bulk expiry change - whose changes are recorded.
+ * The license server's own bookkeeping: the seat counts installations
+ * report, which it writes without hooks. Never a person's change.
  */
-export const ENTERPRISE_LICENSE_AUDITED_COLUMNS: ReadonlyArray<
+export const LICENSE_SERVER_BOOKKEEPING_COLUMNS: ReadonlyArray<
   keyof EnterpriseLicense & string
 > = [
-  "companyName",
-  "email",
-  "licenseKey",
-  "expiresAt",
-  "annualContractValue",
-  "isEvaluationLicense",
-  "userLimit",
-  "canBeWhiteLabelled",
+  "currentUserCount",
+  "userCountUpdatedAt",
+  "userCountSource",
+  "legacyUserCount",
+  "legacyUserCountUpdatedAt",
 ];
+
+/*
+ * The license terms a person sets - on the Admin Dashboard's license forms,
+ * with the bulk expiry change, or through the API - whose changes are
+ * recorded: every column of the license but the record's own and the
+ * license server's bookkeeping, in the order the model declares them. Read
+ * off the model, so a term added to it later is recorded too, and so this
+ * file names only the terms it treats in a way of its own.
+ */
+export const ENTERPRISE_LICENSE_AUDITED_COLUMNS: ReadonlyArray<string> =
+  new EnterpriseLicense()
+    .getTableColumns()
+    .columns.filter((column: string): boolean => {
+      return (
+        !LICENSE_RECORD_COLUMNS.includes(column) &&
+        !(LICENSE_SERVER_BOOKKEEPING_COLUMNS as ReadonlyArray<string>).includes(
+          column,
+        )
+      );
+    });
 
 /*
  * Columns whose values a line never prints: the contact's email address is a
@@ -103,22 +129,25 @@ export const formatAuditedValue: (column: string, value: unknown) => string = (
  * Whether a written value is the one the row holds already: an expiry on the
  * same calendar day, a key that trims to the same key, the same number.
  */
-const isSameValue: (column: string, before: unknown, after: unknown) => boolean =
-  (column: string, before: unknown, after: unknown): boolean => {
-    if (column === "expiresAt") {
-      return toCalendarDay(before) === toCalendarDay(after);
+const isSameValue: (
+  column: string,
+  before: unknown,
+  after: unknown,
+) => boolean = (column: string, before: unknown, after: unknown): boolean => {
+  if (column === "expiresAt") {
+    return toCalendarDay(before) === toCalendarDay(after);
+  }
+
+  const normalize: (value: unknown) => string = (value: unknown): string => {
+    if (value === null || value === undefined) {
+      return "";
     }
 
-    const normalize: (value: unknown) => string = (value: unknown): string => {
-      if (value === null || value === undefined) {
-        return "";
-      }
-
-      return String(value).trim();
-    };
-
-    return normalize(before) === normalize(after);
+    return String(value).trim();
   };
+
+  return normalize(before) === normalize(after);
+};
 
 // The license as a line names it: its id, its company and its masked key.
 export const describeLicenseForAudit: (license: EnterpriseLicense) => string = (
