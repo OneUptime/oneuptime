@@ -22,7 +22,7 @@ Brug kontakten som din «klar til brug»-port:
 4. Slå **Aktiveret** til, når det er klar: fra da af udløses dets trigger ved rigtige begivenheder.
 :::
 
-At slå et workflow fra forhindrer dets trigger i at starte nye kørsler. En kørsel, der allerede er i gang, gør sig færdig, men en kørsel, som dets trigger startede, og som venter ved en **Sleep**-blok, annulleres, når den vågner. Testkørsler fortsætter.
+At slå et workflow fra forhindrer dets trigger i at starte nye kørsler. En kørsel, der allerede er i gang, gør sig færdig, men en kørsel, som dets trigger startede, og som venter ved en **Sleep**-blok, annulleres, når den vågner. Testkørsler fortsætter. For at slå flere til eller fra på én gang markerer du dem i listen **Arbejdsgange** og vælger **Aktivér** eller **Deaktivér** under **Massehandlinger**.
 
 ## Arkivér et workflow
 

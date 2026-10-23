@@ -29,7 +29,7 @@ Klik op **Testaanval sturen**. Een dozijn mislukte aanmeldingen vanaf een docume
 Klik op **Zaak openen**. Zo ziet een echte bevinding eruit: de gebeurtenissen erachter, het adres waar het om gaat en wat **Enrich New Cases** heeft gevonden. Sluit de zaak als test wanneer u klaar bent.
 :::
 
-Vanaf dan opent **Overzicht** met wat iemand nodig heeft: uw open zaken, de zaken die niemand heeft opgepakt en de playbookstappen die op goedkeuring wachten, of **Alles rustig** als die er niet zijn.
+Vanaf dan opent **Overzicht** met wat iemand nodig heeft, onder **Vraagt aandacht**: uw open zaken, de zaken die niemand heeft opgepakt en de playbookstappen die op goedkeuring wachten. Als die er niet zijn, staat er **Alles rustig**.
 
 ## Hoe het werkt
 
@@ -48,7 +48,7 @@ flowchart LR
 | **Beveiligingszaken** | **Beveiligingszaken** | Wat er gevonden is, gegroepeerd per gebruiker, host of adres waar het om gaat |
 | **Playbooks** | **Playbooks** | Stappen die op nieuwe zaken draaien: ze verrijken, waarschuwen, een incident openen of indammen |
 
-De strook boven aan **Overzicht** toont elk onderdeel met zijn cijfers: de bronnen en hun gebeurtenissen van de afgelopen 24 uur, de regels die aanstaan, de open zaken en de playbooks die reageren.
+Boven aan **Overzicht**, onder wat iemand nodig heeft, toont elk onderdeel zijn cijfers: de bronnen en hun gebeurtenissen van de afgelopen 24 uur, de regels die aanstaan, de open zaken en de playbooks die reageren. Een onderdeel dat niet is ingesteld, zegt dat en opent de pagina waar u het instelt.
 
 ## Beveiligingsgebeurtenissen in uw logs vinden
 
@@ -74,12 +74,24 @@ Werkt uw team al in een SIEM, dan stuurt OneUptime wat het vindt ook daarheen. K
 Uw rol mag geen detectieregels, playbooks of de logbron toevoegen. Vraag het een Project Owner, een Project Admin of een Security Admin, of laat hen u de rol Security Admin geven.
 :::
 
+:::details Turn on recommended kon niet alles inschakelen
+De kaart noemt alles wat niet kon worden ingeschakeld, en waarom: uw rol, uw abonnement of een fout aan de kant van OneUptime. Al het andere staat aan. Los op wat de kaart noemt en klik daarna op **Opnieuw proberen**: alleen wat nog ontbreekt wordt ingeschakeld, en niets wordt twee keer toegevoegd.
+:::
+
 :::details De testaanval heeft geen zaak geopend
 Meestal is de zaak al open voordat de knop antwoordt; loopt de regel nog achter, dan meldt hij dat en opent de zaak binnen een minuut. Kijk opnieuw bij **Beveiligingszaken** en controleer onder **Detections** of de brute-forceregel aanstaat.
 :::
 
 :::details Uit mijn logs komt geen beveiligingsgebeurtenis
 Controleer of **Beveiligingsgebeurtenissen in uw logboeken vinden** aanstaat en of de kaart **Uw logboeken** laat zien wanneer er voor het laatst is gecontroleerd. Alleen de soorten regels uit de tabel hierboven worden gebeurtenissen: een server die geen SSH-, sudo-, audit-, CloudTrail- of toegangslogs stuurt, heeft niets te vinden.
+:::
+
+:::details Overzicht zegt dat de laatste beveiligingsgebeurtenis dagen geleden binnenkwam
+Sindsdien heeft niets Security bereikt. Open **Connections** en controleer of **Uw logboeken** en elke verbinding nog aanstaan, en wanneer elk voor het laatst controleerde.
+:::
+
+:::details De kaart die Security inschakelt is weg
+Iemand heeft hem weggezet met **Sluiten**. Zolang er nog niets op dreigingen wordt bewaakt, biedt **Overzicht** **Security instellen** aan, waarmee hij terugkomt.
 :::
 
 ## Volgende stappen

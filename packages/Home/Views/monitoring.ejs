@@ -18,13 +18,9 @@
   <main id="main-content">
   <!-- Hero Section -->
   <div class="relative isolate overflow-hidden bg-white" id="monitoring-hero-section">
-    <!-- Subtle grid pattern background -->
-    <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+    <div class="absolute inset-x-0 top-0 -z-10 h-[40rem] bg-[radial-gradient(55%_60%_at_50%_0%,rgba(16,185,129,0.09),transparent_70%)]" aria-hidden="true"></div>
 
-    <!-- Grid glow effect that follows cursor - blue color -->
-    <div id="monitoring-grid-glow" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(59, 130, 246, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(59, 130, 246, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
-
-    <div class="py-20 sm:py-28 lg:py-32">
+    <div class="pb-8 pt-20 sm:pt-28 lg:pt-32">
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
         <div class="mx-auto max-w-3xl text-center">
           <!-- Minimal badge -->
@@ -59,14 +55,16 @@
           </div>
         </div>
 
-        <!-- Clean hero image -->
+        <!-- The product, on a stage -->
         <div class="mt-16 sm:mt-20">
-          <div class="relative mx-auto max-w-5xl">
-            <div class="relative rounded-xl bg-gray-900/5 p-1.5 ring-1 ring-gray-900/10">
-              <img src="/img/monitor.png" alt="OneUptime monitoring dashboard" width="2432" height="1442"
-                class="rounded-lg shadow-lg">
-              <%- include('./Partials/watch-demo.ejs', {videoId: "_fQ_F4EisBQ" }) -%>
+          <div class="relative mx-auto max-w-5xl rounded-[1.75rem] bg-gradient-to-b from-slate-100 via-slate-50 to-emerald-50/70 p-2 ring-1 ring-inset ring-gray-200/70 sm:p-6 lg:p-10">
+            <%# Drawn at its desktop width, and scaled down on smaller screens the way a screenshot would be. -%>
+            <div class="mx-auto w-[45rem] [zoom:0.4] sm:[zoom:0.75] md:[zoom:0.9] lg:w-auto lg:[zoom:1]">
+              <%- include('./Partials/home-mocks/mock-detect') -%>
             </div>
+          </div>
+          <div class="mt-6 flex justify-center">
+            <%- include('./Partials/watch-demo.ejs', { videoId: "_fQ_F4EisBQ", inline: true }) -%>
           </div>
         </div>
       </div>
@@ -1456,65 +1454,6 @@
       </main>
       <%- include('footer') -%>
       <%- include('./Partials/video-script') -%>
-
-<script>
-// Grid glow effect that follows cursor
-(function() {
-    const heroSection = document.getElementById('monitoring-hero-section');
-    const gridGlowEffect = document.getElementById('monitoring-grid-glow');
-
-    if (!heroSection || !gridGlowEffect) return;
-
-    let isHovering = false;
-    let animationFrame = null;
-    let currentX = 0;
-    let currentY = 0;
-    let targetX = 0;
-    let targetY = 0;
-
-    function lerp(start, end, factor) {
-        return start + (end - start) * factor;
-    }
-
-    function animate() {
-        if (!isHovering) return;
-
-        currentX = lerp(currentX, targetX, 0.12);
-        currentY = lerp(currentY, targetY, 0.12);
-
-        gridGlowEffect.style.setProperty('--mouse-x', currentX + 'px');
-        gridGlowEffect.style.setProperty('--mouse-y', currentY + 'px');
-
-        animationFrame = requestAnimationFrame(animate);
-    }
-
-    heroSection.addEventListener('mouseenter', function() {
-        isHovering = true;
-        gridGlowEffect.style.opacity = '1';
-        animate();
-    });
-
-    heroSection.addEventListener('mousemove', function(e) {
-        const rect = heroSection.getBoundingClientRect();
-        targetX = e.clientX - rect.left;
-        targetY = e.clientY - rect.top;
-
-        if (!isHovering) {
-            currentX = targetX;
-            currentY = targetY;
-        }
-    });
-
-    heroSection.addEventListener('mouseleave', function() {
-        isHovering = false;
-        gridGlowEffect.style.opacity = '0';
-        if (animationFrame) {
-            cancelAnimationFrame(animationFrame);
-            animationFrame = null;
-        }
-    });
-})();
-</script>
 
 </body>
 

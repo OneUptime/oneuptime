@@ -75,7 +75,7 @@ Gå till **Varningar → Alla varningar** och klicka på **Skapa varning**. Form
 
 ### Beskriv larmet
 
-Fyll i **Titel** och välj en **Varningsallvar**; båda krävs. Lägg till en **Beskrivning** om det hjälper. Under **Fler fält**, hopfällt, kan du välja ett **Inledande tillstånd**, lägga till **Etiketter** eller slå på **Privat larm**.
+Fyll i **Titel** och välj en **Varningsallvar**; båda krävs. Lägg till en **Beskrivning** om det hjälper. Under **Fler fält**, hopfällt, kan du välja ett **Inledande tillstånd**, lägga till **Etiketter** eller slå på **Privat larm**. Där väntar även **Ägare**: du blir ändå ägare till varningen du skapar, och varje team du är medlem i är ett klick bort under väljaren.
 
 ### Välj vad det påverkar och vem som larmas
 
@@ -83,7 +83,7 @@ Klicka på **Nästa** för att komma till **Resurser och jour**. Välj den **Öv
 
 ### Skapa det
 
-Klicka på **Nästa** för att granska sammanfattningen och sedan på **Skapa varning**. Larmets egen sida öppnas, och reglerna börjar köras.
+Klicka på **Nästa** för att granska sammanfattningen och sedan på **Skapa varning**. Larmets egen sida öppnas, och reglerna börjar köras. I sammanfattningen nämner raden **Ägare** varje ägarregel som kommer att lägga till någon, och vem: se [Vem som äger den](/docs/incidents/declaring-incidents#vem-som-äger-den).
 :::
 
 Lämnar du **Inledande tillstånd** tomt börjar larmet där alla nya larm börjar: i ditt skapandetillstånd, **Identified** i ett nytt projekt. Väljer du ett senare tillstånd registrerar du ett larm som någon redan hanterar, eller som redan är över; se [Skapat redan bekräftat eller löst](#skapat-redan-bekräftat-eller-löst).
@@ -139,7 +139,7 @@ Medan du arbetar med det skriver du ner det du lär dig som **Privata anteckning
 
 **Översikt**, **Utredning**, **Team** och **Anteckningar** är öppna; de andra avsnitten är hopfällda tills du klickar på dem.
 
-- **Översikt** — tre rutor med hur lång tid det tog att bekräfta och lösa larmet, och dess **Varaktighet**. Kortet **AI Investigation** står överst på sidan med **Ask OneUptime AI** längst ner, och **Larm Flöde** registrerar allt som hände med larmet. Bredvid finns kortet **Larmdetaljer**, larmets mätningar och dess **Berörda resurser**.
+- **Översikt** — rubriken nämner larmets **Ägare**, team först, bredvid dess monitor och episod. Rutan **Skapad** visar när och av vad larmet skapades, två andra hur lång tid det tog att bekräfta och lösa det; hur länge det har pågått står vid dess tillstånd. Kortet **Vad som hände** står överst på sidan — larmets beskrivning och dess **Rotorsak** — sedan kortet **AI Investigation** med **Ask OneUptime AI** längst ner, och **Larm Flöde** registrerar allt som hände med larmet. Bredvid finns kortet **Berörda resurser**, kortet **Larmdetaljer** och larmets mätningar.
 - **Tillståndstidslinje** — varje tillstånd larmet har varit i, när och hur länge. Se [Tillståndstidslinjen](/docs/alerts/states-and-severities#tillståndstidslinjen).
 - **Länkade incidenter** — incidenterna som larmet är en del av, med **Länka incident** och **Deklarera incident**.
 - **Inställningar** — **Vem kan se det här larmet** med reglaget **Privat larm**, och **Påminnelser** med **Skicka påminnelser**. Varje reglage sparar i samma ögonblick som du slår om det.

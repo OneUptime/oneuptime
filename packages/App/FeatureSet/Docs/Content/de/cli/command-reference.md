@@ -101,7 +101,7 @@ oneuptime context delete <name>
 
 ### `oneuptime <resource> list`
 
-Listet Datensätze auf, die neuesten zuerst.
+Listet Datensätze auf, die neuesten zuerst. Beschriftungen werden stattdessen nach Namen aufgelistet, nummerierte Beschriftungen zuerst (`2. Team` vor `10. Owner`).
 
 ```bash
 oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [-o <format>]

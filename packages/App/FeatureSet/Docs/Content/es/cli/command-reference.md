@@ -101,7 +101,7 @@ oneuptime context delete <name>
 
 ### `oneuptime <resource> list`
 
-Lista registros, los más recientes primero.
+Lista registros, los más recientes primero. Las etiquetas, en cambio, se listan por nombre, primero las numeradas (`2. Team` antes que `10. Owner`).
 
 ```bash
 oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [-o <format>]

@@ -12,7 +12,9 @@ import { getTeamsBreadcrumbs } from "@oneuptime/dashboard/Utils/Breadcrumbs/Team
 import {
   getRoleDeleteReachSentence,
   getRoleReachSentence,
+  isRoleGivenToAnyone,
 } from "@oneuptime/dashboard/Components/CustomRole/CustomRoleCopy";
+import CustomRoleApiKeysTable from "@oneuptime/dashboard/Components/CustomRole/CustomRoleApiKeysTable";
 import { getCustomRoleEditFormFields } from "./CustomRoleCreateForm";
 import CustomRolePermissionTable from "./CustomRolePermissionTable";
 import {
@@ -49,11 +51,16 @@ import React, {
  *
  *   - Custom Role Details: its name and description, edited in place;
  *   - Permissions: what the role gives (CustomRolePermissionTable), under a
- *     line that says who a change reaches - "Given to 3 teams (12 people).
- *     A change here changes what they can do at once." - read again after
- *     every change of the teams. A role no team has yet says only what it
- *     gives: the Teams card under it says no team has it;
+ *     line that says who a change reaches - "Given to 3 teams (12 people)
+ *     and 2 API keys. A change here changes what they can do at once." -
+ *     read again after every change of the teams and keys given it. A role
+ *     nothing has yet says only what it gives: the cards under it say no
+ *     team or key has it;
  *   - Teams with this Role: the teams given it (CustomRoleTeamsTable);
+ *   - API Keys with this Role: the keys given it (CustomRoleApiKeysTable),
+ *     for whoever may read the project's API keys, saying what a key gets
+ *     of the role - read again after every change of its permissions, as
+ *     an edited scope can change that;
  *   - Delete: what deleting it takes from whom, before it is pressed.
  *
  * Custom roles are an Enterprise feature: this is the Enterprise page, and
@@ -69,6 +76,9 @@ const TeamRoleView: FunctionComponent<PageComponentProps> = (
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const [roleName, setRoleName] = useState<string>("");
   const [reach, setReach] = useState<CustomRoleReachDetails | null>(null);
+  // Counts the reads of the role's permissions: what its API keys get follows.
+  const [permissionsChangeToggle, setPermissionsChangeToggle] =
+    useState<number>(0);
 
   const readReach: () => void = useCallback((): void => {
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
@@ -116,7 +126,7 @@ const TeamRoleView: FunctionComponent<PageComponentProps> = (
   usePageBreadcrumbLinks(breadcrumbLinks);
 
   const permissionsDescription: string =
-    reach && reach.teamCount > 0
+    reach && isRoleGivenToAnyone(reach)
       ? translator.translateTemplate("What this role gives. {{reach}}", {
           reach: getRoleReachSentence(translator, reach),
         })
@@ -187,6 +197,11 @@ const TeamRoleView: FunctionComponent<PageComponentProps> = (
         roleName={roleName}
         description={permissionsDescription}
         isReadOnly={isReadOnly}
+        onPermissionCountChange={() => {
+          setPermissionsChangeToggle((count: number): number => {
+            return count + 1;
+          });
+        }}
       />
 
       <CustomRoleTeamsTable
@@ -194,6 +209,13 @@ const TeamRoleView: FunctionComponent<PageComponentProps> = (
         roleName={roleName}
         onTeamsChange={readReach}
         isReadOnly={isReadOnly}
+      />
+
+      <CustomRoleApiKeysTable
+        customRoleId={modelId}
+        roleName={roleName}
+        onApiKeysChange={readReach}
+        permissionsChangeToggle={permissionsChangeToggle}
       />
 
       <ModelDelete

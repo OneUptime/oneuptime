@@ -109,14 +109,18 @@ interface FormField {
 
 /*
  * The Labels field is the shared one (getLabelsFormField), titled "Labels"
- * by the helper: the form writes only its step, section and summary.
+ * by the helper: the form writes only its step, section and summary. So is
+ * the Owners field (getOwnersFormField), titled "Owners".
  */
 const LABELS_FIELD_CALL: string = "getLabelsFormField<Incident>(";
+const OWNERS_FIELD_CALL: string = "getOwnersFormField<Incident>(";
 
 interface FieldObject {
   text: string;
   // The object is the options of the shared Labels field.
   isLabelsField: boolean;
+  // The object is the options of the shared Owners field.
+  isOwnersField: boolean;
 }
 
 /*
@@ -153,6 +157,9 @@ function fieldObjects(): Array<FieldObject> {
           isLabelsField: CREATE_SOURCE.slice(0, objectStart).endsWith(
             LABELS_FIELD_CALL,
           ),
+          isOwnersField: CREATE_SOURCE.slice(0, objectStart).endsWith(
+            OWNERS_FIELD_CALL,
+          ),
         });
       }
     } else if (character === "]" && depth === 0) {
@@ -171,18 +178,20 @@ function fieldObjects(): Array<FieldObject> {
 function formFields(): Array<FormField> {
   const fields: Array<FormField> = [];
 
-  for (const { text: object, isLabelsField } of fieldObjects()) {
+  for (const { text: object, isLabelsField, isOwnersField } of fieldObjects()) {
     // A title written as a literal, or taken from the shared scope copy.
     const copyKey: string | undefined = object.match(
       / title: IncidentStatusPageScopeCopy\.(\w+),/,
     )?.[1];
     const title: string | undefined = isLabelsField
       ? "Labels"
-      : copyKey
-        ? (IncidentStatusPageScopeCopy as unknown as Record<string, string>)[
-            copyKey
-          ]
-        : object.match(/ title: "([^"]+)",/)?.[1];
+      : isOwnersField
+        ? "Owners"
+        : copyKey
+          ? (IncidentStatusPageScopeCopy as unknown as Record<string, string>)[
+              copyKey
+            ]
+          : object.match(/ title: "([^"]+)",/)?.[1];
     const stepId: string | undefined = object.match(/ stepId: "([^"]+)",/)?.[1];
 
     if (!title || !stepId) {
@@ -335,7 +344,7 @@ describe("the Declare Incident docs follow the form's steps", () => {
     },
   );
 
-  it("the form folds Declared At, Initial State, Labels and Private Incident on its first step, and the status page limit and notifying subscribers on the next", () => {
+  it("the form folds Declared At, Initial State, Labels, Private Incident and Owners on its first step, and the status page limit and notifying subscribers on the next", () => {
     const folded: Array<string> = formFields()
       .filter((field: FormField): boolean => {
         return field.isFolded;
@@ -349,6 +358,7 @@ describe("the Declare Incident docs follow the form's steps", () => {
       "incident-details: Initial State",
       "incident-details: Labels",
       "incident-details: Private Incident",
+      "incident-details: Owners",
       "resources-affected: Limit to these status pages",
       "resources-affected: Notify Status Page Subscribers",
     ]);

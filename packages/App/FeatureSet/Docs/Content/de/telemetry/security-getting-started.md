@@ -29,7 +29,7 @@ Klicken Sie auf **Testangriff senden**. Ein Dutzend fehlgeschlagener Anmeldungen
 Klicken Sie auf **Fall öffnen**. So sieht ein echter Fund aus: die Ereignisse dahinter, die Adresse, um die es geht, und was **Enrich New Cases** herausgefunden hat. Schließen Sie ihn als Test, wenn Sie fertig sind.
 :::
 
-Von da an zeigt **Übersicht** zuerst, was jemanden braucht: Ihre offenen Fälle, die Fälle, die niemand übernommen hat, und die Playbook-Schritte, die auf eine Genehmigung warten, oder **Alles ruhig**, wenn es nichts davon gibt.
+Von da an zeigt **Übersicht** zuerst unter **Erfordert Aufmerksamkeit**, was jemanden braucht: Ihre offenen Fälle, die Fälle, die niemand übernommen hat, und die Playbook-Schritte, die auf eine Genehmigung warten. Gibt es nichts davon, steht dort **Alles ruhig**.
 
 ## So funktioniert es
 
@@ -48,7 +48,7 @@ flowchart LR
 | **Sicherheitsfälle** | **Sicherheitsfälle** | Was gefunden wurde, gruppiert nach dem Benutzer, dem Host oder der Adresse, um die es geht |
 | **Playbooks** | **Playbooks** | Schritte, die auf neuen Fällen laufen: anreichern, benachrichtigen, einen Vorfall eröffnen oder eindämmen |
 
-Der Streifen oben auf **Übersicht** zeigt jeden Teil mit seinen Zahlen: die Quellen und ihre Ereignisse der letzten 24 Stunden, die eingeschalteten Regeln, die offenen Fälle und die Playbooks, die reagieren.
+Oben auf **Übersicht**, unter dem, was jemanden braucht, zeigt jeder Teil seine Zahlen: die Quellen und ihre Ereignisse der letzten 24 Stunden, die eingeschalteten Regeln, die offenen Fälle und die Playbooks, die reagieren. Ein Teil, der nicht eingerichtet ist, sagt das und öffnet die Seite, auf der Sie ihn einrichten.
 
 ## Sicherheitsereignisse in Ihren Logs finden
 
@@ -74,12 +74,24 @@ Arbeitet Ihr Team bereits in einem SIEM, sendet OneUptime seine Funde auch dorth
 Ihre Rolle darf keine Erkennungsregeln, Playbooks oder die Log-Quelle hinzufügen. Wenden Sie sich an einen Project Owner, einen Project Admin oder einen Security Admin, oder lassen Sie sich von ihnen die Rolle Security Admin geben.
 :::
 
+:::details Turn on recommended konnte nicht alles einschalten
+Die Karte nennt alles, was sie nicht einschalten konnte, und warum: Ihre Rolle, Ihr Tarif oder ein Fehler bei OneUptime. Alles andere ist eingeschaltet. Beheben Sie, was sie nennt, und klicken Sie dann auf **Erneut versuchen**: Es wird nur eingeschaltet, was noch fehlt, und nichts wird doppelt hinzugefügt.
+:::
+
 :::details Der Testangriff hat keinen Fall eröffnet
 Meist ist der Fall schon offen, bevor die Schaltfläche antwortet; holt die Regel noch auf, sagt sie das, und der Fall öffnet sich innerhalb einer Minute. Sehen Sie noch einmal unter **Sicherheitsfälle** nach, und prüfen Sie unter **Erkennungen**, ob die Brute-Force-Regel eingeschaltet ist.
 :::
 
 :::details Aus meinen Logs kommt kein Sicherheitsereignis
 Prüfen Sie, ob **Sicherheitsereignisse in Ihren Protokollen finden** eingeschaltet ist und die Karte **Ihre Protokolle** anzeigt, wann zuletzt geprüft wurde. Nur die Arten von Zeilen aus der Tabelle oben werden zu Ereignissen: Ein Server, der keine SSH-, sudo-, Audit-, CloudTrail- oder Zugriffslogs sendet, hat nichts zu finden.
+:::
+
+:::details Übersicht sagt, das letzte Sicherheitsereignis kam vor Tagen
+Seitdem hat Security nichts erreicht. Öffnen Sie **Verbindungen** und prüfen Sie, ob **Ihre Protokolle** und jede Verbindung noch eingeschaltet sind und wann jede zuletzt geprüft hat.
+:::
+
+:::details Die Karte, die Security einschaltet, ist weg
+Jemand hat sie mit **Ausblenden** weggelegt. Solange noch nichts auf Bedrohungen überwacht wird, bietet **Übersicht** **Security einrichten** an, womit sie zurückkommt.
 :::
 
 ## Nächste Schritte

@@ -94,8 +94,8 @@ En regel larmar så snart ett larm matchar den. För att låta den vänta på ar
 
 **Ägarregler** lägger till ägaranvändare och ägarteam på nya larm som matchar, och **Etikettregler** lägger till etiketter. Att skapa en tar två steg: **Matcha**, villkoren, och sedan **Ägare** eller **Etiketter**, det som regeln lägger till. Regelns **Namn** följer det du väljer tills du skriver ett eget.
 
-- **En regel kan ärva.** Hopfällda under **Ärv ägare** eller **Ärv etiketter** för sex reglage vidare ägarna eller etiketterna från larmets monitor, värdar, Kubernetes-kluster, Docker-värdar, Podman-värdar och tjänster. Episodregler har inga sådana reglage.
-- **En ny regel måste lägga till något**: Välj minst en ägare eller etikett, eller slå på ett reglage.
+- **En regel kan ärva.** Hopfällda under **Ärv ägare** eller **Ärv etiketter** för sex reglage vidare ägarna eller etiketterna från larmets monitor, värdar, Kubernetes-kluster, Docker-värdar, Podman-värdar och tjänster. Episodregler har inga sådana reglage. En ägarregels **Ärv ägare** slutar med **Skaparens team**: av teamen som står där blir varje team som den som skapar larmet är med i också ägare.
+- **En ny regel måste lägga till något**: Välj minst en ägare eller etikett, eller slå på ett reglage. På en ägarregel för incidenter eller larm räcker det också med ett team under **Skaparens team**.
 - **Avisera ägare**, under **Fler fält** i en ägarregel, avgör om personerna som läggs till får veta det.
 
 [Etikett- och ägarregler](/docs/configuration/label-and-owner-rules) går igenom formuläret steg för steg, för varje typ av resurs.

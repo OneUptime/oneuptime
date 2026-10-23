@@ -57,7 +57,7 @@ The **Name** is filled in from what you pick (_Add Production_, _Add Platform as
 On the last step, click the button named after the rule again, such as **Create Monitor Label Rule**. The rule starts enabled, and the list shows it with a green **Enabled** pill.
 :::
 
-A new rule has to add something: at least one label (or owner) or, on an incident, alert or scheduled maintenance rule, something it inherits (see below). To pause a rule without deleting it, switch **Enabled** off on its edit form; the list then shows a red **Disabled** pill.
+A new rule has to add something: at least one label (or owner) or, on an incident, alert or scheduled maintenance rule, something it inherits (see below). To pause a rule without deleting it, switch **Enabled** off on its edit form; the list then shows a red **Disabled** pill. On an incident or alert owner rule, a team under **Creator's Team** is enough too.
 
 ### However the rule is made
 
@@ -68,9 +68,10 @@ The same holds for a rule made through the API, Terraform, a workflow or a [labe
 | Label rule | This label rule adds nothing. Choose at least one label in Labels to Add. |
 | Incident, alert or scheduled maintenance label rule | This label rule adds nothing. Choose at least one label in Labels to Add, or turn on an Inherit Labels switch. |
 | Owner rule | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams. |
-| Incident, alert or scheduled maintenance owner rule | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
+| Incident or alert owner rule | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, a team in Creator's Teams, or turn on an Inherit Owners switch. |
+| Scheduled maintenance owner rule | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
 
-- **API**: set `labelsToAdd` (or `ownerUsers` / `ownerTeams`) to at least one record of the project, or one of the rule's `inheritLabelsFrom…` (`inheritOwnersFrom…`) switches to `true` — a JSON boolean.
+- **API**: set `labelsToAdd` (or `ownerUsers` / `ownerTeams`) to at least one record of the project, or one of the rule's `inheritLabelsFrom…` (`inheritOwnersFrom…`) switches to `true` — a JSON boolean. On an incident or alert owner rule, a team in `creatorTeams` is enough too.
 - **Terraform**: a label or owner rule resource with nothing to add fails at `terraform apply` with the message above. Give it `labels_to_add` (or `owner_users` / `owner_teams`) or turn on one of its inherit switches.
 
 Rules you already have are not touched — see [Editing a rule](#editing-a-rule).
@@ -93,6 +94,12 @@ A rule that inherits can leave **Labels to Add** (or **Owners**) empty: it adds 
 | **Inherit Labels From Monitor**, on an alert rule | _Inherit labels from monitor_ |
 
 The name follows the switches until you pick a label — the rule is then named after its labels — or type a name of your own.
+
+### The creator's team
+
+An incident or alert owner rule has one more entry, last in its **Inherit Owners** section: **Creator's Team**, a list of teams. When the person who declares a matching incident, or creates a matching alert, is a member of a team on the list, that team becomes an owner too. It is a list rather than every team of theirs because people join the project's **Members** team by default, and making everyone an owner helps nobody. An incident or alert that a monitor, a workflow, a form or an API key creates has no creator, so it gets none of these teams. They are told as the rule's **Notify Owners** says, and a rule that adds only them is named _Add the creator's team as an owner_. Through the API, the list is `creatorTeams`.
+
+The person who declares an incident or creates an alert is made one of its owners whatever the rules say, and the create forms list on their summary each owner rule that will run, and whom it will add: see [Who will own it](/docs/incidents/declaring-incidents#who-will-own-it).
 
 ## Editing a rule
 

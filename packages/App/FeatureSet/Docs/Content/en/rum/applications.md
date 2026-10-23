@@ -64,7 +64,7 @@ Labels group applications in lists and filters. They also decide what a member r
 
 | How | Where |
 | --- | --- |
-| By hand | On the create form, under **More fields**, or later with **Edit Details** on the **Application Details** card of the application's **Settings** page. |
+| By hand | On the create form, under **More fields**, or later with **Edit Details** on the **Application Details** card of the application's **Settings** page. For several at once, select them in the list and choose **Add Labels** under **Bulk Actions**. |
 | From telemetry | A resource attribute named `oneuptime.label.<name>` adds the label `<name>:<value>`, as shown below. |
 | From a label rule | A rule adds labels to every new application it matches. See [Label rules and owner rules](#label-rules-and-owner-rules). |
 
@@ -93,7 +93,7 @@ Rules run when an application is created, discovered ones included. To apply a r
 
 ### Owners
 
-Owners are the people and teams responsible for an application. A RUM application's owners come from owner rules: the Dashboard has no page to add them by hand, and the API adds them through `/rum-application-owner-user` and `/rum-application-owner-team`. With **Notify Owners** on, which is the default, each owner a rule adds is told so. Turn it off before you run a rule over many applications, if nobody should be notified.
+Owners are the people and teams responsible for an application. Owner rules add them to new applications. To add or remove them by hand, select applications in the list and choose **Add Owner** or **Remove Owner** under **Bulk Actions**; the API adds them through `/rum-application-owner-user` and `/rum-application-owner-team`. With **Notify Owners** on, which is the default, each owner a rule adds is told so. Turn it off before you run a rule over many applications, if nobody should be notified.
 
 ## Retention
 

@@ -29,18 +29,19 @@ to `2026-09-21T12:00:00Z`, and the spec fixes the browser clock to the same inst
 
 One monitor per supported type, each on its own id (`70000000-0000-4000-8000-00000000000N`):
 
-| `?type=`           | N   | Monitor                        | Notes                                                           |
-| ------------------ | --- | ------------------------------ | --------------------------------------------------------------- |
-| `api` (default)    | 1   | Checkout API                   | 3 probes, `*/5` cadence, minimum probe agreement 2              |
-| `website`          | 2   | Storefront                     | 3 probes                                                        |
-| `ssl`              | 3   | Storefront TLS certificate     | certificate expires in 23 days                                  |
-| `incoming-request` | 4   | Nightly billing export         | 30-minute missing-request criterion, last request 7 minutes ago |
-| `incoming-email`   | 5   | Payroll run confirmation       | last email 2 hours ago                                          |
-| `server`           | 6   | orders-db primary host         | agent report 38 seconds ago, CPU 37%, memory 62%                |
-| `kubernetes`       | 7   | Production cluster (eu-west-1) | two criteria steps, evaluated every minute                      |
-| `network-device`   | 8   | Core switch sw-core-01         | device `85000000-…-000000000001`, no owners                     |
-| `manual`           | 9   | Payment provider               | no steps                                                        |
-| `probe-status`     | 10  | Probe health                   | watches Frankfurt and Singapore; offline: Singapore went silent |
+| `?type=`               | N   | Monitor                        | Notes                                                                                                                                                                                |
+| ---------------------- | --- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `api` (default)        | 1   | Checkout API                   | 3 probes, `*/5` cadence, minimum probe agreement 2                                                                                                                                   |
+| `website`              | 2   | Storefront                     | 3 probes                                                                                                                                                                             |
+| `ssl`                  | 3   | Storefront TLS certificate     | certificate expires in 23 days                                                                                                                                                       |
+| `incoming-request`     | 4   | Nightly billing export         | 30-minute missing-request criterion, last request 7 minutes ago                                                                                                                      |
+| `incoming-email`       | 5   | Payroll run confirmation       | last email 2 hours ago                                                                                                                                                               |
+| `server`               | 6   | orders-db primary host         | agent report 38 seconds ago, CPU 37%, memory 62%                                                                                                                                     |
+| `kubernetes`           | 7   | Production cluster (eu-west-1) | two criteria steps, evaluated every minute                                                                                                                                           |
+| `network-device`       | 8   | Core switch sw-core-01         | device `85000000-…-000000000001`, no owners                                                                                                                                          |
+| `manual`               | 9   | Payment provider               | no steps                                                                                                                                                                             |
+| `probe-status`         | 10  | Probe health                   | watches Frankfurt and Singapore; offline: Singapore went silent                                                                                                                      |
+| `external-status-page` | 11  | Platform team status           | the Core group of another team's OneUptime status page: its Orders database under maintenance, its Checkout API operational; offline: the page went private, and every probe says so |
 
 - **Status history** comes from one list of status changes per monitor. The same list feeds
   the `MonitorStatusTimeline` rows and `GET /monitor/uptime-summary/:id`, which the fixture
@@ -84,7 +85,7 @@ another monitor lands on a plain, healthy one.
 
 | Parameter        | Values                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `?type=`         | `api` (default), `website`, `ssl`, `incoming-request`, `incoming-email`, `server`, `kubernetes`, `network-device`, `manual`, `probe-status`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `?type=`         | `api` (default), `website`, `ssl`, `incoming-request`, `incoming-email`, `server`, `kubernetes`, `network-device`, `manual`, `probe-status`, `external-status-page`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `?state=`        | comma separated. The status: `operational` (default), `offline` (for 12 minutes), `degraded` (for 25 minutes). Plus any of: `disabled`, `maintenance`, `no-probes`, `probes-off`, `disconnected` (every probe), `one-disconnected` (Singapore went offline 3 days ago, and its last result and next check stayed there; the other two probes report on time), `stale` (last results 38 minutes old; for `kubernetes`, the worker still stamps the monitor every minute but the newest evaluation in `MonitorLog` is 14 minutes old), `awaiting` (created 2 minutes ago, nothing received). `disabled,probes-off` is a disabled monitor whose probes are all switched off. |
 | `?history=`      | `full` (default, created in March), `new` (created 12 days ago), `flapping` (an outage every 6h40m for three months)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `?role=`         | `owner` (default, ProjectOwner), `viewer`, `monitor-viewer`, `read-project-monitor`. Reads of a model the role cannot read are refused the way the API refuses them, and so is a select that names a column the role cannot read (the secret keys).                                                                                                                                                                                                                                                                                                                                                                                                                       |
@@ -207,6 +208,25 @@ nothing is drawn, and a self-hosted install asks nothing. On the Free plan the n
 first, above the pricing card, on a desktop and on a phone. At the limit a Manual monitor
 can still be made from the same form. The notice fits a phone and sits on a dark surface in
 dark mode.
+
+`ExternalStatusPageMonitor.spec.ts` covers the External Status Page monitor's providers on
+Create Monitor (issue #5176): the Provider dropdown, named Provider, offers Auto first, then
+OneUptime Status Page between incident.io and the feeds, with Auto picked, no clear button and
+no "(Optional)"; the Provider's line says what Auto does; More fields holds the group filter,
+whose line says which providers have groups, and every optional field there says "(Optional)"
+once, small and grey after its title, with its box named by its label. At 390px the list and
+More fields stay inside the screen. Start to finish, the docs' steps for showing upstream
+maintenance: a OneUptime Status Page with a group, Add Criteria, External Status Page
+Component Status, Equal To, Under Maintenance - the criteria named
+`External Status Page Component Status is "Under Maintenance"` - and Create Monitor sending
+the provider, the group, `under_maintenance` and that name. Then what a check found, on the
+`external-status-page` monitor (11): its Summary card at 1280px puts the facts two to a row,
+each fitting its card, and lists the Core group's components with their statuses in the
+Component Status criteria's words ("Under Maintenance"), each at its row's end with the group
+and what the page says under the name; at 390px each status sits under its name and nothing
+leaves the screen; a page that went private says why between the check's facts and the
+page's, and lists no components; Monitoring Logs' View Summary puts four facts to a row in
+its wide dialog at the same 1280px; dark mode keeps the facts and the list on dark surfaces.
 
 `afterEach` fails a test on an uncaught page error, on any request the fixture does not
 model, and on any request the network fence had to abort.

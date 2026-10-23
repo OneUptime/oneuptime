@@ -8,8 +8,14 @@ import {
   SeatUsageMeter,
   WhiteLabelBadge,
   getLicenseLifecycle,
+  getLicenseStatusText,
+  getSeatUsageText,
   isOverUserLimit,
 } from "../Components/LicenseUtil";
+import { getLicenseItemName } from "../Components/LicenseBulkCopy";
+import useLicenseBulkActions, {
+  LicenseBulkActionsResult,
+} from "../Components/useLicenseBulkActions";
 import Route from "Common/Types/API/Route";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -20,6 +26,7 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
 import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
@@ -79,6 +86,12 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
   );
   const [statsError, setStatsError] = useState<string>("");
   const [tableRefreshToggle, setTableRefreshToggle] = useState<boolean>(false);
+
+  // Change Expiry Date, and the dialog it asks for the date in.
+  const {
+    bulkActions: licenseBulkActions,
+    modals: licenseBulkModals,
+  }: LicenseBulkActionsResult = useLicenseBulkActions();
 
   /*
    * Rendered only on OneUptime Cloud: the core shell at
@@ -216,7 +229,30 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
           userPreferencesKey="admin-enterprise-licenses-table"
           id="enterprise-licenses-table"
           name="Enterprise Licenses"
-          isDeleteable={false}
+          /*
+           * Delete in each row's ⋯ and in Bulk Actions, as on the license's
+           * own page: cleaning up expired licenses and the duplicates a
+           * second issue leaves. What deleting one does to the customer's
+           * installations is said in every Delete dialog
+           * (DeleteConsequences, EnterpriseLicense).
+           */
+          isDeleteable={true}
+          /*
+           * By company and masked key: one company can hold two licenses,
+           * and "Delete Netlock.hu?" would not say which.
+           */
+          getItemName={(item: EnterpriseLicense): string => {
+            return getLicenseItemName({
+              companyName: item.companyName,
+              licenseKey: item.licenseKey,
+            });
+          }}
+          bulkActions={{
+            buttons: [
+              ...licenseBulkActions,
+              ModalTableBulkDefaultActions.Delete,
+            ],
+          }}
           isEditable={false}
           isCreateable={true}
           isViewable={true}
@@ -389,6 +425,13 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
               title: "Email",
               type: FieldType.Email,
             },
+            /*
+             * Export CSV (in Bulk Actions) writes these columns as the list
+             * shows them: the key masked, as everywhere a list or an email
+             * shows one, never the whole key an installation activates
+             * with; the type, status and seats in words, not the raw
+             * columns under them.
+             */
             {
               field: {
                 licenseKey: true,
@@ -404,6 +447,11 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
                   </span>
                 );
               },
+              getExportValue: (item: EnterpriseLicense): string => {
+                return item.licenseKey
+                  ? EnterpriseLicenseUsageUtil.maskLicenseKey(item.licenseKey)
+                  : "";
+              },
             },
             {
               field: {
@@ -411,6 +459,16 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
               },
               title: "Type",
               type: FieldType.Element,
+              getExportValue: (item: EnterpriseLicense): string => {
+                return [
+                  item.isEvaluationLicense ? "Evaluation" : "Production",
+                  item.canBeWhiteLabelled ? "White-label" : "",
+                ]
+                  .filter((part: string): boolean => {
+                    return part.length > 0;
+                  })
+                  .join(", ");
+              },
               getElement: (item: EnterpriseLicense): ReactElement => {
                 return (
                   <span className="inline-flex flex-wrap items-center gap-1">
@@ -434,6 +492,11 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
               },
               title: "Status",
               type: FieldType.Element,
+              getExportValue: (item: EnterpriseLicense): string => {
+                return getLicenseStatusText(
+                  getLicenseLifecycle(item.expiresAt, reminderDays),
+                );
+              },
               getElement: (item: EnterpriseLicense): ReactElement => {
                 return (
                   <LicenseStatusPill
@@ -449,6 +512,12 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
               },
               title: "Seats",
               type: FieldType.Element,
+              getExportValue: (item: EnterpriseLicense): string => {
+                return getSeatUsageText({
+                  currentUserCount: item.currentUserCount,
+                  userLimit: item.userLimit,
+                });
+              },
               getElement: (item: EnterpriseLicense): ReactElement => {
                 return (
                   <SeatUsageMeter
@@ -477,6 +546,8 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
             },
           ]}
         />
+
+        {licenseBulkModals}
 
         <div className="mt-6">
           <CardModelDetail<GlobalConfig>

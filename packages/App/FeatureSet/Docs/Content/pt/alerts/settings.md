@@ -94,8 +94,8 @@ Uma regra aciona assim que um alerta corresponde a ela. Para que ela aguarde o h
 
 As **Regras de proprietário** adicionam usuários e equipes proprietários aos novos alertas que correspondem, e as **Regras de Rótulos** adicionam rótulos. Criar uma leva duas etapas: **Corresponder**, as condições, e depois **Proprietários** ou **Rótulos**, o que a regra adiciona. O **Nome** da regra acompanha o que você escolhe até você digitar um seu.
 
-- **Uma regra pode herdar.** Recolhidos em **Herdar Proprietários** ou **Herdar Rótulos**, seis interruptores repassam os proprietários ou rótulos do monitor, dos hosts, dos clusters Kubernetes, dos hosts Docker, dos hosts Podman e dos serviços do alerta. As regras de episódio não têm esses interruptores.
-- **Uma regra nova precisa adicionar algo**: escolha pelo menos um proprietário ou rótulo, ou ative um interruptor.
+- **Uma regra pode herdar.** Recolhidos em **Herdar Proprietários** ou **Herdar Rótulos**, seis interruptores repassam os proprietários ou rótulos do monitor, dos hosts, dos clusters Kubernetes, dos hosts Docker, dos hosts Podman e dos serviços do alerta. As regras de episódio não têm esses interruptores. A seção **Herdar Proprietários** de uma regra de proprietários termina com **Equipe do criador**: das equipes listadas ali, cada uma em que está a pessoa que cria o alerta também vira proprietária.
+- **Uma regra nova precisa adicionar algo**: escolha pelo menos um proprietário ou rótulo, ou ative um interruptor. Numa regra de proprietários de incidente ou alerta, uma equipe em **Equipe do criador** também basta.
 - **Notificar proprietários**, em **Mais campos** de uma regra de proprietário, decide se as pessoas adicionadas são avisadas.
 
 [Regras de rótulos e proprietários](/docs/configuration/label-and-owner-rules) explica o formulário passo a passo, para cada tipo de recurso.

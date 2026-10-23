@@ -11,12 +11,18 @@ import path from "path";
  * are drawn, long names wrapping inside their cards, a phone's width, dark
  * mode. AddRoleDialog.spec.ts holds the Add a Role dialog itself - its role
  * picker under the keyboard, on a phone, dark and in German.
+ * ApiKeyCustomRoles.spec.ts holds custom roles on API keys: a key's page,
+ * Create API Key and the keys a role is given to, at 1280 and 390 pixels.
  */
 const port: string = process.env["CUSTOM_ROLES_FIXTURE_PORT"] || "4313";
 
 export default defineConfig({
   testDir: "./CustomRoles",
-  testMatch: ["CustomRoles.spec.ts", "AddRoleDialog.spec.ts"],
+  testMatch: [
+    "CustomRoles.spec.ts",
+    "AddRoleDialog.spec.ts",
+    "ApiKeyCustomRoles.spec.ts",
+  ],
   fullyParallel: false,
   workers: 1,
   timeout: 90000,

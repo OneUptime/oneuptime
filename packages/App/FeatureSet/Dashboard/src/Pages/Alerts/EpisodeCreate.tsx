@@ -26,6 +26,8 @@ import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Fi
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { getOwnersOnCreateFieldOptions } from "../../Components/OwnersOnCreate/OwnersOnCreateField";
+import { OwnerRulePreviewEvent } from "Common/Types/Rules/OwnerRulePreview";
 
 /*
  * Creating an episode asks for its title, severity and description. The
@@ -261,13 +263,17 @@ const EpisodeCreate: FunctionComponent<
               },
               /*
                * People and teams in one picker, kept in ownerUsers /
-               * ownerTeams: AlertEpisodeService adds them as the episode's
-               * owners. The summary step lists them by name.
+               * ownerTeams: AlertEpisodeService asks whether the creator may
+               * add them before the episode is saved, and adds them as its
+               * owners once it exists. The creator's own teams are one click
+               * away under it, and the summary step lists the owners by name
+               * with the owner rules that will add more (OwnersOnCreate).
                */
-              getOwnersFormField({
+              getOwnersFormField<AlertEpisode>({
                 stepId: "on-call",
-                description:
-                  "Who owns this episode. They are notified when it is created or updated.",
+                ...getOwnersOnCreateFieldOptions<AlertEpisode>(
+                  OwnerRulePreviewEvent.AlertEpisode,
+                ),
               }),
             ]}
             steps={[

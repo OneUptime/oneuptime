@@ -492,6 +492,8 @@ describe("the Detection Rules page", () => {
 
     expect(capturedTableProps?.selectMoreFields).toEqual({
       sigmaRuleYaml: true,
+      // Whether each rule is on, for Enable and Disable in bulk to count.
+      isEnabled: true,
     });
 
     const column: CapturedColumn | undefined =
@@ -637,7 +639,7 @@ describe("correlations in the Rule Library", () => {
     const sequences: Array<LibraryRuleView> = getLibraryRuleViews({
       category: "",
       search: "sequence",
-      existingRuleNames: [],
+      existingRules: [],
     });
 
     // Every sequence is found (a rule whose words say "sequence" may be too).
@@ -666,7 +668,7 @@ describe("correlations in the Rule Library", () => {
     const firstSeen: Array<LibraryRuleView> = getLibraryRuleViews({
       category: "",
       search: "first seen",
-      existingRuleNames: [],
+      existingRules: [],
     });
 
     expect(

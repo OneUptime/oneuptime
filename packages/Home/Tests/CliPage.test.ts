@@ -638,9 +638,9 @@ describe("the rendered page", () => {
     expect(route).toContain("cli: getCliPageContent(),");
     expect(main).not.toBeNull();
     expect(own.textContent).toContain("Power users love the terminal");
-    // The shared product table is on the page, and not in its own words.
-    expect(main.textContent).toContain("Log Management");
-    expect(own.textContent).not.toContain("Log Management");
+    // The shared product index is on the page, and not in its own words.
+    expect(main.textContent).toContain("Every product, built in.");
+    expect(own.textContent).not.toContain("Every product, built in.");
     expect(document.querySelector("h1")?.textContent?.trim()).toBe(
       "Observability from your terminal",
     );

@@ -57,7 +57,7 @@ Il **Nome** viene compilato in base alle tue scelte (_Aggiungi Production_, _Agg
 Nell'ultimo passaggio, fai di nuovo clic sul pulsante con il nome della regola, per esempio **Crea: Monitor Label Rule**. La regola parte abilitata e l'elenco la mostra con un'etichetta verde **Abilitato**.
 :::
 
-Una nuova regola deve aggiungere qualcosa: almeno un'etichetta (o un proprietario) oppure, in una regola di incidenti, avvisi o manutenzione programmata, qualcosa che eredita (vedi sotto). Per mettere in pausa una regola senza eliminarla, disattiva **Abilitato** nel suo modulo di modifica; l'elenco mostra allora un'etichetta rossa **Disabilitato**.
+Una nuova regola deve aggiungere qualcosa: almeno un'etichetta (o un proprietario) oppure, in una regola di incidenti, avvisi o manutenzione programmata, qualcosa che eredita (vedi sotto). Per mettere in pausa una regola senza eliminarla, disattiva **Abilitato** nel suo modulo di modifica; l'elenco mostra allora un'etichetta rossa **Disabilitato**. In una regola per proprietari di incidenti o avvisi basta anche un team in **Team del creatore**.
 
 ### Comunque venga creata la regola
 
@@ -68,9 +68,10 @@ Lo stesso vale per una regola creata tramite l'API, Terraform, un workflow o un'
 | Regola per etichette | This label rule adds nothing. Choose at least one label in Labels to Add. |
 | Regola per etichette di incidenti, avvisi o manutenzione programmata | This label rule adds nothing. Choose at least one label in Labels to Add, or turn on an Inherit Labels switch. |
 | Regola per proprietari | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams. |
-| Regola per proprietari di incidenti, avvisi o manutenzione programmata | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
+| Regola per proprietari di incidenti o avvisi | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, a team in Creator's Teams, or turn on an Inherit Owners switch. |
+| Regola per proprietari di manutenzione programmata | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
 
-- **API**: imposta `labelsToAdd` (oppure `ownerUsers` / `ownerTeams`) su almeno un record del progetto, oppure uno degli interruttori `inheritLabelsFrom…` (`inheritOwnersFrom…`) della regola su `true`, un booleano JSON.
+- **API**: imposta `labelsToAdd` (oppure `ownerUsers` / `ownerTeams`) su almeno un record del progetto, oppure uno degli interruttori `inheritLabelsFrom…` (`inheritOwnersFrom…`) della regola su `true`, un booleano JSON. In una regola per proprietari di incidenti o avvisi basta anche un team in `creatorTeams`.
 - **Terraform**: una risorsa di regola per etichette o per proprietari che non aggiunge nulla fallisce in `terraform apply` con il messaggio qui sopra. Assegnale `labels_to_add` (oppure `owner_users` / `owner_teams`) o attiva uno dei suoi interruttori di ereditarietà.
 
 Le regole che hai già non vengono toccate: vedi [Modificare una regola](#modificare-una-regola).
@@ -93,6 +94,12 @@ Una regola che eredita può lasciare vuoto **Etichette da aggiungere** (o **Prop
 | **Eredita etichette dal monitor**, in una regola di avvisi | _Eredita etichette da: monitor_ |
 
 Il nome segue gli interruttori finché non scegli un'etichetta (la regola prende allora il nome delle sue etichette) o scrivi un nome tuo.
+
+### Il team del creatore
+
+Una regola per proprietari di incidenti o avvisi ha una voce in più, l'ultima della sua sezione **Eredita proprietari**: **Team del creatore**, un elenco di team. Quando la persona che dichiara un incidente corrispondente, o crea un avviso corrispondente, è membro di un team dell'elenco, anche quel team diventa proprietario. È un elenco e non tutti i suoi team perché le persone entrano per impostazione predefinita nel team **Membri** del progetto, e rendere tutti proprietari non aiuta nessuno. Un incidente o un avviso creato da un monitor, un workflow, un modulo o una chiave API non ha un creatore, quindi non riceve nessuno di questi team. Vengono avvisati come dice **Notifica ai proprietari** della regola, e una regola che aggiunge solo loro si chiama _Aggiungi il team del creatore come proprietario_. Tramite l'API, l'elenco è `creatorTeams`.
+
+La persona che dichiara un incidente o crea un avviso ne diventa proprietaria qualunque cosa dicano le regole, e i moduli di creazione elencano nel loro riepilogo ogni regola del proprietario che verrà eseguita, e chi aggiungerà: vedete [Chi ne sarà proprietario](/docs/incidents/declaring-incidents#chi-ne-sarà-proprietario).
 
 ## Modificare una regola
 

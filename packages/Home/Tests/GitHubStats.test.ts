@@ -40,8 +40,9 @@ const CONTRIBUTORS_KEY: string = "githubContributors";
 const COMMITS_KEY: string = "githubCommits";
 const STARS_KEY: string = "githubStars";
 
-const DEFAULT_CONTRIBUTORS: number = 80;
-const DEFAULT_COMMITS: number = 29000;
+// The floors FetchGitHubStats.ts falls back to.
+const DEFAULT_CONTRIBUTORS: number = 120;
+const DEFAULT_COMMITS: number = 52000;
 
 describe("formatCount", () => {
   it("rounds thousands DOWN, so the '+' is never a claim about work that does not exist", () => {

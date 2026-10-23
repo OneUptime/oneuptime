@@ -27,6 +27,8 @@ import { AIGenerationContext } from "../Utils/AI/IncidentAIContextBuilder";
 import JSONFunctions from "../../Types/JSONFunctions";
 import Permission from "../../Types/Permission";
 import CallerPermission from "../Utils/Permission/CallerPermission";
+import OwnerRulePreviewRoute from "./OwnerRulePreviewRoute";
+import { OwnerRulePreviewEvent } from "../../Types/Rules/OwnerRulePreview";
 
 export default class IncidentEpisodeAPI extends BaseAPI<
   IncidentEpisode,
@@ -50,6 +52,16 @@ export default class IncidentEpisodeAPI extends BaseAPI<
         }
       },
     );
+
+    /*
+     * Which owner rules would run for an episode being created, and who they
+     * would add (Types/Rules/OwnerRulePreview).
+     */
+    OwnerRulePreviewRoute.register({
+      router: this.router,
+      apiPath: new this.entityType().getCrudApiPath()?.toString() || "",
+      event: OwnerRulePreviewEvent.IncidentEpisode,
+    });
   }
 
   private async generatePostmortemFromAI(

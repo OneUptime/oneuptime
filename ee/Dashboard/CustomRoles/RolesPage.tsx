@@ -61,18 +61,20 @@ import React, {
  * roles under it in every edition.
  *
  * A custom role names a set of permissions once - "Incident Responder",
- * "Team Lead" - so it is given to teams in one step, and changed for every
- * team that has it in one place. The page lists the project's roles with how
- * many permissions each holds, creates one from a name and the built-in roles
- * it bundles (Components/CustomRole/CustomRoleCreateForm), and opens each on
- * its own page, where its permissions and the teams given it are.
+ * "Team Lead" - so it is given to teams and API keys in one step, and
+ * changed for every team and key that has it in one place. The page lists
+ * the project's roles with how many permissions each holds, creates one
+ * from a name and the built-in roles it bundles (CustomRoleCreateForm), and
+ * opens each on its own page, where its permissions and the teams and keys
+ * given it are.
  *
  * When the Enterprise license has lapsed or leaves custom roles out, a
  * notice says the roles keep applying, and Create is gone: the server
  * refuses new roles and changes, and still lets roles be deleted.
  *
  * Deleting a role says first who loses what: the teams it is given to and
- * the people on them (CustomRoleReach), who lose its permissions at once.
+ * the people on them, and the API keys it is given to (CustomRoleReach),
+ * who lose its permissions at once.
  */
 
 interface CreateNotice {
@@ -160,7 +162,7 @@ const TeamRoles: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Custom Roles",
           description:
-            "A set of permissions you name once, such as Incident Responder, and give to teams. Changing a role changes every team that has it.",
+            "A set of permissions you name once, such as Incident Responder, and give to teams and API keys. Changing a role changes every team and key that has it.",
         }}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,

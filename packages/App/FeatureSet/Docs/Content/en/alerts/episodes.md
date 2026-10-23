@@ -139,6 +139,8 @@ On **Episode Details**, fill in the **Title** and, if you like, an **Alert Sever
 
 On **On-Call & Owners**, pick an **On-Call Policy** to run when the episode is created, and its **Owners**. Then click **Create Episode**.
 
+Each team you are a member of is one click away under **Owners**, and the summary lists the owner rules that will add more.
+
 ### Add the alerts
 
 Open the episode's **Member Alerts** page, click **Add Alerts** and tick the alerts that belong to it, as many as you need at once. To start from the alerts instead, select them on the **Alerts** list and choose **Add to New Episode** under **Bulk Actions** (see [Episodes](/docs/incidents/episodes)).
@@ -158,7 +160,7 @@ An episode you create has no grouping rule, so the list shows its **Grouping Rul
 | **Developer** | **Terraform**, **API**, **AI Assistants** |
 | **Advanced** | **Audit Logs**, **Delete Episode** |
 
-**Developer** and **Advanced** start folded. The **Overview** leads with **Alerts in this episode**, then the **Episode Feed**, beside the **Episode Details** card: its number, state, severity, alert count, grouping rule and on-call policies. Its header has **Acknowledge** and **Resolve**, and **Move episode to** in the **⋯** menu.
+**Developer** and **Advanced** start folded. On the **Overview**, the header names the episode's **Owners**, teams first, and the first tile says when the episode was **Created** — **Automatically**, when a grouping rule opened it. **What happened** leads the page — the episode's description and **Root cause** — then **Alerts in this episode** and the **Episode Feed**, beside the **Episode Details** card: its number, state, severity, alert count, grouping rule and on-call policies. Its header has **Acknowledge** and **Resolve**, and **Move episode to** in the **⋯** menu.
 
 **Alerts → Active Episodes** lists the episodes that are not resolved yet, and the badge beside it counts them.
 

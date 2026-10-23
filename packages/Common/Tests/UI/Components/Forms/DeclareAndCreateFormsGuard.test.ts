@@ -99,7 +99,17 @@ const INCIDENT_CREATE: FormShape = {
       id: "incident-details",
       title: "Incident Details",
       open: ["title", "incidentSeverity", "description"],
-      folded: ["declaredAt", "currentIncidentState", "labels", "isPrivate"],
+      /*
+       * The owners last: the owners picker (getOwnersFormField), the
+       * declarer's teams one click away under it (OwnersOnCreate).
+       */
+      folded: [
+        "declaredAt",
+        "currentIncidentState",
+        "labels",
+        "isPrivate",
+        "fieldKey || OWNERS_FORM_FIELD_KEY",
+      ],
     },
     {
       id: "resources-affected",
@@ -139,7 +149,12 @@ const ALERT_CREATE: FormShape = {
       id: "alert-details",
       title: "Alert Details",
       open: ["title", "alertSeverity", "description"],
-      folded: ["currentAlertState", "labels", "isPrivate"],
+      folded: [
+        "currentAlertState",
+        "labels",
+        "isPrivate",
+        "fieldKey || OWNERS_FORM_FIELD_KEY",
+      ],
     },
     {
       id: "on-call",
@@ -159,7 +174,11 @@ const INCIDENT_EPISODE_CREATE: FormShape = {
       id: "episode-details",
       title: "Episode Details",
       open: ["title", "incidentSeverity", "description"],
-      folded: ["currentIncidentState", "labels"],
+      folded: [
+        "currentIncidentState",
+        "labels",
+        "fieldKey || OWNERS_FORM_FIELD_KEY",
+      ],
     },
     {
       id: "on-call",

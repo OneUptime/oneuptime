@@ -29,20 +29,47 @@ export default class TelemetryMeteredPlan extends ServerMeteredPlan {
     this._unitCostInUSD = v;
   }
 
+  /*
+   * The fewest days a GB is billed for, however soon it is deleted. Zero
+   * bills exactly the days it is kept.
+   */
+  private _minimumBillableRetentionInDays: number = 0;
+  public get minimumBillableRetentionInDays(): number {
+    return this._minimumBillableRetentionInDays;
+  }
+  public set minimumBillableRetentionInDays(v: number) {
+    this._minimumBillableRetentionInDays = v;
+  }
+
   public constructor(data: {
     productType: ProductType;
     unitCostInUSD: number;
+    minimumBillableRetentionInDays?: number | undefined;
   }) {
     super();
     this.productType = data.productType;
     this.unitCostInUSD = data.unitCostInUSD;
+    this.minimumBillableRetentionInDays =
+      data.minimumBillableRetentionInDays || 0;
+  }
+
+  /*
+   * The days a GB kept this long is billed for. Usage History still shows
+   * the days it is kept: only the cost is floored.
+   */
+  public getBillableRetentionInDays(retentionInDays: number): number {
+    return Math.max(retentionInDays, this.minimumBillableRetentionInDays);
   }
 
   public getTotalCostInUSD(data: {
     dataIngestedInGB: number;
     retentionInDays: number;
   }): number {
-    return data.dataIngestedInGB * data.retentionInDays * this.unitCostInUSD;
+    return (
+      data.dataIngestedInGB *
+      this.getBillableRetentionInDays(data.retentionInDays) *
+      this.unitCostInUSD
+    );
   }
 
   @CaptureSpan()
@@ -84,12 +111,38 @@ export default class TelemetryMeteredPlan extends ServerMeteredPlan {
       });
     }
 
-    await TelemetryUsageBillingService.stageTelemetryUsageForProject({
-      projectId: projectId,
-      productType: this.productType,
-      liveAuthorization: liveAuthorization,
-    });
+    /*
+     * Every day of the catch-up window that was never staged, not only
+     * yesterday. A day that fails to stage must not keep the days that did
+     * from being billed, so its error waits until they are reported.
+     */
+    let stagingError: unknown = null;
 
+    try {
+      await TelemetryUsageBillingService.stageUnstagedTelemetryUsageForProject({
+        projectId: projectId,
+        productType: this.productType,
+        liveAuthorization: liveAuthorization,
+        billingStartsAt: billingStartsAt,
+      });
+    } catch (error) {
+      stagingError = error;
+    }
+
+    await this.reportUnreportedUsage(projectId, liveAuthorization, options);
+
+    if (stagingError) {
+      throw stagingError;
+    }
+  }
+
+  private async reportUnreportedUsage(
+    projectId: ObjectID,
+    liveAuthorization: LiveUsageAuthorization,
+    options?: {
+      meteredPlanSubscriptionId?: string | undefined;
+    },
+  ): Promise<void> {
     const usageBillings: Array<TelemetryUsageBilling> =
       await TelemetryUsageBillingService.getUnreportedUsageBilling({
         projectId: projectId,

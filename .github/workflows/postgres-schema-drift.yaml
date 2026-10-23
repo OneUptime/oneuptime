@@ -1199,6 +1199,23 @@ jobs:
           Tests/Server/Services/CustomRolesPostgres.test.ts
           --forceExit
 
+      # Custom roles given to API keys: each key's copies kept by the real
+      # sync, what a request with the key carries and reads compared with
+      # the same permissions given directly, every change reaching the key's
+      # next request through its cached permissions, the grant ceiling and
+      # the read of the role, and the cascades the migrations declared.
+      - name: Test custom roles given to API keys on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_API_KEY_CUSTOM_ROLE_TESTS: "true"
+          API_KEY_CUSTOM_ROLE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          API_KEY_CUSTOM_ROLE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          API_KEY_CUSTOM_ROLE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ApiKeyCustomRolesPostgres.test.ts
+          --forceExit
+
       - name: Test project data residency on migrated Postgres
         working-directory: packages/Common
         env:
@@ -2060,6 +2077,25 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Infrastructure/Postgres/AddLabelNameSortKeyPostgres.test.ts
+          --forceExit
+
+      # Security's Turn on recommended through its route, on copies of the
+      # migrated DetectionRule, SecurityPlaybook and SecurityLogSource tables:
+      # from nothing, twice (nothing written twice), with one write the
+      # database refuses part way (the rest written, the answer naming it),
+      # with rules added by hand, on a name column still 50 wide (and
+      # WidenDetectionRuleName widening it in place), and every Rule Library
+      # entry and playbook template created as it is.
+      - name: Test Turn on recommended on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_TURN_ON_RECOMMENDED_TESTS: "true"
+          TURN_ON_RECOMMENDED_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          TURN_ON_RECOMMENDED_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          TURN_ON_RECOMMENDED_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/SecurityEvent/TurnOnRecommendedPostgres.test.ts
           --forceExit
 
       # The Enterprise half: GET /team/compliance-status/:teamId end to end -

@@ -29,7 +29,7 @@ Klicka på **Skicka en testattack**. Ett dussin misslyckade inloggningar från e
 Klicka på **Öppna ärendet**. Så ser ett riktigt fynd ut: händelserna bakom det, adressen det gäller och vad **Enrich New Cases** hittade. Stäng det som ett test när du är klar.
 :::
 
-Därefter öppnar **Översikt** på det som behöver någon: dina öppna ärenden, de som ingen har tagit och playbook-stegen som väntar på ett godkännande, eller **Allt är lugnt** när det inte finns några.
+Därefter öppnar **Översikt** på det som behöver någon, under **Kräver uppmärksamhet**: dina öppna ärenden, de som ingen har tagit och playbook-stegen som väntar på ett godkännande. När det inte finns några står det **Allt är lugnt**.
 
 ## Så fungerar det
 
@@ -48,7 +48,7 @@ flowchart LR
 | **Säkerhetsärenden** | **Säkerhetsärenden** | Det som hittades, grupperat efter användaren, värden eller adressen det gäller |
 | **Playbooks** | **Playbooks** | Steg som körs på nya ärenden: berikar dem, meddelar, öppnar en incident eller begränsar |
 
-Remsan högst upp på **Översikt** visar varje del med sina siffror: källorna och deras händelser de senaste 24 timmarna, reglerna som är påslagna, de öppna ärendena och playbooks som svarar.
+Högst upp på **Översikt**, under det som behöver någon, visar varje del sina siffror: källorna och deras händelser de senaste 24 timmarna, reglerna som är påslagna, de öppna ärendena och playbooks som svarar. En del som inte är konfigurerad säger det och öppnar sidan där du konfigurerar den.
 
 ## Hitta säkerhetshändelser i dina loggar
 
@@ -74,12 +74,24 @@ Arbetar ditt team redan i ett SIEM skickar OneUptime sina fynd dit också. Klick
 Din roll får inte lägga till detektionsregler, playbooks eller loggkällan. Fråga en Project Owner, en Project Admin eller en Security Admin, eller be dem ge dig rollen Security Admin.
 :::
 
+:::details Turn on recommended kunde inte slå på allt
+Kortet nämner allt det inte kunde slå på och varför: din roll, din plan eller ett fel hos OneUptime. Allt annat är på. Åtgärda det kortet nämner och klicka sedan på **Försök igen**: bara det som fortfarande saknas slås på, och inget läggs till två gånger.
+:::
+
 :::details Testattacken öppnade inget ärende
 Ärendet öppnas oftast innan knappen svarar; när regeln fortfarande hämtar in säger den det, och ärendet öppnas inom en minut. Titta under **Säkerhetsärenden** igen och kontrollera under **Detections** att brute force-regeln är påslagen.
 :::
 
 :::details Inga säkerhetshändelser kommer från mina loggar
 Kontrollera att **Hitta säkerhetshändelser i dina loggar** är påslaget och att kortet **Dina loggar** visar när det senast kontrollerades. Bara typerna av rader i tabellen ovan blir händelser: en server som inte skickar SSH-, sudo-, gransknings-, CloudTrail- eller åtkomstloggar har inget att hitta.
+:::
+
+:::details Översikt säger att den senaste säkerhetshändelsen kom för flera dagar sedan
+Inget har nått Security sedan dess. Öppna **Connections** och kontrollera att **Dina loggar** och varje anslutning fortfarande är påslagna, och när var och en senast kontrollerade.
+:::
+
+:::details Kortet som slår på Security är borta
+Någon stängde det med **Stäng**. Så länge inget bevakas efter hot ännu erbjuder **Översikt** **Konfigurera Security**, som tar tillbaka det.
 :::
 
 ## Nästa steg

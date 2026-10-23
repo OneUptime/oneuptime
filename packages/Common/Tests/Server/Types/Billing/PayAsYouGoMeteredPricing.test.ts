@@ -8,6 +8,7 @@ import {
   LogDataIngestMeteredPlan,
   MetricsDataIngestMeteredPlan,
   ProfilesDataIngestMeteredPlan,
+  SecurityEventsDataIngestMeteredPlan,
   SessionReplayDataIngestMeteredPlan,
   TracesDataIngestMetredPlan,
 } from "../../../../Server/Types/Billing/MeteredPlan/AllMeteredPlans";
@@ -49,6 +50,11 @@ const TELEMETRY_PLANS: Array<{
   {
     name: "profiles",
     plan: ProfilesDataIngestMeteredPlan,
+    pricePerGB: TELEMETRY_PRICE_IN_USD_PER_GB,
+  },
+  {
+    name: "security events",
+    plan: SecurityEventsDataIngestMeteredPlan,
     pricePerGB: TELEMETRY_PRICE_IN_USD_PER_GB,
   },
   {

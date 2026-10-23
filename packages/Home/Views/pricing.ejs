@@ -148,11 +148,13 @@
 <body>
   <%- include('nav') -%>
   <main id="main-content">
-    <div class="bg-white">
-      <div class="mx-auto max-w-7xl py-24 px-6 lg:px-8">
+    <div class="relative isolate bg-white">
+      <div class="absolute inset-x-0 top-0 -z-10 h-[40rem] bg-[radial-gradient(55%_60%_at_50%_0%,rgba(16,185,129,0.09),transparent_70%)]" aria-hidden="true"></div>
+      <div class="mx-auto max-w-7xl px-6 pb-24 pt-14 sm:pt-20 lg:px-8">
         <div class="sm:align-center sm:flex sm:flex-col">
-          <h1 class="text-5xl font-bold tracking-tight text-gray-900 sm:text-center">Pricing Plans</h1>
-          <p class="mt-5 text-xl text-gray-500 sm:text-center">Get started for free with our generous free plan. Paid
+          <p class="text-center text-sm font-semibold text-emerald-600">Pricing</p>
+          <h1 class="mt-3 text-balance text-center text-4xl font-semibold tracking-tight text-gray-950 sm:text-5xl">Start free. <span class="text-gray-500">Pay for more as you grow.</span></h1>
+          <p class="mx-auto mt-5 max-w-2xl text-center text-lg leading-8 text-gray-600">Get started for free with our generous free plan. Paid
             plans unlock additional features. Sign up free, no credit card required.</p>
           <div class="relative mt-6 flex self-center rounded-lg bg-gray-100 p-0.5 sm:mt-8">
             <button type="button" onclick="switchToMonthlyBilling()" id="monthly-billing-btn"
@@ -165,16 +167,16 @@
         </div>
         <div
           class="mt-12 space-y-4 sm:mt-16 sm:grid sm:grid-cols-2 sm:gap-6 sm:space-y-0 lg:mx-auto lg:max-w-4xl xl:mx-0 xl:max-w-none xl:grid-cols-4">
-          <div class="divide-y divide-gray-200 rounded-lg border border-gray-200 shadow-sm">
+          <div class="divide-y divide-gray-200 rounded-2xl border border-gray-200 bg-white shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
             <div class="p-6">
-              <h2 class="text-lg font-medium leading-6 text-gray-900">Free</h2>
+              <h2 class="text-lg font-semibold leading-6 text-gray-950">Free</h2>
               <p class="mt-4 text-sm text-gray-500">All the basics you need to get started</p>
               <p class="mt-8">
-                <span class="text-4xl font-bold tracking-tight text-gray-900 free-plan-price">$0</span>
+                <span class="text-4xl font-semibold tracking-tight text-gray-950 free-plan-price">$0</span>
                 <span class="text-base font-medium text-gray-500 billing-period"></span>
               </p>
               <a href="/accounts/register"
-                class="mt-8 block hover:text-white w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Get
+                class="mt-8 block w-full rounded-lg bg-white py-2.5 text-center text-sm font-semibold text-gray-950 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Get
                 Started</a>
             </div>
             <div class="px-6 pt-6 pb-8">
@@ -182,7 +184,7 @@
               <ul role="list" class="mt-6 space-y-4">
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -193,7 +195,7 @@
 
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -209,7 +211,7 @@
 
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -220,7 +222,7 @@
 
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -231,7 +233,7 @@
 
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -242,7 +244,7 @@
 
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -255,7 +257,7 @@
 
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -266,7 +268,7 @@
 
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -279,16 +281,16 @@
             </div>
           </div>
 
-          <div class="divide-y divide-gray-200 rounded-lg border border-gray-200 shadow-sm">
+          <div class="divide-y divide-gray-200 rounded-2xl border border-gray-200 bg-white shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
             <div class="p-6">
-              <h2 class="text-lg font-medium leading-6 text-gray-900">Growth</h2>
+              <h2 class="text-lg font-semibold leading-6 text-gray-950">Growth</h2>
               <p class="mt-4 text-sm text-gray-500">Advanced Workflows, Integrations, API Access and more included.</p>
               <p class="mt-8">
-                <span class="text-4xl font-bold tracking-tight text-gray-900 growth-plan-price">$22</span>
+                <span class="text-4xl font-semibold tracking-tight text-gray-950 growth-plan-price">$22</span>
                 <span class="text-base font-medium text-gray-500 billing-period"></span>
               </p>
               <a href="/accounts/register"
-                class="mt-8 block w-full hover:text-white rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Free
+                class="mt-8 block w-full rounded-lg bg-gray-950 py-2.5 text-center text-sm font-semibold text-white hover:bg-gray-800">Free
                 14 day trial</a>
             </div>
             <div class="px-6 pt-6 pb-8">
@@ -296,7 +298,7 @@
               <ul role="list" class="mt-6 space-y-4">
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -307,7 +309,7 @@
 
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -318,7 +320,7 @@
 
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -329,7 +331,7 @@
 
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -340,7 +342,7 @@
 
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -351,7 +353,7 @@
 
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -364,7 +366,7 @@
 
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -375,7 +377,7 @@
 
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -387,17 +389,17 @@
             </div>
           </div>
 
-          <div class="divide-y divide-gray-200 rounded-lg border border-gray-200 shadow-sm">
+          <div class="divide-y divide-gray-200 rounded-2xl border border-gray-200 bg-white shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
             <div class="p-6">
-              <h2 class="text-lg font-medium leading-6 text-gray-900 ">Scale</h2>
+              <h2 class="text-lg font-semibold leading-6 text-gray-950">Scale</h2>
               <p class="mt-4 text-sm text-gray-500">SSO, Advanced Access Control, Better Support for your team.</p>
               <p class="mt-8">
-                <span class="text-4xl font-bold tracking-tight text-gray-900 scale-plan-price">$99</span>
+                <span class="text-4xl font-semibold tracking-tight text-gray-950 scale-plan-price">$99</span>
 
                 <span class="text-base font-medium text-gray-500 billing-period"></span>
               </p>
               <a href="/accounts/register"
-                class="mt-8 block w-full hover:text-white rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Free
+                class="mt-8 block w-full rounded-lg bg-gray-950 py-2.5 text-center text-sm font-semibold text-white hover:bg-gray-800">Free
                 14 day trial</a>
             </div>
             <div class="px-6 pt-6 pb-8">
@@ -405,7 +407,7 @@
               <ul role="list" class="mt-6 space-y-4">
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -416,7 +418,7 @@
 
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -427,7 +429,7 @@
 
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -438,7 +440,7 @@
 
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -449,7 +451,7 @@
 
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -462,7 +464,7 @@
 
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -473,7 +475,7 @@
 
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -484,7 +486,7 @@
 
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -496,9 +498,9 @@
             </div>
           </div>
 
-          <div class="divide-y divide-gray-200 rounded-lg border border-gray-200 shadow-sm">
+          <div class="divide-y divide-gray-200 rounded-2xl border border-gray-200 bg-white shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
             <div class="p-6">
-              <h2 class="text-lg font-medium leading-6 text-gray-900">Enterprise</h2>
+              <h2 class="text-lg font-semibold leading-6 text-gray-950">Enterprise</h2>
               <p class="mt-4 text-sm text-gray-500">Enterprise grade offering. The best of us for your team.</p>
               <p class="mt-8">
                 <span class="text-4xl font-bold tracking-tight text-gray-900">Custom</span>
@@ -507,7 +509,7 @@
                 </span>
               </p>
               <a href="/enterprise/demo"
-                class="mt-8 block w-full hover:text-white rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Request
+                class="mt-8 block w-full rounded-lg bg-white py-2.5 text-center text-sm font-semibold text-gray-950 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Request
                 Demo</a>
             </div>
             <div class="px-6 pt-6 pb-8">
@@ -515,7 +517,7 @@
               <ul role="list" class="mt-6 space-y-4">
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -526,7 +528,7 @@
 
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -537,7 +539,7 @@
 
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -548,7 +550,7 @@
 
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -559,7 +561,7 @@
 
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -570,7 +572,7 @@
 
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -581,7 +583,7 @@
 
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -593,7 +595,7 @@
                 
                 <li class="flex space-x-3">
                   <!-- Heroicon name: mini/check -->
-                  <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg"
+                  <svg class="h-5 w-5 flex-shrink-0 text-emerald-600" xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                     <path fill-rule="evenodd"
                       d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
@@ -819,6 +821,7 @@
                 <div class="lg:flex-auto">
                   <h4 class="text-xl font-semibold tracking-tight text-gray-900">Telemetry: Logs, Traces and Metrics</h4>
                   <p class="mt-4 text-base leading-7 text-gray-600">We charge $0.10 for every GB of data ingested (for 15 day retention). It's the lowest in the industry and 8X cheaper than DataDog.</p>
+                  <p id="telemetry-minimum-billable-retention" class="mt-2 text-sm leading-6 text-gray-600">Retention is billed for at least 7 days: telemetry kept for fewer days is still deleted on time, and billed as 7 days.</p>
                   <div class="mt-6 flex items-center gap-x-4">
                     <h5 class="flex-none text-sm font-semibold leading-6 text-gray-600">What's included</h5>
                     <div class="h-px flex-auto bg-gray-100"></div>
@@ -877,9 +880,10 @@
                     <p class="text-sm font-medium text-gray-500">Data Retention (in days)</p>
                     <p id="data-retention-in-days" class="text-sm font-semibold text-gray-900">15 Days</p>
                   </div>
-                  <input id="telemetry-retention-range" type="range" value="15" max="180" min="0" step="1"
+                  <input id="telemetry-retention-range" type="range" value="15" max="180" min="1" step="1"
                     onchange="updateTelemetryPrice(null, this.value)" oninput="updateTelemetryPrice(null, this.value)"
                     class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                  <p id="less-than-minimum-billable-retention-message" style="display: none;" class="mt-2 text-sm text-gray-600">Retention shorter than 7 days is billed as 7 days.</p>
                   <p id="more-than-6-months-retention" style="display: none;" class="mt-2 text-sm text-gray-600">If you're looking for data retention of more than 6 months, contact sales@oneuptime.com for a discount.</p>
                 </div>
               </div>
@@ -973,7 +977,7 @@
       <div class="bg-white">
         <div class="mx-auto max-w-7xl py-24 px-6 sm:py-32 lg:px-8 lg:py-40">
           <div class="mx-auto max-w-3xl text-center">
-            <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">OneUptime is 10+ tools combined into one.</h2>
+            <h2 class="text-3xl font-semibold tracking-tight text-gray-950 sm:text-4xl">OneUptime is 10+ tools combined into one.</h2>
             <p class="mx-auto mt-4 max-w-xl text-lg leading-8 text-gray-600">With OneUptime, you get a complete SRE
               toolchain out-of-the-box. One interface. One conversation. One permission model. Thousands of features.
               You'll be amazed at everything OneUptime can do today. And we're just getting started.</p>
@@ -1092,9 +1096,9 @@
           <div class="mx-auto max-w-2xl space-y-16 lg:hidden">
             <section>
               <div class="mb-8 px-6 sm:px-4">
-                <h2 class="text-lg font-medium leading-6 text-gray-900">Free</h2>
+                <h2 class="text-lg font-semibold leading-6 text-gray-950">Free</h2>
                 <p class="mt-4">
-                  <span class="text-4xl font-bold tracking-tight text-gray-900 free-plan-price">$0</span>
+                  <span class="text-4xl font-semibold tracking-tight text-gray-950 free-plan-price">$0</span>
                   <span class="text-base font-medium text-gray-500 billing-period"></span>
                 </p>
                 <p class="mt-4 text-sm text-gray-500">All the basics you need to get started.</p>
@@ -1167,9 +1171,9 @@
 
             <section>
               <div class="mb-8 px-6 sm:px-4">
-                <h2 class="text-lg font-medium leading-6 text-gray-900">Growth</h2>
+                <h2 class="text-lg font-semibold leading-6 text-gray-950">Growth</h2>
                 <p class="mt-4">
-                  <span class="text-4xl font-bold tracking-tight text-gray-900 growth-plan-price">$22</span>
+                  <span class="text-4xl font-semibold tracking-tight text-gray-950 growth-plan-price">$22</span>
                   <span class="text-base font-medium text-gray-500 billing-period"></span>
                 </p>
                 <p class="mt-4 text-sm text-gray-500">Advanced Workflows, Integrations, API Access and more included.
@@ -1242,9 +1246,9 @@
 
             <section>
               <div class="mb-8 px-6 sm:px-4">
-                <h2 class="text-lg font-medium leading-6 text-gray-900 ">Scale</h2>
+                <h2 class="text-lg font-semibold leading-6 text-gray-950">Scale</h2>
                 <p class="mt-4">
-                  <span class="text-4xl font-bold tracking-tight text-gray-900 scale-plan-price">$99</span>
+                  <span class="text-4xl font-semibold tracking-tight text-gray-950 scale-plan-price">$99</span>
                   <span class="text-base font-medium text-gray-500 billing-period"></span>
                 </p>
                 <p class="mt-4 text-sm text-gray-500">SSO, Advanced Access Control, Better Support for your team.</p>
@@ -1316,7 +1320,7 @@
 
             <section>
               <div class="mb-8 px-6 sm:px-4">
-                <h2 class="text-lg font-medium leading-6 text-gray-900 ">Enterprise</h2>
+                <h2 class="text-lg font-semibold leading-6 text-gray-950">Enterprise</h2>
                 <p class="mt-4">
                   <span class="text-4xl font-bold tracking-tight text-gray-900">Custom</span>
                   <span class="text-base font-medium text-gray-500">/yr</span>
@@ -1422,7 +1426,7 @@
                   <td class="h-full py-8 px-6 align-top">
                     <div class="relative table h-full">
                       <p>
-                        <span class="text-4xl font-bold tracking-tight text-gray-900 free-plan-price">$0</span>
+                        <span class="text-4xl font-semibold tracking-tight text-gray-950 free-plan-price">$0</span>
 
                         <span class="text-base font-medium text-gray-500 billing-period"></span>
                       </p>
@@ -1436,7 +1440,7 @@
                   <td class="h-full py-8 px-6 align-top">
                     <div class="relative table h-full">
                       <p>
-                        <span class="text-4xl font-bold tracking-tight text-gray-900 growth-plan-price">$22</span>
+                        <span class="text-4xl font-semibold tracking-tight text-gray-950 growth-plan-price">$22</span>
                         <span class="text-base font-medium text-gray-500 billing-period"></span>
                       </p>
                       <p class="mt-4 mb-16 text-sm text-gray-500">Advanced Workflows, Integrations, API Access and more
@@ -1450,7 +1454,7 @@
                   <td class="h-full py-8 px-6 align-top">
                     <div class="relative table h-full">
                       <p>
-                        <span class="text-4xl font-bold tracking-tight text-gray-900 scale-plan-price">$99</span>
+                        <span class="text-4xl font-semibold tracking-tight text-gray-950 scale-plan-price">$99</span>
                         <span class="text-base font-medium text-gray-500 billing-period"></span>
                       </p>
                       <p class="mt-4 mb-16 text-sm text-gray-500">SSO, Advanced Access Control, Better Support for your
@@ -1465,7 +1469,7 @@
                     <div class="relative table h-full">
                       <p>
                         <span
-                          class="text-4xl font-bold tracking-tight text-gray-900 enterprise-plan-price">Custom</span>
+                          class="text-4xl font-semibold tracking-tight text-gray-950 enterprise-plan-price">Custom</span>
                         <span class="text-base font-medium text-gray-500 billing-period">/yr</span>
                       </p>
                       <p class="mt-4 mb-16 text-sm text-gray-500">Enterprise grade offering. The best of us for your
@@ -1740,6 +1744,22 @@
                   <!-- Expand/collapse question div -->
                   <div class="flex w-full items-start justify-between text-left text-gray-900" aria-controls="faq-0"
                     aria-expanded="false">
+                    <span class="text-base font-semibold leading-7">Is there a minimum telemetry retention?</span>
+                  </div>
+                </dt>
+                <dd class="mt-2 pr-12" id="faq-0">
+                  <p class="text-base leading-7 text-gray-600">Logs, traces, metrics, profiles and security events are
+                    billed for at least 7 days of retention. You can keep them for as little as a day, and they are
+                    deleted on time, but a GB kept for fewer than 7 days is billed as if it were kept for 7. Session
+                    replay recordings have no minimum: they are billed for the days they are kept.</p>
+                </dd>
+              </div>
+
+              <div class="pt-6">
+                <dt>
+                  <!-- Expand/collapse question div -->
+                  <div class="flex w-full items-start justify-between text-left text-gray-900" aria-controls="faq-0"
+                    aria-expanded="false">
                     <span class="text-base font-semibold leading-7">What happens to API keys and SCIM if I move to a lower
                       plan?</span>
                   </div>
@@ -1865,7 +1885,11 @@
 
           const perGbPerDayPrice = 0.10 / 15; // 0.10 USD per GB for 15 days. 
 
-          const monthlyPrice = numberOfGb * numberOfDays * perGbPerDayPrice;
+          // Retention shorter than 7 days is billed as 7 days.
+          const minimumBillableDays = 7;
+          const billableDays = Math.max(numberOfDays, minimumBillableDays);
+
+          const monthlyPrice = numberOfGb * billableDays * perGbPerDayPrice;
 
 
           // set the price in the UI
@@ -1874,12 +1898,16 @@
 
           // set description
 
-          document.getElementById("total-telemetry-price-description").innerHTML = `for ${numberOfGb} GB ingested, retained for ${numberOfDays} days.`;
+          const retainedFor = numberOfDays === 1 ? "1 day" : `${numberOfDays} days`;
+
+          document.getElementById("total-telemetry-price-description").innerHTML = billableDays === numberOfDays
+            ? `for ${numberOfGb} GB ingested, retained for ${retainedFor}.`
+            : `for ${numberOfGb} GB ingested, retained for ${retainedFor} (billed as ${billableDays} days).`;
 
           // update telemetry count - total-number-of-telemetry
 
           document.getElementById("total-number-of-gb-ingested").innerHTML = numberOfGb + " GB";
-          document.getElementById("data-retention-in-days").innerHTML = numberOfDays + " Days";
+          document.getElementById("data-retention-in-days").innerHTML = numberOfDays === 1 ? "1 Day" : numberOfDays + " Days";
 
 
 
@@ -1891,6 +1919,8 @@
             document.getElementById("more-than-10-tb-ingested-message").style.display = "none";
           }
 
+
+          document.getElementById("less-than-minimum-billable-retention-message").style.display = numberOfDays < minimumBillableDays ? "block" : "none";
 
           if (numberOfDays === 180) {
             // show more than 100 monitors message

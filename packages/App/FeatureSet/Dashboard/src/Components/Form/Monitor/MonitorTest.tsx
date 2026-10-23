@@ -73,6 +73,10 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string | null>(null);
   const [monitorStepProbeResponse, setMonitorStepProbeResponse] =
     useState<MonitorStepProbeResponse | null>(null);
+  // The probe the test runs on, named in its result as on the overview.
+  const [testedProbeName, setTestedProbeName] = useState<string | undefined>(
+    undefined,
+  );
 
   /*
    * The poll that is currently in flight, so it can be stopped. Without this,
@@ -140,6 +144,13 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
 
       setError(null);
       setIsLoading(true);
+      setTestedProbeName(
+        props.probes
+          .find((probe: Probe): boolean => {
+            return probe._id?.toString() === probeId?.toString();
+          })
+          ?.name?.toString() || undefined,
+      );
       setShowTestModal(false);
       setShowResultModal(true);
 
@@ -338,6 +349,7 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
                   probeMonitorResponses={Object.values(
                     monitorStepProbeResponse,
                   )}
+                  probeName={testedProbeName}
                 />
               </div>
             )}

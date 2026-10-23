@@ -1,4 +1,7 @@
 import ApiKey from "./ApiKey";
+import ApiKeyCustomRole from "./ApiKeyCustomRole";
+import CustomRole from "./CustomRole";
+import CustomRolePermission from "./CustomRolePermission";
 import Label from "./Label";
 import Project from "./Project";
 import User from "./User";
@@ -86,6 +89,18 @@ import {
   icon: IconProp.Lock,
   tableDescription: "Permissions for your API Keys",
 })
+/*
+ * One thing an API key may do (or, as a block, may never do): a permission,
+ * and the labels it is limited to.
+ *
+ * Most are given to the key directly. The rest come with a custom role
+ * given to the key (ApiKeyCustomRole): the key holds a copy of each of the
+ * role's permissions, marked with the role, the role given to the key and
+ * the role's own row it copies, kept equal to the role by OneUptime
+ * (Server/Utils/CustomRole/CustomRoleSync). A copy is read like any other
+ * row - the key may do what it says - and is changed or removed only
+ * through its role (ApiKeyPermissionService.assertNoRoleCopies).
+ */
 export default class APIKeyPermission extends BaseModel {
   @ColumnAccessControl({
     create: [
@@ -350,7 +365,13 @@ export default class APIKeyPermission extends BaseModel {
       "Permission. You can find list of permissions on the Permissions page.",
     example: "ProjectOwner",
   })
-  @UniqueColumnBy("apiKeyId")
+  /*
+   * Once per key among the permissions given to it directly, and once per
+   * custom role given to it among that role's copies: a key may hold a
+   * permission of its own beside a role's copy of it, and two roles that
+   * both hold it - each copy goes with its own role.
+   */
+  @UniqueColumnBy(["apiKeyId", "apiKeyCustomRoleId"])
   @Column({
     nullable: false,
     type: ColumnType.ShortText,
@@ -430,4 +451,185 @@ export default class APIKeyPermission extends BaseModel {
     default: false,
   })
   public isBlockPermission?: boolean = undefined;
+
+  /*
+   * The custom role this permission came with, when it came with one.
+   * A key given a role holds a copy of each of the role's permissions that
+   * applies to a key, marked with the role, the role given to the key
+   * (apiKeyCustomRoleId) and the role's own row it copies
+   * (customRolePermissionId). OneUptime writes and removes them as the role
+   * changes (CustomRoleSync); no request may set them, and a copy is
+   * changed or removed only through its role. Each goes with what it names
+   * (ON DELETE CASCADE). A permission given to the key directly names none
+   * of them.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadProjectApiKey,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "customRoleId",
+    type: TableColumnType.Entity,
+    modelType: CustomRole,
+    title: "Custom Role",
+    description:
+      "The custom role this permission comes from. Empty when the permission was given to the API key directly. Change it on the role.",
+    example: "Incident Responder",
+  })
+  @ManyToOne(
+    () => {
+      return CustomRole;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "customRoleId" })
+  public customRole?: CustomRole = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadProjectApiKey,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Custom Role ID",
+    description:
+      "ID of the custom role this permission comes from. Empty when the permission was given to the API key directly.",
+    example: "7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public customRoleId?: ObjectID = undefined;
+
+  // The custom role given to the key that brought this permission.
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadProjectApiKey,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "apiKeyCustomRoleId",
+    type: TableColumnType.Entity,
+    modelType: ApiKeyCustomRole,
+    title: "API Key Custom Role",
+    description:
+      "The custom role given to the API key that brought this permission. Empty when the permission was given to the API key directly.",
+    example: "Incident Responder",
+  })
+  @ManyToOne(
+    () => {
+      return ApiKeyCustomRole;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "apiKeyCustomRoleId" })
+  public apiKeyCustomRole?: ApiKeyCustomRole = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadProjectApiKey,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "API Key Custom Role ID",
+    description:
+      "ID of the custom role given to the API key that brought this permission. Empty when the permission was given to the API key directly.",
+    example: "7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public apiKeyCustomRoleId?: ObjectID = undefined;
+
+  // The custom role's own permission this one copies.
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadProjectApiKey,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "customRolePermissionId",
+    type: TableColumnType.Entity,
+    modelType: CustomRolePermission,
+    title: "Custom Role Permission",
+    description:
+      "The custom role's own permission this one copies. Empty when the permission was given to the API key directly.",
+    example: "IncidentMember",
+  })
+  @ManyToOne(
+    () => {
+      return CustomRolePermission;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "customRolePermissionId" })
+  public customRolePermission?: CustomRolePermission = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ReadProjectApiKey,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Custom Role Permission ID",
+    description:
+      "ID of the custom role's own permission this one copies. Empty when the permission was given to the API key directly.",
+    example: "7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public customRolePermissionId?: ObjectID = undefined;
 }

@@ -101,7 +101,7 @@ oneuptime context delete <name>
 
 ### `oneuptime <resource> list`
 
-Выводит записи, сначала самые новые.
+Выводит записи, сначала самые новые. Метки же выводятся по названию, сначала нумерованные (`2. Team` перед `10. Owner`).
 
 ```bash
 oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [-o <format>]
