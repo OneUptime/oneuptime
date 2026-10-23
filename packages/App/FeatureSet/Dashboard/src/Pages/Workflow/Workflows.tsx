@@ -11,6 +11,8 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
+import useBulkSwitchActions from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
+import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import {
   WORKFLOW_ARCHIVE_COPY,
   ARCHIVE_INSTEAD_OF_DELETE,
@@ -71,6 +73,16 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
     archiveConfirmMessage: WORKFLOW_ARCHIVE_COPY.bulkArchiveConfirmMessage,
     unarchiveConfirmMessage: WORKFLOW_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
   });
+
+  /*
+   * Enable and Disable: pausing a set of workflows (during an incident, or
+   * while a connected tool is being changed) and starting them again.
+   */
+  const switchBulkActions: Array<BulkActionButtonSchema<Workflow>> =
+    useBulkSwitchActions<Workflow>({
+      modelType: Workflow,
+      column: "isEnabled",
+    });
 
   const workflowExtraFacets: Array<ResourceFacet> = [
     {
@@ -159,10 +171,15 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
           }}
           bulkActions={{
             buttons: [
+              ...switchBulkActions,
               ...labelBulkActions,
               ...ownerBulkActions,
               ...archiveBulkActions,
             ],
+          }}
+          // Whether each row is on, for Enable and Disable to count.
+          selectMoreFields={{
+            isEnabled: true,
           }}
           name="Workflows"
           isViewable={true}

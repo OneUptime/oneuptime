@@ -149,7 +149,7 @@ Wenn kein Dienst zum Repository gehört, läuft die Aufgabe wie bisher ohne Prod
 
 ## Produktionsprüfung von Pull Requests
 
-OneUptime weiß, was Ihr Code in der Produktion tut, und kann einen Pull Request deshalb mit dem prüfen, was niemand beim Lesen des Diffs sieht. Schalten Sie **Pull Requests gegen die Produktion prüfen** auf der Seite **Einstellungen** eines Repositorys in Code ein, und jeder Pull Request, den jemand mit Schreibzugriff öffnet oder in den er pusht, erhält einen Kommentar, der sagt, was die Produktion über den geänderten Code zeigt. Der Kommentar wird bei jedem Push an Ort und Stelle aktualisiert, und die Seite **Produktionsprüfungen** des Repositorys in Code bewahrt jede Prüfung auf, mit **Erneut prüfen**.
+OneUptime weiß, was Ihr Code in der Produktion tut, und kann einen Pull Request deshalb mit dem prüfen, was niemand beim Lesen des Diffs sieht. Schalten Sie **Pull Requests gegen die Produktion prüfen** unter **Weitere Einstellungen** auf der Seite **Einstellungen** eines Repositorys in Code ein, und jeder Pull Request, den jemand mit Schreibzugriff öffnet oder in den er pusht, erhält einen Kommentar, der sagt, was die Produktion über den geänderten Code zeigt. Der Kommentar wird bei jedem Push an Ort und Stelle aktualisiert, und die Seite **Produktionsprüfungen** des Repositorys in Code bewahrt jede Prüfung auf, mit **Erneut prüfen**.
 
 | Sie liest | Aus dem Code, den der Pull Request ändert |
 | --- | --- |
@@ -230,7 +230,7 @@ Sie ordnen Repositories keinen Diensten zu. Wenn eine Aufgabe startet, findet On
 
 ### Den Runner des Repositorys auswählen
 
-Jedes Repository wählt den Runner aus, auf dem die KI darin arbeitet: Klicken Sie auf seiner Seite **Einstellungen** in Code auf der Karte **Runner** auf **Bearbeiten** und wählen Sie einen aus. Ein Repository, das die GitHub App importiert, startet auf dem [Standard-Runner](/docs/runbooks/agents#der-standard-runner-des-projekts) des Projekts, wenn es einen hat. Ein Repository, das keinen auswählt, arbeitet auf **Globaler Runner**, den OneUptime für jedes Projekt betreibt.
+Jedes Repository wählt den Runner aus, auf dem die KI darin arbeitet: Öffnen Sie auf seiner Seite **Einstellungen** in Code **Weitere Einstellungen**, klicken Sie auf der Karte **Runner** auf **Bearbeiten** und wählen Sie einen aus. Ein Repository, das die GitHub App importiert, startet auf dem [Standard-Runner](/docs/runbooks/agents#der-standard-runner-des-projekts) des Projekts, wenn es einen hat. Ein Repository, das keinen auswählt, arbeitet auf **Globaler Runner**, den OneUptime für jedes Projekt betreibt.
 
 | Runner | Was er mit einer Aufgabe macht |
 | --- | --- |
@@ -258,7 +258,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### Ihn für das Repository auswählen
 
-Klicken Sie auf der Seite **Einstellungen** des Repositorys in Code auf der Karte **Runner** auf **Bearbeiten** und wählen Sie den Runner aus. Der Runner übernimmt die Änderung mit seinem nächsten Heartbeat, innerhalb etwa einer Minute; es muss nichts neu gestartet werden.
+Öffnen Sie auf der Seite **Einstellungen** des Repositorys in Code **Weitere Einstellungen**, klicken Sie auf der Karte **Runner** auf **Bearbeiten** und wählen Sie den Runner aus. Der Runner übernimmt die Änderung mit seinem nächsten Heartbeat, innerhalb etwa einer Minute; es muss nichts neu gestartet werden.
 
 ### Prüfen, dass er sich verbindet
 

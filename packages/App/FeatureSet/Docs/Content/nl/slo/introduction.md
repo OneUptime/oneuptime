@@ -141,7 +141,7 @@ Een uitgeschakelde of gearchiveerde SLO wordt niet geëvalueerd, dus zijn status
 De pagina **SLOs** toont elke niet-gearchiveerde SLO, met status, SLI, resterend budget, verbruikssnelheid, doel, venster, monitoren, labels en eigenaren.
 
 - De tegels boven de lijst tellen SLO's per status: **Gezond**, **Risico**, **Budget uitgeput**, **Misconfigured**, **Gepauzeerd** en **Uitgeschakeld**. Ze verschijnen zodra er een SLO is die niet gearchiveerd is. Klik op een tegel om alleen die SLO's te zien, en nog eens om alle te zien.
-- Selecteer SLO's om in één keer labels en eigenaren toe te voegen of te verwijderen, ze te archiveren of ze te verwijderen.
+- Selecteer SLO's om in één keer labels en eigenaren toe te voegen of te verwijderen, ze in of uit te schakelen, ze te archiveren of ze te verwijderen.
 - De sectie **Instellingen** van het zijmenu bevat **Labelregels** en **Eigenaarsregels**, die nieuwe SLO's labelen en eigenaren geven: zie [Label- en eigenaarsregels](/docs/slo/label-and-owner-rules).
 - De sectie **Geavanceerd** van het zijmenu bevat **Gearchiveerd**, de lijst met gearchiveerde SLO's.
 

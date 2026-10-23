@@ -17,6 +17,7 @@ import RecordIdModal from "Common/UI/Components/ObjectID/RecordIdModal";
 import { getApiReferencePagePath } from "Common/Utils/ApiReferencePage";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import ProbeElement from "Common/UI/Components/Probe/Probe";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { APP_API_URL, BILLING_ENABLED } from "Common/UI/Config";
@@ -57,6 +58,14 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Probe>({ modelType: Probe });
+
+  // Owners in Bulk Actions too: the list shows and filters probes by them.
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<Probe>({
+      ownerUserModelType: ProbeOwnerUser,
+      ownerTeamModelType: ProbeOwnerTeam,
+      resourceIdField: "probeId",
+    });
 
   /*
    * The Owner and Labels chips above the custom probes: a probe can be found
@@ -254,7 +263,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           isViewable={true}
           isCreateable={true}
           bulkActions={{
-            buttons: [...labelBulkActions],
+            buttons: [...labelBulkActions, ...ownerBulkActions],
           }}
           cardProps={{
             title: "Custom Probes",
@@ -438,6 +447,7 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         />
 
         {labelBulkActionModals}
+        {ownerBulkActionModals}
 
         {showKeyModal && currentProbe && canReadProbeKey ? (
           <ConfirmModal

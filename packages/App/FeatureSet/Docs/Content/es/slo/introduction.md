@@ -141,7 +141,7 @@ Un SLO desactivado o archivado no se evalúa, así que su estado se queda como e
 La página **SLO** muestra cada SLO no archivado, con su estado, SLI, presupuesto restante, tasa de consumo, objetivo, ventana, monitores, etiquetas y propietarios.
 
 - Los mosaicos sobre la lista cuentan los SLO por estado: **En buen estado**, **En riesgo**, **Presupuesto agotado**, **Mal configurado**, **Pausado** y **Deshabilitado**. Aparecen en cuanto hay un SLO que no está archivado. Haz clic en un mosaico para ver solo esos SLO, y otra vez para verlos todos.
-- Selecciona SLO para añadir o quitar etiquetas y propietarios, archivarlos o eliminarlos, todos a la vez.
+- Selecciona SLO para añadir o quitar etiquetas y propietarios, activarlos o desactivarlos, archivarlos o eliminarlos, todos a la vez.
 - La sección **Ajustes** del menú lateral contiene **Reglas de etiquetas** y **Reglas del propietario**, que etiquetan los SLO nuevos y les asignan propietarios: consulta [Reglas de etiquetas y propietarios](/docs/slo/label-and-owner-rules).
 - La sección **Avanzado** del menú lateral contiene **Archivado**, la lista de SLO archivados.
 

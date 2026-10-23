@@ -1,11 +1,11 @@
-import { AddAiRuleInvestigation1806600000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1806600000000-AddAiRuleInvestigation";
+import { AddAiRuleInvestigation1806800000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1806800000000-AddAiRuleInvestigation";
 import {
   ADDED_RULE_DESCRIPTIONS,
   ADDED_RULE_NAMES,
-  MergeInvestigationRulesIntoAiRules1806610000000,
+  MergeInvestigationRulesIntoAiRules1806810000000,
   RULE_LIST_TABLES,
   RuleListTable,
-} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1806610000000-MergeInvestigationRulesIntoAiRules";
+} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1806810000000-MergeInvestigationRulesIntoAiRules";
 import IncidentAlertRuleMatcher, {
   IncidentAlertMatchRule,
 } from "../../../../Server/Utils/Rules/IncidentAlertRuleMatcher";
@@ -1166,8 +1166,8 @@ describePostgres("MergeInvestigationRulesIntoAiRules against Postgres", () => {
     remediationSnapshotBefore = await snapshot("AutoRemediationRule");
 
     await runInSchema(async (queryRunner: QueryRunner) => {
-      await new AddAiRuleInvestigation1806600000000().up(queryRunner);
-      await new MergeInvestigationRulesIntoAiRules1806610000000().up(
+      await new AddAiRuleInvestigation1806800000000().up(queryRunner);
+      await new MergeInvestigationRulesIntoAiRules1806810000000().up(
         queryRunner,
       );
     });
@@ -1194,7 +1194,7 @@ describePostgres("MergeInvestigationRulesIntoAiRules against Postgres", () => {
 
     // Run again: nothing changes.
     await runInSchema(async (queryRunner: QueryRunner) => {
-      await new MergeInvestigationRulesIntoAiRules1806610000000().up(
+      await new MergeInvestigationRulesIntoAiRules1806810000000().up(
         queryRunner,
       );
     });
@@ -1202,10 +1202,10 @@ describePostgres("MergeInvestigationRulesIntoAiRules against Postgres", () => {
 
     // down(), and the rule table's columns too.
     await runInSchema(async (queryRunner: QueryRunner) => {
-      await new MergeInvestigationRulesIntoAiRules1806610000000().down(
+      await new MergeInvestigationRulesIntoAiRules1806810000000().down(
         queryRunner,
       );
-      await new AddAiRuleInvestigation1806600000000().down(queryRunner);
+      await new AddAiRuleInvestigation1806800000000().down(queryRunner);
     });
     snapshotAfterDown = await snapshot("AutoRemediationRule");
     investigationSnapshotAfterDown = await snapshot("AIInvestigationRule");
@@ -1218,8 +1218,8 @@ describePostgres("MergeInvestigationRulesIntoAiRules against Postgres", () => {
 
     // And up() once more, after down(): the same rules as the first time.
     await runInSchema(async (queryRunner: QueryRunner) => {
-      await new AddAiRuleInvestigation1806600000000().up(queryRunner);
-      await new MergeInvestigationRulesIntoAiRules1806610000000().up(
+      await new AddAiRuleInvestigation1806800000000().up(queryRunner);
+      await new MergeInvestigationRulesIntoAiRules1806810000000().up(
         queryRunner,
       );
     });

@@ -141,7 +141,7 @@ Uno SLO disattivato o archiviato non viene valutato, quindi il suo stato resta c
 La pagina **SLOs** elenca ogni SLO non archiviato, con stato, SLI, budget rimanente, tasso di consumo, obiettivo, finestra, monitor, etichette e proprietari.
 
 - I riquadri sopra l'elenco contano gli SLO per stato: **Integro**, **A rischio**, **Budget esaurito**, **Misconfigured**, **In pausa** e **Disabilitato**. Compaiono non appena c'è uno SLO non archiviato. Fai clic su un riquadro per vedere solo quegli SLO, e di nuovo per vederli tutti.
-- Seleziona degli SLO per aggiungere o togliere etichette e proprietari, archiviarli o eliminarli, tutti insieme.
+- Seleziona degli SLO per aggiungere o togliere etichette e proprietari, attivarli o disattivarli, archiviarli o eliminarli, tutti insieme.
 - La sezione **Impostazioni** del menu laterale contiene **Regole etichette** e **Regole del proprietario**, che etichettano i nuovi SLO e assegnano loro dei proprietari: vedi [Regole per etichette e proprietari](/docs/slo/label-and-owner-rules).
 - La sezione **Avanzato** del menu laterale contiene **Archiviato**, l'elenco degli SLO archiviati.
 

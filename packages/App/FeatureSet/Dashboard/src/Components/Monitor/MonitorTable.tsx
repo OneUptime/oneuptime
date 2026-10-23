@@ -30,6 +30,10 @@ import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelAction
 import useCustomFieldFacets from "../CustomFields/useCustomFieldFacets";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
+import useBulkSwitchActions, {
+  DISABLE_SWITCH_ACTION,
+  ENABLE_SWITCH_ACTION,
+} from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
 import {
   ARCHIVE_INSTEAD_OF_DELETE,
   MONITOR_ARCHIVE_COPY,
@@ -166,6 +170,23 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
       pluralName: MONITOR_ARCHIVE_COPY.pluralName,
       archiveConfirmMessage: MONITOR_ARCHIVE_COPY.bulkArchiveConfirmMessage,
       unarchiveConfirmMessage: MONITOR_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
+    });
+
+  /*
+   * Enable and Disable (the shared bulk switch, as on every list that turns
+   * its records on and off). A monitor's switch is the other way round -
+   * Disable Monitoring on - so Enable writes false and Disable true. The
+   * list reads disableActiveMonitoring (selectMoreFields below), so a
+   * monitor already in the state asked for is left alone and listed.
+   */
+  const monitorSwitchBulkActions: Array<BulkActionButtonSchema<Monitor>> =
+    useBulkSwitchActions<Monitor>({
+      modelType: Monitor,
+      column: "disableActiveMonitoring",
+      actions: [
+        { ...ENABLE_SWITCH_ACTION, value: false },
+        { ...DISABLE_SWITCH_ACTION, value: true },
+      ],
     });
 
   const monitorTemplateFacet: ResourceFacet = {
@@ -766,150 +787,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
           buttons: isArchivedView
             ? [...unarchiveBulkActions, ModalTableBulkDefaultActions.Delete]
             : [
-                {
-                  title: "Disable Monitor",
-                  buttonStyleType: ButtonStyleType.NORMAL,
-                  onClick: async (props: BulkActionOnClickProps<Monitor>) => {
-                    const inProgressItems: Array<Monitor> = [...props.items]; // items to be disabled
-                    const totalItems: Array<Monitor> = [...props.items]; // total items
-                    const successItems: Array<Monitor> = []; // items that are disabled
-                    const failedItems: Array<BulkActionFailed<Monitor>> = []; // items that failed to disable
-
-                    props.onBulkActionStart();
-
-                    for (const monitor of totalItems) {
-                      // remove this item from inProgressItems
-
-                      inProgressItems.splice(
-                        inProgressItems.indexOf(monitor),
-                        1,
-                      );
-
-                      try {
-                        if (!monitor.id) {
-                          throw new BadDataException("Monitor ID not found");
-                        }
-
-                        await ModelAPI.updateById<Monitor>({
-                          id: monitor.id,
-                          modelType: Monitor,
-                          data: {
-                            disableActiveMonitoring: true,
-                          },
-                        });
-
-                        successItems.push(monitor);
-                      } catch (err) {
-                        failedItems.push({
-                          item: monitor,
-                          failedMessage: API.getFriendlyMessage(err),
-                        });
-                      }
-
-                      props.onProgressInfo({
-                        totalItems: totalItems,
-                        failed: failedItems,
-                        successItems: successItems,
-                        inProgressItems: inProgressItems,
-                      });
-                    }
-
-                    props.onBulkActionEnd();
-                  },
-
-                  icon: IconProp.Stop,
-                  confirmTitle: (items: Array<Monitor>) => {
-                    return translator.translatePlural(
-                      {
-                        one: "Disable {{count}} Monitor",
-                        other: "Disable {{count}} Monitors",
-                      },
-                      items.length,
-                    );
-                  },
-                  confirmMessage: (items: Array<Monitor>) => {
-                    return translator.translatePlural(
-                      {
-                        one: "Are you sure you want to disable {{count}} monitor?",
-                        other:
-                          "Are you sure you want to disable {{count}} monitors?",
-                      },
-                      items.length,
-                    );
-                  },
-                },
-                {
-                  title: "Enable Monitor",
-                  buttonStyleType: ButtonStyleType.NORMAL,
-                  onClick: async (props: BulkActionOnClickProps<Monitor>) => {
-                    const inProgressItems: Array<Monitor> = [...props.items]; // items to be disabled
-                    const totalItems: Array<Monitor> = [...props.items]; // total items
-                    const successItems: Array<Monitor> = []; // items that are disabled
-                    const failedItems: Array<BulkActionFailed<Monitor>> = []; // items that failed to disable
-
-                    props.onBulkActionStart();
-
-                    for (const monitor of totalItems) {
-                      // remove this item from inProgressItems
-
-                      inProgressItems.splice(
-                        inProgressItems.indexOf(monitor),
-                        1,
-                      );
-
-                      try {
-                        if (!monitor.id) {
-                          throw new BadDataException("Monitor ID not found");
-                        }
-
-                        await ModelAPI.updateById<Monitor>({
-                          id: monitor.id,
-                          modelType: Monitor,
-                          data: {
-                            disableActiveMonitoring: false,
-                          },
-                        });
-
-                        successItems.push(monitor);
-                      } catch (err) {
-                        failedItems.push({
-                          item: monitor,
-                          failedMessage: API.getFriendlyMessage(err),
-                        });
-                      }
-
-                      props.onProgressInfo({
-                        totalItems: totalItems,
-                        failed: failedItems,
-                        successItems: successItems,
-                        inProgressItems: inProgressItems,
-                      });
-                    }
-
-                    props.onBulkActionEnd();
-                  },
-
-                  icon: IconProp.Play,
-                  confirmTitle: (items: Array<Monitor>) => {
-                    return translator.translatePlural(
-                      {
-                        one: "Enable {{count}} Monitor",
-                        other: "Enable {{count}} Monitors",
-                      },
-                      items.length,
-                    );
-                  },
-                  confirmMessage: (items: Array<Monitor>) => {
-                    return translator.translatePlural(
-                      {
-                        one: "Are you sure you want to enable {{count}} monitor for active monitoring?",
-                        other:
-                          "Are you sure you want to enable {{count}} monitors for active monitoring?",
-                      },
-                      items.length,
-                    );
-                  },
-                },
+                ...monitorSwitchBulkActions,
                 getBulkAddProbesAction(),
                 getBulkRemoveProbesAction(),
                 ...labelBulkActions,

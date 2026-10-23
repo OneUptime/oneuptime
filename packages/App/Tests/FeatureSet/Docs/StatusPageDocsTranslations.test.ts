@@ -320,12 +320,13 @@ const STATUS_PAGE_APP: Record<string, Array<StatusPageAppLabel>> = {
 
 /*
  * Status page app labels the pages also name on the Dashboard, where the
- * Dashboard's own label is drawn as well: the Channels card's switches, and
- * the Overview and Announcements screens of a status page.
+ * Dashboard's own label is drawn as well: the Channels card's switches, the
+ * Overview and Announcements screens of a status page, and Unsubscribe, the
+ * subscriber lists' bulk action as well as the subscription pages' button.
  */
 const ALSO_ON_THE_DASHBOARD: Record<string, Array<string>> = {
   [OVERVIEW]: ["Overview", "Announcements"],
-  [SUBSCRIBERS]: ["Email", "SMS", "Slack"],
+  [SUBSCRIBERS]: ["Email", "SMS", "Slack", "Unsubscribe"],
 };
 
 /*

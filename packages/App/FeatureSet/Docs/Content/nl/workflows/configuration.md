@@ -22,7 +22,7 @@ Gebruik deze schakelaar als je «klaar voor gebruik»-sein:
 4. Zet **Ingeschakeld** aan als hij klaar is: vanaf dan gaat zijn trigger af bij echte gebeurtenissen.
 :::
 
-Een workflow uitzetten voorkomt dat zijn trigger nieuwe uitvoeringen start. Een uitvoering die al loopt, maakt haar werk af, maar een uitvoering die zijn trigger startte en die op een **Sleep**-blok wacht, wordt bij het ontwaken geannuleerd. Testruns gaan door.
+Een workflow uitzetten voorkomt dat zijn trigger nieuwe uitvoeringen start. Een uitvoering die al loopt, maakt haar werk af, maar een uitvoering die zijn trigger startte en die op een **Sleep**-blok wacht, wordt bij het ontwaken geannuleerd. Testruns gaan door. Om er meerdere tegelijk aan of uit te zetten, selecteer je ze in de lijst **Workflows** en kies je **Inschakelen** of **Uitschakelen** onder **Bulkacties**.
 
 ## Een workflow archiveren
 

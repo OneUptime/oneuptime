@@ -36,6 +36,7 @@ import logger, {
 } from "Common/Server/Utils/Logger";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import LogsQueueService from "./Queue/LogsQueueService";
+import { DiscoveredResourceKinds } from "Common/Server/Utils/Telemetry/DiscoveredResourceIdCache";
 import OtelIngestBaseService, {
   DatabaseServerResourceResolution,
 } from "./OtelIngestBaseService";
@@ -1335,10 +1336,16 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             continue;
           }
           try {
-            await KubernetesResourceService.bulkUpsert({
-              projectId,
-              kubernetesClusterId: new ObjectID(clusterIdStr),
-              resources,
+            await this.writeForDiscoveredResource({
+              kind: DiscoveredResourceKinds.KubernetesCluster,
+              id: clusterIdStr,
+              write: async (kubernetesClusterId: ObjectID): Promise<void> => {
+                await KubernetesResourceService.bulkUpsert({
+                  projectId,
+                  kubernetesClusterId,
+                  resources,
+                });
+              },
             });
           } catch (invErr) {
             logger.error(
@@ -1359,10 +1366,16 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             continue;
           }
           try {
-            await KubernetesContainerService.bulkUpsert({
-              projectId,
-              kubernetesClusterId: new ObjectID(clusterIdStr),
-              containers,
+            await this.writeForDiscoveredResource({
+              kind: DiscoveredResourceKinds.KubernetesCluster,
+              id: clusterIdStr,
+              write: async (kubernetesClusterId: ObjectID): Promise<void> => {
+                await KubernetesContainerService.bulkUpsert({
+                  projectId,
+                  kubernetesClusterId,
+                  containers,
+                });
+              },
             });
           } catch (invErr) {
             logger.error(
@@ -1378,10 +1391,16 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             continue;
           }
           try {
-            await DockerResourceService.bulkUpsert({
-              projectId,
-              dockerHostId: new ObjectID(hostIdStr),
-              resources,
+            await this.writeForDiscoveredResource({
+              kind: DiscoveredResourceKinds.DockerHost,
+              id: hostIdStr,
+              write: async (dockerHostId: ObjectID): Promise<void> => {
+                await DockerResourceService.bulkUpsert({
+                  projectId,
+                  dockerHostId,
+                  resources,
+                });
+              },
             });
           } catch (invErr) {
             logger.error(
@@ -1397,10 +1416,16 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             continue;
           }
           try {
-            await PodmanResourceService.bulkUpsert({
-              projectId,
-              podmanHostId: new ObjectID(hostIdStr),
-              resources,
+            await this.writeForDiscoveredResource({
+              kind: DiscoveredResourceKinds.PodmanHost,
+              id: hostIdStr,
+              write: async (podmanHostId: ObjectID): Promise<void> => {
+                await PodmanResourceService.bulkUpsert({
+                  projectId,
+                  podmanHostId,
+                  resources,
+                });
+              },
             });
           } catch (invErr) {
             logger.error(
@@ -1419,10 +1444,17 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             continue;
           }
           try {
-            await DockerSwarmResourceService.bulkUpsert({
-              projectId,
-              dockerSwarmClusterId: new ObjectID(clusterIdStr),
-              resources,
+            // The id the rest of this flush writes against.
+            const liveIdStr: string = await this.writeForDiscoveredResource({
+              kind: DiscoveredResourceKinds.DockerSwarmCluster,
+              id: clusterIdStr,
+              write: async (dockerSwarmClusterId: ObjectID): Promise<void> => {
+                await DockerSwarmResourceService.bulkUpsert({
+                  projectId,
+                  dockerSwarmClusterId,
+                  resources,
+                });
+              },
             });
 
             /*
@@ -1482,7 +1514,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               extras.networkCount = countOf("Network");
             }
             await DockerSwarmClusterService.updateLastSeen(
-              new ObjectID(clusterIdStr),
+              new ObjectID(liveIdStr),
               extras,
             );
           } catch (invErr) {

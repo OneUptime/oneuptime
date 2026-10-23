@@ -478,10 +478,10 @@ export function getDownStatements(): Array<string> {
   ];
 }
 
-export class MergeInvestigationRulesIntoAiRules1806610000000
+export class MergeInvestigationRulesIntoAiRules1806810000000
   implements MigrationInterface
 {
-  public name: string = "MergeInvestigationRulesIntoAiRules1806610000000";
+  public name: string = "MergeInvestigationRulesIntoAiRules1806810000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     for (const statement of getUpStatements()) {

@@ -22,7 +22,7 @@ Use essa chave como o seu sinal de «pronto para rodar»:
 4. Ligue **Habilitado** quando estiver pronto: a partir daí, o gatilho dispara com eventos reais.
 :::
 
-Desligar um workflow impede que o gatilho dele inicie novas execuções. Uma execução que já está em andamento termina, mas uma execução que o gatilho iniciou e que está esperando em um bloco **Sleep** é cancelada ao acordar. As execuções de teste continuam.
+Desligar um workflow impede que o gatilho dele inicie novas execuções. Uma execução que já está em andamento termina, mas uma execução que o gatilho iniciou e que está esperando em um bloco **Sleep** é cancelada ao acordar. As execuções de teste continuam. Para ligar ou desligar vários de uma vez, selecione-os na lista **Fluxos de trabalho** e escolha **Ativar** ou **Desativar** em **Ações em massa**.
 
 ## Arquivar um workflow
 

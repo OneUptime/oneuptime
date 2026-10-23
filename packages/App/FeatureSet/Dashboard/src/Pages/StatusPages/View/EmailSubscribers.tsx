@@ -1,4 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
+import useSubscriberBulkActions, {
+  getSubscriberName,
+} from "../../../Components/StatusPage/useSubscriberBulkActions";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -64,6 +67,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  // Unsubscribe in Bulk Actions (Components/StatusPage/useSubscriberBulkActions).
+  const subscriberBulkActions: ReturnType<typeof useSubscriberBulkActions> =
+    useSubscriberBulkActions();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [
     allowSubscribersToChooseResources,
@@ -450,6 +456,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               tableId: "status-page-email-subscribers-table",
             }}
             isDeleteable={true}
+            // Each row by what the list shows first (useSubscriberBulkActions).
+            getItemName={getSubscriberName}
+            bulkActions={{
+              buttons: [...subscriberBulkActions],
+            }}
             showViewIdButton={true}
             isCreateable={true}
             isEditable={true}
@@ -457,6 +468,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             selectMoreFields={{
               subscriberPhone: true,
               isSubscriptionConfirmed: true,
+              // Whether each is unsubscribed, for Unsubscribe to count.
+              isUnsubscribed: true,
               /*
                * The Status reads when the link to confirm was sent, so it
                * is read whether or not the viewer shows Subscribed At.

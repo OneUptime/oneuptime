@@ -46,11 +46,17 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
   folded apart under Not connected, with Connect GitHub; a search box once
   there are more than six, which opens Not connected when only a folded one
   matches; GitHub's connection gone said once, in the empty list;
-- a repository's settings: cards, not a stepped dialog - GitHub Commands, on
-  by default and saved the moment it is flipped; the Runner card; More
-  settings with Pull Requests, the trigger label and, on a repository that
-  has them, its build and test commands with Remove Commands; Connection
-  saying Not connected where Repositories folds the repository;
+- a repository's settings: cards, not a stepped dialog - the repository's
+  details on top and every other setting under More settings, named while it
+  is folded (GitHub Commands, Production Review, Runner, Pull Requests and
+  how many more; a setting off or a Runner of the project's own said as a
+  chip): GitHub Commands, on by default and saved the moment it is flipped;
+  Production Review; the Runner card; Pull Requests, the trigger label and,
+  on a repository that has them, its build and test commands with Remove
+  Commands; a link that names one of them (`#github-commands`, `#runner`,
+  `#production-review`) opening More settings at it; a member who may only
+  read; dark mode; Connection saying Not connected where Repositories folds
+  the repository;
 - a repository's page: its tasks newest first, examples on a repository with
   no task yet, asking with context - a file, a note and an incident picked
   from the project - recorded as sent, then the new task's conversation
@@ -59,7 +65,10 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
 - Enter sending and Shift + Enter a new line; a refused request keeping what
   was typed; every reason AI cannot work said above the request box with the
   link that fixes it, and nothing sendable;
-- a repository's Runner in its settings: Global Runner and how it is doing,
+- a repository's Runner in its settings, reached as Pick a Runner reaches it
+  (`#runner`, More settings open, the Runner card as high as the page lets
+  it go, marked and holding the focus, so Tab goes on to its Edit): Global
+  Runner and how it is doing,
   the Runner card's Edit, a project that turned global Runners off
   (`?uses=0`), a server with none (`?global=0`) or one not heard from
   (`?gstatus=disconnected`), and a pick the page is not shown

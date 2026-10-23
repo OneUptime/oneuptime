@@ -3,6 +3,8 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkSwitchActions from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
+import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
@@ -101,6 +103,17 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
     useSecurityDetectionErrors<DetectionRule>(getDetectionRuleMessages);
 
   /*
+   * Enable and Disable in Bulk Actions (a hook too, so above the gate):
+   * tuning a project's detections is turning sets of rules on and off -
+   * the noisy ones after a burst, a library's worth added at once.
+   */
+  const switchBulkActions: Array<BulkActionButtonSchema<DetectionRule>> =
+    useBulkSwitchActions<DetectionRule>({
+      modelType: DetectionRule,
+      column: "isEnabled",
+    });
+
+  /*
    * Same reseller-telemetry gate as every other Security Events page —
    * detection rules run over telemetry-billed security events, so a plan
    * without telemetry features has nothing for them to evaluate.
@@ -143,6 +156,9 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
         name="Security Events > Detection Rules"
         userPreferencesKey="detection-rules-table"
         isDeleteable={true}
+        bulkActions={{
+          buttons: [...switchBulkActions],
+        }}
         isEditable={true}
         isCreateable={true}
         isViewable={false}
@@ -447,6 +463,8 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
         ]}
         selectMoreFields={{
           sigmaRuleYaml: true,
+          // Whether each row is on, for Enable and Disable to count.
+          isEnabled: true,
         }}
         columns={[
           {

@@ -46,6 +46,11 @@ interface PostgresDriverError {
  */
 export interface TranslatedPostgresException extends Exception {
   postgresErrorCode?: string | undefined;
+  /*
+   * For a write refused by a foreign key: the table that has no row with the
+   * id it named ("DockerHost"). See isMissingRowOf.
+   */
+  postgresMissingRowTable?: string | undefined;
 }
 
 export default class PostgresErrorTranslator {
@@ -92,6 +97,35 @@ export default class PostgresErrorTranslator {
     return this.tag(new BadDataException(message), {
       code: UNIQUE_VIOLATION,
     });
+  }
+
+  /*
+   * True for a write a foreign key refused because the row it names in
+   * `tableName` is not there - `Key (dockerHostId)=(...) is not present in
+   * table "DockerHost"` - whether or not it has been through translate().
+   * Ingest asks it to tell a resource deleted while its id sat in a cache
+   * (and so resolve the resource again) from any other failure.
+   */
+  public static isMissingRowOf(error: unknown, tableName: string): boolean {
+    if (!error || typeof error !== "object") {
+      return false;
+    }
+
+    const translated: TranslatedPostgresException =
+      error as TranslatedPostgresException;
+
+    if (translated.postgresErrorCode === FOREIGN_KEY_VIOLATION) {
+      return translated.postgresMissingRowTable === tableName;
+    }
+
+    const driverError: PostgresDriverError | null =
+      this.getPostgresDriverError(error);
+
+    if (driverError?.code !== FOREIGN_KEY_VIOLATION) {
+      return false;
+    }
+
+    return this.getMissingRowTable(driverError.detail || "") === tableName;
   }
 
   /*
@@ -151,7 +185,7 @@ export default class PostgresErrorTranslator {
     if (detail.includes("is not present in table")) {
       const referencedTable: string = this.getTableNameFromDetail(detail) || "";
 
-      return this.tag(
+      const exception: TranslatedPostgresException = this.tag(
         new BadDataException(
           referencedTable
             ? `This request references ${this.humanizeTableName(
@@ -161,6 +195,10 @@ export default class PostgresErrorTranslator {
         ),
         driverError,
       );
+
+      exception.postgresMissingRowTable = referencedTable || undefined;
+
+      return exception;
     }
 
     return error;
@@ -282,6 +320,20 @@ export default class PostgresErrorTranslator {
     }
 
     return null;
+  }
+
+  /*
+   * The table named by `... is not present in table "DockerHost".`, the
+   * detail of an INSERT or UPDATE a foreign key refused; null for any other
+   * detail (a DELETE refused because rows still refer to the row says "is
+   * still referenced from table").
+   */
+  private static getMissingRowTable(detail: string): string | null {
+    if (!detail.includes("is not present in table")) {
+      return null;
+    }
+
+    return this.getTableNameFromDetail(detail);
   }
 
   private static getTableNameFromDetail(detail: string): string | null {

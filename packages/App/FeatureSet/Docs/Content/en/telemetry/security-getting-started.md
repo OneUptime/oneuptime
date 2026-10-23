@@ -29,7 +29,7 @@ Click **Send a test attack**. A dozen failed sign-ins from one documentation add
 Click **Open the case**. This is what a real finding looks like: the events behind it, the address it is about, and what **Enrich New Cases** found. Close it as a test when you are done.
 :::
 
-From then on, **Overview** opens on what needs someone: the open cases that are yours, the ones nobody has picked up and the playbook steps waiting for an approval, or **All quiet** when there are none.
+From then on, **Overview** opens on what needs someone, under **Needs attention**: the open cases that are yours, the ones nobody has picked up and the playbook steps waiting for an approval. When there are none, it says **All quiet**.
 
 ## How it works
 
@@ -48,7 +48,7 @@ flowchart LR
 | **Security Cases** | **Security Cases** | What was found, grouped by the user, host or address it is about |
 | **Playbooks** | **Playbooks** | Steps that run on new cases: enrich them, notify, open an incident or contain |
 
-The strip across the top of **Overview** shows each part with its figures: the sources and their events in the last 24 hours, the rules that are on, the open cases and the playbooks that respond.
+At the top of **Overview**, under what needs someone, each part shows its figures: the sources and their events in the last 24 hours, the rules that are on, the open cases and the playbooks that respond. A part that is not set up says so, and opens the page where you set it up.
 
 ## Find security events in your logs
 
@@ -84,6 +84,14 @@ The case usually opens before the button answers; when the rule is still catchin
 
 :::details No security event comes from my logs
 Check that **Find security events in your logs** is on and that **Your logs** says when it last checked. Only the kinds of lines in the table above become events: a server that sends no SSH, sudo, audit, CloudTrail or access logs has nothing to find.
+:::
+
+:::details Overview says the last security event arrived days ago
+Nothing has reached Security since then. Open **Connections** and check that **Your logs** and each connection are still on, and when each last checked.
+:::
+
+:::details The card that turns Security on is gone
+Someone put it away with **Dismiss**. While nothing is being watched for threats yet, **Overview** offers **Set up Security**, which brings it back.
 :::
 
 ## Next steps

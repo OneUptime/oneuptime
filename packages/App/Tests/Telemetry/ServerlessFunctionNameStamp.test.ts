@@ -88,6 +88,7 @@ import {
 import Dictionary from "Common/Types/Dictionary";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import { HEARTBEAT_ROW_PRESENT } from "Common/Server/Utils/Telemetry/ResourceHeartbeat";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import fs from "fs";
 import path from "path";
@@ -1128,7 +1129,7 @@ describe("discovery and the stored rows agree on the function's identity", () =>
       });
     jest
       .spyOn(ServerlessFunctionService, "updateLastSeen")
-      .mockImplementation(async (): Promise<void> => {});
+      .mockResolvedValue(HEARTBEAT_ROW_PRESENT);
     jest
       .spyOn(ServerlessFunctionService, "attachLabels")
       .mockImplementation(async (): Promise<void> => {});

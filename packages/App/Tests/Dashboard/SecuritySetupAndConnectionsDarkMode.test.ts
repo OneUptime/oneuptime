@@ -9,7 +9,8 @@ import path from "path";
  * theme - a white tile on a slate page - and nothing fails.
  *
  * So these read the sources of what this overhaul added to Security - the
- * Overview's pipeline, Get started, All quiet and the test attack; the
+ * Overview's top card (its band and the pipeline), Get started and the test
+ * attack; the
  * runs pages (Waiting for Approval, Playbook Runs), which took the place of
  * the tabs and views along the tops of pages; "Your logs" and "Send to your
  * SIEM" on Connections; the Rule Library's recommended marks - and every
@@ -41,7 +42,8 @@ const ENTRY_FILES: Array<string> = [
 const MUST_REACH: Array<string> = [
   "Components/SecurityOverview/SecurityPipeline.tsx",
   "Components/SecurityOverview/SecurityGettingStarted.tsx",
-  "Components/SecurityOverview/SecurityAllQuiet.tsx",
+  "Components/SecurityOverview/SecurityOverviewStatus.tsx",
+  "Components/SecurityOverview/SecurityOverviewStatusModel.ts",
   "Components/SecurityOverview/SecuritySetupTest.tsx",
   "Components/SecurityOverview/SecuritySetupModel.ts",
   "Components/SecurityEvents/SecurityLogsSourceCard.tsx",
@@ -244,15 +246,21 @@ describe("Security's set-up and connection pieces in the dark theme", () => {
     expect(tokens.size).toBeGreaterThan(20);
     expect(Array.from(tokens)).toEqual(
       expect.arrayContaining([
-        // Get started, the pipeline's stages and All quiet.
+        // Get started, and the top card's band in each of its tones.
         "bg-indigo-50",
         "bg-emerald-50",
-        "border-amber-200",
         "bg-amber-50",
-        "border-red-200",
-        "border-emerald-200",
+        "bg-red-50",
+        "bg-gray-50",
+        // The pipeline's hairlines, and its figures and status lines.
+        "bg-gray-200",
+        "text-red-700",
+        "text-amber-700",
+        "text-emerald-700",
+        "text-indigo-700",
         "text-gray-900",
         "text-gray-600",
+        "text-gray-500",
       ]),
     );
     expect(unmapped).toEqual([]);

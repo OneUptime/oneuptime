@@ -9,6 +9,9 @@ import Route from "Common/Types/API/Route";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
+import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useBulkSwitchActions from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
+import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import getLabelsFormField from "../../Utils/Form/LabelsFormField";
@@ -32,6 +35,20 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
       ownerUserModelType: RunbookOwnerUser,
       ownerTeamModelType: RunbookOwnerTeam,
       resourceIdField: "runbookId",
+    });
+
+  /*
+   * Labels, as every other resource list has them: the list shows and
+   * filters runbooks by them, and they were set one runbook at a time.
+   */
+  const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
+    useBulkLabelActions<Runbook>({ modelType: Runbook });
+
+  // Enable and Disable: a disabled runbook does not run, whatever starts it.
+  const switchBulkActions: Array<BulkActionButtonSchema<Runbook>> =
+    useBulkSwitchActions<Runbook>({
+      modelType: Runbook,
+      column: "isEnabled",
     });
 
   const runbookExtraFacets: Array<ResourceFacet> = [
@@ -122,7 +139,15 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
           return Promise.resolve(item);
         }}
         bulkActions={{
-          buttons: [...ownerBulkActions],
+          buttons: [
+            ...switchBulkActions,
+            ...labelBulkActions,
+            ...ownerBulkActions,
+          ],
+        }}
+        // Whether each row is on, for Enable and Disable to count.
+        selectMoreFields={{
+          isEnabled: true,
         }}
         name="Runbooks"
         isViewable={true}
@@ -230,6 +255,7 @@ const Runbooks: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
         ]}
       />
+      {labelBulkActionModals}
       {ownerBulkActionModals}
     </Fragment>
   );

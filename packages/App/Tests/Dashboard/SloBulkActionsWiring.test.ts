@@ -158,13 +158,26 @@ describe("the shared hook module hands each bulk-action hook what it needs", () 
     expect(HOOK_CODE).not.toContain('archiveConfirmMessage: "');
   });
 
-  test("it returns both hooks' actions and mounts both modal trees", () => {
+  test("the switch hook turns SLOs on and off by their isEnabled, in the SLO's own names", () => {
+    expect(HOOK_CODE).toContain(
+      'import useBulkSwitchActions from "Common/UI/Components/BulkUpdate/BulkSwitchActions";',
+    );
+    expect(HOOK_CODE).toContain(
+      squash(
+        'useBulkSwitchActions<ServiceLevelObjective>({ modelType: ServiceLevelObjective, column: "isEnabled", singularName: "SLO", pluralName: "SLOs", })',
+      ),
+    );
+  });
+
+  test("it returns the three hooks' actions, Enable and Disable first, and mounts both modal trees", () => {
     /*
-     * Returning one set is the failure that looks most like it works: four
-     * buttons become two, and nothing says the other two are missing.
+     * Returning one set is the failure that looks most like it works: six
+     * buttons become two, and nothing says the other four are missing.
      */
     expect(HOOK_CODE).toContain(
-      squash("bulkActions: [...labelBulkActions, ...ownerBulkActions],"),
+      squash(
+        "bulkActions: [ ...switchBulkActions, ...labelBulkActions, ...ownerBulkActions, ],",
+      ),
     );
 
     const modals: string = HOOK_CODE.split("modals: (")[1]!.split("),")[0]!;

@@ -1,5 +1,4 @@
 import PageComponentProps from "../PageComponentProps";
-import AppLink from "../../Components/AppLink/AppLink";
 import EventStatBar from "../../Components/EventView/EventStatBar";
 import EventStatTile from "../../Components/EventView/EventStatTile";
 import SecurityCaseApi, {
@@ -10,13 +9,25 @@ import { getCorrelateRouteForEntity } from "../../Components/SecurityCase/Securi
 import RankedBars, {
   RankedBarItem,
 } from "../../Components/SecurityOverview/RankedBars";
-import SecurityAllQuiet from "../../Components/SecurityOverview/SecurityAllQuiet";
 import SecurityGettingStarted, {
+  forgetSecurityGetStartedDismissed,
   isSecurityGetStartedDismissed,
 } from "../../Components/SecurityOverview/SecurityGettingStarted";
-import SecurityPipeline from "../../Components/SecurityOverview/SecurityPipeline";
+import SecurityOverviewStatus, {
+  SecurityOverviewFailed,
+  SecurityOverviewLoading,
+} from "../../Components/SecurityOverview/SecurityOverviewStatus";
+import {
+  NONE_URGENT,
+  SecurityHeadlineKind,
+  SecurityOverviewQueue,
+  URGENT_OPEN_CASES,
+  formatSecurityOverviewValues,
+  getSecurityHeadline,
+} from "../../Components/SecurityOverview/SecurityOverviewStatusModel";
 import {
   SecuritySetupStatus,
+  describeSetupCallFailure,
   isSecuritySetUp,
 } from "../../Components/SecurityOverview/SecuritySetupModel";
 import StackedDayBars, {
@@ -27,6 +38,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import { Cyan, Gray500, Indigo500, Red } from "Common/Types/BrandColors";
+import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { describeMitreId } from "Common/Types/SecurityEvent/MitreAttack";
 import { ocsfSeverityFromId } from "Common/Types/SecurityEvent/OcsfSeverity";
@@ -48,14 +60,13 @@ import {
   TacticCount,
 } from "Common/Utils/SecurityCase/SecurityOverviewMetrics";
 import Card from "Common/UI/Components/Card/Card";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import Icon from "Common/UI/Components/Icon/Icon";
-import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -68,67 +79,20 @@ export const DETECTION_SOURCE_COLORS: Record<SecurityDetectionSource, string> =
     [SecurityDetectionSource.Manual]: Gray500.toString(),
   };
 
-const ATTENTION_TONES: Record<string, string> = {
-  red: "border-red-200 bg-red-50 text-red-800",
-  amber: "border-amber-200 bg-amber-50 text-amber-800",
-  indigo: "border-indigo-200 bg-indigo-50 text-indigo-800",
-  gray: "border-gray-200 bg-white text-gray-700",
-};
-
-/*
- * A count and what it counts, the words agreeing with the number ("1 open
- * case", "2 open cases"): the label is a plural template without the count,
- * which the tile draws on its own, larger.
- */
-const AttentionTile: FunctionComponent<{
-  icon: IconProp;
-  count: number;
-  label: PluralTemplate;
-  tone: string;
-  to: Route;
-}> = (props: {
-  icon: IconProp;
-  count: number;
-  label: PluralTemplate;
-  tone: string;
-  to: Route;
-}): ReactElement => {
-  const translator: Translator = useTranslator();
-  const tone: string =
-    props.count > 0
-      ? ATTENTION_TONES[props.tone] || ATTENTION_TONES["gray"]!
-      : ATTENTION_TONES["gray"]!;
-
-  return (
-    <AppLink
-      to={props.to}
-      className={`flex items-center gap-3 rounded-xl border px-4 py-3 shadow-sm transition-colors hover:brightness-95 ${tone}`}
-    >
-      <>
-        <Icon icon={props.icon} className="h-5 w-5 flex-shrink-0 opacity-70" />
-        <span className="text-2xl font-semibold tabular-nums">
-          {translator.formatNumber(props.count)}
-        </span>
-        <span className="text-sm font-medium">
-          {translator.translatePlural(props.label, props.count)}
-        </span>
-      </>
-    </AppLink>
-  );
-};
-
 /*
  * Security at a glance, in the order a person reads it.
  *
- * Across the top, how Security works in this project: sources, detections,
- * cases, playbooks, each with its figure and a link to its page. Until all
- * of it is set up, "Get started" turns it on in one click and sends a test
- * attack to show a case open. Then what needs someone now - the cases that
+ * At the top, one card (SecurityOverviewStatus), drawn as Home draws the top
+ * of a project: a band that says what needs someone now - the cases that
  * are yours, those nobody has picked up, the playbook steps waiting for an
- * approval - or, when nothing does, "All quiet". The figures and charts
- * below (how fast cases are acknowledged, contained and closed, the trend
- * of cases and detections, the rules, tactics and entities behind them)
- * show once there is something to chart.
+ * approval, each a link - or that every open case is picked up, that
+ * nothing is watched yet, or "All quiet"; and under it how Security works
+ * here: sources, detections, cases, playbooks, each with its figure and how
+ * it is doing. Until Security is set up, "Get started" takes the card's
+ * place: it turns it on in one click and sends a test attack to show a case
+ * open. The figures and charts below (how fast cases are acknowledged,
+ * contained and closed, the trend of cases and detections, the rules,
+ * tactics and entities behind them) show once there is something to chart.
  */
 const SecurityOverviewPage: FunctionComponent<
   PageComponentProps
@@ -137,8 +101,19 @@ const SecurityOverviewPage: FunctionComponent<
   const [overview, setOverview] = useState<SecurityOverview | null>(null);
   const [status, setStatus] = useState<SecuritySetupStatus | null>(null);
   const [entities, setEntities] = useState<Array<EntityFindingSummary>>([]);
+  // Why the overview could not be read at all (describeSetupCallFailure).
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  // A read is in flight: the first, a quiet read again, or Try again.
+  const [isReading, setIsReading] = useState<boolean>(true);
+  // The set-up figures could not be read: the pipeline's place says so.
+  const [hasStatusFailed, setHasStatusFailed] = useState<boolean>(false);
+  /*
+   * Whether the overview was ever read. Until it was, every read counts as
+   * the first - Try again after a failed first read included - so Get
+   * started can still show.
+   */
+  const hasLoaded: React.MutableRefObject<boolean> = useRef<boolean>(false);
   /*
    * Get started stays for the visit once it showed, so the reader watches
    * each step tick and the test's case appear; Done hides it.
@@ -155,13 +130,15 @@ const SecurityOverviewPage: FunctionComponent<
 
   useEffect(() => {
     let isCurrent: boolean = true;
-    const isFirstRead: boolean = readCount === 0;
+    const isFirstRead: boolean = !hasLoaded.current;
 
     const load: () => Promise<void> = async (): Promise<void> => {
+      setIsReading(true);
+
       /*
        * The setup figures are read beside the overview, not after it; a
-       * server that cannot answer them leaves the pipeline and Get started
-       * out, never the page.
+       * server that cannot answer them leaves Get started out and the
+       * pipeline's place says so, with Try again - never the page.
        */
       const [overviewResult, statusResult] = await Promise.all([
         SecurityCaseApi.getOverview().then(
@@ -187,27 +164,39 @@ const SecurityOverviewPage: FunctionComponent<
       }
 
       if (overviewResult instanceof Error) {
-        // A read again that fails keeps what the page already shows.
+        /*
+         * A read again that fails keeps what the page already shows. A first
+         * read says why in the product's words - a role's or a plan's
+         * sentence as the server writes it, never a gateway's.
+         */
         if (isFirstRead) {
-          setError(overviewResult.message);
+          setError(describeSetupCallFailure(overviewResult));
         }
       } else {
+        hasLoaded.current = true;
+        setError("");
         setOverview(overviewResult);
       }
 
       if (statusResult) {
         setStatus(statusResult);
+        setHasStatusFailed(false);
 
         if (
           isFirstRead &&
+          !(overviewResult instanceof Error) &&
           !isSecuritySetUp(statusResult) &&
           !isSecurityGetStartedDismissed()
         ) {
           setShowGetStarted(true);
         }
+      } else {
+        // Drawn only while no figures were ever read; a stale read stays.
+        setHasStatusFailed(true);
       }
 
       setIsLoading(false);
+      setIsReading(false);
 
       // Entities come from the events store; a role without events still sees the rest.
       try {
@@ -234,21 +223,17 @@ const SecurityOverviewPage: FunctionComponent<
   };
 
   if (error) {
-    return <ErrorMessage message={error} />;
+    return (
+      <SecurityOverviewFailed
+        message={error}
+        isReading={isReading}
+        onTryAgain={readAgain}
+      />
+    );
   }
 
   if (isLoading || !overview || !overview.metrics) {
-    return (
-      <div className="space-y-6" aria-busy="true">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div className="h-16 animate-pulse rounded-xl bg-gray-100" />
-          <div className="h-16 animate-pulse rounded-xl bg-gray-100" />
-          <div className="h-16 animate-pulse rounded-xl bg-gray-100" />
-        </div>
-        <div className="h-24 animate-pulse rounded-xl bg-gray-100" />
-        <div className="h-64 animate-pulse rounded-xl bg-gray-100" />
-      </div>
-    );
+    return <SecurityOverviewLoading />;
   }
 
   const metrics: SecurityOverview["metrics"] = overview.metrics;
@@ -257,25 +242,50 @@ const SecurityOverviewPage: FunctionComponent<
     metrics.openCases === 0 &&
     metrics.casesOpenedInWindow === 0 &&
     metrics.detectionsInWindow === 0;
-  const needsSomeone: boolean =
-    metrics.openCases > 0 || overview.runsWaitingForApproval > 0;
+  // The queue as the card's band and its cases cell read it.
+  const queue: SecurityOverviewQueue = {
+    openCases: metrics.openCases,
+    criticalOpenCases:
+      metrics.openByPriority[SecurityCasePriority.Critical] || 0,
+    highOpenCases: metrics.openByPriority[SecurityCasePriority.High] || 0,
+    myOpenCases: overview.myOpenCases,
+    unassignedOpenCases: metrics.unassignedOpenCases,
+    runsWaitingForApproval: overview.runsWaitingForApproval,
+  };
+  // What "Last event 3 days ago" counts from.
+  const now: Date = OneUptimeDate.getCurrentDate();
+  const headlineKind: SecurityHeadlineKind = getSecurityHeadline({
+    queue,
+    status,
+    now,
+  }).kind;
   /*
    * The pipeline and Get started tell the same story - sources, rules,
    * cases, playbooks - so a project being set up sees the card alone, its
-   * one next step first, and the pipeline takes its place once the card is
-   * put away.
+   * one next step first, and the status card takes its place once it is
+   * put away. While Get started is on the page, what needs someone still
+   * shows under it (the case a test attack opened), as the band alone.
    */
-  const showPipeline: boolean = Boolean(status) && !showGetStarted;
-  // What the open cases are: how many of them are critical, and high.
-  const urgentOpenCases: number =
-    (metrics.openByPriority[SecurityCasePriority.Critical] || 0) +
-    (metrics.openByPriority[SecurityCasePriority.High] || 0);
-  const openCasesDetail: string = translator.translateTemplate(
-    "{{critical}} critical · {{high}} high",
-    {
-      critical: metrics.openByPriority[SecurityCasePriority.Critical] || 0,
-      high: metrics.openByPriority[SecurityCasePriority.High] || 0,
-    },
+  const showStatusCard: boolean =
+    !showGetStarted ||
+    headlineKind === SecurityHeadlineKind.NeedsAttention ||
+    headlineKind === SecurityHeadlineKind.InHand;
+  // The pipeline counts the open cases; without it, the figures below do.
+  const isPipelineShown: boolean = Boolean(status) && !showGetStarted;
+  // "0 critical · 0 high" says nothing: the pipeline's words for none urgent.
+  const openCasesDetail: string =
+    queue.criticalOpenCases + queue.highOpenCases > 0
+      ? translator.translateTemplate(
+          URGENT_OPEN_CASES,
+          formatSecurityOverviewValues(translator, {
+            critical: queue.criticalOpenCases,
+            high: queue.highOpenCases,
+          }),
+        )
+      : translator.translateText(NONE_URGENT) || NONE_URGENT;
+  // The windows' days in the reader's digits, as every count on the page.
+  const caseWindowInDays: string = translator.formatNumber(
+    overview.caseWindowInDays,
   );
 
   const prioritySeries: Array<StackedSeries> = [...SECURITY_CASE_PRIORITIES]
@@ -377,22 +387,26 @@ const SecurityOverviewPage: FunctionComponent<
     },
   );
 
+  const statusCard: ReactElement = (
+    <SecurityOverviewStatus
+      queue={queue}
+      status={status}
+      showPipeline={!showGetStarted}
+      hasStatusFailed={hasStatusFailed}
+      isReading={isReading}
+      now={now}
+      onChanged={readAgain}
+      onTryAgain={readAgain}
+      onSetUp={() => {
+        forgetSecurityGetStartedDismissed();
+        setShowGetStarted(true);
+      }}
+    />
+  );
+
   return (
     <div className="space-y-6">
-      {showPipeline && status ? (
-        <SecurityPipeline
-          status={status}
-          openCasesDetail={
-            /*
-             * "0 critical · 0 high" says nothing: with nothing urgent open,
-             * the stage says the cases wait for a person.
-             */
-            urgentOpenCases > 0 ? openCasesDetail : undefined
-          }
-        />
-      ) : (
-        <></>
-      )}
+      {showStatusCard && !showGetStarted ? statusCard : <></>}
 
       {status && showGetStarted ? (
         <SecurityGettingStarted
@@ -409,52 +423,7 @@ const SecurityOverviewPage: FunctionComponent<
         <></>
       )}
 
-      {!needsSomeone && !(status && showGetStarted) ? (
-        <SecurityAllQuiet onChanged={readAgain} />
-      ) : (
-        <></>
-      )}
-
-      {needsSomeone ? (
-        /*
-         * Each count opens the page that lists exactly what it counts:
-         * Assigned to Me, Unassigned and Waiting for Approval.
-         */
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <AttentionTile
-            icon={IconProp.User}
-            count={overview.myOpenCases}
-            label={{
-              one: "open case assigned to you",
-              other: "open cases assigned to you",
-            }}
-            tone="indigo"
-            to={route(PageMap.SECURITY_CASES_ASSIGNED_TO_ME)}
-          />
-          <AttentionTile
-            icon={IconProp.Inbox}
-            count={metrics.unassignedOpenCases}
-            label={{
-              one: "open case nobody has picked up",
-              other: "open cases nobody has picked up",
-            }}
-            tone="red"
-            to={route(PageMap.SECURITY_CASES_UNASSIGNED)}
-          />
-          <AttentionTile
-            icon={IconProp.PauseCircle}
-            count={overview.runsWaitingForApproval}
-            label={{
-              one: "playbook step waiting for approval",
-              other: "playbook steps waiting for approval",
-            }}
-            tone="amber"
-            to={route(PageMap.SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL)}
-          />
-        </div>
-      ) : (
-        <></>
-      )}
+      {showStatusCard && showGetStarted ? statusCard : <></>}
 
       {isEmpty ? (
         <></>
@@ -465,11 +434,11 @@ const SecurityOverviewPage: FunctionComponent<
            * stage, so the bar counts them only when there is no pipeline.
            */}
           <EventStatBar
-            columns={showPipeline ? 3 : 4}
+            columns={isPipelineShown ? 3 : 4}
             ariaLabel={translator.translateText("Security operations figures")}
           >
             {[
-              ...(showPipeline
+              ...(isPipelineShown
                 ? []
                 : [
                     <EventStatTile
@@ -498,7 +467,7 @@ const SecurityOverviewPage: FunctionComponent<
                 description={translator.translateTemplate(
                   "Last {{days}} days",
                   {
-                    days: overview.caseWindowInDays,
+                    days: caseWindowInDays,
                   },
                 )}
               />,
@@ -517,7 +486,7 @@ const SecurityOverviewPage: FunctionComponent<
                 description={translator.translateTemplate(
                   "Last {{days}} days",
                   {
-                    days: overview.caseWindowInDays,
+                    days: caseWindowInDays,
                   },
                 )}
               />,
@@ -539,7 +508,7 @@ const SecurityOverviewPage: FunctionComponent<
                     other: "{{count}} cases closed in {{days}} days",
                   },
                   metrics.casesClosedInWindow,
-                  { days: overview.caseWindowInDays },
+                  { days: caseWindowInDays },
                 )}
               />,
             ]}

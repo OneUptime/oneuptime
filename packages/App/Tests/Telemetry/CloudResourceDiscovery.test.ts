@@ -47,6 +47,7 @@ import HostService from "Common/Server/Services/HostService";
 import LabelService from "Common/Server/Services/LabelService";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import ObjectID from "Common/Types/ObjectID";
+import { HEARTBEAT_ROW_PRESENT } from "Common/Server/Utils/Telemetry/ResourceHeartbeat";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import {
   FAAS_CLOUD_PLATFORM_VALUES,
@@ -196,7 +197,7 @@ beforeEach(() => {
     .mockResolvedValue(created);
   updateLastSeen = jest
     .spyOn(CloudResourceService, "updateLastSeen")
-    .mockResolvedValue(undefined);
+    .mockResolvedValue(HEARTBEAT_ROW_PRESENT);
   recordInstance = jest
     .spyOn(CloudResourceInstanceService, "recordInstance")
     .mockResolvedValue(undefined);
@@ -628,7 +629,9 @@ describe("autoDiscoverHost on managed cloud platforms", () => {
     getString.mockImplementation(async (namespace: string) => {
       return namespace === "host-id" ? RESOURCE_ID : null;
     });
-    jest.spyOn(HostService, "updateLastSeen").mockResolvedValue(undefined);
+    jest
+      .spyOn(HostService, "updateLastSeen")
+      .mockResolvedValue(HEARTBEAT_ROW_PRESENT);
     jest
       .spyOn(baseService, "tryLinkHostToProxmoxGuest")
       .mockResolvedValue(undefined);

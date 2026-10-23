@@ -1,13 +1,13 @@
 import AppLink from "../AppLink/AppLink";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import PageMap from "../../Utils/PageMap";
 import {
-  SecurityPipelineStage,
-  SecurityPipelineStageKey,
-  SecuritySetupStatus,
-  countSecuritySources,
-  getSecurityPipelineStages,
-} from "./SecuritySetupModel";
+  SecurityOverviewQueue,
+  SecurityStageView,
+  SecurityStatusTone,
+  getSecurityStageViews,
+  translateSecurityOverviewText,
+} from "./SecurityOverviewStatusModel";
+import { SecuritySetupStatus } from "./SecuritySetupModel";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -19,117 +19,60 @@ export const SECURITY_PIPELINE_ID: string = "security-pipeline";
 
 export interface ComponentProps {
   status: SecuritySetupStatus;
-  /*
-   * What the open cases are, when the page knows it ("2 critical · 2
-   * high"): the line under the cases' figure. Left out, it says the cases
-   * wait for a person.
-   */
-  openCasesDetail?: string | undefined;
-}
-
-interface StageFigures {
-  figure: string;
-  detail: string;
+  queue: SecurityOverviewQueue;
+  // What "Last event 3 days ago" counts from.
+  now: Date;
 }
 
 /*
- * The figure under each stage, in words that agree with the number: how
- * many sources and what they sent today, how many rules are on, how many
- * cases are open, how many playbooks respond.
+ * Literal class names per tone - never built from pieces - so the Tailwind
+ * scanner sees each one, and Theme.css can re-colour each for dark mode.
  */
-export function getStageFigures(
-  stage: SecurityPipelineStage,
-  status: SecuritySetupStatus,
-  translator: Translator,
-  openCasesDetail?: string | undefined,
-): StageFigures {
-  switch (stage.key) {
-    case SecurityPipelineStageKey.Sources: {
-      const sources: number = countSecuritySources(status);
+const FIGURE_CLASS_NAMES: Record<SecurityStatusTone, string> = {
+  [SecurityStatusTone.Danger]: "text-red-700",
+  [SecurityStatusTone.Warning]: "text-amber-700",
+  [SecurityStatusTone.Info]: "text-gray-900",
+  [SecurityStatusTone.Success]: "text-gray-900",
+  // "Not set up": quieter than a figure, still easy to read.
+  [SecurityStatusTone.Neutral]: "text-gray-500",
+};
 
-      return {
-        figure:
-          sources > 0
-            ? translator.translatePlural(
-                { one: "{{count}} source", other: "{{count}} sources" },
-                sources,
-              )
-            : translator.translateText("Not set up") || "",
-        detail:
-          status.eventsLast24Hours > 0
-            ? translator.translatePlural(
-                {
-                  one: "{{count}} event in 24 hours",
-                  other: "{{count}} events in 24 hours",
-                },
-                status.eventsLast24Hours,
-              )
-            : translator.translateText("No events in 24 hours") || "",
-      };
-    }
-    case SecurityPipelineStageKey.Detections:
-      return {
-        figure:
-          status.enabledRules > 0
-            ? translator.translatePlural(
-                { one: "{{count}} rule on", other: "{{count}} rules on" },
-                status.enabledRules,
-              )
-            : translator.translateText("Not set up") || "",
-        detail:
-          status.recommendedRules > 0
-            ? translator.translateTemplate("{{on}} of {{total}} recommended", {
-                on: status.recommendedRulesOn,
-                total: status.recommendedRules,
-              })
-            : "",
-      };
-    case SecurityPipelineStageKey.Cases:
-      return {
-        figure:
-          status.openCases > 0
-            ? translator.translatePlural(
-                { one: "{{count}} open case", other: "{{count}} open cases" },
-                status.openCases,
-              )
-            : translator.translateText("None open") || "",
-        detail:
-          status.openCases > 0
-            ? openCasesDetail ||
-              translator.translateText("Waiting for a person") ||
-              ""
-            : translator.translateText("Nothing waiting") || "",
-      };
-    case SecurityPipelineStageKey.Playbooks:
-      return {
-        figure:
-          status.enabledPlaybooks > 0
-            ? translator.translatePlural(
-                {
-                  one: "{{count}} playbook on",
-                  other: "{{count}} playbooks on",
-                },
-                status.enabledPlaybooks,
-              )
-            : translator.translateText("Not set up") || "",
-        detail: translator.translateText("Respond to new cases") || "",
-      };
-  }
-}
+const STATUS_CLASS_NAMES: Record<SecurityStatusTone, string> = {
+  [SecurityStatusTone.Danger]: "text-red-700",
+  [SecurityStatusTone.Warning]: "text-amber-700",
+  [SecurityStatusTone.Info]: "text-indigo-700",
+  [SecurityStatusTone.Success]: "text-emerald-700",
+  [SecurityStatusTone.Neutral]: "text-gray-500",
+};
 
 /*
- * The Overview's top strip: how Security works in this project, left to
+ * Each cell spans three of the grid's rows as a subgrid: its name, its
+ * figure, its status. A name or status that takes two lines in one cell,
+ * as German ones do, makes that row taller across the whole row of cells,
+ * so the figures and the statuses still line up. The one column is
+ * minmax(0, 1fr): an auto column would grow to fit a long word and push it
+ * past the cell's edge.
+ */
+const CELL_ROWS: string = "row-span-3 grid grid-cols-1 grid-rows-subgrid";
+
+/*
+ * The Overview's pipeline: how Security works in this project, left to
  * right - where events come from, what finds threats in them, what needs a
- * person, what responds - each stage a link to its page, a stage not set up
- * marked so. A SIEM the events are copied to is named under it.
+ * person, what responds. One card's row of cells on a hairline grid, as
+ * Home draws its numbers, each cell a link: to its part's page, or, for a
+ * part not set up, to where it is set up. On a wide screen a chevron sits
+ * on each line between two cells, so the row reads as the flow it is; two
+ * by two on a narrower one, the order says it.
  */
 const SecurityPipeline: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const stages: Array<SecurityPipelineStage> = getSecurityPipelineStages(
-    props.status,
-  );
+  const views: Array<SecurityStageView> = getSecurityStageViews({
+    status: props.status,
+    queue: props.queue,
+    now: props.now,
+  });
 
   return (
     <nav
@@ -137,97 +80,82 @@ const SecurityPipeline: FunctionComponent<ComponentProps> = (
       data-testid={SECURITY_PIPELINE_ID}
       aria-label={translator.translateText("How Security works here")}
     >
-      <ol className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {stages.map(
-          (stage: SecurityPipelineStage, index: number): ReactElement => {
-            const figures: StageFigures = getStageFigures(
-              stage,
-              props.status,
-              translator,
-              props.openCasesDetail,
-            );
-            return (
-              <li
-                key={stage.key}
-                className="relative"
-                data-testid={`security-pipeline-${stage.key}`}
-                data-ready={stage.isReady ? "true" : "false"}
+      <ol className="grid grid-cols-2 gap-px border-t border-gray-200 bg-gray-200 lg:grid-cols-4">
+        {views.map((view: SecurityStageView, index: number): ReactElement => {
+          return (
+            <li
+              key={view.key}
+              className={`relative ${CELL_ROWS} bg-white`}
+              data-testid={`security-pipeline-${view.key}`}
+              data-ready={view.isReady ? "true" : "false"}
+              data-tone={view.statusTone}
+            >
+              <AppLink
+                to={RouteUtil.populateRouteParams(RouteMap[view.page] as Route)}
+                className={`${CELL_ROWS} px-4 py-4 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 sm:px-5`}
               >
-                <AppLink
-                  to={RouteUtil.populateRouteParams(
-                    RouteMap[stage.page] as Route,
-                  )}
-                  className={
-                    !stage.isReady
-                      ? "block h-full rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 sm:px-4 shadow-sm transition-colors hover:border-indigo-300"
-                      : stage.needsAttention
-                        ? "block h-full rounded-xl border border-red-200 bg-red-50 px-3 py-3 sm:px-4 shadow-sm transition-colors hover:border-indigo-300"
-                        : "block h-full rounded-xl border border-gray-200 bg-white px-3 py-3 sm:px-4 shadow-sm transition-colors hover:border-indigo-300"
-                  }
-                >
-                  <>
-                    <div className="flex items-center gap-2 text-xs font-medium uppercase text-gray-500 sm:tracking-wide">
-                      <Icon icon={stage.icon} className="h-4 w-4" />
-                      <span>{translator.translateText(stage.title)}</span>
-                    </div>
-                    <div
-                      className={
-                        !stage.isReady
-                          ? "mt-1 text-base font-semibold text-amber-700 sm:text-lg"
-                          : stage.needsAttention
-                            ? "mt-1 text-base font-semibold text-red-700 sm:text-lg"
-                            : "mt-1 text-base font-semibold text-gray-900 sm:text-lg"
-                      }
-                    >
-                      {figures.figure}
-                    </div>
-                    {figures.detail ? (
-                      <div className="mt-0.5 text-xs text-gray-500">
-                        {figures.detail}
-                      </div>
-                    ) : (
-                      <></>
-                    )}
-                  </>
-                </AppLink>
-                {index < stages.length - 1 ? (
-                  <div
-                    className="pointer-events-none absolute -right-3 top-1/2 z-10 max-md:hidden -translate-y-1/2 text-gray-400 md:block"
-                    aria-hidden="true"
-                  >
-                    <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />
+                <>
+                  {/*
+                   * Two cells share a phone's width: 16px across and no
+                   * letter-spacing there, so a long name or word (German's
+                   * SICHERHEITSFAELLE, Russian's "recommended") fits whole
+                   * rather than breaking mid-word.
+                   */}
+                  <div className="flex min-w-0 items-center gap-1.5 text-xs font-medium uppercase leading-4 text-gray-500 sm:tracking-wide">
+                    <Icon
+                      icon={view.icon}
+                      className="h-3.5 w-3.5 flex-none text-gray-400"
+                    />
+                    <span className="min-w-0 break-words">
+                      {translator.translateText(view.title)}
+                    </span>
                   </div>
-                ) : (
-                  <></>
-                )}
-              </li>
-            );
-          },
-        )}
+                  <div
+                    data-testid={`security-pipeline-${view.key}-figure`}
+                    className={`mt-1.5 break-words text-lg font-semibold leading-7 ${FIGURE_CLASS_NAMES[view.figureTone]}`}
+                  >
+                    {translateSecurityOverviewText(translator, view.figure)}
+                  </div>
+                  {view.status ? (
+                    <div
+                      data-testid={`security-pipeline-${view.key}-status`}
+                      className={`mt-1 flex items-start gap-1.5 text-sm ${STATUS_CLASS_NAMES[view.statusTone]}`}
+                    >
+                      <Icon
+                        icon={view.statusIcon}
+                        className="mt-0.5 h-4 w-4 flex-none"
+                      />
+                      <span className="min-w-0 break-words">
+                        {translateSecurityOverviewText(translator, view.status)}
+                      </span>
+                    </div>
+                  ) : (
+                    <div />
+                  )}
+                </>
+              </AppLink>
+              {/*
+               * On the line after the cell, in the reading direction: its
+               * end edge (the left one in a right-to-left page), pointing on.
+               */}
+              {index < views.length - 1 ? (
+                <span
+                  className="pointer-events-none absolute end-0 top-1/2 z-10 flex h-6 w-6 -translate-y-1/2 translate-x-1/2 items-center justify-center rounded-full bg-white text-gray-400 shadow-sm ring-1 ring-gray-200 max-lg:hidden rtl:-translate-x-1/2"
+                  aria-hidden="true"
+                  data-testid="security-pipeline-arrow"
+                >
+                  <Icon
+                    icon={IconProp.ChevronRight}
+                    className="h-3.5 w-3.5 rtl:rotate-180"
+                  />
+                </span>
+              ) : (
+                <></>
+              )}
+            </li>
+          );
+        })}
       </ol>
-      {props.status.destinations > 0 ? (
-        <p
-          className="mt-2 text-xs text-gray-500"
-          data-testid="security-pipeline-destinations"
-        >
-          <AppLink
-            to={RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SECURITY_EVENTS_CONNECTIONS] as Route,
-            )}
-            className="hover:text-gray-700 hover:underline"
-          >
-            {translator.translatePlural(
-              {
-                one: "Security events are also sent to {{count}} SIEM.",
-                other: "Security events are also sent to {{count}} SIEMs.",
-              },
-              props.status.destinations,
-            )}
-          </AppLink>
-        </p>
-      ) : (
-        <></>
-      )}
     </nav>
   );
 };

@@ -2,13 +2,24 @@ import DatabaseService from "./DatabaseService";
 import EnterpriseLicense from "../../Models/DatabaseModels/EnterpriseLicense";
 import MarketingEventUtil from "../Utils/Marketing/MarketingEventUtil";
 import { MarketingEventType } from "../../Types/Marketing/MarketingEvent";
-import { OnCreate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
+import DeleteBy from "../Types/Database/DeleteBy";
+import UpdateBy from "../Types/Database/UpdateBy";
+import Select from "../Types/Database/Select";
 import OneUptimeDate from "../../Types/Date";
+import { JSONObject } from "../../Types/JSON";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ObjectID from "../../Types/ObjectID";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import logger from "../Utils/Logger";
+import {
+  buildLicenseDeletedAuditLine,
+  buildLicenseIssuedAuditLine,
+  buildLicenseUpdatedAuditLine,
+  ENTERPRISE_LICENSE_AUDITED_COLUMNS,
+  getAuditedColumnsWritten,
+} from "../Utils/EnterpriseLicense/EnterpriseLicenseAudit";
 import crypto from "crypto";
 
 /*
@@ -26,6 +37,47 @@ export const generateEnterpriseLicenseKey: () => string = (): string => {
 
 export const ENTERPRISE_LICENSE_USAGE_AGGREGATION_LOCK_NAMESPACE: string =
   "EnterpriseLicenseService.usageAggregation";
+
+/*
+ * What the audit hooks read of a license before a delete or an update of its
+ * terms: what names it in the line (EnterpriseLicenseAudit), and the terms an
+ * update can change, to say what they were.
+ */
+const AUDIT_SELECT: Select<EnterpriseLicense> = {
+  _id: true,
+  ...Object.fromEntries(
+    ENTERPRISE_LICENSE_AUDITED_COLUMNS.map((column: string) => {
+      return [column, true];
+    }),
+  ),
+} as Select<EnterpriseLicense>;
+
+// The licenses a delete or an update is about, read before it is made.
+interface LicensesBeforeWrite {
+  licenses: Array<EnterpriseLicense>;
+}
+
+/*
+ * Writes an audit line, never failing the write it describes: the hooks
+ * below run once a license is created, changed or deleted, and a TypeError
+ * there would turn a write that happened into an error the admin retries
+ * (see onCreateSuccess). A line that cannot be built is reported instead.
+ */
+export const writeEnterpriseLicenseAuditLine: (
+  buildLine: () => string | null,
+) => void = (buildLine: () => string | null): void => {
+  try {
+    const line: string | null = buildLine();
+
+    if (line) {
+      logger.info(line);
+    }
+  } catch (err) {
+    logger.error(
+      `EnterpriseLicenseService: could not write an audit line for an enterprise license change: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+};
 
 export const ENTERPRISE_LICENSE_USAGE_AGGREGATION_LOCK_OPTIONS: Readonly<{
   namespace: string;
@@ -106,9 +158,17 @@ export class Service extends DatabaseService<EnterpriseLicense> {
 
   @CaptureSpan()
   protected override async onCreateSuccess(
-    _onCreate: OnCreate<EnterpriseLicense>,
+    onCreate: OnCreate<EnterpriseLicense>,
     createdItem: EnterpriseLicense,
   ): Promise<EnterpriseLicense> {
+    // Who issued it, beside the deletes and changes (EnterpriseLicenseAudit).
+    writeEnterpriseLicenseAuditLine((): string => {
+      return buildLicenseIssuedAuditLine({
+        license: createdItem,
+        props: onCreate?.createBy?.props || {},
+      });
+    });
+
     /*
      * The outbound enterprise_license_issued conversion.
      *
@@ -165,6 +225,113 @@ export class Service extends DatabaseService<EnterpriseLicense> {
     });
 
     return createdItem;
+  }
+
+  /*
+   * The licenses a delete removes, read before it (and the delete held to
+   * them), so the audit line can name each one once it is gone: its company,
+   * its masked key and the expiry its installations keep running to.
+   */
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<EnterpriseLicense>,
+  ): Promise<OnDelete<EnterpriseLicense>> {
+    const licenses: Array<EnterpriseLicense> =
+      await this.findRowsAndHoldDeleteToThem(deleteBy, AUDIT_SELECT);
+
+    const carryForward: LicensesBeforeWrite = { licenses };
+
+    return { deleteBy, carryForward };
+  }
+
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<EnterpriseLicense>,
+    itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<EnterpriseLicense>> {
+    const carried: LicensesBeforeWrite | null =
+      (onDelete.carryForward as LicensesBeforeWrite | null) || null;
+
+    const deletedIds: Set<string> = new Set<string>(
+      itemIdsBeforeDelete.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    );
+
+    for (const license of carried?.licenses || []) {
+      if (!license.id || !deletedIds.has(license.id.toString())) {
+        continue;
+      }
+
+      writeEnterpriseLicenseAuditLine((): string => {
+        return buildLicenseDeletedAuditLine({
+          license,
+          props: onDelete.deleteBy.props,
+        });
+      });
+    }
+
+    return onDelete;
+  }
+
+  /*
+   * An update that writes a license's terms - the edit form, the list's bulk
+   * expiry change, the API - reads the licenses it changes first (and is held
+   * to them), so the audit line can say what each term was. An update of
+   * anything else is left alone.
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<EnterpriseLicense>,
+  ): Promise<OnUpdate<EnterpriseLicense>> {
+    if (
+      getAuditedColumnsWritten(updateBy.data as unknown as JSONObject)
+        .length === 0
+    ) {
+      return { updateBy, carryForward: null };
+    }
+
+    const licenses: Array<EnterpriseLicense> =
+      await this.findRowsAndHoldUpdateToThem(updateBy, AUDIT_SELECT);
+
+    const carryForward: LicensesBeforeWrite = { licenses };
+
+    return { updateBy, carryForward };
+  }
+
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<EnterpriseLicense>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<EnterpriseLicense>> {
+    const carried: LicensesBeforeWrite | null =
+      (onUpdate.carryForward as LicensesBeforeWrite | null) || null;
+
+    if (!carried) {
+      return onUpdate;
+    }
+
+    const updatedIds: Set<string> = new Set<string>(
+      updatedItemIds.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    );
+
+    for (const license of carried.licenses) {
+      if (!license.id || !updatedIds.has(license.id.toString())) {
+        continue;
+      }
+
+      writeEnterpriseLicenseAuditLine((): string | null => {
+        return buildLicenseUpdatedAuditLine({
+          before: license,
+          written: onUpdate.updateBy.data as unknown as JSONObject,
+          props: onUpdate.updateBy.props,
+        });
+      });
+    }
+
+    return onUpdate;
   }
 }
 

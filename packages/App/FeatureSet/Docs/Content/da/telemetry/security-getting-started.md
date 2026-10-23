@@ -29,7 +29,7 @@ Klik på **Send et testangreb**. Et dusin mislykkede logins fra én dokumentatio
 Klik på **Åbn sagen**. Sådan ser et rigtigt fund ud: hændelserne bag det, adressen, det handler om, og hvad **Enrich New Cases** fandt. Luk den som en test, når du er færdig.
 :::
 
-Derefter åbner **Oversigt** på det, der kræver nogen: dine åbne sager, dem ingen har taget, og de playbook-trin, der venter på en godkendelse, eller **Alt er roligt**, når der ikke er nogen.
+Derefter åbner **Oversigt** på det, der kræver nogen, under **Kræver opmærksomhed**: dine åbne sager, dem ingen har taget, og de playbook-trin, der venter på en godkendelse. Når der ikke er nogen, står der **Alt er roligt**.
 
 ## Sådan virker det
 
@@ -48,7 +48,7 @@ flowchart LR
 | **Sikkerhedssager** | **Sikkerhedssager** | Det, der blev fundet, grupperet efter den bruger, vært eller adresse, det handler om |
 | **Playbooks** | **Playbooks** | Trin, der kører på nye sager: beriger dem, giver besked, åbner en hændelse eller inddæmmer |
 
-Båndet øverst på **Oversigt** viser hver del med dens tal: kilderne og deres hændelser fra de seneste 24 timer, de regler, der er slået til, de åbne sager og de playbooks, der reagerer.
+Øverst på **Oversigt**, under det, der kræver nogen, viser hver del sine tal: kilderne og deres hændelser fra de seneste 24 timer, de regler, der er slået til, de åbne sager og de playbooks, der reagerer. En del, der ikke er sat op, siger det og åbner siden, hvor du sætter den op.
 
 ## Find sikkerhedshændelser i dine logs
 
@@ -84,6 +84,14 @@ Sagen åbnes som regel, før knappen svarer; når reglen stadig er ved at indhen
 
 :::details Der kommer ingen sikkerhedshændelse fra mine logs
 Tjek, at **Find sikkerhedshændelser i dine logs** er slået til, og at kortet **Dine logs** viser, hvornår der sidst blev tjekket. Kun de slags linjer, der står i tabellen ovenfor, bliver til hændelser: En server, der ikke sender SSH-, sudo-, audit-, CloudTrail- eller adgangslogs, har intet at finde.
+:::
+
+:::details Oversigt siger, at den seneste sikkerhedshændelse kom for dage siden
+Intet har nået Security siden da. Åbn **Connections**, og tjek, at **Dine logs** og hver forbindelse stadig er slået til, og hvornår hver sidst har tjekket.
+:::
+
+:::details Kortet, der slår Security til, er væk
+Nogen har lukket det med **Luk**. Så længe intet overvåges for trusler endnu, tilbyder **Oversigt** **Sæt Security op**, som henter det tilbage.
 :::
 
 ## Næste trin

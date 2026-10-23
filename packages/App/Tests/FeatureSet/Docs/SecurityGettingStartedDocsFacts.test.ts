@@ -2,6 +2,23 @@ import { SECURITY_GETTING_STARTED } from "./AiObservabilityDocsPages";
 import { readPage } from "./DocsContentSupport";
 import { tables } from "./DocsPageShape";
 import {
+  NEEDS_ATTENTION_TITLE,
+  NOT_SET_UP_TITLE,
+  QUIET_SOURCE_AFTER_IN_MS,
+  QUIET_SUMMARY_SOURCES_SILENT,
+  QUIET_TITLE,
+  SET_UP_SECURITY,
+  SecurityHeadline,
+  SecurityHeadlineAction,
+  SecurityHeadlineKind,
+  SecurityOverviewQueue,
+  SecurityStageView,
+  getSecurityHeadline,
+  getSecurityStageViews,
+} from "../../../FeatureSet/Dashboard/src/Components/SecurityOverview/SecurityOverviewStatusModel";
+import { SecuritySetupStatus } from "../../../FeatureSet/Dashboard/src/Components/SecurityOverview/SecuritySetupModel";
+import PageMap from "../../../FeatureSet/Dashboard/src/Utils/PageMap";
+import {
   ENRICH_NEW_CASES_TEMPLATE_KEY,
   getSecurityPlaybookTemplateDefinition,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookTemplates";
@@ -74,23 +91,150 @@ describe("Get Started with Security", () => {
     const test: string = source(
       `${DASHBOARD}/Components/SecurityOverview/SecuritySetupTest.tsx`,
     );
-    const quiet: string = source(
-      `${DASHBOARD}/Components/SecurityOverview/SecurityAllQuiet.tsx`,
-    );
 
     expect(gettingStarted).toContain('title="Turn on recommended"');
+    expect(gettingStarted).toContain('title="Dismiss"');
     expect(test).toContain('title="Send a test attack"');
     expect(test).toContain('translator.translateText("Open the case")');
-    expect(quiet).toContain('translator.translateText("All quiet")');
+    expect(QUIET_TITLE).toBe("All quiet");
+    expect(NEEDS_ATTENTION_TITLE).toBe("Needs attention");
+    expect(SET_UP_SECURITY).toBe("Set up Security");
 
     for (const label of [
       "Turn on recommended",
       "Send a test attack",
       "Open the case",
       "All quiet",
+      "Needs attention",
+      "Dismiss",
+      "Set up Security",
     ]) {
       expect(page).toContain(`**${label}**`);
     }
+  });
+
+  it("says what the top of Overview leads with, what a part not set up does, and when Set up Security is offered", () => {
+    const empty: SecuritySetupStatus = {
+      connections: 0,
+      logsSourceEnabled: false,
+      eventsLast24Hours: 0,
+      lastEventAt: null,
+      enabledRules: 0,
+      recommendedRules: 20,
+      recommendedRulesOn: 0,
+      threatIntelFeeds: 0,
+      openCases: 0,
+      enabledPlaybooks: 0,
+      destinations: 0,
+    };
+    const queue: SecurityOverviewQueue = {
+      openCases: 0,
+      criticalOpenCases: 0,
+      highOpenCases: 0,
+      myOpenCases: 0,
+      unassignedOpenCases: 0,
+      runsWaitingForApproval: 0,
+    };
+    const now: Date = new Date("2026-10-23T12:00:00.000Z");
+    const prose: string = flat(page);
+
+    // What needs someone first, under Needs attention; All quiet when nothing does.
+    expect(
+      getSecurityHeadline({
+        queue: { ...queue, openCases: 1, unassignedOpenCases: 1 },
+        status: empty,
+        now,
+      }).title,
+    ).toBe(NEEDS_ATTENTION_TITLE);
+    expect(prose).toContain(
+      "From then on, **Overview** opens on what needs someone, under **Needs attention**: the open cases that are yours, the ones nobody has picked up and the playbook steps waiting for an approval. When there are none, it says **All quiet**.",
+    );
+
+    // A part not set up opens the page where it is set up.
+    expect(
+      getSecurityStageViews({ status: empty, queue, now })
+        .filter((stage: SecurityStageView): boolean => {
+          return !stage.isReady;
+        })
+        .map((stage: SecurityStageView): PageMap => {
+          return stage.page;
+        }),
+    ).toEqual([
+      PageMap.SECURITY_EVENTS_CONNECTIONS,
+      PageMap.SECURITY_EVENTS_RULE_LIBRARY,
+      PageMap.SECURITY_PLAYBOOKS,
+    ]);
+    expect(prose).toContain(
+      "A part that is not set up says so, and opens the page where you set it up.",
+    );
+
+    /*
+     * Set up Security only while nothing is being watched for threats - the
+     * band's own words: no connection (its alerts open cases on their own),
+     * and no rule or threat intel feed reading your logs.
+     */
+    for (const [status, offered] of [
+      [empty, true],
+      [{ ...empty, enabledRules: 3 }, true],
+      [{ ...empty, threatIntelFeeds: 1 }, true],
+      [{ ...empty, logsSourceEnabled: true }, true],
+      [{ ...empty, logsSourceEnabled: true, enabledRules: 3 }, false],
+      [{ ...empty, logsSourceEnabled: true, threatIntelFeeds: 1 }, false],
+      [{ ...empty, connections: 1 }, false],
+    ] as Array<[SecuritySetupStatus, boolean]>) {
+      expect(
+        getSecurityHeadline({ queue, status, now }).action ===
+          SecurityHeadlineAction.SetUp,
+      ).toBe(offered);
+    }
+    expect(NOT_SET_UP_TITLE).toBe("Nothing is being watched for threats yet");
+    expect(prose).toContain(
+      "While nothing is being watched for threats yet, **Overview** offers **Set up Security**, which brings it back.",
+    );
+  });
+
+  it("says when Overview tells that the sources went silent: a day without an event, and when the last one came", () => {
+    const status: SecuritySetupStatus = {
+      connections: 1,
+      logsSourceEnabled: true,
+      eventsLast24Hours: 0,
+      lastEventAt: new Date("2026-10-20T12:00:00.000Z"),
+      enabledRules: 3,
+      recommendedRules: 20,
+      recommendedRulesOn: 3,
+      threatIntelFeeds: 0,
+      openCases: 0,
+      enabledPlaybooks: 1,
+      destinations: 0,
+    };
+    const queue: SecurityOverviewQueue = {
+      openCases: 0,
+      criticalOpenCases: 0,
+      highOpenCases: 0,
+      myOpenCases: 0,
+      unassignedOpenCases: 0,
+      runsWaitingForApproval: 0,
+    };
+    const silent: SecurityHeadline = getSecurityHeadline({
+      queue,
+      status,
+      now: new Date("2026-10-23T12:00:00.000Z"),
+    });
+
+    expect(QUIET_SOURCE_AFTER_IN_MS).toBe(24 * 60 * 60 * 1000);
+    expect(silent.kind).toBe(SecurityHeadlineKind.Quiet);
+    expect(silent.summary).toEqual(
+      expect.objectContaining({ template: QUIET_SUMMARY_SOURCES_SILENT }),
+    );
+    expect(QUIET_SUMMARY_SOURCES_SILENT).toContain(
+      "the last security event arrived {{time}}",
+    );
+    expect(page).toContain(
+      ":::details Overview says the last security event arrived days ago",
+    );
+    expect(flat(section(page, "Troubleshooting"))).toContain(
+      "Open **Connections** and check that **Your logs** and each connection are still on, and when each last checked.",
+    );
   });
 
   it("turns on your logs, the recommended rules and Enrich New Cases in one click", () => {

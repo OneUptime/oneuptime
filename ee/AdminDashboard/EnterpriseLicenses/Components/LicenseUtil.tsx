@@ -65,6 +65,33 @@ export const isOverUserLimit: IsOverUserLimitFunction = (
   );
 };
 
+/*
+ * A license's status in words: what its pill in the Status column says, and
+ * what the list's Export CSV writes there. Empty for a license with no
+ * expiry.
+ */
+export const getLicenseStatusText: (
+  lifecycle: LicenseLifecycle | null,
+) => string = (lifecycle: LicenseLifecycle | null): string => {
+  if (!lifecycle) {
+    return "";
+  }
+
+  if (lifecycle.state === "expired") {
+    return "Expired";
+  }
+
+  if (lifecycle.state === "expiring-soon") {
+    const daysLeft: number = lifecycle.daysUntilExpiry;
+
+    return daysLeft === 0
+      ? "Expires today"
+      : `Expires in ${daysLeft} day${daysLeft === 1 ? "" : "s"}`;
+  }
+
+  return "Active";
+};
+
 export interface LicenseStatusPillProps {
   expiresAt: Date | undefined;
   reminderDays?: number | undefined;
@@ -86,7 +113,7 @@ export const LicenseStatusPill: FunctionComponent<LicenseStatusPillProps> = (
     const daysAgo: number = Math.abs(lifecycle.daysUntilExpiry);
     return (
       <Pill
-        text="Expired"
+        text={getLicenseStatusText(lifecycle)}
         color={Red}
         size={PillSize.Small}
         tooltip={
@@ -99,14 +126,9 @@ export const LicenseStatusPill: FunctionComponent<LicenseStatusPillProps> = (
   }
 
   if (lifecycle.state === "expiring-soon") {
-    const daysLeft: number = lifecycle.daysUntilExpiry;
     return (
       <Pill
-        text={
-          daysLeft === 0
-            ? "Expires today"
-            : `Expires in ${daysLeft} day${daysLeft === 1 ? "" : "s"}`
-        }
+        text={getLicenseStatusText(lifecycle)}
         color={Yellow}
         size={PillSize.Small}
         tooltip="Daily expiry reminder emails are going out to the customer's master admins."
@@ -114,7 +136,13 @@ export const LicenseStatusPill: FunctionComponent<LicenseStatusPillProps> = (
     );
   }
 
-  return <Pill text="Active" color={Green} size={PillSize.Small} />;
+  return (
+    <Pill
+      text={getLicenseStatusText(lifecycle)}
+      color={Green}
+      size={PillSize.Small}
+    />
+  );
 };
 
 export interface EnterpriseLicenseInstanceStatusPillProps {
@@ -163,6 +191,27 @@ export interface SeatUsageMeterProps {
   currentUserCount: number | undefined;
   userLimit: number | undefined;
 }
+
+/*
+ * A license's seats in words, as the meter's line reads them ("13 / 150
+ * users", "4 users, no limit"): what the list's Export CSV writes in its
+ * Seats column. Empty before any installation has reported.
+ */
+export const getSeatUsageText: (props: SeatUsageMeterProps) => string = (
+  props: SeatUsageMeterProps,
+): string => {
+  if (props.currentUserCount === undefined && props.userLimit === undefined) {
+    return "";
+  }
+
+  const currentCount: number = props.currentUserCount || 0;
+
+  if (!props.userLimit || props.userLimit <= 0) {
+    return `${currentCount} users, no limit`;
+  }
+
+  return `${currentCount} / ${props.userLimit} users`;
+};
 
 /*
  * Meter: the fill carries severity (indigo -> amber near the limit -> red

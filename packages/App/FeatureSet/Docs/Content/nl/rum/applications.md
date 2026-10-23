@@ -64,7 +64,7 @@ Labels groeperen applicaties in lijsten en filters. Ze bepalen ook waar een lid 
 
 | Hoe | Waar |
 | --- | --- |
-| Met de hand | In het aanmaakformulier, onder **Meer velden**, of later met **Details bewerken** op de kaart **Applicatiedetails** van de pagina **Instellingen** van de applicatie. |
+| Met de hand | In het aanmaakformulier, onder **Meer velden**, of later met **Details bewerken** op de kaart **Applicatiedetails** van de pagina **Instellingen** van de applicatie. Voor meerdere tegelijk selecteer je ze in de lijst en kies je **Add Labels** onder **Bulkacties**. |
 | Uit telemetrie | Een resource-attribuut met de naam `oneuptime.label.<name>` voegt het label `<name>:<value>` toe, zoals hieronder. |
 | Uit een labelregel | Een regel voegt labels toe aan elke nieuwe applicatie die eraan voldoet. Zie [Labelregels en eigenaarsregels](#labelregels-en-eigenaarsregels). |
 
@@ -93,7 +93,7 @@ Regels draaien wanneer een applicatie wordt aangemaakt, ook als die ontdekt is. 
 
 ### Eigenaren
 
-Eigenaren zijn de mensen en teams die verantwoordelijk zijn voor een applicatie. De eigenaren van een RUM-applicatie komen uit eigenaarsregels: het dashboard heeft geen pagina om ze met de hand toe te voegen, en de API voegt ze toe via `/rum-application-owner-user` en `/rum-application-owner-team`. Met **Eigenaren op de hoogte stellen** aan, wat de standaard is, krijgt elke eigenaar die een regel toevoegt een melding. Zet het uit voordat je een regel op veel applicaties uitvoert als niemand een melding hoeft te krijgen.
+Eigenaren zijn de mensen en teams die verantwoordelijk zijn voor een applicatie. Eigenaarsregels voegen ze toe aan nieuwe applicaties. Om ze met de hand toe te voegen of te verwijderen, selecteer je applicaties in de lijst en kies je **Add Owner** of **Remove Owner** onder **Bulkacties**; de API voegt ze toe via `/rum-application-owner-user` en `/rum-application-owner-team`. Met **Eigenaren op de hoogte stellen** aan, wat de standaard is, krijgt elke eigenaar die een regel toevoegt een melding. Zet het uit voordat je een regel op veel applicaties uitvoert als niemand een melding hoeft te krijgen.
 
 ## Bewaring
 

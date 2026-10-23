@@ -22,7 +22,7 @@ Bruk denne bryteren som «klar til bruk»-porten din:
 4. Slå på **Aktivert** når den er klar: fra da av utløses triggeren ved ekte begivenheter.
 :::
 
-Å slå av en arbeidsflyt hindrer triggeren i å starte nye kjøringer. En kjøring som allerede pågår, gjør seg ferdig, men en kjøring som triggeren startet, og som venter ved en **Sleep**-blokk, avbrytes når den våkner. Testkjøringer fortsetter.
+Å slå av en arbeidsflyt hindrer triggeren i å starte nye kjøringer. En kjøring som allerede pågår, gjør seg ferdig, men en kjøring som triggeren startet, og som venter ved en **Sleep**-blokk, avbrytes når den våkner. Testkjøringer fortsetter. For å slå flere på eller av samtidig merker du dem i listen **Arbeidsflyter** og velger **Aktiver** eller **Deaktiver** under **Massehandlinger**.
 
 ## Å arkivere en arbeidsflyt
 

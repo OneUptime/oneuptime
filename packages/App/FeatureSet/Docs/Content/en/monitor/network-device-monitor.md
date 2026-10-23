@@ -382,6 +382,20 @@ Collected values are charted on the device's **Metrics** page, and the **SNMP OI
 
 Long OID lists are split across several SNMP GET requests so each fits in one UDP datagram. If you kept your OID lists short because an older release reported a device answering `tooBig` as offline, you no longer need to.
 
+### Finding OIDs with an SNMP Walk
+
+A device's **SNMP Walk** page, under **More** in its menu, lists every OID the device answers, with its type, its value and, where OneUptime knows the MIB, its name. It is the `snmpwalk` you would otherwise run from the probe's network, run by the device's own probe with the credentials OneUptime holds for the device, which never reach your browser.
+
+Type a numeric OID under **Start at OID**, or pick one of the **Common starting points**: **Everything**, **System**, **Interfaces**, **Host resources** or **Vendor-specific**. Then press **Walk**. The probe picks the walk up within ten seconds and sends one request at a time, at most 1,000 OIDs in at most 45 seconds, so a walk never floods the device. When there is more to read, **Continue walking** reads the next 1,000 from where it stopped. A device has one walk running at a time, and its walks are kept for two days.
+
+Each row says where its OID is known: a value a vendor health template collects, a column of a vendor template's SNMP table, a counter the interface walk already charts for every port, or an OID under its vendor's MIB. From a row:
+
+- **Collect** adds the OID to the device's **Device-Specific Health OIDs**: every poll collects it from the next one on, and the device's **Metrics** page charts it. On a device linked to an OID Collection Template, the row's menu can add it to the template instead, for every device that uses it.
+- **Alert on it**, once the OID is collected, opens a new Network Device monitor for the device with one **SNMP OID Value** criteria on the OID, starting from the walked value: a counter or gauge alerts above it, an uptime below it (the device restarted), and anything else when it changes.
+- **Copy OID**, in the row's menu, copies the OID.
+
+A walk that fails says why, and what to check: a device that does not answer (SNMP off, UDP 161 blocked or, on v1 and v2c, a wrong community string, which an agent ignores without a word), an SNMPv3 user, password or protocol the device refused, or a part of the tree the credentials' SNMP view leaves out. A walk that stops part of the way keeps what it read. Walking needs the **Create Network Device Diagnostic** permission and a probe recent enough to walk SNMP: with an older probe, the page asks you to update it.
+
 ### SNMP Tables
 
 Some of what a device knows is a list: one row per IPsec tunnel, Wi-Fi radio, SSID, fabric neighbour, fan or power supply. An SNMP table is defined by its columns, and every row is walked on every poll, so a tunnel that is added, renamed or deleted is followed without anyone editing anything.
@@ -1064,6 +1078,8 @@ snmpget -v3 -u username -l authPriv -a SHA -A authpassword -x AES -X privpasswor
 :::
 
 An answer with the device's description means the probe can walk it with those credentials.
+
+Once the device is added, its **SNMP Walk** page runs that test for you from the probe, with the credentials OneUptime holds for the device, and lists everything the device answers: see [Finding OIDs with an SNMP Walk](#finding-oids-with-an-snmp-walk).
 :::
 
 ## Next steps

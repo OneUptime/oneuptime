@@ -1,4 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
+import useSubscriberBulkActions, {
+  getSubscriberName,
+} from "../../../Components/StatusPage/useSubscriberBulkActions";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
 import URL from "Common/Types/API/URL";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -61,6 +64,9 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
   PageComponentProps
 > = (props: PageComponentProps): ReactElement => {
   const translator: Translator = useTranslator();
+  // Unsubscribe in Bulk Actions (Components/StatusPage/useSubscriberBulkActions).
+  const subscriberBulkActions: ReturnType<typeof useSubscriberBulkActions> =
+    useSubscriberBulkActions();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [
     allowSubscribersToChooseResources,
@@ -384,12 +390,19 @@ const StatusPageMicrosoftTeamsSubscribers: FunctionComponent<
               tableId: "status-page-microsoft-teams-subscribers-table",
             }}
             isDeleteable={true}
+            // Each row by what the list shows first (useSubscriberBulkActions).
+            getItemName={getSubscriberName}
+            bulkActions={{
+              buttons: [...subscriberBulkActions],
+            }}
             showViewIdButton={true}
             isCreateable={true}
             isEditable={true}
             isViewable={false}
             selectMoreFields={{
               isSubscriptionConfirmed: true,
+              // Whether each is unsubscribed, for Unsubscribe to count.
+              isUnsubscribed: true,
             }}
             query={{
               statusPageId: modelId,

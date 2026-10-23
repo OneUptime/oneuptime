@@ -295,6 +295,40 @@ describe("the Probes & Interval page", () => {
     );
   });
 
+  /*
+   * A row is named by its probe wherever the table names one - Delete, a
+   * bulk result - and Enable and Disable call the rows what the selection
+   * bar and the result call them, Monitor Probes.
+   */
+  test("the probes table names each row by its probe, and its switch calls them Monitor Probes", async () => {
+    await renderPage();
+
+    const props: Record<string, unknown> = tableProps[tableProps.length - 1]!;
+    const getItemName: (item: unknown) => string = props["getItemName"] as (
+      item: unknown,
+    ) => string;
+
+    expect(getItemName({ probe: { name: "US East" } })).toBe("US East");
+    expect(getItemName({})).toBe("");
+
+    const buttons: Array<{
+      title: string;
+      confirmTitle?: (items: Array<unknown>) => string;
+    }> = (props["bulkActions"] as { buttons: Array<never> }).buttons;
+
+    expect(
+      buttons.map((button: { title: string }): string => {
+        return button.title;
+      }),
+    ).toEqual(["Enable", "Disable"]);
+    expect(
+      buttons[1]!.confirmTitle!([
+        { _id: MONITOR_ID, isEnabled: true, probe: { name: "US East" } },
+        { _id: MONITOR_ID, isEnabled: true, probe: { name: "EU West" } },
+      ]),
+    ).toBe("Disable 2 Monitor Probes");
+  });
+
   test("an interval picked on the page is saved for this monitor", async () => {
     await renderPage();
 

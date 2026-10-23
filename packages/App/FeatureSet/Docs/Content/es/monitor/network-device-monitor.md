@@ -382,6 +382,20 @@ Los valores recopilados se grafican en la página **Métricas** del dispositivo,
 
 Las listas largas de OID se reparten en varias solicitudes SNMP GET para que cada una quepa en un datagrama UDP. Si mantenías cortas tus listas de OID porque una versión antigua daba por desconectado un dispositivo que respondía `tooBig`, ya no hace falta.
 
+### Encontrar OID con un recorrido SNMP
+
+La página **Recorrido SNMP** de un dispositivo, en **Más** dentro de su menú, lista cada OID al que responde el dispositivo, con su tipo, su valor y, cuando OneUptime conoce la MIB, su nombre. Es el `snmpwalk` que de otro modo ejecutarías desde la red de la sonda, ejecutado por la propia sonda del dispositivo con las credenciales que OneUptime guarda para él, que nunca llegan a tu navegador.
+
+Escribe un OID numérico en **OID inicial** o elige uno de los **Puntos de partida habituales**: **Todo**, **Sistema**, **Interfaces**, **Recursos del host** o **Específico del fabricante**. Después pulsa **Recorrer**. La sonda recoge el recorrido en diez segundos y envía una solicitud cada vez, como máximo 1000 OID en como máximo 45 segundos, así que un recorrido nunca satura el dispositivo. Si queda más por leer, **Continuar el recorrido** lee los 1000 siguientes desde donde se detuvo. Cada dispositivo admite un solo recorrido a la vez, y sus recorridos se conservan dos días.
+
+Cada fila indica dónde se conoce su OID: un valor que recopila una plantilla de salud de un fabricante, una columna de la tabla SNMP de una plantilla de fabricante, un contador que el recorrido de interfaces ya grafica para cada puerto, o un OID bajo la MIB de su fabricante. Desde una fila:
+
+- **Recopilar** añade el OID a los **OID de salud específicos del dispositivo**: cada sondeo lo recopila desde el siguiente, y la página **Métricas** del dispositivo lo grafica. En un dispositivo vinculado a una plantilla de recopilación de OID, el menú de la fila puede añadirlo a la plantilla en su lugar, para cada dispositivo que la usa.
+- **Crear una alerta**, que aparece cuando el OID ya se recopila, abre un nuevo monitor de dispositivo de red para el dispositivo con un criterio **SNMP OID Value** sobre el OID, a partir del valor leído: un contador o un indicador alerta por encima de él, un tiempo de actividad por debajo (el dispositivo se reinició) y cualquier otro valor cuando cambia.
+- **Copiar OID**, en el menú de la fila, copia el OID.
+
+Un recorrido que falla dice por qué y qué revisar: un dispositivo que no responde (SNMP desactivado, UDP 161 bloqueado o, en v1 y v2c, una cadena de comunidad incorrecta, que un agente ignora sin decir nada), un usuario, una contraseña o un protocolo de SNMPv3 que el dispositivo rechazó, o una parte del árbol que la vista SNMP de las credenciales deja fuera. Un recorrido que se detiene a medias conserva lo que leyó. Recorrer necesita el permiso **Create Network Device Diagnostic** y una sonda lo bastante reciente para recorrer SNMP: con una más antigua, la página te pide que la actualices.
+
 ### Tablas SNMP
 
 Parte de lo que sabe un dispositivo es una lista: una fila por túnel IPsec, radio Wi-Fi, SSID, vecino de fabric, ventilador o fuente de alimentación. Una tabla SNMP se define por sus columnas, y cada fila se recorre en cada sondeo, así que un túnel que se añade, se renombra o se elimina se sigue sin que nadie edite nada.
@@ -1064,6 +1078,8 @@ snmpget -v3 -u username -l authPriv -a SHA -A authpassword -x AES -X privpasswor
 :::
 
 Una respuesta con la descripción del dispositivo significa que la sonda puede recorrerlo con esas credenciales.
+
+Una vez añadido el dispositivo, su página **Recorrido SNMP** hace esa prueba por ti desde la sonda, con las credenciales que OneUptime guarda para él, y lista todo lo que responde el dispositivo: consulta [Encontrar OID con un recorrido SNMP](#encontrar-oid-con-un-recorrido-snmp).
 :::
 
 ## Próximos pasos

@@ -1944,6 +1944,47 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Infrastructure/Postgres/AddAutoRemediationRuleRunnerPostgres.test.ts --forceExit
 
+      # One Docker host, Podman host and host per name (#5214), on migrated
+      # Postgres: MergeDuplicateHostsAndAddUniqueHostIdentifier on copies of
+      # the host tables and of every table the catalog lists as referring to
+      # them, holding a project's duplicates of one host in different cases.
+      # Each group is merged into its oldest row, every row that referred to
+      # the others moved to it (where the kept host already had a row's twin,
+      # the duplicates' copies go after what referred to them moves), what
+      # the agents last reported taken from the newest, other hosts left
+      # alone; then the unique index on project and lower-cased name is built
+      # online and valid, and a second run changes nothing.
+      - name: Test merging duplicate hosts and their unique names on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MERGE_DUPLICATE_HOSTS_TESTS: "true"
+          MERGE_DUPLICATE_HOSTS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MERGE_DUPLICATE_HOSTS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MERGE_DUPLICATE_HOSTS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/MergeDuplicateHostsAndAddUniqueHostIdentifierPostgres.test.ts
+          --forceExit
+
+      # Discovered resources made once and found gone (#5214), on copies of
+      # the migrated tables: Docker hosts, Podman hosts, hosts and Kubernetes
+      # clusters found or created by many callers at once come out as one row
+      # and one id, in any case, and the unique index refuses a second host of
+      # the name. A deleted host's heartbeat says its row is gone - one that
+      # another transaction holds is not - and the next resolution creates it
+      # again, once.
+      - name: Test discovered resources made once and found gone on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_DISCOVERED_RESOURCE_TESTS: "true"
+          DISCOVERED_RESOURCE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          DISCOVERED_RESOURCE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          DISCOVERED_RESOURCE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/DiscoveredResourceCreateAndGonePostgres.test.ts
+          --forceExit
+
       # App installs serve the suites below: the probe ones (App) and the
       # Enterprise one, whose jest resolves Common and App from their own
       # installs.
@@ -1987,6 +2028,24 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/ProbeShippedKeyUpgradePostgres.test.ts --forceExit
+
+      # A Docker host deleted while its agent runs (#5214), end to end: Docker
+      # metric batches through the metrics ingest worker, on copies of the
+      # migrated tables. Deleted in the Dashboard, the host comes back on the
+      # next batch with its heartbeat, containers and label; an id Redis kept
+      # from before the delete is found gone - by the refused container write
+      # or by the heartbeat - and resolved again; a re-installed agent's
+      # batches, arriving together on one worker or on several, make one host.
+      - name: Test a deleted Docker host coming back on migrated Postgres
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_DOCKER_HOST_REREGISTER_TESTS: "true"
+          DOCKER_HOST_REREGISTER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          DOCKER_HOST_REREGISTER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          DOCKER_HOST_REREGISTER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Telemetry/DockerHostReRegisterPostgres.test.ts --forceExit
 
       # Archiving the values records pick from, on migrated Postgres: the two
       # migrations on tables that already hold values (every value comes out

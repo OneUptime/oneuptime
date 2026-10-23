@@ -17,14 +17,16 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import NetworkPathTrace from "../../Types/Monitor/NetworkMonitor/NetworkPathTrace";
 import { NetworkDeviceDiagnosticPingResult } from "../../Types/NetworkDevice/NetworkDeviceDiagnosticResult";
+import { NetworkDeviceDiagnosticSnmpWalkResult } from "../../Types/NetworkDevice/NetworkDeviceSnmpWalk";
 import { NetworkDeviceDiagnosticStatus } from "../../Types/NetworkDevice/NetworkDeviceDiagnosticStatus";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
- * One on-demand ping or traceroute against a Network Device, run from the
- * device's probe (OneUptime issue #3745). Follows the MonitorTest pattern: the
+ * One on-demand ping, traceroute or SNMP walk against a Network Device, run
+ * from the device's probe (OneUptime issues #3745 and #5184). Follows the
+ * MonitorTest pattern: the
  * dashboard creates a row naming a device and a type, the server fills in
  * what the probe needs from the device, the probe claims the row, runs it and
  * writes the result back, and the dashboard polls the row until it settles.
@@ -91,7 +93,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   pluralName: "Network Device Diagnostics",
   icon: IconProp.Signal,
   tableDescription:
-    "An on-demand ping or traceroute run against a Network Device from its probe. Transient: rows are deleted after two days.",
+    "An on-demand ping, traceroute or SNMP walk run against a Network Device from its probe. Transient: rows are deleted after two days.",
 })
 @Entity({
   name: "NetworkDeviceDiagnostic",
@@ -379,7 +381,7 @@ export default class NetworkDeviceDiagnostic extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Diagnostic Type",
     description:
-      'What to run against the device: "Ping" (ICMP echo: reachability, round-trip time, jitter, packet loss) or "Traceroute" (the hop-by-hop path from the probe to the device).',
+      'What to run against the device: "Ping" (ICMP echo: reachability, round-trip time, jitter, packet loss), "Traceroute" (the hop-by-hop path from the probe to the device) or "SNMP Walk" (every OID the device answers under a starting OID, read with its SNMP credentials).',
     example: "Ping",
   })
   @Column({
@@ -548,6 +550,112 @@ export default class NetworkDeviceDiagnostic extends BaseModel {
     nullable: true,
   })
   public traceRouteResult?: NetworkPathTrace = undefined;
+
+  /*
+   * Where an SNMP Walk starts. Creatable: the person picks the subtree on
+   * the device's SNMP Walk page. The service stores it as a numeric OID
+   * (1.3.6.1 when none was sent) and clears it on a Ping or a Traceroute.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDeviceDiagnostic,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDeviceDiagnostic,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.VeryLongText,
+    title: "SNMP Walk Start OID",
+    description:
+      "For an SNMP Walk: the OID whose subtree is walked, such as 1.3.6.1.2.1.2 for the interfaces. Defaults to 1.3.6.1, everything the device exposes.",
+    example: "1.3.6.1.2.1.1",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.VeryLongText,
+  })
+  public snmpWalkRootOid?: string = undefined;
+
+  /*
+   * For a walk that continues an earlier one: the last OID that walk read.
+   * The probe reads what follows it, inside the same subtree.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDeviceDiagnostic,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDeviceDiagnostic,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.VeryLongText,
+    title: "SNMP Walk Continue After OID",
+    description:
+      "For an SNMP Walk that continues an earlier one: the last OID the earlier walk read. The walk reads what follows it under the start OID.",
+    example: "1.3.6.1.2.1.2.2.1.10.12",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.VeryLongText,
+  })
+  public snmpWalkAfterOid?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDeviceDiagnostic,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "SNMP Walk Result",
+    description:
+      "For an SNMP Walk: each OID the device answered with its type and value, why the walk stopped, where to continue from, and, when the device refused or did not answer, why. Managed by the probe.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public snmpWalkResult?: NetworkDeviceDiagnosticSnmpWalkResult = undefined;
 
   @ColumnAccessControl({
     create: [],

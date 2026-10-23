@@ -460,6 +460,25 @@ export const DELETE_CONSEQUENCES: Readonly<Record<string, DeleteConsequence>> =
         code: "private async upsertEntity(",
       },
     },
+    /*
+     * OneUptime Cloud's Admin Dashboard (ee/AdminDashboard/EnterpriseLicenses):
+     * what deleting a license does to the self-hosted installations that use
+     * its key. Nothing switches them off - an installation keeps the signed
+     * license it already holds (its expiry is inside it) and ignores a
+     * refusal of its daily report (ee/Server/License/Jobs/ReportUserCount).
+     * What stops is everything the key is asked for: the license server
+     * answers "License key is invalid" to Refresh license, to activation and
+     * to the daily seat report (ee/Server/LicenseServer/EnterpriseLicenseAPI),
+     * and its instances (the license page's Instances card) go with it.
+     * ee/Tests/Server/LicenseServer/DeletedLicenseClaims holds those claims
+     * to the code.
+     */
+    EnterpriseLicense: {
+      sentence: translationKey(
+        "Deleting a license also deletes its instances. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.",
+      ),
+      deletedWith: ["EnterpriseLicenseInstance"],
+    },
   };
 
 /*

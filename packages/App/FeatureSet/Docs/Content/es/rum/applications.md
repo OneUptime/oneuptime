@@ -64,7 +64,7 @@ Las etiquetas agrupan las aplicaciones en listas y filtros. También deciden a q
 
 | Cómo | Dónde |
 | --- | --- |
-| A mano | En el formulario de creación, bajo **Más campos**, o más tarde con **Editar detalles** en la tarjeta **Detalles de la aplicación** de la página **Ajustes** de la aplicación. |
+| A mano | En el formulario de creación, bajo **Más campos**, o más tarde con **Editar detalles** en la tarjeta **Detalles de la aplicación** de la página **Ajustes** de la aplicación. Para varias a la vez, selecciónalas en la lista y elige **Añadir etiquetas** en **Acciones masivas**. |
 | Desde la telemetría | Un atributo de recurso llamado `oneuptime.label.<name>` añade la etiqueta `<name>:<value>`, como se muestra abajo. |
 | Desde una regla de etiquetas | Una regla añade etiquetas a cada aplicación nueva que coincide con ella. Consulta [Reglas de etiquetas y reglas de propietarios](#reglas-de-etiquetas-y-reglas-de-propietarios). |
 
@@ -93,7 +93,7 @@ Las reglas se ejecutan cuando se crea una aplicación, incluidas las descubierta
 
 ### Propietarios
 
-Los propietarios son las personas y los equipos responsables de una aplicación. Los propietarios de una aplicación RUM vienen de las reglas de propietarios: el panel no tiene ninguna página para añadirlos a mano, y la API los añade mediante `/rum-application-owner-user` y `/rum-application-owner-team`. Con **Notificar a los propietarios** activado, que es el valor predeterminado, se avisa a cada propietario que añade una regla. Desactívalo antes de ejecutar una regla sobre muchas aplicaciones si no hay que notificar a nadie.
+Los propietarios son las personas y los equipos responsables de una aplicación. Las reglas de propietarios los añaden a las aplicaciones nuevas. Para añadirlos o quitarlos a mano, selecciona aplicaciones en la lista y elige **Añadir propietario** o **Quitar propietario** en **Acciones masivas**; la API los añade mediante `/rum-application-owner-user` y `/rum-application-owner-team`. Con **Notificar a los propietarios** activado, que es el valor predeterminado, se avisa a cada propietario que añade una regla. Desactívalo antes de ejecutar una regla sobre muchas aplicaciones si no hay que notificar a nadie.
 
 ## Retención
 

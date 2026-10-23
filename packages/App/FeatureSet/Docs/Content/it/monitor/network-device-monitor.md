@@ -382,6 +382,20 @@ I valori raccolti sono tracciati nella pagina **Metriche** del dispositivo, e i 
 
 Gli elenchi lunghi di OID vengono suddivisi in più richieste SNMP GET perché ciascuna stia in un solo datagramma UDP. Se tenevi corti i tuoi elenchi di OID perché una versione precedente segnalava come offline un dispositivo che rispondeva `tooBig`, ora non serve più.
 
+### Trovare OID con un walk SNMP
+
+La pagina **Walk SNMP** di un dispositivo, sotto **Altro** nel suo menu, elenca ogni OID a cui il dispositivo risponde, con tipo, valore e, quando OneUptime conosce la MIB, nome. È lo `snmpwalk` che altrimenti eseguiresti dalla rete della sonda, eseguito dalla sonda del dispositivo con le credenziali che OneUptime conserva per esso, che non arrivano mai al tuo browser.
+
+Digita un OID numerico in **OID iniziale** o scegline uno tra i **Punti di partenza comuni**: **Tutto**, **Sistema**, **Interfaces**, **Risorse dell'host** o **Specifico del produttore**. Poi premi **Avvia walk**. La sonda prende in carico il walk entro dieci secondi e invia una richiesta alla volta, al massimo 1.000 OID in al massimo 45 secondi, così un walk non sommerge mai il dispositivo. Quando c'è altro da leggere, **Continua il walk** legge i 1.000 successivi da dove si è fermato. Un dispositivo ha un solo walk in corso alla volta, e i suoi walk vengono conservati per due giorni.
+
+Ogni riga dice dove il suo OID è noto: un valore che raccoglie un modello di salute di un produttore, una colonna della tabella SNMP di un modello di produttore, un contatore che il walk delle interfacce mostra già nei grafici per ogni porta, o un OID sotto la MIB del suo produttore. Da una riga:
+
+- **Raccogli** aggiunge l'OID ai **Device-Specific Health OIDs** del dispositivo: ogni polling lo raccoglie dal prossimo in poi, e la pagina **Metriche** del dispositivo lo mostra nei grafici. Su un dispositivo collegato a un OID Collection Template, il menu della riga può invece aggiungerlo al modello, per ogni dispositivo che lo usa.
+- **Crea un avviso**, che compare quando l'OID viene raccolto, apre un nuovo monitor del dispositivo di rete per il dispositivo con un criterio **SNMP OID Value** sull'OID, a partire dal valore letto: un contatore o un indicatore avvisa sopra di esso, un uptime sotto (il dispositivo si è riavviato), tutto il resto quando cambia.
+- **Copia OID**, nel menu della riga, copia l'OID.
+
+Un walk che fallisce dice perché, e cosa controllare: un dispositivo che non risponde (SNMP spento, UDP 161 bloccata o, in v1 e v2c, una community string errata, che un agente ignora senza dire nulla), un utente, una password o un protocollo SNMPv3 che il dispositivo ha rifiutato, o una parte dell'albero che la vista SNMP delle credenziali esclude. Un walk che si ferma a metà conserva ciò che ha letto. Per un walk servono l'autorizzazione **Create Network Device Diagnostic** e una sonda abbastanza recente da fare walk SNMP: con una più vecchia, la pagina ti chiede di aggiornarla.
+
 ### Tabelle SNMP
 
 Parte di ciò che un dispositivo sa è un elenco: una riga per tunnel IPsec, radio Wi-Fi, SSID, vicino del fabric, ventola o alimentatore. Una tabella SNMP è definita dalle sue colonne, e ogni riga viene sottoposta a walk a ogni polling, quindi un tunnel aggiunto, rinominato o eliminato viene seguito senza che nessuno modifichi nulla.
@@ -1064,6 +1078,8 @@ snmpget -v3 -u username -l authPriv -a SHA -A authpassword -x AES -X privpasswor
 :::
 
 Una risposta con la descrizione del dispositivo significa che la sonda può eseguirne il walk con quelle credenziali.
+
+Una volta aggiunto il dispositivo, la sua pagina **Walk SNMP** esegue questo test per te dalla sonda, con le credenziali che OneUptime conserva per esso, ed elenca tutto ciò a cui il dispositivo risponde: vedi [Trovare OID con un walk SNMP](#trovare-oid-con-un-walk-snmp).
 :::
 
 ## Passaggi successivi

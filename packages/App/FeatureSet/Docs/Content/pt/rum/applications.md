@@ -64,7 +64,7 @@ Os rótulos agrupam as aplicações em listas e filtros. Eles também decidem o 
 
 | Como | Onde |
 | --- | --- |
-| Manualmente | No formulário de criação, em **Mais campos**, ou depois com **Editar detalhes** no cartão **Detalhes do aplicativo** da página **Configurações** da aplicação. |
+| Manualmente | No formulário de criação, em **Mais campos**, ou depois com **Editar detalhes** no cartão **Detalhes do aplicativo** da página **Configurações** da aplicação. Para várias de uma vez, selecione-as na lista e escolha **Add Labels** em **Ações em massa**. |
 | Pela telemetria | Um atributo de recurso chamado `oneuptime.label.<name>` adiciona o rótulo `<name>:<value>`, como mostrado abaixo. |
 | Por uma regra de rótulos | Uma regra adiciona rótulos a cada nova aplicação que corresponde a ela. Consulte [Regras de rótulos e regras de proprietários](#regras-de-rótulos-e-regras-de-proprietários). |
 
@@ -93,7 +93,7 @@ As regras rodam quando uma aplicação é criada, incluindo as descobertas. Para
 
 ### Proprietários
 
-Os proprietários são as pessoas e as equipes responsáveis por uma aplicação. Os proprietários de uma aplicação RUM vêm das regras de proprietários: o painel não tem nenhuma página para adicioná-los manualmente, e a API os adiciona por `/rum-application-owner-user` e `/rum-application-owner-team`. Com **Notificar proprietários** ativado, que é o padrão, cada proprietário que uma regra adiciona é avisado. Desative-o antes de rodar uma regra em muitas aplicações se ninguém precisar ser notificado.
+Os proprietários são as pessoas e as equipes responsáveis por uma aplicação. As regras de proprietários os adicionam às novas aplicações. Para adicioná-los ou removê-los manualmente, selecione aplicações na lista e escolha **Add Owner** ou **Remove Owner** em **Ações em massa**; a API os adiciona por `/rum-application-owner-user` e `/rum-application-owner-team`. Com **Notificar proprietários** ativado, que é o padrão, cada proprietário que uma regra adiciona é avisado. Desative-o antes de rodar uma regra em muitas aplicações se ninguém precisar ser notificado.
 
 ## Retenção
 

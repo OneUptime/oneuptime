@@ -149,7 +149,7 @@ När ingen tjänst hör till repositoriet körs uppgiften utan produktionsteleme
 
 ## Produktionsgranskning av pull requests
 
-OneUptime vet vad din kod gör i produktion, så den kan granska en pull request med det som ingen ser när de läser diffen. Slå på **Granska pull-förfrågningar mot produktion** på ett repositorys sida **Inställningar** i Kod, så får varje pull request som någon med skrivbehörighet öppnar eller pushar till en kommentar som säger vad produktionen visar om koden den ändrar. Kommentaren redigeras på plats vid varje push, och repositoriets sida **Produktionsgranskningar** i Kod sparar varje granskning, med **Granska igen**.
+OneUptime vet vad din kod gör i produktion, så den kan granska en pull request med det som ingen ser när de läser diffen. Slå på **Granska pull-förfrågningar mot produktion** under **Fler inställningar** på ett repositorys sida **Inställningar** i Kod, så får varje pull request som någon med skrivbehörighet öppnar eller pushar till en kommentar som säger vad produktionen visar om koden den ändrar. Kommentaren redigeras på plats vid varje push, och repositoriets sida **Produktionsgranskningar** i Kod sparar varje granskning, med **Granska igen**.
 
 | Den läser | Om koden som pull requesten ändrar |
 | --- | --- |
@@ -230,7 +230,7 @@ Du kopplar inte repositories till tjänster. När en uppgift startar hittar OneU
 
 ### Välj repositoryts Runner
 
-Varje repository väljer den Runner som AI arbetar i det på: klicka på **Redigera** på kortet **Runner** på dess sida **Inställningar** i Kod och välj en. Ett repository som GitHub App importerar startar på projektets [standard-Runner](/docs/runbooks/agents#projektets-standard-runner) när projektet har en. Ett repository som inte väljer någon arbetar på **Global Runner**, som OneUptime kör för alla projekt.
+Varje repository väljer den Runner som AI arbetar i det på: öppna **Fler inställningar** på dess sida **Inställningar** i Kod, klicka på **Redigera** på kortet **Runner** och välj en. Ett repository som GitHub App importerar startar på projektets [standard-Runner](/docs/runbooks/agents#projektets-standard-runner) när projektet har en. Ett repository som inte väljer någon arbetar på **Global Runner**, som OneUptime kör för alla projekt.
 
 | Runner | Vad den gör med en uppgift |
 | --- | --- |
@@ -258,7 +258,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### Välj den för repositoryt
 
-Klicka på **Redigera** på kortet **Runner** på repositoryts sida **Inställningar** i Kod och välj Runnern. Runnern plockar upp ändringen vid nästa heartbeat, inom ungefär en minut; det finns inget att starta om.
+Öppna **Fler inställningar** på repositoryts sida **Inställningar** i Kod, klicka på **Redigera** på kortet **Runner** och välj Runnern. Runnern plockar upp ändringen vid nästa heartbeat, inom ungefär en minut; det finns inget att starta om.
 
 ### Kontrollera att den ansluter
 

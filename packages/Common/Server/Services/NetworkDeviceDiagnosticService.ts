@@ -8,11 +8,28 @@ import { OnCreate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import NetworkDeviceHydrationUtil, {
+  ResolvedDeviceSnmpCredentials,
+  ResolvedSnmpCredentialsForBatch,
+} from "../Utils/Monitor/NetworkDeviceHydrationUtil";
+import QueryHelper from "../Types/Database/QueryHelper";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
-import { NetworkDeviceDiagnosticTypeUtil } from "../../Types/NetworkDevice/NetworkDeviceDiagnosticType";
+import PositiveNumber from "../../Types/PositiveNumber";
+import NetworkDeviceDiagnosticType, {
+  NetworkDeviceDiagnosticTypeUtil,
+} from "../../Types/NetworkDevice/NetworkDeviceDiagnosticType";
+import {
+  SNMP_WALK_ALREADY_RUNNING_MESSAGE,
+  SNMP_WALK_CREDENTIALS_UNREADABLE_MESSAGE,
+  SNMP_WALK_NO_CREDENTIALS_MESSAGE,
+  SNMP_WALK_RUNNING_WINDOW_IN_MINUTES,
+} from "../../Types/NetworkDevice/NetworkDeviceSnmpWalk";
+import SnmpWalkResultUtil, {
+  SnmpWalkStart,
+} from "../../Utils/NetworkDevice/SnmpWalkResultUtil";
 import {
   NetworkDeviceDiagnosticStatus,
   isNetworkDeviceDiagnosticSettled,
@@ -46,8 +63,15 @@ const RESULT_COLUMNS: Array<string> = [
   "statusMessage",
   "pingResult",
   "traceRouteResult",
+  "snmpWalkResult",
   "startedAt",
   "completedAt",
+];
+
+// Where an SNMP walk starts: meaningless on a ping or a traceroute.
+const SNMP_WALK_START_COLUMNS: Array<string> = [
+  "snmpWalkRootOid",
+  "snmpWalkAfterOid",
 ];
 
 /*
@@ -156,6 +180,27 @@ export class Service extends ProjectReferencesService<Model> {
       createBy.props.tenantId ||
       undefined;
 
+    const isSnmpWalk: boolean =
+      createBy.data.diagnosticType === NetworkDeviceDiagnosticType.SnmpWalk;
+
+    /*
+     * Where a walk starts, checked before anything is read: a MIB name or
+     * an OID outside the subtree is the caller's to fix, whatever the
+     * device. Only a walk has a start; the columns are cleared otherwise.
+     */
+    let snmpWalkStart: SnmpWalkStart | undefined = undefined;
+
+    if (isSnmpWalk) {
+      try {
+        snmpWalkStart = SnmpWalkResultUtil.resolveStart({
+          rootOid: data["snmpWalkRootOid"] as string | undefined,
+          afterOid: data["snmpWalkAfterOid"] as string | undefined,
+        });
+      } catch (err) {
+        throw new BadDataException((err as Error).message);
+      }
+    }
+
     const device: NetworkDevice | null = await NetworkDeviceService.findOneById(
       {
         id: networkDeviceId,
@@ -165,6 +210,12 @@ export class Service extends ProjectReferencesService<Model> {
           hostname: true,
           probeId: true,
           isArchived: true,
+          /*
+           * A walk reads the device with the credentials a poll walks it
+           * with, so the walk is refused here, while the person is still on
+           * the page, when there are none.
+           */
+          ...(isSnmpWalk ? NetworkDeviceHydrationUtil.snmpConfigSelect : {}),
         },
         props: { isRoot: true },
       },
@@ -235,6 +286,10 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
+    if (isSnmpWalk) {
+      await this.checkDeviceCanBeWalked(device);
+    }
+
     if (!createBy.data.projectId && projectId) {
       createBy.data.projectId = projectId;
     }
@@ -275,7 +330,65 @@ export class Service extends ProjectReferencesService<Model> {
       data[column] = undefined;
     }
 
+    if (snmpWalkStart) {
+      createBy.data.snmpWalkRootOid = snmpWalkStart.rootOid;
+      data["snmpWalkAfterOid"] = snmpWalkStart.afterOid;
+    } else {
+      for (const column of SNMP_WALK_START_COLUMNS) {
+        data[column] = undefined;
+      }
+    }
+
     return { createBy, carryForward: null };
+  }
+
+  /*
+   * A device can be walked when it has SNMP credentials somewhere in its
+   * chain (its own, its credential profile's, its site's - the resolution
+   * a poll uses), and when no other walk of it is running: a walk is a
+   * burst against a production device's agent, and two at once double it
+   * for nothing. A walk counts as running while it is Pending or In
+   * Progress and younger than SNMP_WALK_RUNNING_WINDOW_IN_MINUTES, so one
+   * whose probe died stops blocking the device on its own.
+   */
+  private async checkDeviceCanBeWalked(device: NetworkDevice): Promise<void> {
+    const deviceId: string = device.id!.toString();
+
+    const resolved: ResolvedSnmpCredentialsForBatch =
+      await NetworkDeviceHydrationUtil.resolveSnmpCredentials([device]);
+
+    if (resolved.unresolvedDeviceIds.has(deviceId)) {
+      throw new BadDataException(SNMP_WALK_CREDENTIALS_UNREADABLE_MESSAGE);
+    }
+
+    const credentials: ResolvedDeviceSnmpCredentials | undefined =
+      resolved.byDeviceId.get(deviceId);
+
+    if (!credentials || credentials.pollMode !== "snmp") {
+      throw new BadDataException(SNMP_WALK_NO_CREDENTIALS_MESSAGE);
+    }
+
+    const runningWalks: PositiveNumber = await this.countBy({
+      query: {
+        networkDeviceId: device.id!,
+        diagnosticType: NetworkDeviceDiagnosticType.SnmpWalk,
+        status: QueryHelper.any([
+          NetworkDeviceDiagnosticStatus.Pending,
+          NetworkDeviceDiagnosticStatus.InProgress,
+        ]),
+        createdAt: QueryHelper.greaterThanEqualTo(
+          OneUptimeDate.addRemoveMinutes(
+            OneUptimeDate.getCurrentDate(),
+            -SNMP_WALK_RUNNING_WINDOW_IN_MINUTES,
+          ),
+        ),
+      },
+      props: { isRoot: true },
+    });
+
+    if (runningWalks.toNumber() > 0) {
+      throw new BadDataException(SNMP_WALK_ALREADY_RUNNING_MESSAGE);
+    }
   }
 
   /*
@@ -389,6 +502,7 @@ export class Service extends ProjectReferencesService<Model> {
               "statusMessage" = $4,
               "pingResult" = $5::jsonb,
               "traceRouteResult" = $6::jsonb,
+              "snmpWalkResult" = $8::jsonb,
               "completedAt" = now(),
               "updatedAt" = now()
           WHERE "_id" = $1
@@ -418,6 +532,9 @@ export class Service extends ProjectReferencesService<Model> {
               ? JSON.stringify(report.traceRouteResult)
               : null,
             NetworkDeviceDiagnosticStatus.Completed,
+            report.snmpWalkResult
+              ? JSON.stringify(report.snmpWalkResult)
+              : null,
           ],
         );
 

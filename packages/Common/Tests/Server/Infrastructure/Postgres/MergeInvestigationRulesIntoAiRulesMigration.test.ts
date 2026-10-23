@@ -1,4 +1,4 @@
-import { AddAiRuleInvestigation1806600000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1806600000000-AddAiRuleInvestigation";
+import { AddAiRuleInvestigation1806800000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1806800000000-AddAiRuleInvestigation";
 import {
   ADDED_RULE_DESCRIPTIONS,
   ADDED_RULE_NAMES,
@@ -8,7 +8,7 @@ import {
   CONVERT_REMEDIATION_RULES,
   FIX_SWITCH_COLUMNS,
   MERGE_PAIRS,
-  MergeInvestigationRulesIntoAiRules1806610000000,
+  MergeInvestigationRulesIntoAiRules1806810000000,
   RULE_LIST_TABLES,
   RuleListTable,
   getAddFixEveryOneStatement,
@@ -16,7 +16,7 @@ import {
   getCopyListStatements,
   getDownStatements,
   getUpStatements,
-} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1806610000000-MergeInvestigationRulesIntoAiRules";
+} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1806810000000-MergeInvestigationRulesIntoAiRules";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import AutoRemediationRule from "../../../../Models/DatabaseModels/AutoRemediationRule";
 import { AUTOMATIC_FIX_SWITCH_COLUMNS } from "../../../../Types/AI/AutomaticFixPullRequests";
@@ -51,9 +51,9 @@ const MIGRATIONS_DIRECTORY: string = path.join(
   "SchemaMigrations",
 );
 
-const COLUMNS_CLASS_NAME: string = "AddAiRuleInvestigation1806600000000";
+const COLUMNS_CLASS_NAME: string = "AddAiRuleInvestigation1806800000000";
 const MERGE_CLASS_NAME: string =
-  "MergeInvestigationRulesIntoAiRules1806610000000";
+  "MergeInvestigationRulesIntoAiRules1806810000000";
 
 // A class name's 13-digit stamp.
 const STAMP: RegExp = /(\d{13})$/;
@@ -110,14 +110,14 @@ describe("AI rule migrations - identity and registration", () => {
   test("live at round stamps, with classes and names that carry them", () => {
     for (const [fileName, className, migration] of [
       [
-        "1806600000000-AddAiRuleInvestigation.ts",
+        "1806800000000-AddAiRuleInvestigation.ts",
         COLUMNS_CLASS_NAME,
-        new AddAiRuleInvestigation1806600000000(),
+        new AddAiRuleInvestigation1806800000000(),
       ],
       [
-        "1806610000000-MergeInvestigationRulesIntoAiRules.ts",
+        "1806810000000-MergeInvestigationRulesIntoAiRules.ts",
         MERGE_CLASS_NAME,
-        new MergeInvestigationRulesIntoAiRules1806610000000(),
+        new MergeInvestigationRulesIntoAiRules1806810000000(),
       ],
     ] as Array<[string, string, { name: string }]>) {
       const source: string = fs.readFileSync(
@@ -186,8 +186,8 @@ describe("AI rule migrations - identity and registration", () => {
 
   test("both run in a transaction, so a stop rolls all of a migration back", () => {
     for (const migration of [
-      new AddAiRuleInvestigation1806600000000(),
-      new MergeInvestigationRulesIntoAiRules1806610000000(),
+      new AddAiRuleInvestigation1806800000000(),
+      new MergeInvestigationRulesIntoAiRules1806810000000(),
     ]) {
       expect(
         (migration as unknown as { transaction?: boolean }).transaction,
@@ -199,7 +199,7 @@ describe("AI rule migrations - identity and registration", () => {
 describe("AddAiRuleInvestigation - the columns", () => {
   test("adds the three columns as the model declares them, and nothing else", async () => {
     const statements: Array<string> = await recordQueries(
-      new AddAiRuleInvestigation1806600000000(),
+      new AddAiRuleInvestigation1806800000000(),
       "up",
     );
     const rule: AutoRemediationRule = new AutoRemediationRule();
@@ -222,7 +222,7 @@ describe("AddAiRuleInvestigation - the columns", () => {
 
   test("builds no index and no key on the busy rule table", async () => {
     const statements: Array<string> = await recordQueries(
-      new AddAiRuleInvestigation1806600000000(),
+      new AddAiRuleInvestigation1806800000000(),
       "up",
     );
 
@@ -234,7 +234,7 @@ describe("AddAiRuleInvestigation - the columns", () => {
 
   test("down() drops the three columns", async () => {
     const statements: Array<string> = await recordQueries(
-      new AddAiRuleInvestigation1806600000000(),
+      new AddAiRuleInvestigation1806800000000(),
       "down",
     );
 
@@ -249,7 +249,7 @@ describe("AddAiRuleInvestigation - the columns", () => {
 describe("MergeInvestigationRulesIntoAiRules - up()", () => {
   test("merges the pairs, copies the rest with their lists, converts, then adds the two rules, in that order", async () => {
     const statements: Array<string> = await recordQueries(
-      new MergeInvestigationRulesIntoAiRules1806610000000(),
+      new MergeInvestigationRulesIntoAiRules1806810000000(),
       "up",
     );
 
@@ -397,7 +397,7 @@ describe("MergeInvestigationRulesIntoAiRules - up()", () => {
 describe("MergeInvestigationRulesIntoAiRules - down()", () => {
   test("deletes the lists of the rules it takes back before the rules, then makes every rule left one that only fixes", async () => {
     const statements: Array<string> = await recordQueries(
-      new MergeInvestigationRulesIntoAiRules1806610000000(),
+      new MergeInvestigationRulesIntoAiRules1806810000000(),
       "down",
     );
 

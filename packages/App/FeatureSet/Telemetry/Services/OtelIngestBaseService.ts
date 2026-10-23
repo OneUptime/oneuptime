@@ -3,35 +3,23 @@ import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import KubernetesClusterService from "Common/Server/Services/KubernetesClusterService";
-import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import DockerHostService from "Common/Server/Services/DockerHostService";
-import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import PodmanHostService from "Common/Server/Services/PodmanHostService";
-import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
-import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import VMwareVCenterService from "Common/Server/Services/VMwareVCenterService";
-import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import IoTFleetService from "Common/Server/Services/IoTFleetService";
-import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import CephClusterService from "Common/Server/Services/CephClusterService";
-import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import StorageArrayService from "Common/Server/Services/StorageArrayService";
-import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import { StorageSystemUtil } from "Common/Types/StorageArray/StorageSystem";
 import DockerSwarmClusterService from "Common/Server/Services/DockerSwarmClusterService";
-import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import ProxmoxResourceService from "Common/Server/Services/ProxmoxResourceService";
 import HostService from "Common/Server/Services/HostService";
 import Host from "Common/Models/DatabaseModels/Host";
 import ServerlessFunctionService from "Common/Server/Services/ServerlessFunctionService";
-import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
 import CloudResourceService, {
   CloudMonitoredResourceFindOrCreateResult,
 } from "Common/Server/Services/CloudResourceService";
-import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import RumApplicationService from "Common/Server/Services/RumApplicationService";
-import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import ServerlessFunctionInstanceService from "Common/Server/Services/ServerlessFunctionInstanceService";
 import CloudResourceInstanceService from "Common/Server/Services/CloudResourceInstanceService";
 import RumApplicationClientService from "Common/Server/Services/RumApplicationClientService";
@@ -103,6 +91,14 @@ import {
   buildCloudMonitoredResourceIdentifier,
 } from "Common/Types/Cloud/CloudMonitoredResource";
 import EventLoop from "Common/Server/Utils/EventLoop";
+import SingleFlight from "Common/Server/Utils/SingleFlight";
+import PostgresErrorTranslator from "Common/Server/Utils/Database/PostgresErrorTranslator";
+import DiscoveredResourceIdCache, {
+  DiscoveredResourceKind,
+  DiscoveredResourceKindName,
+  DiscoveredResourceKinds,
+} from "Common/Server/Utils/Telemetry/DiscoveredResourceIdCache";
+import { ResourceHeartbeatResult } from "Common/Server/Utils/Telemetry/ResourceHeartbeat";
 
 /*
  * A maintenance fence that one autoDiscover* attempt armed, recorded so
@@ -113,6 +109,38 @@ import EventLoop from "Common/Server/Utils/EventLoop";
 type MaintenanceFence = {
   scope: string;
   id: string;
+};
+
+/*
+ * A resource ingest discovers, as it names it: its kind, its project and the
+ * value its telemetry reports (a host name, a cluster name, a cloud
+ * environment's key), plus what a new cloud environment is created with.
+ * Plain data - kept for a while (discoveredResourceIdentities) to resolve
+ * the resource again when its id turns out gone, it holds on to nothing else
+ * of the batch.
+ */
+export interface DiscoveredResourceIdentity {
+  kindName: DiscoveredResourceKindName;
+  projectId: ObjectID;
+  identity: string;
+  cloudEnvironment?:
+    | {
+        name: string;
+        cloudPlatform: string;
+        cloudProvider?: string | undefined;
+        cloudRegion?: string | undefined;
+        cloudAccountId?: string | undefined;
+      }
+    | undefined;
+}
+
+/*
+ * A database's id, with the key of the database-server-id cache it was found
+ * (or kept) under: an endpoint's, or a linked id's.
+ */
+type CachedDatabaseServerId = {
+  id: string;
+  cacheKey: string;
 };
 
 /*
@@ -333,30 +361,39 @@ export default abstract class OtelIngestBaseService {
   }
 
   /*
-   * L1 in-process memo in front of the per-entity-type Redis id caches
-   * (host-id, docker-host-id, k8s-cluster-id, …). Every autoDiscover*
-   * method resolves "(projectId, natural key) -> Postgres row id" through
-   * GlobalCache, which is a pure Redis client with no in-process layer —
-   * so one discovered entity per resource block per job is one serialized
-   * Redis GET, and a hostmetrics payload with hundreds of ResourceMetrics
-   * pays hundreds of GETs per job for ids that have not changed in days.
-   * This memo collapses the steady state to zero network round trips; on a
-   * miss the existing Redis path (and, under it, the findOrCreate*
-   * Postgres path) runs unchanged and populates the memo.
+   * The ids of discovered resources - "(project, what the telemetry
+   * reports) -> Postgres row id", one Redis namespace per kind (host-id,
+   * docker-host-id, k8s-cluster-id, …) - are kept by
+   * DiscoveredResourceIdCache (Common/Server/Utils/Telemetry): a 60-second
+   * L1 in this process in front of Redis, so the steady state costs no
+   * network round trip at all, and a hostmetrics payload with hundreds of
+   * ResourceMetrics does not pay hundreds of GETs per job for ids that have
+   * not changed in days.
    *
-   * Shared across all eleven namespaces — the L1 key is prefixed with the
-   * Redis namespace, so entries cannot collide across entity types — with
-   * one bound and one TTL, instead of eleven per-method copies.
+   * Deleting a resource forgets its ids in Redis and in the deleting
+   * process's L1 (DatabaseService calls DiscoveredResourceIdCache.afterDelete
+   * for every delete). Another process keeps an id it read before the
+   * delete for at most the L1's minute - or less: the moment a write finds
+   * its row gone, ingest resolves the resource again
+   * (resolveGoneDiscoveredResourceId), which is also what corrects an id
+   * cached before deletes forgot anything (issue #5214).
    *
-   * Staleness: no code path invalidates these Redis keys on entity
-   * deletion (the namespaces are referenced nowhere else), so a deleted
-   * entity already keeps resolving from Redis for up to the 24-hour L2
-   * TTL. The 60-second L1 adds at most one more minute on top of that
-   * existing day-long window, which is negligible; it is kept this short
-   * anyway so the memo never becomes the layer a future L2 invalidation
-   * has to know about.
+   * How each id was resolved, by `<namespace>:<id>`, so a write that finds
+   * the row gone can resolve the resource again. Ten minutes: longer than a
+   * batch takes from discovery to its last flush.
    */
-  private static readonly entityIdL1Memo: InProcessMemo<string> =
+  private static readonly discoveredResourceIdentities: InProcessMemo<DiscoveredResourceIdentity> =
+    new InProcessMemo<DiscoveredResourceIdentity>({
+      ttlInMs: 10 * 60 * 1000,
+      maxEntries: 10_000,
+    });
+
+  /*
+   * The row that answers for a resource now, by `<namespace>:<gone id>`: the
+   * later writes of a batch that found the row gone go to it without asking
+   * Postgres again.
+   */
+  private static readonly discoveredResourceReplacements: InProcessMemo<string> =
     new InProcessMemo<string>({
       ttlInMs: 60 * 1000,
       maxEntries: 10_000,
@@ -372,8 +409,8 @@ export default abstract class OtelIngestBaseService {
    * delay first-contact name resolution and route that container's log rows
    * to the DockerHost/PodmanHost entity for the TTL. On the write path the
    * memo is set only after a successful Redis write, so an outage retries
-   * on the next block exactly as before. Same 60s-on-top-of-24h staleness
-   * trade-off documented for entityIdL1Memo above.
+   * on the next block exactly as before. Same 60-second L1 in front of a day
+   * in Redis as the discovered resources' ids.
    */
   private static readonly containerNameL1Memo: InProcessMemo<string> =
     new InProcessMemo<string>({
@@ -394,25 +431,7 @@ export default abstract class OtelIngestBaseService {
     namespace: string,
     cacheKey: string,
   ): Promise<string | null> {
-    const l1Key: string = `${namespace}:${cacheKey}`;
-
-    // L1: in-process memo. Zero network cost.
-    const memoedId: string | undefined = this.entityIdL1Memo.get(l1Key);
-    if (memoedId !== undefined) {
-      return memoedId;
-    }
-
-    // L2: Redis. Single round-trip; shared across workers.
-    const cachedId: string | null = await GlobalCache.getString(
-      namespace,
-      cacheKey,
-    );
-
-    if (cachedId) {
-      this.entityIdL1Memo.set(l1Key, cachedId);
-    }
-
-    return cachedId;
+    return await DiscoveredResourceIdCache.get(namespace, cacheKey);
   }
 
   /**
@@ -427,10 +446,12 @@ export default abstract class OtelIngestBaseService {
     entityIdStr: string,
     redisExpiresInSeconds: number,
   ): Promise<void> {
-    this.entityIdL1Memo.set(`${namespace}:${cacheKey}`, entityIdStr);
-    await GlobalCache.setString(namespace, cacheKey, entityIdStr, {
-      expiresInSeconds: redisExpiresInSeconds,
-    });
+    await DiscoveredResourceIdCache.set(
+      namespace,
+      cacheKey,
+      entityIdStr,
+      redisExpiresInSeconds,
+    );
   }
 
   /**
@@ -440,11 +461,371 @@ export default abstract class OtelIngestBaseService {
    * already clear their fake Redis maps between cases.
    */
   public static clearInProcessMemos(): void {
-    this.entityIdL1Memo.clear();
+    DiscoveredResourceIdCache.clearInProcessMemo();
+    this.discoveredResourceIdentities.clear();
+    this.discoveredResourceReplacements.clear();
     this.containerNameL1Memo.clear();
     this.maintenanceFenceNegativeMemo.clear();
     this.unresolvedDatabaseServerMemo.clear();
     this.unresolvedCloudMonitoredResourceMemo.clear();
+  }
+
+  /*
+   * The id of a discovered resource: from this process's L1, else Redis,
+   * else Postgres - found, or created as on first contact
+   * (findOrCreateDiscoveredResource) - and then kept in both layers.
+   * Resolutions of one new resource that meet in this process share one
+   * lookup; across processes, the unique index each kind has on what it is
+   * found by keeps it to one row (the create that loses reads the row that
+   * won). Remembers how the id was resolved, so a write that finds the row
+   * gone can resolve the resource again (resolveGoneDiscoveredResourceId).
+   */
+  protected static async resolveDiscoveredResourceId(
+    resource: DiscoveredResourceIdentity,
+  ): Promise<string | null> {
+    const kind: DiscoveredResourceKind =
+      DiscoveredResourceKinds[resource.kindName];
+    const key: string = DiscoveredResourceIdCache.keyFor(
+      resource.projectId,
+      resource.identity,
+    );
+
+    let id: string | null = await this.getEntityIdFromCaches(
+      kind.namespace,
+      key,
+    );
+
+    if (!id) {
+      id = await SingleFlight.run(
+        `discovered-resource:${kind.namespace}:${key}`,
+        async (): Promise<string | null> => {
+          const found: string | null =
+            await this.findOrCreateDiscoveredResource(resource, {
+              fresh: false,
+            });
+
+          if (found) {
+            await this.setEntityIdInCaches(
+              kind.namespace,
+              key,
+              found,
+              kind.expiresInSeconds,
+            );
+          }
+
+          return found;
+        },
+      );
+    }
+
+    if (id) {
+      this.discoveredResourceIdentities.set(
+        `${kind.namespace}:${id}`,
+        resource,
+      );
+    }
+
+    return id;
+  }
+
+  /*
+   * The row a discovered resource names, found - or created, as on first
+   * contact - by its kind's service. `fresh` asks past any memo of the
+   * answer the service keeps (HostService keeps one for a minute), for a
+   * resolution after the cached id turned out gone. The id, or null when no
+   * row answers.
+   */
+  protected static async findOrCreateDiscoveredResource(
+    resource: DiscoveredResourceIdentity,
+    options: { fresh: boolean },
+  ): Promise<string | null> {
+    const projectId: ObjectID = resource.projectId;
+    const identity: string = resource.identity;
+
+    let row: { _id?: string | undefined; id?: ObjectID | null } | null = null;
+
+    switch (resource.kindName) {
+      case "KubernetesCluster":
+        row = await KubernetesClusterService.findOrCreateByClusterIdentifier({
+          projectId: projectId,
+          clusterIdentifier: identity,
+        });
+        break;
+      case "ProxmoxCluster":
+        row = await ProxmoxClusterService.findOrCreateByName({
+          projectId: projectId,
+          name: identity,
+        });
+        break;
+      case "VMwareVCenter":
+        row = await VMwareVCenterService.findOrCreateByName({
+          projectId: projectId,
+          name: identity,
+        });
+        break;
+      case "IoTFleet":
+        row = await IoTFleetService.findOrCreateByName({
+          projectId: projectId,
+          name: identity,
+        });
+        break;
+      case "DockerSwarmCluster":
+        row = await DockerSwarmClusterService.findOrCreateByName({
+          projectId: projectId,
+          name: identity,
+        });
+        break;
+      case "CephCluster":
+        row = await CephClusterService.findOrCreateByName({
+          projectId: projectId,
+          name: identity,
+        });
+        break;
+      case "StorageArray":
+        row = await StorageArrayService.findOrCreateByName({
+          projectId: projectId,
+          name: identity,
+        });
+        break;
+      case "ServerlessFunction":
+        row = await ServerlessFunctionService.findOrCreateByFunctionIdentifier({
+          projectId: projectId,
+          functionIdentifier: identity,
+        });
+        break;
+      case "CloudResource":
+        row = await CloudResourceService.findOrCreateByResourceIdentifier({
+          projectId: projectId,
+          resourceIdentifier: identity,
+          name: resource.cloudEnvironment?.name,
+          cloudPlatform: resource.cloudEnvironment?.cloudPlatform,
+          cloudProvider: resource.cloudEnvironment?.cloudProvider,
+          cloudRegion: resource.cloudEnvironment?.cloudRegion,
+          cloudAccountId: resource.cloudEnvironment?.cloudAccountId,
+        });
+        break;
+      case "RumApplication":
+        row = await RumApplicationService.findOrCreateByAppIdentifier({
+          projectId: projectId,
+          appIdentifier: identity,
+        });
+        break;
+      case "DockerHost":
+        row = await DockerHostService.findOrCreateByHostIdentifier({
+          projectId: projectId,
+          hostIdentifier: identity,
+        });
+        break;
+      case "PodmanHost":
+        row = await PodmanHostService.findOrCreateByHostIdentifier({
+          projectId: projectId,
+          hostIdentifier: identity,
+        });
+        break;
+      case "Host":
+        row = await HostService.findOrCreateByHostIdentifier({
+          projectId: projectId,
+          hostIdentifier: identity,
+          ...(options.fresh ? { bypassMemo: true } : {}),
+        });
+        break;
+      default:
+        // Resolved their own way: by endpoint, by a cloud resource, by name.
+        return null;
+    }
+
+    if (!row) {
+      return null;
+    }
+
+    if (row._id) {
+      return row._id.toString();
+    }
+
+    return row.id ? row.id.toString() : null;
+  }
+
+  /*
+   * A discovered resource's id turned out to name no row: its heartbeat
+   * found nothing to write to, or a write of its rows was refused by the
+   * foreign key to it. The resource was deleted while the id sat in a cache
+   * (issue #5214) - another process's L1, Redis from before deletes forgot
+   * anything, or a worker that read the row just before the delete and put
+   * it back. The id is forgotten in both layers - in Redis only while it
+   * still names the gone row, so an answer another worker already found
+   * stays - and the resource resolved again past every memo: the row that
+   * answers for it now, or a new one created as on first contact, so its
+   * heartbeat, resources and labels go there. Resolutions in this process
+   * share one lookup; across processes the unique index keeps it to one row.
+   * Null when this process does not know how the id was resolved, or no row
+   * answers.
+   */
+  protected static async resolveGoneDiscoveredResourceId(data: {
+    kind: DiscoveredResourceKind;
+    goneId: string;
+  }): Promise<string | null> {
+    const memoKey: string = `${data.kind.namespace}:${data.goneId}`;
+
+    const replaced: string | undefined =
+      this.discoveredResourceReplacements.get(memoKey);
+
+    if (replaced) {
+      return replaced;
+    }
+
+    const resource: DiscoveredResourceIdentity | undefined =
+      this.discoveredResourceIdentities.get(memoKey);
+
+    if (!resource) {
+      return null;
+    }
+
+    return await SingleFlight.run(
+      `discovered-resource-gone:${memoKey}`,
+      async (): Promise<string | null> => {
+        const key: string = DiscoveredResourceIdCache.keyFor(
+          resource.projectId,
+          resource.identity,
+        );
+
+        await DiscoveredResourceIdCache.forget({
+          namespace: data.kind.namespace,
+          key: key,
+          id: data.goneId,
+        });
+
+        const id: string | null = await this.findOrCreateDiscoveredResource(
+          resource,
+          { fresh: true },
+        );
+
+        if (!id || id === data.goneId) {
+          return null;
+        }
+
+        try {
+          await this.setEntityIdInCaches(
+            data.kind.namespace,
+            key,
+            id,
+            data.kind.expiresInSeconds,
+          );
+        } catch (err) {
+          // The L1 has it; Redis is told by the next resolution that misses.
+          logger.warn(
+            `Could not cache the id of ${data.kind.tableName} "${resource.identity}": ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          );
+        }
+
+        this.discoveredResourceIdentities.set(
+          `${data.kind.namespace}:${id}`,
+          resource,
+        );
+        this.discoveredResourceReplacements.set(memoKey, id);
+
+        logger.info(
+          `${data.kind.tableName} ${data.goneId} ("${resource.identity}") is gone - it was deleted while its id was cached. Its data now goes to ${id}.`,
+        );
+
+        return id;
+      },
+    );
+  }
+
+  /*
+   * The fenced maintenance of a discovered resource the batch resolved - its
+   * heartbeat (lastSeenAt, status, what the agent reports), then its labels
+   * - once per resource per fence window however many batches arrive. When
+   * the heartbeat finds the row gone, the resource is resolved again
+   * (resolveGoneDiscoveredResourceId) and the batch goes on with the row
+   * that answers now: it gets the heartbeat and the labels at once. Returns
+   * the id the batch carries; null when no row answers.
+   */
+  protected static async maintainDiscoveredResource(data: {
+    kind: DiscoveredResourceKind;
+    id: string;
+    fenceScope: string;
+    armedFences: Array<MaintenanceFence>;
+    heartbeat: (id: ObjectID) => Promise<ResourceHeartbeatResult>;
+    promoteLabels?: ((id: ObjectID) => Promise<void>) | undefined;
+  }): Promise<string | null> {
+    let id: string = data.id;
+
+    if (!(await this.shouldRunMaintenance(data.fenceScope, id))) {
+      return id;
+    }
+
+    data.armedFences.push({ scope: data.fenceScope, id: id });
+
+    const heartbeat: ResourceHeartbeatResult | undefined = await data.heartbeat(
+      new ObjectID(id),
+    );
+
+    if (heartbeat?.isRowGone) {
+      const replacement: string | null =
+        await this.resolveGoneDiscoveredResourceId({
+          kind: data.kind,
+          goneId: id,
+        });
+
+      if (!replacement) {
+        return null;
+      }
+
+      id = replacement;
+
+      if (await this.shouldRunMaintenance(data.fenceScope, id)) {
+        data.armedFences.push({ scope: data.fenceScope, id: id });
+        await data.heartbeat(new ObjectID(id));
+      }
+    }
+
+    if (data.promoteLabels) {
+      await data.promoteLabels(new ObjectID(id));
+    }
+
+    return id;
+  }
+
+  /*
+   * A write of rows that belong to a discovered resource - its containers,
+   * its inventory, an instance - against the id this batch resolved. When
+   * the foreign key to the resource refuses it because that row is gone (it
+   * was deleted while the id was cached), the write is not lost: the
+   * resource is resolved again and the write runs once more, against the
+   * row that answers now. Returns the id the write landed on, for the rest
+   * of the same flush. Any other failure, or a resource that cannot be
+   * resolved again, is thrown as before.
+   */
+  protected static async writeForDiscoveredResource(data: {
+    kind: DiscoveredResourceKind;
+    id: string;
+    write: (id: ObjectID) => Promise<void>;
+  }): Promise<string> {
+    try {
+      await data.write(new ObjectID(data.id));
+      return data.id;
+    } catch (error) {
+      if (!PostgresErrorTranslator.isMissingRowOf(error, data.kind.tableName)) {
+        throw error;
+      }
+
+      const replacement: string | null =
+        await this.resolveGoneDiscoveredResourceId({
+          kind: data.kind,
+          goneId: data.id,
+        });
+
+      if (!replacement) {
+        throw error;
+      }
+
+      await data.write(new ObjectID(replacement));
+
+      return replacement;
+    }
   }
 
   /*
@@ -1356,10 +1737,6 @@ export default abstract class OtelIngestBaseService {
     return null;
   }
 
-  private static readonly CLUSTER_ID_CACHE_NAMESPACE: string = "k8s-cluster-id";
-  private static readonly CLUSTER_ID_CACHE_EXPIRY_SECONDS: number =
-    24 * 60 * 60; // 1 day
-
   @CaptureSpan()
   protected static async autoDiscoverKubernetesCluster(data: {
     projectId: ObjectID;
@@ -1371,7 +1748,6 @@ export default abstract class OtelIngestBaseService {
      */
     const armedFences: Array<MaintenanceFence> = [];
     try {
-      let clusterIdStr: string | null = null;
       const clusterName: string | null = this.getClusterNameFromAttributes(
         data.attributes,
       );
@@ -1380,59 +1756,51 @@ export default abstract class OtelIngestBaseService {
         return null;
       }
 
-      const cacheKey: string = `${data.projectId.toString()}:${clusterName}`;
-      clusterIdStr = await this.getEntityIdFromCaches(
-        this.CLUSTER_ID_CACHE_NAMESPACE,
-        cacheKey,
-      );
+      const clusterIdStr: string | null =
+        await this.resolveDiscoveredResourceId({
+          kindName: "KubernetesCluster",
+          projectId: data.projectId,
+          identity: clusterName,
+        });
 
       if (!clusterIdStr) {
-        const cluster: KubernetesCluster =
-          await KubernetesClusterService.findOrCreateByClusterIdentifier({
-            projectId: data.projectId,
-            clusterIdentifier: clusterName,
-          });
-
-        if (cluster._id) {
-          clusterIdStr = cluster._id.toString();
-          await this.setEntityIdInCaches(
-            this.CLUSTER_ID_CACHE_NAMESPACE,
-            cacheKey,
-            clusterIdStr,
-            this.CLUSTER_ID_CACHE_EXPIRY_SECONDS,
-          );
-        }
+        return null;
       }
 
-      if (clusterIdStr) {
-        const clusterId: ObjectID = new ObjectID(clusterIdStr);
-        /*
-         * Skip the per-batch UPDATE + label upsert when we've already
-         * run it for this cluster in the current fence window. With
-         * 100 telemetry workers each touching the same handful of
-         * clusters, this is the single biggest Postgres write hot
-         * spot on the ingest path; the staleness on `lastSeenAt` is
-         * bounded by the TTL.
-         */
-        if (await this.shouldRunMaintenance("k8s-cluster", clusterIdStr)) {
-          armedFences.push({ scope: "k8s-cluster", id: clusterIdStr });
+      /*
+       * Skip the per-batch UPDATE + label upsert when we've already
+       * run it for this cluster in the current fence window. With
+       * 100 telemetry workers each touching the same handful of
+       * clusters, this is the single biggest Postgres write hot
+       * spot on the ingest path; the staleness on `lastSeenAt` is
+       * bounded by the TTL.
+       */
+      const liveIdStr: string | null = await this.maintainDiscoveredResource({
+        kind: DiscoveredResourceKinds.KubernetesCluster,
+        id: clusterIdStr,
+        fenceScope: "k8s-cluster",
+        armedFences: armedFences,
+        heartbeat: async (
+          clusterId: ObjectID,
+        ): Promise<ResourceHeartbeatResult> => {
           const agentVersion: string | null = this.getStringAttribute(
             data.attributes,
             "oneuptime.agent.version",
           );
-          await KubernetesClusterService.updateLastSeen(clusterId, {
+          return await KubernetesClusterService.updateLastSeen(clusterId, {
             agentVersion: agentVersion || undefined,
           });
+        },
+        promoteLabels: async (clusterId: ObjectID): Promise<void> => {
           await this.promoteOneuptimeLabelsToCluster({
             projectId: data.projectId,
             kubernetesClusterId: clusterId,
             attributes: data.attributes,
           });
-        }
-        return clusterId;
-      }
+        },
+      });
 
-      return null;
+      return liveIdStr ? new ObjectID(liveIdStr) : null;
     } catch (err) {
       await this.releaseMaintenanceFences(armedFences);
       logger.error(
@@ -1493,11 +1861,6 @@ export default abstract class OtelIngestBaseService {
     return this.getStringAttribute(attributes, "proxmox.cluster.name");
   }
 
-  private static readonly PROXMOX_CLUSTER_ID_CACHE_NAMESPACE: string =
-    "proxmox-cluster-id";
-  private static readonly PROXMOX_CLUSTER_ID_CACHE_EXPIRY_SECONDS: number =
-    24 * 60 * 60; // 1 day
-
   @CaptureSpan()
   protected static async autoDiscoverProxmoxCluster(data: {
     projectId: ObjectID;
@@ -1516,56 +1879,48 @@ export default abstract class OtelIngestBaseService {
         return null;
       }
 
-      const cacheKey: string = `${data.projectId.toString()}:${clusterName}`;
-      let clusterIdStr: string | null = await this.getEntityIdFromCaches(
-        this.PROXMOX_CLUSTER_ID_CACHE_NAMESPACE,
-        cacheKey,
-      );
+      const clusterIdStr: string | null =
+        await this.resolveDiscoveredResourceId({
+          kindName: "ProxmoxCluster",
+          projectId: data.projectId,
+          identity: clusterName,
+        });
 
       if (!clusterIdStr) {
-        const cluster: ProxmoxCluster =
-          await ProxmoxClusterService.findOrCreateByName({
-            projectId: data.projectId,
-            name: clusterName,
-          });
-
-        if (cluster._id) {
-          clusterIdStr = cluster._id.toString();
-          await this.setEntityIdInCaches(
-            this.PROXMOX_CLUSTER_ID_CACHE_NAMESPACE,
-            cacheKey,
-            clusterIdStr,
-            this.PROXMOX_CLUSTER_ID_CACHE_EXPIRY_SECONDS,
-          );
-        }
+        return null;
       }
 
-      if (clusterIdStr) {
-        const clusterId: ObjectID = new ObjectID(clusterIdStr);
-        /*
-         * Same fence rationale as the Kubernetes path — skip the
-         * per-batch maintenance UPDATE + label upsert when we
-         * already ran it within the fence window.
-         */
-        if (await this.shouldRunMaintenance("proxmox-cluster", clusterIdStr)) {
-          armedFences.push({ scope: "proxmox-cluster", id: clusterIdStr });
+      /*
+       * Same fence rationale as the Kubernetes path — skip the
+       * per-batch maintenance UPDATE + label upsert when we
+       * already ran it within the fence window.
+       */
+      const liveIdStr: string | null = await this.maintainDiscoveredResource({
+        kind: DiscoveredResourceKinds.ProxmoxCluster,
+        id: clusterIdStr,
+        fenceScope: "proxmox-cluster",
+        armedFences: armedFences,
+        heartbeat: async (
+          clusterId: ObjectID,
+        ): Promise<ResourceHeartbeatResult> => {
           const agentVersion: string | null = this.getStringAttribute(
             data.attributes,
             "oneuptime.agent.version",
           );
-          await ProxmoxClusterService.updateLastSeen(clusterId, {
+          return await ProxmoxClusterService.updateLastSeen(clusterId, {
             agentVersion: agentVersion || undefined,
           });
+        },
+        promoteLabels: async (clusterId: ObjectID): Promise<void> => {
           await this.promoteOneuptimeLabelsToProxmoxCluster({
             projectId: data.projectId,
             proxmoxClusterId: clusterId,
             attributes: data.attributes,
           });
-        }
-        return clusterId;
-      }
+        },
+      });
 
-      return null;
+      return liveIdStr ? new ObjectID(liveIdStr) : null;
     } catch (err) {
       await this.releaseMaintenanceFences(armedFences);
       logger.error(
@@ -1629,11 +1984,6 @@ export default abstract class OtelIngestBaseService {
     return this.getStringAttribute(attributes, "vmware.vcenter.name");
   }
 
-  private static readonly VMWARE_VCENTER_ID_CACHE_NAMESPACE: string =
-    "vmware-vcenter-id";
-  private static readonly VMWARE_VCENTER_ID_CACHE_EXPIRY_SECONDS: number =
-    24 * 60 * 60; // 1 day
-
   @CaptureSpan()
   protected static async autoDiscoverVMwareVCenter(data: {
     projectId: ObjectID;
@@ -1652,59 +2002,51 @@ export default abstract class OtelIngestBaseService {
         return null;
       }
 
-      const cacheKey: string = `${data.projectId.toString()}:${vcenterName}`;
-      let vcenterIdStr: string | null = await this.getEntityIdFromCaches(
-        this.VMWARE_VCENTER_ID_CACHE_NAMESPACE,
-        cacheKey,
-      );
+      const vcenterIdStr: string | null =
+        await this.resolveDiscoveredResourceId({
+          kindName: "VMwareVCenter",
+          projectId: data.projectId,
+          identity: vcenterName,
+        });
 
       if (!vcenterIdStr) {
-        const vcenter: VMwareVCenter =
-          await VMwareVCenterService.findOrCreateByName({
-            projectId: data.projectId,
-            name: vcenterName,
-          });
-
-        if (vcenter._id) {
-          vcenterIdStr = vcenter._id.toString();
-          await this.setEntityIdInCaches(
-            this.VMWARE_VCENTER_ID_CACHE_NAMESPACE,
-            cacheKey,
-            vcenterIdStr,
-            this.VMWARE_VCENTER_ID_CACHE_EXPIRY_SECONDS,
-          );
-        }
+        return null;
       }
 
-      if (vcenterIdStr) {
-        const vcenterId: ObjectID = new ObjectID(vcenterIdStr);
-        /*
-         * Same fence rationale as the Kubernetes / Proxmox paths — skip
-         * the per-batch maintenance UPDATE + label upsert when we
-         * already ran it within the fence window. The vcenter receiver
-         * emits one ResourceMetrics per vSphere object, so a single
-         * collection of a mid-sized vCenter is hundreds of resource
-         * blocks: without the fence every one of them would heartbeat.
-         */
-        if (await this.shouldRunMaintenance("vmware-vcenter", vcenterIdStr)) {
-          armedFences.push({ scope: "vmware-vcenter", id: vcenterIdStr });
+      /*
+       * Same fence rationale as the Kubernetes / Proxmox paths — skip
+       * the per-batch maintenance UPDATE + label upsert when we
+       * already ran it within the fence window. The vcenter receiver
+       * emits one ResourceMetrics per vSphere object, so a single
+       * collection of a mid-sized vCenter is hundreds of resource
+       * blocks: without the fence every one of them would heartbeat.
+       */
+      const liveIdStr: string | null = await this.maintainDiscoveredResource({
+        kind: DiscoveredResourceKinds.VMwareVCenter,
+        id: vcenterIdStr,
+        fenceScope: "vmware-vcenter",
+        armedFences: armedFences,
+        heartbeat: async (
+          vcenterId: ObjectID,
+        ): Promise<ResourceHeartbeatResult> => {
           const agentVersion: string | null = this.getStringAttribute(
             data.attributes,
             "oneuptime.agent.version",
           );
-          await VMwareVCenterService.updateLastSeen(vcenterId, {
+          return await VMwareVCenterService.updateLastSeen(vcenterId, {
             agentVersion: agentVersion || undefined,
           });
+        },
+        promoteLabels: async (vcenterId: ObjectID): Promise<void> => {
           await this.promoteOneuptimeLabelsToVMwareVCenter({
             projectId: data.projectId,
             vmwareVCenterId: vcenterId,
             attributes: data.attributes,
           });
-        }
-        return vcenterId;
-      }
+        },
+      });
 
-      return null;
+      return liveIdStr ? new ObjectID(liveIdStr) : null;
     } catch (err) {
       await this.releaseMaintenanceFences(armedFences);
       logger.error(
@@ -1770,10 +2112,6 @@ export default abstract class OtelIngestBaseService {
     );
   }
 
-  private static readonly IOT_FLEET_ID_CACHE_NAMESPACE: string = "iot-fleet-id";
-  private static readonly IOT_FLEET_ID_CACHE_EXPIRY_SECONDS: number =
-    24 * 60 * 60; // 1 day
-
   @CaptureSpan()
   protected static async autoDiscoverIoTFleet(data: {
     projectId: ObjectID;
@@ -1793,56 +2131,47 @@ export default abstract class OtelIngestBaseService {
         return null;
       }
 
-      const cacheKey: string = `${data.projectId.toString()}:${fleetName}`;
-      let fleetIdStr: string | null = await this.getEntityIdFromCaches(
-        this.IOT_FLEET_ID_CACHE_NAMESPACE,
-        cacheKey,
-      );
+      const fleetIdStr: string | null = await this.resolveDiscoveredResourceId({
+        kindName: "IoTFleet",
+        projectId: data.projectId,
+        identity: fleetName,
+      });
 
       if (!fleetIdStr) {
-        const fleet: IoTFleet = await IoTFleetService.findOrCreateByName({
-          projectId: data.projectId,
-          name: fleetName,
-        });
-
-        if (fleet && fleet.id) {
-          const newFleetIdStr: string = fleet.id.toString();
-          fleetIdStr = newFleetIdStr;
-          await this.setEntityIdInCaches(
-            this.IOT_FLEET_ID_CACHE_NAMESPACE,
-            cacheKey,
-            newFleetIdStr,
-            this.IOT_FLEET_ID_CACHE_EXPIRY_SECONDS,
-          );
-        }
+        return null;
       }
 
-      if (fleetIdStr) {
-        const fleetId: ObjectID = new ObjectID(fleetIdStr);
-        /*
-         * Same fence rationale as the Kubernetes path — skip the
-         * per-batch maintenance UPDATE + label upsert when we
-         * already ran it within the fence window.
-         */
-        if (await this.shouldRunMaintenance("iot-fleet", fleetIdStr)) {
-          armedFences.push({ scope: "iot-fleet", id: fleetIdStr });
+      /*
+       * Same fence rationale as the Kubernetes path — skip the
+       * per-batch maintenance UPDATE + label upsert when we
+       * already ran it within the fence window.
+       */
+      const liveIdStr: string | null = await this.maintainDiscoveredResource({
+        kind: DiscoveredResourceKinds.IoTFleet,
+        id: fleetIdStr,
+        fenceScope: "iot-fleet",
+        armedFences: armedFences,
+        heartbeat: async (
+          fleetId: ObjectID,
+        ): Promise<ResourceHeartbeatResult> => {
           const agentVersion: string | null = this.getStringAttribute(
             data.attributes,
             "oneuptime.agent.version",
           );
-          await IoTFleetService.updateLastSeen(fleetId, {
+          return await IoTFleetService.updateLastSeen(fleetId, {
             agentVersion: agentVersion || undefined,
           });
+        },
+        promoteLabels: async (fleetId: ObjectID): Promise<void> => {
           await this.promoteOneuptimeLabelsToIoTFleet({
             projectId: data.projectId,
             iotFleetId: fleetId,
             attributes: data.attributes,
           });
-        }
-        return fleetId;
-      }
+        },
+      });
 
-      return null;
+      return liveIdStr ? new ObjectID(liveIdStr) : null;
     } catch (err) {
       await this.releaseMaintenanceFences(armedFences);
       logger.error(
@@ -1904,11 +2233,6 @@ export default abstract class OtelIngestBaseService {
     return this.getStringAttribute(attributes, "docker.swarm.cluster.name");
   }
 
-  private static readonly DOCKER_SWARM_CLUSTER_ID_CACHE_NAMESPACE: string =
-    "docker-swarm-cluster-id";
-  private static readonly DOCKER_SWARM_CLUSTER_ID_CACHE_EXPIRY_SECONDS: number =
-    24 * 60 * 60; // 1 day
-
   @CaptureSpan()
   protected static async autoDiscoverDockerSwarmCluster(data: {
     projectId: ObjectID;
@@ -1927,56 +2251,47 @@ export default abstract class OtelIngestBaseService {
         return null;
       }
 
-      const cacheKey: string = `${data.projectId.toString()}:${clusterName}`;
-      let clusterIdStr: string | null = await this.getEntityIdFromCaches(
-        this.DOCKER_SWARM_CLUSTER_ID_CACHE_NAMESPACE,
-        cacheKey,
-      );
+      const clusterIdStr: string | null =
+        await this.resolveDiscoveredResourceId({
+          kindName: "DockerSwarmCluster",
+          projectId: data.projectId,
+          identity: clusterName,
+        });
 
       if (!clusterIdStr) {
-        const cluster: DockerSwarmCluster =
-          await DockerSwarmClusterService.findOrCreateByName({
-            projectId: data.projectId,
-            name: clusterName,
-          });
-
-        if (cluster._id) {
-          clusterIdStr = cluster._id.toString();
-          await this.setEntityIdInCaches(
-            this.DOCKER_SWARM_CLUSTER_ID_CACHE_NAMESPACE,
-            cacheKey,
-            clusterIdStr,
-            this.DOCKER_SWARM_CLUSTER_ID_CACHE_EXPIRY_SECONDS,
-          );
-        }
+        return null;
       }
 
-      if (clusterIdStr) {
-        const clusterId: ObjectID = new ObjectID(clusterIdStr);
-        if (
-          await this.shouldRunMaintenance("docker-swarm-cluster", clusterIdStr)
-        ) {
-          armedFences.push({
-            scope: "docker-swarm-cluster",
-            id: clusterIdStr,
-          });
+      /*
+       * Same fence rationale as the Kubernetes path — one heartbeat and one
+       * label pass per cluster per fence window.
+       */
+      const liveIdStr: string | null = await this.maintainDiscoveredResource({
+        kind: DiscoveredResourceKinds.DockerSwarmCluster,
+        id: clusterIdStr,
+        fenceScope: "docker-swarm-cluster",
+        armedFences: armedFences,
+        heartbeat: async (
+          clusterId: ObjectID,
+        ): Promise<ResourceHeartbeatResult> => {
           const agentVersion: string | null = this.getStringAttribute(
             data.attributes,
             "oneuptime.agent.version",
           );
-          await DockerSwarmClusterService.updateLastSeen(clusterId, {
+          return await DockerSwarmClusterService.updateLastSeen(clusterId, {
             agentVersion: agentVersion || undefined,
           });
+        },
+        promoteLabels: async (clusterId: ObjectID): Promise<void> => {
           await this.promoteOneuptimeLabelsToDockerSwarmCluster({
             projectId: data.projectId,
             dockerSwarmClusterId: clusterId,
             attributes: data.attributes,
           });
-        }
-        return clusterId;
-      }
+        },
+      });
 
-      return null;
+      return liveIdStr ? new ObjectID(liveIdStr) : null;
     } catch (err) {
       await this.releaseMaintenanceFences(armedFences);
       logger.error(
@@ -2036,11 +2351,6 @@ export default abstract class OtelIngestBaseService {
     return this.getStringAttribute(attributes, "ceph.cluster.name");
   }
 
-  private static readonly CEPH_CLUSTER_ID_CACHE_NAMESPACE: string =
-    "ceph-cluster-id";
-  private static readonly CEPH_CLUSTER_ID_CACHE_EXPIRY_SECONDS: number =
-    24 * 60 * 60; // 1 day
-
   @CaptureSpan()
   protected static async autoDiscoverCephCluster(data: {
     projectId: ObjectID;
@@ -2060,39 +2370,30 @@ export default abstract class OtelIngestBaseService {
         return null;
       }
 
-      const cacheKey: string = `${data.projectId.toString()}:${clusterName}`;
-      let clusterIdStr: string | null = await this.getEntityIdFromCaches(
-        this.CEPH_CLUSTER_ID_CACHE_NAMESPACE,
-        cacheKey,
-      );
+      const clusterIdStr: string | null =
+        await this.resolveDiscoveredResourceId({
+          kindName: "CephCluster",
+          projectId: data.projectId,
+          identity: clusterName,
+        });
 
       if (!clusterIdStr) {
-        const cluster: CephCluster =
-          await CephClusterService.findOrCreateByName({
-            projectId: data.projectId,
-            name: clusterName,
-          });
-
-        if (cluster._id) {
-          clusterIdStr = cluster._id.toString();
-          await this.setEntityIdInCaches(
-            this.CEPH_CLUSTER_ID_CACHE_NAMESPACE,
-            cacheKey,
-            clusterIdStr,
-            this.CEPH_CLUSTER_ID_CACHE_EXPIRY_SECONDS,
-          );
-        }
+        return null;
       }
 
-      if (clusterIdStr) {
-        const clusterId: ObjectID = new ObjectID(clusterIdStr);
-        /*
-         * Same fence rationale as the Kubernetes path — skip the
-         * per-batch maintenance UPDATE + label upsert when we
-         * already ran it within the fence window.
-         */
-        if (await this.shouldRunMaintenance("ceph-cluster", clusterIdStr)) {
-          armedFences.push({ scope: "ceph-cluster", id: clusterIdStr });
+      /*
+       * Same fence rationale as the Kubernetes path — skip the
+       * per-batch maintenance UPDATE + label upsert when we
+       * already ran it within the fence window.
+       */
+      const liveIdStr: string | null = await this.maintainDiscoveredResource({
+        kind: DiscoveredResourceKinds.CephCluster,
+        id: clusterIdStr,
+        fenceScope: "ceph-cluster",
+        armedFences: armedFences,
+        heartbeat: async (
+          clusterId: ObjectID,
+        ): Promise<ResourceHeartbeatResult> => {
           const agentVersion: string | null = this.getStringAttribute(
             data.attributes,
             "oneuptime.agent.version",
@@ -2102,20 +2403,21 @@ export default abstract class OtelIngestBaseService {
             data.attributes,
             "ceph.cluster.fsid",
           );
-          await CephClusterService.updateLastSeen(clusterId, {
+          return await CephClusterService.updateLastSeen(clusterId, {
             agentVersion: agentVersion || undefined,
             fsid: fsid || undefined,
           });
+        },
+        promoteLabels: async (clusterId: ObjectID): Promise<void> => {
           await this.promoteOneuptimeLabelsToCephCluster({
             projectId: data.projectId,
             cephClusterId: clusterId,
             attributes: data.attributes,
           });
-        }
-        return clusterId;
-      }
+        },
+      });
 
-      return null;
+      return liveIdStr ? new ObjectID(liveIdStr) : null;
     } catch (err) {
       await this.releaseMaintenanceFences(armedFences);
       logger.error(
@@ -2190,11 +2492,6 @@ export default abstract class OtelIngestBaseService {
     );
   }
 
-  private static readonly STORAGE_ARRAY_ID_CACHE_NAMESPACE: string =
-    "storage-array-id";
-  private static readonly STORAGE_ARRAY_ID_CACHE_EXPIRY_SECONDS: number =
-    24 * 60 * 60; // 1 day
-
   @CaptureSpan()
   protected static async autoDiscoverStorageArray(data: {
     projectId: ObjectID;
@@ -2214,39 +2511,29 @@ export default abstract class OtelIngestBaseService {
         return null;
       }
 
-      const cacheKey: string = `${data.projectId.toString()}:${arrayName}`;
-      let arrayIdStr: string | null = await this.getEntityIdFromCaches(
-        this.STORAGE_ARRAY_ID_CACHE_NAMESPACE,
-        cacheKey,
-      );
+      const arrayIdStr: string | null = await this.resolveDiscoveredResourceId({
+        kindName: "StorageArray",
+        projectId: data.projectId,
+        identity: arrayName,
+      });
 
       if (!arrayIdStr) {
-        const array: StorageArray =
-          await StorageArrayService.findOrCreateByName({
-            projectId: data.projectId,
-            name: arrayName,
-          });
-
-        if (array._id) {
-          arrayIdStr = array._id.toString();
-          await this.setEntityIdInCaches(
-            this.STORAGE_ARRAY_ID_CACHE_NAMESPACE,
-            cacheKey,
-            arrayIdStr,
-            this.STORAGE_ARRAY_ID_CACHE_EXPIRY_SECONDS,
-          );
-        }
+        return null;
       }
 
-      if (arrayIdStr) {
-        const arrayId: ObjectID = new ObjectID(arrayIdStr);
-        /*
-         * Same fence rationale as the Ceph path — skip the per-batch
-         * maintenance UPDATE + label upsert when we already ran it within
-         * the fence window.
-         */
-        if (await this.shouldRunMaintenance("storage-array", arrayIdStr)) {
-          armedFences.push({ scope: "storage-array", id: arrayIdStr });
+      /*
+       * Same fence rationale as the Ceph path — skip the per-batch
+       * maintenance UPDATE + label upsert when we already ran it within
+       * the fence window.
+       */
+      const liveIdStr: string | null = await this.maintainDiscoveredResource({
+        kind: DiscoveredResourceKinds.StorageArray,
+        id: arrayIdStr,
+        fenceScope: "storage-array",
+        armedFences: armedFences,
+        heartbeat: async (
+          arrayId: ObjectID,
+        ): Promise<ResourceHeartbeatResult> => {
           const agentVersion: string | null = this.getStringAttribute(
             data.attributes,
             "oneuptime.agent.version",
@@ -2262,19 +2549,20 @@ export default abstract class OtelIngestBaseService {
            * without STORAGE_SYSTEM gets the compose default,
            * purestorage.flasharray.
            */
-          await StorageArrayService.updateLastSeen(arrayId, {
+          return await StorageArrayService.updateLastSeen(arrayId, {
             agentVersion: agentVersion || undefined,
           });
+        },
+        promoteLabels: async (arrayId: ObjectID): Promise<void> => {
           await this.promoteOneuptimeLabelsToStorageArray({
             projectId: data.projectId,
             storageArrayId: arrayId,
             attributes: data.attributes,
           });
-        }
-        return arrayId;
-      }
+        },
+      });
 
-      return null;
+      return liveIdStr ? new ObjectID(liveIdStr) : null;
     } catch (err) {
       await this.releaseMaintenanceFences(armedFences);
       logger.error(
@@ -2323,11 +2611,6 @@ export default abstract class OtelIngestBaseService {
       );
     }
   }
-
-  private static readonly SERVERLESS_FUNCTION_ID_CACHE_NAMESPACE: string =
-    "serverless-function-id";
-  private static readonly SERVERLESS_FUNCTION_ID_CACHE_EXPIRY_SECONDS: number =
-    24 * 60 * 60; // 1 day
 
   /*
    * cloud.platform values that denote a Function-as-a-Service runtime live
@@ -2530,39 +2813,25 @@ export default abstract class OtelIngestBaseService {
       const functionIdentifier: string = identity.functionIdentifier;
       const cloudPlatform: string | null = identity.cloudPlatform;
 
-      const cacheKey: string = `${data.projectId.toString()}:${functionIdentifier}`;
-      let functionIdStr: string | null = await this.getEntityIdFromCaches(
-        this.SERVERLESS_FUNCTION_ID_CACHE_NAMESPACE,
-        cacheKey,
-      );
+      const functionIdStr: string | null =
+        await this.resolveDiscoveredResourceId({
+          kindName: "ServerlessFunction",
+          projectId: data.projectId,
+          identity: functionIdentifier,
+        });
 
       if (!functionIdStr) {
-        const serverlessFunction: ServerlessFunction =
-          await ServerlessFunctionService.findOrCreateByFunctionIdentifier({
-            projectId: data.projectId,
-            functionIdentifier,
-          });
-
-        if (serverlessFunction._id) {
-          functionIdStr = serverlessFunction._id.toString();
-          await this.setEntityIdInCaches(
-            this.SERVERLESS_FUNCTION_ID_CACHE_NAMESPACE,
-            cacheKey,
-            functionIdStr,
-            this.SERVERLESS_FUNCTION_ID_CACHE_EXPIRY_SECONDS,
-          );
-        }
+        return null;
       }
 
-      if (functionIdStr) {
-        const functionId: ObjectID = new ObjectID(functionIdStr);
-        if (
-          await this.shouldRunMaintenance("serverless-function", functionIdStr)
-        ) {
-          armedFences.push({
-            scope: "serverless-function",
-            id: functionIdStr,
-          });
+      let liveIdStr: string | null = await this.maintainDiscoveredResource({
+        kind: DiscoveredResourceKinds.ServerlessFunction,
+        id: functionIdStr,
+        fenceScope: "serverless-function",
+        armedFences: armedFences,
+        heartbeat: async (
+          functionId: ObjectID,
+        ): Promise<ResourceHeartbeatResult> => {
           /*
            * Read through the same null-safe reader as the identity, so a
            * malformed entry cannot stop discovery half-way — the row found
@@ -2572,7 +2841,7 @@ export default abstract class OtelIngestBaseService {
             data.attributes,
             "oneuptime.agent.version",
           );
-          await ServerlessFunctionService.updateLastSeen(functionId, {
+          return await ServerlessFunctionService.updateLastSeen(functionId, {
             agentVersion: agentVersion || undefined,
             cloudPlatform: cloudPlatform || undefined,
             cloudProvider:
@@ -2606,39 +2875,49 @@ export default abstract class OtelIngestBaseService {
                 "process.runtime.version",
               ) || undefined,
           });
+        },
+        promoteLabels: async (functionId: ObjectID): Promise<void> => {
           await this.promoteOneuptimeLabelsToServerlessFunction({
             projectId: data.projectId,
             serverlessFunctionId: functionId,
             attributes: data.attributes,
           });
-        }
+        },
+      });
 
-        // Live inventory: record this function instance (faas.instance).
-        const faasInstance: string | null = this.readTrimmedStringAttribute(
-          data.attributes,
-          "faas.instance",
-        );
-        if (
-          faasInstance &&
-          (await this.shouldRunMaintenance(
-            "serverless-fn-instance",
-            `${functionIdStr}:${faasInstance}`,
-          ))
-        ) {
-          armedFences.push({
-            scope: "serverless-fn-instance",
-            id: `${functionIdStr}:${faasInstance}`,
-          });
-          await ServerlessFunctionInstanceService.recordInstance({
-            projectId: data.projectId,
-            serverlessFunctionId: functionId,
-            instanceName: faasInstance,
-          });
-        }
-        return functionId;
+      if (!liveIdStr) {
+        return null;
       }
 
-      return null;
+      // Live inventory: record this function instance (faas.instance).
+      const faasInstance: string | null = this.readTrimmedStringAttribute(
+        data.attributes,
+        "faas.instance",
+      );
+      if (
+        faasInstance &&
+        (await this.shouldRunMaintenance(
+          "serverless-fn-instance",
+          `${liveIdStr}:${faasInstance}`,
+        ))
+      ) {
+        armedFences.push({
+          scope: "serverless-fn-instance",
+          id: `${liveIdStr}:${faasInstance}`,
+        });
+        liveIdStr = await this.writeForDiscoveredResource({
+          kind: DiscoveredResourceKinds.ServerlessFunction,
+          id: liveIdStr,
+          write: async (functionId: ObjectID): Promise<void> => {
+            await ServerlessFunctionInstanceService.recordInstance({
+              projectId: data.projectId,
+              serverlessFunctionId: functionId,
+              instanceName: faasInstance,
+            });
+          },
+        });
+      }
+      return new ObjectID(liveIdStr);
     } catch (err) {
       await this.releaseMaintenanceFences(armedFences);
       logger.error(
@@ -2680,11 +2959,6 @@ export default abstract class OtelIngestBaseService {
       );
     }
   }
-
-  private static readonly CLOUD_RESOURCE_ID_CACHE_NAMESPACE: string =
-    "cloud-resource-id";
-  private static readonly CLOUD_RESOURCE_ID_CACHE_EXPIRY_SECONDS: number =
-    24 * 60 * 60; // 1 day
 
   /*
    * Auto-discover a managed cloud-compute *environment* from OTel resource
@@ -2768,86 +3042,90 @@ export default abstract class OtelIngestBaseService {
         region: cloudRegion,
       });
 
-      const cacheKey: string = `${data.projectId.toString()}:${resourceIdentifier}`;
-      let resourceIdStr: string | null = await this.getEntityIdFromCaches(
-        this.CLOUD_RESOURCE_ID_CACHE_NAMESPACE,
-        cacheKey,
-      );
-
-      if (!resourceIdStr) {
-        const cloudResource: CloudResource =
-          await CloudResourceService.findOrCreateByResourceIdentifier({
-            projectId: data.projectId,
-            resourceIdentifier,
-            name,
-            cloudPlatform,
+      const resourceIdStr: string | null =
+        await this.resolveDiscoveredResourceId({
+          kindName: "CloudResource",
+          projectId: data.projectId,
+          identity: resourceIdentifier,
+          cloudEnvironment: {
+            name: name,
+            cloudPlatform: cloudPlatform,
             cloudProvider: cloudProvider || undefined,
             cloudRegion: cloudRegion || undefined,
             cloudAccountId: cloudAccountId || undefined,
-          });
-        if (cloudResource._id) {
-          resourceIdStr = cloudResource._id.toString();
-          await this.setEntityIdInCaches(
-            this.CLOUD_RESOURCE_ID_CACHE_NAMESPACE,
-            cacheKey,
-            resourceIdStr,
-            this.CLOUD_RESOURCE_ID_CACHE_EXPIRY_SECONDS,
-          );
-        }
+          },
+        });
+
+      if (!resourceIdStr) {
+        return null;
       }
 
-      if (resourceIdStr) {
-        const cloudResourceId: ObjectID = new ObjectID(resourceIdStr);
-        if (await this.shouldRunMaintenance("cloud-resource", resourceIdStr)) {
-          armedFences.push({ scope: "cloud-resource", id: resourceIdStr });
-          await CloudResourceService.updateLastSeen(cloudResourceId, {
+      let liveIdStr: string | null = await this.maintainDiscoveredResource({
+        kind: DiscoveredResourceKinds.CloudResource,
+        id: resourceIdStr,
+        fenceScope: "cloud-resource",
+        armedFences: armedFences,
+        heartbeat: async (
+          cloudResourceId: ObjectID,
+        ): Promise<ResourceHeartbeatResult> => {
+          return await CloudResourceService.updateLastSeen(cloudResourceId, {
             cloudPlatform: cloudPlatform || undefined,
             cloudProvider: cloudProvider || undefined,
             cloudRegion: cloudRegion || undefined,
             cloudAccountId: cloudAccountId || undefined,
           });
+        },
+        promoteLabels: async (cloudResourceId: ObjectID): Promise<void> => {
           await this.promoteOneuptimeLabelsToCloudResource({
             projectId: data.projectId,
             cloudResourceId,
             attributes: data.attributes,
           });
-        }
+        },
+      });
 
-        /*
-         * Live inventory: record this instance / task. service.instance.id
-         * is preferred, but almost nothing on a managed platform sets it —
-         * the ECS detector stamps the task ARN, Cloud Run stamps
-         * faas.instance — so the identity walks the shared fallback chain.
-         * The metrics snapshot fold (OtelMetricsIngestService) resolves the
-         * same chain over the same attributes, which is what lets the CPU /
-         * memory point land on the row this call creates.
-         */
-        const instanceName: string | null = resolveCloudInstanceName(
-          (key: string): string | null => {
-            return this.getStringAttribute(data.attributes, key);
-          },
-        );
-        if (
-          instanceName &&
-          (await this.shouldRunMaintenance(
-            "cloud-resource-instance",
-            `${resourceIdStr}:${instanceName}`,
-          ))
-        ) {
-          armedFences.push({
-            scope: "cloud-resource-instance",
-            id: `${resourceIdStr}:${instanceName}`,
-          });
-          await CloudResourceInstanceService.recordInstance({
-            projectId: data.projectId,
-            cloudResourceId,
-            instanceName,
-          });
-        }
-        return cloudResourceId;
+      if (!liveIdStr) {
+        return null;
       }
 
-      return null;
+      /*
+       * Live inventory: record this instance / task. service.instance.id
+       * is preferred, but almost nothing on a managed platform sets it —
+       * the ECS detector stamps the task ARN, Cloud Run stamps
+       * faas.instance — so the identity walks the shared fallback chain.
+       * The metrics snapshot fold (OtelMetricsIngestService) resolves the
+       * same chain over the same attributes, which is what lets the CPU /
+       * memory point land on the row this call creates.
+       */
+      const instanceName: string | null = resolveCloudInstanceName(
+        (key: string): string | null => {
+          return this.getStringAttribute(data.attributes, key);
+        },
+      );
+      if (
+        instanceName &&
+        (await this.shouldRunMaintenance(
+          "cloud-resource-instance",
+          `${liveIdStr}:${instanceName}`,
+        ))
+      ) {
+        armedFences.push({
+          scope: "cloud-resource-instance",
+          id: `${liveIdStr}:${instanceName}`,
+        });
+        liveIdStr = await this.writeForDiscoveredResource({
+          kind: DiscoveredResourceKinds.CloudResource,
+          id: liveIdStr,
+          write: async (cloudResourceId: ObjectID): Promise<void> => {
+            await CloudResourceInstanceService.recordInstance({
+              projectId: data.projectId,
+              cloudResourceId,
+              instanceName,
+            });
+          },
+        });
+      }
+      return new ObjectID(liveIdStr);
     } catch (err) {
       await this.releaseMaintenanceFences(armedFences);
       logger.error(
@@ -2889,11 +3167,6 @@ export default abstract class OtelIngestBaseService {
       );
     }
   }
-
-  private static readonly CLOUD_MONITORED_RESOURCE_ID_CACHE_NAMESPACE: string =
-    "cloud-monitored-resource-id";
-  private static readonly CLOUD_MONITORED_RESOURCE_ID_CACHE_EXPIRY_SECONDS: number =
-    24 * 60 * 60; // 1 day
 
   /*
    * How many resources one request may look up in Postgres - the ones no
@@ -2942,6 +3215,8 @@ export default abstract class OtelIngestBaseService {
     projectId: ObjectID;
     resources: Array<CloudMonitoredResource>;
   }): Promise<number> {
+    const kind: DiscoveredResourceKind =
+      DiscoveredResourceKinds.CloudMonitoredResource;
     let lookups: number = 0;
     let resolved: number = 0;
     let failures: number = 0;
@@ -2958,17 +3233,17 @@ export default abstract class OtelIngestBaseService {
       try {
         const resourceIdentifier: string =
           buildCloudMonitoredResourceIdentifier(resource);
-        const cacheKey: string = `${data.projectId.toString()}:${resourceIdentifier}`;
+        const cacheKey: string = DiscoveredResourceIdCache.keyFor(
+          data.projectId,
+          resourceIdentifier,
+        );
 
         if (this.unresolvedCloudMonitoredResourceMemo.get(cacheKey)) {
           continue;
         }
 
         let cloudResourceIdStr: string | null =
-          await this.getEntityIdFromCaches(
-            this.CLOUD_MONITORED_RESOURCE_ID_CACHE_NAMESPACE,
-            cacheKey,
-          );
+          await this.getEntityIdFromCaches(kind.namespace, cacheKey);
 
         if (!cloudResourceIdStr) {
           if (
@@ -2991,10 +3266,10 @@ export default abstract class OtelIngestBaseService {
 
           cloudResourceIdStr = found.cloudResource._id.toString();
           await this.setEntityIdInCaches(
-            this.CLOUD_MONITORED_RESOURCE_ID_CACHE_NAMESPACE,
+            kind.namespace,
             cacheKey,
             cloudResourceIdStr,
-            this.CLOUD_MONITORED_RESOURCE_ID_CACHE_EXPIRY_SECONDS,
+            kind.expiresInSeconds,
           );
         }
 
@@ -3010,10 +3285,39 @@ export default abstract class OtelIngestBaseService {
             scope: "cloud-monitored-resource",
             id: cloudResourceIdStr,
           });
-          await CloudResourceService.recordMonitoredResourceSighting({
-            cloudResourceId: new ObjectID(cloudResourceIdStr),
-            resource: resource,
-          });
+          const sighting: ResourceHeartbeatResult =
+            await CloudResourceService.recordMonitoredResourceSighting({
+              cloudResourceId: new ObjectID(cloudResourceIdStr),
+              resource: resource,
+            });
+
+          /*
+           * Deleted while its id was cached: forget the id, and find or
+           * create the resource again as on its first poll - the next poll
+           * sights the row that answers now.
+           */
+          if (sighting?.isRowGone) {
+            await DiscoveredResourceIdCache.forget({
+              namespace: kind.namespace,
+              key: cacheKey,
+              id: cloudResourceIdStr,
+            });
+
+            const found: CloudMonitoredResourceFindOrCreateResult =
+              await CloudResourceService.findOrCreateMonitoredResource({
+                projectId: data.projectId,
+                resource: resource,
+              });
+
+            if (found.cloudResource?._id) {
+              await this.setEntityIdInCaches(
+                kind.namespace,
+                cacheKey,
+                found.cloudResource._id.toString(),
+                kind.expiresInSeconds,
+              );
+            }
+          }
         }
       } catch (err) {
         await this.releaseMaintenanceFences(armedFences);
@@ -3034,15 +3338,14 @@ export default abstract class OtelIngestBaseService {
   }
 
   /*
-   * One hour, not the day the other entity-id caches use: a database's id is
-   * found through an ENDPOINT, and endpoint ownership moves — a person
-   * deletes a discovered row, or moves an alias to another database on the
-   * Endpoints tab — so a cached answer has to turn over within the hour.
+   * A database's id is cached for an hour, not the day the other entity-id
+   * caches use (DiscoveredResourceKinds.DatabaseServer): it is found through
+   * an ENDPOINT, and endpoint ownership moves — a person deletes a
+   * discovered row, or moves an alias to another database on the Endpoints
+   * tab — so a cached answer has to turn over within the hour. A delete
+   * cannot forget it by key (any endpoint the database answered for may be
+   * one); ingest forgets it the moment its heartbeat finds the row gone.
    */
-  private static readonly DATABASE_SERVER_ID_CACHE_NAMESPACE: string =
-    "database-server-id";
-  private static readonly DATABASE_SERVER_ID_CACHE_EXPIRY_SECONDS: number =
-    60 * 60; // 1 hour
 
   /*
    * In-process memo of lookups that found NO row and may not create one — a
@@ -3341,80 +3644,122 @@ export default abstract class OtelIngestBaseService {
         return null;
       }
 
-      let databaseServerIdStr: string | null = null;
-
       const agentVersion: string | null = this.getStringAttribute(
         data.attributes,
         "oneuptime.agent.version",
       );
 
-      if (resolved.linkedDatabaseServerId) {
-        databaseServerIdStr = await this.findLinkedDatabaseServerId({
-          projectId: data.projectId,
-          linkedDatabaseServerId: resolved.linkedDatabaseServerId,
-          endpoint: resolved.endpoint,
-          endpointIsStable: resolved.endpointIsStable,
-        });
-      }
+      const resolveRow: () => Promise<CachedDatabaseServerId | null> =
+        async (): Promise<CachedDatabaseServerId | null> => {
+          let row: CachedDatabaseServerId | null = null;
 
-      if (!databaseServerIdStr && resolved.endpoint) {
-        databaseServerIdStr = await this.findOrCreateDatabaseServerIdByEndpoint(
+          if (resolved.linkedDatabaseServerId) {
+            row = await this.findLinkedDatabaseServerId({
+              projectId: data.projectId,
+              linkedDatabaseServerId: resolved.linkedDatabaseServerId,
+              endpoint: resolved.endpoint,
+              endpointIsStable: resolved.endpointIsStable,
+            });
+          }
+
+          if (!row && resolved.endpoint) {
+            row = await this.findOrCreateDatabaseServerIdByEndpoint({
+              projectId: data.projectId,
+              resolved: resolved,
+              endpoint: resolved.endpoint,
+              /*
+               * A row this batch creates starts with its versions (see
+               * FindOrCreateDatabaseServerByEndpointData.collector): the
+               * heartbeat below can lose its write to the create's own
+               * side effects, and nothing retries it until the fence
+               * expires.
+               */
+              collector: {
+                agentVersion: agentVersion || undefined,
+                dbVersion: resolved.version || undefined,
+                reportedByDatabaseAgent: this.hasAttributeKey(
+                  data.attributes,
+                  DATABASE_AGENT_ATTRIBUTE,
+                ),
+              },
+            });
+          }
+
+          return row;
+        };
+
+      /*
+       * The engine rides along as collector evidence: the endpoint path
+       * weighs it in findOrCreateByEndpoint, but a batch linked by id
+       * never goes there, so this is the only place its engine can
+       * correct (or refine to a fork) one an image or spans guessed.
+       */
+      const heartbeat: (
+        databaseServerId: ObjectID,
+      ) => Promise<ResourceHeartbeatResult> = async (
+        databaseServerId: ObjectID,
+      ): Promise<ResourceHeartbeatResult> => {
+        return await DatabaseServerService.recordCollectorHeartbeat(
+          databaseServerId,
           {
-            projectId: data.projectId,
-            resolved: resolved,
-            endpoint: resolved.endpoint,
-            /*
-             * A row this batch creates starts with its versions (see
-             * FindOrCreateDatabaseServerByEndpointData.collector): the
-             * heartbeat below can lose its write to the create's own side
-             * effects, and nothing retries it until the fence expires.
-             */
-            collector: {
-              agentVersion: agentVersion || undefined,
-              dbVersion: resolved.version || undefined,
-              reportedByDatabaseAgent: this.hasAttributeKey(
-                data.attributes,
-                DATABASE_AGENT_ATTRIBUTE,
-              ),
-            },
+            agentVersion: agentVersion || undefined,
+            dbVersion: resolved.version || undefined,
+            dbSystem: resolved.system || undefined,
           },
         );
-      }
+      };
 
-      if (!databaseServerIdStr) {
+      let row: CachedDatabaseServerId | null = await resolveRow();
+
+      if (!row) {
         return null;
       }
-
-      const databaseServerId: ObjectID = new ObjectID(databaseServerIdStr);
 
       /*
        * Same fence rationale as the Kubernetes path — one heartbeat write
        * and one label pass per database per fence window, however many
        * batches its collector sends.
        */
-      if (
-        await this.shouldRunMaintenance("database-server", databaseServerIdStr)
-      ) {
-        armedFences.push({ scope: "database-server", id: databaseServerIdStr });
+      if (await this.shouldRunMaintenance("database-server", row.id)) {
+        armedFences.push({ scope: "database-server", id: row.id });
+
+        const written: ResourceHeartbeatResult = await heartbeat(
+          new ObjectID(row.id),
+        );
+
         /*
-         * The engine rides along as collector evidence: the endpoint path
-         * weighs it in findOrCreateByEndpoint, but a batch linked by id
-         * never goes there, so this is the only place its engine can
-         * correct (or refine to a fork) one an image or spans guessed.
+         * The database was deleted while its id was cached (an endpoint's
+         * key, or a linked id's): forget that key and find the database
+         * again, as on first contact - the row that owns the endpoint now,
+         * or a new one where one may be created.
          */
-        await DatabaseServerService.recordCollectorHeartbeat(databaseServerId, {
-          agentVersion: agentVersion || undefined,
-          dbVersion: resolved.version || undefined,
-          dbSystem: resolved.system || undefined,
-        });
+        if (written?.isRowGone) {
+          await DiscoveredResourceIdCache.forget({
+            namespace: DiscoveredResourceKinds.DatabaseServer.namespace,
+            key: row.cacheKey,
+            id: row.id,
+          });
+
+          row = await resolveRow();
+
+          if (!row) {
+            return null;
+          }
+
+          if (await this.shouldRunMaintenance("database-server", row.id)) {
+            armedFences.push({ scope: "database-server", id: row.id });
+            await heartbeat(new ObjectID(row.id));
+          }
+        }
+
         await this.promoteOneuptimeLabelsToDatabaseServer({
           projectId: data.projectId,
-          databaseServerId,
+          databaseServerId: new ObjectID(row.id),
           attributes: data.attributes,
         });
       }
 
-      return databaseServerId;
+      return new ObjectID(row.id);
     } catch (err) {
       await this.releaseMaintenanceFences(armedFences);
       logger.error(
@@ -3440,20 +3785,21 @@ export default abstract class OtelIngestBaseService {
     linkedDatabaseServerId: string;
     endpoint: DatabaseEndpoint | null;
     endpointIsStable: boolean;
-  }): Promise<string | null> {
+  }): Promise<CachedDatabaseServerId | null> {
+    const namespace: string = DiscoveredResourceKinds.DatabaseServer.namespace;
     const cacheKey: string = `${data.projectId.toString()}:id:${
       data.linkedDatabaseServerId
     }:${data.endpoint ? formatDatabaseEndpoint(data.endpoint) : "-"}`;
 
     const cachedId: string | null = await this.getEntityIdFromCaches(
-      this.DATABASE_SERVER_ID_CACHE_NAMESPACE,
+      namespace,
       cacheKey,
     );
     if (cachedId) {
-      return cachedId;
+      return { id: cachedId, cacheKey: cacheKey };
     }
 
-    const unresolvedKey: string = `${this.DATABASE_SERVER_ID_CACHE_NAMESPACE}:${cacheKey}`;
+    const unresolvedKey: string = `${namespace}:${cacheKey}`;
     if (this.unresolvedDatabaseServerMemo.get(unresolvedKey)) {
       return null;
     }
@@ -3485,14 +3831,14 @@ export default abstract class OtelIngestBaseService {
      */
     if (claimSettled) {
       await this.setEntityIdInCaches(
-        this.DATABASE_SERVER_ID_CACHE_NAMESPACE,
+        namespace,
         cacheKey,
         databaseServerIdStr,
-        this.DATABASE_SERVER_ID_CACHE_EXPIRY_SECONDS,
+        DiscoveredResourceKinds.DatabaseServer.expiresInSeconds,
       );
     }
 
-    return databaseServerIdStr;
+    return { id: databaseServerIdStr, cacheKey: cacheKey };
   }
 
   /*
@@ -3560,17 +3906,18 @@ export default abstract class OtelIngestBaseService {
     resolved: DatabaseServerResourceResolution;
     endpoint: DatabaseEndpoint;
     collector: DatabaseServerCollectorReport;
-  }): Promise<string | null> {
+  }): Promise<CachedDatabaseServerId | null> {
+    const namespace: string = DiscoveredResourceKinds.DatabaseServer.namespace;
     const cacheKey: string = `${data.projectId.toString()}:${formatDatabaseEndpoint(
       data.endpoint,
     )}`;
 
     const cachedId: string | null = await this.getEntityIdFromCaches(
-      this.DATABASE_SERVER_ID_CACHE_NAMESPACE,
+      namespace,
       cacheKey,
     );
     if (cachedId) {
-      return cachedId;
+      return { id: cachedId, cacheKey: cacheKey };
     }
 
     const allowCreate: boolean = data.resolved.allowCreate === true;
@@ -3581,7 +3928,7 @@ export default abstract class OtelIngestBaseService {
      * context) must not be turned away by it, so the answer is memoed per
      * permission.
      */
-    const unresolvedKey: string = `${this.DATABASE_SERVER_ID_CACHE_NAMESPACE}:${cacheKey}:${
+    const unresolvedKey: string = `${namespace}:${cacheKey}:${
       allowCreate ? "create" : "join"
     }`;
     if (this.unresolvedDatabaseServerMemo.get(unresolvedKey)) {
@@ -3607,13 +3954,13 @@ export default abstract class OtelIngestBaseService {
     const databaseServerIdStr: string = databaseServer._id.toString();
 
     await this.setEntityIdInCaches(
-      this.DATABASE_SERVER_ID_CACHE_NAMESPACE,
+      namespace,
       cacheKey,
       databaseServerIdStr,
-      this.DATABASE_SERVER_ID_CACHE_EXPIRY_SECONDS,
+      DiscoveredResourceKinds.DatabaseServer.expiresInSeconds,
     );
 
-    return databaseServerIdStr;
+    return { id: databaseServerIdStr, cacheKey: cacheKey };
   }
 
   /*
@@ -3653,11 +4000,6 @@ export default abstract class OtelIngestBaseService {
       );
     }
   }
-
-  private static readonly RUM_APPLICATION_ID_CACHE_NAMESPACE: string =
-    "rum-application-id";
-  private static readonly RUM_APPLICATION_ID_CACHE_EXPIRY_SECONDS: number =
-    24 * 60 * 60; // 1 day
 
   /*
    * Classify a batch as browser- or mobile-RUM from its resource
@@ -3754,33 +4096,24 @@ export default abstract class OtelIngestBaseService {
         return null;
       }
 
-      const cacheKey: string = `${data.projectId.toString()}:${appIdentifier}`;
-      let appIdStr: string | null = await this.getEntityIdFromCaches(
-        this.RUM_APPLICATION_ID_CACHE_NAMESPACE,
-        cacheKey,
-      );
+      const appIdStr: string | null = await this.resolveDiscoveredResourceId({
+        kindName: "RumApplication",
+        projectId: data.projectId,
+        identity: appIdentifier,
+      });
 
       if (!appIdStr) {
-        const rumApplication: RumApplication =
-          await RumApplicationService.findOrCreateByAppIdentifier({
-            projectId: data.projectId,
-            appIdentifier,
-          });
-        if (rumApplication._id) {
-          appIdStr = rumApplication._id.toString();
-          await this.setEntityIdInCaches(
-            this.RUM_APPLICATION_ID_CACHE_NAMESPACE,
-            cacheKey,
-            appIdStr,
-            this.RUM_APPLICATION_ID_CACHE_EXPIRY_SECONDS,
-          );
-        }
+        return null;
       }
 
-      if (appIdStr) {
-        const rumApplicationId: ObjectID = new ObjectID(appIdStr);
-        if (await this.shouldRunMaintenance("rum-application", appIdStr)) {
-          armedFences.push({ scope: "rum-application", id: appIdStr });
+      let liveIdStr: string | null = await this.maintainDiscoveredResource({
+        kind: DiscoveredResourceKinds.RumApplication,
+        id: appIdStr,
+        fenceScope: "rum-application",
+        armedFences: armedFences,
+        heartbeat: async (
+          rumApplicationId: ObjectID,
+        ): Promise<ResourceHeartbeatResult> => {
           const agentVersion: string | null =
             this.getStringAttribute(data.attributes, "telemetry.sdk.version") ||
             this.getStringAttribute(data.attributes, "oneuptime.agent.version");
@@ -3788,44 +4121,54 @@ export default abstract class OtelIngestBaseService {
             data.attributes,
             "telemetry.sdk.language",
           );
-          await RumApplicationService.updateLastSeen(rumApplicationId, {
+          return await RumApplicationService.updateLastSeen(rumApplicationId, {
             agentVersion: agentVersion || undefined,
             clientType: clientType || undefined,
             sdkLanguage: sdkLanguage || undefined,
           });
+        },
+        promoteLabels: async (rumApplicationId: ObjectID): Promise<void> => {
           await this.promoteOneuptimeLabelsToRumApplication({
             projectId: data.projectId,
             rumApplicationId,
             attributes: data.attributes,
           });
-        }
+        },
+      });
 
-        // Live inventory: record this client platform (coarse, not per-device).
-        const clientName: string | null =
-          this.getStringAttribute(data.attributes, "browser.platform") ||
-          this.getStringAttribute(data.attributes, "device.model.identifier");
-        if (
-          clientName &&
-          (await this.shouldRunMaintenance(
-            "rum-client",
-            `${appIdStr}:${clientName}`,
-          ))
-        ) {
-          armedFences.push({
-            scope: "rum-client",
-            id: `${appIdStr}:${clientName}`,
-          });
-          await RumApplicationClientService.recordClient({
-            projectId: data.projectId,
-            rumApplicationId,
-            clientName,
-            clientType: clientType || undefined,
-          });
-        }
-        return rumApplicationId;
+      if (!liveIdStr) {
+        return null;
       }
 
-      return null;
+      // Live inventory: record this client platform (coarse, not per-device).
+      const clientName: string | null =
+        this.getStringAttribute(data.attributes, "browser.platform") ||
+        this.getStringAttribute(data.attributes, "device.model.identifier");
+      if (
+        clientName &&
+        (await this.shouldRunMaintenance(
+          "rum-client",
+          `${liveIdStr}:${clientName}`,
+        ))
+      ) {
+        armedFences.push({
+          scope: "rum-client",
+          id: `${liveIdStr}:${clientName}`,
+        });
+        liveIdStr = await this.writeForDiscoveredResource({
+          kind: DiscoveredResourceKinds.RumApplication,
+          id: liveIdStr,
+          write: async (rumApplicationId: ObjectID): Promise<void> => {
+            await RumApplicationClientService.recordClient({
+              projectId: data.projectId,
+              rumApplicationId,
+              clientName,
+              clientType: clientType || undefined,
+            });
+          },
+        });
+      }
+      return new ObjectID(liveIdStr);
     } catch (err) {
       await this.releaseMaintenanceFences(armedFences);
       logger.error(
@@ -4103,16 +4446,6 @@ export default abstract class OtelIngestBaseService {
     );
   }
 
-  private static readonly DOCKER_HOST_ID_CACHE_NAMESPACE: string =
-    "docker-host-id";
-  private static readonly DOCKER_HOST_ID_CACHE_EXPIRY_SECONDS: number =
-    24 * 60 * 60; // 1 day
-
-  private static readonly PODMAN_HOST_ID_CACHE_NAMESPACE: string =
-    "podman-host-id";
-  private static readonly PODMAN_HOST_ID_CACHE_EXPIRY_SECONDS: number =
-    24 * 60 * 60; // 1 day
-
   @CaptureSpan()
   protected static async autoDiscoverDockerHost(data: {
     projectId: ObjectID;
@@ -4136,66 +4469,56 @@ export default abstract class OtelIngestBaseService {
         return null;
       }
 
-      const osType: string | null = this.getStringAttribute(
-        data.attributes,
-        "os.type",
-      );
-      const osVersion: string | null =
-        this.getStringAttribute(data.attributes, "os.description") ||
-        this.getStringAttribute(data.attributes, "os.version");
-
-      const cacheKey: string = `${data.projectId.toString()}:${hostName}`;
-      let hostIdStr: string | null = await this.getEntityIdFromCaches(
-        this.DOCKER_HOST_ID_CACHE_NAMESPACE,
-        cacheKey,
-      );
+      const hostIdStr: string | null = await this.resolveDiscoveredResourceId({
+        kindName: "DockerHost",
+        projectId: data.projectId,
+        identity: hostName,
+      });
 
       if (!hostIdStr) {
-        const host: DockerHost =
-          await DockerHostService.findOrCreateByHostIdentifier({
-            projectId: data.projectId,
-            hostIdentifier: hostName,
-          });
-
-        if (host._id) {
-          hostIdStr = host._id.toString();
-          await this.setEntityIdInCaches(
-            this.DOCKER_HOST_ID_CACHE_NAMESPACE,
-            cacheKey,
-            hostIdStr,
-            this.DOCKER_HOST_ID_CACHE_EXPIRY_SECONDS,
-          );
-        }
+        return null;
       }
 
-      if (hostIdStr) {
-        const dockerHostId: ObjectID = new ObjectID(hostIdStr);
-        /*
-         * Same fence rationale as the Kubernetes path — skip the
-         * per-batch maintenance UPDATE + label upsert when we
-         * already ran it within the fence window.
-         */
-        if (await this.shouldRunMaintenance("docker-host", hostIdStr)) {
-          armedFences.push({ scope: "docker-host", id: hostIdStr });
+      /*
+       * Same fence rationale as the Kubernetes path — skip the
+       * per-batch maintenance UPDATE + label upsert when we
+       * already ran it within the fence window.
+       */
+      const liveIdStr: string | null = await this.maintainDiscoveredResource({
+        kind: DiscoveredResourceKinds.DockerHost,
+        id: hostIdStr,
+        fenceScope: "docker-host",
+        armedFences: armedFences,
+        heartbeat: async (
+          hostId: ObjectID,
+        ): Promise<ResourceHeartbeatResult> => {
+          const osType: string | null = this.getStringAttribute(
+            data.attributes,
+            "os.type",
+          );
+          const osVersion: string | null =
+            this.getStringAttribute(data.attributes, "os.description") ||
+            this.getStringAttribute(data.attributes, "os.version");
           const agentVersion: string | null = this.getStringAttribute(
             data.attributes,
             "oneuptime.agent.version",
           );
-          await DockerHostService.updateLastSeen(dockerHostId, {
+          return await DockerHostService.updateLastSeen(hostId, {
             osType: osType || undefined,
             osVersion: osVersion || undefined,
             agentVersion: agentVersion || undefined,
           });
+        },
+        promoteLabels: async (hostId: ObjectID): Promise<void> => {
           await this.promoteOneuptimeLabelsToDockerHost({
             projectId: data.projectId,
-            dockerHostId,
+            dockerHostId: hostId,
             attributes: data.attributes,
           });
-        }
-        return dockerHostId;
-      }
+        },
+      });
 
-      return null;
+      return liveIdStr ? new ObjectID(liveIdStr) : null;
     } catch (err) {
       await this.releaseMaintenanceFences(armedFences);
       logger.error(
@@ -4268,66 +4591,56 @@ export default abstract class OtelIngestBaseService {
         return null;
       }
 
-      const osType: string | null = this.getStringAttribute(
-        data.attributes,
-        "os.type",
-      );
-      const osVersion: string | null =
-        this.getStringAttribute(data.attributes, "os.description") ||
-        this.getStringAttribute(data.attributes, "os.version");
-
-      const cacheKey: string = `${data.projectId.toString()}:${hostName}`;
-      let hostIdStr: string | null = await this.getEntityIdFromCaches(
-        this.PODMAN_HOST_ID_CACHE_NAMESPACE,
-        cacheKey,
-      );
+      const hostIdStr: string | null = await this.resolveDiscoveredResourceId({
+        kindName: "PodmanHost",
+        projectId: data.projectId,
+        identity: hostName,
+      });
 
       if (!hostIdStr) {
-        const host: PodmanHost =
-          await PodmanHostService.findOrCreateByHostIdentifier({
-            projectId: data.projectId,
-            hostIdentifier: hostName,
-          });
-
-        if (host._id) {
-          hostIdStr = host._id.toString();
-          await this.setEntityIdInCaches(
-            this.PODMAN_HOST_ID_CACHE_NAMESPACE,
-            cacheKey,
-            hostIdStr,
-            this.PODMAN_HOST_ID_CACHE_EXPIRY_SECONDS,
-          );
-        }
+        return null;
       }
 
-      if (hostIdStr) {
-        const podmanHostId: ObjectID = new ObjectID(hostIdStr);
-        /*
-         * Same fence rationale as the Kubernetes path — skip the
-         * per-batch maintenance UPDATE + label upsert when we
-         * already ran it within the fence window.
-         */
-        if (await this.shouldRunMaintenance("podman-host", hostIdStr)) {
-          armedFences.push({ scope: "podman-host", id: hostIdStr });
+      /*
+       * Same fence rationale as the Kubernetes path — skip the
+       * per-batch maintenance UPDATE + label upsert when we
+       * already ran it within the fence window.
+       */
+      const liveIdStr: string | null = await this.maintainDiscoveredResource({
+        kind: DiscoveredResourceKinds.PodmanHost,
+        id: hostIdStr,
+        fenceScope: "podman-host",
+        armedFences: armedFences,
+        heartbeat: async (
+          hostId: ObjectID,
+        ): Promise<ResourceHeartbeatResult> => {
+          const osType: string | null = this.getStringAttribute(
+            data.attributes,
+            "os.type",
+          );
+          const osVersion: string | null =
+            this.getStringAttribute(data.attributes, "os.description") ||
+            this.getStringAttribute(data.attributes, "os.version");
           const agentVersion: string | null = this.getStringAttribute(
             data.attributes,
             "oneuptime.agent.version",
           );
-          await PodmanHostService.updateLastSeen(podmanHostId, {
+          return await PodmanHostService.updateLastSeen(hostId, {
             osType: osType || undefined,
             osVersion: osVersion || undefined,
             agentVersion: agentVersion || undefined,
           });
+        },
+        promoteLabels: async (hostId: ObjectID): Promise<void> => {
           await this.promoteOneuptimeLabelsToPodmanHost({
             projectId: data.projectId,
-            podmanHostId,
+            podmanHostId: hostId,
             attributes: data.attributes,
           });
-        }
-        return podmanHostId;
-      }
+        },
+      });
 
-      return null;
+      return liveIdStr ? new ObjectID(liveIdStr) : null;
     } catch (err) {
       await this.releaseMaintenanceFences(armedFences);
       logger.error(
@@ -4376,9 +4689,6 @@ export default abstract class OtelIngestBaseService {
       );
     }
   }
-
-  private static readonly HOST_ID_CACHE_NAMESPACE: string = "host-id";
-  private static readonly HOST_ID_CACHE_EXPIRY_SECONDS: number = 24 * 60 * 60; // 1 day
 
   /**
    * Auto-discover a Host (generic OTel host) from resource attributes.
@@ -4523,39 +4833,31 @@ export default abstract class OtelIngestBaseService {
         return null;
       }
 
-      const cacheKey: string = `${data.projectId.toString()}:${hostName}`;
-      let hostIdStr: string | null = await this.getEntityIdFromCaches(
-        this.HOST_ID_CACHE_NAMESPACE,
-        cacheKey,
-      );
+      const hostIdStr: string | null = await this.resolveDiscoveredResourceId({
+        kindName: "Host",
+        projectId: data.projectId,
+        identity: hostName,
+      });
 
       if (!hostIdStr) {
-        const host: Host = await HostService.findOrCreateByHostIdentifier({
-          projectId: data.projectId,
-          hostIdentifier: hostName,
-        });
-
-        if (host._id) {
-          hostIdStr = host._id.toString();
-          await this.setEntityIdInCaches(
-            this.HOST_ID_CACHE_NAMESPACE,
-            cacheKey,
-            hostIdStr,
-            this.HOST_ID_CACHE_EXPIRY_SECONDS,
-          );
-        }
+        return null;
       }
 
-      if (hostIdStr) {
-        /*
-         * Same fence rationale as the K8s / Docker paths — bound the
-         * per-batch updateLastSeen UPDATE to one Postgres write per
-         * (host, fence-window). Host's update includes infra stats
-         * (cpu/memory/process counts) but those are sampled over
-         * minutes, so a 5-minute stale window is acceptable.
-         */
-        if (await this.shouldRunMaintenance("host", hostIdStr)) {
-          armedFences.push({ scope: "host", id: hostIdStr });
+      /*
+       * Same fence rationale as the K8s / Docker paths — bound the
+       * per-batch updateLastSeen UPDATE to one Postgres write per
+       * (host, fence-window). Host's update includes infra stats
+       * (cpu/memory/process counts) but those are sampled over
+       * minutes, so a 5-minute stale window is acceptable.
+       */
+      const liveIdStr: string | null = await this.maintainDiscoveredResource({
+        kind: DiscoveredResourceKinds.Host,
+        id: hostIdStr,
+        fenceScope: "host",
+        armedFences: armedFences,
+        heartbeat: async (
+          hostId: ObjectID,
+        ): Promise<ResourceHeartbeatResult> => {
           const agentVersion: string | null = this.getStringAttribute(
             data.attributes,
             "oneuptime.agent.version",
@@ -4590,28 +4892,34 @@ export default abstract class OtelIngestBaseService {
             data.attributes,
             "cloud.account.id",
           );
-          await HostService.updateLastSeen(new ObjectID(hostIdStr), {
-            osType: osType || undefined,
-            osVersion: osVersion || undefined,
-            hostId: hostIdAttr || undefined,
-            hostArch: hostArch || undefined,
-            hostType: hostType || undefined,
-            hostIpAddresses: hostIpJoined || undefined,
-            cpuCores: data.cpuCores,
-            totalMemoryBytes: data.totalMemoryBytes,
-            processCount: data.processCount,
-            containerRuntime: containerRuntime || undefined,
-            dockerHostId: data.dockerHostId || undefined,
-            kubernetesClusterId: data.kubernetesClusterId || undefined,
-            agentVersion: agentVersion || undefined,
-            deploymentEnvironment: deploymentEnvironment || undefined,
-            runtimeName: runtimeName || undefined,
-            runtimeVersion: runtimeVersion || undefined,
-            cloudProvider: cloudProvider || undefined,
-            cloudPlatform: cloudPlatform || undefined,
-            cloudRegion: cloudRegion || undefined,
-            cloudAccountId: cloudAccountId || undefined,
-          });
+          const heartbeat: ResourceHeartbeatResult =
+            await HostService.updateLastSeen(hostId, {
+              osType: osType || undefined,
+              osVersion: osVersion || undefined,
+              hostId: hostIdAttr || undefined,
+              hostArch: hostArch || undefined,
+              hostType: hostType || undefined,
+              hostIpAddresses: hostIpJoined || undefined,
+              cpuCores: data.cpuCores,
+              totalMemoryBytes: data.totalMemoryBytes,
+              processCount: data.processCount,
+              containerRuntime: containerRuntime || undefined,
+              dockerHostId: data.dockerHostId || undefined,
+              kubernetesClusterId: data.kubernetesClusterId || undefined,
+              agentVersion: agentVersion || undefined,
+              deploymentEnvironment: deploymentEnvironment || undefined,
+              runtimeName: runtimeName || undefined,
+              runtimeVersion: runtimeVersion || undefined,
+              cloudProvider: cloudProvider || undefined,
+              cloudPlatform: cloudPlatform || undefined,
+              cloudRegion: cloudRegion || undefined,
+              cloudAccountId: cloudAccountId || undefined,
+            });
+
+          if (heartbeat?.isRowGone) {
+            return heartbeat;
+          }
+
           /*
            * Proxmox guest cross-link heuristic (best-effort): when this
            * host's identifier matches a ProxmoxResource guest name in
@@ -4622,14 +4930,15 @@ export default abstract class OtelIngestBaseService {
            */
           await this.tryLinkHostToProxmoxGuest({
             projectId: data.projectId,
-            hostId: new ObjectID(hostIdStr),
+            hostId: hostId,
             hostName,
           });
-        }
-        return new ObjectID(hostIdStr);
-      }
 
-      return null;
+          return heartbeat;
+        },
+      });
+
+      return liveIdStr ? new ObjectID(liveIdStr) : null;
     } catch (err) {
       await this.releaseMaintenanceFences(armedFences);
       logger.error("Error auto-discovering Host: " + (err as Error).message);
