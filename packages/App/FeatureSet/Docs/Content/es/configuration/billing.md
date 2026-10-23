@@ -24,7 +24,7 @@ flowchart TB
 | Qué | Cómo se cobra |
 | --- | --- |
 | El plan | Un precio por usuario y mes, facturado mensual o anualmente. Cada persona del proyecto es un asiento. |
-| Telemetría | $0.10 por GB ingerido, con 15 días de retención. Una retención más larga cuesta más: consulte [Lo que cuesta la retención](/docs/telemetry/data-retention#lo-que-cuesta-la-retención). |
+| Telemetría | $0.10 por GB ingerido, con 15 días de retención. Una retención más larga cuesta más, y una retención de menos de 7 días se factura como 7 días: consulte [Lo que cuesta la retención](/docs/telemetry/data-retention#lo-que-cuesta-la-retención). |
 | Session Replays | $2 por GB, con 15 días de retención. |
 | Monitores activos | $1 por monitor y mes. Todo monitor salvo uno manual está activo, incluso mientras está desactivado. |
 | SMS, llamadas, WhatsApp y Telegram | Se pagan con el saldo del proyecto a medida que se envía cada mensaje. |

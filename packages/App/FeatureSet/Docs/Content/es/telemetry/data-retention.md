@@ -96,7 +96,7 @@ Los servicios, los hosts, los clústeres de Kubernetes, los hosts de Docker y Po
 
 ## Lo que cuesta la retención
 
-- **En OneUptime Cloud**, la telemetría se factura por GB ingerido, y el precio por GB incluye 15 días de retención. Una retención más larga cuesta proporcionalmente más: 30 días cuestan el doble por GB que 15. **Ajustes del proyecto → Facturación y facturas → Historial de uso** muestra, día a día, cuánto envió cada servicio y cuánto tiempo se conserva.
+- **En OneUptime Cloud**, la telemetría se factura por GB ingerido, y el precio por GB incluye 15 días de retención. Una retención más larga cuesta proporcionalmente más: 30 días cuestan el doble por GB que 15. Una retención más corta cuesta proporcionalmente menos, pero una retención de menos de 7 días se factura como 7 días. **Ajustes del proyecto → Facturación y facturas → Historial de uso** muestra, día a día, cuánto envió cada servicio y cuánto tiempo se conserva.
 - **Si usa autoalojamiento**, la telemetría vive en ClickHouse, y la retención multiplica su disco. Consulte [Dimensionamiento](/docs/installation/sizing#la-retención-y-cómo-afecta-al-almacenamiento).
 
 La telemetría que no necesita no cuesta nada si nunca se guarda: los [Filtros de descarte y reglas de depuración](/docs/telemetry/drop-filters-and-scrub-rules) la descartan al llegar.

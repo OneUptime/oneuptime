@@ -96,7 +96,7 @@ Les services, les hôtes, les clusters Kubernetes, les hôtes Docker et Podman, 
 
 ## Ce que coûte la rétention
 
-- **Sur OneUptime Cloud**, la télémétrie est facturée par Go ingéré, et le prix par Go inclut 15 jours de rétention. Une rétention plus longue coûte proportionnellement plus : 30 jours coûtent deux fois plus par Go que 15. **Paramètres du projet → Facturation et factures → Historique d'utilisation** montre, jour par jour, combien chaque service a envoyé et combien de temps c'est conservé.
+- **Sur OneUptime Cloud**, la télémétrie est facturée par Go ingéré, et le prix par Go inclut 15 jours de rétention. Une rétention plus longue coûte proportionnellement plus : 30 jours coûtent deux fois plus par Go que 15. Une rétention plus courte coûte proportionnellement moins, mais une rétention de moins de 7 jours est facturée comme 7 jours. **Paramètres du projet → Facturation et factures → Historique d'utilisation** montre, jour par jour, combien chaque service a envoyé et combien de temps c'est conservé.
 - **En auto-hébergement**, la télémétrie vit dans ClickHouse, et la rétention multiplie son disque. Voir [Dimensionnement](/docs/installation/sizing#la-rétention-et-son-effet-sur-le-stockage).
 
 La télémétrie dont vous n'avez pas besoin ne coûte rien si elle n'est jamais stockée : les [Filtres de suppression et règles de masquage](/docs/telemetry/drop-filters-and-scrub-rules) la jettent à son arrivée.
