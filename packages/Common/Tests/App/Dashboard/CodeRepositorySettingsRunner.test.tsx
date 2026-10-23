@@ -19,10 +19,13 @@ import React, { ReactElement } from "react";
  *     since empty is Global Runner - and it writes the Runner's id, or
  *     nothing for Global Runner;
  *   - the card says what the repository runs on
- *     (CodeRepositoryRunnerValue), under its own title alone;
+ *     (CodeRepositoryRunnerValueView, from the Runner choices the page
+ *     read once for the card and for More settings' folded header), under
+ *     its own title alone;
  *   - a Runner's page lists the repositories that pick it in its Runner
  *     Details, where the "Runs AI Code Fixes" switch was, each linked to
- *     the repository's settings - or says none does, and where a
+ *     the repository's settings at its Runner (#runner: More settings, where
+ *     the Runner is, opens there) - or says none does, and where a
  *     repository picks its Runner.
  */
 
@@ -64,7 +67,7 @@ import CodeRepositorySettings from "../../../../App/FeatureSet/Dashboard/src/Pag
 import {
   CodeRepositoryRunnerCopy,
   CodeRepositoryRunnerPicker,
-  CodeRepositoryRunnerValue,
+  CodeRepositoryRunnerValueView,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeRepositoryRunner";
 import RunnerCodeRepositoryList, {
   MAX_LISTED_CODE_REPOSITORIES,
@@ -74,6 +77,9 @@ import RunnerCodeRepositoryList, {
   loadRunnerCodeRepositories,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerCodeRepositories";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
+import RunnerChoicesLoader, {
+  RunnerChoices,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerChoices";
 import CodeRepository from "../../../Models/DatabaseModels/CodeRepository";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import ObjectID from "../../../Types/ObjectID";
@@ -117,6 +123,14 @@ beforeEach(() => {
   jest
     .spyOn(ProjectUtil, "getCurrentProjectId")
     .mockReturnValue(new ObjectID(PROJECT_ID));
+  /*
+   * The page reads the Runner choices once, for the card and for More
+   * settings' folded header: left on their way here (the card's value is
+   * drawn from them, null until they arrive).
+   */
+  jest
+    .spyOn(RunnerChoicesLoader, "loadForCodeRepository")
+    .mockReturnValue(new Promise<RunnerChoices>(() => {}));
 });
 
 afterEach(() => {
@@ -206,9 +220,15 @@ describe("a repository's settings: its Runner", () => {
 
     const element: ReactElement = runner!.getElement!(item);
 
-    expect(element.type).toBe(CodeRepositoryRunnerValue);
+    /*
+     * Drawn from the choices the page read (null while they are on their
+     * way): one read for the card and for what More settings says of the
+     * Runner while it is folded.
+     */
+    expect(element.type).toBe(CodeRepositoryRunnerValueView);
     expect(String(element.props.runnerId)).toBe(RUNNER_ID);
-    expect(Object.keys(element.props)).toEqual(["runnerId"]);
+    expect(Object.keys(element.props).sort()).toEqual(["choices", "runnerId"]);
+    expect(element.props.choices).toBeNull();
   });
 });
 
@@ -276,7 +296,7 @@ describe("a Runner's page: the repositories that pick it", () => {
     );
   });
 
-  test("each repository that picks it, linked to the repository's settings", () => {
+  test("each repository that picks it, linked to the repository's settings at its Runner", () => {
     render(
       <RunnerCodeRepositoryList
         repositories={[
@@ -298,7 +318,7 @@ describe("a Runner's page: the repositories that pick it", () => {
     expect(links[0]).toHaveTextContent("checkout");
     expect(links[0]).toHaveAttribute(
       "href",
-      `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/settings`,
+      `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/settings#runner`,
     );
     expect(links[1]).toHaveTextContent("web-app");
     expect(

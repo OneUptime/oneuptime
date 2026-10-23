@@ -1,17 +1,34 @@
 import "@testing-library/jest-dom";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";
-import React from "react";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import React, { ReactElement } from "react";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { computeAccessibleDescription } from "dom-accessibility-api";
 import AdvancedPageSection, {
   ADVANCED_PAGE_SECTION_SECTIONS_TEST_ID,
   ADVANCED_PAGE_SECTION_TEST_ID,
+  getAnchoredItemKey,
 } from "../../../UI/Components/AdvancedPageSection/AdvancedPageSection";
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import Card from "../../../UI/Components/Card/Card";
-import { foldedSectionItem } from "../../../UI/Components/FoldedSection/FoldedSectionItem";
+import {
+  FoldedSectionItem,
+  foldedSectionItem,
+} from "../../../UI/Components/FoldedSection/FoldedSectionItem";
+import {
+  PAGE_ANCHOR_FOCUSED_ATTRIBUTE,
+  PAGE_ANCHOR_LANDED_ATTRIBUTE,
+  PAGE_ANCHOR_SCROLL_MARGIN_TOP,
+  PAGE_ANCHOR_SECTION_SCROLL_MARGIN_TOP,
+} from "../../../UI/Utils/PageAnchor";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
   MORE_FIELDS_SECTION_TITLE,
@@ -26,7 +43,9 @@ import {
  * when the maintainer asked for "something better - like 'more'", and to
  * "show what things are inside it when collapsed". Pinned here:
  *
- *   - it is called More settings, and starts folded;
+ *   - it is called More settings, and starts folded - unless the page's
+ *     address names one of its cards ("#runner"): then it is open from the
+ *     first paint and brings that card into view;
  *   - folded, the cards in it stay mounted (they load, and can say what they
  *     hold) but are out of sight, the tab order and screen readers;
  *   - folded, its header names the cards in it, and draws the set ones as
@@ -538,5 +557,340 @@ describe("AdvancedPageSection", () => {
 
     expect(screen.getByTestId("api-key-advanced-section")).toBeInTheDocument();
     expect(screen.queryByTestId(ADVANCED_PAGE_SECTION_TEST_ID)).toBeNull();
+  });
+});
+
+/*
+ * A link can land on a card in More settings: a repository's "Pick a
+ * Runner" opens ".../settings#runner", and the Runner is folded under More
+ * settings there ("GitHub commands and runner should be inside of more
+ * settings as well" - the maintainer). The section opens by itself when the
+ * page's address names one of its items after the "#" (UI/Utils/
+ * PageAnchor), at once - never drawn folded first - and brings the card
+ * whose id is that key into view, its divider right under the sticky
+ * header; a card with no id of its own, the section itself. The card the
+ * link was for is tinted for a moment and holds the keyboard's focus, so
+ * the eye and Tab find it first. Folded by hand, it stays folded.
+ */
+describe("opens by itself at a card the page's address names", () => {
+  // What scrollIntoView was asked of, in order (jsdom has none of its own).
+  const scrolled: Array<Element> = [];
+  const originalScrollIntoView: unknown = (
+    Element.prototype as unknown as Record<string, unknown>
+  )["scrollIntoView"];
+
+  beforeEach(() => {
+    scrolled.length = 0;
+    (Element.prototype as unknown as Record<string, unknown>)[
+      "scrollIntoView"
+    ] = function (this: Element): void {
+      scrolled.push(this);
+    };
+  });
+
+  afterEach(() => {
+    window.history.replaceState(null, "", window.location.pathname);
+
+    if (originalScrollIntoView === undefined) {
+      delete (Element.prototype as unknown as Record<string, unknown>)[
+        "scrollIntoView"
+      ];
+    } else {
+      (Element.prototype as unknown as Record<string, unknown>)[
+        "scrollIntoView"
+      ] = originalScrollIntoView;
+    }
+  });
+
+  const ITEMS: Array<FoldedSectionItem> = [
+    foldedSectionItem("Investigation rules", { key: "investigation-rules" }),
+    foldedSectionItem("Daily limits", { key: "daily-limits" }),
+  ];
+
+  function Section(props: {
+    items?: Array<FoldedSectionItem> | undefined;
+    // The cards' ids; left out, the cards have none.
+    withIds?: boolean | undefined;
+  }): ReactElement {
+    return (
+      <AdvancedPageSection
+        description="Which incidents are investigated, and limits."
+        items={props.items || ITEMS}
+      >
+        <Card
+          title="Investigation rules"
+          id={props.withIds === false ? undefined : "investigation-rules"}
+        >
+          <div>rules</div>
+        </Card>
+        <Card
+          title="Daily limits"
+          id={props.withIds === false ? undefined : "daily-limits"}
+          buttons={[
+            {
+              title: "Change limits",
+              buttonStyle: ButtonStyleType.NORMAL,
+              icon: IconProp.Edit,
+              onClick: (): void => {
+                // Nothing to change here.
+              },
+            },
+          ]}
+        >
+          <div>daily</div>
+        </Card>
+      </AdvancedPageSection>
+    );
+  }
+
+  // Lets the frame in which a card is brought into view be drawn.
+  async function nextFrames(): Promise<void> {
+    await act(async () => {
+      await new Promise((resolve: (value: unknown) => void) => {
+        setTimeout(resolve, 50);
+      });
+    });
+  }
+
+  test("opened at an item's key, it is open from the first paint, and that card is brought into view", async () => {
+    window.history.replaceState(null, "", "#daily-limits");
+
+    render(<Section />);
+
+    // Never drawn folded first.
+    expect(header()).toHaveAttribute("aria-expanded", "true");
+    expect(body()).not.toHaveClass("invisible");
+
+    await waitFor(() => {
+      expect(scrolled).toEqual([document.getElementById("daily-limits")]);
+    });
+    /*
+     * The card - a section of this one card - lands with its divider right
+     * under the sticky header: its own padding is the room above its title.
+     */
+    expect(document.getElementById("daily-limits")!.style.scrollMarginTop).toBe(
+      PAGE_ANCHOR_SECTION_SCROLL_MARGIN_TOP,
+    );
+  });
+
+  test("the card a link lands on is marked among the others, and holds the keyboard's focus so Tab goes on from it", async () => {
+    window.history.replaceState(null, "", "#daily-limits");
+
+    render(<Section />);
+
+    const landed: HTMLElement = document.getElementById("daily-limits")!;
+    const other: HTMLElement = document.getElementById("investigation-rules")!;
+
+    expect(landed).toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE, "true");
+    expect(other).not.toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE);
+
+    // A card is no control: it takes the focus for as long as it holds it.
+    expect(document.activeElement).toBe(landed);
+    expect(landed).toHaveAttribute("tabindex", "-1");
+    expect(landed).toHaveAttribute(PAGE_ANCHOR_FOCUSED_ATTRIBUTE, "true");
+
+    // Tab goes on to the card's own controls; the card is out of the order.
+    const user: UserEvent = userEvent.setup({ delay: null });
+    const button: HTMLElement = within(landed).getByRole("button", {
+      name: "Change limits",
+    });
+    await user.tab();
+    expect(document.activeElement).toBe(button);
+    expect(landed).not.toHaveAttribute("tabindex");
+    expect(landed).not.toHaveAttribute(PAGE_ANCHOR_FOCUSED_ATTRIBUTE);
+  });
+
+  test("a field already holding the focus keeps it; the card is still marked", async () => {
+    const field: HTMLInputElement = document.createElement("input");
+    document.body.appendChild(field);
+    field.focus();
+    window.history.replaceState(null, "", "#daily-limits");
+
+    render(<Section />);
+
+    const landed: HTMLElement = document.getElementById("daily-limits")!;
+
+    expect(landed).toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE, "true");
+    expect(document.activeElement).toBe(field);
+    expect(landed).not.toHaveAttribute("tabindex");
+    expect(landed).not.toHaveAttribute(PAGE_ANCHOR_FOCUSED_ATTRIBUTE);
+
+    field.remove();
+  });
+
+  test("landing on a card with no place of its own marks nothing and takes no focus: nothing in the section is the one", async () => {
+    window.history.replaceState(null, "", "#daily-limits");
+
+    render(<Section withIds={false} />);
+
+    const section: HTMLElement = screen.getByTestId(
+      ADVANCED_PAGE_SECTION_TEST_ID,
+    );
+
+    await waitFor(() => {
+      expect(scrolled).toEqual([section]);
+    });
+    expect(
+      document.querySelectorAll(`[${PAGE_ANCHOR_LANDED_ATTRIBUTE}]`),
+    ).toHaveLength(0);
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  test("a link that lands on another card moves the mark to it; a page that goes away takes it along", async () => {
+    window.history.replaceState(null, "", "#daily-limits");
+
+    const view: ReturnType<typeof render> = render(<Section />);
+
+    const daily: HTMLElement = document.getElementById("daily-limits")!;
+    const rules: HTMLElement = document.getElementById("investigation-rules")!;
+    expect(daily).toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE, "true");
+
+    window.history.replaceState(null, "", "#investigation-rules");
+    view.rerender(<Section />);
+
+    await waitFor(() => {
+      expect(rules).toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE, "true");
+    });
+    expect(daily).not.toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE);
+
+    view.unmount();
+    expect(rules).not.toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE);
+  });
+
+  test("a card with no place of its own: the section itself is brought into view, clear of the header", async () => {
+    window.history.replaceState(null, "", "#daily-limits");
+
+    render(<Section withIds={false} />);
+
+    expect(header()).toHaveAttribute("aria-expanded", "true");
+
+    const section: HTMLElement = screen.getByTestId(
+      ADVANCED_PAGE_SECTION_TEST_ID,
+    );
+
+    await waitFor(() => {
+      expect(scrolled).toEqual([section]);
+    });
+    expect(section.style.scrollMarginTop).toBe(PAGE_ANCHOR_SCROLL_MARGIN_TOP);
+  });
+
+  test("a card of that id elsewhere on the page is not this section's: the section is brought into view, not it", async () => {
+    const elsewhere: HTMLElement = document.createElement("div");
+    elsewhere.id = "daily-limits";
+    document.body.appendChild(elsewhere);
+    window.history.replaceState(null, "", "#daily-limits");
+
+    render(<Section withIds={false} />);
+
+    await waitFor(() => {
+      expect(scrolled).toEqual([
+        screen.getByTestId(ADVANCED_PAGE_SECTION_TEST_ID),
+      ]);
+    });
+
+    elsewhere.remove();
+  });
+
+  test("an address that names none of its items leaves it folded, brings nothing into view, and draws as before", async () => {
+    for (const hash of ["", "#reply", "#Investigation%20rules", "#runner"]) {
+      cleanup();
+      scrolled.length = 0;
+      window.history.replaceState(null, "", hash || window.location.pathname);
+
+      render(<Section />);
+
+      expect({
+        hash,
+        expanded: header().getAttribute("aria-expanded"),
+      }).toEqual({ hash, expanded: "false" });
+      expect(
+        screen.getByTestId(ADVANCED_PAGE_SECTION_TEST_ID).getAttribute("style"),
+      ).toBeNull();
+
+      await nextFrames();
+      expect({ hash, scrolled }).toEqual({ hash, scrolled: [] });
+    }
+  });
+
+  test("an item named by its title alone - a key with a space - is never a place an address can name", async () => {
+    window.history.replaceState(null, "", "#Block%20Permissions");
+
+    renderSection({ items: [foldedSectionItem("Block Permissions")] });
+
+    expect(header()).toHaveAttribute("aria-expanded", "false");
+    await nextFrames();
+    expect(scrolled).toEqual([]);
+  });
+
+  test("an item that arrives later - a card a page names once it has read its record - opens it then", async () => {
+    window.history.replaceState(null, "", "#daily-limits");
+
+    const view: ReturnType<typeof render> = render(
+      <Section items={[ITEMS[0]!]} />,
+    );
+
+    expect(header()).toHaveAttribute("aria-expanded", "false");
+
+    view.rerender(<Section items={ITEMS} />);
+
+    await waitFor(() => {
+      expect(header()).toHaveAttribute("aria-expanded", "true");
+    });
+    await waitFor(() => {
+      expect(scrolled).toEqual([document.getElementById("daily-limits")]);
+    });
+  });
+
+  test("a link on the same page that names one of its items opens it as the page draws again", async () => {
+    const view: ReturnType<typeof render> = render(<Section />);
+
+    expect(header()).toHaveAttribute("aria-expanded", "false");
+
+    window.history.replaceState(null, "", "#investigation-rules");
+    view.rerender(<Section />);
+
+    await waitFor(() => {
+      expect(header()).toHaveAttribute("aria-expanded", "true");
+    });
+    await waitFor(() => {
+      expect(scrolled).toEqual([
+        document.getElementById("investigation-rules"),
+      ]);
+    });
+  });
+
+  test("folded by hand, it stays folded as the page draws again - and opens from its header as ever", async () => {
+    window.history.replaceState(null, "", "#daily-limits");
+
+    const view: ReturnType<typeof render> = render(<Section />);
+    const user: UserEvent = userEvent.setup({ delay: null });
+
+    await user.click(header());
+    expect(header()).toHaveAttribute("aria-expanded", "false");
+
+    view.rerender(<Section />);
+    view.rerender(<Section items={[...ITEMS]} />);
+    expect(header()).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(header());
+    expect(header()).toHaveAttribute("aria-expanded", "true");
+  });
+
+  test("a page that goes away before the frame is drawn brings nothing into view", async () => {
+    window.history.replaceState(null, "", "#daily-limits");
+
+    const view: ReturnType<typeof render> = render(<Section />);
+    view.unmount();
+
+    await nextFrames();
+    expect(scrolled).toEqual([]);
+  });
+
+  test("which item an address names: by key, exactly", () => {
+    expect(getAnchoredItemKey(ITEMS, "daily-limits")).toBe("daily-limits");
+    expect(getAnchoredItemKey(ITEMS, "")).toBe("");
+    expect(getAnchoredItemKey(ITEMS, "daily")).toBe("");
+    expect(getAnchoredItemKey(ITEMS, "Daily-Limits")).toBe("");
+    expect(getAnchoredItemKey([], "daily-limits")).toBe("");
   });
 });

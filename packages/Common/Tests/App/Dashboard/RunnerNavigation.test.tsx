@@ -512,12 +512,13 @@ describe("links elsewhere in the dashboard arrive at the Runbooks pages", () => 
   /*
    * Code says, above a repository's request box, when no Runner is online to
    * do the work - with the one link that fixes it: the repository's own
-   * settings, where its Runner is picked, offered to whoever may change the
-   * repository (everyone else is told who can).
+   * settings, at its Runner (under More settings, which opens there),
+   * offered to whoever may change the repository (everyone else is told who
+   * can).
    */
   describe("Code's notice that no Runner is online", () => {
     const REPOSITORY_ID: string = "7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f";
-    const REPOSITORY_SETTINGS_PATH: string = `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/settings`;
+    const REPOSITORY_SETTINGS_PATH: string = `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/settings#runner`;
 
     // The reader may change the repository, as the permission snapshot says.
     function grantEditRepository(): void {

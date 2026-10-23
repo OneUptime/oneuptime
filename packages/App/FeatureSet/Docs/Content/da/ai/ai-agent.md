@@ -149,7 +149,7 @@ Når ingen tjeneste hører til repositoriet, kører opgaven uden produktionstele
 
 ## Produktionsgennemgang af pull requests
 
-OneUptime ved, hvad din kode gør i produktion, så den kan gennemgå en pull request med det, ingen kan se ved at læse diffen. Slå **Gennemgå pull requests i forhold til produktion** til på et repositories side **Indstillinger** i Kode, så får hver pull request, som en person med skriveadgang åbner eller pusher til, én kommentar, der siger, hvad produktionen viser om den kode, den ændrer. Kommentaren redigeres på stedet ved hvert push, og repositoriets side **Produktionsgennemgange** i Kode gemmer hver gennemgang med **Gennemgå igen**.
+OneUptime ved, hvad din kode gør i produktion, så den kan gennemgå en pull request med det, ingen kan se ved at læse diffen. Slå **Gennemgå pull requests i forhold til produktion** til under **Yderligere indstillinger** på et repositories side **Indstillinger** i Kode, så får hver pull request, som en person med skriveadgang åbner eller pusher til, én kommentar, der siger, hvad produktionen viser om den kode, den ændrer. Kommentaren redigeres på stedet ved hvert push, og repositoriets side **Produktionsgennemgange** i Kode gemmer hver gennemgang med **Gennemgå igen**.
 
 | Den læser | Om den kode, pull requesten ændrer |
 | --- | --- |
@@ -230,7 +230,7 @@ Du tilknytter ikke repositorier til tjenester. Når en opgave starter, finder On
 
 ### Vælg repositoriets Runner
 
-Hvert repositorie vælger den Runner, AI arbejder i det på: på dets side **Indstillinger** i Kode skal du klikke på **Rediger** på kortet **Runner** og vælge en. Et repositorie, som GitHub App importerer, starter på projektets [standard-Runner](/docs/runbooks/agents#projektets-standard-runner), når projektet har en. Et repositorie, der ikke vælger nogen, arbejder på **Global Runner**, som OneUptime kører for alle projekter.
+Hvert repositorie vælger den Runner, AI arbejder i det på: på dets side **Indstillinger** i Kode skal du åbne **Yderligere indstillinger**, klikke på **Rediger** på kortet **Runner** og vælge en. Et repositorie, som GitHub App importerer, starter på projektets [standard-Runner](/docs/runbooks/agents#projektets-standard-runner), når projektet har en. Et repositorie, der ikke vælger nogen, arbejder på **Global Runner**, som OneUptime kører for alle projekter.
 
 | Runner | Hvad den gør med en opgave |
 | --- | --- |
@@ -258,7 +258,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### Vælg den til repositoriet
 
-På repositoriets side **Indstillinger** i Kode skal du klikke på **Rediger** på kortet **Runner** og vælge Runneren. Runneren opfanger ændringen ved sit næste heartbeat, inden for omkring et minut; der er intet at genstarte.
+På repositoriets side **Indstillinger** i Kode skal du åbne **Yderligere indstillinger**, klikke på **Rediger** på kortet **Runner** og vælge Runneren. Runneren opfanger ændringen ved sit næste heartbeat, inden for omkring et minut; der er intet at genstarte.
 
 ### Kontrollér, at den forbinder
 

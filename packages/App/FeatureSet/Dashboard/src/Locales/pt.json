@@ -33232,7 +33232,6 @@
   "What to watch": "O que observar",
   "When someone with write access opens or updates a pull request, OneUptime comments with what production shows of the code it changes.": "Quando alguém com acesso de escrita abre ou atualiza um pull request, o OneUptime comenta o que a produção mostra do código alterado.",
   "When the playbook runs on its own.": "Quando o playbook é executado sozinho.",
-  "Where AI's pull requests open, how many may be open at once, the label that hands an issue to the GitHub App, and what production reviews post.": "Onde os pull requests da IA são abertos, quantos podem ficar abertos ao mesmo tempo, o rótulo que entrega uma issue ao GitHub App e o que as revisões de produção publicam.",
   "Which security cases are open, and which look most urgent?": "Quais casos de segurança estão abertos e quais parecem mais urgentes?",
   "Which users or hosts had unusual security activity in the last 24 hours?": "Quais usuários ou hosts tiveram atividade de segurança incomum nas últimas 24 horas?",
   "You are still being paged. Please try again.": "Você continua sendo acionado. Tente novamente.",
@@ -33649,5 +33648,6 @@
   "This device's SNMP credential profile could not be read just now. Try the walk again in a moment.": "Não foi possível ler agora o perfil de credenciais SNMP deste dispositivo. Tente o walk de novo daqui a pouco.",
   "This device is already being walked. Wait for that walk to finish, then walk it again.": "Já há um walk em andamento neste dispositivo. Aguarde esse walk terminar e faça o walk de novo.",
   "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.": "A sonda deste dispositivo executa uma versão que não consegue fazer walks SNMP. Atualize a sonda para a versão mais recente e faça o walk de novo.",
-  "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.": "Ainda não foi feito um walk deste dispositivo. Para fazer um walk, é preciso a permissão Criar diagnóstico de dispositivo de rede."
+  "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.": "Ainda não foi feito um walk deste dispositivo. Para fazer um walk, é preciso a permissão Criar diagnóstico de dispositivo de rede.",
+  "GitHub commands, production reviews, where AI works, and where its pull requests open.": "Comandos do GitHub, revisões de produção, onde a IA trabalha e onde os pull requests da IA são abertos."
 }

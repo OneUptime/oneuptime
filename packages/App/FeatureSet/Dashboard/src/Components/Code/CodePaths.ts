@@ -1,8 +1,10 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import { CodeRepositorySetting } from "./CodeRepositorySettingsCopy";
 import Route from "Common/Types/API/Route";
 import { CodeTaskRepositoryJSON } from "Common/Types/AI/CodeTask";
 import ObjectID from "Common/Types/ObjectID";
+import { getRouteToPageAnchor } from "Common/UI/Utils/PageAnchor";
 
 /*
  * Where Code's pages are, and how a repository is named across them. React-
@@ -12,6 +14,7 @@ import ObjectID from "Common/Types/ObjectID";
  *   Repositories (…/code/repositories) the connected repositories
  *   a repository (…/repositories/:id) its own request box and tasks
  *   …/repositories/:id/production-reviews its pull requests' reviews
+ *   …/repositories/:id/settings#runner its settings, at one of them
  *   a task (…/tasks/:id)              its conversation
  */
 
@@ -47,14 +50,24 @@ export const getProductionReviewsRoute: (repositoryId: string) => Route = (
   );
 };
 
-// A repository's settings in Code.
-export const getRepositorySettingsRoute: (repositoryId: string) => Route = (
-  repositoryId: string,
+/*
+ * A repository's settings in Code - landing on one of them when it is
+ * named: ".../settings#runner" opens the page at its Runner, with More
+ * settings, where it is, open (Common/UI/Utils/PageAnchor).
+ */
+export const getRepositorySettingsRoute: (
+  repositoryId: string | ObjectID,
+  setting?: CodeRepositorySetting | undefined,
+) => Route = (
+  repositoryId: string | ObjectID,
+  setting?: CodeRepositorySetting | undefined,
 ): Route => {
-  return RouteUtil.populateRouteParams(
+  const route: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.CODE_REPOSITORY_VIEW_SETTINGS] as Route,
-    { modelId: new ObjectID(repositoryId) },
+    { modelId: new ObjectID(repositoryId.toString()) },
   );
+
+  return setting ? getRouteToPageAnchor(route, setting) : route;
 };
 
 // A task's page in Code: its conversation.

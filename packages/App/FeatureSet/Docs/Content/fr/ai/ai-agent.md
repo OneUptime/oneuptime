@@ -149,7 +149,7 @@ Quand aucun service ne correspond au dépôt, la tâche s'exécute sans télém�
 
 ## Revue de production des pull requests
 
-OneUptime sait ce que fait votre code en production : il peut donc relire une pull request avec ce que personne ne voit en lisant le diff. Activez **Relire les demandes de tirage au regard de la production** sur la page **Paramètres** d'un dépôt dans Code, et chaque pull request qu'une personne ayant l'accès en écriture ouvre ou met à jour reçoit un commentaire qui dit ce que la production montre du code qu'elle modifie. Le commentaire est modifié sur place à chaque push, et la page **Revues de production** du dépôt dans Code garde chaque revue, avec **Relire à nouveau**.
+OneUptime sait ce que fait votre code en production : il peut donc relire une pull request avec ce que personne ne voit en lisant le diff. Activez **Relire les demandes de tirage au regard de la production**, sous **Plus de paramètres** sur la page **Paramètres** d'un dépôt dans Code, et chaque pull request qu'une personne ayant l'accès en écriture ouvre ou met à jour reçoit un commentaire qui dit ce que la production montre du code qu'elle modifie. Le commentaire est modifié sur place à chaque push, et la page **Revues de production** du dépôt dans Code garde chaque revue, avec **Relire à nouveau**.
 
 | Ce qu'elle lit | Du code que modifie la pull request |
 | --- | --- |
@@ -230,7 +230,7 @@ Vous n'associez pas de dépôts à des services. Quand une tâche démarre, OneU
 
 ### Choisir le Runner du dépôt
 
-Chaque dépôt choisit le Runner sur lequel l'IA y travaille : sur sa page **Paramètres** dans Code, cliquez sur **Modifier** sur la carte **Agent Runbook** et choisissez-en un. Un dépôt que la GitHub App importe démarre sur le [Runner par défaut](/docs/runbooks/agents#lagent-runbook-par-défaut-du-projet) du projet, quand il en a un. Un dépôt qui n'en choisit aucun travaille sur **Agent Runbook global**, que OneUptime fait tourner pour chaque projet.
+Chaque dépôt choisit le Runner sur lequel l'IA y travaille : sur sa page **Paramètres** dans Code, ouvrez **Plus de paramètres**, cliquez sur **Modifier** sur la carte **Agent Runbook** et choisissez-en un. Un dépôt que la GitHub App importe démarre sur le [Runner par défaut](/docs/runbooks/agents#lagent-runbook-par-défaut-du-projet) du projet, quand il en a un. Un dépôt qui n'en choisit aucun travaille sur **Agent Runbook global**, que OneUptime fait tourner pour chaque projet.
 
 | Runner | Ce qu'il fait d'une tâche |
 | --- | --- |
@@ -258,7 +258,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### Le choisir pour le dépôt
 
-Sur la page **Paramètres** du dépôt dans Code, cliquez sur **Modifier** sur la carte **Agent Runbook** et choisissez le Runner. Le Runner prend en compte le changement à son prochain heartbeat, en une minute environ ; il n'y a rien à redémarrer.
+Sur la page **Paramètres** du dépôt dans Code, ouvrez **Plus de paramètres**, cliquez sur **Modifier** sur la carte **Agent Runbook** et choisissez le Runner. Le Runner prend en compte le changement à son prochain heartbeat, en une minute environ ; il n'y a rien à redémarrer.
 
 ### Vérifier qu'il se connecte
 

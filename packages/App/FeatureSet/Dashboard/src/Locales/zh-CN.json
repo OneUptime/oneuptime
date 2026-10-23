@@ -33232,7 +33232,6 @@
   "What to watch": "需要关注的问题",
   "When someone with write access opens or updates a pull request, OneUptime comments with what production shows of the code it changes.": "当拥有写权限的人创建或更新拉取请求时，OneUptime 会评论生产环境中与所改代码相关的数据。",
   "When the playbook runs on its own.": "Playbook 自动运行的时机。",
-  "Where AI's pull requests open, how many may be open at once, the label that hands an issue to the GitHub App, and what production reviews post.": "AI 的拉取请求在哪里创建、最多可同时打开几个、将议题交给 GitHub App 的标签，以及生产审查发布的内容。",
   "Which security cases are open, and which look most urgent?": "哪些安全案例尚未结案？哪些看起来最紧急？",
   "Which users or hosts had unusual security activity in the last 24 hours?": "过去 24 小时内哪些用户或主机有异常的安全活动？",
   "You are still being paged. Please try again.": "您仍会收到通知。请重试。",
@@ -33649,5 +33648,6 @@
   "This device's SNMP credential profile could not be read just now. Try the walk again in a moment.": "暂时无法读取此设备的 SNMP 凭据配置文件。请稍后重新遍历。",
   "This device is already being walked. Wait for that walk to finish, then walk it again.": "此设备正在被遍历。请等待该遍历完成后再重新遍历。",
   "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.": "此设备的探测器运行的版本不支持 SNMP 遍历。请将探测器更新到最新版本，然后重新遍历。",
-  "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.": "此设备尚未遍历。要执行遍历，需要“创建网络设备诊断”权限。"
+  "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.": "此设备尚未遍历。要执行遍历，需要“创建网络设备诊断”权限。",
+  "GitHub commands, production reviews, where AI works, and where its pull requests open.": "GitHub 命令、生产审查、AI 工作的位置，以及 AI 的拉取请求在哪里打开。"
 }

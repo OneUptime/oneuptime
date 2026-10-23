@@ -33232,7 +33232,6 @@
   "What to watch": "किन बातों पर ध्यान दें",
   "When someone with write access opens or updates a pull request, OneUptime comments with what production shows of the code it changes.": "जब लिखने की अनुमति वाला कोई व्यक्ति पुल रिक्वेस्ट खोलता या अपडेट करता है, तो OneUptime टिप्पणी में बताता है कि प्रोडक्शन बदले गए कोड के बारे में क्या दिखाता है।",
   "When the playbook runs on its own.": "प्लेबुक अपने आप कब चलती है।",
-  "Where AI's pull requests open, how many may be open at once, the label that hands an issue to the GitHub App, and what production reviews post.": "AI के पुल रिक्वेस्ट कहां खुलते हैं, एक साथ कितने खुले रह सकते हैं, किसी इश्यू को GitHub App को सौंपने वाला लेबल, और प्रोडक्शन समीक्षाएं क्या पोस्ट करती हैं।",
   "Which security cases are open, and which look most urgent?": "कौन से सुरक्षा केस खुले हैं, और कौन से सबसे ज़रूरी लगते हैं?",
   "Which users or hosts had unusual security activity in the last 24 hours?": "पिछले 24 घंटों में किन उपयोगकर्ताओं या होस्ट में असामान्य सुरक्षा गतिविधि हुई?",
   "You are still being paged. Please try again.": "आपको अब भी सूचित किया जा रहा है। कृपया फिर से प्रयास करें।",
@@ -33649,5 +33648,6 @@
   "This device's SNMP credential profile could not be read just now. Try the walk again in a moment.": "इस डिवाइस की SNMP क्रेडेंशियल प्रोफ़ाइल अभी पढ़ी नहीं जा सकी। थोड़ी देर में फिर से वॉक करें।",
   "This device is already being walked. Wait for that walk to finish, then walk it again.": "इस डिवाइस का वॉक पहले से चल रहा है। उस वॉक के पूरा होने का इंतज़ार करें, फिर दोबारा वॉक करें।",
   "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.": "इस डिवाइस का प्रोब ऐसा वर्शन चला रहा है जो SNMP वॉक नहीं कर सकता। प्रोब को नवीनतम वर्शन पर अपडेट करें, फिर दोबारा वॉक करें।",
-  "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.": "इस डिवाइस का अभी तक वॉक नहीं किया गया है। वॉक करने के लिए \"नेटवर्क डिवाइस डायग्नोस्टिक बनाएँ\" अनुमति चाहिए।"
+  "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.": "इस डिवाइस का अभी तक वॉक नहीं किया गया है। वॉक करने के लिए \"नेटवर्क डिवाइस डायग्नोस्टिक बनाएँ\" अनुमति चाहिए।",
+  "GitHub commands, production reviews, where AI works, and where its pull requests open.": "GitHub कमांड, प्रोडक्शन समीक्षाएं, AI कहाँ काम करता है, और उसकी पुल रिक्वेस्ट कहाँ खुलती हैं।"
 }
