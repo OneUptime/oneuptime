@@ -146,6 +146,7 @@ type Stage = "created" | "acknowledged" | "investigating" | "resolved";
 interface HeaderProps {
   refreshToken?: number | undefined;
   onActionComplete: () => void | Promise<void>;
+  peopleFacts?: Array<{ label: string; value: string }> | undefined;
 }
 
 interface EpisodeSpec {
@@ -652,7 +653,7 @@ describe.each(CASES)("$noun episode header", (episodeCase: EpisodeCase) => {
     expect(screen.queryByText("Private")).toBeNull();
   });
 
-  test("shows grouping, creator and when the last member joined", async () => {
+  test("shows the grouping and when the last member joined; who opened it is the stat bar's", async () => {
     installFakeServer(episodeCase, {
       episode: {
         withGroupingRule: true,
@@ -666,24 +667,43 @@ describe.each(CASES)("$noun episode header", (episodeCase: EpisodeCase) => {
     const pairs: Array<[string, string]> = factPairs();
 
     expect(pairs[0]).toEqual(["Grouping", "Checkout 5xx"]);
-    expect(pairs[1]).toEqual(["Created by", "Ada Lovelace"]);
-    expect(pairs[2]![0]).toBe(`Last ${episodeCase.noun} added`);
-    expect(pairs[2]![1]).toBe(
+    expect(pairs[1]![0]).toBe(`Last ${episodeCase.noun} added`);
+    expect(pairs[1]![1]).toBe(
       OneUptimeDate.fromNow(new Date(Date.now() - 5 * MINUTE)),
     );
+    expect(pairs).toHaveLength(2);
+    // Said once, under when it started, in the page's stat bar.
+    expect(screen.queryByText("Created by")).toBeNull();
+    expect(screen.queryByText("Ada Lovelace")).toBeNull();
     expect(
       screen.getByTestId("event-status-facts").querySelector("time"),
     ).toHaveAttribute("title");
   });
 
-  test("falls back to a manual, system-created episode and skips the unknown", async () => {
+  test("falls back to a manual episode and skips the unknown", async () => {
     installFakeServer(episodeCase);
 
     await renderLoaded(episodeCase);
 
+    expect(factPairs()).toEqual([["Grouping", "Manual episode"]]);
+  });
+
+  test("the people the page names come first: who runs it, before how it was formed", async () => {
+    installFakeServer(episodeCase, {
+      episode: { withGroupingRule: true },
+    });
+
+    await renderLoaded(episodeCase, {
+      peopleFacts: [
+        { label: "Incident Commander", value: "Maya Chen" },
+        { label: "Owners", value: "Checkout SRE" },
+      ],
+    });
+
     expect(factPairs()).toEqual([
-      ["Grouping", "Manual episode"],
-      ["Created by", "System"],
+      ["Incident Commander", "Maya Chen"],
+      ["Owners", "Checkout SRE"],
+      ["Grouping", "Checkout 5xx"],
     ]);
   });
 

@@ -50,6 +50,17 @@ function recordProps(key: string, props: Record<string, unknown>): void {
   recordedProps[key]!.push(props);
 }
 
+/*
+ * What the owners hook answers: nothing read yet unless a test hands it
+ * owners. Read at render time, after the module has set it.
+ */
+function currentOwnersState(): {
+  owners: Array<ResourceOwnerEntry> | undefined;
+  error: string;
+} {
+  return { owners: ownersAnswer, error: "" };
+}
+
 function stubModule(key: string): {
   __esModule: boolean;
   default: (props: Record<string, unknown>) => ReactElement;
@@ -303,6 +314,30 @@ jest.mock(
     };
   },
 );
+/*
+ * The owners the header names come from their own hook (tested in
+ * EventOwnersHook.test.tsx); here a test says what it answers, and the hook
+ * records what it was asked for.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/EventView/useEventOwners",
+  () => {
+    return {
+      __esModule: true,
+      default: (options: Record<string, unknown>): unknown => {
+        recordProps("useEventOwners", options);
+        return currentOwnersState();
+      },
+    };
+  },
+);
+// What happened is its own card (EventWhatHappenedCard.test.tsx).
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventWhatHappenedCard",
+  () => {
+    return stubModule("WhatHappened");
+  },
+);
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/AlertEpisode/AlertEpisode",
   () => {
@@ -323,6 +358,18 @@ import IncidentView from "../../../../App/FeatureSet/Dashboard/src/Pages/Inciden
 import AlertView from "../../../../App/FeatureSet/Dashboard/src/Pages/Alerts/View/Index";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import { EventStatusFact } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventStatusPanel";
+import { ResourceOwnerEntry } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceOwners/OwnerEntry";
+import { EventRolesSnapshot } from "../../../../App/FeatureSet/Dashboard/src/Utils/EventPeople";
+import { getEventStartTileText } from "../../../../App/FeatureSet/Dashboard/src/Utils/EventOverview";
+import { EVENT_ROLES_CARD_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventPeopleFacts";
+import IncidentOwnerTeam from "../../../Models/DatabaseModels/IncidentOwnerTeam";
+import IncidentOwnerUser from "../../../Models/DatabaseModels/IncidentOwnerUser";
+import AlertOwnerTeam from "../../../Models/DatabaseModels/AlertOwnerTeam";
+import AlertOwnerUser from "../../../Models/DatabaseModels/AlertOwnerUser";
+import Team from "../../../Models/DatabaseModels/Team";
+import UserModel from "../../../Models/DatabaseModels/User";
+import IconProp from "../../../Types/Icon/IconProp";
+import Name from "../../../Types/Name";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertEpisode from "../../../Models/DatabaseModels/AlertEpisode";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
@@ -495,7 +542,11 @@ interface PageCase {
   buildTimeline: (
     entries: Array<[string, number]>,
   ) => Array<IncidentStateTimeline | AlertStateTimeline>;
-  startFactLabel: string;
+  // The stat bar's first tile: when the event started.
+  startTileLabel: string;
+  ownerUserModel: typeof IncidentOwnerUser | typeof AlertOwnerUser;
+  ownerTeamModel: typeof IncidentOwnerTeam | typeof AlertOwnerTeam;
+  ownerResourceIdField: string;
   statBarName: string;
   detailsCardName: string;
   expectedDetailTitles: Array<string>;
@@ -572,12 +623,14 @@ const INCIDENT_CASE: PageCase = {
       },
     );
   },
-  startFactLabel: "Declared",
+  startTileLabel: "Declared",
+  ownerUserModel: IncidentOwnerUser,
+  ownerTeamModel: IncidentOwnerTeam,
+  ownerResourceIdField: "incidentId",
   statBarName: "Incident response times",
   detailsCardName: "Incident Details",
+  // When it was declared, and by whom, are the stat bar's Declared tile.
   expectedDetailTitles: [
-    "Declared At",
-    "Declared By",
     "On-Call Duty Policies",
     "Subscriber Notification Status",
     // The status pages the incident is limited to, read only.
@@ -587,6 +640,7 @@ const INCIDENT_CASE: PageCase = {
     "Incident ID",
   ],
   leftColumnOrder: [
+    "stub-WhatHappened",
     "stub-InvestigationPanel",
     "stub-MonitorSummary",
     "stub-SeriesResource",
@@ -595,11 +649,11 @@ const INCIDENT_CASE: PageCase = {
     "stub-Feed",
   ],
   rightColumnOrder: [
+    "stub-card-Affected Resources",
     "stub-VideoCall",
     "stub-card-Incident Details",
     "stub-Measurements",
     "stub-Roles",
-    "stub-card-Affected Resources",
     "stub-CustomFields",
   ],
   measurementsSource: INCIDENT_EVENT_MEASUREMENTS,
@@ -656,12 +710,15 @@ const ALERT_CASE: PageCase = {
       },
     );
   },
-  startFactLabel: "Created",
+  startTileLabel: "Created",
+  ownerUserModel: AlertOwnerUser,
+  ownerTeamModel: AlertOwnerTeam,
+  ownerResourceIdField: "alertId",
   statBarName: "Alert response times",
   detailsCardName: "Alert Details",
+  // Who raised it is the Created tile; Created At is the card's ID line.
   expectedDetailTitles: [
     "Created At",
-    "Created By",
     "Monitor",
     "Episode",
     "On-Call Duty Policies",
@@ -670,6 +727,7 @@ const ALERT_CASE: PageCase = {
     "Alert ID",
   ],
   leftColumnOrder: [
+    "stub-WhatHappened",
     "stub-InvestigationPanel",
     "stub-MonitorSummary",
     "stub-SeriesResource",
@@ -678,10 +736,10 @@ const ALERT_CASE: PageCase = {
     "stub-Feed",
   ],
   rightColumnOrder: [
+    "stub-card-Affected Resources",
     "stub-VideoCall",
     "stub-card-Alert Details",
     "stub-Measurements",
-    "stub-card-Affected Resources",
     "stub-CustomFields",
   ],
   measurementsSource: ALERT_EVENT_MEASUREMENTS,
@@ -821,9 +879,83 @@ const itemRequestId: ItemRequestIdFunction = (args: Array<unknown>): string => {
 // What the signed-in user may do; a project member unless a test says so.
 let currentPermissions: Array<Permission> = [Permission.ProjectMember];
 
+// What the owners hook answers: not read yet, unless a test says so.
+let ownersAnswer: Array<ResourceOwnerEntry> | undefined = undefined;
+
+function ownerTeam(name: string, id: string): ResourceOwnerEntry {
+  const team: Team = new Team();
+  team._id = id;
+  team.name = name;
+  return { kind: "team", team: team };
+}
+
+function ownerPerson(name: string, id: string): ResourceOwnerEntry {
+  const user: UserModel = new UserModel();
+  user._id = id;
+  user.name = new Name(name);
+  return { kind: "user", user: user };
+}
+
+// The roles card's report: the primary role, held by `holder` or nobody.
+function rolesReport(holder: string | null): EventRolesSnapshot {
+  return {
+    roles: [
+      {
+        id: "dddddddd-dddd-4ddd-8ddd-ddddddddddd1",
+        name: "Incident Commander",
+        isPrimaryRole: true,
+        icon: IconProp.ShieldCheck,
+      },
+      {
+        id: "dddddddd-dddd-4ddd-8ddd-ddddddddddd2",
+        name: "Scribe",
+        isPrimaryRole: false,
+      },
+    ],
+    members: holder
+      ? [
+          {
+            roleId: "dddddddd-dddd-4ddd-8ddd-ddddddddddd1",
+            userId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1",
+            name: holder,
+            hasProfilePicture: false,
+          },
+        ]
+      : [],
+  };
+}
+
+type RolesCardProps = {
+  id?: string;
+  onRolesLoaded: (recordId: string, snapshot: EventRolesSnapshot) => void;
+  assignRequest?: { roleId: string; requestId: number } | undefined;
+};
+
+type FactValueProps = {
+  members?: Array<{ name: string }>;
+  onAssign?: () => void;
+  owners?: Array<ResourceOwnerEntry>;
+  canAddOwners?: boolean;
+  ownersRoute?: Route;
+};
+
+function factValueProps(fact: EventStatusFact | undefined): FactValueProps {
+  return (fact?.value as ReactElement).props as FactValueProps;
+}
+
+function factNamed(
+  pageCase: PageCase,
+  label: string,
+): EventStatusFact | undefined {
+  return factsOf(pageCase).find((fact: EventStatusFact): boolean => {
+    return fact.label === label;
+  });
+}
+
 beforeEach(() => {
   currentEventId = EVENT_ID;
   currentPermissions = [Permission.ProjectMember];
+  ownersAnswer = undefined;
 
   jest
     .spyOn(Navigation, "getLastParamAsObjectID")
@@ -967,18 +1099,86 @@ describe.each([
       expect(props.eventStartsAt).toEqual(START);
     });
 
-    test("leads the facts with the absolute start time", async () => {
+    test("says when it started in the stat bar's first tile, not again in the facts", async () => {
       serve(pageCase, { timeline: REOPENED_TIMELINE, title: "Checkout slow" });
 
       pageCase.renderPage();
       await waitForPage();
 
-      const startFact: EventStatusFact | undefined = factsOf(pageCase)[0];
+      expect(factLabelsOf(pageCase)).not.toContain(pageCase.startTileLabel);
+      expect(factLabelsOf(pageCase)).not.toContain("Declared by");
 
-      expect(startFact?.label).toBe(pageCase.startFactLabel);
-      expect(startFact?.value).toBe(
-        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(START),
+      const startTile: Element = screen.getByRole("group", {
+        name: pageCase.statBarName,
+      }).children[0]!;
+
+      expect(startTile).toHaveTextContent(pageCase.startTileLabel);
+      expect(startTile.textContent).toContain(getEventStartTileText(START));
+    });
+
+    test("names who owns it beside the state, teams first as the hook orders them", async () => {
+      serve(pageCase, { timeline: REOPENED_TIMELINE, title: "Checkout slow" });
+      ownersAnswer = [
+        ownerTeam("Checkout SRE", "ffffffff-ffff-4fff-8fff-fffffffffff1"),
+        ownerPerson("Sam Rivera", "ffffffff-ffff-4fff-8fff-fffffffffff2"),
+      ];
+
+      pageCase.renderPage();
+      await waitForPage();
+
+      // Read for this event, from its own owner tables.
+      const options: Record<string, unknown> =
+        latestProps<Record<string, unknown>>("useEventOwners");
+
+      expect(options["ownerUserModelType"]).toBe(pageCase.ownerUserModel);
+      expect(options["ownerTeamModelType"]).toBe(pageCase.ownerTeamModel);
+      expect(options["resourceIdField"]).toBe(pageCase.ownerResourceIdField);
+      expect((options["resourceId"] as ObjectID).toString()).toBe(EVENT_ID);
+
+      const owners: EventStatusFact | undefined = factNamed(pageCase, "Owners");
+
+      expect(owners?.icon).toBe(IconProp.Team);
+
+      const rendered: RenderResult = render(<>{owners!.value}</>);
+
+      expect(
+        within(rendered.container)
+          .getAllByTestId("event-person-name")
+          .map((element: HTMLElement): string => {
+            return element.textContent || "";
+          }),
+      ).toEqual(["Checkout SRE", "Sam Rivera"]);
+      // A team is drawn as a team, a person as a person.
+      expect(
+        within(rendered.container)
+          .getAllByTestId("event-owner")
+          .map((element: HTMLElement): string | null => {
+            return element.getAttribute("data-kind");
+          }),
+      ).toEqual(["team", "user"]);
+      // Its own owners page, for the rest and for adding more.
+      expect(factValueProps(owners).ownersRoute?.toString()).toContain(
+        "/owners",
       );
+    });
+
+    test("names no owners until they have been read, and None once they are and there are none", async () => {
+      serve(pageCase, { timeline: REOPENED_TIMELINE, title: "Checkout slow" });
+
+      const view: RenderResult = pageCase.renderPage();
+      await waitForPage();
+
+      expect(factLabelsOf(pageCase)).not.toContain("Owners");
+
+      ownersAnswer = [];
+      view.rerender(pageCase.pageElement());
+
+      const owners: EventStatusFact | undefined = factNamed(pageCase, "Owners");
+
+      expect(owners).toBeDefined();
+      expect(factValueProps(owners).owners).toEqual([]);
+      // Open (reopened), so Add owners is offered.
+      expect(factValueProps(owners).canAddOwners).toBe(true);
     });
 
     test("lifts the investigation status, summary and verdict into the header", async () => {
@@ -1062,18 +1262,19 @@ describe.each([
       const cells: Array<Element> = Array.from(statBar.children);
 
       expect(cells).toHaveLength(3);
-      expect(cells[0]).toHaveTextContent("Acknowledged in");
-      expect(cells[0]).toHaveTextContent("5 minutes");
-      expect(cells[0]).toHaveTextContent(
+      expect(cells[0]).toHaveTextContent(pageCase.startTileLabel);
+      expect(cells[1]).toHaveTextContent("Acknowledged in");
+      expect(cells[1]).toHaveTextContent("5 minutes");
+      expect(cells[1]).toHaveTextContent(
         OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
           minutesAfterStart(5),
         ),
       );
-      expect(cells[1]).toHaveTextContent("Resolved in");
-      expect(cells[1]).toHaveTextContent("20 minutes");
-      expect(cells[2]).toHaveTextContent("Duration");
-      // Reopened, so the duration is still running and has no end.
-      expect(cells[2]).not.toHaveTextContent("Ended");
+      expect(cells[2]).toHaveTextContent("Resolved in");
+      expect(cells[2]).toHaveTextContent("20 minutes");
+      // The duration is the header's alone: no tile says it again.
+      expect(statBar).not.toHaveTextContent("Duration");
+      expect(statBar).not.toHaveTextContent("Ended");
     });
 
     test("says not yet for an event nobody has answered", async () => {
@@ -1093,7 +1294,7 @@ describe.each([
       expect(within(statBar).getByText("Not yet resolved")).toBeVisible();
     });
 
-    test("ends the duration at the current resolution", async () => {
+    test("a resolution answers both tiles, and the header keeps the duration", async () => {
       serve(pageCase, {
         timeline: [
           [CREATED_STATE_ID, 0],
@@ -1110,14 +1311,17 @@ describe.each([
       );
 
       // Resolved without an acknowledgement: the resolution answered it.
-      expect(cells[0]).toHaveTextContent("1 hour, 30 minutes");
       expect(cells[1]).toHaveTextContent("1 hour, 30 minutes");
       expect(cells[2]).toHaveTextContent("1 hour, 30 minutes");
       expect(cells[2]).toHaveTextContent(
-        `Ended ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
           minutesAfterStart(90),
-        )}`,
+        ),
       );
+      // The header draws how long it lasted, from the same start.
+      expect(
+        latestProps<ChangeStateProps>(pageCase.changeStateKey).eventStartsAt,
+      ).toEqual(START);
     });
 
     test("sits between the header and the card grid", async () => {
@@ -1161,13 +1365,86 @@ describe.each([
       }
     };
 
-    test("the left column leads with the AI investigation", async () => {
+    test("the left column leads with what happened, then the AI investigation", async () => {
       serve(pageCase, { timeline: REOPENED_TIMELINE, title: "Checkout slow" });
 
       pageCase.renderPage();
       await waitForPage();
 
       expectInDocumentOrder(pageCase.leftColumnOrder);
+    });
+
+    test("What happened shows the event's own description and root cause, and a save refreshes in place", async () => {
+      serve(pageCase, { timeline: REOPENED_TIMELINE, title: "Checkout slow" });
+      getItemMock.mockImplementation(() => {
+        const event: Incident | Alert = pageCase.buildEvent("Checkout slow");
+        event.description = "Checkout spun for 30 seconds.";
+        event.rootCause = "DB_POOL_MAX was cut to 10.";
+        return Promise.resolve(event);
+      });
+
+      pageCase.renderPage();
+      await waitForPage();
+
+      type WhatHappenedProps = {
+        modelType: unknown;
+        modelId: ObjectID;
+        description?: string;
+        rootCause?: string;
+        onSaved: () => void;
+      };
+
+      let card: WhatHappenedProps =
+        latestProps<WhatHappenedProps>("WhatHappened");
+
+      expect(card.modelType).toBe(pageCase.eventModel);
+      expect(card.modelId.toString()).toBe(EVENT_ID);
+      expect(card.description).toBe("Checkout spun for 30 seconds.");
+      expect(card.rootCause).toBe("DB_POOL_MAX was cut to 10.");
+
+      const readsBefore: number = countItemReads();
+      const feedTokenBefore: number = latestProps<{ refreshToken: number }>(
+        "Feed",
+      ).refreshToken;
+
+      getItemMock.mockImplementation(() => {
+        const event: Incident | Alert = pageCase.buildEvent("Checkout slow");
+        event.description = "Checkout spun for 30 seconds.";
+        event.rootCause = "Rolled back to 2026.09.14-1.";
+        return Promise.resolve(event);
+      });
+
+      act(() => {
+        card.onSaved();
+      });
+
+      await waitFor(() => {
+        card = latestProps<WhatHappenedProps>("WhatHappened");
+        expect(card.rootCause).toBe("Rolled back to 2026.09.14-1.");
+      });
+
+      expect(countItemReads()).toBe(readsBefore + 1);
+      // An edited root cause is a new feed entry, and nothing remounts.
+      expect(latestProps<{ refreshToken: number }>("Feed").refreshToken).toBe(
+        feedTokenBefore + 1,
+      );
+      expect(mountCounts["WhatHappened"]).toBe(1);
+      expect(mountCounts["InvestigationPanel"]).toBe(1);
+    });
+
+    test("an event nobody wrote anything about hands the card nothing to show", async () => {
+      serve(pageCase, { timeline: REOPENED_TIMELINE, title: "Checkout slow" });
+
+      pageCase.renderPage();
+      await waitForPage();
+
+      const card: { description?: string; rootCause?: string } = latestProps<{
+        description?: string;
+        rootCause?: string;
+      }>("WhatHappened");
+
+      expect(card.description).toBeUndefined();
+      expect(card.rootCause).toBeUndefined();
     });
 
     test("the right column orders details, then the rest, custom fields last", async () => {
@@ -1440,6 +1717,7 @@ describe.each([
   describe("background refresh", () => {
     test("an action refreshes the page without unmounting a single card", async () => {
       serve(pageCase, { timeline: REOPENED_TIMELINE, title: "Checkout slow" });
+      ownersAnswer = [];
 
       pageCase.renderPage();
       await waitForPage();
@@ -1490,9 +1768,16 @@ describe.each([
       expect(latestProps<{ refreshToken: number }>("Feed").refreshToken).toBe(
         feedTokenBefore + 1,
       );
+      /*
+       * Resolved now: Add owners is no longer offered beside "None", and
+       * the stat bar still opens on when it started.
+       */
+      expect(factValueProps(factNamed(pageCase, "Owners")).canAddOwners).toBe(
+        false,
+      );
       expect(
-        screen.getByRole("group", { name: pageCase.statBarName }),
-      ).toHaveTextContent("Ended");
+        screen.getByRole("group", { name: pageCase.statBarName }).children[0],
+      ).toHaveTextContent(pageCase.startTileLabel);
     });
 
     test("saving the details card refreshes the header data and the feed", async () => {
@@ -2207,7 +2492,100 @@ describe("incident-only behaviour", () => {
     });
   });
 
-  test("the header names who declared the incident once the details card has read it", async () => {
+  test("the Declared tile says who declared it, read with the incident's own row", async () => {
+    serve(INCIDENT_CASE, {
+      timeline: REOPENED_TIMELINE,
+      title: "Checkout slow",
+    });
+    getItemMock.mockImplementation(() => {
+      const incident: Incident = INCIDENT_CASE.buildEvent(
+        "Checkout slow",
+      ) as Incident;
+      const probe: Probe = new Probe();
+      probe.name = "Probe US";
+      incident.createdByProbe = probe;
+      incident.isCreatedAutomatically = true;
+      // Somebody recorded that customers were hit three minutes earlier.
+      incident.impactStartedAt = minutesAfterStart(-3);
+      return Promise.resolve(incident);
+    });
+
+    INCIDENT_CASE.renderPage();
+    await waitForPage();
+
+    const declared: Element = screen.getByRole("group", {
+      name: INCIDENT_CASE.statBarName,
+    }).children[0]!;
+
+    expect(declared).toHaveTextContent("By Probe US");
+    expect(declared).toHaveTextContent("3 minutes after impact began");
+
+    // What the page asked for, to say it: no read of its own beyond the row.
+    const select: Record<string, unknown> = (
+      getItemMock.mock.calls[0]![0] as { select: Record<string, unknown> }
+    ).select;
+
+    expect(select).toEqual(
+      expect.objectContaining({
+        description: true,
+        rootCause: true,
+        impactStartedAt: true,
+        isCreatedAutomatically: true,
+        createdByProbe: { name: true },
+        createdByUser: { name: true, email: true },
+      }),
+    );
+  });
+
+  test("a person who declared it is named, an automatic one says so, and no impact start says nothing", async () => {
+    serve(INCIDENT_CASE, {
+      timeline: REOPENED_TIMELINE,
+      title: "Checkout slow",
+    });
+    getItemMock.mockImplementation(() => {
+      const incident: Incident = INCIDENT_CASE.buildEvent(
+        "Checkout slow",
+      ) as Incident;
+      const user: UserModel = new UserModel();
+      user.name = new Name("Maya Chen");
+      incident.createdByUser = user;
+      return Promise.resolve(incident);
+    });
+
+    const view: RenderResult = INCIDENT_CASE.renderPage();
+    await waitForPage();
+
+    let declared: Element = screen.getByRole("group", {
+      name: INCIDENT_CASE.statBarName,
+    }).children[0]!;
+
+    expect(declared).toHaveTextContent("By Maya Chen");
+    expect(declared).not.toHaveTextContent("after impact began");
+
+    getItemMock.mockImplementation(() => {
+      const incident: Incident = INCIDENT_CASE.buildEvent(
+        "Checkout slow",
+      ) as Incident;
+      incident.isCreatedAutomatically = true;
+      return Promise.resolve(incident);
+    });
+
+    act(() => {
+      latestProps<ChangeStateProps>(
+        INCIDENT_CASE.changeStateKey,
+      ).onActionComplete();
+    });
+
+    await waitFor(() => {
+      declared = screen.getByRole("group", {
+        name: INCIDENT_CASE.statBarName,
+      }).children[0]!;
+      expect(declared).toHaveTextContent("Automatically");
+    });
+    view.unmount();
+  });
+
+  test("names the commander from what the roles card reads, and follows a change made in it", async () => {
     serve(INCIDENT_CASE, {
       timeline: REOPENED_TIMELINE,
       title: "Checkout slow",
@@ -2216,25 +2594,205 @@ describe("incident-only behaviour", () => {
     INCIDENT_CASE.renderPage();
     await waitForPage();
 
-    expect(factLabelsOf(INCIDENT_CASE)).not.toContain("Declared by");
+    // Nothing said about a role nobody has read yet.
+    expect(factLabelsOf(INCIDENT_CASE)).toEqual([]);
 
-    const incident: Incident = new Incident();
-    const probe: Probe = new Probe();
-    probe.name = "Probe US";
-    incident.createdByProbe = probe;
+    const roles: RolesCardProps = latestProps<RolesCardProps>("Roles");
+
+    // The card is where Assign scrolls to.
+    expect(roles.id).toBe(EVENT_ROLES_CARD_ID);
 
     act(() => {
-      latestProps<CardModelDetailProps>("CardModelDetail:Incident Details")
+      roles.onRolesLoaded(EVENT_ID, rolesReport("Maya Chen"));
+    });
+
+    let commander: EventStatusFact | undefined = factsOf(INCIDENT_CASE)[0];
+
+    expect(commander?.label).toBe("Incident Commander");
+    expect(commander?.icon).toBe(IconProp.ShieldCheck);
+    expect(
+      factValueProps(commander).members?.map((member: { name: string }) => {
+        return member.name;
+      }),
+    ).toEqual(["Maya Chen"]);
+
+    // Reassigned in the card: the header follows at once, no read of its own.
+    const itemReads: number = countItemReads();
+
+    act(() => {
+      latestProps<RolesCardProps>("Roles").onRolesLoaded(
+        EVENT_ID,
+        rolesReport("Sam Rivera"),
+      );
+    });
+
+    commander = factsOf(INCIDENT_CASE)[0];
+
+    expect(
+      factValueProps(commander).members?.map((member: { name: string }) => {
+        return member.name;
+      }),
+    ).toEqual(["Sam Rivera"]);
+    expect(countItemReads()).toBe(itemReads);
+  });
+
+  test("offers Assign while the incident is open, and only says Not assigned once it is resolved", async () => {
+    serve(INCIDENT_CASE, {
+      timeline: REOPENED_TIMELINE,
+      title: "Checkout slow",
+    });
+
+    INCIDENT_CASE.renderPage();
+    await waitForPage();
+
+    act(() => {
+      latestProps<RolesCardProps>("Roles").onRolesLoaded(
+        EVENT_ID,
+        rolesReport(null),
+      );
+    });
+
+    let commander: EventStatusFact | undefined = factsOf(INCIDENT_CASE)[0];
+
+    expect(factValueProps(commander).members).toEqual([]);
+    expect(typeof factValueProps(commander).onAssign).toBe("function");
+    expect(latestProps<RolesCardProps>("Roles").assignRequest).toBeUndefined();
+
+    // Assign asks the roles card for the primary role's picker.
+    act(() => {
+      factValueProps(commander).onAssign!();
+    });
+
+    expect(latestProps<RolesCardProps>("Roles").assignRequest).toEqual({
+      roleId: "dddddddd-dddd-4ddd-8ddd-ddddddddddd1",
+      requestId: 1,
+    });
+
+    // Asked again after the reader closed it: a new request, so it reopens.
+    act(() => {
+      factValueProps(factsOf(INCIDENT_CASE)[0]).onAssign!();
+    });
+
+    expect(latestProps<RolesCardProps>("Roles").assignRequest?.requestId).toBe(
+      2,
+    );
+
+    serve(INCIDENT_CASE, {
+      timeline: [...REOPENED_TIMELINE, [RESOLVED_STATE_ID, 100]],
+      title: "Checkout slow",
+    });
+
+    act(() => {
+      latestProps<ChangeStateProps>(
+        INCIDENT_CASE.changeStateKey,
+      ).onActionComplete();
+    });
+
+    await waitFor(() => {
+      commander = factsOf(INCIDENT_CASE)[0];
+      expect(factValueProps(commander).onAssign).toBeUndefined();
+    });
+    expect(commander?.label).toBe("Incident Commander");
+  });
+
+  test("a project without a primary role names no commander", async () => {
+    serve(INCIDENT_CASE, {
+      timeline: REOPENED_TIMELINE,
+      title: "Checkout slow",
+    });
+
+    INCIDENT_CASE.renderPage();
+    await waitForPage();
+
+    act(() => {
+      latestProps<RolesCardProps>("Roles").onRolesLoaded(EVENT_ID, {
+        roles: [
+          {
+            id: "dddddddd-dddd-4ddd-8ddd-ddddddddddd2",
+            name: "Scribe",
+            isPrimaryRole: false,
+          },
+        ],
+        members: [],
+      });
+    });
+
+    expect(factLabelsOf(INCIDENT_CASE)).toEqual([]);
+  });
+
+  test("the commander comes first, then the owners, then the monitors", async () => {
+    serve(INCIDENT_CASE, {
+      timeline: REOPENED_TIMELINE,
+      title: "Checkout slow",
+    });
+    ownersAnswer = [
+      ownerTeam("Checkout SRE", "ffffffff-ffff-4fff-8fff-fffffffffff1"),
+    ];
+
+    INCIDENT_CASE.renderPage();
+    await waitForPage();
+
+    const incident: Incident = new Incident();
+    const monitor: Monitor = new Monitor();
+    monitor.id = new ObjectID(MONITOR_ID);
+    monitor.name = "checkout-api";
+    incident.monitors = [monitor];
+
+    act(() => {
+      latestProps<RolesCardProps>("Roles").onRolesLoaded(
+        EVENT_ID,
+        rolesReport("Maya Chen"),
+      );
+      latestProps<CardModelDetailProps>("CardModelDetail:Affected Resources")
         .modelDetailProps.onItemLoaded!(incident);
     });
 
-    const declaredBy: EventStatusFact | undefined = factsOf(INCIDENT_CASE).find(
-      (fact: EventStatusFact) => {
-        return fact.label === "Declared by";
+    expect(factLabelsOf(INCIDENT_CASE)).toEqual([
+      "Incident Commander",
+      "Owners",
+      "Monitor",
+    ]);
+  });
+
+  test("the Affected Resources card shows the status the incident holds its monitors in, once it has monitors", async () => {
+    serve(INCIDENT_CASE, {
+      timeline: REOPENED_TIMELINE,
+      title: "Checkout slow",
+    });
+
+    INCIDENT_CASE.renderPage();
+    await waitForPage();
+
+    interface StatusField extends DetailFieldProps {
+      showIf?: (item: Incident) => boolean;
+    }
+
+    const statusField: StatusField | undefined = latestProps<
+      CardModelDetailProps & {
+        modelDetailProps: { fields: Array<StatusField> };
+      }
+    >("CardModelDetail:Affected Resources").modelDetailProps.fields.find(
+      (field: StatusField) => {
+        return field.title === "Change Monitor Status to";
       },
     );
 
-    expect(declaredBy?.value).toBe("Probe US");
+    expect(statusField?.field).toEqual({
+      changeMonitorStatusTo: { name: true, color: true },
+    });
+
+    const withMonitor: Incident = new Incident();
+    withMonitor.monitors = [new Monitor()];
+
+    expect(statusField!.showIf!(withMonitor)).toBe(true);
+    expect(statusField!.showIf!(new Incident())).toBe(false);
+
+    // None picked: the monitors keep their status, and the card says so.
+    const rendered: RenderResult = render(
+      statusField!.getElement!(withMonitor),
+    );
+
+    expect(rendered.container).toHaveTextContent("Monitors keep their status.");
   });
 
   test("the header lists affected monitors as links, with a count past two", async () => {
@@ -2776,20 +3334,9 @@ describe("incident-only behaviour", () => {
     const view: RenderResult = INCIDENT_CASE.renderPage();
     await waitForPage();
 
-    const previousDetails: CardModelDetailProps =
-      latestProps<CardModelDetailProps>("CardModelDetail:Incident Details");
+    const previousRoles: RolesCardProps = latestProps<RolesCardProps>("Roles");
     const previousResources: CardModelDetailProps =
       latestProps<CardModelDetailProps>("CardModelDetail:Affected Resources");
-
-    const declaredByProbe: (name: string) => Incident = (
-      name: string,
-    ): Incident => {
-      const incident: Incident = new Incident();
-      const probe: Probe = new Probe();
-      probe.name = name;
-      incident.createdByProbe = probe;
-      return incident;
-    };
 
     const withMonitor: Incident = new Incident();
     const monitor: Monitor = new Monitor();
@@ -2798,15 +3345,12 @@ describe("incident-only behaviour", () => {
     withMonitor.monitors = [monitor];
 
     act(() => {
-      previousDetails.modelDetailProps.onItemLoaded!(
-        declaredByProbe("Probe US"),
-      );
+      previousRoles.onRolesLoaded(EVENT_ID, rolesReport("Maya Chen"));
       previousResources.modelDetailProps.onItemLoaded!(withMonitor);
     });
 
     expect(factLabelsOf(INCIDENT_CASE)).toEqual([
-      "Declared",
-      "Declared by",
+      "Incident Commander",
       "Monitor",
     ]);
 
@@ -2826,9 +3370,7 @@ describe("incident-only behaviour", () => {
 
     // The previous incident's cards report in late, after the switch.
     act(() => {
-      previousDetails.modelDetailProps.onItemLoaded!(
-        declaredByProbe("Probe EU"),
-      );
+      previousRoles.onRolesLoaded(EVENT_ID, rolesReport("Sam Rivera"));
       previousResources.modelDetailProps.onItemLoaded!(withMonitor);
     });
 
@@ -2854,20 +3396,24 @@ describe("incident-only behaviour", () => {
         (props.facts || []).map((fact: EventStatusFact) => {
           return fact.label;
         }),
-      ).toEqual(["Declared"]);
+      ).toEqual([]);
     }
 
-    // Its own cards still report in as usual.
+    // Its own roles card still reports in as usual.
     act(() => {
-      latestProps<CardModelDetailProps>("CardModelDetail:Incident Details")
-        .modelDetailProps.onItemLoaded!(declaredByProbe("Probe AP"));
+      latestProps<RolesCardProps>("Roles").onRolesLoaded(
+        OTHER_EVENT_ID,
+        rolesReport("Alex Kim"),
+      );
     });
 
     expect(
-      factsOf(INCIDENT_CASE).find((fact: EventStatusFact) => {
-        return fact.label === "Declared by";
-      })?.value,
-    ).toBe("Probe AP");
+      factValueProps(factsOf(INCIDENT_CASE)[0]).members?.map(
+        (member: { name: string }) => {
+          return member.name;
+        },
+      ),
+    ).toEqual(["Alex Kim"]);
   });
 
   /*
@@ -2914,7 +3460,7 @@ describe("alert-only behaviour", () => {
     ALERT_CASE.renderPage();
     await waitForPage();
 
-    expect(factLabelsOf(ALERT_CASE)).toEqual(["Created"]);
+    expect(factLabelsOf(ALERT_CASE)).toEqual([]);
 
     const alert: Alert = new Alert();
     const monitor: Monitor = new Monitor();
@@ -2932,13 +3478,13 @@ describe("alert-only behaviour", () => {
         .modelDetailProps.onItemLoaded!(alert);
     });
 
-    expect(factLabelsOf(ALERT_CASE)).toEqual(["Created", "Monitor", "Episode"]);
+    expect(factLabelsOf(ALERT_CASE)).toEqual(["Monitor", "Episode"]);
 
     const facts: Array<EventStatusFact> = factsOf(ALERT_CASE);
     const rendered: ReturnType<typeof render> = render(
       <>
+        {facts[0]!.value}
         {facts[1]!.value}
-        {facts[2]!.value}
       </>,
     );
 
@@ -2961,7 +3507,52 @@ describe("alert-only behaviour", () => {
         .modelDetailProps.onItemLoaded!(new Alert());
     });
 
-    expect(factLabelsOf(ALERT_CASE)).toEqual(["Created"]);
+    expect(factLabelsOf(ALERT_CASE)).toEqual([]);
+  });
+
+  test("names its owners first, before its monitor and episode, and no commander: alerts have no roles", async () => {
+    serve(ALERT_CASE, { timeline: REOPENED_TIMELINE, title: "Checkout slow" });
+    ownersAnswer = [
+      ownerTeam("Payments", "ffffffff-ffff-4fff-8fff-fffffffffff3"),
+    ];
+
+    ALERT_CASE.renderPage();
+    await waitForPage();
+
+    const alert: Alert = new Alert();
+    const monitor: Monitor = new Monitor();
+    monitor.id = new ObjectID(MONITOR_ID);
+    monitor.name = "checkout-api";
+    alert.monitor = monitor;
+
+    act(() => {
+      latestProps<CardModelDetailProps>("CardModelDetail:Alert Details")
+        .modelDetailProps.onItemLoaded!(alert);
+    });
+
+    expect(factLabelsOf(ALERT_CASE)).toEqual(["Owners", "Monitor"]);
+    expect(screen.queryByTestId("stub-Roles")).toBeNull();
+  });
+
+  test("the Created tile says who raised it, read with the alert's own row", async () => {
+    serve(ALERT_CASE, { timeline: REOPENED_TIMELINE, title: "Checkout slow" });
+    getItemMock.mockImplementation(() => {
+      const alert: Alert = ALERT_CASE.buildEvent("Checkout slow") as Alert;
+      const probe: Probe = new Probe();
+      probe.name = "Probe EU";
+      alert.createdByProbe = probe;
+      return Promise.resolve(alert);
+    });
+
+    ALERT_CASE.renderPage();
+    await waitForPage();
+
+    const created: Element = screen.getByRole("group", {
+      name: ALERT_CASE.statBarName,
+    }).children[0]!;
+
+    expect(created).toHaveTextContent("Created");
+    expect(created).toHaveTextContent("By Probe EU");
   });
 
   test("the episode row never selects columns a relation query cannot read", async () => {
@@ -3006,7 +3597,7 @@ describe("alert-only behaviour", () => {
       previousDetails.modelDetailProps.onItemLoaded!(previousAlert);
     });
 
-    expect(factLabelsOf(ALERT_CASE)).toEqual(["Created", "Monitor", "Episode"]);
+    expect(factLabelsOf(ALERT_CASE)).toEqual(["Monitor", "Episode"]);
 
     const otherItem: Deferred<Incident | Alert> = createDeferred<
       Incident | Alert
@@ -3048,7 +3639,7 @@ describe("alert-only behaviour", () => {
         (props.facts || []).map((fact: EventStatusFact) => {
           return fact.label;
         }),
-      ).toEqual(["Created"]);
+      ).toEqual([]);
     }
   });
 
