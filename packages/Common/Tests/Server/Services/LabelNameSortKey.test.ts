@@ -195,7 +195,9 @@ describe("a label's sort key, as the members who write labels", () => {
       member([Permission.ProjectOwner]),
     );
 
-    expect(inserted["nameSortKey"]).toBe(getNaturalSortKey("10.Owner=Platform"));
+    expect(inserted["nameSortKey"]).toBe(
+      getNaturalSortKey("10.Owner=Platform"),
+    );
   });
 
   test("a label made by OneUptime itself (telemetry, the label rules) gets its key too", async () => {
@@ -225,7 +227,9 @@ describe("a label's sort key, as the members who write labels", () => {
       member([Permission.ProjectOwner]),
     );
 
-    expect(stored("nameSortKey")).toBe(getNaturalSortKey("3.Item=Connectivity"));
+    expect(stored("nameSortKey")).toBe(
+      getNaturalSortKey("3.Item=Connectivity"),
+    );
     expect(
       labels.updates.some((update: { set: StoredRow }): boolean => {
         return "nameSortKey" in update.set;
@@ -246,7 +250,9 @@ describe("a label's sort key, as the members who write labels", () => {
       "nameSortKey",
     );
     expect(stored("name")).toBe("3.Item=Connectivity");
-    expect(stored("nameSortKey")).toBe(getNaturalSortKey("3.Item=Connectivity"));
+    expect(stored("nameSortKey")).toBe(
+      getNaturalSortKey("3.Item=Connectivity"),
+    );
   });
 
   test("OneUptime itself renames a label the same way", async () => {
@@ -266,9 +272,11 @@ describe("the hooks that write the key run after every permission check", () => 
   }
 
   test("onBeforeCreate, which the caller's column permissions read after it, writes no key", async () => {
-    jest
-      .spyOn(LabelService, "countBy")
-      .mockResolvedValue({ toNumber: (): number => 0 } as never);
+    jest.spyOn(LabelService, "countBy").mockResolvedValue({
+      toNumber: (): number => {
+        return 0;
+      },
+    } as never);
     jest.spyOn(LabelService, "findOneBy").mockResolvedValue(null);
     jest.spyOn(LabelService, "findBy").mockResolvedValue([]);
 
@@ -308,7 +316,9 @@ describe("the hooks that write the key run after every permission check", () => 
     expect(
       (rename.data as unknown as Record<string, unknown>)["nameSortKey"],
     ).toBe(getNaturalSortKey("10.Owner=Platform"));
-    expect("nameSortKey" in (recolour.data as object)).toBe(false);
+    expect(
+      "nameSortKey" in (recolour.data as unknown as Record<string, unknown>),
+    ).toBe(false);
   });
 });
 
@@ -390,9 +400,8 @@ describe("the order labels are read in", () => {
       props: props,
     });
 
-    const call: Array<unknown> = labels.repository.find.mock.calls[0] as Array<
-      unknown
-    >;
+    const call: Array<unknown> = labels.repository.find.mock
+      .calls[0] as Array<unknown>;
     const options: { order: unknown; select: Record<string, unknown> } =
       call[0] as { order: unknown; select: Record<string, unknown> };
 

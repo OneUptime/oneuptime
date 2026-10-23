@@ -785,7 +785,8 @@ test.describe("values", () => {
       const row: Locator = labels.getByTestId("detail-labels");
       const pills: Locator = row.getByTestId("pill");
 
-      await expect(pills).toHaveText(["Production", "Customer facing", "EU"]);
+      // In natural order, as labels are listed everywhere (#5183).
+      await expect(pills).toHaveText(["Customer facing", "EU", "Production"]);
       // Every label shown: nothing folded behind "N more".
       await expect(labels.getByRole("button")).toHaveCount(0);
 

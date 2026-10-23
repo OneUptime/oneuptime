@@ -75,10 +75,11 @@ interface StoredLabel {
 
 // The id a cursor query asks for labels after (QueryHelper.greaterThan).
 function cursorOf(query: Record<string, unknown>): string | null {
-  const operator: { objectLiteralParameters?: Record<string, unknown> } | undefined =
-    query["_id"] as
-      | { objectLiteralParameters?: Record<string, unknown> }
-      | undefined;
+  const operator:
+    | { objectLiteralParameters?: Record<string, unknown> }
+    | undefined = query["_id"] as
+    | { objectLiteralParameters?: Record<string, unknown> }
+    | undefined;
 
   if (!operator) {
     return null;

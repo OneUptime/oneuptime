@@ -189,7 +189,10 @@ function fieldsOf(node: ts.Node | null): Array<string> {
   return fields;
 }
 
-function componentsDrawnBy(source: ts.SourceFile, node: ts.Node | null): Array<string> {
+function componentsDrawnBy(
+  source: ts.SourceFile,
+  node: ts.Node | null,
+): Array<string> {
   if (!node) {
     return [];
   }
@@ -416,7 +419,7 @@ const MonitorTable = () => {
     const after: Array<LabelColumn> = labelColumnsIn(
       "After.tsx",
       before.replace(
-        '<Pill key={label.id} text={label.name} color={label.color} />',
+        "<Pill key={label.id} text={label.name} color={label.color} />",
         "<LabelsElement labels={item.labels || []} />",
       ),
     );

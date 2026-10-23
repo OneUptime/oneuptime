@@ -1031,7 +1031,9 @@ describe("Project Settings", () => {
     ).toEqual(["1. Category", "2. Subcategory", "Production"]);
 
     // "then the others alphabetically, whatever their case".
-    expect(steps).toContain("then the others alphabetically, whatever their case");
+    expect(steps).toContain(
+      "then the others alphabetically, whatever their case",
+    );
     expect(compareNaturally("apple", "Banana")).toBeLessThan(0);
     expect(compareNaturally("Banana", "cherry")).toBeLessThan(0);
   });

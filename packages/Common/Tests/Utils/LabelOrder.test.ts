@@ -124,7 +124,11 @@ describe("a record's labels (sortLabels)", () => {
       label(ID(3), undefined, "2-sub"),
     ];
 
-    expect(namesOf(sortLabels(labels))).toEqual(["2-sub", "Alpha", "zeta-team"]);
+    expect(namesOf(sortLabels(labels))).toEqual([
+      "2-sub",
+      "Alpha",
+      "zeta-team",
+    ]);
     expect(getLabelDisplayName(label(ID(4), undefined))).toBe("");
   });
 
@@ -197,10 +201,7 @@ describe("the order the server reads labels in (getLabelListSort)", () => {
     expect(getLabelListSort({})).toEqual(naturalByName);
     // A column named with no order is no order.
     expect(getLabelListSort({ name: undefined })).toEqual(naturalByName);
-    expect(Object.keys(getLabelListSort({}))).toEqual([
-      "nameSortKey",
-      "name",
-    ]);
+    expect(Object.keys(getLabelListSort({}))).toEqual(["nameSortKey", "name"]);
   });
 
   test("asked for them by name, either way: by the sort key that way", () => {

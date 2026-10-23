@@ -130,7 +130,9 @@ const inCell: InCellFunction = (element: ReactElement): ReactElement => {
 const inCard: InCellFunction = (element: ReactElement): ReactElement => {
   return (
     <TableCellContext.Provider value={true}>
-      <TableCardContext.Provider value={true}>{element}</TableCardContext.Provider>
+      <TableCardContext.Provider value={true}>
+        {element}
+      </TableCardContext.Provider>
     </TableCellContext.Provider>
   );
 };
@@ -219,7 +221,9 @@ describe("a record's labels in a table's cell", () => {
 
     expect(pillTexts(container)).toEqual(ISSUE_LABELS_IN_ORDER.slice(0, 3));
 
-    const more: HTMLElement = screen.getByTestId(`${TABLE_LABELS_TEST_ID}-more`);
+    const more: HTMLElement = screen.getByTestId(
+      `${TABLE_LABELS_TEST_ID}-more`,
+    );
 
     expect(more.tagName).toBe("BUTTON");
     expect(more).toHaveAccessibleName("3 more labels");
@@ -238,7 +242,9 @@ describe("a record's labels in a table's cell", () => {
     expect(pillTexts(container)).toEqual(ISSUE_LABELS_IN_ORDER);
     expect(screen.queryByTestId(`${TABLE_LABELS_TEST_ID}-more`)).toBeNull();
 
-    const less: HTMLElement = screen.getByTestId(`${TABLE_LABELS_TEST_ID}-less`);
+    const less: HTMLElement = screen.getByTestId(
+      `${TABLE_LABELS_TEST_ID}-less`,
+    );
 
     expect(less).toHaveAccessibleName("Show less");
 
@@ -360,9 +366,7 @@ describe("a record's labels in a table's cell", () => {
       </I18nextProvider>,
     );
 
-    fireEvent.click(
-      screen.getByRole("button", { name: `3 ${more}` }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: `3 ${more}` }));
 
     expect(screen.getByRole("button", { name: less })).toBeInTheDocument();
   });
@@ -395,7 +399,9 @@ describe("a record's labels in a table's cell", () => {
     );
 
     const rows: Array<HTMLElement> = screen.getAllByRole("row");
-    const list: HTMLElement = within(rows[0]!).getByTestId(TABLE_LABELS_TEST_ID);
+    const list: HTMLElement = within(rows[0]!).getByTestId(
+      TABLE_LABELS_TEST_ID,
+    );
 
     expect(pillTexts(list)).toEqual(ISSUE_LABELS_IN_ORDER.slice(0, 3));
     expect(

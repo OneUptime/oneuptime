@@ -186,7 +186,11 @@ describe("numbers inside a name", () => {
     const small: string = "5 small";
 
     expect(sortNaturally([huge, small])).toEqual([small, huge]);
-    expect(getNaturalSortKey(huge).startsWith(`${NATURAL_SORT_KEY_NUMBERED_TIER}99${"9".repeat(99)}`)).toBe(true);
+    expect(
+      getNaturalSortKey(huge).startsWith(
+        `${NATURAL_SORT_KEY_NUMBERED_TIER}99${"9".repeat(99)}`,
+      ),
+    ).toBe(true);
   });
 
   test("full-width and circled digits are the digits they stand for", () => {
@@ -227,7 +231,9 @@ describe("case, accents and spaces", () => {
   });
 
   test("spaces count once, and not at a name's ends", () => {
-    expect(getNaturalSortKey("  2.   Item  ")).toBe(getNaturalSortKey("2. Item"));
+    expect(getNaturalSortKey("  2.   Item  ")).toBe(
+      getNaturalSortKey("2. Item"),
+    );
     expect(compareNaturally("2.\tItem", "2. Item")).toBe(0);
     expect(getWrittenName("  a \n b  ")).toBe("a b");
   });
@@ -262,9 +268,7 @@ describe("the sort key", () => {
 
   test("the separator is lower than anything a folded name holds", () => {
     expect(NATURAL_SORT_KEY_SEPARATOR.charCodeAt(0)).toBe(1);
-    expect(
-      compareCodePoints(NATURAL_SORT_KEY_SEPARATOR, " "),
-    ).toBeLessThan(0);
+    expect(compareCodePoints(NATURAL_SORT_KEY_SEPARATOR, " ")).toBeLessThan(0);
   });
 
   test("an empty, missing or blank name is a key too, never a throw", () => {
@@ -352,11 +356,7 @@ describe("code point order, as Postgres compares text under the C collation", ()
       const first: string = texts[index]!;
       const second: string = texts[index + 1]!;
 
-      expect([
-        first,
-        second,
-        sign(compareCodePoints(first, second)),
-      ]).toEqual([
+      expect([first, second, sign(compareCodePoints(first, second))]).toEqual([
         first,
         second,
         sign(
@@ -422,9 +422,9 @@ describe("a total order, the same however the names arrive", () => {
       const b: string = names[random(names.length)]!;
       const c: string = names[random(names.length)]!;
 
-      expect(
-        sign(compareNaturally(a, b)) + sign(compareNaturally(b, a)),
-      ).toBe(0);
+      expect(sign(compareNaturally(a, b)) + sign(compareNaturally(b, a))).toBe(
+        0,
+      );
 
       if (compareNaturally(a, b) <= 0 && compareNaturally(b, c) <= 0) {
         expect(compareNaturally(a, c)).toBeLessThanOrEqual(0);

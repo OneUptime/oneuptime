@@ -57,10 +57,8 @@ export const compareLabels: (
   second: OrderableLabel,
 ) => number = (first: OrderableLabel, second: OrderableLabel): number => {
   return (
-    compareNaturally(
-      getLabelDisplayName(first),
-      getLabelDisplayName(second),
-    ) || compareCodePoints(String(first._id || ""), String(second._id || ""))
+    compareNaturally(getLabelDisplayName(first), getLabelDisplayName(second)) ||
+    compareCodePoints(String(first._id || ""), String(second._id || ""))
   );
 };
 

@@ -544,9 +544,9 @@ describe("a surface of its own drawn inside a value starts again", () => {
      * detail value.
      */
     expect(screen.queryByTestId(DETAIL_LABELS_TEST_ID)).toBeNull();
-    expect(
-      pillTexts(screen.getByTestId(TABLE_LABELS_TEST_ID)),
-    ).toEqual(LABEL_NAMES_IN_ORDER.slice(0, 3));
+    expect(pillTexts(screen.getByTestId(TABLE_LABELS_TEST_ID))).toEqual(
+      LABEL_NAMES_IN_ORDER.slice(0, 3),
+    );
     expect(
       screen.getByRole("button", { name: "3 more labels" }),
     ).toBeInTheDocument();

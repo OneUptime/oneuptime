@@ -248,10 +248,7 @@ export const compareNaturally: (
   first: string | null | undefined,
   second: string | null | undefined,
 ): number => {
-  return compareCodePoints(
-    getNaturalSortKey(first),
-    getNaturalSortKey(second),
-  );
+  return compareCodePoints(getNaturalSortKey(first), getNaturalSortKey(second));
 };
 
 /**
@@ -288,9 +285,9 @@ export const sortByNaturalName: <T>(
 /**
  * Names in natural order, as a new array.
  */
-export const sortNaturally: (
+export const sortNaturally: (names: ReadonlyArray<string>) => Array<string> = (
   names: ReadonlyArray<string>,
-) => Array<string> = (names: ReadonlyArray<string>): Array<string> => {
+): Array<string> => {
   return sortByNaturalName<string>(names, (name: string): string => {
     return name;
   });

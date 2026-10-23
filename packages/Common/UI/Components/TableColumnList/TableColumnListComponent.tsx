@@ -20,10 +20,7 @@ import useTranslateValue from "../../Utils/Translation";
  * Three items, then "N more" - or all four, never a fold of one
  * (TableColumnListFold, React-free for App's docs facts).
  */
-export {
-  getTableColumnListVisibleCount,
-  TABLE_COLUMN_LIST_VISIBLE_COUNT,
-};
+export { getTableColumnListVisibleCount, TABLE_COLUMN_LIST_VISIBLE_COUNT };
 
 export interface ComponentProps<TGenericObject extends GenericObject | string> {
   items: Array<TGenericObject>;

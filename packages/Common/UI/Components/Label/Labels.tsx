@@ -1,6 +1,7 @@
 import LabelElement from "./Label";
 import { useIsDetailValue } from "../Detail/DetailValueContext";
 import { useIsTableCard, useIsTableCell } from "../Table/TableCellContext";
+import TableEmptyValue from "../Table/TableEmptyValue";
 import TableColumnListComponent from "../TableColumnList/TableColumnListComponent";
 import LabelModel from "../../../Models/DatabaseModels/Label";
 import { sortLabels } from "../../../Utils/LabelOrder";
@@ -113,7 +114,15 @@ const LabelsElement: FunctionComponent<ComponentProps> = (
   }
 
   if (isTableCell && !isDetailValue) {
-    // Nothing to list is a quiet dash (TableColumnListComponent).
+    /*
+     * None: a quiet dash, the column's words kept for a screen reader -
+     * "No labels attached." on every row of a list was the loudest thing in
+     * rows with nothing to say.
+     */
+    if (labels.length === 0) {
+      return <TableEmptyValue screenReaderText={noItemsMessage} />;
+    }
+
     return (
       <TableColumnListComponent<LabelModel>
         items={labels}
