@@ -30,11 +30,11 @@ import React, {
   FunctionComponent,
   MutableRefObject,
   ReactElement,
+  useCallback,
   useEffect,
   useRef,
   useState,
 } from "react";
-import UserElement from "../../../Components/User/User";
 import ChangeEpisodeState from "../../../Components/IncidentEpisode/ChangeState";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentEpisodeMember from "Common/Models/DatabaseModels/IncidentEpisodeMember";
@@ -48,7 +48,27 @@ import { JSONObject } from "Common/Types/JSON";
 import EventOverviewSkeleton from "../../../Components/EventView/EventOverviewSkeleton";
 import EventStatBar from "../../../Components/EventView/EventStatBar";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
-import LiveDuration from "../../../Components/EventView/LiveDuration";
+import EventWhatHappenedCard from "../../../Components/EventView/EventWhatHappenedCard";
+import useEventOwners, {
+  EventOwnersState,
+} from "../../../Components/EventView/useEventOwners";
+import { EventStatusFact } from "../../../Components/EventView/EventStatusPanel";
+import { getEventStartedByText } from "../../../Utils/EventOverview";
+import EventStartTileValue from "../../../Components/EventView/EventStartTileValue";
+import {
+  EVENT_ROLES_CARD_ID,
+  RoleAssignRequestState,
+  getCommanderFact,
+  getOwnersFact,
+  useRoleAssignRequest,
+} from "../../../Components/EventView/EventPeopleFacts";
+import {
+  EventRolesSnapshot,
+  PrimaryRoleHolding,
+  getPrimaryRoleHolding,
+} from "../../../Utils/EventPeople";
+import IncidentEpisodeOwnerTeam from "Common/Models/DatabaseModels/IncidentEpisodeOwnerTeam";
+import IncidentEpisodeOwnerUser from "Common/Models/DatabaseModels/IncidentEpisodeOwnerUser";
 import EpisodeMembersCard from "../../../Components/EpisodeView/EpisodeMembersCard";
 import {
   INCIDENT_EPISODE_MEMBERSHIP,
@@ -125,6 +145,33 @@ const IncidentEpisodeView: FunctionComponent<
 
   const requestIdRef: MutableRefObject<number> = useRef<number>(0);
   const hasLoadedRef: MutableRefObject<boolean> = useRef<boolean>(false);
+
+  /*
+   * Who runs the episode, for its header: the commander from what the
+   * roles card reads (stamped with the episode it was read for), and the
+   * owners, teams first.
+   */
+  const [rolesSnapshot, setRolesSnapshot] = useState<{
+    subjectId: string;
+    value: EventRolesSnapshot;
+  } | null>(null);
+  const onRolesLoaded: (
+    recordId: string,
+    snapshot: EventRolesSnapshot,
+  ) => void = useCallback(
+    (recordId: string, snapshot: EventRolesSnapshot): void => {
+      setRolesSnapshot({ subjectId: recordId, value: snapshot });
+    },
+    [],
+  );
+  const owners: EventOwnersState = useEventOwners({
+    ownerUserModelType: IncidentEpisodeOwnerUser,
+    ownerTeamModelType: IncidentEpisodeOwnerTeam,
+    resourceIdField: "incidentEpisodeId",
+    resourceId: modelId,
+  });
+  // The header's Assign, which opens the commander's picker in the roles card.
+  const roleAssign: RoleAssignRequestState = useRoleAssignRequest();
   /*
    * The episode the page is on now. A callback from a card rendered for the
    * previous episode can still fire after the switch (a state change or a
@@ -214,6 +261,14 @@ const IncidentEpisodeView: FunctionComponent<
             resolvedAt: true,
             incidentCount: true,
             shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated: true,
+            // The What happened card, and who opened it under Declared.
+            description: true,
+            rootCause: true,
+            createdByUser: {
+              name: true,
+              email: true,
+            },
+            isManuallyCreated: true,
             // A private episode takes no public notes: see its feed.
             isPrivate: true,
           },
@@ -371,10 +426,49 @@ const IncidentEpisodeView: FunctionComponent<
       episode,
     );
 
+  /*
+   * Who runs the episode, first in its header: the commander (the
+   * project's primary incident role) and the owners, teams first. Assign
+   * and Add owners are offered only while the episode is open.
+   */
+  const peopleFacts: Array<EventStatusFact> = [];
+  const primaryRole: PrimaryRoleHolding | null = getPrimaryRoleHolding(
+    rolesSnapshot?.subjectId === modelIdString
+      ? rolesSnapshot.value
+      : undefined,
+  );
+  const commanderFact: EventStatusFact | null = getCommanderFact({
+    holding: primaryRole,
+    onAssign:
+      timing.isResolved || !primaryRole
+        ? undefined
+        : () => {
+            roleAssign.requestAssign(primaryRole.role.id);
+          },
+  });
+
+  if (commanderFact) {
+    peopleFacts.push(commanderFact);
+  }
+
+  const ownersFact: EventStatusFact | null = getOwnersFact({
+    owners: owners.owners,
+    ownersRoute: RouteUtil.populateRouteParams(
+      RouteMap[PageMap.INCIDENT_EPISODE_VIEW_OWNERS] as Route,
+      { modelId: modelId },
+    ),
+    canAddOwners: !timing.isResolved,
+  });
+
+  if (ownersFact) {
+    peopleFacts.push(ownersFact);
+  }
+
   return (
     <div className="space-y-5">
       <ChangeEpisodeState
         episodeId={modelId}
+        peopleFacts={peopleFacts}
         secondaryActions={[
           ...passOn.actions,
           ...getOpenInChatActions(channelLinks),
@@ -417,6 +511,34 @@ const IncidentEpisodeView: FunctionComponent<
       )}
 
       <EventStatBar columns={4} ariaLabel="Episode timing">
+        {/*
+         * When it was declared and by whom, then how long until it was
+         * acknowledged and resolved, then how many incidents it holds. How
+         * long it has lasted is the header's, beside its state.
+         */}
+        <EventStatTile
+          variant="segment"
+          label="Declared"
+          icon={IconProp.Calendar}
+          value={
+            timing.durationStartsAt ? (
+              <EventStartTileValue startedAt={timing.durationStartsAt} />
+            ) : (
+              "-"
+            )
+          }
+          description={getEventStartedByText(
+            {
+              user: episode?.createdByUser,
+              /*
+               * A grouping rule opened it. A manual episode whose creator
+               * is not on record says nothing rather than Automatically.
+               */
+              isCreatedAutomatically: episode?.isManuallyCreated === false,
+            },
+            translator,
+          )}
+        />
         <EventStatTile
           variant="segment"
           label={translator.translateTemplate("{{stateName}} in", {
@@ -435,21 +557,6 @@ const IncidentEpisodeView: FunctionComponent<
         />
         <EventStatTile
           variant="segment"
-          label="Duration"
-          icon={IconProp.Clock}
-          value={
-            timing.durationStartsAt ? (
-              <LiveDuration
-                startDate={timing.durationStartsAt}
-                endDate={timing.durationEndsAt}
-              />
-            ) : (
-              "-"
-            )
-          }
-        />
-        <EventStatTile
-          variant="segment"
           label="Incidents"
           icon={IconProp.Alert}
           value={incidentCount === undefined ? "-" : incidentCount.toString()}
@@ -458,6 +565,26 @@ const IncidentEpisodeView: FunctionComponent<
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
         <div className="min-w-0 xl:col-span-2">
+          {/*
+           * What happened - the episode's description and, once somebody
+           * knows it, its root cause - before the incidents it holds.
+           */}
+          <EventWhatHappenedCard<IncidentEpisode>
+            modelType={IncidentEpisode}
+            modelId={modelId}
+            description={episode?.description}
+            rootCause={episode?.rootCause}
+            // A status page that shows the episode shows its description.
+            statusPageRecord="episode"
+            onSaved={() => {
+              refreshInPlace();
+              // An edited root cause is a new feed entry.
+              setContentRefreshToken((token: number): number => {
+                return token + 1;
+              });
+            }}
+          />
+
           <EpisodeMembersCard<Incident, IncidentEpisodeMember>
             modelType={Incident}
             episodeId={modelId}
@@ -572,12 +699,6 @@ const IncidentEpisodeView: FunctionComponent<
             modelDetailProps={{
               selectMoreFields: {
                 episodeNumberWithPrefix: true,
-                createdByUser: {
-                  _id: true,
-                  name: true,
-                  email: true,
-                  profilePictureId: true,
-                },
               },
               showDetailsInNumberOfColumns: 1,
               style: DetailStyle.Compact,
@@ -676,24 +797,6 @@ const IncidentEpisodeView: FunctionComponent<
                 },
                 {
                   field: {
-                    createdByUser: {
-                      name: true,
-                      email: true,
-                      profilePictureId: true,
-                    },
-                  },
-                  title: "Created By",
-                  fieldType: FieldType.Element,
-                  getElement: (item: IncidentEpisode): ReactElement => {
-                    if (item.createdByUser) {
-                      return <UserElement user={item.createdByUser} />;
-                    }
-
-                    return <span>{translator.translateText("System")}</span>;
-                  },
-                },
-                {
-                  field: {
                     onCallDutyPolicies: {
                       name: true,
                       _id: true,
@@ -744,6 +847,10 @@ const IncidentEpisodeView: FunctionComponent<
           <IncidentEpisodeMemberRoleAssignment
             incidentEpisodeId={modelId}
             headerLayout="stacked"
+            id={EVENT_ROLES_CARD_ID}
+            // The header names the commander from what this card reads.
+            onRolesLoaded={onRolesLoaded}
+            assignRequest={roleAssign.request}
             onMemberChange={async () => {
               // Role changes are recorded on the episode feed.
               setContentRefreshToken((token: number): number => {

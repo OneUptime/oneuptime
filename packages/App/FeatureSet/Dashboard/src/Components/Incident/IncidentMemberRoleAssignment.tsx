@@ -1,12 +1,15 @@
 import React, {
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useState,
   useEffect,
   useCallback,
+  useRef,
 } from "react";
 import MemberRoleAssignment, {
   MemberRole,
+  MemberRoleAssignRequest,
   AssignedMember,
   AvailableUser,
 } from "Common/UI/Components/MemberRoleAssignment/MemberRoleAssignment";
@@ -24,6 +27,7 @@ import Color from "Common/Types/Color";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { CardHeaderLayout } from "Common/UI/Components/Card/Card";
+import { EventRolesSnapshot, toEventRoleMember } from "../../Utils/EventPeople";
 
 export interface ComponentProps {
   incidentId: ObjectID;
@@ -31,6 +35,25 @@ export interface ComponentProps {
   onMemberChange?: () => Promise<void>;
   // "stacked" when the card sits in a narrow column; see Card.
   headerLayout?: CardHeaderLayout | undefined;
+  /*
+   * Called with the incident's roles and who holds them each time the card
+   * has read them - on load and after every change made in it - so the
+   * overview's header can name the commander without a read of its own,
+   * and follows an assignment made here at once.
+   */
+  onRolesLoaded?:
+    | ((recordId: string, snapshot: EventRolesSnapshot) => void)
+    | undefined;
+  /*
+   * The id of the card's wrapper, which takes focus: the overview's header
+   * scrolls to it when the commander is not assigned yet (Assign).
+   */
+  id?: string | undefined;
+  /*
+   * The header's Assign: opens that role's picker in this card, with the
+   * cursor in it, so the commander is chosen in one step.
+   */
+  assignRequest?: MemberRoleAssignRequest | undefined;
 }
 
 const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
@@ -47,6 +70,11 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string>("");
 
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+  // The latest callback, so a read that lands late never calls an old one.
+  const onRolesLoadedRef: MutableRefObject<ComponentProps["onRolesLoaded"]> =
+    useRef<ComponentProps["onRolesLoaded"]>(props.onRolesLoaded);
+  onRolesLoadedRef.current = props.onRolesLoaded;
 
   const fetchData: () => Promise<void> =
     useCallback(async (): Promise<void> => {
@@ -187,6 +215,20 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
         setRoles(transformedRoles);
         setAssignedMembers(transformedMembers);
         setAvailableUsers(transformedUsers);
+
+        onRolesLoadedRef.current?.(props.incidentId.toString(), {
+          roles: transformedRoles.map((role: MemberRole) => {
+            return {
+              id: role.id.toString(),
+              name: role.name,
+              isPrimaryRole: Boolean(role.isPrimaryRole),
+              icon: role.icon,
+            };
+          }),
+          members: (membersResult.data as Array<IncidentMember>).map(
+            toEventRoleMember,
+          ),
+        });
       } catch (err) {
         setError(API.getFriendlyMessage(err));
       } finally {
@@ -242,7 +284,7 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
     }
   };
 
-  return (
+  const card: ReactElement = (
     <MemberRoleAssignment
       title="Incident Roles"
       /*
@@ -261,7 +303,22 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
       emptyStateMessage="Configure incident roles in Incidents → Settings → Incident Roles to start assigning team members."
       className={props.className || ""}
       headerLayout={props.headerLayout}
+      assignRequest={props.assignRequest}
     />
+  );
+
+  if (!props.id) {
+    return card;
+  }
+
+  return (
+    <div
+      id={props.id}
+      tabIndex={-1}
+      className="scroll-mt-32 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-4"
+    >
+      {card}
+    </div>
   );
 };
 

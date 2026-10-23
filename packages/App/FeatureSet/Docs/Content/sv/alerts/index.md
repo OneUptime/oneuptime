@@ -139,7 +139,7 @@ Medan du arbetar med det skriver du ner det du lär dig som **Privata anteckning
 
 **Översikt**, **Utredning**, **Team** och **Anteckningar** är öppna; de andra avsnitten är hopfällda tills du klickar på dem.
 
-- **Översikt** — tre rutor med hur lång tid det tog att bekräfta och lösa larmet, och dess **Varaktighet**. Kortet **AI Investigation** står överst på sidan med **Ask OneUptime AI** längst ner, och **Larm Flöde** registrerar allt som hände med larmet. Bredvid finns kortet **Larmdetaljer**, larmets mätningar och dess **Berörda resurser**.
+- **Översikt** — rubriken nämner larmets **Ägare**, team först, bredvid dess monitor och episod. Rutan **Skapad** visar när och av vad larmet skapades, två andra hur lång tid det tog att bekräfta och lösa det; hur länge det har pågått står vid dess tillstånd. Kortet **Vad som hände** står överst på sidan — larmets beskrivning och dess **Rotorsak** — sedan kortet **AI Investigation** med **Ask OneUptime AI** längst ner, och **Larm Flöde** registrerar allt som hände med larmet. Bredvid finns kortet **Berörda resurser**, kortet **Larmdetaljer** och larmets mätningar.
 - **Tillståndstidslinje** — varje tillstånd larmet har varit i, när och hur länge. Se [Tillståndstidslinjen](/docs/alerts/states-and-severities#tillståndstidslinjen).
 - **Länkade incidenter** — incidenterna som larmet är en del av, med **Länka incident** och **Deklarera incident**.
 - **Inställningar** — **Vem kan se det här larmet** med reglaget **Privat larm**, och **Påminnelser** med **Skicka påminnelser**. Varje reglage sparar i samma ögonblick som du slår om det.

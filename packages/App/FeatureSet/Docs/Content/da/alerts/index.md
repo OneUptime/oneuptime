@@ -139,7 +139,7 @@ Mens du arbejder med den, skriver du det, du lærer, ned som **Private noter**, 
 
 **Oversigt**, **Undersøgelse**, **Team** og **Noter** er åbne; de andre sektioner er foldet sammen, indtil du klikker på dem.
 
-- **Oversigt** — tre felter med, hvor lang tid det tog at bekræfte og løse advarslen, og dens **Varighed**. Kortet **AI Investigation** står øverst på siden med **Ask OneUptime AI** nederst, og **Advarsel Feed** registrerer alt, hvad der skete med advarslen. Ved siden af dem står kortet **Advarselsdetaljer**, advarslens målinger og dens **Berørte ressourcer**.
+- **Oversigt** — hovedet nævner advarslens **Ejere**, teams først, ved siden af dens monitor og episode. Feltet **Oprettet** viser, hvornår og af hvad den blev oprettet, to andre, hvor lang tid det tog at bekræfte og løse advarslen; hvor længe den har varet, står ved dens tilstand. Kortet **Hvad der skete** står øverst på siden — advarslens beskrivelse og dens **Grundårsag** — derefter kortet **AI Investigation** med **Ask OneUptime AI** nederst, og **Advarsel Feed** registrerer alt, hvad der skete med advarslen. Ved siden af dem står kortet **Berørte ressourcer**, kortet **Advarselsdetaljer** og advarslens målinger.
 - **Tilstandstidslinje** — hver tilstand, advarslen har været i, hvornår og hvor længe. Se [Tilstandstidslinjen](/docs/alerts/states-and-severities#tilstandstidslinjen).
 - **Tilknyttede hændelser** — de hændelser, advarslen er en del af, med **Tilknyt hændelse** og **Erklær hændelse**.
 - **Indstillinger** — **Hvem kan se denne advarsel** med kontakten **Privat advarsel** og **Påmindelser** med **Send påmindelser**. Hver kontakt gemmer i det øjeblik, du slår den om.
