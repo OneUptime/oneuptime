@@ -18,7 +18,7 @@
     <%# What it is, and the product in one look. %>
     <%- include('./Partials/home-hero') -%>
 
-    <%- include('./Partials/home-logos') -%>
+    <%- include('logo-roll') -%>
 
     <%# The core products, each with a glimpse of its screen. %>
     <%- include('./Partials/home-platform') -%>
@@ -39,10 +39,10 @@
 
     <%- include('./Partials/home-faq') -%>
 
-    <%- include('./Partials/home-cta') -%>
+    <%- include('cta') -%>
   </main>
 
-  <%- include('footer', { hideFooterCta: true }) -%>
+  <%- include('footer') -%>
 
   <%- include('./Partials/cta-tracking') -%>
 

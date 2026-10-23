@@ -1306,18 +1306,15 @@ describe("vmware.ejs", () => {
     }
   });
 
-  test("wires the cursor glow to its own element ids", () => {
+  test("names its hero for itself, and draws it without a cursor glow", () => {
     /*
-     * The inline script looks the hero and glow layers up by id; a leftover
-     * proxmox-* id from the template the page was cloned from would render
-     * the hero without its glow and nobody would notice.
+     * A leftover proxmox-* id from the template the page was cloned from
+     * would point anything that looks the hero up at the wrong page. The
+     * heroes are calm now: no grid glow follows the cursor.
      */
     expect(html).toContain('id="vmware-hero-section"');
-    expect(html).toContain('id="vmware-grid-glow"');
-    expect(html).toContain("getElementById('vmware-hero-section')");
-    expect(html).toContain("getElementById('vmware-grid-glow')");
     expect(html).not.toContain("proxmox-hero-section");
-    expect(html).not.toContain("proxmox-grid-glow");
+    expect(html).not.toContain("grid-glow");
   });
 });
 
@@ -1893,15 +1890,12 @@ describe("databases.ejs", () => {
     }
   });
 
-  test("wires the cursor glow to its own element ids", () => {
+  test("names its hero for itself, and draws it without a cursor glow", () => {
     expect(html).toContain('id="databases-hero-section"');
-    expect(html).toContain('id="databases-grid-glow"');
-    expect(html).toContain("getElementById('databases-hero-section')");
-    expect(html).toContain("getElementById('databases-grid-glow')");
     for (const borrowed of ["vmware", "kubernetes", "proxmox"]) {
       expect(html).not.toContain(`${borrowed}-hero-section`);
-      expect(html).not.toContain(`${borrowed}-grid-glow`);
     }
+    expect(html).not.toContain("grid-glow");
   });
 });
 
@@ -2999,15 +2993,12 @@ describe("queues.ejs", () => {
     }
   });
 
-  test("wires the cursor glow to its own element ids", () => {
+  test("names its hero for itself, and draws it without a cursor glow", () => {
     expect(html).toContain('id="queues-hero-section"');
-    expect(html).toContain('id="queues-grid-glow"');
-    expect(html).toContain("getElementById('queues-hero-section')");
-    expect(html).toContain("getElementById('queues-grid-glow')");
     for (const borrowed of ["databases", "vmware", "kubernetes", "proxmox"]) {
       expect(html).not.toContain(`${borrowed}-hero-section`);
-      expect(html).not.toContain(`${borrowed}-grid-glow`);
     }
+    expect(html).not.toContain("grid-glow");
   });
 });
 

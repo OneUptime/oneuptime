@@ -154,10 +154,6 @@
     }
     .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .auto-rows-fr { grid-auto-rows: minmax(0, 1fr); }
-    /* Reserve space for logo-roll section to prevent CLS */
-    .marquee-container { overflow: hidden; min-height: 60px; }
-    .logo-item { min-width: 160px; height: 60px; }
-    .logo-item img { max-height: 36px; max-width: 140px; }
     /*
      * Desktop-only markup is written `max-md:hidden md:flex`, not
      * `hidden md:flex`: a browser extension or user stylesheet that declares

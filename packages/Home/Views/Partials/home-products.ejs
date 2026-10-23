@@ -56,7 +56,8 @@
     },
   ];
 -%>
-<section id="products" class="bg-white py-24 scroll-mt-20 sm:py-32" aria-labelledby="products-title">
+<%# Followed straight by a call to action (the product pages), the section leaves the space below to it. -%>
+<section id="products" class="bg-white scroll-mt-20 <%= typeof productsFlushBottom !== 'undefined' && productsFlushBottom ? 'pt-24 sm:pt-32' : 'py-24 sm:py-32' %>" aria-labelledby="products-title">
   <div class="mx-auto max-w-6xl px-6 lg:px-8">
     <div class="max-w-3xl">
       <p class="text-sm font-semibold text-emerald-600">Products</p>
