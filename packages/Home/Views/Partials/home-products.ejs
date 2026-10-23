@@ -83,11 +83,11 @@
         { groups: [productGroups[1]], wide: false },
         { groups: [productGroups[2]], wide: true },
       ].forEach(function (column, columnIndex) { -%>
-      <div data-reveal data-reveal-delay="<%= columnIndex * 80 %>" class="space-y-12<%= column.wide ? ' sm:col-span-2' : '' %>">
+      <div data-reveal data-reveal-delay="<%= columnIndex * 80 %>" class="space-y-12 <%= column.wide ? 'sm:col-span-2' : '' %>">
         <% column.groups.forEach(function (group) { -%>
         <div>
           <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-400"><%= group.name %></h3>
-          <ul class="mt-5 grid grid-cols-2 gap-x-4 gap-y-1<%= column.wide ? ' sm:gap-x-8' : ' sm:grid-cols-1' %>">
+          <ul class="mt-5 grid grid-cols-2 gap-x-4 gap-y-1 <%= column.wide ? 'sm:gap-x-8' : 'sm:grid-cols-1' %>">
             <% group.products.forEach(function (product) { -%>
             <li>
               <a href="<%= product.href %>" class="group -mx-2 flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">

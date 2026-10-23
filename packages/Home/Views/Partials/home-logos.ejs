@@ -29,7 +29,7 @@
     <div data-reveal data-reveal-delay="100" class="logo-viewport mt-8 overflow-hidden">
       <div class="logo-track">
         <% [false, true].forEach(function (isCopy) { -%>
-        <div class="logo-set<%= isCopy ? ' logo-set-copy' : '' %>"<%- isCopy ? ' aria-hidden="true"' : '' %>>
+        <div class="logo-set <%= isCopy ? 'logo-set-copy' : '' %>"<%- isCopy ? ' aria-hidden="true"' : '' %>>
           <% customerLogos.forEach(function (logo) { -%>
           <div class="flex h-16 w-32 flex-none items-center justify-center px-4 sm:w-40 sm:px-5">
             <img class="logo-mark h-auto max-h-9 w-auto max-w-[6.5rem] object-contain sm:max-w-[8.75rem]" src="<%= logo.src %>" alt="<%= isCopy ? '' : logo.alt %>" width="140" height="<%= logo.height %>" loading="lazy" decoding="async"<% if (logo.style) { %> style="<%= logo.style %>"<% } %>>

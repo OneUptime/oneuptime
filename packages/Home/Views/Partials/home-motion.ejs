@@ -168,6 +168,13 @@
     els.forEach(function (el) {
       var d = el.getAttribute('data-reveal-delay');
       if (d) el.style.setProperty('--reveal-delay', d + 'ms');
+      // The hero plays in as the page opens; it does not wait for a scroll.
+      if (el.closest('#hero-section')) {
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () { el.classList.add('is-revealed'); });
+        });
+        return;
+      }
       io.observe(el);
     });
     // Release the reveal styles once the entrance finishes, so hover
