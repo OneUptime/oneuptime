@@ -134,7 +134,7 @@ Wenn ein Lauf nicht starten kann, sagt die App im Thread, warum: Sie schlägt ni
 
 ## Ausschalten
 
-Jedes Repository hat einen Schalter: **Auf GitHub-Befehle reagieren** auf der Seite **Einstellungen** des Repositorys. Er ist für jedes Repository an und speichert, sobald Sie ihn umlegen. Ist er aus, ignoriert die App in diesem Repository Erwähnungen, Zuweisungen und das Auslöser-Label und sagt jedem, der fragt, wo der Schalter ist.
+Jedes Repository hat einen Schalter: **Auf GitHub-Befehle reagieren** unter **Weitere Einstellungen** auf der Seite **Einstellungen** des Repositorys. Er ist für jedes Repository an und speichert, sobald Sie ihn umlegen. Ist er aus, ignoriert die App in diesem Repository Erwähnungen, Zuweisungen und das Auslöser-Label und sagt jedem, der fragt, wo der Schalter ist.
 
 Dieselbe Seite enthält unter **Weitere Einstellungen** das **GitHub-Auslöser-Label**, falls Sie ein anderes Label als `oneuptime` möchten.
 

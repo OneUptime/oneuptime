@@ -14,10 +14,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * and no key: adding it rewrites nothing and blocks nothing. Nothing to
  * backfill - each device's next scan, poll and router walk fill it in.
  */
-export class AddNetworkDeviceDiscoveredDetails1806700000000
+export class AddNetworkDeviceDiscoveredDetails1806800000000
   implements MigrationInterface
 {
-  public name: string = "AddNetworkDeviceDiscoveredDetails1806700000000";
+  public name: string = "AddNetworkDeviceDiscoveredDetails1806800000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

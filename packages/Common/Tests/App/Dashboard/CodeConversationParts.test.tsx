@@ -1857,19 +1857,22 @@ describe("what stops AI working", () => {
       CodeTaskBlockerType.NoAgent,
       "No global Runner is online to work in this repository.",
       "Pick a Runner",
-      `code/repositories/${REPOSITORY_ID}/settings`,
+      // The repository's settings, at its Runner (More settings opens there).
+      `code/repositories/${REPOSITORY_ID}/settings#runner`,
     ],
     [
       CodeTaskBlockerType.RunnerNotOnline,
       "The Runner this repository picks is not online.",
       "Pick a Runner",
-      `code/repositories/${REPOSITORY_ID}/settings`,
+      // The repository's settings, at its Runner (More settings opens there).
+      `code/repositories/${REPOSITORY_ID}/settings#runner`,
     ],
     [
       CodeTaskBlockerType.GlobalRunnersOff,
       "This project does not use global Runners, so this repository needs one of your Runners.",
       "Pick a Runner",
-      `code/repositories/${REPOSITORY_ID}/settings`,
+      // The repository's settings, at its Runner (More settings opens there).
+      `code/repositories/${REPOSITORY_ID}/settings#runner`,
     ],
     [
       CodeTaskBlockerType.RepositoryNotConnected,
