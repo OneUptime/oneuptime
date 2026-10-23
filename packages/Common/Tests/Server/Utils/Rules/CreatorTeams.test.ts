@@ -1,7 +1,11 @@
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import CreatorTeams from "../../../../Server/Utils/Rules/CreatorTeams";
 import ObjectID from "../../../../Types/ObjectID";
-import { afterEach, describe, expect, it, jest } from "@jest/globals";
+/*
+ * jest itself is the global one: @jest/globals types spyOn and fn as mocks
+ * the global jest.SpiedFunction annotations here do not accept.
+ */
+import { afterEach, describe, expect, it } from "@jest/globals";
 
 /*
  * Contract under test - the creator's team an incident or alert owner rule

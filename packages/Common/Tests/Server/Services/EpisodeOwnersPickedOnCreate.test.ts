@@ -24,14 +24,11 @@ import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../Types/ObjectID";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+/*
+ * jest itself is the global one: @jest/globals types spyOn and fn as mocks
+ * the global jest.SpiedFunction annotation here does not accept.
+ */
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
 // Refusals below are deliberate; @CaptureSpan and the services log them.

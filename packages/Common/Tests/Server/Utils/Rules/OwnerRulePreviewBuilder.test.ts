@@ -31,7 +31,11 @@ import OwnerRulePreview, {
   OwnerRulePreviewResult,
 } from "../../../../Types/Rules/OwnerRulePreview";
 import { permissionRow, tenantPermissionsFor } from "../../API/PermissionRows";
-import { afterEach, describe, expect, it, jest } from "@jest/globals";
+/*
+ * jest itself is the global one: @jest/globals types spyOn and fn as mocks
+ * the global jest.SpyInstance annotations here do not accept.
+ */
+import { afterEach, describe, expect, it } from "@jest/globals";
 
 /*
  * Contract under test - which owner rules would run for an incident, alert
