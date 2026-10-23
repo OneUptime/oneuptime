@@ -101,7 +101,7 @@ oneuptime context delete <name>
 
 ### `oneuptime <resource> list`
 
-레코드를 최신순으로 나열합니다.
+레코드를 최신순으로 나열합니다. 레이블은 대신 이름순으로 나열되며, 번호가 붙은 레이블이 먼저 옵니다(`2. Team`이 `10. Owner`보다 앞).
 
 ```bash
 oneuptime <resource> list [--query <json>] [--limit <n>] [--skip <n>] [--sort <json>] [-o <format>]
