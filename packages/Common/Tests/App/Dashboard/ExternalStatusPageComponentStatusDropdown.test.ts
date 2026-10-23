@@ -16,9 +16,10 @@ import { describe, expect, test } from "@jest/globals";
  * criterion should fire on a status nobody can see.
  */
 
-const DROPDOWN: Array<DropdownOption> = CriteriaFilterUtil.getDropdownOptionsByCheckOn({
-  checkOn: CheckOn.ExternalStatusPageComponentStatus,
-});
+const DROPDOWN: Array<DropdownOption> =
+  CriteriaFilterUtil.getDropdownOptionsByCheckOn({
+    checkOn: CheckOn.ExternalStatusPageComponentStatus,
+  });
 
 const DROPDOWN_VALUES: Array<string> = DROPDOWN.map(
   (option: DropdownOption): string => {

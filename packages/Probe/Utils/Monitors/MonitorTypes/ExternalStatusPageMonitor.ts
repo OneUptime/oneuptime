@@ -1228,9 +1228,8 @@ export default class ExternalStatusPageMonitorUtil {
       return ExternalStatusPageMonitorUtil.buildScopedResponse({
         config: config,
         provider: ExternalStatusPageProviderType.OneUptime,
-        components: ExternalStatusPageMonitorUtil.getOneUptimeComponents(
-          summary,
-        ),
+        components:
+          ExternalStatusPageMonitorUtil.getOneUptimeComponents(summary),
         incidents: ExternalStatusPageMonitorUtil.getOneUptimeIncidents(summary),
         /*
          * The page's banner names the worst status of its monitors, a

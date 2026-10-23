@@ -388,7 +388,11 @@ describe("the status page summary route", () => {
   it("shares the overview's cache: a page's overview and summary are built once", async () => {
     const pageId: string = ObjectID.generate().toString();
 
-    await ask({ route: OVERVIEW_ROUTE, method: "get", statusPageIdOrDomain: pageId });
+    await ask({
+      route: OVERVIEW_ROUTE,
+      method: "get",
+      statusPageIdOrDomain: pageId,
+    });
     await ask({ method: "get", statusPageIdOrDomain: pageId });
     await ask({ method: "post", statusPageIdOrDomain: pageId });
 

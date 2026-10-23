@@ -85,16 +85,16 @@ function titles(items: Array<StatusPageRssItem>): Array<string> {
 
 describe("StatusPageRssFeed.getReadHeaders", () => {
   test.each([
-    ["behind one proxy", { forwardedFor: "198.51.100.7", remoteAddress: "10.0.0.2" }],
+    [
+      "behind one proxy",
+      { forwardedFor: "198.51.100.7", remoteAddress: "10.0.0.2" },
+    ],
     [
       "with an address the reader made up in front",
       { forwardedFor: "1.2.3.4, 198.51.100.7", remoteAddress: "10.0.0.2" },
     ],
     ["with no proxy in front", { remoteAddress: "198.51.100.8" }],
-    [
-      "over IPv6",
-      { forwardedFor: "2001:db8::7", remoteAddress: "10.0.0.2" },
-    ],
+    ["over IPv6", { forwardedFor: "2001:db8::7", remoteAddress: "10.0.0.2" }],
   ])(
     "the API takes the reader to be who this server took them to be: %s",
     (
@@ -155,12 +155,10 @@ describe("StatusPageRssFeed.getReadHeaders", () => {
         });
 
         /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
-        const isolatedFeed: typeof StatusPageRssFeed = require(
-          "../../../../Server/Utils/StatusPage/StatusPageRssFeed",
-        ).default;
-        const isolatedResolve: typeof resolveClientIp = require(
-          "../../../../Server/Utils/ClientIp",
-        ).resolveClientIp;
+        const isolatedFeed: typeof StatusPageRssFeed =
+          require("../../../../Server/Utils/StatusPage/StatusPageRssFeed").default;
+        const isolatedResolve: typeof resolveClientIp =
+          require("../../../../Server/Utils/ClientIp").resolveClientIp;
         /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 
         /*
@@ -218,7 +216,9 @@ describe("StatusPageRssFeed.readShownLists", () => {
             // Announcements are switched off on this page.
             return new HTTPErrorResponse(
               400,
-              { message: "Announcements are not enabled for this status page." },
+              {
+                message: "Announcements are not enabled for this status page.",
+              },
               {},
             );
           }
@@ -375,16 +375,18 @@ describe("StatusPageRssFeed.buildItems: each item dated as the page dates it", (
       baseUrl: BASE_URL,
     });
 
-    expect(item!.description).toBe(
-      "Scheduled for Sun, 01 Nov 2026 22:15 UTC.",
-    );
+    expect(item!.description).toBe("Scheduled for Sun, 01 Nov 2026 22:15 UTC.");
   });
 
   test("falls back to when the record was written, and leaves out a date it cannot read", () => {
     const items: Array<StatusPageRssItem> = StatusPageRssFeed.buildItems({
       lists: lists({
         incidents: [
-          { _id: "i2", title: "Old incident", createdAt: "2026-10-01T00:00:00.000Z" },
+          {
+            _id: "i2",
+            title: "Old incident",
+            createdAt: "2026-10-01T00:00:00.000Z",
+          },
           { _id: "i3", title: "No date at all" },
           { _id: "i4", title: "Unreadable", declaredAt: "not a date" },
         ] as unknown as JSONArray,
@@ -537,7 +539,10 @@ describe("StatusPageRssFeed's dates and words", () => {
   test.each([
     [new Date("2026-10-25T02:00:00.000Z"), "2026-10-25T02:00:00.000Z"],
     ["2026-10-25T02:00:00.000Z", "2026-10-25T02:00:00.000Z"],
-    [{ _type: "DateTime", value: "2026-10-25T02:00:00.000Z" }, "2026-10-25T02:00:00.000Z"],
+    [
+      { _type: "DateTime", value: "2026-10-25T02:00:00.000Z" },
+      "2026-10-25T02:00:00.000Z",
+    ],
     ["not a date", null],
     ["", null],
     [new Date("invalid"), null],

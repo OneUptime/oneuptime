@@ -50,16 +50,18 @@ let feedBody: string = "";
 beforeEach(() => {
   jest.spyOn(ProxyConfig, "getHttpProxyAgent").mockReturnValue(null);
   jest.spyOn(ProxyConfig, "getHttpsProxyAgent").mockReturnValue(null);
-  jest.spyOn(axios, "get").mockImplementation(async (): Promise<AxiosResponse> => {
-    return {
-      status: 200,
-      statusText: "OK",
-      data: Readable.from([Buffer.from(feedBody)]),
-      headers: { "content-type": "application/rss+xml" },
-      config: {},
-      request: {},
-    } as AxiosResponse;
-  });
+  jest
+    .spyOn(axios, "get")
+    .mockImplementation(async (): Promise<AxiosResponse> => {
+      return {
+        status: 200,
+        statusText: "OK",
+        data: Readable.from([Buffer.from(feedBody)]),
+        headers: { "content-type": "application/rss+xml" },
+        config: {},
+        request: {},
+      } as AxiosResponse;
+    });
 });
 
 afterEach(() => {

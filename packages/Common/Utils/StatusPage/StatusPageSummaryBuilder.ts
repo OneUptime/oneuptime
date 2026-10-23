@@ -68,7 +68,9 @@ export default class StatusPageSummaryBuilder {
         (resource: StatusPageResource): boolean => {
           return (
             Boolean(StatusPageSummaryBuilder.idOf(resource)) &&
-            Boolean(resource.monitorId || resource.monitor || resource.monitorGroupId)
+            Boolean(
+              resource.monitorId || resource.monitor || resource.monitorGroupId,
+            )
           );
         },
       );
@@ -104,32 +106,37 @@ export default class StatusPageSummaryBuilder {
       }
     }
 
-    const affectedIds: (monitors: Array<Monitor> | undefined) => Array<string> =
-      (monitors: Array<Monitor> | undefined): Array<string> => {
-        return getResourcesAffectedByMonitors({
-          monitorIds: (monitors || []).map(
-            (monitor: Monitor): string | undefined => {
-              return StatusPageSummaryBuilder.idOf(monitor) || undefined;
-            },
-          ),
-          statusPageResources: shownResources,
-          monitorsInGroup: read.monitorsInGroup,
+    const affectedIds: (
+      monitors: Array<Monitor> | undefined,
+    ) => Array<string> = (
+      monitors: Array<Monitor> | undefined,
+    ): Array<string> => {
+      return getResourcesAffectedByMonitors({
+        monitorIds: (monitors || []).map(
+          (monitor: Monitor): string | undefined => {
+            return StatusPageSummaryBuilder.idOf(monitor) || undefined;
+          },
+        ),
+        statusPageResources: shownResources,
+        monitorsInGroup: read.monitorsInGroup,
+      })
+        .map((resource: StatusPageResource): string => {
+          return StatusPageSummaryBuilder.idOf(resource);
         })
-          .map((resource: StatusPageResource): string => {
-            return StatusPageSummaryBuilder.idOf(resource);
-          })
-          .filter((id: string): boolean => {
-            return Boolean(id);
-          });
-      };
+        .filter((id: string): boolean => {
+          return Boolean(id);
+        });
+    };
 
     const ongoingScheduledMaintenance: Array<StatusPageSummaryMaintenance> =
-      ongoing.map((event: ScheduledMaintenance): StatusPageSummaryMaintenance => {
-        return StatusPageSummaryBuilder.toMaintenance(
-          event,
-          affectedIds(event.monitors),
-        );
-      });
+      ongoing.map(
+        (event: ScheduledMaintenance): StatusPageSummaryMaintenance => {
+          return StatusPageSummaryBuilder.toMaintenance(
+            event,
+            affectedIds(event.monitors),
+          );
+        },
+      );
 
     const underMaintenance: Set<string> = new Set<string>();
 
@@ -197,10 +204,7 @@ export default class StatusPageSummaryBuilder {
    */
   public static getCurrentStatus(
     resource: StatusPageResource,
-    read: Pick<
-      ReadOverview,
-      "monitorStatuses" | "monitorGroupCurrentStatuses"
-    >,
+    read: Pick<ReadOverview, "monitorStatuses" | "monitorGroupCurrentStatuses">,
   ): StatusPageSummaryStatus | null {
     if (!resource.showCurrentStatus) {
       return null;
@@ -279,7 +283,8 @@ export default class StatusPageSummaryBuilder {
 
   private static toStatus(status: MonitorStatus): StatusPageSummaryStatus {
     return {
-      name: (status.name || "").trim() || STATUS_PAGE_SUMMARY_DEFAULT_STATUS_NAME,
+      name:
+        (status.name || "").trim() || STATUS_PAGE_SUMMARY_DEFAULT_STATUS_NAME,
       color: status.color ? status.color.toString() : null,
       isOperational: Boolean(status.isOperationalState),
     };
@@ -299,7 +304,9 @@ export default class StatusPageSummaryBuilder {
     };
   }
 
-  private static toIsoDate(value: Date | string | undefined | null): string | null {
+  private static toIsoDate(
+    value: Date | string | undefined | null,
+  ): string | null {
     if (!value) {
       return null;
     }
@@ -319,7 +326,9 @@ export default class StatusPageSummaryBuilder {
   }
 
   private static read(overview: JSONObject): ReadOverview {
-    const readArray: (name: string) => JSONArray = (name: string): JSONArray => {
+    const readArray: (name: string) => JSONArray = (
+      name: string,
+    ): JSONArray => {
       const value: unknown = overview[name];
       return Array.isArray(value) ? (value as JSONArray) : [];
     };

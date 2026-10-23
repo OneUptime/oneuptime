@@ -687,16 +687,22 @@ describe("StatusPageSummaryBuilder.fromOverview: what never reaches the summary"
       [
         { _id: PG_CORE, name: "Core", parentStatusPageGroupId: PG_DATA },
         { _id: PG_DATA, name: "Data", parentStatusPageGroupId: PG_CORE },
-      ].map((spec: { _id: string; name: string; parentStatusPageGroupId: string }) => {
-        return {
-          ...spec,
-          parentStatusPageGroupId: {
-            toString: (): string => {
-              return spec.parentStatusPageGroupId;
+      ].map(
+        (spec: {
+          _id: string;
+          name: string;
+          parentStatusPageGroupId: string;
+        }) => {
+          return {
+            ...spec,
+            parentStatusPageGroupId: {
+              toString: (): string => {
+                return spec.parentStatusPageGroupId;
+              },
             },
-          },
-        } as never;
-      }),
+          } as never;
+        },
+      ),
     );
 
     expect(paths.get(PG_CORE)).toBe("Data / Core");

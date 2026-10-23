@@ -324,11 +324,9 @@ export function buildFakeOverview(page: FakeStatusPage): JSONObject {
   const monitorsInGroup: Dictionary<Array<ObjectID>> = {};
 
   for (const group of page.monitorGroups || []) {
-    monitorsInGroup[group.id] = group.monitorIds.map(
-      (id: string): ObjectID => {
-        return new ObjectID(id);
-      },
-    );
+    monitorsInGroup[group.id] = group.monitorIds.map((id: string): ObjectID => {
+      return new ObjectID(id);
+    });
 
     if (group.statusId) {
       monitorGroupCurrentStatuses[group.id] = new ObjectID(group.statusId);

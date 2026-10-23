@@ -186,11 +186,11 @@ export default class StatusPageSummaryUtil {
       return null;
     }
 
-    const segments: Array<string> = url.pathname.split("/").filter(
-      (segment: string): boolean => {
+    const segments: Array<string> = url.pathname
+      .split("/")
+      .filter((segment: string): boolean => {
         return Boolean(segment);
-      },
-    );
+      });
 
     const statusPageId: string | undefined =
       segments[0]?.toLowerCase() === "status-page" &&
@@ -321,9 +321,10 @@ export default class StatusPageSummaryUtil {
       ),
       resources: resources,
       activeIncidents: activeIncidents,
-      ongoingScheduledMaintenance: StatusPageSummaryUtil.maintenanceListFromJSON(
-        json["ongoingScheduledMaintenance"],
-      ),
+      ongoingScheduledMaintenance:
+        StatusPageSummaryUtil.maintenanceListFromJSON(
+          json["ongoingScheduledMaintenance"],
+        ),
       upcomingScheduledMaintenance:
         StatusPageSummaryUtil.maintenanceListFromJSON(
           json["upcomingScheduledMaintenance"],
@@ -345,7 +346,9 @@ export default class StatusPageSummaryUtil {
     };
   }
 
-  private static statusFromJSON(value: unknown): StatusPageSummaryStatus | null {
+  private static statusFromJSON(
+    value: unknown,
+  ): StatusPageSummaryStatus | null {
     if (!isRecord(value)) {
       return null;
     }

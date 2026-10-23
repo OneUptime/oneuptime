@@ -226,7 +226,7 @@ class FakeOneUptimeHost {
     return {
       status: status,
       contentType: "text/html; charset=utf-8",
-      body: "<!DOCTYPE html><html><head><title>Status</title></head><body><div id=\"root\"></div></body></html>",
+      body: '<!DOCTYPE html><html><head><title>Status</title></head><body><div id="root"></div></body></html>',
     };
   }
 }
@@ -352,7 +352,10 @@ beforeEach(() => {
   jest
     .spyOn(axios, "get")
     .mockImplementation(
-      async (url: string, options?: AxiosRequestConfig): Promise<AxiosResponse> => {
+      async (
+        url: string,
+        options?: AxiosRequestConfig,
+      ): Promise<AxiosResponse> => {
         host.requests.push(url);
         host.headers.push({ ...(options?.headers as Record<string, unknown>) });
 
@@ -513,7 +516,14 @@ describe("scheduled maintenance on a OneUptime status page", () => {
     );
   });
 
-  test.each(["scheduled", "confirmed", "ended", "reviewing", "completed", "archived"] as const)(
+  test.each([
+    "scheduled",
+    "confirmed",
+    "ended",
+    "reviewing",
+    "completed",
+    "archived",
+  ] as const)(
     "an event %s puts nothing under maintenance",
     async (
       state:
@@ -531,9 +541,7 @@ describe("scheduled maintenance on a OneUptime status page", () => {
         }),
       });
 
-      expect(component(await check(), "Databases").status).toBe(
-        "operational",
-      );
+      expect(component(await check(), "Databases").status).toBe("operational");
     },
   );
 
@@ -823,13 +831,17 @@ describe("Auto detection of a OneUptime status page", () => {
   );
 
   test("an Atlassian Statuspage is detected before a OneUptime page is asked about", async () => {
-    jest.spyOn(axios, "get").mockImplementation(
-      async (url: string): Promise<AxiosResponse> => {
+    jest
+      .spyOn(axios, "get")
+      .mockImplementation(async (url: string): Promise<AxiosResponse> => {
         host.requests.push(url);
         const path: string = new URL(url).pathname;
         const answers: Record<string, unknown> = {
           "/api/v2/status.json": {
-            status: { indicator: "none", description: "All Systems Operational" },
+            status: {
+              indicator: "none",
+              description: "All Systems Operational",
+            },
           },
           "/api/v2/components.json": { components: [] },
           "/api/v2/incidents/unresolved.json": { incidents: [] },
@@ -844,8 +856,7 @@ describe("Auto detection of a OneUptime status page", () => {
           config: {},
           request: {},
         } as AxiosResponse;
-      },
-    );
+      });
 
     const response: ExternalStatusPageMonitorResponse = await check({
       provider: ExternalStatusPageProviderType.Auto,
@@ -875,8 +886,9 @@ describe("Auto detection of a OneUptime status page", () => {
 
 describe("what a OneUptime status page's answer may not do", () => {
   test("an answer that is not a summary is not read as one", async () => {
-    jest.spyOn(axios, "get").mockImplementation(
-      async (url: string): Promise<AxiosResponse> => {
+    jest
+      .spyOn(axios, "get")
+      .mockImplementation(async (url: string): Promise<AxiosResponse> => {
         host.requests.push(url);
         const isSummary: boolean = new URL(url).pathname.startsWith(
           "/status-page-api/summary/",
@@ -888,7 +900,10 @@ describe("what a OneUptime status page's answer may not do", () => {
           data: Readable.from([
             Buffer.from(
               isSummary
-                ? JSON.stringify({ resources: "not a list", activeIncidents: [] })
+                ? JSON.stringify({
+                    resources: "not a list",
+                    activeIncidents: [],
+                  })
                 : "<!DOCTYPE html><html></html>",
             ),
           ]),
@@ -896,8 +911,7 @@ describe("what a OneUptime status page's answer may not do", () => {
           config: {},
           request: {},
         } as AxiosResponse;
-      },
-    );
+      });
 
     const response: ExternalStatusPageMonitorResponse = await check();
 

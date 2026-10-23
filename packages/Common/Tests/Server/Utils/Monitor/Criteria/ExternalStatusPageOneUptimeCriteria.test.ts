@@ -182,11 +182,17 @@ async function statusAfter(
 ): Promise<string> {
   for (const instance of criteria) {
     if (await isMet(instance, dataToProcess)) {
-      if (instance.data?.monitorStatusId?.toString() === ONLINE_STATUS_ID.toString()) {
+      if (
+        instance.data?.monitorStatusId?.toString() ===
+        ONLINE_STATUS_ID.toString()
+      ) {
         return "online";
       }
 
-      if (instance.data?.monitorStatusId?.toString() === OFFLINE_STATUS_ID.toString()) {
+      if (
+        instance.data?.monitorStatusId?.toString() ===
+        OFFLINE_STATUS_ID.toString()
+      ) {
         return "offline, with an incident";
       }
 
@@ -331,7 +337,10 @@ describe("a OneUptime status page, judged by the default External Status Page cr
     const reading: ProbeMonitorResponse = readPage(page);
 
     expect(reading.externalStatusPageResponse!.componentStatuses).toEqual([
-      { name: "Database", status: ExternalStatusPageComponentStatusValue.Unknown },
+      {
+        name: "Database",
+        status: ExternalStatusPageComponentStatusValue.Unknown,
+      },
     ]);
     expect(await statusAfter(reading)).toBe("online");
   });

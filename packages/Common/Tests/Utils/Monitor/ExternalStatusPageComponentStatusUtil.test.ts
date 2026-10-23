@@ -45,7 +45,10 @@ describe("ExternalStatusPageComponentStatusUtil.fromStatusPageStatus", () => {
   test.each([
     // A status of the project's own, named for maintenance.
     ["Maintenance", ExternalStatusPageComponentStatusValue.UnderMaintenance],
-    ["Under Maintenance", ExternalStatusPageComponentStatusValue.UnderMaintenance],
+    [
+      "Under Maintenance",
+      ExternalStatusPageComponentStatusValue.UnderMaintenance,
+    ],
     ["In maintenance", ExternalStatusPageComponentStatusValue.UnderMaintenance],
     [
       "Scheduled Maintenance",
@@ -80,7 +83,10 @@ describe("ExternalStatusPageComponentStatusUtil.fromStatusPageStatus", () => {
     ["Online", ExternalStatusPageComponentStatusValue.Operational],
     ["Up", ExternalStatusPageComponentStatusValue.Operational],
     // Any other status is not operational, and says nothing of how bad.
-    ["Investigating", ExternalStatusPageComponentStatusValue.DegradedPerformance],
+    [
+      "Investigating",
+      ExternalStatusPageComponentStatusValue.DegradedPerformance,
+    ],
     ["Monitoring", ExternalStatusPageComponentStatusValue.DegradedPerformance],
     ["🔥", ExternalStatusPageComponentStatusValue.DegradedPerformance],
   ])(

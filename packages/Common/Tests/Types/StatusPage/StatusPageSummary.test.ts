@@ -137,10 +137,7 @@ describe("StatusPageSummaryUtil.toJSON and fromJSON", () => {
       "no active incidents list",
       { resources: [], ongoingScheduledMaintenance: [] },
     ],
-    [
-      "no ongoing maintenance list",
-      { resources: [], activeIncidents: [] },
-    ],
+    ["no ongoing maintenance list", { resources: [], activeIncidents: [] }],
   ])("is not a summary: %s", (_name: string, value: unknown) => {
     expect(StatusPageSummaryUtil.fromJSON(value)).toBeNull();
   });
