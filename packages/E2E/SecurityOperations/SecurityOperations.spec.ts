@@ -278,9 +278,54 @@ interface Box {
   height: number;
 }
 
-// Where a visible element is drawn; failing the test when it is not drawn.
+/*
+ * Wait until nothing on the page is moving. A dialog grows in from 95% of its
+ * size over 150ms, starting a frame after it mounts (Modal), and a box read on
+ * the way sits a few pixels in from where it comes to rest - so two boxes read
+ * one after the other were read at two sizes (CI, 2026-10-22: Draft with AI's
+ * mark 3px off its label). At rest is no finite animation running for three
+ * frames in a row; a spinner loops forever and is not waited for.
+ */
+async function pageAtRest(page: Page): Promise<void> {
+  await page.evaluate(async (): Promise<void> => {
+    const nextFrame: () => Promise<void> = (): Promise<void> => {
+      return new Promise((resolve: () => void): void => {
+        requestAnimationFrame((): void => {
+          resolve();
+        });
+      });
+    };
+    let quietFrames: number = 0;
+    while (quietFrames < 3) {
+      await nextFrame();
+      const moving: Array<Animation> = document
+        .getAnimations()
+        .filter((animation: Animation): boolean => {
+          return (
+            animation.playState === "running" &&
+            animation.effect?.getTiming().iterations !== Infinity
+          );
+        });
+      if (moving.length === 0) {
+        quietFrames++;
+        continue;
+      }
+      quietFrames = 0;
+      await Promise.all(
+        moving.map((animation: Animation): Promise<unknown> => {
+          return animation.finished.catch((): undefined => {
+            return undefined;
+          });
+        }),
+      );
+    }
+  });
+}
+
+// Where a visible element comes to rest; failing the test when it is not drawn.
 async function boxOf(locator: Locator): Promise<Box> {
   await expect(locator).toBeVisible();
+  await pageAtRest(locator.page());
   const box: Box | null = await locator.boundingBox();
   expect(box).not.toBeNull();
   return box!;
