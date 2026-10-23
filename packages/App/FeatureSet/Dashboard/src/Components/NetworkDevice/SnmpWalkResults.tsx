@@ -284,8 +284,9 @@ const SnmpWalkRowValue: FunctionComponent<PartProps> = (
 /*
  * The row's cells, placed for both layouts. Narrow: a two-column grid -
  * the name and the menu share the first line, the value takes the second,
- * the action the third, a notice the fourth. Wide (the results 44rem or
- * more): the row is a subgrid of the table's five columns.
+ * the action the third, and a notice the next free line. Wide (the results
+ * 44rem or more): the row is a subgrid of the table's five columns, the
+ * notice a line of its own under them.
  */
 const ROW_CLASS_NAME: string =
   "grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2 py-3 [@container(min-width:44rem)]:col-span-full [@container(min-width:44rem)]:grid-cols-subgrid [@container(min-width:44rem)]:gap-x-4 [@container(min-width:44rem)]:gap-y-1.5";
@@ -299,8 +300,9 @@ const ACTION_CELL_CLASS_NAME: string =
   "col-span-2 row-start-3 flex [@container(min-width:44rem)]:col-span-1 [@container(min-width:44rem)]:col-start-4 [@container(min-width:44rem)]:row-start-1 [@container(min-width:44rem)]:justify-end";
 const MENU_CELL_CLASS_NAME: string =
   "col-start-2 row-start-1 -my-1 [@container(min-width:44rem)]:col-start-5";
+// Narrow, the first free line after the value: under the action, if any.
 const NOTICE_CELL_CLASS_NAME: string =
-  "col-span-2 row-start-4 [@container(min-width:44rem)]:col-span-full [@container(min-width:44rem)]:row-start-2";
+  "col-span-2 [@container(min-width:44rem)]:col-span-full [@container(min-width:44rem)]:row-start-2";
 
 /*
  * "Alert on it" goes to another page, so it is a link - drawn as the
