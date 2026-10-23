@@ -51,7 +51,8 @@ const makeLocalStorageUnavailable: () => () => void = (): (() => void) => {
 const mockMatchMedia: (prefersDark: boolean) => () => void = (
   prefersDark: boolean,
 ): (() => void) => {
-  const original: unknown = (window as Record<string, unknown>)["matchMedia"];
+  const original: unknown =
+    (window as unknown as Record<string, unknown>)["matchMedia"];
 
   Object.defineProperty(window, "matchMedia", {
     configurable: true,
@@ -62,12 +63,14 @@ const mockMatchMedia: (prefersDark: boolean) => () => void = (
       matches: boolean;
       addEventListener: () => void;
       removeEventListener: () => void;
-    } => ({
-      matches:
-        query === "(prefers-color-scheme: dark)" ? prefersDark : false,
-      addEventListener: (): void => {},
-      removeEventListener: (): void => {},
-    }),
+    } => {
+      return {
+        matches:
+          query === "(prefers-color-scheme: dark)" ? prefersDark : false,
+        addEventListener: (): void => {},
+        removeEventListener: (): void => {},
+      };
+    },
   });
 
   return (): void => {
