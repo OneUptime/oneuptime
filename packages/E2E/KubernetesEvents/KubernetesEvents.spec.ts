@@ -792,6 +792,7 @@ test.describe("where else a cluster's warnings show", () => {
       return text.trim();
     });
 
+    expect(links).toContain("Logs");
     expect(links.indexOf("Events")).toBe(links.indexOf("Logs") + 1);
 
     const events: Locator = body.getByRole("link", { name: "Events" });
