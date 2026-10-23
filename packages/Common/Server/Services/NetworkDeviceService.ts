@@ -288,7 +288,9 @@ function recordDiscoveredNameOnCreate(data: Record<string, unknown>): void {
  * over bookkeeping. A SQL-expression function is left alone, for the reason
  * normalizeMacAddressOnWrite gives.
  */
-function sanitizeDiscoveredDetailsOnCreate(data: Record<string, unknown>): void {
+function sanitizeDiscoveredDetailsOnCreate(
+  data: Record<string, unknown>,
+): void {
   if (!("discoveredDetails" in data)) {
     return;
   }

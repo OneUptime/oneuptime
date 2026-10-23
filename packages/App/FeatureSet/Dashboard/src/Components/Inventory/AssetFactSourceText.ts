@@ -319,7 +319,8 @@ export function getOtherMachineLine(
   translator: Translator,
   now?: Date | undefined,
 ): string {
-  const time: string = getAssetFactSourceTime(note.readAt, translator, now) || "";
+  const time: string =
+    getAssetFactSourceTime(note.readAt, translator, now) || "";
   const name: string | undefined = readerName(note.readBy);
   const machine: string = getOtherMachineIdentity(note);
 

@@ -97,10 +97,7 @@ const AssetFactValue: FunctionComponent<ComponentProps> = (
             className="mt-px h-3.5 w-3.5 flex-none"
           />
           <span className="min-w-0 break-words">
-            {getAssetFactDifferenceLine(
-              props.discoveredDifferent,
-              translator,
-            )}
+            {getAssetFactDifferenceLine(props.discoveredDifferent, translator)}
           </span>
         </div>
       ) : null}

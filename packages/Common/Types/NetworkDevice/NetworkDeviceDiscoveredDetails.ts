@@ -623,8 +623,10 @@ export function readNetworkDeviceDiscoveredDetails(
   }
 
   for (const field of NETWORK_DEVICE_DISCOVERED_FIELDS) {
-    const entry: NetworkDeviceDiscoveredValue | undefined =
-      readDiscoveredValue(field, raw[field]);
+    const entry: NetworkDeviceDiscoveredValue | undefined = readDiscoveredValue(
+      field,
+      raw[field],
+    );
 
     if (entry) {
       details.values[field] = entry;

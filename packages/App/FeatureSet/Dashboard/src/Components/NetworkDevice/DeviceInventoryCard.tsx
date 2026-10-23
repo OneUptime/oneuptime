@@ -164,10 +164,10 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
     showIf: (item: NetworkDevice) => boolean;
   };
 
-  const factField: (
+  const factField: (detailOf: DetailOfFunction, testId: string) => FactField = (
     detailOf: DetailOfFunction,
     testId: string,
-  ) => FactField = (detailOf: DetailOfFunction, testId: string): FactField => {
+  ): FactField => {
     return {
       getElement: (item: NetworkDevice): ReactElement => {
         return detailElement(detailOf(item), testId);

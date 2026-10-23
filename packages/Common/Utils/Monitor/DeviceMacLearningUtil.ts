@@ -211,7 +211,8 @@ export default class DeviceMacLearningUtil {
       } else {
         shouldRecord =
           device.observedAt === undefined ||
-          data.now - device.observedAt >= MAC_OBSERVATION_REFRESH_INTERVAL_IN_MS;
+          data.now - device.observedAt >=
+            MAC_OBSERVATION_REFRESH_INTERVAL_IN_MS;
       }
 
       if (shouldRecord) {

@@ -364,12 +364,18 @@ function readPolledColumn(data: {
     discoveredAt !== undefined &&
     discoveredAt > data.lastPolledAt
   ) {
-    return { value: discovered.value, source: sourceOfDiscoveredValue(discovered) };
+    return {
+      value: discovered.value,
+      source: sourceOfDiscoveredValue(discovered),
+    };
   }
 
   return {
     value: column,
-    source: { kind: AssetFactSourceKind.SnmpPoll, readAt: data.lastPolledAtIso },
+    source: {
+      kind: AssetFactSourceKind.SnmpPoll,
+      readAt: data.lastPolledAtIso,
+    },
   };
 }
 
@@ -419,9 +425,8 @@ export function getNetworkDeviceEffectiveInputs(
   const savedDnsName: string | undefined = readText(device.dnsName);
   const discoveredDnsName: NetworkDeviceDiscoveredValue | undefined =
     details.values[NetworkDeviceDiscoveredField.DnsName];
-  let dnsName: NetworkDeviceEffectiveInput = readDiscoveredOnly(
-    discoveredDnsName,
-  );
+  let dnsName: NetworkDeviceEffectiveInput =
+    readDiscoveredOnly(discoveredDnsName);
 
   if (savedDnsName) {
     const isDiscoveredSame: boolean = Boolean(
@@ -445,9 +450,8 @@ export function getNetworkDeviceEffectiveInputs(
   const savedMac: string | undefined = readText(device.macAddress);
   const discoveredMac: NetworkDeviceDiscoveredValue | undefined =
     details.values[NetworkDeviceDiscoveredField.MacAddress];
-  let macAddress: NetworkDeviceEffectiveInput = readDiscoveredOnly(
-    discoveredMac,
-  );
+  let macAddress: NetworkDeviceEffectiveInput =
+    readDiscoveredOnly(discoveredMac);
 
   if (savedMac) {
     const normalizedSaved: string = normalizeMac(savedMac) || savedMac;
