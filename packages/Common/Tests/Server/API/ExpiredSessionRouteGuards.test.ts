@@ -1,6 +1,7 @@
 import { mockRouter } from "./Helpers";
 import AIBillingRouter from "../../../Server/API/AIBillingAPI";
 import AlertAPI from "../../../Server/API/AlertAPI";
+import AlertEpisodeAPI from "../../../Server/API/AlertEpisodeAPI";
 import BillingAPI from "../../../Server/API/BillingAPI";
 import BillingInvoiceAPI from "../../../Server/API/BillingInvoiceAPI";
 import BillingPaymentMethodAPI from "../../../Server/API/BillingPaymentMethodAPI";
@@ -322,6 +323,28 @@ const GUARDED_ROUTES: Array<GuardedRoute> = [
     uri: "/incident/subscriber-audience",
     registeredBy: "IncidentAPI",
   },
+
+  // "Owner rules will add": the review step of the four create forms.
+  {
+    method: "POST",
+    uri: "/incident/owner-rule-preview",
+    registeredBy: "IncidentAPI",
+  },
+  {
+    method: "POST",
+    uri: "/alert/owner-rule-preview",
+    registeredBy: "AlertAPI",
+  },
+  {
+    method: "POST",
+    uri: "/incident-episode/owner-rule-preview",
+    registeredBy: "IncidentEpisodeAPI",
+  },
+  {
+    method: "POST",
+    uri: "/alert-episode/owner-rule-preview",
+    registeredBy: "AlertEpisodeAPI",
+  },
 ];
 
 type RecordedRoute = ReturnType<typeof mockRouter.match>;
@@ -381,6 +404,7 @@ beforeAll(() => {
   new IncidentAPI();
   new IncidentEpisodeAPI();
   new AlertAPI();
+  new AlertEpisodeAPI();
   new ScheduledMaintenanceAPI();
 
   capture.mockRestore();

@@ -140,6 +140,8 @@ const SERVICES: Array<ServiceSteps> = [
       "this.createEpisodeCreatedFeed": "the created feed entry",
       "ChannelMembersNotAddedNotice.noteAll":
         "who its new channels could not add - nobody, when it opened none",
+      "OwnerRuleAssignment.addOwnersPickedOnCreate":
+        "the owners picked on its create form",
       "AlertEpisodeOwnerRuleEngineService.applyRulesToEpisode": "its owners",
       "AlertEpisodeLabelRuleEngineService.applyRulesToEpisode": "its labels",
       "AlertEpisodeOnCallRuleEngineService.applyRulesToEpisode":
@@ -160,6 +162,8 @@ const SERVICES: Array<ServiceSteps> = [
       "this.createEpisodeCreatedFeed": "the created feed entry",
       "ChannelMembersNotAddedNotice.noteAll":
         "who its new channels could not add - nobody, when it opened none",
+      "OwnerRuleAssignment.addOwnersPickedOnCreate":
+        "the owners picked on its create form",
       "IncidentEpisodeOwnerRuleEngineService.applyRulesToEpisode": "its owners",
       "IncidentEpisodeLabelRuleEngineService.applyRulesToEpisode": "its labels",
       "IncidentEpisodeOnCallRuleEngineService.applyRulesToEpisode":

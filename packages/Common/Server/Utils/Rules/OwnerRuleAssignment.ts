@@ -404,6 +404,55 @@ export default class OwnerRuleAssignment {
   }
 
   /*
+   * The owners picked in the form that created the resource - its misc
+   * data's ownerUsers and ownerTeams, asked about before it was saved
+   * (checkOwnersPickedOnCreate) - added once it exists, for its creator
+   * (onCreatorsBehalf: see createOwner), and quietly: a person's create
+   * never asks for the owners it names to be told they were added, as the
+   * incident and alert forms never did. Nothing when none were picked.
+   * Resolves to the owners added.
+   */
+  public static async addOwnersPickedOnCreate<
+    TOwnerUser extends BaseModel,
+    TOwnerTeam extends BaseModel,
+  >(data: {
+    ownerUserService: DatabaseService<TOwnerUser>;
+    ownerTeamService: DatabaseService<TOwnerTeam>;
+    // The owner rows' column holding the resource id, e.g. "alertEpisodeId".
+    resourceIdColumn: string;
+    resourceId: ObjectID;
+    projectId: ObjectID;
+    miscDataProps?: JSONObject | undefined;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<OwnersToAssign> {
+    const picked: JSONObject = OwnerRuleAssignment.getOwnersPicked(
+      data.miscDataProps,
+    );
+
+    const userIds: Array<ObjectID | string> =
+      (picked["ownerUsers"] as Array<ObjectID | string> | undefined) || [];
+    const teamIds: Array<ObjectID | string> =
+      (picked["ownerTeams"] as Array<ObjectID | string> | undefined) || [];
+
+    if (userIds.length === 0 && teamIds.length === 0) {
+      return { userIds: [], teamIds: [] };
+    }
+
+    return await OwnerRuleAssignment.addOwners({
+      ownerUserService: data.ownerUserService,
+      ownerTeamService: data.ownerTeamService,
+      resourceIdColumn: data.resourceIdColumn,
+      resourceId: data.resourceId,
+      projectId: data.projectId,
+      userIds: userIds,
+      teamIds: teamIds,
+      isOwnerNotified: true,
+      props: data.props,
+      onCreatorsBehalf: true,
+    });
+  }
+
+  /*
    * Makes every user in `userIds` and team in `teamIds` an owner of the
    * resource, skipping the ones that already are. Safe to call again with the
    * same input: a retried workflow, a template that lists a team twice, or two

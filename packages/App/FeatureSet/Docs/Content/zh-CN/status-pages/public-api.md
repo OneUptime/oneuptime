@@ -1,10 +1,11 @@
 # 公共 API
 
-每个状态页都会响应一小组只读的 JSON 端点：它的概览、可用率、事件、片段、计划维护事件和公告。这些正是状态页自己加载的端点，所以返回的内容与访客看到的完全一致，公开页面也不需要 API 密钥。可以用它们在你自己的应用、聊天机器人或墙上的显示屏中展示状态。
+每个状态页都会响应一小组只读的 JSON 端点：它的概览、摘要、可用率、事件、片段、计划维护事件和公告。这些正是状态页自己加载的端点，所以返回的内容与访客看到的完全一致，公开页面也不需要 API 密钥。可以用它们在你自己的应用、聊天机器人或墙上的显示屏中展示状态。
 
 :::cards
 - [端点](#端点): 页面显示的每类内容都有一个端点。
 - [读取概览](#读取概览): 一个请求取得整个页面，提供 curl、Node.js 和 Python 示例。
+- [读取摘要](#读取摘要): 每个资源的状态，以及哪些正在维护。
 - [指定日期范围的可用率](#指定日期范围的可用率): 按资源和分组统计的可用率，最长 90 天。
 - [错误](#错误): 每个状态码的含义。
 :::
@@ -50,6 +51,7 @@ flowchart TB
 | 端点 | 方法 | 返回 |
 | -------- | ------- | ------- |
 | `/overview/{statusPageIdOrDomain}` | `GET`、`POST` | 概览显示的一切：总体状态、资源和分组、进行中的事件和片段、计划维护、当前公告，以及可用率条背后的数据。 |
+| `/summary/{statusPageIdOrDomain}` | `GET`, `POST` | 页面的简要情况：整体状态、每个资源的状态及其是否受进行中维护的影响、进行中的事件，以及进行中和即将到来的维护。 |
 | `/uptime/{statusPageId}` | `POST` | 指定日期范围内，每个资源和每个分组的可用率百分比。 |
 | `/incidents/{statusPageIdOrDomain}` | `GET`、`POST` | 页面列出的事件，以及它们的公开备注和状态变化。 |
 | `/incidents/{statusPageIdOrDomain}/{incidentId}` | `POST` | 一个事件。 |
@@ -137,6 +139,60 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `activeEpisodes`、`episodePublicNotes`、`episodeStateTimelines` | 事件片段的相同内容。 |
 | `scheduledMaintenanceEvents`、`scheduledMaintenanceEventsPublicNotes`、`scheduledMaintenanceStateTimelines`、`scheduledMaintenanceStates` | 即将开始或正在进行的计划维护事件，以及它们的公开备注和状态变化。 |
 | `activeAnnouncements` | 正在显示的公告：已经开始且尚未结束。 |
+
+## 读取摘要
+
+摘要是概览的精简版，只保留监控工具向页面询问的内容：每个资源的状态，以及进行中的计划维护事件是否影响它。无论页面显示多少历史记录，它都保持很小，另一个 OneUptime 的 [外部状态页监视器](/docs/monitor/external-status-page-monitor#oneuptime-状态页) 读取的正是它。它与概览来自同一个缓存，并经过同样的访问规则。
+
+```bash
+curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
+```
+
+响应：
+
+```json
+{
+  "overallStatus": {
+    "name": "Operational",
+    "color": "#2ab57d",
+    "isOperational": true
+  },
+  "resources": [
+    {
+      "id": "cfffa3c3-fdf3-4cd7-9585-d6d408a14663",
+      "name": "Checkout API",
+      "groupName": "Core / APIs",
+      "currentStatus": {
+        "name": "Operational",
+        "color": "#2ab57d",
+        "isOperational": true
+      },
+      "isUnderMaintenance": true
+    }
+  ],
+  "activeIncidents": [],
+  "ongoingScheduledMaintenance": [
+    {
+      "id": "6a1e2a3b-0f4c-4d5e-8f60-718293a4b5c6",
+      "title": "Database upgrade",
+      "startsAt": "2026-10-25T02:00:00.000Z",
+      "endsAt": "2026-10-25T04:00:00.000Z",
+      "state": "Ongoing",
+      "affectedResourceIds": ["cfffa3c3-fdf3-4cd7-9585-d6d408a14663"]
+    }
+  ],
+  "upcomingScheduledMaintenance": []
+}
+```
+
+| 键 | 摘要中的内容 |
+| --- | -------------- |
+| `overallStatus` | 页面的整体状态，与其横幅显示的一致：`name`、`color` 和 `isOperational`。 |
+| `resources` | 页面显示的每个资源，按页面顺序：它在页面上的 `name`、包含上级分组的 `groupName`、它的 `currentStatus`，以及 `isUnderMaintenance`。 |
+| `activeIncidents` | 页面显示的未解决事件，每个都带有它所影响资源的 `affectedResourceIds`。 |
+| `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | 进行中和即将到来的计划维护事件，每个都带有它的 `affectedResourceIds`。 |
+
+页面不显示资源的状态时，该资源的 `currentStatus` 为 `null`。只要进行中的事件指定了该资源的某个监视器，或其监视器组中的某个监视器，无论这些监视器处于什么状态，`isUnderMaintenance` 都为 `true`。
 
 ## 指定日期范围的可用率
 
@@ -341,7 +397,7 @@ for incident in incidents:
 
 ## 读取状态页的其他方式
 
-- **RSS。** 每个状态页都提供 `/rss`，这是其事件、公告和计划维护事件的订阅源。参见[可嵌入徽章与 RSS 订阅源](/docs/status-pages/index#可嵌入徽章与-rss-订阅源)。
+- **RSS。** 每个状态页都提供 `/rss`，这是其事件、公告和计划维护事件的订阅源，每个条目的日期都与页面上的一致。参见[可嵌入徽章与 RSS 订阅源](/docs/status-pages/index#可嵌入徽章与-rss-订阅源)。
 - **llms.txt。** 每个状态页都在 `/rss` 旁边提供 `/llms.txt`，它为 AI 代理指出 RSS 订阅源和概览 JSON 的位置。
 - **MCP。** AI 代理可以通过 OneUptime 的 MCP 服务器 `https://oneuptime.com/mcp` 读取页面，无需 API 密钥，只要把页面 ID 或域名作为 `statusPageIdOrDomain` 传入。此功能默认开启；可在页面侧边菜单的 **人工智能 → MCP** 中用 **启用 MCP 服务器** 关闭。参见 [MCP 服务器](/docs/ai/mcp-server)。
 - **REST API。** 要创建或修改状态页、资源、订阅者和公告，请使用 API 密钥调用 [OneUptime API](/docs/api-reference/api-reference)。

@@ -54,8 +54,8 @@ import { DataSource, Logger } from "typeorm";
  * CUSTOM ROLES GIVEN TO API KEYS, AGAINST A MIGRATED POSTGRES.
  *
  * Opt in with RUN_POSTGRES_API_KEY_CUSTOM_ROLE_TESTS=true against a database
- * the registered migrations (1806300000000-AddApiKeyCustomRoles and
- * 1806310000000-AddApiKeyPermissionCustomRoleLinks included) have been
+ * the registered migrations (1806500000000-AddApiKeyCustomRoles and
+ * 1806510000000-AddApiKeyPermissionCustomRoleLinks included) have been
  * applied to, e.g. from packages/Common:
  *
  *   RUN_POSTGRES_API_KEY_CUSTOM_ROLE_TESTS=true \

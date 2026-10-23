@@ -3,9 +3,14 @@ import fs from "fs";
 import i18next from "i18next";
 import path from "path";
 import {
+  CREATOR_TEAM_RULE_NAME,
+  CREATOR_TEAMS_COLUMN,
+  CREATOR_TEAMS_WORDING,
+  CreatorTeamRuleRecord,
   FILLED_IN_RULE_NAME_KEY,
   followPicksWithRuleName,
   followSwitchWithRuleName,
+  getCreatorTeamOwnerRuleActionFields,
   getFollowedRuleName,
   getInheritingLabelRuleActionFields,
   getInheritingOwnerRuleActionFields,
@@ -16,11 +21,14 @@ import {
   getOwnerRuleActionFields,
   getOwnerRuleFormSteps,
   getOwnerRuleName,
+  getOwnerRuleNameWithoutPicks,
   getRuleNameAfterPick,
+  hasCreatorTeams,
   INHERIT_LABELS_SECTION_ID,
   INHERIT_OWNERS_SECTION_ID,
   INHERITED_FROM_TERMS,
   InheritingRuleRecord,
+  isAnyCreatorTeamPicked,
   isAnythingPicked,
   isLabelPickRequired,
   isOwnerPickRequired,
@@ -31,6 +39,7 @@ import {
   LABEL_RULE_LABELS_DESCRIPTION,
   LABEL_RULE_NAME_DESCRIPTION,
   OWNER_INHERITANCE_WORDING,
+  OWNER_RULE_CREATOR_OWNERS_DESCRIPTION,
   OWNER_RULE_INHERIT_NAME_WORDING,
   OWNER_RULE_INHERITING_NAME_DESCRIPTION,
   OWNER_RULE_INHERITING_OWNERS_DESCRIPTION,
@@ -547,6 +556,8 @@ describe("a new rule, and an Edit form", () => {
     getOwnerRuleActionFields<Entity>(),
     getInheritingLabelRuleActionFields<Entity>("incident"),
     getInheritingOwnerRuleActionFields<Entity>("alert"),
+    getCreatorTeamOwnerRuleActionFields<Entity>("incident"),
+    getCreatorTeamOwnerRuleActionFields<Entity>("alert"),
     getInheritingLabelRuleActionFields<Entity>("scheduledMaintenance"),
     getInheritingOwnerRuleActionFields<Entity>("scheduledMaintenance"),
   ];
@@ -592,6 +603,23 @@ const RECORDS: Array<InheritingRuleRecord> = [
   "alert",
   "scheduledMaintenance",
 ];
+
+type OwnerRuleFieldsFunction = (
+  record: InheritingRuleRecord,
+) => Array<Field<Entity>>;
+
+/*
+ * The owner rule fields each event's page spreads in: an incident's and an
+ * alert's add the creator's team (getCreatorTeamOwnerRuleActionFields), a
+ * scheduled maintenance event's only inherit.
+ */
+const ownerRuleFieldsOf: OwnerRuleFieldsFunction = (
+  record: InheritingRuleRecord,
+): Array<Field<Entity>> => {
+  return hasCreatorTeams(record)
+    ? getCreatorTeamOwnerRuleActionFields<Entity>(record)
+    : getInheritingOwnerRuleActionFields<Entity>(record);
+};
 
 // What the switches say, for each event, as the pages used to say it.
 const SWITCH_WORDING: Array<keyof RuleInheritanceWording> = [
@@ -740,14 +768,16 @@ describe.each(RECORDS)(
 describe.each(RECORDS)(
   "the %s owner rule form, which can inherit",
   (record: InheritingRuleRecord) => {
-    const fields: Array<Field<Entity>> =
-      getInheritingOwnerRuleActionFields<Entity>(record);
+    const fields: Array<Field<Entity>> = ownerRuleFieldsOf(record);
     const wording: RuleInheritanceWording = OWNER_INHERITANCE_WORDING[record];
+    // An incident or alert has a creator whose team a rule can add.
+    const addsCreatorsTeam: boolean = record !== "scheduledMaintenance";
 
-    test("asks for the owners, the six inherit switches, then the rest of every owner rule's step", () => {
+    test("asks for the owners, the six inherit switches, the creator's team of an incident or alert, then the rest of every owner rule's step", () => {
       expect(fields.map(keyOf)).toEqual([
         "owners",
         ...INHERITED_OWNER_COLUMNS,
+        ...(addsCreatorsTeam ? ["creatorTeamsPicker"] : []),
         "name",
         "isEnabled",
         "notifyOwners",
@@ -757,6 +787,20 @@ describe.each(RECORDS)(
       for (const field of fields) {
         expect(field.stepId).toBe("owners");
       }
+
+      expect(hasCreatorTeams(record)).toBe(addsCreatorsTeam);
+
+      // The form without the creator's team asks for the rest the same way.
+      expect(
+        getInheritingOwnerRuleActionFields<Entity>(record).map(keyOf),
+      ).toEqual([
+        "owners",
+        ...INHERITED_OWNER_COLUMNS,
+        "name",
+        "isEnabled",
+        "notifyOwners",
+        "description",
+      ]);
     });
 
     test("folds the six switches under Inherit Owners; Notify Owners and the description under More fields", () => {
@@ -815,11 +859,15 @@ describe.each(RECORDS)(
       ]);
     });
 
-    test("a new rule must add an owner, or inherit some", () => {
+    test("a new rule must add an owner, inherit some, or add the creator's team", () => {
       const owners: Field<Entity> = fieldByKey(fields, "owners");
 
       expect(owners.fieldType).toBe(FormFieldSchemaType.PeoplePicker);
-      expect(owners.description).toBe(OWNER_RULE_INHERITING_OWNERS_DESCRIPTION);
+      expect(owners.description).toBe(
+        addsCreatorsTeam
+          ? OWNER_RULE_CREATOR_OWNERS_DESCRIPTION
+          : OWNER_RULE_INHERITING_OWNERS_DESCRIPTION,
+      );
       expect(owners.required).toBe(isOwnerPickRequired);
       expect(isRequired(owners, NEW_RULE)).toBe(true);
 
@@ -835,9 +883,252 @@ describe.each(RECORDS)(
         } as FormValues<Entity>),
       ).toBe(true);
       expect(owners.doNotRequireWhenEditing).toBe(true);
+
+      if (addsCreatorsTeam) {
+        expect(
+          isRequired(owners, {
+            [CREATOR_TEAMS_COLUMN]: ["team-platform"],
+          } as FormValues<Entity>),
+        ).toBe(false);
+        // A list emptied again asks for an owner again.
+        expect(
+          isRequired(owners, {
+            [CREATOR_TEAMS_COLUMN]: [],
+          } as FormValues<Entity>),
+        ).toBe(true);
+      }
     });
   },
 );
+
+/*
+ * The Creator's Team of an incident or alert owner rule: of the teams it
+ * lists, the ones the person who created the event is in become owners
+ * (Server/Utils/Rules/CreatorTeams). A list of the project's teams, last in
+ * the Inherit Owners fold - the creator is one more entity the event's
+ * owners can come from; a rule that adds only that is named for it.
+ */
+const CREATOR_TEAM_RECORDS: Array<CreatorTeamRuleRecord> = [
+  "incident",
+  "alert",
+];
+
+describe.each(CREATOR_TEAM_RECORDS)(
+  "the Creator's Team of an %s owner rule",
+  (record: CreatorTeamRuleRecord) => {
+    type SetValuesMock = (values: FormValues<Entity>) => void;
+
+    const fields: Array<Field<Entity>> =
+      getCreatorTeamOwnerRuleActionFields<Entity>(record);
+    const picker: Field<Entity> = fieldByKey(fields, "creatorTeamsPicker");
+
+    test("is a picker of the project's teams, kept in creatorTeams, never required", () => {
+      expect(picker.fieldType).toBe(FormFieldSchemaType.PeoplePicker);
+      expect(picker.title).toBe("Creator's Team");
+      expect(picker.description).toBe(CREATOR_TEAMS_WORDING[record].teams);
+      expect(picker.peoplePicker?.kinds).toEqual([
+        { kind: PeoplePickerKind.Team, valueKey: CREATOR_TEAMS_COLUMN },
+      ]);
+      expect(picker.formOnly).toBe(true);
+      expect(picker.required).toBe(false);
+      expect(picker.stepId).toBe("owners");
+    });
+
+    test("is the last thing in the Inherit Owners fold, before More fields", () => {
+      const section: FormFieldCollapsibleSection<Entity> | undefined =
+        picker.collapsibleSection;
+      const inheritSection: FormFieldCollapsibleSection<Entity> | undefined =
+        fieldByKey(fields, "inheritOwnersFromServices").collapsibleSection;
+      const moreFields: FormFieldCollapsibleSection<Entity> | undefined =
+        fieldByKey(fields, "notifyOwners").collapsibleSection;
+
+      // The fold the six switches are in: one header, not another.
+      expect(section).toBe(inheritSection);
+      expect(section?.id).toBe(INHERIT_OWNERS_SECTION_ID);
+      expect(section?.title).toBe("Inherit Owners");
+      expect(section).not.toBe(moreFields);
+      expect(fields.indexOf(picker)).toBe(
+        fields.indexOf(fieldByKey(fields, "inheritOwnersFromServices")) + 1,
+      );
+    });
+
+    test("opens the fold's header: it says what the fold is for until a team is listed", () => {
+      const section: FormFieldCollapsibleSection<Entity> =
+        picker.collapsibleSection!;
+      const sectionDescription: string =
+        OWNER_INHERITANCE_WORDING[record].sectionDescription;
+
+      expect(section.getSummary!(NEW_RULE)).toEqual([sectionDescription]);
+      expect(
+        section.getSummary!({
+          [CREATOR_TEAMS_COLUMN]: [],
+        } as FormValues<Entity>),
+      ).toEqual([sectionDescription]);
+      expect(
+        section.getSummary!({
+          [CREATOR_TEAMS_COLUMN]: ["team-platform"],
+        } as FormValues<Entity>),
+      ).toBeUndefined();
+    });
+
+    test("names a rule that names nobody and inherits nothing after the creator's team", () => {
+      const setNewFormValues: MockFunction = getJestMockFunction();
+
+      picker.onChange!(
+        { [CREATOR_TEAMS_COLUMN]: ["team-platform"] },
+        { name: "" } as FormValues<Entity>,
+        setNewFormValues as unknown as SetValuesMock,
+      );
+
+      expect(setNewFormValues).toHaveBeenCalledTimes(1);
+      expect(setNewFormValues.mock.calls[0]![0]).toEqual({
+        name: CREATOR_TEAM_RULE_NAME,
+        [FILLED_IN_RULE_NAME_KEY]: CREATOR_TEAM_RULE_NAME,
+        // The teams the picker wrote are kept with the name.
+        [CREATOR_TEAMS_COLUMN]: ["team-platform"],
+      });
+    });
+
+    test("empties the name it gave with the last team taken away", () => {
+      const setNewFormValues: MockFunction = getJestMockFunction();
+
+      picker.onChange!(
+        { [CREATOR_TEAMS_COLUMN]: [] },
+        {
+          name: CREATOR_TEAM_RULE_NAME,
+          [FILLED_IN_RULE_NAME_KEY]: CREATOR_TEAM_RULE_NAME,
+          [CREATOR_TEAMS_COLUMN]: ["team-platform"],
+        } as FormValues<Entity>,
+        setNewFormValues as unknown as SetValuesMock,
+      );
+
+      expect(setNewFormValues.mock.calls[0]![0]).toEqual({
+        name: "",
+        [FILLED_IN_RULE_NAME_KEY]: "",
+        [CREATOR_TEAMS_COLUMN]: [],
+      });
+    });
+
+    test("leaves a typed name alone", () => {
+      const setNewFormValues: MockFunction = getJestMockFunction();
+
+      picker.onChange!(
+        { [CREATOR_TEAMS_COLUMN]: ["team-platform"] },
+        { name: "Platform owns what Platform declares" } as FormValues<Entity>,
+        setNewFormValues as unknown as SetValuesMock,
+      );
+
+      expect(setNewFormValues).not.toHaveBeenCalled();
+    });
+
+    test("leaves the name of a rule that names owners to its owners", () => {
+      const setNewFormValues: MockFunction = getJestMockFunction();
+
+      picker.onChange!(
+        { [CREATOR_TEAMS_COLUMN]: ["team-platform"] },
+        {
+          name: "Add Ada as owners",
+          [FILLED_IN_RULE_NAME_KEY]: "Add Ada as owners",
+          ownerUsers: ["user-ada"],
+        } as FormValues<Entity>,
+        setNewFormValues as unknown as SetValuesMock,
+      );
+
+      expect(setNewFormValues).not.toHaveBeenCalled();
+    });
+
+    test("an inherit switch names the rule over the creator's team", () => {
+      expect(
+        getOwnerRuleNameWithoutPicks({
+          record: record,
+          values: {
+            [CREATOR_TEAMS_COLUMN]: ["team-platform"],
+            inheritOwnersFromServices: true,
+          },
+        }),
+      ).toBe("Inherit owners from services");
+
+      // Turned off again, the creator's team names it.
+      const setNewFormValues: MockFunction = getJestMockFunction();
+
+      fieldByKey(fields, "inheritOwnersFromServices").onChange!(
+        false,
+        {
+          name: "Inherit owners from services",
+          [FILLED_IN_RULE_NAME_KEY]: "Inherit owners from services",
+          inheritOwnersFromServices: true,
+          [CREATOR_TEAMS_COLUMN]: ["team-platform"],
+        } as FormValues<Entity>,
+        setNewFormValues as unknown as SetValuesMock,
+      );
+
+      expect(setNewFormValues.mock.calls[0]![0]).toMatchObject({
+        name: CREATOR_TEAM_RULE_NAME,
+      });
+    });
+
+    test("taking every owner away names the rule after the creator's team", () => {
+      const setNewFormValues: MockFunction = getJestMockFunction();
+
+      fieldByKey(fields, "owners").onChange!(
+        { ownerUsers: [], ownerTeams: [] },
+        {
+          name: "Add Platform as owners",
+          [FILLED_IN_RULE_NAME_KEY]: "Add Platform as owners",
+          [CREATOR_TEAMS_COLUMN]: ["team-platform"],
+        } as FormValues<Entity>,
+        setNewFormValues as unknown as SetValuesMock,
+        changeOf([], ["Platform"]),
+      );
+
+      expect(setNewFormValues.mock.calls[0]![0]).toMatchObject({
+        name: CREATOR_TEAM_RULE_NAME,
+      });
+    });
+  },
+);
+
+describe("whether a rule lists teams for the creator's team", () => {
+  test("is whether its creatorTeams has a team in it", () => {
+    expect(isAnyCreatorTeamPicked(undefined)).toBe(false);
+    expect(isAnyCreatorTeamPicked({})).toBe(false);
+    expect(isAnyCreatorTeamPicked({ [CREATOR_TEAMS_COLUMN]: [] })).toBe(false);
+    expect(
+      isAnyCreatorTeamPicked({ [CREATOR_TEAMS_COLUMN]: ["team-platform"] }),
+    ).toBe(true);
+    // Another column's teams are not the creator's team.
+    expect(isAnyCreatorTeamPicked({ ownerTeams: ["team-platform"] })).toBe(
+      false,
+    );
+  });
+
+  test("a scheduled maintenance rule has no creator, so its teams never name it", () => {
+    expect(hasCreatorTeams("scheduledMaintenance")).toBe(false);
+    expect(
+      getOwnerRuleNameWithoutPicks({
+        record: "scheduledMaintenance",
+        values: { [CREATOR_TEAMS_COLUMN]: ["team-platform"] },
+      }),
+    ).toBe("");
+  });
+
+  test("an incident is declared and an alert created, in each one's words", () => {
+    expect(CREATOR_TEAMS_WORDING.incident.teams).toContain(
+      "declares a matching incident",
+    );
+    expect(CREATOR_TEAMS_WORDING.alert.teams).toContain(
+      "creates a matching alert",
+    );
+  });
+
+  test("a scheduled maintenance rule's Inherit Owners fold has no creator's team", () => {
+    expect(
+      getInheritingOwnerRuleActionFields<Entity>("scheduledMaintenance").map(
+        keyOf,
+      ),
+    ).not.toContain("creatorTeamsPicker");
+  });
+});
 
 describe("the words of the inheriting forms", () => {
   test("an alert has one monitor, an incident and an event several", () => {
@@ -1471,7 +1762,7 @@ describe.each(RECORDS)(
       [
         "owners",
         (): Array<Field<Entity>> => {
-          return getInheritingOwnerRuleActionFields<Entity>(record);
+          return ownerRuleFieldsOf(record);
         },
       ],
     ] as Array<[RuleAddsKind, () => Array<Field<Entity>>]>)(
@@ -1514,10 +1805,9 @@ describe.each(RECORDS)(
         fieldByKey(getInheritingLabelRuleActionFields<Entity>(record), "name")
           .description,
       ).toBe(LABEL_RULE_INHERITING_NAME_DESCRIPTION);
-      expect(
-        fieldByKey(getInheritingOwnerRuleActionFields<Entity>(record), "name")
-          .description,
-      ).toBe(OWNER_RULE_INHERITING_NAME_DESCRIPTION);
+      expect(fieldByKey(ownerRuleFieldsOf(record), "name").description).toBe(
+        OWNER_RULE_INHERITING_NAME_DESCRIPTION,
+      );
     });
 
     test("taking every label away names the rule after its switches", () => {
@@ -1545,8 +1835,7 @@ describe.each(RECORDS)(
     test("taking every owner away names the rule after its switches", () => {
       const setNewFormValues: MockFunction = getJestMockFunction();
 
-      fieldByKey(getInheritingOwnerRuleActionFields<Entity>(record), "owners")
-        .onChange!(
+      fieldByKey(ownerRuleFieldsOf(record), "owners").onChange!(
         { ownerUsers: [], ownerTeams: [] },
         {
           name: "Add Platform as owners",
@@ -1736,6 +2025,33 @@ describe("in every language the Dashboard ships", () => {
         OWNER_RULE_INHERITING_NAME_DESCRIPTION,
       ]) {
         expect({ code, key, translated: locale[key] !== key }).toEqual({
+          code,
+          key,
+          translated: true,
+        });
+      }
+    },
+  );
+
+  test.each(LANGUAGES)(
+    "%s words the creator's team of an incident and an alert rule",
+    (code: string) => {
+      const locale: Record<string, string> = readLocale(code);
+
+      for (const key of [
+        CREATOR_TEAM_RULE_NAME,
+        OWNER_RULE_CREATOR_OWNERS_DESCRIPTION,
+        "Creator's Team",
+        CREATOR_TEAMS_WORDING.incident.teams,
+        CREATOR_TEAMS_WORDING.alert.teams,
+      ]) {
+        const wording: string | undefined = locale[key];
+
+        expect({
+          code,
+          key,
+          translated: Boolean(wording) && wording !== key,
+        }).toEqual({
           code,
           key,
           translated: true,

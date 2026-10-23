@@ -74,6 +74,10 @@ Arbejder dit team allerede i et SIEM, sender OneUptime også sine fund dertil. K
 Din rolle må ikke tilføje detektionsregler, playbooks eller logkilden. Spørg en Project Owner, en Project Admin eller en Security Admin, eller få dem til at give dig rollen Security Admin.
 :::
 
+:::details Turn on recommended kunne ikke slå alt til
+Kortet nævner alt, det ikke kunne slå til, og hvorfor: din rolle, din plan eller en fejl hos OneUptime. Alt andet er slået til. Ret det, kortet nævner, og klik derefter på **Prøv igen**: kun det, der stadig mangler, slås til, og intet tilføjes to gange.
+:::
+
 :::details Testangrebet åbnede ingen sag
 Sagen åbnes som regel, før knappen svarer; når reglen stadig er ved at indhente, siger den det, og sagen åbnes inden for et minut. Se under **Sikkerhedssager** igen, og tjek under **Detections**, at brute force-reglen er slået til.
 :::

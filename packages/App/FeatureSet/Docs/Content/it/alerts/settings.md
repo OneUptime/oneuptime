@@ -94,8 +94,8 @@ Una regola chiama appena un avviso corrisponde. Perché attenda invece l'orario 
 
 Le **Regole del proprietario** aggiungono utenti e team proprietari ai nuovi avvisi corrispondenti, e le **Regole etichette** aggiungono etichette. Crearne una richiede due passaggi: **Corrispondenza**, le condizioni, poi **Proprietari** o **Etichette**, ciò che la regola aggiunge. Il **Nome** della regola segue ciò che scegliete finché non ne scrivete uno vostro.
 
-- **Una regola può ereditare.** Compressi sotto **Eredita proprietari** o **Eredita etichette**, sei interruttori trasmettono i proprietari o le etichette del monitor, degli host, dei cluster Kubernetes, degli host Docker, degli host Podman e dei servizi dell'avviso. Le regole degli episodi non hanno questi interruttori.
-- **Una nuova regola deve aggiungere qualcosa**: scegliete almeno un proprietario o un'etichetta, o attivate un interruttore.
+- **Una regola può ereditare.** Compressi sotto **Eredita proprietari** o **Eredita etichette**, sei interruttori trasmettono i proprietari o le etichette del monitor, degli host, dei cluster Kubernetes, degli host Docker, degli host Podman e dei servizi dell'avviso. Le regole degli episodi non hanno questi interruttori. La sezione **Eredita proprietari** di una regola dei proprietari termina con **Team del creatore**: dei team elencati lì, diventa proprietario anche ognuno di cui fa parte la persona che crea l'avviso.
+- **Una nuova regola deve aggiungere qualcosa**: scegliete almeno un proprietario o un'etichetta, o attivate un interruttore. In una regola per proprietari di incidenti o avvisi basta anche un team in **Team del creatore**.
 - **Notifica ai proprietari**, sotto **Altri campi** di una regola del proprietario, decide se le persone aggiunte vengono informate.
 
 [Regole per etichette e proprietari](/docs/configuration/label-and-owner-rules) descrive il modulo passo per passo, per ogni tipo di risorsa.

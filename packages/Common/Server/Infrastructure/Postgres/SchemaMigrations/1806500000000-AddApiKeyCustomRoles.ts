@@ -18,10 +18,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * The three columns are nullable with no default, which Postgres adds
  * without rewriting or scanning "ApiKeyPermission"; their indexes and
  * foreign keys are built online in
- * AddApiKeyPermissionCustomRoleLinks1806310000000.
+ * AddApiKeyPermissionCustomRoleLinks1806510000000.
  */
-export class AddApiKeyCustomRoles1806300000000 implements MigrationInterface {
-  public name: string = "AddApiKeyCustomRoles1806300000000";
+export class AddApiKeyCustomRoles1806500000000 implements MigrationInterface {
+  public name: string = "AddApiKeyCustomRoles1806500000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

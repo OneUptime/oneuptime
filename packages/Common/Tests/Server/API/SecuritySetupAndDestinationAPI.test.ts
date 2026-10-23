@@ -219,6 +219,67 @@ describe("POST /security-case/setup/turn-on-recommended", () => {
     expect(answered()["rulesAdded"]).toBe(19);
   });
 
+  test("a click that could not do everything still answers 200, with what it could not do and why", async () => {
+    const result: JSONObject = {
+      rulesAdded: 18,
+      rulesTurnedOn: 0,
+      logsTurnedOn: true,
+      playbookAdded: false,
+      playbookTurnedOn: false,
+      problems: [
+        {
+          part: "rule",
+          action: "add",
+          name: "Password spraying",
+          reason: "failed",
+          detail: "",
+        },
+        {
+          part: "playbook",
+          action: "add",
+          name: "Enrich New Cases",
+          reason: "not-allowed",
+          detail: "",
+        },
+      ],
+    };
+    jest
+      .spyOn(SecuritySetup, "turnOnRecommended")
+      .mockResolvedValue(result as never);
+
+    await route("/security-case/setup/turn-on-recommended")(
+      request(),
+      res,
+      next,
+    );
+
+    // Not an error: the rest was done, and the answer says what was not.
+    expect(next).not.toHaveBeenCalled();
+    expect(answered()).toEqual(result);
+  });
+
+  test("a click that did everything answers an empty list of problems", async () => {
+    const result: JSONObject = {
+      rulesAdded: 20,
+      rulesTurnedOn: 0,
+      logsTurnedOn: true,
+      playbookAdded: true,
+      playbookTurnedOn: false,
+      problems: [],
+    };
+    jest
+      .spyOn(SecuritySetup, "turnOnRecommended")
+      .mockResolvedValue(result as never);
+
+    await route("/security-case/setup/turn-on-recommended")(
+      request(),
+      res,
+      next,
+    );
+
+    expect(answered()["problems"]).toEqual([]);
+  });
+
   test("only what the body asks for", async () => {
     const turnOn: jest.SpyInstance = jest
       .spyOn(SecuritySetup, "turnOnRecommended")

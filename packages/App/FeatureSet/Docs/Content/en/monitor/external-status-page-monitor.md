@@ -2,10 +2,13 @@
 
 An External Status Page monitor watches the public status page of a service you depend on — AWS, GCP, Azure, GitHub, OpenAI, Anthropic and many more — and alerts you when that provider reports an outage or degraded performance. Use it to learn about upstream problems as soon as the provider reports them, and to tell them apart from your own.
 
+It reads status pages made with OneUptime too, resource by resource, and tells planned maintenance from an outage: watch another team's project, or a vendor whose status page runs on OneUptime.
+
 :::cards
 - [Create the monitor](#creating-an-external-status-page-monitor): Paste a status page URL and pick what to watch.
 - [Scope it](#configuration-options): Watch one component group or one component.
 - [Criteria](#monitoring-criteria): What counts as down, out of the box.
+- [OneUptime status pages](#oneuptime-status-pages): Another project's resources, and its maintenance.
 - [Popular status pages](#popular-status-page-urls): URLs for the services most teams depend on.
 :::
 
@@ -39,6 +42,7 @@ You can use it to:
 | **Auto** (default)       | Automatically detects the status page format                           |
 | **Atlassian Statuspage** | Status pages powered by Atlassian Statuspage (JSON API)                |
 | **incident.io**          | Status pages powered by incident.io (e.g. `https://status.openai.com`) |
+| **OneUptime Status Page** | Status pages made with OneUptime: each resource's status, and what is under maintenance |
 | **RSS**                  | Status pages that provide an RSS feed                                  |
 | **Atom**                 | Status pages that provide an Atom feed                                 |
 
@@ -48,8 +52,9 @@ When set to **Auto**, OneUptime detects the status page format automatically, in
 
 1. First, it tries the incident.io status page API (`/proxy/<host>`).
 2. Next, it tries the Atlassian Statuspage JSON API (`/api/v2/status.json`, `/api/v2/components.json`, and `/api/v2/incidents/unresolved.json`).
-3. If those fail, it attempts to parse the page as an RSS or Atom feed.
-4. As a final fallback, it performs a basic HTTP reachability check.
+3. Then it asks for a OneUptime status page's summary (`/status-page-api/summary/<page>`).
+4. If those fail, it attempts to parse the page as an RSS or Atom feed.
+5. As a final fallback, it performs a basic HTTP reachability check.
 
 > [!NOTE]
 > incident.io is checked first because some incident.io status pages (such as `https://status.openai.com`) also expose a limited Atlassian-compatible endpoint that omits component groups and active incidents. Checking incident.io first ensures the richer, group-aware data is used.
@@ -69,7 +74,7 @@ Enter the **Status Page URL**. Leave the **Provider** on **Auto** unless you kno
 
 ### Scope it, if you need to
 
-Open **More fields** to enter a **Component Group Filter (Optional)**, such as `APIs`, and a **Component Name Filter (Optional)** to watch a single component (within the group, if a group is set).
+Open **More fields** to enter a **Component Group Filter**, such as `APIs`, and a **Component Name Filter** to watch a single component (within the group, if a group is set).
 
 ### Test it
 
@@ -89,9 +94,9 @@ Select the **Probes** and a **Monitoring Interval** — it starts at **Every 5 M
 | Option | What to enter | Default |
 | --- | --- | --- |
 | **Status Page URL** | The URL of the status page. For Atlassian Statuspage and incident.io-powered sites, this is typically the root URL (e.g., `https://status.example.com`). For RSS/Atom feeds, enter the feed URL directly. | — |
-| **Provider** | **Auto** to detect the format, or **Atlassian Statuspage**, **incident.io**, **RSS** or **Atom** if you know it. | **Auto** |
-| **Component Group Filter (Optional)** | The group to scope the monitor to. Under **More fields**. | All groups |
-| **Component Name Filter (Optional)** | The component to watch. Under **More fields**. | All components in scope |
+| **Provider** | **Auto** to detect the format, or **Atlassian Statuspage**, **incident.io**, **OneUptime Status Page**, **RSS** or **Atom** if you know it. | **Auto** |
+| **Component Group Filter** | The group to scope the monitor to. Under **More fields**. | All groups |
+| **Component Name Filter** | The component to watch. Under **More fields**. | All components in scope |
 | **Timeout (ms)** | The maximum time to wait for the status page. Under **More fields**. | `10000` (10 seconds) |
 | **Retries** | How many times to retry, a second apart, after the first attempt fails; `0` means a single attempt. Under **More fields**. | `3` (up to 4 attempts) |
 
@@ -101,7 +106,7 @@ If the status page organizes its components into groups, you can scope the monit
 
 When a component group is set, the **active incident count** and **overall status** are computed using only the components in that group — an incident affecting an unrelated group (for example, ChatGPT) will not trip a monitor scoped to the "APIs" group.
 
-Component group filtering is supported for **Atlassian Statuspage** and **incident.io** providers. RSS and Atom feeds do not expose component groups.
+Component group filtering is supported for **Atlassian Statuspage**, **incident.io** and **OneUptime Status Page** providers. RSS and Atom feeds do not expose component groups.
 
 ### Component Name Filter
 
@@ -124,9 +129,9 @@ You can configure criteria to decide when the external service is considered onl
 | **External Status Page Active Incidents** | The number of currently active incidents reported on the status page (scoped to the component group / component when a filter is set) | Equal To, Not Equal To, and the numeric comparisons |
 | **External Status Page Response Time (in ms)** | How long it takes to fetch the status page data | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
 
-The overall status is whatever the page says, so its values vary by provider: an Atlassian Statuspage reports its own description, such as `All Systems Operational`; a feed reports `operational` or `degraded_performance`; the reachability check reports `reachable` or `unreachable`. These comparisons are case-sensitive. To alert on outages, **External Status Page Active Incidents** and **External Status Page Component Status** are usually more reliable.
+The overall status is whatever the page says, so its values vary by provider: an Atlassian Statuspage reports its own description, such as `All Systems Operational`; a OneUptime status page, the worst status among its components in scope, such as `under_maintenance`; a feed reports `operational` or `degraded_performance`; the reachability check reports `reachable` or `unreachable`. These comparisons are case-sensitive. To alert on outages, **External Status Page Active Incidents** and **External Status Page Component Status** are usually more reliable.
 
-On an RSS or Atom feed, the items of the last 24 hours count as active incidents: an RSS item by its publication date, an Atom entry by its update date.
+On an RSS or Atom feed, the items of the last 24 hours count as active incidents: an RSS item by its publication date, an Atom entry by its update date. An item dated ahead does not count until its date.
 
 ### Default Criteria
 
@@ -138,6 +143,49 @@ By default, OneUptime seeds criteria based on what actually matters for a status
 | Online | **All** of: the page is online; there are no active incidents in scope | Marks the monitor online |
 
 Because the active incident count and component statuses respect the component group / component name filters, these default criteria automatically target only the components you care about.
+
+## OneUptime status pages
+
+Choose **OneUptime Status Page** as the provider, or leave **Auto**, to watch a status page made with OneUptime: another team's project, or a vendor's page on OneUptime Cloud or a self-hosted OneUptime. Enter the page's own address in **Status Page URL**: its domain, such as `https://status.example.com`, or `https://oneuptime.com/status-page/<status-page-id>` for a page without one.
+
+The monitor reads the page's summary, `/status-page-api/summary/<page>` (see [Read the summary](/docs/status-pages/public-api#read-the-summary)): only what the page shows its visitors, and nothing else of the other project. Each resource on the page, a monitor or a monitor group, is a component, by the name the page gives it, in the page's group; a group inside another reads `Core / Databases`. Watch one resource with **Component Name Filter**, or one group with **Component Group Filter**.
+
+A component's status is the value its status on the page stands for, so the Component Status criteria work as on any status page:
+
+| On the page | Component status |
+| --- | --- |
+| The project's operational status | `operational` |
+| A status named `Degraded` | `degraded_performance` |
+| A status named `Offline`, `Down` or `Major Outage` | `major_outage` |
+| A status named `Partial Outage` | `partial_outage` |
+| A status named `Full Outage` | `full_outage` |
+| A status named `Maintenance` | `under_maintenance` |
+| Any other status | `degraded_performance` |
+| A status the page hides, with **Show current status** off | `unknown` |
+
+While a scheduled maintenance event in progress affects a resource, because it names one of the resource's monitors or a monitor in its monitor group, the component is `under_maintenance`, whatever status its monitors are in: a monitor is not checked while an event holds it. An event still to come, or over, changes nothing. The page's active incidents count for the resources they affect.
+
+The [default criteria](#default-criteria) never take maintenance for an outage: the monitor stays online through the other project's planned work.
+
+### Show upstream maintenance on your monitor
+
+:::steps
+### Add the criteria
+
+On the monitor's criteria, click **Add Criteria**. Give it the filter **External Status Page Component Status**, **Equal To**, **Under Maintenance**, and pick your maintenance status in **Change monitor status to**.
+
+### Move it to the top
+
+Drag the new criteria above the others: the first criteria that matches wins.
+
+### Check it with Test Monitor
+
+Click **Test Monitor** while the other project has maintenance in progress: the component it affects reads **Under Maintenance**.
+:::
+
+### What a OneUptime status page lets the monitor read
+
+A page anyone can open is read as its visitors see it. A private page, one that asks for a sign-in, SSO or a password, cannot be read: with **OneUptime Status Page** chosen, the check fails and says so. A page with an IP allowlist must let in the probe's address: watch it from a probe inside that network.
 
 ## Template variables
 
@@ -151,7 +199,7 @@ When creating incidents or alerts from External Status Page monitors, you can us
 | `{{overallStatus}}`       | The overall status indicator value                                              |
 | `{{activeIncidentCount}}` | Number of active incidents (scoped to the filter, if any)                       |
 | `{{componentStatuses}}`   | JSON array of component statuses (`name`, `status`, `description`, `groupName`) |
-| `{{provider}}`            | Detected provider (Atlassian Statuspage, incident.io, RSS, Atom); empty after a reachability check |
+| `{{provider}}`            | Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom); empty after a reachability check |
 | `{{componentGroup}}`      | Component group the monitor is scoped to, if any                                |
 | `{{componentName}}`       | Component the monitor is scoped to, if any                                      |
 
@@ -203,6 +251,10 @@ The filters may match nothing, which looks healthy, or the page may only get the
 
 :::details Auto picks the wrong format, or finds no components
 Set the **Provider** to the one you know the page uses. For an RSS or Atom feed, enter the feed's own URL rather than the status page's.
+:::
+
+:::details A OneUptime status page shows no components
+Choose **OneUptime Status Page** as the **Provider** and click **Test Monitor**: the result says when the page is private, or when its IP allowlist keeps the probe out. A self-hosted OneUptime that has not been upgraded for a while serves no summary yet: until it is, the page gets the reachability check, or is read as a feed.
 :::
 
 :::details An internal status page cannot be reached

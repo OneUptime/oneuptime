@@ -171,6 +171,7 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     // The Provider dropdown's options other than Auto.
     "Atlassian Statuspage",
     "incident.io",
+    "OneUptime Status Page",
     "RSS",
     "Atom",
     "External Status Page Is Online",

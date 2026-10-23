@@ -1,10 +1,11 @@
 # 公開 API
 
-すべてのステータスページは、読み取り専用の小さな JSON エンドポイント群に応答します。概要、稼働率、インシデント、エピソード、計画メンテナンスのイベント、お知らせです。これらはステータスページ自体が読み込むエンドポイントなので、訪問者が見るものとまったく同じものを返し、公開ページなら API キーは不要です。自分のアプリ、チャットボット、壁掛けディスプレイにステータスを表示するのに使えます。
+すべてのステータスページは、読み取り専用の小さな JSON エンドポイント群に応答します。概要、サマリー、稼働率、インシデント、エピソード、計画メンテナンスのイベント、お知らせです。これらはステータスページ自体が読み込むエンドポイントなので、訪問者が見るものとまったく同じものを返し、公開ページなら API キーは不要です。自分のアプリ、チャットボット、壁掛けディスプレイにステータスを表示するのに使えます。
 
 :::cards
 - [エンドポイント](#エンドポイント): ページが表示するものごとに 1 つのエンドポイント。
 - [概要を読む](#概要を読む): 1 回のリクエストでページ全体を取得します (curl、Node.js、Python)。
+- [サマリーを読む](#サマリーを読む): 各リソースのステータスと、メンテナンス中のもの。
 - [期間を指定した稼働率](#期間を指定した稼働率): リソースとグループごとの稼働率 (最大 90 日)。
 - [エラー](#エラー): 各ステータスコードの意味。
 :::
@@ -50,6 +51,7 @@ flowchart TB
 | エンドポイント | メソッド | 返すもの |
 | -------- | ------- | ------- |
 | `/overview/{statusPageIdOrDomain}` | `GET`、`POST` | 概要に表示されるすべて: 全体のステータス、リソースとグループ、進行中のインシデントとエピソード、計画メンテナンス、表示中のお知らせ、稼働率バーの元データ。 |
+| `/summary/{statusPageIdOrDomain}` | `GET`, `POST` | ページの要点です。全体のステータス、各リソースのステータスと進行中のメンテナンスの影響を受けているかどうか、アクティブなインシデント、進行中と予定のメンテナンス。 |
 | `/uptime/{statusPageId}` | `POST` | 指定期間の、リソースごととグループごとの稼働率。 |
 | `/incidents/{statusPageIdOrDomain}` | `GET`、`POST` | ページが一覧に載せるインシデントと、その公開メモと状態の変化。 |
 | `/incidents/{statusPageIdOrDomain}/{incidentId}` | `POST` | 1 件のインシデント。 |
@@ -137,6 +139,60 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `activeEpisodes`、`episodePublicNotes`、`episodeStateTimelines` | インシデントのエピソードについての同じもの。 |
 | `scheduledMaintenanceEvents`、`scheduledMaintenanceEventsPublicNotes`、`scheduledMaintenanceStateTimelines`、`scheduledMaintenanceStates` | これから始まる、または進行中の計画メンテナンスのイベントと、その公開メモと状態の変化。 |
 | `activeAnnouncements` | いま表示中のお知らせ: 開始済みで、まだ終了していないもの。 |
+
+## サマリーを読む
+
+サマリーは、監視ツールがページに求めるものだけに絞った概要です。各リソースのステータスと、進行中の計画メンテナンスのイベントがそのリソースに影響しているかどうかを返します。ページが表示する履歴がどれだけ多くても小さいままで、別の OneUptime の [外部ステータスページモニター](/docs/monitor/external-status-page-monitor#oneuptime-のステータスページ) が読み取るのもこのサマリーです。概要と同じキャッシュから、同じアクセスルールの後で返されます。
+
+```bash
+curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
+```
+
+応答:
+
+```json
+{
+  "overallStatus": {
+    "name": "Operational",
+    "color": "#2ab57d",
+    "isOperational": true
+  },
+  "resources": [
+    {
+      "id": "cfffa3c3-fdf3-4cd7-9585-d6d408a14663",
+      "name": "Checkout API",
+      "groupName": "Core / APIs",
+      "currentStatus": {
+        "name": "Operational",
+        "color": "#2ab57d",
+        "isOperational": true
+      },
+      "isUnderMaintenance": true
+    }
+  ],
+  "activeIncidents": [],
+  "ongoingScheduledMaintenance": [
+    {
+      "id": "6a1e2a3b-0f4c-4d5e-8f60-718293a4b5c6",
+      "title": "Database upgrade",
+      "startsAt": "2026-10-25T02:00:00.000Z",
+      "endsAt": "2026-10-25T04:00:00.000Z",
+      "state": "Ongoing",
+      "affectedResourceIds": ["cfffa3c3-fdf3-4cd7-9585-d6d408a14663"]
+    }
+  ],
+  "upcomingScheduledMaintenance": []
+}
+```
+
+| キー | サマリーの内容 |
+| --- | -------------- |
+| `overallStatus` | バナーが示すとおりのページ全体のステータス: `name`、`color`、`isOperational`。 |
+| `resources` | ページが表示する各リソース (ページの順): ページ上の `name`、上位のグループを含む `groupName`、`currentStatus`、`isUnderMaintenance`。 |
+| `activeIncidents` | ページが表示する未解決のインシデント。それぞれ、影響するリソースの `affectedResourceIds` が付きます。 |
+| `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | 進行中の計画メンテナンスのイベントと、これから始まるイベント。それぞれに `affectedResourceIds` が付きます。 |
+
+ページがリソースの `currentStatus` を表示しない場合、その値は `null` です。 `isUnderMaintenance` は、進行中のイベントがリソースのモニターか、そのモニターグループ内のモニターを指定している間、それらのモニターのステータスにかかわらず `true` です。
 
 ## 期間を指定した稼働率
 
@@ -341,7 +397,7 @@ for incident in incidents:
 
 ## ステータスページを読むほかの方法
 
-- **RSS。** すべてのステータスページは `/rss` を提供します。インシデント、お知らせ、計画メンテナンスのイベントのフィードです。[埋め込みバッジと RSS フィード](/docs/status-pages/index#埋め込みバッジと-rss-フィード) を参照してください。
+- **RSS。** すべてのステータスページは `/rss` を提供します。インシデント、お知らせ、計画メンテナンスのイベントのフィードで、どの項目もページと同じ日付が付きます。[埋め込みバッジと RSS フィード](/docs/status-pages/index#埋め込みバッジと-rss-フィード) を参照してください。
 - **llms.txt。** `/rss` と並んで、すべてのステータスページが `/llms.txt` を提供します。AI エージェントに RSS フィードと概要の JSON の場所を示すものです。
 - **MCP。** AI エージェントは、OneUptime の MCP サーバー (`https://oneuptime.com/mcp`) を通じて、API キーなしでページを読めます。ページの ID またはドメインを `statusPageIdOrDomain` として渡します。既定でオンになっており、ページのサイドメニューの **AI → MCP** にある **MCP サーバーを有効化** でオフにできます。[MCP サーバー](/docs/ai/mcp-server) を参照してください。
 - **REST API。** ステータスページ、リソース、購読者、お知らせを作成または変更するには、API キーを使って [OneUptime API](/docs/api-reference/api-reference) を使用します。

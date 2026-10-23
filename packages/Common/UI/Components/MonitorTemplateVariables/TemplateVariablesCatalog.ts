@@ -900,7 +900,7 @@ export default class TemplateVariablesCatalog {
             {
               key: "provider",
               description:
-                "Detected provider (Atlassian Statuspage, incident.io, RSS, Atom).",
+                "Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).",
             },
             {
               key: "componentGroup",

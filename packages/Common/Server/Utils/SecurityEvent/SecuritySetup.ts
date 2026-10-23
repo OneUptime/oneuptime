@@ -10,7 +10,12 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
 import BadDataException from "../../../Types/Exception/BadDataException";
-import { JSONArray, JSONObject } from "../../../Types/JSON";
+import BadRequestException from "../../../Types/Exception/BadRequestException";
+import ForbiddenException from "../../../Types/Exception/ForbiddenException";
+import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { OPEN_SECURITY_CASE_STATUSES } from "../../../Types/SecurityCase/SecurityCaseStatus";
 import {
@@ -28,6 +33,20 @@ import {
   SecurityPlaybookTemplateDefinition,
   getSecurityPlaybookTemplateDefinition,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookTemplates";
+import {
+  TurnOnRecommendedAction,
+  TurnOnRecommendedPart,
+  TurnOnRecommendedProblem,
+  TurnOnRecommendedReason,
+  TurnOnRecommendedResult,
+} from "../../../Types/SecurityEvent/TurnOnRecommended";
+import {
+  buildDetectionRuleFromLibrary,
+  buildSecurityPlaybookFromTemplate,
+  findRuleOfLibraryEntry,
+  isPlaybookFromTemplate,
+  isRuleFromLibraryEntry,
+} from "../../../Utils/SecurityEvent/SecurityTemplateRecords";
 import { resolveTelemetryRetentionInDays } from "../../../Types/Telemetry/TelemetryRetentionConfig";
 import {
   SETUP_TEST_ATTRIBUTE,
@@ -68,7 +87,9 @@ import { buildSecurityEventDbRow } from "./SecurityEventRow";
  *   - turnOnRecommended: the one click. "Your logs" becomes a source, the
  *     recommended rules of the library are added (or turned back on) and
  *     the Enrich New Cases playbook is created - each only if it is not
- *     there yet, so clicking twice changes nothing.
+ *     there yet, so clicking twice changes nothing. Each is done on its
+ *     own: one that cannot be done is reported with its reason and the
+ *     rest are still done, so clicking again picks up only what is left.
  *   - runTest: a harmless simulated attack sent through the real pipeline -
  *     a dozen failed sign-ins from one documentation address, the brute
  *     force rule reading them, a case opening and its playbooks running -
@@ -105,14 +126,7 @@ export interface TurnOnRecommendedOptions {
   playbook: boolean;
 }
 
-export interface TurnOnRecommendedResult {
-  rulesAdded: number;
-  rulesTurnedOn: number;
-  logsTurnedOn: boolean;
-  playbookAdded: boolean;
-  // Enrich New Cases was there but switched off, and is on again.
-  playbookTurnedOn: boolean;
-}
+export type { TurnOnRecommendedProblem, TurnOnRecommendedResult };
 
 export interface SecuritySetupTestResult {
   eventsSent: number;
@@ -123,53 +137,39 @@ export interface SecuritySetupTestResult {
   ruleAdded: boolean;
 }
 
-function normalizeName(name: string | undefined): string {
-  return (name || "").trim().toLowerCase();
-}
+// One place builds and recognizes the records (Utils/SecurityEvent/SecurityTemplateRecords).
+export { buildDetectionRuleFromLibrary, isRuleFromLibraryEntry };
 
 /*
- * A project rule is a library rule when it carries the library rule's
- * Sigma id, or the library rule's name (what an added rule keeps; the
- * Rule Library marks rules the same way).
+ * Why a part of Turn on recommended could not be done, in the terms the
+ * Overview words it in: the role, the plan, a record OneUptime would not
+ * save (with the server's own sentence), or a failure on OneUptime's side -
+ * whose message, a database's or a network's, is logged and never shown.
  */
-export function isRuleFromLibraryEntry(
-  rule: Pick<DetectionRule, "name" | "sigmaRuleYaml">,
-  entry: Pick<DetectionRuleLibraryEntry, "id" | "title">,
-): boolean {
-  if ((rule.sigmaRuleYaml || "").indexOf(`id: ${entry.id}`) !== -1) {
-    return true;
+export function describeTurnOnRecommendedFailure(error: unknown): {
+  reason: TurnOnRecommendedReason;
+  detail: string;
+} {
+  if (
+    error instanceof NotAuthorizedException ||
+    error instanceof ForbiddenException ||
+    error instanceof NotAuthenticatedException
+  ) {
+    return { reason: TurnOnRecommendedReason.NotAllowed, detail: "" };
   }
 
-  return normalizeName(rule.name) === normalizeName(entry.title);
-}
-
-// A library entry as a detection rule of the project: on, opening cases rather than alerts.
-export function buildDetectionRuleFromLibrary(data: {
-  projectId: ObjectID;
-  entry: DetectionRuleLibraryEntry;
-}): DetectionRule {
-  const rule: DetectionRule = new DetectionRule();
-  rule.projectId = data.projectId;
-  rule.name = data.entry.title;
-  rule.description = data.entry.description;
-  rule.sigmaRuleYaml = data.entry.sigmaRuleYaml;
-  rule.isEnabled = true;
-  rule.evaluationIntervalInMinutes = data.entry.evaluationIntervalInMinutes;
-  rule.matchCountThreshold = data.entry.matchCountThreshold;
-  rule.shouldCreateCase = true;
-  rule.shouldCreateAlert = false;
-  rule.shouldCreateIncident = false;
-  rule.shouldWriteDetectionFinding = true;
-
-  if (data.entry.groupByField) {
-    rule.groupByField = data.entry.groupByField;
+  if (error instanceof PaymentRequiredException) {
+    return { reason: TurnOnRecommendedReason.Plan, detail: error.message };
   }
 
-  if (data.entry.distinctCountField) {
-    rule.distinctCountField = data.entry.distinctCountField;
+  if (
+    error instanceof BadDataException ||
+    error instanceof BadRequestException
+  ) {
+    return { reason: TurnOnRecommendedReason.Refused, detail: error.message };
   }
 
-  return rule;
+  return { reason: TurnOnRecommendedReason.Failed, detail: "" };
 }
 
 // The simulated sign-in failures the setup test sends.
@@ -382,6 +382,20 @@ export default class SecuritySetup {
     }
   }
 
+  /*
+   * The one click: your logs, then each recommended rule in the library's
+   * order, then Enrich New Cases - each written as the caller, and each
+   * only if it is not there yet (a rule turned off is turned back on, never
+   * copied).
+   *
+   * Each part is done on its own. One that fails goes into the answer's
+   * problems with why - the role, the plan, a record OneUptime would not
+   * save, or a failure on its side - and the parts after it are still done:
+   * a rule that cannot be added does not keep your logs, the other rules
+   * and the playbook off. Nothing is undone either, since each part works
+   * by itself. So the reader is told exactly what is missing, and clicking
+   * again does only that.
+   */
   @CaptureSpan()
   public static async turnOnRecommended(data: {
     projectId: ObjectID;
@@ -395,9 +409,67 @@ export default class SecuritySetup {
       logsTurnedOn: false,
       playbookAdded: false,
       playbookTurnedOn: false,
+      problems: [],
     };
 
     if (options.logs) {
+      await this.turnOnLogs({ projectId, props, result });
+    }
+
+    if (options.detections) {
+      await this.turnOnRecommendedRules({ projectId, props, result });
+    }
+
+    if (options.playbook) {
+      await this.turnOnEnrichNewCases({ projectId, props, result });
+    }
+
+    return result;
+  }
+
+  // A part that could not be done: into the answer, and into the log with what failed.
+  private static recordProblem(data: {
+    result: TurnOnRecommendedResult;
+    projectId: ObjectID;
+    part: TurnOnRecommendedPart;
+    action: TurnOnRecommendedAction;
+    name: string;
+    error: unknown;
+  }): void {
+    const failure: { reason: TurnOnRecommendedReason; detail: string } =
+      describeTurnOnRecommendedFailure(data.error);
+    const message: string = `Turn on recommended: could not ${data.action} ${data.part}${
+      data.name ? ` "${data.name}"` : ""
+    } in project ${data.projectId.toString()} (${failure.reason})`;
+
+    // A role, a plan or a record refused is the product working; anything else is a fault.
+    if (failure.reason === TurnOnRecommendedReason.Failed) {
+      logger.error(message);
+      logger.error(data.error as Error);
+    } else {
+      logger.warn(message);
+    }
+
+    const problem: TurnOnRecommendedProblem = {
+      part: data.part,
+      action: data.action,
+      name: data.name,
+      reason: failure.reason,
+      detail: failure.detail,
+    };
+
+    data.result.problems.push(problem);
+  }
+
+  private static async turnOnLogs(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    result: TurnOnRecommendedResult;
+  }): Promise<void> {
+    const { projectId, props, result } = data;
+    let action: TurnOnRecommendedAction = TurnOnRecommendedAction.Check;
+
+    try {
       const source: SecurityLogSource | null =
         await SecurityLogSourceService.findOneBy({
           query: { projectId },
@@ -406,12 +478,14 @@ export default class SecuritySetup {
         });
 
       if (!source) {
+        action = TurnOnRecommendedAction.Add;
         const created: SecurityLogSource = new SecurityLogSource();
         created.projectId = projectId;
         created.isEnabled = true;
         await SecurityLogSourceService.create({ data: created, props });
         result.logsTurnedOn = true;
       } else if (source.isEnabled !== true) {
+        action = TurnOnRecommendedAction.TurnOn;
         await SecurityLogSourceService.updateOneById({
           id: source.id!,
           data: { isEnabled: true },
@@ -419,34 +493,72 @@ export default class SecuritySetup {
         });
         result.logsTurnedOn = true;
       }
+    } catch (error) {
+      this.recordProblem({
+        result,
+        projectId,
+        part: TurnOnRecommendedPart.Logs,
+        action,
+        name: "",
+        error,
+      });
     }
+  }
 
-    if (options.detections) {
-      const rules: Array<DetectionRule> = await DetectionRuleService.findBy({
+  private static async turnOnRecommendedRules(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    result: TurnOnRecommendedResult;
+  }): Promise<void> {
+    const { projectId, props, result } = data;
+    let rules: Array<DetectionRule>;
+
+    try {
+      rules = await DetectionRuleService.findBy({
         query: { projectId },
         select: { _id: true, name: true, sigmaRuleYaml: true, isEnabled: true },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
         props,
       });
+    } catch (error) {
+      /*
+       * Without what the project has, adding would copy the rules it has
+       * already: nothing is added, and the answer says so.
+       */
+      this.recordProblem({
+        result,
+        projectId,
+        part: TurnOnRecommendedPart.Rule,
+        action: TurnOnRecommendedAction.Check,
+        name: "",
+        error,
+      });
+      return;
+    }
 
-      for (const entry of getRecommendedDetectionRules()) {
-        const existing: DetectionRule | undefined = rules.find(
-          (rule: DetectionRule): boolean => {
-            return isRuleFromLibraryEntry(rule, entry);
-          },
-        );
+    for (const entry of getRecommendedDetectionRules()) {
+      const existing: DetectionRule | undefined = findRuleOfLibraryEntry(
+        rules,
+        entry,
+      );
 
+      if (existing && existing.isEnabled === true) {
+        continue;
+      }
+
+      const action: TurnOnRecommendedAction = existing
+        ? TurnOnRecommendedAction.TurnOn
+        : TurnOnRecommendedAction.Add;
+
+      try {
         if (!existing) {
           await DetectionRuleService.create({
             data: buildDetectionRuleFromLibrary({ projectId, entry }),
             props,
           });
           result.rulesAdded++;
-          continue;
-        }
-
-        if (existing.isEnabled !== true && existing.id) {
+        } else if (existing.id) {
           await DetectionRuleService.updateOneById({
             id: existing.id,
             data: { isEnabled: true },
@@ -454,17 +566,46 @@ export default class SecuritySetup {
           });
           result.rulesTurnedOn++;
         }
+      } catch (error) {
+        this.recordProblem({
+          result,
+          projectId,
+          part: TurnOnRecommendedPart.Rule,
+          action,
+          // The name the project's lists show: a renamed rule keeps its own.
+          name: existing?.name || entry.title,
+          error,
+        });
       }
     }
+  }
 
-    if (options.playbook) {
-      const template: SecurityPlaybookTemplateDefinition | undefined =
-        getSecurityPlaybookTemplateDefinition(ENRICH_NEW_CASES_TEMPLATE_KEY);
+  private static async turnOnEnrichNewCases(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    result: TurnOnRecommendedResult;
+  }): Promise<void> {
+    const { projectId, props, result } = data;
+    const template: SecurityPlaybookTemplateDefinition | undefined =
+      getSecurityPlaybookTemplateDefinition(ENRICH_NEW_CASES_TEMPLATE_KEY);
 
-      if (!template) {
-        throw new BadDataException("The Enrich New Cases template is missing.");
-      }
+    if (!template) {
+      // Never so (SecurityTemplatesCreatable); said, rather than thrown, if it ever is.
+      this.recordProblem({
+        result,
+        projectId,
+        part: TurnOnRecommendedPart.Playbook,
+        action: TurnOnRecommendedAction.Add,
+        name: "",
+        error: new Error("The Enrich New Cases template is missing."),
+      });
+      return;
+    }
 
+    let action: TurnOnRecommendedAction = TurnOnRecommendedAction.Check;
+    let name: string = template.title;
+
+    try {
       const existing: Array<SecurityPlaybook> =
         await SecurityPlaybookService.findBy({
           query: { projectId },
@@ -476,35 +617,38 @@ export default class SecuritySetup {
 
       const match: SecurityPlaybook | undefined = existing.find(
         (playbook: SecurityPlaybook): boolean => {
-          return normalizeName(playbook.name) === normalizeName(template.title);
+          return isPlaybookFromTemplate(playbook, template);
         },
       );
 
-      if (match) {
-        // Turned off by someone: "turn on" turns it back on, never a copy.
-        if (match.isEnabled !== true && match.id) {
-          await SecurityPlaybookService.updateOneById({
-            id: match.id,
-            data: { isEnabled: true },
-            props,
-          });
-          result.playbookTurnedOn = true;
-        }
-      } else {
-        const playbook: SecurityPlaybook = new SecurityPlaybook();
-        playbook.projectId = projectId;
-        playbook.name = template.title;
-        playbook.description = template.description;
-        playbook.isEnabled = true;
-        playbook.trigger = template.trigger;
-        playbook.steps = template.getSteps() as unknown as JSONArray;
-
-        await SecurityPlaybookService.create({ data: playbook, props });
+      if (!match) {
+        action = TurnOnRecommendedAction.Add;
+        await SecurityPlaybookService.create({
+          data: buildSecurityPlaybookFromTemplate({ projectId, template }),
+          props,
+        });
         result.playbookAdded = true;
+      } else if (match.isEnabled !== true && match.id) {
+        // Turned off by someone: "turn on" turns it back on, never a copy.
+        action = TurnOnRecommendedAction.TurnOn;
+        name = match.name || template.title;
+        await SecurityPlaybookService.updateOneById({
+          id: match.id,
+          data: { isEnabled: true },
+          props,
+        });
+        result.playbookTurnedOn = true;
       }
+    } catch (error) {
+      this.recordProblem({
+        result,
+        projectId,
+        part: TurnOnRecommendedPart.Playbook,
+        action,
+        name,
+        error,
+      });
     }
-
-    return result;
   }
 
   @CaptureSpan()

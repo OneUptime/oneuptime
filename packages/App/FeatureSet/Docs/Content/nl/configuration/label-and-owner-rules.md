@@ -57,7 +57,7 @@ De **Naam** wordt ingevuld op basis van uw keuze (_Production toevoegen_, _Platf
 Klik in de laatste stap opnieuw op de knop die naar de regel is genoemd, bijvoorbeeld **Monitor Label Rule aanmaken**. De regel begint ingeschakeld, en de lijst toont hem met een groen label **Ingeschakeld**.
 :::
 
-Een nieuwe regel moet iets toevoegen: minstens één label (of eigenaar) of, bij een regel voor incidenten, waarschuwingen of gepland onderhoud, iets wat hij overneemt (zie hieronder). Om een regel te pauzeren zonder hem te verwijderen, zet u **Ingeschakeld** uit in het bewerkingsformulier; de lijst toont dan een rood label **Uitgeschakeld**.
+Een nieuwe regel moet iets toevoegen: minstens één label (of eigenaar) of, bij een regel voor incidenten, waarschuwingen of gepland onderhoud, iets wat hij overneemt (zie hieronder). Om een regel te pauzeren zonder hem te verwijderen, zet u **Ingeschakeld** uit in het bewerkingsformulier; de lijst toont dan een rood label **Uitgeschakeld**. Bij een eigenaarsregel voor incidenten of waarschuwingen is een team onder **Team van de maker** ook genoeg.
 
 ### Hoe de regel ook wordt gemaakt
 
@@ -68,9 +68,10 @@ Hetzelfde geldt voor een regel die via de API, Terraform, een workflow of een [i
 | Labelregel | This label rule adds nothing. Choose at least one label in Labels to Add. |
 | Labelregel voor incidenten, waarschuwingen of gepland onderhoud | This label rule adds nothing. Choose at least one label in Labels to Add, or turn on an Inherit Labels switch. |
 | Eigenaarsregel | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams. |
-| Eigenaarsregel voor incidenten, waarschuwingen of gepland onderhoud | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
+| Eigenaarsregel voor incidenten of waarschuwingen | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, a team in Creator's Teams, or turn on an Inherit Owners switch. |
+| Eigenaarsregel voor gepland onderhoud | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
 
-- **API**: stel `labelsToAdd` (of `ownerUsers` / `ownerTeams`) in op minstens één record van het project, of een van de schakelaars `inheritLabelsFrom…` (`inheritOwnersFrom…`) van de regel op `true`, een JSON-boolean.
+- **API**: stel `labelsToAdd` (of `ownerUsers` / `ownerTeams`) in op minstens één record van het project, of een van de schakelaars `inheritLabelsFrom…` (`inheritOwnersFrom…`) van de regel op `true`, een JSON-boolean. Bij een eigenaarsregel voor incidenten of waarschuwingen is een team in `creatorTeams` ook genoeg.
 - **Terraform**: een resource voor een label- of eigenaarsregel die niets toevoegt, mislukt bij `terraform apply` met de melding hierboven. Geef hem `labels_to_add` (of `owner_users` / `owner_teams`) of zet een van zijn overname-schakelaars aan.
 
 Regels die u al hebt, blijven ongemoeid: zie [Een regel bewerken](#een-regel-bewerken).
@@ -93,6 +94,12 @@ Een regel die overneemt, kan **Toe te voegen labels** (of **Eigenaren**) leeg la
 | **Labels overnemen van monitor**, bij een waarschuwingsregel | _Labels overnemen van: monitor_ |
 
 De naam volgt de schakelaars tot u een label kiest (de regel wordt dan naar zijn labels genoemd) of zelf een naam typt.
+
+### Het team van de maker
+
+Een eigenaarsregel voor incidenten of waarschuwingen heeft nog één onderdeel, als laatste in de sectie **Eigenaren overnemen**: **Team van de maker**, een lijst van teams. Is de persoon die een overeenkomend incident meldt, of een overeenkomende waarschuwing maakt, lid van een team op de lijst, dan wordt dat team ook eigenaar. Het is een lijst en niet al diens teams, omdat mensen standaard lid worden van het team **Leden** van het project, en iedereen eigenaar maken helpt niemand. Een incident of waarschuwing die een monitor, een workflow, een formulier of een API-sleutel maakt, heeft geen maker en krijgt dus geen van deze teams. Ze krijgen een melding zoals **Eigenaren op de hoogte stellen** van de regel zegt, en een regel die alleen hen toevoegt, heet _Het team van de maker als eigenaar toevoegen_. Via de API is de lijst `creatorTeams`.
+
+Wie een incident meldt of een waarschuwing maakt, wordt er een van de eigenaren van, wat de regels ook zeggen, en de aanmaakformulieren noemen in hun samenvatting elke eigenaarsregel die wordt uitgevoerd, en wie die toevoegt: zie [Wie de eigenaar wordt](/docs/incidents/declaring-incidents#wie-de-eigenaar-wordt).
 
 ## Een regel bewerken
 

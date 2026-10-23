@@ -30,6 +30,8 @@
  *            is drawn - no AI card, AI Verdict, Draft with AI or AI trigger.
  *   ?triage= the AI card's other states (TRIAGE_SCENARIOS below): failed,
  *            provider, credits, limit, injection, retry and auto-off.
+ *   ?setup=  Turn on recommended that cannot do everything (SETUP_SCENARIOS
+ *            below): partly or fail.
  *
  * Every read is recorded on window.__securityOperationsFixture: getItem,
  * list, count and API requests, the writes, and `unhandled` - anything the
@@ -107,6 +109,12 @@ import {
   DETECTION_RULE_LIBRARY,
   getRecommendedDetectionRules,
 } from "Common/Types/SecurityEvent/DetectionRuleLibrary";
+import {
+  TurnOnRecommendedAction,
+  TurnOnRecommendedPart,
+  TurnOnRecommendedReason,
+} from "Common/Types/SecurityEvent/TurnOnRecommended";
+import { isRuleFromLibraryEntry } from "Common/Utils/SecurityEvent/SecurityTemplateRecords";
 import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import ThreatIntelFeedType, {
   RECOMMENDED_THREAT_INTEL_LISTS,
@@ -198,6 +206,28 @@ const TRIAGE_BLOCKERS = {
   limit: "project_daily_limit_reached",
 };
 const triageBlocker = TRIAGE_BLOCKERS[triageScenario] || null;
+/*
+ * ?setup=: Turn on recommended when it cannot do everything, as
+ * SecuritySetup answers it - what it could not do, and why:
+ *
+ *   partly  the first click leaves Password spraying and Enrich New Cases
+ *           undone (something went wrong on OneUptime's side) and does the
+ *           rest; the Rule Library's first Add of Password spraying fails
+ *           the same way, and the Playbooks page's first template is
+ *           refused by the role. The next click, Add or pick does what is
+ *           left.
+ *   fail    the first click fails whole: the server could not be reached.
+ *           The next one turns everything on.
+ */
+const SETUP_SCENARIOS = ["partly", "fail"];
+const setupScenario = SETUP_SCENARIOS.includes(params.get("setup"))
+  ? params.get("setup")
+  : "";
+// The recommended rule the partly scenario leaves undone the first time.
+const PARTLY_UNDONE_RULE = "Password spraying";
+let turnOnCalls = 0;
+let failedLibraryAdds = 0;
+let failedTemplateAdds = 0;
 const rolePermissions =
   role === "viewer" ? [Permission.SecurityViewer] : [Permission.ProjectOwner];
 
@@ -1770,9 +1800,7 @@ function setupStatus() {
     recommendedRules: recommended.length,
     recommendedRulesOn: recommended.filter((entry) => {
       return rules.some((rule) => {
-        return (
-          isOn(rule) && normalizeName(rule.name) === normalizeName(entry.title)
-        );
+        return isOn(rule) && isRuleFromLibraryEntry(rule, entry);
       });
     }).length,
     threatIntelFeeds: hasHistory ? 1 : 0,
@@ -1789,7 +1817,10 @@ function turnOnRecommended(body) {
     logsTurnedOn: false,
     playbookAdded: false,
     playbookTurnedOn: false,
+    problems: [],
   };
+  // The partly scenario's first click: a failure on OneUptime's side, twice.
+  const leavesSomeUndone = setupScenario === "partly" && turnOnCalls === 1;
 
   if (body?.logs !== false) {
     const source = table(SecurityLogSource)[0];
@@ -1805,8 +1836,18 @@ function turnOnRecommended(body) {
   if (body?.detections !== false) {
     for (const entry of getRecommendedDetectionRules()) {
       const existing = table(DetectionRule).find((rule) => {
-        return normalizeName(rule.name) === normalizeName(entry.title);
+        return isRuleFromLibraryEntry(rule, entry);
       });
+      if (leavesSomeUndone && entry.title === PARTLY_UNDONE_RULE) {
+        result.problems.push({
+          part: TurnOnRecommendedPart.Rule,
+          action: TurnOnRecommendedAction.Add,
+          name: entry.title,
+          reason: TurnOnRecommendedReason.Failed,
+          detail: "",
+        });
+        continue;
+      }
       if (!existing) {
         insert(DetectionRule, {
           name: entry.title,
@@ -1824,7 +1865,15 @@ function turnOnRecommended(body) {
     }
   }
 
-  if (body?.playbook !== false) {
+  if (body?.playbook !== false && leavesSomeUndone) {
+    result.problems.push({
+      part: TurnOnRecommendedPart.Playbook,
+      action: TurnOnRecommendedAction.Add,
+      name: "Enrich New Cases",
+      reason: TurnOnRecommendedReason.Failed,
+      detail: "",
+    });
+  } else if (body?.playbook !== false) {
     const existing = table(SecurityPlaybook).find((playbook) => {
       return normalizeName(playbook.name) === "enrich new cases";
     });
@@ -1854,7 +1903,7 @@ const SETUP_TEST_CASE_NUMBER = 150;
 function runSetupTest() {
   const bruteForce = getRecommendedDetectionRules()[0];
   const hadRule = table(DetectionRule).some((rule) => {
-    return normalizeName(rule.name) === normalizeName(bruteForce.title);
+    return isRuleFromLibraryEntry(rule, bruteForce);
   });
   if (!hadRule) {
     insert(DetectionRule, {
@@ -2119,6 +2168,32 @@ ModelAPI.createOrUpdate = async (options) => {
 };
 
 ModelAPI.create = async (options) => {
+  /*
+   * The partly scenario: the Rule Library's first Add of Password spraying
+   * fails on OneUptime's side, as ModelAPI throws an API failure.
+   */
+  if (
+    setupScenario === "partly" &&
+    failedLibraryAdds === 0 &&
+    tableName(options.modelType) === tableName(DetectionRule) &&
+    options.model.name === PARTLY_UNDONE_RULE
+  ) {
+    failedLibraryAdds++;
+    throw new HTTPErrorResponse(500, { message: "Server Error" }, {});
+  }
+  // The partly scenario: the first playbook made from a template is refused by the role.
+  if (
+    setupScenario === "partly" &&
+    failedTemplateAdds === 0 &&
+    tableName(options.modelType) === tableName(SecurityPlaybook)
+  ) {
+    failedTemplateAdds++;
+    throw new HTTPErrorResponse(
+      403,
+      { message: "You do not have permission to create SecurityPlaybook." },
+      {},
+    );
+  }
   return ModelAPI.createOrUpdate(options);
 };
 
@@ -2513,6 +2588,11 @@ async function handleApi(method, options) {
     method === "POST" &&
     path.endsWith("/security-case/setup/turn-on-recommended")
   ) {
+    turnOnCalls++;
+    // The fail scenario's first click: the server could not be reached.
+    if (setupScenario === "fail" && turnOnCalls === 1) {
+      return new HTTPErrorResponse(502, {}, {});
+    }
     return new HTTPResponse(200, turnOnRecommended(options.data), {});
   }
   if (method === "POST" && path.endsWith("/security-case/setup/test")) {

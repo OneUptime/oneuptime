@@ -1,10 +1,11 @@
 # Publieke API
 
-Elke statuspagina beantwoordt een kleine reeks JSON-endpoints die alleen lezen: het overzicht, de beschikbaarheid, incidenten, episodes, geplande onderhoudsgebeurtenissen en aankondigingen. Het zijn de endpoints die de statuspagina zelf laadt, dus ze geven precies terug wat een bezoeker ziet, en een publieke pagina heeft geen API-sleutel nodig. Gebruik ze om je status te tonen in je eigen app, een chatbot of op een scherm aan de muur.
+Elke statuspagina beantwoordt een kleine reeks JSON-endpoints die alleen lezen: het overzicht, een samenvatting, de beschikbaarheid, incidenten, episodes, geplande onderhoudsgebeurtenissen en aankondigingen. Het zijn de endpoints die de statuspagina zelf laadt, dus ze geven precies terug wat een bezoeker ziet, en een publieke pagina heeft geen API-sleutel nodig. Gebruik ze om je status te tonen in je eigen app, een chatbot of op een scherm aan de muur.
 
 :::cards
 - [Endpoints](#endpoints): Eén endpoint voor alles wat de pagina toont.
 - [Het overzicht lezen](#het-overzicht-lezen): De hele pagina in één request, met curl, Node.js en Python.
+- [De samenvatting lezen](#de-samenvatting-lezen): De status van elke resource, en wat in onderhoud is.
 - [Beschikbaarheid over een periode](#beschikbaarheid-over-een-periode): Beschikbaarheid per resource en per groep, over maximaal 90 dagen.
 - [Fouten](#fouten): Wat elke statuscode betekent.
 :::
@@ -50,6 +51,7 @@ Waar een pad hieronder `{statusPageIdOrDomain}` zegt, kun je het ID van de pagin
 | Endpoint | Methoden | Geeft terug |
 | -------- | ------- | ------- |
 | `/overview/{statusPageIdOrDomain}` | `GET`, `POST` | Alles wat het overzicht toont: de algemene status, resources en groepen, actieve incidenten en episodes, gepland onderhoud, lopende aankondigingen en de gegevens achter de beschikbaarheidsbalken. |
+| `/summary/{statusPageIdOrDomain}` | `GET`, `POST` | De pagina in het kort: haar algemene status, de status van elke resource en of lopend onderhoud die raakt, de actieve incidenten, en het lopende en komende onderhoud. |
 | `/uptime/{statusPageId}` | `POST` | Beschikbaarheidspercentages per resource en per groep, over een periode. |
 | `/incidents/{statusPageIdOrDomain}` | `GET`, `POST` | De incidenten die de pagina toont, met hun publieke notities en statuswijzigingen. |
 | `/incidents/{statusPageIdOrDomain}/{incidentId}` | `POST` | Eén incident. |
@@ -137,6 +139,60 @@ De algemene status is de slechtste huidige status van de monitors en monitorgroe
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Hetzelfde voor incidentepisodes. |
 | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | De geplande onderhoudsgebeurtenissen die nog moeten komen of lopen, hun publieke notities en statuswijzigingen. |
 | `activeAnnouncements` | De aankondigingen die nu worden getoond: begonnen en nog niet afgelopen. |
+
+## De samenvatting lezen
+
+De samenvatting is het overzicht, ingekort tot wat een monitoringtool van een pagina wil weten: de status van elke resource, en of een lopende geplande onderhoudsgebeurtenis die raakt. Ze blijft klein, hoeveel geschiedenis de pagina ook toont, en ze is wat de [monitor voor externe statuspagina's](/docs/monitor/external-status-page-monitor#oneuptime-statuspaginas) van een andere OneUptime leest. Ze komt uit dezelfde cache als het overzicht, na dezelfde toegangsregels.
+
+```bash
+curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
+```
+
+Het antwoord:
+
+```json
+{
+  "overallStatus": {
+    "name": "Operational",
+    "color": "#2ab57d",
+    "isOperational": true
+  },
+  "resources": [
+    {
+      "id": "cfffa3c3-fdf3-4cd7-9585-d6d408a14663",
+      "name": "Checkout API",
+      "groupName": "Core / APIs",
+      "currentStatus": {
+        "name": "Operational",
+        "color": "#2ab57d",
+        "isOperational": true
+      },
+      "isUnderMaintenance": true
+    }
+  ],
+  "activeIncidents": [],
+  "ongoingScheduledMaintenance": [
+    {
+      "id": "6a1e2a3b-0f4c-4d5e-8f60-718293a4b5c6",
+      "title": "Database upgrade",
+      "startsAt": "2026-10-25T02:00:00.000Z",
+      "endsAt": "2026-10-25T04:00:00.000Z",
+      "state": "Ongoing",
+      "affectedResourceIds": ["cfffa3c3-fdf3-4cd7-9585-d6d408a14663"]
+    }
+  ],
+  "upcomingScheduledMaintenance": []
+}
+```
+
+| Sleutel | In de samenvatting |
+| --- | -------------- |
+| `overallStatus` | De algemene status van de pagina, zoals haar banner die toont: `name`, `color` en `isOperational`. |
+| `resources` | Elke resource die de pagina toont, in haar volgorde: de `name` op de pagina, de `groupName` met de groepen erboven, de `currentStatus`, en `isUnderMaintenance`. |
+| `activeIncidents` | De onopgeloste incidenten die de pagina toont, elk met de `affectedResourceIds` van de resources die het raakt. |
+| `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | De geplande onderhoudsgebeurtenissen die lopen of nog komen, elk met haar `affectedResourceIds`. |
+
+De `currentStatus` van een resource is `null` als de pagina die niet toont. `isUnderMaintenance` is `true` zolang een lopende gebeurtenis een van de monitors van de resource noemt, of een monitor in de monitorgroep ervan, in welke status die monitors ook staan.
 
 ## Beschikbaarheid over een periode
 
@@ -341,7 +397,7 @@ Een fout antwoordt met een statuscode en JSON-inhoud die de reden noemt:
 
 ## Andere manieren om een statuspagina te lezen
 
-- **RSS.** Elke statuspagina biedt `/rss`, een feed van haar incidenten, aankondigingen en geplande onderhoudsgebeurtenissen. Zie [De insluitbare badge en de RSS-feed](/docs/status-pages/index#de-insluitbare-badge-en-de-rss-feed).
+- **RSS.** Elke statuspagina biedt `/rss`, een feed van haar incidenten, aankondigingen en geplande onderhoudsgebeurtenissen, elk gedateerd zoals de pagina ze dateert. Zie [De insluitbare badge en de RSS-feed](/docs/status-pages/index#de-insluitbare-badge-en-de-rss-feed).
 - **llms.txt.** Naast `/rss` biedt elke statuspagina `/llms.txt`, dat AI-agents naar de RSS-feed en de overzichts-JSON verwijst.
 - **MCP.** AI-agents kunnen de pagina lezen via de MCP-server van OneUptime op `https://oneuptime.com/mcp`, zonder API-sleutel, door het ID of domein van de pagina mee te geven als `statusPageIdOrDomain`. Dit staat standaard aan; zet het uit met **MCP-server inschakelen** onder **AI → MCP** in het zijmenu van de pagina. Zie [MCP-server](/docs/ai/mcp-server).
 - **De REST API.** Om statuspagina's, resources, abonnees en aankondigingen te maken of te wijzigen, gebruik je de [OneUptime API](/docs/api-reference/api-reference) met een API-sleutel.

@@ -57,7 +57,7 @@ El **Nombre** se rellena a partir de lo que eliges (_Añadir Production_, _Añad
 En el último paso, vuelve a hacer clic en el botón con el nombre de la regla, por ejemplo **Crear Regla de etiquetas de monitores**. La regla empieza habilitada y la lista la muestra con una etiqueta verde **Habilitado**.
 :::
 
-Una regla nueva tiene que añadir algo: al menos una etiqueta (o un propietario) o, en una regla de incidentes, alertas o mantenimiento programado, algo que herede (ver más abajo). Para pausar una regla sin eliminarla, desactiva **Habilitado** en su formulario de edición; la lista mostrará entonces una etiqueta roja **Deshabilitado**.
+Una regla nueva tiene que añadir algo: al menos una etiqueta (o un propietario) o, en una regla de incidentes, alertas o mantenimiento programado, algo que herede (ver más abajo). Para pausar una regla sin eliminarla, desactiva **Habilitado** en su formulario de edición; la lista mostrará entonces una etiqueta roja **Deshabilitado**. En una regla de propietarios de incidentes o alertas, también basta un equipo en **Equipo del creador**.
 
 ### Se cree como se cree la regla
 
@@ -68,9 +68,10 @@ Lo mismo vale para una regla creada mediante la API, Terraform, un workflow o un
 | Regla de etiquetas | This label rule adds nothing. Choose at least one label in Labels to Add. |
 | Regla de etiquetas de incidentes, alertas o mantenimiento programado | This label rule adds nothing. Choose at least one label in Labels to Add, or turn on an Inherit Labels switch. |
 | Regla de propietarios | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams. |
-| Regla de propietarios de incidentes, alertas o mantenimiento programado | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
+| Regla de propietarios de incidentes o alertas | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, a team in Creator's Teams, or turn on an Inherit Owners switch. |
+| Regla de propietarios de mantenimiento programado | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
 
-- **API**: establece `labelsToAdd` (o `ownerUsers` / `ownerTeams`) en al menos un registro del proyecto, o uno de los interruptores `inheritLabelsFrom…` (`inheritOwnersFrom…`) de la regla en `true`, un booleano JSON.
+- **API**: establece `labelsToAdd` (o `ownerUsers` / `ownerTeams`) en al menos un registro del proyecto, o uno de los interruptores `inheritLabelsFrom…` (`inheritOwnersFrom…`) de la regla en `true`, un booleano JSON. En una regla de propietarios de incidentes o alertas, también basta un equipo en `creatorTeams`.
 - **Terraform**: un recurso de regla de etiquetas o de propietarios que no añade nada falla en `terraform apply` con el mensaje anterior. Dale `labels_to_add` (o `owner_users` / `owner_teams`) o activa uno de sus interruptores de herencia.
 
 Las reglas que ya tienes no se tocan: consulta [Editar una regla](#editar-una-regla).
@@ -93,6 +94,12 @@ Una regla que hereda puede dejar vacío **Etiquetas a añadir** (o **Propietario
 | **Heredar etiquetas del monitor**, en una regla de alertas | _Heredar etiquetas de: monitor_ |
 
 El nombre sigue a los interruptores hasta que eliges una etiqueta (la regla pasa a llamarse según sus etiquetas) o escribes un nombre propio.
+
+### El equipo del creador
+
+Una regla de propietarios de incidentes o alertas tiene una entrada más, la última de su sección **Heredar propietarios**: **Equipo del creador**, una lista de equipos. Cuando la persona que declara un incidente que coincide, o crea una alerta que coincide, es miembro de un equipo de la lista, ese equipo también pasa a ser propietario. Es una lista y no todos sus equipos porque las personas entran por defecto en el equipo **Miembros** del proyecto, y hacer propietarios a todos no ayuda a nadie. Un incidente o una alerta que crea un monitor, un flujo de trabajo, un formulario o una clave de API no tiene creador, así que no recibe ninguno de estos equipos. Se les notifica según diga **Notificar a los propietarios** de la regla, y una regla que solo los añade se llama _Añadir el equipo del creador como propietario_. A través de la API, la lista es `creatorTeams`.
+
+La persona que declara un incidente o crea una alerta pasa a ser uno de sus propietarios, digan lo que digan las reglas, y los formularios de creación listan en su resumen cada regla de propietario que se ejecutará y a quién añadirá: consulta [Quién será su propietario](/docs/incidents/declaring-incidents#quién-será-su-propietario).
 
 ## Editar una regla
 

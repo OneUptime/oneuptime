@@ -74,6 +74,10 @@ flowchart LR
 您的角色無法新增偵測規則、劇本或日誌來源。請聯絡 Project Owner、Project Admin 或 Security Admin，或請他們為您指派 Security Admin 角色。
 :::
 
+:::details Turn on recommended 未能全部開啟
+卡片會列出未能開啟的每一項及原因：您的角色、您的方案，或 OneUptime 端發生錯誤。其餘都已開啟。解決卡片列出的問題後，按一下 **再試一次**：只會開啟仍缺少的部分，不會重複新增。
+:::
+
 :::details 測試攻擊沒有開啟案件
 案件通常會在按鈕回應之前開啟；如果規則仍在追趕進度，它會說明這一點，案件會在一分鐘內開啟。請再次查看 **安全案例**，並在 **Detections** 下確認暴力破解規則已開啟。
 :::

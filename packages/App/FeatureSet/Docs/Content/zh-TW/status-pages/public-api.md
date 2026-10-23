@@ -1,10 +1,11 @@
 # 公開 API
 
-每個狀態頁都會回應一小組唯讀的 JSON 端點：它的概覽、運作率、事件、片段、排定維護事件與公告。這些正是狀態頁自己載入的端點，所以回傳的內容與訪客看到的完全相同，公開頁面也不需要 API 金鑰。可以用它們在你自己的應用程式、聊天機器人或牆上的顯示器中呈現狀態。
+每個狀態頁都會回應一小組唯讀的 JSON 端點：它的概覽、狀態概要、運作率、事件、片段、排定維護事件與公告。這些正是狀態頁自己載入的端點，所以回傳的內容與訪客看到的完全相同，公開頁面也不需要 API 金鑰。可以用它們在你自己的應用程式、聊天機器人或牆上的顯示器中呈現狀態。
 
 :::cards
 - [端點](#端點): 頁面顯示的每類內容都有一個端點。
 - [讀取概覽](#讀取概覽): 一個要求取得整個頁面，提供 curl、Node.js 與 Python 範例。
+- [讀取狀態概要](#讀取狀態概要): 每個資源的狀態，以及哪些正在維護。
 - [指定日期範圍的運作率](#指定日期範圍的運作率): 依資源與群組統計的運作率，最長 90 天。
 - [錯誤](#錯誤): 每個狀態碼的意義。
 :::
@@ -50,6 +51,7 @@ flowchart TB
 | 端點 | 方法 | 回傳 |
 | -------- | ------- | ------- |
 | `/overview/{statusPageIdOrDomain}` | `GET`、`POST` | 概覽顯示的一切：整體狀態、資源與群組、進行中的事件與片段、排定維護、目前的公告，以及運作率長條背後的資料。 |
+| `/summary/{statusPageIdOrDomain}` | `GET`, `POST` | 頁面的簡要情況：整體狀態、每個資源的狀態及其是否受進行中維護的影響、進行中的事件，以及進行中與即將到來的維護。 |
 | `/uptime/{statusPageId}` | `POST` | 指定日期範圍內，每個資源與每個群組的運作率百分比。 |
 | `/incidents/{statusPageIdOrDomain}` | `GET`、`POST` | 頁面列出的事件，以及它們的公開備註與狀態變化。 |
 | `/incidents/{statusPageIdOrDomain}/{incidentId}` | `POST` | 一個事件。 |
@@ -137,6 +139,60 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `activeEpisodes`、`episodePublicNotes`、`episodeStateTimelines` | 事件片段的相同內容。 |
 | `scheduledMaintenanceEvents`、`scheduledMaintenanceEventsPublicNotes`、`scheduledMaintenanceStateTimelines`、`scheduledMaintenanceStates` | 即將開始或正在進行的排定維護事件，以及它們的公開備註與狀態變化。 |
 | `activeAnnouncements` | 目前顯示中的公告：已經開始且尚未結束。 |
+
+## 讀取狀態概要
+
+狀態概要是概覽的精簡版，只保留監控工具向頁面詢問的內容：每個資源的狀態，以及進行中的排定維護事件是否影響它。無論頁面顯示多少歷史記錄，它都保持很小，另一個 OneUptime 的 [外部狀態頁監測器](/docs/monitor/external-status-page-monitor#oneuptime-狀態頁面) 讀取的正是它。它與概覽來自同一個快取，並經過同樣的存取規則。
+
+```bash
+curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
+```
+
+回應：
+
+```json
+{
+  "overallStatus": {
+    "name": "Operational",
+    "color": "#2ab57d",
+    "isOperational": true
+  },
+  "resources": [
+    {
+      "id": "cfffa3c3-fdf3-4cd7-9585-d6d408a14663",
+      "name": "Checkout API",
+      "groupName": "Core / APIs",
+      "currentStatus": {
+        "name": "Operational",
+        "color": "#2ab57d",
+        "isOperational": true
+      },
+      "isUnderMaintenance": true
+    }
+  ],
+  "activeIncidents": [],
+  "ongoingScheduledMaintenance": [
+    {
+      "id": "6a1e2a3b-0f4c-4d5e-8f60-718293a4b5c6",
+      "title": "Database upgrade",
+      "startsAt": "2026-10-25T02:00:00.000Z",
+      "endsAt": "2026-10-25T04:00:00.000Z",
+      "state": "Ongoing",
+      "affectedResourceIds": ["cfffa3c3-fdf3-4cd7-9585-d6d408a14663"]
+    }
+  ],
+  "upcomingScheduledMaintenance": []
+}
+```
+
+| 鍵 | 狀態概要中的內容 |
+| --- | -------------- |
+| `overallStatus` | 頁面的整體狀態，與其橫幅顯示的一致：`name`、`color` 與 `isOperational`。 |
+| `resources` | 頁面顯示的每個資源，依頁面順序：它在頁面上的 `name`、包含上層群組的 `groupName`、它的 `currentStatus`，以及 `isUnderMaintenance`。 |
+| `activeIncidents` | 頁面顯示的未解決事件，每個都帶有它所影響資源的 `affectedResourceIds`。 |
+| `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | 進行中與即將到來的排定維護事件，每個都帶有它的 `affectedResourceIds`。 |
+
+頁面不顯示資源的狀態時，該資源的 `currentStatus` 為 `null`。只要進行中的事件指定了該資源的某個監測器，或其監測器群組中的某個監測器，無論這些監測器處於什麼狀態，`isUnderMaintenance` 都為 `true`。
 
 ## 指定日期範圍的運作率
 
@@ -341,7 +397,7 @@ for incident in incidents:
 
 ## 讀取狀態頁的其他方式
 
-- **RSS。** 每個狀態頁都提供 `/rss`，這是其事件、公告與排定維護事件的訂閱來源。請參閱[可嵌入的徽章與 RSS 訂閱來源](/docs/status-pages/index#可嵌入的徽章與-rss-訂閱來源)。
+- **RSS。** 每個狀態頁都提供 `/rss`，這是其事件、公告與排定維護事件的訂閱來源，每個項目的日期都與頁面上的一致。請參閱[可嵌入的徽章與 RSS 訂閱來源](/docs/status-pages/index#可嵌入的徽章與-rss-訂閱來源)。
 - **llms.txt。** 每個狀態頁都在 `/rss` 旁邊提供 `/llms.txt`，它會為 AI 代理指出 RSS 訂閱來源與概覽 JSON 的位置。
 - **MCP。** AI 代理可以透過 OneUptime 的 MCP 伺服器 `https://oneuptime.com/mcp` 讀取頁面，不需要 API 金鑰，只要把頁面 ID 或網域當作 `statusPageIdOrDomain` 傳入。此功能預設開啟；可在頁面側邊選單的 **人工智慧 → MCP** 中以 **啟用 MCP 伺服器** 關閉。請參閱 [MCP 伺服器](/docs/ai/mcp-server)。
 - **REST API。** 若要建立或變更狀態頁、資源、訂閱者與公告，請使用 API 金鑰呼叫 [OneUptime API](/docs/api-reference/api-reference)。

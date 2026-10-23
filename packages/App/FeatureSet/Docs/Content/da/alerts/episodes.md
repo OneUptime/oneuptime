@@ -139,6 +139,8 @@ På **Episodedetaljer** udfylder du **Titel** og, hvis du vil, en **Advarselsalv
 
 På **Vagt og ejere** vælger du en **Vagtpolitik**, der skal køre, når episoden oprettes, og dens **Ejere**. Klik derefter på **Opret episode**.
 
+Hvert team, du er medlem af, er et enkelt klik væk under **Ejere**, og oversigten nævner de ejerregler, der tilføjer flere.
+
 ### Tilføj advarslerne
 
 Åbn episodens side **Medlemsadvarsler**, klik på **Tilføj advarsler**, og sæt flueben ved de advarsler, der hører til den, så mange du har brug for på én gang. Vil du hellere starte fra advarslerne, så vælg dem på listen **Advarsler**, og vælg **Tilføj til ny episode** under **Massehandlinger** (se [Episoder](/docs/incidents/episodes)).

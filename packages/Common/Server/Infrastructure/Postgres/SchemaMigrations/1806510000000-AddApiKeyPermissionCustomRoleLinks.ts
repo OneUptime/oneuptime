@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration alongside
- * AddApiKeyCustomRoles1806300000000, and moved into a migration of its own:
+ * AddApiKeyCustomRoles1806500000000, and moved into a migration of its own:
  * the indexes and foreign keys of "ApiKeyPermission"'s custom role columns
  * are built on a table every project with an API key already has rows in,
  * and that every API key request's permissions are read from, so they go
@@ -13,10 +13,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * validations find nothing to refuse. Safe to run again after a stop part
  * way.
  */
-export class AddApiKeyPermissionCustomRoleLinks1806310000000
+export class AddApiKeyPermissionCustomRoleLinks1806510000000
   implements MigrationInterface
 {
-  public name: string = "AddApiKeyPermissionCustomRoleLinks1806310000000";
+  public name: string = "AddApiKeyPermissionCustomRoleLinks1806510000000";
 
   // OnlineDdl builds indexes and validates foreign keys outside a transaction.
   public transaction: boolean = false;
