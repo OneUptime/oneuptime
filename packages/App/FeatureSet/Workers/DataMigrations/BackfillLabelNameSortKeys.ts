@@ -19,18 +19,20 @@ import { getNaturalSortKey } from "Common/Utils/NaturalOrder";
  * #5183). Every create and rename writes the key from then on; until this
  * runs, a label without one is listed after those that have it.
  *
- * One plain UPDATE per label (updateColumnsByIdWithoutHooks): no audit-log
- * entry, workflow or realtime event for what is bookkeeping, and the
- * label's updatedAt and version left as they are. The write only lands when
- * the label still has the name the key was made from, so a rename between
- * the read and the write - which writes its own key - is never overwritten.
+ * One plain UPDATE per label (compareAndSetColumnsByIdWithoutHooks): no
+ * audit-log entry, workflow or realtime event for what is bookkeeping, and
+ * the label's updatedAt and version left as they are. The write only lands
+ * when the label still has the name the key was made from, so a rename
+ * between the read and the write - which writes its own key - is never
+ * overwritten.
  *
  * Keyset-paged by id, as a row it writes leaves the query. A label it could
  * not write is logged and left as it was - listed after the labels that have
  * a key, until its next rename writes one - rather than failing the run: a
  * failed data migration halts every migration after it, and an order is not
- * worth that. Idempotent, and safe to run twice at once: a label that has a
- * key is never read, and two runs write the same key.
+ * worth that. A failed read does fail it, so the runner tries again. Safe to
+ * run twice at once: a label that has a key is never read, and two runs
+ * write the same key.
  */
 export default class BackfillLabelNameSortKeys extends DataMigrationBase {
   public constructor() {
@@ -40,6 +42,7 @@ export default class BackfillLabelNameSortKeys extends DataMigrationBase {
   public override async migrate(): Promise<void> {
     let cursor: ObjectID | null = null;
     let written: number = 0;
+    let renamedMeanwhile: number = 0;
     let failed: number = 0;
 
     while (true) {
@@ -80,18 +83,23 @@ export default class BackfillLabelNameSortKeys extends DataMigrationBase {
         cursor = label.id;
 
         try {
-          await LabelService.updateColumnsByIdWithoutHooks({
-            id: label.id,
-            data: {
-              nameSortKey: getNaturalSortKey(label.name),
-            },
-            expectedData: {
-              name: label.name,
-            },
-            skipUpdateDateColumn: true,
-          });
+          const isWritten: boolean =
+            await LabelService.compareAndSetColumnsByIdWithoutHooks({
+              id: label.id,
+              data: {
+                nameSortKey: getNaturalSortKey(label.name),
+              },
+              expectedData: {
+                name: label.name,
+              },
+              skipUpdateDateColumn: true,
+            });
 
-          written++;
+          if (isWritten) {
+            written++;
+          } else {
+            renamedMeanwhile++;
+          }
         } catch (err) {
           failed++;
 
@@ -107,9 +115,7 @@ export default class BackfillLabelNameSortKeys extends DataMigrationBase {
     }
 
     logger.info(
-      `BackfillLabelNameSortKeys: wrote the sort key of ${written} label(s)${
-        failed > 0 ? `; ${failed} could not be written` : ""
-      }.`,
+      `BackfillLabelNameSortKeys: wrote the sort key of ${written} label(s); ${renamedMeanwhile} renamed or deleted meanwhile; ${failed} could not be written.`,
     );
   }
 

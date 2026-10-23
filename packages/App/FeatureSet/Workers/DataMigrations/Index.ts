@@ -823,6 +823,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    */
   new AddDefaultPostmortemStatusesToExistingProjects(),
   /*
+   * Labels are read in natural order by name - numbered labels first, by
+   * their numbers, then the others alphabetically (OneUptime issue #5183) -
+   * by a sort key every create and rename writes (Label.nameSortKey, schema
+   * migration AddLabelNameSortKey). This writes the key of every label made
+   * before. Postgres-only and idempotent; a label it cannot write is logged,
+   * never failing the run. No ordering requirement, so it sits above the
+   * runbook moves, which keep their places right before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new BackfillLabelNameSortKeys(),
+  /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step
    * N becomes an approval before step N+1, and one after the last step a
@@ -856,16 +867,6 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new RemoveRunbookCredentials(),
-  /*
-   * Labels are read in natural order by name - numbered labels first, by
-   * their numbers, then the others alphabetically (OneUptime issue #5183) -
-   * by a sort key every create and rename writes (Label.nameSortKey, schema
-   * migration AddLabelNameSortKey). This writes the key of every label made
-   * before. Postgres-only and idempotent; a label it cannot write is logged,
-   * never failing the run. It sits before the last slot
-   * AddAuditLogMcpClientColumns asserts for itself.
-   */
-  new BackfillLabelNameSortKeys(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

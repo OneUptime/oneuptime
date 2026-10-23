@@ -14,19 +14,29 @@ import React, { ReactElement } from "react";
 import { I18nextProvider } from "react-i18next";
 import LabelsElement, {
   DETAIL_LABELS_TEST_ID,
+  TABLE_LABEL_LINE_CLASS_NAME,
   TABLE_LABELS_CLASS_NAME,
-  TABLE_LABELS_EXPANDED_CLASS_NAME,
-  TABLE_LABELS_MORE_CLASS_NAME,
+  TABLE_LABELS_MORE_TEXT,
   TABLE_LABELS_TEST_ID,
-  TABLE_LABELS_VISIBLE_COUNT,
 } from "../../../../UI/Components/Label/Labels";
-import TableColumnListComponent from "../../../../UI/Components/TableColumnList/TableColumnListComponent";
+import TableColumnListComponent, {
+  TABLE_COLUMN_LIST_VISIBLE_COUNT,
+} from "../../../../UI/Components/TableColumnList/TableColumnListComponent";
 import {
+  TableCardContext,
   TableCellContext,
   useIsTableCell,
 } from "../../../../UI/Components/Table/TableCellContext";
 import { TABLE_EMPTY_VALUE_TEST_ID } from "../../../../UI/Components/Table/TableEmptyValue";
-import { TABLE_LIST_ITEM_CLASS_NAME } from "../../../../UI/Components/Table/TableLayout";
+import {
+  TABLE_CARD_LIST_ITEM_CLASS_NAME,
+  TABLE_LIST_ITEM_CLASS_NAME,
+} from "../../../../UI/Components/Table/TableLayout";
+import {
+  PILL_TEXT_CLASS_NAME,
+  WRAPPING_PILL_CLASS_NAME,
+  WRAPPING_PILL_TEXT_CLASS_NAME,
+} from "../../../../UI/Components/Pill/Pill";
 import TableBody from "../../../../UI/Components/Table/TableBody";
 import Modal from "../../../../UI/Components/Modal/Modal";
 import SideOver from "../../../../UI/Components/SideOver/SideOver";
@@ -35,13 +45,16 @@ import Label from "../../../../Models/DatabaseModels/Label";
 import Color from "../../../../Types/Color";
 
 /*
- * A table cell's lists (model-table-ui): a record's labels on the row's one
- * line, the first two and "+N" (Label/Labels.tsx); any other list one item a
- * line, each cut short with an ellipsis (TableColumnListComponent); nothing
- * to list a quiet dash with the column's words for a screen reader. They
- * stacked one label a line, three lines tall, and said "No labels
- * attached." on every row. Tables draw them so by TableCellContext, which
- * TableBody sets and a dialog or side panel opened from a cell resets.
+ * A record's labels in a table's cell (Label/Labels.tsx), after OneUptime
+ * issues #5187 and #5183: one under another, as a row's Affected Resources
+ * are listed - the first three and "N more labels" for the rest, never a
+ * fold of one - in natural order, numbered labels first by their numbers;
+ * a long label ends in "..." on a laptop, its whole name under the pointer,
+ * and runs onto a next line in a phone's card; nothing to list is a quiet
+ * dash with the column's words for a screen reader. They sat side by side
+ * on the row's one line, and long ones ran past the column's edge, cut off.
+ * Tables draw them so by TableCellContext, which TableBody sets and a
+ * dialog or side panel opened from a cell resets.
  */
 
 const GERMAN_FILE: Record<string, string> = JSON.parse(
@@ -72,12 +85,23 @@ afterEach(() => {
   cleanup();
 });
 
-const NAMES: Array<string> = [
-  "Production",
-  "Payments",
-  "EU West",
-  "Customer facing",
-  "Database",
+// The labels of the issues' screenshot, as the database joined them.
+const ISSUE_LABELS: Array<string> = [
+  "4.Business System=Customer Mobile App",
+  "2.SubCategory=Website",
+  "10.Owner=Loyalty Platform Team",
+  "Claude",
+  "1.Category=Application",
+  "3.Item=Connectivity",
+];
+
+const ISSUE_LABELS_IN_ORDER: Array<string> = [
+  "1.Category=Application",
+  "2.SubCategory=Website",
+  "3.Item=Connectivity",
+  "4.Business System=Customer Mobile App",
+  "10.Owner=Loyalty Platform Team",
+  "Claude",
 ];
 
 type MakeLabelsFunction = (names: Array<string>) => Array<Label>;
@@ -98,6 +122,15 @@ const inCell: InCellFunction = (element: ReactElement): ReactElement => {
   return (
     <TableCellContext.Provider value={true}>
       {element}
+    </TableCellContext.Provider>
+  );
+};
+
+// On a phone a row is a card: a cell of one.
+const inCard: InCellFunction = (element: ReactElement): ReactElement => {
+  return (
+    <TableCellContext.Provider value={true}>
+      <TableCardContext.Provider value={true}>{element}</TableCardContext.Provider>
     </TableCellContext.Provider>
   );
 };
@@ -125,100 +158,213 @@ describe("a record's labels in a table's cell", () => {
     expect(
       screen.queryByText("No labels attached.", { selector: "p" }),
     ).toBeNull();
+    expect(screen.queryByTestId(TABLE_LABELS_TEST_ID)).toBeNull();
   });
 
-  test("two or fewer: every one, side by side on the row's line, no '+N'", () => {
-    const { container } = render(
-      inCell(<LabelsElement labels={makeLabels(NAMES.slice(0, 2))} />),
+  test("one under another, each on a line of its own, as Affected Resources lists its resources", () => {
+    render(
+      inCell(<LabelsElement labels={makeLabels(ISSUE_LABELS.slice(0, 3))} />),
     );
 
-    const row: HTMLElement = screen.getByTestId(TABLE_LABELS_TEST_ID);
+    const list: HTMLElement = screen.getByTestId(TABLE_LABELS_TEST_ID);
 
-    expect(row.className).toBe(TABLE_LABELS_CLASS_NAME);
-    expect(pillTexts(container)).toEqual(["Production", "Payments"]);
-    expect(screen.queryByTestId("table-labels-more")).toBeNull();
-    expect(screen.queryByTestId(DETAIL_LABELS_TEST_ID)).toBeNull();
+    expect(list.className).toBe(TABLE_LABELS_CLASS_NAME);
+    // A block of lines, never one row of pills side by side.
+    expect(list).not.toHaveClass("flex");
+    expect(list).not.toHaveClass("flex-nowrap");
+
+    const items: Array<Element> = Array.from(list.children);
+
+    expect(items).toHaveLength(3);
+
+    for (const item of items) {
+      // The list item every cell list draws, cut short at the column's end...
+      expect((item as HTMLElement).className).toBe(TABLE_LIST_ITEM_CLASS_NAME);
+      // ...holding one 24px line and one pill on it.
+      const line: Element = item.firstElementChild as Element;
+      expect((line as HTMLElement).className).toBe(TABLE_LABEL_LINE_CLASS_NAME);
+      expect(line.querySelectorAll('[data-testid="pill"]')).toHaveLength(1);
+    }
   });
 
-  test("more: the first two and '+N', on one line that never wraps", () => {
+  test("in natural order: numbered labels first by their numbers, then the rest", () => {
     const { container } = render(
-      inCell(<LabelsElement labels={makeLabels(NAMES)} />),
+      inCell(<LabelsElement labels={makeLabels(ISSUE_LABELS.slice(0, 4))} />),
     );
 
-    expect(TABLE_LABELS_VISIBLE_COUNT).toBe(2);
-    expect(pillTexts(container)).toEqual(["Production", "Payments"]);
-    expect(screen.getByTestId(TABLE_LABELS_TEST_ID)).toHaveClass("flex-nowrap");
+    // The four of the issue's screenshot: all shown, 10 after 4.
+    expect(pillTexts(container)).toEqual([
+      "2.SubCategory=Website",
+      "4.Business System=Customer Mobile App",
+      "10.Owner=Loyalty Platform Team",
+      "Claude",
+    ]);
+  });
 
-    const more: HTMLElement = screen.getByTestId("table-labels-more");
+  test("four labels are all shown: a fold never hides a single label behind '1 more'", () => {
+    const { container } = render(
+      inCell(<LabelsElement labels={makeLabels(ISSUE_LABELS.slice(0, 4))} />),
+    );
 
-    expect(more).toHaveTextContent("+3");
+    expect(TABLE_COLUMN_LIST_VISIBLE_COUNT).toBe(3);
+    expect(pillTexts(container)).toHaveLength(4);
+    expect(screen.queryByTestId(`${TABLE_LABELS_TEST_ID}-more`)).toBeNull();
+    expect(screen.queryByText(/1 more/)).toBeNull();
+  });
+
+  test("more: the first three in order, and 'N more labels' for the rest", () => {
+    const { container } = render(
+      inCell(<LabelsElement labels={makeLabels(ISSUE_LABELS)} />),
+    );
+
+    expect(pillTexts(container)).toEqual(ISSUE_LABELS_IN_ORDER.slice(0, 3));
+
+    const more: HTMLElement = screen.getByTestId(`${TABLE_LABELS_TEST_ID}-more`);
+
     expect(more.tagName).toBe("BUTTON");
-    expect(more).toHaveAttribute("type", "button");
-    expect(more).toHaveAccessibleName("Show 3 more labels");
-    // The hidden ones under the pointer.
-    expect(more).toHaveAttribute("title", "EU West, Customer facing, Database");
-    expect(more.className).toBe(TABLE_LABELS_MORE_CLASS_NAME);
+    expect(more).toHaveAccessibleName("3 more labels");
+    expect(TABLE_LABELS_MORE_TEXT).toBe("more labels");
+    // Inside the list, under the labels it stands for.
+    expect(screen.getByTestId(TABLE_LABELS_TEST_ID)).toContainElement(more);
   });
 
-  test("one more label is said in the singular", () => {
-    render(inCell(<LabelsElement labels={makeLabels(NAMES.slice(0, 3))} />));
-
-    expect(screen.getByTestId("table-labels-more")).toHaveAccessibleName(
-      "Show 1 more label",
-    );
-  });
-
-  test("'+N' shows them all, wrapping in the column, and 'Show less' folds them again", () => {
+  test("'N more labels' shows every label in order, and 'Show less' folds them again", () => {
     const { container } = render(
-      inCell(<LabelsElement labels={makeLabels(NAMES)} />),
+      inCell(<LabelsElement labels={makeLabels(ISSUE_LABELS)} />),
     );
 
-    fireEvent.click(screen.getByTestId("table-labels-more"));
+    fireEvent.click(screen.getByTestId(`${TABLE_LABELS_TEST_ID}-more`));
 
-    expect(pillTexts(container)).toEqual(NAMES);
-    expect(screen.getByTestId(TABLE_LABELS_TEST_ID).className).toBe(
-      TABLE_LABELS_EXPANDED_CLASS_NAME,
+    expect(pillTexts(container)).toEqual(ISSUE_LABELS_IN_ORDER);
+    expect(screen.queryByTestId(`${TABLE_LABELS_TEST_ID}-more`)).toBeNull();
+
+    const less: HTMLElement = screen.getByTestId(`${TABLE_LABELS_TEST_ID}-less`);
+
+    expect(less).toHaveAccessibleName("Show less");
+
+    fireEvent.click(less);
+
+    expect(pillTexts(container)).toEqual(ISSUE_LABELS_IN_ORDER.slice(0, 3));
+    expect(
+      screen.getByTestId(`${TABLE_LABELS_TEST_ID}-more`),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId(`${TABLE_LABELS_TEST_ID}-less`)).toBeNull();
+  });
+
+  test("the order is the labels', not the order a page hands them in", () => {
+    const labels: Array<Label> = makeLabels(ISSUE_LABELS);
+    const { container, rerender } = render(
+      inCell(<LabelsElement labels={labels} />),
     );
-    expect(screen.queryByTestId("table-labels-more")).toBeNull();
+    const first: Array<string> = pillTexts(container);
 
-    fireEvent.click(screen.getByTestId("table-labels-less"));
+    rerender(inCell(<LabelsElement labels={[...labels].reverse()} />));
 
-    expect(pillTexts(container)).toEqual(NAMES.slice(0, 2));
-    expect(screen.getByTestId("table-labels-more")).toBeInTheDocument();
-    expect(screen.queryByTestId("table-labels-less")).toBeNull();
+    expect(pillTexts(container)).toEqual(first);
+    // The page's own list is left as it was.
+    expect(
+      labels.map((label: Label): string => {
+        return label.name || "";
+      }),
+    ).toEqual(ISSUE_LABELS);
+  });
+
+  test("a long label is cut short on a laptop, its whole name under the pointer", () => {
+    const longName: string =
+      "5.Escalation=Loyalty Platform Engineering, Customer Mobile App Integrations";
+
+    render(inCell(<LabelsElement labels={makeLabels([longName])} />));
+
+    const text: HTMLElement = screen.getByTestId("pill-text");
+
+    expect(text.className).toBe(PILL_TEXT_CLASS_NAME);
+    expect(text).toHaveClass("truncate");
+
+    Object.defineProperty(text, "scrollWidth", { value: 480 });
+    Object.defineProperty(text, "clientWidth", { value: 290 });
+    fireEvent.mouseEnter(text);
+
+    expect(text).toHaveAttribute("title", longName);
+  });
+
+  test("on a phone's card a long label runs onto a next line instead, nothing pointing to show it whole", () => {
+    render(
+      inCard(
+        <LabelsElement
+          labels={makeLabels([
+            "5.Escalation=Loyalty Platform Engineering, Customer Mobile App Integrations",
+            "3.Item=Connectivity",
+          ])}
+        />,
+      ),
+    );
+
+    const list: HTMLElement = screen.getByTestId(TABLE_LABELS_TEST_ID);
+
+    for (const item of Array.from(list.children)) {
+      expect((item as HTMLElement).className).toBe(
+        TABLE_CARD_LIST_ITEM_CLASS_NAME,
+      );
+    }
+
+    for (const pill of screen.getAllByTestId("pill")) {
+      expect(pill.className.trim()).toBe(WRAPPING_PILL_CLASS_NAME);
+    }
+
+    for (const text of screen.getAllByTestId("pill-text")) {
+      expect(text.className).toBe(WRAPPING_PILL_TEXT_CLASS_NAME);
+      expect(text).not.toHaveClass("truncate");
+    }
+
+    // In order there too.
+    expect(pillTexts(list)).toEqual([
+      "3.Item=Connectivity",
+      "5.Escalation=Loyalty Platform Engineering, Customer Mobile App Integrations",
+    ]);
+  });
+
+  test("on a laptop no pill wraps", () => {
+    render(inCell(<LabelsElement labels={makeLabels(ISSUE_LABELS)} />));
+
+    for (const pill of screen.getAllByTestId("pill")) {
+      expect(pill.className).not.toContain(WRAPPING_PILL_CLASS_NAME);
+      expect(pill).toHaveClass("rounded-full");
+    }
   });
 
   test("the same element goes from labels to none and back without losing its hooks", () => {
     const { rerender } = render(
-      inCell(<LabelsElement labels={makeLabels(NAMES)} />),
+      inCell(<LabelsElement labels={makeLabels(ISSUE_LABELS)} />),
     );
 
     rerender(inCell(<LabelsElement labels={[]} />));
     expect(screen.getByTestId(TABLE_EMPTY_VALUE_TEST_ID)).toBeInTheDocument();
 
-    rerender(inCell(<LabelsElement labels={makeLabels(NAMES)} />));
-    expect(screen.getByTestId("table-labels-more")).toHaveTextContent("+3");
+    rerender(inCell(<LabelsElement labels={makeLabels(ISSUE_LABELS)} />));
+    expect(
+      screen.getByTestId(`${TABLE_LABELS_TEST_ID}-more`),
+    ).toHaveAccessibleName("3 more labels");
   });
 
-  test("'+N' is said in the reader's language", () => {
-    const sentence: string = GERMAN_FILE[
-      "Show {{count}} more labels"
-    ] as string;
-    const one: string = GERMAN_FILE["Show {{count}} more labels_one"] as string;
+  test("'N more labels' and 'Show less' are said in the reader's language", () => {
+    const more: string = GERMAN_FILE["more labels"] as string;
+    const less: string = GERMAN_FILE["Show less"] as string;
 
-    expect(sentence).toBeTruthy();
-    expect(sentence).not.toBe("Show {{count}} more labels");
-    expect(one).not.toBe("Show {{count}} more label");
+    expect(more).toBeTruthy();
+    expect(more).not.toBe("more labels");
+    expect(less).not.toBe("Show less");
 
     render(
       <I18nextProvider i18n={german}>
-        {inCell(<LabelsElement labels={makeLabels(NAMES)} />)}
+        {inCell(<LabelsElement labels={makeLabels(ISSUE_LABELS)} />)}
       </I18nextProvider>,
     );
 
-    expect(screen.getByTestId("table-labels-more")).toHaveAccessibleName(
-      sentence.replace("{{count}}", "3"),
+    fireEvent.click(
+      screen.getByRole("button", { name: `3 ${more}` }),
     );
+
+    expect(screen.getByRole("button", { name: less })).toBeInTheDocument();
   });
 
   test("a row of a real table body draws them so", () => {
@@ -230,7 +376,7 @@ describe("a record's labels in a table's cell", () => {
       <table>
         <TableBody<Row>
           id="labels-body"
-          data={[{ labels: makeLabels(NAMES) }, { labels: [] }]}
+          data={[{ labels: makeLabels(ISSUE_LABELS) }, { labels: [] }]}
           columns={[
             {
               title: "Labels",
@@ -249,10 +395,9 @@ describe("a record's labels in a table's cell", () => {
     );
 
     const rows: Array<HTMLElement> = screen.getAllByRole("row");
+    const list: HTMLElement = within(rows[0]!).getByTestId(TABLE_LABELS_TEST_ID);
 
-    expect(
-      within(rows[0]!).getByTestId(TABLE_LABELS_TEST_ID),
-    ).toBeInTheDocument();
+    expect(pillTexts(list)).toEqual(ISSUE_LABELS_IN_ORDER.slice(0, 3));
     expect(
       within(rows[1]!).getByTestId(TABLE_EMPTY_VALUE_TEST_ID),
     ).toBeInTheDocument();
@@ -433,18 +578,20 @@ describe("what opens over a table starts afresh", () => {
     expect(screen.getByTestId("probe")).toHaveTextContent("page");
   });
 
-  test("a record's labels in a dialog opened from a cell are the plain list again", () => {
-    render(
+  test("a record's labels in a dialog opened from a cell are the plain list again, in order", () => {
+    const { baseElement } = render(
       inCell(
         <Modal title="Labels" onClose={(): void => {}}>
-          <LabelsElement labels={makeLabels(NAMES)} />
+          <LabelsElement labels={makeLabels(ISSUE_LABELS)} />
         </Modal>,
       ),
     );
 
     expect(screen.queryByTestId(TABLE_LABELS_TEST_ID)).toBeNull();
+    expect(screen.queryByTestId(DETAIL_LABELS_TEST_ID)).toBeNull();
     expect(
-      screen.getByRole("button", { name: "2 more labels" }),
+      screen.getByRole("button", { name: "3 more labels" }),
     ).toBeInTheDocument();
+    expect(pillTexts(baseElement)).toEqual(ISSUE_LABELS_IN_ORDER.slice(0, 3));
   });
 });

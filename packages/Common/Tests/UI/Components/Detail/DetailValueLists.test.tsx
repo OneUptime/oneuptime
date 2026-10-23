@@ -101,6 +101,20 @@ const LABEL_NAMES: Array<string> = [
   "On-call",
 ];
 
+/*
+ * The same labels as they are listed everywhere: in natural order
+ * (Utils/LabelOrder, OneUptime issue #5183), not the order a page hands
+ * them in.
+ */
+const LABEL_NAMES_IN_ORDER: Array<string> = [
+  "Customer facing",
+  "EU",
+  "On-call",
+  "Payments",
+  "Production",
+  "Tier 1",
+];
+
 type MakeLabelsFunction = (names: Array<string>) => Array<Label>;
 
 const makeLabels: MakeLabelsFunction = (names: Array<string>): Array<Label> => {
@@ -209,8 +223,8 @@ describe("a record's labels in a detail card", () => {
     // The first line is a value's 24px line, so the pills sit level with it.
     expect(row).toHaveClass("min-h-6");
 
-    // Every label, in order, each a pill straight in the row.
-    expect(pillTexts(row)).toEqual(LABEL_NAMES);
+    // Every label, in natural order, each a pill straight in the row.
+    expect(pillTexts(row)).toEqual(LABEL_NAMES_IN_ORDER);
     expect(row.children).toHaveLength(LABEL_NAMES.length);
 
     for (const pill of Array.from(row.children)) {
@@ -235,7 +249,12 @@ describe("a record's labels in a detail card", () => {
       DETAIL_LABELS_TEST_ID,
     );
 
-    expect(pillTexts(row)).toEqual(LABEL_NAMES.slice(0, 4));
+    expect(pillTexts(row)).toEqual([
+      "Customer facing",
+      "EU",
+      "Payments",
+      "Production",
+    ]);
     expect(screen.queryByRole("button")).toBeNull();
   });
 
@@ -292,7 +311,7 @@ describe("a record's labels outside a detail card and a table are left as they w
     );
 
     expect(screen.queryByTestId(DETAIL_LABELS_TEST_ID)).toBeNull();
-    expect(pillTexts(container)).toEqual(LABEL_NAMES.slice(0, 3));
+    expect(pillTexts(container)).toEqual(LABEL_NAMES_IN_ORDER.slice(0, 3));
     expect(
       screen.getByRole("button", { name: "3 more labels" }),
     ).toBeInTheDocument();
@@ -327,6 +346,7 @@ describe("other lists in a detail card", () => {
     "Orders DB",
     "Search",
     "Cart",
+    "Payments",
   ].map((name: string): Monitor => {
     return { name: name };
   });
@@ -362,7 +382,7 @@ describe("other lists in a detail card", () => {
       }),
     ).toEqual(["Checkout API", "Orders DB", "Search"]);
     expect(
-      screen.getByRole("button", { name: "1 more monitors" }),
+      screen.getByRole("button", { name: "2 more monitors" }),
     ).toBeInTheDocument();
   });
 
@@ -519,14 +539,17 @@ describe("a surface of its own drawn inside a value starts again", () => {
     ]);
 
     /*
-     * A table's rows draw a table's labels - the first two on the row's
-     * line and "+4" - never the detail card's, even inside a detail value.
+     * A table's rows draw a table's labels - one under another, the first
+     * three and "3 more labels" - never the detail card's, even inside a
+     * detail value.
      */
     expect(screen.queryByTestId(DETAIL_LABELS_TEST_ID)).toBeNull();
-    expect(screen.getByTestId(TABLE_LABELS_TEST_ID)).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Show 4 more labels" }),
-    ).toHaveTextContent("+4");
+      pillTexts(screen.getByTestId(TABLE_LABELS_TEST_ID)),
+    ).toEqual(LABEL_NAMES_IN_ORDER.slice(0, 3));
+    expect(
+      screen.getByRole("button", { name: "3 more labels" }),
+    ).toBeInTheDocument();
   });
 });
 

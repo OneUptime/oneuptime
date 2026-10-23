@@ -294,7 +294,31 @@ describe("AffectedResourcesCell with SLOs", () => {
     expect(links[1]).toHaveAttribute("href", sloHref(CHECKOUT_SLO_ID));
   });
 
+  /*
+   * Five resources: the first three, and the other two behind "2 more
+   * resources". Four are all shown - a list never folds a single item
+   * (TableColumnListComponent).
+   */
   test("past the first three resources an SLO waits behind the 'more resources' button", () => {
+    render(
+      <AffectedResourcesCell
+        monitors={[
+          buildMonitor("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1", "checkout-web"),
+          buildMonitor("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2", "orders-db"),
+          buildMonitor("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3", "search-api"),
+        ]}
+        serviceLevelObjectives={[CHECKOUT_SLO, SEARCH_SLO]}
+      />,
+    );
+
+    expect(screen.queryByText("Search latency p95")).toBeNull();
+
+    fireEvent.click(screen.getByText("2 more resources"));
+
+    expect(screen.getByText("Search latency p95")).toBeInTheDocument();
+  });
+
+  test("four resources are all shown, the SLO among them", () => {
     render(
       <AffectedResourcesCell
         monitors={[
@@ -305,11 +329,8 @@ describe("AffectedResourcesCell with SLOs", () => {
       />,
     );
 
-    expect(screen.queryByText("Search latency p95")).toBeNull();
-
-    fireEvent.click(screen.getByText("1 more resources"));
-
     expect(screen.getByText("Search latency p95")).toBeInTheDocument();
+    expect(screen.queryByText(/more resources/)).toBeNull();
   });
 
   test("an SLO without an id is named without a link", () => {

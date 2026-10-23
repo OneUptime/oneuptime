@@ -4,11 +4,16 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import React, { ReactElement } from "react";
 import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
-import TableColumnListComponent from "../../../UI/Components/TableColumnList/TableColumnListComponent";
+import TableColumnListComponent, {
+  getTableColumnListVisibleCount,
+  TABLE_COLUMN_LIST_VISIBLE_COUNT,
+} from "../../../UI/Components/TableColumnList/TableColumnListComponent";
 
 /*
  * The list a table cell draws for a row's labels (LabelsElement) and similar
- * many-valued columns: three items, then "N more".
+ * many-valued columns: three items, then "N more" - or all four, when "N
+ * more" would hide just one (OneUptime issue #5187: a monitor's fourth
+ * label, behind "1 more label" on every row).
  *
  * A table reuses a row's cell for whichever row lands in its place, so one
  * mounted list goes from some items to none and back when the table is
@@ -130,11 +135,77 @@ describe("TableColumnListComponent", () => {
   });
 
   test("words with no translation stay as the page wrote them", () => {
-    render(list(items("A", "B", "C", "D")));
+    render(list(items("A", "B", "C", "D", "E")));
 
     expect(
-      screen.getByRole("button", { name: "1 more labels" }),
+      screen.getByRole("button", { name: "2 more labels" }),
     ).toBeInTheDocument();
+  });
+
+  /*
+   * The "N more" button takes a line of its own, taller than an item's: a
+   * fold that hid one item saved nothing and only hid it.
+   */
+  test("never folds a single item: four are all shown, five fold two", () => {
+    render(list(items("A", "B", "C", "D")));
+
+    expect(shownItems()).toEqual(["A", "B", "C", "D"]);
+    expect(screen.queryByRole("button")).toBeNull();
+
+    cleanup();
+
+    render(list(items("A", "B", "C", "D", "E")));
+
+    expect(shownItems()).toEqual(["A", "B", "C"]);
+    expect(
+      screen.getByRole("button", { name: "2 more labels" }),
+    ).toBeInTheDocument();
+  });
+
+  test("how many of a list are shown before 'N more'", () => {
+    expect(TABLE_COLUMN_LIST_VISIBLE_COUNT).toBe(3);
+    expect(
+      [0, 1, 2, 3, 4, 5, 6, 12].map((count: number): number => {
+        return getTableColumnListVisibleCount(count);
+      }),
+    ).toEqual([0, 1, 2, 3, 4, 3, 3, 3]);
+
+    // So "N more" always says two or more.
+    for (let count: number = 0; count < 40; count++) {
+      const folded: number = count - getTableColumnListVisibleCount(count);
+      expect([count, folded === 0 || folded >= 2]).toEqual([count, true]);
+    }
+  });
+
+  test("a page's test id names the list, its 'N more' and its 'Show less'", () => {
+    render(
+      <TableColumnListComponent<Item>
+        items={items("A", "B", "C", "D", "E")}
+        moreText="more labels"
+        noItemsMessage="No labels attached."
+        dataTestId="row-labels"
+        getEachElement={(item: Item): ReactElement => {
+          return <span data-testid="item">{item.name}</span>;
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("row-labels")).toContainElement(
+      screen.getByTestId("row-labels-more"),
+    );
+
+    fireEvent.click(screen.getByTestId("row-labels-more"));
+
+    expect(screen.queryByTestId("row-labels-more")).toBeNull();
+    expect(screen.getByTestId("row-labels-less")).toHaveAccessibleName(
+      "Weniger anzeigen",
+    );
+  });
+
+  test("without a test id, the list and its buttons carry none", () => {
+    const { container } = render(list(items("A", "B", "C", "D", "E")));
+
+    expect(container.querySelector("[data-testid$='-more']")).toBeNull();
   });
 
   /*
