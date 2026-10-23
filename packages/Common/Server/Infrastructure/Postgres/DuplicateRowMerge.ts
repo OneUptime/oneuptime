@@ -40,9 +40,12 @@ import { QueryRunner } from "typeorm";
  *
  * The kept row then takes what the group knew: what the agent reports
  * (`latestOf` - the last-seen time, the status, the versions) from the row
- * the agent wrote to last, which may well be a duplicate; and what a person
+ * the agent wrote to last, which may well be a duplicate; what a person
  * set (`keptOrFirstOf` - a description, a retention) only where the kept
- * row has none of its own.
+ * row has none of its own; and columns that only make sense together
+ * (`takenTogether` - whether it is archived, with when and by whom; the AI
+ * settings an operator chose) from one row: its own where they are what is
+ * wanted, else the row seen last where they are.
  *
  * Each group is merged in a transaction of its own, so locks are held for one
  * group at a time and a run stopped part way leaves whole groups merged; run
@@ -57,6 +60,23 @@ export interface ColumnWithoutForeignKey {
   table: string;
   // The column that holds an id of the merged table: "resourceId".
   column: string;
+}
+
+/*
+ * Columns the kept row takes from one row of the group, all at once: its
+ * own when `where` holds for it, else those of the row seen last for which
+ * it holds, and still its own when it holds for none. For what is set
+ * together and has no empty value to tell "not set" by - an archived flag
+ * with when and by whom, AI settings with the time an operator chose them.
+ */
+export interface ColumnsTakenTogether {
+  // The columns, without quotes: "isArchived", "archivedAt".
+  columns: ReadonlyArray<string>;
+  /*
+   * SQL over one row of the table, aliased `member`, true where its values
+   * are the ones to keep: `member."isArchived" IS NOT TRUE`.
+   */
+  where: string;
 }
 
 export interface DuplicateRowMergeOptions {
@@ -82,6 +102,11 @@ export interface DuplicateRowMergeOptions {
    * the group's rows seen last that have one.
    */
   keptOrFirstOf: ReadonlyArray<string>;
+  /*
+   * Columns taken together from one row (ColumnsTakenTogether). A column is
+   * in one of latestOf, keptOrFirstOf and these, never two.
+   */
+  takenTogether?: ReadonlyArray<ColumnsTakenTogether> | undefined;
   // The column that says which row was seen last: "lastSeenAt".
   latestBy: string;
 }
@@ -260,6 +285,7 @@ export default class DuplicateRowMerge {
       memberIds: [data.keptId, ...data.duplicateIds],
       latestOf: data.options.latestOf,
       keptOrFirstOf: data.options.keptOrFirstOf,
+      takenTogether: data.options.takenTogether || [],
       latestBy: data.options.latestBy,
     });
 
@@ -397,9 +423,10 @@ export default class DuplicateRowMerge {
   }
 
   /*
-   * The kept row takes, column by column, what the group knew: for latestOf
-   * the first value of the rows seen last, for keptOrFirstOf its own value,
-   * else that.
+   * The kept row takes what the group knew: each group of takenTogether
+   * from one row, all at once - first, while every row is as it was - then,
+   * column by column, for latestOf the first value of the rows seen last,
+   * for keptOrFirstOf its own value, else that.
    */
   private async takeOver(data: {
     table: string;
@@ -407,14 +434,48 @@ export default class DuplicateRowMerge {
     memberIds: Array<string>;
     latestOf: ReadonlyArray<string>;
     keptOrFirstOf: ReadonlyArray<string>;
+    takenTogether: ReadonlyArray<ColumnsTakenTogether>;
     latestBy: string;
   }): Promise<void> {
+    const seenLastFirst: string = `ORDER BY member."${data.latestBy}" DESC NULLS LAST, member."createdAt" ASC, member."_id" ASC`;
+
+    for (const together of data.takenTogether) {
+      if (together.columns.length === 0) {
+        continue;
+      }
+
+      /*
+       * Nothing to do when the kept row's own hold; else the row seen last
+       * whose do - none, and the FROM is empty, so nothing changes.
+       */
+      await this.queryRunner.query(
+        `UPDATE ${data.table} kept
+            SET ${together.columns
+              .map((column: string): string => {
+                return `"${column}" = source."${column}"`;
+              })
+              .join(", ")}
+           FROM (
+             SELECT member.* FROM ${data.table} member
+              WHERE member."_id" = ANY($2::uuid[]) AND (${together.where})
+              ${seenLastFirst}
+              LIMIT 1
+           ) source
+          WHERE kept."_id" = $1
+            AND NOT EXISTS (
+              SELECT 1 FROM ${data.table} member
+               WHERE member."_id" = $1 AND (${together.where})
+            )`,
+        [data.keptId, data.memberIds],
+      );
+    }
+
     const newestValueOf: (column: string) => string = (
       column: string,
     ): string => {
       return `(SELECT member."${column}" FROM ${data.table} member
                 WHERE member."_id" = ANY($2::uuid[]) AND member."${column}" IS NOT NULL
-                ORDER BY member."${data.latestBy}" DESC NULLS LAST, member."createdAt" ASC, member."_id" ASC
+                ${seenLastFirst}
                 LIMIT 1)`;
     };
 

@@ -5,6 +5,7 @@ import {
 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1806700000000-MergeDuplicateHostsAndAddUniqueHostIdentifier";
 import DuplicateRowMerge, {
   ColumnWithoutForeignKey,
+  ColumnsTakenTogether,
   DuplicateRowMergeOptions,
   DuplicateRowMergeResult,
 } from "../../../../Server/Infrastructure/Postgres/DuplicateRowMerge";
@@ -83,6 +84,15 @@ interface HostFixture {
   unrelatedId: string;
   otherProjectId_hostId: string;
   deletedTwinId: string;
+  /*
+   * Two more groups with nothing referring to them: one whose kept host's
+   * own are what is wanted (left on the list, AI an operator chose), one
+   * whose every copy was archived.
+   */
+  ownSettings: { keptId: string; duplicateId: string };
+  allArchived: { keptId: string; duplicateId: string; archivedBy: string };
+  // Two copies with AI settings chosen, the kept host none: seen last wins.
+  aiSeenLast: { keptId: string };
   // Per referring table.column: the rows seeded, by what they must become.
   movedRows: Map<string, Array<string>>;
   twinRows: Map<string, { keptTwin: string; droppedTwins: Array<string> }>;
@@ -346,7 +356,11 @@ describePostgres(
         return (await insertRow(table, values))["_id"] as string;
       };
 
-      // The oldest: what is kept. Never written to by the agent since.
+      /*
+       * The oldest: what is kept. Never written to by the agent since, and
+       * archived - a person hid this copy, not the host. Nobody chose its AI
+       * settings: they are the defaults.
+       */
       const keptId: string = await host({
         projectId,
         hostIdentifier: "Test01",
@@ -358,9 +372,16 @@ describePostgres(
         description: null,
         // A person set it on this host: it stays, whatever the others say.
         retainTelemetryDataForDays: 90,
+        isArchived: true,
+        archivedAt: new Date("2026-02-15T00:00:00.000Z"),
+        archivedByUserId: ObjectID.generate().toString(),
+        aiAccessConfiguredAt: null,
       });
 
-      // The duplicate the agent kept writing to.
+      /*
+       * The duplicate the agent kept writing to: on the list, with the AI
+       * settings an operator chose for it.
+       */
       const liveDuplicateId: string = await host({
         projectId,
         hostIdentifier: "test01",
@@ -371,8 +392,14 @@ describePostgres(
         agentVersion: "14.0.85",
         description: "edge box in rack 4",
         retainTelemetryDataForDays: 30,
+        isArchived: false,
+        isAiInvestigationEnabled: false,
+        aiRemediationMode: "RequireApproval",
+        aiCommandAllowlist: JSON.stringify(["docker restart web"]),
+        aiAccessConfiguredAt: new Date("2026-02-20T00:00:00.000Z"),
       });
 
+      // Archived too, with other AI settings, chosen longer ago; never seen.
       const staleDuplicateId: string = await host({
         projectId,
         hostIdentifier: "TEST01",
@@ -381,6 +408,112 @@ describePostgres(
         lastSeenAt: null,
         otelCollectorStatus: "disconnected",
         description: "another description",
+        isArchived: true,
+        archivedAt: new Date("2026-02-16T00:00:00.000Z"),
+        archivedByUserId: ObjectID.generate().toString(),
+        isAiInvestigationEnabled: true,
+        aiRemediationMode: "Automatic",
+        aiAccessConfiguredAt: new Date("2026-01-10T00:00:00.000Z"),
+      });
+
+      /*
+       * The kept host's own are what is wanted: it is on the list, and an
+       * operator chose its AI settings. Its copy, seen since, says otherwise
+       * on both.
+       */
+      const ownSettings: { keptId: string; duplicateId: string } = {
+        keptId: await host({
+          projectId,
+          hostIdentifier: "test04",
+          name: "test04",
+          createdAt: new Date("2026-01-01T00:00:00.000Z"),
+          lastSeenAt: new Date("2026-02-01T00:00:00.000Z"),
+          isArchived: false,
+          isAiInvestigationEnabled: true,
+          aiRemediationMode: "Automatic",
+          aiAccessConfiguredAt: new Date("2026-01-05T00:00:00.000Z"),
+        }),
+        duplicateId: await host({
+          projectId,
+          hostIdentifier: "TEST04",
+          name: "TEST04",
+          createdAt: new Date("2026-01-02T00:00:00.000Z"),
+          lastSeenAt: new Date("2026-03-01T00:00:00.000Z"),
+          isArchived: true,
+          archivedAt: new Date("2026-02-10T00:00:00.000Z"),
+          archivedByUserId: ObjectID.generate().toString(),
+          isAiInvestigationEnabled: false,
+          aiRemediationMode: "Disabled",
+          aiAccessConfiguredAt: new Date("2026-02-12T00:00:00.000Z"),
+        }),
+      };
+
+      // Every copy archived: the host stays archived, as the kept one was.
+      const archivedBy: string = ObjectID.generate().toString();
+      const allArchived: {
+        keptId: string;
+        duplicateId: string;
+        archivedBy: string;
+      } = {
+        keptId: await host({
+          projectId,
+          hostIdentifier: "test05",
+          name: "test05",
+          createdAt: new Date("2026-01-01T00:00:00.000Z"),
+          lastSeenAt: new Date("2026-02-01T00:00:00.000Z"),
+          isArchived: true,
+          archivedAt: new Date("2026-02-01T00:00:00.000Z"),
+          archivedByUserId: archivedBy,
+          aiAccessConfiguredAt: null,
+        }),
+        duplicateId: await host({
+          projectId,
+          hostIdentifier: "Test05",
+          name: "Test05",
+          createdAt: new Date("2026-01-02T00:00:00.000Z"),
+          lastSeenAt: new Date("2026-03-01T00:00:00.000Z"),
+          isArchived: true,
+          archivedAt: new Date("2026-02-20T00:00:00.000Z"),
+          archivedByUserId: ObjectID.generate().toString(),
+          aiAccessConfiguredAt: null,
+        }),
+        archivedBy,
+      };
+
+      /*
+       * Two copies with AI settings an operator chose, the kept host none:
+       * the copy the agent wrote to last gives them, not the copy whose
+       * settings were chosen last.
+       */
+      const aiSeenLast: { keptId: string } = {
+        keptId: await host({
+          projectId,
+          hostIdentifier: "test06",
+          name: "test06",
+          createdAt: new Date("2026-01-01T00:00:00.000Z"),
+          lastSeenAt: new Date("2026-02-01T00:00:00.000Z"),
+          aiAccessConfiguredAt: null,
+        }),
+      };
+      await host({
+        projectId,
+        hostIdentifier: "TEST06",
+        name: "TEST06",
+        createdAt: new Date("2026-01-02T00:00:00.000Z"),
+        lastSeenAt: new Date("2026-03-01T00:00:00.000Z"),
+        isAiInvestigationEnabled: false,
+        aiRemediationMode: "RequireApproval",
+        aiAccessConfiguredAt: new Date("2026-02-25T00:00:00.000Z"),
+      });
+      await host({
+        projectId,
+        hostIdentifier: "Test06",
+        name: "Test06",
+        createdAt: new Date("2026-01-03T00:00:00.000Z"),
+        lastSeenAt: new Date("2026-01-20T00:00:00.000Z"),
+        isAiInvestigationEnabled: true,
+        aiRemediationMode: "BypassApproval",
+        aiAccessConfiguredAt: new Date("2026-02-28T00:00:00.000Z"),
       });
 
       const unrelatedId: string = await host({
@@ -415,6 +548,9 @@ describePostgres(
         unrelatedId,
         otherProjectId_hostId: otherProjectHostId,
         deletedTwinId,
+        ownSettings,
+        allArchived,
+        aiSeenLast,
         movedRows: new Map(),
         twinRows: new Map(),
         grandchildren: [],
@@ -554,6 +690,91 @@ describePostgres(
       return rows.map((row: { ref: string | null }): string => {
         return String(row.ref);
       });
+    }
+
+    // A host's archived state, its times as ISO text; null when it is gone.
+    async function archiveOf(
+      table: string,
+      id: string,
+    ): Promise<{
+      isArchived: boolean;
+      archivedAt: string | null;
+      archivedByUserId: string | null;
+    } | null> {
+      const rows: Array<{
+        isArchived: boolean;
+        archivedAt: Date | null;
+        archivedByUserId: string | null;
+      }> = await database.query(
+        `SELECT "isArchived", "archivedAt", "archivedByUserId"::text AS "archivedByUserId"
+           FROM ${quoted(table)} WHERE "_id" = $1`,
+        [id],
+      );
+
+      const row:
+        | {
+            isArchived: boolean;
+            archivedAt: Date | null;
+            archivedByUserId: string | null;
+          }
+        | undefined = rows[0];
+
+      if (!row) {
+        return null;
+      }
+
+      return {
+        isArchived: row.isArchived,
+        archivedAt: row.archivedAt
+          ? new Date(row.archivedAt).toISOString()
+          : null,
+        archivedByUserId: row.archivedByUserId,
+      };
+    }
+
+    // A host's AI settings, the time an operator chose them as ISO text.
+    async function aiSettingsOf(
+      table: string,
+      id: string,
+    ): Promise<{
+      isAiInvestigationEnabled: boolean;
+      aiRemediationMode: string;
+      aiCommandAllowlist: unknown;
+      aiAccessConfiguredAt: string | null;
+    } | null> {
+      const rows: Array<{
+        isAiInvestigationEnabled: boolean;
+        aiRemediationMode: string;
+        aiCommandAllowlist: unknown;
+        aiAccessConfiguredAt: Date | null;
+      }> = await database.query(
+        `SELECT "isAiInvestigationEnabled", "aiRemediationMode", "aiCommandAllowlist",
+                "aiAccessConfiguredAt"
+           FROM ${quoted(table)} WHERE "_id" = $1`,
+        [id],
+      );
+
+      const row:
+        | {
+            isAiInvestigationEnabled: boolean;
+            aiRemediationMode: string;
+            aiCommandAllowlist: unknown;
+            aiAccessConfiguredAt: Date | null;
+          }
+        | undefined = rows[0];
+
+      if (!row) {
+        return null;
+      }
+
+      return {
+        isAiInvestigationEnabled: row.isAiInvestigationEnabled,
+        aiRemediationMode: row.aiRemediationMode,
+        aiCommandAllowlist: row.aiCommandAllowlist,
+        aiAccessConfiguredAt: row.aiAccessConfiguredAt
+          ? new Date(row.aiAccessConfiguredAt).toISOString()
+          : null,
+      };
     }
 
     async function runMigration(): Promise<void> {
@@ -799,6 +1020,73 @@ describePostgres(
         expect(rows[0]!.hostIdentifier).toBe("Test01");
       });
 
+      test("a copy left on the list keeps the host there: it stays archived only if every copy was", async () => {
+        const fixture: HostFixture = fixtures.get(table)!;
+
+        // The kept copy was archived, the one the agent wrote to was not.
+        expect(await archiveOf(table, fixture.keptId)).toEqual({
+          isArchived: false,
+          archivedAt: null,
+          archivedByUserId: null,
+        });
+
+        // On the list already: it stays, whatever its archived copy said.
+        expect(await archiveOf(table, fixture.ownSettings.keptId)).toEqual({
+          isArchived: false,
+          archivedAt: null,
+          archivedByUserId: null,
+        });
+        expect(await archiveOf(table, fixture.ownSettings.duplicateId)).toBe(
+          null,
+        );
+
+        // Every copy archived: archived, when and by whom the kept one was.
+        expect(await archiveOf(table, fixture.allArchived.keptId)).toEqual({
+          isArchived: true,
+          archivedAt: "2026-02-01T00:00:00.000Z",
+          archivedByUserId: fixture.allArchived.archivedBy,
+        });
+        expect(await archiveOf(table, fixture.allArchived.duplicateId)).toBe(
+          null,
+        );
+      });
+
+      test("the AI settings an operator chose for a copy are kept where none were chosen for the kept host - and its own choice wins", async () => {
+        const fixture: HostFixture = fixtures.get(table)!;
+
+        // None chosen for it: the copy seen last that has some gives them, all.
+        expect(await aiSettingsOf(table, fixture.keptId)).toEqual({
+          isAiInvestigationEnabled: false,
+          aiRemediationMode: "RequireApproval",
+          aiCommandAllowlist: ["docker restart web"],
+          aiAccessConfiguredAt: "2026-02-20T00:00:00.000Z",
+        });
+
+        // Chosen for it: its own, whatever its copy said since.
+        expect(await aiSettingsOf(table, fixture.ownSettings.keptId)).toEqual({
+          isAiInvestigationEnabled: true,
+          aiRemediationMode: "Automatic",
+          aiCommandAllowlist: null,
+          aiAccessConfiguredAt: "2026-01-05T00:00:00.000Z",
+        });
+
+        // Chosen for two copies: the one seen last gives them.
+        expect(await aiSettingsOf(table, fixture.aiSeenLast.keptId)).toEqual({
+          isAiInvestigationEnabled: false,
+          aiRemediationMode: "RequireApproval",
+          aiCommandAllowlist: null,
+          aiAccessConfiguredAt: "2026-02-25T00:00:00.000Z",
+        });
+
+        // Chosen for none: the defaults stay.
+        expect(await aiSettingsOf(table, fixture.allArchived.keptId)).toEqual({
+          isAiInvestigationEnabled: true,
+          aiRemediationMode: "Disabled",
+          aiCommandAllowlist: null,
+          aiAccessConfiguredAt: null,
+        });
+      });
+
       test("every row that referred to a duplicate refers to the kept host", async () => {
         const fixture: HostFixture = fixtures.get(table)!;
 
@@ -974,6 +1262,11 @@ describePostgres(
         for (const column of [
           ...merge.latestOf,
           ...merge.keptOrFirstOf,
+          ...(merge.takenTogether || []).flatMap(
+            (together: ColumnsTakenTogether): ReadonlyArray<string> => {
+              return together.columns;
+            },
+          ),
           merge.latestBy,
         ]) {
           expect([merge.table, column, columns.includes(column)]).toEqual([

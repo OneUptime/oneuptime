@@ -1,4 +1,5 @@
 import DuplicateRowMerge, {
+  ColumnsTakenTogether,
   DuplicateRowMergeOptions,
   DuplicateRowMergeResult,
 } from "../../../../Server/Infrastructure/Postgres/DuplicateRowMerge";
@@ -8,6 +9,7 @@ import {
   HOST_TABLE_MERGES,
   MAX_ATTEMPTS,
   MergeDuplicateHostsAndAddUniqueHostIdentifier1806700000000,
+  SET_BY_A_PERSON_TOGETHER,
 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1806700000000-MergeDuplicateHostsAndAddUniqueHostIdentifier";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import DockerHost from "../../../../Models/DatabaseModels/DockerHost";
@@ -69,6 +71,24 @@ const runner: QueryRunner = {
     steps.push(`query: ${sql}`);
   },
 } as unknown as QueryRunner;
+
+// Every column a merge takes together from one row.
+function columnsTakenTogether(merge: DuplicateRowMergeOptions): Array<string> {
+  return (merge.takenTogether || []).flatMap(
+    (together: ColumnsTakenTogether): ReadonlyArray<string> => {
+      return together.columns;
+    },
+  );
+}
+
+// The rule of SET_BY_A_PERSON_TOGETHER that takes this column.
+function togetherRuleOf(column: string): ColumnsTakenTogether | undefined {
+  return SET_BY_A_PERSON_TOGETHER.find(
+    (together: ColumnsTakenTogether): boolean => {
+      return together.columns.includes(column);
+    },
+  );
+}
 
 function timestampOf(migration: unknown): number {
   const match: RegExpMatchArray | null = (
@@ -295,7 +315,6 @@ describe("MergeDuplicateHostsAndAddUniqueHostIdentifier", () => {
           "slug",
           "hostIdentifier",
           "createdAt",
-          "isArchived",
           "createdByUserId",
         ]) {
           expect([
@@ -308,6 +327,113 @@ describe("MergeDuplicateHostsAndAddUniqueHostIdentifier", () => {
             column,
             merge.keptOrFirstOf.includes(column),
           ]).toEqual([merge.table, column, false]);
+          expect([
+            merge.table,
+            column,
+            columnsTakenTogether(merge).includes(column),
+          ]).toEqual([merge.table, column, false]);
+        }
+      }
+    });
+
+    test("a column is taken by one rule only", () => {
+      for (const merge of HOST_TABLE_MERGES) {
+        const columns: Array<string> = [
+          ...merge.latestOf,
+          ...merge.keptOrFirstOf,
+          ...columnsTakenTogether(merge),
+        ];
+
+        expect([merge.table, new Set(columns).size]).toEqual([
+          merge.table,
+          columns.length,
+        ]);
+      }
+    });
+
+    test("every host table takes the same columns together, from one copy each", () => {
+      for (const merge of HOST_TABLE_MERGES) {
+        expect([merge.table, merge.takenTogether]).toEqual([
+          merge.table,
+          SET_BY_A_PERSON_TOGETHER,
+        ]);
+      }
+    });
+
+    test("a host stays archived only if every copy was: the flag, with when and by whom, from a copy left on the list", () => {
+      const archive: ColumnsTakenTogether | undefined =
+        togetherRuleOf("isArchived");
+
+      expect(archive).toEqual({
+        columns: ["isArchived", "archivedAt", "archivedByUserId"],
+        where: `member."isArchived" IS NOT TRUE`,
+      });
+
+      for (const merge of HOST_TABLE_MERGES) {
+        // Never column by column: a copy's archivedAt without its flag.
+        for (const column of archive!.columns) {
+          expect([
+            merge.table,
+            column,
+            merge.latestOf.includes(column),
+          ]).toEqual([merge.table, column, false]);
+          expect([
+            merge.table,
+            column,
+            merge.keptOrFirstOf.includes(column),
+          ]).toEqual([merge.table, column, false]);
+        }
+      }
+    });
+
+    test("the AI settings a person may change are taken together, from a copy an operator chose them for", () => {
+      const ai: ColumnsTakenTogether | undefined = togetherRuleOf(
+        "aiAccessConfiguredAt",
+      );
+
+      expect(ai).toBeDefined();
+      expect(ai!.where).toBe(`member."aiAccessConfiguredAt" IS NOT NULL`);
+      // When the operator chose them comes with them.
+      expect(ai!.columns).toContain("aiAccessConfiguredAt");
+
+      const modelsByTable: Map<string, BaseModel> = new Map<string, BaseModel>(
+        Models.map((modelType: { new (): BaseModel }): [string, BaseModel] => {
+          const model: BaseModel = new modelType();
+          return [model.tableName || "", model];
+        }),
+      );
+
+      for (const merge of HOST_TABLE_MERGES) {
+        const model: BaseModel = modelsByTable.get(merge.table)!;
+
+        // Every AI column a person may change, read from the model.
+        const settings: Array<string> = model
+          .getTableColumns()
+          .columns.filter((column: string): boolean => {
+            const update: Array<unknown> | undefined =
+              model.getColumnAccessControlFor(column)?.update;
+
+            return (
+              (column.startsWith("ai") || column.startsWith("isAi")) &&
+              Array.isArray(update) &&
+              update.length > 0
+            );
+          });
+
+        expect(settings).toEqual(
+          expect.arrayContaining([
+            "isAiInvestigationEnabled",
+            "aiRemediationMode",
+            "aiCommandAllowlist",
+          ]),
+        );
+
+        for (const column of settings) {
+          expect([merge.table, column, ai!.columns.includes(column)]).toEqual([
+            merge.table,
+            column,
+            true,
+          ]);
         }
       }
     });
@@ -326,6 +452,7 @@ describe("MergeDuplicateHostsAndAddUniqueHostIdentifier", () => {
         for (const column of [
           ...merge.latestOf,
           ...merge.keptOrFirstOf,
+          ...columnsTakenTogether(merge),
           merge.latestBy,
         ]) {
           expect([

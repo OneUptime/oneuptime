@@ -1,5 +1,6 @@
 import DuplicateRowMerge, {
   ColumnWithoutForeignKey,
+  ColumnsTakenTogether,
   DuplicateRowMergeOptions,
 } from "../DuplicateRowMerge";
 import OnlineDdl from "../OnlineDdl";
@@ -39,7 +40,14 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *      stays and the twin's own references are handed to it. The kept host
  *      takes the last-seen time, status and what the agent reports from the
  *      duplicate the agent wrote to last, and a description or retention it
- *      lacks from the others. Then the duplicates are deleted.
+ *      lacks from the others. It stays archived only if every copy was: a
+ *      person who archived one of two hosts named test01 hid the extra copy,
+ *      not the host, so a host whose agent still reports never moves to the
+ *      Archived page because its oldest copy was the one archived. AI
+ *      settings an operator chose for a copy (investigation, fixes, the
+ *      allowlist) are kept where no one chose any for the kept host, so an
+ *      operator's "off" never turns back into a default. Then the
+ *      duplicates are deleted.
  *   2. Builds the unique index online (OnlineDdl.createIndex: CREATE UNIQUE
  *      INDEX CONCURRENTLY), so ingest keeps writing hosts while it builds.
  *
@@ -96,6 +104,29 @@ const SET_BY_A_PERSON: ReadonlyArray<string> = [
   "telemetryRetentionConfig",
 ];
 
+/*
+ * What a person sets that has no empty value to tell "not set" by, each
+ * taken from one host: the kept host's own when they are what is wanted,
+ * else the copy seen last where they are.
+ */
+export const SET_BY_A_PERSON_TOGETHER: ReadonlyArray<ColumnsTakenTogether> = [
+  // Archived only if every copy was: one copy left on the list keeps it there.
+  {
+    columns: ["isArchived", "archivedAt", "archivedByUserId"],
+    where: `member."isArchived" IS NOT TRUE`,
+  },
+  // The AI settings an operator chose (aiAccessConfiguredAt says when).
+  {
+    columns: [
+      "isAiInvestigationEnabled",
+      "aiRemediationMode",
+      "aiCommandAllowlist",
+      "aiAccessConfiguredAt",
+    ],
+    where: `member."aiAccessConfiguredAt" IS NOT NULL`,
+  },
+];
+
 // How one table's duplicates are found and merged.
 export const HOST_TABLE_MERGES: ReadonlyArray<DuplicateRowMergeOptions> = [
   {
@@ -105,6 +136,7 @@ export const HOST_TABLE_MERGES: ReadonlyArray<DuplicateRowMergeOptions> = [
     columnsWithoutForeignKey: HOST_ID_COLUMNS_WITHOUT_FOREIGN_KEY,
     latestOf: REPORTED_BY_EVERY_HOST_AGENT,
     keptOrFirstOf: SET_BY_A_PERSON,
+    takenTogether: SET_BY_A_PERSON_TOGETHER,
     latestBy: "lastSeenAt",
   },
   {
@@ -114,6 +146,7 @@ export const HOST_TABLE_MERGES: ReadonlyArray<DuplicateRowMergeOptions> = [
     columnsWithoutForeignKey: HOST_ID_COLUMNS_WITHOUT_FOREIGN_KEY,
     latestOf: REPORTED_BY_EVERY_HOST_AGENT,
     keptOrFirstOf: SET_BY_A_PERSON,
+    takenTogether: SET_BY_A_PERSON_TOGETHER,
     latestBy: "lastSeenAt",
   },
   {
@@ -156,6 +189,7 @@ export const HOST_TABLE_MERGES: ReadonlyArray<DuplicateRowMergeOptions> = [
       "collectorHostFeatures",
     ],
     keptOrFirstOf: SET_BY_A_PERSON,
+    takenTogether: SET_BY_A_PERSON_TOGETHER,
     latestBy: "lastSeenAt",
   },
 ];
