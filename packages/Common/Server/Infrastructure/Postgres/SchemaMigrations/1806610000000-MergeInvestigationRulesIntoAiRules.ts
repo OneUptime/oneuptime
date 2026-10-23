@@ -305,7 +305,9 @@ function getLaneHasInvestigationRuleSql(alias: string): string {
 
 /*
  * Step 3: in a lane with no enabled investigation rule, an auto remediation
- * rule that picks no LLM provider investigates what it matches too.
+ * rule that picks no LLM provider investigates what it matches too. Only in
+ * a project that is not deleted: step 4 adds no rule to a deleted one, and
+ * without it the lane would investigate less.
  */
 export const CONVERT_REMEDIATION_RULES: string = `UPDATE "AutoRemediationRule" AS rule
 SET "investigates" = true
@@ -313,7 +315,8 @@ WHERE rule."deletedAt" IS NULL
   AND rule."investigates" = false
   AND rule."llmProviderId" IS NULL
   AND ${getIsRemediationRuleSql("rule")}
-  AND NOT ${getLaneHasInvestigationRuleSql("rule")}`;
+  AND NOT ${getLaneHasInvestigationRuleSql("rule")}
+  AND EXISTS (SELECT 1 FROM "Project" AS project WHERE project."_id" = rule."projectId" AND project."deletedAt" IS NULL)`;
 
 /*
  * SQL over an AI rule aliased `alias`: it has no condition, so it matches
@@ -449,9 +452,27 @@ export function getUpStatements(): Array<string> {
  * A rule made since that investigates and fixes keeps only fixing: the
  * code before this change has nowhere to keep the rest.
  */
+// SQL over an AI rule aliased `alias`: down() takes it back.
+function getTakenBackSql(alias: string): string {
+  return `(${alias}."_id" IN (SELECT investigation."_id" FROM "AIInvestigationRule" AS investigation) OR ${alias}."fixes" = false OR ${alias}."_id" = ${getAddedRuleIdSql({ rule: "InvestigateEveryOne", projectIdSql: `${alias}."projectId"`, laneSql: `${alias}."triggerEntityType"` })} OR ${alias}."_id" = ${getAddedRuleIdSql({ rule: "FixEveryOne", projectIdSql: `${alias}."projectId"`, laneSql: `${alias}."triggerEntityType"` })})`;
+}
+
+// Every join table that holds a list of an AI rule, the fix-only ones too.
+export const AI_RULE_JOIN_TABLES: ReadonlyArray<string> = [
+  ...RULE_LIST_TABLES.map((table: RuleListTable): string => {
+    return table.aiRuleTable;
+  }),
+  "AutoRemediationRuleRunbook",
+  "AutoRemediationRuleRunner",
+];
+
 export function getDownStatements(): Array<string> {
   return [
-    `DELETE FROM "AutoRemediationRule" AS rule WHERE rule."_id" IN (SELECT investigation."_id" FROM "AIInvestigationRule" AS investigation) OR rule."fixes" = false OR rule."_id" = ${getAddedRuleIdSql({ rule: "InvestigateEveryOne", projectIdSql: `rule."projectId"`, laneSql: `rule."triggerEntityType"` })} OR rule."_id" = ${getAddedRuleIdSql({ rule: "FixEveryOne", projectIdSql: `rule."projectId"`, laneSql: `rule."triggerEntityType"` })}`,
+    // Their lists first: the statements do not lean on a key's cascade.
+    ...AI_RULE_JOIN_TABLES.map((table: string): string => {
+      return `DELETE FROM "${table}" AS list WHERE list."autoRemediationRuleId" IN (SELECT rule."_id" FROM "AutoRemediationRule" AS rule WHERE ${getTakenBackSql("rule")})`;
+    }),
+    `DELETE FROM "AutoRemediationRule" AS rule WHERE ${getTakenBackSql("rule")}`,
     `UPDATE "AutoRemediationRule" SET "investigates" = false, "onlyIfOpenAfterMinutes" = NULL WHERE "investigates" = true OR "onlyIfOpenAfterMinutes" IS NOT NULL`,
   ];
 }
