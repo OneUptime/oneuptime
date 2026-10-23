@@ -97,9 +97,8 @@ const rateLimit: { consume: jest.Mock } =
 const api: { post: jest.Mock } = API as unknown as { post: jest.Mock };
 const log: { error: jest.Mock } = logger as unknown as { error: jest.Mock };
 
-const getBotToken: Mock<() => Promise<string>> = jest.fn<
-  () => Promise<string>
->();
+const getBotToken: Mock<() => Promise<string>> =
+  jest.fn<() => Promise<string>>();
 
 function update(text: string | undefined, chatId: number = 4242): JSONObject {
   return {

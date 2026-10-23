@@ -4,6 +4,7 @@ Koble OneUptime til Microsoft Teams for å publisere hendelser, varsler, episode
 
 :::cards
 - [Koble til Microsoft Teams](#koble-til-microsoft-teams): Administratorsamtykke, påloggingen din og appen i hvert team.
+- [Be alle om å koble til kontoen sin](#be-alle-om-å-koble-til-kontoen-sin): Send på én gang en melding til hvert medlem som ikke har koblet til kontoen sin.
 - [Varslingsregler](#varslingsregler): Bestem hvilke hendelser som publiseres hvor, og hvilke som får sin egen kanal.
 - [Snakke med OneUptime-boten](#snakke-med-oneuptime-boten): Kommandoer, spørsmål og skjemaer i en chat med boten.
 - [Vakt-tagger](#vakt-tagger): Hold taggen til et team lik dem som har vakt, og tilkall den.
@@ -59,7 +60,7 @@ På OneUptime Cloud åpner **Åpne Teams Store** appen i Microsoft Teams Store, 
 
 ### Koble til alle andre
 
-Hver person kobler til sin egen Microsoft Teams-konto under **Brukerinnstillinger** > **Arbeidsområde** > **Microsoft Teams** med **Connect my account with Microsoft Teams**, for å handle på hendelser og få direktemeldinger som seg selv. Den seksjonen vises så snart prosjektet er koblet til Microsoft Teams.
+Hver person kobler til sin egen Microsoft Teams-konto under **Brukerinnstillinger** > **Arbeidsområde** > **Microsoft Teams** med **Connect my account with Microsoft Teams**, for å handle på hendelser og få direktemeldinger som seg selv. Den seksjonen vises så snart prosjektet er koblet til Microsoft Teams. For å få med et helt team på én gang, se [Be alle om å koble til kontoen sin](#be-alle-om-å-koble-til-kontoen-sin).
 
 ### Legg til en varslingsregel
 
@@ -68,6 +69,14 @@ Gå til **Hendelser** > **Arbeidsområde** > **Microsoft Teams**. Seksjonen **Ar
 
 > [!NOTE]
 > Å installere OneUptime for deg selv, eller legge den til i en chat, er en annen installasjon og lar den ikke publisere i et teams kanaler. **Private kanaler** krever at appen er lagt til i selve kanalen: åpne kanalen > "..." > **Manage channel** > **Apps** > **Add an app**. **Delte kanaler** kan ikke motta varsler: Microsoft Teams støtter ikke boter i delte kanaler.
+
+## Be alle om å koble til kontoen sin
+
+Ingen kan koble til Microsoft Teams-kontoen til noen andre, heller ikke en administrator: hver person logger på med sin egen. For å få med et helt team ber en **Project Owner** eller **Project Admin** alle på én gang under **Prosjektinnstillinger** > **Arbeidsområde** > **Microsoft Teams**. Kortet **Members' Microsoft Teams accounts** viser hvor mange medlemmer som har koblet til kontoen sin. **Ask everyone to connect** får OneUptime-boten til å sende hvert medlem som ikke har gjort det, en melding med en knapp **Connect Microsoft Teams account** som kobler til kontoen med ett klikk.
+
+- **Hvem som får en melding.** Hvert medlem av prosjektet som ikke har koblet til Microsoft Teams-kontoen sin, er i et team OneUptime-appen er lagt til i, og som OneUptime finner der ut fra e-postadressen eller brukerhovednavnet (UPN) til vedkommende. Den som er blitt bedt om det de siste 24 timene, blir ikke bedt igjen, så ber du igjen dagen etter, får bare de som fortsatt ikke har koblet til kontoen sin, en påminnelse.
+- **Hva kortet sier.** Hvor langt utsendingen har kommet mens meldingene går ut, og deretter hvem som ba om det, og hvor mange medlemmer som fikk en melding. Medlemmer OneUptime ikke fant, nevnes ved navn på kortet: legg appen til i teamet deres, eller la dem koble til kontoen sin selv under **Brukerinnstillinger** > **Arbeidsområde** > **Microsoft Teams**.
+- **Hva knappen kobler til.** Microsoft Teams-kontoen til den som trykker på knappen og logger på, til vedkommendes egen OneUptime-konto. En melding som sendes videre til noen andre, kobler ingenting til medlemmet den ble sendt til.
 
 ## Varslingsregler
 

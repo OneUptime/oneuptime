@@ -192,24 +192,31 @@ describe("backup.sh and restore.sh agree on the artifact name", () => {
 });
 
 /**
- * Actually executes restore.sh in a throwaway directory, with `sudo` and `git`
- * stubbed onto PATH. `sudo docker run …` is the only line that reaches a
- * database, so a stub that records its arguments tells us whether the restore
- * was really attempted — no Docker, no Postgres and no root required.
+ * Actually executes backup.sh or restore.sh in a throwaway directory, with
+ * `sudo` and `git` stubbed onto PATH. `sudo docker run …` is the only line that
+ * reaches a database, so a stub that records its arguments tells us whether the
+ * dump or the restore was really attempted — no Docker, no Postgres and no root
+ * required. The `git` stub records its arguments the same way.
  *
- * @param {{input?: string, env?: object}} options
+ * @param {string} scriptPath
+ * @param {{input?: string, env?: object}} [options]
  */
-function runRestoreScript(options) {
+function runScript(scriptPath, options) {
   const settings = options || {};
-  const directory = fs.mkdtempSync(
-    path.join(os.tmpdir(), "oneuptime-restore-"),
-  );
+  const script = path.basename(scriptPath);
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "oneuptime-script-"));
 
   try {
-    fs.copyFileSync(RESTORE_PATH, path.join(directory, "restore.sh"));
+    fs.copyFileSync(scriptPath, path.join(directory, script));
     fs.writeFileSync(
       path.join(directory, "config.env"),
       [
+        "DATABASE_BACKUP_USERNAME=postgres",
+        "DATABASE_BACKUP_PASSWORD=notarealpassword",
+        "DATABASE_BACKUP_HOST=localhost",
+        "DATABASE_BACKUP_PORT=5432",
+        "DATABASE_BACKUP_NAME=oneuptimedb",
+        "DATABASE_BACKUP_DIRECTORY=/Backups",
         "DATABASE_RESTORE_USERNAME=postgres",
         "DATABASE_RESTORE_PASSWORD=notarealpassword",
         "DATABASE_RESTORE_HOST=localhost",
@@ -223,18 +230,24 @@ function runRestoreScript(options) {
 
     const binDirectory = path.join(directory, "bin");
     fs.mkdirSync(binDirectory);
-    const marker = path.join(directory, "restore-attempted.log");
 
-    fs.writeFileSync(
-      path.join(binDirectory, "sudo"),
-      `#!/bin/bash\nprintf '%s\\n' "$*" >> ${JSON.stringify(marker)}\n`,
-      { mode: 0o755 },
-    );
-    fs.writeFileSync(path.join(binDirectory, "git"), "#!/bin/bash\nexit 0\n", {
-      mode: 0o755,
-    });
+    // Puts a `command` on PATH that appends its arguments to a log, and returns
+    // a reader for that log ("" when the command never ran).
+    const stub = (command) => {
+      const log = path.join(directory, `${command}.log`);
+      fs.writeFileSync(
+        path.join(binDirectory, command),
+        `#!/bin/bash\nprintf '%s\\n' "$*" >> ${JSON.stringify(log)}\n`,
+        { mode: 0o755 },
+      );
+      return () => {
+        return fs.existsSync(log) ? fs.readFileSync(log, "utf8") : "";
+      };
+    };
+    const sudoLog = stub("sudo");
+    const gitLog = stub("git");
 
-    const result = spawnSync("bash", ["restore.sh"], {
+    const result = spawnSync("bash", [script], {
       cwd: directory,
       encoding: "utf8",
       input: settings.input === undefined ? "" : settings.input,
@@ -246,13 +259,11 @@ function runRestoreScript(options) {
       ),
     });
 
-    const attempted = fs.existsSync(marker);
-
     return {
       status: result.status,
       stdout: result.stdout || "",
-      restoreAttempted: attempted,
-      restoreCommand: attempted ? fs.readFileSync(marker, "utf8") : "",
+      databaseCommand: sudoLog(),
+      gitCommand: gitLog(),
     };
   } finally {
     fs.rmSync(directory, { recursive: true, force: true });
@@ -270,15 +281,15 @@ function runRestoreScript(options) {
  */
 describe("restore.sh will not silently drop a database", () => {
   test("warns that the restore is destructive and names the target database", () => {
-    const run = runRestoreScript({ input: "n\n" });
+    const run = runScript(RESTORE_PATH, { input: "n\n" });
     expect(run.stdout).toMatch(/DESTRUCTIVE/);
     expect(run.stdout).toMatch(/--clean --if-exists/);
     expect(run.stdout).toContain("oneuptimedb");
   });
 
   test("declining aborts before the database is touched, with a non-zero status", () => {
-    const run = runRestoreScript({ input: "n\n" });
-    expect(run.restoreAttempted).toBe(false);
+    const run = runScript(RESTORE_PATH, { input: "n\n" });
+    expect(run.databaseCommand).toBe("");
     expect(run.status).not.toBe(0);
   });
 
@@ -286,27 +297,56 @@ describe("restore.sh will not silently drop a database", () => {
     // The dangerous failure mode for a cron or CI caller: a prompt that reads
     // EOF as "yes" would wipe the database unattended, and one that aborted with
     // status 0 would make a no-op restore look like a success.
-    const run = runRestoreScript({ input: "" });
-    expect(run.restoreAttempted).toBe(false);
+    const run = runScript(RESTORE_PATH, { input: "" });
+    expect(run.databaseCommand).toBe("");
     expect(run.status).not.toBe(0);
   });
 
   test("confirming runs pg_restore --clean --if-exists against the configured dump", () => {
-    const run = runRestoreScript({ input: "y\n" });
-    expect(run.restoreAttempted).toBe(true);
-    expect(run.restoreCommand).toMatch(/pg_restore\b[^\n]*--clean\b/);
-    expect(run.restoreCommand).toMatch(/pg_restore\b[^\n]*--if-exists\b/);
-    expect(run.restoreCommand).toContain("db-31.backup");
+    const run = runScript(RESTORE_PATH, { input: "y\n" });
+    expect(run.databaseCommand).toMatch(/pg_restore\b[^\n]*--clean\b/);
+    expect(run.databaseCommand).toMatch(/pg_restore\b[^\n]*--if-exists\b/);
+    expect(run.databaseCommand).toContain("db-31.backup");
     expect(run.status).toBe(0);
   });
 
   test("DATABASE_RESTORE_ASSUME_YES=1 skips the prompt for unattended restores", () => {
-    const run = runRestoreScript({
+    const run = runScript(RESTORE_PATH, {
       input: "",
       env: { DATABASE_RESTORE_ASSUME_YES: "1" },
     });
-    expect(run.restoreAttempted).toBe(true);
+    expect(run.databaseCommand).toMatch(/pg_restore\b/);
     expect(run.status).toBe(0);
+  });
+});
+
+/**
+ * Both scripts used to start with `git pull`, so every backup — once a day, as
+ * the guide asks — moved the checkout to the branch's latest commit without
+ * `npm run update`, and the next backup ran whatever backup.sh it had pulled.
+ * Updating OneUptime is a step of its own: neither script touches the
+ * checkout it runs from.
+ */
+describe("backup.sh and restore.sh leave the checkout alone", () => {
+  test("backup.sh dumps the database without running git", () => {
+    const run = runScript(BACKUP_PATH);
+    expect(run.databaseCommand).toMatch(/pg_dump\b[^\n]*--format=custom\b/);
+    expect(run.gitCommand).toBe("");
+    expect(run.status).toBe(0);
+  });
+
+  test("restore.sh restores the database without running git", () => {
+    const run = runScript(RESTORE_PATH, { input: "y\n" });
+    expect(run.databaseCommand).toMatch(/pg_restore\b/);
+    expect(run.gitCommand).toBe("");
+    expect(run.status).toBe(0);
+  });
+
+  test.each([
+    ["backup.sh", backupCode],
+    ["restore.sh", restoreCode],
+  ])("%s runs git on no path, taken or not", (_name, code) => {
+    expect(code).not.toMatch(/\bgit\b/);
   });
 });
 

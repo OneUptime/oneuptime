@@ -44,7 +44,7 @@
     "expo-linear-gradient": "~57.0.1",
     "expo-linking": "~57.0.13",
     "expo-local-authentication": "~57.0.2",
-    "expo-notifications": "~57.0.23",
+    "expo-notifications": "~57.0.24",
     "expo-splash-screen": "~57.0.10",
     "expo-status-bar": "~57.0.1",
     "expo-system-ui": "~57.0.3",

@@ -1746,6 +1746,7 @@ import ScheduledMaintenanceExternalCalendarAPI from "Common/Server/API/Scheduled
 import OnCallScheduleTimelineAPI from "Common/Server/API/OnCallScheduleTimelineAPI";
 import WorkspaceChannelLinkAPI from "Common/Server/API/WorkspaceChannelLinkAPI";
 import WorkspaceChannelMembersAPI from "Common/Server/API/WorkspaceChannelMembersAPI";
+import WorkspaceAskToConnectAPI from "Common/Server/API/WorkspaceAskToConnectAPI";
 import OnCallPagePassOnAPI from "Common/Server/API/OnCallPagePassOnAPI";
 import UserNotificationMethodAdminAPI from "Common/Server/API/UserNotificationMethodAdminAPI";
 
@@ -5415,6 +5416,14 @@ const BaseAPIFeatureSet: FeatureSet = {
      * needs permission to edit it.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, WorkspaceChannelMembersAPI);
+
+    /*
+     * Asking every member of the project to connect their Slack or
+     * Microsoft Teams account, by direct message
+     * (/workspace-ask-to-connect/<workspace type>). For project owners and
+     * admins.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, WorkspaceAskToConnectAPI);
 
     /*
      * "Can't take it? Escalate" for the signed-in person's own pages about

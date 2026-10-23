@@ -4,6 +4,7 @@ Forbind OneUptime med Microsoft Teams for at slå hændelser, advarsler, episode
 
 :::cards
 - [Forbind Microsoft Teams](#forbind-microsoft-teams): Administratorsamtykke, dit login og appen i hvert team.
+- [Bed alle om at forbinde deres konto](#bed-alle-om-at-forbinde-deres-konto): Send på én gang en besked til hvert medlem, der ikke har forbundet sin konto.
 - [Notifikationsregler](#notifikationsregler): Bestem, hvilke begivenheder der slås op hvor, og hvilke der får deres egen kanal.
 - [Tal med OneUptime-botten](#tal-med-oneuptime-botten): Kommandoer, spørgsmål og formularer i en chat med botten.
 - [Vagt-mærker](#vagt-mærker): Hold et teams mærke lig med dem, der har vagt, og tilkald det.
@@ -59,7 +60,7 @@ På OneUptime Cloud åbner **Åbn Teams Store** appen i Microsoft Teams Store, h
 
 ### Forbind alle andre
 
-Hver person knytter sin egen Microsoft Teams-konto under **Brugerindstillinger** > **Arbejdsområde** > **Microsoft Teams** med **Connect my account with Microsoft Teams** for at handle på hændelser og få direkte beskeder som sig selv. Den sektion vises, så snart projektet er forbundet med Microsoft Teams.
+Hver person knytter sin egen Microsoft Teams-konto under **Brugerindstillinger** > **Arbejdsområde** > **Microsoft Teams** med **Connect my account with Microsoft Teams** for at handle på hændelser og få direkte beskeder som sig selv. Den sektion vises, så snart projektet er forbundet med Microsoft Teams. Vil du have et helt team med på én gang, så se [Bed alle om at forbinde deres konto](#bed-alle-om-at-forbinde-deres-konto).
 
 ### Tilføj en notifikationsregel
 
@@ -68,6 +69,14 @@ Gå til **Hændelser** > **Arbejdsområde** > **Microsoft Teams**. Sektionen **A
 
 > [!NOTE]
 > At installere OneUptime for dig selv, eller føje den til en chat, er en anden installation og lader den ikke slå op i et teams kanaler. **Private kanaler** kræver, at appen er føjet til selve kanalen: åbn kanalen > "..." > **Manage channel** > **Apps** > **Add an app**. **Delte kanaler** kan ikke modtage notifikationer: Microsoft Teams understøtter ikke bots i delte kanaler.
+
+## Bed alle om at forbinde deres konto
+
+Ingen kan forbinde en andens Microsoft Teams-konto, heller ikke en administrator: hver især logger ind med sin egen. For at få et helt team med beder en **Project Owner** eller **Project Admin** alle på én gang under **Projektindstillinger** > **Arbejdsområde** > **Microsoft Teams**. Kortet **Members' Microsoft Teams accounts** viser, hvor mange medlemmer der har forbundet deres konto. **Ask everyone to connect** får OneUptime-botten til at sende hvert medlem, der ikke har gjort det, en besked med en knap **Connect Microsoft Teams account**, der forbinder medlemmets konto med ét klik.
+
+- **Hvem der får en besked.** Hvert medlem af projektet, der ikke har forbundet sin Microsoft Teams-konto, er i et team, som OneUptime-appen er føjet til, og som OneUptime finder der via medlemmets e-mailadresse eller brugerhovednavn (UPN). Den, der er blevet bedt om det inden for de sidste 24 timer, bliver ikke bedt igen, så beder du igen dagen efter, får kun dem, der stadig ikke har forbundet deres konto, en påmindelse.
+- **Hvad kortet siger.** Hvor langt udsendelsen er nået, mens beskederne sendes, og derefter hvem der bad om det, og hvor mange medlemmer der fik en besked. Medlemmer, som OneUptime ikke kunne finde, nævnes ved navn på kortet: føj appen til deres team, eller lad dem selv forbinde deres konto under **Brugerindstillinger** > **Arbejdsområde** > **Microsoft Teams**.
+- **Hvad knappen forbinder.** Microsoft Teams-kontoen for den, der trykker på knappen og logger ind, med vedkommendes egen OneUptime-konto. En besked, der sendes videre til en anden, forbinder intet med det medlem, den blev sendt til.
 
 ## Notifikationsregler
 

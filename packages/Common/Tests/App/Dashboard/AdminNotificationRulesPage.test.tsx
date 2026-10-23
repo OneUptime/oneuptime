@@ -8,6 +8,7 @@ import {
   test,
 } from "@jest/globals";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -735,8 +736,20 @@ type WaitForSettledPageFunction = (expectedTableCount: number) => Promise<void>;
  * Both conditions are stable once true: nothing here issues a fetch after the
  * tables are up, and the capture is keyed by table identity, so the count stops
  * at its total instead of climbing past it.
+ *
+ * But both can be true a moment too early. The counter drops when a read's
+ * promise settles, and React draws what the page does with the answer in a
+ * scheduler task after that. A check that runs in between - waitFor polls
+ * every 50ms, so a response landing on a poll is enough - sees nothing in
+ * flight and every table drawn, drawn before the answer: a table without the
+ * methods readiness brings (CI, 2026-10-22; "lands after the rule tables"
+ * below forces it). So once both hold, React gets a task inside act() to draw
+ * what it has been handed, and the page is settled only if that drew nothing:
+ * the same tables, each holding the same props, and nothing in flight.
  */
-const waitForSettledPage: WaitForSettledPageFunction = async (
+const MAX_SETTLE_PASSES: number = 20;
+
+const waitForEveryTableDrawn: WaitForSettledPageFunction = async (
   expectedTableCount: number,
 ): Promise<void> => {
   await waitFor(
@@ -754,6 +767,46 @@ const waitForSettledPage: WaitForSettledPageFunction = async (
      * fails here, naming the count it reached, rather than as a bare timeout.
      */
     { timeout: 4000 },
+  );
+};
+
+type DrawsNothingMoreFunction = () => Promise<boolean>;
+
+// Whether a task for React, inside act(), leaves the page as it was.
+const drawsNothingMore: DrawsNothingMoreFunction =
+  async (): Promise<boolean> => {
+    const drawn: Array<CapturedTableProps> = [...capturedTables];
+
+    await act(async (): Promise<void> => {
+      await new Promise((resolve: (value: unknown) => void): void => {
+        setTimeout(resolve, 0);
+      });
+    });
+
+    return (
+      pendingRequestCount === 0 &&
+      capturedTables.length === drawn.length &&
+      capturedTables.every(
+        (table: CapturedTableProps, index: number): boolean => {
+          return table === drawn[index];
+        },
+      )
+    );
+  };
+
+const waitForSettledPage: WaitForSettledPageFunction = async (
+  expectedTableCount: number,
+): Promise<void> => {
+  for (let pass: number = 1; pass <= MAX_SETTLE_PASSES; pass++) {
+    await waitForEveryTableDrawn(expectedTableCount);
+
+    if (await drawsNothingMore()) {
+      return;
+    }
+  }
+
+  throw new Error(
+    `The page was still drawing after ${MAX_SETTLE_PASSES} passes: ${capturedTables.length} tables, ${pendingRequestCount} reads in flight.`,
   );
 };
 
@@ -1282,24 +1335,37 @@ afterEach(async (): Promise<void> => {
  * immediately.
  */
 describe("the page is read at rest, whichever order its fetches land in", () => {
-  const SLOW_FETCH_MS: number = 25;
+  /*
+   * How late the slow read lands. waitFor polls every 50ms: a read landing
+   * between polls is what a quiet machine sees, and React has drawn it before
+   * the next look. One landing on a poll is what a busy runner sees, and is
+   * the one a check can catch before React has drawn the answer. Each ordering
+   * is read at all three.
+   */
+  const SLOW_FETCH_MS: Array<number> = [25, 50, 100];
 
-  type AfterEverythingElseFunction = (value: unknown) => Promise<unknown>;
+  type AfterEverythingElseFunction = (
+    value: unknown,
+    delayMs: number,
+  ) => Promise<unknown>;
 
   const afterEverythingElse: AfterEverythingElseFunction = (
     value: unknown,
+    delayMs: number,
   ): Promise<unknown> => {
     return new Promise((resolve: (settled: unknown) => void): void => {
       setTimeout((): void => {
         resolve(value);
-      }, SLOW_FETCH_MS);
+      }, delayMs);
     });
   };
 
-  type DelayReadinessFunction = () => void;
+  type DelayReadinessFunction = (delayMs: number) => void;
 
   /* Readiness lands last: the tables are drawn, then redrawn with the methods. */
-  const readinessLandsAfterTheTables: DelayReadinessFunction = (): void => {
+  const readinessLandsAfterTheTables: DelayReadinessFunction = (
+    delayMs: number,
+  ): void => {
     const response: HTTPResponse<JSONObject> = new HTTPResponse<JSONObject>(
       200,
       readinessJson(),
@@ -1307,14 +1373,16 @@ describe("the page is read at rest, whichever order its fetches land in", () => 
     );
 
     apiGetMock.mockImplementation((): Promise<unknown> => {
-      return afterEverythingElse(response);
+      return afterEverythingElse(response, delayMs);
     });
   };
 
-  type DelaySeveritiesFunction = () => void;
+  type DelaySeveritiesFunction = (delayMs: number) => void;
 
   /* And the other way round: readiness is sitting there before a table exists. */
-  const readinessLandsBeforeTheTables: DelaySeveritiesFunction = (): void => {
+  const readinessLandsBeforeTheTables: DelaySeveritiesFunction = (
+    delayMs: number,
+  ): void => {
     const immediate: (data: any) => any =
       getListMock.getMockImplementation() as (data: any) => any;
 
@@ -1326,7 +1394,7 @@ describe("the page is read at rest, whichever order its fetches land in", () => 
         data.modelType === AlertSeverity
       ) {
         return result.then((value: unknown): Promise<unknown> => {
-          return afterEverythingElse(value);
+          return afterEverythingElse(value, delayMs);
         });
       }
 
@@ -1415,23 +1483,29 @@ describe("the page is read at rest, whichever order its fetches land in", () => 
     assertEveryTableIsSettled();
   });
 
-  test("reads the same page when readiness lands after the rule tables", async () => {
-    readinessLandsAfterTheTables();
+  test.each(SLOW_FETCH_MS)(
+    "reads the same page when readiness lands after the rule tables (%ims later)",
+    async (delayMs: number) => {
+      readinessLandsAfterTheTables(delayMs);
 
-    await renderAdminPage();
+      await renderAdminPage();
 
-    expect(pendingRequestCount).toBe(0);
-    assertEveryTableIsSettled();
-  });
+      expect(pendingRequestCount).toBe(0);
+      assertEveryTableIsSettled();
+    },
+  );
 
-  test("reads the same page when readiness lands before the rule tables", async () => {
-    readinessLandsBeforeTheTables();
+  test.each(SLOW_FETCH_MS)(
+    "reads the same page when readiness lands before the rule tables (%ims earlier)",
+    async (delayMs: number) => {
+      readinessLandsBeforeTheTables(delayMs);
 
-    await renderAdminPage();
+      await renderAdminPage();
 
-    expect(pendingRequestCount).toBe(0);
-    assertEveryTableIsSettled();
-  });
+      expect(pendingRequestCount).toBe(0);
+      assertEveryTableIsSettled();
+    },
+  );
 
   test("waits out the nine method reads a self-serve page makes for its owner", async () => {
     // A self-serve page is always the viewer's own, so this is the owner path.

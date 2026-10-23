@@ -16,7 +16,8 @@ const port: string = process.env["EVENT_OVERVIEW_FIXTURE_PORT"] || "4222";
  * worker as before. Unset, the whole suite runs, in file order, as it
  * always has.
  */
-const shardMatch: RegExpExecArray | null = /^(\d+)\/(\d+)$/.exec(
+const SHARD_PATTERN: RegExp = /^(\d+)\/(\d+)$/;
+const shardMatch: RegExpExecArray | null = SHARD_PATTERN.exec(
   process.env["EVENT_OVERVIEW_SHARD"] || "",
 );
 const shard: { current: number; total: number } | null = shardMatch

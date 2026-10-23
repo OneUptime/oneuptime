@@ -21,6 +21,9 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  *                              email with users:read.email)
  * - users.lookupByEmail        the Slack account of a OneUptime member who has
  *                              not connected theirs (users:read.email)
+ * - users.list                 the workspace's people, page by page, to find
+ *                              many members at once by their email addresses
+ *                              (WorkspaceAskToConnect)
  * - conversations.invite       one person a request, so each gets an answer
  *                              of their own (channels:write.invites for a
  *                              public channel, groups:write for a private one)
@@ -34,7 +37,8 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * channel_not_found for one it was removed from, as for one deleted.
  *
  * One try each, no retries: a person is waiting on the page for the answer,
- * and a refusal is told to them as it is.
+ * and a refusal is told to them as it is. WorkspaceAskToConnect, which
+ * nobody waits on, asks again itself when Slack says it is busy.
  */
 
 // A channel, as conversations.info tells it.
@@ -238,6 +242,56 @@ export default class SlackChannelMembers {
     };
   }
 
+  /*
+   * One page of the workspace's people (users.list, Tier 2: up to 200 a
+   * page), and the cursor of the next page - empty after the last one.
+   * Their email addresses need users:read.email, as findPersonByEmail does.
+   */
+  @CaptureSpan()
+  public static async getPeoplePage(data: {
+    authToken: string;
+    cursor: string;
+  }): Promise<{ people: Array<SlackPersonFacts>; nextCursor: string }> {
+    const body: JSONObject = await SlackChannelMembers.call({
+      authToken: data.authToken,
+      method: "users.list",
+      body: {
+        limit: MEMBERS_PAGE_SIZE,
+        ...(data.cursor ? { cursor: data.cursor } : {}),
+      },
+    });
+
+    const users: Array<unknown> = Array.isArray(body["members"])
+      ? (body["members"] as Array<unknown>)
+      : [];
+
+    const people: Array<SlackPersonFacts> = [];
+
+    for (const user of users) {
+      const person: SlackPersonFacts | null =
+        user && typeof user === "object" && !Array.isArray(user)
+          ? SlackChannelMembers.toPersonFacts(user as JSONObject)
+          : null;
+
+      if (person) {
+        people.push(person);
+      }
+    }
+
+    const metadata: JSONObject =
+      body["response_metadata"] && typeof body["response_metadata"] === "object"
+        ? (body["response_metadata"] as JSONObject)
+        : {};
+
+    return {
+      people: people,
+      nextCursor:
+        typeof metadata["next_cursor"] === "string"
+          ? (metadata["next_cursor"] as string)
+          : "",
+    };
+  }
+
   // Who a Slack account is; null when Slack knows no such account.
   @CaptureSpan()
   public static async getPerson(data: {
@@ -352,7 +406,12 @@ export default class SlackChannelMembers {
         ? (body["user"] as JSONObject)
         : null;
 
-    if (!user || typeof user["id"] !== "string" || !user["id"]) {
+    return user ? SlackChannelMembers.toPersonFacts(user) : null;
+  }
+
+  // A Slack user object, as users.info and users.list tell it.
+  private static toPersonFacts(user: JSONObject): SlackPersonFacts | null {
+    if (typeof user["id"] !== "string" || !user["id"]) {
       return null;
     }
 

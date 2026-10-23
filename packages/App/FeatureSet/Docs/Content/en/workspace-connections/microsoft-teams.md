@@ -4,6 +4,7 @@ Connect OneUptime to Microsoft Teams to post incidents, alerts, episodes, schedu
 
 :::cards
 - [Connect Microsoft Teams](#connect-microsoft-teams): Admin consent, your sign-in, and the app in each team.
+- [Asking everyone to connect](#asking-everyone-to-connect): Message every member who has not connected their account, in one go.
 - [Notification rules](#notification-rules): Decide which events post where, and which get a channel of their own.
 - [Talking to the OneUptime bot](#talking-to-the-oneuptime-bot): Commands, questions and forms in a chat with the bot.
 - [On-call tags](#on-call-tags): Keep a team's tag equal to whoever is on call, and page it.
@@ -59,7 +60,7 @@ On OneUptime Cloud, **Open Teams Store** opens the app in the Microsoft Teams st
 
 ### Connect everyone else
 
-Each person links their own Microsoft Teams account under **User Settings** > **Workspace** > **Microsoft Teams** with **Connect my account with Microsoft Teams**, to act on incidents and get direct messages as themselves. That section appears once the project is connected to Microsoft Teams.
+Each person links their own Microsoft Teams account under **User Settings** > **Workspace** > **Microsoft Teams** with **Connect my account with Microsoft Teams**, to act on incidents and get direct messages as themselves. That section appears once the project is connected to Microsoft Teams. To bring in a whole team at once, see [Asking everyone to connect](#asking-everyone-to-connect).
 
 ### Add a notification rule
 
@@ -68,6 +69,14 @@ Go to **Incidents** > **Workspace** > **Microsoft Teams**. The **Workspace** sec
 
 > [!NOTE]
 > Installing OneUptime for yourself, or adding it to a chat, is a different installation and does not let it post to a team's channels. **Private channels** need the app added to the channel itself: open the channel > "..." > **Manage channel** > **Apps** > **Add an app**. **Shared channels** cannot receive notifications: Microsoft Teams does not support bots in shared channels.
+
+## Asking everyone to connect
+
+Nobody can connect somebody else's Microsoft Teams account, an admin included: each person signs in to their own. To bring in a whole team, a **Project Owner** or **Project Admin** asks everyone at once on **Project Settings** > **Workspace** > **Microsoft Teams**. The **Members' Microsoft Teams accounts** card says how many members have connected. **Ask everyone to connect** has the OneUptime bot send each member who has not a message, with a **Connect Microsoft Teams account** button that connects their account in one click.
+
+- **Who gets a message.** Every member of the project who has not connected their Microsoft Teams account and is in a team the OneUptime app is added to, found there by their email address or user principal name. Somebody asked in the last 24 hours is not asked again, so asking again the next day reminds only the people who still have not connected.
+- **What the card says.** How far the messages have got while they go out, then who asked and how many members got a message. Members OneUptime could not find are named on the card: add the app to their team, or have them connect under **User Settings** > **Workspace** > **Microsoft Teams** themselves.
+- **What the button connects.** The Microsoft Teams account of whoever presses it and signs in, to their own OneUptime account. A message passed on to somebody else connects nothing to the member it was sent to.
 
 ## Notification rules
 
