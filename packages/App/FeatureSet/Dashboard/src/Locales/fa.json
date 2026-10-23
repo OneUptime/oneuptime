@@ -33672,8 +33672,11 @@
   "Reported by its collector, {{time}}.": "گزارش‌شده توسط کلکتور آن، {{time}}.",
   "Saved on this device": "ذخیره‌شده روی این دستگاه",
   "The address its probe polls": "آدرسی که پراب آن پرس‌وجو می‌کند",
-  "Worked out from what it reports": "از گزارش‌های خودش تعیین شده",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them.": "{{count}} مورد ناشناخته است: نه پرس‌وجوی SNMP این دستگاه و نه هیچ اسکن کشفی آن‌ها را پیدا نکرده است.",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them._one": "{{count}} مورد ناشناخته است: نه پرس‌وجوی SNMP این دستگاه و نه هیچ اسکن کشفی آن را پیدا نکرده است.",
-  "{{source}} says {{value}}": "طبق {{source}}: {{value}}"
+  "{{source}} says {{value}}": "طبق {{source}}: {{value}}",
+  "Read over SNMP by a discovery scan, {{time}}.": "خوانده‌شده توسط یک اسکن کشف از طریق SNMP، {{time}}.",
+  "Read over SNMP by discovery scan {{name}}, {{time}}.": "خوانده‌شده توسط اسکن کشف {{name}} از طریق SNMP، {{time}}.",
+  "Worked out from its name and what it reports": "از نام و گزارش‌های خودش تعیین شده",
+  "Nothing has been read from this device yet. Its details fill in after its first SNMP walk, or the next discovery scan of its address.": "هنوز چیزی از این دستگاه خوانده نشده است. جزئیات آن پس از نخستین پیمایش SNMP یا اسکن کشف بعدی نشانی آن پر می‌شود."
 }

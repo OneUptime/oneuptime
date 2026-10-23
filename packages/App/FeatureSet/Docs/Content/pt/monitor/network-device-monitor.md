@@ -512,7 +512,7 @@ Um dispositivo só com ping mantém o nome e o endereço que você, ou uma varre
 - O endereço MAC, da tabela ARP de um roteador percorrido do seu site.
 - Para um dispositivo consultado por um nome DNS, o endereço para o qual a sonda resolveu esse nome.
 
-Esses valores ficam ao lado dos campos do próprio dispositivo, nunca gravados neles, e cada varredura, walk de roteador ou consulta que lê um deles de novo o atualiza. Sob cada valor, a visão geral do dispositivo e o seu item no inventário mostram qual varredura, roteador ou sonda o leu, e quando. Um valor que você salvou no dispositivo nunca é substituído. Quando uma varredura encontra outra máquina no endereço do dispositivo, como uma concessão DHCP que mudou, a visão geral avisa, e nada do que essa varredura leu ali é usado.
+Esses valores ficam ao lado dos campos do próprio dispositivo, nunca gravados neles, e cada varredura, walk de roteador ou consulta que lê um deles de novo o atualiza. A visão geral do dispositivo e o seu item no inventário mostram qual varredura, roteador ou sonda leu cada valor, e quando. Um valor que você salvou no dispositivo nunca é substituído. Quando uma varredura encontra outra máquina no endereço do dispositivo, como uma concessão DHCP que mudou, a visão geral avisa, e nada do que essa varredura leu ali é usado.
 
 ## Descobrir dispositivos com uma varredura de rede
 

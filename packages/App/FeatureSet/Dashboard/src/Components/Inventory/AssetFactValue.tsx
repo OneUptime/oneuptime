@@ -1,7 +1,6 @@
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
-import OneUptimeDate from "Common/Types/Date";
 import {
   AssetFactDifference,
   AssetFactSource,
@@ -11,6 +10,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 import {
   getAssetFactDifferenceLine,
+  getAssetFactExactTime,
   getAssetFactSourceLine,
 } from "./AssetFactSourceText";
 
@@ -38,21 +38,12 @@ export interface ComponentProps {
   discoveredDifferent?: AssetFactDifference | undefined;
   // Offers a copy button, named for the detail ("Copy Hostname").
   copyLabel?: string | undefined;
-  // Leaves the source line out, for a card that states it once.
+  /*
+   * Leaves the source line out: for the source a card states once, below
+   * its details, and for what the device's own page shows by default.
+   */
   hideSource?: boolean | undefined;
   testId?: string | undefined;
-}
-
-function exactTime(readAt: string | undefined): string | undefined {
-  if (!readAt) {
-    return undefined;
-  }
-
-  const date: Date = new Date(readAt);
-
-  return Number.isNaN(date.getTime())
-    ? undefined
-    : OneUptimeDate.getDateAsLocalFormattedString(date);
 }
 
 const AssetFactValue: FunctionComponent<ComponentProps> = (
@@ -79,7 +70,7 @@ const AssetFactValue: FunctionComponent<ComponentProps> = (
       {props.source && !props.hideSource ? (
         <div
           className="mt-0.5 break-words text-xs text-gray-500"
-          title={exactTime(props.source.readAt)}
+          title={getAssetFactExactTime(props.source.readAt)}
           data-testid={props.testId ? `${props.testId}-source` : undefined}
         >
           {getAssetFactSourceLine(props.source, translator)}
@@ -88,7 +79,7 @@ const AssetFactValue: FunctionComponent<ComponentProps> = (
       {props.discoveredDifferent ? (
         <div
           className="mt-1 flex min-w-0 items-start gap-x-1 text-xs text-amber-700"
-          title={exactTime(props.discoveredDifferent.source.readAt)}
+          title={getAssetFactExactTime(props.discoveredDifferent.source.readAt)}
           data-testid={props.testId ? `${props.testId}-different` : undefined}
         >
           <Icon

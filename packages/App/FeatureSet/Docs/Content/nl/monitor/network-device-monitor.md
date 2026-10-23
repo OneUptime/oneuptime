@@ -512,7 +512,7 @@ Een apparaat met alleen ping houdt de naam en het adres die jij, of een discover
 - Zijn MAC-adres, uit de ARP-tabel van een doorlopen router in zijn site.
 - Voor een apparaat dat op een DNS-naam wordt gepold, het adres waarnaar zijn probe die naam heeft omgezet.
 
-Deze worden naast de eigen velden van het apparaat bewaard, nooit erin geschreven, en elke scan, router-walk of poll die er een opnieuw leest, werkt die bij. Onder elke waarde tonen het overzicht van het apparaat en zijn item in de inventaris welke scan, router of probe die las, en wanneer. Een waarde die je op het apparaat hebt opgeslagen, wordt nooit vervangen. Als een scan een andere machine op het adres van het apparaat vindt, zoals een DHCP-lease die is verschoven, meldt het overzicht dat, en wordt niets gebruikt van wat die scan daar las.
+Deze worden naast de eigen velden van het apparaat bewaard, nooit erin geschreven, en elke scan, router-walk of poll die er een opnieuw leest, werkt die bij. Het overzicht van het apparaat en zijn item in de inventaris tonen welke scan, router of probe elke waarde las, en wanneer. Een waarde die je op het apparaat hebt opgeslagen, wordt nooit vervangen. Als een scan een andere machine op het adres van het apparaat vindt, zoals een DHCP-lease die is verschoven, meldt het overzicht dat, en wordt niets gebruikt van wat die scan daar las.
 
 ## Apparaten ontdekken met een netwerkscan
 

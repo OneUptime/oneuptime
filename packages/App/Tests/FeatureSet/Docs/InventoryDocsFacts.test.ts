@@ -1588,7 +1588,7 @@ describe("Exporting to a CMDB: what a network device's record gives", () => {
       "A value saved on the device, typed or set through the API, is never replaced by what discovery reads. Of a value the device's own walk read and one a scan read, the newer is used.",
     );
     expect(networkSection()).toContain(
-      "The item's **Asset Details** card says under each value where it came from and when.",
+      "The item's **Asset Details** card says where each value came from and when.",
     );
   });
 

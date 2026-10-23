@@ -33672,8 +33672,11 @@
   "Reported by its collector, {{time}}.": "इसके कलेक्टर ने {{time}} भेजा।",
   "Saved on this device": "इस डिवाइस पर सहेजा गया",
   "The address its probe polls": "वह पता जिसे इसका प्रोब पोल करता है",
-  "Worked out from what it reports": "इसकी भेजी जानकारी से तय किया गया",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them.": "{{count}} विवरण अज्ञात हैं: न इस डिवाइस के SNMP पोल ने और न किसी डिस्कवरी स्कैन ने इन्हें पाया है।",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them._one": "{{count}} विवरण अज्ञात है: न इस डिवाइस के SNMP पोल ने और न किसी डिस्कवरी स्कैन ने इसे पाया है।",
-  "{{source}} says {{value}}": "{{source}} के अनुसार {{value}}"
+  "{{source}} says {{value}}": "{{source}} के अनुसार {{value}}",
+  "Read over SNMP by a discovery scan, {{time}}.": "किसी डिस्कवरी स्कैन ने इसे {{time}} SNMP पर पढ़ा।",
+  "Read over SNMP by discovery scan {{name}}, {{time}}.": "डिस्कवरी स्कैन {{name}} ने इसे {{time}} SNMP पर पढ़ा।",
+  "Worked out from its name and what it reports": "इसके नाम और इसकी भेजी जानकारी से तय किया गया",
+  "Nothing has been read from this device yet. Its details fill in after its first SNMP walk, or the next discovery scan of its address.": "इस डिवाइस से अभी तक कुछ भी नहीं पढ़ा गया है। इसके पहले SNMP वॉक या इसके पते के अगले डिस्कवरी स्कैन के बाद इसका विवरण भर जाएगा।"
 }

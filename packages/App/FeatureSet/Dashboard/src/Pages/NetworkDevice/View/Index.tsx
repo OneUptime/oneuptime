@@ -17,7 +17,10 @@ import {
 import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
 import { isDifferentText } from "../../../Components/NetworkDevice/DeviceDetailText";
 import AssetFactValue from "../../../Components/Inventory/AssetFactValue";
-import { isNativeAssetFactSource } from "../../../Components/Inventory/AssetFactSourceText";
+import {
+  isNativeAssetFactSource,
+  isUndisputedSavedValue,
+} from "../../../Components/Inventory/AssetFactSourceText";
 import {
   NetworkDeviceEffectiveInput,
   NetworkDeviceEffectiveInputs,
@@ -91,8 +94,19 @@ function effectiveDetailElement(
     <AssetFactValue
       value={detail.value}
       source={detail.source}
-      // The device's own SNMP poll is what this page shows by default.
-      hideSource={isNativeAssetFactSource(detail.source)}
+      /*
+       * What the device's own SNMP poll read, and what is saved on it, is
+       * what this page shows by default - its Name and Hostname say nothing
+       * either. A saved value discovery reads differently says so, above
+       * what discovery read.
+       */
+      hideSource={
+        isNativeAssetFactSource(detail.source) ||
+        isUndisputedSavedValue(
+          detail.source,
+          Boolean(detail.discoveredDifferent),
+        )
+      }
       discoveredDifferent={detail.discoveredDifferent}
       testId={`network-device-details-${key}`}
     />

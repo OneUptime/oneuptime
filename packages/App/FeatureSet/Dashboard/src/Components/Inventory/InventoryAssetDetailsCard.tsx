@@ -2,6 +2,7 @@ import Card from "Common/UI/Components/Card/Card";
 import PlaceholderText from "Common/UI/Components/Detail/PlaceholderText";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import { AssetFactSource } from "Common/Utils/Inventory/AssetFactSource";
 import {
   InventoryAssetDetail,
   InventoryAssetDetails,
@@ -14,10 +15,13 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 import AssetFactValue from "./AssetFactValue";
 import {
+  getAssetFactExactTime,
   getFoundByLine,
-  getNativeSourceLine,
   getOtherMachineLine,
-  isNativeAssetFactSource,
+  getSharedAssetFactSource,
+  getSharedSourceLine,
+  isSameAssetFactSource,
+  isSightingSaidBySharedSource,
 } from "./AssetFactSourceText";
 import {
   INVENTORY_ASSET_FIELD_LABELS,
@@ -43,14 +47,15 @@ import useNetworkDeviceAssetDetails, {
  * rather than something they have to notice is absent. One line under the
  * facts says why they are unknown and where to read how each one is filled.
  *
- * And where each came from. A machine's details come from one place unless
- * they say otherwise - a host's from its collector, a network device's (read
- * from the device itself, current to the moment) from its own SNMP poll -
- * and that is said ONCE, below the details, with when. Every detail from
- * anywhere else says so under its value: a discovery scan, a router's ARP
- * table, the device's probe, a value saved on it, a role someone assigned;
- * and, where a value someone saved disagrees with what discovery read, what
- * discovery read, in amber.
+ * And where each came from. Most of a machine's details come from one
+ * reading - a host's collector; a network device's (read from the device
+ * itself, current to the moment) own SNMP poll, or, for a device its poll
+ * has not read, the discovery scan that read its SNMP system group - and
+ * that is said ONCE, first below the details, with when
+ * (getSharedAssetFactSource). Every detail from anywhere else says so under
+ * its value: a router's ARP table, the device's probe, a reverse-DNS lookup,
+ * a value saved on it, a role someone assigned; and, where a value someone
+ * saved disagrees with what discovery read, what discovery read, in amber.
  *
  * The raw attributes stay on the Attributes card below, for everything this
  * card does not name.
@@ -85,13 +90,28 @@ const InventoryAssetDetailsCard: FunctionComponent<ComponentProps> = (
     INVENTORY_ASSET_HELP[details.kind];
   const unknownCount: number = details.unknownFields.length;
 
-  // The source said once, below the details: see isNativeAssetFactSource.
-  const nativeSourceLine: string | undefined = getNativeSourceLine(
-    details.details.find((detail: InventoryAssetDetail): boolean => {
-      return isNativeAssetFactSource(detail.source);
-    })?.source,
+  // The reading most details came from, said once below them.
+  const sharedSource: AssetFactSource | undefined = getSharedAssetFactSource(
+    details.details.map(
+      (detail: InventoryAssetDetail): AssetFactSource | undefined => {
+        return detail.value ? detail.source : undefined;
+      },
+    ),
+  );
+  const sharedSourceLine: string | undefined = getSharedSourceLine(
+    sharedSource,
     translator,
   );
+  /*
+   * "Last found at its address by discovery scan ..." - unless the line
+   * above already names that scan's reading: a scan that read the device
+   * found it.
+   */
+  const foundBy: InventoryAssetDetails["foundBy"] =
+    details.foundBy &&
+    !isSightingSaidBySharedSource(details.foundBy, sharedSource)
+      ? details.foundBy
+      : undefined;
 
   return (
     <Card
@@ -130,7 +150,10 @@ const InventoryAssetDetailsCard: FunctionComponent<ComponentProps> = (
                       copyLabel={label}
                       source={detail.source}
                       // Said once, below the details.
-                      hideSource={isNativeAssetFactSource(detail.source)}
+                      hideSource={isSameAssetFactSource(
+                        detail.source,
+                        sharedSource,
+                      )}
                       discoveredDifferent={detail.discoveredDifferent}
                       testId={`inventory-asset-${detail.field}-value`}
                     />
@@ -145,11 +168,26 @@ const InventoryAssetDetailsCard: FunctionComponent<ComponentProps> = (
           })}
         </dl>
 
-        {unknownCount > 0 ||
-        nativeSourceLine ||
-        details.foundBy ||
+        {/*
+         * Below the details, in the order a reader asks: where they came
+         * from, what is still unknown and how it gets filled, when a scan
+         * last found the machine, and - in amber - a scan that found another
+         * one at its address.
+         */}
+        {sharedSourceLine ||
+        unknownCount > 0 ||
+        foundBy ||
         details.otherMachine ? (
           <div className="mt-5 space-y-2 border-t border-gray-100 pt-4 text-sm text-gray-500">
+            {sharedSourceLine ? (
+              <p
+                title={getAssetFactExactTime(sharedSource?.readAt)}
+                data-testid="inventory-asset-details-source"
+              >
+                {sharedSourceLine}
+              </p>
+            ) : null}
+
             {unknownCount > 0 ? (
               <p data-testid="inventory-asset-details-unknown">
                 {translator.translatePlural(help.unknown, unknownCount)}{" "}
@@ -164,21 +202,19 @@ const InventoryAssetDetailsCard: FunctionComponent<ComponentProps> = (
               </p>
             ) : null}
 
-            {nativeSourceLine ? (
-              <p data-testid="inventory-asset-details-native-source">
-                {nativeSourceLine}
-              </p>
-            ) : null}
-
-            {details.foundBy ? (
-              <p data-testid="inventory-asset-details-found-by">
-                {getFoundByLine(details.foundBy, translator)}
+            {foundBy ? (
+              <p
+                title={getAssetFactExactTime(foundBy.readAt)}
+                data-testid="inventory-asset-details-found-by"
+              >
+                {getFoundByLine(foundBy, translator)}
               </p>
             ) : null}
 
             {details.otherMachine ? (
               <div
                 className="flex items-start gap-x-1.5 text-amber-700"
+                title={getAssetFactExactTime(details.otherMachine.readAt)}
                 data-testid="inventory-asset-details-other-machine"
               >
                 <Icon

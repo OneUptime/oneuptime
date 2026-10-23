@@ -33672,8 +33672,11 @@
   "Reported by its collector, {{time}}.": "Передано его коллектором, {{time}}.",
   "Saved on this device": "Сохранено на этом устройстве",
   "The address its probe polls": "Адрес, который опрашивает его зонд",
-  "Worked out from what it reports": "Определено по сообщаемым данным",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them.": "Неизвестных параметров: {{count}}. Их не нашли ни опрос SNMP этого устройства, ни сканирование обнаружения.",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them._one": "{{count}} параметр неизвестен: его не нашли ни опрос SNMP этого устройства, ни сканирование обнаружения.",
-  "{{source}} says {{value}}": "{{source}} сообщает: {{value}}"
+  "{{source}} says {{value}}": "{{source}} сообщает: {{value}}",
+  "Read over SNMP by a discovery scan, {{time}}.": "Прочитано по SNMP сканированием обнаружения, {{time}}.",
+  "Read over SNMP by discovery scan {{name}}, {{time}}.": "Прочитано по SNMP сканированием обнаружения {{name}}, {{time}}.",
+  "Worked out from its name and what it reports": "Определено по имени и сообщаемым данным",
+  "Nothing has been read from this device yet. Its details fill in after its first SNMP walk, or the next discovery scan of its address.": "С этого устройства ещё ничего не прочитано. Сведения появятся после первого SNMP-обхода или следующего сканирования обнаружения его адреса."
 }

@@ -33672,8 +33672,11 @@
   "Reported by its collector, {{time}}.": "由其采集器报告：{{time}}。",
   "Saved on this device": "已保存在此设备上",
   "The address its probe polls": "其探测器轮询的地址",
-  "Worked out from what it reports": "根据其报告的信息推断",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them.": "{{count}} 项信息未知：此设备的 SNMP 轮询和发现扫描都未找到。",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them._one": "{{count}} 项信息未知：此设备的 SNMP 轮询和发现扫描都未找到。",
-  "{{source}} says {{value}}": "{{source}}显示为 {{value}}"
+  "{{source}} says {{value}}": "{{source}}显示为 {{value}}",
+  "Read over SNMP by a discovery scan, {{time}}.": "由发现扫描通过 SNMP 读取：{{time}}。",
+  "Read over SNMP by discovery scan {{name}}, {{time}}.": "由发现扫描 {{name}} 通过 SNMP 读取：{{time}}。",
+  "Worked out from its name and what it reports": "根据其名称和报告的信息推断",
+  "Nothing has been read from this device yet. Its details fill in after its first SNMP walk, or the next discovery scan of its address.": "尚未从此设备读取任何信息。首次 SNMP 遍历或下一次对其地址的发现扫描之后，将填入其详细信息。"
 }

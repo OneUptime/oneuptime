@@ -33672,8 +33672,11 @@
   "Reported by its collector, {{time}}.": "Informado pelo seu coletor, {{time}}.",
   "Saved on this device": "Salvo neste dispositivo",
   "The address its probe polls": "O endereço que a sua sonda consulta",
-  "Worked out from what it reports": "Deduzido do que ele informa",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them.": "{{count}} dados são desconhecidos: nem a sondagem SNMP deste dispositivo nem uma varredura de descoberta os encontraram.",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them._one": "{{count}} dado é desconhecido: nem a sondagem SNMP deste dispositivo nem uma varredura de descoberta o encontraram.",
-  "{{source}} says {{value}}": "{{source}} indica {{value}}"
+  "{{source}} says {{value}}": "{{source}} indica {{value}}",
+  "Read over SNMP by a discovery scan, {{time}}.": "Lido via SNMP por uma varredura de descoberta, {{time}}.",
+  "Read over SNMP by discovery scan {{name}}, {{time}}.": "Lido via SNMP pela varredura de descoberta {{name}}, {{time}}.",
+  "Worked out from its name and what it reports": "Deduzido do nome e do que ele informa",
+  "Nothing has been read from this device yet. Its details fill in after its first SNMP walk, or the next discovery scan of its address.": "Nada foi lido deste dispositivo ainda. Os detalhes aparecem depois do primeiro walk SNMP ou da próxima varredura de descoberta do endereço dele."
 }

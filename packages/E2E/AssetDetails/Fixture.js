@@ -11,6 +11,7 @@ import { initReactI18next } from "react-i18next";
 import "Common/UI/Styles/Theme.css";
 import InventoryAssetDetailsCard from "../../App/FeatureSet/Dashboard/src/Components/Inventory/InventoryAssetDetailsCard";
 import DeviceInventoryCard from "../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceInventoryCard";
+import NetworkDeviceView from "../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/View/Index";
 import JA from "../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 import DE from "../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
@@ -35,18 +36,27 @@ import {
 import { getNetworkDeviceAssetFacts } from "Common/Utils/NetworkDevice/NetworkDeviceAssetFacts";
 
 /*
- * The fixture page: the real Asset Details card of an Inventory item and the
- * real Inventory card of a network device's Overview (OneUptime issue
- * #5185), with the API answered from an in-page store
- * (window.__assetDetailsFixture) the specs read - which reads each card made.
+ * The fixture page: the real Asset Details card of an Inventory item, the
+ * real Inventory card of a network device's Overview, and the real Overview
+ * page itself (OneUptime issue #5185), with the API answered from an in-page
+ * store (window.__assetDetailsFixture) the specs read - which reads each
+ * card made.
  *
  *   ?page=      item (default: Inventory's Asset Details card)
  *               | device (the device Overview's Inventory card)
+ *               | overview (the device's Overview page, opened at
+ *               /network-devices/<device id>; server.js stands its other
+ *               cards in with placeholders, each a story of its own)
  *   ?scenario=  pinged (default: a switch OneUptime only pings, its details
  *               from a discovery scan, its MAC from a router's ARP table)
+ *               | refound (the same, found at its address again ten
+ *               minutes ago without answering SNMP)
  *               | walked (a switch walked over SNMP three minutes ago)
+ *               | stale (a switch walked three days ago, scanned since)
  *               | disagree (a MAC and a DNS name someone saved, which
  *               discovery reads differently)
+ *               | typed (a MAC and a DNS name typed on the device, and
+ *               nothing discovery read)
  *               | other (a scan found another machine at the address)
  *               | dns (a firewall polled at a DNS name; its probe resolved
  *               the address)
@@ -182,8 +192,18 @@ const DEVICES = {
   pinged: {
     name: "edge-sw-07",
     hostname: "10.20.12.7",
+    description: "Access switch in the store's back office.",
     site: { name: "Store 12" },
     discoveredDetails: scanDetails(),
+  },
+  refound: {
+    name: "edge-sw-07",
+    hostname: "10.20.12.7",
+    site: { name: "Store 12" },
+    discoveredDetails: {
+      ...scanDetails(),
+      foundBy: { readBy: scan, readAt: minutesAgo(10) },
+    },
   },
   walked: {
     name: "core-sw-01",
@@ -217,6 +237,43 @@ const DEVICES = {
       ),
       foundBy: { readBy: scan, readAt: minutesAgo(70) },
     },
+  },
+  // Walked three days ago (its credentials changed since); scanned since.
+  stale: {
+    name: "core-sw-02",
+    hostname: "10.20.0.2",
+    sysName: "core-sw-02",
+    sysDescr:
+      "Cisco IOS Software [Gibraltar], Catalyst L3 Switch Software (CAT3K_CAA-UNIVERSALK9-M), Version 16.9.1, RELEASE SOFTWARE (fc2)",
+    sysObjectId: "1.3.6.1.4.1.9.1.1745",
+    sysLocation: "DC1, Rack 12",
+    vendor: "Cisco",
+    deviceModel: "WS-C3850-48P",
+    serialNumber: "FOC1840X0AC",
+    firmwareVersion: "16.9.1",
+    softwareVersion: "16.09.01",
+    lastSnmpSeenAt: minutesAgo(3 * 24 * 60),
+    site: { name: "London DC1" },
+    discoveredDetails: {
+      sysName: discovered("core-sw-02", "snmp", scan, 120),
+      sysDescr: discovered(
+        "Cisco IOS Software [Gibraltar], Catalyst L3 Switch Software (CAT3K_CAA-UNIVERSALK9-M), Version 16.12.4, RELEASE SOFTWARE (fc5)",
+        "snmp",
+        scan,
+        120,
+      ),
+      sysObjectId: discovered("1.3.6.1.4.1.9.1.1745", "snmp", scan, 120),
+      sysLocation: discovered("DC1, Rack 12", "snmp", scan, 120),
+      sysContact: discovered("netops@acme.example", "snmp", scan, 120),
+      foundBy: { readBy: scan, readAt: minutesAgo(120) },
+    },
+  },
+  typed: {
+    name: "lab-fw",
+    hostname: "10.99.0.1",
+    dnsName: "lab-fw.lab.acme.example",
+    macAddress: "00:1b:54:c2:7a:99",
+    isMacAddressLearned: false,
   },
   disagree: {
     name: "printer-3",
@@ -416,6 +473,8 @@ function Shell() {
       >
         {page === "device" ? (
           <DeviceInventoryCard modelId={new ObjectID(DEVICE_ID)} />
+        ) : page === "overview" ? (
+          <NetworkDeviceView />
         ) : (
           <InventoryAssetDetailsCard
             item={scenario === "host" ? hostItem() : mirroredItem()}

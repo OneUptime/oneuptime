@@ -8,6 +8,65 @@
 const fs = require("fs");
 const http = require("http");
 const path = require("path");
+
+/*
+ * The device Overview's other cards - its health, interfaces, attachment,
+ * diagnostics, monitors and the vendor template offer - each read a backend
+ * of their own and are each covered by suites of their own. Here they are
+ * placeholders, so the page around the Device Details and Inventory cards is
+ * the real one without modelling every read those cards make.
+ */
+const OVERVIEW_PLACEHOLDERS = {
+  DeviceStatusHero: "Health",
+  DeviceInterfacesPreview: "Interfaces",
+  DeviceAttachmentCard: "Attached to",
+  DeviceDiagnosticsCard: "Diagnostics",
+  DeviceMonitorsCard: "Monitors",
+  DeviceVendorTemplateBanner: null,
+};
+
+const overviewPlaceholders = {
+  name: "asset-details-overview-placeholders",
+  setup(build) {
+    build.onResolve(
+      {
+        filter:
+          /\/NetworkDevice\/(DeviceStatusHero|DeviceInterfacesPreview|DeviceAttachmentCard|DeviceDiagnosticsCard|DeviceMonitorsCard|DeviceVendorTemplateBanner|DeviceMonitorLookupUtil)$/,
+      },
+      (args) => {
+        return {
+          path: args.path.split("/").pop(),
+          namespace: "asset-details-placeholder",
+        };
+      },
+    );
+    build.onLoad(
+      { filter: /.*/, namespace: "asset-details-placeholder" },
+      (args) => {
+        const resolveDir = path.join(
+          repository,
+          "packages/App/FeatureSet/Dashboard/src",
+        );
+        if (args.path === "DeviceMonitorLookupUtil") {
+          return {
+            contents:
+              "export default class DeviceMonitorLookupUtil { static async getDeviceMonitorContext() { return { monitors: [], isMonitorBacked: true }; } }",
+            loader: "js",
+            resolveDir: resolveDir,
+          };
+        }
+        const label = OVERVIEW_PLACEHOLDERS[args.path];
+        return {
+          contents: label
+            ? `import React from "react"; export default function Placeholder() { return React.createElement("div", { className: "rounded-lg border border-dashed border-gray-300 px-4 py-3 text-xs text-gray-400", "data-testid": "overview-placeholder" }, ${JSON.stringify(label)}); }`
+            : "export default function Placeholder() { return null; }",
+          loader: "jsx",
+          resolveDir: resolveDir,
+        };
+      },
+    );
+  },
+};
 const { createConfig } = require("../../Common/UI/esbuild-config.js");
 const esbuild = require("../../Common/node_modules/esbuild");
 
@@ -30,6 +89,7 @@ const config = createConfig({
       "packages/Common/node_modules/react-dom",
     ),
   },
+  additionalPlugins: [overviewPlaceholders],
 });
 config.target = "es2022";
 config.loader[".js"] = "jsx";

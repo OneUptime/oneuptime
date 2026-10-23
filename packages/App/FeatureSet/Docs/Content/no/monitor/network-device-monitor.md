@@ -512,7 +512,7 @@ En enhet med bare ping beholder navnet og adressen du, eller en discovery-skanni
 - MAC-adressen, fra ARP-tabellen i en gjennomgått ruter på stedet.
 - For en enhet som polles på et DNS-navn, adressen sonden slo opp navnet til.
 
-Disse lagres ved siden av enhetens egne felter, skrives aldri inn i dem, og hver skanning, ruter-walk eller polling som leser en av dem på nytt, oppdaterer den. Under hver verdi viser enhetens oversikt og elementet i inventaret hvilken skanning, ruter eller sonde som leste den, og når. En verdi du har lagret på enheten, erstattes aldri. Når en skanning finner en annen maskin på enhetens adresse, for eksempel en DHCP-leie som har flyttet seg, sier oversikten det, og ingenting av det den skanningen leste der, brukes.
+Disse lagres ved siden av enhetens egne felter, skrives aldri inn i dem, og hver skanning, ruter-walk eller polling som leser en av dem på nytt, oppdaterer den. Enhetens oversikt og elementet i inventaret viser hvilken skanning, ruter eller sonde som leste hver verdi, og når. En verdi du har lagret på enheten, erstattes aldri. Når en skanning finner en annen maskin på enhetens adresse, for eksempel en DHCP-leie som har flyttet seg, sier oversikten det, og ingenting av det den skanningen leste der, brukes.
 
 ## Finn enheter med en nettverksskanning
 

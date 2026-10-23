@@ -33672,8 +33672,11 @@
   "Reported by its collector, {{time}}.": "Reported by its collector, {{time}}.",
   "Saved on this device": "Saved on this device",
   "The address its probe polls": "The address its probe polls",
-  "Worked out from what it reports": "Worked out from what it reports",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them.": "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them.",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them._one": "{{count}} detail is unknown: neither this device's SNMP poll nor a discovery scan has found it.",
-  "{{source}} says {{value}}": "{{source}} says {{value}}"
+  "{{source}} says {{value}}": "{{source}} says {{value}}",
+  "Read over SNMP by a discovery scan, {{time}}.": "Read over SNMP by a discovery scan, {{time}}.",
+  "Read over SNMP by discovery scan {{name}}, {{time}}.": "Read over SNMP by discovery scan {{name}}, {{time}}.",
+  "Worked out from its name and what it reports": "Worked out from its name and what it reports",
+  "Nothing has been read from this device yet. Its details fill in after its first SNMP walk, or the next discovery scan of its address.": "Nothing has been read from this device yet. Its details fill in after its first SNMP walk, or the next discovery scan of its address."
 }

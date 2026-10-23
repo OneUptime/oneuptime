@@ -512,7 +512,7 @@ Un équipement seulement pingué garde le nom et l'adresse que vous, ou une anal
 - Son adresse MAC, à partir de la table ARP d'un routeur parcouru de son site.
 - Pour un équipement interrogé par un nom DNS, l'adresse en laquelle sa sonde a résolu ce nom.
 
-Ces valeurs sont conservées à côté des champs de l'équipement, jamais écrites dedans, et chaque analyse, parcours de routeur ou interrogation qui en relit une la met à jour. Sous chaque valeur, l'aperçu de l'équipement et son élément d'inventaire indiquent quelle analyse, quel routeur ou quelle sonde l'a lue, et quand. Une valeur que vous avez enregistrée sur l'équipement n'est jamais remplacée. Quand une analyse trouve une autre machine à l'adresse de l'équipement, par exemple un bail DHCP qui a changé, l'aperçu le signale, et rien de ce que cette analyse y a lu n'est utilisé.
+Ces valeurs sont conservées à côté des champs de l'équipement, jamais écrites dedans, et chaque analyse, parcours de routeur ou interrogation qui en relit une la met à jour. L'aperçu de l'équipement et son élément d'inventaire indiquent quelle analyse, quel routeur ou quelle sonde a lu chaque valeur, et quand. Une valeur que vous avez enregistrée sur l'équipement n'est jamais remplacée. Quand une analyse trouve une autre machine à l'adresse de l'équipement, par exemple un bail DHCP qui a changé, l'aperçu le signale, et rien de ce que cette analyse y a lu n'est utilisé.
 
 ## Découvrir des équipements par une analyse réseau
 

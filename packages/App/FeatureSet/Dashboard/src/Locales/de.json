@@ -33672,8 +33672,11 @@
   "Reported by its collector, {{time}}.": "Von seinem Collector gemeldet, {{time}}.",
   "Saved on this device": "Auf diesem Gerät gespeichert",
   "The address its probe polls": "Die Adresse, die seine Sonde abfragt",
-  "Worked out from what it reports": "Aus seinen eigenen Angaben ermittelt",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them.": "{{count}} Angaben sind unbekannt: Weder die SNMP-Abfrage dieses Geräts noch ein Erkennungsscan hat sie gefunden.",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them._one": "{{count}} Angabe ist unbekannt: Weder die SNMP-Abfrage dieses Geräts noch ein Erkennungsscan hat sie gefunden.",
-  "{{source}} says {{value}}": "{{source}} meldet {{value}}"
+  "{{source}} says {{value}}": "{{source}} meldet {{value}}",
+  "Read over SNMP by a discovery scan, {{time}}.": "Von einem Erkennungsscan über SNMP gelesen, {{time}}.",
+  "Read over SNMP by discovery scan {{name}}, {{time}}.": "Von Erkennungsscan {{name}} über SNMP gelesen, {{time}}.",
+  "Worked out from its name and what it reports": "Aus seinem Namen und seinen eigenen Angaben ermittelt",
+  "Nothing has been read from this device yet. Its details fill in after its first SNMP walk, or the next discovery scan of its address.": "Von diesem Gerät wurde noch nichts gelesen. Seine Angaben erscheinen nach seinem ersten SNMP-Walk oder dem nächsten Erkennungsscan seiner Adresse."
 }

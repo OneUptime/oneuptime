@@ -33672,8 +33672,11 @@
   "Reported by its collector, {{time}}.": "コレクターが報告しました ({{time}})。",
   "Saved on this device": "このデバイスに保存済み",
   "The address its probe polls": "プローブがポーリングするアドレス",
-  "Worked out from what it reports": "報告内容から判定",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them.": "{{count}} 件の項目が不明です: このデバイスの SNMP ポーリングでも検出スキャンでも見つかっていません。",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them._one": "{{count}} 件の項目が不明です: このデバイスの SNMP ポーリングでも検出スキャンでも見つかっていません。",
-  "{{source}} says {{value}}": "{{source}}では {{value}}"
+  "{{source}} says {{value}}": "{{source}}では {{value}}",
+  "Read over SNMP by a discovery scan, {{time}}.": "検出スキャンが SNMP で読み取りました ({{time}})。",
+  "Read over SNMP by discovery scan {{name}}, {{time}}.": "検出スキャン {{name}} が SNMP で読み取りました ({{time}})。",
+  "Worked out from its name and what it reports": "名前と報告内容から判定",
+  "Nothing has been read from this device yet. Its details fill in after its first SNMP walk, or the next discovery scan of its address.": "このデバイスからはまだ何も読み取られていません。最初の SNMP ウォーク、またはこのアドレスに対する次の検出スキャンの後に詳細が入ります。"
 }

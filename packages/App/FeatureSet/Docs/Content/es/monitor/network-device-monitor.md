@@ -512,7 +512,7 @@ Un dispositivo solo con ping conserva el nombre y la dirección que le diste tú
 - Su dirección MAC, de la tabla ARP de un router recorrido de su sitio.
 - Para un dispositivo sondeado por un nombre DNS, la dirección a la que su sonda resolvió ese nombre.
 
-Estos datos se guardan junto a los campos propios del dispositivo, nunca dentro de ellos, y cada escaneo, recorrido de router o sondeo que vuelve a leer uno lo pone al día. Bajo cada valor, la vista general del dispositivo y su elemento del inventario indican qué escaneo, router o sonda lo leyó, y cuándo. Un valor que guardaste en el dispositivo nunca se sustituye. Cuando un escaneo encuentra otra máquina en la dirección del dispositivo, como una concesión DHCP que se movió, la vista general lo indica, y no se usa nada de lo que ese escaneo leyó allí.
+Estos datos se guardan junto a los campos propios del dispositivo, nunca dentro de ellos, y cada escaneo, recorrido de router o sondeo que vuelve a leer uno lo pone al día. La vista general del dispositivo y su elemento del inventario indican qué escaneo, router o sonda leyó cada valor, y cuándo. Un valor que guardaste en el dispositivo nunca se sustituye. Cuando un escaneo encuentra otra máquina en la dirección del dispositivo, como una concesión DHCP que se movió, la vista general lo indica, y no se usa nada de lo que ese escaneo leyó allí.
 
 ## Descubrir dispositivos con un escaneo de red
 

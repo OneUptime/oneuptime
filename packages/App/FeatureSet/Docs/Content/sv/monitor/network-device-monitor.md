@@ -512,7 +512,7 @@ En enhet med bara ping behåller det namn och den adress som du, eller en discov
 - Dess MAC-adress, från ARP-tabellen i en genomgången router på dess plats.
 - För en enhet som pollas på ett DNS-namn, adressen som dess sond slog upp namnet till.
 
-De sparas bredvid enhetens egna fält, skrivs aldrig in i dem, och varje skanning, router-walk eller pollning som läser något av dem igen uppdaterar det. Under varje värde visar enhetens översikt och dess objekt i inventariet vilken skanning, router eller sond som läste det, och när. Ett värde som du har sparat på enheten ersätts aldrig. När en skanning hittar en annan maskin på enhetens adress, till exempel ett DHCP-lån som har flyttat, säger översikten det, och inget av det som den skanningen läste där används.
+De sparas bredvid enhetens egna fält, skrivs aldrig in i dem, och varje skanning, router-walk eller pollning som läser något av dem igen uppdaterar det. Enhetens översikt och dess objekt i inventariet visar vilken skanning, router eller sond som läste varje värde, och när. Ett värde som du har sparat på enheten ersätts aldrig. När en skanning hittar en annan maskin på enhetens adress, till exempel ett DHCP-lån som har flyttat, säger översikten det, och inget av det som den skanningen läste där används.
 
 ## Upptäck enheter med en nätverksskanning
 

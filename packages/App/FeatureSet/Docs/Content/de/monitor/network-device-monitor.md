@@ -512,7 +512,7 @@ Ein nur angepingtes Gerät behält den Namen und die Adresse, die Sie oder ein E
 - Seine MAC-Adresse, aus der ARP-Tabelle eines abgefragten Routers an seinem Standort.
 - Bei einem Gerät, das über einen DNS-Namen abgefragt wird, die Adresse, in die seine Sonde den Namen aufgelöst hat.
 
-Diese Angaben werden neben den eigenen Feldern des Geräts gespeichert, nie in sie geschrieben, und jeder Scan, Router-Walk oder jede Abfrage, die eine davon erneut liest, bringt sie auf den neuesten Stand. Unter jedem Wert zeigen die Übersicht des Geräts und sein Element im Inventar, welcher Scan, welcher Router oder welche Sonde ihn gelesen hat und wann. Einen Wert, den Sie am Gerät gespeichert haben, ersetzt nichts. Findet ein Scan unter der Adresse des Geräts eine andere Maschine, etwa wegen eines umgezogenen DHCP-Leases, sagt die Übersicht das, und nichts, was dieser Scan dort gelesen hat, wird verwendet.
+Diese Angaben werden neben den eigenen Feldern des Geräts gespeichert, nie in sie geschrieben, und jeder Scan, Router-Walk oder jede Abfrage, die eine davon erneut liest, bringt sie auf den neuesten Stand. Die Übersicht des Geräts und sein Element im Inventar zeigen, welcher Scan, welcher Router oder welche Sonde jeden Wert gelesen hat und wann. Einen Wert, den Sie am Gerät gespeichert haben, ersetzt nichts. Findet ein Scan unter der Adresse des Geräts eine andere Maschine, etwa wegen eines umgezogenen DHCP-Leases, sagt die Übersicht das, und nichts, was dieser Scan dort gelesen hat, wird verwendet.
 
 ## Geräte mit einem Netzwerkscan erkennen
 

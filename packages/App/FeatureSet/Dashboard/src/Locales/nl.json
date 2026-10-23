@@ -33672,8 +33672,11 @@
   "Reported by its collector, {{time}}.": "Gemeld door de collector, {{time}}.",
   "Saved on this device": "Opgeslagen op dit apparaat",
   "The address its probe polls": "Het adres dat de sonde pollt",
-  "Worked out from what it reports": "Afgeleid uit wat het meldt",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them.": "{{count}} gegevens zijn onbekend: noch de SNMP-poll van dit apparaat noch een detectiescan heeft ze gevonden.",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them._one": "{{count}} gegeven is onbekend: noch de SNMP-poll van dit apparaat noch een detectiescan heeft het gevonden.",
-  "{{source}} says {{value}}": "{{source}} meldt {{value}}"
+  "{{source}} says {{value}}": "{{source}} meldt {{value}}",
+  "Read over SNMP by a discovery scan, {{time}}.": "Via SNMP gelezen door een detectiescan, {{time}}.",
+  "Read over SNMP by discovery scan {{name}}, {{time}}.": "Via SNMP gelezen door detectiescan {{name}}, {{time}}.",
+  "Worked out from its name and what it reports": "Afgeleid uit de naam en wat het meldt",
+  "Nothing has been read from this device yet. Its details fill in after its first SNMP walk, or the next discovery scan of its address.": "Er is nog niets van dit apparaat gelezen. De gegevens verschijnen na de eerste SNMP-walk of de volgende detectiescan van het adres."
 }

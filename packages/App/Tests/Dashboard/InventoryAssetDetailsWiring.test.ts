@@ -236,12 +236,15 @@ describe("the card reads in every Dashboard language", () => {
       "DNS lookup by its probe ({{name}})",
       "Saved on this device",
       "The address its probe polls",
-      "Worked out from what it reports",
+      "Worked out from its name and what it reports",
       "{{source}} says {{value}}",
       "Last found at its address by discovery scan {{name}}, {{time}}.",
       "Discovery scan {{name}} found another machine at this address {{time}} ({{machine}}), so nothing it read there is used.",
       "Reported by its collector, {{time}}.",
       "Read over SNMP by its probe, {{time}}.",
+      // The scan a device its poll has not read was read by, said once.
+      "Read over SNMP by discovery scan {{name}}, {{time}}.",
+      "Read over SNMP by a discovery scan, {{time}}.",
     ];
 
     for (const [locale, entries] of Object.entries(all)) {

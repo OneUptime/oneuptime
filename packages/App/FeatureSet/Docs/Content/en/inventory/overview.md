@@ -74,7 +74,7 @@ A host or a network device has an **Asset Details** card that describes both the
 - A host's facts come from the resource attributes on its telemetry: its IP and MAC addresses, architecture and operating system out of the box, and its serial number, make, model and firmware once you stamp them on.
 - A network device's facts come from its SNMP poll, its role and its site. What its poll has not read comes from discovery: the last scan of its address, a router's ARP table, or its probe's DNS lookup. A device without ENTITY-MIB, such as a Meraki MX, still gets its make and model from its system description. Its IP address is never shown as its hostname.
 
-Under each fact, the card says where it came from and when: a discovery scan, a router's ARP table, a value saved on the device. A host's collector, and a network device's own SNMP poll, are named once, below the facts. A value saved on a network device is never replaced by what discovery reads, and when the two differ, the card shows both.
+The card says where each fact came from and when. The source most facts share, such as a host's collector, a network device's own SNMP poll or the discovery scan that read it, is named once, below the facts. Any other source, such as a router's ARP table or a value saved on the device, is named under its fact. A value saved on a network device is never replaced by what discovery reads, and when the two differ, the card shows both.
 
 The same facts are columns of the **All Items** list, hidden until you turn them on, and they go into its CSV export. [Exporting to a CMDB](/docs/inventory/cmdb-sync#asset-details) lists their keys.
 

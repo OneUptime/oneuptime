@@ -33672,8 +33672,11 @@
   "Reported by its collector, {{time}}.": "Rapporterat av dess collector, {{time}}.",
   "Saved on this device": "Sparad på den här enheten",
   "The address its probe polls": "Adressen som dess sond läser av",
-  "Worked out from what it reports": "Härlett ur det den rapporterar",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them.": "{{count}} uppgifter är okända: varken den här enhetens SNMP-avläsning eller en upptäcktsskanning har hittat dem.",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them._one": "{{count}} uppgift är okänd: varken den här enhetens SNMP-avläsning eller en upptäcktsskanning har hittat den.",
-  "{{source}} says {{value}}": "{{source}} anger {{value}}"
+  "{{source}} says {{value}}": "{{source}} anger {{value}}",
+  "Read over SNMP by a discovery scan, {{time}}.": "Läst via SNMP av en upptäcktsskanning, {{time}}.",
+  "Read over SNMP by discovery scan {{name}}, {{time}}.": "Läst via SNMP av upptäcktsskanningen {{name}}, {{time}}.",
+  "Worked out from its name and what it reports": "Härlett ur namnet och det den rapporterar",
+  "Nothing has been read from this device yet. Its details fill in after its first SNMP walk, or the next discovery scan of its address.": "Inget har lästs från den här enheten ännu. Uppgifterna fylls i efter den första SNMP-walken eller nästa upptäcktsskanning av adressen."
 }

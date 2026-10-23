@@ -8,17 +8,25 @@ import {
   FOUND_BY_UNNAMED_TEMPLATE,
   OTHER_MACHINE_TEMPLATE,
   OTHER_MACHINE_UNNAMED_TEMPLATE,
+  SCAN_READ_TEMPLATE,
+  SCAN_READ_UNNAMED_TEMPLATE,
   SNMP_POLL_TEMPLATE,
   getAssetFactDifferenceLine,
+  getAssetFactExactTime,
   getAssetFactSourceLine,
   getAssetFactSourceText,
   getCollectorLine,
   getFoundByLine,
-  getNativeSourceLine,
   getOtherMachineIdentity,
   getOtherMachineLine,
+  getScanReadLine,
+  getSharedAssetFactSource,
+  getSharedSourceLine,
   getSnmpPollLine,
   isNativeAssetFactSource,
+  isSameAssetFactSource,
+  isSightingSaidBySharedSource,
+  isUndisputedSavedValue,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Inventory/AssetFactSourceText";
 import {
   NetworkDeviceDiscoveryMethod,
@@ -186,7 +194,10 @@ describe("where a detail came from", () => {
     [AssetFactSourceKind.PolledAddress, "The address its probe polls"],
     [AssetFactSourceKind.AssignedRole, "Its assigned role"],
     [AssetFactSourceKind.Site, "Its site"],
-    [AssetFactSourceKind.Classified, "Worked out from what it reports"],
+    [
+      AssetFactSourceKind.Classified,
+      "Worked out from its name and what it reports",
+    ],
     [AssetFactSourceKind.Collector, "Its collector"],
     [AssetFactSourceKind.CloudPlacement, "Its cloud zone"],
   ])("%s", (kind: AssetFactSourceKind, expected: string) => {
@@ -377,7 +388,7 @@ describe("the lines said once, below the details", () => {
     expect(getSnmpPollLine("not a time", english, NOW)).toBeUndefined();
   });
 
-  test("only a collector and a device's own poll are said once", () => {
+  test("a machine's own source is its collector or its own poll", () => {
     for (const kind of Object.values(AssetFactSourceKind)) {
       const isNative: boolean =
         kind === AssetFactSourceKind.Collector ||
@@ -391,23 +402,24 @@ describe("the lines said once, below the details", () => {
     expect(isNativeAssetFactSource(undefined)).toBe(false);
   });
 
-  test("the native line follows its source", () => {
+  test("the line said once follows its source", () => {
     expect(
-      getNativeSourceLine(
+      getSharedSourceLine(
         { kind: AssetFactSourceKind.Collector, readAt: THREE_MINUTES_AGO },
         english,
         NOW,
       ),
     ).toBe("Reported by its collector, 3 minutes ago.");
     expect(
-      getNativeSourceLine(
+      getSharedSourceLine(
         { kind: AssetFactSourceKind.SnmpPoll, readAt: THREE_MINUTES_AGO },
         english,
         NOW,
       ),
     ).toBe("Read over SNMP by its probe, 3 minutes ago.");
+    // A device its own poll has not read: the scan that read it over SNMP.
     expect(
-      getNativeSourceLine(
+      getSharedSourceLine(
         discovered(
           NetworkDeviceDiscoveryMethod.Snmp,
           "Store subnets",
@@ -416,8 +428,284 @@ describe("the lines said once, below the details", () => {
         english,
         NOW,
       ),
+    ).toBe("Read over SNMP by discovery scan Store subnets, 2 hours ago.");
+    expect(
+      getSharedSourceLine(
+        discovered(NetworkDeviceDiscoveryMethod.Snmp, undefined, TWO_HOURS_AGO),
+        english,
+        NOW,
+      ),
+    ).toBe("Read over SNMP by a discovery scan, 2 hours ago.");
+    // One detail's source is said under it, never once below.
+    expect(
+      getSharedSourceLine(
+        discovered(
+          NetworkDeviceDiscoveryMethod.ReverseDns,
+          "Store subnets",
+          TWO_HOURS_AGO,
+        ),
+        english,
+        NOW,
+      ),
     ).toBeUndefined();
-    expect(getNativeSourceLine(undefined, english, NOW)).toBeUndefined();
+    expect(
+      getSharedSourceLine({ kind: AssetFactSourceKind.Saved }, english, NOW),
+    ).toBeUndefined();
+    expect(getSharedSourceLine(undefined, english, NOW)).toBeUndefined();
+  });
+
+  test("a scan's reading, said once, with when", () => {
+    const scan: AssetFactSource = discovered(
+      NetworkDeviceDiscoveryMethod.Snmp,
+      "Store subnets",
+      TWO_HOURS_AGO,
+    );
+
+    expect(getScanReadLine(scan.readBy, TWO_HOURS_AGO, english, NOW)).toBe(
+      "Read over SNMP by discovery scan Store subnets, 2 hours ago.",
+    );
+    // With no time there is nothing worth saying once.
+    expect(getScanReadLine(scan.readBy, undefined, english, NOW)).toBe(
+      undefined,
+    );
+    expect(getScanReadLine(scan.readBy, "soon", english, NOW)).toBe(undefined);
+  });
+});
+
+/*
+ * The source a card says ONCE, below its details: the reading most of them
+ * came from (UI review of #5185). Under each of a ping-only switch's seven
+ * details, "Discovery scan Store subnets (SNMP) · 2 hours ago" said the same
+ * thing seven times and buried the one detail that came from elsewhere.
+ */
+describe("the source said once, below the details", () => {
+  const SCAN: AssetFactSource = discovered(
+    NetworkDeviceDiscoveryMethod.Snmp,
+    "Store subnets",
+    TWO_HOURS_AGO,
+  );
+  const POLL: AssetFactSource = {
+    kind: AssetFactSourceKind.SnmpPoll,
+    readAt: THREE_MINUTES_AGO,
+  };
+  const ARP: AssetFactSource = discovered(
+    NetworkDeviceDiscoveryMethod.ArpTable,
+    "core-rtr-01",
+    TWO_HOURS_AGO,
+  );
+  const REVERSE_DNS: AssetFactSource = discovered(
+    NetworkDeviceDiscoveryMethod.ReverseDns,
+    "Store subnets",
+    TWO_HOURS_AGO,
+  );
+  const POLLED_ADDRESS: AssetFactSource = {
+    kind: AssetFactSourceKind.PolledAddress,
+  };
+  const CLASSIFIED: AssetFactSource = {
+    kind: AssetFactSourceKind.Classified,
+  };
+
+  // The same reading, as another detail carries it.
+  function copyOf(source: AssetFactSource): AssetFactSource {
+    return JSON.parse(JSON.stringify(source)) as AssetFactSource;
+  }
+
+  test("a ping-only switch: the scan that read its SNMP system group", () => {
+    const shared: AssetFactSource | undefined = getSharedAssetFactSource([
+      copyOf(SCAN), // hostname
+      POLLED_ADDRESS, // IP address
+      ARP, // MAC address
+      undefined, // serial number: unknown
+      copyOf(SCAN), // manufacturer
+      copyOf(SCAN), // operating system
+      copyOf(SCAN), // OS version
+      CLASSIFIED, // device type
+      copyOf(SCAN), // location
+      REVERSE_DNS, // DNS name
+      copyOf(SCAN), // system description
+    ]);
+
+    expect(shared).toEqual(SCAN);
+    expect(isSameAssetFactSource(shared, copyOf(SCAN))).toBe(true);
+    // Everything else still says where it came from.
+    for (const other of [POLLED_ADDRESS, ARP, CLASSIFIED, REVERSE_DNS]) {
+      expect(isSameAssetFactSource(other, shared)).toBe(false);
+    }
+  });
+
+  test("a walked device: its own poll, even for a single detail", () => {
+    expect(getSharedAssetFactSource([POLL, ARP, REVERSE_DNS])).toEqual(POLL);
+  });
+
+  test("a machine's own source wins a tie with a scan", () => {
+    expect(
+      getSharedAssetFactSource([
+        copyOf(SCAN),
+        copyOf(SCAN),
+        copyOf(POLL),
+        copyOf(POLL),
+      ]),
+    ).toEqual(POLL);
+  });
+
+  test("a scan that read more than the device's last poll is said once instead", () => {
+    // A switch walked three days ago, scanned two hours ago.
+    const oldPoll: AssetFactSource = {
+      kind: AssetFactSourceKind.SnmpPoll,
+      readAt: "2026-10-20T12:00:00.000Z",
+    };
+
+    expect(
+      getSharedAssetFactSource([
+        copyOf(SCAN),
+        copyOf(SCAN),
+        copyOf(SCAN),
+        oldPoll,
+        copyOf(oldPoll),
+      ]),
+    ).toEqual(SCAN);
+  });
+
+  test("a scan that gave one detail says so under it", () => {
+    expect(getSharedAssetFactSource([SCAN, ARP, POLLED_ADDRESS])).toBe(
+      undefined,
+    );
+  });
+
+  test("a source that only ever gives one detail is never said once", () => {
+    expect(
+      getSharedAssetFactSource([
+        ARP,
+        copyOf(ARP),
+        REVERSE_DNS,
+        copyOf(REVERSE_DNS),
+        POLLED_ADDRESS,
+        POLLED_ADDRESS,
+        CLASSIFIED,
+        CLASSIFIED,
+        { kind: AssetFactSourceKind.Saved },
+        { kind: AssetFactSourceKind.Saved },
+        { kind: AssetFactSourceKind.AssignedRole },
+        { kind: AssetFactSourceKind.Site },
+        { kind: AssetFactSourceKind.CloudPlacement },
+      ]),
+    ).toBe(undefined);
+    expect(getSharedAssetFactSource([])).toBe(undefined);
+    expect(getSharedAssetFactSource([undefined, undefined])).toBe(undefined);
+  });
+
+  test("two runs of one scan are two readings", () => {
+    const earlier: AssetFactSource = discovered(
+      NetworkDeviceDiscoveryMethod.Snmp,
+      "Store subnets",
+      "2026-10-22T10:00:00.000Z",
+    );
+
+    expect(isSameAssetFactSource(SCAN, earlier)).toBe(false);
+    expect(getSharedAssetFactSource([SCAN, earlier])).toBe(undefined);
+  });
+
+  test("a reading is the same reading however its time is written", () => {
+    expect(
+      isSameAssetFactSource(
+        discovered(
+          NetworkDeviceDiscoveryMethod.Snmp,
+          "Store subnets",
+          "2026-10-23T10:00:00Z",
+        ),
+        discovered(
+          NetworkDeviceDiscoveryMethod.Snmp,
+          "Renamed since",
+          "2026-10-23T10:00:00.000Z",
+        ),
+      ),
+    ).toBe(true);
+    expect(isSameAssetFactSource(SCAN, REVERSE_DNS)).toBe(false);
+    expect(isSameAssetFactSource(SCAN, undefined)).toBe(false);
+    expect(isSameAssetFactSource(undefined, undefined)).toBe(false);
+  });
+
+  test("the scan that found the device is not said again when its reading is", () => {
+    const foundBy: {
+      readBy: { type: NetworkDeviceDiscoveryReaderType; id: string };
+      readAt: string;
+    } = {
+      readBy: {
+        type: NetworkDeviceDiscoveryReaderType.DiscoveryScan,
+        id: SCAN.readBy!.id,
+      },
+      readAt: TWO_HOURS_AGO,
+    };
+
+    expect(isSightingSaidBySharedSource(foundBy, SCAN)).toBe(true);
+    // Found again since, without reading it: worth saying.
+    expect(
+      isSightingSaidBySharedSource(
+        { ...foundBy, readAt: THREE_MINUTES_AGO },
+        SCAN,
+      ),
+    ).toBe(false);
+    // Another scan, the device's own poll, nothing said once.
+    expect(
+      isSightingSaidBySharedSource(
+        {
+          ...foundBy,
+          readBy: { ...foundBy.readBy, id: "another-scan" },
+        },
+        SCAN,
+      ),
+    ).toBe(false);
+    expect(isSightingSaidBySharedSource(foundBy, POLL)).toBe(false);
+    expect(isSightingSaidBySharedSource(foundBy, undefined)).toBe(false);
+    expect(isSightingSaidBySharedSource(undefined, SCAN)).toBe(false);
+  });
+
+  test("a saved value nothing disputes, and only that, goes unsaid on the device's own page", () => {
+    expect(
+      isUndisputedSavedValue({ kind: AssetFactSourceKind.Saved }, false),
+    ).toBe(true);
+    expect(
+      isUndisputedSavedValue({ kind: AssetFactSourceKind.Saved }, true),
+    ).toBe(false);
+    expect(isUndisputedSavedValue(SCAN, false)).toBe(false);
+    expect(isUndisputedSavedValue(undefined, false)).toBe(false);
+  });
+
+  test("the exact time is offered on hover, when there is one", () => {
+    const exact: string | undefined = getAssetFactExactTime(TWO_HOURS_AGO);
+
+    expect(typeof exact).toBe("string");
+    expect(exact).toContain("2026");
+    expect(getAssetFactExactTime(undefined)).toBe(undefined);
+    expect(getAssetFactExactTime("not a time")).toBe(undefined);
+  });
+
+  /*
+   * The docs say it the way the card does: the source most facts share is
+   * named once, below them, and every other source under its fact.
+   */
+  test("the Inventory docs say what the card does", () => {
+    const overview: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "..",
+        "App",
+        "FeatureSet",
+        "Docs",
+        "Content",
+        "en",
+        "inventory",
+        "overview.md",
+      ),
+      "utf8",
+    );
+
+    expect(overview).toContain(
+      "The source most facts share, such as a host's collector, a network device's own SNMP poll or the discovery scan that read it, is named once, below the facts. Any other source, such as a router's ARP table or a value saved on the device, is named under its fact.",
+    );
   });
 });
 
@@ -452,6 +740,19 @@ describe("in the reader's language", () => {
     ).toBe(
       "Zuletzt von Erkennungsscan Store subnets unter seiner Adresse gefunden, vor 2 Stunden.",
     );
+    expect(
+      getSharedSourceLine(
+        discovered(
+          NetworkDeviceDiscoveryMethod.Snmp,
+          "Store subnets",
+          TWO_HOURS_AGO,
+        ),
+        german,
+        NOW,
+      ),
+    ).toBe(
+      "Von Erkennungsscan Store subnets über SNMP gelesen, vor 2 Stunden.",
+    );
   });
 
   test("Japanese: the names stay as they are", () => {
@@ -471,6 +772,17 @@ describe("in the reader's language", () => {
     expect(getSnmpPollLine(THREE_MINUTES_AGO, japanese, NOW)).toBe(
       "プローブが SNMP で読み取りました (3 分前)。",
     );
+    expect(
+      getSharedSourceLine(
+        discovered(
+          NetworkDeviceDiscoveryMethod.Snmp,
+          "Store subnets",
+          TWO_HOURS_AGO,
+        ),
+        japanese,
+        NOW,
+      ),
+    ).toBe("検出スキャン Store subnets が SNMP で読み取りました (2 時間前)。");
   });
 
   /*
@@ -494,7 +806,7 @@ describe("in the reader's language", () => {
       "The address its probe polls",
       "Its assigned role",
       "Its site",
-      "Worked out from what it reports",
+      "Worked out from its name and what it reports",
       "Its collector",
       "Its cloud zone",
       DIFFERENT_VALUE_TEMPLATE,
@@ -504,6 +816,8 @@ describe("in the reader's language", () => {
       OTHER_MACHINE_UNNAMED_TEMPLATE,
       COLLECTOR_TEMPLATE,
       SNMP_POLL_TEMPLATE,
+      SCAN_READ_TEMPLATE,
+      SCAN_READ_UNNAMED_TEMPLATE,
     ];
 
     for (const code of LANGUAGES) {

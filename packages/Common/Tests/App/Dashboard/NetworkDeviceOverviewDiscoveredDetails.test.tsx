@@ -330,6 +330,36 @@ describe("the device Overview shows what discovery read, and which (issue #5185)
     expect(different).toHaveClass("text-amber-700");
   });
 
+  /*
+   * What is saved on the device is what its own page shows, like its Name
+   * and Hostname, which say nothing about where they came from (UI review):
+   * "Saved on this device" is said only above what discovery read
+   * differently.
+   */
+  test("a MAC and a DNS name typed on the device, which nothing disputes, carry no line", async () => {
+    await renderOverview(
+      device({
+        macAddress: "00:1b:54:c2:7a:01",
+        isMacAddressLearned: false,
+        dnsName: "register-4.store-24.acme.example",
+      }),
+    );
+
+    expect(textOf("network-device-details-macAddress")).toContain(
+      "00:1b:54:c2:7a:01",
+    );
+    expect(textOf("network-device-details-dnsName")).toContain(
+      "register-4.store-24.acme.example",
+    );
+    expect(
+      screen.queryByTestId("network-device-details-macAddress-source"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("network-device-details-dnsName-source"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Saved on this device")).not.toBeInTheDocument();
+  });
+
   test("the device's own poll is what the page shows by default: no line under it", async () => {
     await renderOverview(
       device({

@@ -512,7 +512,7 @@ A ping-only device keeps the name and address you, or a discovery scan, gave it.
 - Its MAC address, from the ARP table of a walked router in its site.
 - For a device polled at a DNS name, the address its probe resolved the name to.
 
-These are kept beside the device's own fields, never written into them, and each scan, router walk or poll that reads one again brings it up to date. Under each value, the device's Overview and its Inventory item say which scan, router or probe read it, and when. A value you saved on the device is never replaced. When a scan finds another machine at the device's address, such as a DHCP lease that moved, the Overview says so, and nothing that scan read there is used.
+These are kept beside the device's own fields, never written into them, and each scan, router walk or poll that reads one again brings it up to date. The device's Overview and its Inventory item say which scan, router or probe read each value, and when. A value you saved on the device is never replaced. When a scan finds another machine at the device's address, such as a DHCP lease that moved, the Overview says so, and nothing that scan read there is used.
 
 ## Discovering Devices with a Network Scan
 

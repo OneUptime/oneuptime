@@ -4,17 +4,24 @@ import path from "path";
 /*
  * Where each asset detail came from, and when (OneUptime issue #5185), end
  * to end in a browser, against the fixture's in-page API
- * (AssetDetails/Fixture.js): Inventory's Asset Details card and a network
- * device's own Inventory card, for a switch OneUptime only pings (its details
- * from a discovery scan, its MAC from a router's ARP table), a switch walked
- * over SNMP, values someone saved that discovery reads differently, another
- * machine at a device's address, a firewall polled at a DNS name, a host, and
- * a device the reader cannot read - at a laptop's and a phone's width, in the
- * dark theme, in Japanese and in German. Screenshots in
- * output/playwright/asset-details-ui are for the people who review the page.
+ * (AssetDetails/Fixture.js): Inventory's Asset Details card, a network
+ * device's own Inventory card and its Overview, for a switch OneUptime only
+ * pings (its details from a discovery scan, its MAC from a router's ARP
+ * table), a switch walked over SNMP, one walked days ago and scanned since,
+ * values someone saved that discovery reads differently, values typed by
+ * hand, another machine at a device's address, a firewall polled at a DNS
+ * name, a host, and a device the reader cannot read - at a laptop's and a
+ * phone's width, in the dark theme, in Japanese and in German. The reading
+ * most details came from is said once, below them; every other source under
+ * its value (UI review). Screenshots in output/playwright/asset-details-ui
+ * are for the people who review the page.
  */
 
 const DEVICE_ID: string = "40000000-0000-4000-8000-000000000001";
+
+// The scan the ping-only switch's details came from, said once.
+const SCAN_LINE: string =
+  "Read over SNMP by discovery scan Store subnets, 2 hours ago.";
 
 const SCREENSHOTS: string = path.resolve(
   __dirname,
@@ -68,6 +75,21 @@ function source(page: Page, field: string): Locator {
 
 function different(page: Page, field: string): Locator {
   return page.getByTestId(`inventory-asset-${field}-value-different`);
+}
+
+// The line said once, below the details: the reading most of them came from.
+function saidOnce(page: Page): Locator {
+  return page.getByTestId("inventory-asset-details-source");
+}
+
+// The device's Overview page, at its own address.
+async function openOverview(page: Page, query: string = ""): Promise<void> {
+  await page.goto(`/network-devices/${DEVICE_ID}?page=overview${query}`);
+  await expect(page.getByTestId("fixture-page")).toBeVisible();
+  await expect(page.getByText("Device Details")).toBeVisible();
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+  });
 }
 
 async function overflow(page: Page): Promise<number> {
@@ -143,7 +165,7 @@ async function shoot(page: Page, name: string): Promise<void> {
 }
 
 test.describe("Inventory's Asset Details card, at a laptop's width", () => {
-  test("a switch OneUptime only pings: each detail says which scan or router read it, and when", async ({
+  test("a switch OneUptime only pings: the scan that read it said once, every other source under its value", async ({
     page,
   }: {
     page: Page;
@@ -151,15 +173,27 @@ test.describe("Inventory's Asset Details card, at a laptop's width", () => {
     await openItem(page);
 
     await expect(value(page, "hostname")).toContainText("edge-sw-07");
-    await expect(source(page, "hostname")).toHaveText(
-      "Discovery scan Store subnets (SNMP) · 2 hours ago",
-    );
     await expect(value(page, "manufacturer")).toContainText("Cisco");
-    await expect(source(page, "manufacturer")).toHaveText(
-      "Discovery scan Store subnets (SNMP) · 2 hours ago",
-    );
     await expect(value(page, "operatingSystem")).toContainText("Cisco IOS");
     await expect(value(page, "osVersion")).toContainText("15.2(7)E8");
+    await expect(value(page, "location")).toContainText(
+      "Store 12 · Store 12, back office rack",
+    );
+
+    // The six details the scan read: said once, below them, not six times.
+    await expect(saidOnce(page)).toHaveText(SCAN_LINE);
+    for (const field of [
+      "hostname",
+      "manufacturer",
+      "operatingSystem",
+      "osVersion",
+      "location",
+      "systemDescription",
+    ]) {
+      await expect(source(page, field)).toHaveCount(0);
+    }
+
+    // Every other source, under its value.
     await expect(value(page, "macAddress")).toContainText("00-1B-54-C2-7A-07");
     await expect(source(page, "macAddress")).toHaveText(
       "ARP table of core-rtr-01 · 3 hours ago",
@@ -170,30 +204,34 @@ test.describe("Inventory's Asset Details card, at a laptop's width", () => {
     await expect(source(page, "dnsName")).toHaveText(
       "Discovery scan Store subnets (reverse DNS) · 2 hours ago",
     );
-    await expect(value(page, "location")).toContainText(
-      "Store 12 · Store 12, back office rack",
-    );
     await expect(source(page, "ipAddress")).toHaveText(
       "The address its probe polls",
     );
+    await expect(source(page, "deviceType")).toHaveText(
+      "Worked out from its name and what it reports",
+    );
 
     // The exact time is on hover.
-    await expect(source(page, "hostname")).toHaveAttribute("title", /\d/);
+    await expect(source(page, "macAddress")).toHaveAttribute("title", /\d/);
+    await expect(saidOnce(page)).toHaveAttribute("title", /\d/);
 
-    // The scan that found it, said once; what nothing found, still Unknown.
+    /*
+     * The scan that read it found it: not said twice. What nothing found:
+     * still Unknown, after where the rest came from.
+     */
     await expect(
       page.getByTestId("inventory-asset-details-found-by"),
-    ).toHaveText(
-      "Last found at its address by discovery scan Store subnets, 2 hours ago.",
-    );
+    ).toHaveCount(0);
     await expect(
       page.getByTestId("inventory-asset-details-unknown"),
     ).toContainText(
       "neither this device's SNMP poll nor a discovery scan has found",
     );
-    await expect(
-      page.getByTestId("inventory-asset-details-native-source"),
-    ).toHaveCount(0);
+    const sourceBox: { y: number } | null = await saidOnce(page).boundingBox();
+    const unknownBox: { y: number } | null = await page
+      .getByTestId("inventory-asset-details-unknown")
+      .boundingBox();
+    expect(sourceBox!.y).toBeLessThan(unknownBox!.y);
 
     // The card read the device itself, with every column its facts need.
     const deviceRead: FixtureRead | undefined = (await reads(page)).find(
@@ -223,9 +261,9 @@ test.describe("Inventory's Asset Details card, at a laptop's width", () => {
   }) => {
     await openItem(page, "?scenario=walked");
 
-    await expect(
-      page.getByTestId("inventory-asset-details-native-source"),
-    ).toHaveText("Read over SNMP by its probe, 3 minutes ago.");
+    await expect(saidOnce(page)).toHaveText(
+      "Read over SNMP by its probe, 3 minutes ago.",
+    );
     await expect(value(page, "serialNumber")).toContainText("FOC1840X0AB");
 
     // Nothing under the details the poll read...
@@ -248,6 +286,39 @@ test.describe("Inventory's Asset Details card, at a laptop's width", () => {
     await expect(source(page, "deviceType")).toHaveText("Its assigned role");
 
     await shoot(page, "item-walked-1280-light");
+  });
+
+  test("a switch walked days ago and scanned since: the newer scan said once, the walk's values each say so", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openItem(page, "?scenario=stale");
+
+    await expect(saidOnce(page)).toHaveText(SCAN_LINE);
+    for (const field of ["model", "serialNumber", "firmwareVersion"]) {
+      await expect(source(page, field)).toHaveText(
+        "Its SNMP poll · 3 days ago",
+      );
+    }
+    await expect(source(page, "hostname")).toHaveCount(0);
+
+    await shoot(page, "item-stale-1280-light");
+  });
+
+  test("found at its address again since the scan read it: both said, below the details", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openItem(page, "?scenario=refound");
+
+    await expect(saidOnce(page)).toHaveText(SCAN_LINE);
+    await expect(
+      page.getByTestId("inventory-asset-details-found-by"),
+    ).toHaveText(
+      "Last found at its address by discovery scan Store subnets, 10 minutes ago.",
+    );
   });
 
   test("values someone saved are kept; what discovery reads differently is shown under them, in amber", async ({
@@ -290,8 +361,8 @@ test.describe("Inventory's Asset Details card, at a laptop's width", () => {
     );
     // What the scan read when the device itself answered there still stands.
     await expect(value(page, "hostname")).toContainText("kiosk-04");
-    await expect(source(page, "hostname")).toHaveText(
-      "Discovery scan Store subnets (SNMP) · 4 days ago",
+    await expect(saidOnce(page)).toHaveText(
+      "Read over SNMP by discovery scan Store subnets, 4 days ago.",
     );
 
     await shoot(page, "item-other-machine-1280-light");
@@ -325,14 +396,14 @@ test.describe("Inventory's Asset Details card, at a laptop's width", () => {
   }) => {
     await openItem(page, "?scenario=host");
 
-    await expect(
-      page.getByTestId("inventory-asset-details-native-source"),
-    ).toHaveText("Reported by its collector, 2 minutes ago.");
+    await expect(saidOnce(page)).toHaveText(
+      "Reported by its collector, 2 minutes ago.",
+    );
     await expect(source(page, "hostname")).toHaveCount(0);
     await expect(value(page, "location")).toContainText("westeurope");
     await expect(source(page, "location")).toHaveText("Its cloud zone");
     await expect(source(page, "deviceType")).toHaveText(
-      "Worked out from what it reports",
+      "Worked out from its name and what it reports",
     );
     // A host is not a network device: nothing is read for it.
     expect(
@@ -363,7 +434,7 @@ test.describe("Inventory's Asset Details card, at a laptop's width", () => {
 });
 
 test.describe("the device's own Inventory card", () => {
-  test("a switch OneUptime only pings: what the scan read, said as the scan's, and the Discovery row", async ({
+  test("a switch OneUptime only pings: the scan that read it said once, in the Discovery row", async ({
     page,
   }: {
     page: Page;
@@ -372,9 +443,6 @@ test.describe("the device's own Inventory card", () => {
 
     await expect(page.getByTestId("device-inventory-vendor")).toContainText(
       "Cisco",
-    );
-    await expect(page.getByTestId("device-inventory-vendor-source")).toHaveText(
-      "Discovery scan Store subnets (SNMP) · 2 hours ago",
     );
     await expect(page.getByTestId("device-inventory-os")).toContainText(
       "Cisco IOS",
@@ -385,9 +453,18 @@ test.describe("the device's own Inventory card", () => {
     await expect(page.getByTestId("device-inventory-contact")).toContainText(
       "netops@acme.example",
     );
-    await expect(page.getByTestId("device-inventory-found-by")).toHaveText(
-      "Last found at its address by discovery scan Store subnets, 2 hours ago.",
+    for (const testId of [
+      "device-inventory-vendor",
+      "device-inventory-os",
+      "device-inventory-location",
+      "device-inventory-contact",
+    ]) {
+      await expect(page.getByTestId(`${testId}-source`)).toHaveCount(0);
+    }
+    await expect(page.getByTestId("device-inventory-source")).toHaveText(
+      SCAN_LINE,
     );
+    await expect(page.getByTestId("device-inventory-found-by")).toHaveCount(0);
 
     expect(await overflow(page)).toBeLessThanOrEqual(0);
     await shoot(page, "device-pinged-1280-light");
@@ -420,6 +497,81 @@ test.describe("the device's own Inventory card", () => {
   });
 });
 
+test.describe("the device's Overview", () => {
+  test("a switch OneUptime only pings: what discovery read, each detail saying which scan or router", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page, "&scenario=pinged");
+
+    await expect(
+      page.getByTestId("network-device-details-dnsName"),
+    ).toContainText("edge-sw-07.store-12.acme.example");
+    await expect(
+      page.getByTestId("network-device-details-dnsName-source"),
+    ).toHaveText("Discovery scan Store subnets (reverse DNS) · 2 hours ago");
+    await expect(
+      page.getByTestId("network-device-details-macAddress-source"),
+    ).toHaveText("ARP table of core-rtr-01 · 3 hours ago");
+    await expect(
+      page.getByTestId("network-device-details-sysDescr-source"),
+    ).toHaveText("Discovery scan Store subnets (SNMP) · 2 hours ago");
+    // Named after its sysName: not said twice.
+    await expect(page.getByText("System Name (sysName)")).toHaveCount(0);
+    // The Inventory card below says the scan once.
+    await expect(page.getByTestId("device-inventory-source")).toHaveText(
+      SCAN_LINE,
+    );
+
+    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await shoot(page, "overview-pinged-1280-light");
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openOverview(page, "&scenario=pinged&theme=dark");
+    await expect(
+      page.getByTestId("network-device-details-dnsName-source"),
+    ).toBeVisible();
+    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await shoot(page, "overview-pinged-390-dark");
+  });
+
+  test("values typed on the device say nothing; one discovery reads differently says it was saved", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page, "&scenario=typed");
+
+    await expect(
+      page.getByTestId("network-device-details-macAddress"),
+    ).toContainText("00:1b:54:c2:7a:99");
+    await expect(
+      page.getByTestId("network-device-details-dnsName"),
+    ).toContainText("lab-fw.lab.acme.example");
+    await expect(page.getByText("Saved on this device")).toHaveCount(0);
+    // Nothing read about it yet: how the Inventory card fills in.
+    await expect(
+      page.getByTestId("device-inventory-nothing-read"),
+    ).toContainText("Nothing has been read from this device yet.");
+    await shoot(page, "overview-typed-1280-light");
+
+    await openOverview(page, "&scenario=disagree");
+    await expect(page.getByTestId("device-inventory-nothing-read")).toHaveCount(
+      0,
+    );
+    await expect(
+      page.getByTestId("network-device-details-macAddress-source"),
+    ).toHaveText("Saved on this device");
+    await expect(
+      page.getByTestId("network-device-details-macAddress-different"),
+    ).toHaveText(
+      "ARP table of core-rtr-01 says 00:1b:54:c2:7a:44 · 15 minutes ago",
+    );
+    await shoot(page, "overview-disagree-1280-light");
+  });
+});
+
 test.describe("at a phone's width, in the dark and in other languages", () => {
   test("every line wraps inside the card, and nothing scrolls sideways", async ({
     page,
@@ -448,7 +600,7 @@ test.describe("at a phone's width, in the dark and in other languages", () => {
     }
 
     await open(page, "?page=device");
-    await expect(page.getByTestId("device-inventory-found-by")).toBeVisible();
+    await expect(page.getByTestId("device-inventory-source")).toBeVisible();
     expect(await overflow(page)).toBeLessThanOrEqual(0);
     await shoot(page, "device-pinged-390-light");
   });
@@ -476,7 +628,10 @@ test.describe("at a phone's width, in the dark and in other languages", () => {
     await shoot(page, "item-disagree-1280-dark");
 
     await openItem(page, "?scenario=pinged&theme=dark");
-    await expect(source(page, "hostname")).toBeVisible();
+    await expect(saidOnce(page)).toBeVisible();
+    expect(await textBrightness(saidOnce(page))).toBeGreaterThan(
+      background + 150,
+    );
     await shoot(page, "item-pinged-1280-dark");
 
     await page.setViewportSize({ width: 390, height: 844 });
@@ -488,7 +643,7 @@ test.describe("at a phone's width, in the dark and in other languages", () => {
     await shoot(page, "item-other-machine-390-dark");
 
     await open(page, "?page=device&theme=dark");
-    await expect(page.getByTestId("device-inventory-found-by")).toBeVisible();
+    await expect(page.getByTestId("device-inventory-source")).toBeVisible();
     await shoot(page, "device-pinged-390-dark");
   });
 
@@ -499,16 +654,14 @@ test.describe("at a phone's width, in the dark and in other languages", () => {
   }) => {
     await openItem(page, "?lang=ja");
 
-    await expect(source(page, "hostname")).toHaveText(
-      "検出スキャン Store subnets (SNMP) · 2 時間前",
+    await expect(saidOnce(page)).toHaveText(
+      "検出スキャン Store subnets が SNMP で読み取りました (2 時間前)。",
     );
     await expect(source(page, "macAddress")).toHaveText(
       "core-rtr-01 の ARP テーブル · 3 時間前",
     );
-    await expect(
-      page.getByTestId("inventory-asset-details-found-by"),
-    ).toHaveText(
-      "検出スキャン Store subnets がこのアドレスで最後に見つけました (2 時間前)。",
+    await expect(source(page, "dnsName")).toHaveText(
+      "検出スキャン Store subnets (逆引き DNS) · 2 時間前",
     );
     await shoot(page, "item-pinged-1280-ja");
 
@@ -525,8 +678,8 @@ test.describe("at a phone's width, in the dark and in other languages", () => {
     await shoot(page, "item-disagree-390-de");
 
     await open(page, "?page=device&lang=de");
-    await expect(page.getByTestId("device-inventory-vendor-source")).toHaveText(
-      "Erkennungsscan Store subnets (SNMP) · vor 2 Stunden",
+    await expect(page.getByTestId("device-inventory-source")).toHaveText(
+      "Von Erkennungsscan Store subnets über SNMP gelesen, vor 2 Stunden.",
     );
     expect(await overflow(page)).toBeLessThanOrEqual(0);
     await shoot(page, "device-pinged-390-de");

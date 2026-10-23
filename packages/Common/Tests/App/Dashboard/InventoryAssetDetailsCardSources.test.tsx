@@ -8,6 +8,8 @@ import {
   test,
 } from "@jest/globals";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import fs from "fs";
+import path from "path";
 import React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -18,11 +20,12 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *
  * The Asset Details card reads the device the item mirrors, current to the
  * moment and with the sources the item does not carry; it falls back to the
- * item's own facts when it cannot, so it never shows less than before. A
- * machine's details come from one place unless they say otherwise - a host's
- * collector, a device's own SNMP poll - and that is said once, below them.
- * Every detail from anywhere else says so under its value; a saved value
- * discovery contradicts shows what discovery read, in amber.
+ * item's own facts when it cannot, so it never shows less than before. Most
+ * of a machine's details come from one reading - a host's collector, a
+ * device's own SNMP poll, or the discovery scan that read a device its poll
+ * has not - and that is said once, first below them (UI review). Every detail
+ * from anywhere else says so under its value; a saved value discovery
+ * contradicts shows what discovery read, in amber.
  *
  * Driven through the real cards against a fake ModelAPI.
  */
@@ -50,7 +53,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 import InventoryAssetDetailsCard from "../../../../App/FeatureSet/Dashboard/src/Components/Inventory/InventoryAssetDetailsCard";
 import { NETWORK_DEVICE_ASSET_FACT_SELECT } from "../../../../App/FeatureSet/Dashboard/src/Components/Inventory/NetworkDeviceAssetSelect";
-import DeviceInventoryCard from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceInventoryCard";
+import DeviceInventoryCard, {
+  NOTHING_READ_YET,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceInventoryCard";
 import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceRole from "../../../Models/DatabaseModels/NetworkDeviceRole";
@@ -198,7 +203,12 @@ afterEach((): void => {
 });
 
 describe("Inventory's Asset Details card says where each detail came from (issue #5185)", () => {
-  test("a ping-only switch: what the scan read, said as the scan's, and the scan that found it", async () => {
+  /*
+   * The scan read six of the switch's details in one go: said once, below
+   * them, rather than six times over (UI review). What came from anywhere
+   * else still says so under its value.
+   */
+  test("a ping-only switch: the scan that read it said once, every other source under its value", async () => {
     serveDevice(pingOnlySwitch());
 
     render(<InventoryAssetDetailsCard item={mirroredItem()} />);
@@ -209,11 +219,26 @@ describe("Inventory's Asset Details card says where each detail came from (issue
       ).toHaveTextContent("edge-sw-07");
     });
 
-    const scanLine: string =
-      "Discovery scan Store subnets (SNMP) · 2 hours ago";
-    expect(textOf("inventory-asset-hostname-value-source")).toBe(scanLine);
+    expect(textOf("inventory-asset-details-source")).toBe(
+      "Read over SNMP by discovery scan Store subnets, 2 hours ago.",
+    );
+    for (const field of [
+      "hostname",
+      "manufacturer",
+      "operatingSystem",
+      "osVersion",
+      "location",
+      "systemDescription",
+    ]) {
+      expect(
+        screen.getByTestId(`inventory-asset-${field}-value`),
+      ).toBeInTheDocument();
+      expect({
+        field,
+        line: screen.queryByTestId(`inventory-asset-${field}-value-source`),
+      }).toEqual({ field, line: null });
+    }
     expect(textOf("inventory-asset-manufacturer-value")).toContain("Cisco");
-    expect(textOf("inventory-asset-manufacturer-value-source")).toBe(scanLine);
     expect(textOf("inventory-asset-operatingSystem-value")).toContain(
       "Cisco IOS",
     );
@@ -224,23 +249,129 @@ describe("Inventory's Asset Details card says where each detail came from (issue
     expect(textOf("inventory-asset-ipAddress-value-source")).toBe(
       "The address its probe polls",
     );
-    // Classified from what the scan read.
+    // Classified from what the scan read, and from its name.
     expect(textOf("inventory-asset-deviceType-value")).toContain("Switch");
     expect(textOf("inventory-asset-deviceType-value-source")).toBe(
-      "Worked out from what it reports",
+      "Worked out from its name and what it reports",
     );
 
-    expect(textOf("inventory-asset-details-found-by")).toBe(
-      "Last found at its address by discovery scan Store subnets, 2 hours ago.",
-    );
-    // Its own poll never read anything: nothing to say once.
+    // The scan that read it found it: not said a second time.
     expect(
-      screen.queryByTestId("inventory-asset-details-native-source"),
+      screen.queryByTestId("inventory-asset-details-found-by"),
     ).not.toBeInTheDocument();
     // What neither the poll nor a scan found is still named as unknown.
     expect(textOf("inventory-asset-details-unknown")).toContain(
       "neither this device's SNMP poll nor a discovery scan has found them",
     );
+  });
+
+  test("below the details, in the order a reader asks: where from, what is unknown, when last found, another machine", async () => {
+    serveDevice(
+      pingOnlySwitch({
+        discoveredDetails: {
+          sysName: scanReading("edge-sw-07"),
+          sysDescr: scanReading(C2960X_SYS_DESCR),
+          // Found there again ten minutes ago, without answering SNMP.
+          foundBy: {
+            readBy: {
+              type: "discoveryScan",
+              id: SCAN_ID,
+              name: "Store subnets",
+            },
+            readAt: ago(10 * MINUTE),
+          },
+          otherMachine: {
+            readBy: {
+              type: "discoveryScan",
+              id: SCAN_ID,
+              name: "Store subnets",
+            },
+            readAt: ago(5 * MINUTE),
+            netbiosName: "LAPTOP-12",
+          },
+        },
+      }),
+    );
+
+    render(<InventoryAssetDetailsCard item={mirroredItem()} />);
+
+    await waitFor((): void => {
+      expect(
+        screen.getByTestId("inventory-asset-details-found-by"),
+      ).toBeInTheDocument();
+    });
+
+    expect(textOf("inventory-asset-details-source")).toBe(
+      "Read over SNMP by discovery scan Store subnets, 2 hours ago.",
+    );
+    expect(textOf("inventory-asset-details-found-by")).toBe(
+      "Last found at its address by discovery scan Store subnets, 10 minutes ago.",
+    );
+
+    const order: Array<string> = Array.from(
+      screen
+        .getByTestId("inventory-asset-details")
+        .querySelectorAll("[data-testid^='inventory-asset-details-']"),
+    ).map((element: Element): string => {
+      return element.getAttribute("data-testid") || "";
+    });
+    expect(order).toEqual([
+      "inventory-asset-details-source",
+      "inventory-asset-details-unknown",
+      "inventory-asset-details-found-by",
+      "inventory-asset-details-other-machine",
+    ]);
+    // The exact time of each, on hover.
+    expect(
+      screen
+        .getByTestId("inventory-asset-details-source")
+        .getAttribute("title"),
+    ).toMatch(/\d/);
+    expect(
+      screen
+        .getByTestId("inventory-asset-details-found-by")
+        .getAttribute("title"),
+    ).toMatch(/\d/);
+  });
+
+  /*
+   * Walked three days ago, scanned two hours ago: the scan's newer reading
+   * gives most details and is said once; what only the old walk read says
+   * so, with when.
+   */
+  test("a switch its poll last read days ago: the newer scan said once, the poll's values each say so", async () => {
+    serveDevice(
+      walkedSwitch({
+        lastSnmpSeenAt: new Date(Date.now() - 3 * 24 * HOUR),
+        discoveredDetails: {
+          sysName: scanReading("core-sw-01"),
+          sysDescr: scanReading(
+            "Cisco IOS Software [Gibraltar], Catalyst L3 Switch Software (CAT3K_CAA-UNIVERSALK9-M), Version 16.12.4, RELEASE SOFTWARE (fc5)",
+          ),
+          sysObjectId: scanReading("1.3.6.1.4.1.9.1.1745"),
+          sysLocation: scanReading("Hall 2, Rack 14"),
+          foundBy: FOUND_BY,
+        },
+      }),
+    );
+
+    render(<InventoryAssetDetailsCard item={mirroredItem()} />);
+
+    await waitFor((): void => {
+      expect(textOf("inventory-asset-details-source")).toBe(
+        "Read over SNMP by discovery scan Store subnets, 2 hours ago.",
+      );
+    });
+
+    for (const field of ["model", "serialNumber", "firmwareVersion"]) {
+      expect({
+        field,
+        line: textOf(`inventory-asset-${field}-value-source`),
+      }).toEqual({ field, line: "Its SNMP poll · 3 days ago" });
+    }
+    expect(
+      screen.queryByTestId("inventory-asset-hostname-value-source"),
+    ).not.toBeInTheDocument();
   });
 
   test("a walked switch: its own poll is said once, below the details, not under each", async () => {
@@ -250,7 +381,7 @@ describe("Inventory's Asset Details card says where each detail came from (issue
 
     await waitFor((): void => {
       expect(
-        screen.getByTestId("inventory-asset-details-native-source"),
+        screen.getByTestId("inventory-asset-details-source"),
       ).toHaveTextContent("Read over SNMP by its probe, 3 minutes ago.");
     });
 
@@ -510,20 +641,24 @@ describe("Inventory's Asset Details card says where each detail came from (issue
     render(<InventoryAssetDetailsCard item={host} />);
 
     expect(getItemMock).not.toHaveBeenCalled();
-    expect(textOf("inventory-asset-details-native-source")).toBe(
+    expect(textOf("inventory-asset-details-source")).toBe(
       "Reported by its collector, 3 minutes ago.",
     );
     expect(
       screen.queryByTestId("inventory-asset-hostname-value-source"),
     ).not.toBeInTheDocument();
     expect(textOf("inventory-asset-deviceType-value-source")).toBe(
-      "Worked out from what it reports",
+      "Worked out from its name and what it reports",
     );
   });
 });
 
 describe("the device's own Inventory card says where each value came from (issue #5185)", () => {
-  test("a ping-only switch: what the scan read, said as the scan's, and the Discovery row", async () => {
+  /*
+   * Every value the card shows came from the one scan: said once, in the
+   * Discovery row, rather than under each of them (UI review).
+   */
+  test("a ping-only switch: the scan that read it said once, in the Discovery row", async () => {
     serveDevice(pingOnlySwitch());
 
     render(<DeviceInventoryCard modelId={new ObjectID(DEVICE_ID)} />);
@@ -534,21 +669,102 @@ describe("the device's own Inventory card says where each value came from (issue
       );
     });
 
-    const scanLine: string =
-      "Discovery scan Store subnets (SNMP) · 2 hours ago";
-    expect(textOf("device-inventory-vendor-source")).toBe(scanLine);
     expect(textOf("device-inventory-os")).toContain("Cisco IOS");
-    expect(textOf("device-inventory-os-source")).toBe(scanLine);
     expect(textOf("device-inventory-location")).toContain(
       "Store 12, back office rack",
     );
     expect(textOf("device-inventory-sysobjectid")).toContain(
       "1.3.6.1.4.1.9.1.1208",
     );
+    for (const testId of [
+      "device-inventory-vendor",
+      "device-inventory-os",
+      "device-inventory-software",
+      "device-inventory-sysobjectid",
+      "device-inventory-location",
+    ]) {
+      expect({
+        testId,
+        line: screen.queryByTestId(`${testId}-source`),
+      }).toEqual({ testId, line: null });
+    }
+
     expect(screen.getByText("Discovery")).toBeInTheDocument();
-    expect(textOf("device-inventory-found-by")).toBe(
-      "Last found at its address by discovery scan Store subnets, 2 hours ago.",
+    expect(textOf("device-inventory-source")).toBe(
+      "Read over SNMP by discovery scan Store subnets, 2 hours ago.",
     );
+    // The scan that read it found it: not said a second time.
+    expect(
+      screen.queryByTestId("device-inventory-found-by"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a switch found again since the scan read it: both, in the Discovery row", async () => {
+    serveDevice(
+      pingOnlySwitch({
+        discoveredDetails: {
+          sysDescr: scanReading(C2960X_SYS_DESCR),
+          sysObjectId: scanReading("1.3.6.1.4.1.9.1.1208"),
+          sysLocation: scanReading("Store 12, back office rack"),
+          foundBy: {
+            readBy: {
+              type: "discoveryScan",
+              id: SCAN_ID,
+              name: "Store subnets",
+            },
+            readAt: ago(10 * MINUTE),
+          },
+        },
+      }),
+    );
+
+    render(<DeviceInventoryCard modelId={new ObjectID(DEVICE_ID)} />);
+
+    await waitFor((): void => {
+      expect(textOf("device-inventory-found-by")).toBe(
+        "Last found at its address by discovery scan Store subnets, 10 minutes ago.",
+      );
+    });
+    expect(textOf("device-inventory-source")).toBe(
+      "Read over SNMP by discovery scan Store subnets, 2 hours ago.",
+    );
+  });
+
+  test("another machine at the address is said in amber, with its icon", async () => {
+    serveDevice(
+      walkedSwitch({
+        discoveredDetails: {
+          otherMachine: {
+            readBy: {
+              type: "discoveryScan",
+              id: SCAN_ID,
+              name: "Store subnets",
+            },
+            readAt: ago(2 * HOUR + 10 * MINUTE),
+            sysName: "LAPTOP-12",
+          },
+        },
+      }),
+    );
+
+    render(<DeviceInventoryCard modelId={new ObjectID(DEVICE_ID)} />);
+
+    await waitFor((): void => {
+      expect(
+        screen.getByTestId("device-inventory-other-machine"),
+      ).toHaveTextContent(
+        "Discovery scan Store subnets found another machine at this address 2 hours ago (LAPTOP-12), so nothing it read there is used.",
+      );
+    });
+    const note: HTMLElement = screen.getByTestId(
+      "device-inventory-other-machine",
+    );
+    expect(note).toHaveClass("text-amber-700");
+    expect(note.querySelector("svg")).not.toBeNull();
+    // A walked switch's own poll goes unsaid on its own page.
+    expect(
+      screen.queryByTestId("device-inventory-source"),
+    ).not.toBeInTheDocument();
   });
 
   test("a walked switch: its own poll's values carry no line of their own", async () => {
@@ -600,6 +816,134 @@ describe("the device's own Inventory card says where each value came from (issue
     expect(textOf("device-inventory-location-source")).toBe(
       "Saved on this device",
     );
+  });
+
+  /*
+   * On the device's own page, what is saved on it is what the page shows -
+   * its Name and Hostname do not say where they came from either (UI
+   * review). Only a value discovery reads differently says it was saved.
+   */
+  test("a value saved on the device that nothing disputes carries no line", async () => {
+    serveDevice(
+      walkedSwitch({
+        lastSnmpSeenAt: undefined,
+        sysLocation: "Hall 2, Rack 14",
+        discoveredDetails: {},
+      }),
+    );
+
+    render(<DeviceInventoryCard modelId={new ObjectID(DEVICE_ID)} />);
+
+    await waitFor((): void => {
+      expect(textOf("device-inventory-location")).toContain("Hall 2, Rack 14");
+    });
+    for (const testId of [
+      "device-inventory-vendor",
+      "device-inventory-model",
+      "device-inventory-serial",
+      "device-inventory-location",
+    ]) {
+      expect({
+        testId,
+        line: screen.queryByTestId(`${testId}-source`),
+      }).toEqual({ testId, line: null });
+    }
+  });
+
+  /*
+   * A device added a moment ago, or one that never answered: one line on how
+   * the card fills in, rather than an empty card under its title (UI
+   * review).
+   */
+  test("a device nothing has read yet: how the card fills in, instead of an empty card", async () => {
+    const device: NetworkDevice = new NetworkDevice();
+    device.id = new ObjectID(DEVICE_ID);
+    Object.assign(device, { name: "lab-switch", hostname: "10.99.0.5" });
+    serveDevice(device);
+
+    render(<DeviceInventoryCard modelId={new ObjectID(DEVICE_ID)} />);
+
+    await waitFor((): void => {
+      expect(textOf("device-inventory-nothing-read")).toBe(NOTHING_READ_YET);
+    });
+    expect(screen.getByText("Discovery")).toBeInTheDocument();
+  });
+
+  test("the line is gone once anything is known: a ping answered, a scan, a walk", async () => {
+    const answered: NetworkDevice = new NetworkDevice();
+    answered.id = new ObjectID(DEVICE_ID);
+    Object.assign(answered, {
+      name: "lab-switch",
+      hostname: "10.99.0.5",
+      lastSeenAt: new Date(Date.now() - 2 * MINUTE),
+    });
+
+    for (const device of [answered, pingOnlySwitch(), walkedSwitch()]) {
+      serveDevice(device);
+
+      render(<DeviceInventoryCard modelId={new ObjectID(DEVICE_ID)} />);
+
+      await waitFor((): void => {
+        expect(getItemMock).toHaveBeenCalled();
+        expect(screen.getAllByTestId("detail-field").length).toBeGreaterThan(0);
+      });
+      expect(
+        screen.queryByTestId("device-inventory-nothing-read"),
+      ).not.toBeInTheDocument();
+
+      cleanup();
+      getItemMock.mockClear();
+    }
+  });
+
+  test("the line is in every Dashboard language", () => {
+    for (const code of [
+      "de",
+      "fr",
+      "es",
+      "it",
+      "pt",
+      "nl",
+      "da",
+      "no",
+      "sv",
+      "ru",
+      "ja",
+      "ko",
+      "zh-CN",
+      "zh-TW",
+      "hi",
+      "fa",
+    ]) {
+      const locale: Record<string, unknown> = JSON.parse(
+        fs.readFileSync(
+          path.join(
+            __dirname,
+            "..",
+            "..",
+            "..",
+            "..",
+            "App",
+            "FeatureSet",
+            "Dashboard",
+            "src",
+            "Locales",
+            `${code}.json`,
+          ),
+          "utf8",
+        ),
+      ) as Record<string, unknown>;
+      const translated: unknown = locale[NOTHING_READ_YET];
+
+      expect({ code, isText: typeof translated }).toEqual({
+        code,
+        isText: "string",
+      });
+      expect({ code, same: translated === NOTHING_READ_YET }).toEqual({
+        code,
+        same: false,
+      });
+    }
   });
 
   test("the card asks for what discovery read, and when the poll last read it", async () => {

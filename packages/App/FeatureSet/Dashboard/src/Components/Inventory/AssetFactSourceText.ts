@@ -91,8 +91,12 @@ const SOURCE_TEXT: Readonly<
   ),
   [AssetFactSourceKind.AssignedRole]: translationKey("Its assigned role"),
   [AssetFactSourceKind.Site]: translationKey("Its site"),
+  /*
+   * Its name counts: a device nothing has read anything about is still a
+   * Switch when it is called "lab-switch" (classifyDeviceRole reads both).
+   */
   [AssetFactSourceKind.Classified]: translationKey(
-    "Worked out from what it reports",
+    "Worked out from its name and what it reports",
   ),
   [AssetFactSourceKind.Collector]: translationKey("Its collector"),
   [AssetFactSourceKind.CloudPlacement]: translationKey("Its cloud zone"),
@@ -132,13 +136,20 @@ export const SNMP_POLL_TEMPLATE: string = translationKey(
   "Read over SNMP by its probe, {{time}}.",
 );
 
+/*
+ * The details of a device its own poll has not read, from the SNMP system
+ * group a discovery scan read at its address, said once.
+ */
+export const SCAN_READ_TEMPLATE: string = translationKey(
+  "Read over SNMP by discovery scan {{name}}, {{time}}.",
+);
+export const SCAN_READ_UNNAMED_TEMPLATE: string = translationKey(
+  "Read over SNMP by a discovery scan, {{time}}.",
+);
+
 /**
- * The source a card says ONCE, below the details, rather than under every
- * value: the one every detail of the machine comes from unless it says
- * otherwise - a host's collector, a network device's own SNMP poll. Under
- * each of a walked switch's eleven details, "Its SNMP poll · 3 minutes ago"
- * would say the same thing eleven times and bury the one detail that came
- * from somewhere else.
+ * A machine's OWN source: a host's collector, a network device's own SNMP
+ * poll - what its details come from unless they say otherwise.
  */
 export function isNativeAssetFactSource(
   source: AssetFactSource | undefined,
@@ -147,6 +158,145 @@ export function isNativeAssetFactSource(
     source?.kind === AssetFactSourceKind.Collector ||
     source?.kind === AssetFactSourceKind.SnmpPoll
   );
+}
+
+/*
+ * A source a card may say once, below its details: a machine's own, or the
+ * SNMP system group a discovery scan read - which gives a ping-only switch
+ * its name, maker, operating system, version, location and description in
+ * one reading. A reverse-DNS name, a NetBIOS name, an ARP table's MAC and a
+ * probe's DNS lookup each give one detail, and say so under it.
+ */
+function isSharableAssetFactSource(source: AssetFactSource): boolean {
+  return (
+    isNativeAssetFactSource(source) ||
+    (source.kind === AssetFactSourceKind.Discovered &&
+      source.method === NetworkDeviceDiscoveryMethod.Snmp)
+  );
+}
+
+// A time as epoch milliseconds, or undefined when there is none.
+function timeOf(readAt: string | undefined): number | undefined {
+  if (!readAt) {
+    return undefined;
+  }
+
+  const time: number = new Date(readAt).getTime();
+
+  return Number.isNaN(time) ? undefined : time;
+}
+
+/**
+ * True when two sources are the same reading: the same kind of source, read
+ * the same way, by the same scan, device or probe, at the same time.
+ */
+export function isSameAssetFactSource(
+  left: AssetFactSource | undefined,
+  right: AssetFactSource | undefined,
+): boolean {
+  if (!left || !right) {
+    return false;
+  }
+
+  const leftTime: number | undefined = timeOf(left.readAt);
+  const rightTime: number | undefined = timeOf(right.readAt);
+
+  return (
+    left.kind === right.kind &&
+    (left.method || "") === (right.method || "") &&
+    (left.readBy?.type || "") === (right.readBy?.type || "") &&
+    (left.readBy?.id || "") === (right.readBy?.id || "") &&
+    leftTime === rightTime &&
+    (leftTime !== undefined || (left.readAt || "") === (right.readAt || ""))
+  );
+}
+
+/**
+ * The source a card says ONCE, below its details, rather than under every
+ * value: the reading most of them came from. A host's collector; a network
+ * device's own SNMP poll; and, for a device its poll has not read (or not
+ * since), the discovery scan that read its SNMP system group. Under each of
+ * a ping-only switch's seven details, "Discovery scan Store subnets (SNMP) ·
+ * 2 hours ago" said the same thing seven times and buried the one detail
+ * that came from somewhere else - which is the only one that still says so.
+ *
+ * A machine's own source wins a tie, and is said once even for one detail;
+ * a scan is said once only when it gave two details or more. Undefined when
+ * nothing qualifies: then every detail says where it came from.
+ */
+export function getSharedAssetFactSource(
+  sources: ReadonlyArray<AssetFactSource | undefined>,
+): AssetFactSource | undefined {
+  const groups: Array<{ source: AssetFactSource; count: number }> = [];
+
+  for (const source of sources) {
+    if (!source || !isSharableAssetFactSource(source)) {
+      continue;
+    }
+
+    const group: { source: AssetFactSource; count: number } | undefined =
+      groups.find((candidate: { source: AssetFactSource }): boolean => {
+        return isSameAssetFactSource(candidate.source, source);
+      });
+
+    if (group) {
+      group.count++;
+    } else {
+      groups.push({ source: source, count: 1 });
+    }
+  }
+
+  let shared: { source: AssetFactSource; count: number } | undefined =
+    undefined;
+
+  for (const group of groups) {
+    const isNative: boolean = isNativeAssetFactSource(group.source);
+
+    if (!isNative && group.count < 2) {
+      continue;
+    }
+
+    if (
+      !shared ||
+      group.count > shared.count ||
+      (group.count === shared.count &&
+        isNative &&
+        !isNativeAssetFactSource(shared.source))
+    ) {
+      shared = group;
+    }
+  }
+
+  return shared?.source;
+}
+
+/**
+ * True for a value saved on the device that discovery reads no differently.
+ * On the device's OWN page it needs no line: its Name, Hostname and
+ * Description do not say where they came from either. One that discovery
+ * reads differently keeps "Saved on this device", so the amber line under it
+ * has something to differ from. (Inventory's card still says it: there, it
+ * tells a value someone saved from one discovery read.)
+ */
+export function isUndisputedSavedValue(
+  source: AssetFactSource | undefined,
+  hasDifference: boolean,
+): boolean {
+  return source?.kind === AssetFactSourceKind.Saved && !hasDifference;
+}
+
+/**
+ * The exact local time of a reading, for a hover over its relative one - or
+ * undefined when it is not known or does not parse.
+ */
+export function getAssetFactExactTime(
+  readAt: string | undefined,
+): string | undefined {
+  const time: number | undefined = timeOf(readAt);
+
+  return time === undefined
+    ? undefined
+    : OneUptimeDate.getDateAsLocalFormattedString(new Date(time));
 }
 
 function readerName(
@@ -359,10 +509,41 @@ export function getSnmpPollLine(
 }
 
 /**
- * The line a card says once, below the details, for the source of `source`
- * when it is a native one (see isNativeAssetFactSource).
+ * "Read over SNMP by discovery scan Store subnets, 2 hours ago." - said once
+ * for a device whose details came from what a scan read at its address.
  */
-export function getNativeSourceLine(
+export function getScanReadLine(
+  readBy: NetworkDeviceDiscoveryReader | undefined,
+  readAt: string | undefined,
+  translator: Translator,
+  now?: Date | undefined,
+): string | undefined {
+  const time: string | undefined = getAssetFactSourceTime(
+    readAt,
+    translator,
+    now,
+  );
+
+  if (!time) {
+    return undefined;
+  }
+
+  const name: string | undefined = readerName(readBy);
+
+  return name
+    ? translator.translateTemplate(SCAN_READ_TEMPLATE, {
+        name: name,
+        time: time,
+      })
+    : translator.translateTemplate(SCAN_READ_UNNAMED_TEMPLATE, { time: time });
+}
+
+/**
+ * The line a card says once, below the details, for the source they share
+ * (getSharedAssetFactSource) - or undefined when there is none, or no time
+ * to give.
+ */
+export function getSharedSourceLine(
   source: AssetFactSource | undefined,
   translator: Translator,
   now?: Date | undefined,
@@ -375,7 +556,42 @@ export function getNativeSourceLine(
     return getSnmpPollLine(source.readAt, translator, now);
   }
 
+  if (
+    source?.kind === AssetFactSourceKind.Discovered &&
+    source.method === NetworkDeviceDiscoveryMethod.Snmp
+  ) {
+    return getScanReadLine(source.readBy, source.readAt, translator, now);
+  }
+
   return undefined;
+}
+
+/**
+ * True when the line said once already says what "Last found at its address
+ * by discovery scan ..." would: the details came from that same scan's
+ * reading of the address, and the scan has not found the device there since.
+ * A scan that read the device found it.
+ */
+export function isSightingSaidBySharedSource(
+  sighting: NetworkDeviceDiscoverySighting | undefined,
+  shared: AssetFactSource | undefined,
+): boolean {
+  if (
+    !sighting ||
+    shared?.kind !== AssetFactSourceKind.Discovered ||
+    !shared.readBy ||
+    shared.readBy.type !== sighting.readBy.type ||
+    shared.readBy.id !== sighting.readBy.id
+  ) {
+    return false;
+  }
+
+  const sharedAt: number | undefined = timeOf(shared.readAt);
+  const sightedAt: number | undefined = timeOf(sighting.readAt);
+
+  return (
+    sharedAt !== undefined && sightedAt !== undefined && sightedAt <= sharedAt
+  );
 }
 
 /**
