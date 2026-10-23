@@ -271,19 +271,19 @@ const Pricing: Array<PricingCategory> = [
       {
         name: "Container Monitoring",
         plans: {
-          free: "Coming Soon",
-          growth: "Coming Soon",
-          scale: "Coming Soon",
-          enterprise: "Coming Soon",
+          free: true,
+          growth: true,
+          scale: true,
+          enterprise: true,
         },
       },
       {
         name: "Kubernetes Cluster Monitoring",
         plans: {
-          free: "Coming Soon",
-          growth: "Coming Soon",
-          scale: "Coming Soon",
-          enterprise: "Coming Soon",
+          free: true,
+          growth: true,
+          scale: true,
+          enterprise: true,
         },
       },
     ],
@@ -402,10 +402,10 @@ const Pricing: Array<PricingCategory> = [
       {
         name: "Vacation and OOO Policy",
         plans: {
-          free: "Coming Soon",
-          growth: "Coming Soon",
-          scale: "Coming Soon",
-          enterprise: "Coming Soon",
+          free: false,
+          growth: true,
+          scale: true,
+          enterprise: true,
         },
       },
       {

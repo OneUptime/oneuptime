@@ -29,7 +29,7 @@ Clique em **Enviar um ataque de teste**. Uma dúzia de logins com falha a partir
 Clique em **Abrir o caso**. É assim que uma descoberta real se parece: os eventos que a sustentam, o endereço a que se refere e o que o **Enrich New Cases** encontrou. Feche-o como teste quando terminar.
 :::
 
-A partir daí, **Visão geral** abre no que precisa de alguém: os seus casos abertos, os que ninguém assumiu e as etapas de playbook aguardando uma aprovação, ou **Tudo tranquilo** quando não há nenhum.
+A partir daí, **Visão geral** abre no que precisa de alguém, em **Requer atenção**: os seus casos abertos, os que ninguém assumiu e as etapas de playbook aguardando uma aprovação. Quando não há nenhum, mostra **Tudo tranquilo**.
 
 ## Como funciona
 
@@ -48,7 +48,7 @@ flowchart LR
 | **Casos de segurança** | **Casos de segurança** | O que foi encontrado, agrupado pelo usuário, host ou endereço a que se refere |
 | **Playbooks** | **Playbooks** | Etapas que rodam nos casos novos: enriquecê-los, notificar, abrir um incidente ou conter |
 
-A faixa no topo da **Visão geral** mostra cada parte com seus números: as origens e seus eventos das últimas 24 horas, as regras ativas, os casos abertos e os playbooks que respondem.
+No topo da **Visão geral**, abaixo do que precisa de alguém, cada parte mostra seus números: as origens e seus eventos das últimas 24 horas, as regras ativas, os casos abertos e os playbooks que respondem. Uma parte que não está configurada diz isso e abre a página onde configurá-la.
 
 ## Encontrar eventos de segurança nos seus logs
 
@@ -84,6 +84,14 @@ Normalmente o caso abre antes de o botão responder; quando a regra ainda está 
 
 :::details Nenhum evento de segurança vem dos meus logs
 Verifique se **Encontrar eventos de segurança nos seus logs** está ativado e se o cartão **Seus logs** mostra quando foi a última verificação. Só os tipos de linha da tabela acima viram eventos: um servidor que não envia logs de SSH, sudo, auditoria, CloudTrail ou de acesso não tem nada a encontrar.
+:::
+
+:::details A Visão geral diz que o último evento de segurança chegou há dias
+Nada chegou ao Security desde então. Abra **Connections** e verifique se **Seus logs** e cada conexão continuam ativados, e quando cada um verificou pela última vez.
+:::
+
+:::details O cartão que ativa o Security sumiu
+Alguém o fechou com **Dispensar**. Enquanto nada estiver sendo vigiado contra ameaças, a **Visão geral** oferece **Configurar o Security**, que o traz de volta.
 :::
 
 ## Próximos passos

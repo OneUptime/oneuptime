@@ -38,7 +38,7 @@ flowchart TB
 | Team | En navngitt gruppe i et prosjekt som bærer tillatelser. |
 | Teammedlem | En bruker som er invitert til et team og har godtatt. |
 | Tillatelse | Én enkelt evne, f.eks. `CreateProjectMonitor`, eller en rolle som samler mange, f.eks. `MonitorAdmin`. |
-| Egendefinert rolle | Et sett tillatelser du gir navn én gang og gir til team. |
+| Egendefinert rolle | Et sett tillatelser du gir navn én gang og gir til team og API-nøkler. |
 | Omfang | Hvor langt en tillatt rettighet rekker: alle ressurser, bare eide eller bare merkede. |
 | Eier | En bruker eller et team som er markert som ansvarlig for én bestemt ressurs. |
 | Etikett | Et merke du setter på ressurser, brukt til å begrense tillatelser og til å organisere. |
@@ -139,20 +139,20 @@ Hele listen står i [Tillatelsesreferansen](/docs/permissions/reference).
 
 ### Egendefinerte roller
 
-En egendefinert rolle er et sett tillatelser du gir navn én gang og gir til team: for eksempel en «Hendelsesansvarlig» med `IncidentMember`, `AlertMember` og `OnCallViewer`, eller en «Teamleder». Hvert team du gir den til, får de samme tillatelsene, og du endrer dem for alle disse teamene på ett sted. På OneUptime Cloud krever egendefinerte roller Scale-planen, slik det å endre tillatelsene til et team gjør.
+En egendefinert rolle er et sett tillatelser du gir navn én gang og gir til team og API-nøkler: for eksempel en «Hendelsesansvarlig» med `IncidentMember`, `AlertMember` og `OnCallViewer`, eller en «Teamleder». Hvert team og hver nøkkel du gir den til, får de samme tillatelsene, og du endrer dem for alle på ett sted. På OneUptime Cloud krever egendefinerte roller Scale-planen, slik det å endre tillatelsene til et team gjør.
 
 :::steps
 1. Åpne **Team** fra menyen **Produkter**, under **Innstillinger**. Utvid **Innstillinger** i sidemenyen, velg **Roller**, og klikk på **Opprett Egendefinert rolle**.
 2. Skriv inn **Navn** og velg under **Tillatelser** de innebygde rollene den samler, for hver ressurs i prosjektet. Beskrivelsen ligger under **Flere felt**.
 3. Opprett rollen. Den åpnes på sin side, der **Legg til rolle** legger til enda en innebygd rolle og **Legg til tillatelse** (i menyen **⋯** på kortet) én enkelt tillatelse, hver med omfang og etiketter, som på et team.
-4. Klikk på **Gi til et team** under **Team med denne rollen**. Siden **Tillatelser** til et team har også **Legg til egendefinert rolle**, og **Opprett team** tilbyr under **Tilgang** de egendefinerte rollene du kunne gitt.
+4. Klikk på **Gi til et team** under **Team med denne rollen**, eller på **Gi til en API-nøkkel** under **API-nøkler med denne rollen**. Siden **Tillatelser** til et team og siden til en API-nøkkel har også **Legg til egendefinert rolle**, og **Opprett team** og **Opprett API-nøkkel** tilbyr under **Tilgang** de egendefinerte rollene du kunne gitt.
 :::
 
 - Medlemmene i et team får hver tillatelse fra teamets egendefinerte roller, med samme omfang og samme etiketter, akkurat som om teamet hadde dem selv. En blokkering på teamet vinner fortsatt.
-- En rolle forblir knyttet til teamene som har den: en endring av den når alle med en gang, og rollens side sier hvor mange team og personer det er. **Fjern** tar rollen fra ett team. Sletter du selve rollen, mister hvert team som har den, tillatelsene dens; teamene beholder medlemmene sine og de andre rollene og tillatelsene sine.
-- Du kan bare legge i en rolle, og gi et team som rolle, det du kunne gitt teamet direkte: en rolle med en tillatelse du ikke har med samme eller et bredere omfang, avvises, og avvisningen nevner tillatelsen. En rolle har aldri `ProjectOwner`, og **Owners** og **Admin** får aldri en.
-- Siden **Tillatelser** til et team viser de egendefinerte rollene over teamets egne tillatelser. Det en rolle gir, endres på rollens side, ikke på teamets.
-- API-nøkler tar ikke egendefinerte roller. En nøkkel tjener én integrasjon, så gi den nøyaktig tillatelsene den trenger, på dens egen side.
+- En rolle forblir knyttet til teamene og API-nøklene som har den: en endring av den når alle med en gang, og rollens side sier hvor mange team, personer og nøkler det er. **Fjern** tar rollen fra ett team eller én nøkkel. Sletter du selve rollen, mister hvert team og hver nøkkel som har den, tillatelsene dens; de beholder alt annet de har.
+- Du kan bare legge i en rolle, og gi et team eller en API-nøkkel som rolle, det du kunne gitt dem direkte: en rolle med en tillatelse du ikke har med samme eller et bredere omfang, avvises, og avvisningen nevner tillatelsen. En rolle har aldri `ProjectOwner`, og **Owners** og **Admin** får aldri en.
+- Siden **Tillatelser** til et team og siden til en API-nøkkel viser de egendefinerte rollene over de egne tillatelsene. Det en rolle gir, endres på rollens side, ikke på teamets eller nøkkelens.
+- En API-nøkkel får hver tillatelse fra de egendefinerte rollene sine, med de samme etikettene, som om nøkkelen hadde dem selv, og en blokkering på nøkkelen vinner fortsatt. En tillatelse som rollen begrenser til det noen eier, gir en nøkkel ingenting: en nøkkel eier ingenting.
 - De innebygde rollene står under **Innebygde roller**, nederst på siden **Roller**.
 
 ### Tillat og blokker
@@ -247,11 +247,11 @@ Monitorlogger, SLO-historikk, nettverksflyter og kostnadsfordelinger for Kuberne
 
 ## API-nøkler
 
-API-nøkler får tillatelser direkte, på selve nøkkelen — de tilhører ikke team og påvirkes ikke av teammedlemskap.
+API-nøkler får tillatelser direkte, på selve nøkkelen, eller gjennom de egendefinerte rollene de får — de tilhører ikke team og påvirkes ikke av teammedlemskap.
 
-- Tildel de samme granulære tillatelsene og rollene som du ville gitt et team.
+- Tildel de samme granulære tillatelsene, rollene og egendefinerte rollene som du ville gitt et team.
 - Nøkler støtter **blokkerte tillatelser** og **etikettbegrensninger**, på samme måte som team.
-- Nøkler støtter **ikke** omfanget Eide. Eierskap løses mot en bruker, og en nøkkel er ikke en bruker, så gi nøkler tilgangen de trenger eksplisitt.
+- Nøkler støtter **ikke** omfanget Eide. Eierskap løses mot en bruker, og en nøkkel er ikke en bruker, så gi nøkler tilgangen de trenger eksplisitt. En egendefinert rolles tillatelse med omfanget Eide gir en nøkkel ingenting.
 
 **Å opprette en nøkkel** ber om et navn og nøkkelens **Tilgang**:
 
@@ -260,6 +260,7 @@ API-nøkler får tillatelser direkte, på selve nøkkelen — de tilhører ikke 
 | Prosjektadministrator | Opprette, endre og slette alt i prosjektet, også innstillingene. Ikke fakturering, og ikke sletting av prosjektet. |
 | Prosjektmedlem | Opprette, endre og slette overvåkere, hendelser, statussider og prosjektets andre ressurser, slik et prosjektmedlem kan. |
 | Viser | Lese alt i prosjektet og ikke endre noe. |
+| En egendefinert rolle | Alt rollen tillater, unntatt det den begrenser til ressurser noen eier. Vises når prosjektet ditt har en du kunne gitt. |
 | Velg tillatelser senere | Ingenting ennå. Valgt fra start. |
 
 :::steps
@@ -270,7 +271,7 @@ API-nøkler får tillatelser direkte, på selve nøkkelen — de tilhører ikke 
 
 Rollen du velger, blir nøkkelens første tillatelse så snart nøkkelen finnes, akkurat som om du hadde lagt den til på nøkkelens side. Du får bare tilbud om rollene du selv har — en nøkkel kan aldri få mer enn personen som gir den har — og den som kan opprette nøkler, men ikke endre hva de kan gjøre, blir ikke spurt.
 
-På siden til en nøkkel legger **Legg til rolle** til en rolle fra den samme listen som fanen Tillatelser for et team tilbyr, og **Legg til tillatelse** (i kortets meny **⋯**) legger til én granulær tillatelse. **Blokker tillatelser** ligger under **Flere innstillinger** nederst på siden, der den sammenfoldede overskriften viser hvor mange nøkkelen har.
+På siden til en nøkkel viser **Egendefinerte roller** nøkkelens egendefinerte roller så snart prosjektet ditt har en, og **Legg til egendefinert rolle** gir den en til. **Legg til rolle** legger til en rolle fra den samme listen som fanen Tillatelser for et team tilbyr, og **Legg til tillatelse** (i kortets meny **⋯**) legger til én granulær tillatelse. **Blokker tillatelser** ligger under **Flere innstillinger** nederst på siden, der den sammenfoldede overskriften viser hvor mange nøkkelen har.
 
 > [!TIP]
 > Gi hver integrasjon sin egen nøkkel med det smaleste settet tillatelser som virker, slik at du kan trekke tilbake én uten å forstyrre de andre.

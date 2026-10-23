@@ -405,7 +405,12 @@ jobs:
           # pages, the dialogs while what uses a value is still read, and a
           # create form that never offers an archived one, at a laptop's and a
           # phone's width, light and dark) joined them on 2026-10-21: about 21
-          # on a slow runner.
+          # on a slow runner. Custom Roles grew by 17 specs on 2026-10-23
+          # (custom roles on API keys: a key's page, Create API Key and a
+          # role's API keys, at 1280 and 390 pixels, dark): 4.1 minutes with
+          # its bundle locally, about 1.2 more. This group had taken 21.5
+          # minutes on master without them, so Archivable Values moved on to
+          # group 9 the same day: about 21 for the seven.
           - group: 7
             browsers: chromium
             suites: >-
@@ -416,7 +421,6 @@ jobs:
               test-public-dashboard-theme-ui
               test-dashboard-templates-ui
               test-external-mcp-servers-ui
-              test-archivable-values-ui
           # Dashboard Time Range (about 3.5 minutes with its bundle locally: a
           # dashboard's default time range and auto-refresh inside OneUptime
           # and on its public page, at a laptop's width and, for what a phone
@@ -475,7 +479,11 @@ jobs:
           # policy's Escalation Rules page with the setting folded under More
           # settings, its dialog and what a save sends, at 1280 and 390
           # pixels, dark and German) joined them the same day: about 19.5 for
-          # the seven.
+          # the seven. Archivable Values (about 1.5 minutes with its bundle
+          # locally, Chromium only) moved here from group 7 on 2026-10-23,
+          # when the Custom Roles specs for API keys would have taken that
+          # group past 22: this group had taken 18.9 to 19.4, so about 21.5
+          # for the eight.
           - group: 9
             browsers: chromium
             suites: >-
@@ -486,6 +494,7 @@ jobs:
               test-runbooks-menu-ui
               test-postmortems-ui
               test-acknowledgement-timeout-ui
+              test-archivable-values-ui
           # Added on 2026-10-22 with the second half of Event Overview (about
           # 13 minutes on a slow runner) and Navigation Search from group 2
           # (2.9 to 3.5): about 18.5 with the setup. Chromium only. Owner

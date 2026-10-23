@@ -29,7 +29,7 @@ Klikk på **Send et testangrep**. Et dusin mislykkede pålogginger fra én dokum
 Klikk på **Åpne saken**. Slik ser et ekte funn ut: hendelsene bak det, adressen det gjelder, og hva **Enrich New Cases** fant. Lukk den som en test når du er ferdig.
 :::
 
-Deretter åpner **Oversikt** på det som trenger noen: de åpne sakene dine, de ingen har tatt, og playbook-trinnene som venter på en godkjenning, eller **Alt er rolig** når det ikke er noen.
+Deretter åpner **Oversikt** på det som trenger noen, under **Krever oppmerksomhet**: de åpne sakene dine, de ingen har tatt, og playbook-trinnene som venter på en godkjenning. Når det ikke er noen, står det **Alt er rolig**.
 
 ## Slik fungerer det
 
@@ -48,7 +48,7 @@ flowchart LR
 | **Sikkerhetssaker** | **Sikkerhetssaker** | Det som ble funnet, gruppert etter brukeren, verten eller adressen det gjelder |
 | **Playbooks** | **Playbooks** | Trinn som kjører på nye saker: beriker dem, varsler, åpner en hendelse eller demmer inn |
 
-Stripen øverst på **Oversikt** viser hver del med tallene sine: kildene og hendelsene deres de siste 24 timene, reglene som er slått på, de åpne sakene og playbookene som svarer.
+Øverst på **Oversikt**, under det som trenger noen, viser hver del tallene sine: kildene og hendelsene deres de siste 24 timene, reglene som er slått på, de åpne sakene og playbookene som svarer. En del som ikke er satt opp, sier det og åpner siden der du setter den opp.
 
 ## Finn sikkerhetshendelser i loggene dine
 
@@ -84,6 +84,14 @@ Saken åpnes som regel før knappen svarer; når regelen fortsatt henger etter, 
 
 :::details Det kommer ingen sikkerhetshendelse fra loggene mine
 Sjekk at **Finn sikkerhetshendelser i loggene dine** er slått på, og at kortet **Loggene dine** viser når det sist ble sjekket. Bare typene linjer i tabellen over blir hendelser: En server som ikke sender SSH-, sudo-, revisjons-, CloudTrail- eller tilgangslogger, har ingenting å finne.
+:::
+
+:::details Oversikt sier at den siste sikkerhetshendelsen kom for dager siden
+Ingenting har nådd Security siden da. Åpne **Connections**, og sjekk at **Loggene dine** og hver tilkobling fortsatt er slått på, og når hver sist sjekket.
+:::
+
+:::details Kortet som slår på Security, er borte
+Noen lukket det med **Lukk**. Så lenge ingenting overvåkes for trusler ennå, tilbyr **Oversikt** **Sett opp Security**, som henter det tilbake.
 :::
 
 ## Neste steg

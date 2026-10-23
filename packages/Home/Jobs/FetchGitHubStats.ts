@@ -14,9 +14,14 @@ const GITHUB_STATS_NAMESPACE: string = "home";
 const GITHUB_CONTRIBUTORS_CACHE_KEY: string = "githubContributors";
 const GITHUB_COMMITS_CACHE_KEY: string = "githubCommits";
 
-// Default fallback values (used if API fails)
-const DEFAULT_CONTRIBUTORS: number = 80;
-const DEFAULT_COMMITS: number = 29000;
+/*
+ * What the home page shows before the first fetch after a deploy, or while
+ * GitHub cannot be reached. Both counts only grow, so a floor taken from the
+ * repository stays true; raise it now and then so it does not go stale
+ * (October 2026: 122 contributors, 52,979 commits).
+ */
+const DEFAULT_CONTRIBUTORS: number = 120;
+const DEFAULT_COMMITS: number = 52000;
 
 export const getGitHubContributorsCount: () => number = (): number => {
   if (

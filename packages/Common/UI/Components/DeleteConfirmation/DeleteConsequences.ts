@@ -283,19 +283,26 @@ export const DELETE_CONSEQUENCES: Readonly<Record<string, DeleteConsequence>> =
       sentence: translationKey(
         "Deleting an API key stops anything that uses it from working.",
       ),
-      deletedWith: ["ApiKeyPermission"],
+      deletedWith: ["ApiKeyPermission", "ApiKeyCustomRole"],
     },
     /*
-     * The permissions the role gave go from every team that has it, in the
-     * same delete: the teams' copies of them (TeamPermission) and the
-     * teams' hold of the role (TeamCustomRole) cascade with it.
+     * The permissions the role gave go from every team and API key that has
+     * it, in the same delete: the copies of them (TeamPermission,
+     * ApiKeyPermission) and the hold of the role (TeamCustomRole,
+     * ApiKeyCustomRole) cascade with it.
      */
     CustomRole: {
       sentence: translationKey(
-        "Deleting a custom role takes its permissions from every team that has it. The teams stay, with their members and their other roles and permissions.",
+        "Deleting a custom role takes its permissions from every team and API key that has it. The teams and keys themselves stay, with everything else they have.",
       ),
-      deletedWith: ["CustomRolePermission", "TeamCustomRole", "TeamPermission"],
-      stays: ["Team", "TeamMember"],
+      deletedWith: [
+        "CustomRolePermission",
+        "TeamCustomRole",
+        "TeamPermission",
+        "ApiKeyCustomRole",
+        "ApiKeyPermission",
+      ],
+      stays: ["Team", "TeamMember", "ApiKey"],
     },
     TelemetryIngestionKey: {
       sentence: translationKey(

@@ -169,6 +169,10 @@ interface OpenOptions {
     | "auto-off";
   // Turn on recommended that cannot do everything (the fixture's SETUP_SCENARIOS).
   setup?: "partly" | "fail";
+  // "silent": the sources sent their last event three days ago.
+  sources?: "silent";
+  // One of the Overview's two reads fails the first time.
+  fail?: "status" | "overview";
 }
 
 test.use({ deviceScaleFactor: 2, actionTimeout: 15000 });
@@ -263,6 +267,12 @@ async function open(
   }
   if (options.setup) {
     params.set("setup", options.setup);
+  }
+  if (options.sources) {
+    params.set("sources", options.sources);
+  }
+  if (options.fail) {
+    params.set("fail", options.fail);
   }
   const query: string = params.toString();
   await page.goto(query ? `${pathname}?${query}` : pathname);
@@ -441,6 +451,22 @@ function gettingStarted(page: Page): Locator {
   return page.getByTestId("security-getting-started");
 }
 
+// The Overview's top: one card, its band, and the pipeline under it.
+function topCard(page: Page): Locator {
+  return page.getByTestId("security-overview-status");
+}
+
+function band(page: Page): Locator {
+  return page.getByTestId("security-status-headline");
+}
+
+const STAGE_KEYS: ReadonlyArray<string> = [
+  "sources",
+  "detections",
+  "cases",
+  "playbooks",
+];
+
 // What Turn on recommended could not do: one line each, the name then why.
 function problemRows(scope: Locator): Locator {
   return scope.getByTestId("security-turn-on-problem");
@@ -470,16 +496,27 @@ test.describe("the overview", () => {
   }) => {
     await open(page, OVERVIEW_PATH);
 
+    // The band at the top of the card says it first, each count a link.
+    await expect(band(page)).toHaveAttribute("data-kind", "needs-attention");
     await expect(
-      page.getByRole("link", { name: "2 open cases assigned to you" }),
+      band(page).getByRole("heading", { name: "Needs attention" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("link", { name: "2 open cases nobody has picked up" }),
+      band(page).getByRole("link", { name: "2 open cases assigned to you" }),
+    ).toBeVisible();
+    await expect(
+      band(page).getByRole("link", {
+        name: "2 open cases nobody has picked up",
+      }),
     ).toBeVisible();
     // One step: singular, not "1 playbook steps".
     await expect(
-      page.getByRole("link", { name: "1 playbook step waiting for approval" }),
+      band(page).getByRole("link", {
+        name: "1 playbook step waiting for approval",
+      }),
     ).toBeVisible();
+    // Two critical cases are open: red, as Home keeps red for incidents.
+    await expect(band(page)).toHaveAttribute("data-tone", "danger");
 
     await expect(page.getByText("2 critical · 2 high")).toBeVisible();
     await expect(page.getByText("37 cases closed in 30 days")).toBeVisible();
@@ -535,6 +572,8 @@ test.describe("the overview", () => {
     // What the open cases are, which the figures below no longer repeat.
     await expect(stage(page, "cases")).toContainText("2 critical · 2 high");
     await expect(stage(page, "playbooks")).toContainText("3 playbooks on");
+    // The step held for an approval reads under the playbooks too.
+    await expect(stage(page, "playbooks")).toContainText("1 step to approve");
     await expect(
       page
         .getByRole("group", { name: "Security operations figures" })
@@ -558,9 +597,9 @@ test.describe("the overview", () => {
       );
       expect(lines, `${key}'s line under its figure`).toBe(1);
     }
-    // Set up, so no Get started; something waits, so no All quiet.
+    // Set up, so no Get started; something waits, so not All quiet.
     await expect(gettingStarted(page)).toHaveCount(0);
-    await expect(page.getByTestId("security-all-quiet")).toHaveCount(0);
+    await expect(band(page)).not.toContainText("All quiet");
 
     await stage(page, "detections").getByRole("link").click();
     await expect
@@ -948,7 +987,8 @@ test.describe("the overview", () => {
   }) => {
     await open(page, OVERVIEW_PATH, { quiet: true });
 
-    const quiet: Locator = page.getByTestId("security-all-quiet");
+    const quiet: Locator = band(page);
+    await expect(quiet).toHaveAttribute("data-kind", "quiet");
     await expect(
       quiet.getByRole("heading", { name: "All quiet" }),
     ).toBeVisible();
@@ -959,11 +999,391 @@ test.describe("the overview", () => {
       await expect(stage(page, key)).toHaveAttribute("data-ready", "true");
     }
     await expect(stage(page, "cases")).toContainText("None open");
+    await expect(stage(page, "cases")).toContainText("All clear");
     await screenshot(page, "overview-all-quiet");
 
     await open(page, OVERVIEW_PATH, { quiet: true, theme: "dark" });
     await expect(quiet).toBeVisible();
     await screenshot(page, "overview-all-quiet-dark");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The Overview's top card
+ * ---------------------------------------------------------------------------
+ */
+
+test.describe("the overview's top card", () => {
+  // Where a box comes to rest, for each of the pipeline's four cells.
+  async function cellBoxes(page: Page): Promise<Array<Box>> {
+    const boxes: Array<Box> = [];
+    for (const key of STAGE_KEYS) {
+      boxes.push(await boxOf(stage(page, key)));
+    }
+    return boxes;
+  }
+
+  test("one card in both themes, at a laptop's width and a phone's: the band, then four cells on one hairline grid, nothing running off the page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const layout of [
+      { width: 1280, theme: undefined, name: "overview-top-1280" },
+      { width: 1280, theme: "dark" as const, name: "overview-top-1280-dark" },
+      { width: 390, theme: undefined, name: "overview-top-390" },
+      { width: 390, theme: "dark" as const, name: "overview-top-390-dark" },
+    ]) {
+      await open(page, OVERVIEW_PATH, {
+        width: layout.width,
+        theme: layout.theme,
+      });
+      await expect(topCard(page)).toBeVisible();
+
+      // The band first, the pipeline under it, inside one card.
+      expect(
+        await topCard(page).evaluate((element: Element): Array<string> => {
+          return Array.from(element.children).map((child: Element) => {
+            return child.getAttribute("data-testid") || "";
+          });
+        }),
+      ).toEqual(["security-status-headline", "security-pipeline"]);
+      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      expect(await overflowOf(topCard(page))).toBeLessThanOrEqual(0);
+
+      const card: Box = await boxOf(topCard(page));
+      const cells: Array<Box> = await cellBoxes(page);
+      for (const cell of cells) {
+        expect(cell.x).toBeGreaterThanOrEqual(card.x - 0.5);
+        expect(cell.x + cell.width).toBeLessThanOrEqual(
+          card.x + card.width + 0.5,
+        );
+      }
+      const figures: Array<Box> = [];
+      for (const key of STAGE_KEYS) {
+        figures.push(
+          await boxOf(page.getByTestId(`security-pipeline-${key}-figure`)),
+        );
+      }
+      const arrows: Locator = page.getByTestId("security-pipeline-arrow");
+      await expect(arrows).toHaveCount(3);
+
+      if (layout.width === 1280) {
+        // One row: the cells share their top, and their figures one line.
+        for (const index of [1, 2, 3]) {
+          expect(Math.abs(cells[index]!.y - cells[0]!.y)).toBeLessThanOrEqual(
+            1,
+          );
+          expect(
+            Math.abs(figures[index]!.y - figures[0]!.y),
+          ).toBeLessThanOrEqual(1);
+        }
+        /*
+         * Each thing waiting for someone is one line beside the side menu,
+         * its chevron right after its words: the link never takes less
+         * width than its words need.
+         */
+        for (const key of ["mine", "unassigned", "approvals"]) {
+          const link: Box = await boxOf(
+            page.getByTestId(`security-attention-${key}`).getByRole("link"),
+          );
+          expect(link.height, `${key} on one line`).toBeLessThanOrEqual(21);
+        }
+        // A chevron sits on each line between two cells, centred on it.
+        for (const index of [0, 1, 2]) {
+          const arrow: Box = await boxOf(arrows.nth(index));
+          const line: number = cells[index]!.x + cells[index]!.width;
+          expect(
+            Math.abs(arrow.x + arrow.width / 2 - line),
+          ).toBeLessThanOrEqual(1.5);
+          expect(arrow.y).toBeGreaterThan(cells[index]!.y);
+          expect(arrow.y + arrow.height).toBeLessThan(
+            cells[index]!.y + cells[index]!.height,
+          );
+        }
+      } else {
+        // Two by two on a phone, and no chevron pointing at the next row.
+        expect(Math.abs(cells[1]!.y - cells[0]!.y)).toBeLessThanOrEqual(1);
+        expect(Math.abs(cells[3]!.y - cells[2]!.y)).toBeLessThanOrEqual(1);
+        expect(cells[2]!.y).toBeGreaterThan(cells[0]!.y + cells[0]!.height - 1);
+        for (const index of [0, 1, 2]) {
+          await expect(arrows.nth(index)).toBeHidden();
+        }
+      }
+      await screenshot(page, layout.name);
+    }
+  });
+
+  test("All quiet: the test attack sits at the band's right edge - beside its words on a laptop, under them on a tablet and a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const width of [1280, 768, 390]) {
+      await open(page, OVERVIEW_PATH, { quiet: true, width });
+
+      const heading: Box = await boxOf(
+        band(page).getByRole("heading", { name: "All quiet" }),
+      );
+      const summary: Box = await boxOf(
+        band(page).getByTestId("security-status-summary"),
+      );
+      const button: Box = await boxOf(
+        band(page).getByTestId("security-run-setup-test"),
+      );
+      const area: Box = await boxOf(band(page));
+
+      // The band pads as the cells do: 20px from sm up, 16px on a phone.
+      const padding: number = width < 640 ? 16 : 20;
+      // At the band's right edge, as a card keeps its actions, in both layouts.
+      expect(
+        Math.abs(button.x + button.width - (area.x + area.width - padding)),
+      ).toBeLessThanOrEqual(1.5);
+      if (width === 1280) {
+        expect(button.x).toBeGreaterThan(summary.x + summary.width);
+        // Beside the words, not on a line of its own.
+        expect(button.y).toBeLessThan(summary.y + summary.height);
+      } else {
+        expect(button.y).toBeGreaterThan(summary.y + summary.height);
+        // Its own width, not a bar across the band.
+        expect(button.width).toBeLessThan(area.width * 0.75);
+      }
+      if (width === 768) {
+        /*
+         * Beside the side menu the band is too narrow for words and button
+         * side by side: the words keep the band's width, not a narrow
+         * column five lines deep beside the button.
+         */
+        expect(summary.width).toBeGreaterThan(area.width * 0.6);
+        expect(summary.height).toBeLessThanOrEqual(3 * 20 + 1);
+      }
+      expect(heading.y).toBeLessThan(summary.y);
+    }
+  });
+
+  test("the band's disc lines up with the cells' names, and the figures' below", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, OVERVIEW_PATH, { width: 1280 });
+
+    const disc: Box = await boxOf(
+      band(page).getByTestId("security-status-disc"),
+    );
+    const sourcesName: Box = await boxOf(
+      stage(page, "sources").getByText("Sources", { exact: true }),
+    );
+    const card: Box = await boxOf(topCard(page));
+
+    // Inside the card's 1px border, 20px in: the cells' own padding.
+    const contentStart: number = card.x + 1 + 20;
+    expect(Math.abs(disc.x - contentStart)).toBeLessThanOrEqual(0.5);
+    // The cell's name follows its 14px icon and a 6px gap.
+    expect(
+      Math.abs(sourcesName.x - (contentStart + 14 + 6)),
+    ).toBeLessThanOrEqual(0.5);
+    // The figures' card below starts its names on the same line.
+    const firstFigure: Box = await boxOf(
+      page
+        .getByRole("group", { name: "Security operations figures" })
+        .getByText("Mean Time to Acknowledge", { exact: true }),
+    );
+    expect(Math.abs(firstFigure.x - sourcesName.x)).toBeLessThanOrEqual(1);
+  });
+
+  test("a project nothing watches says so, never All quiet, and Set up Security brings Get started back for good", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, OVERVIEW_PATH, { empty: true });
+    await gettingStarted(page)
+      .getByTestId("security-getting-started-dismiss")
+      .click();
+
+    await expect(band(page)).toHaveAttribute("data-kind", "not-set-up");
+    await expect(
+      band(page).getByRole("heading", {
+        name: "Nothing is being watched for threats yet",
+      }),
+    ).toBeVisible();
+    await expect(band(page)).not.toContainText("All quiet");
+    await expect(band(page).getByTestId("security-run-setup-test")).toHaveCount(
+      0,
+    );
+    // Each part not set up says what to do, in grey, never an amber card.
+    for (const [key, words] of [
+      ["sources", "Connect a source"],
+      ["detections", "Turn on rules"],
+      ["playbooks", "Add a playbook"],
+    ]) {
+      await expect(stage(page, key!)).toContainText("Not set up");
+      await expect(stage(page, key!)).toContainText(words!);
+      expect(
+        await page
+          .getByTestId(`security-pipeline-${key}-figure`)
+          .evaluate((element: Element): string => {
+            return getComputedStyle(element).color;
+          }),
+      ).toBe("rgb(107, 114, 128)");
+    }
+    await screenshot(page, "overview-not-watched");
+
+    // No rule on: the Detections cell opens the library, where rules are added.
+    await stage(page, "detections").getByRole("link").click();
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(RULE_LIBRARY_PATH);
+
+    // The dismissal is remembered: the next visit opens on the card's band.
+    await open(page, OVERVIEW_PATH, { empty: true });
+    await expect(band(page)).toHaveAttribute("data-kind", "not-set-up");
+    await band(page).getByTestId("security-status-set-up").click();
+    await expect(gettingStarted(page)).toBeVisible();
+    await expect(topCard(page)).toHaveCount(0);
+
+    // Remembered no more: the visit after opens on Get started too.
+    await open(page, OVERVIEW_PATH, { empty: true });
+    await expect(gettingStarted(page)).toBeVisible();
+  });
+
+  test("sources that went silent: All quiet says when the last event came, and the Sources cell says it in amber", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const theme of [undefined, "dark" as const]) {
+      await open(page, OVERVIEW_PATH, {
+        quiet: true,
+        sources: "silent",
+        theme,
+        width: 1280,
+      });
+
+      await expect(band(page)).toHaveAttribute("data-kind", "quiet");
+      await expect(
+        band(page).getByTestId("security-status-summary"),
+      ).toHaveText(
+        "No open case and nothing waiting for an approval, but the last security event arrived 3 days ago.",
+      );
+      await expect(stage(page, "sources")).toContainText(
+        "Last event 3 days ago",
+      );
+      await expect(stage(page, "sources")).toHaveAttribute(
+        "data-tone",
+        "warning",
+      );
+      const colour: string = await page
+        .getByTestId("security-pipeline-sources-status")
+        .evaluate((element: Element): string => {
+          return getComputedStyle(element).color;
+        });
+      // amber-700 in the light theme, the dark theme's lighter amber there.
+      expect(colour).toBe(
+        theme === "dark" ? "rgb(252, 211, 77)" : "rgb(180, 83, 9)",
+      );
+      await screenshot(
+        page,
+        theme === "dark"
+          ? "overview-sources-silent-dark"
+          : "overview-sources-silent",
+      );
+    }
+  });
+
+  test("the set-up figures cannot be read: the pipeline's place says so, and Try again brings the pipeline", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, OVERVIEW_PATH, { fail: "status", width: 1280 });
+
+    const failed: Locator = page.getByTestId("security-pipeline-error");
+    await expect(failed).toHaveText(
+      /We could not load how Security is set up\./,
+    );
+    await expect(failed).not.toContainText("Server Error");
+    await expect(page.getByTestId("security-pipeline")).toHaveCount(0);
+    // The band still says what needs someone: the overview answered.
+    await expect(band(page)).toHaveAttribute("data-kind", "needs-attention");
+    await screenshot(page, "overview-status-failed");
+
+    await failed.getByTestId("security-pipeline-try-again").click();
+    await expect(page.getByTestId("security-pipeline")).toBeVisible();
+    await expect(failed).toHaveCount(0);
+
+    const reads: number = (await fixture(page)).apiRequests.filter(
+      (request: { url: string }): boolean => {
+        return new URL(request.url).pathname.endsWith(
+          "/security-case/setup/status",
+        );
+      },
+    ).length;
+    expect(reads).toBe(2);
+  });
+
+  test("the overview cannot be read: the page says so in the product's words, and Try again loads it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, OVERVIEW_PATH, { fail: "overview", width: 1280 });
+
+    const failed: Locator = page.getByTestId("security-overview-error");
+    await expect(failed).toContainText(
+      "We could not load the Security overview",
+    );
+    await expect(
+      page.getByTestId("security-overview-error-message"),
+    ).toHaveText("Something went wrong. Try again in a moment.");
+    await expect(failed).not.toContainText("Server Error");
+    await screenshot(page, "overview-failed");
+
+    await page.getByTestId("security-overview-try-again").click();
+    await expect(topCard(page)).toBeVisible();
+    await expect(failed).toHaveCount(0);
+    await expect(page.getByText("Riskiest Entities")).toBeVisible();
+  });
+
+  test("a test attack from the quiet band opens a case: the band turns to Needs attention and keeps the line to the case", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, OVERVIEW_PATH, { quiet: true, width: 1280 });
+    await band(page).getByTestId("security-run-setup-test").click();
+
+    await expect(band(page)).toHaveAttribute("data-kind", "needs-attention");
+    await expect(
+      band(page).getByTestId("security-setup-test-result"),
+    ).toContainText("The test opened case CASE-150");
+    await expect(
+      band(page).getByRole("link", {
+        name: "1 open case nobody has picked up",
+      }),
+    ).toBeVisible();
+    await expect(stage(page, "cases")).toContainText("1 open case");
+    await screenshot(page, "overview-test-attack-from-band");
+  });
+
+  test("each cell opens its part's page", async ({ page }: { page: Page }) => {
+    for (const [key, pathname] of [
+      ["sources", `${PRODUCT}/connections`],
+      ["cases", CASES_PATH],
+      ["playbooks", PLAYBOOKS_PATH],
+    ]) {
+      await open(page, OVERVIEW_PATH, { width: 1280 });
+      await stage(page, key!).getByRole("link").click();
+      await expect
+        .poll(() => {
+          return pathnameOf(page);
+        })
+        .toBe(pathname);
+    }
   });
 });
 

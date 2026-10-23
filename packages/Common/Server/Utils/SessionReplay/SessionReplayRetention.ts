@@ -88,6 +88,31 @@ export function resolveSessionReplayRetentionInDays(
 }
 
 /*
+ * The retention, in days, that ingest stamps on a RUM application's
+ * recordings: the application's sessionReplayRetentionInDays, or the replay
+ * default when it is unset, clamped to the allowed set (the session replay
+ * gate, SessionReplayGateCache, resolves its policy through this). Usage
+ * billing prices replay through the same function, so an application is
+ * charged for exactly the days its recordings are kept - not for the
+ * project's telemetry retention, which replay does not use.
+ */
+export function getApplicationSessionReplayRetentionInDays(
+  applicationRetentionInDays: number | null | undefined,
+): number {
+  const requestedDays: number =
+    typeof applicationRetentionInDays === "number" &&
+    Number.isFinite(applicationRetentionInDays)
+      ? applicationRetentionInDays
+      : DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS;
+
+  return SessionIdentity.clampRetentionDays(
+    requestedDays,
+    SESSION_REPLAY_ALLOWED_RETENTION_DAYS,
+    DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS,
+  );
+}
+
+/*
  * The retentionDate written on both the session header and every chunk of
  * that session.
  *

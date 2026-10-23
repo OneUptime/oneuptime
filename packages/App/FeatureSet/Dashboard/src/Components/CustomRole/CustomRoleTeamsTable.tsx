@@ -192,6 +192,8 @@ const CustomRoleTeamsTable: FunctionComponent<ComponentProps> = (
               type: FieldType.Element,
               wrapContent: true,
               wrapMaxWidthClassName: "max-w-xl",
+              // The team's name says what each card is on a phone.
+              hideTitleOnMobile: true,
               getElement: (item: TeamCustomRole): ReactElement => {
                 if (item.team) {
                   return <TeamElement team={item.team} />;
