@@ -7,6 +7,7 @@ import {
   CODE_TASK_RUNNER_NOT_ONLINE_NAMED,
   CodeTaskBlockerFix,
 } from "./CodeTaskCopy";
+import { getRepositorySettingsRoute } from "./CodePaths";
 import {
   getProjectBalanceAccess,
   ProjectBalanceAccess,
@@ -192,12 +193,17 @@ const CodeBlockerNotice: FunctionComponent<ComponentProps> = (
       <>
         {fix && access === ProjectBalanceAccess.Yes ? (
           <Link
-            to={RouteUtil.populateRouteParams(
-              RouteMap[fix.pageMap] as Route,
-              CODE_TASK_REPOSITORY_SETTINGS_FIXES.includes(props.blocker.type)
-                ? { modelId: props.repositoryId }
-                : undefined,
-            )}
+            to={
+              /*
+               * The repository's own settings open at the setting that
+               * fixes it - its Runner - with More settings open there.
+               */
+              CODE_TASK_REPOSITORY_SETTINGS_FIXES.includes(
+                props.blocker.type,
+              ) && props.repositoryId
+                ? getRepositorySettingsRoute(props.repositoryId, fix.setting)
+                : RouteUtil.populateRouteParams(RouteMap[fix.pageMap] as Route)
+            }
             dataTestId="code-blocker-fix"
             className="mt-1 inline-flex items-center gap-1 font-medium text-indigo-600 hover:text-indigo-500"
           >

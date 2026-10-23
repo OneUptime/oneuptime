@@ -33232,7 +33232,6 @@
   "What to watch": "На что обратить внимание",
   "When someone with write access opens or updates a pull request, OneUptime comments with what production shows of the code it changes.": "Когда человек с правом записи открывает или обновляет запрос на слияние, OneUptime пишет комментарий о том, что продакшен показывает об изменённом коде.",
   "When the playbook runs on its own.": "Когда плейбук запускается сам.",
-  "Where AI's pull requests open, how many may be open at once, the label that hands an issue to the GitHub App, and what production reviews post.": "Где открываются запросы на слияние от ИИ, сколько их может быть открыто одновременно, метка, передающая задачу GitHub App, и что публикуют проверки по продакшену.",
   "Which security cases are open, and which look most urgent?": "Какие кейсы безопасности открыты и какие выглядят самыми срочными?",
   "Which users or hosts had unusual security activity in the last 24 hours?": "У каких пользователей или хостов была необычная активность безопасности за последние 24 часа?",
   "You are still being paged. Please try again.": "Вас по-прежнему оповещают. Попробуйте ещё раз.",
@@ -33649,5 +33648,6 @@
   "This device's SNMP credential profile could not be read just now. Try the walk again in a moment.": "Сейчас не удалось прочитать профиль учётных данных SNMP этого устройства. Повторите обход чуть позже.",
   "This device is already being walked. Wait for that walk to finish, then walk it again.": "Обход этого устройства уже выполняется. Дождитесь его завершения, затем запустите обход снова.",
   "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.": "Зонд этого устройства работает на версии, которая не умеет выполнять SNMP-обход. Обновите зонд до последней версии, затем повторите обход.",
-  "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.": "Обход этого устройства ещё не выполнялся. Для обхода нужно разрешение «Создание диагностики сетевого устройства»."
+  "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.": "Обход этого устройства ещё не выполнялся. Для обхода нужно разрешение «Создание диагностики сетевого устройства».",
+  "GitHub commands, production reviews, where AI works, and where its pull requests open.": "Команды GitHub, проверки по продакшену, где работает ИИ и куда открываются его пул-реквесты."
 }

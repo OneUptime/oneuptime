@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import { CodeRepositorySetting } from "./CodeRepositorySettingsCopy";
 import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
 import {
   CodeTaskBlockerType,
@@ -377,12 +378,17 @@ export const CODE_TASK_RUNNER_NOT_ONLINE_NAMED: string = translationKey(
  * repository's Runner setting (CODE_TASK_BLOCKER_WHO_CAN_FIX).
  *
  * What fixes a missing Runner is the repository's own Runner setting, in its
- * settings in Code: the link opens them (CodeBlockerNotice fills in the
- * repository).
+ * settings in Code: the link opens them at it (CodeBlockerNotice fills in
+ * the repository), with More settings, where it is, open.
  */
 export interface CodeTaskBlockerFix {
   pageMap: PageMap;
   title: string;
+  /*
+   * The setting the link lands on, on a repository's settings page
+   * (CodeRepositorySetting, the place after the address's "#").
+   */
+  setting?: CodeRepositorySetting | undefined;
 }
 
 // The words on the AI Credits link, for someone who may add AI credits.
@@ -416,14 +422,17 @@ export const CODE_TASK_BLOCKER_FIXES: Partial<
   [CodeTaskBlockerType.NoAgent]: {
     pageMap: PageMap.CODE_REPOSITORY_VIEW_SETTINGS,
     title: translationKey("Pick a Runner"),
+    setting: CodeRepositorySetting.Runner,
   },
   [CodeTaskBlockerType.RunnerNotOnline]: {
     pageMap: PageMap.CODE_REPOSITORY_VIEW_SETTINGS,
     title: translationKey("Pick a Runner"),
+    setting: CodeRepositorySetting.Runner,
   },
   [CodeTaskBlockerType.GlobalRunnersOff]: {
     pageMap: PageMap.CODE_REPOSITORY_VIEW_SETTINGS,
     title: translationKey("Pick a Runner"),
+    setting: CodeRepositorySetting.Runner,
   },
 };
 

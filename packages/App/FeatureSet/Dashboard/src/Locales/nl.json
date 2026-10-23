@@ -33232,7 +33232,6 @@
   "What to watch": "Aandachtspunten",
   "When someone with write access opens or updates a pull request, OneUptime comments with what production shows of the code it changes.": "Wanneer iemand met schrijfrechten een pull request opent of bijwerkt, reageert OneUptime met wat productie laat zien van de gewijzigde code.",
   "When the playbook runs on its own.": "Wanneer het playbook vanzelf wordt uitgevoerd.",
-  "Where AI's pull requests open, how many may be open at once, the label that hands an issue to the GitHub App, and what production reviews post.": "Waar de pull requests van AI worden geopend, hoeveel er tegelijk open mogen zijn, het label dat een issue aan de GitHub App geeft, en wat productiebeoordelingen plaatsen.",
   "Which security cases are open, and which look most urgent?": "Welke beveiligingszaken zijn open, en welke lijken het meest urgent?",
   "Which users or hosts had unusual security activity in the last 24 hours?": "Welke gebruikers of hosts hadden in de afgelopen 24 uur ongewone beveiligingsactiviteit?",
   "You are still being paged. Please try again.": "U wordt nog steeds opgeroepen. Probeer het opnieuw.",
@@ -33649,5 +33648,6 @@
   "This device's SNMP credential profile could not be read just now. Try the walk again in a moment.": "Het SNMP-referentieprofiel van dit apparaat kon nu niet worden gelezen. Probeer de walk zo meteen opnieuw.",
   "This device is already being walked. Wait for that walk to finish, then walk it again.": "Voor dit apparaat loopt al een walk. Wacht tot die klaar is en start dan een nieuwe walk.",
   "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.": "De sonde van dit apparaat draait een versie die geen SNMP-walks kan uitvoeren. Werk de sonde bij naar de nieuwste versie en start de walk opnieuw.",
-  "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.": "Er is nog geen walk van dit apparaat. Voor een walk heb je de machtiging Netwerkapparaatdiagnose aanmaken nodig."
+  "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.": "Er is nog geen walk van dit apparaat. Voor een walk heb je de machtiging Netwerkapparaatdiagnose aanmaken nodig.",
+  "GitHub commands, production reviews, where AI works, and where its pull requests open.": "GitHub-opdrachten, productiebeoordelingen, waar AI werkt en waar de pull requests van AI openen."
 }

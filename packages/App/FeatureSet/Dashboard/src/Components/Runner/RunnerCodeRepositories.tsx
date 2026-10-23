@@ -1,7 +1,6 @@
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import { getRepositorySettingsRoute } from "../Code/CodePaths";
+import { CodeRepositorySetting } from "../Code/CodeRepositorySettingsCopy";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
-import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import Link from "Common/UI/Components/Link/Link";
@@ -15,9 +14,10 @@ import React, { FunctionComponent, ReactElement } from "react";
  * code repositories that pick it - AI works in them on this Runner (their
  * Runner setting in Code). It is what replaced the "Runs AI Code Fixes"
  * switch a Runner had, in the same place: a repository picks its Runner, so
- * the Runner says which do, each a link to the repository's settings, where
- * the pick is changed. With none, one short line says where a repository
- * picks its Runner.
+ * the Runner says which do, each a link to the repository's settings that
+ * lands on its Runner, where the pick is changed (More settings opens
+ * there). With none, one short line says where a repository picks its
+ * Runner.
  *
  * The page reads them once (loadRunnerCodeRepositories) and draws the row
  * only when it could: not for someone who may not read code repositories,
@@ -110,9 +110,9 @@ const RunnerCodeRepositoryList: FunctionComponent<ComponentProps> = (
         return (
           <li key={repository.id} className="min-w-0 max-w-full">
             <Link
-              to={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.CODE_REPOSITORY_VIEW_SETTINGS] as Route,
-                { modelId: repository.id },
+              to={getRepositorySettingsRoute(
+                repository.id,
+                CodeRepositorySetting.Runner,
               )}
               className="break-words font-medium text-indigo-600 hover:text-indigo-500 hover:underline"
               dataTestId={`${RUNNER_CODE_REPOSITORIES_TEST_ID}-link`}

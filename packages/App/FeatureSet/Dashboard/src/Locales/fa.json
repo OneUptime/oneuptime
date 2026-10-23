@@ -33232,7 +33232,6 @@
   "What to watch": "نکته‌هایی که باید زیر نظر داشت",
   "When someone with write access opens or updates a pull request, OneUptime comments with what production shows of the code it changes.": "وقتی کسی با دسترسی نوشتن یک Pull Request باز یا به‌روز می‌کند، OneUptime آنچه محیط عملیاتی از کد تغییریافته نشان می‌دهد را در یک دیدگاه می‌نویسد.",
   "When the playbook runs on its own.": "اینکه پلی‌بوک چه زمانی خودش اجرا می‌شود.",
-  "Where AI's pull requests open, how many may be open at once, the label that hands an issue to the GitHub App, and what production reviews post.": "جایی که Pull Requestهای هوش مصنوعی باز می‌شوند، تعداد مجاز باز به‌طور هم‌زمان، برچسبی که یک issue را به GitHub App می‌سپارد، و آنچه بازبینی‌های عملیاتی منتشر می‌کنند.",
   "Which security cases are open, and which look most urgent?": "کدام پرونده‌های امنیتی باز هستند و کدام فوری‌تر به نظر می‌رسند؟",
   "Which users or hosts had unusual security activity in the last 24 hours?": "کدام کاربران یا میزبان‌ها در 24 ساعت گذشته فعالیت امنیتی غیرعادی داشتند؟",
   "You are still being paged. Please try again.": "همچنان به شما خبر داده می‌شود. لطفاً دوباره تلاش کنید.",
@@ -33649,5 +33648,6 @@
   "This device's SNMP credential profile could not be read just now. Try the walk again in a moment.": "پروفایل اعتبارنامه‌ی SNMP این دستگاه همین حالا خوانده نشد. کمی بعد دوباره پیمایش کنید.",
   "This device is already being walked. Wait for that walk to finish, then walk it again.": "این دستگاه هم‌اکنون در حال پیمایش است. صبر کنید آن پیمایش تمام شود، سپس دوباره پیمایش کنید.",
   "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.": "پراب این دستگاه نسخه‌ای را اجرا می‌کند که نمی‌تواند SNMP را پیمایش کند. پراب را به آخرین نسخه به‌روزرسانی کنید، سپس دوباره پیمایش کنید.",
-  "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.": "این دستگاه هنوز پیمایش نشده است. برای پیمایش آن، مجوز «ایجاد عیب‌یابی دستگاه شبکه» لازم است."
+  "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.": "این دستگاه هنوز پیمایش نشده است. برای پیمایش آن، مجوز «ایجاد عیب‌یابی دستگاه شبکه» لازم است.",
+  "GitHub commands, production reviews, where AI works, and where its pull requests open.": "دستورات GitHub، بازبینی‌های عملیاتی، جایی که هوش مصنوعی کار می‌کند، و جایی که pull requestهای آن باز می‌شوند."
 }

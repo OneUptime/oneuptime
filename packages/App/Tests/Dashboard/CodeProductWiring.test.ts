@@ -454,6 +454,11 @@ describe("copy that tells people where repositories are connected", () => {
     expect(source).not.toContain("AI > Tasks");
   });
 
+  /*
+   * The switch is under More settings on the repository's Settings page
+   * ("GitHub commands and runner should be inside of more settings as
+   * well"), so the reply on GitHub names the fold too.
+   */
   test("a switched-off GitHub command says where to switch it back on", () => {
     const source: string = fs.readFileSync(
       path.join(
@@ -468,8 +473,9 @@ describe("copy that tells people where repositories are connected", () => {
     );
 
     expect(source).toContain(
-      "turn them back on in OneUptime under Code → this repository → Settings.",
+      "turn them back on in OneUptime under Code → this repository → Settings → More settings.",
     );
+    expect(source).not.toContain("this repository → Settings.");
     expect(source).not.toContain("Code Repositories →");
   });
 

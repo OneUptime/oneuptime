@@ -29,6 +29,10 @@ import {
 import { resolveFlex } from "../../ResponsiveFlexLayout";
 import { describeHeightFillChain } from "../../ResponsiveHeightFill";
 import { resolveSpacing } from "../../ResponsiveSpacing";
+import {
+  PAGE_ANCHOR_SCROLL_MARGIN_TOP,
+  PAGE_ANCHOR_SECTION_SCROLL_MARGIN_TOP,
+} from "../../../UI/Utils/PageAnchor";
 
 describe("Card", () => {
   const props: ComponentProps = {
@@ -126,6 +130,70 @@ describe("Card", () => {
 
     expect(childComponent).toBeInTheDocument();
     expect(childComponent.parentElement).toHaveClass("mt-4");
+  });
+});
+
+/*
+ * A card can be a place on its page (`id`, UI/Utils/PageAnchor): a link
+ * naming it after the address's "#" lands on it - a repository's "Pick a
+ * Runner" opens ".../settings#runner" - with its top kept clear of the
+ * page's sticky header: a card of its own with the page's gap above its
+ * frame, a section of a card (More settings') with its divider right under
+ * the header - the page's gap above a section showed a strip of the
+ * setting above it, cut off mid-line. A card with no place draws exactly
+ * as before.
+ */
+describe("Card's place on its page", () => {
+  test("a card with an id carries it, and lands with the page's gap between the sticky header and its frame", () => {
+    render(<Card title="Runner" id="runner" />);
+
+    const card: HTMLElement = screen.getByTestId("card");
+
+    expect(card).toHaveAttribute("id", "runner");
+    expect(card.style.scrollMarginTop).toBe(PAGE_ANCHOR_SCROLL_MARGIN_TOP);
+    expect(PAGE_ANCHOR_SCROLL_MARGIN_TOP).toBe(
+      "calc(var(--app-header-height, 0px) + 1.5rem)",
+    );
+    expect(document.getElementById("runner")).toBe(card);
+  });
+
+  test("a card drawn as a section of another carries it on the section itself, and lands with its divider right under the sticky header", () => {
+    render(
+      <CardSections>
+        <Card title="Runner" id="runner" />
+      </CardSections>,
+    );
+
+    const card: HTMLElement = screen.getByTestId("card");
+
+    expect(card).toHaveAttribute("data-card-surface", "section");
+    expect(card).toHaveAttribute("id", "runner");
+    // The divider is the section's own top border.
+    expect(card).toHaveClass("border-t");
+    expect(card.style.scrollMarginTop).toBe(
+      PAGE_ANCHOR_SECTION_SCROLL_MARGIN_TOP,
+    );
+    // The header's height and nothing more: no strip of the card above it.
+    expect(PAGE_ANCHOR_SECTION_SCROLL_MARGIN_TOP).toBe(
+      "var(--app-header-height, 0px)",
+    );
+  });
+
+  test("a card with no place draws no id and no style, on a page and in a section", () => {
+    const view: ReturnType<typeof render> = render(<Card title="Runner" />);
+
+    expect(screen.getByTestId("card")).not.toHaveAttribute("id");
+    expect(screen.getByTestId("card")).not.toHaveAttribute("style");
+
+    view.unmount();
+    render(
+      <CardSections>
+        <Card title="Runner" />
+      </CardSections>,
+    );
+
+    expect(screen.getByTestId("card")).not.toHaveAttribute("id");
+    expect(screen.getByTestId("card")).not.toHaveAttribute("style");
   });
 });
 

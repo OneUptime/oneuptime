@@ -40,6 +40,7 @@ import {
   QUEUED_LABEL,
   getRecipeLabel,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskCopy";
+import { CodeRepositorySetting } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeRepositorySettingsCopy";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 
@@ -310,6 +311,23 @@ describe("Code's words are complete", () => {
       expect(RouteMap[fix!.pageMap]).toBeTruthy();
       expect(fix!.title).toBeTruthy();
       expect(type).not.toBe(CodeTaskBlockerType.NoPermission);
+      /*
+       * A fix on a repository's settings lands on the setting that fixes it
+       * - each is folded under More settings, which opens there - and only
+       * such a fix names a setting.
+       */
+      expect(Boolean(fix!.setting)).toBe(
+        fix!.pageMap === PageMap.CODE_REPOSITORY_VIEW_SETTINGS,
+      );
+      expect(
+        CODE_TASK_REPOSITORY_SETTINGS_FIXES.includes(
+          type as CodeTaskBlockerType,
+        ),
+      ).toBe(fix!.pageMap === PageMap.CODE_REPOSITORY_VIEW_SETTINGS);
+
+      if (fix!.setting) {
+        expect(Object.values(CodeRepositorySetting)).toContain(fix!.setting);
+      }
     }
     /*
      * A repository that is not connected is fixed where repositories
@@ -356,9 +374,14 @@ describe("Code's words are complete", () => {
       expect(CODE_TASK_BLOCKER_WHO_CAN_FIX[type]).toBe(
         "A project admin can pick this repository's Runner in its settings.",
       );
+      /*
+       * The repository's settings, at its Runner: More settings, where the
+       * Runner is, opens there.
+       */
       expect(CODE_TASK_BLOCKER_FIXES[type]).toEqual({
         pageMap: PageMap.CODE_REPOSITORY_VIEW_SETTINGS,
         title: "Pick a Runner",
+        setting: CodeRepositorySetting.Runner,
       });
       expect(CODE_TASK_REPOSITORY_SETTINGS_FIXES).toContain(type);
       // Never the switch Runners no longer have.

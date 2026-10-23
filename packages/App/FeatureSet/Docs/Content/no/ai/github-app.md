@@ -134,7 +134,7 @@ Hvis en kjøring ikke kan starte, sier appen hvorfor i tråden: den feiler aldri
 
 ## Slå den av
 
-Hvert repositorium har en bryter: **Respond to GitHub Commands**, på repositoriets side **Innstillinger**. Den er på for alle repositorier og lagres i det øyeblikket du slår den om. Når den er av, ignorerer appen omtaler, tildelinger og utløseretiketten i det repositoriet, og forteller alle som spør, hvor bryteren er.
+Hvert repositorium har en bryter: **Respond to GitHub Commands**, under **Flere innstillinger** på repositoriets side **Innstillinger**. Den er på for alle repositorier og lagres i det øyeblikket du slår den om. Når den er av, ignorerer appen omtaler, tildelinger og utløseretiketten i det repositoriet, og forteller alle som spør, hvor bryteren er.
 
 Den samme siden har **GitHub Trigger Label** under **Flere innstillinger**, hvis du vil ha en annen etikett enn `oneuptime`.
 

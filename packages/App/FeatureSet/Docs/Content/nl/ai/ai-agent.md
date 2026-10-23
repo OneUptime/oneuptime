@@ -149,7 +149,7 @@ Als er geen service bij de repository hoort, draait de taak zonder productietele
 
 ## Productiebeoordeling van pull requests
 
-OneUptime weet wat je code in productie doet, dus kan het een pull request beoordelen met wat niemand ziet die de diff leest. Zet **Pull requests beoordelen aan de hand van productie** aan op de pagina **Instellingen** van een repository in Code, en elke pull request die iemand met schrijfrechten opent of bijwerkt, krijgt één opmerking die zegt wat productie laat zien van de code die hij wijzigt. De opmerking wordt bij elke push ter plekke bijgewerkt, en de pagina **Productiebeoordelingen** van de repository in Code bewaart elke beoordeling, met **Opnieuw beoordelen**.
+OneUptime weet wat je code in productie doet, dus kan het een pull request beoordelen met wat niemand ziet die de diff leest. Zet **Pull requests beoordelen aan de hand van productie** aan onder **Meer instellingen** op de pagina **Instellingen** van een repository in Code, en elke pull request die iemand met schrijfrechten opent of bijwerkt, krijgt één opmerking die zegt wat productie laat zien van de code die hij wijzigt. De opmerking wordt bij elke push ter plekke bijgewerkt, en de pagina **Productiebeoordelingen** van de repository in Code bewaart elke beoordeling, met **Opnieuw beoordelen**.
 
 | Hij leest | Van de code die de pull request wijzigt |
 | --- | --- |
@@ -230,7 +230,7 @@ Je koppelt repositories niet aan services. Als een taak start, vindt OneUptime d
 
 ### De Runner van de repository kiezen
 
-Elke repository kiest de Runner waarop AI erin werkt: klik op zijn pagina **Instellingen** in Code op **Bewerken** op de kaart **Runner** en kies er een. Een repository die de GitHub App importeert, begint op de [standaard-Runner](/docs/runbooks/agents#de-standaard-runner-van-het-project) van het project, als het er een heeft. Een repository die er geen kiest, werkt op **Globale Runner**, die OneUptime voor elk project draait.
+Elke repository kiest de Runner waarop AI erin werkt: open op zijn pagina **Instellingen** in Code **Meer instellingen**, klik op **Bewerken** op de kaart **Runner** en kies er een. Een repository die de GitHub App importeert, begint op de [standaard-Runner](/docs/runbooks/agents#de-standaard-runner-van-het-project) van het project, als het er een heeft. Een repository die er geen kiest, werkt op **Globale Runner**, die OneUptime voor elk project draait.
 
 | Runner | Wat hij met een taak doet |
 | --- | --- |
@@ -258,7 +258,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### Kies hem voor de repository
 
-Klik op de pagina **Instellingen** van de repository in Code op **Bewerken** op de kaart **Runner** en kies de Runner. De Runner neemt de wijziging over bij zijn volgende heartbeat, binnen ongeveer een minuut; er hoeft niets opnieuw te starten.
+Open op de pagina **Instellingen** van de repository in Code **Meer instellingen**, klik op **Bewerken** op de kaart **Runner** en kies de Runner. De Runner neemt de wijziging over bij zijn volgende heartbeat, binnen ongeveer een minuut; er hoeft niets opnieuw te starten.
 
 ### Controleer of hij verbinding maakt
 

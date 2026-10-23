@@ -33232,7 +33232,6 @@
   "What to watch": "주의할 점",
   "When someone with write access opens or updates a pull request, OneUptime comments with what production shows of the code it changes.": "쓰기 권한이 있는 사람이 풀 리퀘스트를 열거나 업데이트하면, OneUptime이 변경된 코드에 대해 프로덕션이 보여 주는 내용을 댓글로 남깁니다.",
   "When the playbook runs on its own.": "플레이북이 자동으로 실행되는 시점입니다.",
-  "Where AI's pull requests open, how many may be open at once, the label that hands an issue to the GitHub App, and what production reviews post.": "AI의 풀 리퀘스트가 열리는 위치, 동시에 열 수 있는 수, 이슈를 GitHub App에 넘기는 레이블, 프로덕션 리뷰가 게시하는 내용입니다.",
   "Which security cases are open, and which look most urgent?": "어떤 보안 케이스가 열려 있고, 어떤 케이스가 가장 시급해 보이나요?",
   "Which users or hosts had unusual security activity in the last 24 hours?": "지난 24시간 동안 이례적인 보안 활동이 있었던 사용자나 호스트는 무엇인가요?",
   "You are still being paged. Please try again.": "계속 알림을 받습니다. 다시 시도해 주세요.",
@@ -33649,5 +33648,6 @@
   "This device's SNMP credential profile could not be read just now. Try the walk again in a moment.": "지금은 이 디바이스의 SNMP 자격 증명 프로필을 읽을 수 없습니다. 잠시 후 워크를 다시 시도하세요.",
   "This device is already being walked. Wait for that walk to finish, then walk it again.": "이 디바이스는 이미 워크 중입니다. 그 워크가 끝날 때까지 기다린 다음 다시 워크하세요.",
   "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.": "이 디바이스의 프로브는 SNMP 워크를 지원하지 않는 버전으로 실행 중입니다. 프로브를 최신 버전으로 업데이트한 다음 다시 워크하세요.",
-  "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.": "이 디바이스는 아직 워크하지 않았습니다. 워크를 실행하려면 '네트워크 디바이스 진단 생성' 권한이 필요합니다."
+  "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.": "이 디바이스는 아직 워크하지 않았습니다. 워크를 실행하려면 '네트워크 디바이스 진단 생성' 권한이 필요합니다.",
+  "GitHub commands, production reviews, where AI works, and where its pull requests open.": "GitHub 명령, 프로덕션 리뷰, AI가 작업하는 곳, AI의 풀 리퀘스트가 열리는 곳입니다."
 }

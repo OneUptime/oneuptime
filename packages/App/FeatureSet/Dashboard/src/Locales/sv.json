@@ -33232,7 +33232,6 @@
   "What to watch": "Vad du bör hålla koll på",
   "When someone with write access opens or updates a pull request, OneUptime comments with what production shows of the code it changes.": "När någon med skrivbehörighet öppnar eller uppdaterar en pull-förfrågan kommenterar OneUptime med det som produktion visar om den ändrade koden.",
   "When the playbook runs on its own.": "När playbooken körs av sig själv.",
-  "Where AI's pull requests open, how many may be open at once, the label that hands an issue to the GitHub App, and what production reviews post.": "Var AI:s pull-förfrågningar öppnas, hur många som får vara öppna samtidigt, etiketten som lämnar över ett ärende till GitHub App och vad produktionsgranskningar publicerar.",
   "Which security cases are open, and which look most urgent?": "Vilka säkerhetsärenden är öppna, och vilka ser mest brådskande ut?",
   "Which users or hosts had unusual security activity in the last 24 hours?": "Vilka användare eller värdar hade ovanlig säkerhetsaktivitet de senaste 24 timmarna?",
   "You are still being paged. Please try again.": "Du larmas fortfarande. Försök igen.",
@@ -33649,5 +33648,6 @@
   "This device's SNMP credential profile could not be read just now. Try the walk again in a moment.": "Den här enhetens SNMP-autentiseringsprofil kunde inte läsas just nu. Försök med walken igen om en stund.",
   "This device is already being walked. Wait for that walk to finish, then walk it again.": "En walk av den här enheten pågår redan. Vänta tills den är klar och starta sedan en ny walk.",
   "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.": "Den här enhetens sond kör en version som inte kan göra SNMP-walk. Uppdatera sonden till den senaste versionen och gör sedan walk igen.",
-  "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.": "Ingen walk av den här enheten har körts ännu. För att köra en walk behövs behörigheten Skapa nätverksenhetsdiagnostik."
+  "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.": "Ingen walk av den här enheten har körts ännu. För att köra en walk behövs behörigheten Skapa nätverksenhetsdiagnostik.",
+  "GitHub commands, production reviews, where AI works, and where its pull requests open.": "GitHub-kommandon, produktionsgranskningar, var AI arbetar och var AI:s pull requests öppnas."
 }
