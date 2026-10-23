@@ -177,6 +177,7 @@ describe("ExternalStatusPageMonitor SSRF protection", () => {
   test.each([
     ExternalStatusPageProviderType.AtlassianStatuspage,
     ExternalStatusPageProviderType.IncidentIo,
+    ExternalStatusPageProviderType.OneUptime,
     ExternalStatusPageProviderType.RSS,
     ExternalStatusPageProviderType.Atom,
     ExternalStatusPageProviderType.Auto,
@@ -533,6 +534,8 @@ describe("ExternalStatusPageMonitor SSRF protection", () => {
     axiosGetSpy
       .mockResolvedValueOnce(axiosResponse(404, {}))
       .mockResolvedValueOnce(axiosResponse(404, {}))
+      // No OneUptime status page summary here.
+      .mockResolvedValueOnce(axiosResponse(404, {}))
       .mockResolvedValueOnce(axiosResponse(200, "not an XML feed"))
       .mockResolvedValueOnce(axiosResponse(204, ""));
 
@@ -543,7 +546,7 @@ describe("ExternalStatusPageMonitor SSRF protection", () => {
     expect(response.isOnline).toBe(true);
     expect(response.overallStatus).toBe("reachable");
     expect(response.provider).toBeUndefined();
-    expect(axiosGetSpy).toHaveBeenCalledTimes(4);
+    expect(axiosGetSpy).toHaveBeenCalledTimes(5);
     expect(
       prepareSpy.mock.calls.map((call: Array<unknown>) => {
         return call[0];
@@ -551,27 +554,28 @@ describe("ExternalStatusPageMonitor SSRF protection", () => {
     ).toEqual([
       "http://1.1.1.1/proxy/1.1.1.1",
       `${PUBLIC_BASE_URL}/api/v2/status.json`,
+      "http://1.1.1.1/status-page-api/summary/1.1.1.1",
       PUBLIC_BASE_URL,
       PUBLIC_BASE_URL,
     ]);
 
-    for (let index: number = 0; index < 4; index++) {
+    for (let index: number = 0; index < 5; index++) {
       expectSafeAxiosOptions(getAxiosCall(index).options);
     }
-    expect(getAxiosCall(2).options.responseType).toBe("stream");
     expect(getAxiosCall(3).options.responseType).toBe("stream");
+    expect(getAxiosCall(4).options.responseType).toBe("stream");
     expect(
       new Set(
-        [0, 1, 2, 3].map((index: number) => {
+        [0, 1, 2, 3, 4].map((index: number) => {
           return getAxiosCall(index).options.signal;
         }),
       ).size,
     ).toBe(1);
     expect(
-      [0, 1, 2, 3].map((index: number) => {
+      [0, 1, 2, 3, 4].map((index: number) => {
         return getAxiosCall(index).options.maxContentLength;
       }),
-    ).toEqual([-1, -1, -1, -1]);
+    ).toEqual([-1, -1, -1, -1, -1]);
   });
 
   test.each([
@@ -588,6 +592,8 @@ describe("ExternalStatusPageMonitor SSRF protection", () => {
       axiosGetSpy
         .mockResolvedValueOnce(axiosResponse(404, {}))
         .mockResolvedValueOnce(axiosResponse(404, {}))
+        // No OneUptime status page summary here.
+        .mockResolvedValueOnce(axiosResponse(404, {}))
         .mockResolvedValueOnce(
           axiosResponse(200, `${prefix}<html><body>Status page</body></html>`, {
             "content-type": "text/html; charset=utf-8",
@@ -603,8 +609,8 @@ describe("ExternalStatusPageMonitor SSRF protection", () => {
       expect(response.overallStatus).toBe("reachable");
       expect(response.provider).toBeUndefined();
       expect(response.failureCause).toBe("");
-      expect(axiosGetSpy).toHaveBeenCalledTimes(4);
-      expect(prepareSpy).toHaveBeenCalledTimes(4);
+      expect(axiosGetSpy).toHaveBeenCalledTimes(5);
+      expect(prepareSpy).toHaveBeenCalledTimes(5);
       expect(contextSleepSpy).not.toHaveBeenCalled();
     },
   );

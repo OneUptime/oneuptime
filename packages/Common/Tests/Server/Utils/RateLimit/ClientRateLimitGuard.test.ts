@@ -114,6 +114,8 @@ const ADDRESS_READERS_THAT_DO_NOT_COUNT: Record<string, string> = {
     "checks a dashboard's IP allowlist",
   "packages/Common/Server/Services/StatusPageService.ts":
     "checks a status page's IP allowlist",
+  "packages/Common/Server/Utils/StatusPage/StatusPageRssFeed.ts":
+    "forwards the feed reader's address with the feed's reads of the page, so the page's IP allowlist judges the reader",
   "packages/Probe/Services/SyslogReceiver.ts":
     "records the address a syslog message arrived from",
   "packages/Probe/Utils/ProbeApiDiagnostics.ts":

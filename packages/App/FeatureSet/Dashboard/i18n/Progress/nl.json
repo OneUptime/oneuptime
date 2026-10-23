@@ -23,6 +23,7 @@
     "CloudWatch Metric Streams",
     "Collector",
     "Component",
+    "Component: {{component}}",
     "Container {{container}}: {{reason}}",
     "Context",
     "Details",

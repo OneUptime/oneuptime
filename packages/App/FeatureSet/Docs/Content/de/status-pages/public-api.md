@@ -1,10 +1,11 @@
 # Öffentliche API
 
-Jede Statusseite beantwortet eine kleine Reihe von JSON-Endpunkten, die nur lesen: ihre Übersicht, Verfügbarkeit, Vorfälle, Episoden, geplanten Wartungsereignisse und Ankündigungen. Es sind die Endpunkte, die die Statusseite selbst lädt; sie liefern also genau das, was ein Besucher sieht, und eine öffentliche Seite braucht keinen API-Schlüssel. Nutzen Sie sie, um Ihren Status in Ihrer eigenen App, einem Chatbot oder auf einem Wandbildschirm zu zeigen.
+Jede Statusseite beantwortet eine kleine Reihe von JSON-Endpunkten, die nur lesen: ihre Übersicht, eine Zusammenfassung, Verfügbarkeit, Vorfälle, Episoden, geplanten Wartungsereignisse und Ankündigungen. Es sind die Endpunkte, die die Statusseite selbst lädt; sie liefern also genau das, was ein Besucher sieht, und eine öffentliche Seite braucht keinen API-Schlüssel. Nutzen Sie sie, um Ihren Status in Ihrer eigenen App, einem Chatbot oder auf einem Wandbildschirm zu zeigen.
 
 :::cards
 - [Endpunkte](#endpunkte): Ein Endpunkt für alles, was die Seite zeigt.
 - [Die Übersicht lesen](#die-übersicht-lesen): Die ganze Seite in einer Anfrage, mit curl, Node.js und Python.
+- [Die Zusammenfassung lesen](#die-zusammenfassung-lesen): Der Status jeder Ressource und was gerade gewartet wird.
 - [Verfügbarkeit für einen Zeitraum](#verfügbarkeit-für-einen-zeitraum): Verfügbarkeit pro Ressource und Gruppe, für bis zu 90 Tage.
 - [Fehler](#fehler): Was jeder Statuscode bedeutet.
 :::
@@ -50,6 +51,7 @@ Wo ein Pfad unten `{statusPageIdOrDomain}` sagt, können Sie die ID der Seite od
 | Endpunkt | Methoden | Liefert |
 | -------- | ------- | ------- |
 | `/overview/{statusPageIdOrDomain}` | `GET`, `POST` | Alles, was die Übersicht zeigt: den Gesamtstatus, Ressourcen und Gruppen, aktive Vorfälle und Episoden, geplante Wartung, laufende Ankündigungen und die Daten hinter den Verfügbarkeitsbalken. |
+| `/summary/{statusPageIdOrDomain}` | `GET`, `POST` | Die Seite in Kürze: ihr Gesamtstatus, der Status jeder Ressource und ob eine laufende Wartung sie betrifft, die aktiven Vorfälle und die laufende und anstehende Wartung. |
 | `/uptime/{statusPageId}` | `POST` | Verfügbarkeit in Prozent pro Ressource und pro Gruppe, für einen Zeitraum. |
 | `/incidents/{statusPageIdOrDomain}` | `GET`, `POST` | Die Vorfälle, die die Seite auflistet, mit ihren öffentlichen Notizen und Statuswechseln. |
 | `/incidents/{statusPageIdOrDomain}/{incidentId}` | `POST` | Ein Vorfall. |
@@ -137,6 +139,60 @@ Der Gesamtstatus ist der schlechteste aktuelle Status der Monitore und Monitorgr
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Dasselbe für Vorfall-Episoden. |
 | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | Die geplanten Wartungsereignisse, die noch bevorstehen oder gerade laufen, ihre öffentlichen Notizen und Statuswechsel. |
 | `activeAnnouncements` | Die Ankündigungen, die gerade angezeigt werden: begonnen und nicht beendet. |
+
+## Die Zusammenfassung lesen
+
+Die Zusammenfassung ist die Übersicht, gekürzt auf das, was ein Überwachungswerkzeug von einer Seite wissen will: den Status jeder Ressource und ob ein laufendes geplantes Wartungsereignis sie betrifft. Sie bleibt klein, wie viel Verlauf die Seite auch zeigt, und sie ist das, was der [Monitor für externe Statusseiten](/docs/monitor/external-status-page-monitor#oneuptime-statusseiten) eines anderen OneUptime liest. Sie stammt aus demselben Cache wie die Übersicht, nach denselben Zugriffsregeln.
+
+```bash
+curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
+```
+
+Die Antwort:
+
+```json
+{
+  "overallStatus": {
+    "name": "Operational",
+    "color": "#2ab57d",
+    "isOperational": true
+  },
+  "resources": [
+    {
+      "id": "cfffa3c3-fdf3-4cd7-9585-d6d408a14663",
+      "name": "Checkout API",
+      "groupName": "Core / APIs",
+      "currentStatus": {
+        "name": "Operational",
+        "color": "#2ab57d",
+        "isOperational": true
+      },
+      "isUnderMaintenance": true
+    }
+  ],
+  "activeIncidents": [],
+  "ongoingScheduledMaintenance": [
+    {
+      "id": "6a1e2a3b-0f4c-4d5e-8f60-718293a4b5c6",
+      "title": "Database upgrade",
+      "startsAt": "2026-10-25T02:00:00.000Z",
+      "endsAt": "2026-10-25T04:00:00.000Z",
+      "state": "Ongoing",
+      "affectedResourceIds": ["cfffa3c3-fdf3-4cd7-9585-d6d408a14663"]
+    }
+  ],
+  "upcomingScheduledMaintenance": []
+}
+```
+
+| Schlüssel | In der Zusammenfassung |
+| --- | -------------- |
+| `overallStatus` | Der Gesamtstatus der Seite, wie ihr Banner ihn zeigt: `name`, `color` und `isOperational`. |
+| `resources` | Jede Ressource, die die Seite zeigt, in ihrer Reihenfolge: ihr `name` auf der Seite, ihr `groupName` mit den Gruppen darüber, ihr `currentStatus` und `isUnderMaintenance`. |
+| `activeIncidents` | Die ungelösten Vorfälle, die die Seite zeigt, jeweils mit den `affectedResourceIds` der Ressourcen, die sie betreffen. |
+| `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | Die geplanten Wartungsereignisse, die laufen oder noch anstehen, jeweils mit ihren `affectedResourceIds`. |
+
+Der `currentStatus` einer Ressource ist `null`, wenn die Seite ihn nicht zeigt. `isUnderMaintenance` ist `true`, solange ein laufendes Ereignis einen der Monitore der Ressource oder einen Monitor ihrer Monitorgruppe nennt, gleich in welchem Status diese Monitore sind.
 
 ## Verfügbarkeit für einen Zeitraum
 
@@ -341,7 +397,7 @@ Ein Fehler antwortet mit einem Statuscode und einem JSON-Inhalt, der den Grund n
 
 ## Andere Wege, eine Statusseite zu lesen
 
-- **RSS.** Jede Statusseite stellt `/rss` bereit, einen Feed ihrer Vorfälle, Ankündigungen und geplanten Wartungsereignisse. Siehe [Das einbettbare Badge und der RSS-Feed](/docs/status-pages/index#das-einbettbare-badge-und-der-rss-feed).
+- **RSS.** Jede Statusseite stellt `/rss` bereit, einen Feed ihrer Vorfälle, Ankündigungen und geplanten Wartungsereignisse, jeweils so datiert, wie die Seite sie datiert. Siehe [Das einbettbare Badge und der RSS-Feed](/docs/status-pages/index#das-einbettbare-badge-und-der-rss-feed).
 - **llms.txt.** Neben `/rss` stellt jede Statusseite `/llms.txt` bereit, das KI-Agenten auf den RSS-Feed und das Übersichts-JSON verweist.
 - **MCP.** KI-Agenten können die Seite über den MCP-Server von OneUptime unter `https://oneuptime.com/mcp` lesen, ohne API-Schlüssel, indem sie die ID oder Domain der Seite als `statusPageIdOrDomain` übergeben. Er ist standardmäßig eingeschaltet; schalten Sie ihn mit **MCP-Server aktivieren** unter **KI → MCP** im Seitenmenü der Seite aus. Siehe [MCP-Server](/docs/ai/mcp-server).
 - **Die REST-API.** Um Statusseiten, Ressourcen, Abonnenten und Ankündigungen zu erstellen oder zu ändern, verwenden Sie die [OneUptime-API](/docs/api-reference/api-reference) mit einem API-Schlüssel.

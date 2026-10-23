@@ -579,6 +579,8 @@ describe("a status page of a blocked project", () => {
       "/status-page/master-page/:statusPageId",
       "/status-page/master-password/:statusPageId",
       "/status-page/overview/:statusPageIdOrDomain",
+      // What another OneUptime's External Status Page monitor reads.
+      "/status-page/summary/:statusPageIdOrDomain",
       "/status-page/incidents/:statusPageIdOrDomain",
       "/status-page/incidents/:statusPageIdOrDomain/:incidentId",
       "/status-page/announcements/:statusPageIdOrDomain",
