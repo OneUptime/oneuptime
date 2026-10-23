@@ -34,7 +34,7 @@ covered in [CONTRIBUTING](../.github/CONTRIBUTING.md#licensing-of-contributions)
 
 | Path | What it is |
 | --- | --- |
-| `Server/Index.ts` | The enterprise server module (the default export), assembled from one module per area, in order: License, Identity, TeamCompliance, AuditLog, LicenseServer, AdminHealth, Workers, WhiteLabel, Marketplace. It implements `EnterpriseServerModule` from `packages/Common/Server/Enterprise/EnterpriseServerModule.ts`. |
+| `Server/Index.ts` | The enterprise server module (the default export), assembled from one module per area, in order: License, Identity, TeamCompliance, AuditLog, LicenseServer, AdminHealth, Workers, WhiteLabel, Marketplace, Billing, CloudMarketplace. It implements `EnterpriseServerModule` from `packages/Common/Server/Enterprise/EnterpriseServerModule.ts`. |
 | `Server/Identity/` | SCIM provisioning for projects and status pages. Route paths are byte-identical to the Community Edition paths they replaced, because customer identity providers have them configured. Every route starts with a license gate (`Middleware/LicensedFeatureGate.ts`, SCIM only), so it refuses while SCIM is not active. Single sign-on (SAML, OIDC, global SSO and "Require SSO for login") is not here: it is core, Apache-2.0, in `packages/App/FeatureSet/Identity`, and served in every edition. |
 | `Server/TeamCompliance/` | Team compliance settings and the compliance status route. |
 | `Server/AuditLog/` | The audit-log recorder behind `EnterpriseEdition.getAuditLogRecorder()`. |
@@ -44,6 +44,8 @@ covered in [CONTRIBUTING](../.github/CONTRIBUTING.md#licensing-of-contributions)
 | `Server/WhiteLabel/` | White-labelling: whether the license allows it, the settings, their routes and the branding handed to core. See [White-labelling](#white-labelling). |
 | `Server/Marketplace/` | Billing of installations bought on a cloud marketplace: the `EnterpriseMarketplace:ReportUsage` job (`Jobs/`), the hourly billing state machine (`MarketplaceBilling.ts`), the run that drives it (`MarketplaceUsageRun.ts`) and its store. See [Cloud marketplace installations](#cloud-marketplace-installations). |
 | `Server/Workers/` | Enterprise cron jobs (PostgreSQL and Valkey/Redis health evaluation) and the probes they read: `InstanceHealth/PostgresHealth.ts` and the counter deltas in `InstanceHealth/RedisHealth.ts`. The Redis INFO read stays in core, because the admin health API uses it too. |
+| `Server/Billing/` | OneUptime Cloud's card billing: the Stripe client core's `BillingService` hands every payment-provider call to, and the subscription and metered plan jobs. Only with billing on. See [OneUptime Cloud billing](#oneuptime-cloud-billing). |
+| `Server/CloudMarketplace/` | OneUptime Cloud sold on AWS Marketplace, Microsoft Marketplace, Google Cloud Marketplace and Vercel Marketplace: routes, purchases, the hourly usage report and the jobs. Only with billing on. See [OneUptime Cloud billing](#oneuptime-cloud-billing). |
 | `Dashboard/`, `AdminDashboard/` | The Enterprise UI plugins for the two frontends, each assembled from per-area `Plugins.ts(x)` files. `Dashboard/TelemetryRetention/` holds the retention override cards (retention by telemetry type on Settings > Telemetry, and the retention cards of every service and resource Settings page) and the form and summary they share. `Dashboard/Identity/` holds the SCIM screens, their license banner and the one read-only incident action (**Reset Bearer Token**); its license-mode hooks are also used by `Dashboard/AuditLogs/`. One area is shared across the frontends by relative import: the license manager (`AdminDashboard/License/`, also used by the Dashboard). `AdminDashboard/WhiteLabel/` holds Settings > White Label. |
 | `Scripts/` | Operator scripts, such as `GenerateLicenseSigningKey.ts`. |
 | `Tests/Server`, `Tests/UI` | The two jest projects in `jest.config.js`. |
@@ -427,6 +429,61 @@ OneUptime Cloud (`BILLING_ENABLED=true`) must run the Enterprise image.
   reason.
 - With billing on, the license server routes (`/api/enterprise-license/...`)
   are mounted, and plan checks (not the license) gate enterprise features.
+- OneUptime Cloud's own billing is in `ee/` as well (next section): a billing
+  process without `ee/` would have no Stripe client, no marketplace routes and
+  no billing jobs.
+
+## OneUptime Cloud billing
+
+OneUptime Cloud (`BILLING_ENABLED=true`) bills its customers from `ee/`. None
+of it is in the Community image, and with billing off the Enterprise Edition
+switches all of it off: no route, no job, no Stripe client.
+
+| Path | What it is |
+| --- | --- |
+| `Server/Billing/` | The Stripe client (`StripeBillingProvider.ts`): customers, subscriptions, plan changes, trials, payment methods, invoices and the invoice webhook. The jobs that keep projects in step with it (`Jobs/`): `PaymentProvider:CheckSubscriptionStatus`, `PaymentProvider:PopulatePlanNameInProject`, `PaymentProvider:UpdateTeamMembersIfNull` (seat counts), `PaymentProvider:SendDailyEmailsToOwnersIfSubscriptionIsOverdue` and `MeteredPlan:ReportTelemetryMeteredPlan` (metered usage). `stripe` is ee's runtime dependency (`package.json`). |
+| `Server/CloudMarketplace/` | OneUptime Cloud sold on AWS Marketplace, Microsoft Marketplace, Google Cloud Marketplace and Vercel Marketplace: each marketplace's client, adapter and inbound handling (`AWS/`, `Azure/`, `GoogleCloud/`, `Vercel/`), the routes (`API/`: landing pages, webhooks, the purchase page's routes, the provider API Vercel calls and sign-in from Vercel), what records, claims, links and unlinks a purchase (`MarketplacePurchases.ts`), the hourly usage report, and the `Marketplace:ReportUsage`, `Marketplace:SyncPurchases` and `Marketplace:VercelBilling` jobs (`Jobs/`). The guides are [RELEASING.md](../packages/Common/Server/Utils/Marketplace/RELEASING.md) and [VERCEL_RELEASING.md](../packages/Common/Server/Utils/Marketplace/VERCEL_RELEASING.md). |
+
+Core never imports them. It asks `EnterpriseEdition`, whose getters answer
+null on the Community Edition, for a module without the member, when the
+module answers null (billing off) and when it throws - never an error:
+
+- **`getBillingProvider()`** (the `BillingProvider` interface in
+  `packages/Common/Server/Types/Billing/BillingProvider.ts`). Core keeps
+  `BillingService` as a facade with the same singleton, method names and
+  signatures, so its callers, and the core tests that spy on it, are
+  unchanged. Each method hands its call to the provider. Without one it
+  answers as a server without billing does - `BILLING_NOT_ENABLED` for
+  anything that reads or changes a payment provider's records,
+  `shouldSendInvoicesByEmail` false, `handleWebhookEvent` ignoring the event -
+  and never reaches a payment provider. `isBillingEnabled`,
+  `isSubscriptionActive`, `isTestEnvironment` and the metered price ids stay
+  in core, so plan gating (`ProjectService.getCurrentPlan` reads
+  `SubscriptionStatusUtil`) and the metered plans never need `ee/`.
+- **`getProjectBillingHooks()`** (`ProjectBillingHooks` in
+  `EnterpriseServerModule.ts`). With billing on, ProjectService tells the
+  marketplaces what happens to projects: `beforeProjectsDelete` (a
+  marketplace-billed project's last usage is reported while it is still
+  there), `afterProjectsDelete` (a Vercel resource is deleted on Vercel, and
+  every deleted project's purchase is unlinked) and
+  `afterMarketplacePlanChange` (a Vercel resource's plan follows). A hook that
+  fails is logged and never fails the delete or the plan change.
+- **Routes and jobs**, through the usual area hooks and with billing on only:
+  the marketplace routes through `getApiRouters`, sign-in from Vercel through
+  `getIdentityRouters` (after single sign-on, whose paths do not change), and
+  the jobs through `registerWorkerJobs`. Their names are in core's
+  `ENTERPRISE_OWNED_JOB_NAMES`, so a repeatable definition an earlier release
+  left in Redis gets a no-op placeholder where `ee/` does not register it.
+
+What every edition uses stays in core: the HTTP client and the token verifier
+Sign in with Microsoft is built on (`MarketplaceHttp.ts`,
+`RemoteJwtVerifier.ts`), the Vercel log drain and its signature check
+(`VercelSignature.ts`), the models, migrations and CRUD services
+(`MarketplaceSubscriptionService` keeps its lookups), the plan limits, and the
+balance and pay-as-you-go services, which reach Stripe only through
+`BillingService`. Tests: `Tests/Server/Billing`, `Tests/Server/CloudMarketplace`,
+and core's `BillingServiceFacade.test.ts`, `ProjectServiceBillingHooks.test.ts`
+and `CloudBillingLivesInEe.test.ts`.
 
 ## Cloud marketplace installations
 
