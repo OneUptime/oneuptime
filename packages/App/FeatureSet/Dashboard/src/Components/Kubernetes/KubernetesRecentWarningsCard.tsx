@@ -6,6 +6,7 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
+import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
 import {
   FeedClock,
   formatFeedFullTime,
@@ -163,6 +164,8 @@ const KubernetesRecentWarningsCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  // The lines and the link under them, from edge to edge under the header.
+  const ruledBodyClassName: string = useCardRuledBodyClassName();
 
   if (props.isLoading || props.warnings.length === 0) {
     return <></>;
@@ -179,30 +182,32 @@ const KubernetesRecentWarningsCard: FunctionComponent<ComponentProps> = (
       title="Recent Warnings"
       description="Latest warning events from the cluster."
     >
-      <ul
-        className="-mx-5 divide-y divide-gray-100 md:-mx-6"
-        data-testid="kubernetes-recent-warnings"
-      >
-        {props.warnings.map((warning: KubernetesWarningSummary) => {
-          return (
-            <WarningLine
-              key={warning.key}
-              warning={warning}
-              clusterId={props.clusterId}
-              clock={clock}
-            />
-          );
-        })}
-      </ul>
-      <div className="-mx-5 -mb-6 border-t border-gray-100 px-5 py-3 md:-mx-6 md:px-6">
-        <Link
-          to={eventsRoute}
-          className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-800"
-          dataTestId="kubernetes-recent-warnings-view-all"
+      <div className={ruledBodyClassName}>
+        <ul
+          className="divide-y divide-gray-100"
+          data-testid="kubernetes-recent-warnings"
         >
-          <span>{translator.translateText("View all warnings")}</span>
-          <Icon icon={IconProp.ArrowRight} className="h-4 w-4" />
-        </Link>
+          {props.warnings.map((warning: KubernetesWarningSummary) => {
+            return (
+              <WarningLine
+                key={warning.key}
+                warning={warning}
+                clusterId={props.clusterId}
+                clock={clock}
+              />
+            );
+          })}
+        </ul>
+        <div className="border-t border-gray-100 px-5 py-3 md:px-6">
+          <Link
+            to={eventsRoute}
+            className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-800"
+            dataTestId="kubernetes-recent-warnings-view-all"
+          >
+            <span>{translator.translateText("View all warnings")}</span>
+            <Icon icon={IconProp.ArrowRight} className="h-4 w-4" />
+          </Link>
+        </div>
       </div>
     </Card>
   );
