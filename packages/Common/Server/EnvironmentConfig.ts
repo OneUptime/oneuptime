@@ -1800,7 +1800,7 @@ export const GoogleCloudMarketplacePubSubAudience: string | null =
 
 /*
  * Vercel Marketplace: OneUptime as a native integration
- * (Server/Utils/Marketplace/Vercel, VERCEL_RELEASING.md). The integration's
+ * (ee/Server/CloudMarketplace/Vercel, VERCEL_RELEASING.md). The integration's
  * client ID (oac_...) is the audience of every token Vercel signs for
  * OneUptime; its client secret signs webhooks and drain deliveries and
  * exchanges sign-in codes.

@@ -64,8 +64,33 @@ afterEach(() => {
 
 describe("the Marketplace area", () => {
   it("is part of the enterprise module, after every area that was there before it", () => {
-    expect(ENTERPRISE_AREAS[ENTERPRISE_AREAS.length - 1]).toBe(MarketplaceArea);
+    const names: Array<string> = ENTERPRISE_AREAS.map(
+      (area: { name: string }): string => {
+        return area.name;
+      },
+    );
+    const position: number = ENTERPRISE_AREAS.indexOf(MarketplaceArea);
+
+    expect(position).toBeGreaterThan(-1);
     expect(MarketplaceArea.name).toBe("Marketplace");
+
+    for (const earlierArea of [
+      "License",
+      "Identity",
+      "TeamCompliance",
+      "AuditLog",
+      "LicenseServer",
+      "AdminHealth",
+      "Workers",
+      "WhiteLabel",
+    ]) {
+      expect({
+        earlierArea,
+        isBefore:
+          names.indexOf(earlierArea) >= 0 &&
+          names.indexOf(earlierArea) < position,
+      }).toEqual({ earlierArea, isBefore: true });
+    }
   });
 
   it("adds no routes", () => {

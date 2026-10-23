@@ -1,6 +1,6 @@
 import fs from "fs";
 import AwsSecurityHubClient from "Common/Server/Utils/SecurityEvent/Connectors/AwsSecurityHub/AwsSecurityHubClient";
-import MarketplaceApiError from "Common/Server/Utils/Marketplace/MarketplaceApiError";
+import MarketplaceApiError from "../../CloudMarketplace/MarketplaceApiError";
 import {
   MarketplaceHttp,
   MarketplaceHttpClient,

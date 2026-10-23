@@ -16,11 +16,12 @@ type ProjectBillingFunction = (data: {
 }) => Promise<void>;
 
 /*
- * The start of BillingService.toPaymentProviderReadFailure's message: the 503
- * the product sends when Stripe still could not be read after its own retries,
- * telling the client to try again. CI shares its Stripe test account with
- * environments we do not control, so the gate can meet this even when the
- * suite itself is well-behaved. Any other 503 is a different fault.
+ * The start of StripeBillingProvider.toPaymentProviderReadFailure's message
+ * (ee/Server/Billing): the 503 the product sends when Stripe still could not
+ * be read after its own retries, telling the client to try again. CI shares
+ * its Stripe test account with environments we do not control, so the gate
+ * can meet this even when the suite itself is well-behaved. Any other 503 is
+ * a different fault.
  */
 const PAYMENT_PROVIDER_UNAVAILABLE_PREFIX: string =
   "Could not reach the payment provider";

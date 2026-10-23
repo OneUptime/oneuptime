@@ -3,10 +3,13 @@ import AwsContainerMeteringAPI, {
   AwsMeterUsageRecord,
 } from "../../../../Server/Marketplace/Reporters/AwsContainerMeteringAPI";
 import AwsWorkloadCredentialsProvider from "../../../../Server/Marketplace/Reporters/AwsWorkloadCredentials";
-import MarketplaceApiError from "Common/Server/Utils/Marketplace/MarketplaceApiError";
+import MarketplaceApiError from "../../../../Server/CloudMarketplace/MarketplaceApiError";
 import { MarketplaceHttpRequest } from "Common/Server/Utils/Marketplace/MarketplaceHttp";
 import AwsSecurityHubClient from "Common/Server/Utils/SecurityEvent/Connectors/AwsSecurityHub/AwsSecurityHubClient";
-import { FakeHttpClient, createFakeHttpClient } from "Common/Tests/Server/Utils/Marketplace/MarketplaceTestKeys";
+import {
+  FakeHttpClient,
+  createFakeHttpClient,
+} from "Common/Tests/Server/Utils/Marketplace/MarketplaceTestKeys";
 import { describe, expect, it } from "@jest/globals";
 
 /*

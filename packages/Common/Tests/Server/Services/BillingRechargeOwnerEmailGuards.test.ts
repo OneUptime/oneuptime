@@ -71,9 +71,10 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * AIBillingService.rechargeBalance throws "Billing is not enabled" before it
  * does anything else, and BILLING_ENABLED is not set when jest runs a single
  * suite directly. Mocking the tiny BillingConfig module (rather than
- * EnvironmentConfig, which reads it) is the precedent set by
- * Tests/Server/TestingUtils/Services/BillingServiceHelper.ts, and it makes the
- * suite deterministic no matter what the runner exports.
+ * EnvironmentConfig, which reads it) is the precedent set by the Stripe
+ * provider's test helper (ee/Tests/Server/Billing/Helpers/
+ * StripeBillingProviderHelper.ts), and it makes the suite deterministic no
+ * matter what the runner exports.
  */
 jest.mock("../../../Server/BillingConfig", () => {
   return {

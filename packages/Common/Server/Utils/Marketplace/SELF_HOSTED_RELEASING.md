@@ -59,7 +59,13 @@ change their wording and steps.
    saw during it, with an idempotency key derived from the installation and
    the hour, so an hour is never billed twice even when its report is sent
    again. Each report is claimed in the database before it is sent. Hours in
-   which no run happened (the installation was down) are not billed.
+   which no run happened (the installation was down) are not billed. The
+   reporters
+   ([ee/Server/Marketplace/Reporters](../../../../../ee/Server/Marketplace/Reporters))
+   share the AWS and Google Cloud clients of OneUptime Cloud's own marketplace
+   billing
+   ([ee/Server/CloudMarketplace](../../../../../ee/Server/CloudMarketplace)),
+   so a change to one is a change to both.
 3. **Licensing.** A report the marketplace accepts is its word that the buyer
    is subscribed: it licenses every Enterprise feature for 72 hours, with no
    seat limit and no license key

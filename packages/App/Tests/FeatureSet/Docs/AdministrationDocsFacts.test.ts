@@ -1314,17 +1314,25 @@ describe("Billing & Usage", () => {
       "A payment method you add becomes the default. Adding a payment method enables paid usage. It does not upgrade your subscription plan.",
     );
 
-    const billingService: string = readCommonSource(
-      "Server/Services/BillingService.ts",
-    );
+    /*
+     * The one payment method a project keeps is Stripe's rule, in OneUptime
+     * Cloud's billing (ee/Server/Billing). Core CI runs without ee/: the
+     * page is held to it wherever ee/ is present.
+     */
+    if (fs.existsSync(EE_DIR)) {
+      const stripeBilling: string = fs.readFileSync(
+        path.join(EE_DIR, "Server", "Billing", "StripeBillingProvider.ts"),
+        "utf8",
+      );
 
-    expect(
-      between(
-        billingService,
-        "public async deletePaymentMethod(",
-        "Errors.BillingService.MIN_REQUIRED_PAYMENT_METHOD_NOT_MET",
-      ),
-    ).toContain("if (paymentMethods.length === 1) {");
+      expect(
+        between(
+          stripeBilling,
+          "public async deletePaymentMethod(",
+          "Errors.BillingService.MIN_REQUIRED_PAYMENT_METHOD_NOT_MET",
+        ),
+      ).toContain("if (paymentMethods.length === 1) {");
+    }
 
     const methods: string = section(page, "## Payment methods");
 

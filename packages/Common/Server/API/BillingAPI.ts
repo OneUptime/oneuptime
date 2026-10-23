@@ -1,5 +1,5 @@
 import { BillingWebhookSecret, IsBillingEnabled } from "../EnvironmentConfig";
-import Stripe from "stripe";
+import type Stripe from "stripe";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import BillingService from "../Services/BillingService";
 import PayAsYouGoBillingService from "../Services/PayAsYouGoBillingService";

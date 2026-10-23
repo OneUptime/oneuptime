@@ -14,7 +14,7 @@ import { Column, Entity, Index } from "typeorm";
 
 /*
  * A Vercel project connected to a OneUptime resource (see
- * Server/Utils/Marketplace/Vercel/VercelMarketplaceMonitors).
+ * ee/Server/CloudMarketplace/Vercel/VercelMarketplaceMonitors).
  *
  * A team connects its Vercel projects to a OneUptime resource in the Vercel
  * dashboard, which gives each project the resource's environment variables.

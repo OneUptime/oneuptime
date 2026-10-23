@@ -1,8 +1,8 @@
 import AwsSecurityHubClient, {
   AwsSigV4SignResult,
 } from "Common/Server/Utils/SecurityEvent/Connectors/AwsSecurityHub/AwsSecurityHubClient";
-import AwsMarketplaceAPI from "Common/Server/Utils/Marketplace/AWS/AwsMarketplaceAPI";
-import MarketplaceApiError from "Common/Server/Utils/Marketplace/MarketplaceApiError";
+import AwsMarketplaceAPI from "../../CloudMarketplace/AWS/AwsMarketplaceAPI";
+import MarketplaceApiError from "../../CloudMarketplace/MarketplaceApiError";
 import {
   MarketplaceHttp,
   MarketplaceHttpClient,

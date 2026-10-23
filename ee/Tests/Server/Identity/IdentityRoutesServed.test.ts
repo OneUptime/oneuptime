@@ -24,6 +24,8 @@ import ProjectSCIMService from "Common/Server/Services/ProjectSCIMService";
 import StatusPageSCIMService from "Common/Server/Services/StatusPageSCIMService";
 import { ExpressRouter } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
+import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
+import VercelSignInAPI from "../../../Server/CloudMarketplace/API/VercelSignIn";
 
 /*
  * The real Enterprise Edition module, registered with the real core Identity
@@ -41,6 +43,21 @@ import logger from "Common/Server/Utils/Logger";
  * reseller and status page authentication routers are replaced by empty
  * ones: they are not what this test is about.
  */
+// Billing is pinned per test: CI's config.env sets BILLING_ENABLED=true.
+jest.mock("Common/Server/EnvironmentConfig", () => {
+  const billingFlag: typeof import("Common/Tests/Server/Enterprise/TestBillingFlag") =
+    jest.requireActual(
+      "Common/Tests/Server/Enterprise/TestBillingFlag",
+    ) as typeof import("Common/Tests/Server/Enterprise/TestBillingFlag");
+
+  return billingFlag.withLiveBillingFlag(
+    jest.requireActual("Common/Server/EnvironmentConfig") as Record<
+      string,
+      unknown
+    >,
+  );
+});
+
 jest.mock("App/FeatureSet/Workers/Utils/Cron", () => {
   return {
     __esModule: true,
@@ -97,6 +114,8 @@ const request: (
 };
 
 beforeAll(async () => {
+  setTestBillingEnabled(false);
+
   jest.spyOn(logger, "error").mockImplementation((): void => {
     return undefined;
   });
@@ -126,7 +145,24 @@ afterAll(async () => {
   jest.restoreAllMocks();
 });
 
-describe("the Enterprise Edition hands core its SCIM routers only", () => {
+describe("on OneUptime Cloud the Enterprise Edition hands core sign-in from Vercel too", () => {
+  test("with billing on, getIdentityRouters is the SCIM routers, then sign-in from Vercel", () => {
+    setTestBillingEnabled(true);
+
+    try {
+      expect(EnterpriseModule.getIdentityRouters()).toEqual([
+        ...IDENTITY_ROUTERS.map((entry: { router: ExpressRouter }) => {
+          return entry.router;
+        }),
+        VercelSignInAPI,
+      ]);
+    } finally {
+      setTestBillingEnabled(false);
+    }
+  });
+});
+
+describe("with billing off the Enterprise Edition hands core its SCIM routers only", () => {
   test("getIdentityRouters is exactly the Identity area's two SCIM routers and the SCIM token endpoint", () => {
     expect(EnterpriseModule.getIdentityRouters()).toEqual(
       IDENTITY_ROUTERS.map((entry: { router: ExpressRouter }) => {

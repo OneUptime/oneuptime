@@ -1,6 +1,6 @@
 import CloudMarketplace from "Common/Types/Marketplace/CloudMarketplace";
-import GoogleCloudMarketplaceAPI from "Common/Server/Utils/Marketplace/GoogleCloud/GoogleCloudMarketplaceAPI";
-import MarketplaceApiError from "Common/Server/Utils/Marketplace/MarketplaceApiError";
+import GoogleCloudMarketplaceAPI from "../../../../Server/CloudMarketplace/GoogleCloud/GoogleCloudMarketplaceAPI";
+import MarketplaceApiError from "../../../../Server/CloudMarketplace/MarketplaceApiError";
 import { MarketplaceHttpRequest } from "Common/Server/Utils/Marketplace/MarketplaceHttp";
 import AwsContainerMeteringAPI from "../../../../Server/Marketplace/Reporters/AwsContainerMeteringAPI";
 import AwsWorkloadCredentialsProvider from "../../../../Server/Marketplace/Reporters/AwsWorkloadCredentials";
