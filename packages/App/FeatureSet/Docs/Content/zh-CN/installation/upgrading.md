@@ -479,7 +479,7 @@ API 客户端和 Terraform 配置不再有项目字段 `enableAutomaticIncidentC
 - 匹配相同事件（相同条件，同时启用或同时停用）、并允许相同 MCP 服务器、代码存储库和 LLM 提供商的调查规则和自动补救规则会合并为一条规则：即该自动补救规则，它现在也会在调查规则的等待之后进行调查。它保留自己的名称、修复、运行手册、Runner 和拉取请求开关。
 - 其他每条调查规则都会成为一条调查但不修复的 AI 规则，保留其名称、条件、等待、MCP 服务器、代码存储库和 LLM 提供商。
 - 其他每条自动补救规则照旧修复。在已启用的调查规则决定调查范围的地方，它不调查（其 **调查与修复** 列显示 **不调查**），因此调查范围不变。在没有这种规则的地方，它也会调查，除非它选择了 LLM 提供商；并且如果某条已启用的规则现在会调查，项目还会得到 **Investigate every incident**（或 **Investigate every alert**），它调查每一个且不修复任何内容，使每个事件仍会被调查——除非某条会调查的规则已经匹配所有对象。
-- 在已启用的调查规则决定调查范围、而没有已启用的自动补救规则决定修复范围的地方，修复开启时每个事件都会被修复。修复开启的项目会得到 **Fix every incident**（或 **Fix every alert**），它像没有规则时的 OneUptime AI 一样修复每一个，且不调查；修复关闭的项目不会得到任何修复的规则。
+- 在已启用的调查规则决定调查范围、而没有已启用的自动补救规则决定修复范围的地方，修复开启时每个事件都会被修复。修复开启的项目会得到 **Fix every incident**（或 **Fix every alert**），它像没有规则时的 OneUptime AI 一样修复每一个，且不调查；修复关闭的项目不会得到任何修复的规则。如果之后在该项目中开启修复，请先添加一条会修复的规则：有规则时，OneUptime AI 只修复与会修复的规则匹配的内容。
 
 API 客户端和 Terraform 配置：AI 规则是位于 `/api/auto-remediation-rule` 的 `AutoRemediationRule`，沿用自动补救规则原有的路由、权限和 ID。`investigates` 和 `fixes` 表示它做什么（不设置时为 `false` 和 `true`，因此以前编写的客户端仍会创建只修复的规则），`onlyIfOpenAfterMinutes` 是它的等待时间。在 Terraform 中它是 `oneuptime_ai_rule`；`oneuptime_auto_remediation_rule` 仍然可用，但已弃用，`moved` 块可以在不替换规则的情况下完成切换。调查规则的路由 `/api/ai-investigation-rule` 会返回 `410 Gone` 并说明应改用什么，`oneuptime_investigation_rule` 已不复存在：请将此类规则写成 `investigates` 为 `true`、`fixes` 为 `false` 的 `oneuptime_ai_rule`。
 

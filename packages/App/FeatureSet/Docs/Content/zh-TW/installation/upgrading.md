@@ -479,7 +479,7 @@ API 用戶端和 Terraform 設定不再有專案欄位 `enableAutomaticIncidentC
 - 相符相同事件（相同條件，同時啟用或同時停用）、並允許相同 MCP 伺服器、程式碼儲存庫和 LLM 提供商的調查規則和自動補救規則會合併為一條規則：即該自動補救規則，它現在也會在調查規則的等待之後進行調查。它保留自己的名稱、修正、運行手冊、Runner 和拉取請求開關。
 - 其他每條調查規則都會成為一條調查但不修正的 AI 規則，保留其名稱、條件、等待、MCP 伺服器、程式碼儲存庫和 LLM 提供商。
 - 其他每條自動補救規則照舊修正。在已啟用的調查規則決定調查範圍的地方，它不調查（其 **調查與修正** 欄顯示 **不調查**），因此調查範圍不變。在沒有這種規則的地方，它也會調查，除非它選擇了 LLM 提供商；並且如果某條已啟用的規則現在會調查，專案還會得到 **Investigate every incident**（或 **Investigate every alert**），它調查每一個且不修正任何內容，使每個事件仍會被調查——除非某條會調查的規則已經相符所有對象。
-- 在已啟用的調查規則決定調查範圍、而沒有已啟用的自動補救規則決定修正範圍的地方，修正開啟時每個事件都會被修正。修正開啟的專案會得到 **Fix every incident**（或 **Fix every alert**），它像沒有規則時的 OneUptime AI 一樣修正每一個，且不調查；修正關閉的專案不會得到任何修正的規則。
+- 在已啟用的調查規則決定調查範圍、而沒有已啟用的自動補救規則決定修正範圍的地方，修正開啟時每個事件都會被修正。修正開啟的專案會得到 **Fix every incident**（或 **Fix every alert**），它像沒有規則時的 OneUptime AI 一樣修正每一個，且不調查；修正關閉的專案不會得到任何修正的規則。如果之後在該專案中開啟修正，請先新增一條會修正的規則：有規則時，OneUptime AI 只修正與會修正的規則相符的內容。
 
 API 用戶端和 Terraform 設定：AI 規則是位於 `/api/auto-remediation-rule` 的 `AutoRemediationRule`，沿用自動補救規則原有的路由、權限和 ID。`investigates` 和 `fixes` 表示它做什麼（不設定時為 `false` 和 `true`，因此以前編寫的用戶端仍會建立只修正的規則），`onlyIfOpenAfterMinutes` 是它的等待時間。在 Terraform 中它是 `oneuptime_ai_rule`；`oneuptime_auto_remediation_rule` 仍然可用，但已棄用，`moved` 區塊可以在不替換規則的情況下完成切換。調查規則的路由 `/api/ai-investigation-rule` 會回傳 `410 Gone` 並說明應改用什麼，`oneuptime_investigation_rule` 已不復存在：請將此類規則寫成 `investigates` 為 `true`、`fixes` 為 `false` 的 `oneuptime_ai_rule`。
 
