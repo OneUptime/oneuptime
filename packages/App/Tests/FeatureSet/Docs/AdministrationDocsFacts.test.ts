@@ -38,6 +38,12 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import BillingPaymentMethod from "Common/Models/DatabaseModels/BillingPaymentMethod";
 import Label from "Common/Models/DatabaseModels/Label";
+import { sortLabelNames } from "Common/Utils/LabelOrder";
+import { compareNaturally } from "Common/Utils/NaturalOrder";
+import {
+  TABLE_COLUMN_LIST_VISIBLE_COUNT,
+  getTableColumnListVisibleCount,
+} from "Common/UI/Components/TableColumnList/TableColumnListFold";
 import LlmProvider from "Common/Models/DatabaseModels/LlmProvider";
 import McpOAuthGrant from "Common/Models/DatabaseModels/McpOAuthGrant";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -991,6 +997,43 @@ describe("Project Settings", () => {
     expect(steps).toContain(
       "On OneUptime Cloud, creating and changing labels needs the Growth plan.",
     );
+  });
+
+  /*
+   * OneUptime issues #5187 and #5183: a list shows a record's labels one
+   * under another (Common/UI/Components/Label/Labels draws them through
+   * TableColumnListComponent, which shows three and folds the rest, never
+   * just one), and labels read in natural order everywhere
+   * (Common/Utils/LabelOrder).
+   */
+  it("says how a list shows a record's labels, and the order labels read in", () => {
+    const steps: string = section(page, "## Labels");
+
+    expect(steps).toContain(
+      "In a list, a record's labels are shown one under another; when there are more than four, the first three are shown with a link to the rest.",
+    );
+    expect(readCommonSource("UI/Components/Label/Labels.tsx")).toContain(
+      "<TableColumnListComponent<LabelModel>",
+    );
+    expect(TABLE_COLUMN_LIST_VISIBLE_COUNT).toBe(3);
+    expect(getTableColumnListVisibleCount(4)).toBe(4);
+    expect(getTableColumnListVisibleCount(5)).toBe(3);
+
+    // The page's examples, in the order it says they read in.
+    expect(steps).toContain("(`2. Team` before `10. Owner`)");
+    expect(sortLabelNames(["10. Owner", "2. Team"])).toEqual([
+      "2. Team",
+      "10. Owner",
+    ]);
+    expect(steps).toContain("such as `1. Category` and `2. Subcategory`.");
+    expect(
+      sortLabelNames(["2. Subcategory", "Production", "1. Category"]),
+    ).toEqual(["1. Category", "2. Subcategory", "Production"]);
+
+    // "then the others alphabetically, whatever their case".
+    expect(steps).toContain("then the others alphabetically, whatever their case");
+    expect(compareNaturally("apple", "Banana")).toBeLessThan(0);
+    expect(compareNaturally("Banana", "cherry")).toBeLessThan(0);
   });
 
   it("names the notification channels, who switches them, and that they start off", () => {

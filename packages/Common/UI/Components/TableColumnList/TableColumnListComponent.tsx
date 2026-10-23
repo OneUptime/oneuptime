@@ -8,30 +8,21 @@ import {
   TABLE_CARD_LIST_ITEM_CLASS_NAME,
   TABLE_LIST_ITEM_CLASS_NAME,
 } from "../Table/TableLayout";
+import {
+  getTableColumnListVisibleCount,
+  TABLE_COLUMN_LIST_VISIBLE_COUNT,
+} from "./TableColumnListFold";
 import GenericObject from "../../../Types/GenericObject";
 import React, { ReactElement } from "react";
 import useTranslateValue from "../../Utils/Translation";
 
 /*
- * How many items a list shows before the rest fold behind "N more": three,
- * one under another. A list of four shows all four: the "1 more" button
- * takes a line of its own - a taller one than an item's - so folding a
- * single item saved no room and only hid it (a monitor's fourth label, its
- * Business System, behind "1 more label" on every row of the list in
- * OneUptime issue #5187). So "N more" always says two or more.
+ * Three items, then "N more" - or all four, never a fold of one
+ * (TableColumnListFold, React-free for App's docs facts).
  */
-export const TABLE_COLUMN_LIST_VISIBLE_COUNT: number = 3;
-
-/*
- * How many of `count` items a list shows before "N more": all of them when
- * at most one would be left over.
- */
-export const getTableColumnListVisibleCount: (count: number) => number = (
-  count: number,
-): number => {
-  return count > TABLE_COLUMN_LIST_VISIBLE_COUNT + 1
-    ? TABLE_COLUMN_LIST_VISIBLE_COUNT
-    : count;
+export {
+  getTableColumnListVisibleCount,
+  TABLE_COLUMN_LIST_VISIBLE_COUNT,
 };
 
 export interface ComponentProps<TGenericObject extends GenericObject | string> {

@@ -19,6 +19,11 @@ The pages:
   each linked to the cluster too, then one created by hand about a database
   and one linked to nothing;
 - `/dashboard/<project>/monitors` - Monitors (status dots, labels, owners);
+  with `?data=labels`, the Monitors list of issues #5187 and #5183: labels
+  numbered the way that customer numbers theirs ("1.Category=Application",
+  "2.SubCategory=Website", ... "10.Owner=..."), each monitor's handed over
+  in a scrambled order, one longer than a column may grow, five on one
+  monitor;
 - `/dashboard/<project>/status-pages` - Status Pages (a long name beside a
   column of prose);
 - `/dashboard/<project>/settings/teams` - Settings > Teams;
@@ -52,8 +57,16 @@ The suite (`ModelTables.spec.ts`) measures in Chromium what jsdom cannot:
   the whole name under the pointer; a chip with a long monitor picked stays
   inside the bar on a phone, its words ending in "...";
 - every row is 48px and its hairline, whatever it holds - text, pills,
-  labels, avatars, a dash, the row's buttons, a drag grip - each part on the
-  row's 24px line;
+  a label, avatars, a dash, the row's buttons, a drag grip - each part on
+  the row's 24px line; a row's labels are listed one under another, as
+  Affected Resources lists its resources, each label after the first adding
+  its line (28px);
+- a row's labels read in natural order - numbered labels first, by their
+  numbers, "10." after "4." - the first three and "N more labels" for the
+  rest, never "1 more"; none is cut off: a label is as wide as its name up
+  to the column's 20rem, and only a longer one ends in "...", whole under
+  the pointer; on a phone a long one runs onto a next line inside its pill;
+  the Labels facet offers them in the same order, in both themes;
 - an empty value is a quiet dash read out as "Not set", not "No labels
   attached." on every row; Yes is a tick, No the dash;
 - the Duration says its two largest units, the whole of it under the
@@ -122,7 +135,8 @@ node ModelTables/Fixture/server.js
 
 Then open
 `http://127.0.0.1:4319/dashboard/10000000-0000-4000-8000-000000000001/incidents`
-(or any page above), adding `?data=rich`, `?data=long` or `?data=empty`,
+(or any page above), adding `?data=rich`, `?data=long`, `?data=labels` or
+`?data=empty`,
 `?rows=<n>` (n more rows on every list), `?role=viewer`, `?delay=<ms>` (each
 list read takes this long), `?fail=<table>` (`Incident`, `Monitor`, ... or
 `all`), `?lang=de|ja|fa` or `?theme=dark`. `--watch` rebuilds the bundle as

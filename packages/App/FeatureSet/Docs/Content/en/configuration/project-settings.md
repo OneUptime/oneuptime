@@ -71,6 +71,8 @@ Click **Create Label**. Give it a **Name** and, if you like, a **Description**. 
 
 On OneUptime Cloud, creating and changing labels needs the Growth plan. See [Labels](/docs/permissions/index#labels) for how labels narrow permissions, and [Label and Owner Rules](/docs/configuration/label-and-owner-rules) to label resources as they are created.
 
+In a list, a record's labels are shown one under another; when there are more than four, the first three are shown with a link to the rest. Wherever labels are listed (in lists, on a record's page and in every label picker), they are in natural order: labels whose names start with a number come first, in the order of that number (`2. Team` before `10. Owner`), then the others alphabetically, whatever their case. To choose the order your labels read in, start their names with a number, such as `1. Category` and `2. Subcategory`.
+
 ### Archive a label
 
 To retire a label, archive it from its row's **⋯** menu instead of deleting it. Everything that has the label keeps it, and you can still filter by it, but nobody can add it to anything again: every label picker leaves it out, and the API, Terraform and MCP refuse it. The dialog lists the rules and permissions set up to use the label, which keep using it until you change them. Archived labels are listed apart, in the folded **Archived Labels** section, where **Unarchive** puts one back. **Delete** first lists everything the label would come off, and offers **Archive instead**.
