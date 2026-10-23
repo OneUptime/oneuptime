@@ -4,6 +4,7 @@ Collega OneUptime a Microsoft Teams per pubblicare nei tuoi canali e nelle tue c
 
 :::cards
 - [Collegare Microsoft Teams](#collegare-microsoft-teams): Il consenso dell'amministratore, il tuo accesso e l'app in ogni team.
+- [Chiedere a tutti di collegare il proprio account](#chiedere-a-tutti-di-collegare-il-proprio-account): Scrivi in un colpo solo a tutti i membri che non hanno ancora collegato il proprio account.
 - [Regole di notifica](#regole-di-notifica): Decidi quali eventi vengono pubblicati dove, e quali hanno un canale tutto loro.
 - [Parlare con il bot di OneUptime](#parlare-con-il-bot-di-oneuptime): Comandi, domande e moduli in una chat con il bot.
 - [Tag di reperibilità](#tag-di-reperibilità): Mantieni il tag di un team uguale a chi è reperibile, e chiamalo.
@@ -59,7 +60,7 @@ Su OneUptime Cloud, **Apri lo store di Teams** apre l'app nello Store di Microso
 
 ### Collegare tutti gli altri
 
-Ogni persona collega il proprio account Microsoft Teams in **Impostazioni utente** > **Area di lavoro** > **Microsoft Teams** con **Connect my account with Microsoft Teams**, per agire sugli incidenti e ricevere messaggi diretti a proprio nome. Quella sezione compare non appena il progetto è collegato a Microsoft Teams.
+Ogni persona collega il proprio account Microsoft Teams in **Impostazioni utente** > **Area di lavoro** > **Microsoft Teams** con **Connect my account with Microsoft Teams**, per agire sugli incidenti e ricevere messaggi diretti a proprio nome. Quella sezione compare non appena il progetto è collegato a Microsoft Teams. Per coinvolgere un intero team in una volta sola, vedi [Chiedere a tutti di collegare il proprio account](#chiedere-a-tutti-di-collegare-il-proprio-account).
 
 ### Aggiungere una regola di notifica
 
@@ -68,6 +69,14 @@ Vai in **Incidenti** > **Area di lavoro** > **Microsoft Teams**. La sezione **Ar
 
 > [!NOTE]
 > Installare OneUptime per te stesso, o aggiungerlo a una chat, è un'installazione diversa e non gli permette di pubblicare nei canali di un team. I **canali privati** richiedono l'app aggiunta al canale stesso: apri il canale > "..." > **Manage channel** > **Apps** > **Add an app**. I **canali condivisi** non possono ricevere notifiche: Microsoft Teams non supporta i bot nei canali condivisi.
+
+## Chiedere a tutti di collegare il proprio account
+
+Nessuno può collegare l'account Microsoft Teams di un'altra persona, nemmeno un amministratore: ognuno accede al proprio. Per coinvolgere un intero team, un **Project Owner** o un **Project Admin** chiede a tutti in una volta di collegare il proprio account, in **Impostazioni del progetto** > **Area di lavoro** > **Microsoft Teams**. La scheda **Members' Microsoft Teams accounts** indica quanti membri hanno collegato il proprio account. Con **Ask everyone to connect**, il bot di OneUptime invia un messaggio a ogni membro che non l'ha ancora fatto, con un pulsante **Connect Microsoft Teams account** che collega il suo account con un clic.
+
+- **Chi riceve un messaggio.** Ogni membro del progetto che non ha collegato il proprio account Microsoft Teams e si trova in un team a cui è stata aggiunta l'app di OneUptime, trovato lì tramite il suo indirizzo email o il nome dell'entità utente. Chi ha ricevuto la richiesta nelle ultime 24 ore non la riceve di nuovo, quindi chiedere ancora il giorno dopo la ricorda solo a chi non ha ancora collegato il proprio account.
+- **Cosa dice la scheda.** A che punto sono i messaggi mentre vengono inviati, poi chi ha fatto la richiesta e quanti membri hanno ricevuto un messaggio. I membri che OneUptime non ha trovato sono indicati per nome nella scheda: aggiungi l'app al loro team, oppure chiedi loro di collegare il proprio account da soli in **Impostazioni utente** > **Area di lavoro** > **Microsoft Teams**.
+- **Cosa collega il pulsante.** L'account Microsoft Teams di chi lo preme ed effettua l'accesso, al proprio account OneUptime. Un messaggio inoltrato a qualcun altro non collega nulla al membro a cui era stato inviato.
 
 ## Regole di notifica
 

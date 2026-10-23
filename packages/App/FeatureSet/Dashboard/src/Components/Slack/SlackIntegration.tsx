@@ -55,6 +55,7 @@ import ConnectRequestNotice, {
 import UninstallWorkspaceConfirm, {
   MANAGE_WORKSPACE_CONNECTION,
 } from "../Workspace/UninstallWorkspaceConfirm";
+import AskToConnectCard from "../Workspace/AskToConnectCard";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
@@ -713,6 +714,12 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
           buttons={cardButtons}
         />
       </div>
+
+      {isProjectAccountConnected && !props.hideProjectCards && (
+        <div className="mt-6">
+          <AskToConnectCard workspaceType={WorkspaceType.Slack} />
+        </div>
+      )}
 
       {isProjectAccountConnected && !props.hideProjectCards && (
         <div className="mt-6">

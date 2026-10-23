@@ -19,9 +19,11 @@ import {
 } from "./Navigation";
 import DataTypeUtil from "./DataTypes";
 import ResourceUtil from "./Resources";
+import { ReferencePageSeo, getReferencePageSeo } from "./Seo";
 import Dictionary from "Common/Types/Dictionary";
 import { ExpressRequest } from "Common/Server/Utils/Express";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+import { getPublicOrigin } from "Common/Server/Utils/Sitemap";
 
 export interface ReferenceRenderContext {
   lang: string;
@@ -46,6 +48,11 @@ export interface ReferenceRenderContext {
   pager: ReferenceNavAdjacent;
   /** Where the current page sits in the tree; null for pages outside it. */
   currentLocation: ReferenceNavLocation | null;
+  /*
+   * The page's canonical address and its translations' (Utils/Seo.ts),
+   * which the head writes on every page but the 404. Null with no page.
+   */
+  seo: ReferencePageSeo | null;
 }
 
 /*
@@ -134,5 +141,12 @@ export function buildRenderContext(
     searchIndex: getSearchIndexForLanguage(lang),
     pager: findAdjacentPages(navSections, currentPage),
     currentLocation: findNavLocation(navSections, currentPage),
+    seo: currentPage
+      ? getReferencePageSeo({
+          origin: getPublicOrigin(),
+          page: currentPage,
+          lang: lang,
+        })
+      : null,
   };
 }

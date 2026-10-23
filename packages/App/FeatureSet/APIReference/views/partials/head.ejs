@@ -6,6 +6,19 @@
    <meta name="description" content="<%= pageDescription -%>">
 
    <%#
+      The page's canonical address, and the languages it is written in
+      (Utils/Seo.ts). A page written from English descriptions names the
+      English page in every language and lists no alternates; a page that
+      does not exist names none.
+   -%>
+   <% if (typeof seo !== 'undefined' && seo && !(typeof page !== 'undefined' && page === '404')) { %>
+   <link rel="canonical" href="<%= seo.canonicalUrl %>">
+   <% seo.alternateLinks.forEach(function (alternate) { %>
+   <link rel="alternate" hreflang="<%= alternate.hreflang %>" href="<%= alternate.href %>">
+   <% }); %>
+   <% } %>
+
+   <%#
       Theme bootstrap. Runs before any stylesheet so the first paint is already
       in the right theme - a dark-mode reader used to get a white flash on every
       navigation. `oneuptime-reference-theme` holds "light", "dark" or "system";

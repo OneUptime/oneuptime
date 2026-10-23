@@ -67,8 +67,9 @@ export interface ChannelMembersNotAddedNote {
  * OneUptime adds people to the Slack channels it creates for an incident,
  * alert or episode - the rule's people and teams, the record's owners, and
  * whoever an on-call policy pages - through the Slack account each of them
- * connected to OneUptime. Somebody who has not connected one cannot be
- * added. That used to be said in a message of its own for every person,
+ * connected to OneUptime, or else the one with their email address.
+ * Somebody found neither way cannot be added. That used to be said in a
+ * message of its own for every person,
  * every time OneUptime tried to add them: once when the channel was created,
  * again each time an on-call rule paged them, so the same "NB User 3 cannot
  * be invited to the channel" came back every few minutes.
@@ -279,9 +280,14 @@ export default class ChannelMembersNotAddedNotice {
    * reads them:
    *
    *   👥 NB User 3 and Jane Doe could not be added to this channel: they
-   *   have not connected their Slack accounts to OneUptime yet. Add them
-   *   here yourself, or send them this link to connect in one click:
-   *   Connect Slack account.
+   *   have not connected their Slack accounts to OneUptime yet, and they
+   *   could not be found by their email addresses. Add them here yourself,
+   *   or send them this link to connect in one click: Connect Slack account.
+   *
+   * Somebody is added by the account they connected, or else by the Slack
+   * account with their email address (WorkspaceNotificationRuleService
+   * .findWorkspaceUserIdsToInvite), so the note names only people found
+   * neither way.
    *
    * Without a dashboard address to link to, the settings page is named in
    * words instead. Names are text: a person's name is theirs to set. The
@@ -295,10 +301,10 @@ export default class ChannelMembersNotAddedNotice {
     const names: Array<string> = await this.getNames(data.userIds);
     const productName: string = ProductBrandingText.getProductName();
 
-    const accounts: string =
-      names.length === 1 ? "their Slack account" : "their Slack accounts";
-
-    const missing: MarkdownText = mdText`👥 ${this.listNames(names)} could not be added to this channel: they have not connected ${accounts} to ${productName} yet.`;
+    const missing: MarkdownText =
+      names.length === 1
+        ? mdText`👥 ${this.listNames(names)} could not be added to this channel: they have not connected their Slack account to ${productName} yet, and it could not be found by their email address.`
+        : mdText`👥 ${this.listNames(names)} could not be added to this channel: they have not connected their Slack accounts to ${productName} yet, and they could not be found by their email addresses.`;
 
     let whatToDo: MarkdownText = mdText`Add them here yourself, or ask them to connect Slack in ${productName} under **User Settings → Workspace → Slack**.`;
 

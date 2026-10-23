@@ -30,6 +30,9 @@ import Express, {
   ExpressStatic,
   NextFunction,
 } from "Common/Server/Utils/Express";
+import { withQueryOf } from "Common/Server/Utils/RedirectTarget";
+
+type PageHandler = (req: ExpressRequest, res: ExpressResponse) => Promise<void>;
 
 /*
  * Pick the best language for a request based on the URL parameter, the
@@ -67,6 +70,45 @@ const APIReferenceFeatureSet: FeatureSet = {
 
     const DataTypeDictionary: Dictionary<DataTypeDocumentation> =
       DataTypeUtil.getDataTypeDictionaryByPath();
+
+    /*
+     * What serves each page, by the last segment of its address; null for a
+     * page the reference does not have.
+     */
+    const getPageHandler: (page: string) => PageHandler | null = (
+      page: string,
+    ): PageHandler | null => {
+      if (page === "permissions") {
+        return PermissionServiceHandler.executeResponse;
+      } else if (page === "authentication") {
+        return AuthenticationServiceHandler.executeResponse;
+      } else if (page === "pagination") {
+        return PaginationServiceHandler.executeResponse;
+      } else if (page === "errors") {
+        return ErrorServiceHandler.executeResponse;
+      } else if (page === "introduction") {
+        return IntroductionServiceHandler.executeResponse;
+      } else if (page === "openapi") {
+        return OpenAPIServiceHandler.executeResponse;
+      } else if (page === "status") {
+        return StatusServiceHandler.executeResponse;
+      } else if (page === "master-admin-apis" && !IsBillingEnabled) {
+        /*
+         * Master admin APIs are only reachable by whoever holds the instance
+         * master API key, which only exists on a self-hosted install. On the
+         * billing-enabled (SaaS) build the page falls through to a 404.
+         */
+        return MasterAdminApisServiceHandler.executeResponse;
+      } else if (page === "data-types") {
+        return DataTypeServiceHandler.executeResponse;
+      } else if (DataTypeDictionary[page]) {
+        return DataTypeDetailServiceHandler.executeResponse;
+      } else if (ResourceDictionary[page]) {
+        return ModelServiceHandler.executeResponse;
+      }
+
+      return null;
+    };
 
     const app: ExpressApplication = Express.getExpressApp();
 
@@ -108,9 +150,11 @@ const APIReferenceFeatureSet: FeatureSet = {
     );
 
     /*
-     * /reference/:lang — if `:lang` is a known language, redirect to its
-     * introduction. Otherwise fall through to the page handler so legacy
-     * URLs like /reference/permissions keep working.
+     * /reference/:lang — if `:lang` is a known language, redirect
+     * permanently to its introduction, so search engines keep the
+     * introduction's own address rather than this one. Otherwise fall
+     * through to the page handler so legacy URLs like /reference/permissions
+     * keep working.
      */
     app.get(
       "/reference/:lang",
@@ -119,7 +163,10 @@ const APIReferenceFeatureSet: FeatureSet = {
         if (!isSupportedDocsLanguage(lang)) {
           return next();
         }
-        return res.redirect(`/reference/${lang}/introduction`);
+        return res.redirect(
+          301,
+          withQueryOf(req, `/reference/${lang}/introduction`),
+        );
       },
     );
 
@@ -147,45 +194,16 @@ const APIReferenceFeatureSet: FeatureSet = {
         if (!isSupportedDocsLanguage(lang)) {
           return next();
         }
-        const page: string | undefined = req.params["page"];
 
-        if (!page) {
+        const handler: PageHandler | null = getPageHandler(
+          req.params["page"] || "",
+        );
+
+        if (!handler) {
           return PageNotFoundServiceHandler.executeResponse(req, res);
         }
 
-        const currentResource: ModelDocumentation | undefined =
-          ResourceDictionary[page];
-
-        if (page === "permissions") {
-          return PermissionServiceHandler.executeResponse(req, res);
-        } else if (page === "authentication") {
-          return AuthenticationServiceHandler.executeResponse(req, res);
-        } else if (page === "pagination") {
-          return PaginationServiceHandler.executeResponse(req, res);
-        } else if (page === "errors") {
-          return ErrorServiceHandler.executeResponse(req, res);
-        } else if (page === "introduction") {
-          return IntroductionServiceHandler.executeResponse(req, res);
-        } else if (page === "openapi") {
-          return OpenAPIServiceHandler.executeResponse(req, res);
-        } else if (page === "status") {
-          return StatusServiceHandler.executeResponse(req, res);
-        } else if (page === "master-admin-apis" && !IsBillingEnabled) {
-          /*
-           * Master admin APIs are only reachable by whoever holds the instance
-           * master API key, which only exists on a self-hosted install. On the
-           * billing-enabled (SaaS) build the page falls through to a 404.
-           */
-          return MasterAdminApisServiceHandler.executeResponse(req, res);
-        } else if (page === "data-types") {
-          return DataTypeServiceHandler.executeResponse(req, res);
-        } else if (DataTypeDictionary[page]) {
-          return DataTypeDetailServiceHandler.executeResponse(req, res);
-        } else if (currentResource) {
-          return ModelServiceHandler.executeResponse(req, res);
-        }
-
-        return PageNotFoundServiceHandler.executeResponse(req, res);
+        return handler(req, res);
       },
     );
 
@@ -202,15 +220,26 @@ const APIReferenceFeatureSet: FeatureSet = {
     );
 
     /*
-     * Legacy single-segment URL: /reference/:page → redirect to the best
-     * language's version of the same page.
+     * Legacy single-segment URL: /reference/:page. It redirects permanently
+     * to the English page, with the query it came with: the address search
+     * engines should keep (Utils/Seo.ts). It used to redirect temporarily,
+     * by the browser's language, and search engines kept the old address in
+     * place of the page's own. The reader picks another language from the
+     * page. A page the reference does not have is not found here.
      */
     app.get(
       ["/reference/:page"],
       (req: ExpressRequest, res: ExpressResponse) => {
-        const lang: string = pickLanguage(req);
         const page: string = req.params["page"]!;
-        return res.redirect(`/reference/${lang}/${page}`);
+
+        if (!getPageHandler(page)) {
+          return PageNotFoundServiceHandler.executeResponse(req, res);
+        }
+
+        return res.redirect(
+          301,
+          withQueryOf(req, `/reference/${DEFAULT_DOCS_LANGUAGE}/${page}`),
+        );
       },
     );
 

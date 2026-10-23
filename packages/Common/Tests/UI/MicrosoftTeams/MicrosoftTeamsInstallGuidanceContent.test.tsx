@@ -114,6 +114,14 @@ jest.mock("../../../UI/Utils/User", () => {
           },
         };
       },
+      /*
+       * Not a master admin, and no permission snapshot: the card that asks
+       * everybody to connect is for owners and admins (AskToConnectCard has
+       * its own suite), so this page draws without it.
+       */
+      isMasterAdmin: () => {
+        return false;
+      },
     },
   };
 });

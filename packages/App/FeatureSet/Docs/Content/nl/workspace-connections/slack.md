@@ -4,6 +4,7 @@ Koppel OneUptime aan Slack om incidenten, waarschuwingen, episodes, gepland onde
 
 :::cards
 - [Slack koppelen](#slack-koppelen): Installeer OneUptime in je workspace en koppel daarna je eigen account.
+- [Iedereen vragen hun account te koppelen](#iedereen-vragen-hun-account-te-koppelen): Stuur in één keer een bericht aan elk lid dat zijn account nog niet heeft gekoppeld.
 - [Meldingsregels](#meldingsregels): Bepaal welke gebeurtenissen waar worden geplaatst, en welke een eigen kanaal krijgen.
 - [Wie er in het kanaal van een record zit](#wie-er-in-het-kanaal-van-een-record-zit): Zie wie erin zit, neem deel en voeg mensen toe, vanaf de pagina van het record.
 - [Het commando /oneuptime](#het-commando-oneuptime): Meld incidenten, plan onderhoud, zie wie er dienst heeft en stel vragen aan AI.
@@ -46,7 +47,7 @@ Ga naar **Projectinstellingen** > **Werkruimte** > **Slack** en klik op **Connec
 
 ### Je eigen Slack-account koppelen
 
-Het installeren van de app koppelt het account van wie de app installeerde. Alle anderen koppelen hun eigen Slack-account onder **Gebruikersinstellingen** > **Werkruimte** > **Slack** met **Connect my account with Slack**, om als zichzelf op incidenten te handelen en directe berichten te krijgen. Die sectie verschijnt zodra het project aan Slack is gekoppeld.
+Het installeren van de app koppelt het account van wie de app installeerde. Alle anderen koppelen hun eigen Slack-account onder **Gebruikersinstellingen** > **Werkruimte** > **Slack** met **Connect my account with Slack**, om als zichzelf op incidenten te handelen en directe berichten te krijgen. Die sectie verschijnt zodra het project aan Slack is gekoppeld. Zie [Iedereen vragen hun account te koppelen](#iedereen-vragen-hun-account-te-koppelen) om een heel team in één keer erbij te halen.
 
 ### Een meldingsregel toevoegen
 
@@ -56,6 +57,14 @@ Ga naar **Incidenten** > **Werkruimte** > **Slack**. De sectie **Werkruimte** to
 
 Klik op **Testregel** in de rij van de regel. Er komt een testbericht aan in de kanalen die de regel noemt. Zie [Een regel testen](#een-regel-testen).
 :::
+
+## Iedereen vragen hun account te koppelen
+
+Niemand kan het Slack-account van iemand anders koppelen, ook een beheerder niet: ieder meldt zich aan met zijn eigen account. Om een heel team erbij te halen, vraagt een **Project Owner** of **Project Admin** iedereen tegelijk op **Projectinstellingen** > **Werkruimte** > **Slack**. De kaart **Members' Slack accounts** zegt hoeveel leden hun account al hebben gekoppeld. **Ask everyone to connect** stuurt elk lid dat nog niet gekoppeld is een direct bericht van OneUptime in Slack, met een knop **Connect Slack account** die het account met één klik koppelt.
+
+- **Wie een bericht krijgt.** Elk lid van het project dat zijn Slack-account niet heeft gekoppeld en dat OneUptime in Slack via zijn e-mailadres vindt. Wie in de afgelopen 24 uur al is gevraagd, wordt niet opnieuw gevraagd, dus opnieuw vragen de volgende dag is alleen een herinnering voor wie zijn account nog steeds niet heeft gekoppeld.
+- **Wat de kaart zegt.** Hoe ver het versturen is terwijl de berichten de deur uit gaan, en daarna wie het vroeg en hoeveel leden een bericht kregen. Leden die OneUptime niet via hun e-mailadres in Slack kon vinden, staan bij naam op de kaart: zij koppelen hun account zelf onder **Gebruikersinstellingen** > **Werkruimte** > **Slack**.
+- **Wat de knop koppelt.** Het Slack-account van wie erop drukt en zich aanmeldt, aan diens eigen OneUptime-account. Een bericht dat aan iemand anders is doorgestuurd, koppelt niets aan het lid naar wie het was gestuurd.
 
 ## Meldingsregels
 
@@ -90,7 +99,7 @@ Elke latere update van het record — een statuswijziging, een notitie, een nieu
 
 Een incident, waarschuwing, episode of geplande onderhoudsgebeurtenis met een eigen kanaal heeft **Openen in Slack** in de kop van zijn pagina in OneUptime, naast de statusknoppen. Die opent dat kanaal in een nieuw tabblad, in de Slack-app of in de browser. Een record met twee eigen kanalen toont ze allebei onder de knop. Een record met kanalen in zowel Slack als Microsoft Teams heeft in plaats daarvan één knop **Kanaal openen**, die ze allemaal toont. De bestaande kanalen waarin uw regels posten, worden niet aangeboden.
 
-Een kanaal blijft leesbaar: elke gebeurtenis wordt één keer geplaatst, en de eerste status van een record staat in het bericht dat het record aankondigt, niet in een eigen bericht. Een uitvoering van een bereikbaarheidsbeleid is één bericht dat wordt bewerkt terwijl de uitvoering escaleert: wie werd opgeroepen, hoe vaak en hoe, wie niet en waarom, en wie bevestigde. Een nieuw bericht wordt alleen geplaatst als iemand moet handelen: een escalatieregel bereikte niemand, of de uitvoering eindigde zonder dat iemand bevestigde. Iemand van wie het Slack-account niet met OneUptime is verbonden, kan niet aan een kanaal worden toegevoegd; OneUptime zegt dat één keer per kanaal, in één bericht dat hen allemaal noemt en wordt bewerkt als de lijst groeit. Stuur ze de link **Connect Slack account** uit dat bericht, zodat ze hun account in één stap koppelen. Dat de eigenaren van het record of de abonnees van de statuspagina bericht kregen, blijft in zijn feed in OneUptime staan.
+Een kanaal blijft leesbaar: elke gebeurtenis wordt één keer geplaatst, en de eerste status van een record staat in het bericht dat het record aankondigt, niet in een eigen bericht. Een uitvoering van een bereikbaarheidsbeleid is één bericht dat wordt bewerkt terwijl de uitvoering escaleert: wie werd opgeroepen, hoe vaak en hoe, wie niet en waarom, en wie bevestigde. Een nieuw bericht wordt alleen geplaatst als iemand moet handelen: een escalatieregel bereikte niemand, of de uitvoering eindigde zonder dat iemand bevestigde. Iemand van wie het Slack-account niet met OneUptime is verbonden, wordt toegevoegd via het Slack-account met diens e-mailadres. Iemand die OneUptime op geen van beide manieren vindt, of die gast is in Slack, kan niet aan een kanaal worden toegevoegd; OneUptime zegt dat één keer per kanaal, in één bericht dat hen allemaal noemt en wordt bewerkt als de lijst groeit. Stuur ze de link **Connect Slack account** uit dat bericht, zodat ze hun account in één stap koppelen. Dat de eigenaren van het record of de abonnees van de statuspagina bericht kregen, blijft in zijn feed in OneUptime staan.
 
 **Projectinstellingen** > **Werkruimte** > **Slack** toont de kanalen die OneUptime kan zien, met **Test verzenden** naast elk kanaal. OneUptime treedt zelf toe tot een openbaar kanaal de eerste keer dat het daar plaatst. Een privékanaal wordt pas getoond, en kan pas berichten ontvangen, nadat de app van OneUptime er in Slack voor is uitgenodigd.
 
@@ -280,7 +289,7 @@ OneUptime leest uit Slack alleen wat deze functies nodig hebben, met de rechten 
 - **Berichten aan OneUptime.** Een bericht dat het met @ noemt, een bericht dat je het in een direct bericht stuurt en je antwoorden in een gesprek ermee, samen met de eerdere berichten van die thread of dat directe bericht, zodat OneUptime AI kan antwoorden. Slack stuurt het ook de andere berichten van de kanalen en groepsberichten waarin het zit; OneUptime beantwoordt die niet en bewaart ze niet.
 - **Berichten die je als notitie opslaat.** Een bericht waarop je met 📌 of 📢 reageert, of dat je vastmaakt, in het kanaal van een incident, waarschuwing, episode of geplande onderhoudsgebeurtenis, opgeslagen als notitie bij dat record met de naam van de schrijver.
 - **Namen van kanalen en mensen.** De kanalen waarin het kan plaatsen, zodat je ze kunt kiezen, de namen van mensen, om te laten zien wie iets schreef of deed, en wie er in het eigen kanaal van een record zit, gelezen als de pagina van het record dat toont.
-- **E-mailadressen.** Het e-mailadres dat Slack van iemand heeft, om diens Slack-account aan diens OneUptime-account te koppelen als diegene het niet zelf heeft gekoppeld: om diegene op te roepen, in een gebruikersgroep voor bereikbaarheid te zetten of aan het kanaal van een record toe te voegen.
+- **E-mailadressen.** Het e-mailadres dat Slack van iemand heeft, om diens Slack-account aan diens OneUptime-account te koppelen als diegene het niet zelf heeft gekoppeld: om diegene op te roepen, in een gebruikersgroep voor bereikbaarheid te zetten, aan het kanaal van een record toe te voegen of te vragen het te koppelen.
 - **Gebruikersgroepen.** De gebruikersgroepen van je werkruimte, om er een te kiezen voor een bereikbaarheidsschema, en de mensen in een groep die je koppelt, om die gelijk te houden aan wie er dienst heeft.
 
 Wat OneUptime ervan bewaart — de naam van de werkruimte, de kanalen, de Slack-accounts die mensen koppelen, de notities en de gebruikersgroepen — wordt bij je project opgeslagen. Het [Privacybeleid](https://oneuptime.com/legal/privacy) beschrijft hoe OneUptime met je gegevens omgaat.
@@ -292,7 +301,7 @@ Controleer de voorwaarden van de regel met **Testregel**: komt de test aan, dan 
 :::
 
 :::details Iemand ontbreekt in het kanaal van een regel
-De kaart van de regel zegt onder **Daarna** wie de regel uitnodigt. Elk soort persoon wordt lid zodra die bij het record komt: de opgeroepen mensen zodra ze worden opgeroepen, de Incident Commander zodra die wordt toegewezen, een eigenaar zodra die wordt toegevoegd, en wie al bij het record hoorde toen het kanaal werd aangemaakt. Iemand van wie het Slack-account niet aan OneUptime is gekoppeld, kan niet worden toegevoegd; OneUptime noemt die persoon in het kanaal, met een link om het account te koppelen. Om iemand nu toe te voegen, druk je op **Mensen toevoegen** op de kaart **Slack-kanaal** van het record: die vindt mensen ook via het e-mailadres dat Slack van ze heeft.
+De kaart van de regel zegt onder **Daarna** wie de regel uitnodigt. Elk soort persoon wordt lid zodra die bij het record komt: de opgeroepen mensen zodra ze worden opgeroepen, de Incident Commander zodra die wordt toegewezen, een eigenaar zodra die wordt toegevoegd, en wie al bij het record hoorde toen het kanaal werd aangemaakt. Iemand die OneUptime niet in Slack kan vinden, via het account dat diegene heeft gekoppeld of via diens e-mailadres, kan niet worden toegevoegd; OneUptime noemt die persoon in het kanaal, met een link om het account te koppelen. Om iemand nu toe te voegen, druk je op **Mensen toevoegen** op de kaart **Slack-kanaal** van het record.
 :::
 
 :::details Iedereen heeft een privékanaal verlaten

@@ -4,6 +4,7 @@ Connect OneUptime to Slack to post incidents, alerts, episodes, scheduled mainte
 
 :::cards
 - [Connect Slack](#connect-slack): Install OneUptime in your workspace, then link your own account.
+- [Asking everyone to connect](#asking-everyone-to-connect): Message every member who has not connected their account, in one go.
 - [Notification rules](#notification-rules): Decide which events post where, and which get a channel of their own.
 - [Who is in a record's channel](#who-is-in-a-records-channel): See who is in it, join it and add people, from the record's page.
 - [The /oneuptime command](#the-oneuptime-command): Declare incidents, schedule maintenance, see who is on call and ask AI.
@@ -46,7 +47,7 @@ Go to **Project Settings** > **Workspace** > **Slack** and click **Connect with 
 
 ### Connect your own Slack account
 
-Installing the app links the account of whoever installed it. Everyone else links their own Slack account under **User Settings** > **Workspace** > **Slack** with **Connect my account with Slack**, to act on incidents and get direct messages as themselves. That section appears once the project is connected to Slack.
+Installing the app links the account of whoever installed it. Everyone else links their own Slack account under **User Settings** > **Workspace** > **Slack** with **Connect my account with Slack**, to act on incidents and get direct messages as themselves. That section appears once the project is connected to Slack. To bring in a whole team at once, see [Asking everyone to connect](#asking-everyone-to-connect).
 
 ### Add a notification rule
 
@@ -56,6 +57,14 @@ Go to **Incidents** > **Workspace** > **Slack**. The **Workspace** section lists
 
 Click **Test Rule** on the rule's row. A test message arrives in the channels the rule names. See [Testing a rule](#testing-a-rule).
 :::
+
+## Asking everyone to connect
+
+Nobody can connect somebody else's Slack account, an admin included: each person signs in to their own. To bring in a whole team, a **Project Owner** or **Project Admin** asks everyone at once on **Project Settings** > **Workspace** > **Slack**. The **Members' Slack accounts** card says how many members have connected. **Ask everyone to connect** sends each member who has not a direct message from OneUptime in Slack, with a **Connect Slack account** button that connects their account in one click.
+
+- **Who gets a message.** Every member of the project who has not connected their Slack account, found in Slack by their email address. Somebody asked in the last 24 hours is not asked again, so asking again the next day reminds only the people who still have not connected.
+- **What the card says.** How far the messages have got while they go out, then who asked and how many members got a message. Members OneUptime could not find in Slack by their email address are named on the card: they connect under **User Settings** > **Workspace** > **Slack** themselves.
+- **What the button connects.** The Slack account of whoever presses it and signs in, to their own OneUptime account. A message passed on to somebody else connects nothing to the member it was sent to.
 
 ## Notification rules
 
@@ -90,7 +99,7 @@ Every later update of the record — a state change, a note, a new owner — is 
 
 An incident, alert, episode or scheduled maintenance event with a channel of its own has **Open in Slack** in the header of its page in OneUptime, beside its state buttons. It opens that channel in a new tab, in the Slack app or in the browser. A record with two channels of its own lists both under the button. A record with channels in both Slack and Microsoft Teams has one **Open channel** button instead, which lists them all. The existing channels your rules post to are not offered.
 
-A channel stays readable: each event is posted once, and a record's first state is in the message that announces the record, not in a message of its own. An on-call policy run is one message that is edited as the run escalates: who was paged, how often and how, who was not and why, and who acknowledged. A new message is posted only when someone has to act: an escalation rule reached nobody, or the run ended without anyone acknowledging. Someone whose Slack account is not connected to OneUptime cannot be added to a channel; OneUptime says so once per channel, in one message that names them all and is edited when the list grows. Send them its **Connect Slack account** link to connect their account in one step. That a record's owners or status page subscribers were notified stays in its feed in OneUptime.
+A channel stays readable: each event is posted once, and a record's first state is in the message that announces the record, not in a message of its own. An on-call policy run is one message that is edited as the run escalates: who was paged, how often and how, who was not and why, and who acknowledged. A new message is posted only when someone has to act: an escalation rule reached nobody, or the run ended without anyone acknowledging. Someone whose Slack account is not connected to OneUptime is added by the Slack account with their email address. Someone OneUptime finds neither way, or who is a guest in Slack, cannot be added to a channel; OneUptime says so once per channel, in one message that names them all and is edited when the list grows. Send them its **Connect Slack account** link to connect their account in one step. That a record's owners or status page subscribers were notified stays in its feed in OneUptime.
 
 **Project Settings** > **Workspace** > **Slack** lists the channels OneUptime can see, with **Send Test** beside each one. OneUptime joins a public channel on its own the first time it posts there. A private channel is listed, and can be posted to, only after the OneUptime app is invited to it in Slack.
 
@@ -280,7 +289,7 @@ OneUptime reads from Slack only what these features need, with the permissions y
 - **Messages addressed to OneUptime.** A message that @mentions it, one you send it in a direct message, and your replies in a conversation with it, with the earlier messages of that thread or direct message, so OneUptime AI can answer. Slack also sends it the other messages of the channels and group DMs it is in; OneUptime neither answers nor keeps them.
 - **Messages you save as notes.** A message you react to with 📌 or 📢, or pin, in the channel of an incident, alert, episode or scheduled maintenance event, saved as a note on that record with its author's name.
 - **Names of channels and people.** The channels it can post to, so you can pick them, people's names, to show who wrote or did something, and who is in a record's own channel, read when the record's page shows it.
-- **Email addresses.** The email address Slack has for a person, to match their Slack account to their OneUptime account when they have not connected it: to page them, to put them in an on-call user group, or to add them to a record's channel.
+- **Email addresses.** The email address Slack has for a person, to match their Slack account to their OneUptime account when they have not connected it: to page them, to put them in an on-call user group, to add them to a record's channel, or to ask them to connect it.
 - **User groups.** Your workspace's user groups, to pick one for an on-call schedule, and the people in one you connect, to keep it equal to whoever is on call.
 
 What OneUptime keeps of it — the workspace's name, its channels, the Slack accounts people connect, the notes and the user groups — is stored with your project. The [Privacy Policy](https://oneuptime.com/legal/privacy) says how OneUptime handles your data.
@@ -292,7 +301,7 @@ Check the rule's conditions with **Test Rule**: if the test arrives, the rule's 
 :::
 
 :::details Someone is missing from a rule's channel
-The rule's card says under **Then** who the rule invites. Each kind of person joins as they join the record: the people paged as they are paged, the Incident Commander when assigned, an owner when added, and whoever was on the record already when the channel was created. Someone whose Slack account is not connected to OneUptime cannot be added; OneUptime names them in the channel, with a link to connect their account. To add someone now, press **Add people** on the record's **Slack Channel** card: it also finds people by the email address Slack has for them.
+The rule's card says under **Then** who the rule invites. Each kind of person joins as they join the record: the people paged as they are paged, the Incident Commander when assigned, an owner when added, and whoever was on the record already when the channel was created. Someone OneUptime cannot find in Slack, by the account they connected or by their email address, cannot be added; OneUptime names them in the channel, with a link to connect their account. To add someone now, press **Add people** on the record's **Slack Channel** card.
 :::
 
 :::details Everybody left a private channel
