@@ -23,7 +23,6 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import { DetailStyle } from "Common/UI/Components/Detail/Detail";
-import ProbeElement from "Common/UI/Components/Probe/Probe";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import BaseAPI from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -42,7 +41,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import UserElement from "../../../Components/User/User";
 import { canWriteNoteColumn } from "../../../Components/EventNotes/EventNotesUtil";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import User from "Common/UI/Utils/User";
@@ -118,20 +116,39 @@ import Query from "Common/Types/BaseDatabase/Query";
 import Span from "Common/Models/AnalyticsModels/Span";
 import Log from "Common/Models/AnalyticsModels/Log";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
-import LiveDuration from "../../../Components/EventView/LiveDuration";
 import {
   EventStateTimelineDate,
   getEventEndDateForCurrentState,
 } from "../../../Utils/EventDuration";
 import {
   EventResponseTimes,
+  EventStartedByInput,
   VisibleItems,
   getAcknowledgedAfterPagingText,
-  getEventCreatorName,
   getEventResponseTimes,
+  getEventStartTileText,
+  getEventStartedByText,
+  getImpactBeforeStartText,
   getTimeToStateText,
   splitVisibleItems,
 } from "../../../Utils/EventOverview";
+import EventWhatHappenedCard from "../../../Components/EventView/EventWhatHappenedCard";
+import {
+  EVENT_ROLES_CARD_ID,
+  getCommanderFact,
+  getOwnersFact,
+  scrollToEventRolesCard,
+} from "../../../Components/EventView/EventPeopleFacts";
+import useEventOwners, {
+  EventOwnersState,
+} from "../../../Components/EventView/useEventOwners";
+import {
+  EventRolesSnapshot,
+  getPrimaryRoleHolding,
+} from "../../../Utils/EventPeople";
+import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
+import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
+import ChangeMonitorStatusToElement from "../../../Components/MonitorStatus/ChangeMonitorStatusToElement";
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
 import EventMeasurementsCard from "../../../Components/Measurement/EventMeasurementsCard";
 import {
@@ -288,6 +305,24 @@ const IncidentView: FunctionComponent<
   const [incidentStartedAt, setIncidentStartedAt] = useState<Date | undefined>(
     undefined,
   );
+  /*
+   * What happened and why, for the What happened card that leads the page,
+   * and when customer impact began, when somebody recorded it: read with
+   * the incident's own row, so the card costs no request of its own.
+   */
+  const [incidentDescription, setIncidentDescription] = useState<
+    string | undefined
+  >(undefined);
+  const [incidentRootCause, setIncidentRootCause] = useState<
+    string | undefined
+  >(undefined);
+  const [incidentImpactStartedAt, setIncidentImpactStartedAt] = useState<
+    Date | undefined
+  >(undefined);
+  // Who or what declared it, for "by eu-west-1 probe" under the Declared tile.
+  const [incidentDeclaredBy, setIncidentDeclaredBy] = useState<
+    EventStartedByInput | undefined
+  >(undefined);
   // When somebody was first paged about the incident, if anybody was.
   const [incidentFirstPagedAt, setIncidentFirstPagedAt] = useState<
     Date | undefined
@@ -296,15 +331,32 @@ const IncidentView: FunctionComponent<
     { name: string; color: Color } | undefined
   >(undefined);
   /*
-   * Header facts that come from cards which already load them (the details
+   * Header facts that come from cards which already load them (the roles
    * card and the affected resources card), so the header costs no extra
    * request. Undefined until those cards report in for this incident.
    */
-  const [declaredBy, setDeclaredBy] = useState<SubjectValue<
-    string | undefined
-  > | null>(null);
-  const declaredByName: string | undefined =
-    declaredBy?.subjectId === modelIdString ? declaredBy.value : undefined;
+  const [rolesSnapshot, setRolesSnapshot] =
+    useState<SubjectValue<EventRolesSnapshot> | null>(null);
+  const currentRolesSnapshot: EventRolesSnapshot | undefined =
+    rolesSnapshot?.subjectId === modelIdString
+      ? rolesSnapshot.value
+      : undefined;
+  const onRolesLoaded: (
+    recordId: string,
+    snapshot: EventRolesSnapshot,
+  ) => void = useCallback(
+    (recordId: string, snapshot: EventRolesSnapshot): void => {
+      setRolesSnapshot({ subjectId: recordId, value: snapshot });
+    },
+    [],
+  );
+  // The incident's owners, teams first: nothing else on the page reads them.
+  const owners: EventOwnersState = useEventOwners({
+    ownerUserModelType: IncidentOwnerUser,
+    ownerTeamModelType: IncidentOwnerTeam,
+    resourceIdField: "incidentId",
+    resourceId: modelId,
+  });
   const [affectedMonitorsState, setAffectedMonitorsState] =
     useState<SubjectValue<Array<Monitor>> | null>(null);
   const affectedMonitors: Array<Monitor> | undefined =
@@ -533,6 +585,19 @@ const IncidentView: FunctionComponent<
             declaredAt: true,
             // "Acknowledged in" also says how long after paging.
             firstPagedAt: true,
+            // The Declared tile: how long impact had gone on, and by whom.
+            impactStartedAt: true,
+            isCreatedAutomatically: true,
+            createdByProbe: {
+              name: true,
+            },
+            createdByUser: {
+              name: true,
+              email: true,
+            },
+            // The What happened card.
+            description: true,
+            rootCause: true,
             incidentNumber: true,
             incidentNumberWithPrefix: true,
             incidentSeverity: {
@@ -615,6 +680,14 @@ const IncidentView: FunctionComponent<
       setIncidentTitle(incident?.title || undefined);
       setIncidentStartedAt(incident?.declaredAt || undefined);
       setIncidentFirstPagedAt(incident?.firstPagedAt || undefined);
+      setIncidentDescription(incident?.description || undefined);
+      setIncidentRootCause(incident?.rootCause || undefined);
+      setIncidentImpactStartedAt(incident?.impactStartedAt || undefined);
+      setIncidentDeclaredBy({
+        probe: incident?.createdByProbe,
+        user: incident?.createdByUser,
+        isCreatedAutomatically: incident?.isCreatedAutomatically,
+      });
 
       setEventNumber(
         incident?.incidentNumberWithPrefix ||
@@ -925,22 +998,35 @@ const IncidentView: FunctionComponent<
     );
   };
 
+  /*
+   * Who runs the response, beside its state and severity: the commander
+   * (the project's primary incident role) and the owners, teams first. Assign
+   * and Add owners are offered only while the incident is open; a resolved
+   * one says who held them, or that nobody did.
+   */
+  const isResolved: boolean = Boolean(durationEndDate);
   const headerFacts: Array<EventStatusFact> = [];
 
-  if (incidentStartedAt) {
-    headerFacts.push({
-      label: "Declared",
-      icon: IconProp.Calendar,
-      value: formatDate(incidentStartedAt) || "",
-    });
+  const commanderFact: EventStatusFact | null = getCommanderFact({
+    holding: getPrimaryRoleHolding(currentRolesSnapshot),
+    onAssign: isResolved ? undefined : scrollToEventRolesCard,
+  });
+
+  if (commanderFact) {
+    headerFacts.push(commanderFact);
   }
 
-  if (declaredByName) {
-    headerFacts.push({
-      label: "Declared by",
-      icon: IconProp.User,
-      value: declaredByName,
-    });
+  const ownersFact: EventStatusFact | null = getOwnersFact({
+    owners: owners.owners,
+    ownersRoute: RouteUtil.populateRouteParams(
+      RouteMap[PageMap.INCIDENT_VIEW_OWNERS] as Route,
+      { modelId: modelId },
+    ),
+    canAddOwners: !isResolved,
+  });
+
+  if (ownersFact) {
+    headerFacts.push(ownersFact);
   }
 
   if (affectedMonitors && affectedMonitors.length > 0) {
@@ -1038,6 +1124,31 @@ const IncidentView: FunctionComponent<
         ariaLabel="Incident response times"
         className="mb-5"
       >
+        {/*
+         * The response as a line from left to right: when it was declared
+         * (and how long impact had gone on, when somebody recorded it), then
+         * how long until it was acknowledged and resolved. How long it has
+         * lasted is the header's, beside its state: said once.
+         */}
+        <EventStatTile
+          variant="segment"
+          label="Declared"
+          icon={IconProp.Calendar}
+          value={
+            incidentStartedAt ? getEventStartTileText(incidentStartedAt) : "-"
+          }
+          note={getImpactBeforeStartText(
+            {
+              impactStartedAt: incidentImpactStartedAt,
+              startedAt: incidentStartedAt,
+            },
+            translator,
+          )}
+          description={getEventStartedByText(
+            incidentDeclaredBy || {},
+            translator,
+          )}
+        />
         <EventStatTile
           variant="segment"
           label={translator.translateTemplate("{{stateName}} in", {
@@ -1074,36 +1185,28 @@ const IncidentView: FunctionComponent<
           })}
           description={formatDate(responseTimes.resolvedAt)}
         />
-        <EventStatTile
-          variant="segment"
-          label="Duration"
-          icon={IconProp.Clock}
-          value={
-            durationStartDate ? (
-              <LiveDuration
-                startDate={durationStartDate}
-                endDate={durationEndDate}
-              />
-            ) : (
-              "-"
-            )
-          }
-          description={
-            durationEndDate
-              ? translator.translateTemplate("Ended {{date}}", {
-                  date: formatDate(durationEndDate) || "",
-                })
-              : undefined
-          }
-        />
       </EventStatBar>
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
         <div className="min-w-0 xl:col-span-2">
           {/*
-           * Lead with the AI investigation, or explain why it did not start,
-           * before showing the incident's supporting telemetry.
+           * Lead with what happened - the incident's description and, once
+           * somebody knows it, its root cause - then the AI investigation,
+           * or why it did not start, before the supporting telemetry.
            */}
+          <EventWhatHappenedCard<Incident>
+            modelType={Incident}
+            modelId={modelId}
+            description={incidentDescription}
+            rootCause={incidentRootCause}
+            descriptionFieldHelp="Shown on your status page."
+            onSaved={() => {
+              refreshData();
+              // An edited root cause is a new feed entry.
+              refreshFeed();
+            }}
+          />
+
           <InvestigationPanel
             subjectType="incident"
             subjectId={modelId}
@@ -1305,6 +1408,163 @@ const IncidentView: FunctionComponent<
         </div>
 
         <div className="min-w-0 xl:col-span-1">
+          {/*
+           * What the incident affects, first in the column beside what
+           * happened: the monitors (and the status it holds them in),
+           * services and infrastructure it hits.
+           */}
+          <CardModelDetail<Incident>
+            name="Affected Resources"
+            cardProps={{
+              title: "Affected Resources",
+              description:
+                "Monitors, services, infrastructure and SLOs this incident affects.",
+              headerLayout: "stacked",
+            }}
+            createEditModalWidth={ModalWidth.Medium}
+            isEditable={true}
+            editButtonText="Edit"
+            onSaveSuccess={() => {
+              refreshFeed();
+            }}
+            onBeforeUpdate={onBeforeIncidentAffectedResourcesUpdate}
+            formFields={getIncidentAffectedResourcesFormFields()}
+            modelDetailProps={{
+              showDetailsInNumberOfColumns: 1,
+              style: DetailStyle.Compact,
+              modelType: Incident,
+              id: "model-detail-incident-affected-resources",
+              onItemLoaded: (item: Incident): void => {
+                // The header's "Monitor(s)" fact, from the row this card already reads.
+                setAffectedMonitorsState({
+                  subjectId: modelIdString,
+                  value: item.monitors || [],
+                });
+              },
+              fields: [
+                {
+                  field: {
+                    monitors: {
+                      name: true,
+                      _id: true,
+                    },
+                    hosts: {
+                      name: true,
+                      _id: true,
+                    },
+                    kubernetesClusters: {
+                      name: true,
+                      _id: true,
+                    },
+                    dockerHosts: {
+                      name: true,
+                      _id: true,
+                    },
+                    podmanHosts: {
+                      name: true,
+                      _id: true,
+                    },
+                    proxmoxClusters: {
+                      name: true,
+                      _id: true,
+                    },
+                    vmwareVCenters: {
+                      name: true,
+                      _id: true,
+                    },
+                    cephClusters: {
+                      name: true,
+                      _id: true,
+                    },
+                    storageArrays: {
+                      name: true,
+                      _id: true,
+                    },
+                    dockerSwarmClusters: {
+                      name: true,
+                      _id: true,
+                    },
+                    iotFleets: {
+                      name: true,
+                      _id: true,
+                    },
+                    databaseServers: {
+                      name: true,
+                      _id: true,
+                    },
+                    services: {
+                      name: true,
+                      _id: true,
+                      serviceColor: true,
+                    },
+                    /*
+                     * Shown, never edited: the picker above does not offer
+                     * SLOs and no hidden registration loads them into the
+                     * form, so saving other resources leaves the link a burn
+                     * rate rule wrote untouched.
+                     */
+                    serviceLevelObjectives: {
+                      name: true,
+                      _id: true,
+                    },
+                  },
+                  title: "",
+                  fieldType: FieldType.Element,
+                  getElement: (item: Incident): ReactElement => {
+                    return (
+                      <AffectedResourcesDisplay
+                        monitors={item.monitors || []}
+                        hosts={item.hosts || []}
+                        kubernetesClusters={item.kubernetesClusters || []}
+                        dockerHosts={item.dockerHosts || []}
+                        podmanHosts={item.podmanHosts || []}
+                        proxmoxClusters={item.proxmoxClusters || []}
+                        vmwareVCenters={item.vmwareVCenters || []}
+                        cephClusters={item.cephClusters || []}
+                        storageArrays={item.storageArrays || []}
+                        dockerSwarmClusters={item.dockerSwarmClusters || []}
+                        iotFleets={item.iotFleets || []}
+                        databaseServers={item.databaseServers || []}
+                        services={item.services || []}
+                        serviceLevelObjectives={
+                          item.serviceLevelObjectives || []
+                        }
+                        columns={1}
+                      />
+                    );
+                  },
+                },
+                /*
+                 * What its Edit asks under the monitors, shown with them:
+                 * the status the incident puts its monitors in while it is
+                 * open - what their status pages show. Left out while the
+                 * incident has no monitor, as the Edit leaves it out.
+                 */
+                {
+                  field: {
+                    changeMonitorStatusTo: {
+                      name: true,
+                      color: true,
+                    },
+                  },
+                  title: "Change Monitor Status to",
+                  fieldType: FieldType.Entity,
+                  showIf: (item: Incident): boolean => {
+                    return (item.monitors || []).length > 0;
+                  },
+                  getElement: (item: Incident): ReactElement => {
+                    return (
+                      <ChangeMonitorStatusToElement
+                        monitorStatus={item.changeMonitorStatusTo}
+                      />
+                    );
+                  },
+                },
+              ],
+              modelId: modelId,
+            }}
+          />
+
           <EventVideoCallsCard
             kind={VideoCallEventKind.Incident}
             eventId={modelId}
@@ -1384,60 +1644,17 @@ const IncidentView: FunctionComponent<
             modelDetailProps={{
               selectMoreFields: {
                 incidentNumberWithPrefix: true,
-                createdByUser: {
-                  _id: true,
-                  name: true,
-                  email: true,
-                  profilePictureId: true,
-                },
                 subscriberNotificationStatusMessage: true,
-              },
-              onItemLoaded: (item: Incident): void => {
-                setDeclaredBy({
-                  subjectId: modelIdString,
-                  value: getEventCreatorName({
-                    probe: item.createdByProbe,
-                    user: item.createdByUser,
-                  }),
-                });
               },
               showDetailsInNumberOfColumns: 1,
               style: DetailStyle.Compact,
               modelType: Incident,
               id: "model-detail-incidents",
+              /*
+               * When it was declared, and by whom, is the stat bar's
+               * Declared tile: said once, beside how long the response took.
+               */
               fields: [
-                {
-                  field: {
-                    declaredAt: true,
-                  },
-                  title: "Declared At",
-                  fieldType: FieldType.DateTime,
-                },
-                {
-                  field: {
-                    createdByProbe: {
-                      name: true,
-                      iconFileId: true,
-                    },
-                  },
-                  title: "Declared By",
-                  fieldType: FieldType.Element,
-                  getElement: (item: Incident): ReactElement => {
-                    if (item.createdByProbe) {
-                      return <ProbeElement probe={item.createdByProbe} />;
-                    }
-
-                    if (item.createdByUser) {
-                      return <UserElement user={item.createdByUser} />;
-                    }
-
-                    return (
-                      <span className="text-gray-500">
-                        {translator.translateText("Unknown")}
-                      </span>
-                    );
-                  },
-                },
                 {
                   field: {
                     onCallDutyPolicies: {
@@ -1648,138 +1865,15 @@ const IncidentView: FunctionComponent<
           <IncidentMemberRoleAssignment
             incidentId={modelId}
             headerLayout="stacked"
+            id={EVENT_ROLES_CARD_ID}
+            /*
+             * The header names the commander from what this card reads, and
+             * follows a change made here at once: no read of its own.
+             */
+            onRolesLoaded={onRolesLoaded}
             onMemberChange={async () => {
-              /*
-               * Nothing else on the page shows roles; the only other place a
-               * member change appears is the feed.
-               */
+              // A member change is also a new feed entry.
               refreshFeed();
-            }}
-          />
-
-          <CardModelDetail<Incident>
-            name="Affected Resources"
-            cardProps={{
-              title: "Affected Resources",
-              description:
-                "Monitors, services, infrastructure and SLOs this incident affects.",
-              headerLayout: "stacked",
-            }}
-            createEditModalWidth={ModalWidth.Medium}
-            isEditable={true}
-            editButtonText="Edit"
-            onSaveSuccess={() => {
-              refreshFeed();
-            }}
-            onBeforeUpdate={onBeforeIncidentAffectedResourcesUpdate}
-            formFields={getIncidentAffectedResourcesFormFields()}
-            modelDetailProps={{
-              showDetailsInNumberOfColumns: 1,
-              style: DetailStyle.Compact,
-              modelType: Incident,
-              id: "model-detail-incident-affected-resources",
-              onItemLoaded: (item: Incident): void => {
-                // The header's "Monitor(s)" fact, from the row this card already reads.
-                setAffectedMonitorsState({
-                  subjectId: modelIdString,
-                  value: item.monitors || [],
-                });
-              },
-              fields: [
-                {
-                  field: {
-                    monitors: {
-                      name: true,
-                      _id: true,
-                    },
-                    hosts: {
-                      name: true,
-                      _id: true,
-                    },
-                    kubernetesClusters: {
-                      name: true,
-                      _id: true,
-                    },
-                    dockerHosts: {
-                      name: true,
-                      _id: true,
-                    },
-                    podmanHosts: {
-                      name: true,
-                      _id: true,
-                    },
-                    proxmoxClusters: {
-                      name: true,
-                      _id: true,
-                    },
-                    vmwareVCenters: {
-                      name: true,
-                      _id: true,
-                    },
-                    cephClusters: {
-                      name: true,
-                      _id: true,
-                    },
-                    storageArrays: {
-                      name: true,
-                      _id: true,
-                    },
-                    dockerSwarmClusters: {
-                      name: true,
-                      _id: true,
-                    },
-                    iotFleets: {
-                      name: true,
-                      _id: true,
-                    },
-                    databaseServers: {
-                      name: true,
-                      _id: true,
-                    },
-                    services: {
-                      name: true,
-                      _id: true,
-                      serviceColor: true,
-                    },
-                    /*
-                     * Shown, never edited: the picker above does not offer
-                     * SLOs and no hidden registration loads them into the
-                     * form, so saving other resources leaves the link a burn
-                     * rate rule wrote untouched.
-                     */
-                    serviceLevelObjectives: {
-                      name: true,
-                      _id: true,
-                    },
-                  },
-                  title: "",
-                  fieldType: FieldType.Element,
-                  getElement: (item: Incident): ReactElement => {
-                    return (
-                      <AffectedResourcesDisplay
-                        monitors={item.monitors || []}
-                        hosts={item.hosts || []}
-                        kubernetesClusters={item.kubernetesClusters || []}
-                        dockerHosts={item.dockerHosts || []}
-                        podmanHosts={item.podmanHosts || []}
-                        proxmoxClusters={item.proxmoxClusters || []}
-                        vmwareVCenters={item.vmwareVCenters || []}
-                        cephClusters={item.cephClusters || []}
-                        storageArrays={item.storageArrays || []}
-                        dockerSwarmClusters={item.dockerSwarmClusters || []}
-                        iotFleets={item.iotFleets || []}
-                        databaseServers={item.databaseServers || []}
-                        services={item.services || []}
-                        serviceLevelObjectives={
-                          item.serviceLevelObjectives || []
-                        }
-                        columns={1}
-                      />
-                    );
-                  },
-                },
-              ],
-              modelId: modelId,
             }}
           />
 

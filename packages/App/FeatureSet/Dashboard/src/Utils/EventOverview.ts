@@ -1,3 +1,4 @@
+import OneUptimeDate from "Common/Types/Date";
 import {
   EventDurationPart,
   EventStateTimelineDate,
@@ -299,12 +300,12 @@ export interface EventCreatorInput {
 }
 
 /*
- * Who opened an event, as plain text for the header: the probe that raised
- * it, else the user (by name, then email), else "Unknown".
+ * Who opened an event: the probe that raised it, else the user (by name,
+ * then email), else undefined when nobody is recorded.
  */
-export const getEventCreatorName: (input: EventCreatorInput) => string = (
+export const getKnownEventCreatorName: (
   input: EventCreatorInput,
-): string => {
+) => string | undefined = (input: EventCreatorInput): string | undefined => {
   const probeName: string = input.probe?.name?.trim() || "";
 
   if (probeName) {
@@ -323,7 +324,167 @@ export const getEventCreatorName: (input: EventCreatorInput) => string = (
     return userEmail;
   }
 
-  return "Unknown";
+  return undefined;
+};
+
+/*
+ * Who opened an event, as plain text: the probe that raised it, else the
+ * user (by name, then email), else "Unknown".
+ */
+export const getEventCreatorName: (input: EventCreatorInput) => string = (
+  input: EventCreatorInput,
+): string => {
+  return getKnownEventCreatorName(input) || "Unknown";
+};
+
+/*
+ * When a record started, as the first tile of its stat bar says it: "Sep 14,
+ * 06:01 PM GMT", in the reader's time zone and clock, with the year only
+ * when it was not this year. The tile's neighbours say how long after it the
+ * record was acknowledged and resolved, so this is the headline of the three;
+ * the full stamp ("Sep 14 2026, 06:01 PM GMT", as their own dates read) did
+ * not fit a tile of the episode's four-tile bar on one line.
+ */
+export const getEventStartTileText: (
+  startedAt: Date,
+  now?: Date | undefined,
+) => string = (startedAt: Date, now?: Date | undefined): string => {
+  const yearOf: (date: Date) => string = (date: Date): string => {
+    return OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+      date: date,
+      format: "YYYY",
+    });
+  };
+
+  const isThisYear: boolean =
+    yearOf(startedAt) === yearOf(now || OneUptimeDate.getCurrentDate());
+  const timeFormat: string = OneUptimeDate.getUserPrefers12HourFormat()
+    ? "hh:mm A"
+    : "HH:mm";
+
+  const text: string = OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+    date: startedAt,
+    format: isThisYear ? `MMM DD, ${timeFormat}` : `MMM DD YYYY, ${timeFormat}`,
+  });
+
+  const zone: string = OneUptimeDate.getZoneAbbrByTimezone(
+    OneUptimeDate.getCurrentTimezone(),
+    startedAt,
+  );
+
+  return `${text} ${zone}`.trim();
+};
+
+export interface EventStartedByInput extends EventCreatorInput {
+  /*
+   * Opened by OneUptime itself - a monitor's criteria, a rule - with no
+   * probe or person on record (isCreatedAutomatically).
+   */
+  isCreatedAutomatically?: boolean | undefined;
+}
+
+// The line under the Declared / Created tile's time: who or what opened it.
+export const EVENT_STARTED_BY_TEMPLATE: string = translationKey("by {{name}}");
+export const EVENT_STARTED_AUTOMATICALLY: string =
+  translationKey("Automatically");
+
+/*
+ * "by eu-west-1 probe", "by Maya Chen", "Automatically", in the reader's
+ * language - or undefined when nothing about it is on record, rather than
+ * "by Unknown".
+ */
+export const getEventStartedByText: (
+  input: EventStartedByInput,
+  translator: Translator,
+) => string | undefined = (
+  input: EventStartedByInput,
+  translator: Translator,
+): string | undefined => {
+  const name: string | undefined = getKnownEventCreatorName(input);
+
+  if (name) {
+    return translator.translateTemplate(EVENT_STARTED_BY_TEMPLATE, {
+      name: name,
+    });
+  }
+
+  if (input.isCreatedAutomatically) {
+    return (
+      translator.translateText(EVENT_STARTED_AUTOMATICALLY) ||
+      EVENT_STARTED_AUTOMATICALLY
+    );
+  }
+
+  return undefined;
+};
+
+export interface ImpactBeforeStartInput {
+  /*
+   * When customer impact began, as somebody recorded it (impactStartedAt):
+   * never inferred, so usually empty.
+   */
+  impactStartedAt?: Date | undefined;
+  // When the record was declared (incident) or created (alert).
+  startedAt?: Date | undefined;
+}
+
+/*
+ * How long customer impact had been going on when the record was declared -
+ * the time to detect - as the units of the duration, at most the two
+ * largest. Null when there is nothing to say: no impact start on record, or
+ * one that began only once it was declared (nothing went undetected).
+ */
+export const getImpactBeforeStartParts: (
+  input: ImpactBeforeStartInput,
+) => Array<EventDurationPart> | null = (
+  input: ImpactBeforeStartInput,
+): Array<EventDurationPart> | null => {
+  if (!input.impactStartedAt || !input.startedAt) {
+    return null;
+  }
+
+  if (input.impactStartedAt.getTime() >= input.startedAt.getTime()) {
+    return null;
+  }
+
+  return getEventDurationParts(input.impactStartedAt, input.startedAt, {
+    maxUnits: TABLE_DURATION_MAX_UNITS,
+  });
+};
+
+// The line the Declared tile adds when somebody recorded the impact's start.
+export const IMPACT_BEFORE_START_TEMPLATE: string = translationKey(
+  "{{duration}} after impact began",
+);
+
+/*
+ * "3 minutes after impact began", in the reader's language, or undefined
+ * when there is nothing to say (getImpactBeforeStartParts).
+ */
+export const getImpactBeforeStartText: (
+  input: ImpactBeforeStartInput,
+  translator: Translator,
+) => string | undefined = (
+  input: ImpactBeforeStartInput,
+  translator: Translator,
+): string | undefined => {
+  const parts: Array<EventDurationPart> | null =
+    getImpactBeforeStartParts(input);
+
+  if (!parts) {
+    return undefined;
+  }
+
+  return translator.translateTemplate(IMPACT_BEFORE_START_TEMPLATE, {
+    // The duration in the sentence's own language, as LiveDuration says it.
+    duration: composedValue((sentence: Translator): string => {
+      if (parts.length === 0) {
+        return sentence.translateText(LESS_THAN_A_MINUTE) || LESS_THAN_A_MINUTE;
+      }
+
+      return formatEventDurationParts(parts, sentence.language);
+    }),
+  });
 };
 
 export interface VisibleItems<T> {

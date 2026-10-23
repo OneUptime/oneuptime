@@ -31,6 +31,7 @@ import EventStatusPanel, {
   EventPanelAction,
   EventStateAction,
   EventStateItem,
+  EventStatusFact,
 } from "../EventView/EventStatusPanel";
 import useNoteTemplates from "../EventView/useNoteTemplates";
 import { getStateChangeFormFields } from "../EventView/StateChangeFormFields";
@@ -39,7 +40,6 @@ import {
   EpisodeHeaderError,
   EpisodeHeaderRefreshError,
   EpisodeHeaderSkeleton,
-  getEpisodeCreatorName,
   getEpisodeHeaderFacts,
 } from "../EpisodeView/EpisodeHeader";
 import {
@@ -70,6 +70,11 @@ export interface ComponentProps {
    * while it reloads.
    */
   refreshToken?: number | undefined;
+  /*
+   * Who runs the episode - its commander and its owners - shown first in
+   * the header's facts, beside its state and severity. The page reads them.
+   */
+  peopleFacts?: Array<EventStatusFact> | undefined;
 }
 
 const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
@@ -142,11 +147,6 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
             alertGroupingRule: {
               _id: true,
               name: true,
-            },
-            createdByUser: {
-              _id: true,
-              name: true,
-              email: true,
             },
           },
         }),
@@ -503,18 +503,17 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
         onStateSelect={openModalForState}
         secondaryActions={props.secondaryActions}
         moreMenuTitle={translationKey("Move episode to")}
-        facts={getEpisodeHeaderFacts(
-          {
-            groupingRuleName: episode?.alertGroupingRule?.name,
-            createdByName: getEpisodeCreatorName(
-              episode?.createdByUser,
-              translator,
-            ),
-            lastMemberAddedAt: episode?.lastAlertAddedAt || undefined,
-            memberNoun: "alert",
-          },
-          translator,
-        )}
+        facts={[
+          ...(props.peopleFacts || []),
+          ...getEpisodeHeaderFacts(
+            {
+              groupingRuleName: episode?.alertGroupingRule?.name,
+              lastMemberAddedAt: episode?.lastAlertAddedAt || undefined,
+              memberNoun: "alert",
+            },
+            translator,
+          ),
+        ]}
         headerNotice={
           refreshError ? (
             <EpisodeHeaderRefreshError

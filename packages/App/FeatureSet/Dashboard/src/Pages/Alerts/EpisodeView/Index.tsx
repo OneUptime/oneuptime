@@ -31,7 +31,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import UserElement from "../../../Components/User/User";
 import ChangeEpisodeState from "../../../Components/AlertEpisode/ChangeState";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertEpisodeMember from "Common/Models/DatabaseModels/AlertEpisodeMember";
@@ -45,7 +44,18 @@ import { JSONObject } from "Common/Types/JSON";
 import EventOverviewSkeleton from "../../../Components/EventView/EventOverviewSkeleton";
 import EventStatBar from "../../../Components/EventView/EventStatBar";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
-import LiveDuration from "../../../Components/EventView/LiveDuration";
+import EventWhatHappenedCard from "../../../Components/EventView/EventWhatHappenedCard";
+import useEventOwners, {
+  EventOwnersState,
+} from "../../../Components/EventView/useEventOwners";
+import { EventStatusFact } from "../../../Components/EventView/EventStatusPanel";
+import {
+  getEventStartTileText,
+  getEventStartedByText,
+} from "../../../Utils/EventOverview";
+import { getOwnersFact } from "../../../Components/EventView/EventPeopleFacts";
+import AlertEpisodeOwnerTeam from "Common/Models/DatabaseModels/AlertEpisodeOwnerTeam";
+import AlertEpisodeOwnerUser from "Common/Models/DatabaseModels/AlertEpisodeOwnerUser";
 import EpisodeMembersCard from "../../../Components/EpisodeView/EpisodeMembersCard";
 import {
   ALERT_EPISODE_MEMBERSHIP,
@@ -122,6 +132,14 @@ const AlertEpisodeView: FunctionComponent<
 
   const requestIdRef: MutableRefObject<number> = useRef<number>(0);
   const hasLoadedRef: MutableRefObject<boolean> = useRef<boolean>(false);
+
+  // The episode's owners, teams first, for its header.
+  const owners: EventOwnersState = useEventOwners({
+    ownerUserModelType: AlertEpisodeOwnerUser,
+    ownerTeamModelType: AlertEpisodeOwnerTeam,
+    resourceIdField: "alertEpisodeId",
+    resourceId: modelId,
+  });
   /*
    * The episode the page is on now. A callback from a card rendered for the
    * previous episode can still fire after the switch (a state change or a
@@ -209,6 +227,13 @@ const AlertEpisodeView: FunctionComponent<
             createdAt: true,
             resolvedAt: true,
             alertCount: true,
+            // The What happened card, and who opened it under Created.
+            description: true,
+            rootCause: true,
+            createdByUser: {
+              name: true,
+              email: true,
+            },
           },
         }),
       ]);
@@ -350,10 +375,29 @@ const AlertEpisodeView: FunctionComponent<
   const alertCount: number | undefined =
     typeof episode?.alertCount === "number" ? episode.alertCount : undefined;
 
+  /*
+   * Who owns the episode, teams first, first in its header. Add owners is
+   * offered only while the episode is open.
+   */
+  const peopleFacts: Array<EventStatusFact> = [];
+  const ownersFact: EventStatusFact | null = getOwnersFact({
+    owners: owners.owners,
+    ownersRoute: RouteUtil.populateRouteParams(
+      RouteMap[PageMap.ALERT_EPISODE_VIEW_OWNERS] as Route,
+      { modelId: modelId },
+    ),
+    canAddOwners: !timing.isResolved,
+  });
+
+  if (ownersFact) {
+    peopleFacts.push(ownersFact);
+  }
+
   return (
     <div className="space-y-5">
       <ChangeEpisodeState
         episodeId={modelId}
+        peopleFacts={peopleFacts}
         secondaryActions={[
           ...passOn.actions,
           ...getOpenInChatActions(channelLinks),
@@ -396,6 +440,29 @@ const AlertEpisodeView: FunctionComponent<
       )}
 
       <EventStatBar columns={4} ariaLabel="Episode timing">
+        {/*
+         * When it was created and by whom, then how long until it was
+         * acknowledged and resolved, then how many alerts it holds. How long
+         * it has lasted is the header's, beside its state.
+         */}
+        <EventStatTile
+          variant="segment"
+          label="Created"
+          icon={IconProp.Calendar}
+          value={
+            timing.durationStartsAt
+              ? getEventStartTileText(timing.durationStartsAt)
+              : "-"
+          }
+          description={getEventStartedByText(
+            {
+              user: episode?.createdByUser,
+              // Nobody on record: a grouping rule opened it.
+              isCreatedAutomatically: !episode?.createdByUser,
+            },
+            translator,
+          )}
+        />
         <EventStatTile
           variant="segment"
           label={translator.translateTemplate("{{stateName}} in", {
@@ -414,21 +481,6 @@ const AlertEpisodeView: FunctionComponent<
         />
         <EventStatTile
           variant="segment"
-          label="Duration"
-          icon={IconProp.Clock}
-          value={
-            timing.durationStartsAt ? (
-              <LiveDuration
-                startDate={timing.durationStartsAt}
-                endDate={timing.durationEndsAt}
-              />
-            ) : (
-              "-"
-            )
-          }
-        />
-        <EventStatTile
-          variant="segment"
           label="Alerts"
           icon={IconProp.Alert}
           value={alertCount === undefined ? "-" : alertCount.toString()}
@@ -437,6 +489,24 @@ const AlertEpisodeView: FunctionComponent<
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
         <div className="min-w-0 xl:col-span-2">
+          {/*
+           * What happened - the episode's description and, once somebody
+           * knows it, its root cause - before the alerts it holds.
+           */}
+          <EventWhatHappenedCard<AlertEpisode>
+            modelType={AlertEpisode}
+            modelId={modelId}
+            description={episode?.description}
+            rootCause={episode?.rootCause}
+            onSaved={() => {
+              refreshInPlace();
+              // An edited root cause is a new feed entry.
+              setContentRefreshToken((token: number): number => {
+                return token + 1;
+              });
+            }}
+          />
+
           <EpisodeMembersCard<Alert, AlertEpisodeMember>
             modelType={Alert}
             episodeId={modelId}
@@ -547,12 +617,6 @@ const AlertEpisodeView: FunctionComponent<
             modelDetailProps={{
               selectMoreFields: {
                 episodeNumberWithPrefix: true,
-                createdByUser: {
-                  _id: true,
-                  name: true,
-                  email: true,
-                  profilePictureId: true,
-                },
               },
               showDetailsInNumberOfColumns: 1,
               style: DetailStyle.Compact,
@@ -647,24 +711,6 @@ const AlertEpisodeView: FunctionComponent<
                     return (
                       <span>{translator.translateText("Manual Episode")}</span>
                     );
-                  },
-                },
-                {
-                  field: {
-                    createdByUser: {
-                      name: true,
-                      email: true,
-                      profilePictureId: true,
-                    },
-                  },
-                  title: "Created By",
-                  fieldType: FieldType.Element,
-                  getElement: (item: AlertEpisode): ReactElement => {
-                    if (item.createdByUser) {
-                      return <UserElement user={item.createdByUser} />;
-                    }
-
-                    return <span>{translator.translateText("System")}</span>;
                   },
                 },
                 {
