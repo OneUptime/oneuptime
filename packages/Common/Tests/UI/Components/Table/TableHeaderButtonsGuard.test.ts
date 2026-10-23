@@ -40,13 +40,19 @@ interface SourceFile {
 // A header icon nudged into place beside a card's title.
 const NUDGED_ICON: RegExp = /className:\s{0,4}"py-0 pr-0 pl-\d mt-1"/;
 
-// The Common Table, imported by a page (or by a Common component).
+/*
+ * The Common Table, imported by a page (or by a Common component) - or by
+ * way of a Dashboard component that draws it for the page: the cluster's
+ * Events page lists its Events through KubernetesEventsTable, and its card
+ * holds the header all the same.
+ */
 const COMMON_TABLE_MODULES: ReadonlyArray<string> = [
   "Common/UI/Components/Table/Table",
   "Common/UI/Components/Table/LocalTable",
   "../Table/Table",
   "./Table",
   "./LocalTable",
+  "../../../Components/Kubernetes/KubernetesEventsTable",
 ];
 
 // A card's buttons handed through the shared header.

@@ -54,6 +54,22 @@ export interface ComponentProps<T extends GenericObject> {
   tableView: TableView | null;
 }
 
+/*
+ * The chip operators that filter with no value picked - "is empty" and "is
+ * not empty" (useResourceOwners' operator strings): on their own they are a
+ * filter, and a view worth saving.
+ */
+export const VALUELESS_FACET_OPERATORS: ReadonlyArray<string> = [
+  "is_empty",
+  "is_not_empty",
+];
+
+export const isValuelessFacetOperator: (value: string) => boolean = (
+  value: string,
+): boolean => {
+  return VALUELESS_FACET_OPERATORS.includes(value);
+};
+
 const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
   props: ComponentProps<T>,
 ) => ReactElement = <T extends DatabaseBaseModel | AnalyticsBaseModel>(
@@ -227,6 +243,10 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
    * selections, and must not count as active state — otherwise the
    * Saved Views trigger would always show on tables that wire up
    * useResourceOwners, even with no views and no user-applied filters.
+   *
+   * Except "is empty" and "is not empty", which filter with no value
+   * picked: "Owner is empty" - the schedules nobody owns - is a view worth
+   * saving, and Saved Views stayed hidden for it.
    */
   const hasFacetState: boolean = Boolean(
     props.currentFacetState &&
@@ -236,6 +256,9 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
         }
         if (Array.isArray(v)) {
           return v.length > 0;
+        }
+        if (typeof v === "string") {
+          return isValuelessFacetOperator(v);
         }
         if (typeof v === "object") {
           return Object.values(v as Record<string, unknown>).some(

@@ -9,12 +9,24 @@ import { FindOperator, Raw } from "typeorm";
 import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
 import { toLikePattern } from "../../../Types/BaseDatabase/WildcardPattern";
 import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
+import { OwnedByMatch } from "../../../Types/BaseDatabase/OwnedBy";
 import buildJSONColumnQuery, {
   JSONColumnQuery,
   escapeLikePattern,
 } from "./JSONColumnQuery";
 
 export type { FindOperator };
+
+/*
+ * One of the two tables a kind's owners are kept in (MonitorOwnerUser,
+ * MonitorOwnerTeam): its name, its column naming the record owned
+ * (monitorId) and its column naming the owner (userId or teamId).
+ */
+export interface OwnerTableColumns {
+  tableName: string;
+  resourceColumnName: string;
+  ownerColumnName: string;
+}
 
 /*
  * What the grant conditions on a record's id read: the related entity ids,
@@ -838,6 +850,129 @@ export default class QueryHelper {
         [valuesRid]: values,
       },
     );
+  }
+
+  /**
+   * WHO OWNS A RECORD (OwnedBy), applied to the record's primary id: the
+   * records one of the people (`userIds`, in `userTable`) or teams
+   * (`teamIds`, in `teamTable`) owns, those none of them owns, those someone
+   * owns, or those nobody owns.
+   *
+   * The positive matches are one uncorrelated subquery,
+   *
+   *   _id IN (SELECT "monitorId" FROM "MonitorOwnerUser" WHERE "userId" IN (...)
+   *     UNION ALL SELECT "monitorId" FROM "MonitorOwnerTeam" WHERE "teamId" IN (...))
+   *
+   * which Postgres answers as a semi-join: from the owners' side through the
+   * owner tables' index on userId / teamId, or from the records' side through
+   * their index on the record's id, whichever is cheaper. The negative ones
+   * are a NOT EXISTS per owner table, correlated with the record's id - an
+   * anti-join through that same index. A NOT IN would hash every id the
+   * owners hold, and rescan them for every record once they outgrow the
+   * planner's memory. An UPDATE or a DELETE statement names the record's id
+   * bare, where a correlated subquery would read the owner table's own _id,
+   * so there the negative ones are NOT IN after all. Owner rows marked
+   * deleted are no owners.
+   */
+  @CaptureSpan()
+  public static ownedBy(data: {
+    match: OwnedByMatch;
+    userIds: Array<string | ObjectID>;
+    teamIds: Array<string | ObjectID>;
+    userTable: OwnerTableColumns;
+    teamTable: OwnerTableColumns;
+  }): FindWhereProperty<any> {
+    interface OwnerBranch {
+      table: OwnerTableColumns;
+      // The parameter holding the owners named; null reads every owner.
+      valuesRid: string | null;
+    }
+
+    const namesOwners: boolean =
+      data.match === OwnedByMatch.AnyOf || data.match === OwnedByMatch.NoneOf;
+    const isPositive: boolean =
+      data.match === OwnedByMatch.AnyOf || data.match === OwnedByMatch.AnyOwner;
+
+    const parameters: Dictionary<Array<string>> = {};
+    const branches: Array<OwnerBranch> = [];
+
+    const tables: Array<[OwnerTableColumns, Array<string | ObjectID>]> = [
+      [data.userTable, data.userIds],
+      [data.teamTable, data.teamIds],
+    ];
+
+    for (const [table, ids] of tables) {
+      if (!namesOwners) {
+        branches.push({ table: table, valuesRid: null });
+        continue;
+      }
+
+      if (ids.length === 0) {
+        continue;
+      }
+
+      const valuesRid: string = Text.generateRandomText(10);
+
+      parameters[valuesRid] = ids.map((id: string | ObjectID): string => {
+        return id.toString();
+      });
+
+      branches.push({ table: table, valuesRid: valuesRid });
+    }
+
+    const quote: (identifier: string) => string = QueryHelper.escapeIdentifier;
+
+    // The owner rows of one table that are the owners asked about.
+    const getOwnerRowsWhere: (branch: OwnerBranch) => string = (
+      branch: OwnerBranch,
+    ): string => {
+      const table: string = quote(branch.table.tableName);
+      const ownerColumn: string = quote(branch.table.ownerColumnName);
+      const ownersNamed: string = branch.valuesRid
+        ? `"${table}"."${ownerColumn}" IN (:...${branch.valuesRid}) AND `
+        : "";
+
+      return `${ownersNamed}"${table}"."deletedAt" IS NULL`;
+    };
+
+    return Raw((alias: string) => {
+      if (branches.length === 0) {
+        // Nothing named (OwnedBy refuses it): no record, or every record.
+        return isPositive ? "(FALSE)" : "(TRUE)";
+      }
+
+      // The ids of the records the owners asked about own, per owner table.
+      const ownedIds: Array<string> = branches.map(
+        (branch: OwnerBranch): string => {
+          const table: string = quote(branch.table.tableName);
+          const resourceColumn: string = quote(branch.table.resourceColumnName);
+
+          return `SELECT "${table}"."${resourceColumn}" FROM "${table}" WHERE "${table}"."${resourceColumn}" IS NOT NULL AND ${getOwnerRowsWhere(branch)}`;
+        },
+      );
+
+      if (isPositive) {
+        return `(${alias} IN (${ownedIds.join(" UNION ALL ")}))`;
+      }
+
+      // A SELECT names the record's id with its table; UPDATE and DELETE bare.
+      if (!alias.includes(".")) {
+        return `(${ownedIds
+          .map((subquery: string): string => {
+            return `${alias} NOT IN (${subquery})`;
+          })
+          .join(" AND ")})`;
+      }
+
+      return `(${branches
+        .map((branch: OwnerBranch): string => {
+          const table: string = quote(branch.table.tableName);
+          const resourceColumn: string = quote(branch.table.resourceColumnName);
+
+          return `NOT EXISTS (SELECT 1 FROM "${table}" WHERE "${table}"."${resourceColumn}" = ${alias} AND ${getOwnerRowsWhere(branch)})`;
+        })
+        .join(" AND ")})`;
+    }, parameters);
   }
 
   /**

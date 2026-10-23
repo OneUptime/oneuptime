@@ -57,6 +57,14 @@ const manyTabs = params.get("tabs") === "many";
  * between, so the player must jump the stretch rather than play it out.
  */
 const idlePause = params.get("pause") === "idle";
+/*
+ * ?vitals=prerender (#5181): chunk 0 carries the web vitals of a page Chrome
+ * prerendered and the visitor opened two seconds in, as the recorder reports
+ * them - FCP, LCP and TTFB measured from that moment - and its CLS reported
+ * again when the page shifted after the visitor came back to the tab.
+ */
+const prerenderVitals =
+  params.get("vitals") === "prerender" && params.get("recorder") !== "mobile";
 const IDLE_PAUSE_MS = 20 * 60 * 1000;
 const IDLE_PAUSED_AT_OFFSET_MS = 29500;
 /* Where chunk N sits on the session clock: N * 30s, plus the pause after 0. */
@@ -1505,6 +1513,23 @@ function chunkEvents(index, startTime) {
     from: mobileRecording ? "/on-call" : "https://shop.example.com/cart",
     to: mobileRecording ? "/alerts" : "https://shop.example.com/checkout",
   });
+  if (prerenderVitals && index === 0) {
+    /* Each where the recorder stamps it: when it happened, not when sent. */
+    const vital = (at, occurredAt, metric, value, rating) =>
+      custom(at, "performance", {
+        kind: "web-vital",
+        metric,
+        value,
+        rating,
+        navigationType: "prerender",
+        occurredAtUnixMs: timestamp + occurredAt,
+      });
+    vital(2001, 2000, "TTFB", 0, "good");
+    vital(2070, 2068, "FCP", 68, "good");
+    vital(3002, 2068, "LCP", 68, "good");
+    vital(10000, 4100, "CLS", 0.02, "good");
+    vital(28000, 24200, "CLS", 0.35, "poor");
+  }
   if (idlePause && index === 0) {
     /* The last thing before the pause, as the recorder writes it. */
     events.push({

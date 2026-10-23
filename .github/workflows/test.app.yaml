@@ -179,8 +179,17 @@ jobs:
   #
   # The same group has taken a third longer on one run than on the next with
   # nothing changed but the runner (group 1: about 18 and 24 minutes), so keep
-  # each group near 20 minutes on a slow runner, well under the job's 30. When
-  # one passes about 22, move a suite or add a group. When Event Overview or
+  # each group near 20 minutes on a slow runner, well under its run step's 28.
+  # When one passes about 22, move a suite or add a group.
+  #
+  # Setup is timed apart from the suites. `playwright install --with-deps`
+  # fetches about 25 MB of system packages and fonts from the runner's Ubuntu
+  # mirror, and on some runners that mirror serves them at 36 kB/s: the step
+  # took 20 minutes in group 3 (2026-10-22) and 11.7 in group 6 (2026-10-23),
+  # and under one 30-minute limit for the whole job, both groups were
+  # cancelled in their last suites with every suite that ran passing. So the
+  # install step and the run step each have a limit of their own, and the
+  # job's limit only has to hold both. When Event Overview or
   # the Workflow Builder suite passes it alone, split that suite across two
   # groups. Event Overview is split since 2026-10-22: it is one spec file, so
   # its config reads EVENT_OVERVIEW_SHARD (set below from the group's
@@ -192,7 +201,7 @@ jobs:
   dashboard-offline-ui:
     name: Dashboard Offline UI (${{ matrix.group }})
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     permissions:
       contents: read
     # Which half of Event Overview a group runs, "1/2" or "2/2"; empty in
@@ -301,6 +310,11 @@ jobs:
           # inside OneUptime and on the public page, at a laptop's and a
           # phone's width, dark, German and Persian) joined it on 2026-10-22,
           # when it took 14.4 minutes, the lightest of the nine: about 16.
+          # Kubernetes Events (1.6 minutes locally with its bundle, Chromium
+          # only: a cluster's warning events on its Events page, the Events
+          # tab of a node, an HPA, a Deployment and a namespace, and the
+          # Overview's Recent Warnings, at 1280 and 390 pixels, light, dark
+          # and German) joined it on 2026-10-23, still the lightest: about 18.
           - group: 5
             browsers: chromium
             suites: >-
@@ -318,6 +332,7 @@ jobs:
               test-network-first-run-ui
               test-runbook-variables-ui
               test-dashboard-value-widget-ui
+              test-kubernetes-events-ui
           # Added when group 5 took 25.5 of the job's 30 minutes and groups 1,
           # 3 and 4 23.5 to 24.3 on one run: group 5's last five suites, with
           # Discovery from group 3, Status Page Theme from group 1 and Calendar
@@ -460,13 +475,18 @@ jobs:
               test-acknowledgement-timeout-ui
           # Added on 2026-10-22 with the second half of Event Overview (about
           # 13 minutes on a slow runner) and Navigation Search from group 2
-          # (2.9 to 3.5): about 18.5 with the setup. Chromium only.
+          # (2.9 to 3.5): about 18.5 with the setup. Chromium only. Owner
+          # Filters (about 30 seconds locally, a minute with its bundle,
+          # Chromium only: On-Call > Schedules filtered by its owners at 1280
+          # and 390 pixels, dark and German) joined them the same day: about
+          # 19.5.
           - group: 10
             browsers: chromium
             event_overview_shard: 2/2
             suites: >-
               test-event-overview-ui
               test-navigation-search-ui
+              test-owner-filters-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -498,6 +518,7 @@ jobs:
           args: --ignore-scripts
       - name: Install browsers
         working-directory: packages/E2E
+        timeout-minutes: 25
         env:
           BROWSERS: ${{ matrix.browsers }}
         run: npx playwright install --with-deps $BROWSERS
@@ -507,6 +528,7 @@ jobs:
       # runs, rather than quietly running nothing.
       - name: Run this group's UI regressions
         working-directory: packages/E2E
+        timeout-minutes: 28
         env:
           SUITES: ${{ matrix.suites }}
         run: |
@@ -663,4 +685,8 @@ jobs:
             output/playwright/vmware-host-page-ui/test-results
             output/playwright/acknowledgement-timeout-ui/*.png
             output/playwright/acknowledgement-timeout-ui/test-results
+            output/playwright/owner-filters-ui/*.png
+            output/playwright/owner-filters-ui/test-results
+            output/playwright/kubernetes-events-ui/*.png
+            output/playwright/kubernetes-events-ui/test-results
           retention-days: 7

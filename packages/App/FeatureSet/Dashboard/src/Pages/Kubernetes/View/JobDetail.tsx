@@ -26,7 +26,8 @@ import KubernetesOverviewTab, {
   SummaryField,
 } from "../../../Components/Kubernetes/KubernetesOverviewTab";
 import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
-import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
+import { useKubernetesEventsTab } from "../../../Components/Kubernetes/KubernetesEventsTab";
+import { KubernetesWorkloadKind } from "../../../Components/Kubernetes/KubernetesEventsModel";
 import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
 import { KubernetesJobObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
@@ -108,6 +109,28 @@ const KubernetesClusterJobDetail: FunctionComponent<
   const allocatable: NodeAllocatableCpu | null = useNodeAllocatableCpu(
     cluster?.clusterIdentifier || undefined,
   );
+
+  /*
+   * The job's Events and those of what it runs, read as the page
+   * opens: the Events tab says how many warnings there are before it
+   * is opened. Read once the job is known, for its namespace.
+   */
+  const eventsTab: Tab = useKubernetesEventsTab({
+    clusterIdentifier: cluster?.clusterIdentifier || "",
+    clusterId: modelId,
+    scope: isLoadingObject
+      ? null
+      : {
+          kind: "workload",
+          workloadKind: KubernetesWorkloadKind.Job,
+          name: jobName,
+          namespace: jobObject?.metadata.namespace,
+        },
+    title: "Job Events",
+    description:
+      "Kubernetes events for this job and its pods in the last 24 hours.",
+    resourceKind: "Job",
+  });
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -296,22 +319,7 @@ const KubernetesClusterJobDetail: FunctionComponent<
         />
       ),
     },
-    {
-      name: "Events",
-      children: (
-        <Card
-          title="Job Events"
-          description="Kubernetes events for this job in the last 24 hours."
-        >
-          <KubernetesEventsTab
-            clusterIdentifier={clusterIdentifier}
-            resourceKind="Job"
-            resourceName={jobName}
-            namespace={jobObject?.metadata.namespace}
-          />
-        </Card>
-      ),
-    },
+    eventsTab,
     {
       name: "Metrics",
       children: (

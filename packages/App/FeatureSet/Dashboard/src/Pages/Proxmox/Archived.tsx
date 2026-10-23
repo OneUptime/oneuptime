@@ -9,6 +9,10 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import ProxmoxClusterOwnerTeam from "Common/Models/DatabaseModels/ProxmoxClusterOwnerTeam";
+import ProxmoxClusterOwnerUser from "Common/Models/DatabaseModels/ProxmoxClusterOwnerUser";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import User from "Common/Models/DatabaseModels/User";
 import UserElement from "../../Components/User/User";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
@@ -20,14 +24,44 @@ const ProxmoxArchivedPage: FunctionComponent<
     modelType: ProxmoxCluster,
   });
 
+  /*
+   * The Owner and Labels chips above the table, as on the live list: an
+   * archived one can be found by the person or the team that owns it - the
+   * server answers the Owner chip in the list's own query - and the Owners
+   * column shows who that is.
+   */
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    emptyState: facetEmptyState,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<ProxmoxCluster>({
+    persistKey: "proxmox-archived-table",
+    ownerUserModelType: ProxmoxClusterOwnerUser,
+    ownerTeamModelType: ProxmoxClusterOwnerTeam,
+    resourceIdField: "proxmoxClusterId",
+    showLabelsFacet: true,
+  });
+
   return (
     <Fragment>
       <ModelTable<ProxmoxCluster>
         modelType={ProxmoxCluster}
         id="proxmox-archived-table"
         userPreferencesKey="proxmox-archived-table"
-        query={{
+        topContent={filterBar}
+        emptyState={facetEmptyState}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery({
           isArchived: true,
+        })}
+        onFetchSuccess={(data: Array<ProxmoxCluster>) => {
+          onResourcesFetched(data);
         }}
         isDeleteable={true}
         isEditable={false}
@@ -105,6 +139,22 @@ const ProxmoxArchivedPage: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: ProxmoxCluster): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: ProxmoxCluster): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
           {

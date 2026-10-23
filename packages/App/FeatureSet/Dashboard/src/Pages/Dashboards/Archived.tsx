@@ -8,7 +8,10 @@ import {
 import { DASHBOARD_ARCHIVE_COPY } from "../../Components/Archive/ResourceArchiveCopy";
 import DashboardElement from "../../Components/Dashboard/DashboardElement";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
-import Label from "Common/Models/DatabaseModels/Label";
+import DashboardOwnerTeam from "Common/Models/DatabaseModels/DashboardOwnerTeam";
+import DashboardOwnerUser from "Common/Models/DatabaseModels/DashboardOwnerUser";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
@@ -16,7 +19,6 @@ import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveAc
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import ProjectUtil from "Common/UI/Utils/Project";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /*
@@ -42,14 +44,44 @@ const DashboardsArchived: FunctionComponent<
     unarchiveConfirmMessage: DASHBOARD_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
   });
 
+  /*
+   * The Owner and Labels chips above the table, as on the live list: an
+   * archived one can be found by the person or the team that owns it - the
+   * server answers the Owner chip in the list's own query - and the Owners
+   * column shows who that is.
+   */
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    emptyState: facetEmptyState,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<Dashboard>({
+    persistKey: DASHBOARDS_ARCHIVED_TABLE_ID,
+    ownerUserModelType: DashboardOwnerUser,
+    ownerTeamModelType: DashboardOwnerTeam,
+    resourceIdField: "dashboardId",
+    showLabelsFacet: true,
+  });
+
   return (
     <Fragment>
       <ModelTable<Dashboard>
         modelType={Dashboard}
         id={DASHBOARDS_ARCHIVED_TABLE_ID}
         userPreferencesKey={DASHBOARDS_ARCHIVED_TABLE_ID}
-        query={{
+        topContent={filterBar}
+        emptyState={facetEmptyState}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery({
           isArchived: true,
+        })}
+        onFetchSuccess={(data: Array<Dashboard>) => {
+          onResourcesFetched(data);
         }}
         isDeleteable={true}
         isEditable={false}
@@ -76,24 +108,6 @@ const DashboardsArchived: FunctionComponent<
             },
             title: "Name",
             type: FieldType.Text,
-          },
-          {
-            field: {
-              labels: {
-                name: true,
-                color: true,
-              },
-            },
-            title: "Labels",
-            type: FieldType.EntityArray,
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
           },
           getArchivedAtFilter<Dashboard>(),
         ]}
@@ -129,6 +143,22 @@ const DashboardsArchived: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: Dashboard): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: Dashboard): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
           ...getArchivedColumns<Dashboard>(),

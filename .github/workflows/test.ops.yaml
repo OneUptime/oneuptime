@@ -127,6 +127,15 @@ jobs:
       # inspector requests are dropped; an app's own routes, other ports,
       # other methods and SDK metrics are kept.
       - run: bash Tests/Ops/agent-metric-filter-behaviour.sh
+      # And for Kubernetes Events (issue #5179): the cluster collector's
+      # resource and transform/severity processors as the chart renders them,
+      # on the collector the chart pins and on 0.96.0, fed the records the
+      # k8sobjects receiver sends - watched Events wrap the Event under
+      # `object`. Every Warning (OOMKilling on nodes, the HPA's
+      # FailedGetResourceMetric and FailedComputeMetricsReplicas in system
+      # namespaces) must leave as WARN, Normal Events and resource specs as
+      # INFO, none dropped.
+      - run: bash Tests/Ops/agent-event-severity-behaviour.sh
       # And for kubelet CPU: the node collector's filter/cpu-utilization and
       # transform/cpu-utilization as the chart renders them, fed what the
       # kubeletstats receiver sends, on the collector the chart pins and on

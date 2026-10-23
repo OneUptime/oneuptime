@@ -68,9 +68,17 @@ export const TABLE_HEADER_OPEN_SEARCH_BESIDE_BUTTONS_CLASS_NAME: string =
 export const TABLE_HEADER_FOLDED_BUTTONS_CLASS_NAME: string =
   "max-w-0 -ml-3 gap-0 opacity-0 pointer-events-none overflow-hidden whitespace-nowrap invisible";
 
-// The same buttons, unfolded.
+/*
+ * The same buttons, unfolded. On a phone they wrap onto a second line, at
+ * the right edge, when they do not fit on one - Saved Views over the main
+ * button and the ⋯ - each as wide as its words (a Button fills a phone's
+ * line by default). Squeezed onto one line, Saved Views and the main
+ * button broke their words ("Create / On-Call / Schedule" stood three
+ * lines tall), and in German "Gespeicherte Ansichten" ran past the card's
+ * left edge.
+ */
 export const TABLE_HEADER_BUTTONS_CLASS_NAME: string =
-  "max-w-[600px] gap-3 opacity-100";
+  "max-w-[600px] gap-3 opacity-100 max-md:flex-wrap max-md:justify-end max-md:[&>button]:w-auto max-md:[&>*>button]:w-auto";
 
 /*
  * Every control in the row is one height: 42px on a phone and 38px from md

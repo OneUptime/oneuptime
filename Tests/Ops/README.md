@@ -678,6 +678,23 @@ Podman's API. It needs docker; the "Ops Config Test" workflow runs it after
 `agent-cpu-names-behaviour.sh`. `Utils/ContainerAgentCpuBehaviour.js` builds its
 configs and payloads and checks what comes out.
 
+### `agent-event-severity-behaviour.sh`
+
+What the Kubernetes agent does to the Kubernetes Events it watches, in the
+collector the chart ships (and in 0.96.0, which an upgrade with
+`--reuse-values` keeps). It renders the chart, lifts the logs pipeline's
+`resource` and `transform/severity` processors out of the cluster collector's
+ConfigMap as rendered, and feeds them the records the k8sobjects receiver sends
+for the Events of issue #5179 - OOMKilling on two nodes, FailedGetResourceMetric
+and FailedComputeMetricsReplicas on HPAs in `aks-istio-system` and
+`app-routing-system`, each added, repeated and deleted - beside a Normal Event
+and a pulled Pod spec. Every Warning must leave as WARN, everything else as
+INFO, each stamped with the cluster's name and none dropped. A watched Event's
+body wraps the Event under `object`; the rule used to read the watch's own
+`type` (ADDED, MODIFIED) and marked every warning INFO. It needs docker and
+helm; the "Ops Config Test" workflow runs it after
+`agent-metric-filter-behaviour.sh`.
+
 ### `DatabaseAgentQueryEventBodyRuntime.test.js`
 
 The runtime counterpart of the query-event check above. It runs each query-event
