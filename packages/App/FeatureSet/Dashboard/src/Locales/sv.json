@@ -33538,5 +33538,6 @@
   "This device has no SNMP credentials to walk it with. Add a community string or an SNMPv3 user in its Settings, or give it (or its site) an SNMP credential profile.": "Den här enheten har inga SNMP-autentiseringsuppgifter att göra walk med. Lägg till en community-sträng eller en SNMPv3-användare i dess inställningar, eller ge den (eller dess site) en SNMP-autentiseringsprofil.",
   "This device's SNMP credential profile could not be read just now. Try the walk again in a moment.": "Den här enhetens SNMP-autentiseringsprofil kunde inte läsas just nu. Försök med walken igen om en stund.",
   "This device is already being walked. Wait for that walk to finish, then walk it again.": "En walk av den här enheten pågår redan. Vänta tills den är klar och starta sedan en ny walk.",
-  "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.": "Den här enhetens sond kör en version som inte kan göra SNMP-walk. Uppdatera sonden till den senaste versionen och gör sedan walk igen."
+  "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.": "Den här enhetens sond kör en version som inte kan göra SNMP-walk. Uppdatera sonden till den senaste versionen och gör sedan walk igen.",
+  "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.": "Ingen walk av den här enheten har körts ännu. För att köra en walk behövs behörigheten Skapa nätverksenhetsdiagnostik."
 }

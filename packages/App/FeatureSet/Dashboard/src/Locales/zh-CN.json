@@ -33538,5 +33538,6 @@
   "This device has no SNMP credentials to walk it with. Add a community string or an SNMPv3 user in its Settings, or give it (or its site) an SNMP credential profile.": "此设备没有可用于遍历的 SNMP 凭据。请在其设置中添加团体字符串或 SNMPv3 用户，或为它（或它所在的站点）指定 SNMP 凭据配置文件。",
   "This device's SNMP credential profile could not be read just now. Try the walk again in a moment.": "暂时无法读取此设备的 SNMP 凭据配置文件。请稍后重新遍历。",
   "This device is already being walked. Wait for that walk to finish, then walk it again.": "此设备正在被遍历。请等待该遍历完成后再重新遍历。",
-  "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.": "此设备的探测器运行的版本不支持 SNMP 遍历。请将探测器更新到最新版本，然后重新遍历。"
+  "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.": "此设备的探测器运行的版本不支持 SNMP 遍历。请将探测器更新到最新版本，然后重新遍历。",
+  "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.": "此设备尚未遍历。要执行遍历，需要“创建网络设备诊断”权限。"
 }

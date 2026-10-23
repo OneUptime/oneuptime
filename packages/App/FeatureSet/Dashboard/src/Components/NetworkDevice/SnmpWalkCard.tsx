@@ -1047,12 +1047,23 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
      * reason as an afterthought.
      */
     return (
-      <div className="mt-6" data-testid="snmp-walk-result">
+      <div
+        className="mt-6 border-t border-gray-100 pt-5"
+        data-testid="snmp-walk-result"
+      >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
+            {/*
+             * A count reads as the results' title; "nothing under it, and
+             * why that may be" is an explanation, and reads as one.
+             */}
             {summary ? (
               <p
-                className="text-sm font-medium text-gray-900 [overflow-wrap:anywhere]"
+                className={`text-sm [overflow-wrap:anywhere] ${
+                  rows.length > 0
+                    ? "font-medium text-gray-900"
+                    : "text-gray-700"
+                }`}
                 data-testid="snmp-walk-summary"
               >
                 {summary}
@@ -1211,9 +1222,17 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
             className="text-sm text-gray-500"
             data-testid="snmp-walk-read-only"
           >
-            {translator.translateText(
-              "You can read this device's last walk. Walking it needs the Create Network Device Diagnostic permission.",
-            )}
+            {/*
+             * "You can read its last walk" only when there is one to read
+             * (or one on its way): a device nobody walked says so instead.
+             */}
+            {lastResult || running
+              ? translator.translateText(
+                  "You can read this device's last walk. Walking it needs the Create Network Device Diagnostic permission.",
+                )
+              : translator.translateText(
+                  "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.",
+                )}
           </p>
         )}
         {getRunning()}

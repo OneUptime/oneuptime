@@ -490,6 +490,18 @@ const SnmpWalkResults: FunctionComponent<ComponentProps> = (
   const shown: Array<SnmpWalkRowView> = matching.slice(0, shownCount);
   const isEveryMatchShown: boolean = matching.length <= shown.length;
 
+  /*
+   * The type and action columns start at a floor that fits most of what
+   * they hold, so they do not jump as the filter narrows the rows; a
+   * longer language widens them. A reader with nothing to do on a row gets
+   * no empty action column at all.
+   */
+  const hasActions: boolean =
+    props.actions.canCollect || Boolean(props.actions.getAlertRoute);
+  const tableClassName: string = hasActions
+    ? "mt-3 [@container(min-width:44rem)]:grid [@container(min-width:44rem)]:grid-cols-[minmax(0,5fr)_minmax(6.5rem,auto)_minmax(0,5fr)_minmax(6rem,auto)_auto] [@container(min-width:44rem)]:gap-x-4"
+    : "mt-3 [@container(min-width:44rem)]:grid [@container(min-width:44rem)]:grid-cols-[minmax(0,5fr)_minmax(6.5rem,auto)_minmax(0,5fr)_auto_auto] [@container(min-width:44rem)]:gap-x-4";
+
   return (
     <div
       data-testid="snmp-walk-results"
@@ -535,7 +547,7 @@ const SnmpWalkResults: FunctionComponent<ComponentProps> = (
           })}
         </p>
       ) : (
-        <div className="mt-3 [@container(min-width:44rem)]:grid [@container(min-width:44rem)]:grid-cols-[minmax(0,5fr)_auto_minmax(0,5fr)_auto_auto] [@container(min-width:44rem)]:gap-x-4">
+        <div className={tableClassName} data-testid="snmp-walk-table">
           {/*
            * The table's header, wide only: a narrow row reads as a card on
            * its own. The action and menu columns need no title.

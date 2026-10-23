@@ -379,8 +379,21 @@ describe("before anything is walked", () => {
     await renderCard({ canWalk: false });
 
     expect(screen.queryByTestId("snmp-walk-form")).not.toBeInTheDocument();
-    expect(screen.getByTestId("snmp-walk-read-only")).toBeInTheDocument();
+    expect(screen.getByTestId("snmp-walk-read-only")).toHaveTextContent(
+      "You can read this device's last walk. Walking it needs the Create Network Device Diagnostic permission.",
+    );
     expect(rowsShown()).toEqual([SYS_UPTIME.oid, SYS_NAME.oid, CISCO_CPU.oid]);
+  });
+
+  test("a reader who may not walk a device nobody walked is not offered a last walk", async () => {
+    await renderCard({ canWalk: false });
+
+    expect(screen.queryByTestId("snmp-walk-form")).not.toBeInTheDocument();
+    expect(screen.getByTestId("snmp-walk-read-only")).toHaveTextContent(
+      "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.",
+    );
+    expect(screen.queryByTestId("snmp-walk-result")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("snmp-walk-empty")).not.toBeInTheDocument();
   });
 
   test("a device that cannot be read says so", async () => {

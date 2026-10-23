@@ -783,6 +783,26 @@ test.describe("who may do what", () => {
     await expect(
       page.getByRole("menuitem", { name: "Copy OID" }),
     ).toBeVisible();
+    await page.keyboard.press("Escape");
+
+    // With nothing to do on a row, there is no empty action column.
+    const valueRight: number = await rowOf(page, SYS_NAME)
+      .getByTestId("snmp-walk-row-value")
+      .evaluate((element: Element): number => {
+        return element.parentElement!.parentElement!.getBoundingClientRect()
+          .right;
+      });
+    const moreLeft: number = (await rowOf(page, SYS_NAME)
+      .getByTestId("snmp-walk-row-more")
+      .boundingBox())!.x;
+    expect(moreLeft - valueRight).toBeLessThanOrEqual(40);
+
+    // A device nobody walked offers no "last walk" to read.
+    await open(page, "?role=viewer&scenario=empty");
+    await expect(page.getByTestId("snmp-walk-read-only")).toHaveText(
+      "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.",
+    );
+    await expect(page.getByTestId("snmp-walk-result")).toHaveCount(0);
   });
 
   test("someone who may walk but not edit the device walks, and collects nothing", async ({

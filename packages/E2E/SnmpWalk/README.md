@@ -29,9 +29,15 @@ Picked with query parameters:
   after 12 OIDs, and of a subtree the device does not have.
 - `scenario=running`: a walk still running when the page opens.
 - `scenario=refused`, `upgrade`: the server refuses a walk (no credentials), the probe is too old to walk.
+- `scenario=busy`: the last walk is on the page, and the server refuses a new one (another is running).
 - `scenario=noprobe`, `template`: a device with no probe, a device linked to an OID Collection Template.
 - `role=owner` (default) `|viewer|walker`: everything, reading only, walking but not editing the device.
+- `frame=<pixels>`: the card's width as the device page's side menu leaves it (478 at a 768-pixel
+  window, 758 at 1100). The rows switch between stacked and table on the results' own width.
 - `lang=ja|de`, `theme=dark`.
 
-Screenshots of the page at 1280 and 390 pixels, light and dark, in Japanese and German, land in
-`output/playwright/snmp-walk-ui/`.
+The page is drawn in Inter, as production draws it (`server.js` serves the font and the Dashboard's
+universal font rule from `index.ejs`), so the widths the specs measure are the real ones.
+
+Screenshots of the page at 1280 and 390 pixels, beside the side menu, light and dark, in Japanese and
+German, land in `output/playwright/snmp-walk-ui/`.

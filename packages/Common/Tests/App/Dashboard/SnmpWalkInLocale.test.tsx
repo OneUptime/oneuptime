@@ -107,6 +107,7 @@ const REVIEW_KEYS: Array<string> = [
   "Every device using {{template}} collects it from its next poll on.",
   "A busy device sometimes goes quiet part of the way. Continue walking to read the rest.",
   ...SNMP_WALK_SERVER_MESSAGES,
+  "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.",
   "Showing {{shown}} of {{total}}",
 ];
 

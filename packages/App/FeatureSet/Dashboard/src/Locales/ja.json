@@ -33538,5 +33538,6 @@
   "This device has no SNMP credentials to walk it with. Add a community string or an SNMPv3 user in its Settings, or give it (or its site) an SNMP credential profile.": "このデバイスにはウォークに使う SNMP 認証情報がありません。デバイスの設定でコミュニティ文字列か SNMPv3 ユーザーを追加するか、デバイス（またはそのサイト）に SNMP 認証情報プロファイルを割り当ててください。",
   "This device's SNMP credential profile could not be read just now. Try the walk again in a moment.": "このデバイスの SNMP 認証情報プロファイルを今は読み取れませんでした。少し待ってからもう一度ウォークしてください。",
   "This device is already being walked. Wait for that walk to finish, then walk it again.": "このデバイスはすでにウォーク中です。そのウォークが終わるのを待ってから、もう一度ウォークしてください。",
-  "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.": "このデバイスのプローブは SNMP ウォークに対応していないバージョンで動作しています。プローブを最新バージョンに更新してから、もう一度ウォークしてください。"
+  "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.": "このデバイスのプローブは SNMP ウォークに対応していないバージョンで動作しています。プローブを最新バージョンに更新してから、もう一度ウォークしてください。",
+  "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.": "このデバイスはまだウォークされていません。ウォークを実行するには「ネットワークデバイスの診断の作成」権限が必要です。"
 }
