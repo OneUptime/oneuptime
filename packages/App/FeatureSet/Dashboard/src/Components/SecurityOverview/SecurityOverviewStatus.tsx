@@ -96,20 +96,17 @@ const AttentionLink: FunctionComponent<{
 
   return (
     <li data-testid={`security-attention-${props.item.key}`}>
-      {/*
-       * -mx-1 px-1: the focus ring keeps 4px off the icons, where the line
-       * itself stays put.
-       */}
       <AppLink
         to={route(props.item.page)}
-        className="group -mx-1 inline-flex max-w-full items-start gap-2 rounded px-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+        className="group inline-flex max-w-full items-start gap-2 rounded text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
       >
         <>
           <Icon
             icon={props.item.icon}
             className={`mt-0.5 h-4 w-4 flex-none ${ATTENTION_ICON_CLASS_NAMES[props.item.tone]}`}
           />
-          <span className="min-w-0 text-gray-700 group-hover:underline">
+          {/* Pretty: a label that wraps never leaves "up" alone on its last line. */}
+          <span className="min-w-0 text-pretty text-gray-700 group-hover:underline">
             <span className="font-semibold tabular-nums text-gray-900">
               {translator.formatNumber(props.item.count)}
             </span>{" "}
@@ -186,14 +183,15 @@ const SecurityOverviewStatus: FunctionComponent<ComponentProps> = (
       className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
     >
       {/*
-       * 20px all round, as the cells under it pad: the disc lines up with
+       * Padded as the cells under it are - 20px from sm up, 16px across on
+       * a phone, where two cells share the width: the disc lines up with
        * their names, and with the figures' card below.
        */}
       <div
         data-testid={SECURITY_STATUS_HEADLINE_ID}
         data-kind={headline.kind}
         data-tone={headline.tone}
-        className={`p-5 ${tone.band}`}
+        className={`px-4 py-5 sm:px-5 ${tone.band}`}
       >
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 items-start gap-4">
@@ -310,7 +308,7 @@ const SecurityOverviewStatus: FunctionComponent<ComponentProps> = (
       {props.showPipeline && !props.status && props.hasStatusFailed ? (
         <div
           data-testid="security-pipeline-error"
-          className="flex flex-col gap-3 border-t border-gray-200 px-5 py-4 md:flex-row md:items-center md:justify-between"
+          className="flex flex-col gap-3 border-t border-gray-200 px-4 py-4 sm:px-5 md:flex-row md:items-center md:justify-between"
         >
           <div className="flex items-start gap-2 text-sm text-gray-600">
             <Icon
@@ -337,7 +335,7 @@ const SecurityOverviewStatus: FunctionComponent<ComponentProps> = (
 
       {props.showPipeline && props.status && props.status.destinations > 0 ? (
         <div
-          className="flex items-center gap-1.5 border-t border-gray-200 px-5 py-2.5 text-xs text-gray-500"
+          className="flex items-center gap-1.5 border-t border-gray-200 px-4 py-2.5 text-xs text-gray-500 sm:px-5"
           data-testid="security-pipeline-destinations"
         >
           <Icon icon={IconProp.Share} className="h-3.5 w-3.5 flex-none" />
@@ -371,7 +369,7 @@ export const SecurityOverviewLoading: FunctionComponent = (): ReactElement => {
       data-testid="security-overview-loading"
     >
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div className="flex items-start gap-4 bg-gray-50 p-5">
+        <div className="flex items-start gap-4 bg-gray-50 px-4 py-5 sm:px-5">
           <span className="h-11 w-11 flex-none animate-pulse rounded-full bg-gray-200 max-sm:hidden" />
           <div className="min-w-0 flex-1 space-y-2 pt-1">
             <div className="h-5 w-40 animate-pulse rounded bg-gray-200" />
@@ -381,7 +379,10 @@ export const SecurityOverviewLoading: FunctionComponent = (): ReactElement => {
         <div className="grid grid-cols-2 gap-px border-t border-gray-200 bg-gray-200 lg:grid-cols-4">
           {[0, 1, 2, 3].map((index: number): ReactElement => {
             return (
-              <div key={index} className="space-y-2.5 bg-white px-5 py-4">
+              <div
+                key={index}
+                className="space-y-2.5 bg-white px-4 py-4 sm:px-5"
+              >
                 <div className="h-3 w-20 animate-pulse rounded bg-gray-100" />
                 <div className="h-6 w-24 animate-pulse rounded bg-gray-100" />
                 <div className="h-4 w-32 max-w-full animate-pulse rounded bg-gray-100" />
@@ -418,7 +419,7 @@ export const SecurityOverviewFailed: FunctionComponent<{
       role="alert"
       className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
     >
-      <div className="flex flex-col gap-4 bg-gray-50 p-5 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-4 bg-gray-50 px-4 py-5 sm:px-5 md:flex-row md:items-center md:justify-between">
         <div className="flex min-w-0 items-start gap-4">
           <span
             className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-gray-200 text-gray-600 max-sm:hidden"

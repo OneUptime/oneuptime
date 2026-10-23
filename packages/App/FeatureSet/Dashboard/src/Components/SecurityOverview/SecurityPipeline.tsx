@@ -92,10 +92,16 @@ const SecurityPipeline: FunctionComponent<ComponentProps> = (
             >
               <AppLink
                 to={RouteUtil.populateRouteParams(RouteMap[view.page] as Route)}
-                className={`${CELL_ROWS} px-5 py-4 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500`}
+                className={`${CELL_ROWS} px-4 py-4 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 sm:px-5`}
               >
                 <>
-                  <div className="flex min-w-0 items-center gap-1.5 text-xs font-medium uppercase leading-4 tracking-wide text-gray-500">
+                  {/*
+                   * Two cells share a phone's width: 16px across and no
+                   * letter-spacing there, so a long name or word (German's
+                   * SICHERHEITSFAELLE, Russian's "recommended") fits whole
+                   * rather than breaking mid-word.
+                   */}
+                  <div className="flex min-w-0 items-center gap-1.5 text-xs font-medium uppercase leading-4 text-gray-500 sm:tracking-wide">
                     <Icon
                       icon={view.icon}
                       className="h-3.5 w-3.5 flex-none text-gray-400"

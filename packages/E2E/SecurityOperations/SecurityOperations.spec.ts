@@ -1079,6 +1079,17 @@ test.describe("the overview's top card", () => {
             Math.abs(figures[index]!.y - figures[0]!.y),
           ).toBeLessThanOrEqual(1);
         }
+        /*
+         * Each thing waiting for someone is one line beside the side menu,
+         * its chevron right after its words: the link never takes less
+         * width than its words need.
+         */
+        for (const key of ["mine", "unassigned", "approvals"]) {
+          const link: Box = await boxOf(
+            page.getByTestId(`security-attention-${key}`).getByRole("link"),
+          );
+          expect(link.height, `${key} on one line`).toBeLessThanOrEqual(21);
+        }
         // A chevron sits on each line between two cells, centred on it.
         for (const index of [0, 1, 2]) {
           const arrow: Box = await boxOf(arrows.nth(index));
@@ -1123,8 +1134,8 @@ test.describe("the overview's top card", () => {
       );
       const area: Box = await boxOf(band(page));
 
-      // The band pads its content 20px at every width, as the cells do.
-      const padding: number = 20;
+      // The band pads as the cells do: 20px from sm up, 16px on a phone.
+      const padding: number = width < 640 ? 16 : 20;
       // At the band's right edge, as a card keeps its actions, in both layouts.
       expect(
         Math.abs(button.x + button.width - (area.x + area.width - padding)),

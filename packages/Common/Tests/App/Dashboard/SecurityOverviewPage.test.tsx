@@ -1843,12 +1843,24 @@ describe("the top card", () => {
     await renderPage();
 
     /*
-     * 20px all round, the cells' own padding: the disc lines up with their
-     * names. Side by side only from lg: beside the side menu at md, the
-     * button squeezed the words into a column five lines deep.
+     * The cells' own padding - 20px from sm up, 16px across on a phone -
+     * so the disc lines up with their names. Side by side only from lg:
+     * beside the side menu at md, the button squeezed the words into a
+     * column five lines deep.
      */
-    expect(band()).toHaveClass("p-5");
+    expect(band()).toHaveClass("px-4", "py-5", "sm:px-5");
     expect(band().className).not.toMatch(/(^| )md:px-6( |$)/);
+    for (const key of ["sources", "detections", "cases", "playbooks"]) {
+      const cell: HTMLElement = within(stage(key)).getByRole("link");
+
+      expect(cell).toHaveClass("px-4", "py-4", "sm:px-5");
+      /*
+       * No letter-spacing on a phone, where two cells share the width: a
+       * long name (SICHERHEITSFAELLE) fits whole instead of breaking.
+       */
+      expect(cell.firstElementChild).toHaveClass("sm:tracking-wide");
+      expect(cell.firstElementChild).not.toHaveClass("tracking-wide");
+    }
 
     const row: HTMLElement = band().firstElementChild as HTMLElement;
 
