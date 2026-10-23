@@ -71,6 +71,8 @@ Klik op **Label aanmaken**. Geef het een **Naam** en, als u wilt, een **Beschrij
 
 In OneUptime Cloud vraagt het aanmaken en wijzigen van labels het Growth-abonnement. Zie [Labels](/docs/permissions/index#labels) voor hoe labels machtigingen beperken, en [Label- en eigenaarsregels](/docs/configuration/label-and-owner-rules) om resources bij het aanmaken een label te geven.
 
+In een lijst worden de labels van een record onder elkaar getoond; zijn het er meer dan vier, dan ziet u de eerste drie met een link naar de rest. Overal waar labels worden opgesomd (in lijsten, op de pagina van een record en in elke labelkiezer), staan ze in natuurlijke volgorde: labels waarvan de naam met een getal begint komen eerst, in de volgorde van dat getal (`2. Team` vóór `10. Owner`), daarna de andere alfabetisch, ongeacht hoofdletters of kleine letters. Wilt u de volgorde van uw labels bepalen, begin hun namen dan met een getal, zoals `1. Category` en `2. Subcategory`.
+
 ### Een label archiveren
 
 Om een label uit te faseren, archiveert u het via het menu **⋯** van de rij in plaats van het te verwijderen. Alles wat het label heeft, behoudt het, en u kunt er nog steeds op filteren, maar niemand kan het nog ergens aan toevoegen: elke labelkiezer laat het weg, en de API, Terraform en MCP weigeren het. Het dialoogvenster toont de regels en machtigingen die zijn ingesteld om het label te gebruiken; die blijven het gebruiken tot u ze wijzigt. Gearchiveerde labels staan apart, in de ingeklapte sectie **Gearchiveerde labels**, waar **Uit archief halen** er een terugzet. **Verwijderen** toont eerst alles waar het label vanaf zou gaan, en biedt **In plaats daarvan archiveren** aan.

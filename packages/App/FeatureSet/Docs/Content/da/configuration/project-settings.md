@@ -71,6 +71,8 @@ Klik på **Opret Mærkat**. Giv den et **Navn** og, hvis du vil, en **Beskrivels
 
 I OneUptime Cloud kræver det Growth-planen at oprette og ændre etiketter. Se [Etiketter](/docs/permissions/index#labels) for, hvordan etiketter begrænser tilladelser, og [Etiket- og ejerregler](/docs/configuration/label-and-owner-rules) for at sætte etiketter på ressourcer, når de oprettes.
 
+I en liste vises en posts etiketter under hinanden; er der flere end fire, vises de første tre med et link til resten. Overalt hvor etiketter står opført (i lister, på en posts side og i hver etiketvælger), står de i naturlig rækkefølge: etiketter, hvis navn begynder med et tal, kommer først, i rækkefølge efter tallet (`2. Team` før `10. Owner`), derefter de øvrige alfabetisk, uanset store og små bogstaver. Vil du bestemme rækkefølgen af dine etiketter, så begynd deres navne med et tal, som `1. Category` og `2. Subcategory`.
+
 ### Arkivér en etiket
 
 For at udfase en etiket skal du arkivere den fra rækkens menu **⋯** i stedet for at slette den. Alt, der har etiketten, beholder den, og du kan stadig filtrere efter den, men ingen kan tilføje den til noget igen: Hver etiketvælger udelader den, og API'et, Terraform og MCP afviser den. Dialogen viser de regler og tilladelser, der er sat op til at bruge etiketten, og som bliver ved med at bruge den, indtil du ændrer dem. Arkiverede etiketter vises for sig, i den sammenfoldede sektion **Arkiverede etiketter**, hvor **Fjern fra arkiv** sætter en tilbage. **Slet** viser først alt, som etiketten ville blive fjernet fra, og tilbyder **Arkivér i stedet**.

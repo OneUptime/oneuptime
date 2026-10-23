@@ -33392,6 +33392,8 @@
   "Events appear here as the Kubernetes agent sends them.": "Gebeurtenissen verschijnen hier zodra de Kubernetes-agent ze verstuurt.",
   "Try another namespace, kind or reason, or a longer time range.": "Probeer een andere namespace, soort of reden, of een langer tijdsbereik.",
   "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Wat Kubernetes meldde over de knooppunten, workloads, autoscalers en volumes van dit cluster.",
+  "{{count}} more labels": "Nog {{count}} labels",
+  "{{count}} more labels_one": "Nog {{count}} label",
   "Add the creator's team as an owner": "Het team van de maker als eigenaar toevoegen",
   "Add {{teamName}} as an owner": "{{teamName}} als eigenaar toevoegen",
   "Added by owner rules": "Toegevoegd door eigenaarsregels",

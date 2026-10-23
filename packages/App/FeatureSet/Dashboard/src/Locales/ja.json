@@ -33392,6 +33392,8 @@
   "Events appear here as the Kubernetes agent sends them.": "イベントは Kubernetes エージェントが送信するとここに表示されます。",
   "Try another namespace, kind or reason, or a longer time range.": "別の Namespace、種類、理由を選ぶか、より長い時間範囲を選んでください。",
   "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "このクラスターのノード、ワークロード、オートスケーラー、ボリュームについて Kubernetes が報告した内容です。",
+  "{{count}} more labels": "ほか {{count}} 件のラベル",
+  "{{count}} more labels_one": "ほか {{count}} 件のラベル",
   "Add the creator's team as an owner": "作成者のチームを所有者として追加",
   "Add {{teamName}} as an owner": "{{teamName}} を所有者として追加",
   "Added by owner rules": "所有者ルールで追加",

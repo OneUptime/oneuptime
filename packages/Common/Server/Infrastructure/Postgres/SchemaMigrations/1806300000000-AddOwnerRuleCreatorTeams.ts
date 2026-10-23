@@ -14,10 +14,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * added before. Both tables are new, so their indexes and foreign keys are
  * built here, on empty tables, without blocking anything.
  */
-export class AddOwnerRuleCreatorTeams1806200000000
+export class AddOwnerRuleCreatorTeams1806300000000
   implements MigrationInterface
 {
-  public name: string = "AddOwnerRuleCreatorTeams1806200000000";
+  public name: string = "AddOwnerRuleCreatorTeams1806300000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

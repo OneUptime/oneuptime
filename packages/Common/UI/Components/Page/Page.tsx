@@ -5,6 +5,7 @@ import PageLoader from "../Loader/PageLoader";
 import LabelElement from "../Label/Label";
 import Link from "../../../Types/Link";
 import LabelModel from "../../../Models/DatabaseModels/Label";
+import { sortLabels } from "../../../Utils/LabelOrder";
 import useTranslateValue from "../../Utils/Translation";
 import { getProductName } from "../../Utils/ProductBranding";
 import React, {
@@ -186,9 +187,13 @@ const Page: FunctionComponent<ComponentProps> = (
                       {translateString("Labels")}
                     </span>
                     <div className="flex flex-wrap items-center gap-2 justify-end">
-                      {props.labels
-                        .filter((label: LabelModel | null) => {
-                          return Boolean(label && (label.name || label.slug));
+                      {/*
+                       * In natural order, as a record's labels are listed
+                       * everywhere (Utils/LabelOrder).
+                       */}
+                      {sortLabels<LabelModel>(props.labels)
+                        .filter((label: LabelModel) => {
+                          return Boolean(label.name || label.slug);
                         })
                         .map((label: LabelModel, index: number) => {
                           return (

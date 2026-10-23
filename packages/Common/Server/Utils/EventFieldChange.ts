@@ -2,6 +2,7 @@ import Label from "../../Models/DatabaseModels/Label";
 import { toStoredBoolean } from "../../Types/Database/BooleanColumnValue";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
+import { sortLabelNames } from "../../Utils/LabelOrder";
 import LabelService from "../Services/LabelService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import ColumnValueChange from "./Database/ColumnValueChange";
@@ -533,16 +534,12 @@ export default class EventFieldChange {
       },
     });
 
-    const names: Array<string> = labels
-      .map((label: Label): string => {
+    // In natural order, as labels are listed everywhere (Utils/LabelOrder).
+    const names: Array<string> = sortLabelNames(
+      labels.map((label: Label): string => {
         return label.name || "";
-      })
-      .filter((name: string): boolean => {
-        return name.trim().length > 0;
-      })
-      .sort((first: string, second: string): number => {
-        return first.localeCompare(second);
-      });
+      }),
+    );
 
     if (names.length === 0) {
       return FeedMarkdown.empty();

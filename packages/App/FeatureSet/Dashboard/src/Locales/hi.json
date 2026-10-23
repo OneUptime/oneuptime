@@ -33392,6 +33392,8 @@
   "Events appear here as the Kubernetes agent sends them.": "Kubernetes एजेंट जैसे ही इवेंट भेजता है, वे यहाँ दिखते हैं।",
   "Try another namespace, kind or reason, or a longer time range.": "कोई दूसरा Namespace, प्रकार या कारण आज़माएँ, या लंबी समय सीमा चुनें।",
   "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Kubernetes ने इस क्लस्टर के नोड, वर्कलोड, ऑटोस्केलर और वॉल्यूम के बारे में जो बताया।",
+  "{{count}} more labels": "{{count}} और लेबल",
+  "{{count}} more labels_one": "{{count}} और लेबल",
   "Add the creator's team as an owner": "निर्माता की टीम को मालिक के रूप में जोड़ें",
   "Add {{teamName}} as an owner": "{{teamName}} को मालिक के रूप में जोड़ें",
   "Added by owner rules": "स्वामी नियमों द्वारा जोड़े गए",

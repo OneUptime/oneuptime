@@ -33392,6 +33392,8 @@
   "Events appear here as the Kubernetes agent sends them.": "Händelser visas här när Kubernetes-agenten skickar dem.",
   "Try another namespace, kind or reason, or a longer time range.": "Prova ett annat namespace, en annan typ eller orsak, eller ett längre tidsintervall.",
   "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Vad Kubernetes har rapporterat om klustrets noder, arbetsbelastningar, autoskalare och volymer.",
+  "{{count}} more labels": "{{count}} etiketter till",
+  "{{count}} more labels_one": "{{count}} etikett till",
   "Add the creator's team as an owner": "Lägg till skaparens team som ägare",
   "Add {{teamName}} as an owner": "Lägg till {{teamName}} som ägare",
   "Added by owner rules": "Tillagda av ägarregler",
