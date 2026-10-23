@@ -55,7 +55,7 @@ function asText(config: TwilioConfig | undefined): Record<string, unknown> {
   return {
     accountSid: config.accountSid,
     authToken: config.authToken,
-    primaryPhoneNumber: config.primaryPhoneNumber.toString(),
+    primaryPhoneNumber: config.primaryPhoneNumber?.toString(),
     secondaryPhoneNumbers: config.secondaryPhoneNumbers.map(
       (phone: Phone): string => {
         return phone.toString();
@@ -191,7 +191,7 @@ describe("a Twilio config, received", () => {
       smsPhoneNumbers: [new Phone(SG_MOBILE).toJSON()],
     });
 
-    expect(received!.primaryPhoneNumber.toString()).toBe(SG_NATIONAL);
+    expect(received!.primaryPhoneNumber?.toString()).toBe(SG_NATIONAL);
     expect(received!.secondaryPhoneNumbers.map(String)).toEqual([UK]);
     expect(received!.smsPhoneNumbers!.map(String)).toEqual([SG_MOBILE]);
   });

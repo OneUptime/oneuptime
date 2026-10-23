@@ -1,4 +1,7 @@
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import TwilioConfigUses, {
+  TwilioConfigUse,
+} from "Common/Types/CallAndSMS/TwilioConfigUse";
 
 /*
  * Which Twilio config the SMS and calls to a project's members go through, on
@@ -18,6 +21,10 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * the create form starts the switch on for it and says why. A later config
  * starts with the switch off, so adding one never moves the project's SMS
  * and calls by itself; making it the default is one click on its row.
+ *
+ * A config used for SMS only, or for calls only (TwilioConfigUse), is the
+ * default for those alone: the switch's help names what goes through it,
+ * and the answer picked above it says where the rest goes.
  *
  * Kept free of React, so App/Tests can read these exact strings. Every
  * sentence is wrapped in translationKey() so npm run i18n:extract finds it;
@@ -71,6 +78,12 @@ export const TwilioConfigDefaultCopy: {
   defaultSwitchDescription: string;
   // The switch's help on the create form of the project's first config.
   firstConfigSwitchDescription: string;
+  // The same two, for a config used for SMS only.
+  smsOnlyDefaultSwitchDescription: string;
+  smsOnlyFirstConfigSwitchDescription: string;
+  // And for a config used for calls only.
+  callsOnlyDefaultSwitchDescription: string;
+  callsOnlyFirstConfigSwitchDescription: string;
 } = {
   cardDescription: translationKey(
     "Use your own Twilio account for SMS and calls. The project default sends the SMS and calls to people in this project.",
@@ -92,6 +105,18 @@ export const TwilioConfigDefaultCopy: {
   ),
   firstConfigSwitchDescription: translationKey(
     "This is the project's first Twilio config, so it starts as the project default: the SMS and calls to people in this project, such as on-call alerts and verification codes, will go through it. Turn this off if this account is only for status pages or incoming calls.",
+  ),
+  smsOnlyDefaultSwitchDescription: translationKey(
+    "One config is the project default: the SMS to people in this project, such as on-call alerts, go through it. Status pages use the config picked on each page.",
+  ),
+  smsOnlyFirstConfigSwitchDescription: translationKey(
+    "This is the project's first Twilio config, so it starts as the project default: the SMS to people in this project, such as on-call alerts and verification codes, will go through it. Turn this off if this account is only for status pages.",
+  ),
+  callsOnlyDefaultSwitchDescription: translationKey(
+    "One config is the project default: the calls to people in this project, such as on-call alerts, go through it.",
+  ),
+  callsOnlyFirstConfigSwitchDescription: translationKey(
+    "This is the project's first Twilio config, so it starts as the project default: the calls to people in this project, such as on-call alerts and verification codes, will go through it. Turn this off if this account is only for incoming calls.",
   ),
 };
 
@@ -122,16 +147,35 @@ export const isDefaultSwitchOnWhenCreating: (
 };
 
 /*
- * The switch's help. Only the create form of the project's first config
- * says it starts on, and why. A project with no config has no row to edit,
- * so an edit form never shows that sentence.
+ * The switch's help, for what the config is used for: the SMS and calls of
+ * the project's people go through the default, or only its SMS, or only
+ * its calls. Only the create form of the project's first config says it
+ * starts on, and why. A project with no config has no row to edit, so an
+ * edit form never shows that sentence.
  */
 export const getDefaultSwitchDescription: (
   state: TwilioConfigDefaultState,
-) => string = (state: TwilioConfigDefaultState): string => {
-  return isDefaultSwitchOnWhenCreating(state)
-    ? TwilioConfigDefaultCopy.firstConfigSwitchDescription
-    : TwilioConfigDefaultCopy.defaultSwitchDescription;
+  use?: TwilioConfigUse | undefined,
+) => string = (
+  state: TwilioConfigDefaultState,
+  use?: TwilioConfigUse | undefined,
+): string => {
+  const isFirst: boolean = isDefaultSwitchOnWhenCreating(state);
+
+  switch (TwilioConfigUses.getUse(use)) {
+    case TwilioConfigUse.SmsOnly:
+      return isFirst
+        ? TwilioConfigDefaultCopy.smsOnlyFirstConfigSwitchDescription
+        : TwilioConfigDefaultCopy.smsOnlyDefaultSwitchDescription;
+    case TwilioConfigUse.CallsOnly:
+      return isFirst
+        ? TwilioConfigDefaultCopy.callsOnlyFirstConfigSwitchDescription
+        : TwilioConfigDefaultCopy.callsOnlyDefaultSwitchDescription;
+    default:
+      return isFirst
+        ? TwilioConfigDefaultCopy.firstConfigSwitchDescription
+        : TwilioConfigDefaultCopy.defaultSwitchDescription;
+  }
 };
 
 export default TwilioConfigDefaultCopy;

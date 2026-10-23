@@ -644,6 +644,19 @@ const ModelForm: <TBaseModel extends BaseModel>(
             const iKeys: Array<string> = Object.keys(fieldObj);
             const iFieldKey: string =
               i.overrideFieldKey || (iKeys[0] as string);
+
+            /*
+             * Two fields for one column that are each shown only on a
+             * condition are both kept: the form shows one at a time, and
+             * both edit the same value - a Twilio config's SMS numbers are
+             * required and open when the config is used for SMS only, and
+             * optional and folded when it makes calls too
+             * (CallSMSConfigTable). Their conditions must never both hold.
+             */
+            if (i.showIf && field.showIf) {
+              return false;
+            }
+
             return iFieldKey === effectiveFieldKey;
           }).length === 0
         ) {

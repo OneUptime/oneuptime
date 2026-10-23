@@ -4,9 +4,20 @@ import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
+import TwilioConfigUses, {
+  DEFAULT_TWILIO_CONFIG_USE,
+  PRIMARY_PHONE_NUMBER_TITLE,
+  SMS_PHONE_NUMBERS_TITLE,
+  TWILIO_CONFIG_USES,
+  TwilioConfigUse,
+} from "Common/Types/CallAndSMS/TwilioConfigUse";
+import TwilioConfigWrite from "Common/Types/CallAndSMS/TwilioConfigWrite";
 import TwilioPhoneNumbers from "Common/Types/CallAndSMS/TwilioPhoneNumbers";
 import Phone from "Common/Types/Phone";
-import { TwilioMessageKind } from "Common/Utils/Project/TwilioAccount";
+import {
+  TwilioMessageKind,
+  getNoTwilioAccountMessage,
+} from "Common/Utils/Project/TwilioAccount";
 import { LEGACY_SLACK_COMMANDS } from "Common/Server/Utils/Workspace/Slack/SlackCommandParser";
 import WorkspaceCommands from "Common/Server/Utils/Workspace/WorkspaceCommands";
 import { RETENTION_TTL_ROUNDED_UP_TO_EVENT_DAY } from "Common/Types/AnalyticsDatabase/RetentionTtl";
@@ -26,6 +37,10 @@ import {
   SMS_NUMBER_HINT,
   TWILIO_FROM_NUMBER_CANNOT_SEND_SMS_CODE,
 } from "../../../FeatureSet/Notification/Utils/TwilioSendError";
+import TwilioConfigUseCopy, {
+  TwilioConfigUseOption,
+  getTwilioConfigUseOptions,
+} from "../../../FeatureSet/Dashboard/src/Components/CallSMS/TwilioConfigUseCopy";
 
 /*
  * Docs overhaul task 15: what the Local Development, Docker Compose, Sizing &
@@ -134,6 +149,9 @@ const SOURCES: Record<string, string> = {
   callTimelineModel:
     "packages/Common/Models/DatabaseModels/UserOnCallLogTimeline.ts",
   callSmsConfigTable: `${DASHBOARD}/Components/CallSMS/CallSMSConfigTable.tsx`,
+  statusPageSubscriberSettings: `${DASHBOARD}/Pages/StatusPages/View/SubscriberSettings.tsx`,
+  notificationSmsService: `${NOTIFICATION}/Services/SmsService.ts`,
+  notificationCallService: `${NOTIFICATION}/Services/CallService.ts`,
   adminLocale: `${ADMIN_DASHBOARD}/Locales/en.json`,
   adminSettingsSideMenu: `${ADMIN_DASHBOARD}/Pages/Settings/SideMenu.tsx`,
   adminAuthentication: `${ADMIN_DASHBOARD}/Pages/Settings/Authentication/Index.tsx`,
@@ -401,6 +419,69 @@ function blockFrom(source: string, marker: string, end: string): string {
   const stop: number = source.indexOf(end, start + marker.length);
 
   return source.slice(start, stop === -1 ? undefined : stop);
+}
+
+// Every block of a source that starts with this marker, in order.
+function blocksFrom(
+  source: string,
+  marker: string,
+  end: string,
+): Array<string> {
+  const blocks: Array<string> = [];
+  let start: number = source.indexOf(marker);
+
+  while (start >= 0) {
+    const stop: number = source.indexOf(end, start + marker.length);
+
+    blocks.push(source.slice(start, stop === -1 ? undefined : stop));
+    start = source.indexOf(marker, start + marker.length);
+  }
+
+  return blocks;
+}
+
+/*
+ * A Twilio form's fields for one column, as both forms write them: a field
+ * whose help, fold or need follows what the config is used for is written
+ * once for each answer that shows it.
+ */
+function twilioFormFields(
+  source: string,
+  column: string,
+  title: string,
+): Array<string> {
+  return blocksFrom(
+    source,
+    `${column}: true,\n            },\n            title: "${title}",`,
+    "\n          },",
+  );
+}
+
+// The name a source gives a use: "CallsAndSms" for "Calls and SMS".
+function useMemberName(use: TwilioConfigUse): string {
+  const member: [string, string] | undefined = Object.entries(
+    TwilioConfigUse,
+  ).find(([, value]: [string, string]): boolean => {
+    return value === use;
+  });
+
+  expect({ use, named: Boolean(member) }).toEqual({ use, named: true });
+
+  return (member as [string, string])[0];
+}
+
+// A form field's showIf line: what follows "showIf: ", to the end of the line.
+const SHOW_IF: RegExp = /showIf: ([^\n]+)/;
+
+/*
+ * Whether a form field is shown for this use: its showIf names the use -
+ * isUsedForSmsOnly on the Dashboard, usedFor(TwilioConfigUse.SmsOnly) on the
+ * Admin Dashboard.
+ */
+function isShownFor(field: string, use: TwilioConfigUse): boolean {
+  const showIf: string = SHOW_IF.exec(field)?.[1] || "";
+
+  return showIf.includes(useMemberName(use));
 }
 
 // Whether an Express router registers this method and path.
@@ -2702,15 +2783,24 @@ describe("Twilio Integration, against the notification server and the forms", ()
       const table: string = readSource("callSmsConfigTable");
       const admin: string = readSource("adminCallSms");
 
-      // The SMS numbers are a folded, one-line list on both forms.
+      /*
+       * On a config used for calls and SMS, the SMS numbers are a folded,
+       * one-line list on both forms. (Used for SMS only, they are the
+       * numbers it needs: see "An account for SMS only, or calls only".)
+       */
       for (const source of [table, admin]) {
-        const field: string = blockFrom(
+        const fields: Array<string> = twilioFormFields(
           source,
-          'twilioSmsPhoneNumbers: true,\n            },\n            title: "Twilio SMS Phone Numbers",',
-          "\n          },",
-        );
+          "twilioSmsPhoneNumbers",
+          "Twilio SMS Phone Numbers",
+        ).filter((field: string): boolean => {
+          return isShownFor(field, TwilioConfigUse.CallsAndSms);
+        });
 
-        expect(field).toContain('title: "Twilio SMS Phone Numbers",');
+        expect(fields).toHaveLength(1);
+
+        const field: string = fields[0] as string;
+
         expect(field).toContain("FormFieldSchemaType.Text,");
         expect(field).toContain("collapsibleSection:");
         expect(field).toContain("required: false,");
@@ -2841,6 +2931,377 @@ describe("Twilio Integration, against the notification server and the forms", ()
       expect(url.pathname).toBe("/en-us/guidelines/sms");
       expect(section).toContain("check [Twilio's SMS guidelines](");
       expect(section).toContain(") for each country you send to.");
+    });
+  });
+
+  /*
+   * An account for SMS only, or calls only: a customer's account sent only
+   * SMS, and the form still made them type in a number to make calls from.
+   * The form now asks first what the account sends
+   * (Types/CallAndSMS/TwilioConfigUse), then only the numbers that choice
+   * needs. The section's table is held to the forms' answers, to the rule
+   * the server refuses a config by (TwilioConfigWrite), to the forms that
+   * ask for the numbers and to the rule every sender sends by
+   * (TwilioPhoneNumbers); its sentences to the code that does what they
+   * say.
+   */
+  describe("An account for SMS only, or calls only", () => {
+    const section: string = sectionOf(
+      page,
+      "### An account for SMS only, or calls only",
+    );
+    const rows: Array<Array<string>> = tableRows(section).slice(1);
+    const table: string = readSource("callSmsConfigTable");
+    const admin: string = readSource("adminCallSms");
+
+    // The use a row of the table is about.
+    function useOf(row: Array<string>): TwilioConfigUse {
+      const choice: string = unwrap(row[0] as string);
+
+      expect({ choice, isUse: TwilioConfigUses.isUse(choice) }).toEqual({
+        choice,
+        isUse: true,
+      });
+
+      return choice as TwilioConfigUse;
+    }
+
+    /*
+     * Whether a config used for this, holding only this number field, is
+     * one the server would save.
+     */
+    function isEnough(use: TwilioConfigUse, field: string): boolean {
+      return (
+        TwilioConfigWrite.getMissingNumberError({
+          use: use,
+          primaryPhoneNumber:
+            field === PRIMARY_PHONE_NUMBER_TITLE ? "+15550000001" : undefined,
+          smsPhoneNumbers:
+            field === SMS_PHONE_NUMBERS_TITLE ? "+15550000002" : undefined,
+        }) === null
+      );
+    }
+
+    // A config used for this, with every number: what it sends is its use's doing.
+    function configUsedFor(use: TwilioConfigUse): TwilioConfig {
+      return {
+        accountSid: "AC00000000000000000000000000000001",
+        authToken: "token",
+        use: use,
+        primaryPhoneNumber: new Phone("+15550000001"),
+        secondaryPhoneNumbers: [],
+        smsPhoneNumbers: [new Phone("+15550000002")],
+      };
+    }
+
+    it("its choices are the form's answers, in the form's order, on both forms", () => {
+      const options: Array<TwilioConfigUseOption> = getTwilioConfigUseOptions();
+
+      expect(rows.map(useOf)).toEqual([...TWILIO_CONFIG_USES]);
+      expect(
+        options.map((option: TwilioConfigUseOption): string => {
+          return option.title;
+        }),
+      ).toEqual(rows.map(useOf));
+
+      // The Admin Dashboard offers the same answers, in the same order.
+      const radio: string = blockFrom(
+        admin,
+        'twilioUsedFor: true,\n            },\n            title: "Use This Account For",',
+        "\n          },\n          {",
+      );
+
+      expect(
+        [...radio.matchAll(/title: "([^"]+)",\n\s+description:/g)].map(
+          (match: RegExpExecArray): string => {
+            return match[1] as string;
+          },
+        ),
+      ).toEqual(rows.map(useOf));
+    });
+
+    it("is asked first, in Use This Account For, on both forms", () => {
+      expect(TwilioConfigUseCopy.fieldTitle).toBe("Use This Account For");
+      expect(section).toContain(
+        "Pick it in **Use This Account For**, and the form asks only for the numbers that choice needs:",
+      );
+      expect(page).toContain(
+        "pick what the account sends in **Use This Account For**: **Calls and SMS**, **SMS only** or **Calls only**.",
+      );
+
+      // On the Dashboard, in the step before the Twilio account's.
+      expect(
+        blockFrom(
+          table,
+          "usedFor: true,\n            },\n            title: TwilioConfigUseCopy.fieldTitle,",
+          "\n          },\n          {",
+        ),
+      ).toContain('stepId: "basic-info",');
+      expect(table.indexOf('id: "basic-info"')).toBeLessThan(
+        table.indexOf('id: "twilio-info"'),
+      );
+
+      // On the Admin Dashboard, before the account itself.
+      expect(admin.indexOf("twilioUsedFor: true,")).toBeLessThan(
+        admin.indexOf("twilioAccountSID: true,"),
+      );
+      expect(page).toContain(
+        "**Admin Dashboard > Settings > Call and SMS**, pick what the account sends,",
+      );
+    });
+
+    it("each choice needs the number the server refuses a config without, and both forms require it", () => {
+      for (const row of rows) {
+        const use: TwilioConfigUse = useOf(row);
+        const needed: string = unwrap(row[1] as string);
+        const other: string =
+          needed === PRIMARY_PHONE_NUMBER_TITLE
+            ? SMS_PHONE_NUMBERS_TITLE
+            : PRIMARY_PHONE_NUMBER_TITLE;
+
+        expect([PRIMARY_PHONE_NUMBER_TITLE, SMS_PHONE_NUMBERS_TITLE]).toContain(
+          needed,
+        );
+
+        // The server saves a config with it, and refuses one with only the other.
+        expect({ use, needed, enough: isEnough(use, needed) }).toEqual({
+          use,
+          needed,
+          enough: true,
+        });
+        expect({ use, other, enough: isEnough(use, other) }).toEqual({
+          use,
+          other,
+          enough: false,
+        });
+
+        // Each form asks for it, open and required, when the choice is picked.
+        const column: Record<string, string> = {
+          [PRIMARY_PHONE_NUMBER_TITLE]: "twilioPrimaryPhoneNumber",
+          [SMS_PHONE_NUMBERS_TITLE]: "twilioSmsPhoneNumbers",
+        };
+
+        for (const [form, source] of [
+          ["Dashboard", table],
+          ["Admin Dashboard", admin],
+        ] as Array<[string, string]>) {
+          const asked: Array<string> = twilioFormFields(
+            source,
+            column[needed] as string,
+            needed,
+          ).filter((field: string): boolean => {
+            return isShownFor(field, use);
+          });
+
+          expect({ form, use, needed, fields: asked.length }).toEqual({
+            form,
+            use,
+            needed,
+            fields: 1,
+          });
+          expect({
+            form,
+            use,
+            needed,
+            required: asked[0]!.includes("required: true,"),
+            folded: asked[0]!.includes("collapsibleSection:"),
+          }).toEqual({ form, use, needed, required: true, folded: false });
+
+          // The other number, where the choice shows it at all, is optional.
+          for (const field of twilioFormFields(
+            source,
+            column[other] as string,
+            other,
+          ).filter((otherField: string): boolean => {
+            return isShownFor(otherField, use);
+          })) {
+            expect({
+              form,
+              use,
+              other,
+              optional: field.includes("required: false,"),
+            }).toEqual({
+              form,
+              use,
+              other,
+              optional: true,
+            });
+          }
+        }
+      }
+    });
+
+    it("each choice never sends what the table says, as every sender decides", () => {
+      for (const row of rows) {
+        const use: TwilioConfigUse = useOf(row);
+        const sendsSms: boolean = TwilioPhoneNumbers.canSend(
+          configUsedFor(use),
+          TwilioMessageKind.SMS,
+        );
+        const makesCalls: boolean = TwilioPhoneNumbers.canSend(
+          configUsedFor(use),
+          TwilioMessageKind.Call,
+        );
+
+        expect(sendsSms).toBe(TwilioConfigUses.sendsSms(use));
+        expect(makesCalls).toBe(TwilioConfigUses.makesCalls(use));
+
+        const never: string = !makesCalls
+          ? "Calls"
+          : !sendsSms
+            ? "SMS"
+            : "Nothing";
+
+        expect({ use, never: row[2] }).toEqual({ use, never });
+      }
+    });
+
+    it("what a config does not send goes as without it, and the log says why and who can change that", () => {
+      expect(section).toContain(
+        "What a configuration does not send goes as it would without the configuration: when the project default is used for **SMS only**, calls to the project's members go through the installation-wide configuration.",
+      );
+
+      /*
+       * The Notification service passes over a config that does not send
+       * the kind, and sends through the server's own account instead.
+       */
+      for (const [member, key] of [
+        ["SMS", "notificationSmsService"],
+        ["Call", "notificationCallService"],
+      ] as Array<[string, string]>) {
+        const sender: string = readSource(key);
+
+        expect({
+          member,
+          passesOver: new RegExp(
+            `TwilioPhoneNumbers\\.canSend\\(\\s*options\\.customTwilioConfig,\\s*TwilioMessageKind\\.${member},\\s*\\)`,
+          ).test(sender),
+          fallsBack: sender.includes(
+            `customTwilioConfig || (await getTwilioConfig(TwilioMessageKind.${member}))`,
+          ),
+        }).toEqual({ member, passesOver: true, fallsBack: true });
+      }
+
+      // When no account can send it, the log says the project's config is not used for it, and who can change that.
+      expect(section).toContain(
+        "If no configuration can send a message, the message's log says that the project's configuration is not used for it, and who can change that.",
+      );
+
+      const call: string = getNoTwilioAccountMessage(TwilioMessageKind.Call, {
+        projectConfigUse: TwilioConfigUse.SmsOnly,
+      });
+      const sms: string = getNoTwilioAccountMessage(TwilioMessageKind.SMS, {
+        projectConfigUse: TwilioConfigUse.CallsOnly,
+      });
+
+      expect(call).toContain(
+        "This project's Twilio config is used for SMS only",
+      );
+      expect(sms).toContain(
+        "This project's Twilio config is used for calls only",
+      );
+
+      for (const message of [call, sms]) {
+        expect(message).toContain(
+          "can use this project's config for calls and SMS",
+        );
+      }
+    });
+
+    it("status pages list only the configs that send SMS, and each test is offered only for what a config sends", () => {
+      const picker: string = blockFrom(
+        readSource("statusPageSubscriberSettings"),
+        "dropdownModal: {\n                type: ProjectCallSMSConfig,",
+        "required: false,",
+      );
+      const listed: Array<TwilioConfigUse> = TWILIO_CONFIG_USES.filter(
+        (use: TwilioConfigUse): boolean => {
+          return picker.includes(`TwilioConfigUse.${useMemberName(use)},`);
+        },
+      );
+
+      expect(picker).toContain("usedFor: new Includes([");
+      expect(listed).toEqual(
+        TWILIO_CONFIG_USES.filter((use: TwilioConfigUse): boolean => {
+          return TwilioConfigUses.sendsSms(use);
+        }),
+      );
+      expect(section).toContain(
+        "Status pages offer only the configurations that send SMS",
+      );
+
+      expect(blockFrom(table, 'title: "Send Test SMS",', "onClick:")).toContain(
+        "return TwilioConfigUses.sendsSms(item.usedFor);",
+      );
+      expect(
+        blockFrom(table, 'title: "Send Test Call",', "onClick:"),
+      ).toContain("return TwilioConfigUses.makesCalls(item.usedFor);");
+      expect(section).toContain(
+        "**Send Test SMS** and **Send Test Call** appear only for what a configuration sends.",
+      );
+    });
+
+    it("every existing configuration is used for Calls and SMS, and the API's usedFor field takes the same rule", () => {
+      const migrations: string = path.join(
+        REPO_DIR,
+        COMMON_SERVER,
+        "Infrastructure/Postgres/SchemaMigrations",
+      );
+      const migration: string | undefined = fs
+        .readdirSync(migrations)
+        .find((file: string): boolean => {
+          return file.endsWith("-AddTwilioConfigUsedFor.ts");
+        });
+
+      expect(migration).toBeDefined();
+
+      const up: string = fs.readFileSync(
+        path.join(migrations, migration as string),
+        "utf8",
+      );
+
+      expect(DEFAULT_TWILIO_CONFIG_USE).toBe(TwilioConfigUse.CallsAndSms);
+
+      for (const [tableName, column] of [
+        ["ProjectCallSMSConfig", "usedFor"],
+        ["GlobalConfig", "twilioUsedFor"],
+      ] as Array<[string, string]>) {
+        expect(up).toContain(
+          `ALTER TABLE "${tableName}" ADD "${column}" character varying(100) NOT NULL DEFAULT '${DEFAULT_TWILIO_CONFIG_USE}'`,
+        );
+      }
+
+      expect(section).toContain(
+        "Every existing configuration is used for **Calls and SMS**, as before.",
+      );
+
+      // The API and Terraform write the column the form does.
+      const usedFor:
+        | { defaultValue?: unknown; required?: boolean }
+        | undefined = getTableColumns(new ProjectCallSMSConfig())["usedFor"];
+
+      expect(usedFor?.defaultValue).toBe(DEFAULT_TWILIO_CONFIG_USE);
+      expect(usedFor?.required).toBe(true);
+      expect(section).toContain(
+        "Through the API and Terraform, the choice is the `usedFor` field, and a configuration without the numbers its choice needs is refused.",
+      );
+      expect(
+        TwilioConfigWrite.getMissingNumberError({
+          use: TwilioConfigUse.SmsOnly,
+          primaryPhoneNumber: "+15550000001",
+        }),
+      ).toContain(SMS_PHONE_NUMBERS_TITLE);
+    });
+
+    it("the troubleshooting table sends the reader here when calls or SMS go through another account", () => {
+      expect(
+        rowOf(
+          page,
+          "Calls or SMS go through another account than the project's",
+        )[1],
+      ).toBe(
+        "The project default is used for **SMS only** or **Calls only**: see [An account for SMS only, or calls only](#an-account-for-sms-only-or-calls-only).",
+      );
     });
   });
 });

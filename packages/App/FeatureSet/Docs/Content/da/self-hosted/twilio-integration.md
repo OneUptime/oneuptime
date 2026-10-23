@@ -44,7 +44,7 @@ Sådan tilføjer du en projektkonfiguration:
 :::steps
 1. Gå til **Projektindstillinger > Notifikationer > Notifikationsindstillinger**.
 2. Vælg **Opret Twilio-konfiguration** i **Twilio-konfiguration**.
-3. Angiv et navn, **Twilio Account SID**, **Twilio Auth Token** og **Twilio primært telefonnummer**. Under **Flere felter** kan du også angive kommaseparerede **Twilio sekundære telefonnumre** til andre lande og **Twilio SMS-telefonnumre**, hvis dine numre ikke kan sende SMS.
+3. Angiv et navn, og vælg under **Brug denne konto til**, hvad kontoen sender: **Opkald og SMS**, **Kun SMS** eller **Kun opkald**. Angiv derefter **Twilio Account SID**, **Twilio Auth Token** og det nummer, valget beder om: **Twilio primært telefonnummer** til opkald eller **Twilio SMS-telefonnumre** til **Kun SMS**. Under **Flere felter** kan du også angive kommaseparerede **Twilio sekundære telefonnumre** til andre lande og **Twilio SMS-telefonnumre**, hvis dine numre ikke kan sende SMS.
 4. **Indstil som projektstandard** er slået til for projektets første konfiguration, så SMS og opkald til projektets medlemmer, herunder vagtnotifikationer, går gennem den, så snart du gemmer. Slå den fra, hvis kontoen kun er til statussider eller indgående opkald. En senere konfiguration starter med kontakten slået fra: Slå den til, eller vælg **Indstil som projektstandard** i konfigurationens rækkemenu for at flytte de beskeder til den. En API-anmodning, der udelader `isProjectDefault`, behandles på samme måde.
 5. Gem. Kun én konfiguration kan være projektstandarden. Statussider bruger den konfiguration, der udtrykkeligt er tildelt hver statusside.
 
@@ -52,7 +52,7 @@ Sådan tilføjer du en projektkonfiguration:
 > **SMS** og **Telefonopkald** er slået fra fra start i hvert projekt, og indtil de er slået til, kan ingen i projektet tilføje et telefonnummer til dem. En projektejer, en **Billing Admin** eller en person med **Manage Billing** slår dem til i kortet **Notifikationskanaler** på samme side.
 :::
 
-For en standard for hele installationen kan en administrator i stedet åbne **Admin Dashboard > Indstillinger > Opkald og SMS**, redigere Twilio-legitimationsoplysningerne og telefonnumrene og gemme. Medlemmernes notifikationer bruger denne globale konfiguration, når deres projekt ikke har en standard. Hold Auth Token fortroligt.
+For en standard for hele installationen kan en administrator i stedet åbne **Admin Dashboard > Indstillinger > Opkald og SMS**, vælge, hvad kontoen sender, redigere Twilio-legitimationsoplysningerne og telefonnumrene og gemme. Medlemmernes notifikationer bruger denne globale konfiguration, når deres projekt ikke har en standard. Hold Auth Token fortroligt.
 
 ### Separate numre til opkald og SMS
 
@@ -70,6 +70,20 @@ En konfiguration uden SMS-numre sender SMS fra de samme numre som opkald, som hi
 
 > [!NOTE]
 > Hvilke numre der kan sende SMS, og om en afsender først skal registreres, varierer fra land til land: hvor registrering kræves, kan en SMS fra et uregistreret nummer blive blokeret eller markeret som spam. Før du regner med et nummer, så tjek [Twilios SMS-retningslinjer](https://www.twilio.com/en-us/guidelines/sms) for hvert land, du sender til.
+
+### En konto kun til SMS eller kun til opkald
+
+En konto, du kun bruger til SMS eller kun til opkald, behøver intet nummer til det andet. Vælg det under **Brug denne konto til**, så beder formularen kun om de numre, som valget kræver:
+
+| Valg | Numre, det kræver | Hvad den aldrig sender |
+| --- | --- | --- |
+| **Opkald og SMS** | **Twilio primært telefonnummer** | Intet |
+| **Kun SMS** | **Twilio SMS-telefonnumre** | Opkald |
+| **Kun opkald** | **Twilio primært telefonnummer** | SMS |
+
+Det, en konfiguration ikke sender, går ud, som det ville uden konfigurationen: når projektets standard er sat til **Kun SMS**, går opkald til projektets medlemmer gennem konfigurationen for hele installationen. Kan ingen konfiguration sende en besked, står der i beskedens log, at projektets konfiguration ikke bruges til den, og hvem der kan ændre det.
+
+Statussider tilbyder kun de konfigurationer, der sender SMS, og **Send test-SMS** og **Send testopkald** vises kun for det, en konfiguration sender. Alle eksisterende konfigurationer er som før sat til **Opkald og SMS**. Gennem API'et og Terraform er valget feltet `usedFor`, og en konfiguration uden de numre, dens valg kræver, afvises.
 
 ## 3. Konfigurer netværksadgang
 
@@ -145,6 +159,7 @@ Til udvikling beskriver Twilios [vejledning i test af webhooks](https://www.twil
 | --- | --- |
 | Intet bliver sendt | Legitimationsoplysninger, nummerets funktioner, kontoens begrænsninger og den udgående forbindelse. |
 | Twilio afviser SMS med fejl 21606 | Nummeret kan ikke sende SMS. Tilføj et, der kan, under **Twilio SMS-telefonnumre**: se [Separate numre til opkald og SMS](#separate-numre-til-opkald-og-sms). |
+| Opkald eller SMS går gennem en anden konto end projektets | Projektets standard er sat til **Kun SMS** eller **Kun opkald**: se [En konto kun til SMS eller kun til opkald](#en-konto-kun-til-sms-eller-kun-til-opkald). |
 | SMS'en eller opkaldet kommer frem, men status eller kvittering opdateres ikke | Callback-URL'en og logs fra den offentlige ingress. Twilios [vejledning om fejl ved HTTP-hentning](https://www.twilio.com/docs/api/errors/11200) hjælper med utilgængelige callbacks, TLS-problemer og HTTP-fejl. |
 
 Et vellykket testopkald alene beviser ikke, at callbacks kan nås.

@@ -5,6 +5,7 @@ import TwilioConfig from "../../../Types/CallAndSMS/TwilioConfig";
 import ObjectID from "../../../Types/ObjectID";
 import Phone from "../../../Types/Phone";
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
+import { TwilioMessageKind } from "../../../Utils/Project/TwilioAccount";
 import {
   afterEach,
   beforeEach,
@@ -160,6 +161,7 @@ describe("an account for a project", () => {
     expect(
       await TwilioAccountAvailability.isAccountAvailableForProject({
         projectId: PROJECT_ID,
+        kind: TwilioMessageKind.SMS,
       }),
     ).toBe(true);
     expect(GlobalConfigService.findOneBy).not.toHaveBeenCalled();
@@ -171,6 +173,7 @@ describe("an account for a project", () => {
     expect(
       await TwilioAccountAvailability.isAccountAvailableForProject({
         projectId: PROJECT_ID,
+        kind: TwilioMessageKind.SMS,
       }),
     ).toBe(true);
   });
@@ -179,6 +182,7 @@ describe("an account for a project", () => {
     expect(
       await TwilioAccountAvailability.isAccountAvailableForProject({
         projectId: PROJECT_ID,
+        kind: TwilioMessageKind.SMS,
       }),
     ).toBe(false);
   });
@@ -187,6 +191,7 @@ describe("an account for a project", () => {
     expect(
       await TwilioAccountAvailability.isAccountAvailableForProject({
         projectId: PROJECT_ID,
+        kind: TwilioMessageKind.SMS,
         projectDefaultTwilioConfig: PROJECT_TWILIO_CONFIG,
       }),
     ).toBe(true);

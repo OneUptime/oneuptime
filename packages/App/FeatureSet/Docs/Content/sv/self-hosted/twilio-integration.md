@@ -44,7 +44,7 @@ Så lägger du till en projektkonfiguration:
 :::steps
 1. Gå till **Projektinställningar > Aviseringar > Aviseringsinställningar**.
 2. Välj **Skapa Twilio-konfiguration** i **Twilio-konfiguration**.
-3. Ange ett namn, **Twilio Account SID**, **Twilio Auth Token** och **Twilio primärt telefonnummer**. Under **Fler fält** kan du också ange kommaseparerade **Twilio sekundära telefonnummer** för andra länder, och **Twilio SMS-telefonnummer** om dina nummer inte kan skicka SMS.
+3. Ange ett namn och välj under **Använd det här kontot för** vad kontot skickar: **Samtal och SMS**, **Endast SMS** eller **Endast samtal**. Ange sedan **Twilio Account SID**, **Twilio Auth Token** och det nummer som valet ber om: **Twilio primärt telefonnummer** för samtal, eller **Twilio SMS-telefonnummer** för **Endast SMS**. Under **Fler fält** kan du också ange kommaseparerade **Twilio sekundära telefonnummer** för andra länder, och **Twilio SMS-telefonnummer** om dina nummer inte kan skicka SMS.
 4. **Ange som projektstandard** är påslaget för projektets första konfiguration, så SMS och samtal till projektets medlemmar, även jouraviseringar, går genom den så fort du sparar. Stäng av det om kontot bara är till för statussidor eller inkommande samtal. En senare konfiguration börjar med reglaget avstängt: slå på det, eller välj **Ange som projektstandard** i konfigurationens radmeny, för att flytta de meddelandena dit. En API-begäran som utelämnar `isProjectDefault` behandlas på samma sätt.
 5. Spara. Bara en konfiguration kan vara projektstandard. Statussidor använder den konfiguration som uttryckligen har tilldelats varje statussida.
 
@@ -52,7 +52,7 @@ Så lägger du till en projektkonfiguration:
 > **SMS** och **Telefonsamtal** är avstängda från början i varje projekt, och så länge de är avstängda kan ingen i projektet lägga till ett telefonnummer för dem. En projektägare, en **Billing Admin** eller någon med **Manage Billing** slår på dem i kortet **Aviseringskanaler** på samma sida.
 :::
 
-För en standard som gäller hela installationen kan en administratör i stället öppna **Admin Dashboard > Inställningar > Samtal och SMS**, redigera Twilio-uppgifterna och telefonnumren och spara. Medlemmarnas aviseringar använder den här globala konfigurationen när deras projekt saknar standard. Håll Auth Token hemlig.
+För en standard som gäller hela installationen kan en administratör i stället öppna **Admin Dashboard > Inställningar > Samtal och SMS**, välja vad kontot skickar, redigera Twilio-uppgifterna och telefonnumren och spara. Medlemmarnas aviseringar använder den här globala konfigurationen när deras projekt saknar standard. Håll Auth Token hemlig.
 
 ### Separata nummer för samtal och SMS
 
@@ -70,6 +70,20 @@ En konfiguration utan SMS-nummer skickar SMS från samma nummer som samtal, som 
 
 > [!NOTE]
 > Vilka nummer som kan skicka SMS, och om en avsändare först måste registreras, skiljer sig från land till land: där registrering krävs kan ett SMS från ett oregistrerat nummer blockeras eller flaggas som skräppost. Innan du förlitar dig på ett nummer, kontrollera [Twilios SMS-riktlinjer](https://www.twilio.com/en-us/guidelines/sms) för varje land du skickar till.
+
+### Ett konto endast för SMS, eller endast för samtal
+
+Ett konto som du bara använder för SMS, eller bara för samtal, behöver inget nummer för det andra. Välj det under **Använd det här kontot för**, så frågar formuläret bara efter de nummer som valet behöver:
+
+| Val | Nummer som behövs | Vad det aldrig skickar |
+| --- | --- | --- |
+| **Samtal och SMS** | **Twilio primärt telefonnummer** | Ingenting |
+| **Endast SMS** | **Twilio SMS-telefonnummer** | Samtal |
+| **Endast samtal** | **Twilio primärt telefonnummer** | SMS |
+
+Det som en konfiguration inte skickar går ut som det skulle ha gjort utan konfigurationen: när projektets standard är inställd på **Endast SMS** går samtal till projektets medlemmar via konfigurationen för hela installationen. Om ingen konfiguration kan skicka ett meddelande står det i meddelandets logg att projektets konfiguration inte används för det, och vem som kan ändra det.
+
+Statussidor erbjuder bara de konfigurationer som skickar SMS, och **Skicka test-SMS** och **Skicka testsamtal** visas bara för det som en konfiguration skickar. Alla befintliga konfigurationer är som tidigare inställda på **Samtal och SMS**. Via API:et och Terraform är valet fältet `usedFor`, och en konfiguration utan de nummer som valet behöver avvisas.
 
 ## 3. Konfigurera nätverksåtkomst
 
@@ -145,6 +159,7 @@ För utveckling beskriver Twilios [guide för att testa webhooks](https://www.tw
 | --- | --- |
 | Inget skickas | Autentiseringsuppgifter, numrets funktioner, kontots begränsningar och den utgående anslutningen. |
 | Twilio avvisar SMS med fel 21606 | Numret kan inte skicka SMS. Lägg till ett som kan under **Twilio SMS-telefonnummer**: se [Separata nummer för samtal och SMS](#separata-nummer-för-samtal-och-sms). |
+| Samtal eller SMS går via ett annat konto än projektets | Projektets standard är inställd på **Endast SMS** eller **Endast samtal**: se [Ett konto endast för SMS, eller endast för samtal](#ett-konto-endast-för-sms-eller-endast-för-samtal). |
 | SMS:et eller samtalet kommer fram, men status eller kvittering uppdateras inte | Återanrops-URL:en och loggarna från den offentliga ingressen. Twilios [vägledning om fel vid HTTP-hämtning](https://www.twilio.com/docs/api/errors/11200) hjälper till med återanrop som inte nås, TLS-problem och HTTP-fel. |
 
 Ett lyckat testsamtal bevisar inte ensamt att återanrop kan nås.

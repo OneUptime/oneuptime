@@ -187,8 +187,23 @@ export default class SmsService {
       // check number of sms to send for this entire messages to send. Each sms can have 160 characters.
       const smsSegments: number = Math.ceil(message.length / 160);
 
+      /*
+       * The config the caller handed over - the project's default, or a
+       * status page's - when it sends SMS. One used for calls only sends
+       * none (TwilioPhoneNumbers.canSend, Types/CallAndSMS/TwilioConfigUse):
+       * this SMS then goes as it would without it, through the server's own
+       * account, and is paid for as such.
+       */
+      const customTwilioConfig: TwilioConfig | undefined =
+        TwilioPhoneNumbers.canSend(
+          options.customTwilioConfig,
+          TwilioMessageKind.SMS,
+        )
+          ? options.customTwilioConfig
+          : undefined;
+
       const shouldChargeForSMS: boolean =
-        IsBillingEnabled && !options.customTwilioConfig;
+        IsBillingEnabled && !customTwilioConfig;
 
       // What it costs, in whole cents: every segment is charged.
       const smsCostInUSDCents: number = shouldChargeForSMS
@@ -288,19 +303,22 @@ export default class SmsService {
       }
 
       const twilioConfig: TwilioConfig | null =
-        options.customTwilioConfig || (await getTwilioConfig());
+        customTwilioConfig || (await getTwilioConfig(TwilioMessageKind.SMS));
 
       if (!twilioConfig) {
         /*
          * Nobody has filled in Twilio credentials in Global Settings (or the
-         * caller passed a project-level config that is empty). Failing to send
-         * is the correct behaviour, not a defect, so do not open an Issue.
-         * The log, and anyone waiting on this SMS, are told what is missing
-         * and who can add it (Utils/Project/TwilioAccount) - not "Twilio
-         * Config not found".
+         * caller passed a project-level config that is empty, or one used
+         * for calls only). Failing to send is the correct behaviour, not a
+         * defect, so do not open an Issue. The log, and anyone waiting on
+         * this SMS, are told what is missing and who can add it - and, when
+         * the project's own config is used for calls only, that it is
+         * (Utils/Project/TwilioAccount) - not "Twilio Config not found".
          */
         throw new BadDataException(
-          getNoTwilioAccountMessage(TwilioMessageKind.SMS),
+          getNoTwilioAccountMessage(TwilioMessageKind.SMS, {
+            projectConfigUse: options.customTwilioConfig?.use,
+          }),
         ).asUserError();
       }
 
