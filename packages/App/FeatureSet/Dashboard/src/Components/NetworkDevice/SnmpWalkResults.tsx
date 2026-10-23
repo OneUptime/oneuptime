@@ -146,13 +146,18 @@ const SnmpWalkRowName: FunctionComponent<PartProps> = (
   );
 };
 
-const SnmpWalkRowType: FunctionComponent<{ view: SnmpWalkRowView }> = (props: {
+interface TypeProps {
   view: SnmpWalkRowView;
-}): ReactElement => {
+  testId: string;
+}
+
+const SnmpWalkRowType: FunctionComponent<TypeProps> = (
+  props: TypeProps,
+): ReactElement => {
   return (
     <span
       className="inline-flex shrink-0 rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-700"
-      data-testid="snmp-walk-row-type"
+      data-testid={props.testId}
     >
       {props.view.typeLabel}
     </span>
@@ -298,7 +303,7 @@ const SnmpWalkResultRow: FunctionComponent<RowProps> = (
         <SnmpWalkRowName view={view} translator={translator} />
       </div>
       <div className="max-md:hidden md:col-start-2 md:row-start-1">
-        <SnmpWalkRowType view={view} />
+        <SnmpWalkRowType view={view} testId="snmp-walk-row-type" />
       </div>
       <div className="col-span-2 row-start-2 flex min-w-0 items-start gap-2 md:col-span-1 md:col-start-3 md:row-start-1">
         {/*
@@ -306,7 +311,7 @@ const SnmpWalkResultRow: FunctionComponent<RowProps> = (
          * of taking a line of its own; from md it has its column.
          */}
         <div className="md:hidden">
-          <SnmpWalkRowType view={view} />
+          <SnmpWalkRowType view={view} testId="snmp-walk-row-type-phone" />
         </div>
         <SnmpWalkRowValue view={view} translator={translator} />
       </div>

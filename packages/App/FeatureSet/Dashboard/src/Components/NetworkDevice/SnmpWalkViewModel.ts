@@ -44,9 +44,9 @@ export const SNMP_WALK_ROWS_PER_PAGE: number = 100;
 
 /*
  * How many earlier walks of the device are read to put a continued walk
- * back together on the page. Each holds up to a thousand OIDs.
+ * back together on the page: five pages, five thousand OIDs at most.
  */
-export const SNMP_WALK_HISTORY_LIMIT: number = 10;
+export const SNMP_WALK_HISTORY_LIMIT: number = 5;
 
 /*
  * The longest value carried into a new monitor's criteria. A longer one -
