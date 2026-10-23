@@ -144,6 +144,19 @@ describe("the English section on the SNMP Walk page", () => {
     }
   });
 
+  it("offers Alert on it once the OID is collected, as the results do", () => {
+    const results: string = readSource(
+      "App/FeatureSet/Dashboard/src/Components/NetworkDevice/SnmpWalkResults.tsx",
+    ).replace(/\s+/g, " ");
+
+    expect(results).toContain(
+      "const alertRoute: Route | undefined = isCollected ? actions.getAlertRoute?.(row) : undefined;",
+    );
+    expect(SECTION).toContain(
+      "- **Alert on it**, once the OID is collected, opens a new Network Device monitor",
+    );
+  });
+
   it("describes the criteria Alert on it starts with, for each kind of value", () => {
     expect(CheckOn.SnmpOidValue).toBe("SNMP OID Value");
     expect(SECTION).toContain(

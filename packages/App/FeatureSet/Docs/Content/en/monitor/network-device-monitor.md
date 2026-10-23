@@ -391,7 +391,7 @@ Type a numeric OID under **Start at OID**, or pick one of the **Common starting 
 Each row says where its OID is known: a value a vendor health template collects, a column of a vendor template's SNMP table, a counter the interface walk already charts for every port, or an OID under its vendor's MIB. From a row:
 
 - **Collect** adds the OID to the device's **Device-Specific Health OIDs**: every poll collects it from the next one on, and the device's **Metrics** page charts it. On a device linked to an OID Collection Template, the row's menu can add it to the template instead, for every device that uses it.
-- **Alert on it** opens a new Network Device monitor for the device with one **SNMP OID Value** criteria on the OID, starting from the walked value: a counter or gauge alerts above it, an uptime below it (the device restarted), and anything else when it changes.
+- **Alert on it**, once the OID is collected, opens a new Network Device monitor for the device with one **SNMP OID Value** criteria on the OID, starting from the walked value: a counter or gauge alerts above it, an uptime below it (the device restarted), and anything else when it changes.
 - **Copy OID**, in the row's menu, copies the OID.
 
 A walk that fails says why, and what to check: a device that does not answer (SNMP off, UDP 161 blocked or, on v1 and v2c, a wrong community string, which an agent ignores without a word), an SNMPv3 user, password or protocol the device refused, or a part of the tree the credentials' SNMP view leaves out. A walk that stops part of the way keeps what it read. Walking needs the **Create Network Device Diagnostic** permission and a probe recent enough to walk SNMP: with an older probe, the page asks you to update it.
