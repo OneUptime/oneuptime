@@ -38,7 +38,7 @@ flowchart TB
 | Équipe | Un groupe nommé au sein d'un projet, porteur des autorisations. |
 | Membre d'équipe | Un utilisateur invité dans une équipe et ayant accepté. |
 | Autorisation | Une capacité unique, p. ex. `CreateProjectMonitor`, ou un rôle qui en regroupe plusieurs, p. ex. `MonitorAdmin`. |
-| Rôle personnalisé | Un ensemble d'autorisations que vous nommez une fois et donnez à des équipes. |
+| Rôle personnalisé | Un ensemble d'autorisations que vous nommez une fois et donnez à des équipes et des clés API. |
 | Portée | Jusqu'où va une autorisation accordée : toutes les ressources, seulement celles possédées, ou seulement celles étiquetées. |
 | Propriétaire | Un utilisateur ou une équipe désigné responsable d'une ressource précise. |
 | Étiquette | Un marqueur posé sur les ressources, utilisé pour restreindre les autorisations et pour organiser. |
@@ -139,20 +139,20 @@ La liste complète est dans la [Référence des autorisations](/docs/permissions
 
 ### Rôles personnalisés
 
-Un rôle personnalisé est un ensemble d'autorisations que vous nommez une fois et donnez à des équipes : par exemple un « Intervenant incidents » fait de `IncidentMember`, `AlertMember` et `OnCallViewer`, ou un « Chef d'équipe ». Chaque équipe à qui vous le donnez reçoit les mêmes autorisations, et vous les modifiez pour toutes ces équipes à un seul endroit. Sur OneUptime Cloud, les rôles personnalisés demandent l'offre Scale, comme la modification des autorisations d'une équipe.
+Un rôle personnalisé est un ensemble d'autorisations que vous nommez une fois et donnez à des équipes et des clés API : par exemple un « Intervenant incidents » fait de `IncidentMember`, `AlertMember` et `OnCallViewer`, ou un « Chef d'équipe ». Chaque équipe et chaque clé à qui vous le donnez reçoit les mêmes autorisations, et vous les modifiez pour toutes à un seul endroit. Sur OneUptime Cloud, les rôles personnalisés demandent l'offre Scale, comme la modification des autorisations d'une équipe.
 
 :::steps
 1. Ouvrez **Équipes** dans le menu **Produits**, sous **Paramètres**. Dépliez **Paramètres** dans le menu latéral, choisissez **Rôles** et cliquez sur **Créer : Rôle personnalisé**.
 2. Saisissez son **Nom** et choisissez sous **Autorisations** les rôles intégrés qu'il regroupe, pour chaque ressource du projet. La description se trouve sous **Plus de champs**.
 3. Créez le rôle. Il s'ouvre sur sa page, où **Ajouter un rôle** ajoute un autre rôle intégré et **Ajouter une permission** (dans le menu **⋯** de la carte) une autorisation unique, chacune avec une portée et des étiquettes, comme sur une équipe.
-4. Cliquez sur **Donner à une équipe** sous **Équipes ayant ce rôle**. La page **Autorisations** d'une équipe propose aussi **Ajouter un rôle personnalisé**, et **Créer une équipe** propose sous **Accès** les rôles personnalisés que vous pourriez donner.
+4. Cliquez sur **Donner à une équipe** sous **Équipes ayant ce rôle**, ou sur **Donner à une clé API** sous **Clés API ayant ce rôle**. La page **Autorisations** d'une équipe et la page d'une clé API proposent aussi **Ajouter un rôle personnalisé**, et **Créer une équipe** et **Créer : Clé API** proposent sous **Accès** les rôles personnalisés que vous pourriez donner.
 :::
 
 - Les membres d'une équipe reçoivent chaque autorisation de ses rôles personnalisés, avec la même portée et les mêmes étiquettes, exactement comme si l'équipe les détenait elle-même. Un blocage sur l'équipe l'emporte toujours.
-- Un rôle reste lié aux équipes qui l'ont : une modification les atteint toutes immédiatement, et la page du rôle indique combien d'équipes et de personnes cela représente. **Supprimer** retire le rôle à une équipe. Supprimer le rôle lui-même retire ses autorisations à chaque équipe qui l'a ; les équipes gardent leurs membres et leurs autres rôles et autorisations.
-- Vous ne pouvez mettre dans un rôle, et donner comme rôle à une équipe, que ce que vous pourriez donner directement à l'équipe : un rôle contenant une autorisation que vous ne détenez pas avec une portée égale ou plus large est refusé, et le refus nomme l'autorisation. Un rôle ne contient jamais `ProjectOwner`, et **Owners** et **Admin** n'en reçoivent jamais.
-- La page **Autorisations** d'une équipe liste ses rôles personnalisés au-dessus de ses propres autorisations. Ce qu'un rôle donne se modifie sur la page du rôle, pas sur celle de l'équipe.
-- Les clés API ne prennent pas de rôles personnalisés. Une clé sert une seule intégration : donnez-lui exactement les autorisations dont elle a besoin sur sa propre page.
+- Un rôle reste lié aux équipes et aux clés API qui l'ont : une modification les atteint toutes immédiatement, et la page du rôle indique combien d'équipes, de personnes et de clés cela représente. **Supprimer** retire le rôle à une équipe ou à une clé. Supprimer le rôle lui-même retire ses autorisations à chaque équipe et chaque clé qui l'ont ; elles gardent tout le reste de ce qu'elles ont.
+- Vous ne pouvez mettre dans un rôle, et donner comme rôle à une équipe ou à une clé API, que ce que vous pourriez lui donner directement : un rôle contenant une autorisation que vous ne détenez pas avec une portée égale ou plus large est refusé, et le refus nomme l'autorisation. Un rôle ne contient jamais `ProjectOwner`, et **Owners** et **Admin** n'en reçoivent jamais.
+- La page **Autorisations** d'une équipe et la page d'une clé API listent leurs rôles personnalisés au-dessus de leurs propres autorisations. Ce qu'un rôle donne se modifie sur la page du rôle, pas sur celle de l'équipe ou de la clé.
+- Une clé API reçoit chaque autorisation de ses rôles personnalisés, avec les mêmes étiquettes, comme si la clé les détenait elle-même, et un blocage sur la clé l'emporte toujours. Une autorisation que le rôle limite à ce que quelqu'un possède ne donne rien à une clé : une clé ne possède rien.
 - Les rôles intégrés sont listés sous **Rôles intégrés**, en bas de la page **Rôles**.
 
 ### Accorder et bloquer
@@ -247,11 +247,11 @@ Les logs de moniteur, l'historique des SLO, les flux réseau et les allocations 
 
 ## Clés d'API
 
-Les clés d'API reçoivent leurs autorisations directement, sur la clé elle-même — elles n'appartiennent à aucune équipe et ne sont pas affectées par les appartenances.
+Les clés d'API reçoivent leurs autorisations directement, sur la clé elle-même, ou par les rôles personnalisés qu'on leur donne — elles n'appartiennent à aucune équipe et ne sont pas affectées par les appartenances.
 
-- Attribuez les mêmes autorisations granulaires et rôles que vous donneriez à une équipe.
+- Attribuez les mêmes autorisations granulaires, rôles et rôles personnalisés que vous donneriez à une équipe.
 - Les clés prennent en charge les **autorisations bloquées** et les **restrictions par étiquettes**, comme les équipes.
-- Les clés ne prennent **pas** en charge la portée Possédées. La propriété se résout par rapport à un utilisateur, et une clé n'est pas un utilisateur : accordez donc aux clés l'accès dont elles ont besoin de manière explicite.
+- Les clés ne prennent **pas** en charge la portée Possédées. La propriété se résout par rapport à un utilisateur, et une clé n'est pas un utilisateur : accordez donc aux clés l'accès dont elles ont besoin de manière explicite. Une autorisation d'un rôle personnalisé avec la portée Possédées ne donne rien à une clé.
 
 **Créer une clé** demande un nom et son **Accès** :
 
@@ -260,6 +260,7 @@ Les clés d'API reçoivent leurs autorisations directement, sur la clé elle-mê
 | Administrateur du projet | Créer, modifier et supprimer tout ce qui se trouve dans le projet, ses paramètres compris. Pas la facturation, ni la suppression du projet. |
 | Membre du projet | Créer, modifier et supprimer les moniteurs, les incidents, les pages de statut et les autres ressources du projet, comme le peut un membre du projet. |
 | Lecteur | Tout lire dans le projet, et ne rien modifier. |
+| Un rôle personnalisé | Tout ce que le rôle permet, sauf ce qu'il limite aux ressources que quelqu'un possède. Listé quand votre projet en a un que vous pourriez donner. |
 | Choisir les autorisations plus tard | Rien pour l'instant. Sélectionné au départ. |
 
 :::steps
@@ -270,7 +271,7 @@ Les clés d'API reçoivent leurs autorisations directement, sur la clé elle-mê
 
 Le rôle que vous choisissez devient la première autorisation de la clé dès que la clé existe, exactement comme si vous l'aviez ajouté sur la page de la clé. Seuls les rôles que vous détenez vous-même vous sont proposés — une clé ne peut jamais recevoir plus que ce que détient la personne qui la donne — et une personne qui peut créer des clés sans pouvoir changer ce qu'elles peuvent faire n'est pas interrogée.
 
-Sur la page d'une clé, **Ajouter un rôle** ajoute un rôle de la même liste que celle que propose l'onglet Autorisations d'une équipe, et **Ajouter une permission** (dans le menu **⋯** de la carte) ajoute une autorisation granulaire. **Bloquer les autorisations** se trouve sous **Plus de paramètres**, en bas de la page, dont l'en-tête replié indique combien la clé en a.
+Sur la page d'une clé, **Rôles personnalisés** liste les rôles personnalisés de la clé dès que votre projet en a un, et **Ajouter un rôle personnalisé** lui en donne un autre. **Ajouter un rôle** ajoute un rôle de la même liste que celle que propose l'onglet Autorisations d'une équipe, et **Ajouter une permission** (dans le menu **⋯** de la carte) ajoute une autorisation granulaire. **Bloquer les autorisations** se trouve sous **Plus de paramètres**, en bas de la page, dont l'en-tête replié indique combien la clé en a.
 
 > [!TIP]
 > Donnez à chaque intégration sa propre clé, avec le jeu d'autorisations le plus étroit qui fonctionne, afin de pouvoir en révoquer une sans perturber les autres.

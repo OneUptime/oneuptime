@@ -2,6 +2,7 @@ import AccessTokenService from "./AccessTokenService";
 import AcmeCertificateService from "./AcmeCertificateService";
 // import LogService from './LogService';
 import AnalyticsDatabaseService from "./AnalyticsDatabaseService";
+import ApiKeyCustomRoleService from "./ApiKeyCustomRoleService";
 import ApiKeyPermissionService from "./ApiKeyPermissionService";
 // API Keys
 import ApiKeyService from "./ApiKeyService";
@@ -534,6 +535,7 @@ const services: Array<BaseService> = [
   // Import all services in current folder here.
   AccessTokenService,
   ApiKeyPermissionService,
+  ApiKeyCustomRoleService,
   ApiKeyService,
 
   BillingInvoiceService,

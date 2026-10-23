@@ -5,6 +5,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import CustomRoleSync from "../Utils/CustomRole/CustomRoleSync";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ApiKeyPermissionService from "./ApiKeyPermissionService";
 import DatabaseService from "./DatabaseService";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -25,12 +26,14 @@ import Model from "../../Models/DatabaseModels/CustomRole";
  *     project whatever its case or spacing (Types/Team/CustomRole). It is
  *     kept trimmed, with inner runs of space made one.
  *   - Deleting a role takes, in the same DELETE, its permissions, the
- *     teams' hold of it and every team's copy of its permissions (ON DELETE
- *     CASCADE); the members of those teams have their cached permissions
- *     rebuilt right after (CustomRoleSync.refreshMembersOfTeams).
+ *     teams' and API keys' hold of it and every team's and key's copy of its
+ *     permissions (ON DELETE CASCADE); the members of those teams have their
+ *     cached permissions rebuilt right after
+ *     (CustomRoleSync.refreshMembersOfTeams), and every server forgets the
+ *     keys' (ApiKeyPermissionService.forgetPermissionsOfProjects).
  *
  * What a role holds is CustomRolePermissionService's, and who it is given
- * to TeamCustomRoleService's.
+ * to TeamCustomRoleService's and ApiKeyCustomRoleService's.
  */
 
 interface TeamsOfDeletedRoles {
@@ -242,6 +245,13 @@ export class Service extends DatabaseService<Model> {
         teamIds: teams.teamIds,
       });
     }
+
+    // The keys' copies went with the roles: every server stops serving them now.
+    await ApiKeyPermissionService.forgetPermissionsOfProjects(
+      teamsOfDeletedRoles.map((teams: TeamsOfDeletedRoles): ObjectID => {
+        return teams.projectId;
+      }),
+    );
 
     return onDelete;
   }

@@ -1,4 +1,5 @@
 import ProjectUtil from "Common/UI/Utils/Project";
+import IsNull from "Common/Types/BaseDatabase/IsNull";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -47,6 +48,10 @@ import React, {
  * with nothing, so the empty table repeats Add Role as the way forward.
  *
  * Block permissions keep the one-permission form they always had.
+ *
+ * Only the key's own permissions are listed: what comes with a custom role
+ * given to the key is the role's, listed by role above
+ * (ApiKeyCustomRoleTable) and changed on the role's page.
  */
 
 export enum ApiKeyPermissionType {
@@ -276,6 +281,8 @@ const ApiKeyPermissionTable: FunctionComponent<ComponentProps> = (
         apiKeyId: apiKeyId,
         projectId: ProjectUtil.getCurrentProjectId()!,
         isBlockPermission: isBlock,
+        // A custom role's copies are the role's, listed by role above.
+        apiKeyCustomRoleId: new IsNull(),
       }}
       onBeforeCreate={(item: ApiKeyPermission): Promise<ApiKeyPermission> => {
         if (!currentProject || !currentProject._id) {

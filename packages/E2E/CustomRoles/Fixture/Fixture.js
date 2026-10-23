@@ -2,7 +2,9 @@
  * Offline fixture for custom roles: the real Teams pages - Teams > Settings >
  * Roles, a role's own page, a team's Permissions page and the Teams list with
  * Create Team - mounted at their real addresses through the real
- * TeamsRoutes, with the real Teams layout (side menu, breadcrumbs).
+ * TeamsRoutes, with the real Teams layout (side menu, breadcrumbs); and the
+ * real Settings > API Keys pages - the list with Create API Key, and a key's
+ * own page - through the real SettingsRoutes.
  *
  * Only the ModelAPI/API data boundary and the synthetic user's permission
  * snapshot are replaced; the pages, their tables, forms and dialogs are the
@@ -11,11 +13,14 @@
  * Steered by the query string:
  *   - roles=none        the project has no custom role yet
  *   - roles=many        thirty custom roles, for a long list and long pickers
+ *   - keys=none         the project has no API key yet
  *   - long=1            two roles with long names: a sentence of a name, and
- *                       a single word with nowhere to break
+ *                       a single word with nowhere to break - both given to
+ *                       the Deploy bot key too
  *   - user=editor       a member who may change what teams can do and holds
- *                       Incident Member and Alert Member - not Project Admin;
- *                       the default is a project owner
+ *                       Incident Member and Alert Member - not Project Admin,
+ *                       and not who may read the project's API keys; the
+ *                       default is a project owner
  *   - refuse=<perm>     the server refuses putting this permission into a
  *                       role, as it refuses one its giver does not hold
  *   - members=hidden    the reader may not read the teams' members, so a
@@ -27,8 +32,9 @@
  * `.updates` and `.deletes`, and every list read on `.listRequests`, so the
  * spec checks what the page sent as well as what it drew. Writes act on the
  * in-memory project as the services do: a permission put into a role counts
- * on the role and reaches every team with it; deleting a role takes its
- * permissions and the teams' hold of it.
+ * on the role and reaches every team and API key with it (but what it limits
+ * to resources someone owns, which gives a key nothing); deleting a role
+ * takes its permissions and the teams' and keys' hold of it.
  */
 import "Common/UI/Styles/Theme.css";
 import React from "react";
@@ -44,6 +50,10 @@ import {
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import TeamsRoutes from "../../../App/FeatureSet/Dashboard/src/Routes/TeamsRoutes";
+import SettingsRoutes from "../../../App/FeatureSet/Dashboard/src/Routes/SettingsRoutes";
+import ApiKey from "Common/Models/DatabaseModels/ApiKey";
+import ApiKeyCustomRole from "Common/Models/DatabaseModels/ApiKeyCustomRole";
+import ApiKeyPermission from "Common/Models/DatabaseModels/ApiKeyPermission";
 import CustomRole from "Common/Models/DatabaseModels/CustomRole";
 import CustomRolePermission from "Common/Models/DatabaseModels/CustomRolePermission";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -76,6 +86,7 @@ const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 const USER_ID = "80000000-0000-4000-8000-000000000001";
 const params = new URLSearchParams(window.location.search);
 const rolesScenario = params.get("roles") || "some";
+const hasNoApiKey = params.get("keys") === "none";
 const hasLongNames = params.get("long") === "1";
 const userKind = params.get("user") || "owner";
 const refusedPermission = params.get("refuse") || "";
@@ -349,6 +360,116 @@ function syncCopies() {
       );
     }
   }
+
+  syncKeyCopies();
+}
+
+/*
+ * API keys: Deploy bot, given Team Lead and Incident Helper (and, with
+ * long=1, the two roles with long names), and Terraform, given none. Each
+ * has one permission of its own.
+ */
+const KEYS = {
+  deploy: "60000000-0000-4000-8000-000000000001",
+  terraform: "60000000-0000-4000-8000-000000000002",
+};
+
+function apiKey(id, name, description) {
+  const record = new ApiKey();
+  record._id = id;
+  record.projectId = new ObjectID(PROJECT_ID);
+  record.name = name;
+  record.description = description;
+  record.expiresAt = new Date("2027-10-23T00:00:00.000Z");
+  record.apiKey = new ObjectID(`61${id.slice(2)}`);
+  return record;
+}
+
+const apiKeys = hasNoApiKey
+  ? []
+  : [
+      apiKey(KEYS.deploy, "Deploy bot", "Ships releases from CI."),
+      apiKey(KEYS.terraform, "Terraform", "Manages monitors and status pages."),
+    ];
+
+function apiKeyCustomRole(keyId, roleId) {
+  const record = new ApiKeyCustomRole();
+  record._id = newId("64");
+  record.projectId = new ObjectID(PROJECT_ID);
+  record.apiKeyId = new ObjectID(keyId);
+  record.customRoleId = new ObjectID(roleId);
+  return record;
+}
+
+const apiKeyCustomRoles = [];
+
+if (rolesScenario !== "none" && !hasNoApiKey) {
+  apiKeyCustomRoles.push(
+    apiKeyCustomRole(KEYS.deploy, ROLES.lead),
+    apiKeyCustomRole(KEYS.deploy, ROLES.helper),
+  );
+}
+
+if (hasLongNames && !hasNoApiKey) {
+  LONG_NAMES.forEach((name, index) => {
+    apiKeyCustomRoles.push(
+      apiKeyCustomRole(
+        KEYS.deploy,
+        `33000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+      ),
+    );
+  });
+}
+
+function apiKeyPermission(keyId, permission, extra) {
+  const record = new ApiKeyPermission();
+  record._id = newId("62");
+  record.projectId = new ObjectID(PROJECT_ID);
+  record.apiKeyId = new ObjectID(keyId);
+  record.permission = permission;
+  record.isBlockPermission = false;
+  record.labels = [];
+  Object.assign(record, extra || {});
+  return record;
+}
+
+const apiKeyPermissions = hasNoApiKey
+  ? []
+  : [
+      apiKeyPermission(KEYS.deploy, Permission.WorkflowViewer),
+      apiKeyPermission(KEYS.terraform, Permission.MonitorAdmin),
+    ];
+
+/*
+ * The copies CustomRoleSync keeps for a key: every permission of its roles
+ * but those limited to what someone owns. The key's Permissions table never
+ * lists them.
+ */
+function syncKeyCopies() {
+  for (let index = apiKeyPermissions.length - 1; index >= 0; index--) {
+    if (apiKeyPermissions[index].apiKeyCustomRoleId) {
+      apiKeyPermissions.splice(index, 1);
+    }
+  }
+
+  for (const given of apiKeyCustomRoles) {
+    for (const row of customRolePermissions) {
+      if (
+        idOf(row.customRoleId) !== idOf(given.customRoleId) ||
+        row.scope === PermissionScope.Owned
+      ) {
+        continue;
+      }
+      apiKeyPermissions.push(
+        apiKeyPermission(idOf(given.apiKeyId), row.permission, {
+          labels: row.scope === PermissionScope.Labels ? row.labels : [],
+          customRoleId: new ObjectID(idOf(given.customRoleId)),
+          apiKeyCustomRoleId: new ObjectID(idOf(given._id)),
+          customRolePermissionId: new ObjectID(idOf(row._id)),
+        }),
+      );
+    }
+  }
 }
 
 function recount() {
@@ -363,6 +484,14 @@ function resolveRelations() {
   for (const given of teamCustomRoles) {
     given.team = teams.find(
       (candidate) => idOf(candidate._id) === idOf(given.teamId),
+    );
+    given.customRole = customRoles.find(
+      (candidate) => idOf(candidate._id) === idOf(given.customRoleId),
+    );
+  }
+  for (const given of apiKeyCustomRoles) {
+    given.apiKey = apiKeys.find(
+      (candidate) => idOf(candidate._id) === idOf(given.apiKeyId),
     );
     given.customRole = customRoles.find(
       (candidate) => idOf(candidate._id) === idOf(given.customRoleId),
@@ -461,7 +590,13 @@ const RECORDS = {
   CustomRolePermission: customRolePermissions,
   TeamCustomRole: teamCustomRoles,
   TeamPermission: teamPermissions,
+  ApiKey: apiKeys,
+  ApiKeyCustomRole: apiKeyCustomRoles,
+  ApiKeyPermission: apiKeyPermissions,
 };
+
+// Read only by who may read the project's API keys, as the server answers.
+const API_KEY_TABLES = ["ApiKey", "ApiKeyCustomRole", "ApiKeyPermission"];
 
 /*
  * A project owner, or a member who may change what teams can do but holds
@@ -533,6 +668,12 @@ ModelAPI.getList = async (options) => {
     );
   }
 
+  if (API_KEY_TABLES.includes(tableName) && userKind === "editor") {
+    throw new Error(
+      `You do not have permissions to read ${new options.modelType().singularName}. You need one of these permissions: Project Owner, Project Admin, Read API Key.`,
+    );
+  }
+
   resolveRelations();
 
   const items = sortRows(
@@ -561,10 +702,11 @@ ModelAPI.getCount = ModelAPI.count;
 /*
  * As DatabaseService.create does before any hook runs
  * (fillIdColumnsFromRelations): a record the form names by its relation -
- * Give to a Team sends `team: { _id }` - gets the id in its ID column too.
+ * Give to a Team sends `team: { _id }`, Give to an API Key `apiKey: { _id }`
+ * - gets the id in its ID column too.
  */
 function fillIdColumnsFromRelations(record) {
-  for (const relation of ["team", "customRole"]) {
+  for (const relation of ["team", "customRole", "apiKey"]) {
     const idColumn = `${relation}Id`;
     if (!record[idColumn] && record[relation] && idOf(record[relation])) {
       record[idColumn] = new ObjectID(idOf(record[relation]));
@@ -620,6 +762,23 @@ function createRecord(tableName, record) {
       throw new Error("This team already has this role.");
     }
     teamCustomRoles.push(record);
+  } else if (tableName === "ApiKeyCustomRole") {
+    if (
+      apiKeyCustomRoles.some(
+        (given) =>
+          idOf(given.apiKeyId) === idOf(record.apiKeyId) &&
+          idOf(given.customRoleId) === idOf(record.customRoleId),
+      )
+    ) {
+      throw new Error("This API key already has this role.");
+    }
+    apiKeyCustomRoles.push(record);
+  } else if (tableName === "ApiKeyPermission") {
+    apiKeyPermissions.push(record);
+  } else if (tableName === "ApiKey") {
+    // The key itself, which the server makes.
+    record.apiKey = new ObjectID(newId("61"));
+    apiKeys.push(record);
   } else if (tableName === "TeamPermission") {
     teamPermissions.push(record);
   } else if (tableName === "Team") {
@@ -691,9 +850,22 @@ ModelAPI.deleteItem = async (options) => {
 
   // What the database deletes with them (ON DELETE CASCADE).
   if (tableName === "CustomRole") {
-    for (const list of [customRolePermissions, teamCustomRoles]) {
+    for (const list of [
+      customRolePermissions,
+      teamCustomRoles,
+      apiKeyCustomRoles,
+    ]) {
       for (let position = list.length - 1; position >= 0; position--) {
         if (idOf(list[position].customRoleId) === id) {
+          list.splice(position, 1);
+        }
+      }
+    }
+  }
+  if (tableName === "ApiKey") {
+    for (const list of [apiKeyCustomRoles, apiKeyPermissions]) {
+      for (let position = list.length - 1; position >= 0; position--) {
+        if (idOf(list[position].apiKeyId) === id) {
           list.splice(position, 1);
         }
       }
@@ -760,6 +932,18 @@ function Fixture() {
         element={
           <Shell>
             <TeamsRoutes
+              pageRoute={Navigation.getCurrentRoute()}
+              currentProject={CURRENT_PROJECT}
+              hasPaymentMethod={true}
+            />
+          </Shell>
+        }
+      />
+      <PageRoute
+        path="/dashboard/:projectId/settings/*"
+        element={
+          <Shell>
+            <SettingsRoutes
               pageRoute={Navigation.getCurrentRoute()}
               currentProject={CURRENT_PROJECT}
               hasPaymentMethod={true}

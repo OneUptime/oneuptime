@@ -134,10 +134,18 @@ describe("Create Team asks the Access question Create API Key asks", () => {
   test("the API Keys page uses the same helper and notice", () => {
     const page: string = readSource("Pages/Settings/APIKeys.tsx");
 
+    // The cards: the roles the user may hand on, then the project's custom roles.
     expect(page).toContain(
-      "getRoleAccessOptionsForCurrentUser( RoleAccessHolder.ApiKey, )",
+      "getRoleAccessOptionsForCurrentUser( RoleAccessHolder.ApiKey, customRoleOptions, )",
+    );
+    expect(page).toContain(
+      "customRoleId: getRoleAccessCustomRoleId( formValues[ROLE_ACCESS_FIELD_KEY], )",
     );
     expect(page).toContain("giveRoleAccess({ holder: RoleAccessHolder.ApiKey,");
+    // A custom role picked is given through the helper Add Custom Role uses.
+    expect(page).toContain(
+      "giveApiKeyCustomRoleAccess({ apiKeyId: createdApiKey.id,",
+    );
     expect(page).toContain(
       "<RoleAccessNotice holder={RoleAccessHolder.ApiKey}",
     );
