@@ -36,9 +36,10 @@ const MAINTENANCE_NAMES: ReadonlyArray<string> = [
 ];
 
 /*
- * Names of an outage or a slowdown, by the value they stand for. A status
- * page's own names come first: Degraded and Offline are a project's
- * defaults.
+ * The names a status is commonly given, by the value they stand for: a
+ * project's own default statuses (Operational, Degraded, Offline), the
+ * values Atlassian Statuspage and incident.io report, and the usual names
+ * of an outage or a slowdown.
  */
 const NAMED_VALUES: ReadonlyArray<
   [ExternalStatusPageComponentStatusValue, ReadonlyArray<string>]
