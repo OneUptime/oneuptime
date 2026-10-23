@@ -209,7 +209,12 @@ const DEVICES = {
     networkDeviceRole: { key: "coreSwitch", name: "Core Switch" },
     discoveredDetails: {
       macAddress: discovered("00:1b:54:c2:7a:01", "arpTable", router, 22),
-      dnsName: discovered("core-sw-01.dc1.acme.example", "reverseDns", scan, 70),
+      dnsName: discovered(
+        "core-sw-01.dc1.acme.example",
+        "reverseDns",
+        scan,
+        70,
+      ),
       foundBy: { readBy: scan, readAt: minutesAgo(70) },
     },
   },
@@ -237,7 +242,12 @@ const DEVICES = {
     hostname: "10.20.12.84",
     discoveredDetails: {
       sysName: discovered("kiosk-04", "snmp", scan, 4 * 24 * 60),
-      sysDescr: discovered("Linux kiosk-04 5.15.0-91-generic", "snmp", scan, 4 * 24 * 60),
+      sysDescr: discovered(
+        "Linux kiosk-04 5.15.0-91-generic",
+        "snmp",
+        scan,
+        4 * 24 * 60,
+      ),
       foundBy: { readBy: scan, readAt: minutesAgo(4 * 24 * 60) },
       otherMachine: {
         readBy: scan,

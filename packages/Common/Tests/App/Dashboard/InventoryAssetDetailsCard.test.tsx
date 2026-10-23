@@ -209,7 +209,7 @@ describe("the Asset Details card (issue #4569)", () => {
       "inventory-asset-details-unknown",
     );
     expect(note).toHaveTextContent(
-      "5 details are unknown: this device has not reported them over SNMP.",
+      "5 details are unknown: neither this device's SNMP poll nor a discovery scan has found them.",
     );
     const link: HTMLElement = within(note).getByRole("link", {
       name: "Where each detail comes from",
@@ -307,7 +307,7 @@ describe("the Asset Details card (issue #4569)", () => {
     expect(
       screen.getByTestId("inventory-asset-details-unknown"),
     ).toHaveTextContent(
-      "1 detail is unknown: this device has not reported it over SNMP.",
+      "1 detail is unknown: neither this device's SNMP poll nor a discovery scan has found it.",
     );
   });
 

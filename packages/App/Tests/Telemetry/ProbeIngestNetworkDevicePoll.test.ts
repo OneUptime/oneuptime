@@ -1406,6 +1406,31 @@ describe("POST /probe/network-device/response/ingest", () => {
     );
   });
 
+  // Issue #5185: the address a DNS name resolved to rides in the ping.
+  test("the address a ping of a DNS name resolved to is queued with the ping", async () => {
+    const pingResponse: JSONObject = {
+      isOnline: true,
+      avgRttMs: 2.5,
+      packetLossPercent: 0,
+      resolvedHost: "core-fw-01.acme.example",
+      resolvedAddress: "10.0.0.1",
+    };
+
+    await callIngestEndpoint(
+      makeRequest({
+        probeId,
+        body: {
+          networkDeviceId: networkDeviceId.toString(),
+          isOnline: true,
+          pollMode: "ping",
+          pingResponse: pingResponse,
+        },
+      }),
+    );
+
+    expect(queuedWalkBody()["pingResponse"]).toEqual(pingResponse);
+  });
+
   test("a ping-first probe's snmp-mode body carries the walk AND the ping, on success and on failure alike", async () => {
     const pingResponse: JSONObject = {
       isOnline: true,

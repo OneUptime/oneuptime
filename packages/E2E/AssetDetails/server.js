@@ -1,8 +1,9 @@
 /*
- * An asset's details in a real browser, with no backend: Fixture.js
- * renders the actual Asset Details and device Inventory cards bundled with the app's esbuild config,
- * Tailwind and theme, and answers the API calls it makes from an in-page
- * store the specs read (issue #5185).
+ * An asset's details in a real browser, with no backend: Fixture.js renders
+ * the actual Asset Details card of an Inventory item and Inventory card of a
+ * network device, bundled with the app's esbuild config, Tailwind and theme,
+ * and answers the API calls they make from an in-page store the specs read
+ * (issue #5185).
  */
 const fs = require("fs");
 const http = require("http");
@@ -11,7 +12,10 @@ const { createConfig } = require("../../Common/UI/esbuild-config.js");
 const esbuild = require("../../Common/node_modules/esbuild");
 
 const repository = path.resolve(__dirname, "../../..");
-const output = path.join(repository, "output/playwright/asset-details-ui/fixture");
+const output = path.join(
+  repository,
+  "output/playwright/asset-details-ui/fixture",
+);
 const port = Number(process.env["ASSET_DETAILS_FIXTURE_PORT"] || 4531);
 const config = createConfig({
   serviceName: "asset-details-fixture",
