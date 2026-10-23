@@ -3,7 +3,11 @@ import {
   HOST_TABLE_MERGES,
   MergeDuplicateHostsAndAddUniqueHostIdentifier1806700000000,
 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1806700000000-MergeDuplicateHostsAndAddUniqueHostIdentifier";
-import { ColumnWithoutForeignKey } from "../../../../Server/Infrastructure/Postgres/DuplicateRowMerge";
+import DuplicateRowMerge, {
+  ColumnWithoutForeignKey,
+  DuplicateRowMergeOptions,
+  DuplicateRowMergeResult,
+} from "../../../../Server/Infrastructure/Postgres/DuplicateRowMerge";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 import { DataSource, QueryRunner } from "typeorm";
@@ -351,7 +355,8 @@ describePostgres(
         otelCollectorStatus: "disconnected",
         agentVersion: "14.0.80",
         description: null,
-        retainTelemetryDataForDays: null,
+        // A person set it on this host: it stays, whatever the others say.
+        retainTelemetryDataForDays: 90,
       });
 
       // The duplicate the agent kept writing to.
@@ -763,7 +768,7 @@ describePostgres(
         );
       });
 
-      test("the kept host takes what the agent last reported, and a description it lacked", async () => {
+      test("the kept host takes what the agent last reported and a description it lacked, and keeps its own retention", async () => {
         const fixture: HostFixture = fixtures.get(table)!;
 
         const rows: Array<{
@@ -788,7 +793,8 @@ describePostgres(
         expect(rows[0]!.agentVersion).toBe("14.0.85");
         // It had none; the duplicate seen last had one.
         expect(rows[0]!.description).toBe("edge box in rack 4");
-        expect(rows[0]!.retainTelemetryDataForDays).toBe(30);
+        // Its own, not the 30 days of the duplicate seen last.
+        expect(rows[0]!.retainTelemetryDataForDays).toBe(90);
         // What it is found by is its own.
         expect(rows[0]!.hostIdentifier).toBe("Test01");
       });
@@ -992,3 +998,391 @@ describePostgres(
     });
   },
 );
+
+/*
+ * DuplicateRowMerge, rule by rule, on tables made for each rule it reads from
+ * the catalog. No table that refers to a host has these indexes today, so the
+ * migration's run above cannot show them: a unique index on live rows only
+ * (a deleted row is nobody's twin - it moves), one whose NULLs are equal
+ * (NULLS NOT DISTINCT - a NULL is a twin of a NULL), and ones it cannot read
+ * (over an expression, or WHERE anything but "deletedAt" IS NULL): it stops
+ * with the index's name and leaves the group as it was. What the kept row
+ * takes is shown both ways: what the agent reports from the row seen last,
+ * what a person set kept where the kept row has it.
+ */
+describePostgres("DuplicateRowMerge against Postgres, rule by rule", () => {
+  const schema: string = `merge_rules_${ObjectID.generate()
+    .toString()
+    .replace(DASHES, "")}`;
+  let database: DataSource;
+  let boxResult: DuplicateRowMergeResult;
+
+  const ids: Record<string, string> = {};
+
+  function optionsFor(table: string): DuplicateRowMergeOptions {
+    return {
+      table: table,
+      duplicateKey: `"projectId", LOWER("name")`,
+      where: `"deletedAt" IS NULL`,
+      columnsWithoutForeignKey: [],
+      latestOf: ["status"],
+      keptOrFirstOf: ["note"],
+      latestBy: "lastSeenAt",
+    };
+  }
+
+  async function merge(table: string): Promise<DuplicateRowMergeResult> {
+    const queryRunner: QueryRunner = database.createQueryRunner();
+    try {
+      await queryRunner.query(`SET search_path TO "${schema}"`);
+      return await DuplicateRowMerge.merge(queryRunner, optionsFor(table));
+    } finally {
+      await queryRunner.query(`SET search_path TO DEFAULT`);
+      await queryRunner.release();
+    }
+  }
+
+  // A table merged by name, like the host tables.
+  async function createParent(table: string): Promise<void> {
+    await database.query(
+      `CREATE TABLE "${schema}"."${table}" (
+         "_id" uuid PRIMARY KEY,
+         "projectId" uuid NOT NULL,
+         "name" varchar(100) NOT NULL,
+         "createdAt" timestamptz NOT NULL,
+         "lastSeenAt" timestamptz NULL,
+         "deletedAt" timestamptz NULL,
+         "status" varchar(100) NULL,
+         "note" varchar(100) NULL
+       )`,
+    );
+  }
+
+  /*
+   * A table referring to `parent` - without ON DELETE CASCADE, so a row the
+   * merge failed to move would stop the duplicate's delete rather than go
+   * with it.
+   */
+  async function createChild(
+    table: string,
+    parent: string,
+    column: string,
+    valueColumn: string,
+  ): Promise<void> {
+    await database.query(
+      `CREATE TABLE "${schema}"."${table}" (
+         "_id" uuid PRIMARY KEY,
+         "${column}" uuid NOT NULL REFERENCES "${schema}"."${parent}" ("_id"),
+         "${valueColumn}" varchar(100) NULL,
+         "deletedAt" timestamptz NULL
+       )`,
+    );
+  }
+
+  async function insertParent(
+    table: string,
+    name: string,
+    values: {
+      projectId: string;
+      createdAt: string;
+      lastSeenAt: string;
+      status: string;
+      note: string | null;
+    },
+  ): Promise<string> {
+    const id: string = ObjectID.generate().toString();
+    await database.query(
+      `INSERT INTO "${schema}"."${table}"
+         ("_id", "projectId", "name", "createdAt", "lastSeenAt", "status", "note")
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        id,
+        values.projectId,
+        name,
+        values.createdAt,
+        values.lastSeenAt,
+        values.status,
+        values.note,
+      ],
+    );
+    return id;
+  }
+
+  async function insertChild(
+    table: string,
+    column: string,
+    valueColumn: string,
+    parentId: string,
+    value: string | null,
+    deletedAt: string | null = null,
+  ): Promise<string> {
+    const id: string = ObjectID.generate().toString();
+    await database.query(
+      `INSERT INTO "${schema}"."${table}" ("_id", "${column}", "${valueColumn}", "deletedAt")
+       VALUES ($1, $2, $3, $4)`,
+      [id, parentId, value, deletedAt],
+    );
+    return id;
+  }
+
+  // The parent a child row refers to now; null when the row is gone.
+  async function parentOf(
+    table: string,
+    column: string,
+    id: string,
+  ): Promise<string | null> {
+    const rows: Array<{ parent: string }> = await database.query(
+      `SELECT "${column}"::text AS "parent" FROM "${schema}"."${table}" WHERE "_id" = $1`,
+      [id],
+    );
+    return rows[0]?.parent ?? null;
+  }
+
+  async function parentRow(
+    table: string,
+    id: string,
+  ): Promise<{ status: string; note: string | null } | null> {
+    const rows: Array<{ status: string; note: string | null }> =
+      await database.query(
+        `SELECT "status", "note" FROM "${schema}"."${table}" WHERE "_id" = $1`,
+        [id],
+      );
+    return rows[0] ?? null;
+  }
+
+  // Two of one thing in a project: the oldest is kept, the other seen last.
+  async function seedPair(
+    table: string,
+    names: [string, string],
+    keptNote: string | null,
+  ): Promise<{ keptId: string; duplicateId: string }> {
+    const projectId: string = ObjectID.generate().toString();
+
+    const keptId: string = await insertParent(table, names[0], {
+      projectId,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      lastSeenAt: "2026-02-01T00:00:00.000Z",
+      status: "disconnected",
+      note: keptNote,
+    });
+    const duplicateId: string = await insertParent(table, names[1], {
+      projectId,
+      createdAt: "2026-01-02T00:00:00.000Z",
+      lastSeenAt: "2026-03-01T00:00:00.000Z",
+      status: "connected",
+      note: "the duplicate's note",
+    });
+
+    return { keptId, duplicateId };
+  }
+
+  beforeAll(async () => {
+    database = new DataSource({
+      type: "postgres",
+      host:
+        process.env["MERGE_DUPLICATE_HOSTS_TEST_DATABASE_HOST"] || "localhost",
+      port: Number(
+        process.env["MERGE_DUPLICATE_HOSTS_TEST_DATABASE_PORT"] || "5400",
+      ),
+      username: process.env["DATABASE_USERNAME"] || "postgres",
+      password: process.env["DATABASE_PASSWORD"] || "password",
+      database:
+        process.env["MERGE_DUPLICATE_HOSTS_TEST_DATABASE_NAME"] ||
+        process.env["DATABASE_NAME"] ||
+        "oneuptimedb",
+      schema: schema,
+      synchronize: false,
+      extra: { options: `-c search_path=${schema},public` },
+    });
+    await database.initialize();
+    await database.query(`CREATE SCHEMA "${schema}"`);
+
+    // Box: a part per name among live parts; a tag per value, NULL included.
+    await createParent("Box");
+    await createChild("BoxPart", "Box", "boxId", "name");
+    await database.query(
+      `CREATE UNIQUE INDEX "IDX_box_part_live_name" ON "${schema}"."BoxPart" ("boxId", "name") WHERE "deletedAt" IS NULL`,
+    );
+    await createChild("BoxTag", "Box", "boxId", "tag");
+    await database.query(
+      `CREATE UNIQUE INDEX "IDX_box_tag" ON "${schema}"."BoxTag" ("boxId", "tag") NULLS NOT DISTINCT`,
+    );
+
+    // Crate: a label per name in any case - an expression.
+    await createParent("Crate");
+    await createChild("CrateLabel", "Crate", "crateId", "name");
+    await database.query(
+      `CREATE UNIQUE INDEX "IDX_crate_label_lower_name" ON "${schema}"."CrateLabel" ("crateId", LOWER("name"))`,
+    );
+
+    // Bin: a part per name among parts that have one - another predicate.
+    await createParent("Bin");
+    await createChild("BinPart", "Bin", "binId", "name");
+    await database.query(
+      `CREATE UNIQUE INDEX "IDX_bin_part_named" ON "${schema}"."BinPart" ("binId", "name") WHERE "name" <> ''`,
+    );
+
+    // Boxes with parts: a live eth0 each; the duplicate's deleted eth0 and its eth1.
+    const parts: { keptId: string; duplicateId: string } = await seedPair(
+      "Box",
+      ["Edge", "EDGE"],
+      "the kept note",
+    );
+    ids["partsKept"] = parts.keptId;
+    ids["partsDuplicate"] = parts.duplicateId;
+    ids["keptLivePart"] = await insertChild(
+      "BoxPart",
+      "boxId",
+      "name",
+      parts.keptId,
+      "eth0",
+    );
+    ids["duplicateLiveTwin"] = await insertChild(
+      "BoxPart",
+      "boxId",
+      "name",
+      parts.duplicateId,
+      "eth0",
+    );
+    ids["duplicateDeletedPart"] = await insertChild(
+      "BoxPart",
+      "boxId",
+      "name",
+      parts.duplicateId,
+      "eth0",
+      "2026-02-15T00:00:00.000Z",
+    );
+    ids["duplicateOtherPart"] = await insertChild(
+      "BoxPart",
+      "boxId",
+      "name",
+      parts.duplicateId,
+      "eth1",
+    );
+
+    // Boxes with tags: each has the NULL tag, the duplicate a named one too.
+    const tags: { keptId: string; duplicateId: string } = await seedPair(
+      "Box",
+      ["core", "Core"],
+      null,
+    );
+    ids["tagsKept"] = tags.keptId;
+    ids["tagsDuplicate"] = tags.duplicateId;
+    ids["keptNullTag"] = await insertChild(
+      "BoxTag",
+      "boxId",
+      "tag",
+      tags.keptId,
+      null,
+    );
+    ids["duplicateNullTag"] = await insertChild(
+      "BoxTag",
+      "boxId",
+      "tag",
+      tags.duplicateId,
+      null,
+    );
+    ids["duplicateNamedTag"] = await insertChild(
+      "BoxTag",
+      "boxId",
+      "tag",
+      tags.duplicateId,
+      "rack-4",
+    );
+
+    boxResult = await merge("Box");
+  });
+
+  afterAll(async () => {
+    if (database?.isInitialized) {
+      await database.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
+      await database.destroy();
+    }
+  });
+
+  test("both pairs merge into their oldest: the duplicates are gone", async () => {
+    expect(boxResult).toEqual({
+      groupsMerged: 2,
+      rowsMerged: 2,
+      // The deleted eth0 and eth1 parts, and the rack-4 tag.
+      referencesMoved: 3,
+      // The duplicate's live eth0 part and its NULL tag.
+      twinsDropped: 2,
+    });
+
+    expect(await parentRow("Box", ids["partsDuplicate"]!)).toBeNull();
+    expect(await parentRow("Box", ids["tagsDuplicate"]!)).toBeNull();
+  });
+
+  test("the kept row takes what the agent reports from the row seen last, and keeps what a person set", async () => {
+    expect(await parentRow("Box", ids["partsKept"]!)).toEqual({
+      status: "connected",
+      note: "the kept note",
+    });
+  });
+
+  test("where the kept row has nothing a person set, it takes what the row seen last had", async () => {
+    expect(await parentRow("Box", ids["tagsKept"]!)).toEqual({
+      status: "connected",
+      note: "the duplicate's note",
+    });
+  });
+
+  test("under a unique index on live rows only, a deleted row is nobody's twin: it moves, and only the live twin goes", async () => {
+    expect(await parentOf("BoxPart", "boxId", ids["keptLivePart"]!)).toBe(
+      ids["partsKept"],
+    );
+    expect(
+      await parentOf("BoxPart", "boxId", ids["duplicateLiveTwin"]!),
+    ).toBeNull();
+    expect(
+      await parentOf("BoxPart", "boxId", ids["duplicateDeletedPart"]!),
+    ).toBe(ids["partsKept"]);
+    expect(await parentOf("BoxPart", "boxId", ids["duplicateOtherPart"]!)).toBe(
+      ids["partsKept"],
+    );
+  });
+
+  test("under NULLS NOT DISTINCT, a NULL is the twin of a NULL: the duplicate's goes, its named tag moves", async () => {
+    expect(await parentOf("BoxTag", "boxId", ids["keptNullTag"]!)).toBe(
+      ids["tagsKept"],
+    );
+    expect(
+      await parentOf("BoxTag", "boxId", ids["duplicateNullTag"]!),
+    ).toBeNull();
+    expect(await parentOf("BoxTag", "boxId", ids["duplicateNamedTag"]!)).toBe(
+      ids["tagsKept"],
+    );
+  });
+
+  test.each([
+    ["Crate", "CrateLabel", "crateId", "IDX_crate_label_lower_name"],
+    ["Bin", "BinPart", "binId", "IDX_bin_part_named"],
+  ])(
+    "%s: a unique index it cannot read stops the merge with its name, and the group is left as it was",
+    async (table: string, child: string, column: string, index: string) => {
+      const pair: { keptId: string; duplicateId: string } = await seedPair(
+        table,
+        ["Shelf", "SHELF"],
+        null,
+      );
+      const childId: string = await insertChild(
+        child,
+        column,
+        "name",
+        pair.duplicateId,
+        "a",
+      );
+
+      await expect(merge(table)).rejects.toThrow(index);
+
+      // Rolled back: both rows, the kept one unchanged, the child where it was.
+      expect(await parentRow(table, pair.keptId)).toEqual({
+        status: "disconnected",
+        note: null,
+      });
+      expect(await parentRow(table, pair.duplicateId)).not.toBeNull();
+      expect(await parentOf(child, column, childId)).toBe(pair.duplicateId);
+    },
+  );
+});

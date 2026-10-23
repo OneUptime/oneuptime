@@ -549,6 +549,44 @@ describe.each(DISCOVER_CASES)(
       expect(findOrCreateMock()).not.toHaveBeenCalled();
     });
 
+    test("a fresh lookup that answers with the refused id itself is no replacement: the refusal is thrown, the id is not written to again or cached", async () => {
+      redis.set(redisKey, GONE_ID);
+      jest.spyOn(GlobalCache, "setStringIfNotExists").mockResolvedValue(false);
+      await discover();
+
+      // Postgres answers with the very id the write was refused for.
+      rows = [GONE_ID];
+      const refusal: Error = foreignKeyRefusal(kind.tableName, GONE_ID);
+      const writes: Array<string> = [];
+
+      await expect(
+        baseService["writeForDiscoveredResource"]({
+          kind: kind,
+          id: GONE_ID,
+          write: async (id: ObjectID): Promise<void> => {
+            writes.push(id.toString());
+            throw refusal;
+          },
+        }),
+      ).rejects.toBe(refusal);
+
+      expect(writes).toEqual([GONE_ID]);
+      expect(findOrCreateMock()).toHaveBeenCalledTimes(1);
+      expect(redis.has(redisKey)).toBe(false);
+    });
+
+    test("a heartbeat that finds the row gone, and a lookup that answers with the same id, carries nothing this batch", async () => {
+      redis.set(redisKey, GONE_ID);
+      goneIds.add(GONE_ID);
+      rows = [GONE_ID];
+
+      await expect(discover()).resolves.toBeNull();
+
+      // No second heartbeat against the id, and it is not cached again.
+      expect(heartbeats).toEqual([GONE_ID]);
+      expect(redis.has(redisKey)).toBe(false);
+    });
+
     test("any other failure - another table's missing row included - is thrown as before", async () => {
       redis.set(redisKey, GONE_ID);
       jest.spyOn(GlobalCache, "setStringIfNotExists").mockResolvedValue(false);
