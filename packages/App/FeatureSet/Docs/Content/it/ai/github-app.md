@@ -134,7 +134,7 @@ Se un'esecuzione non può partire, l'app dice perché nel thread: non fallisce m
 
 ## Disattivarla
 
-Ogni repository ha un interruttore: **Respond to GitHub Commands**, nella pagina **Impostazioni** del repository. È acceso per ogni repository e si salva appena lo cambi. Quando è spento, l'app ignora menzioni, assegnazioni e l'etichetta di trigger in quel repository, e dice a chiunque chieda dove si trova l'interruttore.
+Ogni repository ha un interruttore: **Respond to GitHub Commands**, in **Altre impostazioni** nella pagina **Impostazioni** del repository. È acceso per ogni repository e si salva appena lo cambi. Quando è spento, l'app ignora menzioni, assegnazioni e l'etichetta di trigger in quel repository, e dice a chiunque chieda dove si trova l'interruttore.
 
 La stessa pagina contiene il **GitHub Trigger Label**, in **Altre impostazioni**, se vuoi un'etichetta diversa da `oneuptime`.
 

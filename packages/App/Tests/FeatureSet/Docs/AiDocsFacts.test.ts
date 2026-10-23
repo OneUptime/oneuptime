@@ -85,6 +85,19 @@ function flat(text: string): string {
   return text.replace(/\s+/g, " ").trim();
 }
 
+/*
+ * Whether the repository's Settings page draws what the marker names inside
+ * its More settings (AdvancedPageSection): what the pages say is "under
+ * More settings" must be there.
+ */
+function isUnderMoreSettings(settings: string, marker: string): boolean {
+  const opens: number = settings.indexOf("<AdvancedPageSection");
+  const closes: number = settings.indexOf("</AdvancedPageSection>");
+  const at: number = settings.indexOf(marker);
+
+  return opens !== -1 && at > opens && at < closes;
+}
+
 // The first number a source assigns to a named constant.
 function numberConstant(source: string, name: string): number {
   const match: RegExpMatchArray | null = source.match(
@@ -1005,6 +1018,10 @@ describe("Code", () => {
     expect(settings).toContain(
       'name="Repository > Runner" cardProps={{ title: CODE_REPOSITORY_SETTINGS_COPY.runnerCardTitle,',
     );
+    // Folded under More settings, as the page says.
+    expect(isUnderMoreSettings(settings, 'name="Repository > Runner"')).toBe(
+      true,
+    );
     expect(settings).toContain('editButtonText="Edit"');
     expect(settings).not.toContain('editButtonText="Edit Settings"');
     expect(
@@ -1012,7 +1029,10 @@ describe("Code", () => {
     ).toContain('runnerCardTitle: translationKey("Runner"),');
     expect(field).toContain('fieldTitle: translationKey("Runner"),');
     expect(page).toContain(
-      `On the repository's ${bold("Settings")} page in Code, click ${bold("Edit")} on the ${bold("Runner")} card and pick the Runner.`,
+      `On the repository's ${bold("Settings")} page in Code, open ${bold("More settings")}, click ${bold("Edit")} on the ${bold("Runner")} card and pick the Runner.`,
+    );
+    expect(page).toContain(
+      `Each repository picks the Runner AI works in it on: on its ${bold("Settings")} page in Code, open ${bold("More settings")}, click ${bold("Edit")} on the ${bold("Runner")} card and pick one.`,
     );
 
     expect(values).toContain("runner:\n  enabled: true");
@@ -1284,11 +1304,27 @@ describe("GitHub App", () => {
       'type: TableColumnType.Boolean, isDefaultValueColumn: true, defaultValue: true, title: "Respond to GitHub Commands",',
     );
     expect(settings).toContain('column="isGitHubCommandsEnabled"');
+    expect(
+      isUnderMoreSettings(settings, 'column="isGitHubCommandsEnabled"'),
+    ).toBe(true);
     expect(page).toContain(
-      `Each repository has a switch: ${bold("Respond to GitHub Commands")}, on the repository's ${bold("Settings")} page. It is on for every repository and saves the moment you flip it.`,
+      `Each repository has a switch: ${bold("Respond to GitHub Commands")}, under ${bold("More settings")} on the repository's ${bold("Settings")} page. It is on for every repository and saves the moment you flip it.`,
+    );
+    // The GitHub App's own answer, where commands are off, says where too.
+    expect(
+      flat(
+        readRepoFile(
+          "Common/Server/Utils/CodeRepository/GitHub/GitHubCommandAuthorizer.ts",
+        ),
+      ),
+    ).toContain(
+      "A project admin can turn them back on in OneUptime under Code → this repository → Settings → More settings.",
     );
 
     // What most never change is folded under More settings.
+    expect(
+      isUnderMoreSettings(settings, 'name="Repository > GitHub Trigger Label"'),
+    ).toBe(true);
     expect(page).toContain(
       `The same page holds the ${bold("GitHub Trigger Label")}, under ${bold("More settings")}, if you want a label other than \`oneuptime\`.`,
     );
@@ -1924,8 +1960,15 @@ describe("Production review of pull requests", () => {
     expect(copy).toContain('pointsTitle: translationKey("What to watch"),');
     expect(menu).toContain('title: "Production Reviews",');
     expect(section).toContain(
-      `Turn on ${bold("Review Pull Requests Against Production")} on a repository's ${bold("Settings")} page in Code`,
+      `Turn on ${bold("Review Pull Requests Against Production")}, under ${bold("More settings")} on a repository's ${bold("Settings")} page in Code`,
     );
+    // Folded under More settings, as the page says.
+    expect(
+      isUnderMoreSettings(
+        flat(dashboardSource("Pages/Code/Repository/Settings.tsx")),
+        'column="isProductionReviewEnabled"',
+      ),
+    ).toBe(true);
     expect(section).toContain(
       `the repository's ${bold("Production Reviews")} page in Code keeps each review, with ${bold("Review again")}.`,
     );

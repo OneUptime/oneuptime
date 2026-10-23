@@ -149,7 +149,7 @@ Cuando ningún servicio corresponde al repositorio, la tarea se ejecuta sin tele
 
 ## Revisión de producción de pull requests
 
-OneUptime sabe lo que hace tu código en producción, así que puede revisar una pull request con lo que nadie ve al leer el diff. Activa **Revisar pull requests frente a producción** en la página **Ajustes** de un repositorio en Código, y cada pull request que alguien con acceso de escritura abre o actualiza recibe un comentario que dice lo que producción muestra del código que cambia. El comentario se edita en su sitio con cada push, y la página **Revisiones de producción** del repositorio en Código guarda cada revisión, con **Volver a revisar**.
+OneUptime sabe lo que hace tu código en producción, así que puede revisar una pull request con lo que nadie ve al leer el diff. Activa **Revisar pull requests frente a producción**, en **Más ajustes** de la página **Ajustes** de un repositorio en Código, y cada pull request que alguien con acceso de escritura abre o actualiza recibe un comentario que dice lo que producción muestra del código que cambia. El comentario se edita en su sitio con cada push, y la página **Revisiones de producción** del repositorio en Código guarda cada revisión, con **Volver a revisar**.
 
 | Lo que lee | Del código que cambia la pull request |
 | --- | --- |
@@ -230,7 +230,7 @@ No asignas repositorios a servicios. Cuando una tarea empieza, OneUptime encuent
 
 ### Elige el Runner del repositorio
 
-Cada repositorio elige el Runner en el que la IA trabaja en él: en su página **Ajustes** en Código, haz clic en **Editar** en la tarjeta **Runner** y elige uno. Un repositorio que importa la GitHub App empieza en el [Runner predeterminado](/docs/runbooks/agents#el-runner-predeterminado-del-proyecto) del proyecto, cuando lo tiene. Un repositorio que no elige ninguno trabaja en **Runner global**, que OneUptime ejecuta para todos los proyectos.
+Cada repositorio elige el Runner en el que la IA trabaja en él: en su página **Ajustes** en Código, abre **Más ajustes**, haz clic en **Editar** en la tarjeta **Runner** y elige uno. Un repositorio que importa la GitHub App empieza en el [Runner predeterminado](/docs/runbooks/agents#el-runner-predeterminado-del-proyecto) del proyecto, cuando lo tiene. Un repositorio que no elige ninguno trabaja en **Runner global**, que OneUptime ejecuta para todos los proyectos.
 
 | Runner | Qué hace con una tarea |
 | --- | --- |
@@ -258,7 +258,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### Elígelo para el repositorio
 
-En la página **Ajustes** del repositorio en Código, haz clic en **Editar** en la tarjeta **Runner** y elige el Runner. El Runner recoge el cambio con su siguiente heartbeat, en aproximadamente un minuto; no hay nada que reiniciar.
+En la página **Ajustes** del repositorio en Código, abre **Más ajustes**, haz clic en **Editar** en la tarjeta **Runner** y elige el Runner. El Runner recoge el cambio con su siguiente heartbeat, en aproximadamente un minuto; no hay nada que reiniciar.
 
 ### Comprueba que se conecta
 

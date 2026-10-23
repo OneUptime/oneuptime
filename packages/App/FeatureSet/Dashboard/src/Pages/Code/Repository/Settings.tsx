@@ -93,8 +93,10 @@ export const CODE_REPOSITORY_PRODUCTION_REVIEW_TEST_ID: string =
  *         of the project's own, or a global Runner when it picks none;
  *       - Pull Requests: where AI's pull requests open and how many may be
  *         open at once;
- *       - GitHub Trigger Label, and Production Review Comment: what a
- *         production review posts on a pull request;
+ *       - GitHub Trigger Label: the label that hands an issue to the
+ *         GitHub App;
+ *       - Production Review Comment: what a production review posts on a
+ *         pull request;
  *       - and, only on a repository that has them, the build and test
  *         commands an operator set before AI read how to build and test
  *         from the repository's own AGENTS.md.
