@@ -25,6 +25,7 @@ import {
   toSnmpWalkRowView,
   toWalkRoot,
 } from "./SnmpWalkViewModel";
+import { formatRelativeTime } from "../Home/HomeRelativeTime";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
@@ -1012,7 +1013,12 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
               {[
                 walkedAt
                   ? translator.translateTemplate("Walked {{time}}", {
-                      time: OneUptimeDate.fromNow(walkedAt),
+                      // In the reader's language: "vor 2 Minuten".
+                      time: formatRelativeTime({
+                        date: OneUptimeDate.fromString(walkedAt),
+                        now: OneUptimeDate.getCurrentDate(),
+                        language: translator.language,
+                      }),
                     })
                   : undefined,
                 lastResult.snmpVersion
