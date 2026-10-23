@@ -8,6 +8,7 @@ import {
   SnmpTableKind,
 } from "./SnmpTable";
 import SnmpTableListUtil from "./SnmpTableListUtil";
+import SnmpOidListUtil from "./SnmpOidListUtil";
 import { TRANSCEIVER_RX_DROP_ALERT_DB } from "../../../Utils/NetworkDevice/TransceiverHealthUtil";
 
 /*
@@ -231,6 +232,48 @@ export default class NetworkDeviceAlertPackUtil {
     }
 
     return items;
+  }
+
+  /*
+   * One criteria on one OID the device collects: what "Alert on it" on a
+   * device's SNMP Walk page starts a monitor with (issue #5184), the OID
+   * found by walking the device. An alert, not an incident, and the
+   * monitor's status left alone: a value past a threshold is something to
+   * look at, not an outage, until the person says otherwise. Severities and
+   * on-call policies are theirs to pick, as for the pack.
+   */
+  public static buildOidValueCriteriaInstance(data: {
+    oid: string;
+    name: string;
+    filterType: FilterType;
+    value: string | number | undefined;
+  }): MonitorCriteriaInstance {
+    const oid: string = SnmpOidListUtil.normalizeOid(data.oid);
+    const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+
+    instance.data = {
+      id: ObjectID.generate().toString(),
+      monitorStatusId: undefined,
+      filterCondition: FilterCondition.All,
+      filters: [
+        {
+          checkOn: CheckOn.SnmpOidValue,
+          filterType: data.filterType,
+          value: data.value,
+          snmpMonitorOptions: { oid: oid },
+        },
+      ],
+      incidents: [],
+      alerts: [],
+      createAlerts: true,
+      createIncidents: false,
+      changeMonitorStatus: false,
+      isEnabled: true,
+      name: data.name,
+      description: `The value the device reports for ${data.name === oid ? oid : `${data.name} (${oid})`}.`,
+    };
+
+    return instance;
   }
 
   /*
