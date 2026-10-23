@@ -461,7 +461,7 @@ describe("RemediationDecisionList", () => {
     expect(rules).toHaveAttribute("data-tone", "info");
     expect(
       within(rules).getByRole("link", {
-        name: "Incident Auto Remediation Rules",
+        name: "Incident AI rules",
       }),
     ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/incidents/ai/settings`);
   });

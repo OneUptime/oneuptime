@@ -8,6 +8,7 @@ import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import RunnerAiCommandsPick from "../../../Server/Utils/Runner/RunnerAiCommandsPick";
 import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
 import Runner from "../../../Models/DatabaseModels/Runner";
+import AutoRemediationTriggerEntity from "../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
@@ -163,6 +164,7 @@ describe("an auto remediation rule's Runner", () => {
     const model: AutoRemediationRule = new AutoRemediationRule();
     model.name = "restart web on high latency";
     model.projectId = PROJECT_ID;
+    model.triggerEntityType = AutoRemediationTriggerEntity.Incident;
     Object.assign(model, fields);
 
     try {

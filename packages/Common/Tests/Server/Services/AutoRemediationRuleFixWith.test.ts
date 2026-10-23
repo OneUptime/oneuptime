@@ -8,6 +8,7 @@ import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
 import Runbook from "../../../Models/DatabaseModels/Runbook";
 import AutoRemediationAction from "../../../Types/AutoRemediation/AutoRemediationAction";
+import AutoRemediationTriggerEntity from "../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
@@ -64,6 +65,7 @@ function rule(values: Partial<AutoRemediationRule>): AutoRemediationRule {
   return Object.assign(new AutoRemediationRule(), {
     name: "Restart checkout",
     projectId: PROJECT_ID,
+    triggerEntityType: AutoRemediationTriggerEntity.Incident,
     ...values,
   });
 }

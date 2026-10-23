@@ -20,17 +20,18 @@ import {
   validateInvestigationRuleWait,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/InvestigationRuleTiming";
 import { AiLane } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
-import AIInvestigationRule from "../../../Models/DatabaseModels/AIInvestigationRule";
+import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
 import {
   DEFAULT_INVESTIGATION_RULE_WAIT_MINUTES,
   MAX_INVESTIGATION_RULE_WAIT_MINUTES,
 } from "../../../Types/AI/InvestigationRuleWait";
 
 /*
- * WHEN AN INVESTIGATION RULE INVESTIGATES (issue #5074): the Investigate
- * step's one question - Right away, or Only if still open after a wait -
- * and the minutes the second one asks, written into the rule's one column
- * (onlyIfOpenAfterMinutes) the API and Terraform read. React-free, read here
+ * WHEN AN AI RULE INVESTIGATES (issue #5074): the Investigate step's one
+ * question - Right away, or Only if still open after a wait - and the
+ * minutes the second one asks, written into the rule's one column
+ * (onlyIfOpenAfterMinutes) the API and Terraform read. Investigation rules
+ * are AI rules now: the column moved with them. React-free, read here
  * without the page.
  */
 
@@ -48,10 +49,10 @@ describe("the choice and its words", () => {
   test("the choice is a form value of its own, never a column; the minutes are the rule's column", () => {
     expect(CHOICE).toBe("investigationTiming");
     expect(
-      new AIInvestigationRule().getTableColumnMetadata(CHOICE),
+      new AutoRemediationRule().getTableColumnMetadata(CHOICE),
     ).toBeFalsy();
     expect(WAIT).toBe("onlyIfOpenAfterMinutes");
-    expect(new AIInvestigationRule().getTableColumnMetadata(WAIT)).toBeTruthy();
+    expect(new AutoRemediationRule().getTableColumnMetadata(WAIT)).toBeTruthy();
   });
 
   test.each([

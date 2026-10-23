@@ -52,7 +52,8 @@ const MIGRATIONS_DIRECTORY: string = path.join(
 );
 
 const COLUMNS_CLASS_NAME: string = "AddAiRuleInvestigation1806600000000";
-const MERGE_CLASS_NAME: string = "MergeInvestigationRulesIntoAiRules1806610000000";
+const MERGE_CLASS_NAME: string =
+  "MergeInvestigationRulesIntoAiRules1806610000000";
 
 // A class name's 13-digit stamp.
 const STAMP: RegExp = /(\d{13})$/;
@@ -214,9 +215,9 @@ describe("AddAiRuleInvestigation - the columns", () => {
       false,
     );
     expect(rule.getTableColumnMetadata("fixes").defaultValue).toBe(true);
-    expect(
-      rule.getTableColumnMetadata("onlyIfOpenAfterMinutes").required,
-    ).toBe(false);
+    expect(rule.getTableColumnMetadata("onlyIfOpenAfterMinutes").required).toBe(
+      false,
+    );
   });
 
   test("builds no index and no key on the busy rule table", async () => {
@@ -324,17 +325,14 @@ describe("MergeInvestigationRulesIntoAiRules - up()", () => {
   });
 
   test("a converted rule picks no LLM provider, and lives in a project that is not deleted", () => {
-    expect(CONVERT_REMEDIATION_RULES).toContain(
-      `rule."llmProviderId" IS NULL`,
-    );
-    expect(CONVERT_REMEDIATION_RULES).toContain(
-      `project."deletedAt" IS NULL`,
-    );
+    expect(CONVERT_REMEDIATION_RULES).toContain(`rule."llmProviderId" IS NULL`);
+    expect(CONVERT_REMEDIATION_RULES).toContain(`project."deletedAt" IS NULL`);
   });
 
   test("the rule that keeps fixing is added only where fixing is on, and reads each lane's own switch", () => {
     expect(FIX_SWITCH_COLUMNS).toEqual({
-      Incident: AUTOMATIC_FIX_SWITCH_COLUMNS[AutoRemediationTriggerEntity.Incident],
+      Incident:
+        AUTOMATIC_FIX_SWITCH_COLUMNS[AutoRemediationTriggerEntity.Incident],
       Alert: AUTOMATIC_FIX_SWITCH_COLUMNS[AutoRemediationTriggerEntity.Alert],
     });
 
@@ -360,9 +358,9 @@ describe("MergeInvestigationRulesIntoAiRules - up()", () => {
         expect(ADDED_RULE_NAMES[kind][lane].length).toBeLessThanOrEqual(
           ColumnLength.ShortText,
         );
-        expect(
-          ADDED_RULE_DESCRIPTIONS[kind][lane].length,
-        ).toBeLessThanOrEqual(ColumnLength.LongText);
+        expect(ADDED_RULE_DESCRIPTIONS[kind][lane].length).toBeLessThanOrEqual(
+          ColumnLength.LongText,
+        );
         expect(ADDED_RULE_NAMES[kind][lane]).toContain(
           lane === "Incident" ? "incident" : "alert",
         );

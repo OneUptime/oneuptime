@@ -2177,7 +2177,7 @@ describe("the Change modal: who may loosen", () => {
 
     expect(
       within(dialog).getByTestId("resource-ai-access-admin-note"),
-    ).toHaveTextContent("Edit Auto Remediation Rule");
+    ).toHaveTextContent("Edit AI Rule");
     // Nothing saved to remove: no allowlist field.
     expect(
       within(dialog).queryByTestId("ai-command-allowlist-field"),
@@ -2290,7 +2290,7 @@ describe("the Change modal: who may loosen", () => {
         {},
         { timeout: WAIT_TIMEOUT },
       ),
-    ).toHaveTextContent("Edit Auto Remediation Rule");
+    ).toHaveTextContent("Edit AI Rule");
     expect(updateByIdSpy).not.toHaveBeenCalled();
   });
 
@@ -2497,7 +2497,7 @@ describe("the Change modal: the mode cards", () => {
       "You can turn investigation on or off, lower fixes and remove allowlist entries.",
     );
     expect(note).toHaveTextContent(
-      "Turning fixes on or up, or adding allowlist entries, needs Project Owner, Project Admin or Edit Auto Remediation Rule.",
+      "Turning fixes on or up, or adding allowlist entries, needs Project Owner, Project Admin or Edit AI Rule.",
     );
   });
 

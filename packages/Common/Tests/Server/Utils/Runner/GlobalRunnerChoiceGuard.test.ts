@@ -364,19 +364,19 @@ describe("a Runner is picked with one picker", () => {
   });
 
   /*
-   * An auto remediation rule picks the Runner OneUptime AI runs its commands
-   * on with the same picker, fed by the loader's choices for a rule
+   * An AI rule picks the Runner OneUptime AI runs its commands on with the
+   * same picker, fed by the loader's choices for a rule
    * (RunnerChoicesLoader.loadForRemediation): no Runner first - the AI
    * agent on the affected cluster or host - then the project's own Runners,
    * never a global one, which never runs OneUptime AI's commands. The
    * choices are read again when the tab comes back into focus.
    */
-  test("an auto remediation rule picks its Runner with the picker", () => {
+  test("an AI rule picks its Runner with the picker", () => {
     const fields: string = read(
       "App/FeatureSet/Dashboard/src/Components/AutoRemediation/AutoRemediationRuleFields.tsx",
     );
     const table: string = read(
-      "App/FeatureSet/Dashboard/src/Components/AutoRemediation/AutoRemediationRulesTable.tsx",
+      "App/FeatureSet/Dashboard/src/Components/AISettings/AiRulesTable.tsx",
     );
     const loader: string = read(
       "App/FeatureSet/Dashboard/src/Components/Runner/RunnerChoices.ts",

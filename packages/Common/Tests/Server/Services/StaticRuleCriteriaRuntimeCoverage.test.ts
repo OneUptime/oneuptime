@@ -25,19 +25,18 @@ const SPECIAL_EVALUATOR_FILES: Record<string, string> = {
     "ScheduledMaintenanceReminderRuleService.ts",
   IncidentSlaRule: "IncidentSlaRuleService.ts",
   NetworkSiteAssignmentRule: "NetworkDeviceService.ts",
-  // Which incidents and alerts OneUptime AI investigates on its own.
-  AIInvestigationRule: "../Utils/AI/SRE/InvestigationRules.ts",
   // Which resolved incidents get an AI postmortem draft, and its templates.
   AIPostmortemRule: "../Utils/AI/SRE/PostmortemRules.ts",
 };
 
 /*
- * Auto Remediation Rules, Investigation Rules and Postmortem Rules read a
- * condition the same way, so their evaluators hand the matching to one
- * shared matcher: the evaluator names it, and the matcher holds the legacy
- * fields - an incident's in doesIncidentMatch, an alert's in
- * doesAlertMatch. A rule kind is held to the fields of the methods it
- * calls: a postmortem rule, about incidents alone, to the incident's.
+ * AI rules (investigation rules and auto remediation rules made one) and
+ * Postmortem Rules read a condition the same way, so their evaluators hand
+ * the matching to one shared matcher: the evaluator names it, and the
+ * matcher holds the legacy fields - an incident's in doesIncidentMatch, an
+ * alert's in doesAlertMatch. A rule kind is held to the fields of the
+ * methods it calls: a postmortem rule, about incidents alone, to the
+ * incident's.
  */
 const SHARED_INCIDENT_ALERT_MATCHER: string = "IncidentAlertRuleMatcher";
 const SHARED_INCIDENT_ALERT_MATCHER_FILE: string = path.join(
@@ -263,9 +262,13 @@ describe("static rule criteria runtime coverage", () => {
     discoverStaticRuleForms();
   const inheritedRuleModelNames: Array<string> = getInheritedRuleModelNames();
 
-  test("all 72 static match-criteria forms route their 84 rule models through ModelForm", () => {
-    expect(formFiles).toHaveLength(72);
-    expect(formsByModel.size).toBe(84);
+  /*
+   * 71 forms and 83 models: the investigation rules' form and model went
+   * when they became AI rules - one form, AiRulesTable, for the one model.
+   */
+  test("all 71 static match-criteria forms route their 83 rule models through ModelForm", () => {
+    expect(formFiles).toHaveLength(71);
+    expect(formsByModel.size).toBe(83);
     expect([...formsByModel.keys()].sort()).toEqual(inheritedRuleModelNames);
     expect(Object.keys(RULE_CRITERIA_FIELDS_BY_MODEL).sort()).toEqual(
       inheritedRuleModelNames,
@@ -422,15 +425,30 @@ describe("static rule criteria runtime coverage", () => {
     );
 
     expect(sharingModels.sort()).toEqual([
-      "AIInvestigationRule",
       "AIPostmortemRule",
       "AutoRemediationRule",
     ]);
 
-    // Both forms offer exactly what the shared matcher evaluates.
-    expect([...formsByModel.get("AIInvestigationRule")!.fields].sort()).toEqual(
-      [...formsByModel.get("AutoRemediationRule")!.fields].sort(),
-    );
+    /*
+     * An AI rule is read twice - which incidents it investigates, which it
+     * fixes - and both read its conditions with the shared matcher.
+     */
+    expect(
+      fs
+        .readFileSync(
+          path.join(COMMON_ROOT, "Server/Utils/AI/SRE/InvestigationRules.ts"),
+          "utf8",
+        )
+        .includes(`${SHARED_INCIDENT_ALERT_MATCHER}.doesIncidentMatch(`),
+    ).toBe(true);
+    expect(
+      fs
+        .readFileSync(
+          path.join(COMMON_ROOT, "Server/Utils/AI/SRE/InvestigationRules.ts"),
+          "utf8",
+        )
+        .includes(`${SHARED_INCIDENT_ALERT_MATCHER}.doesAlertMatch(`),
+    ).toBe(true);
 
     // A postmortem rule, about incidents alone, offers the incident's share.
     const matcherSource: string = fs.readFileSync(

@@ -100,8 +100,8 @@ const SENTENCES: Array<string> = [
   INVESTIGATION_WAITING_COPY.alert.whoCanStart,
   INVESTIGATE_NOW,
   INVESTIGATE_NOW_FAILED,
-  AI_LANE_RULES_COPY[AiLane.Incident].investigationRulesDescription,
-  AI_LANE_RULES_COPY[AiLane.Alert].investigationRulesDescription,
+  AI_LANE_RULES_COPY[AiLane.Incident].aiRulesDescription,
+  AI_LANE_RULES_COPY[AiLane.Alert].aiRulesDescription,
   NOT_INVESTIGATED_REASONS.incident.resolved_before_investigation,
   "Decision recorded when the wait ended",
   // The model columns the API docs and the Dashboard name.

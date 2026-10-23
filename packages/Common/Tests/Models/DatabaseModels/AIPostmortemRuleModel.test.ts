@@ -1,5 +1,4 @@
 import Models from "../../../Models/DatabaseModels/Index";
-import AIInvestigationRule from "../../../Models/DatabaseModels/AIInvestigationRule";
 import AIPostmortemRule from "../../../Models/DatabaseModels/AIPostmortemRule";
 import IncidentPostmortemTemplate from "../../../Models/DatabaseModels/IncidentPostmortemTemplate";
 import RuleBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/RuleBaseModel";
@@ -26,12 +25,11 @@ import type { JoinTableMetadataArgs } from "typeorm/metadata-args/JoinTableMetad
  * postmortem and which templates it may use".
  *
  *   - a project's rule, changed by whoever may change what AI does (Project
- *     Owner or Admin) and read by the project's members, as an
- *     investigation rule is;
+ *     Owner or Admin) and read by the project's members;
  *   - put in order by dragging (@ListOrderColumn): the first enabled rule
  *     that matches decides;
- *   - the conditions an investigation rule has for incidents, read by the
- *     same matcher;
+ *   - the conditions an incident AI rule has (investigation rules were
+ *     merged into the AI rules), read by the same matcher;
  *   - the templates in a join table of their own.
  */
 
@@ -47,7 +45,7 @@ const READERS: Array<Permission> = [
   Permission.Viewer,
 ];
 
-// The incident conditions an investigation rule offers, by column.
+// The incident conditions an AI rule offers, by column.
 const INCIDENT_CONDITIONS: Array<string> = [
   "monitors",
   "incidentSeverities",
@@ -81,20 +79,11 @@ describe("AIPostmortemRule", () => {
     expect(model.pluralName).toBe("Postmortem Rules");
   });
 
-  it("is changed by a Project Owner or Admin, and read by the project's members - as an investigation rule is", () => {
+  it("is changed by a Project Owner or Admin, and read by the project's members", () => {
     expect(model.getCreatePermissions()).toEqual(OWNER_OR_ADMIN);
     expect(model.getUpdatePermissions()).toEqual(OWNER_OR_ADMIN);
     expect(model.getDeletePermissions()).toEqual(OWNER_OR_ADMIN);
     expect(model.getReadPermissions()).toEqual(READERS);
-
-    const investigationRule: AIInvestigationRule = new AIInvestigationRule();
-
-    expect(model.getCreatePermissions()).toEqual(
-      investigationRule.getCreatePermissions(),
-    );
-    expect(model.getReadPermissions()).toEqual(
-      investigationRule.getReadPermissions(),
-    );
   });
 
   it("is on every plan: no plan gates the rule itself, only the templates it names", () => {
@@ -159,14 +148,14 @@ describe("AIPostmortemRule", () => {
     );
   });
 
-  it("matches on exactly the incident conditions an investigation rule offers", () => {
+  it("matches on exactly the incident conditions an AI rule offers", () => {
     expect(getRuleCriteriaFieldsForModel("AIPostmortemRule")).toEqual(
       INCIDENT_CONDITIONS,
     );
 
-    // The investigation rule's share for incidents, in the same order.
+    // The AI rule's share for incidents, in the same order.
     expect(
-      (getRuleCriteriaFieldsForModel("AIInvestigationRule") || []).filter(
+      (getRuleCriteriaFieldsForModel("AutoRemediationRule") || []).filter(
         (field: string): boolean => {
           return field !== "alertSeverities";
         },

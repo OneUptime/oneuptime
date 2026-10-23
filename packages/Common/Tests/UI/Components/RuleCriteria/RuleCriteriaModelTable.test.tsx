@@ -357,11 +357,11 @@ More details stay here.
     );
 
     /*
-     * The investigation rules form has no help panel, the auto remediation
-     * rules form lost its own when it became three questions, and the
-     * postmortem rules form (Match, then Draft) never had one.
+     * The AI rules form (investigation rules and auto remediation rules made
+     * one: Match, Investigate, Fix) has no help panel, nor has the
+     * postmortem rules form (Match, then Draft).
      */
-    expect(staticRuleFormFiles).toHaveLength(72);
+    expect(staticRuleFormFiles).toHaveLength(71);
     expect(helpFormFiles).toHaveLength(62);
     // 68, and the five episode rule help texts that now have the heading too.
     expect(helpMarkdown).toHaveLength(73);

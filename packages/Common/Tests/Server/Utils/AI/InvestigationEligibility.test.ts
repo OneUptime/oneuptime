@@ -1364,7 +1364,7 @@ describe("the project's own daily AI limits (project_daily_limit_reached)", () =
  * one that matches none of them was left out on purpose, and the reason
  * says so - how many rules there were, and where they are.
  */
-describe("a record no investigation rule matched (no_investigation_rule_matched)", () => {
+describe("a record no AI rule that investigates matched (no_investigation_rule_matched)", () => {
   it.each(subjects)(
     "names how many rules there were, and where they are, for %o",
     (subject: InvestigationSubject) => {
@@ -1379,13 +1379,13 @@ describe("a record no investigation rule matched (no_investigation_rule_matched)
         );
 
       expect(recorded.title).toBe(
-        `This ${kind} was outside the investigation rules at creation`,
+        `This ${kind} was outside the AI rules that investigate at creation`,
       );
       expect(recorded.description).toBe(
-        `When this ${kind} was created, investigation rules were set up for ${kind}s, and it matched none of the 3 rules. Only the ${kind}s that match one are investigated automatically.`,
+        `When this ${kind} was created, AI rules that investigate were set up for ${kind}s, and it matched none of the 3 rules. Only the ${kind}s that match one are investigated automatically.`,
       );
       expect(recorded.nextStep).toBe(
-        `Review the investigation rules under ${product} → AI → Settings → More settings. Changing them does not retry this ${kind}; to look into it anyway, ask OneUptime AI below.`,
+        `Review the AI rules under ${product} → AI → Settings → More settings. Changing them does not retry this ${kind}; to look into it anyway, ask OneUptime AI below.`,
       );
     },
   );

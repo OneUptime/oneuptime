@@ -22,7 +22,7 @@ import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
  * The ImproveInstrumentation trigger: an INCONCLUSIVE AI investigation
  * enqueues a CodeFix AIRun that opens an instrumentation PR - but only while
  * the investigation's lane has "Fix new incidents automatically" (or
- * alerts) on, and the lane's auto remediation rules let it: with none,
+ * alerts) on, and the lane's AI rules that fix let it: with none,
  * every inconclusive investigation opens one; with some, only one a rule
  * with "Telemetry pull requests" on (its default) matches, in the
  * repositories those rules name (Types/AI/AutomaticFixPullRequests). Only
@@ -185,7 +185,7 @@ describe("InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask", () => {
     ).toBe(true);
   });
 
-  test("with no auto remediation rule it enqueues, in any connected repository", () => {
+  test("with no AI rule it enqueues, in any connected repository", () => {
     const decision: GateDecision =
       InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
         project: fakeProject(),
@@ -217,9 +217,7 @@ describe("InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask", () => {
         hasConnectedRepository: true,
         existingRun: null,
       }).reason,
-    ).toBe(
-      "no auto remediation rule matches this incident, so it is not fixed",
-    );
+    ).toBe("no AI rule that fixes matches this incident, so it is not fixed");
   });
 
   test("matching rules with telemetry pull requests off: nothing, though fix pull requests are on", () => {
@@ -237,7 +235,7 @@ describe("InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask", () => {
 
     expect(decision.enqueue).toBe(false);
     expect(decision.reason).toBe(
-      "the auto remediation rules that match this incident have telemetry pull requests off",
+      "the AI rules that match this incident have telemetry pull requests off",
     );
   });
 
@@ -330,7 +328,7 @@ describe("InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation", () =>
       paused: false,
       runsToday: 0,
     });
-    // No auto remediation rule by default: every subject's PR may open.
+    // No AI rule by default: every subject's PR may open.
     getRules = jest
       .spyOn(RemediationRulePullRequests, "getRulesForSignal")
       .mockResolvedValue(NO_RULES);

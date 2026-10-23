@@ -890,7 +890,10 @@ describePostgres("MergeInvestigationRulesIntoAiRules against Postgres", () => {
     }
   }
 
-  function seedColumns(projectId: string, seed: RuleSeed): Record<string, unknown> {
+  function seedColumns(
+    projectId: string,
+    seed: RuleSeed,
+  ): Record<string, unknown> {
     return {
       _id: ObjectID.generate().toString(),
       projectId,
@@ -911,8 +914,7 @@ describePostgres("MergeInvestigationRulesIntoAiRules against Postgres", () => {
     table: "AIInvestigationRule" | "AutoRemediationRule";
     projectId: string;
   }): Promise<Array<ReadRule>> {
-    const isInvestigationTable: boolean =
-      data.table === "AIInvestigationRule";
+    const isInvestigationTable: boolean = data.table === "AIInvestigationRule";
 
     const rows: Array<Record<string, unknown>> = await database.query(
       `SELECT * FROM "${schema}"."${data.table}" WHERE "projectId" = $1 AND "deletedAt" IS NULL ORDER BY "name", "_id"`,
@@ -962,8 +964,7 @@ describePostgres("MergeInvestigationRulesIntoAiRules against Postgres", () => {
           ? false
           : (row["fixes"] as boolean | undefined) !== false,
         onlyIfOpenAfterMinutes:
-          (row["onlyIfOpenAfterMinutes"] as number | null | undefined) ??
-          null,
+          (row["onlyIfOpenAfterMinutes"] as number | null | undefined) ?? null,
         llmProviderId: (row["llmProviderId"] as string | null) ?? null,
         criteria: row["criteria"] ?? null,
         titlePattern: (row["titlePattern"] as string | null) ?? null,
@@ -1360,14 +1361,12 @@ describePostgres("MergeInvestigationRulesIntoAiRules against Postgres", () => {
         externalMcpServers: [ID["mcpGithub"]],
         executionMode: "Suggest",
       });
-      expect(aiRule(project, seededId(project, "Scale search"))).toMatchObject(
-        {
-          investigates: false,
-          fixes: true,
-          llmProviderId: ID["providerOpus"],
-          executionMode: "FullAuto",
-        },
-      );
+      expect(aiRule(project, seededId(project, "Scale search"))).toMatchObject({
+        investigates: false,
+        fixes: true,
+        llmProviderId: ID["providerOpus"],
+        executionMode: "FullAuto",
+      });
       expect(aiRule(project, seededId(project, "Old rule"))).toMatchObject({
         isEnabled: false,
         investigates: true,
@@ -1438,13 +1437,11 @@ describePostgres("MergeInvestigationRulesIntoAiRules against Postgres", () => {
         fixes: false,
         externalMcpServers: [ID["mcpGrafana"]],
       });
-      expect(aiRule(project, seededId(project, "Fix critical"))).toMatchObject(
-        {
-          investigates: false,
-          fixes: true,
-          externalMcpServers: [ID["mcpGithub"]],
-        },
-      );
+      expect(aiRule(project, seededId(project, "Fix critical"))).toMatchObject({
+        investigates: false,
+        fixes: true,
+        externalMcpServers: [ID["mcpGithub"]],
+      });
     });
 
     test("different conditions stay two rules, and nothing is added", () => {
@@ -1461,7 +1458,11 @@ describePostgres("MergeInvestigationRulesIntoAiRules against Postgres", () => {
       expect(aiRules(project)).toHaveLength(2);
       expect(
         aiRule(project, seededId(project, "Fix production")),
-      ).toMatchObject({ investigates: true, fixes: true, onlyIfOpenAfterMinutes: 3 });
+      ).toMatchObject({
+        investigates: true,
+        fixes: true,
+        onlyIfOpenAfterMinutes: 3,
+      });
       expect(aiRule(project, seededId(project, "B second"))).toMatchObject({
         investigates: true,
         fixes: false,
@@ -1523,9 +1524,10 @@ describePostgres("MergeInvestigationRulesIntoAiRules against Postgres", () => {
           return rule._id === seededId(project, "Deleted");
         }),
       ).toBeUndefined();
-      expect(aiRule(project, seededId(project, "Fix checkout"))).toMatchObject(
-        { investigates: true, fixes: true },
-      );
+      expect(aiRule(project, seededId(project, "Fix checkout"))).toMatchObject({
+        investigates: true,
+        fixes: true,
+      });
       expect(
         addedRule(project, "Incident", "InvestigateEveryOne"),
       ).toBeDefined();
@@ -1542,8 +1544,7 @@ describePostgres("MergeInvestigationRulesIntoAiRules against Postgres", () => {
 
     test("no auto remediation rule's fix settings change", () => {
       for (const project of PROJECTS) {
-        for (const before of remediationRulesBefore.get(project.label) ||
-          []) {
+        for (const before of remediationRulesBefore.get(project.label) || []) {
           const after: ReadRule = aiRule(project.label, before._id);
 
           expect({

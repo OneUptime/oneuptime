@@ -11,7 +11,7 @@ import {
   UnreadableReferenceException,
 } from "../../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import AIAgent from "../../../../../Models/DatabaseModels/AIAgent";
-import AIInvestigationRule from "../../../../../Models/DatabaseModels/AIInvestigationRule";
+import AutoRemediationRule from "../../../../../Models/DatabaseModels/AutoRemediationRule";
 import AIAgentTaskPullRequest from "../../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import Alert from "../../../../../Models/DatabaseModels/Alert";
 import AlertOwnerTeam from "../../../../../Models/DatabaseModels/AlertOwnerTeam";
@@ -1072,7 +1072,7 @@ describe("the records every project may name", () => {
 
     await expect(
       check({
-        modelType: AIInvestigationRule,
+        modelType: AutoRemediationRule,
         data: { llmProviderId: GLOBAL_LLM },
         props: member([everywhere(Permission.ProjectAdmin)]),
         lookups: lookups,
@@ -1088,7 +1088,7 @@ describe("the records every project may name", () => {
 
     const refusal: unknown = await refusalOf(
       check({
-        modelType: AIInvestigationRule,
+        modelType: AutoRemediationRule,
         data: { llmProvider: { _id: OTHER_PROJECTS_LLM } },
         props: member([everywhere(Permission.ProjectAdmin)]),
         lookups: lookups,

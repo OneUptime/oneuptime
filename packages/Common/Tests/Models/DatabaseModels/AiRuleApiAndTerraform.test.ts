@@ -78,11 +78,9 @@ function resource(name: string): TerraformResource | undefined {
 }
 
 function dataSource(name: string): TerraformDataSource | undefined {
-  return providerDataSources.find(
-    (candidate: TerraformDataSource): boolean => {
-      return candidate.name === name;
-    },
-  );
+  return providerDataSources.find((candidate: TerraformDataSource): boolean => {
+    return candidate.name === name;
+  });
 }
 
 beforeAll(() => {
@@ -105,9 +103,7 @@ describe("the AI rule resource", () => {
 
     expect(methodsOf("/auto-remediation-rule")).toEqual(["post"]);
     expect(methodsOf("/auto-remediation-rule/get-list")).toEqual(["post"]);
-    expect(methodsOf("/auto-remediation-rule/{id}/get-item")).toEqual([
-      "post",
-    ]);
+    expect(methodsOf("/auto-remediation-rule/{id}/get-item")).toEqual(["post"]);
     expect(methodsOf("/auto-remediation-rule/{id}")).toEqual(
       expect.arrayContaining(["put", "delete"]),
     );
@@ -335,28 +331,39 @@ describe("the retired route answers every call with what to use instead", () => 
     ["POST", "/api/ai-investigation-rule/get-list"],
     ["GET", "/api/ai-investigation-rule/get-list"],
     ["POST", "/api/ai-investigation-rule/count"],
-    ["POST", "/api/ai-investigation-rule/5c7f3d1e-1a2b-4c3d-8e4f-5a6b7c8d9e0f/get-item"],
+    [
+      "POST",
+      "/api/ai-investigation-rule/5c7f3d1e-1a2b-4c3d-8e4f-5a6b7c8d9e0f/get-item",
+    ],
     ["PUT", "/api/ai-investigation-rule/5c7f3d1e-1a2b-4c3d-8e4f-5a6b7c8d9e0f"],
-    ["DELETE", "/api/ai-investigation-rule/5c7f3d1e-1a2b-4c3d-8e4f-5a6b7c8d9e0f"],
-  ])("%s %s: 410 Gone, and the AI Rule resource to use", async (method: string, routePath: string) => {
-    const answer: { status: number; body: JSONObject } = await call(
-      method,
-      routePath,
-    );
+    [
+      "DELETE",
+      "/api/ai-investigation-rule/5c7f3d1e-1a2b-4c3d-8e4f-5a6b7c8d9e0f",
+    ],
+  ])(
+    "%s %s: 410 Gone, and the AI Rule resource to use",
+    async (method: string, routePath: string) => {
+      const answer: { status: number; body: JSONObject } = await call(
+        method,
+        routePath,
+      );
 
-    expect(answer.status).toBe(RETIRED_API_STATUS_CODE);
-    expect(answer.status).toBe(410);
-    expect(answer.body["message"]).toBe(
-      RETIRED_AI_INVESTIGATION_RULE_API.message,
-    );
-  });
+      expect(answer.status).toBe(RETIRED_API_STATUS_CODE);
+      expect(answer.status).toBe(410);
+      expect(answer.body["message"]).toBe(
+        RETIRED_AI_INVESTIGATION_RULE_API.message,
+      );
+    },
+  );
 
   test("the message names the route, the Terraform resource and the shape of an investigation rule", () => {
     const message: string = RETIRED_AI_INVESTIGATION_RULE_API.message;
 
     expect(message).toContain("/api/auto-remediation-rule");
     expect(message).toContain("oneuptime_ai_rule");
-    expect(message).toContain("investigates set to true and fixes set to false");
+    expect(message).toContain(
+      "investigates set to true and fixes set to false",
+    );
     expect(message).toContain("/docs/installation/upgrading");
   });
 

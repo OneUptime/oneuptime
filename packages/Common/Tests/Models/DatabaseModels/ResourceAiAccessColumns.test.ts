@@ -747,7 +747,7 @@ describe("who may loosen a resource's AI access", () => {
   );
 
   it.each(caseTable())(
-    "holding only Edit Auto Remediation Rule does not let anyone update a %s at all",
+    "holding only Edit AI Rule does not let anyone update a %s at all",
     (_name: string, resource: ResourceCase) => {
       expect(() => {
         TablePermission.checkTableLevelPermissions(

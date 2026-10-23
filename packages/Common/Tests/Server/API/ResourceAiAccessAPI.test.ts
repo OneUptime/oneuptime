@@ -1983,7 +1983,7 @@ describe("ResourceAiAccessAPI", () => {
         expect(sendJsonObjectResponseMock).not.toHaveBeenCalled();
       }
 
-      test("refuses Edit Auto Remediation Rule with a read of the resource but no edit of it", async () => {
+      test("refuses Edit AI Rule with a read of the resource but no edit of it", async () => {
         propsSpy.mockResolvedValue(
           userProps({
             permissions: [
@@ -2001,7 +2001,7 @@ describe("ResourceAiAccessAPI", () => {
         );
       });
 
-      test("refuses Edit Auto Remediation Rule whose edit of the resource is limited to another label", async () => {
+      test("refuses Edit AI Rule whose edit of the resource is limited to another label", async () => {
         serveResourceLabelled(PROD_LABEL_ID, "prod");
         propsSpy.mockResolvedValue(
           userProps({

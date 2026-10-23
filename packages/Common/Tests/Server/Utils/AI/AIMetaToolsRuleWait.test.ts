@@ -24,7 +24,7 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 /*
  * THE CHAT AND AN INVESTIGATION RULE'S WAIT (issue #5074).
  *
- * get_ai_investigation on a record an investigation rule makes OneUptime AI
+ * get_ai_investigation on a record an AI rule makes OneUptime AI
  * wait for says so - until when, and that it investigates only if the record
  * is still open then - so the model neither calls it skipped nor starts one
  * unasked. start_investigation on such a record starts it now, the way the
@@ -102,7 +102,7 @@ describe("get_ai_investigation on a record that waits", () => {
     expect(result.rowCount).toBe(0);
     expect(result.widget).toBeUndefined();
     expect(result.dataForLlm).toContain(
-      "No AI investigation has started for Incident #12 yet: an investigation rule makes OneUptime AI wait 10 minutes after it was created",
+      "No AI investigation has started for Incident #12 yet: an AI rule makes OneUptime AI wait 10 minutes after it was created",
     );
     expect(result.dataForLlm).toContain(
       `investigate it at ${WAIT_UNTIL.toISOString()} only if it is still open then`,
@@ -169,7 +169,7 @@ describe("get_ai_investigation on a record that waits", () => {
     expect(result.dataForLlm).toContain(
       "No AI investigation runs exist for Incident #12.",
     );
-    expect(result.dataForLlm).not.toContain("investigation rule");
+    expect(result.dataForLlm).not.toContain("AI rule");
   });
 
   test("a record with a run is read from its run: the wait is not asked about", async () => {
@@ -350,8 +350,8 @@ describe("start_investigation on a record that waits", () => {
 });
 
 /*
- * An investigation Ask AI starts uses the LLM provider the record's
- * investigation rules pick, as the one the rules start does
+ * An investigation Ask AI starts uses the LLM provider the record's AI
+ * rules that investigate pick, as the one the rules start does
  * (Types/AI/LlmProviderChoice).
  */
 describe("start_investigation and the LLM provider the rules pick", () => {

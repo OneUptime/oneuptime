@@ -566,7 +566,7 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
 
         expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
         expect((result.thrownToNext as Error).message).toBe(
-          "You need one of these permissions to reset this cluster's Kubernetes AI agent: Project Owner, Project Admin, Edit Auto Remediation Rule.",
+          "You need one of these permissions to reset this cluster's Kubernetes AI agent: Project Owner, Project Admin, Edit AI Rule.",
         );
         expect(resetSpy).not.toHaveBeenCalled();
       },
@@ -603,7 +603,7 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
         expect(sendJsonObjectResponseMock).not.toHaveBeenCalled();
       }
 
-      test("refuses Edit Auto Remediation Rule with a read of the cluster but no edit of it", async () => {
+      test("refuses Edit AI Rule with a read of the cluster but no edit of it", async () => {
         propsSpy.mockResolvedValue(
           userProps({
             permissions: [
@@ -616,7 +616,7 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
         refusedWithoutReset(await callRoute(RESET_ROUTE));
       });
 
-      test("refuses Edit Auto Remediation Rule whose edit of clusters is limited to another label", async () => {
+      test("refuses Edit AI Rule whose edit of clusters is limited to another label", async () => {
         clusterFind.mockResolvedValue(
           clusterRow([label(PROD_LABEL_ID, "prod")]),
         );
@@ -725,7 +725,7 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
         const result: RouteCallResult = await callRoute(RESET_ROUTE);
 
         expect((result.thrownToNext as Error).message).toBe(
-          "You need one of these permissions to reset this cluster's Kubernetes AI agent: Project Owner, Project Admin, Edit Auto Remediation Rule.",
+          "You need one of these permissions to reset this cluster's Kubernetes AI agent: Project Owner, Project Admin, Edit AI Rule.",
         );
         expect(resetSpy).not.toHaveBeenCalled();
       });

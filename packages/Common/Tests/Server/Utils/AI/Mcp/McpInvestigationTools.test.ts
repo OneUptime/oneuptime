@@ -6,11 +6,11 @@ import ToolOutputPager from "../../../../../Server/Utils/AI/Chat/ToolOutputPager
 import { ObservabilityAssistantExtraTool } from "../../../../../Server/Utils/AI/Chat/ObservabilityAssistant";
 import { ToolCallOutcome } from "../../../../../Server/Utils/AI/Toolbox/Index";
 import IncidentAlertRuleMatcher from "../../../../../Server/Utils/Rules/IncidentAlertRuleMatcher";
-import AIInvestigationRuleService from "../../../../../Server/Services/AIInvestigationRuleService";
+import AutoRemediationRuleService from "../../../../../Server/Services/AutoRemediationRuleService";
 import AlertService from "../../../../../Server/Services/AlertService";
 import ExternalMcpServerService from "../../../../../Server/Services/ExternalMcpServerService";
 import IncidentService from "../../../../../Server/Services/IncidentService";
-import AIInvestigationRule from "../../../../../Models/DatabaseModels/AIInvestigationRule";
+import AutoRemediationRule from "../../../../../Models/DatabaseModels/AutoRemediationRule";
 import Alert from "../../../../../Models/DatabaseModels/Alert";
 import ExternalMcpServer from "../../../../../Models/DatabaseModels/ExternalMcpServer";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
@@ -24,7 +24,7 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * THE EXTERNAL MCP SERVERS AN INVESTIGATION MAY USE: the project's servers
- * that are on, as the investigation rules that match the incident (or
+ * that are on, as the AI rules that investigate and match the incident (or
  * alert) allow - all of them with no rule, or when a matching rule names
  * none; only the named ones otherwise; none when the rules cannot be read.
  * And only their tools that read: a tool that may change something is
@@ -43,15 +43,15 @@ const AWS_ID: string = "8a1b6f0e-1f1c-4f43-9a7c-3e4a2d6c8b05";
 const AZURE_ID: string = "8a1b6f0e-1f1c-4f43-9a7c-3e4a2d6c8b06";
 
 let fake: FakeMcpServer | null = null;
-let rules: Array<AIInvestigationRule> | Error = [];
+let rules: Array<AutoRemediationRule> | Error = [];
 // The rules (by name) the signal matches.
 let matching: Array<string> = [];
 let allowances: Array<ExternalMcpServerAllowance> = [];
 let servers: Array<ExternalMcpServer> = [];
 const toolkits: Array<McpRunToolkit> = [];
 
-function rule(name: string, serverIds: Array<string>): AIInvestigationRule {
-  const item: AIInvestigationRule = new AIInvestigationRule();
+function rule(name: string, serverIds: Array<string>): AutoRemediationRule {
+  const item: AutoRemediationRule = new AutoRemediationRule();
   item.name = name;
   item.externalMcpServers = serverIds.map((id: string): ExternalMcpServer => {
     const server: ExternalMcpServer = new ExternalMcpServer();
@@ -88,8 +88,8 @@ beforeEach(() => {
     .mockResolvedValue(new Alert() as never);
 
   jest
-    .spyOn(AIInvestigationRuleService, "findBy")
-    .mockImplementation((async (): Promise<Array<AIInvestigationRule>> => {
+    .spyOn(AutoRemediationRuleService, "findBy")
+    .mockImplementation((async (): Promise<Array<AutoRemediationRule>> => {
       if (rules instanceof Error) {
         throw rules;
       }
@@ -99,10 +99,10 @@ beforeEach(() => {
 
   const matches: (
     _signal: unknown,
-    candidate: AIInvestigationRule,
+    candidate: AutoRemediationRule,
   ) => Promise<boolean> = async (
     _signal: unknown,
-    candidate: AIInvestigationRule,
+    candidate: AutoRemediationRule,
   ): Promise<boolean> => {
     return matching.includes(candidate.name || "");
   };
@@ -168,7 +168,7 @@ async function forIncident(): Promise<McpRunToolkit | null> {
 }
 
 describe("which servers an investigation may use", () => {
-  test("with no investigation rule, all of the project's servers", async () => {
+  test("with no AI rule that investigates, all of the project's servers", async () => {
     servers = [server(AWS_ID, "AWS"), server(AZURE_ID, "Azure")];
 
     expect(await forIncident()).not.toBeNull();

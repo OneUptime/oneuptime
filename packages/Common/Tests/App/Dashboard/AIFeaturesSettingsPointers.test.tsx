@@ -18,9 +18,10 @@ import * as React from "react";
  * all: what turns fixing on is the "Fix new incidents automatically" (or
  * alerts) switch on the same page as the tables.
  *
- * The auto remediation rules and investigation rules tables are shared by
- * the incident and alert AI settings pages. Only the props they hand to
- * ModelTable are under test, so the tables are captured instead of rendered.
+ * The AI rules table - investigation rules and auto remediation rules made
+ * one - is shared by the incident and alert AI settings pages. Only the
+ * props it hands to ModelTable are under test, so the table is captured
+ * instead of rendered.
  */
 const mockCapturedTableProps: Array<Record<string, unknown>> = [];
 
@@ -34,8 +35,7 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   };
 });
 
-import AutoRemediationRulesTable from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/AutoRemediationRulesTable";
-import AIInvestigationRulesTable from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AIInvestigationRulesTable";
+import AiRulesTable from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AiRulesTable";
 import { AiLane } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 
 /*
@@ -48,7 +48,7 @@ const RETIRED_SWITCH_PATTERNS: Array<RegExp> = [
   /auto-remediation can be turned off/i,
 ];
 
-// Pages the rules tables have no reason to send anyone to.
+// Pages the rules table has no reason to send anyone to.
 const PROJECT_SETTINGS: RegExp = /Project Settings/;
 const AI_CREDITS: RegExp = /AI Credits/;
 
@@ -104,19 +104,13 @@ afterEach(() => {
 });
 
 describe.each([[AiLane.Incident], [AiLane.Alert]])(
-  "the %s rules tables",
+  "the %s AI rules table",
   (lane: AiLane) => {
     test.each([
       [
-        "auto remediation rules",
+        "AI rules",
         (): React.ReactElement => {
-          return <AutoRemediationRulesTable lane={lane} />;
-        },
-      ],
-      [
-        "investigation rules",
-        (): React.ReactElement => {
-          return <AIInvestigationRulesTable lane={lane} />;
+          return <AiRulesTable lane={lane} />;
         },
       ],
     ])(
@@ -147,9 +141,9 @@ describe.each([[AiLane.Incident], [AiLane.Alert]])(
       },
     );
 
-    test("the auto remediation rules say they act while fixing is on", () => {
+    test("the AI rules say they fix while fixing is on", () => {
       const props: Record<string, unknown> = captured(
-        <AutoRemediationRulesTable lane={lane} />,
+        <AiRulesTable lane={lane} />,
       );
       const cardProps: { description?: string } = (props["cardProps"] ||
         {}) as { description?: string };

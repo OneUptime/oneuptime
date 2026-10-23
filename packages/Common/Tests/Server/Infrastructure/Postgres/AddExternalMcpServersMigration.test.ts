@@ -1,7 +1,6 @@
 import { AddFixProductionCheck1804950000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804950000000-AddFixProductionCheck";
 import { AddExternalMcpServers1805000000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805000000000-AddExternalMcpServers";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import AIInvestigationRule from "../../../../Models/DatabaseModels/AIInvestigationRule";
 import AutoRemediationRule from "../../../../Models/DatabaseModels/AutoRemediationRule";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import ExternalMcpServer from "../../../../Models/DatabaseModels/ExternalMcpServer";
@@ -275,11 +274,13 @@ describe("the External MCP Servers migration", () => {
     expect(down[down.length - 1]).toBe(`DROP TABLE "ExternalMcpServer"`);
   });
 
-  test("the models match: the rules name their servers, and a suggestion keeps the plan", () => {
+  /*
+   * The investigation rules' list is left in the database, unread: the
+   * investigation rules moved into the AI rules, servers and all
+   * (MergeInvestigationRulesIntoAiRules), and have no model any more.
+   */
+  test("the models match: the AI rules name their servers, and a suggestion keeps the plan", () => {
     expect(Object.keys(getTableColumns(new AutoRemediationRule()))).toContain(
-      "externalMcpServers",
-    );
-    expect(Object.keys(getTableColumns(new AIInvestigationRule()))).toContain(
       "externalMcpServers",
     );
     expect(

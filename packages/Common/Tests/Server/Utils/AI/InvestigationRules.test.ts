@@ -1,29 +1,31 @@
 import InvestigationRules, {
   InvestigationRuleScope,
 } from "../../../../Server/Utils/AI/SRE/InvestigationRules";
-import AIInvestigationRuleService from "../../../../Server/Services/AIInvestigationRuleService";
+import AutoRemediationRuleService from "../../../../Server/Services/AutoRemediationRuleService";
 import AlertService from "../../../../Server/Services/AlertService";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import logger from "../../../../Server/Utils/Logger";
 import IncidentAlertRuleMatcher from "../../../../Server/Utils/Rules/IncidentAlertRuleMatcher";
-import AIInvestigationRule from "../../../../Models/DatabaseModels/AIInvestigationRule";
+import AutoRemediationRule from "../../../../Models/DatabaseModels/AutoRemediationRule";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
-import AIInvestigationRuleTriggerEntity from "../../../../Types/AI/AIInvestigationRuleTriggerEntity";
+import AutoRemediationTriggerEntity from "../../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import ObjectID from "../../../../Types/ObjectID";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../../../Utils/Rules/RuleEngineLimits";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 
 /*
- * Investigation rules: which new incidents (or alerts) OneUptime AI
- * investigates on its own, once "Investigate new incidents" is on. No
- * enabled rule: every one is in scope. Enabled rules: only those that match
- * at least one are. Investigating only reads, so rules that cannot be read
- * leave the signal in scope.
+ * Which new incidents (or alerts) OneUptime AI investigates on its own, once
+ * "Investigate new incidents" is on: the project's AI rules that
+ * investigate (investigation rules and auto remediation rules are one AI
+ * rule now). No enabled rule that investigates: every one is in scope.
+ * Enabled rules that investigate: only those that match at least one are.
+ * A rule that only fixes is never read here. Investigating only reads, so
+ * rules that cannot be read leave the signal in scope.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -51,8 +53,8 @@ function ref<T extends { _id?: string | undefined }>(
   return model;
 }
 
-function rule(values: Partial<AIInvestigationRule>): AIInvestigationRule {
-  return Object.assign(new AIInvestigationRule(), {
+function rule(values: Partial<AutoRemediationRule>): AutoRemediationRule {
+  return Object.assign(new AutoRemediationRule(), {
     _id: ObjectID.generate().toString(),
     name: "Production",
     ...values,
@@ -78,10 +80,10 @@ function alert(): Alert {
 }
 
 function mockRules(
-  rules: Array<AIInvestigationRule> | Error,
-): SpyInstance<typeof AIInvestigationRuleService.findBy> {
+  rules: Array<AutoRemediationRule> | Error,
+): SpyInstance<typeof AutoRemediationRuleService.findBy> {
   return jest
-    .spyOn(AIInvestigationRuleService, "findBy")
+    .spyOn(AutoRemediationRuleService, "findBy")
     .mockImplementation(async () => {
       if (rules instanceof Error) {
         throw rules;
@@ -107,8 +109,8 @@ describe("InvestigationRules.getIncidentScope", () => {
     ).toEqual({ isInScope: true, rulesChecked: 0 });
   });
 
-  test("reads only the project's enabled incident rules, with what they match on, as root", async () => {
-    const findBy: SpyInstance<typeof AIInvestigationRuleService.findBy> =
+  test("reads only the project's enabled incident rules that investigate, with what they match on, as root", async () => {
+    const findBy: SpyInstance<typeof AutoRemediationRuleService.findBy> =
       mockRules([]);
 
     await InvestigationRules.getIncidentScope({
@@ -121,7 +123,9 @@ describe("InvestigationRules.getIncidentScope", () => {
       query: {
         projectId: PROJECT_ID,
         isEnabled: true,
-        triggerEntityType: AIInvestigationRuleTriggerEntity.Incident,
+        triggerEntityType: AutoRemediationTriggerEntity.Incident,
+        // A rule that only fixes never decides which incidents are investigated.
+        investigates: true,
       },
       select: {
         criteria: true,
@@ -199,14 +203,14 @@ describe("InvestigationRules.getIncidentScope", () => {
       }),
     ).toEqual({ isInScope: true, rulesChecked: 0 });
     expect(String(error.mock.calls[0]![0])).toContain(
-      "could not read the investigation rules",
+      "could not read the AI rules that investigate",
     );
   });
 });
 
 describe("InvestigationRules.getAlertScope", () => {
-  test("reads the alert rules, not the incident ones", async () => {
-    const findBy: SpyInstance<typeof AIInvestigationRuleService.findBy> =
+  test("reads the alert rules that investigate, not the incident ones", async () => {
+    const findBy: SpyInstance<typeof AutoRemediationRuleService.findBy> =
       mockRules([]);
 
     expect(
@@ -219,7 +223,8 @@ describe("InvestigationRules.getAlertScope", () => {
       query: {
         projectId: PROJECT_ID,
         isEnabled: true,
-        triggerEntityType: AIInvestigationRuleTriggerEntity.Alert,
+        triggerEntityType: AutoRemediationTriggerEntity.Alert,
+        investigates: true,
       },
     });
   });
@@ -274,7 +279,7 @@ describe("InvestigationRules.getAlertScope", () => {
  */
 describe("InvestigationRules - a rule's wait", () => {
   test("reads each rule's wait with its conditions", async () => {
-    const findBy: SpyInstance<typeof AIInvestigationRuleService.findBy> =
+    const findBy: SpyInstance<typeof AutoRemediationRuleService.findBy> =
       mockRules([]);
 
     await InvestigationRules.getIncidentScope({
@@ -398,7 +403,7 @@ describe("InvestigationRules - a rule's wait", () => {
   });
 
   test("the severity decides which rule's wait applies (Critical waits 10, Major 30)", async () => {
-    const rules: Array<AIInvestigationRule> = [
+    const rules: Array<AutoRemediationRule> = [
       rule({
         name: "Critical",
         incidentSeverities: [ref(IncidentSeverity, SEVERITY_HIGH)],
@@ -460,7 +465,7 @@ describe("InvestigationRules - a rule's wait", () => {
         (
           call: Parameters<typeof IncidentAlertRuleMatcher.doesIncidentMatch>,
         ) => {
-          return (call[1] as AIInvestigationRule).name;
+          return (call[1] as AutoRemediationRule).name;
         },
       ),
     ).toEqual(["ten", "five"]);
@@ -531,7 +536,7 @@ describe("InvestigationRules - the LLM provider a rule picks", () => {
   const AZURE: string = "cccccccc-cccc-4ccc-8ccc-ccccccccccc2";
 
   test("reads each rule's pick with its conditions", async () => {
-    const findBy: SpyInstance<typeof AIInvestigationRuleService.findBy> =
+    const findBy: SpyInstance<typeof AutoRemediationRuleService.findBy> =
       mockRules([]);
 
     await InvestigationRules.getIncidentScope({
@@ -685,7 +690,7 @@ describe("InvestigationRules - the LLM provider a rule picks", () => {
         (
           call: Parameters<typeof IncidentAlertRuleMatcher.doesIncidentMatch>,
         ) => {
-          return (call[1] as AIInvestigationRule).name;
+          return (call[1] as AutoRemediationRule).name;
         },
       ),
     ).toEqual(["now", "picks"]);

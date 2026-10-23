@@ -1,6 +1,7 @@
 /*
- * An investigation rule's wait (issue #5074): "only if the incident is still
- * open after N minutes" - how a stored wait is read, which waits a rule may
+ * An AI rule's wait (issue #5074; investigation rules were merged into the
+ * AI rules, their wait with them): "only if the incident is still open
+ * after N minutes" - how a stored wait is read, which waits a rule may
  * save, which wait an incident matching several rules gets, and the wait's
  * end (Types/AI/InvestigationRuleWait).
  */
@@ -15,7 +16,7 @@ import {
   getInvestigationWaitUntil,
   getShortestInvestigationRuleWait,
 } from "../../../Types/AI/InvestigationRuleWait";
-import AIInvestigationRule from "../../../Models/DatabaseModels/AIInvestigationRule";
+import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
 import { MAX_AI_INVESTIGATION_COOLDOWN_IN_MINUTES } from "../../../Types/AI/AIWorkloadLimits";
 import { describe, expect, test } from "@jest/globals";
 
@@ -40,7 +41,7 @@ describe("the wait's limits", () => {
   test("the column the helpers name is the rule's real column", () => {
     expect(INVESTIGATION_RULE_WAIT_COLUMN).toBe("onlyIfOpenAfterMinutes");
     expect(
-      new AIInvestigationRule().getTableColumnMetadata(
+      new AutoRemediationRule().getTableColumnMetadata(
         INVESTIGATION_RULE_WAIT_COLUMN,
       ),
     ).toBeTruthy();
@@ -115,7 +116,7 @@ describe("getInvestigationRuleWaitProblem: which waits a rule may save", () => {
 
   test("the refusals name the column as its title reads in the API docs", () => {
     const title: string | undefined =
-      new AIInvestigationRule().getTableColumnMetadata(
+      new AutoRemediationRule().getTableColumnMetadata(
         INVESTIGATION_RULE_WAIT_COLUMN,
       )?.title;
 

@@ -259,15 +259,15 @@ const PAGES: Array<MoreSettingsPage> = [
     },
     sectionTestId: AI_LANE_ADVANCED_SECTION_TEST_ID[AiLane.Incident],
     sectionTitles: [
-      INCIDENT_TITLES[AiLaneAdvancedCard.InvestigationRules],
+      INCIDENT_TITLES[AiLaneAdvancedCard.AiRules],
       INCIDENT_TITLES[AiLaneAdvancedCard.WhichAreInvestigated],
       INCIDENT_TITLES[AiLaneAdvancedCard.InvestigationLimits],
-      INCIDENT_TITLES[AiLaneAdvancedCard.RemediationRules],
       INCIDENT_TITLES[AiLaneAdvancedCard.PostmortemRules],
       INCIDENT_TITLES[AiLaneAdvancedCard.DailyLimits],
     ],
     namesSectionsByTitle: true,
-    tableCount: 3,
+    // The AI rules and the postmortem rules.
+    tableCount: 2,
   },
   {
     name: "Alerts -> AI -> Settings",
@@ -277,14 +277,14 @@ const PAGES: Array<MoreSettingsPage> = [
     },
     sectionTestId: AI_LANE_ADVANCED_SECTION_TEST_ID[AiLane.Alert],
     sectionTitles: [
-      ALERT_TITLES[AiLaneAdvancedCard.InvestigationRules],
+      ALERT_TITLES[AiLaneAdvancedCard.AiRules],
       ALERT_TITLES[AiLaneAdvancedCard.WhichAreInvestigated],
       ALERT_TITLES[AiLaneAdvancedCard.InvestigationLimits],
-      ALERT_TITLES[AiLaneAdvancedCard.RemediationRules],
       ALERT_TITLES[AiLaneAdvancedCard.DailyLimits],
     ],
     namesSectionsByTitle: true,
-    tableCount: 2,
+    // The AI rules.
+    tableCount: 1,
   },
   {
     name: "Project Settings -> AI -> AI Features",

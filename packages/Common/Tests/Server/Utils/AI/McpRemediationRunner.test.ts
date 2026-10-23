@@ -545,6 +545,32 @@ describe("which servers a fix may use, and whether it asks", () => {
       "turned off",
     );
   });
+
+  // An AI rule set to "Don't fix" only investigates: it changes nothing.
+  test("a rule set to only investigate since stops the fix, saying so", async () => {
+    suggestionRow({ autoRemediationRuleId: RULE_ID });
+
+    ruleRow = {
+      id: RULE_ID,
+      projectId: PROJECT_ID,
+      isEnabled: true,
+      fixes: false,
+    };
+    expect(await McpRemediationRunner.getTarget(asSuggestion())).toBe(
+      "The rule behind this fix was set to only investigate before OneUptime AI could work on it, so it changed nothing.",
+    );
+
+    // Still fixing, it goes on.
+    ruleRow = {
+      id: RULE_ID,
+      projectId: PROJECT_ID,
+      isEnabled: true,
+      fixes: true,
+    };
+    expect(typeof (await McpRemediationRunner.getTarget(asSuggestion()))).toBe(
+      "object",
+    );
+  });
 });
 
 describe("a fix that asks first", () => {

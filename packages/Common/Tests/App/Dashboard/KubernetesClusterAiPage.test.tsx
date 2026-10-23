@@ -2892,7 +2892,7 @@ describe("the Change modal: the mode cards", () => {
       "You can turn investigation on or off, lower fixes and remove allowlist patterns.",
     );
     expect(note).toHaveTextContent(
-      "Turning fixes on or up, or adding allowlist patterns, needs Project Owner, Project Admin or Edit Auto Remediation Rule.",
+      "Turning fixes on or up, or adding allowlist patterns, needs Project Owner, Project Admin or Edit AI Rule.",
     );
     // There is no Runner to choose any more.
     expect(note).not.toHaveTextContent("Runner");
@@ -2945,7 +2945,7 @@ describe("the Change modal: who may loosen", () => {
 
     expect(
       within(dialog).getByTestId("kubernetes-ai-access-admin-note"),
-    ).toHaveTextContent("Edit Auto Remediation Rule");
+    ).toHaveTextContent("Edit AI Rule");
     // Nothing saved to remove: no allowlist field; no Runner either.
     expect(
       within(dialog).queryByTestId("kubectl-allowlist-field"),
@@ -3066,7 +3066,7 @@ describe("the Change modal: who may loosen", () => {
         {},
         { timeout: WAIT_TIMEOUT },
       ),
-    ).toHaveTextContent("Edit Auto Remediation Rule");
+    ).toHaveTextContent("Edit AI Rule");
     expect(updateByIdSpy).not.toHaveBeenCalled();
   });
 
