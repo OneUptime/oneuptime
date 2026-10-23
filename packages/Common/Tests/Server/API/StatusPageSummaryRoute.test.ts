@@ -40,6 +40,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 
 // Avoid the unrelated PasswordHash TS5.9 Buffer/BinaryLike compile failure.
 jest.mock("../../../Server/Utils/PasswordHash", () => {
@@ -126,7 +127,7 @@ interface PageAccess {
 }
 
 let pageAccess: PageAccess = { isPublicStatusPage: true };
-let buildSpy: jest.SpiedFunction<StatusPageAPI["buildOverviewResponse"]>;
+let buildSpy: SpyInstance<StatusPageAPI["buildOverviewResponse"]>;
 
 function mockPage(): void {
   pageAccess = { isPublicStatusPage: true };
@@ -184,9 +185,9 @@ async function ask(data: {
   method: "get" | "post";
   statusPageIdOrDomain: string;
 }): Promise<Answer> {
-  const sendJson: jest.Mock = Response.sendJsonObjectResponse as jest.Mock;
+  const sendJson: Mock = Response.sendJsonObjectResponse as unknown as Mock;
   const callsBefore: number = sendJson.mock.calls.length;
-  const next: jest.Mock = jest.fn();
+  const next: Mock = jest.fn();
 
   await mockRouter
     .match(data.method, data.route || SUMMARY_ROUTE)
@@ -297,11 +298,10 @@ describe("the status page summary route", () => {
     const domain: StatusPageDomain = new StatusPageDomain();
     domain.statusPageId = pageId;
 
-    const findDomain: jest.SpiedFunction<
-      typeof StatusPageDomainService.findOneBy
-    > = jest
-      .spyOn(StatusPageDomainService, "findOneBy")
-      .mockResolvedValue(domain as never);
+    const findDomain: SpyInstance<typeof StatusPageDomainService.findOneBy> =
+      jest
+        .spyOn(StatusPageDomainService, "findOneBy")
+        .mockResolvedValue(domain as never);
 
     const answer: Answer = await ask({
       method: "get",
@@ -456,7 +456,7 @@ describe("the announcements a status page lists", () => {
       return Promise.resolve(page);
     }) as never);
 
-    const findAnnouncements: jest.SpiedFunction<
+    const findAnnouncements: SpyInstance<
       typeof StatusPageAnnouncementService.findBy
     > = jest
       .spyOn(StatusPageAnnouncementService, "findBy")
