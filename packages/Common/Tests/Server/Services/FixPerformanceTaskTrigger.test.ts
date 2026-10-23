@@ -440,7 +440,7 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromFindings (insigh
     aiSwitch(false);
     const repository: jest.SpyInstance = jest.spyOn(
       SubjectCodeFixRun,
-      "hasGitHubAppConnectedRepository",
+      "hasConnectedRepository",
     );
 
     await expect(
@@ -458,7 +458,7 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromFindings (insigh
   test("findings not worth fixing are refused by the same rule as the trace page", async () => {
     const repository: jest.SpyInstance = jest.spyOn(
       SubjectCodeFixRun,
-      "hasGitHubAppConnectedRepository",
+      "hasConnectedRepository",
     );
 
     await expect(
@@ -475,7 +475,7 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromFindings (insigh
 
   test("of a mix, only the findings worth fixing are enqueued", async () => {
     jest
-      .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
       .mockResolvedValue(true);
     jest
       .spyOn(SubjectCodeFixRun, "findNonTerminalPerformanceFixRunForTrace")
@@ -519,7 +519,7 @@ describe("FixPerformanceTaskTrigger.getSuggestionForTrace (what the trace page o
     const loadTrace: jest.Mock = loadOf(SLOW_CHECKOUT_WITH_N_PLUS_ONE.spans);
     const repository: jest.SpyInstance = jest.spyOn(
       SubjectCodeFixRun,
-      "hasGitHubAppConnectedRepository",
+      "hasConnectedRepository",
     );
 
     const suggestion: TracePerformanceFixSuggestion =
@@ -581,7 +581,7 @@ describe("FixPerformanceTaskTrigger.getSuggestionForTrace (what the trace page o
       aiSwitch(true);
       const repository: jest.SpyInstance = jest.spyOn(
         SubjectCodeFixRun,
-        "hasGitHubAppConnectedRepository",
+        "hasConnectedRepository",
       );
       const run: jest.SpyInstance = jest.spyOn(
         SubjectCodeFixRun,
@@ -607,7 +607,7 @@ describe("FixPerformanceTaskTrigger.getSuggestionForTrace (what the trace page o
       .spyOn(SubjectCodeFixRun, "findNonTerminalPerformanceFixRunForTrace")
       .mockResolvedValue(null);
     jest
-      .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
       .mockResolvedValue(true);
 
     const suggestion: TracePerformanceFixSuggestion =
@@ -633,7 +633,7 @@ describe("FixPerformanceTaskTrigger.getSuggestionForTrace (what the trace page o
       .spyOn(SubjectCodeFixRun, "findNonTerminalPerformanceFixRunForTrace")
       .mockResolvedValue(null);
     jest
-      .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
       .mockResolvedValue(false);
 
     const suggestion: TracePerformanceFixSuggestion =
@@ -655,7 +655,7 @@ describe("FixPerformanceTaskTrigger.getSuggestionForTrace (what the trace page o
       .mockResolvedValue(activeRun);
     const repository: jest.SpyInstance = jest.spyOn(
       SubjectCodeFixRun,
-      "hasGitHubAppConnectedRepository",
+      "hasConnectedRepository",
     );
 
     const suggestion: TracePerformanceFixSuggestion =
@@ -718,7 +718,7 @@ describe("the server agrees with the page", () => {
     ) => {
       aiSwitch(isAiOn);
       jest
-        .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
+        .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
         .mockResolvedValue(hasRepository);
       jest
         .spyOn(SubjectCodeFixRun, "findNonTerminalPerformanceFixRunForTrace")

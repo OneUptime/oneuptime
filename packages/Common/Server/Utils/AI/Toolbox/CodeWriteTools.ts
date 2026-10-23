@@ -25,6 +25,8 @@ import {
 } from "./ToolTypes";
 import { resolveTargetRepository } from "./CodeTools";
 import PromptText from "../../../../Utils/AI/PromptText";
+import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
+import { CodeHost } from "../../../../Types/CodeRepository/CodeHost";
 
 /*
  * Tools that let the chat agent WRITE code: commit to a branch, and open a
@@ -204,6 +206,26 @@ async function assertMayChangeRepository(data: {
 }
 
 /*
+ * Chat writes code through the GitHub App's API: commits made without a
+ * clone, and the pull request. A repository on another host (GitLab,
+ * Forgejo, Gitea) is changed by asking in Code, where AI works in it on a
+ * Runner and opens the pull or merge request - said so, plainly.
+ */
+export function assertChatWritesToRepository(
+  repository: CodeRepository,
+): void {
+  const type: CodeRepositoryType = CodeHost.readType(
+    repository.repositoryHostedAt,
+  );
+
+  if (type !== CodeRepositoryType.GitHub) {
+    throw new BadDataException(
+      `Chat commits code and opens pull requests in GitHub repositories only. ${repository.organizationName}/${repository.repositoryName} is on ${CodeHost.getFacts(type).name}: ask for the change in Code instead, where AI works in the repository and opens a ${CodeHost.getFacts(type).pullRequestTerm} for review.`,
+    );
+  }
+}
+
+/*
  * THE safety gate. Resolves a branch and refuses it if it is the repository's
  * real default branch or is protected — so a chat-authored commit can only
  * ever land somewhere a human still has to merge from.
@@ -340,6 +362,7 @@ export const CommitCodeToBranchTool: ObservabilityTool = {
     const changes: Array<GitHubFileChange> = parseFileChanges(args);
     const repository: CodeRepository = await resolveTargetRepository(ctx, args);
 
+    assertChatWritesToRepository(repository);
     await assertMayChangeRepository({ ctx, repository });
     await assertBranchIsWritable({ repository, branchName });
 
@@ -427,6 +450,7 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
     const changes: Array<GitHubFileChange> = parseFileChanges(args);
     const repository: CodeRepository = await resolveTargetRepository(ctx, args);
 
+    assertChatWritesToRepository(repository);
     await assertMayChangeRepository({ ctx, repository });
 
     /*

@@ -15,9 +15,9 @@ import ProfileEvidence, {
 } from "../../Profile/ProfileEvidence";
 import SourceLocator, {
   LocatableRepository,
+  LocatableRepositoryWithTree,
   SourceLink,
 } from "../../CodeRepository/SourceLocator";
-import GitHubUtil from "../../CodeRepository/GitHub/GitHub";
 import CodeTaskAccess from "../CodeTask/CodeTaskAccess";
 import CodeTaskContextBuilder from "../CodeTask/CodeTaskContextBuilder";
 import CodeTaskGate from "../CodeTask/CodeTaskGate";
@@ -228,12 +228,8 @@ export default class ProfileFixTaskTrigger {
   private static async locateRepository(data: {
     request: ProfileFixRequest;
     evidence: ProfileFunctionEvidence;
-    repositories: Array<
-      LocatableRepository & { gitHubAppInstallationId: string }
-    >;
-  }): Promise<
-    (LocatableRepository & { gitHubAppInstallationId: string }) | null
-  > {
+    repositories: Array<LocatableRepositoryWithTree>;
+  }): Promise<LocatableRepositoryWithTree | null> {
     if (!data.evidence.fileName) {
       return null;
     }
@@ -249,18 +245,9 @@ export default class ProfileFixTaskTrigger {
       getTreePaths: (
         repository: LocatableRepository,
       ): Promise<Array<string>> => {
-        const withInstallation: LocatableRepository & {
-          gitHubAppInstallationId: string;
-        } = repository as LocatableRepository & {
-          gitHubAppInstallationId: string;
-        };
-
-        return GitHubUtil.getRepositoryTreePaths({
-          installationId: withInstallation.gitHubAppInstallationId,
-          organizationName: withInstallation.organizationName,
-          repositoryName: withInstallation.repositoryName,
-          branchName: withInstallation.mainBranchName,
-        });
+        return SourceLocator.getTreePaths(
+          repository as LocatableRepositoryWithTree,
+        );
       },
     });
 
@@ -345,7 +332,7 @@ export default class ProfileFixTaskTrigger {
     }
 
     const locatable: Array<
-      LocatableRepository & { gitHubAppInstallationId: string }
+      LocatableRepositoryWithTree
     > = await SourceLocator.getLocatableRepositories({
       projectId: request.projectId,
       props: request.props,
@@ -357,7 +344,7 @@ export default class ProfileFixTaskTrigger {
        * they could do here would start the fix.
        */
       if (
-        await SubjectCodeFixRun.hasGitHubAppConnectedRepository(
+        await SubjectCodeFixRun.hasConnectedRepository(
           request.projectId,
         )
       ) {
@@ -478,7 +465,7 @@ export default class ProfileFixTaskTrigger {
     }
 
     const locatable: Array<
-      LocatableRepository & { gitHubAppInstallationId: string }
+      LocatableRepositoryWithTree
     > = await SourceLocator.getLocatableRepositories({
       projectId: request.projectId,
       props: request.props,

@@ -37,13 +37,13 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("SubjectCodeFixRun.hasGitHubAppConnectedRepository", () => {
+describe("SubjectCodeFixRun.hasConnectedRepository", () => {
   test("counts the project's GitHub-App-connected repositories, as root", async () => {
     const countBy: SpyInstance<typeof CodeRepositoryService.countBy> =
       mockConnected(1);
 
     expect(
-      await SubjectCodeFixRun.hasGitHubAppConnectedRepository(PROJECT_ID),
+      await SubjectCodeFixRun.hasConnectedRepository(PROJECT_ID),
     ).toBe(true);
 
     const query: Record<string, unknown> = countBy.mock.calls[0]![0]
@@ -62,7 +62,7 @@ describe("SubjectCodeFixRun.hasGitHubAppConnectedRepository", () => {
       mockConnected(2);
 
     expect(
-      await SubjectCodeFixRun.hasGitHubAppConnectedRepository(
+      await SubjectCodeFixRun.hasConnectedRepository(
         PROJECT_ID,
         EVERY_CODE_REPOSITORY,
       ),
@@ -77,7 +77,7 @@ describe("SubjectCodeFixRun.hasGitHubAppConnectedRepository", () => {
       mockConnected(1);
 
     expect(
-      await SubjectCodeFixRun.hasGitHubAppConnectedRepository(PROJECT_ID, {
+      await SubjectCodeFixRun.hasConnectedRepository(PROJECT_ID, {
         isEveryRepository: false,
         repositoryIds: [CHECKOUT_REPO, BILLING_REPO],
       }),
@@ -96,7 +96,7 @@ describe("SubjectCodeFixRun.hasGitHubAppConnectedRepository", () => {
     mockConnected(0);
 
     expect(
-      await SubjectCodeFixRun.hasGitHubAppConnectedRepository(PROJECT_ID, {
+      await SubjectCodeFixRun.hasConnectedRepository(PROJECT_ID, {
         isEveryRepository: false,
         repositoryIds: [CHECKOUT_REPO],
       }),
@@ -108,7 +108,7 @@ describe("SubjectCodeFixRun.hasGitHubAppConnectedRepository", () => {
       mockConnected(5);
 
     expect(
-      await SubjectCodeFixRun.hasGitHubAppConnectedRepository(
+      await SubjectCodeFixRun.hasConnectedRepository(
         PROJECT_ID,
         NO_CODE_REPOSITORY,
       ),

@@ -5,9 +5,12 @@ import AIService, {
 } from "../../../Services/AIService";
 import CodeRepositoryService from "../../../Services/CodeRepositoryService";
 import ProjectService from "../../../Services/ProjectService";
-import QueryHelper from "../../../Types/Database/QueryHelper";
 import { IsBillingEnabled, getAllEnvVars } from "../../../EnvironmentConfig";
 import GitHubInstallationBinding from "../../CodeRepository/GitHub/GitHubInstallationBinding";
+import CodeHostAccess, {
+  CodeHostConnectionState,
+  CodeHostConnectionSummary,
+} from "../../CodeRepository/CodeHost/CodeHostAccess";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import CodeFixReadiness, {
   CODE_FIX_AI_CREDITS_USED_UP_DETAIL,
@@ -27,6 +30,7 @@ import SubscriptionPlan, {
   PlanType,
 } from "../../../../Types/Billing/SubscriptionPlan";
 import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
+import { CodeHost } from "../../../../Types/CodeRepository/CodeHost";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import Exception from "../../../../Types/Exception/Exception";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
@@ -39,7 +43,9 @@ import ObjectID from "../../../../Types/ObjectID";
  * Everything that gates AI work anywhere in OneUptime, asked in the order a
  * person would fix it: the subscription and the plan, permission to edit the
  * repository, the project's one AI switch (Project.enableAi), a repository
- * the GitHub App can reach, an LLM provider with credits behind it, the
+ * OneUptime can reach (through the GitHub App, or its connection to its Git
+ * server - GitLab, Forgejo, Gitea or any Git server - whose token was not
+ * refused), an LLM provider with credits behind it, the
  * project's own daily AI limits, and a Runner online to do the work: the
  * one the repository picks in its settings, or a global Runner for one that
  * picks none (CodeRepositoryRunnerChoice).
@@ -60,6 +66,43 @@ export const CODE_TASK_SUBSCRIPTION_UNPAID_MESSAGE: string =
 
 export const CODE_TASK_REPOSITORY_NOT_CONNECTED_MESSAGE: string =
   "AI can only work in a GitHub repository connected through the GitHub App, and this one is not. Connect GitHub again from Code.";
+
+// A repository whose connection to its Git server is gone.
+export const CODE_TASK_REPOSITORY_CONNECTION_GONE_MESSAGE: string =
+  "This repository is no longer connected to its Git server, so AI cannot work in it. Connect it again from Code's Repositories.";
+
+// The Git server refused the repository's access token.
+export const getCodeTaskTokenRefusedMessage: (hostName: string) => string = (
+  hostName: string,
+): string => {
+  return `${hostName} refused this repository's access token, so AI cannot work in it. It may have expired: replace it on the repository's Settings page in Code.`;
+};
+
+// A Git server on a private network, with no Runner of the project's own.
+export const CODE_TASK_REPOSITORY_NEEDS_OWN_RUNNER_MESSAGE: string =
+  "This repository's Git server is on a network OneUptime does not reach, so a global Runner cannot work in it. Pick one of your own Runners on that network in the repository's settings in Code.";
+
+// What says a repository is not reachable, by why it is not.
+export const getRepositoryNotReachableMessage: (
+  summary: CodeHostConnectionSummary | null | undefined,
+) => string = (
+  summary: CodeHostConnectionSummary | null | undefined,
+): string => {
+  if (!summary) {
+    return CODE_TASK_REPOSITORY_NOT_CONNECTED_MESSAGE;
+  }
+
+  switch (summary.state) {
+    case CodeHostConnectionState.TokenRefused:
+      return getCodeTaskTokenRefusedMessage(
+        summary.hostProduct || CodeHost.getFacts(summary.provider).name,
+      );
+    case CodeHostConnectionState.NoConnection:
+      return CODE_TASK_REPOSITORY_CONNECTION_GONE_MESSAGE;
+    default:
+      return CODE_TASK_REPOSITORY_NOT_CONNECTED_MESSAGE;
+  }
+};
 
 export default class CodeTaskGate {
   /*
@@ -131,15 +174,23 @@ export default class CodeTaskGate {
       };
     }
 
-    if (
-      !(await CodeTaskGate.isRepositoryReachable({
+    const connection: CodeHostConnectionSummary | undefined = (
+      await CodeHostAccess.getConnectionSummaries({
         projectId: data.projectId,
-        repositoryId: data.repository.id!,
-      }))
+        repositoryIds: [data.repository.id!],
+      })
+    ).get(data.repository.id!.toString());
+
+    if (
+      !connection ||
+      connection.state !== CodeHostConnectionState.Connected
     ) {
       return {
-        type: CodeTaskBlockerType.RepositoryNotConnected,
-        message: CODE_TASK_REPOSITORY_NOT_CONNECTED_MESSAGE,
+        type:
+          connection?.state === CodeHostConnectionState.TokenRefused
+            ? CodeTaskBlockerType.RepositoryTokenRefused
+            : CodeTaskBlockerType.RepositoryNotConnected,
+        message: getRepositoryNotReachableMessage(connection),
       };
     }
 
@@ -188,6 +239,17 @@ export default class CodeTaskGate {
         props: { isRoot: true },
       });
 
+    /*
+     * A Git server only a private network reaches is reached by a Runner of
+     * the project's own on it: a global Runner refuses its address.
+     */
+    if (!connection.isReachableFromServer && !runnerChoice?.runnerId) {
+      return {
+        type: CodeTaskBlockerType.RepositoryNeedsOwnRunner,
+        message: CODE_TASK_REPOSITORY_NEEDS_OWN_RUNNER_MESSAGE,
+      };
+    }
+
     return getRepositoryRunnerBlocker(
       await CodeRepositoryRunnerChoice.getStatusForRepository({
         projectId: data.projectId,
@@ -224,10 +286,11 @@ export default class CodeTaskGate {
   }
 
   /*
-   * Whether the Runner can be handed a token for the repository: a GitHub
-   * repository connected through the GitHub App, whose installation is still
-   * bound to its project - what /ai-agent-data/get-repository-token asks
-   * before it mints one.
+   * Whether the Runner can be handed a token for the repository - what
+   * /ai-agent-data/get-repository-token asks before it hands one out: a
+   * GitHub repository connected through the GitHub App, whose installation
+   * is still bound to its project, or a repository whose connection to its
+   * Git server is its project's and was not refused (CodeHostAccess).
    */
   public static async isRepositoryReachable(data: {
     projectId: ObjectID;
@@ -288,54 +351,16 @@ export default class CodeTaskGate {
   }
 
   /*
-   * Which of the repositories AI can work in, in two reads: the rows, and
-   * the installation bound to the project. Read as root - the installation
-   * id is not every reader's to see, and only the answer goes back.
+   * Which of the repositories AI can work in, in a few reads whatever their
+   * number: the rows, the installation bound to the project and their
+   * connections (CodeHostAccess). Read as root - neither an installation id
+   * nor a token is every reader's to see, and only the answer goes back.
    */
   @CaptureSpan()
   public static async getReachableRepositoryIds(data: {
     projectId: ObjectID;
     repositoryIds: Array<ObjectID>;
   }): Promise<Set<string>> {
-    const reachable: Set<string> = new Set<string>();
-
-    if (data.repositoryIds.length === 0) {
-      return reachable;
-    }
-
-    const boundInstallationId: string | null =
-      await GitHubInstallationBinding.getBoundInstallationId(data.projectId);
-
-    if (!boundInstallationId) {
-      return reachable;
-    }
-
-    const repositories: Array<CodeRepository> =
-      await CodeRepositoryService.findBy({
-        query: {
-          _id: QueryHelper.any(data.repositoryIds),
-          projectId: data.projectId,
-        },
-        select: {
-          _id: true,
-          repositoryHostedAt: true,
-          gitHubAppInstallationId: true,
-        },
-        limit: data.repositoryIds.length,
-        skip: 0,
-        props: { isRoot: true },
-      });
-
-    for (const repository of repositories) {
-      if (
-        repository.id &&
-        repository.repositoryHostedAt === CodeRepositoryType.GitHub &&
-        repository.gitHubAppInstallationId === boundInstallationId
-      ) {
-        reachable.add(repository.id.toString());
-      }
-    }
-
-    return reachable;
+    return await CodeHostAccess.getReachableRepositoryIds(data);
   }
 }

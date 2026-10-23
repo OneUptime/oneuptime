@@ -430,7 +430,7 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation", (
         runsToday: 0,
       });
     hasRepository = jest
-      .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
       .mockResolvedValue(true);
     findNonTerminalRun = jest
       .spyOn(SubjectCodeFixRun, "findNonTerminalRunForSubject")
@@ -879,7 +879,7 @@ describe("FixFromIncidentTaskTrigger and the LLM provider the rules pick", () =>
       runsToday: 0,
     });
     jest
-      .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
       .mockResolvedValue(true);
     jest
       .spyOn(SubjectCodeFixRun, "findNonTerminalRunForSubject")

@@ -127,6 +127,37 @@ export const CODE_HOST_API_PATHS: Partial<Record<CodeRepositoryType, string>> =
     [CodeRepositoryType.Forgejo]: "/api/v1",
   };
 
+/*
+ * What a Runner is told about a repository that is not on GitHub, with its
+ * token (/ai-agent-data/get-repository-token, `codeHost`): where the Git
+ * server is, how Git signs in to it, and where its API opens pull and
+ * merge requests. A Runner older than these hosts does not ask for one
+ * (RUNNER_SUPPORTED_CODE_HOSTS_FIELD) and is never given one.
+ */
+export interface CodeHostRunnerInfo {
+  type: CodeRepositoryType;
+  // The server: https://gitlab.example.com.
+  hostUrl: string;
+  // Its API: https://gitlab.example.com/api/v4. Null for a Git server.
+  apiUrl: string | null;
+  // The repository's page, when it has one.
+  webUrl: string | null;
+  // What Git is given with the token over HTTPS.
+  username: string;
+  // A GitLab repository's project id, which its API reads it by.
+  projectId: string | null;
+  // Whether the Runner opens a pull (or merge) request with its change.
+  hasPullRequests: boolean;
+}
+
+/*
+ * The hosts a Runner can work in, which it sends with its token requests.
+ * A server hands a token for a repository on any other host to no Runner,
+ * so a Runner older than them is told to update rather than pushing a
+ * branch it cannot open a pull request for.
+ */
+export const RUNNER_SUPPORTED_CODE_HOSTS_FIELD: string = "supportedCodeHosts";
+
 // The most repositories one connection connects at once.
 export const MAX_REPOSITORIES_PER_CONNECT: number = 50;
 

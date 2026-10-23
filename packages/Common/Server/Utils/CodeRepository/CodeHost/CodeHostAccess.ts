@@ -5,6 +5,7 @@ import CodeRepositoryConnectionService, {
 } from "../../../Services/CodeRepositoryConnectionService";
 import GlobalCache from "../../../Infrastructure/GlobalCache";
 import QueryHelper from "../../../Types/Database/QueryHelper";
+import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import GitHubUtil, {
@@ -431,6 +432,48 @@ export default class CodeHostAccess {
       connection,
       transport: CodeHostAccess.getTransport(),
     });
+  }
+
+  // How many of the project's repositories use each of the connections.
+  @CaptureSpan()
+  public static async countRepositoriesByConnection(data: {
+    projectId: ObjectID;
+    connectionIds: Array<string>;
+  }): Promise<Map<string, number>> {
+    const counts: Map<string, number> = new Map();
+    const ids: Array<ObjectID> = Array.from(new Set(data.connectionIds))
+      .filter((id: string): boolean => {
+        return ObjectID.isValidUUID(id);
+      })
+      .map((id: string): ObjectID => {
+        return new ObjectID(id);
+      });
+
+    if (ids.length === 0) {
+      return counts;
+    }
+
+    const repositories: Array<CodeRepository> =
+      await CodeRepositoryService.findBy({
+        query: {
+          projectId: data.projectId,
+          codeRepositoryConnectionId: QueryHelper.any(ids),
+        },
+        select: { _id: true, codeRepositoryConnectionId: true },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+    for (const repository of repositories) {
+      const id: string = repository.codeRepositoryConnectionId?.toString() || "";
+
+      if (id) {
+        counts.set(id, (counts.get(id) || 0) + 1);
+      }
+    }
+
+    return counts;
   }
 
   // Reads a project's connections by id, as root.

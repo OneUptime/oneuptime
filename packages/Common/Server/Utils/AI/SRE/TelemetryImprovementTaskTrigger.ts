@@ -74,7 +74,7 @@ export default class TelemetryImprovementTaskTrigger {
 
     const hasConnectedRepository: boolean = activeRun
       ? true
-      : await SubjectCodeFixRun.hasGitHubAppConnectedRepository(data.projectId);
+      : await SubjectCodeFixRun.hasConnectedRepository(data.projectId);
 
     const offer: SuggestionOffer = getTelemetryImprovementOffer({
       isAiEnabled: true,
@@ -140,7 +140,7 @@ export default class TelemetryImprovementTaskTrigger {
 
     // Gate — a repository the agent can actually open a PR against.
     const hasConnectedRepository: boolean =
-      await SubjectCodeFixRun.hasGitHubAppConnectedRepository(data.projectId);
+      await SubjectCodeFixRun.hasConnectedRepository(data.projectId);
 
     if (!hasConnectedRepository) {
       throw new BadDataException(

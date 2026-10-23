@@ -490,9 +490,45 @@ export default class GitLabApi {
         CodeHostText.readString(project["http_url_to_repo"]) || `${webUrl}.git`,
       isPrivate:
         CodeHostText.readString(project["visibility"]) !== "public",
-      // Listed for a Developer or more: they push to an unprotected branch.
-      canPush: project["archived"] !== true,
+      /*
+       * A Developer or more pushes to an unprotected branch. The project's
+       * own permissions say which role the token has; a project they say
+       * nothing of (the role comes from elsewhere) is taken as one it may
+       * push to, and a push it may not make fails on the Runner, saying so.
+       */
+      canPush:
+        project["archived"] !== true &&
+        (GitLabApi.readAccessLevel(project["permissions"]) < 0 ||
+          GitLabApi.readAccessLevel(project["permissions"]) >=
+            DEVELOPER_ACCESS_LEVEL),
     };
+  }
+
+  /*
+   * The token's role in a project, from its permissions: the higher of its
+   * own and its group's - or -1 when they name neither.
+   */
+  public static readAccessLevel(raw: unknown): number {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      return -1;
+    }
+
+    const permissions: JSONObject = raw as JSONObject;
+    let level: number = -1;
+
+    for (const key of ["project_access", "group_access"]) {
+      const access: unknown = permissions[key];
+
+      if (access && typeof access === "object" && !Array.isArray(access)) {
+        const value: number = Number((access as JSONObject)["access_level"]);
+
+        if (Number.isFinite(value) && value > level) {
+          level = value;
+        }
+      }
+    }
+
+    return level;
   }
 
   // A project's API path, by id or by its URL-encoded path.

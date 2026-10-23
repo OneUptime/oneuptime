@@ -159,7 +159,7 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
           "error",
         );
         return this.createFailureResult(
-          "Could not resolve a repository for this exception: its stack-trace files were not found in any connected repository, no repository name matches the service, and the project has more than one repository. Connect the right repository through the GitHub App.",
+          "Could not resolve a repository for this exception: its stack-trace files were not found in any connected repository, no repository name matches the service, and the project has more than one repository. Connect the right repository in Code.",
           { isError: true },
         );
       }

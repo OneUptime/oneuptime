@@ -287,7 +287,7 @@ export default class InstrumentationTaskTrigger {
        * with the FixFromIncident sibling — see SubjectCodeFixRun.
        */
       const hasConnectedRepository: boolean =
-        await SubjectCodeFixRun.hasGitHubAppConnectedRepository(
+        await SubjectCodeFixRun.hasConnectedRepository(
           projectId,
           ruleDecision.repositories,
         );

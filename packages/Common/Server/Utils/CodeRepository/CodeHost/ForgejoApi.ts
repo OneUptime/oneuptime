@@ -195,6 +195,32 @@ export default class ForgejoApi {
     return repository;
   }
 
+  // A repository by the server's own id for it.
+  public async getRepositoryById(id: string): Promise<CodeHostRepository> {
+    const numericId: number = Number(id);
+
+    if (!Number.isSafeInteger(numericId) || numericId <= 0) {
+      throw new CodeHostHttpError({
+        kind: CodeHostHttpErrorKind.NotFound,
+        message: "That is not a repository of this server.",
+      });
+    }
+
+    const answer: CodeHostApiAnswer = await this.client.getJson(
+      `/repositories/${numericId}`,
+    );
+
+    const repository: CodeHostRepository | null = this.readRepository(
+      answer.json,
+    );
+
+    if (!repository) {
+      throw ForgejoApi.badAnswer("the repository");
+    }
+
+    return repository;
+  }
+
   public async getDefaultBranchName(
     owner: string,
     name: string,

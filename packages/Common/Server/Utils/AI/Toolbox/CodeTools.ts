@@ -20,6 +20,16 @@ import {
 } from "../../CodeRepository/StackTraceRepoResolver";
 import logger from "../../Logger";
 import GitHubInstallationBinding from "../../CodeRepository/GitHub/GitHubInstallationBinding";
+import CodeHostAccess, {
+  CodeHostConnectionState,
+  CodeHostConnectionSummary,
+  CodeHostReader,
+} from "../../CodeRepository/CodeHost/CodeHostAccess";
+import { CodeHostFileContent } from "../../CodeRepository/CodeHost/CodeHostTypes";
+import {
+  CodeHost,
+  CodeHostCapability,
+} from "../../../../Types/CodeRepository/CodeHost";
 import StackTraceParser, {
   ParsedStackTrace,
   StackFrame,
@@ -37,7 +47,9 @@ import {
  * connect a telemetry signal to the code that produced it.
  *
  * The trust posture here is deliberately narrower than the observability
- * tools': source is read-only, GitHub-App-connected repositories only, and
+ * tools': source is read-only, only repositories OneUptime reaches and whose
+ * files it reads (a GitHub repository through the GitHub App, a GitLab,
+ * Forgejo or Gitea repository through its connection - CodeHostAccess), and
  * every payload goes through the same secret redaction as telemetry (a repo's
  * config files are a likelier place to find a live credential than a log line
  * is).
@@ -164,11 +176,12 @@ async function addInstallationIds(
 
 /*
  * The repositories this user can see, already filtered to the ones that are
- * actually readable. A repository row can exist without a usable GitHub App
- * installation (e.g. imported then uninstalled, or a GitLab row — GitLab has
- * no read path yet), and those must never look readable to the model. A run
- * held to some repositories (ctx.codeRepositoryAllowance - the ones the rules
- * that matched its incident name) reads only those.
+ * actually readable. A repository row can exist without a way in (a GitHub
+ * one imported then uninstalled, a GitLab one whose token was refused) or on
+ * a host whose files OneUptime does not read (a plain Git repository), and
+ * those must never look readable to the model. A run held to some
+ * repositories (ctx.codeRepositoryAllowance - the ones the rules that matched
+ * its incident name) reads only those.
  */
 export async function findReadableRepositories(
   ctx: ToolContext,
@@ -222,11 +235,28 @@ export async function findReadableRepositories(
   const gitHubRepositories: Array<CodeRepository> = repositories.filter(
     (repository: CodeRepository) => {
       return (
-        repository.repositoryHostedAt === CodeRepositoryType.GitHub &&
+        CodeHost.readType(repository.repositoryHostedAt) ===
+          CodeRepositoryType.GitHub &&
         Boolean(repository.gitHubAppInstallationId)
       );
     },
   );
+
+  /*
+   * Repositories on other hosts are read through their connections: only
+   * those connected now, on a host whose files OneUptime reads, whose server
+   * OneUptime may reach.
+   */
+  const otherRepositories: Array<CodeRepository> =
+    await keepRepositoriesWithReadableCode(
+      ctx,
+      repositories.filter((repository: CodeRepository) => {
+        return (
+          CodeHost.readType(repository.repositoryHostedAt) !==
+          CodeRepositoryType.GitHub
+        );
+      }),
+    );
 
   /*
    * Every code tool — read and write — resolves its target through here, so
@@ -243,27 +273,142 @@ export async function findReadableRepositories(
    * being wrong here is another tenant's source code.
    */
   if (gitHubRepositories.length === 0) {
-    return gitHubRepositories;
+    return otherRepositories;
   }
 
   // Every row here is in ctx.projectId, so one lookup answers for all of them.
   const boundInstallationId: string | null =
     await GitHubInstallationBinding.getBoundInstallationId(ctx.projectId);
 
-  return gitHubRepositories.filter((repository: CodeRepository) => {
-    if (
-      boundInstallationId &&
-      repository.gitHubAppInstallationId === boundInstallationId
-    ) {
-      return true;
-    }
+  return [
+    ...gitHubRepositories.filter((repository: CodeRepository) => {
+      if (
+        boundInstallationId &&
+        repository.gitHubAppInstallationId === boundInstallationId
+      ) {
+        return true;
+      }
 
-    logger.error(
-      `Excluding code repository ${repository.id?.toString()} from AI code tools: its GitHub App installation is not bound to project ${ctx.projectId.toString()}.`,
+      logger.error(
+        `Excluding code repository ${repository.id?.toString()} from AI code tools: its GitHub App installation is not bound to project ${ctx.projectId.toString()}.`,
+      );
+
+      return false;
+    }),
+    ...otherRepositories,
+  ];
+}
+
+/*
+ * Of repositories on hosts beside GitHub, those whose code OneUptime reads
+ * now: connected through their connection (the project's, its token not
+ * refused), on a host whose files it reads, on a server it may reach.
+ */
+async function keepRepositoriesWithReadableCode(
+  ctx: ToolContext,
+  repositories: Array<CodeRepository>,
+): Promise<Array<CodeRepository>> {
+  if (repositories.length === 0) {
+    return [];
+  }
+
+  const summaries: Map<string, CodeHostConnectionSummary> =
+    await CodeHostAccess.getConnectionSummaries({
+      projectId: ctx.projectId,
+      repositoryIds: repositories
+        .filter((repository: CodeRepository): boolean => {
+          return Boolean(repository.id);
+        })
+        .map((repository: CodeRepository): ObjectID => {
+          return repository.id!;
+        }),
+    });
+
+  return repositories.filter((repository: CodeRepository): boolean => {
+    const summary: CodeHostConnectionSummary | undefined = repository.id
+      ? summaries.get(repository.id.toString())
+      : undefined;
+
+    return Boolean(
+      summary &&
+        summary.state === CodeHostConnectionState.Connected &&
+        summary.isReachableFromServer &&
+        CodeHost.can(summary.provider, CodeHostCapability.ReadCode),
     );
-
-    return false;
   });
+}
+
+/*
+ * A readable repository's file tree, on its main branch: GitHub's through
+ * the installation, any other host's through its reader. Both cached.
+ */
+export async function readRepositoryTreePaths(
+  ctx: ToolContext,
+  repository: CodeRepository,
+): Promise<Array<string>> {
+  if (
+    CodeHost.readType(repository.repositoryHostedAt) ===
+    CodeRepositoryType.GitHub
+  ) {
+    return await GitHubUtil.getRepositoryTreePaths({
+      installationId: repository.gitHubAppInstallationId!,
+      organizationName: repository.organizationName!,
+      repositoryName: repository.repositoryName!,
+      branchName: repository.mainBranchName || "main",
+    });
+  }
+
+  return await (
+    await getRepositoryReader(ctx, repository)
+  ).getTreePaths(repository.mainBranchName || "main");
+}
+
+// One file of a readable repository, or null where there is no such file.
+export async function readRepositoryFile(data: {
+  ctx: ToolContext;
+  repository: CodeRepository;
+  branchName: string;
+  filePath: string;
+}): Promise<CodeHostFileContent | null> {
+  if (
+    CodeHost.readType(data.repository.repositoryHostedAt) ===
+    CodeRepositoryType.GitHub
+  ) {
+    const file: GitHubFileContent | null = await GitHubUtil.getFileContent({
+      installationId: data.repository.gitHubAppInstallationId!,
+      organizationName: data.repository.organizationName!,
+      repositoryName: data.repository.repositoryName!,
+      branchName: data.branchName,
+      filePath: data.filePath,
+    });
+
+    return file;
+  }
+
+  return await (
+    await getRepositoryReader(data.ctx, data.repository)
+  ).getFileContent({
+    filePath: data.filePath,
+    branchName: data.branchName,
+  });
+}
+
+async function getRepositoryReader(
+  ctx: ToolContext,
+  repository: CodeRepository,
+): Promise<CodeHostReader> {
+  const reader: CodeHostReader | null = await CodeHostAccess.getReader({
+    projectId: ctx.projectId,
+    repositoryId: repository.id!,
+  });
+
+  if (!reader || !reader.canReadCode) {
+    throw new BadDataException(
+      `OneUptime cannot read the code of ${repository.organizationName}/${repository.repositoryName} right now: it is not connected, or its host's files are not read.`,
+    );
+  }
+
+  return reader;
 }
 
 /*
@@ -292,7 +437,7 @@ export async function resolveTargetRepository(
       );
     }
     throw new BadDataException(
-      "This project has no GitHub-connected code repositories, so source code cannot be read. Connect a repository under Code Repository in the dashboard.",
+      "This project has no connected code repository whose source OneUptime can read. Connect one in Code: GitHub, GitLab, Forgejo and Gitea repositories are read (a plain Git repository's files are not).",
     );
   }
 
@@ -360,12 +505,7 @@ async function getTreePathsForResolution(
   }
 
   try {
-    return await GitHubUtil.getRepositoryTreePaths({
-      installationId: repository.gitHubAppInstallationId!,
-      organizationName: repository.organizationName!,
-      repositoryName: repository.repositoryName!,
-      branchName: repository.mainBranchName || "main",
-    });
+    return await readRepositoryTreePaths(ctx, repository);
   } catch (err) {
     /*
      * A tree fetch failure must not sink the whole answer: the frames are still
@@ -789,12 +929,10 @@ export const SearchCodeTool: ObservabilityTool = {
 
     const repository: CodeRepository = await resolveTargetRepository(ctx, args);
 
-    const paths: Array<string> = await GitHubUtil.getRepositoryTreePaths({
-      installationId: repository.gitHubAppInstallationId!,
-      organizationName: repository.organizationName!,
-      repositoryName: repository.repositoryName!,
-      branchName: repository.mainBranchName || "main",
-    });
+    const paths: Array<string> = await readRepositoryTreePaths(
+      ctx,
+      repository,
+    );
 
     const needle: string = query.toLowerCase();
 
@@ -885,12 +1023,11 @@ export const ReadCodeFileTool: ObservabilityTool = {
     const repository: CodeRepository = await resolveTargetRepository(ctx, args);
     const branchName: string = repository.mainBranchName || "main";
 
-    const file: GitHubFileContent | null = await GitHubUtil.getFileContent({
-      installationId: repository.gitHubAppInstallationId!,
-      organizationName: repository.organizationName!,
-      repositoryName: repository.repositoryName!,
-      branchName: branchName,
-      filePath: filePath,
+    const file: CodeHostFileContent | null = await readRepositoryFile({
+      ctx,
+      repository,
+      branchName,
+      filePath,
     });
 
     if (!file) {

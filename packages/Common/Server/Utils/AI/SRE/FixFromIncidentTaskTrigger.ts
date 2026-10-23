@@ -251,7 +251,7 @@ export default class FixFromIncidentTaskTrigger {
 
     // Gate 2: a repository the agent can actually open a PR against.
     const hasConnectedRepository: boolean =
-      await SubjectCodeFixRun.hasGitHubAppConnectedRepository(data.projectId);
+      await SubjectCodeFixRun.hasConnectedRepository(data.projectId);
 
     if (!hasConnectedRepository) {
       throw new BadDataException(
@@ -553,7 +553,7 @@ export default class FixFromIncidentTaskTrigger {
       }
 
       const hasConnectedRepository: boolean =
-        await SubjectCodeFixRun.hasGitHubAppConnectedRepository(
+        await SubjectCodeFixRun.hasConnectedRepository(
           projectId,
           ruleDecision.repositories,
         );
