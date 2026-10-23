@@ -752,8 +752,9 @@ export default class PerformanceRecorder {
    * exactly as a hidden tab reports them, while the stream can still take
    * them: LCP, FCP and TTFB once, and CLS and the current view's INP,
    * which stay open and are reported again only if they change after
-   * the user comes back. Without this, a page whose first hide came while paused -
-   * the tab closed by someone who walked away first - lost its vitals.
+   * the user comes back. Without this, a page whose first hide came while
+   * paused - the tab closed by someone who walked away first - lost its
+   * vitals.
    */
   public finaliseVitalsNow(): void {
     if (!this.started || !this.captureWebVitals) {
