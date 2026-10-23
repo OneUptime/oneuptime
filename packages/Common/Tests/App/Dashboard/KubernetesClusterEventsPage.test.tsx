@@ -41,7 +41,6 @@ import {
  */
 
 const CLUSTER_ID: string = "0193c0de-2222-4aaa-8bbb-000000000005";
-const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const CLUSTER: string = "aks-prod-westeurope";
 const OTHER_CLUSTER: string = "aks-staging";
 const NOW: Date = new Date();
@@ -139,9 +138,12 @@ jest.mock("../../../UI/Components/Date/RangeStartAndEndDateView", () => {
 
 // The logs list, answered by a store of Event logs that filters like the server.
 jest.mock("../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
-  const store: {
+  type EventLogStoreModule = {
     eventLogStoreGetList: (...args: Array<unknown>) => unknown;
-  } = jest.requireActual("./KubernetesEventsLogStore");
+  };
+  const store: EventLogStoreModule = jest.requireActual(
+    "./KubernetesEventsLogStore",
+  ) as EventLogStoreModule;
 
   return {
     __esModule: true,
@@ -564,10 +566,11 @@ describe("Events stored before the upgrade", () => {
      * The server has no stamped type to find them by: the read of every
      * event finds them, and their bodies say which is a warning.
      */
-    const bodyRead: { select: Record<string, boolean>; ids?: Array<string> } =
-      listRequestsOf.current.find((request: { ids?: Array<string> }) => {
+    const bodyRead: RecordedListRequest = listRequestsOf.current.find(
+      (request: RecordedListRequest): boolean => {
         return Boolean(request.ids);
-      })!;
+      },
+    )!;
     expect(bodyRead.select["body"]).toBe(true);
     expect(bodyRead.ids).toHaveLength(2);
 

@@ -42,9 +42,12 @@ const NOW: Date = new Date();
 const ISSUE_EVENTS: Array<KubernetesEventFields> = issue5179Events(NOW);
 
 jest.mock("../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
-  const store: {
+  type EventLogStoreModule = {
     eventLogStoreGetList: (...args: Array<unknown>) => unknown;
-  } = jest.requireActual("./KubernetesEventsLogStore");
+  };
+  const store: EventLogStoreModule = jest.requireActual(
+    "./KubernetesEventsLogStore",
+  ) as EventLogStoreModule;
 
   return {
     __esModule: true,
