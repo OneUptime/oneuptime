@@ -498,12 +498,12 @@ describe("HostService.updateLastSeen", () => {
       mockEnrichedWriteFailing();
     });
 
-    test("does not throw — ingest keeps going", async () => {
+    test("does not throw — ingest keeps going, and the row is there", async () => {
       await expect(
         HostService.updateLastSeen(HOST_ID, {
           hostIpAddresses: HUGE_IP_LIST,
         }),
-      ).resolves.toBeUndefined();
+      ).resolves.toEqual({ isRowGone: false });
     });
 
     test("retries with liveness only, so lastSeenAt still advances", async () => {

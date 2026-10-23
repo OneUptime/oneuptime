@@ -33,6 +33,8 @@ import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import MetricCatalog from "../Utils/MetricCatalog";
 import MetricsQueueService from "./Queue/MetricsQueueService";
+import { DiscoveredResourceKinds } from "Common/Server/Utils/Telemetry/DiscoveredResourceIdCache";
+import { ResourceHeartbeatResult } from "Common/Server/Utils/Telemetry/ResourceHeartbeat";
 import OtelIngestBaseService, {
   DatabaseServerResourceResolution,
 } from "./OtelIngestBaseService";
@@ -771,7 +773,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       }
 
       try {
-        const host: Host = await HostService.findOrCreateByHostIdentifier({
+        let host: Host = await HostService.findOrCreateByHostIdentifier({
           projectId: data.projectId,
           hostIdentifier: hostName,
         });
@@ -780,7 +782,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           continue;
         }
 
-        await HostService.updateLastSeen(new ObjectID(host._id.toString()), {
+        const extras: Parameters<typeof HostService.updateLastSeen>[1] = {
           osType: entry.osType ?? undefined,
           osVersion: entry.osVersion ?? undefined,
           hostId: entry.hostId ?? undefined,
@@ -792,7 +794,36 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           processCount: entry.processCount ?? undefined,
           containerRuntime: entry.containerRuntime ?? undefined,
           agentVersion: entry.agentVersion ?? undefined,
-        });
+        };
+
+        const heartbeat: ResourceHeartbeatResult =
+          await HostService.updateLastSeen(
+            new ObjectID(host._id.toString()),
+            extras,
+          );
+
+        /*
+         * HostService's memo named a host deleted since (it keeps an answer
+         * for a minute, and another process deleted it): ask again past the
+         * memo - which creates the host anew when nothing answers, as on
+         * first contact - and write the heartbeat there.
+         */
+        if (heartbeat?.isRowGone) {
+          host = await HostService.findOrCreateByHostIdentifier({
+            projectId: data.projectId,
+            hostIdentifier: hostName,
+            bypassMemo: true,
+          });
+
+          if (!host._id) {
+            continue;
+          }
+
+          await HostService.updateLastSeen(
+            new ObjectID(host._id.toString()),
+            extras,
+          );
+        }
 
         if (entry.labelNames.size > 0) {
           const labelIds: Array<ObjectID> =
@@ -3235,10 +3266,16 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             startedAt: e.startedAt,
           });
         }
-        await DockerResourceService.bulkUpsertContainers({
-          projectId: data.projectId,
-          dockerHostId: new ObjectID(hostIdStr),
-          containers,
+        await this.writeForDiscoveredResource({
+          kind: DiscoveredResourceKinds.DockerHost,
+          id: hostIdStr,
+          write: async (dockerHostId: ObjectID): Promise<void> => {
+            await DockerResourceService.bulkUpsertContainers({
+              projectId: data.projectId,
+              dockerHostId,
+              containers,
+            });
+          },
         });
       } catch (err) {
         logger.warn(
@@ -3411,10 +3448,16 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             startedAt: e.startedAt,
           });
         }
-        await PodmanResourceService.bulkUpsertContainers({
-          projectId: data.projectId,
-          podmanHostId: new ObjectID(hostIdStr),
-          containers,
+        await this.writeForDiscoveredResource({
+          kind: DiscoveredResourceKinds.PodmanHost,
+          id: hostIdStr,
+          write: async (podmanHostId: ObjectID): Promise<void> => {
+            await PodmanResourceService.bulkUpsertContainers({
+              projectId: data.projectId,
+              podmanHostId,
+              containers,
+            });
+          },
         });
       } catch (err) {
         logger.warn(
@@ -3577,14 +3620,21 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         continue;
       }
       try {
-        const cloudResourceId: ObjectID = new ObjectID(cloudResourceIdStr);
+        // The id this flush writes against: see writeForDiscoveredResource.
+        let liveIdStr: string = cloudResourceIdStr;
         for (const e of byInstance.values()) {
-          await CloudResourceInstanceService.recordInstance({
-            projectId: data.projectId,
-            cloudResourceId,
-            instanceName: e.instanceName,
-            cpuPercent: e.cpu ? e.cpu.value : undefined,
-            memoryBytes: e.memory ? e.memory.value : undefined,
+          liveIdStr = await this.writeForDiscoveredResource({
+            kind: DiscoveredResourceKinds.CloudResource,
+            id: liveIdStr,
+            write: async (cloudResourceId: ObjectID): Promise<void> => {
+              await CloudResourceInstanceService.recordInstance({
+                projectId: data.projectId,
+                cloudResourceId,
+                instanceName: e.instanceName,
+                cpuPercent: e.cpu ? e.cpu.value : undefined,
+                memoryBytes: e.memory ? e.memory.value : undefined,
+              });
+            },
           });
         }
       } catch (err) {
@@ -3801,6 +3851,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     ]);
 
     for (const clusterIdStr of clusterIdStrs) {
+      // The id this flush writes against: see writeForDiscoveredResource.
+      let liveIdStr: string = clusterIdStr;
       const byKey: Map<string, ProxmoxResourceBufferEntry> | undefined =
         data.resourceBuffer.get(clusterIdStr);
       const entries: Array<ProxmoxResourceBufferEntry> = byKey
@@ -3829,18 +3881,24 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               };
             },
           );
-          await ProxmoxResourceService.bulkUpsert({
-            projectId: data.projectId,
-            proxmoxClusterId: new ObjectID(clusterIdStr),
-            resources,
-            // A native push is exactly the batch that counts from inventory.
-            isNativePush: Boolean(snap?.countsFromInventory),
+          liveIdStr = await this.writeForDiscoveredResource({
+            kind: DiscoveredResourceKinds.ProxmoxCluster,
+            id: liveIdStr,
+            write: async (proxmoxClusterId: ObjectID): Promise<void> => {
+              await ProxmoxResourceService.bulkUpsert({
+                projectId: data.projectId,
+                proxmoxClusterId,
+                resources,
+                // A native push is exactly the batch that counts from inventory.
+                isNativePush: Boolean(snap?.countsFromInventory),
+              });
+            },
           });
 
           if (snap?.countsFromInventory) {
             await this.adoptProxmoxNodesAsNativePush({
               projectId: data.projectId,
-              proxmoxClusterId: new ObjectID(clusterIdStr),
+              proxmoxClusterId: new ObjectID(liveIdStr),
               seenUpTo: entries.reduce(
                 (newest: Date, e: ProxmoxResourceBufferEntry) => {
                   return e.observedAt > newest ? e.observedAt : newest;
@@ -3872,7 +3930,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           );
           await ProxmoxResourceService.bulkUpdateLatestMetrics({
             projectId: data.projectId,
-            proxmoxClusterId: new ObjectID(clusterIdStr),
+            proxmoxClusterId: new ObjectID(liveIdStr),
             metrics,
           });
         } catch (err) {
@@ -3891,7 +3949,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       if (silentNodeReport) {
         await this.markProxmoxSilentNodesOffline({
           projectId: data.projectId,
-          proxmoxClusterId: new ObjectID(clusterIdStr),
+          proxmoxClusterId: new ObjectID(liveIdStr),
           report: silentNodeReport,
         });
       }
@@ -3915,7 +3973,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             proxmoxClusterCountsFromInventory(
               await ProxmoxResourceService.getInventorySummary({
                 projectId: data.projectId,
-                proxmoxClusterId: new ObjectID(clusterIdStr),
+                proxmoxClusterId: new ObjectID(liveIdStr),
               }),
             ),
           );
@@ -3923,7 +3981,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
         if (Object.keys(extras).length > 0) {
           await ProxmoxClusterService.updateLastSeen(
-            new ObjectID(clusterIdStr),
+            new ObjectID(liveIdStr),
             extras,
           );
         }
@@ -3954,6 +4012,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     ]);
 
     for (const vcenterIdStr of vcenterIdStrs) {
+      // The id this flush writes against: see writeForDiscoveredResource.
+      let liveIdStr: string = vcenterIdStr;
       const byKey: Map<string, VMwareResourceBufferEntry> | undefined =
         data.resourceBuffer.get(vcenterIdStr);
       const entries: Array<VMwareResourceBufferEntry> = byKey
@@ -3983,10 +4043,16 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               };
             },
           );
-          await VMwareResourceService.bulkUpsert({
-            projectId: data.projectId,
-            vmwareVCenterId: new ObjectID(vcenterIdStr),
-            resources,
+          liveIdStr = await this.writeForDiscoveredResource({
+            kind: DiscoveredResourceKinds.VMwareVCenter,
+            id: liveIdStr,
+            write: async (vmwareVCenterId: ObjectID): Promise<void> => {
+              await VMwareResourceService.bulkUpsert({
+                projectId: data.projectId,
+                vmwareVCenterId,
+                resources,
+              });
+            },
           });
 
           const metrics: Array<VMwareResourceLatestMetric> = entries.map(
@@ -3996,7 +4062,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           );
           await VMwareResourceService.bulkUpdateLatestMetrics({
             projectId: data.projectId,
-            vmwareVCenterId: new ObjectID(vcenterIdStr),
+            vmwareVCenterId: new ObjectID(liveIdStr),
             metrics,
           });
         } catch (err) {
@@ -4017,7 +4083,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
         if (Object.keys(extras).length > 0) {
           await VMwareVCenterService.updateLastSeen(
-            new ObjectID(vcenterIdStr),
+            new ObjectID(liveIdStr),
             extras,
           );
         }
@@ -4047,6 +4113,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     ]);
 
     for (const clusterIdStr of clusterIdStrs) {
+      // The id this flush writes against: see writeForDiscoveredResource.
+      let liveIdStr: string = clusterIdStr;
       const byKey: Map<string, CephResourceBufferEntry> | undefined =
         data.resourceBuffer.get(clusterIdStr);
       const entries: Array<CephResourceBufferEntry> = byKey
@@ -4071,10 +4139,16 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               };
             },
           );
-          await CephResourceService.bulkUpsert({
-            projectId: data.projectId,
-            cephClusterId: new ObjectID(clusterIdStr),
-            resources,
+          liveIdStr = await this.writeForDiscoveredResource({
+            kind: DiscoveredResourceKinds.CephCluster,
+            id: liveIdStr,
+            write: async (cephClusterId: ObjectID): Promise<void> => {
+              await CephResourceService.bulkUpsert({
+                projectId: data.projectId,
+                cephClusterId,
+                resources,
+              });
+            },
           });
 
           const metrics: Array<CephResourceLatestMetric> = entries.map(
@@ -4098,7 +4172,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           );
           await CephResourceService.bulkUpdateLatestMetrics({
             projectId: data.projectId,
-            cephClusterId: new ObjectID(clusterIdStr),
+            cephClusterId: new ObjectID(liveIdStr),
             metrics,
           });
         } catch (err) {
@@ -4121,7 +4195,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
         if (Object.keys(extras).length > 0) {
           await CephClusterService.updateLastSeen(
-            new ObjectID(clusterIdStr),
+            new ObjectID(liveIdStr),
             extras,
           );
         }
@@ -4157,6 +4231,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     ]);
 
     for (const arrayIdStr of arrayIdStrs) {
+      // The id this flush writes against: see writeForDiscoveredResource.
+      let liveIdStr: string = arrayIdStr;
       const byKey: Map<string, StorageArrayResourceBufferEntry> | undefined =
         data.resourceBuffer.get(arrayIdStr);
       const snap: StorageArraySnapshotBufferEntry | undefined =
@@ -4198,10 +4274,16 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               };
             },
           );
-          await StorageArrayResourceService.bulkUpsert({
-            projectId: data.projectId,
-            storageArrayId: new ObjectID(arrayIdStr),
-            resources,
+          liveIdStr = await this.writeForDiscoveredResource({
+            kind: DiscoveredResourceKinds.StorageArray,
+            id: liveIdStr,
+            write: async (storageArrayId: ObjectID): Promise<void> => {
+              await StorageArrayResourceService.bulkUpsert({
+                projectId: data.projectId,
+                storageArrayId,
+                resources,
+              });
+            },
           });
         } catch (err) {
           logger.warn(
@@ -4227,11 +4309,11 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
            * which drops them when the volumes scrape was flushed first.
            */
           await StorageArrayResourceService.setVolumeConnectionCounts({
-            storageArrayId: new ObjectID(arrayIdStr),
+            storageArrayId: new ObjectID(liveIdStr),
             connectionCounts: volumeConnectionCounts,
           });
           await StorageArrayResourceService.resetVolumeConnectionCounts({
-            storageArrayId: new ObjectID(arrayIdStr),
+            storageArrayId: new ObjectID(liveIdStr),
             connectedVolumeNames: Object.keys(volumeConnectionCounts),
           });
         } catch (err) {
@@ -4260,7 +4342,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
         if (Object.keys(extras).length > 0) {
           await StorageArrayService.updateLastSeen(
-            new ObjectID(arrayIdStr),
+            new ObjectID(liveIdStr),
             extras,
           );
         }
@@ -4291,6 +4373,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     ]);
 
     for (const fleetIdStr of fleetIdStrs) {
+      // The id this flush writes against: see writeForDiscoveredResource.
+      let liveIdStr: string = fleetIdStr;
       const byKey: Map<string, IoTDeviceBufferEntry> | undefined =
         data.resourceBuffer.get(fleetIdStr);
       const entries: Array<IoTDeviceBufferEntry> = byKey
@@ -4315,10 +4399,16 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               };
             },
           );
-          await IoTDeviceService.bulkUpsert({
-            projectId: data.projectId,
-            iotFleetId: new ObjectID(fleetIdStr),
-            devices,
+          liveIdStr = await this.writeForDiscoveredResource({
+            kind: DiscoveredResourceKinds.IoTFleet,
+            id: liveIdStr,
+            write: async (iotFleetId: ObjectID): Promise<void> => {
+              await IoTDeviceService.bulkUpsert({
+                projectId: data.projectId,
+                iotFleetId,
+                devices,
+              });
+            },
           });
 
           const metrics: Array<IoTDeviceLatestMetric> = entries.map(
@@ -4344,7 +4434,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           );
           await IoTDeviceService.bulkUpdateLatestMetrics({
             projectId: data.projectId,
-            iotFleetId: new ObjectID(fleetIdStr),
+            iotFleetId: new ObjectID(liveIdStr),
             metrics,
           });
         } catch (err) {
@@ -4366,10 +4456,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         );
 
         if (Object.keys(extras).length > 0) {
-          await IoTFleetService.updateLastSeen(
-            new ObjectID(fleetIdStr),
-            extras,
-          );
+          await IoTFleetService.updateLastSeen(new ObjectID(liveIdStr), extras);
         }
       } catch (err) {
         logger.warn(

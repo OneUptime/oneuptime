@@ -32,7 +32,9 @@ import ProxmoxClusterService from "../../../Server/Services/ProxmoxClusterServic
 import VMwareVCenterService from "../../../Server/Services/VMwareVCenterService";
 import RumApplicationService from "../../../Server/Services/RumApplicationService";
 import ServerlessFunctionService from "../../../Server/Services/ServerlessFunctionService";
-import ResourceHeartbeat from "../../../Server/Utils/Telemetry/ResourceHeartbeat";
+import ResourceHeartbeat, {
+  ResourceHeartbeatResult,
+} from "../../../Server/Utils/Telemetry/ResourceHeartbeat";
 import SingleFlight from "../../../Server/Utils/SingleFlight";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -144,7 +146,7 @@ const databaseServerHeartbeat: any = Object.assign(
       this: typeof DatabaseServerService,
       id: ObjectID,
       extra?: { agentVersion?: string; dbVersion?: string },
-    ): Promise<void> {
+    ): Promise<ResourceHeartbeatResult> {
       return this.recordCollectorHeartbeat(id, extra);
     },
     findOneById: async (): Promise<null> => {
@@ -552,10 +554,10 @@ describe.each(SERVICE_CASES)(
         mockEnrichedWriteFailing();
       });
 
-      test("does not throw — ingest keeps going", async () => {
+      test("does not throw — ingest keeps going, and the row is there", async () => {
         await expect(
           service.updateLastSeen(RESOURCE_ID, oversizedExtra as never),
-        ).resolves.toBeUndefined();
+        ).resolves.toEqual({ isRowGone: false });
       });
 
       test("retries with liveness only, so lastSeenAt still advances", async () => {

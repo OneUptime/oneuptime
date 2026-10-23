@@ -18,6 +18,7 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
+import UNSYNCHRONIZED_INDEX from "../../Types/Database/UnsynchronizedIndex";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -75,6 +76,24 @@ import {
 @CrudApiEndpoint(new Route("/podman-host"))
 @SlugifyColumn("name", "slug")
 @Index(["projectId", "isArchived"])
+/*
+ * One Podman host per host name in a project, however many ingest workers meet a
+ * new one at once (issue #5214: a re-installed agent's first batches made
+ * two). The real definition is UNIQUE on ("projectId", LOWER("hostIdentifier"))
+ * WHERE "deletedAt" IS NULL - the comparison findOrCreateByHostIdentifier's
+ * lookup (QueryHelper.findWithSameText) makes - and lives in migration
+ * 1806700000000-MergeDuplicateHostsAndAddUniqueHostIdentifier, which merges the
+ * duplicates a project already has first. @Index() cannot express LOWER(), so
+ * the index is declared here by name with synchronize: false
+ * (Types/Database/UnsynchronizedIndex): the schema builder neither drops it
+ * nor tries to create it. A create that loses the race is refused by it, and
+ * the service reads the row that won.
+ */
+@Index(
+  "IDX_podman_host_project_lower_host_identifier",
+  ["projectId", "hostIdentifier"],
+  UNSYNCHRONIZED_INDEX,
+)
 @TableMetadata({
   tableName: "PodmanHost",
   singularName: "Podman Host",

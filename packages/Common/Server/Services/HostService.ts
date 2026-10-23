@@ -30,7 +30,9 @@ import DiscoveredResourceUpdate, {
   MatchColumn,
   matchedOnIdentifier,
 } from "../Utils/Telemetry/DiscoveredResourceUpdate";
-import ResourceHeartbeat from "../Utils/Telemetry/ResourceHeartbeat";
+import ResourceHeartbeat, {
+  ResourceHeartbeatResult,
+} from "../Utils/Telemetry/ResourceHeartbeat";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
 import OneUptimeDate from "../../Types/Date";
@@ -42,6 +44,7 @@ import { canonicalizeEntityValue } from "../../Utils/Telemetry/EntityKey";
 import crypto from "crypto";
 import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 import HostCollectorAgentCache from "../Utils/HostCollector/HostCollectorAgentCache";
+import DiscoveredResourceIdCache from "../Utils/Telemetry/DiscoveredResourceIdCache";
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "host-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
@@ -100,10 +103,13 @@ interface HostResolution {
  * memoized, and only on success. There is deliberately no negative
  * caching: the miss path must keep falling through to the create, so a
  * create that loses a concurrent race still throws its unique-violation
- * into the existing catch-and-refetch handling unchanged. Staleness is a
- * non-issue for the id itself (ids are immutable); a deleted host keeps
- * resolving for up to the TTL, which the 24-hour host-id Redis cache in
- * OtelIngestBaseService already dwarfs.
+ * into the existing catch-and-refetch handling unchanged.
+ *
+ * A host deleted in this process is forgotten here at once, with its ids in
+ * the ingest caches (DiscoveredResourceIdCache), so its agent's next batch
+ * finds no row and creates it again instead of being handed the deleted id.
+ * Another process keeps the entry for at most the TTL; a caller that learns
+ * the id names a deleted host asks again with bypassMemo.
  */
 const HOST_RESOLUTION_MEMO_TTL_IN_MS: number = 60 * 1000;
 const HOST_RESOLUTION_MEMO_MAX_ENTRIES: number = 10_000;
@@ -112,6 +118,15 @@ const hostResolutionInProcessMemo: InProcessMemo<HostResolution> =
     ttlInMs: HOST_RESOLUTION_MEMO_TTL_IN_MS,
     maxEntries: HOST_RESOLUTION_MEMO_MAX_ENTRIES,
   });
+
+DiscoveredResourceIdCache.registerLocalLayer(
+  "Host",
+  (entry: { projectId: string; identity: string }): void => {
+    hostResolutionInProcessMemo.delete(
+      `${entry.projectId}:${canonicalizeEntityValue(entry.identity)}`,
+    );
+  },
+);
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -375,7 +390,7 @@ export class Service extends ProjectReferencesService<Model> {
       cloudRegion?: string | undefined;
       cloudAccountId?: string | undefined;
     },
-  ): Promise<void> {
+  ): Promise<ResourceHeartbeatResult> {
     /*
      * Throttle: the same telemetry batch repeats every metric/log/trace
      * push and re-sends identical host metadata. Skip the DB write when
@@ -461,7 +476,7 @@ export class Service extends ProjectReferencesService<Model> {
      * ResourceHeartbeat — see there for why this row's throttle used to
      * provide no throttling at all.
      */
-    await ResourceHeartbeat.write({
+    return await ResourceHeartbeat.write({
       service: this,
       id: hostId,
       cacheNamespace: LAST_SEEN_CACHE_NAMESPACE,

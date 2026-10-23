@@ -3,7 +3,9 @@ import Model from "../../Models/DatabaseModels/ServerlessFunction";
 import Label from "../../Models/DatabaseModels/Label";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ReceivingCoverage from "../Utils/Telemetry/ReceivingCoverage";
-import ResourceHeartbeat from "../Utils/Telemetry/ResourceHeartbeat";
+import ResourceHeartbeat, {
+  ResourceHeartbeatResult,
+} from "../Utils/Telemetry/ResourceHeartbeat";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
 import OneUptimeDate from "../../Types/Date";
@@ -203,7 +205,7 @@ export class Service extends ProjectReferencesService<Model> {
       runtimeName?: string | undefined;
       runtimeVersion?: string | undefined;
     },
-  ): Promise<void> {
+  ): Promise<ResourceHeartbeatResult> {
     const extrasFingerprint: string = crypto
       .createHash("sha1")
       .update(
@@ -260,7 +262,7 @@ export class Service extends ProjectReferencesService<Model> {
      * ResourceHeartbeat — see there for why this row's throttle used to
      * provide no throttling at all.
      */
-    await ResourceHeartbeat.write({
+    return await ResourceHeartbeat.write({
       service: this,
       id: serverlessFunctionId,
       cacheNamespace: LAST_SEEN_CACHE_NAMESPACE,
