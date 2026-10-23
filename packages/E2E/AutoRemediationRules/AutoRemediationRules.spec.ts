@@ -154,7 +154,7 @@ const CODE_REPOSITORY_IDS: Record<string, string> = {
 const ALL_REPOSITORIES: string = "All connected repositories";
 // One line for every rule: a rule that doesn't fix reads them, and opens none.
 const REPOSITORIES_DESCRIPTION: string =
-  "OneUptime AI may read all of your connected repositories, and open pull requests in them. Pick some to let it use only those.";
+  "OneUptime AI may use all of your connected repositories. Pick some to let it use only those.";
 const REPOSITORIES_HINT: string =
   "Connect and manage repositories on the Code › Repositories page.";
 const FIX_PULL_REQUESTS: string = "Fix pull requests";
@@ -769,7 +769,7 @@ test.describe("the Fix step", () => {
     expect(sent.creates[0]!.data["openTelemetryPullRequests"]).toBe(true);
 
     // Listed as asking first - and nothing more: OneUptime AI fixes every rule.
-    expect(await fixOf(card, "Fix checkout")).toBe("Asks first");
+    expect(await fixOf(card, "Fix checkout")).toBe("Asks before fixing");
     expect(await timingOf(card, "Fix checkout")).toBe("Right away");
   });
 
@@ -854,7 +854,7 @@ test.describe("the Fix step", () => {
     expect(sent.creates[0]!.data["runnerId"] || null).toBeNull();
 
     expect(await fixOf(card, "Fix checkout")).toBe(
-      "Without asking Its runbooks, every time",
+      "Fixes without asking Its runbooks, every time",
     );
   });
 
@@ -986,7 +986,7 @@ test.describe("the Fix step", () => {
     expect(idsOf(sent.creates[0]!.data["runbooks"])).toEqual([
       RUNBOOK_IDS["restartCheckout"]!,
     ]);
-    expect(await fixOf(card, "Fix checkout")).toBe("Without asking");
+    expect(await fixOf(card, "Fix checkout")).toBe("Fixes without asking");
   });
 });
 
@@ -1005,7 +1005,7 @@ const MCP_SERVER_IDS: Record<string, string> = {
 const ALL_MCP_SERVERS_SUMMARY: string =
   "OneUptime AI may use all of your MCP servers.";
 const MCP_DESCRIPTION: string =
-  "OneUptime AI may use all of your MCP servers to investigate and fix. Pick some to let it use only those.";
+  "OneUptime AI may use all of your MCP servers. Pick some to let it use only those.";
 
 const mcpServersPicker: (dialog: Locator) => Locator = (
   dialog: Locator,
@@ -1063,7 +1063,13 @@ test.describe("MCP servers", () => {
       .getByTestId("folded-section-item")
       .allInnerTexts();
     expect(folded.join(" ")).toContain("MCP Servers: 1");
-    await expect(dialog).not.toContainText(ALL_MCP_SERVERS_SUMMARY);
+    /*
+     * The folded line, not the dialog: the field's own line, kept in the
+     * folded section, starts with the same words.
+     */
+    await expect(foldedSummary(dialog)).not.toContainText(
+      ALL_MCP_SERVERS_SUMMARY,
+    );
     // The defaults left, each said: any runbook, every repository.
     await expect(foldedSummary(dialog)).toContainText(ANY_RUNBOOK_SUMMARY);
     await expect(foldedSummary(dialog)).toContainText(REPOSITORIES_SUMMARY);
@@ -1205,16 +1211,18 @@ test.describe("rules saved before", () => {
       expect(await timingOf(card, name)).toBe("Doesn't investigate");
     }
 
-    expect(await fixOf(card, "Fix database incidents")).toBe("Asks first");
+    expect(await fixOf(card, "Fix database incidents")).toBe(
+      "Asks before fixing",
+    );
     expect(await fixOf(card, "Restart checkout every time")).toBe(
-      "Without asking Its runbooks, every time",
+      "Fixes without asking Its runbooks, every time",
     );
     expect(await fixOf(card, "Commands on the bastion")).toBe(
-      "Asks first OneUptime AI: commands on Runners",
+      "Asks before fixing OneUptime AI: commands on Runners",
     );
     // A runbook AI picks for such a rule is always proposed.
     expect(await fixOf(card, "AI picks a runbook")).toBe(
-      "Asks first OneUptime AI: picks a runbook",
+      "Asks before fixing OneUptime AI: picks a runbook",
     );
 
     await screenshot(page, "rules-saved");
@@ -1386,7 +1394,7 @@ test.describe("rules saved before", () => {
     expect(update!.data["aiSelectsRunbook"]).toBe(false);
     expect(idOfValue(update!.data["runnerId"])).toBe(RUNNER_IDS["office"]);
     expect(await fixOf(card, "Commands on the bastion")).toBe(
-      "Asks first OneUptime AI: commands on Runners",
+      "Asks before fixing OneUptime AI: commands on Runners",
     );
   });
 
@@ -1435,7 +1443,7 @@ test.describe("rules saved before", () => {
     expect(update!.data["remediationAction"]).toBe("OneUptimeAI");
     // It fixed without asking on paper; made new, it asks until told not to.
     expect(update!.data["executionMode"]).toBe("Suggest");
-    expect(await fixOf(card, "AI picks a runbook")).toBe("Asks first");
+    expect(await fixOf(card, "AI picks a runbook")).toBe("Asks before fixing");
   });
 
   test("a rule that only fixes says so on its Investigate step, and Investigate too makes it investigate right away", async ({
@@ -1524,8 +1532,70 @@ test.describe("rules saved before", () => {
 
     expect((await recorded(page)).updates).toEqual([]);
     expect(await fixOf(card, "AI picks a runbook")).toBe(
-      "Asks first OneUptime AI: picks a runbook",
+      "Asks before fixing OneUptime AI: picks a runbook",
     );
+  });
+
+  /*
+   * Each note's button takes the note away. Pressed from the keyboard,
+   * focus would fall back to the page with the button gone, and the next
+   * Tab would start again from the dialog's top: it goes to the question
+   * that takes the note's place instead (FocusWhenDrawn).
+   */
+  test("keyboard: Investigate too leaves focus on the answer of When to investigate", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, { query: "rules=saved" });
+    const dialog: Locator = await editRule(
+      page,
+      card,
+      "Restart checkout every time",
+    );
+
+    await openStep(dialog, "Investigate");
+    const investigateToo: Locator = dialog.getByRole("button", {
+      name: INVESTIGATE_TOO,
+    });
+    await investigateToo.focus();
+    await page.keyboard.press("Enter");
+
+    const rightAway: Locator = dialog.getByRole("radio", {
+      name: /^Right away/,
+    });
+    await expect(rightAway).toBeChecked();
+    await expect(rightAway).toBeFocused();
+
+    // The keyboard carries on from there: the other answer is one key away.
+    await page.keyboard.press("ArrowDown");
+    await expect(
+      dialog.getByRole("radio", { name: /^Only if still open after a wait/ }),
+    ).toBeChecked();
+    await expect(
+      dialog.getByTestId("investigation-rule-wait-minutes"),
+    ).toBeVisible();
+  });
+
+  test("keyboard: Fix like a new rule leaves focus on the Fix answer it now asks", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, { query: "rules=saved" });
+    const dialog: Locator = await editRule(page, card, "AI picks a runbook");
+
+    const fixLikeANewRule: Locator = dialog
+      .getByTestId(OLDER_RULE_TEST_ID)
+      .getByRole("button", { name: FIX_LIKE_A_NEW_RULE });
+    await fixLikeANewRule.focus();
+    await page.keyboard.press("Enter");
+
+    const askFirst: Locator = dialog.getByRole("radio", {
+      name: /^Ask before fixing/,
+    });
+    await expect(askFirst).toHaveAttribute("aria-checked", "true");
+    await expect(askFirst).toBeFocused();
   });
 });
 

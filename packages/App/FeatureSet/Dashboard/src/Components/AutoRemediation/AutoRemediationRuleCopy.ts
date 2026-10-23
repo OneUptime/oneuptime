@@ -62,14 +62,6 @@ export const AUTO_REMEDIATION_FIX_WITH_TEXT: {
   aiPickedRunbook: translationKey("OneUptime AI: picks a runbook"),
 };
 
-export const AUTO_REMEDIATION_APPROVAL_TEXT: {
-  asksFirst: string;
-  withoutAsking: string;
-} = {
-  asksFirst: translationKey("Asks first"),
-  withoutAsking: translationKey("Without asking"),
-};
-
 export enum AutoRemediationFixWith {
   OneUptimeAi = "OneUptimeAi",
   Runbooks = "Runbooks",

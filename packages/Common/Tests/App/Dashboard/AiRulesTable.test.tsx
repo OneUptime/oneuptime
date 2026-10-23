@@ -14,6 +14,8 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
+  within,
 } from "@testing-library/react";
 import * as React from "react";
 
@@ -494,8 +496,9 @@ describe.each([
         title: "AI rules",
         description: AI_LANE_RULES_COPY[lane].aiRulesDescription,
       });
+      // A rule's three steps, in their order: which, when, and how.
       expect(AI_LANE_RULES_COPY[lane].aiRulesDescription).toBe(
-        `With no rule, OneUptime AI investigates every new ${noun} right away, and fixes it while fixing is on, pull requests included. Add rules to work only on the ${nouns} that match one, to wait, or to choose how each is fixed.`,
+        `With no rule, OneUptime AI investigates every new ${noun} right away, and fixes it while fixing is on, pull requests included. Add rules to choose which ${nouns} it works on, when, and how each is fixed.`,
       );
       expect(props["noItemsMessage"]).toBe(
         `No rules. Every new ${noun} is investigated, and fixed while fixing is on.`,
@@ -1446,8 +1449,9 @@ describe.each([
       );
 
       expect(servers.title).toBe("MCP Servers");
+      // True of a rule that only investigates as of one that fixes.
       expect(servers.description).toBe(
-        "OneUptime AI may use all of your MCP servers to investigate and fix. Pick some to let it use only those.",
+        "OneUptime AI may use all of your MCP servers. Pick some to let it use only those.",
       );
       expect(servers.fieldType).toBe(FormFieldSchemaType.MultiSelectDropdown);
       expect(servers.dropdownModal?.type).toBe(ExternalMcpServer);
@@ -1605,8 +1609,15 @@ describe.each([
 
       expect(repositories.title).toBe("Code Repositories");
       expect(repositories.title).toBe(RULE_CODE_REPOSITORIES_FIELD_COPY.title);
+      /*
+       * Not "and open pull requests in them": a Don't fix rule opens none,
+       * and on a rule that fixes the pull request switches say so.
+       */
       expect(repositories.description).toBe(
-        "OneUptime AI may read all of your connected repositories, and open pull requests in them. Pick some to let it use only those.",
+        "OneUptime AI may use all of your connected repositories. Pick some to let it use only those.",
+      );
+      expect(repositories.description).toBe(
+        RULE_CODE_REPOSITORIES_FIELD_COPY.aiRuleDescription,
       );
       expect(repositories.fieldType).toBe(FormFieldSchemaType.CustomComponent);
       expect(repositories.required).toBe(false);
@@ -1941,12 +1952,12 @@ describe.each([
         column.getExportValue!(
           rule({ investigates: true, onlyIfOpenAfterMinutes: 30 }),
         ),
-      ).toBe("If still open after 30 minutes · Asks first");
+      ).toBe("If still open after 30 minutes · Asks before fixing");
       expect(
         column.getExportValue!(
           rule({ investigates: true, onlyIfOpenAfterMinutes: 1 }),
         ),
-      ).toBe("If still open after 1 minute · Asks first");
+      ).toBe("If still open after 1 minute · Asks before fixing");
       expect(
         column.getExportValue!(rule({ investigates: true, fixes: false })),
       ).toBe("Right away · Doesn't fix");
@@ -1955,9 +1966,9 @@ describe.each([
         column.getExportValue!(
           rule({ investigates: false, onlyIfOpenAfterMinutes: 30 }),
         ),
-      ).toBe("Doesn't investigate · Asks first");
+      ).toBe("Doesn't investigate · Asks before fixing");
       expect(column.getExportValue!(rule({}))).toBe(
-        "Doesn't investigate · Asks first",
+        "Doesn't investigate · Asks before fixing",
       );
 
       cleanup();
@@ -1975,7 +1986,7 @@ describe.each([
         AI_RULE_TEST_IDS.timingColumn,
       );
       const fix: HTMLElement = screen.getByTestId(AI_RULE_TEST_IDS.fixColumn);
-      expect(fix).toHaveTextContent("Asks first");
+      expect(fix).toHaveTextContent("Asks before fixing");
       expect(
         timing.compareDocumentPosition(fix) & Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
@@ -1994,12 +2005,12 @@ describe.each([
     test.each([
       [
         { executionMode: AutoRemediationExecutionMode.Suggest },
-        "Asks first",
+        "Asks before fixing",
         null,
       ],
       [
         { executionMode: AutoRemediationExecutionMode.FullAuto },
-        "Without asking",
+        "Fixes without asking",
         null,
       ],
       [
@@ -2025,7 +2036,7 @@ describe.each([
           remediationAction: AutoRemediationAction.Runbooks,
           executionMode: AutoRemediationExecutionMode.FullAuto,
         },
-        "Without asking",
+        "Fixes without asking",
         "Its runbooks, every time",
       ],
       [
@@ -2034,7 +2045,7 @@ describe.each([
           executionMode: AutoRemediationExecutionMode.Suggest,
           aiComposesCommands: true,
         },
-        "Asks first",
+        "Asks before fixing",
         "OneUptime AI: commands on Runners",
       ],
       [
@@ -2044,7 +2055,7 @@ describe.each([
           executionMode: AutoRemediationExecutionMode.FullAuto,
           aiSelectsRunbook: true,
         },
-        "Asks first",
+        "Asks before fixing",
         "OneUptime AI: picks a runbook",
       ],
     ])(
@@ -2587,5 +2598,177 @@ describe("an older rule, read from the form", () => {
     expect(Object.values(AUTO_REMEDIATION_FIX_WITH_TEXT)).not.toContain(
       "OneUptime AI",
     );
+  });
+});
+
+/*
+ * What a person reading the table and the form meets (the UI review): the
+ * fix pill wraps rather than cut a longer language's words short, the
+ * Description field draws no line that only says its title again, and a
+ * note whose button takes the note away hands keyboard focus to the
+ * question that takes its place - the button is gone, and focus would fall
+ * back to the page.
+ */
+describe("read and used by a person", () => {
+  test("the fix pill wraps onto a second line rather than cut its words short", () => {
+    const column: CapturedColumn = columnTitled(
+      tableFor(AiLane.Incident),
+      AI_RULE_COLUMN_TITLE,
+    );
+
+    cleanup();
+    render(
+      column.getElement!(
+        rule({
+          investigates: true,
+          executionMode: AutoRemediationExecutionMode.FullAuto,
+        }),
+      ),
+    );
+
+    const fix: HTMLElement = screen.getByTestId(AI_RULE_TEST_IDS.fixColumn);
+    const pillText: HTMLElement = within(fix).getByTestId("pill-text");
+
+    expect(pillText).toHaveTextContent("Fixes without asking");
+    // A wrapping pill's words may run on: no ellipsis.
+    expect(pillText).toHaveClass("whitespace-normal");
+    expect(pillText).not.toHaveClass("truncate");
+  });
+
+  test("the Description field draws no line that only says its title again", () => {
+    const description: CapturedField = fieldNamed(
+      tableFor(AiLane.Incident),
+      "description",
+    );
+
+    expect(description.title).toBe("Description");
+    expect(description.hideColumnDescription).toBe(true);
+    expect(description.collapsibleSection).toBeDefined();
+  });
+
+  test("the When to investigate answers carry the form's own test id", () => {
+    const timing: CapturedField = fieldNamed(
+      tableFor(AiLane.Incident),
+      INVESTIGATION_RULE_TIMING_FIELD_KEY,
+    );
+
+    expect(timing.dataTestId).toBe(AI_RULE_TEST_IDS.timingField);
+  });
+
+  test.each([AiLane.Incident, AiLane.Alert])(
+    "%s: Investigate too hands keyboard focus to the answer of When to investigate",
+    async (lane: AiLane) => {
+      const note: CapturedField = fieldNamed(tableFor(lane), "onlyFixesNote");
+
+      // The form, as far as focus goes: the note, then the question for it.
+      const Form: () => React.ReactElement = (): React.ReactElement => {
+        const [investigates, setInvestigates] = React.useState<boolean>(false);
+
+        return (
+          <div>
+            <button type="button">Outside the dialog</button>
+            <div role="dialog">
+              {investigates ? (
+                <div
+                  role="radiogroup"
+                  data-testid={AI_RULE_TEST_IDS.timingField}
+                >
+                  <input type="radio" name="timing" aria-label="Right away" />
+                  <input
+                    type="radio"
+                    name="timing"
+                    aria-label="Only if still open after a wait"
+                    defaultChecked={true}
+                  />
+                </div>
+              ) : (
+                note.getCustomElement!(ONLY_FIXES, {
+                  onChange: (): void => {
+                    setInvestigates(true);
+                  },
+                })
+              )}
+            </div>
+          </div>
+        );
+      };
+
+      cleanup();
+      render(<Form />);
+
+      const investigateToo: HTMLElement = screen.getByRole("button", {
+        name: "Investigate too",
+      });
+
+      // A keyboard user presses it.
+      investigateToo.focus();
+      fireEvent.click(investigateToo);
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole("radio", {
+            name: "Only if still open after a wait",
+          }),
+        ).toHaveFocus();
+      });
+      expect(
+        screen.queryByTestId(AI_RULE_TEST_IDS.onlyFixesNote),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  test("Fix like a new rule hands keyboard focus to the Fix answer it now asks", async () => {
+    const note: CapturedField = fieldNamed(
+      tableFor(AiLane.Incident),
+      "olderRuleNote",
+    );
+
+    const Form: () => React.ReactElement = (): React.ReactElement => {
+      const [isOlder, setIsOlder] = React.useState<boolean>(true);
+
+      return (
+        <div role="dialog">
+          {isOlder ? (
+            note.getCustomElement!(OLDER_COMMANDS, {
+              onChange: (): void => {
+                setIsOlder(false);
+              },
+            })
+          ) : (
+            <></>
+          )}
+          <div role="radiogroup" data-testid={AI_RULE_TEST_IDS.fixField}>
+            <div role="radio" aria-checked={false} tabIndex={-1}>
+              Don&apos;t fix
+            </div>
+            <div role="radio" aria-checked={!isOlder} tabIndex={0}>
+              Ask before fixing
+            </div>
+            <div role="radio" aria-checked={isOlder} tabIndex={-1}>
+              Fix without asking
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    cleanup();
+    render(<Form />);
+
+    const fixLikeANewRule: HTMLElement = screen.getByRole("button", {
+      name: AUTO_REMEDIATION_OLDER_RULE_COPY.fixLikeANewRule,
+    });
+
+    fixLikeANewRule.focus();
+    fireEvent.click(fixLikeANewRule);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("radio", { name: "Ask before fixing" }),
+      ).toHaveFocus();
+    });
+    expect(
+      screen.queryByTestId(AUTO_REMEDIATION_OLDER_RULE_TEST_ID),
+    ).not.toBeInTheDocument();
   });
 });

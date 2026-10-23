@@ -61,6 +61,7 @@ import {
   AiLaneAdvancedCard,
 } from "./ProjectAiSettingsCopy";
 import { reportEnabledAiLaneRuleCount } from "./AiLaneRuleCount";
+import { focusWhenDrawn } from "./FocusWhenDrawn";
 import {
   AI_RULE_COLUMN_TITLE,
   AI_RULE_DOES_NOT_INVESTIGATE_TEXT,
@@ -68,6 +69,8 @@ import {
   AI_RULE_FIX_FIELD_KEY,
   AI_RULE_FIX_OPTIONS,
   AI_RULE_FIX_TEXT,
+  AI_RULE_FOCUS_AFTER_FIX_LIKE_A_NEW_RULE,
+  AI_RULE_FOCUS_AFTER_INVESTIGATE_TOO,
   AI_RULE_ONLY_FIXES_COPY,
   AI_RULE_TEST_IDS,
   doesEditedRuleFix,
@@ -205,6 +208,10 @@ export const AiRuleFixCell: FunctionComponent<AiRuleFixCellProps> = (
       className="flex flex-col items-start gap-1"
       data-testid={AI_RULE_TEST_IDS.fixColumn}
     >
+      {/*
+       * On a second line rather than cut short: a longer language's
+       * "Asks before fixing" is wider than the column.
+       */}
       <Pill
         color={
           shownFix === AiRuleFix.DoNotFix
@@ -214,6 +221,7 @@ export const AiRuleFixCell: FunctionComponent<AiRuleFixCellProps> = (
               : Blue
         }
         text={AI_RULE_FIX_TEXT[shownFix]}
+        isWrapping={true}
       />
       {fixWith ? (
         <span
@@ -282,7 +290,8 @@ export const AiRuleDoesCell: FunctionComponent<AiRuleDoesCellProps> = (
 };
 
 /*
- * What the column says, as one line of an export: "Right away · Asks first".
+ * What the column says, as one line of an export: "Right away · Asks
+ * before fixing".
  */
 export function getAiRuleDoesText(rule: AutoRemediationRule): string {
   const timing: string = doesEditedRuleInvestigate(rule)
@@ -302,15 +311,18 @@ export interface AiRuleOnlyFixesNoteProps {
 /*
  * The Investigate step of a rule that only fixes: what it does, where the
  * question it does not answer would be, and the one way to make it a rule
- * like every other. The rule changes only when the dialog is saved.
+ * like every other. The rule changes only when the dialog is saved. The
+ * question takes the note's place, and keyboard focus goes to its answer.
  */
 export const AiRuleOnlyFixesNote: FunctionComponent<
   AiRuleOnlyFixesNoteProps
 > = (props: AiRuleOnlyFixesNoteProps): ReactElement => {
   const translator: Translator = useTranslator();
+  const noteRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
 
   return (
     <div
+      ref={noteRef}
       className="flex flex-col items-start gap-3 rounded-md border border-gray-200 bg-gray-50 p-3 sm:flex-row sm:items-center sm:justify-between"
       data-testid={AI_RULE_TEST_IDS.onlyFixesNote}
     >
@@ -319,7 +331,13 @@ export const AiRuleOnlyFixesNote: FunctionComponent<
       </p>
       <button
         type="button"
-        onClick={props.onInvestigateToo}
+        onClick={(): void => {
+          focusWhenDrawn({
+            from: noteRef.current,
+            selectors: AI_RULE_FOCUS_AFTER_INVESTIGATE_TOO,
+          });
+          props.onInvestigateToo();
+        }}
         className="flex-none rounded-md border border-gray-300 bg-white px-2.5 py-1 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         data-testid={AI_RULE_TEST_IDS.investigateToo}
       >
@@ -788,7 +806,7 @@ const AiRulesTable: FunctionComponent<ComponentProps> = (
           required: true,
           // Each answer says what it does; the column's sentence is half of it.
           hideColumnDescription: true,
-          dataTestId: "investigation-rule-timing-choice",
+          dataTestId: AI_RULE_TEST_IDS.timingField,
           showIf: (values: FormValues<AutoRemediationRule>): boolean => {
             return doesEditedRuleInvestigate(values);
           },
@@ -944,6 +962,8 @@ const AiRulesTable: FunctionComponent<ComponentProps> = (
                 onFixLikeANewRule={(): void => {
                   elementProps.onChange?.(true);
                 }}
+                // Then onto the Fix answer it now asks, "Ask before fixing".
+                focusAfterSelectors={AI_RULE_FOCUS_AFTER_FIX_LIKE_A_NEW_RULE}
               />
             );
           },
@@ -1045,7 +1065,7 @@ const AiRulesTable: FunctionComponent<ComponentProps> = (
            */
           field: { codeRepositories: true },
           title: RULE_CODE_REPOSITORIES_FIELD_COPY.title,
-          description: RULE_CODE_REPOSITORIES_FIELD_COPY.remediationDescription,
+          description: RULE_CODE_REPOSITORIES_FIELD_COPY.aiRuleDescription,
           stepId: "remediation",
           collapsibleSection: moreFields,
           fieldType: FormFieldSchemaType.CustomComponent,
@@ -1325,6 +1345,8 @@ const AiRulesTable: FunctionComponent<ComponentProps> = (
           stepId: "remediation",
           fieldType: FormFieldSchemaType.LongText,
           required: false,
+          // "Description of this AI rule." says nothing the title does not.
+          hideColumnDescription: true,
           collapsibleSection: moreFields,
         },
       ]}

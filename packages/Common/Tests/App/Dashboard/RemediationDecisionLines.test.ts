@@ -555,7 +555,7 @@ describe("getRemediationDecisionLines", () => {
 
       expect(one.tone).toBe("info");
       expect(one.text).toBe(
-        "The 1 AI rule set up does not match this incident, so it was not fixed. With rules set up, only what a rule that fixes matches is fixed.",
+        "The 1 AI rule set up does not match this incident, so it was not fixed. With rules set up, OneUptime AI fixes only what matches a rule that fixes.",
       );
       expect(hrefsOf(one)).toEqual([
         `/dashboard/${PROJECT_ID}/incidents/ai/settings`,
@@ -571,7 +571,7 @@ describe("getRemediationDecisionLines", () => {
       );
 
       expect(many.text).toBe(
-        "None of the 3 AI rules set up match this alert, so it was not fixed. With rules set up, only what a rule that fixes matches is fixed.",
+        "None of the 3 AI rules set up match this alert, so it was not fixed. With rules set up, OneUptime AI fixes only what matches a rule that fixes.",
       );
       expect(hrefsOf(many)).toEqual([
         `/dashboard/${PROJECT_ID}/alerts/ai/settings`,
@@ -580,8 +580,8 @@ describe("getRemediationDecisionLines", () => {
 
     /*
      * Rules matched, and each only investigates ("Don't fix"): with rules
-     * set up, only what a rule that fixes matches is fixed - the line names
-     * the rule, or how many, and links to them.
+     * set up, OneUptime AI fixes only what matches a rule that fixes - the
+     * line names the rule, or how many, and links to them.
      */
     test("with only rules that do not fix matching, says they only investigate, and links to them", () => {
       const one: RemediationDecisionLine = onlyLine({

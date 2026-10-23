@@ -16,7 +16,6 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import { AiLane } from "./ProjectAiSettingsCopy";
 import {
-  AUTO_REMEDIATION_APPROVAL_TEXT,
   getAutoRemediationMoreFieldsSummary,
   getEditedRuleFixKind,
   isOlderAutoRemediationRule,
@@ -100,13 +99,16 @@ export const AI_RULE_FIX_OPTIONS: Array<CardSelectOption> = [
 export const AI_RULE_FIX_FIELD_KEY: string = "aiRuleFix";
 
 /*
- * The table's Fix column: what each answer reads as. "Asks first" and
- * "Without asking" are the words the auto remediation rules' table used.
+ * How the table's column says each Fix answer, in the pill under when the
+ * rule investigates. Each names fixing: the auto remediation rules' table
+ * said "Asks first" under a column called Fix, but under "Investigates and
+ * fixes", below "Right away", "Asks first" read as asking before the
+ * investigation.
  */
 export const AI_RULE_FIX_TEXT: Record<AiRuleFix, string> = {
   [AiRuleFix.DoNotFix]: translationKey("Doesn't fix"),
-  [AiRuleFix.AskFirst]: AUTO_REMEDIATION_APPROVAL_TEXT.asksFirst,
-  [AiRuleFix.WithoutAsking]: AUTO_REMEDIATION_APPROVAL_TEXT.withoutAsking,
+  [AiRuleFix.AskFirst]: translationKey("Asks before fixing"),
+  [AiRuleFix.WithoutAsking]: translationKey("Fixes without asking"),
 };
 
 // The table's column, for a rule that only fixes.
@@ -125,10 +127,11 @@ export const AI_RULE_COLUMN_TITLE: string = translationKey(
 );
 
 /*
- * The note on the Investigate step of a rule that only fixes, and what the
- * button beside it does. Such a rule never decided which incidents are
- * investigated; turning investigating on makes it one that does, like every
- * rule made here - so the line says what that changes when it is the first.
+ * The note on the Investigate step of a rule that only fixes, and the
+ * button beside it. Such a rule never decided which incidents are
+ * investigated; "Investigate too" makes it one that does - right away, the
+ * step's first answer - like every rule made here, once the dialog is
+ * saved.
  */
 export const AI_RULE_ONLY_FIXES_COPY: Record<
   AiLane,
@@ -158,6 +161,7 @@ export const AI_RULE_DOES_NOTHING_TEXT: string = translationKey(
 
 // The data-testids of the form's own parts.
 export const AI_RULE_TEST_IDS: {
+  timingField: string;
   fixField: string;
   onlyFixesNote: string;
   investigateToo: string;
@@ -165,6 +169,7 @@ export const AI_RULE_TEST_IDS: {
   fixColumn: string;
   fixColumnLine: string;
 } = {
+  timingField: "ai-rule-timing-field",
   fixField: "ai-rule-fix-field",
   onlyFixesNote: "ai-rule-only-fixes-note",
   investigateToo: "ai-rule-investigate-too",
@@ -172,6 +177,21 @@ export const AI_RULE_TEST_IDS: {
   fixColumn: "ai-rule-fix",
   fixColumnLine: "ai-rule-fixed-with",
 };
+
+/*
+ * Where keyboard focus goes once a note's button has taken the note away
+ * (FocusWhenDrawn): after "Investigate too", the answer "When to
+ * investigate" holds; after "Fix like a new rule", the Fix answer.
+ */
+export const AI_RULE_FOCUS_AFTER_INVESTIGATE_TOO: Array<string> = [
+  `[data-testid='${AI_RULE_TEST_IDS.timingField}'] input[type='radio']:checked`,
+  `[data-testid='${AI_RULE_TEST_IDS.timingField}'] input[type='radio']`,
+];
+
+export const AI_RULE_FOCUS_AFTER_FIX_LIKE_A_NEW_RULE: Array<string> = [
+  `[data-testid='${AI_RULE_TEST_IDS.fixField}'] [role='radio'][aria-checked='true']`,
+  `[data-testid='${AI_RULE_TEST_IDS.fixField}'] [role='radio'][tabindex='0']`,
+];
 
 type Values = Record<string, unknown>;
 

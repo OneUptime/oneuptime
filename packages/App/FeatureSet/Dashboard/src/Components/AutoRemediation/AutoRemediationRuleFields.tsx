@@ -21,8 +21,10 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
+import { focusWhenDrawn } from "../AISettings/FocusWhenDrawn";
 
 /*
  * The two custom fields of an auto remediation rule's More fields:
@@ -190,6 +192,11 @@ export interface OlderAutoRemediationRuleNoteProps {
   // What the rule does, as AUTO_REMEDIATION_OLDER_RULE_COPY says it.
   text: string;
   onFixLikeANewRule: () => void;
+  /*
+   * Where keyboard focus goes once the note is gone (FocusWhenDrawn): the
+   * question it stood over. Left out, focus stays where the browser puts it.
+   */
+  focusAfterSelectors?: Array<string> | undefined;
 }
 
 /*
@@ -203,9 +210,11 @@ export const OlderAutoRemediationRuleNote: FunctionComponent<
   OlderAutoRemediationRuleNoteProps
 > = (props: OlderAutoRemediationRuleNoteProps): ReactElement => {
   const translator: Translator = useTranslator();
+  const noteRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
 
   return (
     <div
+      ref={noteRef}
       className="flex flex-col items-start gap-3 rounded-md border border-gray-200 bg-gray-50 p-3 sm:flex-row sm:items-center sm:justify-between"
       data-testid={AUTO_REMEDIATION_OLDER_RULE_TEST_ID}
     >
@@ -214,7 +223,16 @@ export const OlderAutoRemediationRuleNote: FunctionComponent<
       </p>
       <button
         type="button"
-        onClick={props.onFixLikeANewRule}
+        onClick={(): void => {
+          if (props.focusAfterSelectors) {
+            focusWhenDrawn({
+              from: noteRef.current,
+              selectors: props.focusAfterSelectors,
+            });
+          }
+
+          props.onFixLikeANewRule();
+        }}
         className="flex-none rounded-md border border-gray-300 bg-white px-2.5 py-1 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         data-testid={`${AUTO_REMEDIATION_OLDER_RULE_TEST_ID}-fix-like-new`}
       >

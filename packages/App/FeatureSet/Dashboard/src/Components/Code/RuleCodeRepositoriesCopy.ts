@@ -15,16 +15,20 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 export const RULE_CODE_REPOSITORIES_FIELD_COPY: {
   title: string;
   placeholder: string;
-  // What OneUptime AI may do with them: read them, investigating and fixing.
-  remediationDescription: string;
+  /*
+   * The field's line on every AI rule. Not "and open pull requests in
+   * them": a rule that doesn't fix opens none, and on one that does, the
+   * pull request switches under it say so.
+   */
+  aiRuleDescription: string;
   manageHint: string;
   hiddenRepository: string;
   allRepositoriesSummary: string;
 } = {
   title: translationKey("Code Repositories"),
   placeholder: translationKey("All connected repositories"),
-  remediationDescription: translationKey(
-    "OneUptime AI may read all of your connected repositories, and open pull requests in them. Pick some to let it use only those.",
+  aiRuleDescription: translationKey(
+    "OneUptime AI may use all of your connected repositories. Pick some to let it use only those.",
   ),
   manageHint: translationKey(
     "Connect and manage repositories on the {{codeRepositoriesLink}} page.",

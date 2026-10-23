@@ -7,6 +7,8 @@ import {
   AI_RULE_FIX_FIELD_KEY,
   AI_RULE_FIX_OPTIONS,
   AI_RULE_FIX_TEXT,
+  AI_RULE_FOCUS_AFTER_FIX_LIKE_A_NEW_RULE,
+  AI_RULE_FOCUS_AFTER_INVESTIGATE_TOO,
   AI_RULE_ONLY_FIXES_COPY,
   AI_RULE_TEST_IDS,
   doesEditedRuleFix,
@@ -19,12 +21,16 @@ import {
   prepareAiRuleCreate,
   validateAiRuleFix,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AiRuleCopy";
-import { AiLane } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import {
-  AUTO_REMEDIATION_APPROVAL_TEXT,
-  getAutoRemediationMoreFieldsSummary,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/AutoRemediationRuleCopy";
-import { getInvestigationRuleMoreFieldsSummary } from "../../../../App/FeatureSet/Dashboard/src/Components/ExternalMcpServer/ExternalMcpServerCopy";
+  AI_LANE_RULES_COPY,
+  AiLane,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
+import { getAutoRemediationMoreFieldsSummary } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/AutoRemediationRuleCopy";
+import { RULE_CODE_REPOSITORIES_FIELD_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/RuleCodeRepositoriesCopy";
+import {
+  RULE_MCP_SERVERS_FIELD_COPY,
+  getInvestigationRuleMoreFieldsSummary,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ExternalMcpServer/ExternalMcpServerCopy";
 import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
 import { AI_RULE_FIXES, AiRuleFix } from "../../../Types/AI/AiRule";
 import AutoRemediationAction from "../../../Types/AutoRemediation/AutoRemediationAction";
@@ -43,6 +49,17 @@ type Values = FormValues<AutoRemediationRule>;
 function values(fields: Record<string, unknown>): Values {
   return fields as unknown as Values;
 }
+
+// "Doesn't fix", "Asks before fixing", "Fixes without asking".
+const MENTIONS_FIXING: RegExp = /fix/i;
+
+// What a field's line under its title may say of more than one kind of rule.
+const PULL_REQUEST_WORDS: RegExp = /pull request/i;
+const FIX_WORDS: RegExp = /\bfix/i;
+
+// The two lines a card's description may run to (ShortDescriptionsGuard).
+const CARD_DESCRIPTION_LIMIT: number = 210;
+const LINE_LIMIT: number = 150;
 
 describe("the rule being edited", () => {
   test("investigates only when it says so: a rule that only fixes, or a value not read, does not", () => {
@@ -227,20 +244,48 @@ describe("what a new rule saves", () => {
 });
 
 describe("the table's Fix column", () => {
-  test("names each answer the way the auto remediation rules' table did, and Don't fix its own way", () => {
+  test("names each answer as the rule's Fix question does, each about fixing", () => {
     expect(AI_RULE_FIX_TEXT).toEqual({
       [AiRuleFix.DoNotFix]: "Doesn't fix",
-      [AiRuleFix.AskFirst]: "Asks first",
-      [AiRuleFix.WithoutAsking]: "Without asking",
+      [AiRuleFix.AskFirst]: "Asks before fixing",
+      [AiRuleFix.WithoutAsking]: "Fixes without asking",
     });
-    expect(AI_RULE_FIX_TEXT[AiRuleFix.AskFirst]).toBe(
-      AUTO_REMEDIATION_APPROVAL_TEXT.asksFirst,
-    );
-    expect(AI_RULE_FIX_TEXT[AiRuleFix.WithoutAsking]).toBe(
-      AUTO_REMEDIATION_APPROVAL_TEXT.withoutAsking,
-    );
     // One column says when a rule investigates and, under it, how it fixes.
     expect(AI_RULE_COLUMN_TITLE).toBe("Investigates and fixes");
+  });
+
+  /*
+   * Under "Right away", in a column called "Investigates and fixes", the
+   * auto remediation rules' "Asks first" read as asking before the
+   * investigation: every pill says it is about fixing, in the words of the
+   * Fix question's answer it stands for.
+   */
+  test("no pill could be read as being about the investigation above it", () => {
+    for (const fix of AI_RULE_FIXES) {
+      expect([fix, MENTIONS_FIXING.test(AI_RULE_FIX_TEXT[fix])]).toEqual([
+        fix,
+        true,
+      ]);
+    }
+
+    const answerTitles: Record<string, string> = {};
+
+    for (const option of AI_RULE_FIX_OPTIONS) {
+      answerTitles[option.value] = option.title;
+    }
+
+    expect(answerTitles).toEqual({
+      [AiRuleFix.DoNotFix]: "Don't fix",
+      [AiRuleFix.AskFirst]: "Ask before fixing",
+      [AiRuleFix.WithoutAsking]: "Fix without asking",
+    });
+    // The pill is the answer, said of the rule.
+    expect(AI_RULE_FIX_TEXT[AiRuleFix.AskFirst]).toBe(
+      answerTitles[AiRuleFix.AskFirst]!.replace("Ask ", "Asks "),
+    );
+    expect(AI_RULE_FIX_TEXT[AiRuleFix.WithoutAsking]).toBe(
+      answerTitles[AiRuleFix.WithoutAsking]!.replace("Fix ", "Fixes "),
+    );
   });
 
   test("an older rule that has OneUptime AI pick a runbook asks first, whatever it says", () => {
@@ -251,7 +296,7 @@ describe("the table's Fix column", () => {
     };
 
     expect(getShownAiRuleFix(olderPicking)).toBe(AiRuleFix.AskFirst);
-    expect(getAiRuleFixText(olderPicking)).toBe("Asks first");
+    expect(getAiRuleFixText(olderPicking)).toBe("Asks before fixing");
     // Not fixing, it says so.
     expect(getShownAiRuleFix({ ...olderPicking, fixes: false })).toBe(
       AiRuleFix.DoNotFix,
@@ -366,5 +411,78 @@ describe("the form's own parts", () => {
     for (const id of ids) {
       expect(id).toMatch(/^ai-rule-[a-z-]+$/);
     }
+  });
+
+  /*
+   * A note's button takes the note away; keyboard focus goes to the
+   * question that takes its place (FocusWhenDrawn): the answer that is
+   * picked, else the first one.
+   */
+  test("focus goes to the picked answer of the question a note stood in for", () => {
+    expect(AI_RULE_FOCUS_AFTER_INVESTIGATE_TOO).toEqual([
+      "[data-testid='ai-rule-timing-field'] input[type='radio']:checked",
+      "[data-testid='ai-rule-timing-field'] input[type='radio']",
+    ]);
+    expect(AI_RULE_FOCUS_AFTER_FIX_LIKE_A_NEW_RULE).toEqual([
+      "[data-testid='ai-rule-fix-field'] [role='radio'][aria-checked='true']",
+      "[data-testid='ai-rule-fix-field'] [role='radio'][tabindex='0']",
+    ]);
+  });
+});
+
+/*
+ * The AI rules card's line: what happens with no rule, then a rule's three
+ * steps in their order - which incidents (Match), when (Investigate) and
+ * how each is fixed (Fix). ShortDescriptionsGuard holds a card's line to two
+ * lines at 1280px, 210 characters, but cannot read it through the lane's
+ * index in the table, so it is held to them here: a line of 224 ran to a
+ * third line in German.
+ */
+describe("the AI rules card", () => {
+  test.each([AiLane.Incident, AiLane.Alert])(
+    "%s: says what happens with no rule, then the three steps, in two lines",
+    (lane: AiLane) => {
+      const copy: { aiRulesDescription: string; noAiRulesMessage: string } =
+        AI_LANE_RULES_COPY[lane];
+      const nouns: string = lane === AiLane.Incident ? "incidents" : "alerts";
+
+      expect(copy.aiRulesDescription.length).toBeLessThanOrEqual(
+        CARD_DESCRIPTION_LIMIT,
+      );
+      expect(copy.noAiRulesMessage.length).toBeLessThanOrEqual(LINE_LIMIT);
+      // Pinned by AISettingsSwitchesFirst: with no rule, fixing opens them.
+      expect(copy.aiRulesDescription).toContain(
+        "while fixing is on, pull requests included.",
+      );
+      expect(copy.aiRulesDescription).toContain(
+        `Add rules to choose which ${nouns} it works on, when, and how each is fixed.`,
+      );
+    },
+  );
+});
+
+/*
+ * Under More fields, the code repositories and MCP servers are asked of
+ * every rule - one that only investigates too - so their lines say nothing
+ * that is true only of a rule that fixes: a Don't fix rule's form said
+ * OneUptime AI would "open pull requests in them".
+ */
+describe("the fields every rule shares", () => {
+  test("say nothing about fixing or pull requests", () => {
+    for (const line of [
+      RULE_CODE_REPOSITORIES_FIELD_COPY.aiRuleDescription,
+      RULE_MCP_SERVERS_FIELD_COPY.aiRuleDescription,
+    ]) {
+      expect([line, PULL_REQUEST_WORDS.test(line)]).toEqual([line, false]);
+      expect([line, FIX_WORDS.test(line)]).toEqual([line, false]);
+      expect(line.length).toBeLessThanOrEqual(LINE_LIMIT);
+    }
+
+    expect(RULE_CODE_REPOSITORIES_FIELD_COPY.aiRuleDescription).toBe(
+      "OneUptime AI may use all of your connected repositories. Pick some to let it use only those.",
+    );
+    expect(RULE_MCP_SERVERS_FIELD_COPY.aiRuleDescription).toBe(
+      "OneUptime AI may use all of your MCP servers. Pick some to let it use only those.",
+    );
   });
 });

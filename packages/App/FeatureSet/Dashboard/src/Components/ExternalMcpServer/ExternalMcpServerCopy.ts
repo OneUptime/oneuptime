@@ -361,7 +361,9 @@ export function readStoredExternalMcpServerTools(value: unknown): {
 /*
  * What a rule's "MCP servers" field says, under an AI rule's More fields:
  * the servers OneUptime AI may use while it investigates (their tools that
- * read) and fixes what the rule matches.
+ * read) and fixes what the rule matches. The field's line is true of every
+ * rule - one that doesn't fix uses them only to investigate - so it says
+ * neither.
  */
 export const RULE_MCP_SERVERS_FIELD_COPY: {
   title: string;
@@ -373,7 +375,7 @@ export const RULE_MCP_SERVERS_FIELD_COPY: {
   title: translationKey("MCP Servers"),
   placeholder: translationKey("All MCP servers"),
   aiRuleDescription: translationKey(
-    "OneUptime AI may use all of your MCP servers to investigate and fix. Pick some to let it use only those.",
+    "OneUptime AI may use all of your MCP servers. Pick some to let it use only those.",
   ),
   manageHint: translationKey(
     "Add and manage MCP servers on the {{externalMcpServersLink}} page.",

@@ -896,9 +896,9 @@ export function getRemediationDecisionLines(input: {
           tone: "info",
           text: translator.translatePlural(
             {
-              one: "The {{count}} AI rule set up does not match this {{signal}}, so it was not fixed. With rules set up, only what a rule that fixes matches is fixed.",
+              one: "The {{count}} AI rule set up does not match this {{signal}}, so it was not fixed. With rules set up, OneUptime AI fixes only what matches a rule that fixes.",
               other:
-                "None of the {{count}} AI rules set up match this {{signal}}, so it was not fixed. With rules set up, only what a rule that fixes matches is fixed.",
+                "None of the {{count}} AI rules set up match this {{signal}}, so it was not fixed. With rules set up, OneUptime AI fixes only what matches a rule that fixes.",
             },
             entry.rulesChecked || 0,
             { signal: signalTerm },

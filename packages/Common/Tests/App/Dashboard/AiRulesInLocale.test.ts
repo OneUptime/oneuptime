@@ -22,6 +22,7 @@ import {
   EXTERNAL_MCP_SERVER_TOOLS_COPY,
   RULE_MCP_SERVERS_FIELD_COPY,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ExternalMcpServer/ExternalMcpServerCopy";
+import { RULE_CODE_REPOSITORIES_FIELD_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/RuleCodeRepositoriesCopy";
 import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import { CardSelectOption } from "../../../UI/Components/CardSelect/CardSelect";
@@ -102,6 +103,8 @@ const SENTENCES: Array<string> = [
   AI_RULE_COLUMN_TITLE,
   AI_RULE_DOES_NOT_INVESTIGATE_TEXT,
   AI_RULE_FIX_TEXT.DoNotFix,
+  AI_RULE_FIX_TEXT.AskFirst,
+  AI_RULE_FIX_TEXT.WithoutAsking,
   // The rule form.
   AI_RULE_FIX_FIELD_COPY.description,
   ...AI_RULE_FIX_OPTIONS.flatMap((option: CardSelectOption): Array<string> => {
@@ -111,6 +114,7 @@ const SENTENCES: Array<string> = [
   "Production incidents",
   "Production alerts",
   RULE_MCP_SERVERS_FIELD_COPY.aiRuleDescription,
+  RULE_CODE_REPOSITORIES_FIELD_COPY.aiRuleDescription,
   EXTERNAL_MCP_SERVER_TOOLS_COPY.description,
   // AI Insights' reasons an incident was not investigated.
   NOT_INVESTIGATED_REASONS.incident.no_investigation_rule_matched,
@@ -131,9 +135,9 @@ const PLURALS: Array<{ one: string; other: string }> = [
   INVESTIGATION_WAITING_COPY.incident.description,
   INVESTIGATION_WAITING_COPY.alert.description,
   {
-    one: "The {{count}} AI rule set up does not match this {{signal}}, so it was not fixed. With rules set up, only what a rule that fixes matches is fixed.",
+    one: "The {{count}} AI rule set up does not match this {{signal}}, so it was not fixed. With rules set up, OneUptime AI fixes only what matches a rule that fixes.",
     other:
-      "None of the {{count}} AI rules set up match this {{signal}}, so it was not fixed. With rules set up, only what a rule that fixes matches is fixed.",
+      "None of the {{count}} AI rules set up match this {{signal}}, so it was not fixed. With rules set up, OneUptime AI fixes only what matches a rule that fixes.",
   },
   {
     one: "The {{count}} AI rule set up did not match this {{signal}}.",
@@ -183,6 +187,19 @@ const RETIRED: Array<string> = [
   "An investigation rule makes OneUptime AI wait {{count}} minutes, so alerts resolved by then are not investigated.",
   "Auto Remediation Rules were not checked: this {{signal}} already has the most fixes one {{signal}} can get.",
   "None of the {{count}} Auto Remediation Rules set up matched this {{signal}}.",
+  /*
+   * Words the UI review replaced: the table's "Asks first" read as asking
+   * before the investigation above it; the shared fields' lines said what
+   * only a rule that fixes does; the card's line ran to a third line; and
+   * the Remediation card's "only what a rule that fixes matches is fixed".
+   */
+  "Asks first",
+  "Without asking",
+  "OneUptime AI may use all of your MCP servers to investigate and fix. Pick some to let it use only those.",
+  "OneUptime AI may read all of your connected repositories, and open pull requests in them. Pick some to let it use only those.",
+  "With no rule, OneUptime AI investigates every new incident right away, and fixes it while fixing is on, pull requests included. Add rules to work only on the incidents that match one, to wait, or to choose how each is fixed.",
+  "With no rule, OneUptime AI investigates every new alert right away, and fixes it while fixing is on, pull requests included. Add rules to work only on the alerts that match one, to wait, or to choose how each is fixed.",
+  "None of the {{count}} AI rules set up match this {{signal}}, so it was not fixed. With rules set up, only what a rule that fixes matches is fixed.",
 ];
 
 /*

@@ -256,7 +256,7 @@ test.describe("AI rules: when to investigate (issue #5074)", () => {
     // What an investigation rule was: a rule that fixes nothing.
     expect(await fixOf(card, "Flapping checks")).toBe("Doesn't fix");
     await expect(card).toContainText(
-      "With no rule, OneUptime AI investigates every new incident right away, and fixes it while fixing is on, pull requests included. Add rules to work only on the incidents that match one, to wait, or to choose how each is fixed.",
+      "With no rule, OneUptime AI investigates every new incident right away, and fixes it while fixing is on, pull requests included. Add rules to choose which incidents it works on, when, and how each is fixed.",
     );
     await screenshot(page, "ai-rules-table");
   });
@@ -338,6 +338,85 @@ test.describe("AI rules: when to investigate (issue #5074)", () => {
       }
 
       await screenshot(page, `ai-rules-table-1280${isGerman ? "-de" : ""}`);
+    });
+
+    /*
+     * The pill under a rule's timing says how it fixes, and names fixing:
+     * "Asks before fixing", "Fixes without asking", "Doesn't fix" - under
+     * "Right away", the auto remediation rules' "Asks first" read as asking
+     * before the investigation. A longer language's pill wraps onto a
+     * second line rather than lose its last words to an ellipsis, and the
+     * table still keeps Status in sight.
+     */
+    test(`at 1280px, rules that fix and rules that don't: every pill reads whole${isGerman ? ", in German too" : ""}`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const card: Locator = await openRulesCard(page, {
+        query: `layout=page&rules=saved${isGerman ? "&lang=de" : ""}`,
+        isGerman,
+      });
+      // The four that were auto remediation rules, and the two that investigate.
+      await expect(card.locator("tbody tr")).toHaveCount(6);
+
+      const pills: Locator = card
+        .getByTestId("ai-rule-fix")
+        .getByTestId("pill-text");
+      await expect(pills).toHaveCount(6);
+
+      const words: (english: string) => string = (english: string): string => {
+        return (isGerman && GERMAN[english]) || english;
+      };
+      const texts: Array<string> = (await pills.allInnerTexts()).map(
+        (text: string): string => {
+          return text.replace(/\s+/g, " ").trim();
+        },
+      );
+      expect(new Set(texts)).toEqual(
+        new Set([
+          words("Asks before fixing"),
+          words("Fixes without asking"),
+          words("Doesn't fix"),
+        ]),
+      );
+
+      for (const pill of await pills.all()) {
+        // Nothing cut short: what is drawn is all there is.
+        expect(
+          await pill.evaluate((element: HTMLElement): boolean => {
+            return element.scrollWidth <= element.clientWidth + 1;
+          }),
+        ).toBe(true);
+      }
+
+      const fit: TableFit = await card
+        .locator("table")
+        .evaluate((table: HTMLElement): TableFit => {
+          const headers: Array<DOMRect> = Array.from(
+            table.querySelectorAll("thead th"),
+          ).map((header: Element): DOMRect => {
+            return header.getBoundingClientRect();
+          });
+
+          return {
+            cardWidth: table
+              .closest("[data-card-surface='section']")!
+              .getBoundingClientRect().width,
+            scrollWidth: table.parentElement!.scrollWidth,
+            clientWidth: table.parentElement!.clientWidth,
+            statusRight: headers[headers.length - 2]!.right,
+            actionsLeft: headers[headers.length - 1]!.left,
+          };
+        });
+
+      expect(fit.scrollWidth).toBeLessThanOrEqual(fit.clientWidth + 1);
+      expect(fit.statusRight).toBeLessThanOrEqual(fit.actionsLeft + 1);
+
+      await screenshot(
+        page,
+        `ai-rules-table-fixing-1280${isGerman ? "-de" : ""}`,
+      );
     });
   }
 
