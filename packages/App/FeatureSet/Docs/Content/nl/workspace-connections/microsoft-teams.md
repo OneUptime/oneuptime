@@ -4,6 +4,7 @@ Koppel OneUptime aan Microsoft Teams om incidenten, waarschuwingen, episodes, ge
 
 :::cards
 - [Microsoft Teams koppelen](#microsoft-teams-koppelen): Beheerderstoestemming, je aanmelding en de app in elk team.
+- [Iedereen vragen hun account te koppelen](#iedereen-vragen-hun-account-te-koppelen): Stuur in één keer een bericht aan elk lid dat zijn account nog niet heeft gekoppeld.
 - [Meldingsregels](#meldingsregels): Bepaal welke gebeurtenissen waar worden geplaatst, en welke een eigen kanaal krijgen.
 - [Praten met de OneUptime-bot](#praten-met-de-oneuptime-bot): Commando's, vragen en formulieren in een chat met de bot.
 - [Tags voor bereikbaarheid](#tags-voor-bereikbaarheid): Houd de tag van een team gelijk aan wie er dienst heeft, en roep die op.
@@ -59,7 +60,7 @@ Op OneUptime Cloud opent **Teams Store openen** de app in de Microsoft Teams Sto
 
 ### Alle anderen koppelen
 
-Elke persoon koppelt zijn eigen Microsoft Teams-account onder **Gebruikersinstellingen** > **Werkruimte** > **Microsoft Teams** met **Connect my account with Microsoft Teams**, om als zichzelf op incidenten te handelen en directe berichten te krijgen. Die sectie verschijnt zodra het project aan Microsoft Teams is gekoppeld.
+Elke persoon koppelt zijn eigen Microsoft Teams-account onder **Gebruikersinstellingen** > **Werkruimte** > **Microsoft Teams** met **Connect my account with Microsoft Teams**, om als zichzelf op incidenten te handelen en directe berichten te krijgen. Die sectie verschijnt zodra het project aan Microsoft Teams is gekoppeld. Zie [Iedereen vragen hun account te koppelen](#iedereen-vragen-hun-account-te-koppelen) om een heel team in één keer erbij te halen.
 
 ### Een meldingsregel toevoegen
 
@@ -68,6 +69,14 @@ Ga naar **Incidenten** > **Werkruimte** > **Microsoft Teams**. De sectie **Werkr
 
 > [!NOTE]
 > OneUptime voor jezelf installeren, of aan een chat toevoegen, is een andere installatie en laat het niet in de kanalen van een team plaatsen. **Privékanalen** hebben de app nodig in het kanaal zelf: open het kanaal > "..." > **Manage channel** > **Apps** > **Add an app**. **Gedeelde kanalen** kunnen geen meldingen ontvangen: Microsoft Teams ondersteunt geen bots in gedeelde kanalen.
+
+## Iedereen vragen hun account te koppelen
+
+Niemand kan het Microsoft Teams-account van iemand anders koppelen, ook een beheerder niet: ieder meldt zich aan met zijn eigen account. Om een heel team erbij te halen, vraagt een **Project Owner** of **Project Admin** iedereen tegelijk op **Projectinstellingen** > **Werkruimte** > **Microsoft Teams**. De kaart **Members' Microsoft Teams accounts** zegt hoeveel leden hun account al hebben gekoppeld. **Ask everyone to connect** laat de OneUptime-bot een bericht sturen aan elk lid dat nog niet gekoppeld is, met een knop **Connect Microsoft Teams account** die het account met één klik koppelt.
+
+- **Wie een bericht krijgt.** Elk lid van het project dat zijn Microsoft Teams-account niet heeft gekoppeld, in een team zit waaraan de OneUptime-app is toegevoegd en daar via zijn e-mailadres of user principal name (UPN) wordt gevonden. Wie in de afgelopen 24 uur al is gevraagd, wordt niet opnieuw gevraagd, dus opnieuw vragen de volgende dag is alleen een herinnering voor wie zijn account nog steeds niet heeft gekoppeld.
+- **Wat de kaart zegt.** Hoe ver het versturen is terwijl de berichten de deur uit gaan, en daarna wie het vroeg en hoeveel leden een bericht kregen. Leden die OneUptime niet kon vinden, staan bij naam op de kaart: voeg de app toe aan hun team, of laat ze hun account zelf koppelen onder **Gebruikersinstellingen** > **Werkruimte** > **Microsoft Teams**.
+- **Wat de knop koppelt.** Het Microsoft Teams-account van wie erop drukt en zich aanmeldt, aan diens eigen OneUptime-account. Een bericht dat aan iemand anders is doorgestuurd, koppelt niets aan het lid naar wie het was gestuurd.
 
 ## Meldingsregels
 
@@ -93,6 +102,8 @@ Een regel aanmaken gaat in vier stappen:
 Een kanaal dat de regel aanmaakt, krijgt de naam van zijn record: incident INC-42 krijgt `inc-42`, waarschuwing ALT-7 krijgt `alt-7` en in een project zonder nummervoorvoegsels krijgt incident 42 `incident-42`. Tekst in **Voorvoegsel van de kanaalnaam** komt ervoor, dus `prod-` wordt `prod-inc-42`, en het formulier toont de naam terwijl je typt. Bij een geplande onderhoudsgebeurtenis neemt het voorvoegsel de plaats in van het nummervoorvoegsel: SM-5 krijgt `sm-5` en `maint-` wordt `maint-5`. OneUptime houdt letters, cijfers, spaties, `-` en `_` over, tot de 50 tekens die Microsoft Teams aanneemt. Heeft het team al een kanaal met die naam, zoals dat van een ander project of een kanaal dat de afgelopen 30 dagen is verwijderd, dan voegt OneUptime `-2`, `-3` enzovoort toe.
 
 Een regel maakt zijn kanaal aan de eerste keer dat een gebeurtenis eraan voldoet: wanneer de gebeurtenis wordt aangemaakt, of later, wanneer een update haar laat voldoen terwijl ze nog open is. Een regel voor bevestigde incidenten maakt het kanaal aan zodra het incident wordt bevestigd. Microsoft Teams toont de kanalen van een team aan iedereen in het team, dus OneUptime voegt niemand een voor een aan een kanaal toe: iedereen in het team dat je kiest kan het openen, zoals het regelformulier zegt onder **Wie lid wordt van het kanaal**. Een privé-incident, -waarschuwing of -episode krijgt een privékanaal, dat alleen de leden ervan zien; voeg mensen toe in Microsoft Teams.
+
+Om wie er dienst heeft erbij te halen, kies je hun bereikbaarheidsschema's onder **Vermelden wie er dienst heeft**. Bij het aanmaken van het kanaal plaatst OneUptime erin, direct na het eerste bericht van het record, een bericht dat wie er dienst heeft in die schema's met @ noemt, zodat Microsoft Teams hun een melding geeft. Niemand wordt opgeroepen. OneUptime vindt elke persoon in het team via het Microsoft Teams-account dat diegene aan OneUptime heeft gekoppeld, of anders via diens e-mailadres. Wie niet in het team zit, kan de kanalen ervan niet openen, dus wordt diegene in plaats daarvan in het bericht bij naam genoemd, met de reden. Een privékanaal kunnen alleen de leden ervan openen, dus voeg de mensen die dienst hebben er in Microsoft Teams aan toe.
 
 Elke latere update van het record — een statuswijziging, een notitie, een nieuwe eigenaar — wordt in zijn kanalen geplaatst, en in de bestaande kanalen en chats die zijn regels noemen zolang hun voorwaarden kloppen. OneUptime kan een Microsoft Teams-kanaal niet archiveren, dus het kanaal van een regel blijft bestaan wanneer het record voorbij is; archiveer of verwijder het in Microsoft Teams.
 

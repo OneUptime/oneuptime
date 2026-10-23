@@ -4,6 +4,7 @@ Forbind OneUptime med Slack for at slå hændelser, advarsler, episoder, planlag
 
 :::cards
 - [Forbind Slack](#forbind-slack): Installér OneUptime i dit workspace, og knyt derefter din egen konto.
+- [Bed alle om at forbinde deres konto](#bed-alle-om-at-forbinde-deres-konto): Send på én gang en besked til hvert medlem, der ikke har forbundet sin konto.
 - [Notifikationsregler](#notifikationsregler): Bestem, hvilke begivenheder der slås op hvor, og hvilke der får deres egen kanal.
 - [Hvem der er i en posts kanal](#hvem-der-er-i-en-posts-kanal): Se, hvem der er i den, deltag, og tilføj personer, fra postens side.
 - [Kommandoen /oneuptime](#kommandoen-oneuptime): Erklær hændelser, planlæg vedligeholdelse, se hvem der har vagt, og spørg AI.
@@ -46,7 +47,7 @@ Gå til **Projektindstillinger** > **Arbejdsområde** > **Slack**, og klik på *
 
 ### Forbind din egen Slack-konto
 
-At installere appen knytter kontoen for den, der installerede den. Alle andre knytter deres egen Slack-konto under **Brugerindstillinger** > **Arbejdsområde** > **Slack** med **Connect my account with Slack** for at handle på hændelser og få direkte beskeder som sig selv. Den sektion vises, så snart projektet er forbundet med Slack.
+At installere appen knytter kontoen for den, der installerede den. Alle andre knytter deres egen Slack-konto under **Brugerindstillinger** > **Arbejdsområde** > **Slack** med **Connect my account with Slack** for at handle på hændelser og få direkte beskeder som sig selv. Den sektion vises, så snart projektet er forbundet med Slack. Vil du have et helt team med på én gang, så se [Bed alle om at forbinde deres konto](#bed-alle-om-at-forbinde-deres-konto).
 
 ### Tilføj en notifikationsregel
 
@@ -56,6 +57,14 @@ Gå til **Hændelser** > **Arbejdsområde** > **Slack**. Sektionen **Arbejdsomr�
 
 Klik på **Testregel** i reglens række. En testbesked ankommer i de kanaler, reglen nævner. Se [Test en regel](#test-en-regel).
 :::
+
+## Bed alle om at forbinde deres konto
+
+Ingen kan forbinde en andens Slack-konto, heller ikke en administrator: hver især logger ind med sin egen. For at få et helt team med beder en **Project Owner** eller **Project Admin** alle på én gang under **Projektindstillinger** > **Arbejdsområde** > **Slack**. Kortet **Members' Slack accounts** viser, hvor mange medlemmer der har forbundet deres konto. **Ask everyone to connect** sender hvert medlem, der ikke har gjort det, en direkte besked fra OneUptime i Slack med en knap **Connect Slack account**, der forbinder medlemmets konto med ét klik.
+
+- **Hvem der får en besked.** Hvert medlem af projektet, der ikke har forbundet sin Slack-konto, og som OneUptime finder i Slack via medlemmets e-mailadresse. Den, der er blevet bedt om det inden for de sidste 24 timer, bliver ikke bedt igen, så beder du igen dagen efter, får kun dem, der stadig ikke har forbundet deres konto, en påmindelse.
+- **Hvad kortet siger.** Hvor langt udsendelsen er nået, mens beskederne sendes, og derefter hvem der bad om det, og hvor mange medlemmer der fik en besked. Medlemmer, som OneUptime ikke kunne finde i Slack via deres e-mailadresse, nævnes ved navn på kortet: de forbinder selv deres konto under **Brugerindstillinger** > **Arbejdsområde** > **Slack**.
+- **Hvad knappen forbinder.** Slack-kontoen for den, der trykker på knappen og logger ind, med vedkommendes egen OneUptime-konto. En besked, der sendes videre til en anden, forbinder intet med det medlem, den blev sendt til.
 
 ## Notifikationsregler
 
@@ -82,13 +91,15 @@ En kanal, som reglen opretter, får navn efter sin post: hændelse INC-42 får `
 
 En regel opretter sin kanal første gang, en begivenhed matcher den: når begivenheden oprettes, eller senere, når en opdatering får den til at matche, mens den stadig er åben. En regel for bekræftede hændelser opretter kanalen, når hændelsen bekræftes. En privat hændelse, advarsel eller episode får en privat kanal.
 
-**Hvem der kommer med i kanalen** viser, hvem reglen tilføjer til sin kanal, hver især efterhånden som de kommer med i posten, ikke kun når kanalen oprettes: **Vagthavende, efterhånden som de tilkaldes**, **Hændelsesleder og andre hændelsesroller, efterhånden som de tildeles** (hændelser og hændelsesepisoder) og **Ejere, efterhånden som de tilføjes**, alle afkrydset for en ny regel, og personerne og teamene i **Inviter også**, når kanalen oprettes. Hændelseslederen tildeles som regel, når nogen første gang bekræfter hændelsen, og kommer med i dens kanal da. En regel, der blev gemt, før hændelsesroller fik deres egen boks, tilføjer dem, når den tilføjer ejerne eller de vagthavende, og dens boks vises afkrydset. En eksisterende kanal, som en regel slår op i, får ingen.
+**Hvem der kommer med i kanalen** viser, hvem reglen tilføjer til sin kanal, hver især efterhånden som de kommer med i posten, ikke kun når kanalen oprettes: **Vagthavende, efterhånden som de tilkaldes**, **Hændelsesleder og andre hændelsesroller, efterhånden som de tildeles** (hændelser og hændelsesepisoder) og **Ejere, efterhånden som de tilføjes**, alle afkrydset for en ny regel, og personerne, teamene og vagtplanerne i **Inviter også**, når kanalen oprettes. Hændelseslederen tildeles som regel, når nogen første gang bekræfter hændelsen, og kommer med i dens kanal da. En regel, der blev gemt, før hændelsesroller fik deres egen boks, tilføjer dem, når den tilføjer ejerne eller de vagthavende, og dens boks vises afkrydset. En eksisterende kanal, som en regel slår op i, får ingen.
+
+For en vagtplan i **Inviter også** kommer den, der ifølge vagtplanens side har vagt i den, når kanalen oprettes, med i kanalen uden at blive tilkaldt. Vil du kun tilføje personer til nogle hændelsers kanaler, så giv en anden regel de betingelser og de personer, med samme **Præfiks for kanalnavn** som den første: regler, der matcher en hændelse, når dens kanal oprettes, deler den kanal, og hver af dem tilføjer sine egne personer.
 
 Hver senere opdatering af posten — en tilstandsændring, en note, en ny ejer — slås op i dens kanaler og i de eksisterende kanaler, dens regler nævner, så længe deres betingelser passer. Med **Arkiver kanalen, når hændelsen er løst** slået til, eller dens modstykke for advarsler, episoder, begivenheder, monitorer og vagtpolitikker, arkiverer reglen, der oprettede en kanal, den, når posten er løst, fuldført eller slettet, uanset hvad dens betingelser så siger. En hændelse, advarsel eller episode, der blev oprettet allerede løst, får ingen egen kanal; dens oprettelsesbesked går stadig til de kanaler, dine regler nævner. Se [Erklæret allerede bekræftet eller løst](/docs/incidents/declaring-incidents#erklæret-allerede-bekræftet-eller-løst).
 
 En hændelse, advarsel, episode eller planlagt vedligeholdelse med sin egen kanal har **Åbn i Slack** i toppen af sin side i OneUptime, ved siden af tilstandsknapperne. Den åbner kanalen i en ny fane, i Slack-appen eller i browseren. En post med to egne kanaler viser dem begge under knappen. En post med kanaler i både Slack og Microsoft Teams har i stedet én knap, **Åbn kanal**, der viser dem alle. De eksisterende kanaler, dine regler slår op i, tilbydes ikke.
 
-En kanal forbliver læsbar: hver begivenhed slås op én gang, og postens første tilstand står i den besked, der annoncerer posten, ikke i en besked for sig. En kørsel af en vagtpolitik er én besked, der redigeres, efterhånden som kørslen eskalerer: hvem der blev tilkaldt, hvor ofte og hvordan, hvem der ikke blev det og hvorfor, og hvem der bekræftede. En ny besked slås kun op, når nogen skal handle: en eskaleringsregel nåede ingen, eller kørslen sluttede, uden at nogen bekræftede. En person, hvis Slack-konto ikke er forbundet med OneUptime, kan ikke tilføjes til en kanal; OneUptime siger det én gang pr. kanal, i én besked, der nævner dem alle og redigeres, når listen vokser. Send dem beskedens link **Connect Slack account**, så de kan forbinde deres konto i ét trin. At postens ejere eller statussidens abonnenter har fået besked, står i dens feed i OneUptime.
+En kanal forbliver læsbar: hver begivenhed slås op én gang, og postens første tilstand står i den besked, der annoncerer posten, ikke i en besked for sig. En kørsel af en vagtpolitik er én besked, der redigeres, efterhånden som kørslen eskalerer: hvem der blev tilkaldt, hvor ofte og hvordan, hvem der ikke blev det og hvorfor, og hvem der bekræftede. En ny besked slås kun op, når nogen skal handle: en eskaleringsregel nåede ingen, eller kørslen sluttede, uden at nogen bekræftede. En person, hvis Slack-konto ikke er forbundet med OneUptime, tilføjes via den Slack-konto, der har personens e-mailadresse. En person, som OneUptime ikke finder på nogen af de to måder, eller som er gæst i Slack, kan ikke tilføjes til en kanal; OneUptime siger det én gang pr. kanal, i én besked, der nævner dem alle og redigeres, når listen vokser. Send dem beskedens link **Connect Slack account**, så de kan forbinde deres konto i ét trin. At postens ejere eller statussidens abonnenter har fået besked, står i dens feed i OneUptime.
 
 **Projektindstillinger** > **Arbejdsområde** > **Slack** viser de kanaler, OneUptime kan se, med **Send test** ved siden af hver. OneUptime melder sig selv ind i en offentlig kanal første gang, den slår op der. En privat kanal vises, og kan modtage opslag, først når OneUptime-appen er inviteret ind i den i Slack.
 
@@ -278,7 +289,7 @@ OneUptime læser kun det fra Slack, som disse funktioner har brug for, med de ti
 - **Beskeder til OneUptime.** En besked, der nævner den med @, en, du sender den i en direkte besked, og dine svar i en samtale med den, sammen med de tidligere beskeder i den tråd eller direkte besked, så OneUptime AI kan svare. Slack sender den også de andre beskeder i de kanaler og gruppebeskeder, den er med i; OneUptime hverken svarer på dem eller gemmer dem.
 - **Beskeder, du gemmer som noter.** En besked, du reagerer på med 📌 eller 📢, eller fastgør, i kanalen for en hændelse, advarsel, episode eller planlagt vedligeholdelsesbegivenhed, gemt som en note på den post med forfatterens navn.
 - **Navne på kanaler og personer.** De kanaler, den kan slå op i, så du kan vælge dem, personers navne, for at vise, hvem der skrev eller gjorde noget, og hvem der er i en posts egen kanal, læst, når postens side viser det.
-- **E-mailadresser.** Den e-mailadresse, Slack har for en person, for at matche personens Slack-konto med personens OneUptime-konto, når personen ikke selv har forbundet den: for at tilkalde personen, sætte personen i en vagt-brugergruppe eller tilføje personen til en posts kanal.
+- **E-mailadresser.** Den e-mailadresse, Slack har for en person, for at matche personens Slack-konto med personens OneUptime-konto, når personen ikke selv har forbundet den: for at tilkalde personen, sætte personen i en vagt-brugergruppe, tilføje personen til en posts kanal eller bede personen om at forbinde den.
 - **Brugergrupper.** Dit arbejdsområdes brugergrupper, så du kan vælge en til en vagtplan, og personerne i en, du forbinder, for at holde den lig med dem, der har vagt.
 
 Det, OneUptime gemmer af det — arbejdsområdets navn, dets kanaler, de Slack-konti, folk forbinder, noterne og brugergrupperne — gemmes sammen med dit projekt. [Privatlivspolitikken](https://oneuptime.com/legal/privacy) beskriver, hvordan OneUptime håndterer dine data.
@@ -290,7 +301,7 @@ Tjek reglens betingelser med **Testregel**: hvis testen ankommer, passede reglen
 :::
 
 :::details Nogen mangler i en regels kanal
-Reglens kort siger under **Derefter**, hvem reglen inviterer. Hver slags person kommer med, efterhånden som de kommer med i posten: de tilkaldte, når de tilkaldes, hændelseslederen, når den tildeles, en ejer, når den tilføjes, og dem, der allerede var på posten, da kanalen blev oprettet. En person, hvis Slack-konto ikke er forbundet med OneUptime, kan ikke tilføjes; OneUptime nævner personen i kanalen med et link til at forbinde sin konto. Vil du tilføje nogen med det samme, så tryk på **Tilføj personer** på postens kort **Slack-kanal**: Det finder også personer via den e-mailadresse, Slack har for dem.
+Reglens kort siger under **Derefter**, hvem reglen inviterer. Hver slags person kommer med, efterhånden som de kommer med i posten: de tilkaldte, når de tilkaldes, hændelseslederen, når den tildeles, en ejer, når den tilføjes, og dem, der allerede var på posten, da kanalen blev oprettet. En person, som OneUptime ikke kan finde i Slack, hverken via den konto, personen har forbundet, eller via personens e-mailadresse, kan ikke tilføjes; OneUptime nævner personen i kanalen med et link til at forbinde sin konto. Vil du tilføje nogen med det samme, så tryk på **Tilføj personer** på postens kort **Slack-kanal**.
 :::
 
 :::details Alle har forladt en privat kanal

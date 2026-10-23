@@ -4,6 +4,7 @@ Verbinden Sie OneUptime mit Microsoft Teams, um Vorfälle, Warnungen, Episoden, 
 
 :::cards
 - [Microsoft Teams verbinden](#microsoft-teams-verbinden): Administratorzustimmung, Ihre Anmeldung und die App in jedem Team.
+- [Alle bitten, ihr Konto zu verbinden](#alle-bitten-ihr-konto-zu-verbinden): Schreiben Sie alle Mitglieder, die ihr Konto noch nicht verbunden haben, auf einmal an.
 - [Benachrichtigungsregeln](#benachrichtigungsregeln): Legen Sie fest, welche Ereignisse wohin posten und welche einen eigenen Kanal bekommen.
 - [Mit dem OneUptime-Bot sprechen](#mit-dem-oneuptime-bot-sprechen): Befehle, Fragen und Formulare im Chat mit dem Bot.
 - [Bereitschafts-Tags](#bereitschafts-tags): Halten Sie das Tag eines Teams gleich denen, die Bereitschaft haben, und alarmieren Sie es.
@@ -59,7 +60,7 @@ In OneUptime Cloud öffnet **Teams Store öffnen** die App im Microsoft Teams St
 
 ### Alle anderen verbinden
 
-Jede Person verknüpft ihr eigenes Microsoft-Teams-Konto unter **Benutzereinstellungen** > **Arbeitsbereich** > **Microsoft Teams** mit **Connect my account with Microsoft Teams**, um als sie selbst auf Vorfälle zu reagieren und Direktnachrichten zu erhalten. Dieser Abschnitt erscheint, sobald das Projekt mit Microsoft Teams verbunden ist.
+Jede Person verknüpft ihr eigenes Microsoft-Teams-Konto unter **Benutzereinstellungen** > **Arbeitsbereich** > **Microsoft Teams** mit **Connect my account with Microsoft Teams**, um als sie selbst auf Vorfälle zu reagieren und Direktnachrichten zu erhalten. Dieser Abschnitt erscheint, sobald das Projekt mit Microsoft Teams verbunden ist. Wie Sie ein ganzes Team auf einmal dazuholen, steht unter [Alle bitten, ihr Konto zu verbinden](#alle-bitten-ihr-konto-zu-verbinden).
 
 ### Eine Benachrichtigungsregel hinzufügen
 
@@ -68,6 +69,14 @@ Gehen Sie zu **Vorfälle** > **Arbeitsbereich** > **Microsoft Teams**. Der Absch
 
 > [!NOTE]
 > OneUptime für sich selbst zu installieren oder es einem Chat hinzuzufügen ist eine andere Installation und lässt es nicht in die Kanäle eines Teams posten. **Private Kanäle** brauchen die App im Kanal selbst: Öffnen Sie den Kanal > "..." > **Manage channel** > **Apps** > **Add an app**. **Geteilte Kanäle** können keine Benachrichtigungen empfangen: Microsoft Teams unterstützt keine Bots in geteilten Kanälen.
+
+## Alle bitten, ihr Konto zu verbinden
+
+Niemand kann das Microsoft-Teams-Konto einer anderen Person verbinden, auch kein Admin: Jede Person meldet sich mit ihrem eigenen Konto an. Um ein ganzes Team dazuzuholen, bittet ein **Project Owner** oder **Project Admin** unter **Projekteinstellungen** > **Arbeitsbereich** > **Microsoft Teams** alle auf einmal, ihr Konto zu verbinden. Die Karte **Members' Microsoft Teams accounts** zeigt, wie viele Mitglieder ihr Konto schon verbunden haben. Mit **Ask everyone to connect** schickt der OneUptime-Bot jedem Mitglied ohne verbundenes Konto eine Nachricht, mit einer Schaltfläche **Connect Microsoft Teams account**, die sein Konto mit einem Klick verbindet.
+
+- **Wer eine Nachricht bekommt.** Jedes Mitglied des Projekts, das sein Microsoft-Teams-Konto noch nicht verbunden hat und in einem Team ist, dem die OneUptime-App hinzugefügt wurde, und das OneUptime dort über seine E-Mail-Adresse oder seinen Benutzerprinzipalnamen findet. Wer in den letzten 24 Stunden gebeten wurde, wird nicht noch einmal gebeten; bitten Sie am nächsten Tag erneut, erinnert das also nur die, die ihr Konto noch immer nicht verbunden haben.
+- **Was die Karte sagt.** Solange die Nachrichten verschickt werden, wie weit der Versand ist; danach, wer gebeten hat und wie viele Mitglieder eine Nachricht bekommen haben. Mitglieder, die OneUptime nicht finden konnte, nennt die Karte mit Namen: Fügen Sie die App ihrem Team hinzu, oder lassen Sie sie ihr Konto selbst unter **Benutzereinstellungen** > **Arbeitsbereich** > **Microsoft Teams** verbinden.
+- **Was die Schaltfläche verbindet.** Das Microsoft-Teams-Konto der Person, die sie drückt und sich anmeldet, mit ihrem eigenen OneUptime-Konto. Eine an jemand anderen weitergeleitete Nachricht verbindet nichts mit dem Mitglied, an das sie geschickt wurde.
 
 ## Benachrichtigungsregeln
 
@@ -93,6 +102,8 @@ Eine Regel wird in vier Schritten angelegt:
 Ein Kanal, den die Regel anlegt, wird nach seinem Datensatz benannt: Vorfall INC-42 bekommt `inc-42`, Warnung ALT-7 bekommt `alt-7`, und in einem Projekt ohne Nummernpräfixe bekommt Vorfall 42 `incident-42`. Text in **Präfix für Kanalnamen** steht davor, aus `prod-` wird also `prod-inc-42`, und das Formular zeigt den Namen schon beim Tippen. Bei einem geplanten Wartungsereignis tritt das Präfix an die Stelle seines Nummernpräfixes: SM-5 bekommt `sm-5`, und aus `maint-` wird `maint-5`. OneUptime behält Buchstaben, Ziffern, Leerzeichen, `-` und `_`, bis zu den 50 Zeichen, die Microsoft Teams annimmt. Hat das Team schon einen Kanal mit diesem Namen, etwa den eines anderen Projekts oder einen in den letzten 30 Tagen gelöschten, hängt OneUptime `-2`, `-3` und so weiter an.
 
 Eine Regel erstellt ihren Kanal, wenn ein Ereignis zum ersten Mal auf sie zutrifft: beim Erstellen des Ereignisses oder später, wenn es durch ein Update zutrifft, solange es noch offen ist. Eine Regel für bestätigte Vorfälle erstellt den Kanal, sobald der Vorfall bestätigt wird. Microsoft Teams zeigt die Kanäle eines Teams allen im Team, daher fügt OneUptime niemanden einzeln zu einem Kanal hinzu: Alle im gewählten Team können ihn öffnen, wie das Regelformular unter **Wer dem Kanal beitritt** sagt. Ein privater Vorfall, eine private Warnung oder Episode bekommt einen privaten Kanal, den nur seine Mitglieder sehen; fügen Sie Personen in Microsoft Teams hinzu.
+
+Um die Personen in Bereitschaft dazuzuholen, wählen Sie ihre Bereitschaftspläne unter **Personen in Bereitschaft erwähnen** aus. Beim Erstellen des Kanals postet OneUptime darin, direkt nach der ersten Nachricht des Datensatzes, eine Nachricht, die alle mit @ erwähnt, die in diesen Bereitschaftsplänen Bereitschaft haben, sodass Microsoft Teams sie benachrichtigt. Niemand wird alarmiert. OneUptime findet jede Person im Team über das Microsoft-Teams-Konto, das sie mit OneUptime verbunden hat, oder sonst über ihre E-Mail-Adresse. Wer nicht im Team ist, kann dessen Kanäle nicht öffnen und wird deshalb stattdessen in der Nachricht genannt, mit dem Grund. Einen privaten Kanal können nur seine Mitglieder öffnen; fügen Sie die Personen in Bereitschaft daher in Microsoft Teams hinzu.
 
 Jede spätere Änderung des Datensatzes — ein Statuswechsel, eine Notiz, ein neuer Eigentümer — wird in seinen Kanälen gepostet und in den bestehenden Kanälen und Chats, die seine Regeln nennen, solange deren Bedingungen zutreffen. OneUptime kann keinen Microsoft Teams-Kanal archivieren, daher bleibt der Kanal einer Regel bestehen, wenn sein Datensatz abgeschlossen ist; archivieren oder löschen Sie ihn in Microsoft Teams.
 

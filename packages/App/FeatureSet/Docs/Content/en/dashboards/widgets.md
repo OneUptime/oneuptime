@@ -54,7 +54,7 @@ Use it when the shape of the line tells the story: latency, errors, throughput o
 
 ### Value
 
-One big number with a sparkline: the query's value over the whole time range, summed for a sum or a count, the highest for a max, the lowest for a min, and the mean otherwise. An arrow compares the second half of the range with the first, colored by **Trend Direction**: whether a higher value is better or worse, or read from the metric's name. **Warning Threshold** turns the background yellow and **Critical Threshold** red once the value reaches them.
+One big number with a sparkline: the query's value over the whole time range, summed for a sum or a count, the highest for a max, the lowest for a min, and the mean otherwise. An arrow compares the second half of the range with the first, each half worked out the same way, colored by **Trend Direction**: whether a higher value is better or worse, or read from the metric's name. Point at the arrow to see both halves' values, and at the sparkline to read any point's value and time. **Warning Threshold** turns the background yellow and **Critical Threshold** red once the value reaches them.
 
 Use it when one number answers the question: the error rate, P95 latency, or requests served today.
 

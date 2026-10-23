@@ -4,6 +4,7 @@ Connect OneUptime to Microsoft Teams to post incidents, alerts, episodes, schedu
 
 :::cards
 - [Connect Microsoft Teams](#connect-microsoft-teams): Admin consent, your sign-in, and the app in each team.
+- [Asking everyone to connect](#asking-everyone-to-connect): Message every member who has not connected their account, in one go.
 - [Notification rules](#notification-rules): Decide which events post where, and which get a channel of their own.
 - [Talking to the OneUptime bot](#talking-to-the-oneuptime-bot): Commands, questions and forms in a chat with the bot.
 - [On-call tags](#on-call-tags): Keep a team's tag equal to whoever is on call, and page it.
@@ -59,7 +60,7 @@ On OneUptime Cloud, **Open Teams Store** opens the app in the Microsoft Teams st
 
 ### Connect everyone else
 
-Each person links their own Microsoft Teams account under **User Settings** > **Workspace** > **Microsoft Teams** with **Connect my account with Microsoft Teams**, to act on incidents and get direct messages as themselves. That section appears once the project is connected to Microsoft Teams.
+Each person links their own Microsoft Teams account under **User Settings** > **Workspace** > **Microsoft Teams** with **Connect my account with Microsoft Teams**, to act on incidents and get direct messages as themselves. That section appears once the project is connected to Microsoft Teams. To bring in a whole team at once, see [Asking everyone to connect](#asking-everyone-to-connect).
 
 ### Add a notification rule
 
@@ -68,6 +69,14 @@ Go to **Incidents** > **Workspace** > **Microsoft Teams**. The **Workspace** sec
 
 > [!NOTE]
 > Installing OneUptime for yourself, or adding it to a chat, is a different installation and does not let it post to a team's channels. **Private channels** need the app added to the channel itself: open the channel > "..." > **Manage channel** > **Apps** > **Add an app**. **Shared channels** cannot receive notifications: Microsoft Teams does not support bots in shared channels.
+
+## Asking everyone to connect
+
+Nobody can connect somebody else's Microsoft Teams account, an admin included: each person signs in to their own. To bring in a whole team, a **Project Owner** or **Project Admin** asks everyone at once on **Project Settings** > **Workspace** > **Microsoft Teams**. The **Members' Microsoft Teams accounts** card says how many members have connected. **Ask everyone to connect** has the OneUptime bot send each member who has not a message, with a **Connect Microsoft Teams account** button that connects their account in one click.
+
+- **Who gets a message.** Every member of the project who has not connected their Microsoft Teams account and is in a team the OneUptime app is added to, found there by their email address or user principal name. Somebody asked in the last 24 hours is not asked again, so asking again the next day reminds only the people who still have not connected.
+- **What the card says.** How far the messages have got while they go out, then who asked and how many members got a message. Members OneUptime could not find are named on the card: add the app to their team, or have them connect under **User Settings** > **Workspace** > **Microsoft Teams** themselves.
+- **What the button connects.** The Microsoft Teams account of whoever presses it and signs in, to their own OneUptime account. A message passed on to somebody else connects nothing to the member it was sent to.
 
 ## Notification rules
 
@@ -93,6 +102,8 @@ Creating a rule walks four steps:
 A channel the rule creates is named after its record: incident INC-42 gets `inc-42`, alert ALT-7 gets `alt-7`, and in a project without number prefixes, incident 42 gets `incident-42`. Text in **Channel Name Prefix** goes in front, so `prod-` makes `prod-inc-42`, and the form shows the name as you type. For a scheduled maintenance event, the prefix takes the place of its number prefix: SM-5 gets `sm-5`, and `maint-` makes `maint-5`. OneUptime keeps letters, numbers, spaces, `-` and `_`, up to the 50 characters Microsoft Teams takes. If the team already has a channel by that name, such as another project's or one deleted in the last 30 days, OneUptime adds `-2`, `-3` and so on.
 
 A rule creates its channel the first time an event matches it: when the event is created, or later, when an update makes it match while it is still open. A rule for acknowledged incidents creates the channel when the incident is acknowledged. Microsoft Teams shows a team's channels to everyone in the team, so OneUptime adds nobody to a channel one by one: everyone in the team you pick can open it, as the rule form says under **Who joins the channel**. A private incident, alert or episode gets a private channel, which only its members see; add people to it in Microsoft Teams.
+
+To bring in whoever is on call, pick their on-call schedules under **Mention who is on call**. When the channel is created, OneUptime posts a message in it, just after the record's first one, that @mentions whoever is on call in those schedules, so Microsoft Teams notifies them. Nobody is paged. OneUptime finds each person in the team by the Microsoft Teams account they connected to OneUptime, or else by their email address. Someone who is not in the team can't open its channels, so they are named in the message instead, with why. In a private channel, only its members can open it, so add the people on call to it in Microsoft Teams.
 
 Every later update of the record — a state change, a note, a new owner — is posted to its channels, and to the existing channels and chats its rules name while their conditions match. OneUptime cannot archive a Microsoft Teams channel, so a rule's channel stays when its record is over; archive or delete it in Microsoft Teams.
 

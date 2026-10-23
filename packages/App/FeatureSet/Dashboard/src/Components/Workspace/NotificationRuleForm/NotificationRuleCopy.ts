@@ -446,11 +446,43 @@ export const OWNERS_TITLE: string = translationKey("Owners, as they are added");
 export const ALSO_INVITE_TITLE: string = translationKey("Also invite");
 
 export const ALSO_INVITE_DESCRIPTION: string = translationKey(
-  "These people and teams join every channel the rule creates.",
+  "These people and teams join every channel the rule creates, with whoever is on call in these schedules when the channel is created. Nobody is paged.",
 );
 
 export const ALSO_INVITE_BUTTON_TEXT: string = translationKey(
-  "Add people or teams",
+  "Add people, teams or schedules",
+);
+
+export const ALSO_INVITE_SEARCH_PLACEHOLDER: string = translationKey(
+  "Search people, teams or schedules...",
+);
+
+export const ALSO_INVITE_EMPTY_TEXT: string = translationKey(
+  "No people, teams or schedules available.",
+);
+
+/*
+ * Microsoft Teams adds nobody to a channel: the people on call in the
+ * schedules a rule names are @mentioned in it instead, so Teams notifies
+ * them (MicrosoftTeamsOnCallMention).
+ */
+export const MENTION_ON_CALL_TITLE: string = translationKey(
+  "Mention who is on call",
+);
+
+export const MENTION_ON_CALL_DESCRIPTION: string = translationKey(
+  "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.",
+);
+
+export const MENTION_ON_CALL_BUTTON_TEXT: string =
+  translationKey("Add schedules");
+
+export const MENTION_ON_CALL_SEARCH_PLACEHOLDER: string = translationKey(
+  "Search on-call schedules...",
+);
+
+export const MENTION_ON_CALL_EMPTY_TEXT: string = translationKey(
+  "No on-call schedules available.",
 );
 
 /*
@@ -676,6 +708,24 @@ export const ALSO_INVITES_SENTENCE: string = translationKey(
   "Also invites {{names}} when the channel is created.",
 );
 
+/*
+ * The on-call schedules a rule names, whose on-call person joins its
+ * channel without being paged: a sentence of their own, after the people
+ * and teams it names.
+ */
+export const INVITES_ON_CALL_SENTENCE: string = translationKey(
+  "Invites whoever is on call in {{schedules}} when the channel is created.",
+);
+
+export const ALSO_INVITES_ON_CALL_SENTENCE: string = translationKey(
+  "Also invites whoever is on call in {{schedules}} when the channel is created.",
+);
+
+// Microsoft Teams: they are @mentioned in the channel instead.
+export const MENTIONS_ON_CALL_SENTENCE: string = translationKey(
+  "Mentions whoever is on call in {{schedules}} when the channel is created.",
+);
+
 export const TEAMS_EVERYONE_SENTENCE: string = translationKey(
   "Everyone in {{team}} can open the channel.",
 );
@@ -761,6 +811,8 @@ export interface NotificationRuleSummaryInput {
   exampleChannelName?: string | undefined;
   userNames: Array<string>;
   teamNames: Array<string>;
+  // The on-call schedules whose on-call person joins the channel.
+  scheduleNames?: Array<string> | undefined;
   // The Microsoft Teams team the channel is created in, by its name.
   channelTeamName?: string | undefined;
   chatNames: Array<string>;
@@ -824,6 +876,18 @@ export function getNotificationRuleSummary(
           : translator.translateText(TEAMS_EVERYONE_WITHOUT_TEAM_SENTENCE) ||
               "",
       );
+
+      const scheduleNames: Array<string> = input.scheduleNames || [];
+
+      if (scheduleNames.length > 0) {
+        sentences.push(
+          translator.translateTemplate(MENTIONS_ON_CALL_SENTENCE, {
+            schedules: composedValue((sentence: Translator): string => {
+              return formatNameList(scheduleNames, "and", sentence);
+            }),
+          }),
+        );
+      }
     } else {
       sentences.push(...getInvitesSentences(input));
 
@@ -879,8 +943,9 @@ export function getNotificationRuleSummary(
  * Who the rule invites to its channel: the kinds of people the record has,
  * as they join it, in one sentence, then the people and teams the rule
  * names, in one of their own ("Also invites Alice Smith and Platform when
- * the channel is created."). A rule that names people only invites them in
- * the first.
+ * the channel is created."), then whoever is on call in the schedules it
+ * names, in a last one. A rule that names people only invites them in the
+ * first, and one that names only schedules says so in its only sentence.
  */
 function getInvitesSentences(
   input: NotificationRuleSummaryInput,
@@ -894,8 +959,13 @@ function getInvitesSentences(
     });
 
   const names: Array<string> = [...input.userNames, ...input.teamNames];
+  const scheduleNames: Array<string> = input.scheduleNames || [];
 
-  if (invitees.length === 0 && names.length === 0) {
+  if (
+    invitees.length === 0 &&
+    names.length === 0 &&
+    scheduleNames.length === 0
+  ) {
     return [translator.translateText(INVITES_NOBODY_SENTENCE) || ""];
   }
 
@@ -905,37 +975,52 @@ function getInvitesSentences(
     return formatNameList(names, "and", sentence);
   };
 
-  if (invitees.length === 0) {
-    return [
+  const sentences: Array<string> = [];
+
+  if (invitees.length > 0) {
+    sentences.push(
       translator.translateTemplate(INVITES_SENTENCE, {
         people: composedValue((sentence: Translator): string => {
-          return sentence.translateTemplate(NAMED_PEOPLE_PHRASE, {
-            names: namedPeople(sentence),
-          });
+          return formatNameList(
+            invitees.map((invitee: NotificationRuleInvitee): string => {
+              return sentence.translateText(INVITEE_PHRASES[invitee]) || "";
+            }),
+            "and",
+            sentence,
+          );
         }),
       }),
-    ];
+    );
   }
-
-  const sentences: Array<string> = [
-    translator.translateTemplate(INVITES_SENTENCE, {
-      people: composedValue((sentence: Translator): string => {
-        return formatNameList(
-          invitees.map((invitee: NotificationRuleInvitee): string => {
-            return sentence.translateText(INVITEE_PHRASES[invitee]) || "";
-          }),
-          "and",
-          sentence,
-        );
-      }),
-    }),
-  ];
 
   if (names.length > 0) {
     sentences.push(
-      translator.translateTemplate(ALSO_INVITES_SENTENCE, {
-        names: composedValue(namedPeople),
-      }),
+      sentences.length === 0
+        ? translator.translateTemplate(INVITES_SENTENCE, {
+            people: composedValue((sentence: Translator): string => {
+              return sentence.translateTemplate(NAMED_PEOPLE_PHRASE, {
+                names: namedPeople(sentence),
+              });
+            }),
+          })
+        : translator.translateTemplate(ALSO_INVITES_SENTENCE, {
+            names: composedValue(namedPeople),
+          }),
+    );
+  }
+
+  if (scheduleNames.length > 0) {
+    sentences.push(
+      translator.translateTemplate(
+        sentences.length === 0
+          ? INVITES_ON_CALL_SENTENCE
+          : ALSO_INVITES_ON_CALL_SENTENCE,
+        {
+          schedules: composedValue((sentence: Translator): string => {
+            return formatNameList(scheduleNames, "and", sentence);
+          }),
+        },
+      ),
     );
   }
 

@@ -4,6 +4,7 @@ Koble OneUptime til Microsoft Teams for å publisere hendelser, varsler, episode
 
 :::cards
 - [Koble til Microsoft Teams](#koble-til-microsoft-teams): Administratorsamtykke, påloggingen din og appen i hvert team.
+- [Be alle om å koble til kontoen sin](#be-alle-om-å-koble-til-kontoen-sin): Send på én gang en melding til hvert medlem som ikke har koblet til kontoen sin.
 - [Varslingsregler](#varslingsregler): Bestem hvilke hendelser som publiseres hvor, og hvilke som får sin egen kanal.
 - [Snakke med OneUptime-boten](#snakke-med-oneuptime-boten): Kommandoer, spørsmål og skjemaer i en chat med boten.
 - [Vakt-tagger](#vakt-tagger): Hold taggen til et team lik dem som har vakt, og tilkall den.
@@ -59,7 +60,7 @@ På OneUptime Cloud åpner **Åpne Teams Store** appen i Microsoft Teams Store, 
 
 ### Koble til alle andre
 
-Hver person kobler til sin egen Microsoft Teams-konto under **Brukerinnstillinger** > **Arbeidsområde** > **Microsoft Teams** med **Connect my account with Microsoft Teams**, for å handle på hendelser og få direktemeldinger som seg selv. Den seksjonen vises så snart prosjektet er koblet til Microsoft Teams.
+Hver person kobler til sin egen Microsoft Teams-konto under **Brukerinnstillinger** > **Arbeidsområde** > **Microsoft Teams** med **Connect my account with Microsoft Teams**, for å handle på hendelser og få direktemeldinger som seg selv. Den seksjonen vises så snart prosjektet er koblet til Microsoft Teams. For å få med et helt team på én gang, se [Be alle om å koble til kontoen sin](#be-alle-om-å-koble-til-kontoen-sin).
 
 ### Legg til en varslingsregel
 
@@ -68,6 +69,14 @@ Gå til **Hendelser** > **Arbeidsområde** > **Microsoft Teams**. Seksjonen **Ar
 
 > [!NOTE]
 > Å installere OneUptime for deg selv, eller legge den til i en chat, er en annen installasjon og lar den ikke publisere i et teams kanaler. **Private kanaler** krever at appen er lagt til i selve kanalen: åpne kanalen > "..." > **Manage channel** > **Apps** > **Add an app**. **Delte kanaler** kan ikke motta varsler: Microsoft Teams støtter ikke boter i delte kanaler.
+
+## Be alle om å koble til kontoen sin
+
+Ingen kan koble til Microsoft Teams-kontoen til noen andre, heller ikke en administrator: hver person logger på med sin egen. For å få med et helt team ber en **Project Owner** eller **Project Admin** alle på én gang under **Prosjektinnstillinger** > **Arbeidsområde** > **Microsoft Teams**. Kortet **Members' Microsoft Teams accounts** viser hvor mange medlemmer som har koblet til kontoen sin. **Ask everyone to connect** får OneUptime-boten til å sende hvert medlem som ikke har gjort det, en melding med en knapp **Connect Microsoft Teams account** som kobler til kontoen med ett klikk.
+
+- **Hvem som får en melding.** Hvert medlem av prosjektet som ikke har koblet til Microsoft Teams-kontoen sin, er i et team OneUptime-appen er lagt til i, og som OneUptime finner der ut fra e-postadressen eller brukerhovednavnet (UPN) til vedkommende. Den som er blitt bedt om det de siste 24 timene, blir ikke bedt igjen, så ber du igjen dagen etter, får bare de som fortsatt ikke har koblet til kontoen sin, en påminnelse.
+- **Hva kortet sier.** Hvor langt utsendingen har kommet mens meldingene går ut, og deretter hvem som ba om det, og hvor mange medlemmer som fikk en melding. Medlemmer OneUptime ikke fant, nevnes ved navn på kortet: legg appen til i teamet deres, eller la dem koble til kontoen sin selv under **Brukerinnstillinger** > **Arbeidsområde** > **Microsoft Teams**.
+- **Hva knappen kobler til.** Microsoft Teams-kontoen til den som trykker på knappen og logger på, til vedkommendes egen OneUptime-konto. En melding som sendes videre til noen andre, kobler ingenting til medlemmet den ble sendt til.
 
 ## Varslingsregler
 
@@ -93,6 +102,8 @@ En varslingsregel sier hvilke hendelser som publiseres i Microsoft Teams, og hvo
 En kanal som regelen oppretter, får navn etter posten sin: hendelse INC-42 får `inc-42`, varsel ALT-7 får `alt-7`, og i et prosjekt uten nummerprefikser får hendelse 42 `incident-42`. Tekst i **Prefiks for kanalnavn** settes foran, så `prod-` gir `prod-inc-42`, og skjemaet viser navnet mens du skriver. For en planlagt vedlikeholdshendelse tar prefikset plassen til nummerprefikset: SM-5 får `sm-5`, og `maint-` gir `maint-5`. OneUptime beholder bokstaver, tall, mellomrom, `-` og `_`, opptil de 50 tegnene Microsoft Teams tar imot. Har teamet allerede en kanal med det navnet, for eksempel et annet prosjekts eller en som ble slettet de siste 30 dagene, legger OneUptime til `-2`, `-3` og så videre.
 
 En regel oppretter kanalen sin første gang en hendelse samsvarer med den: når hendelsen opprettes, eller senere, når en oppdatering får den til å samsvare mens den fortsatt er åpen. En regel for bekreftede hendelser oppretter kanalen når hendelsen bekreftes. Microsoft Teams viser kanalene i et team til alle i teamet, så OneUptime legger ikke til noen i en kanal én etter én: alle i teamet du velger kan åpne den, slik regelskjemaet sier under **Hvem som blir med i kanalen**. En privat hendelse, et privat varsel eller en privat episode får en privat kanal, som bare medlemmene ser; legg til folk i Microsoft Teams.
+
+For å få med dem som har vakt, velger du vaktplanene deres under **Nevn dem som har vakt**. Når kanalen opprettes, publiserer OneUptime en melding i den rett etter postens første melding. Meldingen @nevner dem som har vakt i disse vaktplanene, slik at Microsoft Teams varsler dem. Ingen tilkalles. OneUptime finner hver person i teamet ut fra Microsoft Teams-kontoen vedkommende har koblet til OneUptime, eller ellers ut fra vedkommendes e-postadresse. Den som ikke er i teamet, kan ikke åpne kanalene i det, så i stedet står vedkommendes navn i meldingen sammen med årsaken. En privat kanal kan bare åpnes av medlemmene, så legg til de vakthavende i kanalen i Microsoft Teams.
 
 Hver senere oppdatering av posten — en tilstandsendring, et notat, en ny eier — publiseres i kanalene dens, og i de eksisterende kanalene og chattene reglene dens nevner så lenge betingelsene deres stemmer. OneUptime kan ikke arkivere en Microsoft Teams-kanal, så kanalen til en regel blir værende når posten er over; arkiver eller slett den i Microsoft Teams.
 

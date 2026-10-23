@@ -4,6 +4,7 @@ Forbind OneUptime med Microsoft Teams for at slå hændelser, advarsler, episode
 
 :::cards
 - [Forbind Microsoft Teams](#forbind-microsoft-teams): Administratorsamtykke, dit login og appen i hvert team.
+- [Bed alle om at forbinde deres konto](#bed-alle-om-at-forbinde-deres-konto): Send på én gang en besked til hvert medlem, der ikke har forbundet sin konto.
 - [Notifikationsregler](#notifikationsregler): Bestem, hvilke begivenheder der slås op hvor, og hvilke der får deres egen kanal.
 - [Tal med OneUptime-botten](#tal-med-oneuptime-botten): Kommandoer, spørgsmål og formularer i en chat med botten.
 - [Vagt-mærker](#vagt-mærker): Hold et teams mærke lig med dem, der har vagt, og tilkald det.
@@ -59,7 +60,7 @@ På OneUptime Cloud åbner **Åbn Teams Store** appen i Microsoft Teams Store, h
 
 ### Forbind alle andre
 
-Hver person knytter sin egen Microsoft Teams-konto under **Brugerindstillinger** > **Arbejdsområde** > **Microsoft Teams** med **Connect my account with Microsoft Teams** for at handle på hændelser og få direkte beskeder som sig selv. Den sektion vises, så snart projektet er forbundet med Microsoft Teams.
+Hver person knytter sin egen Microsoft Teams-konto under **Brugerindstillinger** > **Arbejdsområde** > **Microsoft Teams** med **Connect my account with Microsoft Teams** for at handle på hændelser og få direkte beskeder som sig selv. Den sektion vises, så snart projektet er forbundet med Microsoft Teams. Vil du have et helt team med på én gang, så se [Bed alle om at forbinde deres konto](#bed-alle-om-at-forbinde-deres-konto).
 
 ### Tilføj en notifikationsregel
 
@@ -68,6 +69,14 @@ Gå til **Hændelser** > **Arbejdsområde** > **Microsoft Teams**. Sektionen **A
 
 > [!NOTE]
 > At installere OneUptime for dig selv, eller føje den til en chat, er en anden installation og lader den ikke slå op i et teams kanaler. **Private kanaler** kræver, at appen er føjet til selve kanalen: åbn kanalen > "..." > **Manage channel** > **Apps** > **Add an app**. **Delte kanaler** kan ikke modtage notifikationer: Microsoft Teams understøtter ikke bots i delte kanaler.
+
+## Bed alle om at forbinde deres konto
+
+Ingen kan forbinde en andens Microsoft Teams-konto, heller ikke en administrator: hver især logger ind med sin egen. For at få et helt team med beder en **Project Owner** eller **Project Admin** alle på én gang under **Projektindstillinger** > **Arbejdsområde** > **Microsoft Teams**. Kortet **Members' Microsoft Teams accounts** viser, hvor mange medlemmer der har forbundet deres konto. **Ask everyone to connect** får OneUptime-botten til at sende hvert medlem, der ikke har gjort det, en besked med en knap **Connect Microsoft Teams account**, der forbinder medlemmets konto med ét klik.
+
+- **Hvem der får en besked.** Hvert medlem af projektet, der ikke har forbundet sin Microsoft Teams-konto, er i et team, som OneUptime-appen er føjet til, og som OneUptime finder der via medlemmets e-mailadresse eller brugerhovednavn (UPN). Den, der er blevet bedt om det inden for de sidste 24 timer, bliver ikke bedt igen, så beder du igen dagen efter, får kun dem, der stadig ikke har forbundet deres konto, en påmindelse.
+- **Hvad kortet siger.** Hvor langt udsendelsen er nået, mens beskederne sendes, og derefter hvem der bad om det, og hvor mange medlemmer der fik en besked. Medlemmer, som OneUptime ikke kunne finde, nævnes ved navn på kortet: føj appen til deres team, eller lad dem selv forbinde deres konto under **Brugerindstillinger** > **Arbejdsområde** > **Microsoft Teams**.
+- **Hvad knappen forbinder.** Microsoft Teams-kontoen for den, der trykker på knappen og logger ind, med vedkommendes egen OneUptime-konto. En besked, der sendes videre til en anden, forbinder intet med det medlem, den blev sendt til.
 
 ## Notifikationsregler
 
@@ -93,6 +102,8 @@ At oprette en regel går gennem fire trin:
 En kanal, som reglen opretter, får navn efter sin post: hændelse INC-42 får `inc-42`, advarsel ALT-7 får `alt-7`, og i et projekt uden nummerpræfikser får hændelse 42 `incident-42`. Tekst i **Præfiks for kanalnavn** sættes foran, så `prod-` giver `prod-inc-42`, og formularen viser navnet, mens du skriver. For en planlagt vedligeholdelse træder præfikset i stedet for dens nummerpræfiks: SM-5 får `sm-5`, og `maint-` giver `maint-5`. OneUptime beholder bogstaver, tal, mellemrum, `-` og `_`, op til de 50 tegn, Microsoft Teams tager imod. Har teamet allerede en kanal med det navn, fx et andet projekts eller en, der er slettet inden for de sidste 30 dage, tilføjer OneUptime `-2`, `-3` og så videre.
 
 En regel opretter sin kanal første gang, en begivenhed matcher den: når begivenheden oprettes, eller senere, når en opdatering får den til at matche, mens den stadig er åben. En regel for bekræftede hændelser opretter kanalen, når hændelsen bekræftes. Microsoft Teams viser et teams kanaler for alle i teamet, så OneUptime tilføjer ingen til en kanal én ad gangen: alle i det team, du vælger, kan åbne den, som regelformularen siger under **Hvem der kommer med i kanalen**. En privat hændelse, advarsel eller episode får en privat kanal, som kun dens medlemmer ser; tilføj folk i Microsoft Teams.
+
+For at inddrage dem, der har vagt, vælger du deres vagtplaner under **Nævn dem, der har vagt**. Når kanalen oprettes, slår OneUptime en besked op i den lige efter postens første besked. Beskeden @nævner dem, der har vagt i de vagtplaner, så Microsoft Teams underretter dem. Ingen tilkaldes. OneUptime finder hver person i teamet ud fra den Microsoft Teams-konto, personen har forbundet med OneUptime, eller ellers ud fra personens e-mailadresse. En person, der ikke er i teamet, kan ikke åbne dets kanaler, så i stedet står personens navn i beskeden sammen med årsagen. En privat kanal kan kun åbnes af dens medlemmer, så tilføj de vagthavende til den i Microsoft Teams.
 
 Hver senere opdatering af posten — en tilstandsændring, en note, en ny ejer — slås op i dens kanaler og i de eksisterende kanaler og chats, dens regler nævner, så længe deres betingelser passer. OneUptime kan ikke arkivere en Microsoft Teams-kanal, så en regels kanal bliver, når dens post er afsluttet; arkiver eller slet den i Microsoft Teams.
 

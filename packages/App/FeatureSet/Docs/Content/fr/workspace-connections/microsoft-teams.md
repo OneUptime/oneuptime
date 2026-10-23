@@ -4,6 +4,7 @@ Connectez OneUptime à Microsoft Teams pour publier dans vos canaux et conversat
 
 :::cards
 - [Connecter Microsoft Teams](#connecter-microsoft-teams): Le consentement administrateur, votre connexion et l'application dans chaque équipe.
+- [Demander à chacun de connecter son compte](#demander-à-chacun-de-connecter-son-compte): Écrivez en une seule fois à tous les membres qui n'ont pas encore connecté leur compte.
 - [Règles de notification](#règles-de-notification): Décidez quels événements sont publiés où, et lesquels ont un canal à eux.
 - [Parler au bot OneUptime](#parler-au-bot-oneuptime): Commandes, questions et formulaires dans une conversation avec le bot.
 - [Balises d'astreinte](#balises-dastreinte): Alignez la balise d'une équipe sur les personnes d'astreinte, et alertez-la.
@@ -59,7 +60,7 @@ Sur OneUptime Cloud, **Ouvrir la boutique Teams** ouvre l'application dans le Mi
 
 ### Connecter tous les autres
 
-Chaque personne associe son propre compte Microsoft Teams dans **Paramètres utilisateur** > **Espace de travail** > **Microsoft Teams** avec **Connect my account with Microsoft Teams**, pour agir sur les incidents et recevoir des messages directs en son nom. Cette section apparaît dès que le projet est connecté à Microsoft Teams.
+Chaque personne associe son propre compte Microsoft Teams dans **Paramètres utilisateur** > **Espace de travail** > **Microsoft Teams** avec **Connect my account with Microsoft Teams**, pour agir sur les incidents et recevoir des messages directs en son nom. Cette section apparaît dès que le projet est connecté à Microsoft Teams. Pour faire venir toute une équipe d'un coup, voir [Demander à chacun de connecter son compte](#demander-à-chacun-de-connecter-son-compte).
 
 ### Ajouter une règle de notification
 
@@ -68,6 +69,14 @@ Allez dans **Incidents** > **Espace de travail** > **Microsoft Teams**. La secti
 
 > [!NOTE]
 > Installer OneUptime pour vous-même, ou l'ajouter à une conversation, est une autre installation et ne lui permet pas de publier dans les canaux d'une équipe. Les **canaux privés** ont besoin de l'application dans le canal lui-même : ouvrez le canal > "..." > **Manage channel** > **Apps** > **Add an app**. Les **canaux partagés** ne peuvent pas recevoir de notifications : Microsoft Teams ne prend pas en charge les bots dans les canaux partagés.
+
+## Demander à chacun de connecter son compte
+
+Personne ne peut connecter le compte Microsoft Teams de quelqu'un d'autre, pas même un administrateur : chacun se connecte avec son propre compte. Pour faire venir toute une équipe, un **Project Owner** ou un **Project Admin** demande à tout le monde à la fois de connecter son compte, dans **Paramètres du projet** > **Espace de travail** > **Microsoft Teams**. La carte **Members' Microsoft Teams accounts** indique combien de membres ont connecté leur compte. Avec **Ask everyone to connect**, le bot OneUptime envoie un message à chaque membre qui ne l'a pas encore fait, avec un bouton **Connect Microsoft Teams account** qui connecte son compte en un clic.
+
+- **Qui reçoit un message.** Chaque membre du projet qui n'a pas connecté son compte Microsoft Teams et qui fait partie d'une équipe à laquelle l'application OneUptime a été ajoutée, retrouvé là par son adresse e-mail ou son nom d'utilisateur principal. Quiconque a été sollicité dans les dernières 24 heures ne l'est pas de nouveau : redemander le lendemain ne relance donc que les personnes qui n'ont toujours pas connecté leur compte.
+- **Ce que dit la carte.** Où en sont les messages pendant leur envoi, puis qui a fait la demande et combien de membres ont reçu un message. Les membres que OneUptime n'a pas trouvés sont nommés sur la carte : ajoutez l'application à leur équipe, ou demandez-leur de connecter eux-mêmes leur compte dans **Paramètres utilisateur** > **Espace de travail** > **Microsoft Teams**.
+- **Ce que connecte le bouton.** Le compte Microsoft Teams de la personne qui le presse et se connecte, à son propre compte OneUptime. Transmis à quelqu'un d'autre, le message ne connecte rien au membre à qui il était destiné.
 
 ## Règles de notification
 
@@ -93,6 +102,8 @@ Créer une règle passe par quatre étapes :
 Un canal que la règle crée porte le nom de son enregistrement : l'incident INC-42 reçoit `inc-42`, l'alerte ALT-7 reçoit `alt-7`, et dans un projet sans préfixes de numéro, l'incident 42 reçoit `incident-42`. Le texte de **Préfixe du nom de canal** se place devant, donc `prod-` donne `prod-inc-42`, et le formulaire montre le nom pendant que vous tapez. Pour un événement de maintenance planifiée, le préfixe remplace son préfixe de numéro : SM-5 reçoit `sm-5`, et `maint-` donne `maint-5`. OneUptime conserve les lettres, les chiffres, les espaces, `-` et `_`, jusqu'aux 50 caractères qu'accepte Microsoft Teams. Si l'équipe a déjà un canal de ce nom, par exemple celui d'un autre projet ou un canal supprimé ces 30 derniers jours, OneUptime ajoute `-2`, `-3` et ainsi de suite.
 
 Une règle crée son canal la première fois qu'un événement lui correspond : à la création de l'événement, ou plus tard, quand une mise à jour le fait correspondre alors qu'il est encore ouvert. Une règle pour les incidents pris en compte crée le canal quand l'incident est pris en compte. Microsoft Teams affiche les canaux d'une équipe à tous ses membres, donc OneUptime n'ajoute personne à un canal un par un : tous les membres de l'équipe choisie peuvent l'ouvrir, comme le formulaire de la règle le dit sous **Qui rejoint le canal**. Un incident, une alerte ou un épisode privé reçoit un canal privé, que seuls ses membres voient ; ajoutez-y des personnes dans Microsoft Teams.
+
+Pour faire venir les personnes d'astreinte, choisissez leurs plannings d'astreinte sous **Mentionner les personnes d'astreinte**. À la création du canal, OneUptime y publie un message, juste après le premier message de l'enregistrement, qui mentionne avec @ les personnes d'astreinte dans ces plannings, pour que Microsoft Teams les notifie. Personne n'est alerté. OneUptime trouve chaque personne de l'équipe par le compte Microsoft Teams qu'elle a connecté à OneUptime, ou sinon par son adresse e-mail. Une personne qui n'est pas dans l'équipe ne peut pas ouvrir ses canaux, elle est donc nommée dans le message à la place, avec la raison. Dans un canal privé, seuls ses membres peuvent l'ouvrir ; ajoutez-y donc les personnes d'astreinte dans Microsoft Teams.
 
 Chaque mise à jour ultérieure de l'enregistrement — un changement d'état, une note, un nouveau propriétaire — est publiée dans ses canaux, et dans les canaux et conversations existants que ses règles nomment tant que leurs conditions correspondent. OneUptime ne peut pas archiver un canal Microsoft Teams, donc le canal d'une règle reste quand son enregistrement est terminé ; archivez-le ou supprimez-le dans Microsoft Teams.
 

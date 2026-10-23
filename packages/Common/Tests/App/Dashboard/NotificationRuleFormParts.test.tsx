@@ -487,10 +487,19 @@ describe("who joins the channel a rule creates", () => {
         "The commander is usually assigned when someone first acknowledges the incident or changes its state.",
       ),
     ).toBeVisible();
-    // Anybody else the rule names, people or teams, in one picker.
+    // Anybody else the rule names - people, teams or on-call schedules - in one picker.
     expect(
-      screen.getByRole("button", { name: /Add people or teams/ }),
+      screen.getByRole("button", { name: /Add people, teams or schedules/ }),
     ).toBeVisible();
+    expect(
+      screen.getByText(
+        "These people and teams join every channel the rule creates, with whoever is on call in these schedules when the channel is created. Nobody is paged.",
+      ),
+    ).toBeVisible();
+    // Slack adds the people on call: there is nothing to mention.
+    expect(
+      screen.queryByRole("button", { name: /^Add schedules/ }),
+    ).not.toBeInTheDocument();
   });
 
   test("an alert has no incident roles; a monitor's channel gets its owners", async () => {
@@ -659,8 +668,26 @@ describe("who joins the channel a rule creates", () => {
       screen.queryByRole("switch", { name: /^Archive the channel/ }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /Add people or teams/ }),
+      screen.queryByRole("button", { name: /Add people, teams or schedules/ }),
     ).not.toBeInTheDocument();
+    /*
+     * Teams adds nobody to a channel: whoever is on call in the schedules
+     * picked here is @mentioned in it instead.
+     */
+    expect(
+      screen.getByRole("button", { name: /^Add schedules/ }),
+    ).toBeVisible();
+    expect(
+      screen.getByText(
+        "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.",
+      ),
+    ).toBeVisible();
+    expect(
+      isBefore(
+        screen.getByTestId("who-joins-teams-note"),
+        screen.getByRole("button", { name: /^Add schedules/ }),
+      ),
+    ).toBe(true);
     // The channel's name as Teams shows it: no #.
     expect(summary()).toEqual([
       "Creates a channel like oneuptime-incident-inc-42 for each incident.",
@@ -708,7 +735,7 @@ describe("the Destination step, as a reader meets it", () => {
     // Nothing of the channel's name after who joins.
     expect(
       isBefore(
-        screen.getByRole("button", { name: /Add people or teams/ }),
+        screen.getByRole("button", { name: /Add people, teams or schedules/ }),
         moreFields,
       ),
     ).toBe(false);

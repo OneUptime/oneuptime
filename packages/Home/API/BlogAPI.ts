@@ -4,6 +4,7 @@ import BlogPostUtil, {
   BlogTagSummary,
 } from "../Utils/BlogPost";
 import BlogPagination, { BlogPageRequest } from "../Utils/BlogPagination";
+import { onBlogPostFileSent } from "../Utils/BlogPostFile";
 import BlogTag from "../Utils/BlogTag";
 import { BlogRootPath, ViewsPath } from "../Utils/Config";
 import NotFoundUtil from "../Utils/NotFound";
@@ -169,6 +170,7 @@ app.get(
     /*
      * return static files for blog post images
      * the static files are stored in the /usr/src/blog/post/:file/:imageName
+     * An address with no file behind it gets the 404 page (Utils/BlogPostFile.ts).
      */
 
     try {
@@ -179,6 +181,7 @@ app.get(
         req,
         res,
         `${BlogRootPath}/posts/${postName}/${fileName}`,
+        onBlogPostFileSent(res, next),
       );
     } catch (e) {
       logger.error(e);

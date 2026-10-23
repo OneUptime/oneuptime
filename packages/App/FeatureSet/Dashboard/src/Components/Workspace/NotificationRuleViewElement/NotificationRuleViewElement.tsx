@@ -8,6 +8,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import NotificationRuleConditions from "./NotificationRuleViewConditions";
 import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
+import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Label from "Common/Models/DatabaseModels/Label";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
@@ -113,6 +114,7 @@ export interface NotificationRuleThenProps {
   workspaceType: WorkspaceType;
   teams: Array<Team>;
   users: Array<User>;
+  onCallSchedules?: Array<OnCallDutyPolicySchedule> | undefined;
   microsoftTeamsTeams?: Array<MicrosoftTeamsTeam> | undefined;
   microsoftTeamsChats?: Array<MicrosoftTeamsChat> | undefined;
   // For the example of the name of the channel the rule creates.
@@ -130,6 +132,7 @@ export const NotificationRuleThen: FunctionComponent<
       workspaceType={props.workspaceType}
       users={props.users}
       teams={props.teams}
+      onCallSchedules={props.onCallSchedules}
       microsoftTeamsTeams={props.microsoftTeamsTeams}
       microsoftTeamsChats={props.microsoftTeamsChats}
       numberPrefixes={props.numberPrefixes}
@@ -232,6 +235,7 @@ export function getNotificationRuleCardColumns(
             workspaceType={data.workspaceType}
             users={data.users}
             teams={data.teams}
+            onCallSchedules={data.onCallSchedules}
             microsoftTeamsTeams={data.microsoftTeamsTeams}
             microsoftTeamsChats={data.microsoftTeamsChats}
             numberPrefixes={data.numberPrefixes}

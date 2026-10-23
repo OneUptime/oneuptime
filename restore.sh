@@ -51,7 +51,9 @@ fi
 
 echo "Starting restore...."
 
-git pull
+# No `git pull` here, for the reasons in backup.sh: restoring does not update
+# OneUptime, and a recovery should neither move the checkout to a newer
+# release nor depend on reaching GitHub.
 
 # DATABASE_RESTORE_FILENAME must name a custom-format (-Fc) dump produced by
 # backup.sh — i.e. db-(date of the month).backup. backup.sh used to emit only
