@@ -24,7 +24,7 @@ flowchart TB
 | What | How it is priced |
 | --- | --- |
 | The plan | A price per user, per month, billed monthly or yearly. Every person in the project is a seat. |
-| Telemetry | $0.10 per GB ingested, with 15 days of retention. Longer retention costs more: see [What retention costs](/docs/telemetry/data-retention#what-retention-costs). |
+| Telemetry | $0.10 per GB ingested, with 15 days of retention. Longer retention costs more, and retention under 7 days is billed as 7 days: see [What retention costs](/docs/telemetry/data-retention#what-retention-costs). |
 | Session replays | $2 per GB, with 15 days of retention. |
 | Active monitors | $1 per monitor per month. Every monitor but a Manual one is active, even while it is turned off. |
 | SMS, calls, WhatsApp and Telegram | Paid from the project's balance as each message is sent. |

@@ -819,6 +819,7 @@
                 <div class="lg:flex-auto">
                   <h4 class="text-xl font-semibold tracking-tight text-gray-900">Telemetry: Logs, Traces and Metrics</h4>
                   <p class="mt-4 text-base leading-7 text-gray-600">We charge $0.10 for every GB of data ingested (for 15 day retention). It's the lowest in the industry and 8X cheaper than DataDog.</p>
+                  <p id="telemetry-minimum-billable-retention" class="mt-2 text-sm leading-6 text-gray-600">Retention is billed for at least 7 days: telemetry kept for fewer days is still deleted on time, and billed as 7 days.</p>
                   <div class="mt-6 flex items-center gap-x-4">
                     <h5 class="flex-none text-sm font-semibold leading-6 text-gray-600">What's included</h5>
                     <div class="h-px flex-auto bg-gray-100"></div>
@@ -877,9 +878,10 @@
                     <p class="text-sm font-medium text-gray-500">Data Retention (in days)</p>
                     <p id="data-retention-in-days" class="text-sm font-semibold text-gray-900">15 Days</p>
                   </div>
-                  <input id="telemetry-retention-range" type="range" value="15" max="180" min="0" step="1"
+                  <input id="telemetry-retention-range" type="range" value="15" max="180" min="1" step="1"
                     onchange="updateTelemetryPrice(null, this.value)" oninput="updateTelemetryPrice(null, this.value)"
                     class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                  <p id="less-than-minimum-billable-retention-message" style="display: none;" class="mt-2 text-sm text-gray-600">Retention shorter than 7 days is billed as 7 days.</p>
                   <p id="more-than-6-months-retention" style="display: none;" class="mt-2 text-sm text-gray-600">If you're looking for data retention of more than 6 months, contact sales@oneuptime.com for a discount.</p>
                 </div>
               </div>
@@ -1740,6 +1742,22 @@
                   <!-- Expand/collapse question div -->
                   <div class="flex w-full items-start justify-between text-left text-gray-900" aria-controls="faq-0"
                     aria-expanded="false">
+                    <span class="text-base font-semibold leading-7">Is there a minimum telemetry retention?</span>
+                  </div>
+                </dt>
+                <dd class="mt-2 pr-12" id="faq-0">
+                  <p class="text-base leading-7 text-gray-600">Logs, traces, metrics, profiles and security events are
+                    billed for at least 7 days of retention. You can keep them for as little as a day, and they are
+                    deleted on time, but a GB kept for fewer than 7 days is billed as if it were kept for 7. Session
+                    replay recordings have no minimum: they are billed for the days they are kept.</p>
+                </dd>
+              </div>
+
+              <div class="pt-6">
+                <dt>
+                  <!-- Expand/collapse question div -->
+                  <div class="flex w-full items-start justify-between text-left text-gray-900" aria-controls="faq-0"
+                    aria-expanded="false">
                     <span class="text-base font-semibold leading-7">What happens to API keys and SCIM if I move to a lower
                       plan?</span>
                   </div>
@@ -1865,7 +1883,11 @@
 
           const perGbPerDayPrice = 0.10 / 15; // 0.10 USD per GB for 15 days. 
 
-          const monthlyPrice = numberOfGb * numberOfDays * perGbPerDayPrice;
+          // Retention shorter than 7 days is billed as 7 days.
+          const minimumBillableDays = 7;
+          const billableDays = Math.max(numberOfDays, minimumBillableDays);
+
+          const monthlyPrice = numberOfGb * billableDays * perGbPerDayPrice;
 
 
           // set the price in the UI
@@ -1874,12 +1896,16 @@
 
           // set description
 
-          document.getElementById("total-telemetry-price-description").innerHTML = `for ${numberOfGb} GB ingested, retained for ${numberOfDays} days.`;
+          const retainedFor = numberOfDays === 1 ? "1 day" : `${numberOfDays} days`;
+
+          document.getElementById("total-telemetry-price-description").innerHTML = billableDays === numberOfDays
+            ? `for ${numberOfGb} GB ingested, retained for ${retainedFor}.`
+            : `for ${numberOfGb} GB ingested, retained for ${retainedFor} (billed as ${billableDays} days).`;
 
           // update telemetry count - total-number-of-telemetry
 
           document.getElementById("total-number-of-gb-ingested").innerHTML = numberOfGb + " GB";
-          document.getElementById("data-retention-in-days").innerHTML = numberOfDays + " Days";
+          document.getElementById("data-retention-in-days").innerHTML = numberOfDays === 1 ? "1 Day" : numberOfDays + " Days";
 
 
 
@@ -1891,6 +1917,8 @@
             document.getElementById("more-than-10-tb-ingested-message").style.display = "none";
           }
 
+
+          document.getElementById("less-than-minimum-billable-retention-message").style.display = numberOfDays < minimumBillableDays ? "block" : "none";
 
           if (numberOfDays === 180) {
             // show more than 100 monitors message

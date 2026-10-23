@@ -24,7 +24,7 @@ flowchart TB
 | Cosa | Come viene addebitato |
 | --- | --- |
 | Il piano | Un prezzo per utente al mese, fatturato mensilmente o annualmente. Ogni persona del progetto è una postazione. |
-| Telemetria | $0.10 per GB acquisito, con 15 giorni di conservazione. Una conservazione più lunga costa di più: vedi [Quanto costa la conservazione](/docs/telemetry/data-retention#quanto-costa-la-conservazione). |
+| Telemetria | $0.10 per GB acquisito, con 15 giorni di conservazione. Una conservazione più lunga costa di più, e una conservazione inferiore a 7 giorni si paga come 7 giorni: vedi [Quanto costa la conservazione](/docs/telemetry/data-retention#quanto-costa-la-conservazione). |
 | Session replay | $2 per GB, con 15 giorni di conservazione. |
 | Monitor attivi | $1 per monitor al mese. Ogni monitor tranne uno manuale è attivo, anche quando è disattivato. |
 | SMS, chiamate, WhatsApp e Telegram | Pagati con il saldo del progetto man mano che ogni messaggio viene inviato. |
