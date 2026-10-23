@@ -61,12 +61,20 @@ interface ClampedMarkdownProps {
 }
 
 /*
- * How much of a long text shows before Show more: about six lines of the
- * viewer's text. The last of them fades out (a mask, so it fades whatever
- * the card's colour is, in either theme) instead of being cut mid-line.
+ * How much of a text shows before Show more: about six lines of the
+ * viewer's text. The frame is held to it whenever the text is not opened,
+ * so whether the text is longer can be measured against it; a text that fits
+ * is as tall as it is, and nothing about it changes.
  */
-const COLLAPSED_CLASS_NAME: string =
-  "max-h-36 overflow-hidden [-webkit-mask-image:linear-gradient(to_bottom,black_calc(100%-2rem),transparent)] [mask-image:linear-gradient(to_bottom,black_calc(100%-2rem),transparent)]";
+const COLLAPSED_FRAME_CLASS_NAME: string = "max-h-36 overflow-hidden";
+
+/*
+ * A longer text's last visible line fades out - a mask, so it fades
+ * whatever the card's colour is, in either theme - instead of being cut
+ * through the middle.
+ */
+const FADED_FRAME_CLASS_NAME: string =
+  "[-webkit-mask-image:linear-gradient(to_bottom,black_calc(100%-2rem),transparent)] [mask-image:linear-gradient(to_bottom,black_calc(100%-2rem),transparent)]";
 
 const ClampedMarkdown: FunctionComponent<ClampedMarkdownProps> = (
   props: ClampedMarkdownProps,
@@ -90,11 +98,11 @@ const ClampedMarkdown: FunctionComponent<ClampedMarkdownProps> = (
   /*
    * Whether the text is longer than the collapsed frame is measured, not
    * guessed from its length: the card runs from a phone's width to a wide
-   * monitor's, and markdown lays out its own way. The content is observed,
-   * not the frame - the frame stops growing at its cap, the content does
-   * not - so a viewer that finishes loading after the first paint is
-   * measured again. While expanded, the last measurement stands, which keeps
-   * Show less on screen for the reader who opened it.
+   * monitor's, and markdown lays out its own way. The content is observed
+   * as well as the frame - the frame stops growing at its cap, the content
+   * does not - so a viewer that finishes loading after the first paint is
+   * measured again. While expanded, the last measurement stands, which
+   * keeps Show less on screen for the reader who opened it.
    */
   useLayoutEffect(() => {
     const frame: HTMLDivElement | null = frameRef.current;
@@ -136,8 +144,8 @@ const ClampedMarkdown: FunctionComponent<ClampedMarkdownProps> = (
         id={contentId}
         data-testid={`${props.dataTestId}-text`}
         className={`break-words [&>div>div>*:first-child]:mt-0 [&>div>div>*:last-child]:mb-0 ${
-          isExpanded || !isLong ? "" : COLLAPSED_CLASS_NAME
-        }`}
+          isExpanded ? "" : COLLAPSED_FRAME_CLASS_NAME
+        } ${!isExpanded && isLong ? FADED_FRAME_CLASS_NAME : ""}`}
       >
         <div ref={contentRef}>
           <MarkdownViewer text={props.text} />
@@ -171,10 +179,10 @@ const ClampedMarkdown: FunctionComponent<ClampedMarkdownProps> = (
 };
 
 // A quiet line for a section with nothing in it yet.
-const EmptyLine: FunctionComponent<{ text: string; dataTestId: string }> = (props: {
+const EmptyLine: FunctionComponent<{
   text: string;
   dataTestId: string;
-}): ReactElement => {
+}> = (props: { text: string; dataTestId: string }): ReactElement => {
   return (
     <p data-testid={props.dataTestId} className="text-sm text-gray-500">
       {props.text}

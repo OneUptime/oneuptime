@@ -26,10 +26,7 @@ import Color from "Common/Types/Color";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { CardHeaderLayout } from "Common/UI/Components/Card/Card";
-import {
-  EventRolesSnapshot,
-  toEventRoleMember,
-} from "../../Utils/EventPeople";
+import { EventRolesSnapshot, toEventRoleMember } from "../../Utils/EventPeople";
 
 export interface ComponentProps {
   incidentId: ObjectID;
@@ -69,9 +66,8 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
   // The latest callback, so a read that lands late never calls an old one.
-  const onRolesLoadedRef: MutableRefObject<
-    ComponentProps["onRolesLoaded"]
-  > = useRef<ComponentProps["onRolesLoaded"]>(props.onRolesLoaded);
+  const onRolesLoadedRef: MutableRefObject<ComponentProps["onRolesLoaded"]> =
+    useRef<ComponentProps["onRolesLoaded"]>(props.onRolesLoaded);
   onRolesLoadedRef.current = props.onRolesLoaded;
 
   const fetchData: () => Promise<void> =
@@ -223,7 +219,9 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
               icon: role.icon,
             };
           }),
-          members: (membersResult.data as Array<IncidentMember>).map(toEventRoleMember),
+          members: (membersResult.data as Array<IncidentMember>).map(
+            toEventRoleMember,
+          ),
         });
       } catch (err) {
         setError(API.getFriendlyMessage(err));

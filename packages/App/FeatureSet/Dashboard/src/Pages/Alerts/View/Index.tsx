@@ -289,9 +289,9 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
    * when customer impact began (when somebody recorded it) and who or what
    * raised it: read with the alert's own row, at no extra request.
    */
-  const [alertDescription, setAlertDescription] = useState<
-    string | undefined
-  >(undefined);
+  const [alertDescription, setAlertDescription] = useState<string | undefined>(
+    undefined,
+  );
   const [alertRootCause, setAlertRootCause] = useState<string | undefined>(
     undefined,
   );

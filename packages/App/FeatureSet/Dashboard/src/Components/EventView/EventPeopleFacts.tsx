@@ -245,10 +245,7 @@ export const OwnersFactValue: FunctionComponent<OwnersFactValueProps> = (
         );
       })}
       {shown.hiddenCount > 0 ? (
-        <AppLink
-          to={props.ownersRoute}
-          className={LINK_CLASS_NAME}
-        >
+        <AppLink to={props.ownersRoute} className={LINK_CLASS_NAME}>
           {translator.translatePlural(
             { one: "+{{count}} more", other: "+{{count}} more" },
             shown.hiddenCount,
@@ -302,7 +299,9 @@ export interface OwnersFactInput {
 }
 
 // "Owners  Checkout SRE, Maya Chen", or nothing until the owners are read.
-export const getOwnersFact: (input: OwnersFactInput) => EventStatusFact | null = (
+export const getOwnersFact: (
+  input: OwnersFactInput,
+) => EventStatusFact | null = (
   input: OwnersFactInput,
 ): EventStatusFact | null => {
   if (!input.owners) {

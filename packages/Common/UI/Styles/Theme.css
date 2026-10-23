@@ -547,6 +547,23 @@ html.dark tr[data-selected="true"].bg-indigo-50 {
   );
 }
 
+/*
+ * A team's avatar (PeopleAvatar's group palette) is a dark slate tile: on
+ * the dark theme's surfaces it all but vanished, in the people row of an
+ * incident's header as on an Owners page. It is lifted a few steps, so a
+ * team still reads as a tile beside a person's coloured circle.
+ */
+html.dark :is(
+    .from-slate-700,
+    .from-gray-700,
+    .from-stone-700,
+    .from-zinc-700,
+    .from-neutral-700
+  ) {
+  --tw-gradient-from: #64748b var(--tw-gradient-from-position);
+  --tw-gradient-to: #334155 var(--tw-gradient-to-position);
+}
+
 /* Light gradients become layered dark surfaces. */
 html.dark :is(
     .from-white,

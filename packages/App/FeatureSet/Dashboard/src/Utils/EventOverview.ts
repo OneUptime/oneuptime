@@ -337,6 +337,9 @@ export const getEventCreatorName: (input: EventCreatorInput) => string = (
   return getKnownEventCreatorName(input) || "Unknown";
 };
 
+// Keeps the words on either side of it on one line.
+export const NON_BREAKING_SPACE: string = "\u00a0";
+
 /*
  * When a record started, as the first tile of its stat bar says it: "Sep 14,
  * 06:01 PM GMT", in the reader's time zone and clock, with the year only
@@ -344,35 +347,49 @@ export const getEventCreatorName: (input: EventCreatorInput) => string = (
  * record was acknowledged and resolved, so this is the headline of the three;
  * the full stamp ("Sep 14 2026, 06:01 PM GMT", as their own dates read) did
  * not fit a tile of the episode's four-tile bar on one line.
+ *
+ * Where a tile is too narrow even for this (four tiles beside the side menu
+ * at 1024px), it breaks only after the date's comma - "Sep 14," over
+ * "06:01 PM GMT" - never inside the date or the time.
  */
 export const getEventStartTileText: (
   startedAt: Date,
   now?: Date | undefined,
 ) => string = (startedAt: Date, now?: Date | undefined): string => {
-  const yearOf: (date: Date) => string = (date: Date): string => {
+  const format: (date: Date, pattern: string) => string = (
+    date: Date,
+    pattern: string,
+  ): string => {
     return OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
       date: date,
-      format: "YYYY",
+      format: pattern,
     });
   };
 
   const isThisYear: boolean =
-    yearOf(startedAt) === yearOf(now || OneUptimeDate.getCurrentDate());
-  const timeFormat: string = OneUptimeDate.getUserPrefers12HourFormat()
-    ? "hh:mm A"
-    : "HH:mm";
+    format(startedAt, "YYYY") ===
+    format(now || OneUptimeDate.getCurrentDate(), "YYYY");
 
-  const text: string = OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
-    date: startedAt,
-    format: isThisYear ? `MMM DD, ${timeFormat}` : `MMM DD YYYY, ${timeFormat}`,
-  });
-
+  const datePart: string = format(
+    startedAt,
+    isThisYear ? "MMM DD" : "MMM DD YYYY",
+  );
+  const timePart: string = format(
+    startedAt,
+    OneUptimeDate.getUserPrefers12HourFormat() ? "hh:mm A" : "HH:mm",
+  );
   const zone: string = OneUptimeDate.getZoneAbbrByTimezone(
     OneUptimeDate.getCurrentTimezone(),
     startedAt,
   );
 
-  return `${text} ${zone}`.trim();
+  const keepTogether: (text: string) => string = (text: string): string => {
+    return text.split(" ").join(NON_BREAKING_SPACE);
+  };
+
+  return `${keepTogether(datePart)}, ${keepTogether(
+    zone ? `${timePart} ${zone}` : timePart,
+  )}`;
 };
 
 export interface EventStartedByInput extends EventCreatorInput {

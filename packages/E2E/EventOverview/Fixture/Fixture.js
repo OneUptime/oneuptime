@@ -113,6 +113,22 @@
  *            incident's state change dialogs fold a private note and ask
  *            nothing about subscribers, and both feeds' Add Public Note is
  *            locked with why.
+ *   ?owners= default | none | many
+ *            Who owns Incident #1042, Alert #311 and both episodes. By
+ *            default the Checkout SRE team and Sam Rivera own #1042 and
+ *            episode #12, and the Payments team owns #311 and episode #7.
+ *            "none": nobody owns any of them. "many": #1042 is owned by
+ *            three teams and three people, more than its header names.
+ *   ?commander= none: nobody holds Incident Commander on Incident #1042
+ *            or Incident Episode #12 (Maya Chen does by default).
+ *   ?what=   default | empty | long
+ *            What Incident #1042 says happened. "empty": no description and
+ *            no root cause. "long": a description and a root cause in
+ *            markdown, each longer than the What happened card shows before
+ *            Show more, whatever the state.
+ *   ?lang=   one of the Dashboard's languages (de, fr, ja, ...): the page
+ *            reads that language's words, fetched from the Dashboard's own
+ *            locale files (server.js serves them).
  *   ?theme=  dark adds html.dark (handled by server.js).
  *   ?channels= the record's own Slack / Microsoft Teams channels, as
  *            GET /workspace-channel-link answers them (the header's Open in
@@ -229,6 +245,14 @@ import IncidentFeed, {
 } from "Common/Models/DatabaseModels/IncidentFeed";
 import IncidentGroupingRule from "Common/Models/DatabaseModels/IncidentGroupingRule";
 import IncidentMember from "Common/Models/DatabaseModels/IncidentMember";
+import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
+import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
+import AlertOwnerTeam from "Common/Models/DatabaseModels/AlertOwnerTeam";
+import AlertOwnerUser from "Common/Models/DatabaseModels/AlertOwnerUser";
+import IncidentEpisodeOwnerTeam from "Common/Models/DatabaseModels/IncidentEpisodeOwnerTeam";
+import IncidentEpisodeOwnerUser from "Common/Models/DatabaseModels/IncidentEpisodeOwnerUser";
+import AlertEpisodeOwnerTeam from "Common/Models/DatabaseModels/AlertEpisodeOwnerTeam";
+import AlertEpisodeOwnerUser from "Common/Models/DatabaseModels/AlertEpisodeOwnerUser";
 import IncidentMeasurement from "Common/Models/DatabaseModels/IncidentMeasurement";
 import IncidentMeasurementValue from "Common/Models/DatabaseModels/IncidentMeasurementValue";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
@@ -306,6 +330,28 @@ import PermissionUtil from "Common/UI/Utils/Permission";
  * ---------------------------------------------------------------------------
  */
 const params = new URLSearchParams(window.location.search);
+// Every language the Dashboard has besides English (Dashboard/src/Locales).
+const LANGUAGES = [
+  "da",
+  "de",
+  "es",
+  "fa",
+  "fr",
+  "hi",
+  "it",
+  "ja",
+  "ko",
+  "nl",
+  "no",
+  "pt",
+  "ru",
+  "sv",
+  "zh-CN",
+  "zh-TW",
+];
+const language = LANGUAGES.includes(params.get("lang"))
+  ? params.get("lang")
+  : "en";
 const stateMode = ["ongoing", "created"].includes(params.get("state"))
   ? params.get("state")
   : "resolved";
@@ -450,6 +496,21 @@ const linkedMode = LINKED_MODES.includes(params.get("linked"))
  * from every status page, and taking no public notes.
  */
 const isPrivateMode = params.get("private") === "1";
+/*
+ * ?owners=: who owns incident #1042, alert #311 and both episodes (see the
+ * "Owners" section below).
+ */
+const OWNERS_MODES = ["none", "many"];
+const ownersMode = OWNERS_MODES.includes(params.get("owners"))
+  ? params.get("owners")
+  : "default";
+// ?commander=none: nobody holds Incident Commander on #1042 or episode #12.
+const commanderMode = params.get("commander") === "none" ? "none" : "default";
+// ?what=: what incident #1042 says happened, for the What happened card.
+const WHAT_MODES = ["empty", "long"];
+const whatMode = WHAT_MODES.includes(params.get("what"))
+  ? params.get("what")
+  : "default";
 const CALL_MODES = [
   "zoom",
   "teams",
@@ -574,6 +635,10 @@ const fixture = {
     members: membersMode,
     linked: linkedMode,
     private: isPrivateMode,
+    owners: ownersMode,
+    commander: commanderMode,
+    what: whatMode,
+    lang: language,
   },
   // What the channel card asked to add: { channelId, userIds, teamIds }.
   channelAdds: [],
@@ -1136,6 +1201,12 @@ function defineIncident(spec) {
       ? { serviceLevelObjectives: spec.serviceLevelObjectives }
       : {}),
     onCallDutyPolicies: spec.onCallDutyPolicies || [policies.checkout],
+    ...(spec.changeMonitorStatusTo
+      ? {
+          changeMonitorStatusTo: spec.changeMonitorStatusTo,
+          changeMonitorStatusToId: spec.changeMonitorStatusTo.id,
+        }
+      : {}),
     createdByProbe: spec.createdByUser ? undefined : probe,
     createdByProbeId: spec.createdByUser ? undefined : probe.id,
     createdByUser: spec.createdByUser,
@@ -1328,11 +1399,30 @@ defineIncident({
 
 // The incident under test.
 const INCIDENT_NUMBER = 1042;
+/*
+ * ?what=: the description and root cause the What happened card shows.
+ * By default the description the monitor's template wrote, and a root cause
+ * once the incident is resolved.
+ */
+const MAIN_INCIDENT_DESCRIPTION =
+  whatMode === "empty"
+    ? undefined
+    : whatMode === "long"
+      ? "The API monitor for POST /api/checkout reported p95 latency of 2.4s for 3 consecutive checks from the eu-west-1 probe, and the synthetic checkout journey began timing out a minute later.\n\nWhat customers saw:\n\n- Checkout spun for up to 30 seconds before the payment step loaded.\n- About 4% of orders were abandoned at the payment step between 17:58 and 18:12.\n- Order confirmation emails were delayed by up to 6 minutes.\n\nSupport received 41 tickets about slow checkout in the same window, most of them from the EU storefront."
+      : "The API monitor for POST /api/checkout reported p95 latency of 2.4s for 3 consecutive checks from the eu-west-1 probe.";
+const MAIN_INCIDENT_ROOT_CAUSE =
+  whatMode === "empty"
+    ? undefined
+    : whatMode === "long"
+      ? "Release 2026.09.14-2 of checkout-api started at 17:52 with `DB_POOL_MAX=10` instead of 40: the value came from a staging override that the release pipeline copied into the production manifest.\n\nUnder the evening load, checkout requests queued for a connection to orders-db and p95 latency passed 2s. The same pool exhaustion caused #1017, #1029 and #1036.\n\nContributing factors:\n\n1. The release check compares image tags, not environment values.\n2. The pool size alert fires only at 100% use, after requests already wait.\n3. Rolling back took 12 minutes because the previous image had been pruned."
+      : isResolved
+        ? "checkout-api 2026.09.14-2 started with DB_POOL_MAX=10 (was 40). Rolled back at 18:10."
+        : undefined;
 const mainIncident = defineIncident({
   number: INCIDENT_NUMBER,
   title: "Checkout API p95 latency above 2s",
-  description:
-    "The API monitor for POST /api/checkout reported p95 latency of 2.4s for 3 consecutive checks from the eu-west-1 probe.",
+  description: MAIN_INCIDENT_DESCRIPTION,
+  changeMonitorStatusTo: monitorStatus.degraded,
   severity: incidentSeverities.sev2,
   createdAt: at("18:01"),
   impactStartedAt: at("17:58"),
@@ -1344,9 +1434,7 @@ const mainIncident = defineIncident({
   ...incidentResources(),
   episode: incidentEpisodeRecord,
   notificationFailed: failures.has("resend"),
-  rootCause: isResolved
-    ? "checkout-api 2026.09.14-2 started with DB_POOL_MAX=10 (was 40). Rolled back at 18:10."
-    : undefined,
+  rootCause: MAIN_INCIDENT_ROOT_CAUSE,
 });
 insert(IncidentFeed, {
   incidentId: mainIncident.id,
@@ -1440,14 +1528,17 @@ if (feedMode === "links-and-quotes") {
     user: people.sam,
   });
 }
-insert(IncidentMember, {
-  incidentId: mainIncident.id,
-  userId: people.maya.id,
-  user: people.maya,
-  incidentRoleId: roles.commander.id,
-  incidentRole: roles.commander,
-  createdAt: at("18:05"),
-});
+// ?commander=none: nobody holds Incident Commander on #1042.
+if (commanderMode !== "none") {
+  insert(IncidentMember, {
+    incidentId: mainIncident.id,
+    userId: people.maya.id,
+    user: people.maya,
+    incidentRoleId: roles.commander.id,
+    incidentRole: roles.commander,
+    createdAt: at("18:05"),
+  });
+}
 insert(IncidentMember, {
   incidentId: mainIncident.id,
   userId: people.jordan.id,
@@ -2009,14 +2100,17 @@ for (const [eventType, markdown, color, when] of incidentEpisodeFeed) {
     createdAt: when,
   });
 }
-insert(IncidentEpisodeRoleMember, {
-  incidentEpisodeId,
-  userId: people.maya.id,
-  user: people.maya,
-  incidentRoleId: roles.commander.id,
-  incidentRole: roles.commander,
-  createdAt: at("18:05"),
-});
+// ?commander=none: nobody holds Incident Commander on episode #12 either.
+if (commanderMode !== "none") {
+  insert(IncidentEpisodeRoleMember, {
+    incidentEpisodeId,
+    userId: people.maya.id,
+    user: people.maya,
+    incidentRoleId: roles.commander.id,
+    incidentRole: roles.commander,
+    createdAt: at("18:05"),
+  });
+}
 
 /*
  * ---------------------------------------------------------------------------
@@ -2163,6 +2257,155 @@ for (const [eventType, markdown, color, when] of alertEpisodeFeed) {
     postedAt: when,
     createdAt: when,
   });
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Owners (?owners=)
+ * ---------------------------------------------------------------------------
+ * The owner teams and owner people of incident #1042, alert #311 and both
+ * episodes, which their headers name beside the state (teams first). Every
+ * owner table is modelled, so a record nobody owns reads two empty lists.
+ */
+for (const modelType of [
+  IncidentOwnerTeam,
+  IncidentOwnerUser,
+  AlertOwnerTeam,
+  AlertOwnerUser,
+  IncidentEpisodeOwnerTeam,
+  IncidentEpisodeOwnerUser,
+  AlertEpisodeOwnerTeam,
+  AlertEpisodeOwnerUser,
+]) {
+  table(modelType);
+}
+
+const ownerTeams = {
+  checkout: team,
+  payments: insert(Team, {
+    _id: ID.team(2),
+    name: "Payments",
+    description: "Owns payments-webhooks and the ledger.",
+  }),
+  platform: insert(Team, {
+    _id: ID.team(3),
+    name: "Platform",
+    description: "Owns the clusters and the deploy pipeline.",
+  }),
+  database: insert(Team, {
+    _id: ID.team(4),
+    name: "Database Reliability",
+    description: "Owns orders-db and its replicas.",
+  }),
+};
+
+function ownTeams(modelType, field, recordId, teamsToAdd, firstAt) {
+  teamsToAdd.forEach((ownerTeam, index) => {
+    insert(modelType, {
+      [field]: recordId,
+      teamId: ownerTeam.id,
+      team: ownerTeam,
+      createdAt: new Date(firstAt.getTime() + index * 1000),
+    });
+  });
+}
+
+function ownUsers(modelType, field, recordId, usersToAdd, firstAt) {
+  usersToAdd.forEach((ownerUser, index) => {
+    insert(modelType, {
+      [field]: recordId,
+      userId: ownerUser.id,
+      user: ownerUser,
+      createdAt: new Date(firstAt.getTime() + index * 1000),
+    });
+  });
+}
+
+if (ownersMode === "default") {
+  ownTeams(
+    IncidentOwnerTeam,
+    "incidentId",
+    mainIncident.id,
+    [ownerTeams.checkout],
+    at("18:01", 5),
+  );
+  ownUsers(
+    IncidentOwnerUser,
+    "incidentId",
+    mainIncident.id,
+    [people.sam],
+    at("18:01", 6),
+  );
+  ownTeams(
+    AlertOwnerTeam,
+    "alertId",
+    mainAlert.id,
+    [ownerTeams.payments],
+    at("18:06", 5),
+  );
+  ownTeams(
+    IncidentEpisodeOwnerTeam,
+    "incidentEpisodeId",
+    incidentEpisodeId,
+    [ownerTeams.checkout],
+    at("17:56", 5),
+  );
+  ownUsers(
+    IncidentEpisodeOwnerUser,
+    "incidentEpisodeId",
+    incidentEpisodeId,
+    [people.sam],
+    at("17:56", 6),
+  );
+  ownTeams(
+    AlertEpisodeOwnerTeam,
+    "alertEpisodeId",
+    alertEpisodeId,
+    [ownerTeams.payments],
+    at("17:40", 5),
+  );
+}
+
+if (ownersMode === "many") {
+  /*
+   * Listed oldest first, people before teams, so the header's order -
+   * teams first, each by name - is its own and not the reads'.
+   */
+  ownUsers(
+    IncidentOwnerUser,
+    "incidentId",
+    mainIncident.id,
+    [people.sam, people.jordan, people.alex],
+    at("18:01", 5),
+  );
+  ownTeams(
+    IncidentOwnerTeam,
+    "incidentId",
+    mainIncident.id,
+    [ownerTeams.platform, ownerTeams.database, ownerTeams.checkout],
+    at("18:01", 15),
+  );
+  ownTeams(
+    AlertOwnerTeam,
+    "alertId",
+    mainAlert.id,
+    [ownerTeams.payments],
+    at("18:06", 5),
+  );
+  ownTeams(
+    IncidentEpisodeOwnerTeam,
+    "incidentEpisodeId",
+    incidentEpisodeId,
+    [ownerTeams.checkout],
+    at("17:56", 5),
+  );
+  ownTeams(
+    AlertEpisodeOwnerTeam,
+    "alertEpisodeId",
+    alertEpisodeId,
+    [ownerTeams.payments],
+    at("17:40", 5),
+  );
 }
 
 /*
@@ -6196,12 +6439,36 @@ API.refreshSession = async () => {
   return true;
 };
 
+/*
+ * ?lang=: the Dashboard's words in another language, as it ships them: the
+ * locale file is fetched (server.js serves the Dashboard's Locales folder)
+ * rather than bundled. The Dashboard looks every string up by its English
+ * text, so the separators i18next reads in a key (the "." and ":" of a
+ * sentence) are off, as in the Dashboard's own setup.
+ */
+async function loadTranslation(lang) {
+  if (lang === "en") {
+    return {};
+  }
+
+  const response = await fetch(`/locales/${lang}.json`);
+
+  if (!response.ok) {
+    throw new Error(`The ${lang} locale could not be loaded.`);
+  }
+
+  return response.json();
+}
+
 await i18next.use(initReactI18next).init({
-  lng: "en",
-  fallbackLng: "en",
-  resources: { en: { translation: {} } },
+  lng: language,
+  fallbackLng: language,
+  resources: { [language]: { translation: await loadTranslation(language) } },
   interpolation: { escapeValue: false },
+  keySeparator: false,
+  nsSeparator: false,
 });
+document.documentElement.lang = language;
 
 /*
  * ---------------------------------------------------------------------------
