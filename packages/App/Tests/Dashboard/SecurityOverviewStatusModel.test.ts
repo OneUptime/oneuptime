@@ -632,7 +632,10 @@ describe("the pipeline's cells", () => {
     );
 
     expect(read(some)).toEqual(["8 rules on", "3 of 20 recommended"]);
-    expect(some.statusTone).toBe(SecurityStatusTone.Neutral);
+    expect([some.statusTone, some.statusIcon]).toEqual([
+      SecurityStatusTone.Neutral,
+      IconProp.LightBulb,
+    ]);
 
     const one: SecurityStageView = view(
       status({

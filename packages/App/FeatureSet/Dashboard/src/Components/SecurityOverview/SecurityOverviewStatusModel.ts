@@ -558,7 +558,8 @@ function getDetectionsFigures(status: SecuritySetupStatus): StageFigures {
             },
           }
         : null,
-    statusIcon: hasAllRecommended ? IconProp.CheckCircle : IconProp.ShieldCheck,
+    // Fewer than all is a suggestion, not a fault: a bulb, not the stage's own shield.
+    statusIcon: hasAllRecommended ? IconProp.CheckCircle : IconProp.LightBulb,
     statusTone: hasAllRecommended
       ? SecurityStatusTone.Success
       : SecurityStatusTone.Neutral,
