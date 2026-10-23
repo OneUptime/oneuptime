@@ -127,13 +127,13 @@ export const AI_RULE_ONLY_FIXES_COPY: Record<
 > = {
   [AiLane.Incident]: {
     note: translationKey(
-      "This rule only fixes: it was set up as an auto remediation rule, and does not decide which incidents are investigated. Turn investigating on to make it decide that too.",
+      "This rule only fixes: it was an auto remediation rule, and does not decide which incidents are investigated.",
     ),
     investigateToo: translationKey("Investigate too"),
   },
   [AiLane.Alert]: {
     note: translationKey(
-      "This rule only fixes: it was set up as an auto remediation rule, and does not decide which alerts are investigated. Turn investigating on to make it decide that too.",
+      "This rule only fixes: it was an auto remediation rule, and does not decide which alerts are investigated.",
     ),
     investigateToo: translationKey("Investigate too"),
   },
@@ -144,7 +144,7 @@ export const AI_RULE_ONLY_FIXES_COPY: Record<
  * rule that does nothing: the Fix question says so instead.
  */
 export const AI_RULE_DOES_NOTHING_TEXT: string = translationKey(
-  "This rule does not investigate, so it must fix. Turn investigating on, on the Investigate step, to have it only investigate.",
+  "A rule that doesn't investigate must fix. Turn investigating on in the Investigate step first.",
 );
 
 // The data-testids of the form's own parts.
