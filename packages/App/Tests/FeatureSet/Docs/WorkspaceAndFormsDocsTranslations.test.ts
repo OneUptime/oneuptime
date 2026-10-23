@@ -373,6 +373,19 @@ interface TemplateLabel {
 
 // Labels the Dashboard fills from a template, with what it fills in.
 const TEMPLATE_LABELS: Record<string, Record<string, TemplateLabel>> = {
+  // The card that asks every member to connect (AskToConnectCard).
+  [SLACK]: {
+    "Members' Slack accounts": {
+      template: "Members' {{workspace}} accounts",
+      values: { workspace: "Slack" },
+    },
+  },
+  [TEAMS]: {
+    "Members' Microsoft Teams accounts": {
+      template: "Members' {{workspace}} accounts",
+      values: { workspace: "Microsoft Teams" },
+    },
+  },
   [VIDEO]: {
     "Start a video call for the incident": {
       template: "Start a video call for the {{eventNoun}}",
@@ -458,6 +471,10 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "A Slack workspace",
     "The Growth plan on OneUptime Cloud",
     "On a self-hosted server,",
+    // Asking everyone to connect.
+    "Who gets a message.",
+    "What the card says.",
+    "What the button connects.",
     "Who may use them.",
     "What a form offers.",
     "What a form may name.",
@@ -513,6 +530,10 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "team name",
     "Private channels",
     "Shared channels",
+    // Asking everyone to connect.
+    "Who gets a message.",
+    "What the card says.",
+    "What the button connects.",
     "Who may use them.",
     "What a form offers.",
     "What a form may name.",

@@ -4,6 +4,7 @@ OneUptime 을 Microsoft Teams 에 연결하면 인시던트, 경고, 에피소�
 
 :::cards
 - [Microsoft Teams 연결하기](#microsoft-teams-연결하기): 관리자 동의, 본인의 로그인, 각 팀의 앱.
+- [모두에게 연결 요청하기](#모두에게-연결-요청하기): 계정을 연결하지 않은 모든 멤버에게 한 번에 메시지를 보냅니다.
 - [알림 규칙](#알림-규칙): 어떤 이벤트를 어디에 게시하고, 어떤 이벤트에 전용 채널을 줄지 정합니다.
 - [OneUptime 봇과 대화하기](#oneuptime-봇과-대화하기): 봇과의 채팅에서 쓰는 명령, 질문, 양식.
 - [온콜 태그](#온콜-태그): 팀의 태그를 온콜 담당자와 같게 유지하고 호출합니다.
@@ -59,7 +60,7 @@ OneUptime Cloud 에서는 **Teams 스토어 열기** 가 Microsoft Teams 스토�
 
 ### 다른 모든 사람 연결하기
 
-각 사람은 **사용자 설정** > **워크스페이스** > **Microsoft Teams** 에서 **Connect my account with Microsoft Teams** 로 자신의 Microsoft Teams 계정을 연결해, 본인으로서 인시던트를 조치하고 다이렉트 메시지를 받습니다. 이 섹션은 프로젝트가 Microsoft Teams 에 연결되면 나타납니다.
+각 사람은 **사용자 설정** > **워크스페이스** > **Microsoft Teams** 에서 **Connect my account with Microsoft Teams** 로 자신의 Microsoft Teams 계정을 연결해, 본인으로서 인시던트를 조치하고 다이렉트 메시지를 받습니다. 이 섹션은 프로젝트가 Microsoft Teams 에 연결되면 나타납니다. 팀 전체를 한 번에 참여시키려면 [모두에게 연결 요청하기](#모두에게-연결-요청하기) 를 참조하세요.
 
 ### 알림 규칙 추가하기
 
@@ -68,6 +69,14 @@ OneUptime Cloud 에서는 **Teams 스토어 열기** 가 Microsoft Teams 스토�
 
 > [!NOTE]
 > OneUptime 을 본인용으로 설치하거나 채팅에 추가하는 것은 다른 설치이며, 이것으로는 팀의 채널에 게시할 수 없습니다. **비공개 채널** 에는 채널 자체에 앱을 추가해야 합니다. 채널을 열고 "..." > **Manage channel** > **Apps** > **Add an app** 을 선택합니다. **공유 채널** 은 알림을 받을 수 없습니다. Microsoft Teams 는 공유 채널에서 봇을 지원하지 않습니다.
+
+## 모두에게 연결 요청하기
+
+관리자를 포함해 누구도 다른 사람의 Microsoft Teams 계정을 연결할 수 없습니다. 각자 자신의 계정으로 로그인해야 합니다. 팀 전체를 참여시키려면 **Project Owner** 또는 **Project Admin** 이 **프로젝트 설정** > **워크스페이스** > **Microsoft Teams** 에서 모두에게 한 번에 요청합니다. **Members' Microsoft Teams accounts** 카드에는 연결을 마친 멤버 수가 표시됩니다. **Ask everyone to connect** 를 누르면 OneUptime 봇이 아직 연결하지 않은 각 멤버에게 메시지를 보냅니다. 메시지에는 클릭 한 번으로 계정을 연결하는 **Connect Microsoft Teams account** 버튼이 있습니다.
+
+- **메시지를 받는 사람.** Microsoft Teams 계정을 연결하지 않았고 OneUptime 앱이 추가된 팀에 속한 프로젝트의 모든 멤버이며, 그 팀에서 이메일 주소나 사용자 계정 이름(UPN)으로 찾습니다. 지난 24시간 안에 요청을 받은 사람에게는 다시 요청하지 않으므로, 다음 날 다시 요청하면 아직 연결하지 않은 사람에게만 다시 알림이 갑니다.
+- **카드가 알려 주는 내용.** 메시지를 보내는 동안에는 진행 상황을, 그다음에는 누가 요청했는지와 메시지를 받은 멤버 수를 보여 줍니다. OneUptime 이 찾지 못한 멤버는 카드에 이름이 표시됩니다. 그 멤버의 팀에 앱을 추가하거나, 본인이 **사용자 설정** > **워크스페이스** > **Microsoft Teams** 에서 직접 연결하게 하세요.
+- **버튼이 연결하는 것.** 버튼을 누르고 로그인한 사람의 Microsoft Teams 계정을 그 사람 자신의 OneUptime 계정에 연결합니다. 메시지를 다른 사람에게 전달해도 원래 받은 멤버에게는 아무것도 연결되지 않습니다.
 
 ## 알림 규칙
 

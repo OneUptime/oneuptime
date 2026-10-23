@@ -68,6 +68,9 @@ import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import ProjectMembership from "../TeamMember/ProjectMembership";
 import MicrosoftTeamsUtil from "./MicrosoftTeams/MicrosoftTeams";
+import SlackAccountByEmail, {
+  SlackEmailAccount,
+} from "./Slack/SlackAccountByEmail";
 import SlackChannelMembers, {
   SlackChannelFacts,
   SlackChannelMembersError,
@@ -102,9 +105,9 @@ import WorkspaceChannelLinks from "./WorkspaceChannelLinks";
  * added, as by the rules.
  *
  * WHO SOMEBODY IS IN SLACK. The account they connected to OneUptime, or else
- * the Slack account with their OneUptime email address - as a page from chat
- * finds them (WorkspacePage) - so nobody has to connect their account before
- * they can be added.
+ * the Slack account with their OneUptime email address (SlackAccountByEmail)
+ * - as a page from chat and a rule's channel invitations find them - so
+ * nobody has to connect their account before they can be added.
  *
  * MICROSOFT TEAMS. A standard channel is open to everyone in its team, and
  * a private channel's members are managed by its owners in Microsoft Teams.
@@ -407,17 +410,6 @@ export const WORKSPACE_CHANNEL_NAME_LOOKUP_LIMIT: number = 40;
 // What OneUptime remembers about a Slack account, per project.
 const PERSON_CACHE_NAMESPACE: string = "workspace-channel-person";
 const PERSON_CACHE_SECONDS: number = 60 * 60;
-
-// Who a OneUptime member is in Slack, found by their email, per project.
-const ACCOUNT_CACHE_NAMESPACE: string = "workspace-channel-account";
-const ACCOUNT_CACHE_SECONDS: number = 60 * 60;
-const NO_ACCOUNT_CACHE_SECONDS: number = 10 * 60;
-
-/*
- * What the cache holds for a member nobody in Slack has the email address
- * of. Never a Slack id, which is upper-case letters and digits.
- */
-const NO_ACCOUNT: string = "-";
 
 /*
  * How inviting one person went: for them - and whether the app joined the
@@ -1037,8 +1029,9 @@ export default class WorkspaceChannelMembers {
 
   /*
    * Who a project member is in Slack: the account they connected, or else
-   * the account with their email address. Null when neither is there: a
-   * deactivated account or a bot is nobody to add.
+   * the account with their email address (SlackAccountByEmail) - a guest's
+   * too, whom Slack answers for when they are invited. Null when neither is
+   * there: a deactivated account or a bot is nobody to add.
    */
   private static async findSlackAccount(data: {
     projectId: ObjectID;
@@ -1061,50 +1054,15 @@ export default class WorkspaceChannelMembers {
       return connected;
     }
 
-    const email: string = data.email.trim().toLowerCase();
-
-    if (!email) {
-      return null;
-    }
-
-    const cacheKey: string = `${data.projectId.toString()}:${data.userId
-      .toString()
-      .toLowerCase()}`;
-
-    if (data.useCache) {
-      const cached: string | null = await WorkspaceChannelMembers.readCache(
-        ACCOUNT_CACHE_NAMESPACE,
-        cacheKey,
-      );
-
-      if (cached === NO_ACCOUNT) {
-        return null;
-      }
-
-      if (cached) {
-        return cached;
-      }
-    }
-
-    const person: SlackPersonFacts | null =
-      await SlackChannelMembers.findPersonByEmail({
-        authToken: data.authToken,
-        email: email,
-      });
-
-    const slackUserId: string | null =
-      person && !person.isDeactivated && !person.isBot ? person.id : null;
-
-    await WorkspaceChannelMembers.writeCache({
-      namespace: ACCOUNT_CACHE_NAMESPACE,
-      key: cacheKey,
-      value: slackUserId || NO_ACCOUNT,
-      expiresInSeconds: slackUserId
-        ? ACCOUNT_CACHE_SECONDS
-        : NO_ACCOUNT_CACHE_SECONDS,
+    const account: SlackEmailAccount | null = await SlackAccountByEmail.find({
+      projectId: data.projectId,
+      authToken: data.authToken,
+      userId: data.userId,
+      email: data.email,
+      useCache: data.useCache,
     });
 
-    return slackUserId;
+    return account?.slackUserId || null;
   }
 
   /*
@@ -1933,17 +1891,6 @@ export default class WorkspaceChannelMembers {
   }
 
   // The cache helps; without it (no Valkey), everything is asked of Slack.
-  private static async readCache(
-    namespace: string,
-    key: string,
-  ): Promise<string | null> {
-    try {
-      return await GlobalCache.getString(namespace, key);
-    } catch {
-      return null;
-    }
-  }
-
   private static async readCacheMany(
     namespace: string,
     keys: Array<string>,

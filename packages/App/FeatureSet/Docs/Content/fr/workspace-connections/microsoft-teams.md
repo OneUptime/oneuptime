@@ -4,6 +4,7 @@ Connectez OneUptime à Microsoft Teams pour publier dans vos canaux et conversat
 
 :::cards
 - [Connecter Microsoft Teams](#connecter-microsoft-teams): Le consentement administrateur, votre connexion et l'application dans chaque équipe.
+- [Demander à chacun de connecter son compte](#demander-à-chacun-de-connecter-son-compte): Écrivez en une seule fois à tous les membres qui n'ont pas encore connecté leur compte.
 - [Règles de notification](#règles-de-notification): Décidez quels événements sont publiés où, et lesquels ont un canal à eux.
 - [Parler au bot OneUptime](#parler-au-bot-oneuptime): Commandes, questions et formulaires dans une conversation avec le bot.
 - [Balises d'astreinte](#balises-dastreinte): Alignez la balise d'une équipe sur les personnes d'astreinte, et alertez-la.
@@ -59,7 +60,7 @@ Sur OneUptime Cloud, **Ouvrir la boutique Teams** ouvre l'application dans le Mi
 
 ### Connecter tous les autres
 
-Chaque personne associe son propre compte Microsoft Teams dans **Paramètres utilisateur** > **Espace de travail** > **Microsoft Teams** avec **Connect my account with Microsoft Teams**, pour agir sur les incidents et recevoir des messages directs en son nom. Cette section apparaît dès que le projet est connecté à Microsoft Teams.
+Chaque personne associe son propre compte Microsoft Teams dans **Paramètres utilisateur** > **Espace de travail** > **Microsoft Teams** avec **Connect my account with Microsoft Teams**, pour agir sur les incidents et recevoir des messages directs en son nom. Cette section apparaît dès que le projet est connecté à Microsoft Teams. Pour faire venir toute une équipe d'un coup, voir [Demander à chacun de connecter son compte](#demander-à-chacun-de-connecter-son-compte).
 
 ### Ajouter une règle de notification
 
@@ -68,6 +69,14 @@ Allez dans **Incidents** > **Espace de travail** > **Microsoft Teams**. La secti
 
 > [!NOTE]
 > Installer OneUptime pour vous-même, ou l'ajouter à une conversation, est une autre installation et ne lui permet pas de publier dans les canaux d'une équipe. Les **canaux privés** ont besoin de l'application dans le canal lui-même : ouvrez le canal > "..." > **Manage channel** > **Apps** > **Add an app**. Les **canaux partagés** ne peuvent pas recevoir de notifications : Microsoft Teams ne prend pas en charge les bots dans les canaux partagés.
+
+## Demander à chacun de connecter son compte
+
+Personne ne peut connecter le compte Microsoft Teams de quelqu'un d'autre, pas même un administrateur : chacun se connecte avec son propre compte. Pour faire venir toute une équipe, un **Project Owner** ou un **Project Admin** demande à tout le monde à la fois de connecter son compte, dans **Paramètres du projet** > **Espace de travail** > **Microsoft Teams**. La carte **Members' Microsoft Teams accounts** indique combien de membres ont connecté leur compte. Avec **Ask everyone to connect**, le bot OneUptime envoie un message à chaque membre qui ne l'a pas encore fait, avec un bouton **Connect Microsoft Teams account** qui connecte son compte en un clic.
+
+- **Qui reçoit un message.** Chaque membre du projet qui n'a pas connecté son compte Microsoft Teams et qui fait partie d'une équipe à laquelle l'application OneUptime a été ajoutée, retrouvé là par son adresse e-mail ou son nom d'utilisateur principal. Quiconque a été sollicité dans les dernières 24 heures ne l'est pas de nouveau : redemander le lendemain ne relance donc que les personnes qui n'ont toujours pas connecté leur compte.
+- **Ce que dit la carte.** Où en sont les messages pendant leur envoi, puis qui a fait la demande et combien de membres ont reçu un message. Les membres que OneUptime n'a pas trouvés sont nommés sur la carte : ajoutez l'application à leur équipe, ou demandez-leur de connecter eux-mêmes leur compte dans **Paramètres utilisateur** > **Espace de travail** > **Microsoft Teams**.
+- **Ce que connecte le bouton.** Le compte Microsoft Teams de la personne qui le presse et se connecte, à son propre compte OneUptime. Transmis à quelqu'un d'autre, le message ne connecte rien au membre à qui il était destiné.
 
 ## Règles de notification
 

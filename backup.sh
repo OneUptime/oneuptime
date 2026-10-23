@@ -7,7 +7,13 @@ mkdir -p "$(pwd)$DATABASE_BACKUP_DIRECTORY"
 
 echo "Starting backup...."
 
-git pull
+# No `git pull` here: taking a backup does not update OneUptime. This used to
+# pull on every run, which moved the whole checkout (docker-compose.yml,
+# config.example.env, both scripts) to the branch's latest commit without
+# `npm run update`, and the next backup ran whatever backup.sh it had pulled.
+# It never changed the run that pulled, either: git replaces a file rather
+# than editing it, so the shell finishes the copy it already opened. To
+# update, back up first, then `git pull` and `npm run update`.
 
 # One custom-format (-Fc) dump — the single artifact this script produces, and the
 # one restore.sh feeds to pg_restore.

@@ -103,10 +103,23 @@ import WorkspaceScheduleOnCall, {
   ScheduleOnCallPerson,
 } from "../Utils/Workspace/WorkspaceScheduleOnCall";
 import ColumnLength from "../../Types/Database/ColumnLength";
+import SlackAccountByEmail, {
+  SlackEmailAccount,
+} from "../Utils/Workspace/Slack/SlackAccountByEmail";
+import QueryHelper from "../Types/Database/QueryHelper";
 
 export interface MessageBlocksByWorkspaceType {
   workspaceType: WorkspaceType;
   messageBlocks: Array<WorkspaceMessageBlock>;
+}
+
+/*
+ * Whom a rule's channels invite, as the workspace knows them
+ * (findWorkspaceUserIdsToInvite): each person found there, and who was not.
+ */
+export interface WorkspaceInvitees {
+  invitees: Array<{ userId: ObjectID; workspaceUserId: string }>;
+  notFoundUserIds: Array<ObjectID>;
 }
 
 /*
@@ -2902,9 +2915,6 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     for (const inviteUserPayload of inviteUserPayloads) {
       const userIds: Array<ObjectID> = inviteUserPayload.userIds;
-      const workspaceUserIds: Array<string> = [];
-      const invitedUserIds: Array<ObjectID> = [];
-      const userIdsNotConnected: Array<ObjectID> = [];
 
       // A channel several rules asked for is each of those rules' channel.
       const channelsOfRule: Array<NotificationRuleWorkspaceChannel> =
@@ -2922,21 +2932,24 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         continue;
       }
 
-      for (const userId of userIds) {
-        const workspaceUserId: string | null =
-          await this.getWorkspaceUserIdFromOneUptimeUserId({
-            projectId: data.projectId,
-            workspaceType: data.workspaceType,
-            oneuptimeUserId: userId,
-          });
+      const found: WorkspaceInvitees = await this.findWorkspaceUserIdsToInvite({
+        projectId: data.projectId,
+        workspaceType: data.workspaceType,
+        authToken: data.projectAuth.authToken || "",
+        userIds: userIds,
+      });
 
-        if (workspaceUserId) {
-          workspaceUserIds.push(workspaceUserId);
-          invitedUserIds.push(userId);
-        } else {
-          userIdsNotConnected.push(userId);
-        }
-      }
+      const workspaceUserIds: Array<string> = found.invitees.map(
+        (invitee: { workspaceUserId: string }): string => {
+          return invitee.workspaceUserId;
+        },
+      );
+      const invitedUserIds: Array<ObjectID> = found.invitees.map(
+        (invitee: { userId: ObjectID }): ObjectID => {
+          return invitee.userId;
+        },
+      );
+      const userIdsNotConnected: Array<ObjectID> = found.notFoundUserIds;
 
       logger.debug("Workspace User IDs to invite:", {
         projectId: data.projectId?.toString(),
@@ -3290,25 +3303,24 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
       // inivte users to channels.
 
-      const workspaceUserIds: Array<string> = [];
-      const invitedUserIds: Array<ObjectID> = [];
-      const userIdsNotConnected: Array<ObjectID> = [];
+      const found: WorkspaceInvitees = await this.findWorkspaceUserIdsToInvite({
+        projectId: data.projectId,
+        workspaceType: workspaceType,
+        authToken: projectAuth.authToken || "",
+        userIds: userIds,
+      });
 
-      for (const userId of userIds) {
-        const workspaceUserId: string | null =
-          await this.getWorkspaceUserIdFromOneUptimeUserId({
-            projectId: data.projectId,
-            workspaceType: workspaceType,
-            oneuptimeUserId: userId,
-          });
-
-        if (workspaceUserId) {
-          workspaceUserIds.push(workspaceUserId);
-          invitedUserIds.push(userId);
-        } else {
-          userIdsNotConnected.push(userId);
-        }
-      }
+      const workspaceUserIds: Array<string> = found.invitees.map(
+        (invitee: { workspaceUserId: string }): string => {
+          return invitee.workspaceUserId;
+        },
+      );
+      const invitedUserIds: Array<ObjectID> = found.invitees.map(
+        (invitee: { userId: ObjectID }): ObjectID => {
+          return invitee.userId;
+        },
+      );
+      const userIdsNotConnected: Array<ObjectID> = found.notFoundUserIds;
 
       logger.debug("Workspace User IDs to invite:", {
         projectId: data.projectId?.toString(),
@@ -3362,11 +3374,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       }
 
       /*
-       * Who could not be added - not connected to this workspace - is said
-       * once per channel, in one note naming them all, however often they
-       * are owners again or paged again (ChannelMembersNotAddedNotice). It
-       * used to be a message per person every time: each page of the same
-       * person repeated it.
+       * Who could not be added - found in this workspace neither by a
+       * connected account nor by their email address - is said once per
+       * channel, in one note naming them all, however often they are owners
+       * again or paged again (ChannelMembersNotAddedNotice). It used to be a
+       * message per person every time: each page of the same person
+       * repeated it.
        */
       await ChannelMembersNotAddedNotice.noteMembersNotAdded({
         projectId: data.projectId,
@@ -3509,6 +3522,145 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       } as LogAttributes);
       // Don't throw the error, just log it so the main flow continues
     }
+  }
+
+  /*
+   * Whom a rule's channels invite, in the workspace: each person's connected
+   * account, or else - in Slack - the account with their OneUptime email
+   * address, as Add people on the record's page finds them
+   * (SlackAccountByEmail). Nobody has to connect their account before a
+   * rule's channel can have them. A guest's account found by email is left
+   * out: Slack keeps guests out of the channels the app invites to, and its
+   * refusal would stop everybody else's invitation with it. Whoever is found
+   * neither way is handed back, for the channel's note
+   * (ChannelMembersNotAddedNotice); so is whoever Slack could not be asked
+   * about. Microsoft Teams adds nobody to a channel, so it finds nobody by
+   * email here.
+   */
+  @CaptureSpan()
+  public async findWorkspaceUserIdsToInvite(data: {
+    projectId: ObjectID;
+    workspaceType: WorkspaceType;
+    authToken: string;
+    userIds: Array<ObjectID>;
+  }): Promise<WorkspaceInvitees> {
+    const found: WorkspaceInvitees = { invitees: [], notFoundUserIds: [] };
+    const notConnected: Array<ObjectID> = [];
+
+    for (const userId of data.userIds) {
+      const workspaceUserId: string | null =
+        await this.getWorkspaceUserIdFromOneUptimeUserId({
+          projectId: data.projectId,
+          workspaceType: data.workspaceType,
+          oneuptimeUserId: userId,
+        });
+
+      if (workspaceUserId) {
+        found.invitees.push({
+          userId: userId,
+          workspaceUserId: workspaceUserId,
+        });
+      } else {
+        notConnected.push(userId);
+      }
+    }
+
+    if (
+      data.workspaceType !== WorkspaceType.Slack ||
+      !data.authToken ||
+      notConnected.length === 0
+    ) {
+      found.notFoundUserIds = notConnected;
+      return found;
+    }
+
+    const emails: Map<string, string> =
+      await this.getEmailsOfUsers(notConnected);
+
+    for (const userId of notConnected) {
+      let account: SlackEmailAccount | null = null;
+
+      try {
+        account = await SlackAccountByEmail.find({
+          projectId: data.projectId,
+          authToken: data.authToken,
+          userId: userId,
+          email: emails.get(userId.toString().toLowerCase()) || "",
+          useCache: true,
+        });
+      } catch (err) {
+        logger.debug(
+          "Could not look somebody up in Slack by their email address to invite them to a channel.",
+          { projectId: data.projectId.toString() } as LogAttributes,
+        );
+        logger.debug(err, {
+          projectId: data.projectId.toString(),
+        } as LogAttributes);
+      }
+
+      const alreadyInvited: boolean = found.invitees.some(
+        (invitee: { workspaceUserId: string }): boolean => {
+          return invitee.workspaceUserId === account?.slackUserId;
+        },
+      );
+
+      if (account && !account.isGuest && !alreadyInvited) {
+        found.invitees.push({
+          userId: userId,
+          workspaceUserId: account.slackUserId,
+        });
+      } else {
+        found.notFoundUserIds.push(userId);
+      }
+    }
+
+    return found;
+  }
+
+  /*
+   * The email addresses of these people, by lower-cased id. None when they
+   * cannot be read: then nobody is found by email.
+   */
+  private async getEmailsOfUsers(
+    userIds: Array<ObjectID>,
+  ): Promise<Map<string, string>> {
+    const emails: Map<string, string> = new Map<string, string>();
+
+    try {
+      const users: Array<User> = await UserService.findBy({
+        query: {
+          _id: QueryHelper.any(
+            userIds.map((userId: ObjectID): string => {
+              return userId.toString();
+            }),
+          ),
+        },
+        select: {
+          _id: true,
+          email: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      for (const user of users) {
+        const email: string = user.email?.toString() || "";
+
+        if (user.id && email) {
+          emails.set(user.id.toString().toLowerCase(), email);
+        }
+      }
+    } catch (err) {
+      logger.error(
+        "Could not read people's email addresses to find them in Slack.",
+      );
+      logger.error(err);
+    }
+
+    return emails;
   }
 
   @CaptureSpan()

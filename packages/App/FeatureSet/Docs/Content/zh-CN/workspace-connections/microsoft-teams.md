@@ -4,6 +4,7 @@
 
 :::cards
 - [连接 Microsoft Teams](#连接-microsoft-teams): 管理员同意、您的登录，以及每个团队中的应用。
+- [请所有人连接账户](#请所有人连接账户): 一次性向每位尚未连接账户的成员发送消息。
 - [通知规则](#通知规则): 决定哪些事件发布到哪里，以及哪些事件拥有专属频道。
 - [与 OneUptime 机器人对话](#与-oneuptime-机器人对话): 在与机器人的聊天中使用命令、提问和表单。
 - [值班标记](#值班标记): 让团队的标记与值班人员保持一致，并呼叫它。
@@ -59,7 +60,7 @@ flowchart TB
 
 ### 连接其他所有人
 
-每个人都在 **用户设置** > **工作区** > **Microsoft Teams** 中通过 **Connect my account with Microsoft Teams** 关联自己的 Microsoft Teams 账户，以便以本人身份处理事件并接收私信。项目连接到 Microsoft Teams 后，该部分就会出现。
+每个人都在 **用户设置** > **工作区** > **Microsoft Teams** 中通过 **Connect my account with Microsoft Teams** 关联自己的 Microsoft Teams 账户，以便以本人身份处理事件并接收私信。项目连接到 Microsoft Teams 后，该部分就会出现。如需让整个团队一次性完成连接，请参阅 [请所有人连接账户](#请所有人连接账户)。
 
 ### 添加通知规则
 
@@ -68,6 +69,14 @@ flowchart TB
 
 > [!NOTE]
 > 为您自己安装 OneUptime，或将其添加到聊天中，是另一种安装，并不能让它向团队的频道发布消息。 **私密频道** 需要将应用添加到频道本身：打开频道 > "..." > **Manage channel** > **Apps** > **Add an app**。 **共享频道** 无法接收通知：Microsoft Teams 不支持在共享频道中使用机器人。
+
+## 请所有人连接账户
+
+任何人都无法替他人连接 Microsoft Teams 账户，管理员也不例外：每个人都要亲自登录自己的账户。要让整个团队完成连接，可由 **Project Owner** 或 **Project Admin** 在 **项目设置** > **工作区** > **Microsoft Teams** 中一次性请所有人连接。 **Members' Microsoft Teams accounts** 卡片会显示已有多少成员完成连接。 **Ask everyone to connect** 会让 OneUptime 机器人向每位尚未连接的成员发送一条消息，并附带一个 **Connect Microsoft Teams account** 按钮，只需点击一下即可连接其账户。
+
+- **谁会收到消息。** 项目中每位尚未连接 Microsoft Teams 账户、且所在团队已添加 OneUptime 应用的成员，在该团队中通过其电子邮件地址或用户主体名称（UPN）找到。过去 24 小时内已请求过的人不会被再次请求，因此第二天再请一次时，只会提醒仍未连接的人。
+- **卡片显示的内容。** 消息发送期间显示发送进度，之后显示是谁发起的请求，以及有多少成员收到了消息。OneUptime 找不到的成员会在卡片上列出姓名：请将应用添加到他们所在的团队，或让他们自行在 **用户设置** > **工作区** > **Microsoft Teams** 中连接。
+- **按钮连接的账户。** 按下按钮并登录的人的 Microsoft Teams 账户，会连接到此人自己的 OneUptime 账户。转发给他人的消息，不会为原本收到消息的成员连接任何账户。
 
 ## 通知规则
 

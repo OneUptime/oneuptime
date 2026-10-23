@@ -4,6 +4,7 @@ Anslut OneUptime till Microsoft Teams för att publicera incidenter, larm, episo
 
 :::cards
 - [Anslut Microsoft Teams](#anslut-microsoft-teams): Administratörsmedgivande, din inloggning och appen i varje team.
+- [Be alla att ansluta](#be-alla-att-ansluta): Skicka ett meddelande till varje medlem som inte har anslutit sitt konto, i ett svep.
 - [Aviseringsregler](#aviseringsregler): Bestäm vilka händelser som publiceras var, och vilka som får en egen kanal.
 - [Prata med OneUptime-boten](#prata-med-oneuptime-boten): Kommandon, frågor och formulär i en chatt med boten.
 - [Jourtaggar](#jourtaggar): Håll ett teams tagg lika med dem som har jour, och larma den.
@@ -59,7 +60,7 @@ På OneUptime Cloud öppnar **Öppna Teams Store** appen i Microsoft Teams Store
 
 ### Anslut alla andra
 
-Varje person länkar sitt eget Microsoft Teams-konto under **Användarinställningar** > **Arbetsyta** > **Microsoft Teams** med **Connect my account with Microsoft Teams**, för att agera på incidenter och få direktmeddelanden som sig själv. Det avsnittet visas så snart projektet är anslutet till Microsoft Teams.
+Varje person länkar sitt eget Microsoft Teams-konto under **Användarinställningar** > **Arbetsyta** > **Microsoft Teams** med **Connect my account with Microsoft Teams**, för att agera på incidenter och få direktmeddelanden som sig själv. Det avsnittet visas så snart projektet är anslutet till Microsoft Teams. Se [Be alla att ansluta](#be-alla-att-ansluta) för att få med ett helt team på en gång.
 
 ### Lägg till en aviseringsregel
 
@@ -68,6 +69,14 @@ Gå till **Incidenter** > **Arbetsyta** > **Microsoft Teams**. Avsnittet **Arbet
 
 > [!NOTE]
 > Att installera OneUptime för dig själv, eller lägga till den i en chatt, är en annan installation och låter den inte publicera i ett teams kanaler. **Privata kanaler** kräver att appen läggs till i själva kanalen: öppna kanalen > "..." > **Manage channel** > **Apps** > **Add an app**. **Delade kanaler** kan inte ta emot aviseringar: Microsoft Teams stöder inte botar i delade kanaler.
+
+## Be alla att ansluta
+
+Ingen kan ansluta någon annans Microsoft Teams-konto, inte ens en administratör: var och en loggar in med sitt eget. För att få med ett helt team ber en **Project Owner** eller **Project Admin** alla på en gång på **Projektinställningar** > **Arbetsyta** > **Microsoft Teams**. Kortet **Members' Microsoft Teams accounts** visar hur många medlemmar som har anslutit. **Ask everyone to connect** låter OneUptime-boten skicka ett meddelande till varje medlem som inte har gjort det, med knappen **Connect Microsoft Teams account**, som ansluter personens konto med ett klick.
+
+- **Vem som får ett meddelande.** Varje medlem i projektet som inte har anslutit sitt Microsoft Teams-konto och som är med i ett team där OneUptime-appen har lagts till; OneUptime hittar personen där via e-postadressen eller användarens huvudnamn (UPN). Den som har tillfrågats under de senaste 24 timmarna tillfrågas inte igen, så en ny förfrågan dagen efter påminner bara dem som fortfarande inte har anslutit.
+- **Vad kortet säger.** Hur långt utskicket har kommit medan meddelandena skickas, och sedan vem som frågade och hur många medlemmar som fick ett meddelande. Medlemmar som OneUptime inte kunde hitta nämns på kortet: lägg till appen i deras team, eller låt dem själva ansluta under **Användarinställningar** > **Arbetsyta** > **Microsoft Teams**.
+- **Vad knappen ansluter.** Microsoft Teams-kontot för den som trycker på den och loggar in, till personens eget OneUptime-konto. Ett meddelande som skickas vidare till någon annan ansluter ingenting till den medlem det skickades till.
 
 ## Aviseringsregler
 

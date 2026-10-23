@@ -398,6 +398,8 @@ const METHOD_SCOPES: Record<string, Array<string>> = {
   "files.completeUploadExternal": ["files:write"],
   "users.info": ["users:read"],
   "users.lookupByEmail": ["users:read.email"],
+  // The workspace's people, to ask many members to connect at once.
+  "users.list": ["users:read"],
   "usergroups.list": ["usergroups:read"],
   "usergroups.users.list": ["usergroups:read"],
   "usergroups.create": ["usergroups:write"],

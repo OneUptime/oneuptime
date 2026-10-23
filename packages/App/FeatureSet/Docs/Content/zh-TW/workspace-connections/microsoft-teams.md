@@ -4,6 +4,7 @@
 
 :::cards
 - [連接 Microsoft Teams](#連接-microsoft-teams): 管理員同意、您的登入，以及每個團隊中的應用程式。
+- [請所有人連接帳戶](#請所有人連接帳戶): 一次傳送訊息給每位尚未連接帳戶的成員。
 - [通知規則](#通知規則): 決定哪些事件發布到哪裡，以及哪些事件擁有專屬頻道。
 - [與 OneUptime 機器人對話](#與-oneuptime-機器人對話): 在與機器人的聊天中使用指令、提問和表單。
 - [待命標籤](#待命標籤): 讓團隊的標籤與待命人員保持一致，並呼叫它。
@@ -59,7 +60,7 @@ flowchart TB
 
 ### 連接其他所有人
 
-每個人都在 **使用者設定** > **工作區** > **Microsoft Teams** 中透過 **Connect my account with Microsoft Teams** 連結自己的 Microsoft Teams 帳戶，以便以本人身分處理事件並接收私人訊息。專案連接到 Microsoft Teams 後，該區段就會出現。
+每個人都在 **使用者設定** > **工作區** > **Microsoft Teams** 中透過 **Connect my account with Microsoft Teams** 連結自己的 Microsoft Teams 帳戶，以便以本人身分處理事件並接收私人訊息。專案連接到 Microsoft Teams 後，該區段就會出現。如需讓整個團隊一次完成連接，請參閱 [請所有人連接帳戶](#請所有人連接帳戶)。
 
 ### 新增通知規則
 
@@ -68,6 +69,14 @@ flowchart TB
 
 > [!NOTE]
 > 為您自己安裝 OneUptime，或將其新增到聊天中，是另一種安裝，並不能讓它向團隊的頻道發布訊息。 **私人頻道** 需要將應用程式新增到頻道本身：開啟頻道 > "..." > **Manage channel** > **Apps** > **Add an app**。 **共用頻道** 無法接收通知：Microsoft Teams 不支援在共用頻道中使用機器人。
+
+## 請所有人連接帳戶
+
+任何人都無法替他人連接 Microsoft Teams 帳戶，管理員也不例外：每個人都必須親自登入自己的帳戶。若要讓整個團隊完成連接，可由 **Project Owner** 或 **Project Admin** 在 **專案設定** > **工作區** > **Microsoft Teams** 中一次請所有人連接。 **Members' Microsoft Teams accounts** 卡片會顯示已有多少成員完成連接。 **Ask everyone to connect** 會讓 OneUptime 機器人傳送一則訊息給每位尚未連接的成員，並附上一個 **Connect Microsoft Teams account** 按鈕，只要按一下即可連接其帳戶。
+
+- **誰會收到訊息。** 專案中每位尚未連接 Microsoft Teams 帳戶、且所在團隊已新增 OneUptime 應用程式的成員，在該團隊中透過其電子郵件地址或使用者主體名稱（UPN）找到。過去 24 小時內已請求過的人不會再次收到請求，因此隔天再請一次時，只會提醒仍未連接的人。
+- **卡片顯示的內容。** 訊息傳送期間顯示傳送進度，之後顯示是誰提出請求，以及有多少成員收到訊息。OneUptime 找不到的成員會在卡片上列出姓名：請將應用程式新增到他們所在的團隊，或請他們自行在 **使用者設定** > **工作區** > **Microsoft Teams** 中連接。
+- **按鈕連接的帳戶。** 按下按鈕並登入的人的 Microsoft Teams 帳戶，會連接到此人自己的 OneUptime 帳戶。轉給他人的訊息，不會為原本收到訊息的成員連接任何帳戶。
 
 ## 通知規則
 

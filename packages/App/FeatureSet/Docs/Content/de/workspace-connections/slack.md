@@ -4,6 +4,7 @@ Verbinden Sie OneUptime mit Slack, um Vorfälle, Warnungen, Episoden, geplante W
 
 :::cards
 - [Slack verbinden](#slack-verbinden): Installieren Sie OneUptime in Ihrem Workspace und verknüpfen Sie dann Ihr eigenes Konto.
+- [Alle bitten, ihr Konto zu verbinden](#alle-bitten-ihr-konto-zu-verbinden): Schreiben Sie alle Mitglieder, die ihr Konto noch nicht verbunden haben, auf einmal an.
 - [Benachrichtigungsregeln](#benachrichtigungsregeln): Legen Sie fest, welche Ereignisse wohin posten und welche einen eigenen Kanal bekommen.
 - [Wer im Kanal eines Datensatzes ist](#wer-im-kanal-eines-datensatzes-ist): Sehen Sie, wer darin ist, treten Sie bei und fügen Sie Personen hinzu, direkt auf der Seite des Datensatzes.
 - [Der Befehl /oneuptime](#der-befehl-oneuptime): Vorfälle melden, Wartungen planen, sehen, wer Bereitschaft hat, und die KI fragen.
@@ -46,7 +47,7 @@ Gehen Sie zu **Projekteinstellungen** > **Arbeitsbereich** > **Slack** und klick
 
 ### Ihr eigenes Slack-Konto verbinden
 
-Beim Installieren der App wird das Konto der Person verknüpft, die sie installiert hat. Alle anderen verknüpfen ihr eigenes Slack-Konto unter **Benutzereinstellungen** > **Arbeitsbereich** > **Slack** mit **Connect my account with Slack**, um als sie selbst auf Vorfälle zu reagieren und Direktnachrichten zu erhalten. Dieser Abschnitt erscheint, sobald das Projekt mit Slack verbunden ist.
+Beim Installieren der App wird das Konto der Person verknüpft, die sie installiert hat. Alle anderen verknüpfen ihr eigenes Slack-Konto unter **Benutzereinstellungen** > **Arbeitsbereich** > **Slack** mit **Connect my account with Slack**, um als sie selbst auf Vorfälle zu reagieren und Direktnachrichten zu erhalten. Dieser Abschnitt erscheint, sobald das Projekt mit Slack verbunden ist. Wie Sie ein ganzes Team auf einmal dazuholen, steht unter [Alle bitten, ihr Konto zu verbinden](#alle-bitten-ihr-konto-zu-verbinden).
 
 ### Eine Benachrichtigungsregel hinzufügen
 
@@ -56,6 +57,14 @@ Gehen Sie zu **Vorfälle** > **Arbeitsbereich** > **Slack**. Der Abschnitt **Arb
 
 Klicken Sie in der Zeile der Regel auf **Regel testen**. In den Kanälen, die die Regel nennt, kommt eine Testnachricht an. Siehe [Eine Regel testen](#eine-regel-testen).
 :::
+
+## Alle bitten, ihr Konto zu verbinden
+
+Niemand kann das Slack-Konto einer anderen Person verbinden, auch kein Admin: Jede Person meldet sich mit ihrem eigenen Konto an. Um ein ganzes Team dazuzuholen, bittet ein **Project Owner** oder **Project Admin** unter **Projekteinstellungen** > **Arbeitsbereich** > **Slack** alle auf einmal, ihr Konto zu verbinden. Die Karte **Members' Slack accounts** zeigt, wie viele Mitglieder ihr Konto schon verbunden haben. **Ask everyone to connect** schickt jedem Mitglied ohne verbundenes Konto eine Direktnachricht von OneUptime in Slack, mit einer Schaltfläche **Connect Slack account**, die sein Konto mit einem Klick verbindet.
+
+- **Wer eine Nachricht bekommt.** Jedes Mitglied des Projekts, das sein Slack-Konto noch nicht verbunden hat und das OneUptime in Slack über seine E-Mail-Adresse findet. Wer in den letzten 24 Stunden gebeten wurde, wird nicht noch einmal gebeten; bitten Sie am nächsten Tag erneut, erinnert das also nur die, die ihr Konto noch immer nicht verbunden haben.
+- **Was die Karte sagt.** Solange die Nachrichten verschickt werden, wie weit der Versand ist; danach, wer gebeten hat und wie viele Mitglieder eine Nachricht bekommen haben. Mitglieder, die OneUptime in Slack nicht über ihre E-Mail-Adresse finden konnte, nennt die Karte mit Namen: Diese verbinden ihr Konto selbst unter **Benutzereinstellungen** > **Arbeitsbereich** > **Slack**.
+- **Was die Schaltfläche verbindet.** Das Slack-Konto der Person, die sie drückt und sich anmeldet, mit ihrem eigenen OneUptime-Konto. Eine an jemand anderen weitergeleitete Nachricht verbindet nichts mit dem Mitglied, an das sie geschickt wurde.
 
 ## Benachrichtigungsregeln
 
@@ -90,7 +99,7 @@ Jede spätere Änderung des Datensatzes — ein Statuswechsel, eine Notiz, ein n
 
 Ein Vorfall, eine Warnung, eine Episode oder ein geplantes Wartungsereignis mit einem eigenen Kanal hat im Kopf seiner Seite in OneUptime, neben den Statusschaltflächen, **In Slack öffnen**. Das öffnet diesen Kanal in einem neuen Tab, in der Slack-App oder im Browser. Ein Datensatz mit zwei eigenen Kanälen listet beide unter der Schaltfläche. Ein Datensatz mit Kanälen in Slack und in Microsoft Teams hat stattdessen eine Schaltfläche **Kanal öffnen**, die sie alle auflistet. Die bestehenden Kanäle, in die Ihre Regeln posten, werden nicht angeboten.
 
-Ein Kanal bleibt lesbar: Jedes Ereignis wird einmal gepostet, und der erste Status eines Datensatzes steht in der Nachricht, die den Datensatz ankündigt, nicht in einer eigenen Nachricht. Ein Durchlauf einer Bereitschaftsrichtlinie ist eine einzige Nachricht, die bearbeitet wird, während der Durchlauf eskaliert: wer alarmiert wurde, wie oft und wie, wer nicht und warum, und wer bestätigt hat. Eine neue Nachricht wird nur gepostet, wenn jemand handeln muss: Eine Eskalationsregel hat niemanden erreicht, oder der Durchlauf endete, ohne dass jemand bestätigt hat. Wer sein Slack-Konto nicht mit OneUptime verbunden hat, kann keinem Kanal hinzugefügt werden; OneUptime sagt das einmal pro Kanal, in einer einzigen Nachricht, die alle nennt und bearbeitet wird, wenn die Liste wächst. Schicken Sie ihnen den Link **Connect Slack account** aus dieser Nachricht, damit sie ihr Konto in einem Schritt verbinden. Dass die Eigentümer eines Datensatzes oder die Statusseiten-Abonnenten benachrichtigt wurden, steht in seinem Feed in OneUptime.
+Ein Kanal bleibt lesbar: Jedes Ereignis wird einmal gepostet, und der erste Status eines Datensatzes steht in der Nachricht, die den Datensatz ankündigt, nicht in einer eigenen Nachricht. Ein Durchlauf einer Bereitschaftsrichtlinie ist eine einzige Nachricht, die bearbeitet wird, während der Durchlauf eskaliert: wer alarmiert wurde, wie oft und wie, wer nicht und warum, und wer bestätigt hat. Eine neue Nachricht wird nur gepostet, wenn jemand handeln muss: Eine Eskalationsregel hat niemanden erreicht, oder der Durchlauf endete, ohne dass jemand bestätigt hat. Wer sein Slack-Konto nicht mit OneUptime verbunden hat, wird über das Slack-Konto mit seiner E-Mail-Adresse hinzugefügt. Wer auf keinem der beiden Wege zu finden oder in Slack Gast ist, kann keinem Kanal hinzugefügt werden; OneUptime sagt das einmal pro Kanal, in einer einzigen Nachricht, die alle nennt und bearbeitet wird, wenn die Liste wächst. Schicken Sie ihnen den Link **Connect Slack account** aus dieser Nachricht, damit sie ihr Konto in einem Schritt verbinden. Dass die Eigentümer eines Datensatzes oder die Statusseiten-Abonnenten benachrichtigt wurden, steht in seinem Feed in OneUptime.
 
 **Projekteinstellungen** > **Arbeitsbereich** > **Slack** listet die Kanäle, die OneUptime sieht, mit **Test senden** neben jedem. Einem öffentlichen Kanal tritt OneUptime beim ersten Posten selbst bei. Ein privater Kanal wird erst aufgelistet und kann erst bespielt werden, nachdem die OneUptime-App in Slack in ihn eingeladen wurde.
 
@@ -280,7 +289,7 @@ OneUptime liest aus Slack nur, was diese Funktionen brauchen, mit den Berechtigu
 - **Nachrichten an OneUptime.** Eine Nachricht, die es mit @ erwähnt, eine, die Sie ihm als Direktnachricht schicken, und Ihre Antworten in einem Gespräch mit ihm, samt den früheren Nachrichten dieses Threads oder dieser Direktnachrichten, damit OneUptime AI antworten kann. Slack schickt ihm auch die übrigen Nachrichten der Kanäle und Gruppen-Direktnachrichten, in denen es ist; OneUptime beantwortet sie nicht und behält sie nicht.
 - **Nachrichten, die Sie als Notiz speichern.** Eine Nachricht, auf die Sie mit 📌 oder 📢 reagieren oder die Sie anheften, im Kanal eines Vorfalls, einer Warnung, einer Episode oder eines geplanten Wartungsereignisses, als Notiz an diesem Datensatz gespeichert, mit dem Namen ihres Verfassers.
 - **Namen von Kanälen und Personen.** Die Kanäle, in die es posten kann, damit Sie sie auswählen können, die Namen von Personen, um zu zeigen, wer etwas geschrieben oder getan hat, und wer im eigenen Kanal eines Datensatzes ist, gelesen, wenn die Seite des Datensatzes es zeigt.
-- **E-Mail-Adressen.** Die E-Mail-Adresse, die Slack für eine Person hat, um ihr Slack-Konto ihrem OneUptime-Konto zuzuordnen, wenn sie es nicht verbunden hat: um sie zu alarmieren, in eine Bereitschafts-Benutzergruppe aufzunehmen oder dem Kanal eines Datensatzes hinzuzufügen.
+- **E-Mail-Adressen.** Die E-Mail-Adresse, die Slack für eine Person hat, um ihr Slack-Konto ihrem OneUptime-Konto zuzuordnen, wenn sie es nicht verbunden hat: um sie zu alarmieren, in eine Bereitschafts-Benutzergruppe aufzunehmen, dem Kanal eines Datensatzes hinzuzufügen oder sie zu bitten, es zu verbinden.
 - **Benutzergruppen.** Die Benutzergruppen Ihres Arbeitsbereichs, um eine für einen Bereitschaftsplan auszuwählen, und die Personen in einer Gruppe, die Sie verbinden, um sie gleich denen zu halten, die gerade Bereitschaft haben.
 
 Was OneUptime davon behält — den Namen des Arbeitsbereichs, seine Kanäle, die Slack-Konten, die Personen verbinden, die Notizen und die Benutzergruppen —, wird mit Ihrem Projekt gespeichert. Die [Datenschutzerklärung](https://oneuptime.com/legal/privacy) beschreibt, wie OneUptime mit Ihren Daten umgeht.
@@ -292,7 +301,7 @@ Prüfen Sie die Bedingungen der Regel mit **Regel testen**: Kommt der Test an, h
 :::
 
 :::details Jemand fehlt im Kanal einer Regel
-Die Karte der Regel sagt unter **Dann**, wen die Regel einlädt. Jede Art von Person tritt bei, sobald sie zum Datensatz dazukommt: die alarmierten Personen bei ihrer Alarmierung, der Vorfall-Kommandant bei seiner Zuweisung, ein Eigentümer beim Hinzufügen, und wer beim Erstellen des Kanals schon am Datensatz war. Wer kein mit OneUptime verbundenes Slack-Konto hat, kann nicht hinzugefügt werden; OneUptime nennt die Person im Kanal, mit einem Link, um ihr Konto zu verbinden. Um jemanden sofort hinzuzufügen, drücken Sie **Personen hinzufügen** auf der Karte **Slack-Kanal** des Datensatzes: Dabei findet OneUptime Personen auch über die E-Mail-Adresse, die Slack für sie hat.
+Die Karte der Regel sagt unter **Dann**, wen die Regel einlädt. Jede Art von Person tritt bei, sobald sie zum Datensatz dazukommt: die alarmierten Personen bei ihrer Alarmierung, der Vorfall-Kommandant bei seiner Zuweisung, ein Eigentümer beim Hinzufügen, und wer beim Erstellen des Kanals schon am Datensatz war. Findet OneUptime jemanden in Slack weder über das verbundene Konto noch über die E-Mail-Adresse, kann diese Person nicht hinzugefügt werden; OneUptime nennt sie im Kanal, mit einem Link, um ihr Konto zu verbinden. Um jemanden sofort hinzuzufügen, drücken Sie **Personen hinzufügen** auf der Karte **Slack-Kanal** des Datensatzes.
 :::
 
 :::details Alle haben einen privaten Kanal verlassen

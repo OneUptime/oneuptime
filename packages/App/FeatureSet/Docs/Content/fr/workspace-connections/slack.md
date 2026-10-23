@@ -4,6 +4,7 @@ Connectez OneUptime à Slack pour publier dans vos canaux les incidents, alertes
 
 :::cards
 - [Connecter Slack](#connecter-slack): Installez OneUptime dans votre espace de travail, puis associez votre propre compte.
+- [Demander à chacun de connecter son compte](#demander-à-chacun-de-connecter-son-compte): Écrivez en une seule fois à tous les membres qui n'ont pas encore connecté leur compte.
 - [Règles de notification](#règles-de-notification): Décidez quels événements sont publiés où, et lesquels ont un canal à eux.
 - [Qui est dans le canal d'un enregistrement](#qui-est-dans-le-canal-dun-enregistrement): Voyez qui s'y trouve, rejoignez-le et ajoutez des personnes, depuis la page de l'enregistrement.
 - [La commande /oneuptime](#la-commande-oneuptime): Déclarez des incidents, planifiez des maintenances, voyez qui est d'astreinte et interrogez l'IA.
@@ -46,7 +47,7 @@ Allez dans **Paramètres du projet** > **Espace de travail** > **Slack** et cliq
 
 ### Connecter votre propre compte Slack
 
-Installer l'application associe le compte de la personne qui l'a installée. Tous les autres associent leur propre compte Slack dans **Paramètres utilisateur** > **Espace de travail** > **Slack** avec **Connect my account with Slack**, pour agir sur les incidents et recevoir des messages directs en leur nom. Cette section apparaît dès que le projet est connecté à Slack.
+Installer l'application associe le compte de la personne qui l'a installée. Tous les autres associent leur propre compte Slack dans **Paramètres utilisateur** > **Espace de travail** > **Slack** avec **Connect my account with Slack**, pour agir sur les incidents et recevoir des messages directs en leur nom. Cette section apparaît dès que le projet est connecté à Slack. Pour faire venir toute une équipe d'un coup, voir [Demander à chacun de connecter son compte](#demander-à-chacun-de-connecter-son-compte).
 
 ### Ajouter une règle de notification
 
@@ -56,6 +57,14 @@ Allez dans **Incidents** > **Espace de travail** > **Slack**. La section **Espac
 
 Cliquez sur **Tester la règle** sur la ligne de la règle. Un message de test arrive dans les canaux que la règle nomme. Voir [Tester une règle](#tester-une-règle).
 :::
+
+## Demander à chacun de connecter son compte
+
+Personne ne peut connecter le compte Slack de quelqu'un d'autre, pas même un administrateur : chacun se connecte avec son propre compte. Pour faire venir toute une équipe, un **Project Owner** ou un **Project Admin** demande à tout le monde à la fois de connecter son compte, dans **Paramètres du projet** > **Espace de travail** > **Slack**. La carte **Members' Slack accounts** indique combien de membres ont connecté leur compte. **Ask everyone to connect** envoie à chaque membre qui ne l'a pas encore fait un message direct de OneUptime dans Slack, avec un bouton **Connect Slack account** qui connecte son compte en un clic.
+
+- **Qui reçoit un message.** Chaque membre du projet qui n'a pas connecté son compte Slack, retrouvé dans Slack par son adresse e-mail. Quiconque a été sollicité dans les dernières 24 heures ne l'est pas de nouveau : redemander le lendemain ne relance donc que les personnes qui n'ont toujours pas connecté leur compte.
+- **Ce que dit la carte.** Où en sont les messages pendant leur envoi, puis qui a fait la demande et combien de membres ont reçu un message. Les membres que OneUptime n'a pas trouvés dans Slack par leur adresse e-mail sont nommés sur la carte : ils connectent eux-mêmes leur compte dans **Paramètres utilisateur** > **Espace de travail** > **Slack**.
+- **Ce que connecte le bouton.** Le compte Slack de la personne qui le presse et se connecte, à son propre compte OneUptime. Transmis à quelqu'un d'autre, le message ne connecte rien au membre à qui il était destiné.
 
 ## Règles de notification
 
@@ -90,7 +99,7 @@ Chaque mise à jour ultérieure de l'enregistrement — un changement d'état, u
 
 Un incident, une alerte, un épisode ou un événement de maintenance planifiée qui a son propre canal affiche **Ouvrir dans Slack** dans l'en-tête de sa page dans OneUptime, à côté de ses boutons d'état. Ce bouton ouvre ce canal dans un nouvel onglet, dans l'application Slack ou dans le navigateur. Un enregistrement qui a deux canaux à lui les liste tous les deux sous le bouton. Un enregistrement qui a des canaux à la fois dans Slack et dans Microsoft Teams a à la place un seul bouton **Ouvrir le canal**, qui les liste tous. Les canaux existants où vos règles publient ne sont pas proposés.
 
-Un canal reste lisible : chaque événement est publié une seule fois, et le premier état d'un enregistrement figure dans le message qui annonce l'enregistrement, pas dans un message à part. Une exécution d'une politique d'astreinte est un seul message, modifié au fil de l'escalade : qui a été alerté, combien de fois et comment, qui ne l'a pas été et pourquoi, et qui l'a pris en compte. Un nouveau message n'est publié que lorsque quelqu'un doit agir : une règle d'escalade n'a atteint personne, ou l'exécution s'est terminée sans que personne ne le prenne en compte. Une personne dont le compte Slack n'est pas connecté à OneUptime ne peut pas être ajoutée à un canal ; OneUptime le dit une fois par canal, dans un seul message qui les nomme toutes et qui est modifié quand la liste s'allonge. Envoyez-leur le lien **Connect Slack account** de ce message pour qu'elles connectent leur compte en une étape. Le fait que les propriétaires de l'enregistrement ou les abonnés de la page de statut ont été prévenus reste dans son fil d'activité dans OneUptime.
+Un canal reste lisible : chaque événement est publié une seule fois, et le premier état d'un enregistrement figure dans le message qui annonce l'enregistrement, pas dans un message à part. Une exécution d'une politique d'astreinte est un seul message, modifié au fil de l'escalade : qui a été alerté, combien de fois et comment, qui ne l'a pas été et pourquoi, et qui l'a pris en compte. Un nouveau message n'est publié que lorsque quelqu'un doit agir : une règle d'escalade n'a atteint personne, ou l'exécution s'est terminée sans que personne ne le prenne en compte. Une personne dont le compte Slack n'est pas connecté à OneUptime est ajoutée par le compte Slack associé à son adresse e-mail. Une personne que OneUptime ne trouve d'aucune de ces deux façons, ou qui a un compte invité dans Slack, ne peut pas être ajoutée à un canal ; OneUptime le dit une fois par canal, dans un seul message qui les nomme toutes et qui est modifié quand la liste s'allonge. Envoyez-leur le lien **Connect Slack account** de ce message pour qu'elles connectent leur compte en une étape. Le fait que les propriétaires de l'enregistrement ou les abonnés de la page de statut ont été prévenus reste dans son fil d'activité dans OneUptime.
 
 **Paramètres du projet** > **Espace de travail** > **Slack** liste les canaux que OneUptime voit, avec **Envoyer le test** à côté de chacun. OneUptime rejoint de lui-même un canal public la première fois qu'il y publie. Un canal privé n'est listé, et ne peut recevoir de publication, qu'après que l'application OneUptime y a été invitée dans Slack.
 
@@ -280,7 +289,7 @@ OneUptime ne lit dans Slack que ce dont ces fonctionnalités ont besoin, avec le
 - **Les messages adressés à OneUptime.** Un message qui le mentionne avec @, un message que vous lui envoyez en message direct, et vos réponses dans une conversation avec lui, avec les messages précédents de ce fil ou de ce message direct, pour que OneUptime AI puisse répondre. Slack lui envoie aussi les autres messages des canaux et des messages directs de groupe où il se trouve ; OneUptime n'y répond pas et ne les conserve pas.
 - **Les messages que vous enregistrez comme notes.** Un message auquel vous réagissez avec 📌 ou 📢, ou que vous épinglez, dans le canal d'un incident, d'une alerte, d'un épisode ou d'un événement de maintenance planifiée, enregistré comme note sur cet enregistrement avec le nom de son auteur.
 - **Les noms des canaux et des personnes.** Les canaux dans lesquels il peut publier, pour que vous puissiez les choisir, les noms des personnes, pour montrer qui a écrit ou fait quelque chose, et qui est dans le canal propre d'un enregistrement, lu quand la page de l'enregistrement l'affiche.
-- **Les adresses e-mail.** L'adresse e-mail que Slack a pour une personne, pour associer son compte Slack à son compte OneUptime quand elle ne l'a pas connecté : pour l'alerter, pour la placer dans un groupe d'utilisateurs d'astreinte, ou pour l'ajouter au canal d'un enregistrement.
+- **Les adresses e-mail.** L'adresse e-mail que Slack a pour une personne, pour associer son compte Slack à son compte OneUptime quand elle ne l'a pas connecté : pour l'alerter, pour la placer dans un groupe d'utilisateurs d'astreinte, pour l'ajouter au canal d'un enregistrement, ou pour lui demander de le connecter.
 - **Les groupes d'utilisateurs.** Les groupes d'utilisateurs de votre espace de travail, pour en choisir un pour un planning d'astreinte, et les personnes d'un groupe que vous connectez, pour le garder aligné sur les personnes d'astreinte.
 
 Ce que OneUptime en conserve — le nom de l'espace de travail, ses canaux, les comptes Slack que les personnes connectent, les notes et les groupes d'utilisateurs — est stocké avec votre projet. La [Politique de confidentialité](https://oneuptime.com/legal/privacy) explique comment OneUptime traite vos données.
@@ -292,7 +301,7 @@ Vérifiez les conditions de la règle avec **Tester la règle** : si le test arr
 :::
 
 :::details Quelqu'un manque dans le canal d'une règle
-La carte de la règle dit sous **Ensuite** qui la règle invite. Chaque type de personne rejoint le canal dès qu'il rejoint l'enregistrement : les personnes appelées dès qu'elles sont appelées, le responsable d'incident dès qu'il est attribué, un propriétaire dès qu'il est ajouté, et ceux qui étaient déjà sur l'enregistrement à la création du canal. Une personne dont le compte Slack n'est pas connecté à OneUptime ne peut pas être ajoutée ; OneUptime la nomme dans le canal, avec un lien pour connecter son compte. Pour ajouter quelqu'un tout de suite, appuyez sur **Ajouter des personnes** sur la carte **Canal Slack** de l'enregistrement : elle trouve aussi les personnes par l'adresse e-mail que Slack a pour elles.
+La carte de la règle dit sous **Ensuite** qui la règle invite. Chaque type de personne rejoint le canal dès qu'il rejoint l'enregistrement : les personnes appelées dès qu'elles sont appelées, le responsable d'incident dès qu'il est attribué, un propriétaire dès qu'il est ajouté, et ceux qui étaient déjà sur l'enregistrement à la création du canal. Une personne que OneUptime ne trouve pas dans Slack, ni par le compte qu'elle a connecté ni par son adresse e-mail, ne peut pas être ajoutée ; OneUptime la nomme dans le canal, avec un lien pour connecter son compte. Pour ajouter quelqu'un tout de suite, appuyez sur **Ajouter des personnes** sur la carte **Canal Slack** de l'enregistrement.
 :::
 
 :::details Tout le monde a quitté un canal privé
