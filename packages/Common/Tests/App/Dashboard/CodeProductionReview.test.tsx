@@ -1395,12 +1395,16 @@ describe("a repository's Production Reviews", () => {
     expect(
       within(others).getByText("@oneuptime production review").tagName,
     ).toBe("CODE");
+    /*
+     * The way to Settings lands on the switch itself: it is under More
+     * settings, which opens there.
+     */
     const settings: HTMLElement = within(status).getByTestId(
       "code-production-reviews-settings",
     );
     expect(settings).toHaveAttribute(
       "href",
-      `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/settings`,
+      `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/settings#production-review`,
     );
     expect(settings).toHaveTextContent("Change in Settings");
 
@@ -1459,6 +1463,13 @@ describe("a repository's Production Reviews", () => {
     expect(
       within(status).getByTestId("code-production-reviews-settings"),
     ).toHaveTextContent("Turn on in Settings");
+    // At the switch, with More settings open there.
+    expect(
+      within(status).getByTestId("code-production-reviews-settings"),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/settings#production-review`,
+    );
     expect(
       screen.queryByTestId("code-production-reviews-status-others"),
     ).toBeNull();

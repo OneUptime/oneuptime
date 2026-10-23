@@ -60,6 +60,7 @@ import {
   CodeRepositoryRunnerCopy,
   CodeRepositoryRunnerPicker,
   CodeRepositoryRunnerValue,
+  CodeRepositoryRunnerValueView,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeRepositoryRunner";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -813,6 +814,55 @@ describe("the Settings page's Runner field and value", () => {
     expect(
       screen.queryByTestId(CODE_REPOSITORY_RUNNER_VALUE_TEST_ID),
     ).toBeNull();
+  });
+
+  /*
+   * The Settings page reads the choices once - for the Runner card and for
+   * what its folded More settings says of the Runner - and draws the value
+   * from them (CodeRepositoryRunnerValueView): it reads nothing itself,
+   * holds a line's room while the page's read is on its way, and says what
+   * the self-reading value says once it is in.
+   */
+  test("the value drawn from the page's choices reads none itself, and says the same", async () => {
+    const load: jest.SpiedFunction<
+      typeof RunnerChoicesLoader.loadForCodeRepository
+    > = jest.spyOn(RunnerChoicesLoader, "loadForCodeRepository");
+
+    const view: RenderResult = render(
+      <CodeRepositoryRunnerValueView runnerId={STAGING_ID} choices={null} />,
+    );
+
+    expect(
+      screen.getByTestId(CODE_REPOSITORY_RUNNER_LOADING_TEST_ID).className,
+    ).toContain("h-4");
+    expect(
+      screen.queryByTestId(CODE_REPOSITORY_RUNNER_VALUE_TEST_ID),
+    ).toBeNull();
+
+    view.rerender(
+      <CodeRepositoryRunnerValueView
+        runnerId={STAGING_ID}
+        choices={choices()}
+      />,
+    );
+
+    const shownValue: HTMLElement = screen.getByTestId(
+      CODE_REPOSITORY_RUNNER_VALUE_TEST_ID,
+    );
+    expect(within(shownValue).getByRole("link")).toHaveTextContent(
+      "staging-runner",
+    );
+    expect(statusOf(shownValue)).toBe("Status: Disconnected");
+    expect(
+      screen.queryByTestId(CODE_REPOSITORY_RUNNER_LOADING_TEST_ID),
+    ).toBeNull();
+    expect(load).not.toHaveBeenCalled();
+
+    // What the self-reading value draws for the same choices, word for word.
+    const drawnByView: string = shownValue.textContent || "";
+    cleanup();
+    const selfRead: HTMLElement = await value(STAGING_ID, choices());
+    expect(selfRead.textContent).toBe(drawnByView);
   });
 
   test("the field holds a menu's room while its choices are on their way", () => {

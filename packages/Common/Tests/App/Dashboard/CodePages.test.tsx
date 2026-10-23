@@ -2539,6 +2539,39 @@ describe("a task's conversation", () => {
     expect(getTaskMock).toHaveBeenCalledTimes(2);
   });
 
+  /*
+   * Queued for long, the turn says to check the repository's Runner in its
+   * settings: the link lands on the Runner, folded under More settings,
+   * which opens there.
+   */
+  test("queued for long: the way to check its Runner opens the repository's settings at the Runner", async () => {
+    getTaskMock.mockResolvedValue(
+      taskAnswer({
+        task: summary({ state: CodeTaskState.Working, isQueued: true }),
+        turns: [
+          turn({
+            status: AIRunStatus.Queued,
+            state: CodeTaskState.Working,
+            startedAt: undefined,
+            completedAt: undefined,
+            createdAt: new Date(Date.now() - 12 * 60000).toISOString(),
+          }),
+        ],
+      }) as never,
+    );
+
+    draw(<CodeTaskConversation {...PAGE_PROPS} />);
+
+    const slow: HTMLElement = await screen.findByTestId("code-turn-slow-queue");
+
+    expect(
+      within(slow).getByRole("link", { name: "Settings" }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/settings#runner`,
+    );
+  });
+
   test("a reader who may only read: no Stop while AI works, and no box after", async () => {
     getTaskMock.mockResolvedValue(
       taskAnswer({
