@@ -49,7 +49,7 @@ import UserType from "../../../Types/UserType";
  * Nor is a step lent what a Project Admin may do to who may do what in the
  * project: it creates, changes and deletes no team, team member, team
  * permission, custom role, role permission, team role, API key, API key
- * permission, SSO or SCIM setting (ACCESS_TABLES). Who may build a workflow
+ * permission, API key role, SSO or SCIM setting (ACCESS_TABLES). Who may build a workflow
  * is not who may manage the project's access - a Project Member, a Workflow
  * Admin, someone with Create Workflow or Edit Workflow builds one - so a
  * step that could would hand its builder the access they were not given: a
@@ -73,6 +73,7 @@ import UserType from "../../../Types/UserType";
  */
 const ACCESS_TABLES: Array<string> = [
   "ApiKey",
+  "ApiKeyCustomRole",
   "ApiKeyPermission",
   "CustomRole",
   "CustomRolePermission",

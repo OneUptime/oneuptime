@@ -26,6 +26,8 @@ const IMPORTS_HELPER: RegExp =
 const GENERATION_CACHES: ReadonlyArray<string> = [
   "Server/Utils/StatusPage/StatusPageOverviewCache.ts",
   "Server/Infrastructure/OnCallCalendarFeedCache.ts",
+  // Every API key's cached permissions, by project.
+  "Server/Services/ApiKeyPermissionService.ts",
 ];
 
 // Pieces of the scheme that live in CacheGenerations alone.
