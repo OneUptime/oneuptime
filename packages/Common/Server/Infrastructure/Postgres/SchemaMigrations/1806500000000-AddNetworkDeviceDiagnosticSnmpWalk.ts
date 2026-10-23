@@ -13,10 +13,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * backfill - every row there is is a ping or a traceroute, which has none
  * of them.
  */
-export class AddNetworkDeviceDiagnosticSnmpWalk1806400000000
+export class AddNetworkDeviceDiagnosticSnmpWalk1806500000000
   implements MigrationInterface
 {
-  public name: string = "AddNetworkDeviceDiagnosticSnmpWalk1806400000000";
+  public name: string = "AddNetworkDeviceDiagnosticSnmpWalk1806500000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
