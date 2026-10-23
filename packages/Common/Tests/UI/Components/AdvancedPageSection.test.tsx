@@ -695,9 +695,10 @@ describe("opens by itself at a card the page's address names", () => {
 
       render(<Section />);
 
-      expect({ hash, expanded: header().getAttribute("aria-expanded") }).toEqual(
-        { hash, expanded: "false" },
-      );
+      expect({
+        hash,
+        expanded: header().getAttribute("aria-expanded"),
+      }).toEqual({ hash, expanded: "false" });
       expect(
         screen.getByTestId(ADVANCED_PAGE_SECTION_TEST_ID).getAttribute("style"),
       ).toBeNull();

@@ -531,7 +531,9 @@ describe("on top, the repository itself; every other setting under More settings
     const details: HTMLElement = screen
       .getAllByTestId("card-model-detail-stand-in")
       .find((box: HTMLElement): boolean => {
-        return box.getAttribute("data-name") === "Repository > Repository Details";
+        return (
+          box.getAttribute("data-name") === "Repository > Repository Details"
+        );
       })!;
 
     expect(folded()).not.toContainElement(details);
@@ -618,9 +620,9 @@ describe("on top, the repository itself; every other setting under More settings
       "Runner",
       "Pull Requests",
     ]);
-    expect(within(folded()).getByTestId("folded-section-more")).toHaveTextContent(
-      "2 more",
-    );
+    expect(
+      within(folded()).getByTestId("folded-section-more"),
+    ).toHaveTextContent("2 more");
     // Nothing is set to anything but its default.
     expect(setChips()).toEqual([]);
   });
@@ -658,9 +660,11 @@ describe("a link to a setting opens More settings there", () => {
     await waitFor(() => {
       expect(scrolled).toContain(document.getElementById("runner"));
     });
-    expect(scrolled.every((element: Element): boolean => {
-      return element === document.getElementById("runner");
-    })).toBe(true);
+    expect(
+      scrolled.every((element: Element): boolean => {
+        return element === document.getElementById("runner");
+      }),
+    ).toBe(true);
   });
 
   test("opened at #production-review, the switch Production Reviews' Settings link names: its card is brought into view", async () => {
@@ -1000,7 +1004,10 @@ describe("Respond to GitHub Commands: one switch, on by default, under More sett
   });
 
   test("off, folded More settings says so - and on again, it no longer does", async () => {
-    stored = { isGitHubCommandsEnabled: false, isProductionReviewEnabled: true };
+    stored = {
+      isGitHubCommandsEnabled: false,
+      isProductionReviewEnabled: true,
+    };
     draw();
     await switchesRead();
 

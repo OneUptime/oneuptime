@@ -296,8 +296,7 @@ export function getRepositoryRunnerItem(
   });
 
   if (model.selected?.kind === RunnerPickerOptionKind.Project) {
-    const liveStatus: RunnerLiveStatus | undefined =
-      model.selected.liveStatus;
+    const liveStatus: RunnerLiveStatus | undefined = model.selected.liveStatus;
     const status: string | undefined =
       liveStatus && liveStatus !== RunnerLiveStatus.Connected
         ? translator.translateText(getRunnerLiveStatusLabel(liveStatus))

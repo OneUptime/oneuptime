@@ -201,7 +201,10 @@ export const CodeRepositoryRunnerValue: FunctionComponent<
   const choices: RunnerChoices | null = useCodeRepositoryRunnerChoices();
 
   return (
-    <CodeRepositoryRunnerValueView runnerId={props.runnerId} choices={choices} />
+    <CodeRepositoryRunnerValueView
+      runnerId={props.runnerId}
+      choices={choices}
+    />
   );
 };
 

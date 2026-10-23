@@ -1234,16 +1234,17 @@ test.describe("a repository's settings", () => {
       "Runner",
       "Pull Requests",
     ]);
-    await expect(moreSettings(page).getByTestId("folded-section-more")).toHaveText(
-      "2 more",
-    );
+    await expect(
+      moreSettings(page).getByTestId("folded-section-more"),
+    ).toHaveText("2 more");
     // Nothing folded is in sight: the page is the repository and the fold.
     await expect(commandsSwitch(page)).toBeHidden();
     await expect(page.getByTestId("code-repository-runner")).toBeHidden();
     await expect(page.getByRole("switch")).toHaveCount(0);
     const detailsBox: { y: number; height: number } | null =
       await details.boundingBox();
-    const foldBox: { y: number } | null = await moreSettings(page).boundingBox();
+    const foldBox: { y: number } | null =
+      await moreSettings(page).boundingBox();
     expect(foldBox!.y).toBeGreaterThanOrEqual(
       detailsBox!.y + detailsBox!.height,
     );

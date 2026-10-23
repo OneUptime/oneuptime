@@ -232,15 +232,17 @@ describe("a link to a place", () => {
     "/dashboard/dddddddd-0000-4000-8000-000000000001/code/repositories/eeeeeeee-0000-4000-8000-000000000001/settings";
 
   test("is the page's route with '#<place>' after it", () => {
-    expect(
-      getRouteToPageAnchor(new Route(SETTINGS), "runner").toString(),
-    ).toBe(`${SETTINGS}#runner`);
+    expect(getRouteToPageAnchor(new Route(SETTINGS), "runner").toString()).toBe(
+      `${SETTINGS}#runner`,
+    );
   });
 
   test("after the query string, where the route has one", () => {
     expect(
-      getRouteToPageAnchor(new Route(`${SETTINGS}?from=email`), "runner")
-        .toString(),
+      getRouteToPageAnchor(
+        new Route(`${SETTINGS}?from=email`),
+        "runner",
+      ).toString(),
     ).toBe(`${SETTINGS}?from=email#runner`);
   });
 
@@ -277,9 +279,7 @@ describe("bringing a place into view", () => {
 
     drawFrames();
 
-    expect(scrolls).toEqual([
-      { element: runner, options: { block: "start" } },
-    ]);
+    expect(scrolls).toEqual([{ element: runner, options: { block: "start" } }]);
   });
 
   test("again each time the page changes size while it settles - once a frame, however many changes", () => {
@@ -341,7 +341,11 @@ describe("bringing a place into view", () => {
     expect(FakeResizeObserver.instances[0]!.isDisconnected).toBe(true);
   });
 
-  test.each(PAGE_ANCHOR_RELEASING_EVENTS.map((name: string) => [name]))(
+  test.each(
+    PAGE_ANCHOR_RELEASING_EVENTS.map((name: string) => {
+      return [name];
+    }),
+  )(
     "%s - the person scrolling, touching, clicking or typing - ends it at once",
     (eventName: string) => {
       const runner: HTMLElement = place();
@@ -447,9 +451,7 @@ describe("bringing a place into view", () => {
     expect(scrolls).toEqual([]);
 
     jest.advanceTimersByTime(0);
-    expect(scrolls).toEqual([
-      { element: runner, options: { block: "start" } },
-    ]);
+    expect(scrolls).toEqual([{ element: runner, options: { block: "start" } }]);
     expect(FakeResizeObserver.instances).toEqual([]);
   });
 

@@ -187,9 +187,7 @@ describe("a repository's side menu", () => {
   test("a link to one of its settings is its Settings page with that setting after the '#'", () => {
     const settings: string = `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/settings`;
 
-    expect(getRepositorySettingsRoute(REPOSITORY_ID).toString()).toBe(
-      settings,
-    );
+    expect(getRepositorySettingsRoute(REPOSITORY_ID).toString()).toBe(settings);
     expect(
       getRepositorySettingsRoute(
         new ObjectID(REPOSITORY_ID),
