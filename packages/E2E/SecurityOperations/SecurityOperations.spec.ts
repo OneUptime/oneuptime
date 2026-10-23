@@ -1104,12 +1104,12 @@ test.describe("the overview's top card", () => {
     }
   });
 
-  test("All quiet: the test attack sits at the band's right edge - beside its words on a laptop, under them on a phone", async ({
+  test("All quiet: the test attack sits at the band's right edge - beside its words on a laptop, under them on a tablet and a phone", async ({
     page,
   }: {
     page: Page;
   }) => {
-    for (const width of [1280, 390]) {
+    for (const width of [1280, 768, 390]) {
       await open(page, OVERVIEW_PATH, { quiet: true, width });
 
       const heading: Box = await boxOf(
@@ -1123,8 +1123,8 @@ test.describe("the overview's top card", () => {
       );
       const area: Box = await boxOf(band(page));
 
-      // The band pads its content 24px from md up, 20px below.
-      const padding: number = width === 1280 ? 24 : 20;
+      // The band pads its content 20px at every width, as the cells do.
+      const padding: number = 20;
       // At the band's right edge, as a card keeps its actions, in both layouts.
       expect(
         Math.abs(button.x + button.width - (area.x + area.width - padding)),
@@ -1138,8 +1138,48 @@ test.describe("the overview's top card", () => {
         // Its own width, not a bar across the band.
         expect(button.width).toBeLessThan(area.width * 0.75);
       }
+      if (width === 768) {
+        /*
+         * Beside the side menu the band is too narrow for words and button
+         * side by side: the words keep the band's width, not a narrow
+         * column five lines deep beside the button.
+         */
+        expect(summary.width).toBeGreaterThan(area.width * 0.6);
+        expect(summary.height).toBeLessThanOrEqual(3 * 20 + 1);
+      }
       expect(heading.y).toBeLessThan(summary.y);
     }
+  });
+
+  test("the band's disc lines up with the cells' names, and the figures' below", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, OVERVIEW_PATH, { width: 1280 });
+
+    const disc: Box = await boxOf(
+      band(page).getByTestId("security-status-disc"),
+    );
+    const sourcesName: Box = await boxOf(
+      stage(page, "sources").getByText("Sources", { exact: true }),
+    );
+    const card: Box = await boxOf(topCard(page));
+
+    // Inside the card's 1px border, 20px in: the cells' own padding.
+    const contentStart: number = card.x + 1 + 20;
+    expect(Math.abs(disc.x - contentStart)).toBeLessThanOrEqual(0.5);
+    // The cell's name follows its 14px icon and a 6px gap.
+    expect(
+      Math.abs(sourcesName.x - (contentStart + 14 + 6)),
+    ).toBeLessThanOrEqual(0.5);
+    // The figures' card below starts its names on the same line.
+    const firstFigure: Box = await boxOf(
+      page
+        .getByRole("group", { name: "Security operations figures" })
+        .getByText("Mean Time to Acknowledge", { exact: true }),
+    );
+    expect(Math.abs(firstFigure.x - sourcesName.x)).toBeLessThanOrEqual(1);
   });
 
   test("a project nothing watches says so, never All quiet, and Set up Security brings Get started back for good", async ({
@@ -1155,7 +1195,7 @@ test.describe("the overview's top card", () => {
     await expect(band(page)).toHaveAttribute("data-kind", "not-set-up");
     await expect(
       band(page).getByRole("heading", {
-        name: "Nothing is watched for threats yet",
+        name: "Nothing is being watched for threats yet",
       }),
     ).toBeVisible();
     await expect(band(page)).not.toContainText("All quiet");

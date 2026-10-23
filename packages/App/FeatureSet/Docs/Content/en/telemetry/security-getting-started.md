@@ -91,7 +91,7 @@ Nothing has reached Security since then. Open **Connections** and check that **Y
 :::
 
 :::details The card that turns Security on is gone
-Someone put it away with **Dismiss**. While Security has no source, or no rule turned on, **Overview** offers **Set up Security**, which brings it back.
+Someone put it away with **Dismiss**. While nothing is being watched for threats yet, **Overview** offers **Set up Security**, which brings it back.
 :::
 
 ## Next steps

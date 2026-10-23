@@ -33461,7 +33461,7 @@
   "No open case and nothing waiting for an approval, but the last security event arrived {{time}}.": "열린 케이스도, 승인을 기다리는 항목도 없지만, 마지막 보안 이벤트는 {{time}}에 도착했습니다.",
   "No open case and nothing waiting for an approval. When a rule finds a threat, its case opens here.": "열린 케이스도, 승인을 기다리는 항목도 없습니다. 규칙이 위협을 찾으면 여기에서 케이스가 열립니다.",
   "None critical or high": "심각 또는 높음 없음",
-  "Nothing is watched for threats yet": "아직 위협을 감시하는 대상이 없습니다",
+  "Nothing is being watched for threats yet": "아직 위협을 감시하는 대상이 없습니다",
   "Set up Security": "Security 설정",
   "Turn on rules": "규칙 켜기",
   "Turn on what most teams need in one click: your logs as a source, the recommended detection rules and a playbook that enriches every new case.": "대부분의 팀에 필요한 항목을 클릭 한 번으로 켭니다. 소스로 쓸 로그, 추천 탐지 규칙, 새 케이스를 모두 보강하는 플레이북입니다.",

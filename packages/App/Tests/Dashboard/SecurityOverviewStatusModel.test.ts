@@ -51,6 +51,7 @@ import {
   SecurityStatusTone,
   UNASSIGNED_OPEN_CASES_LABEL,
   URGENT_OPEN_CASES,
+  formatSecurityOverviewValues,
   getSecurityAttentionItems,
   getSecurityHeadline,
   getSecurityStageViews,
@@ -79,6 +80,7 @@ import {
 
 const NOW: Date = new Date("2026-10-23T12:00:00.000Z");
 const MINUTE_IN_MS: number = 60 * 1000;
+const LATIN_DIGIT: RegExp = /[0-9]/;
 const DAY_IN_MS: number = 24 * 60 * MINUTE_IN_MS;
 
 function ago(milliseconds: number): Date {
@@ -230,12 +232,20 @@ describe("the band", () => {
     ).toEqual({ text: QUIET_SUMMARY });
   });
 
-  test("nothing open and no source, or no rule on: nothing is watched yet, with Set up Security - never All quiet", () => {
+  test("nothing open and nothing that can open a case: nothing is being watched yet, with Set up Security - never All quiet", () => {
     for (const value of [
       status(),
+      // Rules, and nothing for them to read.
       status({ enabledRules: 5, enabledPlaybooks: 1 }),
+      // A threat intel feed, and nothing for it to match.
+      status({ threatIntelFeeds: 2 }),
+      // Your logs, and nothing to find threats in them.
       status({ logsSourceEnabled: true, enabledPlaybooks: 1 }),
-      status({ connections: 2, eventsLast24Hours: 40 }),
+      status({
+        logsSourceEnabled: true,
+        eventsLast24Hours: 40,
+        lastEventAt: ago(MINUTE_IN_MS),
+      }),
     ]) {
       const notWatching: SecurityHeadline = headline({}, value);
 
@@ -254,6 +264,47 @@ describe("the band", () => {
     expect(headline({}, status({ connections: 1, enabledRules: 1 })).kind).toBe(
       SecurityHeadlineKind.Quiet,
     );
+    expect(NOT_SET_UP_TITLE).toBe("Nothing is being watched for threats yet");
+  });
+
+  test("a connected product watches without a rule of OneUptime's: its alerts open cases, so the band is All quiet, not Set up Security", () => {
+    /*
+     * CrowdStrike, Sentinel, Google SecOps and the rest import their alerts
+     * and open cases from High up by default (the connection's Open Cases
+     * From Severity). Telling such a team nothing is being watched would be
+     * wrong, and Set up Security would push rules they do not want.
+     */
+    const connectionOnly: SecurityHeadline = headline(
+      {},
+      status({
+        connections: 1,
+        eventsLast24Hours: 40,
+        lastEventAt: ago(MINUTE_IN_MS),
+      }),
+    );
+
+    expect(connectionOnly.kind).toBe(SecurityHeadlineKind.Quiet);
+    expect(connectionOnly.action).toBe(SecurityHeadlineAction.TestAttack);
+    // The Detections cell still says OneUptime's own rules are not on.
+    expect(
+      read(
+        view(
+          status({
+            connections: 1,
+            eventsLast24Hours: 40,
+            lastEventAt: ago(MINUTE_IN_MS),
+          }),
+          "detections",
+        ),
+      ),
+    ).toEqual(["Not set up", "Turn on rules"]);
+  });
+
+  test("a threat intel feed reading your logs watches without a rule: its matches open cases", () => {
+    expect(
+      headline({}, status({ logsSourceEnabled: true, threatIntelFeeds: 1 }))
+        .kind,
+    ).toBe(SecurityHeadlineKind.Quiet);
   });
 
   test("something waits for a person: Needs attention, each count a link to the page that lists it, in the docs' order, and only what has a count", () => {
@@ -382,10 +433,30 @@ describe("the band", () => {
 });
 
 describe("watching, and gone quiet", () => {
-  test("watching takes a source and a rule that is on", () => {
+  test("watching takes something that can open a case: a connection, or your logs with a rule or a threat intel feed", () => {
+    // Nothing, or one half of a pair.
     expect(isSecurityWatching(status())).toBe(false);
     expect(isSecurityWatching(status({ logsSourceEnabled: true }))).toBe(false);
     expect(isSecurityWatching(status({ enabledRules: 3 }))).toBe(false);
+    expect(isSecurityWatching(status({ threatIntelFeeds: 3 }))).toBe(false);
+    // A playbook responds to cases; it opens none.
+    expect(
+      isSecurityWatching(
+        status({ logsSourceEnabled: true, enabledPlaybooks: 2 }),
+      ),
+    ).toBe(false);
+
+    // Your logs, read by a rule or by a feed.
+    expect(
+      isSecurityWatching(status({ logsSourceEnabled: true, enabledRules: 3 })),
+    ).toBe(true);
+    expect(
+      isSecurityWatching(
+        status({ logsSourceEnabled: true, threatIntelFeeds: 1 }),
+      ),
+    ).toBe(true);
+    // A connected product, whose alerts open cases on their own.
+    expect(isSecurityWatching(status({ connections: 1 }))).toBe(true);
     expect(
       isSecurityWatching(status({ connections: 1, enabledRules: 3 })),
     ).toBe(true);
@@ -760,6 +831,56 @@ describe("words", () => {
     expect(translateSecurityOverviewText(german, { text: ALL_CLEAR })).toBe(
       "All clear",
     );
+  });
+
+  test("a template's numbers are written the reader's way, as a plural's count is", () => {
+    const german: Translator = createTranslator((text: string) => {
+      return (
+        {
+          [RECOMMENDED_ON]: "{{on}} von {{total}} empfohlenen",
+          [URGENT_OPEN_CASES]: "{{critical}} kritisch · {{high}} hoch",
+        } as Record<string, string>
+      )[text];
+    }, "de");
+
+    expect(
+      translateSecurityOverviewText(german, {
+        template: RECOMMENDED_ON,
+        values: { on: 1200, total: 2400 },
+      }),
+    ).toBe("1.200 von 2.400 empfohlenen");
+    expect(
+      translateSecurityOverviewText(ENGLISH, {
+        template: URGENT_OPEN_CASES,
+        values: { critical: 1500, high: 2 },
+      }),
+    ).toBe("1,500 critical · 2 high");
+
+    // Persian digits beside Persian digits: never "3" next to a Persian 8.
+    const persianLocale: Record<string, unknown> = readLocale("fa");
+    const persian: Translator = createTranslator((text: string) => {
+      const value: unknown = persianLocale[text];
+
+      return typeof value === "string" ? value : undefined;
+    }, "fa");
+    const recommended: string = translateSecurityOverviewText(persian, {
+      template: RECOMMENDED_ON,
+      values: { on: 3, total: 20 },
+    });
+    const rules: string = translateSecurityOverviewText(persian, {
+      plural: RULES_ON_FIGURE,
+      count: 8,
+    });
+
+    expect(recommended).toContain(persian.formatNumber(3));
+    expect(recommended).toContain(persian.formatNumber(20));
+    expect(rules).toContain(persian.formatNumber(8));
+    expect(`${recommended} ${rules}`).not.toMatch(LATIN_DIGIT);
+
+    // Words stay as they are; only numbers are written out.
+    expect(
+      formatSecurityOverviewValues(ENGLISH, { name: "Okta", count: 12000 }),
+    ).toEqual({ name: "Okta", count: "12,000" });
   });
 });
 

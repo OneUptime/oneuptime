@@ -33461,7 +33461,7 @@
   "No open case and nothing waiting for an approval, but the last security event arrived {{time}}.": "没有未结案例，也没有等待审批的内容，但最后一个安全事件是{{time}}到达的。",
   "No open case and nothing waiting for an approval. When a rule finds a threat, its case opens here.": "没有未结案例，也没有等待审批的内容。当规则发现威胁时，其案例会在此打开。",
   "None critical or high": "无严重或高优先级",
-  "Nothing is watched for threats yet": "尚未监视任何威胁",
+  "Nothing is being watched for threats yet": "尚未监视任何威胁",
   "Set up Security": "设置 Security",
   "Turn on rules": "开启规则",
   "Turn on what most teams need in one click: your logs as a source, the recommended detection rules and a playbook that enriches every new case.": "一键开启大多数团队需要的功能：将你的日志作为来源、推荐的检测规则，以及一个丰富每个新案例的剧本。",

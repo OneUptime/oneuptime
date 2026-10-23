@@ -91,7 +91,7 @@ Intet har nået Security siden da. Åbn **Connections**, og tjek, at **Dine logs
 :::
 
 :::details Kortet, der slår Security til, er væk
-Nogen har lukket det med **Luk**. Så længe Security ikke har nogen kilde eller ingen regel slået til, tilbyder **Oversigt** **Sæt Security op**, som henter det tilbage.
+Nogen har lukket det med **Luk**. Så længe intet overvåges for trusler endnu, tilbyder **Oversigt** **Sæt Security op**, som henter det tilbage.
 :::
 
 ## Næste trin

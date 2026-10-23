@@ -33461,7 +33461,7 @@
   "No open case and nothing waiting for an approval, but the last security event arrived {{time}}.": "Nessun caso aperto e niente in attesa di approvazione, ma l'ultimo evento di sicurezza è arrivato {{time}}.",
   "No open case and nothing waiting for an approval. When a rule finds a threat, its case opens here.": "Nessun caso aperto e niente in attesa di approvazione. Quando una regola trova una minaccia, il suo caso si apre qui.",
   "None critical or high": "Nessuno critico o alto",
-  "Nothing is watched for threats yet": "Nulla è ancora sorvegliato in cerca di minacce",
+  "Nothing is being watched for threats yet": "Nulla è ancora sorvegliato in cerca di minacce",
   "Set up Security": "Configura Security",
   "Turn on rules": "Attiva le regole",
   "Turn on what most teams need in one click: your logs as a source, the recommended detection rules and a playbook that enriches every new case.": "Attiva con un clic ciò che serve alla maggior parte dei team: i tuoi log come fonte, le regole di rilevamento consigliate e un playbook che arricchisce ogni nuovo caso.",

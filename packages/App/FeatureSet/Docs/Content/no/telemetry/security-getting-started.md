@@ -91,7 +91,7 @@ Ingenting har nådd Security siden da. Åpne **Connections**, og sjekk at **Logg
 :::
 
 :::details Kortet som slår på Security, er borte
-Noen lukket det med **Lukk**. Så lenge Security ikke har noen kilde eller ingen regel slått på, tilbyr **Oversikt** **Sett opp Security**, som henter det tilbake.
+Noen lukket det med **Lukk**. Så lenge ingenting overvåkes for trusler ennå, tilbyr **Oversikt** **Sett opp Security**, som henter det tilbake.
 :::
 
 ## Neste steg

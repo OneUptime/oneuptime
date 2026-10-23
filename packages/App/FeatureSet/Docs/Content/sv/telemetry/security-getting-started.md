@@ -91,7 +91,7 @@ Inget har nått Security sedan dess. Öppna **Connections** och kontrollera att 
 :::
 
 :::details Kortet som slår på Security är borta
-Någon stängde det med **Stäng**. Så länge Security inte har någon källa eller ingen påslagen regel erbjuder **Översikt** **Konfigurera Security**, som tar tillbaka det.
+Någon stängde det med **Stäng**. Så länge inget bevakas efter hot ännu erbjuder **Översikt** **Konfigurera Security**, som tar tillbaka det.
 :::
 
 ## Nästa steg

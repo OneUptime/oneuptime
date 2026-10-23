@@ -33461,7 +33461,7 @@
   "No open case and nothing waiting for an approval, but the last security event arrived {{time}}.": "No open case and nothing waiting for an approval, but the last security event arrived {{time}}.",
   "No open case and nothing waiting for an approval. When a rule finds a threat, its case opens here.": "No open case and nothing waiting for an approval. When a rule finds a threat, its case opens here.",
   "None critical or high": "None critical or high",
-  "Nothing is watched for threats yet": "Nothing is watched for threats yet",
+  "Nothing is being watched for threats yet": "Nothing is being watched for threats yet",
   "Set up Security": "Set up Security",
   "Turn on rules": "Turn on rules",
   "Turn on what most teams need in one click: your logs as a source, the recommended detection rules and a playbook that enriches every new case.": "Turn on what most teams need in one click: your logs as a source, the recommended detection rules and a playbook that enriches every new case.",

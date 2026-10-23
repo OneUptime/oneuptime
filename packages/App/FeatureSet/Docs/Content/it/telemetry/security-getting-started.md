@@ -91,7 +91,7 @@ Da allora a Security non è arrivato niente. Apri **Connections** e verifica che
 :::
 
 :::details La scheda che attiva Security è sparita
-Qualcuno l'ha tolta con **Chiudi**. Finché Security non ha alcuna origine o alcuna regola attiva, **Panoramica** offre **Configura Security**, che la riporta.
+Qualcuno l'ha tolta con **Chiudi**. Finché ancora nulla viene sorvegliato in cerca di minacce, **Panoramica** offre **Configura Security**, che la riporta.
 :::
 
 ## Passaggi successivi

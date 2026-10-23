@@ -21,6 +21,8 @@ import {
   NONE_URGENT,
   SecurityHeadlineKind,
   SecurityOverviewQueue,
+  URGENT_OPEN_CASES,
+  formatSecurityOverviewValues,
   getSecurityHeadline,
 } from "../../Components/SecurityOverview/SecurityOverviewStatusModel";
 import {
@@ -273,11 +275,18 @@ const SecurityOverviewPage: FunctionComponent<
   // "0 critical · 0 high" says nothing: the pipeline's words for none urgent.
   const openCasesDetail: string =
     queue.criticalOpenCases + queue.highOpenCases > 0
-      ? translator.translateTemplate("{{critical}} critical · {{high}} high", {
-          critical: queue.criticalOpenCases,
-          high: queue.highOpenCases,
-        })
+      ? translator.translateTemplate(
+          URGENT_OPEN_CASES,
+          formatSecurityOverviewValues(translator, {
+            critical: queue.criticalOpenCases,
+            high: queue.highOpenCases,
+          }),
+        )
       : translator.translateText(NONE_URGENT) || NONE_URGENT;
+  // The windows' days in the reader's digits, as every count on the page.
+  const caseWindowInDays: string = translator.formatNumber(
+    overview.caseWindowInDays,
+  );
 
   const prioritySeries: Array<StackedSeries> = [...SECURITY_CASE_PRIORITIES]
     .reverse()
@@ -458,7 +467,7 @@ const SecurityOverviewPage: FunctionComponent<
                 description={translator.translateTemplate(
                   "Last {{days}} days",
                   {
-                    days: overview.caseWindowInDays,
+                    days: caseWindowInDays,
                   },
                 )}
               />,
@@ -477,7 +486,7 @@ const SecurityOverviewPage: FunctionComponent<
                 description={translator.translateTemplate(
                   "Last {{days}} days",
                   {
-                    days: overview.caseWindowInDays,
+                    days: caseWindowInDays,
                   },
                 )}
               />,
@@ -499,7 +508,7 @@ const SecurityOverviewPage: FunctionComponent<
                     other: "{{count}} cases closed in {{days}} days",
                   },
                   metrics.casesClosedInWindow,
-                  { days: overview.caseWindowInDays },
+                  { days: caseWindowInDays },
                 )}
               />,
             ]}

@@ -3,6 +3,7 @@ import { readPage } from "./DocsContentSupport";
 import { tables } from "./DocsPageShape";
 import {
   NEEDS_ATTENTION_TITLE,
+  NOT_SET_UP_TITLE,
   QUIET_SOURCE_AFTER_IN_MS,
   QUIET_SUMMARY_SOURCES_SILENT,
   QUIET_TITLE,
@@ -167,20 +168,28 @@ describe("Get Started with Security", () => {
       "A part that is not set up says so, and opens the page where you set it up.",
     );
 
-    // Set up Security only while there is no source or no rule turned on.
+    /*
+     * Set up Security only while nothing is being watched for threats - the
+     * band's own words: no connection (its alerts open cases on their own),
+     * and no rule or threat intel feed reading your logs.
+     */
     for (const [status, offered] of [
       [empty, true],
       [{ ...empty, enabledRules: 3 }, true],
+      [{ ...empty, threatIntelFeeds: 1 }, true],
       [{ ...empty, logsSourceEnabled: true }, true],
       [{ ...empty, logsSourceEnabled: true, enabledRules: 3 }, false],
+      [{ ...empty, logsSourceEnabled: true, threatIntelFeeds: 1 }, false],
+      [{ ...empty, connections: 1 }, false],
     ] as Array<[SecuritySetupStatus, boolean]>) {
       expect(
         getSecurityHeadline({ queue, status, now }).action ===
           SecurityHeadlineAction.SetUp,
       ).toBe(offered);
     }
+    expect(NOT_SET_UP_TITLE).toBe("Nothing is being watched for threats yet");
     expect(prose).toContain(
-      "While Security has no source, or no rule turned on, **Overview** offers **Set up Security**, which brings it back.",
+      "While nothing is being watched for threats yet, **Overview** offers **Set up Security**, which brings it back.",
     );
   });
 

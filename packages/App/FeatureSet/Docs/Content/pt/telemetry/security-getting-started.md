@@ -91,7 +91,7 @@ Nada chegou ao Security desde então. Abra **Connections** e verifique se **Seus
 :::
 
 :::details O cartão que ativa o Security sumiu
-Alguém o fechou com **Dispensar**. Enquanto o Security não tiver nenhuma origem ou nenhuma regra ativada, a **Visão geral** oferece **Configurar o Security**, que o traz de volta.
+Alguém o fechou com **Dispensar**. Enquanto nada estiver sendo vigiado contra ameaças, a **Visão geral** oferece **Configurar o Security**, que o traz de volta.
 :::
 
 ## Próximos passos

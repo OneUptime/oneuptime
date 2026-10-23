@@ -91,7 +91,7 @@ Seitdem hat Security nichts erreicht. Öffnen Sie **Verbindungen** und prüfen S
 :::
 
 :::details Die Karte, die Security einschaltet, ist weg
-Jemand hat sie mit **Ausblenden** weggelegt. Solange Security keine Quelle oder keine eingeschaltete Regel hat, bietet **Übersicht** **Security einrichten** an, womit sie zurückkommt.
+Jemand hat sie mit **Ausblenden** weggelegt. Solange noch nichts auf Bedrohungen überwacht wird, bietet **Übersicht** **Security einrichten** an, womit sie zurückkommt.
 :::
 
 ## Nächste Schritte

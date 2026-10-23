@@ -91,7 +91,7 @@ Rien n'a atteint Security depuis. Ouvrez **Connexions** et vérifiez que **Vos j
 :::
 
 :::details La carte qui active Security a disparu
-Quelqu'un l'a fermée avec **Masquer**. Tant que Security n'a aucune source ou aucune règle activée, **Vue d'ensemble** propose **Configurer Security**, qui la fait revenir.
+Quelqu'un l'a fermée avec **Masquer**. Tant que rien n'est encore surveillé pour détecter des menaces, **Vue d'ensemble** propose **Configurer Security**, qui la fait revenir.
 :::
 
 ## Étapes suivantes

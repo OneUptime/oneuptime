@@ -33461,7 +33461,7 @@
   "No open case and nothing waiting for an approval, but the last security event arrived {{time}}.": "Inget öppet ärende och inget som väntar på godkännande, men den senaste säkerhetshändelsen kom {{time}}.",
   "No open case and nothing waiting for an approval. When a rule finds a threat, its case opens here.": "Inget öppet ärende och inget som väntar på godkännande. När en regel hittar ett hot öppnas dess ärende här.",
   "None critical or high": "Inga kritiska eller höga",
-  "Nothing is watched for threats yet": "Inget bevakas efter hot ännu",
+  "Nothing is being watched for threats yet": "Inget bevakas efter hot ännu",
   "Set up Security": "Konfigurera Security",
   "Turn on rules": "Slå på regler",
   "Turn on what most teams need in one click: your logs as a source, the recommended detection rules and a playbook that enriches every new case.": "Slå på det som de flesta team behöver med ett klick: dina loggar som källa, de rekommenderade upptäcktsreglerna och en playbook som berikar varje nytt ärende.",

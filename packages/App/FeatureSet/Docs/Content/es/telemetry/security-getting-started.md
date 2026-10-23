@@ -91,7 +91,7 @@ Desde entonces no ha llegado nada a Security. Abra **Conexiones** y compruebe qu
 :::
 
 :::details La tarjeta que activa Security ha desaparecido
-Alguien la quitó con **Descartar**. Mientras Security no tenga ningún origen o ninguna regla activada, **Vista general** ofrece **Configurar Security**, que la trae de vuelta.
+Alguien la quitó con **Descartar**. Mientras todavía no se vigile nada en busca de amenazas, **Vista general** ofrece **Configurar Security**, que la trae de vuelta.
 :::
 
 ## Próximos pasos

@@ -128,13 +128,20 @@ const SecurityPipeline: FunctionComponent<ComponentProps> = (
                   )}
                 </>
               </AppLink>
+              {/*
+               * On the line after the cell, in the reading direction: its
+               * end edge (the left one in a right-to-left page), pointing on.
+               */}
               {index < views.length - 1 ? (
                 <span
-                  className="pointer-events-none absolute right-0 top-1/2 z-10 flex h-6 w-6 -translate-y-1/2 translate-x-1/2 items-center justify-center rounded-full bg-white text-gray-400 shadow-sm ring-1 ring-gray-200 max-lg:hidden"
+                  className="pointer-events-none absolute end-0 top-1/2 z-10 flex h-6 w-6 -translate-y-1/2 translate-x-1/2 items-center justify-center rounded-full bg-white text-gray-400 shadow-sm ring-1 ring-gray-200 max-lg:hidden rtl:-translate-x-1/2"
                   aria-hidden="true"
                   data-testid="security-pipeline-arrow"
                 >
-                  <Icon icon={IconProp.ChevronRight} className="h-3.5 w-3.5" />
+                  <Icon
+                    icon={IconProp.ChevronRight}
+                    className="h-3.5 w-3.5 rtl:rotate-180"
+                  />
                 </span>
               ) : (
                 <></>

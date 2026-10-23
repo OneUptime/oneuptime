@@ -96,9 +96,13 @@ const AttentionLink: FunctionComponent<{
 
   return (
     <li data-testid={`security-attention-${props.item.key}`}>
+      {/*
+       * -mx-1 px-1: the focus ring keeps 4px off the icons, where the line
+       * itself stays put.
+       */}
       <AppLink
         to={route(props.item.page)}
-        className="group inline-flex max-w-full items-start gap-2 rounded text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+        className="group -mx-1 inline-flex max-w-full items-start gap-2 rounded px-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
       >
         <>
           <Icon
@@ -111,9 +115,10 @@ const AttentionLink: FunctionComponent<{
             </span>{" "}
             {translator.translatePlural(props.item.label, props.item.count)}
           </span>
+          {/* Forward in the reading direction: left in a right-to-left page. */}
           <Icon
             icon={IconProp.ChevronRight}
-            className="mt-0.5 h-4 w-4 flex-none text-gray-400"
+            className="mt-0.5 h-4 w-4 flex-none text-gray-400 rtl:rotate-180"
           />
         </>
       </AppLink>
@@ -150,7 +155,7 @@ export interface ComponentProps {
  *
  * The band says first what the reader should know: what waits for a person
  * (each count a link to the page that lists it), that every open case is
- * picked up, that nothing is watched for threats yet (with Set up Security),
+ * picked up, that nothing is being watched for threats yet (with Set up Security),
  * or that all is quiet (with Send a test attack, for whoever wants to see a
  * case open). Under it, the pipeline: sources, detections, cases and
  * playbooks, each with its figure and how it is doing. A SIEM the events go
@@ -180,28 +185,37 @@ const SecurityOverviewStatus: FunctionComponent<ComponentProps> = (
       aria-labelledby={titleId}
       className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
     >
+      {/*
+       * 20px all round, as the cells under it pad: the disc lines up with
+       * their names, and with the figures' card below.
+       */}
       <div
         data-testid={SECURITY_STATUS_HEADLINE_ID}
         data-kind={headline.kind}
         data-tone={headline.tone}
-        className={`px-5 py-5 md:px-6 ${tone.band}`}
+        className={`p-5 ${tone.band}`}
       >
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 items-start gap-4">
             {/*
              * On a phone the band's colour says it; the words take the
              * width, as Get started's do.
              */}
             <span
+              data-testid="security-status-disc"
               className={`flex h-11 w-11 flex-none items-center justify-center rounded-full max-sm:hidden ${tone.disc}`}
               aria-hidden="true"
             >
               <Icon icon={headline.icon} className="h-6 w-6" />
             </span>
             <div className="min-w-0">
+              {/*
+               * Balanced, so a title that wraps never leaves its last word
+               * alone on the second line ("... threats / yet").
+               */}
               <h2
                 id={titleId}
-                className="text-lg font-semibold text-gray-900 sm:text-xl"
+                className="text-balance text-lg font-semibold text-gray-900 sm:text-xl"
               >
                 {translator.translateText(headline.title)}
               </h2>
@@ -233,19 +247,20 @@ const SecurityOverviewStatus: FunctionComponent<ComponentProps> = (
           </div>
           {/*
            * Each action sits at the right edge, as a card's do: beside the
-           * words from md up, under them on a narrower screen. Buttons carry
-           * a left margin from md up (Button's own); here they sit on the
-           * content's edge.
+           * words from lg up, under them below that - beside the side menu
+           * at md, a button beside the words squeezed them into a column of
+           * their own, five lines deep. Buttons carry a left margin from md
+           * up (Button's own); here they sit on the content's edge.
            */}
           {headline.action === SecurityHeadlineAction.TestAttack ? (
-            <div className="flex-shrink-0 self-end md:self-auto [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+            <div className="flex-shrink-0 self-end lg:self-auto [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
               <SecuritySetupTestButton test={test} />
             </div>
           ) : (
             <></>
           )}
           {headline.action === SecurityHeadlineAction.SetUp ? (
-            <div className="flex-shrink-0 self-end md:self-auto [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+            <div className="flex-shrink-0 self-end lg:self-auto [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
               <Button
                 title={SET_UP_SECURITY}
                 icon={IconProp.ShieldCheck}
@@ -295,7 +310,7 @@ const SecurityOverviewStatus: FunctionComponent<ComponentProps> = (
       {props.showPipeline && !props.status && props.hasStatusFailed ? (
         <div
           data-testid="security-pipeline-error"
-          className="flex flex-col gap-3 border-t border-gray-200 px-5 py-4 md:flex-row md:items-center md:justify-between md:px-6"
+          className="flex flex-col gap-3 border-t border-gray-200 px-5 py-4 md:flex-row md:items-center md:justify-between"
         >
           <div className="flex items-start gap-2 text-sm text-gray-600">
             <Icon
@@ -322,7 +337,7 @@ const SecurityOverviewStatus: FunctionComponent<ComponentProps> = (
 
       {props.showPipeline && props.status && props.status.destinations > 0 ? (
         <div
-          className="flex items-center gap-1.5 border-t border-gray-200 px-5 py-2.5 text-xs text-gray-500 md:px-6"
+          className="flex items-center gap-1.5 border-t border-gray-200 px-5 py-2.5 text-xs text-gray-500"
           data-testid="security-pipeline-destinations"
         >
           <Icon icon={IconProp.Share} className="h-3.5 w-3.5 flex-none" />
@@ -356,7 +371,7 @@ export const SecurityOverviewLoading: FunctionComponent = (): ReactElement => {
       data-testid="security-overview-loading"
     >
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div className="flex items-start gap-4 bg-gray-50 px-5 py-5 md:px-6">
+        <div className="flex items-start gap-4 bg-gray-50 p-5">
           <span className="h-11 w-11 flex-none animate-pulse rounded-full bg-gray-200 max-sm:hidden" />
           <div className="min-w-0 flex-1 space-y-2 pt-1">
             <div className="h-5 w-40 animate-pulse rounded bg-gray-200" />
@@ -403,7 +418,7 @@ export const SecurityOverviewFailed: FunctionComponent<{
       role="alert"
       className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
     >
-      <div className="flex flex-col gap-4 bg-gray-50 px-5 py-5 md:flex-row md:items-center md:justify-between md:px-6">
+      <div className="flex flex-col gap-4 bg-gray-50 p-5 md:flex-row md:items-center md:justify-between">
         <div className="flex min-w-0 items-start gap-4">
           <span
             className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-gray-200 text-gray-600 max-sm:hidden"
@@ -412,7 +427,7 @@ export const SecurityOverviewFailed: FunctionComponent<{
             <Icon icon={IconProp.Error} className="h-6 w-6" />
           </span>
           <div className="min-w-0">
-            <h2 className="text-lg font-semibold text-gray-900 sm:text-xl">
+            <h2 className="text-balance text-lg font-semibold text-gray-900 sm:text-xl">
               {translator.translateText(OVERVIEW_READ_FAILED_TITLE)}
             </h2>
             <p

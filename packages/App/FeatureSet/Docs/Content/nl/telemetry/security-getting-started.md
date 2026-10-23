@@ -91,7 +91,7 @@ Sindsdien heeft niets Security bereikt. Open **Connections** en controleer of **
 :::
 
 :::details De kaart die Security inschakelt is weg
-Iemand heeft hem weggezet met **Sluiten**. Zolang Security geen bron of geen ingeschakelde regel heeft, biedt **Overzicht** **Security instellen** aan, waarmee hij terugkomt.
+Iemand heeft hem weggezet met **Sluiten**. Zolang er nog niets op dreigingen wordt bewaakt, biedt **Overzicht** **Security instellen** aan, waarmee hij terugkomt.
 :::
 
 ## Volgende stappen

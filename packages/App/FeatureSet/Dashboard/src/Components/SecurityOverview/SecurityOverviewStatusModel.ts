@@ -88,7 +88,10 @@ export enum SecurityHeadlineKind {
   NeedsAttention = "needs-attention",
   // Cases are open, and every one of them is someone else's.
   InHand = "in-hand",
-  // Nothing open, and nothing could find a threat: no source, or no rule on.
+  /*
+   * Nothing open, and nothing can open a case: no connection, and no rule
+   * or threat intel feed reading your logs (isSecurityWatching).
+   */
   NotSetUp = "not-set-up",
   // Nothing open, nothing waiting, and Security is watching.
   Quiet = "quiet",
@@ -143,8 +146,9 @@ export const IN_HAND_SUMMARY: string = translationKey(
   "Each one is assigned, and no playbook step is waiting for an approval.",
 );
 
+// Home's words for the same moment: "Nothing is being monitored yet".
 export const NOT_SET_UP_TITLE: string = translationKey(
-  "Nothing is watched for threats yet",
+  "Nothing is being watched for threats yet",
 );
 
 export const NOT_SET_UP_SUMMARY: string = translationKey(
@@ -235,9 +239,20 @@ export function getSecurityAttentionItems(
   });
 }
 
-// Something nothing can find threats in, or nothing to find them with.
+/*
+ * Whether anything can open a case: a connected product - its alerts open
+ * cases from High up by default (the connection's Open Cases From
+ * Severity), with or without a rule of OneUptime's - or your logs, with a
+ * rule or a threat intel feed to find threats in them. Without either,
+ * "All quiet" would read as though something were looking and had found
+ * nothing.
+ */
 export function isSecurityWatching(status: SecuritySetupStatus): boolean {
-  return hasSecuritySources(status) && status.enabledRules > 0;
+  return (
+    status.connections > 0 ||
+    (status.logsSourceEnabled &&
+      (status.enabledRules > 0 || status.threatIntelFeeds > 0))
+  );
 }
 
 /*
@@ -286,9 +301,9 @@ export function getSecurityHeadline(data: {
   }
 
   /*
-   * "All quiet" over no source or no rule would read as though something
-   * were looking and had found nothing - the wrong impression for a project
-   * nothing watches. Say so, and offer the setup.
+   * "All quiet" over nothing that can open a case would read as though
+   * something were looking and had found nothing - the wrong impression for
+   * a project nothing watches. Say so, and offer the setup.
    */
   if (status && !isSecurityWatching(status)) {
     return {
@@ -738,8 +753,32 @@ export function translateSecurityOverviewText(
   }
 
   if ("values" in text) {
-    return translator.translateTemplate(text.template, text.values);
+    return translator.translateTemplate(
+      text.template,
+      formatSecurityOverviewValues(translator, text.values),
+    );
   }
 
   return translator.translateText(text.text) || text.text;
+}
+
+/*
+ * A template's numbers written the reader's way, as a plural's count is:
+ * "1.234" in German, and Persian digits in Persian - never Latin digits in
+ * "3 of 20 recommended" beside Persian ones in "8 rules on".
+ */
+export function formatSecurityOverviewValues(
+  translator: Translator,
+  values: { [key: string]: string | number },
+): { [key: string]: string } {
+  const formatted: { [key: string]: string } = {};
+
+  for (const key of Object.keys(values)) {
+    const value: string | number = values[key] as string | number;
+
+    formatted[key] =
+      typeof value === "number" ? translator.formatNumber(value) : value;
+  }
+
+  return formatted;
 }

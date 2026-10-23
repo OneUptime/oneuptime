@@ -1223,6 +1223,17 @@ describe("the pipeline", () => {
     for (const arrow of arrows) {
       expect(arrow).toHaveAttribute("aria-hidden", "true");
       expect(arrow).toHaveClass("max-lg:hidden", "pointer-events-none");
+      /*
+       * On the cell's end edge and pointing on, in either reading
+       * direction: the left edge, pointing left, in a right-to-left page.
+       */
+      expect(arrow).toHaveClass(
+        "end-0",
+        "translate-x-1/2",
+        "rtl:-translate-x-1/2",
+      );
+      expect(arrow.className).not.toMatch(/(^| )right-0( |$)/);
+      expect(arrow.querySelector("svg")).toHaveClass("rtl:rotate-180");
     }
     // Every cell is one link, the whole cell.
     for (const key of ["sources", "detections", "cases", "playbooks"]) {
@@ -1523,6 +1534,24 @@ describe("a server that cannot answer the set-up figures", () => {
     expect(within(figures()).getByText("Open Cases")).toBeVisible();
     expect(figures()).toHaveTextContent("0 critical · 2 high");
   });
+
+  test("writes the figures' numbers the reader's way", async () => {
+    answerStatus(new Error("Not found"));
+    answerOverview(
+      overview({
+        openCases: 2500,
+        unassignedOpenCases: 0,
+        casesOpenedInWindow: 2500,
+        openByPriority: {
+          [SecurityCasePriority.Critical]: 1500,
+          [SecurityCasePriority.High]: 1000,
+        },
+      }),
+    );
+    await renderPage();
+
+    expect(figures()).toHaveTextContent("1,500 critical · 1,000 high");
+  });
 });
 
 describe("the top card", () => {
@@ -1566,7 +1595,7 @@ describe("the top card", () => {
     expect(notWatching).toHaveClass("bg-gray-50");
     expect(
       within(notWatching).getByRole("heading", {
-        name: "Nothing is watched for threats yet",
+        name: "Nothing is being watched for threats yet",
       }),
     ).toBeInTheDocument();
     // Never "All quiet" over nothing looking, and no test attack to send.
@@ -1586,6 +1615,34 @@ describe("the top card", () => {
     expect(screen.queryByTestId(SECURITY_OVERVIEW_STATUS_ID)).toBeNull();
     // Remembered no more: the next visit opens on Get started too.
     expect(window.localStorage.getItem(DISMISS_KEY)).toBeNull();
+  });
+
+  test("a project whose connected product opens cases, with no rule of OneUptime's, is watched: All quiet, never Set up Security", async () => {
+    /*
+     * A connection's alerts open cases from High up by default, so a team
+     * that brings CrowdStrike or Google SecOps alerts and turns on no rule
+     * of OneUptime's is not told nothing is being watched, nor pushed back
+     * to Get started.
+     */
+    window.localStorage.setItem(DISMISS_KEY, "true");
+    answerStatus(
+      status({
+        connections: 1,
+        eventsLast24Hours: 40,
+        lastEventAt: new Date(),
+      }),
+    );
+    await renderPage();
+
+    expect(band()).toHaveAttribute("data-kind", SecurityHeadlineKind.Quiet);
+    expect(band()).not.toHaveTextContent("Nothing is being watched");
+    expect(within(band()).queryByTestId("security-status-set-up")).toBeNull();
+    expect(
+      within(band()).getByTestId("security-run-setup-test"),
+    ).toBeInTheDocument();
+    // OneUptime's own rules are still offered where they live.
+    expect(stage("detections")).toHaveTextContent("Not set up");
+    expect(stage("detections")).toHaveTextContent("Turn on rules");
   });
 
   test("a project with a source and a rule but no playbook is quiet, and promises no playbook", async () => {
@@ -1779,6 +1836,37 @@ describe("the top card", () => {
     const disc: Element = band().querySelector('[aria-hidden="true"]')!;
 
     expect(disc).toHaveClass("max-sm:hidden", "rounded-full", "bg-emerald-500");
+  });
+
+  test("the band pads as the cells do, and keeps its button under its words until a wide screen", async () => {
+    answerStatus(status(SET_UP));
+    await renderPage();
+
+    /*
+     * 20px all round, the cells' own padding: the disc lines up with their
+     * names. Side by side only from lg: beside the side menu at md, the
+     * button squeezed the words into a column five lines deep.
+     */
+    expect(band()).toHaveClass("p-5");
+    expect(band().className).not.toMatch(/(^| )md:px-6( |$)/);
+
+    const row: HTMLElement = band().firstElementChild as HTMLElement;
+
+    expect(row).toHaveClass(
+      "flex",
+      "flex-col",
+      "lg:flex-row",
+      "lg:items-center",
+      "lg:justify-between",
+    );
+    expect(row.className).not.toMatch(/(^| )md:flex-row( |$)/);
+
+    const action: HTMLElement = within(band()).getByTestId(
+      "security-run-setup-test",
+    ).parentElement as HTMLElement;
+
+    // At the right edge in both layouts, as a card keeps its actions.
+    expect(action).toHaveClass("self-end", "lg:self-auto");
   });
 });
 

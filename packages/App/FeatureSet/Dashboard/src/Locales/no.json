@@ -33461,7 +33461,7 @@
   "No open case and nothing waiting for an approval, but the last security event arrived {{time}}.": "Ingen åpen sak og ingenting som venter på godkjenning, men den siste sikkerhetshendelsen kom {{time}}.",
   "No open case and nothing waiting for an approval. When a rule finds a threat, its case opens here.": "Ingen åpen sak og ingenting som venter på godkjenning. Når en regel finner en trussel, åpnes saken her.",
   "None critical or high": "Ingen kritiske eller høye",
-  "Nothing is watched for threats yet": "Ingenting overvåkes for trusler ennå",
+  "Nothing is being watched for threats yet": "Ingenting overvåkes for trusler ennå",
   "Set up Security": "Sett opp Security",
   "Turn on rules": "Slå på regler",
   "Turn on what most teams need in one click: your logs as a source, the recommended detection rules and a playbook that enriches every new case.": "Slå på det de fleste team trenger med ett klikk: loggene dine som kilde, de anbefalte deteksjonsreglene og en playbook som beriker hver nye sak.",
