@@ -1,6 +1,11 @@
+import MonitorStepSnmpMonitor from "../Monitor/MonitorStepSnmpMonitor";
 import NetworkPathTrace from "../Monitor/NetworkMonitor/NetworkPathTrace";
 import PingMonitorResponse from "../Monitor/PingMonitor/PingMonitorResponse";
 import NetworkDeviceDiagnosticType from "./NetworkDeviceDiagnosticType";
+import {
+  NetworkDeviceDiagnosticSnmpWalkResult,
+  NetworkDeviceSnmpWalkRequest,
+} from "./NetworkDeviceSnmpWalk";
 
 /*
  * The shapes shared by the three parties to an on-demand device diagnostic
@@ -52,12 +57,23 @@ export interface NetworkDeviceDiagnosticJob {
   packetCount?: number | undefined;
   // Traceroute only. Hop limit.
   maxHops?: number | undefined;
+  /*
+   * SNMP Walk only: the device's credentials, resolved by the server when
+   * the probe claims the walk (the device's own, its credential profile's
+   * or its site's) - the same config a poll of the device is walked with.
+   * They exist only in this response to the probe that walks: never on the
+   * row, never in the browser.
+   */
+  snmpMonitor?: MonitorStepSnmpMonitor | undefined;
+  // SNMP Walk only: where to walk, and the bounds to keep to.
+  snmpWalk?: NetworkDeviceSnmpWalkRequest | undefined;
 }
 
 /*
  * What the probe posts back for one diagnostic. Exactly one of
- * `pingResult` / `traceRouteResult` is set on a Completed report, matching
- * the job's type; a Failed report carries neither and a statusMessage.
+ * `pingResult` / `traceRouteResult` / `snmpWalkResult` is set on a
+ * Completed report, matching the job's type; a Failed report carries none
+ * of them and a statusMessage.
  */
 export interface NetworkDeviceDiagnosticReport {
   networkDeviceDiagnosticId: string;
@@ -66,6 +82,7 @@ export interface NetworkDeviceDiagnosticReport {
   statusMessage?: string | undefined;
   pingResult?: NetworkDeviceDiagnosticPingResult | undefined;
   traceRouteResult?: NetworkPathTrace | undefined;
+  snmpWalkResult?: NetworkDeviceDiagnosticSnmpWalkResult | undefined;
 }
 
 /*

@@ -132,9 +132,10 @@ describe("network-device job — deadline and fetch-only overlap guard", () => {
    * devices only to probes that declare they can ping them; a probe that
    * stops sending this silently loses every ping-only device in its fleet
    * (they stay Pending server-side) with no error anywhere. "snmpTables"
-   * tells the server a walk with no tableResults was handed no tables.
+   * tells the server a walk with no tableResults was handed no tables, and
+   * "snmpWalk" that this probe runs SNMP Walk diagnostics.
    */
-  test("the device list fetch declares the networkDevicePing and snmpTables capabilities", async () => {
+  test("the device list fetch declares the networkDevicePing, snmpTables and snmpWalk capabilities", async () => {
     const runFunction: PromiseVoidFunction = capturedRunFunction();
 
     await runFunction();
@@ -144,6 +145,7 @@ describe("network-device job — deadline and fetch-only overlap guard", () => {
     expect(body["probeCapabilities"]).toEqual([
       "networkDevicePing",
       "snmpTables",
+      "snmpWalk",
     ]);
   });
 

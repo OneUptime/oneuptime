@@ -24,6 +24,14 @@ enum ProbeCapability {
    * until this capability was added walk them but do not declare it.
    */
   SnmpTables = "snmpTables",
+  /*
+   * The probe runs SNMP Walk diagnostics (issue #5184): it walks a device's
+   * OID tree with the credentials the server hands it and reports what it
+   * read. The server hands a walk, and the device's credentials with it,
+   * only to a probe that declares this; an older probe's walk is settled as
+   * Failed with a sentence saying to upgrade it.
+   */
+  SnmpWalk = "snmpWalk",
 }
 
 // The first probe release that walks SNMP tables.
