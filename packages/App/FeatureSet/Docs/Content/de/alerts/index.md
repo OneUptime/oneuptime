@@ -75,7 +75,7 @@ Gehen Sie zu **Warnungen → Alle Warnungen** und klicken Sie auf **Warnung erst
 
 ### Die Warnung beschreiben
 
-Füllen Sie den **Titel** aus und wählen Sie einen **Warnungsschweregrad**; beides ist Pflicht. Fügen Sie eine **Beschreibung** hinzu, wenn sie hilft. Unter **Weitere Felder**, eingeklappt, können Sie einen **Anfangsstatus** wählen, **Beschriftungen** hinzufügen oder **Private Warnung** einschalten.
+Füllen Sie den **Titel** aus und wählen Sie einen **Warnungsschweregrad**; beides ist Pflicht. Fügen Sie eine **Beschreibung** hinzu, wenn sie hilft. Unter **Weitere Felder**, eingeklappt, können Sie einen **Anfangsstatus** wählen, **Beschriftungen** hinzufügen oder **Private Warnung** einschalten. Dort wartet auch **Eigentümer**: Sie werden ohnehin Eigentümer der Warnung, die Sie erstellen, und jedes Team, in dem Sie Mitglied sind, ist unter der Auswahl nur einen Klick entfernt.
 
 ### Wählen, was sie betrifft und wer alarmiert wird
 
@@ -83,7 +83,7 @@ Klicken Sie auf **Weiter**, um zu **Ressourcen & Bereitschaft** zu gelangen. Wä
 
 ### Sie erstellen
 
-Klicken Sie auf **Weiter**, um die Zusammenfassung zu prüfen, dann auf **Warnung erstellen**. Die Seite der Warnung öffnet sich, und die Regeln beginnen zu laufen.
+Klicken Sie auf **Weiter**, um die Zusammenfassung zu prüfen, dann auf **Warnung erstellen**. Die Seite der Warnung öffnet sich, und die Regeln beginnen zu laufen. In der Zusammenfassung nennt die Zeile **Eigentümer** jede Eigentümerregel, die jemanden hinzufügen wird, und wen: siehe [Wem der Vorfall gehören wird](/docs/incidents/declaring-incidents#wem-der-vorfall-gehören-wird).
 :::
 
 Lassen Sie **Anfangsstatus** leer, beginnt die Warnung dort, wo jede neue Warnung beginnt: in Ihrem Erstellungsstatus, in einem neuen Projekt **Identifiziert**. Ein späterer Status hält eine Warnung fest, um die sich schon jemand kümmert oder die schon vorbei ist; siehe [Bereits bestätigt oder behoben erstellt](#bereits-bestätigt-oder-behoben-erstellt).

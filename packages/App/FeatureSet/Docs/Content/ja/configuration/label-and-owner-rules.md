@@ -57,7 +57,7 @@ flowchart TB
 最後のステップで、ルールの名前が付いたボタン (たとえば **モニターのラベルルールを作成**) をもう一度クリックします。ルールは有効な状態で作成され、一覧には緑色の **有効** ピルとともに表示されます。
 :::
 
-新しいルールは、何かを追加しなければなりません。少なくとも 1 つのラベル (または所有者) か、インシデント、アラート、定期メンテナンスのルールであれば継承するもの (下記を参照) が必要です。削除せずにルールを一時停止するには、編集フォームで **有効** をオフにします。一覧には赤い **無効** ピルが表示されます。
+新しいルールは、何かを追加しなければなりません。少なくとも 1 つのラベル (または所有者) か、インシデント、アラート、定期メンテナンスのルールであれば継承するもの (下記を参照) が必要です。削除せずにルールを一時停止するには、編集フォームで **有効** をオフにします。一覧には赤い **無効** ピルが表示されます。インシデントまたはアラートの所有者ルールでは、**作成者のチーム** のチームだけでも十分です。
 
 ### どの方法でルールを作成しても
 
@@ -68,9 +68,10 @@ API、Terraform、ワークフロー、または [ラベルルールのインポ
 | ラベルルール | This label rule adds nothing. Choose at least one label in Labels to Add. |
 | インシデント、アラート、定期メンテナンスのラベルルール | This label rule adds nothing. Choose at least one label in Labels to Add, or turn on an Inherit Labels switch. |
 | 所有者ルール | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams. |
-| インシデント、アラート、定期メンテナンスの所有者ルール | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
+| インシデントまたはアラートの所有者ルール | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, a team in Creator's Teams, or turn on an Inherit Owners switch. |
+| 定期メンテナンスの所有者ルール | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
 
-- **API**: `labelsToAdd` (または `ownerUsers` / `ownerTeams`) にプロジェクトのレコードを 1 つ以上設定するか、ルールの `inheritLabelsFrom…` (`inheritOwnersFrom…`) スイッチのいずれかを `true` (JSON のブール値) にします。
+- **API**: `labelsToAdd` (または `ownerUsers` / `ownerTeams`) にプロジェクトのレコードを 1 つ以上設定するか、ルールの `inheritLabelsFrom…` (`inheritOwnersFrom…`) スイッチのいずれかを `true` (JSON のブール値) にします。インシデントまたはアラートの所有者ルールでは、`creatorTeams` のチームだけでも十分です。
 - **Terraform**: 追加するもののないラベルルールまたは所有者ルールのリソースは、上記のメッセージとともに `terraform apply` で失敗します。`labels_to_add` (または `owner_users` / `owner_teams`) を指定するか、継承スイッチのいずれかをオンにしてください。
 
 既存のルールは変更されません。[ルールを編集する](#ルールを編集する) を参照してください。
@@ -93,6 +94,12 @@ API、Terraform、ワークフロー、または [ラベルルールのインポ
 | アラートのルールでの **モニターからラベルを継承** | *モニター からラベルを継承* |
 
 名前は、ラベルを選ぶまで (その後はラベルにちなんだ名前になります)、または自分で名前を入力するまで、スイッチに合わせて変わります。
+
+### 作成者のチーム
+
+インシデントまたはアラートの所有者ルールには、**所有者を継承** セクションの最後にもう一つ項目があります。チームの一覧である **作成者のチーム** です。一致するインシデントを宣言した人、または一致するアラートを作成した人が一覧のチームのメンバーであれば、そのチームも所有者になります。その人のすべてのチームではなく一覧になっているのは、人は既定でプロジェクトの **メンバー** チームに入るため、全員を所有者にしても誰の役にも立たないからです。モニター、ワークフロー、フォーム、API キーが作成したインシデントやアラートには作成者がいないため、これらのチームは追加されません。これらのチームへの通知はルールの **所有者に通知** に従い、これらのチームだけを追加するルールの名前は _作成者のチームを所有者として追加_ になります。API では、この一覧は `creatorTeams` です。
+
+インシデントを宣言した人やアラートを作成した人は、ルールにかかわらずその所有者の一人になります。また、作成フォームはサマリーに、実行される各所有者ルールと、それが誰を追加するかを表示します。[誰が所有者になるか](/docs/incidents/declaring-incidents#誰が所有者になるか) を参照してください。
 
 ## ルールを編集する
 

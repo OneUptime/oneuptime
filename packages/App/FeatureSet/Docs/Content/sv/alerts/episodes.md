@@ -139,6 +139,8 @@ I **Episoddetaljer** fyller du i **Titel** och, om du vill, en **Varningsallvar*
 
 I **Jour och ägare** väljer du en **Jourpolicy** som ska köras när episoden skapas, och dess **Ägare**. Klicka sedan på **Skapa episod**.
 
+Varje team du är medlem i är ett klick bort under **Ägare**, och sammanfattningen nämner ägarreglerna som lägger till fler.
+
 ### Lägg till larmen
 
 Öppna episodens sida **Medlemsvarningar**, klicka på **Lägg till varningar** och markera larmen som hör till den, så många du behöver på en gång. Vill du hellre börja från larmen markerar du dem i listan **Varningar** och väljer **Lägg till i ny episod** under **Massåtgärder** (se [Episoder](/docs/incidents/episodes)).

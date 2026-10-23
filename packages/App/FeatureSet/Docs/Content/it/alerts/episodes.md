@@ -139,6 +139,8 @@ In **Dettagli episodio**, compilate il **Titolo** e, se volete, una **Gravità a
 
 In **Reperibilità e proprietari**, scegliete una **Policy di reperibilità** da eseguire quando l'episodio viene creato, e i suoi **Proprietari**. Poi fate clic su **Crea episodio**.
 
+Ogni team di cui siete membri è a un clic sotto **Proprietari**, e il riepilogo elenca le regole del proprietario che ne aggiungeranno altri.
+
 ### Aggiungere gli avvisi
 
 Aprite la pagina **Avvisi dei membri** dell'episodio, fate clic su **Aggiungi avvisi** e selezionate gli avvisi che ne fanno parte, quanti ve ne servono in una volta. Per partire invece dagli avvisi, selezionateli nell'elenco **Avvisi** e scegliete **Aggiungi a un nuovo episodio** in **Azioni di massa** (vedi [Episodi](/docs/incidents/episodes)).

@@ -245,7 +245,9 @@ export const doesNewRuleAddSomething: (
  * The answer to a new rule that adds nothing - from the API, Terraform, a
  * workflow or a label rule import - in the words of the fields it names
  * (their titles, as the API documents them). An event's rule may inherit
- * instead, and is told so.
+ * instead, and is told so; an incident's or alert's owner rule may list a
+ * team for the creator's team too. The docs quote each one word for word
+ * (Docs configuration/label-and-owner-rules).
  */
 export const LABEL_RULE_ADDS_NOTHING_MESSAGE: string =
   "This label rule adds nothing. Choose at least one label in Labels to Add.";

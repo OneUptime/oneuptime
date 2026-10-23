@@ -139,6 +139,8 @@ On **Episode Details**, fill in the **Title** and, if you like, an **Alert Sever
 
 On **On-Call & Owners**, pick an **On-Call Policy** to run when the episode is created, and its **Owners**. Then click **Create Episode**.
 
+Each team you are a member of is one click away under **Owners**, and the summary lists the owner rules that will add more.
+
 ### Add the alerts
 
 Open the episode's **Member Alerts** page, click **Add Alerts** and tick the alerts that belong to it, as many as you need at once. To start from the alerts instead, select them on the **Alerts** list and choose **Add to New Episode** under **Bulk Actions** (see [Episodes](/docs/incidents/episodes)).

@@ -75,7 +75,7 @@ Go to **Alerts → All Alerts** and click **Create Alert**. The **Create New Ale
 
 ### Describe the alert
 
-Fill in the **Title** and pick an **Alert Severity**; both are required. Add a **Description** if it helps. Under **More fields**, folded, you can pick an **Initial State**, add **Labels**, or make it a **Private Alert**.
+Fill in the **Title** and pick an **Alert Severity**; both are required. Add a **Description** if it helps. Under **More fields**, folded, you can pick an **Initial State**, add **Labels**, or make it a **Private Alert**. **Owners** waits there too: you become an owner of the alert you create anyway, and each team you are a member of is one click away under the picker.
 
 ### Pick what it affects and who is paged
 
@@ -83,7 +83,7 @@ Click **Next** to reach **Resources & On-Call**. Pick the **Monitor** it is abou
 
 ### Create it
 
-Click **Next** to check the summary, then **Create Alert**. The alert's own page opens, and the rules start running.
+Click **Next** to check the summary, then **Create Alert**. The alert's own page opens, and the rules start running. On the summary, the **Owners** row lists each owner rule that will add someone, and whom: see [Who will own it](/docs/incidents/declaring-incidents#who-will-own-it).
 :::
 
 Leave **Initial State** empty and the alert starts where every new alert does: your created state, **Identified** in a new project. Picking a later state records an alert that someone is already handling, or that is already over; see [Created already acknowledged or resolved](#created-already-acknowledged-or-resolved).

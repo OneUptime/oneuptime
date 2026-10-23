@@ -57,7 +57,7 @@ I steget **Etiketter** väljer du **Etiketter att lägga till**. I en ägarregel
 I det sista steget klickar du på knappen som är uppkallad efter regeln igen, till exempel **Skapa Monitor Label Rule**. Regeln är aktiverad från början, och listan visar den med en grön märkning **Aktiverad**.
 :::
 
-En ny regel måste lägga till något: minst en etikett (eller ägare) eller, i en regel för incidenter, larm eller planerat underhåll, något som den ärver (se nedan). För att pausa en regel utan att ta bort den stänger du av **Aktiverad** i dess redigeringsformulär; listan visar då en röd märkning **Inaktiverad**.
+En ny regel måste lägga till något: minst en etikett (eller ägare) eller, i en regel för incidenter, larm eller planerat underhåll, något som den ärver (se nedan). För att pausa en regel utan att ta bort den stänger du av **Aktiverad** i dess redigeringsformulär; listan visar då en röd märkning **Inaktiverad**. På en ägarregel för incidenter eller larm räcker det också med ett team under **Skaparens team**.
 
 ### Oavsett hur regeln skapas
 
@@ -68,9 +68,10 @@ Detsamma gäller för en regel som skapas via API:t, Terraform, ett arbetsflöde
 | Etikettregel | This label rule adds nothing. Choose at least one label in Labels to Add. |
 | Etikettregel för incidenter, larm eller planerat underhåll | This label rule adds nothing. Choose at least one label in Labels to Add, or turn on an Inherit Labels switch. |
 | Ägarregel | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams. |
-| Ägarregel för incidenter, larm eller planerat underhåll | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
+| Ägarregel för incidenter eller larm | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, a team in Creator's Teams, or turn on an Inherit Owners switch. |
+| Ägarregel för planerat underhåll | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
 
-- **API**: sätt `labelsToAdd` (eller `ownerUsers` / `ownerTeams`) till minst en post i projektet, eller en av regelns brytare `inheritLabelsFrom…` (`inheritOwnersFrom…`) till `true`, en JSON-boolean.
+- **API**: sätt `labelsToAdd` (eller `ownerUsers` / `ownerTeams`) till minst en post i projektet, eller en av regelns brytare `inheritLabelsFrom…` (`inheritOwnersFrom…`) till `true`, en JSON-boolean. På en ägarregel för incidenter eller larm räcker det också med ett team i `creatorTeams`.
 - **Terraform**: en resurs för en etikett- eller ägarregel som inte lägger till något misslyckas vid `terraform apply` med meddelandet ovan. Ge den `labels_to_add` (eller `owner_users` / `owner_teams`) eller slå på en av dess arvsbrytare.
 
 Regler som du redan har påverkas inte: se [Redigera en regel](#redigera-en-regel).
@@ -93,6 +94,12 @@ En regel som ärver kan lämna **Etiketter att lägga till** (eller **Ägare**) 
 | **Ärv etiketter från övervakning**, i en larmregel | _Ärv etiketter från: övervakning_ |
 
 Namnet följer brytarna tills du väljer en etikett (då får regeln namn efter sina etiketter) eller skriver ett eget namn.
+
+### Skaparens team
+
+En ägarregel för incidenter eller larm har en post till, sist i avsnittet **Ärv ägare**: **Skaparens team**, en lista med team. När den som deklarerar en matchande incident, eller skapar ett matchande larm, är medlem i ett team på listan blir det teamet också ägare. Det är en lista och inte alla personens team, eftersom folk som standard går med i projektets team **Medlemmar**, och att göra alla till ägare hjälper ingen. En incident eller ett larm som en monitor, ett arbetsflöde, ett formulär eller en API-nyckel skapar har ingen skapare och får inget av de här teamen. De aviseras som regelns **Avisera ägare** säger, och en regel som bara lägger till dem heter _Lägg till skaparens team som ägare_. Via API:et är listan `creatorTeams`.
+
+Den som deklarerar en incident eller skapar ett larm blir en av dess ägare vad reglerna än säger, och skapandeformulären nämner i sin sammanfattning varje ägarregel som kommer att köras, och vem den kommer att lägga till: se [Vem som äger den](/docs/incidents/declaring-incidents#vem-som-äger-den).
 
 ## Redigera en regel
 

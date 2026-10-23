@@ -75,7 +75,7 @@ Vá para **Alertas → Todos os alertas** e clique em **Criar alerta**. O formul
 
 ### Descrever o alerta
 
-Preencha o **Título** e escolha uma **Severidade do alerta**; ambos são obrigatórios. Adicione uma **Descrição** se ajudar. Em **Mais campos**, recolhido, você pode escolher um **Estado Inicial**, adicionar **Rótulos** ou ativar **Alerta privado**.
+Preencha o **Título** e escolha uma **Severidade do alerta**; ambos são obrigatórios. Adicione uma **Descrição** se ajudar. Em **Mais campos**, recolhido, você pode escolher um **Estado Inicial**, adicionar **Rótulos** ou ativar **Alerta privado**. **Proprietários** também está lá: você se torna proprietário do alerta que cria de qualquer forma, e cada equipe da qual você é membro está a um clique abaixo do seletor.
 
 ### Escolher o que ele afeta e quem é acionado
 
@@ -83,7 +83,7 @@ Clique em **Próximo** para chegar a **Recursos e plantão**. Escolha o **Monito
 
 ### Criá-lo
 
-Clique em **Próximo** para revisar o resumo e depois em **Criar alerta**. A página do alerta abre e as regras começam a ser executadas.
+Clique em **Próximo** para revisar o resumo e depois em **Criar alerta**. A página do alerta abre e as regras começam a ser executadas. No resumo, a linha **Proprietários** lista cada regra de proprietário que vai adicionar alguém, e quem: veja [Quem será o proprietário](/docs/incidents/declaring-incidents#quem-será-o-proprietário).
 :::
 
 Se você deixar **Estado Inicial** vazio, o alerta começa onde todo alerta novo começa: no seu estado de criação, **Identified** em um projeto novo. Escolher um estado posterior registra um alerta do qual alguém já está cuidando, ou que já terminou; veja [Criado já confirmado ou resolvido](#criado-já-confirmado-ou-resolvido).

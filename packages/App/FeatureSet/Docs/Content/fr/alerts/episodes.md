@@ -139,6 +139,8 @@ Dans **Détails de l'épisode**, remplissez le **Titre** et, si vous le souhaite
 
 Dans **Astreinte et propriétaires**, choisissez une **Politique d'astreinte** à exécuter à la création de l'épisode, et ses **Propriétaires**. Cliquez ensuite sur **Créer un épisode**.
 
+Chaque équipe dont vous êtes membre est à un clic sous **Propriétaires**, et le récapitulatif liste les règles de propriétaire qui en ajouteront d'autres.
+
 ### Ajouter les alertes
 
 Ouvrez la page **Alertes des membres** de l'épisode, cliquez sur **Ajouter des alertes** et cochez les alertes qui en font partie, autant qu'il vous en faut à la fois. Pour partir plutôt des alertes, sélectionnez-les dans la liste **Alertes** et choisissez **Ajouter à un nouvel épisode** dans **Actions groupées** (voir [Épisodes](/docs/incidents/episodes)).

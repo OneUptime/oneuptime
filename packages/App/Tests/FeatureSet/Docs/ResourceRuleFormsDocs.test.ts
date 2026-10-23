@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import {
+  CREATOR_TEAM_OWNER_RULE_ADDS_NOTHING_MESSAGE,
   INHERITING_LABEL_RULE_ADDS_NOTHING_MESSAGE,
   INHERITING_OWNER_RULE_ADDS_NOTHING_MESSAGE,
   LABEL_RULE_ADDS_NOTHING_MESSAGE,
@@ -318,6 +319,7 @@ describe("the Label and Owner Rules page", () => {
       INHERITING_LABEL_RULE_ADDS_NOTHING_MESSAGE,
       OWNER_RULE_ADDS_NOTHING_MESSAGE,
       INHERITING_OWNER_RULE_ADDS_NOTHING_MESSAGE,
+      CREATOR_TEAM_OWNER_RULE_ADDS_NOTHING_MESSAGE,
     ]) {
       expect({ message, present: content.includes(`| ${message} |`) }).toEqual({
         message,
