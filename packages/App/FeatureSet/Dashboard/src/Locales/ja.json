@@ -33495,5 +33495,6 @@
   "With no rule, OneUptime AI investigates every new incident right away, and fixes it while fixing is on, pull requests included. Add rules to work only on the incidents that match one, to wait, or to choose how each is fixed.": "ルールがない場合、OneUptime AI は新しいインシデントをすべてすぐに調査し、自動修正がオンの間はプルリクエストも含めて修正します。ルールを追加すると、一致するインシデントだけを扱ったり、待機したり、それぞれの修正方法を選んだりできます。",
   "{{count}} AI rules matched this {{signal}}, and they only investigate, so it was not fixed.": "{{count}} 件の AI ルールがこの{{signal}}に一致しましたが、どれも調査だけを行うため、修正されませんでした。",
   "{{count}} AI rules matched this {{signal}}, and they only investigate, so it was not fixed._one": "AI ルール「{{ruleName}}」がこの{{signal}}に一致しましたが、調査だけを行うため、修正されませんでした。",
-  "AI Rule ID": "AI ルール ID"
+  "AI Rule ID": "AI ルール ID",
+  "Investigates and fixes": "調査と修正"
 }

@@ -4,7 +4,6 @@ import fs from "fs";
 import path from "path";
 import {
   INVESTIGATION_RULE_RIGHT_AWAY,
-  INVESTIGATION_RULE_TIMING_COLUMN_TITLE,
   INVESTIGATION_RULE_TIMING_COPY,
   INVESTIGATION_RULE_TIMING_FIELD_TITLE,
   INVESTIGATION_RULE_TIMINGS,
@@ -14,6 +13,7 @@ import {
   InvestigationRuleTiming,
   describeInvestigationRuleTiming,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/InvestigationRuleTiming";
+import { AI_RULE_COLUMN_TITLE } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AiRuleCopy";
 import {
   INVESTIGATE_NOW,
   INVESTIGATE_NOW_FAILED,
@@ -78,7 +78,8 @@ const SENTENCES: Array<string> = [
   INVESTIGATION_RULE_WAIT_FIELD_DESCRIPTION[AiLane.Incident],
   INVESTIGATION_RULE_WAIT_FIELD_DESCRIPTION[AiLane.Alert],
   INVESTIGATION_RULE_WAIT_NOT_WHOLE,
-  INVESTIGATION_RULE_TIMING_COLUMN_TITLE,
+  // The rules table's column, which says the wait (AiRulesTable).
+  AI_RULE_COLUMN_TITLE,
   INVESTIGATION_RULE_RIGHT_AWAY,
   ...[AiLane.Incident, AiLane.Alert].flatMap((lane: AiLane) => {
     return INVESTIGATION_RULE_TIMINGS.flatMap(

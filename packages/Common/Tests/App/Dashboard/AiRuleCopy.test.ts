@@ -2,7 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import {
   AI_RULE_DOES_NOT_INVESTIGATE_TEXT,
   AI_RULE_DOES_NOTHING_TEXT,
-  AI_RULE_FIX_COLUMN_TITLE,
+  AI_RULE_COLUMN_TITLE,
   AI_RULE_FIX_FIELD_COPY,
   AI_RULE_FIX_FIELD_KEY,
   AI_RULE_FIX_OPTIONS,
@@ -182,9 +182,48 @@ describe("what a new rule saves", () => {
     );
 
     expect(prepareAiRuleCreate(fixOnly).investigates).toBe(true);
-    // How it fixes is the form's to say.
     expect(fixOnly.fixes).toBe(true);
   });
+
+  /*
+   * A create says what the Fix step showed - its two columns - whatever was
+   * clicked: a rule saved on the answer it opened on asks first, said, not
+   * left to the server's defaults.
+   */
+  test.each([
+    [{}, true, AutoRemediationExecutionMode.Suggest],
+    [
+      { executionMode: AutoRemediationExecutionMode.FullAuto },
+      true,
+      AutoRemediationExecutionMode.FullAuto,
+    ],
+    [{ fixes: false }, false, AutoRemediationExecutionMode.Suggest],
+    [
+      { fixes: false, executionMode: AutoRemediationExecutionMode.FullAuto },
+      false,
+      AutoRemediationExecutionMode.FullAuto,
+    ],
+  ])(
+    "a create of %j says fixes %s and executionMode %s",
+    (
+      fields: Partial<AutoRemediationRule>,
+      fixes: boolean,
+      executionMode: AutoRemediationExecutionMode,
+    ) => {
+      const item: AutoRemediationRule = Object.assign(
+        new AutoRemediationRule(),
+        fields,
+      );
+
+      prepareAiRuleCreate(item);
+
+      expect([item.investigates, item.fixes, item.executionMode]).toEqual([
+        true,
+        fixes,
+        executionMode,
+      ]);
+    },
+  );
 });
 
 describe("the table's Fix column", () => {
@@ -200,7 +239,8 @@ describe("the table's Fix column", () => {
     expect(AI_RULE_FIX_TEXT[AiRuleFix.WithoutAsking]).toBe(
       AUTO_REMEDIATION_APPROVAL_TEXT.withoutAsking,
     );
-    expect(AI_RULE_FIX_COLUMN_TITLE).toBe("Fix");
+    // One column says when a rule investigates and, under it, how it fixes.
+    expect(AI_RULE_COLUMN_TITLE).toBe("Investigates and fixes");
   });
 
   test("an older rule that has OneUptime AI pick a runbook asks first, whatever it says", () => {

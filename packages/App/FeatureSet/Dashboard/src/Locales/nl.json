@@ -33495,5 +33495,6 @@
   "With no rule, OneUptime AI investigates every new incident right away, and fixes it while fixing is on, pull requests included. Add rules to work only on the incidents that match one, to wait, or to choose how each is fixed.": "Zonder regels onderzoekt OneUptime AI elk nieuw incident meteen en herstelt het zolang automatisch herstel aanstaat, pull requests inbegrepen. Voeg regels toe om alleen met passende incidenten te werken, om te wachten of om te kiezen hoe elk incident wordt hersteld.",
   "{{count}} AI rules matched this {{signal}}, and they only investigate, so it was not fixed.": "{{count}} AI-regels pasten bij dit item ({{signal}}) en ze onderzoeken alleen, dus het is niet hersteld.",
   "{{count}} AI rules matched this {{signal}}, and they only investigate, so it was not fixed._one": "AI-regel ‘{{ruleName}}’ paste bij dit item ({{signal}}) en onderzoekt alleen, dus het is niet hersteld.",
-  "AI Rule ID": "AI-regel-ID"
+  "AI Rule ID": "AI-regel-ID",
+  "Investigates and fixes": "Onderzoekt en herstelt"
 }

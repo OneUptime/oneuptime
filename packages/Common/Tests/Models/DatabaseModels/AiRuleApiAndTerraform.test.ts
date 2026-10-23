@@ -266,9 +266,12 @@ describe("the retired route answers every call with what to use instead", () => 
     app.use(express.json());
     app.use("/api", RetiredApiRoute.getRouter());
     // A live route beside it is not shadowed.
-    app.get("/api/ai-investigation-rules-report", (_req, res) => {
-      res.status(200).send({ ok: true });
-    });
+    app.get(
+      "/api/ai-investigation-rules-report",
+      (_req: express.Request, res: express.Response) => {
+        res.status(200).send({ ok: true });
+      },
+    );
 
     server = http.createServer(app);
 

@@ -432,7 +432,8 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
         ),
       ),
     ).rejects.toThrow(
-      /You need one of these permissions .*: Project Owner, Project Admin, Edit AI Rule\. Anyone who may edit the cluster can still turn AI fixes off or down to Ask for approval/,
+      // Anchored, so it is tried from the message's start only.
+      /^You need one of these permissions [^:]*: Project Owner, Project Admin, Edit AI Rule\. Anyone who may edit the cluster can still turn AI fixes off or down to Ask for approval/,
     );
   });
 

@@ -25,6 +25,7 @@ import Runbook from "Common/Models/DatabaseModels/Runbook";
 import {
   AiRuleFix,
   doesAiRuleFix,
+  getAiRuleFix,
   getAiRuleFixColumns,
   isAiRuleFix,
 } from "Common/Types/AI/AiRule";
@@ -61,8 +62,8 @@ import {
 } from "./ProjectAiSettingsCopy";
 import { reportEnabledAiLaneRuleCount } from "./AiLaneRuleCount";
 import {
+  AI_RULE_COLUMN_TITLE,
   AI_RULE_DOES_NOT_INVESTIGATE_TEXT,
-  AI_RULE_FIX_COLUMN_TITLE,
   AI_RULE_FIX_FIELD_COPY,
   AI_RULE_FIX_FIELD_KEY,
   AI_RULE_FIX_OPTIONS,
@@ -83,7 +84,6 @@ import {
   INVESTIGATION_RULE_NAME_COLUMN_CLASS_NAME,
   INVESTIGATION_RULE_TIMING_COLUMN_CLASS_NAME,
   INVESTIGATION_RULE_TIMING_COLUMN_FLOOR_CLASS_NAME,
-  INVESTIGATION_RULE_TIMING_COLUMN_TITLE,
   INVESTIGATION_RULE_TIMING_COPY,
   INVESTIGATION_RULE_TIMING_FIELD_KEY,
   INVESTIGATION_RULE_TIMING_FIELD_TITLE,
@@ -234,9 +234,9 @@ export interface AiRuleTimingCellProps {
 }
 
 /*
- * The table's Investigates column: when the rule investigates - right away,
- * or if still open after its wait - or, for a rule that only fixes, that it
- * does not.
+ * When the rule investigates - right away, or if still open after its wait -
+ * or, for a rule that only fixes, that it does not: the first line of the
+ * table's column for what the rule does.
  */
 export const AiRuleTimingCell: FunctionComponent<AiRuleTimingCellProps> = (
   props: AiRuleTimingCellProps,
@@ -260,6 +260,39 @@ export const AiRuleTimingCell: FunctionComponent<AiRuleTimingCellProps> = (
     </span>
   );
 };
+
+export interface AiRuleDoesCellProps {
+  rule: AutoRemediationRule;
+}
+
+/*
+ * The table's one column for what a rule does: when it investigates, and
+ * under it whether and how it fixes (AI_RULE_COLUMN_TITLE). Read the way
+ * the rule's steps ask it: Investigate, then Fix.
+ */
+export const AiRuleDoesCell: FunctionComponent<AiRuleDoesCellProps> = (
+  props: AiRuleDoesCellProps,
+): ReactElement => {
+  return (
+    <div className="flex flex-col items-start gap-1.5">
+      <AiRuleTimingCell rule={props.rule} />
+      <AiRuleFixCell rule={props.rule} />
+    </div>
+  );
+};
+
+/*
+ * What the column says, as one line of an export: "Right away · Asks first".
+ */
+export function getAiRuleDoesText(rule: AutoRemediationRule): string {
+  const timing: string = doesEditedRuleInvestigate(rule)
+    ? describeInvestigationRuleTiming(rule.onlyIfOpenAfterMinutes)
+    : translateText(AI_RULE_DOES_NOT_INVESTIGATE_TEXT) ||
+      AI_RULE_DOES_NOT_INVESTIGATE_TEXT;
+  const fix: string = getAiRuleFixText(rule);
+
+  return `${timing} · ${translateText(fix) || fix}`;
+}
 
 export interface AiRuleOnlyFixesNoteProps {
   lane: AiLane;
@@ -544,39 +577,24 @@ const AiRulesTable: FunctionComponent<ComponentProps> = (
           contentClassName: INVESTIGATION_RULE_NAME_COLUMN_CLASS_NAME,
         },
         {
+          /*
+           * What the rule does: when it investigates, and under it whether
+           * and how it fixes - one column, so Status stays in sight at
+           * 1280px beside the side menu. "If still open after 10 minutes"
+           * on one line in English; a longer language takes two.
+           */
           field: { onlyIfOpenAfterMinutes: true },
-          title: INVESTIGATION_RULE_TIMING_COLUMN_TITLE,
+          title: AI_RULE_COLUMN_TITLE,
           type: FieldType.Element,
           disableSort: true,
-          /*
-           * "If still open after 10 minutes" on one line in English; a
-           * longer language takes two rather than pushing Status under the
-           * row's buttons at 1280px beside the side menu.
-           */
           wrapContent: true,
           wrapMaxWidthClassName: INVESTIGATION_RULE_TIMING_COLUMN_CLASS_NAME,
           contentClassName: INVESTIGATION_RULE_TIMING_COLUMN_FLOOR_CLASS_NAME,
           getElement: (item: AutoRemediationRule): ReactElement => {
-            return <AiRuleTimingCell rule={item} />;
+            return <AiRuleDoesCell rule={item} />;
           },
           getExportValue: (item: AutoRemediationRule): string => {
-            return doesEditedRuleInvestigate(item)
-              ? describeInvestigationRuleTiming(item.onlyIfOpenAfterMinutes)
-              : translateText(AI_RULE_DOES_NOT_INVESTIGATE_TEXT) ||
-                  AI_RULE_DOES_NOT_INVESTIGATE_TEXT;
-          },
-        },
-        {
-          field: { executionMode: true },
-          title: AI_RULE_FIX_COLUMN_TITLE,
-          type: FieldType.Element,
-          disableSort: true,
-          getElement: (item: AutoRemediationRule): ReactElement => {
-            return <AiRuleFixCell rule={item} />;
-          },
-          getExportValue: (item: AutoRemediationRule): string => {
-            const text: string = getAiRuleFixText(item);
-            return translateText(text) || text;
+            return getAiRuleDoesText(item);
           },
         },
         {
@@ -892,7 +910,23 @@ const AiRulesTable: FunctionComponent<ComponentProps> = (
             currentValues: FormValues<AutoRemediationRule>,
             setNewFormValues: (values: FormValues<AutoRemediationRule>) => void,
           ): void => {
-            setNewFormValues(getValuesFixingLikeANewRule(currentValues));
+            const fixingLikeANewRule: FormValues<AutoRemediationRule> =
+              getValuesFixingLikeANewRule(currentValues);
+
+            /*
+             * The Fix answer follows the columns it writes: asking first,
+             * not the answer the older rule opened on, which the question
+             * kept while it was hidden.
+             */
+            setNewFormValues({
+              ...fixingLikeANewRule,
+              [AI_RULE_FIX_FIELD_KEY]: getAiRuleFix(
+                fixingLikeANewRule as {
+                  fixes?: unknown;
+                  executionMode?: unknown;
+                },
+              ),
+            } as FormValues<AutoRemediationRule>);
           },
           getCustomElement: (
             values: FormValues<AutoRemediationRule>,

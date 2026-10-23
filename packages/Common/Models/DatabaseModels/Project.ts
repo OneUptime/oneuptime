@@ -2178,7 +2178,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable Automatic Incident Remediation",
     description:
-      "When enabled, OneUptime fixes new incidents automatically: OneUptime AI fixes each one on the Kubernetes clusters and infrastructure it is linked to, the way each one's AI agent page allows, and AI rules - when there are any - choose which incidents are fixed, which runbooks run and whether a person approves first. Off by default, for new projects too. Any AI investigation of the incident settles first. Requires AI to be enabled. Fix and telemetry pull requests open only while this is on, as each Auto Remediation Rule says (openCodeFixPullRequests, openTelemetryPullRequests - on by default, and on with no rule).",
+      "When enabled, OneUptime fixes new incidents automatically: OneUptime AI fixes each one on the Kubernetes clusters and infrastructure it is linked to, the way each one's AI agent page allows, and AI rules - when there are any - choose which incidents are fixed, which runbooks run and whether a person approves first. Off by default, for new projects too. Any AI investigation of the incident settles first. Requires AI to be enabled. Fix and telemetry pull requests open only while this is on, as each AI Rule says (openCodeFixPullRequests, openTelemetryPullRequests - on by default, and on with no rule).",
     defaultValue: false,
     example: true,
   })
@@ -2208,7 +2208,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Enable Automatic Alert Remediation",
     description:
-      "When enabled, OneUptime fixes new alerts automatically: OneUptime AI fixes each one on the Kubernetes clusters and infrastructure it is linked to, the way each one's AI agent page allows, and AI rules - when there are any - choose which alerts are fixed, which runbooks run and whether a person approves first. Off by default, for new projects too. Any AI investigation of the alert settles first. Requires AI to be enabled. Fix and telemetry pull requests open only while this is on, as each Auto Remediation Rule says (openCodeFixPullRequests, openTelemetryPullRequests - on by default, and on with no rule).",
+      "When enabled, OneUptime fixes new alerts automatically: OneUptime AI fixes each one on the Kubernetes clusters and infrastructure it is linked to, the way each one's AI agent page allows, and AI rules - when there are any - choose which alerts are fixed, which runbooks run and whether a person approves first. Off by default, for new projects too. Any AI investigation of the alert settles first. Requires AI to be enabled. Fix and telemetry pull requests open only while this is on, as each AI Rule says (openCodeFixPullRequests, openTelemetryPullRequests - on by default, and on with no rule).",
     defaultValue: false,
     example: true,
   })

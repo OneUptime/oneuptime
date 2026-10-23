@@ -202,9 +202,12 @@ describe("the Fix question", () => {
       AiRuleFix.DoNotFix,
     ],
     [{ fixes: false }, AiRuleFix.DoNotFix],
-  ])("a rule's columns %j answer %s", (rule: object, fix: AiRuleFix) => {
-    expect(getAiRuleFix(rule)).toBe(fix);
-  });
+  ])(
+    "a rule's columns %j answer %s",
+    (rule: Record<string, unknown>, fix: AiRuleFix) => {
+      expect(getAiRuleFix(rule)).toBe(fix);
+    },
+  );
 
   test("each answer writes the two columns an API client reads", () => {
     expect(getAiRuleFixColumns(AiRuleFix.AskFirst)).toEqual({

@@ -133,12 +133,11 @@ function everyCardRead(
 }
 
 describe("Postmortem rules under More settings", () => {
-  test("are on the incident page, after the auto remediation rules and before the daily limits", () => {
+  test("are on the incident page, after the AI rules and the investigation limits, and before the daily limits", () => {
     expect(AI_LANE_ADVANCED_CARDS[AiLane.Incident]).toEqual([
-      AiLaneAdvancedCard.InvestigationRules,
+      AiLaneAdvancedCard.AiRules,
       AiLaneAdvancedCard.WhichAreInvestigated,
       AiLaneAdvancedCard.InvestigationLimits,
-      AiLaneAdvancedCard.RemediationRules,
       AiLaneAdvancedCard.PostmortemRules,
       AiLaneAdvancedCard.DailyLimits,
     ]);
@@ -250,8 +249,9 @@ describe("Postmortem rules under More settings", () => {
     expect(section).toContain(
       "<AIPostmortemRulesTable onRulesLoaded={advanced.onRulesLoaded( AiLaneAdvancedCard.PostmortemRules, )} />",
     );
-    // After the auto remediation rules, before the daily limits.
-    expect(section.indexOf("<AutoRemediationRulesTable")).toBeLessThan(
+    // After the AI rules, before the daily limits.
+    expect(section.indexOf("<AiRulesTable")).toBeGreaterThan(-1);
+    expect(section.indexOf("<AiRulesTable")).toBeLessThan(
       section.indexOf("<AIPostmortemRulesTable"),
     );
     expect(section.indexOf("<AIPostmortemRulesTable")).toBeLessThan(

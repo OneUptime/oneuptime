@@ -3,6 +3,7 @@ import {
   AiRuleFix,
   doesAiRuleInvestigate,
   getAiRuleFix,
+  getAiRuleFixColumns,
   isAiRuleFix,
 } from "Common/Types/AI/AiRule";
 import { AutoRemediationFixKind } from "Common/Types/AutoRemediation/AutoRemediationFix";
@@ -108,12 +109,20 @@ export const AI_RULE_FIX_TEXT: Record<AiRuleFix, string> = {
   [AiRuleFix.WithoutAsking]: AUTO_REMEDIATION_APPROVAL_TEXT.withoutAsking,
 };
 
-// The table's Investigates column, for a rule that only fixes.
+// The table's column, for a rule that only fixes.
 export const AI_RULE_DOES_NOT_INVESTIGATE_TEXT: string = translationKey(
   "Doesn't investigate",
 );
 
-export const AI_RULE_FIX_COLUMN_TITLE: string = translationKey("Fix");
+/*
+ * The table's one column for what a rule does: when it investigates, and
+ * under it whether and how it fixes. Two columns pushed Status under the
+ * row's buttons at 1280px beside the side menu - in German, by more than a
+ * column's width.
+ */
+export const AI_RULE_COLUMN_TITLE: string = translationKey(
+  "Investigates and fixes",
+);
 
 /*
  * The note on the Investigate step of a rule that only fixes, and what the
@@ -259,6 +268,18 @@ export function prepareAiRuleCreate(
   item: AutoRemediationRule,
 ): AutoRemediationRule {
   item.investigates = true;
+
+  /*
+   * The answer the Fix step showed, said whatever was clicked: a rule saved
+   * on the answer it opened on ("Ask before fixing") sends it too, rather
+   * than leaving the server's defaults to say it.
+   */
+  const columns: ReturnType<typeof getAiRuleFixColumns> = getAiRuleFixColumns(
+    getAiRuleFix(item),
+    item.executionMode,
+  );
+  item.fixes = columns.fixes;
+  item.executionMode = columns.executionMode;
 
   return item;
 }

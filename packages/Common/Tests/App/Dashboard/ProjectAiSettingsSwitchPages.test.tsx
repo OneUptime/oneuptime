@@ -693,7 +693,8 @@ describe("Incidents → AI → Settings", () => {
         "Postmortem rules",
         "Daily limits",
       ]);
-      expect(advancedHeader()).not.toHaveTextContent(/\d+ more/);
+      // Linear: a run of digits is tried from its first digit only.
+      expect(advancedHeader()).not.toHaveTextContent(/(?<!\d)\d+ more/);
       expect(setChips(advancedHeader())).toHaveLength(1);
       expect(advancedHeader()).not.toHaveTextContent(
         "nothing limits how much OneUptime AI does",

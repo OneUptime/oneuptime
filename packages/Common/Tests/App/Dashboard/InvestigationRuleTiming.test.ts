@@ -2,7 +2,6 @@ import { describe, expect, test } from "@jest/globals";
 import {
   INVESTIGATION_RULE_MAX_WAIT_MINUTES,
   INVESTIGATION_RULE_RIGHT_AWAY,
-  INVESTIGATION_RULE_TIMING_COLUMN_TITLE,
   INVESTIGATION_RULE_TIMING_COPY,
   INVESTIGATION_RULE_TIMING_FIELD_KEY,
   INVESTIGATION_RULE_TIMING_FIELD_TITLE,
@@ -82,10 +81,9 @@ describe("the choice and its words", () => {
     },
   );
 
-  test("the field titles, the minutes' help and the column", () => {
+  test("the field titles and the minutes' help", () => {
     expect(INVESTIGATION_RULE_TIMING_FIELD_TITLE).toBe("When to investigate");
     expect(INVESTIGATION_RULE_WAIT_FIELD_TITLE).toBe("Wait (Minutes)");
-    expect(INVESTIGATION_RULE_TIMING_COLUMN_TITLE).toBe("Investigates");
     expect(INVESTIGATION_RULE_RIGHT_AWAY).toBe("Right away");
     expect(INVESTIGATION_RULE_WAIT_FIELD_DESCRIPTION[AiLane.Incident]).toBe(
       "Counted from when the incident is declared. When several rules match, the shortest wait decides. At most 1440 (a day).",

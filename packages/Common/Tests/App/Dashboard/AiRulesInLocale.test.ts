@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import {
+  AI_RULE_COLUMN_TITLE,
   AI_RULE_DOES_NOT_INVESTIGATE_TEXT,
   AI_RULE_DOES_NOTHING_TEXT,
   AI_RULE_FIX_FIELD_COPY,
@@ -97,6 +98,8 @@ const SENTENCES: Array<string> = [
       AI_RULE_ONLY_FIXES_COPY[lane].investigateToo,
     ];
   }),
+  // The table's one column for what a rule does.
+  AI_RULE_COLUMN_TITLE,
   AI_RULE_DOES_NOT_INVESTIGATE_TEXT,
   AI_RULE_FIX_TEXT.DoNotFix,
   // The rule form.

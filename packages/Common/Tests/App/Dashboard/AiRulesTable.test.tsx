@@ -76,6 +76,7 @@ import AiRulesTable, {
   prepareNewAiRule,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AiRulesTable";
 import {
+  AI_RULE_COLUMN_TITLE,
   AI_RULE_DOES_NOTHING_TEXT,
   AI_RULE_FIX_FIELD_COPY,
   AI_RULE_FIX_FIELD_KEY,
@@ -1788,10 +1789,41 @@ describe.each([
           aiComposesCommands: false,
           aiSelectsRunbook: false,
           executionMode: AutoRemediationExecutionMode.Suggest,
+          [AI_RULE_FIX_FIELD_KEY]: AiRuleFix.AskFirst,
         }),
       ]);
       // And the form then reads as a new rule's: every field back.
       expect(isOlderAutoRemediationRule(written[0]!)).toBe(false);
+    });
+
+    /*
+     * The Fix question is hidden for an older rule that picks a runbook, but
+     * kept the answer that rule opened on - without asking, for one saved
+     * so. Made new, it asks first: the question says so, and the save does.
+     */
+    test("Fix like a new rule moves a hidden Fix answer to asking first", () => {
+      const note: CapturedField = fieldNamed(tableFor(lane), "olderRuleNote");
+      const written: Array<Values> = [];
+      const current: Values = withValues(
+        {
+          remediationAction: AutoRemediationAction.OneUptimeAI,
+          aiSelectsRunbook: true,
+          executionMode: AutoRemediationExecutionMode.FullAuto,
+        },
+        { [AI_RULE_FIX_FIELD_KEY]: AiRuleFix.WithoutAsking },
+      );
+
+      note.onChange!(true, current, (next: Values): void => {
+        written.push(next);
+      });
+
+      const next: Record<string, unknown> = written[0] as Record<
+        string,
+        unknown
+      >;
+
+      expect(next[AI_RULE_FIX_FIELD_KEY]).toBe(AiRuleFix.AskFirst);
+      expect(next["executionMode"]).toBe(AutoRemediationExecutionMode.Suggest);
     });
 
     test("a new rule's Fix step draws no note", () => {
@@ -1878,50 +1910,55 @@ describe.each([
       expect(reported).toEqual([]);
     });
 
-    test("names each rule's timing and fix, between its name and its status", () => {
+    /*
+     * One column for what a rule does - when it investigates, and under it
+     * whether and how it fixes - between its name and its status: two
+     * columns pushed Status under the row's buttons at 1280px beside the
+     * side menu (the offline suite measures it, in German too).
+     */
+    test("names what each rule does in one column, between its name and its status", () => {
       const props: Record<string, unknown> = tableFor(lane);
 
+      expect(AI_RULE_COLUMN_TITLE).toBe("Investigates and fixes");
       expect(
         columnsOf(props).map((column: CapturedColumn): string => {
           return column.title || "";
         }),
-      ).toEqual(["Name", "Investigates", "Fix", "Status"]);
-      expect(columnTitled(props, "Investigates").field).toEqual({
+      ).toEqual(["Name", AI_RULE_COLUMN_TITLE, "Status"]);
+      expect(columnTitled(props, AI_RULE_COLUMN_TITLE).field).toEqual({
         onlyIfOpenAfterMinutes: true,
       });
-      expect(columnTitled(props, "Investigates").disableSort).toBe(true);
-      expect(columnTitled(props, "Fix").field).toEqual({
-        executionMode: true,
-      });
-      expect(columnTitled(props, "Fix").disableSort).toBe(true);
+      expect(columnTitled(props, AI_RULE_COLUMN_TITLE).disableSort).toBe(true);
     });
 
-    test("the Investigates column says when each rule investigates, or that it does not", () => {
+    test("the column says when each rule investigates, or that it does not, then how it fixes", () => {
       const column: CapturedColumn = columnTitled(
         tableFor(lane),
-        "Investigates",
+        AI_RULE_COLUMN_TITLE,
       );
 
       expect(
         column.getExportValue!(
           rule({ investigates: true, onlyIfOpenAfterMinutes: 30 }),
         ),
-      ).toBe("If still open after 30 minutes");
+      ).toBe("If still open after 30 minutes · Asks first");
       expect(
         column.getExportValue!(
           rule({ investigates: true, onlyIfOpenAfterMinutes: 1 }),
         ),
-      ).toBe("If still open after 1 minute");
-      expect(column.getExportValue!(rule({ investigates: true }))).toBe(
-        "Right away",
-      );
+      ).toBe("If still open after 1 minute · Asks first");
+      expect(
+        column.getExportValue!(rule({ investigates: true, fixes: false })),
+      ).toBe("Right away · Doesn't fix");
       // A rule that only fixes, whatever wait it holds.
       expect(
         column.getExportValue!(
           rule({ investigates: false, onlyIfOpenAfterMinutes: 30 }),
         ),
-      ).toBe("Doesn't investigate");
-      expect(column.getExportValue!(rule({}))).toBe("Doesn't investigate");
+      ).toBe("Doesn't investigate · Asks first");
+      expect(column.getExportValue!(rule({}))).toBe(
+        "Doesn't investigate · Asks first",
+      );
 
       cleanup();
       render(
@@ -1932,6 +1969,16 @@ describe.each([
       expect(
         screen.getByTestId(AI_RULE_TEST_IDS.timingColumn),
       ).toHaveTextContent("If still open after 10 minutes");
+
+      // The fix under the timing, in the order the rule's steps ask them.
+      const timing: HTMLElement = screen.getByTestId(
+        AI_RULE_TEST_IDS.timingColumn,
+      );
+      const fix: HTMLElement = screen.getByTestId(AI_RULE_TEST_IDS.fixColumn);
+      expect(fix).toHaveTextContent("Asks first");
+      expect(
+        timing.compareDocumentPosition(fix) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
 
       cleanup();
       render(column.getElement!(rule({ investigates: false })));
@@ -2001,16 +2048,21 @@ describe.each([
         "OneUptime AI: picks a runbook",
       ],
     ])(
-      "the Fix column names %j as %s, and how it fixes only when it is not OneUptime AI's way",
+      "the column names %j's fix as %s, and how it fixes only when it is not OneUptime AI's way",
       (
         fields: Partial<AutoRemediationRule>,
         answer: string,
         fixedWith: string | null,
       ) => {
-        const column: CapturedColumn = columnTitled(tableFor(lane), "Fix");
+        const column: CapturedColumn = columnTitled(
+          tableFor(lane),
+          AI_RULE_COLUMN_TITLE,
+        );
 
-        // An export of the table says what the pill does.
-        expect(column.getExportValue!(rule(fields))).toBe(answer);
+        // An export of the table says what the pill does, after the timing.
+        expect(column.getExportValue!(rule(fields))).toBe(
+          `Doesn't investigate · ${answer}`,
+        );
 
         cleanup();
         render(column.getElement!(rule(fields)));
@@ -2039,7 +2091,10 @@ describe.each([
       const props: Record<string, unknown> = tableFor(lane);
       const columns: Array<CapturedColumn> = columnsOf(props);
       const name: CapturedColumn = columnTitled(props, "Name");
-      const investigates: CapturedColumn = columnTitled(props, "Investigates");
+      const investigates: CapturedColumn = columnTitled(
+        props,
+        AI_RULE_COLUMN_TITLE,
+      );
 
       /*
        * A rule's name wraps rather than being cut short, on a floor below a
