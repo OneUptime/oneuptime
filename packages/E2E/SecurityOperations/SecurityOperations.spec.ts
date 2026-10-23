@@ -1104,7 +1104,7 @@ test.describe("the overview's top card", () => {
     }
   });
 
-  test("All quiet: the test attack sits on the band's right on a laptop, and under its words on a phone", async ({
+  test("All quiet: the test attack sits at the band's right edge - beside its words on a laptop, under them on a phone", async ({
     page,
   }: {
     page: Page;
@@ -1123,16 +1123,20 @@ test.describe("the overview's top card", () => {
       );
       const area: Box = await boxOf(band(page));
 
+      // The band pads its content 24px from md up, 20px below.
+      const padding: number = width === 1280 ? 24 : 20;
+      // At the band's right edge, as a card keeps its actions, in both layouts.
+      expect(
+        Math.abs(button.x + button.width - (area.x + area.width - padding)),
+      ).toBeLessThanOrEqual(1.5);
       if (width === 1280) {
         expect(button.x).toBeGreaterThan(summary.x + summary.width);
-        expect(button.x + button.width).toBeLessThanOrEqual(
-          area.x + area.width,
-        );
         // Beside the words, not on a line of its own.
         expect(button.y).toBeLessThan(summary.y + summary.height);
       } else {
         expect(button.y).toBeGreaterThan(summary.y + summary.height);
-        expect(button.width).toBeGreaterThan(area.width * 0.75);
+        // Its own width, not a bar across the band.
+        expect(button.width).toBeLessThan(area.width * 0.75);
       }
       expect(heading.y).toBeLessThan(summary.y);
     }

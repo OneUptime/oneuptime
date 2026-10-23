@@ -79,13 +79,6 @@ const ATTENTION_ICON_CLASS_NAMES: Record<SecurityStatusTone, string> = {
   [SecurityStatusTone.Neutral]: "text-gray-500",
 };
 
-/*
- * Buttons carry a left margin from md up (Button's own); in this row they
- * sit on the content's edge.
- */
-const BUTTON_ROW: string =
-  "flex-shrink-0 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0";
-
 function route(page: PageMap): Route {
   return RouteUtil.populateRouteParams(RouteMap[page] as Route);
 }
@@ -238,15 +231,21 @@ const SecurityOverviewStatus: FunctionComponent<ComponentProps> = (
               )}
             </div>
           </div>
+          {/*
+           * Each action sits at the right edge, as a card's do: beside the
+           * words from md up, under them on a narrower screen. Buttons carry
+           * a left margin from md up (Button's own); here they sit on the
+           * content's edge.
+           */}
           {headline.action === SecurityHeadlineAction.TestAttack ? (
-            <div className={BUTTON_ROW}>
+            <div className="flex-shrink-0 self-end md:self-auto [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
               <SecuritySetupTestButton test={test} />
             </div>
           ) : (
             <></>
           )}
           {headline.action === SecurityHeadlineAction.SetUp ? (
-            <div className={BUTTON_ROW}>
+            <div className="flex-shrink-0 self-end md:self-auto [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
               <Button
                 title={SET_UP_SECURITY}
                 icon={IconProp.ShieldCheck}
@@ -305,7 +304,7 @@ const SecurityOverviewStatus: FunctionComponent<ComponentProps> = (
             />
             <span>{translator.translateText(STATUS_READ_FAILED)}</span>
           </div>
-          <div className={BUTTON_ROW}>
+          <div className="flex-shrink-0 self-end md:self-auto [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
             <Button
               title="Try again"
               icon={IconProp.Refresh}
@@ -424,7 +423,7 @@ export const SecurityOverviewFailed: FunctionComponent<{
             </p>
           </div>
         </div>
-        <div className={BUTTON_ROW}>
+        <div className="flex-shrink-0 self-end md:self-auto [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
           <Button
             title="Try again"
             icon={IconProp.Refresh}
