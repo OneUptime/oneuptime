@@ -52,7 +52,7 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
       <div>
         <FieldLabelElement
           title="Provider"
-          description="How OneUptime reads this status page. 'Auto' detects Atlassian Statuspage, incident.io, or an RSS/Atom feed automatically."
+          description="How OneUptime reads this status page. 'Auto' detects the format for you."
           required={false}
         />
         <Dropdown
@@ -92,7 +92,7 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
           <div>
             <FieldLabelElement
               title="Component Group Filter (Optional)"
-              description="Only watch one component group, e.g. 'APIs'. Works with Atlassian Statuspage and incident.io."
+              description="Only watch one component group, e.g. 'APIs'. RSS and Atom feeds have no groups."
               required={false}
             />
             <Input

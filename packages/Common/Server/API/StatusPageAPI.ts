@@ -155,6 +155,8 @@ import IncidentStatusPageScope, {
 import StatusPageVisibilityQuery from "../Utils/StatusPage/StatusPageVisibilityQuery";
 import ScheduledMaintenanceStartUtil from "../../Utils/ScheduledMaintenanceStart";
 import StatusPageOverviewCache from "../Utils/StatusPage/StatusPageOverviewCache";
+import StatusPageSummaryUtil from "../../Types/StatusPage/StatusPageSummary";
+import StatusPageSummaryBuilder from "../../Utils/StatusPage/StatusPageSummaryBuilder";
 import { StatusPageSubscriberUnsubscribeSource } from "../Utils/StatusPage/StatusPageSubscriberUnsubscribeNotice";
 import {
   MANAGE_SUBSCRIPTION_LINK_NOT_VALID_MESSAGE,
@@ -1983,24 +1985,8 @@ export default class StatusPageAPI extends BaseAPI<
           req: req,
         });
 
-        /*
-         * Kept by the resolved id, so domain-served and id-served views share
-         * one entry, and by its project's generation, so a record the page
-         * stops showing is not served from it (StatusPageOverviewCache). The
-         * cached JSONObject is shared across requests and must never be
-         * mutated after build.
-         */
-        const response: JSONObject = await StatusPageOverviewCache.getOrBuild({
-          statusPageId: statusPageId,
-          readProjectId: async (): Promise<ObjectID | null> => {
-            return await StatusPageService.getProjectIdOfStatusPage(
-              statusPageId,
-            );
-          },
-          build: async (): Promise<JSONObject> => {
-            return await this.buildOverviewResponse(statusPageId);
-          },
-        });
+        const response: JSONObject =
+          await this.getCachedOverviewResponse(statusPageId);
 
         // These can serve private-page data on a GET; never let shared caches store them.
         Response.setNoCacheHeaders(res);
@@ -2030,6 +2016,72 @@ export default class StatusPageAPI extends BaseAPI<
       overviewApiPath,
       UserMiddleware.getPublicRouteUserMiddleware,
       overviewHandler,
+    );
+
+    /*
+     * The page in brief (Types/StatusPage/StatusPageSummary): its overall
+     * status, each resource's current status and whether maintenance in
+     * progress affects it, the active incidents and the maintenance in
+     * progress and to come. What a monitoring tool asks a page - another
+     * OneUptime's External Status Page monitor among them - without the
+     * overview's uptime history.
+     *
+     * It is the overview, cut down (StatusPageSummaryBuilder), read from the
+     * same cache after the same read check, so it holds only what the page
+     * shows, only for a reader the page lets in, and costs the page nothing
+     * a visitor's view does not.
+     */
+    const summaryHandler: (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ) => Promise<void> = async (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      next: NextFunction,
+    ): Promise<void> => {
+      try {
+        const statusPageId: ObjectID = await resolveStatusPageIdOrThrow(
+          req.params["statusPageIdOrDomain"] as string,
+        );
+
+        // Before any cache read, as for the overview.
+        await this.checkHasReadAccess({
+          statusPageId: statusPageId,
+          req: req,
+        });
+
+        const overview: JSONObject =
+          await this.getCachedOverviewResponse(statusPageId);
+
+        Response.setNoCacheHeaders(res);
+
+        return Response.sendJsonObjectResponse(
+          req,
+          res,
+          StatusPageSummaryUtil.toJSON(
+            StatusPageSummaryBuilder.fromOverview(overview),
+          ),
+        );
+      } catch (err) {
+        next(err);
+      }
+    };
+
+    const summaryApiPath: string = `${new this.entityType()
+      .getCrudApiPath()
+      ?.toString()}/summary/:statusPageIdOrDomain`;
+
+    this.router.get(
+      summaryApiPath,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      summaryHandler,
+    );
+
+    this.router.post(
+      summaryApiPath,
+      UserMiddleware.getPublicRouteUserMiddleware,
+      summaryHandler,
     );
 
     /*
@@ -2936,9 +2988,13 @@ export default class StatusPageAPI extends BaseAPI<
           _id: true,
           showAnnouncementAt: true,
           endAnnouncementAt: true,
+          /*
+           * The id alone: the page names what an announcement affects by its
+           * resources' names (StatusPageAffectedResources), and a monitor's
+           * own name is the team's, which the page never shows.
+           */
           monitors: {
             _id: true,
-            name: true,
           },
           attachments: {
             _id: true,
@@ -5565,6 +5621,29 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     return mergedDowntimeByMonitorGroupId;
+  }
+
+  /*
+   * The page's overview, kept by the resolved id, so domain-served and
+   * id-served views share one entry, and by its project's generation, so a
+   * record the page stops showing is not served from it
+   * (StatusPageOverviewCache). The overview and the summary both read it.
+   * Ask it only after checkHasReadAccess: the entry is the same for every
+   * reader. The cached JSONObject is shared across requests and must never
+   * be mutated.
+   */
+  public async getCachedOverviewResponse(
+    statusPageId: ObjectID,
+  ): Promise<JSONObject> {
+    return await StatusPageOverviewCache.getOrBuild({
+      statusPageId: statusPageId,
+      readProjectId: async (): Promise<ObjectID | null> => {
+        return await StatusPageService.getProjectIdOfStatusPage(statusPageId);
+      },
+      build: async (): Promise<JSONObject> => {
+        return await this.buildOverviewResponse(statusPageId);
+      },
+    });
   }
 
   /*
