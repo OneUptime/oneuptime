@@ -409,7 +409,7 @@ describe("cluster overview: node pressure, summary cards and sections", () => {
     const helper: string = between(
       OVERVIEW,
       "export function titleWithTooltip(",
-      "function formatRelativeTime(",
+      "const KubernetesClusterOverview: FunctionComponent<",
     );
 
     expectCode(helper, "<InfoTooltip label={title} text={description} />");
