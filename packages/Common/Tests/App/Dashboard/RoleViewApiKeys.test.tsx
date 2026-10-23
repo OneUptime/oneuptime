@@ -726,7 +726,8 @@ describe("a custom role's API keys", () => {
 
     // The key the role is given to is not theirs to know about.
     expect(screen.getByText("What this role gives.")).toBeInTheDocument();
-    expect(screen.queryByText(/\d+ API keys?/)).toBeNull();
+    // A count starts at a word's edge: one try per number, not per digit.
+    expect(screen.queryByText(/\b\d+ API keys?/)).toBeNull();
     expect(screen.queryByText(/Deploy bot/)).toBeNull();
   });
 });

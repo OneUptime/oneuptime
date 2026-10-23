@@ -273,7 +273,7 @@ const CustomRoleApiKeysTable: FunctionComponent<ComponentProps> = (
                     RouteMap[PageMap.SETTINGS_APIKEYS] as Route,
                   )}
                 >
-                  {translator.translateText("API Keys") || "API Keys"}
+                  {translator.translateText("API Keys") || ""}
                 </AppLink>
               ),
             }}
