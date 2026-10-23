@@ -5,6 +5,7 @@ import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
+import { DETECTION_RULE_NAME_MAX_LENGTH } from "../../../Types/SecurityEvent/DetectionRuleName";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -168,6 +169,63 @@ detection:
     );
 
     expect(result.createBy.data.name).toBe("Failed Logins");
+  });
+
+  test("a title longer than a name may be is cut to fit, so a name nobody typed never fails the save", async () => {
+    // SigmaHQ's longest title (103 characters); Sigma allows 256.
+    const title: string =
+      "CVE-2023-1389 Potential Exploitation Attempt - Unauthenticated Command Injection In TP-Link Archer AX21";
+    const rule: DetectionRule = buildRule({
+      sigmaRuleYaml: VALID_SIGMA_YAML.replace(
+        "title: Failed Logins",
+        `title: ${title}`,
+      ),
+    });
+
+    const result: OnCreate<DetectionRule> = await service.onBeforeCreate(
+      buildCreateBy(rule),
+    );
+
+    expect(title.length).toBeGreaterThan(DETECTION_RULE_NAME_MAX_LENGTH);
+    expect(result.createBy.data.name).toBe(
+      "CVE-2023-1389 Potential Exploitation Attempt - Unauthenticated Command Injection In TP-Link Archer\u2026",
+    );
+    expect(result.createBy.data.name!.length).toBeLessThanOrEqual(
+      DETECTION_RULE_NAME_MAX_LENGTH,
+    );
+  });
+
+  test("a title that fits is the name whole, 53 characters and all", async () => {
+    const title: string =
+      "Failed sign-ins, then a success from the same address";
+    const rule: DetectionRule = buildRule({
+      sigmaRuleYaml: VALID_SIGMA_YAML.replace(
+        "title: Failed Logins",
+        `title: ${title}`,
+      ),
+    });
+
+    const result: OnCreate<DetectionRule> = await service.onBeforeCreate(
+      buildCreateBy(rule),
+    );
+
+    expect(result.createBy.data.name).toBe(title);
+  });
+
+  test("a name somebody gave is kept as given, however long the title", async () => {
+    const rule: DetectionRule = buildRule({
+      name: "Our name",
+      sigmaRuleYaml: VALID_SIGMA_YAML.replace(
+        "title: Failed Logins",
+        `title: ${"Long ".repeat(40)}`,
+      ),
+    });
+
+    const result: OnCreate<DetectionRule> = await service.onBeforeCreate(
+      buildCreateBy(rule),
+    );
+
+    expect(result.createBy.data.name).toBe("Our name");
   });
 
   describe("evaluation interval validation", () => {

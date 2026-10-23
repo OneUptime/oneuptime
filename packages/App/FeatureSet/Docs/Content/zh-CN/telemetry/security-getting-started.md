@@ -74,6 +74,10 @@ flowchart LR
 您的角色无法添加检测规则、剧本或日志来源。请联系 Project Owner、Project Admin 或 Security Admin，或请他们为您分配 Security Admin 角色。
 :::
 
+:::details Turn on recommended 未能全部开启
+卡片会列出未能开启的每一项及原因：您的角色、您的套餐，或 OneUptime 一侧出了问题。其余都已开启。解决卡片列出的问题后，点击 **重试**：只会开启仍缺少的部分，不会重复添加。
+:::
+
 :::details 测试攻击没有打开案例
 案例通常会在按钮响应之前打开；如果规则仍在追赶进度，它会说明这一点，案例会在一分钟内打开。请再次查看 **安全案例**，并在 **Detections** 下确认暴力破解规则已开启。
 :::

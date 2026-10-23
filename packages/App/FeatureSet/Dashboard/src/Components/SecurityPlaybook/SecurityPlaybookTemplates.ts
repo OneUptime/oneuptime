@@ -23,6 +23,8 @@ export interface SecurityPlaybookTemplate {
   minimumPriority?: SecurityCasePriority | undefined;
   detectionSource?: SecurityDetectionSource | undefined;
   getSteps: () => Array<SecurityPlaybookStep>;
+  // The template as Common has it, which the playbook is built from (SecurityTemplateRecords).
+  definition: SecurityPlaybookTemplateDefinition;
 }
 
 export const SECURITY_PLAYBOOK_TEMPLATES: ReadonlyArray<SecurityPlaybookTemplate> =
@@ -39,6 +41,7 @@ export const SECURITY_PLAYBOOK_TEMPLATES: ReadonlyArray<SecurityPlaybookTemplate
         minimumPriority: definition.minimumPriority,
         detectionSource: definition.detectionSource,
         getSteps: definition.getSteps,
+        definition,
       };
     },
   );

@@ -3,6 +3,13 @@ import {
   SECURITY_PLAYBOOK_TEMPLATES,
   SecurityPlaybookTemplate,
 } from "../../Components/SecurityPlaybook/SecurityPlaybookTemplates";
+import {
+  TurnOnRecommendedProblem,
+  describeAddFailure,
+} from "../../Components/SecurityOverview/SecuritySetupModel";
+import SecurityTurnOnProblems, {
+  bringProblemsIntoView,
+} from "../../Components/SecurityOverview/SecurityTurnOnProblems";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
@@ -10,12 +17,14 @@ import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Green, Gray500 } from "Common/Types/BrandColors";
-import { JSONArray } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import SecurityCasePriority from "Common/Types/SecurityCase/SecurityCasePriority";
 import SecurityDetectionSource from "Common/Types/SecurityCase/SecurityDetectionSource";
+import {
+  TurnOnRecommendedAction,
+  TurnOnRecommendedPart,
+} from "Common/Types/SecurityEvent/TurnOnRecommended";
 import SecurityPlaybookTrigger from "Common/Types/SecurityPlaybook/SecurityPlaybookTrigger";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -23,7 +32,6 @@ import useBulkSwitchActions from "Common/UI/Components/BulkUpdate/BulkSwitchActi
 import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import API from "Common/UI/Utils/API/API";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -32,14 +40,26 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { buildSecurityPlaybookFromTemplate } from "Common/Utils/SecurityEvent/SecurityTemplateRecords";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   SECURITY_PLAYBOOK_TRIGGER_FIELD_DESCRIPTION,
   getSecurityPlaybookTriggerOptions,
 } from "../../Components/SecurityPlaybook/SecurityPlaybookTriggerOptions";
 import useAiOffered from "../../Utils/UseAiOffered";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
+// What the templates say when the one a reader picked could not be added (SecurityTurnOnProblems).
+export const PLAYBOOK_NOT_ADDED_TITLE: string = translationKey(
+  "The playbook could not be added",
+);
 
 function getPlaybookViewRoute(id: ObjectID): Route {
   return RouteUtil.populateRouteParams(
@@ -57,8 +77,18 @@ const SecurityPlaybooksPage: FunctionComponent<
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
   const isAiOffered: boolean = useAiOffered();
-  const [error, setError] = useState<string>("");
+  // Why the template picked last could not become a playbook, as the Rule Library says a rule's.
+  const [failure, setFailure] = useState<TurnOnRecommendedProblem | null>(null);
   const [creatingKey, setCreatingKey] = useState<string>("");
+  const failureRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+
+  // On a phone the tile picked can sit a screen below the box that says why.
+  useEffect(() => {
+    if (failure) {
+      bringProblemsIntoView(failureRef.current, "nearest");
+    }
+  }, [failure]);
 
   /*
    * Enable and Disable in Bulk Actions: a disabled playbook stops running on
@@ -81,25 +111,26 @@ const SecurityPlaybooksPage: FunctionComponent<
     template: SecurityPlaybookTemplate,
   ): Promise<void> => {
     setCreatingKey(template.key);
-    setError("");
+    setFailure(null);
+
+    const name: string =
+      translator.translateText(template.name) || template.name;
 
     try {
-      const playbook: SecurityPlaybook = new SecurityPlaybook();
-      playbook.projectId = ProjectUtil.getCurrentProjectId()!;
-      playbook.name = translator.translateText(template.name) || template.name;
-      playbook.description =
-        translator.translateText(template.description) || template.description;
-      playbook.isEnabled = true;
-      playbook.trigger = template.trigger;
-      playbook.steps = template.getSteps() as unknown as JSONArray;
-
-      if (template.minimumPriority) {
-        playbook.minimumPriority = template.minimumPriority;
-      }
-
-      if (template.detectionSource) {
-        playbook.detectionSource = template.detectionSource;
-      }
+      /*
+       * The record Turn on recommended makes from a template too
+       * (SecurityTemplateRecords), named as the reader's language words
+       * it - which SecurityTemplatesCreatable holds to the name's width in
+       * every language.
+       */
+      const playbook: SecurityPlaybook = buildSecurityPlaybookFromTemplate({
+        projectId: ProjectUtil.getCurrentProjectId()!,
+        template: template.definition,
+        name,
+        description:
+          translator.translateText(template.description) ||
+          template.description,
+      });
 
       const response: { data: unknown } =
         await ModelAPI.create<SecurityPlaybook>({
@@ -113,7 +144,17 @@ const SecurityPlaybooksPage: FunctionComponent<
         Navigation.navigate(getPlaybookViewRoute(new ObjectID(created._id)));
       }
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      /*
+       * Why, in the product's words - the role, the plan, a record OneUptime
+       * would not save, or a failure on its side - never a server's raw
+       * sentence in grey.
+       */
+      setFailure({
+        part: TurnOnRecommendedPart.Playbook,
+        action: TurnOnRecommendedAction.Add,
+        name,
+        ...describeAddFailure(err),
+      });
     }
 
     setCreatingKey("");
@@ -130,9 +171,16 @@ const SecurityPlaybooksPage: FunctionComponent<
             "Each template is a working playbook you can save as it is and change later.",
           )}
         </p>
-        {error ? (
-          <div className="mt-3">
-            <ErrorMessage message={error} />
+        {failure ? (
+          <div className="mt-4" ref={failureRef}>
+            <SecurityTurnOnProblems
+              problems={[failure]}
+              title={
+                translator.translateText(PLAYBOOK_NOT_ADDED_TITLE) ||
+                PLAYBOOK_NOT_ADDED_TITLE
+              }
+              dataTestId="security-playbook-template-problems"
+            />
           </div>
         ) : (
           <></>
