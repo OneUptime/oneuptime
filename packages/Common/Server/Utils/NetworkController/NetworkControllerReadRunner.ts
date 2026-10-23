@@ -114,7 +114,9 @@ export default class NetworkControllerReadRunner {
         data.now.getTime() +
           Math.min(
             interval,
-            data.wasRateLimited ? CONTINUE_AFTER_RATE_LIMIT_MS : CONTINUE_AFTER_MS,
+            data.wasRateLimited
+              ? CONTINUE_AFTER_RATE_LIMIT_MS
+              : CONTINUE_AFTER_MS,
           ),
       );
     }
@@ -336,8 +338,7 @@ export default class NetworkControllerReadRunner {
         trafficAnalysisOffNetworks: previous?.trafficAnalysisOffNetworks || 0,
         rowsWritten: 0,
         requestCount: 0,
-        wasRateLimited:
-          failure.kind === LlmConnectionFailureKind.RateLimited,
+        wasRateLimited: failure.kind === LlmConnectionFailureKind.RateLimited,
         warnings: [],
         failureKind: failure.kind,
         durationMs: Date.now() - startedAt,

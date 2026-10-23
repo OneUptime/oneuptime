@@ -198,7 +198,8 @@ export default class NetworkControllerConnectionAPI extends BaseAPI<
   private assertCanOperate(props: DatabaseCommonInteractionProps): void {
     CommonAPI.assertPermittedInProject({
       databaseProps: props,
-      allowedPermissions: new NetworkControllerConnection().getUpdatePermissions(),
+      allowedPermissions:
+        new NetworkControllerConnection().getUpdatePermissions(),
       errorMessage:
         "Project owners and project administrators can connect, test and read Meraki organizations.",
     });

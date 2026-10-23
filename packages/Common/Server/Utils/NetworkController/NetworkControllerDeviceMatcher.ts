@@ -29,7 +29,9 @@ export type FindDevicesFunction = (data: {
   projectId: ObjectID;
   serials: Array<string>;
   macs: Array<string>;
-}) => Promise<Array<{ id: ObjectID; serialNumber: string; macAddress: string }>>;
+}) => Promise<
+  Array<{ id: ObjectID; serialNumber: string; macAddress: string }>
+>;
 
 export default class NetworkControllerDeviceMatcher {
   public static async findDevices(data: {
@@ -130,11 +132,13 @@ export default class NetworkControllerDeviceMatcher {
       id: ObjectID;
       serialNumber: string;
       macAddress: string;
-    }> = await (data.findDevices || NetworkControllerDeviceMatcher.findDevices)({
-      projectId: data.projectId,
-      serials,
-      macs,
-    });
+    }> = await (data.findDevices || NetworkControllerDeviceMatcher.findDevices)(
+      {
+        projectId: data.projectId,
+        serials,
+        macs,
+      },
+    );
 
     const deviceBySerial: Map<string, ObjectID> = new Map();
     const deviceByMac: Map<string, ObjectID> = new Map();
@@ -155,7 +159,10 @@ export default class NetworkControllerDeviceMatcher {
 
     // A network's analytics go to its first matched appliance, by serial.
     const sorted: Array<NetworkControllerAppliance> = [...data.appliances].sort(
-      (a: NetworkControllerAppliance, b: NetworkControllerAppliance): number => {
+      (
+        a: NetworkControllerAppliance,
+        b: NetworkControllerAppliance,
+      ): number => {
         return a.serial.localeCompare(b.serial);
       },
     );

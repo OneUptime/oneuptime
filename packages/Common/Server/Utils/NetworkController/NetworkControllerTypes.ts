@@ -114,7 +114,8 @@ export interface NetworkTrafficUsageRecord {
   windowEndAt: Date;
 }
 
-export interface NetworkControllerReadOptions extends NetworkControllerCallOptions {
+export interface NetworkControllerReadOptions
+  extends NetworkControllerCallOptions {
   state: NetworkControllerPullState;
   // Bounds on one read; it stops (complete=false) when one is reached.
   maxRequests: number;

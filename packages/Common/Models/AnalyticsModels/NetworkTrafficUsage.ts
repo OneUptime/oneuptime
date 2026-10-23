@@ -228,7 +228,8 @@ export default class NetworkTrafficUsage extends AnalyticsBaseModel {
         column({
           key: "clientManufacturer",
           title: "Client Manufacturer",
-          description: "Client rows: who made the client, as the controller says",
+          description:
+            "Client rows: who made the client, as the controller says",
           type: TableColumnType.Text,
           isLowCardinality: true,
         }),

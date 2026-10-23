@@ -7,10 +7,12 @@ import { NetworkControllerConnector } from "./NetworkControllerTypes";
  * One stateless connector per controller (NetworkControllerTypes): the read
  * runner and "Test" both find theirs here.
  */
-const CONNECTORS: Record<NetworkControllerProvider, NetworkControllerConnector> =
-  {
-    [NetworkControllerProvider.Meraki]: new MerakiConnector(),
-  };
+const CONNECTORS: Record<
+  NetworkControllerProvider,
+  NetworkControllerConnector
+> = {
+  [NetworkControllerProvider.Meraki]: new MerakiConnector(),
+};
 
 export default class NetworkControllerConnectorRegistry {
   public static getConnector(

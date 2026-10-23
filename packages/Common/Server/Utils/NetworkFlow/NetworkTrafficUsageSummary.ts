@@ -287,7 +287,9 @@ export default class NetworkTrafficUsageSummaryUtil {
 
     const pageConnections: Array<NetworkTrafficUsageConnection> =
       connections.map(
-        (connection: NetworkControllerConnection): NetworkTrafficUsageConnection => {
+        (
+          connection: NetworkControllerConnection,
+        ): NetworkTrafficUsageConnection => {
           return NetworkTrafficUsageSummaryUtil.toPageConnection(
             connection,
             data.now,
@@ -343,6 +345,9 @@ export default class NetworkTrafficUsageSummaryUtil {
         windowEndAt: OneUptimeDate.toString(request.endTime),
         bucketSeconds,
         totals: aggregates.totals,
+        primaryKind: aggregates.primaryKind,
+        applicationTotals: aggregates.applicationTotals,
+        clientTotals: aggregates.clientTotals,
         series: aggregates.series,
         topNetworks: aggregates.topNetworks,
         topUplinks: aggregates.topUplinks,

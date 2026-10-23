@@ -85,6 +85,13 @@ export interface ComponentProps {
   // The window the series was fetched over, as the API echoes it back.
   windowStartAt: string;
   windowEndAt: string;
+  /*
+   * The split series' names, when they are not "In" and "Out" through an
+   * interface: an uplink's download and upload.
+   */
+  splitSeriesNames?: { in: string; out: string } | undefined;
+  // What a screen reader hears for a split chart, then.
+  splitAriaLabel?: string | undefined;
 }
 
 const TrafficOverTimeChart: FunctionComponent<ComponentProps> = (
@@ -111,13 +118,13 @@ const TrafficOverTimeChart: FunctionComponent<ComponentProps> = (
   }> = isSplit
     ? [
         {
-          name: IN_SERIES_NAME,
+          name: props.splitSeriesNames?.in || IN_SERIES_NAME,
           read: (point: NetworkTrafficSeriesPoint): number => {
             return point.inOctets || 0;
           },
         },
         {
-          name: OUT_SERIES_NAME,
+          name: props.splitSeriesNames?.out || OUT_SERIES_NAME,
           read: (point: NetworkTrafficSeriesPoint): number => {
             return point.outOctets || 0;
           },
@@ -223,7 +230,8 @@ const TrafficOverTimeChart: FunctionComponent<ComponentProps> = (
         role="figure"
         aria-label={translator.translateText(
           isSplit
-            ? "Traffic in and out through the interface over time, in bits per second"
+            ? props.splitAriaLabel ||
+                "Traffic in and out through the interface over time, in bits per second"
             : "Traffic over time, in bits per second",
         )}
         data-testid="traffic-over-time-chart"

@@ -117,11 +117,7 @@ export function readMerakiOrganizationId(value: unknown): string {
 
   const id: string = String(value).trim();
 
-  if (
-    !id ||
-    id.length > MAX_ORGANIZATION_ID_LENGTH ||
-    !isIdentifierText(id)
-  ) {
+  if (!id || id.length > MAX_ORGANIZATION_ID_LENGTH || !isIdentifierText(id)) {
     throw new BadDataException(
       "The Meraki organization ID is not one Meraki gives: it is letters and digits, like 123456.",
     );
@@ -141,7 +137,10 @@ export function cleanOrganizationName(value: unknown): string {
 
   let cleaned: string = "";
 
-  for (const character of value.substring(0, MAX_ORGANIZATION_NAME_LENGTH * 4)) {
+  for (const character of value.substring(
+    0,
+    MAX_ORGANIZATION_NAME_LENGTH * 4,
+  )) {
     const code: number = character.charCodeAt(0);
     cleaned += code < 0x20 || code === 0x7f ? " " : character;
   }

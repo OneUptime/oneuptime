@@ -23,6 +23,7 @@ import {
   NetworkTrafficUsageDestinationRow,
   NetworkTrafficUsageFilters,
   NetworkTrafficUsageKind,
+  NetworkTrafficUsageKindTotals,
   NetworkTrafficUsageNetworkRow,
   NetworkTrafficUsageSeriesPoint,
   NetworkTrafficUsageTotals,
@@ -84,6 +85,8 @@ export interface NetworkTrafficUsageAggregates {
   // The kind the totals, the chart and Top networks are of.
   primaryKind: NetworkTrafficUsageKind;
   totals: NetworkTrafficUsageTotals;
+  applicationTotals: NetworkTrafficUsageKindTotals;
+  clientTotals: NetworkTrafficUsageKindTotals;
   series: Array<NetworkTrafficUsageSeriesPoint>;
   topNetworks: Array<NetworkTrafficUsageNetworkRow>;
   topUplinks: Array<NetworkTrafficUsageUplinkRow>;
@@ -164,8 +167,9 @@ export default class NetworkTrafficUsageAggregationService {
     const primaryKind: NetworkTrafficUsageKind = data.primaryKind;
 
     const [
-      totalsRows,
-      flowsRows,
+      uplinkTotalsRows,
+      applicationTotalsRows,
+      clientTotalsRows,
       seriesRows,
       networkRows,
       uplinkRows,
@@ -176,11 +180,20 @@ export default class NetworkTrafficUsageAggregationService {
       NetworkTrafficUsageAggregationService.run(
         NetworkTrafficUsageAggregationService.buildTotalsStatement(
           query,
-          primaryKind,
+          NetworkTrafficUsageKind.Uplink,
         ),
       ),
       NetworkTrafficUsageAggregationService.run(
-        NetworkTrafficUsageAggregationService.buildFlowsStatement(query),
+        NetworkTrafficUsageAggregationService.buildTotalsStatement(
+          query,
+          NetworkTrafficUsageKind.Application,
+        ),
+      ),
+      NetworkTrafficUsageAggregationService.run(
+        NetworkTrafficUsageAggregationService.buildTotalsStatement(
+          query,
+          NetworkTrafficUsageKind.Client,
+        ),
       ),
       NetworkTrafficUsageAggregationService.run(
         NetworkTrafficUsageAggregationService.buildSeriesStatement(
@@ -213,15 +226,34 @@ export default class NetworkTrafficUsageAggregationService {
       ),
     ]);
 
-    const totals: JSONObject = totalsRows?.[0] || {};
+    const kindTotals: (
+      rows: Array<JSONObject> | undefined,
+    ) => NetworkTrafficUsageKindTotals = (
+      rows: Array<JSONObject> | undefined,
+    ): NetworkTrafficUsageKindTotals => {
+      return {
+        sentOctets: toBytes(rows?.[0]?.["totalSent"]),
+        receivedOctets: toBytes(rows?.[0]?.["totalReceived"]),
+      };
+    };
+
+    const applicationTotals: NetworkTrafficUsageKindTotals = kindTotals(
+      applicationTotalsRows,
+    );
+    const primaryTotals: NetworkTrafficUsageKindTotals =
+      primaryKind === NetworkTrafficUsageKind.Uplink
+        ? kindTotals(uplinkTotalsRows)
+        : applicationTotals;
 
     return {
       primaryKind,
       totals: {
-        sentOctets: toBytes(totals["totalSent"]),
-        receivedOctets: toBytes(totals["totalReceived"]),
-        flows: toBytes(flowsRows?.[0]?.["totalFlows"]),
+        sentOctets: primaryTotals.sentOctets,
+        receivedOctets: primaryTotals.receivedOctets,
+        flows: toBytes(applicationTotalsRows?.[0]?.["totalFlows"]),
       },
+      applicationTotals,
+      clientTotals: kindTotals(clientTotalsRows),
       series: (seriesRows || []).map(
         (row: JSONObject): NetworkTrafficUsageSeriesPoint => {
           return {
@@ -315,9 +347,7 @@ export default class NetworkTrafficUsageAggregationService {
 
     const rows: Array<JSONObject> =
       await NetworkTrafficUsageAggregationService.run(
-        NetworkTrafficUsageAggregationService.buildStoredWindowsStatement(
-          data,
-        ),
+        NetworkTrafficUsageAggregationService.buildStoredWindowsStatement(data),
       );
 
     for (const row of rows) {
@@ -414,6 +444,10 @@ export default class NetworkTrafficUsageAggregationService {
     return statement;
   }
 
+  /*
+   * One kind's bytes in the range - and, for the applications, the flows
+   * Meraki's traffic analytics counted - each row's share of them.
+   */
   public static buildTotalsStatement(
     query: NetworkTrafficUsageQuery,
     kind: NetworkTrafficUsageKind,
@@ -422,24 +456,10 @@ export default class NetworkTrafficUsageAggregationService {
       .append(NetworkTrafficUsageAggregationService.buildWeight(query))
       .append(`) AS totalSent, sum(toFloat64(receivedOctets) * `)
       .append(NetworkTrafficUsageAggregationService.buildWeight(query))
-      .append(SQL`) AS totalReceived FROM ${TABLE_NAME}`)
-      .append(NetworkTrafficUsageAggregationService.buildWhere(query, kind))
-      .append(QUERY_SETTINGS);
-  }
-
-  // The flows Meraki's traffic analytics counted, the range's share of them.
-  public static buildFlowsStatement(
-    query: NetworkTrafficUsageQuery,
-  ): Statement {
-    return SQL`SELECT sum(toFloat64(flows) * `
+      .append(`) AS totalReceived, sum(toFloat64(flows) * `)
       .append(NetworkTrafficUsageAggregationService.buildWeight(query))
       .append(SQL`) AS totalFlows FROM ${TABLE_NAME}`)
-      .append(
-        NetworkTrafficUsageAggregationService.buildWhere(
-          query,
-          NetworkTrafficUsageKind.Application,
-        ),
-      )
+      .append(NetworkTrafficUsageAggregationService.buildWhere(query, kind))
       .append(QUERY_SETTINGS);
   }
 
@@ -635,9 +655,7 @@ export default class NetworkTrafficUsageAggregationService {
       "networkDeviceId",
     );
 
-    return statement
-      .append(" GROUP BY usageKind")
-      .append(QUERY_SETTINGS);
+    return statement.append(" GROUP BY usageKind").append(QUERY_SETTINGS);
   }
 
   /*

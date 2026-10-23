@@ -89,8 +89,7 @@ export function getNetworkControllerConnectionHealth(
   if (
     input.lastError &&
     (!lastSuccessfulPullAt ||
-      (lastPulledAt &&
-        lastPulledAt.getTime() > lastSuccessfulPullAt.getTime()))
+      (lastPulledAt && lastPulledAt.getTime() > lastSuccessfulPullAt.getTime()))
   ) {
     return {
       status: NetworkControllerConnectionStatus.Failing,

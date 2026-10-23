@@ -90,11 +90,20 @@ export interface NetworkTrafficUsageRequest {
 }
 
 export interface NetworkTrafficUsageTotals {
-  // Through the appliances' uplinks: sent is upload, received download.
+  /*
+   * Through the appliances' uplinks - sent is upload, received download -
+   * or, for an organization without appliances, the applications' bytes.
+   */
   sentOctets: number;
   receivedOctets: number;
   // Flows Meraki's traffic analytics counted.
   flows: number;
+}
+
+// One kind's bytes in the range: what a top list's shares are of.
+export interface NetworkTrafficUsageKindTotals {
+  sentOctets: number;
+  receivedOctets: number;
 }
 
 export interface NetworkTrafficUsageSeriesPoint {
@@ -177,6 +186,10 @@ export interface NetworkTrafficUsageSummary {
   windowEndAt: string;
   bucketSeconds: number;
   totals: NetworkTrafficUsageTotals;
+  // What the totals, the chart and Top networks are of.
+  primaryKind: NetworkTrafficUsageKind;
+  applicationTotals: NetworkTrafficUsageKindTotals;
+  clientTotals: NetworkTrafficUsageKindTotals;
   series: Array<NetworkTrafficUsageSeriesPoint>;
   topNetworks: Array<NetworkTrafficUsageNetworkRow>;
   topUplinks: Array<NetworkTrafficUsageUplinkRow>;
@@ -289,6 +302,9 @@ export function getUnavailableNetworkTrafficUsageSummary(data: {
       ),
     ),
     totals: { sentOctets: 0, receivedOctets: 0, flows: 0 },
+    primaryKind: NetworkTrafficUsageKind.Uplink,
+    applicationTotals: { sentOctets: 0, receivedOctets: 0 },
+    clientTotals: { sentOctets: 0, receivedOctets: 0 },
     series: [],
     topNetworks: [],
     topUplinks: [],

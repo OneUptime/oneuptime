@@ -19,7 +19,10 @@ import {
   NetworkControllerReadResult,
   NetworkControllerSettings,
 } from "../NetworkControllerTypes";
-import MerakiApiClient, { MerakiList, buildMerakiQuery } from "./MerakiApiClient";
+import MerakiApiClient, {
+  MerakiList,
+  buildMerakiQuery,
+} from "./MerakiApiClient";
 import MerakiTrafficReader, { LIST_PAGE_SIZE } from "./MerakiTrafficReader";
 import { TEXT_LIMITS, cleanText } from "./MerakiUsageRecords";
 
@@ -103,8 +106,7 @@ function remediationFor(kind: LlmConnectionFailureKind): string {
 }
 
 export default class MerakiConnector implements NetworkControllerConnector {
-  public provider: NetworkControllerProvider =
-    NetworkControllerProvider.Meraki;
+  public provider: NetworkControllerProvider = NetworkControllerProvider.Meraki;
 
   public async testConnection(
     data: { apiKey: string; config: NetworkControllerConfig },

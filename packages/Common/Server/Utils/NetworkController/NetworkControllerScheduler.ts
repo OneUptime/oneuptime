@@ -23,7 +23,8 @@ import logger from "../Logger";
  * read by the job itself, never put on the queue.
  */
 
-export const NETWORK_CONTROLLER_READ_JOB: string = "NetworkControllerConnection:Read";
+export const NETWORK_CONTROLLER_READ_JOB: string =
+  "NetworkControllerConnection:Read";
 export const NETWORK_CONTROLLER_READ_JOB_TIMEOUT_MS: number = 9 * 60 * 1000;
 // Connections claimed in one tick; the rest wait for the next minute.
 const MAX_CONNECTIONS_PER_TICK: number = 100;

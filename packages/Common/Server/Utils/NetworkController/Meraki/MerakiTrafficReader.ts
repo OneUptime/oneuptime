@@ -523,16 +523,15 @@ export default class MerakiTrafficReader {
       return;
     }
 
-    const appliancesBySerial: Map<string, NetworkControllerAppliance> =
-      new Map(
-        data.appliances.map(
-          (
-            appliance: NetworkControllerAppliance,
-          ): [string, NetworkControllerAppliance] => {
-            return [appliance.serial, appliance];
-          },
-        ),
-      );
+    const appliancesBySerial: Map<string, NetworkControllerAppliance> = new Map(
+      data.appliances.map(
+        (
+          appliance: NetworkControllerAppliance,
+        ): [string, NetworkControllerAppliance] => {
+          return [appliance.serial, appliance];
+        },
+      ),
+    );
 
     for (const window of plan.windows) {
       let page: MerakiPage;
@@ -676,56 +675,25 @@ export default class MerakiTrafficReader {
       progress.state.trafficAnalysisOff?.[network.id],
     );
     const isKnownOff: boolean =
-      offAt !== null && progress.now.getTime() - offAt < TRAFFIC_ANALYSIS_RETRY_MS;
+      offAt !== null &&
+      progress.now.getTime() - offAt < TRAFFIC_ANALYSIS_RETRY_MS;
     const windowEnd: Date = progress.clock();
     const networkRecords: Array<NetworkTrafficUsageRecord> = [];
 
-    const step: (what: "applications" | "clients") => Promise<boolean> =
-      async (what: "applications" | "clients"): Promise<boolean> => {
-        try {
-          if (what === "applications") {
-            const traffic: MerakiPage = await progress.client.get(
-              `/networks/${encodeURIComponent(network.id)}/traffic`,
-              buildMerakiQuery([["t0", iso(data.start)]]),
-              `traffic analytics of network "${label}"`,
-            );
-
-            networkRecords.push(
-              ...buildApplicationRecords({
-                answer: Array.isArray(traffic.body) ? traffic.body : [],
-                controllerNetworkId: network.id,
-                controllerNetworkName: network.name,
-                windowStartAt: data.start,
-                windowEndAt: windowEnd,
-              }),
-            );
-
-            if (progress.state.trafficAnalysisOff) {
-              delete progress.state.trafficAnalysisOff[network.id];
-            }
-
-            return true;
-          }
-
-          const clients: MerakiList = await progress.client.getAll(
-            `/networks/${encodeURIComponent(network.id)}/clients`,
-            buildMerakiQuery([
-              ["t0", iso(data.start)],
-              ["perPage", CLIENT_PAGE_SIZE],
-            ]),
-            `clients of network "${label}"`,
-            MAX_CLIENT_PAGES,
+    const step: (what: "applications" | "clients") => Promise<boolean> = async (
+      what: "applications" | "clients",
+    ): Promise<boolean> => {
+      try {
+        if (what === "applications") {
+          const traffic: MerakiPage = await progress.client.get(
+            `/networks/${encodeURIComponent(network.id)}/traffic`,
+            buildMerakiQuery([["t0", iso(data.start)]]),
+            `traffic analytics of network "${label}"`,
           );
 
-          if (clients.isTruncated) {
-            progress.warnings.add(
-              `A network had more than ${(CLIENT_PAGE_SIZE * MAX_CLIENT_PAGES).toLocaleString("en-US")} clients in a window: the clients past them are left out of Top clients.`,
-            );
-          }
-
           networkRecords.push(
-            ...buildClientRecords({
-              answer: clients.items,
+            ...buildApplicationRecords({
+              answer: Array.isArray(traffic.body) ? traffic.body : [],
               controllerNetworkId: network.id,
               controllerNetworkName: network.name,
               windowStartAt: data.start,
@@ -733,43 +701,76 @@ export default class MerakiTrafficReader {
             }),
           );
 
+          if (progress.state.trafficAnalysisOff) {
+            delete progress.state.trafficAnalysisOff[network.id];
+          }
+
           return true;
-        } catch (error) {
-          if (error instanceof MerakiBudgetSpent) {
-            throw error;
-          }
-
-          if (what === "applications" && isTrafficAnalysisOff(error)) {
-            progress.state.trafficAnalysisOff = {
-              ...(progress.state.trafficAnalysisOff || {}),
-              [network.id]: iso(progress.now),
-            };
-
-            return true;
-          }
-
-          const failure: LlmProviderError = asProviderError(error, what);
-
-          if (failure.kind === LlmConnectionFailureKind.Authentication) {
-            throw failure;
-          }
-
-          if (failure.kind === LlmConnectionFailureKind.RateLimited) {
-            progress.warnings.add(RATE_LIMITED_WARNING);
-            throw new StopRead();
-          }
-
-          progress.warnings.add(
-            `Couldn't read the ${what} of network "${label}": ${failure.message}`,
-          );
-
-          if (failure.kind === LlmConnectionFailureKind.Unavailable) {
-            throw new NetworkUnavailable();
-          }
-
-          return false;
         }
-      };
+
+        const clients: MerakiList = await progress.client.getAll(
+          `/networks/${encodeURIComponent(network.id)}/clients`,
+          buildMerakiQuery([
+            ["t0", iso(data.start)],
+            ["perPage", CLIENT_PAGE_SIZE],
+          ]),
+          `clients of network "${label}"`,
+          MAX_CLIENT_PAGES,
+        );
+
+        if (clients.isTruncated) {
+          progress.warnings.add(
+            `A network had more than ${(CLIENT_PAGE_SIZE * MAX_CLIENT_PAGES).toLocaleString("en-US")} clients in a window: the clients past them are left out of Top clients.`,
+          );
+        }
+
+        networkRecords.push(
+          ...buildClientRecords({
+            answer: clients.items,
+            controllerNetworkId: network.id,
+            controllerNetworkName: network.name,
+            windowStartAt: data.start,
+            windowEndAt: windowEnd,
+          }),
+        );
+
+        return true;
+      } catch (error) {
+        if (error instanceof MerakiBudgetSpent) {
+          throw error;
+        }
+
+        if (what === "applications" && isTrafficAnalysisOff(error)) {
+          progress.state.trafficAnalysisOff = {
+            ...(progress.state.trafficAnalysisOff || {}),
+            [network.id]: iso(progress.now),
+          };
+
+          return true;
+        }
+
+        const failure: LlmProviderError = asProviderError(error, what);
+
+        if (failure.kind === LlmConnectionFailureKind.Authentication) {
+          throw failure;
+        }
+
+        if (failure.kind === LlmConnectionFailureKind.RateLimited) {
+          progress.warnings.add(RATE_LIMITED_WARNING);
+          throw new StopRead();
+        }
+
+        progress.warnings.add(
+          `Couldn't read the ${what} of network "${label}": ${failure.message}`,
+        );
+
+        if (failure.kind === LlmConnectionFailureKind.Unavailable) {
+          throw new NetworkUnavailable();
+        }
+
+        return false;
+      }
+    };
 
     try {
       const appsRead: boolean = isKnownOff ? true : await step("applications");

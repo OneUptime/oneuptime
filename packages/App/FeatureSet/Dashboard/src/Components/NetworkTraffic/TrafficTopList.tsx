@@ -9,16 +9,24 @@ import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import IconProp from "Common/Types/Icon/IconProp";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement, ReactNode } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  ReactNode,
+} from "react";
 
 /*
  * One "top N" table of a Traffic page: the busiest sources, destinations,
  * applications, interfaces or devices of the window, each row with its bytes,
  * its share of the page's traffic and a bar the length of that share.
  *
- * Every row is a button: a click narrows the whole page to it (the filter
- * the page keeps in its URL), and a click on the row the page is already
- * narrowed to widens it again. A row that is the filter says so.
+ * A row is a button when the page can narrow to it: a click narrows the
+ * whole page to it (the filter the page keeps in its URL), and a click on
+ * the row the page is already narrowed to widens it again. A row that is
+ * the filter says so. A row the page cannot narrow to (a Meraki
+ * application: the uplinks it is totalled against know no applications)
+ * is a plain row, and says nothing it cannot do.
  */
 
 export interface TrafficTopRow {
@@ -31,14 +39,15 @@ export interface TrafficTopRow {
   // Right of the bytes, small: "in 1.2 GB · out 30 MB", say.
   detail?: ReactNode | undefined;
   isActive: boolean;
-  onClick: () => void;
+  // Absent: the row is not a filter, and is drawn as plain text.
+  onClick?: (() => void) | undefined;
   /*
    * A control of its own beside the row (a link to the device's page): a
    * sibling of the row's button, never inside it.
    */
   trailing?: ReactNode | undefined;
   // What a screen reader hears for the row's button.
-  ariaLabel: string;
+  ariaLabel?: string | undefined;
 }
 
 export interface ComponentProps {
@@ -90,76 +99,91 @@ const TrafficTopList: FunctionComponent<ComponentProps> = (
                 props.totalOctets,
               );
 
-              return (
-                <li key={row.key} className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    className={`block min-w-0 flex-1 rounded-md px-2 py-2 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-                      row.isActive ? "bg-indigo-50" : "hover:bg-gray-50"
-                    }`}
-                    aria-pressed={row.isActive}
-                    aria-label={row.ariaLabel}
-                    onClick={row.onClick}
-                    data-testid={`${props.dataTestId}-row`}
-                  >
-                    <div className="flex items-baseline justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex min-w-0 items-center gap-1.5">
-                          {row.isActive ? (
-                            <Icon
-                              icon={IconProp.Filter}
-                              className="h-3.5 w-3.5 flex-shrink-0 text-indigo-600"
-                            />
-                          ) : (
-                            <></>
-                          )}
-                          <span
-                            className={`truncate text-sm font-medium text-gray-900 ${
-                              row.isMono ? "font-mono" : ""
-                            }`}
-                          >
-                            {row.label}
-                          </span>
-                        </div>
-                        {row.sublabel ? (
-                          <div className="mt-0.5 truncate text-xs text-gray-500">
-                            {row.sublabel}
-                          </div>
+              const body: ReactElement = (
+                <Fragment>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        {row.isActive ? (
+                          <Icon
+                            icon={IconProp.Filter}
+                            className="h-3.5 w-3.5 flex-shrink-0 text-indigo-600"
+                          />
                         ) : (
                           <></>
                         )}
-                      </div>
-                      <div className="flex flex-shrink-0 items-baseline gap-2 text-right">
                         <span
-                          className="text-sm tabular-nums text-gray-900"
-                          data-testid={`${props.dataTestId}-row-bytes`}
+                          className={`truncate text-sm font-medium text-gray-900 ${
+                            row.isMono ? "font-mono" : ""
+                          }`}
                         >
-                          {formatTrafficBytes(row.octets)}
-                        </span>
-                        <span className="w-9 text-xs tabular-nums text-gray-500">
-                          {formatSharePercent(row.octets, props.totalOctets)}
+                          {row.label}
                         </span>
                       </div>
+                      {row.sublabel ? (
+                        <div className="mt-0.5 truncate text-xs text-gray-500">
+                          {row.sublabel}
+                        </div>
+                      ) : (
+                        <></>
+                      )}
                     </div>
-                    {row.detail ? (
-                      <div className="mt-0.5 text-xs text-gray-500">
-                        {row.detail}
-                      </div>
-                    ) : (
-                      <></>
-                    )}
+                    <div className="flex flex-shrink-0 items-baseline gap-2 text-right">
+                      <span
+                        className="text-sm tabular-nums text-gray-900"
+                        data-testid={`${props.dataTestId}-row-bytes`}
+                      >
+                        {formatTrafficBytes(row.octets)}
+                      </span>
+                      <span className="w-9 text-xs tabular-nums text-gray-500">
+                        {formatSharePercent(row.octets, props.totalOctets)}
+                      </span>
+                    </div>
+                  </div>
+                  {row.detail ? (
+                    <div className="mt-0.5 text-xs text-gray-500">
+                      {row.detail}
+                    </div>
+                  ) : (
+                    <></>
+                  )}
+                  <div
+                    className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-gray-100"
+                    aria-hidden="true"
+                  >
                     <div
-                      className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-gray-100"
-                      aria-hidden="true"
+                      className={`h-full rounded-full ${
+                        row.isActive ? "bg-indigo-600" : "bg-indigo-400"
+                      }`}
+                      style={{ width: `${Math.max(share, 0.5)}%` }}
+                    />
+                  </div>
+                </Fragment>
+              );
+
+              return (
+                <li key={row.key} className="flex items-center gap-1">
+                  {row.onClick ? (
+                    <button
+                      type="button"
+                      className={`block min-w-0 flex-1 rounded-md px-2 py-2 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                        row.isActive ? "bg-indigo-50" : "hover:bg-gray-50"
+                      }`}
+                      aria-pressed={row.isActive}
+                      aria-label={row.ariaLabel}
+                      onClick={row.onClick}
+                      data-testid={`${props.dataTestId}-row`}
                     >
-                      <div
-                        className={`h-full rounded-full ${
-                          row.isActive ? "bg-indigo-600" : "bg-indigo-400"
-                        }`}
-                        style={{ width: `${Math.max(share, 0.5)}%` }}
-                      />
+                      {body}
+                    </button>
+                  ) : (
+                    <div
+                      className="block min-w-0 flex-1 px-2 py-2"
+                      data-testid={`${props.dataTestId}-row`}
+                    >
+                      {body}
                     </div>
-                  </button>
+                  )}
                   {row.trailing ? (
                     <div className="w-7 flex-shrink-0">{row.trailing}</div>
                   ) : hasTrailing ? (

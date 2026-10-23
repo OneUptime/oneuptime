@@ -304,7 +304,8 @@ export default class NetworkControllerConnection extends BaseModel {
     type: TableColumnType.JSON,
     required: false,
     title: "Read State",
-    description: "Where the last read got to, so the next one carries on there.",
+    description:
+      "Where the last read got to, so the next one carries on there.",
   })
   @Column({ type: ColumnType.JSON, nullable: true })
   public pullState?: JSONObject = undefined;

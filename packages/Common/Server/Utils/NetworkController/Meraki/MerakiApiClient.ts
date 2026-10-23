@@ -254,7 +254,11 @@ export default class MerakiApiClient {
   }
 
   // One GET of the API. Throws LlmProviderError, or MerakiBudgetSpent.
-  public async get(path: string, query: string, step: string): Promise<MerakiPage> {
+  public async get(
+    path: string,
+    query: string,
+    step: string,
+  ): Promise<MerakiPage> {
     return await this.getUrl(this.urlOf(path, query), step);
   }
 
@@ -410,7 +414,10 @@ export default class MerakiApiClient {
   }
 
   // One request, paced and counted; a dropped connection is tried once more.
-  private async send(url: string, step: string): Promise<DataSourceHttpResponse> {
+  private async send(
+    url: string,
+    step: string,
+  ): Promise<DataSourceHttpResponse> {
     let attempts: number = 0;
 
     for (;;) {

@@ -118,7 +118,10 @@ export function toUsageRowBatches(data: {
   let current: Array<JSONObject> = [];
 
   for (const group of byWindow.values()) {
-    if (current.length > 0 && current.length + group.length > MAX_ROWS_PER_INSERT) {
+    if (
+      current.length > 0 &&
+      current.length + group.length > MAX_ROWS_PER_INSERT
+    ) {
       batches.push(current);
       current = [];
     }

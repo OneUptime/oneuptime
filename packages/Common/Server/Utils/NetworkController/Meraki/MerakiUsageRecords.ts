@@ -282,8 +282,7 @@ export function buildUplinkRecords(data: {
         deviceSerial: serial,
         deviceName: data.appliances.get(serial)?.name || "",
         interfaceName:
-          cleanText(uplink["interface"], TEXT_LIMITS.interfaceName) ||
-          "uplink",
+          cleanText(uplink["interface"], TEXT_LIMITS.interfaceName) || "uplink",
         sentOctets: sent,
         receivedOctets: received,
       });
@@ -342,20 +341,24 @@ export function buildApplicationRecords(data: {
     });
   }
 
-  return capRecords(records, MAX_APPLICATION_ROWS, (rest: Array<NetworkTrafficUsageRecord>) => {
-    const first: NetworkTrafficUsageRecord = rest[0]!;
+  return capRecords(
+    records,
+    MAX_APPLICATION_ROWS,
+    (rest: Array<NetworkTrafficUsageRecord>) => {
+      const first: NetworkTrafficUsageRecord = rest[0]!;
 
-    return {
-      ...emptyRecord({
-        kind: NetworkTrafficUsageKind.Application,
-        controllerNetworkId: first.controllerNetworkId,
-        controllerNetworkName: first.controllerNetworkName,
-        windowStartAt: first.windowStartAt,
-        windowEndAt: first.windowEndAt,
-      }),
-      flows: sumOf(rest, "flows"),
-    };
-  });
+      return {
+        ...emptyRecord({
+          kind: NetworkTrafficUsageKind.Application,
+          controllerNetworkId: first.controllerNetworkId,
+          controllerNetworkName: first.controllerNetworkName,
+          windowStartAt: first.windowStartAt,
+          windowEndAt: first.windowEndAt,
+        }),
+        flows: sumOf(rest, "flows"),
+      };
+    },
+  );
 }
 
 /*
@@ -411,17 +414,21 @@ export function buildClientRecords(data: {
     });
   }
 
-  return capRecords(records, MAX_CLIENT_ROWS, (rest: Array<NetworkTrafficUsageRecord>) => {
-    const first: NetworkTrafficUsageRecord = rest[0]!;
+  return capRecords(
+    records,
+    MAX_CLIENT_ROWS,
+    (rest: Array<NetworkTrafficUsageRecord>) => {
+      const first: NetworkTrafficUsageRecord = rest[0]!;
 
-    return emptyRecord({
-      kind: NetworkTrafficUsageKind.Client,
-      controllerNetworkId: first.controllerNetworkId,
-      controllerNetworkName: first.controllerNetworkName,
-      windowStartAt: first.windowStartAt,
-      windowEndAt: first.windowEndAt,
-    });
-  });
+      return emptyRecord({
+        kind: NetworkTrafficUsageKind.Client,
+        controllerNetworkId: first.controllerNetworkId,
+        controllerNetworkName: first.controllerNetworkName,
+        windowStartAt: first.windowStartAt,
+        windowEndAt: first.windowEndAt,
+      });
+    },
+  );
 }
 
 function sumOf(
@@ -444,7 +451,9 @@ function sumOf(
 export function capRecords(
   records: Array<NetworkTrafficUsageRecord>,
   limit: number,
-  makeRest: (rest: Array<NetworkTrafficUsageRecord>) => NetworkTrafficUsageRecord,
+  makeRest: (
+    rest: Array<NetworkTrafficUsageRecord>,
+  ) => NetworkTrafficUsageRecord,
 ): Array<NetworkTrafficUsageRecord> {
   if (records.length <= limit) {
     return records;

@@ -7,6 +7,8 @@ import {
   NetworkTrafficUsageClientRow,
   NetworkTrafficUsageConnection,
   NetworkTrafficUsageDestinationRow,
+  NetworkTrafficUsageKind,
+  NetworkTrafficUsageKindTotals,
   NetworkTrafficUsageNetworkRow,
   NetworkTrafficUsageRequest,
   NetworkTrafficUsageSeriesPoint,
@@ -96,6 +98,16 @@ export function parseNetworkTrafficUsageSummary(
 ): NetworkTrafficUsageSummary {
   const value: JSONObject = data || {};
   const totals: JSONObject = (value["totals"] as JSONObject) || {};
+  const kindTotals: (key: string) => NetworkTrafficUsageKindTotals = (
+    key: string,
+  ): NetworkTrafficUsageKindTotals => {
+    const row: JSONObject = (value[key] as JSONObject) || {};
+
+    return {
+      sentOctets: toNumber(row["sentOctets"]),
+      receivedOctets: toNumber(row["receivedOctets"]),
+    };
+  };
 
   return {
     isAvailable: value["isAvailable"] === true,
@@ -107,6 +119,12 @@ export function parseNetworkTrafficUsageSummary(
       receivedOctets: toNumber(totals["receivedOctets"]),
       flows: toNumber(totals["flows"]),
     },
+    primaryKind:
+      value["primaryKind"] === NetworkTrafficUsageKind.Application
+        ? NetworkTrafficUsageKind.Application
+        : NetworkTrafficUsageKind.Uplink,
+    applicationTotals: kindTotals("applicationTotals"),
+    clientTotals: kindTotals("clientTotals"),
     series: listOf(
       value["series"],
       (row: JSONObject): NetworkTrafficUsageSeriesPoint => {
