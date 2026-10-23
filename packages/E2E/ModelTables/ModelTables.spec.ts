@@ -1535,8 +1535,10 @@ test.describe("a row's labels, one under another, in natural order", () => {
 
     await expect(more).toBeFocused();
 
-    // The ring is drawn inside the link's box, and the box inside the
-    // column's clip: a ring outside it lost its left side at the edge.
+    /*
+     * The ring is drawn inside the link's box, and the box inside the
+     * column's clip: a ring outside it lost its left side at the edge.
+     */
     const ring: { shadow: string; left: number; clipLeft: number } =
       await more.evaluate((element: Element) => {
         let clip: Element | null = element.parentElement;
