@@ -82,7 +82,7 @@ import {
  * two). The real definition is UNIQUE on ("projectId", LOWER("hostIdentifier"))
  * WHERE "deletedAt" IS NULL - the comparison findOrCreateByHostIdentifier's
  * lookup (QueryHelper.findWithSameText) makes - and lives in migration
- * 1806600000000-MergeDuplicateHostsAndAddUniqueHostIdentifier, which merges the
+ * 1806700000000-MergeDuplicateHostsAndAddUniqueHostIdentifier, which merges the
  * duplicates a project already has first. @Index() cannot express LOWER(), so
  * the index is declared here by name with synchronize: false
  * (Types/Database/UnsynchronizedIndex): the schema builder neither drops it

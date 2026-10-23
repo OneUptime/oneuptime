@@ -382,6 +382,20 @@ Innsamlede verdier vises i diagrammer på enhetens side **Målinger**, og kriter
 
 Lange OID-lister deles over flere SNMP GET-forespørsler slik at hver får plass i ett UDP-datagram. Hvis du holdt OID-listene dine korte fordi en eldre versjon rapporterte en enhet som svarte `tooBig`, som offline, trenger du ikke det lenger.
 
+### Finn OID-er med en SNMP-walk
+
+En enhets side **SNMP-walk**, under **Mer** i menyen, viser hver OID enheten svarer på, med type, verdi og, der OneUptime kjenner MIB-en, navn. Det er den `snmpwalk` du ellers ville kjørt fra sondens nettverk, kjørt av enhetens egen sonde med påloggingsinformasjonen OneUptime har lagret for den, som aldri når nettleseren din.
+
+Skriv en numerisk OID under **Start-OID**, eller velg en av **Vanlige startpunkter**: **Alt**, **System**, **Interfaces**, **Vertsressurser** eller **Leverandørspesifikk**. Trykk deretter på **Start walk**. Sonden plukker opp walken innen ti sekunder og sender én forespørsel om gangen, høyst 1 000 OID-er på høyst 45 sekunder, så en walk aldri oversvømmer enheten. Er det mer å lese, leser **Fortsett walk** de neste 1 000 fra der den stoppet. En enhet har én walk om gangen, og walkene lagres i to dager.
+
+Hver rad sier hvor OID-en er kjent: en verdi som en leverandørs helsemal samler inn, en kolonne i SNMP-tabellen til en leverandørmal, en teller som grensesnitt-walken allerede viser i diagrammer for hver port, eller en OID under leverandørens MIB. Fra en rad:
+
+- **Samle inn** legger OID-en til enhetens **Device-Specific Health OIDs**: hver polling samler den inn fra den neste, og enhetens side **Målinger** viser den i et diagram. På en enhet som er koblet til en OID Collection Template, kan radens meny i stedet legge den til malen, for hver enhet som bruker den.
+- **Opprett varsel** vises når OID-en samles inn, og åpner en ny nettverksenhetsmonitor for enheten med ett kriterium **SNMP OID Value** på OID-en, ut fra verdien som ble lest: en teller eller måler varsler over den, en oppetid under den (enheten startet på nytt), alt annet når det endrer seg.
+- **Kopier OID**, i radens meny, kopierer OID-en.
+
+En walk som feiler, sier hvorfor, og hva du bør kontrollere: en enhet som ikke svarer (SNMP slått av, UDP 161 blokkert eller, på v1 og v2c, en feil community-streng, som en agent ignorerer uten et ord), en SNMPv3-bruker, et passord eller en protokoll som enheten avviste, eller en del av treet som SNMP-visningen til påloggingsinformasjonen utelater. En walk som stopper underveis, beholder det den har lest. En walk krever tillatelsen **Create Network Device Diagnostic** og en sonde som er ny nok til SNMP-walk: med en eldre ber siden deg oppdatere den.
+
 ### SNMP-tabeller
 
 Noe av det en enhet vet, er en liste: én rad per IPsec-tunnel, Wi-Fi-radio, SSID, fabric-nabo, vifte eller strømforsyning. En SNMP-tabell defineres av kolonnene sine, og hver rad walkes ved hver polling, så en tunnel som legges til, får nytt navn eller slettes, følges uten at noen redigerer noe.
@@ -1064,6 +1078,8 @@ snmpget -v3 -u username -l authPriv -a SHA -A authpassword -x AES -X privpasswor
 :::
 
 Et svar med enhetens beskrivelse betyr at sonden kan walke den med den påloggingsinformasjonen.
+
+Når enheten er lagt til, kjører siden **SNMP-walk** den testen for deg fra sonden, med påloggingsinformasjonen OneUptime har lagret for den, og viser alt enheten svarer på: se [Finn OID-er med en SNMP-walk](#finn-oid-er-med-en-snmp-walk).
 :::
 
 ## Neste steg

@@ -18,8 +18,9 @@ export interface ComponentProps {
 /*
  * A device's own menu. Open: what most visits are for - is it OK
  * (Overview), its ports, its numbers, its traffic and logs, and what alerts
- * on it. Folded: the vendor tables some devices report (More), managing it
- * from code (Developer), and its owners, settings and delete (Manage).
+ * on it. Folded: the vendor tables some devices report and the SNMP walk
+ * that finds what a device exposes (More), managing it from code
+ * (Developer), and its owners, settings and delete (Manage).
  */
 const NetworkDeviceSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -114,6 +115,20 @@ const NetworkDeviceSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.TableCells}
+        />
+        {/*
+         * Every OID the device answers (issue #5184): what to collect, when
+         * setting a device up, rather than a page of every visit.
+         */}
+        <SideMenuItem
+          link={{
+            title: "SNMP Walk",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.NETWORK_DEVICE_VIEW_SNMP_WALK] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.MagnifyingGlass}
         />
         <SideMenuItem
           link={{

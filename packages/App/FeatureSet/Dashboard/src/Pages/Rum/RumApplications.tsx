@@ -20,6 +20,8 @@ import React, {
 } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
+import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import getLabelsFormField from "../../Utils/Form/LabelsFormField";
@@ -48,6 +50,21 @@ const RumApplications: FunctionComponent<
   const { archiveBulkActions } = useBulkArchiveActions<RumApplication>({
     modelType: RumApplication,
   });
+
+  /*
+   * Labels and owners in Bulk Actions, as on every other resource list:
+   * the list shows and filters an application by them, and they were set
+   * one at a time.
+   */
+  const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
+    useBulkLabelActions<RumApplication>({ modelType: RumApplication });
+
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<RumApplication>({
+      ownerUserModelType: RumApplicationOwnerUser,
+      ownerTeamModelType: RumApplicationOwnerTeam,
+      resourceIdField: "rumApplicationId",
+    });
 
   /*
    * The Owner and Labels chips above the table: an application can be found by the
@@ -131,7 +148,11 @@ const RumApplications: FunctionComponent<
         isCreateable={true}
         isViewable={true}
         bulkActions={{
-          buttons: [...archiveBulkActions],
+          buttons: [
+            ...labelBulkActions,
+            ...ownerBulkActions,
+            ...archiveBulkActions,
+          ],
         }}
         showRefreshButton={true}
         showViewIdButton={true}
@@ -339,6 +360,8 @@ const RumApplications: FunctionComponent<
           description="Pick what you are instrumenting and follow the steps. Your app appears in the list above once its first telemetry arrives."
         />
       )}
+      {labelBulkActionModals}
+      {ownerBulkActionModals}
     </Fragment>
   );
 };

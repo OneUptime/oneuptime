@@ -162,11 +162,11 @@ export const HOST_TABLE_MERGES: ReadonlyArray<DuplicateRowMergeOptions> = [
 
 const UNIQUE_VIOLATION: string = "23505";
 
-export class MergeDuplicateHostsAndAddUniqueHostIdentifier1806600000000
+export class MergeDuplicateHostsAndAddUniqueHostIdentifier1806700000000
   implements MigrationInterface
 {
   public name: string =
-    "MergeDuplicateHostsAndAddUniqueHostIdentifier1806600000000";
+    "MergeDuplicateHostsAndAddUniqueHostIdentifier1806700000000";
 
   // CREATE INDEX CONCURRENTLY cannot run in a transaction; each merge has its own.
   public transaction: boolean = false;

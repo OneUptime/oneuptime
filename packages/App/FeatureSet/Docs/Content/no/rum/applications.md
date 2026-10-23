@@ -64,7 +64,7 @@ Etiketter grupperer applikasjoner i lister og filtre. De bestemmer også hva et 
 
 | Hvordan | Hvor |
 | --- | --- |
-| Manuelt | I opprettelsesskjemaet under **Flere felt**, eller senere med **Rediger detaljer** på kortet **Applikasjonsdetaljer** på applikasjonens side **Innstillinger**. |
+| Manuelt | I opprettelsesskjemaet under **Flere felt**, eller senere med **Rediger detaljer** på kortet **Applikasjonsdetaljer** på applikasjonens side **Innstillinger**. For flere om gangen merker du dem i listen og velger **Add Labels** under **Massehandlinger**. |
 | Fra telemetri | Et ressursattributt med navnet `oneuptime.label.<name>` legger til etiketten `<name>:<value>`, som vist nedenfor. |
 | Fra en etikettregel | En regel legger til etiketter på hver nye applikasjon som treffer den. Se [Etikettregler og eierregler](#etikettregler-og-eierregler). |
 
@@ -93,7 +93,7 @@ Regler kjører når en applikasjon opprettes, også når den er oppdaget. For å
 
 ### Eiere
 
-Eiere er personene og teamene som har ansvaret for en applikasjon. Eierne av en RUM-applikasjon kommer fra eierregler: dashbordet har ingen side for å legge dem til manuelt, og API-et legger dem til via `/rum-application-owner-user` og `/rum-application-owner-team`. Med **Varsle eiere** slått på, som er standard, blir hver eier som en regel legger til, varslet. Slå det av før du kjører en regel på mange applikasjoner hvis ingen skal varsles.
+Eiere er personene og teamene som har ansvaret for en applikasjon. Eierregler legger dem til nye applikasjoner. For å legge dem til eller fjerne dem manuelt merker du applikasjoner i listen og velger **Add Owner** eller **Remove Owner** under **Massehandlinger**; API-et legger dem til via `/rum-application-owner-user` og `/rum-application-owner-team`. Med **Varsle eiere** slått på, som er standard, blir hver eier som en regel legger til, varslet. Slå det av før du kjører en regel på mange applikasjoner hvis ingen skal varsles.
 
 ## Oppbevaring
 

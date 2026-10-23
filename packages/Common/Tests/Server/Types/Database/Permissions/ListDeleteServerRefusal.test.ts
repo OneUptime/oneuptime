@@ -1,6 +1,7 @@
 import DatabaseRequestType from "../../../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import BillingPermissions from "../../../../../Server/Types/Database/Permissions/BillingPermission";
 import TablePermission from "../../../../../Server/Types/Database/Permissions/TablePermission";
+import DeletePermission from "../../../../../Server/Types/Database/Permissions/DeletePermission";
 import DatabaseBaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { getModelTypeByName } from "../../../../../Models/DatabaseModels/Index";
 import StatusPage from "../../../../../Models/DatabaseModels/StatusPage";
@@ -114,11 +115,34 @@ function deleteRefusal(
   }
 }
 
-const KINDS: Array<[string, ModelType]> = Object.keys(DELETE_CONSEQUENCES)
+const ALL_KINDS: Array<[string, ModelType]> = Object.keys(DELETE_CONSEQUENCES)
   .sort()
   .map((tableName: string): [string, ModelType] => {
     return [tableName, getModelTypeByName(tableName) as ModelType];
   });
+
+/*
+ * Kinds whose model grants nobody delete: only OneUptime's master admins
+ * delete them, from the Admin Dashboard (an enterprise license, on
+ * OneUptime Cloud). A project role - an owner's included - never does.
+ */
+const isMasterAdminOnly: (kind: [string, ModelType]) => boolean = ([
+  ,
+  modelType,
+]: [string, ModelType]): boolean => {
+  return (
+    Boolean(modelType) && new modelType().getDeletePermissions().length === 0
+  );
+};
+
+const KINDS: Array<[string, ModelType]> = ALL_KINDS.filter(
+  (kind: [string, ModelType]): boolean => {
+    return !isMasterAdminOnly(kind);
+  },
+);
+
+const MASTER_ADMIN_KINDS: Array<[string, ModelType]> =
+  ALL_KINDS.filter(isMasterAdminOnly);
 
 beforeEach(() => {
   // What is asked here is who, not which plan.
@@ -161,6 +185,41 @@ describe("every kind of record the lists' Delete dialogs speak about", () => {
     "%s: a project owner's DELETE is let through",
     (_tableName: string, modelType: ModelType) => {
       expect(deleteRefusal(modelType, [Permission.ProjectOwner])).toBeNull();
+    },
+  );
+});
+
+describe("the kinds only a master admin deletes", () => {
+  test("are the Admin Dashboard's enterprise licenses", () => {
+    expect(
+      MASTER_ADMIN_KINDS.map(([tableName]: [string, ModelType]): string => {
+        return tableName;
+      }),
+    ).toEqual(["EnterpriseLicense"]);
+  });
+
+  test.each(MASTER_ADMIN_KINDS)(
+    "%s: a project owner's DELETE is refused",
+    (_tableName: string, modelType: ModelType) => {
+      expect(
+        deleteRefusal(modelType, [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+        ]),
+      ).toBeInstanceOf(NotAuthorizedException);
+    },
+  );
+
+  test.each(MASTER_ADMIN_KINDS)(
+    "%s: a master admin's DELETE is let through",
+    async (_tableName: string, modelType: ModelType) => {
+      await expect(
+        DeletePermission.checkDeletePermission(
+          modelType,
+          { _id: ObjectID.generate().toString() },
+          { userId, isMasterAdmin: true },
+        ),
+      ).resolves.toBeDefined();
     },
   );
 });

@@ -28,6 +28,8 @@ import SecurityPlaybookTrigger from "Common/Types/SecurityPlaybook/SecurityPlayb
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkSwitchActions from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
+import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
@@ -87,6 +89,16 @@ const SecurityPlaybooksPage: FunctionComponent<
       bringProblemsIntoView(failureRef.current, "nearest");
     }
   }, [failure]);
+
+  /*
+   * Enable and Disable in Bulk Actions: a disabled playbook stops running on
+   * its own, and can still be run by hand from a case.
+   */
+  const switchBulkActions: Array<BulkActionButtonSchema<SecurityPlaybook>> =
+    useBulkSwitchActions<SecurityPlaybook>({
+      modelType: SecurityPlaybook,
+      column: "isEnabled",
+    });
 
   const createGate: PermissionGateResult = PermissionGate.check(
     new SecurityPlaybook(),
@@ -223,6 +235,9 @@ const SecurityPlaybooksPage: FunctionComponent<
         userPreferencesKey="security-playbooks-table"
         query={{ projectId: ProjectUtil.getCurrentProjectId()! }}
         isDeleteable={true}
+        bulkActions={{
+          buttons: [...switchBulkActions],
+        }}
         isEditable={false}
         isCreateable={true}
         isViewable={true}
@@ -334,7 +349,7 @@ const SecurityPlaybooksPage: FunctionComponent<
             ),
           },
         ]}
-        selectMoreFields={{ description: true, steps: true }}
+        selectMoreFields={{ description: true, steps: true, isEnabled: true }}
         columns={[
           {
             field: { name: true },

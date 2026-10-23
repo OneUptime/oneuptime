@@ -1,8 +1,8 @@
 import {
   HOST_ID_COLUMNS_WITHOUT_FOREIGN_KEY,
   HOST_TABLE_MERGES,
-  MergeDuplicateHostsAndAddUniqueHostIdentifier1806600000000,
-} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1806600000000-MergeDuplicateHostsAndAddUniqueHostIdentifier";
+  MergeDuplicateHostsAndAddUniqueHostIdentifier1806700000000,
+} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1806700000000-MergeDuplicateHostsAndAddUniqueHostIdentifier";
 import { ColumnWithoutForeignKey } from "../../../../Server/Infrastructure/Postgres/DuplicateRowMerge";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
@@ -554,7 +554,7 @@ describePostgres(
       const queryRunner: QueryRunner = database.createQueryRunner();
       try {
         await queryRunner.query(`SET search_path TO "${schema}"`);
-        await new MergeDuplicateHostsAndAddUniqueHostIdentifier1806600000000().up(
+        await new MergeDuplicateHostsAndAddUniqueHostIdentifier1806700000000().up(
           queryRunner,
         );
       } finally {

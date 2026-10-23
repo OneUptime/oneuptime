@@ -7,8 +7,8 @@ import {
   HOST_ID_COLUMNS_WITHOUT_FOREIGN_KEY,
   HOST_TABLE_MERGES,
   MAX_ATTEMPTS,
-  MergeDuplicateHostsAndAddUniqueHostIdentifier1806600000000,
-} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1806600000000-MergeDuplicateHostsAndAddUniqueHostIdentifier";
+  MergeDuplicateHostsAndAddUniqueHostIdentifier1806700000000,
+} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1806700000000-MergeDuplicateHostsAndAddUniqueHostIdentifier";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import DockerHost from "../../../../Models/DatabaseModels/DockerHost";
 import PodmanHost from "../../../../Models/DatabaseModels/PodmanHost";
@@ -113,37 +113,44 @@ describe("MergeDuplicateHostsAndAddUniqueHostIdentifier", () => {
     jest.restoreAllMocks();
   });
 
-  test("is registered last, after every migration on master", () => {
+  test("is registered once, with a timestamp of its own, after the migrations it was written against", () => {
     const registered: Array<unknown> = SchemaMigrations as Array<unknown>;
-    const mine: number = registered.indexOf(
-      MergeDuplicateHostsAndAddUniqueHostIdentifier1806600000000,
-    );
 
-    expect(mine).toBeGreaterThan(0);
-
-    const newest: number = Math.max(
-      ...registered.map((migration: unknown): number => {
-        return timestampOf(migration);
+    expect(
+      registered.filter((migration: unknown): boolean => {
+        return (
+          migration ===
+          MergeDuplicateHostsAndAddUniqueHostIdentifier1806700000000
+        );
       }),
+    ).toHaveLength(1);
+
+    const timestamp: number = timestampOf(
+      MergeDuplicateHostsAndAddUniqueHostIdentifier1806700000000,
     );
 
     expect(
-      timestampOf(MergeDuplicateHostsAndAddUniqueHostIdentifier1806600000000),
-    ).toBe(newest);
+      registered.filter((migration: unknown): boolean => {
+        return timestampOf(migration) === timestamp;
+      }),
+    ).toHaveLength(1);
+
+    // AddNetworkDeviceDiagnosticSnmpWalk1806600000000 was the newest then.
+    expect(timestamp).toBeGreaterThan(1806600000000);
   });
 
   test("runs outside a transaction: the builds are online, each merge has one of its own", () => {
     const migration: MigrationInterface & { transaction?: boolean } =
-      new MergeDuplicateHostsAndAddUniqueHostIdentifier1806600000000();
+      new MergeDuplicateHostsAndAddUniqueHostIdentifier1806700000000();
 
     expect(migration.transaction).toBe(false);
     expect(migration.name).toBe(
-      "MergeDuplicateHostsAndAddUniqueHostIdentifier1806600000000",
+      "MergeDuplicateHostsAndAddUniqueHostIdentifier1806700000000",
     );
   });
 
   test("merges each table's duplicates, then builds its unique index online, table by table", async () => {
-    await new MergeDuplicateHostsAndAddUniqueHostIdentifier1806600000000().up(
+    await new MergeDuplicateHostsAndAddUniqueHostIdentifier1806700000000().up(
       runner,
     );
 
@@ -160,7 +167,7 @@ describe("MergeDuplicateHostsAndAddUniqueHostIdentifier", () => {
   test("a duplicate created while the index was being built is merged, and the index built again", async () => {
     buildFailures.set(EXPECTED_BUILDS[0]!, [UNIQUE_VIOLATION, UNIQUE_VIOLATION]);
 
-    await new MergeDuplicateHostsAndAddUniqueHostIdentifier1806600000000().up(
+    await new MergeDuplicateHostsAndAddUniqueHostIdentifier1806700000000().up(
       runner,
     );
 
@@ -183,7 +190,7 @@ describe("MergeDuplicateHostsAndAddUniqueHostIdentifier", () => {
       }),
     ]);
 
-    await new MergeDuplicateHostsAndAddUniqueHostIdentifier1806600000000().up(
+    await new MergeDuplicateHostsAndAddUniqueHostIdentifier1806700000000().up(
       runner,
     );
 
@@ -203,7 +210,7 @@ describe("MergeDuplicateHostsAndAddUniqueHostIdentifier", () => {
     );
 
     await expect(
-      new MergeDuplicateHostsAndAddUniqueHostIdentifier1806600000000().up(
+      new MergeDuplicateHostsAndAddUniqueHostIdentifier1806700000000().up(
         runner,
       ),
     ).rejects.toBe(UNIQUE_VIOLATION);
@@ -223,7 +230,7 @@ describe("MergeDuplicateHostsAndAddUniqueHostIdentifier", () => {
     buildFailures.set(EXPECTED_BUILDS[0]!, [lockTimeout]);
 
     await expect(
-      new MergeDuplicateHostsAndAddUniqueHostIdentifier1806600000000().up(
+      new MergeDuplicateHostsAndAddUniqueHostIdentifier1806700000000().up(
         runner,
       ),
     ).rejects.toBe(lockTimeout);
@@ -235,7 +242,7 @@ describe("MergeDuplicateHostsAndAddUniqueHostIdentifier", () => {
   });
 
   test("down() drops the three indexes online; merged rows stay merged", async () => {
-    await new MergeDuplicateHostsAndAddUniqueHostIdentifier1806600000000().down(
+    await new MergeDuplicateHostsAndAddUniqueHostIdentifier1806700000000().down(
       runner,
     );
 

@@ -39,7 +39,7 @@ import { DataSource } from "typeorm";
  * The issue's duplicate "test01": after a restart, a re-installed agent's
  * first batches all missed the lookup and each created the host. The unique
  * index on ("projectId", LOWER("hostIdentifier")) among live rows
- * (MergeDuplicateHostsAndAddUniqueHostIdentifier1806600000000) now refuses
+ * (MergeDuplicateHostsAndAddUniqueHostIdentifier1806700000000) now refuses
  * the second create, and findOrCreateByHostIdentifier reads the row that
  * won. Pinned here through the real services and the real SQL:
  *

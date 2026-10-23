@@ -64,7 +64,7 @@ Etiketter grupperer applikationer i lister og filtre. De bestemmer også, hvad e
 
 | Hvordan | Hvor |
 | --- | --- |
-| Manuelt | I oprettelsesformularen under **Flere felter**, eller senere med **Rediger detaljer** på kortet **Applikationsdetaljer** på applikationens side **Indstillinger**. |
+| Manuelt | I oprettelsesformularen under **Flere felter**, eller senere med **Rediger detaljer** på kortet **Applikationsdetaljer** på applikationens side **Indstillinger**. For flere ad gangen markerer du dem på listen og vælger **Add Labels** under **Massehandlinger**. |
 | Fra telemetri | En ressourceattribut med navnet `oneuptime.label.<name>` tilføjer etiketten `<name>:<value>`, som vist nedenfor. |
 | Fra en etiketregel | En regel tilføjer etiketter til hver ny applikation, der matcher den. Se [Etiketregler og ejerregler](#etiketregler-og-ejerregler). |
 
@@ -93,7 +93,7 @@ Regler kører, når en applikation oprettes, også når den er opdaget. For at a
 
 ### Ejere
 
-Ejere er de personer og teams, der er ansvarlige for en applikation. Ejerne af en RUM-applikation kommer fra ejerregler: dashboardet har ingen side til at tilføje dem manuelt, og API'et tilføjer dem via `/rum-application-owner-user` og `/rum-application-owner-team`. Med **Underret ejere** slået til, som er standard, får hver ejer, som en regel tilføjer, besked. Slå det fra, før du kører en regel på mange applikationer, hvis ingen skal have besked.
+Ejere er de personer og teams, der er ansvarlige for en applikation. Ejerregler tilføjer dem til nye applikationer. For at tilføje eller fjerne dem manuelt markerer du applikationer på listen og vælger **Add Owner** eller **Remove Owner** under **Massehandlinger**; API'et tilføjer dem via `/rum-application-owner-user` og `/rum-application-owner-team`. Med **Underret ejere** slået til, som er standard, får hver ejer, som en regel tilføjer, besked. Slå det fra, før du kører en regel på mange applikationer, hvis ingen skal have besked.
 
 ## Opbevaring
 
