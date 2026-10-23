@@ -223,13 +223,18 @@ jobs:
           # subtree, continuing a walk, Collect, Alert on it, Copy OID and why
           # a walk failed - at 1280 and 390 pixels, dark, Japanese and German)
           # joined it on 2026-10-23, the group with the most room once Event
-          # Overview ran in halves: about 15.
+          # Overview ran in halves: about 15. Asset Details (about 40 seconds
+          # locally with its bundle, Chromium only: where each asset detail
+          # came from on Inventory's Asset Details card and a device's
+          # Inventory card, at 1280 and 390 pixels, dark, Japanese and German)
+          # joined them the same day: about 16.
           - group: 1
             browsers: chromium
             event_overview_shard: 1/2
             suites: >-
               test-event-overview-ui
               test-snmp-walk-ui
+              test-asset-details-ui
           # The Alerts suite also runs in Firefox, and so do Code Editor (the
           # editor's text layers must line up in both) and Diagrams. Diagrams
           # and Navigation Search (about 8 minutes together) moved here from
@@ -722,4 +727,6 @@ jobs:
             output/playwright/kubernetes-events-ui/test-results
             output/playwright/snmp-walk-ui/*.png
             output/playwright/snmp-walk-ui/test-results
+            output/playwright/asset-details-ui/*.png
+            output/playwright/asset-details-ui/test-results
           retention-days: 7

@@ -680,6 +680,79 @@ export default class NetworkDevice extends BaseModel {
   public discoveredNameSource?: string = undefined;
 
   /*
+   * What discovery found out about this device, where and when (OneUptime
+   * issue #5185) - see Types/NetworkDevice/NetworkDeviceDiscoveredDetails.
+   *
+   * A device's own columns say what its SNMP poll read and what people saved
+   * on it. A device that is only pinged has few of them, while the discovery
+   * scan that sweeps its subnet reads its SNMP system group, its reverse-DNS
+   * name and its NetBIOS name, a walked router's ARP table its MAC, and its
+   * probe the address its DNS name resolves to. Those readings are kept HERE
+   * rather than in the columns, each with how it was read, by which scan,
+   * device or probe, and when - so nothing a person saved, and nothing the
+   * device's own poll read, is ever overwritten by them. The device's asset
+   * facts (Utils/NetworkDevice/NetworkDeviceAssetFacts) take a discovered
+   * value for a detail the device has none for, and say where it came from.
+   *
+   * Written by the server only: the discovery engine after each completed
+   * scan, the ARP learner, and the poll pipeline, each merging its own keys
+   * hook-free (NetworkDeviceService.mergeDiscoveredDetails). A discovery
+   * import creates the device with what its scan read, which is why create
+   * carries the same access as the name: the Review dialog imports with the
+   * operator's own permissions. Anything a create carries that OneUptime
+   * would not have written is dropped on the way in. Cleared when the
+   * device's address changes, since every reading was of the old address.
+   * Left out of the Terraform configuration the dashboard writes: it is the
+   * server's record, not a setting.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDevice,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    // Server-managed after create: see above.
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Discovered Details",
+    description:
+      "What discovery found out about this device and has not been saved on it: the SNMP system information and the reverse-DNS and NetBIOS names a discovery scan read at its address, the MAC address a walked router's ARP table gave it, and the IP address its probe resolved its DNS name to - each with how it was read, by which scan, device or probe, and when. Managed by the server; it never changes the device's own details.",
+    example: {
+      sysName: {
+        value: "core-sw-01",
+        method: "snmp",
+        readBy: {
+          type: "discoveryScan",
+          id: "6f1c1b6e-4d0e-4a7a-9b9a-2f3f8f0b9a10",
+          name: "Office LAN",
+        },
+        readAt: "2026-10-23T09:00:00.000Z",
+      },
+    },
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public discoveredDetails?: JSONObject = undefined;
+
+  /*
    * --- Which switch port is this device on? ---
    *
    * LLDP and CDP answer that for a device that speaks them. A device that

@@ -72,7 +72,9 @@ Abre un elemento y su propio menú lateral tiene su **Vista general** (su tipo, 
 Un host o un dispositivo de red tiene una tarjeta **Detalles del activo** que describe ambos de la misma manera: nombre de host, dirección IP, dirección MAC, número de serie, fabricante, modelo, versión de firmware, sistema operativo, versión del sistema operativo, tipo de dispositivo y ubicación. Un dato que nada ha informado aparece como **Desconocido**, y la tarjeta explica cómo se completan los desconocidos.
 
 - Los datos de un host vienen de los atributos de recurso de su telemetría: sus direcciones IP y MAC, su arquitectura y su sistema operativo de serie, y su número de serie, marca, modelo y firmware una vez que los estampas.
-- Los datos de un dispositivo de red vienen de su sondeo SNMP, su rol y su sitio. Un dispositivo sin ENTITY-MIB, como un Meraki MX, obtiene igualmente su marca y modelo de su descripción del sistema. Su dirección IP nunca se muestra como su nombre de host.
+- Los datos de un dispositivo de red vienen de su sondeo SNMP, su rol y su sitio. Lo que su sondeo no ha leído viene del descubrimiento: el último escaneo de su dirección, la tabla ARP de un router o la consulta DNS de su sonda. Un dispositivo sin ENTITY-MIB, como un Meraki MX, obtiene igualmente su marca y modelo de su descripción del sistema. Su dirección IP nunca se muestra como su nombre de host.
+
+La tarjeta indica de dónde vino cada dato y cuándo. La fuente que comparten la mayoría de los datos, como el recolector de un host, el propio sondeo SNMP de un dispositivo de red o el escaneo de descubrimiento que lo leyó, se nombra una sola vez, debajo de los datos. Cualquier otra fuente, como la tabla ARP de un router o un valor guardado en el dispositivo, se nombra bajo su dato. Un valor guardado en un dispositivo de red nunca se sustituye por lo que lee el descubrimiento, y cuando los dos difieren, la tarjeta muestra ambos.
 
 Los mismos datos son columnas de la lista **Todos los elementos**, ocultas hasta que las activas, y entran en su exportación CSV. [Exportar a una CMDB](/docs/inventory/cmdb-sync#detalles-del-activo) enumera sus claves.
 

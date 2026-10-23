@@ -189,6 +189,7 @@ export const SERVER_MANAGED_COLUMNS_BY_TABLE: Readonly<
     "isMacAddressLearned",
     "discoveredName",
     "discoveredNameSource",
+    "discoveredDetails",
   ],
 };
 

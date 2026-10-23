@@ -139,7 +139,7 @@ Hosts en netwerkapparaten worden met dezelfde gegevens beschreven, opgeslagen on
 | Gegeven | Sleutel | Bij een host | Bij een netwerkapparaat |
 | --- | --- | --- | --- |
 | Hostnaam | `host.name` | De naam van de host. Dat is de identiteit van de host, dus staat in `identifyingAttributes` | De eigen naam van het apparaat: zijn SNMP-`sysName`, anders de NetBIOS- of DNS-naam die de ontdekking vond. Nooit zijn IP-adres |
-| IP-adres | `host.ip` | Elk adres dat de collector meldt | Het adres dat OneUptime pollt, als het een IP-adres is |
+| IP-adres | `host.ip` | Elk adres dat de collector meldt | Het adres dat OneUptime pollt, als het een IP-adres is, anders het adres waarnaar zijn probe die DNS-naam heeft omgezet |
 | MAC-adres | `host.mac` | Gedetecteerd | Op het apparaat ingevoerd, of geleerd uit de ARP-tabel van een doorlopen router |
 | Serienummer | `host.serial_number` | Gestempeld | ENTITY-MIB |
 | Manufacturer | `device.manufacturer` | Gestempeld | ENTITY-MIB, anders wat `sysDescr` of `sysObjectID` noemt |
@@ -189,7 +189,7 @@ Een netwerkapparaat (`entityType: network.device`) wordt gespiegeld uit zijn Net
 | Veld | Sleutel | Waar het vandaan komt |
 | --- | --- | --- |
 | Hostnaam | `host.name` | De eigen naam van het apparaat: zijn SNMP-`sysName`, anders de NetBIOS- of reverse-DNS-naam die de ontdekking vond. Weggelaten als alleen zijn IP-adres het benoemt |
-| IP-adres | `host.ip` | Het adres dat OneUptime pollt, als het een IP-adres is |
+| IP-adres | `host.ip` | Het adres dat OneUptime pollt, als het een IP-adres is. Voor een apparaat dat op een DNS-naam wordt gepold, het adres waarnaar zijn probe die naam het laatst heeft omgezet |
 | DNS-naam | `net.device.dns_name` | De reverse-DNS-naam die bij de ontdekking is gevonden, of de DNS-naam die OneUptime pollt |
 | MAC-adres | `host.mac` | Op het apparaat ingevoerd, of geleerd uit de ARP-tabel van een doorlopen router |
 | Merk | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`, anders de fabrikant die `sysDescr` noemt, anders de leverancier van de `sysObjectID` |
@@ -204,7 +204,9 @@ Een netwerkapparaat (`entityType: network.device`) wordt gespiegeld uit zijn Net
 | Site | `oneuptime.site.name` | De Network Site waaraan het apparaat is toegewezen |
 | Gepold adres | `net.device.hostname` | Het adres dat OneUptime pollt: een IP-adres of een DNS-naam. Behouden voor synchronisaties die zijn geschreven voordat `host.name` en `host.ip` bestonden |
 
-De hardwarerijen vullen zich na de eerste SNMP-walk van het apparaat, dus een apparaat dat alleen met ping wordt gemonitord, of een dat is toegevoegd maar nog niet gepold, toont weinig meer dan zijn adres. Een apparaat dat geen ENTITY-MIB implementeert, heeft geen serienummer of firmware te melden. Zijn `sysDescr` noemt voor veel platforms toch het model en het besturingssysteem: een Cisco Meraki MX meldt `Meraki MX85`, wat het merk en model invult. Een platform waarvan de `sysDescr` geen bekende vorm heeft, voegt niets toe in plaats van te gokken.
+De ENTITY-MIB-rijen vullen zich na de eerste SNMP-walk van het apparaat. Een apparaat dat niet wordt gewalkt, omdat het alleen met ping wordt gemonitord of nog niet is gepold, krijgt toch zijn naam, merk, besturingssysteem en locatie uit wat de laatste discovery-scan van zijn adres via SNMP las, en zijn MAC-adres uit de ARP-tabel van een doorlopen router. Een apparaat dat geen ENTITY-MIB implementeert, heeft geen serienummer of firmware te melden. Zijn `sysDescr` noemt voor veel platforms toch het model en het besturingssysteem: een Cisco Meraki MX meldt `Meraki MX85`, wat het merk en model invult. Een platform waarvan de `sysDescr` geen bekende vorm heeft, voegt niets toe in plaats van te gokken.
+
+Een waarde die op het apparaat is opgeslagen, ingetypt of via de API ingesteld, wordt nooit vervangen door wat discovery leest. Van een waarde die de eigen walk van het apparaat las en een die een scan las, wordt de nieuwste gebruikt. Wat een scan las, wordt alleen gebruikt als de scan dezelfde machine op het adres vond: als de systeemnaam, `sysObjectID` of NetBIOS-naam die hij las die van het apparaat tegenspreekt, wordt niets gebruikt van wat hij daar las. De kaart **Assetgegevens** van het item toont waar elke waarde vandaan kwam en wanneer.
 
 De hostnaam is nooit het IP-adres. Een apparaat dat alleen zijn adres benoemt, heeft `host.ip` en geen `host.name`. Zodra zijn SNMP-walk een systeemnaam meldt, volgt `host.name` bij de volgende ronde.
 

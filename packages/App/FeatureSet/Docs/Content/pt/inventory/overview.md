@@ -72,7 +72,9 @@ Abra um item, e o menu lateral dele tem a sua **Visão geral** (o tipo, a origem
 Um host ou um dispositivo de rede tem um cartão **Detalhes do ativo** que descreve os dois da mesma forma: nome do host, endereço IP, endereço MAC, número de série, fabricante, modelo, versão do firmware, sistema operacional, versão do sistema operacional, tipo de dispositivo e localização. Um dado que nada informou aparece como **Desconhecido**, e o cartão explica como os desconhecidos são preenchidos.
 
 - Os dados de um host vêm dos atributos de recurso da sua telemetria: os endereços IP e MAC, a arquitetura e o sistema operacional de imediato, e o número de série, a marca, o modelo e o firmware depois que você os carimba.
-- Os dados de um dispositivo de rede vêm da sua consulta SNMP, da sua função e do seu site. Um dispositivo sem ENTITY-MIB, como um Meraki MX, ainda obtém a marca e o modelo da sua descrição de sistema. O endereço IP dele nunca é mostrado como nome do host.
+- Os dados de um dispositivo de rede vêm da sua consulta SNMP, da sua função e do seu site. O que a sua consulta não leu vem da descoberta: a última varredura do seu endereço, a tabela ARP de um roteador ou a consulta DNS da sua sonda. Um dispositivo sem ENTITY-MIB, como um Meraki MX, ainda obtém a marca e o modelo da sua descrição de sistema. O endereço IP dele nunca é mostrado como nome do host.
+
+O cartão mostra de onde veio cada dado e quando. A fonte que a maioria dos dados compartilha, como o coletor de um host, a própria consulta SNMP de um dispositivo de rede ou a varredura de descoberta que o leu, é citada uma só vez, abaixo dos dados. Qualquer outra fonte, como a tabela ARP de um roteador ou um valor salvo no dispositivo, é citada sob o seu dado. Um valor salvo em um dispositivo de rede nunca é substituído pelo que a descoberta lê, e quando os dois diferem, o cartão mostra os dois.
 
 Os mesmos dados são colunas da lista **All Items**, ocultas até você ativá-las, e entram na sua exportação CSV. [Exportar para um CMDB](/docs/inventory/cmdb-sync#detalhes-do-ativo) lista as chaves deles.
 

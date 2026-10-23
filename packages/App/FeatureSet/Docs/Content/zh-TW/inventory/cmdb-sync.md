@@ -139,7 +139,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | 資訊 | 鍵 | 在主機上 | 在網路裝置上 |
 | --- | --- | --- | --- |
 | 主機名稱 | `host.name` | 主機的名稱。它是主機的身分，因此位於 `identifyingAttributes` 中 | 裝置自己的名稱：其 SNMP `sysName`，否則為探索時找到的 NetBIOS 或 DNS 名稱。絕不會是它的 IP 位址 |
-| IP 位址 | `host.ip` | 收集器回報的每個位址 | OneUptime 輪詢的位址（當它是 IP 位址時） |
+| IP 位址 | `host.ip` | 收集器回報的每個位址 | OneUptime 輪詢的位址（當它是 IP 位址時），否則為其探測器將該 DNS 名稱解析到的位址 |
 | MAC 位址 | `host.mac` | 偵測取得 | 在裝置上輸入，或從走訪過的路由器的 ARP 表中得知 |
 | 序號 | `host.serial_number` | 標記 | ENTITY-MIB |
 | Manufacturer | `device.manufacturer` | 標記 | ENTITY-MIB，否則為 `sysDescr` 或 `sysObjectID` 指明的內容 |
@@ -189,7 +189,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | 欄位 | 鍵 | 來源 |
 | --- | --- | --- |
 | 主機名稱 | `host.name` | 裝置自己的名稱：其 SNMP `sysName`，否則為探索時找到的 NetBIOS 或反向 DNS 名稱。只有 IP 位址能命名它時會省略 |
-| IP 位址 | `host.ip` | OneUptime 輪詢的位址（當它是 IP 位址時） |
+| IP 位址 | `host.ip` | OneUptime 輪詢的位址（當它是 IP 位址時）。對於以 DNS 名稱輪詢的裝置，為其探測器最近一次將該名稱解析到的位址 |
 | DNS 名稱 | `net.device.dns_name` | 探索時找到的反向 DNS 名稱，或 OneUptime 輪詢的 DNS 名稱 |
 | MAC 位址 | `host.mac` | 在裝置上輸入，或從走訪過的路由器的 ARP 表中得知 |
 | 製造商 | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`，否則為 `sysDescr` 指明的廠商，否則為 `sysObjectID` 的供應商 |
@@ -204,7 +204,9 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | 站點 | `oneuptime.site.name` | 裝置所指派到的 Network Site |
 | 輪詢位址 | `net.device.hostname` | OneUptime 輪詢的位址：IP 位址或 DNS 名稱。為在 `host.name` 和 `host.ip` 出現之前撰寫的同步而保留 |
 
-硬體列會在裝置的首次 SNMP 走訪之後填入，因此僅透過 ping 監控的裝置，或已新增但尚未輪詢的裝置，除了位址之外顯示的資訊很少。未實作 ENTITY-MIB 的裝置沒有可回報的序號或韌體。不過對許多平台而言，它的 `sysDescr` 仍會指明型號和作業系統：Cisco Meraki MX 回報 `Meraki MX85`，從而填入製造商和型號。`sysDescr` 沒有已知格式的平台不會新增任何內容，而不是去猜測。
+ENTITY-MIB 列會在裝置的首次 SNMP 走訪之後填入。未被走訪的裝置（僅透過 ping 監控或尚未輪詢）仍會從對其位址的最近一次探索掃描透過 SNMP 讀取的內容取得名稱、製造商、作業系統和位置，並從走訪過的路由器的 ARP 表取得 MAC 位址。未實作 ENTITY-MIB 的裝置沒有可回報的序號或韌體。不過對許多平台而言，它的 `sysDescr` 仍會指明型號和作業系統：Cisco Meraki MX 回報 `Meraki MX85`，從而填入製造商和型號。`sysDescr` 沒有已知格式的平台不會新增任何內容，而不是去猜測。
+
+儲存在裝置上的值（手動輸入或透過 API 設定）絕不會被探索讀取的內容取代。在裝置自身走訪讀取的值和掃描讀取的值之間，使用較新的那個。只有當掃描在該位址找到的是同一台機器時，才會使用它讀取的內容：當它讀取的系統名稱、`sysObjectID` 或 NetBIOS 名稱與裝置的不符時，它在那裡讀取的任何內容都不會被使用。項目的 **資產詳細資料** 卡片會說明每個值的來源和時間。
 
 主機名稱永遠不會是 IP 位址。只有位址能命名的裝置有 `host.ip`，沒有 `host.name`。一旦它的 SNMP 走訪回報了系統名稱，`host.name` 會在下一輪處理時出現。
 

@@ -506,7 +506,13 @@ Een onderzoek door OneUptime AI van een incident of waarschuwing van een netwerk
 
 Na de eerste geslaagde walk leest OneUptime de SNMPv2-systeemgroep en, waar het apparaat dat ondersteunt, ENTITY-MIB, en vult het apparaatrecord in: systeemnaam, beschrijving, locatie, contact, uptime, leverancier, model, serienummer en firmwareversie. De enterprise-OID van de leverancier (`sysObjectID`) is de vingerafdruk van het apparaat: ze noemt de leverancier en kiest het bijbehorende leverancierssjabloon. Dezelfde gegevens verschijnen in de [inventaris](/docs/inventory/cmdb-sync#assetattributen-van-netwerkapparaten) naast al je andere assets.
 
-Een apparaat met alleen ping houdt de naam en het adres die jij, of een discovery-scan, het gaf: er is geen SNMP-agent om om iets beters te vragen.
+Een apparaat met alleen ping houdt de naam en het adres die jij, of een discovery-scan, het gaf. Wat zijn eigen poll niet heeft gelezen, haalt het uit discovery:
+
+- De systeemnaam, beschrijving, `sysObjectID`, locatie en contactpersoon die de laatste [discovery-scan](#apparaten-ontdekken-met-een-netwerkscan) van zijn adres via SNMP las, en de reverse-DNS- en NetBIOS-namen die die vond.
+- Zijn MAC-adres, uit de ARP-tabel van een doorlopen router in zijn site.
+- Voor een apparaat dat op een DNS-naam wordt gepold, het adres waarnaar zijn probe die naam heeft omgezet.
+
+Deze worden naast de eigen velden van het apparaat bewaard, nooit erin geschreven, en elke scan, router-walk of poll die er een opnieuw leest, werkt die bij. Het overzicht van het apparaat en zijn item in de inventaris tonen welke scan, router of probe elke waarde las, en wanneer. Een waarde die je op het apparaat hebt opgeslagen, wordt nooit vervangen. Als een scan een andere machine op het adres van het apparaat vindt, zoals een DHCP-lease die is verschoven, meldt het overzicht dat, en wordt niets gebruikt van wat die scan daar las.
 
 ## Apparaten ontdekken met een netwerkscan
 

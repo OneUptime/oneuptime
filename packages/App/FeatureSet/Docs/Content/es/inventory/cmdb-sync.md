@@ -139,7 +139,7 @@ Los hosts y los dispositivos de red se describen con los mismos datos, guardados
 | Dato | Clave | En un host | En un dispositivo de red |
 | --- | --- | --- | --- |
 | Nombre de host | `host.name` | El nombre del host. Es la identidad del host, así que está en `identifyingAttributes` | El nombre propio del dispositivo: su `sysName` de SNMP, si no el nombre NetBIOS o DNS que encontró el descubrimiento. Nunca su dirección IP |
-| Dirección IP | `host.ip` | Cada dirección que informa el recolector | La dirección que sondea OneUptime, cuando es una dirección IP |
+| Dirección IP | `host.ip` | Cada dirección que informa el recolector | La dirección que sondea OneUptime, cuando es una dirección IP; si no, la dirección a la que su sonda resolvió ese nombre DNS |
 | Dirección MAC | `host.mac` | Detectada | Escrita en el dispositivo, o aprendida de la tabla ARP de un router recorrido |
 | Número de serie | `host.serial_number` | Estampado | ENTITY-MIB |
 | Fabricante | `device.manufacturer` | Estampado | ENTITY-MIB, si no lo que nombran `sysDescr` o `sysObjectID` |
@@ -189,7 +189,7 @@ Un dispositivo de red (`entityType: network.device`) se replica desde su registr
 | Campo | Clave | De dónde viene |
 | --- | --- | --- |
 | Nombre de host | `host.name` | El nombre propio del dispositivo: su `sysName` de SNMP, si no el nombre NetBIOS o DNS inverso que encontró el descubrimiento. Se omite cuando solo lo nombra su dirección IP |
-| Dirección IP | `host.ip` | La dirección que sondea OneUptime, cuando es una dirección IP |
+| Dirección IP | `host.ip` | La dirección que sondea OneUptime, cuando es una dirección IP. Para un dispositivo sondeado por un nombre DNS, la dirección a la que su sonda resolvió ese nombre la última vez |
 | Nombre DNS | `net.device.dns_name` | El nombre DNS inverso encontrado en el descubrimiento, o el nombre DNS que sondea OneUptime |
 | Dirección MAC | `host.mac` | Escrita en el dispositivo, o aprendida de la tabla ARP de un router recorrido |
 | Marca | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`, si no el fabricante que nombra `sysDescr`, si no el proveedor del `sysObjectID` |
@@ -204,7 +204,9 @@ Un dispositivo de red (`entityType: network.device`) se replica desde su registr
 | Sitio | `oneuptime.site.name` | El Network Site al que está asignado el dispositivo |
 | Dirección sondeada | `net.device.hostname` | La dirección que sondea OneUptime: una dirección IP o un nombre DNS. Se mantiene para las sincronizaciones escritas antes de que existieran `host.name` y `host.ip` |
 
-Las filas de hardware se completan tras el primer recorrido SNMP del dispositivo, así que un dispositivo monitorizado solo por ping, o uno añadido pero aún no sondeado, muestra poco más que su dirección. Un dispositivo que no implementa ENTITY-MIB no tiene número de serie ni firmware que informar. Su `sysDescr` sigue nombrando el modelo y el sistema operativo en muchas plataformas: un Cisco Meraki MX informa `Meraki MX85`, que rellena la marca y el modelo. Una plataforma cuyo `sysDescr` no tiene una forma conocida no añade nada, en lugar de adivinar.
+Las filas de ENTITY-MIB se completan tras el primer recorrido SNMP del dispositivo. Un dispositivo que no se recorre, porque se monitoriza solo por ping o aún no se ha sondeado, obtiene igualmente su nombre, marca, sistema operativo y ubicación de lo que leyó por SNMP el último escaneo de descubrimiento de su dirección, y su dirección MAC de la tabla ARP de un router recorrido. Un dispositivo que no implementa ENTITY-MIB no tiene número de serie ni firmware que informar. Su `sysDescr` sigue nombrando el modelo y el sistema operativo en muchas plataformas: un Cisco Meraki MX informa `Meraki MX85`, que rellena la marca y el modelo. Una plataforma cuyo `sysDescr` no tiene una forma conocida no añade nada, en lugar de adivinar.
+
+Un valor guardado en el dispositivo, escrito a mano o fijado a través de la API, nunca se sustituye por lo que lee el descubrimiento. Entre un valor que leyó el propio recorrido del dispositivo y uno que leyó un escaneo, se usa el más reciente. Lo que lee un escaneo solo se usa cuando el escaneo encontró la misma máquina en la dirección: cuando el nombre del sistema, el `sysObjectID` o el nombre NetBIOS que leyó contradice el del dispositivo, no se usa nada de lo que leyó allí. La tarjeta **Detalles del activo** del elemento indica de dónde vino cada valor y cuándo.
 
 El nombre de host nunca es la dirección IP. Un dispositivo al que solo nombra su dirección tiene `host.ip` y ningún `host.name`. Cuando su recorrido SNMP informa un nombre de sistema, `host.name` llega en la siguiente pasada.
 
