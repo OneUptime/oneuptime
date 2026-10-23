@@ -21,6 +21,8 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkSwitchActions from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
+import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import ProbeElement from "Common/UI/Components/Probe/Probe";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
@@ -81,6 +83,22 @@ const MonitorProbes: FunctionComponent<
    * id, and an answer for a monitor it has moved on from is dropped.
    */
   const readRef: MutableRefObject<number> = useRef<number>(0);
+
+  /*
+   * Enable and Disable in Bulk Actions: stopping a few locations from
+   * checking this monitor (a region that is down, say) and starting them
+   * again, without opening each row's Edit. Rows are named by their probe.
+   */
+  const switchBulkActions: Array<BulkActionButtonSchema<MonitorProbe>> =
+    useBulkSwitchActions<MonitorProbe>({
+      modelType: MonitorProbe,
+      column: "isEnabled",
+      singularName: "Probe",
+      pluralName: "Probes",
+      getItemName: (item: MonitorProbe): string => {
+        return item.probe?.name || "";
+      },
+    });
 
   const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
     const read: number = readRef.current + 1;
@@ -163,6 +181,9 @@ const MonitorProbes: FunctionComponent<
          * table could add probes and never take one away.
          */
         isDeleteable={true}
+        bulkActions={{
+          buttons: [...switchBulkActions],
+        }}
         isEditable={true}
         isCreateable={true}
         cardProps={{
@@ -176,6 +197,8 @@ const MonitorProbes: FunctionComponent<
         viewPageRoute={Navigation.getCurrentRoute()}
         selectMoreFields={{
           lastMonitoringLog: true,
+          // Whether each row is on, for Enable and Disable to count.
+          isEnabled: true,
         }}
         actionButtons={[
           {

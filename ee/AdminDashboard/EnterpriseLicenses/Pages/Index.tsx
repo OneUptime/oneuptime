@@ -10,6 +10,10 @@ import {
   getLicenseLifecycle,
   isOverUserLimit,
 } from "../Components/LicenseUtil";
+import { getLicenseItemName } from "../Components/LicenseBulkCopy";
+import useLicenseBulkActions, {
+  LicenseBulkActionsResult,
+} from "../Components/useLicenseBulkActions";
 import Route from "Common/Types/API/Route";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -20,6 +24,7 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
 import Page from "Common/UI/Components/Page/Page";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
@@ -79,6 +84,12 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
   );
   const [statsError, setStatsError] = useState<string>("");
   const [tableRefreshToggle, setTableRefreshToggle] = useState<boolean>(false);
+
+  // Change Expiry Date, and the dialog it asks for the date in.
+  const {
+    bulkActions: licenseBulkActions,
+    modals: licenseBulkModals,
+  }: LicenseBulkActionsResult = useLicenseBulkActions();
 
   /*
    * Rendered only on OneUptime Cloud: the core shell at
@@ -216,7 +227,30 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
           userPreferencesKey="admin-enterprise-licenses-table"
           id="enterprise-licenses-table"
           name="Enterprise Licenses"
-          isDeleteable={false}
+          /*
+           * Delete in each row's ⋯ and in Bulk Actions, as on the license's
+           * own page: cleaning up expired licenses and the duplicates a
+           * second issue leaves. What deleting one does to the customer's
+           * installations is said in every Delete dialog
+           * (DeleteConsequences, EnterpriseLicense).
+           */
+          isDeleteable={true}
+          /*
+           * By company and masked key: one company can hold two licenses,
+           * and "Delete Netlock.hu?" would not say which.
+           */
+          getItemName={(item: EnterpriseLicense): string => {
+            return getLicenseItemName({
+              companyName: item.companyName,
+              licenseKey: item.licenseKey,
+            });
+          }}
+          bulkActions={{
+            buttons: [
+              ...licenseBulkActions,
+              ModalTableBulkDefaultActions.Delete,
+            ],
+          }}
           isEditable={false}
           isCreateable={true}
           isViewable={true}
@@ -477,6 +511,8 @@ const EnterpriseLicenses: FunctionComponent = (): ReactElement => {
             },
           ]}
         />
+
+        {licenseBulkModals}
 
         <div className="mt-6">
           <CardModelDetail<GlobalConfig>
