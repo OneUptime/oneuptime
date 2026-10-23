@@ -36,6 +36,7 @@ describe("creating a NetworkDeviceDiagnostic", () => {
     "statusMessage",
     "pingResult",
     "traceRouteResult",
+    "snmpWalkResult",
     "startedAt",
     "completedAt",
   ];
@@ -125,6 +126,36 @@ describe("creating a NetworkDeviceDiagnostic", () => {
     );
     expect(accessControlFor("probeId").create.length).toBeGreaterThan(0);
     expect(diagnostic.getRequiredColumns().columns).not.toContain("probeId");
+  });
+
+  /*
+   * An SNMP walk's start (issue #5184): the subtree the person picked, and
+   * for a walk that continues another, the OID it continues after. A caller
+   * sets them on create - optional, so a ping or a traceroute still asks
+   * for exactly a device and a type - and nobody changes them afterwards.
+   */
+  test.each(["snmpWalkRootOid", "snmpWalkAfterOid"])(
+    "%s is the caller's to set on create, never required, never updated",
+    (column: string) => {
+      expect(accessControlFor(column).create).toContain(
+        Permission.CreateNetworkDeviceDiagnostic,
+      );
+      expect(accessControlFor(column).update).toEqual([]);
+      expect(diagnostic.getRequiredColumns().columns).not.toContain(column);
+    },
+  );
+
+  /*
+   * What a walk read is read by whoever reads the row - the same people who
+   * read a ping's result - and never by anyone else.
+   */
+  test("the walk result is read with the same permissions as a ping result", () => {
+    expect(accessControlFor("snmpWalkResult").read.sort()).toEqual(
+      accessControlFor("pingResult").read.sort(),
+    );
+    expect(accessControlFor("snmpWalkResult").read).toContain(
+      Permission.ReadNetworkDeviceDiagnostic,
+    );
   });
 
   /*
