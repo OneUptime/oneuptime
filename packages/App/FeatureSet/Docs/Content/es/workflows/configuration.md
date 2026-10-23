@@ -3,11 +3,12 @@
 Lo que debes saber antes de poner un flujo de trabajo frente a tráfico real: cómo activarlo con seguridad, quién puede hacer qué, cómo se mantienen privados los secretos y las URL, qué pueden cambiar los pasos de un flujo de trabajo y los límites dentro de los que trabaja cada ejecución.
 
 :::cards
+
 - [Pasar a producción](#activar-o-desactivar-un-flujo-de-trabajo): Prueba con Ejecutar flujo de trabajo mientras está desactivado y después actívalo.
 - [Permisos](#permisos): Los roles de flujo de trabajo y los permisos individuales que hay detrás.
 - [Qué pueden hacer los pasos](#qué-pueden-hacer-los-pasos-de-un-flujo-de-trabajo): Los pasos actúan como Project Admin del proyecto del flujo de trabajo.
 - [Límites](#límites-del-plan): Ejecuciones por plan, duración de una ejecución y llamadas entre flujos de trabajo.
-:::
+  :::
 
 ## Activar o desactivar un flujo de trabajo
 
@@ -16,11 +17,12 @@ Cada flujo de trabajo tiene un interruptor **Habilitado** en la parte superior d
 Usa este interruptor como tu señal de «listo para salir»:
 
 :::steps
+
 1. Construye el flujo de trabajo.
 2. Haz clic en **Ejecutar flujo de trabajo** en el **Constructor** con valores realistas, mientras el flujo de trabajo sigue desactivado. La ejecución es una **Ejecución de prueba**: cada bloque se ejecuta de verdad, así que apúntalo primero a un canal de prueba o a un registro de prueba.
 3. Abre la ejecución y comprueba que cada bloque fue adonde esperabas. Consulta [Ejecuciones](/docs/workflows/runs-and-logs).
 4. Activa **Habilitado** cuando esté listo: a partir de entonces, su disparador salta con eventos reales.
-:::
+   :::
 
 Desactivar un flujo de trabajo impide que su disparador inicie ejecuciones nuevas. Una ejecución que ya está en curso termina, pero una ejecución que inició su disparador y que espera en un bloque **Sleep** se cancela al despertar. Las ejecuciones de prueba continúan. Para activar o desactivar varios a la vez, selecciónalos en la lista **Flujos de trabajo** y elige **Activar** o **Desactivar** en **Acciones masivas**.
 
@@ -43,12 +45,12 @@ Un flujo de trabajo exportado nunca lleva su estado de archivado, así que una c
 
 ## Propietarios y etiquetas
 
-| Qué                         | Dónde                                                      | Qué hace                                                                                                                                             |
-| --------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Propietarios**            | La página **Propietarios** del flujo de trabajo            | Los usuarios y equipos responsables del flujo de trabajo. Un rol limitado a lo que posee su equipo llega a los flujos de trabajo que posee ese equipo. |
-| **Etiquetas**               | La página **Vista general** del flujo de trabajo           | Etiquetas para agrupar flujos de trabajo, por equipo, integración o entorno. Filtra la lista **Flujos de trabajo** por etiqueta, y limita un rol a algunas etiquetas. |
-| **Reglas de etiquetas**     | **Flujos de trabajo → Ajustes → Reglas de etiquetas**      | Etiqueta automáticamente los flujos de trabajo nuevos según patrones de su nombre o su descripción.                                                  |
-| **Reglas del propietario**  | **Flujos de trabajo → Ajustes → Reglas del propietario**   | Asigna automáticamente propietarios a los flujos de trabajo nuevos.                                                                                  |
+| Qué                        | Dónde                                                    | Qué hace                                                                                                                                                              |
+| -------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Propietarios**           | La página **Propietarios** del flujo de trabajo          | Los usuarios y equipos responsables del flujo de trabajo. Un rol limitado a lo que posee su equipo llega a los flujos de trabajo que posee ese equipo.                |
+| **Etiquetas**              | La página **Vista general** del flujo de trabajo         | Etiquetas para agrupar flujos de trabajo, por equipo, integración o entorno. Filtra la lista **Flujos de trabajo** por etiqueta, y limita un rol a algunas etiquetas. |
+| **Reglas de etiquetas**    | **Flujos de trabajo → Ajustes → Reglas de etiquetas**    | Etiqueta automáticamente los flujos de trabajo nuevos según patrones de su nombre o su descripción.                                                                   |
+| **Reglas del propietario** | **Flujos de trabajo → Ajustes → Reglas del propietario** | Asigna automáticamente propietarios a los flujos de trabajo nuevos.                                                                                                   |
 
 Consulta [Reglas de etiquetas y de propietarios](/docs/configuration/label-and-owner-rules) para ver cómo coinciden las reglas.
 
@@ -118,11 +120,11 @@ Los bloques API y los demás bloques HTTP hacen sus solicitudes desde OneUptime,
 
 Las direcciones a las que puede llegar un bloque dependen del bloque:
 
-| Bloques                                                     | Loopback, enlace local, metadatos de la nube                                 | Direcciones de red privada                                                                                                                |
-| ----------------------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Bloques                                                                              | Loopback, enlace local, metadatos de la nube                                         | Direcciones de red privada                                                                                                                  |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | Los bloques **API** y **Mattermost**, y las solicitudes de **Run Custom JavaScript** | Rechazadas, a menos que el host exacto figure en `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Rechazadas, a menos que un administrador autoalojado las permita con `ALLOW_PRIVATE_NETWORK_WEBHOOKS` o `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
-| **Send Email**, **IRC** y las URL de token de OAuth 2.0     | Rechazadas                                                                   | Rechazadas en OneUptime Cloud. Permitidas en una instalación autoalojada, a menos que `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` sea `true`     |
-| Slack, Microsoft Teams, Discord y Telegram                  | Rechazadas                                                                   | Rechazadas: cada uno solo envía a las direcciones de su propio servicio                                                                   |
+| **Send Email**, **IRC** y las URL de token de OAuth 2.0                              | Rechazadas                                                                           | Rechazadas en OneUptime Cloud. Permitidas en una instalación autoalojada, a menos que `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` sea `true`      |
+| Slack, Microsoft Teams, Discord y Telegram                                           | Rechazadas                                                                           | Rechazadas: cada uno solo envía a las direcciones de su propio servicio                                                                     |
 
 Consulta [Acceso a redes privadas](/docs/self-hosted/private-network-access) para ver cómo un administrador autoalojado las abre.
 
@@ -149,13 +151,13 @@ Lo que necesita el bloque, y lo que cuesta:
 - Las llamadas a través de un proveedor global de pago usan los créditos de IA del proyecto.
 - Cada llamada cuenta para los [límites diarios de IA propios del proyecto](/docs/ai/ai-sre#los-límites-diarios-propios-del-proyecto), cuando un propietario del proyecto los define. Cuando se alcanza un límite, el bloque toma **Error** sin contactar con el modelo, hasta la medianoche UTC.
 
-| Límite                                                       | Valor                                                                     |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| **System Instructions**, **Prompt** y **Context** juntos     | 50.000 caracteres                                                         |
-| **Temperature**                                              | De `0` a `1`                                                              |
-| **Maximum Output Tokens**                                    | De `1` a `4096`, `1024` por defecto                                       |
-| Una solicitud                                                | Un solo intento, de 60 segundos como máximo                               |
-| Llamadas simultáneas                                         | 3 por proyecto. Las demás toman **Error**, y una ejecución posterior puede volver a intentarlo. |
+| Límite                                                   | Valor                                                                                           |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| **System Instructions**, **Prompt** y **Context** juntos | 50.000 caracteres                                                                               |
+| **Temperature**                                          | De `0` a `1`                                                                                    |
+| **Maximum Output Tokens**                                | De `1` a `4096`, `1024` por defecto                                                             |
+| Una solicitud                                            | Un solo intento, de 60 segundos como máximo                                                     |
+| Llamadas simultáneas                                     | 3 por proyecto. Las demás toman **Error**, y una ejecución posterior puede volver a intentarlo. |
 
 Los fallos de validación, configuración, acceso, límite, créditos, simultaneidad, proveedor y tiempo de espera toman todos el camino **Error**, con el motivo en **Error**. Conecta ese camino antes de que el flujo de trabajo pase a producción.
 
@@ -200,7 +202,7 @@ Los pasos que leen y cambian registros de OneUptime — los componentes Find, Cr
   - cambiar a qué registro pertenece un registro después de crearlo, como el monitor al que corresponde una fila de propietario o el incidente en el que está una nota.
 - **Como nadie.** Un registro que crea un flujo de trabajo no nombra a ningún creador, y el registro de auditoría nombra el flujo de trabajo, con el nombre que tenía en ese momento, como autor del cambio.
 
-Cuando una comprobación rechaza un paso, el paso toma su salida **Error** sin hacer el cambio rechazado, y el registro de la ejecución nombra el paso y el motivo con palabras sencillas, por ejemplo *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Léelo en las [Ejecuciones](/docs/workflows/runs-and-logs) del flujo de trabajo. Un paso Create Many crea sus registros de uno en uno y se detiene en el primero rechazado: los registros que creó antes de ese se conservan.
+Cuando una comprobación rechaza un paso, el paso toma su salida **Error** sin hacer el cambio rechazado, y el registro de la ejecución nombra el paso y el motivo con palabras sencillas, por ejemplo _"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …_. Léelo en las [Ejecuciones](/docs/workflows/runs-and-logs) del flujo de trabajo. Un paso Create Many crea sus registros de uno en uno y se detiene en el primero rechazado: los registros que creó antes de ese se conservan.
 
 Los pasos que hablan con otros sistemas — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code y Generate Text with AI — no leen ni cambian registros de OneUptime, así que nada de esto les afecta.
 
@@ -218,11 +220,11 @@ La ventana es móvil: cada ejecución que registra el proyecto, a mano o desde u
 
 ## Cuánto puede durar una ejecución
 
-| Límite                                                       | Predeterminado     | Ajuste autoalojado              |
-| ------------------------------------------------------------ | ------------------ | ------------------------------- |
-| Una ejecución, desde su inicio o desde que despierta tras un **Sleep** | 2 minutos | `WORKFLOW_TIMEOUT_IN_MS`        |
-| Un bloque **Run Custom JavaScript**                          | 5 segundos         | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
-| Un bloque **Sleep**                                          | 30 días como máximo | —                              |
+| Límite                                                                 | Predeterminado      | Ajuste autoalojado              |
+| ---------------------------------------------------------------------- | ------------------- | ------------------------------- |
+| Una ejecución, desde su inicio o desde que despierta tras un **Sleep** | 2 minutos           | `WORKFLOW_TIMEOUT_IN_MS`        |
+| Un bloque **Run Custom JavaScript**                                    | 5 segundos          | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
+| Un bloque **Sleep**                                                    | 30 días como máximo | —                               |
 
 El ejecutor comprueba el plazo antes y después de cada bloque, y marca una ejecución vencida como **Timeout** en cuanto recupera el control. No puede interrumpir un bloque a mitad, así que los bloques que esperan a la red tienen sus propios límites de tiempo: una solicitud de Generate Text with AI desiste a los 60 segundos como máximo, y una solicitud de token de OAuth 2.0 a los 20. Una espera en un bloque **Sleep** no cuenta para el tiempo de una ejecución: la ejecución se aparta y recibe 2 minutos nuevos al despertar.
 
@@ -243,7 +245,8 @@ Algunos casos en los que conviene recurrir a otra cosa:
 ## Siguientes pasos
 
 :::cards
+
 - [Visión general de los flujos de trabajo](/docs/workflows/index): La visión de conjunto y un primer flujo de trabajo de principio a fin.
 - [Componentes](/docs/workflows/components): Lo que necesita cada bloque, lo que devuelve y adónde puede llegar.
 - [Runbooks](/docs/runbooks/index): Cuando las personas tienen que tomar las decisiones por el camino.
-:::
+  :::

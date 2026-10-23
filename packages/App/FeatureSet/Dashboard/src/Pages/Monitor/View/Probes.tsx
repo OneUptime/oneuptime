@@ -85,19 +85,27 @@ const MonitorProbes: FunctionComponent<
   const readRef: MutableRefObject<number> = useRef<number>(0);
 
   /*
+   * A row is named by its probe - in Enable and Disable's question, in a
+   * Delete's, and in a bulk result's lists, which otherwise said "Monitor
+   * Probe" for every row.
+   */
+  const getProbeName: (item: MonitorProbe) => string = (
+    item: MonitorProbe,
+  ): string => {
+    return item.probe?.name || "";
+  };
+
+  /*
    * Enable and Disable in Bulk Actions: stopping a few locations from
    * checking this monitor (a region that is down, say) and starting them
-   * again, without opening each row's Edit. Rows are named by their probe.
+   * again, without opening each row's Edit. The rows are Monitor Probes
+   * here, as the selection bar, the result and Delete call them.
    */
   const switchBulkActions: Array<BulkActionButtonSchema<MonitorProbe>> =
     useBulkSwitchActions<MonitorProbe>({
       modelType: MonitorProbe,
       column: "isEnabled",
-      singularName: "Probe",
-      pluralName: "Probes",
-      getItemName: (item: MonitorProbe): string => {
-        return item.probe?.name || "";
-      },
+      getItemName: getProbeName,
     });
 
   const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
@@ -181,6 +189,7 @@ const MonitorProbes: FunctionComponent<
          * table could add probes and never take one away.
          */
         isDeleteable={true}
+        getItemName={getProbeName}
         bulkActions={{
           buttons: [...switchBulkActions],
         }}

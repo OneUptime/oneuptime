@@ -3,11 +3,12 @@
 OneUptime은 앱의 텔레메트리가 처음 도착할 때 RUM 애플리케이션을 만듭니다. 이 페이지는 그 이후에 관리하는 내용을 다룹니다. 애플리케이션의 이름, 레이블과 소유자, 데이터 보존 기간, 보관, 볼 수 있는 사람, 알림입니다.
 
 :::cards
+
 - [애플리케이션이 만들어지는 방식](#애플리케이션이-만들어지는-방식): `service.name`으로 일치시키며, 첫 배치와 함께 만들어집니다.
 - [레이블](#레이블): 애플리케이션을 그룹으로 묶고 누가 접근할 수 있는지 정합니다.
 - [보존](#보존): 텔레메트리와 녹화를 보관하는 기간.
 - [권한](#권한): 애플리케이션을 볼 수 있는 사람과 녹화를 시청할 수 있는 사람.
-:::
+  :::
 
 ## 애플리케이션이 만들어지는 방식
 
@@ -35,6 +36,7 @@ flowchart TB
 첫 방문자가 오기 전에 레이블, 소유자, 리플레이 정책을 미리 갖춰 두고 싶다면 애플리케이션을 직접 만드세요.
 
 :::steps
+
 #### 애플리케이션 목록 열기
 
 **제품 → 리소스 → 실제 사용자 모니터링**으로 이동해 **RUM 애플리케이션 만들기**를 클릭합니다.
@@ -62,11 +64,11 @@ flowchart TB
 
 레이블은 목록과 필터에서 애플리케이션을 그룹으로 묶습니다. 또한 일부 레이블로 제한된 멤버가 접근할 수 있는 범위도 정합니다. 그런 멤버에게는 해당 레이블 중 하나가 붙은 애플리케이션만 보입니다. 애플리케이션에는 세 가지 방법으로 레이블이 붙습니다.
 
-| 방법 | 위치 |
-| --- | --- |
-| 직접 | 만들기 양식의 **추가 필드** 아래에서, 또는 나중에 애플리케이션 **설정** 페이지의 **애플리케이션 세부 정보** 카드에 있는 **세부 정보 편집**으로. 여러 개에 한 번에 붙이려면 목록에서 선택한 뒤 **Add Labels**를 **일괄 작업**에서 고르세요. |
-| 텔레메트리에서 | 이름이 `oneuptime.label.<name>`인 리소스 속성이 아래와 같이 레이블 `<name>:<value>`를 추가합니다. |
-| 레이블 규칙에서 | 규칙은 일치하는 모든 새 애플리케이션에 레이블을 추가합니다. [레이블 규칙과 소유자 규칙](#레이블-규칙과-소유자-규칙)을 참고하세요. |
+| 방법            | 위치                                                                                                                                                                                                                                       |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 직접            | 만들기 양식의 **추가 필드** 아래에서, 또는 나중에 애플리케이션 **설정** 페이지의 **애플리케이션 세부 정보** 카드에 있는 **세부 정보 편집**으로. 여러 개에 한 번에 붙이려면 목록에서 선택한 뒤 **Add Labels**를 **일괄 작업**에서 고르세요. |
+| 텔레메트리에서  | 이름이 `oneuptime.label.<name>`인 리소스 속성이 아래와 같이 레이블 `<name>:<value>`를 추가합니다.                                                                                                                                          |
+| 레이블 규칙에서 | 규칙은 일치하는 모든 새 애플리케이션에 레이블을 추가합니다. [레이블 규칙과 소유자 규칙](#레이블-규칙과-소유자-규칙)을 참고하세요.                                                                                                          |
 
 속성은 `service.name`과 같은 리소스에 설정합니다. 예를 들어 [브라우저 설정](/docs/rum/browser-setup)의 `src/telemetry.ts` 파일에서 다음과 같이 합니다.
 
@@ -99,10 +101,10 @@ const resource = defaultResource().merge(
 
 애플리케이션의 텔레메트리와 녹화는 서로 다른 기간 동안 보관됩니다.
 
-| 데이터 | 보관 기간 | 설정 위치 |
-| --- | --- | --- |
-| 로그, 메트릭, 트레이스, 프로필 | 애플리케이션이 재정의하지 않는 한 프로젝트의 보존 기간 | 애플리케이션의 **설정** 페이지 |
-| 세션 리플레이 녹화 | 기본 7일, 또는 1, 14, 30, 90일 | **Replay Policy**에서 **Edit Policy → Limits**로 |
+| 데이터                         | 보관 기간                                              | 설정 위치                                        |
+| ------------------------------ | ------------------------------------------------------ | ------------------------------------------------ |
+| 로그, 메트릭, 트레이스, 프로필 | 애플리케이션이 재정의하지 않는 한 프로젝트의 보존 기간 | 애플리케이션의 **설정** 페이지                   |
+| 세션 리플레이 녹화             | 기본 7일, 또는 1, 14, 30, 90일                         | **Replay Policy**에서 **Edit Policy → Limits**로 |
 
 ### 텔레메트리 보존
 
@@ -139,17 +141,17 @@ const resource = defaultResource().merge(
 
 프로젝트의 Viewer 역할이 있는 사람은 누구나 RUM 애플리케이션과 그 텔레메트리를 볼 수 있습니다. 세션 리플레이는 일부러 이 역할에 포함하지 않았습니다. 녹화 목록 보기, 녹화 시청, 누가 시청했는지 읽기는 각각 별도의 권한입니다. 프로젝트 소유자와 관리자는 모든 권한을 가집니다. 권한 선택기는 각 권한을 제목으로 표시하며, 여기서는 기울임꼴로 나타냈습니다.
 
-| 권한 | 멤버가 할 수 있는 일 |
-| --- | --- |
-| `ReadRumApplication` (_Read RUM Application_) | 애플리케이션과 그 텔레메트리 페이지를 봅니다. |
-| `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication` | 애플리케이션을 추가, 편집, 삭제합니다. |
-| `ReadRumSessionReplay` (_List Session Replays_) | 녹화된 세션과 그 세부 정보를 나열합니다. 재생하거나 사용자가 누구였는지 알 수는 없습니다. |
-| `ReadRumSessionReplayPayload` (_Watch Session Replays_) | 녹화를 재생하고, 식별된 사용자의 참조와 특성을 읽습니다. |
-| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | **Replay Access Log**를 읽습니다. 누가 어떤 녹화를 시청했는지입니다. |
-| `DeleteRumSessionReplay` (_Delete Session Replays_) | 녹화를 삭제합니다. |
-| `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest` | 삭제 요청을 제출하고 진행 상황을 확인합니다. |
-| `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` (및 해당 Create, Edit, Delete) | 레이블 규칙과 소유자 규칙을 관리합니다. |
-| `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` (및 해당 Create, Edit, Delete) | API로 소유자를 추가하고 제거합니다. |
+| 권한                                                                                        | 멤버가 할 수 있는 일                                                                      |
+| ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `ReadRumApplication` (_Read RUM Application_)                                               | 애플리케이션과 그 텔레메트리 페이지를 봅니다.                                             |
+| `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication`                        | 애플리케이션을 추가, 편집, 삭제합니다.                                                    |
+| `ReadRumSessionReplay` (_List Session Replays_)                                             | 녹화된 세션과 그 세부 정보를 나열합니다. 재생하거나 사용자가 누구였는지 알 수는 없습니다. |
+| `ReadRumSessionReplayPayload` (_Watch Session Replays_)                                     | 녹화를 재생하고, 식별된 사용자의 참조와 특성을 읽습니다.                                  |
+| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_)                                   | **Replay Access Log**를 읽습니다. 누가 어떤 녹화를 시청했는지입니다.                      |
+| `DeleteRumSessionReplay` (_Delete Session Replays_)                                         | 녹화를 삭제합니다.                                                                        |
+| `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest`                            | 삭제 요청을 제출하고 진행 상황을 확인합니다.                                              |
+| `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` (및 해당 Create, Edit, Delete) | 레이블 규칙과 소유자 규칙을 관리합니다.                                                   |
+| `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` (및 해당 Create, Edit, Delete) | API로 소유자를 추가하고 제거합니다.                                                       |
 
 유용한 분리 방법: 지원 엔지니어에게 `ReadRumApplication`과 `ReadRumSessionReplay`를 부여하세요. 누구의 화면도 보지 않고 사용자가 누구였는지도 모른 채, 어떤 세션에 오류가 있었는지 확인할 수 있습니다. `ReadRumSessionReplayPayload`는 필요한 사람에게만 부여하세요. 그러면 `ReadRumSessionReplayAudit`이 있는 멤버가 애플리케이션의 **Replay Access Log** 페이지에서 모든 시청 기록을 볼 수 있습니다. [녹화를 시청할 수 있는 사람](/docs/telemetry/session-replay#녹화를-시청할-수-있는-사람)에서 각 권한이 세션 목록과 플레이어에서 무엇을 여는지 설명합니다.
 
@@ -157,11 +159,11 @@ const resource = defaultResource().merge(
 
 RUM 텔레메트리는 일반적인 로그, 메트릭, 트레이스이므로 별도의 RUM 모니터는 없습니다. 일반 모니터가 그대로 작동합니다. 가장 빠르게 시작하는 방법은 애플리케이션의 **Recommendations** 페이지로, 이미 애플리케이션 범위로 지정된 모니터를 제안합니다.
 
-| 그룹 | 권장 사항 |
-| --- | --- |
-| Core Web Vitals | Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint, Slow Time to First Byte. [Core Web Vitals](/docs/rum/web-vitals)를 참고하세요. |
-| 오류 | Failed User Operations와 Unhandled Browser Exceptions. |
-| 세션 리플레이 | 네 가지 [스토리지 예산 알림](/docs/telemetry/session-replay#스토리지-예산-알림)으로, 프로젝트의 일일 한도나 애플리케이션의 월간 예산이 소진되기 전에 경고합니다. 애플리케이션이 리플레이를 녹화하면 제안되고, 월간 쌍은 월간 예산도 있을 때 제안됩니다. |
+| 그룹            | 권장 사항                                                                                                                                                                                                                                               |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Core Web Vitals | Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint, Slow Time to First Byte. [Core Web Vitals](/docs/rum/web-vitals)를 참고하세요.                                                |
+| 오류            | Failed User Operations와 Unhandled Browser Exceptions.                                                                                                                                                                                                  |
+| 세션 리플레이   | 네 가지 [스토리지 예산 알림](/docs/telemetry/session-replay#스토리지-예산-알림)으로, 프로젝트의 일일 한도나 애플리케이션의 월간 예산이 소진되기 전에 경고합니다. 애플리케이션이 리플레이를 녹화하면 제안되고, 월간 쌍은 월간 예산도 있을 때 제안됩니다. |
 
 직접 모니터를 만들려면 해당 신호를 읽는 모니터를 고르세요.
 
@@ -175,8 +177,9 @@ RUM 텔레메트리는 일반적인 로그, 메트릭, 트레이스이므로 별
 ## 다음 단계
 
 :::cards
+
 - [세션 리플레이](/docs/telemetry/session-replay): 사용자가 본 것을 자체 정책과 보존 기간으로 녹화합니다.
 - [레이블 및 소유자 규칙](/docs/configuration/label-and-owner-rules): 두 가지 규칙 양식을 단계별로 설명합니다.
 - [기존 리소스에 규칙 실행](/docs/configuration/run-rules-now): 새 규칙을 이미 있는 애플리케이션에 적용합니다.
 - [RUM 문제 해결](/docs/rum/troubleshooting): 애플리케이션이 없거나, 비어 있거나, 연결 끊김 상태일 때.
-:::
+  :::

@@ -3,11 +3,12 @@
 OneUptime legt eine RUM-Anwendung an, sobald die Telemetrie Ihrer App zum ersten Mal eintrifft. Diese Seite behandelt, was Sie danach verwalten: den Namen der Anwendung, ihre Beschriftungen und Eigentümer, wie lange ihre Daten aufbewahrt werden, das Archivieren, wer sie sehen darf und Alarme.
 
 :::cards
+
 - [Wie eine Anwendung entsteht](#wie-eine-anwendung-entsteht): Über `service.name` zugeordnet, beim ersten Batch angelegt.
 - [Beschriftungen](#beschriftungen): Anwendungen gruppieren und festlegen, wer sie erreicht.
 - [Aufbewahrung](#aufbewahrung): Wie lange Telemetrie und Aufzeichnungen bleiben.
 - [Berechtigungen](#berechtigungen): Wer Anwendungen sieht und wer Aufzeichnungen ansehen darf.
-:::
+  :::
 
 ## Wie eine Anwendung entsteht
 
@@ -35,6 +36,7 @@ Der **Anzeigename** entspricht anfangs dem `service.name`. Um ihn zu ändern, ö
 Legen Sie eine Anwendung selbst an, wenn ihre Beschriftungen, Eigentümer oder ihre Wiedergaberichtlinie schon stehen sollen, bevor der erste Besucher kommt.
 
 :::steps
+
 #### Die Anwendungsliste öffnen
 
 Gehen Sie zu **Produkte → Ressourcen → Real User Monitoring** und klicken Sie auf **RUM-Anwendung erstellen**.
@@ -62,11 +64,11 @@ Eine Anwendung zeigt **Verbunden**, solange Telemetrie eintrifft, und **Getrennt
 
 Beschriftungen gruppieren Anwendungen in Listen und Filtern. Sie entscheiden auch, was ein auf bestimmte Beschriftungen beschränktes Mitglied erreicht: Ein solches Mitglied sieht nur die Anwendungen, die eine dieser Beschriftungen tragen. Eine Anwendung erhält ihre Beschriftungen auf drei Wegen:
 
-| Wie | Wo |
-| --- | --- |
-| Von Hand | Im Erstellformular unter **Weitere Felder**, oder später mit **Details bearbeiten** auf der Karte **Anwendungsdetails** der Seite **Einstellungen** der Anwendung. Für mehrere auf einmal wählen Sie sie in der Liste aus und wählen **Beschriftungen hinzufügen** unter **Massenaktionen**. |
-| Aus der Telemetrie | Ein Ressourcenattribut namens `oneuptime.label.<name>` fügt die Beschriftung `<name>:<value>` hinzu, wie unten gezeigt. |
-| Über eine Beschriftungsregel | Eine Regel versieht jede neue Anwendung, auf die sie passt, mit Beschriftungen. Siehe [Beschriftungs- und Eigentümerregeln](#beschriftungs-und-eigentümerregeln). |
+| Wie                          | Wo                                                                                                                                                                                                                                                                                           |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Von Hand                     | Im Erstellformular unter **Weitere Felder**, oder später mit **Details bearbeiten** auf der Karte **Anwendungsdetails** der Seite **Einstellungen** der Anwendung. Für mehrere auf einmal wählen Sie sie in der Liste aus und wählen **Beschriftungen hinzufügen** unter **Massenaktionen**. |
+| Aus der Telemetrie           | Ein Ressourcenattribut namens `oneuptime.label.<name>` fügt die Beschriftung `<name>:<value>` hinzu, wie unten gezeigt.                                                                                                                                                                      |
+| Über eine Beschriftungsregel | Eine Regel versieht jede neue Anwendung, auf die sie passt, mit Beschriftungen. Siehe [Beschriftungs- und Eigentümerregeln](#beschriftungs-und-eigentümerregeln).                                                                                                                            |
 
 Setzen Sie die Attribute auf derselben Ressource wie `service.name`, zum Beispiel in der Datei `src/telemetry.ts` aus der [Einrichtung für Browser](/docs/rum/browser-setup):
 
@@ -99,10 +101,10 @@ Eigentümer sind die Personen und Teams, die für eine Anwendung verantwortlich 
 
 Die Telemetrie einer Anwendung und ihre Aufzeichnungen werden unterschiedlich lange aufbewahrt:
 
-| Daten | Aufbewahrt für | Festgelegt unter |
-| --- | --- | --- |
-| Logs, Metriken, Traces und Profile | Die Aufbewahrung des Projekts, sofern die Anwendung sie nicht überschreibt | Die Seite **Einstellungen** der Anwendung |
-| Aufzeichnungen der Sitzungswiedergabe | Standardmäßig 7 Tage, oder 1, 14, 30 oder 90 Tage | **Wiedergaberichtlinie**, mit **Richtlinie bearbeiten → Limits** |
+| Daten                                 | Aufbewahrt für                                                             | Festgelegt unter                                                 |
+| ------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Logs, Metriken, Traces und Profile    | Die Aufbewahrung des Projekts, sofern die Anwendung sie nicht überschreibt | Die Seite **Einstellungen** der Anwendung                        |
+| Aufzeichnungen der Sitzungswiedergabe | Standardmäßig 7 Tage, oder 1, 14, 30 oder 90 Tage                          | **Wiedergaberichtlinie**, mit **Richtlinie bearbeiten → Limits** |
 
 ### Aufbewahrung der Telemetrie
 
@@ -139,17 +141,17 @@ Um die Daten einer einzelnen Person statt einer ganzen Anwendung zu löschen, st
 
 Jeder mit der Viewer-Rolle des Projekts sieht RUM-Anwendungen und ihre Telemetrie. Die Sitzungswiedergabe gehört absichtlich nicht zu dieser Rolle: Aufzeichnungen auflisten, eine ansehen und lesen, wer zugesehen hat, sind getrennte Berechtigungen. Projekteigentümer und -administratoren haben sie alle. Die Berechtigungsauswahl führt jede Berechtigung unter ihrem Titel, hier kursiv angegeben.
 
-| Berechtigung | Erlaubt einem Mitglied |
-| --- | --- |
-| `ReadRumApplication` (_Read RUM Application_) | Anwendungen und ihre Telemetrieseiten sehen. |
-| `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication` | Anwendungen hinzufügen, bearbeiten und löschen. |
-| `ReadRumSessionReplay` (_List Session Replays_) | Aufgezeichnete Sitzungen und ihre Details auflisten, ohne sie abzuspielen oder zu erfahren, wer der Benutzer war. |
-| `ReadRumSessionReplayPayload` (_Watch Session Replays_) | Aufzeichnungen abspielen und die Referenz und Merkmale des identifizierten Benutzers lesen. |
-| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | Das **Zugriffsprotokoll der Wiedergaben** lesen: wer welche Aufzeichnung angesehen hat. |
-| `DeleteRumSessionReplay` (_Delete Session Replays_) | Aufzeichnungen löschen. |
-| `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest` | Löschanfragen stellen und verfolgen. |
-| `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` (und ihre Create-, Edit- und Delete-Varianten) | Beschriftungs- und Eigentümerregeln verwalten. |
-| `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` (und ihre Create-, Edit- und Delete-Varianten) | Eigentümer über die API hinzufügen und entfernen. |
+| Berechtigung                                                                                                | Erlaubt einem Mitglied                                                                                            |
+| ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `ReadRumApplication` (_Read RUM Application_)                                                               | Anwendungen und ihre Telemetrieseiten sehen.                                                                      |
+| `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication`                                        | Anwendungen hinzufügen, bearbeiten und löschen.                                                                   |
+| `ReadRumSessionReplay` (_List Session Replays_)                                                             | Aufgezeichnete Sitzungen und ihre Details auflisten, ohne sie abzuspielen oder zu erfahren, wer der Benutzer war. |
+| `ReadRumSessionReplayPayload` (_Watch Session Replays_)                                                     | Aufzeichnungen abspielen und die Referenz und Merkmale des identifizierten Benutzers lesen.                       |
+| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_)                                                   | Das **Zugriffsprotokoll der Wiedergaben** lesen: wer welche Aufzeichnung angesehen hat.                           |
+| `DeleteRumSessionReplay` (_Delete Session Replays_)                                                         | Aufzeichnungen löschen.                                                                                           |
+| `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest`                                            | Löschanfragen stellen und verfolgen.                                                                              |
+| `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` (und ihre Create-, Edit- und Delete-Varianten) | Beschriftungs- und Eigentümerregeln verwalten.                                                                    |
+| `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` (und ihre Create-, Edit- und Delete-Varianten) | Eigentümer über die API hinzufügen und entfernen.                                                                 |
 
 Eine sinnvolle Aufteilung: Geben Sie einem Support-Mitarbeiter `ReadRumApplication` und `ReadRumSessionReplay`. Er sieht, welche Sitzungen auf Fehler gestoßen sind, ohne den Bildschirm von jemandem anzusehen oder zu erfahren, wer der Benutzer war. Geben Sie `ReadRumSessionReplayPayload` nur denen, die es brauchen; Mitglieder mit `ReadRumSessionReplayAudit` sehen dann jede Wiedergabe auf der Seite **Zugriffsprotokoll der Wiedergaben** der Anwendung. [Wer eine Aufzeichnung ansehen darf](/docs/telemetry/session-replay#wer-eine-aufzeichnung-ansehen-kann) zeigt, was jede Berechtigung in der Sitzungsliste und im Player freischaltet.
 
@@ -157,10 +159,10 @@ Eine sinnvolle Aufteilung: Geben Sie einem Support-Mitarbeiter `ReadRumApplicati
 
 RUM-Telemetrie besteht aus gewöhnlichen Logs, Metriken und Traces, daher gibt es keinen eigenen RUM-Monitor: Die üblichen Monitore funktionieren damit. Am schnellsten beginnen Sie auf der Seite **Empfehlungen** der Anwendung, die Monitore anbietet, die bereits auf die Anwendung beschränkt sind:
 
-| Gruppe | Empfehlungen |
-| --- | --- |
-| Core Web Vitals | Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint und Slow Time to First Byte. Siehe [Core Web Vitals](/docs/rum/web-vitals). |
-| Fehler | Failed User Operations und Unhandled Browser Exceptions. |
+| Gruppe             | Empfehlungen                                                                                                                                                                                                                                                                                                                               |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Core Web Vitals    | Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint und Slow Time to First Byte. Siehe [Core Web Vitals](/docs/rum/web-vitals).                                                                                                                                       |
+| Fehler             | Failed User Operations und Unhandled Browser Exceptions.                                                                                                                                                                                                                                                                                   |
 | Sitzungswiedergabe | Die vier [Alarme zum Speicherbudget](/docs/telemetry/session-replay#alarme-zum-speicherbudget), die warnen, bevor das Tageslimit des Projekts oder das Monatsbudget der Anwendung aufgebraucht ist. Sie werden angeboten, sobald die Anwendung eine Wiedergabe aufgezeichnet hat, das Monatspaar erst, wenn sie auch ein Monatsbudget hat. |
 
 Um einen eigenen Monitor zu bauen, wählen Sie den, der das Signal liest:
@@ -175,8 +177,9 @@ Beschränken Sie einen selbst gebauten Monitor auf die Anwendung, damit ein Back
 ## Nächste Schritte
 
 :::cards
+
 - [Sitzungswiedergabe](/docs/telemetry/session-replay): Aufzeichnen, was Benutzer sahen, mit eigener Richtlinie und Aufbewahrung.
 - [Beschriftungs- und Eigentümerregeln](/docs/configuration/label-and-owner-rules): Beide Regelformulare, Schritt für Schritt.
 - [Regeln auf vorhandene Ressourcen anwenden](/docs/configuration/run-rules-now): Eine neue Regel auf Ihre vorhandenen Anwendungen anwenden.
 - [RUM-Fehlerbehebung](/docs/rum/troubleshooting): Wenn eine Anwendung fehlt, leer ist oder getrennt ist.
-:::
+  :::

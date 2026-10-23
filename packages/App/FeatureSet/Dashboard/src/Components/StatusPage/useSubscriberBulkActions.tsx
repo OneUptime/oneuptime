@@ -5,6 +5,37 @@ import useBulkSwitchActions, {
 import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 
 /*
+ * What a subscriber is called wherever a list names one - the Unsubscribe
+ * and Delete questions, the rows a bulk result lists - by what its list
+ * shows first: the address, the phone number, the Slack or Microsoft Teams
+ * workspace, or the webhook URL. Only email addresses and phone numbers are
+ * names a record is otherwise known by, so on the Slack, Teams and webhook
+ * lists every row read "Subscriber" alike. Empty when the row carries none
+ * of them.
+ */
+export const getSubscriberName: (subscriber: StatusPageSubscriber) => string = (
+  subscriber: StatusPageSubscriber,
+): string => {
+  const candidates: Array<{ toString: () => string } | string | undefined> = [
+    subscriber.subscriberEmail,
+    subscriber.subscriberPhone,
+    subscriber.slackWorkspaceName,
+    subscriber.microsoftTeamsWorkspaceName,
+    subscriber.subscriberWebhook,
+  ];
+
+  for (const candidate of candidates) {
+    const name: string = candidate ? candidate.toString().trim() : "";
+
+    if (name) {
+      return name;
+    }
+  }
+
+  return "";
+};
+
+/*
  * Bulk Actions of a status page's five subscriber lists (email, SMS, Slack,
  * Microsoft Teams, webhook), besides Delete.
  *
@@ -19,7 +50,8 @@ import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpda
  * unsubscribed themselves, and in bulk it would send updates to people who
  * asked for them to stop (UNSUBSCRIBE_SWITCH_ACTION).
  *
- * The lists name their rows Subscriber(s), as their buttons and dialogs do.
+ * The lists name their rows Subscriber(s), as their buttons and dialogs do,
+ * and each row by getSubscriberName.
  */
 const useSubscriberBulkActions: () => Array<
   BulkActionButtonSchema<StatusPageSubscriber>
@@ -30,6 +62,7 @@ const useSubscriberBulkActions: () => Array<
     actions: [UNSUBSCRIBE_SWITCH_ACTION],
     singularName: "Subscriber",
     pluralName: "Subscribers",
+    getItemName: getSubscriberName,
   });
 };
 

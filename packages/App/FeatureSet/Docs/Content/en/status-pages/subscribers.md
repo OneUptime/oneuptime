@@ -7,11 +7,12 @@ Announcements are the other half of the same job. A monitor can tell your visito
 This page covers both: the five subscription channels and how visitors sign up, what subscribers can choose to hear about, the double opt-in and unsubscribe flows, the email report subscribers can get every month, and how announcements are written, scheduled and templated.
 
 :::cards
+
 - [Subscription channels](#subscription-channels): The channels visitors can sign up on, and the page they sign up on.
 - [What subscribers are told](#what-subscribers-get-notified-about): Announcements, maintenance, incidents and episodes, and edits to them.
 - [Checking what was sent](#checking-what-was-sent): Every notification's status, and Retry and Resend.
 - [Announcements](#announcements): Post a notice to one or more status pages.
-:::
+  :::
 
 ## How it works
 
@@ -45,7 +46,7 @@ On OneUptime Cloud, a switch your plan does not include has the plan's name besi
 
 Each channel also gets its own list in the status page side menu under **Subscribers**: **Email Subscribers**, **SMS Subscribers**, **Slack Subscribers**, **Microsoft Teams Subscribers** and **Webhook Subscribers**. That is where you look at who is signed up, add someone by hand with **Add Subscriber**, or leave yourself an **Internal Note** (`internalNote`) on a particular subscriber, which only your team sees. While a channel is off, the top of its list says so, with the channel's switch right there, so you can turn it on without leaving the list.
 
-**One switch is not enough.** The **Subscribe** item in the status page nav bar only appears when **Show Subscriber Page** is on *and* at least one channel is on. If you turn on **Email** but leave **Show Subscriber Page** off, visitors have no way to reach the form.
+**One switch is not enough.** The **Subscribe** item in the status page nav bar only appears when **Show Subscriber Page** is on _and_ at least one channel is on. If you turn on **Email** but leave **Show Subscriber Page** off, visitors have no way to reach the form.
 
 **A calendar instead.** Visitors who only want your planned maintenance in their own calendar do not need to subscribe: **Subscribe to calendar** on the page's **Scheduled Events** page adds it to Google Calendar, Apple Calendar or Outlook, and the calendar keeps itself up to date. It sends nothing and does not depend on the channels above, and a private page does not offer it. See [Maintenance Calendar](/docs/scheduled-maintenance/calendar#a-status-pages-calendar).
 
@@ -68,27 +69,27 @@ Neither setting deletes a subscriber, and turning them off sends to everyone aga
 
 The **Subscribe** page has a sub-menu with one tab per enabled channel; with only one channel on, there is no sub-menu, just that channel's form. Each tab asks for the minimum it needs:
 
-| Tab | Address | Heading | What it asks for |
-| --- | --- | --- | --- |
-| **Email** | `/subscribe/email` | **Subscribe by Email** | **Your Email**, with the placeholder `subscriber@company.com`. |
-| **SMS** | `/subscribe/sms` | **Subscribe by SMS** | **Your Phone Number**, with the placeholder `+11234567890`. |
-| **Slack** | `/subscribe/slack` | **Subscribe by Slack** | **Slack Workspace Name** (used for validation) and **Slack Incoming Webhook URL**, with the placeholder `https://hooks.slack.com/services/...`. |
+| Tab          | Address                      | Heading                          | What it asks for                                                                                                                                |
+| ------------ | ---------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Email**    | `/subscribe/email`           | **Subscribe by Email**           | **Your Email**, with the placeholder `subscriber@company.com`.                                                                                  |
+| **SMS**      | `/subscribe/sms`             | **Subscribe by SMS**             | **Your Phone Number**, with the placeholder `+11234567890`.                                                                                     |
+| **Slack**    | `/subscribe/slack`           | **Subscribe by Slack**           | **Slack Workspace Name** (used for validation) and **Slack Incoming Webhook URL**, with the placeholder `https://hooks.slack.com/services/...`. |
 | **MS Teams** | `/subscribe/microsoft-teams` | **Subscribe by Microsoft Teams** | **Microsoft Teams Workspace Name** and **Microsoft Teams Incoming Webhook URL**, with the placeholder `https://outlook.office.com/webhook/...`. |
-| **Webhooks** | `/subscribe/webhooks` | **Subscribe by Webhook** | **Webhook URL**, with the placeholder `https://example.com/webhook`. A JSON `POST` request is sent to it on each status page event. |
+| **Webhooks** | `/subscribe/webhooks`        | **Subscribe by Webhook**         | **Webhook URL**, with the placeholder `https://example.com/webhook`. A JSON `POST` request is sent to it on each status page event.             |
 
-The submit button reads **Subscribe**. A signup by Slack, Microsoft Teams or webhook shows *You have been subscribed successfully.* A signup by SMS shows *We have sent a text message to this phone number. Open the link in it to confirm your subscription.* A signup by email says a confirmation link has been sent and to check the spam folder if it does not arrive (see [Email double opt-in](#email-double-opt-in)). The **Email**, **SMS**, **Slack** and **MS Teams** tabs also carry a **New Subscription** / **Manage Existing Subscription** split, so someone who already subscribed can get back to their preferences without hunting for an old message.
+The submit button reads **Subscribe**. A signup by Slack, Microsoft Teams or webhook shows _You have been subscribed successfully._ A signup by SMS shows _We have sent a text message to this phone number. Open the link in it to confirm your subscription._ A signup by email says a confirmation link has been sent and to check the spam folder if it does not arrive (see [Email double opt-in](#email-double-opt-in)). The **Email**, **SMS**, **Slack** and **MS Teams** tabs also carry a **New Subscription** / **Manage Existing Subscription** split, so someone who already subscribed can get back to their preferences without hunting for an old message.
 
 ## Limits on signups and links
 
 Each signup sends its contact a message at once, a confirmation email, an SMS, a Slack or Microsoft Teams message or a webhook call, and so does **Send Management Link**. So that nobody can use a status page to send messages to people who did not ask for them, or to run up your project's SMS costs, both are limited for each visitor's network and for each contact. The limits sit far above what people do: a whole office can sign up together during an incident.
 
-| What is limited | Limit |
-| --- | --- |
-| Signups from one network | 60 in 15 minutes |
-| Signups and management links by SMS from one network, together | 10 in 15 minutes |
-| Management links asked for from one network | 30 in 15 minutes |
-| Signups of one email address, phone number, Slack or Microsoft Teams channel, or webhook, on all status pages together | 10 in an hour |
-| Management links for one email address or phone number on all status pages together, or for one Slack or Microsoft Teams workspace name on one status page | 5 in an hour |
+| What is limited                                                                                                                                            | Limit            |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| Signups from one network                                                                                                                                   | 60 in 15 minutes |
+| Signups and management links by SMS from one network, together                                                                                             | 10 in 15 minutes |
+| Management links asked for from one network                                                                                                                | 30 in 15 minutes |
+| Signups of one email address, phone number, Slack or Microsoft Teams channel, or webhook, on all status pages together                                     | 10 in an hour    |
+| Management links for one email address or phone number on all status pages together, or for one Slack or Microsoft Teams workspace name on one status page | 5 in an hour     |
 
 Past a limit, the API answers `429` with a `Retry-After` header, in seconds, and the visitor is told that there were too many signups or links from their network, or for that contact, and to try again later. Nothing is created or sent, and your project sees nothing of it: no subscriber is added, and no message is sent or paid for. The management link limits count every request, whether or not a subscription matches, so they cannot be used to find out who is subscribed. An email address is counted however it is written, in capitals, with a `+tag` or, for Gmail, with dots, and a phone number however it is typed. A signup names one contact, an email address, a phone number, a Slack or Microsoft Teams channel or a webhook: a list of addresses, or a second contact, is refused.
 
@@ -102,18 +103,18 @@ A private user asking for a password reset link on the status page's sign-in pag
 
 On a self-hosted installation, these environment variables of the OneUptime app change the limits:
 
-| Variable | Default | What it sets |
-| --- | --- | --- |
-| `PUBLIC_MESSAGE_RATE_LIMIT_WINDOW_SECONDS` | `900` | The window of the limits per network, in seconds. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_PER_CONTACT_WINDOW_SECONDS` | `3600` | The window of the limits per contact, in seconds. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_IP` | `60` | Signups from one address per window. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_TEXT_MESSAGES_PER_IP` | `10` | Signups and management links by SMS from one address per window, together. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_IP` | `30` | Management links asked for from one address per window. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_CONTACT` | `10` | Signups of one contact per window. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Management links for one contact per window. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Private user password resets asked for from one address per window. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Private user password reset emails to one address per window. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT` | `10` | Invitations to one address per window, to private status pages and projects together. |
+| Variable                                                            | Default | What it sets                                                                          |
+| ------------------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------- |
+| `PUBLIC_MESSAGE_RATE_LIMIT_WINDOW_SECONDS`                          | `900`   | The window of the limits per network, in seconds.                                     |
+| `PUBLIC_MESSAGE_RATE_LIMIT_PER_CONTACT_WINDOW_SECONDS`              | `3600`  | The window of the limits per contact, in seconds.                                     |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_IP`             | `60`    | Signups from one address per window.                                                  |
+| `PUBLIC_MESSAGE_RATE_LIMIT_TEXT_MESSAGES_PER_IP`                    | `10`    | Signups and management links by SMS from one address per window, together.            |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_IP`         | `30`    | Management links asked for from one address per window.                               |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_CONTACT`        | `10`    | Signups of one contact per window.                                                    |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT`    | `5`     | Management links for one contact per window.                                          |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP`      | `30`    | Private user password resets asked for from one address per window.                   |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5`     | Private user password reset emails to one address per window.                         |
+| `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT`                 | `10`    | Invitations to one address per window, to private status pages and projects together. |
 
 Neither `config.env` nor the Helm chart's values pass them on: add them to the environment of the `app` container yourself, with `app.extraEnv`, or the chart-wide `extraEnv`, in the Helm chart, or in a `docker-compose.override.yml` for Docker Compose. `TRUSTED_PROXY_HOPS` decides which address the limits per network count.
 
@@ -142,13 +143,13 @@ Good for: a page that covers several products. A customer who only uses your API
 
 ## Email double opt-in
 
-Email subscribers always confirm. When a subscriber is created with an email address and was not created already-confirmed, **Is Subscription Confirmed** (`isSubscriptionConfirmed`) is forced to `false` and a random 32-character **Subscription Confirmation Token** is generated. OneUptime then emails a confirmation link shaped like `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. The visitor lands on a **Confirm Subscription** page and, once it goes through, sees *Subscription confirmed successfully*.
+Email subscribers always confirm. When a subscriber is created with an email address and was not created already-confirmed, **Is Subscription Confirmed** (`isSubscriptionConfirmed`) is forced to `false` and a random 32-character **Subscription Confirmation Token** is generated. OneUptime then emails a confirmation link shaped like `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. The visitor lands on a **Confirm Subscription** page and, once it goes through, sees _Subscription confirmed successfully_.
 
 Slack, Microsoft Teams and webhook subscribers skip this, and so do SMS subscribers your team adds — they are created with `isSubscriptionConfirmed` already set to `true`. When your team adds an email subscriber on **Email Subscribers**, **When you add them** decides: **Subscribe them now** (the default: confirmed, and sent nothing), **Subscribe them now and tell them** (confirmed, and sent the email that says they are subscribed) or **Ask them to confirm first** (sent the confirmation link, like a sign-up). **Add in Bulk** asks the same.
 
 **Signups by SMS confirm too.** A visitor who signs up by SMS is texted one message: the confirmation link. Nothing else is sent to the number until the link is opened, and opening it texts the message that says they are subscribed, with the link that cancels the subscription. Until then the subscriber shows as **Awaiting Confirmation**, and the SMS log shows the link with its code replaced by `[redacted]`. SMS subscribers from before this are confirmed already.
 
-**A confirmation link works for 24 hours.** The email and the SMS say so. Opened later, it confirms nothing: the **Confirm Subscription** page says *This link to confirm your subscription has expired or is not valid. A link works for 24 hours after it is sent. To get a new one, subscribe again.* and offers **Subscribe again**, and the API answers `400`. The subscriber stays unconfirmed, is sent nothing and shows as **Link Expired** in its list, instead of **Awaiting Confirmation**.
+**A confirmation link works for 24 hours.** The email and the SMS say so. Opened later, it confirms nothing: the **Confirm Subscription** page says _This link to confirm your subscription has expired or is not valid. A link works for 24 hours after it is sent. To get a new one, subscribe again._ and offers **Subscribe again**, and the API answers `400`. The subscriber stays unconfirmed, is sent nothing and shows as **Link Expired** in its list, instead of **Awaiting Confirmation**.
 
 **Signing up again.** While the link works, signing the same email address or phone number up again on that status page sends nothing more: the visitor is told a link was already sent, and the API answers `429` with a `Retry-After` header. So a contact gets at most one confirmation link a day from a status page, however often it is signed up. Once the link has expired, the subscription no longer holds its contact: a new signup, or your team adding the contact, replaces it, and a signup gets a new link. Whoever signs a contact up first cannot keep its owner from subscribing: the link goes to the owner, and a day later the owner can get one of their own. Links sent before this change work for 24 hours after their signup too.
 
@@ -164,13 +165,13 @@ An SMS carries the same link, from a public status page as from a private one, a
 
 The SMS log (the **SMS** tab of **Notification Logs**, on the status page and in the project's settings) keeps the text of every SMS, and more project members can read it than can manage subscribers. So the log shows an unsubscribe or manage link with its token replaced by `[redacted]`, for example `{statusPageUrl}/unsubscribe/{statusPageSubscriberId}-[redacted]`. Only the subscriber's own phone gets the working link. A new subscriber's token is never returned by the API either, not even in the response to the request that created it.
 
-**Opening the link changes nothing.** The page shows the status page's name and logo and the subscription the link belongs to: an email address in full, a phone number masked to its last four digits, a Slack or Microsoft Teams workspace name, or a webhook's host. It asks *Do you want to stop receiving notifications from this status page?* and only pressing **Unsubscribe** cancels the subscription, so mail scanners and link previewers that open every link in a message cannot unsubscribe anyone. Nothing else about the page is shown, and none of its custom JavaScript runs. Confirming twice, or opening the link of a subscription that is already cancelled, just says it is cancelled. On a public status page the unsubscribe page also links to the subscriber's **Update Subscription** page, to choose which notifications they receive instead.
+**Opening the link changes nothing.** The page shows the status page's name and logo and the subscription the link belongs to: an email address in full, a phone number masked to its last four digits, a Slack or Microsoft Teams workspace name, or a webhook's host. It asks _Do you want to stop receiving notifications from this status page?_ and only pressing **Unsubscribe** cancels the subscription, so mail scanners and link previewers that open every link in a message cannot unsubscribe anyone. Nothing else about the page is shown, and none of its custom JavaScript runs. Confirming twice, or opening the link of a subscription that is already cancelled, just says it is cancelled. On a public status page the unsubscribe page also links to the subscriber's **Update Subscription** page, to choose which notifications they receive instead.
 
 The **Update Subscription** page, `{statusPageUrl}/update-subscription/{statusPageSubscriberId}-{token}`, opens only with the subscription's token too: the subscriber's id alone opens nothing. It is titled **Update Subscription** and tells the visitor they can update their preferences or unsubscribe there. It holds:
 
 - Whatever resource and event-type pickers the page allows.
 - An **Unsubscribe** toggle, described as unsubscribing from all resources. It writes **Is Unsubscribed** (`isUnsubscribed`, default false).
-- A submit button reading **Update Subscription**; saving shows *Your changes have been saved.*
+- A submit button reading **Update Subscription**; saving shows _Your changes have been saved._
 
 On a private status page it needs a signed-in visitor, like the rest of the page. Like the unsubscribe page, it runs none of the page's custom JavaScript, and it shows the standard header and footer in place of any custom header or footer HTML. Someone who lost the link uses **Manage Existing Subscription** on the **Subscribe** page and presses **Send Management Link**. The link goes to the subscription itself — its email address, its phone number, or its Slack or Microsoft Teams channel — never to an address in the request, and the page answers the same whether a subscription matched or not, so it cannot be used to find out who is subscribed. That message links to the **Update Subscription** page, and hands a custom template both links: `manageSubscriptionUrl` and `unsubscribeUrl`.
 
@@ -391,11 +392,11 @@ Project-wide templates live one level up, at **Status Pages → Settings → Sub
 
 On OneUptime Cloud, subscriber notification templates are a **Scale** plan feature; self-hosted installations have no plan limits. A template is used only once it is linked to a status page on that page's **Notification Templates** tab, and two channels also need the page to send through your own provider:
 
-| Channel                            | A linked template is used when the page has                                   |
-| ---------------------------------- | ----------------------------------------------------------------------------- |
-| **Email**                          | a **Custom SMTP Config** (see [below](#email-footer-custom-smtp-and-twilio)) |
-| **SMS**                            | a **Twilio Config**                                                            |
-| **Slack** and **Microsoft Teams**  | nothing more                                                                   |
+| Channel                           | A linked template is used when the page has                                  |
+| --------------------------------- | ---------------------------------------------------------------------------- |
+| **Email**                         | a **Custom SMTP Config** (see [below](#email-footer-custom-smtp-and-twilio)) |
+| **SMS**                           | a **Twilio Config**                                                          |
+| **Slack** and **Microsoft Teams** | nothing more                                                                 |
 
 Without them the page sends its default email or SMS. When a linked Email or SMS template cannot be used for that reason, the **Notification Templates** tab says so with **Custom Templates Require Configuration**. Custom SMTP and Twilio configs need the **Growth** plan or above. Webhook subscribers always get the standard JSON payload.
 
@@ -405,10 +406,10 @@ None of this is needed to put incident custom fields into messages. Fields marke
 
 Templates for the five incident event types — **Subscriber Incident Created**, **Subscriber Incident State Changed**, **Subscriber Incident Note Created**, **Subscriber Incident Note Updated** and **Subscriber Incident Postmortem Published** — can use these on top of their own variables:
 
-| Variable                          | Filled with                                                                                                                          |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `{{incidentLabels}}`              | The incident's labels, separated by commas.                                                                                          |
-| `{{affectedStatusPages}}`         | The names of every status page the incident is shown on, separated by commas.                                                        |
+| Variable                          | Filled with                                                                                                                                         |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `{{incidentLabels}}`              | The incident's labels, separated by commas.                                                                                                         |
+| `{{affectedStatusPages}}`         | The names of every status page the incident is shown on, separated by commas.                                                                       |
 | `{{incident.customFields.<key>}}` | An incident custom field's value, by the field's **Template Variable**, whether or not the field is marked **Include in Subscriber Notifications**. |
 
 The key is the field's **Template Variable**, which does not change when the field is renamed; the template form lists the project's incident custom fields, each with its variable, under the template body (see [Putting variables in](#putting-variables-in)). Templates saved with the older `{{customFields.<key>}}` are filled in the same way. A field the incident has no value for is left empty. In an email body a plain field is escaped like any other value, while a rich text, long text or date and time field goes in as HTML: formatted Markdown, its lines, or a line per subscriber time zone. A rich text field's inline images are made viewable for the people it is sent to.
@@ -459,7 +460,7 @@ The review step shows the same line. **Create from Template** fills the form in 
 
 The announcement's own page edits it on the same two steps. **Notify subscribers about this update** sits under the description (see [Telling subscribers about an edit](#telling-subscribers-about-an-edit)), and **Schedule** holds the start and the end. Setting an end that has passed is how you take an announcement down.
 
-Visitors read announcements at `/announcements`, split into **Active Announcements** and **Past Announcements**, each stamped with **Announced at**. Currently live announcements are also pinned to the top of the overview page. When there is nothing to show, the page reads *No Announcement* with the note that none have been posted so far.
+Visitors read announcements at `/announcements`, split into **Active Announcements** and **Past Announcements**, each stamped with **Announced at**. Currently live announcements are also pinned to the top of the overview page. When there is nothing to show, the page reads _No Announcement_ with the note that none have been posted so far.
 
 Attachments are served from `GET {statusPageCrudPath}/status-page-announcement/attachment/:statusPageId/:announcementId/:fileId`, behind the same read check as the status page itself — so an attachment on a private page stays private.
 
@@ -498,8 +499,9 @@ If a webhook subscription is rejected at signup, an internal or malformed URL is
 ## Next steps
 
 :::cards
+
 - [Status Pages Overview](/docs/status-pages/index): What a status page is, and how it is put together.
 - [Status Page Resources & Groups](/docs/status-pages/resources-and-groups): The monitors and groups subscribers choose between.
 - [One Status Page per Audience](/docs/status-pages/one-status-page-per-audience): Limit an incident to the pages whose subscribers should hear about it.
 - [Status Page Branding & Domains](/docs/status-pages/branding-and-domains): The look of the page your messages link to.
-:::
+  :::

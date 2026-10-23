@@ -3,11 +3,12 @@
 O que saber antes de colocar um workflow diante de tráfego real: como ligá-lo com segurança, quem pode fazer o quê, como segredos e URLs ficam privados, o que os passos de um workflow podem alterar e os limites dentro dos quais cada execução trabalha.
 
 :::cards
+
 - [Entrar em produção](#ligar-e-desligar-um-workflow): Teste com Executar fluxo de trabalho enquanto está desligado e depois ligue-o.
 - [Permissões](#permissões): Os papéis de workflow e as permissões individuais por trás deles.
 - [O que os passos podem fazer](#o-que-os-passos-de-um-workflow-podem-fazer): Os passos agem como Project Admin do projeto do workflow.
 - [Limites](#limites-do-plano): Execuções por plano, duração de uma execução e chamadas entre workflows.
-:::
+  :::
 
 ## Ligar e desligar um workflow
 
@@ -16,11 +17,12 @@ Todo workflow tem uma chave **Habilitado** no topo do **Construtor** dele e na p
 Use essa chave como o seu sinal de «pronto para rodar»:
 
 :::steps
+
 1. Monte o workflow.
 2. Clique em **Executar fluxo de trabalho** no **Construtor** com valores realistas, enquanto o workflow ainda está desligado. A execução é uma **Execução de teste**: cada bloco roda de verdade, então aponte-o primeiro para um canal de teste ou um registro de teste.
 3. Abra a execução e confira se cada bloco foi para onde você esperava. Veja [Execuções](/docs/workflows/runs-and-logs).
 4. Ligue **Habilitado** quando estiver pronto: a partir daí, o gatilho dispara com eventos reais.
-:::
+   :::
 
 Desligar um workflow impede que o gatilho dele inicie novas execuções. Uma execução que já está em andamento termina, mas uma execução que o gatilho iniciou e que está esperando em um bloco **Sleep** é cancelada ao acordar. As execuções de teste continuam. Para ligar ou desligar vários de uma vez, selecione-os na lista **Fluxos de trabalho** e escolha **Ativar** ou **Desativar** em **Ações em massa**.
 
@@ -43,12 +45,12 @@ Um workflow exportado nunca leva o estado de arquivado, então uma cópia import
 
 ## Proprietários e rótulos
 
-| O quê                         | Onde                                                          | O que faz                                                                                                                                            |
-| ----------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Proprietários**             | A página **Proprietários** do workflow                        | Os usuários e equipes responsáveis pelo workflow. Um papel limitado ao que a equipe dele possui alcança os workflows que essa equipe possui.         |
-| **Rótulos**                   | A página **Visão geral** do workflow                          | Rótulos para agrupar workflows, por equipe, integração ou ambiente. Filtre a lista **Fluxos de trabalho** por rótulo, e limite um papel a alguns rótulos. |
-| **Regras de Rótulos**         | **Fluxos de trabalho → Configurações → Regras de Rótulos**    | Rotula automaticamente os novos workflows, conforme padrões no nome ou na descrição.                                                                |
-| **Regras de proprietário**    | **Fluxos de trabalho → Configurações → Regras de proprietário** | Atribui automaticamente proprietários aos novos workflows.                                                                                         |
+| O quê                      | Onde                                                            | O que faz                                                                                                                                                 |
+| -------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Proprietários**          | A página **Proprietários** do workflow                          | Os usuários e equipes responsáveis pelo workflow. Um papel limitado ao que a equipe dele possui alcança os workflows que essa equipe possui.              |
+| **Rótulos**                | A página **Visão geral** do workflow                            | Rótulos para agrupar workflows, por equipe, integração ou ambiente. Filtre a lista **Fluxos de trabalho** por rótulo, e limite um papel a alguns rótulos. |
+| **Regras de Rótulos**      | **Fluxos de trabalho → Configurações → Regras de Rótulos**      | Rotula automaticamente os novos workflows, conforme padrões no nome ou na descrição.                                                                      |
+| **Regras de proprietário** | **Fluxos de trabalho → Configurações → Regras de proprietário** | Atribui automaticamente proprietários aos novos workflows.                                                                                                |
 
 Veja [Regras de rótulos e de proprietários](/docs/configuration/label-and-owner-rules) para saber como as regras correspondem.
 
@@ -118,11 +120,11 @@ Os blocos API e os outros blocos HTTP fazem as requisições a partir do OneUpti
 
 Os endereços que um bloco pode alcançar dependem do bloco:
 
-| Blocos                                                     | Loopback, link-local, metadados de nuvem                                      | Endereços de rede privada                                                                                                                 |
-| ---------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Blocos                                                                            | Loopback, link-local, metadados de nuvem                                          | Endereços de rede privada                                                                                                                  |
+| --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | Os blocos **API** e **Mattermost**, e as requisições de **Run Custom JavaScript** | Recusados, a menos que o host exato esteja em `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Recusados, a menos que um administrador self-hosted os permita com `ALLOW_PRIVATE_NETWORK_WEBHOOKS` ou `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
-| **Send Email**, **IRC** e as URLs de token OAuth 2.0       | Recusados                                                                     | Recusados no OneUptime Cloud. Permitidos em uma instalação self-hosted, a menos que `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` seja `true`     |
-| Slack, Microsoft Teams, Discord e Telegram                 | Recusados                                                                     | Recusados: cada um só envia para os endereços do próprio serviço                                                                          |
+| **Send Email**, **IRC** e as URLs de token OAuth 2.0                              | Recusados                                                                         | Recusados no OneUptime Cloud. Permitidos em uma instalação self-hosted, a menos que `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` seja `true`      |
+| Slack, Microsoft Teams, Discord e Telegram                                        | Recusados                                                                         | Recusados: cada um só envia para os endereços do próprio serviço                                                                           |
 
 Veja [Acesso a redes privadas](/docs/self-hosted/private-network-access) para saber como um administrador self-hosted os libera.
 
@@ -149,13 +151,13 @@ Do que o bloco precisa, e quanto ele custa:
 - As chamadas por um provedor global pago usam os créditos de IA do projeto.
 - Cada chamada conta para os [limites diários de IA do próprio projeto](/docs/ai/ai-sre#os-limites-diários-do-próprio-projeto), quando um proprietário do projeto os define. Quando um limite é atingido, o bloco toma **Error** sem contatar o modelo, até a meia-noite UTC.
 
-| Limite                                                       | Valor                                                                     |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| **System Instructions**, **Prompt** e **Context** juntos     | 50.000 caracteres                                                         |
-| **Temperature**                                              | De `0` a `1`                                                              |
-| **Maximum Output Tokens**                                    | De `1` a `4096`, `1024` por padrão                                        |
-| Uma requisição                                               | Uma única tentativa, de no máximo 60 segundos                             |
-| Chamadas ao mesmo tempo                                      | 3 por projeto. As demais tomam **Error**, e uma execução posterior pode tentar de novo. |
+| Limite                                                   | Valor                                                                                   |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| **System Instructions**, **Prompt** e **Context** juntos | 50.000 caracteres                                                                       |
+| **Temperature**                                          | De `0` a `1`                                                                            |
+| **Maximum Output Tokens**                                | De `1` a `4096`, `1024` por padrão                                                      |
+| Uma requisição                                           | Uma única tentativa, de no máximo 60 segundos                                           |
+| Chamadas ao mesmo tempo                                  | 3 por projeto. As demais tomam **Error**, e uma execução posterior pode tentar de novo. |
 
 As falhas de validação, configuração, acesso, limite, créditos, concorrência, provedor e tempo esgotado tomam todas o caminho **Error**, com o motivo em **Error**. Ligue esse caminho antes de o workflow entrar em produção.
 
@@ -200,7 +202,7 @@ Os passos que leem e alteram registros do OneUptime — os componentes Find, Cre
   - alterar a qual registro um registro pertence depois de criado, como o monitor de uma linha de proprietário ou o incidente de uma nota.
 - **Como ninguém.** Um registro que um workflow cria não nomeia criador, e o log de auditoria nomeia o workflow, com o nome que ele tinha na hora, como autor da alteração.
 
-Quando uma verificação recusa um passo, o passo toma a saída **Error** sem fazer a alteração recusada, e o log da execução nomeia o passo e o motivo em palavras simples, por exemplo *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Leia-o nas [Execuções](/docs/workflows/runs-and-logs) do workflow. Um passo Create Many cria os registros um de cada vez e para no primeiro recusado: os registros criados antes dele são mantidos.
+Quando uma verificação recusa um passo, o passo toma a saída **Error** sem fazer a alteração recusada, e o log da execução nomeia o passo e o motivo em palavras simples, por exemplo _"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …_. Leia-o nas [Execuções](/docs/workflows/runs-and-logs) do workflow. Um passo Create Many cria os registros um de cada vez e para no primeiro recusado: os registros criados antes dele são mantidos.
 
 Os passos que conversam com outros sistemas — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code e Generate Text with AI — não leem nem alteram registros do OneUptime, então nada disso os afeta.
 
@@ -218,11 +220,11 @@ A janela é móvel: cada execução que o projeto registra, manual ou por um gat
 
 ## Quanto tempo uma execução pode durar
 
-| Limite                                                       | Padrão             | Configuração self-hosted        |
-| ------------------------------------------------------------ | ------------------ | ------------------------------- |
-| Uma execução, desde o início ou desde que acorda depois de um **Sleep** | 2 minutos | `WORKFLOW_TIMEOUT_IN_MS`        |
-| Um bloco **Run Custom JavaScript**                           | 5 segundos         | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
-| Um bloco **Sleep**                                           | No máximo 30 dias  | —                               |
+| Limite                                                                  | Padrão            | Configuração self-hosted        |
+| ----------------------------------------------------------------------- | ----------------- | ------------------------------- |
+| Uma execução, desde o início ou desde que acorda depois de um **Sleep** | 2 minutos         | `WORKFLOW_TIMEOUT_IN_MS`        |
+| Um bloco **Run Custom JavaScript**                                      | 5 segundos        | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
+| Um bloco **Sleep**                                                      | No máximo 30 dias | —                               |
 
 O executor verifica o prazo antes e depois de cada bloco, e marca uma execução atrasada como **Timeout** assim que retoma o controle. Ele não consegue interromper um bloco no meio, então os blocos que esperam pela rede têm limites de tempo próprios: uma requisição de Generate Text with AI desiste depois de no máximo 60 segundos, e uma requisição de token OAuth 2.0 depois de 20. Uma espera em um bloco **Sleep** não conta para o tempo de uma execução: a execução é deixada de lado e recebe 2 minutos novos ao acordar.
 
@@ -243,7 +245,8 @@ Alguns casos em que vale usar outra coisa:
 ## Próximos passos
 
 :::cards
+
 - [Visão geral dos workflows](/docs/workflows/index): O panorama geral e um primeiro workflow de ponta a ponta.
 - [Componentes](/docs/workflows/components): Do que cada bloco precisa, o que devolve e o que pode alcançar.
 - [Runbooks](/docs/runbooks/index): Quando as pessoas precisam tomar as decisões pelo caminho.
-:::
+  :::

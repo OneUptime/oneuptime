@@ -1,5 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
-import useSubscriberBulkActions from "../../../Components/StatusPage/useSubscriberBulkActions";
+import useSubscriberBulkActions, {
+  getSubscriberName,
+} from "../../../Components/StatusPage/useSubscriberBulkActions";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
 import URL from "Common/Types/API/URL";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -383,6 +385,8 @@ const StatusPageSlackSubscribers: FunctionComponent<PageComponentProps> = (
               tableId: "status-page-slack-subscribers-table",
             }}
             isDeleteable={true}
+            // Each row by what the list shows first (useSubscriberBulkActions).
+            getItemName={getSubscriberName}
             bulkActions={{
               buttons: [...subscriberBulkActions],
             }}

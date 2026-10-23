@@ -3,11 +3,12 @@
 Dette bør du vite før du retter en arbeidsflyt mot ekte trafikk: hvordan du slår den trygt på, hvem som kan gjøre hva, hvordan hemmeligheter og URL-er forblir private, hva trinnene i en arbeidsflyt kan endre, og grensene hver kjøring arbeider innenfor.
 
 :::cards
+
 - [Gå live](#å-slå-en-arbeidsflyt-på-eller-av): Test med Kjør arbeidsflyt mens den er av, og slå den deretter på.
 - [Tillatelser](#tillatelser): Arbeidsflytrollene og de enkelte tillatelsene bak dem.
 - [Hva trinn kan gjøre](#hva-arbeidsflyttrinn-kan-gjøre): Trinn handler som Project Admin i prosjektet til arbeidsflyten.
 - [Grenser](#plangrenser): Kjøringer per plan, kjøretid og kall mellom arbeidsflyter.
-:::
+  :::
 
 ## Å slå en arbeidsflyt på eller av
 
@@ -16,11 +17,12 @@ Hver arbeidsflyt har en bryter, **Aktivert**, øverst i **Bygger** og på siden 
 Bruk denne bryteren som «klar til bruk»-porten din:
 
 :::steps
+
 1. Bygg arbeidsflyten.
 2. Klikk på **Kjør arbeidsflyt** i **Bygger** med realistiske verdier, mens arbeidsflyten fortsatt er av. Kjøringen er en **Testkjøring**: hver blokk kjører på ekte, så pek den først mot en testkanal eller en testpost.
 3. Åpne kjøringen, og sjekk at hver blokk gikk dit du forventet. Se [Kjøringer](/docs/workflows/runs-and-logs).
 4. Slå på **Aktivert** når den er klar: fra da av utløses triggeren ved ekte begivenheter.
-:::
+   :::
 
 Å slå av en arbeidsflyt hindrer triggeren i å starte nye kjøringer. En kjøring som allerede pågår, gjør seg ferdig, men en kjøring som triggeren startet, og som venter ved en **Sleep**-blokk, avbrytes når den våkner. Testkjøringer fortsetter. For å slå flere på eller av samtidig merker du dem i listen **Arbeidsflyter** og velger **Aktiver** eller **Deaktiver** under **Massehandlinger**.
 
@@ -43,12 +45,12 @@ En eksportert arbeidsflyt tar aldri med seg den arkiverte tilstanden, så en imp
 
 ## Eiere og etiketter
 
-| Hva               | Hvor                                              | Hva det gjør                                                                                                                                              |
-| ----------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Eiere**         | Siden **Eiere** til arbeidsflyten                 | Brukerne og teamene som er ansvarlige for arbeidsflyten. En rolle som er begrenset til det teamet eier, når arbeidsflytene det teamet eier.               |
+| Hva               | Hvor                                              | Hva det gjør                                                                                                                                                           |
+| ----------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Eiere**         | Siden **Eiere** til arbeidsflyten                 | Brukerne og teamene som er ansvarlige for arbeidsflyten. En rolle som er begrenset til det teamet eier, når arbeidsflytene det teamet eier.                            |
 | **Etiketter**     | Siden **Oversikt** til arbeidsflyten              | Merkelapper for å gruppere arbeidsflyter etter team, integrasjon eller miljø. Filtrer listen **Arbeidsflyter** på etikett, og begrens en rolle til bestemte etiketter. |
-| **Etikettregler** | **Arbeidsflyter → Innstillinger → Etikettregler** | Sett etiketter på nye arbeidsflyter automatisk, ut fra mønstre i navnet eller beskrivelsen.                                                               |
-| **Eierregler**    | **Arbeidsflyter → Innstillinger → Eierregler**    | Tildel eiere til nye arbeidsflyter automatisk.                                                                                                            |
+| **Etikettregler** | **Arbeidsflyter → Innstillinger → Etikettregler** | Sett etiketter på nye arbeidsflyter automatisk, ut fra mønstre i navnet eller beskrivelsen.                                                                            |
+| **Eierregler**    | **Arbeidsflyter → Innstillinger → Eierregler**    | Tildel eiere til nye arbeidsflyter automatisk.                                                                                                                         |
 
 Se [Etikett- og eierregler](/docs/configuration/label-and-owner-rules) for hvordan reglene samsvarer.
 
@@ -118,11 +120,11 @@ API-blokker og andre HTTP-blokker sender forespørslene sine fra OneUptime, og I
 
 Hvilke adresser en blokk kan nå, avhenger av blokken:
 
-| Blokker                                                        | Loopback, link-local, skymetadata                                            | Private nettverksadresser                                                                                                                         |
-| -------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Blokker                                                                            | Loopback, link-local, skymetadata                                                   | Private nettverksadresser                                                                                                                                      |
+| ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **API**- og **Mattermost**-blokker samt forespørsler fra **Run Custom JavaScript** | Avvises, med mindre den nøyaktige verten står i `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Avvises, med mindre en administrator av en selvhostet installasjon tillater dem med `ALLOW_PRIVATE_NETWORK_WEBHOOKS` eller `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
-| **Send Email**, **IRC** og OAuth 2.0-token-URL-er             | Avvises                                                                      | Avvises i OneUptime Cloud. Tillatt på en selvhostet installasjon, med mindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er `true`                     |
-| Slack, Microsoft Teams, Discord og Telegram                    | Avvises                                                                      | Avvises: hver sender bare til adressene til sin egen tjeneste                                                                                     |
+| **Send Email**, **IRC** og OAuth 2.0-token-URL-er                                  | Avvises                                                                             | Avvises i OneUptime Cloud. Tillatt på en selvhostet installasjon, med mindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er `true`                                   |
+| Slack, Microsoft Teams, Discord og Telegram                                        | Avvises                                                                             | Avvises: hver sender bare til adressene til sin egen tjeneste                                                                                                  |
 
 Se [Tilgang til private nettverk](/docs/self-hosted/private-network-access) for hvordan en administrator av en selvhostet installasjon åpner for dem.
 
@@ -149,12 +151,12 @@ Hva blokken krever, og hva den koster:
 - Kall gjennom en global leverandør med kostnad bruker prosjektets AI-kreditter.
 - Hvert kall teller mot [prosjektets egne daglige AI-grenser](/docs/ai/ai-sre#prosjektets-egne-daglige-grenser), når en prosjekteier setter dem. Når en grense er nådd, tar blokken **Error** uten å kontakte modellen, frem til midnatt UTC.
 
-| Grense                                                        | Verdi                                                                    |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| **System Instructions**, **Prompt** og **Context** til sammen | 50 000 tegn                                                              |
-| **Temperature**                                               | Fra `0` til `1`                                                          |
-| **Maximum Output Tokens**                                     | Fra `1` til `4096`, `1024` som standard                                  |
-| Én forespørsel                                                | Forsøkes én gang, i høyst 60 sekunder                                    |
+| Grense                                                        | Verdi                                                                      |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **System Instructions**, **Prompt** og **Context** til sammen | 50 000 tegn                                                                |
+| **Temperature**                                               | Fra `0` til `1`                                                            |
+| **Maximum Output Tokens**                                     | Fra `1` til `4096`, `1024` som standard                                    |
+| Én forespørsel                                                | Forsøkes én gang, i høyst 60 sekunder                                      |
 | Kall samtidig                                                 | 3 per prosjekt. Flere tar **Error**, og en senere kjøring kan prøve igjen. |
 
 Feil i validering, konfigurasjon, tilgang, grenser, kreditt, samtidighet, leverandør og tidsavbrudd tar alle veien **Error**, med årsaken i **Error**. Koble til den veien før arbeidsflyten går live.
@@ -200,7 +202,7 @@ Trinnene som leser og endrer OneUptime-poster — komponentene Find, Create, Upd
   - å endre hvilken post en post hører til etter at den er opprettet, som monitoren en eierrad gjelder, eller hendelsen et notat står på.
 - **Som ingen person.** En post som en arbeidsflyt oppretter, har ingen oppretter, og revisjonsloggen oppgir arbeidsflyten, med navnet den hadde da, som den som gjorde endringen.
 
-Når en kontroll avviser et trinn, tar trinnet utgangen **Error** uten å gjøre den avviste endringen, og loggen til kjøringen nevner trinnet og årsaken med vanlige ord, for eksempel *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Les den under [Kjøringer](/docs/workflows/runs-and-logs) for arbeidsflyten. Et Create Many-trinn oppretter postene sine én om gangen og stopper ved den første som avvises: postene det opprettet før den, beholdes.
+Når en kontroll avviser et trinn, tar trinnet utgangen **Error** uten å gjøre den avviste endringen, og loggen til kjøringen nevner trinnet og årsaken med vanlige ord, for eksempel _"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …_. Les den under [Kjøringer](/docs/workflows/runs-and-logs) for arbeidsflyten. Et Create Many-trinn oppretter postene sine én om gangen og stopper ved den første som avvises: postene det opprettet før den, beholdes.
 
 Trinn som snakker med andre systemer — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code og Generate Text with AI — leser eller endrer ikke OneUptime-poster, så ingenting av dette endrer noe for dem.
 
@@ -218,11 +220,11 @@ Vinduet glir: hver kjøring prosjektet registrerer, manuelt eller fra en trigger
 
 ## Hvor lenge en kjøring kan vare
 
-| Grense                                                            | Standard       | Innstilling ved selvhosting     |
-| ----------------------------------------------------------------- | -------------- | ------------------------------- |
-| En kjøring, fra starten eller fra den våkner etter en **Sleep**    | 2 minutter     | `WORKFLOW_TIMEOUT_IN_MS`        |
-| En **Run Custom JavaScript**-blokk                                | 5 sekunder     | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
-| En **Sleep**-blokk                                                | Høyst 30 dager | —                               |
+| Grense                                                          | Standard       | Innstilling ved selvhosting     |
+| --------------------------------------------------------------- | -------------- | ------------------------------- |
+| En kjøring, fra starten eller fra den våkner etter en **Sleep** | 2 minutter     | `WORKFLOW_TIMEOUT_IN_MS`        |
+| En **Run Custom JavaScript**-blokk                              | 5 sekunder     | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
+| En **Sleep**-blokk                                              | Høyst 30 dager | —                               |
 
 Kjøreren sjekker fristen før og etter hver blokk, og merker en kjøring som har gått over tiden, som **Timeout** så snart kontrollen kommer tilbake. Den kan ikke avbryte en blokk midtveis, så blokker som venter på nettverket, har sine egne tidsgrenser: en forespørsel fra Generate Text with AI gir opp etter høyst 60 sekunder, og en OAuth 2.0-tokenforespørsel etter 20. Ventetid ved en **Sleep**-blokk teller ikke med i tiden til en kjøring: kjøringen legges til side og får 2 nye minutter når den våkner.
 
@@ -243,7 +245,8 @@ Noen tilfeller der du bør gripe til noe annet:
 ## Neste trinn
 
 :::cards
+
 - [Oversikt over arbeidsflyter](/docs/workflows/index): Det store bildet, og en første arbeidsflyt fra start til slutt.
 - [Komponenter](/docs/workflows/components): Hva hver blokk trenger, returnerer og kan nå.
 - [Runbooks](/docs/runbooks/index): Når folk må ta beslutningene underveis.
-:::
+  :::

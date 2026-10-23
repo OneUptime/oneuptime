@@ -3,11 +3,12 @@
 OneUptime crée une application RUM la première fois que la télémétrie de votre application arrive. Cette page couvre ce que vous gérez ensuite : le nom de l'application, ses étiquettes et ses propriétaires, la durée de conservation de ses données, l'archivage, qui peut la voir et les alertes.
 
 :::cards
+
 - [Comment une application est créée](#comment-une-application-est-créée): Reconnue par son `service.name`, créée à son premier lot.
 - [Étiquettes](#étiquettes): Regroupez les applications et décidez qui peut y accéder.
 - [Rétention](#rétention): Combien de temps la télémétrie et les enregistrements sont conservés.
 - [Autorisations](#autorisations): Qui peut voir les applications, et qui peut regarder les enregistrements.
-:::
+  :::
 
 ## Comment une application est créée
 
@@ -35,6 +36,7 @@ Le **Nom d'affichage** est d'abord le `service.name`. Pour le changer, ouvrez la
 Créez vous-même une application lorsque vous voulez que ses étiquettes, ses propriétaires ou sa politique de relecture soient en place avant l'arrivée du premier visiteur.
 
 :::steps
+
 #### Ouvrir la liste des applications
 
 Allez dans **Produits → Ressources → Surveillance des utilisateurs réels** et cliquez sur **Créer : Application RUM**.
@@ -62,11 +64,11 @@ Une application affiche **Connecté** tant que de la télémétrie arrive, et **
 
 Les étiquettes regroupent les applications dans les listes et les filtres. Elles décident aussi de ce qu'un membre restreint à certaines étiquettes peut atteindre : un tel membre ne voit que les applications qui portent l'une de ces étiquettes. Une application reçoit ses étiquettes de trois façons :
 
-| Comment | Où |
-| --- | --- |
-| À la main | Dans le formulaire de création, sous **Plus de champs**, ou plus tard avec **Modifier les détails** dans la carte **Détails de l'application** de la page **Paramètres** de l'application. Pour plusieurs à la fois, sélectionnez-les dans la liste et choisissez **Ajouter des étiquettes** sous **Actions groupées**. |
-| Depuis la télémétrie | Un attribut de ressource nommé `oneuptime.label.<name>` ajoute l'étiquette `<name>:<value>`, comme ci-dessous. |
-| Depuis une règle d'étiquettes | Une règle ajoute des étiquettes à chaque nouvelle application qu'elle sélectionne. Voir [Règles d'étiquettes et règles de propriétaires](#règles-détiquettes-et-règles-de-propriétaires). |
+| Comment                       | Où                                                                                                                                                                                                                                                                                                                      |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| À la main                     | Dans le formulaire de création, sous **Plus de champs**, ou plus tard avec **Modifier les détails** dans la carte **Détails de l'application** de la page **Paramètres** de l'application. Pour plusieurs à la fois, sélectionnez-les dans la liste et choisissez **Ajouter des étiquettes** sous **Actions groupées**. |
+| Depuis la télémétrie          | Un attribut de ressource nommé `oneuptime.label.<name>` ajoute l'étiquette `<name>:<value>`, comme ci-dessous.                                                                                                                                                                                                          |
+| Depuis une règle d'étiquettes | Une règle ajoute des étiquettes à chaque nouvelle application qu'elle sélectionne. Voir [Règles d'étiquettes et règles de propriétaires](#règles-détiquettes-et-règles-de-propriétaires).                                                                                                                               |
 
 Définissez les attributs sur la même ressource que `service.name`, par exemple dans le fichier `src/telemetry.ts` de la [Configuration navigateur](/docs/rum/browser-setup) :
 
@@ -99,10 +101,10 @@ Les propriétaires sont les personnes et les équipes responsables d'une applica
 
 La télémétrie d'une application et ses enregistrements sont conservés pendant des durées différentes :
 
-| Données | Conservées | Réglées dans |
-| --- | --- | --- |
-| Journaux, métriques, traces et profils | La rétention du projet, sauf si l'application la remplace | La page **Paramètres** de l'application |
-| Enregistrements de relecture de session | 7 jours par défaut, ou 1, 14, 30 ou 90 jours | **Replay Policy**, avec **Modifier la politique → Limites** |
+| Données                                 | Conservées                                                | Réglées dans                                                |
+| --------------------------------------- | --------------------------------------------------------- | ----------------------------------------------------------- |
+| Journaux, métriques, traces et profils  | La rétention du projet, sauf si l'application la remplace | La page **Paramètres** de l'application                     |
+| Enregistrements de relecture de session | 7 jours par défaut, ou 1, 14, 30 ou 90 jours              | **Replay Policy**, avec **Modifier la politique → Limites** |
 
 ### Rétention de la télémétrie
 
@@ -139,17 +141,17 @@ Pour effacer les données d'une personne plutôt que toute une application, dép
 
 Toute personne ayant le rôle Viewer du projet peut voir les applications RUM et leur télémétrie. La relecture de session ne fait délibérément pas partie de ce rôle : lister les enregistrements, en regarder un et lire qui a regardé sont des autorisations distinctes. Les propriétaires et administrateurs du projet les ont toutes. Les sélecteurs d'autorisations listent chaque autorisation par son titre, indiqué ici en italique.
 
-| Autorisation | Permet à un membre de |
-| --- | --- |
-| `ReadRumApplication` (_Read RUM Application_) | Voir les applications et leurs pages de télémétrie. |
-| `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication` | Ajouter, modifier et supprimer des applications. |
-| `ReadRumSessionReplay` (_List Session Replays_) | Lister les sessions enregistrées et leurs détails, sans les lire ni savoir qui était l'utilisateur. |
-| `ReadRumSessionReplayPayload` (_Watch Session Replays_) | Lire les enregistrements, et lire la référence et les attributs de l'utilisateur identifié. |
-| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | Lire le **Replay Access Log** : qui a regardé quel enregistrement. |
-| `DeleteRumSessionReplay` (_Delete Session Replays_) | Supprimer des enregistrements. |
-| `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest` | Déposer des demandes d'effacement et les suivre. |
-| `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` (et leurs Create, Edit et Delete) | Gérer les règles d'étiquettes et les règles de propriétaires. |
-| `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` (et leurs Create, Edit et Delete) | Ajouter et retirer des propriétaires via l'API. |
+| Autorisation                                                                                   | Permet à un membre de                                                                               |
+| ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `ReadRumApplication` (_Read RUM Application_)                                                  | Voir les applications et leurs pages de télémétrie.                                                 |
+| `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication`                           | Ajouter, modifier et supprimer des applications.                                                    |
+| `ReadRumSessionReplay` (_List Session Replays_)                                                | Lister les sessions enregistrées et leurs détails, sans les lire ni savoir qui était l'utilisateur. |
+| `ReadRumSessionReplayPayload` (_Watch Session Replays_)                                        | Lire les enregistrements, et lire la référence et les attributs de l'utilisateur identifié.         |
+| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_)                                      | Lire le **Replay Access Log** : qui a regardé quel enregistrement.                                  |
+| `DeleteRumSessionReplay` (_Delete Session Replays_)                                            | Supprimer des enregistrements.                                                                      |
+| `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest`                               | Déposer des demandes d'effacement et les suivre.                                                    |
+| `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` (et leurs Create, Edit et Delete) | Gérer les règles d'étiquettes et les règles de propriétaires.                                       |
+| `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` (et leurs Create, Edit et Delete) | Ajouter et retirer des propriétaires via l'API.                                                     |
 
 Une répartition utile : donnez à un ingénieur du support `ReadRumApplication` et `ReadRumSessionReplay`. Il peut voir quelles sessions ont rencontré des erreurs sans regarder l'écran de quiconque ni savoir qui était l'utilisateur. Ne donnez `ReadRumSessionReplayPayload` qu'aux personnes qui en ont besoin ; les membres qui ont `ReadRumSessionReplayAudit` voient alors chaque lecture dans la page **Replay Access Log** de l'application. [Qui peut regarder un enregistrement](/docs/telemetry/session-replay#qui-peut-regarder-un-enregistrement) montre ce que chaque autorisation ouvre dans la liste des sessions et le lecteur.
 
@@ -157,10 +159,10 @@ Une répartition utile : donnez à un ingénieur du support `ReadRumApplication`
 
 La télémétrie RUM se compose de journaux, de métriques et de traces ordinaires : il n'y a donc pas de moniteur RUM à part, les moniteurs habituels fonctionnent dessus. Le plus rapide est de commencer par la page **Recommendations** de l'application, qui propose des moniteurs déjà limités à l'application :
 
-| Groupe | Recommandations |
-| --- | --- |
-| Core Web Vitals | Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint et Slow Time to First Byte. Voir [Core Web Vitals](/docs/rum/web-vitals). |
-| Erreurs | Failed User Operations, et Unhandled Browser Exceptions. |
+| Groupe               | Recommandations                                                                                                                                                                                                                                                                                                                                            |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Core Web Vitals      | Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint et Slow Time to First Byte. Voir [Core Web Vitals](/docs/rum/web-vitals).                                                                                                                                                         |
+| Erreurs              | Failed User Operations, et Unhandled Browser Exceptions.                                                                                                                                                                                                                                                                                                   |
 | Relecture de session | Les quatre [alertes de budget de stockage](/docs/telemetry/session-replay#alertes-de-budget-de-stockage), qui préviennent avant que la limite quotidienne du projet ou le budget mensuel de l'application soit épuisé. Elles sont proposées dès que l'application a enregistré une relecture, et la paire mensuelle dès qu'elle a aussi un budget mensuel. |
 
 Pour créer votre propre moniteur, choisissez celui qui lit le signal :
@@ -175,8 +177,9 @@ Limitez à l'application un moniteur que vous créez, pour qu'un service backend
 ## Prochaines étapes
 
 :::cards
+
 - [Relecture de session](/docs/telemetry/session-replay): Enregistrez ce que les utilisateurs ont vu, avec sa propre politique et sa propre rétention.
 - [Règles d'étiquettes et de propriétaires](/docs/configuration/label-and-owner-rules): Les deux formulaires de règle, étape par étape.
 - [Exécuter des règles sur les ressources existantes](/docs/configuration/run-rules-now): Appliquez une nouvelle règle aux applications que vous avez déjà.
 - [Dépannage RUM](/docs/rum/troubleshooting): Quand une application manque, est vide ou Déconnecté.
-:::
+  :::

@@ -7,11 +7,12 @@ Ankündigungen sind die andere Hälfte derselben Aufgabe. Ein Monitor kann Ihren
 Diese Seite behandelt beides: die fünf Abonnementkanäle und wie Besucher sich eintragen, was Abonnenten sich aussuchen können, die Abläufe für Double Opt-in und Abmeldung, den E-Mail-Bericht, den Abonnenten jeden Monat bekommen können, sowie das Schreiben, Planen und Vorlagen von Ankündigungen.
 
 :::cards
+
 - [Abonnementkanäle](#abonnementkanäle): Die Kanäle, über die sich Besucher eintragen, und die Seite, auf der sie es tun.
 - [Worüber Abonnenten informiert werden](#worüber-abonnenten-benachrichtigt-werden): Ankündigungen, Wartungen, Vorfälle und Episoden, und Änderungen daran.
 - [Prüfen, was gesendet wurde](#prüfen-was-gesendet-wurde): Der Status jeder Benachrichtigung, Wiederholen und erneutes Senden.
 - [Ankündigungen](#ankündigungen): Eine Mitteilung auf einer oder mehreren Statusseiten veröffentlichen.
-:::
+  :::
 
 ## So funktioniert es
 
@@ -45,7 +46,7 @@ In OneUptime Cloud steht neben einem Schalter, den Ihr Tarif nicht enthält, der
 
 Jeder Kanal bekommt außerdem seine eigene Liste im Seitenmenü der Statusseite unter **Abonnenten**: **E-Mail-Abonnenten**, **SMS-Abonnenten**, **Slack-Abonnenten**, **Microsoft Teams-Abonnenten** und **Webhook-Abonnenten**. Dort sehen Sie, wer eingetragen ist, tragen jemanden mit **Abonnent hinzufügen** von Hand nach oder hinterlassen sich zu einem bestimmten Abonnenten eine **Interne Notiz** (`internalNote`), die nur Ihr Team sieht. Solange ein Kanal aus ist, steht das oben in seiner Liste, direkt neben dem Schalter des Kanals – so schalten Sie ihn ein, ohne die Liste zu verlassen.
 
-**Ein Schalter allein genügt nicht.** Der Eintrag **Abonnieren** in der Navigationsleiste der Statusseite erscheint nur, wenn **Abonnentenseite anzeigen** an ist *und* mindestens ein Kanal an ist. Schalten Sie **E-Mail** ein, lassen aber **Abonnentenseite anzeigen** aus, kommen Besucher gar nicht erst zum Formular.
+**Ein Schalter allein genügt nicht.** Der Eintrag **Abonnieren** in der Navigationsleiste der Statusseite erscheint nur, wenn **Abonnentenseite anzeigen** an ist _und_ mindestens ein Kanal an ist. Schalten Sie **E-Mail** ein, lassen aber **Abonnentenseite anzeigen** aus, kommen Besucher gar nicht erst zum Formular.
 
 **Stattdessen ein Kalender.** Besucher, die Ihre geplante Wartung nur in ihrem eigenen Kalender haben möchten, müssen nichts abonnieren: **Kalender abonnieren** auf der Seite **Geplante Ereignisse** fügt sie zu Google Kalender, Apple Kalender oder Outlook hinzu, und der Kalender hält sich selbst aktuell. Er sendet nichts und hängt nicht von den Kanälen oben ab, und eine private Seite bietet ihn nicht an. Siehe [Wartungskalender](/docs/scheduled-maintenance/calendar#der-kalender-einer-statusseite).
 
@@ -68,27 +69,27 @@ Keine der beiden Einstellungen löscht einen Abonnenten, und wenn Sie sie aussch
 
 Die Seite **Abonnieren** hat ein Untermenü mit einem Reiter je aktiviertem Kanal; ist nur ein Kanal an, gibt es kein Untermenü, nur das Formular dieses Kanals. Jeder Reiter fragt nur das Nötigste ab:
 
-| Reiter | Adresse | Überschrift | Was er abfragt |
-| --- | --- | --- | --- |
-| **E-Mail** | `/subscribe/email` | **Per E-Mail abonnieren** | **Ihre E-Mail**, mit dem Platzhalter `subscriber@company.com`. |
-| **SMS** | `/subscribe/sms` | **Per SMS abonnieren** | **Ihre Telefonnummer**, mit dem Platzhalter `+11234567890`. |
-| **Slack** | `/subscribe/slack` | **Über Slack abonnieren** | **Slack-Arbeitsbereichsname** (dient der Validierung) und **Slack Eingehende Webhook-URL**, mit dem Platzhalter `https://hooks.slack.com/services/...`. |
+| Reiter       | Adresse                      | Überschrift                         | Was er abfragt                                                                                                                                             |
+| ------------ | ---------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **E-Mail**   | `/subscribe/email`           | **Per E-Mail abonnieren**           | **Ihre E-Mail**, mit dem Platzhalter `subscriber@company.com`.                                                                                             |
+| **SMS**      | `/subscribe/sms`             | **Per SMS abonnieren**              | **Ihre Telefonnummer**, mit dem Platzhalter `+11234567890`.                                                                                                |
+| **Slack**    | `/subscribe/slack`           | **Über Slack abonnieren**           | **Slack-Arbeitsbereichsname** (dient der Validierung) und **Slack Eingehende Webhook-URL**, mit dem Platzhalter `https://hooks.slack.com/services/...`.    |
 | **MS Teams** | `/subscribe/microsoft-teams` | **Über Microsoft Teams abonnieren** | **Name des Microsoft Teams-Arbeitsbereichs** und **Microsoft Teams Eingehende Webhook-URL**, mit dem Platzhalter `https://outlook.office.com/webhook/...`. |
-| **Webhooks** | `/subscribe/webhooks` | **Per Webhook abonnieren** | **Webhook-URL**, mit dem Platzhalter `https://example.com/webhook`. Bei jedem Ereignis auf der Statusseite geht eine JSON-`POST`-Anfrage dorthin. |
+| **Webhooks** | `/subscribe/webhooks`        | **Per Webhook abonnieren**          | **Webhook-URL**, mit dem Platzhalter `https://example.com/webhook`. Bei jedem Ereignis auf der Statusseite geht eine JSON-`POST`-Anfrage dorthin.          |
 
-Der Absendeknopf heißt **Abonnieren**. Eine Anmeldung per Slack, Microsoft Teams oder Webhook zeigt *Sie wurden erfolgreich abonniert.* Eine Anmeldung per SMS zeigt *Wir haben eine SMS an diese Telefonnummer gesendet. Öffnen Sie den Link darin, um Ihr Abonnement zu bestätigen.* Eine Anmeldung per E-Mail sagt, dass ein Bestätigungslink verschickt wurde, und dass man den Spam-Ordner prüfen soll, wenn er nicht ankommt (siehe [Double Opt-in per E-Mail](#double-opt-in-per-e-mail)). Die Reiter **E-Mail**, **SMS**, **Slack** und **MS Teams** tragen außerdem die Aufteilung **Neues Abonnement** / **Bestehendes Abonnement verwalten**, sodass jemand, der bereits abonniert hat, zu seinen Einstellungen zurückfindet, ohne eine alte Nachricht suchen zu müssen.
+Der Absendeknopf heißt **Abonnieren**. Eine Anmeldung per Slack, Microsoft Teams oder Webhook zeigt _Sie wurden erfolgreich abonniert._ Eine Anmeldung per SMS zeigt _Wir haben eine SMS an diese Telefonnummer gesendet. Öffnen Sie den Link darin, um Ihr Abonnement zu bestätigen._ Eine Anmeldung per E-Mail sagt, dass ein Bestätigungslink verschickt wurde, und dass man den Spam-Ordner prüfen soll, wenn er nicht ankommt (siehe [Double Opt-in per E-Mail](#double-opt-in-per-e-mail)). Die Reiter **E-Mail**, **SMS**, **Slack** und **MS Teams** tragen außerdem die Aufteilung **Neues Abonnement** / **Bestehendes Abonnement verwalten**, sodass jemand, der bereits abonniert hat, zu seinen Einstellungen zurückfindet, ohne eine alte Nachricht suchen zu müssen.
 
 ## Grenzen für Anmeldungen und Links
 
 Jede Anmeldung schickt ihrem Kontakt sofort eine Nachricht, eine Bestätigungs-E-Mail, eine SMS, eine Slack- oder Microsoft-Teams-Nachricht oder einen Webhook-Aufruf, und **Verwaltungslink senden** tut das auch. Damit niemand eine Statusseite nutzen kann, um Menschen Nachrichten zu schicken, die nicht darum gebeten haben, oder um die SMS-Kosten Ihres Projekts in die Höhe zu treiben, sind beide für das Netzwerk jedes Besuchers und für jeden Kontakt begrenzt. Die Grenzen liegen weit über dem, was Menschen tun: Ein ganzes Büro kann sich während eines Vorfalls gemeinsam anmelden.
 
-| Was begrenzt ist | Grenze |
-| --- | --- |
-| Anmeldungen aus einem Netzwerk | 60 in 15 Minuten |
-| Anmeldungen und Verwaltungslinks per SMS aus einem Netzwerk, zusammen | 10 in 15 Minuten |
-| Verwaltungslinks, die aus einem Netzwerk angefordert werden | 30 in 15 Minuten |
-| Anmeldungen einer E-Mail-Adresse, einer Telefonnummer, eines Slack- oder Microsoft-Teams-Kanals oder eines Webhooks, auf allen Statusseiten zusammen | 10 in einer Stunde |
-| Verwaltungslinks für eine E-Mail-Adresse oder Telefonnummer auf allen Statusseiten zusammen, oder für einen Slack- oder Microsoft-Teams-Arbeitsbereichsnamen auf einer Statusseite | 5 in einer Stunde |
+| Was begrenzt ist                                                                                                                                                                   | Grenze             |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| Anmeldungen aus einem Netzwerk                                                                                                                                                     | 60 in 15 Minuten   |
+| Anmeldungen und Verwaltungslinks per SMS aus einem Netzwerk, zusammen                                                                                                              | 10 in 15 Minuten   |
+| Verwaltungslinks, die aus einem Netzwerk angefordert werden                                                                                                                        | 30 in 15 Minuten   |
+| Anmeldungen einer E-Mail-Adresse, einer Telefonnummer, eines Slack- oder Microsoft-Teams-Kanals oder eines Webhooks, auf allen Statusseiten zusammen                               | 10 in einer Stunde |
+| Verwaltungslinks für eine E-Mail-Adresse oder Telefonnummer auf allen Statusseiten zusammen, oder für einen Slack- oder Microsoft-Teams-Arbeitsbereichsnamen auf einer Statusseite | 5 in einer Stunde  |
 
 Ist eine Grenze überschritten, antwortet die API mit `429` und einem Header `Retry-After` in Sekunden, und dem Besucher wird gesagt, dass es zu viele Anmeldungen oder Links aus seinem Netzwerk oder für diesen Kontakt gab und er es später erneut versuchen soll. Nichts wird erstellt oder gesendet, und Ihr Projekt bemerkt nichts davon: Kein Abonnent wird hinzugefügt, und keine Nachricht wird gesendet oder bezahlt. Die Grenzen für Verwaltungslinks zählen jede Anfrage, ob ein Abonnement passt oder nicht, sodass sich damit nicht herausfinden lässt, wer abonniert hat. Eine E-Mail-Adresse wird gezählt, wie auch immer sie geschrieben ist, in Großbuchstaben, mit einem `+tag` oder, bei Gmail, mit Punkten, und eine Telefonnummer, wie auch immer sie eingegeben ist. Eine Anmeldung nennt einen Kontakt, eine E-Mail-Adresse, eine Telefonnummer, einen Slack- oder Microsoft-Teams-Kanal oder einen Webhook: Eine Liste von Adressen oder ein zweiter Kontakt wird abgelehnt.
 
@@ -102,18 +103,18 @@ Ein privater Benutzer, der auf der Anmeldeseite der Statusseite einen Link zum Z
 
 Auf einer selbst gehosteten Installation ändern diese Umgebungsvariablen der OneUptime-App die Grenzen:
 
-| Variable | Standard | Was sie festlegt |
-| --- | --- | --- |
-| `PUBLIC_MESSAGE_RATE_LIMIT_WINDOW_SECONDS` | `900` | Das Zeitfenster der Grenzen pro Netzwerk, in Sekunden. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_PER_CONTACT_WINDOW_SECONDS` | `3600` | Das Zeitfenster der Grenzen pro Kontakt, in Sekunden. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_IP` | `60` | Anmeldungen von einer Adresse pro Zeitfenster. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_TEXT_MESSAGES_PER_IP` | `10` | Anmeldungen und Verwaltungslinks per SMS von einer Adresse pro Zeitfenster, zusammen. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_IP` | `30` | Verwaltungslinks, die von einer Adresse pro Zeitfenster angefordert werden. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_CONTACT` | `10` | Anmeldungen eines Kontakts pro Zeitfenster. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Verwaltungslinks für einen Kontakt pro Zeitfenster. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Passwort-Zurücksetzungen privater Benutzer, die von einer Adresse pro Zeitfenster angefordert werden. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Rücksetz-E-Mails privater Benutzer an eine Adresse pro Zeitfenster. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT` | `10` | Einladungen an eine Adresse pro Zeitfenster, zu privaten Statusseiten und Projekten zusammen. |
+| Variable                                                            | Standard | Was sie festlegt                                                                                      |
+| ------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------- |
+| `PUBLIC_MESSAGE_RATE_LIMIT_WINDOW_SECONDS`                          | `900`    | Das Zeitfenster der Grenzen pro Netzwerk, in Sekunden.                                                |
+| `PUBLIC_MESSAGE_RATE_LIMIT_PER_CONTACT_WINDOW_SECONDS`              | `3600`   | Das Zeitfenster der Grenzen pro Kontakt, in Sekunden.                                                 |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_IP`             | `60`     | Anmeldungen von einer Adresse pro Zeitfenster.                                                        |
+| `PUBLIC_MESSAGE_RATE_LIMIT_TEXT_MESSAGES_PER_IP`                    | `10`     | Anmeldungen und Verwaltungslinks per SMS von einer Adresse pro Zeitfenster, zusammen.                 |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_IP`         | `30`     | Verwaltungslinks, die von einer Adresse pro Zeitfenster angefordert werden.                           |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_CONTACT`        | `10`     | Anmeldungen eines Kontakts pro Zeitfenster.                                                           |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT`    | `5`      | Verwaltungslinks für einen Kontakt pro Zeitfenster.                                                   |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP`      | `30`     | Passwort-Zurücksetzungen privater Benutzer, die von einer Adresse pro Zeitfenster angefordert werden. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5`      | Rücksetz-E-Mails privater Benutzer an eine Adresse pro Zeitfenster.                                   |
+| `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT`                 | `10`     | Einladungen an eine Adresse pro Zeitfenster, zu privaten Statusseiten und Projekten zusammen.         |
 
 Weder `config.env` noch die Werte des Helm-Charts reichen sie weiter: Fügen Sie sie selbst der Umgebung des Containers `app` hinzu, im Helm-Chart mit `app.extraEnv` oder dem chartweiten `extraEnv`, oder bei Docker Compose in einer `docker-compose.override.yml`. `TRUSTED_PROXY_HOPS` entscheidet, welche Adresse die Grenzen pro Netzwerk zählen.
 
@@ -142,13 +143,13 @@ Gut für: eine Seite, die mehrere Produkte abdeckt. Ein Kunde, der nur Ihre API 
 
 ## Double Opt-in per E-Mail
 
-E-Mail-Abonnenten bestätigen immer. Wird ein Abonnent mit einer E-Mail-Adresse angelegt und nicht bereits als bestätigt angelegt, wird **Ist Abonnement bestätigt** (`isSubscriptionConfirmed`) auf `false` gesetzt und ein zufälliges, 32 Zeichen langes **Token zur Abonnementbestätigung** erzeugt. OneUptime schickt dann einen Bestätigungslink der Form `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. Der Besucher landet auf einer Seite **Abonnement bestätigen** und sieht, sobald es durchgeht, *Abonnement erfolgreich bestätigt*.
+E-Mail-Abonnenten bestätigen immer. Wird ein Abonnent mit einer E-Mail-Adresse angelegt und nicht bereits als bestätigt angelegt, wird **Ist Abonnement bestätigt** (`isSubscriptionConfirmed`) auf `false` gesetzt und ein zufälliges, 32 Zeichen langes **Token zur Abonnementbestätigung** erzeugt. OneUptime schickt dann einen Bestätigungslink der Form `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. Der Besucher landet auf einer Seite **Abonnement bestätigen** und sieht, sobald es durchgeht, _Abonnement erfolgreich bestätigt_.
 
 Slack-, Microsoft-Teams- und Webhook-Abonnenten überspringen das, ebenso SMS-Abonnenten, die Ihr Team hinzufügt – sie werden mit `isSubscriptionConfirmed` bereits auf `true` angelegt. Fügt Ihr Team unter **E-Mail-Abonnenten** einen E-Mail-Abonnenten hinzu, entscheidet **Beim Hinzufügen**: **Jetzt abonnieren** (der Standard: bestätigt, und nichts wird gesendet), **Jetzt abonnieren und Bescheid geben** (bestätigt, und die E-Mail, dass er abonniert ist, geht hinaus) oder **Zuerst um Bestätigung bitten** (er bekommt den Bestätigungslink, wie bei einer Anmeldung). **In großen Mengen hinzufügen** fragt dasselbe.
 
 **Auch Anmeldungen per SMS werden bestätigt.** Ein Besucher, der sich per SMS einträgt, bekommt eine einzige SMS: den Bestätigungslink. Nichts anderes wird an die Nummer gesendet, bevor der Link geöffnet wird, und sein Öffnen schickt per SMS die Nachricht, dass er abonniert ist, mit dem Link, der das Abonnement kündigt. Bis dahin wird der Abonnent als **Warten auf Bestätigung** angezeigt, und das SMS-Protokoll zeigt den Link mit seinem Code durch `[redacted]` ersetzt. SMS-Abonnenten von vorher sind bereits bestätigt.
 
-**Ein Bestätigungslink gilt 24 Stunden.** Die E-Mail und die SMS sagen es. Später geöffnet, bestätigt er nichts: Die Seite **Abonnement bestätigen** zeigt *Dieser Link zum Bestätigen Ihres Abonnements ist abgelaufen oder ungültig. Ein Link gilt 24 Stunden, nachdem er gesendet wurde. Einen neuen erhalten Sie, wenn Sie erneut abonnieren.* und bietet **Erneut abonnieren** an, und die API antwortet mit `400`. Der Abonnent bleibt unbestätigt, bekommt nichts und wird in seiner Liste als **Link abgelaufen** statt **Warten auf Bestätigung** angezeigt.
+**Ein Bestätigungslink gilt 24 Stunden.** Die E-Mail und die SMS sagen es. Später geöffnet, bestätigt er nichts: Die Seite **Abonnement bestätigen** zeigt _Dieser Link zum Bestätigen Ihres Abonnements ist abgelaufen oder ungültig. Ein Link gilt 24 Stunden, nachdem er gesendet wurde. Einen neuen erhalten Sie, wenn Sie erneut abonnieren._ und bietet **Erneut abonnieren** an, und die API antwortet mit `400`. Der Abonnent bleibt unbestätigt, bekommt nichts und wird in seiner Liste als **Link abgelaufen** statt **Warten auf Bestätigung** angezeigt.
 
 **Erneut eintragen.** Solange der Link gilt, sendet ein erneutes Eintragen derselben E-Mail-Adresse oder Telefonnummer auf dieser Statusseite nichts mehr: Der Besucher erfährt, dass bereits ein Link gesendet wurde, und die API antwortet mit `429` und einem `Retry-After`-Header. Ein Kontakt bekommt also höchstens einen Bestätigungslink am Tag von einer Statusseite, wie oft er auch eingetragen wird. Ist der Link abgelaufen, hält das Abonnement seinen Kontakt nicht mehr: Eine neue Anmeldung oder das Hinzufügen des Kontakts durch Ihr Team ersetzt es, und eine Anmeldung bekommt einen neuen Link. Wer einen Kontakt zuerst einträgt, kann seinen Inhaber nicht vom Abonnieren abhalten: Der Link geht an den Inhaber, und einen Tag später kann er einen eigenen bekommen. Links, die vor dieser Änderung gesendet wurden, gelten ebenfalls 24 Stunden nach ihrer Anmeldung.
 
@@ -164,13 +165,13 @@ Eine SMS trägt denselben Link, von einer öffentlichen Statusseite wie von eine
 
 Das SMS-Protokoll (der Reiter **SMS** unter **Benachrichtigungsprotokolle**, auf der Statusseite und in den Einstellungen des Projekts) speichert den Text jeder SMS, und mehr Projektmitglieder können es lesen, als Abonnenten verwalten dürfen. Deshalb zeigt das Protokoll einen Abmelde- oder Verwaltungslink, dessen Token durch `[redacted]` ersetzt ist, zum Beispiel `{statusPageUrl}/unsubscribe/{statusPageSubscriberId}-[redacted]`. Nur das eigene Telefon des Abonnenten bekommt den funktionierenden Link. Auch die API gibt das Token eines neuen Abonnenten nie zurück, nicht einmal in der Antwort auf die Anfrage, die ihn angelegt hat.
 
-**Den Link zu öffnen ändert nichts.** Die Seite zeigt Name und Logo der Statusseite und das Abonnement, zu dem der Link gehört: eine E-Mail-Adresse vollständig, eine Telefonnummer bis auf die letzten vier Ziffern maskiert, den Namen eines Slack- oder Microsoft-Teams-Arbeitsbereichs oder den Host eines Webhooks. Sie fragt *Möchten Sie keine Benachrichtigungen mehr von dieser Statusseite erhalten?*, und erst ein Klick auf **Abbestellen** kündigt das Abonnement, sodass Mail-Scanner und Link-Vorschauen, die jeden Link einer Nachricht öffnen, niemanden abmelden können. Sonst wird nichts von der Seite gezeigt, und keines ihrer eigenen JavaScripts läuft. Zweimal zu bestätigen oder den Link eines bereits gekündigten Abonnements zu öffnen, sagt nur, dass es gekündigt ist. Auf einer öffentlichen Statusseite verlinkt die Abmeldeseite außerdem auf die Seite **Abonnement aktualisieren** des Abonnenten, um stattdessen auszuwählen, welche Benachrichtigungen er bekommt.
+**Den Link zu öffnen ändert nichts.** Die Seite zeigt Name und Logo der Statusseite und das Abonnement, zu dem der Link gehört: eine E-Mail-Adresse vollständig, eine Telefonnummer bis auf die letzten vier Ziffern maskiert, den Namen eines Slack- oder Microsoft-Teams-Arbeitsbereichs oder den Host eines Webhooks. Sie fragt _Möchten Sie keine Benachrichtigungen mehr von dieser Statusseite erhalten?_, und erst ein Klick auf **Abbestellen** kündigt das Abonnement, sodass Mail-Scanner und Link-Vorschauen, die jeden Link einer Nachricht öffnen, niemanden abmelden können. Sonst wird nichts von der Seite gezeigt, und keines ihrer eigenen JavaScripts läuft. Zweimal zu bestätigen oder den Link eines bereits gekündigten Abonnements zu öffnen, sagt nur, dass es gekündigt ist. Auf einer öffentlichen Statusseite verlinkt die Abmeldeseite außerdem auf die Seite **Abonnement aktualisieren** des Abonnenten, um stattdessen auszuwählen, welche Benachrichtigungen er bekommt.
 
 Die Seite **Abonnement aktualisieren**, `{statusPageUrl}/update-subscription/{statusPageSubscriberId}-{token}`, öffnet sich ebenfalls nur mit dem Token des Abonnements: Die ID des Abonnenten allein öffnet nichts. Sie trägt den Titel **Abonnement aktualisieren** und sagt dem Besucher, dass er dort seine Einstellungen ändern oder sich abmelden kann. Sie enthält:
 
 - Die Auswahlfelder für Ressourcen und Ereignistypen, die die Seite erlaubt.
 - Einen Schalter **Abbestellen**, beschrieben als Abmeldung von allen Ressourcen. Er schreibt **Ist abgemeldet** (`isUnsubscribed`, Standard false).
-- Einen Absendeknopf **Abonnement aktualisieren**; nach dem Speichern erscheint *Ihre Änderungen wurden gespeichert.*
+- Einen Absendeknopf **Abonnement aktualisieren**; nach dem Speichern erscheint _Ihre Änderungen wurden gespeichert._
 
 Auf einer privaten Statusseite braucht sie einen angemeldeten Besucher, wie der Rest der Seite. Wie die Abmeldeseite führt sie keines der eigenen JavaScripts der Seite aus, und sie zeigt statt eigenem Header- oder Footer-HTML den normalen Header und die normale Fußzeile. Wer den Link verloren hat, nutzt **Bestehendes Abonnement verwalten** auf der Seite **Abonnieren** und drückt **Verwaltungslink senden**. Der Link geht an das Abonnement selbst – an seine E-Mail-Adresse, seine Telefonnummer oder seinen Slack- oder Microsoft-Teams-Kanal –, nie an eine Adresse aus der Anfrage, und die Seite antwortet gleich, ob ein Abonnement passte oder nicht, sodass sich damit nicht herausfinden lässt, wer abonniert hat. Diese Nachricht verlinkt auf die Seite **Abonnement aktualisieren** und gibt einer eigenen Vorlage beide Links: `manageSubscriptionUrl` und `unsubscribeUrl`.
 
@@ -331,13 +332,13 @@ als Body von `PUT /api/status-page-announcement/<announcement-id>` (oder `incide
 
 Jede Abonnentenbenachrichtigung hat einen eigenen Status neben dem, worum es geht. Bei einem Vorfall ist das seine Benachrichtigung „erstellt“ auf der **Übersicht** des Vorfalls, jede Zeile seiner **Zustands-Zeitachse**, jede öffentliche Notiz und sein **Postmortem**. Geplante Wartungsereignisse und Ankündigungen zeigen ihre genauso, und Vorfall-Episoden an ihren öffentlichen Notizen. Klicken Sie auf den Status, um seine Meldung zu lesen, die sagt, was passiert ist. Öffentliche Notizen zeigen den Status als Badge mit eigenem Wortlaut:
 
-| Status | An einer öffentlichen Notiz | Was es bedeutet |
-| --- | --- | --- |
-| **Wird bald gesendet** | **Abonnenten werden in Kürze benachrichtigt** | Eingereiht. Der Job, der sie verschickt, läuft jede Minute. |
-| **Benachrichtigungen werden gesendet** | **Abonnenten werden benachrichtigt** | Der Job arbeitet die Abonnenten ab. |
-| **Gesendete Benachrichtigungen** | **Abonnenten benachrichtigt** | Sie ist rausgegangen. Was das heißt, steht unten. |
-| **Fehlgeschlagen** | **Benachrichtigung fehlgeschlagen** | Nicht jeder Abonnent hat sie bekommen, oder der Versand hat aufgehört. Die Meldung sagt, was verschickt wurde und was **Wiederholen** tut. |
-| **Benachrichtigungen übersprungen.** | **Abonnenten nicht benachrichtigt** | Es sollte nichts verschickt werden, zum Beispiel weil der Vorfall auf Statusseiten ausgeblendet ist. Die Meldung sagt, warum. |
+| Status                                 | An einer öffentlichen Notiz                   | Was es bedeutet                                                                                                                            |
+| -------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Wird bald gesendet**                 | **Abonnenten werden in Kürze benachrichtigt** | Eingereiht. Der Job, der sie verschickt, läuft jede Minute.                                                                                |
+| **Benachrichtigungen werden gesendet** | **Abonnenten werden benachrichtigt**          | Der Job arbeitet die Abonnenten ab.                                                                                                        |
+| **Gesendete Benachrichtigungen**       | **Abonnenten benachrichtigt**                 | Sie ist rausgegangen. Was das heißt, steht unten.                                                                                          |
+| **Fehlgeschlagen**                     | **Benachrichtigung fehlgeschlagen**           | Nicht jeder Abonnent hat sie bekommen, oder der Versand hat aufgehört. Die Meldung sagt, was verschickt wurde und was **Wiederholen** tut. |
+| **Benachrichtigungen übersprungen.**   | **Abonnenten nicht benachrichtigt**           | Es sollte nichts verschickt werden, zum Beispiel weil der Vorfall auf Statusseiten ausgeblendet ist. Die Meldung sagt, warum.              |
 
 ### Wie ein Versand gezählt wird
 
@@ -391,11 +392,11 @@ Projektweite Vorlagen liegen eine Ebene höher, unter **Statusseiten → Einstel
 
 In OneUptime Cloud sind Vorlagen für Abonnentenbenachrichtigungen eine Funktion des Tarifs **Scale**; selbst gehostete Installationen haben keine Tariflimits. Eine Vorlage wird erst verwendet, wenn sie auf dem Reiter **Benachrichtigungsvorlagen** einer Seite mit dieser Statusseite verknüpft ist, und zwei Kanäle brauchen außerdem, dass die Seite über Ihren eigenen Anbieter sendet:
 
-| Kanal | Eine verknüpfte Vorlage wird verwendet, wenn die Seite hat |
-| --- | --- |
-| **E-Mail** | eine **Benutzerdefinierte SMTP-Konfiguration** (siehe [unten](#e-mail-fußzeile-eigenes-smtp-und-twilio)) |
-| **SMS** | eine **Twilio-Konfiguration** |
-| **Slack** und **Microsoft Teams** | nichts weiter |
+| Kanal                             | Eine verknüpfte Vorlage wird verwendet, wenn die Seite hat                                               |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| **E-Mail**                        | eine **Benutzerdefinierte SMTP-Konfiguration** (siehe [unten](#e-mail-fußzeile-eigenes-smtp-und-twilio)) |
+| **SMS**                           | eine **Twilio-Konfiguration**                                                                            |
+| **Slack** und **Microsoft Teams** | nichts weiter                                                                                            |
 
 Ohne sie sendet die Seite ihre Standard-E-Mail oder -SMS. Lässt sich eine verknüpfte E-Mail- oder SMS-Vorlage aus diesem Grund nicht verwenden, sagt der Reiter **Benachrichtigungsvorlagen** das mit **Benutzerdefinierte Vorlagen erfordern Konfiguration**. Eigene SMTP- und Twilio-Konfigurationen brauchen den Tarif **Growth** oder höher. Webhook-Abonnenten bekommen immer die Standard-JSON-Nutzlast.
 
@@ -405,10 +406,10 @@ Nichts davon ist nötig, um benutzerdefinierte Vorfallfelder in Nachrichten zu b
 
 Vorlagen für die fünf Vorfall-Ereignistypen – **Subscriber Incident Created**, **Subscriber Incident State Changed**, **Subscriber Incident Note Created**, **Subscriber Incident Note Updated** und **Subscriber Incident Postmortem Published** – können zusätzlich zu ihren eigenen Variablen diese verwenden:
 
-| Variable | Gefüllt mit |
-| --- | --- |
-| `{{incidentLabels}}` | Den Beschriftungen des Vorfalls, durch Kommas getrennt. |
-| `{{affectedStatusPages}}` | Den Namen aller Statusseiten, auf denen der Vorfall erscheint, durch Kommas getrennt. |
+| Variable                          | Gefüllt mit                                                                                                                                                                      |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `{{incidentLabels}}`              | Den Beschriftungen des Vorfalls, durch Kommas getrennt.                                                                                                                          |
+| `{{affectedStatusPages}}`         | Den Namen aller Statusseiten, auf denen der Vorfall erscheint, durch Kommas getrennt.                                                                                            |
 | `{{incident.customFields.<key>}}` | Dem Wert eines benutzerdefinierten Vorfallfelds, nach der **Vorlagenvariable** des Felds, ob das Feld mit **In Abonnentenbenachrichtigungen aufnehmen** markiert ist oder nicht. |
 
 Der Schlüssel ist die **Vorlagenvariable** des Felds, die sich nicht ändert, wenn das Feld umbenannt wird; das Vorlagenformular listet die benutzerdefinierten Vorfallfelder des Projekts, jedes mit seiner Variable, unter dem Vorlagentext auf (siehe [Variablen einfügen](#variablen-einfügen)). Vorlagen, die mit dem älteren `{{customFields.<key>}}` gespeichert sind, werden genauso gefüllt. Ein Feld ohne Wert beim Vorfall bleibt leer. Im Text einer E-Mail wird ein einfaches Feld wie jeder andere Wert maskiert, während ein Rich-Text-, Langtext- oder Datum-mit-Uhrzeit-Feld als HTML eingesetzt wird: formatiertes Markdown, seine Zeilen oder eine Zeile pro Abonnenten-Zeitzone. Die eingebetteten Bilder eines Rich-Text-Felds werden für die Empfänger sichtbar gemacht.
@@ -459,7 +460,7 @@ Der Überprüfungsschritt zeigt dieselbe Zeile. **Aus Vorlage erstellen** füllt
 
 Die eigene Seite der Ankündigung bearbeitet sie in denselben zwei Schritten. **Abonnenten über diese Aktualisierung benachrichtigen** steht unter der Beschreibung (siehe [Abonnenten über eine Bearbeitung informieren](#abonnenten-über-eine-bearbeitung-informieren)), und **Zeitplan** enthält Beginn und Ende. Ein Ende zu setzen, das schon vorbei ist, ist der Weg, eine Ankündigung herunterzunehmen.
 
-Besucher lesen Ankündigungen unter `/announcements`, aufgeteilt in **Aktive Ankündigungen** und **Vergangene Ankündigungen**, jede mit **Angekündigt am** versehen. Gerade laufende Ankündigungen sind außerdem oben auf der Übersichtsseite angeheftet. Gibt es nichts zu zeigen, lautet die Seite *Keine Ankündigungen* mit dem Hinweis, dass bisher keine veröffentlicht wurden.
+Besucher lesen Ankündigungen unter `/announcements`, aufgeteilt in **Aktive Ankündigungen** und **Vergangene Ankündigungen**, jede mit **Angekündigt am** versehen. Gerade laufende Ankündigungen sind außerdem oben auf der Übersichtsseite angeheftet. Gibt es nichts zu zeigen, lautet die Seite _Keine Ankündigungen_ mit dem Hinweis, dass bisher keine veröffentlicht wurden.
 
 Anhänge werden über `GET {statusPageCrudPath}/status-page-announcement/attachment/:statusPageId/:announcementId/:fileId` ausgeliefert, hinter derselben Leseprüfung wie die Statusseite selbst – ein Anhang auf einer privaten Seite bleibt also privat.
 
@@ -498,8 +499,9 @@ Wird ein Webhook-Abonnement bei der Anmeldung abgelehnt, ist eine interne oder f
 ## Nächste Schritte
 
 :::cards
+
 - [Statusseiten – Übersicht](/docs/status-pages/index): Was eine Statusseite ist und wie sie aufgebaut ist.
 - [Statusseiten – Ressourcen & Gruppen](/docs/status-pages/resources-and-groups): Die Monitore und Gruppen, zwischen denen Abonnenten wählen.
 - [Eine Statusseite pro Zielgruppe](/docs/status-pages/one-status-page-per-audience): Einen Vorfall auf die Seiten beschränken, deren Abonnenten davon erfahren sollen.
 - [Statusseiten – Branding & Domains](/docs/status-pages/branding-and-domains): Das Aussehen der Seite, auf die Ihre Nachrichten verlinken.
-:::
+  :::

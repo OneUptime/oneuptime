@@ -3,11 +3,12 @@
 OneUptime creates a RUM application the first time your app's telemetry arrives. This page covers what you manage after that: the application's name, its labels and owners, how long its data is kept, archiving, who can see it, and alerts.
 
 :::cards
+
 - [How an application is created](#how-an-application-is-created): Matched by `service.name`, created on its first batch.
 - [Labels](#labels): Group applications and decide who can reach them.
 - [Retention](#retention): How long telemetry and recordings are kept.
 - [Permissions](#permissions): Who can see applications, and who can watch recordings.
-:::
+  :::
 
 ## How an application is created
 
@@ -35,6 +36,7 @@ The **Display Name** starts out as the `service.name`. To change it, open the ap
 Create an application yourself when you want its labels, owners or replay policy in place before the first visitor arrives.
 
 :::steps
+
 #### Open the application list
 
 Go to **Products → Resources → Real User Monitoring** and click **Create RUM Application**.
@@ -62,11 +64,11 @@ An application shows **Connected** while telemetry arrives and **Disconnected** 
 
 Labels group applications in lists and filters. They also decide what a member restricted to some labels can reach: such a member sees only the applications that carry one of those labels. An application gets its labels in three ways:
 
-| How | Where |
-| --- | --- |
-| By hand | On the create form, under **More fields**, or later with **Edit Details** on the **Application Details** card of the application's **Settings** page. For several at once, select them in the list and choose **Add Labels** under **Bulk Actions**. |
-| From telemetry | A resource attribute named `oneuptime.label.<name>` adds the label `<name>:<value>`, as shown below. |
-| From a label rule | A rule adds labels to every new application it matches. See [Label rules and owner rules](#label-rules-and-owner-rules). |
+| How               | Where                                                                                                                                                                                                                                                |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| By hand           | On the create form, under **More fields**, or later with **Edit Details** on the **Application Details** card of the application's **Settings** page. For several at once, select them in the list and choose **Add Labels** under **Bulk Actions**. |
+| From telemetry    | A resource attribute named `oneuptime.label.<name>` adds the label `<name>:<value>`, as shown below.                                                                                                                                                 |
+| From a label rule | A rule adds labels to every new application it matches. See [Label rules and owner rules](#label-rules-and-owner-rules).                                                                                                                             |
 
 Set the attributes on the same resource as `service.name`, for example in the `src/telemetry.ts` file from [Browser Setup](/docs/rum/browser-setup):
 
@@ -99,10 +101,10 @@ Owners are the people and teams responsible for an application. Owner rules add 
 
 An application's telemetry and its recordings are kept for different lengths of time:
 
-| Data | Kept for | Set on |
-| --- | --- | --- |
-| Logs, metrics, traces and profiles | The project's retention, unless the application overrides it | The application's **Settings** page |
-| Session Replay recordings | 7 days by default, or 1, 14, 30 or 90 days | **Replay Policy**, with **Edit Policy → Limits** |
+| Data                               | Kept for                                                     | Set on                                           |
+| ---------------------------------- | ------------------------------------------------------------ | ------------------------------------------------ |
+| Logs, metrics, traces and profiles | The project's retention, unless the application overrides it | The application's **Settings** page              |
+| Session Replay recordings          | 7 days by default, or 1, 14, 30 or 90 days                   | **Replay Policy**, with **Edit Policy → Limits** |
 
 ### Telemetry retention
 
@@ -139,17 +141,17 @@ To erase one person's data rather than a whole application, file an erasure requ
 
 Anyone with the project's Viewer role can see RUM applications and their telemetry. Session Replay is deliberately not part of that role: listing recordings, watching one and reading who watched are separate permissions. Project owners and admins hold them all. The permission pickers list each permission by its title, shown here in italics.
 
-| Permission | Lets a member |
-| --- | --- |
-| `ReadRumApplication` (_Read RUM Application_) | See applications and their telemetry pages. |
-| `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication` | Add, edit and delete applications. |
-| `ReadRumSessionReplay` (_List Session Replays_) | List recorded sessions and their details, without playing them or learning who the user was. |
-| `ReadRumSessionReplayPayload` (_Watch Session Replays_) | Play recordings back, and read the identified user's reference and traits. |
-| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | Read the **Replay Access Log**: who watched which recording. |
-| `DeleteRumSessionReplay` (_Delete Session Replays_) | Delete recordings. |
-| `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest` | File erasure requests and follow them. |
-| `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` (and their Create, Edit and Delete) | Manage label rules and owner rules. |
-| `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` (and their Create, Edit and Delete) | Add and remove owners through the API. |
+| Permission                                                                                       | Lets a member                                                                                |
+| ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| `ReadRumApplication` (_Read RUM Application_)                                                    | See applications and their telemetry pages.                                                  |
+| `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication`                             | Add, edit and delete applications.                                                           |
+| `ReadRumSessionReplay` (_List Session Replays_)                                                  | List recorded sessions and their details, without playing them or learning who the user was. |
+| `ReadRumSessionReplayPayload` (_Watch Session Replays_)                                          | Play recordings back, and read the identified user's reference and traits.                   |
+| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_)                                        | Read the **Replay Access Log**: who watched which recording.                                 |
+| `DeleteRumSessionReplay` (_Delete Session Replays_)                                              | Delete recordings.                                                                           |
+| `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest`                                 | File erasure requests and follow them.                                                       |
+| `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` (and their Create, Edit and Delete) | Manage label rules and owner rules.                                                          |
+| `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` (and their Create, Edit and Delete) | Add and remove owners through the API.                                                       |
 
 A useful split: give a support engineer `ReadRumApplication` and `ReadRumSessionReplay`. They can see which sessions hit errors without watching anyone's screen or learning who the user was. Give `ReadRumSessionReplayPayload` only to the people who need it; members with `ReadRumSessionReplayAudit` then see every playback on the application's **Replay Access Log** page. [Who can watch a recording](/docs/telemetry/session-replay#who-can-watch-a-recording) shows what each permission unlocks in the session list and the player.
 
@@ -157,11 +159,11 @@ A useful split: give a support engineer `ReadRumApplication` and `ReadRumSession
 
 RUM telemetry is ordinary logs, metrics and traces, so there is no separate RUM monitor: the usual monitors work on it. The quickest start is the application's **Recommendations** page, which offers monitors already scoped to the application:
 
-| Group | Recommendations |
-| --- | --- |
-| Core Web Vitals | Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint and Slow Time to First Byte. See [Core Web Vitals](/docs/rum/web-vitals). |
-| Errors | Failed User Operations, and Unhandled Browser Exceptions. |
-| Session Replay | The four [storage budget alerts](/docs/telemetry/session-replay#storage-budget-alerts), which warn before the project's daily limit or the application's monthly budget runs out. They are offered once the application has recorded a replay, and the monthly pair once it also has a monthly budget. |
+| Group           | Recommendations                                                                                                                                                                                                                                                                                        |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Core Web Vitals | Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint and Slow Time to First Byte. See [Core Web Vitals](/docs/rum/web-vitals).                                                                                                     |
+| Errors          | Failed User Operations, and Unhandled Browser Exceptions.                                                                                                                                                                                                                                              |
+| Session Replay  | The four [storage budget alerts](/docs/telemetry/session-replay#storage-budget-alerts), which warn before the project's daily limit or the application's monthly budget runs out. They are offered once the application has recorded a replay, and the monthly pair once it also has a monthly budget. |
 
 To build a monitor of your own, pick the one that reads the signal:
 
@@ -175,8 +177,9 @@ Scope a monitor you build to the application, so that a backend service with a s
 ## Next steps
 
 :::cards
+
 - [Session Replay](/docs/telemetry/session-replay): Record what users saw, with its own policy and retention.
 - [Label and Owner Rules](/docs/configuration/label-and-owner-rules): Both rule forms, step by step.
 - [Run Rules on Existing Resources](/docs/configuration/run-rules-now): Apply a new rule to the applications you already have.
 - [RUM Troubleshooting](/docs/rum/troubleshooting): When an application is missing, empty or Disconnected.
-:::
+  :::

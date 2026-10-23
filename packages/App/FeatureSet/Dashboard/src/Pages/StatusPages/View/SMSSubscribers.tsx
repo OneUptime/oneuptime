@@ -1,5 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
-import useSubscriberBulkActions from "../../../Components/StatusPage/useSubscriberBulkActions";
+import useSubscriberBulkActions, {
+  getSubscriberName,
+} from "../../../Components/StatusPage/useSubscriberBulkActions";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -440,6 +442,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
               tableId: "status-page-sms-subscribers-table",
             }}
             isDeleteable={true}
+            // Each row by what the list shows first (useSubscriberBulkActions).
+            getItemName={getSubscriberName}
             bulkActions={{
               buttons: [...subscriberBulkActions],
             }}

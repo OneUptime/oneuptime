@@ -3,11 +3,12 @@
 Det här behöver du veta innan du riktar ett arbetsflöde mot riktig trafik: hur du slår på det säkert, vem som får göra vad, hur hemligheter och URL:er förblir privata, vad ett arbetsflödes steg får ändra och de gränser som varje körning arbetar inom.
 
 :::cards
+
 - [Gå live](#slå-på-eller-av-ett-arbetsflöde): Testa med Kör arbetsflöde medan det är avstängt och slå sedan på det.
 - [Behörigheter](#behörigheter): Arbetsflödesrollerna och de enskilda behörigheterna bakom dem.
 - [Vad steg får göra](#vad-arbetsflödessteg-får-göra): Steg agerar som Project Admin i arbetsflödets projekt.
 - [Gränser](#plangränser): Körningar per plan, körtid och anrop mellan arbetsflöden.
-:::
+  :::
 
 ## Slå på eller av ett arbetsflöde
 
@@ -16,11 +17,12 @@ Varje arbetsflöde har en brytare, **Aktiverad**, högst upp i sin **Byggare** o
 Använd den här brytaren som din ”redo att köra”-spärr:
 
 :::steps
+
 1. Bygg arbetsflödet.
 2. Klicka på **Kör arbetsflöde** i **Byggare** med realistiska värden, medan arbetsflödet fortfarande är avstängt. Körningen är en **Testkörning**: varje block körs på riktigt, så rikta det först mot en testkanal eller en testpost.
 3. Öppna körningen och kontrollera att varje block gick dit du förväntade dig. Se [Körningar](/docs/workflows/runs-and-logs).
 4. Slå på **Aktiverad** när det är klart: därefter aktiveras dess utlösare av riktiga händelser.
-:::
+   :::
 
 Att slå av ett arbetsflöde hindrar dess utlösare från att starta nya körningar. En körning som redan pågår gör klart, men en körning som dess utlösare startade och som väntar vid ett **Sleep**-block avbryts när den vaknar. Testkörningar fortsätter. För att slå på eller av flera på en gång markerar du dem i listan **Arbetsflöden** och väljer **Aktivera** eller **Inaktivera** under **Massåtgärder**.
 
@@ -43,12 +45,12 @@ Ett exporterat arbetsflöde tar aldrig med sitt arkiverade läge, så en importe
 
 ## Ägare och etiketter
 
-| Vad               | Var                                                | Vad det gör                                                                                                                                               |
-| ----------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Ägare**         | Arbetsflödets sida **Ägare**                       | Användarna och teamen som ansvarar för arbetsflödet. En roll som är begränsad till det dess team äger når de arbetsflöden som det teamet äger.             |
-| **Etiketter**     | Arbetsflödets sida **Översikt**                    | Märkningar för att gruppera arbetsflöden efter team, integration eller miljö. Filtrera listan **Arbetsflöden** på etikett och begränsa en roll till vissa etiketter. |
-| **Etikettregler** | **Arbetsflöden → Inställningar → Etikettregler**   | Sätt etiketter på nya arbetsflöden automatiskt, utifrån mönster i deras namn eller beskrivning.                                                           |
-| **Ägarregler**    | **Arbetsflöden → Inställningar → Ägarregler**      | Tilldela ägare till nya arbetsflöden automatiskt.                                                                                                         |
+| Vad               | Var                                              | Vad det gör                                                                                                                                                          |
+| ----------------- | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Ägare**         | Arbetsflödets sida **Ägare**                     | Användarna och teamen som ansvarar för arbetsflödet. En roll som är begränsad till det dess team äger når de arbetsflöden som det teamet äger.                       |
+| **Etiketter**     | Arbetsflödets sida **Översikt**                  | Märkningar för att gruppera arbetsflöden efter team, integration eller miljö. Filtrera listan **Arbetsflöden** på etikett och begränsa en roll till vissa etiketter. |
+| **Etikettregler** | **Arbetsflöden → Inställningar → Etikettregler** | Sätt etiketter på nya arbetsflöden automatiskt, utifrån mönster i deras namn eller beskrivning.                                                                      |
+| **Ägarregler**    | **Arbetsflöden → Inställningar → Ägarregler**    | Tilldela ägare till nya arbetsflöden automatiskt.                                                                                                                    |
 
 Se [Etikett- och ägarregler](/docs/configuration/label-and-owner-rules) för hur reglerna matchar.
 
@@ -118,11 +120,11 @@ API-block och andra HTTP-block gör sina förfrågningar från OneUptime, och IR
 
 Vilka adresser ett block får nå beror på blocket:
 
-| Block                                                          | Loopback, link-local, molnmetadata                                           | Privata nätverksadresser                                                                                                                          |
-| -------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Block                                                                               | Loopback, link-local, molnmetadata                                            | Privata nätverksadresser                                                                                                                                      |
+| ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **API**- och **Mattermost**-block samt förfrågningar från **Run Custom JavaScript** | Avvisas, om inte den exakta värden står i `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Avvisas, om inte en administratör för en självhostad installation tillåter dem med `ALLOW_PRIVATE_NETWORK_WEBHOOKS` eller `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
-| **Send Email**, **IRC** och OAuth 2.0-token-URL:er             | Avvisas                                                                      | Avvisas i OneUptime Cloud. Tillåts på en självhostad installation, om inte `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` är `true`                       |
-| Slack, Microsoft Teams, Discord och Telegram                   | Avvisas                                                                      | Avvisas: vart och ett skickar bara till sin egen tjänsts adresser                                                                                 |
+| **Send Email**, **IRC** och OAuth 2.0-token-URL:er                                  | Avvisas                                                                       | Avvisas i OneUptime Cloud. Tillåts på en självhostad installation, om inte `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` är `true`                                    |
+| Slack, Microsoft Teams, Discord och Telegram                                        | Avvisas                                                                       | Avvisas: vart och ett skickar bara till sin egen tjänsts adresser                                                                                             |
 
 Se [Åtkomst till privata nätverk](/docs/self-hosted/private-network-access) för hur en administratör för en självhostad installation öppnar för dem.
 
@@ -149,13 +151,13 @@ Vad blocket kräver, och vad det kostar:
 - Anrop via en global leverantör med kostnad använder projektets AI-krediter.
 - Varje anrop räknas mot [projektets egna dagliga AI-gränser](/docs/ai/ai-sre#projektets-egna-dagliga-gränser), när en projektägare anger dem. När en gräns är nådd tar blocket **Error** utan att kontakta modellen, fram till midnatt UTC.
 
-| Gräns                                                         | Värde                                                                    |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| **System Instructions**, **Prompt** och **Context** tillsammans | 50 000 tecken                                                          |
-| **Temperature**                                               | Från `0` till `1`                                                        |
-| **Maximum Output Tokens**                                     | Från `1` till `4096`, `1024` som standard                                |
-| En förfrågan                                                  | Görs en gång, i högst 60 sekunder                                        |
-| Anrop samtidigt                                               | 3 per projekt. Fler tar **Error**, och en senare körning kan försöka igen. |
+| Gräns                                                           | Värde                                                                      |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **System Instructions**, **Prompt** och **Context** tillsammans | 50 000 tecken                                                              |
+| **Temperature**                                                 | Från `0` till `1`                                                          |
+| **Maximum Output Tokens**                                       | Från `1` till `4096`, `1024` som standard                                  |
+| En förfrågan                                                    | Görs en gång, i högst 60 sekunder                                          |
+| Anrop samtidigt                                                 | 3 per projekt. Fler tar **Error**, och en senare körning kan försöka igen. |
 
 Fel i validering, konfiguration, åtkomst, gränser, krediter, samtidighet, leverantör och tidsgräns tar alla vägen **Error**, med orsaken i **Error**. Koppla den vägen innan arbetsflödet går live.
 
@@ -200,7 +202,7 @@ De steg som läser och ändrar OneUptime-poster — komponenterna Find, Create, 
   - att ändra vilken post en post tillhör efter att den har skapats, som den monitor en ägarrad gäller eller den incident en anteckning står på.
 - **Som ingen person.** En post som ett arbetsflöde skapar namnger ingen skapare, och granskningsloggen anger arbetsflödet, med dess namn vid den tidpunkten, som den som gjorde ändringen.
 
-När en kontroll avvisar ett steg tar steget sin utgång **Error** utan att göra den avvisade ändringen, och körningens logg nämner steget och orsaken i klartext, till exempel *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Läs den under arbetsflödets [Körningar](/docs/workflows/runs-and-logs). Ett Create Many-steg skapar sina poster en i taget och stannar vid den första som avvisas: posterna det skapade före den behålls.
+När en kontroll avvisar ett steg tar steget sin utgång **Error** utan att göra den avvisade ändringen, och körningens logg nämner steget och orsaken i klartext, till exempel _"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …_. Läs den under arbetsflödets [Körningar](/docs/workflows/runs-and-logs). Ett Create Many-steg skapar sina poster en i taget och stannar vid den första som avvisas: posterna det skapade före den behålls.
 
 Steg som pratar med andra system — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code och Generate Text with AI — läser eller ändrar inte OneUptime-poster, så inget av detta ändrar något för dem.
 
@@ -218,11 +220,11 @@ Fönstret är rullande: varje körning som projektet registrerar, manuellt eller
 
 ## Hur länge en körning får ta
 
-| Gräns                                                             | Standard       | Inställning vid självhosting    |
-| ----------------------------------------------------------------- | -------------- | ------------------------------- |
-| En körning, från starten eller från att den vaknar efter en **Sleep** | 2 minuter  | `WORKFLOW_TIMEOUT_IN_MS`        |
-| Ett **Run Custom JavaScript**-block                               | 5 sekunder     | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
-| Ett **Sleep**-block                                               | Högst 30 dagar | —                               |
+| Gräns                                                                 | Standard       | Inställning vid självhosting    |
+| --------------------------------------------------------------------- | -------------- | ------------------------------- |
+| En körning, från starten eller från att den vaknar efter en **Sleep** | 2 minuter      | `WORKFLOW_TIMEOUT_IN_MS`        |
+| Ett **Run Custom JavaScript**-block                                   | 5 sekunder     | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
+| Ett **Sleep**-block                                                   | Högst 30 dagar | —                               |
 
 Körmotorn kontrollerar tidsfristen före och efter varje block och markerar en körning som har dragit över tiden som **Timeout** så snart kontrollen återkommer. Den kan inte avbryta ett block mitt i, så block som väntar på nätverket har egna tidsgränser: en förfrågan från Generate Text with AI ger upp efter högst 60 sekunder, och en OAuth 2.0-tokenförfrågan efter 20. Väntan vid ett **Sleep**-block räknas inte mot en körnings tid: körningen läggs åt sidan och får 2 nya minuter när den vaknar.
 
@@ -243,7 +245,8 @@ Några fall där du bör välja något annat:
 ## Nästa steg
 
 :::cards
+
 - [Översikt över arbetsflöden](/docs/workflows/index): Den stora bilden, och ett första arbetsflöde från början till slut.
 - [Komponenter](/docs/workflows/components): Vad varje block behöver, returnerar och får nå.
 - [Runbooks](/docs/runbooks/index): När människor behöver fatta besluten längs vägen.
-:::
+  :::

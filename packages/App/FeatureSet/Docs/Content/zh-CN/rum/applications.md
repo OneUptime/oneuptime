@@ -3,11 +3,12 @@
 当你的应用的遥测数据首次到达时，OneUptime 会创建一个 RUM 应用程序。本页介绍此后由你管理的内容：应用程序的名称、标签和所有者、数据保留多久、归档、谁能看到它，以及告警。
 
 :::cards
+
 - [应用程序是如何创建的](#应用程序是如何创建的): 按 `service.name` 匹配，随第一批数据创建。
 - [标签](#标签): 对应用程序分组，并决定谁能访问它们。
 - [保留](#保留): 遥测数据和录制保留多久。
 - [权限](#权限): 谁能查看应用程序，谁能观看录制。
-:::
+  :::
 
 ## 应用程序是如何创建的
 
@@ -35,6 +36,7 @@ flowchart TB
 如果你希望在第一位访客到来之前就准备好应用程序的标签、所有者或回放策略，可以自行创建应用程序。
 
 :::steps
+
 #### 打开应用程序列表
 
 前往 **产品 → 资源 → 真实用户监控** ，点击 **创建RUM 应用程序** 。
@@ -62,11 +64,11 @@ flowchart TB
 
 标签在列表和过滤器中对应用程序进行分组。它们还决定仅限部分标签的成员可以访问什么：这样的成员只能看到带有其中某个标签的应用程序。应用程序通过三种方式获得标签：
 
-| 方式 | 位置 |
-| --- | --- |
-| 手动 | 在创建表单的 **更多字段** 下，或之后在应用程序 **设置** 页面的 **应用程序详情** 卡片上通过 **编辑详情** 。 要一次为多个应用程序添加标签，请在列表中选中它们，选择 **Add Labels** ，它位于 **批量操作** 中。 |
-| 来自遥测 | 名为 `oneuptime.label.<name>` 的资源属性会添加标签 `<name>:<value>` ，如下所示。 |
-| 来自标签规则 | 规则会为它匹配的每个新应用程序添加标签。参见 [标签规则与所有者规则](#标签规则与所有者规则) 。 |
+| 方式         | 位置                                                                                                                                                                                                        |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 手动         | 在创建表单的 **更多字段** 下，或之后在应用程序 **设置** 页面的 **应用程序详情** 卡片上通过 **编辑详情** 。 要一次为多个应用程序添加标签，请在列表中选中它们，选择 **Add Labels** ，它位于 **批量操作** 中。 |
+| 来自遥测     | 名为 `oneuptime.label.<name>` 的资源属性会添加标签 `<name>:<value>` ，如下所示。                                                                                                                            |
+| 来自标签规则 | 规则会为它匹配的每个新应用程序添加标签。参见 [标签规则与所有者规则](#标签规则与所有者规则) 。                                                                                                               |
 
 在与 `service.name` 相同的资源上设置这些属性，例如在 [浏览器端设置](/docs/rum/browser-setup) 中的 `src/telemetry.ts` 文件里：
 
@@ -99,10 +101,10 @@ const resource = defaultResource().merge(
 
 应用程序的遥测数据和录制的保留时长不同：
 
-| 数据 | 保留时长 | 设置位置 |
-| --- | --- | --- |
-| 日志、指标、追踪和性能剖析 | 项目的保留期，除非应用程序覆盖了它 | 应用程序的 **设置** 页面 |
-| 会话回放录制 | 默认 7 天，或 1、14、30、90 天 | **Replay Policy** ，通过 **Edit Policy → Limits** |
+| 数据                       | 保留时长                           | 设置位置                                          |
+| -------------------------- | ---------------------------------- | ------------------------------------------------- |
+| 日志、指标、追踪和性能剖析 | 项目的保留期，除非应用程序覆盖了它 | 应用程序的 **设置** 页面                          |
+| 会话回放录制               | 默认 7 天，或 1、14、30、90 天     | **Replay Policy** ，通过 **Edit Policy → Limits** |
 
 ### 遥测数据保留
 
@@ -139,17 +141,17 @@ const resource = defaultResource().merge(
 
 拥有项目 Viewer 角色的任何人都可以查看 RUM 应用程序及其遥测数据。会话回放被有意排除在该角色之外：列出录制、观看录制和查看谁观看过录制，都是单独的权限。项目所有者和管理员拥有全部权限。权限选择器按标题列出每项权限，此处以斜体显示。
 
-| 权限 | 允许成员 |
-| --- | --- |
-| `ReadRumApplication` (_Read RUM Application_) | 查看应用程序及其遥测页面。 |
-| `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication` | 添加、编辑和删除应用程序。 |
-| `ReadRumSessionReplay` (_List Session Replays_) | 列出已录制的会话及其详情，但不能播放，也无法得知用户是谁。 |
-| `ReadRumSessionReplayPayload` (_Watch Session Replays_) | 播放录制，并读取已识别用户的引用和特征。 |
-| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | 读取 **Replay Access Log** ：谁观看了哪个录制。 |
-| `DeleteRumSessionReplay` (_Delete Session Replays_) | 删除录制。 |
-| `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest` | 提交擦除请求并跟进。 |
-| `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` （及其 Create、Edit 和 Delete） | 管理标签规则和所有者规则。 |
-| `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` （及其 Create、Edit 和 Delete） | 通过 API 添加和移除所有者。 |
+| 权限                                                                                         | 允许成员                                                   |
+| -------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `ReadRumApplication` (_Read RUM Application_)                                                | 查看应用程序及其遥测页面。                                 |
+| `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication`                         | 添加、编辑和删除应用程序。                                 |
+| `ReadRumSessionReplay` (_List Session Replays_)                                              | 列出已录制的会话及其详情，但不能播放，也无法得知用户是谁。 |
+| `ReadRumSessionReplayPayload` (_Watch Session Replays_)                                      | 播放录制，并读取已识别用户的引用和特征。                   |
+| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_)                                    | 读取 **Replay Access Log** ：谁观看了哪个录制。            |
+| `DeleteRumSessionReplay` (_Delete Session Replays_)                                          | 删除录制。                                                 |
+| `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest`                             | 提交擦除请求并跟进。                                       |
+| `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` （及其 Create、Edit 和 Delete） | 管理标签规则和所有者规则。                                 |
+| `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` （及其 Create、Edit 和 Delete） | 通过 API 添加和移除所有者。                                |
 
 一种实用的分工：给支持工程师 `ReadRumApplication` 和 `ReadRumSessionReplay` 。他们可以看到哪些会话出现了错误，而无需观看任何人的屏幕，也不会得知用户是谁。只把 `ReadRumSessionReplayPayload` 授予需要的人；这样，拥有 `ReadRumSessionReplayAudit` 的成员就能在应用程序的 **Replay Access Log** 页面上看到每一次观看。 [谁可以观看录制](/docs/telemetry/session-replay#谁可以观看录制) 说明了每项权限在会话列表和播放器中解锁了什么。
 
@@ -157,11 +159,11 @@ const resource = defaultResource().merge(
 
 RUM 遥测就是普通的日志、指标和追踪，因此没有单独的 RUM 监控器：常规监控器都适用于它。最快的入门方式是应用程序的 **Recommendations** 页面，它会提供已限定到该应用程序的监控器：
 
-| 分组 | 推荐 |
-| --- | --- |
-| Core Web Vitals | Poor Largest Contentful Paint、Poor Interaction to Next Paint、Poor Cumulative Layout Shift、Slow First Contentful Paint 和 Slow Time to First Byte。参见 [核心 Web 指标](/docs/rum/web-vitals) 。 |
-| 错误 | Failed User Operations 和 Unhandled Browser Exceptions。 |
-| 会话回放 | 四个 [存储预算告警](/docs/telemetry/session-replay#存储预算告警) ，会在项目的每日上限或应用程序的每月预算用尽之前发出警告。应用程序录制过回放后就会提供它们，月度那一对则在应用程序还设置了每月预算后提供。 |
+| 分组            | 推荐                                                                                                                                                                                                        |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Core Web Vitals | Poor Largest Contentful Paint、Poor Interaction to Next Paint、Poor Cumulative Layout Shift、Slow First Contentful Paint 和 Slow Time to First Byte。参见 [核心 Web 指标](/docs/rum/web-vitals) 。          |
+| 错误            | Failed User Operations 和 Unhandled Browser Exceptions。                                                                                                                                                    |
+| 会话回放        | 四个 [存储预算告警](/docs/telemetry/session-replay#存储预算告警) ，会在项目的每日上限或应用程序的每月预算用尽之前发出警告。应用程序录制过回放后就会提供它们，月度那一对则在应用程序还设置了每月预算后提供。 |
 
 要自己构建监控器，请选择读取相应信号的那种：
 
@@ -175,8 +177,9 @@ RUM 遥测就是普通的日志、指标和追踪，因此没有单独的 RUM �
 ## 后续步骤
 
 :::cards
+
 - [会话回放](/docs/telemetry/session-replay): 录制用户看到的内容，并拥有自己的策略和保留期。
 - [标签与所有者规则](/docs/configuration/label-and-owner-rules): 两种规则表单，逐步说明。
 - [对现有资源运行规则](/docs/configuration/run-rules-now): 将新规则应用到已有的应用程序。
 - [RUM 故障排除](/docs/rum/troubleshooting): 当应用程序缺失、为空或显示已断开时。
-:::
+  :::

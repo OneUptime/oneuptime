@@ -3,11 +3,12 @@
 OneUptime maakt een RUM-applicatie aan zodra de telemetrie van je app voor het eerst binnenkomt. Deze pagina behandelt wat je daarna beheert: de naam van de applicatie, de labels en eigenaren, hoelang de gegevens bewaard blijven, archiveren, wie de applicatie kan zien en waarschuwingen.
 
 :::cards
+
 - [Hoe een applicatie wordt aangemaakt](#hoe-een-applicatie-wordt-aangemaakt): Herkend aan de `service.name` en aangemaakt met de eerste batch.
 - [Labels](#labels): Groepeer applicaties en bepaal wie er toegang toe heeft.
 - [Bewaring](#bewaring): Hoelang telemetrie en opnamen bewaard blijven.
 - [Machtigingen](#machtigingen): Wie applicaties kan zien en wie opnamen kan bekijken.
-:::
+  :::
 
 ## Hoe een applicatie wordt aangemaakt
 
@@ -35,6 +36,7 @@ De **Weergavenaam** begint als de `service.name`. Om hem te wijzigen open je de 
 Maak zelf een applicatie aan wanneer je wilt dat de labels, eigenaren of het herhalingsbeleid klaarstaan voordat de eerste bezoeker komt.
 
 :::steps
+
 #### De lijst met applicaties openen
 
 Ga naar **Producten → Bronnen → Real User Monitoring** en klik op **RUM-applicatie aanmaken**.
@@ -62,11 +64,11 @@ Een applicatie toont **Verbonden** zolang er telemetrie binnenkomt en **Verbindi
 
 Labels groeperen applicaties in lijsten en filters. Ze bepalen ook waar een lid dat tot bepaalde labels beperkt is bij kan: dat lid ziet alleen de applicaties die een van die labels hebben. Een applicatie krijgt op drie manieren labels:
 
-| Hoe | Waar |
-| --- | --- |
-| Met de hand | In het aanmaakformulier, onder **Meer velden**, of later met **Details bewerken** op de kaart **Applicatiedetails** van de pagina **Instellingen** van de applicatie. Voor meerdere tegelijk selecteer je ze in de lijst en kies je **Add Labels** onder **Bulkacties**. |
-| Uit telemetrie | Een resource-attribuut met de naam `oneuptime.label.<name>` voegt het label `<name>:<value>` toe, zoals hieronder. |
-| Uit een labelregel | Een regel voegt labels toe aan elke nieuwe applicatie die eraan voldoet. Zie [Labelregels en eigenaarsregels](#labelregels-en-eigenaarsregels). |
+| Hoe                | Waar                                                                                                                                                                                                                                                                     |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Met de hand        | In het aanmaakformulier, onder **Meer velden**, of later met **Details bewerken** op de kaart **Applicatiedetails** van de pagina **Instellingen** van de applicatie. Voor meerdere tegelijk selecteer je ze in de lijst en kies je **Add Labels** onder **Bulkacties**. |
+| Uit telemetrie     | Een resource-attribuut met de naam `oneuptime.label.<name>` voegt het label `<name>:<value>` toe, zoals hieronder.                                                                                                                                                       |
+| Uit een labelregel | Een regel voegt labels toe aan elke nieuwe applicatie die eraan voldoet. Zie [Labelregels en eigenaarsregels](#labelregels-en-eigenaarsregels).                                                                                                                          |
 
 Zet de attributen op dezelfde resource als `service.name`, bijvoorbeeld in het bestand `src/telemetry.ts` uit [Browserconfiguratie](/docs/rum/browser-setup):
 
@@ -99,10 +101,10 @@ Eigenaren zijn de mensen en teams die verantwoordelijk zijn voor een applicatie.
 
 De telemetrie van een applicatie en haar opnamen worden verschillend lang bewaard:
 
-| Gegevens | Bewaard | Ingesteld op |
-| --- | --- | --- |
-| Logs, metrieken, traces en profielen | De bewaring van het project, tenzij de applicatie die overschrijft | De pagina **Instellingen** van de applicatie |
-| Opnamen van sessieherhalingen | Standaard 7 dagen, of 1, 14, 30 of 90 dagen | **Replay Policy**, met **Edit Policy → Limits** |
+| Gegevens                             | Bewaard                                                            | Ingesteld op                                    |
+| ------------------------------------ | ------------------------------------------------------------------ | ----------------------------------------------- |
+| Logs, metrieken, traces en profielen | De bewaring van het project, tenzij de applicatie die overschrijft | De pagina **Instellingen** van de applicatie    |
+| Opnamen van sessieherhalingen        | Standaard 7 dagen, of 1, 14, 30 of 90 dagen                        | **Replay Policy**, met **Edit Policy → Limits** |
 
 ### Bewaring van telemetrie
 
@@ -139,17 +141,17 @@ Om de gegevens van één persoon te verwijderen in plaats van een hele applicati
 
 Iedereen met de Viewer-rol van het project kan RUM-applicaties en hun telemetrie zien. Sessieherhaling valt bewust buiten die rol: opnamen opvragen, er een bekijken en lezen wie er een bekeek zijn aparte machtigingen. Projecteigenaren en -beheerders hebben ze allemaal. Machtigingskiezers tonen elke machtiging met haar titel, hier cursief weergegeven.
 
-| Machtiging | Laat een lid |
-| --- | --- |
-| `ReadRumApplication` (_Read RUM Application_) | Applicaties en hun telemetriepagina's bekijken. |
-| `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication` | Applicaties toevoegen, bewerken en verwijderen. |
-| `ReadRumSessionReplay` (_List Session Replays_) | Opgenomen sessies en hun details opvragen, zonder ze af te spelen of te weten wie de gebruiker was. |
-| `ReadRumSessionReplayPayload` (_Watch Session Replays_) | Opnamen afspelen en de referentie en kenmerken van de geïdentificeerde gebruiker lezen. |
-| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | Het **Replay Access Log** lezen: wie welke opname bekeek. |
-| `DeleteRumSessionReplay` (_Delete Session Replays_) | Opnamen verwijderen. |
-| `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest` | Wisverzoeken indienen en volgen. |
-| `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` (en hun Create, Edit en Delete) | Labelregels en eigenaarsregels beheren. |
-| `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` (en hun Create, Edit en Delete) | Eigenaren via de API toevoegen en verwijderen. |
+| Machtiging                                                                                   | Laat een lid                                                                                        |
+| -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `ReadRumApplication` (_Read RUM Application_)                                                | Applicaties en hun telemetriepagina's bekijken.                                                     |
+| `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication`                         | Applicaties toevoegen, bewerken en verwijderen.                                                     |
+| `ReadRumSessionReplay` (_List Session Replays_)                                              | Opgenomen sessies en hun details opvragen, zonder ze af te spelen of te weten wie de gebruiker was. |
+| `ReadRumSessionReplayPayload` (_Watch Session Replays_)                                      | Opnamen afspelen en de referentie en kenmerken van de geïdentificeerde gebruiker lezen.             |
+| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_)                                    | Het **Replay Access Log** lezen: wie welke opname bekeek.                                           |
+| `DeleteRumSessionReplay` (_Delete Session Replays_)                                          | Opnamen verwijderen.                                                                                |
+| `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest`                             | Wisverzoeken indienen en volgen.                                                                    |
+| `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` (en hun Create, Edit en Delete) | Labelregels en eigenaarsregels beheren.                                                             |
+| `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` (en hun Create, Edit en Delete) | Eigenaren via de API toevoegen en verwijderen.                                                      |
 
 Een handige verdeling: geef een supportmedewerker `ReadRumApplication` en `ReadRumSessionReplay`. Die kan dan zien welke sessies fouten hadden zonder iemands scherm te bekijken of te weten wie de gebruiker was. Geef `ReadRumSessionReplayPayload` alleen aan de mensen die het nodig hebben; leden met `ReadRumSessionReplayAudit` zien dan elke weergave op de pagina **Replay Access Log** van de applicatie. [Wie een opname kan bekijken](/docs/telemetry/session-replay#wie-een-opname-kan-bekijken) toont wat elke machtiging ontgrendelt in de sessielijst en de speler.
 
@@ -157,10 +159,10 @@ Een handige verdeling: geef een supportmedewerker `ReadRumApplication` en `ReadR
 
 RUM-telemetrie bestaat uit gewone logs, metrieken en traces, dus er is geen aparte RUM-monitor: de gebruikelijke monitors werken ermee. De snelste start is de pagina **Recommendations** van de applicatie, die monitors aanbiedt die al tot de applicatie beperkt zijn:
 
-| Groep | Aanbevelingen |
-| --- | --- |
-| Core Web Vitals | Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint en Slow Time to First Byte. Zie [Core Web Vitals](/docs/rum/web-vitals). |
-| Fouten | Failed User Operations en Unhandled Browser Exceptions. |
+| Groep           | Aanbevelingen                                                                                                                                                                                                                                                                                                                                        |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Core Web Vitals | Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint en Slow Time to First Byte. Zie [Core Web Vitals](/docs/rum/web-vitals).                                                                                                                                                    |
+| Fouten          | Failed User Operations en Unhandled Browser Exceptions.                                                                                                                                                                                                                                                                                              |
 | Sessieherhaling | De vier [waarschuwingen voor het opslagbudget](/docs/telemetry/session-replay#waarschuwingen-voor-het-opslagbudget), die waarschuwen voordat de daglimiet van het project of het maandbudget van de applicatie op is. Ze worden aangeboden zodra de applicatie een herhaling heeft opgenomen, en het maandpaar wanneer ze ook een maandbudget heeft. |
 
 Om je eigen monitor te maken kies je de monitor die het signaal leest:
@@ -175,8 +177,9 @@ Beperk elke monitor die je maakt tot de applicatie, zodat een backend-service me
 ## Volgende stappen
 
 :::cards
+
 - [Sessieherhaling](/docs/telemetry/session-replay): Neem op wat gebruikers zagen, met een eigen beleid en eigen bewaring.
 - [Label- en eigenaarsregels](/docs/configuration/label-and-owner-rules): De twee regelformulieren, stap voor stap.
 - [Regels uitvoeren op bestaande resources](/docs/configuration/run-rules-now): Pas een nieuwe regel toe op de applicaties die je al hebt.
 - [RUM-probleemoplossing](/docs/rum/troubleshooting): Wanneer een applicatie ontbreekt, leeg is of Verbinding verbroken toont.
-:::
+  :::

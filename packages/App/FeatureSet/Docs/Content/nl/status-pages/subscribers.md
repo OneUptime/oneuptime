@@ -7,11 +7,12 @@ Aankondigingen zijn de andere helft van hetzelfde werk. Een monitor kan uw bezoe
 Deze pagina behandelt beide: de vijf abonnementskanalen en hoe bezoekers zich aanmelden, waarover abonnees bericht kunnen kiezen te krijgen, de stromen voor dubbele opt-in en afmelden, het e-mailrapport dat abonnees elke maand kunnen krijgen, en hoe aankondigingen worden geschreven, gepland en als sjabloon worden opgeslagen.
 
 :::cards
+
 - [Abonnementskanalen](#abonnementskanalen): De kanalen waarop bezoekers zich kunnen aanmelden, en de pagina waarop ze dat doen.
 - [Wat abonnees te horen krijgen](#waarover-abonnees-bericht-krijgen): Aankondigingen, onderhoud, incidenten en episoden, en de bewerkingen daarvan.
 - [Controleren wat er is verzonden](#controleren-wat-er-is-verzonden): De status van elke melding, en Opnieuw proberen en Opnieuw verzenden.
 - [Aankondigingen](#aankondigingen): Een bericht plaatsen op een of meer statuspagina's.
-:::
+  :::
 
 ## Hoe het werkt
 
@@ -45,7 +46,7 @@ Op OneUptime Cloud staat bij een schakelaar die uw abonnement niet bevat de naam
 
 Elk kanaal heeft ook een eigen lijst in het zijmenu van de statuspagina, onder **Abonnees**: **E-mail-abonnees**, **SMS-abonnees**, **Slack-abonnees**, **Microsoft Teams-abonnees** en **Webhook-abonnees**. Daar ziet u wie er is aangemeld, voegt u iemand handmatig toe met **Abonnee toevoegen** of laat u voor uzelf een **Interne notitie** (`internalNote`) achter bij een bepaalde abonnee, die alleen uw team ziet. Zolang een kanaal uit staat, vermeldt de bovenkant van de lijst dat, met de schakelaar van het kanaal er direct bij, zodat u het kunt aanzetten zonder de lijst te verlaten.
 
-**Eén schakelaar is niet genoeg.** Het item **Abonneren** in de navigatiebalk van de statuspagina verschijnt alleen wanneer **Abonneepagina weergeven** aan staat *en* minstens één kanaal aan staat. Als u **E-mail** aanzet maar **Abonneepagina weergeven** uit laat, kunnen bezoekers het formulier niet bereiken.
+**Eén schakelaar is niet genoeg.** Het item **Abonneren** in de navigatiebalk van de statuspagina verschijnt alleen wanneer **Abonneepagina weergeven** aan staat _en_ minstens één kanaal aan staat. Als u **E-mail** aanzet maar **Abonneepagina weergeven** uit laat, kunnen bezoekers het formulier niet bereiken.
 
 **Een agenda in plaats daarvan.** Bezoekers die uw gepland onderhoud alleen in hun eigen agenda willen, hoeven zich niet te abonneren: **Abonneren op agenda** op de pagina **Geplande gebeurtenissen** voegt het toe aan Google Agenda, Apple Agenda of Outlook, en de agenda houdt zichzelf bij. Er wordt niets verstuurd, het hangt niet af van de kanalen hierboven, en een privépagina biedt het niet aan. Zie [Onderhoudsagenda](/docs/scheduled-maintenance/calendar#de-agenda-van-een-statuspagina).
 
@@ -68,27 +69,27 @@ Geen van beide instellingen verwijdert een abonnee, en ze uitzetten stuurt weer 
 
 De pagina **Abonneren** heeft een submenu met één tabblad per ingeschakeld kanaal; met maar één kanaal aan is er geen submenu, alleen het formulier van dat kanaal. Elk tabblad vraagt om het minimum dat het nodig heeft:
 
-| Tabblad | Adres | Kop | Wat het vraagt |
-| --- | --- | --- | --- |
-| **E-mail** | `/subscribe/email` | **Abonneren via e-mail** | **Uw e-mailadres**, met het voorbeeld `subscriber@company.com`. |
-| **SMS** | `/subscribe/sms` | **Abonneren via SMS** | **Uw telefoonnummer**, met het voorbeeld `+11234567890`. |
-| **Slack** | `/subscribe/slack` | **Abonneren via Slack** | **Slack-werkruimtenaam** (gebruikt voor validatie) en **URL van inkomende Slack-webhook**, met het voorbeeld `https://hooks.slack.com/services/...`. |
-| **MS Teams** | `/subscribe/microsoft-teams` | **Abonneren via Microsoft Teams** | **Naam Microsoft Teams-werkruimte** en **URL van inkomende Microsoft Teams-webhook**, met het voorbeeld `https://outlook.office.com/webhook/...`. |
-| **Webhooks** | `/subscribe/webhooks` | **Abonneren via webhook** | **Webhook-URL**, met het voorbeeld `https://example.com/webhook`. Bij elke gebeurtenis op de statuspagina wordt er een JSON-`POST`-verzoek naartoe gestuurd. |
+| Tabblad      | Adres                        | Kop                               | Wat het vraagt                                                                                                                                               |
+| ------------ | ---------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **E-mail**   | `/subscribe/email`           | **Abonneren via e-mail**          | **Uw e-mailadres**, met het voorbeeld `subscriber@company.com`.                                                                                              |
+| **SMS**      | `/subscribe/sms`             | **Abonneren via SMS**             | **Uw telefoonnummer**, met het voorbeeld `+11234567890`.                                                                                                     |
+| **Slack**    | `/subscribe/slack`           | **Abonneren via Slack**           | **Slack-werkruimtenaam** (gebruikt voor validatie) en **URL van inkomende Slack-webhook**, met het voorbeeld `https://hooks.slack.com/services/...`.         |
+| **MS Teams** | `/subscribe/microsoft-teams` | **Abonneren via Microsoft Teams** | **Naam Microsoft Teams-werkruimte** en **URL van inkomende Microsoft Teams-webhook**, met het voorbeeld `https://outlook.office.com/webhook/...`.            |
+| **Webhooks** | `/subscribe/webhooks`        | **Abonneren via webhook**         | **Webhook-URL**, met het voorbeeld `https://example.com/webhook`. Bij elke gebeurtenis op de statuspagina wordt er een JSON-`POST`-verzoek naartoe gestuurd. |
 
-De verzendknop heet **Abonneren**. Een aanmelding via Slack, Microsoft Teams of webhook toont *U bent succesvol geabonneerd.* Een aanmelding via SMS toont *We hebben een sms naar dit telefoonnummer gestuurd. Open de link erin om uw abonnement te bevestigen.* Een aanmelding via e-mail meldt dat er een bevestigingslink is verzonden en dat u de spammap moet controleren als die niet aankomt (zie [Dubbele opt-in bij e-mail](#dubbele-opt-in-bij-e-mail)). De tabbladen **E-mail**, **SMS**, **Slack** en **MS Teams** hebben ook de splitsing **Nieuw abonnement** / **Bestaand abonnement beheren**, zodat iemand die al is aangemeld bij zijn voorkeuren kan komen zonder naar een oud bericht te zoeken.
+De verzendknop heet **Abonneren**. Een aanmelding via Slack, Microsoft Teams of webhook toont _U bent succesvol geabonneerd._ Een aanmelding via SMS toont _We hebben een sms naar dit telefoonnummer gestuurd. Open de link erin om uw abonnement te bevestigen._ Een aanmelding via e-mail meldt dat er een bevestigingslink is verzonden en dat u de spammap moet controleren als die niet aankomt (zie [Dubbele opt-in bij e-mail](#dubbele-opt-in-bij-e-mail)). De tabbladen **E-mail**, **SMS**, **Slack** en **MS Teams** hebben ook de splitsing **Nieuw abonnement** / **Bestaand abonnement beheren**, zodat iemand die al is aangemeld bij zijn voorkeuren kan komen zonder naar een oud bericht te zoeken.
 
 ## Limieten voor aanmeldingen en links
 
 Elke aanmelding stuurt haar contact meteen een bericht, een bevestigingsmail, een SMS, een Slack- of Microsoft Teams-bericht of een webhook-aanroep, en **Beheerlink verzenden** doet dat ook. Zodat niemand een statuspagina kan gebruiken om berichten te sturen naar mensen die er niet om hebben gevraagd, of om de SMS-kosten van uw project op te drijven, zijn beide beperkt per netwerk van elke bezoeker en per contact. De limieten liggen ver boven wat mensen doen: een heel kantoor kan zich tijdens een incident samen aanmelden.
 
-| Wat beperkt is | Limiet |
-| --- | --- |
-| Aanmeldingen vanaf één netwerk | 60 in 15 minuten |
-| Aanmeldingen en beheerlinks via SMS vanaf één netwerk, samen | 10 in 15 minuten |
-| Beheerlinks die vanaf één netwerk worden aangevraagd | 30 in 15 minuten |
-| Aanmeldingen van één e-mailadres, telefoonnummer, Slack- of Microsoft Teams-kanaal of webhook, op alle statuspagina's samen | 10 in een uur |
-| Beheerlinks voor één e-mailadres of telefoonnummer op alle statuspagina's samen, of voor één Slack- of Microsoft Teams-werkruimtenaam op één statuspagina | 5 in een uur |
+| Wat beperkt is                                                                                                                                            | Limiet           |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| Aanmeldingen vanaf één netwerk                                                                                                                            | 60 in 15 minuten |
+| Aanmeldingen en beheerlinks via SMS vanaf één netwerk, samen                                                                                              | 10 in 15 minuten |
+| Beheerlinks die vanaf één netwerk worden aangevraagd                                                                                                      | 30 in 15 minuten |
+| Aanmeldingen van één e-mailadres, telefoonnummer, Slack- of Microsoft Teams-kanaal of webhook, op alle statuspagina's samen                               | 10 in een uur    |
+| Beheerlinks voor één e-mailadres of telefoonnummer op alle statuspagina's samen, of voor één Slack- of Microsoft Teams-werkruimtenaam op één statuspagina | 5 in een uur     |
 
 Boven een limiet antwoordt de API `429` met een `Retry-After`-header, in seconden, en krijgt de bezoeker te horen dat er te veel aanmeldingen of links vanaf zijn netwerk, of voor dat contact, zijn geweest en dat hij het later opnieuw moet proberen. Er wordt niets aangemaakt of verzonden, en uw project merkt er niets van: er wordt geen abonnee toegevoegd, en er wordt geen bericht verzonden of betaald. De limieten voor beheerlinks tellen elke aanvraag, of er nu een abonnement overeenkomt of niet, zodat ze niet te gebruiken zijn om uit te vinden wie geabonneerd is. Een e-mailadres wordt geteld hoe het ook geschreven is, in hoofdletters, met een `+tag` of, voor Gmail, met punten, en een telefoonnummer hoe het ook getypt is. Een aanmelding noemt één contact, een e-mailadres, een telefoonnummer, een Slack- of Microsoft Teams-kanaal of een webhook: een lijst met adressen, of een tweede contact, wordt geweigerd.
 
@@ -102,18 +103,18 @@ Een privégebruiker die op de aanmeldpagina van de statuspagina een link vraagt 
 
 Op een zelf gehoste installatie wijzigen deze omgevingsvariabelen van de OneUptime-app de limieten:
 
-| Variabele | Standaard | Wat ze instelt |
-| --- | --- | --- |
-| `PUBLIC_MESSAGE_RATE_LIMIT_WINDOW_SECONDS` | `900` | Het venster van de limieten per netwerk, in seconden. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_PER_CONTACT_WINDOW_SECONDS` | `3600` | Het venster van de limieten per contact, in seconden. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_IP` | `60` | Aanmeldingen vanaf één adres per venster. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_TEXT_MESSAGES_PER_IP` | `10` | Aanmeldingen en beheerlinks via SMS vanaf één adres per venster, samen. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_IP` | `30` | Beheerlinks die vanaf één adres per venster worden aangevraagd. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_CONTACT` | `10` | Aanmeldingen van één contact per venster. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Beheerlinks voor één contact per venster. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Wachtwoordresets van privégebruikers die vanaf één adres per venster worden aangevraagd. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Resetmails van privégebruikers naar één adres per venster. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT` | `10` | Uitnodigingen naar één adres per venster, voor privéstatuspagina's en projecten samen. |
+| Variabele                                                           | Standaard | Wat ze instelt                                                                           |
+| ------------------------------------------------------------------- | --------- | ---------------------------------------------------------------------------------------- |
+| `PUBLIC_MESSAGE_RATE_LIMIT_WINDOW_SECONDS`                          | `900`     | Het venster van de limieten per netwerk, in seconden.                                    |
+| `PUBLIC_MESSAGE_RATE_LIMIT_PER_CONTACT_WINDOW_SECONDS`              | `3600`    | Het venster van de limieten per contact, in seconden.                                    |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_IP`             | `60`      | Aanmeldingen vanaf één adres per venster.                                                |
+| `PUBLIC_MESSAGE_RATE_LIMIT_TEXT_MESSAGES_PER_IP`                    | `10`      | Aanmeldingen en beheerlinks via SMS vanaf één adres per venster, samen.                  |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_IP`         | `30`      | Beheerlinks die vanaf één adres per venster worden aangevraagd.                          |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_CONTACT`        | `10`      | Aanmeldingen van één contact per venster.                                                |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT`    | `5`       | Beheerlinks voor één contact per venster.                                                |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP`      | `30`      | Wachtwoordresets van privégebruikers die vanaf één adres per venster worden aangevraagd. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5`       | Resetmails van privégebruikers naar één adres per venster.                               |
+| `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT`                 | `10`      | Uitnodigingen naar één adres per venster, voor privéstatuspagina's en projecten samen.   |
 
 Noch `config.env` noch de waarden van de Helm-chart geven ze door: voeg ze zelf toe aan de omgeving van de container `app`, met `app.extraEnv`, of de chartbrede `extraEnv`, in de Helm-chart, of in een `docker-compose.override.yml` voor Docker Compose. `TRUSTED_PROXY_HOPS` bepaalt welk adres de limieten per netwerk tellen.
 
@@ -142,13 +143,13 @@ Handig voor: een pagina die meerdere producten dekt. Een klant die alleen uw API
 
 ## Dubbele opt-in bij e-mail
 
-E-mailabonnees bevestigen altijd. Wanneer een abonnee met een e-mailadres wordt aangemaakt en niet al bevestigd werd aangemaakt, wordt **Is Subscription Confirmed** (`isSubscriptionConfirmed`) op `false` gezet en wordt er een **Subscription Confirmation Token** van 32 willekeurige tekens gegenereerd. OneUptime mailt dan een bevestigingslink in de vorm `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. De bezoeker komt op een pagina **Abonnement bevestigen** en ziet, zodra die is afgerond, *Abonnement succesvol bevestigd*.
+E-mailabonnees bevestigen altijd. Wanneer een abonnee met een e-mailadres wordt aangemaakt en niet al bevestigd werd aangemaakt, wordt **Is Subscription Confirmed** (`isSubscriptionConfirmed`) op `false` gezet en wordt er een **Subscription Confirmation Token** van 32 willekeurige tekens gegenereerd. OneUptime mailt dan een bevestigingslink in de vorm `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. De bezoeker komt op een pagina **Abonnement bevestigen** en ziet, zodra die is afgerond, _Abonnement succesvol bevestigd_.
 
 Abonnees via Slack, Microsoft Teams en webhook slaan dit over, en SMS-abonnees die uw team toevoegt ook — ze worden aangemaakt met `isSubscriptionConfirmed` al op `true`. Voegt uw team onder **E-mail-abonnees** een e-mailabonnee toe, dan beslist **Bij het toevoegen**: **Nu abonneren** (de standaard: bevestigd, en er wordt niets verstuurd), **Nu abonneren en het laten weten** (bevestigd, en de e-mail dat ze geabonneerd zijn gaat eruit) of **Eerst om bevestiging vragen** (ze krijgen de bevestigingslink, zoals bij een aanmelding). **In bulk toevoegen** vraagt hetzelfde.
 
 **Ook aanmeldingen via SMS worden bevestigd.** Een bezoeker die zich via SMS aanmeldt, krijgt één bericht: de bevestigingslink. Er wordt niets anders naar het nummer gestuurd tot de link is geopend, en het openen ervan stuurt per SMS het bericht dat ze geabonneerd zijn, met de link die het abonnement opzegt. Tot dan staat de abonnee op **Wacht op bevestiging**, en het SMS-logboek toont de link met de code vervangen door `[redacted]`. SMS-abonnees van daarvoor zijn al bevestigd.
 
-**Een bevestigingslink werkt 24 uur.** De e-mail en de sms zeggen het. Later geopend bevestigt hij niets: de pagina **Abonnement bevestigen** zegt *Deze link om uw abonnement te bevestigen is verlopen of ongeldig. Een link werkt 24 uur nadat hij is verzonden. Abonneer opnieuw om een nieuwe te krijgen.* en biedt **Opnieuw abonneren** aan, en de API antwoordt `400`. De abonnee blijft onbevestigd, krijgt niets en staat in zijn lijst als **Link verlopen** in plaats van **Wacht op bevestiging**.
+**Een bevestigingslink werkt 24 uur.** De e-mail en de sms zeggen het. Later geopend bevestigt hij niets: de pagina **Abonnement bevestigen** zegt _Deze link om uw abonnement te bevestigen is verlopen of ongeldig. Een link werkt 24 uur nadat hij is verzonden. Abonneer opnieuw om een nieuwe te krijgen._ en biedt **Opnieuw abonneren** aan, en de API antwoordt `400`. De abonnee blijft onbevestigd, krijgt niets en staat in zijn lijst als **Link verlopen** in plaats van **Wacht op bevestiging**.
 
 **Opnieuw aanmelden.** Zolang de link werkt, verstuurt het opnieuw aanmelden van hetzelfde e-mailadres of telefoonnummer op die statuspagina niets meer: de bezoeker hoort dat er al een link is verstuurd, en de API antwoordt `429` met een `Retry-After`-header. Een contact krijgt dus hoogstens één bevestigingslink per dag van een statuspagina, hoe vaak het ook wordt aangemeld. Is de link verlopen, dan houdt het abonnement zijn contact niet meer vast: een nieuwe aanmelding, of uw team dat het contact toevoegt, vervangt het, en een aanmelding krijgt een nieuwe link. Wie een contact als eerste aanmeldt, kan de eigenaar niet tegenhouden om zich te abonneren: de link gaat naar de eigenaar, en een dag later kan die een eigen link krijgen. Links die vóór deze wijziging zijn verstuurd, werken ook 24 uur na hun aanmelding.
 
@@ -164,13 +165,13 @@ Een SMS bevat dezelfde link, van een openbare statuspagina net als van een priv�
 
 Het SMS-logboek (het tabblad **SMS** van **Meldingslogboeken**, op de statuspagina en in de projectinstellingen) bewaart de tekst van elke SMS, en meer projectleden kunnen dat lezen dan er abonnees kunnen beheren. Daarom toont het logboek een afmeld- of beheerlink waarin het token is vervangen door `[redacted]`, bijvoorbeeld `{statusPageUrl}/unsubscribe/{statusPageSubscriberId}-[redacted]`. Alleen de telefoon van de abonnee zelf krijgt de werkende link. Ook de API geeft het token van een nieuwe abonnee nooit terug, zelfs niet in het antwoord op het verzoek dat hem aanmaakte.
 
-**De link openen verandert niets.** De pagina toont de naam en het logo van de statuspagina en het abonnement waarbij de link hoort: een volledig e-mailadres, een telefoonnummer waarvan alleen de laatste vier cijfers zichtbaar zijn, de naam van een Slack- of Microsoft Teams-werkruimte, of de host van een webhook. Ze vraagt *Wilt u geen meldingen meer ontvangen van deze statuspagina?* en alleen een druk op **Afmelden** zegt het abonnement op, zodat mailscanners en linkvoorbeelden die elke link in een bericht openen niemand kunnen afmelden. Verder wordt er niets van de pagina getoond, en geen van haar aangepaste JavaScript wordt uitgevoerd. Twee keer bevestigen, of de link van een al opgezegd abonnement openen, meldt alleen dat het is opgezegd. Op een openbare statuspagina linkt de afmeldpagina ook naar de pagina **Abonnement bijwerken** van de abonnee, om in plaats daarvan te kiezen welke meldingen hij ontvangt.
+**De link openen verandert niets.** De pagina toont de naam en het logo van de statuspagina en het abonnement waarbij de link hoort: een volledig e-mailadres, een telefoonnummer waarvan alleen de laatste vier cijfers zichtbaar zijn, de naam van een Slack- of Microsoft Teams-werkruimte, of de host van een webhook. Ze vraagt _Wilt u geen meldingen meer ontvangen van deze statuspagina?_ en alleen een druk op **Afmelden** zegt het abonnement op, zodat mailscanners en linkvoorbeelden die elke link in een bericht openen niemand kunnen afmelden. Verder wordt er niets van de pagina getoond, en geen van haar aangepaste JavaScript wordt uitgevoerd. Twee keer bevestigen, of de link van een al opgezegd abonnement openen, meldt alleen dat het is opgezegd. Op een openbare statuspagina linkt de afmeldpagina ook naar de pagina **Abonnement bijwerken** van de abonnee, om in plaats daarvan te kiezen welke meldingen hij ontvangt.
 
 Ook de pagina **Abonnement bijwerken**, `{statusPageUrl}/update-subscription/{statusPageSubscriberId}-{token}`, opent alleen met het token van het abonnement: de ID van de abonnee alleen opent niets. Ze heeft als titel **Abonnement bijwerken** en vertelt de bezoeker dat hij daar zijn voorkeuren kan bijwerken of zich kan afmelden. Ze bevat:
 
 - De keuzelijsten voor resources en gebeurtenistypen die de pagina toestaat.
 - Een schakelaar **Afmelden**, beschreven als afmelden voor alle resources. Die schrijft **Is afgemeld** (`isUnsubscribed`, standaard false).
-- Een verzendknop met **Abonnement bijwerken**; opslaan toont *Uw wijzigingen zijn opgeslagen.*
+- Een verzendknop met **Abonnement bijwerken**; opslaan toont _Uw wijzigingen zijn opgeslagen._
 
 Op een privé-statuspagina vereist ze een ingelogde bezoeker, net als de rest van de pagina. Net als de afmeldpagina voert ze geen van de aangepaste JavaScript van de pagina uit, en toont ze de standaardkoptekst en -footer in plaats van aangepaste koptekst- of footer-HTML. Wie de link kwijt is, gebruikt **Bestaand abonnement beheren** op de pagina **Abonneren** en drukt op **Beheerlink verzenden**. De link gaat naar het abonnement zelf — het e-mailadres, het telefoonnummer of het Slack- of Microsoft Teams-kanaal —, nooit naar een adres uit het verzoek, en de pagina antwoordt hetzelfde of er nu een abonnement overeenkwam of niet, zodat ze niet kan worden gebruikt om uit te zoeken wie er is aangemeld. Dat bericht linkt naar de pagina **Abonnement bijwerken**, en geeft een aangepast sjabloon beide links: `manageSubscriptionUrl` en `unsubscribeUrl`.
 
@@ -331,13 +332,13 @@ als body van `PUT /api/status-page-announcement/<announcement-id>` (of `incident
 
 Elke abonneemelding heeft een eigen status, naast datgene waarover ze gaat. Voor een incident is dat de melding 'aangemaakt' op het **Overzicht** van het incident, elke rij van de **Statustijdlijn**, elke openbare notitie en de **Postmortem**. Geplande onderhoudsgebeurtenissen en aankondigingen tonen die van hen op dezelfde manier, en incidentepisoden bij hun openbare notities. Klik op de status om het bericht te lezen, dat zegt wat er is gebeurd. Openbare notities tonen de status als een badge met een eigen formulering:
 
-| Status | Bij een openbare notitie | Wat het betekent |
-| --- | --- | --- |
-| **Sending Soon** | **Notifying subscribers soon** | In de wachtrij. De taak die haar verstuurt, draait elke minuut. |
-| **Notifications Being Sent** | **Notifying subscribers** | De taak werkt de abonnees af. |
-| **Verzonden meldingen** | **Subscribers notified** | Ze is verzonden. Zie hieronder wat dat betekent. |
-| **Mislukt** | **Notification failed** | Niet elke abonnee heeft haar gekregen, of de verzending is gestopt. Het bericht zegt wat er is verzonden en wat **Opnieuw proberen** doet. |
-| **Notifications skipped.** | **Subscribers not notified** | Er hoefde niets te worden verzonden, bijvoorbeeld omdat het incident verborgen is op statuspagina's. Het bericht zegt waarom. |
+| Status                       | Bij een openbare notitie       | Wat het betekent                                                                                                                           |
+| ---------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Sending Soon**             | **Notifying subscribers soon** | In de wachtrij. De taak die haar verstuurt, draait elke minuut.                                                                            |
+| **Notifications Being Sent** | **Notifying subscribers**      | De taak werkt de abonnees af.                                                                                                              |
+| **Verzonden meldingen**      | **Subscribers notified**       | Ze is verzonden. Zie hieronder wat dat betekent.                                                                                           |
+| **Mislukt**                  | **Notification failed**        | Niet elke abonnee heeft haar gekregen, of de verzending is gestopt. Het bericht zegt wat er is verzonden en wat **Opnieuw proberen** doet. |
+| **Notifications skipped.**   | **Subscribers not notified**   | Er hoefde niets te worden verzonden, bijvoorbeeld omdat het incident verborgen is op statuspagina's. Het bericht zegt waarom.              |
 
 ### Hoe een verzending wordt geteld
 
@@ -391,11 +392,11 @@ Sjablonen voor het hele project staan een niveau hoger, onder **Statuspagina's �
 
 Op OneUptime Cloud zijn meldingssjablonen voor abonnees een functie van het abonnement **Scale**; zelfgehoste installaties hebben geen abonnementslimieten. Een sjabloon wordt pas gebruikt zodra het op het tabblad **Meldingssjablonen** van een statuspagina aan die pagina is gekoppeld, en twee kanalen vereisen bovendien dat de pagina via uw eigen provider verstuurt:
 
-| Kanaal | Een gekoppeld sjabloon wordt gebruikt wanneer de pagina heeft |
-| --- | --- |
-| **E-mail** | een **Aangepaste SMTP-configuratie** (zie [hieronder](#e-mailvoettekst-eigen-smtp-en-twilio)) |
-| **SMS** | een **Twilio-configuratie** |
-| **Slack** en **Microsoft Teams** | niets meer |
+| Kanaal                           | Een gekoppeld sjabloon wordt gebruikt wanneer de pagina heeft                                 |
+| -------------------------------- | --------------------------------------------------------------------------------------------- |
+| **E-mail**                       | een **Aangepaste SMTP-configuratie** (zie [hieronder](#e-mailvoettekst-eigen-smtp-en-twilio)) |
+| **SMS**                          | een **Twilio-configuratie**                                                                   |
+| **Slack** en **Microsoft Teams** | niets meer                                                                                    |
 
 Zonder die verstuurt de pagina haar standaard-e-mail of -sms. Wanneer een gekoppeld e-mail- of sms-sjabloon om die reden niet kan worden gebruikt, meldt het tabblad **Meldingssjablonen** dat met **Aangepaste sjablonen vereisen configuratie**. Aangepaste SMTP- en Twilio-configuraties hebben het abonnement **Growth** of hoger nodig. Webhook-abonnees krijgen altijd de standaard-JSON-payload.
 
@@ -405,10 +406,10 @@ Niets hiervan is nodig om aangepaste incidentvelden in berichten te zetten. Veld
 
 Sjablonen voor de vijf gebeurtenistypen van incidenten — **Subscriber Incident Created**, **Subscriber Incident State Changed**, **Subscriber Incident Note Created**, **Subscriber Incident Note Updated** en **Subscriber Incident Postmortem Published** — kunnen deze gebruiken, naast hun eigen variabelen:
 
-| Variabele | Gevuld met |
-| --- | --- |
-| `{{incidentLabels}}` | De labels van het incident, gescheiden door komma's. |
-| `{{affectedStatusPages}}` | De namen van elke statuspagina waarop het incident wordt getoond, gescheiden door komma's. |
+| Variabele                         | Gevuld met                                                                                                                                                                    |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `{{incidentLabels}}`              | De labels van het incident, gescheiden door komma's.                                                                                                                          |
+| `{{affectedStatusPages}}`         | De namen van elke statuspagina waarop het incident wordt getoond, gescheiden door komma's.                                                                                    |
 | `{{incident.customFields.<key>}}` | De waarde van een aangepast incidentveld, op basis van de **Sjabloonvariabele** van het veld, of het veld nu is gemarkeerd met **Opnemen in meldingen aan abonnees** of niet. |
 
 De sleutel is de **Sjabloonvariabele** van het veld, die niet verandert wanneer het veld wordt hernoemd; het sjabloonformulier toont de aangepaste incidentvelden van het project, elk met zijn variabele, onder de body van het sjabloon (zie [Variabelen invoegen](#variabelen-invoegen)). Sjablonen die zijn opgeslagen met de oudere `{{customFields.<key>}}` worden op dezelfde manier ingevuld. Een veld waarvoor het incident geen waarde heeft, blijft leeg. In de body van een e-mail wordt een gewoon veld ge-escaped zoals elke andere waarde, terwijl een rich-text-, lange-tekst- of datum-en-tijdveld als HTML wordt ingevoegd: opgemaakte Markdown, de regels ervan, of een regel per abonneetijdzone. De ingesloten afbeeldingen van een rich-text-veld worden zichtbaar gemaakt voor de mensen naar wie het wordt verzonden.
@@ -459,7 +460,7 @@ De controlestap toont dezelfde regel. **Maken op basis van sjabloon** vult het f
 
 De eigen pagina van de aankondiging bewerkt haar in dezelfde twee stappen. **Abonnees op de hoogte stellen van deze update** staat onder de beschrijving (zie [Abonnees laten weten dat er iets is bewerkt](#abonnees-laten-weten-dat-er-iets-is-bewerkt)), en **Schema** bevat het begin en het einde. Een einde instellen dat al voorbij is, is hoe u een aankondiging offline haalt.
 
-Bezoekers lezen aankondigingen op `/announcements`, verdeeld in **Actieve aankondigingen** en **Vorige aankondigingen**, elk met een stempel **Aangekondigd op**. Aankondigingen die op dit moment live zijn, worden ook bovenaan de overzichtspagina vastgezet. Als er niets te tonen is, staat er op de pagina *Geen aankondigingen*, met de opmerking dat er nog geen zijn geplaatst.
+Bezoekers lezen aankondigingen op `/announcements`, verdeeld in **Actieve aankondigingen** en **Vorige aankondigingen**, elk met een stempel **Aangekondigd op**. Aankondigingen die op dit moment live zijn, worden ook bovenaan de overzichtspagina vastgezet. Als er niets te tonen is, staat er op de pagina _Geen aankondigingen_, met de opmerking dat er nog geen zijn geplaatst.
 
 Bijlagen worden geserveerd vanaf `GET {statusPageCrudPath}/status-page-announcement/attachment/:statusPageId/:announcementId/:fileId`, achter dezelfde leescontrole als de statuspagina zelf — dus een bijlage op een privépagina blijft privé.
 
@@ -498,8 +499,9 @@ Als een webhook-abonnement bij het aanmelden wordt geweigerd, is een interne of 
 ## Volgende stappen
 
 :::cards
+
 - [Statuspagina's – Overzicht](/docs/status-pages/index): Wat een statuspagina is, en hoe ze is opgebouwd.
 - [Statuspagina – bronnen en groepen](/docs/status-pages/resources-and-groups): De monitoren en groepen waaruit abonnees kiezen.
 - [Eén statuspagina per doelgroep](/docs/status-pages/one-status-page-per-audience): Een incident beperken tot de pagina's waarvan de abonnees ervan moeten horen.
 - [Statuspagina – branding en domeinen](/docs/status-pages/branding-and-domains): Het uiterlijk van de pagina waarnaar uw berichten linken.
-:::
+  :::

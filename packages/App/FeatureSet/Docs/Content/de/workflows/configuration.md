@@ -3,11 +3,12 @@
 Was Sie wissen sollten, bevor Sie einen Workflow auf echten Betrieb loslassen: wie Sie ihn sicher einschalten, wer was tun darf, wie Geheimnisse und URLs privat bleiben, was die Schritte eines Workflows ändern dürfen und innerhalb welcher Grenzen jede Ausführung arbeitet.
 
 :::cards
+
 - [Live gehen](#einen-workflow-ein-oder-ausschalten): Mit Arbeitsablauf ausführen testen, solange er aus ist, dann einschalten.
 - [Berechtigungen](#berechtigungen): Die Workflow-Rollen und die einzelnen Berechtigungen dahinter.
 - [Was Schritte tun dürfen](#was-workflow-schritte-dürfen): Schritte handeln als Project Admin des Projekts des Workflows.
 - [Grenzen](#plan-grenzen): Ausführungen pro Plan, Laufzeit und Aufrufe zwischen Workflows.
-:::
+  :::
 
 ## Einen Workflow ein- oder ausschalten
 
@@ -16,11 +17,12 @@ Jeder Workflow hat einen Schalter **Aktiviert** oben in seinem **Editor** und au
 Verwenden Sie diesen Schalter als Ihr "startklar"-Tor:
 
 :::steps
+
 1. Bauen Sie den Workflow.
 2. Klicken Sie im **Editor** mit realistischen Werten auf **Arbeitsablauf ausführen**, solange der Workflow noch aus ist. Die Ausführung ist ein **Testlauf**: Jeder Baustein läuft wirklich, richten Sie ihn also zuerst auf einen Testkanal oder einen Testdatensatz.
 3. Öffnen Sie die Ausführung und prüfen Sie, dass jeder Baustein dorthin ging, wo Sie es erwartet haben. Siehe [Ausführungen](/docs/workflows/runs-and-logs).
 4. Schalten Sie **Aktiviert** ein, wenn er bereit ist: Von da an löst sein Trigger bei echten Ereignissen aus.
-:::
+   :::
 
 Einen Workflow auszuschalten hält seinen Trigger davon ab, neue Ausführungen zu starten. Eine laufende Ausführung wird zu Ende geführt, aber eine Ausführung, die sein Trigger gestartet hat und die an einem **Sleep**-Baustein wartet, wird beim Aufwachen abgebrochen. Testläufe laufen weiter. Um mehrere auf einmal ein- oder auszuschalten, wählen Sie sie in der Liste **Arbeitsabläufe** aus und wählen **Aktivieren** oder **Deaktivieren** unter **Massenaktionen**.
 
@@ -43,12 +45,12 @@ Ein exportierter Workflow trägt nie seinen Archivierungszustand mit, daher ist 
 
 ## Eigentümer und Beschriftungen
 
-| Was                     | Wo                                                       | Was es tut                                                                                                                                      |
-| ----------------------- | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Eigentümer**          | Die Seite **Eigentümer** des Workflows                   | Die Benutzer und Teams, die für den Workflow verantwortlich sind. Eine Rolle, die auf das beschränkt ist, was ihrem Team gehört, erreicht die Workflows, die diesem Team gehören. |
+| Was                     | Wo                                                       | Was es tut                                                                                                                                                                                           |
+| ----------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Eigentümer**          | Die Seite **Eigentümer** des Workflows                   | Die Benutzer und Teams, die für den Workflow verantwortlich sind. Eine Rolle, die auf das beschränkt ist, was ihrem Team gehört, erreicht die Workflows, die diesem Team gehören.                    |
 | **Beschriftungen**      | Die Seite **Übersicht** des Workflows                    | Schlagworte zum Gruppieren von Workflows, nach Team, Integration oder Umgebung. Filtern Sie die Liste **Arbeitsabläufe** nach Beschriftung und beschränken Sie eine Rolle auf einige Beschriftungen. |
-| **Beschriftungsregeln** | **Arbeitsabläufe → Einstellungen → Beschriftungsregeln** | Neue Workflows automatisch beschriften, nach Mustern in ihrem Namen oder ihrer Beschreibung.                                                    |
-| **Eigentümerregeln**    | **Arbeitsabläufe → Einstellungen → Eigentümerregeln**    | Neuen Workflows automatisch Eigentümer zuweisen.                                                                                                |
+| **Beschriftungsregeln** | **Arbeitsabläufe → Einstellungen → Beschriftungsregeln** | Neue Workflows automatisch beschriften, nach Mustern in ihrem Namen oder ihrer Beschreibung.                                                                                                         |
+| **Eigentümerregeln**    | **Arbeitsabläufe → Einstellungen → Eigentümerregeln**    | Neuen Workflows automatisch Eigentümer zuweisen.                                                                                                                                                     |
 
 Wie die Regeln greifen, steht unter [Beschriftungs- und Eigentümerregeln](/docs/configuration/label-and-owner-rules).
 
@@ -118,11 +120,11 @@ API- und andere HTTP-Bausteine stellen ihre Anfragen von OneUptime aus, und der 
 
 Welche Adressen ein Baustein erreichen darf, hängt vom Baustein ab:
 
-| Bausteine                                                  | Loopback, Link-Local, Cloud-Metadaten                                  | Private Netzwerkadressen                                                                                                              |
-| ---------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Bausteine                                                                          | Loopback, Link-Local, Cloud-Metadaten                                                | Private Netzwerkadressen                                                                                                                                                 |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **API**- und **Mattermost**-Bausteine sowie Anfragen von **Run Custom JavaScript** | Abgelehnt, es sei denn, der genaue Host steht in `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Abgelehnt, es sei denn, ein Administrator einer selbst gehosteten Installation erlaubt sie mit `ALLOW_PRIVATE_NETWORK_WEBHOOKS` oder `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
-| **Send Email**, **IRC** und Token-URLs von OAuth 2.0       | Abgelehnt                                                              | In OneUptime Cloud abgelehnt. Auf einer selbst gehosteten Installation erlaubt, es sei denn, `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` ist `true` |
-| Slack, Microsoft Teams, Discord und Telegram               | Abgelehnt                                                              | Abgelehnt: Jeder sendet nur an die Adressen seines eigenen Dienstes                                                                    |
+| **Send Email**, **IRC** und Token-URLs von OAuth 2.0                               | Abgelehnt                                                                            | In OneUptime Cloud abgelehnt. Auf einer selbst gehosteten Installation erlaubt, es sei denn, `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` ist `true`                            |
+| Slack, Microsoft Teams, Discord und Telegram                                       | Abgelehnt                                                                            | Abgelehnt: Jeder sendet nur an die Adressen seines eigenen Dienstes                                                                                                      |
 
 Wie ein Administrator einer selbst gehosteten Installation diese öffnet, steht unter [Zugriff auf private Netzwerke](/docs/self-hosted/private-network-access).
 
@@ -149,13 +151,13 @@ Was der Baustein braucht und was er kostet:
 - Aufrufe über einen kostenpflichtigen globalen Anbieter verbrauchen das KI-Guthaben des Projekts.
 - Jeder Aufruf zählt zu den [eigenen täglichen KI-Grenzen des Projekts](/docs/ai/ai-sre#die-eigenen-täglichen-limits-des-projekts), wenn ein Projektinhaber sie festlegt. Ist eine Grenze erreicht, nimmt der Baustein bis Mitternacht UTC **Error**, ohne das Modell anzufragen.
 
-| Grenze                                                         | Wert                                                                                       |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| **System Instructions**, **Prompt** und **Context** zusammen   | 50.000 Zeichen                                                                             |
-| **Temperature**                                                | Von `0` bis `1`                                                                            |
-| **Maximum Output Tokens**                                      | Von `1` bis `4096`, standardmäßig `1024`                                                   |
-| Eine Anfrage                                                   | Ein Versuch, höchstens 60 Sekunden                                                         |
-| Gleichzeitige Aufrufe                                          | 3 pro Projekt. Weitere nehmen **Error**, und eine spätere Ausführung kann es erneut versuchen. |
+| Grenze                                                       | Wert                                                                                           |
+| ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| **System Instructions**, **Prompt** und **Context** zusammen | 50.000 Zeichen                                                                                 |
+| **Temperature**                                              | Von `0` bis `1`                                                                                |
+| **Maximum Output Tokens**                                    | Von `1` bis `4096`, standardmäßig `1024`                                                       |
+| Eine Anfrage                                                 | Ein Versuch, höchstens 60 Sekunden                                                             |
+| Gleichzeitige Aufrufe                                        | 3 pro Projekt. Weitere nehmen **Error**, und eine spätere Ausführung kann es erneut versuchen. |
 
 Validierungs-, Konfigurations-, Zugriffs-, Grenz-, Guthaben-, Gleichzeitigkeits-, Anbieter- und Zeitüberschreitungsfehler nehmen alle den Pfad **Error**, mit dem Grund in **Error**. Verbinden Sie diesen Pfad, bevor der Workflow live geht.
 
@@ -200,7 +202,7 @@ Die Schritte, die OneUptime-Datensätze lesen und ändern – die Find-, Create-
   - nach dem Anlegen ändern, zu welchem Datensatz ein Datensatz gehört, etwa für welchen Monitor eine Eigentümerzeile gilt oder an welchem Vorfall eine Notiz hängt.
 - **Als keine Person.** Ein Datensatz, den ein Workflow anlegt, nennt keinen Ersteller, und das Audit-Protokoll nennt den Workflow, mit seinem damaligen Namen, als den, der die Änderung gemacht hat.
 
-Lehnt eine Prüfung einen Schritt ab, nimmt der Schritt seinen Ausgang **Error**, ohne die abgelehnte Änderung zu machen, und das Protokoll der Ausführung nennt den Schritt und den Grund in klaren Worten, zum Beispiel *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Lesen Sie es unter den [Ausführungen](/docs/workflows/runs-and-logs) des Workflows. Ein Schritt vom Typ Create Many legt seine Datensätze einzeln an und stoppt beim ersten abgelehnten: Die Datensätze, die er davor angelegt hat, bleiben erhalten.
+Lehnt eine Prüfung einen Schritt ab, nimmt der Schritt seinen Ausgang **Error**, ohne die abgelehnte Änderung zu machen, und das Protokoll der Ausführung nennt den Schritt und den Grund in klaren Worten, zum Beispiel _"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …_. Lesen Sie es unter den [Ausführungen](/docs/workflows/runs-and-logs) des Workflows. Ein Schritt vom Typ Create Many legt seine Datensätze einzeln an und stoppt beim ersten abgelehnten: Die Datensätze, die er davor angelegt hat, bleiben erhalten.
 
 Schritte, die mit anderen Systemen sprechen – API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code und Generate Text with AI –, lesen oder ändern keine OneUptime-Datensätze, daher ändert all das an ihnen nichts.
 
@@ -218,11 +220,11 @@ Das Fenster rollt: Jede Ausführung, die das Projekt aufzeichnet, von Hand oder 
 
 ## Wie lange eine Ausführung dauern darf
 
-| Grenze                          | Standard           | Einstellung beim Selbsthosten   |
-| ------------------------------- | ------------------ | ------------------------------- |
-| Eine Ausführung, ab ihrem Start oder ab dem Aufwachen nach einem **Sleep** | 2 Minuten | `WORKFLOW_TIMEOUT_IN_MS` |
-| Ein **Run Custom JavaScript**-Baustein | 5 Sekunden  | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
-| Ein **Sleep**-Baustein          | höchstens 30 Tage  | —                               |
+| Grenze                                                                     | Standard          | Einstellung beim Selbsthosten   |
+| -------------------------------------------------------------------------- | ----------------- | ------------------------------- |
+| Eine Ausführung, ab ihrem Start oder ab dem Aufwachen nach einem **Sleep** | 2 Minuten         | `WORKFLOW_TIMEOUT_IN_MS`        |
+| Ein **Run Custom JavaScript**-Baustein                                     | 5 Sekunden        | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
+| Ein **Sleep**-Baustein                                                     | höchstens 30 Tage | —                               |
 
 Der Runner prüft die Frist vor und nach jedem Baustein und markiert eine überfällige Ausführung als **Timeout**, sobald er wieder die Kontrolle hat. Er kann einen Baustein nicht mittendrin unterbrechen, daher haben Bausteine, die auf das Netz warten, eigene Zeitgrenzen: Eine Anfrage von Generate Text with AI gibt nach höchstens 60 Sekunden auf, eine OAuth-2.0-Token-Anfrage nach 20. Das Warten an einem **Sleep**-Baustein zählt nicht zur Zeit einer Ausführung: Die Ausführung wird beiseitegelegt und bekommt beim Aufwachen frische 2 Minuten.
 
@@ -243,7 +245,8 @@ Ein paar Fälle, in denen Sie zu etwas anderem greifen sollten:
 ## Nächste Schritte
 
 :::cards
+
 - [Workflows – Übersicht](/docs/workflows/index): Das große Ganze und ein erster Workflow von Anfang bis Ende.
 - [Komponenten](/docs/workflows/components): Was jeder Baustein braucht, zurückgibt und erreichen darf.
 - [Runbooks](/docs/runbooks/index): Wenn Menschen unterwegs die Entscheidungen treffen müssen.
-:::
+  :::
