@@ -2684,6 +2684,13 @@ slackApp:
   #   clientSecretKey: clientSecret
   #   signingSecretKey: signingSecret
 
+# Microsoft Teams: a Microsoft Entra app registration for your organization
+# only (Single tenant), and an Azure Bot of type Single Tenant for it.
+# clientId is the Application (client) ID, which is also the bot id of the
+# Teams app package; clientSecret is the client secret's Value, not its
+# Secret ID; tenantId is the Directory (tenant) ID - the bot authenticates in
+# this tenant, and people sign in to it to connect their Microsoft Teams
+# account. See https://oneuptime.com/docs/self-hosted/microsoft-teams-integration
 microsoftTeamsApp:
   clientId:
   clientSecret:

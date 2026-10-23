@@ -17,11 +17,13 @@ Azure Account - You can create one by going to https://azure.com.
 2. Navigate to "App registrations" and click "New registration"
 3. Fill out the registration form:
    - **Name:** oneuptime
-   - **Supported account types:** Accounts in any organizational directory (Any Microsoft Entra ID tenant - Multitenant)
+   - **Supported account types:** Accounts in this organizational directory only (Single tenant)
    - **Redirect URI:** Web - \`${window.location.origin}/api/microsoft-teams/auth\`
    - Please also add: \`${window.location.origin}/api/microsoft-teams/admin-consent/callback\`
 4. Click "Register"
-5. Note down the "Application (client) ID" - you'll need this later
+5. Note down the "Application (client) ID" and the "Directory (tenant) ID" - you'll need both later
+
+OneUptime signs everyone in to your tenant - admins granting consent, and each person who selects **Connect my account with Microsoft Teams** - so an app registered for your organization only is all it needs.
 
 ##### Step 3: Configure App Permissions
 
@@ -73,7 +75,7 @@ Please note: Do not copy the secret ID, you need the secret VALUE which is typic
    - **Resource group:** Create a new one or use an existing one
    - **Location:** Choose a location close to your users
    - **Pricing tier:** F0 (Free) is sufficient for testing
-  - Please use the App (client) ID and Tenant ID from your app registration created earlier
+   - **Type of App:** Single Tenant, with the App (client) ID and Tenant ID from your app registration created earlier
 
 3. Click "Review + create" and then "Create"
 
@@ -119,6 +121,10 @@ microsoftTeamsApp:
   clientSecret:
   tenantId:
 \`\`\`
+
+- \`MICROSOFT_TEAMS_APP_CLIENT_ID\` (\`clientId\`): the app registration's **Application (client) ID**. It is also the bot id of the Teams app package.
+- \`MICROSOFT_TEAMS_APP_CLIENT_SECRET\` (\`clientSecret\`): the client secret's **Value** from Step 4.
+- \`MICROSOFT_TEAMS_APP_TENANT_ID\` (\`tenantId\`): the **Directory (tenant) ID**. The bot authenticates in this tenant, and people sign in to it to connect their Microsoft Teams account.
 
 
 Restart your OneUptime server after adding these environment variables so they take effect.
@@ -194,6 +200,10 @@ A group chat that has no name in Teams is listed by its members' names by design
 **Checking this deployment's bot configuration**
 
 \`curl -sS ${window.location.origin}/api/microsoft-bot/test\` reports the bot id this deployment expects your Teams app package to carry, plus which environment variables are set. It reads local configuration only — it does not call Azure, so it cannot confirm the Azure Bot resource, the Teams channel, the secret's validity, or that Azure can reach you. Its value is the bot id comparison against the app installed in Teams.
+
+**Signing in fails with AADSTS50194**
+
+Microsoft refuses a sign-in with \`AADSTS50194\` when the app is registered for one organization and the sign-in goes to Microsoft's endpoint for every organization (\`/common\`). Older OneUptime versions sent **Connect my account with Microsoft Teams** there; this one signs people in to your tenant. If you still see it, check that \`MICROSOFT_TEAMS_APP_TENANT_ID\` is set to the app's Directory (tenant) ID: a project that is not connected yet signs people in to that tenant.
 
 **Other checks**
 
