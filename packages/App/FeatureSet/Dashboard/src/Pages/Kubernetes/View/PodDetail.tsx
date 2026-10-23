@@ -29,7 +29,7 @@ import KubernetesOverviewTab, {
 } from "../../../Components/Kubernetes/KubernetesOverviewTab";
 import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
 import KubernetesContainersTab from "../../../Components/Kubernetes/KubernetesContainersTab";
-import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
+import { useKubernetesEventsTab } from "../../../Components/Kubernetes/KubernetesEventsTab";
 import KubernetesLogsTab from "../../../Components/Kubernetes/KubernetesLogsTab";
 import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
 import KubernetesEnvVarsTab from "../../../Components/Kubernetes/KubernetesEnvVarsTab";
@@ -120,6 +120,26 @@ const KubernetesClusterPodDetail: FunctionComponent<
   const allocatable: NodeAllocatableCpu | null = useNodeAllocatableCpu(
     cluster?.clusterIdentifier || undefined,
   );
+
+  /*
+   * The pod's Events, read as the page opens: the Events tab says how
+   * many warnings there are before it is opened.
+   */
+  const eventsTab: Tab = useKubernetesEventsTab({
+    clusterIdentifier: cluster?.clusterIdentifier || "",
+    clusterId: modelId,
+    scope: isLoadingObject
+      ? null
+      : {
+          kind: "object",
+          objectKind: "Pod",
+          objectName: podName,
+          namespace: podObject?.metadata.namespace,
+        },
+    title: "Pod Events",
+    description: "Kubernetes events for this pod in the last 24 hours.",
+    resourceKind: "Pod",
+  });
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -441,22 +461,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
         </div>
       ),
     },
-    {
-      name: "Events",
-      children: (
-        <Card
-          title="Pod Events"
-          description="Kubernetes events for this pod in the last 24 hours."
-        >
-          <KubernetesEventsTab
-            clusterIdentifier={clusterIdentifier}
-            resourceKind="Pod"
-            resourceName={podName}
-            namespace={podObject?.metadata.namespace}
-          />
-        </Card>
-      ),
-    },
+    eventsTab,
     {
       name: "Logs",
       children: (

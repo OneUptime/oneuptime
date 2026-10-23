@@ -213,7 +213,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | Pod 指標 | CPU、記憶體、網路和重新啟動次數 |
 | 容器指標 | 每個容器的 CPU 和記憶體 |
 | 叢集指標 | 節點狀況、可配置資源、Pod 數量 |
-| Kubernetes 事件 | 警告、錯誤和排程事件 |
+| Kubernetes 事件 | 來自每個命名空間、每種物件的每個事件（Warning 和 Normal）：請參閱 [Kubernetes 事件](#kubernetes-事件) |
 | Pod 日誌 | 每個容器的 stdout 和 stderr（標準叢集上透過 `hostPath`，Autopilot 和 Fargate 上透過 Kubernetes API） |
 | 應用程式追蹤（eBPF，預設開啟） | 來自每個 Pod 的 HTTP、gRPC、SQL 和 Redis Span，不需 SDK 或修改程式碼 |
 | HTTP RED 指標（eBPF） | 每個服務的 `http.server.request.duration`，以及要求和回應的本文大小 |
@@ -221,6 +221,42 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | 網路流量指標（eBPF） | Pod 之間的 TCP 和 UDP 位元組與封包計數器，附帶 Kubernetes 中繼資料 |
 | TCP 統計（eBPF） | 節點層級的來回時間、連線失敗和重新傳輸計數器 |
 | 工作負載成本（需選擇啟用，`cost.enabled=true`） | 依命名空間、工作負載和 Pod 統計的支出（含閒置和效率），以及節點和磁碟區的每小時成本：請參閱 [Kubernetes 成本可觀測性](/docs/telemetry/kubernetes-cost) |
+
+## Kubernetes 事件
+
+代理程式會把叢集的每個 Kubernetes 事件傳送到 OneUptime：來自每個命名空間（包括 `kube-system` 和 `aks-istio-system` 等系統命名空間），涉及每種物件（節點和自動擴縮器與 Pod 一樣），Warning 和 Normal 都有。代理程式的任何設定都不會篩選它們。Kubernetes 保留事件大約一小時；OneUptime 把它當作日誌保留，保留時間與你的[資料保留](/docs/telemetry/data-retention)設定保留日誌的時間一樣長。
+
+### 尋找警告事件
+
+- 叢集的 **事件** 頁面（在 **遙測** 下）依最新優先列出每個事件，有警告時會先顯示警告：例如節點上的 `OOMKilling`、Pod 上的 `BackOff`、HPA 上的 `FailedGetResourceMetric`。可依命名空間、種類或原因縮小範圍，並選擇時間範圍，檢視比叢集保留事件更早的內容。
+- 每個節點、Pod、工作負載、自動擴縮器、磁碟區和命名空間頁面都有 **事件** 分頁，其名稱顯示警告數量。工作負載的分頁包含其 Pod 的事件，當機迴圈和掛載失敗都在這裡回報。
+- 叢集的 **概覽** 在 **最近的警告** 中列出最新的警告，每個原因和物件一行。
+
+### 事件顯示的內容
+
+| 欄 | 顯示內容 |
+| --- | --- |
+| 事件 | 原因、Warning 或 Normal、訊息，以及回報者：節點上的 `kernel-monitor`、`kubelet`、`horizontal-pod-autoscaler` |
+| 物件 | 事件所涉及的物件，連結到它在 OneUptime 中的頁面，名稱旁邊是事件所在的命名空間；節點的事件位於 `default`，與 `kubectl get events` 的列法相同 |
+| 計數 | 發生的次數：重複發生時會增加計數，而不是新增一列 |
+| 最後出現 | 最後一次發生的時間；將指標停留在上面可檢視第一次發生的時間 |
+
+### 搜尋事件並設定警示
+
+每個事件也是一筆日誌。警告以嚴重程度 **Warning** 儲存，事件的內容在其屬性中：
+
+| 屬性 | 範例 |
+| --- | --- |
+| `k8s.event.type` | `Warning` |
+| `k8s.event.reason` | `OOMKilling` |
+| `k8s.event.message` | `Memory cgroup out of memory: Killed process 318623 (MainThread)` |
+| `k8s.event.count` | `2` |
+| `k8s.event.reporting_controller` | `kernel-monitor` |
+| `k8s.object.kind` | `Node` |
+| `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
+| `k8s.namespace.name` | `default` |
+
+可以在 **日誌** 中搜尋它們，用捨棄過濾器捨棄不需要的事件，或者用 [日誌監視器](/docs/monitor/logs-monitor) 在事件發生時收到通知：依嚴重程度 **Warning** 和 `k8s.event.reason` 篩選，並依 `k8s.object.name` 分組，每個節點或自動擴縮器一則警示。
 
 ## 設定選項
 
@@ -287,7 +323,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 > [!NOTE]
 > 節點層級和叢集層級的指標一律會保留。命名空間屬於 Pod 而不屬於節點，因此節點 CPU、節點記憶體和檔案系統使用量等序列沒有可比對的內容，永遠不會被捨棄：範圍為 `metrics` 的規則會削減每個 Pod 的序列，而不會隱藏出問題的節點。
 
-Kubernetes 事件無法在代理程式端依命名空間篩選：它們來自 `k8sobjects` 接收器，沒有 `k8s.namespace.name` 屬性（命名空間在事件本文中），因此篩選器沒有可比對的內容。請改為在 OneUptime 中透過 **日誌 → 設定 → 捨棄過濾器** 捨棄它們。
+Kubernetes 事件不會在代理程式端依命名空間篩選：代理程式會傳送所有事件，包括系統命名空間的事件。若要捨棄其中一部分，請在 OneUptime 中使用 **日誌 → 設定 → 捨棄過濾器**，它可以比對事件的 `k8s.namespace.name`。
 
 ### 依日誌嚴重性篩選
 
@@ -1001,6 +1037,13 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 2. 檢查它的 `/healthz`：日誌追蹤器會在連接埠 `13133` 上回應，傳回其作用中串流的數量和最近一次匯出錯誤。
 3. 查看它的日誌：`kubectl logs -n oneuptime-agent deployment/kubernetes-agent-logs`
 4. 在非常大的叢集上，單一複本可能成為瓶頸：在 `namespaceFilters.rules` 中使用範圍為 `podLogs` 的包含規則，將命名空間分散到多個發行版本中。
+:::
+
+:::details Kubernetes 警告事件沒有顯示
+1. 確認 Kubernetes 回報了它們：`kubectl get events -A --field-selector type=Warning`。Kubernetes 保留事件大約一小時，代理程式傳送它執行期間發生或重複的事件，而不傳送它啟動之前就有的事件。
+2. 在叢集的 **事件** 頁面上選擇 **警告** 或 **全部**，並選擇涵蓋事件發生時間的時間範圍。
+3. 檢查 **日誌 → 設定 → 捨棄過濾器**：與捨棄過濾器相符的事件會在儲存之前被捨棄。
+4. 查看指標 Collector 的日誌中是否有匯出錯誤：`kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector`
 :::
 
 :::details eBPF Pod 當機迴圈或無法啟動
