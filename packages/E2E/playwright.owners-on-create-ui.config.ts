@@ -11,7 +11,7 @@ import path from "path";
  * show is checked here: the field folded until More fields opens, "Your
  * teams" and Add all, the review's Owners row and its rules, what the
  * preview is asked and what a create sends, a 390px phone, dark mode and
- * German.
+ * German - and, on the owner rules pages, an owner rule's Creator's Team.
  */
 const port: string = process.env["OWNERS_ON_CREATE_FIXTURE_PORT"] || "4253";
 

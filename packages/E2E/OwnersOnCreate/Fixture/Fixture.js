@@ -25,8 +25,14 @@
  *   Checkout alerts                      every alert: Linus Torvalds and the
  *                                        SRE On-call team
  *
+ * The incident and alert owner rules pages (Settings > Owner Rules) are
+ * here too, for the Creator's Team an owner rule lists: one incident rule
+ * that lists Platform, Database and Frontend, and one saved before anyone
+ * asked a rule to add something, which adds nothing.
+ *
  * Steered by the query string:
  *   - form=alert   Create Alert (default: Declare Incident)
+ *   - form=incident-rules|alert-rules   the owner rules pages
  *   - teams=none|one|many
  *   - rules=none   no rule adds anyone
  *   - rules=error  the preview fails (a 500)
@@ -55,9 +61,13 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import IncidentCreate from "../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Create";
 import AlertCreate from "../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Create";
+import IncidentOwnerRulesPage from "../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentOwnerRules";
+import AlertOwnerRulesPage from "../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Settings/AlertOwnerRules";
+import AlertOwnerRule from "Common/Models/DatabaseModels/AlertOwnerRule";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import IncidentOwnerRule from "Common/Models/DatabaseModels/IncidentOwnerRule";
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
@@ -88,7 +98,12 @@ const PROJECT_ID = "10000000-0000-4000-8000-0000000000c7";
 const ADA_ID = "20000000-0000-4000-8000-0000000000c7";
 
 const params = new URLSearchParams(window.location.search);
-const form = params.get("form") === "alert" ? "alert" : "incident";
+const form = ["alert", "incident-rules", "alert-rules"].includes(
+  params.get("form"),
+)
+  ? params.get("form")
+  : "incident";
+const isRulesPage = form === "incident-rules" || form === "alert-rules";
 const teamsMode = ["none", "one"].includes(params.get("teams"))
   ? params.get("teams")
   : "many";
@@ -210,6 +225,37 @@ const DATABASE_LABEL = record(Label, "60", {
   color: new Color("#b45309"),
 });
 
+// What an owner rule adds when it lists nobody and inherits nothing.
+const ADDS_NOTHING = {
+  ownerUsers: [],
+  ownerTeams: [],
+  creatorTeams: [],
+  inheritOwnersFromMonitors: false,
+  inheritOwnersFromHosts: false,
+  inheritOwnersFromKubernetesClusters: false,
+  inheritOwnersFromDockerHosts: false,
+  inheritOwnersFromPodmanHosts: false,
+  inheritOwnersFromServices: false,
+};
+
+const INCIDENT_OWNER_RULES = [
+  record(IncidentOwnerRule, "a1", {
+    ...ADDS_NOTHING,
+    name: "Add the creator's team as an owner",
+    description: "Whoever declares an incident brings their team along.",
+    isEnabled: true,
+    notifyOwners: true,
+    creatorTeams: [PLATFORM, DATABASE, FRONTEND],
+  }),
+  record(IncidentOwnerRule, "a1", {
+    ...ADDS_NOTHING,
+    name: "Old checkout rule",
+    description: "Saved before a rule had to add someone.",
+    isEnabled: true,
+    notifyOwners: true,
+  }),
+];
+
 const TABLES = {
   User: [ADA, GRACE, LINUS],
   Team: [PLATFORM, DATABASE, SRE, MEMBERS, FRONTEND],
@@ -268,7 +314,11 @@ const TABLES = {
     }),
   ],
   Monitor: [record(Monitor, "80", { name: "Checkout API" })],
+  IncidentOwnerRule: INCIDENT_OWNER_RULES,
   // Read by the pages, empty in this project.
+  IncidentEpisodeOwnerRule: [],
+  AlertOwnerRule: [],
+  AlertEpisodeOwnerRule: [],
   MonitorStatus: [],
   OnCallDutyPolicy: [],
   StatusPage: [],
@@ -299,6 +349,7 @@ window.__fixture.ids = {
   database: DATABASE._id,
   sre: SRE._id,
   members: MEMBERS._id,
+  frontend: FRONTEND._id,
   databaseLabel: DATABASE_LABEL._id,
 };
 
@@ -597,6 +648,21 @@ function Shell() {
   Navigation.setLocation(useLocation());
   Navigation.setParams(useParams());
 
+  if (isRulesPage) {
+    const RulesPage =
+      form === "alert-rules" ? AlertOwnerRulesPage : IncidentOwnerRulesPage;
+
+    return (
+      <main className="mx-auto max-w-[1200px] px-4 py-8 sm:px-8">
+        <RulesPage
+          pageRoute={Navigation.getCurrentRoute()}
+          currentProject={project}
+          hasPaymentMethod={true}
+        />
+      </main>
+    );
+  }
+
   const Create = form === "alert" ? AlertCreate : IncidentCreate;
 
   return (
@@ -610,7 +676,9 @@ function Shell() {
   );
 }
 
-const target = `/dashboard/${PROJECT_ID}/${form === "alert" ? "alerts" : "incidents"}/create`;
+const target = `/dashboard/${PROJECT_ID}/${
+  form === "alert" || form === "alert-rules" ? "alerts" : "incidents"
+}/${isRulesPage ? "settings/owner-rules" : "create"}`;
 
 if (window.location.pathname !== target) {
   window.history.replaceState(null, "", target + window.location.search);
@@ -625,6 +693,14 @@ createRoot(document.getElementById("root")).render(
       />
       <PageRoute
         path="/dashboard/:projectId/alerts/create"
+        element={<Shell />}
+      />
+      <PageRoute
+        path="/dashboard/:projectId/incidents/settings/owner-rules"
+        element={<Shell />}
+      />
+      <PageRoute
+        path="/dashboard/:projectId/alerts/settings/owner-rules"
         element={<Shell />}
       />
       <PageRoute

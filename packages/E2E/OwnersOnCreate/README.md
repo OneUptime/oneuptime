@@ -35,6 +35,21 @@ The suite drives the field the way a person does:
 - the field and the review at a phone's width, in dark mode (`?theme=dark`) and
   in German (`?lang=de`).
 
+And the other half, the owner rules pages (`?form=incident-rules`,
+`?form=alert-rules`, at `/dashboard/<project>/<incidents|alerts>/settings/owner-rules`),
+with one incident rule that lists Platform, Database and Frontend under
+Creator's Team and one older rule that adds nothing:
+
+- Creator's Team waits last in the folded Inherit Owners, whose line names
+  it;
+- one team listed is enough to save a rule: it is named "Add the creator's
+  team as an owner" and sent as `creatorTeams`, with nobody else and no
+  switch on;
+- Edit reads the teams back, with the fold open;
+- the list marks only the rule that adds nothing as **Adds nothing**;
+- an alert rule's words (whoever creates the alert), and the field at a
+  phone's width.
+
 Run it from `packages/E2E`:
 
 ```sh

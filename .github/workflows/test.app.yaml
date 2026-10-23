@@ -315,11 +315,12 @@ jobs:
           # tab of a node, an HPA, a Deployment and a namespace, and the
           # Overview's Recent Warnings, at 1280 and 390 pixels, light, dark
           # and German) joined it on 2026-10-23, still the lightest: about 18.
-          # Owners on Create (about 35 seconds locally with its bundle,
+          # Owners on Create (under a minute locally with its bundle,
           # Chromium only: Declare Incident's and Create Alert's Owners under
-          # More fields, the declarer's teams one click away, and the owner
-          # rules the review says will run, at 1280 and 390 pixels, dark and
-          # German) joined it the same day: about 19.
+          # More fields, the declarer's teams one click away, the owner rules
+          # the review says will run, and an owner rule's Creator's Team, at
+          # 1280 and 390 pixels, dark and German) joined it the same day:
+          # about 19.
           - group: 5
             browsers: chromium
             suites: >-

@@ -34,11 +34,19 @@ import path from "path";
  *   - what the preview is asked, and what a create sends: the owners picked,
  *     as ownerUsers and ownerTeams;
  *   - all of it at a 390px phone's width, in dark mode and in German.
+ *
+ * And the other half, Settings > Owner Rules: an incident or alert owner
+ * rule lists teams under Creator's Team, last in its Inherit Owners fold -
+ * whose folded line says so - and a rule that lists only a team there adds
+ * someone: it saves, is named after it, reads back on Edit, and is not
+ * marked "Adds nothing".
  */
 
 const PROJECT_ID: string = "10000000-0000-4000-8000-0000000000c7";
 const INCIDENT_PATH: string = `/dashboard/${PROJECT_ID}/incidents/create`;
 const ALERT_PATH: string = `/dashboard/${PROJECT_ID}/alerts/create`;
+const INCIDENT_RULES_PATH: string = `/dashboard/${PROJECT_ID}/incidents/settings/owner-rules`;
+const ALERT_RULES_PATH: string = `/dashboard/${PROJECT_ID}/alerts/settings/owner-rules`;
 const PORT: string = process.env["OWNERS_ON_CREATE_FIXTURE_PORT"] || "4253";
 
 const SCREENSHOTS: string = path.resolve(
@@ -62,6 +70,29 @@ const INCIDENT_LINE: string =
 const ALERT_LINE: string =
   "You become an owner when you create it. Add your team, or anyone else who should own it.";
 
+// The owner rule form's words for the creator's team, on each kind of rule.
+const RULE_FOLD_LINES: Record<"incident" | "alert", string> = {
+  incident:
+    "Optionally assign owners from related entities, or the creator's team, to the incident.",
+  alert:
+    "Optionally assign owners from related entities, or the creator's team, to the alert.",
+};
+const CREATOR_TEAM_LINES: Record<"incident" | "alert", string> = {
+  incident:
+    "When the person who declares a matching incident is in one of these teams, that team becomes an owner too.",
+  alert:
+    "When the person who creates a matching alert is in one of these teams, that team becomes an owner too.",
+};
+const CREATOR_TEAM_RULE_NAME: string = "Add the creator's team as an owner";
+const INHERIT_OWNER_SWITCHES: Array<string> = [
+  "inheritOwnersFromMonitors",
+  "inheritOwnersFromHosts",
+  "inheritOwnersFromKubernetesClusters",
+  "inheritOwnersFromDockerHosts",
+  "inheritOwnersFromPodmanHosts",
+  "inheritOwnersFromServices",
+];
+
 interface FixtureIds {
   ada: string;
   grace: string;
@@ -70,6 +101,7 @@ interface FixtureIds {
   database: string;
   sre: string;
   members: string;
+  frontend: string;
   databaseLabel: string;
 }
 
@@ -187,8 +219,10 @@ async function openMoreFields(
   page: Page,
   name: string = "More fields",
 ): Promise<void> {
-  const header: Locator = moreFields(page, name);
+  await openFold(page, moreFields(page, name));
+}
 
+async function openFold(page: Page, header: Locator): Promise<void> {
   await header.focus();
   await page.keyboard.press("Enter");
   await expect(header).toHaveAttribute("aria-expanded", "true");
@@ -293,6 +327,100 @@ async function expectNoSidewaysScroll(page: Page): Promise<void> {
       return document.documentElement.scrollWidth - window.innerWidth;
     }),
   ).toBeLessThanOrEqual(0);
+}
+
+// ---- Settings > Owner Rules -------------------------------------------------
+
+type RuleKind = "incident" | "alert";
+
+function ruleModelName(kind: RuleKind): string {
+  return kind === "alert" ? "Alert Owner Rule" : "Incident Owner Rule";
+}
+
+async function openRulesPage(page: Page, kind: RuleKind): Promise<void> {
+  await page.goto(
+    `${kind === "alert" ? ALERT_RULES_PATH : INCIDENT_RULES_PATH}?form=${kind}-rules`,
+  );
+  await page.evaluate(async (): Promise<void> => {
+    await document.fonts.ready;
+  });
+  await expect(
+    page.getByRole("button", { name: `Create ${ruleModelName(kind)}` }).first(),
+  ).toBeVisible();
+}
+
+function ruleForm(page: Page): Locator {
+  return page.getByTestId("modal");
+}
+
+// The Create form, on its second step: what the rule adds.
+async function openNewRuleOwners(page: Page, kind: RuleKind): Promise<Locator> {
+  await page
+    .getByRole("button", { name: `Create ${ruleModelName(kind)}` })
+    .first()
+    .click();
+
+  const form: Locator = ruleForm(page);
+
+  await expect(form).toBeVisible();
+  await form.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(inheritOwnersFold(form)).toBeVisible();
+
+  return form;
+}
+
+function inheritOwnersFold(form: Locator): Locator {
+  return form.getByRole("button", { name: /^Inherit Owners/ }).first();
+}
+
+function creatorTeamField(form: Locator): Locator {
+  return form.getByRole("group", { name: /^Creator's Team/ }).first();
+}
+
+// The teams Creator's Team lists, by id: each chip names its team.
+async function creatorTeamIds(form: Locator): Promise<Array<string>> {
+  return await creatorTeamField(form)
+    .getByTestId("people-chip")
+    .evaluateAll((chips: Array<Element>): Array<string> => {
+      return chips.map((chip: Element): string => {
+        return chip.getAttribute("data-id") || "";
+      });
+    });
+}
+
+async function addCreatorTeam(
+  page: Page,
+  form: Locator,
+  team: string,
+): Promise<void> {
+  await creatorTeamField(form)
+    .getByRole("button", { name: "Add team" })
+    .click();
+
+  const popup: Locator = page.getByTestId("people-search-popup");
+
+  await expect(popup).toBeVisible();
+  await popup.getByRole("option", { name: `${team} Team` }).click();
+  await expect
+    .poll(async () => {
+      return (await creatorTeamIds(form)).length;
+    })
+    .toBeGreaterThan(0);
+
+  // The picker stays open for more picks.
+  if (await popup.isVisible()) {
+    await page.keyboard.press("Escape");
+  }
+
+  await expect(popup).toBeHidden();
+  await expect(form).toBeVisible();
+}
+
+// The ids a create sent for a list of related rows ({ _id } each).
+function idsOf(value: unknown): Array<string> {
+  return (Array.isArray(value) ? value : []).map((item: unknown): string => {
+    return String((item as { _id?: unknown })?._id ?? item);
+  });
 }
 
 test.describe("Declare Incident", () => {
@@ -612,8 +740,222 @@ test.describe("Create Alert", () => {
   });
 });
 
+test.describe("Owner rules", () => {
+  test("a rule that adds only the creator's team is not listed as adding nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRulesPage(page, "incident");
+
+    await expect(
+      page.getByRole("row", { name: /Old checkout rule/ }),
+    ).toContainText("Adds nothing");
+    await expect(
+      page.getByRole("row", { name: new RegExp(CREATOR_TEAM_RULE_NAME) }),
+    ).not.toContainText("Adds nothing");
+  });
+
+  test("a new incident rule keeps Creator's Team last in Inherit Owners, whose folded line names it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRulesPage(page, "incident");
+
+    const form: Locator = await openNewRuleOwners(page, "incident");
+    const fold: Locator = inheritOwnersFold(form);
+
+    // Folded, and still read as the place for the creator's team.
+    await expect(fold).toHaveAttribute("aria-expanded", "false");
+    await expect(fold).toContainText(RULE_FOLD_LINES.incident);
+    await expect(creatorTeamField(form)).toBeHidden();
+
+    await openFold(page, fold);
+
+    const field: Locator = creatorTeamField(form);
+
+    await expect(field).toBeVisible();
+    await expect(form.getByText(CREATOR_TEAM_LINES.incident)).toBeVisible();
+    // Nothing listed by itself.
+    expect(await creatorTeamIds(form)).toEqual([]);
+
+    /*
+     * Last in the fold: after the six switches, before the rule's Name -
+     * once the fold has finished opening, and moved the Name down.
+     */
+    const lastSwitch: Locator = form.getByRole("switch", {
+      name: "Inherit Owners From Services",
+    });
+    const name: Locator = form.getByRole("textbox", { name: "Name" });
+
+    await expect
+      .poll(async (): Promise<Array<string>> => {
+        const tops: Array<{ part: string; y: number }> = [];
+
+        for (const [part, locator] of [
+          ["Inherit Owners From Services", lastSwitch],
+          ["Creator's Team", field],
+          ["Name", name],
+        ] as Array<[string, Locator]>) {
+          tops.push({ part, y: (await locator.boundingBox())?.y ?? -1 });
+        }
+
+        return tops
+          .sort((left: { y: number }, right: { y: number }): number => {
+            return left.y - right.y;
+          })
+          .map((top: { part: string }): string => {
+            return top.part;
+          });
+      })
+      .toEqual(["Inherit Owners From Services", "Creator's Team", "Name"]);
+  });
+
+  test("one team listed is enough: the rule is named after it and saved with it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRulesPage(page, "incident");
+
+    const form: Locator = await openNewRuleOwners(page, "incident");
+
+    await openFold(page, inheritOwnersFold(form));
+    await addCreatorTeam(page, form, "Platform");
+
+    const ids: FixtureIds = (await fixture(page)).ids;
+
+    expect(await creatorTeamIds(form)).toEqual([ids.platform]);
+    // Named after what it adds, until a name of one's own is typed.
+    await expect(form.getByRole("textbox", { name: "Name" })).toHaveValue(
+      CREATOR_TEAM_RULE_NAME,
+    );
+
+    await screenshot(page, "incident-owner-rule-creator-team-1280");
+
+    await form
+      .getByRole("button", { name: "Create Incident Owner Rule" })
+      .click();
+    await expect(form).toBeHidden();
+
+    const saves: FixtureRecord["saves"] = await eventSaves(
+      page,
+      "IncidentOwnerRule",
+    );
+
+    expect(saves).toHaveLength(1);
+
+    const rule: Record<string, unknown> = saves[0]!.data;
+
+    expect(rule["name"]).toBe(CREATOR_TEAM_RULE_NAME);
+    expect(idsOf(rule["creatorTeams"])).toEqual([ids.platform]);
+    // Nobody named, nothing inherited: the creator's team is all it adds.
+    expect(idsOf(rule["ownerUsers"])).toEqual([]);
+    expect(idsOf(rule["ownerTeams"])).toEqual([]);
+
+    for (const column of INHERIT_OWNER_SWITCHES) {
+      expect({ column, on: rule[column] }).toEqual({ column, on: false });
+    }
+  });
+
+  test("editing a rule that lists teams opens Inherit Owners on them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRulesPage(page, "incident");
+
+    await page
+      .getByRole("row", { name: new RegExp(CREATOR_TEAM_RULE_NAME) })
+      .getByRole("button", { name: /^More actions for Incident Owner Rule/ })
+      .click();
+    await page.getByRole("menuitem", { name: "Edit" }).click();
+
+    const form: Locator = ruleForm(page);
+
+    await form.getByRole("button", { name: "Next", exact: true }).click();
+    await expect(inheritOwnersFold(form)).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+
+    const ids: FixtureIds = (await fixture(page)).ids;
+
+    await expect
+      .poll(() => {
+        return creatorTeamIds(form);
+      })
+      .toEqual([ids.platform, ids.database, ids.frontend]);
+  });
+
+  test("an alert rule's creator is whoever creates the alert", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRulesPage(page, "alert");
+
+    const form: Locator = await openNewRuleOwners(page, "alert");
+    const fold: Locator = inheritOwnersFold(form);
+
+    await expect(fold).toContainText(RULE_FOLD_LINES.alert);
+    await openFold(page, fold);
+    await expect(form.getByText(CREATOR_TEAM_LINES.alert)).toBeVisible();
+
+    await addCreatorTeam(page, form, "SRE On-call");
+
+    await screenshot(page, "alert-owner-rule-creator-team-1280");
+
+    await form.getByRole("button", { name: "Create Alert Owner Rule" }).click();
+    await expect(form).toBeHidden();
+
+    const saves: FixtureRecord["saves"] = await eventSaves(
+      page,
+      "AlertOwnerRule",
+    );
+    const ids: FixtureIds = (await fixture(page)).ids;
+
+    expect(saves).toHaveLength(1);
+    expect(idsOf(saves[0]!.data["creatorTeams"])).toEqual([ids.sre]);
+    expect(saves[0]!.data["name"]).toBe(CREATOR_TEAM_RULE_NAME);
+  });
+});
+
 test.describe("at a phone's width", () => {
   test.use({ viewport: { width: 390, height: 844 } });
+
+  test("an owner rule's Creator's Team fits the screen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRulesPage(page, "incident");
+
+    const form: Locator = await openNewRuleOwners(page, "incident");
+
+    await openFold(page, inheritOwnersFold(form));
+    await addCreatorTeam(page, form, "Platform");
+
+    const field: Locator = creatorTeamField(form);
+
+    await field.scrollIntoViewIfNeeded();
+    await expectNoSidewaysScroll(page);
+
+    for (const part of [
+      field.getByRole("button", { name: "Add team" }),
+      field.getByTestId("people-chip").first(),
+      form.getByText(CREATOR_TEAM_LINES.incident),
+    ]) {
+      const box: { x: number; width: number } | null = await part.boundingBox();
+
+      expect(box).not.toBeNull();
+      expect(box!.x).toBeGreaterThanOrEqual(0);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(390);
+    }
+
+    await screenshot(page, "incident-owner-rule-creator-team-390");
+  });
 
   test("the Owners field and its teams fit the screen", async ({
     page,
