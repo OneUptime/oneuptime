@@ -467,7 +467,7 @@ describe("describeNetworkDevice with what discovery read (issue #5185)", () => {
    * system group; OneUptime has never walked it.
    */
   function pingOnlySwitch(
-    overrides: Partial<NetworkDevice> = {},
+    overrides: Record<string, unknown> = {},
   ): NetworkDevice {
     const device: NetworkDevice = new NetworkDevice();
     device._id = DEVICE_ID.toString();
@@ -956,8 +956,6 @@ describe("the NetworkDevice source selects every column it projects", () => {
     const full: NetworkDevice = merakiMx({
       name: "10.20.12.7",
       hostname: "10.20.12.7",
-      sysName: undefined,
-      sysDescr: undefined,
       discoveredDetails: {
         sysName: {
           value: "edge-sw-07",
@@ -981,6 +979,10 @@ describe("the NetworkDevice source selects every column it projects", () => {
         },
       },
     });
+
+    // Never walked: none of the system group of its own.
+    delete full.sysName;
+    delete full.sysDescr;
 
     const rows: Array<InventoryRowProjection> = await fetchThroughSelect(full);
 

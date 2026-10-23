@@ -106,7 +106,7 @@ const FOUND_BY: JSONObject = {
  * A switch at a store that only answers ping: imported by the scan, which
  * read its system group; OneUptime has never walked it.
  */
-function pingOnlySwitch(fields: Partial<NetworkDevice> = {}): NetworkDevice {
+function pingOnlySwitch(fields: Record<string, unknown> = {}): NetworkDevice {
   const device: NetworkDevice = new NetworkDevice();
   device.id = new ObjectID(DEVICE_ID);
   Object.assign(device, {
@@ -125,7 +125,7 @@ function pingOnlySwitch(fields: Partial<NetworkDevice> = {}): NetworkDevice {
 }
 
 // A switch its probe walked three minutes ago.
-function walkedSwitch(fields: Partial<NetworkDevice> = {}): NetworkDevice {
+function walkedSwitch(fields: Record<string, unknown> = {}): NetworkDevice {
   const device: NetworkDevice = new NetworkDevice();
   device.id = new ObjectID(DEVICE_ID);
   Object.assign(device, {

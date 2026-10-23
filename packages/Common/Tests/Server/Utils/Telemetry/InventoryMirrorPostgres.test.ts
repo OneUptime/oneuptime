@@ -486,6 +486,93 @@ describePostgres("inventory mirror reconcile against Postgres", () => {
     );
   });
 
+  // --- issue #5185: what discovery read, in the device's jsonb column ---
+
+  async function setDiscoveredDetails(details: JSONObject): Promise<void> {
+    await database.query(
+      `UPDATE "${schema}"."NetworkDevice" SET "discoveredDetails" = $1::jsonb WHERE "_id" = $2`,
+      [JSON.stringify(details), DEVICE_ID.toString()],
+    );
+  }
+
+  function scanReading(value: string, readAt: string): JSONObject {
+    return {
+      value: value,
+      method: "snmp",
+      readBy: {
+        type: "discoveryScan",
+        id: "80000000-0000-4000-8000-000000000001",
+        name: "Store subnets",
+      },
+      readAt: readAt,
+    };
+  }
+
+  test("a device its poll never walked is mirrored with what a discovery scan read", async () => {
+    await database.query(
+      `INSERT INTO "${schema}"."NetworkDevice"
+         ("_id", "projectId", "name", "slug", "hostname", "isArchived",
+          "version")
+       VALUES ($1, $2, '10.20.12.7', '10-20-12-7', '10.20.12.7', false, 1)`,
+      [DEVICE_ID.toString(), PROJECT_ID.toString()],
+    );
+    await setDiscoveredDetails({
+      sysName: scanReading("edge-sw-07", "2026-10-23T07:00:00.000Z"),
+      sysDescr: scanReading(
+        "Cisco IOS Software, C2960X Software (C2960X-UNIVERSALK9-M), Version 15.2(7)E8, RELEASE SOFTWARE (fc3)",
+        "2026-10-23T07:00:00.000Z",
+      ),
+      sysObjectId: scanReading(
+        "1.3.6.1.4.1.9.1.1208",
+        "2026-10-23T07:00:00.000Z",
+      ),
+      sysLocation: scanReading(
+        "Store 12, back office rack",
+        "2026-10-23T07:00:00.000Z",
+      ),
+    });
+
+    await syncNetwork();
+
+    expect(await mirroredBag()).toEqual({
+      "net.device.hostname": "10.20.12.7",
+      "host.name": "edge-sw-07",
+      "host.ip": "10.20.12.7",
+      "device.manufacturer": "Cisco",
+      "os.name": "Cisco IOS",
+      "os.version": "15.2(7)E8",
+      "os.description":
+        "Cisco IOS Software, C2960X Software (C2960X-UNIVERSALK9-M), Version 15.2(7)E8, RELEASE SOFTWARE (fc3)",
+      "device.type": "Switch",
+      "device.location": "Store 12, back office rack",
+    });
+
+    // The jsonb read back is steady: a second pass writes nothing.
+    expect(await syncNetwork()).toEqual({
+      created: 0,
+      updated: 0,
+      deleted: 0,
+      archived: 0,
+    });
+  });
+
+  test("a value saved on the device stays on the item, whatever a scan read", async () => {
+    await insertPolledSwitch();
+    // Never walked: the switch's columns were saved, not polled.
+    await setDiscoveredDetails({
+      sysDescr: scanReading(
+        "Some other description",
+        "2026-10-23T07:00:00.000Z",
+      ),
+    });
+
+    await syncNetwork();
+
+    expect((await mirroredBag())["os.description"]).toBe(
+      "Cisco IOS Software, Catalyst L3 Switch Software, Version 16.12.4",
+    );
+  });
+
   test("the mirrored row is still read back through the service", async () => {
     await insertPolledSwitch();
     await syncNetwork();

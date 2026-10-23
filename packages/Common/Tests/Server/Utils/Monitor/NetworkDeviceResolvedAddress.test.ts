@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import NetworkInventoryUtil, {
   NetworkDeviceDnsResolution,
   RESOLVED_ADDRESS_REFRESH_INTERVAL_IN_MS,
@@ -57,10 +58,8 @@ function recordedAddress(value: string, readAt: Date): JSONObject {
   };
 }
 
-let mergeSpy: jest.SpiedFunction<
-  typeof NetworkDeviceService.mergeDiscoveredDetails
->;
-let probeSpy: jest.SpiedFunction<typeof ProbeService.findOneById>;
+let mergeSpy: SpyInstance<typeof NetworkDeviceService.mergeDiscoveredDetails>;
+let probeSpy: SpyInstance<typeof ProbeService.findOneById>;
 
 function mockServices(probeName: string | null = "Frankfurt probe"): void {
   mergeSpy = jest
@@ -302,9 +301,7 @@ describe("the poll pipeline records it", () => {
   test("the device read selects what the recording needs", async () => {
     mockServices();
     mockPollServices(deviceAt("core-fw-01.acme.example"));
-    const findOneSpy: jest.SpiedFunction<
-      typeof NetworkDeviceService.findOneBy
-    > = jest
+    const findOneSpy: SpyInstance<typeof NetworkDeviceService.findOneBy> = jest
       .spyOn(NetworkDeviceService, "findOneBy")
       .mockResolvedValue(deviceAt("core-fw-01.acme.example"));
 

@@ -1311,9 +1311,15 @@ describe("the kept DNS name on the device Overview", () => {
     expect(settingsDetailStart).toBeGreaterThan(settingsFormStart);
   });
 
+  /*
+   * Since issue #5185 the row shows the device's DNS name as it stands: the
+   * one kept on the device, else the reverse-DNS name a discovery scan
+   * found for its address, said as such. Still a row with nothing to edit,
+   * and still hidden when neither has one.
+   */
   test("is a read-only detail row, guarded so an empty value shows nothing", () => {
     expect(source.slice(detailStart)).toContain(
-      'field: { dnsName: true, }, title: "DNS Name", fieldType: FieldType.Text, showIf: (item: NetworkDevice): boolean => { return Boolean(item.dnsName); },',
+      'field: { dnsName: true, }, title: "DNS Name", fieldType: FieldType.Element, getElement: (item: NetworkDevice): ReactElement => { return effectiveDetailElement(item, "dnsName"); }, showIf: (item: NetworkDevice): boolean => { return Boolean(effectiveDetail(item, "dnsName").value); },',
     );
   });
 

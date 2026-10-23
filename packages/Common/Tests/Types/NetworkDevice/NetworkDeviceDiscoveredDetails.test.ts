@@ -10,7 +10,6 @@ import {
   NetworkDeviceDiscoveredDetails,
   NetworkDeviceDiscoveredField,
   NetworkDeviceDiscoveredValue,
-  NetworkDeviceDiscoveryMethod,
   NetworkDeviceDiscoveryReader,
   NetworkDeviceDiscoveryReaderType,
   NetworkDeviceOtherMachineSighting,

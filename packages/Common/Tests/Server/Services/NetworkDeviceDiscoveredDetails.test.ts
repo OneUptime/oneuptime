@@ -19,6 +19,7 @@ import Permission, {
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import { SERVER_MANAGED_COLUMNS_BY_TABLE } from "../../../Utils/DeveloperDocs/TerraformSchema";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
 /*
@@ -84,15 +85,18 @@ function buildDeviceService(): {
 }
 
 describe("mergeDiscoveredDetails - the one write after create", () => {
-  let query: jest.Mock<
-    (sql: string, parameters: Array<unknown>) => Promise<unknown>
-  >;
+  type QueryFunction = (
+    sql: string,
+    parameters: Array<unknown>,
+  ) => Promise<unknown>;
+
+  let query: Mock<QueryFunction>;
   let service: NetworkDeviceServiceType;
 
   beforeEach(() => {
     jest.restoreAllMocks();
     service = new NetworkDeviceServiceType();
-    query = jest.fn(async (): Promise<unknown> => {
+    query = jest.fn<QueryFunction>(async (): Promise<unknown> => {
       return [];
     });
     jest
@@ -460,11 +464,11 @@ describe("a device moved to another address keeps none of it", () => {
     };
   }
 
-  function clearedIds(
-    spy: jest.SpiedFunction<
-      NetworkDeviceServiceType["updateColumnsByIdWithoutHooks"]
-    >,
-  ): Array<string> {
+  type UpdateSpy = SpyInstance<
+    NetworkDeviceServiceType["updateColumnsByIdWithoutHooks"]
+  >;
+
+  function clearedIds(spy: UpdateSpy): Array<string> {
     return spy.mock.calls.map((call: Array<unknown>): string => {
       const input: JSONObject = call[0] as JSONObject;
       expect(input["data"]).toEqual({ discoveredDetails: null });
@@ -475,9 +479,7 @@ describe("a device moved to another address keeps none of it", () => {
 
   test("a new address clears them, hook-free and without moving updatedAt", async () => {
     const { service, internals } = buildDeviceService();
-    const spy: jest.SpiedFunction<
-      NetworkDeviceServiceType["updateColumnsByIdWithoutHooks"]
-    > = jest
+    const spy: UpdateSpy = jest
       .spyOn(service, "updateColumnsByIdWithoutHooks")
       .mockResolvedValue(undefined);
 
@@ -493,9 +495,7 @@ describe("a device moved to another address keeps none of it", () => {
 
   test("the same address, in another case or with spaces, keeps them", async () => {
     const { service, internals } = buildDeviceService();
-    const spy: jest.SpiedFunction<
-      NetworkDeviceServiceType["updateColumnsByIdWithoutHooks"]
-    > = jest
+    const spy: UpdateSpy = jest
       .spyOn(service, "updateColumnsByIdWithoutHooks")
       .mockResolvedValue(undefined);
 
@@ -511,9 +511,7 @@ describe("a device moved to another address keeps none of it", () => {
 
   test("a write that does not touch the address keeps them", async () => {
     const { service, internals } = buildDeviceService();
-    const spy: jest.SpiedFunction<
-      NetworkDeviceServiceType["updateColumnsByIdWithoutHooks"]
-    > = jest
+    const spy: UpdateSpy = jest
       .spyOn(service, "updateColumnsByIdWithoutHooks")
       .mockResolvedValue(undefined);
 
@@ -527,9 +525,7 @@ describe("a device moved to another address keeps none of it", () => {
 
   test("of several devices, only those whose address changed - and only those updated", async () => {
     const { service, internals } = buildDeviceService();
-    const spy: jest.SpiedFunction<
-      NetworkDeviceServiceType["updateColumnsByIdWithoutHooks"]
-    > = jest
+    const spy: UpdateSpy = jest
       .spyOn(service, "updateColumnsByIdWithoutHooks")
       .mockResolvedValue(undefined);
 
@@ -554,7 +550,7 @@ describe("a device moved to another address keeps none of it", () => {
     jest
       .spyOn(service, "updateColumnsByIdWithoutHooks")
       .mockRejectedValue(new Error("connection reset"));
-    const reconcile: jest.SpiedFunction<() => Promise<void>> = jest
+    const reconcile: SpyInstance<() => Promise<void>> = jest
       .spyOn(
         service as unknown as {
           reconcileAlertPoliciesAfterUpdate: () => Promise<void>;
