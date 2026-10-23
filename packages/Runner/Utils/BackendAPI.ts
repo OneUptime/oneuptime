@@ -11,6 +11,12 @@ import {
 } from "Common/Types/AI/CodeFixTaskContext";
 import { CodeTaskAgentDetails } from "Common/Types/AI/CodeTask";
 import {
+  CodeHost,
+  CodeHostRunnerInfo,
+  RUNNER_SUPPORTED_CODE_HOSTS_FIELD,
+} from "Common/Types/CodeRepository/CodeHost";
+import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
+import {
   LLMMessage,
   LLMToolCall,
   LLMToolDefinition,
@@ -79,8 +85,22 @@ interface RepositoryTokenResponse {
   repositoryUrl: string;
   organizationName: string;
   repositoryName: string;
+  // For a repository that is not on GitHub: where and how to use the token.
+  codeHost?: CodeHostRunnerInfo;
   message?: string;
 }
+
+/*
+ * The hosts this Runner works in, sent with every token request: a server
+ * hands a GitLab, Forgejo, Gitea or Git repository's token only to a Runner
+ * that says it can use it (Types/CodeRepository/CodeHost).
+ */
+export const SUPPORTED_CODE_HOSTS: Array<CodeRepositoryType> = [
+  CodeRepositoryType.GitHub,
+  CodeRepositoryType.GitLab,
+  CodeRepositoryType.Forgejo,
+  CodeRepositoryType.Git,
+];
 
 interface RecordPullRequestResponse {
   success: boolean;
@@ -164,6 +184,12 @@ export interface RepositoryToken {
   repositoryUrl: string;
   organizationName: string;
   repositoryName: string;
+  /*
+   * For a repository that is not on GitHub - GitLab, Forgejo, Gitea, a Git
+   * server - where its server is, the username Git signs in with, and where
+   * its API opens pull and merge requests. Absent for GitHub.
+   */
+  codeHost?: CodeHostRunnerInfo | undefined;
 }
 
 export interface RecordPullRequestOptions {
@@ -575,6 +601,7 @@ export default class BackendAPI {
         ...RunnerAPIRequest.getDefaultRequestBody(),
         codeRepositoryId: codeRepositoryId,
         ...(taskId ? { taskId: taskId } : {}),
+        [RUNNER_SUPPORTED_CODE_HOSTS_FIELD]: SUPPORTED_CODE_HOSTS,
       },
       options: RunnerAPIRequest.getDefaultRequestOptions(),
     });
@@ -594,12 +621,56 @@ export default class BackendAPI {
       `Got access token for repository ${data.organizationName}/${data.repositoryName}`,
     );
 
+    const codeHost: CodeHostRunnerInfo | null = BackendAPI.readCodeHost(
+      data.codeHost,
+    );
+
     return {
       token: data.token,
       expiresAt: new Date(data.expiresAt),
       repositoryUrl: data.repositoryUrl,
       organizationName: data.organizationName,
       repositoryName: data.repositoryName,
+      ...(codeHost ? { codeHost } : {}),
+    };
+  }
+
+  /*
+   * The codeHost a token came with, checked field by field - or null for a
+   * GitHub repository's token, or one this Runner cannot read.
+   */
+  public static readCodeHost(raw: unknown): CodeHostRunnerInfo | null {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      return null;
+    }
+
+    const value: JSONObject = raw as JSONObject;
+
+    if (
+      !CodeHost.isKnownType(value["type"]) ||
+      value["type"] === CodeRepositoryType.GitHub ||
+      typeof value["hostUrl"] !== "string" ||
+      !value["hostUrl"]
+    ) {
+      return null;
+    }
+
+    const readText: (key: string) => string | null = (
+      key: string,
+    ): string | null => {
+      const text: unknown = value[key];
+
+      return typeof text === "string" && text ? text : null;
+    };
+
+    return {
+      type: value["type"] as CodeRepositoryType,
+      hostUrl: value["hostUrl"] as string,
+      apiUrl: readText("apiUrl"),
+      webUrl: readText("webUrl"),
+      username: readText("username") || "oauth2",
+      projectId: readText("projectId"),
+      hasPullRequests: value["hasPullRequests"] === true,
     };
   }
 

@@ -141,6 +141,12 @@ export default class CodeHostHttp {
   public static createTransport(options?: {
     egressOptions?: EgressGuardOptions | undefined;
     maxResponseBytes?: number | undefined;
+    /*
+     * Whether http is allowed, where the caller decides rather than the
+     * deployment (a Runner: a global one never, a project's own on its own
+     * network yes). Undefined: isHttpAllowed().
+     */
+    allowHttp?: boolean | undefined;
   }): CodeHostTransport {
     return async (
       request: CodeHostHttpRequest,
@@ -156,9 +162,12 @@ export default class CodeHostHttp {
         });
       }
 
+      const allowHttp: boolean =
+        options?.allowHttp ?? CodeHostHttp.isHttpAllowed();
+
       if (
         url.protocol !== "https:" &&
-        !(url.protocol === "http:" && CodeHostHttp.isHttpAllowed())
+        !(url.protocol === "http:" && allowHttp)
       ) {
         throw new CodeHostHttpError({
           kind: CodeHostHttpErrorKind.NotAllowed,

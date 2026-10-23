@@ -6,7 +6,9 @@ import TaskLogger from "./TaskLogger";
 import GitCredentials, { GitCredentialHandle } from "./GitCredentials";
 import GitPorcelain, { GIT_STATUS_PORCELAIN_ARGS } from "./GitPorcelain";
 import SecretRedactor from "./SecretRedactor";
+import GitHostGuard from "./GitHostGuard";
 import { CodeTaskChanges, CodeTaskFileStatus } from "Common/Types/AI/CodeTask";
+import { CodeHostRunnerInfo } from "Common/Types/CodeRepository/CodeHost";
 
 export interface CloneResult {
   workingDirectory: string;
@@ -31,6 +33,11 @@ export interface RepositoryConfig {
    * absent, the remote's own default branch is resolved and used.
    */
   baseBranch?: string | undefined;
+  /*
+   * For a repository that is not on GitHub: its server, and the username
+   * Git signs in with. Its address is checked and pinned by GitHostGuard.
+   */
+  codeHost?: CodeHostRunnerInfo | undefined;
 }
 
 /*
@@ -97,7 +104,16 @@ export default class RepositoryManager {
 
     SecretRedactor.register(config.token, "repository-token");
 
-    const remoteUrl: string = GitCredentials.buildRemoteUrl(config);
+    const remoteUrl: string = RepositoryManager.getRemoteUrl(config);
+
+    /*
+     * A repository that is not on GitHub is on an address a person typed:
+     * checked, and pinned to what was checked, before git dials it.
+     */
+    const hostOptions: Array<string> = await RepositoryManager.getHostOptions(
+      config,
+      remoteUrl,
+    );
 
     await LocalFile.makeDirectory(workDir);
 
@@ -125,7 +141,7 @@ export default class RepositoryManager {
       const clone: (branch?: string | undefined) => Promise<void> = async (
         branch?: string,
       ): Promise<void> => {
-        const cloneArgs: Array<string> = ["clone"];
+        const cloneArgs: Array<string> = [...hostOptions, "clone"];
 
         if (branch) {
           cloneArgs.push("--single-branch", "--branch", branch);
@@ -187,6 +203,33 @@ export default class RepositoryManager {
       repositoryPath: repositoryPath,
       baseBranch,
     };
+  }
+
+  /*
+   * The remote's address with the username Git signs in with - never the
+   * token, which goes through the askpass helper.
+   */
+  private static getRemoteUrl(config: RepositoryConfig): string {
+    return GitCredentials.buildRemoteUrl({
+      ...config,
+      ...(config.codeHost ? { username: config.codeHost.username } : {}),
+    });
+  }
+
+  /*
+   * The `git -c` options a repository that is not on GitHub is reached
+   * with (GitHostGuard): its address checked, pinned, no redirects. None
+   * for GitHub.
+   */
+  private static async getHostOptions(
+    config: RepositoryConfig,
+    remoteUrl: string,
+  ): Promise<Array<string>> {
+    if (!config.codeHost) {
+      return [];
+    }
+
+    return await GitHostGuard.getGitOptions(remoteUrl);
   }
 
   /*
@@ -476,16 +519,24 @@ export default class RepositoryManager {
     );
 
     try {
+      const remoteUrl: string = RepositoryManager.getRemoteUrl(config);
+      const hostOptions: Array<string> =
+        await RepositoryManager.getHostOptions(config, remoteUrl);
+
       await this.runGitCommand(
         repoPath,
-        ["remote", "set-url", "origin", GitCredentials.buildRemoteUrl(config)],
+        ["remote", "set-url", "origin", remoteUrl],
         { env: credentials.env },
       );
 
-      await this.runGitCommand(repoPath, ["push", "-u", "origin", branchName], {
-        timeoutInMS: PUSH_TIMEOUT_MS,
-        env: credentials.env,
-      });
+      await this.runGitCommand(
+        repoPath,
+        [...hostOptions, "push", "-u", "origin", branchName],
+        {
+          timeoutInMS: PUSH_TIMEOUT_MS,
+          env: credentials.env,
+        },
+      );
     } finally {
       await credentials.dispose();
     }
