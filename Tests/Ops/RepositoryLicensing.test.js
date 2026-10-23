@@ -25,9 +25,9 @@
  *    under an Apache-2.0 manifest;
  *  - CODEOWNERS routes ee/, the license files and the files that decide what
  *    each image contains to the core maintainers;
- *  - the README and its 16 translations state the license split and no longer
- *    call all of OneUptime "100% open source" or its Enterprise images
- *    "hardened".
+ *  - the README and its 16 translations state the license split, put single
+ *    sign-on in the Community Edition, and no longer call all of OneUptime
+ *    "100% open source" or its Enterprise images "hardened".
  */
 
 const crypto = require("crypto");
@@ -76,6 +76,27 @@ const APACHE_LICENSE_FIELD = "Apache-2.0";
 const ENTERPRISE_DOCS_PAGE =
   "packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md";
 
+/*
+ * The Enterprise Edition page, as the READMEs link it: on the docs site, in
+ * the README's own language (the English README names none).
+ */
+const ENTERPRISE_DOCS_ADDRESS = "self-hosted/enterprise";
+
+function enterpriseDocsLink(language) {
+  return language === "en"
+    ? `https://oneuptime.com/docs/${ENTERPRISE_DOCS_ADDRESS}`
+    : `https://oneuptime.com/docs/${language}/${ENTERPRISE_DOCS_ADDRESS}`;
+}
+
+// The targets of a Markdown file's [text](target) links, in order.
+const MARKDOWN_LINK_TARGET = /\]\(([^()\s]*)\)/g;
+
+function markdownLinkTargets(markdown) {
+  return [...String(markdown).matchAll(MARKDOWN_LINK_TARGET)].map((match) => {
+    return match[1];
+  });
+}
+
 /**
  * The README license badge. Static, because GitHub does not name a license
  * for a LICENSE with a preamble (PostHog's shows as "Other"), so shields.io's
@@ -122,20 +143,28 @@ function read(relativePath) {
 }
 
 /**
- * The Community and Enterprise cells of the edition table's features row:
- * "| **Features** | <community> | <enterprise> |".
+ * The two lines of the README's editions section, found by their labels:
+ * "- **Community Edition**: ..." and "- **Enterprise Edition**: ...", each
+ * with its index among the file's lines.
  */
-function featuresCells(row) {
-  const cells = String(row)
-    .split("|")
-    .slice(1, -1)
-    .map((cell) => cell.trim());
+function editionLines(markdown) {
+  const lines = String(markdown).split("\n");
+  const find = (label) => {
+    const index = lines.findIndex((line) => {
+      return line.startsWith(`- **${label}**: `);
+    });
 
-  if (cells.length !== 3) {
-    throw new Error(`not a features row: ${row}`);
-  }
+    if (index === -1) {
+      throw new Error(`no "${label}" line`);
+    }
 
-  return [cells[1], cells[2]];
+    return { index, text: lines[index] };
+  };
+
+  return {
+    community: find("Community Edition"),
+    enterprise: find("Enterprise Edition"),
+  };
 }
 
 function exists(relativePath) {
@@ -1268,7 +1297,9 @@ describe("README and its translations", () => {
       "OneUptime is open source under the [Apache License 2.0](/LICENSE), except for the [`ee/`](/ee) directory.",
     );
     expect(english).toContain("[OneUptime Enterprise License](/ee/LICENSE)");
-    expect(english).toContain("| **License** | Apache 2.0 |");
+    expect(editionLines(english).community.text).toContain(
+      "Free and open source",
+    );
   });
 
   test("the English License section points at the root LICENSE, on the line that states the split", () => {
@@ -1281,13 +1312,12 @@ describe("README and its translations", () => {
     );
   });
 
-  test("the edition table lists what the Enterprise Edition adds, and puts single sign-on in Community", () => {
-    const featuresRow = english
-      .split("\n")
-      .find((line) => line.startsWith("| **Features** |"));
-    const [community, enterprise] = featuresCells(featuresRow);
+  test("the editions section lists what the Enterprise Edition adds, and puts single sign-on in Community", () => {
+    const lines = editionLines(english);
+    const community = lines.community.text;
+    const enterprise = lines.enterprise.text;
 
-    expect(community).toContain("SAML & OIDC single sign-on");
+    expect(community).toContain("SAML and OIDC single sign-on");
 
     for (const feature of [
       "SCIM provisioning",
@@ -1302,60 +1332,89 @@ describe("README and its translations", () => {
       expect(enterprise).not.toContain(singleSignOn);
     }
 
-    expect(featuresRow).not.toContain("Full feature set");
+    expect(english).not.toContain("Full feature set");
   });
 
-  test("the features row is found by its cells, not by where they sit", () => {
+  test("the edition lines are found by their labels, not by where they sit", () => {
     expect(
-      featuresCells(
-        "| **Features** | Everything — plus SAML & OIDC single sign-on | Everything in Community + SCIM provisioning |",
+      editionLines(
+        [
+          "## Community and Enterprise",
+          "",
+          "- **Community Edition**: Free, with SAML and OIDC single sign-on.",
+          "- **Enterprise Edition**: Adds SCIM provisioning.",
+        ].join("\n"),
       ),
-    ).toEqual([
-      "Everything — plus SAML & OIDC single sign-on",
-      "Everything in Community + SCIM provisioning",
-    ]);
-    expect(() => featuresCells("| **Features** | only one cell |")).toThrow(
-      "not a features row",
-    );
+    ).toEqual({
+      community: {
+        index: 2,
+        text: "- **Community Edition**: Free, with SAML and OIDC single sign-on.",
+      },
+      enterprise: {
+        index: 3,
+        text: "- **Enterprise Edition**: Adds SCIM provisioning.",
+      },
+    });
+    expect(() => {
+      return editionLines("- **Community Edition**: Free.");
+    }).toThrow('no "Enterprise Edition" line');
   });
 
   /*
    * Language-neutral: every translation keeps the English line layout, so the
-   * features row is on the same line, and "SAML", "OIDC" and "SCIM" are the
-   * same in every language.
+   * two edition lines are on the same lines, and the edition names, "SAML",
+   * "OIDC" and "SCIM" are written the same way in every language.
    */
   test.each(readmes)(
-    "%s puts single sign-on in the Community column and SCIM in the Enterprise column",
+    "%s puts single sign-on in the Community Edition line and SCIM in the Enterprise Edition line",
     (_language, _file, content) => {
-      const rowIndex = english
-        .split("\n")
-        .findIndex((line) => line.startsWith("| **Features** |"));
-      const [community, enterprise] = featuresCells(
-        content.split("\n")[rowIndex],
-      );
+      const lines = editionLines(english);
+      const community = content.split("\n")[lines.community.index];
+      const enterprise = content.split("\n")[lines.enterprise.index];
 
+      expect(community).toContain("Community Edition");
       expect(community).toContain("SAML");
       expect(community).toContain("OIDC");
+      expect(enterprise).toContain("Enterprise Edition");
       expect(enterprise).toContain("SCIM");
       expect(enterprise).not.toContain("SAML");
       expect(enterprise).not.toContain("OIDC");
     },
   );
 
-  test("the docs page every README links to exists", () => {
+  test("the docs page every README links to exists, in every README's language", () => {
     expect(exists(ENTERPRISE_DOCS_PAGE)).toBe(true);
+
+    for (const language of TRANSLATION_LANGUAGES) {
+      expect(
+        exists(
+          ENTERPRISE_DOCS_PAGE.replace("/Content/en/", `/Content/${language}/`),
+        ),
+      ).toBe(true);
+    }
   });
 
   test.each(readmes)(
     "%s keeps the English line layout and links the license split",
-    (_language, _file, content) => {
+    (language, _file, content) => {
+      const targets = markdownLinkTargets(content);
+
       expect(content.split("\n").length).toBe(english.split("\n").length);
-      // The edition table's License row and the License section.
-      expect(content.split("(/ee/LICENSE)").length - 1).toBe(2);
+      // The License section: the OneUptime Enterprise License for ee/.
+      expect(
+        targets.filter((target) => {
+          return target === "/ee/LICENSE";
+        }),
+      ).toHaveLength(1);
       // The License section: the Apache License, and the root LICENSE that
       // sets out the split.
-      expect(content.split("(/LICENSE)").length - 1).toBe(2);
-      expect(content).toContain(`(/${ENTERPRISE_DOCS_PAGE})`);
+      expect(
+        targets.filter((target) => {
+          return target === "/LICENSE";
+        }),
+      ).toHaveLength(2);
+      // The editions section: the docs' comparison, in the README's language.
+      expect(targets).toContain(enterpriseDocsLink(language));
     },
   );
 
