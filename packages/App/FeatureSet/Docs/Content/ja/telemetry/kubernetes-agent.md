@@ -237,8 +237,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | 列 | 表示される内容 |
 | --- | --- |
 | イベント | 理由、Warning または Normal、メッセージ、報告元: ノードの `kernel-monitor`、`kubelet`、`horizontal-pod-autoscaler` |
-| オブジェクト | 対象のオブジェクト。OneUptime のそのページへのリンク付き |
-| Namespace | イベントがある Namespace。ノードのイベントは、`kubectl get events` と同じく `default` にあります |
+| オブジェクト | 対象のオブジェクト。OneUptime のそのページへのリンク付きで、名前の横にイベントがある Namespace を表示します。ノードのイベントは、`kubectl get events` と同じく `default` にあります |
 | カウント | 発生した回数。繰り返すと、行が増えるのではなくカウントが増えます |
 | 最終確認 | 最後に発生した日時。ポインターを合わせると最初に発生した日時が表示されます |
 

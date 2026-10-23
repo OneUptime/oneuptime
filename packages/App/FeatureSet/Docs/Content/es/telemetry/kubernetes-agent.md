@@ -237,8 +237,7 @@ El agente envía a OneUptime cada evento de Kubernetes del clúster: de cada esp
 | Columna | Qué muestra |
 | --- | --- |
 | Evento | El motivo, Warning o Normal, el mensaje y quién lo informó: `kernel-monitor` en un nodo, `kubelet`, `horizontal-pod-autoscaler` |
-| Objeto | A qué se refiere, enlazado a su página en OneUptime |
-| Espacio de nombres | El espacio de nombres del evento; los eventos de un nodo están en `default`, como los lista `kubectl get events` |
+| Objeto | A qué se refiere, enlazado a su página en OneUptime, y junto a su nombre el espacio de nombres del evento; los eventos de un nodo están en `default`, como los lista `kubectl get events` |
 | Recuento | Cuántas veces ocurrió: una repetición sube el recuento en lugar de añadir una fila |
 | Visto por última vez | Cuándo ocurrió por última vez; pasa el puntero por encima para ver cuándo ocurrió por primera vez |
 

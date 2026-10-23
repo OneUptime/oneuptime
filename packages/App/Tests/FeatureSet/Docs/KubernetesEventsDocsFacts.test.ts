@@ -202,14 +202,27 @@ describe("the Kubernetes events section of the Kubernetes Agent page", () => {
       return match[1]!;
     });
 
-    expect(drawn).toEqual([
-      "Event",
-      "Object",
-      "Namespace",
-      "Count",
-      "Last seen",
-    ]);
+    // The namespace sits beside the object's name, not in a column of its own.
+    expect(drawn).toEqual(["Event", "Object", "Count", "Last seen"]);
     expect(documented).toEqual(drawn);
+    const objectRow: Array<string> | undefined = tableUnder(
+      "### What an event shows",
+    ).find((row: Array<string>): boolean => {
+      return row[0] === "Object";
+    });
+    expect(objectRow?.[1]).toContain(
+      "with the namespace the event is in beside its name",
+    );
+    // ...as the table draws it: a namespace chip inside the Object cell.
+    const table: string = dashboardFile(
+      "Components/Kubernetes/KubernetesEventsTable.tsx",
+    );
+    const objectCell: string = table.slice(
+      table.indexOf("const ObjectCell"),
+      table.indexOf("const KubernetesEventsTable"),
+    );
+    expect(objectCell).toContain("<KubernetesNamespaceChip");
+    expect(objectCell).toContain('dataTestId="kubernetes-event-namespace"');
   });
 
   test("sends a reader where the Dashboard draws the warnings", () => {

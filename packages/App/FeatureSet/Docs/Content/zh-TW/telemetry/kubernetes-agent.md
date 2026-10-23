@@ -237,8 +237,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | 欄 | 顯示內容 |
 | --- | --- |
 | 事件 | 原因、Warning 或 Normal、訊息，以及回報者：節點上的 `kernel-monitor`、`kubelet`、`horizontal-pod-autoscaler` |
-| 物件 | 事件所涉及的物件，連結到它在 OneUptime 中的頁面 |
-| 命名空間 | 事件所在的命名空間；節點的事件位於 `default`，與 `kubectl get events` 的列法相同 |
+| 物件 | 事件所涉及的物件，連結到它在 OneUptime 中的頁面，名稱旁邊是事件所在的命名空間；節點的事件位於 `default`，與 `kubectl get events` 的列法相同 |
 | 計數 | 發生的次數：重複發生時會增加計數，而不是新增一列 |
 | 最後出現 | 最後一次發生的時間；將指標停留在上面可檢視第一次發生的時間 |
 

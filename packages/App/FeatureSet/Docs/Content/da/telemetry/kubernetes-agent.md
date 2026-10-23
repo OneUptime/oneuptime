@@ -237,8 +237,7 @@ Agenten sender hver Kubernetes-hændelse i klyngen til OneUptime: fra hvert name
 | Kolonne | Hvad den viser |
 | --- | --- |
 | Begivenhed | Årsagen, Warning eller Normal, beskeden, og hvem der rapporterede den: `kernel-monitor` på en node, `kubelet`, `horizontal-pod-autoscaler` |
-| Objekt | Hvad den handler om, med et link til dens side i OneUptime |
-| Navnerum | Det namespace, hændelsen ligger i; en nodes hændelser ligger i `default`, som `kubectl get events` viser dem |
+| Objekt | Hvad den handler om, med et link til dens side i OneUptime, og ved siden af navnet det namespace, hændelsen ligger i; en nodes hændelser ligger i `default`, som `kubectl get events` viser dem |
 | Antal | Hvor mange gange den skete: en gentagelse øger antallet i stedet for at tilføje en række |
 | Sidst set | Hvornår den sidst skete; hold markøren over for at se, hvornår den skete første gang |
 

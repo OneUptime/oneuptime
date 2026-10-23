@@ -237,8 +237,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | 열 | 표시하는 내용 |
 | --- | --- |
 | 이벤트 | 사유, Warning 또는 Normal, 메시지, 보고한 주체: 노드의 `kernel-monitor`, `kubelet`, `horizontal-pod-autoscaler` |
-| 객체 | 무엇에 관한 이벤트인지, OneUptime의 해당 페이지 링크 포함 |
-| 네임스페이스 | 이벤트가 있는 네임스페이스. 노드의 이벤트는 `kubectl get events`와 같이 `default`에 있습니다 |
+| 객체 | 무엇에 관한 이벤트인지, OneUptime의 해당 페이지 링크 포함. 이름 옆에 이벤트가 있는 네임스페이스를 표시합니다. 노드의 이벤트는 `kubectl get events`와 같이 `default`에 있습니다 |
 | 개수 | 발생한 횟수. 반복되면 행을 추가하지 않고 개수를 올립니다 |
 | 마지막 확인 | 마지막으로 발생한 시각. 포인터를 올리면 처음 발생한 시각을 볼 수 있습니다 |
 

@@ -237,8 +237,7 @@ De agent stuurt elk Kubernetes-event van het cluster naar OneUptime: uit elke na
 | Kolom | Wat ze toont |
 | --- | --- |
 | Gebeurtenis | De reden, Warning of Normal, het bericht en wie het meldde: `kernel-monitor` op een node, `kubelet`, `horizontal-pod-autoscaler` |
-| Object | Waar het over gaat, met een link naar de pagina ervan in OneUptime |
-| Naamruimte | De namespace waarin het event staat; de events van een node staan in `default`, zoals `kubectl get events` ze toont |
+| Object | Waar het over gaat, met een link naar de pagina ervan in OneUptime, en naast de naam de namespace waarin het event staat; de events van een node staan in `default`, zoals `kubectl get events` ze toont |
 | Aantal | Hoe vaak het gebeurde: een herhaling verhoogt het aantal in plaats van een regel toe te voegen |
 | Laatst gezien | Wanneer het voor het laatst gebeurde; beweeg erboven om te zien wanneer het voor het eerst gebeurde |
 
