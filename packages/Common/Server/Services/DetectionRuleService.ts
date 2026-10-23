@@ -12,6 +12,7 @@ import {
   DETECTION_MATCH_COUNT_THRESHOLD_MAX,
   DETECTION_MATCH_COUNT_THRESHOLD_MIN,
 } from "../../Types/SecurityEvent/DetectionFindingConstants";
+import { fitDetectionRuleName } from "../../Types/SecurityEvent/DetectionRuleName";
 import {
   DetectionRuleDefinition,
   SigmaRuleReferenceResolver,
@@ -193,10 +194,14 @@ export class Service extends ProjectReferencesService<Model> {
 
     /*
      * Default the rule name from the Sigma title - a correlation's own
-     * title - so pasting a rule is a one-field operation.
+     * title - so pasting a rule is a one-field operation. Cut to fit the
+     * name when the title is longer (Sigma allows 256 characters): a name
+     * nobody typed never fails the save.
      */
     if (!createBy.data.name && createBy.data.sigmaRuleYaml) {
-      createBy.data.name = detectionRuleHeader(definition).title;
+      createBy.data.name = fitDetectionRuleName(
+        detectionRuleHeader(definition).title,
+      );
     }
 
     return { createBy, carryForward: null };
