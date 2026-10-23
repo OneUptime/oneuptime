@@ -56,14 +56,15 @@
     },
   ];
 -%>
-<section id="products" class="border-t border-gray-100 bg-gray-50 py-20 scroll-mt-20 sm:py-28" aria-labelledby="products-title">
+<section id="products" class="bg-white py-24 scroll-mt-20 sm:py-32" aria-labelledby="products-title">
   <div class="mx-auto max-w-6xl px-6 lg:px-8">
-    <div class="max-w-2xl">
-      <h2 id="products-title" class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">All products</h2>
-      <p class="mt-4 text-lg leading-8 text-gray-600">Every product works with the others and is part of one platform, so you can start with one and add the rest when you need them. Teams use OneUptime instead of tools like Pingdom, Statuspage, PagerDuty, Datadog and Sentry.</p>
+    <div class="max-w-3xl">
+      <p class="text-sm font-semibold text-emerald-600">Products</p>
+      <h2 id="products-title" class="mt-3 text-3xl font-semibold tracking-tight text-gray-950 sm:text-4xl">Every product, built in. <span class="text-gray-500">Start with one, add the rest when you need them.</span></h2>
+      <p class="mt-6 text-base leading-7 text-gray-600">Teams use OneUptime in place of separate tools like Pingdom, Statuspage, PagerDuty, Datadog and Sentry.</p>
       <div class="mt-6 flex flex-wrap gap-x-6 gap-y-3">
-        <a href="/pricing" class="text-sm font-semibold text-gray-900 hover:text-gray-600">See pricing <span aria-hidden="true">&rarr;</span></a>
-        <a href="/compare" class="text-sm font-semibold text-gray-900 hover:text-gray-600">Compare OneUptime <span aria-hidden="true">&rarr;</span></a>
+        <a href="/pricing" class="text-sm font-semibold text-gray-950 hover:text-gray-600">See pricing <span aria-hidden="true">&rarr;</span></a>
+        <a href="/compare" class="text-sm font-semibold text-gray-950 hover:text-gray-600">Compare OneUptime <span aria-hidden="true">&rarr;</span></a>
       </div>
     </div>
 
@@ -80,11 +81,11 @@
       <div class="space-y-12 <%= column.wide ? 'sm:col-span-2' : '' %>">
         <% column.groups.forEach(function (group) { -%>
         <div>
-          <h3 class="text-sm font-semibold text-gray-900"><%= group.name %></h3>
+          <h3 class="text-sm font-semibold text-gray-950"><%= group.name %></h3>
           <ul class="mt-5 grid grid-cols-2 gap-x-4 gap-y-1 <%= column.wide ? 'sm:gap-x-8' : 'sm:grid-cols-1' %>">
             <% group.products.forEach(function (product) { -%>
             <li>
-              <a href="<%= product.href %>" class="group -mx-2 flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
+              <a href="<%= product.href %>" class="group -mx-2 flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
                 <span class="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-gray-200"><%- include('./icons/' + product.icon, { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
                 <span class="min-w-0"><span class="block text-sm font-medium leading-5 text-gray-900 group-hover:underline"><%= product.name %></span><span class="text-xs text-gray-500 max-sm:hidden sm:block"><%= product.blurb %></span></span>
               </a>

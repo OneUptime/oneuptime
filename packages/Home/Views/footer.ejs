@@ -2,6 +2,8 @@
   <footer class="bg-gradient-to-b from-gray-50 to-white border-t border-gray-200/60" aria-labelledby="footer-heading">
     <h2 id="footer-heading" class="sr-only">Footer</h2>
 
+    <%# A page that ends on a call to action of its own (the homepage) sets hideFooterCta. -%>
+    <% if (typeof hideFooterCta === 'undefined' || !hideFooterCta) { -%>
     <!-- CTA Section -->
     <div class="border-b border-gray-200/60 bg-gradient-to-r from-gray-50 via-gray-100/30 to-gray-50">
       <div class="mx-auto max-w-7xl px-6 py-14 lg:px-8">
@@ -35,6 +37,7 @@
         </div>
       </div>
     </div>
+    <% } -%>
 
     <!-- Main Footer Content -->
     <div class="mx-auto max-w-7xl px-6 py-16 lg:px-8">

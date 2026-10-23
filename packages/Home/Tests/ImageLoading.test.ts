@@ -66,7 +66,7 @@ describe("the homepage", () => {
     expect(hero).not.toBeNull();
     expect(hero.querySelectorAll("img, picture, video")).toHaveLength(0);
     expect(hero.querySelector("h1")!.textContent!.trim()).toBe(
-      "Open-source observability and incident management",
+      "Know when things break. Fix them before customers notice.",
     );
   });
 

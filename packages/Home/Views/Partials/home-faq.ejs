@@ -46,12 +46,13 @@
     },
   ];
 -%>
-<section id="faq" class="border-t border-gray-100 bg-white py-20 scroll-mt-20 sm:py-28" aria-labelledby="faq-title">
+<section id="faq" class="bg-white py-24 scroll-mt-20 sm:py-32" aria-labelledby="faq-title">
   <div class="mx-auto max-w-6xl px-6 lg:px-8">
     <div class="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
       <div class="lg:col-span-4">
-        <h2 id="faq-title" class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">Frequently asked questions</h2>
-        <p class="mt-4 text-lg leading-8 text-gray-600">
+        <p class="text-sm font-semibold text-emerald-600">FAQ</p>
+        <h2 id="faq-title" class="mt-3 text-3xl font-semibold tracking-tight text-gray-950 sm:text-4xl">Questions, answered.</h2>
+        <p class="mt-4 text-base leading-7 text-gray-600">
           Something else on your mind? <a href="/enterprise/demo" class="font-medium text-gray-900 underline decoration-gray-300 underline-offset-4 hover:decoration-gray-500">Talk to our team</a> or <a href="/docs" class="font-medium text-gray-900 underline decoration-gray-300 underline-offset-4 hover:decoration-gray-500">read the docs</a>.
         </p>
       </div>
@@ -60,7 +61,7 @@
         <% faqs.forEach(function (faq) { -%>
         <details class="group">
           <summary class="flex cursor-pointer list-none items-start justify-between gap-6 py-5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 [&::-webkit-details-marker]:hidden">
-            <span class="text-base font-semibold leading-7 text-gray-900"><%= faq.question %></span>
+            <span class="text-base font-semibold leading-7 text-gray-950"><%= faq.question %></span>
             <svg class="mt-1.5 h-4 w-4 flex-none text-gray-500 transition-transform group-open:rotate-45" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
           </summary>
           <div class="pb-6 pr-10">

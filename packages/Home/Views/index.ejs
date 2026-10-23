@@ -20,8 +20,13 @@
 
     <%- include('./Partials/home-logos') -%>
 
-    <%# What it does, one product area at a time. %>
-    <%- include('./Partials/home-features') -%>
+    <%# The core products, each with a glimpse of its screen. %>
+    <%- include('./Partials/home-platform') -%>
+
+    <%# What happens when something breaks. %>
+    <%- include('./Partials/home-how-it-works') -%>
+
+    <%- include('./Partials/home-ai') -%>
 
     <%- include('./Partials/home-products') -%>
 
@@ -37,7 +42,7 @@
     <%- include('./Partials/home-cta') -%>
   </main>
 
-  <%- include('footer') -%>
+  <%- include('footer', { hideFooterCta: true }) -%>
 
   <%- include('./Partials/cta-tracking') -%>
 

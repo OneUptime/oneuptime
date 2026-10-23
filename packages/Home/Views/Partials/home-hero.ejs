@@ -1,22 +1,37 @@
-<section class="bg-white" id="hero-section" aria-labelledby="hero-title">
-  <div class="mx-auto max-w-6xl px-6 pb-16 pt-16 sm:pb-24 sm:pt-24 lg:px-8">
-    <div class="mx-auto max-w-3xl text-center">
-      <h1 id="hero-title" class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">Open-source observability and incident management</h1>
-      <p class="mx-auto mt-6 max-w-2xl text-lg leading-8 text-gray-600">
-        Monitor your websites, APIs and servers, alert the right person when something breaks, keep customers informed with status pages, and find the cause with logs, metrics and traces. Use OneUptime Cloud, or host it yourself.
-      </p>
-      <div class="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-        <a href="/accounts/register" class="inline-flex h-11 w-full items-center justify-center rounded-lg bg-gray-900 px-6 text-sm font-semibold text-white hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 sm:w-auto">Get started free</a>
-        <a href="/enterprise/demo" class="inline-flex h-11 w-full items-center justify-center rounded-lg bg-white px-6 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 sm:w-auto">Book a demo</a>
-      </div>
-      <p class="mt-6 text-sm text-gray-500">
-        Free plan, no credit card required.
-        <a href="https://github.com/oneuptime/oneuptime" target="_blank" rel="noopener noreferrer" class="font-medium text-gray-700 underline decoration-gray-300 underline-offset-4 hover:text-gray-900">Open source on GitHub<% if (githubStars) { %> (<%= githubStars %> stars)<% } %></a>.
-      </p>
-    </div>
+<section class="relative isolate overflow-hidden bg-white" id="hero-section" aria-labelledby="hero-title">
+  <div class="absolute inset-x-0 top-0 -z-10 h-[40rem] bg-[radial-gradient(55%_60%_at_50%_0%,rgba(16,185,129,0.09),transparent_70%)]" aria-hidden="true"></div>
 
-    <div class="mx-auto mt-16 max-w-5xl sm:mt-20">
-      <%- include('./home-mocks/mock-hero') -%>
+  <div class="mx-auto max-w-6xl px-6 pt-14 sm:pt-20 lg:px-8">
+    <div class="mx-auto max-w-5xl text-center">
+      <a href="https://github.com/oneuptime/oneuptime" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white/80 px-3.5 py-1.5 text-sm text-gray-600 shadow-sm backdrop-blur hover:border-gray-300 hover:text-gray-900">
+        <svg class="h-4 w-4 text-gray-900" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" /></svg>
+        <span>Open source on GitHub<% if (githubStars) { %> <span class="text-gray-400">&middot;</span> <%= githubStars %> stars<% } %></span>
+        <span class="text-gray-400" aria-hidden="true">&rarr;</span>
+      </a>
+
+      <h1 id="hero-title" class="mt-8 text-balance text-[2.5rem] font-semibold leading-[1.08] tracking-[-0.03em] text-gray-950 sm:text-6xl sm:leading-[1.05] lg:text-[3.75rem]">Know when things break. <span class="text-gray-500 lg:block">Fix them before customers notice.</span></h1>
+
+      <p class="mx-auto mt-6 max-w-2xl text-lg leading-8 text-gray-600">
+        OneUptime is the open-source observability platform for uptime monitoring, status pages, on-call, incident management, logs, metrics and traces. Use our cloud, or host it yourself.
+      </p>
+
+      <div class="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <a href="/accounts/register" class="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-gray-950 px-6 text-[15px] font-semibold text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-950 sm:w-auto">
+          Get started free
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
+        </a>
+        <a href="/enterprise/demo" class="inline-flex h-12 w-full items-center justify-center rounded-lg bg-white px-6 text-[15px] font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 sm:w-auto">Book a demo</a>
+      </div>
+      <p class="mt-5 text-sm text-gray-500">Free plan &middot; No credit card required &middot; Self-host anytime</p>
+    </div>
+  </div>
+
+  <!-- The product, on a stage -->
+  <div class="mx-auto mt-16 max-w-6xl px-4 pb-8 sm:mt-20 sm:px-6 sm:pb-12 lg:px-8">
+    <div class="rounded-[1.75rem] bg-gradient-to-b from-slate-100 via-slate-50 to-emerald-50/70 p-2 ring-1 ring-inset ring-gray-200/70 sm:p-6 lg:p-10">
+      <div class="mx-auto max-w-5xl">
+        <%- include('./home-mocks/mock-hero') -%>
+      </div>
     </div>
   </div>
 </section>
