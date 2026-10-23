@@ -35,9 +35,11 @@ export const INVENTORY_ASSET_UNKNOWN: string = translationKey("Unknown");
 /*
  * Where a reader learns how the unknown facts get filled in. A host's come
  * from its collector - most of them stamped on once, at provisioning; a
- * network device's from its SNMP agent. The `unknown` sentences are plural
- * templates, written as plain literals so the extractor files them as one
- * plural key (the "other" sentence, with its "_one" form).
+ * network device's from its SNMP poll and from discovery (issue #5185): a
+ * discovery scan of its address, a router's ARP table, its probe. The
+ * `unknown` sentences are plural templates, written as plain literals so the
+ * extractor files them as one plural key (the "other" sentence, with its
+ * "_one" form).
  */
 export const INVENTORY_ASSET_HELP: Readonly<
   Record<
@@ -63,9 +65,9 @@ export const INVENTORY_ASSET_HELP: Readonly<
     docsUrl: "/docs/inventory/cmdb-sync#network-device-asset-attributes",
     linkText: translationKey("Where each detail comes from"),
     unknown: {
-      one: "{{count}} detail is unknown: this device has not reported it over SNMP.",
+      one: "{{count}} detail is unknown: neither this device's SNMP poll nor a discovery scan has found it.",
       other:
-        "{{count}} details are unknown: this device has not reported them over SNMP.",
+        "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them.",
     },
   },
 };

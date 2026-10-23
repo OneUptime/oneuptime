@@ -7,6 +7,7 @@ import Query from "../../../../../Server/Types/Database/Query";
 import WorkflowPrincipal from "../../../../../Server/Utils/Workflow/WorkflowPrincipal";
 import AllModelTypes from "../../../../../Models/DatabaseModels/Index";
 import ApiKey from "../../../../../Models/DatabaseModels/ApiKey";
+import ApiKeyCustomRole from "../../../../../Models/DatabaseModels/ApiKeyCustomRole";
 import ApiKeyPermission from "../../../../../Models/DatabaseModels/ApiKeyPermission";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ExternalMcpServer from "../../../../../Models/DatabaseModels/ExternalMcpServer";
@@ -197,6 +198,13 @@ const NAMED_SETTINGS: Array<NamedSetting> = [
     title: "Api Key",
     settings: "API Keys",
   },
+  {
+    label: "the API key a custom role is given to",
+    modelType: ApiKeyCustomRole,
+    data: { apiKeyId: API_KEY_A },
+    title: "API Key",
+    settings: "API Keys",
+  },
 ];
 
 describe("a workflow's step naming a setting that holds credentials", () => {
@@ -321,6 +329,7 @@ describe("a workflow's step naming a setting that holds credentials", () => {
  * until it is looked at and added here.
  */
 const WORKFLOW_RECORDS_NAMING_CREDENTIAL_SETTINGS: Array<string> = [
+  "ApiKeyCustomRole.apiKey -> ApiKey",
   "ApiKeyPermission.apiKey -> ApiKey",
   "IncomingCallPolicy.projectCallSMSConfig -> ProjectCallSMSConfig",
   "StatusPage.callSmsConfig -> ProjectCallSMSConfig",

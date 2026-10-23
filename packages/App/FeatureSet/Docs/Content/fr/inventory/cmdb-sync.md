@@ -139,7 +139,7 @@ Les hôtes et les équipements réseau sont décrits par les mêmes faits, stock
 | Fait | Clé | Sur un hôte | Sur un équipement réseau |
 | --- | --- | --- | --- |
 | Nom d'hôte | `host.name` | Le nom de l'hôte. C'est l'identité de l'hôte, il figure donc dans `identifyingAttributes` | Le nom propre de l'équipement : son `sysName` SNMP, sinon le nom NetBIOS ou DNS trouvé par la découverte. Jamais son adresse IP |
-| Adresse IP | `host.ip` | Chaque adresse que le collecteur déclare | L'adresse que OneUptime interroge, quand c'est une adresse IP |
+| Adresse IP | `host.ip` | Chaque adresse que le collecteur déclare | L'adresse que OneUptime interroge, quand c'est une adresse IP, sinon l'adresse en laquelle sa sonde a résolu ce nom DNS |
 | Adresse MAC | `host.mac` | Détectée | Saisie sur l'équipement, ou apprise dans la table ARP d'un routeur parcouru |
 | Numéro de série | `host.serial_number` | Apposé | ENTITY-MIB |
 | Fabricant | `device.manufacturer` | Apposé | ENTITY-MIB, sinon ce que nomment `sysDescr` ou `sysObjectID` |
@@ -189,7 +189,7 @@ Un équipement réseau (`entityType: network.device`) est répliqué depuis son 
 | Champ | Clé | D'où il vient |
 | --- | --- | --- |
 | Nom d'hôte | `host.name` | Le nom propre de l'équipement : son `sysName` SNMP, sinon le nom NetBIOS ou DNS inverse trouvé par la découverte. Absent quand seule son adresse IP le nomme |
-| Adresse IP | `host.ip` | L'adresse que OneUptime interroge, quand c'est une adresse IP |
+| Adresse IP | `host.ip` | L'adresse que OneUptime interroge, quand c'est une adresse IP. Pour un équipement interrogé par un nom DNS, l'adresse en laquelle sa sonde a résolu ce nom la dernière fois |
 | Nom DNS | `net.device.dns_name` | Le nom DNS inverse trouvé à la découverte, ou le nom DNS que OneUptime interroge |
 | Adresse MAC | `host.mac` | Saisie sur l'équipement, ou apprise dans la table ARP d'un routeur parcouru |
 | Marque | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`, sinon le fabricant que nomme `sysDescr`, sinon le fournisseur du `sysObjectID` |
@@ -204,7 +204,9 @@ Un équipement réseau (`entityType: network.device`) est répliqué depuis son 
 | Site | `oneuptime.site.name` | Le Network Site auquel l'équipement est rattaché |
 | Adresse interrogée | `net.device.hostname` | L'adresse que OneUptime interroge : une adresse IP ou un nom DNS. Conservée pour les synchronisations écrites avant l'existence de `host.name` et `host.ip` |
 
-Les lignes matérielles se remplissent après le premier parcours SNMP de l'équipement, donc un équipement surveillé seulement par ping, ou ajouté mais pas encore interrogé, ne montre guère plus que son adresse. Un équipement qui n'implémente pas ENTITY-MIB n'a ni numéro de série ni firmware à déclarer. Son `sysDescr` nomme tout de même le modèle et le système d'exploitation pour de nombreuses plateformes : un Cisco Meraki MX déclare `Meraki MX85`, ce qui renseigne la marque et le modèle. Une plateforme dont le `sysDescr` n'a pas de forme connue n'ajoute rien, plutôt qu'une supposition.
+Les lignes ENTITY-MIB se remplissent après le premier parcours SNMP de l'équipement. Un équipement qui n'est pas parcouru, parce qu'il est surveillé seulement par ping ou pas encore interrogé, obtient tout de même son nom, sa marque, son système d'exploitation et son emplacement à partir de ce que la dernière analyse de découverte de son adresse a lu par SNMP, et son adresse MAC à partir de la table ARP d'un routeur parcouru. Un équipement qui n'implémente pas ENTITY-MIB n'a ni numéro de série ni firmware à déclarer. Son `sysDescr` nomme tout de même le modèle et le système d'exploitation pour de nombreuses plateformes : un Cisco Meraki MX déclare `Meraki MX85`, ce qui renseigne la marque et le modèle. Une plateforme dont le `sysDescr` n'a pas de forme connue n'ajoute rien, plutôt qu'une supposition.
+
+Une valeur enregistrée sur l'équipement, saisie ou définie par l'API, n'est jamais remplacée par ce que lit la découverte. Entre une valeur lue par le propre parcours de l'équipement et une valeur lue par une analyse, la plus récente est utilisée. Ce qu'une analyse a lu n'est utilisé que si l'analyse a trouvé la même machine à l'adresse : quand le nom système, le `sysObjectID` ou le nom NetBIOS qu'elle a lu contredit celui de l'équipement, rien de ce qu'elle y a lu n'est utilisé. La carte **Détails de l’actif** de l'élément indique d'où vient chaque valeur et quand.
 
 Le nom d'hôte n'est jamais l'adresse IP. Un équipement que seule son adresse nomme a `host.ip` et pas de `host.name`. Dès que son parcours SNMP déclare un nom de système, `host.name` suit au passage suivant.
 

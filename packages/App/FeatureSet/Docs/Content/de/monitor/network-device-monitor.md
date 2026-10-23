@@ -506,7 +506,13 @@ Eine Untersuchung durch OneUptime AI zu einem Vorfall oder einer Warnung eines N
 
 Nach dem ersten erfolgreichen Walk liest OneUptime die SNMPv2-Systemgruppe und, wo das Gerät es unterstützt, ENTITY-MIB und füllt den Gerätedatensatz: Systemname, Beschreibung, Standort, Kontakt, Betriebszeit, Hersteller, Modell, Seriennummer und Firmware-Version. Die Enterprise-OID des Herstellers (`sysObjectID`) ist der Fingerabdruck des Geräts: Sie benennt den Hersteller und wählt die passende Hersteller-Vorlage. Dieselben Angaben erscheinen im [Inventar](/docs/inventory/cmdb-sync#asset-attribute-von-netzwerkgeräten) neben jedem anderen Asset.
 
-Ein nur angepingtes Gerät behält den Namen und die Adresse, die Sie oder ein Erkennungsscan ihm gegeben haben: Es gibt keinen SNMP-Agenten, den man nach etwas Besserem fragen könnte.
+Ein nur angepingtes Gerät behält den Namen und die Adresse, die Sie oder ein Erkennungsscan ihm gegeben haben. Was seine eigene Abfrage nicht gelesen hat, übernimmt es aus der Erkennung:
+
+- Systemname, Beschreibung, `sysObjectID`, Standort und Kontakt, die der letzte [Erkennungsscan](#geräte-mit-einem-netzwerkscan-erkennen) seiner Adresse über SNMP gelesen hat, sowie die Reverse-DNS- und NetBIOS-Namen, die er gefunden hat.
+- Seine MAC-Adresse, aus der ARP-Tabelle eines abgefragten Routers an seinem Standort.
+- Bei einem Gerät, das über einen DNS-Namen abgefragt wird, die Adresse, in die seine Sonde den Namen aufgelöst hat.
+
+Diese Angaben werden neben den eigenen Feldern des Geräts gespeichert, nie in sie geschrieben, und jeder Scan, Router-Walk oder jede Abfrage, die eine davon erneut liest, bringt sie auf den neuesten Stand. Die Übersicht des Geräts und sein Element im Inventar zeigen, welcher Scan, welcher Router oder welche Sonde jeden Wert gelesen hat und wann. Einen Wert, den Sie am Gerät gespeichert haben, ersetzt nichts. Findet ein Scan unter der Adresse des Geräts eine andere Maschine, etwa wegen eines umgezogenen DHCP-Leases, sagt die Übersicht das, und nichts, was dieser Scan dort gelesen hat, wird verwendet.
 
 ## Geräte mit einem Netzwerkscan erkennen
 

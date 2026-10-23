@@ -506,7 +506,13 @@ Una investigación de OneUptime AI sobre un incidente o una alerta de un monitor
 
 Tras el primer recorrido correcto, OneUptime lee el grupo de sistema SNMPv2 y, cuando el dispositivo lo admite, ENTITY-MIB, y rellena la ficha del dispositivo: nombre del sistema, descripción, ubicación, contacto, tiempo en funcionamiento, fabricante, modelo, número de serie y versión de firmware. El OID de empresa del fabricante (`sysObjectID`) es la huella del dispositivo: nombra al fabricante y elige la plantilla del fabricante correspondiente. Los mismos datos aparecen en el [inventario](/docs/inventory/cmdb-sync#atributos-de-activo-de-los-dispositivos-de-red) junto a todos tus demás activos.
 
-Un dispositivo solo con ping conserva el nombre y la dirección que le diste tú, o un escaneo de descubrimiento: no hay agente SNMP al que pedirle algo mejor.
+Un dispositivo solo con ping conserva el nombre y la dirección que le diste tú, o un escaneo de descubrimiento. Lo que su propio sondeo no ha leído, lo toma del descubrimiento:
+
+- El nombre del sistema, la descripción, el `sysObjectID`, la ubicación y el contacto que leyó por SNMP el último [escaneo de descubrimiento](#descubrir-dispositivos-con-un-escaneo-de-red) de su dirección, y los nombres de DNS inverso y NetBIOS que encontró.
+- Su dirección MAC, de la tabla ARP de un router recorrido de su sitio.
+- Para un dispositivo sondeado por un nombre DNS, la dirección a la que su sonda resolvió ese nombre.
+
+Estos datos se guardan junto a los campos propios del dispositivo, nunca dentro de ellos, y cada escaneo, recorrido de router o sondeo que vuelve a leer uno lo pone al día. La vista general del dispositivo y su elemento del inventario indican qué escaneo, router o sonda leyó cada valor, y cuándo. Un valor que guardaste en el dispositivo nunca se sustituye. Cuando un escaneo encuentra otra máquina en la dirección del dispositivo, como una concesión DHCP que se movió, la vista general lo indica, y no se usa nada de lo que ese escaneo leyó allí.
 
 ## Descubrir dispositivos con un escaneo de red
 

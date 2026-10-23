@@ -506,7 +506,13 @@ Une investigation de OneUptime AI sur un incident ou une alerte d'un moniteur É
 
 Après le premier parcours réussi, OneUptime lit le groupe système SNMPv2 et, si l'équipement le prend en charge, ENTITY-MIB, et remplit la fiche de l'équipement : nom système, description, emplacement, contact, durée de fonctionnement, constructeur, modèle, numéro de série et version du firmware. L'OID d'entreprise du constructeur (`sysObjectID`) est l'empreinte de l'équipement : il nomme le constructeur et choisit le modèle constructeur correspondant. Les mêmes informations apparaissent dans l'[inventaire](/docs/inventory/cmdb-sync#attributs-dactif-des-équipements-réseau) avec tous vos autres actifs.
 
-Un équipement seulement pingué garde le nom et l'adresse que vous, ou une analyse de découverte, lui avez donnés : il n'y a pas d'agent SNMP à qui demander mieux.
+Un équipement seulement pingué garde le nom et l'adresse que vous, ou une analyse de découverte, lui avez donnés. Ce que sa propre interrogation n'a pas lu, il le prend à la découverte :
+
+- Le nom système, la description, le `sysObjectID`, l'emplacement et le contact que la dernière [analyse de découverte](#découvrir-des-équipements-par-une-analyse-réseau) de son adresse a lus par SNMP, ainsi que les noms DNS inverse et NetBIOS qu'elle a trouvés.
+- Son adresse MAC, à partir de la table ARP d'un routeur parcouru de son site.
+- Pour un équipement interrogé par un nom DNS, l'adresse en laquelle sa sonde a résolu ce nom.
+
+Ces valeurs sont conservées à côté des champs de l'équipement, jamais écrites dedans, et chaque analyse, parcours de routeur ou interrogation qui en relit une la met à jour. L'aperçu de l'équipement et son élément d'inventaire indiquent quelle analyse, quel routeur ou quelle sonde a lu chaque valeur, et quand. Une valeur que vous avez enregistrée sur l'équipement n'est jamais remplacée. Quand une analyse trouve une autre machine à l'adresse de l'équipement, par exemple un bail DHCP qui a changé, l'aperçu le signale, et rien de ce que cette analyse y a lu n'est utilisé.
 
 ## Découvrir des équipements par une analyse réseau
 

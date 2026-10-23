@@ -139,7 +139,7 @@ Hosts and network devices are described by the same facts, stored under the same
 | Fact | Key | On a host | On a network device |
 | --- | --- | --- | --- |
 | Hostname | `host.name` | The host's name. It is the host's identity, so it is in `identifyingAttributes` | The device's own name: its SNMP `sysName`, else the NetBIOS or DNS name discovery found. Never its IP address |
-| IP address | `host.ip` | Every address the collector reports | The address OneUptime polls, when it is an IP address |
+| IP address | `host.ip` | Every address the collector reports | The address OneUptime polls, when it is an IP address, else the address its probe resolved that DNS name to |
 | MAC address | `host.mac` | Detected | Typed on the device, or learned from a walked router's ARP table |
 | Serial number | `host.serial_number` | Stamped | ENTITY-MIB |
 | Manufacturer | `device.manufacturer` | Stamped | ENTITY-MIB, else what `sysDescr` or `sysObjectID` names |
@@ -189,7 +189,7 @@ A network device (`entityType: network.device`) is mirrored from its Network Dev
 | Field | Key | Where it comes from |
 | --- | --- | --- |
 | Hostname | `host.name` | The device's own name: its SNMP `sysName`, else the NetBIOS or reverse-DNS name discovery found. Left out when only its IP address names it |
-| IP address | `host.ip` | The address OneUptime polls, when it is an IP address |
+| IP address | `host.ip` | The address OneUptime polls, when it is an IP address. For a device polled at a DNS name, the address its probe last resolved that name to |
 | DNS name | `net.device.dns_name` | The reverse-DNS name found at discovery, or the DNS name OneUptime polls |
 | MAC address | `host.mac` | Typed on the device, or learned from a walked router's ARP table |
 | Make | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`, else the maker `sysDescr` names, else the vendor of the `sysObjectID` |
@@ -204,7 +204,9 @@ A network device (`entityType: network.device`) is mirrored from its Network Dev
 | Site | `oneuptime.site.name` | The Network Site the device is assigned to |
 | Polled address | `net.device.hostname` | The address OneUptime polls: an IP address or a DNS name. Kept for syncs written before `host.name` and `host.ip` existed |
 
-The hardware rows fill in after the device's first SNMP walk, so a device monitored by ping alone, or one added but not yet polled, shows little more than its address. A device that does not implement ENTITY-MIB has no serial number or firmware to report. Its `sysDescr` still names the model and operating system for many platforms: a Cisco Meraki MX reports `Meraki MX85`, which fills in the make and model. A platform whose `sysDescr` has no known shape adds nothing, rather than a guess.
+The ENTITY-MIB rows fill in after the device's first SNMP walk. A device that is not walked, because it is monitored by ping alone or not yet polled, still gets its name, make, operating system and location from what the last discovery scan of its address read over SNMP, and its MAC address from a walked router's ARP table. A device that does not implement ENTITY-MIB has no serial number or firmware to report. Its `sysDescr` still names the model and operating system for many platforms: a Cisco Meraki MX reports `Meraki MX85`, which fills in the make and model. A platform whose `sysDescr` has no known shape adds nothing, rather than a guess.
+
+A value saved on the device, typed or set through the API, is never replaced by what discovery reads. Of a value the device's own walk read and one a scan read, the newer is used. A scan's reading is used only when the scan found the same machine at the address: when the system name, `sysObjectID` or NetBIOS name it read contradicts the device's, nothing it read there is used. The item's **Asset Details** card says where each value came from and when.
 
 The hostname is never the IP address. A device that only its address names has `host.ip` and no `host.name`. Once its SNMP walk reports a system name, `host.name` follows on the next pass.
 

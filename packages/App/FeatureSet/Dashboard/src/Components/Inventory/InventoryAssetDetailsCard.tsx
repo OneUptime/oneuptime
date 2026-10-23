@@ -1,6 +1,8 @@
 import Card from "Common/UI/Components/Card/Card";
-import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import PlaceholderText from "Common/UI/Components/Detail/PlaceholderText";
+import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
+import IconProp from "Common/Types/Icon/IconProp";
+import { AssetFactSource } from "Common/Utils/Inventory/AssetFactSource";
 import {
   InventoryAssetDetail,
   InventoryAssetDetails,
@@ -11,15 +13,30 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
+import AssetFactValue from "./AssetFactValue";
+import {
+  getAssetFactExactTime,
+  getFoundByLine,
+  getOtherMachineLine,
+  getSharedAssetFactSource,
+  getSharedSourceLine,
+  isSameAssetFactSource,
+  isSightingSaidBySharedSource,
+} from "./AssetFactSourceText";
 import {
   INVENTORY_ASSET_FIELD_LABELS,
   INVENTORY_ASSET_HELP,
   INVENTORY_ASSET_UNKNOWN,
 } from "./InventoryAssetLabels";
+import useNetworkDeviceAssetDetails, {
+  LinkedNetworkDeviceSource,
+  NetworkDeviceAssetDetailsRead,
+} from "./useNetworkDeviceAssetDetails";
 
 /*
  * Asset details: what a machine is and where it is, in the same terms for
- * every host and network device (OneUptime issue #4569).
+ * every host and network device (OneUptime issue #4569), and where each
+ * detail came from and when (issue #5185).
  *
  * Inventory used to show a machine only as the raw attributes it came in on -
  * `host.arch` and `os.type` for a host, an IP address under
@@ -30,21 +47,40 @@ import {
  * rather than something they have to notice is absent. One line under the
  * facts says why they are unknown and where to read how each one is filled.
  *
+ * And where each came from. Most of a machine's details come from one
+ * reading - a host's collector; a network device's (read from the device
+ * itself, current to the moment) own SNMP poll, or, for a device its poll
+ * has not read, the discovery scan that read its SNMP system group - and
+ * that is said ONCE, first below the details, with when
+ * (getSharedAssetFactSource). Every detail from anywhere else says so under
+ * its value: a router's ARP table, the device's probe, a reverse-DNS lookup,
+ * a value saved on it, a role someone assigned; and, where a value someone
+ * saved disagrees with what discovery read, what discovery read, in amber.
+ *
  * The raw attributes stay on the Attributes card below, for everything this
  * card does not name.
  */
 
 export interface ComponentProps {
-  item: InventoryAssetSource;
+  item: InventoryAssetSource & LinkedNetworkDeviceSource;
 }
 
 const InventoryAssetDetailsCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const details: InventoryAssetDetails | undefined = getInventoryAssetDetails(
-    props.item,
-  );
+  const deviceRead: NetworkDeviceAssetDetailsRead =
+    useNetworkDeviceAssetDetails(props.item);
+  const itemDetails: InventoryAssetDetails | undefined =
+    getInventoryAssetDetails(props.item);
+
+  /*
+   * A network device read from its own record when that worked; the item's
+   * facts otherwise, and while it loads.
+   */
+  const details: InventoryAssetDetails | undefined = itemDetails
+    ? deviceRead.details || itemDetails
+    : undefined;
 
   if (!details) {
     return <></>;
@@ -53,6 +89,29 @@ const InventoryAssetDetailsCard: FunctionComponent<ComponentProps> = (
   const help: (typeof INVENTORY_ASSET_HELP)[keyof typeof INVENTORY_ASSET_HELP] =
     INVENTORY_ASSET_HELP[details.kind];
   const unknownCount: number = details.unknownFields.length;
+
+  // The reading most details came from, said once below them.
+  const sharedSource: AssetFactSource | undefined = getSharedAssetFactSource(
+    details.details.map(
+      (detail: InventoryAssetDetail): AssetFactSource | undefined => {
+        return detail.value ? detail.source : undefined;
+      },
+    ),
+  );
+  const sharedSourceLine: string | undefined = getSharedSourceLine(
+    sharedSource,
+    translator,
+  );
+  /*
+   * "Last found at its address by discovery scan ..." - unless the line
+   * above already names that scan's reading: a scan that read the device
+   * found it.
+   */
+  const foundBy: InventoryAssetDetails["foundBy"] =
+    details.foundBy &&
+    !isSightingSaidBySharedSource(details.foundBy, sharedSource)
+      ? details.foundBy
+      : undefined;
 
   return (
     <Card
@@ -84,22 +143,24 @@ const InventoryAssetDetailsCard: FunctionComponent<ComponentProps> = (
                 <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
                   {label}
                 </dt>
-                <dd className="mt-1 flex min-w-0 items-start gap-x-2 text-sm text-gray-900">
+                <dd className="mt-1 min-w-0">
                   {detail.value ? (
-                    <>
-                      <span className="min-w-0 whitespace-pre-line break-words">
-                        {detail.value}
-                      </span>
-                      <CopyTextButton
-                        textToBeCopied={detail.value}
-                        iconOnly={true}
-                        title={translator.translateTemplate("Copy {{name}}", {
-                          name: label,
-                        })}
-                      />
-                    </>
+                    <AssetFactValue
+                      value={detail.value}
+                      copyLabel={label}
+                      source={detail.source}
+                      // Said once, below the details.
+                      hideSource={isSameAssetFactSource(
+                        detail.source,
+                        sharedSource,
+                      )}
+                      discoveredDifferent={detail.discoveredDifferent}
+                      testId={`inventory-asset-${detail.field}-value`}
+                    />
                   ) : (
-                    <PlaceholderText text={INVENTORY_ASSET_UNKNOWN} />
+                    <span className="text-sm">
+                      <PlaceholderText text={INVENTORY_ASSET_UNKNOWN} />
+                    </span>
                   )}
                 </dd>
               </div>
@@ -107,21 +168,66 @@ const InventoryAssetDetailsCard: FunctionComponent<ComponentProps> = (
           })}
         </dl>
 
-        {unknownCount > 0 ? (
-          <p
-            className="mt-5 border-t border-gray-100 pt-4 text-sm text-gray-500"
-            data-testid="inventory-asset-details-unknown"
-          >
-            {translator.translatePlural(help.unknown, unknownCount)}{" "}
-            <a
-              className="font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
-              href={help.docsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {translator.translateText(help.linkText)}
-            </a>
-          </p>
+        {/*
+         * Below the details, in the order a reader asks: where they came
+         * from, what is still unknown and how it gets filled, when a scan
+         * last found the machine, and - in amber - a scan that found another
+         * one at its address.
+         */}
+        {sharedSourceLine ||
+        unknownCount > 0 ||
+        foundBy ||
+        details.otherMachine ? (
+          <div className="mt-5 space-y-2 border-t border-gray-100 pt-4 text-sm text-gray-500">
+            {sharedSourceLine ? (
+              <p
+                title={getAssetFactExactTime(sharedSource?.readAt)}
+                data-testid="inventory-asset-details-source"
+              >
+                {sharedSourceLine}
+              </p>
+            ) : null}
+
+            {unknownCount > 0 ? (
+              <p data-testid="inventory-asset-details-unknown">
+                {translator.translatePlural(help.unknown, unknownCount)}{" "}
+                <a
+                  className="font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
+                  href={help.docsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {translator.translateText(help.linkText)}
+                </a>
+              </p>
+            ) : null}
+
+            {foundBy ? (
+              <p
+                title={getAssetFactExactTime(foundBy.readAt)}
+                data-testid="inventory-asset-details-found-by"
+              >
+                {getFoundByLine(foundBy, translator)}
+              </p>
+            ) : null}
+
+            {details.otherMachine ? (
+              <div
+                className="flex items-start gap-x-1.5 text-amber-700"
+                title={getAssetFactExactTime(details.otherMachine.readAt)}
+                data-testid="inventory-asset-details-other-machine"
+              >
+                <Icon
+                  icon={IconProp.ExclaimationCircle}
+                  size={SizeProp.Small}
+                  className="mt-0.5 h-4 w-4 flex-none"
+                />
+                <span className="min-w-0 break-words">
+                  {getOtherMachineLine(details.otherMachine, translator)}
+                </span>
+              </div>
+            ) : null}
+          </div>
         ) : null}
       </div>
     </Card>

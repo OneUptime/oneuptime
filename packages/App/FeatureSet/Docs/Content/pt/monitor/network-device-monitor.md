@@ -506,7 +506,13 @@ Uma investigação do OneUptime AI sobre um incidente ou alerta de um monitor de
 
 Depois do primeiro walk bem-sucedido, o OneUptime lê o grupo de sistema SNMPv2 e, quando o dispositivo oferece suporte, a ENTITY-MIB, e preenche o registro do dispositivo: nome do sistema, descrição, localização, contato, tempo ativo, fabricante, modelo, número de série e versão do firmware. O OID enterprise do fabricante (`sysObjectID`) é a impressão digital do dispositivo: ele indica o fabricante e escolhe o modelo do fabricante correspondente. As mesmas informações aparecem no [inventário](/docs/inventory/cmdb-sync#atributos-de-ativo-dos-dispositivos-de-rede) junto com todos os seus outros ativos.
 
-Um dispositivo só com ping mantém o nome e o endereço que você, ou uma varredura de descoberta, deu a ele: não há agente SNMP a quem pedir algo melhor.
+Um dispositivo só com ping mantém o nome e o endereço que você, ou uma varredura de descoberta, deu a ele. O que a sua própria consulta não leu, ele obtém da descoberta:
+
+- O nome do sistema, a descrição, o `sysObjectID`, a localização e o contato que a última [varredura de descoberta](#descobrir-dispositivos-com-uma-varredura-de-rede) do seu endereço leu por SNMP, e os nomes DNS reverso e NetBIOS que ela encontrou.
+- O endereço MAC, da tabela ARP de um roteador percorrido do seu site.
+- Para um dispositivo consultado por um nome DNS, o endereço para o qual a sonda resolveu esse nome.
+
+Esses valores ficam ao lado dos campos do próprio dispositivo, nunca gravados neles, e cada varredura, walk de roteador ou consulta que lê um deles de novo o atualiza. A visão geral do dispositivo e o seu item no inventário mostram qual varredura, roteador ou sonda leu cada valor, e quando. Um valor que você salvou no dispositivo nunca é substituído. Quando uma varredura encontra outra máquina no endereço do dispositivo, como uma concessão DHCP que mudou, a visão geral avisa, e nada do que essa varredura leu ali é usado.
 
 ## Descobrir dispositivos com uma varredura de rede
 

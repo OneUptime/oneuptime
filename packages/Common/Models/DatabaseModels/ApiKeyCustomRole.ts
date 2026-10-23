@@ -56,7 +56,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @EnableDocumentation()
 @EnableAuditLog({
   rootResource: {
-    resourceType: "ApiKey",
+    // ApiKey's singular name: the type its own entries are filed under.
+    resourceType: "API Key",
     column: "apiKeyId",
   },
   resourceNameRelation: "customRole",

@@ -19,8 +19,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *
  * Constant defaults, so adding them rewrites no table; no index or key.
  */
-export class AddAiRuleInvestigation1806800000000 implements MigrationInterface {
-  public name: string = "AddAiRuleInvestigation1806800000000";
+export class AddAiRuleInvestigation1806900000000 implements MigrationInterface {
+  public name: string = "AddAiRuleInvestigation1806900000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

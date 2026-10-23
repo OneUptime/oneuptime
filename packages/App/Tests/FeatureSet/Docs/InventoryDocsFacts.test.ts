@@ -1445,10 +1445,150 @@ describe("Exporting to a CMDB: what a network device's record gives", () => {
       "Left out when only its IP address names it",
     );
     expect(sourceOf("host.ip")).toBe(
-      "The address OneUptime polls, when it is an IP address",
+      "The address OneUptime polls, when it is an IP address. For a device polled at a DNS name, the address its probe last resolved that name to",
     );
     expect(networkSection()).toContain(
       "The hostname is never the IP address. A device that only its address names has `host.ip` and no `host.name`.",
+    );
+  });
+
+  /*
+   * Issue #5185: a device polled at a DNS name has the address its probe
+   * resolved the name to - and only for that name.
+   */
+  it("gives a device polled at a DNS name the address its probe resolved, as both tables say", () => {
+    const resolved: Record<string, unknown> = {
+      ipAddress: {
+        value: "10.0.0.1",
+        method: "dns",
+        readBy: { type: "probe", id: "30000000-0000-4000-8000-000000000001" },
+        readAt: "2026-10-23T09:00:00.000Z",
+      },
+    };
+
+    expect(
+      getNetworkDeviceIpAddress({
+        hostname: "sw1.example.com",
+        discoveredDetails: resolved,
+      }),
+    ).toBe("10.0.0.1");
+    // A device polled at an address keeps that address, whatever is recorded.
+    expect(
+      getNetworkDeviceIpAddress({
+        hostname: "10.241.124.1",
+        discoveredDetails: resolved,
+      }),
+    ).toBe("10.241.124.1");
+
+    const assetRow: Array<string> | undefined = tableWithHeader(
+      englishSection(CMDB_SYNC, "## Asset Details"),
+      "Fact",
+    ).find((candidate: Array<string>): boolean => {
+      return candidate[1] === "`host.ip`";
+    });
+    expect(assetRow?.[3]).toBe(
+      "The address OneUptime polls, when it is an IP address, else the address its probe resolved that DNS name to",
+    );
+  });
+
+  /*
+   * Issue #5185: a device that is not walked takes its system group from the
+   * discovery scan that last read its address; ENTITY-MIB's rows still need
+   * its own walk.
+   */
+  it("fills a device that is not walked from what a discovery scan read, and only ENTITY-MIB waits for its walk", () => {
+    const scan: Record<string, unknown> = {
+      type: "discoveryScan",
+      id: "80000000-0000-4000-8000-000000000001",
+      name: "Store subnets",
+    };
+    const read: (value: string) => Record<string, unknown> = (
+      value: string,
+    ): Record<string, unknown> => {
+      return {
+        value: value,
+        method: "snmp",
+        readBy: scan,
+        readAt: "2026-10-23T07:00:00.000Z",
+      };
+    };
+
+    const facts: ReturnType<typeof getNetworkDeviceAssetFacts> =
+      getNetworkDeviceAssetFacts({
+        hostname: "10.20.12.7",
+        discoveredDetails: {
+          sysName: read("edge-sw-07"),
+          sysDescr: read(CISCO_IOS_DESCRIPTION),
+          sysObjectId: read("1.3.6.1.4.1.9.1.1208"),
+          sysLocation: read("Store 12, back office rack"),
+          macAddress: {
+            value: "00:1b:54:c2:7a:07",
+            method: "arpTable",
+            readBy: { type: "networkDevice", id: "router-1" },
+            readAt: "2026-10-23T07:00:00.000Z",
+          },
+        },
+      });
+
+    expect({
+      hostname: facts.hostname,
+      manufacturer: facts.manufacturer,
+      operatingSystem: facts.operatingSystem,
+      location: facts.location,
+      macAddress: facts.macAddress,
+      serialNumber: facts.serialNumber,
+    }).toEqual({
+      hostname: "edge-sw-07",
+      manufacturer: "Cisco",
+      operatingSystem: "Cisco IOS",
+      location: "Store 12, back office rack",
+      macAddress: "00-1B-54-C2-7A-07",
+      serialNumber: undefined,
+    });
+    expect(networkSection()).toContain(
+      "The ENTITY-MIB rows fill in after the device's first SNMP walk. A device that is not walked, because it is monitored by ping alone or not yet polled, still gets its name, make, operating system and location from what the last discovery scan of its address read over SNMP, and its MAC address from a walked router's ARP table.",
+    );
+  });
+
+  it("never replaces a saved value with what discovery reads, and of two readings uses the newer", () => {
+    const scanLocation: Record<string, unknown> = {
+      sysLocation: {
+        value: "Hall 3, Rack 2",
+        method: "snmp",
+        readBy: { type: "discoveryScan", id: "scan-1" },
+        readAt: "2026-10-23T09:00:00.000Z",
+      },
+    };
+
+    // Saved: the device was never walked, so the column is someone's.
+    expect(
+      getNetworkDeviceLocation({
+        sysLocation: "Hall 2, Rack 14",
+        discoveredDetails: scanLocation,
+      }),
+    ).toBe("Hall 2, Rack 14");
+    // Two readings: the scan's is newer than the walk's.
+    expect(
+      getNetworkDeviceLocation({
+        sysLocation: "Hall 2, Rack 14",
+        lastSnmpSeenAt: "2026-10-23T08:00:00.000Z",
+        discoveredDetails: scanLocation,
+      }),
+    ).toBe("Hall 3, Rack 2");
+    // And the walk's is newer than the scan's.
+    expect(
+      getNetworkDeviceLocation({
+        sysLocation: "Hall 2, Rack 14",
+        lastSnmpSeenAt: "2026-10-23T10:00:00.000Z",
+        discoveredDetails: scanLocation,
+      }),
+    ).toBe("Hall 2, Rack 14");
+
+    expect(networkSection()).toContain(
+      "A value saved on the device, typed or set through the API, is never replaced by what discovery reads. Of a value the device's own walk read and one a scan read, the newer is used.",
+    );
+    expect(networkSection()).toContain(
+      "The item's **Asset Details** card says where each value came from and when.",
     );
   });
 
