@@ -3237,7 +3237,6 @@ const WAITING_INCIDENT_TITLE: RegExp = new RegExp(
 const WAITING_ALERT_TITLE: RegExp = new RegExp(
   `^OneUptime AI investigates at ${WAIT_TIME} if this alert is still open$`,
 );
-// Since one AI rule investigates and fixes (#5221), the card names it so.
 const WAITING_INCIDENT_DESCRIPTION: string =
   "An AI rule makes OneUptime AI wait 10 minutes, so incidents resolved by then are not investigated.";
 const WAITING_ALERT_DESCRIPTION: string =
