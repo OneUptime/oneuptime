@@ -554,6 +554,88 @@ describe("EnterprisePluginPage", () => {
 });
 
 /*
+ * What the Community Edition still holds of a feature that keeps applying
+ * there - an IP allowlist, a reader session limit, the subscriber
+ * restrictions, custom roles - is handed as `communityLeftover`: drawn under
+ * the EDITION upsell of a self-hosted install, never on OneUptime Cloud,
+ * never in place of the plugin, and never under the plan upsell.
+ */
+describe("EnterprisePluginPage communityLeftover", () => {
+  const COMMUNITY_LEFTOVER: ReactElement = (
+    <div data-testid="community-leftover" />
+  );
+
+  function renderWithCommunityLeftover(
+    props?: Partial<{
+      plugin: EnterprisePluginComponent<PageComponentProps> | undefined;
+    }>,
+  ): void {
+    render(
+      <EnterprisePluginPage
+        plugin={props && "plugin" in props ? props.plugin : FakeSCIMPage}
+        pluginProps={PAGE_PROPS}
+        requiredPlan={IDENTITY_REQUIRED_PLAN}
+        upsell={UPSELL}
+        communityLeftover={COMMUNITY_LEFTOVER}
+      />,
+    );
+  }
+
+  test("is drawn under the edition upsell on the Community Edition", () => {
+    pinDeployment("self-hosted-community");
+
+    renderWithCommunityLeftover({ plugin: undefined });
+
+    expect(screen.getAllByText("Learn about Enterprise Edition")).toHaveLength(
+      2,
+    );
+    expect(screen.getByTestId("community-leftover")).toBeInTheDocument();
+  });
+
+  test("is drawn on a self-hosted Enterprise Edition whose bundle lacks the screens too: the upsell is the edition one", () => {
+    pinDeployment("self-hosted-enterprise");
+
+    renderWithCommunityLeftover({ plugin: undefined });
+
+    expect(screen.getByTestId("community-leftover")).toBeInTheDocument();
+  });
+
+  test("is not drawn where the plugin is", () => {
+    pinDeployment("self-hosted-enterprise");
+
+    renderWithCommunityLeftover();
+
+    expect(screen.getByTestId("fake-scim-plugin")).toBeInTheDocument();
+    expect(screen.queryByTestId("community-leftover")).not.toBeInTheDocument();
+  });
+
+  test("is never drawn on OneUptime Cloud: below the plan, `belowPlan` is", () => {
+    pinDeployment("cloud");
+
+    for (const plan of [PlanType.Free, PlanType.Growth, null]) {
+      currentPlanForTest = plan;
+
+      renderWithCommunityLeftover();
+
+      expect(
+        screen.queryByTestId("community-leftover"),
+      ).not.toBeInTheDocument();
+
+      cleanup();
+    }
+  });
+
+  test("is never drawn on a Cloud project on a Community bundle either", () => {
+    pinDeployment("cloud");
+    currentPlanForTest = PlanType.Enterprise;
+
+    renderWithCommunityLeftover({ plugin: undefined });
+
+    expect(screen.queryByTestId("community-leftover")).not.toBeInTheDocument();
+  });
+});
+
+/*
  * A paid feature can always be switched off, on any plan: a shell hands what
  * a trial may have left on (the retention override's Remove button) as
  * `belowPlan`, drawn under the PLAN upsell for a project known to be below
@@ -735,6 +817,14 @@ describe("the Community plugin door (what this jest config resolves)", () => {
         "TeamCompliance",
         "SettingsTelemetryRetentionByType",
         "TelemetryResourceRetentionSettings",
+        "TeamRoles",
+        "TeamRoleView",
+        "TeamCustomRoles",
+        "ApiKeyCustomRoles",
+        "IpAllowlistCard",
+        "StatusPagePoweredBy",
+        "StatusPageSessionLength",
+        "StatusPageSubscriberRestrictions",
         "LicenseManager",
       ].sort(),
     );

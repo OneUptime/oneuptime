@@ -35,7 +35,7 @@ Deze pagina beschrijft wat elke editie bevat, hoe u de Enterprise Edition draait
 | Functie | Community | Enterprise | OneUptime Cloud |
 | --- | --- | --- | --- |
 | Monitoring, alerts, incidenten, piketdienst, statuspagina's, logs, metrics, traces, exceptions, dashboards, workflows, AI-functies, API en Terraform | Ja | Ja | Elk abonnement |
-| Aanmelden met wachtwoord, tweefactorauthenticatie, teams, rollen en API-sleutels | Ja | Ja | Elk abonnement |
+| Aanmelden met wachtwoord, tweefactorauthenticatie, teams, ingebouwde rollen en API-sleutels | Ja | Ja | Elk abonnement |
 | [SAML-SSO en OpenID Connect](/docs/identity/sso) voor aanmelden bij projecten | Ja | Ja | Abonnement Scale en hoger |
 | SAML-SSO en OpenID Connect voor aanmelden bij privé-statuspagina's | Ja | Ja | Abonnement Scale en hoger |
 | [Globale SSO en OIDC (voor de hele instantie)](/docs/identity/global-sso) | Ja | Ja | Niet van toepassing |
@@ -43,6 +43,10 @@ Deze pagina beschrijft wat elke editie bevat, hoe u de Enterprise Edition draait
 | Instellingen voor team-compliance | Nee | Ja | Abonnement Scale en hoger |
 | Auditlogboeken | Nee | Ja | Abonnement Enterprise |
 | Bewaar-overschrijvingen: bewaartermijn per telemetrietype (logs, traces, metrics, profielen, met regels per logernst en tracestatus) en bewaartermijn per service en per resource | Nee | Ja | Abonnement Scale en hoger |
+| Aangepaste rollen: sets machtigingen die u één keer een naam geeft en aan teams en API-sleutels geeft | Nee | Ja | Abonnement Scale en hoger |
+| IP-toelatingslijsten voor statuspagina's, openbare dashboards en formulieren | Nee | Ja | Abonnement Scale en hoger |
+| Toegangsbeheer voor statuspagina's: hoe lang lezers van een privé-statuspagina aangemeld blijven, en wie zich kan abonneren | Nee | Ja | Abonnement Scale en hoger |
+| "Powered by OneUptime" verbergen op statuspagina's | Nee | Ja | Abonnement Scale en hoger |
 | **Health**-dashboards van het beheer: overzicht van de instantie, achtergrondwachtrijen, instantielogs, PostgreSQL, Valkey, ClickHouse-cluster, diagnoselogs en telemetrie-inname | Nee | Ja | Niet van toepassing |
 | **Query Console** van het beheer | Nee | Ja | Niet beschikbaar |
 | Health-alerts voor PostgreSQL en Valkey (Redis) | Nee | Ja | Niet van toepassing |
@@ -55,6 +59,8 @@ Single sign-on omvat "Require SSO for login" voor projecten, privé-statuspagina
 Elke editie heeft de standaardbewaartermijn van het project voor telemetrie, op **Projectinstellingen > Telemetrie & APM > Gegevensbewaring**. Bewaar-overschrijvingen zijn wat de Enterprise Edition daarbovenop toevoegt.
 
 Op OneUptime Cloud kan een betaalde functie altijd worden uitgeschakeld, in elk abonnement. Een bewaar-overschrijving die een proefperiode (of een overstap naar een lager abonnement) heeft laten staan, blijft gelden voor nieuwe telemetrie, dus onder het abonnement Scale tonen de bewaarpagina's haar onder de upgradekaart met een knop **Overschrijving verwijderen**. Verwijderen werkt in elk abonnement; er opnieuw een instellen vereist het abonnement Scale. Telemetrie die al is opgeslagen, houdt de bewaartermijn waarmee ze is opgeslagen. Op dezelfde manier toont **Projectinstellingen > Beveiliging > SSO** de schakelaar **SSO vereisen voor inloggen** onder zijn upgradekaart zolang het project nog SSO vereist, zodat hij kan worden uitgezet.
+
+Aangepaste rollen, IP-toelatingslijsten, toegangsbeheer voor statuspagina's en een verborgen regel "Powered by OneUptime" werken op dezelfde manier: wat een proefperiode of een lager abonnement heeft laten staan, blijft gelden, en de instellingen tonen het onder de upgradekaart met een knop om het te verwijderen.
 
 Rijen met "Niet van toepassing" zijn functies voor instantiebeheer. Op OneUptime Cloud beheert OneUptime de instantie voor u.
 
@@ -185,12 +191,14 @@ Wat stopt als een licentie afloopt:
 - **SCIM-provisioning stopt.** De SCIM-verzoeken van uw identiteitsprovider worden geweigerd, inclusief deprovisioning, en SCIM-teamvergrendelingen worden opgeheven, zodat teams die door SCIM-pushgroepen worden beheerd met de hand kunnen worden bewerkt.
 - **Auditlogging registreert niets meer.** Auditlogboeken die tot dan toe zijn vastgelegd, blijven bewaard.
 - **Bewaar-overschrijvingen gelden niet meer.** Nieuwe telemetrie wordt bewaard volgens de standaardbewaartermijn van het project. Telemetrie die al is opgeslagen, houdt de bewaartermijn waarmee ze is geschreven. Via de API kunt u een overschrijving nog wel wissen, maar niet instellen.
+- **Statuspagina's tonen weer Powered by OneUptime.** Een pagina die de regel verbergt, toont hem tot er een licentie is geactiveerd. De instelling blijft bewaard.
 
 Wat **niet** stopt:
 
 - **Single sign-on.** Aanmelden met SAML en OIDC voor projecten, privé-statuspagina's, de hele instantie (globale SSO) en de mobiele apps, en "Require SSO for login", horen bij elke editie. Een verlopen licentie verandert daar niets aan, en de configuratie van single sign-on blijft bewerkbaar.
 - **De kernmonitoring wordt nooit geraakt**: monitors, alerts, incidenten, piketdienst, statuspagina's en telemetrie blijven allemaal werken.
 - **Hoofdbeheerders kunnen zich altijd aanmelden met hun wachtwoord.**
+- **Aangepaste rollen, IP-toelatingslijsten en toegangsbeheer voor statuspagina's blijven gelden.** U kunt ze verwijderen, maar niet aanmaken of wijzigen.
 - **Er wordt niets verwijderd.** SCIM-configuratie, auditlogboeken en bewaar-overschrijvingen blijven zoals ze zijn.
 
 **Alles werkt weer zodra een licentie is geactiveerd**, zonder herstart: SCIM-provisioning, auditlogging en bewaar-overschrijvingen komen terug met de configuratie die u hebt. OneUptime schakelt ze alleen uit als het weet dat de licentie is verlopen. Zolang het de licentiestatus niet kan lezen, bijvoorbeeld een moment terwijl de server start, blijven SCIM, auditlogging en bewaar-overschrijvingen aan.
@@ -206,6 +214,8 @@ Uw configuratie blijft in de database. Terugwisselen naar de Enterprise-image he
 - **SCIM-teamvergrendelingen worden opgeheven**, zodat teams die door SCIM-pushgroepen werden beheerd met de hand kunnen worden bewerkt. Bij het opstarten logt de server bij welke projecten de SCIM-teamvergrendelingen zijn opgeheven.
 - **Auditlogging stopt.** Auditlogboeken die tot dan toe zijn vastgelegd, blijven bewaard, maar de pagina's met auditlogboeken tonen een upgradeprompt.
 - **Bewaar-overschrijvingen gelden niet meer.** Nieuwe telemetrie wordt bewaard volgens de standaardbewaartermijn van het project, en de bewaarkaarten op **Projectinstellingen > Telemetrie & APM > Gegevensbewaring** en op de instellingenpagina van elke service en elke resource tonen een upgradeprompt. De overschrijvingen blijven in de database en gelden weer als u terugwisselt.
+- **Statuspagina's tonen weer Powered by OneUptime.** De instelling blijft in de database en verbergt de regel weer als u terugwisselt.
+- **Aangepaste rollen, IP-toelatingslijsten en toegangsbeheer voor statuspagina's blijven gelden.** Hun instellingen tonen een upgradeprompt, met wat nog is ingesteld en een knop om het te verwijderen.
 - **Enterprise-instellingspagina's tonen een upgradeprompt.** Via de API kunt u de enterpriseconfiguratie nog lezen en verwijderen en een SCIM-bearertoken opnieuw instellen, maar niets anders aanmaken of wijzigen. Auditlogging kan niet worden ingeschakeld.
 - **De enterprise Health-dashboards, de Query Console en de Health-alerts voor PostgreSQL en Valkey stoppen.** Capaciteitsbewaking en opschoning van ClickHouse, de migratiestatus en de supportbundel blijven werken.
 

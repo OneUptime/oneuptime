@@ -388,19 +388,19 @@ describe("The single sign-on edition rule catches SSO filed under the Enterprise
    */
   const leftAlone: Array<string> = [
     // What the site says now.
-    "The Community Edition is the core platform under Apache 2.0, SAML and OIDC single sign-on included; the Enterprise Edition adds SCIM, audit logs, team compliance, and instance health dashboards under the OneUptime Enterprise License, plus a support agreement.",
-    "Enterprise Edition images add SCIM, audit logs, team compliance, and instance health dashboards to the Community Edition, and are selected with a single chart value.",
-    "SAML and OIDC single sign-on are part of the Apache 2.0 Community Edition; the Enterprise Edition adds SCIM, audit logs, team compliance, and instance health dashboards.",
-    "We ship RBAC, API-key scoping, and SAML and OIDC single sign-on in both editions, and SCIM and audit logs in the Enterprise Edition.",
+    "The Community Edition is the core platform under Apache 2.0, SAML and OIDC single sign-on included; the Enterprise Edition adds SCIM, audit logs, team compliance, custom roles, IP allowlists, and instance health dashboards under the OneUptime Enterprise License, plus a support agreement.",
+    "Enterprise Edition images add SCIM, audit logs, team compliance, custom roles, IP allowlists, and instance health dashboards to the Community Edition, and are selected with a single chart value.",
+    "SAML and OIDC single sign-on are part of the Apache 2.0 Community Edition; the Enterprise Edition adds SCIM, audit logs, team compliance, custom roles, IP allowlists, and instance health dashboards.",
+    "We ship RBAC with built-in roles, API-key scoping, and SAML and OIDC single sign-on in both editions, and SCIM, audit logs, custom roles, and IP allowlists in the Enterprise Edition.",
     "SAML and OpenID Connect single sign-on for projects, private status pages, and the whole instance",
-    "No SCIM, audit logs, team compliance, or instance health dashboards — those are Enterprise Edition features",
-    "The Enterprise Edition image: SCIM, audit logs, team compliance, and instance health dashboards",
-    "The Community Edition is the full monitoring, incident, and observability platform under Apache 2.0 — monitoring, incidents, on-call, status pages, logs, metrics, traces, dashboards, and workflows, with SAML and OIDC single sign-on. The Enterprise Edition adds identity and governance features — SCIM provisioning, audit logs, team compliance, and instance health dashboards — under the OneUptime Enterprise License, together with a commercial support agreement.",
+    "No SCIM, audit logs, team compliance, custom roles, IP allowlists, or instance health dashboards — those are Enterprise Edition features",
+    "The Enterprise Edition image: SCIM, audit logs, team compliance, custom roles, IP allowlists, and instance health dashboards",
+    "The Community Edition is the full monitoring, incident, and observability platform under Apache 2.0 — monitoring, incidents, on-call, status pages, logs, metrics, traces, dashboards, and workflows, with SAML and OIDC single sign-on. The Enterprise Edition adds identity and governance features — SCIM provisioning, audit logs, team compliance, custom roles, IP allowlists, status page access controls, and instance health dashboards — under the OneUptime Enterprise License, together with a commercial support agreement.",
     "SAML and OpenID Connect single sign-on in both editions",
     "Enterprise Edition images with SCIM, audit logs, and team compliance",
     "OneUptime's Apache 2.0 Community Edition covers the whole incident lifecycle - monitoring, on-call, incidents, status pages, and telemetry - along with SAML and OIDC single sign-on, and its enterprise module adds SCIM, audit logs, and instance administration.",
     "Open source under Apache 2.0, with enterprise features like SCIM and audit logs in a separately licensed ee/ directory.",
-    "Enterprise agreements add the Enterprise Edition (SCIM, audit logs, team compliance, and instance health dashboards), deployment support, and custom data residency &mdash; and a private cloud option if you want a single-tenant environment you do not operate yourself.",
+    "Enterprise agreements add the Enterprise Edition (SCIM, audit logs, team compliance, custom roles, IP allowlists, and instance health dashboards), deployment support, and custom data residency &mdash; and a private cloud option if you want a single-tenant environment you do not operate yourself.",
     "SAML and OIDC single sign-on are part of every self-hosted edition, including the free Community Edition; SCIM needs the Enterprise Edition, and on OneUptime Cloud both are on the Scale plan and above.",
     "The Community Edition is the core platform under Apache 2.0, SAML and OpenID Connect single sign-on included. The Enterprise Edition image adds the enterprise modules from the repository's ee/ directory",
     "SSO in every edition",
@@ -499,7 +499,7 @@ describe("Pages state the edition split accurately", () => {
 
   test("the demo FAQ names what the Enterprise Edition adds", () => {
     expect(readView("demo.ejs")).toContain(
-      "Enterprise agreements add the Enterprise Edition (SCIM, audit logs, team compliance, and instance health dashboards)",
+      "Enterprise agreements add the Enterprise Edition (SCIM, audit logs, team compliance, custom roles, IP allowlists, and instance health dashboards)",
     );
   });
 

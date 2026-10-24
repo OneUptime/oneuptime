@@ -59,7 +59,13 @@ change their wording and steps.
    saw during it, with an idempotency key derived from the installation and
    the hour, so an hour is never billed twice even when its report is sent
    again. Each report is claimed in the database before it is sent. Hours in
-   which no run happened (the installation was down) are not billed.
+   which no run happened (the installation was down) are not billed. The
+   reporters
+   ([ee/Server/Marketplace/Reporters](../../../../../ee/Server/Marketplace/Reporters))
+   share the AWS and Google Cloud clients of OneUptime Cloud's own marketplace
+   billing
+   ([ee/Server/CloudMarketplace](../../../../../ee/Server/CloudMarketplace)),
+   so a change to one is a change to both.
 3. **Licensing.** A report the marketplace accepts is its word that the buyer
    is subscribed: it licenses every Enterprise feature for 72 hours, with no
    seat limit and no license key
@@ -108,7 +114,7 @@ telemetry writers only get `ENTERPRISE_MARKETPLACE`, for the license.
 | `DISABLE_UPDATE_CHECK`                                      | `updateCheck.disabled`: `true` in every edition (build.py); upgrades come through the marketplace, not GitHub           |
 
 The AWS product code is compiled in (`AWS_SELF_HOSTED_PRODUCT_CODES` in
-[SelfHostedMarketplaceConfig.ts](SelfHosted/SelfHostedMarketplaceConfig.ts)),
+[SelfHostedMarketplaceConfig.ts](../../../../../ee/Server/Marketplace/Reporters/SelfHostedMarketplaceConfig.ts)),
 because AWS asks sellers to keep it out of the buyer's hands.
 
 ## Pricing
@@ -240,7 +246,7 @@ needs it. Record each one in [History](#history).
 
 | Value                                            | Where it comes from                                                                                        | Where it goes                                                                                                                                                                                                                                                                      |
 | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| AWS product code                                 | AWS Marketplace Management Portal, when the container product is created                                   | `AWS_SELF_HOSTED_PRODUCT_CODES` in [SelfHostedMarketplaceConfig.ts](SelfHosted/SelfHostedMarketplaceConfig.ts). It is compiled into the image: a OneUptime release made before this change cannot bill AWS, and says "This build of OneUptime has no AWS Marketplace product code" |
+| AWS product code                                 | AWS Marketplace Management Portal, when the container product is created                                   | `AWS_SELF_HOSTED_PRODUCT_CODES` in [SelfHostedMarketplaceConfig.ts](../../../../../ee/Server/Marketplace/Reporters/SelfHostedMarketplaceConfig.ts). It is compiled into the image: a OneUptime release made before this change cannot bill AWS, and says "This build of OneUptime has no AWS Marketplace product code" |
 | AWS registry prefix                              | The portal's repository URIs: `709825985650.dkr.ecr.us-east-1.amazonaws.com/<sellerName>`                  | `editions.json`, `aws.registry`                                                                                                                                                                                                                                                    |
 | Azure registry                                   | The Azure Container Registry you create: `<name>.azurecr.io`                                               | `editions.json`, `azure.registry`                                                                                                                                                                                                                                                  |
 | Google registry path and Service Control service | The Artifact Registry repository you create; Producer Portal's **Overview** page, **Service name** column  | `editions.json`, `google-cloud.registry` and `google-cloud.serviceName`                                                                                                                                                                                                            |

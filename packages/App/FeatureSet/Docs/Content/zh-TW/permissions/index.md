@@ -139,7 +139,7 @@ flowchart TB
 
 ### 自訂角色
 
-自訂角色是一組只需命名一次、即可授予多個團隊和 API 金鑰的權限：例如由 `IncidentMember`、`AlertMember` 和 `OnCallViewer` 組成的「事件回應人員」，或「團隊負責人」。你授予它的每個團隊和金鑰都會取得相同的權限，並且可以在一處統一變更。在 OneUptime Cloud 上，自訂角色與變更團隊權限一樣需要 Scale 方案。
+自訂角色是一組只需命名一次、即可授予多個團隊和 API 金鑰的權限：例如由 `IncidentMember`、`AlertMember` 和 `OnCallViewer` 組成的「事件回應人員」，或「團隊負責人」。你授予它的每個團隊和金鑰都會取得相同的權限，並且可以在一處統一變更。在 OneUptime Cloud 上，自訂角色與變更團隊權限一樣需要 Scale 方案。自行託管時，自訂角色屬於 Enterprise Edition：在 Community Edition 上，團隊與 API 金鑰已有的角色會繼續生效，可以從團隊或金鑰中移除或刪除，但不能建立或變更。
 
 :::steps
 1. 從 **產品** 選單的 **設定** 下開啟 **團隊**。在側邊選單中展開 **設定**，選擇 **角色**，然後點選 **建立自訂角色**。

@@ -35,7 +35,7 @@ Denne side beskriver, hvad hver udgave indeholder, hvordan du kører Enterprise 
 | Funktion | Community | Enterprise | OneUptime Cloud |
 | --- | --- | --- | --- |
 | Overvågning, advarsler, hændelser, vagtordning, statussider, logs, metrikker, traces, exceptions, dashboards, workflows, AI-funktioner, API og Terraform | Ja | Ja | Alle abonnementer |
-| Login med adgangskode, totrinsgodkendelse, teams, roller og API-nøgler | Ja | Ja | Alle abonnementer |
+| Login med adgangskode, totrinsgodkendelse, teams, indbyggede roller og API-nøgler | Ja | Ja | Alle abonnementer |
 | [SAML-SSO og OpenID Connect](/docs/identity/sso) til login i projekter | Ja | Ja | Abonnementet Scale og derover |
 | SAML-SSO og OpenID Connect til login på private statussider | Ja | Ja | Abonnementet Scale og derover |
 | [Globalt SSO og OIDC (for hele instansen)](/docs/identity/global-sso) | Ja | Ja | Ikke relevant |
@@ -43,6 +43,10 @@ Denne side beskriver, hvad hver udgave indeholder, hvordan du kører Enterprise 
 | Indstillinger for team-compliance | Nej | Ja | Abonnementet Scale og derover |
 | Auditlogs | Nej | Ja | Abonnementet Enterprise |
 | Tilsidesættelser af opbevaring: opbevaring efter telemetritype (logs, traces, metrikker, profiler, med regler efter logalvorlighed og trace-status) samt opbevaring pr. tjeneste og pr. ressource | Nej | Ja | Abonnementet Scale og derover |
+| Brugerdefinerede roller: sæt af tilladelser, du navngiver én gang og giver til teams og API-nøgler | Nej | Ja | Abonnementet Scale og derover |
+| IP-tilladelseslister for statussider, offentlige dashboards og formularer | Nej | Ja | Abonnementet Scale og derover |
+| Adgangskontrol for statussider: hvor længe læsere af en privat statusside forbliver logget ind, og hvem der kan abonnere | Nej | Ja | Abonnementet Scale og derover |
+| Skjul "Powered by OneUptime" på statussider | Nej | Ja | Abonnementet Scale og derover |
 | Administrationens **Health**-dashboards: oversigt over instansen, baggrundskøer, instanslogs, PostgreSQL, Valkey, ClickHouse-klynge, diagnoselogs og telemetri-indtagelse | Nej | Ja | Ikke relevant |
 | Administrationens **Query Console** | Nej | Ja | Ikke tilgængelig |
 | Health-advarsler for PostgreSQL og Valkey (Redis) | Nej | Ja | Ikke relevant |
@@ -55,6 +59,8 @@ Single sign-on omfatter "Require SSO for login" for projekter, private statussid
 Alle udgaver har projektets standardopbevaring af telemetri under **Projektindstillinger > Telemetri og APM > Dataopbevaring**. Tilsidesættelser af opbevaring er det, Enterprise Edition tilføjer oven i det.
 
 På OneUptime Cloud kan en betalt funktion altid slås fra, på ethvert abonnement. En tilsidesættelse af opbevaring, som en prøveperiode (eller et skift til et lavere abonnement) efterlod indstillet, gælder fortsat for ny telemetri, så under abonnementet Scale viser opbevaringssiderne den under opgraderingskortet med knappen **Fjern tilsidesættelse**. Fjernelse virker på alle abonnementer; at indstille en igen kræver abonnementet Scale. Telemetri, der allerede er gemt, beholder den opbevaring, den blev gemt med. På samme måde viser **Projektindstillinger > Sikkerhed > SSO** kontakten **Kræv SSO til login** under sit opgraderingskort, så længe projektet stadig kræver SSO, så den kan slås fra.
+
+Brugerdefinerede roller, IP-tilladelseslister, adgangskontrol for statussider og en skjult "Powered by OneUptime"-linje fungerer på samme måde: det, en prøveperiode eller et lavere abonnement efterlod indstillet, gælder fortsat, og indstillingerne viser det under opgraderingskortet med en knap til at fjerne det.
 
 Rækker med "Ikke relevant" er funktioner til administration af instansen. På OneUptime Cloud driver OneUptime instansen for dig.
 
@@ -185,12 +191,14 @@ Hvad der stopper, når en licens udløber:
 - **SCIM-provisionering stopper.** Din identitetsudbyders SCIM-anmodninger afvises, inklusive deprovisionering, og SCIM-teamlåse ophæves, så teams, der styres af SCIM-push-grupper, kan redigeres manuelt.
 - **Auditlogningen holder op med at registrere.** Auditlogs, der er registreret indtil da, bevares.
 - **Tilsidesættelser af opbevaring holder op med at gælde.** Ny telemetri opbevares i projektets standardopbevaring. Telemetri, der allerede er gemt, beholder den opbevaring, den blev skrevet med. Du kan stadig rydde en tilsidesættelse via API'en, men ikke indstille en.
+- **Statussider viser Powered by OneUptime igen.** En side, der skjuler linjen, viser den, indtil en licens aktiveres. Indstillingen bevares.
 
 Hvad der **ikke** stopper:
 
 - **Single sign-on.** Login med SAML og OIDC til projekter, private statussider, hele instansen (globalt SSO) og mobilapps samt "Require SSO for login" er en del af alle udgaver. En udløbet licens ændrer intet af det, og konfigurationen af single sign-on kan stadig redigeres.
 - **Den grundlæggende overvågning påvirkes aldrig**: monitorer, advarsler, hændelser, vagtordning, statussider og telemetri virker alle fortsat.
 - **Masteradministratorer kan altid logge ind med deres adgangskode.**
+- **Brugerdefinerede roller, IP-tilladelseslister og adgangskontrol for statussider gælder fortsat.** Du kan fjerne dem, men ikke oprette eller ændre dem.
 - **Intet slettes.** SCIM-konfiguration, auditlogs og tilsidesættelser af opbevaring forbliver, som de er.
 
 **Alt genoptages, så snart en licens aktiveres**, uden genstart: SCIM-provisionering, auditlogning og tilsidesættelser af opbevaring vender tilbage med den konfiguration, du har. OneUptime slår dem kun fra, når det ved, at licensen er udløbet. Så længe det ikke kan læse licenstilstanden, for eksempel et øjeblik mens serveren starter, forbliver SCIM, auditlogning og tilsidesættelser af opbevaring slået til.
@@ -206,6 +214,8 @@ Din konfiguration bliver i databasen. Et skift tilbage til Enterprise-imaget gen
 - **SCIM-teamlåse ophæves**, så teams, der blev styret af SCIM-push-grupper, kan redigeres manuelt. Ved opstart logger serveren, hvilke projekter fik deres SCIM-teamlåse ophævet.
 - **Auditlogning stopper.** Auditlogs, der er registreret indtil da, bevares, men auditlog-siderne viser en opfordring til at opgradere.
 - **Tilsidesættelser af opbevaring holder op med at gælde.** Ny telemetri opbevares i projektets standardopbevaring, og opbevaringskortene under **Projektindstillinger > Telemetri og APM > Dataopbevaring** og på indstillingssiden for hver tjeneste og hver ressource viser en opfordring til at opgradere. Tilsidesættelserne bliver i databasen og gælder igen, når du skifter tilbage.
+- **Statussider viser Powered by OneUptime igen.** Indstillingen bliver i databasen og skjuler linjen igen, når du skifter tilbage.
+- **Brugerdefinerede roller, IP-tilladelseslister og adgangskontrol for statussider gælder fortsat.** Deres indstillinger viser en opfordring til at opgradere, med det, der stadig er indstillet, og en knap til at fjerne det.
 - **Enterprise-indstillingssider viser en opfordring til at opgradere.** Via API'en kan du stadig læse og slette enterprise-konfiguration og nulstille et SCIM-bearer-token, men ikke oprette eller ændre noget andet. Auditlogning kan ikke slås til.
 - **Enterprise-Health-dashboards, Query Console og health-advarslerne for PostgreSQL og Valkey stopper.** Kapacitetsovervågning og oprydning for ClickHouse, migreringsstatus og supportpakken virker fortsat.
 

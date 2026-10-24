@@ -19,6 +19,28 @@ enum EnterpriseFeature {
    * The project-wide default retention is not part of it.
    */
   TelemetryRetention = "telemetry-retention",
+  /*
+   * Custom roles: creating and changing a project's custom roles and the
+   * permissions in them, and giving them to teams. The built-in roles and
+   * a team's own permissions are not part of it.
+   */
+  CustomRoles = "custom-roles",
+  /*
+   * IP allow-lists on private status pages, public dashboards and forms:
+   * setting or changing one. A list already set is enforced in every edition.
+   */
+  IpAllowlists = "ip-allowlists",
+  /*
+   * Removing "Powered by OneUptime" from status pages. Its runtime: while it
+   * is not active, every status page shows the line.
+   */
+  StatusPageBranding = "status-page-branding",
+  /*
+   * A status page's access controls: how long private users stay signed in,
+   * only private users can subscribe, and the email domains subscribers may
+   * use. Setting or changing them; what is set is enforced in every edition.
+   */
+  StatusPageAccessControls = "status-page-access-controls",
 }
 
 export const ALL_ENTERPRISE_FEATURES: ReadonlyArray<EnterpriseFeature> =

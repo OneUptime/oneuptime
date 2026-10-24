@@ -19,7 +19,7 @@ Din statussida är den enda skärmen i OneUptime som dina kunder tittar på, så
 | **Anpassade domäner** | Din egen domän, dess DNS-post och dess kostnadsfria SSL-certifikat. |
 | **HTML, CSS och JavaScript** | Sidhuvud-HTML, sidfots-HTML, anpassad CSS, anpassad JavaScript. |
 
-Tre saker som liknar varumärke finns i stället under **Statussidor → din sida → Avancerad → Avancerade inställningar** (`{id}/settings`), eftersom de avgör vad sidan visar och inte hur den ser ut: den totala upptidsprocenten, vilka monitorstatusar som räknas mot upptiden och raden "Powered by OneUptime". Alla tre är rader på kortet **Vad din statussida visar** där.
+Tre saker som liknar varumärke finns i stället under **Statussidor → din sida → Avancerad → Avancerade inställningar** (`{id}/settings`), eftersom de avgör vad sidan visar och inte hur den ser ut: den totala upptidsprocenten, vilka monitorstatusar som räknas mot upptiden och raden "Powered by OneUptime". De två första är rader på kortet **Vad din statussida visar** där, och raden har ett eget kort direkt under.
 
 Varumärket var tidigare uppdelat på separata skärmar för **Grundläggande varumärke**, **Sidhuvud**, **Sidfot**, **Översiktssida** och **Språk**. Deras gamla adresser (`{id}/header-style`, `{id}/footer-style`, `{id}/overview-page-branding` och `{id}/languages`) öppnar nu sidan **Varumärke**, så gamla bokmärken och länkar fungerar fortfarande.
 
@@ -295,7 +295,7 @@ Detsamma gäller API-nycklar. En nyckel som bara kan läsa statussidedomäner ka
 
 ## Powered by OneUptime
 
-Raden "Powered by OneUptime" är inte en varumärkesinställning. Den är det sista reglaget på kortet **Vad din statussida visar** under **Statussidor → din sida → Avancerad → Avancerade inställningar** (`{id}/settings`): **Visa "Powered By OneUptime"-varumärke**, på som standard. Stäng av det för att dölja raden; det sparas direkt. På OneUptime Cloud kräver det planen **Scale** att dölja den.
+Raden "Powered by OneUptime" är inte en varumärkesinställning. Den har ett eget kort, **Powered by OneUptime**, under kortet **Vad din statussida visar** under **Statussidor → din sida → Avancerad → Avancerade inställningar** (`{id}/settings`): **Visa "Powered By OneUptime"-varumärke**, på som standard. Stäng av det för att dölja raden; det sparas direkt. På OneUptime Cloud kräver det planen **Scale** att dölja den. Självhostat ingår det i Enterprise Edition att dölja den: i Community Edition visar alla statussidor raden.
 
 ## Nästa steg
 

@@ -79,8 +79,13 @@ function listSources(directory: string = DASHBOARD_SRC): Array<string> {
 
 const TEAM_TABLE: string = "Components/Team/TeamPermissionTable.tsx";
 const KEY_TABLE: string = "Components/ApiKey/ApiKeyPermissionTable.tsx";
-const ROLE_TABLE: string =
-  "Components/CustomRole/CustomRolePermissionTable.tsx";
+
+/*
+ * A custom role's Add Role (CustomRolePermissionTable) and its create form
+ * are Enterprise screens in ee/Dashboard/CustomRoles, which core CI never
+ * sees: ee/Tests/UI/CustomRoles/CustomRolesWiring.test.ts holds them to the
+ * same wiring.
+ */
 
 describe("every Add Role uses the one role field", () => {
   test("a team's: the whole project to start with; its block table on One area", () => {
@@ -110,14 +115,6 @@ describe("every Add Role uses the one role field", () => {
     );
   });
 
-  test("a custom role's: without Project Owner, opening on One area", () => {
-    const table: string = readSource(ROLE_TABLE);
-
-    expect(table).toContain(
-      "getRolePickerFormField<CustomRolePermission>({ excludeRoles: PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE, startOn: RoleReach.OneArea, onChange: onPermissionPicked, isMoreFieldsShownFor: isScopeShownFor, }),",
-    );
-  });
-
   /*
    * The More fields line (Scope) is drawn under the picker only for a role
    * that takes a scope. The picker keeps its room the rest of the time, and
@@ -125,7 +122,7 @@ describe("every Add Role uses the one role field", () => {
    * exactly while the line is not: the first pick, and every move between a
    * role with a scope and one without, used to move the dialog by a line.
    */
-  test.each([TEAM_TABLE, ROLE_TABLE])(
+  test.each([TEAM_TABLE])(
     "%s keeps the More fields room with the Scope's own question",
     (file: string) => {
       const table: string = readSource(file);
@@ -163,7 +160,7 @@ describe("every Add Role uses the one role field", () => {
 });
 
 describe("no Add Role draws a wall of cards again", () => {
-  test.each([TEAM_TABLE, KEY_TABLE, ROLE_TABLE])(
+  test.each([TEAM_TABLE, KEY_TABLE])(
     "%s builds no card grid of roles",
     (file: string) => {
       const table: string = readSource(file);
@@ -186,12 +183,10 @@ describe("no Add Role draws a wall of cards again", () => {
       })
       .sort();
 
-    expect(readers).toEqual(
-      [
-        path.join("Components", "CustomRole", "BuiltInRolesCard.tsx"),
-        path.join("Components", "CustomRole", "CustomRoleCreateForm.ts"),
-      ].sort(),
-    );
+    // And the custom role create form, in ee (CustomRolesWiring.test.ts).
+    expect(readers).toEqual([
+      path.join("Components", "CustomRole", "BuiltInRolesCard.tsx"),
+    ]);
   });
 
   test("only the role field draws the role picker", () => {
@@ -218,10 +213,6 @@ describe("the dialogs", () => {
       KEY_TABLE,
       "createEditModalWidth={ !isBlock && createPermissionType === CreatePermissionType.RoleBased ? ModalWidth.Medium : ModalWidth.Large }",
     ],
-    [
-      ROLE_TABLE,
-      "createEditModalWidth={isRoleBased ? ModalWidth.Medium : ModalWidth.Large}",
-    ],
   ])(
     "%s draws Add Role at medium width, the full permission list wide",
     (file: string, width: string) => {
@@ -234,10 +225,6 @@ describe("the dialogs", () => {
     [
       KEY_TABLE,
       "A role is a ready-made set of permissions. The key can do what the role allows in the whole project.",
-    ],
-    [
-      ROLE_TABLE,
-      "A built-in role to bundle into this one. Every team with this role gets what it can do.",
     ],
   ])(
     "%s says what Add Role adds in its title alone: the field's help is gone",

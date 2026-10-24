@@ -94,7 +94,7 @@ Hver linje er en af disse:
 
 En IPv4-adresse skal skrives som en sådan: skrevet på IPv6-måden, som `::ffff:203.0.113.7`, afvises den. Listen tjekkes, hver gang den gemmes — fra dashboardet, API'en, Terraform eller en arbejdsgang —, og en linje, der aldrig kan matche, afvises med en besked, der nævner den. Lad listen være tom for at tillade alle netværk. Så snart den har en post, afvises en anmodning, hvis adresse ikke kan fastslås.
 
-På OneUptime Cloud kræver det at angive IP-tilladelseslisten **Scale**-planen — både når en formular oprettes med en via API'en, og når den redigeres —, ligesom IP-tilladelseslisten for et [offentligt dashboard](/docs/dashboards/sharing). At tømme den virker på alle planer.
+På OneUptime Cloud kræver det at angive IP-tilladelseslisten **Scale**-planen — både når en formular oprettes med en via API'en, og når den redigeres —, ligesom IP-tilladelseslisten for et [offentligt dashboard](/docs/dashboards/sharing). At tømme den virker på alle planer. Ved selvhosting er det en del af Enterprise Edition at ændre den: på Community Edition gælder en liste, der allerede er angivet, fortsat og kan kun fjernes.
 
 ### Anmodninger fra andre websteder
 

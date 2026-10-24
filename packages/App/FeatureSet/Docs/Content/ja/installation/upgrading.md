@@ -97,6 +97,7 @@ OneUptime はアプリケーションを 2 つのイメージで提供するよ�
 ### アップグレード前に行うこと
 
 - **SCIM を使わない Community Edition:** 何もありません。いつもどおりアップグレードしてください。
+- **カスタムロール、IP 許可リスト、ステータスページのアクセス制御、または Powered by OneUptime の非表示を使っている Community Edition:** カスタムロール、IP 許可リスト、ステータスページのアクセス制御は Enterprise Edition に移りました。設定済みのものは引き続き適用され、削除はできますが、作成や変更はできません。ステータスページには再び Powered by OneUptime が表示されます。引き続き管理するには Enterprise のイメージに切り替えてください。
 - **`image.type: enterprise-edition` を使う Helm:** 何もありません。チャートはすでに `enterprise-` イメージを取得しており、それにエンタープライズモジュールが含まれるようになりました。
 - **`IS_ENTERPRISE_EDITION=true` を使う Docker Compose:** アップグレード時に `config.env` で `APP_TAG=enterprise-release`（または `enterprise-<version>`）を設定して Enterprise のイメージに切り替えます。`APP_TAG=release` は Community のイメージで、`IS_ENTERPRISE_EDITION=true` はもう何も有効にしません。`IS_ENTERPRISE_EDITION=true` である限り、`npm run update` がこの変更を代わりに行い（`release` は `enterprise-release` に、固定した `13.0.7` は `enterprise-13.0.7` になります）、変更内容を表示します。Community のイメージで `IS_ENTERPRISE_EDITION=true` が設定されていると、アプリケーションは SCIM プロビジョニングと監査ログの記録を黙って止めるのではなく、 **起動を拒否する** ようになりました。エラーには、Enterprise Edition を使い続けるなら `APP_TAG=enterprise-<version>`、Community Edition を実行するなら `IS_ENTERPRISE_EDITION=false` と、設定すべき内容が示されます。
 - **SCIM を設定済みの Community のイメージ:** このアップグレードで、デプロビジョニングを含め SCIM プロビジョニングが止まります。使い続けるには Enterprise のイメージに切り替えます。そうしない場合は、アップグレードの前に [Enterprise から Community への切り替え](/docs/self-hosted/enterprise#enterprise-から-community-への切り替え) を読んでください。何が止まるか、誰を先に削除すべきかが説明されています。Community Edition を実行するには、`IS_ENTERPRISE_EDITION=false` も設定します。シングルサインオンには影響しません。Community のイメージもシングルサインオンを提供します。

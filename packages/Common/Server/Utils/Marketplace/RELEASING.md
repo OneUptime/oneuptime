@@ -15,6 +15,15 @@ usage report and invoiced through Vercel: see
 ignored unless billing is enabled (`BILLING_ENABLED=true`, OneUptime Cloud
 only).
 
+The integration's code is OneUptime Cloud's, so it lives in the enterprise
+module: [ee/Server/CloudMarketplace](../../../../../ee/Server/CloudMarketplace)
+(the routes, the adapters, the purchases, the hourly usage report and the
+jobs; OneUptime Cloud runs the Enterprise image). The Community image has none
+of it. What every edition uses stays next to this guide: the HTTP client
+([MarketplaceHttp.ts](MarketplaceHttp.ts)) and the token verifier
+([RemoteJwtVerifier.ts](RemoteJwtVerifier.ts)) Sign in with Microsoft is built
+on.
+
 Written on **16 October 2026**, together with the integration code, before any
 listing existed. Nothing in this guide had been submitted to any marketplace
 yet. When you do something below, add it to [History](#history), and recheck
@@ -98,8 +107,8 @@ on oneuptime.com changes what marketplace customers pay with no marketplace
 change. The fraction of a cent left over each hour is carried to the next
 report, so nothing is rounded away.
 
-The code is [MarketplaceUsageCalculator.ts](MarketplaceUsageCalculator.ts) and
-[MarketplaceUsageReporter.ts](MarketplaceUsageReporter.ts).
+The code is [MarketplaceUsageCalculator.ts](../../../../../ee/Server/CloudMarketplace/MarketplaceUsageCalculator.ts) and
+[MarketplaceUsageReporter.ts](../../../../../ee/Server/CloudMarketplace/MarketplaceUsageReporter.ts).
 
 **Enterprise deals** are private offers on the marketplace (AWS, Azure and
 Google Cloud all support them) - usually a discount on the unit price. For a
@@ -360,7 +369,7 @@ rules do: see the hosting rule under
 10. **Submit for review** - a maintainer's decision.
 
 What OneUptime does with Google's events:
-[GoogleCloudMarketplaceInbound.ts](GoogleCloud/GoogleCloudMarketplaceInbound.ts).
+[GoogleCloudMarketplaceInbound.ts](../../../../../ee/Server/CloudMarketplace/GoogleCloud/GoogleCloudMarketplaceInbound.ts).
 New orders and plan changes are approved automatically (every plan bills the
 same units); an order made before the buyer signed up is approved when they
 finish the purchase page.
@@ -432,7 +441,7 @@ finish the purchase page.
 7. **Request public visibility** - a maintainer's decision.
 
 What OneUptime does with AWS's events:
-[AwsMarketplaceInbound.ts](AWS/AwsMarketplaceInbound.ts). A purchase becomes
+[AwsMarketplaceInbound.ts](../../../../../ee/Server/CloudMarketplace/AWS/AwsMarketplaceInbound.ts). A purchase becomes
 billable only once its agreement is `ACTIVE` (checked with DescribeAgreement,
 never on the event's word); "License Deprovisioned" sends the last usage within
 AWS's one-hour window, then cancels.
@@ -496,7 +505,7 @@ the account and its gotchas. Use the same account.
    and the webhook. Certification notes template below.
 
 What OneUptime does with Microsoft's webhook calls:
-[AzureMarketplaceInbound.ts](Azure/AzureMarketplaceInbound.ts). Each call's
+[AzureMarketplaceInbound.ts](../../../../../ee/Server/CloudMarketplace/Azure/AzureMarketplaceInbound.ts). Each call's
 bearer token is verified (issued by the offer's tenant, for the fulfillment
 app, to the marketplace API's app), and the operation and subscription are read
 back from the fulfillment API before anything changes, as Microsoft requires.
@@ -555,7 +564,7 @@ Marketplace".
 - **One report per purchase and hour on AWS and Microsoft**: both bill the
   first usage record of a purchase in an hour and refuse any other as a
   duplicate, unbilled. Every report is filed a minute before its period ends
-  (`MarketplaceUsageHour` in [MarketplaceAdapter.ts](MarketplaceAdapter.ts)):
+  (`MarketplaceUsageHour` in [MarketplaceAdapter.ts](../../../../../ee/Server/CloudMarketplace/MarketplaceAdapter.ts)):
   an hourly report in the hour it covers, a final one in the hour it ends in.
   An hourly report that would land in a final report's hour - after a project
   delete that failed, or a purchase linked again within the hour - waits for
