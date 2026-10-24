@@ -471,9 +471,7 @@ describe("AuditLogExportService, through the whole write", () => {
     });
 
     test("isInstanceExport is true exactly for a row without a project", () => {
-      expect(
-        AuditLogExportServiceClass.isInstanceExport({ projectId: undefined }),
-      ).toBe(true);
+      expect(AuditLogExportServiceClass.isInstanceExport({})).toBe(true);
       expect(
         AuditLogExportServiceClass.isInstanceExport({ projectId: PROJECT_ID }),
       ).toBe(false);

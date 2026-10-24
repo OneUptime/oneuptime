@@ -262,10 +262,12 @@ describe("serializeAuditLogExportRecord", () => {
   test("writes the keys in schema order, whatever order the object holds them in", () => {
     const record: AuditLogExportRecord =
       toAuditLogExportRecord(clickhouseRow())!;
-    const shuffled: AuditLogExportRecord = {
-      changes: record.changes,
-      ...record,
-    };
+    // The same entry with its keys the other way round.
+    const shuffled: AuditLogExportRecord = Object.fromEntries(
+      Object.entries(record).reverse(),
+    ) as unknown as AuditLogExportRecord;
+
+    expect(Object.keys(shuffled)[0]).toBe("changes");
 
     expect(
       Object.keys(JSON.parse(serializeAuditLogExportRecord(shuffled))),
