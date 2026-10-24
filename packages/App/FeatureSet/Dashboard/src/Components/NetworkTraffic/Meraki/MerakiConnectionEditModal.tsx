@@ -177,7 +177,7 @@ const MerakiConnectionEditModal: FunctionComponent<ComponentProps> = (
           </div>
           <p className="mt-1.5 text-xs text-gray-500">
             {translator.translateText(
-              "The key is never shown again. Paste a new one only to replace it - after the old one was revoked, say.",
+              "The key is never shown again. Paste a new one only to replace it, for example after the old one was revoked.",
             )}
           </p>
         </div>

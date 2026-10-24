@@ -235,7 +235,7 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
         label: name,
         octets: getUsageOctets(row),
         detail: translator.translateTemplate(
-          "Download {{in}} · upload {{out}}",
+          "In {{in}} · out {{out}}",
           {
             in: formatTrafficBytes(row.receivedOctets),
             out: formatTrafficBytes(row.sentOctets),
@@ -273,7 +273,7 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
           .join(" · "),
         octets: getUsageOctets(row),
         detail: translator.translateTemplate(
-          "Download {{in}} · upload {{out}}",
+          "In {{in}} · out {{out}}",
           {
             in: formatTrafficBytes(row.receivedOctets),
             out: formatTrafficBytes(row.sentOctets),
@@ -325,7 +325,7 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
         label: row.application,
         octets: getUsageOctets(row),
         detail: translator.translateTemplate(
-          "Download {{in}} · upload {{out}}",
+          "In {{in}} · out {{out}}",
           {
             in: formatTrafficBytes(row.receivedOctets),
             out: formatTrafficBytes(row.sentOctets),
@@ -360,7 +360,7 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
         sublabel: details.length > 0 ? details.join(" · ") : undefined,
         octets: getUsageOctets(row),
         detail: translator.translateTemplate(
-          "Download {{in}} · upload {{out}}",
+          "In {{in}} · out {{out}}",
           {
             in: formatTrafficBytes(row.receivedOctets),
             out: formatTrafficBytes(row.sentOctets),
@@ -441,13 +441,8 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
               bucketSeconds={summary.bucketSeconds}
               windowStartAt={summary.windowStartAt}
               windowEndAt={summary.windowEndAt}
-              splitSeriesNames={{
-                // The chart draws series names as given: translated here.
-                in: translator.translateText("Download") || "Download",
-                out: translator.translateText("Upload") || "Upload",
-              }}
               splitAriaLabel={translationKey(
-                "Download and upload through the appliances' uplinks over time, in bits per second",
+                "Traffic in and out through the appliances' uplinks over time, in bits per second",
               )}
             />
           </div>

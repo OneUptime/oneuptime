@@ -11,6 +11,7 @@
     "Agent",
     "Alarm",
     "App",
+    "Appliance {{appliance}}",
     "CPU Ready {{percent}}",
     "CloudWatch Metric Streams",
     "Container {{container}}: {{reason}}",
@@ -54,6 +55,7 @@
     "{{count}} KB",
     "{{count}} MB",
     "{{count}} alarm",
+    "{{count}} appliance",
     "{{count}} repository",
     "{{count}} samples",
     "{{tokens}} tokens"

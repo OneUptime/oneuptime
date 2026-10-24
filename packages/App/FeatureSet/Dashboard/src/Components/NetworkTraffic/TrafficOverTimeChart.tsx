@@ -86,11 +86,9 @@ export interface ComponentProps {
   windowStartAt: string;
   windowEndAt: string;
   /*
-   * The split series' names, when they are not "In" and "Out" through an
-   * interface: an uplink's download and upload.
+   * What a screen reader hears for a split chart that is not of one
+   * interface (an English key): the Meraki side's uplinks.
    */
-  splitSeriesNames?: { in: string; out: string } | undefined;
-  // What a screen reader hears for a split chart, then.
   splitAriaLabel?: string | undefined;
 }
 
@@ -118,13 +116,13 @@ const TrafficOverTimeChart: FunctionComponent<ComponentProps> = (
   }> = isSplit
     ? [
         {
-          name: props.splitSeriesNames?.in || IN_SERIES_NAME,
+          name: IN_SERIES_NAME,
           read: (point: NetworkTrafficSeriesPoint): number => {
             return point.inOctets || 0;
           },
         },
         {
-          name: props.splitSeriesNames?.out || OUT_SERIES_NAME,
+          name: OUT_SERIES_NAME,
           read: (point: NetworkTrafficSeriesPoint): number => {
             return point.outOctets || 0;
           },
