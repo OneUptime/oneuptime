@@ -45,9 +45,12 @@ import {
   describeAiContextActivityDetail,
   describeAiContextLeftOut,
 } from "../AISettings/AiContextCopy";
-import AiContextViewButton from "../AI/AiContextActivityView";
+import {
+  AiContextActivityDialog,
+  AiContextViewButton,
+} from "../AI/AiContextActivityView";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useId, useState } from "react";
 
 /*
  * The AI tools that reach a Kubernetes cluster rather than the project's
@@ -259,7 +262,7 @@ interface ActivityStep {
   severity?: string | undefined;
   /*
    * What the run read of the project's AI context, word for word: the
-   * step's View opens it (AiContextViewButton).
+   * step's View opens it (AiContextActivityDialog).
    */
   aiContext?: AiContextActivity | undefined;
 }
@@ -906,6 +909,15 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const lineIdPrefix: string = useId();
+  /*
+   * The AI context a run read, while its dialog is open. Held here rather
+   * than by the line's View: a live run shows only its latest steps, so the
+   * line leaves the feed as steps come in, and the notes someone is reading
+   * must not close under them when it does.
+   */
+  const [viewedAiContext, setViewedAiContext] =
+    useState<AiContextActivity | null>(null);
   const steps: Array<ActivityStep> = buildSteps(props.events, translator);
   const maxVisibleSteps: number = props.maxVisibleSteps ?? 7;
   const hiddenStepCount: number = Math.max(0, steps.length - maxVisibleSteps);
@@ -951,8 +963,12 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
         );
       }
 
+      /*
+       * As wide as the other steps' 12px icons (3 + 6 + 3), so a log line's
+       * words start where every other step's do.
+       */
       return (
-        <span className="mx-0.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-gray-300"></span>
+        <span className="mx-[3px] h-1.5 w-1.5 flex-shrink-0 rounded-full bg-gray-300"></span>
       );
     }
 
@@ -1062,6 +1078,10 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
           </div>
         )}
         {visibleSteps.map((step: ActivityStep) => {
+          const aiContext: AiContextActivity | undefined = step.aiContext;
+          // The line's words, which its View is read with.
+          const lineId: string = `${lineIdPrefix}-${step.key}`;
+
           return (
             <div
               key={step.key}
@@ -1077,9 +1097,13 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
               <div
                 className="min-w-0"
                 data-testid="activity-step-text"
-                {...(step.aiContext ? { "data-ai-context": "true" } : {})}
+                {...(aiContext ? { "data-ai-context": "true" } : {})}
               >
-                {renderStepText(step)}
+                {aiContext ? (
+                  <span id={lineId}>{renderStepText(step)}</span>
+                ) : (
+                  renderStepText(step)
+                )}
                 {step.detail && (
                   <>
                     {" "}
@@ -1088,11 +1112,17 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
                     </span>
                   </>
                 )}
-                {step.aiContext ? (
+                {aiContext ? (
                   <>
                     {" "}
                     <span className="inline-block text-gray-400">
-                      · <AiContextViewButton activity={step.aiContext} />
+                      ·{" "}
+                      <AiContextViewButton
+                        describedById={lineId}
+                        onClick={() => {
+                          setViewedAiContext(aiContext);
+                        }}
+                      />
                     </span>
                   </>
                 ) : (
@@ -1107,40 +1137,60 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
       <></>
     );
 
+  // The notes a run read, open over the page until they are closed.
+  const aiContextDialog: ReactElement = viewedAiContext ? (
+    <AiContextActivityDialog
+      activity={viewedAiContext}
+      onClose={() => {
+        setViewedAiContext(null);
+      }}
+    />
+  ) : (
+    <></>
+  );
+
   if (props.hideChrome) {
-    return stepList;
+    return (
+      <>
+        {stepList}
+        {aiContextDialog}
+      </>
+    );
   }
 
   return (
-    <div className="flex gap-3.5">
-      <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-gray-900">
-        <Icon icon={IconProp.Sparkles} className="h-3.5 w-3.5 text-white" />
-      </div>
+    <>
+      <div className="flex gap-3.5">
+        <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-gray-900">
+          <Icon icon={IconProp.Sparkles} className="h-3.5 w-3.5 text-white" />
+        </div>
 
-      <div className="min-w-0 flex-1">
-        <div className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3">
-          <div className="flex items-center gap-2">
-            {showLiveIndicator ? (
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gray-400 opacity-75"></span>
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-gray-500"></span>
+        <div className="min-w-0 flex-1">
+          <div className="rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3">
+            <div className="flex items-center gap-2">
+              {showLiveIndicator ? (
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gray-400 opacity-75"></span>
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-gray-500"></span>
+                </span>
+              ) : (
+                <></>
+              )}
+              <span className="text-sm font-medium text-gray-700">
+                {translator.translateText(props.title || "Investigating…")}
               </span>
-            ) : (
-              <></>
-            )}
-            <span className="text-sm font-medium text-gray-700">
-              {translator.translateText(props.title || "Investigating…")}
-            </span>
-          </div>
-
-          {visibleSteps.length > 0 && (
-            <div className="mt-3 border-t border-gray-200/70 pt-3">
-              {stepList}
             </div>
-          )}
+
+            {visibleSteps.length > 0 && (
+              <div className="mt-3 border-t border-gray-200/70 pt-3">
+                {stepList}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+      {aiContextDialog}
+    </>
   );
 };
 

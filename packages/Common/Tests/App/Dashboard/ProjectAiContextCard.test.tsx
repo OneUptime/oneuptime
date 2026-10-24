@@ -57,8 +57,10 @@ import {
   getAiContextOutline,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AiContextCopy";
 import Project from "../../../Models/DatabaseModels/Project";
+import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import Icon from "../../../UI/Components/Icon/Icon";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
@@ -159,6 +161,20 @@ async function dialogSource(dialog: HTMLElement): Promise<HTMLTextAreaElement> {
   return editor.querySelector("textarea") as HTMLTextAreaElement;
 }
 
+// The picture a button draws, by its path: a plus, a pencil.
+function iconOf(element: HTMLElement): string | null {
+  return element.querySelector("svg path")?.getAttribute("d") || null;
+}
+
+function iconPath(icon: IconProp): string | null {
+  const drawn: { container: HTMLElement; unmount: () => void } = render(
+    <Icon icon={icon} />,
+  );
+  const path: string | null = iconOf(drawn.container);
+  drawn.unmount();
+  return path;
+}
+
 function savedModels(): Array<Project> {
   return createOrUpdateSpy.mock.calls.map((call: Array<unknown>): Project => {
     return (call[0] as { model: Project }).model;
@@ -234,6 +250,34 @@ describe("the AI context card", () => {
     ).toHaveTextContent("No AI context yet.");
     expect(await cardButton("Add AI context")).toBeEnabled();
     expect(screen.queryByTestId(AI_CONTEXT_TEST_IDS.view)).toBeNull();
+  });
+
+  /*
+   * Most projects have no notes yet: a button drawn as "Edit" while the card
+   * reads the project would turn into "Add AI context" a moment later. It is
+   * drawn once the card knows which it is.
+   */
+  test("draws its button once it has read the project, never one word and then the other", async () => {
+    let finishReading: (item: Project) => void = (): void => {};
+    getItemSpy.mockImplementation((): Promise<Project> => {
+      return new Promise<Project>((resolve: (item: Project) => void) => {
+        finishReading = resolve;
+      });
+    });
+
+    openCard();
+    await card();
+    await flush();
+
+    expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Add AI context" })).toBeNull();
+
+    await act(async () => {
+      finishReading(project);
+    });
+
+    expect(await cardButton("Add AI context")).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
   });
 
   test("with notes: the notes as they read, how long they are, and Edit", async () => {
@@ -329,7 +373,7 @@ describe("the AI context card", () => {
     expect(saved.enableAi).toBeUndefined();
   });
 
-  test("past 20,000 characters the count turns red and the dialog refuses it, with the count", async () => {
+  test("past 20,000 characters the count turns red and the dialog refuses it, saying what to do", async () => {
     openCard();
 
     fireEvent.click(await cardButton("Add AI context"));
@@ -356,12 +400,97 @@ describe("the AI context card", () => {
 
     expect(
       await within(dialog).findByText(
-        "At most 20,000 characters. This has 20,001.",
+        "Use 20,000 characters or fewer.",
         {},
         { timeout: WAIT_TIMEOUT },
       ),
     ).toBeInTheDocument();
+    // How far past the limit is the count's to say, red under the field.
+    expect(
+      within(dialog).getByTestId(AI_CONTEXT_TEST_IDS.length),
+    ).toHaveTextContent("20,001 of 20,000 characters");
     expect(createOrUpdateSpy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * A button that adds what is not there yet draws a plus, as every Add in
+   * the product does; once there are notes, Edit draws the pencil.
+   */
+  test("its button draws what it does: a plus to add the first notes, a pencil to edit them", async () => {
+    openCard();
+
+    const add: HTMLElement = await cardButton("Add AI context");
+    expect(iconOf(add)).toBe(iconPath(IconProp.Add));
+    expect(iconOf(add)).not.toBe(iconPath(IconProp.Edit));
+
+    cleanup();
+    project.aiContext = NOTES;
+    openCard();
+
+    expect(iconOf(await cardButton("Edit"))).toBe(iconPath(IconProp.Edit));
+  });
+
+  test("locked, the button keeps its words and its picture", async () => {
+    grant([...BASE_PERMISSIONS, Permission.ProjectMember]);
+    openCard();
+
+    await screen.findByTestId(
+      AI_CONTEXT_TEST_IDS.empty,
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    const add: HTMLElement = await cardButton("Add AI context");
+    expect(add).toBeDisabled();
+    expect(iconOf(add)).toBe(iconPath(IconProp.Add));
+  });
+
+  /*
+   * The outline's button goes once the field holds the outline. Focus does
+   * not go with it, back to the page: it goes into the editor, the caret in
+   * the outline's first item - where the first note is written.
+   */
+  test("after the outline, the keyboard is in the editor, in its first item", async () => {
+    openCard();
+
+    fireEvent.click(await cardButton("Add AI context"));
+    await flush();
+
+    const dialog: HTMLElement = await screen.findByRole(
+      "dialog",
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+    const outlineButton: HTMLElement = await within(dialog).findByTestId(
+      AI_CONTEXT_TEST_IDS.outlineButton,
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    outlineButton.focus();
+    fireEvent.click(outlineButton);
+    await flush();
+
+    const editable: HTMLElement = within(dialog)
+      .getByTestId(AI_CONTEXT_TEST_IDS.projectField)
+      .querySelector("[role='textbox'][contenteditable]") as HTMLElement;
+
+    await waitFor(
+      () => {
+        expect(document.activeElement).toBe(editable);
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    const firstItem: Element = editable.querySelector("li") as Element;
+    const caret: Selection = window.getSelection() as Selection;
+    expect(firstItem).not.toBeNull();
+    expect(caret.rangeCount).toBe(1);
+    expect(firstItem.contains(caret.anchorNode)).toBe(true);
+    // The item under the outline's first heading.
+    expect(firstItem.closest("ul")?.previousElementSibling).toHaveTextContent(
+      "How our systems fit together",
+    );
   });
 
   test.each([Permission.ProjectOwner, Permission.ProjectAdmin])(

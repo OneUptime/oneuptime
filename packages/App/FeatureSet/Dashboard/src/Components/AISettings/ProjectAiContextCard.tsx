@@ -16,6 +16,7 @@ import {
   AiContextOwner,
   readAiContext,
 } from "Common/Types/AI/AiContext";
+import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { FieldFooterProps } from "Common/UI/Components/Forms/Types/Field";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
@@ -57,14 +58,25 @@ const ProjectAiContextCard: FunctionComponent = (): ReactElement => {
     return <></>;
   }
 
+  /*
+   * The button is drawn once the card knows which it is - "Add AI context"
+   * or "Edit" - rather than drawn as one and turned into the other a moment
+   * later, as most projects' cards would, having no notes yet.
+   */
+  const hasReadProject: boolean = hasContext !== null;
+
   const buttonTitle: string =
     hasContext === false
       ? AI_CONTEXT_CARD_COPY.addButtonText
       : AI_CONTEXT_CARD_COPY.editButtonText;
+  // A plus while it adds, as every Add in the product has; a pencil after.
+  const buttonIcon: IconProp =
+    hasContext === false ? IconProp.Add : IconProp.Edit;
 
   const gate: ProjectColumnsEditGate = getProjectColumnsEditGate({
     fields: [AI_CONTEXT_COLUMN],
     buttonTitle,
+    buttonIcon,
   });
 
   const formFields: Fields<Project> = [
@@ -81,7 +93,7 @@ const ProjectAiContextCard: FunctionComponent = (): ReactElement => {
       placeholder: AI_CONTEXT_CARD_COPY.fieldPlaceholder,
       // Notes are text: a model is never given an image's bytes.
       allowImageUpload: false,
-      dataTestId: "project-ai-context-field",
+      dataTestId: AI_CONTEXT_TEST_IDS.projectField,
       customValidation: (values: FormValues<Project>): string | null => {
         return getAiContextFieldError({
           value: (values as { aiContext?: unknown }).aiContext,
@@ -100,6 +112,7 @@ const ProjectAiContextCard: FunctionComponent = (): ReactElement => {
             owner={AiContextOwner.Project}
             footer={footer}
             offersOutline={true}
+            editorTestId={AI_CONTEXT_TEST_IDS.projectField}
           />
         );
       },
@@ -112,12 +125,13 @@ const ProjectAiContextCard: FunctionComponent = (): ReactElement => {
       cardProps={{
         title: AI_CONTEXT_CARD_COPY.cardTitle,
         description: AI_CONTEXT_CARD_COPY.cardDescription,
-        buttons: gate.lockedButtons,
+        buttons: hasReadProject ? gate.lockedButtons : [],
         // ".../settings/ai-features#ai-context" lands here.
         id: AI_CONTEXT_CARD_ANCHOR,
       }}
-      isEditable={gate.isEditable}
+      isEditable={gate.isEditable && hasReadProject}
       editButtonText={buttonTitle}
+      editButtonIcon={buttonIcon}
       editModalTitle={AI_CONTEXT_CARD_COPY.editModalTitle}
       editModalDescription={AI_CONTEXT_CARD_COPY.editModalDescription}
       createEditModalWidth={ModalWidth.Large}

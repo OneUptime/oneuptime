@@ -47,12 +47,18 @@ export const AI_CONTEXT_CARD_COPY: {
   addButtonText: translationKey("Add AI context"),
   editButtonText: translationKey("Edit"),
   editModalTitle: translationKey("AI context"),
+  /*
+   * The one thing to know while writing: who else reads the notes, in the
+   * words the docs warn with. The card above already says what OneUptime
+   * AI reads them in.
+   */
   editModalDescription: translationKey(
-    "OneUptime AI reads this first, before anything else. Leave secrets out: anyone who can see what it did can read it.",
+    "Leave secrets out: anyone who can see what an AI run did can read the notes it was given.",
   ),
   fieldTitle: translationKey("What OneUptime AI should know"),
+  // The editor itself says it writes Markdown: its toolbar and its help.
   fieldDescription: translationKey(
-    "How your systems fit together, who owns which symptom, where the logs are, and the words your team uses. Markdown.",
+    "How your systems fit together, who owns which symptom, where the logs are, and the words your team uses.",
   ),
   fieldPlaceholder: translationKey(
     "For example: checkout-api serves the checkout page and depends on payments-db.",
@@ -139,9 +145,14 @@ export function describeAiContextSize(
   )}`;
 }
 
-// The form's refusal of a text past its limit.
+/*
+ * The form's refusal of a text past its limit: what to do, in the words the
+ * product's other length limits use. The count under the field, red by
+ * then, says how far past the limit the text is - the refusal does not say
+ * it twice.
+ */
 export const AI_CONTEXT_TOO_LONG_TEMPLATE: string = translationKey(
-  "At most {{max}} characters. This has {{count}}.",
+  "Use {{max}} characters or fewer.",
 );
 
 // What the text takes of its owner's limit, and what it costs to read.
@@ -208,7 +219,6 @@ export function getAiContextFieldError(data: {
 
   return data.translator.translateTemplate(AI_CONTEXT_TOO_LONG_TEMPLATE, {
     max: data.translator.formatNumber(length.maxCharacters),
-    count: data.translator.formatNumber(length.characterCount),
   });
 }
 
@@ -344,9 +354,11 @@ export const AI_CONTEXT_TEST_IDS: {
   length: string;
   outlineButton: string;
   toggle: string;
+  projectField: string;
   ruleField: string;
   activityViewButton: string;
   activityModalPart: string;
+  activityModalLeftOut: string;
 } = {
   card: "project-ai-context-card",
   view: "project-ai-context-view",
@@ -355,7 +367,9 @@ export const AI_CONTEXT_TEST_IDS: {
   length: "ai-context-length",
   outlineButton: "ai-context-outline-button",
   toggle: "project-ai-context-toggle",
+  projectField: "project-ai-context-field",
   ruleField: "auto-remediation-ai-context-field",
   activityViewButton: "ai-context-activity-view-button",
   activityModalPart: "ai-context-activity-part",
+  activityModalLeftOut: "ai-context-activity-left-out",
 };

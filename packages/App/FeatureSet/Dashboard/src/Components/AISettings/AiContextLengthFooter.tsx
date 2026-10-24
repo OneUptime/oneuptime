@@ -6,6 +6,7 @@ import {
   getAiContextLength,
   getAiContextOutline,
 } from "./AiContextCopy";
+import { focusOutlineStart } from "./AiContextOutlineFocus";
 import { AiContextOwner } from "Common/Types/AI/AiContext";
 import { FieldFooterProps } from "Common/UI/Components/Forms/Types/Field";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -22,6 +23,12 @@ export interface ComponentProps {
   footer?: FieldFooterProps | undefined;
   // Offer "Start from an outline" while the field is empty.
   offersOutline?: boolean | undefined;
+  /*
+   * The field's editor, by its test id: where focus goes once the outline
+   * is in it (focusOutlineStart), the button having gone with the empty
+   * field.
+   */
+  editorTestId?: string | undefined;
 }
 
 /*
@@ -65,8 +72,15 @@ const AiContextLengthFooter: FunctionComponent<ComponentProps> = (
           type="button"
           data-testid={AI_CONTEXT_TEST_IDS.outlineButton}
           className="rounded font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
-          onClick={() => {
+          onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
             props.footer?.setValue(getAiContextOutline(translator));
+
+            if (props.editorTestId) {
+              focusOutlineStart({
+                from: event.currentTarget,
+                editorTestId: props.editorTestId,
+              });
+            }
           }}
         >
           {translator.translateText(AI_CONTEXT_OUTLINE_BUTTON_TEXT)}

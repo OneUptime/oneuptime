@@ -3098,7 +3098,7 @@ test.describe("a rule's AI context", () => {
     expect([undefined, null, ""]).toContain(sent.creates[0]!.data["aiContext"]);
   });
 
-  test("past 5,000 characters the count turns red and the rule is refused with the count", async ({
+  test("past 5,000 characters the count turns red and the rule is refused, saying what to do", async ({
     page,
   }: {
     page: Page;
@@ -3117,9 +3117,7 @@ test.describe("a rule's AI context", () => {
 
     await dialog.getByRole("button", { name: CREATE }).click();
 
-    await expect(dialog).toContainText(
-      "At most 5,000 characters. This has 5,001.",
-    );
+    await expect(dialog).toContainText("Use 5,000 characters or fewer.");
     await expect(dialog).toBeVisible();
     expect((await recorded(page)).creates).toEqual([]);
   });

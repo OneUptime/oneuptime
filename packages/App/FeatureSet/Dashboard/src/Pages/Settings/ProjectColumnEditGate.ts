@@ -90,6 +90,8 @@ export interface ProjectColumnsEditGate {
 export function getProjectColumnsEditGate(data: {
   fields: Array<string>;
   buttonTitle: string;
+  // The locked button's icon, as the card's own button draws it: a pencil.
+  buttonIcon?: IconProp | undefined;
 }): ProjectColumnsEditGate {
   const isEditable: boolean = canUpdateProjectColumns(data.fields);
   const hasPermissionSnapshot: boolean = PermissionGate.hasPermissionSnapshot();
@@ -103,7 +105,7 @@ export function getProjectColumnsEditGate(data: {
     lockedButtons: [
       {
         title: data.buttonTitle,
-        icon: IconProp.Edit,
+        icon: data.buttonIcon || IconProp.Edit,
         buttonStyle: ButtonStyleType.NORMAL,
         disabled: true,
         tooltip: getProjectColumnsPermissionMessage(data.fields),

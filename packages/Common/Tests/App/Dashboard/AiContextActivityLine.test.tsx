@@ -151,6 +151,23 @@ const LEFT_OUT: AiContextActivity = composeAiContext({
   }),
 })!;
 
+// Each part's heading in the open dialog, in the order the run read them.
+function partHeadings(): Array<HTMLElement> {
+  return within(screen.getByRole("dialog"))
+    .getAllByTestId(AI_CONTEXT_TEST_IDS.activityModalPart)
+    .map((part: HTMLElement): HTMLElement => {
+      return part.querySelector("h3") as HTMLElement;
+    });
+}
+
+// A plain log line of a run, as the engine records its steps.
+function progressEvent(message: string): AIRunEvent {
+  const event: AIRunEvent = new AIRunEvent(ObjectID.generate());
+  event.eventType = AIRunEventType.ProgressLog;
+  event.resultSummary = { message, severity: "Info" };
+  return event;
+}
+
 // The words and the colour class of each step the feed drew.
 function drawnSteps(container: HTMLElement): Array<[string, string]> {
   return Array.from(container.querySelectorAll("span.break-words")).map(
@@ -286,9 +303,170 @@ describe("a run's line about the AI context it read", () => {
     expect(
       within(dialog).getAllByTestId(AI_CONTEXT_TEST_IDS.activityModalPart),
     ).toHaveLength(3);
-    expect(dialog).toHaveTextContent(
+
+    // Last, after the notes it did read: which rule's it left out, by name.
+    const leftOut: HTMLElement = within(dialog).getByTestId(
+      AI_CONTEXT_TEST_IDS.activityModalLeftOut,
+    );
+    expect(leftOut).toHaveTextContent(
       "Left out the AI context of 1 AI rule: a run reads at most 30,000 characters of AI context",
     );
+    expect(
+      within(leftOut)
+        .getAllByRole("listitem")
+        .map((item: HTMLElement): string => {
+          return item.textContent || "";
+        }),
+    ).toEqual(LEFT_OUT.leftOutRuleNames);
+    expect(LEFT_OUT.leftOutRuleNames).toEqual(["C"]);
+  });
+
+  test("several rules left out are each named; a rule saved without a name is not an empty bullet", () => {
+    const activity: AiContextActivity = {
+      ...PROJECT_ONLY,
+      leftOutRuleNames: ["Database incidents", "", "Search incidents"],
+    };
+
+    render(
+      <ChatActivityFeed
+        events={[aiContextEvent(activity)]}
+        hideChrome={true}
+      />,
+    );
+    fireEvent.click(screen.getByTestId(AI_CONTEXT_TEST_IDS.activityViewButton));
+
+    const leftOut: HTMLElement = within(screen.getByRole("dialog")).getByTestId(
+      AI_CONTEXT_TEST_IDS.activityModalLeftOut,
+    );
+    expect(leftOut).toHaveTextContent(
+      "Left out the AI context of 3 AI rules: a run reads at most 30,000 characters of AI context",
+    );
+    expect(
+      within(leftOut)
+        .getAllByRole("listitem")
+        .map((item: HTMLElement): string => {
+          return item.textContent || "";
+        }),
+    ).toEqual(["Database incidents", "Search incidents"]);
+  });
+
+  test("a run that left nothing out says nothing about it", () => {
+    render(
+      <ChatActivityFeed
+        events={[aiContextEvent(WITH_RULES)]}
+        hideChrome={true}
+      />,
+    );
+    fireEvent.click(screen.getByTestId(AI_CONTEXT_TEST_IDS.activityViewButton));
+
+    expect(
+      within(screen.getByRole("dialog")).queryByTestId(
+        AI_CONTEXT_TEST_IDS.activityModalLeftOut,
+      ),
+    ).toBeNull();
+  });
+
+  /*
+   * A rule's heading is a kind and a name: "AI rule" quieter, the rule's
+   * name in full weight and isolated, in the order the reader's language
+   * puts them. The project's is one word, in full weight.
+   */
+  test("a rule's heading names the rule in full weight, the words around it quieter", () => {
+    render(
+      <ChatActivityFeed
+        events={[aiContextEvent(WITH_RULES)]}
+        hideChrome={true}
+      />,
+    );
+    fireEvent.click(screen.getByTestId(AI_CONTEXT_TEST_IDS.activityViewButton));
+
+    const headings: Array<HTMLElement> = partHeadings();
+
+    expect(headings[0]).toHaveTextContent("Project");
+    expect(headings[0]).toHaveClass("font-semibold", "text-gray-900");
+    expect(headings[0]!.querySelector("bdi")).toBeNull();
+
+    const name: HTMLElement = headings[1]!.querySelector("bdi") as HTMLElement;
+    expect(headings[1]).toHaveTextContent("AI rule Checkout");
+    expect(headings[1]).toHaveClass("text-gray-500");
+    expect(headings[1]).not.toHaveClass("font-semibold");
+    expect(name).toHaveTextContent("Checkout");
+    expect(name).toHaveClass("font-semibold", "text-gray-900");
+  });
+
+  test("in German, the rule's heading keeps the language's own order around the name", () => {
+    useLanguage("de");
+
+    render(
+      <ChatActivityFeed
+        events={[aiContextEvent(WITH_RULES)]}
+        hideChrome={true}
+      />,
+    );
+    fireEvent.click(screen.getByTestId(AI_CONTEXT_TEST_IDS.activityViewButton));
+
+    const heading: HTMLElement = partHeadings()[1]!;
+    expect(heading).toHaveTextContent("KI-Regel Checkout");
+    expect(heading.querySelector("bdi")).toHaveTextContent("Checkout");
+  });
+
+  /*
+   * A live run shows only its latest steps: its line about the AI context
+   * leaves the feed as steps come in. The notes someone opened stay open -
+   * the feed holds them, not the line's button.
+   */
+  test("the notes opened from a live run stay open while new steps push its line out of sight", () => {
+    const steps: Array<AIRunEvent> = [aiContextEvent(PROJECT_ONLY)];
+    const { rerender, container } = render(
+      <ChatActivityFeed events={steps} hideChrome={true} maxVisibleSteps={2} />,
+    );
+
+    fireEvent.click(screen.getByTestId(AI_CONTEXT_TEST_IDS.activityViewButton));
+    expect(screen.getByRole("dialog")).toHaveTextContent(
+      "AI context this run read",
+    );
+
+    for (let index: number = 0; index < 4; index++) {
+      steps.push(progressEvent(`Checked the database, step ${index + 1}`));
+    }
+    rerender(
+      <ChatActivityFeed
+        events={[...steps]}
+        hideChrome={true}
+        maxVisibleSteps={2}
+      />,
+    );
+
+    // The line is gone from the feed; the notes are still open.
+    expect(container.querySelector('[data-ai-context="true"]')).toBeNull();
+    expect(container).toHaveTextContent("+ 3 earlier steps");
+    const dialog: HTMLElement = screen.getByRole("dialog");
+    expect(
+      within(dialog).getByTestId(AI_CONTEXT_TEST_IDS.activityModalPart),
+    ).toHaveTextContent(PROJECT_NOTES.split("\n")[0]!);
+
+    fireEvent.click(within(dialog).getByTestId("modal-footer-close-button"));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  test("View is read with its line: what the run read", () => {
+    render(
+      <ChatActivityFeed
+        events={[aiContextEvent(PROJECT_ONLY)]}
+        hideChrome={true}
+      />,
+    );
+
+    const view: HTMLElement = screen.getByTestId(
+      AI_CONTEXT_TEST_IDS.activityViewButton,
+    );
+    const describedBy: string = view.getAttribute("aria-describedby") || "";
+
+    expect(describedBy).not.toBe("");
+    expect(document.getElementById(describedBy)).toHaveTextContent(
+      "Read the project's AI context",
+    );
+    expect(view).toHaveAccessibleDescription("Read the project's AI context");
   });
 
   test("is drawn from the data, in the reader's language, not from the English the server stored", () => {

@@ -59,6 +59,8 @@ const ALREADY_TRANSLATED: Array<string> = [
   "View",
   "Project",
   "Close",
+  // The refusal the product's rule criteria give a value past its limit.
+  "Use {{max}} characters or fewer.",
 ];
 
 function readLocale(locale: string): Record<string, string> {

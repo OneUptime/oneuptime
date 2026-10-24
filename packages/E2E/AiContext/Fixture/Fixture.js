@@ -10,14 +10,20 @@
  *   - a run's details (Components/AI/InvestigationReport/
  *     InvestigationRunDetails): its activity's "Read the project's AI
  *     context" line, and the dialog its View opens with the notes the run
- *     read, word for word.
+ *     read, word for word;
+ *   - a live run (Components/AIChat/ChatActivityFeed, as the incident's
+ *     conversation and the investigation panel draw it while a run works:
+ *     its latest steps only), whose steps the spec adds.
  *
  * The pages and components are the production ones from this branch; only
  * the ModelAPI / API data boundary and the signed-in user's permissions are
  * replaced.
  *
  * Steered by the query string:
- *   - page=run        a run's details (the AI Features page by default)
+ *   - page=run        a run's details (the AI Features page by default);
+ *                     page=live, a run still working, its latest eight
+ *                     steps drawn - window.__aiContextFixture.addSteps(n)
+ *                     adds n more
  *   - context=set     the project's AI context is written (a few
  *                     sections, taller than the card's fold);
  *                     context=short, two lines that fit; context=long,
@@ -57,6 +63,7 @@ import { initReactI18next } from "react-i18next";
 import AIFeaturesPage from "../../../App/FeatureSet/Dashboard/src/Pages/Settings/AIFeatures";
 import SettingsLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Settings/Layout";
 import InvestigationRunDetails from "../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationReport/InvestigationRunDetails";
+import ChatActivityFeed from "../../../App/FeatureSet/Dashboard/src/Components/AIChat/ChatActivityFeed";
 import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import JA from "../../../App/FeatureSet/Dashboard/src/Locales/ja.json";
@@ -83,9 +90,12 @@ const PROJECT_ID = "10000000-0000-4000-8000-0000000000a1";
 const USER_ID = "30000000-0000-4000-8000-0000000000c1";
 const SETTINGS_PATH = `/dashboard/${PROJECT_ID}/settings/ai-features`;
 const RUN_PATH = `/dashboard/${PROJECT_ID}/ai-run`;
+const LIVE_PATH = `/dashboard/${PROJECT_ID}/ai-run-live`;
 
 const params = new URLSearchParams(window.location.search);
-const page = params.get("page") === "run" ? "run" : "settings";
+const page = ["run", "live"].includes(params.get("page"))
+  ? params.get("page")
+  : "settings";
 const role = ["admin", "member"].includes(params.get("role"))
   ? params.get("role")
   : "owner";
@@ -401,6 +411,40 @@ const EVENTS = [
   event(8, AIRunEventType.RunCompleted),
 ];
 
+// An event of the live run, with an id of its own.
+function liveEvent(sequence, eventType, extra = {}) {
+  const id = `e1000000-0000-4000-8000-${String(sequence).padStart(12, "0")}`;
+
+  return Object.assign(new AIRunEvent(), {
+    _id: id,
+    id: new ObjectID(id),
+    sequence,
+    eventType,
+    createdAt: new Date("2026-10-24T09:00:00Z"),
+    ...extra,
+  });
+}
+
+/*
+ * A live run's steps after the AI context line: one search of the logs at a
+ * time, each a call to the model and a tool call, as a run's are.
+ */
+function liveStep(index) {
+  const sequence = 100 + index * 4;
+
+  return [
+    liveEvent(sequence, AIRunEventType.LlmCallStarted),
+    liveEvent(sequence + 1, AIRunEventType.LlmCallCompleted),
+    liveEvent(sequence + 2, AIRunEventType.ToolCallStarted, {
+      toolName: "search_logs",
+    }),
+    liveEvent(sequence + 3, AIRunEventType.ToolCallCompleted, {
+      toolName: "search_logs",
+      resultSummary: { rowCount: 10 + index, durationInMs: 200 + index },
+    }),
+  ];
+}
+
 // ---- the pages ---------------------------------------------------------------
 
 /*
@@ -457,6 +501,51 @@ function RunPage() {
   );
 }
 
+/*
+ * A run still working: its activity as the incident's conversation draws it
+ * (the latest eight steps, under a rule), the run's first steps - starting,
+ * and the AI context it read - in it, and more added when the spec says.
+ */
+function LivePage() {
+  useNavigation();
+
+  const [stepCount, setStepCount] = React.useState(0);
+
+  window.__aiContextFixture.addSteps = (count) => {
+    setStepCount((current) => current + count);
+  };
+
+  const events = EVENTS.slice(0, 2);
+
+  for (let index = 0; index < stepCount; index++) {
+    events.push(...liveStep(index));
+  }
+
+  return (
+    <main
+      className="mx-auto max-w-[900px] px-4 py-8 sm:px-8"
+      data-testid="fixture-page"
+    >
+      <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 className="mb-4 text-base font-semibold text-gray-900">
+          OneUptime AI is investigating
+        </h2>
+        <div
+          className="border-l-2 border-gray-200 pl-3"
+          data-testid="live-steps"
+        >
+          <ChatActivityFeed
+            events={events}
+            hideChrome={true}
+            showLiveIndicator={false}
+            maxVisibleSteps={8}
+          />
+        </div>
+      </section>
+    </main>
+  );
+}
+
 function SettingsShell() {
   useNavigation();
 
@@ -501,7 +590,8 @@ function OutletPage() {
   );
 }
 
-const target = page === "run" ? RUN_PATH : SETTINGS_PATH;
+const target =
+  page === "run" ? RUN_PATH : page === "live" ? LIVE_PATH : SETTINGS_PATH;
 
 if (window.location.pathname !== target) {
   window.history.replaceState(null, "", target + window.location.search);
@@ -511,6 +601,10 @@ createRoot(document.getElementById("root")).render(
   <BrowserRouter>
     <Routes>
       <PageRoute path="/dashboard/:projectId/ai-run" element={<RunPage />} />
+      <PageRoute
+        path="/dashboard/:projectId/ai-run-live"
+        element={<LivePage />}
+      />
       {isInSettingsLayout ? (
         <PageRoute
           path="/dashboard/:projectId/settings"

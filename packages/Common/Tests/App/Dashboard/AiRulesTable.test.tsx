@@ -1351,14 +1351,14 @@ describe.each([
       expect(field.showIf!(ONLY_FIXES_EVERY_TIME)).toBe(false);
     });
 
-    test("the AI context is refused past 5,000 characters, with the count, and never before", () => {
+    test("the AI context is refused past 5,000 characters, saying what to do, and never before", () => {
       const field: CapturedField = fieldNamed(tableFor(lane), "aiContext");
 
       expect(
         field.customValidation!(
           withValues(NEW_RULE, { aiContext: "a".repeat(5001) }),
         ),
-      ).toBe("At most 5,000 characters. This has 5,001.");
+      ).toBe("Use 5,000 characters or fewer.");
       for (const aiContext of [undefined, "", "a".repeat(5000)]) {
         expect(
           field.customValidation!(withValues(NEW_RULE, { aiContext })),

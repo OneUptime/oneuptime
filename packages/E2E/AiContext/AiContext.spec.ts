@@ -31,7 +31,10 @@ const SCREENSHOTS: string = path.resolve(
 const CARD_DESCRIPTION: string =
   "What OneUptime AI should know about your systems: what depends on what, who owns which symptom, where the logs are. It reads this in every investigation, fix, postmortem draft and Ask AI chat.";
 const DIALOG_DESCRIPTION: string =
-  "OneUptime AI reads this first, before anything else. Leave secrets out: anyone who can see what it did can read it.";
+  "Leave secrets out: anyone who can see what an AI run did can read the notes it was given.";
+// The outline's first heading, and a first note typed under it.
+const FIRST_NOTE_UNDER_OUTLINE: RegExp =
+  /^## How our systems fit together\s+- checkout-api depends on payments-db\s/;
 const FIELD_TITLE: string = "What OneUptime AI should know";
 // The count past its limit, in the field's red.
 const TOO_LONG_CLASS: RegExp = /text-red-600/;
@@ -277,7 +280,18 @@ test.describe("the AI context card on Project Settings -> AI -> AI Features", ()
     await expect(modal.getByTestId("ai-context-outline-button")).toHaveCount(0);
     await expect(lengthLine(modal)).toContainText("of 20,000 characters ·");
 
+    /*
+     * Its button is gone, and the keyboard did not go with it: it is in the
+     * editor, under the outline's first heading, so what is typed next is
+     * the first note.
+     */
+    await expect(
+      modal.getByTestId("project-ai-context-field").getByRole("textbox"),
+    ).toBeFocused();
+    await page.keyboard.type("checkout-api depends on payments-db");
+
     const source: Locator = await sourceOf(modal);
+    await expect(source).toHaveValue(FIRST_NOTE_UNDER_OUTLINE);
     const notes: string =
       "## Who owns what\n\n- 502 on /checkout: the payments team. Check vm-db-07 first.";
     await source.fill(notes);
@@ -309,7 +323,7 @@ test.describe("the AI context card on Project Settings -> AI -> AI Features", ()
     await shoot(page, "card-after-save");
   });
 
-  test("past the limit, the count turns red and the save is refused with the count - nothing is sent", async ({
+  test("past the limit, the count turns red and the save is refused, saying what to do - nothing is sent", async ({
     page,
   }: {
     page: Page;
@@ -328,9 +342,7 @@ test.describe("the AI context card on Project Settings -> AI -> AI Features", ()
 
     await submit(page).click();
 
-    await expect(modal).toContainText(
-      "At most 20,000 characters. This has 20,001.",
-    );
+    await expect(modal).toContainText("Use 20,000 characters or fewer.");
     await expect(dialog(page)).toBeVisible();
     expect((await recorded(page)).saves).toEqual([]);
 
@@ -591,6 +603,25 @@ test.describe("what a run read, in its details", () => {
     await expect(line).toContainText("about");
     await expect(line).toContainText("tokens");
 
+    /*
+     * Its words start where every other step's do: a log line's dot is as
+     * wide as the other steps' icons.
+     */
+    const starts: Array<number> = await page
+      .getByTestId("activity-step-text")
+      .evaluateAll((texts: Array<Element>) => {
+        return texts.map((text: Element): number => {
+          return Math.round(text.getBoundingClientRect().x);
+        });
+      });
+    expect(starts.length).toBeGreaterThan(2);
+    expect(new Set(starts).size).toBe(1);
+
+    // View is read with the line it belongs to.
+    await expect(
+      line.getByTestId("ai-context-activity-view-button"),
+    ).toHaveAccessibleDescription("Read the project's AI context");
+
     await shoot(page, "run-line");
 
     await line.getByTestId("ai-context-activity-view-button").click();
@@ -611,6 +642,10 @@ test.describe("what a run read, in its details", () => {
       "502 on /checkout",
     );
     await expect(parts.first()).toContainText("characters · about");
+    // A run that left nothing out says nothing about it.
+    await expect(modal.getByTestId("ai-context-activity-left-out")).toHaveCount(
+      0,
+    );
 
     // The notes' first heading starts flush with their box: no gap above it.
     await atRest(page);
@@ -656,6 +691,24 @@ test.describe("what a run read, in its details", () => {
       "AI rule Search incidents",
     ]);
     await expect(dialog(page)).toContainText("Restarting checkout-api is safe");
+
+    // A rule's heading: its name in full weight, "AI rule" quieter.
+    const ruleHeading: Locator = dialog(page)
+      .getByTestId("ai-context-activity-part")
+      .nth(1)
+      .locator("h3");
+    const weights: Array<string> = await ruleHeading.evaluate(
+      (heading: Element) => {
+        return [
+          getComputedStyle(heading).fontWeight,
+          getComputedStyle(heading.querySelector("bdi")!).fontWeight,
+        ];
+      },
+    );
+    await expect(ruleHeading.locator("bdi")).toHaveText("Checkout incidents");
+    expect(weights).toEqual(["400", "600"]);
+
+    await shoot(page, "run-dialog-rules");
   });
 
   test("one rule's notes alone", async ({ page }: { page: Page }) => {
@@ -676,6 +729,62 @@ test.describe("what a run read, in its details", () => {
     );
 
     await shoot(page, "run-left-out");
+
+    // Its View says it again, last, and names the rule it left out.
+    await page.getByTestId("ai-context-activity-view-button").click();
+    const leftOut: Locator = dialog(page).getByTestId(
+      "ai-context-activity-left-out",
+    );
+    await expect(leftOut).toContainText(
+      "Left out the AI context of 1 AI rule: a run reads at most 30,000 characters of AI context",
+    );
+    await expect(leftOut.getByRole("listitem")).toHaveText([
+      "Search incidents",
+    ]);
+    await leftOut.scrollIntoViewIfNeeded();
+    await shoot(page, "run-dialog-left-out");
+  });
+
+  /*
+   * A run still working shows only its latest steps: its AI context line
+   * leaves the feed as steps come in. The notes someone opened from it stay
+   * open over the steps - nothing closes under the reader.
+   */
+  test("a live run: the notes opened from its line stay open while new steps push the line away", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "page=live");
+
+    const line: Locator = page.locator("[data-ai-context='true']");
+    await expect(line).toContainText("Read the project's AI context");
+
+    await line.getByTestId("ai-context-activity-view-button").click();
+    await expect(dialog(page)).toContainText("AI context this run read");
+
+    await page.evaluate(() => {
+      (
+        window as unknown as {
+          __aiContextFixture: { addSteps: (count: number) => void };
+        }
+      ).__aiContextFixture.addSteps(6);
+    });
+
+    // The line has left the feed; the notes are still open, whole.
+    await expect(page.getByTestId("live-steps")).toContainText("earlier step");
+    await expect(line).toHaveCount(0);
+    await expect(dialog(page)).toBeVisible();
+    await expect(
+      dialog(page).getByRole("heading", {
+        name: "How our systems fit together",
+      }),
+    ).toBeVisible();
+
+    await shoot(page, "run-live-dialog-open");
+
+    await dialog(page).getByRole("button", { name: "Close" }).last().click();
+    await expect(dialog(page)).toBeHidden();
   });
 
   for (const width of [1280, 390]) {

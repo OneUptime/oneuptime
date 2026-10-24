@@ -234,12 +234,11 @@ describe("the AI Context page", () => {
     );
   });
 
-  it("warns, as the dialog does, to leave secrets out", () => {
-    expect(AI_CONTEXT_CARD_COPY.editModalDescription).toContain(
-      "Leave secrets out",
-    );
-    expect(ENGLISH).toContain(
-      "> Leave secrets out: anyone who can see what an AI run did can read the notes it was given.",
-    );
+  it("warns, in the dialog's own words, to leave secrets out", () => {
+    const warning: string =
+      "Leave secrets out: anyone who can see what an AI run did can read the notes it was given.";
+
+    expect(AI_CONTEXT_CARD_COPY.editModalDescription).toContain(warning);
+    expect(ENGLISH).toContain(`> ${warning}`);
   });
 });

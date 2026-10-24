@@ -115,9 +115,20 @@ describe("the card and the field say little, and say what they are for", () => {
     }
   });
 
-  test("the dialog says it is read first, and to leave secrets out - and why", () => {
+  /*
+   * The one thing to know while writing: who else reads the notes. What
+   * OneUptime AI reads them in is the card's to say, above the dialog.
+   */
+  test("the dialog says to leave secrets out, and why - naming who reads them", () => {
     expect(AI_CONTEXT_CARD_COPY.editModalDescription).toBe(
-      "OneUptime AI reads this first, before anything else. Leave secrets out: anyone who can see what it did can read it.",
+      "Leave secrets out: anyone who can see what an AI run did can read the notes it was given.",
+    );
+    // No "it" left to guess at: the run, and the notes it was given.
+    expect(AI_CONTEXT_CARD_COPY.editModalDescription).not.toContain(
+      "what it did",
+    );
+    expect(AI_CONTEXT_CARD_COPY.cardDescription).toContain(
+      "It reads this in every investigation",
     );
     expect(AI_RULE_AI_CONTEXT_FIELD_COPY.description).toContain(
       "Leave secrets out.",
@@ -179,7 +190,12 @@ describe("the count under a field: how much of its limit, and about how many tok
     ).toBe("4 of 5,000 characters · about 1 token");
   });
 
-  test("past the limit it says so, and the form refuses it with the count", () => {
+  /*
+   * The count under the field, red by then, says how far past the limit
+   * the text is; the refusal says what to do, in the words the product's
+   * other length limits use - not the count a second time.
+   */
+  test("past the limit it says so, and the form refuses it saying what to do", () => {
     const tooLong: string = "a".repeat(PROJECT_AI_CONTEXT_MAX_CHARACTERS + 1);
 
     expect(
@@ -192,14 +208,18 @@ describe("the count under a field: how much of its limit, and about how many tok
         owner: AiContextOwner.Project,
         translator: ENGLISH,
       }),
-    ).toBe("At most 20,000 characters. This has 20,001.");
+    ).toBe("Use 20,000 characters or fewer.");
     expect(
       getAiContextFieldError({
         value: "a".repeat(AI_RULE_AI_CONTEXT_MAX_CHARACTERS + 1),
         owner: AiContextOwner.AiRule,
         translator: ENGLISH,
       }),
-    ).toBe("At most 5,000 characters. This has 5,001.");
+    ).toBe("Use 5,000 characters or fewer.");
+    // The sentence the product's rule criteria refuse a long value with.
+    expect(AI_CONTEXT_TOO_LONG_TEMPLATE).toBe(
+      "Use {{max}} characters or fewer.",
+    );
   });
 
   test("the form refuses nothing the server would save", () => {
@@ -235,7 +255,7 @@ describe("the count under a field: how much of its limit, and about how many tok
         owner: AiContextOwner.AiRule,
         translator: GERMAN,
       }),
-    ).toBe("Höchstens 5.000 Zeichen. Dieser Text hat 5.001.");
+    ).toBe("Verwenden Sie höchstens 5.000 Zeichen.");
   });
 
   test("the plural sentences are the ones the locale files hold", () => {
