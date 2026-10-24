@@ -371,9 +371,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   onVerdictChangeRef.current = props.onVerdictChange;
   const onCardFoldChangeRef: React.MutableRefObject<
     ((fold: AiCardFold) => void) | undefined
-  > = useRef<((fold: AiCardFold) => void) | undefined>(
-    props.onCardFoldChange,
-  );
+  > = useRef<((fold: AiCardFold) => void) | undefined>(props.onCardFoldChange);
   onCardFoldChangeRef.current = props.onCardFoldChange;
   const isMountedRef: React.MutableRefObject<boolean> = useRef<boolean>(true);
   const focusRequestCounterRef: React.MutableRefObject<number> =
@@ -1936,7 +1934,10 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           take it from there.
         */}
         {props.renderConversation ? (
-          props.renderConversation({ investigationStage, fold: conversationFold })
+          props.renderConversation({
+            investigationStage,
+            fold: conversationFold,
+          })
         ) : (
           <></>
         )}

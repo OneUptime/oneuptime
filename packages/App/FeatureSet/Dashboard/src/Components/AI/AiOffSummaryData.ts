@@ -11,6 +11,7 @@ import {
   AiLaneSwitchColumn,
   EnableAiCopy,
 } from "../AISettings/ProjectAiSettingsCopy";
+import { ENABLE_AI_COLUMN } from "../AISettings/EnableAiColumn";
 import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
 import Project from "Common/Models/DatabaseModels/Project";
 import Route from "Common/Types/API/Route";
@@ -536,11 +537,11 @@ export const AI_OFF_LINK_TEXTS: {
  * edit AI rules.
  */
 export const AI_OFF_WHO_CAN_CHANGE: {
-  enableAi: string;
+  aiSwitch: string;
   settings: Record<AiOffSubjectType, string>;
   rules: Record<AiOffSubjectType, string>;
 } = {
-  enableAi: EnableAiCopy.whoCanTurnOn,
+  aiSwitch: EnableAiCopy.whoCanTurnOn,
   settings: {
     incident: translationKey(
       "A project owner or admin can make these changes in Incidents → AI → Settings.",
@@ -711,8 +712,7 @@ export function getAiOffSummary(input: {
   const settingsPermissions: (column: string) => Array<Permission> =
     getColumnUpdatePermissions;
   const whoCanChangeSettings: string =
-    translator.translateText(AI_OFF_WHO_CAN_CHANGE.settings[subjectType]) ||
-    "";
+    translator.translateText(AI_OFF_WHO_CAN_CHANGE.settings[subjectType]) || "";
   const whoCanChangeRules: string =
     translator.translateText(AI_OFF_WHO_CAN_CHANGE.rules[subjectType]) || "";
 
@@ -791,9 +791,9 @@ export function getAiOffSummary(input: {
             AI_OFF_LINK_TEXTS.aiFeatures,
             routeTo(PageMap.SETTINGS_AI_FEATURES),
           ),
-      permissions: getColumnUpdatePermissions("enableAi"),
+      permissions: getColumnUpdatePermissions(ENABLE_AI_COLUMN),
       whoCanChange:
-        translator.translateText(AI_OFF_WHO_CAN_CHANGE.enableAi) || "",
+        translator.translateText(AI_OFF_WHO_CAN_CHANGE.aiSwitch) || "",
     });
   }
 
@@ -815,8 +815,7 @@ export function getAiOffSummary(input: {
   if (code === "no_investigation_rule_matched") {
     addRulesStep(
       "investigate-rules",
-      translator.translateText(AI_OFF_STEP_TEXTS.rulesMatch[subjectType]) ||
-        "",
+      translator.translateText(AI_OFF_STEP_TEXTS.rulesMatch[subjectType]) || "",
     );
   }
 

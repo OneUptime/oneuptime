@@ -87,7 +87,7 @@ describe("the AI card", () => {
       "props.renderCallSummaries ? props.renderCallSummaries() : <></>",
     );
     const conversation: number = PANEL.indexOf(
-      "props.renderConversation({ investigationStage })",
+      "props.renderConversation({ investigationStage, fold: conversationFold, })",
     );
 
     expect(callSummaries).toBeGreaterThan(-1);
