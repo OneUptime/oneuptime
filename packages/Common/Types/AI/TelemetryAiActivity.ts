@@ -18,6 +18,16 @@ export const TELEMETRY_AI_READINESS_PATH: string = "/telemetry-ai/readiness";
 
 export const TELEMETRY_AI_LOGS_PATH: string = "/telemetry-ai/logs";
 
+/*
+ * "Fix with AI" on a lane's finding (Utils/Suggestions/TelemetryAi
+ * FixSuggestion): what it offers, and the pull request it starts. Traces'
+ * findings first; the Profiler's keep the Profiler's own Fix with AI.
+ */
+export const TELEMETRY_AI_FIX_SUGGESTION_PATH: string =
+  "/telemetry-ai/fix-suggestion";
+
+export const TELEMETRY_AI_FIX_PATH: string = "/telemetry-ai/fix";
+
 // The most entries one page of a lane's logs holds.
 export const TELEMETRY_AI_LOGS_PAGE_SIZE: number = 20;
 

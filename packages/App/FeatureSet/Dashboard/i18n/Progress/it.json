@@ -47,6 +47,7 @@
     "Test",
     "Tunnel",
     "VMware vCenter",
+    "Web",
     "cluster",
     "host",
     "kubectl set image deployment/web * -n web",

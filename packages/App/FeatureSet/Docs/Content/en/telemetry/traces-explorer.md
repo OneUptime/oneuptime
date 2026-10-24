@@ -7,6 +7,7 @@ The Traces explorer finds the requests that ran through your services: the slow 
 - [Read a trace](#read-a-trace): Where the time went, and which step failed.
 - [Chart your spans](#chart-your-spans): Request counts and response times, grouped your way.
 - [Traces Insights](#traces-insights): Error rates, latency and the slowest requests.
+- [Find and fix slow and failing operations with AI](#find-and-fix-slow-and-failing-operations-with-ai): Pull requests that fix them, and add the tracing a trace lacks.
 :::
 
 ## Traces and spans
@@ -23,12 +24,13 @@ flowchart TB
 
 Each row of the explorer is a span, so a busy service fills the list with its database queries and internal calls. To list one row per request, pick **Root spans** under **Span Type** in the sidebar.
 
-The explorer has four tabs:
+The explorer has five tabs:
 
 | Tab | What it is for |
 | --- | --- |
 | **Viewer** | Search and filter spans, and open their traces. It opens on the past hour, newest first, 50 spans per page. |
 | **Insights** | Request rates, error rates and latency per service, and the requests worth a look. |
+| **AI** | The slow and failing operations and the missing tracing OneUptime finds in your traces, and what OneUptime AI did about them. See [Find and fix slow and failing operations with AI](#find-and-fix-slow-and-failing-operations-with-ai). |
 | **Setup Guide** | How to send traces with OpenTelemetry, using one of your [ingestion keys](/docs/telemetry/ingestion-keys). |
 | **Settings** | What happens to spans as they arrive: **Pipelines**, **Drop Filters**, **Scrub Rules** and **Recording Rules**. |
 
@@ -112,6 +114,44 @@ The **Insights** tab sums up the requests in a time range:
 - the most recent failed requests, and the slowest ones.
 
 Scope it to some services with the dropdown beside the time picker.
+
+## Find and fix slow and failing operations with AI
+
+Every hour OneUptime looks through each service's traces from the last hour for operations that are slow, that fail, or whose traces cannot say why, and files what it finds as AI insights, with the evidence. OneUptime AI then looks into each one and opens a pull request to fix it. Nothing is ever merged: your team reviews each pull request.
+
+An operation is a service's spans of one name, such as `GET /orders`. OneUptime reads a service once it sent at least 100 spans in the last hour, and files three kinds of finding:
+
+| Finding | When OneUptime files it | The pull request |
+| --- | --- | --- |
+| **Slow Operation** | The operation's P99 is 1 second or more over at least 20 spans, and its slowest request repeats a pattern that costs real time: the same call made again and again, calls made one after another that could run in parallel, or one call that takes most of the request. | Makes the operation faster. |
+| **Failing Operation** | At least 20 of the operation's spans failed, 5% or more of them, and the most recent failures say why, with an exception or an error message. | Fixes why it fails. |
+| **Missing Tracing** | The traces cannot say why: every one of a service's 500 or more spans was the root of its trace, with no span of the service under it, a slow request spent 60% or more of its time (and 500 ms or more) in one span with nothing traced under it, or an operation's failures recorded no error message and no exception. | Adds the tracing it lacks. |
+
+OneUptime AI opens a failing operation's pull request on its own only once it finds the code at fault. A failure that comes from somewhere else, such as a dependency that is down, gets no pull request unless someone asks for one with **Fix with AI**.
+
+### Turn it on
+
+**Traces → AI → Settings** holds the switch **Find and fix slow and failing operations**, on for new projects. With **Enable AI** off, slow and failing operations are still found, but OneUptime AI does nothing with them. To open pull requests, OneUptime AI needs a repository connected in [Code](/docs/ai/ai-agent): the page says what is missing first. Each repository's code is changed on the Runner the repository picks in Code.
+
+OneUptime AI opens at most 5 pull requests on its own each day (UTC), one for each finding, and never more than a repository's limit on open AI pull requests.
+
+### AI rules
+
+With no rule, OneUptime AI looks into every problem it finds in your traces right away, and opens a pull request for each one it can fix. The **AI rules** under **More settings** narrow that, in three steps:
+
+| Step | What it decides |
+| --- | --- |
+| **Match** | Which services: the ones picked, the ones with certain labels, or the ones whose names match a pattern. |
+| **Investigate** | **Right away**, or **Only if still found after a wait**: a problem that goes away during the wait is not looked into. |
+| **Fix** | **Don't fix**, **Ask before fixing** or **Fix without asking**. Asking first leaves the pull request to a person: the finding offers **Fix with AI**. |
+
+Under **More fields** a rule picks the code repositories, the MCP servers and the LLM provider OneUptime AI may use for it. With none picked, it may use any of them, and the project's default LLM provider.
+
+### See what it did
+
+- **Traces → AI → Insights** lists what OneUptime found, each finding with its evidence and **Open in Traces**, which opens the spans it is about, from the hour it was found in, in the **Viewer**. On a failing operation, **Create Monitor** sets up a Traces monitor on its failed spans.
+- **Traces → AI → Logs** lists every investigation and pull request, newest first, with how each one stands.
+- In Code, the task says OneUptime started it, with a link to its finding, and the pull request says why it was opened.
 
 ## What happens to spans as they arrive
 

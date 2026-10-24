@@ -345,11 +345,32 @@ describe("the lane's switch", () => {
     expect(TelemetryAiRules.getLanesOn(off)).toEqual([]);
   });
 
+  test("each lane has its own: Traces' switch is not the Profiler's", () => {
+    const traces: Project = new Project();
+    traces.enableAutomaticTraceRemediation = true;
+    const both: Project = new Project();
+    both.enableAutomaticTraceRemediation = true;
+    both.enableAutomaticProfileRemediation = true;
+
+    expect(TelemetryAiRules.isLaneOn(traces, TelemetryAiLane.Trace)).toBe(true);
+    expect(TelemetryAiRules.isLaneOn(traces, TelemetryAiLane.Profile)).toBe(
+      false,
+    );
+    expect(TelemetryAiRules.getLanesOn(traces)).toEqual([
+      TelemetryAiLane.Trace,
+    ]);
+    expect(TelemetryAiRules.getLanesOn(both)).toEqual([
+      TelemetryAiLane.Profile,
+      TelemetryAiLane.Trace,
+    ]);
+  });
+
   test("the project select reads Enable AI and every lane's switch", () => {
     expect(TELEMETRY_AI_PROJECT_SELECT).toEqual({
       _id: true,
       enableAi: true,
       enableAutomaticProfileRemediation: true,
+      enableAutomaticTraceRemediation: true,
     });
   });
 });
@@ -369,6 +390,17 @@ describe("getServiceId", () => {
     expect(TelemetryAiRules.getServiceId(withColumn)).toBe(CHECKOUT);
     expect(TelemetryAiRules.getServiceId(withEvidence)).toBe(BILLING);
     expect(TelemetryAiRules.getServiceId(new AIInsight())).toBe("");
+  });
+
+  test("a trace finding's service, from its evidence when the column is unset", () => {
+    const traceFinding: AIInsight = new AIInsight();
+    traceFinding.evidence = {
+      trace: {
+        serviceId: BILLING.toUpperCase(),
+      } as unknown as NonNullable<AIInsight["evidence"]>["trace"],
+    };
+
+    expect(TelemetryAiRules.getServiceId(traceFinding)).toBe(BILLING);
   });
 });
 

@@ -21,6 +21,8 @@ import {
   getProfileInsightFixRequest,
   getProfileInsightMonitorRoute,
 } from "../../../Components/TelemetryAi/ProfileInsightFixRequest";
+import TelemetryAiFixStrip from "../../../Components/TelemetryAi/TelemetryAiFixStrip";
+import { doesInsightOfferTelemetryAiFix } from "../../../Components/TelemetryAi/TelemetryAiFixCopy";
 import ChatActivityFeed from "../../../Components/AIChat/ChatActivityFeed";
 import ServiceElement from "../../../Components/Service/ServiceElement";
 import {
@@ -37,6 +39,7 @@ import {
   AIInsightMetricShape,
   buildAIInsightMonitorRoute,
   getAIInsightMonitorBlocker,
+  isAIInsightMonitorOffered,
 } from "../../../Utils/AIInsightMonitorPrefill";
 import {
   fetchAIInsightMetricShape,
@@ -542,6 +545,7 @@ const AIInsightViewPage: FunctionComponent<
       lastSeenAt: insight.lastSeenAt,
       spikeWindowMinutes: insight.evidence?.logSpike?.windowMinutes,
       profile: insight.evidence?.profile,
+      trace: insight.evidence?.trace,
     });
   }, [insight, serviceIdString, telemetryExceptionId]);
 
@@ -626,7 +630,8 @@ const AIInsightViewPage: FunctionComponent<
    * it happens. Gated on creating monitors like every other way into Monitor
    * Create — hidden while the permission snapshot cannot say, disabled with
    * the reason when it says no — and disabled with the reason when this
-   * insight cannot become a monitor at all.
+   * insight cannot become a monitor yet. A kind no monitor could ever watch
+   * (missing tracing) draws no button at all.
    */
   const createMonitorGate: PermissionGateResult = PermissionGate.check(
     new Monitor(),
@@ -647,7 +652,8 @@ const AIInsightViewPage: FunctionComponent<
         metricShape: metricShape,
       });
   const isCreateMonitorShown: boolean =
-    createMonitorGate.isAllowed || Boolean(createMonitorGate.disabledReason);
+    isAIInsightMonitorOffered(insightType) &&
+    (createMonitorGate.isAllowed || Boolean(createMonitorGate.disabledReason));
   const createMonitorDisabledReason: string | null = createMonitorGate.isAllowed
     ? createMonitorBlocker
     : createMonitorGate.disabledReason || null;
@@ -1107,6 +1113,30 @@ const AIInsightViewPage: FunctionComponent<
               insightId={modelId.toString()}
               // The page already says what was found, twice.
               isFindingShown={false}
+              onTaskStarted={() => {
+                fetchInsight().catch(() => {
+                  // handled inside fetchInsight
+                });
+              }}
+            />
+          ) : (
+            <></>
+          )}
+
+          {/*
+           * A slow, failing or under-traced operation with no fix yet:
+           * "Fix with AI" - the pull request OneUptime AI would open on its
+           * own, what an AI rule that asks before fixing leaves to a person.
+           * The task names this finding, and the finding links the task.
+           */}
+          {doesInsightOfferTelemetryAiFix({
+            insightType: insight.insightType,
+            status: status,
+            fixAiRunId: insight.fixAiRunId,
+          }) ? (
+            <TelemetryAiFixStrip
+              insightId={modelId.toString()}
+              insightType={insight.insightType}
               onTaskStarted={() => {
                 fetchInsight().catch(() => {
                   // handled inside fetchInsight

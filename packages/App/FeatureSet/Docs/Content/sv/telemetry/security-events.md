@@ -39,7 +39,7 @@ flowchart TB
 | **Entiteter** | Händelser | Användarna, värdarna och adresserna som dina fynd nämner oftast |
 | **Korrelera** | Händelser | En graf över händelserna som delar en värd, en användare eller en IP-adress |
 | **Detection Rules** | Detections | Sigma-regler som körs enligt ett schema och öppnar ärenden |
-| **Rule Library** | Detections | Färdiga detektionsregler att lägga till, med de rekommenderade markerade |
+| **Rule Library** | Detections | Färdiga detektionsregler att lägga till, var och en med händelserna den läser och om de kommer in, med de rekommenderade markerade |
 | **Threat Intel** | Detections | STIX/TAXII-flöden med kända skadliga indikatorer |
 | **ATT&CK Coverage** | Detections | MITRE ATT&CK-teknikerna som dina regler täcker |
 | **Playbooks** | Playbooks | Steg som körs på ärenden, av sig själva eller manuellt |

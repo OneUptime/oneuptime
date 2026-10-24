@@ -810,6 +810,61 @@ describe("Modal initial focus", () => {
     expect(getByTestId("modal-footer-close-button")).not.toHaveFocus();
   });
 
+  /*
+   * The Dashboard draws its Tailwind as classes first appear, so the first
+   * dialog a page opens can take its focus before its overlay is styled as
+   * fixed - for that moment the panel sits at the foot of the page, and a
+   * plain focus() scrolled the page down to it (the Rule Library's Add 17
+   * Recommended Rules left the reader 4,500px down the list). The first
+   * focus never scrolls the page.
+   */
+  it("takes its first focus without scrolling the page behind it", () => {
+    interface FocusCall {
+      element: HTMLElement;
+      options: FocusOptions | undefined;
+    }
+
+    const calls: Array<FocusCall> = [];
+    const originalFocus: (options?: FocusOptions) => void =
+      HTMLElement.prototype.focus;
+
+    HTMLElement.prototype.focus = function (
+      this: HTMLElement,
+      options?: FocusOptions,
+    ): void {
+      calls.push({ element: this, options });
+      originalFocus.call(this, options);
+    };
+
+    try {
+      const { getByTestId } = render(
+        <Modal
+          title="Add 17 recommended rules?"
+          onClose={getJestMockFunction()}
+          onSubmit={getJestMockFunction()}
+          submitButtonText="Add Rules"
+        >
+          <p>They start on and open a security case when they match.</p>
+        </Modal>,
+      );
+
+      const submit: HTMLElement = getByTestId("modal-footer-submit-button");
+
+      expect(submit).toHaveFocus();
+      expect(
+        calls
+          .filter((call: FocusCall): boolean => {
+            return call.element === submit;
+          })
+          .map((call: FocusCall): FocusOptions | undefined => {
+            return call.options;
+          }),
+      ).toEqual([{ preventScroll: true }]);
+    } finally {
+      HTMLElement.prototype.focus = originalFocus;
+    }
+  });
+
   it("starts a destructive confirmation on Cancel", () => {
     const { getByTestId } = render(
       <Modal

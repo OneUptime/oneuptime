@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import {
   DETECTION_RULE_LIBRARY,
+  DetectionRuleLibraryEntry,
   getRecommendedDetectionRules,
 } from "Common/Types/SecurityEvent/DetectionRuleLibrary";
 import { RECOMMENDED_THREAT_INTEL_LISTS } from "Common/Types/SecurityEvent/ThreatIntelFeedType";
@@ -183,6 +184,10 @@ interface OpenOptions {
   sources?: "silent";
   // One of the Overview's two reads fails the first time.
   fail?: "status" | "overview";
+  // What the project's events say it sends: nothing this week, or a read that fails.
+  data?: "none" | "fail";
+  // The Dashboard's German or Japanese locale.
+  lang?: "de" | "ja";
   // "custom": the project's own case statuses and priorities.
   values?: "custom";
 }
@@ -285,6 +290,12 @@ async function open(
   }
   if (options.fail) {
     params.set("fail", options.fail);
+  }
+  if (options.data) {
+    params.set("data", options.data);
+  }
+  if (options.lang) {
+    params.set("lang", options.lang);
   }
   if (options.values) {
     params.set("values", options.values);
@@ -489,6 +500,95 @@ function problemRows(scope: Locator): Locator {
 
 // The recommended rule the fixture's partly scenario leaves undone the first time.
 const PARTLY_UNDONE_RULE: string = "Password spraying";
+
+// A rule of the library, by its title.
+function libraryRule(title: string): DetectionRuleLibraryEntry {
+  const entry: DetectionRuleLibraryEntry | undefined =
+    DETECTION_RULE_LIBRARY.find((candidate: DetectionRuleLibraryEntry) => {
+      return candidate.title === title;
+    });
+
+  if (!entry) {
+    throw new Error(`No library rule titled ${title}`);
+  }
+
+  return entry;
+}
+
+const BRUTE_FORCE_RULE: DetectionRuleLibraryEntry = libraryRule(
+  "Brute force from one IP address",
+);
+const PASSWORD_SPRAYING_RULE: DetectionRuleLibraryEntry =
+  libraryRule(PARTLY_UNDONE_RULE);
+const CLOUDTRAIL_RULE: DetectionRuleLibraryEntry = libraryRule(
+  "CloudTrail logging stopped",
+);
+const SHADOW_COPIES_RULE: DetectionRuleLibraryEntry = libraryRule(
+  "Shadow copies deleted",
+);
+const PORT_SCAN_RULE: DetectionRuleLibraryEntry = libraryRule("Port scan");
+const NETWORK_SWEEP_RULE: DetectionRuleLibraryEntry =
+  libraryRule("Network sweep");
+const SEQUENCE_LIBRARY_RULE: DetectionRuleLibraryEntry = libraryRule(
+  "Failed sign-ins, then a success from the same address",
+);
+
+// The Rule Library's search box (in its header, folded until used).
+const RULE_LIBRARY_SEARCH: string = "rule-library-search";
+
+// The Rule Library's row of a rule, and all of its rows.
+function libraryRow(page: Page, entry: { id: string }): Locator {
+  return page.getByTestId(`rule-library-entry-${entry.id}`);
+}
+
+function libraryRows(page: Page): Locator {
+  return page.locator('[data-testid^="rule-library-entry-"]');
+}
+
+/*
+ * The Rule Library's filter chips - the ones every list's filter row has
+ * (FacetFilterBar, FilterChipDropdown) - by their place in the row.
+ */
+const CATEGORY_CHIP: string = "rule-library-category";
+const DATA_CHIP: string = "rule-library-data";
+const STATUS_CHIP: string = "rule-library-status";
+
+// A chip's own button - not its clear x - which opens its list.
+function chipButton(page: Page, chip: string): Locator {
+  return page.getByTestId(chip).getByRole("button").first();
+}
+
+// Picks a value from a chip's list, as a reader does: open it, click the value.
+async function pickChip(
+  page: Page,
+  chip: string,
+  option: string,
+): Promise<void> {
+  await chipButton(page, chip).click();
+  await page.getByRole("option", { name: option, exact: true }).click();
+}
+
+// How far the page is scrolled.
+async function scrollTopOf(page: Page): Promise<number> {
+  return page.evaluate((): number => {
+    return window.scrollY;
+  });
+}
+
+// What the Rule Library asked the events for: one grouped count a read.
+async function aggregateRequestsOf(page: Page): Promise<Array<unknown>> {
+  return page.evaluate((): Array<unknown> => {
+    return JSON.parse(
+      JSON.stringify(
+        (
+          window as unknown as {
+            __securityOperationsFixture: { aggregateRequests: Array<unknown> };
+          }
+        ).__securityOperationsFixture.aggregateRequests,
+      ),
+    ) as Array<unknown>;
+  });
+}
 
 // The card of a page, by its title.
 function cardTitled(page: Page, title: string): Locator {
@@ -2136,121 +2236,581 @@ test.describe("detections", () => {
     await screenshot(page, "attack-coverage-desktop");
   });
 
-  test("the rule library marks the rules the project already has", async ({
+  test("the rule library is a list to scan: what each rule finds, its ATT&CK tags, the events it reads and whether they arrive, its severity, and Add or Added", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await open(page, RULE_LIBRARY_PATH);
-    await expect(page.getByText("Added").first()).toBeVisible({
+    await open(page, RULE_LIBRARY_PATH, { width: 1280 });
+    await expect(libraryRow(page, BRUTE_FORCE_RULE)).toBeVisible({
       timeout: 30000,
     });
-    /*
-     * The six library rules, and the one the team renamed "Legacy VPN brute
-     * force": its YAML carries the library rule's id, so it is that rule,
-     * added - the library never offers to add it a second time.
-     */
-    await expect(page.getByText("Added", { exact: true })).toHaveCount(7);
+
+    // One row a rule, every rule in sight at once.
+    await expect(libraryRows(page)).toHaveCount(DETECTION_RULE_LIBRARY.length);
+    await expect(page.getByTestId("rule-library-count")).toHaveText(
+      `${DETECTION_RULE_LIBRARY.length} rules`,
+    );
 
     /*
-     * The two buttons share the title's line and the description runs under
-     * them, the card's whole width: beside them it stood four lines tall in
-     * English, five in German.
+     * The six library rules, and the one the team renamed "Legacy VPN brute
+     * force" and turned off: its YAML carries the library rule's id, so it
+     * is that rule, added, and Off - the library never offers to add it a
+     * second time.
      */
-    const header: Locator = page
-      .getByTestId("card")
-      .filter({
-        has: page.getByRole("heading", { name: "Rule Library", exact: true }),
-      })
-      .getByTestId("card-header");
+    await expect(
+      page.locator('[data-testid^="rule-library-added-"]'),
+    ).toHaveCount(7);
+    await expect(
+      page.getByTestId(`rule-library-off-${DETECTION_RULE_LIBRARY[6]!.id}`),
+    ).toHaveText("Off");
+    await expect(
+      page.locator('[data-testid^="rule-library-off-"]'),
+    ).toHaveCount(1);
+
+    const brute: Locator = libraryRow(page, BRUTE_FORCE_RULE);
+    await expect(
+      brute.getByTestId(`rule-library-attack-${BRUTE_FORCE_RULE.id}`),
+    ).toHaveText("Credential Access · T1110.001");
+    await expect(
+      brute.getByTestId(`rule-library-data-${BRUTE_FORCE_RULE.id}`),
+    ).toContainText("Sign-in events");
+    await expect(
+      brute.getByTestId(`rule-library-data-status-${BRUTE_FORCE_RULE.id}`),
+    ).toHaveText("Receiving");
+    await expect(
+      brute.getByTestId(`rule-library-severity-${BRUTE_FORCE_RULE.id}`),
+    ).toHaveText("High");
+    // The fixture's project sends no CloudTrail: that rule would find nothing.
+    await expect(
+      libraryRow(page, CLOUDTRAIL_RULE).getByTestId(
+        `rule-library-data-status-${CLOUDTRAIL_RULE.id}`,
+      ),
+    ).toHaveText("Not receiving");
+    await expect(
+      libraryRow(page, CLOUDTRAIL_RULE).getByTestId(
+        `rule-library-add-${CLOUDTRAIL_RULE.id}`,
+      ),
+    ).toBeVisible();
+
+    // The ATT&CK tags are a row's quiet facts, not red chips that read as errors.
+    const attackColor: string = await brute
+      .getByTestId(`rule-library-attack-${BRUTE_FORCE_RULE.id}`)
+      .evaluate((element: Element): string => {
+        return getComputedStyle(element).color;
+      });
+    expect(attackColor).toBe("rgb(107, 114, 128)");
+
+    // Add and Added sit on the name's line, the same height on every row.
+    for (const [rule, end] of [
+      [BRUTE_FORCE_RULE, `rule-library-added-${BRUTE_FORCE_RULE.id}`],
+      [CLOUDTRAIL_RULE, `rule-library-add-${CLOUDTRAIL_RULE.id}`],
+    ] as Array<[{ id: string }, string]>) {
+      const name: Box = await boxOf(
+        page.getByTestId(`rule-library-name-${rule.id}`),
+      );
+      const endBox: Box = await boxOf(page.getByTestId(end));
+      expect(
+        Math.abs(endBox.y + endBox.height / 2 - (name.y + 12)),
+      ).toBeLessThanOrEqual(4);
+    }
+
+    // The header as every table's: the title, then the search, the main add and the ⋯.
+    const header: Locator = cardTitled(page, "Rule Library").getByTestId(
+      "card-header",
+    );
     await expect(header).toHaveAttribute("data-header-layout", "toolbar");
-    const headerBox: Box = await boxOf(header);
-    const actionsBox: Box = await boxOf(
-      header.getByTestId("card-header-actions"),
+    await expect(
+      page.getByTestId("rule-library-toolbar").getByRole("button", {
+        name: `Add ${RECOMMENDED_RULES - RECOMMENDED_RULES_ON} Recommended Rules`,
+      }),
+    ).toBeVisible();
+    await expect(page.getByTestId("rule-library-more")).toBeVisible();
+
+    // The rows fit the card beside the side menu: nothing scrolls sideways.
+    await expect(page.getByTestId("table-scroll").first()).toHaveAttribute(
+      "data-overflowing",
+      "false",
     );
-    const descriptionBox: Box = await boxOf(
-      header.getByTestId("card-description"),
-    );
-    expect(descriptionBox.y).toBeGreaterThanOrEqual(
-      actionsBox.y + actionsBox.height,
-    );
-    expect(descriptionBox.width).toBeGreaterThan(headerBox.width * 0.9);
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
     await screenshot(page, "rule-library-desktop", { fullPage: false });
   });
 
-  test("the rule library marks the recommended rules and adds the missing ones in one click", async ({
+  test("the rule library narrows in the row of chips every list has - Rule category, Data and Status - with how many rules are in sight", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await open(page, RULE_LIBRARY_PATH);
-    await expect(page.getByText("Added").first()).toBeVisible({
+    for (const [width, theme] of [
+      [1280, undefined],
+      [1280, "dark"],
+      [1024, undefined],
+      [390, undefined],
+      [390, "dark"],
+    ] as Array<[number, "dark" | undefined]>) {
+      await open(page, RULE_LIBRARY_PATH, { width, height: 900, theme });
+      await expect(libraryRow(page, BRUTE_FORCE_RULE)).toBeVisible({
+        timeout: 30000,
+      });
+
+      const filters: Locator = page.getByTestId("rule-library-filters");
+      await expect(filters).toHaveAttribute("role", "group");
+      await expect(chipButton(page, CATEGORY_CHIP)).toHaveText("Rule category");
+      await expect(chipButton(page, DATA_CHIP)).toHaveText("Data");
+      await expect(chipButton(page, STATUS_CHIP)).toHaveText("Status");
+
+      // The chips: one height, each whole inside the card.
+      const card: Box = await boxOf(cardTitled(page, "Rule Library"));
+      const chips: Array<Box> = [];
+      for (const chip of [CATEGORY_CHIP, DATA_CHIP, STATUS_CHIP]) {
+        chips.push(
+          await boxOf(page.getByTestId(chip).getByTestId("filter-chip")),
+        );
+      }
+      for (const box of chips) {
+        expect(Math.abs(box.height - chips[0]!.height)).toBeLessThanOrEqual(1);
+        expect(box.x).toBeGreaterThanOrEqual(card.x);
+        expect(box.x + box.width).toBeLessThanOrEqual(card.x + card.width);
+      }
+
+      if (width >= 1024) {
+        // One line, in order, and how many rules after them.
+        for (const box of chips) {
+          expect(Math.abs(box.y - chips[0]!.y)).toBeLessThanOrEqual(1);
+        }
+        expect(chips[1]!.x).toBeGreaterThan(chips[0]!.x + chips[0]!.width);
+        expect(chips[2]!.x).toBeGreaterThan(chips[1]!.x + chips[1]!.width);
+        const count: Box = await boxOf(page.getByTestId("rule-library-count"));
+        expect(count.x).toBeGreaterThan(chips[2]!.x + chips[2]!.width);
+      }
+
+      if (width >= 1024) {
+        /*
+         * Every column fits the card beside the side menu, the longest rule
+         * names and data kinds wrapping: nothing scrolls sideways, so the
+         * Add column never sits over the severity.
+         */
+        await expect(page.getByTestId("table-scroll").first()).toHaveAttribute(
+          "data-overflowing",
+          "false",
+        );
+      }
+
+      // A category narrows the rows to its own, says so on its chip, and how many.
+      await pickChip(page, CATEGORY_CHIP, "Kubernetes");
+      await expect(libraryRows(page)).toHaveCount(4);
+      await expect(page.getByTestId("rule-library-count")).toHaveText(
+        "4 rules",
+      );
+      await expect(chipButton(page, CATEGORY_CHIP)).toHaveText(
+        "Rule category · Kubernetes",
+      );
+      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await screenshot(
+        page,
+        `rule-library-filtered-${width}-${theme || "light"}`,
+        { fullPage: false },
+      );
+
+      // And the way back.
+      await page.getByTestId("facet-filter-bar-clear-all").click();
+      await expect(libraryRows(page)).toHaveCount(
+        DETECTION_RULE_LIBRARY.length,
+      );
+    }
+  });
+
+  test("the rule library's data and status filters, and a search over ATT&CK and severity", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, RULE_LIBRARY_PATH, { width: 1280 });
+    await expect(libraryRow(page, BRUTE_FORCE_RULE)).toBeVisible({
+      timeout: 30000,
+    });
+    // The data the project sends: Okta, Defender XDR's processes, Kubernetes audit logs.
+    await pickChip(page, DATA_CHIP, "Receiving");
+    await expect(libraryRow(page, BRUTE_FORCE_RULE)).toBeVisible();
+    await expect(libraryRow(page, CLOUDTRAIL_RULE)).toHaveCount(0);
+    for (const status of await page
+      .locator('[data-testid^="rule-library-data-status-"]')
+      .all()) {
+      await expect(status).toHaveText("Receiving");
+    }
+
+    // ... that it lacks: the rules it has not added yet.
+    await pickChip(page, STATUS_CHIP, "Not added");
+    await expect(
+      page.locator('[data-testid^="rule-library-added-"]'),
+    ).toHaveCount(0);
+    await expect(libraryRows(page).first()).toBeVisible();
+
+    await page.getByTestId("facet-filter-bar-clear-all").click();
+
+    /*
+     * The search finds a technique by its id, and the rules of its
+     * sub-techniques. "/" opens the search, as every table's does.
+     */
+    await page.keyboard.press("/");
+    await expect(page.getByTestId(RULE_LIBRARY_SEARCH)).toBeFocused();
+    await page.keyboard.type("T1110");
+    await expect(libraryRow(page, BRUTE_FORCE_RULE)).toBeVisible();
+    await expect(libraryRow(page, CLOUDTRAIL_RULE)).toHaveCount(0);
+    await page.getByTestId(RULE_LIBRARY_SEARCH).fill("critical");
+    await expect(libraryRow(page, SHADOW_COPIES_RULE)).toBeVisible();
+    await expect(libraryRow(page, BRUTE_FORCE_RULE)).toHaveCount(0);
+
+    // A search that finds nothing says so, with the way back.
+    await page.getByTestId(RULE_LIBRARY_SEARCH).fill("mainframe");
+    await expect(page.getByTestId("rule-library-no-match")).toContainText(
+      "No rule matches your search or filters",
+    );
+    await page
+      .getByTestId("rule-library-no-match")
+      .getByRole("button", { name: "Clear Search" })
+      .click();
+    await expect(libraryRows(page)).toHaveCount(DETECTION_RULE_LIBRARY.length);
+  });
+
+  test("a filtered library lives in the page's address: a reload keeps it, and ATT&CK Coverage opens it on a technique", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, RULE_LIBRARY_PATH, { width: 1280 });
+    await expect(libraryRow(page, BRUTE_FORCE_RULE)).toBeVisible({
+      timeout: 30000,
+    });
+    await pickChip(page, CATEGORY_CHIP, "Cloud");
+    await pickChip(page, STATUS_CHIP, "Not added");
+
+    await expect
+      .poll(() => {
+        return new URL(page.url()).searchParams.get("category");
+      })
+      .toBe("Cloud");
+    expect(new URL(page.url()).searchParams.get("status")).toBe("not-added");
+
+    await page.reload();
+    await expect(page.getByTestId("synthetic-banner")).toBeVisible({
+      timeout: 60000,
+    });
+    await expect(chipButton(page, CATEGORY_CHIP)).toHaveText(
+      "Rule category · Cloud",
+    );
+    await expect(libraryRow(page, CLOUDTRAIL_RULE)).toBeVisible();
+    await expect(libraryRow(page, BRUTE_FORCE_RULE)).toHaveCount(0);
+
+    // ATT&CK Coverage: a technique's rules in the library, one click away.
+    await open(page, ATTACK_COVERAGE_PATH, { width: 1280 });
+    await expect(page.getByText("2 / 227")).toBeVisible({ timeout: 30000 });
+    await page.getByTestId("attack-technique-T1110").first().click();
+    await page.getByRole("link", { name: "Open the rule library" }).click();
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(RULE_LIBRARY_PATH);
+    await expect(page.getByTestId(RULE_LIBRARY_SEARCH)).toHaveValue("T1110");
+    await expect(libraryRow(page, SEQUENCE_LIBRARY_RULE)).toBeVisible();
+    await expect(libraryRow(page, CLOUDTRAIL_RULE)).toHaveCount(0);
+  });
+
+  test("a rule's details open beside the list: the events it reads and how to send them, how it runs, its ATT&CK tags and its Sigma rule", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [width, theme] of [
+      [1280, undefined],
+      [1280, "dark"],
+      [390, undefined],
+    ] as Array<[number, "dark" | undefined]>) {
+      await open(page, RULE_LIBRARY_PATH, { width, height: 900, theme });
+      await expect(libraryRow(page, CLOUDTRAIL_RULE)).toBeVisible({
+        timeout: 30000,
+      });
+      await page.getByTestId(`rule-library-name-${CLOUDTRAIL_RULE.id}`).click();
+
+      const panel: Locator = page.getByTestId("rule-library-details");
+      await expect(page.getByTestId("side-over-title")).toHaveText(
+        CLOUDTRAIL_RULE.title,
+      );
+      await expect(
+        panel.getByTestId("rule-library-details-data-status"),
+      ).toHaveText("Not receiving");
+      await expect(
+        panel.getByTestId("rule-library-details-how-to-send"),
+      ).toContainText(
+        "Send CloudTrail to OneUptime as logs and find security events in your logs.",
+      );
+      await expect(
+        panel.getByTestId("rule-library-details-runs"),
+      ).toContainText("Runs every");
+      await expect(
+        panel.getByTestId("rule-library-details-attack"),
+      ).toContainText("Defense Impairment");
+      await expect(
+        panel.getByTestId("rule-library-details-sigma").locator("code"),
+      ).toContainText(`id: ${CLOUDTRAIL_RULE.id}`);
+      await expect(
+        page.getByTestId("side-over-footer").getByRole("button", {
+          name: "Add Rule",
+        }),
+      ).toBeVisible();
+      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await screenshot(
+        page,
+        `rule-library-details-${width}-${theme || "light"}`,
+        {
+          fullPage: false,
+        },
+      );
+    }
+
+    // How to send them leads to Connections.
+    await page.getByTestId("rule-library-details-send-link").click();
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(`${PRODUCT}/connections`);
+  });
+
+  test("adding: a row's Add, the recommended rules after a dialog that names them, and the matching rules from the header", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, RULE_LIBRARY_PATH, { width: 1280, empty: true });
+    await expect(libraryRow(page, BRUTE_FORCE_RULE)).toBeVisible({
       timeout: 30000,
     });
     await expect(
-      page.locator('[data-testid^="rule-library-recommended-"]'),
-    ).toHaveCount(RECOMMENDED_RULES);
+      page.locator('[data-testid^="rule-library-added-"]'),
+    ).toHaveCount(0);
 
-    await page.getByTestId("rule-library-category").selectOption("recommended");
+    // One row's Add: the row says Added at once.
+    await page.getByTestId(`rule-library-add-${PORT_SCAN_RULE.id}`).click();
     await expect(
-      page.locator('[data-testid^="rule-library-entry-"]'),
-    ).toHaveCount(RECOMMENDED_RULES);
+      page.getByTestId(`rule-library-added-${PORT_SCAN_RULE.id}`),
+    ).toBeVisible();
 
+    // The recommended rules: a dialog names every one before anything is added.
     await page
+      .getByTestId("rule-library-toolbar")
       .getByRole("button", {
-        name: `Add ${RECOMMENDED_RULES - RECOMMENDED_RULES_ON} Recommended Rules`,
+        name: `Add ${RECOMMENDED_RULES} Recommended Rules`,
       })
       .click();
-    // Every recommended rule is the project's now: the three it had and the rest.
-    await expect(page.getByText("Added", { exact: true })).toHaveCount(
-      RECOMMENDED_RULES,
+    const dialog: Locator = page.getByTestId("modal");
+    await expect(dialog.getByTestId("modal-title")).toHaveText(
+      `Add ${RECOMMENDED_RULES} recommended rules?`,
     );
     await expect(
-      page.getByRole("button", { name: /Recommended Rules?$/ }),
+      dialog.locator('[data-testid^="rule-library-add-item-"]'),
+    ).toHaveCount(RECOMMENDED_RULES);
+    await expect(
+      page.locator('[data-testid^="rule-library-added-"]'),
+    ).toHaveCount(1);
+    await screenshot(page, "rule-library-add-recommended-dialog", {
+      fullPage: false,
+    });
+    await dialog.getByRole("button", { name: "Add Rules" }).click();
+    await expect(
+      page.locator('[data-testid^="rule-library-added-"]'),
+    ).toHaveCount(RECOMMENDED_RULES + 1);
+    await expect(
+      page
+        .getByTestId("rule-library-toolbar")
+        .getByRole("button", { name: /Recommended Rules?$/ }),
     ).toHaveCount(0);
+
+    // A narrowed list: the main add says it adds the matching rules, just those.
+    await pickChip(page, CATEGORY_CHIP, "Network");
+    await page
+      .getByTestId("rule-library-toolbar")
+      .getByRole("button", { name: "Add 1 Matching Rule" })
+      .click();
+    await expect(
+      page.getByTestId("modal").getByTestId("modal-title"),
+    ).toHaveText("Add 1 rule?");
+    await page
+      .getByTestId("modal")
+      .getByRole("button", { name: "Add Rule" })
+      .click();
+    await expect(
+      page.getByTestId(`rule-library-added-${NETWORK_SWEEP_RULE.id}`),
+    ).toBeVisible();
+    // Every rule the library added is the record Turn on recommended adds: on, opening cases.
+    const created: Array<{ modelName: string; data: Record<string, unknown> }> =
+      (await fixture(page)).creates.filter(
+        (item: { modelName: string }): boolean => {
+          return item.modelName === "DetectionRule";
+        },
+      );
+    expect(created).toHaveLength(RECOMMENDED_RULES + 2);
+    for (const item of created) {
+      expect(item.data["isEnabled"]).toBe(true);
+      expect(item.data["shouldCreateCase"]).toBe(true);
+    }
   });
 
-  test("an Add Rule that cannot add its rule says why on that card, and adding again adds it", async ({
+  test("asking before it adds several rules leaves the page where it was, behind the dialog and after it", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await open(page, RULE_LIBRARY_PATH, { empty: true, setup: "partly" });
-    await page.getByTestId("rule-library-category").selectOption("recommended");
+    for (const width of [1280, 390]) {
+      await open(page, RULE_LIBRARY_PATH, { width, height: 900, empty: true });
+      await expect(libraryRow(page, BRUTE_FORCE_RULE)).toBeVisible({
+        timeout: 30000,
+      });
+      expect(await scrollTopOf(page)).toBe(0);
 
-    const spraying: Locator = page
-      .locator('[data-testid^="rule-library-entry-"]')
-      .filter({ hasText: PARTLY_UNDONE_RULE });
-    await spraying.getByRole("button", { name: "Add Rule" }).click();
+      /*
+       * The first dialog a page opens took its focus before its overlay
+       * was styled, and that focus scrolled the page down to where the
+       * panel was drawn for that moment: 4,500px down the list.
+       */
+      await page
+        .getByTestId("rule-library-toolbar")
+        .getByRole("button", {
+          name: `Add ${RECOMMENDED_RULES} Recommended Rules`,
+        })
+        .click();
+      await expect(page.getByTestId("modal")).toBeVisible();
+      await expect(
+        page.getByTestId("modal").getByRole("button", { name: "Add Rules" }),
+      ).toBeFocused();
+      expect(await scrollTopOf(page), `at ${width}`).toBe(0);
 
-    // Said where the reader clicked - the one alert - and not again above the rules.
-    const why: Locator = spraying.locator(
-      '[data-testid^="rule-library-problem-"]',
+      // Each rule it lists has the events it reads under its name.
+      const name: Box = await boxOf(
+        page.getByTestId(`rule-library-add-name-${BRUTE_FORCE_RULE.id}`),
+      );
+      const reads: Box = await boxOf(
+        page.getByTestId(`rule-library-add-data-${BRUTE_FORCE_RULE.id}`),
+      );
+      expect(reads.y).toBeGreaterThanOrEqual(name.y + name.height - 1);
+      expect(Math.abs(reads.x - name.x)).toBeLessThanOrEqual(1);
+
+      await page
+        .getByTestId("modal")
+        .getByRole("button", { name: "Cancel" })
+        .click();
+      await expect(page.getByTestId("modal")).toHaveCount(0);
+      expect(await scrollTopOf(page), `at ${width}`).toBe(0);
+    }
+  });
+
+  test("a search keeps the header's adds beside it, on the title's line: the ⋯ adds the rules it finds", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // The fixture's frame is 64px narrower than production's: 1344 here is production's 1280.
+    await open(page, RULE_LIBRARY_PATH, { width: 1344 });
+    await expect(libraryRow(page, BRUTE_FORCE_RULE)).toBeVisible({
+      timeout: 30000,
+    });
+    const title: Box = await boxOf(
+      cardTitled(page, "Rule Library").getByRole("heading", {
+        name: "Rule Library",
+        exact: true,
+      }),
+    );
+
+    await page.keyboard.press("/");
+    await page.keyboard.type("okta");
+    await expect(libraryRows(page)).toHaveCount(10);
+
+    // Not folded away behind the opened search, and still beside the title.
+    const main: Locator = page
+      .getByTestId("rule-library-toolbar")
+      .getByRole("button", {
+        name: `Add ${RECOMMENDED_RULES - RECOMMENDED_RULES_ON} Recommended Rules`,
+      });
+    await expect(main).toBeVisible();
+    await page.waitForTimeout(400);
+    const mainBox: Box = await boxOf(main);
+    expect(
+      Math.abs(mainBox.y + mainBox.height / 2 - (title.y + title.height / 2)),
+    ).toBeLessThanOrEqual(4);
+
+    // Four of the ten are the project's already: the ⋯ adds the other six.
+    await page.getByTestId("rule-library-more").click();
+    await page.getByRole("menuitem", { name: "Add 6 Matching Rules" }).click();
+    await expect(
+      page.getByTestId("modal").getByTestId("modal-title"),
+    ).toHaveText("Add 6 rules?");
+    await page
+      .getByTestId("modal")
+      .getByRole("button", { name: "Add Rules" })
+      .click();
+    await expect(
+      page.locator('[data-testid^="rule-library-added-"]'),
+    ).toHaveCount(10);
+    await expect(page.getByTestId(RULE_LIBRARY_SEARCH)).toHaveValue("okta");
+  });
+
+  test("an Add that cannot add says why on its row; the recommended adds that cannot add one say so above the rules, in view, and the button offers the one left", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, RULE_LIBRARY_PATH, {
+      width: 1280,
+      empty: true,
+      setup: "partly",
+    });
+    const spraying: Locator = libraryRow(page, PASSWORD_SPRAYING_RULE);
+    await expect(spraying).toBeVisible({ timeout: 30000 });
+
+    await spraying
+      .getByTestId(`rule-library-add-${PASSWORD_SPRAYING_RULE.id}`)
+      .click();
+
+    // Said where the reader clicked - the one alert - and not above the rules.
+    const why: Locator = spraying.getByTestId(
+      `rule-library-problem-${PASSWORD_SPRAYING_RULE.id}`,
     );
     await expect(why).toHaveText("Something went wrong while adding it.");
     await expect(why).toHaveAttribute("role", "alert");
     await expect(why).toBeInViewport();
     await expect(page.getByTestId("rule-library-problems")).toHaveCount(0);
-    // Not added: its card still offers Add Rule.
     await expect(
-      spraying.getByRole("button", { name: "Add Rule" }),
+      spraying.getByTestId(`rule-library-add-${PASSWORD_SPRAYING_RULE.id}`),
     ).toBeVisible();
-    await screenshot(page, "rule-library-add-failed");
-
-    await spraying.getByRole("button", { name: "Add Rule" }).click();
-    await expect(spraying.getByText("Added", { exact: true })).toBeVisible();
+    await screenshot(page, "rule-library-add-failed", { fullPage: false });
+    await spraying
+      .getByTestId(`rule-library-add-${PASSWORD_SPRAYING_RULE.id}`)
+      .click();
+    await expect(
+      spraying.getByTestId(`rule-library-added-${PASSWORD_SPRAYING_RULE.id}`),
+    ).toBeVisible();
     await expect(why).toHaveCount(0);
   });
 
-  test("Add All that cannot add a rule names it above the rules, in view, says the others were added, and adding again adds only it", async ({
+  test("the recommended adds that cannot add one name it above the rules, in view, say the others were added, and the button offers the one left", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await open(page, RULE_LIBRARY_PATH, { empty: true, setup: "partly" });
-    await page.getByTestId("rule-library-category").selectOption("recommended");
+    await open(page, RULE_LIBRARY_PATH, {
+      width: 1280,
+      empty: true,
+      setup: "partly",
+    });
+    await expect(libraryRow(page, BRUTE_FORCE_RULE)).toBeVisible({
+      timeout: 30000,
+    });
     await page
-      .getByRole("button", { name: `Add All ${RECOMMENDED_RULES} Rules` })
+      .getByTestId("rule-library-toolbar")
+      .getByRole("button", {
+        name: `Add ${RECOMMENDED_RULES} Recommended Rules`,
+      })
       .click();
     await page
       .getByTestId("modal")
@@ -2269,118 +2829,180 @@ test.describe("detections", () => {
     ).toHaveText("The others were added.");
     // Wherever the confirmation left the page, the box is brought into view.
     await expect(problems).toBeInViewport();
-
-    const spraying: Locator = page
-      .locator('[data-testid^="rule-library-entry-"]')
-      .filter({ hasText: PARTLY_UNDONE_RULE });
     await expect(
-      spraying.locator('[data-testid^="rule-library-problem-"]'),
+      libraryRow(page, PASSWORD_SPRAYING_RULE).getByTestId(
+        `rule-library-problem-${PASSWORD_SPRAYING_RULE.id}`,
+      ),
     ).toHaveText("Something went wrong while adding it.");
-    await expect(
-      page.getByRole("button", { name: "Add 1 Rule" }),
-    ).toBeVisible();
-    await screenshot(page, "rule-library-add-all-failed");
+    await screenshot(page, "rule-library-add-all-failed", { fullPage: false });
 
-    await page.getByRole("button", { name: "Add 1 Rule" }).click();
+    await page
+      .getByTestId("rule-library-toolbar")
+      .getByRole("button", { name: "Add 1 Recommended Rule" })
+      .click();
+    await expect(
+      page.getByTestId("modal").getByTestId("modal-title"),
+    ).toHaveText("Add 1 recommended rule?");
     await page
       .getByTestId("modal")
-      .getByRole("button", { name: "Add Rules" })
+      .getByRole("button", { name: "Add Rule" })
       .click();
-    await expect(spraying.getByText("Added", { exact: true })).toBeVisible();
-    await expect(problems).toHaveCount(0);
-  });
-
-  test("Add Recommended Rules that cannot add one says so the same way, and the button offers the one left", async ({
-    page,
-  }: {
-    page: Page;
-  }) => {
-    await open(page, RULE_LIBRARY_PATH, { empty: true, setup: "partly" });
-    await page
-      .getByRole("button", {
-        name: `Add ${RECOMMENDED_RULES} Recommended Rules`,
-      })
-      .click();
-
-    const problems: Locator = page.getByTestId("rule-library-problems");
     await expect(
-      problems.getByTestId("security-turn-on-problems-title"),
-    ).toHaveText("1 rule could not be added");
-    await expect(problemRows(problems)).toHaveText([
-      `${PARTLY_UNDONE_RULE} - Something went wrong while adding it.`,
-    ]);
-    await expect(
-      problems.getByTestId("security-turn-on-problems-note"),
-    ).toHaveText("The others were added.");
-    // Every other recommended rule is added; the button offers the one left.
-    await expect(
-      page.getByRole("button", { name: "Add 1 Recommended Rule" }),
-    ).toBeVisible();
-    await page.getByRole("button", { name: "Add 1 Recommended Rule" }).click();
-    await expect(
-      page.getByRole("button", { name: /Recommended Rules?$/ }),
+      page
+        .getByTestId("rule-library-toolbar")
+        .getByRole("button", { name: /Recommended Rules?$/ }),
     ).toHaveCount(0);
     await expect(problems).toHaveCount(0);
   });
 
-  test("the rule library narrows by one select beside its search, which a phone puts under it", async ({
+  test("a new project is told once that nothing arrives; events that cannot be read say so, with Try again", async ({
     page,
   }: {
     page: Page;
   }) => {
-    for (const [width, theme] of [
-      [1280, undefined],
-      [1280, "dark"],
-      [390, undefined],
-    ] as Array<[number, "dark" | undefined]>) {
-      await open(page, RULE_LIBRARY_PATH, { width, height: 900, theme });
-      await expect(page.getByText("Added").first()).toBeVisible({
+    await open(page, RULE_LIBRARY_PATH, { width: 1280, empty: true });
+    await expect(libraryRow(page, BRUTE_FORCE_RULE)).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(page.getByTestId("rule-library-nothing-sent")).toContainText(
+      "No security events arrived in the last 7 days, so no rule has anything to read yet.",
+    );
+    await expect(
+      page.locator('[data-testid^="rule-library-data-status-"]'),
+    ).toHaveCount(0);
+    // A Data chip would narrow nothing: it is not offered.
+    await expect(page.getByTestId(DATA_CHIP)).toHaveCount(0);
+    await screenshot(page, "rule-library-new-project", { fullPage: false });
+
+    await open(page, RULE_LIBRARY_PATH, { width: 1280, data: "fail" });
+    await expect(libraryRow(page, BRUTE_FORCE_RULE)).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(page.getByTestId("rule-library-data-unknown")).toContainText(
+      "Could not check which events this project sends.",
+    );
+    await expect(
+      page.locator('[data-testid^="rule-library-data-status-"]'),
+    ).toHaveCount(0);
+    await expect(page.getByTestId(DATA_CHIP)).toHaveCount(0);
+    await page.getByTestId("rule-library-data-retry").click();
+    // The fixture's read fails every time: asked again, it says so again.
+    await expect
+      .poll(async (): Promise<number> => {
+        return (await aggregateRequestsOf(page)).length;
+      })
+      .toBe(2);
+    await expect(page.getByTestId("rule-library-data-unknown")).toBeVisible();
+  });
+
+  test("the rule library in German and Japanese: every word of its own translated and whole, the rows fitting beside the side menu, Add always in sight", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    /*
+     * The fixture's frame is 64px narrower than production's (its page's
+     * padding): 1088 here is production's 1024 beside the side menu.
+     */
+    for (const [lang, width, recommended, receiving, category] of [
+      [
+        "de",
+        1280,
+        "17 empfohlene Regeln hinzufügen",
+        "Empfangen",
+        "Regelkategorie",
+      ],
+      [
+        "de",
+        1088,
+        "17 empfohlene Regeln hinzufügen",
+        "Empfangen",
+        "Regelkategorie",
+      ],
+      [
+        "de",
+        1024,
+        "17 empfohlene Regeln hinzufügen",
+        "Empfangen",
+        "Regelkategorie",
+      ],
+      [
+        "de",
+        390,
+        "17 empfohlene Regeln hinzufügen",
+        "Empfangen",
+        "Regelkategorie",
+      ],
+      [
+        "ja",
+        1280,
+        "おすすめのルールを 17 件追加",
+        "受信中",
+        "ルールのカテゴリ",
+      ],
+      ["ja", 390, "おすすめのルールを 17 件追加", "受信中", "ルールのカテゴリ"],
+    ] as Array<["de" | "ja", number, string, string, string]>) {
+      await open(page, RULE_LIBRARY_PATH, { width, height: 900, lang });
+      await expect(libraryRow(page, BRUTE_FORCE_RULE)).toBeVisible({
         timeout: 30000,
       });
-
-      const filters: Locator = page.getByTestId("rule-library-filters");
-      const search: Box = await boxOf(filters.getByPlaceholder("Search rules"));
-      const select: Locator = filters.getByRole("combobox", {
-        name: "Rule categories",
-      });
-      const selectBox: Box = await boxOf(select);
-
-      // No row of buttons across the card to read as tabs.
-      await expect(filters.getByRole("button")).toHaveCount(0);
-      await expect(select).toHaveValue("");
-
-      if (width === 1280) {
-        // Beside the search, the same height, on its line.
-        expect(selectBox.x).toBeGreaterThan(search.x + search.width);
-        expect(Math.abs(selectBox.y - search.y)).toBeLessThanOrEqual(2);
-        expect(Math.abs(selectBox.height - search.height)).toBeLessThanOrEqual(
-          2,
-        );
-      } else {
-        // Under it, as wide as it.
-        expect(selectBox.y).toBeGreaterThanOrEqual(search.y + search.height);
-        expect(Math.abs(selectBox.width - search.width)).toBeLessThanOrEqual(1);
+      // The filter chips speak the language too.
+      await expect(chipButton(page, CATEGORY_CHIP)).toHaveText(category);
+      await expect(
+        page
+          .getByTestId("rule-library-toolbar")
+          .getByRole("button", { name: recommended }),
+      ).toBeVisible();
+      await expect(
+        page.getByTestId(`rule-library-data-status-${BRUTE_FORCE_RULE.id}`),
+      ).toHaveText(receiving);
+      expect(
+        await pageOverflow(page),
+        `${lang} at ${width}`,
+      ).toBeLessThanOrEqual(1);
+      if (width >= 1088) {
+        /*
+         * The longer words wrap in their columns, and the rule's gives way
+         * down to 12rem: nothing scrolls sideways.
+         */
+        await expect(
+          page.getByTestId("table-scroll").first(),
+          `${lang} at ${width}`,
+        ).toHaveAttribute("data-overflowing", "false");
       }
+      if (lang === "de" && width > 390) {
+        /*
+         * A word stays whole: the Data column is never narrower than its
+         * longest, so Anmeldeereignisse is not cut into Anmeldeereignis
+         * and se.
+         */
+        const dataKind: Locator = page
+          .getByTestId(`rule-library-data-${BRUTE_FORCE_RULE.id}`)
+          .locator("span")
+          .first();
+        await expect(dataKind).toHaveText("Anmeldeereignisse");
+        expect(
+          await dataKind.evaluate((element: Element): number => {
+            const range: Range = document.createRange();
+            range.selectNodeContents(element);
+            return range.getClientRects().length;
+          }),
+          `the lines of ${lang} at ${width}`,
+        ).toBe(1);
 
-      // A category narrows the cards to its own rules.
-      const cards: Locator = page.locator(
-        '[data-testid^="rule-library-entry-"]',
-      );
-      const everyRule: number = await cards.count();
-      await select.selectOption("Kubernetes");
-      await expect(select).toHaveValue("Kubernetes");
-      await expect
-        .poll(async (): Promise<number> => {
-          return cards.count();
-        })
-        .toBeLessThan(everyRule);
-      expect(await cards.count()).toBeGreaterThan(0);
-      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
-      await screenshot(
-        page,
-        `rule-library-category-${width}-${theme || "light"}`,
-        { fullPage: false },
-      );
+        /*
+         * Beside the side menu, in the fixture's narrower frame, German's
+         * longer words may scroll the rows sideways (production's frame,
+         * 64px wider, fits them): Add, or Added, stays at the card's edge
+         * in sight.
+         */
+        await expect(
+          page.getByTestId(`rule-library-added-${BRUTE_FORCE_RULE.id}`),
+        ).toBeInViewport({ ratio: 1 });
+      }
+      await screenshot(page, `rule-library-${lang}-${width}`, {
+        fullPage: false,
+      });
     }
   });
 
@@ -2390,7 +3012,7 @@ test.describe("detections", () => {
     page: Page;
   }) => {
     await open(page, RULE_LIBRARY_PATH);
-    await expect(page.getByText("Added").first()).toBeVisible({
+    await expect(libraryRow(page, BRUTE_FORCE_RULE)).toBeVisible({
       timeout: 30000,
     });
     await expect(page.getByTestId("security-events-tabs")).toHaveCount(0);
@@ -4400,7 +5022,7 @@ test.describe("every page fits the screen", () => {
     ["case", SPRAY_CASE_PATH, "475 events"],
     ["entities", ENTITIES_PATH, "203.0.113.47"],
     ["detection rules", DETECTION_RULES_PATH, SEQUENCE_RULE],
-    ["rule library", RULE_LIBRARY_PATH, "Added"],
+    ["rule library", RULE_LIBRARY_PATH, "Brute force from one IP address"],
     ["threat intel", THREAT_INTEL_PATH, "Corporate MISP"],
     ["attack coverage", ATTACK_COVERAGE_PATH, "2 / 227"],
     ["playbooks", PLAYBOOKS_PATH, "Enrich New Cases"],

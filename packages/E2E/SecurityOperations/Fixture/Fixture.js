@@ -38,6 +38,10 @@
  *   ?fail=   status or overview: the Overview's set-up figures, or its
  *            overview, cannot be read the first time (a 500); the next
  *            read answers.
+ *   ?data=   none or fail: what the project's events say it sends, as the
+ *            Rule Library reads them - nothing this week, or a read that
+ *            fails. Otherwise Okta, Defender XDR and Kubernetes audit logs.
+ *   ?lang=   de or ja: the Dashboard's German or Japanese locale.
  *   ?values= custom: the project made its case statuses and priorities its
  *            own (CUSTOM_STATUSES below): Triage, an archived Escalated,
  *            Eradicating and Closed - Duplicate among the statuses, and
@@ -59,6 +63,8 @@ import {
 } from "react-router-dom";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
+import de from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import ja from "../../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 import SecurityEventsLayout from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Layout";
 import SecurityOverviewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Overview";
 import SecurityCasesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Cases";
@@ -103,6 +109,7 @@ import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus"
 import Team from "Common/Models/DatabaseModels/Team";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
 import ThreatIntelIndicator from "Common/Models/AnalyticsModels/ThreatIntelIndicator";
+import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import User from "Common/Models/DatabaseModels/User";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
@@ -271,6 +278,28 @@ const readFailure = READ_FAILURES.includes(params.get("fail"))
   ? params.get("fail")
   : "";
 /*
+ * ?data=: what the project's security events say it sends, as the Rule
+ * Library reads them (one grouped count over the last week):
+ *
+ *   (none given)  Okta's sign-ins and account changes, Microsoft Defender
+ *                 XDR's process events and the clusters' Kubernetes audit
+ *                 logs - no sudo, CloudTrail, network or web events
+ *   none          nothing arrived this week (also the empty project)
+ *   fail          the read fails (a 500), every time
+ */
+const DATA_SCENARIOS = ["none", "fail"];
+const dataScenario = DATA_SCENARIOS.includes(params.get("data"))
+  ? params.get("data")
+  : "";
+/*
+ * ?lang=: the Dashboard's German or Japanese locale, loaded and switched to,
+ * for the pages that are checked in other languages (the Rule Library).
+ */
+const LANGUAGES = ["de", "ja"];
+const language = LANGUAGES.includes(params.get("lang"))
+  ? params.get("lang")
+  : "en";
+/*
  * ?values=custom: a project that made its case statuses and priorities its
  * own (Security Events > Settings), as CUSTOM_STATUSES and the Emergency
  * priority below lay them out. Its cases sit in some of them.
@@ -339,6 +368,7 @@ const fixture = {
   countRequests: [],
   apiRequests: [],
   realtimeSubscriptions: [],
+  aggregateRequests: [],
   creates: [],
   updates: [],
   deletes: [],
@@ -2628,6 +2658,67 @@ AnalyticsModelAPI.count = async (modelType, query) => {
 };
 
 /*
+ * What the project's security events say it sends: the Rule Library's one
+ * grouped count of the last week's events by class, vendor and product
+ * (RuleLibraryData), answered as the aggregate route would.
+ */
+const SENT_SECURITY_EVENTS = [
+  {
+    className: "Authentication",
+    vendorName: "Okta",
+    productName: "Okta System Log",
+    value: 4812,
+  },
+  {
+    className: "Account Change",
+    vendorName: "Okta",
+    productName: "Okta System Log",
+    value: 37,
+  },
+  {
+    className: "Process Activity",
+    vendorName: "Microsoft",
+    productName: "Microsoft Defender XDR",
+    value: 1290,
+  },
+  {
+    className: "Detection Finding",
+    vendorName: "Microsoft",
+    productName: "Microsoft Defender XDR",
+    value: 12,
+  },
+  {
+    className: "API Activity",
+    vendorName: "Kubernetes",
+    productName: "Kubernetes audit log",
+    value: 20114,
+  },
+];
+
+AnalyticsModelAPI.aggregate = async (options) => {
+  const modelName = new options.modelType().tableName;
+  fixture.aggregateRequests.push({
+    modelName,
+    aggregateBy: serialize(options.aggregateBy),
+  });
+  if (modelName !== new SecurityEvent().tableName) {
+    fixture.unhandled.push({ kind: "analytics.aggregate", modelName });
+    return { data: [] };
+  }
+  if (dataScenario === "fail") {
+    throw new HTTPErrorResponse(500, { message: "Server Error" }, {});
+  }
+  if (isEmpty || dataScenario === "none") {
+    return { data: [] };
+  }
+  return {
+    data: SENT_SECURITY_EVENTS.map((row) => {
+      return { ...row, timestamp: ago(DAY) };
+    }),
+  };
+};
+
+/*
  * What the server does when someone decides a held step: approving runs the
  * step and the ones after it (here, at once), rejecting ends the run.
  */
@@ -3044,9 +3135,13 @@ API.delete = async (options) => handleApi("DELETE", options);
 API.fetch = async (options) => handleApi(options.method || "GET", options);
 
 await i18next.use(initReactI18next).init({
-  lng: "en",
+  lng: language,
   fallbackLng: "en",
-  resources: { en: { translation: {} } },
+  resources: {
+    en: { translation: {} },
+    de: { translation: de },
+    ja: { translation: ja },
+  },
   interpolation: { escapeValue: false },
 });
 

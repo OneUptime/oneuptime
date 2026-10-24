@@ -59,6 +59,32 @@ export function getTracesBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Recording Rules",
     ]),
+    // The AI section's pages name the tab and the menu section they live in.
+    ...BuildBreadcrumbLinksByTitles(PageMap.TRACES_AI_INSIGHTS, [
+      "Project",
+      "Traces",
+      "AI",
+      "Insights",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.TRACES_AI_INSIGHT_VIEW, [
+      "Project",
+      "Traces",
+      "AI",
+      "Insights",
+      "Insight",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.TRACES_AI_LOGS, [
+      "Project",
+      "Traces",
+      "AI",
+      "Logs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.TRACES_AI_SETTINGS, [
+      "Project",
+      "Traces",
+      "AI",
+      "Settings",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

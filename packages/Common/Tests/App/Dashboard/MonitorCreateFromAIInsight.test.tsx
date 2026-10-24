@@ -166,6 +166,7 @@ import MonitorCreate from "../../../../App/FeatureSet/Dashboard/src/Pages/Monito
 import {
   AI_INSIGHT_MONITOR_CUMULATIVE_COUNTER_BLOCKER,
   AI_INSIGHT_MONITOR_LATENCY_BLOCKER,
+  AI_INSIGHT_MONITOR_SLOW_OPERATION_BLOCKER,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/AIInsightMonitorPrefill";
 import { AI_INSIGHT_MONITOR_SELECT } from "../../../../App/FeatureSet/Dashboard/src/Utils/AIInsightMonitorData";
 import Metric, {
@@ -286,6 +287,30 @@ const METRIC_DRIFT: AIInsight = insight({
 
 const LATENCY: AIInsight = insight({
   insightType: AIInsightType.TraceLatencyRegression,
+  serviceName: "checkout",
+  telemetryServiceId: SERVICE_ID,
+});
+
+// Traces' findings (Traces → AI): a failing operation and a slow one.
+const FAILING_OPERATION: AIInsight = insight({
+  insightType: AIInsightType.TraceFailingOperation,
+  serviceName: "checkout",
+  telemetryServiceId: SERVICE_ID,
+  evidence: {
+    trace: {
+      serviceId: SERVICE_ID,
+      kind: "Failing",
+      operationName: "POST /checkout",
+      windowStartTime: "2026-10-24T08:00:00.000Z",
+      windowEndTime: "2026-10-24T09:00:00.000Z",
+      spanCount: 2600,
+      failedSpanCount: 312,
+    },
+  },
+});
+
+const SLOW_OPERATION: AIInsight = insight({
+  insightType: AIInsightType.TraceSlowOperation,
   serviceName: "checkout",
   telemetryServiceId: SERVICE_ID,
 });
@@ -551,6 +576,50 @@ describe("the monitor create page opened from an AI insight", () => {
 
     expect(
       await screen.findByText(AI_INSIGHT_MONITOR_LATENCY_BLOCKER),
+    ).toBeInTheDocument();
+    expect(capturedForm).toBeNull();
+  });
+
+  test("a failing operation opens on a Traces monitor counting its failed spans", async () => {
+    insightRow = (): Promise<unknown> => {
+      return Promise.resolve(FAILING_OPERATION);
+    };
+    linkTo({ aiInsightId: INSIGHT_ID });
+
+    const form: CapturedFormProps = await openForm();
+
+    expect(form.initialValues["monitorType"]).toBe(MonitorType.Traces);
+    expect(form.initialValues["name"]).toBe("Failing operation in checkout");
+
+    const traceMonitor: NonNullable<MonitorStep["data"]>["traceMonitor"] =
+      stepOf(form).data!.traceMonitor;
+
+    expect(traceMonitor!.spanName).toBe("POST /checkout");
+    expect(
+      traceMonitor!.telemetryServiceIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    ).toEqual([SERVICE_ID]);
+    expect(unhealthyOf(form).data!.filters[0]!.value).toBe(20);
+    expect(
+      MonitorSteps.fromJSON(
+        form.initialValues["monitorSteps"] as JSONObject,
+      ).data!.defaultMonitorStatusId?.toString(),
+    ).toBe(ONLINE_STATUS_ID);
+    // No metric read for anything but a drift.
+    expect(analyticsRequests).toHaveLength(0);
+  });
+
+  test("a slow operation says why instead of opening a form", async () => {
+    insightRow = (): Promise<unknown> => {
+      return Promise.resolve(SLOW_OPERATION);
+    };
+    linkTo({ aiInsightId: INSIGHT_ID });
+
+    renderCreatePage();
+
+    expect(
+      await screen.findByText(AI_INSIGHT_MONITOR_SLOW_OPERATION_BLOCKER),
     ).toBeInTheDocument();
     expect(capturedForm).toBeNull();
   });

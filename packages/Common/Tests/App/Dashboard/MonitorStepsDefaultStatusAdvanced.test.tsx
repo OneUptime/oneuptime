@@ -380,6 +380,24 @@ describe("the default monitor status lives under Advanced", () => {
     expect(within(advancedBody()).queryByRole("alert")).toBeNull();
   });
 
+  /*
+   * Create Monitor from an AI insight, a link or a template hands the form
+   * its steps as JSON, not as a MonitorSteps: reading them for archived
+   * values called toJSON() on plain JSON, which threw - the form drew
+   * "props.initialValue.toJSON is not a function", and no status to pick.
+   */
+  test("steps prefilled as JSON load the statuses like a saved monitor's, with no error", async () => {
+    await mountWith({
+      initialValue: seededSteps({
+        defaultMonitorStatusId: OFFLINE_STATUS_ID,
+      }).toJSON() as unknown as MonitorSteps,
+    });
+
+    expect(summary()).toHaveTextContent("When no criteria match: Offline");
+    expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText(/is not a function/)).toBeNull();
+  });
+
   test("the required field no longer sits open under the criteria", async () => {
     await mountWith({});
 

@@ -39,7 +39,7 @@ Open **Products → Security Events**, under **Observability**. Its menu has a s
 | **Entities** | Events | The users, hosts and addresses your findings name most |
 | **Correlate** | Events | A graph of the events that share a host, a user or an IP address |
 | **Detection Rules** | Detections | Sigma rules that run on a schedule and open cases |
-| **Rule Library** | Detections | Ready-made detection rules to add, the recommended ones marked |
+| **Rule Library** | Detections | Ready-made detection rules to add, each with the events it reads and whether they arrive, the recommended ones marked |
 | **Threat Intel** | Detections | STIX/TAXII feeds of known-bad indicators |
 | **ATT&CK Coverage** | Detections | The MITRE ATT&CK techniques your rules cover |
 | **Playbooks** | Playbooks | Steps that run on cases, by themselves or by hand |

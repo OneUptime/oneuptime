@@ -35,6 +35,26 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
  * private key that successfully signed in earlier. No existing user or
  * credential is changed: the suite creates its own account and project.
  */
+/*
+ * The page has no horizontal scroll at its current width. Read until the
+ * layout has caught up with the setViewportSize just before each call: a
+ * single read taken while the page was still reflowing measured the wider
+ * layout and failed a self-hosted run (2026-10-24) that passed on retry. A
+ * page that really overflows still fails, once the wait is over.
+ */
+async function expectNoHorizontalScroll(page: Page): Promise<void> {
+  await expect
+    .poll(
+      async (): Promise<boolean> => {
+        return page.evaluate((): boolean => {
+          return document.documentElement.scrollWidth <= window.innerWidth;
+        });
+      },
+      { timeout: 10000 },
+    )
+    .toBe(true);
+}
+
 test.describe("Passkey account lifecycle", () => {
   test.describe.configure({ mode: "serial" });
   test.skip(
@@ -416,11 +436,7 @@ test.describe("Passkey account lifecycle", () => {
       await expect(
         page.getByRole("button", { name: "Add Security Key", exact: true }),
       ).toBeVisible();
-      expect(
-        await page.evaluate(() => {
-          return document.documentElement.scrollWidth <= window.innerWidth;
-        }),
-      ).toBe(true);
+      await expectNoHorizontalScroll(page);
       await saveScreenshot("two-factor-settings-mobile", test.info());
       await page.setViewportSize({ width: 1440, height: 1000 });
     } finally {
@@ -456,11 +472,7 @@ test.describe("Passkey account lifecycle", () => {
     await expect(
       page.getByRole("button", { name: "Add Passkey", exact: true }),
     ).toBeVisible();
-    expect(
-      await page.evaluate(() => {
-        return document.documentElement.scrollWidth <= window.innerWidth;
-      }),
-    ).toBe(true);
+    await expectNoHorizontalScroll(page);
     await saveScreenshot("passkey-settings-mobile", test.info());
     await page.setViewportSize({ width: 1440, height: 1000 });
   });
@@ -473,11 +485,7 @@ test.describe("Passkey account lifecycle", () => {
     await expect(page.getByTestId("Login")).toBeInViewport();
     await expect(page.getByTestId("passkey-login")).toBeInViewport();
     await expectFormFirstThenOtherWaysIn();
-    expect(
-      await page.evaluate(() => {
-        return document.documentElement.scrollWidth <= window.innerWidth;
-      }),
-    ).toBe(true);
+    await expectNoHorizontalScroll(page);
     await saveScreenshot("passkey-login-mobile", test.info());
     await page.setViewportSize({ width: 1440, height: 1000 });
 

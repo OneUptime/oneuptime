@@ -7,6 +7,7 @@ Der Trace-Explorer findet die Anfragen, die durch Ihre Dienste gelaufen sind: di
 - [Einen Trace lesen](#einen-trace-lesen): Wohin die Zeit ging und welcher Schritt fehlschlug.
 - [Ihre Spans in Diagrammen darstellen](#ihre-spans-in-diagrammen-darstellen): Anfragezahlen und Antwortzeiten, nach Ihren Vorgaben gruppiert.
 - [Trace-Einblicke](#trace-einblicke): Fehlerraten, Latenz und die langsamsten Anfragen.
+- [Langsame und fehlschlagende Vorgänge mit KI finden und beheben](#langsame-und-fehlschlagende-vorgänge-mit-ki-finden-und-beheben): Pull Requests, die sie beheben und das Tracing ergänzen, das einem Trace fehlt.
 :::
 
 ## Traces und Spans
@@ -23,12 +24,13 @@ flowchart TB
 
 Jede Zeile des Explorers ist ein Span, daher füllt ein vielbeschäftigter Dienst die Liste mit seinen Datenbankabfragen und internen Aufrufen. Um eine Zeile pro Anfrage zu listen, wählen Sie in der Seitenleiste **Root spans** unter **Span-Typ**.
 
-Der Explorer hat vier Tabs:
+Der Explorer hat fünf Tabs:
 
 | Tab | Wofür er da ist |
 | --- | --- |
 | **Betrachter** | Spans suchen und filtern und ihre Traces öffnen. Er öffnet mit der letzten Stunde, neueste zuerst, 50 Spans pro Seite. |
 | **Einblicke** | Anfrageraten, Fehlerraten und Latenz pro Dienst, und die Anfragen, die einen Blick wert sind. |
+| **KI** | Die langsamen und fehlschlagenden Vorgänge und das fehlende Tracing, die OneUptime in Ihren Traces findet, und was OneUptime AI dagegen getan hat. Siehe [Langsame und fehlschlagende Vorgänge mit KI finden und beheben](#langsame-und-fehlschlagende-vorgänge-mit-ki-finden-und-beheben). |
 | **Einrichtungsanleitung** | Wie Sie Traces mit OpenTelemetry senden, mit einem Ihrer [Aufnahmeschlüssel](/docs/telemetry/ingestion-keys). |
 | **Einstellungen** | Was mit Spans beim Eintreffen geschieht: **Pipelines**, **Drop-Filter**, **Scrub-Regeln** und **Aufzeichnungsregeln**. |
 
@@ -112,6 +114,44 @@ Der Tab **Einblicke** fasst die Anfragen eines Zeitraums zusammen:
 - die jüngsten fehlgeschlagenen Anfragen und die langsamsten.
 
 Beschränken Sie ihn mit der Auswahlliste neben der Zeitauswahl auf bestimmte Dienste.
+
+## Langsame und fehlschlagende Vorgänge mit KI finden und beheben
+
+Jede Stunde durchsucht OneUptime die Traces jedes Dienstes aus der letzten Stunde nach Vorgängen, die langsam sind, die fehlschlagen oder deren Traces nicht zeigen, warum, und legt seine Befunde mit den Belegen als KI-Einblicke an. OneUptime AI untersucht dann jeden Befund und öffnet einen Pull Request, der ihn behebt. Nichts wird je zusammengeführt: Ihr Team prüft jeden Pull Request.
+
+Ein Vorgang sind die Spans eines Dienstes mit demselben Namen, etwa `GET /orders`. OneUptime liest einen Dienst, sobald er in der letzten Stunde mindestens 100 Spans gesendet hat, und legt drei Arten von Befunden an:
+
+| Befund | Wann OneUptime ihn anlegt | Der Pull Request |
+| --- | --- | --- |
+| **Langsamer Vorgang** | Das P99 des Vorgangs liegt bei 1 Sekunde oder mehr über mindestens 20 Spans, und seine langsamste Anfrage wiederholt ein Muster, das echte Zeit kostet: derselbe Aufruf immer wieder, Aufrufe nacheinander, die parallel laufen könnten, oder ein Aufruf, der den Großteil der Anfrage beansprucht. | Macht den Vorgang schneller. |
+| **Fehlschlagender Vorgang** | Mindestens 20 Spans des Vorgangs sind fehlgeschlagen, 5 % oder mehr davon, und die jüngsten Fehlschläge sagen, warum, mit einer Ausnahme oder einer Fehlermeldung. | Behebt, warum er fehlschlägt. |
+| **Fehlendes Tracing** | Die Traces zeigen nicht, warum: Jeder der 500 oder mehr Spans eines Dienstes war die Wurzel seines Traces, ohne einen Span des Dienstes darunter, eine langsame Anfrage verbrachte 60 % oder mehr ihrer Zeit (und 500 ms oder mehr) in einem Span, unter dem nichts aufgezeichnet ist, oder die Fehlschläge eines Vorgangs haben weder eine Fehlermeldung noch eine Ausnahme aufgezeichnet. | Ergänzt das fehlende Tracing. |
+
+OneUptime AI öffnet den Pull Request für einen fehlschlagenden Vorgang nur dann selbstständig, wenn es den schuldigen Code findet. Ein Fehler, der von anderswo kommt, etwa von einer ausgefallenen Abhängigkeit, bekommt keinen Pull Request, es sei denn, jemand fordert ihn mit **Mit KI beheben** an.
+
+### Einschalten
+
+**Traces → KI → Einstellungen** enthält den Schalter **Langsame und fehlschlagende Vorgänge finden und beheben**, der für neue Projekte eingeschaltet ist. Ist **KI aktivieren** aus, werden langsame und fehlschlagende Vorgänge weiterhin gefunden, aber OneUptime AI tut nichts damit. Um Pull Requests zu öffnen, braucht OneUptime AI ein in [Code](/docs/ai/ai-agent) verbundenes Repository: Die Seite sagt, was zuerst fehlt. Der Code eines Repositorys wird auf dem Runner geändert, den das Repository in Code auswählt.
+
+OneUptime AI öffnet von sich aus höchstens 5 Pull Requests pro Tag (UTC), einen pro Befund, und nie mehr, als ein Repository an offenen KI-Pull-Requests zulässt.
+
+### KI-Regeln
+
+Ohne Regel untersucht OneUptime AI jedes Problem, das es in Ihren Traces findet, sofort und öffnet für jedes, das es beheben kann, einen Pull Request. Die **KI-Regeln** unter **Weitere Einstellungen** schränken das in drei Schritten ein:
+
+| Schritt | Was er entscheidet |
+| --- | --- |
+| **Übereinstimmung** | Welche Dienste: die ausgewählten, die mit bestimmten Labels oder die, deren Namen zu einem Muster passen. |
+| **Untersuchen** | **Sofort** oder **Nur falls nach einer Wartezeit noch gefunden**: Ein Problem, das während der Wartezeit verschwindet, wird nicht untersucht. |
+| **Behebung** | **Nicht beheben**, **Vor dem Beheben fragen** oder **Ohne Nachfrage beheben**. Wer zuerst fragt, überlässt den Pull Request einer Person: Der Befund bietet **Mit KI beheben** an. |
+
+Unter **Weitere Felder** wählt eine Regel die Code-Repositories, die MCP-Server und den LLM-Anbieter, die OneUptime AI für sie verwenden darf. Ist nichts ausgewählt, darf es alle verwenden, und den Standard-LLM-Anbieter des Projekts.
+
+### Sehen, was es getan hat
+
+- **Traces → KI → Einblicke** listet, was OneUptime gefunden hat, jeden Befund mit seinen Belegen und **In Traces öffnen**, das die betroffenen Spans aus der Stunde, in der er gefunden wurde, im **Betrachter** öffnet. Bei einem fehlschlagenden Vorgang richtet **Monitor erstellen** einen Traces-Monitor auf seine fehlgeschlagenen Spans ein.
+- **Traces → KI → Protokolle** listet jede Untersuchung und jeden Pull Request, das Neueste zuerst, jeweils mit ihrem Stand.
+- In Code sagt die Aufgabe, dass OneUptime sie gestartet hat, mit einem Link zu ihrem Befund, und der Pull Request sagt, warum er geöffnet wurde.
 
 ## Was mit Spans beim Eintreffen geschieht
 

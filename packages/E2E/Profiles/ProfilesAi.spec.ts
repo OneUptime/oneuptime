@@ -682,6 +682,39 @@ test.describe("Profiler → AI → Insights", () => {
     expect(address.searchParams.get("aiInsightId")).toBeNull();
   });
 
+  /*
+   * The finding page's rail is narrow beside the evidence: side by side
+   * there, the button was squeezed into "Fix / with / AI" (Traces' review).
+   */
+  test("on a finding's page a repository to pick sits above Fix with AI, the button on one line", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${AI}/insights/${HOT_INSIGHT}?repo=pick`);
+
+    const picker: Locator = page.getByTestId("profiles-fix-repository");
+    const button: Locator = page.getByTestId("profiles-fix-with-ai");
+
+    await expect(picker).toBeVisible({ timeout: 60000 });
+
+    const pickerBox: { y: number; height: number } | null =
+      await picker.boundingBox();
+    const buttonBox: { y: number; height: number } | null =
+      await button.boundingBox();
+
+    expect(pickerBox).not.toBeNull();
+    expect(buttonBox).not.toBeNull();
+    expect(buttonBox!.y).toBeGreaterThanOrEqual(
+      pickerBox!.y + pickerBox!.height - 1,
+    );
+    expect(buttonBox!.height).toBeLessThanOrEqual(40);
+
+    if (isPhone(testInfo)) {
+      await expectNoSidewaysScroll(page);
+    }
+  });
+
   test("a finding OneUptime already opened a pull request for: its fix task, and no second offer", async ({
     page,
   }: {

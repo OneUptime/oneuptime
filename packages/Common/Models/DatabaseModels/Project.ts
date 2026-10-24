@@ -2543,6 +2543,53 @@ export default class Project extends TenantModel {
   })
   public enableAutomaticProfileRemediation?: boolean = undefined;
 
+  /*
+   * Traces → AI → Settings: "Find and fix slow and failing operations".
+   * While it is on, OneUptime reads each service's traces once an hour for
+   * operations that are slow (their slowest requests repeat a pattern that
+   * costs them real time), that fail (with the error they fail with), or
+   * whose traces cannot say why (Utils/Traces/TraceInsight), files each as
+   * an insight, and OneUptime AI looks into it and opens a pull request
+   * that fixes the code or adds the tracing it lacks - in a connected
+   * repository, on the Runner that repository picks, never merged. A
+   * failing operation's pull request opens on its own only once the
+   * investigation found the code at fault. Trace AI rules
+   * (AutoRemediationRule with triggerEntityType Trace), when there are any,
+   * narrow which services' problems are worked on and how
+   * (Types/AI/TelemetryAi). On for new projects, off for projects that
+   * existed before, so an upgrade spends no AI credits and opens no pull
+   * request unasked. Enable AI turns it off with everything else.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Automatic Trace Remediation",
+    description:
+      "When enabled, OneUptime reads each service's traces once an hour for operations that are slow (their slowest requests repeat a pattern that costs them real time, such as the same database query run many times), operations that fail, and operations or services whose traces cannot say why, and files each as an insight; OneUptime AI looks into it and opens a pull request that fixes the code or adds the tracing it lacks, in a repository connected in Code. A failing operation's pull request opens on its own only once the investigation finds the code at fault. Pull requests are never merged automatically, and honor the repository's open pull request cap. Trace AI rules, when there are any, choose which services' problems are worked on, whether a person approves the pull request first, and which repositories and LLM provider are used. On for new projects created in OneUptime; projects that existed before keep it off. Requires AI to be enabled.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAutomaticTraceRemediation?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [Permission.User],
     read: [

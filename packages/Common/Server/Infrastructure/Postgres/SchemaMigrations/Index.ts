@@ -189,6 +189,7 @@ import { AddNetworkControllerConnection1807020000000 } from "./1807020000000-Add
 import { AddProfileAiRules1807030000000 } from "./1807030000000-AddProfileAiRules";
 import { AddAiContext1807100000000 } from "./1807100000000-AddAiContext";
 import { AddAuditLogExport1807110000000 } from "./1807110000000-AddAuditLogExport";
+import { AddTraceAiSwitch1807120000000 } from "./1807120000000-AddTraceAiSwitch";
 import { AddSecurityCasePrioritiesAndStatuses1807200000000 } from "./1807200000000-AddSecurityCasePrioritiesAndStatuses";
 import { AddSecurityCasePriorityAndStatusIndexesAndKeys1807210000000 } from "./1807210000000-AddSecurityCasePriorityAndStatusIndexesAndKeys";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
@@ -1582,6 +1583,7 @@ export default [
   AddProfileAiRules1807030000000,
   AddAiContext1807100000000,
   AddAuditLogExport1807110000000,
+  AddTraceAiSwitch1807120000000,
   AddSecurityCasePrioritiesAndStatuses1807200000000,
   AddSecurityCasePriorityAndStatusIndexesAndKeys1807210000000,
 ];
