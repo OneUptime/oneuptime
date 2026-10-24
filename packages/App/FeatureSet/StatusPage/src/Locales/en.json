@@ -359,7 +359,7 @@
       "noPageDescription": "{{visited}} is not the address of a status page.",
       "copy": "Copy",
       "copied": "Copied!",
-      "copyFailed": "Your browser didn't let this page copy the line. Select it and copy it yourself."
+      "copyFailed": "Your browser didn't let this page copy the line. It's selected above, so you can copy it yourself."
     }
   },
   "footer": {

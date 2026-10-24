@@ -32,11 +32,17 @@ import {
   AddressNotSetUpError,
   AddressNotSetUpFacts,
   AddressNotSetUpKind,
+  NO_STATUS_PAGE_STATUS_CODES,
   PASS_HOST_HEADER_LINES,
+  SentencePiece,
+  VALUE_MARK,
   getAddressNotSetUpFacts,
   hostnameOf,
   isIpAddressHost,
   isLoopbackHost,
+  isNoStatusPageAnswer,
+  markedValues,
+  sentencePieces,
 } from "../../../../App/FeatureSet/StatusPage/src/Utils/AddressNotSetUp";
 import { getJestSpyOn } from "../../Spy";
 
@@ -169,6 +175,9 @@ const DASHBOARD_LOCALES_DIR: string = path.resolve(
 );
 
 type Locale = Record<string, any>;
+
+// A step's number: 1 or 2.
+const STEP_NUMBER: RegExp = /^[12]$/;
 
 const readLocale: (directory: string, file: string) => Locale = (
   directory: string,
@@ -328,6 +337,66 @@ describe("what the page says, from the address opened and HOST", () => {
     expect(error).toBeInstanceOf(Error);
     expect(new Error("x")).not.toBeInstanceOf(AddressNotSetUpError);
   });
+
+  test("only the API's 'no status page has this domain' answers are taken for one: 400 and 404", () => {
+    expect(NO_STATUS_PAGE_STATUS_CODES).toEqual([400, 404]);
+
+    for (const statusCode of [400, 404]) {
+      expect({ statusCode, answer: isNoStatusPageAnswer(statusCode) }).toEqual({
+        statusCode,
+        answer: true,
+      });
+    }
+
+    // A firewall, a rate limit or a failing server in front of a real status page.
+    for (const statusCode of [401, 403, 405, 408, 413, 429, 500, 502, 503]) {
+      expect({ statusCode, answer: isNoStatusPageAnswer(statusCode) }).toEqual({
+        statusCode,
+        answer: false,
+      });
+    }
+  });
+
+  test("a sentence translated with marked values comes back in pieces: words, then each value by name", () => {
+    const marked: Record<string, string> = markedValues([
+      "visited",
+      "configured",
+    ]);
+
+    expect(marked).toEqual({
+      visited: `${VALUE_MARK}visited${VALUE_MARK}`,
+      configured: `${VALUE_MARK}configured${VALUE_MARK}`,
+    });
+
+    const pieces: Array<SentencePiece> = sentencePieces(
+      `You opened ${marked["visited"]}, but this OneUptime is set up to open at ${marked["configured"]}.`,
+      ["visited", "configured"],
+    );
+
+    expect(pieces).toEqual([
+      { text: "You opened " },
+      { value: "visited" },
+      { text: ", but this OneUptime is set up to open at " },
+      { value: "configured" },
+      { text: "." },
+    ]);
+
+    // A value first, last or alone leaves no empty words around it.
+    expect(sentencePieces(marked["visited"] as string, ["visited"])).toEqual([
+      { value: "visited" },
+    ]);
+    // Words with no value stay words; a name it was not given stays words too.
+    expect(sentencePieces("No status page here.", ["visited"])).toEqual([
+      { text: "No status page here." },
+    ]);
+    expect(
+      sentencePieces(`a ${marked["configured"]} b`, ["visited"]).map(
+        (piece: SentencePiece): string | undefined => {
+          return piece.value;
+        },
+      ),
+    ).toEqual([undefined, undefined, undefined]);
+  });
 });
 
 describe("the page", () => {
@@ -345,13 +414,19 @@ describe("the page", () => {
     expect(
       screen.getByTestId("status-page-address-not-set-up"),
     ).toHaveAttribute("dir", "rtl");
-    expect(
-      screen.getByTestId("address-not-set-up-host-line").closest("[dir]"),
-    ).toHaveAttribute("dir", "ltr");
-    expect(screen.getByTestId("address-not-set-up-restart")).toHaveAttribute(
-      "dir",
-      "ltr",
-    );
+    // Each line to type, with its Copy button, reads left to right.
+    for (const testId of [
+      "address-not-set-up-host-line",
+      "address-not-set-up-restart",
+    ]) {
+      expect(screen.getByTestId(testId).closest("[dir]")).toHaveAttribute(
+        "dir",
+        "ltr",
+      );
+      expect(screen.getByTestId(testId).closest("[dir]")).toContainElement(
+        screen.getByTestId(`${testId}-copy`),
+      );
+    }
   });
 
   test("and left to right in English", () => {
@@ -372,14 +447,14 @@ describe("the page", () => {
       }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
-        "You opened 203.0.113.5:8080, but this OneUptime is set up to open at localhost.",
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId("address-not-set-up-host-line")).toHaveValue(
+      screen.getByTestId("address-not-set-up-description").textContent,
+    ).toBe(
+      "You opened 203.0.113.5:8080, but this OneUptime is set up to open at localhost.",
+    );
+    expect(screen.getByTestId("address-not-set-up-host-line").textContent).toBe(
       "HOST=203.0.113.5:8080",
     );
-    expect(screen.getByTestId("address-not-set-up-restart")).toHaveTextContent(
+    expect(screen.getByTestId("address-not-set-up-restart").textContent).toBe(
       "npm start",
     );
     expect(screen.getByText(ENGLISH["helm"] as string)).toBeInTheDocument();
@@ -417,7 +492,7 @@ describe("the page", () => {
     expect(screen.getByTestId("address-not-set-up-domain")).toHaveTextContent(
       ENGLISH["domainSteps"] as string,
     );
-    expect(screen.getByTestId("address-not-set-up-host-line")).toHaveValue(
+    expect(screen.getByTestId("address-not-set-up-host-line").textContent).toBe(
       "HOST=status.example.com",
     );
   });
@@ -478,10 +553,8 @@ describe("the page", () => {
       }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
-        "status.example.com is not the address of a status page.",
-      ),
-    ).toBeInTheDocument();
+      screen.getByTestId("address-not-set-up-description").textContent,
+    ).toBe("status.example.com is not the address of a status page.");
     expect(screen.getByTestId("address-not-set-up-domain")).toBeInTheDocument();
     expect(document.body).not.toHaveTextContent("config.env");
     expect(document.body).not.toHaveTextContent("HOST");
@@ -500,16 +573,24 @@ describe("the page", () => {
     render(<AddressNotSetUp facts={factsFor({})} />);
 
     await act(async () => {
-      fireEvent.click(screen.getByTestId("address-not-set-up-copy"));
+      fireEvent.click(screen.getByTestId("address-not-set-up-host-line-copy"));
     });
 
     expect(copied).toEqual(["HOST=203.0.113.5:8080"]);
-    expect(screen.getByTestId("address-not-set-up-copy")).toHaveTextContent(
-      ENGLISH["copied"] as string,
-    );
     expect(
-      screen.queryByTestId("address-not-set-up-copy-failed"),
+      screen.getByTestId("address-not-set-up-host-line-copy"),
+    ).toHaveTextContent(ENGLISH["copied"] as string);
+    // Said to a screen reader too, as it happens.
+    expect(
+      screen.getByTestId("address-not-set-up-host-line-copy-status"),
+    ).toHaveTextContent(ENGLISH["copied"] as string);
+    expect(
+      screen.queryByTestId("address-not-set-up-host-line-copy-failed"),
     ).not.toBeInTheDocument();
+    // The other line keeps its own Copy.
+    expect(
+      screen.getByTestId("address-not-set-up-restart-copy"),
+    ).toHaveTextContent(ENGLISH["copy"] as string);
   });
 
   test("a browser that refuses to copy is said so, and the line is selected to copy by hand", async () => {
@@ -525,18 +606,26 @@ describe("the page", () => {
     render(<AddressNotSetUp facts={factsFor({})} />);
 
     await act(async () => {
-      fireEvent.click(screen.getByTestId("address-not-set-up-copy"));
+      fireEvent.click(screen.getByTestId("address-not-set-up-host-line-copy"));
     });
 
     expect(
-      screen.getByTestId("address-not-set-up-copy-failed"),
+      screen.getByTestId("address-not-set-up-host-line-copy-failed"),
     ).toHaveTextContent(ENGLISH["copyFailed"] as string);
-    expect(screen.getByTestId("address-not-set-up-copy")).toHaveTextContent(
-      ENGLISH["copy"] as string,
-    );
+    expect(
+      screen.getByTestId("address-not-set-up-host-line-copy"),
+    ).toHaveTextContent(ENGLISH["copy"] as string);
     expect(selected).toEqual([
       screen.getByTestId("address-not-set-up-host-line"),
     ]);
+    // The line is selected for the reader, so the page says so - not "select it".
+    expect(ENGLISH["copyFailed"]).toBe(
+      "Your browser didn't let this page copy the line. It's selected above, so you can copy it yourself.",
+    );
+    // Said under the line that failed, and no other.
+    expect(
+      screen.queryByTestId("address-not-set-up-restart-copy-failed"),
+    ).not.toBeInTheDocument();
   });
 
   const headingsOf: () => Array<string | null> = (): Array<string | null> => {
@@ -575,6 +664,204 @@ describe("the page", () => {
       ENGLISH["hostHeading"],
       ENGLISH["domainHeading"],
     ]);
+  });
+});
+
+describe("the lines to type, the addresses and the link", () => {
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+    directionForTest = "ltr";
+  });
+
+  test("every line to type has its own Copy button, which copies that line exactly", async () => {
+    const copied: Array<string> = [];
+
+    getJestSpyOn(Clipboard, "copyToClipboard").mockImplementation(
+      async (text: string): Promise<boolean> => {
+        copied.push(text);
+        return true;
+      },
+    );
+
+    // The HOST line and the command.
+    render(<AddressNotSetUp facts={factsFor({})} />);
+
+    for (const testId of [
+      "address-not-set-up-host-line",
+      "address-not-set-up-restart",
+    ]) {
+      await act(async () => {
+        fireEvent.click(screen.getByTestId(`${testId}-copy`));
+      });
+    }
+
+    expect(copied).toEqual(["HOST=203.0.113.5:8080", "npm start"]);
+
+    cleanup();
+
+    // The proxy lines.
+    render(
+      <AddressNotSetUp
+        facts={factsFor({
+          visitedHost: "oneuptime.example.com",
+          configuredHost: "oneuptime.example.com",
+        })}
+      />,
+    );
+
+    for (const entry of PASS_HOST_HEADER_LINES) {
+      await act(async () => {
+        fireEvent.click(
+          screen.getByTestId(
+            `address-not-set-up-proxy-${entry.proxy.toLowerCase()}-copy`,
+          ),
+        );
+      });
+    }
+
+    expect(copied.slice(2)).toEqual(
+      PASS_HOST_HEADER_LINES.map((entry: { line: string }): string => {
+        return entry.line;
+      }),
+    );
+  });
+
+  test("a Copy button is a real button, named Copy and described by the line it copies", () => {
+    render(<AddressNotSetUp facts={factsFor({})} />);
+
+    const buttons: Array<HTMLElement> = screen.getAllByRole("button", {
+      name: ENGLISH["copy"] as string,
+    });
+
+    expect(buttons).toHaveLength(2);
+
+    for (const button of buttons) {
+      expect(button).toHaveAttribute("type", "button");
+
+      const line: HTMLElement | null = document.getElementById(
+        button.getAttribute("aria-describedby") as string,
+      );
+
+      expect(line).not.toBeNull();
+      expect(line?.tagName).toBe("CODE");
+    }
+
+    expect(
+      buttons.map((button: HTMLElement) => {
+        return document.getElementById(
+          button.getAttribute("aria-describedby") as string,
+        )?.textContent;
+      }),
+    ).toEqual(["HOST=203.0.113.5:8080", "npm start"]);
+  });
+
+  test("a long address is drawn whole, breaking between its parts, and nothing is added to the line", () => {
+    const visitedHost: string =
+      "observability-monitoring.eu-west-production.internal.example-corporation.co.uk:8443";
+
+    render(<AddressNotSetUp facts={factsFor({ visitedHost })} />);
+
+    const line: HTMLElement = screen.getByTestId(
+      "address-not-set-up-host-line",
+    );
+
+    // Not a field that scrolls its end out of sight: the whole line, as text.
+    expect(line.tagName).toBe("CODE");
+    expect(line.textContent).toBe(`HOST=${visitedHost}`);
+    expect(line.className).toContain("break-words");
+    expect(line.className).toContain("select-all");
+    // A place to break after "=", each "." and "-", and the ":" before the port.
+    expect(line.querySelectorAll("wbr")).toHaveLength(11);
+  });
+
+  test("the addresses in the sentence are drawn apart from its words", () => {
+    render(
+      <AddressNotSetUp
+        facts={factsFor({
+          visitedHost: "status.example.com",
+          configuredHost: "oneuptime.example.com",
+        })}
+      />,
+    );
+
+    const visited: HTMLElement = screen.getByTestId(
+      "address-not-set-up-visited",
+    );
+    const configured: HTMLElement = screen.getByTestId(
+      "address-not-set-up-configured",
+    );
+
+    expect(visited.textContent).toBe("status.example.com");
+    expect(configured.textContent).toBe("oneuptime.example.com");
+
+    for (const value of [visited, configured]) {
+      expect(value.className).toContain("font-medium");
+      expect(value.className).toContain("text-gray-900");
+      expect(
+        screen.getByTestId("address-not-set-up-description"),
+      ).toContainElement(value);
+    }
+
+    // No mark is left in what is drawn.
+    expect(document.body.textContent).not.toContain(VALUE_MARK);
+  });
+
+  test("the browser's tab says the page's title, and its own title again once the page is gone", () => {
+    document.title = "Status Page";
+
+    const { unmount } = render(<AddressNotSetUp facts={factsFor({})} />);
+
+    expect(document.title).toBe(ENGLISH["title"]);
+
+    unmount();
+
+    expect(document.title).toBe("Status Page");
+  });
+
+  test("the link to where OneUptime opens keeps its arrow by its last word, pointing the way the language reads", () => {
+    render(
+      <AddressNotSetUp
+        facts={factsFor({
+          visitedHost: "status.example.com",
+          configuredHost: "oneuptime.example.com",
+        })}
+      />,
+    );
+
+    const link: HTMLElement = screen.getByTestId(
+      "address-not-set-up-open-configured",
+    );
+    const arrow: HTMLElement = screen.getByTestId(
+      "address-not-set-up-open-configured-chevron",
+    );
+
+    // In the link's own line of text, not a box beside a wrapped block.
+    expect(link).toContainElement(arrow);
+    expect(arrow.tagName.toLowerCase()).toBe("svg");
+    expect(arrow.getAttribute("class")).toContain("inline-block");
+    expect(arrow.getAttribute("class")).toContain("rtl:rotate-180");
+    expect(arrow).toHaveAttribute("aria-hidden", "true");
+    expect(link.className).not.toContain("flex");
+    // A keyboard reader sees where it is.
+    expect(link.className).toContain("focus-visible:outline");
+    expect(link).toHaveAccessibleName(
+      "Open OneUptime at oneuptime.example.com",
+    );
+  });
+
+  test("the steps' numbers are for the eye: the list itself tells a screen reader the order", () => {
+    render(<AddressNotSetUp facts={factsFor({})} />);
+
+    const steps: Array<HTMLElement> = screen.getAllByRole("listitem");
+
+    expect(steps).toHaveLength(2);
+
+    for (const step of steps) {
+      expect(step.querySelector("[aria-hidden='true']")?.textContent).toMatch(
+        STEP_NUMBER,
+      );
+    }
   });
 });
 
@@ -652,14 +939,14 @@ describe("the master page, at an address with no status page", () => {
     expect(lookedUp[0]!.url).toContain("/domain");
     expect(lookedUp[0]!.data).toEqual({ domain: "203.0.113.5" });
 
-    expect(screen.getByTestId("address-not-set-up-host-line")).toHaveValue(
+    expect(screen.getByTestId("address-not-set-up-host-line").textContent).toBe(
       "HOST=203.0.113.5:8080",
     );
     expect(
-      screen.getByText(
-        "You opened 203.0.113.5:8080, but this OneUptime is set up to open at localhost.",
-      ),
-    ).toBeInTheDocument();
+      screen.getByTestId("address-not-set-up-description").textContent,
+    ).toBe(
+      "You opened 203.0.113.5:8080, but this OneUptime is set up to open at localhost.",
+    );
     expect(document.body).not.toHaveTextContent("Status Page ID not found");
     expect(document.body).not.toHaveTextContent("Status page content");
   });
@@ -679,10 +966,32 @@ describe("the master page, at an address with no status page", () => {
     expect(document.body).not.toHaveTextContent("config.env");
   });
 
+  test("a 404 is the same answer as the API's 400: the page explains", async () => {
+    answer = async () => {
+      return new HTTPErrorResponse(404, { error: "Not found" }, {});
+    };
+
+    await renderMasterPage();
+
+    expect(
+      await screen.findByTestId("status-page-address-not-set-up"),
+    ).toBeInTheDocument();
+  });
+
   test("a lookup that failed, rather than answered, keeps the generic error", async () => {
     for (const failure of [
       async (): Promise<HTTPErrorResponse> => {
         return new HTTPErrorResponse(502, { error: "Bad Gateway" }, {});
+      },
+      // A firewall, an expired session or a rate limit in front of a real status page.
+      async (): Promise<HTTPErrorResponse> => {
+        return new HTTPErrorResponse(401, { error: "Unauthorized" }, {});
+      },
+      async (): Promise<HTTPErrorResponse> => {
+        return new HTTPErrorResponse(403, { error: "Forbidden" }, {});
+      },
+      async (): Promise<HTTPErrorResponse> => {
+        return new HTTPErrorResponse(429, { error: "Too Many Requests" }, {});
       },
       async (): Promise<HTTPErrorResponse> => {
         throw new Error("Network Error");
@@ -751,6 +1060,77 @@ describe("the page's words in every language", () => {
       expect(strings["helm"]).toContain("Helm");
       for (const name of ["Caddy", "Nginx", "Apache"]) {
         expect(strings["proxySteps"]).toContain(name);
+      }
+    },
+  );
+
+  test.each(LANGUAGES)(
+    "%s keeps each address of its sentences whole, to be drawn apart from the words",
+    (language: string) => {
+      const strings: Record<string, string> = readLocale(
+        LOCALES_DIR,
+        `${language}.json`,
+      )["errors"]["addressNotSetUp"] as Record<string, string>;
+      const names: Array<string> = ["visited", "configured"];
+      const marked: Record<string, string> = markedValues(names);
+      const real: Record<string, string> = {
+        visited: "203.0.113.5:8080",
+        configured: "oneuptime.example.com",
+      };
+
+      for (const key of [
+        "description",
+        "proxyDescription",
+        "noPageDescription",
+      ]) {
+        const template: string = strings[key] as string;
+        const interpolate: (values: Record<string, string>) => string = (
+          values: Record<string, string>,
+        ): string => {
+          let text: string = template;
+
+          for (const name of names) {
+            text = text.split(`{{${name}}}`).join(values[name] as string);
+          }
+
+          return text;
+        };
+        const pieces: Array<SentencePiece> = sentencePieces(
+          interpolate(marked),
+          names,
+        );
+
+        // Each value the sentence names comes back as itself, in its place.
+        expect({
+          key,
+          values: pieces
+            .filter((piece: SentencePiece): boolean => {
+              return Boolean(piece.value);
+            })
+            .map((piece: SentencePiece): string => {
+              return piece.value as string;
+            })
+            .sort(),
+        }).toEqual({
+          key,
+          values: names
+            .filter((name: string): boolean => {
+              return template.includes(`{{${name}}}`);
+            })
+            .sort(),
+        });
+
+        // Put back together, it reads as the sentence with its values.
+        expect({
+          key,
+          sentence: pieces
+            .map((piece: SentencePiece): string => {
+              return piece.value
+                ? (real[piece.value] as string)
+                : piece.text || "";
+            })
+            .join(""),
+        }).toEqual({ key, sentence: interpolate(real) });
       }
     },
   );

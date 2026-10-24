@@ -168,10 +168,35 @@ const followIngressPort = (contents) => {
   };
 };
 
+/*
+ * What the moved settings belong to, as the line names it: "the bundled
+ * probe", "the bundled probes", "the bundled Runner", "the bundled probe and
+ * Runner"...
+ */
+const movedServicesOf = (moved) => {
+  const probes = moved.filter((key) => {
+    return key.indexOf("_PROBE_") !== -1;
+  }).length;
+  const hasRunner = moved.some((key) => {
+    return key.indexOf("_RUNNER_") !== -1;
+  });
+  const names = [];
+
+  if (probes > 0) {
+    names.push(probes === 1 ? "probe" : "probes");
+  }
+
+  if (hasRunner) {
+    names.push("Runner");
+  }
+
+  return `the bundled ${listed(names)}`;
+};
+
 // The line printed when followIngressPort moved something.
 const describeMoved = (moved, url) => {
   return ok(
-    `The bundled probe and Runner reach OneUptime where its ingress is: ${listed(moved)} ${moved.length === 1 ? "is" : "are"} now ${url} in config.env.`,
+    `Pointed ${movedServicesOf(moved)} at the ingress: ${listed(moved)} ${moved.length === 1 ? "is" : "are"} now ${url} in config.env.`,
   );
 };
 

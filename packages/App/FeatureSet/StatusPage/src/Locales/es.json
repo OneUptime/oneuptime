@@ -359,7 +359,7 @@
       "noPageDescription": "{{visited}} no es la dirección de una página de estado.",
       "copy": "Copiar",
       "copied": "¡Copiado!",
-      "copyFailed": "Tu navegador no ha permitido que esta página copie la línea. Selecciónala y cópiala tú."
+      "copyFailed": "Tu navegador no ha permitido que esta página copie la línea. Está seleccionada arriba para que puedas copiarla."
     }
   },
   "footer": {

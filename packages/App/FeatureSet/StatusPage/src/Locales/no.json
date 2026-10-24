@@ -359,7 +359,7 @@
       "noPageDescription": "{{visited}} er ikke adressen til en statusside.",
       "copy": "Kopier",
       "copied": "Kopiert!",
-      "copyFailed": "Nettleseren din lot ikke denne siden kopiere linjen. Merk den og kopier den selv."
+      "copyFailed": "Nettleseren din lot ikke denne siden kopiere linjen. Den er markert ovenfor, så du kan kopiere den selv."
     }
   },
   "footer": {

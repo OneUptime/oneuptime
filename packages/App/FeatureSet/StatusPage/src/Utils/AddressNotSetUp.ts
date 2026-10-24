@@ -166,6 +166,74 @@ export const getAddressNotSetUpFacts: (
 };
 
 /*
+ * The answers of the API's "which status page has this domain?" that mean
+ * none has it: 400, the one it gives ("No status page found with this
+ * domain"), and 404. Any other status - a 401, 403 or 429 from a firewall or
+ * a rate limit in front of OneUptime, a 5xx - is a request that failed, and
+ * keeps the generic error: telling the visitors of a real status page that
+ * nothing is set up at its address would send its owner the wrong way.
+ */
+export const NO_STATUS_PAGE_STATUS_CODES: ReadonlyArray<number> = [400, 404];
+
+export const isNoStatusPageAnswer: (statusCode: number) => boolean = (
+  statusCode: number,
+): boolean => {
+  return NO_STATUS_PAGE_STATUS_CODES.includes(statusCode);
+};
+
+/*
+ * The page draws the addresses in its sentences apart from the words around
+ * them, in every language. Each sentence is translated with a mark around
+ * each value (markedValues) - a character no translation and no address
+ * holds - and cut at the marks (sentencePieces), so a translation keeps its
+ * own word order and the page draws each value as it likes.
+ */
+export const VALUE_MARK: string = "⁣";
+
+export const markedValues: (
+  names: ReadonlyArray<string>,
+) => Record<string, string> = (
+  names: ReadonlyArray<string>,
+): Record<string, string> => {
+  const values: Record<string, string> = {};
+
+  for (const name of names) {
+    values[name] = `${VALUE_MARK}${name}${VALUE_MARK}`;
+  }
+
+  return values;
+};
+
+export interface SentencePiece {
+  // The words, or the name of the value that stands here.
+  text?: string | undefined;
+  value?: string | undefined;
+}
+
+export const sentencePieces: (
+  sentence: string,
+  names: ReadonlyArray<string>,
+) => Array<SentencePiece> = (
+  sentence: string,
+  names: ReadonlyArray<string>,
+): Array<SentencePiece> => {
+  const pieces: Array<SentencePiece> = [];
+
+  sentence.split(VALUE_MARK).forEach((part: string, index: number) => {
+    if (index % 2 === 1 && names.includes(part)) {
+      pieces.push({ value: part });
+      return;
+    }
+
+    if (part) {
+      pieces.push({ text: part });
+    }
+  });
+
+  return pieces;
+};
+
+/*
  * Thrown by the master page when the API answers that no status page has the
  * domain the page was opened at - an answer, unlike a request that failed.
  */

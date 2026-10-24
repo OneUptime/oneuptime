@@ -359,7 +359,7 @@
       "noPageDescription": "{{visited}} não é o endereço de uma página de status.",
       "copy": "Copiar",
       "copied": "Copiado!",
-      "copyFailed": "O seu navegador não deixou esta página copiar a linha. Selecione-a e copie-a você mesmo."
+      "copyFailed": "O seu navegador não deixou esta página copiar a linha. Está selecionada acima, para que a possa copiar."
     }
   },
   "footer": {

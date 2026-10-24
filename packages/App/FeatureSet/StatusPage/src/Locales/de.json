@@ -359,7 +359,7 @@
       "noPageDescription": "{{visited}} ist nicht die Adresse einer Statusseite.",
       "copy": "Kopieren",
       "copied": "Kopiert!",
-      "copyFailed": "Ihr Browser hat das Kopieren der Zeile nicht zugelassen. Markieren Sie sie und kopieren Sie sie selbst."
+      "copyFailed": "Ihr Browser hat das Kopieren der Zeile nicht zugelassen. Die Zeile ist oben markiert, sodass Sie sie selbst kopieren können."
     }
   },
   "footer": {

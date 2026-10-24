@@ -17,6 +17,7 @@ import {
   AddressNotSetUpError,
   AddressNotSetUpFacts,
   getAddressNotSetUpFacts,
+  isNoStatusPageAnswer,
 } from "../../Utils/AddressNotSetUp";
 import AddressNotSetUp from "../AddressNotSetUp/AddressNotSetUp";
 import Banner from "../Banner/Banner";
@@ -248,12 +249,12 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
     /*
      * The API answered that no status page has this domain - an answer, not
-     * a failed request, which keeps the generic error below.
+     * a failed request (a firewall's 403, a rate limit's 429), which keeps
+     * the generic error below.
      */
     if (
       response instanceof HTTPErrorResponse &&
-      response.statusCode >= 400 &&
-      response.statusCode < 500
+      isNoStatusPageAnswer(response.statusCode)
     ) {
       throw new AddressNotSetUpError();
     }

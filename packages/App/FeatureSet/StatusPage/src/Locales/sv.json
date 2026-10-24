@@ -359,7 +359,7 @@
       "noPageDescription": "{{visited}} är inte adressen till en statussida.",
       "copy": "Kopiera",
       "copied": "Kopierat!",
-      "copyFailed": "Din webbläsare lät inte sidan kopiera raden. Markera den och kopiera den själv."
+      "copyFailed": "Din webbläsare lät inte sidan kopiera raden. Den är markerad ovan så att du kan kopiera den själv."
     }
   },
   "footer": {

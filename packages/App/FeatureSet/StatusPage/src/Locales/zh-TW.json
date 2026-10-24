@@ -359,7 +359,7 @@
       "noPageDescription": "{{visited}} 不是狀態頁的位址。",
       "copy": "複製",
       "copied": "已複製！",
-      "copyFailed": "您的瀏覽器不允許此頁面複製這一行。請選取它並自行複製。"
+      "copyFailed": "您的瀏覽器不允許此頁面複製這一行。這一行已在上方選取，您可以自行複製。"
     }
   },
   "footer": {

@@ -359,7 +359,7 @@
       "noPageDescription": "{{visited}} is niet het adres van een statuspagina.",
       "copy": "Kopiëren",
       "copied": "Gekopieerd!",
-      "copyFailed": "Je browser liet deze pagina de regel niet kopiëren. Selecteer hem en kopieer hem zelf."
+      "copyFailed": "Je browser liet deze pagina de regel niet kopiëren. Hij is hierboven geselecteerd, zodat je hem zelf kunt kopiëren."
     }
   },
   "footer": {

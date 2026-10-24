@@ -93,7 +93,7 @@ if [ -z "$HOST_TO_CHECK" ]; then
     HOST_TO_CHECK=$(ingress_address)
 fi
 
-echo "⏳ Waiting for OneUptime to answer at ${HOST_TO_CHECK}. The first start takes a few minutes: Docker downloads the images and OneUptime creates its databases."
+echo "⏳ Waiting for OneUptime to answer at ${HOST_TO_CHECK}. The first start takes a few minutes, while OneUptime sets up its databases."
 echo ""
 
 

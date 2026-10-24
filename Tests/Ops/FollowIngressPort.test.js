@@ -216,11 +216,45 @@ describe("followIngressPort on config.env", () => {
         "http://localhost:8080",
       ),
     ).toBe(
-      "  ✓ The bundled probe and Runner reach OneUptime where its ingress is: GLOBAL_PROBE_1_ONEUPTIME_URL and ONEUPTIME_RUNNER_ONEUPTIME_URL are now http://localhost:8080 in config.env.",
+      "  ✓ Pointed the bundled probe and Runner at the ingress: GLOBAL_PROBE_1_ONEUPTIME_URL and ONEUPTIME_RUNNER_ONEUPTIME_URL are now http://localhost:8080 in config.env.",
     );
     expect(
       describeMoved(["GLOBAL_PROBE_1_ONEUPTIME_URL"], "http://localhost:8080"),
     ).toContain("GLOBAL_PROBE_1_ONEUPTIME_URL is now http://localhost:8080");
+  });
+
+  test("it names what it moved: the probe, the probes, the Runner, or them together", () => {
+    const subjectOf = (moved) => {
+      const line = describeMoved(moved, "http://localhost:8080");
+
+      return line.slice(line.indexOf("Pointed ") + 8, line.indexOf(" at the"));
+    };
+
+    expect(subjectOf(["GLOBAL_PROBE_1_ONEUPTIME_URL"])).toBe(
+      "the bundled probe",
+    );
+    expect(
+      subjectOf([
+        "GLOBAL_PROBE_1_ONEUPTIME_URL",
+        "GLOBAL_PROBE_2_ONEUPTIME_URL",
+      ]),
+    ).toBe("the bundled probes");
+    expect(subjectOf(["ONEUPTIME_RUNNER_ONEUPTIME_URL"])).toBe(
+      "the bundled Runner",
+    );
+    expect(subjectOf(BUNDLED_URL_SETTINGS)).toBe(
+      "the bundled probes and Runner",
+    );
+    // A fresh config.example.env moves all three, and says so in those words.
+    expect(
+      describeMoved(
+        followIngressPort(withSetting(TEMPLATE, "ONEUPTIME_HTTP_PORT", "8080"))
+          .moved,
+        "http://localhost:8080",
+      ),
+    ).toBe(
+      "  ✓ Pointed the bundled probes and Runner at the ingress: GLOBAL_PROBE_1_ONEUPTIME_URL, GLOBAL_PROBE_2_ONEUPTIME_URL and ONEUPTIME_RUNNER_ONEUPTIME_URL are now http://localhost:8080 in config.env.",
+    );
   });
 });
 

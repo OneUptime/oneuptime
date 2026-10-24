@@ -359,7 +359,7 @@
       "noPageDescription": "{{visited}} 不是状态页的地址。",
       "copy": "复制",
       "copied": "已复制！",
-      "copyFailed": "您的浏览器不允许此页面复制这一行。请选中它并自行复制。"
+      "copyFailed": "您的浏览器不允许此页面复制这一行。这一行已在上方选中，您可以自行复制。"
     }
   },
   "footer": {
