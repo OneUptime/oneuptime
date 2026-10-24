@@ -242,6 +242,57 @@ describe("books.ejs", () => {
     );
   });
 
+  /*
+   * "Read the book" is drawn as the marketing site's primary action - the
+   * home page hero's "Get started free" - in colour, shape and weight. The
+   * release E2E (E2E Tests/Home/Books.spec.ts) compares the two computed
+   * styles in a browser, but runs only when a release is cut; this holds
+   * the classes behind them on every commit, so restyling one is caught
+   * with the other.
+   */
+  test("the primary action wears the home page's primary action colour, shape and weight", () => {
+    const STYLE_CLASS: RegExp =
+      /^(bg-[a-z]+-\d+|rounded(-[a-z0-9]+)?|text-(white|black|[a-z]+-\d+)|font-(thin|extralight|light|normal|medium|semibold|bold|extrabold|black))$/;
+
+    const styleClassesOf: (attributes: string) => Array<string> = (
+      attributes: string,
+    ): Array<string> => {
+      return (attributeValue(attributes, "class") || "")
+        .split(/\s+/)
+        .filter((name: string): boolean => {
+          return STYLE_CLASS.test(name);
+        })
+        .sort();
+    };
+
+    const hero: string = fs.readFileSync(
+      path.join(VIEWS_ROOT, "Partials", "home-hero.ejs"),
+      "utf8",
+    );
+    const getStarted: Array<RenderedElement> = elementsIn(hero, "a").filter(
+      (anchor: RenderedElement): boolean => {
+        return textIn(anchor.body) === "Get started free";
+      },
+    );
+    const readTheBook: Array<RenderedElement> = linkedElements(
+      main,
+      BOOK_URL,
+    ).filter((anchor: RenderedElement): boolean => {
+      return textIn(anchor.body) === "Read the book";
+    });
+
+    expect(getStarted).toHaveLength(1);
+    expect(readTheBook).toHaveLength(1);
+
+    const homePrimary: Array<string> = styleClassesOf(
+      getStarted[0]!.attributes,
+    );
+
+    // One colour, one corner radius, one text colour and one weight each.
+    expect(homePrimary).toHaveLength(4);
+    expect(styleClassesOf(readTheBook[0]!.attributes)).toEqual(homePrimary);
+  });
+
   test("the explore action points to the contents on this page", () => {
     const exploreLinks: Array<RenderedElement> = linkedElements(
       main,
