@@ -791,7 +791,10 @@ export default class TraceProblemDetector {
       );
       const reading: FailedSpansReading = readFailedSpans(samples);
 
-      if (reading.verdict === TraceFailureVerdict.Expected) {
+      if (
+        reading.verdict === TraceFailureVerdict.Expected ||
+        reading.verdict === TraceFailureVerdict.Unread
+      ) {
         continue;
       }
 

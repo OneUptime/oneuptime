@@ -44,8 +44,9 @@ import {
  * fix slow code"), and AI rules under More settings narrow it, in the
  * shape the incidents' have: Match, Investigate, Fix.
  *
- * Traces, Exceptions, Logs and Metrics add a lane to TelemetryAiLane and
- * their words here; the pages are the lane's.
+ * Traces is the second lane: an AI tab among its tabs, with the same three
+ * pages under a side menu of its own. Exceptions, Logs and Metrics add a
+ * lane to TelemetryAiLane and their words here; the pages are the lane's.
  */
 
 // The pages of a lane's AI section.
@@ -64,6 +65,12 @@ export const TELEMETRY_AI_PAGES: Readonly<
     insightView: PageMap.PROFILES_AI_INSIGHT_VIEW,
     logs: PageMap.PROFILES_AI_LOGS,
     settings: PageMap.PROFILES_AI_SETTINGS,
+  },
+  [TelemetryAiLane.Trace]: {
+    insights: PageMap.TRACES_AI_INSIGHTS,
+    insightView: PageMap.TRACES_AI_INSIGHT_VIEW,
+    logs: PageMap.TRACES_AI_LOGS,
+    settings: PageMap.TRACES_AI_SETTINGS,
   },
 };
 
@@ -189,6 +196,85 @@ export const TELEMETRY_AI_LANE_COPY: Readonly<
       ),
     },
   },
+  /*
+   * Traces: slow operations, failing operations and missing tracing
+   * (Common/Utils/Traces/TraceInsight) - "problems in your traces" where
+   * all three are meant, and each by its name where one is. A failing
+   * operation's pull request opens on its own only once the investigation
+   * finds the code at fault: the Fix step's answer says so.
+   */
+  [TelemetryAiLane.Trace]: {
+    noticeContext: ProjectAiNoticeContext.Traces,
+    ruleCriteriaSubject: RuleCriteriaSubject.Services,
+
+    insightsIntro: translationKey(
+      "Every hour OneUptime looks through your services' traces for operations that are slow, that fail, or whose traces cannot say why, and files what it finds here with the evidence. OneUptime AI looks into each finding and opens a pull request to fix it, as your AI settings say.",
+    ),
+    insightsEmptyTitle: translationKey("No slow or failing operations found"),
+    insightsEmptyDescription: translationKey(
+      "Every hour OneUptime looks through your services' traces and files a finding when an operation is slow, fails, or lacks the tracing to say why.",
+    ),
+    insightsOffEmptyTitle: translationKey(
+      "OneUptime is not looking for slow and failing operations",
+    ),
+    insightsOffEmptyDescription: translationKey(
+      "Turn on 'Find and fix slow and failing operations' in AI Settings, and OneUptime looks through your services' traces every hour.",
+    ),
+
+    logsIntro: translationKey(
+      "Everything OneUptime AI did with the problems it found in your traces, newest first: each investigation, and each pull request it opened or was asked to open.",
+    ),
+    logsEmptyTitle: translationKey("Nothing yet"),
+    logsEmptyDescription: translationKey(
+      "When OneUptime AI looks into a problem in your traces or opens a pull request for it, it shows up here.",
+    ),
+
+    switchesCardDescription: translationKey(
+      "It works on slow and failing operations in your traces on its own. Turn it off if you do not want it to.",
+    ),
+    advancedDescription: translationKey(
+      "Which services' operations OneUptime AI works on, when, and whether it opens pull requests on its own.",
+    ),
+    advancedDefaultsSummary: translationKey(
+      "OneUptime AI looks into every problem it finds in your traces right away, and opens a pull request for each.",
+    ),
+    rulesCardDescription: translationKey(
+      "With no rule, OneUptime AI looks into every problem it finds in your traces right away, and opens a pull request for each. Add rules to choose which services it works on, when, and how each is fixed.",
+    ),
+    noRulesMessage: translationKey(
+      "No rules. Every problem found in your traces is looked into, and a pull request opened for it.",
+    ),
+
+    ruleNamePlaceholder: translationKey("Checkout services"),
+    waitDescription: translationKey(
+      "Counted from when the problem was first found. When several rules match, the shortest wait decides. At most 1440 (a day).",
+    ),
+    timing: {
+      [InvestigationRuleTiming.RightAway]: {
+        title: translationKey("Right away"),
+        description: translationKey(
+          "OneUptime AI starts as soon as the problem is found.",
+        ),
+      },
+      [InvestigationRuleTiming.AfterWait]: {
+        title: translationKey("Only if still found after a wait"),
+        description: translationKey(
+          "A problem that goes away during the wait is not looked into.",
+        ),
+      },
+    },
+    fixOptionDescriptions: {
+      [AiRuleFix.DoNotFix]: translationKey(
+        "OneUptime AI looks into the problem and writes what it found on the finding. It opens no pull request.",
+      ),
+      [AiRuleFix.AskFirst]: translationKey(
+        "The finding offers the pull request, and someone opens it with one click.",
+      ),
+      [AiRuleFix.WithoutAsking]: translationKey(
+        "OneUptime AI opens the pull request on its own, for a failing operation once it finds the code at fault. Nothing is ever merged.",
+      ),
+    },
+  },
 };
 
 /*
@@ -219,6 +305,15 @@ export const TELEMETRY_AI_INSIGHTS_SCOPES: Readonly<
     emptyDescription:
       TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Profile].insightsEmptyDescription,
   },
+  [TelemetryAiLane.Trace]: {
+    insightTypes: TELEMETRY_AI_LANES[TelemetryAiLane.Trace].insightTypes,
+    viewPage: TELEMETRY_AI_PAGES[TelemetryAiLane.Trace].insightView,
+    settingsPage: TELEMETRY_AI_PAGES[TelemetryAiLane.Trace].settings,
+    intro: TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Trace].insightsIntro,
+    emptyTitle: TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Trace].insightsEmptyTitle,
+    emptyDescription:
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Trace].insightsEmptyDescription,
+  },
 };
 
 /*
@@ -235,6 +330,13 @@ export const TELEMETRY_AI_INSIGHTS_SCOPES_WHILE_OFF: Readonly<
     emptyDescription:
       TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Profile]
         .insightsOffEmptyDescription,
+  },
+  [TelemetryAiLane.Trace]: {
+    ...TELEMETRY_AI_INSIGHTS_SCOPES[TelemetryAiLane.Trace],
+    emptyTitle:
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Trace].insightsOffEmptyTitle,
+    emptyDescription:
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Trace].insightsOffEmptyDescription,
   },
 };
 
@@ -266,6 +368,16 @@ export const TELEMETRY_AI_SWITCHES: Readonly<
       title: translationKey("Find and fix slow code"),
       description: translationKey(
         "Every hour OneUptime looks through your profiles for slow code. OneUptime AI looks into what it finds and opens a pull request to fix it.",
+      ),
+      note: translationKey("Needs a repository connected in Code."),
+    },
+  ],
+  [TelemetryAiLane.Trace]: [
+    {
+      column: "enableAutomaticTraceRemediation",
+      title: translationKey("Find and fix slow and failing operations"),
+      description: translationKey(
+        "Every hour OneUptime looks through your traces for slow and failing operations and missing tracing. OneUptime AI opens a pull request to fix each.",
       ),
       note: translationKey("Needs a repository connected in Code."),
     },

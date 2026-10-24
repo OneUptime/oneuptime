@@ -15,6 +15,9 @@ const getActiveTracesTab: (path: string) => TracesTabKey = (
   if (path.includes("/traces/settings")) {
     return "settings";
   }
+  if (path.includes("/traces/ai/")) {
+    return "ai";
+  }
   if (path.includes("/traces/insights")) {
     return "insights";
   }

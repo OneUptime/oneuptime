@@ -660,6 +660,11 @@ export interface FailedSpanSample {
 }
 
 export enum TraceFailureVerdict {
+  /*
+   * No failed span could be read (they aged out between the two reads):
+   * nothing is known, so nothing is filed.
+   */
+  Unread = "Unread",
   // The failures say why: a Failing operation.
   Described = "Described",
   // They say nothing about why: missing tracing (SilentFailures).
@@ -698,17 +703,17 @@ export function getFailureKey(sample: FailedSpanSample): string {
 }
 
 /*
- * What an operation's most recent failures say, newest first: Expected when
- * each recorded only a fault (and no exception), Silent when none says why,
- * else Described, with the error the most of them failed with (the newest
- * of those on a tie).
+ * What an operation's most recent failures say, newest first: Unread when
+ * there are none to read, Expected when each recorded only a fault (and no
+ * exception), Silent when none says why, else Described, with the error the
+ * most of them failed with (the newest of those on a tie).
  */
 export function readFailedSpans(
   samples: ReadonlyArray<FailedSpanSample>,
 ): FailedSpansReading {
   if (samples.length === 0) {
     return {
-      verdict: TraceFailureVerdict.Silent,
+      verdict: TraceFailureVerdict.Unread,
       error: null,
       sample: null,
     };

@@ -21,6 +21,8 @@ import {
   getProfileInsightFixRequest,
   getProfileInsightMonitorRoute,
 } from "../../../Components/TelemetryAi/ProfileInsightFixRequest";
+import TelemetryAiFixStrip from "../../../Components/TelemetryAi/TelemetryAiFixStrip";
+import { doesInsightOfferTelemetryAiFix } from "../../../Components/TelemetryAi/TelemetryAiFixCopy";
 import ChatActivityFeed from "../../../Components/AIChat/ChatActivityFeed";
 import ServiceElement from "../../../Components/Service/ServiceElement";
 import {
@@ -542,6 +544,7 @@ const AIInsightViewPage: FunctionComponent<
       lastSeenAt: insight.lastSeenAt,
       spikeWindowMinutes: insight.evidence?.logSpike?.windowMinutes,
       profile: insight.evidence?.profile,
+      trace: insight.evidence?.trace,
     });
   }, [insight, serviceIdString, telemetryExceptionId]);
 
@@ -1107,6 +1110,30 @@ const AIInsightViewPage: FunctionComponent<
               insightId={modelId.toString()}
               // The page already says what was found, twice.
               isFindingShown={false}
+              onTaskStarted={() => {
+                fetchInsight().catch(() => {
+                  // handled inside fetchInsight
+                });
+              }}
+            />
+          ) : (
+            <></>
+          )}
+
+          {/*
+           * A slow, failing or under-traced operation with no fix yet:
+           * "Fix with AI" - the pull request OneUptime AI would open on its
+           * own, what an AI rule that asks before fixing leaves to a person.
+           * The task names this finding, and the finding links the task.
+           */}
+          {doesInsightOfferTelemetryAiFix({
+            insightType: insight.insightType,
+            status: status,
+            fixAiRunId: insight.fixAiRunId,
+          }) ? (
+            <TelemetryAiFixStrip
+              insightId={modelId.toString()}
+              insightType={insight.insightType}
               onTaskStarted={() => {
                 fetchInsight().catch(() => {
                   // handled inside fetchInsight
