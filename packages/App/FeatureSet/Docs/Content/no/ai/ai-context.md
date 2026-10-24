@@ -67,7 +67,7 @@ En AI-regel kan ha egne notater om hendelsene eller varslene den samsvarer med: 
 | Utkast til etteranalyser, for hendelser og episoder | Prosjektets notater |
 | Triage i AI Insights og triage av sikkerhetssaker | Prosjektets notater |
 
-Kall som bare omformulerer eller vurderer det de får, leser den ikke: utkast til notater og offentlige notater, sammendrag av samtaler, en undersøkelses sammendrag, hvor sikker den er og karakteren dens, og tittelen på en samtale. Det gjør heller ikke promptene folk skriver selv, i AI-trinnet i en arbeidsflyt.
+Kall som bare omformulerer eller vurderer det de får, leser den ikke: utkast til notater og offentlige notater, sammendrag av samtaler, en undersøkelses sammendrag, hvor sikker den er og karakteren dens, og tittelen på en samtale. Det gjør heller ikke promptene folk skriver selv, i AI-trinnet i en arbeidsflyt eller en runbook.
 
 ## Grenser
 

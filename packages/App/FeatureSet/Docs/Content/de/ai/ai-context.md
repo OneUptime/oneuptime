@@ -67,7 +67,7 @@ Eine KI-Regel kann eigene Notizen zu den Vorfällen oder Warnungen haben, die si
 | Postmortem-Entwürfe, für Vorfälle und Episoden | Die Notizen des Projekts |
 | Die Triage von AI Insights und von Sicherheitsfällen | Die Notizen des Projekts |
 
-Aufrufe, die nur umformulieren oder bewerten, was sie bekommen, lesen ihn nicht: Entwürfe von Notizen und öffentlichen Notizen, Anrufzusammenfassungen, die Zusammenfassung, Zuversicht und Bewertung einer Untersuchung und der Titel eines Gesprächs. Ebenso wenig die Prompts, die Menschen selbst schreiben, im KI-Schritt eines Workflows.
+Aufrufe, die nur umformulieren oder bewerten, was sie bekommen, lesen ihn nicht: Entwürfe von Notizen und öffentlichen Notizen, Anrufzusammenfassungen, die Zusammenfassung, Zuversicht und Bewertung einer Untersuchung und der Titel eines Gesprächs. Ebenso wenig die Prompts, die Menschen selbst schreiben, im KI-Schritt eines Workflows oder eines Runbooks.
 
 ## Grenzen
 

@@ -3278,10 +3278,9 @@ test.describe("a rule's AI context", () => {
         .getByRole("button", { name: GERMAN["Edit"] || "Edit", exact: true }),
     );
     await openStep(dialog, GERMAN["Fix"] || "Fix");
+    // The fold's button starts with its title, then says what it holds.
     await dialog
-      .getByRole("button", {
-        name: new RegExp(GERMAN["More fields"] || "More fields"),
-      })
+      .getByRole("button", { name: GERMAN["More fields"] || "More fields" })
       .click();
 
     await expect(aiContextEditor(dialog)).toBeVisible();

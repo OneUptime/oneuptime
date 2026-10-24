@@ -67,7 +67,7 @@ Una regola IA può avere note proprie sugli incidenti o sugli avvisi a cui corri
 | Le bozze di post-mortem, per incidenti ed episodi | Le note del progetto |
 | La classificazione in AI Insights e quella dei casi di sicurezza | Le note del progetto |
 
-Le chiamate che si limitano a riformulare o giudicare ciò che ricevono non lo leggono: le bozze di note e di note pubbliche, i riepiloghi delle chiamate, il riepilogo, la fiducia e il voto di un'indagine, e il titolo di una conversazione. Nemmeno i prompt che le persone scrivono da sé, nel passaggio IA di un workflow.
+Le chiamate che si limitano a riformulare o giudicare ciò che ricevono non lo leggono: le bozze di note e di note pubbliche, i riepiloghi delle chiamate, il riepilogo, la fiducia e il voto di un'indagine, e il titolo di una conversazione. Nemmeno i prompt che le persone scrivono da sé, nel passaggio IA di un workflow o di un runbook.
 
 ## Limiti
 

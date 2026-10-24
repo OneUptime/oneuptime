@@ -67,7 +67,7 @@ An AI rule can carry notes of its own about the incidents or alerts it matches: 
 | Postmortem drafts, for incidents and episodes | The project's notes |
 | AI Insights triage and security case triage | The project's notes |
 
-Calls that only reword or judge what they are given do not read it: drafts of notes and public notes, call summaries, an investigation's summary, confidence and grade, and a conversation's title. Neither do the prompts people write themselves, in a workflow's AI step.
+Calls that only reword or judge what they are given do not read it: drafts of notes and public notes, call summaries, an investigation's summary, confidence and grade, and a conversation's title. Neither do the prompts people write themselves, in a workflow's or a runbook's AI step.
 
 ## Limits
 

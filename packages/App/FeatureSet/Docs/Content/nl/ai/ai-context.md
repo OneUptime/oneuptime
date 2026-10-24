@@ -67,7 +67,7 @@ Een AI-regel kan eigen notities hebben over de incidenten of waarschuwingen waar
 | Postmortem-concepten, voor incidenten en episodes | De notities van het project |
 | De triage van AI Insights en die van beveiligingszaken | De notities van het project |
 
-Aanroepen die alleen herformuleren of beoordelen wat ze krijgen, lezen hem niet: concepten van notities en openbare notities, samenvattingen van gesprekken, de samenvatting, de zekerheid en het cijfer van een onderzoek, en de titel van een gesprek. Evenmin de prompts die mensen zelf schrijven, in de AI-stap van een workflow.
+Aanroepen die alleen herformuleren of beoordelen wat ze krijgen, lezen hem niet: concepten van notities en openbare notities, samenvattingen van gesprekken, de samenvatting, de zekerheid en het cijfer van een onderzoek, en de titel van een gesprek. Evenmin de prompts die mensen zelf schrijven, in de AI-stap van een workflow of een runbook.
 
 ## Limieten
 

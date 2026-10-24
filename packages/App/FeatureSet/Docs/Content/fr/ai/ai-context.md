@@ -67,7 +67,7 @@ Une règle IA peut avoir ses propres notes sur les incidents ou les alertes qu'e
 | Les brouillons de post-mortem, pour les incidents et les épisodes | Les notes du projet |
 | Le tri dans AI Insights et la qualification des dossiers de sécurité | Les notes du projet |
 
-Les appels qui ne font que reformuler ou juger ce qu'ils reçoivent ne le lisent pas : les brouillons de notes et de notes publiques, les résumés d'appels, le résumé, la confiance et la note d'une investigation, et le titre d'une conversation. Pas plus que les prompts que les gens écrivent eux-mêmes, dans l'étape IA d'un workflow.
+Les appels qui ne font que reformuler ou juger ce qu'ils reçoivent ne le lisent pas : les brouillons de notes et de notes publiques, les résumés d'appels, le résumé, la confiance et la note d'une investigation, et le titre d'une conversation. Pas plus que les prompts que les gens écrivent eux-mêmes, dans l'étape IA d'un workflow ou d'un runbook.
 
 ## Limites
 

@@ -67,7 +67,7 @@ En AI-regel kan ha egna anteckningar om de incidenter eller varningar den matcha
 | Utkast till efteranalyser, för incidenter och episoder | Projektets anteckningar |
 | Triage i AI Insights och triage av säkerhetsärenden | Projektets anteckningar |
 
-Anrop som bara formulerar om eller bedömer det de får läser den inte: utkast till anteckningar och offentliga anteckningar, sammanfattningar av samtal, en utrednings sammanfattning, hur säker den är och dess betyg, och ett samtals titel. Det gör inte heller promptarna som folk skriver själva, i AI-steget i ett arbetsflöde.
+Anrop som bara formulerar om eller bedömer det de får läser den inte: utkast till anteckningar och offentliga anteckningar, sammanfattningar av samtal, en utrednings sammanfattning, hur säker den är och dess betyg, och ett samtals titel. Det gör inte heller promptarna som folk skriver själva, i AI-steget i ett arbetsflöde eller en runbook.
 
 ## Gränser
 
