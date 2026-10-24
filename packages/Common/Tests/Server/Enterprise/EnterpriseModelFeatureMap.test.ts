@@ -12,6 +12,7 @@ import StatusPageOIDC from "../../../Models/DatabaseModels/StatusPageOidc";
 import StatusPageSCIM from "../../../Models/DatabaseModels/StatusPageSCIM";
 import StatusPageSSO from "../../../Models/DatabaseModels/StatusPageSso";
 import TeamComplianceSetting from "../../../Models/DatabaseModels/TeamComplianceSetting";
+import AuditLogExport from "../../../Models/DatabaseModels/AuditLogExport";
 import Project from "../../../Models/DatabaseModels/Project";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import EnterpriseEdition from "../../../Server/Enterprise/EnterpriseEdition";
@@ -31,6 +32,8 @@ describe("EnterpriseEdition.getModelFeature against the real models", () => {
     [ProjectSCIM, EnterpriseFeature.SCIM],
     [StatusPageSCIM, EnterpriseFeature.SCIM],
     [TeamComplianceSetting, EnterpriseFeature.TeamCompliance],
+    // An audit log export is part of audit logs: the same license feature.
+    [AuditLogExport, EnterpriseFeature.AuditLogs],
   ] as Array<[ModelType, EnterpriseFeature]>)(
     "%p is gated by the expected feature",
     (modelType: ModelType, feature: EnterpriseFeature) => {
@@ -67,9 +70,14 @@ describe("EnterpriseEdition.getModelFeature against the real models", () => {
     },
   );
 
-  test("the map holds exactly the SCIM and team compliance tables", () => {
+  test("the map holds exactly the SCIM, team compliance and audit log export tables", () => {
     expect([...EnterpriseEdition.getMappedTableNames()].sort()).toEqual(
-      ["ProjectSCIM", "StatusPageSCIM", "TeamComplianceSetting"].sort(),
+      [
+        "ProjectSCIM",
+        "StatusPageSCIM",
+        "TeamComplianceSetting",
+        "AuditLogExport",
+      ].sort(),
     );
   });
 
@@ -117,7 +125,7 @@ describe("EnterpriseEdition.getModelFeature against the real models", () => {
     );
   });
 
-  test("the registered models marked requiresEnterprise are exactly SCIM and team compliance", () => {
+  test("the registered models marked requiresEnterprise are exactly SCIM, team compliance and audit log export", () => {
     const enterpriseTables: Array<string> = [];
 
     for (const modelType of AllModelTypes as Array<ModelType>) {
@@ -129,7 +137,12 @@ describe("EnterpriseEdition.getModelFeature against the real models", () => {
     }
 
     expect(enterpriseTables.sort()).toEqual(
-      ["ProjectSCIM", "StatusPageSCIM", "TeamComplianceSetting"].sort(),
+      [
+        "ProjectSCIM",
+        "StatusPageSCIM",
+        "TeamComplianceSetting",
+        "AuditLogExport",
+      ].sort(),
     );
   });
 });

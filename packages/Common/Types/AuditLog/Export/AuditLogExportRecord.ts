@@ -257,9 +257,14 @@ export function toAuditLogExportRecord(
 
 /*
  * A record as one line of JSON, its keys in schema order. Never holds a
- * line break: JSON.stringify escapes those inside strings, so one entry
- * is always one line of an NDJSON file.
+ * line break: JSON.stringify escapes \n and \r inside strings, and the
+ * Unicode line and paragraph separators it leaves as they are - which some
+ * readers split lines on (Python's splitlines) - are escaped here, so one
+ * entry is always one line of an NDJSON file, whatever reads it.
  */
+const LINE_SEPARATOR: string = String.fromCharCode(0x2028);
+const PARAGRAPH_SEPARATOR: string = String.fromCharCode(0x2029);
+
 export function serializeAuditLogExportRecord(
   record: AuditLogExportRecord,
 ): string {
@@ -269,7 +274,11 @@ export function serializeAuditLogExportRecord(
     ordered[key] = record[key];
   }
 
-  return JSON.stringify(ordered);
+  return JSON.stringify(ordered)
+    .split(LINE_SEPARATOR)
+    .join("\\u2028")
+    .split(PARAGRAPH_SEPARATOR)
+    .join("\\u2029");
 }
 
 /*
