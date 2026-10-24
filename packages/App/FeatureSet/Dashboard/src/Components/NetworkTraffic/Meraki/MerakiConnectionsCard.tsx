@@ -779,7 +779,7 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
                       )}
                       {notes.map((note: RowNote): ReactElement => {
                         return (
-                          <p
+                          <div
                             key={note.text}
                             className={`mt-1.5 flex items-start gap-1.5 text-xs ${
                               note.isToActOn ? "text-amber-800" : "text-gray-500"
@@ -796,7 +796,7 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
                               }`}
                             />
                             <span>{note.text}</span>
-                          </p>
+                          </div>
                         );
                       })}
                     </div>

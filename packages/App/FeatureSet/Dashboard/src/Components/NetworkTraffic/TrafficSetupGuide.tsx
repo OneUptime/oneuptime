@@ -145,7 +145,7 @@ const TrafficSetupGuide: FunctionComponent<ComponentProps> = (
               {props.onConnectMeraki ? (
                 <></>
               ) : (
-                <p
+                <div
                   className="mt-2 flex items-start gap-1.5 text-sm text-gray-500"
                   data-testid="traffic-setup-meraki-locked"
                 >
@@ -154,7 +154,7 @@ const TrafficSetupGuide: FunctionComponent<ComponentProps> = (
                     className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
                   />
                   <span>{props.connectMerakiLockedReason}</span>
-                </p>
+                </div>
               )}
             </div>
           </div>

@@ -27,6 +27,12 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * before anything is saved. Connect is offered only once that test passed,
  * and the connection it creates holds the key in its secrets alone.
  *
+ * A failed test offers its way on: Change API key - back to the key,
+ * selected to paste over - for a key Meraki refused, Try again for what may
+ * pass in a minute, both for a key that cannot read the organization. A
+ * refused key names the dashboard that refused it; a test that never
+ * reached Meraki never blames Meraki.
+ *
  * The network (the test POST and the create) is replaced.
  */
 
@@ -392,18 +398,53 @@ describe("the organization", () => {
   });
 });
 
+function refused(kind: string, message: string): JSONObject {
+  return {
+    provider: "meraki",
+    status: "fail",
+    message,
+    failureKind: kind,
+    organizations: [],
+    durationMs: 40,
+  };
+}
+
+describe("the steps", () => {
+  test("the step done is checked, and opens again; the one to come cannot be opened yet", async () => {
+    await open();
+
+    expect(screen.getByTestId("meraki-connect-step-1")).toHaveAttribute(
+      "aria-current",
+      "step",
+    );
+    expect(screen.getByTestId("meraki-connect-step-2")).toBeDisabled();
+
+    await enterKeyAndGoOn();
+
+    const first: HTMLElement = screen.getByTestId("meraki-connect-step-1");
+    expect(first).not.toBeDisabled();
+    // Checked rather than numbered.
+    expect(first).not.toHaveTextContent("1");
+    expect(first.querySelector("svg")).not.toBeNull();
+    expect(screen.getByTestId("meraki-connect-step-2")).toHaveAttribute(
+      "aria-current",
+      "step",
+    );
+
+    fireEvent.click(first);
+    await flush();
+
+    expect(screen.getByTestId("meraki-connect-key-step")).toBeInTheDocument();
+  });
+});
+
 describe("when the key does not work", () => {
-  test("a refused key: why, what to do, Meraki's answer - and Try again", async () => {
+  test("a refused key: the dashboard that refused it, what to do - and Change API key, back on the key, selected", async () => {
     answerWith(() => {
-      return {
-        provider: "meraki",
-        status: "fail",
-        message:
-          "The Meraki dashboard (dashboard.meraki.com) did not accept this API key.",
-        failureKind: "authentication",
-        organizations: [],
-        durationMs: 40,
-      };
+      return refused(
+        "authentication",
+        "The Meraki dashboard (dashboard.meraki.com) did not accept this API key.",
+      );
     });
 
     await open();
@@ -411,11 +452,86 @@ describe("when the key does not work", () => {
 
     const result: HTMLElement = screen.getByTestId("meraki-test-result");
     expect(result).toHaveAttribute("data-status", "fail");
-    expect(result).toHaveTextContent("Meraki did not accept this API key.");
-    expect(screen.getByTestId("meraki-test-details")).toHaveTextContent(
-      "The Meraki dashboard (dashboard.meraki.com) did not accept this API key.",
+    expect(result).toHaveTextContent(
+      "The Meraki dashboard at dashboard.meraki.com did not accept this API key.",
     );
+    expect(result).toHaveTextContent(
+      "Copy the key again from the Meraki dashboard (Organization > API & Webhooks), and check the region is the dashboard you sign in to.",
+    );
+    // Meraki's answer would only say the headline again.
+    expect(screen.queryByTestId("meraki-test-details")).toBeNull();
+    // Testing the same key again would only fail again.
+    expect(screen.queryByTestId("meraki-test-try-again")).toBeNull();
     expect(connectButton()).toBeDisabled();
+
+    fireEvent.click(screen.getByTestId("meraki-test-change-key"));
+    await flush();
+
+    const key: HTMLInputElement = screen.getByTestId(
+      "meraki-api-key",
+    ) as HTMLInputElement;
+    expect(screen.getByTestId("meraki-connect-key-step")).toBeInTheDocument();
+    expect(document.activeElement).toBe(key);
+    expect(key.value).toBe(API_KEY);
+    expect(key.selectionStart).toBe(0);
+    expect(key.selectionEnd).toBe(API_KEY.length);
+
+    answerWith(() => {
+      return pass();
+    });
+    await enterKeyAndGoOn("fedcba9876543210fedcba9876543210fedcba98");
+
+    expect(screen.getByTestId("meraki-test-result")).toHaveAttribute(
+      "data-status",
+      "pass",
+    );
+    expect(testBodies()[1]!.secrets).toEqual({
+      apiKey: "fedcba9876543210fedcba9876543210fedcba98",
+    });
+  });
+
+  test("refused on another region's dashboard: that dashboard is named", async () => {
+    answerWith(() => {
+      return refused(
+        "authentication",
+        "The Meraki dashboard (dashboard.meraki.ca) did not accept this API key.",
+      );
+    });
+
+    await open();
+    fireEvent.click(
+      within(screen.getByTestId("meraki-connect-key-more")).getByTestId(
+        "folded-section-header",
+      ),
+    );
+    fireEvent.change(screen.getByTestId("meraki-region"), {
+      target: { value: "canada" },
+    });
+    await enterKeyAndGoOn();
+
+    expect(screen.getByTestId("meraki-test-result")).toHaveTextContent(
+      "The Meraki dashboard at dashboard.meraki.ca did not accept this API key.",
+    );
+  });
+
+  test("a key that cannot read the organization: Try again once it is fixed in Meraki, or another key", async () => {
+    answerWith(() => {
+      return refused(
+        "permission",
+        "API access is turned off for Acme Retail.",
+      );
+    });
+
+    await open();
+    await enterKeyAndGoOn();
+
+    const result: HTMLElement = screen.getByTestId("meraki-test-result");
+    expect(result).toHaveTextContent("This key cannot read the organization.");
+    // What Meraki said, under it: it says more than the headline.
+    expect(screen.getByTestId("meraki-test-details")).toHaveTextContent(
+      "API access is turned off for Acme Retail.",
+    );
+    expect(screen.getByTestId("meraki-test-change-key")).toBeInTheDocument();
 
     answerWith(() => {
       return pass();
@@ -428,6 +544,24 @@ describe("when the key does not work", () => {
       "data-status",
       "pass",
     );
+  });
+
+  test("Meraki slowing OneUptime down: Try again, and the key is not doubted", async () => {
+    answerWith(() => {
+      return refused(
+        "rate-limited",
+        "Meraki answered the list of organizations with HTTP 429: Too Many Requests",
+      );
+    });
+
+    await open();
+    await enterKeyAndGoOn();
+
+    expect(screen.getByTestId("meraki-test-result")).toHaveTextContent(
+      "Meraki asked OneUptime to slow down.",
+    );
+    expect(screen.getByTestId("meraki-test-try-again")).toBeInTheDocument();
+    expect(screen.queryByTestId("meraki-test-change-key")).toBeNull();
   });
 
   test("a test request that fails is shown as a failure, never a crash", async () => {
@@ -447,10 +581,12 @@ describe("when the key does not work", () => {
     await open();
     await enterKeyAndGoOn();
 
-    expect(screen.getByTestId("meraki-test-result")).toHaveAttribute(
-      "data-status",
-      "fail",
-    );
+    const result: HTMLElement = screen.getByTestId("meraki-test-result");
+    expect(result).toHaveAttribute("data-status", "fail");
+    // OneUptime's request failed: Meraki is not blamed for it.
+    expect(result).toHaveTextContent("The test could not run");
+    expect(result).not.toHaveTextContent("Meraki refused the request.");
+    expect(screen.getByTestId("meraki-test-try-again")).toBeInTheDocument();
     expect(connectButton()).toBeDisabled();
   });
 

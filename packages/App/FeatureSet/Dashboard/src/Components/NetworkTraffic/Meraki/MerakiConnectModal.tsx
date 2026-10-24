@@ -439,7 +439,7 @@ const MerakiConnectModal: FunctionComponent<ComponentProps> = (
             data-testid="meraki-connect-organization-step"
           >
             {isTesting && !listResult ? (
-              <p
+              <div
                 className="flex items-center gap-2 text-sm text-gray-600"
                 role="status"
                 data-testid="meraki-connect-testing"
@@ -452,7 +452,7 @@ const MerakiConnectModal: FunctionComponent<ComponentProps> = (
                   "Checking the key with {{host}}…",
                   { host: regionDefinition.apiHost },
                 )}
-              </p>
+              </div>
             ) : (
               <></>
             )}
@@ -537,16 +537,17 @@ const MerakiConnectModal: FunctionComponent<ComponentProps> = (
             )}
 
             {organizationId && isTesting ? (
-              <p
+              <div
                 className="flex items-center gap-2 text-sm text-gray-600"
                 role="status"
+                data-testid="meraki-connect-counting"
               >
                 <Icon
                   icon={IconProp.Spinner}
                   className="h-4 w-4 flex-shrink-0 animate-spin text-gray-400"
                 />
                 {translator.translateText("Counting what a read will cover…")}
-              </p>
+              </div>
             ) : (
               <></>
             )}

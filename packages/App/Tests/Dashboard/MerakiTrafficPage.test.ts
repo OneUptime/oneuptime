@@ -52,6 +52,7 @@ import {
 import {
   FILTER_APPLIANCE_LABEL,
   FILTER_NETWORK_LABEL,
+  MERAKI_CONNECTIONS_ANCHOR,
   MERAKI_URL_PARAMS,
   TrafficSide,
   getMerakiFilterChips,
@@ -64,7 +65,11 @@ import {
 import {
   getClientDetails,
   getClientLabel,
+  getNewestBeforeRange,
+  getUplinkDetails,
   hasMerakiTraffic,
+  isNetworkAddressText,
+  isOfOneNetwork,
   shouldListNetworks,
   toFlowSeries,
   toFlowSummary,
@@ -74,19 +79,29 @@ import {
   ANALYTICS_WAITING_NOTE,
   API_CALL_COUNT,
   APPLIANCE_COUNT,
+  KEY_REFUSED_BY_DASHBOARD,
+  MERAKI_CONNECTION_NAME,
   MERAKI_REGION_NAMES,
   MERAKI_STATUS_WORDS,
+  MERAKI_TONE_DOT,
+  MERAKI_TONE_PILL,
   MERAKI_VIEW_HELP,
+  MerakiConnectionAction,
   MerakiTestWords,
   NETWORK_COUNT,
+  NEWEST_TRAFFIC_BEFORE_RANGE,
   RATE_LIMITED_NOTE,
+  TEST_COULD_NOT_RUN,
+  getMerakiConnectionAction,
   getMerakiConnectionRowFacts,
   getMerakiConnectionSentence,
   getMerakiIntervalOptions,
   getMerakiIntervalWords,
   getMerakiReadTime,
+  getMerakiTestActions,
   getMerakiTestWords,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkTraffic/Meraki/MerakiWords";
+import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
 import NetworkControllerConnection from "Common/Models/DatabaseModels/NetworkControllerConnection";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
@@ -322,13 +337,165 @@ describe("the Meraki numbers through the flow side's tiles and chart", () => {
     };
 
     expect(getClientLabel(client)).toBe("10.0.0.25");
-    expect(getClientDetails(client)).toEqual([
+    // Unnamed, by its address: its MAC is the other way to find it.
+    expect(getClientDetails(client, { withNetwork: true })).toEqual([
       "22:33:44:55:66:77",
       "Apple",
       "Branch 1",
     ]);
     expect(getClientLabel({ ...client, name: "Kiosk 3" })).toBe("Kiosk 3");
     expect(getClientLabel({ ...client, ip: "", mac: "" })).toBe("k74272e");
+  });
+
+  test("a client's line is short: one other way to find it, its maker, its network on a page of several", () => {
+    const named: {
+      name: string;
+      ip: string;
+      mac: string;
+      manufacturer: string;
+      controllerNetworkName: string;
+    } = {
+      name: "Kiosk 3",
+      ip: "10.0.0.25",
+      mac: "22:33:44:55:66:77",
+      manufacturer: "Apple",
+      controllerNetworkName: "Branch 1",
+    };
+
+    // Named: its address - never its MAC as well.
+    expect(getClientDetails(named, { withNetwork: true })).toEqual([
+      "10.0.0.25",
+      "Apple",
+      "Branch 1",
+    ]);
+    // A page of one network never says which.
+    expect(getClientDetails(named, { withNetwork: false })).toEqual([
+      "10.0.0.25",
+      "Apple",
+    ]);
+    // Named, without an address: its MAC.
+    expect(getClientDetails({ ...named, ip: "" }, { withNetwork: false })).toEqual(
+      ["22:33:44:55:66:77", "Apple"],
+    );
+    // Known by its MAC alone: nothing more to find it by.
+    expect(
+      getClientDetails(
+        { ...named, name: "", ip: "", manufacturer: "" },
+        { withNetwork: false },
+      ),
+    ).toEqual([]);
+  });
+
+  test("an uplink names its appliance unless the page is the appliance's, and its network on a page of several", () => {
+    const uplink: {
+      deviceName: string;
+      deviceSerial: string;
+      controllerNetworkName: string;
+    } = {
+      deviceName: "BRS MX68",
+      deviceSerial: "Q2PN-BRS0-0047",
+      controllerNetworkName: "Branch 047 · Bristol",
+    };
+
+    expect(
+      getUplinkDetails(uplink, { withAppliance: true, withNetwork: true }),
+    ).toEqual(["BRS MX68", "Branch 047 · Bristol"]);
+    expect(
+      getUplinkDetails(uplink, { withAppliance: true, withNetwork: false }),
+    ).toEqual(["BRS MX68"]);
+    expect(
+      getUplinkDetails(uplink, { withAppliance: false, withNetwork: false }),
+    ).toEqual([]);
+    // No name in Meraki: its serial.
+    expect(
+      getUplinkDetails(
+        { ...uplink, deviceName: "" },
+        { withAppliance: true, withNetwork: false },
+      ),
+    ).toEqual(["Q2PN-BRS0-0047"]);
+  });
+
+  test("a page is of one network when it is narrowed to one, or its traffic is one network's", () => {
+    expect(isOfOneNetwork({ filters: {}, networkCount: 4 })).toBe(false);
+    expect(
+      isOfOneNetwork({ filters: { controllerNetworkId: "L_1" }, networkCount: 4 }),
+    ).toBe(true);
+    expect(isOfOneNetwork({ filters: {}, networkCount: 1 })).toBe(true);
+    expect(isOfOneNetwork({ filters: {}, networkCount: 0 })).toBe(true);
+  });
+
+  test.each([
+    ["10.0.0.25", true],
+    ["192.168.100.254", true],
+    ["2001:db8::1", true],
+    ["::ffff:10.0.0.1", true],
+    ["fe80::1ff:fe23:4567:890a", true],
+    ["teams.microsoft.com", false],
+    ["outlook.office365.com", false],
+    ["cafe.example", false],
+    ["dead.beef.cafe.face", false],
+    ["1.2.3", false],
+    ["Microsoft Teams", false],
+    ["", false],
+  ])(
+    "a destination %s is an address (drawn in the addresses' font): %s",
+    (text: string, isAddress: boolean) => {
+      expect(isNetworkAddressText(text)).toBe(isAddress);
+    },
+  );
+
+  test("an address is told apart in time that grows with its length, whatever Meraki sends", () => {
+    const long: string = "1".repeat(400_000);
+    const startedAt: number = Date.now();
+
+    expect(isNetworkAddressText(long)).toBe(false);
+    expect(isNetworkAddressText(`${":".repeat(400_000)}x`)).toBe(false);
+    expect(Date.now() - startedAt).toBeLessThan(2000);
+  });
+
+  test("an empty range after the reads stopped: when the newest traffic is - and nothing for a page still reading", () => {
+    const window: {
+      windowStartAt: string;
+    } = { windowStartAt: "2026-10-24T11:00:00.000Z" };
+
+    expect(
+      getNewestBeforeRange({
+        ...window,
+        lastUplinkAt: "2026-10-24T09:00:00.000Z",
+        lastAnalyticsAt: "2026-10-24T08:00:00.000Z",
+      }),
+    ).toBe("2026-10-24T09:00:00.000Z");
+    // Analytics newer than the uplinks (an organization of no appliances).
+    expect(
+      getNewestBeforeRange({
+        ...window,
+        lastUplinkAt: null,
+        lastAnalyticsAt: "2026-10-24T10:00:00.000Z",
+      }),
+    ).toBe("2026-10-24T10:00:00.000Z");
+    // Read into the range: the range is quiet, not cut off.
+    expect(
+      getNewestBeforeRange({
+        ...window,
+        lastUplinkAt: "2026-10-24T11:55:00.000Z",
+        lastAnalyticsAt: "2026-10-24T08:00:00.000Z",
+      }),
+    ).toBeNull();
+    // Nothing read at all, or not a time: nothing to say.
+    expect(
+      getNewestBeforeRange({
+        ...window,
+        lastUplinkAt: null,
+        lastAnalyticsAt: null,
+      }),
+    ).toBeNull();
+    expect(
+      getNewestBeforeRange({
+        ...window,
+        lastUplinkAt: "yesterday",
+        lastAnalyticsAt: null,
+      }),
+    ).toBeNull();
   });
 });
 
@@ -497,6 +664,90 @@ describe("what the page says", () => {
     }
   });
 
+  test("a status pill says what Cloud Connect's list says, in its colours", () => {
+    const labels: Record<string, string> = {};
+
+    for (const status of Object.values(NetworkControllerConnectionStatus)) {
+      labels[status] = MERAKI_STATUS_WORDS[status].label;
+    }
+
+    expect(labels).toEqual({
+      [NetworkControllerConnectionStatus.Healthy]: "Working",
+      [NetworkControllerConnectionStatus.Partial]: "Read in part",
+      [NetworkControllerConnectionStatus.Failing]: "Not working",
+      [NetworkControllerConnectionStatus.Stale]: "Not read lately",
+      [NetworkControllerConnectionStatus.Waiting]: "Waiting for the first read",
+      [NetworkControllerConnectionStatus.Off]: "Off",
+    });
+    expect(MERAKI_TONE_PILL).toEqual({
+      green: Green,
+      amber: Yellow,
+      red: Red,
+      gray: Gray500,
+    });
+    // A quiet dot's grey is one the dark theme remaps (NetworkTrafficDarkMode).
+    expect(MERAKI_TONE_DOT.gray).toBe("bg-gray-300");
+  });
+
+  test("a connection's one button is the next thing to do with it", () => {
+    const facts: (
+      status: NetworkControllerConnectionStatus,
+      failureKind?: LlmConnectionFailureKind,
+    ) => Parameters<typeof getMerakiConnectionAction>[0] = (
+      status: NetworkControllerConnectionStatus,
+      failureKind?: LlmConnectionFailureKind,
+    ): Parameters<typeof getMerakiConnectionAction>[0] => {
+      return {
+        connection: connection({ status }),
+        summary: failureKind
+          ? ({
+              status: "failed",
+              failureKind,
+            } as Parameters<typeof getMerakiConnectionAction>[0]["summary"])
+          : undefined,
+      };
+    };
+
+    expect(
+      getMerakiConnectionAction(facts(NetworkControllerConnectionStatus.Off)),
+    ).toBe(MerakiConnectionAction.TurnOn);
+    expect(
+      getMerakiConnectionAction(
+        facts(
+          NetworkControllerConnectionStatus.Failing,
+          LlmConnectionFailureKind.Authentication,
+        ),
+      ),
+    ).toBe(MerakiConnectionAction.UpdateKey);
+
+    for (const [status, failureKind] of [
+      [NetworkControllerConnectionStatus.Healthy, undefined],
+      [NetworkControllerConnectionStatus.Partial, undefined],
+      [NetworkControllerConnectionStatus.Stale, undefined],
+      [NetworkControllerConnectionStatus.Waiting, undefined],
+      // Unreachable, slowed down, no API access: reading again may work.
+      [
+        NetworkControllerConnectionStatus.Failing,
+        LlmConnectionFailureKind.Unavailable,
+      ],
+      [
+        NetworkControllerConnectionStatus.Failing,
+        LlmConnectionFailureKind.RateLimited,
+      ],
+      [
+        NetworkControllerConnectionStatus.Failing,
+        LlmConnectionFailureKind.Permission,
+      ],
+      [NetworkControllerConnectionStatus.Failing, undefined],
+    ] as Array<
+      [NetworkControllerConnectionStatus, LlmConnectionFailureKind | undefined]
+    >) {
+      expect(getMerakiConnectionAction(facts(status, failureKind))).toBe(
+        MerakiConnectionAction.ReadNow,
+      );
+    }
+  });
+
   test("one sentence per status, with when it read", () => {
     expect(getMerakiConnectionSentence(connection()).template).toBe(
       "Read {{time}}.",
@@ -657,6 +908,90 @@ describe("what the page says", () => {
     },
   );
 
+  test("a refused key names the dashboard that refused it, and Meraki's answer, which says no more, is left out", () => {
+    const words: MerakiTestWords = getMerakiTestWords({
+      result: {
+        provider: "meraki",
+        status: "fail",
+        message:
+          "The Meraki dashboard (dashboard.meraki.ca) did not accept this API key.",
+        failureKind: LlmConnectionFailureKind.Authentication,
+        organizations: [],
+        durationMs: 1,
+      },
+      organizationName: "",
+      dashboardHost: "dashboard.meraki.ca",
+    });
+
+    expect(words.headline).toEqual({
+      template: KEY_REFUSED_BY_DASHBOARD,
+      values: { host: "dashboard.meraki.ca" },
+    });
+    expect(words.advice).toBe(
+      "Copy the key again from the Meraki dashboard (Organization > API & Webhooks), and check the region is the dashboard you sign in to.",
+    );
+    expect(words.details).toBeUndefined();
+  });
+
+  test("a test that never reached Meraki - OneUptime's own request failed - never blames Meraki", () => {
+    const words: MerakiTestWords = getMerakiTestWords({
+      result: {
+        provider: "",
+        status: "fail",
+        message: "Bad gateway",
+        organizations: [],
+        durationMs: 0,
+      },
+      organizationName: "",
+      dashboardHost: "dashboard.meraki.com",
+    });
+
+    expect(words.headline.template).toBe(TEST_COULD_NOT_RUN);
+    expect(words.details).toBe("Bad gateway");
+    expect(words.advice).toBeUndefined();
+  });
+
+  test.each([
+    [LlmConnectionFailureKind.Authentication, false, true],
+    [LlmConnectionFailureKind.Settings, false, true],
+    [LlmConnectionFailureKind.Permission, true, true],
+    [LlmConnectionFailureKind.RateLimited, true, false],
+    [LlmConnectionFailureKind.Unavailable, true, false],
+    [LlmConnectionFailureKind.Other, true, false],
+  ])(
+    "a test that failed (%s) offers Try again: %s, Change API key: %s",
+    (
+      kind: LlmConnectionFailureKind,
+      tryAgain: boolean,
+      changeKey: boolean,
+    ) => {
+      expect(
+        getMerakiTestActions({
+          provider: "meraki",
+          status: "fail",
+          message: "",
+          failureKind: kind,
+          organizations: [],
+          durationMs: 0,
+        }),
+      ).toEqual({ tryAgain, changeKey });
+    },
+  );
+
+  test("a test that passed, or warned, offers nothing to do again", () => {
+    for (const status of ["pass", "warn"] as Array<"pass" | "warn">) {
+      expect(
+        getMerakiTestActions({
+          provider: "meraki",
+          status,
+          message: "",
+          organizations: [],
+          durationMs: 0,
+        }),
+      ).toEqual({ tryAgain: false, changeKey: false });
+    }
+  });
+
   test("a failure of a kind it does not know reads as a refusal", () => {
     expect(
       getMerakiTestWords({
@@ -774,6 +1109,13 @@ describe("every word is a key of the English locale", () => {
     expectKey(RATE_LIMITED_NOTE);
     expectKey(FILTER_NETWORK_LABEL);
     expectKey(FILTER_APPLIANCE_LABEL);
+    // The UI review's words: a refused key, a test that could not run, an
+    // empty range after the reads stopped, and the connection's own name.
+    expectKey(KEY_REFUSED_BY_DASHBOARD);
+    expectKey(TEST_COULD_NOT_RUN);
+    expectKey(NEWEST_TRAFFIC_BEFORE_RANGE);
+    expectKey(MERAKI_CONNECTION_NAME);
+    expect(MERAKI_CONNECTIONS_ANCHOR).toBe("traffic-meraki-connections");
   });
 
   // A plural is keyed by its "other" form, its "one" form under `<other>_one`.

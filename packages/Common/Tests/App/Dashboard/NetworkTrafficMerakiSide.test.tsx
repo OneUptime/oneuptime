@@ -17,9 +17,12 @@ import {
   screen,
   within,
 } from "@testing-library/react";
+import fs from "fs";
+import path from "path";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { getJestSpyOn } from "../../Spy";
 
 /*
  * A Traffic page's Meraki side (issue #5140), rendered through the page
@@ -32,7 +35,12 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     busiest networks or uplinks, applications, clients and destinations,
  *     how the connection is doing, and why there are no conversations;
  *   - a click on a network narrows the page, a chip says so;
- *   - the network's page without any traffic offers to connect Meraki.
+ *   - a line over the traffic that needs acting on says Review;
+ *   - rows never repeat the one network (or the one appliance) the page is
+ *     of, and host names are drawn as text, addresses in the monospace;
+ *   - the network's page without any traffic offers to connect Meraki in
+ *     its set-up guide, one with flow records at its foot - and a reader
+ *     who may not connect is told why there is no button.
  *
  * The network (both summaries) and the range picker are replaced; the
  * chart is ChartZoomStandIn.
@@ -122,11 +130,15 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import NetworkTrafficView, {
+  FLOW_DESCRIPTIONS,
   NetworkTrafficScope,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkTraffic/NetworkTrafficView";
 import { resetStandInCharts } from "./ChartZoomStandIn";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import PermissionGate, {
+  PermissionGateResult,
+} from "../../../UI/Utils/PermissionGate";
 
 interface UsageRequest {
   networkDeviceId?: string | undefined;
@@ -333,6 +345,23 @@ const DEVICE: NetworkTrafficScope = {
   networkDeviceId: new ObjectID(DEVICE_ID),
 };
 
+// What PermissionGate answers about connecting Meraki (owners and admins may).
+let connectGate: PermissionGateResult;
+
+const MAY_NOT_CONNECT: string =
+  "You do not have permission to create this Meraki connection. You need one of these permissions: Project Owner, Project Admin.";
+
+// A connection whose key Meraki refused, as the page's summary says it.
+const FAILING: JSONObject = {
+  id: "c2",
+  name: "Acme Campus",
+  organizationName: "Acme Campus",
+  status: "failing",
+  readIntervalInMinutes: 5,
+  lastPulledAt: "2026-10-01T11:58:00.000Z",
+  lastError: "Meraki answered the organization with HTTP 401: Invalid API key",
+};
+
 beforeEach(() => {
   jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate"] });
   jest.setSystemTime(NOW);
@@ -348,6 +377,12 @@ beforeEach(() => {
   answerUsage(() => {
     return { isAvailable: false };
   });
+  connectGate = { isAllowed: true };
+  getJestSpyOn(PermissionGate, "check").mockImplementation(
+    (): PermissionGateResult => {
+      return connectGate;
+    },
+  );
 });
 
 afterEach(() => {
@@ -451,12 +486,22 @@ describe("the Meraki side", () => {
       "Microsoft Teams",
     );
     expect(rowsOf("meraki-top-clients")[0]).toHaveTextContent("Kiosk 3");
+    // A named client: its address, maker and network - its MAC is not needed.
     expect(rowsOf("meraki-top-clients")[0]).toHaveTextContent(
-      "10.0.0.25 · 22:33:44:55:66:77 · Apple · Branch 1",
+      "10.0.0.25 · Apple · Branch 1",
+    );
+    expect(rowsOf("meraki-top-clients")[0]).not.toHaveTextContent(
+      "22:33:44:55:66:77",
     );
     expect(rowsOf("meraki-top-destinations")[0]).toHaveTextContent(
       "teams.microsoft.com",
     );
+    // A host name is text; addresses are drawn in the monospace font.
+    expect(
+      within(rowsOf("meraki-top-destinations")[0]!).getByText(
+        "teams.microsoft.com",
+      ),
+    ).not.toHaveClass("font-mono");
     expect(screen.getByTestId("meraki-conversations-note")).toHaveTextContent(
       "The Meraki dashboard API reports totals, not conversations",
     );
@@ -544,7 +589,13 @@ describe("the Meraki side", () => {
     expect(screen.queryByTestId("meraki-top-networks")).toBeNull();
     const uplink: HTMLElement = rowsOf("meraki-top-uplinks")[0]!;
     expect(uplink).toHaveTextContent("wan1");
-    expect(uplink).toHaveTextContent("MX 1 · Branch 1");
+    // The page is of one network: its rows never repeat it.
+    expect(uplink).toHaveTextContent("MX 1");
+    expect(uplink).not.toHaveTextContent("Branch 1");
+    expect(rowsOf("meraki-top-clients")[0]).toHaveTextContent(
+      "10.0.0.25 · Apple",
+    );
+    expect(rowsOf("meraki-top-clients")[0]).not.toHaveTextContent("Branch 1");
     expect(
       within(screen.getByTestId("meraki-top-uplinks")).getByText("Open MX 1"),
     ).toBeInTheDocument();
@@ -564,6 +615,8 @@ describe("the Meraki side", () => {
     expect(
       within(rowsOf("meraki-top-uplinks")[0]!).queryByRole("button"),
     ).toBeNull();
+    // Its own uplinks: the appliance is the page's, and is not named again.
+    expect(rowsOf("meraki-top-uplinks")[0]).not.toHaveTextContent("MX 1");
   });
 
   test("before the first read: waiting, never 'no traffic'", async () => {
@@ -605,11 +658,140 @@ describe("the Meraki side", () => {
   test("Set up NetFlow goes to the flow side", async () => {
     await renderView(NETWORK);
 
+    expect(screen.getByTestId("meraki-conversations-note")).toHaveTextContent(
+      "Turn on NetFlow on the MX appliances to see conversations as well.",
+    );
+    expect(screen.queryByTestId("meraki-show-conversations")).toBeNull();
+
     fireEvent.click(screen.getByTestId("meraki-set-up-netflow"));
     await flush();
 
     expect(query().get("source")).toBe("flows");
     expect(screen.queryByTestId("meraki-traffic-body")).toBeNull();
+  });
+
+  test("a page with flow records too: Who talks to whom offers its own conversations", async () => {
+    window.history.replaceState(null, "", "/?source=meraki");
+    answerFlows(flows());
+
+    await renderView(NETWORK);
+
+    expect(screen.getByTestId("meraki-conversations-note")).toHaveTextContent(
+      "The Meraki dashboard API reports totals, not conversations. This page's flow records have them.",
+    );
+    expect(screen.queryByTestId("meraki-set-up-netflow")).toBeNull();
+
+    fireEvent.click(screen.getByTestId("meraki-show-conversations"));
+    await flush();
+
+    expect(query().get("source")).toBe("flows");
+    expect(screen.getByTestId("traffic-body")).toBeInTheDocument();
+  });
+
+  test("a line to act on says Review: to the connections below on the network's page", async () => {
+    answerUsage(() => {
+      return usage({
+        connections: [
+          FAILING,
+          {
+            id: "c1",
+            name: "Acme Retail",
+            organizationName: "Acme Retail",
+            status: "healthy",
+            readIntervalInMinutes: 5,
+            lastSuccessfulPullAt: "2026-10-01T11:58:00.000Z",
+          },
+        ],
+      });
+    });
+
+    await renderView(NETWORK);
+
+    const [failing, healthy]: Array<HTMLElement> = screen.getAllByTestId(
+      "meraki-connection-line",
+    );
+    expect(
+      within(failing!).getByTestId("meraki-connection-line-review"),
+    ).toHaveAttribute("href", "#traffic-meraki-connections");
+    // A line that needs nothing has nothing to review.
+    expect(
+      within(healthy!).queryByTestId("meraki-connection-line-review"),
+    ).toBeNull();
+  });
+
+  test("on a device's page, Review goes to the network's page, where the connections are", async () => {
+    answerUsage(() => {
+      return usage({ connections: [FAILING] });
+    });
+
+    await renderView(DEVICE);
+
+    const review: HTMLElement = screen.getByTestId(
+      "meraki-connection-line-review",
+    );
+    expect(review.closest("a")).toHaveAttribute(
+      "href",
+      "/dashboard/10000000-0000-4000-8000-000000000001/network-devices/traffic",
+    );
+  });
+
+  test("an empty range after the reads stopped says when the newest traffic is - not that Meraki keeps 30 days", async () => {
+    answerUsage(() => {
+      return usage({
+        totals: { sentOctets: 0, receivedOctets: 0, flows: 0 },
+        applicationTotals: { sentOctets: 0, receivedOctets: 0 },
+        clientTotals: { sentOctets: 0, receivedOctets: 0 },
+        series: [],
+        topNetworks: [],
+        topUplinks: [],
+        topApplications: [],
+        topDestinations: [],
+        topClients: [],
+        lastUplinkAt: "2026-10-01T09:00:00.000Z",
+        lastAnalyticsAt: "2026-10-01T08:00:00.000Z",
+        connections: [
+          {
+            id: "c1",
+            name: "Acme Retail",
+            organizationName: "Acme Retail",
+            status: "stale",
+            readIntervalInMinutes: 5,
+            lastSuccessfulPullAt: "2026-10-01T09:00:00.000Z",
+          },
+        ],
+      });
+    });
+
+    await renderView(NETWORK);
+
+    const empty: HTMLElement = screen.getByTestId("meraki-no-data");
+    expect(empty).toHaveTextContent(
+      "The newest traffic is from 3 hours ago. Pick a longer time range to see it.",
+    );
+    expect(empty).not.toHaveTextContent("30 days");
+  });
+
+  test("an empty range of a connection still reading: Meraki keeps 30 days", async () => {
+    answerUsage(() => {
+      return usage({
+        totals: { sentOctets: 0, receivedOctets: 0, flows: 0 },
+        applicationTotals: { sentOctets: 0, receivedOctets: 0 },
+        clientTotals: { sentOctets: 0, receivedOctets: 0 },
+        series: [],
+        topNetworks: [],
+        topUplinks: [],
+        topApplications: [],
+        topDestinations: [],
+        topClients: [],
+        lastUplinkAt: "2026-10-01T11:55:00.000Z",
+      });
+    });
+
+    await renderView(NETWORK);
+
+    expect(screen.getByTestId("meraki-no-data")).toHaveTextContent(
+      "Meraki keeps traffic for 30 days: pick a longer time range to see older traffic.",
+    );
   });
 });
 
@@ -634,5 +816,81 @@ describe("the network's page without any traffic", () => {
     await renderView(DEVICE);
 
     expect(screen.queryByTestId("traffic-setup-meraki")).toBeNull();
+  });
+
+  test("a reader who may not connect reads the offer, and why there is no button", async () => {
+    answerFlows(noFlows());
+    connectGate = { isAllowed: false, disabledReason: MAY_NOT_CONNECT };
+
+    await renderView(NETWORK);
+
+    expect(screen.getByTestId("traffic-setup-meraki")).toHaveTextContent(
+      "Using Cisco Meraki?",
+    );
+    expect(screen.queryByTestId("traffic-setup-connect-meraki")).toBeNull();
+    expect(screen.getByTestId("traffic-setup-meraki-locked")).toHaveTextContent(
+      MAY_NOT_CONNECT,
+    );
+  });
+
+  test("before the permissions load: no offer at all", async () => {
+    answerFlows(noFlows());
+    connectGate = { isAllowed: false };
+
+    await renderView(NETWORK);
+
+    expect(screen.queryByTestId("traffic-setup-meraki")).toBeNull();
+  });
+});
+
+describe("the network's page with flow records and no connection", () => {
+  test("offers Meraki in one line at its foot, which opens the connect dialog", async () => {
+    await renderView(NETWORK);
+
+    expect(screen.getByTestId("traffic-body")).toBeInTheDocument();
+    expect(screen.getByTestId("meraki-offer")).toHaveTextContent(
+      "Using Cisco Meraki? Connect Meraki",
+    );
+
+    fireEvent.click(screen.getByTestId("meraki-offer-connect"));
+    await flush();
+
+    expect(screen.getByTestId("meraki-connect")).toBeInTheDocument();
+  });
+
+  test("a device's page never does: Meraki is connected on the network's page", async () => {
+    await renderView(DEVICE);
+
+    expect(screen.queryByTestId("meraki-offer")).toBeNull();
+  });
+});
+
+describe("the flow side's card in every language", () => {
+  const LOCALES: string = path.join(
+    __dirname,
+    "../../../../App/FeatureSet/Dashboard/src/Locales",
+  );
+
+  function readLocale(code: string): Record<string, string> {
+    return JSON.parse(
+      fs.readFileSync(path.join(LOCALES, `${code}.json`), "utf8"),
+    ) as Record<string, string>;
+  }
+
+  test("says whose traffic it is in words the Dashboard translates, as the Meraki side's does", async () => {
+    const english: Record<string, string> = readLocale("en");
+    const german: Record<string, string> = readLocale("de");
+
+    for (const description of Object.values(FLOW_DESCRIPTIONS)) {
+      expect(english[description]).toBe(description);
+      expect(german[description]).toBeTruthy();
+      expect(german[description]).not.toBe(description);
+    }
+
+    await renderView(NETWORK);
+
+    expect(
+      screen.getByText(FLOW_DESCRIPTIONS.network),
+    ).toBeInTheDocument();
   });
 });
