@@ -611,6 +611,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Settings,
             keywords: ["audit log settings", "audit log retention"],
           },
+          {
+            page: PageMap.SETTINGS_AUDIT_LOGS_EXPORT,
+            title: "Export",
+            icon: IconProp.DocumentArrowUp,
+            keywords: [
+              "export audit logs",
+              "audit log export",
+              "s3",
+              "siem",
+              "syslog",
+            ],
+          },
         ],
       },
       {

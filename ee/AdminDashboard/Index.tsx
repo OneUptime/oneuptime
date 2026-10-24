@@ -1,7 +1,10 @@
 import EnterpriseLicensesPlugins from "./EnterpriseLicenses/Plugins";
+import {
+  ENTERPRISE_SETTINGS_PAGES,
+  EnterpriseSettingsSideMenuItems,
+} from "./EnterpriseSettings";
 import HealthPlugins from "./Health/Plugins";
 import LicensePlugins from "./License/Plugins";
-import WhiteLabelPlugins from "./WhiteLabel/Plugins";
 import { AdminDashboardEnterprisePlugins } from "@oneuptime/admin-dashboard/Enterprise/EnterprisePlugins";
 
 /*
@@ -10,7 +13,9 @@ import { AdminDashboardEnterprisePlugins } from "@oneuptime/admin-dashboard/Ente
  * the Admin Dashboard (see packages/Common/UI/esbuild-enterprise.js). The
  * Community build resolves the same specifier to an empty stub instead.
  *
- * Assembled from one file per area so each area owns only its own keys.
+ * Assembled from one file per area so each area owns only its own keys -
+ * except the Settings pages and their menu entries, which several areas add
+ * (White Label, Audit Log Export) and EnterpriseSettings merges.
  * `satisfies` rejects a key the Admin Dashboard does not know and a component
  * with the wrong props, while keeping the object's own type.
  */
@@ -30,6 +35,7 @@ export default {
   ...HealthPlugins,
   ...EnterpriseLicensesPlugins,
   ...LicensePlugins,
-  ...WhiteLabelPlugins,
+  SettingsPages: ENTERPRISE_SETTINGS_PAGES,
+  SettingsSideMenuItems: EnterpriseSettingsSideMenuItems,
   buildMarker: ONEUPTIME_EE_ADMIN_DASHBOARD_PLUGIN_SENTINEL,
 } satisfies AdminDashboardEnterprisePlugins;

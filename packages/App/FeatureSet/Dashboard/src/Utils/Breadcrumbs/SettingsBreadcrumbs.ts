@@ -164,6 +164,12 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "Audit Logs",
       "Settings",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AUDIT_LOGS_EXPORT, [
+      "Project",
+      "Settings",
+      "Audit Logs",
+      "Export",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }
