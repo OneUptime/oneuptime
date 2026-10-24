@@ -25,15 +25,18 @@ import IconProp from "Common/Types/Icon/IconProp";
  *                    posted to (SECURITY_EVENTS_WORKSPACE_PAGES)
  *   Connections      where events come from and where they are sent:
  *                    Connections, and the Setup Guide
+ *   Settings         how the project's cases are kept: its own Case
+ *                    Priorities and Case Statuses, as the Incidents' and
+ *                    Alerts' Settings keep their severities and states
  *
  * Every page has its own entry, address and name. The maintainer asked
  * for this in place of the tabs a page used to carry across its top (and
  * the views along the top of the case queue and the runs): "Can we create
  * side menu sections instead and have different pages for these things?"
  *
- * Detections, AI, Workspace and Connections are set up once and visited
- * rarely, so they start folded to their titles; each opens by itself on
- * its own pages.
+ * Detections, AI, Workspace, Connections and Settings are set up once and
+ * visited rarely, so they start folded to their titles; each opens by
+ * itself on its own pages.
  *
  * Kept free of React so the menu - its sections, their order, the pages
  * and their names - is pinned in a plain test, and the breadcrumbs, Search
@@ -216,6 +219,27 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
         page: PageMap.SECURITY_EVENTS_DOCUMENTATION,
         title: "Setup Guide",
         icon: IconProp.Book,
+      },
+    ],
+  },
+  {
+    /*
+     * The project's own scales, as Incidents and Alerts keep their
+     * severities and states under Settings: how urgent a case is, and
+     * where it stands. Last, as Settings closes every product's menu.
+     */
+    title: "Settings",
+    startsCollapsed: true,
+    items: [
+      {
+        page: PageMap.SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES,
+        title: "Case Priorities",
+        icon: IconProp.Signal,
+      },
+      {
+        page: PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES,
+        title: "Case Statuses",
+        icon: IconProp.ArrowCircleRight,
       },
     ],
   },

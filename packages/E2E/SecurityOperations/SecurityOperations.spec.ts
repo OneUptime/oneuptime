@@ -19,7 +19,7 @@ import path from "path";
  * The Security Events SOC pages - the overview, the case queue's pages, a
  * case, entities, the rule library, ATT&CK coverage, playbooks, a playbook
  * and the runs - on the fixture's synthetic month (Fixture/Fixture.js), with
- * the side menu that holds them: eight sections, every page an entry of its
+ * the side menu that holds them: nine sections, every page an entry of its
  * own (the tabs and views that used to sit along the tops of pages are
  * pages now). What the unit tests cannot see: that the pages fit beside the
  * side menu at every size, read right in both themes, agree with each other
@@ -66,6 +66,11 @@ const THREAT_INTEL_PATH: string = `${PRODUCT}/threat-intel`;
 // The known-bad domain case nobody has picked up, and OneUptime AI has not read.
 const DOMAIN_CASE_PATH: string = `${PRODUCT}/cases/20000000-0000-4000-8000-000000000141`;
 const AI_SETTINGS_PATH: string = `${PRODUCT}/ai/settings`;
+// The project's case priorities and statuses, under Settings.
+const CASE_PRIORITIES_PATH: string = `${PRODUCT}/settings/case-priorities`;
+const CASE_STATUSES_PATH: string = `${PRODUCT}/settings/case-statuses`;
+// The impossible travel case (?values=custom: in the retired Escalated).
+const TRAVEL_CASE_PATH: string = `${PRODUCT}/cases/20000000-0000-4000-8000-000000000139`;
 // The admin API key case OneUptime AI read as Likely Benign.
 const API_KEY_CASE_PATH: string = `${PRODUCT}/cases/20000000-0000-4000-8000-000000000137`;
 // The web shell case, whose suggested playbook's run on it failed.
@@ -141,6 +146,11 @@ const SCREENSHOTS: string = path.resolve(
 );
 
 interface FixtureState {
+  // The project's case priorities by level and statuses by name.
+  ids: {
+    priorities: Record<string, string>;
+    statuses: Record<string, string>;
+  };
   apiRequests: Array<{ method: string; url: string; body: unknown }>;
   listRequests: Array<{ modelName: string; query: unknown }>;
   creates: Array<{ modelName: string; data: Record<string, unknown> }>;
@@ -178,6 +188,8 @@ interface OpenOptions {
   data?: "none" | "fail";
   // The Dashboard's German or Japanese locale.
   lang?: "de" | "ja";
+  // "custom": the project's own case statuses and priorities.
+  values?: "custom";
 }
 
 test.use({ deviceScaleFactor: 2, actionTimeout: 15000 });
@@ -284,6 +296,9 @@ async function open(
   }
   if (options.lang) {
     params.set("lang", options.lang);
+  }
+  if (options.values) {
+    params.set("values", options.values);
   }
   const query: string = params.toString();
   await page.goto(query ? `${pathname}?${query}` : pathname);
@@ -3034,7 +3049,7 @@ test.describe("detections", () => {
       .toBe(DETECTION_RULES_PATH);
   });
 
-  test("the side menu is eight sections of pages; the ones set up once are folded", async ({
+  test("the side menu is nine sections of pages; the ones set up once are folded", async ({
     page,
   }: {
     page: Page;
@@ -3058,6 +3073,7 @@ test.describe("detections", () => {
       "ai",
       "workspace",
       "connections",
+      "settings",
     ]);
 
     for (const [section, expanded] of [
@@ -3069,6 +3085,7 @@ test.describe("detections", () => {
       ["AI", "false"],
       ["Workspace", "false"],
       ["Connections", "false"],
+      ["Settings", "false"],
     ]) {
       await expect(menuSection(page, section!)).toHaveAttribute(
         "aria-expanded",
@@ -3093,7 +3110,13 @@ test.describe("detections", () => {
       await expect(menuEntry(page, title)).toBeVisible();
     }
     // Folded: there, one click away, but not one more row on every visit.
-    for (const title of ["Rule Library", "Settings", "Setup Guide"]) {
+    for (const title of [
+      "Rule Library",
+      "Settings",
+      "Setup Guide",
+      "Case Priorities",
+      "Case Statuses",
+    ]) {
       await expect(menuEntry(page, title)).toBeHidden();
     }
     await expect(menuEntry(page, "Monitors")).toHaveCount(0);
@@ -3857,9 +3880,12 @@ test.describe("OneUptime AI on the Security pages", () => {
 
     // The case is High; OneUptime AI suggests Critical. One click sets it.
     await card.getByTestId("security-case-ai-set-priority").click();
+    const critical: string = (await fixture(page)).ids.priorities[
+      "Critical"
+    ] as string;
     await expect
       .poll(async (): Promise<unknown> => {
-        return (
+        const value: unknown = (
           (await fixture(page)) as unknown as {
             updates: Array<{
               modelName: string;
@@ -3869,12 +3895,14 @@ test.describe("OneUptime AI on the Security pages", () => {
         ).updates.find(
           (update: { modelName: string; data: Record<string, unknown> }) => {
             return (
-              update.modelName === "SecurityCase" && "priority" in update.data
+              update.modelName === "SecurityCase" &&
+              "securityCasePriorityId" in update.data
             );
           },
-        )?.data["priority"];
+        )?.data["securityCasePriorityId"];
+        return value === undefined ? undefined : String(value);
       })
-      .toBe("Critical");
+      .toBe(critical);
 
     const asked: Array<string> = (await fixture(page)).apiRequests
       .map((request: { url: string }): string => {
@@ -4550,6 +4578,516 @@ test.describe("OneUptime AI when a triage cannot run, or was steered", () => {
   });
 });
 
+/*
+ * ---------------------------------------------------------------------------
+ * The project's case priorities and statuses: Security Events > Settings,
+ * and the case pages that read them
+ * ---------------------------------------------------------------------------
+ */
+test.describe("the project's case priorities and statuses", () => {
+  // The project's own (?values=custom): Triage, a retired Escalated, Eradicating, Closed - Duplicate.
+  const CUSTOM_STATUSES: Array<string> = [
+    "New",
+    "Triage",
+    "Investigating",
+    "Contained",
+    "Eradicating",
+    "Closed",
+    "Closed - Duplicate",
+  ];
+
+  // The names the settings table shows, top to bottom, without the Built-in tag.
+  async function valueNames(page: Page): Promise<Array<string>> {
+    return page
+      .getByTestId("state-settings-name")
+      .evaluateAll((cells: Array<Element>): Array<string> => {
+        return cells.map((cell: Element): string => {
+          return (cell.firstElementChild?.textContent || "").trim();
+        });
+      });
+  }
+
+  // A column of the settings table, row by row ("" where a row has no cell of it).
+  async function cellTexts(page: Page, testId: string): Promise<Array<string>> {
+    return page
+      .locator("table")
+      .first()
+      .locator("tbody tr")
+      .evaluateAll((rows: Array<Element>, id: string): Array<string> => {
+        return rows.map((row: Element): string => {
+          return (
+            row.querySelector(`[data-testid="${id}"]`)?.textContent || ""
+          ).trim();
+        });
+      }, testId);
+  }
+
+  // Which rows carry the Built-in tag, top to bottom.
+  async function builtInRows(page: Page): Promise<Array<boolean>> {
+    return page
+      .locator("table")
+      .first()
+      .locator("tbody tr")
+      .evaluateAll((rows: Array<Element>): Array<boolean> => {
+        return rows.map((row: Element): boolean => {
+          return Boolean(
+            row.querySelector('[data-testid="state-settings-built-in"]'),
+          );
+        });
+      });
+  }
+
+  function statusSteps(page: Page): Locator {
+    return page.getByTestId("security-case-status-steps");
+  }
+
+  // The case's status steps, by name, in order.
+  async function stepNames(page: Page): Promise<Array<string>> {
+    return statusSteps(page)
+      .locator("button")
+      .evaluateAll((buttons: Array<Element>): Array<string> => {
+        return buttons.map((button: Element): string => {
+          return (button.lastElementChild?.textContent || "").trim();
+        });
+      });
+  }
+
+  // The steps whose name is cut short, or that run past the page's edge.
+  async function cutSteps(page: Page): Promise<Array<string>> {
+    return statusSteps(page)
+      .locator("button")
+      .evaluateAll((buttons: Array<Element>): Array<string> => {
+        const right: number = document.documentElement.clientWidth;
+        return buttons
+          .filter((button: Element): boolean => {
+            const name: Element | null = button.lastElementChild;
+            return (
+              !name ||
+              name.scrollWidth > name.clientWidth + 1 ||
+              button.getBoundingClientRect().right > right + 1
+            );
+          })
+          .map((button: Element): string => {
+            return (button.textContent || "").trim();
+          });
+      });
+  }
+
+  test("Settings holds the project's case statuses: in order, what a case in each counts as, the built-in ones tagged, the retired one folded away", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASE_STATUSES_PATH, { values: "custom", width: 1280 });
+    await expect(page.getByTestId("state-settings-name").first()).toBeVisible({
+      timeout: 30000,
+    });
+
+    // Settings opens on its page, its entry lit, and the trail names it.
+    await expect(menuSection(page, "Settings")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(await litEntries(page)).toEqual(["Case Statuses"]);
+    expect(await breadcrumbs(page)).toEqual([
+      "Project",
+      "Security Events",
+      "Settings",
+      "Case Statuses",
+    ]);
+
+    expect(await valueNames(page)).toEqual(CUSTOM_STATUSES);
+    // Where a status sits is what a case in it counts as.
+    expect(await cellTexts(page, "state-settings-counts-as")).toEqual([
+      "Not acknowledged",
+      "Not acknowledged",
+      "Acknowledged",
+      "Contained",
+      "Contained",
+      "Closed",
+      "Closed",
+    ]);
+    // The four OneUptime reads the meaning of are built in; the project's own are not.
+    expect(await builtInRows(page)).toEqual([
+      true,
+      false,
+      true,
+      true,
+      false,
+      true,
+      false,
+    ]);
+
+    // Escalated, retired, waits in the folded section under the table.
+    const archived: Locator = page.getByTestId("archived-values-section");
+    await expect(archived).toContainText("Archived Case Statuses");
+    await expect(page.locator("table").first()).not.toContainText("Escalated");
+
+    // The page names one value as its title does: Create Case Status, case statuses.
+    await expect(page.getByTestId("card-button").first()).toHaveText(
+      "Create Case Status",
+    );
+    await expect(page.locator("body")).toContainText(
+      "Showing 1-7 of 7 case statuses",
+    );
+
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await screenshot(page, "case-statuses-1280-light");
+  });
+
+  test("Settings holds the project's case priorities: most urgent first, the detection severity each opens cases at, the built-in ones tagged", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASE_PRIORITIES_PATH, { values: "custom", width: 1280 });
+    await expect(page.getByTestId("state-settings-name").first()).toBeVisible({
+      timeout: 30000,
+    });
+    expect(await litEntries(page)).toEqual(["Case Priorities"]);
+    expect(await breadcrumbs(page)).toEqual([
+      "Project",
+      "Security Events",
+      "Settings",
+      "Case Priorities",
+    ]);
+
+    // The project's own Emergency above the five a detection opens a case at.
+    expect(await valueNames(page)).toEqual([
+      "Emergency",
+      "Critical",
+      "High",
+      "Medium",
+      "Low",
+      "Informational",
+    ]);
+    expect(await cellTexts(page, "state-settings-built-in-column")).toEqual([
+      "None",
+      "Critical",
+      "High",
+      "Medium or unknown",
+      "Low",
+      "Informational",
+    ]);
+    // The column says what it holds; a priority of the project's own has none, drawn muted.
+    await expect(page.locator("table").first().locator("thead")).toContainText(
+      "Detection severity",
+    );
+    const noneCell: Locator = page
+      .getByTestId("state-settings-built-in-column")
+      .first();
+    const criticalCell: Locator = page
+      .getByTestId("state-settings-built-in-column")
+      .nth(1);
+    expect(
+      await noneCell.evaluate((cell: Element): string => {
+        return getComputedStyle(cell).color;
+      }),
+    ).not.toBe(
+      await criticalCell.evaluate((cell: Element): string => {
+        return getComputedStyle(cell).color;
+      }),
+    );
+    // The page names one value as its title does: Create Case Priority.
+    await expect(page.getByTestId("card-button").first()).toHaveText(
+      "Create Case Priority",
+    );
+    expect(await builtInRows(page)).toEqual([
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+    ]);
+    // Nothing is archived: no folded section.
+    await expect(page.getByTestId("archived-values-section")).toHaveCount(0);
+
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await screenshot(page, "case-priorities-1280-light");
+  });
+
+  test("a new project's are the built-in ones, every one tagged", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASE_STATUSES_PATH, { width: 1280 });
+    await expect(page.getByTestId("state-settings-name").first()).toBeVisible({
+      timeout: 30000,
+    });
+    expect(await valueNames(page)).toEqual([
+      "New",
+      "Investigating",
+      "Contained",
+      "Closed",
+    ]);
+    expect(await builtInRows(page)).toEqual([true, true, true, true]);
+    await expect(page.getByTestId("archived-values-section")).toHaveCount(0);
+
+    await open(page, CASE_PRIORITIES_PATH, { width: 1280 });
+    await expect(page.getByTestId("state-settings-name").first()).toBeVisible({
+      timeout: 30000,
+    });
+    expect(await valueNames(page)).toEqual([
+      "Critical",
+      "High",
+      "Medium",
+      "Low",
+      "Informational",
+    ]);
+    expect(await builtInRows(page)).toEqual([true, true, true, true, true]);
+  });
+
+  test("both pages read in the reader's language: their own words, and the descriptions a new project's values start with", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASE_STATUSES_PATH, { width: 1280, lang: "de" });
+    await expect(page.getByTestId("state-settings-name").first()).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(page.getByTestId("card-button").first()).toHaveText(
+      "Fallstatus erstellen",
+    );
+    // The built-in statuses' descriptions are OneUptime's words, so they are German too.
+    expect(await cellTexts(page, "state-settings-description")).toEqual([
+      "Noch hat sich niemand den Fall angesehen.",
+      "Jemand findet heraus, was passiert ist.",
+      "Die Bedrohung kann keinen Schaden mehr anrichten; die Bereinigung steht noch aus.",
+      "Erledigt, mit einer Bewertung, was es war.",
+    ]);
+
+    await open(page, CASE_PRIORITIES_PATH, {
+      width: 1280,
+      lang: "de",
+      values: "custom",
+    });
+    await expect(page.getByTestId("state-settings-name").first()).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(page.getByTestId("card-button").first()).toHaveText(
+      "Fallpriorität erstellen",
+    );
+    await expect(page.locator("table").first().locator("thead")).toContainText(
+      "Schweregrad der Erkennung",
+    );
+    // Low keeps the word every German Dashboard page draws for it.
+    expect(await cellTexts(page, "state-settings-built-in-column")).toEqual([
+      "Keine",
+      "Kritisch",
+      "Hoch",
+      "Mittel oder unbekannt",
+      "Low",
+      "Hinweise",
+    ]);
+  });
+
+  test("both pages read in both themes, on a laptop and a phone, every name whole and nothing scrolling sideways", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [pathname, name, first] of [
+      [CASE_STATUSES_PATH, "case-statuses", "Closed - Duplicate"],
+      [CASE_PRIORITIES_PATH, "case-priorities", "Emergency"],
+    ] as Array<[string, string, string]>) {
+      for (const [width, theme] of [
+        [1280, "dark"],
+        [390, undefined],
+        [390, "dark"],
+      ] as Array<[number, "dark" | undefined]>) {
+        await open(page, pathname, {
+          values: "custom",
+          width,
+          height: width === 390 ? 844 : 1000,
+          theme,
+        });
+        await expect(
+          page.getByText(first, { exact: true }).first(),
+        ).toBeVisible({ timeout: 30000 });
+        expect(
+          await pageOverflow(page),
+          `${name} at ${width} ${theme || "light"}`,
+        ).toBeLessThanOrEqual(1);
+        // Each name on screen, none cut short.
+        const cut: Array<string> = await page
+          .getByTestId("state-settings-name")
+          .evaluateAll((cells: Array<Element>): Array<string> => {
+            const right: number = document.documentElement.clientWidth;
+            return cells
+              .filter((cell: Element): boolean => {
+                const pill: Element | null = cell.firstElementChild;
+                return (
+                  !pill ||
+                  pill.scrollWidth > pill.clientWidth + 1 ||
+                  cell.getBoundingClientRect().right > right + 1
+                );
+              })
+              .map((cell: Element): string => {
+                return (cell.textContent || "").trim();
+              });
+          });
+        expect(cut, `${name} at ${width}`).toEqual([]);
+        await screenshot(page, `${name}-${width}-${theme || "light"}`);
+      }
+    }
+  });
+
+  test("a case's status steps are the project's statuses, the retired one left out, each whole at every size and in both themes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [width, theme] of [
+      [1280, undefined],
+      [1280, "dark"],
+      [390, undefined],
+      [390, "dark"],
+    ] as Array<[number, "dark" | undefined]>) {
+      await open(page, SPRAY_CASE_PATH, {
+        values: "custom",
+        width,
+        height: width === 390 ? 844 : 1000,
+        theme,
+      });
+      await expect(statusSteps(page)).toBeVisible({ timeout: 30000 });
+
+      expect(await stepNames(page)).toEqual(CUSTOM_STATUSES);
+      // The spray case is past containment, in the project's own Eradicating.
+      await expect(
+        statusSteps(page).locator('[aria-current="step"]'),
+      ).toContainText("Eradicating");
+      expect(await cutSteps(page), `steps at ${width}`).toEqual([]);
+      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+
+      await statusSteps(page).scrollIntoViewIfNeeded();
+      await screenshot(
+        page,
+        `case-status-steps-custom-${width}-${theme || "light"}`,
+        { fullPage: false },
+      );
+    }
+
+    // A new project's four, for comparison.
+    await open(page, SPRAY_CASE_PATH, { width: 390, height: 844 });
+    await expect(statusSteps(page)).toBeVisible({ timeout: 30000 });
+    expect(await stepNames(page)).toEqual([
+      "New",
+      "Investigating",
+      "Contained",
+      "Closed",
+    ]);
+  });
+
+  test("a case still in a retired status keeps it, in its place among the steps", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, TRAVEL_CASE_PATH, { values: "custom", width: 1280 });
+    await expect(statusSteps(page)).toBeVisible({ timeout: 30000 });
+
+    expect(await stepNames(page)).toEqual([
+      "New",
+      "Triage",
+      "Investigating",
+      "Escalated",
+      "Contained",
+      "Eradicating",
+      "Closed",
+      "Closed - Duplicate",
+    ]);
+    await expect(
+      statusSteps(page).locator('[aria-current="step"]'),
+    ).toContainText("Escalated");
+    expect(await cutSteps(page)).toEqual([]);
+  });
+
+  test("moving a case into the project's own closing status asks for the verdict first, and keeps that status", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, SPRAY_CASE_PATH, { values: "custom", width: 1280 });
+    await expect(statusSteps(page)).toBeVisible({ timeout: 30000 });
+
+    await statusSteps(page)
+      .locator("button")
+      .filter({ hasText: "Closed - Duplicate" })
+      .click();
+    const dialog: Locator = page.getByRole("dialog");
+    await expect(dialog).toContainText("Close Case");
+    // Where the case goes comes first, before OneUptime AI's read of it.
+    await expect(dialog).toContainText(
+      "The case moves to Closed - Duplicate. OneUptime AI read this case as Likely Malicious. Pick what you found.",
+    );
+    await dialog
+      .getByRole("button", { name: "Close Case", exact: true })
+      .click();
+
+    const duplicate: string = (await fixture(page)).ids.statuses[
+      "Closed - Duplicate"
+    ] as string;
+    await expect
+      .poll(async (): Promise<unknown> => {
+        const update: { data: Record<string, unknown> } | undefined = (
+          (await fixture(page)) as unknown as {
+            updates: Array<{
+              modelName: string;
+              data: Record<string, unknown>;
+            }>;
+          }
+        ).updates.find(
+          (each: { modelName: string; data: Record<string, unknown> }) => {
+            return (
+              each.modelName === "SecurityCase" &&
+              "securityCaseStatusId" in each.data
+            );
+          },
+        );
+        return update
+          ? [
+              String(update.data["securityCaseStatusId"]),
+              update.data["verdict"],
+            ]
+          : undefined;
+      })
+      .toEqual([duplicate, expect.any(String)]);
+  });
+
+  test("the queue and the overview name the cases' statuses as the project does", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASES_PATH, { values: "custom", width: 1280 });
+    const spray: Locator = page
+      .locator("table tbody tr")
+      .filter({ hasText: "CASE-142" });
+    await expect(spray).toContainText("Eradicating", { timeout: 30000 });
+    await expect(
+      page.locator("table tbody tr").filter({ hasText: "CASE-138" }),
+    ).toContainText("Triage");
+    await expect(
+      page.locator("table tbody tr").filter({ hasText: "CASE-139" }),
+    ).toContainText("Escalated");
+
+    // The overview's open cases by where each stands: the project's own among them.
+    await open(page, OVERVIEW_PATH, { values: "custom", width: 1280 });
+    await expect(page.getByText("Riskiest Entities")).toBeVisible({
+      timeout: 30000,
+    });
+    for (const status of ["Eradicating", "Triage", "Escalated"]) {
+      await expect(
+        page.getByText(status, { exact: true }).first(),
+      ).toBeVisible();
+    }
+    await screenshot(page, "overview-custom-statuses");
+  });
+});
+
 test.describe("every page fits the screen", () => {
   const PAGES: ReadonlyArray<[string, string, string]> = [
     ["overview", OVERVIEW_PATH, "Riskiest Entities"],
@@ -4571,6 +5109,8 @@ test.describe("every page fits the screen", () => {
     ["runs", RUNS_PATH, "CASE-142"],
     ["all runs", ALL_RUNS_PATH, "The events store did not answer"],
     ["ai settings", AI_SETTINGS_PATH, "Triage new cases"],
+    ["case priorities", CASE_PRIORITIES_PATH, "Informational"],
+    ["case statuses", CASE_STATUSES_PATH, "Investigating"],
   ];
 
   for (const width of [1280, 1024, 768, 390]) {

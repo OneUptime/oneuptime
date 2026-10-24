@@ -60,6 +60,11 @@ import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { buildSecurityPlaybookFromTemplate } from "../../../Utils/SecurityEvent/SecurityTemplateRecords";
+import {
+  buildDefaultTestPriorities,
+  buildDefaultTestStatuses,
+} from "../../Helpers/SecurityCaseValues";
+import { stubDashboardSecurityCaseValues } from "./SecurityCaseValuesStub";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -82,6 +87,8 @@ beforeEach(() => {
   jest.spyOn(Navigation, "navigate").mockImplementation((route: unknown) => {
     navigatedTo.push(String(route));
   });
+  // The project's case priorities and statuses: a new project's.
+  stubDashboardSecurityCaseValues();
 });
 
 afterEach(() => {
@@ -175,6 +182,9 @@ describe("Playbooks > Start from a template", () => {
         buildSecurityPlaybookFromTemplate({
           projectId: PROJECT_ID,
           template: TEMPLATE.definition,
+          // Its steps name the project's own critical priority and acknowledged status.
+          priorities: buildDefaultTestPriorities(),
+          statuses: buildDefaultTestStatuses(),
         }),
       ),
     );

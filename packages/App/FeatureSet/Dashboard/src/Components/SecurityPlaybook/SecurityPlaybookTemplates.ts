@@ -1,10 +1,11 @@
 import IconProp from "Common/Types/Icon/IconProp";
-import SecurityCasePriority from "Common/Types/SecurityCase/SecurityCasePriority";
+import SecurityCasePriorityLevel from "Common/Types/SecurityCase/SecurityCasePriorityLevel";
 import SecurityDetectionSource from "Common/Types/SecurityCase/SecurityDetectionSource";
 import { SecurityPlaybookStep } from "Common/Types/SecurityPlaybook/SecurityPlaybookStep";
 import {
   SECURITY_PLAYBOOK_TEMPLATE_DEFINITIONS,
   SecurityPlaybookTemplateDefinition,
+  SecurityPlaybookTemplateValues,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookTemplates";
 import SecurityPlaybookTrigger from "Common/Types/SecurityPlaybook/SecurityPlaybookTrigger";
 
@@ -20,9 +21,13 @@ export interface SecurityPlaybookTemplate {
   description: string;
   icon: IconProp;
   trigger: SecurityPlaybookTrigger;
-  minimumPriority?: SecurityCasePriority | undefined;
+  // The level of the project's priority it runs from, if any.
+  minimumPriorityLevel?: SecurityCasePriorityLevel | undefined;
   detectionSource?: SecurityDetectionSource | undefined;
-  getSteps: () => Array<SecurityPlaybookStep>;
+  // Its steps, naming the project's own priorities and statuses.
+  getSteps: (
+    values: SecurityPlaybookTemplateValues,
+  ) => Array<SecurityPlaybookStep>;
   // The template as Common has it, which the playbook is built from (SecurityTemplateRecords).
   definition: SecurityPlaybookTemplateDefinition;
 }
@@ -38,7 +43,7 @@ export const SECURITY_PLAYBOOK_TEMPLATES: ReadonlyArray<SecurityPlaybookTemplate
         description: definition.description,
         icon: definition.icon,
         trigger: definition.trigger,
-        minimumPriority: definition.minimumPriority,
+        minimumPriorityLevel: definition.minimumPriorityLevel,
         detectionSource: definition.detectionSource,
         getSteps: definition.getSteps,
         definition,

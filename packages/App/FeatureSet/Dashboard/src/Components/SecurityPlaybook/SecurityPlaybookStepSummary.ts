@@ -5,9 +5,9 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The names a step's ids stand for, as far as the page could read them: a
- * connection, an on-call policy, a severity, a label, a workflow. An id with
- * no name here reads as "a removed ..." - the record was deleted, or the
- * reader may not see it.
+ * connection, an on-call policy, a severity, a label, a workflow, and the
+ * project's case priorities and statuses. An id with no name here reads as
+ * "a removed ..." - the record was deleted, or the reader may not see it.
  */
 export interface StepNameLookup {
   connections: Map<string, string>;
@@ -15,6 +15,8 @@ export interface StepNameLookup {
   incidentSeverities: Map<string, string>;
   labels: Map<string, string>;
   workflows: Map<string, string>;
+  casePriorities: Map<string, string>;
+  caseStatuses: Map<string, string>;
 }
 
 export function emptyStepNameLookup(): StepNameLookup {
@@ -24,6 +26,8 @@ export function emptyStepNameLookup(): StepNameLookup {
     incidentSeverities: new Map(),
     labels: new Map(),
     workflows: new Map(),
+    casePriorities: new Map(),
+    caseStatuses: new Map(),
   };
 }
 
@@ -51,13 +55,25 @@ function ids(config: JSONObject, key: string): Array<string> {
   return list;
 }
 
+/*
+ * The name an id stands for. A case priority's or status's name is looked
+ * up in the reader's language too (`translateName`): a new project's are
+ * OneUptime's own words.
+ */
 function named(
   map: Map<string, string>,
   id: string,
   missing: string,
   translator: Translator,
+  translateName: boolean = false,
 ): string {
-  return map.get(id) || translator.translateText(missing) || missing;
+  const name: string | undefined = map.get(id);
+
+  if (name) {
+    return translateName ? translator.translateText(name) || name : name;
+  }
+
+  return translator.translateText(missing) || missing;
 }
 
 // One short line under a step's title: what it will do, with the names it uses.
@@ -84,14 +100,22 @@ export function summarizeSecurityPlaybookStep(
     }
     case SecurityPlaybookActionType.SetCasePriority:
       return translator.translateTemplate("Priority becomes {{priority}}", {
-        priority:
-          translator.translateText(text(config, "priority")) ||
-          text(config, "priority"),
+        priority: named(
+          lookup.casePriorities,
+          text(config, "priorityId"),
+          translationKey("a removed priority"),
+          translator,
+          true,
+        ),
       });
     case SecurityPlaybookActionType.SetCaseStatus: {
-      const status: string =
-        translator.translateText(text(config, "status")) ||
-        text(config, "status");
+      const status: string = named(
+        lookup.caseStatuses,
+        text(config, "statusId"),
+        translationKey("a removed status"),
+        translator,
+        true,
+      );
       const verdict: string = text(config, "verdict");
 
       return verdict
@@ -125,12 +149,20 @@ export function summarizeSecurityPlaybookStep(
         })
         .join(", ");
     case SecurityPlaybookActionType.CheckThreatIntel: {
-      const raise: string = text(config, "raisePriorityTo");
+      const raiseId: string = text(config, "raisePriorityToId");
 
-      return raise
+      return raiseId
         ? translator.translateTemplate(
             "On a match, priority rises to {{priority}}",
-            { priority: translator.translateText(raise) || raise },
+            {
+              priority: named(
+                lookup.casePriorities,
+                raiseId,
+                translationKey("a removed priority"),
+                translator,
+                true,
+              ),
+            },
           )
         : translator.translateText(
             "Notes every entity found in threat intel",

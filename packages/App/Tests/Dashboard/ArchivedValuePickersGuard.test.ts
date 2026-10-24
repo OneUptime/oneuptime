@@ -126,6 +126,10 @@ const SETTINGS_PAGES: Record<ArchivableValueType, string> = {
     "Pages/Incidents/Settings/IncidentRoles.tsx",
   [ArchivableValueType.IncidentPostmortemStatus]:
     "Pages/Incidents/Settings/IncidentPostmortemStatuses.tsx",
+  [ArchivableValueType.SecurityCaseStatus]:
+    "Pages/SecurityEvents/Settings/CaseStatuses.tsx",
+  [ArchivableValueType.SecurityCasePriority]:
+    "Pages/SecurityEvents/Settings/CasePriorities.tsx",
 };
 
 const SOURCE_FILE: RegExp = /\.(ts|tsx)$/;

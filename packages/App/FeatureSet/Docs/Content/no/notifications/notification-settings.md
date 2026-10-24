@@ -71,7 +71,7 @@ Fanen **Vakt** handler om deg, ikke om det du eier:
 
 Fanen **Sikkerhet** handler om sikkerhetssakene du kan se:
 
-- **Ny sikkerhetssak** har en prioritet under navnet: den laveste prioriteten en sak må ha for å varsle deg. Den er **Høy og Kritisk** med mindre du velger **Bare Kritisk**, **Middels og høyere**, **Lav og høyere** eller **Alle saker**.
+- **Ny sikkerhetssak** har en prioritet under navnet: den laveste prioriteten en sak må ha for å varsle deg. Den er **Høy og høyere** med mindre du velger **Bare Kritisk**, **Middels og høyere**, **Lav og høyere** eller **Alle saker**.
 - **Sikkerhetssak tildelt meg** følger sakene som er tildelt deg, og dem som er tildelt teamene du er med i.
 - **Playbook-trinn venter på min godkjenning** ber deg godkjenne eller avvise et playbook-steg på en sak der du kan godkjenne steg.
 

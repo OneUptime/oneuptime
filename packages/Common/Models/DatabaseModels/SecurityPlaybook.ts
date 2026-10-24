@@ -1,4 +1,5 @@
 import Project from "./Project";
+import SecurityCasePriority from "./SecurityCasePriority";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -20,7 +21,6 @@ import { JSONArray } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
-import SecurityCasePriority from "../../Types/SecurityCase/SecurityCasePriority";
 import SecurityDetectionSource from "../../Types/SecurityCase/SecurityDetectionSource";
 import SecurityPlaybookTrigger from "../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
@@ -220,21 +220,50 @@ export default class SecurityPlaybook extends BaseModel {
   })
   public trigger?: SecurityPlaybookTrigger = undefined;
 
+  /*
+   * Run only on cases at this priority or above, by the priority's place in
+   * the project's ranked list (Common/Utils/SecurityCase/
+   * SecurityCasePriorities). A priority a playbook names cannot be deleted
+   * (the key refuses it, NO ACTION): the playbook would quietly start
+   * running on every case.
+   */
   @ColumnAccessControl(editableColumnAccess)
   @TableColumn({
-    required: false,
-    type: TableColumnType.ShortText,
-    canReadOnRelationQuery: true,
+    manyToOneRelationColumn: "minimumSecurityCasePriorityId",
+    type: TableColumnType.Entity,
+    modelType: SecurityCasePriority,
     title: "Minimum Priority",
     description:
       "Run only on cases at this priority or above. Empty runs on every priority.",
   })
-  @Column({
-    nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+  @ManyToOne(
+    () => {
+      return SecurityCasePriority;
+    },
+    {
+      eager: false,
+      nullable: true,
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "minimumSecurityCasePriorityId" })
+  public minimumSecurityCasePriority?: SecurityCasePriority = undefined;
+
+  @ColumnAccessControl(editableColumnAccess)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ObjectID,
+    canReadOnRelationQuery: true,
+    title: "Minimum Priority ID",
+    description:
+      "ID of the lowest case priority the playbook runs on by itself. Empty runs on every priority.",
   })
-  public minimumPriority?: SecurityCasePriority = undefined;
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public minimumSecurityCasePriorityId?: ObjectID = undefined;
 
   @ColumnAccessControl(editableColumnAccess)
   @TableColumn({

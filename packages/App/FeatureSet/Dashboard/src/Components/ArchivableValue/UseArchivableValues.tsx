@@ -156,6 +156,13 @@ export interface UseArchivableValuesOptions<T extends BaseModel> {
    */
   getNameElement?: ((item: T) => ReactElement) | undefined;
   nameSelect?: Select<T> | undefined;
+  /*
+   * What the page's own table calls one value and several ("Case Status",
+   * "Case Statuses"), when that is shorter than the model's name: the
+   * Archived section's table and the dialogs say the same.
+   */
+  singularName?: string | undefined;
+  pluralName?: string | undefined;
 }
 
 const useArchivableValues: <T extends BaseModel>(
@@ -381,7 +388,7 @@ const useArchivableValues: <T extends BaseModel>(
         <DeleteConfirmationMessage
           kind="question"
           name={readName(item)}
-          typeLabel={model.singularName || ""}
+          typeLabel={data.singularName || model.singularName || ""}
           isIrreversible={usage.length === 0}
         />
       );
@@ -509,6 +516,8 @@ const useArchivableValues: <T extends BaseModel>(
             <CardSections>
               <ModelTable<T>
                 modelType={data.modelType}
+                singularName={data.singularName}
+                pluralName={data.pluralName}
                 id={`${definition.tableName}-archived-table`}
                 userPreferencesKey={`${definition.tableName}-archived-table`}
                 name={`${copy.archivedTitle}`}
@@ -549,7 +558,11 @@ const useArchivableValues: <T extends BaseModel>(
       {archiveDialog ? (
         <ConfirmModal
           title={translator.translateTemplate(ARCHIVE_DIALOG_TITLE, {
-            name: archiveDialogName || model.singularName || "",
+            name:
+              archiveDialogName ||
+              data.singularName ||
+              model.singularName ||
+              "",
           })}
           description={
             <div data-testid="archivable-value-archive-confirmation">

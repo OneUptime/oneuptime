@@ -11,6 +11,8 @@ import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 
@@ -24,6 +26,9 @@ export interface ComponentProps {
   incidentSeverities: Array<IncidentSeverity>;
   incidentStates: Array<IncidentState>;
   scheduledMaintenanceStates: Array<ScheduledMaintenanceState>;
+  // A security case rule's: the project's own case priorities and statuses.
+  securityCasePriorities?: Array<SecurityCasePriority> | undefined;
+  securityCaseStatuses?: Array<SecurityCaseStatus> | undefined;
   monitorStatus: Array<MonitorStatus>;
 }
 
@@ -90,6 +95,8 @@ const NotificationRuleConditions: FunctionComponent<ComponentProps> = (
         incidentSeverities={props.incidentSeverities}
         incidentStates={props.incidentStates}
         scheduledMaintenanceStates={props.scheduledMaintenanceStates}
+        securityCasePriorities={props.securityCasePriorities}
+        securityCaseStatuses={props.securityCaseStatuses}
         monitorStatus={props.monitorStatus}
       />
     );

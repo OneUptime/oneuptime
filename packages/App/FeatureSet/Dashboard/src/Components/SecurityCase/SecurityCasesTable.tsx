@@ -27,7 +27,15 @@ import {
   getSecurityCaseQueueStatusOptions,
   getSecurityCaseQueueView,
 } from "./SecurityCaseQueueViews";
+import { SecurityCaseValueLists } from "./SecurityCaseValues";
+import {
+  getSecurityCasePriorityOptions,
+  getSecurityCaseStatusOptions,
+} from "./SecurityCaseValueOptions";
+import useSecurityCaseValues from "./useSecurityCaseValues";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
+import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import Label from "Common/Models/DatabaseModels/Label";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
@@ -36,8 +44,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import SecurityCaseAiVerdict from "Common/Types/SecurityCase/SecurityCaseAiVerdict";
-import SecurityCasePriority from "Common/Types/SecurityCase/SecurityCasePriority";
-import SecurityCaseStatus from "Common/Types/SecurityCase/SecurityCaseStatus";
+import SecurityCasePriorityLevel from "Common/Types/SecurityCase/SecurityCasePriorityLevel";
+import SecurityCaseStage from "Common/Types/SecurityCase/SecurityCaseStage";
 import SecurityCaseVerdict from "Common/Types/SecurityCase/SecurityCaseVerdict";
 import { SecurityEntity } from "Common/Types/SecurityCase/SecurityEntity";
 import {
@@ -46,6 +54,9 @@ import {
   BulkActionOnClickProps,
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Card from "Common/UI/Components/Card/Card";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -67,6 +78,8 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import User from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import SecurityCasePriorities from "Common/Utils/SecurityCase/SecurityCasePriorities";
+import SecurityCaseStatuses from "Common/Utils/SecurityCase/SecurityCaseStatuses";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export interface ComponentProps {
@@ -145,13 +158,60 @@ const CaseMoment: FunctionComponent<{ value: Date | undefined }> = (props: {
  * by a person, and is worked from these lists: each page is a question an
  * analyst asks of the queue, with the columns and filters that answer it,
  * and the bulk actions are what they do to several cases at once.
+ *
+ * Which cases are open, and the priorities and statuses the lists filter
+ * by and set, are the project's own (Security Events > Settings): the list
+ * waits for them, and says so if they cannot be read.
  */
 const SecurityCasesTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const view: SecurityCaseQueueView = getSecurityCaseQueueView(props.view);
+  const { values, error, retry } = useSecurityCaseValues();
+
+  if (error) {
+    return (
+      <Card title={view.title} description={view.description}>
+        <ErrorMessage message={error} onRefreshClick={retry} />
+      </Card>
+    );
+  }
+
+  if (!values) {
+    return (
+      <Card title={view.title} description={view.description}>
+        <ComponentLoader />
+      </Card>
+    );
+  }
+
+  return <SecurityCasesList view={view} values={values} />;
+};
+
+const SecurityCasesList: FunctionComponent<{
+  view: SecurityCaseQueueView;
+  values: SecurityCaseValueLists;
+}> = (props: {
+  view: SecurityCaseQueueView;
+  values: SecurityCaseValueLists;
+}): ReactElement => {
   const translator: Translator = useTranslator();
   const isAiOffered: boolean = useAiOffered();
-  const view: SecurityCaseQueueView = getSecurityCaseQueueView(props.view);
+  const view: SecurityCaseQueueView = props.view;
+  const { priorities, statuses } = props.values;
+  // Where a case opened here starts, and what Change Status starts on.
+  const defaultPriority: SecurityCasePriority | null =
+    SecurityCasePriorities.getDefaultPriority(priorities);
+  const acknowledgedStatus: SecurityCaseStatus | null =
+    SecurityCaseStatuses.getStatusOfStage(
+      statuses,
+      SecurityCaseStage.Acknowledged,
+    );
+  const highPriority: SecurityCasePriority | null =
+    SecurityCasePriorities.getPriorityOfLevel(
+      priorities,
+      SecurityCasePriorityLevel.High,
+    );
   const [refreshToggle, setRefreshToggle] = useState<string>("");
   const [bulkChange, setBulkChange] = useState<BulkCaseChange | null>(null);
   const [bulkActionProps, setBulkActionProps] =
@@ -264,19 +324,21 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
       type: FieldType.Text,
     },
     priority: {
-      field: { priority: true },
+      field: { securityCasePriorityId: true },
       title: "Priority",
       type: FieldType.Dropdown,
-      filterDropdownOptions:
-        DropdownUtil.getDropdownOptionsFromEnum(SecurityCasePriority),
+      filterDropdownOptions: getSecurityCasePriorityOptions(priorities, {
+        forFilter: true,
+      }),
     },
     status: {
-      field: { status: true },
+      field: { securityCaseStatusId: true },
       title: "Status",
       type: FieldType.Dropdown,
-      filterDropdownOptions: DropdownUtil.getDropdownOptionsFromArray([
-        ...getSecurityCaseQueueStatusOptions(view.key),
-      ]),
+      filterDropdownOptions: getSecurityCaseStatusOptions(
+        getSecurityCaseQueueStatusOptions(view.key, statuses),
+        { forFilter: true },
+      ),
     },
     verdict: {
       field: { verdict: true },
@@ -416,20 +478,26 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
         );
       },
     },
+    /*
+     * The column ids stay "priority" and "status", as they were when these
+     * were text on the case, so each person's column layout still applies.
+     */
     priority: {
-      field: { priority: true },
+      id: "priority",
+      field: { securityCasePriority: { name: true, color: true } },
       title: "Priority",
       type: FieldType.Element,
       getElement: (item: SecurityCase): ReactElement => {
-        return <SecurityCasePriorityPill value={item.priority} />;
+        return <SecurityCasePriorityPill value={item.securityCasePriority} />;
       },
     },
     status: {
-      field: { status: true },
+      id: "status",
+      field: { securityCaseStatus: { name: true, color: true } },
       title: "Status",
       type: FieldType.Element,
       getElement: (item: SecurityCase): ReactElement => {
-        return <SecurityCaseStatusPill value={item.status} />;
+        return <SecurityCaseStatusPill value={item.securityCaseStatus} />;
       },
     },
     verdict: {
@@ -580,7 +648,7 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
         userPreferencesKey={getSecurityCasesTablePreferencesKey(view.key)}
         query={{
           projectId: projectId,
-          ...getSecurityCaseQueueQuery(view.key, User.getUserId()),
+          ...getSecurityCaseQueueQuery(view.key, User.getUserId(), statuses),
         }}
         refreshToggle={refreshToggle}
         /*
@@ -614,9 +682,11 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
         }}
         noItemsMessage={view.emptyMessage}
         emptyState={emptyState}
-        createInitialValues={{
-          priority: SecurityCasePriority.Medium,
-        }}
+        createInitialValues={
+          (defaultPriority?.id
+            ? { securityCasePriorityId: defaultPriority.id.toString() }
+            : {}) as unknown as FormValues<SecurityCase>
+        }
         formSteps={[
           { title: "Case", id: "case" },
           { title: "Assignment", id: "assignment" },
@@ -639,14 +709,13 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
             description: "What prompted this case, and what to look at first.",
           },
           {
-            field: { priority: true },
+            field: { securityCasePriorityId: true },
             stepId: "case",
             title: "Priority",
             description: "How urgent the case is.",
             fieldType: FormFieldSchemaType.Dropdown,
             required: true,
-            dropdownOptions:
-              DropdownUtil.getDropdownOptionsFromEnum(SecurityCasePriority),
+            dropdownOptions: getSecurityCasePriorityOptions(priorities),
           },
           {
             field: { assignedToUserId: true },
@@ -712,20 +781,23 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
             name: "security-case-bulk-change",
             initialValues:
               bulkChange === "status"
-                ? { status: SecurityCaseStatus.Investigating }
-                : { priority: SecurityCasePriority.High },
+                ? acknowledgedStatus?.id
+                  ? {
+                      securityCaseStatusId: acknowledgedStatus.id.toString(),
+                    }
+                  : {}
+                : highPriority?.id
+                  ? { securityCasePriorityId: highPriority.id.toString() }
+                  : {},
             fields:
               bulkChange === "status"
                 ? [
                     {
-                      field: { status: true },
+                      field: { securityCaseStatusId: true },
                       title: "Status",
                       fieldType: FormFieldSchemaType.Dropdown,
                       required: true,
-                      dropdownOptions:
-                        DropdownUtil.getDropdownOptionsFromEnum(
-                          SecurityCaseStatus,
-                        ),
+                      dropdownOptions: getSecurityCaseStatusOptions(statuses),
                     },
                     {
                       field: { verdict: true },
@@ -738,40 +810,48 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
                         DropdownUtil.getDropdownOptionsFromEnum(
                           SecurityCaseVerdict,
                         ),
-                      showIf: (values: FormValues<JSONObject>): boolean => {
-                        return values["status"] === SecurityCaseStatus.Closed;
+                      // A status that closes a case takes a verdict.
+                      showIf: (formValues: FormValues<JSONObject>): boolean => {
+                        return SecurityCaseStatuses.isClosed(
+                          statuses,
+                          formValues["securityCaseStatusId"] as string,
+                        );
                       },
                     },
                   ]
                 : [
                     {
-                      field: { priority: true },
+                      field: { securityCasePriorityId: true },
                       title: "Priority",
                       fieldType: FormFieldSchemaType.Dropdown,
                       required: true,
                       dropdownOptions:
-                        DropdownUtil.getDropdownOptionsFromEnum(
-                          SecurityCasePriority,
-                        ),
+                        getSecurityCasePriorityOptions(priorities),
                     },
                   ],
           }}
-          onSubmit={async (values: FormValues<JSONObject>) => {
+          onSubmit={async (formValues: FormValues<JSONObject>) => {
             const actionProps: BulkActionOnClickProps<SecurityCase> =
               bulkActionProps;
+            const statusId: string =
+              (formValues["securityCaseStatusId"] as string) || "";
             const data: JSONObject =
               bulkChange === "status"
                 ? {
-                    status: values["status"] as string,
-                    ...(values["status"] === SecurityCaseStatus.Closed
+                    securityCaseStatusId: statusId,
+                    ...(SecurityCaseStatuses.isClosed(statuses, statusId)
                       ? {
                           verdict:
-                            (values["verdict"] as string) ||
+                            (formValues["verdict"] as string) ||
                             SecurityCaseVerdict.Undetermined,
                         }
                       : {}),
                   }
-                : { priority: values["priority"] as string };
+                : {
+                    securityCasePriorityId: formValues[
+                      "securityCasePriorityId"
+                    ] as string,
+                  };
 
             closeBulkModal();
             await applyToSelected(actionProps, data);

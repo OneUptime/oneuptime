@@ -100,7 +100,7 @@ Monitors, incidenten, waarschuwingen, statuspagina's, SLO's en veel andere resou
 | Collectorconfiguraties | `Collector Config` |
 | vCenters | `vCenter` |
 | Pakketopnames, en hun downloads | `Packet Capture` |
-| Beveiligingszaken, playbooks en hun uitvoeringen, en beschermde entiteiten | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
+| Beveiligingszaken en hun prioriteiten en statussen, playbooks en hun uitvoeringen, en beschermde entiteiten | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
 | Exports van het auditlogboek | `Audit Log Export` |
 
 Ook wordt vastgelegd wanneer een beheerder een meldingsmethode of een persoonlijke piketregel aan het account van iemand anders toevoegt of ervan verwijdert, zonder het adres of nummer zelf.

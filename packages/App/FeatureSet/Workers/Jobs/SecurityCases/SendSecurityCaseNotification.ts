@@ -10,8 +10,8 @@ import { JSONObject } from "Common/Types/JSON";
  * detection ingest's case writes and the playbook engine: a case at somebody's
  * chosen priority, a case assigned, a playbook step waiting for approval
  * (SecurityCaseNotifications). A job that arrives twice for one rise of a
- * case tells people once: the case's notifiedPriority is claimed in one
- * compare-and-set.
+ * case tells people once: the case's notified priority
+ * (notifiedSecurityCasePriorityId) is claimed in one compare-and-set.
  */
 export async function sendSecurityCaseNotification(
   job?: QueueJob,

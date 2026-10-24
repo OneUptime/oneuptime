@@ -6,6 +6,8 @@ import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
 import { SecurityCaseFeedEventType } from "../../../Models/DatabaseModels/SecurityCaseFeed";
 import SecurityCaseNote from "../../../Models/DatabaseModels/SecurityCaseNote";
+import SecurityCasePriority from "../../../Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "../../../Models/DatabaseModels/SecurityCaseStatus";
 import SecurityEventConnection from "../../../Models/DatabaseModels/SecurityEventConnection";
 import Team from "../../../Models/DatabaseModels/Team";
 import User from "../../../Models/DatabaseModels/User";
@@ -19,10 +21,6 @@ import Email from "../../../Types/Email";
 import EmailTemplateType from "../../../Types/Email/EmailTemplateType";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import SecurityCasePriority, {
-  isPriorityAtLeast,
-} from "../../../Types/SecurityCase/SecurityCasePriority";
-import SecurityCaseStatus from "../../../Types/SecurityCase/SecurityCaseStatus";
 import SecurityCaseVerdict from "../../../Types/SecurityCase/SecurityCaseVerdict";
 import {
   SecurityEntity,
@@ -70,6 +68,11 @@ import {
   renderSecurityCaseTemplate,
   securityCaseSummaryMarkdown,
 } from "../../../Utils/SecurityCase/SecurityCaseMarkdown";
+import SecurityCasePriorities from "../../../Utils/SecurityCase/SecurityCasePriorities";
+import SecurityCaseStatuses from "../../../Utils/SecurityCase/SecurityCaseStatuses";
+import SecurityCaseValues, {
+  ProjectSecurityCaseValues,
+} from "../SecurityCase/SecurityCaseValues";
 import { WorkflowHostname } from "../../EnvironmentConfig";
 import IncidentFeedService from "../../Services/IncidentFeedService";
 import IncidentService from "../../Services/IncidentService";
@@ -277,20 +280,40 @@ export default class SecurityPlaybookActions {
     return succeeded(mdText`Assigned the case.`, { hasWrittenOwnFeed: true });
   }
 
+  /*
+   * The step names one of the project's priorities by id. One the project
+   * no longer has fails the step, saying so, rather than leaving the case
+   * where it is without a word.
+   */
   private static async setCasePriority(
     context: PlaybookStepContext,
   ): Promise<PlaybookStepOutcome> {
     const config: SetCasePriorityConfig = readConfig<SetCasePriorityConfig>(
       context.step,
     );
+    const values: ProjectSecurityCaseValues =
+      await SecurityCaseValues.getForProject(context.projectId);
+    const priority: SecurityCasePriority | null = SecurityCasePriorities.find(
+      values.priorities,
+      config.priorityId,
+    );
 
-    if (context.securityCase.priority === config.priority) {
-      return skipped(mdText`The case is already ${config.priority}.`);
+    if (!priority?.id) {
+      return failed(
+        "The priority this step sets is no longer one of the project's. Pick another on the playbook.",
+      );
     }
 
-    await this.updateCase(context, { priority: config.priority });
+    if (
+      context.securityCase.securityCasePriorityId?.toString() ===
+      priority.id.toString()
+    ) {
+      return skipped(mdText`The case is already ${priority.name || ""}.`);
+    }
 
-    return succeeded(mdText`Set the priority to **${config.priority}**.`, {
+    await this.updateCase(context, { securityCasePriorityId: priority.id });
+
+    return succeeded(mdText`Set the priority to **${priority.name || ""}**.`, {
       hasWrittenOwnFeed: true,
     });
   }
@@ -301,19 +324,35 @@ export default class SecurityPlaybookActions {
     const config: SetCaseStatusConfig = readConfig<SetCaseStatusConfig>(
       context.step,
     );
+    const values: ProjectSecurityCaseValues =
+      await SecurityCaseValues.getForProject(context.projectId);
+    const status: SecurityCaseStatus | null = SecurityCaseStatuses.find(
+      values.statuses,
+      config.statusId,
+    );
 
-    if (context.securityCase.status === config.status) {
-      return skipped(mdText`The case is already ${config.status}.`);
+    if (!status?.id) {
+      return failed(
+        "The status this step sets is no longer one of the project's. Pick another on the playbook.",
+      );
     }
 
+    if (
+      context.securityCase.securityCaseStatusId?.toString() ===
+      status.id.toString()
+    ) {
+      return skipped(mdText`The case is already ${status.name || ""}.`);
+    }
+
+    // A status that closes the case closes it with the step's verdict.
     await this.updateCase(context, {
-      status: config.status,
-      ...(config.status === SecurityCaseStatus.Closed
+      securityCaseStatusId: status.id,
+      ...(SecurityCaseStatuses.isClosed(values.statuses, status.id)
         ? { verdict: config.verdict || SecurityCaseVerdict.Undetermined }
         : {}),
     });
 
-    return succeeded(mdText`Set the status to **${config.status}**.`, {
+    return succeeded(mdText`Set the status to **${status.name || ""}**.`, {
       hasWrittenOwnFeed: true,
     });
   }
@@ -449,12 +488,26 @@ export default class SecurityPlaybookActions {
 
     let priorityNote: MarkdownText = FeedMarkdown.empty();
 
-    if (
-      config.raisePriorityTo &&
-      !isPriorityAtLeast(context.securityCase.priority, config.raisePriorityTo)
-    ) {
-      await this.updateCase(context, { priority: config.raisePriorityTo });
-      priorityNote = mdText` Raised the priority to **${config.raisePriorityTo}**.`;
+    if (config.raisePriorityToId) {
+      const priorities: Array<SecurityCasePriority> =
+        await SecurityCaseValues.getPriorities(context.projectId);
+      const raiseTo: SecurityCasePriority | null = SecurityCasePriorities.find(
+        priorities,
+        config.raisePriorityToId,
+      );
+
+      // Raised only: a case already at it, or above it, stays where it is.
+      if (
+        raiseTo?.id &&
+        !SecurityCasePriorities.isAtLeast(
+          priorities,
+          context.securityCase.securityCasePriorityId,
+          raiseTo.id,
+        )
+      ) {
+        await this.updateCase(context, { securityCasePriorityId: raiseTo.id });
+        priorityNote = mdText` Raised the priority to **${raiseTo.name || ""}**.`;
+      }
     }
 
     return succeeded(
@@ -1108,11 +1161,23 @@ export default class SecurityPlaybookActions {
       assignee = team?.name || assignee;
     }
 
+    // The case's priority and status as the project names them now.
+    const values: ProjectSecurityCaseValues =
+      await SecurityCaseValues.getForProject(context.projectId);
+
     return {
       number: securityCase.caseNumberWithPrefix || "",
       title: securityCase.title || "",
-      priority: securityCase.priority || SecurityCasePriority.Medium,
-      status: securityCase.status || SecurityCaseStatus.New,
+      priority:
+        SecurityCasePriorities.find(
+          values.priorities,
+          securityCase.securityCasePriorityId,
+        )?.name || "",
+      status:
+        SecurityCaseStatuses.find(
+          values.statuses,
+          securityCase.securityCaseStatusId,
+        )?.name || "",
       assignee,
       url: url.toString(),
       entities: readCaseEntities(securityCase)
@@ -1156,15 +1221,31 @@ export default class SecurityPlaybookActions {
       context.projectId,
       securityCase.id!,
     );
+    const values: ProjectSecurityCaseValues =
+      await SecurityCaseValues.getForProject(context.projectId);
 
+    /*
+     * The priority and status by the names the project gives them, as the
+     * payload always carried them, and by id beside.
+     */
     return {
       case: {
         id: securityCase.id?.toString() || "",
         number: securityCase.caseNumberWithPrefix || "",
         title: securityCase.title || "",
         description: securityCase.description || "",
-        priority: securityCase.priority || "",
-        status: securityCase.status || "",
+        priority:
+          SecurityCasePriorities.find(
+            values.priorities,
+            securityCase.securityCasePriorityId,
+          )?.name || "",
+        priorityId: securityCase.securityCasePriorityId?.toString() || "",
+        status:
+          SecurityCaseStatuses.find(
+            values.statuses,
+            securityCase.securityCaseStatusId,
+          )?.name || "",
+        statusId: securityCase.securityCaseStatusId?.toString() || "",
         source: securityCase.source || "",
         detectionCount: securityCase.detectionCount || 0,
         entities: readCaseEntities(securityCase).map(

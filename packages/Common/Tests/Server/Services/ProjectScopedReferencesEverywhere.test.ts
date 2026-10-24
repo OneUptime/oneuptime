@@ -90,6 +90,12 @@ type AnotherCheck =
        * change it afterwards. Checked from the metadata below.
        */
       kind: "owner-is-the-caller";
+      /*
+       * Any other reference a caller can write on the row, by its ID column,
+       * with the check that holds it to the row's project and the suite
+       * that proves it.
+       */
+      alsoWrites?: Record<string, string>;
     }
   | {
       // A check of the service's own, and the suite that holds it to it.
@@ -109,8 +115,20 @@ const SERVICES_WITH_ANOTHER_CHECK: Record<string, AnotherCheck> = {
   "UserNotificationEmailRollupSettingService.ts": {
     kind: "owner-is-the-caller",
   },
-  "UserNotificationSettingService.ts": { kind: "owner-is-the-caller" },
-  "RoutineEmailSettingsService.ts": { kind: "owner-is-the-caller" },
+  "UserNotificationSettingService.ts": {
+    kind: "owner-is-the-caller",
+    alsoWrites: {
+      minimumSecurityCasePriorityId:
+        "the New Security Case setting's priority: its create and update hooks read it among the case priorities of the row's own project and refuse any other (UserNotificationSettingSecurityCaseDefaults.test.ts)",
+    },
+  },
+  "RoutineEmailSettingsService.ts": {
+    kind: "owner-is-the-caller",
+    alsoWrites: {
+      minimumSecurityCasePriorityId:
+        "written only through UserNotificationSettingService, which checks it; this service only turns routine emails off, in statements of its own that never write it",
+    },
+  },
   "UserOnCallShiftReminderService.ts": { kind: "owner-is-the-caller" },
   "UserPushService.ts": { kind: "owner-is-the-caller" },
   "UserSmsService.ts": { kind: "owner-is-the-caller" },
@@ -757,13 +775,33 @@ describe("services whose rows name the project's records", () => {
 
       const writable: Array<ProjectReferenceColumn> =
         getCallerWritableReferences(model);
+      const check: AnotherCheck = SERVICES_WITH_ANOTHER_CHECK[file]!;
+      const alsoWrites: Record<string, string> =
+        (check.kind === "owner-is-the-caller" && check.alsoWrites) || {};
 
-      // ...the owner is the only reference it can write...
+      // ...the owner is the only reference it can write, but for those listed...
       for (const column of writable) {
+        if (column.idColumn && alsoWrites[column.idColumn]) {
+          continue;
+        }
+
         expect({ file, column: column.idColumn }).toEqual({
           file,
           column: userColumn,
         });
+      }
+
+      // ...and each listed one is a reference a caller can write.
+      for (const column of Object.keys(alsoWrites)) {
+        expect({
+          file,
+          column,
+          writable: writable.some(
+            (reference: ProjectReferenceColumn): boolean => {
+              return reference.idColumn === column;
+            },
+          ),
+        }).toEqual({ file, column, writable: true });
       }
 
       // ...and nobody can change it afterwards.

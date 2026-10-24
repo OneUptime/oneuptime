@@ -16,7 +16,13 @@ import Label from "../../../../Models/DatabaseModels/Label";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../../Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenanceState from "../../../../Models/DatabaseModels/ScheduledMaintenanceState";
+import SecurityCasePriority from "../../../../Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "../../../../Models/DatabaseModels/SecurityCaseStatus";
 import { DropdownOption } from "../../../../UI/Components/Dropdown/Dropdown";
+import {
+  buildDefaultTestPriorities,
+  buildDefaultTestStatuses,
+} from "../../../Helpers/SecurityCaseValues";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -69,6 +75,8 @@ function dropdownData(): {
   scheduledMaintenanceStates: Array<ScheduledMaintenanceState>;
   labels: Array<Label>;
   monitors: Array<Monitor>;
+  securityCasePriorities: Array<SecurityCasePriority>;
+  securityCaseStatuses: Array<SecurityCaseStatus>;
 } {
   return {
     alertSeverities: [
@@ -98,6 +106,9 @@ function dropdownData(): {
       named(new Label(), OTHER_LABEL_ID, "Search"),
     ],
     monitors: [named(new Monitor(), "c7c7c7c7c7c7c7c7c7c7c7c7", "API")],
+    // A security case rule's: a new project's case priorities and statuses.
+    securityCasePriorities: buildDefaultTestPriorities(),
+    securityCaseStatuses: buildDefaultTestStatuses(),
   };
 }
 

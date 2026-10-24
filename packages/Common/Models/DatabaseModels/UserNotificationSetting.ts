@@ -1,4 +1,5 @@
 import Project from "./Project";
+import SecurityCasePriority from "./SecurityCasePriority";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -17,7 +18,6 @@ import IconProp from "../../Types/Icon/IconProp";
 import NotificationSettingEventType from "../../Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
-import SecurityCasePriority from "../../Types/SecurityCase/SecurityCasePriority";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @TenantColumn("projectId")
@@ -402,9 +402,12 @@ class UserNotificationSetting extends BaseModel {
 
   /*
    * For the New Security Case setting
-   * (SEND_SECURITY_CASE_OPENED_NOTIFICATION) alone: the lowest case priority
-   * that notifies this person. Empty is High - High and Critical cases - the
-   * default for everyone who never picked one (SecurityCaseNotificationPriority).
+   * (SEND_SECURITY_CASE_OPENED_NOTIFICATION) alone: the lowest of the
+   * project's case priorities that notifies this person, by its place in
+   * the ranked list. Empty is the project's high priority - High and
+   * Critical cases - the default for everyone who never picked one
+   * (SecurityCaseNotificationPriority). A priority deleted later leaves it
+   * empty, so its people fall back to the default.
    */
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
@@ -412,19 +415,46 @@ class UserNotificationSetting extends BaseModel {
     update: [Permission.CurrentUser],
   })
   @TableColumn({
-    type: TableColumnType.ShortText,
+    manyToOneRelationColumn: "minimumSecurityCasePriorityId",
+    type: TableColumnType.Entity,
+    modelType: SecurityCasePriority,
     required: false,
     title: "Minimum Security Case Priority",
     description:
-      "For the New Security Case setting: the lowest case priority that notifies you - Critical, High, Medium, Low or Informational. Empty means High.",
-    example: "High",
+      "For the New Security Case setting: the lowest of the project's case priorities that notifies you. Empty means its high priority.",
+  })
+  @ManyToOne(
+    () => {
+      return SecurityCasePriority;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "minimumSecurityCasePriorityId" })
+  public minimumSecurityCasePriority?: SecurityCasePriority = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser],
+    update: [Permission.CurrentUser],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Minimum Security Case Priority ID",
+    description:
+      "ID of the lowest case priority that notifies you of a new security case. Empty means the project's high priority.",
   })
   @Column({
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.ObjectID,
     nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
   })
-  public minimumSecurityCasePriority?: SecurityCasePriority = undefined;
+  public minimumSecurityCasePriorityId?: ObjectID = undefined;
 }
 
 export default UserNotificationSetting;

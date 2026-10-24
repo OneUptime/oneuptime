@@ -1,9 +1,11 @@
 import { StateListType } from "Common/Utils/StateOrder";
 
 /*
- * What the six settings pages for a project's states, severities and monitor
- * statuses say: Incident States, Alert States, Scheduled Maintenance States,
- * Monitor Statuses, Incident Severities and Alert Severities.
+ * What the settings pages for a project's states, severities, monitor
+ * statuses, postmortem statuses and security case statuses and priorities
+ * say: Incident States, Alert States, Scheduled Maintenance States, Monitor
+ * Statuses, Incident Severities, Alert Severities, Postmortem Statuses, Case
+ * Statuses and Case Priorities.
  *
  * Each page is one drag-ordered list, and its order means something
  * (Common/Utils/StateOrder): incidents only ever move down their states,
@@ -32,12 +34,28 @@ export interface StateSettingsCountsAsCopy {
   byBuiltIn: Record<string, string>;
 }
 
+/*
+ * A column that says what each built-in row is for, read off its own flag
+ * rather than where it sits - the Case Priorities page's Detection
+ * severity: which detection severity opens its cases at each built-in
+ * priority. A row of the project's own reads `otherwise`, drawn muted, as an
+ * empty value is.
+ */
+export interface StateSettingsBuiltInColumnCopy {
+  title: string;
+  tooltip: string;
+  byBuiltIn: Record<string, string>;
+  otherwise: string;
+}
+
 export interface StateSettingsPageCopy {
   // The card's title and the sentence under it.
   title: string;
   description: string;
   // The state pages' "Counts as" column; the other pages have none.
   countsAs?: StateSettingsCountsAsCopy | undefined;
+  // A column of what each built-in row is for (StateSettingsBuiltInColumnCopy).
+  builtInColumn?: StateSettingsBuiltInColumnCopy | undefined;
   // What each built-in row is, by its flag, in the Built-in tag's tooltip.
   builtInTooltips: Record<string, string>;
   // Why a built-in row's Delete is locked.
@@ -45,6 +63,13 @@ export interface StateSettingsPageCopy {
   // The create and edit form.
   namePlaceholder: string;
   descriptionPlaceholder: string;
+  /*
+   * What the form says under Name and Description, in the reader's
+   * language. Left out, the form says what the model's columns say, in
+   * English (an API reader's words).
+   */
+  nameDescription?: string | undefined;
+  descriptionDescription?: string | undefined;
 }
 
 export const StateSettingsSharedCopy: {
@@ -225,9 +250,91 @@ export const STATE_SETTINGS_COPY: Record<StateListType, StateSettingsPageCopy> =
       descriptionPlaceholder:
         "The postmortem is written and waiting for the team's review.",
     },
+    /*
+     * A security case can move back up (reopened), so like the postmortem
+     * statuses its order says what each status counts as
+     * (Common/Utils/SecurityCase/SecurityCaseStatuses).
+     */
+    [StateListType.SecurityCaseStatus]: {
+      title: "Case Statuses",
+      description:
+        "How far a case has come. Drag a status to change where it sits. A new status is added just above the closed status, and a status below it counts as closed.",
+      countsAs: {
+        title: "Counts as",
+        tooltip:
+          "Where a status sits decides what a case in it counts as. From the acknowledged status down, someone is on it. From the contained status down, it is contained. From the closed status down, it is closed and carries a verdict.",
+        aboveAll: "Not acknowledged",
+        byBuiltIn: {
+          isNewStatus: "Not acknowledged",
+          isAcknowledgedStatus: "Acknowledged",
+          isContainedStatus: "Contained",
+          isClosedStatus: "Closed",
+        },
+      },
+      builtInTooltips: {
+        isNewStatus:
+          "New cases start in this status. It can be renamed, but not deleted.",
+        isAcknowledgedStatus:
+          "Reopening a case moves it to this status. Reaching it records when the case was acknowledged. It can be renamed, but not deleted.",
+        isContainedStatus:
+          "Reaching this status records the time to contain. It can be renamed, but not deleted.",
+        isClosedStatus:
+          "Close Case moves a case to this status, with a verdict. It can be renamed, but not deleted.",
+      },
+      deleteLockedReason: "Built-in statuses can be renamed, but not deleted.",
+      namePlaceholder: "Triage",
+      descriptionPlaceholder:
+        "Someone is checking whether the detection is real.",
+      nameDescription:
+        "What the status is called, like Investigating or Triage.",
+      descriptionDescription:
+        "What a case in this status is waiting for, in a sentence.",
+    },
+    /*
+     * Ranked like severities, but with a built-in priority for each
+     * detection severity, which keep their order
+     * (Common/Utils/SecurityCase/SecurityCasePriorities).
+     */
+    [StateListType.SecurityCasePriority]: {
+      title: "Case Priorities",
+      description:
+        "Most urgent first. Drag a priority to change its rank: playbooks and notifications that say at least High read this order. A new priority is added at the end.",
+      builtInColumn: {
+        title: "Detection severity",
+        tooltip:
+          "Detections of this severity open their cases at this priority, and a case rises when a more severe detection joins it. People and playbooks set the priorities you add.",
+        byBuiltIn: {
+          isCriticalPriority: "Critical",
+          isHighPriority: "High",
+          isMediumPriority: "Medium or unknown",
+          isLowPriority: "Low",
+          isInformationalPriority: "Informational",
+        },
+        otherwise: "None",
+      },
+      builtInTooltips: {
+        isCriticalPriority:
+          "Critical detections open their cases at this priority, and people hear about its cases at once. It can be renamed, but not deleted.",
+        isHighPriority:
+          "High detections open their cases at this priority. People hear about cases from here up, unless they choose otherwise. It can be renamed, but not deleted.",
+        isMediumPriority:
+          "Medium detections, and the cases people open, start at this priority. It can be renamed, but not deleted.",
+        isLowPriority:
+          "Low detections open their cases at this priority. It can be renamed, but not deleted.",
+        isInformationalPriority:
+          "Informational detections open their cases at this priority. It can be renamed, but not deleted.",
+      },
+      deleteLockedReason:
+        "Built-in priorities can be renamed, but not deleted.",
+      namePlaceholder: "Emergency",
+      descriptionPlaceholder: "A confirmed breach. Page the team now.",
+      nameDescription: "What the priority is called, like High or P1.",
+      descriptionDescription:
+        "How fast a case at this priority needs a person, in a sentence.",
+    },
   };
 
-/** Every string the seven pages show, for the locale checks. */
+/** Every string the nine pages show, for the locale checks. */
 export const getStateSettingsStrings: () => Array<string> =
   (): Array<string> => {
     const strings: Set<string> = new Set(
@@ -239,6 +346,14 @@ export const getStateSettingsStrings: () => Array<string> =
       strings.add(page.description);
       strings.add(page.namePlaceholder);
       strings.add(page.descriptionPlaceholder);
+
+      if (page.nameDescription) {
+        strings.add(page.nameDescription);
+      }
+
+      if (page.descriptionDescription) {
+        strings.add(page.descriptionDescription);
+      }
 
       if (page.deleteLockedReason) {
         strings.add(page.deleteLockedReason);
@@ -254,6 +369,16 @@ export const getStateSettingsStrings: () => Array<string> =
         strings.add(page.countsAs.aboveAll);
 
         for (const label of Object.values(page.countsAs.byBuiltIn)) {
+          strings.add(label);
+        }
+      }
+
+      if (page.builtInColumn) {
+        strings.add(page.builtInColumn.title);
+        strings.add(page.builtInColumn.tooltip);
+        strings.add(page.builtInColumn.otherwise);
+
+        for (const label of Object.values(page.builtInColumn.byBuiltIn)) {
           strings.add(label);
         }
       }

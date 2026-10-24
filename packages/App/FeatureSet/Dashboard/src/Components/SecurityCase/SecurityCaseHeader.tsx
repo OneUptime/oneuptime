@@ -9,15 +9,18 @@ import {
   getSecurityDetectionSourceIcon,
 } from "./SecurityCasePills";
 import SecurityCaseStatusStepper from "./SecurityCaseStatusStepper";
+import { SecurityCaseValueLists } from "./SecurityCaseValues";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
+import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import SecurityCasePriority, {
-  SECURITY_CASE_PRIORITIES,
-} from "Common/Types/SecurityCase/SecurityCasePriority";
-import SecurityCaseStatus from "Common/Types/SecurityCase/SecurityCaseStatus";
+import SecurityCaseStage from "Common/Types/SecurityCase/SecurityCaseStage";
+import { isArchivedValue } from "Common/Utils/ArchivableValues";
+import SecurityCasePriorities from "Common/Utils/SecurityCase/SecurityCasePriorities";
+import SecurityCaseStatuses from "Common/Utils/SecurityCase/SecurityCaseStatuses";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import LabelsElement from "Common/UI/Components/Label/Labels";
@@ -35,6 +38,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   securityCase: SecurityCase;
+  // The project's case priorities and statuses (Security Events > Settings).
+  values: SecurityCaseValueLists;
   isWorking: boolean;
   onAssignToMe: () => void;
   onChangeStatus: (status: SecurityCaseStatus) => void;
@@ -67,7 +72,10 @@ const MetaItem: FunctionComponent<{
 /*
  * The top of a case: what it is, how urgent, where it stands, who has it,
  * and the moves an analyst makes on it - take it, move it along, run a
- * playbook, hand it to incident response.
+ * playbook, hand it to incident response. Its priority and status are the
+ * project's own: Close Case moves it to the project's closed status, Reopen
+ * to its acknowledged one, and the menu offers every priority but the
+ * case's and the archived ones.
  */
 const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -84,10 +92,42 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
     ModelAction.Delete,
   );
 
+  const { priorities, statuses } = props.values;
+
   const isMine: boolean =
     Boolean(securityCase.assignedToUserId) &&
     securityCase.assignedToUserId?.toString() === User.getUserId().toString();
-  const isClosed: boolean = securityCase.status === SecurityCaseStatus.Closed;
+  // Closed: its status is the project's closed one, or one after it.
+  const isClosed: boolean = SecurityCaseStatuses.isClosed(
+    statuses,
+    securityCase.securityCaseStatusId,
+  );
+  const closedStatus: SecurityCaseStatus | null =
+    SecurityCaseStatuses.getStatusOfStage(statuses, SecurityCaseStage.Closed);
+  const reopenStatus: SecurityCaseStatus | null =
+    SecurityCaseStatuses.getStatusOfStage(
+      statuses,
+      SecurityCaseStage.Acknowledged,
+    );
+  const priority: SecurityCasePriority | null = SecurityCasePriorities.find(
+    priorities,
+    securityCase.securityCasePriorityId,
+  );
+  const status: SecurityCaseStatus | null = SecurityCaseStatuses.find(
+    statuses,
+    securityCase.securityCaseStatusId,
+  );
+  // Every priority it can move to: not its own, and none nobody picks again.
+  const otherPriorities: Array<SecurityCasePriority> =
+    SecurityCasePriorities.sort(priorities).filter(
+      (candidate: SecurityCasePriority): boolean => {
+        return (
+          !isArchivedValue(candidate) &&
+          candidate.id?.toString() !==
+            securityCase.securityCasePriorityId?.toString()
+        );
+      },
+    );
 
   const disabledTooltip: string | undefined = updateGate.isAllowed
     ? undefined
@@ -101,8 +141,8 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
             <span className="rounded-md bg-gray-100 px-2 py-0.5 font-mono text-xs font-semibold text-gray-700">
               {securityCase.caseNumberWithPrefix || ""}
             </span>
-            <SecurityCasePriorityPill value={securityCase.priority} />
-            <SecurityCaseStatusPill value={securityCase.status} />
+            <SecurityCasePriorityPill value={priority} />
+            <SecurityCaseStatusPill value={status} />
             {isClosed && securityCase.verdict ? (
               <SecurityCaseVerdictPill value={securityCase.verdict} />
             ) : (
@@ -185,7 +225,7 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
           ) : (
             <></>
           )}
-          {!isClosed ? (
+          {!isClosed && closedStatus ? (
             <Button
               title="Close Case"
               icon={IconProp.CheckCircle}
@@ -194,10 +234,13 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
               tooltip={disabledTooltip}
               dataTestId="security-case-close"
               onClick={() => {
-                props.onChangeStatus(SecurityCaseStatus.Closed);
+                props.onChangeStatus(closedStatus);
               }}
             />
           ) : (
+            <></>
+          )}
+          {isClosed && reopenStatus ? (
             <Button
               title="Reopen"
               icon={IconProp.Refresh}
@@ -206,39 +249,40 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
               tooltip={disabledTooltip}
               dataTestId="security-case-reopen"
               onClick={() => {
-                props.onChangeStatus(SecurityCaseStatus.Investigating);
+                props.onChangeStatus(reopenStatus);
               }}
             />
+          ) : (
+            <></>
           )}
           <MoreMenu
             ariaLabel={translator.translateText("More case actions")}
             dataTestId="security-case-more"
           >
             {[
-              ...SECURITY_CASE_PRIORITIES.filter(
-                (priority: SecurityCasePriority): boolean => {
-                  return priority !== securityCase.priority;
+              ...otherPriorities.map(
+                (candidate: SecurityCasePriority): ReactElement => {
+                  const name: string = candidate.name || "";
+
+                  return (
+                    <MoreMenuItem
+                      key={`priority-${candidate.id?.toString() || name}`}
+                      icon={IconProp.Signal}
+                      text={translator.translateTemplate(
+                        "Set Priority: {{priority}}",
+                        {
+                          priority: translator.translateText(name) || name,
+                        },
+                      )}
+                      isDisabled={!updateGate.isAllowed}
+                      tooltip={disabledTooltip}
+                      onClick={() => {
+                        props.onChangePriority(candidate);
+                      }}
+                    />
+                  );
                 },
-              ).map((priority: SecurityCasePriority): ReactElement => {
-                return (
-                  <MoreMenuItem
-                    key={`priority-${priority}`}
-                    icon={IconProp.Signal}
-                    text={translator.translateTemplate(
-                      "Set Priority: {{priority}}",
-                      {
-                        priority:
-                          translator.translateText(priority) || priority,
-                      },
-                    )}
-                    isDisabled={!updateGate.isAllowed}
-                    tooltip={disabledTooltip}
-                    onClick={() => {
-                      props.onChangePriority(priority);
-                    }}
-                  />
-                );
-              }),
+              ),
               <MoreMenuItem
                 key="edit"
                 icon={IconProp.Edit}
@@ -265,7 +309,8 @@ const SecurityCaseHeader: FunctionComponent<ComponentProps> = (
 
       <div className="border-t border-gray-100 px-5 py-4">
         <SecurityCaseStatusStepper
-          status={securityCase.status}
+          statuses={statuses}
+          statusId={securityCase.securityCaseStatusId}
           isDisabled={!updateGate.isAllowed || props.isWorking}
           disabledReason={disabledTooltip}
           onSelect={props.onChangeStatus}

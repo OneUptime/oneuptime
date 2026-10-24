@@ -11,6 +11,7 @@ import {
   getSecurityEventsBadgeCount,
 } from "../../Components/SecurityEvents/SecurityEventsBadgeCount";
 import { useWorkspaceSideMenuSection } from "../../Components/Workspace/WorkspaceSideMenuSection";
+import useSecurityCaseValues from "../../Components/SecurityCase/useSecurityCaseValues";
 import Route from "Common/Types/API/Route";
 import SideMenu, {
   SideMenuItemProps,
@@ -29,8 +30,13 @@ import React, { FunctionComponent, ReactElement } from "react";
  * Microsoft Teams pages, only for the workspaces the project has connected,
  * or one entry to connect one when it has none (WorkspaceSideMenuSection.ts),
  * as every product's menu draws it.
+ *
+ * The case counts wait for the project's case statuses: which cases are
+ * open is what those count as.
  */
 const SecurityEventsSideMenu: FunctionComponent = (): ReactElement => {
+  const { values } = useSecurityCaseValues();
+
   const workspaceSection: SideMenuSectionProps | null =
     useWorkspaceSideMenuSection({
       slack: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK,
@@ -47,7 +53,10 @@ const SecurityEventsSideMenu: FunctionComponent = (): ReactElement => {
         items: section.items.map(
           (item: SecurityEventsMenuItem): SideMenuItemProps => {
             const count: SecurityEventsBadgeCount | undefined =
-              getSecurityEventsBadgeCount(item.badge);
+              getSecurityEventsBadgeCount(
+                item.badge,
+                values ? values.statuses : null,
+              );
 
             return {
               link: {

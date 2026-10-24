@@ -234,6 +234,18 @@ enum Permission {
   // Security Case Feed (what happened on a case, written by OneUptime)
   ReadSecurityCaseFeed = "ReadSecurityCaseFeed",
 
+  // Security Case Statuses (the statuses a project's cases move through)
+  CreateSecurityCaseStatus = "CreateSecurityCaseStatus",
+  DeleteSecurityCaseStatus = "DeleteSecurityCaseStatus",
+  EditSecurityCaseStatus = "EditSecurityCaseStatus",
+  ReadSecurityCaseStatus = "ReadSecurityCaseStatus",
+
+  // Security Case Priorities (how urgent a project's cases are, ranked)
+  CreateSecurityCasePriority = "CreateSecurityCasePriority",
+  DeleteSecurityCasePriority = "DeleteSecurityCasePriority",
+  EditSecurityCasePriority = "EditSecurityCasePriority",
+  ReadSecurityCasePriority = "ReadSecurityCasePriority",
+
   // Security Detections (the signals a case is made of)
   DeleteSecurityDetection = "DeleteSecurityDetection",
   ReadSecurityDetection = "ReadSecurityDetection",
@@ -8146,6 +8158,90 @@ export class PermissionHelper {
         title: "Read Security Case Feed",
         description:
           "This permission can read the feed of Security Cases of this project: what happened on each case and when.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Security Case Status Permissions
+      {
+        permission: Permission.CreateSecurityCaseStatus,
+        title: "Create Security Case Status",
+        description:
+          "This permission can add Security Case Statuses to this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteSecurityCaseStatus,
+        title: "Delete Security Case Status",
+        description:
+          "This permission can delete Security Case Statuses of this project that no case is in.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditSecurityCaseStatus,
+        title: "Edit Security Case Status",
+        description:
+          "This permission can rename, recolour, reorder and archive Security Case Statuses of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadSecurityCaseStatus,
+        title: "Read Security Case Status",
+        description:
+          "This permission can read Security Case Statuses of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Security Case Priority Permissions
+      {
+        permission: Permission.CreateSecurityCasePriority,
+        title: "Create Security Case Priority",
+        description:
+          "This permission can add Security Case Priorities to this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteSecurityCasePriority,
+        title: "Delete Security Case Priority",
+        description:
+          "This permission can delete Security Case Priorities of this project that no case is at.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditSecurityCasePriority,
+        title: "Edit Security Case Priority",
+        description:
+          "This permission can rename, recolour, reorder and archive Security Case Priorities of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadSecurityCasePriority,
+        title: "Read Security Case Priority",
+        description:
+          "This permission can read Security Case Priorities of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

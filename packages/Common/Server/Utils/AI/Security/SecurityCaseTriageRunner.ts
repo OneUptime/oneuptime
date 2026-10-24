@@ -3,6 +3,9 @@ import SecurityDetection from "../../../../Models/DatabaseModels/SecurityDetecti
 import { Indigo500 } from "../../../../Types/BrandColors";
 import OneUptimeDate from "../../../../Types/Date";
 import ObjectID from "../../../../Types/ObjectID";
+import SecurityCasePriority from "../../../../Models/DatabaseModels/SecurityCasePriority";
+import SecurityCasePriorities from "../../../../Utils/SecurityCase/SecurityCasePriorities";
+import SecurityCaseValues from "../../SecurityCase/SecurityCaseValues";
 import SecurityCaseAiVerdict, {
   getSecurityCaseAiVerdictDescription,
 } from "../../../../Types/SecurityCase/SecurityCaseAiVerdict";
@@ -232,11 +235,20 @@ export default class SecurityCaseTriageRunner {
       promptInjectionSuspected: data.scan.found(),
     });
 
+    // The project's priority of the level the triage suggested, by id.
+    const suggestedPriority: SecurityCasePriority | null =
+      decision.suggestedPriority
+        ? SecurityCasePriorities.getPriorityOfLevel(
+            await SecurityCaseValues.getPriorities(data.projectId),
+            decision.suggestedPriority,
+          )
+        : null;
+
     await SecurityCaseService.updateOneById({
       id: data.securityCaseId,
       data: {
         aiVerdict: decision.verdict,
-        aiSuggestedPriority: decision.suggestedPriority || null,
+        aiSuggestedSecurityCasePriorityId: suggestedPriority?.id || null,
         aiSuggestedPlaybookId: decision.suggestedPlaybookId
           ? new ObjectID(decision.suggestedPlaybookId)
           : null,
@@ -250,7 +262,10 @@ export default class SecurityCaseTriageRunner {
     await SecurityCaseFeedService.createSecurityCaseFeedItem({
       projectId: data.projectId,
       securityCaseId: data.securityCaseId,
-      feedInfoInMarkdown: this.buildFeedHeadline(decision).toString(),
+      feedInfoInMarkdown: this.buildFeedHeadline(
+        decision,
+        suggestedPriority?.name || undefined,
+      ).toString(),
       moreInformationInMarkdown: report,
       eventType: SecurityCaseFeedEventType.AiTriage,
       displayColor: Indigo500,
@@ -367,9 +382,13 @@ export default class SecurityCaseTriageRunner {
     return lines.join("\n");
   }
 
-  // The timeline entry's line: OneUptime AI's read, and what it suggests.
+  /*
+   * The timeline entry's line: OneUptime AI's read, and what it suggests -
+   * the priority by the name the project gives the level it suggested.
+   */
   public static buildFeedHeadline(
     decision: SecurityCaseTriageDecision,
+    suggestedPriorityName?: string | undefined,
   ): MarkdownText {
     const verdict: string =
       getSecurityCaseAiVerdictDescription(decision.verdict)?.verdict ||
@@ -378,7 +397,9 @@ export default class SecurityCaseTriageRunner {
     const suggestions: Array<MarkdownText> = [];
 
     if (decision.suggestedPriority) {
-      suggestions.push(mdText`priority **${decision.suggestedPriority}**`);
+      suggestions.push(
+        mdText`priority **${suggestedPriorityName || decision.suggestedPriority}**`,
+      );
     }
 
     if (decision.suggestedPlaybookId) {

@@ -39,8 +39,10 @@ import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import NotificationSettingEventType from "../../../../Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
-import SecurityCasePriority from "../../../../Types/SecurityCase/SecurityCasePriority";
-import SecurityCaseStatus from "../../../../Types/SecurityCase/SecurityCaseStatus";
+import SecurityCasePriorityLevel from "../../../../Types/SecurityCase/SecurityCasePriorityLevel";
+import SecurityCaseStage from "../../../../Types/SecurityCase/SecurityCaseStage";
+import { SecurityCaseNotificationChoiceKind } from "../../../../Utils/SecurityCase/SecurityCaseNotificationPriority";
+import { Orange } from "../../../../Types/BrandColors";
 import SecurityDetectionSource from "../../../../Types/SecurityCase/SecurityDetectionSource";
 import { SecurityEntityType } from "../../../../Types/SecurityCase/SecurityEntity";
 import { SETUP_TEST_SOURCE_IP } from "../../../../Types/SecurityEvent/SecuritySetupTest";
@@ -54,6 +56,13 @@ import SecurityPlaybookRunStatus, {
 } from "../../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import SecurityPlaybookTrigger from "../../../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import { getJestSpyOn } from "../../../Spy";
+import {
+  buildDefaultTestPriorities,
+  testPriorityId,
+  testStatusId,
+} from "../../../Helpers/SecurityCaseValues";
+import { stubSecurityCaseValues } from "../../../Helpers/SecurityCaseValuesStub";
+import SecurityCasePriority from "../../../../Models/DatabaseModels/SecurityCasePriority";
 import {
   afterEach,
   beforeEach,
@@ -136,8 +145,10 @@ function caseModel(overrides: Partial<SecurityCase> = {}): SecurityCase {
   model.caseNumberWithPrefix = "CASE-12";
   model.title = "Brute force against admin";
   model.description = "Ten failed sign-ins in a minute.";
-  model.priority = SecurityCasePriority.Critical;
-  model.status = SecurityCaseStatus.New;
+  model.securityCasePriorityId = testPriorityId(
+    SecurityCasePriorityLevel.Critical,
+  );
+  model.securityCaseStatusId = testStatusId(SecurityCaseStage.New);
   model.source = SecurityDetectionSource.DetectionRule;
   model.entities = [
     { type: SecurityEntityType.IpAddress, value: "198.51.100.7" },
@@ -179,6 +190,8 @@ function findMember(userId: unknown): Member | undefined {
 }
 
 beforeEach(() => {
+  // The project's priorities and statuses: a new project's.
+  stubSecurityCaseValues();
   members = [];
   securityCase = caseModel();
   run = null;
@@ -216,16 +229,20 @@ beforeEach(() => {
       expectedData: JSONObject;
     };
 
-    if (
-      (securityCase.notifiedPriority || null) !==
-      (expectedData["notifiedPriority"] || null)
-    ) {
+    const current: string = securityCase.notifiedSecurityCasePriorityId
+      ? securityCase.notifiedSecurityCasePriorityId.toString()
+      : "";
+    const expected: string = expectedData["notifiedSecurityCasePriorityId"]
+      ? String(expectedData["notifiedSecurityCasePriorityId"])
+      : "";
+
+    if (current !== expected) {
       return false;
     }
 
-    securityCase.notifiedPriority = data[
-      "notifiedPriority"
-    ] as SecurityCasePriority;
+    securityCase.notifiedSecurityCasePriorityId = data[
+      "notifiedSecurityCasePriorityId"
+    ] as unknown as ObjectID;
     return true;
   });
 
@@ -413,29 +430,39 @@ describe("who is told that a case reached their priority", () => {
         );
       }),
     ).toBe(true);
-    expect(securityCase.notifiedPriority).toBe(SecurityCasePriority.Critical);
+    expect(securityCase.notifiedSecurityCasePriorityId?.toString()).toBe(
+      testPriorityId(SecurityCasePriorityLevel.Critical).toString(),
+    );
   });
 
   test("a Medium case reaches only the people who chose Medium or below", async () => {
-    securityCase = caseModel({ priority: SecurityCasePriority.Medium });
+    securityCase = caseModel({
+      securityCasePriorityId: testPriorityId(SecurityCasePriorityLevel.Medium),
+    });
     members = [
       member("Default", 1, [Permission.SecurityAdmin]),
       member("Medium", 2, [Permission.SecurityAdmin], {
         setting: {
           alertByEmail: true,
-          minimumSecurityCasePriority: SecurityCasePriority.Medium,
+          minimumSecurityCasePriorityId: testPriorityId(
+            SecurityCasePriorityLevel.Medium,
+          ),
         },
       }),
       member("Everything", 3, [Permission.SecurityAdmin], {
         setting: {
           alertByEmail: true,
-          minimumSecurityCasePriority: SecurityCasePriority.Informational,
+          minimumSecurityCasePriorityId: testPriorityId(
+            SecurityCasePriorityLevel.Informational,
+          ),
         },
       }),
       member("CriticalOnly", 4, [Permission.SecurityAdmin], {
         setting: {
           alertByEmail: true,
-          minimumSecurityCasePriority: SecurityCasePriority.Critical,
+          minimumSecurityCasePriorityId: testPriorityId(
+            SecurityCasePriorityLevel.Critical,
+          ),
         },
       }),
     ];
@@ -454,21 +481,29 @@ describe("who is told that a case reached their priority", () => {
       member("Medium", 2, [Permission.SecurityAdmin], {
         setting: {
           alertByEmail: true,
-          minimumSecurityCasePriority: SecurityCasePriority.Medium,
+          minimumSecurityCasePriorityId: testPriorityId(
+            SecurityCasePriorityLevel.Medium,
+          ),
         },
       }),
       member("CriticalOnly", 3, [Permission.SecurityAdmin], {
         setting: {
           alertByPush: true,
-          minimumSecurityCasePriority: SecurityCasePriority.Critical,
+          minimumSecurityCasePriorityId: testPriorityId(
+            SecurityCasePriorityLevel.Critical,
+          ),
         },
       }),
     ];
 
     // Told about at Medium when it opened.
     securityCase = caseModel({
-      priority: SecurityCasePriority.Critical,
-      notifiedPriority: SecurityCasePriority.Medium,
+      securityCasePriorityId: testPriorityId(
+        SecurityCasePriorityLevel.Critical,
+      ),
+      notifiedSecurityCasePriorityId: testPriorityId(
+        SecurityCasePriorityLevel.Medium,
+      ),
     });
 
     await SecurityCaseNotifications.notifyPriorityReached({
@@ -512,8 +547,10 @@ describe("who is told that a case reached their priority", () => {
   test("a case lowered, or no higher than it was told at, tells nobody", async () => {
     members = [member("Analyst", 1, [Permission.SecurityMember])];
     securityCase = caseModel({
-      priority: SecurityCasePriority.High,
-      notifiedPriority: SecurityCasePriority.Critical,
+      securityCasePriorityId: testPriorityId(SecurityCasePriorityLevel.High),
+      notifiedSecurityCasePriorityId: testPriorityId(
+        SecurityCasePriorityLevel.Critical,
+      ),
     });
 
     await SecurityCaseNotifications.notifyPriorityReached({
@@ -522,7 +559,9 @@ describe("who is told that a case reached their priority", () => {
     });
 
     expect(sent).toEqual([]);
-    expect(securityCase.notifiedPriority).toBe(SecurityCasePriority.Critical);
+    expect(securityCase.notifiedSecurityCasePriorityId?.toString()).toBe(
+      testPriorityId(SecurityCasePriorityLevel.Critical).toString(),
+    );
   });
 
   test("the person who opened or raised it, someone with every channel off, and a role limited to other labels are not told", async () => {
@@ -560,7 +599,9 @@ describe("who is told that a case reached their priority", () => {
       securityCaseId: CASE_ID,
     });
 
-    securityCase = caseModel({ status: SecurityCaseStatus.Closed });
+    securityCase = caseModel({
+      securityCaseStatusId: testStatusId(SecurityCaseStage.Closed),
+    });
     await SecurityCaseNotifications.notifyPriorityReached({
       projectId: PROJECT_ID,
       securityCaseId: CASE_ID,
@@ -609,7 +650,9 @@ describe("who is told that a case reached their priority", () => {
   });
 
   test("nobody to tell writes no feed entry, and the channels are still posted to", async () => {
-    securityCase = caseModel({ priority: SecurityCasePriority.Low });
+    securityCase = caseModel({
+      securityCasePriorityId: testPriorityId(SecurityCasePriorityLevel.Low),
+    });
     members = [member("Analyst", 1, [Permission.SecurityMember])];
 
     await SecurityCaseNotifications.notifyPriorityReached({
@@ -620,7 +663,9 @@ describe("who is told that a case reached their priority", () => {
     expect(sent).toEqual([]);
     expect(feedItems).toEqual([]);
     expect(channelPosts).toHaveLength(1);
-    expect(securityCase.notifiedPriority).toBe(SecurityCasePriority.Low);
+    expect(securityCase.notifiedSecurityCasePriorityId?.toString()).toBe(
+      testPriorityId(SecurityCasePriorityLevel.Low).toString(),
+    );
   });
 
   test("a Critical case is sent at once, never rolled up, and with every channel's copy", async () => {
@@ -646,13 +691,78 @@ describe("who is told that a case reached their priority", () => {
     ).toBe("New Critical security case CASE-12");
   });
 
+  test("names the priority as the project calls it, and reads urgency off its place", async () => {
+    const priorities: Array<SecurityCasePriority> =
+      buildDefaultTestPriorities();
+    priorities[0]!.name = "Sev 1";
+    stubSecurityCaseValues({ priorities });
+    members = [member("Analyst", 1, [Permission.SecurityMember])];
+
+    await SecurityCaseNotifications.notifyPriorityReached({
+      projectId: PROJECT_ID,
+      securityCaseId: CASE_ID,
+    });
+
+    expect(sent[0]!.subject).toBe(
+      "[CASE-12] New Sev 1 security case: Brute force against admin",
+    );
+    // Still the project's critical priority: sent at once.
+    expect(sent[0]!.data["forceImmediate"]).toBe(true);
+    expect(feedItems[0]!["feedInfoInMarkdown"]).toBe(
+      "🔔 Notified 1 person of this new **Sev 1** case.",
+    );
+  });
+
+  test("a case at a priority of the project's own above Critical is critical too", async () => {
+    const priorities: Array<SecurityCasePriority> =
+      buildDefaultTestPriorities().map((priority: SecurityCasePriority) => {
+        priority.order = (priority.order || 0) + 1;
+        return priority;
+      });
+    const emergency: SecurityCasePriority = new SecurityCasePriority();
+    emergency._id = "c1000000-0000-4000-8000-0000000000e1";
+    emergency.name = "Emergency";
+    emergency.order = 1;
+    priorities.push(emergency);
+    stubSecurityCaseValues({ priorities });
+    securityCase = caseModel({
+      securityCasePriorityId: new ObjectID(emergency._id),
+    });
+    members = [
+      member("CriticalOnly", 1, [Permission.SecurityMember], {
+        setting: {
+          alertByEmail: true,
+          minimumSecurityCasePriorityId: testPriorityId(
+            SecurityCasePriorityLevel.Critical,
+          ),
+        },
+      }),
+    ];
+
+    await SecurityCaseNotifications.notifyPriorityReached({
+      projectId: PROJECT_ID,
+      securityCaseId: CASE_ID,
+    });
+
+    expect(sentTo()).toEqual(["CriticalOnly"]);
+    expect(sent[0]!.data["forceImmediate"]).toBe(true);
+    expect(securityCase.notifiedSecurityCasePriorityId?.toString()).toBe(
+      emergency._id,
+    );
+  });
+
   test("a person whose setting lost its priority hears at the default", async () => {
-    securityCase = caseModel({ priority: SecurityCasePriority.High });
+    securityCase = caseModel({
+      securityCasePriorityId: testPriorityId(SecurityCasePriorityLevel.High),
+    });
     members = [
       member("Odd", 1, [Permission.SecurityMember], {
         setting: {
           alertByEmail: true,
-          minimumSecurityCasePriority: "Urgent" as SecurityCasePriority,
+          // A priority the project no longer has.
+          minimumSecurityCasePriorityId: new ObjectID(
+            "c1000000-0000-4000-8000-0000000000ff",
+          ),
         },
       }),
     ];
@@ -1133,8 +1243,10 @@ describe("what the messages say", () => {
     projectId: PROJECT_ID,
     number: "CASE-7",
     title: "Credential dumping on web-01",
-    priority: SecurityCasePriority.High,
-    status: SecurityCaseStatus.Investigating,
+    priority: "High",
+    priorityColor: Orange,
+    isCritical: false,
+    status: "Investigating",
     source: SecurityDetectionSource.ThreatIntel,
     assignee: "Unassigned",
     entities: [{ type: SecurityEntityType.Host, value: "web-01" }],
@@ -1150,7 +1262,10 @@ describe("what the messages say", () => {
       buildPriorityReachedMessage({
         facts,
         isNew: true,
-        minimum: SecurityCasePriority.High,
+        minimum: {
+          name: "High",
+          kind: SecurityCaseNotificationChoiceKind.AndAbove,
+        },
       });
 
     expect(message.subject).toBe(
@@ -1159,7 +1274,7 @@ describe("what the messages say", () => {
     expect(message.forceImmediate).toBe(false);
     expect(message.requireInteraction).toBe(false);
     expect(message.emailVars["reasonSentence"]).toContain(
-      "your chosen priority: High and Critical",
+      "your chosen priority: High and above",
     );
     expect(message.emailVars["caseEntities"]).toBe("web-01 (Host)");
     expect(message.emailVars["caseMitreTactics"]).toContain("TA0006");

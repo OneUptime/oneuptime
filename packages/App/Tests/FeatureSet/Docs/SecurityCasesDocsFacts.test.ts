@@ -3,6 +3,11 @@ import { tables } from "./DocsPageShape";
 import { SECURITY_CASE_QUEUE_VIEWS } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseQueueViews";
 import { SECURITY_PLAYBOOK_RUN_VIEWS } from "../../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunViews";
 import { UNDO_BUTTON_TITLES } from "../../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunStepRows";
+import { ARCHIVABLE_VALUE_COPY } from "../../../FeatureSet/Dashboard/src/Components/ArchivableValue/ArchivableValueCopy";
+import {
+  STATE_SETTINGS_COPY,
+  StateSettingsPageCopy,
+} from "../../../FeatureSet/Dashboard/src/Components/StateSettings/StateSettingsCopy";
 import {
   SECURITY_EVENTS_MENU,
   SecurityEventsMenuItem,
@@ -10,6 +15,8 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Utils/SecurityEventsNavigation";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
+import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
 import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
@@ -24,10 +31,26 @@ import {
 import { CONTAINMENT_ENTITY_LIMIT } from "Common/Server/Utils/SecurityPlaybook/SecurityPlaybookContainment";
 import Permission from "Common/Types/Permission";
 import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
-import SecurityCasePriority, {
-  securityCasePriorityFromSeverity,
-} from "Common/Types/SecurityCase/SecurityCasePriority";
-import { SECURITY_CASE_STATUSES } from "Common/Types/SecurityCase/SecurityCaseStatus";
+import SecurityCasePriorityLevel, {
+  SECURITY_CASE_PRIORITY_LEVEL_FLAGS,
+  securityCasePriorityLevelFromSeverity,
+} from "Common/Types/SecurityCase/SecurityCasePriorityLevel";
+import { SECURITY_CASE_STAGE_FLAGS } from "Common/Types/SecurityCase/SecurityCaseStage";
+import {
+  ARCHIVABLE_VALUES,
+  ArchivableValueProtection,
+  ArchivableValueType,
+} from "Common/Utils/ArchivableValues";
+import SecurityCasePriorities, {
+  DEFAULT_SECURITY_CASE_PRIORITIES,
+  DefaultSecurityCasePriority,
+} from "Common/Utils/SecurityCase/SecurityCasePriorities";
+import {
+  DEFAULT_SECURITY_CASE_STATUSES,
+  DefaultSecurityCaseStatus,
+} from "Common/Utils/SecurityCase/SecurityCaseStatuses";
+import { STATE_LISTS, StateListType } from "Common/Utils/StateOrder";
+import { buildDefaultTestPriorities } from "Common/Tests/Helpers/SecurityCaseValues";
 import {
   SECURITY_CASE_VERDICTS,
   SecurityCaseVerdictDescription,
@@ -49,9 +72,12 @@ import { SECURITY_CASE_TEMPLATE_PLACEHOLDERS } from "Common/Utils/SecurityCase/S
 import { SECURITY_CASE_NOTIFICATION_EVENT_TYPES } from "Common/Server/Services/UserNotificationSettingService";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 import {
-  DEFAULT_SECURITY_CASE_NOTIFICATION_PRIORITY,
-  SECURITY_CASE_NOTIFICATION_PRIORITY_CHOICES,
-} from "Common/Types/SecurityCase/SecurityCaseNotificationPriority";
+  SECURITY_CASE_NOTIFICATION_CHOICE_TEMPLATES,
+  SecurityCaseNotificationPriorityChoice,
+  describeSecurityCaseNotificationChoice,
+  getDefaultSecurityCaseNotificationMinimum,
+  getSecurityCaseNotificationPriorityChoices,
+} from "Common/Utils/SecurityCase/SecurityCaseNotificationPriority";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
 import { NotificationRuleConditionUtil } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
 import { describe, expect, it } from "@jest/globals";
@@ -65,6 +91,11 @@ import path from "path";
  * containment limit, the overview's windows, the recovery times - are the
  * code's constants; and what it says each role may do is what the models
  * allow. A change to any of them fails here until the page says so too.
+ *
+ * A case's priorities and statuses are the project's own (Security Events >
+ * Settings): the page lists a new project's, as DEFAULT_SECURITY_CASE_
+ * PRIORITIES and DEFAULT_SECURITY_CASE_STATUSES name them, and says what the
+ * built-in ones do as the settings pages and the archive rules say it.
  */
 
 const PAGE: string = "telemetry/security-cases";
@@ -140,6 +171,22 @@ function codeSpans(text: string): Array<string> {
       return match[1] as string;
     },
   );
+}
+
+// "Critical, High, Medium, Low and Informational", as a sentence lists them.
+function sentenceList(items: Array<string>): string {
+  return items.length < 2
+    ? items.join("")
+    : `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+}
+
+// A new project's priority of a level, by its name.
+function priorityNameOf(level: SecurityCasePriorityLevel): string {
+  return DEFAULT_SECURITY_CASE_PRIORITIES.find(
+    (priority: DefaultSecurityCasePriority): boolean => {
+      return priority.level === level;
+    },
+  )!.name;
 }
 
 describe("Security Cases and Playbooks docs", () => {
@@ -293,13 +340,18 @@ describe("Security Cases and Playbooks docs", () => {
           return part.trim();
         });
 
+      // The built-in priority of the severity's level, as a new project names it.
       for (const severity of severities) {
-        expect([severity, securityCasePriorityFromSeverity(severity)]).toEqual([
+        expect([
           severity,
-          row[1],
-        ]);
+          priorityNameOf(securityCasePriorityLevelFromSeverity(severity)),
+        ]).toEqual([severity, row[1]]);
       }
     }
+
+    expect(page).toContain(
+      "A case's priority comes from the detection's severity, at the project's built-in priority for that level, whatever you have named it:",
+    );
 
     // Every OCSF severity is on the table.
     const listed: string = column(rowsOf("How detections are grouped"), 0).join(
@@ -311,10 +363,27 @@ describe("Security Cases and Playbooks docs", () => {
     }
   });
 
-  it("lists the case's statuses and verdicts as the case knows them", () => {
-    expect(column(rowsOf("Work a case"), 0)).toEqual([
-      ...SECURITY_CASE_STATUSES,
-    ]);
+  it("lists a new project's case statuses, and the verdicts, as the case knows them", () => {
+    const statusRows: Array<Array<string>> = rowsOf("Work a case");
+
+    expect(column(statusRows, 0)).toEqual(
+      DEFAULT_SECURITY_CASE_STATUSES.map(
+        (status: DefaultSecurityCaseStatus): string => {
+          return status.name;
+        },
+      ),
+    );
+
+    statusRows.forEach((row: Array<string>, index: number): void => {
+      // The status's own description, without its full stop.
+      expect(`${row[1]}.`).toBe(
+        DEFAULT_SECURITY_CASE_STATUSES[index]!.description,
+      );
+    });
+
+    expect(section(page, "Work a case")).toContain(
+      "A new project's cases move through four statuses, which you can rename and add to (see [Case priorities and statuses](#case-priorities-and-statuses)).",
+    );
 
     const verdictRows: Array<Array<string>> = rowsOf("Close a case");
 
@@ -330,6 +399,130 @@ describe("Security Cases and Playbooks docs", () => {
       // The dialog's own description, without its full stop.
       expect(`${row[1]}.`).toBe(SECURITY_CASE_VERDICTS[index]!.description);
     });
+  });
+
+  it("opens the case priorities and statuses where the menu puts them, folded under Settings", () => {
+    const settings: SecurityEventsMenuSection | undefined =
+      SECURITY_EVENTS_MENU.find((menu: SecurityEventsMenuSection): boolean => {
+        return menu.title === "Settings";
+      });
+
+    expect(
+      settings?.items.map((item: SecurityEventsMenuItem): string => {
+        return item.title;
+      }),
+    ).toEqual([
+      STATE_SETTINGS_COPY[StateListType.SecurityCasePriority].title,
+      STATE_SETTINGS_COPY[StateListType.SecurityCaseStatus].title,
+    ]);
+    expect(settings?.startsCollapsed).toBe(true);
+    expect(flat(section(page, "Case priorities and statuses"))).toContain(
+      "Each project keeps its own case priorities and statuses, under **Products → Security Events → Settings → Case Priorities** and **Case Statuses**.",
+    );
+  });
+
+  it("says what each built-in status and priority does, and that they keep their order", () => {
+    const builtInRows: Array<Array<string>> = rowsOf(
+      "Case priorities and statuses",
+    );
+    const statuses: Record<string, string> = {
+      "The new status": SECURITY_CASE_STAGE_FLAGS.New,
+      "The acknowledged status": SECURITY_CASE_STAGE_FLAGS.Acknowledged,
+      "The contained status": SECURITY_CASE_STAGE_FLAGS.Contained,
+      "The closed status": SECURITY_CASE_STAGE_FLAGS.Closed,
+    };
+    const priorityRow: string = `The ${sentenceList(
+      DEFAULT_SECURITY_CASE_PRIORITIES.map(
+        (priority: DefaultSecurityCasePriority): string => {
+          return priority.name;
+        },
+      ),
+    )} priorities`;
+
+    expect(column(builtInRows, 0)).toEqual([
+      ...Object.keys(statuses),
+      priorityRow,
+    ]);
+
+    // Every built-in flag is one the lists keep in order, and the archive refuses.
+    for (const [type, listType, flags] of [
+      [
+        ArchivableValueType.SecurityCaseStatus,
+        StateListType.SecurityCaseStatus,
+        Object.values(statuses),
+      ],
+      [
+        ArchivableValueType.SecurityCasePriority,
+        StateListType.SecurityCasePriority,
+        Object.values(SECURITY_CASE_PRIORITY_LEVEL_FLAGS),
+      ],
+    ] as Array<[ArchivableValueType, StateListType, Array<string>]>) {
+      expect(STATE_LISTS[listType].keepsBuiltInOrder).toBe(true);
+      expect(
+        ARCHIVABLE_VALUES[type].protections
+          .map((protection: ArchivableValueProtection): string => {
+            return protection.column;
+          })
+          .sort(),
+      ).toEqual([...flags].sort());
+    }
+
+    // A case someone opens starts at the medium priority.
+    expect(
+      (
+        SecurityCasePriorities.getDefaultPriority(
+          buildDefaultTestPriorities(),
+        ) as SecurityCasePriority
+      ).name,
+    ).toBe(priorityNameOf(SecurityCasePriorityLevel.Medium));
+    expect(builtInRows[4]![1]).toContain(
+      `a case someone opens starts at ${priorityNameOf(SecurityCasePriorityLevel.Medium)}`,
+    );
+    expect(page).toContain(
+      "They can be renamed and recolored, but not deleted or archived, and they keep their order:",
+    );
+  });
+
+  it("says where a value you add goes, and names the settings pages' columns and archive as they draw them", () => {
+    const text: string = flat(section(page, "Case priorities and statuses"));
+    const statusCopy: StateSettingsPageCopy =
+      STATE_SETTINGS_COPY[StateListType.SecurityCaseStatus];
+    const priorityCopy: StateSettingsPageCopy =
+      STATE_SETTINGS_COPY[StateListType.SecurityCasePriority];
+
+    // A status goes just above the closed one; a priority to the end.
+    expect(STATE_LISTS[StateListType.SecurityCaseStatus].insertAboveFlag).toBe(
+      SECURITY_CASE_STAGE_FLAGS.Closed,
+    );
+    expect(
+      STATE_LISTS[StateListType.SecurityCasePriority].insertAboveFlag,
+    ).toBeUndefined();
+    expect(text).toContain(
+      "A status you add goes just above the closed status",
+    );
+    expect(text).toContain("A priority you add goes to the end");
+
+    expect(statusCopy.countsAs?.title).toBe("Counts as");
+    expect(text).toContain("as the **Counts as** column shows");
+    expect(priorityCopy.builtInColumn?.title).toBe("Detection severity");
+    expect(text).toContain(
+      "the **Detection severity** column shows which detections",
+    );
+
+    expect(
+      ARCHIVABLE_VALUE_COPY[ArchivableValueType.SecurityCaseStatus]
+        .archivedTitle,
+    ).toBe("Archived Case Statuses");
+    expect(
+      ARCHIVABLE_VALUE_COPY[ArchivableValueType.SecurityCasePriority]
+        .archivedTitle,
+    ).toBe("Archived Case Priorities");
+    expect(text).toContain(
+      "Archived values are listed in the folded **Archived Case Statuses** or **Archived Case Priorities** section under the table, where **Unarchive** puts one back.",
+    );
+    expect(text).toContain(
+      "**Delete** is refused while cases have the value or a playbook runs from the priority.",
+    );
   });
 
   it("says how far back a case's entities' activity goes", () => {
@@ -591,44 +784,61 @@ describe("Security Cases and Playbooks docs", () => {
       "Email and push",
       "Email and push",
     ]);
-    expect(DEFAULT_SECURITY_CASE_NOTIFICATION_PRIORITY).toBe(
-      SecurityCasePriority.High,
-    );
+    // Nobody has to choose: the default is the project's high priority, and above.
+    expect(
+      (
+        getDefaultSecurityCaseNotificationMinimum(
+          buildDefaultTestPriorities(),
+        ) as SecurityCasePriority
+      ).name,
+    ).toBe(priorityNameOf(SecurityCasePriorityLevel.High));
   });
 
-  it("lists the priority choices as the setting offers them, the default marked", () => {
+  it("lists a new project's priority choices as the setting offers them, the default marked", () => {
     const choiceRows: Array<Array<string>> = rowsOf("Choose what you are told");
-
-    expect(column(choiceRows, 0)).toEqual(
-      SECURITY_CASE_NOTIFICATION_PRIORITY_CHOICES.map(
-        (choice: { label: string }): string => {
-          return choice.label;
+    const priorities: Array<SecurityCasePriority> =
+      buildDefaultTestPriorities();
+    const choices: Array<SecurityCaseNotificationPriorityChoice> =
+      getSecurityCaseNotificationPriorityChoices({ priorities: priorities });
+    const defaultId: string = (
+      getDefaultSecurityCaseNotificationMinimum(
+        priorities,
+      ) as SecurityCasePriority
+    ).id!.toString();
+    const defaultChoice: string = describeSecurityCaseNotificationChoice(
+      choices.find(
+        (choice: SecurityCaseNotificationPriorityChoice): boolean => {
+          return choice.priorityId === defaultId;
         },
-      ),
+      )!,
     );
+
+    // One choice for each of the project's priorities, most urgent first.
+    expect(column(choiceRows, 0)).toEqual(
+      choices.map(describeSecurityCaseNotificationChoice),
+    );
+    expect(defaultChoice).toBe("High and above");
     expect(
       choiceRows.find((row: Array<string>): boolean => {
-        return row[0] === "High and Critical";
+        return row[0] === defaultChoice;
       })![1],
     ).toContain("(the default)");
+    expect(page).toContain(
+      "The choices follow the project's case priorities, under their own names: these are a new project's.",
+    );
+    expect(page).toContain(
+      `so a Medium case notifies nobody who kept the default, **${defaultChoice}**.`,
+    );
 
-    // The setting's own picker offers the same choices, in the same order.
-    const settingsPage: string = source(
-      `${DASHBOARD}/Pages/UserSettings/NotificationSettings.tsx`,
+    // The setting's own picker words them with the same templates.
+    const settingsPage: string = flat(
+      source(`${DASHBOARD}/Pages/UserSettings/NotificationSettings.tsx`),
     );
-    let from: number = settingsPage.indexOf(
-      "SECURITY_CASE_PRIORITY_CHOICE_LABELS",
-    );
-    for (const choice of SECURITY_CASE_NOTIFICATION_PRIORITY_CHOICES) {
-      const at: number = settingsPage.indexOf(
-        `translationKey("${choice.label}")`,
-        from,
-      );
-      expect({ choice: choice.label, offered: at >= 0 }).toEqual({
-        choice: choice.label,
-        offered: true,
-      });
-      from = at;
+
+    for (const template of Object.values(
+      SECURITY_CASE_NOTIFICATION_CHOICE_TEMPLATES,
+    )) {
+      expect(settingsPage).toContain(`"${template}"`);
     }
   });
 
@@ -660,9 +870,19 @@ describe("Security Cases and Playbooks docs", () => {
       [new SecurityPlaybook(), "/security-playbook"],
       [new SecurityPlaybookRun(), "/security-playbook-run"],
       [new SecurityProtectedEntity(), "/security-protected-entity"],
+      [new SecurityCasePriority(), "/security-case-priority"],
+      [new SecurityCaseStatus(), "/security-case-status"],
     ] as Array<[SecurityCase, string]>) {
       expect(model.getCrudApiPath()?.toString()).toBe(route);
       expect(codeSpans(section(page, "Automate"))).toContain(route);
     }
+
+    // And the Terraform resources a project's priorities and statuses are kept as.
+    expect(codeSpans(section(page, "Automate"))).toEqual(
+      expect.arrayContaining([
+        "oneuptime_security_case_priority",
+        "oneuptime_security_case_status",
+      ]),
+    );
   });
 });

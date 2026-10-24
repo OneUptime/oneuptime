@@ -2,12 +2,6 @@ import BadDataException from "../Exception/BadDataException";
 import { JSONObject, JSONValue } from "../JSON";
 import ObjectID from "../ObjectID";
 import Permission from "../Permission";
-import SecurityCasePriority, {
-  isSecurityCasePriority,
-} from "../SecurityCase/SecurityCasePriority";
-import SecurityCaseStatus, {
-  isSecurityCaseStatus,
-} from "../SecurityCase/SecurityCaseStatus";
 import SecurityCaseVerdict, {
   isSecurityCaseVerdict,
 } from "../SecurityCase/SecurityCaseVerdict";
@@ -34,6 +28,13 @@ import {
  *
  * Steps are stored as JSON on the playbook and copied onto each run when it
  * starts, so editing a playbook never changes a run already under way.
+ *
+ * A step that sets a case's priority or status names one of the project's
+ * own by id (SecurityCasePriority, SecurityCaseStatus). Which ones it may
+ * name - one of the project's, a status a case moves on to, a verdict for a
+ * status that closes - is checked against the project's lists when the
+ * playbook is saved (validateSecurityPlaybookStepValues), and again when the
+ * step runs.
  */
 export interface SecurityPlaybookStep {
   id: string;
@@ -63,12 +64,14 @@ export interface AssignCaseConfig {
 }
 
 export interface SetCasePriorityConfig {
-  priority: SecurityCasePriority;
+  // One of the project's case priorities.
+  priorityId: string;
 }
 
 export interface SetCaseStatusConfig {
-  status: SecurityCaseStatus;
-  // Only for Closed.
+  // One of the project's case statuses, other than the one cases start in.
+  statusId: string;
+  // Only for a status that closes the case.
   verdict?: SecurityCaseVerdict | undefined;
 }
 
@@ -81,8 +84,8 @@ export interface AddCaseLabelsConfig {
 }
 
 export interface CheckThreatIntelConfig {
-  // Raise the case to at least this priority when an entity matches.
-  raisePriorityTo?: SecurityCasePriority | undefined;
+  // Raise the case to at least this priority (one of the project's) when an entity matches.
+  raisePriorityToId?: string | undefined;
 }
 
 export interface LookUpEntityActivityConfig {
@@ -241,38 +244,27 @@ export function normalizeSecurityPlaybookStepConfig(
       return config;
     }
 
-    case SecurityPlaybookActionType.SetCasePriority: {
-      const priority: string = readText(rawConfig, "priority");
-
-      if (!isSecurityCasePriority(priority)) {
-        throw new BadDataException(`${label}: choose a priority.`);
-      }
-
-      return { priority };
-    }
+    case SecurityPlaybookActionType.SetCasePriority:
+      return {
+        priorityId: requireId(rawConfig, "priorityId", label, "a priority"),
+      };
 
     case SecurityPlaybookActionType.SetCaseStatus: {
-      const status: string = readText(rawConfig, "status");
-
-      if (!isSecurityCaseStatus(status) || status === SecurityCaseStatus.New) {
-        throw new BadDataException(
-          `${label}: choose Investigating, Contained or Closed.`,
-        );
-      }
-
-      if (status !== SecurityCaseStatus.Closed) {
-        return { status };
-      }
-
+      const statusId: string = requireId(
+        rawConfig,
+        "statusId",
+        label,
+        "a status",
+      );
       const verdict: string = readText(rawConfig, "verdict");
 
-      if (!isSecurityCaseVerdict(verdict)) {
-        throw new BadDataException(
-          `${label}: a case is closed with a verdict - choose one.`,
-        );
-      }
-
-      return { status, verdict };
+      /*
+       * Whether the status closes a case - and so needs the verdict - is
+       * the project's list's to say (validateSecurityPlaybookStepValues).
+       */
+      return isSecurityCaseVerdict(verdict)
+        ? { statusId, verdict }
+        : { statusId };
     }
 
     case SecurityPlaybookActionType.AddCaseNote: {
@@ -302,9 +294,14 @@ export function normalizeSecurityPlaybookStepConfig(
     }
 
     case SecurityPlaybookActionType.CheckThreatIntel: {
-      const raisePriorityTo: string = readText(rawConfig, "raisePriorityTo");
+      const raisePriorityToId: string = readText(
+        rawConfig,
+        "raisePriorityToId",
+      );
 
-      return isSecurityCasePriority(raisePriorityTo) ? { raisePriorityTo } : {};
+      return raisePriorityToId && isObjectIdText(raisePriorityToId)
+        ? { raisePriorityToId }
+        : {};
     }
 
     case SecurityPlaybookActionType.LookUpEntityActivity: {

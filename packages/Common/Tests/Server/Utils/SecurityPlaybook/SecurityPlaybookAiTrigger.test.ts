@@ -11,7 +11,12 @@ import SecurityPlaybookLauncher from "../../../../Server/Utils/SecurityPlaybook/
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
-import SecurityCasePriority from "../../../../Types/SecurityCase/SecurityCasePriority";
+import SecurityCasePriorityLevel from "../../../../Types/SecurityCase/SecurityCasePriorityLevel";
+import {
+  buildDefaultTestPriorities,
+  testPriorityId,
+} from "../../../Helpers/SecurityCaseValues";
+import { stubSecurityCaseValues } from "../../../Helpers/SecurityCaseValuesStub";
 import SecurityDetectionSource from "../../../../Types/SecurityCase/SecurityDetectionSource";
 import { SecurityPlaybookActionType } from "../../../../Types/SecurityPlaybook/SecurityPlaybookAction";
 import SecurityPlaybookTrigger, {
@@ -73,7 +78,10 @@ function install(data: {
 
   const securityCase: SecurityCase = new SecurityCase();
   securityCase._id = CASE_ID.toString();
-  securityCase.priority = SecurityCasePriority.High;
+  securityCase.securityCasePriorityId = testPriorityId(
+    SecurityCasePriorityLevel.High,
+  );
+  stubSecurityCaseValues();
 
   jest
     .spyOn(SecurityCaseService, "findOneBy")
@@ -156,13 +164,15 @@ describe("the trigger", () => {
     expect(
       doesPlaybookMatch(conditions, {
         trigger: SecurityPlaybookTrigger.TriagedAsLikelyMalicious,
-        casePriority: SecurityCasePriority.High,
+        priorities: buildDefaultTestPriorities(),
+        casePriorityId: testPriorityId(SecurityCasePriorityLevel.High),
       }),
     ).toBe(true);
     expect(
       doesPlaybookMatch(conditions, {
         trigger: SecurityPlaybookTrigger.CaseOpened,
-        casePriority: SecurityCasePriority.High,
+        priorities: buildDefaultTestPriorities(),
+        casePriorityId: testPriorityId(SecurityCasePriorityLevel.High),
       }),
     ).toBe(false);
   });

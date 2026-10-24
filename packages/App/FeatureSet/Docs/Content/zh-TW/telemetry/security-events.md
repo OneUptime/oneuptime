@@ -49,8 +49,10 @@ flowchart TB
 | **設定** | 人工智慧 | OneUptime AI 是否研判每個新案件 |
 | **Connections** | Connections | 您的日誌、OneUptime 輪詢的安全產品，以及它傳送到的 SIEM |
 | **設定指南** | Connections | 傳送事件的程式碼片段，已填入你的擷取金鑰 |
+| **案例優先順序** | 設定 | 案件有多緊急：專案自己的優先順序，最緊急的在前 |
+| **案例狀態** | 設定 | 案件經歷的各個步驟，以及每個步驟中的案件被視為什麼 |
 
-只需設定一次的 **Detections**、**人工智慧** 和 **Connections** 會保持摺疊，直到你開啟它們。剛開始使用安全性功能？[安全性入門](/docs/telemetry/security-getting-started) 按兩下即可完成設定。
+只需設定一次的 **Detections**、**人工智慧**、**Connections** 和 **設定** 會保持摺疊，直到你開啟它們。剛開始使用安全性功能？[安全性入門](/docs/telemetry/security-getting-started) 按兩下即可完成設定。
 
 ## 開始之前
 

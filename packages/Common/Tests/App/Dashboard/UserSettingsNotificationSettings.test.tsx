@@ -23,7 +23,15 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import User from "../../../UI/Utils/User";
 import ConnectedWorkspaces from "../../../../App/FeatureSet/Dashboard/src/Utils/Workspace/ConnectedWorkspaces";
-import SecurityCasePriority from "../../../Types/SecurityCase/SecurityCasePriority";
+import SecurityCasePriority from "../../../Models/DatabaseModels/SecurityCasePriority";
+import SecurityCasePriorityLevel from "../../../Types/SecurityCase/SecurityCasePriorityLevel";
+import {
+  TEST_PRIORITY_IDS,
+  buildDefaultTestPriorities,
+  buildTestPriority,
+  testPriorityId,
+} from "../../Helpers/SecurityCaseValues";
+import { stubDashboardSecurityCaseValues } from "./SecurityCaseValuesStub";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 
 /*
@@ -79,6 +87,8 @@ describe("user settings > notification settings", () => {
     );
     jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
     jest.spyOn(User, "getUserId").mockReturnValue(USER_ID);
+    // The project's case priorities, which New security case picks from.
+    stubDashboardSecurityCaseValues();
     jest
       .spyOn(ModelAPI, "getCommonHeaders")
       .mockReturnValue({ tenantid: PROJECT_ID.toString() });
@@ -642,8 +652,9 @@ describe("user settings > notification settings", () => {
   });
   /*
    * The Security tab: the three security case events, and on New security
-   * case the priority that notifies - High and Critical for a member who
-   * never chose, which is what a project that only turned Security on gets.
+   * case the priority that notifies - one of the project's own, its high
+   * priority and above for a member who never chose, which is what a
+   * project that only turned Security on gets.
    */
   describe("the Security tab", () => {
     async function openSecurityTab(): Promise<void> {
@@ -675,21 +686,23 @@ describe("user settings > notification settings", () => {
       }
     });
 
-    test("only New security case asks for a priority, and it reads High and Critical until chosen", async () => {
+    test("only New security case asks for a priority, and it reads High and above until chosen", async () => {
       await openSecurityTab();
 
       const select: HTMLSelectElement = within(
         await findEventRow("New security case"),
       ).getByRole("combobox") as HTMLSelectElement;
 
-      expect(select.value).toBe(SecurityCasePriority.High);
+      expect(select.value).toBe(
+        TEST_PRIORITY_IDS[SecurityCasePriorityLevel.High],
+      );
       expect(
         Array.from(select.options).map((option: HTMLOptionElement) => {
           return option.textContent;
         }),
       ).toEqual([
         "Critical only",
-        "High and Critical",
+        "High and above",
         "Medium and above",
         "Low and above",
         "Every case",
@@ -702,7 +715,9 @@ describe("user settings > notification settings", () => {
     });
 
     test("shows the priority the member chose", async () => {
-      openedRow().minimumSecurityCasePriority = SecurityCasePriority.Critical;
+      openedRow().minimumSecurityCasePriorityId = testPriorityId(
+        SecurityCasePriorityLevel.Critical,
+      );
 
       await openSecurityTab();
 
@@ -712,7 +727,75 @@ describe("user settings > notification settings", () => {
             "combobox",
           ) as HTMLSelectElement
         ).value,
-      ).toBe(SecurityCasePriority.Critical);
+      ).toBe(TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Critical]);
+    });
+
+    test("offers the project's own priorities by their names, an archived one only to whoever chose it", async () => {
+      const priorities: Array<SecurityCasePriority> = [
+        buildTestPriority({
+          id: "c1000000-0000-4000-8000-0000000000e1",
+          name: "Emergency",
+          order: 0,
+        }),
+        ...buildDefaultTestPriorities(),
+      ];
+      priorities[1]!.name = "Sev 1";
+      priorities[4]!.isArchived = true; // Low
+      stubDashboardSecurityCaseValues({ priorities });
+
+      await openSecurityTab();
+
+      const select: HTMLSelectElement = (await within(
+        await findEventRow("New security case"),
+      ).findByRole("combobox")) as HTMLSelectElement;
+
+      expect(
+        Array.from(select.options).map((option: HTMLOptionElement) => {
+          return option.textContent;
+        }),
+      ).toEqual([
+        "Emergency only",
+        "Sev 1 and above",
+        "High and above",
+        "Medium and above",
+        "Every case",
+      ]);
+      cleanup();
+
+      // A member who chose Low before it was archived keeps it, and sees it.
+      openedRow().minimumSecurityCasePriorityId = testPriorityId(
+        SecurityCasePriorityLevel.Low,
+      );
+      await openSecurityTab();
+
+      const chosen: HTMLSelectElement = (await within(
+        await findEventRow("New security case"),
+      ).findByRole("combobox")) as HTMLSelectElement;
+
+      expect(chosen.value).toBe(
+        TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Low],
+      );
+      expect(
+        Array.from(chosen.options).map((option: HTMLOptionElement) => {
+          return option.textContent;
+        }),
+      ).toContain("Low and above");
+    });
+
+    test("a choice the project no longer has reads as the default", async () => {
+      openedRow().minimumSecurityCasePriorityId = new ObjectID(
+        "c1000000-0000-4000-8000-0000000000ff",
+      );
+
+      await openSecurityTab();
+
+      expect(
+        (
+          within(await findEventRow("New security case")).getByRole(
+            "combobox",
+          ) as HTMLSelectElement
+        ).value,
+      ).toBe(TEST_PRIORITY_IDS[SecurityCasePriorityLevel.High]);
     });
 
     test("choosing a priority saves it on that row alone", async () => {
@@ -723,7 +806,11 @@ describe("user settings > notification settings", () => {
       await openSecurityTab();
       fireEvent.change(
         within(await findEventRow("New security case")).getByRole("combobox"),
-        { target: { value: SecurityCasePriority.Medium } },
+        {
+          target: {
+            value: TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Medium],
+          },
+        },
       );
 
       await waitFor(() => {
@@ -731,7 +818,8 @@ describe("user settings > notification settings", () => {
       });
       expect(updateById.mock.calls[0][0].id).toEqual(openedRow().id);
       expect(updateById.mock.calls[0][0].data).toEqual({
-        minimumSecurityCasePriority: SecurityCasePriority.Medium,
+        minimumSecurityCasePriorityId:
+          TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Medium],
       });
       await waitFor(() => {
         expect(
@@ -740,7 +828,7 @@ describe("user settings > notification settings", () => {
               screen.getByText("New security case").closest("tr")!,
             ).getByRole("combobox") as HTMLSelectElement
           ).value,
-        ).toBe(SecurityCasePriority.Medium);
+        ).toBe(TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Medium]);
       });
     });
 
@@ -752,7 +840,9 @@ describe("user settings > notification settings", () => {
       await openSecurityTab();
       fireEvent.change(
         within(await findEventRow("New security case")).getByRole("combobox"),
-        { target: { value: SecurityCasePriority.Low } },
+        {
+          target: { value: TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Low] },
+        },
       );
 
       expect(
@@ -765,7 +855,7 @@ describe("user settings > notification settings", () => {
               screen.getByText("New security case").closest("tr")!,
             ).getByRole("combobox") as HTMLSelectElement
           ).value,
-        ).toBe(SecurityCasePriority.High);
+        ).toBe(TEST_PRIORITY_IDS[SecurityCasePriorityLevel.High]);
       });
     });
 
@@ -783,7 +873,11 @@ describe("user settings > notification settings", () => {
       await openSecurityTab();
       fireEvent.change(
         within(await findEventRow("New security case")).getByRole("combobox"),
-        { target: { value: SecurityCasePriority.Critical } },
+        {
+          target: {
+            value: TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Critical],
+          },
+        },
       );
 
       await waitFor(() => {
@@ -793,8 +887,8 @@ describe("user settings > notification settings", () => {
       expect(model.eventType).toBe(
         NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
       );
-      expect(model.minimumSecurityCasePriority).toBe(
-        SecurityCasePriority.Critical,
+      expect(model.minimumSecurityCasePriorityId?.toString()).toBe(
+        TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Critical],
       );
       expect(model.alertByEmail).toBe(true);
       expect(model.alertByPush).toBe(true);

@@ -39,7 +39,7 @@ Serveren er tilstandsløs: den utsteder ingen økt-ID-er, og hver forespørsel s
 - **Planlagt vedlikehold**: opprett og administrer vedlikeholdshendelser.
 - **Telemetri**: spør etter logger, målinger, spor, unntak, monitorlogger, sikkerhetshendelser og mer, kun lesing.
 
-Det finnes verktøy for å opprette, hente, liste, oppdatere, slette og telle for 28 typer poster, verktøy for å liste og telle for 9 typer telemetri, og verktøy laget for hendelseshåndtering. Skrivebeskyttede verktøy har `readOnlyHint`, alle verktøy som endrer noe, har `destructiveHint`, og bare verktøyene for offentlige statussider har `openWorldHint`, så en klient kan kjøre skrivebeskyttede kall selv og spørre deg før enhver endring. Et mislykket verktøykall kommer tilbake som et verktøyresultat (`isError: true`) med en `statusCode`, detaljene og et forslag, ikke som en MCP-protokollfeil, så agenten kan lese feilen og rette seg selv.
+Det finnes verktøy for å opprette, hente, liste, oppdatere, slette og telle for 30 typer poster, verktøy for å liste og telle for 9 typer telemetri, og verktøy laget for hendelseshåndtering. Skrivebeskyttede verktøy har `readOnlyHint`, alle verktøy som endrer noe, har `destructiveHint`, og bare verktøyene for offentlige statussider har `openWorldHint`, så en klient kan kjøre skrivebeskyttede kall selv og spørre deg før enhver endring. Et mislykket verktøykall kommer tilbake som et verktøyresultat (`isError: true`) med en `statusCode`, detaljene og et forslag, ikke som en MCP-protokollfeil, så agenten kan lese feilen og rette seg selv.
 
 ## Før du begynner
 
@@ -477,7 +477,7 @@ MCP-serveren er tilstandsløs: den verken utsteder eller sporer økt-ID-er, så 
 | Planlagt vedlikehold | Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
 | Team og vakt | Team, On-Call Policy |
 | Etiketter | Label |
-| Sikkerhet | Security Case, Security Case Note, Security Detection, Security Playbook |
+| Sikkerhet | Security Case, Security Case Note, Security Case Priority, Security Case Status, Security Detection, Security Playbook |
 
 | Område | Telemetri med bare verktøy for å liste og telle |
 | --- | --- |

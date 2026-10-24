@@ -1531,8 +1531,11 @@ describe("MCP Server", () => {
   }
 
   it("lists every record with CRUD tools, by its model's name", () => {
-    // Postmortem Status, the 28th, came with the Postmortems list.
-    expect(records()).toHaveLength(28);
+    /*
+     * Postmortem Status, the 28th, came with the Postmortems list; Security
+     * Case Priority and Security Case Status with Security Events > Settings.
+     */
+    expect(records()).toHaveLength(30);
     expect(namesIn(0)).toEqual(records());
     // Every database model with MCP on gets all six tools.
     for (const tool of [

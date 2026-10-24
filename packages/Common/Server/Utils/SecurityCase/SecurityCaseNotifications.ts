@@ -41,16 +41,20 @@ import Permission from "../../../Types/Permission";
 import PushNotificationMessage from "../../../Types/PushNotification/PushNotificationMessage";
 import { SMSMessage } from "../../../Types/SMS/SMS";
 import {
-  SECURITY_CASE_NOTIFICATION_PRIORITY_CHOICES,
-  readSecurityCaseNotificationPriority,
+  SecurityCaseNotificationChoiceKind,
+  SecurityCaseNotificationPriorityChoice,
+  describeSecurityCaseNotificationChoice,
+  getSecurityCaseNotificationPriorityChoices,
+  readSecurityCaseNotificationMinimum,
   reachesNotificationPriorityNow,
-} from "../../../Types/SecurityCase/SecurityCaseNotificationPriority";
-import SecurityCasePriority, {
-  getSecurityCasePriorityColor,
-  isSecurityCasePriority,
-  securityCasePriorityRank,
-} from "../../../Types/SecurityCase/SecurityCasePriority";
-import SecurityCaseStatus from "../../../Types/SecurityCase/SecurityCaseStatus";
+} from "../../../Utils/SecurityCase/SecurityCaseNotificationPriority";
+import SecurityCasePriorities from "../../../Utils/SecurityCase/SecurityCasePriorities";
+import SecurityCaseStatuses from "../../../Utils/SecurityCase/SecurityCaseStatuses";
+import SecurityCasePriority from "../../../Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "../../../Models/DatabaseModels/SecurityCaseStatus";
+import SecurityCaseValues, {
+  ProjectSecurityCaseValues,
+} from "./SecurityCaseValues";
 import {
   SecurityEntity,
   mergeSecurityEntities,
@@ -88,7 +92,8 @@ import { buildNotificationSms } from "../../../Utils/Sms/NotificationSms";
  *  - A case opens, or rises, at the priority the person chose (High and
  *    above when they chose none): SEND_SECURITY_CASE_OPENED_NOTIFICATION, to
  *    everyone who can read the case. Once per person: the case keeps the
- *    highest priority people were told about it at (notifiedPriority), so a
+ *    highest priority people were told about it at
+ *    (notifiedSecurityCasePriorityId), so a
  *    rise is told only to the people whose priority it newly reaches.
  *  - A case is assigned to the person, or to a team they are on:
  *    SEND_SECURITY_CASE_ASSIGNED_NOTIFICATION.
@@ -152,7 +157,14 @@ export interface SecurityCaseMessageFacts {
   projectId: ObjectID;
   number: string;
   title: string;
-  priority: SecurityCasePriority;
+  // The case's priority and status, as the project names them.
+  priority: string;
+  priorityColor: Color;
+  /*
+   * At or above the project's critical priority: sent at once, never held
+   * for a rollup, and asked to be acknowledged on a phone.
+   */
+  isCritical: boolean;
   status: string;
   source: string;
   assignee: string;
@@ -206,14 +218,35 @@ export function describeEntities(entities: Array<SecurityEntity>): string {
   return `${shown.join(", ")}${more > 0 ? `, and ${more} more` : ""}`;
 }
 
-// "Critical only", "High and Critical": a person's choice, as the setting names it.
-export function describePriorityChoice(priority: SecurityCasePriority): string {
+// "Critical only", "High and above": a person's choice, as the setting names it.
+export function describePriorityChoice(
+  choice: Pick<SecurityCaseNotificationPriorityChoice, "name" | "kind">,
+): string {
+  return describeSecurityCaseNotificationChoice(choice);
+}
+
+/*
+ * A person's chosen minimum as a choice of the setting: its name, and
+ * whether it is the top priority, the last one or one between - read off
+ * the whole list, archived priorities among them.
+ */
+export function getChosenPriorityChoice(data: {
+  priorities: ReadonlyArray<SecurityCasePriority>;
+  minimum: SecurityCasePriority;
+}): Pick<SecurityCaseNotificationPriorityChoice, "name" | "kind"> {
+  const choice: SecurityCaseNotificationPriorityChoice | undefined =
+    getSecurityCaseNotificationPriorityChoices({
+      priorities: data.priorities,
+      currentId: data.minimum.id,
+    }).find((candidate: SecurityCaseNotificationPriorityChoice): boolean => {
+      return candidate.priorityId === data.minimum.id?.toString();
+    });
+
   return (
-    SECURITY_CASE_NOTIFICATION_PRIORITY_CHOICES.find(
-      (choice: { priority: SecurityCasePriority; label: string }): boolean => {
-        return choice.priority === priority;
-      },
-    )?.label || priority
+    choice || {
+      name: data.minimum.name || "",
+      kind: SecurityCaseNotificationChoiceKind.AndAbove,
+    }
   );
 }
 
@@ -266,7 +299,7 @@ export function isSetupTestCase(
 export function buildPriorityReachedMessage(data: {
   facts: SecurityCaseMessageFacts;
   isNew: boolean;
-  minimum: SecurityCasePriority;
+  minimum: Pick<SecurityCaseNotificationPriorityChoice, "name" | "kind">;
 }): SecurityCaseMessage {
   const { facts, isNew } = data;
   const headline: string = isNew
@@ -297,9 +330,9 @@ export function buildPriorityReachedMessage(data: {
     pushTitle: headline,
     pushBody: `${facts.title} (${facts.projectName})`,
     pushType: "security-case-opened",
-    requireInteraction: facts.priority === SecurityCasePriority.Critical,
+    requireInteraction: facts.isCritical,
     // A Critical case is never held back in an email rollup.
-    forceImmediate: facts.priority === SecurityCasePriority.Critical,
+    forceImmediate: facts.isCritical,
   };
 }
 
@@ -340,8 +373,8 @@ export function buildAssignedMessage(data: {
     pushTitle: `Security case ${facts.number} assigned to ${toWhom}`,
     pushBody: `${facts.priority}: ${facts.title}`,
     pushType: "security-case-assigned",
-    requireInteraction: facts.priority === SecurityCasePriority.Critical,
-    forceImmediate: facts.priority === SecurityCasePriority.Critical,
+    requireInteraction: facts.isCritical,
+    forceImmediate: facts.isCritical,
   };
 }
 
@@ -410,10 +443,7 @@ function getCaseEmailVars(facts: SecurityCaseMessageFacts): Dictionary<string> {
     caseViewLink: facts.url,
     projectName: facts.projectName,
     priorityBadgeText: facts.priority,
-    ...EmailColorUtil.getTemplateVariables(
-      "priority",
-      getSecurityCasePriorityColor(facts.priority),
-    ),
+    ...EmailColorUtil.getTemplateVariables("priority", facts.priorityColor),
   };
 }
 
@@ -614,27 +644,50 @@ export default class SecurityCaseNotifications {
   }): Promise<Array<SecurityCaseRecipient>> {
     const securityCase: SecurityCase | null = await this.readCase(data);
 
+    if (!securityCase || isSetupTestCase(securityCase)) {
+      return [];
+    }
+
+    const values: ProjectSecurityCaseValues =
+      await SecurityCaseValues.getForProject(data.projectId);
+
+    const priority: SecurityCasePriority | null = SecurityCasePriorities.find(
+      values.priorities,
+      securityCase.securityCasePriorityId,
+    );
+
     if (
-      !securityCase ||
-      isSetupTestCase(securityCase) ||
-      securityCase.status === SecurityCaseStatus.Closed ||
-      !isSecurityCasePriority(securityCase.priority)
+      !priority?.id ||
+      SecurityCaseStatuses.isClosed(
+        values.statuses,
+        securityCase.securityCaseStatusId,
+      )
     ) {
       return [];
     }
 
-    const priority: SecurityCasePriority = securityCase.priority;
-    const notifiedPriority: SecurityCasePriority | undefined =
-      isSecurityCasePriority(securityCase.notifiedPriority)
-        ? securityCase.notifiedPriority
-        : undefined;
+    // A priority the project no longer has reads as nothing told yet.
+    const notifiedPriority: SecurityCasePriority | null =
+      SecurityCasePriorities.find(
+        values.priorities,
+        securityCase.notifiedSecurityCasePriorityId,
+      );
 
     if (
-      securityCasePriorityRank(priority) <=
-      securityCasePriorityRank(notifiedPriority)
+      !SecurityCasePriorities.isMoreUrgent(
+        values.priorities,
+        priority.id,
+        notifiedPriority?.id,
+      )
     ) {
       return [];
     }
+
+    const priorityName: string = priority.name || "";
+
+    // What people were told as read, before this worker claims the rise.
+    const toldAtId: ObjectID | null =
+      securityCase.notifiedSecurityCasePriorityId || null;
 
     /*
      * Claimed in one compare-and-set from what was read: of two workers
@@ -645,11 +698,10 @@ export default class SecurityCaseNotifications {
       await SecurityCaseService.compareAndSetColumnsByIdWithoutHooks({
         id: data.securityCaseId,
         data: {
-          notifiedPriority: priority,
+          notifiedSecurityCasePriorityId: priority.id,
         },
         expectedData: {
-          notifiedPriority: (securityCase.notifiedPriority ||
-            null) as unknown as SecurityCasePriority,
+          notifiedSecurityCasePriorityId: toldAtId as unknown as ObjectID,
         },
         skipUpdateDateColumn: true,
       });
@@ -658,14 +710,18 @@ export default class SecurityCaseNotifications {
       return [];
     }
 
+    // Told about at no priority yet: news of a case that just opened.
     const isNew: boolean =
-      !notifiedPriority &&
+      !toldAtId &&
       Boolean(securityCase.createdAt) &&
       OneUptimeDate.getCurrentDate().getTime() -
         new Date(securityCase.createdAt!).getTime() <
         NEW_CASE_WINDOW_MS;
 
-    const facts: SecurityCaseMessageFacts = await this.getFacts(securityCase);
+    const facts: SecurityCaseMessageFacts = await this.getFacts(
+      securityCase,
+      values,
+    );
 
     // Whose chosen priority the case reaches now, and not before.
     const members: Array<SecurityCaseRecipient> = (
@@ -686,6 +742,8 @@ export default class SecurityCaseNotifications {
 
     const minimums: Map<string, SecurityCasePriority> = new Map();
     const reached: Array<SecurityCaseRecipient> = [];
+    const defaultMinimum: SecurityCasePriority | null =
+      readSecurityCaseNotificationMinimum(values.priorities, null);
 
     for (const member of members) {
       const setting: UserNotificationSetting | undefined = settings.get(
@@ -697,16 +755,19 @@ export default class SecurityCaseNotifications {
         continue;
       }
 
-      const minimum: SecurityCasePriority =
-        readSecurityCaseNotificationPriority(
-          setting?.minimumSecurityCasePriority,
+      const minimum: SecurityCasePriority | null =
+        readSecurityCaseNotificationMinimum(
+          values.priorities,
+          setting?.minimumSecurityCasePriorityId,
         );
 
       if (
+        minimum &&
         reachesNotificationPriorityNow({
-          priority,
-          notifiedPriority,
-          minimum,
+          priorities: values.priorities,
+          priorityId: priority.id,
+          notifiedPriorityId: notifiedPriority?.id,
+          minimumId: minimum.id,
         })
       ) {
         minimums.set(member.userId.toString(), minimum);
@@ -724,12 +785,21 @@ export default class SecurityCaseNotifications {
       facts,
       recipients,
       message: (recipient: SecurityCaseRecipient): SecurityCaseMessage => {
+        const minimum: SecurityCasePriority | null =
+          minimums.get(recipient.userId.toString()) || defaultMinimum;
+
         return buildPriorityReachedMessage({
           facts,
           isNew,
-          minimum:
-            minimums.get(recipient.userId.toString()) ||
-            readSecurityCaseNotificationPriority(undefined),
+          minimum: minimum
+            ? getChosenPriorityChoice({
+                priorities: values.priorities,
+                minimum,
+              })
+            : {
+                name: priorityName,
+                kind: SecurityCaseNotificationChoiceKind.AndAbove,
+              },
         });
       },
     });
@@ -738,8 +808,8 @@ export default class SecurityCaseNotifications {
       facts,
       notified,
       feedInfo: isNew
-        ? mdText`🔔 Notified ${people(notified.length)} of this new **${priority}** case.`
-        : mdText`🔔 Notified ${people(notified.length)} that this case is now **${priority}**.`,
+        ? mdText`🔔 Notified ${people(notified.length)} of this new **${priorityName}** case.`
+        : mdText`🔔 Notified ${people(notified.length)} that this case is now **${priorityName}**.`,
       displayColor: Gray500,
     });
 
@@ -747,13 +817,13 @@ export default class SecurityCaseNotifications {
       facts,
       markdown: buildChannelMarkdown({
         headline: isNew
-          ? mdText`🛡️ **New ${priority} security case**`
-          : mdText`🚩 **Security case is now ${priority}**`,
+          ? mdText`🛡️ **New ${priorityName} security case**`
+          : mdText`🚩 **Security case is now ${priorityName}**`,
         facts,
       }),
       notificationText: isNew
-        ? `New ${priority} security case ${facts.number}: ${facts.title}`
-        : `Security case ${facts.number} is now ${priority}: ${facts.title}`,
+        ? `New ${priorityName} security case ${facts.number}: ${facts.title}`
+        : `Security case ${facts.number} is now ${priorityName}: ${facts.title}`,
     });
 
     return notified;
@@ -1285,7 +1355,7 @@ export default class SecurityCaseNotifications {
         },
         select: {
           userId: true,
-          minimumSecurityCasePriority: true,
+          minimumSecurityCasePriorityId: true,
           alertByEmail: true,
           alertBySMS: true,
           alertByCall: true,
@@ -1343,9 +1413,9 @@ export default class SecurityCaseNotifications {
         caseNumberWithPrefix: true,
         title: true,
         description: true,
-        priority: true,
-        notifiedPriority: true,
-        status: true,
+        securityCasePriorityId: true,
+        notifiedSecurityCasePriorityId: true,
+        securityCaseStatusId: true,
         source: true,
         entities: true,
         mitreTactics: true,
@@ -1371,9 +1441,21 @@ export default class SecurityCaseNotifications {
 
   public static async getFacts(
     securityCase: SecurityCase,
+    projectValues?: ProjectSecurityCaseValues | undefined,
   ): Promise<SecurityCaseMessageFacts> {
     const projectId: ObjectID = securityCase.projectId!;
     const caseId: ObjectID = securityCase.id!;
+    // The case's priority and status as the project names them now.
+    const values: ProjectSecurityCaseValues =
+      projectValues || (await SecurityCaseValues.getForProject(projectId));
+    const priority: SecurityCasePriority | null = SecurityCasePriorities.find(
+      values.priorities,
+      securityCase.securityCasePriorityId,
+    );
+    const status: SecurityCaseStatus | null = SecurityCaseStatuses.find(
+      values.statuses,
+      securityCase.securityCaseStatusId,
+    );
 
     const project: Project | null = await ProjectService.findOneById({
       id: projectId,
@@ -1413,10 +1495,13 @@ export default class SecurityCaseNotifications {
       projectId,
       number: securityCase.caseNumberWithPrefix || "Case",
       title: securityCase.title || "Untitled case",
-      priority: isSecurityCasePriority(securityCase.priority)
-        ? securityCase.priority
-        : SecurityCasePriority.Medium,
-      status: securityCase.status || SecurityCaseStatus.New,
+      priority: priority?.name || "",
+      priorityColor: priority?.color || Gray500,
+      isCritical: SecurityCasePriorities.isCritical(
+        values.priorities,
+        securityCase.securityCasePriorityId,
+      ),
+      status: status?.name || "",
       source: securityCase.source || "",
       assignee,
       entities: mergeSecurityEntities(

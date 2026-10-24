@@ -16,6 +16,8 @@ import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import VideoCallConnection from "Common/Models/DatabaseModels/VideoCallConnection";
 import {
@@ -72,6 +74,9 @@ export interface NotificationRuleWhenProps {
   incidentSeverities: Array<IncidentSeverity>;
   incidentStates: Array<IncidentState>;
   scheduledMaintenanceStates: Array<ScheduledMaintenanceState>;
+  // A security case rule's: the project's own case priorities and statuses.
+  securityCasePriorities?: Array<SecurityCasePriority> | undefined;
+  securityCaseStatuses?: Array<SecurityCaseStatus> | undefined;
   monitorStatus: Array<MonitorStatus>;
 }
 
@@ -100,6 +105,8 @@ export const NotificationRuleWhen: FunctionComponent<
       incidentSeverities={props.incidentSeverities}
       incidentStates={props.incidentStates}
       scheduledMaintenanceStates={props.scheduledMaintenanceStates}
+      securityCasePriorities={props.securityCasePriorities}
+      securityCaseStatuses={props.securityCaseStatuses}
       monitorStatus={props.monitorStatus}
       filterCondition={props.rule.filterCondition}
       criteriaFilters={props.rule.filters}
@@ -214,6 +221,8 @@ export function getNotificationRuleCardColumns(
             incidentSeverities={data.incidentSeverities}
             incidentStates={data.incidentStates}
             scheduledMaintenanceStates={data.scheduledMaintenanceStates}
+            securityCasePriorities={data.securityCasePriorities}
+            securityCaseStatuses={data.securityCaseStatuses}
             monitorStatus={data.monitorStatus}
           />
         );

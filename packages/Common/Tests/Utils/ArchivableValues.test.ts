@@ -8,6 +8,8 @@ import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import Label from "../../Models/DatabaseModels/Label";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenanceState from "../../Models/DatabaseModels/ScheduledMaintenanceState";
+import SecurityCasePriority from "../../Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "../../Models/DatabaseModels/SecurityCaseStatus";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import {
   ARCHIVABLE_VALUES,
@@ -50,6 +52,8 @@ const MODEL_BY_TYPE: Record<ArchivableValueType, ModelType> = {
   [ArchivableValueType.Label]: Label,
   [ArchivableValueType.IncidentRole]: IncidentRole,
   [ArchivableValueType.IncidentPostmortemStatus]: IncidentPostmortemStatus,
+  [ArchivableValueType.SecurityCaseStatus]: SecurityCaseStatus,
+  [ArchivableValueType.SecurityCasePriority]: SecurityCasePriority,
 };
 
 const rowId: (n: number) => string = (n: number): string => {
@@ -61,7 +65,7 @@ const getRowId: (row: unknown) => string = (row: unknown): string => {
 };
 
 describe("the archivable values", () => {
-  test("are the nine values records pick from, each once", () => {
+  test("are the eleven values records pick from, each once", () => {
     expect(
       ARCHIVABLE_VALUE_DEFINITIONS.map(
         (definition: ArchivableValueDefinition): ArchivableValueType => {
@@ -69,7 +73,7 @@ describe("the archivable values", () => {
         },
       ).sort(),
     ).toEqual(Object.values(ArchivableValueType).sort());
-    expect(new Set(ARCHIVABLE_VALUE_TABLE_NAMES).size).toBe(9);
+    expect(new Set(ARCHIVABLE_VALUE_TABLE_NAMES).size).toBe(11);
   });
 
   test.each(Object.values(ArchivableValueType))(
@@ -160,6 +164,14 @@ describe("the rows OneUptime relies on", () => {
       [
         ArchivableValueType.IncidentPostmortemStatus,
         StateListType.IncidentPostmortemStatus,
+      ],
+      [
+        ArchivableValueType.SecurityCaseStatus,
+        StateListType.SecurityCaseStatus,
+      ],
+      [
+        ArchivableValueType.SecurityCasePriority,
+        StateListType.SecurityCasePriority,
       ],
     ];
 
