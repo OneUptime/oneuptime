@@ -21,10 +21,10 @@ http_status=0
 # Loop until either the endpoint returns 200 or the maximum retries are reached
 while [ $retries -lt $max_retries ]; do
     # Make a curl request and capture the HTTP status code, following redirects
-    http_status=$(curl -s -o /dev/null -w "%{http_code}" -L $endpoint_url)
+    http_status=$(curl -s -o /dev/null -w "%{http_code}" -L "$endpoint_url")
 
     # Check if the HTTP status code is 200 (OK)
-    if [ $http_status -eq 200 ]; then
+    if [ "$http_status" = "200" ]; then
         echo "✅ $name endpoint is up ($endpoint_url)"
         exit 0  # Exit the script with success status
     else

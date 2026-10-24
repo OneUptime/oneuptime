@@ -16,7 +16,7 @@
 
 set -e
 
-scriptDir=$(dirname -- "$(readlink -f -- "$BASH_SOURCE")")
+scriptDir=$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")
 
 # A setting the way `npm start` reads it: config.env's last assignment of it,
 # without surrounding whitespace, quotes or a carriage return, or else the
@@ -97,21 +97,21 @@ echo "⏳ Waiting for OneUptime to answer at ${HOST_TO_CHECK}. The first start t
 echo ""
 
 
-bash $scriptDir/endpoint-status.sh "App" $HOST_TO_CHECK
+bash "$scriptDir/endpoint-status.sh" "App" "$HOST_TO_CHECK"
 
-bash $scriptDir/endpoint-status.sh "App (Status Check)" $HOST_TO_CHECK/status
+bash "$scriptDir/endpoint-status.sh" "App (Status Check)" "$HOST_TO_CHECK/status"
 
-bash $scriptDir/endpoint-status.sh "App (Ready Check)" $HOST_TO_CHECK/status/ready
+bash "$scriptDir/endpoint-status.sh" "App (Ready Check)" "$HOST_TO_CHECK/status/ready"
 
-bash $scriptDir/endpoint-status.sh "Dashboard" $HOST_TO_CHECK/dashboard
+bash "$scriptDir/endpoint-status.sh" "Dashboard" "$HOST_TO_CHECK/dashboard"
 
-bash $scriptDir/endpoint-status.sh "Admin Dashboard" $HOST_TO_CHECK/admin/env.js
+bash "$scriptDir/endpoint-status.sh" "Admin Dashboard" "$HOST_TO_CHECK/admin/env.js"
 
-bash $scriptDir/endpoint-status.sh "Public Dashboard" $HOST_TO_CHECK/public-dashboard
+bash "$scriptDir/endpoint-status.sh" "Public Dashboard" "$HOST_TO_CHECK/public-dashboard"
 
-bash $scriptDir/endpoint-status.sh "Accounts" $HOST_TO_CHECK/accounts
+bash "$scriptDir/endpoint-status.sh" "Accounts" "$HOST_TO_CHECK/accounts"
 
-bash $scriptDir/endpoint-status.sh "Status Page" $HOST_TO_CHECK/status-page
+bash "$scriptDir/endpoint-status.sh" "Status Page" "$HOST_TO_CHECK/status-page"
 
 # Each check above stops at the first HTTP 200, which is a weaker claim than it
 # looks: nginx serves the static bundles and answers /status/ready as soon as
