@@ -461,6 +461,10 @@ jobs:
           # traffic, the Flows | Meraki switch, a refused and a revoked key and
           # a large organization read in part - at 1280 and 390 pixels, dark
           # and German) joined them on 2026-10-24: about 18.5 for the nine.
+          # Its UI review added a device's and a site's pages, each
+          # connection's one button, a stale connection, a member and the
+          # offer at a flows page's foot the same day (2.2 minutes for its 40
+          # tests locally, from 1.3): about 19.5 for the nine.
           - group: 8
             browsers: chromium
             suites: >-
