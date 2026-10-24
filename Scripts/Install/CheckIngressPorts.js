@@ -4,6 +4,7 @@
 
 const fs = require("fs");
 const { readSettings } = require("./ReplacePlaceholderSecrets");
+const { warn: warnLine, listed } = require("./StartOutput");
 
 /*
  * WHY
@@ -93,14 +94,6 @@ const ingressPortsAroundProxy = (settings) => {
   return found;
 };
 
-const listed = (items) => {
-  if (items.length <= 1) {
-    return items.join("");
-  }
-
-  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
-};
-
 // The warning printed for the ports ingressPortsAroundProxy found.
 const describeIngressPortsAroundProxy = (hops, ports) => {
   const current = ports.map((port) => {
@@ -111,13 +104,13 @@ const describeIngressPortsAroundProxy = (hops, ports) => {
   });
   const one = ports.length === 1;
 
-  return (
-    `WARNING: config.env sets ${HOPS_SETTING}=${hops}, so OneUptime takes each visitor's address from what your proxy writes, ` +
-    "which holds only while that proxy is the one way in. " +
-    `${listed(current)} ${one ? "publishes" : "publish"} OneUptime on every address of this server, around the proxy. ` +
-    `With the proxy on this server, publish ${one ? "it" : "them"} on the loopback address only: set ${listed(loopback)} in config.env, then run npm start. ` +
-    `If a firewall already lets only your proxy reach ${one ? "this port" : "these ports"}, write the address ${one ? "it is" : "they are"} published on instead, ` +
-    `such as ${ports[0].setting}=0.0.0.0:${ports[0].value}, and this warning stops. See ${REVERSE_PROXY_DOCS_URL}`
+  return warnLine(
+    `config.env sets ${HOPS_SETTING}=${hops}, so OneUptime takes each visitor's address from what your proxy writes, ` +
+      "which holds only while that proxy is the one way in. " +
+      `${listed(current)} ${one ? "publishes" : "publish"} OneUptime on every address of this server, around the proxy. ` +
+      `With the proxy on this server, publish ${one ? "it" : "them"} on the loopback address only: set ${listed(loopback)} in config.env, then run npm start. ` +
+      `If a firewall already lets only your proxy reach ${one ? "this port" : "these ports"}, write the address ${one ? "it is" : "they are"} published on instead, ` +
+      `such as ${ports[0].setting}=0.0.0.0:${ports[0].value}, and this warning stops. See ${REVERSE_PROXY_DOCS_URL}`,
   );
 };
 
