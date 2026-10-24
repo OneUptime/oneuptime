@@ -49,9 +49,14 @@ test.describe("Home: install script shortcuts", () => {
 
     const body: string = await response.text();
 
-    // The shell script itself, not an HTML page or an error body.
-    expect(body.startsWith("#!/bin/bash")).toBe(true);
-    expect(body).toContain("OneUptime Installation Script");
+    /*
+     * The shell script itself, not an HTML page or an error body: a bash
+     * script that says what it installs. Home's Redirect.test.ts holds the
+     * script in the repository (Home/Scripts/Install.sh) to the same two
+     * marks, so a rewrite of the installer fails there first.
+     */
+    expect(body).toMatch(/^#!(?:\/usr\/bin\/env bash|\/bin\/bash)\n/);
+    expect(body).toContain("Installs OneUptime with Docker Compose");
   });
 
   test("/infrastructure-agent/install.sh redirects to the release Linux agent installer", async ({

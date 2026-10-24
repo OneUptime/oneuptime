@@ -1997,12 +1997,46 @@ test.describe("Forms", () => {
     test.setTimeout(240000);
     const page: Page = ctx.page;
 
+    /*
+     * Setting an IP allowlist is an Enterprise feature (#5216): OneUptime
+     * Cloud sells it on the Scale plan, and a self-hosted install needs the
+     * Enterprise Edition. Where this project may not set one - a billing
+     * install, where it is on Growth, or the Community Edition - the Share
+     * page offers the feature (its "IP Allowlist" card) in place of the
+     * Access card. That is the gate working, not this feature failing.
+     */
     await openFormPage({
       path: "share",
       ready: (target: Page): Locator => {
-        return card(target, "Access");
+        return card(target, "Access").or(card(target, "IP Allowlist")).first();
       },
     });
+
+    const upsell: Locator = card(page, "IP Allowlist").first();
+
+    if ((await card(page, "Access").count()) === 0) {
+      await expect(upsell).toBeVisible();
+      await expect(
+        upsell
+          .getByRole("button", {
+            name: IS_BILLING_ENABLED
+              ? "Upgrade to Scale"
+              : "Learn about Enterprise Edition",
+            exact: true,
+          })
+          .first(),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Edit IP Allowlist", exact: true }),
+      ).toHaveCount(0);
+      test.skip(
+        true,
+        IS_BILLING_ENABLED
+          ? "Setting an IP allowlist needs the Scale plan here."
+          : "Setting an IP allowlist needs the Enterprise Edition here.",
+      );
+      return;
+    }
 
     const access: Locator = card(page, "Access");
     await access
@@ -2015,10 +2049,9 @@ test.describe("Forms", () => {
     await modal.getByTestId("modal-footer-submit-button").click();
 
     /*
-     * Changing the allowlist needs the Scale plan (as a public dashboard's
-     * does). On a billing install this project is on Growth, so the save is
-     * refused - which is the plan gate working, not this feature failing.
-     * Wait for either outcome: the modal closing, or its refusal.
+     * Where the Access card is drawn the project may set an allowlist, so
+     * the save goes through: the modal closes. A refusal is a failure, and
+     * says why.
      */
     await expect
       .poll(
@@ -2028,28 +2061,12 @@ test.describe("Forms", () => {
           }
 
           return (await modal.getByRole("alert").count()) > 0
-            ? "refused"
+            ? `refused: ${(await modal.innerText()).replace(/\s+/g, " ")}`
             : "pending";
         },
         { timeout: 60000 },
       )
-      .not.toBe("pending");
-
-    if ((await page.getByTestId("modal").count()) > 0) {
-      const refusal: string = (await modal.innerText()).replace(/\s+/g, " ");
-      expect(
-        IS_BILLING_ENABLED,
-        `Saving the IP allowlist failed on an install without billing: ${refusal}`,
-      ).toBe(true);
-      await modal.getByTestId("modal-footer-close-button").click();
-      await expect(page.getByTestId("modal")).toHaveCount(0);
-      // The card says why.
-      await expect(
-        access.getByTestId("form-ip-allowlist-plan-note"),
-      ).toBeVisible();
-      test.skip(true, "Editing the IP allowlist needs the Scale plan here.");
-      return;
-    }
+      .toBe("saved");
 
     await expect(access.getByTestId("form-ip-allowlist")).toHaveText(
       ALLOWLIST_THAT_EXCLUDES_US,
