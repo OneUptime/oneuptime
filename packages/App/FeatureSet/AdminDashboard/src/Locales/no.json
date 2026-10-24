@@ -1201,5 +1201,6 @@
   "Stop sending. It keeps its place and catches up when turned back on.": "Slutter å sende. Den beholder plassen sin og tar igjen det tapte når den slås på igjen.",
   "Turn on": "Slå på",
   "Turn off": "Slå av",
-  "View Documentation": "Vis dokumentasjon"
+  "View Documentation": "Vis dokumentasjon",
+  "What was sent stays at the destination. To stop for a while, turn it off instead: it keeps its place.": "Det som er sendt, blir værende på målet. For å stoppe en stund kan du heller slå den av: Den beholder plassen sin."
 }

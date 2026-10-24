@@ -34224,5 +34224,6 @@
   "Last Exported At": "Последний экспорт",
   "Last Exported Entry ID": "ID последней экспортированной записи",
   "Next Attempt At": "Следующая попытка",
-  "Where the audit log is exported: S3 or S3-compatible storage, Google Cloud Storage, Azure Blob Storage, a webhook or a syslog receiver.": "Куда экспортируется журнал аудита: S3 или S3-совместимое хранилище, Google Cloud Storage, Azure Blob Storage, вебхук или приёмник syslog."
+  "Where the audit log is exported: S3 or S3-compatible storage, Google Cloud Storage, Azure Blob Storage, a webhook or a syslog receiver.": "Куда экспортируется журнал аудита: S3 или S3-совместимое хранилище, Google Cloud Storage, Azure Blob Storage, вебхук или приёмник syslog.",
+  "What was sent stays at the destination. To stop for a while, turn it off instead: it keeps its place.": "Уже отправленное остаётся в месте назначения. Чтобы остановить экспорт на время, лучше выключите его: он сохранит свою позицию."
 }

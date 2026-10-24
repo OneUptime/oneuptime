@@ -34224,5 +34224,6 @@
   "Last Exported At": "Ultima esportazione",
   "Last Exported Entry ID": "ID dell'ultima voce esportata",
   "Next Attempt At": "Prossimo tentativo",
-  "Where the audit log is exported: S3 or S3-compatible storage, Google Cloud Storage, Azure Blob Storage, a webhook or a syslog receiver.": "Dove viene esportato il registro di audit: S3 o uno storage compatibile con S3, Google Cloud Storage, Azure Blob Storage, un webhook o un ricevitore syslog."
+  "Where the audit log is exported: S3 or S3-compatible storage, Google Cloud Storage, Azure Blob Storage, a webhook or a syslog receiver.": "Dove viene esportato il registro di audit: S3 o uno storage compatibile con S3, Google Cloud Storage, Azure Blob Storage, un webhook o un ricevitore syslog.",
+  "What was sent stays at the destination. To stop for a while, turn it off instead: it keeps its place.": "Ciò che è stato inviato resta nella destinazione. Per fermarla per un po', disattivala invece: mantiene la sua posizione."
 }

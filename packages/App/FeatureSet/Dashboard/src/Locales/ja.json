@@ -34224,5 +34224,6 @@
   "Last Exported At": "最終エクスポート日時",
   "Last Exported Entry ID": "最後にエクスポートしたエントリの ID",
   "Next Attempt At": "次回の試行日時",
-  "Where the audit log is exported: S3 or S3-compatible storage, Google Cloud Storage, Azure Blob Storage, a webhook or a syslog receiver.": "監査ログのエクスポート先: S3 または S3 互換ストレージ、Google Cloud Storage、Azure Blob Storage、Webhook、または syslog レシーバー。"
+  "Where the audit log is exported: S3 or S3-compatible storage, Google Cloud Storage, Azure Blob Storage, a webhook or a syslog receiver.": "監査ログのエクスポート先: S3 または S3 互換ストレージ、Google Cloud Storage、Azure Blob Storage、Webhook、または syslog レシーバー。",
+  "What was sent stays at the destination. To stop for a while, turn it off instead: it keeps its place.": "送信済みのものは送信先に残ります。しばらく止めたいだけなら、削除せずにオフにしてください。位置は保持されます。"
 }

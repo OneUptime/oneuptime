@@ -34224,5 +34224,6 @@
   "Last Exported At": "زمان آخرین خروجی",
   "Last Exported Entry ID": "شناسه آخرین ورودی خروجی‌گرفته‌شده",
   "Next Attempt At": "زمان تلاش بعدی",
-  "Where the audit log is exported: S3 or S3-compatible storage, Google Cloud Storage, Azure Blob Storage, a webhook or a syslog receiver.": "جایی که گزارش ممیزی به آن خروجی گرفته می‌شود: S3 یا فضای ذخیره‌سازی سازگار با S3، Google Cloud Storage، Azure Blob Storage، یک وب‌هوک یا یک گیرنده syslog."
+  "Where the audit log is exported: S3 or S3-compatible storage, Google Cloud Storage, Azure Blob Storage, a webhook or a syslog receiver.": "جایی که گزارش ممیزی به آن خروجی گرفته می‌شود: S3 یا فضای ذخیره‌سازی سازگار با S3، Google Cloud Storage، Azure Blob Storage، یک وب‌هوک یا یک گیرنده syslog.",
+  "What was sent stays at the destination. To stop for a while, turn it off instead: it keeps its place.": "آنچه فرستاده شده در مقصد می‌ماند. برای توقف موقت، به‌جای حذف آن را خاموش کنید: جایگاهش را حفظ می‌کند."
 }

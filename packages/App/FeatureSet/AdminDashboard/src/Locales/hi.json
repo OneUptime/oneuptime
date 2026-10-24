@@ -1201,5 +1201,6 @@
   "Stop sending. It keeps its place and catches up when turned back on.": "भेजना बंद करता है। यह अपनी जगह याद रखता है और फिर से चालू करने पर छूटी हुई प्रविष्टियाँ भेज देता है।",
   "Turn on": "चालू करें",
   "Turn off": "बंद करें",
-  "View Documentation": "दस्तावेज़ देखें"
+  "View Documentation": "दस्तावेज़ देखें",
+  "What was sent stays at the destination. To stop for a while, turn it off instead: it keeps its place.": "जो भेजा जा चुका है, वह गंतव्य पर बना रहता है। कुछ समय के लिए रोकना हो, तो इसके बजाय इसे बंद करें: यह अपनी जगह याद रखता है।"
 }

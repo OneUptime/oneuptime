@@ -1201,5 +1201,6 @@
   "Stop sending. It keeps its place and catches up when turned back on.": "Beendet das Senden. Er behält seine Position und holt auf, sobald er wieder eingeschaltet wird.",
   "Turn on": "Einschalten",
   "Turn off": "Ausschalten",
-  "View Documentation": "Dokumentation anzeigen"
+  "View Documentation": "Dokumentation anzeigen",
+  "What was sent stays at the destination. To stop for a while, turn it off instead: it keeps its place.": "Was gesendet wurde, bleibt am Ziel. Um eine Weile aufzuhören, schalten Sie ihn stattdessen aus: Er behält seine Position."
 }

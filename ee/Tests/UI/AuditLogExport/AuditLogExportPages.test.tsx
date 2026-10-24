@@ -102,6 +102,11 @@ import AuditLogExportDestinationType from "Common/Types/AuditLog/Export/AuditLog
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import splitActionButtons, {
+  IndexedActionButton,
+  SplitActionButtonsResult,
+} from "Common/UI/Components/ActionButton/SplitActionButtons";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -333,16 +338,23 @@ describe("a project's exports: Settings > Audit Logs > Export", () => {
         return candidate.title;
       }),
     ).toEqual(["Name", "Status"]);
-    // Turn on before Send a test: an export that is off shows it as its button.
+    /*
+     * Turn on first: an export that is off shows it as its button, even
+     * when it stopped with an error; a failing one shows View Error.
+     */
     expect(
       actions().map((button: ActionButton) => {
         return button.title;
       }),
-    ).toEqual(["View Error", "Turn on", "Send a test", "Turn off", "Edit"]);
+    ).toEqual(["Turn on", "View Error", "Send a test", "Turn off", "Edit"]);
     // Credentials are never asked for.
     expect(
       Object.keys(table()["selectMoreFields"] as Record<string, unknown>),
     ).not.toContain("secrets");
+    // Delete says what it leaves, and the gentler way to stop.
+    expect(table()["deleteConfirmationWarning"]).toBe(
+      "What was sent stays at the destination. To stop for a while, turn it off instead: it keeps its place.",
+    );
   });
 
   test("whoever may not change exports finds Add, Edit and Send a test locked, with the reason", async () => {
@@ -550,6 +562,60 @@ describe("a project's exports: Settings > Audit Logs > Export", () => {
 
     // The list is read again, so the row's status says what it now is.
     expect(table()["refreshToggle"]).not.toBe(refreshBefore);
+  });
+
+  test("each row's one button is the move its state calls for, the rest in its menu", async () => {
+    await renderProjectPage();
+
+    // What the table draws for a row: its button, and its ⋯ menu.
+    const split: (item: AuditLogExport) => [string, Array<string>] = (
+      item: AuditLogExport,
+    ): [string, Array<string>] => {
+      const result: SplitActionButtonsResult<AuditLogExport> =
+        splitActionButtons<AuditLogExport>({
+          actionButtons: table()["actionButtons"] as unknown as Array<
+            ActionButtonSchema<AuditLogExport>
+          >,
+          item,
+        });
+
+      return [
+        result.primary?.button.title || "",
+        result.moreMenu.map(
+          (entry: IndexedActionButton<AuditLogExport>): string => {
+            return entry.button.title;
+          },
+        ),
+      ];
+    };
+
+    // Exporting: send a test; turning it off and editing wait in the menu.
+    expect(split(savedExport())).toEqual(["Send a test", ["Turn off", "Edit"]]);
+    // Failing: why.
+    expect(split(savedExport({ lastError: "403" }))).toEqual([
+      "View Error",
+      ["Send a test", "Turn off", "Edit"],
+    ]);
+    // Off, even after failing: turn it back on; the error stays in the menu.
+    expect(split(savedExport({ isEnabled: false, lastError: "403" }))).toEqual([
+      "Turn on",
+      ["View Error", "Send a test", "Edit"],
+    ]);
+  });
+
+  test("with the license stopped, a failing row's button is still reading its error", async () => {
+    mockLicenseMode = "read-only";
+
+    await renderProjectPage();
+
+    expect(
+      splitActionButtons<AuditLogExport>({
+        actionButtons: table()["actionButtons"] as unknown as Array<
+          ActionButtonSchema<AuditLogExport>
+        >,
+        item: savedExport({ lastError: "403" }),
+      }).primary?.button.title,
+    ).toBe("View Error");
   });
 
   test("a refused Turn off is the row's own error, in words", async () => {

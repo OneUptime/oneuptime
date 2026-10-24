@@ -1201,5 +1201,6 @@
   "Stop sending. It keeps its place and catches up when turned back on.": "Slutar skicka. Den behåller sin plats och kommer ikapp när den slås på igen.",
   "Turn on": "Slå på",
   "Turn off": "Stäng av",
-  "View Documentation": "Visa dokumentation"
+  "View Documentation": "Visa dokumentation",
+  "What was sent stays at the destination. To stop for a while, turn it off instead: it keeps its place.": "Det som har skickats stannar kvar på målet. För att stoppa ett tag kan du stänga av den i stället: den behåller sin plats."
 }

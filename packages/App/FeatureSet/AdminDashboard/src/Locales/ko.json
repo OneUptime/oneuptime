@@ -1201,5 +1201,6 @@
   "Stop sending. It keeps its place and catches up when turned back on.": "보내기를 멈춥니다. 위치를 유지하고 다시 켜면 밀린 항목을 따라잡습니다.",
   "Turn on": "켜기",
   "Turn off": "끄기",
-  "View Documentation": "문서 보기"
+  "View Documentation": "문서 보기",
+  "What was sent stays at the destination. To stop for a while, turn it off instead: it keeps its place.": "이미 보낸 항목은 대상에 남아 있습니다. 잠시 멈추려면 대신 끄세요. 위치가 유지됩니다."
 }

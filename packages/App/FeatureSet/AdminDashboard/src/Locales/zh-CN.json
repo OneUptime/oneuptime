@@ -1201,5 +1201,6 @@
   "Stop sending. It keeps its place and catches up when turned back on.": "停止发送。它会保留当前位置，重新开启后补发错过的内容。",
   "Turn on": "开启",
   "Turn off": "关闭",
-  "View Documentation": "查看文档"
+  "View Documentation": "查看文档",
+  "What was sent stays at the destination. To stop for a while, turn it off instead: it keeps its place.": "已发送的内容会保留在目标位置。如果只想暂停一段时间，请改为将其关闭：它会保留当前位置。"
 }

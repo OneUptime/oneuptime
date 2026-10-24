@@ -1201,5 +1201,6 @@
   "Stop sending. It keeps its place and catches up when turned back on.": "Прекращает отправку. Экспорт сохраняет свою позицию и наверстает упущенное после повторного включения.",
   "Turn on": "Включить",
   "Turn off": "Выключить",
-  "View Documentation": "Просмотр документации"
+  "View Documentation": "Просмотр документации",
+  "What was sent stays at the destination. To stop for a while, turn it off instead: it keeps its place.": "Уже отправленное остаётся в месте назначения. Чтобы остановить экспорт на время, лучше выключите его: он сохранит свою позицию."
 }

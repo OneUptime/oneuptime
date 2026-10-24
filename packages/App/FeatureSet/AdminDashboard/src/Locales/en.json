@@ -1201,5 +1201,6 @@
   "Stop sending. It keeps its place and catches up when turned back on.": "Stop sending. It keeps its place and catches up when turned back on.",
   "Turn on": "Turn on",
   "Turn off": "Turn off",
-  "View Documentation": "View Documentation"
+  "View Documentation": "View Documentation",
+  "What was sent stays at the destination. To stop for a while, turn it off instead: it keeps its place.": "What was sent stays at the destination. To stop for a while, turn it off instead: it keeps its place."
 }

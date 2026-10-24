@@ -34224,5 +34224,6 @@
   "Last Exported At": "Senest eksporteret",
   "Last Exported Entry ID": "ID for senest eksporterede post",
   "Next Attempt At": "Næste forsøg",
-  "Where the audit log is exported: S3 or S3-compatible storage, Google Cloud Storage, Azure Blob Storage, a webhook or a syslog receiver.": "Hvor auditloggen eksporteres til: S3 eller S3-kompatibelt lager, Google Cloud Storage, Azure Blob Storage, en webhook eller en syslog-modtager."
+  "Where the audit log is exported: S3 or S3-compatible storage, Google Cloud Storage, Azure Blob Storage, a webhook or a syslog receiver.": "Hvor auditloggen eksporteres til: S3 eller S3-kompatibelt lager, Google Cloud Storage, Azure Blob Storage, en webhook eller en syslog-modtager.",
+  "What was sent stays at the destination. To stop for a while, turn it off instead: it keeps its place.": "Det, der er sendt, bliver på destinationen. For at stoppe et stykke tid kan du i stedet slå den fra: Den beholder sin plads."
 }

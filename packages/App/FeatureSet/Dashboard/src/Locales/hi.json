@@ -34224,5 +34224,6 @@
   "Last Exported At": "पिछला एक्सपोर्ट कब",
   "Last Exported Entry ID": "पिछली एक्सपोर्ट की गई प्रविष्टि का ID",
   "Next Attempt At": "अगली कोशिश कब",
-  "Where the audit log is exported: S3 or S3-compatible storage, Google Cloud Storage, Azure Blob Storage, a webhook or a syslog receiver.": "ऑडिट लॉग कहाँ एक्सपोर्ट होता है: S3 या S3-संगत स्टोरेज, Google Cloud Storage, Azure Blob Storage, वेबहुक या syslog रिसीवर।"
+  "Where the audit log is exported: S3 or S3-compatible storage, Google Cloud Storage, Azure Blob Storage, a webhook or a syslog receiver.": "ऑडिट लॉग कहाँ एक्सपोर्ट होता है: S3 या S3-संगत स्टोरेज, Google Cloud Storage, Azure Blob Storage, वेबहुक या syslog रिसीवर।",
+  "What was sent stays at the destination. To stop for a while, turn it off instead: it keeps its place.": "जो भेजा जा चुका है, वह गंतव्य पर बना रहता है। कुछ समय के लिए रोकना हो, तो इसके बजाय इसे बंद करें: यह अपनी जगह याद रखता है।"
 }

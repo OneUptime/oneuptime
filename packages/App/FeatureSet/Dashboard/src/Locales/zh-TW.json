@@ -34224,5 +34224,6 @@
   "Last Exported At": "上次匯出時間",
   "Last Exported Entry ID": "最後匯出項目的 ID",
   "Next Attempt At": "下次嘗試時間",
-  "Where the audit log is exported: S3 or S3-compatible storage, Google Cloud Storage, Azure Blob Storage, a webhook or a syslog receiver.": "稽核日誌的匯出目標：S3 或相容 S3 的儲存空間、Google Cloud Storage、Azure Blob Storage、Webhook 或 syslog 接收器。"
+  "Where the audit log is exported: S3 or S3-compatible storage, Google Cloud Storage, Azure Blob Storage, a webhook or a syslog receiver.": "稽核日誌的匯出目標：S3 或相容 S3 的儲存空間、Google Cloud Storage、Azure Blob Storage、Webhook 或 syslog 接收器。",
+  "What was sent stays at the destination. To stop for a while, turn it off instead: it keeps its place.": "已傳送的內容會保留在目標位置。如果只想暫停一段時間，請改為將其關閉：它會保留目前位置。"
 }

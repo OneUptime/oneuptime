@@ -1201,5 +1201,6 @@
   "Stop sending. It keeps its place and catches up when turned back on.": "送信を停止します。位置は保持され、再びオンにすると遅れを取り戻します。",
   "Turn on": "オンにする",
   "Turn off": "オフにする",
-  "View Documentation": "ドキュメントを表示"
+  "View Documentation": "ドキュメントを表示",
+  "What was sent stays at the destination. To stop for a while, turn it off instead: it keeps its place.": "送信済みのものは送信先に残ります。しばらく止めたいだけなら、削除せずにオフにしてください。位置は保持されます。"
 }

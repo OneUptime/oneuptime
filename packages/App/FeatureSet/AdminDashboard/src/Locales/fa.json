@@ -1201,5 +1201,6 @@
   "Stop sending. It keeps its place and catches up when turned back on.": "ارسال را متوقف می‌کند. جای خود را نگه می‌دارد و پس از روشن شدن دوباره، عقب‌ماندگی را جبران می‌کند.",
   "Turn on": "روشن کردن",
   "Turn off": "خاموش کردن",
-  "View Documentation": "مشاهده مستندات"
+  "View Documentation": "مشاهده مستندات",
+  "What was sent stays at the destination. To stop for a while, turn it off instead: it keeps its place.": "آنچه فرستاده شده در مقصد می‌ماند. برای توقف موقت، به‌جای حذف آن را خاموش کنید: جایگاهش را حفظ می‌کند."
 }

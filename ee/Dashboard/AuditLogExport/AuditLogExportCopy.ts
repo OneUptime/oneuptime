@@ -95,6 +95,7 @@ export const AuditLogExportCopy: {
   turnOnActionTooltip: string;
   turnOffAction: string;
   turnOffActionTooltip: string;
+  deleteWarning: string;
   viewErrorAction: string;
   errorTitle: string;
   errorDescription: string;
@@ -186,6 +187,14 @@ export const AuditLogExportCopy: {
   turnOffAction: translationKey("Turn off"),
   turnOffActionTooltip: translationKey(
     "Stop sending. It keeps its place and catches up when turned back on.",
+  ),
+  /*
+   * Said in Delete's dialog, the row's and the bulk one's: what deleting
+   * leaves, and the gentler way to stop - a deleted export loses its place,
+   * a turned-off one keeps it.
+   */
+  deleteWarning: translationKey(
+    "What was sent stays at the destination. To stop for a while, turn it off instead: it keeps its place.",
   ),
   viewErrorAction: translationKey("View Error"),
   errorTitle: translationKey("Last Error"),

@@ -34224,5 +34224,6 @@
   "Last Exported At": "마지막 내보내기 시점",
   "Last Exported Entry ID": "마지막으로 내보낸 항목 ID",
   "Next Attempt At": "다음 시도 시점",
-  "Where the audit log is exported: S3 or S3-compatible storage, Google Cloud Storage, Azure Blob Storage, a webhook or a syslog receiver.": "감사 로그를 내보내는 곳: S3 또는 S3 호환 스토리지, Google Cloud Storage, Azure Blob Storage, 웹훅 또는 syslog 수신기."
+  "Where the audit log is exported: S3 or S3-compatible storage, Google Cloud Storage, Azure Blob Storage, a webhook or a syslog receiver.": "감사 로그를 내보내는 곳: S3 또는 S3 호환 스토리지, Google Cloud Storage, Azure Blob Storage, 웹훅 또는 syslog 수신기.",
+  "What was sent stays at the destination. To stop for a while, turn it off instead: it keeps its place.": "이미 보낸 항목은 대상에 남아 있습니다. 잠시 멈추려면 대신 끄세요. 위치가 유지됩니다."
 }

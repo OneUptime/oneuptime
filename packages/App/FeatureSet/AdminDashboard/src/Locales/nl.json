@@ -1201,5 +1201,6 @@
   "Stop sending. It keeps its place and catches up when turned back on.": "Stopt met versturen. Hij houdt zijn plek en haalt de achterstand in zodra hij weer aan staat.",
   "Turn on": "Inschakelen",
   "Turn off": "Uitzetten",
-  "View Documentation": "Documentatie bekijken"
+  "View Documentation": "Documentatie bekijken",
+  "What was sent stays at the destination. To stop for a while, turn it off instead: it keeps its place.": "Wat is verstuurd, blijft op de bestemming. Om even te stoppen, zet u hem liever uit: hij houdt zijn plek."
 }

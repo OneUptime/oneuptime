@@ -246,6 +246,7 @@ const AuditLogExportTable: FunctionComponent<ComponentProps> = (
         }
         userPreferencesKey={`${AUDIT_LOG_EXPORT_TABLE_ID}-${props.scope}`}
         isDeleteable={true}
+        deleteConfirmationWarning={AuditLogExportCopy.deleteWarning}
         isEditable={false}
         isCreateable={false}
         isViewable={false}
@@ -274,24 +275,10 @@ const AuditLogExportTable: FunctionComponent<ComponentProps> = (
         }
         showRefreshButton={true}
         actionButtons={[
-          {
-            title: AuditLogExportCopy.viewErrorAction,
-            buttonStyleType: ButtonStyleType.OUTLINE,
-            icon: IconProp.Error,
-            isVisible: (item: AuditLogExport): boolean => {
-              return Boolean(item.lastError);
-            },
-            onClick: (
-              item: AuditLogExport,
-              onCompleteAction: VoidFunction,
-            ): void => {
-              setViewingError(item);
-              onCompleteAction();
-            },
-          },
           /*
-           * Before Send a test: the first action a row shows is its button,
-           * and an export that is off is turned on before anything else.
+           * First: the first action a row shows is its button, and an export
+           * that is off is turned on before anything else - before reading
+           * the error it stopped with, which its menu still offers.
            */
           {
             title: AuditLogExportCopy.turnOnAction,
@@ -310,6 +297,22 @@ const AuditLogExportTable: FunctionComponent<ComponentProps> = (
               onError: ErrorFunction,
             ): void => {
               void setEnabled(item, true, onCompleteAction, onError);
+            },
+          },
+          // A failing export's button: what the destination answered.
+          {
+            title: AuditLogExportCopy.viewErrorAction,
+            buttonStyleType: ButtonStyleType.OUTLINE,
+            icon: IconProp.Error,
+            isVisible: (item: AuditLogExport): boolean => {
+              return Boolean(item.lastError);
+            },
+            onClick: (
+              item: AuditLogExport,
+              onCompleteAction: VoidFunction,
+            ): void => {
+              setViewingError(item);
+              onCompleteAction();
             },
           },
           {
