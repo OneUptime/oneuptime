@@ -33684,7 +33684,6 @@
   "Checking the key with {{host}}…": "Ключ проверяется в {{host}}…",
   "Connect Meraki": "Подключить Meraki",
   "Connect the Meraki dashboard instead: OneUptime reads every network's uplinks, applications and clients through its API, with nothing to set up on the devices.": "Подключите вместо этого панель Meraki: OneUptime читает аплинки, приложения и клиентов каждой сети через её API, ничего не настраивая на устройствах.",
-  "Conversations come from flow records, not from the Meraki dashboard API.": "Разговоры берутся из записей потоков, а не из API панели Meraki.",
   "Copy the key again from the Meraki dashboard (Organization > API & Webhooks), and check the region is the dashboard you sign in to.": "Скопируйте ключ заново из панели Meraki (Organization > API & Webhooks) и проверьте, что регион совпадает с панелью, в которую вы входите.",
   "Couldn't read Meraki {{time}}.": "Не удалось прочитать Meraki ({{time}}).",
   "Counting what a read will cover…": "Подсчёт того, что охватит чтение…",
@@ -33776,5 +33775,15 @@
   "{{organization}} has no MX or Z appliance, so there is no uplink usage to read: only applications and clients are shown.": "В {{organization}} нет устройств MX или Z, поэтому читать использование аплинков нечего: показываются только приложения и клиенты.",
   "{{organization}} has no networks yet: there is no traffic to read.": "В {{organization}} пока нет сетей: читать нечего.",
   "Traffic in and out through the appliances' uplinks over time, in bits per second": "Входящий и исходящий трафик через аплинки устройств во времени, в битах в секунду",
-  "The key is never shown again. Paste a new one only to replace it, for example after the old one was revoked.": "Ключ больше никогда не показывается. Вставляйте новый, только чтобы заменить его, например после отзыва старого."
+  "The key is never shown again. Paste a new one only to replace it, for example after the old one was revoked.": "Ключ больше никогда не показывается. Вставляйте новый, только чтобы заменить его, например после отзыва старого.",
+  "Change API key": "Изменить API-ключ",
+  "Meraki connection": "подключение Meraki",
+  "Show conversations": "Показать разговоры",
+  "The Meraki dashboard API reports totals, not conversations. This page's flow records have them.": "API панели Meraki сообщает итоги, а не разговоры. Они есть в записях потоков на этой странице.",
+  "The Meraki dashboard at {{host}} did not accept this API key.": "Панель Meraki на {{host}} не приняла этот API-ключ.",
+  "The newest traffic is from {{time}}. Pick a longer time range to see it.": "Самый свежий трафик получен {{time}}. Выберите более длинный период, чтобы его увидеть.",
+  "Update API key": "Обновить API-ключ",
+  "Where this device's traffic goes, from the flow records it exports.": "Куда уходит трафик этого устройства, по записям потоков, которые оно экспортирует.",
+  "Where this site's traffic goes, from the flow records its devices export.": "Куда уходит трафик этой площадки, по записям потоков, которые экспортируют её устройства.",
+  "Where your network's traffic goes, from the flow records your devices export.": "Куда уходит трафик вашей сети, по записям потоков, которые экспортируют ваши устройства."
 }

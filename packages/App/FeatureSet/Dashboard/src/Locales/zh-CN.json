@@ -33684,7 +33684,6 @@
   "Checking the key with {{host}}…": "正在通过 {{host}} 检查密钥…",
   "Connect Meraki": "连接 Meraki",
   "Connect the Meraki dashboard instead: OneUptime reads every network's uplinks, applications and clients through its API, with nothing to set up on the devices.": "改为连接 Meraki 控制面板：OneUptime 通过其 API 读取每个网络的上行链路、应用和客户端，设备上无需任何设置。",
-  "Conversations come from flow records, not from the Meraki dashboard API.": "会话来自流记录，而不是 Meraki 控制面板 API。",
   "Copy the key again from the Meraki dashboard (Organization > API & Webhooks), and check the region is the dashboard you sign in to.": "请从 Meraki 控制面板（Organization > API & Webhooks）重新复制密钥，并检查区域是否为你登录的控制面板。",
   "Couldn't read Meraki {{time}}.": "{{time}}无法读取 Meraki。",
   "Counting what a read will cover…": "正在统计读取将涵盖的内容…",
@@ -33776,5 +33775,15 @@
   "{{organization}} has no MX or Z appliance, so there is no uplink usage to read: only applications and clients are shown.": "{{organization}} 没有 MX 或 Z 设备，因此没有可读取的上行链路用量：仅显示应用和客户端。",
   "{{organization}} has no networks yet: there is no traffic to read.": "{{organization}} 还没有网络：没有可读取的流量。",
   "Traffic in and out through the appliances' uplinks over time, in bits per second": "随时间经过设备上行链路的流入和流出流量，单位为比特每秒",
-  "The key is never shown again. Paste a new one only to replace it, for example after the old one was revoked.": "密钥不会再显示。只有在需要替换时才粘贴新密钥，例如旧密钥被撤销后。"
+  "The key is never shown again. Paste a new one only to replace it, for example after the old one was revoked.": "密钥不会再显示。只有在需要替换时才粘贴新密钥，例如旧密钥被撤销后。",
+  "Change API key": "更改 API 密钥",
+  "Meraki connection": "Meraki 连接",
+  "Show conversations": "查看会话",
+  "The Meraki dashboard API reports totals, not conversations. This page's flow records have them.": "Meraki 控制面板 API 只上报总量，不上报会话。本页的流记录中有会话。",
+  "The Meraki dashboard at {{host}} did not accept this API key.": "{{host}} 上的 Meraki 控制面板未接受此 API 密钥。",
+  "The newest traffic is from {{time}}. Pick a longer time range to see it.": "最新的流量来自{{time}}。请选择更长的时间范围来查看。",
+  "Update API key": "更新 API 密钥",
+  "Where this device's traffic goes, from the flow records it exports.": "此设备的流量去向，依据它导出的流记录。",
+  "Where this site's traffic goes, from the flow records its devices export.": "此站点的流量去向，依据其设备导出的流记录。",
+  "Where your network's traffic goes, from the flow records your devices export.": "你的网络流量去向，依据你的设备导出的流记录。"
 }

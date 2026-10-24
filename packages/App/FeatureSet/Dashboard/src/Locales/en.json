@@ -33684,7 +33684,6 @@
   "Checking the key with {{host}}…": "Checking the key with {{host}}…",
   "Connect Meraki": "Connect Meraki",
   "Connect the Meraki dashboard instead: OneUptime reads every network's uplinks, applications and clients through its API, with nothing to set up on the devices.": "Connect the Meraki dashboard instead: OneUptime reads every network's uplinks, applications and clients through its API, with nothing to set up on the devices.",
-  "Conversations come from flow records, not from the Meraki dashboard API.": "Conversations come from flow records, not from the Meraki dashboard API.",
   "Copy the key again from the Meraki dashboard (Organization > API & Webhooks), and check the region is the dashboard you sign in to.": "Copy the key again from the Meraki dashboard (Organization > API & Webhooks), and check the region is the dashboard you sign in to.",
   "Couldn't read Meraki {{time}}.": "Couldn't read Meraki {{time}}.",
   "Counting what a read will cover…": "Counting what a read will cover…",
@@ -33776,5 +33775,15 @@
   "{{organization}} has no MX or Z appliance, so there is no uplink usage to read: only applications and clients are shown.": "{{organization}} has no MX or Z appliance, so there is no uplink usage to read: only applications and clients are shown.",
   "{{organization}} has no networks yet: there is no traffic to read.": "{{organization}} has no networks yet: there is no traffic to read.",
   "Traffic in and out through the appliances' uplinks over time, in bits per second": "Traffic in and out through the appliances' uplinks over time, in bits per second",
-  "The key is never shown again. Paste a new one only to replace it, for example after the old one was revoked.": "The key is never shown again. Paste a new one only to replace it, for example after the old one was revoked."
+  "The key is never shown again. Paste a new one only to replace it, for example after the old one was revoked.": "The key is never shown again. Paste a new one only to replace it, for example after the old one was revoked.",
+  "Change API key": "Change API key",
+  "Meraki connection": "Meraki connection",
+  "Show conversations": "Show conversations",
+  "The Meraki dashboard API reports totals, not conversations. This page's flow records have them.": "The Meraki dashboard API reports totals, not conversations. This page's flow records have them.",
+  "The Meraki dashboard at {{host}} did not accept this API key.": "The Meraki dashboard at {{host}} did not accept this API key.",
+  "The newest traffic is from {{time}}. Pick a longer time range to see it.": "The newest traffic is from {{time}}. Pick a longer time range to see it.",
+  "Update API key": "Update API key",
+  "Where this device's traffic goes, from the flow records it exports.": "Where this device's traffic goes, from the flow records it exports.",
+  "Where this site's traffic goes, from the flow records its devices export.": "Where this site's traffic goes, from the flow records its devices export.",
+  "Where your network's traffic goes, from the flow records your devices export.": "Where your network's traffic goes, from the flow records your devices export."
 }

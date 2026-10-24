@@ -33684,7 +33684,6 @@
   "Checking the key with {{host}}…": "Comprobando la clave con {{host}}…",
   "Connect Meraki": "Conectar Meraki",
   "Connect the Meraki dashboard instead: OneUptime reads every network's uplinks, applications and clients through its API, with nothing to set up on the devices.": "Conecta el panel de Meraki en su lugar: OneUptime lee los uplinks, las aplicaciones y los clientes de cada red mediante su API, sin configurar nada en los dispositivos.",
-  "Conversations come from flow records, not from the Meraki dashboard API.": "Las conversaciones vienen de los registros de flujo, no de la API del panel de Meraki.",
   "Copy the key again from the Meraki dashboard (Organization > API & Webhooks), and check the region is the dashboard you sign in to.": "Copia de nuevo la clave desde el panel de Meraki (Organization > API & Webhooks) y comprueba que la región es el panel en el que inicias sesión.",
   "Couldn't read Meraki {{time}}.": "No se pudo leer Meraki ({{time}}).",
   "Counting what a read will cover…": "Contando lo que cubrirá una lectura…",
@@ -33776,5 +33775,15 @@
   "{{organization}} has no MX or Z appliance, so there is no uplink usage to read: only applications and clients are shown.": "{{organization}} no tiene ningún appliance MX ni Z, así que no hay uso de uplinks que leer: solo se muestran las aplicaciones y los clientes.",
   "{{organization}} has no networks yet: there is no traffic to read.": "{{organization}} aún no tiene redes: no hay tráfico que leer.",
   "Traffic in and out through the appliances' uplinks over time, in bits per second": "Tráfico de entrada y salida por los uplinks de los appliances a lo largo del tiempo, en bits por segundo",
-  "The key is never shown again. Paste a new one only to replace it, for example after the old one was revoked.": "La clave no se vuelve a mostrar. Pega una nueva solo para reemplazarla, por ejemplo después de que se revocara la anterior."
+  "The key is never shown again. Paste a new one only to replace it, for example after the old one was revoked.": "La clave no se vuelve a mostrar. Pega una nueva solo para reemplazarla, por ejemplo después de que se revocara la anterior.",
+  "Change API key": "Cambiar la clave de API",
+  "Meraki connection": "conexión de Meraki",
+  "Show conversations": "Mostrar las conversaciones",
+  "The Meraki dashboard API reports totals, not conversations. This page's flow records have them.": "La API del panel de Meraki informa totales, no conversaciones. Los registros de flujo de esta página las tienen.",
+  "The Meraki dashboard at {{host}} did not accept this API key.": "El panel de Meraki en {{host}} no aceptó esta clave de API.",
+  "The newest traffic is from {{time}}. Pick a longer time range to see it.": "El tráfico más reciente es de {{time}}. Elige un intervalo más largo para verlo.",
+  "Update API key": "Actualizar la clave de API",
+  "Where this device's traffic goes, from the flow records it exports.": "A dónde va el tráfico de este dispositivo, según los registros de flujo que exporta.",
+  "Where this site's traffic goes, from the flow records its devices export.": "A dónde va el tráfico de esta sede, según los registros de flujo que exportan sus dispositivos.",
+  "Where your network's traffic goes, from the flow records your devices export.": "A dónde va el tráfico de tu red, según los registros de flujo que exportan tus dispositivos."
 }

@@ -27,6 +27,10 @@ import React, {
  * the filter says so. A row the page cannot narrow to (a Meraki
  * application: the uplinks it is totalled against know no applications)
  * is a plain row, and says nothing it cannot do.
+ *
+ * The lists sit two to a row on a wide page, each as tall as its row (the
+ * card fills its grid cell), so a short list beside a long one ends where
+ * it does instead of leaving a hole under it. The grid spaces the cards.
  */
 
 export interface TrafficTopRow {
@@ -82,6 +86,7 @@ const TrafficTopList: FunctionComponent<ComponentProps> = (
         </span>
       }
       description={props.description}
+      fillHeight={true}
     >
       <div data-testid={props.dataTestId}>
         {props.rows.length === 0 ? (

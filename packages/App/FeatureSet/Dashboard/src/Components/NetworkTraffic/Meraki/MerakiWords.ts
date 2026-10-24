@@ -1,9 +1,12 @@
 import NetworkControllerConnection from "Common/Models/DatabaseModels/NetworkControllerConnection";
+import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
+import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
 import { LlmConnectionFailureKind } from "Common/Types/LlmObservability/LlmConnectionTest";
 import { NetworkTrafficUsageConnection } from "Common/Types/NetFlow/NetworkTrafficUsage";
 import {
   MERAKI_REGIONS,
+  MerakiRegion,
   MerakiRegionDefinition,
   getMerakiRegionOrDefault,
 } from "Common/Types/NetworkController/MerakiRegion";
@@ -59,12 +62,17 @@ export function drawMerakiTemplate(
   return translator.translateTemplate(words.template, words.values);
 }
 
+/*
+ * The words a connection's status pill says - the same ones Cloud Connect's
+ * list says for a cloud account (Working, Not working, Off, Waiting for the
+ * first read), so a person who connects both reads one vocabulary.
+ */
 export const MERAKI_STATUS_WORDS: Record<
   NetworkControllerConnectionStatus,
   MerakiStatusWords
 > = {
   [NetworkControllerConnectionStatus.Healthy]: {
-    label: translationKey("Connected"),
+    label: translationKey("Working"),
     tone: "green",
   },
   [NetworkControllerConnectionStatus.Partial]: {
@@ -72,7 +80,7 @@ export const MERAKI_STATUS_WORDS: Record<
     tone: "amber",
   },
   [NetworkControllerConnectionStatus.Failing]: {
-    label: translationKey("Failing"),
+    label: translationKey("Not working"),
     tone: "red",
   },
   [NetworkControllerConnectionStatus.Stale]: {
@@ -89,12 +97,16 @@ export const MERAKI_STATUS_WORDS: Record<
   },
 };
 
-// The dot or pill colours of a tone, in light and dark.
+/*
+ * The dot colours of a tone, in light and dark: the saturated marks read
+ * the same on both; the grey is one the dark theme remaps (Theme.css), so
+ * a waiting or turned-off connection's dot is quiet in both.
+ */
 export const MERAKI_TONE_DOT: Record<MerakiTone, string> = {
   green: "bg-emerald-500",
   amber: "bg-amber-500",
   red: "bg-red-500",
-  gray: "bg-gray-400",
+  gray: "bg-gray-300",
 };
 
 export const MERAKI_TONE_TEXT: Record<MerakiTone, string> = {
@@ -103,6 +115,23 @@ export const MERAKI_TONE_TEXT: Record<MerakiTone, string> = {
   red: "text-red-700",
   gray: "text-gray-600",
 };
+
+// The status pill's colour of a tone (Pill paints both themes from it).
+export const MERAKI_TONE_PILL: Record<MerakiTone, Color> = {
+  green: Green,
+  amber: Yellow,
+  red: Red,
+  gray: Gray500,
+};
+
+/*
+ * A connection, as the page names one where it says what a reader may not
+ * do with it ("You do not have permission to update this Meraki
+ * connection."): the model's own name, Network Controller Connection, is
+ * the database's word, not the page's.
+ */
+export const MERAKI_CONNECTION_NAME: string =
+  translationKey("Meraki connection");
 
 export interface MerakiTimeOptions {
   // The reader's language code ("de" reads "vor 2 Minuten"); English if unset.
@@ -313,23 +342,93 @@ export const TEST_COUNT_LABELS: { networks: string; appliances: string } = {
 };
 
 /*
+ * A key the region's dashboard refused, naming the dashboard: the one thing
+ * Meraki's own answer would add, so that answer is not shown under it too.
+ */
+export const KEY_REFUSED_BY_DASHBOARD: string = translationKey(
+  "The Meraki dashboard at {{host}} did not accept this API key.",
+);
+
+// A test that never reached Meraki: OneUptime could not run it at all.
+export const TEST_COULD_NOT_RUN: string = translationKey(
+  "The test could not run",
+);
+
+/*
+ * A failed test's way on, by why it failed: a refused key, or a key that
+ * cannot be one, is changed - testing it again would only fail again; a
+ * key that cannot read the organization may be fixed in Meraki (try again)
+ * or swapped for an administrator's; anything else is tried again.
+ */
+export interface MerakiTestActions {
+  tryAgain: boolean;
+  changeKey: boolean;
+}
+
+export function getMerakiTestActions(
+  result: NetworkControllerTestResult,
+): MerakiTestActions {
+  if (result.status !== "fail") {
+    return { tryAgain: false, changeKey: false };
+  }
+
+  switch (result.failureKind) {
+    case LlmConnectionFailureKind.Authentication:
+    case LlmConnectionFailureKind.Settings:
+      return { tryAgain: false, changeKey: true };
+    case LlmConnectionFailureKind.Permission:
+      return { tryAgain: true, changeKey: true };
+    default:
+      return { tryAgain: true, changeKey: false };
+  }
+}
+
+/*
  * What a test says, in the reader's language: a failure by its kind (with
  * Meraki's own answer below it), a pass by what a read will cover - the
  * counts drawn as label and number, so no sentence has to agree with one.
+ *
+ * A test whose request never reached Meraki (OneUptime answered it with an
+ * error: provider empty) says so, rather than blaming Meraki. A refused key
+ * names the dashboard that refused it when the caller knows it.
  */
 export function getMerakiTestWords(data: {
   result: NetworkControllerTestResult;
   organizationName: string;
+  // The region's dashboard ("dashboard.meraki.com"), when the caller knows it.
+  dashboardHost?: string | undefined;
 }): MerakiTestWords {
   const result: NetworkControllerTestResult = data.result;
 
   if (result.status === "fail") {
+    if (!result.provider) {
+      return {
+        tone: "fail",
+        headline: { template: TEST_COULD_NOT_RUN, values: {} },
+        details: result.message || undefined,
+      };
+    }
+
     const kind: LlmConnectionFailureKind =
       result.failureKind &&
       Object.values(LlmConnectionFailureKind).includes(result.failureKind)
         ? result.failureKind
         : LlmConnectionFailureKind.Other;
     const words: { headline: string; advice: string } = FAILURE_WORDS[kind];
+
+    if (
+      kind === LlmConnectionFailureKind.Authentication &&
+      data.dashboardHost
+    ) {
+      return {
+        tone: "fail",
+        headline: {
+          template: KEY_REFUSED_BY_DASHBOARD,
+          values: { host: data.dashboardHost },
+        },
+        advice: words.advice,
+      };
+    }
 
     return {
       tone: "fail",
@@ -420,6 +519,15 @@ export const ANALYTICS_WAITING_NOTE: PluralTemplate = {
     "The applications and clients of {{count}} networks wait for the next read, which carries on in a minute.",
 };
 
+/*
+ * A range with nothing in it because the reads stopped before it began (a
+ * connection failing or not read lately): when the traffic read ends, and
+ * the way to it - never "Meraki keeps 30 days", which is not why.
+ */
+export const NEWEST_TRAFFIC_BEFORE_RANGE: string = translationKey(
+  "The newest traffic is from {{time}}. Pick a longer time range to see it.",
+);
+
 export const RATE_LIMITED_NOTE: string = translationKey(
   "Meraki asked OneUptime to slow down during the last read: other applications share the organization's API budget, and OneUptime reads more slowly until it is free.",
 );
@@ -433,9 +541,38 @@ export const READING_NOW: string = translationKey("Reading now…");
  */
 export interface MerakiConnectionRowFacts {
   connection: NetworkTrafficUsageConnection;
+  region: MerakiRegion;
   regionName: string;
   regionHost: string;
   summary: NetworkControllerReadSummary | undefined;
+}
+
+/*
+ * A connection's one button, the next thing to do with it: Turn on when it
+ * is off (Read now would be refused), Update API key when Meraki refused
+ * its key (reading again would fail again), Read now otherwise.
+ */
+export enum MerakiConnectionAction {
+  ReadNow = "read-now",
+  TurnOn = "turn-on",
+  UpdateKey = "update-key",
+}
+
+export function getMerakiConnectionAction(
+  facts: Pick<MerakiConnectionRowFacts, "connection" | "summary">,
+): MerakiConnectionAction {
+  if (facts.connection.status === NetworkControllerConnectionStatus.Off) {
+    return MerakiConnectionAction.TurnOn;
+  }
+
+  if (
+    facts.connection.status === NetworkControllerConnectionStatus.Failing &&
+    facts.summary?.failureKind === LlmConnectionFailureKind.Authentication
+  ) {
+    return MerakiConnectionAction.UpdateKey;
+  }
+
+  return MerakiConnectionAction.ReadNow;
 }
 
 export function getMerakiConnectionRowFacts(
@@ -485,6 +622,7 @@ export function getMerakiConnectionRowFacts(
       lastSuccessfulPullAt: toText(model.lastSuccessfulPullAt),
       lastError: model.lastError || undefined,
     },
+    region: region.region,
     regionName: region.name,
     regionHost: region.dashboardHost,
     summary,
@@ -500,6 +638,7 @@ export const MERAKI_VIEW_HELP: {
   networks: string;
   uplinks: string;
   conversations: string;
+  conversationsOnFlowsSide: string;
   flows: string;
 } = {
   traffic: translationKey(
@@ -522,6 +661,10 @@ export const MERAKI_VIEW_HELP: {
   ),
   conversations: translationKey(
     "The Meraki dashboard API reports totals, not conversations: it never says who talked to whom. Turn on NetFlow on the MX appliances to see conversations as well.",
+  ),
+  // The page has flow records as well: its conversations are a switch away.
+  conversationsOnFlowsSide: translationKey(
+    "The Meraki dashboard API reports totals, not conversations. This page's flow records have them.",
   ),
   flows: translationKey(
     "How many flows Meraki's traffic analytics counted in this time range.",

@@ -33684,7 +33684,6 @@
   "Checking the key with {{host}}…": "{{host}} से कुंजी जाँची जा रही है…",
   "Connect Meraki": "Meraki कनेक्ट करें",
   "Connect the Meraki dashboard instead: OneUptime reads every network's uplinks, applications and clients through its API, with nothing to set up on the devices.": "इसके बजाय Meraki डैशबोर्ड कनेक्ट करें: OneUptime उसके API से हर नेटवर्क के अपलिंक, एप्लिकेशन और क्लाइंट पढ़ता है, डिवाइसों पर कुछ भी सेट किए बिना।",
-  "Conversations come from flow records, not from the Meraki dashboard API.": "बातचीत फ़्लो रिकॉर्ड से आती है, Meraki डैशबोर्ड API से नहीं।",
   "Copy the key again from the Meraki dashboard (Organization > API & Webhooks), and check the region is the dashboard you sign in to.": "Meraki डैशबोर्ड (Organization > API & Webhooks) से कुंजी फिर से कॉपी करें, और जाँचें कि क्षेत्र वही डैशबोर्ड है जिसमें आप साइन इन करते हैं।",
   "Couldn't read Meraki {{time}}.": "{{time}} Meraki नहीं पढ़ा जा सका।",
   "Counting what a read will cover…": "गिना जा रहा है कि एक रीडिंग में क्या आएगा…",
@@ -33776,5 +33775,15 @@
   "{{organization}} has no MX or Z appliance, so there is no uplink usage to read: only applications and clients are shown.": "{{organization}} में कोई MX या Z अप्लायंस नहीं है, इसलिए पढ़ने के लिए कोई अपलिंक उपयोग नहीं है: केवल एप्लिकेशन और क्लाइंट दिखाए जाते हैं।",
   "{{organization}} has no networks yet: there is no traffic to read.": "{{organization}} में अभी कोई नेटवर्क नहीं है: पढ़ने के लिए कोई ट्रैफ़िक नहीं है।",
   "Traffic in and out through the appliances' uplinks over time, in bits per second": "समय के साथ अप्लायंस के अपलिंक से अंदर और बाहर ट्रैफ़िक, बिट प्रति सेकंड में",
-  "The key is never shown again. Paste a new one only to replace it, for example after the old one was revoked.": "कुंजी फिर कभी नहीं दिखाई जाती। नई कुंजी केवल बदलने के लिए चिपकाएँ, जैसे पुरानी रद्द होने के बाद।"
+  "The key is never shown again. Paste a new one only to replace it, for example after the old one was revoked.": "कुंजी फिर कभी नहीं दिखाई जाती। नई कुंजी केवल बदलने के लिए चिपकाएँ, जैसे पुरानी रद्द होने के बाद।",
+  "Change API key": "API कुंजी बदलें",
+  "Meraki connection": "Meraki कनेक्शन",
+  "Show conversations": "बातचीत दिखाएँ",
+  "The Meraki dashboard API reports totals, not conversations. This page's flow records have them.": "Meraki डैशबोर्ड API कुल योग बताता है, बातचीत नहीं। इस पेज के फ़्लो रिकॉर्ड में बातचीत है।",
+  "The Meraki dashboard at {{host}} did not accept this API key.": "{{host}} पर Meraki डैशबोर्ड ने यह API कुंजी स्वीकार नहीं की।",
+  "The newest traffic is from {{time}}. Pick a longer time range to see it.": "सबसे नया ट्रैफ़िक {{time}} का है। उसे देखने के लिए लंबी समय-सीमा चुनें।",
+  "Update API key": "API कुंजी अपडेट करें",
+  "Where this device's traffic goes, from the flow records it exports.": "इस डिवाइस का ट्रैफ़िक कहाँ जाता है, उसके निर्यात किए गए फ़्लो रिकॉर्ड के अनुसार।",
+  "Where this site's traffic goes, from the flow records its devices export.": "इस साइट का ट्रैफ़िक कहाँ जाता है, इसके डिवाइस के निर्यात किए गए फ़्लो रिकॉर्ड के अनुसार।",
+  "Where your network's traffic goes, from the flow records your devices export.": "आपके नेटवर्क का ट्रैफ़िक कहाँ जाता है, आपके डिवाइस के निर्यात किए गए फ़्लो रिकॉर्ड के अनुसार।"
 }

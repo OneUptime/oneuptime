@@ -1,3 +1,5 @@
+import { runNetworkControllerTest } from "../NetworkTrafficUsageApi";
+import MerakiTestResultPanel from "./MerakiTestResultPanel";
 import {
   MerakiTemplate,
   drawMerakiTemplate,
@@ -6,16 +8,26 @@ import {
 import NetworkControllerConnection from "Common/Models/DatabaseModels/NetworkControllerConnection";
 import { JSONObject } from "Common/Types/JSON";
 import {
+  MerakiRegionDefinition,
+  getMerakiRegionOrDefault,
+} from "Common/Types/NetworkController/MerakiRegion";
+import {
   NetworkControllerConfig,
   readNetworkControllerConfig,
 } from "Common/Types/NetworkController/NetworkControllerConnectionSettings";
+import { NetworkControllerTestResult } from "Common/Types/NetworkController/NetworkControllerConnectionTest";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 
 /*
  * Edit a Meraki connection: its name, how often its uplinks are read, and a
@@ -24,10 +36,20 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  * The organization and the region are not here: where the reads got to is
  * that organization's, so another organization is a connection of its own.
  * The key is write-only - left empty, the stored one is kept.
+ *
+ * A new key is tested before it is saved, against the connection's own
+ * organization and region (POST /network-controller-connection/test with
+ * the connection's ID): one Meraki refuses is not saved - the dialog says
+ * why, and the key stays in its field to be corrected - so a key change
+ * never turns a working connection into a failing one a minute later.
+ * Opened from a refused key's Update API key, the dialog starts in the
+ * key's field.
  */
 
 export interface ComponentProps {
   connection: NetworkControllerConnection;
+  // Opened to replace a refused key: the key's field has the focus.
+  focusKey?: boolean | undefined;
   onClose: () => void;
   onSaved: () => void;
 }
@@ -41,6 +63,9 @@ const MerakiConnectionEditModal: FunctionComponent<ComponentProps> = (
   const config: NetworkControllerConfig = readNetworkControllerConfig(
     props.connection.config,
   );
+  const region: MerakiRegionDefinition = getMerakiRegionOrDefault(
+    config.region,
+  );
   const [name, setName] = useState<string>(props.connection.name || "");
   const [interval, setReadInterval] = useState<number>(
     config.readIntervalInMinutes,
@@ -48,6 +73,23 @@ const MerakiConnectionEditModal: FunctionComponent<ComponentProps> = (
   const [apiKey, setApiKey] = useState<string>("");
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  // A new key's test that did not pass: shown, and nothing saved.
+  const [keyTest, setKeyTest] = useState<NetworkControllerTestResult | null>(
+    null,
+  );
+
+  /*
+   * Opened to replace a refused key: the key's field has the focus. The
+   * dialog puts it on its first field as it opens; this runs after it (a
+   * parent's effect runs after its children's).
+   */
+  useEffect(() => {
+    if (!props.focusKey) {
+      return;
+    }
+
+    document.getElementById("meraki-edit-key")?.focus();
+  }, []);
 
   const save: () => Promise<void> = async (): Promise<void> => {
     if (!props.connection.id) {
@@ -61,6 +103,7 @@ const MerakiConnectionEditModal: FunctionComponent<ComponentProps> = (
 
     setIsSaving(true);
     setError("");
+    setKeyTest(null);
 
     const data: JSONObject = {
       name: name.trim().substring(0, NAME_MAX_LENGTH),
@@ -68,6 +111,18 @@ const MerakiConnectionEditModal: FunctionComponent<ComponentProps> = (
     };
 
     if (apiKey.trim()) {
+      const result: NetworkControllerTestResult =
+        await runNetworkControllerTest({
+          connectionId: props.connection.id.toString(),
+          secrets: { apiKey: apiKey.trim() },
+        });
+
+      if (result.status === "fail") {
+        setKeyTest(result);
+        setIsSaving(false);
+        return;
+      }
+
       data["secrets"] = JSON.stringify({ apiKey: apiKey.trim() });
     }
 
@@ -98,7 +153,7 @@ const MerakiConnectionEditModal: FunctionComponent<ComponentProps> = (
       submitButtonText="Save Changes"
       onSubmit={() => {
         save().catch(() => {
-          // handled inside.
+          setIsSaving(false);
         });
       }}
       isLoading={isSaving}
@@ -168,6 +223,7 @@ const MerakiConnectionEditModal: FunctionComponent<ComponentProps> = (
               value={apiKey}
               onChange={(value: string) => {
                 setApiKey(value);
+                setKeyTest(null);
               }}
               placeholder={translator.translateText(
                 "Leave empty to keep the key",
@@ -181,6 +237,15 @@ const MerakiConnectionEditModal: FunctionComponent<ComponentProps> = (
             )}
           </p>
         </div>
+        {keyTest ? (
+          <MerakiTestResultPanel
+            result={keyTest}
+            organizationName={config.organizationName}
+            dashboardHost={region.dashboardHost}
+          />
+        ) : (
+          <></>
+        )}
       </div>
     </Modal>
   );

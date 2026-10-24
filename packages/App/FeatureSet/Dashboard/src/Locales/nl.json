@@ -33684,7 +33684,6 @@
   "Checking the key with {{host}}…": "De sleutel wordt gecontroleerd bij {{host}}…",
   "Connect Meraki": "Meraki koppelen",
   "Connect the Meraki dashboard instead: OneUptime reads every network's uplinks, applications and clients through its API, with nothing to set up on the devices.": "Koppel in plaats daarvan het Meraki-dashboard: OneUptime leest de uplinks, applicaties en clients van elk netwerk via de API, zonder iets op de apparaten in te stellen.",
-  "Conversations come from flow records, not from the Meraki dashboard API.": "Gesprekken komen uit flow-records, niet uit de Meraki-dashboard-API.",
   "Copy the key again from the Meraki dashboard (Organization > API & Webhooks), and check the region is the dashboard you sign in to.": "Kopieer de sleutel opnieuw uit het Meraki-dashboard (Organization > API & Webhooks) en controleer of de regio het dashboard is waarbij u zich aanmeldt.",
   "Couldn't read Meraki {{time}}.": "Meraki kon {{time}} niet worden gelezen.",
   "Counting what a read will cover…": "Er wordt geteld wat een leesactie omvat…",
@@ -33776,5 +33775,15 @@
   "{{organization}} has no MX or Z appliance, so there is no uplink usage to read: only applications and clients are shown.": "{{organization}} heeft geen MX- of Z-appliance, dus er is geen uplinkgebruik om te lezen: alleen applicaties en clients worden getoond.",
   "{{organization}} has no networks yet: there is no traffic to read.": "{{organization}} heeft nog geen netwerken: er is geen verkeer om te lezen.",
   "Traffic in and out through the appliances' uplinks over time, in bits per second": "Verkeer in en uit via de uplinks van de appliances in de tijd, in bits per seconde",
-  "The key is never shown again. Paste a new one only to replace it, for example after the old one was revoked.": "De sleutel wordt nooit meer getoond. Plak alleen een nieuwe om hem te vervangen, bijvoorbeeld nadat de oude is ingetrokken."
+  "The key is never shown again. Paste a new one only to replace it, for example after the old one was revoked.": "De sleutel wordt nooit meer getoond. Plak alleen een nieuwe om hem te vervangen, bijvoorbeeld nadat de oude is ingetrokken.",
+  "Change API key": "API-sleutel wijzigen",
+  "Meraki connection": "Meraki-koppeling",
+  "Show conversations": "Gesprekken tonen",
+  "The Meraki dashboard API reports totals, not conversations. This page's flow records have them.": "De Meraki-dashboard-API meldt totalen, geen gesprekken. De flowrecords op deze pagina hebben ze wel.",
+  "The Meraki dashboard at {{host}} did not accept this API key.": "Het Meraki-dashboard op {{host}} heeft deze API-sleutel niet geaccepteerd.",
+  "The newest traffic is from {{time}}. Pick a longer time range to see it.": "Het nieuwste verkeer is van {{time}}. Kies een langere periode om het te zien.",
+  "Update API key": "API-sleutel bijwerken",
+  "Where this device's traffic goes, from the flow records it exports.": "Waar het verkeer van dit apparaat naartoe gaat, volgens de flowrecords die het exporteert.",
+  "Where this site's traffic goes, from the flow records its devices export.": "Waar het verkeer van deze locatie naartoe gaat, volgens de flowrecords die de apparaten ervan exporteren.",
+  "Where your network's traffic goes, from the flow records your devices export.": "Waar het verkeer van uw netwerk naartoe gaat, volgens de flowrecords die uw apparaten exporteren."
 }

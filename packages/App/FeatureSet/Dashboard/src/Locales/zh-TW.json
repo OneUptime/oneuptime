@@ -33684,7 +33684,6 @@
   "Checking the key with {{host}}…": "正在透過 {{host}} 檢查金鑰…",
   "Connect Meraki": "連線 Meraki",
   "Connect the Meraki dashboard instead: OneUptime reads every network's uplinks, applications and clients through its API, with nothing to set up on the devices.": "改為連線 Meraki 儀表板：OneUptime 透過其 API 讀取每個網路的上行鏈路、應用程式與用戶端，裝置上不需任何設定。",
-  "Conversations come from flow records, not from the Meraki dashboard API.": "對話來自流量記錄，而不是 Meraki 儀表板 API。",
   "Copy the key again from the Meraki dashboard (Organization > API & Webhooks), and check the region is the dashboard you sign in to.": "請從 Meraki 儀表板（Organization > API & Webhooks）重新複製金鑰，並檢查區域是否為你登入的儀表板。",
   "Couldn't read Meraki {{time}}.": "{{time}}無法讀取 Meraki。",
   "Counting what a read will cover…": "正在統計讀取將涵蓋的內容…",
@@ -33776,5 +33775,15 @@
   "{{organization}} has no MX or Z appliance, so there is no uplink usage to read: only applications and clients are shown.": "{{organization}} 沒有 MX 或 Z 設備，因此沒有可讀取的上行鏈路用量：僅顯示應用程式與用戶端。",
   "{{organization}} has no networks yet: there is no traffic to read.": "{{organization}} 還沒有網路：沒有可讀取的流量。",
   "Traffic in and out through the appliances' uplinks over time, in bits per second": "隨時間經過設備上行鏈路的流入與流出流量，單位為位元每秒",
-  "The key is never shown again. Paste a new one only to replace it, for example after the old one was revoked.": "金鑰不會再顯示。只有在需要替換時才貼上新金鑰，例如舊金鑰被撤銷後。"
+  "The key is never shown again. Paste a new one only to replace it, for example after the old one was revoked.": "金鑰不會再顯示。只有在需要替換時才貼上新金鑰，例如舊金鑰被撤銷後。",
+  "Change API key": "變更 API 金鑰",
+  "Meraki connection": "Meraki 連線",
+  "Show conversations": "查看對話",
+  "The Meraki dashboard API reports totals, not conversations. This page's flow records have them.": "Meraki 儀表板 API 只回報總量，不回報對話。本頁的流記錄中有對話。",
+  "The Meraki dashboard at {{host}} did not accept this API key.": "{{host}} 上的 Meraki 儀表板未接受此 API 金鑰。",
+  "The newest traffic is from {{time}}. Pick a longer time range to see it.": "最新的流量來自{{time}}。請選擇更長的時間範圍來查看。",
+  "Update API key": "更新 API 金鑰",
+  "Where this device's traffic goes, from the flow records it exports.": "此設備的流量去向，依據它匯出的流記錄。",
+  "Where this site's traffic goes, from the flow records its devices export.": "此站點的流量去向，依據其設備匯出的流記錄。",
+  "Where your network's traffic goes, from the flow records your devices export.": "你的網路流量去向，依據你的設備匯出的流記錄。"
 }

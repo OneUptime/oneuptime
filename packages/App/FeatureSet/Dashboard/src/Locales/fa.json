@@ -33684,7 +33684,6 @@
   "Checking the key with {{host}}…": "در حال بررسی کلید با {{host}}…",
   "Connect Meraki": "اتصال Meraki",
   "Connect the Meraki dashboard instead: OneUptime reads every network's uplinks, applications and clients through its API, with nothing to set up on the devices.": "به جای آن داشبورد Meraki را وصل کنید: OneUptime آپ‌لینک‌ها، برنامه‌ها و کلاینت‌های هر شبکه را از راه API آن می‌خواند و روی دستگاه‌ها چیزی لازم نیست تنظیم شود.",
-  "Conversations come from flow records, not from the Meraki dashboard API.": "گفتگوها از رکوردهای جریان می‌آیند، نه از API داشبورد Meraki.",
   "Copy the key again from the Meraki dashboard (Organization > API & Webhooks), and check the region is the dashboard you sign in to.": "کلید را دوباره از داشبورد Meraki (Organization > API & Webhooks) کپی کنید و بررسی کنید منطقه همان داشبوردی باشد که در آن وارد می‌شوید.",
   "Couldn't read Meraki {{time}}.": "Meraki {{time}} خوانده نشد.",
   "Counting what a read will cover…": "در حال شمردن آنچه یک خواندن پوشش می‌دهد…",
@@ -33776,5 +33775,15 @@
   "{{organization}} has no MX or Z appliance, so there is no uplink usage to read: only applications and clients are shown.": "{{organization}} هیچ دستگاه MX یا Z ندارد، پس مصرف آپ‌لینکی برای خواندن نیست: فقط برنامه‌ها و کلاینت‌ها نشان داده می‌شوند.",
   "{{organization}} has no networks yet: there is no traffic to read.": "{{organization}} هنوز هیچ شبکه‌ای ندارد: ترافیکی برای خواندن نیست.",
   "Traffic in and out through the appliances' uplinks over time, in bits per second": "ترافیک ورودی و خروجی از آپ‌لینک‌های دستگاه‌ها در طول زمان، بر حسب بیت بر ثانیه",
-  "The key is never shown again. Paste a new one only to replace it, for example after the old one was revoked.": "کلید دیگر هرگز نشان داده نمی‌شود. کلید تازه را فقط برای جایگزینی بچسبانید، مثلاً پس از باطل شدن کلید قبلی."
+  "The key is never shown again. Paste a new one only to replace it, for example after the old one was revoked.": "کلید دیگر هرگز نشان داده نمی‌شود. کلید تازه را فقط برای جایگزینی بچسبانید، مثلاً پس از باطل شدن کلید قبلی.",
+  "Change API key": "تغییر کلید API",
+  "Meraki connection": "اتصال Meraki",
+  "Show conversations": "نمایش مکالمه‌ها",
+  "The Meraki dashboard API reports totals, not conversations. This page's flow records have them.": "API داشبورد Meraki جمع‌ها را گزارش می‌کند، نه گفتگوها را. رکوردهای جریان این صفحه گفتگوها را دارند.",
+  "The Meraki dashboard at {{host}} did not accept this API key.": "داشبورد Meraki در {{host}} این کلید API را نپذیرفت.",
+  "The newest traffic is from {{time}}. Pick a longer time range to see it.": "تازه‌ترین ترافیک مربوط به {{time}} است. برای دیدنش بازهٔ زمانی بلندتری انتخاب کنید.",
+  "Update API key": "به‌روزرسانی کلید API",
+  "Where this device's traffic goes, from the flow records it exports.": "ترافیک این دستگاه به کجا می‌رود، بر پایهٔ رکوردهای جریانی که صادر می‌کند.",
+  "Where this site's traffic goes, from the flow records its devices export.": "ترافیک این سایت به کجا می‌رود، بر پایهٔ رکوردهای جریانی که دستگاه‌هایش صادر می‌کنند.",
+  "Where your network's traffic goes, from the flow records your devices export.": "ترافیک شبکهٔ شما به کجا می‌رود، بر پایهٔ رکوردهای جریانی که دستگاه‌هایتان صادر می‌کنند."
 }

@@ -24,6 +24,12 @@ export enum TrafficSide {
 
 export const MERAKI_URL_PARAMS: Array<string> = ["source", "mnet", "mdev"];
 
+/*
+ * The id of the network's Meraki connections (MerakiConnectionsCard): a
+ * line over the traffic that needs acting on links to it.
+ */
+export const MERAKI_CONNECTIONS_ANCHOR: string = "traffic-meraki-connections";
+
 // The side the URL asks for, or null to let the page pick.
 export function readTrafficSide(
   read: (name: string) => string | null,

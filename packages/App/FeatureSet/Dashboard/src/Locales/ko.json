@@ -33684,7 +33684,6 @@
   "Checking the key with {{host}}…": "{{host}}에서 키를 확인하는 중…",
   "Connect Meraki": "Meraki 연결",
   "Connect the Meraki dashboard instead: OneUptime reads every network's uplinks, applications and clients through its API, with nothing to set up on the devices.": "대신 Meraki 대시보드를 연결하세요: OneUptime이 API로 모든 네트워크의 업링크, 애플리케이션, 클라이언트를 읽으며 장치에서 설정할 것이 없습니다.",
-  "Conversations come from flow records, not from the Meraki dashboard API.": "대화는 Meraki 대시보드 API가 아니라 플로우 레코드에서 옵니다.",
   "Copy the key again from the Meraki dashboard (Organization > API & Webhooks), and check the region is the dashboard you sign in to.": "Meraki 대시보드(Organization > API & Webhooks)에서 키를 다시 복사하고, 리전이 로그인하는 대시보드와 같은지 확인하세요.",
   "Couldn't read Meraki {{time}}.": "{{time}}에 Meraki를 읽지 못했습니다.",
   "Counting what a read will cover…": "읽기 범위를 세는 중…",
@@ -33776,5 +33775,15 @@
   "{{organization}} has no MX or Z appliance, so there is no uplink usage to read: only applications and clients are shown.": "{{organization}}에는 MX나 Z 어플라이언스가 없어 읽을 업링크 사용량이 없습니다: 애플리케이션과 클라이언트만 표시됩니다.",
   "{{organization}} has no networks yet: there is no traffic to read.": "{{organization}}에는 아직 네트워크가 없습니다: 읽을 트래픽이 없습니다.",
   "Traffic in and out through the appliances' uplinks over time, in bits per second": "어플라이언스 업링크를 드나든 트래픽 추이(초당 비트)",
-  "The key is never shown again. Paste a new one only to replace it, for example after the old one was revoked.": "키는 다시 표시되지 않습니다. 교체할 때만 새 키를 붙여 넣으세요. 예를 들어 이전 키가 폐기된 뒤입니다."
+  "The key is never shown again. Paste a new one only to replace it, for example after the old one was revoked.": "키는 다시 표시되지 않습니다. 교체할 때만 새 키를 붙여 넣으세요. 예를 들어 이전 키가 폐기된 뒤입니다.",
+  "Change API key": "API 키 변경",
+  "Meraki connection": "Meraki 연결",
+  "Show conversations": "대화 보기",
+  "The Meraki dashboard API reports totals, not conversations. This page's flow records have them.": "Meraki 대시보드 API는 대화가 아니라 합계를 보고합니다. 대화는 이 페이지의 플로 레코드에 있습니다.",
+  "The Meraki dashboard at {{host}} did not accept this API key.": "{{host}}의 Meraki 대시보드가 이 API 키를 받아들이지 않았습니다.",
+  "The newest traffic is from {{time}}. Pick a longer time range to see it.": "가장 최근 트래픽은 {{time}}의 것입니다. 보려면 더 긴 기간을 고르세요.",
+  "Update API key": "API 키 업데이트",
+  "Where this device's traffic goes, from the flow records it exports.": "이 디바이스가 내보내는 플로 레코드로 본 트래픽의 행방.",
+  "Where this site's traffic goes, from the flow records its devices export.": "이 사이트의 디바이스가 내보내는 플로 레코드로 본 트래픽의 행방.",
+  "Where your network's traffic goes, from the flow records your devices export.": "디바이스가 내보내는 플로 레코드로 본 네트워크 트래픽의 행방."
 }

@@ -33684,7 +33684,6 @@
   "Checking the key with {{host}}…": "Nyckeln kontrolleras hos {{host}}…",
   "Connect Meraki": "Anslut Meraki",
   "Connect the Meraki dashboard instead: OneUptime reads every network's uplinks, applications and clients through its API, with nothing to set up on the devices.": "Anslut Meraki-instrumentpanelen i stället: OneUptime läser varje nätverks upplänkar, applikationer och klienter via dess API, utan att något behöver ställas in på enheterna.",
-  "Conversations come from flow records, not from the Meraki dashboard API.": "Konversationer kommer från flödesposter, inte från Meraki-instrumentpanelens API.",
   "Copy the key again from the Meraki dashboard (Organization > API & Webhooks), and check the region is the dashboard you sign in to.": "Kopiera nyckeln igen från Meraki-instrumentpanelen (Organization > API & Webhooks) och kontrollera att regionen är den instrumentpanel du loggar in på.",
   "Couldn't read Meraki {{time}}.": "Meraki kunde inte läsas {{time}}.",
   "Counting what a read will cover…": "Räknar vad en läsning omfattar…",
@@ -33776,5 +33775,15 @@
   "{{organization}} has no MX or Z appliance, so there is no uplink usage to read: only applications and clients are shown.": "{{organization}} har ingen MX- eller Z-appliance, så det finns ingen upplänkanvändning att läsa: bara applikationer och klienter visas.",
   "{{organization}} has no networks yet: there is no traffic to read.": "{{organization}} har inga nätverk ännu: det finns ingen trafik att läsa.",
   "Traffic in and out through the appliances' uplinks over time, in bits per second": "Trafik in och ut genom appliancernas upplänkar över tid, i bitar per sekund",
-  "The key is never shown again. Paste a new one only to replace it, for example after the old one was revoked.": "Nyckeln visas aldrig igen. Klistra bara in en ny för att ersätta den, till exempel efter att den gamla har återkallats."
+  "The key is never shown again. Paste a new one only to replace it, for example after the old one was revoked.": "Nyckeln visas aldrig igen. Klistra bara in en ny för att ersätta den, till exempel efter att den gamla har återkallats.",
+  "Change API key": "Ändra API-nyckel",
+  "Meraki connection": "Meraki-anslutning",
+  "Show conversations": "Visa konversationer",
+  "The Meraki dashboard API reports totals, not conversations. This page's flow records have them.": "Meraki-instrumentpanelens API rapporterar summor, inte konversationer. Flödesposterna på den här sidan har dem.",
+  "The Meraki dashboard at {{host}} did not accept this API key.": "Meraki-instrumentpanelen på {{host}} godtog inte den här API-nyckeln.",
+  "The newest traffic is from {{time}}. Pick a longer time range to see it.": "Den senaste trafiken lästes {{time}}. Välj ett längre tidsintervall för att se den.",
+  "Update API key": "Uppdatera API-nyckel",
+  "Where this device's traffic goes, from the flow records it exports.": "Vart den här enhetens trafik går, enligt flödesposterna den exporterar.",
+  "Where this site's traffic goes, from the flow records its devices export.": "Vart den här platsens trafik går, enligt flödesposterna som dess enheter exporterar.",
+  "Where your network's traffic goes, from the flow records your devices export.": "Vart ditt nätverks trafik går, enligt flödesposterna som dina enheter exporterar."
 }

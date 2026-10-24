@@ -23,8 +23,10 @@ import {
   NetworkControllerTestResult,
 } from "Common/Types/NetworkController/NetworkControllerConnectionTest";
 import NetworkControllerProvider from "Common/Types/NetworkController/NetworkControllerProvider";
+import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
+import Icon from "Common/UI/Components/Icon/Icon";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import { getSteppedModalFooter } from "Common/UI/Components/Forms/Utils/SteppedFormFooter";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
@@ -54,6 +56,10 @@ import React, {
  *               and appliances. The name and how often to read are folded
  *               under More fields. Connect is offered here, and only once
  *               the test passed.
+ *
+ * A key Meraki refuses offers Change API key: back to the first step, the
+ * key selected to paste over (there is no Back button on a stepped form;
+ * the step list goes back too).
  *
  * The key is write-only: it goes to the server with the test and the
  * create, is stored encrypted and is never shown again.
@@ -91,6 +97,9 @@ const MerakiConnectModal: FunctionComponent<ComponentProps> = (
   const [saveError, setSaveError] = useState<string>("");
   // Only the newest test lands: a re-pick can overlap the one before.
   const latestTest: React.MutableRefObject<number> = useRef<number>(0);
+  // Back on the key step to change the key: it is selected, to paste over.
+  const selectKeyOnOpen: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   const regionDefinition: MerakiRegionDefinition =
     getMerakiRegionOrDefault(region);
@@ -182,7 +191,23 @@ const MerakiConnectModal: FunctionComponent<ComponentProps> = (
         setIsTesting(false);
       });
     }
+
+    if (step === 1 && selectKeyOnOpen.current) {
+      selectKeyOnOpen.current = false;
+      const input: HTMLElement | null =
+        document.getElementById("meraki-api-key");
+
+      if (input instanceof HTMLInputElement) {
+        input.focus();
+        input.select();
+      }
+    }
   }, [step]);
+
+  const changeKey: () => void = (): void => {
+    selectKeyOnOpen.current = true;
+    setStep(1);
+  };
 
   // The name follows the organization until someone types one.
   useEffect(() => {
@@ -312,7 +337,15 @@ const MerakiConnectModal: FunctionComponent<ComponentProps> = (
                   }`}
                   data-testid={`meraki-connect-step-${number}`}
                 >
-                  <span className="tabular-nums">{number}</span>
+                  {canOpen ? (
+                    // A step done: checked, as the product's step list does.
+                    <Icon
+                      icon={IconProp.Check}
+                      className="h-3.5 w-3.5 flex-shrink-0 text-indigo-600"
+                    />
+                  ) : (
+                    <span className="tabular-nums">{number}</span>
+                  )}
                   {translator.translateText(title)}
                 </button>
               </li>
@@ -407,10 +440,14 @@ const MerakiConnectModal: FunctionComponent<ComponentProps> = (
           >
             {isTesting && !listResult ? (
               <p
-                className="text-sm text-gray-600"
+                className="flex items-center gap-2 text-sm text-gray-600"
                 role="status"
                 data-testid="meraki-connect-testing"
               >
+                <Icon
+                  icon={IconProp.Spinner}
+                  className="h-4 w-4 flex-shrink-0 animate-spin text-gray-400"
+                />
                 {translator.translateTemplate(
                   "Checking the key with {{host}}…",
                   { host: regionDefinition.apiHost },
@@ -424,11 +461,13 @@ const MerakiConnectModal: FunctionComponent<ComponentProps> = (
               <MerakiTestResultPanel
                 result={listResult}
                 organizationName=""
+                dashboardHost={regionDefinition.dashboardHost}
                 onTryAgain={() => {
                   runListTest().catch(() => {
                     setIsTesting(false);
                   });
                 }}
+                onChangeKey={changeKey}
               />
             ) : (
               <></>
@@ -448,7 +487,7 @@ const MerakiConnectModal: FunctionComponent<ComponentProps> = (
                   </p>
                 ) : (
                   <div
-                    className="mt-2 max-h-56 space-y-1 overflow-y-auto"
+                    className="-mx-0.5 mt-1.5 max-h-56 space-y-1 overflow-y-auto p-0.5"
                     role="radiogroup"
                     aria-label={translator.translateText("Organization")}
                     data-testid="meraki-connect-organizations"
@@ -498,7 +537,14 @@ const MerakiConnectModal: FunctionComponent<ComponentProps> = (
             )}
 
             {organizationId && isTesting ? (
-              <p className="text-sm text-gray-600" role="status">
+              <p
+                className="flex items-center gap-2 text-sm text-gray-600"
+                role="status"
+              >
+                <Icon
+                  icon={IconProp.Spinner}
+                  className="h-4 w-4 flex-shrink-0 animate-spin text-gray-400"
+                />
                 {translator.translateText("Counting what a read will cover…")}
               </p>
             ) : (
@@ -509,11 +555,13 @@ const MerakiConnectModal: FunctionComponent<ComponentProps> = (
               <MerakiTestResultPanel
                 result={countResult}
                 organizationName={picked?.name || ""}
+                dashboardHost={regionDefinition.dashboardHost}
                 onTryAgain={() => {
                   countOrganization(organizationId).catch(() => {
                     setIsTesting(false);
                   });
                 }}
+                onChangeKey={changeKey}
               />
             ) : (
               <></>

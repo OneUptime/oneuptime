@@ -1,7 +1,9 @@
 import {
+  MerakiTestActions,
   MerakiTestWords,
   TEST_COUNT_LABELS,
   drawMerakiTemplate,
+  getMerakiTestActions,
   getMerakiTestWords,
 } from "./MerakiWords";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -20,12 +22,20 @@ import React, { FunctionComponent, ReactElement } from "react";
  * pass with what a read will cover (networks, appliances), a warning that
  * says what will be missing, or a failure with what to do about it - and
  * Meraki's own answer under it, in English, as Meraki gave it.
+ *
+ * A failure offers its way on (getMerakiTestActions): Change API key for a
+ * key Meraki refused - testing it again would only fail again - and Try
+ * again for what may pass in a minute. A caller that has no such step (the
+ * edit dialog, whose key is the field above) leaves the handler out.
  */
 
 export interface ComponentProps {
   result: NetworkControllerTestResult;
   organizationName: string;
-  onTryAgain: () => void;
+  // The region's dashboard, named in a refused key's headline.
+  dashboardHost?: string | undefined;
+  onTryAgain?: (() => void) | undefined;
+  onChangeKey?: (() => void) | undefined;
 }
 
 const TONES: Record<
@@ -56,9 +66,13 @@ const MerakiTestResultPanel: FunctionComponent<ComponentProps> = (
   const words: MerakiTestWords = getMerakiTestWords({
     result: props.result,
     organizationName: props.organizationName,
+    dashboardHost: props.dashboardHost,
   });
   const tone: { box: string; icon: IconProp; iconColor: string } =
     TONES[words.tone];
+  const actions: MerakiTestActions = getMerakiTestActions(props.result);
+  const showChangeKey: boolean = actions.changeKey && Boolean(props.onChangeKey);
+  const showTryAgain: boolean = actions.tryAgain && Boolean(props.onTryAgain);
 
   return (
     <div
@@ -116,16 +130,36 @@ const MerakiTestResultPanel: FunctionComponent<ComponentProps> = (
           ) : (
             <></>
           )}
-          {words.tone === "fail" ? (
-            <div className="mt-3">
-              <Button
-                title="Try again"
-                icon={IconProp.Refresh}
-                buttonSize={ButtonSize.Small}
-                buttonStyle={ButtonStyleType.NORMAL}
-                onClick={props.onTryAgain}
-                dataTestId="meraki-test-try-again"
-              />
+          {showChangeKey || showTryAgain ? (
+            /*
+             * Under the words, from their left edge: Button's footer margin
+             * (md:ml-3) is cleared, and the gap spaces the two.
+             */
+            <div className="mt-3 flex flex-wrap gap-2 [&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0">
+              {showChangeKey ? (
+                <Button
+                  title="Change API key"
+                  icon={IconProp.Key}
+                  buttonSize={ButtonSize.Small}
+                  buttonStyle={ButtonStyleType.NORMAL}
+                  onClick={props.onChangeKey}
+                  dataTestId="meraki-test-change-key"
+                />
+              ) : (
+                <></>
+              )}
+              {showTryAgain ? (
+                <Button
+                  title="Try again"
+                  icon={IconProp.Refresh}
+                  buttonSize={ButtonSize.Small}
+                  buttonStyle={ButtonStyleType.NORMAL}
+                  onClick={props.onTryAgain}
+                  dataTestId="meraki-test-try-again"
+                />
+              ) : (
+                <></>
+              )}
             </div>
           ) : (
             <></>

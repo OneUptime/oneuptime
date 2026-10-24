@@ -33684,7 +33684,6 @@
   "Checking the key with {{host}}…": "{{host}} でキーを確認しています…",
   "Connect Meraki": "Meraki を接続",
   "Connect the Meraki dashboard instead: OneUptime reads every network's uplinks, applications and clients through its API, with nothing to set up on the devices.": "代わりに Meraki ダッシュボードを接続してください: OneUptime はその API で各ネットワークのアップリンク、アプリケーション、クライアントを読み取り、デバイス側の設定は不要です。",
-  "Conversations come from flow records, not from the Meraki dashboard API.": "会話はフローレコードから得られ、Meraki ダッシュボード API からは得られません。",
   "Copy the key again from the Meraki dashboard (Organization > API & Webhooks), and check the region is the dashboard you sign in to.": "Meraki ダッシュボード (Organization > API & Webhooks) からキーをもう一度コピーし、リージョンがサインインするダッシュボードと一致していることを確認してください。",
   "Couldn't read Meraki {{time}}.": "{{time}} に Meraki を読み取れませんでした。",
   "Counting what a read will cover…": "読み取りの対象を数えています…",
@@ -33776,5 +33775,15 @@
   "{{organization}} has no MX or Z appliance, so there is no uplink usage to read: only applications and clients are shown.": "{{organization}} には MX と Z のアプライアンスがないため、読み取るアップリンク使用量はありません: アプリケーションとクライアントだけを表示します。",
   "{{organization}} has no networks yet: there is no traffic to read.": "{{organization}} にはまだネットワークがありません: 読み取るトラフィックはありません。",
   "Traffic in and out through the appliances' uplinks over time, in bits per second": "アプライアンスのアップリンクを出入りするトラフィックの推移 (ビット/秒)",
-  "The key is never shown again. Paste a new one only to replace it, for example after the old one was revoked.": "キーは二度と表示されません。新しいキーを貼り付けるのは置き換えるときだけです (古いキーが無効にされた後など)。"
+  "The key is never shown again. Paste a new one only to replace it, for example after the old one was revoked.": "キーは二度と表示されません。新しいキーを貼り付けるのは置き換えるときだけです (古いキーが無効にされた後など)。",
+  "Change API key": "API キーを変更",
+  "Meraki connection": "Meraki 接続",
+  "Show conversations": "通信を表示",
+  "The Meraki dashboard API reports totals, not conversations. This page's flow records have them.": "Meraki ダッシュボード API が報告するのは合計で、会話ではありません。会話はこのページのフローレコードにあります。",
+  "The Meraki dashboard at {{host}} did not accept this API key.": "{{host}} の Meraki ダッシュボードはこの API キーを受け付けませんでした。",
+  "The newest traffic is from {{time}}. Pick a longer time range to see it.": "最新のトラフィックは {{time}} のものです。見るには、より長い期間を選んでください。",
+  "Update API key": "API キーを更新",
+  "Where this device's traffic goes, from the flow records it exports.": "このデバイスがエクスポートするフローレコードから見た、トラフィックの行き先。",
+  "Where this site's traffic goes, from the flow records its devices export.": "このサイトのデバイスがエクスポートするフローレコードから見た、トラフィックの行き先。",
+  "Where your network's traffic goes, from the flow records your devices export.": "デバイスがエクスポートするフローレコードから見た、ネットワークのトラフィックの行き先。"
 }

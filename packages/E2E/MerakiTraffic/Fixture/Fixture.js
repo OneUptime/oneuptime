@@ -15,13 +15,23 @@
  *   ?state=    none (default): no connection, nothing sends flow records
  *              meraki: one organization read, no flow records
  *              both: an organization read, and flow records too
+ *              flows: flow records, and no connection
  *              failing: the organization's key was revoked
  *              partial: a large organization read in part
  *              waiting: just connected, its first read to come
+ *              stale: its reads stopped three hours ago
+ *              off: the connection is turned off
  *   ?verdict=  pass (default: the key reads one organization)
- *              | several (two) | auth (Meraki refuses the key)
+ *              | several (two) | auth (Meraki refuses the key) - for the
+ *              connect dialog's test and the edit dialog's test of a new key
+ *   ?role=     owner (default) | member: a project member, who may read
+ *              connections but not add, change or read them
  *   ?lang=     de reads the German locale file
  *   ?theme=    dark adds html.dark (handled by server.js)
+ *
+ * The device's and the site's Traffic pages are the production pages at
+ * their own addresses (DEVICE_TRAFFIC, SITE_TRAFFIC below): the Head
+ * Office MX, a device in OneUptime, and the Branches site of two networks.
  *
  * Every read and write is recorded on window.__merakiTrafficFixture:
  * usageRequests, flowRequests, tests, readNows, creates, updates, deletes
@@ -45,9 +55,16 @@ import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import de from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import NetworkLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Network/Layout";
 import NetworkTraffic from "../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Traffic";
+import NetworkDeviceViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/View/Layout";
+import NetworkDeviceTraffic from "../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/View/Traffic";
+import NetworkSiteViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/NetworkSite/View/Layout";
+import NetworkSiteTraffic from "../../../App/FeatureSet/Dashboard/src/Pages/NetworkSite/View/Traffic";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import NetworkControllerConnection from "Common/Models/DatabaseModels/NetworkControllerConnection";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import Project from "Common/Models/DatabaseModels/Project";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -66,7 +83,17 @@ import UserUtil from "Common/UI/Utils/User";
  * ---------------------------------------------------------------------------
  */
 const params = new URLSearchParams(window.location.search);
-const STATES = ["none", "meraki", "both", "failing", "partial", "waiting"];
+const STATES = [
+  "none",
+  "meraki",
+  "both",
+  "flows",
+  "failing",
+  "partial",
+  "waiting",
+  "stale",
+  "off",
+];
 let dataState = STATES.includes(params.get("state"))
   ? params.get("state")
   : "none";
@@ -74,13 +101,16 @@ const verdict = ["pass", "several", "auth"].includes(params.get("verdict"))
   ? params.get("verdict")
   : "pass";
 const language = params.get("lang") === "de" ? "de" : "en";
+const role = params.get("role") === "member" ? "member" : "owner";
 
 const GLOBAL_PERMISSIONS = [
   Permission.Public,
   Permission.User,
   Permission.CurrentUser,
 ];
-const rolePermissions = [...GLOBAL_PERMISSIONS, Permission.ProjectOwner];
+const projectPermission =
+  role === "member" ? Permission.ProjectMember : Permission.ProjectOwner;
+const rolePermissions = [...GLOBAL_PERMISSIONS, projectPermission];
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 const projectObjectId = new ObjectID(PROJECT_ID);
@@ -95,6 +125,12 @@ const project = Object.assign(new Project(), {
  * ---------------------------------------------------------------------------
  */
 const ORGANIZATION = { id: "549236", name: "Acme Networks" };
+
+// The Head Office MX is a device in OneUptime; Branches is a site of two networks.
+const DEVICE_ID = "40000000-0000-4000-8000-000000000001";
+const SITE_ID = "50000000-0000-4000-8000-000000000001";
+const DEVICE_SERIAL = "Q2PN-HQ01-0001";
+const SITE_NETWORKS = ["L_646829496481105434", "L_646829496481105435"];
 const SECOND_ORGANIZATION = { id: "777001", name: "Acme Networks (Labs)" };
 
 // Bytes a second, down and up, per network's MX.
@@ -218,7 +254,7 @@ function connectionRecord(fields) {
 }
 
 function initialConnections() {
-  if (dataState === "none") {
+  if (dataState === "none" || dataState === "flows") {
     return [];
   }
 
@@ -250,6 +286,20 @@ function initialConnections() {
         },
       }),
     ];
+  }
+
+  if (dataState === "stale") {
+    const lastRead = new Date(Date.now() - 3 * 60 * 60 * 1000);
+    return [
+      connectionRecord({
+        lastPulledAt: lastRead,
+        lastSuccessfulPullAt: lastRead,
+      }),
+    ];
+  }
+
+  if (dataState === "off") {
+    return [connectionRecord({ isEnabled: false })];
   }
 
   if (dataState === "partial") {
@@ -296,7 +346,7 @@ let connections = initialConnections();
  * ---------------------------------------------------------------------------
  */
 const fixture = {
-  scenario: { state: dataState, verdict, language },
+  scenario: { state: dataState, verdict, language, role },
   usageRequests: [],
   flowRequests: [],
   tests: [],
@@ -305,6 +355,7 @@ const fixture = {
   updates: [],
   deletes: [],
   itemAsks: 0,
+  deviceAsks: 0,
   unhandled: [],
   // The read a connection waits for ends, as the worker's would.
   finishRead: () => {
@@ -316,7 +367,7 @@ const fixture = {
       connection.lastPullResult = connectionRecord({}).lastPullResult;
     }
 
-    if (dataState === "waiting" || dataState === "failing") {
+    if (["waiting", "failing", "stale", "off"].includes(dataState)) {
       dataState = "meraki";
     }
   },
@@ -346,15 +397,20 @@ function isRead(connection) {
 
 function pageConnection(connection) {
   const summary = connection.lastPullResult || null;
+  const lastRead = connection.lastSuccessfulPullAt
+    ? new Date(connection.lastSuccessfulPullAt).getTime()
+    : 0;
   const status = !connection.isEnabled
     ? "off"
     : connection.lastError
       ? "failing"
       : !connection.lastPulledAt
         ? "waiting"
-        : summary && summary.status === "partial"
-          ? "partial"
-          : "healthy";
+        : Date.now() - lastRead > 30 * 60 * 1000
+          ? "stale"
+          : summary && summary.status === "partial"
+            ? "partial"
+            : "healthy";
 
   return {
     id: connection._id,
@@ -384,7 +440,10 @@ function pageConnection(connection) {
 
 function emptyUsage(body) {
   return {
-    isAvailable: connections.length > 0,
+    // The network's page as soon as there is a connection; a device's or a
+    // site's only once something of it was read (as the server answers).
+    isAvailable:
+      connections.length > 0 && !body.networkDeviceId && !body.networkSiteId,
     windowStartAt: body.startTime,
     windowEndAt: body.endTime,
     bucketSeconds: 300,
@@ -415,12 +474,47 @@ function usageFor(body) {
   const filters = body.filters || {};
   const start = new Date(body.startTime).getTime();
   const end = new Date(body.endTime).getTime();
+  /*
+   * Traffic stops where the reads stopped: a connection that failed or
+   * went stale two or three hours ago has nothing in the past hour.
+   */
+  const lastReadAt = Math.max(
+    ...connections.filter(isRead).map((connection) => {
+      return new Date(connection.lastSuccessfulPullAt).getTime();
+    }),
+  );
+
+  if (lastReadAt < start) {
+    return {
+      ...answer,
+      isAvailable: true,
+      lastUplinkAt: new Date(lastReadAt).toISOString(),
+      lastAnalyticsAt: new Date(lastReadAt - 60 * 60 * 1000).toISOString(),
+    };
+  }
   const seconds = Math.max(300, (end - start) / 1000);
+  // A device's page is its MX's network; a site's page its networks.
+  const inScope = (network) => {
+    if (body.networkDeviceId) {
+      return body.networkDeviceId === DEVICE_ID && network.serial === DEVICE_SERIAL;
+    }
+    if (body.networkSiteId) {
+      return body.networkSiteId === SITE_ID && SITE_NETWORKS.includes(network.id);
+    }
+    return true;
+  };
   const networks = NETWORKS.filter((network) => {
     return (
-      !filters.controllerNetworkId || filters.controllerNetworkId === network.id
+      inScope(network) &&
+      (!filters.controllerNetworkId ||
+        filters.controllerNetworkId === network.id)
     );
   });
+
+  // A device or a site Meraki read nothing of has no Meraki side at all.
+  if (networks.length === 0 && (body.networkDeviceId || body.networkSiteId)) {
+    return { ...answer, isAvailable: false, connections: [] };
+  }
   const share = (network) => {
     return filters.deviceSerial && filters.deviceSerial !== network.serial
       ? 0
@@ -462,7 +556,7 @@ function usageFor(body) {
 
   const applicationBytes = (down + up) * 0.82;
   // The part of the organization's traffic the filters keep: its flows too.
-  const everything = NETWORKS.reduce((total, network) => {
+  const everything = NETWORKS.filter(inScope).reduce((total, network) => {
     return total + (network.down + network.up) * seconds;
   }, 0);
   const kept = everything > 0 ? (down + up) / everything : 0;
@@ -542,6 +636,10 @@ function usageFor(body) {
             deviceName: network.appliance,
             controllerNetworkId: network.id,
             controllerNetworkName: network.name,
+            // The Head Office MX is a device in OneUptime.
+            ...(network.serial === DEVICE_SERIAL
+              ? { networkDeviceId: DEVICE_ID }
+              : {}),
             interfaceName,
             sentOctets: Math.round(
               network.up * seconds * part * share(network),
@@ -569,7 +667,11 @@ function flowsFor(body) {
   const start = body.startTime;
   const end = body.endTime;
 
-  if (dataState !== "both") {
+  if (
+    (dataState !== "both" && dataState !== "flows") ||
+    body.networkDeviceId ||
+    body.networkSiteId
+  ) {
     return {
       windowStartAt: start,
       windowEndAt: end,
@@ -638,6 +740,32 @@ function flowsFor(body) {
 
 function testAnswer(body) {
   const config = body.config || {};
+
+  // A saved connection's new key (the edit dialog): its own organization.
+  if (body.connectionId) {
+    if (verdict === "auth") {
+      return {
+        provider: "meraki",
+        status: "fail",
+        message:
+          "Meraki answered the list of organizations with HTTP 401: Invalid API key",
+        failureKind: "authentication",
+        organizations: [],
+        durationMs: 300,
+      };
+    }
+
+    return {
+      provider: "meraki",
+      status: "pass",
+      message: `Reads 4 networks and 4 appliances in ${ORGANIZATION.name}.`,
+      organizations: [ORGANIZATION],
+      organizationId: ORGANIZATION.id,
+      networkCount: 4,
+      applianceCount: 4,
+      durationMs: 900,
+    };
+  }
 
   if (verdict === "auth") {
     return {
@@ -719,7 +847,7 @@ PermissionUtil.getProjectPermissions = () => {
     permissions: [
       {
         _type: "UserPermission",
-        permission: Permission.ProjectOwner,
+        permission: projectPermission,
         labelIds: [],
       },
     ],
@@ -745,6 +873,11 @@ ModelAPI.getList = async (options) => {
     return { data, count: data.length, skip: 0, limit: options.limit };
   }
 
+  // The site's side menu counts its maintenance by state: none here.
+  if (options.modelType === ScheduledMaintenanceState) {
+    return { data: [], count: 0, skip: 0, limit: options.limit };
+  }
+
   fixture.unhandled.push({
     kind: "getList",
     modelName: tableName(options.modelType),
@@ -753,6 +886,25 @@ ModelAPI.getList = async (options) => {
 };
 
 ModelAPI.getItem = async (options) => {
+  // The Branches site: the Leeds and Bristol networks.
+  if (options.modelType === NetworkSite) {
+    return options.id.toString() === SITE_ID
+      ? Object.assign(new NetworkSite(), { _id: SITE_ID, name: "Branches" })
+      : null;
+  }
+
+  // The Head Office MX: a device in OneUptime, polled by no probe here.
+  if (options.modelType === NetworkDevice) {
+    fixture.deviceAsks += 1;
+    return options.id.toString() === DEVICE_ID
+      ? Object.assign(new NetworkDevice(), {
+          _id: DEVICE_ID,
+          name: "HQ MX250",
+          hostname: "10.0.0.1",
+        })
+      : null;
+  }
+
   if (options.modelType === NetworkControllerConnection) {
     fixture.itemAsks += 1;
     const found = connections.find((connection) => {
@@ -859,6 +1011,11 @@ async function handleApi(method, options) {
     return ok(testAnswer(options.data || {}));
   }
 
+  // The site's side menu counts the site's maintenance events: none.
+  if (method === "POST" && url.endsWith("/scheduled-maintenance/count")) {
+    return ok({ count: 0 });
+  }
+
   if (method === "POST" && url.endsWith("/read-now")) {
     fixture.readNows.push(new URL(url).pathname);
     return ok({ queued: true });
@@ -923,6 +1080,36 @@ function TrafficPage() {
   return <NetworkTraffic {...pageProps(PageMap.NETWORK_TRAFFIC)} />;
 }
 
+function DeviceLayout() {
+  useNavigationHooks();
+  return (
+    <NetworkDeviceViewLayout
+      {...pageProps(PageMap.NETWORK_DEVICE_VIEW_TRAFFIC)}
+    />
+  );
+}
+
+function DeviceTrafficPage() {
+  useNavigationHooks();
+  return (
+    <NetworkDeviceTraffic {...pageProps(PageMap.NETWORK_DEVICE_VIEW_TRAFFIC)} />
+  );
+}
+
+function SiteLayout() {
+  useNavigationHooks();
+  return (
+    <NetworkSiteViewLayout {...pageProps(PageMap.NETWORK_SITE_VIEW_TRAFFIC)} />
+  );
+}
+
+function SiteTrafficPage() {
+  useNavigationHooks();
+  return (
+    <NetworkSiteTraffic {...pageProps(PageMap.NETWORK_SITE_VIEW_TRAFFIC)} />
+  );
+}
+
 // A page the Traffic page links to that is not modelled: says where it is.
 function StubPage() {
   useNavigationHooks();
@@ -966,6 +1153,19 @@ function FixtureApp() {
             path={RouteMap[PageMap.NETWORK_TRAFFIC].toString()}
             element={<TrafficPage />}
           />
+          {/* A device's and a site's page, in their own model layouts. */}
+          <Route element={<DeviceLayout />}>
+            <Route
+              path={RouteMap[PageMap.NETWORK_DEVICE_VIEW_TRAFFIC].toString()}
+              element={<DeviceTrafficPage />}
+            />
+          </Route>
+          <Route element={<SiteLayout />}>
+            <Route
+              path={RouteMap[PageMap.NETWORK_SITE_VIEW_TRAFFIC].toString()}
+              element={<SiteTrafficPage />}
+            />
+          </Route>
         </Route>
         <Route path="*" element={<StubPage />} />
       </Routes>

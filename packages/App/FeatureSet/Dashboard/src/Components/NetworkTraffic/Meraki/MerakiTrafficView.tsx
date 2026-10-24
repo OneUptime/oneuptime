@@ -13,10 +13,13 @@ import {
   MERAKI_TONE_TEXT,
   MERAKI_VIEW_HELP,
   MerakiStatusWords,
+  NEWEST_TRAFFIC_BEFORE_RANGE,
   drawMerakiTemplate,
   getMerakiConnectionSentence,
+  getMerakiReadTime,
 } from "./MerakiWords";
 import {
+  MERAKI_CONNECTIONS_ANCHOR,
   MerakiFilterChip,
   getMerakiFilterChips,
   withoutMerakiFilter,
@@ -24,7 +27,11 @@ import {
 import {
   getClientDetails,
   getClientLabel,
+  getNewestBeforeRange,
+  getUplinkDetails,
   hasMerakiTraffic,
+  isNetworkAddressText,
+  isOfOneNetwork,
   shouldListNetworks,
   toFlowSummary,
 } from "./MerakiTrafficRows";
@@ -82,11 +89,13 @@ import React, {
  *     analytics and client usage, read every two hours - lists, not
  *     filters, since the uplinks they would narrow know no applications;
  *   - in place of Top conversations, why there are none, and the way to
- *     them: NetFlow on the MX appliances.
+ *     them: the page's own flow records when it has some, else NetFlow on
+ *     the MX appliances.
  *
  * Over it all, one line says how the connection is doing - when it last
  * read, or that it failed, and why - so traffic that stopped coming in is
- * never taken for a quiet network.
+ * never taken for a quiet network. A line to act on links to where it is
+ * acted on: the connection's row at the foot of the network's page.
  */
 
 export interface ComponentProps {
@@ -99,7 +108,9 @@ export interface ComponentProps {
   onFiltersChange: (filters: NetworkTrafficUsageFilters) => void;
   // The header's controls: the side switch, the range picker, Reset zoom.
   headerElement: ReactElement;
-  // "Set up NetFlow": the flow side of the page.
+  // Whether the page has flow records too: then its conversations are there.
+  hasFlows: boolean;
+  // The flow side of the page: its conversations, or how to send flows.
   onShowFlows: () => void;
 }
 
@@ -136,13 +147,19 @@ function getWindowSeconds(summary: NetworkTrafficUsageSummary): number {
 /*
  * How the connections are doing, one line each, the ones to act on first:
  * a failure, a connection that stopped reading, one that read in part.
+ * Each of those says Review, to where it is acted on: the connection's row
+ * at the foot of the network's page (this page, or a link to it).
  */
 const ConnectionLines: FunctionComponent<{
   connections: Array<NetworkTrafficUsageConnection>;
+  scopeKind: "device" | "site" | "network";
 }> = (props: {
   connections: Array<NetworkTrafficUsageConnection>;
+  scopeKind: "device" | "site" | "network";
 }): ReactElement => {
   const translator: Translator = useTranslator();
+  const reviewClassName: string =
+    "whitespace-nowrap font-medium underline hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
 
   const sorted: Array<NetworkTrafficUsageConnection> = [
     ...props.connections,
@@ -164,6 +181,10 @@ const ConnectionLines: FunctionComponent<{
         const words: MerakiStatusWords = MERAKI_STATUS_WORDS[connection.status];
         const detail: string | undefined =
           connection.lastError || connection.warning;
+        // Read in its line, so the link's purpose is its line's (WCAG 2.4.4).
+        const isToActOn: boolean = isNetworkControllerStatusAProblem(
+          connection.status,
+        );
 
         return (
           <div
@@ -189,6 +210,33 @@ const ConnectionLines: FunctionComponent<{
                   }),
                 )}
               </span>
+              {isToActOn ? (
+                <Fragment>
+                  {" "}
+                  {props.scopeKind === "network" ? (
+                    <a
+                      href={`#${MERAKI_CONNECTIONS_ANCHOR}`}
+                      className={reviewClassName}
+                      data-testid="meraki-connection-line-review"
+                    >
+                      {translator.translateText("Review")}
+                    </a>
+                  ) : (
+                    <AppLink
+                      to={RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.NETWORK_TRAFFIC] as Route,
+                      )}
+                      className={reviewClassName}
+                    >
+                      <span data-testid="meraki-connection-line-review">
+                        {translator.translateText("Review")}
+                      </span>
+                    </AppLink>
+                  )}
+                </Fragment>
+              ) : (
+                <></>
+              )}
               {detail ? (
                 <span
                   className="mt-0.5 block break-words text-xs text-gray-500"
@@ -241,6 +289,12 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
     props.onFiltersChange(next);
   };
 
+  // Rows of one network never name it: every one would say the same.
+  const withNetwork: boolean = !isOfOneNetwork({
+    filters,
+    networkCount: summary.topNetworks.length,
+  });
+
   // ---- Rows ----------------------------------------------------------------
 
   const networkRows: Array<TrafficTopRow> = summary.topNetworks.map(
@@ -284,9 +338,11 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
         key: `${row.deviceSerial}/${row.interfaceName}`,
         label: row.interfaceName,
         isMono: true,
-        sublabel: [appliance, row.controllerNetworkName]
-          .filter(Boolean)
-          .join(" · "),
+        sublabel:
+          getUplinkDetails(row, {
+            withAppliance: props.scopeKind !== "device",
+            withNetwork,
+          }).join(" · ") || undefined,
         octets: getUsageOctets(row),
         detail: translator.translateTemplate("In {{in}} · out {{out}}", {
           in: formatTrafficBytes(row.receivedOctets),
@@ -351,7 +407,8 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
       return {
         key: row.destination,
         label: row.destination,
-        isMono: true,
+        // An address in the addresses' font; a host name as text.
+        isMono: isNetworkAddressText(row.destination),
         sublabel: row.application || undefined,
         octets: getUsageOctets(row),
         isActive: false,
@@ -361,7 +418,7 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
 
   const clientRows: Array<TrafficTopRow> = summary.topClients.map(
     (row: NetworkTrafficUsageClientRow): TrafficTopRow => {
-      const details: Array<string> = getClientDetails(row);
+      const details: Array<string> = getClientDetails(row, { withNetwork });
 
       return {
         key: row.clientKey,
@@ -392,6 +449,8 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
   });
 
   const listsNetworks: boolean = canNarrow && shouldListNetworks(summary);
+  // An empty range after the reads stopped: when the traffic read ends.
+  const newestBeforeRange: string | null = getNewestBeforeRange(summary);
   const applicationTotal: number = getUsageOctets(summary.applicationTotals);
   const clientTotal: number = getUsageOctets(summary.clientTotals);
   const uplinkTotal: number = summary.topUplinks.reduce(
@@ -410,7 +469,7 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
         >
           <Icon
             icon={IconProp.Refresh}
-            className="h-6 w-6 animate-spin text-gray-300"
+            className="h-6 w-6 animate-spin text-gray-400"
           />
           <div className="mt-3 text-sm font-medium text-gray-900">
             {translator.translateText(
@@ -505,9 +564,15 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
           {translator.translateText("No traffic in the selected time range.")}
         </div>
         <p className="mt-1 max-w-md text-sm text-gray-500">
-          {translator.translateText(
-            "Meraki keeps traffic for 30 days: pick a longer time range to see older traffic.",
-          )}
+          {newestBeforeRange
+            ? translator.translateTemplate(NEWEST_TRAFFIC_BEFORE_RANGE, {
+                time: getMerakiReadTime(newestBeforeRange, {
+                  language: translator.language,
+                }),
+              })
+            : translator.translateText(
+                "Meraki keeps traffic for 30 days: pick a longer time range to see older traffic.",
+              )}
         </p>
       </div>
     );
@@ -560,7 +625,11 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
             className={props.isLoading ? "opacity-75 transition-opacity" : ""}
             data-testid="meraki-traffic-body"
           >
-            {lines.length > 0 ? <ConnectionLines connections={lines} /> : <></>}
+            {lines.length > 0 ? (
+              <ConnectionLines connections={lines} scopeKind={props.scopeKind} />
+            ) : (
+              <></>
+            )}
 
             {chips.length > 0 ? (
               <div
@@ -608,7 +677,7 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
 
       {hasTraffic ? (
         <Fragment>
-          <div className="grid grid-cols-1 gap-x-5 lg:grid-cols-2">
+          <div className="mb-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
             {listsNetworks ? (
               <TrafficTopList
                 title="Top networks"
@@ -659,26 +728,41 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
             />
           </div>
 
-          <Card
-            title="Who talks to whom"
-            description="Conversations come from flow records, not from the Meraki dashboard API."
-          >
+          {/*
+           * Where Top conversations is on the flow side: why there are none
+           * here, and the one way to them - this page's own flow records
+           * when it has some, else NetFlow from the MX appliances.
+           */}
+          <Card title="Who talks to whom">
             <div
               className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
               data-testid="meraki-conversations-note"
             >
-              <p className="max-w-2xl text-sm text-gray-600">
-                {translator.translateText(MERAKI_VIEW_HELP.conversations)}
+              <p className="max-w-3xl text-pretty text-sm text-gray-600">
+                {translator.translateText(
+                  props.hasFlows
+                    ? MERAKI_VIEW_HELP.conversationsOnFlowsSide
+                    : MERAKI_VIEW_HELP.conversations,
+                )}
               </p>
-              <div className="flex-shrink-0">
-                <Button
-                  title="Set up NetFlow"
-                  icon={IconProp.ArrowUpDown}
-                  buttonSize={ButtonSize.Small}
-                  buttonStyle={ButtonStyleType.NORMAL}
-                  onClick={props.onShowFlows}
-                  dataTestId="meraki-set-up-netflow"
-                />
+              <div className="flex-shrink-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0">
+                {props.hasFlows ? (
+                  <Button
+                    title="Show conversations"
+                    buttonSize={ButtonSize.Small}
+                    buttonStyle={ButtonStyleType.NORMAL}
+                    onClick={props.onShowFlows}
+                    dataTestId="meraki-show-conversations"
+                  />
+                ) : (
+                  <Button
+                    title="Set up NetFlow"
+                    buttonSize={ButtonSize.Small}
+                    buttonStyle={ButtonStyleType.NORMAL}
+                    onClick={props.onShowFlows}
+                    dataTestId="meraki-set-up-netflow"
+                  />
+                )}
               </div>
             </div>
           </Card>

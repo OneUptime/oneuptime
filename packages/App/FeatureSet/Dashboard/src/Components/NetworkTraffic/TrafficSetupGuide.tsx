@@ -44,6 +44,11 @@ export interface ComponentProps {
   settingsRoute?: Route | undefined;
   // The whole network's page: connect a Meraki organization instead.
   onConnectMeraki?: (() => void) | undefined;
+  /*
+   * Why this reader may not connect one (PermissionGate's sentence): the
+   * offer still says Meraki can be read, and says why there is no button.
+   */
+  connectMerakiLockedReason?: string | undefined;
 }
 
 const PortBadge: FunctionComponent<{
@@ -118,7 +123,7 @@ const TrafficSetupGuide: FunctionComponent<ComponentProps> = (
         </div>
       </div>
 
-      {props.onConnectMeraki ? (
+      {props.onConnectMeraki || props.connectMerakiLockedReason ? (
         <div
           className="mt-5 flex flex-col gap-3 rounded-lg bg-gray-50 p-4 ring-1 ring-gray-200 sm:flex-row sm:items-center sm:justify-between"
           data-testid="traffic-setup-meraki"
@@ -137,18 +142,36 @@ const TrafficSetupGuide: FunctionComponent<ComponentProps> = (
                   "Connect the Meraki dashboard instead: OneUptime reads every network's uplinks, applications and clients through its API, with nothing to set up on the devices.",
                 )}
               </p>
+              {props.onConnectMeraki ? (
+                <></>
+              ) : (
+                <p
+                  className="mt-2 flex items-start gap-1.5 text-sm text-gray-500"
+                  data-testid="traffic-setup-meraki-locked"
+                >
+                  <Icon
+                    icon={IconProp.Lock}
+                    className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
+                  />
+                  <span>{props.connectMerakiLockedReason}</span>
+                </p>
+              )}
             </div>
           </div>
-          <div className="flex-shrink-0">
-            <Button
-              title="Connect Meraki"
-              icon={IconProp.Add}
-              buttonSize={ButtonSize.Small}
-              buttonStyle={ButtonStyleType.NORMAL}
-              onClick={props.onConnectMeraki}
-              dataTestId="traffic-setup-connect-meraki"
-            />
-          </div>
+          {props.onConnectMeraki ? (
+            <div className="flex-shrink-0">
+              <Button
+                title="Connect Meraki"
+                icon={IconProp.Add}
+                buttonSize={ButtonSize.Small}
+                buttonStyle={ButtonStyleType.NORMAL}
+                onClick={props.onConnectMeraki}
+                dataTestId="traffic-setup-connect-meraki"
+              />
+            </div>
+          ) : (
+            <></>
+          )}
         </div>
       ) : (
         <></>

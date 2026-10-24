@@ -33684,7 +33684,6 @@
   "Checking the key with {{host}}…": "Vérification de la clé auprès de {{host}}…",
   "Connect Meraki": "Connecter Meraki",
   "Connect the Meraki dashboard instead: OneUptime reads every network's uplinks, applications and clients through its API, with nothing to set up on the devices.": "Connectez plutôt le tableau de bord Meraki : OneUptime lit les uplinks, les applications et les clients de chaque réseau par son API, sans rien configurer sur les appareils.",
-  "Conversations come from flow records, not from the Meraki dashboard API.": "Les conversations viennent des enregistrements de flux, pas de l'API du tableau de bord Meraki.",
   "Copy the key again from the Meraki dashboard (Organization > API & Webhooks), and check the region is the dashboard you sign in to.": "Copiez de nouveau la clé depuis le tableau de bord Meraki (Organization > API & Webhooks), et vérifiez que la région est le tableau de bord où vous vous connectez.",
   "Couldn't read Meraki {{time}}.": "Impossible de lire Meraki ({{time}}).",
   "Counting what a read will cover…": "Décompte de ce qu'une lecture couvrira…",
@@ -33776,5 +33775,15 @@
   "{{organization}} has no MX or Z appliance, so there is no uplink usage to read: only applications and clients are shown.": "{{organization}} n'a aucune appliance MX ou Z, donc il n'y a pas d'utilisation des uplinks à lire : seuls les applications et les clients sont affichés.",
   "{{organization}} has no networks yet: there is no traffic to read.": "{{organization}} n'a pas encore de réseau : il n'y a aucun trafic à lire.",
   "Traffic in and out through the appliances' uplinks over time, in bits per second": "Trafic entrant et sortant par les uplinks des appliances dans le temps, en bits par seconde",
-  "The key is never shown again. Paste a new one only to replace it, for example after the old one was revoked.": "La clé n'est plus jamais affichée. Collez-en une nouvelle seulement pour la remplacer, par exemple après la révocation de l'ancienne."
+  "The key is never shown again. Paste a new one only to replace it, for example after the old one was revoked.": "La clé n'est plus jamais affichée. Collez-en une nouvelle seulement pour la remplacer, par exemple après la révocation de l'ancienne.",
+  "Change API key": "Changer la clé d'API",
+  "Meraki connection": "connexion Meraki",
+  "Show conversations": "Afficher les conversations",
+  "The Meraki dashboard API reports totals, not conversations. This page's flow records have them.": "L'API du tableau de bord Meraki donne des totaux, pas des conversations. Les enregistrements de flux de cette page les contiennent.",
+  "The Meraki dashboard at {{host}} did not accept this API key.": "Le tableau de bord Meraki ({{host}}) n'a pas accepté cette clé d'API.",
+  "The newest traffic is from {{time}}. Pick a longer time range to see it.": "Le trafic le plus récent date d'{{time}}. Choisissez une plage plus longue pour le voir.",
+  "Update API key": "Mettre à jour la clé d'API",
+  "Where this device's traffic goes, from the flow records it exports.": "Où va le trafic de cet appareil, d'après les enregistrements de flux qu'il exporte.",
+  "Where this site's traffic goes, from the flow records its devices export.": "Où va le trafic de ce site, d'après les enregistrements de flux que ses appareils exportent.",
+  "Where your network's traffic goes, from the flow records your devices export.": "Où va le trafic de votre réseau, d'après les enregistrements de flux que vos appareils exportent."
 }

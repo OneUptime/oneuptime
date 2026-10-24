@@ -3,6 +3,7 @@ import { fetchNetworkTrafficUsage } from "./NetworkTrafficUsageApi";
 import MerakiConnectModal from "./Meraki/MerakiConnectModal";
 import MerakiConnectionsCard from "./Meraki/MerakiConnectionsCard";
 import MerakiTrafficView from "./Meraki/MerakiTrafficView";
+import { MERAKI_CONNECTION_NAME } from "./Meraki/MerakiWords";
 import {
   TrafficSide,
   pickTrafficSide,
@@ -39,6 +40,7 @@ import TrafficTopList, { TrafficTopRow } from "./TrafficTopList";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
+import NetworkControllerConnection from "Common/Models/DatabaseModels/NetworkControllerConnection";
 import Route from "Common/Types/API/Route";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import OneUptimeDate from "Common/Types/Date";
@@ -85,6 +87,10 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 import {
   translatableTerm,
   Translator,
@@ -185,6 +191,27 @@ export const TRAFFIC_HELP: {
 };
 
 export const CONVERSATIONS_TITLE: string = translationKey("Top conversations");
+
+/*
+ * What the flow side's card says it is, by whose page it is - keys, so
+ * the extractor finds them and the card draws them in the reader's
+ * language, as the Meraki side's (MERAKI_DESCRIPTIONS) beside it.
+ */
+export const FLOW_DESCRIPTIONS: {
+  device: string;
+  site: string;
+  network: string;
+} = {
+  device: translationKey(
+    "Where this device's traffic goes, from the flow records it exports.",
+  ),
+  site: translationKey(
+    "Where this site's traffic goes, from the flow records its devices export.",
+  ),
+  network: translationKey(
+    "Where your network's traffic goes, from the flow records your devices export.",
+  ),
+};
 
 function getWindowSeconds(summary: NetworkTrafficSummary): number {
   const start: number = new Date(summary.windowStartAt).getTime();
@@ -782,12 +809,7 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
     },
   );
 
-  const description: string =
-    scope.kind === "device"
-      ? "Where this device's traffic goes, from the flow records it exports."
-      : scope.kind === "site"
-        ? "Where this site's traffic goes, from the flow records its devices export."
-        : "Where your network's traffic goes, from the flow records your devices export.";
+  const description: string = FLOW_DESCRIPTIONS[scope.kind];
 
   const deviceStatus: ReactElement | null = ((): ReactElement | null => {
     if (scope.kind !== "device" || !summary || needsSetup) {
@@ -859,12 +881,24 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
   })();
 
   const isMerakiAvailable: boolean = Boolean(usage?.isAvailable);
+  const hasFlowRecords: boolean = Boolean(summary) && !needsSetup;
   const side: TrafficSide = pickTrafficSide({
     picked: pickedSource,
     isMerakiAvailable,
-    hasFlows: Boolean(summary) && !needsSetup,
+    hasFlows: hasFlowRecords,
   });
   const isMerakiShown: boolean = isUsageSettled && side === TrafficSide.Meraki;
+
+  /*
+   * Connecting Meraki is for who may add a connection (project owners and
+   * admins). Anyone else reads the offer with why there is no button - or,
+   * before the permissions have loaded, no button and nothing said.
+   */
+  const merakiConnectGate: PermissionGateResult = PermissionGate.check(
+    new NetworkControllerConnection(),
+    ModelAction.Create,
+    { singularName: MERAKI_CONNECTION_NAME },
+  );
 
   const sourceSwitch: ReactElement = isMerakiAvailable ? (
     <div
@@ -924,6 +958,7 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
           filters={usageFilters}
           onFiltersChange={setUsageFilters}
           headerElement={headerElement}
+          hasFlows={hasFlowRecords}
           onShowFlows={() => {
             setSource(TrafficSide.Flows);
           }}
@@ -994,10 +1029,16 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
                       probeName={props.device?.probeName}
                       isGlobalProbe={props.device?.isGlobalProbe}
                       onConnectMeraki={
-                        scope.kind === "network"
+                        scope.kind === "network" && merakiConnectGate.isAllowed
                           ? () => {
                               setIsConnectOpen(true);
                             }
+                          : undefined
+                      }
+                      connectMerakiLockedReason={
+                        scope.kind === "network" &&
+                        !merakiConnectGate.isAllowed
+                          ? merakiConnectGate.disabledReason
                           : undefined
                       }
                       matchAddresses={[
@@ -1247,7 +1288,7 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
 
           {loaded && summary && isUsageSettled && !needsSetup && hasTraffic ? (
             <Fragment>
-              <div className="grid grid-cols-1 gap-x-5 lg:grid-cols-2">
+              <div className="mb-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
                 {scope.kind === "device" ? (
                   <Fragment>
                     <TrafficTopList
@@ -1472,6 +1513,11 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
 
       {scope.kind === "network" ? (
         <MerakiConnectionsCard
+          /*
+           * Without a connection, a page that shows its flows offers Meraki
+           * at its foot; a page still setting up offers it in its guide.
+           */
+          offerWhenEmpty={Boolean(summary) && !needsSetup}
           refreshKey={connectionsRefreshKey}
           onChanged={() => {
             setRefreshKey((key: number) => {
