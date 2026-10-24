@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 import {
   GSM_7_LOOK_ALIKES,
   toGsm7Message,
@@ -384,11 +385,16 @@ describe("toGsm7Text on texts drawn at random", () => {
     const worst: string = "\u{00E3}\u{1F525}\u{200D}\u{6C7A}e\u{0301}".repeat(
       80000,
     );
-    const started: number = Date.now();
-    const written: string = toGsm7Text(worst);
+    // The fastest of up to three attempts: one timing on a busy runner is noisy.
+    const written: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return toGsm7Text(worst);
+      },
+      limitInMs: 2000,
+    });
 
-    expect(written.length).toBeGreaterThan(0);
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(written.result.length).toBeGreaterThan(0);
+    expect(written.inMs).toBeLessThan(2000);
   });
 });
 
@@ -463,12 +469,21 @@ describe("toGsm7Message", () => {
 
   test("400,000 characters of spaces, line breaks and emoji take well under two seconds", () => {
     const worst: string = " \n \u{1F525} a".repeat(65000);
-    const started: number = Date.now();
-    const written: string = toGsm7Message(worst);
+    /*
+     * The fastest of up to three attempts, as every test of time that grows
+     * with the text: one timing on a busy runner overran by 39 ms on master
+     * (2026-10-24) for code that had not changed.
+     */
+    const written: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return toGsm7Message(worst);
+      },
+      limitInMs: 2000,
+    });
 
-    expect(written.length).toBeGreaterThan(0);
-    expect(written).not.toContain("  ");
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(written.result.length).toBeGreaterThan(0);
+    expect(written.result).not.toContain("  ");
+    expect(written.inMs).toBeLessThan(2000);
   });
 });
 
