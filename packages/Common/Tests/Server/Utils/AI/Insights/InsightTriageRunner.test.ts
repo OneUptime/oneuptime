@@ -1009,3 +1009,169 @@ describe("InsightTriageRunner.executeTriage - Traces' findings", () => {
     expect(routeFix).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * Metrics' findings (Utils/Metrics/MetricInsight) are each triaged for what
+ * there is to establish: where the code records the value with too many
+ * values, why a histogram's buckets do not fit, and how a service that
+ * sends no metrics should start. The metric evidence reaches the prompt
+ * with the rest, and a code-fault verdict routes nothing here: the lane
+ * opens its own pull request.
+ */
+describe("InsightTriageRunner.executeTriage - Metrics' findings", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function metricFinding(insightType: AIInsightType): AIInsight {
+    return makeInsight({
+      insightType,
+      title:
+        "http.server.request.count in checkout records 12,000 different user.id values an hour",
+      detailMarkdown: "**High-cardinality metric in checkout**",
+      evidence: {
+        metric: {
+          serviceId: "5231ffff-0000-4000-8000-000000000002",
+          kind: "HighCardinality",
+          shape: "Attribute",
+          windowStartTime: "2026-10-24T08:00:00.000Z",
+          windowEndTime: "2026-10-24T09:00:00.000Z",
+          metricName: "http.server.request.count",
+          attributeKey: "user.id",
+          attributeValueCount: 12000,
+          valueShape: "Uuid",
+        },
+      },
+    });
+  }
+
+  async function contextSummaryFor(
+    insightType: AIInsightType,
+  ): Promise<string> {
+    jest
+      .spyOn(AIInsightService, "findOneById")
+      .mockResolvedValue(metricFinding(insightType));
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: projectId,
+      enableAi: true,
+      enableAutomaticMetricRemediation: true,
+    } as unknown as Project);
+    jest.spyOn(TelemetryAiRules, "decideForInsight").mockResolvedValue(
+      decideTelemetryAiWork({
+        isAiEnabled: true,
+        isLaneOn: true,
+        rules: { rulesSetUp: false, matchingRules: [] },
+      }),
+    );
+    const executeRun: jest.SpyInstance = jest
+      .spyOn(AIInvestigationEngine, "executeRun")
+      .mockResolvedValue(undefined);
+
+    await InsightTriageRunner.executeTriage({
+      aiRunId,
+      projectId,
+      sentinelInsightId,
+      attemptCount: 1,
+    });
+
+    return (executeRun.mock.calls[0]![0] as { request: InvestigationRequest })
+      .request.contextSummary;
+  }
+
+  test("a high-cardinality metric is metrics triage: where the value is recorded, and what could take its place", async () => {
+    const summary: string = await contextSummaryFor(
+      AIInsightType.MetricHighCardinality,
+    );
+
+    expect(summary).toContain("this is METRICS TRIAGE");
+    expect(summary).toContain(
+      "Find where the code records this metric and sets that attribute",
+    );
+    expect(summary).toContain("what bounded value could take its place");
+    expect(summary).not.toContain("PREVENTIVE TRIAGE,");
+  });
+
+  test("histogram buckets are metrics triage: why they do not fit, the unit or the bounds", async () => {
+    const summary: string = await contextSummaryFor(
+      AIInsightType.MetricHistogramBuckets,
+    );
+
+    expect(summary).toContain("this is METRICS TRIAGE");
+    expect(summary).toContain("so its percentiles cannot be told apart");
+    expect(summary).toContain(
+      "Recommend exactly ONE change - the bucket boundaries, or the unit",
+    );
+  });
+
+  test("missing metrics is observability triage: which metrics first, and where", async () => {
+    const summary: string = await contextSummaryFor(
+      AIInsightType.MetricMissingMetrics,
+    );
+
+    expect(summary).toContain("this is OBSERVABILITY TRIAGE");
+    expect(summary).toContain("has never sent a single metric");
+    expect(summary).toContain(
+      "Say which metrics it should record first (request count, error count, request duration)",
+    );
+  });
+
+  test("each says the verdicts a person or a policy cannot be", async () => {
+    for (const insightType of [
+      AIInsightType.MetricHighCardinality,
+      AIInsightType.MetricHistogramBuckets,
+      AIInsightType.MetricMissingMetrics,
+    ]) {
+      jest.restoreAllMocks();
+
+      const summary: string = await contextSummaryFor(insightType);
+
+      expect(summary).toContain("Classification: <verdict>");
+      expect(summary).toMatch(
+        /user-error and expected-denial do not apply to (metrics|observability) findings/,
+      );
+    }
+  });
+
+  test("the metric evidence is in the prompt", async () => {
+    const summary: string = await contextSummaryFor(
+      AIInsightType.MetricHighCardinality,
+    );
+
+    expect(summary).toContain('- metric: {"serviceId"');
+    expect(summary).toContain('"attributeValueCount":12000');
+  });
+
+  test("a code-fault verdict on a metric finding routes nothing here", async () => {
+    jest
+      .spyOn(AIInsightService, "findOneById")
+      .mockImplementation(async (): Promise<AIInsight> => {
+        const insight: AIInsight = metricFinding(
+          AIInsightType.MetricHighCardinality,
+        );
+        insight.status = AIInsightStatus.ActionRequired;
+        return insight;
+      });
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: projectId,
+      enableAi: true,
+      enableAutomaticMetricRemediation: true,
+    } as unknown as Project);
+    jest.spyOn(TelemetryAiRules, "decideForInsight").mockResolvedValue(null);
+    jest.spyOn(AIInsightService, "updateOneById").mockResolvedValue(1);
+    const routeFix: jest.SpyInstance = jest
+      .spyOn(InsightFixRouting, "routeInsightFix")
+      .mockResolvedValue({ fixAiRunId: ObjectID.generate() });
+    driveTriageWithAnalysis(
+      "The request counter records user.id.\n\nClassification: code-fault",
+    );
+
+    await InsightTriageRunner.executeTriage({
+      aiRunId,
+      projectId,
+      sentinelInsightId,
+      attemptCount: 1,
+    });
+
+    expect(routeFix).not.toHaveBeenCalled();
+  });
+});

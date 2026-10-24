@@ -470,18 +470,16 @@ export default class MetricInsightFix {
       return { ...NO_TELEMETRY_AI_FIX_SUGGESTION, ...offer };
     }
 
-    const resolvedId: string | null = await MetricInsightFix.resolveRepository(
-      {
-        projectId: data.projectId,
-        serviceName: insight.serviceName || null,
-        allowance: {
-          isEveryRepository: false,
-          repositoryIds: askable.map((repository: LocatableRepository) => {
-            return repository.id.toLowerCase();
-          }),
-        },
+    const resolvedId: string | null = await MetricInsightFix.resolveRepository({
+      projectId: data.projectId,
+      serviceName: insight.serviceName || null,
+      allowance: {
+        isEveryRepository: false,
+        repositoryIds: askable.map((repository: LocatableRepository) => {
+          return repository.id.toLowerCase();
+        }),
       },
-    );
+    });
 
     const resolved: LocatableRepository | undefined = askable.find(
       (repository: LocatableRepository): boolean => {

@@ -541,7 +541,7 @@ export function getEvidenceWindow(data: {
 /*
  * The part of a metric name pattern a search can find its names by: its
  * longest stretch between the ids ("job.{id}.duration" -> ".duration",
- * "orders_{id}_total" -> "_total"), or null when nothing long enough is
+ * "orders_{id}_total" -> "orders_"), or null when nothing long enough is
  * left.
  */
 export function getMetricNamePatternSearch(

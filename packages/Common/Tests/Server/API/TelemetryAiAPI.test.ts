@@ -246,6 +246,14 @@ describe("the telemetry AI routes", () => {
     expect(readinessSpy.mock.calls[0]![0].lane).toBe(TelemetryAiLane.Trace);
   });
 
+  test("readiness and logs: a Metric lane's too", async () => {
+    await call(TELEMETRY_AI_READINESS_PATH, { lane: TelemetryAiLane.Metric });
+    await call(TELEMETRY_AI_LOGS_PATH, { lane: TelemetryAiLane.Metric });
+
+    expect(readinessSpy.mock.calls[0]![0].lane).toBe(TelemetryAiLane.Metric);
+    expect(logsSpy.mock.calls[0]![0].lane).toBe(TelemetryAiLane.Metric);
+  });
+
   test("fix suggestion: the finding's, read as the caller pinned to the tenant", async () => {
     const result: CallResult = await call(TELEMETRY_AI_FIX_SUGGESTION_PATH, {
       insightId: INSIGHT_ID,

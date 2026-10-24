@@ -685,7 +685,8 @@ describe("TelemetryAiRouting.sweepLane - the Metric lane", () => {
   test("the fix is attached to its insight only while the insight has none", async () => {
     await sweep();
 
-    const update: JSONObject = attach.mock.calls[0]![0] as unknown as JSONObject;
+    const update: JSONObject = attach.mock
+      .calls[0]![0] as unknown as JSONObject;
     const query: JSONObject = update["query"] as JSONObject;
 
     expect(sqlOf(query["fixAiRunId"])).toContain("IS NULL");

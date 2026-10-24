@@ -315,6 +315,88 @@ describe("the Trace lane", () => {
   });
 });
 
+describe("the Metric lane", () => {
+  const METRIC_TYPES: Array<AIInsightType> = [
+    AIInsightType.MetricHighCardinality,
+    AIInsightType.MetricHistogramBuckets,
+    AIInsightType.MetricMissingMetrics,
+  ];
+
+  test("files high cardinality, histogram buckets that do not fit and missing metrics, decided by metric AI rules, switched by its own column", () => {
+    expect(TELEMETRY_AI_LANES[TelemetryAiLane.Metric]).toEqual({
+      lane: TelemetryAiLane.Metric,
+      triggerEntityType: AutoRemediationTriggerEntity.Metric,
+      insightTypes: METRIC_TYPES,
+      switchColumn: "enableAutomaticMetricRemediation",
+      scanEveryMinutes: 60,
+      dashboardPath: "metrics",
+      fixAfterVerdictInsightTypes: [],
+    });
+  });
+
+  test("its findings open under Metrics' AI section - a drift finding stays AI Insights'", () => {
+    for (const insightType of METRIC_TYPES) {
+      expect(
+        getAiInsightDashboardPath({
+          projectId: "p1",
+          insightId: "i1",
+          insightType,
+        }),
+      ).toBe("/p1/metrics/ai/insights/i1");
+      expect(getTelemetryAiLaneOfInsightType(insightType)).toBe(
+        TelemetryAiLane.Metric,
+      );
+    }
+
+    expect(
+      getAiInsightDashboardPath({
+        projectId: "p1",
+        insightId: "i1",
+        insightType: AIInsightType.MetricDrift,
+      }),
+    ).toBe("/p1/ai/insights/i1");
+    expect(
+      getTelemetryAiLaneOfInsightType(AIInsightType.MetricDrift),
+    ).toBeNull();
+    expect(
+      getTelemetryAiLaneOfTrigger(AutoRemediationTriggerEntity.Metric),
+    ).toBe(TelemetryAiLane.Metric);
+    expect(isTelemetryAiLane("Metric")).toBe(true);
+    expect(isTelemetryAiLane("metric")).toBe(false);
+  });
+
+  test("it looks once an hour, on the hour's first look, as Traces does", () => {
+    expect(getStillFoundMinutes(TelemetryAiLane.Metric)).toBe(120);
+    expect(getTelemetryAiDefaultWaitMinutes(TelemetryAiLane.Metric)).toBe(60);
+
+    for (let minute: number = 0; minute < 60; minute++) {
+      const now: Date = new Date(Date.UTC(2026, 9, 24, 7, minute, 30));
+
+      expect(isTelemetryAiLaneScanTick(TelemetryAiLane.Metric, now)).toBe(
+        isTelemetryAiLaneScanTick(TelemetryAiLane.Trace, now),
+      );
+    }
+  });
+
+  /*
+   * A metric problem is in how the code records the metric, whatever an
+   * investigation finds about why: no pull request of the lane waits for a
+   * verdict.
+   */
+  test("no metric problem's pull request waits for the investigation's verdict", () => {
+    for (const insightType of METRIC_TYPES) {
+      expect(doesTelemetryAiFixWaitForVerdict(insightType)).toBe(false);
+      expect(
+        getTelemetryAiFixVerdict({
+          insightType,
+          hasTriageCompleted: false,
+          classification: undefined,
+        }),
+      ).toBe(TelemetryAiFixVerdict.NotNeeded);
+    }
+  });
+});
+
 describe("the limits that keep it quiet", () => {
   test("at most five pull requests a day, fifty problems a look, found again within two looks", () => {
     expect(TELEMETRY_AI_MAX_AUTOMATIC_FIXES_PER_DAY).toBe(5);

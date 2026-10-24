@@ -195,7 +195,9 @@ describe("the Metrics Explorer page's section on improving metrics and adding mi
     expect(rows["High Cardinality"]).toContain(
       "| Stops recording the value on the metric, or takes the IDs out of its names. |",
     );
-    expect(fixCopy).toContain("gives this histogram buckets that fit its values");
+    expect(fixCopy).toContain(
+      "gives this histogram buckets that fit its values",
+    );
     expect(rows["Wrong Histogram Buckets"]).toContain(
       "| Gives the histogram buckets that fit its values, or fixes its unit. |",
     );

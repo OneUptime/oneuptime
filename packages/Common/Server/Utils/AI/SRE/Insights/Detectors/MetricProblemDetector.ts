@@ -391,18 +391,14 @@ export default class MetricProblemDetector {
           limit: METRIC_INSIGHT_MAX_VOLUME_ROWS,
         });
       }),
-      MetricProblemDetector.readPart(
-        context,
-        "the hour's metric names",
-        () => {
-          return MetricAggregationService.getMetricNamePatterns({
-            projectId,
-            hourStart: window.startTime,
-            minNameCount: METRIC_INSIGHT_MIN_NAME_VARIANTS,
-            limit: METRIC_INSIGHT_MAX_NAME_PATTERNS,
-          });
-        },
-      ),
+      MetricProblemDetector.readPart(context, "the hour's metric names", () => {
+        return MetricAggregationService.getMetricNamePatterns({
+          projectId,
+          hourStart: window.startTime,
+          minNameCount: METRIC_INSIGHT_MIN_NAME_VARIANTS,
+          limit: METRIC_INSIGHT_MAX_NAME_PATTERNS,
+        });
+      }),
       MetricProblemDetector.readPart(context, "the hour's spans", () => {
         return TraceAggregationService.getServiceSpanHealth({
           projectId,
@@ -643,14 +639,18 @@ export default class MetricProblemDetector {
       Array<MetricShapeRow> | null,
       Array<MetricAttributeCardinalityRow> | null,
     ] = await Promise.all([
-      MetricProblemDetector.readPart(data.context, "its busiest metrics", () => {
-        return MetricAggregationService.getMetricShapes({
-          projectId,
-          startTime: data.window.startTime,
-          endTime: data.window.endTime,
-          metrics: keys,
-        });
-      }),
+      MetricProblemDetector.readPart(
+        data.context,
+        "its busiest metrics",
+        () => {
+          return MetricAggregationService.getMetricShapes({
+            projectId,
+            startTime: data.window.startTime,
+            endTime: data.window.endTime,
+            metrics: keys,
+          });
+        },
+      ),
       MetricProblemDetector.readPart(
         data.context,
         "its busiest metrics' attributes",
@@ -702,8 +702,7 @@ export default class MetricProblemDetector {
 
     for (const metric of data.metrics) {
       const key: string = toKey(metric);
-      const metricShapes: Array<MetricShapeRow> =
-        shapesByMetric.get(key) || [];
+      const metricShapes: Array<MetricShapeRow> = shapesByMetric.get(key) || [];
       const highCardinality: MetricHighCardinalityReading | null =
         readHighCardinalityAttributes(attributesByMetric.get(key) || []);
       const histogramShape: MetricShapeReading | null =

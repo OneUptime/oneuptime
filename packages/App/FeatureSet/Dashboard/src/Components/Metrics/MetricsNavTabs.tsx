@@ -5,12 +5,7 @@ import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 
-export type MetricsTabKey =
-  | "viewer"
-  | "insights"
-  | "ai"
-  | "setup"
-  | "settings";
+export type MetricsTabKey = "viewer" | "insights" | "ai" | "setup" | "settings";
 
 interface Props {
   active: MetricsTabKey;

@@ -929,6 +929,104 @@ describe("InsightScanner — the telemetry AI lanes", () => {
     });
   });
 
+  test("Metrics' three detectors run on its tick while its switch is on - apart from the other lanes'", () => {
+    const types: (project: Project, now: Date) => Array<AIInsightType> = (
+      project: Project,
+      now: Date,
+    ): Array<AIInsightType> => {
+      return InsightScanner.getDetectorsForProject(project, now).map(
+        (detector: InsightDetector): AIInsightType => {
+          return detector.insightType;
+        },
+      );
+    };
+
+    const metricsOnly: Project = laneProject({
+      enableAutomaticProfileRemediation: false,
+      enableAutomaticMetricRemediation: true,
+    });
+
+    expect(types(metricsOnly, ON_THE_HOUR)).toEqual([
+      AIInsightType.MetricHighCardinality,
+      AIInsightType.MetricHistogramBuckets,
+      AIInsightType.MetricMissingMetrics,
+    ]);
+    expect(types(metricsOnly, QUARTER_PAST)).toEqual([]);
+
+    // AI Insights' own drift detector is its switch's alone.
+    expect(
+      types(
+        laneProject({
+          enableAiInsights: true,
+          enableAutomaticProfileRemediation: false,
+          enableAutomaticMetricRemediation: false,
+        }),
+        ON_THE_HOUR,
+      ),
+    ).not.toContain(AIInsightType.MetricHighCardinality);
+  });
+
+  test("a project with only Metrics' switch on is listed, read with every lane's switch", async () => {
+    const metricsOnly: Project = laneProject({
+      enableAutomaticProfileRemediation: false,
+      enableAutomaticMetricRemediation: true,
+    });
+    const findBy: jest.SpyInstance = jest
+      .spyOn(ProjectService, "findBy")
+      .mockImplementation((args: unknown): Promise<Array<Project>> => {
+        const query: Record<string, unknown> = (
+          args as { query: Record<string, unknown> }
+        ).query;
+
+        return Promise.resolve(
+          query["enableAutomaticMetricRemediation"] === true
+            ? [metricsOnly]
+            : [],
+        );
+      });
+
+    expect(await InsightScanner.listProjectsToScan()).toEqual([metricsOnly]);
+    expect(findBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: { enableAutomaticMetricRemediation: true },
+        select: expect.objectContaining({
+          enableAutomaticTraceRemediation: true,
+          enableAutomaticMetricRemediation: true,
+        }),
+      }),
+    );
+  });
+
+  test("on Metrics' tick, Metrics' look runs too", async () => {
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(ON_THE_HOUR);
+    jest.spyOn(AIInsightService, "findBy").mockResolvedValue([]);
+    jest
+      .spyOn(InsightDetectors, "getTelemetryAiDetectors")
+      .mockReturnValue([fakeDetector({ candidates: [] })]);
+    const sweepLane: jest.SpyInstance = jest
+      .spyOn(TelemetryAiRouting, "sweepLane")
+      .mockResolvedValue({
+        problemsRead: 0,
+        investigationsStarted: 0,
+        fixesStarted: 0,
+        waiting: 0,
+        waitingForVerdict: 0,
+      });
+    const project: Project = laneProject({
+      enableAutomaticProfileRemediation: false,
+      enableAutomaticMetricRemediation: true,
+    });
+
+    await InsightScanner.scanProjectForInsights(project);
+
+    expect(sweepLane).toHaveBeenCalledTimes(1);
+    expect(sweepLane).toHaveBeenCalledWith({
+      project,
+      lane: TelemetryAiLane.Metric,
+      now: ON_THE_HOUR,
+    });
+  });
+
   test("on the lane's tick, the lane's look runs after the detectors - even with nothing new", async () => {
     jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(ON_THE_HOUR);
     jest.spyOn(AIInsightService, "findBy").mockResolvedValue([]);

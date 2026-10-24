@@ -5,6 +5,7 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import MetricExplorerUrl, {
   SerializedMetricQuery,
 } from "Common/Utils/Metrics/MetricExplorerUrl";
+import { METRIC_INSIGHT_WINDOW_MINUTES } from "Common/Utils/Metrics/MetricInsight";
 import type {
   AIInsightExplorerLink,
   AIInsightExplorerLinkInput,
@@ -917,6 +918,211 @@ describe("buildInsightInvestigationLink — Traces' findings", () => {
   });
 });
 
+describe("buildInsightInvestigationLink — Metrics' findings", () => {
+  const METRIC_WINDOW: {
+    windowStartTime: string;
+    windowEndTime: string;
+  } = {
+    windowStartTime: "2026-08-14T09:00:00.000Z",
+    windowEndTime: "2026-08-14T10:00:00.000Z",
+  };
+
+  test("a metric recording too many values, or with buckets that do not fit: the metric for its service, in its hour", () => {
+    for (const insightType of [
+      AIInsightType.MetricHighCardinality,
+      AIInsightType.MetricHistogramBuckets,
+    ]) {
+      const link: AIInsightExplorerLink | null =
+        Links.buildInsightInvestigationLink(
+          input({
+            insightType,
+            serviceId: SERVICE_ID,
+            metric: {
+              metricName: "http.server.request.count",
+              shape: "Attribute",
+              ...METRIC_WINDOW,
+            },
+          }),
+        );
+
+      expect(link).not.toBeNull();
+      expect(link!.target).toBe("metrics");
+      expect(link!.label).toBe("Open in Metrics");
+      expect(pathOf(link!.route)).toBe("/dashboard/:projectId/metrics/view");
+
+      const query: URLSearchParams = queryOf(link!.route);
+      const queries: Array<SerializedMetricQuery> =
+        MetricExplorerUrl.parseMetricQueriesParam(query.get("metricQueries")!);
+
+      expect(queries[0]!.metricName).toBe("http.server.request.count");
+      expect(JSON.parse(query.get("services") || "[]")).toEqual([SERVICE_ID]);
+      expect(new Date(query.get("startTime") || "").toISOString()).toBe(
+        METRIC_WINDOW.windowStartTime,
+      );
+      expect(new Date(query.get("endTime") || "").toISOString()).toBe(
+        METRIC_WINDOW.windowEndTime,
+      );
+    }
+  });
+
+  test("metric names with ids: the service's metric list, searched for what the names share", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.MetricHighCardinality,
+          serviceId: SERVICE_ID,
+          metric: {
+            shape: "Name",
+            namePattern: "job.{id}.duration",
+            ...METRIC_WINDOW,
+          },
+        }),
+      );
+
+    expect(link!.label).toBe("Open in Metrics");
+    expect(link!.dropped).toEqual([]);
+    expect(pathOf(link!.route)).toBe("/dashboard/:projectId/metrics");
+
+    const query: URLSearchParams = queryOf(link!.route);
+
+    expect(query.get("search")).toBe(".duration");
+    expect(JSON.parse(query.get("filters") || "[]")).toEqual([
+      ["primaryEntityId", SERVICE_ID],
+    ]);
+    expect(query.get("range")).toBe(TimeRange.CUSTOM);
+    expect(query.get("start")).toBe(METRIC_WINDOW.windowStartTime);
+    expect(query.get("end")).toBe(METRIC_WINDOW.windowEndTime);
+  });
+
+  test("metric names with ids, of a service whose id is unknown: the search alone, the service said dropped", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.MetricHighCardinality,
+          serviceName: "worker",
+          metric: { shape: "Name", namePattern: "job.{id}.duration" },
+        }),
+      );
+
+    expect(link!.dropped).toEqual(["serviceIds"]);
+    expect(queryOf(link!.route).get("filters")).toBeNull();
+  });
+
+  test("a service with no metrics: its spans in Traces, in the hour it was found in", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.MetricMissingMetrics,
+          serviceId: SERVICE_ID,
+          metric: { kind: "MissingMetrics", ...METRIC_WINDOW },
+        }),
+      );
+
+    expect(link!.target).toBe("traces");
+    expect(link!.label).toBe("Open in Traces");
+    expect(pathOf(link!.route)).toBe("/dashboard/:projectId/traces");
+
+    const query: URLSearchParams = queryOf(link!.route);
+
+    expect(JSON.parse(query.get("filters") || "[]")).toEqual([
+      ["primaryEntityId", SERVICE_ID],
+    ]);
+    expect(query.get("start")).toBe(METRIC_WINDOW.windowStartTime);
+    expect(query.get("end")).toBe(METRIC_WINDOW.windowEndTime);
+  });
+
+  test("without its evidence (a list row), the hour before it was last seen", () => {
+    expect(Links.METRIC_INSIGHT_WINDOW_MINUTES).toBe(
+      METRIC_INSIGHT_WINDOW_MINUTES,
+    );
+
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.MetricMissingMetrics,
+          serviceId: SERVICE_ID,
+        }),
+      );
+
+    const query: URLSearchParams = queryOf(link!.route);
+
+    expect(query.get("start")).toBe("2026-08-14T09:00:00.000Z");
+    expect(query.get("end")).toBe(LAST_SEEN.toISOString());
+  });
+
+  test("a metric finding with no metric name to open is no action", () => {
+    expect(
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.MetricHistogramBuckets,
+          serviceId: SERVICE_ID,
+          metric: { metricName: "  ", ...METRIC_WINDOW },
+        }),
+      ),
+    ).toBeNull();
+  });
+});
+
+describe("getMetricNamePatternSearch", () => {
+  test("the longest stretch between the ids, separators kept", () => {
+    expect(Links.getMetricNamePatternSearch("job.{id}.duration")).toBe(
+      ".duration",
+    );
+    expect(Links.getMetricNamePatternSearch("orders_{id}_total")).toBe(
+      "orders_",
+    );
+    expect(
+      Links.getMetricNamePatternSearch("service.{id}.request.{id}.count"),
+    ).toBe(".request.");
+  });
+
+  test("nothing long enough to find the names by: no search", () => {
+    for (const pattern of [
+      "{id}",
+      "a.{id}",
+      "{id}.x",
+      "{id}{id}",
+      "",
+      undefined,
+    ]) {
+      expect(Links.getMetricNamePatternSearch(pattern)).toBeNull();
+    }
+  });
+});
+
+describe("getEvidenceWindow", () => {
+  test("the hour the evidence was read in, when it says a whole one", () => {
+    const window: InsightDetectionWindow | null = Links.getEvidenceWindow({
+      windowStartTime: "2026-08-14T09:00:00.000Z",
+      windowEndTime: "2026-08-14T10:00:00.000Z",
+    });
+
+    expect(window?.startTime.toISOString()).toBe("2026-08-14T09:00:00.000Z");
+    expect(window?.endTime.toISOString()).toBe("2026-08-14T10:00:00.000Z");
+  });
+
+  test("none when it does not hold together", () => {
+    for (const evidence of [
+      {},
+      { windowStartTime: "2026-08-14T09:00:00.000Z" },
+      {
+        windowStartTime: "2026-08-14T10:00:00.000Z",
+        windowEndTime: "2026-08-14T09:00:00.000Z",
+      },
+      {
+        windowStartTime: "2026-08-14T10:00:00.000Z",
+        windowEndTime: "2026-08-14T10:00:00.000Z",
+      },
+      {
+        windowStartTime: "not a date",
+        windowEndTime: "2026-08-14T10:00:00.000Z",
+      },
+    ]) {
+      expect(Links.getEvidenceWindow(evidence)).toBeNull();
+    }
+  });
+});
+
 describe("buildInsightInvestigationLink — URL-hostile character sweep", () => {
   test("every hostile value builds a usable link for every insight type — never a throw", () => {
     Object.values(AIInsightType).forEach((insightType: AIInsightType) => {
@@ -994,9 +1200,11 @@ describe("buildInsightInvestigationLink — URL-hostile character sweep", () => 
           case AIInsightType.TraceSlowOperation:
           case AIInsightType.TraceFailingOperation:
           case AIInsightType.TraceMissingTracing:
-          // A service with no metrics opens its spans: what they would measure.
           case AIInsightType.MetricMissingMetrics: {
             /*
+             * (A service with no metrics opens its spans: what they would
+             * measure.)
+             *
              * The traces grammar carries the value in `search`, escaped
              * where a character would otherwise read as an operator, and
              * quarantines anything it still cannot express in `filters`.

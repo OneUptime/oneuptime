@@ -1002,7 +1002,10 @@ function describeBounds(evidence: MetricInsightEvidence): string {
 }
 
 function describeValueRange(evidence: MetricInsightEvidence): string {
-  if (!isFiniteNumber(evidence.minValue) || !isFiniteNumber(evidence.maxValue)) {
+  if (
+    !isFiniteNumber(evidence.minValue) ||
+    !isFiniteNumber(evidence.maxValue)
+  ) {
     return "";
   }
 
@@ -1042,9 +1045,13 @@ export function describeMetricProblem(evidence: MetricInsightEvidence): string {
     }
     case MetricInsightKind.HistogramBuckets: {
       const range: string = describeValueRange(evidence);
+      const unreadable: string =
+        "its percentiles cannot be told apart: every chart and monitor reads the same number whatever the values were.";
 
       return [
-        `${describeBucketProblem(evidence)} over the last hour, so its percentiles cannot be told apart: every chart and monitor reads the same number whatever the values were.`,
+        evidence.bucketProblem === MetricBucketProblem.NoBuckets
+          ? `It has no bucket bounds, so every value it recorded over the last hour went into one bucket and ${unreadable}`
+          : `Over the last hour ${describeBucketProblem(evidence)}, so ${unreadable}`,
         range ? `The values it recorded ranged ${range}.` : "",
         evidence.hasDefaultBounds
           ? "Its buckets are the OpenTelemetry SDKs' default ones, made for milliseconds."
@@ -1092,7 +1099,9 @@ export function buildMetricInsightDetail(data: {
       );
       break;
     case MetricInsightKind.HistogramBuckets:
-      lines.push(mdText`**Histogram buckets that do not fit in ${data.serviceName}**`);
+      lines.push(
+        mdText`**Histogram buckets that do not fit in ${data.serviceName}**`,
+      );
       break;
     default:
       lines.push(mdText`**Missing metrics in ${data.serviceName}**`);
@@ -1249,7 +1258,7 @@ function getAttributeReplacement(shape: unknown): string {
     case MetricValueShape.UrlWithIds:
       return "record the route template (http.route) instead of the URL";
     case MetricValueShape.Timestamp:
-      return "drop it: every data point already has its time";
+      return "drop it, since every data point already has its time";
     case MetricValueShape.Number:
     case MetricValueShape.Uuid:
     case MetricValueShape.HexId:
@@ -1331,7 +1340,9 @@ export function buildMetricFixEvidenceNote(
     lines.push(`Unit: ${evidence.unit}`);
   }
 
-  lines.push(`Window: ${evidence.windowStartTime} to ${evidence.windowEndTime}`);
+  lines.push(
+    `Window: ${evidence.windowStartTime} to ${evidence.windowEndTime}`,
+  );
 
   if (isFiniteNumber(evidence.dataPointCount)) {
     lines.push(

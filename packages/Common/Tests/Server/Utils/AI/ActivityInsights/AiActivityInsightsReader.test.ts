@@ -968,6 +968,61 @@ describe("AiActivityInsightsReader.read", () => {
     });
   });
 
+  describe("problems found in a service's metrics", () => {
+    test("each kind is about the service its fingerprint names, and no other", () => {
+      const serviceId: string = ObjectID.generate().toString();
+      const otherId: string = ObjectID.generate().toString();
+
+      const findings: Array<[AIInsightType, string]> = [
+        [
+          AIInsightType.MetricHighCardinality,
+          `metric-high-cardinality:${serviceId}:attribute:http.server.request.count`,
+        ],
+        [
+          AIInsightType.MetricHighCardinality,
+          `metric-high-cardinality:${serviceId}:name:job.{id}.duration`,
+        ],
+        [
+          AIInsightType.MetricHistogramBuckets,
+          `metric-histogram-buckets:${serviceId}:http.server.duration`,
+        ],
+        [
+          AIInsightType.MetricMissingMetrics,
+          `metric-missing-metrics:${serviceId}`,
+        ],
+      ];
+
+      for (const [insightType, fingerprint] of findings) {
+        expect(
+          isPreventiveInsightAboutScope({
+            insight: { insightType, fingerprint } as never,
+            scopeId: serviceId.toUpperCase(),
+            exceptionOwners: new Map<string, string>(),
+          }),
+        ).toBe(true);
+        expect(
+          isPreventiveInsightAboutScope({
+            insight: { insightType, fingerprint } as never,
+            scopeId: otherId,
+            exceptionOwners: new Map<string, string>(),
+          }),
+        ).toBe(false);
+      }
+
+      // A metric named after another service's id is not that service.
+      expect(
+        isPreventiveInsightAboutScope({
+          insight: {
+            insightType: AIInsightType.MetricHistogramBuckets,
+            fingerprint: `metric-histogram-buckets:${otherId}:${serviceId}`,
+          } as never,
+          scopeId: serviceId,
+          exceptionOwners: new Map<string, string>(),
+        }),
+      ).toBe(false);
+    });
+  });
+
   describe("preventive insights", () => {
     function insight(
       overrides: Partial<Record<keyof AIInsight, unknown>>,
