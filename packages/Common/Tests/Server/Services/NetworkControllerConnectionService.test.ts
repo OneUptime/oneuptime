@@ -62,8 +62,9 @@ function findOneById(): unknown {
   return NetworkControllerConnectionService.findOneById;
 }
 
+// Overrides as a form would send them: a field may be left out by setting it undefined.
 function newConnection(
-  overrides: Partial<NetworkControllerConnection> = {},
+  overrides: Record<string, unknown> = {},
 ): NetworkControllerConnection {
   const connection: NetworkControllerConnection =
     new NetworkControllerConnection();
@@ -309,7 +310,7 @@ describe("creating a connection", () => {
     async (_label: string, overrides: JSONObject, message: string) => {
       expect(
         await refusal(
-          service.onBeforeCreate(createBy(newConnection(overrides as never))),
+          service.onBeforeCreate(createBy(newConnection(overrides))),
         ),
       ).toBe(message);
     },

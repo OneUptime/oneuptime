@@ -42,6 +42,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * The network (the traffic POST) and the page's range picker (a stand-in
  * that can pick a preset or a custom range) are replaced; the area chart is
  * ChartZoomStandIn, which resolves its zoom exactly as the real wrapper does.
+ * The page's read of its Meraki side (issue #5140) has a mock of its own,
+ * answering that the page has none: these tests count the flow reads.
  */
 
 const DEVICE_ID: string = "11111111-1111-4111-8111-111111111111";
@@ -56,6 +58,7 @@ const TRAFFIC_CHART: string = "Traffic [Mbps]";
 const TWO_WEEKS_OF_FLOWS: string = (14 * 24 * 60).toLocaleString();
 
 const apiPostMock: MockFunction = getJestMockFunction();
+const usagePostMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Components/Charts/Area/AreaChart", () => {
   return {
@@ -131,6 +134,14 @@ jest.mock("../../../UI/Utils/API/API", () => {
     __esModule: true,
     default: {
       post: (...args: Array<unknown>): unknown => {
+        if (
+          String((args[0] as { url?: unknown } | undefined)?.url).includes(
+            "/usage-summary",
+          )
+        ) {
+          return usagePostMock(...args);
+        }
+
         return apiPostMock(...args);
       },
       getFriendlyMessage: (error: Error): string => {
@@ -387,6 +398,8 @@ beforeEach(() => {
   jest.setSystemTime(NOW);
   window.history.replaceState(null, "", "/");
   apiPostMock.mockReset();
+  usagePostMock.mockReset();
+  usagePostMock.mockResolvedValue({ data: { isAvailable: false } });
   resetStandInCharts();
   answerWith((request: TrafficRequest) => {
     return trafficResponse(request);
