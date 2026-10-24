@@ -99,9 +99,6 @@ export const AuditLogExportCopy: {
   fullErrorLabel: string;
   nextTry: string;
   licenseRequired: string;
-  // The page.
-  auditLoggingOffTitle: string;
-  auditLoggingOffDescription: string;
 } = {
   addButton: translationKey("Add export"),
   emptyTitle: translationKey("Nothing is exported yet"),
@@ -184,6 +181,13 @@ export const AuditLogExportCopy: {
   licenseRequired: translationKey(
     "Needs a valid Enterprise license that includes audit logs.",
   ),
+};
+
+// What only a project's page says (Settings > Audit Logs > Export).
+export const AuditLogExportProjectCopy: {
+  auditLoggingOffTitle: string;
+  auditLoggingOffDescription: string;
+} = {
   auditLoggingOffTitle: translationKey(
     "Audit logging is off for this project.",
   ),

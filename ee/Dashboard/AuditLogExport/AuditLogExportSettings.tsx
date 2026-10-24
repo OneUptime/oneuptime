@@ -1,4 +1,7 @@
-import { AuditLogExportCopy, AuditLogExportScope } from "./AuditLogExportCopy";
+import {
+  AuditLogExportProjectCopy,
+  AuditLogExportScope,
+} from "./AuditLogExportCopy";
 import AuditLogExportLicenseNotice from "./AuditLogExportLicenseNotice";
 import AuditLogExportTable from "./AuditLogExportTable";
 import {
@@ -76,8 +79,8 @@ const AuditLogExportSettings: FunctionComponent<PageComponentProps> = (
       {isAuditLoggingOff ? (
         <Alert
           type={AlertType.WARNING}
-          strongTitle={AuditLogExportCopy.auditLoggingOffTitle}
-          title={AuditLogExportCopy.auditLoggingOffDescription}
+          strongTitle={AuditLogExportProjectCopy.auditLoggingOffTitle}
+          title={AuditLogExportProjectCopy.auditLoggingOffDescription}
           dataTestId="audit-log-export-audit-logging-off"
           className="mb-5"
         />
