@@ -3,7 +3,7 @@
 Execute uma instância completa e gratuita do OneUptime em um único servidor Linux com o Docker Compose. Esta página leva você de um servidor recém-criado a uma instância em funcionamento e depois trata de HTTPS, do reforço para produção, de backups, de atualizações e da remoção. Para trabalhar no próprio código do OneUptime, veja [Desenvolvimento local](/docs/installation/local-development).
 
 :::cards
-- [Instalar o OneUptime](#instalar-o-oneuptime): De um servidor recém-criado à sua primeira conta, em seis passos.
+- [Instalar o OneUptime](#instalar-o-oneuptime): De um servidor recém-criado à sua primeira conta, em cinco passos.
 - [Configurar HTTPS](#configurar-https): Deixe o OneUptime obter um certificado ou coloque seu próprio proxy na frente.
 - [Checklist de produção](#checklist-de-produção): O que resolver antes que chegue o tráfego real.
 - [Atualizar o OneUptime](#atualizar-o-oneuptime): Passe para a versão mais recente.
@@ -92,6 +92,12 @@ Há também um [vídeo passo a passo](https://youtu.be/j1SWmMW2oL4) da instalaç
 
 ## Instalar o OneUptime
 
+Em um servidor novo com Ubuntu, Debian ou uma distribuição baseada em RHEL, um único comando pode executar os passos abaixo por você. Ele instala o Docker, o Git e o Node.js se faltarem, clona o branch release em uma pasta `oneuptime`, pergunta o endereço que as pessoas vão usar e executa `npm start`:
+
+```bash
+curl -fsSL https://oneuptime.com/install.sh | bash
+```
+
 :::steps
 ### Clone o branch release
 
@@ -118,18 +124,32 @@ Abra o `config.env` e defina `HOST` com o nome de domínio ou o endereço IP que
 HOST=oneuptime.example.com
 ```
 
+### Inicie o OneUptime
+
+:::tabs
+@tab npm
+```bash
+npm start
+```
+@tab Docker CLI
+```bash
+(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
+```
+Antes da primeira inicialização, substitua você mesmo os segredos de exemplo, como mostra [Gere segredos aleatórios](#gere-segredos-aleatórios): só o `npm start` faz isso por você.
+:::
+
+O `npm start` verifica primeiro o servidor: o Docker, a memória, o espaço em disco, as portas que o OneUptime usa e o `HOST`. Ele para diante de qualquer coisa que impediria o OneUptime de funcionar, e diz o que mudar. Depois dá a cada segredo de exemplo do `config.env` um valor aleatório próprio, inicia o OneUptime e espera cada parte responder. A primeira inicialização leva alguns minutos, enquanto o Docker baixa as imagens e o OneUptime cria os bancos de dados. Ele termina com **OneUptime is up!** e o endereço a abrir.
+
+### Crie a primeira conta
+
+Abra `http://` seguido do seu `HOST` (por exemplo `http://localhost`) e cadastre-se. A primeira conta de uma instância nova passa a ser o administrador principal dela, que pode abrir o Admin Dashboard em `/admin`.
+
+Qualquer pessoa que consiga acessar a página pode se cadastrar depois de você. Para impedir isso, abra o Admin Dashboard, vá em **Configurações > Autenticação** e desative **Permitir cadastro**. As pessoas que você convidar para um projeto ainda podem criar a conta.
+:::
+
 ### Gere segredos aleatórios
 
-O arquivo de exemplo vem com segredos de exemplo que são públicos no GitHub. Substitua cada um por um valor aleatório próprio:
-
-```bash
-while grep -q "please-change-this-to-random-value" config.env; do
-  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env
-done
-grep -c "please-change-this" config.env
-```
-
-O último comando imprime `0`: não sobrou nenhum segredo de exemplo. O laço usa o GNU `sed`, que todo servidor Linux tem. Estas são as configurações que ele preenche:
+O `config.example.env` traz cada segredo como um segredo de exemplo, público no GitHub. O `npm start` dá a cada um o seu próprio valor aleatório antes de iniciar qualquer coisa, e cita as configurações que preencheu:
 
 | Configuração | O que ela protege |
 | --- | --- |
@@ -142,29 +162,18 @@ O último comando imprime `0`: não sobrou nenhum segredo de exemplo. O laço us
 | `GLOBAL_RUNNER_KEY` | O Runner global incluído, que executa as etapas JavaScript de todos os projetos. |
 
 > [!IMPORTANT]
-> Defina os segredos antes da primeira inicialização e mantenha-os depois. O PostgreSQL só aceita a senha quando cria o banco de dados, e mudar `ENCRYPTION_SECRET` depois torna ilegível todo valor criptografado com o anterior. Se o `DATABASE_PASSWORD` ainda for o segredo de exemplo na primeira inicialização, o `npm start` dá a ele um valor aleatório antes que o PostgreSQL crie o banco de dados.
+> Mantenha os segredos depois que o OneUptime tiver iniciado. O PostgreSQL só aceita a senha quando cria o banco de dados, e mudar `ENCRYPTION_SECRET` depois torna ilegível todo valor criptografado com o anterior. Por isso o `npm start` define `DATABASE_PASSWORD` e `ENCRYPTION_SECRET` só em uma instalação nova, antes que o PostgreSQL crie o banco de dados.
 
-### Inicie o OneUptime
+Com a Docker CLI, substitua você mesmo os segredos de exemplo antes da primeira inicialização:
 
-:::tabs
-@tab npm
 ```bash
-npm start
+while grep -q "please-change-this-to-random-value" config.env; do
+  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env
+done
+grep -c "please-change-this" config.env
 ```
-@tab Docker CLI
-```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
-```
-:::
 
-A primeira inicialização leva alguns minutos: o Docker baixa as imagens e o OneUptime cria os bancos de dados. O `npm start` espera cada parte responder e termina com **OneUptime is up!**
-
-### Crie a primeira conta
-
-Abra `http://` seguido do seu `HOST` (por exemplo `http://localhost`) e cadastre-se. A primeira conta de uma instância nova passa a ser o administrador principal dela, que pode abrir o Admin Dashboard em `/admin`.
-
-Qualquer pessoa que consiga acessar a página pode se cadastrar depois de você. Para impedir isso, abra o Admin Dashboard, vá em **Configurações > Autenticação** e desative **Permitir cadastro**. As pessoas que você convidar para um projeto ainda podem criar a conta.
-:::
+O último comando imprime `0`: não sobrou nenhum segredo de exemplo. O laço usa o GNU `sed`, que todo servidor Linux tem.
 
 ## Configurar HTTPS
 
@@ -218,14 +227,14 @@ Estes passos executam o proxy no mesmo servidor que o OneUptime. Se o seu proxy 
 :::steps
 #### Tire o ingress das portas 80 e 443
 
-O proxy precisa das portas 80 e 443, então mova o ingress para outras portas, publicadas apenas no endereço de loopback `127.0.0.1` deste servidor, para que os visitantes alcancem o OneUptime somente pelo seu proxy. A sonda e o Runner usam a rede do host e alcançam o OneUptime por `http://localhost`, então mudam junto:
+O proxy precisa das portas 80 e 443, então mova o ingress para outras portas, publicadas apenas no endereço de loopback `127.0.0.1` deste servidor, para que os visitantes alcancem o OneUptime somente pelo seu proxy:
 
 ```ini title="config.env"
 ONEUPTIME_HTTP_PORT=127.0.0.1:8080
 STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
-GLOBAL_PROBE_1_ONEUPTIME_URL=http://localhost:8080
-ONEUPTIME_RUNNER_ONEUPTIME_URL=http://localhost:8080
 ```
+
+A sonda e o Runner usam a rede do host e alcançam o OneUptime por `http://localhost`. O `npm start` os muda para a nova porta do ingress, `http://localhost:8080`, e avisa.
 
 #### Informe ao OneUptime que ele está atrás de um proxy
 
@@ -241,11 +250,10 @@ TRUSTED_PROXY_HOPS=2
 #### Reinicie o OneUptime nas novas portas
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
-bash Tests/Scripts/status-check.sh localhost:8080
+npm start
 ```
 
-O `npm start` verifica `http://localhost` na porta 80, onde ficará o seu proxy, então verifique você mesmo a nova porta. O script termina com **OneUptime is up!**
+O `npm start` verifica o OneUptime na nova porta, `localhost:8080`, e termina com **OneUptime is up!**
 
 #### Configure o proxy
 
@@ -445,7 +453,7 @@ git pull
 npm run update
 ```
 
-O `npm run update` pede sua senha de sudo, adiciona ao seu `config.env` as configurações novas do `config.example.env` (seus próprios valores ficam), baixa as imagens novas e reinicia o OneUptime. Como o `npm start`, ele termina com **OneUptime is up!**
+O `npm run update` adiciona ao seu `config.env` as configurações novas do `config.example.env` (seus próprios valores ficam), baixa as imagens novas e reinicia o OneUptime. Como o `npm start`, ele termina com **OneUptime is up!**
 
 Passar para uma nova versão principal (da 13 para a 14, por exemplo) pode exigir mais: leia [Atualizar o OneUptime para uma nova versão](/docs/installation/upgrading) antes de começar.
 
@@ -472,6 +480,14 @@ Depois apague a pasta `oneuptime`.
 
 ## Solução de problemas
 
+:::details O npm start para antes de iniciar o OneUptime
+O `npm start` verifica primeiro o servidor e para diante de qualquer coisa que impediria o OneUptime de funcionar: falta o Docker ou o plugin do Compose, o Docker está parado ou fora do alcance do seu usuário, outro programa ocupa uma porta, ou o `HOST` é um endereço que nenhum navegador consegue abrir. Cada linha marcada com ✗ diz o que mudar. Corrija e execute `npm start` de novo. Se uma verificação estiver errada sobre o seu servidor, inicie sem as verificações:
+
+```bash
+ONEUPTIME_SKIP_PREFLIGHT=true npm start
+```
+:::
+
 :::details O Docker diz "permission denied" quando você executa npm start
 Seu usuário não consegue acessar o daemon do Docker. Adicione-o ao grupo `docker` e depois saia e entre de novo:
 
@@ -481,7 +497,7 @@ sudo usermod -aG docker $USER
 :::
 
 :::details O ingress não inicia porque a porta 80 ou 443 está em uso
-Outro programa no servidor, muitas vezes um servidor web, ocupa a porta. Pare-o, ou mova o ingress para outras portas e coloque esse programa na frente do OneUptime, como descrito em [Usar seu próprio proxy reverso](#usar-seu-próprio-proxy-reverso).
+Outro programa no servidor, muitas vezes um servidor web, ocupa a porta. O `npm start` verifica as portas antes de iniciar qualquer coisa, e cita o contêiner que ocupa uma delas quando é o Docker que o executa. Pare esse programa, ou mova o ingress para outras portas e coloque o programa na frente do OneUptime, como descrito em [Usar seu próprio proxy reverso](#usar-seu-próprio-proxy-reverso).
 :::
 
 :::details O npm start termina com "Maximum retries reached"
@@ -492,7 +508,11 @@ npm run ps
 npm run logs
 ```
 
-Quando todos os contêineres estiverem em execução, rode a verificação de novo com `npm run status-check`. Se você tirou o ingress da porta 80, verifique a nova porta dele: `bash Tests/Scripts/status-check.sh localhost:8080`.
+Quando todos os contêineres estiverem em execução, rode a verificação de novo com `npm run status-check`. Ela verifica o ingress na porta que o `ONEUPTIME_HTTP_PORT` define.
+:::
+
+:::details O navegador mostra "O OneUptime não está configurado para este endereço"
+Você abriu o OneUptime em um endereço diferente do `HOST` dele, como o endereço IP do servidor enquanto o `HOST` ainda é `localhost`. A página mostra a linha `HOST` do endereço que você abriu, com um botão que a copia: coloque essa linha no `config.env` e depois execute `npm start`. Se você abriu o endereço do `HOST` e a página diz que o seu proxy não o passou, configure o proxy para repassar o nome de host que o navegador pediu: o Caddy faz isso por padrão, o Nginx com `proxy_set_header Host $host;` e o Apache com `ProxyPreserveHost On`.
 :::
 
 :::details Algumas páginas carregam, mas as atualizações ao vivo ou os uploads falham
@@ -521,7 +541,7 @@ Quando um pedido falha, o app registra um erro que começa com `CoreSSL:EnsurePr
 :::
 
 :::details A sonda incluída aparece como Desconectado depois que você mudou a porta do ingress
-O Admin Dashboard lista a sonda em **Configurações > Monitoramento > Sondas globais**. Ela alcança o OneUptime em `GLOBAL_PROBE_1_ONEUPTIME_URL`, que por padrão é `http://localhost` (porta 80). Defina-a com a nova porta do ingress, por exemplo `http://localhost:8080`, defina `ONEUPTIME_RUNNER_ONEUPTIME_URL` da mesma forma e reinicie o OneUptime.
+O Admin Dashboard lista a sonda em **Configurações > Monitoramento > Sondas globais**. Ela alcança o OneUptime em `GLOBAL_PROBE_1_ONEUPTIME_URL`, que por padrão é `http://localhost` (porta 80). O `npm start` muda essa URL e `ONEUPTIME_RUNNER_ONEUPTIME_URL` para a porta do ingress enquanto elas apontam para `localhost`. Se você as definiu com outro endereço, ou iniciou o OneUptime com a Docker CLI, defina as duas com a nova porta do ingress, por exemplo `http://localhost:8080`, e reinicie o OneUptime.
 :::
 
 ## Próximos passos

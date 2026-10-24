@@ -3,7 +3,7 @@
 Kjør en komplett, gratis OneUptime-instans på én Linux-server med Docker Compose. Denne siden tar deg fra en ny server til en kjørende instans, og dekker deretter HTTPS, herding for produksjon, sikkerhetskopier, oppdateringer og fjerning. Vil du heller jobbe med OneUptimes egen kode, se [Lokal utvikling](/docs/installation/local-development).
 
 :::cards
-- [Installer OneUptime](#installer-oneuptime): Fra en ny server til din første konto i seks steg.
+- [Installer OneUptime](#installer-oneuptime): Fra en ny server til din første konto i fem steg.
 - [Sett opp HTTPS](#sett-opp-https): La OneUptime hente et sertifikat, eller sett din egen proxy foran.
 - [Sjekkliste for produksjon](#sjekkliste-for-produksjon): Hva som må være på plass før ekte trafikk kommer.
 - [Oppdater OneUptime](#oppdater-oneuptime): Gå over til den nyeste releasen.
@@ -92,6 +92,12 @@ Det finnes også en [videogjennomgang](https://youtu.be/j1SWmMW2oL4) av installa
 
 ## Installer OneUptime
 
+På en ny Ubuntu-, Debian- eller RHEL-basert server kan én kommando kjøre stegene nedenfor for deg. Den installerer Docker, Git og Node.js der de mangler, kloner release-grenen til en mappe `oneuptime`, spør om adressen folk skal bruke, og kjører `npm start`:
+
+```bash
+curl -fsSL https://oneuptime.com/install.sh | bash
+```
+
 :::steps
 ### Klon release-grenen
 
@@ -118,18 +124,32 @@ cp config.example.env config.env
 HOST=oneuptime.example.com
 ```
 
+### Start OneUptime
+
+:::tabs
+@tab npm
+```bash
+npm start
+```
+@tab Docker CLI
+```bash
+(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
+```
+Før første start erstatter du plassholderhemmelighetene selv, som [Generer tilfeldige hemmeligheter](#generer-tilfeldige-hemmeligheter) viser: Bare `npm start` gjør det for deg.
+:::
+
+`npm start` sjekker først serveren: Docker, minne, diskplass, portene OneUptime bruker, og `HOST`. Den stopper ved alt som ville hindret OneUptime i å virke, og sier hva du skal endre. Deretter gir den hver plassholderhemmelighet i `config.env` sin egen tilfeldige verdi, starter OneUptime og venter til hver del svarer. Første start tar flere minutter, mens Docker laster ned imagene og OneUptime oppretter databasene sine. Den avslutter med **OneUptime is up!** og adressen du skal åpne.
+
+### Opprett den første kontoen
+
+Åpne `http://` etterfulgt av `HOST` (for eksempel `http://localhost`) og registrer deg. Den første kontoen på en ny instans blir hovedadministratoren, som kan åpne Admin Dashboard på `/admin`.
+
+Alle som kan nå siden, kan registrere seg etter deg. For å hindre det åpner du Admin Dashboard, går til **Innstillinger > Autentisering** og slår av **Tillat registrering**. Personer du inviterer til et prosjekt, kan fortsatt opprette kontoen sin.
+:::
+
 ### Generer tilfeldige hemmeligheter
 
-Eksempelfilen har plassholderhemmeligheter som er offentlige på GitHub. Erstatt hver av dem med sin egen tilfeldige verdi:
-
-```bash
-while grep -q "please-change-this-to-random-value" config.env; do
-  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env
-done
-grep -c "please-change-this" config.env
-```
-
-Den siste kommandoen skriver ut `0`: Det er ingen plassholder igjen. Løkken bruker GNU `sed`, som alle Linux-servere har. Dette er innstillingene den fyller ut:
+`config.example.env` leverer hver hemmelighet som en plassholder som er offentlig på GitHub. `npm start` gir hver av dem sin egen tilfeldige verdi før den starter noe, og nevner innstillingene den fylte ut:
 
 | Innstilling | Hva den beskytter |
 | --- | --- |
@@ -142,29 +162,18 @@ Den siste kommandoen skriver ut `0`: Det er ingen plassholder igjen. Løkken bru
 | `GLOBAL_RUNNER_KEY` | Den medfølgende globale Runneren, som kjører JavaScript-trinnene til alle prosjekter. |
 
 > [!IMPORTANT]
-> Angi hemmelighetene før første start, og behold dem etterpå. PostgreSQL tar bare passordet sitt når den oppretter databasen, og endrer du `ENCRYPTION_SECRET` senere, blir hver verdi som er kryptert med den gamle, uleselig. Er `DATABASE_PASSWORD` fortsatt plassholderen ved første start, gir `npm start` den en tilfeldig verdi før PostgreSQL oppretter databasen sin.
+> Behold hemmelighetene når OneUptime har startet. PostgreSQL tar bare passordet sitt når den oppretter databasen, og endrer du `ENCRYPTION_SECRET` senere, blir hver verdi som er kryptert med den gamle, uleselig. Derfor setter `npm start` `DATABASE_PASSWORD` og `ENCRYPTION_SECRET` bare på en ny installasjon, før PostgreSQL oppretter databasen sin.
 
-### Start OneUptime
+Med Docker CLI erstatter du plassholderne selv før første start:
 
-:::tabs
-@tab npm
 ```bash
-npm start
+while grep -q "please-change-this-to-random-value" config.env; do
+  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env
+done
+grep -c "please-change-this" config.env
 ```
-@tab Docker CLI
-```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
-```
-:::
 
-Første start tar flere minutter: Docker laster ned imagene, og OneUptime oppretter databasene sine. `npm start` venter til hver del svarer, og avslutter med **OneUptime is up!**
-
-### Opprett den første kontoen
-
-Åpne `http://` etterfulgt av `HOST` (for eksempel `http://localhost`) og registrer deg. Den første kontoen på en ny instans blir hovedadministratoren, som kan åpne Admin Dashboard på `/admin`.
-
-Alle som kan nå siden, kan registrere seg etter deg. For å hindre det åpner du Admin Dashboard, går til **Innstillinger > Autentisering** og slår av **Tillat registrering**. Personer du inviterer til et prosjekt, kan fortsatt opprette kontoen sin.
-:::
+Den siste kommandoen skriver ut `0`: Det er ingen plassholder igjen. Løkken bruker GNU `sed`, som alle Linux-servere har.
 
 ## Sett opp HTTPS
 
@@ -218,14 +227,14 @@ Disse stegene kjører proxyen på samme server som OneUptime. Kjører proxyen di
 :::steps
 #### Flytt ingressen bort fra port 80 og 443
 
-Proxyen trenger port 80 og 443, så flytt ingressen til andre porter, publisert bare på serverens loopback-adresse `127.0.0.1`, slik at besøkende bare når OneUptime gjennom proxyen din. Proben og Runneren bruker vertens nettverk og når OneUptime gjennom `http://localhost`, så de flytter med:
+Proxyen trenger port 80 og 443, så flytt ingressen til andre porter, publisert bare på serverens loopback-adresse `127.0.0.1`, slik at besøkende bare når OneUptime gjennom proxyen din:
 
 ```ini title="config.env"
 ONEUPTIME_HTTP_PORT=127.0.0.1:8080
 STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
-GLOBAL_PROBE_1_ONEUPTIME_URL=http://localhost:8080
-ONEUPTIME_RUNNER_ONEUPTIME_URL=http://localhost:8080
 ```
+
+Proben og Runneren bruker vertens nettverk og når OneUptime gjennom `http://localhost`. `npm start` flytter dem til ingressens nye port, `http://localhost:8080`, og sier fra.
 
 #### Fortell OneUptime at den står bak en proxy
 
@@ -241,11 +250,10 @@ TRUSTED_PROXY_HOPS=2
 #### Start OneUptime på nytt på de nye portene
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
-bash Tests/Scripts/status-check.sh localhost:8080
+npm start
 ```
 
-`npm start` sjekker `http://localhost` på port 80, der proxyen din skal ligge, så sjekk den nye porten selv. Skriptet avslutter med **OneUptime is up!**
+`npm start` sjekker OneUptime på den nye porten, `localhost:8080`, og avslutter med **OneUptime is up!**
 
 #### Konfigurer proxyen
 
@@ -445,7 +453,7 @@ git pull
 npm run update
 ```
 
-`npm run update` ber om sudo-passordet ditt, legger til nye innstillinger fra `config.example.env` i `config.env` (dine egne verdier blir værende), henter de nye imagene og starter OneUptime på nytt. Som `npm start` avslutter det med **OneUptime is up!**
+`npm run update` legger til nye innstillinger fra `config.example.env` i `config.env` (dine egne verdier blir værende), henter de nye imagene og starter OneUptime på nytt. Som `npm start` avslutter det med **OneUptime is up!**
 
 Å gå over til en ny hovedversjon (fra 13 til 14, for eksempel) kan kreve mer: Les [Oppgradering av OneUptime](/docs/installation/upgrading) før du begynner.
 
@@ -472,6 +480,14 @@ Slett deretter mappen `oneuptime`.
 
 ## Feilsøking
 
+:::details npm start stopper før den starter OneUptime
+`npm start` sjekker først serveren og stopper ved alt som ville hindret OneUptime i å virke: Docker eller Compose-tillegget mangler, Docker kjører ikke eller er utenfor rekkevidde for brukeren din, et annet program holder en port, eller `HOST` er en adresse ingen nettleser kan åpne. Hver linje merket med ✗ sier hva du skal endre. Endre det, og kjør deretter `npm start` på nytt. Tar en sjekk feil om serveren din, starter du uten sjekkene:
+
+```bash
+ONEUPTIME_SKIP_PREFLIGHT=true npm start
+```
+:::
+
 :::details Docker sier "permission denied" når du kjører npm start
 Brukeren din når ikke Docker-daemonen. Legg den til i gruppen `docker`, og logg deretter ut og inn igjen:
 
@@ -481,7 +497,7 @@ sudo usermod -aG docker $USER
 :::
 
 :::details Ingressen kan ikke starte fordi port 80 eller 443 er i bruk
-Et annet program på serveren, ofte en webserver, holder porten. Stopp det, eller flytt ingressen til andre porter og sett programmet foran OneUptime som beskrevet i [Bruk din egen reverse proxy](#bruk-din-egen-reverse-proxy).
+Et annet program på serveren, ofte en webserver, holder porten. `npm start` sjekker portene før den starter noe, og nevner containeren som holder en av dem når Docker kjører den. Stopp programmet, eller flytt ingressen til andre porter og sett programmet foran OneUptime som beskrevet i [Bruk din egen reverse proxy](#bruk-din-egen-reverse-proxy).
 :::
 
 :::details npm start avslutter med "Maximum retries reached"
@@ -492,7 +508,11 @@ npm run ps
 npm run logs
 ```
 
-Når hver container kjører, kjører du sjekken på nytt med `npm run status-check`. Hvis du flyttet ingressen bort fra port 80, sjekker du i stedet den nye porten: `bash Tests/Scripts/status-check.sh localhost:8080`.
+Når hver container kjører, kjører du sjekken på nytt med `npm run status-check`. Den sjekker ingressen på porten `ONEUPTIME_HTTP_PORT` angir.
+:::
+
+:::details Nettleseren viser "OneUptime er ikke satt opp for denne adressen"
+Du åpnet OneUptime på en annen adresse enn `HOST`, for eksempel serverens IP-adresse mens `HOST` fortsatt er `localhost`. Siden viser `HOST`-linjen for adressen du åpnet, med en knapp som kopierer den: Sett linjen inn i `config.env`, og kjør deretter `npm start`. Åpnet du adressen i `HOST`, og siden sier at proxyen din ikke sendte den videre, stiller du inn proxyen til å sende videre vertsnavnet nettleseren ba om: Caddy gjør det som standard, Nginx med `proxy_set_header Host $host;` og Apache med `ProxyPreserveHost On`.
 :::
 
 :::details Noen sider lastes, men liveoppdateringer eller opplastinger feiler
@@ -521,7 +541,7 @@ Når en bestilling feiler, logger appen en feil som begynner med `CoreSSL:Ensure
 :::
 
 :::details Den medfølgende proben viser Frakoblet etter at du flyttet ingressens port
-Admin Dashboard viser proben under **Innstillinger > Overvåking > Globale prober**. Den når OneUptime på `GLOBAL_PROBE_1_ONEUPTIME_URL`, som er `http://localhost` (port 80) som standard. Sett den til ingressens nye port, for eksempel `http://localhost:8080`, sett `ONEUPTIME_RUNNER_ONEUPTIME_URL` på samme måte, og start OneUptime på nytt.
+Admin Dashboard viser proben under **Innstillinger > Overvåking > Globale prober**. Den når OneUptime på `GLOBAL_PROBE_1_ONEUPTIME_URL`, som er `http://localhost` (port 80) som standard. `npm start` flytter den og `ONEUPTIME_RUNNER_ONEUPTIME_URL` til ingressens port så lenge de peker på `localhost`. Har du satt dem til en annen adresse, eller startet OneUptime med Docker CLI, setter du begge til ingressens nye port, for eksempel `http://localhost:8080`, og starter OneUptime på nytt.
 :::
 
 ## Neste steg
