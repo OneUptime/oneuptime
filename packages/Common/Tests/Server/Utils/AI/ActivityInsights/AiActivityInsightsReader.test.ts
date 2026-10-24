@@ -917,6 +917,54 @@ describe("AiActivityInsightsReader.read", () => {
     });
   });
 
+  describe("problems found in a service's traces", () => {
+    test("each kind is about the service its fingerprint names, and no other", () => {
+      const serviceId: string = ObjectID.generate().toString();
+      const otherId: string = ObjectID.generate().toString();
+
+      const findings: Array<[AIInsightType, string]> = [
+        [AIInsightType.TraceSlowOperation, `trace-slow:${serviceId}:GET /orders`],
+        [
+          AIInsightType.TraceFailingOperation,
+          `trace-failing:${serviceId}:POST /checkout`,
+        ],
+        [
+          AIInsightType.TraceMissingTracing,
+          `trace-missing-tracing:${serviceId}:NoChildSpans:`,
+        ],
+      ];
+
+      for (const [insightType, fingerprint] of findings) {
+        expect(
+          isPreventiveInsightAboutScope({
+            insight: { insightType, fingerprint } as never,
+            scopeId: serviceId.toUpperCase(),
+            exceptionOwners: new Map<string, string>(),
+          }),
+        ).toBe(true);
+        expect(
+          isPreventiveInsightAboutScope({
+            insight: { insightType, fingerprint } as never,
+            scopeId: otherId,
+            exceptionOwners: new Map<string, string>(),
+          }),
+        ).toBe(false);
+      }
+
+      // An operation named after another service's id is not that service.
+      expect(
+        isPreventiveInsightAboutScope({
+          insight: {
+            insightType: AIInsightType.TraceSlowOperation,
+            fingerprint: `trace-slow:${otherId}:GET /${serviceId}`,
+          } as never,
+          scopeId: serviceId,
+          exceptionOwners: new Map<string, string>(),
+        }),
+      ).toBe(false);
+    });
+  });
+
   describe("preventive insights", () => {
     function insight(
       overrides: Partial<Record<keyof AIInsight, unknown>>,
