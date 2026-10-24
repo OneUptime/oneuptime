@@ -45,7 +45,10 @@ import {
   NetworkTrafficUsageUplinkRow,
   getUsageOctets,
 } from "Common/Types/NetFlow/NetworkTrafficUsage";
-import { isNetworkControllerStatusAProblem } from "Common/Types/NetworkController/NetworkControllerConnectionHealth";
+import {
+  NetworkControllerConnectionStatus,
+  isNetworkControllerStatusAProblem,
+} from "Common/Types/NetworkController/NetworkControllerConnectionHealth";
 import ObjectID from "Common/Types/ObjectID";
 import Button, {
   ButtonSize,
@@ -215,6 +218,20 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
   const isWaiting: boolean =
     !summary.lastUplinkAt && !summary.lastAnalyticsAt && !hasTraffic;
   const canNarrow: boolean = props.scopeKind !== "device";
+  /*
+   * The lines over the traffic: every connection - but while the page waits
+   * for a first read, the page says so itself, and a line that only waits
+   * too would say it twice.
+   */
+  const lines: Array<NetworkTrafficUsageConnection> = isWaiting
+    ? summary.connections.filter(
+        (connection: NetworkTrafficUsageConnection): boolean => {
+          return (
+            connection.status !== NetworkControllerConnectionStatus.Waiting
+          );
+        },
+      )
+    : summary.connections;
 
   const setFilters: (next: NetworkTrafficUsageFilters) => void = (
     next: NetworkTrafficUsageFilters,
@@ -234,13 +251,10 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
         key: row.controllerNetworkId,
         label: name,
         octets: getUsageOctets(row),
-        detail: translator.translateTemplate(
-          "In {{in}} · out {{out}}",
-          {
-            in: formatTrafficBytes(row.receivedOctets),
-            out: formatTrafficBytes(row.sentOctets),
-          },
-        ),
+        detail: translator.translateTemplate("In {{in}} · out {{out}}", {
+          in: formatTrafficBytes(row.receivedOctets),
+          out: formatTrafficBytes(row.sentOctets),
+        }),
         isActive,
         ariaLabel: translator.translateTemplate(
           "Show only the traffic of {{network}}",
@@ -272,13 +286,10 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
           .filter(Boolean)
           .join(" · "),
         octets: getUsageOctets(row),
-        detail: translator.translateTemplate(
-          "In {{in}} · out {{out}}",
-          {
-            in: formatTrafficBytes(row.receivedOctets),
-            out: formatTrafficBytes(row.sentOctets),
-          },
-        ),
+        detail: translator.translateTemplate("In {{in}} · out {{out}}", {
+          in: formatTrafficBytes(row.receivedOctets),
+          out: formatTrafficBytes(row.sentOctets),
+        }),
         isActive,
         ariaLabel: translator.translateTemplate(
           "Show only the traffic of {{appliance}}",
@@ -324,13 +335,10 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
         key: row.application,
         label: row.application,
         octets: getUsageOctets(row),
-        detail: translator.translateTemplate(
-          "In {{in}} · out {{out}}",
-          {
-            in: formatTrafficBytes(row.receivedOctets),
-            out: formatTrafficBytes(row.sentOctets),
-          },
-        ),
+        detail: translator.translateTemplate("In {{in}} · out {{out}}", {
+          in: formatTrafficBytes(row.receivedOctets),
+          out: formatTrafficBytes(row.sentOctets),
+        }),
         isActive: false,
       };
     },
@@ -359,13 +367,10 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
         isMono: !row.name,
         sublabel: details.length > 0 ? details.join(" · ") : undefined,
         octets: getUsageOctets(row),
-        detail: translator.translateTemplate(
-          "In {{in}} · out {{out}}",
-          {
-            in: formatTrafficBytes(row.receivedOctets),
-            out: formatTrafficBytes(row.sentOctets),
-          },
-        ),
+        detail: translator.translateTemplate("In {{in}} · out {{out}}", {
+          in: formatTrafficBytes(row.receivedOctets),
+          out: formatTrafficBytes(row.sentOctets),
+        }),
         isActive: false,
       };
     },
@@ -553,11 +558,7 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
             className={props.isLoading ? "opacity-75 transition-opacity" : ""}
             data-testid="meraki-traffic-body"
           >
-            {summary.connections.length > 0 ? (
-              <ConnectionLines connections={summary.connections} />
-            ) : (
-              <></>
-            )}
+            {lines.length > 0 ? <ConnectionLines connections={lines} /> : <></>}
 
             {chips.length > 0 ? (
               <div

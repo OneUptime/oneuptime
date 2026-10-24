@@ -454,7 +454,13 @@ jobs:
           # the eight. Security Events Empty States (about 3 minutes, Chromium
           # only) moved here from group 3 later that day, when this group took
           # 15 to 17 minutes: about 20 for the nine. Code moved on to group 9
-          # when this group took 22.6 minutes on the next run.
+          # when this group took 22.6 minutes on the next run: about 16 for
+          # the eight. Meraki Traffic (about 2.5 minutes with its bundle
+          # locally, Chromium only: Network > Traffic's Meraki side - Connect
+          # Meraki, the first read filling the page in, an organization's
+          # traffic, the Flows | Meraki switch, a refused and a revoked key and
+          # a large organization read in part - at 1280 and 390 pixels, dark
+          # and German) joined them on 2026-10-24: about 18.5 for the nine.
           - group: 8
             browsers: chromium
             suites: >-
@@ -466,6 +472,7 @@ jobs:
               test-security-operations-ui
               test-public-addresses-ui
               test-security-events-empty-states-ui
+              test-meraki-traffic-ui
           # Added on 2026-10-21, when every group took 20 to 26 minutes on one
           # run (groups 1 and 5 near 25) and Resource Topology would have
           # taken group 7 past 22: Code (6.4 minutes on that run, a laptop
@@ -672,6 +679,8 @@ jobs:
             output/playwright/runbook-steps-ui/test-results
             output/playwright/network-first-run-ui/*.png
             output/playwright/network-first-run-ui/test-results
+            output/playwright/meraki-traffic-ui/*.png
+            output/playwright/meraki-traffic-ui/test-results
             output/playwright/code-ui/*.png
             output/playwright/code-ui/test-results
             output/playwright/infrastructure-first-run-ui/*.png

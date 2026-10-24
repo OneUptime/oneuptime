@@ -392,6 +392,9 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
                 const isOff: boolean =
                   facts.connection.status ===
                   NetworkControllerConnectionStatus.Off;
+                const isWaiting: boolean =
+                  facts.connection.status ===
+                  NetworkControllerConnectionStatus.Waiting;
                 const summary: MerakiConnectionRowFacts["summary"] =
                   facts.summary;
                 const covered: Array<string> = summary
@@ -467,19 +470,36 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
                             )}
                           </span>
                         </div>
-                        <div className="mt-0.5 text-xs text-gray-500">
+                        <div
+                          className="mt-0.5 text-xs text-gray-500"
+                          data-testid="meraki-connection-organization"
+                        >
                           {[
-                            facts.connection.organizationName,
+                            // The organization, when the name is not its own.
+                            facts.connection.organizationName !==
+                            facts.connection.name
+                              ? facts.connection.organizationName
+                              : "",
                             `${translator.translateText(facts.regionName) || facts.regionName} (${facts.regionHost})`,
                           ]
                             .filter(Boolean)
                             .join(" · ")}
                         </div>
                         <div className="mt-1 text-sm text-gray-600">
-                          {drawMerakiTemplate(
-                            translator,
-                            getMerakiConnectionSentence(facts.connection),
-                          )}{" "}
+                          {/*
+                           * Waiting for its first read: the status says so,
+                           * and its sentence would say it again.
+                           */}
+                          {isWaiting ? (
+                            <></>
+                          ) : (
+                            <>
+                              {drawMerakiTemplate(
+                                translator,
+                                getMerakiConnectionSentence(facts.connection),
+                              )}{" "}
+                            </>
+                          )}
                           <span className="text-gray-500">
                             {drawMerakiTemplate(
                               translator,
