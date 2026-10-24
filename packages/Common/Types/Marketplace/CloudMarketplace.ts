@@ -5,7 +5,7 @@
  * A project bought on one of them is billed by that marketplace instead of by
  * a card on file: the marketplace charges the customer on their cloud (or
  * Vercel) bill, and OneUptime reports what the project used (see
- * Server/Utils/Marketplace). The values are stored in the database
+ * ee/Server/CloudMarketplace). The values are stored in the database
  * (Project.billingMarketplace, MarketplaceSubscription.marketplace), so they
  * never change; what people read is getDisplayName.
  */

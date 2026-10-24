@@ -15,7 +15,10 @@ import ts from "typescript";
  * Read per module, through the TypeScript AST, over every frontend's source:
  *
  *   A whole card is an element of Card, CardModelDetail, TableCard or
- *   AdvancedPageSection; a FoldedSection drawn as a card (isElevated); a
+ *   AdvancedPageSection; of a door (EnterprisePluginPage, which draws the
+ *   Enterprise card or the upsell card in its place, with what is left of
+ *   the feature beside it - never inside it); a FoldedSection drawn as a
+ *   card (isElevated); a
  *   ModelTable, ModelList or BaseModelTable given cardProps; or an element of
  *   a component whose module's default export draws one of those at its root
  *   - the element its last return gives, or one directly inside a fragment,
@@ -72,6 +75,14 @@ const BASE_CARDS: ReadonlyArray<string> = [
   "TableCard",
   "AdvancedPageSection",
 ];
+
+/*
+ * Doors: elements that draw a whole card in their place, and draw what they
+ * are given - the upsell, what a lower plan or the Community Edition left of
+ * the feature - beside it rather than inside it. A whole card, but no
+ * container.
+ */
+const CARD_DOORS: ReadonlyArray<string> = ["EnterprisePluginPage"];
 
 const CARD_TABLES: ReadonlyArray<string> = [
   "ModelTable",
@@ -386,7 +397,7 @@ class CardNestingScanner {
       return false;
     }
 
-    if (BASE_CARDS.includes(name)) {
+    if (BASE_CARDS.includes(name) || CARD_DOORS.includes(name)) {
       return true;
     }
 
@@ -508,6 +519,11 @@ class CardNestingScanner {
 
   private containerName(module: ParsedModule, element: JsxLike): string | null {
     const name: string = nameOf(element).replace(TYPE_ARGUMENTS, "");
+
+    // A door draws what it is given beside its card, not inside it.
+    if (CARD_DOORS.includes(name)) {
+      return null;
+    }
 
     if (this.isCardElement(module, element)) {
       return name;

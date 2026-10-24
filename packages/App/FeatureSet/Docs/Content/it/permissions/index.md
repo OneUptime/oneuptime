@@ -139,7 +139,7 @@ L'elenco completo è nel [Riferimento delle autorizzazioni](/docs/permissions/re
 
 ### Ruoli personalizzati
 
-Un ruolo personalizzato è un insieme di autorizzazioni a cui date un nome una volta e che assegnate a team e chiavi API: per esempio un «Gestore degli incidenti» fatto di `IncidentMember`, `AlertMember` e `OnCallViewer`, oppure un «Responsabile del team». Ogni team e ogni chiave a cui lo assegnate riceve le stesse autorizzazioni, e le modificate per tutti in un unico punto. Su OneUptime Cloud, i ruoli personalizzati richiedono il piano Scale, come la modifica delle autorizzazioni di un team.
+Un ruolo personalizzato è un insieme di autorizzazioni a cui date un nome una volta e che assegnate a team e chiavi API: per esempio un «Gestore degli incidenti» fatto di `IncidentMember`, `AlertMember` e `OnCallViewer`, oppure un «Responsabile del team». Ogni team e ogni chiave a cui lo assegnate riceve le stesse autorizzazioni, e le modificate per tutti in un unico punto. Su OneUptime Cloud, i ruoli personalizzati richiedono il piano Scale, come la modifica delle autorizzazioni di un team. In self-hosting fanno parte della Enterprise Edition: nella Community Edition i ruoli che i vostri team e le vostre chiavi API hanno già continuano ad applicarsi, e si possono togliere a un team o a una chiave o eliminare, ma non creare né modificare.
 
 :::steps
 1. Aprite **Team** dal menu **Prodotti**, sotto **Impostazioni**. Espandete **Impostazioni** nel menu laterale, scegliete **Ruoli** e fate clic su **Crea: Ruolo personalizzato**.

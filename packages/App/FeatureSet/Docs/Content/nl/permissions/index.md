@@ -139,7 +139,7 @@ De volledige lijst staat in de [Machtigingsreferentie](/docs/permissions/referen
 
 ### Aangepaste rollen
 
-Een aangepaste rol is een set machtigingen die u één keer een naam geeft en aan teams en API-sleutels geeft: bijvoorbeeld een "Incidentbehandelaar" met `IncidentMember`, `AlertMember` en `OnCallViewer`, of een "Teamleider". Elk team en elke sleutel die u de rol geeft, krijgt dezelfde machtigingen, en u wijzigt ze voor allemaal op één plek. Op OneUptime Cloud vragen aangepaste rollen het Scale-abonnement, net als het wijzigen van de machtigingen van een team.
+Een aangepaste rol is een set machtigingen die u één keer een naam geeft en aan teams en API-sleutels geeft: bijvoorbeeld een "Incidentbehandelaar" met `IncidentMember`, `AlertMember` en `OnCallViewer`, of een "Teamleider". Elk team en elke sleutel die u de rol geeft, krijgt dezelfde machtigingen, en u wijzigt ze voor allemaal op één plek. Op OneUptime Cloud vragen aangepaste rollen het Scale-abonnement, net als het wijzigen van de machtigingen van een team. Zelf gehost horen ze bij de Enterprise Edition: in de Community Edition blijven de rollen die uw teams en API-sleutels al hebben gelden, en kunnen ze van een team of sleutel worden afgenomen of worden verwijderd, maar niet worden aangemaakt of gewijzigd.
 
 :::steps
 1. Open **Teams** in het menu **Producten**, onder **Instellingen**. Klap **Instellingen** open in het zijmenu, kies **Rollen** en klik op **Aangepaste rol aanmaken**.

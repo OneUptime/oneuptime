@@ -1,5 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
-import TeamCustomRoleTable from "../../../Components/Team/TeamCustomRoleTable";
+import TeamCustomRolesSettings from "../../../Components/Team/TeamCustomRolesSettings";
 import TeamPermissionTable, {
   PermissionType,
 } from "../../../Components/Team/TeamPermissionTable";
@@ -39,9 +39,10 @@ const TeamViewPermissions: FunctionComponent<PageComponentProps> = (
     <Fragment>
       {/*
        * The custom roles it is given, once the project has any: what a
-       * change to a role changes for this team.
+       * change to a role changes for this team. An Enterprise feature: where
+       * roles cannot be given, the ones the team still has, with Remove.
        */}
-      <TeamCustomRoleTable teamId={modelId} />
+      <TeamCustomRolesSettings teamId={modelId} />
 
       {/* What the team's members can do: a role, or single permissions. */}
       <TeamPermissionTable

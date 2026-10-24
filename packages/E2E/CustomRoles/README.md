@@ -1,13 +1,23 @@
 # Custom Roles fixture
 
 An offline harness for the real Teams pages a custom role lives on: Teams >
-Settings > Roles (`packages/App/FeatureSet/Dashboard/src/Pages/Teams/Roles.tsx`),
-a role's own page (`Pages/Teams/RoleView.tsx`), a team's Permissions page
+Settings > Roles (core's shell `packages/App/FeatureSet/Dashboard/src/Pages/Teams/Roles.tsx`
+and the Enterprise page `ee/Dashboard/CustomRoles/RolesPage.tsx`), a role's own
+page (`ee/Dashboard/CustomRoles/RoleViewPage.tsx`), a team's Permissions page
 (`Pages/Teams/View/Permissions.tsx`) and Create Team on the Teams list
 (`Pages/Teams/Index.tsx`). It mounts the production `TeamsRoutes`, bundled with
 the app's esbuild config, Tailwind, theme and font, replaces only the
 `ModelAPI` / `API` data boundary and the synthetic user's permissions, and
 serves them on `127.0.0.1:4313`. No Docker, no database, no sign-in.
+
+Custom roles are an Enterprise feature. The server resolves the Dashboard's
+plugin specifier as the Dashboard's own build does
+(`Common/UI/esbuild-enterprise.js`): the Enterprise pages when `ee/` is checked
+out, the Community stub otherwise, and `/edition.json` says which.
+`CustomRoles.spec.ts` and `ApiKeyCustomRoles.spec.ts` skip on the Community
+Edition (the Dashboard Offline UI jobs run without `ee/`); run them from a
+checkout with `ee/` to see them pass. `AddRoleDialog.spec.ts` drives a team's
+own Permissions page, which every edition has, and always runs.
 
 The project holds four roles - Incident Responder (6 permissions, one of them
 restricted to the Production label), Team Lead (3), Auditor (none yet) and

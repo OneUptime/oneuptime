@@ -97,6 +97,7 @@ OneUptime 现在以两个镜像交付应用程序。**Community Edition** 是基
 ### 升级前要做什么
 
 - **不使用 SCIM 的 Community Edition:** 无需操作。照常升级。
+- **使用了自定义角色、IP 允许列表、状态页访问控制或隐藏了 Powered by OneUptime 的 Community Edition:** 自定义角色、IP 允许列表和状态页访问控制已移到 Enterprise Edition。已经设置的会继续生效，可以移除，但不能创建或更改。状态页会重新显示 Powered by OneUptime。要继续管理它们，请切换到 Enterprise 镜像。
 - **使用 `image.type: enterprise-edition` 的 Helm:** 无需操作。chart 已经拉取 `enterprise-` 镜像，这些镜像现在包含企业模块。
 - **使用 `IS_ENTERPRISE_EDITION=true` 的 Docker Compose:** 升级时在 `config.env` 中设置 `APP_TAG=enterprise-release`（或 `enterprise-<version>`），切换到 Enterprise 镜像。`APP_TAG=release` 是 Community 镜像，而 `IS_ENTERPRISE_EDITION=true` 不再开启任何功能。只要 `IS_ENTERPRISE_EDITION=true`，`npm run update` 就会替你完成这项更改（`release` 变为 `enterprise-release`，固定的 `13.0.7` 变为 `enterprise-13.0.7`），并输出它所做的更改。现在，当在 Community 镜像上设置了 `IS_ENTERPRISE_EDITION=true` 时，应用程序会 **拒绝启动**，而不是悄悄停止 SCIM 预配和审计日志记录。错误信息会说明要设置什么：要保留 Enterprise Edition，设置 `APP_TAG=enterprise-<version>`；要运行 Community Edition，设置 `IS_ENTERPRISE_EDITION=false`。
 - **已配置 SCIM 的 Community 镜像:** 此次升级后 SCIM 预配会停止，包括取消预配。要继续使用，请切换到 Enterprise 镜像。否则，请在升级前阅读 [从 Enterprise 切换到 Community](/docs/self-hosted/enterprise#从-enterprise-切换到-community)。它说明了哪些功能会停止以及应先移除哪些人。要运行 Community Edition，还要设置 `IS_ENTERPRISE_EDITION=false`。单点登录不受影响：Community 镜像同样提供它。

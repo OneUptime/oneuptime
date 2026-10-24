@@ -184,7 +184,39 @@ function picker(page: Page, stepIndex: number): Locator {
   return page.getByTestId(`runbook-step-${stepIndex}-runner`);
 }
 
+/*
+ * Waits until nothing on the page moves: two frames for React to draw, then
+ * every finite animation and transition finished. A picker's menu takes its
+ * place when it opens and keeps it, so a picker opened while a step above it
+ * is still unfolding leaves its menu where the picker was - outside the
+ * viewport, where a click can never reach it (a 14.0.88 release gate run
+ * retried one for 90 seconds).
+ */
+async function pageAtRest(page: Page): Promise<void> {
+  await page.evaluate(async () => {
+    await new Promise((resolve: (value: unknown) => void) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(resolve);
+      });
+    });
+    await Promise.all(
+      document
+        .getAnimations()
+        .filter((animation: Animation) => {
+          return animation.effect?.getTiming().iterations !== Infinity;
+        })
+        .map((animation: Animation) => {
+          return animation.finished.catch(() => {
+            return undefined;
+          });
+        }),
+    );
+  });
+}
+
 async function openPicker(page: Page, stepIndex: number): Promise<Locator> {
+  await expect(picker(page, stepIndex)).toBeVisible();
+  await pageAtRest(page);
   await picker(page, stepIndex).getByRole("combobox").click();
   const options: Locator = page.getByRole("option");
   await expect(options.first()).toBeVisible();

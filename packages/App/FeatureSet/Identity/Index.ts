@@ -1,7 +1,6 @@
 import AuthenticationAPI from "./API/Authentication";
 import ResellerAPI from "./API/Reseller";
 import MicrosoftSignInAPI from "./API/MicrosoftSignIn";
-import VercelSignInAPI from "./API/VercelSignIn";
 import StatusPageAuthenticationAPI from "./API/StatusPageAuthentication";
 import { SSO_ROUTERS } from "./SsoRouters";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
@@ -25,9 +24,6 @@ const IdentityFeatureSet: FeatureSet = {
     // Sign in with Microsoft (offered when MICROSOFT_SIGN_IN_CLIENT_ID is set).
     app.use([`/${APP_NAME}`, "/"], MicrosoftSignInAPI);
 
-    // Sign-in from Vercel Marketplace (OneUptime Cloud, when the Vercel integration is set up).
-    app.use([`/${APP_NAME}`, "/"], VercelSignInAPI);
-
     /*
      * Single sign-on - SAML and OIDC for projects, the whole instance and
      * status pages (./SsoRouters.ts) - is served in every edition, at the
@@ -43,9 +39,11 @@ const IdentityFeatureSet: FeatureSet = {
      * same two prefixes, so the SCIM base URLs configured at customers'
      * identity providers keep working unchanged. The Community Edition mounts
      * none. They are mounted once, but every SCIM route asks the license per
-     * request and refuses while SCIM is not active (a lapsed license). No SCIM
-     * path overlaps an SSO path, so the order between the two blocks does not
-     * change which router answers.
+     * request and refuses while SCIM is not active (a lapsed license). On
+     * OneUptime Cloud (billing on) the module adds sign-in from Vercel
+     * Marketplace (/vercel/sso) too. No path of theirs overlaps an SSO path,
+     * so the order between the two blocks does not change which router
+     * answers.
      */
     const enterpriseIdentityRouters: Array<ExpressRouter> =
       EnterpriseEdition.getModule()?.getIdentityRouters() || [];

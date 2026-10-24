@@ -35,7 +35,7 @@ Esta página explica qué incluye cada edición, cómo ejecutar la Enterprise Ed
 | Función | Community | Enterprise | OneUptime Cloud |
 | --- | --- | --- | --- |
 | Monitorización, alertas, incidentes, guardias, páginas de estado, logs, métricas, trazas, excepciones, paneles, flujos de trabajo, funciones de IA, API y Terraform | Sí | Sí | Todos los planes |
-| Inicio de sesión con contraseña, autenticación de dos factores, equipos, roles y claves de API | Sí | Sí | Todos los planes |
+| Inicio de sesión con contraseña, autenticación de dos factores, equipos, roles integrados y claves de API | Sí | Sí | Todos los planes |
 | [SSO SAML y OpenID Connect](/docs/identity/sso) para iniciar sesión en proyectos | Sí | Sí | Plan Scale y superiores |
 | SSO SAML y OpenID Connect para iniciar sesión en páginas de estado privadas | Sí | Sí | Plan Scale y superiores |
 | [SSO y OIDC globales (para toda la instancia)](/docs/identity/global-sso) | Sí | Sí | No aplica |
@@ -43,6 +43,10 @@ Esta página explica qué incluye cada edición, cómo ejecutar la Enterprise Ed
 | Ajustes de cumplimiento de equipos | No | Sí | Plan Scale y superiores |
 | Registros de auditoría | No | Sí | Plan Enterprise |
 | Anulaciones de retención: retención por tipo de telemetría (logs, trazas, métricas, perfiles, con reglas por gravedad del log y estado de la traza) y retención por servicio y por recurso | No | Sí | Plan Scale y superiores |
+| Roles personalizados: conjuntos de permisos a los que pone nombre una vez y que da a equipos y claves de API | No | Sí | Plan Scale y superiores |
+| Listas de IP permitidas para páginas de estado, paneles públicos y formularios | No | Sí | Plan Scale y superiores |
+| Controles de acceso de las páginas de estado: cuánto tiempo siguen con la sesión iniciada los lectores de una página de estado privada, y quién puede suscribirse | No | Sí | Plan Scale y superiores |
+| Ocultar «Powered by OneUptime» en las páginas de estado | No | Sí | Plan Scale y superiores |
 | Paneles **Health** de la administración: resumen de la instancia, colas en segundo plano, logs de la instancia, PostgreSQL, Valkey, clúster de ClickHouse, logs de diagnóstico e ingesta de telemetría | No | Sí | No aplica |
 | **Query Console** de la administración | No | Sí | No disponible |
 | Alertas de salud de PostgreSQL y Valkey (Redis) | No | Sí | No aplica |
@@ -55,6 +59,8 @@ El inicio de sesión único incluye «Require SSO for login» para proyectos, p�
 Todas las ediciones tienen la retención de telemetría predeterminada del proyecto, en **Ajustes del proyecto > Telemetría y APM > Retención de datos**. Las anulaciones de retención son lo que la Enterprise Edition añade por encima.
 
 En OneUptime Cloud, una función de pago siempre se puede desactivar, en cualquier plan. Una anulación de retención que una prueba (o un cambio a un plan inferior) dejó configurada sigue aplicándose a la telemetría nueva, así que por debajo del plan Scale las páginas de retención la muestran bajo la tarjeta de mejora con un botón **Quitar anulación**. Quitarla funciona en todos los planes; volver a configurar una requiere el plan Scale. La telemetría ya almacenada conserva la retención con la que se almacenó. Del mismo modo, **Ajustes del proyecto > Seguridad > SSO** muestra el interruptor **Requerir SSO para iniciar sesión** bajo su tarjeta de mejora mientras el proyecto siga exigiendo SSO, para que se pueda desactivar.
+
+Los roles personalizados, las listas de IP permitidas, los controles de acceso de las páginas de estado y una línea «Powered by OneUptime» oculta funcionan igual: lo que una prueba o un plan inferior dejó configurado sigue aplicándose, y sus ajustes lo muestran bajo la tarjeta de mejora con un botón para quitarlo.
 
 Las filas «No aplica» son funciones de administración de la instancia. En OneUptime Cloud, OneUptime opera la instancia por usted.
 
@@ -185,12 +191,14 @@ Qué se detiene cuando una licencia caduca:
 - **El aprovisionamiento SCIM se detiene.** Las solicitudes SCIM de su proveedor de identidad se rechazan, incluido el desaprovisionamiento, y los bloqueos de equipo de SCIM se levantan, así que los equipos gestionados por grupos push de SCIM se pueden editar a mano.
 - **El registro de auditoría deja de grabar.** Los registros de auditoría grabados hasta entonces se conservan.
 - **Las anulaciones de retención dejan de aplicarse.** La telemetría nueva se conserva durante la retención predeterminada del proyecto. La telemetría ya almacenada conserva la retención con la que se escribió. Todavía puede borrar una anulación por la API, pero no configurar una.
+- **Las páginas de estado vuelven a mostrar Powered by OneUptime.** Una página que oculta la línea la muestra hasta que se activa una licencia. El ajuste se conserva.
 
 Qué **no** se detiene:
 
 - **El inicio de sesión único.** El inicio de sesión SAML y OIDC en proyectos, páginas de estado privadas, toda la instancia (SSO global) y las aplicaciones móviles, así como «Require SSO for login», forman parte de todas las ediciones. Una licencia caducada no cambia nada de esto, y la configuración del inicio de sesión único sigue siendo editable.
 - **La monitorización básica nunca se ve afectada**: monitores, alertas, incidentes, guardias, páginas de estado y telemetría siguen funcionando.
 - **Los administradores maestros siempre pueden iniciar sesión con su contraseña.**
+- **Los roles personalizados, las listas de IP permitidas y los controles de acceso de las páginas de estado siguen aplicándose.** Puede quitarlos, pero no crearlos ni cambiarlos.
 - **No se elimina nada.** La configuración de SCIM, los registros de auditoría y las anulaciones de retención se quedan como están.
 
 **Todo se reanuda en cuanto se activa una licencia**, sin reiniciar: el aprovisionamiento SCIM, el registro de auditoría y las anulaciones de retención vuelven con la configuración que tiene. OneUptime solo los desactiva cuando sabe que la licencia ha caducado. Mientras no puede leer el estado de la licencia, por ejemplo un momento mientras arranca el servidor, SCIM, el registro de auditoría y las anulaciones de retención siguen activos.
@@ -206,6 +214,8 @@ Su configuración se queda en la base de datos. Volver a la imagen Enterprise lo
 - **Los bloqueos de equipo de SCIM se levantan**, así que los equipos que estaban gestionados por grupos push de SCIM se pueden editar a mano. Al arrancar, el servidor registra en qué proyectos se levantaron los bloqueos de equipo de SCIM.
 - **El registro de auditoría se detiene.** Los registros de auditoría grabados hasta entonces se conservan, pero las páginas de registros de auditoría muestran un aviso para mejorar el plan.
 - **Las anulaciones de retención dejan de aplicarse.** La telemetría nueva se conserva durante la retención predeterminada del proyecto, y las tarjetas de retención de **Ajustes del proyecto > Telemetría y APM > Retención de datos** y de la página de ajustes de cada servicio y de cada recurso muestran un aviso para mejorar el plan. Las anulaciones se quedan en la base de datos y vuelven a aplicarse cuando regresa.
+- **Las páginas de estado vuelven a mostrar Powered by OneUptime.** El ajuste se queda en la base de datos y vuelve a ocultar la línea cuando regresa.
+- **Los roles personalizados, las listas de IP permitidas y los controles de acceso de las páginas de estado siguen aplicándose.** Sus ajustes muestran un aviso para mejorar el plan, con lo que sigue configurado y un botón para quitarlo.
 - **Las páginas de ajustes Enterprise muestran un aviso para mejorar el plan.** Por la API todavía puede leer y eliminar la configuración Enterprise y restablecer un token bearer de SCIM, pero no crear ni cambiar nada más. El registro de auditoría no se puede activar.
 - **Los paneles Health Enterprise, la Query Console y las alertas de salud de PostgreSQL y Valkey se detienen.** La supervisión de capacidad y la depuración de ClickHouse, el estado de las migraciones y el paquete de soporte siguen funcionando.
 

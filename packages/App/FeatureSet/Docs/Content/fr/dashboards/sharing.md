@@ -68,7 +68,7 @@ Pour un contrôle plus fort (un compte par lecteur, une trace de qui a consulté
 
 ## Liste d'autorisation IP
 
-Sous **Plus de paramètres** sur la page **Partage**, la section **Liste d'autorisation IP** (la colonne `ipWhitelist`) limite le lien public aux adresses IP ou plages IPv4 que vous listez, une par ligne, par exemple `203.0.113.7` ou `10.0.0.0/8`. Elle s'applique avec ou sans mot de passe ; les membres du projet qui se connectent ne sont pas concernés. Laissez-la vide pour autoriser toutes les adresses. Elle s'enregistre seule, à part du choix, et la modifier nécessite l'offre **Scale** sur OneUptime Cloud ; la vider fonctionne avec toutes les offres. Tant qu'une liste est en vigueur, l'en-tête replié de **Plus de paramètres** affiche **Liste d'autorisation IP** avec le nombre d'entrées qu'elle contient.
+Sous **Plus de paramètres** sur la page **Partage**, la section **Liste d'autorisation IP** (la colonne `ipWhitelist`) limite le lien public aux adresses IP ou plages IPv4 que vous listez, une par ligne, par exemple `203.0.113.7` ou `10.0.0.0/8`. Elle s'applique avec ou sans mot de passe ; les membres du projet qui se connectent ne sont pas concernés. Laissez-la vide pour autoriser toutes les adresses. Elle s'enregistre seule, à part du choix, et la modifier nécessite l'offre **Scale** sur OneUptime Cloud ; la vider fonctionne avec toutes les offres. Tant qu'une liste est en vigueur, l'en-tête replié de **Plus de paramètres** affiche **Liste d'autorisation IP** avec le nombre d'entrées qu'elle contient. En auto-hébergement, la modifier fait partie de l'Enterprise Edition : sur la Community Edition, une liste déjà définie continue de s'appliquer et ne peut qu'être supprimée.
 
 Utilisez-la quand :
 

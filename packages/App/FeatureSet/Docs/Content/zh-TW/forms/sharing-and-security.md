@@ -94,7 +94,7 @@ sequenceDiagram
 
 IPv4 位址必須依 IPv4 的方式書寫：如果依 IPv6 的方式書寫，例如 `::ffff:203.0.113.7`，會被拒絕。每次儲存清單時（無論來自儀表板、API、Terraform 還是工作流程）都會檢查它，永遠無法相符的行會被拒絕，並顯示指明該行的訊息。將清單留空即可允許所有網路。一旦清單中有項目，無法判定地址的請求就會被拒絕。
 
-在 OneUptime Cloud 上，設定 IP 允許清單需要 **Scale** 方案——透過 API 建立附有允許清單的表單時和編輯表單時都是如此——與 [公開儀表板](/docs/dashboards/sharing) 的 IP 允許清單相同。清空清單在任何方案上都可以進行。
+在 OneUptime Cloud 上，設定 IP 允許清單需要 **Scale** 方案——透過 API 建立附有允許清單的表單時和編輯表單時都是如此——與 [公開儀表板](/docs/dashboards/sharing) 的 IP 允許清單相同。清空清單在任何方案上都可以進行。自行託管時，變更它屬於 Enterprise Edition：在 Community Edition 上，已設定的清單會繼續生效，且只能移除。
 
 ### 來自其他網站的請求
 

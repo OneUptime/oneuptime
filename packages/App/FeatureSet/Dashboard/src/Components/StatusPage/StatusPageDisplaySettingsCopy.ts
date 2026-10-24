@@ -14,7 +14,9 @@ import IncidentStatusPageScopeCopy from "../Incident/IncidentStatusPageScopeCopy
  * maintenance) with how far back it goes and whether its items carry their
  * labels; its uptime - how many days the bars cover, whether the page shows
  * one overall uptime percentage (and to how many decimals), and which
- * monitor statuses count as downtime; and the "Powered by OneUptime" line.
+ * monitor statuses count as downtime. The "Powered by OneUptime" line has a
+ * card of its own under it (StatusPagePoweredBySettings): hiding it is an
+ * Enterprise feature.
  *
  * It used to be six cards on that page, each with its own Edit button and
  * dialog (the incidents one in two steps), for what is mostly a switch and a
@@ -57,8 +59,7 @@ export type DisplaySwitchColumn =
   | "showAnnouncementsOnStatusPage"
   | "showScheduledMaintenanceEventsOnStatusPage"
   | "showScheduledEventLabelsOnStatusPage"
-  | "showOverallUptimePercentOnStatusPage"
-  | "hidePoweredByOneUptimeBranding";
+  | "showOverallUptimePercentOnStatusPage";
 
 // The status page columns that hold a number of days.
 export type DisplayDaysColumn =
@@ -87,8 +88,7 @@ export type DisplaySectionId =
   | "episodes"
   | "announcements"
   | "scheduled-maintenance"
-  | "uptime-history"
-  | "powered-by";
+  | "uptime-history";
 
 export interface DisplaySwitchDefinition {
   column: DisplaySwitchColumn;
@@ -99,9 +99,10 @@ export interface DisplaySwitchDefinition {
   // ...or only while it is off, saying what off means.
   offDescription?: string | undefined;
   /*
-   * The switch is on while the column is false. Only the "Powered by
-   * OneUptime" line is stored as what to hide; on this card every switch
-   * reads the same way, on = visitors see it.
+   * The switch is on while the column is false, for a column stored as what
+   * to hide; on this card every switch reads the same way, on = visitors
+   * see it. None of this card's columns is stored that way any more: the
+   * "Powered by OneUptime" line, which is, has its own card.
    */
   isInverted?: boolean | undefined;
 }
@@ -375,15 +376,6 @@ export const DISPLAY_SECTIONS: ReadonlyArray<DisplaySectionDefinition> = [
       keepOne: StatusPageDisplaySettingsCopy.downtimeKeepOne,
       placeholder: StatusPageDisplaySettingsCopy.downtimePlaceholder,
     },
-  },
-  {
-    id: "powered-by",
-    show: {
-      column: "hidePoweredByOneUptimeBranding",
-      title: translationKey("Show Powered By OneUptime Branding"),
-      isInverted: true,
-    },
-    options: [],
   },
 ];
 

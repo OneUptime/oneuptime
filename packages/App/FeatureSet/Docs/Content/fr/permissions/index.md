@@ -139,7 +139,7 @@ La liste complète est dans la [Référence des autorisations](/docs/permissions
 
 ### Rôles personnalisés
 
-Un rôle personnalisé est un ensemble d'autorisations que vous nommez une fois et donnez à des équipes et des clés API : par exemple un « Intervenant incidents » fait de `IncidentMember`, `AlertMember` et `OnCallViewer`, ou un « Chef d'équipe ». Chaque équipe et chaque clé à qui vous le donnez reçoit les mêmes autorisations, et vous les modifiez pour toutes à un seul endroit. Sur OneUptime Cloud, les rôles personnalisés demandent l'offre Scale, comme la modification des autorisations d'une équipe.
+Un rôle personnalisé est un ensemble d'autorisations que vous nommez une fois et donnez à des équipes et des clés API : par exemple un « Intervenant incidents » fait de `IncidentMember`, `AlertMember` et `OnCallViewer`, ou un « Chef d'équipe ». Chaque équipe et chaque clé à qui vous le donnez reçoit les mêmes autorisations, et vous les modifiez pour toutes à un seul endroit. Sur OneUptime Cloud, les rôles personnalisés demandent l'offre Scale, comme la modification des autorisations d'une équipe. En auto-hébergement, ils font partie de l'Enterprise Edition : sur la Community Edition, les rôles que vos équipes et vos clés API ont déjà continuent de s'appliquer, et peuvent être retirés d'une équipe ou d'une clé ou supprimés, mais pas créés ni modifiés.
 
 :::steps
 1. Ouvrez **Équipes** dans le menu **Produits**, sous **Paramètres**. Dépliez **Paramètres** dans le menu latéral, choisissez **Rôles** et cliquez sur **Créer : Rôle personnalisé**.

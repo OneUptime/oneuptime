@@ -3,7 +3,7 @@ import { EnterpriseMarketplaceBillingState } from "Common/Types/EnterpriseLicens
 import CloudMarketplace, {
   CloudMarketplaceUtil,
 } from "Common/Types/Marketplace/CloudMarketplace";
-import SelfHostedMarketplaceConfig from "Common/Server/Utils/Marketplace/SelfHosted/SelfHostedMarketplaceConfig";
+import SelfHostedMarketplaceConfig from "../Marketplace/Reporters/SelfHostedMarketplaceConfig";
 import LicenseRanking from "./LicenseRanking";
 import { LicenseTokenClassification } from "./LicenseToken";
 

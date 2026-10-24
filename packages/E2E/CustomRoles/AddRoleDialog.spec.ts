@@ -1,4 +1,11 @@
-import { expect, Locator, Page, test } from "@playwright/test";
+import {
+  APIRequestContext,
+  APIResponse,
+  expect,
+  Locator,
+  Page,
+  test,
+} from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
 
@@ -755,7 +762,24 @@ interface StillWalk {
   addRole: RegExp;
   path: string;
   wholeProjectRoles: Array<string>;
+  // A custom role's page is an Enterprise page: it skips where ee/ is not checked out.
+  needsEnterprise?: boolean;
 }
+
+/*
+ * Which edition the fixture serves (/edition.json): a custom role's page
+ * is there only where ee/ is checked out.
+ */
+let edition: string = "";
+
+test.beforeAll(async ({ request }: { request: APIRequestContext }) => {
+  const response: APIResponse = await request.get("/edition.json");
+  edition = ((await response.json()) as { edition: string }).edition;
+});
+
+const isEnterprise: () => boolean = (): boolean => {
+  return edition === "enterprise";
+};
 
 const STILL_WALKS: Array<StillWalk> = [
   {
@@ -798,6 +822,7 @@ const STILL_WALKS: Array<StillWalk> = [
     addRole: ADD_ROLE,
     path: `/dashboard/${PROJECT}/teams/roles/30000000-0000-4000-8000-000000000001`,
     wholeProjectRoles: ["ProjectAdmin", "ProjectMember", "Viewer"],
+    needsEnterprise: true,
   },
 ];
 
@@ -823,6 +848,10 @@ test.describe("Add a Role never moves under the pointer", () => {
     }: {
       page: Page;
     }) => {
+      test.skip(
+        Boolean(walk.needsEnterprise) && !isEnterprise(),
+        "Custom roles are an Enterprise feature: ee/ is not checked out.",
+      );
       await page.setViewportSize({ width: walk.width, height: walk.height });
       await page.goto(`${walk.path}${walk.search}`);
       const form: Locator = await openAddRole(page, walk.addRole);
