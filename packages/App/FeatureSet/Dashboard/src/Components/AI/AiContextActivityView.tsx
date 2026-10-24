@@ -96,9 +96,14 @@ const AiContextViewButton: FunctionComponent<ComponentProps> = (
                     </h3>
                     {/*
                      * Flush with the box: a first heading's top margin
-                     * would open a gap under its border.
+                     * would open a gap under its border. dir="auto": the
+                     * notes are laid out by their own first letter, not
+                     * the reader's language.
                      */}
-                    <div className="mt-2 min-w-0 break-words rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 [&>div>*:first-child]:mt-0 [&>div>*:last-child]:mb-0">
+                    <div
+                      dir="auto"
+                      className="mt-2 min-w-0 break-words rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 [&>div>*:first-child]:mt-0 [&>div>*:last-child]:mb-0"
+                    >
                       <LazyMarkdownViewer text={part.text} />
                     </div>
                     <p className="mt-1.5 text-xs text-gray-500">

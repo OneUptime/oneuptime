@@ -144,7 +144,12 @@ const AiContextView: FunctionComponent<ComponentProps> = (
           isExpanded ? "" : AI_CONTEXT_FOLDED_FRAME_CLASS_NAME
         } ${!isExpanded && isLong ? AI_CONTEXT_FADED_FRAME_CLASS_NAME : ""}`}
       >
-        <div ref={contentRef}>
+        {/*
+         * dir="auto": the notes are the team's own words, laid out by their
+         * own first letter - English notes read left to right on a Persian
+         * page, Persian notes right to left on an English one.
+         */}
+        <div ref={contentRef} dir="auto">
           <LazyMarkdownViewer text={text} />
         </div>
       </div>

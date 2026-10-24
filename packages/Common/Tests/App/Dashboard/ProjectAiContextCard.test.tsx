@@ -532,6 +532,16 @@ describe("long notes are folded on the card", () => {
     );
   });
 
+  test("the notes are laid out by their own first letter, whatever the reader's language", () => {
+    render(<AiContextView text={NOTES} />);
+
+    expect(
+      within(screen.getByTestId(AI_CONTEXT_TEST_IDS.frame)).getByTestId(
+        "markdown",
+      ).parentElement,
+    ).toHaveAttribute("dir", "auto");
+  });
+
   test("blank notes read as none", () => {
     render(<AiContextView text={"   \n  "} />);
 

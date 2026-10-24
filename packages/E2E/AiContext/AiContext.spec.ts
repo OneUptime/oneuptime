@@ -718,6 +718,19 @@ test.describe("what a run read, in its details", () => {
     );
     await expectInsideScreen(page, dialog(page));
 
+    // The dialog reads right to left; the team's English notes left to right.
+    const directions: Array<string> = await dialog(page)
+      .getByTestId("ai-context-activity-part")
+      .first()
+      .evaluate((part: Element) => {
+        const notes: Element = part.querySelector("[dir='auto']")!;
+        return [
+          getComputedStyle(part).direction,
+          getComputedStyle(notes).direction,
+        ];
+      });
+    expect(directions).toEqual(["rtl", "ltr"]);
+
     await shoot(page, "run-dialog-fa");
   });
 });

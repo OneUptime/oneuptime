@@ -243,6 +243,12 @@ describe("a run's line about the AI context it read", () => {
     expect(parts[0]).toHaveTextContent(
       `${PROJECT_NOTES.length} characters · about ${Math.ceil(PROJECT_NOTES.length / 4)} tokens`,
     );
+    // The notes are laid out by their own first letter, not the reader's language.
+    for (const part of parts) {
+      expect(
+        within(part).getByTestId("markdown").parentElement,
+      ).toHaveAttribute("dir", "auto");
+    }
 
     // Its one button closes it: there is nothing to save.
     const close: HTMLElement = within(dialog).getByTestId(
