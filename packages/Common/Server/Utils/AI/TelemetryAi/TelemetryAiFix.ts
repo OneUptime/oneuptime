@@ -1,18 +1,29 @@
 import AIRunService from "../../../Services/AIRunService";
+import ProjectService from "../../../Services/ProjectService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import TelemetryAiRules, {
+  TELEMETRY_AI_PROJECT_SELECT,
+} from "./TelemetryAiRules";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
+import Project from "../../../../Models/DatabaseModels/Project";
 import { AIRunStatusHelper } from "../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../Types/AI/AIRunType";
-import CodeFixTaskType from "../../../../Types/AI/CodeFixTaskType";
+import {
+  TelemetryAiLane,
+  getTelemetryAiCountedFixTaskTypes,
+  getTelemetryAiFixTaskTypes,
+} from "../../../../Types/AI/TelemetryAi";
 import OneUptimeDate from "../../../../Types/Date";
 import ObjectID from "../../../../Types/ObjectID";
 
 /*
  * WHAT EVERY TELEMETRY LANE'S PULL REQUEST SHARES (Types/AI/TelemetryAi):
- * each lane's fix starter (ProfileInsightFix, TraceInsightFix) starts a
- * Code task in the repository that holds the code, stamped with the insight
- * it came from, and these are the parts they check alike:
+ * each lane's fix starter (ProfileInsightFix, TraceInsightFix,
+ * ExceptionInsightFix) starts a Code task in the repository that holds the
+ * code, stamped with the insight it came from - a request in Code, or, for
+ * an exception, the exception's own AI task (the lane's fixTaskTypes) - and
+ * these are the parts they check alike:
  *
  *   - the day's share: OneUptime opens at most
  *     TELEMETRY_AI_MAX_AUTOMATIC_FIXES_PER_DAY pull requests on its own in a
@@ -36,18 +47,33 @@ export interface TelemetryAiFixResult {
 export default class TelemetryAiFix {
   /*
    * The tasks OneUptime started on its own in the project since UTC
-   * midnight, every lane together: Code requests no person asked, each
-   * stamped with the insight it came from (a task's first turn only - its
-   * replies are the same task).
+   * midnight, every lane together: Code tasks of the lanes' recipes no
+   * person asked, each stamped with the insight it came from (a task's
+   * first turn only - its replies are the same task) - a lane's own
+   * recipes only while its switch is on (getTelemetryAiCountedFixTaskTypes).
    */
   @CaptureSpan()
   public static async countStartedToday(projectId: ObjectID): Promise<number> {
+    const project: Project | null = await ProjectService.findOneById({
+      id: projectId,
+      select: TELEMETRY_AI_PROJECT_SELECT,
+      props: { isRoot: true },
+    });
+
     return (
       await AIRunService.countBy({
         query: {
           projectId,
           runType: AIRunType.CodeFix,
-          codeFixTaskType: CodeFixTaskType.CodeRequest,
+          codeFixTaskType: QueryHelper.any(
+            getTelemetryAiCountedFixTaskTypes(
+              (lane: TelemetryAiLane): boolean => {
+                return project
+                  ? TelemetryAiRules.isLaneOn(project, lane)
+                  : false;
+              },
+            ),
+          ),
           userId: QueryHelper.isNull(),
           codeTaskId: QueryHelper.isNull(),
           triggeredByAiInsightId: QueryHelper.notNull(),
@@ -74,7 +100,7 @@ export default class TelemetryAiFix {
       query: {
         projectId: data.projectId,
         runType: AIRunType.CodeFix,
-        codeFixTaskType: CodeFixTaskType.CodeRequest,
+        codeFixTaskType: QueryHelper.any(getTelemetryAiFixTaskTypes()),
         triggeredByAiInsightId: data.insightId,
         status: QueryHelper.notIn(AIRunStatusHelper.terminalStatuses()),
       },

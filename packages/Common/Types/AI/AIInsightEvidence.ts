@@ -18,6 +18,19 @@ import {
  * fields.
  */
 
+/*
+ * One frame of an exception's stack trace in the application's own code -
+ * not a library's, a framework's or the runtime's (StackTraceParser's
+ * inApp) - as the Exceptions product's AI section reads it: where the code
+ * a pull request would change is.
+ */
+export interface ExceptionInsightFrameEvidence {
+  functionName: string;
+  fileName: string;
+  // 0 when the stack trace named no line.
+  lineNumber: number;
+}
+
 // Evidence for NewException and ExceptionSpike insights.
 export interface ExceptionInsightEvidence {
   exceptionMessage?: string | undefined;
@@ -38,6 +51,59 @@ export interface ExceptionInsightEvidence {
   distinctExceptionGroupCount?: number | undefined;
   // ISO-8601 — when the exception was first ever seen.
   firstSeenAt?: string | undefined;
+  /*
+   * The service the exception was raised in, when its telemetry names one
+   * (the exception's primary entity is a service): what an AI rule matches.
+   */
+  serviceId?: string | undefined;
+  /*
+   * How many frames its stack trace has: 0 when it was recorded without
+   * one. Absent on findings filed before the Exceptions AI section read it.
+   */
+  stackFrameCount?: number | undefined;
+  /*
+   * The innermost frames of its stack trace in the application's own code,
+   * at most a few (Utils/Exceptions/ExceptionInsight): an empty list is a
+   * stack trace of library and runtime frames only. Absent on findings
+   * filed before the Exceptions AI section read it.
+   */
+  ownCodeFrames?: Array<ExceptionInsightFrameEvidence> | undefined;
+}
+
+// One exception of a service recorded with no stack trace.
+export interface ExceptionStackTraceGroupEvidence {
+  telemetryExceptionId: string;
+  // Sanitized (ExceptionSanitizer): written by the service, not OneUptime.
+  exceptionType: string;
+  exceptionMessage: string;
+  // Lifetime occurrences.
+  occurrenceCount: number;
+  // ISO-8601.
+  lastSeenAt: string;
+}
+
+/*
+ * Evidence for ExceptionMissingStackTrace insights: a service whose
+ * exceptions over the last day were recorded with no stack trace, so no
+ * frame says which of its code raised them (Utils/Exceptions/
+ * ExceptionInsight).
+ */
+export interface ExceptionStackTraceInsightEvidence {
+  serviceId: string;
+  // ISO-8601: the day read.
+  windowStartTime: string;
+  windowEndTime: string;
+  // The loudest of them, loudest first.
+  exceptions: Array<ExceptionStackTraceGroupEvidence>;
+  // All of them: how many kinds of exception, and how often they happened.
+  exceptionCount: number;
+  occurrenceCount: number;
+  /*
+   * The service's exceptions of the same day that did carry a stack trace:
+   * 0 when none did - its exceptions are recorded without one - else only
+   * some places in its code raise exceptions without one.
+   */
+  withStackTraceCount: number;
 }
 
 // Evidence for ErrorLogSpike insights.
@@ -221,6 +287,7 @@ export interface AIInsightEvidence {
   deployRegression?: DeployRegressionInsightEvidence | undefined;
   profile?: ProfileInsightEvidence | undefined;
   trace?: TraceInsightEvidence | undefined;
+  exceptionStackTrace?: ExceptionStackTraceInsightEvidence | undefined;
 }
 
 export default AIInsightEvidence;

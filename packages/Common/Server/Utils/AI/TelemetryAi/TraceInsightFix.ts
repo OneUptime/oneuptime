@@ -399,8 +399,11 @@ export default class TraceInsightFix {
     });
   }
 
-  // The repositories, of the ones the person may read, they may ask in.
-  private static async getAskableRepositories(data: {
+  /*
+   * The repositories, of the ones the person may read, they may ask in -
+   * what every lane's Fix with AI picks from (ExceptionInsightFix too).
+   */
+  public static async getAskableRepositories(data: {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
   }): Promise<Array<LocatableRepository>> {
@@ -427,7 +430,7 @@ export default class TraceInsightFix {
     return askable;
   }
 
-  private static toRepository(
+  public static toRepository(
     repository: LocatableRepository,
   ): TelemetryAiFixRepository {
     return { id: repository.id, name: repository.name };

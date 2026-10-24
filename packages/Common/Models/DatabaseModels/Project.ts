@@ -2590,6 +2590,54 @@ export default class Project extends TenantModel {
   })
   public enableAutomaticTraceRemediation?: boolean = undefined;
 
+  /*
+   * Exceptions → AI → Settings: "Find and fix new and rising exceptions".
+   * While it is on, OneUptime looks for new and rising exceptions on every
+   * look of its insight scanner (every 15 minutes), and for services whose
+   * exceptions carry no stack trace, files each as an insight, and
+   * OneUptime AI looks into it and opens a pull request: one that fixes the
+   * code when the investigation finds the code at fault, one that improves
+   * how the code handles an expected error, or one that makes a service
+   * record stack traces - in a connected repository, on the Runner that
+   * repository picks, never merged (Utils/Exceptions/ExceptionInsight).
+   * Exception AI rules (AutoRemediationRule with triggerEntityType
+   * Exception), when there are any, narrow which services' exceptions are
+   * worked on and how (Types/AI/TelemetryAi). New and spiking exceptions
+   * were AI Insights' before: while this is off they still are, as AI
+   * Insights' own switches say. On for new projects, off for projects that
+   * existed before, so an upgrade changes nothing about how their
+   * exceptions are handled. Enable AI turns it off with everything else.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Automatic Exception Remediation",
+    description:
+      "When enabled, OneUptime looks every 15 minutes for new exceptions, exceptions that suddenly happen far more often than usual, and services whose exceptions carry no stack trace, and files each as an insight; OneUptime AI looks into it and opens a pull request in a repository connected in Code: one that fixes the code when the investigation finds the code at fault, one that improves how the code handles an expected error such as invalid input, or one that makes the service record stack traces. An exception's pull request opens only for an exception raised in your own code. Pull requests are never merged automatically, and honor the repository's open pull request cap. Exception AI rules, when there are any, choose which services' exceptions are worked on, whether a person approves the pull request first, and which repositories and LLM provider are used. While this is off, new and spiking exceptions are handled by AI Insights' own settings. On for new projects created in OneUptime; projects that existed before keep it off. Requires AI to be enabled.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAutomaticExceptionRemediation?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [Permission.User],
     read: [

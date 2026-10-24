@@ -1,5 +1,6 @@
 import AIInsightService from "../../../Services/AIInsightService";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import ExceptionInsightFix from "./ExceptionInsightFix";
 import TraceInsightFix from "./TraceInsightFix";
 import AIInsight from "../../../../Models/DatabaseModels/AIInsight";
 import {
@@ -67,6 +68,29 @@ export const TELEMETRY_AI_PERSON_FIX_PLANNERS: Readonly<
       repositoryId?: ObjectID | undefined;
     }): Promise<{ taskId: string }> => {
       return TraceInsightFix.createFixTask(data);
+    },
+  },
+  /*
+   * Exceptions: a new or rising exception's own AI task - a fix, or better
+   * handling of an expected error - and a request in Code for a service's
+   * missing stack traces (ExceptionInsightFix).
+   */
+  [TelemetryAiLane.Exception]: {
+    getSuggestion: (data: {
+      projectId: ObjectID;
+      insightId: ObjectID;
+      props: DatabaseCommonInteractionProps;
+    }): Promise<TelemetryAiFixSuggestion> => {
+      return ExceptionInsightFix.getSuggestion(data);
+    },
+    createFixTask: (data: {
+      projectId: ObjectID;
+      insightId: ObjectID;
+      userId: ObjectID;
+      props: DatabaseCommonInteractionProps;
+      repositoryId?: ObjectID | undefined;
+    }): Promise<{ taskId: string }> => {
+      return ExceptionInsightFix.createFixTask(data);
     },
   },
 };

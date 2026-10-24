@@ -17,6 +17,10 @@ import BuildVerification, {
   VerificationOutcome,
 } from "../Utils/BuildVerification";
 import FixVerificationStatus from "Common/Types/AI/FixVerificationStatus";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "Common/Utils/Markdown/FeedMarkdown";
 import WorkspaceManager, { WorkspaceInfo } from "../Utils/WorkspaceManager";
 import {
   CodeAgentFactory,
@@ -129,7 +133,10 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
       // Step 2: Get exception details
       await this.log(context, "Fetching exception details...");
       const exceptionDetails: ExceptionDetails =
-        await context.backendAPI.getExceptionDetails(exceptionId);
+        await context.backendAPI.getExceptionDetails(
+          exceptionId,
+          context.taskId.toString(),
+        );
 
       await this.log(
         context,
@@ -480,8 +487,10 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
     const prTitle: string = this.buildPullRequestTitle(exceptionDetails);
 
     const prBody: string =
-      this.buildPullRequestBody(exceptionDetails, agentResult.summary) +
-      BuildVerification.buildPullRequestBodySection(verification);
+      ExceptionPullRequestTaskHandler.withWhySection(
+        this.buildPullRequestBody(exceptionDetails, agentResult.summary),
+        exceptionDetails,
+      ) + BuildVerification.buildPullRequestBodySection(verification);
 
     const prUrl: string | null = await this.finishPushedChange(context, {
       repositoryId: repo.id,
@@ -501,4 +510,92 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
 
     return prUrl;
   }
+
+  /*
+   * Why the pull request was opened, and where the exception is in
+   * OneUptime: for a task a finding started (a new or rising exception the
+   * Exceptions AI section found, on its own or for a person), what it found
+   * and a link to it; for every task, a link to the exception. Empty when
+   * the server says neither. The finding is placed as text: the characters
+   * that would turn it into Markdown are escaped.
+   */
+  public static buildWhySection(details: ExceptionDetails): string {
+    const parts: Array<string> = [];
+
+    if (details.startedBy) {
+      const finding: string = details.startedBy.finding
+        .split("\n")
+        .join(" ")
+        .trim();
+      const findingText: MarkdownText = finding
+        ? mdText`: **${finding}**`
+        : FeedMarkdown.empty();
+      const link: MarkdownText = ExceptionPullRequestTaskHandler.isWebAddress(
+        details.startedBy.findingUrl,
+      )
+        ? mdText` ([see what it found](${details.startedBy.findingUrl}))`
+        : FeedMarkdown.empty();
+
+      parts.push(
+        `### Why this pull request
+
+${(details.startedBy.isStartedByOneUptime
+  ? mdText`OneUptime found this in your production telemetry and started this task on its own${findingText}${link}.`
+  : mdText`OneUptime found this in your production telemetry${findingText}${link}.`
+).toString()}`,
+      );
+    }
+
+    if (
+      details.exception.url &&
+      ExceptionPullRequestTaskHandler.isWebAddress(details.exception.url)
+    ) {
+      parts.push(
+        mdText`[Open the exception in OneUptime](${details.exception.url})`.toString(),
+      );
+    }
+
+    return parts.length > 0 ? `${parts.join("\n\n")}\n\n` : "";
+  }
+
+  /*
+   * The pull request's body with the why section under its heading - the
+   * body's first line - or above everything when it has none.
+   */
+  public static withWhySection(body: string, details: ExceptionDetails): string {
+    const why: string = ExceptionPullRequestTaskHandler.buildWhySection(details);
+
+    if (!why) {
+      return body;
+    }
+
+    if (!body.startsWith("## ")) {
+      return `${why}${body}`;
+    }
+
+    const headingEnd: number = body.indexOf("\n");
+
+    if (headingEnd < 0) {
+      return `${body}\n\n${why}`;
+    }
+
+    // The blank lines under the heading give way to the section's own.
+    let restStart: number = headingEnd + 1;
+
+    while (body.charAt(restStart) === "\n") {
+      restStart++;
+    }
+
+    return `${body.substring(0, headingEnd)}\n\n${why}${body.substring(restStart)}`;
+  }
+
+  private static isWebAddress(value: string): boolean {
+    try {
+      const url: URL = new URL(value);
+      return url.protocol === "https:" || url.protocol === "http:";
+    } catch {
+      return false;
+    }
+  }
 }
+
