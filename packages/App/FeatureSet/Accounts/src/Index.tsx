@@ -3,6 +3,7 @@ import "./Utils/i18n";
 import Telemetry from "Common/UI/Utils/Telemetry/Telemetry";
 import ErrorBoundary from "Common/UI/Components/ErrorBoundary";
 import ForeignDomMutationGuard from "Common/UI/Utils/ForeignDomMutationGuard";
+import ThemeUtil from "Common/UI/Utils/Theme";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
@@ -14,6 +15,8 @@ import { BrowserRouter } from "react-router-dom";
  * ForeignDomMutationGuard).
  */
 ForeignDomMutationGuard.install();
+
+ThemeUtil.initialize();
 
 Telemetry.init({
   serviceName: "accounts",

@@ -9,7 +9,7 @@ const AccountsFooter: FunctionComponent = (): ReactElement => {
 
   return (
     <Footer
-      className="bg-gray-50/50 border-t border-gray-100 px-8"
+      className="bg-gray-50/50 dark:bg-slate-900 border-t border-gray-100 dark:border-slate-700 px-8"
       copyright={t("footer.copyright")}
       links={[
         {

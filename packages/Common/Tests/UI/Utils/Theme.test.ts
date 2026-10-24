@@ -48,6 +48,40 @@ const makeLocalStorageUnavailable: () => () => void = (): (() => void) => {
   };
 };
 
+const mockMatchMedia: (prefersDark: boolean) => () => void = (
+  prefersDark: boolean,
+): (() => void) => {
+  const original: unknown =
+    (window as unknown as Record<string, unknown>)["matchMedia"];
+
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    writable: true,
+    value: (
+      query: string,
+    ): {
+      matches: boolean;
+      addEventListener: () => void;
+      removeEventListener: () => void;
+    } => {
+      return {
+        matches:
+          query === "(prefers-color-scheme: dark)" ? prefersDark : false,
+        addEventListener: (): void => {},
+        removeEventListener: (): void => {},
+      };
+    },
+  });
+
+  return (): void => {
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      writable: true,
+      value: original,
+    });
+  };
+};
+
 describe("ThemeUtil", () => {
   beforeEach(() => {
     window.localStorage.clear();
@@ -63,13 +97,14 @@ describe("ThemeUtil", () => {
     ].join("");
   });
 
-  test("defaults to light when no preference has been saved", () => {
+  test("defaults to System (follows OS) when no preference has been saved", () => {
     document.documentElement.classList.add(Theme.Dark);
 
-    expect(ThemeUtil.getStoredTheme()).toBe(Theme.Light);
+    expect(ThemeUtil.getStoredTheme()).toBe(Theme.System);
 
     ThemeUtil.initialize();
 
+    // jsdom does not implement matchMedia; resolveTheme falls back to Light.
     expect(ThemeUtil.getAppliedTheme()).toBe(Theme.Light);
     expect(document.documentElement.classList.contains(Theme.Dark)).toBe(false);
     expect(document.documentElement.dataset["theme"]).toBe(Theme.Light);
@@ -86,12 +121,16 @@ describe("ThemeUtil", () => {
     expect(document.documentElement.classList.contains(Theme.Dark)).toBe(true);
   });
 
-  test.each([Theme.Light, "Dark", "DARK", " dark ", "invalid", ""])(
-    "treats the persisted value %p as light",
+  test("stored 'light' is read back as Light", () => {
+    window.localStorage.setItem(THEME_STORAGE_KEY, Theme.Light);
+    expect(ThemeUtil.getStoredTheme()).toBe(Theme.Light);
+  });
+
+  test.each(["Dark", "DARK", " dark ", "invalid", ""])(
+    "treats the unrecognised persisted value %p as System (follow OS)",
     (persistedValue: string) => {
       window.localStorage.setItem(THEME_STORAGE_KEY, persistedValue);
-
-      expect(ThemeUtil.getStoredTheme()).toBe(Theme.Light);
+      expect(ThemeUtil.getStoredTheme()).toBe(Theme.System);
     },
   );
 
@@ -119,11 +158,11 @@ describe("ThemeUtil", () => {
     expect(mediaThemeColor.getAttribute("content")).toBe("media-theme");
   });
 
-  test("falls back to light when reading storage fails", () => {
+  test("falls back to System when reading storage fails", () => {
     const restoreLocalStorage: () => void = makeLocalStorageUnavailable();
 
     try {
-      expect(ThemeUtil.getStoredTheme()).toBe(Theme.Light);
+      expect(ThemeUtil.getStoredTheme()).toBe(Theme.System);
     } finally {
       restoreLocalStorage();
     }
@@ -157,5 +196,70 @@ describe("ThemeUtil", () => {
 
     dispatchStorageEvent(null, null);
     expect(ThemeUtil.getAppliedTheme()).toBe(Theme.Light);
+  });
+
+  test("stored 'system' is read back as System", () => {
+    window.localStorage.setItem(THEME_STORAGE_KEY, Theme.System);
+    expect(ThemeUtil.getStoredTheme()).toBe(Theme.System);
+  });
+
+  test("resolveTheme passes Light and Dark through unchanged", () => {
+    expect(ThemeUtil.resolveTheme(Theme.Light)).toBe(Theme.Light);
+    expect(ThemeUtil.resolveTheme(Theme.Dark)).toBe(Theme.Dark);
+  });
+
+  test("resolveTheme resolves System to Dark when OS prefers dark", () => {
+    const restore: () => void = mockMatchMedia(true);
+    try {
+      expect(ThemeUtil.resolveTheme(Theme.System)).toBe(Theme.Dark);
+    } finally {
+      restore();
+    }
+  });
+
+  test("resolveTheme resolves System to Light when OS prefers light", () => {
+    const restore: () => void = mockMatchMedia(false);
+    try {
+      expect(ThemeUtil.resolveTheme(Theme.System)).toBe(Theme.Light);
+    } finally {
+      restore();
+    }
+  });
+
+  test("resolveTheme falls back to Light when matchMedia is unavailable", () => {
+    expect(ThemeUtil.resolveTheme(Theme.System)).toBe(Theme.Light);
+  });
+
+  test("toggleTheme cycles Light → Dark → System → Light", () => {
+    ThemeUtil.setTheme(Theme.Light);
+    expect(ThemeUtil.toggleTheme()).toBe(Theme.Dark);
+    expect(ThemeUtil.toggleTheme()).toBe(Theme.System);
+    expect(ThemeUtil.toggleTheme()).toBe(Theme.Light);
+  });
+
+  test("initialize applies dark from OS when no preference is saved", () => {
+    const restore: () => void = mockMatchMedia(true);
+    try {
+      ThemeUtil.initialize();
+      expect(ThemeUtil.getAppliedTheme()).toBe(Theme.Dark);
+      expect(document.documentElement.classList.contains(Theme.Dark)).toBe(
+        true,
+      );
+    } finally {
+      restore();
+    }
+  });
+
+  test("applyTheme with System resolves via OS and sets data-theme to the resolved value", () => {
+    const restore: () => void = mockMatchMedia(true);
+    try {
+      ThemeUtil.applyTheme(Theme.System, false);
+      expect(document.documentElement.dataset["theme"]).toBe(Theme.Dark);
+      expect(document.documentElement.classList.contains(Theme.Dark)).toBe(
+        true,
+      );
+    } finally {
+      restore();
+    }
   });
 });

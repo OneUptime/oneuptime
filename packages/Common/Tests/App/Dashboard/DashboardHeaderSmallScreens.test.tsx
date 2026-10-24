@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import ThemeUtil, { Theme } from "../../../UI/Utils/Theme";
 import {
   act,
   cleanup,
@@ -290,7 +291,7 @@ describe("dashboard header on small screens", () => {
      */
     const entries: Array<HTMLElement> = [
       screen.getByRole("button", { name: "Profile" }),
-      screen.getByRole("button", { name: "Dark theme" }),
+      screen.getByRole("button", { name: /theme/i }),
       screen.getByRole("link", { name: "Log out" }),
     ];
 
@@ -330,6 +331,8 @@ describe("dashboard header on small screens", () => {
      * a workaround for the profile menu being unreachable there. The menu is
      * reachable now, so the toggle went away; this is what replaced it.
      */
+    // Start from Light so the toggle shows "Dark theme" (next in the cycle).
+    ThemeUtil.setTheme(Theme.Light);
     await renderHeader();
 
     // Nothing in the closed header offers the theme any more.
