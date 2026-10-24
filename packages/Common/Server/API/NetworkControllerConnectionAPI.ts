@@ -290,6 +290,19 @@ export default class NetworkControllerConnectionAPI extends BaseAPI<
           )
         : stored.config;
 
+    /*
+     * The rule a save applies: a saved connection's organization and region
+     * are fixed - so its stored key is only ever tested where it reads.
+     */
+    if (
+      config.organizationId !== stored.config.organizationId ||
+      config.region !== stored.config.region
+    ) {
+      throw new BadDataException(
+        "A saved connection is tested with its own organization and region. To try another one, connect it as well.",
+      );
+    }
+
     return {
       apiKey: provided.apiKey || stored.apiKey,
       config,

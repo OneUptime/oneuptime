@@ -49,11 +49,12 @@ export const NETWORK_TRAFFIC_USAGE_KINDS: ReadonlyArray<NetworkTrafficUsageKind>
 export const NETWORK_TRAFFIC_USAGE_TOP_LIMIT: number = 10;
 
 /*
- * The longest window one row may cover (a first read's backfill of a
- * day): what a read looks back past the page's start to find windows that
- * run into it.
+ * The longest window one row may cover - a first read's backfill of a
+ * day, ending when the read asked for it, up to a read's few minutes after
+ * it began - with room to spare: what a read looks back past the page's
+ * start to find windows that run into it.
  */
-export const MAX_NETWORK_TRAFFIC_USAGE_WINDOW_HOURS: number = 24;
+export const MAX_NETWORK_TRAFFIC_USAGE_WINDOW_HOURS: number = 25;
 
 // The shortest window there is: one uplink read.
 export const NETWORK_TRAFFIC_USAGE_UPLINK_WINDOW_SECONDS: number = 300;

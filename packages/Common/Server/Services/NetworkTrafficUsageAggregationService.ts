@@ -9,7 +9,10 @@ import TelemetryReadScopeUtil, {
   TelemetryServiceFilter,
 } from "../Utils/Telemetry/TelemetryReadScope";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import { NetworkTrafficUsageWindowKey } from "../Utils/NetworkController/NetworkControllerTypes";
+import {
+  NetworkTrafficUsageStoredEnds,
+  NetworkTrafficUsageWindowKey,
+} from "../Utils/NetworkController/NetworkControllerTypes";
 import { getWindowKey } from "../Utils/NetworkController/NetworkTrafficUsageRows";
 import AnalyticsTableName from "../../Types/AnalyticsDatabase/AnalyticsTableName";
 import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
@@ -138,11 +141,14 @@ export default class NetworkTrafficUsageAggregationService {
 
     for (const row of rows) {
       const kind: string = toText(row["usageKind"]);
-      const last: string = toText(row["lastWindowEnd"]);
+      const lastMs: number = toNumber(row["lastWindowEndMs"]);
 
-      if (!last) {
+      if (lastMs <= 0) {
         continue;
       }
+
+      // ISO, from epoch milliseconds: never in the server's own time zone.
+      const last: string = new Date(lastMs).toISOString();
 
       if (kind === NetworkTrafficUsageKind.Uplink) {
         freshness.lastUplinkAt = last;
@@ -351,12 +357,10 @@ export default class NetworkTrafficUsageAggregationService {
       );
 
     for (const row of rows) {
-      const start: string = toText(row["windowStart"]);
-      const time: number = Date.parse(
-        start.includes("T") ? start : `${start.replace(" ", "T")}Z`,
-      );
+      // Epoch milliseconds, as the keys are made: no time zone to misread.
+      const time: number = toNumber(row["windowStartMs"]);
 
-      if (!Number.isFinite(time)) {
+      if (time <= 0) {
         continue;
       }
 
@@ -370,6 +374,69 @@ export default class NetworkTrafficUsageAggregationService {
     }
 
     return keys;
+  }
+
+  /*
+   * Where a connection's stored windows that end after `since` end: the
+   * newest uplink window's end, and each network's newest application or
+   * client window's. The read runner moves the cursors up to these before
+   * it reads, so traffic a read stored without its cursor being recorded
+   * (the bookkeeping write failed, or the insert's answer was lost) is
+   * never read - and counted - again.
+   */
+  @CaptureSpan()
+  public static async findStoredWindowEnds(data: {
+    projectId: ObjectID;
+    connectionId: ObjectID;
+    since: Date;
+  }): Promise<NetworkTrafficUsageStoredEnds> {
+    const rows: Array<JSONObject> =
+      await NetworkTrafficUsageAggregationService.run(
+        NetworkTrafficUsageAggregationService.buildStoredWindowEndsStatement(
+          data,
+        ),
+      );
+
+    return NetworkTrafficUsageAggregationService.readStoredWindowEnds(rows);
+  }
+
+  public static readStoredWindowEnds(
+    rows: Array<JSONObject>,
+  ): NetworkTrafficUsageStoredEnds {
+    const ends: NetworkTrafficUsageStoredEnds = {
+      uplinkEnd: null,
+      analyticsEnds: new Map(),
+    };
+
+    for (const row of rows) {
+      const endMs: number = toNumber(row["lastWindowEndMs"]);
+
+      if (endMs <= 0) {
+        continue;
+      }
+
+      if (toText(row["usageKind"]) === NetworkTrafficUsageKind.Uplink) {
+        if (!ends.uplinkEnd || endMs > ends.uplinkEnd.getTime()) {
+          ends.uplinkEnd = new Date(endMs);
+        }
+
+        continue;
+      }
+
+      const networkId: string = toText(row["networkKey"]);
+
+      if (!networkId) {
+        continue;
+      }
+
+      const current: Date | undefined = ends.analyticsEnds.get(networkId);
+
+      if (!current || endMs > current.getTime()) {
+        ends.analyticsEnds.set(networkId, new Date(endMs));
+      }
+    }
+
+    return ends;
   }
 
   // ---- Statements ------------------------------------------------------------
@@ -635,7 +702,7 @@ export default class NetworkTrafficUsageAggregationService {
     now: Date;
   }): Statement {
     const statement: Statement = SQL`
-      SELECT kind AS usageKind, max(windowEndAt) AS lastWindowEnd
+      SELECT kind AS usageKind, toUnixTimestamp64Milli(max(windowEndAt)) AS lastWindowEndMs
       FROM ${TABLE_NAME}
       WHERE projectId = ${{
         type: TableColumnType.ObjectID,
@@ -683,7 +750,7 @@ export default class NetworkTrafficUsageAggregationService {
           type: TableColumnType.Text,
           value: NetworkTrafficUsageKind.Uplink,
         }}, '', controllerNetworkId) AS networkKey,
-        windowStartAt AS windowStart
+        toUnixTimestamp64Milli(windowStartAt) AS windowStartMs
       FROM ${TABLE_NAME}
       WHERE projectId = ${{
         type: TableColumnType.ObjectID,
@@ -701,7 +768,45 @@ export default class NetworkTrafficUsageAggregationService {
           type: TableColumnType.ObjectID,
           value: data.connectionId,
         }}
-      GROUP BY usageKind, networkKey, windowStart`.append(QUERY_SETTINGS);
+      GROUP BY usageKind, networkKey, windowStartMs`.append(QUERY_SETTINGS);
+  }
+
+  /*
+   * The newest end of a connection's windows per kind and network (uplinks
+   * as one), of the windows that end after `since` - found by their start,
+   * the table's sort key: no window is longer than MAX_WINDOW_MS.
+   */
+  public static buildStoredWindowEndsStatement(data: {
+    projectId: ObjectID;
+    connectionId: ObjectID;
+    since: Date;
+  }): Statement {
+    return SQL`
+      SELECT
+        kind AS usageKind,
+        if(kind = ${{
+          type: TableColumnType.Text,
+          value: NetworkTrafficUsageKind.Uplink,
+        }}, '', controllerNetworkId) AS networkKey,
+        toUnixTimestamp64Milli(max(windowEndAt)) AS lastWindowEndMs
+      FROM ${TABLE_NAME}
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }}
+        AND windowStartAt >= ${{
+          type: TableColumnType.DateTime64,
+          value: new Date(data.since.getTime() - MAX_WINDOW_MS),
+        }}
+        AND windowEndAt > ${{
+          type: TableColumnType.DateTime64,
+          value: data.since,
+        }}
+        AND connectionId = ${{
+          type: TableColumnType.ObjectID,
+          value: data.connectionId,
+        }}
+      GROUP BY usageKind, networkKey`.append(QUERY_SETTINGS);
   }
 
   private static async run(statement: Statement): Promise<Array<JSONObject>> {

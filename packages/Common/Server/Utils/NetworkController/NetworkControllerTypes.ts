@@ -77,6 +77,19 @@ export interface NetworkTrafficUsageWindowKey {
   windowStartAt: Date;
 }
 
+/*
+ * Where a connection's stored windows end
+ * (NetworkTrafficUsageAggregationService.findStoredWindowEnds): what the
+ * runner moves the cursors up to before a read, so traffic stored by a
+ * read whose cursor was never recorded is not read - and written - again.
+ */
+export interface NetworkTrafficUsageStoredEnds {
+  // The end of the newest stored uplink window.
+  uplinkEnd: Date | null;
+  // Per network: the end of its newest stored application or client window.
+  analyticsEnds: Map<string, Date>;
+}
+
 // An appliance the read found: what rows are attributed and named by.
 export interface NetworkControllerAppliance {
   serial: string;

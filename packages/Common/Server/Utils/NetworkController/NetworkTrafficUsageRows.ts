@@ -15,8 +15,10 @@ import {
  * appliance's - or the project's ID, the project's bucket.
  *
  * Rows are grouped by the window they total, and a batch never splits a
- * window: an insert that fails part way leaves whole windows stored or not,
- * and the next read stores exactly the ones that are not
+ * group: an uplink window, or a network's window of applications AND
+ * clients (read together, under one cursor). An insert that fails part way
+ * leaves whole groups stored or not, in the order they were read, and the
+ * next read stores exactly the ones that are not
  * (NetworkControllerReadRunner).
  */
 
@@ -40,6 +42,25 @@ export function getRecordWindowKey(record: NetworkTrafficUsageRecord): string {
     controllerNetworkId: record.controllerNetworkId,
     windowStartAt: record.windowStartAt,
   });
+}
+
+/*
+ * What one insert keeps whole: an uplink window, or a network's window of
+ * applications and clients - both kinds of it stored, or neither, so the
+ * network's stored end is its cursor.
+ */
+export function getRecordBatchGroupKey(
+  record: NetworkTrafficUsageRecord,
+): string {
+  if (record.kind === NetworkTrafficUsageKind.Uplink) {
+    return getRecordWindowKey(record);
+  }
+
+  return [
+    "analytics",
+    record.controllerNetworkId,
+    String(record.windowStartAt.getTime()),
+  ].join("|");
 }
 
 export function toUsageRow(data: {
@@ -98,26 +119,25 @@ export function toUsageRowBatches(data: {
   matches: NetworkControllerDeviceMatches;
   ingestedAt: Date;
 }): { batches: Array<Array<JSONObject>>; skippedRecords: number } {
-  const byWindow: Map<string, Array<NetworkTrafficUsageRecord>> = new Map();
+  const byGroup: Map<string, Array<NetworkTrafficUsageRecord>> = new Map();
   let skippedRecords: number = 0;
 
   for (const record of data.records) {
-    const key: string = getRecordWindowKey(record);
-
-    if (data.storedWindowKeys.has(key)) {
+    if (data.storedWindowKeys.has(getRecordWindowKey(record))) {
       skippedRecords++;
       continue;
     }
 
-    const group: Array<NetworkTrafficUsageRecord> = byWindow.get(key) || [];
+    const key: string = getRecordBatchGroupKey(record);
+    const group: Array<NetworkTrafficUsageRecord> = byGroup.get(key) || [];
     group.push(record);
-    byWindow.set(key, group);
+    byGroup.set(key, group);
   }
 
   const batches: Array<Array<JSONObject>> = [];
   let current: Array<JSONObject> = [];
 
-  for (const group of byWindow.values()) {
+  for (const group of byGroup.values()) {
     if (
       current.length > 0 &&
       current.length + group.length > MAX_ROWS_PER_INSERT

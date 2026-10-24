@@ -23,13 +23,16 @@ import NetworkControllerDeviceMatcher, {
 } from "./NetworkControllerDeviceMatcher";
 import NetworkControllerScheduler from "./NetworkControllerScheduler";
 import {
+  NetworkControllerPullState,
   NetworkControllerReadResult,
   NetworkControllerSettings,
   NetworkControllerTransport,
+  NetworkTrafficUsageStoredEnds,
   NetworkTrafficUsageWindowKey,
   readPullState,
 } from "./NetworkControllerTypes";
 import { toUsageRowBatches } from "./NetworkTrafficUsageRows";
+import { BACKFILL_MS } from "./Meraki/MerakiTrafficReader";
 
 /*
  * ONE READ OF ONE NETWORK CONTROLLER CONNECTION.
@@ -42,7 +45,10 @@ import { toUsageRowBatches } from "./NetworkTrafficUsageRows";
  *      telemetry ingestion off;
  *   2. reads the controller (NetworkControllerConnector.read) through the
  *      SSRF-guarded fetch, with every status answered so the client can
- *      pace itself and follow only Meraki's own redirects;
+ *      pace itself and follow only Meraki's own redirects - from where the
+ *      connection's cursors say, moved up to where its stored windows end
+ *      (a read whose rows were stored but whose cursor was not recorded is
+ *      never read again);
  *   3. gives each row the device its traffic belongs to
  *      (NetworkControllerDeviceMatcher);
  *   4. writes only the windows that are not stored yet - a window a read
@@ -81,9 +87,83 @@ export type StoredWindowFinder = (data: {
   windows: Array<NetworkTrafficUsageWindowKey>;
 }) => Promise<Set<string>>;
 
+export type StoredWindowEndFinder = (data: {
+  projectId: ObjectID;
+  connectionId: ObjectID;
+  since: Date;
+}) => Promise<NetworkTrafficUsageStoredEnds>;
+
+/*
+ * How far back the stored windows' ends are looked for: a read never reads
+ * further back than a day (from the hour), so a stored window that ended
+ * before that can overlap nothing it reads.
+ */
+export const STORED_WINDOW_END_LOOKBACK_MS: number =
+  BACKFILL_MS + 60 * 60 * 1000;
+
+/*
+ * A connection's cursors moved up to where its stored windows end: the
+ * uplinks to the newest stored uplink window, each network to its newest
+ * stored application or client window. A cursor already past is kept.
+ * Returns a new state; the one given is not changed.
+ */
+export function reconcilePullState(
+  state: NetworkControllerPullState,
+  ends: NetworkTrafficUsageStoredEnds,
+): NetworkControllerPullState {
+  const later: (
+    cursor: string | undefined,
+    stored: Date | null | undefined,
+  ) => string | undefined = (
+    cursor: string | undefined,
+    stored: Date | null | undefined,
+  ): string | undefined => {
+    if (!stored) {
+      return cursor;
+    }
+
+    const time: number = cursor ? Date.parse(cursor) : NaN;
+
+    return Number.isFinite(time) && time >= stored.getTime()
+      ? cursor
+      : stored.toISOString();
+  };
+
+  const result: NetworkControllerPullState = {
+    ...state,
+    analyticsCursors: { ...(state.analyticsCursors || {}) },
+    ...(state.trafficAnalysisOff
+      ? { trafficAnalysisOff: { ...state.trafficAnalysisOff } }
+      : {}),
+  };
+
+  const uplinkCursor: string | undefined = later(
+    state.uplinkCursor,
+    ends.uplinkEnd,
+  );
+
+  if (uplinkCursor) {
+    result.uplinkCursor = uplinkCursor;
+  }
+
+  for (const [networkId, end] of ends.analyticsEnds) {
+    const cursor: string | undefined = later(
+      result.analyticsCursors![networkId],
+      end,
+    );
+
+    if (cursor) {
+      result.analyticsCursors![networkId] = cursor;
+    }
+  }
+
+  return result;
+}
+
 export interface NetworkControllerReadDependencies {
   insertRows?: NetworkTrafficUsageInserter | undefined;
   findStoredWindows?: StoredWindowFinder | undefined;
+  findStoredWindowEnds?: StoredWindowEndFinder | undefined;
   findDevices?: FindDevicesFunction | undefined;
   transport?: NetworkControllerTransport | undefined;
   now?: (() => Date) | undefined;
@@ -198,6 +278,23 @@ export default class NetworkControllerReadRunner {
           connection,
         );
 
+      const storedEnds: NetworkTrafficUsageStoredEnds = await (
+        dependencies.findStoredWindowEnds ||
+        ((data: {
+          projectId: ObjectID;
+          connectionId: ObjectID;
+          since: Date;
+        }): Promise<NetworkTrafficUsageStoredEnds> => {
+          return NetworkTrafficUsageAggregationService.findStoredWindowEnds(
+            data,
+          );
+        })
+      )({
+        projectId: connection.projectId,
+        connectionId: connection.id!,
+        since: new Date(now.getTime() - STORED_WINDOW_END_LOOKBACK_MS),
+      });
+
       const read: NetworkControllerReadResult =
         await NetworkControllerConnectorRegistry.getConnector(
           settings.provider,
@@ -207,7 +304,10 @@ export default class NetworkControllerReadRunner {
             DataSourceHttpFetch.fetch.bind(DataSourceHttpFetch),
           now: clock,
           sleep: dependencies.sleep,
-          state: readPullState(connection.pullState),
+          state: reconcilePullState(
+            readPullState(connection.pullState),
+            storedEnds,
+          ),
           maxRequests: NETWORK_CONTROLLER_READ_MAX_REQUESTS,
           maxDurationMs: NETWORK_CONTROLLER_READ_MAX_DURATION_MS,
         });

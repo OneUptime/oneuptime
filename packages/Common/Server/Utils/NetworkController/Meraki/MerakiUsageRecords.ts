@@ -95,7 +95,15 @@ export function cleanText(value: unknown, limit: number): string {
     lastWasSpace = false;
   }
 
-  return cleaned.trim().substring(0, limit).trim();
+  let kept: string = cleaned.trim().substring(0, limit);
+  const last: number = kept.length > 0 ? kept.charCodeAt(kept.length - 1) : 0;
+
+  // A cut never leaves half of a character that takes two UTF-16 units.
+  if (last >= 0xd800 && last <= 0xdbff) {
+    kept = kept.substring(0, kept.length - 1);
+  }
+
+  return kept.trim();
 }
 
 // A count of bytes: finite, non-negative, whole, within a safe integer.
@@ -116,7 +124,12 @@ export function readOctets(value: unknown, multiplier: number = 1): number {
 
 // A whole count (flows, clients, a port): finite and non-negative.
 export function readCount(value: unknown, max: number): number {
-  const parsed: number = typeof value === "number" ? value : Number(value);
+  const parsed: number =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim() !== ""
+        ? Number(value)
+        : NaN;
 
   if (!Number.isFinite(parsed) || parsed <= 0) {
     return 0;
