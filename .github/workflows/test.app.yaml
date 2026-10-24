@@ -474,7 +474,10 @@ jobs:
           # (1.3 minutes with its bundle locally, Chromium only: Traces' AI
           # tab - Insights, a finding's Fix with AI and Open in Traces, Logs
           # and Settings - at 1280 and 390 pixels, light and dark) joined
-          # them on 2026-10-24: about 21 for the ten.
+          # them on 2026-10-24: about 21 for the ten. Its UI review added
+          # six tests the same day (the evidence, Create Monitor on each kind
+          # of finding, the picker in the rail): 1.5 minutes with its bundle
+          # locally, about 21.3 for the ten.
           - group: 8
             browsers: chromium
             suites: >-
