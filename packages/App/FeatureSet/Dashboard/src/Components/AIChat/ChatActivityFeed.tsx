@@ -36,6 +36,16 @@ import {
   isLlmProviderActivityWarning,
 } from "Common/Types/AI/LlmProviderChoice";
 import { describeRuleLlmProviderActivity } from "../AI/RuleLlmProviderCopy";
+import {
+  AiContextActivity,
+  isAiContextActivity,
+} from "Common/Types/AI/AiContext";
+import {
+  describeAiContextActivity,
+  describeAiContextActivityDetail,
+  describeAiContextLeftOut,
+} from "../AISettings/AiContextCopy";
+import AiContextViewButton from "../AI/AiContextActivityView";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -247,6 +257,11 @@ interface ActivityStep {
   kind?: "log" | "action" | undefined;
   // Log severity for ProgressLog steps (Info/Warning/Error/…).
   severity?: string | undefined;
+  /*
+   * What the run read of the project's AI context, word for word: the
+   * step's View opens it (AiContextViewButton).
+   */
+  aiContext?: AiContextActivity | undefined;
 }
 
 // English keys, translated as the steps are built.
@@ -765,6 +780,42 @@ function buildSteps(
         }
 
         /*
+         * What the run read of the AI context the project's team wrote
+         * for OneUptime AI (issue #5198): one line, in the reader's
+         * language, whose View opens the notes as the run read them - and
+         * a warning when a rule's notes did not fit.
+         */
+        const aiContext: unknown = event.resultSummary?.aiContext;
+
+        if (isAiContextActivity(aiContext)) {
+          steps.push({
+            key,
+            text: describeAiContextActivity(aiContext, translator),
+            detail: describeAiContextActivityDetail(aiContext, translator),
+            status: "done",
+            kind: "log",
+            aiContext,
+          });
+
+          const leftOut: string | null = describeAiContextLeftOut(
+            aiContext,
+            translator,
+          );
+
+          if (leftOut) {
+            steps.push({
+              key: `${key}-left-out`,
+              text: leftOut,
+              status: "done",
+              kind: "log",
+              severity: "Warning",
+            });
+          }
+
+          break;
+        }
+
+        /*
          * The LLM provider a run its rule picked one for used, or why it
          * used another: drawn from the data, in the reader's language.
          */
@@ -1023,7 +1074,11 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
                 last word - whole, or on the next line when it does not fit
                 - instead of standing in a narrow column of its own.
               */}
-              <div className="min-w-0" data-testid="activity-step-text">
+              <div
+                className="min-w-0"
+                data-testid="activity-step-text"
+                {...(step.aiContext ? { "data-ai-context": "true" } : {})}
+              >
                 {renderStepText(step)}
                 {step.detail && (
                   <>
@@ -1032,6 +1087,17 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
                       · {step.detail}
                     </span>
                   </>
+                )}
+                {step.aiContext ? (
+                  <>
+                    {" "}
+                    <span className="inline-block text-gray-400">
+                      ·{" "}
+                      <AiContextViewButton activity={step.aiContext} />
+                    </span>
+                  </>
+                ) : (
+                  <></>
                 )}
               </div>
             </div>

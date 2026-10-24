@@ -103,9 +103,10 @@ export interface InvestigationThreadTurnContext {
   /*
    * The AI context of the AI rules that investigate the subject and match
    * it - what its investigation read after the project's - so a question
-   * about the investigation is answered knowing what it knew.
+   * about the investigation is answered knowing what it knew. Absent:
+   * none.
    */
-  aiContextRules: Array<AiContextRule>;
+  aiContextRules?: Array<AiContextRule> | undefined;
 }
 
 export default class InvestigationThread {

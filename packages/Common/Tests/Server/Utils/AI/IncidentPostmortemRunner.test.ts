@@ -366,7 +366,10 @@ describe("AIIncidentPostmortemRunner.draftPostmortemOnResolve", () => {
   it("drafts, saves and announces the postmortem when its switch is on", async () => {
     await resolve();
 
-    expect(generate).toHaveBeenCalledWith({ incidentId: INCIDENT_ID });
+    expect(generate).toHaveBeenCalledWith({
+      incidentId: INCIDENT_ID,
+      aiContext: null,
+    });
     expect(incidentUpdate).toHaveBeenCalledWith({
       id: INCIDENT_ID,
       data: { postmortemNote: "## Summary\nThe API ran out of connections." },
@@ -721,7 +724,10 @@ describe("AIIncidentPostmortemRunner.draftWaitingPostmortem", () => {
       incidentId: INCIDENT_ID,
       waitingSince: WAITING_SINCE,
     });
-    expect(generate).toHaveBeenCalledWith({ incidentId: INCIDENT_ID });
+    expect(generate).toHaveBeenCalledWith({
+      incidentId: INCIDENT_ID,
+      aiContext: null,
+    });
     expect(incidentUpdate).toHaveBeenCalledWith({
       id: INCIDENT_ID,
       data: { postmortemNote: "## Summary\nThe deploy exhausted the pool." },
@@ -844,6 +850,7 @@ describe("AIIncidentPostmortemRunner.draftWaitingPostmortem", () => {
     expect(generate).toHaveBeenCalledWith({
       incidentId: INCIDENT_ID,
       template: "## Replication and failover",
+      aiContext: null,
     });
     expect(
       (feed.mock.calls[0]![0] as { feedInfoInMarkdown: string })
@@ -978,7 +985,10 @@ describe("AIIncidentPostmortemRunner and the project's postmortem rules", () => 
     await resolve();
 
     expect(generate).toHaveBeenCalledTimes(1);
-    expect(generate.mock.calls[0]![0]).toEqual({ incidentId: INCIDENT_ID });
+    expect(generate.mock.calls[0]![0]).toEqual({
+      incidentId: INCIDENT_ID,
+      aiContext: null,
+    });
     expect(feedLine()).not.toContain("template");
     expect(templatesRead).not.toHaveBeenCalled();
   });
@@ -1028,7 +1038,10 @@ describe("AIIncidentPostmortemRunner and the project's postmortem rules", () => 
 
     await resolve();
 
-    expect(generate.mock.calls[0]![0]).toEqual({ incidentId: INCIDENT_ID });
+    expect(generate.mock.calls[0]![0]).toEqual({
+      incidentId: INCIDENT_ID,
+      aiContext: null,
+    });
   });
 
   it("a matching rule's one template is filled in, and the feed names it", async () => {
@@ -1046,6 +1059,7 @@ describe("AIIncidentPostmortemRunner and the project's postmortem rules", () => 
     expect(generate).toHaveBeenCalledWith({
       incidentId: INCIDENT_ID,
       template: "## Summary\n\n## Replication and failover",
+      aiContext: null,
     });
     expect(pick).toHaveBeenCalledTimes(1);
     expect(feedLine()).toContain(
@@ -1090,6 +1104,7 @@ describe("AIIncidentPostmortemRunner and the project's postmortem rules", () => 
     expect(generate).toHaveBeenCalledWith({
       incidentId: INCIDENT_ID,
       template: "## Exposure",
+      aiContext: null,
     });
     expect(feedLine()).toContain(
       "following the postmortem template **Security incident**.",
@@ -1113,6 +1128,7 @@ describe("AIIncidentPostmortemRunner and the project's postmortem rules", () => 
     expect(generate).toHaveBeenCalledWith({
       incidentId: INCIDENT_ID,
       template: "## Exposure",
+      aiContext: null,
     });
   });
 
@@ -1400,6 +1416,7 @@ describe("AIIncidentPostmortemRunner and the LLM provider a postmortem rule pick
     expect(generate).toHaveBeenCalledWith({
       incidentId: INCIDENT_ID,
       llmProviderId: new ObjectID(OPUS),
+      aiContext: null,
     });
     expect(feedLine()).toContain(
       "OneUptime AI drafted a postmortem for incident #42 from the incident timeline and telemetry. It was written with **Claude Opus**, the LLM provider of postmortem rule **Critical incidents**. It has been saved on the incident for you to review and edit.",
@@ -1431,6 +1448,7 @@ describe("AIIncidentPostmortemRunner and the LLM provider a postmortem rule pick
       incidentId: INCIDENT_ID,
       template: "## Exposure",
       llmProviderId: new ObjectID(OPUS),
+      aiContext: null,
     });
   });
 
@@ -1504,6 +1522,7 @@ describe("AIIncidentPostmortemRunner and the LLM provider a postmortem rule pick
     expect(generate).toHaveBeenCalledWith({
       incidentId: INCIDENT_ID,
       llmProviderId: new ObjectID(OPUS),
+      aiContext: null,
     });
   });
 
@@ -1586,6 +1605,7 @@ describe("AIIncidentPostmortemRunner and the LLM provider a postmortem rule pick
       expect(generate).toHaveBeenCalledWith({
         incidentId: INCIDENT_ID,
         llmProviderId: new ObjectID(OPUS),
+        aiContext: null,
       });
     },
   );

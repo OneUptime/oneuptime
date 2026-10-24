@@ -5,6 +5,7 @@ import {
 } from "./ProjectColumnEditGate";
 import { getEnableAiConfirmation } from "../../Components/AISettings/EnableAiConfirmation";
 import ProjectAiNotice from "../../Components/AISettings/ProjectAiNotice";
+import ProjectAiContextCard from "../../Components/AISettings/ProjectAiContextCard";
 import {
   ENABLE_AI_COLUMN,
   ENABLE_AI_SWITCH_TEST_ID,
@@ -57,6 +58,10 @@ import React, { FunctionComponent, ReactElement } from "react";
  *
  * Under it, only when it is so: the project has no LLM provider for AI to
  * use (ProjectAiNotice).
+ *
+ * Then the project's AI context (ProjectAiContextCard): what OneUptime AI
+ * should know about the project's systems, read first by every
+ * investigation, fix, postmortem draft and Ask AI chat.
  *
  * Then, folded under More settings like the incident and alert AI pages'
  * limits, the project's own Daily limits: a ceiling on everything AI does
@@ -176,6 +181,14 @@ const AIFeatures: FunctionComponent<PageComponentProps> = (): ReactElement => {
        * pointer that just pressed it.
        */}
       <ProjectAiNotice context={ProjectAiNoticeContext.AiFeatures} />
+
+      {/*
+       * What OneUptime AI should know about the project's systems, read
+       * first by everything it does for the team (issue #5198). In sight,
+       * not folded: it is what makes the answers about this project's own
+       * systems, and with none written it takes one line.
+       */}
+      <ProjectAiContextCard />
 
       <AdvancedPageSection
         description={ProjectAiDailyLimitsCopy.sectionDescription}
