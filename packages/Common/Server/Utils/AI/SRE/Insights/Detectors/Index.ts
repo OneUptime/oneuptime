@@ -11,6 +11,11 @@ import {
   TraceMissingTracingDetector,
   TraceSlowOperationDetector,
 } from "./TraceProblemDetector";
+import {
+  MetricHighCardinalityDetector,
+  MetricHistogramBucketsDetector,
+  MetricMissingMetricsDetector,
+} from "./MetricProblemDetector";
 import { TelemetryAiLane } from "../../../../../../Types/AI/TelemetryAi";
 
 /*
@@ -40,7 +45,10 @@ export default class InsightDetectors {
    * "Watch telemetry for problems" - and file what the lane's AI rules then
    * decide about. Profiles: slow code. Traces: slow operations, failing
    * operations and missing tracing - one detector each, sharing one look at
-   * the project's traces (TraceProblemDetector).
+   * the project's traces (TraceProblemDetector). Metrics: high
+   * cardinality, histogram buckets that do not fit and missing metrics -
+   * one detector each, sharing one look at the project's metrics
+   * (MetricProblemDetector).
    */
   public static getTelemetryAiDetectors(
     lane: TelemetryAiLane,
@@ -53,6 +61,12 @@ export default class InsightDetectors {
           new TraceFailingOperationDetector(),
           new TraceSlowOperationDetector(),
           new TraceMissingTracingDetector(),
+        ];
+      case TelemetryAiLane.Metric:
+        return [
+          new MetricHighCardinalityDetector(),
+          new MetricHistogramBucketsDetector(),
+          new MetricMissingMetricsDetector(),
         ];
       default:
         return [];

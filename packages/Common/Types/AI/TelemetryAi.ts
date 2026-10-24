@@ -46,7 +46,9 @@ import {
  *     decides what is a problem (Server/Utils/AI/SRE/Insights/Detectors).
  *     For Profiles: slow code (AIInsightType.ProfileHotspot). For Traces:
  *     slow operations, failing operations, and the ones whose traces cannot
- *     say why (Utils/Traces/TraceInsight);
+ *     say why (Utils/Traces/TraceInsight). For Metrics: metrics with too
+ *     many series, histograms whose buckets do not fit, and busy services
+ *     that send no metrics (Utils/Metrics/MetricInsight);
  *   - one project switch (switchColumn), on for new projects: while it is on
  *     OneUptime looks for those problems and OneUptime AI works on them;
  *   - AI rules of its own: the one AI rule (AutoRemediationRule) with the
@@ -92,12 +94,14 @@ import {
 export enum TelemetryAiLane {
   Profile = "Profile",
   Trace = "Trace",
+  Metric = "Metric",
 }
 
 // The project switch of each lane.
 export type TelemetryAiSwitchColumn =
   | "enableAutomaticProfileRemediation"
-  | "enableAutomaticTraceRemediation";
+  | "enableAutomaticTraceRemediation"
+  | "enableAutomaticMetricRemediation";
 
 export interface TelemetryAiLaneDefinition {
   lane: TelemetryAiLane;
@@ -150,6 +154,26 @@ export const TELEMETRY_AI_LANES: Readonly<
     scanEveryMinutes: 60,
     dashboardPath: "traces",
     fixAfterVerdictInsightTypes: [AIInsightType.TraceFailingOperation],
+  },
+  /*
+   * Metrics: attributes that take too many values and metric names with ids
+   * in them, histograms whose buckets do not fit their values, and busy
+   * services that send no metrics at all (Utils/Metrics/MetricInsight). Each
+   * is a fact about the code read straight off the data - nothing a
+   * dependency or a caller could cause - so no fix waits for a verdict.
+   */
+  [TelemetryAiLane.Metric]: {
+    lane: TelemetryAiLane.Metric,
+    triggerEntityType: AutoRemediationTriggerEntity.Metric,
+    insightTypes: [
+      AIInsightType.MetricHighCardinality,
+      AIInsightType.MetricHistogramBuckets,
+      AIInsightType.MetricMissingMetrics,
+    ],
+    switchColumn: "enableAutomaticMetricRemediation",
+    scanEveryMinutes: 60,
+    dashboardPath: "metrics",
+    fixAfterVerdictInsightTypes: [],
   },
 };
 

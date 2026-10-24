@@ -2590,6 +2590,51 @@ export default class Project extends TenantModel {
   })
   public enableAutomaticTraceRemediation?: boolean = undefined;
 
+  /*
+   * Metrics → AI → Settings: "Improve metrics and add missing ones". While
+   * it is on, OneUptime reads each hour's metrics for attributes that take
+   * too many values (and metric names with ids in them), for histograms
+   * whose buckets do not fit their values, and for busy services that send
+   * traces but no metrics (Utils/Metrics/MetricInsight), files each as an
+   * insight, and OneUptime AI looks into it and opens a pull request that
+   * improves the metric or adds the missing ones - in a connected
+   * repository, on the Runner that repository picks, never merged. Metric
+   * AI rules (AutoRemediationRule with triggerEntityType Metric), when there
+   * are any, narrow which services' problems are worked on and how
+   * (Types/AI/TelemetryAi). On for new projects, off for projects that
+   * existed before, so an upgrade spends no AI credits and opens no pull
+   * request unasked. Enable AI turns it off with everything else.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Automatic Metric Remediation",
+    description:
+      "When enabled, OneUptime reads each hour's metrics for attributes that take too many values (such as user ids or full URLs) and metric names with ids in them, for histograms whose buckets do not fit the values they record, and for busy services that send traces but no metrics, and files each as an insight; OneUptime AI looks into it and opens a pull request that improves the metric or adds the missing metrics, in a repository connected in Code. Pull requests are never merged automatically, and honor the repository's open pull request cap. Metric AI rules, when there are any, choose which services' problems are worked on, whether a person approves the pull request first, and which repositories and LLM provider are used. On for new projects created in OneUptime; projects that existed before keep it off. Requires AI to be enabled.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAutomaticMetricRemediation?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [Permission.User],
     read: [

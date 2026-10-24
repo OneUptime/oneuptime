@@ -74,6 +74,28 @@ enum AIInsightType {
    * message nor an exception.
    */
   TraceMissingTracing = "TraceMissingTracing",
+  /*
+   * A high-cardinality metric: an attribute a service's code puts on one of
+   * its metrics took so many values over the last hour (ids, full URLs,
+   * timestamps) that every value is a series of its own - or a service's
+   * metric names carry an id, so each id is a metric of its own (Utils/
+   * Metrics/MetricInsight's gates). Filed for the Metrics product's AI
+   * section (Types/AI/TelemetryAi), with the attribute or the name pattern
+   * as its evidence.
+   */
+  MetricHighCardinality = "MetricHighCardinality",
+  /*
+   * A histogram whose buckets do not fit the values it records: nearly all
+   * of them fall in its smallest bucket or above its largest one (or it
+   * has no buckets at all), so none of its percentiles can be read.
+   */
+  MetricHistogramBuckets = "MetricHistogramBuckets",
+  /*
+   * Missing metrics: a busy service that sends traces but has never sent a
+   * metric, so nothing charts or alerts on its request rate, errors or
+   * latency over time without reading every span.
+   */
+  MetricMissingMetrics = "MetricMissingMetrics",
 }
 
 export default AIInsightType;

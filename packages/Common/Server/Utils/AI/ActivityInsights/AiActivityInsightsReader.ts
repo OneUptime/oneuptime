@@ -29,6 +29,7 @@ import AIInsightStatus from "../../../../Types/AI/AIInsightStatus";
 import AIInsightType from "../../../../Types/AI/AIInsightType";
 import { PROFILE_INSIGHT_FINGERPRINT_PREFIX } from "../../../../Utils/Profiles/ProfileInsight";
 import { isTraceInsightFingerprintOfService } from "../../../../Utils/Traces/TraceInsight";
+import { isMetricInsightFingerprintOfService } from "../../../../Utils/Metrics/MetricInsight";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import {
   AI_ACTIVITY_INSIGHTS_MAX_FIXES,
@@ -240,8 +241,9 @@ function toAlertSubject(alert: Alert): AiActivitySubjectInput {
  * Whether an open preventive finding is about the scope's own telemetry:
  * the detectors embed the entity a finding is about in its fingerprint
  * (ErrorLogSpikeDetector, MetricDriftDetector, TraceLatencyRegressionDetector,
- * DeployRegressionDetector, ProfileHotspotDetector, TraceProblemDetector),
- * and an exception finding's exception belongs to it (exceptionOwners).
+ * DeployRegressionDetector, ProfileHotspotDetector, TraceProblemDetector,
+ * MetricProblemDetector), and an exception finding's exception belongs to it
+ * (exceptionOwners).
  */
 export function isPreventiveInsightAboutScope(data: {
   insight: Pick<
@@ -276,6 +278,11 @@ export function isPreventiveInsightAboutScope(data: {
     case AIInsightType.TraceFailingOperation:
     case AIInsightType.TraceMissingTracing:
       return isTraceInsightFingerprintOfService(fingerprint, scopeId);
+    // A service's metrics: Utils/Metrics/MetricInsight's fingerprints.
+    case AIInsightType.MetricHighCardinality:
+    case AIInsightType.MetricHistogramBuckets:
+    case AIInsightType.MetricMissingMetrics:
+      return isMetricInsightFingerprintOfService(fingerprint, scopeId);
     case AIInsightType.NewException:
     case AIInsightType.ExceptionSpike: {
       const exceptionId: string | undefined =
