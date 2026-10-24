@@ -74,7 +74,7 @@ Um runbook pode misturar todos eles. A força dos runbooks está em intercalar v
 | Uma regra de runbook | **Incidentes**, **Alertas** ou **Manutenção programada** → **Regras** → **Regras de runbook** | O novo incidente, alerta ou evento |
 | **Executar Runbook** | A página **Runbooks** de um incidente, alerta ou evento de manutenção programada | Esse evento |
 | **Run Now** | A página **Visão geral** do runbook | Nada: uma execução avulsa |
-| Uma regra de remediação automática | Consulte [AI SRE](/docs/ai/ai-sre) | O incidente ou alerta |
+| Uma regra de IA | Consulte [AI SRE](/docs/ai/ai-sre) | O incidente ou alerta |
 | O agendamento do runbook | A página **Gatilhos** do runbook, veja [Gatilhos de runbook](/docs/runbooks/triggers#executar-por-agendamento) | Nada: uma execução sem supervisão |
 | Uma chamada à URL do webhook do runbook | A página **Gatilhos** do runbook, veja [Gatilhos de runbook](/docs/runbooks/triggers#chamar-o-webhook) | Nada: a execução guarda os valores que a chamada enviou |
 

@@ -393,7 +393,7 @@ export default class AIIncidentInvestigationRunner {
         investigate: false,
         notStartedCode: "no_investigation_rule_matched",
         notStartedDetails: { rulesChecked: scope.rulesChecked },
-        reason: `none of the ${scope.rulesChecked} investigation rules matched`,
+        reason: `none of the ${scope.rulesChecked} AI rules that investigate matched`,
         monitorId: primaryMonitorId,
       };
     }

@@ -73,7 +73,7 @@ beforeEach(() => {
  *   Ask for approval, since no project opt-in stands behind a cluster
  *   reached through its Kubernetes AI agent any more — adding an allowlist
  *   pattern, or binding a Runner other than the current one) needs a GRANT
- *   of Project Owner, Project Admin or Edit Auto Remediation Rule — the
+ *   of Project Owner, Project Admin or Edit AI Rule — the
  *   permissions that may author a FullAuto rule;
  * - TIGHTENING (Off, moving down, removing patterns, clearing the Runner)
  *   and the investigation switch stay open to everyone who may edit the
@@ -432,7 +432,8 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
         ),
       ),
     ).rejects.toThrow(
-      /You need one of these permissions .*: Project Owner, Project Admin, Edit Auto Remediation Rule\. Anyone who may edit the cluster can still turn AI fixes off or down to Ask for approval/,
+      // Anchored, so it is tried from the message's start only.
+      /^You need one of these permissions [^:]*: Project Owner, Project Admin, Edit AI Rule\. Anyone who may edit the cluster can still turn AI fixes off or down to Ask for approval/,
     );
   });
 
@@ -847,7 +848,7 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
       ).rejects.toThrow(NotAuthorizedException);
     });
 
-    it("does not read a block row for Edit Auto Remediation Rule as a grant next to a cluster-edit grant", async () => {
+    it("does not read a block row for Edit AI Rule as a grant next to a cluster-edit grant", async () => {
       await expect(
         hooks().onBeforeUpdate(
           updateBy(

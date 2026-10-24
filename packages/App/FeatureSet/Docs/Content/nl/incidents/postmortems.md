@@ -86,7 +86,7 @@ Met **Een postmortem opstellen wanneer een incident is opgelost** aan stelt OneU
 
 Zonder regel krijgt elk opgelost incident een concept, in de standaardopzet van OneUptime AI. **Postmortem-regels**, onder **Meer instellingen** op dezelfde pagina, veranderen dat:
 
-- Een regel past bij **Alle incidenten**, of bij **Alleen incidenten die aan de voorwaarden voldoen** op monitoren, ernstniveaus, labels, monitorlabels, titel en beschrijving, zoals een onderzoeksregel.
+- Een regel past bij **Alle incidenten**, of bij **Alleen incidenten die aan de voorwaarden voldoen** op monitoren, ernstniveaus, labels, monitorlabels, titel en beschrijving, zoals een AI-regel.
 - Zijn **Sjablonen** zijn de postmortem-sjablonen die het concept mag volgen. Zonder sjabloon volgt het concept de standaardopzet; met één dat sjabloon; met meerdere het sjabloon dat volgens OneUptime AI het best bij het incident past. Het bericht van het concept in de feed noemt het sjabloon dat het volgde.
 - Zijn **LLM-provider**, onder **Meer velden**, is de provider waarmee OneUptime AI het concept schrijft en het sjabloon ervan kiest. Is er geen gekozen, dan is het de standaardprovider van het project, anders de globale. Het bericht van het concept in de feed noemt de provider die een regel koos, of de provider die in plaats daarvan werd gebruikt, en waarom. Zie [Welke LLM-provider een regel gebruikt](/docs/ai/ai-sre#welke-llm-provider-een-regel-gebruikt).
 - De eerste ingeschakelde regel die bij het incident past, beslist, vanaf de bovenkant van de lijst: sleep een regel om zijn plaats te veranderen. Een incident waar geen regel bij past, krijgt geen concept, en zolang de regels niet kunnen worden gelezen, krijgt geen enkel incident er een.

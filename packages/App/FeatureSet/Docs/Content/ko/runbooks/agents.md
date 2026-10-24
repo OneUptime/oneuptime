@@ -97,7 +97,7 @@ OneUptime Cloud에서는 OneUptime이 글로벌 Runner를 실행합니다. 자�
 | **런북 실행** | **추가 필드** 아래 | 기본적으로 켜져 있습니다. 이 Runner가 Runbook 단계를 가져갈 수 있게 합니다. |
 | **레이블** | **추가 필드** 아래 | 선택 사항. |
 
-Runner는 기능 변경을 다음 하트비트 때 반영하므로 다시 시작할 필요가 없습니다. AI는 기능이 아닙니다. 코드 저장소가 코드의 설정에서 AI가 그 저장소에서 작업할 Runner를 선택하며, Runner 페이지에는 그 Runner를 선택한 저장소가 나열됩니다. 자동 해결 규칙은 OneUptime AI가 명령을 실행할 Runner를 선택합니다. 거기서 Runner를 선택해야 OneUptime AI의 명령이 그 Runner에서 실행됩니다.
+Runner는 기능 변경을 다음 하트비트 때 반영하므로 다시 시작할 필요가 없습니다. AI는 기능이 아닙니다. 코드 저장소가 코드의 설정에서 AI가 그 저장소에서 작업할 Runner를 선택하며, Runner 페이지에는 그 Runner를 선택한 저장소가 나열됩니다. AI 규칙은 OneUptime AI가 명령을 실행할 Runner를 선택합니다. 거기서 Runner를 선택해야 OneUptime AI의 명령이 그 Runner에서 실행됩니다.
 
 ### 2. 설치 명령 복사
 
@@ -171,7 +171,7 @@ Runner를 고른 단계는 기본값이 무엇이든 그 Runner를 유지하며,
 
 기본값이 될 수 있는 것은 Runbook 단계를 실행하는 프로젝트 자체의 Runner뿐입니다. 글로벌 Runner, Kubernetes 에이전트가 설치한 클러스터 내 Runner, **런북 실행**이 꺼진 Runner는 기본값이 될 수 없습니다. Runner가 기본값인 동안에는 그 **런북 실행**이 켜진 상태로 유지됩니다. 기본 Runner가 연결되어 있지 않으면 단계의 드롭다운이 그렇게 알려 주며, 그 Runner를 쓰는 단계는 다른 Runner와 마찬가지로 claim timeout이 지날 때까지 기다립니다.
 
-기본값은 Runbook 단계만 사용합니다. 코드 저장소는 코드의 설정에서 자신의 Runner를 선택하고, 자동 해결 규칙도 자신의 Runner를 선택합니다.
+기본값은 Runbook 단계만 사용합니다. 코드 저장소는 코드의 설정에서 자신의 Runner를 선택하고, AI 규칙도 자신의 Runner를 선택합니다.
 
 ## 운영 참고 사항
 

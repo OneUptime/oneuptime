@@ -55,7 +55,7 @@ export default class RemediationCodeRepositories {
       });
     } catch (error) {
       logger.error(
-        `AI: could not read which code repositories auto remediation rule ${data.autoRemediationRuleId.toString()} allows; fixing without code: ${error}`,
+        `AI: could not read which code repositories AI rule ${data.autoRemediationRuleId.toString()} allows; fixing without code: ${error}`,
       );
       return NO_CODE_REPOSITORY;
     }

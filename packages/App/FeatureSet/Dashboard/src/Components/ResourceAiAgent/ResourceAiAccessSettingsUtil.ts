@@ -56,8 +56,7 @@ import {
  * The server's own set (Common/Types/AI/ResourceAiAccessPermissions.ts),
  * which the resource models' column descriptions promise and every
  * resource service enforces on save: Project Owner, Project Admin or Edit
- * Auto Remediation Rule. Tightening stays open to everyone who may edit the
- * resource.
+ * AI Rule. Tightening stays open to everyone who may edit the resource.
  */
 export const RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS: ReadonlyArray<Permission> =
   SERVER_RESOURCE_AI_ACCESS_ADMIN_PERMISSIONS;

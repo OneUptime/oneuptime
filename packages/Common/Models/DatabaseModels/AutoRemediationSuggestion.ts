@@ -126,8 +126,8 @@ export default class AutoRemediationSuggestion extends BaseModel {
     manyToOneRelationColumn: "autoRemediationRuleId",
     type: TableColumnType.Entity,
     modelType: AutoRemediationRule,
-    title: "Auto Remediation Rule",
-    description: "The rule that produced this suggestion.",
+    title: "AI Rule",
+    description: "The AI rule that produced this suggestion.",
   })
   @ManyToOne(
     () => {
@@ -157,8 +157,8 @@ export default class AutoRemediationSuggestion extends BaseModel {
     type: TableColumnType.ObjectID,
     required: false,
     canReadOnRelationQuery: true,
-    title: "Auto Remediation Rule ID",
-    description: "ID of the rule that produced this suggestion.",
+    title: "AI Rule ID",
+    description: "ID of the AI rule that produced this suggestion.",
   })
   @Column({
     type: ColumnType.ObjectID,

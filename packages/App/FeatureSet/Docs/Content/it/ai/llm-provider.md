@@ -32,7 +32,7 @@ flowchart TB
 
 Un provider è il predefinito di un progetto quando **Imposta come predefinito** è attivo, come per ogni nuovo provider. Un progetto i cui provider hanno tutti questa opzione disattivata ripiega sul provider globale, come se non ne avesse nessuno.
 
-Ogni regola di OneUptime AI (regole di indagine, di rimedio automatico e di post-mortem) può invece scegliere un provider proprio, in **Altri campi**: uno dei provider del progetto o uno globale, usato per tutto ciò che la regola avvia. Una regola che non ne sceglie nessuno usa il provider predefinito, e un provider scelto che non si può più usare ripiega su di esso. Vedi [Quale provider LLM usa una regola](/docs/ai/ai-sre#quale-provider-llm-usa-una-regola).
+Ogni regola di OneUptime AI (regole IA e regole di post-mortem) può invece scegliere un provider proprio, in **Altri campi**: uno dei provider del progetto o uno globale, usato per tutto ciò che la regola avvia. Una regola che non ne sceglie nessuno usa il provider predefinito, e un provider scelto che non si può più usare ripiega su di esso. Vedi [Quale provider LLM usa una regola](/docs/ai/ai-sre#quale-provider-llm-usa-una-regola).
 
 ## OneUptime Cloud
 

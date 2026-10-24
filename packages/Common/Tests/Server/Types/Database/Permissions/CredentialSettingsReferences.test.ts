@@ -5,7 +5,6 @@ import RelationListPermission, {
 } from "../../../../../Server/Types/Database/Permissions/RelationListPermission";
 import Query from "../../../../../Server/Types/Database/Query";
 import { UnreadableReferenceException } from "../../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
-import AIInvestigationRule from "../../../../../Models/DatabaseModels/AIInvestigationRule";
 import AlertVideoCall from "../../../../../Models/DatabaseModels/AlertVideoCall";
 import ApiKey from "../../../../../Models/DatabaseModels/ApiKey";
 import ApiKeyPermission from "../../../../../Models/DatabaseModels/ApiKeyPermission";
@@ -303,7 +302,6 @@ describe("the settings that hold credentials", () => {
       "securityEventConnectionId",
       SecurityEventConnection,
     ],
-    [AIInvestigationRule, "llmProvider", "llmProviderId", LlmProvider],
     [AutoRemediationRule, "llmProvider", "llmProviderId", LlmProvider],
     [AIPostmortemRule, "llmProvider", "llmProviderId", LlmProvider],
   ] as Array<[{ new (): BaseModel }, string, string, { new (): BaseModel }]>)(
@@ -675,29 +673,27 @@ describe("the API key a permission is granted to", () => {
 
 /*
  * An outside MCP server holds a sign-in to a system outside OneUptime (an
- * AWS or Azure account, a GitHub organization). An investigation or auto
- * remediation rule that names one lets OneUptime AI use that server's
- * tools for what the rule matches, so the servers a rule names are held to
- * the read of External MCP Servers - the first setting that holds
- * credentials a write names in a list rather than in a field of its own.
+ * AWS or Azure account, a GitHub organization). An AI rule that names one
+ * lets OneUptime AI use that server's tools for what the rule matches -
+ * investigating and fixing - so the servers a rule names are held to the
+ * read of External MCP Servers - the first setting that holds credentials
+ * a write names in a list rather than in a field of its own.
  */
 describe("the outside MCP servers a rule lets OneUptime AI use", () => {
-  test("are checked in both rules' MCP Servers lists", () => {
-    for (const modelType of [AutoRemediationRule, AIInvestigationRule]) {
-      expect(
-        RelationListPermission.getCheckedLists(modelType).some(
-          (list: CheckedRelationList): boolean => {
-            return (
-              list.column === "externalMcpServers" &&
-              list.listedModelType === ExternalMcpServer
-            );
-          },
-        ),
-      ).toBe(true);
-    }
+  test("are checked in the AI rule's MCP Servers list", () => {
+    expect(
+      RelationListPermission.getCheckedLists(AutoRemediationRule).some(
+        (list: CheckedRelationList): boolean => {
+          return (
+            list.column === "externalMcpServers" &&
+            list.listedModelType === ExternalMcpServer
+          );
+        },
+      ),
+    ).toBe(true);
   });
 
-  test("are refused to a role that edits auto remediation rules but reads no MCP servers, and nothing is looked up", async () => {
+  test("are refused to a role that edits AI rules but reads no MCP servers, and nothing is looked up", async () => {
     for (const permission of [
       Permission.CreateAutoRemediationRule,
       Permission.EditAutoRemediationRule,
@@ -732,14 +728,6 @@ describe("the outside MCP servers a rule lets OneUptime AI use", () => {
         }),
       ).toBeUndefined();
     }
-
-    expect(
-      await check({
-        modelType: AIInvestigationRule,
-        data: { externalMcpServers: [{ _id: MCP_SERVER_A }] },
-        props: member([Permission.ProjectAdmin]),
-      }),
-    ).toBeUndefined();
   });
 
   test("a rule that names none of them asks nothing", async () => {
@@ -762,14 +750,13 @@ describe("the outside MCP servers a rule lets OneUptime AI use", () => {
 /*
  * The LLM provider an AI rule picks holds the provider's API key: OneUptime
  * AI does the work the rule starts with that provider, on that key
- * (Types/AI/LlmProviderChoice). So the provider an investigation, auto
- * remediation or postmortem rule names is held to the read of LLM
- * providers: the owners and admins who write investigation and postmortem
- * rules read them, as do the Settings tiers; a custom role that only edits
- * auto remediation rules does not.
+ * (Types/AI/LlmProviderChoice). So the provider an AI rule or a
+ * postmortem rule names is held to the read of LLM providers: the owners
+ * and admins who write every kind of rule read them, as do the Settings
+ * tiers; a custom role that only edits AI rules does not.
  */
 describe("the LLM provider an AI rule picks", () => {
-  test("is refused to a role that edits auto remediation rules but reads no LLM providers, under either name, and nothing is looked up", async () => {
+  test("is refused to a role that edits AI rules but reads no LLM providers, under either name, and nothing is looked up", async () => {
     for (const permission of [
       Permission.CreateAutoRemediationRule,
       Permission.EditAutoRemediationRule,
@@ -800,7 +787,6 @@ describe("the LLM provider an AI rule picks", () => {
     const named: Array<
       [{ new (): BaseModel }, DatabaseCommonInteractionProps]
     > = [
-      [AIInvestigationRule, member([Permission.ProjectAdmin])],
       [AIPostmortemRule, member([Permission.ProjectOwner])],
       [AutoRemediationRule, member([Permission.ProjectAdmin])],
       [

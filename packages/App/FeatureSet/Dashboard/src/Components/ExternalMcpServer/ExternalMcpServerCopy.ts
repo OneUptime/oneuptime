@@ -222,7 +222,7 @@ export const EXTERNAL_MCP_SERVER_TOOLS_COPY: {
 } = {
   title: translationKey("Tools"),
   description: translationKey(
-    "Investigations use only the tools that read. Fixes also use the others, the way the auto remediation rule's Approval says.",
+    "Investigations use only the tools that read. Fixes also use the others, the way the AI rule's Fix setting says.",
   ),
   noTools: translationKey("The server offers no tools."),
   notReadYet: translationKey(
@@ -359,24 +359,23 @@ export function readStoredExternalMcpServerTools(value: unknown): {
 }
 
 /*
- * What a rule's "MCP servers" field says, for investigation rules and auto
- * remediation rules (under More fields on both).
+ * What a rule's "MCP servers" field says, under an AI rule's More fields:
+ * the servers OneUptime AI may use while it investigates (their tools that
+ * read) and fixes what the rule matches. The field's line is true of every
+ * rule - one that doesn't fix uses them only to investigate - so it says
+ * neither.
  */
 export const RULE_MCP_SERVERS_FIELD_COPY: {
   title: string;
   placeholder: string;
-  investigationDescription: string;
-  remediationDescription: string;
+  aiRuleDescription: string;
   manageHint: string;
   allServersSummary: string;
 } = {
   title: translationKey("MCP Servers"),
   placeholder: translationKey("All MCP servers"),
-  investigationDescription: translationKey(
-    "OneUptime AI may use all of your MCP servers while it investigates. Pick some to let it use only those.",
-  ),
-  remediationDescription: translationKey(
-    "OneUptime AI may use all of your MCP servers to fix. Pick some to let it use only those.",
+  aiRuleDescription: translationKey(
+    "OneUptime AI may use all of your MCP servers. Pick some to let it use only those.",
   ),
   manageHint: translationKey(
     "Add and manage MCP servers on the {{externalMcpServersLink}} page.",

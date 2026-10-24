@@ -17,28 +17,32 @@ import { RuleEvaluation } from "../../PatternWorkScope";
 import IncidentAlertRuleMatcher from "../../Rules/IncidentAlertRuleMatcher";
 import logIfRuleReadWasTruncated from "../../Rules/RuleEngineRuleRead";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import { getFixingAiRules } from "../../../../Types/AI/AiRule";
 
 /*
- * THE AUTO REMEDIATION RULES BEHIND A PULL REQUEST OneUptime AI OPENS ON
- * ITS OWN.
+ * THE AI RULES BEHIND A PULL REQUEST OneUptime AI OPENS ON ITS OWN.
  *
  * The two pull requests an investigation can lead to - a fix, and the
- * telemetry it lacked - are set per auto remediation rule
+ * telemetry it lacked - are set per AI rule that fixes
  * (Types/AI/AutomaticFixPullRequests). When an investigation ends, its
  * trigger asks here which of the project's enabled rules of the signal's
- * kind match the incident (or alert), read the way the rule engine reads
- * them (IncidentAlertRuleMatcher, with the columns AutoRemediationRuleEngine
- * selects), together with each rule's pull request switches and the code
- * repositories it names.
+ * kind match the incident (or alert) and fix it, read the way the rule
+ * engine reads them (IncidentAlertRuleMatcher, with the columns
+ * AutoRemediationRuleEngine selects), together with each rule's pull
+ * request switches and the code repositories it names. A pull request is
+ * one of the ways OneUptime AI fixes, so a rule that only investigates
+ * opens none: with rules, an incident only such rules match is not fixed,
+ * and gets no pull request either (Types/AI/AiRule).
  *
  * Null when they cannot be read: a pull request is a fix, and a fix that
  * cannot be checked against the rules that may keep it out is not made.
  */
 
-// What a rule is matched on, as the rule engine reads it.
+// What a rule is matched on, as the rule engine reads it - and whether it fixes.
 const RULE_MATCH_SELECT: {
   _id: true;
   name: true;
+  fixes: true;
   criteria: true;
   titlePattern: true;
   descriptionPattern: true;
@@ -50,6 +54,7 @@ const RULE_MATCH_SELECT: {
 } = {
   _id: true,
   name: true,
+  fixes: true,
   criteria: true,
   titlePattern: true,
   descriptionPattern: true,
@@ -100,9 +105,9 @@ const ALERT_MATCH_SELECT: {
 
 export default class RemediationRulePullRequests {
   /*
-   * The project's enabled auto remediation rules for the signal's kind -
-   * whether it has any, and the ones that match the incident (or alert) -
-   * or null when they cannot be read. Exactly one of incidentId and alertId.
+   * The project's enabled AI rules for the signal's kind - whether it has
+   * any, and the ones that match the incident (or alert) and fix it - or
+   * null when they cannot be read. Exactly one of incidentId and alertId.
    */
   @CaptureSpan()
   @RuleEvaluation()
@@ -160,12 +165,12 @@ export default class RemediationRulePullRequests {
           return null;
         }
 
-        for (const rule of rules) {
+        for (const rule of getFixingAiRules(rules)) {
           if (
             await IncidentAlertRuleMatcher.doesIncidentMatch(
               incident,
               rule,
-              "auto-remediation rule",
+              "AI rule",
             )
           ) {
             matchingRules.push(rule);
@@ -182,12 +187,12 @@ export default class RemediationRulePullRequests {
           return null;
         }
 
-        for (const rule of rules) {
+        for (const rule of getFixingAiRules(rules)) {
           if (
             await IncidentAlertRuleMatcher.doesAlertMatch(
               alert,
               rule,
-              "auto-remediation rule",
+              "AI rule",
             )
           ) {
             matchingRules.push(rule);
@@ -198,7 +203,7 @@ export default class RemediationRulePullRequests {
       return { rulesSetUp: true, matchingRules };
     } catch (error) {
       logger.error(
-        `AI: could not read the auto remediation rules for a pull request; none opens: ${error}`,
+        `AI: could not read the AI rules for a pull request; none opens: ${error}`,
         { projectId: data.projectId.toString() } as LogAttributes,
       );
 

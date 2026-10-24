@@ -74,7 +74,7 @@ HTTP와 AI 단계는 OneUptime Worker에서 실행됩니다. Bash, SSH, kubectl 
 | Runbook 규칙 | **인시던트**, **알림** 또는 **예정된 유지 관리** → **규칙** → **Runbook 규칙** | 새 인시던트, 알림 또는 이벤트 |
 | **런북 실행** | 인시던트, 알림 또는 예정된 유지 관리 이벤트의 **런북** 페이지 | 해당 이벤트 |
 | **Run Now** | Runbook의 **개요** 페이지 | 없음(일회성 실행) |
-| 자동 해결 규칙 | [AI SRE](/docs/ai/ai-sre) 참조 | 인시던트 또는 알림 |
+| AI 규칙 | [AI SRE](/docs/ai/ai-sre) 참조 | 인시던트 또는 알림 |
 | Runbook의 일정 | Runbook의 **트리거** 페이지, [Runbook 트리거](/docs/runbooks/triggers#일정에-따라-실행) 참고 | 없음: 무인 실행 |
 | Runbook 웹훅 URL 호출 | Runbook의 **트리거** 페이지, [Runbook 트리거](/docs/runbooks/triggers#웹훅-호출) 참고 | 없음: 실행은 호출이 보낸 값을 보관합니다 |
 

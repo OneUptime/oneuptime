@@ -792,7 +792,7 @@ describe("what a workflow's step may do, with runbook credentials gone", () => {
     const agents: string = flattened(readPage("en", "runbooks/agents"));
 
     expect(agents).toContain(
-      "An auto remediation rule picks the Runner OneUptime AI runs its commands on: picking a Runner there is what lets OneUptime AI's commands run on it.",
+      "An AI rule picks the Runner OneUptime AI runs its commands on: picking a Runner there is what lets OneUptime AI's commands run on it.",
     );
     expect(agents).not.toContain("Picking one that holds SSH credentials");
     expect(agents).not.toContain("read runbook credentials");

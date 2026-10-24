@@ -414,7 +414,7 @@ const TABLES = {
   IncidentSeverity: SEVERITIES,
   Label: LABELS,
   Monitor: MONITORS,
-  AIInvestigationRule: [],
+  // The AI rules beside them: none.
   AutoRemediationRule: [],
 };
 

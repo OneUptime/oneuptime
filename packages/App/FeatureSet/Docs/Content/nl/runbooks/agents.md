@@ -97,7 +97,7 @@ Ga naar **Runbooks → Runbook-agenten** en maak een nieuwe agent. Klik op **Run
 | **Voert Runbooks uit** | Onder **Meer velden** | Standaard aan. Laat deze Runner runbook-stappen oppakken. |
 | **Labels** | Onder **Meer velden** | Optioneel. |
 
-Een Runner neemt een wijziging van zijn mogelijkheden over bij zijn volgende heartbeat; opnieuw starten is niet nodig. AI is geen mogelijkheid. Een code-repository kiest in zijn instellingen in Code de Runner waarop AI erin werkt, en de pagina van de Runner toont de repositories die hem kiezen. Een regel voor automatisch herstel kiest de Runner waarop OneUptime AI zijn opdrachten uitvoert: pas door een Runner daar te kiezen mogen de opdrachten van OneUptime AI erop draaien.
+Een Runner neemt een wijziging van zijn mogelijkheden over bij zijn volgende heartbeat; opnieuw starten is niet nodig. AI is geen mogelijkheid. Een code-repository kiest in zijn instellingen in Code de Runner waarop AI erin werkt, en de pagina van de Runner toont de repositories die hem kiezen. Een AI-regel kiest de Runner waarop OneUptime AI zijn opdrachten uitvoert: pas door een Runner daar te kiezen mogen de opdrachten van OneUptime AI erop draaien.
 
 ### 2. De installatieopdracht kopiëren
 
@@ -171,7 +171,7 @@ Een stap die een Runner heeft gekozen, houdt die, wat de standaard ook is, en ee
 
 De standaard is een van de eigen Runners van het project die runbookstappen uitvoert: geen globale Runner, niet de Runner in het cluster die de Kubernetes-agent heeft geïnstalleerd, en geen Runner waarbij **Voert Runbooks uit** uit staat. Zolang een Runner de standaard is, blijft zijn **Voert Runbooks uit** aan. Als de standaard niet verbonden is, zegt de vervolgkeuzelijst van een stap dat, en een stap erop wacht erop, zoals op elke Runner, tot zijn claim timeout verstrijkt.
 
-Alleen runbookstappen gebruiken de standaard. Een code-repository kiest zijn Runner in zijn instellingen in Code, en een regel voor automatisch herstel kiest zijn eigen Runner.
+Alleen runbookstappen gebruiken de standaard. Een code-repository kiest zijn Runner in zijn instellingen in Code, en een AI-regel kiest zijn eigen Runner.
 
 ## Beheernotities
 

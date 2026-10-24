@@ -23,12 +23,14 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 
 /*
- * Which auto remediation rules stand behind a pull request OneUptime AI
- * opens on its own: the project's enabled rules of the signal's kind -
- * whether it has any - and the ones that match the incident (or alert),
- * matched the way the rule engine matches them, with each rule's two pull
- * request switches and the code repositories it names. Null whenever they
- * cannot be read: then no pull request opens (decideAutomaticFixPullRequest).
+ * Which AI rules stand behind a pull request OneUptime AI opens on its own:
+ * the project's enabled rules of the signal's kind - whether it has any -
+ * and the ones that match the incident (or alert) and fix it, matched the
+ * way the rule engine matches them, with each rule's two pull request
+ * switches and the code repositories it names. A pull request is one of
+ * the ways OneUptime AI fixes: a rule that only investigates opens none.
+ * Null whenever they cannot be read: then no pull request opens
+ * (decideAutomaticFixPullRequest).
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -145,6 +147,7 @@ describe("RemediationRulePullRequests.getRulesForSignal", () => {
         triggerEntityType: AutoRemediationTriggerEntity.Incident,
       },
       select: {
+        fixes: true,
         criteria: true,
         titlePattern: true,
         descriptionPattern: true,
@@ -204,7 +207,90 @@ describe("RemediationRulePullRequests.getRulesForSignal", () => {
       },
       props: { isRoot: true },
     });
-    expect(matcher.mock.calls[0]![2]).toBe("auto-remediation rule");
+    expect(matcher.mock.calls[0]![2]).toBe("AI rule");
+  });
+
+  test("a matching rule that only investigates opens no pull request: it is not matched at all", async () => {
+    mockRules([
+      rule({
+        name: "Investigate checkout",
+        monitors: [ref(Monitor, MONITOR_A)],
+        fixes: false,
+      }),
+      rule({
+        name: "Fix checkout",
+        monitors: [ref(Monitor, MONITOR_A)],
+        codeRepositories: [ref(CodeRepository, CHECKOUT_REPO)],
+      }),
+    ]);
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(incident() as never);
+    const matcher: SpyInstance<
+      typeof IncidentAlertRuleMatcher.doesIncidentMatch
+    > = jest.spyOn(IncidentAlertRuleMatcher, "doesIncidentMatch");
+
+    const rules: AutomaticFixPullRequestRules | null =
+      await RemediationRulePullRequests.getRulesForSignal({
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+      });
+
+    expect(rules?.rulesSetUp).toBe(true);
+    expect(
+      rules?.matchingRules.map((matched: unknown): string | undefined => {
+        return (matched as AutoRemediationRule).name;
+      }),
+    ).toEqual(["Fix checkout"]);
+    // The rule that only investigates is never matched.
+    expect(matcher).toHaveBeenCalledTimes(1);
+  });
+
+  test("with only rules that investigate matching, rules are set up and none stands behind a pull request, so none opens", async () => {
+    mockRules([rule({ monitors: [ref(Monitor, MONITOR_A)], fixes: false })]);
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(incident() as never);
+
+    const rules: AutomaticFixPullRequestRules | null =
+      await RemediationRulePullRequests.getRulesForSignal({
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+      });
+
+    expect(rules).toEqual({ rulesSetUp: true, matchingRules: [] });
+
+    for (const pullRequest of [
+      AutomaticFixPullRequest.CodeFix,
+      AutomaticFixPullRequest.MissingTelemetry,
+    ]) {
+      expect(
+        decideAutomaticFixPullRequest({
+          project: { enableAutomaticIncidentRemediation: true },
+          signal: AutoRemediationTriggerEntity.Incident,
+          pullRequest,
+          rules,
+        }).blocker,
+      ).toBe(AutomaticFixPullRequestBlocker.NoMatchingRule);
+    }
+  });
+
+  test("an alert's rules that only investigate open no pull request either", async () => {
+    mockRules([
+      rule({
+        name: "Low, investigate only",
+        alertSeverities: [ref(AlertSeverity, SEVERITY_LOW)],
+        fixes: false,
+      }),
+    ]);
+    jest.spyOn(AlertService, "findOneById").mockResolvedValue(alert() as never);
+
+    expect(
+      await RemediationRulePullRequests.getRulesForSignal({
+        projectId: PROJECT_ID,
+        alertId: ALERT_ID,
+      }),
+    ).toEqual({ rulesSetUp: true, matchingRules: [] });
   });
 
   test("an alert reads its own rules and is matched on its own monitor and severity", async () => {
@@ -283,7 +369,7 @@ describe("RemediationRulePullRequests.getRulesForSignal", () => {
       }),
     ).toBeNull();
     expect(String(error.mock.calls[0]![0])).toContain(
-      "could not read the auto remediation rules for a pull request; none opens",
+      "could not read the AI rules for a pull request; none opens",
     );
   });
 

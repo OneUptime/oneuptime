@@ -74,7 +74,7 @@ Een runbook kan ze allemaal combineren. De kracht van runbooks zit in het afwiss
 | Een runbook-regel | **Incidenten**, **Waarschuwingen** of **Geplande onderhoud** → **Regels** → **Runbook-regels** | Het nieuwe incident, de nieuwe waarschuwing of het nieuwe evenement |
 | **Runbook uitvoeren** | De pagina **Runbooks** van een incident, een waarschuwing of een gepland onderhoudsevenement | Dat evenement |
 | **Run Now** | De pagina **Overzicht** van het runbook | Niets: een losse uitvoering |
-| Een regel voor automatisch herstel | Zie [AI SRE](/docs/ai/ai-sre) | Het incident of de waarschuwing |
+| Een AI-regel | Zie [AI SRE](/docs/ai/ai-sre) | Het incident of de waarschuwing |
 | Het schema van het runbook | De pagina **Triggers** van het runbook, zie [Runbook-triggers](/docs/runbooks/triggers#uitvoeren-volgens-een-schema) | Niets: een onbewaakte uitvoering |
 | Een aanroep van de webhook-URL van het runbook | De pagina **Triggers** van het runbook, zie [Runbook-triggers](/docs/runbooks/triggers#de-webhook-aanroepen) | Niets: de uitvoering bewaart de waarden die de aanroep verstuurde |
 

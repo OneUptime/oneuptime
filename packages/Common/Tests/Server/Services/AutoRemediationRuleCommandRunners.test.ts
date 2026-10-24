@@ -7,6 +7,7 @@ import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
 import Runner from "../../../Models/DatabaseModels/Runner";
+import AutoRemediationTriggerEntity from "../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
@@ -106,6 +107,7 @@ function rule(commandRunners: unknown): AutoRemediationRule {
   const model: AutoRemediationRule = new AutoRemediationRule();
   model.name = "restart web on high latency";
   model.projectId = PROJECT_ID;
+  model.triggerEntityType = AutoRemediationTriggerEntity.Incident;
   (model as unknown as Record<string, unknown>)["commandRunners"] =
     commandRunners;
   return model;

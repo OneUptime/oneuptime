@@ -83,7 +83,7 @@ const UPGRADE_STEP: string = "Upgrade the Kubernetes agent chart";
 
 // Who may bind a Runner again.
 const REBIND_PERMISSIONS: string =
-  "binding a Runner again needs one of these permissions: Project Owner, Project Admin, Edit Auto Remediation Rule.";
+  "binding a Runner again needs one of these permissions: Project Owner, Project Admin, Edit AI Rule.";
 
 interface FakeDatabase {
   cluster: KubernetesCluster;

@@ -1,12 +1,14 @@
-# Auto remediation rules fixture
+# AI rules fixture
 
-An offline harness for the auto remediation rules on Incidents → AI →
-Settings and Alerts → AI → Settings: which new incidents (or alerts)
-OneUptime AI fixes, and whether it asks first. The pages
+An offline harness for the AI rules on Incidents → AI → Settings and Alerts →
+AI → Settings: which new incidents (or alerts) OneUptime AI investigates, and
+whether - and how - it fixes them. The investigation rules and the auto
+remediation rules became one AI rule: "Should incident investigation rule and
+remediation rule be the same entity ... Since its not possible to remediate
+without investigation" - the maintainer. The pages
 (`packages/App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentAISettings.tsx`
 and `Pages/Alerts/Settings/AlertAISettings.tsx`), their More settings fold,
-the Auto remediation rules table
-(`Components/AutoRemediation/AutoRemediationRulesTable.tsx`), its create and
+the AI rules table (`Components/AISettings/AiRulesTable.tsx`), its create and
 edit dialogs, the rule's More fields
 (`Components/AutoRemediation/AutoRemediationRuleFields.tsx`) and the one
 Runner picker (`Components/Runner/RunnerPicker.tsx`) are the production ones.
@@ -20,77 +22,83 @@ cd packages/E2E
 npm run test-auto-remediation-rules-ui
 ```
 
-The suite drives the pages the way a person does:
+`AutoRemediationRules.spec.ts` drives a rule the way a person does:
 
-- the Fix step asks one question, Approval, with no OneUptime AI or Runbooks
-  choice; More fields is folded under it, and its line says what the defaults
-  do in one sentence while a rule keeps them all (OneUptime AI may use any of
-  your runbooks, MCP servers and connected repositories, and open pull
-  requests in them), then one sentence for each default left;
-- open, More fields holds the runbooks OneUptime AI may run ("Any runbook"
-  when none is picked) and the Runner OneUptime AI runs the rule's Bash
-  commands on: the project's own Runners with how each is doing, the default
-  first and tagged (a new rule starts on it, `?defaultRunner=prod`), "No
-  Runner" while none is picked, never the AI agent on the cluster or host
-  (its line says commands there go through it), never the in-cluster Runner
-  the Kubernetes agent chart installed and never a global Runner;
-- a rule made without opening More fields is sent as OneUptime AI's, with no
-  runbook, no Runner, every repository and both pull requests on; the
-  runbooks and the Runner picked are sent, and the folded line names them -
-  the Runner by name ("Runner: prod-eu-runner", the default a new rule starts
-  on included, with " · Never connected" for one that is not connected), as
-  a runbook step's line names its Runner;
-- "Run them every time" appears once the rule names runbooks: the rule starts
-  them for every match, picks no Runner, and needs a runbook to run;
-- a project with no Runner of its own reads No Runner, has nothing to pick,
+- a rule asks a step each: Match (all incidents to start with), Investigate
+  (right away to start with) and Fix - one question with three answers,
+  Don't fix, Ask before fixing (a new rule's) and Fix without asking, with no
+  OneUptime AI or Runbooks choice - then its name; More fields is folded
+  under it, and its line says what the defaults do in one sentence while a
+  rule keeps them all (OneUptime AI may use any of your runbooks, MCP servers
+  and connected repositories, and open pull requests in them), then one
+  sentence for each default left;
+- a rule made without opening More fields investigates right away and asks
+  before fixing - both said in the create - as OneUptime AI's, with no
+  runbook, no Runner, every repository and both pull requests on;
+- Don't fix makes a rule that only investigates, what an investigation rule
+  was: More fields keeps the code repositories, the MCP servers and the LLM
+  provider OneUptime AI investigates with, and drops the runbooks, the Runner
+  and the pull requests; an answer taken back keeps what was picked;
+- open, More fields holds, in this order, the code repositories, the MCP
+  servers, the LLM provider, the runbooks OneUptime AI may run ("Any
+  runbook" when none is picked), "Run them every time" once the rule names
+  runbooks, the Runner OneUptime AI runs the rule's Bash commands on (the
+  project's own Runners with how each is doing, the default first and tagged
+  - a new rule starts on it, `?defaultRunner=prod` - "No Runner" while none
+  is picked, never the AI agent on the cluster or host, never the in-cluster
+  Runner the Kubernetes agent chart installed and never a global Runner), the
+  two pull requests and the description; the repositories come first, the one
+  field every rule shows, so the fold stays open whatever the Fix answer;
+- a Runner picked is always named on the folded line ("Runner:
+  prod-eu-runner", with " · Never connected" for one that is not connected);
+  a project with no Runner of its own reads No Runner, has nothing to pick,
   and is told where to add one;
-- the code repositories OneUptime AI may use ("All connected repositories"
-  when none is picked, with a link to Code › Repositories), drawn like the
-  Runbooks and MCP Servers pickers beside it (one height, chips, no chevron),
-  each hint close under its own box and a field's gap above the next, and
-  the rule's two
-  pull request switches, Fix pull requests and Telemetry pull requests, on for
-  a new rule - they moved here from the AI settings card, which now draws
-  fixing alone; picks are sent and counted on the folded line, a saved rule
-  keeps them, a project with no repository (`?repositories=0`) or a plan
-  without Code (`?repositories=denied`) still saves a rule, and an
-  investigation rule names its repositories too, with no Runner;
-- picking repositories one at a time (after Escape, a click on the box opens
-  the list again), a short name never cut for its GitHub name on a phone
-  (`?repositories=many`), the hints opening their pages in a new tab with
-  the list read again on coming back (`window.__fixture.connectRepository`),
-  a rule saved before the switches moved opening with both on, and a
-  repository the reader cannot access kept and named in full on its chip
-  (`?hiddenRepository=1`);
-- rules saved before this change: the table names each for what it does (its
-  runbooks every time, OneUptime AI, and the two older shapes), and editing
-  one keeps what it does - a rule that runs its runbooks every time opens
-  with them, the switch on and no Runner, and a OneUptime AI rule with its
-  runbooks and its Runner, which can go back to No Runner;
+- the code repositories ("All connected repositories" when none is picked,
+  with a link to Code › Repositories), drawn like the Runbooks and MCP
+  Servers pickers (one height, chips, no chevron), each hint close under its
+  own box and a field's gap above the next; picks are sent and counted on the
+  folded line, a saved rule keeps them, a project with no repository
+  (`?repositories=0`) or a plan without Code (`?repositories=denied`) still
+  saves a rule, picking one at a time works after Escape, a short name is
+  never cut for its GitHub name on a phone (`?repositories=many`), the hints
+  open their pages in a new tab with the list read again on coming back
+  (`window.__fixture.connectRepository`), and a repository the reader cannot
+  access is kept and named in full on its chip (`?hiddenRepository=1`);
+- the rules that were auto remediation rules (`?rules=saved`): the table's one
+  column, "Investigates and fixes", says when each investigates - right away
+  for the one merged with an investigation rule, "Doesn't investigate" for
+  the others - and how it fixes (its runbooks every time, OneUptime AI, and
+  the two older shapes); editing one keeps what it does; a rule that only
+  fixes says so on its Investigate step, and "Investigate too" makes it
+  investigate right away, while Don't fix is refused for it; an older rule
+  says what it still does, and "Fix like a new rule" makes it ask first;
 - an alert rule asks the same;
 - the LLM provider OneUptime AI uses for what a rule starts
   (`?providers=project|none|denied`, `?rulePick=opus|gone`): the field's one
-  line, the same on every rule; the empty box naming the provider an empty
-  field uses; the folded line naming it only while there is more than one to
-  pick from (the global provider alone, the fixture's default, says nothing
-  of providers); a pick sent with the rule and named on the folded line, and
-  cleared back to none; a pick no longer available, with its warning; a
-  locked box, grey where the Runbooks box beside it is white; a provider
-  added on LLM Providers in another tab (`window.__fixture.addProvider`)
-  picked on return; and the field at 1280px and 390px, light and dark;
+  line; the empty box naming the provider an empty field uses; the folded
+  line naming it only while there is more than one to pick from; a pick sent
+  with the rule and named on the folded line, and cleared back to none; a
+  pick no longer available, with its warning; a locked box; a provider added
+  on LLM Providers in another tab (`window.__fixture.addProvider`) picked on
+  return; a rule that only runs its runbooks every time and does not
+  investigate uses none, while a new one that runs them every time still
+  investigates with one;
 - a viewer reads the rules but cannot add or edit one; a phone, dark mode
-  (`?theme=dark`) and German (`?lang=de`); the AI card and both rule dialogs
-  at 1280px and 390px, light and dark, with nothing off the screen.
+  (`?theme=dark`) and German (`?lang=de`); the AI card and the rule dialog,
+  for a rule that fixes and one that doesn't, at 1280px and 390px, light and
+  dark, with nothing off the screen.
 
-`InvestigationRules.spec.ts` drives the investigation rules beside them on the
-same page (issue #5074, `?investigationRules=saved` seeds one rule that
-investigates right away and one that waits 10 minutes):
+`InvestigationRules.spec.ts` drives a rule's Investigate step (issue #5074,
+`?investigationRules=saved` seeds the two rules the upgrade made of a lane's
+investigation rules: one that investigates right away and one that waits 10
+minutes, both fixing nothing):
 
-- the table's Investigates column says when each rule investigates;
+- the table's one column says when each rule investigates, and under it that
+  it doesn't fix;
 - a new rule asks Match, then Investigate, and starts on Right away, which
   sends no wait; Only if still open after a wait asks the minutes, from 10,
-  and sends the ones chosen; a wait the server would refuse (0, 1441, 2.5) is
-  stopped in the form;
+  and sends the ones chosen; a wait the server would refuse (0, 1441, 2.5)
+  is stopped on the step;
 - a rule that waits opens on its minutes, and Right away clears them (sent as
   null);
 - an alert rule asks the same, about alerts; a phone, dark mode and German;

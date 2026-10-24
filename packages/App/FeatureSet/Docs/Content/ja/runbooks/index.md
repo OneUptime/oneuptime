@@ -74,7 +74,7 @@ HTTP と AI のステップは OneUptime Worker で実行されます。Bash、S
 | Runbook ルール | **インシデント**、**アラート**、**定期メンテナンス** → **ルール** → **Runbook ルール** | 新しいインシデント、アラート、イベント |
 | **Runbook を実行** | インシデント、アラート、定期メンテナンスイベントの **Runbook** ページ | そのイベント |
 | **今すぐ実行** | Runbook の **概要** ページ | なし（その場限りの実行） |
-| 自動修復ルール | [AI SRE](/docs/ai/ai-sre) を参照 | インシデントまたはアラート |
+| AI ルール | [AI SRE](/docs/ai/ai-sre) を参照 | インシデントまたはアラート |
 | Runbook のスケジュール | Runbook の **トリガー** ページ。[Runbook のトリガー](/docs/runbooks/triggers#スケジュールで実行する) を参照 | なし: 無人の実行 |
 | Runbook の Webhook URL の呼び出し | Runbook の **トリガー** ページ。[Runbook のトリガー](/docs/runbooks/triggers#webhook-を呼び出す) を参照 | なし: 実行は呼び出しが送った値を保持します |
 

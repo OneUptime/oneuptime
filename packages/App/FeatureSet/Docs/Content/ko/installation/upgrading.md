@@ -351,7 +351,7 @@ WHERE command LIKE '%idx_attribute_values%';
 - **업그레이드가 대기한다면 이미지를 미러링하거나 에이전트를 끄십시오.** 차트 업그레이드는 `docker.io/oneuptime/kubernetes-ai-agent` 를 가져오는 Pod를 추가합니다. 노드가 미러나 이미지 허용 목록을 통해 이미지를 가져오고, `--wait` 나 `--atomic`, Terraform, Flux로 업그레이드한다면, 이미지를 미러링하고 `aiAgent.image.repository` (비공개 레지스트리라면 `aiAgent.imagePullSecrets` 도)를 설정하거나 `--set aiAgent.enabled=false` 를 전달하십시오. 그렇지 않으면 Pod가 준비되지 않고, 업그레이드가 시간 초과되며, `--atomic` 이 릴리스 전체를 롤백합니다.
 - **`aiAccess` 설정은 이어집니다.** 쓰기 접근, 네임스페이스 목록, 노드 작업 스위치, `aiAccess.extraEnv` 는 대응하는 `aiAgent.*` 값을 설정할 때까지 계속 적용되며, 그 값이 항상 우선합니다. `aiAccess.enabled=false` 는 AI 에이전트를 끄지 않으며(끄는 것은 `--set aiAgent.enabled=false` 입니다), `aiAccess.image` 와 `aiAccess.resources` 는 이어지지 않습니다.
 - **클러스터의 AI 설정은 유지되며**, 서버 업그레이드가 두 가지를 바꿉니다. 누군가 Runner(클러스터 내 Runner든 다른 Runner든)의 연결을 해제하거나 삭제한 클러스터는 kubectl 접근이 꺼진 상태로 시작하고, 프로젝트가 **Enable AI Command Execution** 을 한 번도 켜지 않은 클러스터의 **자동** 이나 **승인 건너뛰기** 는 **승인 요청** 이 됩니다.
-- **차트를 다운그레이드하려면 `helm rollback` 을 쓰고**, `helm upgrade --version <older version>` 은 쓰지 마십시오. 오래된 차트의 스키마는 릴리스에 저장된 `aiAgent` 값을 거부합니다. 업그레이드 후 일주일 안에는 롤백이 클러스터 내 Runner를 되돌리며, AI 에이전트가 멈추면 Runner가 스스로 다시 연결됩니다. 그 뒤에는 OneUptime이 기존 Runner를 제거했을 수 있으며, 롤백한 Runner는 API나 Terraform으로 클러스터에 다시 연결하거나(클러스터의 **AI Access Runner**. Project Owner, Project Admin, **Edit Auto Remediation Rule** 이 할 수 있습니다) 차트를 다시 업그레이드할 때까지 쓰이지 않습니다.
+- **차트를 다운그레이드하려면 `helm rollback` 을 쓰고**, `helm upgrade --version <older version>` 은 쓰지 마십시오. 오래된 차트의 스키마는 릴리스에 저장된 `aiAgent` 값을 거부합니다. 업그레이드 후 일주일 안에는 롤백이 클러스터 내 Runner를 되돌리며, AI 에이전트가 멈추면 Runner가 스스로 다시 연결됩니다. 그 뒤에는 OneUptime이 기존 Runner를 제거했을 수 있으며, 롤백한 Runner는 API나 Terraform으로 클러스터에 다시 연결하거나(클러스터의 **AI Access Runner**. Project Owner, Project Admin, **Edit AI Rule** 이 할 수 있습니다) 차트를 다시 업그레이드할 때까지 쓰이지 않습니다.
 
 ```bash
 helm repo update
@@ -469,6 +469,21 @@ API 클라이언트와 Terraform 구성은 프로젝트의 `enableAutomaticIncid
 규칙의 **Runner** 에는 내 Runner만 표시됩니다. **AI agent on the cluster or host** 는 없어졌습니다. 영향을 받은 클러스터나 호스트의 명령은 규칙이 무엇을 고르든 항상 그 AI 에이전트를 거칩니다. 아무것도 고르지 않았던 규칙은 **Runner 없음** 으로 표시되며 이전처럼 수정합니다.
 
 API 클라이언트와 Terraform 구성에서는 프로젝트 필드 `enableAutomaticIncidentCodeFixes`, `enableIncidentInstrumentationFixTasks`, `enableAutomaticAlertCodeFixes`, `enableAlertInstrumentationFixTasks`(Terraform의 `enable_automatic_incident_code_fixes` 등)가 없어집니다. 구성에서 제거하십시오. 자동 해결 규칙의 `openCodeFixPullRequests` 와 `openTelemetryPullRequests`(`open_code_fix_pull_requests` 와 `open_telemetry_pull_requests`)는 설정하지 않으면 `true` 이며, 두 종류의 규칙 모두 `codeRepositories`(`code_repositories`)에 저장소를 지정합니다. 비어 있으면 연결된 모든 저장소입니다.
+
+### 조사 규칙과 자동 해결 규칙은 이제 AI 규칙입니다
+
+**인시던트 → AI → 설정** 과 **알림 → AI → 설정** 의 **추가 설정** 아래에는 규칙 표가 두 개 있었습니다. OneUptime AI가 조사하는 인시던트(또는 경고)를 좁히는 조사 규칙과, 수정하는 대상과 방법을 좁히는 자동 해결 규칙입니다. 조사 없는 수정은 없으므로 이제 하나의 표, **AI 규칙** 이 되었습니다. 규칙의 조건은 한 번만 쓰고, 규칙은 일치하는 대상을 OneUptime AI가 언제 조사할지, 그리고 그것을 수정할지와 그 방법을 정합니다. [조사하고 수정하는 인시던트](/docs/ai/ai-sre#조사하고-수정하는-인시던트)를 참고하세요.
+
+업그레이드 후에도 각 프로젝트의 AI는 인시던트와 경고 모두에 대해 하던 일을 그대로 합니다.
+
+- 같은 인시던트와 일치하고(같은 조건, 둘 다 활성화 또는 둘 다 비활성화) 같은 MCP 서버, 코드 저장소, LLM 공급자를 허용하는 조사 규칙과 자동 해결 규칙은 하나의 규칙이 됩니다. 자동 해결 규칙이 조사 규칙의 대기 후에 조사도 하게 됩니다. 이름, 수정, 런북, Runner, 풀 리퀘스트 스위치는 그대로 유지됩니다.
+- 그 밖의 조사 규칙은 이름, 조건, 대기, MCP 서버, 코드 저장소, LLM 공급자를 그대로 가진 채, 조사하고 수정하지 않는 AI 규칙이 됩니다.
+- 그 밖의 자동 해결 규칙은 이전처럼 수정합니다. 활성화된 조사 규칙이 조사 대상을 정하던 곳에서는 조사하지 않으므로(**조사 및 수정** 열에 **조사 안 함** 이 표시됨) 조사 대상은 바뀌지 않습니다. 그렇지 않던 곳에서는 LLM 공급자를 고르지 않는 한 조사도 합니다. 그리고 활성화된 규칙이 이제 조사하게 되면, 프로젝트에 **Investigate every incident**(또는 **Investigate every alert**)도 추가됩니다. 모든 대상을 조사하고 아무것도 수정하지 않는 규칙으로, 모든 인시던트가 계속 조사되게 합니다. 단, 조사하는 규칙이 이미 모든 대상과 일치하면 추가되지 않습니다.
+- 활성화된 조사 규칙이 조사 대상을 정하고 활성화된 자동 해결 규칙이 수정 대상을 정하지 않던 곳에서는, 수정이 켜져 있는 동안 모든 인시던트가 수정되었습니다. 수정이 켜진 프로젝트에는 **Fix every incident**(또는 **Fix every alert**)가 추가됩니다. 규칙이 없을 때 OneUptime AI가 하던 대로 모든 대상을 수정하고 조사는 하지 않는 규칙입니다. 수정이 꺼진 프로젝트에는 수정하는 규칙이 추가되지 않습니다. 나중에 그 프로젝트에서 수정을 켜려면 먼저 수정하는 규칙을 추가하세요. 규칙이 있으면 OneUptime AI는 수정하는 규칙과 일치하는 대상만 수정합니다.
+
+API 클라이언트와 Terraform 구성: AI 규칙은 `/api/auto-remediation-rule` 에 있는 `AutoRemediationRule` 이며, 자동 해결 규칙이 가졌던 경로, 권한, ID를 그대로 씁니다. `investigates` 와 `fixes` 가 규칙이 하는 일을 나타내며(설정하지 않으면 `false` 와 `true` 이므로 이전에 작성된 클라이언트는 계속 수정만 하는 규칙을 만듭니다), `onlyIfOpenAfterMinutes` 가 대기 시간입니다. Terraform에서는 `oneuptime_ai_rule` 입니다. `oneuptime_auto_remediation_rule` 도 계속 동작하지만 더 이상 권장되지 않으며, `moved` 블록으로 규칙을 교체하지 않고 옮길 수 있습니다. 조사 규칙의 경로 `/api/ai-investigation-rule` 은 대신 쓸 것을 알려 주며 `410 Gone` 으로 응답하고, `oneuptime_investigation_rule` 은 없어졌습니다. 그런 규칙은 `investigates` 를 `true`, `fixes` 를 `false` 로 설정한 `oneuptime_ai_rule` 로 작성하세요.
+
+규칙의 권한은 자동 해결 규칙의 권한이며, 이름이 **Create AI Rule**, **Edit AI Rule**, **Delete AI Rule**, **Read AI Rule** 로 바뀌었습니다. 이 권한을 가진 사용자 지정 역할은 이제 조사만 하는 규칙도 관리할 수 있습니다. 이전에는 Project Owner나 Project Admin이 필요했습니다.
 
 ### 에디션과 라이선스 확인하기
 
