@@ -49,6 +49,11 @@ export const REMEDIATION_UNREACHABLE: string =
 export const REMEDIATION_RATE_LIMITED: string =
   "Other applications are using the organization's API budget right now. Try again in a minute.";
 
+// A test's answer from what it found, with the provider and how long it took.
+type TestResultFunction = (
+  partial: Omit<NetworkControllerTestResult, "provider" | "durationMs">,
+) => NetworkControllerTestResult;
+
 function asObject(value: unknown): JSONObject | null {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as JSONObject)
@@ -131,7 +136,7 @@ export default class MerakiConnector implements NetworkControllerConnector {
       requestTimeoutInMs: options.requestTimeoutInMs,
     });
 
-    const result = (
+    const result: TestResultFunction = (
       partial: Omit<NetworkControllerTestResult, "provider" | "durationMs">,
     ): NetworkControllerTestResult => {
       return {
