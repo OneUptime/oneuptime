@@ -5,6 +5,7 @@ import SecurityCaseDefaultValues from "./SecurityCaseDefaultValues";
 import SecurityCasePriority from "../../../Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "../../../Models/DatabaseModels/SecurityCaseStatus";
 import ObjectID from "../../../Types/ObjectID";
+import SecurityCaseStatuses from "../../../Utils/SecurityCase/SecurityCaseStatuses";
 
 /*
  * A project's case priorities and statuses, as the server reads them: both
@@ -68,5 +69,33 @@ export default class SecurityCaseValues {
     await SecurityCaseDefaultValues.addDefaultStatuses(projectId);
 
     return await SecurityCaseStatusService.getProjectStatuses(projectId);
+  }
+
+  /*
+   * The ids of the statuses a case is still open in: every status above the
+   * project's closed status (SecurityCaseStatuses). What "open cases" means
+   * in every query the server makes.
+   */
+  @CaptureSpan()
+  public static async getOpenStatusIds(
+    projectId: ObjectID,
+  ): Promise<Array<ObjectID>> {
+    return SecurityCaseStatuses.getOpenStatusIds(
+      await this.getStatuses(projectId),
+    ).map((id: string): ObjectID => {
+      return new ObjectID(id);
+    });
+  }
+
+  // The ids of the statuses that close a case: the closed status and every one below it.
+  @CaptureSpan()
+  public static async getClosedStatusIds(
+    projectId: ObjectID,
+  ): Promise<Array<ObjectID>> {
+    return SecurityCaseStatuses.getClosedStatusIds(
+      await this.getStatuses(projectId),
+    ).map((id: string): ObjectID => {
+      return new ObjectID(id);
+    });
   }
 }

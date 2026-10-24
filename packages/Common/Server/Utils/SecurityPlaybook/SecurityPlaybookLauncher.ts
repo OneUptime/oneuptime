@@ -1,5 +1,7 @@
 import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
+import SecurityCasePriority from "../../../Models/DatabaseModels/SecurityCasePriority";
 import SecurityPlaybook from "../../../Models/DatabaseModels/SecurityPlaybook";
+import SecurityCaseValues from "../SecurityCase/SecurityCaseValues";
 import SecurityPlaybookRun from "../../../Models/DatabaseModels/SecurityPlaybookRun";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
@@ -69,7 +71,7 @@ export default class SecurityPlaybookLauncher {
           name: true,
           isEnabled: true,
           trigger: true,
-          minimumPriority: true,
+          minimumSecurityCasePriorityId: true,
           detectionSource: true,
           detectionRuleIds: true,
           steps: true,
@@ -93,7 +95,7 @@ export default class SecurityPlaybookLauncher {
         },
         select: {
           _id: true,
-          priority: true,
+          securityCasePriorityId: true,
         },
         props: {
           isRoot: true,
@@ -105,6 +107,10 @@ export default class SecurityPlaybookLauncher {
     }
 
     let started: number = 0;
+
+    // The project's priorities, which each playbook's minimum is compared through.
+    const priorities: Array<SecurityCasePriority> =
+      await SecurityCaseValues.getPriorities(data.projectId);
 
     /*
      * The detections each playbook's conditions are read against: the one
@@ -125,13 +131,14 @@ export default class SecurityPlaybookLauncher {
             {
               isEnabled: playbook.isEnabled === true,
               trigger: playbook.trigger,
-              minimumPriority: playbook.minimumPriority,
+              minimumPriorityId: playbook.minimumSecurityCasePriorityId,
               detectionSource: playbook.detectionSource,
               detectionRuleIds: playbook.detectionRuleIds,
             },
             {
               trigger: data.trigger,
-              casePriority: securityCase.priority,
+              priorities,
+              casePriorityId: securityCase.securityCasePriorityId,
               detection: detection
                 ? {
                     source: detection.source,

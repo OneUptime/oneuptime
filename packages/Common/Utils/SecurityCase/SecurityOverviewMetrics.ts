@@ -1,10 +1,6 @@
-import SecurityCasePriority, {
-  SECURITY_CASE_PRIORITIES,
-} from "../../Types/SecurityCase/SecurityCasePriority";
-import SecurityCaseStatus, {
-  SECURITY_CASE_STATUSES,
-  isOpenSecurityCaseStatus,
-} from "../../Types/SecurityCase/SecurityCaseStatus";
+import { StateListRow } from "../StateOrder";
+import SecurityCasePriorities from "./SecurityCasePriorities";
+import SecurityCaseStatuses from "./SecurityCaseStatuses";
 import SecurityCaseVerdict from "../../Types/SecurityCase/SecurityCaseVerdict";
 import SecurityDetectionSource, {
   SECURITY_DETECTION_SOURCES,
@@ -17,19 +13,25 @@ import SecurityDetectionSource, {
  * close" means:
  *
  *  - Time to acknowledge: from a case opening to somebody taking it on
- *    (assigning a person, or moving it out of New).
- *  - Time to contain: from opening to Contained.
- *  - Time to close: from opening to Closed.
+ *    (assigning a person, or moving it to a status that counts as
+ *    acknowledged).
+ *  - Time to contain: from opening to a status that counts as contained.
+ *  - Time to close: from opening to a status that counts as closed.
  *
  * Each mean is over the cases opened in the window that got that far; a
  * case still waiting does not drag the mean either way (the open counts say
  * how many are waiting).
+ *
+ * Priorities and statuses are the project's own: counted by id, in the
+ * project's order, and read by what each counts as (SecurityCasePriorities,
+ * SecurityCaseStatuses), never by name.
  */
 
 export interface OverviewCaseRow {
   createdAt: Date;
-  priority: SecurityCasePriority | string | undefined;
-  status: SecurityCaseStatus | string | undefined;
+  // The ids of the case's priority and status.
+  priorityId: string | undefined;
+  statusId: string | undefined;
   verdict?: SecurityCaseVerdict | string | undefined | null;
   assignedToUserId?: string | undefined | null;
   assignedToTeamId?: string | undefined | null;
@@ -68,8 +70,14 @@ export interface TacticCount {
 export interface SecurityOverviewMetrics {
   openCases: number;
   unassignedOpenCases: number;
+  // By priority id, every priority of the project's, most urgent first.
   openByPriority: Record<string, number>;
+  // By status id, every status a case is open in, in the project's order.
   openByStatus: Record<string, number>;
+  // Open cases at or above the critical priority.
+  criticalOpenCases: number;
+  // Open cases at or above the high priority, below the critical one.
+  highOpenCases: number;
   casesOpenedInWindow: number;
   casesClosedInWindow: number;
   verdictsInWindow: Record<string, number>;
@@ -159,7 +167,17 @@ function durationsTo(
   return durations;
 }
 
+// The ids of the rows, in the order given.
+function idsOf(rows: Array<StateListRow>): Array<string> {
+  return rows.map((row: StateListRow): string => {
+    return row.id;
+  });
+}
+
 export function computeSecurityOverviewMetrics(data: {
+  // The project's case priorities and statuses: models or their JSON.
+  priorities: ReadonlyArray<unknown>;
+  statuses: ReadonlyArray<unknown>;
   // Every open case (whenever it opened), for the queue's counts.
   openCases: Array<OverviewCaseRow>;
   // Every case opened in the window, for the mean times and the trend.
@@ -173,23 +191,36 @@ export function computeSecurityOverviewMetrics(data: {
 }): SecurityOverviewMetrics {
   const topLimit: number = data.topLimit || 8;
 
-  const openByPriority: Record<string, number> = emptyCounts(
-    SECURITY_CASE_PRIORITIES,
+  const priorityIds: Array<string> = idsOf(
+    SecurityCasePriorities.toRows(
+      SecurityCasePriorities.sort(data.priorities),
+    ),
   );
-  const openByStatus: Record<string, number> = emptyCounts(
-    SECURITY_CASE_STATUSES.filter((status: SecurityCaseStatus): boolean => {
-      return isOpenSecurityCaseStatus(status);
-    }),
+  const openStatusIds: Array<string> = SecurityCaseStatuses.getOpenStatusIds(
+    data.statuses,
   );
+
+  const openByPriority: Record<string, number> = emptyCounts(priorityIds);
+  const openByStatus: Record<string, number> = emptyCounts(openStatusIds);
   let unassignedOpenCases: number = 0;
+  let criticalOpenCases: number = 0;
+  let highOpenCases: number = 0;
 
   for (const row of data.openCases) {
-    if (row.priority && openByPriority[row.priority] !== undefined) {
-      openByPriority[row.priority]!++;
+    if (row.priorityId && openByPriority[row.priorityId] !== undefined) {
+      openByPriority[row.priorityId]!++;
     }
 
-    if (row.status && openByStatus[row.status] !== undefined) {
-      openByStatus[row.status]!++;
+    if (row.statusId && openByStatus[row.statusId] !== undefined) {
+      openByStatus[row.statusId]!++;
+    }
+
+    if (SecurityCasePriorities.isCritical(data.priorities, row.priorityId)) {
+      criticalOpenCases++;
+    } else if (
+      SecurityCasePriorities.isUrgent(data.priorities, row.priorityId)
+    ) {
+      highOpenCases++;
     }
 
     if (!row.assignedToUserId) {
@@ -203,7 +234,7 @@ export function computeSecurityOverviewMetrics(data: {
   let casesClosedInWindow: number = 0;
 
   for (const row of data.casesInWindow) {
-    if (row.status === SecurityCaseStatus.Closed) {
+    if (SecurityCaseStatuses.isClosed(data.statuses, row.statusId)) {
       casesClosedInWindow++;
 
       const verdict: string = row.verdict || SecurityCaseVerdict.Undetermined;
@@ -221,7 +252,7 @@ export function computeSecurityOverviewMetrics(data: {
     casesPerDay.set(day, {
       day,
       total: 0,
-      byKey: emptyCounts(SECURITY_CASE_PRIORITIES),
+      byKey: emptyCounts(priorityIds),
     });
   }
 
@@ -235,8 +266,8 @@ export function computeSecurityOverviewMetrics(data: {
     if (bucket) {
       bucket.total++;
 
-      if (row.priority && bucket.byKey[row.priority] !== undefined) {
-        bucket.byKey[row.priority]!++;
+      if (row.priorityId && bucket.byKey[row.priorityId] !== undefined) {
+        bucket.byKey[row.priorityId]!++;
       }
     }
 
@@ -297,6 +328,8 @@ export function computeSecurityOverviewMetrics(data: {
     unassignedOpenCases,
     openByPriority,
     openByStatus,
+    criticalOpenCases,
+    highOpenCases,
     casesOpenedInWindow: data.casesInWindow.length,
     casesClosedInWindow,
     verdictsInWindow,

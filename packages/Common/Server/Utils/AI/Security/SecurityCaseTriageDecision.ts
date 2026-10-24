@@ -2,9 +2,9 @@ import SecurityCaseAiVerdict, {
   isDismissingSecurityCaseAiVerdict,
   securityCaseAiVerdictFromToken,
 } from "../../../../Types/SecurityCase/SecurityCaseAiVerdict";
-import SecurityCasePriority, {
-  isSecurityCasePriority,
-} from "../../../../Types/SecurityCase/SecurityCasePriority";
+import SecurityCasePriorityLevel, {
+  isSecurityCasePriorityLevel,
+} from "../../../../Types/SecurityCase/SecurityCasePriorityLevel";
 import { isWhiteSpaceCode } from "../../../../Utils/RegExpCharacterClasses";
 import { findLabelledValues } from "../LabelledAnswerLines";
 
@@ -17,6 +17,10 @@ import { findLabelledValues } from "../LabelledAnswerLines";
  *   Verdict: malicious | benign | false-positive | inconclusive
  *   Priority: critical | high | medium | low | informational
  *   Playbook: <the id of one playbook the context listed> | none
+ *
+ * The priority is one of the five levels every project keeps a built-in
+ * priority for (SecurityCasePriorityLevel): the runner keeps the project's
+ * priority of that level, by id, whatever the project calls it.
  *
  * The answer is what a model wrote, and a model's answer can be steered by
  * what it read - here, events an attacker may have written. So nothing read
@@ -54,8 +58,8 @@ export const SECURITY_CASE_TRIAGE_DECISION_LABELS: ReadonlyArray<string> = [
 
 export interface SecurityCaseTriageDecision {
   verdict: SecurityCaseAiVerdict;
-  // Undefined: no priority could be read.
-  suggestedPriority?: SecurityCasePriority | undefined;
+  // The level the model suggested; undefined: no priority could be read.
+  suggestedPriority?: SecurityCasePriorityLevel | undefined;
   // One of the playbook ids offered; undefined for none.
   suggestedPlaybookId?: string | undefined;
   /*
@@ -71,8 +75,10 @@ function lastValue(text: string, label: string, value: RegExp): string | null {
   return values.length > 0 ? values[values.length - 1]! : null;
 }
 
-// The priority a "Priority:" word names, written as the scale writes it.
-function toPriority(word: string | null): SecurityCasePriority | undefined {
+// The level a "Priority:" word names, written as the scale writes it.
+function toPriority(
+  word: string | null,
+): SecurityCasePriorityLevel | undefined {
   if (!word) {
     return undefined;
   }
@@ -80,7 +86,7 @@ function toPriority(word: string | null): SecurityCasePriority | undefined {
   const name: string =
     word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
 
-  return isSecurityCasePriority(name) ? name : undefined;
+  return isSecurityCasePriorityLevel(name) ? name : undefined;
 }
 
 export function readSecurityCaseTriageDecision(data: {

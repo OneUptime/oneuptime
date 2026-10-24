@@ -21,9 +21,6 @@ import {
   SecurityEntity,
   readSecurityEntities,
 } from "../../../../Types/SecurityCase/SecurityEntity";
-import SecurityCaseStatus, {
-  OPEN_SECURITY_CASE_STATUSES,
-} from "../../../../Types/SecurityCase/SecurityCaseStatus";
 import { ocsfSeverityFromId } from "../../../../Types/SecurityEvent/OcsfSeverity";
 import {
   SecurityPlaybookStep,
@@ -45,6 +42,11 @@ import ThreatIntelIndicatorService, {
   ActiveIndicator,
 } from "../../../Services/ThreatIntelIndicatorService";
 import { securityCaseGroupingKey } from "../../SecurityCase/SecurityCaseIngest";
+import SecurityCaseValues, {
+  ProjectSecurityCaseValues,
+} from "../../SecurityCase/SecurityCaseValues";
+import SecurityCasePriorities from "../../../../Utils/SecurityCase/SecurityCasePriorities";
+import SecurityCaseStatuses from "../../../../Utils/SecurityCase/SecurityCaseStatuses";
 import ToolResultSerializer, {
   RedactionOptions,
   SerializedResult,
@@ -221,10 +223,21 @@ export const QuerySecurityCasesTool: ObservabilityTool = {
       projectId: ctx.projectId,
     };
 
+    /*
+     * Open and closed by what each of the project's statuses counts as
+     * (SecurityCaseStatuses), whatever the project calls them.
+     */
+    const values: ProjectSecurityCaseValues =
+      await SecurityCaseValues.getForProject(ctx.projectId);
+
     if (status === "open") {
-      query["status"] = new Includes([...OPEN_SECURITY_CASE_STATUSES]);
+      query["securityCaseStatusId"] = new Includes(
+        SecurityCaseStatuses.getOpenStatusIds(values.statuses),
+      );
     } else if (status === "closed") {
-      query["status"] = SecurityCaseStatus.Closed;
+      query["securityCaseStatusId"] = new Includes(
+        SecurityCaseStatuses.getClosedStatusIds(values.statuses),
+      );
     }
 
     if (entity) {
@@ -240,8 +253,8 @@ export const QuerySecurityCasesTool: ObservabilityTool = {
         _id: true,
         caseNumberWithPrefix: true,
         title: true,
-        status: true,
-        priority: true,
+        securityCaseStatusId: true,
+        securityCasePriorityId: true,
         verdict: true,
         aiVerdict: true,
         entities: true,
@@ -261,8 +274,11 @@ export const QuerySecurityCasesTool: ObservabilityTool = {
           securityCaseId: securityCase.id?.toString() || "",
           case: securityCase.caseNumberWithPrefix || "",
           title: securityCase.title || "",
-          status: securityCase.status || "",
-          priority: securityCase.priority || "",
+          status: getStatusName(values, securityCase.securityCaseStatusId),
+          priority: getPriorityName(
+            values,
+            securityCase.securityCasePriorityId,
+          ),
           verdict: securityCase.verdict || "",
           aiVerdict: securityCase.aiVerdict || "",
           entities: entityList(securityCase.entities),
@@ -309,10 +325,28 @@ export const QuerySecurityCasesTool: ObservabilityTool = {
   },
 };
 
+// A status's and a priority's names, as the project calls them.
+function getStatusName(
+  values: ProjectSecurityCaseValues,
+  statusId: ObjectID | undefined,
+): string {
+  return SecurityCaseStatuses.find(values.statuses, statusId)?.name || "";
+}
+
+function getPriorityName(
+  values: ProjectSecurityCaseValues,
+  priorityId: ObjectID | undefined,
+): string {
+  return SecurityCasePriorities.find(values.priorities, priorityId)?.name || "";
+}
+
 async function readOneCase(
   securityCaseId: ObjectID,
   ctx: ToolContext,
 ): Promise<ToolExecutionResult> {
+  const values: ProjectSecurityCaseValues =
+    await SecurityCaseValues.getForProject(ctx.projectId);
+
   const securityCase: SecurityCase | null = await SecurityCaseService.findOneBy(
     {
       query: {
@@ -324,8 +358,8 @@ async function readOneCase(
         caseNumberWithPrefix: true,
         title: true,
         description: true,
-        status: true,
-        priority: true,
+        securityCaseStatusId: true,
+        securityCasePriorityId: true,
         verdict: true,
         closingNote: true,
         source: true,
@@ -339,7 +373,7 @@ async function readOneCase(
         closedAt: true,
         incidentId: true,
         aiVerdict: true,
-        aiSuggestedPriority: true,
+        aiSuggestedSecurityCasePriorityId: true,
       },
       props: ctx.props,
     },
@@ -400,8 +434,8 @@ async function readOneCase(
     case: securityCase.caseNumberWithPrefix || "",
     title: securityCase.title || "",
     description: securityCase.description || "",
-    status: securityCase.status || "",
-    priority: securityCase.priority || "",
+    status: getStatusName(values, securityCase.securityCaseStatusId),
+    priority: getPriorityName(values, securityCase.securityCasePriorityId),
     verdict: securityCase.verdict || "",
     closingNote: securityCase.closingNote || "",
     source: securityCase.source || "",
@@ -415,7 +449,10 @@ async function readOneCase(
     closedAt: securityCase.closedAt || null,
     declaredIncident: incidentLine,
     aiVerdict: securityCase.aiVerdict || "",
-    aiSuggestedPriority: securityCase.aiSuggestedPriority || "",
+    aiSuggestedPriority: getPriorityName(
+      values,
+      securityCase.aiSuggestedSecurityCasePriorityId,
+    ),
   };
 
   const detectionRows: Array<JSONObject> = detections.map(
@@ -462,7 +499,7 @@ async function readOneCase(
       title: "Security case",
       resourceType: "Security Case",
       heading: caseLabel(securityCase),
-      subheading: `${securityCase.status || ""} · ${securityCase.priority || ""}`,
+      subheading: `${getStatusName(values, securityCase.securityCaseStatusId)} · ${getPriorityName(values, securityCase.securityCasePriorityId)}`,
       fields: [
         {
           label: "Detections",
@@ -755,7 +792,7 @@ export const QuerySecurityPlaybooksTool: ObservabilityTool = {
           name: true,
           description: true,
           trigger: true,
-          minimumPriority: true,
+          minimumSecurityCasePriorityId: true,
           steps: true,
         },
         sort: { name: SortOrder.Ascending },
@@ -764,6 +801,9 @@ export const QuerySecurityPlaybooksTool: ObservabilityTool = {
         props: ctx.props,
       });
 
+    const values: ProjectSecurityCaseValues =
+      await SecurityCaseValues.getForProject(ctx.projectId);
+
     const rows: Array<JSONObject> = playbooks.map(
       (playbook: SecurityPlaybook): JSONObject => {
         return {
@@ -771,7 +811,10 @@ export const QuerySecurityPlaybooksTool: ObservabilityTool = {
           name: playbook.name || "",
           description: playbook.description || "",
           startsOn: playbook.trigger || "",
-          minimumPriority: playbook.minimumPriority || "",
+          minimumPriority: getPriorityName(
+            values,
+            playbook.minimumSecurityCasePriorityId,
+          ),
           steps: describePlaybookSteps(playbook.steps),
         };
       },

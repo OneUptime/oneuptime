@@ -9,7 +9,14 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
-import { OPEN_SECURITY_CASE_STATUSES } from "../../Types/SecurityCase/SecurityCaseStatus";
+import SecurityCasePriority from "../../Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "../../Models/DatabaseModels/SecurityCaseStatus";
+import { SECURITY_CASE_PRIORITY_LEVEL_FLAGS } from "../../Types/SecurityCase/SecurityCasePriorityLevel";
+import { SECURITY_CASE_STAGE_FLAGS } from "../../Types/SecurityCase/SecurityCaseStage";
+import SecurityCaseStatuses from "../../Utils/SecurityCase/SecurityCaseStatuses";
+import SecurityCaseValues, {
+  ProjectSecurityCaseValues,
+} from "../Utils/SecurityCase/SecurityCaseValues";
 import SecurityPlaybookRunStatus from "../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import {
   OverviewCaseRow,
@@ -78,6 +85,31 @@ export const SECURITY_OVERVIEW_DETECTION_WINDOW_IN_DAYS: number = 14;
 export const SECURITY_OVERVIEW_ROW_LIMIT: number = 5000;
 
 export const ENTITY_ACTIVITY_MAX_HOURS: number = 30 * 24;
+
+/*
+ * A project's case priority or status as the overview hands it to the
+ * Dashboard: what its charts are labelled and coloured with, in the
+ * project's order, and the built-in flags the rules read
+ * (SecurityCasePriorities, SecurityCaseStatuses).
+ */
+export function toSecurityCaseValueJson(
+  value: SecurityCasePriority | SecurityCaseStatus,
+  flags: Array<string>,
+): JSONObject {
+  const json: JSONObject = {
+    _id: value.id?.toString() || "",
+    name: value.name || "",
+    color: value.color?.toString() || "",
+    order: typeof value.order === "number" ? value.order : null,
+    isArchived: value.isArchived === true,
+  };
+
+  for (const flag of flags) {
+    json[flag] = (value as unknown as Record<string, unknown>)[flag] === true;
+  }
+
+  return json;
+}
 
 function readBody(req: ExpressRequest): JSONObject {
   return req.body && typeof req.body === "object" && !Array.isArray(req.body)
@@ -803,11 +835,15 @@ export default class SecurityCaseAPI extends BaseAPI<
       -SECURITY_OVERVIEW_DETECTION_WINDOW_IN_DAYS,
     );
 
+    // The project's priorities and statuses: what the counts are by.
+    const values: ProjectSecurityCaseValues =
+      await SecurityCaseValues.getForProject(projectId);
+
     const caseSelect: JSONObject = {
       _id: true,
       createdAt: true,
-      priority: true,
-      status: true,
+      securityCasePriorityId: true,
+      securityCaseStatusId: true,
       verdict: true,
       assignedToUserId: true,
       assignedToTeamId: true,
@@ -826,7 +862,9 @@ export default class SecurityCaseAPI extends BaseAPI<
       SecurityCaseService.findBy({
         query: {
           projectId,
-          status: new Includes([...OPEN_SECURITY_CASE_STATUSES]),
+          securityCaseStatusId: new Includes(
+            SecurityCaseStatuses.getOpenStatusIds(values.statuses),
+          ),
         },
         select: caseSelect,
         skip: 0,
@@ -875,8 +913,8 @@ export default class SecurityCaseAPI extends BaseAPI<
     ): OverviewCaseRow => {
       return {
         createdAt: row.createdAt!,
-        priority: row.priority,
-        status: row.status,
+        priorityId: row.securityCasePriorityId?.toString(),
+        statusId: row.securityCaseStatusId?.toString(),
         verdict: row.verdict,
         assignedToUserId: row.assignedToUserId?.toString(),
         assignedToTeamId: row.assignedToTeamId?.toString(),
@@ -888,6 +926,8 @@ export default class SecurityCaseAPI extends BaseAPI<
     };
 
     const metrics: SecurityOverviewMetrics = computeSecurityOverviewMetrics({
+      priorities: values.priorities,
+      statuses: values.statuses,
       openCases: openCases.map(toCaseRow),
       casesInWindow: casesInWindow.map(toCaseRow),
       detectionsInWindow: detections.map(
@@ -922,6 +962,20 @@ export default class SecurityCaseAPI extends BaseAPI<
         casesInWindow.length >= SECURITY_OVERVIEW_ROW_LIMIT ||
         detections.length >= SECURITY_OVERVIEW_ROW_LIMIT,
       metrics: metrics as unknown as JSONObject,
+      priorities: values.priorities.map(
+        (priority: SecurityCasePriority): JSONObject => {
+          return toSecurityCaseValueJson(
+            priority,
+            Object.values(SECURITY_CASE_PRIORITY_LEVEL_FLAGS),
+          );
+        },
+      ),
+      statuses: values.statuses.map((status: SecurityCaseStatus): JSONObject => {
+        return toSecurityCaseValueJson(
+          status,
+          Object.values(SECURITY_CASE_STAGE_FLAGS),
+        );
+      }),
     } as JSONObject;
   }
 }

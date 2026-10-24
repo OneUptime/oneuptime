@@ -18,6 +18,11 @@ import SecurityCaseSourceAlerts from "../Utils/SecurityCase/SecurityCaseSourceAl
 import SecurityCaseNotifications, {
   isSetupTestCase,
 } from "../Utils/SecurityCase/SecurityCaseNotifications";
+import SecurityCaseValues, {
+  ProjectSecurityCaseValues,
+} from "../Utils/SecurityCase/SecurityCaseValues";
+import SecurityCasePriority from "../../Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "../../Models/DatabaseModels/SecurityCaseStatus";
 import {
   Blue500,
   Gray500,
@@ -30,13 +35,7 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
-import SecurityCasePriority, {
-  isSecurityCasePriority,
-  securityCasePriorityRank,
-} from "../../Types/SecurityCase/SecurityCasePriority";
-import SecurityCaseStatus, {
-  isSecurityCaseStatus,
-} from "../../Types/SecurityCase/SecurityCaseStatus";
+import SecurityCaseStage from "../../Types/SecurityCase/SecurityCaseStage";
 import SecurityCaseVerdict, {
   isSecurityCaseVerdict,
 } from "../../Types/SecurityCase/SecurityCaseVerdict";
@@ -59,6 +58,10 @@ import {
 } from "../../Utils/SecurityCase/SecurityCaseMarkdown";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import PartialEntity from "../../Types/Database/PartialEntity";
+import SecurityCasePriorities from "../../Utils/SecurityCase/SecurityCasePriorities";
+import SecurityCaseStatuses, {
+  SecurityCaseStatusChange,
+} from "../../Utils/SecurityCase/SecurityCaseStatuses";
 
 /*
  * Request-scoped choices the case hooks read (CreateBy / UpdateBy
@@ -84,6 +87,12 @@ const ASSIGNED_TEAM_KEYS: Array<string> = [
   "assignedToTeamId",
   "assignedToTeam",
 ];
+// The case's status and priority: one of the project's own, by either spelling.
+const STATUS_KEYS: Array<string> = ["securityCaseStatusId", "securityCaseStatus"];
+const PRIORITY_KEYS: Array<string> = [
+  "securityCasePriorityId",
+  "securityCasePriority",
+];
 
 /*
  * A reference cleared through its relation ({ assignedToUser: null }) is
@@ -107,8 +116,8 @@ function clearIdColumnsClearedByRelation(data: JSONObject): void {
 interface CaseStateBeforeUpdate {
   id: string;
   projectId: ObjectID | undefined;
-  status: SecurityCaseStatus | undefined;
-  priority: SecurityCasePriority | undefined;
+  statusId: string | undefined;
+  priorityId: string | undefined;
   verdict: SecurityCaseVerdict | undefined;
   assignedToUserId: string | undefined;
   assignedToTeamId: string | undefined;
@@ -174,19 +183,22 @@ export class Service extends ProjectReferencesService<Model> {
       data["title"] = title;
     }
 
-    if (data["priority"] !== undefined && data["priority"] !== null) {
-      if (!isSecurityCasePriority(data["priority"])) {
-        throw new BadDataException(
-          "Priority must be Critical, High, Medium, Low or Informational.",
-        );
-      }
-    }
-
-    if (data["status"] !== undefined && data["status"] !== null) {
-      if (!isSecurityCaseStatus(data["status"])) {
-        throw new BadDataException(
-          "Status must be New, Investigating, Contained or Closed.",
-        );
+    /*
+     * A case always has a status and a priority: one may be changed, never
+     * cleared. Which ones a project has is checked by the project reference
+     * check (an id of another project's is refused) and the archived value
+     * check (an archived one is never picked again).
+     */
+    for (const [keys, what] of [
+      [STATUS_KEYS, "status"],
+      [PRIORITY_KEYS, "priority"],
+    ] as Array<[Array<string>, string]>) {
+      for (const key of keys) {
+        if (data[key] === null) {
+          throw new BadDataException(
+            `A case always has a ${what}: choose another one instead of clearing it.`,
+          );
+        }
       }
     }
 
@@ -253,8 +265,49 @@ export class Service extends ProjectReferencesService<Model> {
       "Team",
     );
 
-    data.priority = data.priority || SecurityCasePriority.Medium;
-    data.status = data.status || SecurityCaseStatus.New;
+    const statusId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      data as unknown as JSONObject,
+      STATUS_KEYS,
+      "Status",
+    );
+    const priorityId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      data as unknown as JSONObject,
+      PRIORITY_KEYS,
+      "Priority",
+    );
+
+    /*
+     * A case starts in the project's new status and, opened by a person, at
+     * its medium priority (a detection opens its case at the priority of
+     * its severity, which the ingest names).
+     */
+    const values: ProjectSecurityCaseValues =
+      await SecurityCaseValues.getForProject(data.projectId);
+
+    if (!statusId) {
+      RelationIdUtil.stamp(
+        data as unknown as Record<string, unknown>,
+        STATUS_KEYS,
+        this.getIdOf(
+          SecurityCaseStatuses.getStatusOfStage(
+            values.statuses,
+            SecurityCaseStage.New,
+          ),
+          "status",
+        ),
+      );
+    }
+
+    if (!priorityId) {
+      RelationIdUtil.stamp(
+        data as unknown as Record<string, unknown>,
+        PRIORITY_KEYS,
+        this.getIdOf(
+          SecurityCasePriorities.getDefaultPriority(values.priorities),
+          "priority",
+        ),
+      );
+    }
 
     // A person opening a case is its source; the detection ingest names its own.
     if (!data.source && !createBy.props.isRoot) {
@@ -263,15 +316,22 @@ export class Service extends ProjectReferencesService<Model> {
 
     const now: Date = OneUptimeDate.getCurrentDate();
 
-    if (data.status !== SecurityCaseStatus.New || data.assignedToUserId) {
+    // What the status it starts in counts as: as if it had moved there.
+    const created: SecurityCaseStatusChange =
+      SecurityCaseStatuses.getCreatedStatusChange({
+        statuses: values.statuses,
+        statusId: data.securityCaseStatusId,
+      });
+
+    if (created.acknowledges || data.assignedToUserId) {
       data.acknowledgedAt = now;
     }
 
-    if (data.status === SecurityCaseStatus.Contained) {
+    if (created.contains) {
       data.containedAt = now;
     }
 
-    if (data.status === SecurityCaseStatus.Closed) {
+    if (created.closes) {
       data.closedAt = now;
       data.verdict = data.verdict || SecurityCaseVerdict.Undetermined;
 
@@ -377,9 +437,12 @@ export class Service extends ProjectReferencesService<Model> {
     RelationIdUtil.readIntoIdColumn(data, ASSIGNED_TEAM_KEYS, "Team");
     clearIdColumnsClearedByRelation(data);
 
+    RelationIdUtil.readIntoIdColumn(data, STATUS_KEYS, "Status");
+    RelationIdUtil.readIntoIdColumn(data, PRIORITY_KEYS, "Priority");
+
     const watchesState: boolean =
-      data["status"] !== undefined ||
-      data["priority"] !== undefined ||
+      data["securityCaseStatusId"] !== undefined ||
+      data["securityCasePriorityId"] !== undefined ||
       data["assignedToUserId"] !== undefined ||
       data["assignedToTeamId"] !== undefined;
 
@@ -392,8 +455,8 @@ export class Service extends ProjectReferencesService<Model> {
       {
         _id: true,
         projectId: true,
-        status: true,
-        priority: true,
+        securityCaseStatusId: true,
+        securityCasePriorityId: true,
         verdict: true,
         assignedToUserId: true,
         assignedToTeamId: true,
@@ -412,8 +475,8 @@ export class Service extends ProjectReferencesService<Model> {
       before.set(row.id.toString(), {
         id: row.id.toString(),
         projectId: row.projectId,
-        status: row.status,
-        priority: row.priority,
+        statusId: row.securityCaseStatusId?.toString(),
+        priorityId: row.securityCasePriorityId?.toString(),
         verdict: row.verdict,
         assignedToUserId: row.assignedToUserId?.toString(),
         assignedToTeamId: row.assignedToTeamId?.toString(),
@@ -439,6 +502,8 @@ export class Service extends ProjectReferencesService<Model> {
 
     const data: JSONObject = onUpdate.updateBy.data as unknown as JSONObject;
     const userId: ObjectID | undefined = onUpdate.updateBy.props.userId;
+    // Each project's lists, read once for the update's cases.
+    const valuesByProject: Map<string, ProjectSecurityCaseValues> = new Map();
     const playbookName: string | undefined =
       typeof onUpdate.updateBy.miscDataProps?.[
         SECURITY_CASE_PLAYBOOK_NAME_KEY
@@ -458,6 +523,15 @@ export class Service extends ProjectReferencesService<Model> {
       }
 
       try {
+        const projectKey: string = old.projectId.toString();
+        let values: ProjectSecurityCaseValues | undefined =
+          valuesByProject.get(projectKey);
+
+        if (!values) {
+          values = await SecurityCaseValues.getForProject(old.projectId);
+          valuesByProject.set(projectKey, values);
+        }
+
         await this.recordChanges({
           old,
           data,
@@ -465,6 +539,7 @@ export class Service extends ProjectReferencesService<Model> {
           projectId: old.projectId,
           userId,
           playbookName,
+          values,
         });
       } catch (error) {
         logger.error(
@@ -480,7 +555,9 @@ export class Service extends ProjectReferencesService<Model> {
   /*
    * One case's change: its feed entries, and the timestamps the overview's
    * mean times are measured to - each stamped once, the first time the case
-   * gets there, and never moved by a later change.
+   * gets there, and never moved by a later change. What a status counts as
+   * is read off where it sits in the project's list
+   * (SecurityCaseStatuses), never off its name.
    */
   private async recordChanges(input: {
     old: CaseStateBeforeUpdate;
@@ -489,28 +566,38 @@ export class Service extends ProjectReferencesService<Model> {
     projectId: ObjectID;
     userId: ObjectID | undefined;
     playbookName: string | undefined;
+    values: ProjectSecurityCaseValues;
   }): Promise<void> {
-    const { old, data, caseId, projectId, userId, playbookName } = input;
+    const { old, data, caseId, projectId, userId, playbookName, values } =
+      input;
     const now: Date = OneUptimeDate.getCurrentDate();
     // Dates and ids as themselves: the hook-free write runs them through the columns' transformers.
     const stamps: Record<string, unknown> = {};
 
-    const newStatus: SecurityCaseStatus | undefined = isSecurityCaseStatus(
-      data["status"],
-    )
-      ? data["status"]
-      : undefined;
+    const newStatusId: string | undefined =
+      data["securityCaseStatusId"]?.toString() || undefined;
 
-    if (newStatus && newStatus !== old.status) {
+    if (newStatusId && newStatusId !== old.statusId) {
       let verdict: string | undefined = undefined;
+      const change: SecurityCaseStatusChange =
+        SecurityCaseStatuses.getStatusChange({
+          statuses: values.statuses,
+          fromStatusId: old.statusId,
+          toStatusId: newStatusId,
+        });
+      const isClosedNow: boolean = SecurityCaseStatuses.isClosed(
+        values.statuses,
+        newStatusId,
+      );
 
       /*
        * Who closed it and when are OneUptime's to write, after the update:
        * the permission layer holds a person's update to the columns they
        * may write, which these are not. Reopening clears the close and its
-       * verdict - an open case has neither.
+       * verdict - an open case has neither. Moving between two statuses that
+       * both close keeps the case closed, with its verdict.
        */
-      if (newStatus === SecurityCaseStatus.Closed) {
+      if (change.closes) {
         verdict = isSecurityCaseVerdict(data["verdict"])
           ? data["verdict"]
           : old.verdict || SecurityCaseVerdict.Undetermined;
@@ -518,17 +605,21 @@ export class Service extends ProjectReferencesService<Model> {
         stamps["verdict"] = verdict;
         stamps["closedAt"] = now;
         stamps["closedByUserId"] = userId || null;
-      } else if (old.status === SecurityCaseStatus.Closed) {
+      } else if (change.reopens) {
         stamps["verdict"] = null;
         stamps["closedAt"] = null;
         stamps["closedByUserId"] = null;
+      } else if (isClosedNow) {
+        verdict = isSecurityCaseVerdict(data["verdict"])
+          ? data["verdict"]
+          : old.verdict || undefined;
       }
 
-      if (newStatus !== SecurityCaseStatus.New && !old.acknowledgedAt) {
+      if (change.acknowledges && !old.acknowledgedAt) {
         stamps["acknowledgedAt"] = now;
       }
 
-      if (newStatus === SecurityCaseStatus.Contained && !old.containedAt) {
+      if (change.contains && !old.containedAt) {
         stamps["containedAt"] = now;
       }
 
@@ -536,19 +627,21 @@ export class Service extends ProjectReferencesService<Model> {
         projectId,
         securityCaseId: caseId,
         feedInfoInMarkdown: statusChangedMarkdown({
-          from: old.status || SecurityCaseStatus.New,
-          to: newStatus,
+          from: this.getNameOf(
+            SecurityCaseStatuses.find(values.statuses, old.statusId),
+          ),
+          to: this.getNameOf(
+            SecurityCaseStatuses.find(values.statuses, newStatusId),
+          ),
           verdict,
           playbookName,
         }).toString(),
         moreInformationInMarkdown:
-          newStatus === SecurityCaseStatus.Closed &&
-          typeof data["closingNote"] === "string"
+          change.closes && typeof data["closingNote"] === "string"
             ? data["closingNote"]
             : undefined,
         eventType: SecurityCaseFeedEventType.StatusChanged,
-        displayColor:
-          newStatus === SecurityCaseStatus.Closed ? Green500 : Purple500,
+        displayColor: isClosedNow ? Green500 : Purple500,
         userId,
       });
 
@@ -557,7 +650,7 @@ export class Service extends ProjectReferencesService<Model> {
        * with "Close alerts when their case closes" on (queued, never
        * waited on - SecurityCaseSourceAlerts).
        */
-      if (newStatus === SecurityCaseStatus.Closed) {
+      if (change.closes) {
         await SecurityCaseSourceAlerts.caseClosed({
           projectId,
           securityCaseId: caseId,
@@ -565,14 +658,17 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    const newPriority: SecurityCasePriority | undefined =
-      isSecurityCasePriority(data["priority"]) ? data["priority"] : undefined;
+    const newPriorityId: string | undefined =
+      data["securityCasePriorityId"]?.toString() || undefined;
 
-    if (newPriority && newPriority !== old.priority) {
+    if (newPriorityId && newPriorityId !== old.priorityId) {
       // Up, it may reach somebody's chosen priority now; down tells nobody.
       if (
-        securityCasePriorityRank(newPriority) >
-        securityCasePriorityRank(old.priority)
+        SecurityCasePriorities.isMoreUrgent(
+          values.priorities,
+          newPriorityId,
+          old.priorityId,
+        )
       ) {
         await SecurityCaseNotifications.caseReachedPriority({
           projectId,
@@ -585,8 +681,12 @@ export class Service extends ProjectReferencesService<Model> {
         projectId,
         securityCaseId: caseId,
         feedInfoInMarkdown: priorityChangedMarkdown({
-          from: old.priority || SecurityCasePriority.Medium,
-          to: newPriority,
+          from: this.getNameOf(
+            SecurityCasePriorities.find(values.priorities, old.priorityId),
+          ),
+          to: this.getNameOf(
+            SecurityCasePriorities.find(values.priorities, newPriorityId),
+          ),
           playbookName,
         }).toString(),
         eventType: SecurityCaseFeedEventType.PriorityChanged,
@@ -656,6 +756,27 @@ export class Service extends ProjectReferencesService<Model> {
         data: stamps as unknown as PartialEntity<Model>,
       });
     }
+  }
+
+  // The id of the project's value a new case is given; refused when there is none.
+  private getIdOf(
+    value: SecurityCaseStatus | SecurityCasePriority | null,
+    what: string,
+  ): ObjectID {
+    if (!value?.id) {
+      throw new BadDataException(
+        `This project has no case ${what} to open a case at. Add one under Security Events > Settings.`,
+      );
+    }
+
+    return value.id;
+  }
+
+  // A status's or a priority's name, for the timeline.
+  private getNameOf(
+    value: SecurityCaseStatus | SecurityCasePriority | null,
+  ): string {
+    return value?.name || "an earlier one";
   }
 
   // The case's page in the Dashboard.

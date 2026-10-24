@@ -7,6 +7,8 @@ import DetectionRule from "../../Models/DatabaseModels/DetectionRule";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import Label from "../../Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
+import SecurityCasePriority from "../../Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "../../Models/DatabaseModels/SecurityCaseStatus";
 import SecurityEventConnection from "../../Models/DatabaseModels/SecurityEventConnection";
 import Team from "../../Models/DatabaseModels/Team";
 import User from "../../Models/DatabaseModels/User";
@@ -26,7 +28,6 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONArray, JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
-import { isSecurityCasePriority } from "../../Types/SecurityCase/SecurityCasePriority";
 import { isSecurityDetectionSource } from "../../Types/SecurityCase/SecurityDetectionSource";
 import {
   SecurityPlaybookActionDefinition,
@@ -39,6 +40,10 @@ import {
   parseSecurityPlaybookSteps,
 } from "../../Types/SecurityPlaybook/SecurityPlaybookStep";
 import { isSecurityPlaybookTrigger } from "../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
+import { validateSecurityPlaybookStepValues } from "../../Utils/SecurityCase/SecurityPlaybookStepValues";
+import SecurityCaseValues, {
+  ProjectSecurityCaseValues,
+} from "../Utils/SecurityCase/SecurityCaseValues";
 
 /*
  * Every record a step's settings name, by the setting it is under. A step's
@@ -82,6 +87,25 @@ const STEP_REFERENCE_SETTINGS: ReadonlyArray<{
     isList: false,
     modelName: "Workflow",
     modelType: Workflow,
+  },
+  // Set priority, Check threat intel's raise and Set status: the project's own.
+  {
+    key: "priorityId",
+    isList: false,
+    modelName: "Security Case Priority",
+    modelType: SecurityCasePriority,
+  },
+  {
+    key: "raisePriorityToId",
+    isList: false,
+    modelName: "Security Case Priority",
+    modelType: SecurityCasePriority,
+  },
+  {
+    key: "statusId",
+    isList: false,
+    modelName: "Security Case Status",
+    modelType: SecurityCaseStatus,
   },
 ];
 
@@ -253,18 +277,12 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
-    if (data["minimumPriority"] === "") {
-      data["minimumPriority"] = null;
-    }
-
-    if (
-      data["minimumPriority"] !== undefined &&
-      data["minimumPriority"] !== null &&
-      !isSecurityCasePriority(data["minimumPriority"])
-    ) {
-      throw new BadDataException(
-        "Minimum priority must be Critical, High, Medium, Low or Informational.",
-      );
+    /*
+     * No minimum runs on every priority. One of another project's is the
+     * project check's to refuse.
+     */
+    if (data["minimumSecurityCasePriorityId"] === "") {
+      data["minimumSecurityCasePriorityId"] = null;
     }
 
     if (
@@ -436,6 +454,40 @@ export class Service extends ProjectReferencesService<Model> {
     });
   }
 
+  /*
+   * The steps, held to the project's case priorities and statuses
+   * (validateSecurityPlaybookStepValues): each one the project's, Set status
+   * never to where every case starts, a verdict for a status that closes.
+   * Read only when a step names one.
+   */
+  private async checkStepValues(data: {
+    projectId: ObjectID;
+    steps: Array<SecurityPlaybookStep>;
+  }): Promise<Array<SecurityPlaybookStep>> {
+    const namesAValue: boolean = data.steps.some(
+      (step: SecurityPlaybookStep): boolean => {
+        return (
+          step.config["priorityId"] !== undefined ||
+          step.config["statusId"] !== undefined ||
+          step.config["raisePriorityToId"] !== undefined
+        );
+      },
+    );
+
+    if (!namesAValue) {
+      return data.steps;
+    }
+
+    const values: ProjectSecurityCaseValues =
+      await SecurityCaseValues.getForProject(data.projectId);
+
+    return validateSecurityPlaybookStepValues({
+      steps: data.steps,
+      priorities: values.priorities,
+      statuses: values.statuses,
+    });
+  }
+
   // A row's stored steps; a snapshot that no longer reads counts as none.
   private static readStoredSteps(value: unknown): Array<SecurityPlaybookStep> {
     try {
@@ -461,7 +513,10 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (createBy.data.steps !== undefined && createBy.data.steps !== null) {
       createBy.data.steps = Service.applyContainmentApprovalRule({
-        steps: parseSecurityPlaybookSteps(createBy.data.steps),
+        steps: await this.checkStepValues({
+          projectId: createBy.data.projectId,
+          steps: parseSecurityPlaybookSteps(createBy.data.steps),
+        }),
         storedSteps: [],
         props: createBy.props,
       }) as unknown as JSONArray;
@@ -494,9 +549,19 @@ export class Service extends ProjectReferencesService<Model> {
         }
       }
 
-      const steps: Array<SecurityPlaybookStep> = parseSecurityPlaybookSteps(
+      let steps: Array<SecurityPlaybookStep> = parseSecurityPlaybookSteps(
         updateBy.data.steps,
       );
+
+      // Every row's project's priorities and statuses are asked.
+      for (const row of rows) {
+        if (row.projectId) {
+          steps = await this.checkStepValues({
+            projectId: row.projectId,
+            steps,
+          });
+        }
+      }
 
       // Every row is asked, against its own stored steps.
       const ruledByRow: Array<Array<SecurityPlaybookStep>> = (

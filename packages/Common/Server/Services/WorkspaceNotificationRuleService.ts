@@ -5262,8 +5262,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     /*
-     * Security cases. Priority, status and source are the case's own fixed
-     * scales, matched as written; labels by id, as everywhere else.
+     * Security cases. Priority and status are the project's own, matched by
+     * id like every other state and severity; source is a fixed scale,
+     * matched as written; labels by id, as everywhere else.
      */
     if (data.notificationFor.securityCaseId) {
       const securityCase: SecurityCase | null =
@@ -5272,8 +5273,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           select: {
             title: true,
             description: true,
-            priority: true,
-            status: true,
+            securityCasePriorityId: true,
+            securityCaseStatusId: true,
             source: true,
             labels: {
               _id: true,
@@ -5294,9 +5295,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         [NotificationRuleConditionCheckOn.SecurityCaseDescription]:
           securityCase.description || "",
         [NotificationRuleConditionCheckOn.SecurityCasePriority]:
-          securityCase.priority || "",
+          securityCase.securityCasePriorityId?.toString() || "",
         [NotificationRuleConditionCheckOn.SecurityCaseStatus]:
-          securityCase.status || "",
+          securityCase.securityCaseStatusId?.toString() || "",
         [NotificationRuleConditionCheckOn.SecurityCaseSource]:
           securityCase.source || "",
         [NotificationRuleConditionCheckOn.SecurityCaseLabels]:
