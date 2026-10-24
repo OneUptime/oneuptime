@@ -45,6 +45,12 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   onSaveSuccess?: undefined | ((item: TBaseModel) => void);
   editButtonText?: undefined | string;
   /*
+   * The edit button's icon: a pencil by default. A card whose button adds
+   * what is not there yet ("Add AI context") draws a plus, as every other
+   * Add in the product does.
+   */
+  editButtonIcon?: undefined | IconProp;
+  /*
    * The edit dialog's title and the line under it. The title defaults to
    * "Edit <model>", which says "Edit Project" on a card that edits a few of
    * the project's settings: such a card names what it edits instead.
@@ -191,7 +197,7 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
           }
           setShowModal(true);
         },
-        icon: IconProp.Edit,
+        icon: props.editButtonIcon || IconProp.Edit,
       });
     }
 
@@ -254,6 +260,7 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
     props.refresher,
     props.isEditable,
     props.editButtonText,
+    props.editButtonIcon,
     props.documentationLink,
     props.videoLink,
     props.cardProps.buttons,

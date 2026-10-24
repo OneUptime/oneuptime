@@ -11,7 +11,7 @@ AI vragen is de chat van OneUptime over de gegevens van je project. Vraag naar l
 
 ## Hoe AI vragen antwoordt
 
-AI vragen antwoordt alleen met wat zijn hulpmiddelen teruggeven: hij voert query's uit op je project in plaats van uit het geheugen te antwoorden. Elk feit in een antwoord heeft een bronchip die de query erachter toont en de gelezen gegevens opent. Vraag je hem iets te wijzigen, dan bepaalt de machtigingsmodus van het gesprek of hij het je eerst vraagt.
+AI vragen antwoordt alleen met wat zijn hulpmiddelen teruggeven: hij voert query's uit op je project in plaats van uit het geheugen te antwoorden. Elk feit in een antwoord heeft een bronchip die de query erachter toont en de gelezen gegevens opent. Vraag je hem iets te wijzigen, dan bepaalt de machtigingsmodus van het gesprek of hij het je eerst vraagt. Vóór je vraag leest hij de [AI-context](/docs/ai/ai-context) van het project: wat je team voor OneUptime AI over je eigen systemen heeft opgeschreven.
 
 ```mermaid title="Van een vraag naar een onderbouwd antwoord"
 flowchart TB

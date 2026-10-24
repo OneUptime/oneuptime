@@ -21,6 +21,8 @@ import NotificationRuleWorkspaceChannel from "../../../Types/Workspace/Notificat
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import { AIGenerationContext } from "./IncidentAIContextBuilder";
 import Incident from "../../../Models/DatabaseModels/Incident";
+import { AiContextActivity } from "../../../Types/AI/AiContext";
+import { withAiContext } from "./AiContext/AiContextPrompt";
 
 export interface IncidentEpisodeContextData {
   episode: IncidentEpisode;
@@ -224,6 +226,8 @@ export default class IncidentEpisodeAIContextBuilder {
   public static formatEpisodeContextForPostmortem(
     contextData: IncidentEpisodeContextData,
     template?: string,
+    // The project's AI context, first in the system prompt; none: as before.
+    aiContext?: AiContextActivity | null | undefined,
   ): AIGenerationContext {
     const {
       episode,
@@ -406,6 +410,9 @@ Grounding rules (important):
 - If a section needs information the data does not contain, write "Not available in the incident record" instead of guessing.
 - Never fabricate numbers or state confidence levels.`;
     }
+
+    // The project's AI context, first: the team's notes on its systems.
+    systemPrompt = withAiContext(systemPrompt, aiContext);
 
     // Build user message based on whether template is provided
     const userMessage: string = template

@@ -63,6 +63,14 @@ import {
 import { reportEnabledAiLaneRuleCount } from "./AiLaneRuleCount";
 import { focusWhenDrawn } from "./FocusWhenDrawn";
 import {
+  AI_CONTEXT_TEST_IDS,
+  AI_RULE_AI_CONTEXT_FIELD_COPY,
+  getAiContextFieldError,
+  getAiRuleAiContextFoldedValue,
+} from "./AiContextCopy";
+import AiContextLengthFooter from "./AiContextLengthFooter";
+import { AiContextOwner } from "Common/Types/AI/AiContext";
+import {
   AI_RULE_COLUMN_TITLE,
   AI_RULE_DOES_NOT_INVESTIGATE_TEXT,
   AI_RULE_FIX_FIELD_COPY,
@@ -455,6 +463,7 @@ export function prepareNewAiRule(
 const AiRulesTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const isIncident: boolean = props.lane === AiLane.Incident;
   const triggerEntityType: AutoRemediationTriggerEntity =
     AI_LANE_AI_RULE_TRIGGER[props.lane];
@@ -1161,6 +1170,61 @@ const AiRulesTable: FunctionComponent<ComponentProps> = (
             return doesRuleUseAi(values);
           },
         }),
+        {
+          /*
+           * Notes for OneUptime AI about what the rule matches (issue
+           * #5198): read after the project's AI context by the
+           * investigation and the fix the rule starts. For a rule OneUptime
+           * AI works for, as the LLM provider is: a rule that only runs its
+           * runbooks every time asks no AI anything.
+           */
+          field: { aiContext: true },
+          title: AI_RULE_AI_CONTEXT_FIELD_COPY.title,
+          description: AI_RULE_AI_CONTEXT_FIELD_COPY.description,
+          stepId: "remediation",
+          collapsibleSection: moreFields,
+          fieldType: FormFieldSchemaType.Markdown,
+          required: false,
+          // Empty is an answer of its own - the project's notes alone.
+          hideOptionalLabel: true,
+          placeholder: AI_RULE_AI_CONTEXT_FIELD_COPY.placeholder,
+          // Notes are text: a model is never given an image's bytes.
+          allowImageUpload: false,
+          dataTestId: AI_CONTEXT_TEST_IDS.ruleField,
+          showIf: (values: FormValues<AutoRemediationRule>): boolean => {
+            return doesRuleUseAi(values);
+          },
+          customValidation: (
+            values: FormValues<AutoRemediationRule>,
+          ): string | null => {
+            return getAiContextFieldError({
+              value: (values as { aiContext?: unknown }).aiContext,
+              owner: AiContextOwner.AiRule,
+              translator,
+            });
+          },
+          // "AI context: about 310 tokens" on the folded line, once written.
+          getFoldedValue: (
+            values: FormValues<AutoRemediationRule>,
+          ): string | null => {
+            return doesRuleUseAi(values)
+              ? getAiRuleAiContextFoldedValue(
+                  (values as { aiContext?: unknown }).aiContext,
+                  translator,
+                )
+              : null;
+          },
+          getFooterElement: (
+            values: FormValues<AutoRemediationRule>,
+          ): ReactElement => {
+            return (
+              <AiContextLengthFooter
+                value={(values as { aiContext?: unknown }).aiContext}
+                owner={AiContextOwner.AiRule}
+              />
+            );
+          },
+        },
         {
           // The runbooks OneUptime AI may run: none picked is any runbook.
           field: { runbooks: true },

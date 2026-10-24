@@ -11,7 +11,7 @@ Preguntar a la IA es el chat de OneUptime sobre los datos de tu proyecto. Pregú
 
 ## Cómo responde Preguntar a la IA
 
-Preguntar a la IA responde solo con lo que devuelven sus herramientas: ejecuta consultas contra tu proyecto en lugar de responder de memoria. Cada dato de una respuesta lleva un chip de cita que muestra la consulta que hay detrás y abre los datos que leyó. Cuando le pides que cambie algo, el modo de permiso de la conversación decide si te pregunta antes.
+Preguntar a la IA responde solo con lo que devuelven sus herramientas: ejecuta consultas contra tu proyecto en lugar de responder de memoria. Cada dato de una respuesta lleva un chip de cita que muestra la consulta que hay detrás y abre los datos que leyó. Cuando le pides que cambie algo, el modo de permiso de la conversación decide si te pregunta antes. Antes de tu pregunta, lee el [contexto de IA](/docs/ai/ai-context) del proyecto: lo que tu equipo escribió para OneUptime AI sobre tus propios sistemas.
 
 ```mermaid title="De una pregunta a una respuesta con citas"
 flowchart TB
