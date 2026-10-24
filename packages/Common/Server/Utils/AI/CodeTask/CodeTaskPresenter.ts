@@ -22,6 +22,7 @@ import {
   CodeTaskContextItem,
   CodeTaskContextItemJSON,
   CodeTaskOriginJSON,
+  CodeTaskOriginType,
   CodeTaskOutcome,
   CodeTaskPersonJSON,
   CodeTaskPullRequestJSON,
@@ -390,6 +391,14 @@ export default class CodeTaskPresenter {
       // The branch the person picked for the task to start from.
       if (data.isFirst && request.baseBranch) {
         json.request.baseBranch = request.baseBranch;
+      }
+
+      /*
+       * A request OneUptime wrote itself: what started it - the insight -
+       * above what it asked.
+       */
+      if (data.isFirst && data.origin.type !== CodeTaskOriginType.Request) {
+        json.origin = data.origin;
       }
     } else if (data.isFirst) {
       json.origin = data.origin;

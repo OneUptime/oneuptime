@@ -10,6 +10,7 @@ import AIInsight from "../../../../../Models/DatabaseModels/AIInsight";
 import Project from "../../../../../Models/DatabaseModels/Project";
 import LlmProvider from "../../../../../Models/DatabaseModels/LlmProvider";
 import AIRunType from "../../../../../Types/AI/AIRunType";
+import AIInsightType from "../../../../../Types/AI/AIInsightType";
 import ObjectID from "../../../../../Types/ObjectID";
 import PositiveNumber from "../../../../../Types/PositiveNumber";
 import { describe, expect, test, afterEach } from "@jest/globals";
@@ -206,5 +207,104 @@ describe("InsightTriage.enqueueInsightTriage", () => {
     await expect(
       InsightTriage.enqueueInsightTriage({ insight: makeInsight() }),
     ).resolves.toEqual({});
+  });
+});
+
+/*
+ * A telemetry lane's problem (Types/AI/TelemetryAi - slow code a service's
+ * profiles show) is the lane's: its switch is the one that counts, not
+ * "Watch telemetry for problems", and the LLM provider its AI rules pick is
+ * the run's.
+ */
+describe("InsightTriage.enqueueInsightTriage - a telemetry lane's problem", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function slowCode(): AIInsight {
+    return {
+      id: insightId,
+      projectId,
+      insightType: AIInsightType.ProfileHotspot,
+    } as unknown as AIInsight;
+  }
+
+  test("the lane's switch decides, read with the project", async () => {
+    const findProject: jest.SpyInstance = mockProject({
+      enableAiInsights: false,
+      enableAutomaticProfileRemediation: true,
+    });
+    mockProvider(true);
+    mockNonTerminalTriageRunCount(0);
+    const enqueue: jest.SpyInstance = jest
+      .spyOn(AIInvestigationQueue, "enqueue")
+      .mockResolvedValue(triageRunId);
+    jest.spyOn(AIInsightService, "updateOneById").mockResolvedValue(1);
+
+    const result: InsightTriageResult =
+      await InsightTriage.enqueueInsightTriage({ insight: slowCode() });
+
+    expect(result).toEqual({ triageAiRunId: triageRunId });
+    expect(enqueue).toHaveBeenCalledTimes(1);
+    expect(findProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          enableAutomaticProfileRemediation: true,
+        }),
+      }),
+    );
+  });
+
+  test("the lane's switch off: no triage, whatever AI Insights says", async () => {
+    mockProject({
+      enableAiInsights: true,
+      enableAutomaticProfileRemediation: false,
+    });
+    const enqueue: jest.SpyInstance = jest.spyOn(
+      AIInvestigationQueue,
+      "enqueue",
+    );
+
+    await expect(
+      InsightTriage.enqueueInsightTriage({ insight: slowCode() }),
+    ).resolves.toEqual({});
+    expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  test("the provider the rules pick is the run's, and decided on when it starts", async () => {
+    mockProject({ enableAutomaticProfileRemediation: true });
+    const provider: jest.SpyInstance = mockProvider(false);
+    mockNonTerminalTriageRunCount(0);
+    const enqueue: jest.SpyInstance = jest
+      .spyOn(AIInvestigationQueue, "enqueue")
+      .mockResolvedValue(triageRunId);
+    jest.spyOn(AIInsightService, "updateOneById").mockResolvedValue(1);
+    const picked: string = "5092eeee-0000-4000-8000-000000000001";
+
+    await InsightTriage.enqueueInsightTriage({
+      insight: slowCode(),
+      llmProviderId: picked,
+    });
+
+    // Not the project's default provider: the run's own pick.
+    expect(provider).not.toHaveBeenCalled();
+    const call: Record<string, unknown> = enqueue.mock.calls[0]![0] as Record<
+      string,
+      unknown
+    >;
+    expect(String(call["llmProviderId"])).toBe(picked);
+  });
+
+  test("AI off for the project: no triage, lane or not", async () => {
+    mockProject({ enableAi: false, enableAutomaticProfileRemediation: true });
+    const enqueue: jest.SpyInstance = jest.spyOn(
+      AIInvestigationQueue,
+      "enqueue",
+    );
+
+    await expect(
+      InsightTriage.enqueueInsightTriage({ insight: slowCode() }),
+    ).resolves.toEqual({});
+    expect(enqueue).not.toHaveBeenCalled();
   });
 });

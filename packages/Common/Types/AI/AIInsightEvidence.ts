@@ -107,12 +107,57 @@ export interface DeployRegressionInsightEvidence {
   newExceptionTypes: Array<{ exceptionType: string; occurrenceCount: number }>;
 }
 
+// One function next to the slow one in its profile: a caller or a callee.
+export interface ProfileInsightNeighbourEvidence {
+  functionName: string;
+  fileName: string;
+  // 0-100: its time from or below the slow function, as a share of the window.
+  share: number;
+}
+
+/*
+ * Evidence for ProfileHotspot insights: one function of a service's own
+ * code, its own-code share of the service's time over the window (the time
+ * in it and in the library, runtime and system code it calls), and - when
+ * it grew - the share it took in the baseline window.
+ */
+export interface ProfileInsightEvidence {
+  serviceId: string;
+  functionName: string;
+  // As the profile shows it ("" for a frame with no file).
+  fileName: string;
+  // The line of its heaviest stack; 0 when the profiler recorded none.
+  lineNumber: number;
+  /*
+   * The kind read, as the Profiler selects it ("cpu", "wall"), and its
+   * category (Utils/Profiles/ProfileTypes ProfileCategory).
+   */
+  profileType: string;
+  category: string;
+  // Why it was filed: "Hot" (a large share) or "Grew" (ProfileFixReason).
+  reason: string;
+  // 0-100.
+  ownShare: number;
+  ownShareBefore?: number | undefined;
+  functionSampleCount: number;
+  windowSampleCount: number;
+  // ISO-8601: the window read, and the one it was compared with.
+  windowStartTime: string;
+  windowEndTime: string;
+  baselineStartTime?: string | undefined;
+  baselineEndTime?: string | undefined;
+  // Who calls it, and what it spends its time calling, heaviest first.
+  callers: Array<ProfileInsightNeighbourEvidence>;
+  callees: Array<ProfileInsightNeighbourEvidence>;
+}
+
 export interface AIInsightEvidence {
   exception?: ExceptionInsightEvidence | undefined;
   logSpike?: LogSpikeInsightEvidence | undefined;
   latency?: LatencyInsightEvidence | undefined;
   metricDrift?: MetricDriftInsightEvidence | undefined;
   deployRegression?: DeployRegressionInsightEvidence | undefined;
+  profile?: ProfileInsightEvidence | undefined;
 }
 
 export default AIInsightEvidence;

@@ -6,7 +6,7 @@ import ModelSwitchesCard, {
 } from "Common/UI/Components/ModelSwitch/ModelSwitchesCard";
 import { ModelSwitchColumn } from "Common/UI/Components/ModelSwitch/ModelSwitchUtil";
 import ProjectUtil from "Common/UI/Utils/Project";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import {
   getProjectAiSwitchTestId,
   ProjectAiSwitchDefinition,
@@ -24,12 +24,22 @@ import {
  * A switch with switches of its own - "Fix new incidents automatically" and
  * the two pull requests under it - draws them under its name while it is
  * on, and turns them on and off with it in the same save.
+ *
+ * Under the switches, inside the card, a page may say what they lead to
+ * (`details`): the Profiler's AI settings say there whether OneUptime AI
+ * can open pull requests now, or the one thing to do first.
  */
 
 export interface ComponentProps {
   cardTitle: string;
   cardDescription: string;
   switches: Array<ProjectAiSwitchDefinition<ModelSwitchColumn<Project>>>;
+  // Read-only lines under the switches (ModelSwitchesCard's `details`).
+  details?: ReactNode | undefined;
+  // Told where a switch is: once read, and whenever it moves.
+  onChange?:
+    | ((column: ModelSwitchColumn<Project>, isOn: boolean) => void)
+    | undefined;
   dataTestId: string;
 }
 
@@ -75,6 +85,8 @@ const ProjectAiSwitchesCard: FunctionComponent<ComponentProps> = (
           };
         },
       )}
+      details={props.details}
+      onChange={props.onChange}
       dataTestId={props.dataTestId}
     />
   );

@@ -43,6 +43,14 @@ enum AIInsightType {
    * types first seen in the version it shipped (ChangeImpact's thresholds).
    */
   DeployRegression = "DeployRegression",
+  /*
+   * Slow code: a function of a service's own code that takes a large share
+   * of the service's time in its profiles, or whose share grew well beyond
+   * what it took at the same time the day before (Utils/Profiles/
+   * ProfileInsight's gates). Filed for the Profiles product's AI section
+   * (Types/AI/TelemetryAi), with the profile as its evidence.
+   */
+  ProfileHotspot = "ProfileHotspot",
 }
 
 export default AIInsightType;

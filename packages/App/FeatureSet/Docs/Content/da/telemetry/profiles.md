@@ -321,6 +321,39 @@ Et spans fane **Profil** indeholder også de samples, der er knyttet til de span
 
 Et spors side linker også til Profileren for sporets tjeneste i de 15 minutter før og efter, når tjenesten blev profileret dengang, og siden **Ydeevneprofiler** for en tjeneste eller en vært åbner Profileren for den tjeneste eller vært.
 
+## Find og ret langsom kode med AI
+
+Hver time gennemgår OneUptime hver tjenestes profiler for din egen kode, der bruger en stor eller voksende del af tjenestens tid, og gemmer det, den finder, som AI-indsigter med beviserne. Derefter undersøger OneUptime AI hver enkelt og åbner en pull request, der gør koden lettere. Intet bliver nogensinde flettet: dit team gennemgår hver pull request.
+
+En funktion i din egen kode gemmes, når dens tjeneste har sendt mindst 500 samples i den seneste time, funktionen mindst 50 af dem, og:
+
+- den bruger mindst 10 % af tjenestens CPU-tid eller vægurstid i den seneste time, eller
+- dens andel er vokset med 5 point eller mere siden samme time dagen før, til mindst 5 %.
+
+### Slå det til
+
+**Produkter → Ydeevneprofiler → AI → Indstillinger** rummer kontakten **Find og ret langsom kode**, der er slået til for nye projekter. Er **Aktivér AI** slået fra, findes langsom kode stadig, men OneUptime AI gør intet med den. For at åbne pull requests skal OneUptime AI have et repository forbundet i [Kode](/docs/ai/ai-agent): siden siger først, hvad der mangler. Koden i hvert repository ændres på den Runner, som repositoryet vælger i Kode.
+
+OneUptime AI åbner selv højst 5 pull requests om dagen (UTC), én for hvert fund, og aldrig flere end et repositorys grænse for åbne AI-pull requests.
+
+### AI-regler
+
+Uden regler undersøger OneUptime AI straks al langsom kode, den finder, og åbner en pull request for hver. **AI-regler** under **Yderligere indstillinger** indsnævrer det, i tre trin:
+
+| Trin | Hvad det afgør |
+| --- | --- |
+| **Match** | Hvilke tjenester: de valgte, dem med bestemte etiketter eller dem, hvis navn passer til et mønster. |
+| **Undersøge** | **Med det samme** eller **Kun hvis stadig fundet efter en ventetid**: langsom kode, der forsvinder i ventetiden, undersøges ikke. |
+| **Rettelse** | **Ret ikke**, **Spørg, før der rettes** eller **Ret uden at spørge**. At spørge først overlader pull requesten til en person: fundet tilbyder **Ret med AI**. |
+
+Under **Flere felter** vælger en regel de koderepositorier, MCP-servere og den LLM-udbyder, som OneUptime AI må bruge for den. Er intet valgt, må den bruge dem alle og projektets standard-LLM-udbyder.
+
+### Se, hvad den gjorde
+
+- **Produkter → Ydeevneprofiler → AI → Indsigter** viser den fundne langsomme kode, hvert fund med sine beviser og **Åbn i Profiler**.
+- **Produkter → Ydeevneprofiler → AI → Protokoller** viser hver undersøgelse og hver pull request, nyeste først, med status for hver.
+- I Kode siger opgaven, at OneUptime startede den, med et link til dens fund, og pull requesten siger, hvorfor den blev åbnet.
+
 ## Dataopbevaring
 
 Profiler gemmes lige så længe som dit projekts telemetri: **Projektindstillinger → Telemetri og APM → Dataopbevaring** sætter **Standardopbevaring (dage)**, 15 dage, medmindre du ændrer det. Data slettes automatisk, når opbevaringsperioden udløber. Abonnementer med opbevaringsundtagelser kan også beholde profiler længere eller kortere end anden telemetri eller sætte opbevaring pr. tjeneste på tjenestens side **Indstillinger**.

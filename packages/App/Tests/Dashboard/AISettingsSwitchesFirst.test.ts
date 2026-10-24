@@ -41,7 +41,15 @@ import {
   SECURITY_AI_SWITCHES,
   SecurityAiSettingsCopy,
 } from "../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
+import {
+  TELEMETRY_AI_SWITCHES,
+  TELEMETRY_AI_SWITCHES_CARD_TITLE,
+} from "../../FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiCopy";
 import Project from "Common/Models/DatabaseModels/Project";
+import {
+  TELEMETRY_AI_LANE_LIST,
+  TelemetryAiLane,
+} from "Common/Types/AI/TelemetryAi";
 import { getSwitchesInDrawnOrder } from "Common/UI/Components/ModelSwitch/ModelSwitchOrder";
 import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
 import TableColumnType from "Common/Types/Database/TableColumnType";
@@ -201,6 +209,12 @@ const ALL_SWITCHES: Array<ProjectAiSwitchDefinition<string>> = [
   ...getSwitchesInDrawnOrder(AI_LANE_SWITCHES[AiLane.Alert]),
   ...AI_INSIGHTS_SWITCHES,
   ...SECURITY_AI_SWITCHES,
+  // Each telemetry product's AI → Settings: the Profiler's, finding slow code.
+  ...TELEMETRY_AI_LANE_LIST.flatMap(
+    (lane: TelemetryAiLane): Array<ProjectAiSwitchDefinition<string>> => {
+      return TELEMETRY_AI_SWITCHES[lane];
+    },
+  ),
 ];
 
 function columnsOf(
@@ -620,6 +634,34 @@ describe("the pages draw switches first, and fold the limits", () => {
     );
     expect(SecurityAiSettingsCopy.cardDescription).toBe(
       "It works on security cases on its own. Turn off anything you do not want it to do.",
+    );
+  });
+
+  test("Profiler → AI → Settings is the notice, its one switch, and its AI rules folded under More settings", () => {
+    const page: string = readDashboard(
+      "Components/TelemetryAi/TelemetryAiSettingsPage.tsx",
+    );
+
+    expect(page).toContain("<ProjectAiNotice context={copy.noticeContext} />");
+    expect(page).toContain("switches={TELEMETRY_AI_SWITCHES[props.lane]}");
+    expect(page).toContain("cardTitle={TELEMETRY_AI_SWITCHES_CARD_TITLE}");
+    expect(page).toContain("<AdvancedPageSection");
+    expect(page).toContain("<TelemetryAiRulesTable");
+    expect(page).not.toContain("CardModelDetail");
+    expect(readDashboard("Pages/Profiles/AI/Settings.tsx")).toContain(
+      "<TelemetryAiSettingsPage lane={TelemetryAiLane.Profile} />",
+    );
+
+    expect(
+      TELEMETRY_AI_SWITCHES[TelemetryAiLane.Profile].map(
+        (definition: ProjectAiSwitchDefinition<string>): string => {
+          return definition.column;
+        },
+      ),
+    ).toEqual(["enableAutomaticProfileRemediation"]);
+    // The card's title is every AI settings page's.
+    expect(TELEMETRY_AI_SWITCHES_CARD_TITLE).toBe(
+      AI_LANE_PAGE_COPY[AiLane.Incident].switchesCardTitle,
     );
   });
 

@@ -1,5 +1,7 @@
 import ProfileFixTaskTrigger, {
   PROFILE_FIX_ALREADY_RUNNING_MESSAGE,
+  PROFILE_FIX_INSIGHT_HAS_FIX_MESSAGE,
+  PROFILE_FIX_INSIGHT_NOT_FOUND_MESSAGE,
   PROFILE_FIX_PICK_REPOSITORY_MESSAGE,
   PROFILE_FIX_REPOSITORY_NOT_AVAILABLE_MESSAGE,
   ProfileFixRead,
@@ -15,13 +17,17 @@ import SourceLocator, {
   SourceLink,
 } from "../../../../../Server/Utils/CodeRepository/SourceLocator";
 import { ProfileFunctionEvidence } from "../../../../../Server/Utils/Profile/ProfileEvidence";
+import AIInsightService from "../../../../../Server/Services/AIInsightService";
 import AIRunService from "../../../../../Server/Services/AIRunService";
 import AIService, {
   AI_DISABLED_MESSAGE,
 } from "../../../../../Server/Services/AIService";
 import ServiceService from "../../../../../Server/Services/ServiceService";
+import AIInsight from "../../../../../Models/DatabaseModels/AIInsight";
 import AIRun from "../../../../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../../../../Models/DatabaseModels/CodeRepository";
+import AIInsightStatus from "../../../../../Types/AI/AIInsightStatus";
+import AIInsightType from "../../../../../Types/AI/AIInsightType";
 import Service from "../../../../../Models/DatabaseModels/Service";
 import {
   CodeTaskBlockerType,
@@ -548,6 +554,113 @@ describe("starting the fix", () => {
       "No AI credits left.",
     );
     expect(spies.start).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * "Fix with AI" on a slow-code finding - what an AI rule that asks before
+ * fixing leaves to a person: the same task, naming the finding, which then
+ * links the task.
+ */
+describe("starting the fix from a slow-code finding", () => {
+  const insightId: ObjectID = new ObjectID(
+    "70000000-0000-4000-8000-0000000000a9",
+  );
+
+  function finding(fixAiRunId?: ObjectID): AIInsight {
+    return Object.assign(new AIInsight(), {
+      _id: insightId.toString(),
+      ...(fixAiRunId ? { fixAiRunId } : {}),
+    }) as AIInsight;
+  }
+
+  test("the task names the finding, and the finding links the task, only while it has none", async () => {
+    const spies: World = world();
+    const readFinding: jest.SpiedFunction<typeof AIInsightService.findOneBy> =
+      jest.spyOn(AIInsightService, "findOneBy").mockResolvedValue(finding());
+    const linkFinding: jest.SpiedFunction<typeof AIInsightService.updateOneBy> =
+      jest.spyOn(AIInsightService, "updateOneBy").mockResolvedValue(1);
+
+    const created: { taskId: string } =
+      await ProfileFixTaskTrigger.createFixTask({ ...REQUEST, insightId });
+
+    // The finding is read as the person: one of the project's slow code findings.
+    const read: Record<string, unknown> = readFinding.mock
+      .calls[0]![0] as never;
+    const readQuery: Record<string, unknown> = read["query"] as never;
+
+    expect(read["props"]).toBe(props);
+    expect(readQuery["_id"]).toBe(insightId.toString());
+    expect(readQuery["projectId"]).toBe(projectId);
+    expect(readQuery["insightType"]).toBe(AIInsightType.ProfileHotspot);
+
+    // The task is the person's request, naming the finding.
+    const started: Parameters<typeof CodeTaskRuns.start>[0] =
+      spies.start.mock.calls[0]![0];
+
+    expect(started.userId).toBe(userId);
+    expect(started.triggeredByAiInsightId).toBe(insightId);
+
+    // The finding links the task: only an open one, and only while it has none.
+    const link: Record<string, unknown> = linkFinding.mock
+      .calls[0]![0] as never;
+    const linkQuery: Record<string, unknown> = link["query"] as never;
+    const linkData: Record<string, unknown> = link["data"] as never;
+
+    expect(linkQuery["_id"]).toBe(insightId.toString());
+    expect(linkQuery["projectId"]).toBe(projectId);
+    expect(linkQuery["fixAiRunId"]).toBeDefined();
+    expect(JSON.stringify(linkQuery["status"])).toContain(
+      AIInsightStatus.ActionRequired,
+    );
+    expect(JSON.stringify(linkQuery["status"])).not.toContain(
+      AIInsightStatus.Resolved,
+    );
+    expect(linkData["status"]).toBe(AIInsightStatus.FixOpened);
+    expect(String(linkData["fixAiRunId"])).toBe(created.taskId);
+    expect(link["props"]).toEqual({ isRoot: true });
+  });
+
+  test("a finding the person may not read, or that is not slow code, is refused before anything starts", async () => {
+    const spies: World = world();
+    jest.spyOn(AIInsightService, "findOneBy").mockResolvedValue(null);
+    const linkFinding: jest.SpiedFunction<typeof AIInsightService.updateOneBy> =
+      jest.spyOn(AIInsightService, "updateOneBy").mockResolvedValue(1);
+
+    await expect(
+      ProfileFixTaskTrigger.createFixTask({ ...REQUEST, insightId }),
+    ).rejects.toThrow(PROFILE_FIX_INSIGHT_NOT_FOUND_MESSAGE);
+    expect(spies.readEvidence).not.toHaveBeenCalled();
+    expect(spies.start).not.toHaveBeenCalled();
+    expect(linkFinding).not.toHaveBeenCalled();
+  });
+
+  test("a finding with a fix already linked is not given a second one", async () => {
+    const spies: World = world();
+    jest
+      .spyOn(AIInsightService, "findOneBy")
+      .mockResolvedValue(finding(ObjectID.generate()));
+
+    await expect(
+      ProfileFixTaskTrigger.createFixTask({ ...REQUEST, insightId }),
+    ).rejects.toThrow(PROFILE_FIX_INSIGHT_HAS_FIX_MESSAGE);
+    expect(spies.start).not.toHaveBeenCalled();
+  });
+
+  test("without a finding, nothing is read or linked: the Profiler's own Fix with AI", async () => {
+    const spies: World = world();
+    const readFinding: jest.SpiedFunction<typeof AIInsightService.findOneBy> =
+      jest.spyOn(AIInsightService, "findOneBy");
+    const linkFinding: jest.SpiedFunction<typeof AIInsightService.updateOneBy> =
+      jest.spyOn(AIInsightService, "updateOneBy");
+
+    await ProfileFixTaskTrigger.createFixTask(REQUEST);
+
+    expect(readFinding).not.toHaveBeenCalled();
+    expect(linkFinding).not.toHaveBeenCalled();
+    expect(
+      spies.start.mock.calls[0]![0].triggeredByAiInsightId,
+    ).toBeUndefined();
   });
 });
 

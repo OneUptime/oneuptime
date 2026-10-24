@@ -17,6 +17,11 @@ export interface ComponentProps {
   typeOptions: Array<InsightFilterOption>;
   typeValue: string;
   onTypeChange: (value: string) => void;
+  /*
+   * Off where the list holds one kind of insight (a product's own AI
+   * insights): a type filter would offer one choice.
+   */
+  isTypeFilterShown?: boolean | undefined;
   severityOptions: Array<InsightFilterOption>;
   severityValue: string;
   onSeverityChange: (value: string) => void;
@@ -101,6 +106,11 @@ const FilterSelect: FunctionComponent<FilterSelectProps> = (
  * Search, type, severity, time range and order in one bar. The status filter
  * is not here — it lives on the count tiles above, which is what let this
  * collapse from three wrapping rows of pills into a single row.
+ *
+ * One row where it fits. Where it does not - beside the side menu at a
+ * small laptop's width, or with every kind's type filter - the selects
+ * move under the search, which keeps room to type in: in one row the
+ * search was squeezed to its icon and the last select ran past the bar.
  */
 const InsightFilterBar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -113,8 +123,8 @@ const InsightFilterBar: FunctionComponent<ComponentProps> = (
     props.seenWithinValue !== props.unfilteredValue;
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white p-2 shadow-sm sm:flex-row sm:items-center">
-      <div className="relative min-w-0 flex-1">
+    <div className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white p-2 shadow-sm sm:flex-row sm:flex-wrap sm:items-center">
+      <div className="relative min-w-0 flex-1 sm:min-w-[14rem]">
         <label htmlFor="ai-insight-search" className="sr-only">
           {translator.translateText("Search insights")}
         </label>
@@ -145,16 +155,18 @@ const InsightFilterBar: FunctionComponent<ComponentProps> = (
         )}
       </div>
 
-      <div className="max-sm:hidden h-6 w-px flex-shrink-0 bg-gray-200 sm:block" />
-
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <FilterSelect
-          ariaLabel={translationKey("Filter by insight type")}
-          options={props.typeOptions}
-          value={props.typeValue}
-          onChange={props.onTypeChange}
-          isFiltering={isFilteringByType}
-        />
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        {props.isTypeFilterShown === false ? (
+          <></>
+        ) : (
+          <FilterSelect
+            ariaLabel={translationKey("Filter by insight type")}
+            options={props.typeOptions}
+            value={props.typeValue}
+            onChange={props.onTypeChange}
+            isFiltering={isFilteringByType}
+          />
+        )}
 
         <FilterSelect
           ariaLabel={translationKey("Filter by severity")}

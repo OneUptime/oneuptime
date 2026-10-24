@@ -11,6 +11,7 @@ import CodeMetaList from "./CodeMetaList";
 import { getTaskRoute } from "./CodePaths";
 import {
   CODE_TASK_ASKED_BY,
+  CODE_TASK_STARTED_BY_ONEUPTIME,
   CODE_TASK_STATE_COPY,
   CODE_TASK_STATE_TEXT_CLASS_NAMES,
   getRecipeLabel,
@@ -333,7 +334,9 @@ export const CodeTaskRow: FunctionComponent<{
         ? translator.translateTemplate(CODE_TASK_ASKED_BY, {
             name: task.origin.label,
           })
-        : ""
+        : task.origin.type === CodeTaskOriginType.Insight
+          ? translator.translateText(CODE_TASK_STARTED_BY_ONEUPTIME) || ""
+          : ""
       : translator.translateText(getRecipeLabel(task.recipe)) || "";
 
   const meta: Array<ReactElement> = [];

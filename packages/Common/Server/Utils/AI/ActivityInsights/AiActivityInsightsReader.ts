@@ -27,6 +27,7 @@ import RunnerJob from "../../../../Models/DatabaseModels/RunnerJob";
 import TelemetryException from "../../../../Models/DatabaseModels/TelemetryException";
 import AIInsightStatus from "../../../../Types/AI/AIInsightStatus";
 import AIInsightType from "../../../../Types/AI/AIInsightType";
+import { PROFILE_INSIGHT_FINGERPRINT_PREFIX } from "../../../../Utils/Profiles/ProfileInsight";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import {
   AI_ACTIVITY_INSIGHTS_MAX_FIXES,
@@ -238,7 +239,7 @@ function toAlertSubject(alert: Alert): AiActivitySubjectInput {
  * Whether an open preventive finding is about the scope's own telemetry:
  * the detectors embed the entity a finding is about in its fingerprint
  * (ErrorLogSpikeDetector, MetricDriftDetector, TraceLatencyRegressionDetector,
- * DeployRegressionDetector),
+ * DeployRegressionDetector, ProfileHotspotDetector),
  * and an exception finding's exception belongs to it (exceptionOwners).
  */
 export function isPreventiveInsightAboutScope(data: {
@@ -264,6 +265,11 @@ export function isPreventiveInsightAboutScope(data: {
       return fingerprint.startsWith(`latency:${scopeId}:`);
     case AIInsightType.DeployRegression:
       return fingerprint.startsWith(`deploy-regression:${scopeId}:`);
+    // Slow code in a service: Utils/Profiles/ProfileInsight's fingerprint.
+    case AIInsightType.ProfileHotspot:
+      return fingerprint.startsWith(
+        `${PROFILE_INSIGHT_FINGERPRINT_PREFIX}:${scopeId}:`,
+      );
     case AIInsightType.NewException:
     case AIInsightType.ExceptionSpike: {
       const exceptionId: string | undefined =
