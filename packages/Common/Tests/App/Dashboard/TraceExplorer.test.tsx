@@ -2032,7 +2032,7 @@ describe("operations", () => {
  * asks the server (POST /ai-investigation/performance-fix-suggestion), which
  * runs the span-tree analysis with the spans' attributes and the same gates
  * the create route enforces, and draws exactly what it answers: the finding
- * in plain words with the fix (Act), a quiet link to connect GitHub
+ * in plain words with the fix (Act), a quiet link to connect a repository
  * (SetUp), a link to the fix already on its way (InProgress) - or nothing
  * at all (None).
  */
@@ -2296,7 +2296,7 @@ describe("performance fix with AI", () => {
     expect(within(strip).queryByTestId("trace-fix-performance")).toBeNull();
   });
 
-  test("refused because the repository was disconnected: the quiet Connect GitHub link takes the button's place", async () => {
+  test("refused because the repository was disconnected: the quiet link to connect a repository takes the button's place", async () => {
     answerSuggestion(
       { offer: "Act", finding: nPlusOneFinding() },
       async () => {
@@ -2367,7 +2367,7 @@ describe("performance fix with AI", () => {
     ).not.toBeDisabled();
   });
 
-  test("no repository connected: a quiet link to connect GitHub instead of the fix", async () => {
+  test("no repository connected: a quiet link to connect a repository instead of the fix", async () => {
     answerSuggestion({ offer: "SetUp", finding: nPlusOneFinding() });
     await renderTrace();
     const strip: HTMLElement = await suggestionStrip();

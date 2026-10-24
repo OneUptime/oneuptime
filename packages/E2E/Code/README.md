@@ -89,10 +89,12 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
 - the old addresses forwarding with their ids, query strings and hashes, and
   GitHub's way back still saying GitHub connected;
 - repositories beyond GitHub (`?hosts=1`): Connect repositories asking where
-  the code is; GitLab with a server and a token - typed once, never shown
-  again - then the repositories it can push to, a token GitLab refuses
-  (`revoked...`), Forgejo or Gitea offering the project's connection again,
-  any Git server asked about first when only a Runner reaches it; each row's
+  the code is, each step's first field focused; GitLab with a server and a
+  token - typed once, never shown again - then the repositories it can push
+  to, a token GitLab refuses (`revoked...`), Forgejo or Gitea starting on
+  the project's connection, any Git server asked about first (naming the
+  host, in view on a phone) when only a Runner reaches it; the connected
+  notice keeping its space above the list; each row's
   host mark and its own server; a GitLab repository's settings (its server,
   account, token's last characters, Replace access token, what is GitHub's
   only) and a Git repository's (Branches, the Runner it needs); a refused

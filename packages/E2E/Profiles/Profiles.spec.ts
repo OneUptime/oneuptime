@@ -513,7 +513,7 @@ test.describe("Fix with AI", () => {
   });
 
   test.describe("what stands in the way is said in its place", () => {
-    test("no repository connected: Connect GitHub", async ({
+    test("no repository connected: Connect a repository", async ({
       page,
     }: {
       page: Page;
