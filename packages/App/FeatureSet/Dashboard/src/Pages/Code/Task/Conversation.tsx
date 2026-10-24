@@ -13,11 +13,21 @@ import {
   getRepositorySettingsRoute,
 } from "../../../Components/Code/CodePaths";
 import { CodeRepositorySetting } from "../../../Components/Code/CodeRepositorySettingsCopy";
-import { getRecipeLabel } from "../../../Components/Code/CodeTaskCopy";
+import {
+  CODE_TASK_START_FOOTER_BRANCH_ONLY,
+  getRecipeLabel,
+} from "../../../Components/Code/CodeTaskCopy";
 import CodeTaskStateBadge from "../../../Components/Code/CodeTaskStateBadge";
 import { getCodeTaskTrail } from "../../../Components/Code/CodeTaskTrail";
-import CodeTaskTurn from "../../../Components/Code/CodeTaskTurn";
-import { GitHubMark } from "../../../Components/Code/GitHubConnect";
+import CodeTaskTurn, {
+  CodeTaskTurnHost,
+} from "../../../Components/Code/CodeTaskTurn";
+import CodeHostMark from "../../../Components/Code/CodeHostMark";
+import {
+  CodePullRequestCopy,
+  getPullRequestCopy,
+  opensPullRequests,
+} from "../../../Components/Code/CodeHostCopy";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -228,6 +238,19 @@ const CodeTaskConversation: FunctionComponent<
     data.task.title ||
     translator.translateTemplate(getRecipeLabel(data.task.recipe));
   const baseBranch: string = getTaskBaseBranch(data);
+  /*
+   * Where the task's repository is hosted: its marks, how its pull request
+   * is named (a merge request, "!12", on GitLab), and - for a Git
+   * repository, where AI pushes a branch and opens none - where a change
+   * goes.
+   */
+  const repositoryHost: CodeTaskTurnHost = {
+    provider: data.repository?.provider,
+    hostProduct: data.repository?.connection?.hostProduct,
+  };
+  const pullRequestCopy: CodePullRequestCopy = getPullRequestCopy(
+    repositoryHost.provider,
+  );
 
   const canRetry: boolean = Boolean(
     data.canAsk &&
@@ -340,6 +363,7 @@ const CodeTaskConversation: FunctionComponent<
               <CodeBlockerNotice
                 blocker={data.blocker}
                 repositoryId={data.repository?.id}
+                provider={repositoryHost.provider}
                 isInline={true}
               />
             </div>
@@ -360,19 +384,21 @@ const CodeTaskConversation: FunctionComponent<
         footer={
           /*
            * Where a change goes: the open pull request, or - none open,
-           * or it was merged or closed - a new branch and pull request.
+           * or it was merged or closed - a new branch and pull request; in
+           * a Git repository, a new branch the person opens one from.
            */
           <p
             data-testid="code-task-composer-footer"
             className="text-xs leading-5 text-gray-500"
           >
             {isPullRequestOpen
-              ? translator.translateTemplate(
-                  "Changes you ask for are pushed to pull request #{{number}}.",
-                  { number: pullRequest?.number?.toString() || "" },
-                )
+              ? translator.translateTemplate(pullRequestCopy.replyFooter, {
+                  number: pullRequest?.number?.toString() || "",
+                })
               : translator.translateText(
-                  "AI works on a new branch and opens a pull request for you to review when it changes code. Nothing is merged on its own.",
+                  opensPullRequests(repositoryHost.provider)
+                    ? pullRequestCopy.startFooter
+                    : CODE_TASK_START_FOOTER_BRANCH_ONLY,
                 )}
           </p>
         }
@@ -424,8 +450,14 @@ const CodeTaskConversation: FunctionComponent<
               className="inline-flex h-9 flex-shrink-0 items-center gap-2 rounded-lg bg-white px-3 text-sm font-medium text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               <>
-                <GitHubMark className="h-4 w-4 flex-shrink-0" />
-                {translator.translateTemplate("Pull request #{{number}}", {
+                <span className="inline-flex flex-shrink-0">
+                  <CodeHostMark
+                    provider={repositoryHost.provider}
+                    hostProduct={repositoryHost.hostProduct}
+                    className="h-4 w-4"
+                  />
+                </span>
+                {translator.translateTemplate(pullRequestCopy.title, {
                   number: pullRequest.number?.toString() || "",
                 })}
                 <Icon
@@ -456,7 +488,13 @@ const CodeTaskConversation: FunctionComponent<
               className="inline-flex min-w-0 items-center gap-1.5 hover:text-indigo-600"
             >
               <>
-                <GitHubMark className="h-4 w-4 flex-shrink-0" />
+                <span className="inline-flex flex-shrink-0">
+                  <CodeHostMark
+                    provider={repositoryHost.provider}
+                    hostProduct={repositoryHost.hostProduct}
+                    className="h-4 w-4"
+                  />
+                </span>
                 <span className="truncate">
                   {getRepositoryFullName(data.repository) ||
                     data.repository.name}
@@ -558,6 +596,7 @@ const CodeTaskConversation: FunctionComponent<
                   : undefined
               }
               isRetrying={isRetrying}
+              repositoryHost={repositoryHost}
               logRoute={new Route(
                 RouteUtil.populateRouteParams(
                   RouteMap[PageMap.CODE_TASK_VIEW_LOG] as Route,

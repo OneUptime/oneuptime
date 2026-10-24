@@ -63,6 +63,14 @@ import GitHubUtil, {
 } from "../Utils/CodeRepository/GitHub/GitHub";
 import GitHubInstallationBinding from "../Utils/CodeRepository/GitHub/GitHubInstallationBinding";
 import CodeRepositoryType from "../../Types/CodeRepository/CodeRepositoryType";
+import {
+  CodeHost,
+  RUNNER_SUPPORTED_CODE_HOSTS_FIELD,
+} from "../../Types/CodeRepository/CodeHost";
+import CodeHostRunnerToken, {
+  CodeHostRunnerDecision,
+  CodeHostRunnerGrant,
+} from "../Utils/CodeRepository/CodeHost/CodeHostRunnerToken";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CodeTaskThread from "../Utils/AI/CodeTask/CodeTaskThread";
@@ -559,7 +567,7 @@ export default class AIAgentDataAPI {
             return Response.sendJsonObjectResponse(req, res, {
               repositories: [],
               resolutionError:
-                "Could not resolve a repository for this exception: no connected repository contains the files in its stack trace, no repository name matches the service, and the project has more than one repository. Connect the right repository via the GitHub App.",
+                "Could not resolve a repository for this exception: no connected repository contains the files in its stack trace, no repository name matches the service, and the project has more than one repository. Connect the right repository in Code.",
             });
           }
 
@@ -1240,7 +1248,10 @@ export default class AIAgentDataAPI {
                 repositoryHostedAt: true,
                 organizationName: true,
                 repositoryName: true,
+                repositoryUrl: true,
+                gitLabProjectId: true,
                 gitHubAppInstallationId: true,
+                codeRepositoryConnectionId: true,
                 maxOpenFixPullRequests: true,
                 runnerId: true,
               },
@@ -1250,9 +1261,9 @@ export default class AIAgentDataAPI {
             });
 
           /*
-           * This route mints a GitHub token with contents:write and
-           * pull_requests:write, so a project-scoped Runner must never reach
-           * another tenant's repository with it.
+           * This route hands out a token that can push to the repository
+           * and open pull requests in it, so a project-scoped Runner must
+           * never reach another tenant's repository with it.
            */
           if (
             !codeRepository ||
@@ -1288,19 +1299,42 @@ export default class AIAgentDataAPI {
             );
           }
 
-          // Currently only supporting GitHub
-          if (codeRepository.repositoryHostedAt !== CodeRepositoryType.GitHub) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException(
-                `Repository type ${codeRepository.repositoryHostedAt} is not yet supported`,
-              ),
-            );
+          const isGitHub: boolean =
+            CodeHost.readType(codeRepository.repositoryHostedAt) ===
+            CodeRepositoryType.GitHub;
+
+          /*
+           * A repository that is not on GitHub - GitLab, Forgejo, Gitea or a
+           * Git server - is reached with its connection's token, which goes
+           * only to a Runner that can work there (CodeHostRunnerToken): one
+           * that supports the host, that can reach the server, and only
+           * while the server takes the token.
+           */
+          let codeHostGrant: CodeHostRunnerGrant | null = null;
+
+          if (!isGitHub) {
+            const decision: CodeHostRunnerDecision =
+              await CodeHostRunnerToken.decide({
+                repository: codeRepository,
+                worker: CodeFixAgentAuth.getCodeWorker(aiAgent),
+                supportedCodeHosts: CodeHostRunnerToken.readSupportedCodeHosts(
+                  data[RUNNER_SUPPORTED_CODE_HOSTS_FIELD],
+                ),
+              });
+
+            if (!decision.grant) {
+              return Response.sendErrorResponse(
+                req,
+                res,
+                new BadDataException(decision.refusal),
+              );
+            }
+
+            codeHostGrant = decision.grant;
           }
 
           // Check if we have a GitHub App installation ID
-          if (!codeRepository.gitHubAppInstallationId) {
+          if (isGitHub && !codeRepository.gitHubAppInstallationId) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -1321,11 +1355,12 @@ export default class AIAgentDataAPI {
            * the project itself, right before minting.
            */
           if (
-            !codeRepository.projectId ||
-            !(await GitHubInstallationBinding.isInstallationBoundToProject({
-              projectId: codeRepository.projectId,
-              installationId: codeRepository.gitHubAppInstallationId,
-            }))
+            isGitHub &&
+            (!codeRepository.projectId ||
+              !(await GitHubInstallationBinding.isInstallationBoundToProject({
+                projectId: codeRepository.projectId,
+                installationId: codeRepository.gitHubAppInstallationId!,
+              })))
           ) {
             logger.error(
               `Refusing to mint a GitHub token for code repository ${codeRepositoryId.toString()}: installation ${codeRepository.gitHubAppInstallationId} is not bound to project ${codeRepository.projectId?.toString()}.`,
@@ -1426,12 +1461,35 @@ export default class AIAgentDataAPI {
           }
 
           /*
+           * A repository that is not on GitHub: its connection's token, with
+           * where its server is, how Git signs in and where its API opens
+           * pull and merge requests (CodeHostRunnerInfo). It does not expire
+           * on its own, so the Runner is told to treat it as good for the
+           * run's hour, as it treats GitHub's.
+           */
+          if (codeHostGrant) {
+            logger.debug(
+              `Handing the ${codeHostGrant.codeHost.type} access token of repository ${codeHostGrant.organizationName}/${codeHostGrant.repositoryName} to a Runner`,
+              getLogAttributesFromRequest(req as any),
+            );
+
+            return Response.sendJsonObjectResponse(req, res, {
+              token: codeHostGrant.token,
+              expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+              repositoryUrl: codeHostGrant.cloneUrl,
+              organizationName: codeHostGrant.organizationName,
+              repositoryName: codeHostGrant.repositoryName,
+              codeHost: codeHostGrant.codeHost as unknown as JSONObject,
+            });
+          }
+
+          /*
            * Generate GitHub installation access token with write permissions
            * Required for AI Agent to push branches and create pull requests
            */
           const tokenData: GitHubInstallationToken =
             await GitHubUtil.getInstallationAccessToken(
-              codeRepository.gitHubAppInstallationId,
+              codeRepository.gitHubAppInstallationId!,
               {
                 permissions: {
                   contents: "write", // Required for pushing branches

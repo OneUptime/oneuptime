@@ -472,19 +472,25 @@ describe("GitHub and GitLab: an issue for every incident", () => {
     );
   });
 
-  it("GitLab: says plainly that OneUptime AI cannot work in a GitLab repository yet", () => {
+  it("GitLab: says OneUptime AI works in GitLab repositories, connected in Code with an access token", () => {
     const providers: Array<string> = Object.values(
       ConnectProvider,
     ) as Array<string>;
-    const repositories: string = readRepoFile(
-      "App/FeatureSet/Dashboard/src/Components/Code/GitHubConnect.tsx",
+    const hosts: string = readRepoFile(
+      "App/FeatureSet/Dashboard/src/Components/Code/CodeHostCopy.ts",
     );
 
+    // Workflows still sign in to GitHub only; Code connects GitLab itself.
     expect(providers).toContain("github");
     expect(providers).not.toContain("gitlab");
-    expect(repositories).not.toContain("Connect with GitLab");
+    expect(hosts).toContain(
+      '"GitLab.com or your own GitLab, with an access token."',
+    );
+    expect(hosts).toContain(
+      'opened: translationKey("Opened merge request !{{number}}")',
+    );
     expect(englishPage(GITLAB)).toContain(
-      "OneUptime AI opens fix pull requests only in repositories connected through the GitHub App, so it cannot work in a GitLab repository yet.",
+      "OneUptime AI works in GitLab repositories too: connect them in Code with an access token, and it opens a merge request for each fix. See [Connect a repository](/docs/ai/ai-agent#connect-a-repository).",
     );
   });
 });

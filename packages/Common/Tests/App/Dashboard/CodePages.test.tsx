@@ -1484,7 +1484,7 @@ describe("Code's Repositories", () => {
     expect(gets[0]?.endsWith("/github/install-url")).toBe(true);
   });
 
-  test("Connect repositories, in the list's header, starts GitHub's install; its ⋯ reads the list again", async () => {
+  test("Connect repositories, in the list's header, asks where the code is - GitHub starts its install; its ⋯ reads the list again", async () => {
     const gets: Array<string> = answersInstallUrl();
     getRepositoriesMock.mockResolvedValue({
       repositories: [CHECKOUT],
@@ -1497,6 +1497,31 @@ describe("Code's Repositories", () => {
 
     fireEvent.click(
       screen.getByRole("button", { name: "Connect repositories" }),
+    );
+
+    /*
+     * Where is your code? GitHub, GitLab, Forgejo or Gitea, any Git server
+     * - and GitHub, picked, hands over to the GitHub App's install.
+     */
+    const dialog: HTMLElement = await screen.findByTestId(
+      "code-connect-dialog",
+    );
+    expect(dialog).toHaveAttribute("data-step", "choose");
+    expect(
+      within(dialog)
+        .getAllByTestId("code-host-choice")
+        .map((tile: HTMLElement): string | null => {
+          return tile.getAttribute("data-provider");
+        }),
+    ).toEqual(["GitHub", "GitLab", "Forgejo", "Git"]);
+    expect(navigateMock).not.toHaveBeenCalled();
+
+    fireEvent.click(
+      within(dialog)
+        .getAllByTestId("code-host-choice")
+        .find((tile: HTMLElement): boolean => {
+          return tile.getAttribute("data-provider") === "GitHub";
+        })!,
     );
 
     await waitFor(() => {

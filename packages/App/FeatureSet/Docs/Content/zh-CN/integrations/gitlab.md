@@ -10,7 +10,7 @@
 :::
 
 > [!NOTE]
-> OneUptime AI 只会在通过 GitHub App 连接的存储库中打开修复 pull request，所以它目前还不能在 GitLab 存储库中工作。请参阅 [GitHub](/docs/integrations/github)。
+> OneUptime AI 也能在 GitLab 存储库中工作：用访问令牌在“代码”中连接它们，它会为每个修复创建合并请求。请参阅 [连接存储库](/docs/ai/ai-agent#连接存储库)。
 
 ## 工作方式
 

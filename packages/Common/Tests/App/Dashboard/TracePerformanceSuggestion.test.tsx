@@ -24,7 +24,7 @@ import { TracePerformanceFixSuggestion } from "../../../Utils/Suggestions/TraceP
  * it found, in plain words. Which traces get it is decided on the server
  * (and held by TracePerformanceFixSuggestion.test.ts); these tests hold how
  * each finding is worded and what each offer draws - the fix, a quiet
- * link to connect GitHub, a link to the fix on its way - and that nothing
+ * link to connect a repository, a link to the fix on its way - and that nothing
  * is drawn for None.
  */
 
@@ -366,14 +366,14 @@ describe("what each offer draws", () => {
     ).toBe("/dashboard/p/code/tasks/run-1");
   });
 
-  test("SetUp: the finding, and a quiet link to connect GitHub - no button", () => {
+  test("SetUp: the finding, and a quiet link to connect a repository - no button", () => {
     renderStrip({ suggestion: suggestion(SuggestionOffer.SetUp) });
 
     expect(screen.queryByTestId("trace-fix-performance")).toBeNull();
     const link: HTMLElement = screen.getByTestId(
       "trace-fix-performance-connect",
     );
-    expect(link).toHaveTextContent("Connect GitHub to fix this with AI");
+    expect(link).toHaveTextContent("Connect a repository to fix this with AI");
     expect(link.closest("a")!.getAttribute("href")).toBe("/dashboard/p/code");
   });
 

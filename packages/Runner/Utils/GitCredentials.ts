@@ -142,10 +142,16 @@ export default class GitCredentials {
     repositoryUrl?: string | undefined;
     organizationName: string;
     repositoryName: string;
+    /*
+     * The username Git signs in with: a GitLab, Forgejo or Gitea token's
+     * account, or a Git repository's own username (CodeHostRunnerInfo).
+     * GitHub's installation tokens take "x-access-token".
+     */
+    username?: string | undefined;
   }): string {
     if (data.repositoryUrl) {
       const url: URL = new URL(data.repositoryUrl);
-      url.username = "x-access-token";
+      url.username = encodeURIComponent(data.username || "x-access-token");
       // Explicitly clear any password the caller's URL already carried.
       url.password = "";
       return url.toString();

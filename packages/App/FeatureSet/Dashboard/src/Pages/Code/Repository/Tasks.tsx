@@ -8,7 +8,8 @@ import CodeAskBox, {
 import { GitBranchMark } from "../../../Components/Code/CodeMarks";
 import { getRepositoryFullName } from "../../../Components/Code/CodePaths";
 import CodeTaskList from "../../../Components/Code/CodeTaskList";
-import { GitHubMark } from "../../../Components/Code/GitHubConnect";
+import CodeHostMark from "../../../Components/Code/CodeHostMark";
+import { getRepositoryHostNote } from "../../../Components/Code/CodeHostCopy";
 import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -87,6 +88,8 @@ const CodeRepositoryTasks: FunctionComponent<
   }
 
   const fullName: string = getRepositoryFullName(repository.repository);
+  // A self-hosted server, named beside the repository: "git.example.com".
+  const hostNote: string = getRepositoryHostNote(repository.repository);
   const hasNoTasks: boolean = (taskCount ?? repository.stats.taskCount) === 0;
   /*
    * A repository with no task yet, for someone who may ask: the request box
@@ -104,7 +107,13 @@ const CodeRepositoryTasks: FunctionComponent<
         >
           {fullName ? (
             <span className="inline-flex min-w-0 items-center gap-1.5">
-              <GitHubMark className="h-4 w-4 flex-shrink-0 text-gray-700" />
+              <span className="inline-flex flex-shrink-0 text-gray-700">
+                <CodeHostMark
+                  provider={repository.repository.provider}
+                  hostProduct={repository.repository.connection?.hostProduct}
+                  className="h-4 w-4"
+                />
+              </span>
               {repository.repository.repositoryUrl ? (
                 <Link
                   to={URL.fromString(repository.repository.repositoryUrl)}
@@ -118,6 +127,16 @@ const CodeRepositoryTasks: FunctionComponent<
                   {fullName}
                 </span>
               )}
+            </span>
+          ) : (
+            <></>
+          )}
+          {hostNote ? (
+            <span
+              data-testid="code-repository-host"
+              className="truncate text-xs text-gray-500"
+            >
+              {hostNote}
             </span>
           ) : (
             <></>
@@ -168,6 +187,10 @@ const CodeRepositoryTasks: FunctionComponent<
           <div className="mt-3 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
             <CodeTaskList
               scope={{ repositoryId: new ObjectID(repositoryId).toString() }}
+              repositoryHost={{
+                provider: repository.repository.provider,
+                hostProduct: repository.repository.connection?.hostProduct,
+              }}
               onCount={(count: number) => {
                 setTaskCount(count);
               }}

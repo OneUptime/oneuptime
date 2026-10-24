@@ -3,7 +3,7 @@ import { getRepositoryFullName } from "./CodePaths";
 import { orderRepositoriesForPicker } from "./CodeRepositoriesList";
 import CodePicker, { CodePickerOption } from "./CodePicker";
 import { CODE_PICKER_COPY } from "./CodeTaskCopy";
-import { GitHubMark } from "./GitHubConnect";
+import CodeHostMark from "./CodeHostMark";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -53,8 +53,8 @@ export const getRepositoryOptions: (
 
 /*
  * Which repository a request goes to, picked in the request box the way
- * coding agents pick one: the GitHub mark and its name, opening the
- * repositories with a search box.
+ * coding agents pick one: its host's mark (GitHub, GitLab, Forgejo, Gitea,
+ * Git) and its name, opening the repositories with a search box.
  */
 const CodeRepositoryPicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -75,7 +75,15 @@ const CodeRepositoryPicker: FunctionComponent<ComponentProps> = (
           ? picked.name
           : translator.translateTemplate(CODE_PICKER_COPY.repositoryNone)
       }
-      icon={<GitHubMark className="h-3.5 w-3.5 text-gray-700" />}
+      icon={
+        <span className="inline-flex text-gray-700">
+          <CodeHostMark
+            provider={picked?.provider}
+            hostProduct={picked?.connection?.hostProduct}
+            className="h-3.5 w-3.5"
+          />
+        </span>
+      }
       options={getRepositoryOptions(props.repositories, translator)}
       value={props.value}
       onChange={props.onChange}
