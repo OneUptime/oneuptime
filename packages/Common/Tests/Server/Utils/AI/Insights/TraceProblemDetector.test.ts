@@ -386,7 +386,7 @@ describe("TraceProblemDetector", () => {
       "**Slow operation in checkout**",
     );
     expect(candidate.detailMarkdown).toContain(
-      "the same database query ran 40 times under GET /orders",
+      "- The same database query ran 40 times under GET /orders",
     );
   });
 

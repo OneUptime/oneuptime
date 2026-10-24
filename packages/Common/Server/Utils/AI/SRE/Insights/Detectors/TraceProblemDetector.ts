@@ -35,10 +35,7 @@ import {
   sanitizeExceptionMessage,
   sanitizeStackTrace,
 } from "../../../../Telemetry/ExceptionSanitizer";
-import FeedMarkdown, {
-  mdText,
-  MarkdownText,
-} from "../../../../../../Utils/Markdown/FeedMarkdown";
+import { MarkdownText } from "../../../../../../Utils/Markdown/FeedMarkdown";
 import SpanTreeAnalyzer from "../../../../../../Utils/Traces/SpanTreeAnalyzer";
 import {
   FailedSpanSample,
@@ -57,11 +54,7 @@ import {
   TraceOperationReading,
   TraceServiceReading,
   TraceTracingGap,
-  describeSlowFindingCost,
-  describeTraceError,
-  formatTraceDuration,
-  formatTracePercent,
-  getFailedPercent,
+  buildTraceInsightDetail,
   getOperationRequestSpans,
   getTraceInsightFingerprint,
   getTraceInsightSeverity,
@@ -403,122 +396,15 @@ export default class TraceProblemDetector {
   }
 
   /*
-   * The evidence as a person reads it on the insight: real numbers only.
-   * Every name is written into Markdown escaped (mdText): an operation's
-   * name, a query or an error message is the service's, not ours.
+   * The evidence as a person reads it on the insight
+   * (Utils/Traces/TraceInsight buildTraceInsightDetail, pure, so the browser
+   * suite draws what the detector writes).
    */
   public static buildDetail(data: {
     serviceName: string;
     evidence: TraceInsightEvidence;
   }): MarkdownText {
-    const evidence: TraceInsightEvidence = data.evidence;
-    const lines: Array<MarkdownText> = [];
-
-    switch (evidence.kind) {
-      case TraceInsightKind.Slow:
-        lines.push(mdText`**Slow operation in ${data.serviceName}**`);
-        break;
-      case TraceInsightKind.Failing:
-        lines.push(mdText`**Failing operation in ${data.serviceName}**`);
-        break;
-      default:
-        lines.push(mdText`**Missing tracing in ${data.serviceName}**`);
-    }
-
-    lines.push(FeedMarkdown.empty());
-
-    if (evidence.operationName) {
-      lines.push(mdText`- Operation: \`${evidence.operationName}\``);
-    }
-
-    const latency: string =
-      evidence.p99Ms !== undefined
-        ? `, p50 ${formatTraceDuration(evidence.p50Ms || 0)}, p99 ${formatTraceDuration(evidence.p99Ms)}`
-        : "";
-
-    lines.push(
-      mdText`- Over the hour: ${evidence.spanCount.toLocaleString("en-US")} spans${latency}`,
-    );
-
-    if (evidence.failedSpanCount !== undefined) {
-      lines.push(
-        mdText`- Failed: ${evidence.failedSpanCount.toLocaleString("en-US")} (${formatTracePercent(
-          getFailedPercent({
-            spanCount: evidence.spanCount,
-            failedSpanCount: evidence.failedSpanCount,
-          }),
-        )})`,
-      );
-    }
-
-    if (evidence.sampleTraceId) {
-      lines.push(
-        evidence.sampleDurationMs
-          ? mdText`- Request read: trace \`${evidence.sampleTraceId}\`, ${formatTraceDuration(evidence.sampleDurationMs)}`
-          : mdText`- Request read: trace \`${evidence.sampleTraceId}\``,
-      );
-    }
-
-    if (evidence.performanceFindings && evidence.performanceFindings.length) {
-      lines.push(FeedMarkdown.empty(), mdText`**What the request repeats**`);
-
-      for (const finding of evidence.performanceFindings) {
-        lines.push(mdText`- ${describeSlowFindingCost(finding)}`);
-
-        if (finding.normalizedDbStatement) {
-          lines.push(mdText`  - Query: \`${finding.normalizedDbStatement}\``);
-        }
-      }
-    }
-
-    if (evidence.gap === TraceTracingGap.UntracedTime) {
-      lines.push(
-        mdText`- Untraced: ${formatTraceDuration(evidence.untracedMs || 0)} in \`${evidence.untracedSpanName || ""}\` itself, with no span under it`,
-      );
-    }
-
-    if (evidence.gap === TraceTracingGap.SilentFailures) {
-      lines.push(
-        mdText`- The most recent failures recorded no error message and no exception`,
-      );
-    }
-
-    if (evidence.gap === TraceTracingGap.NoChildSpans) {
-      lines.push(
-        mdText`- Every span was its trace's only span: nothing is recorded inside a request`,
-      );
-
-      if (evidence.topOperations && evidence.topOperations.length > 0) {
-        lines.push(
-          mdText`- Busiest operations: ${FeedMarkdown.join(
-            evidence.topOperations.map(
-              (operation: {
-                name: string;
-                spanCount: number;
-              }): MarkdownText => {
-                return mdText`\`${operation.name}\` (${operation.spanCount.toLocaleString("en-US")})`;
-              },
-            ),
-            ", ",
-          )}`,
-        );
-      }
-    }
-
-    if (evidence.error) {
-      lines.push(mdText`- Failed with: ${describeTraceError(evidence.error)}`);
-      lines.push(
-        mdText`- In ${evidence.error.sampleMatches} of the ${evidence.error.sampleSize} most recent failures`,
-      );
-    }
-
-    for (const location of evidence.codeLocations || []) {
-      lines.push(
-        mdText`- Code: \`${location.filePath}${location.lineNumber ? `:${location.lineNumber}` : ""}\``,
-      );
-    }
-
-    return FeedMarkdown.join(lines, "\n");
+    return buildTraceInsightDetail(data);
   }
 
   @CaptureSpan()

@@ -33,6 +33,10 @@ import {
   fetchTelemetryAiFixSuggestion,
 } from "./TelemetryAiApi";
 import {
+  FIX_STRIP_ACTION_CONTAINER_CLASS_NAME,
+  FIX_STRIP_ACTION_ROW_CLASS_NAME,
+  FIX_STRIP_BUTTON_CLASS_NAME,
+  FIX_STRIP_PICKER_CLASS_NAME,
   TELEMETRY_AI_FIX_COPY,
   TELEMETRY_AI_FIX_TEST_IDS,
   getTelemetryAiFixLead,
@@ -262,57 +266,61 @@ const TelemetryAiFixStrip: FunctionComponent<ComponentProps> = (
       );
 
     return (
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-        {needsRepositoryPick ? (
-          <div
-            className="w-full sm:w-64"
-            data-testid={TELEMETRY_AI_FIX_TEST_IDS.repository}
-          >
-            <p
-              className="mb-1 text-sm font-medium text-gray-700"
-              id={REPOSITORY_LABEL_ID}
+      <div className={FIX_STRIP_ACTION_CONTAINER_CLASS_NAME}>
+        <div className={FIX_STRIP_ACTION_ROW_CLASS_NAME}>
+          {needsRepositoryPick ? (
+            <div
+              className={FIX_STRIP_PICKER_CLASS_NAME}
+              data-testid={TELEMETRY_AI_FIX_TEST_IDS.repository}
             >
-              {translator.translateText(TELEMETRY_AI_FIX_COPY.pickRepository)}
-            </p>
-            <Dropdown
-              options={repositoryOptions}
-              value={repositoryOptions.find(
-                (option: DropdownOption): boolean => {
-                  return option.value === pickedRepositoryId;
-                },
-              )}
-              placeholder={translator.translateText(
-                TELEMETRY_AI_FIX_COPY.pickRepositoryPlaceholder,
-              )}
-              ariaLabelledby={REPOSITORY_LABEL_ID}
-              isClearable={false}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                setPickedRepositoryId(value ? value.toString() : "");
-              }}
-            />
-          </div>
-        ) : (
-          <></>
-        )}
-        <Button
-          title={TELEMETRY_AI_FIX_COPY.button}
-          icon={IconProp.Bolt}
-          buttonStyle={ButtonStyleType.NORMAL}
-          buttonSize={ButtonSize.Small}
-          isLoading={isCreating}
-          disabled={needsRepositoryPick && !pickedRepositoryId}
-          dataTestId={TELEMETRY_AI_FIX_TEST_IDS.button}
-          /*
-           * Waiting for a repository to be picked, it looks it: the shared
-           * Button draws no disabled state of its own.
-           */
-          className="md:!ml-0 disabled:cursor-not-allowed disabled:opacity-50"
-          onClick={() => {
-            void startFix();
-          }}
-        />
+              <p
+                className="mb-1 text-sm font-medium text-gray-700"
+                id={REPOSITORY_LABEL_ID}
+              >
+                {translator.translateText(
+                  TELEMETRY_AI_FIX_COPY.pickRepository,
+                )}
+              </p>
+              <Dropdown
+                options={repositoryOptions}
+                value={repositoryOptions.find(
+                  (option: DropdownOption): boolean => {
+                    return option.value === pickedRepositoryId;
+                  },
+                )}
+                placeholder={translator.translateText(
+                  TELEMETRY_AI_FIX_COPY.pickRepositoryPlaceholder,
+                )}
+                ariaLabelledby={REPOSITORY_LABEL_ID}
+                isClearable={false}
+                onChange={(
+                  value: DropdownValue | Array<DropdownValue> | null,
+                ) => {
+                  setPickedRepositoryId(value ? value.toString() : "");
+                }}
+              />
+            </div>
+          ) : (
+            <></>
+          )}
+          <Button
+            title={TELEMETRY_AI_FIX_COPY.button}
+            icon={IconProp.Bolt}
+            buttonStyle={ButtonStyleType.NORMAL}
+            buttonSize={ButtonSize.Small}
+            isLoading={isCreating}
+            disabled={needsRepositoryPick && !pickedRepositoryId}
+            dataTestId={TELEMETRY_AI_FIX_TEST_IDS.button}
+            /*
+             * Waiting for a repository to be picked, it looks it: the shared
+             * Button draws no disabled state of its own.
+             */
+            className={FIX_STRIP_BUTTON_CLASS_NAME}
+            onClick={() => {
+              void startFix();
+            }}
+          />
+        </div>
       </div>
     );
   };

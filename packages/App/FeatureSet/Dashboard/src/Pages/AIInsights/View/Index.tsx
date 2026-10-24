@@ -39,6 +39,7 @@ import {
   AIInsightMetricShape,
   buildAIInsightMonitorRoute,
   getAIInsightMonitorBlocker,
+  isAIInsightMonitorOffered,
 } from "../../../Utils/AIInsightMonitorPrefill";
 import {
   fetchAIInsightMetricShape,
@@ -629,7 +630,8 @@ const AIInsightViewPage: FunctionComponent<
    * it happens. Gated on creating monitors like every other way into Monitor
    * Create — hidden while the permission snapshot cannot say, disabled with
    * the reason when it says no — and disabled with the reason when this
-   * insight cannot become a monitor at all.
+   * insight cannot become a monitor yet. A kind no monitor could ever watch
+   * (missing tracing) draws no button at all.
    */
   const createMonitorGate: PermissionGateResult = PermissionGate.check(
     new Monitor(),
@@ -650,7 +652,8 @@ const AIInsightViewPage: FunctionComponent<
         metricShape: metricShape,
       });
   const isCreateMonitorShown: boolean =
-    createMonitorGate.isAllowed || Boolean(createMonitorGate.disabledReason);
+    isAIInsightMonitorOffered(insightType) &&
+    (createMonitorGate.isAllowed || Boolean(createMonitorGate.disabledReason));
   const createMonitorDisabledReason: string | null = createMonitorGate.isAllowed
     ? createMonitorBlocker
     : createMonitorGate.disabledReason || null;

@@ -53,9 +53,11 @@ import {
   TraceServiceReading,
   TraceTracingGap,
   buildTraceFixEvidenceNote,
+  buildTraceInsightDetail,
   buildTraceFixRequestMessage,
   describeSlowFinding,
   describeSlowFindingCost,
+  describeSlowFindingCostAsItem,
   describeTraceError,
   describeTraceProblem,
   formatTraceDuration,
@@ -1469,5 +1471,215 @@ describe("what the task is given beside the trace", () => {
     ).toBe(
       "    at charge (src/pay.ts:9)\n    at (src/cart.ts:1)\nError: x\n    at refund (src/refund.ts:3)",
     );
+  });
+});
+
+/*
+ * The evidence a person reads on the finding (its detailMarkdown): written
+ * by the detector, drawn by the browser suite from this same function - the
+ * facts first, then what the slowest request repeats.
+ */
+describe("the evidence a person reads on the finding", () => {
+  function lines(evidence: TraceInsightEvidence, serviceName?: string) {
+    return buildTraceInsightDetail({
+      serviceName: serviceName ?? "checkout",
+      evidence: evidence,
+    })
+      .toString()
+      .split("\n");
+  }
+
+  test("a slow operation: the facts, the slowest request and its code, then what it repeats", () => {
+    const detail: Array<string> = lines(
+      slowEvidence({
+        codeLocations: [
+          {
+            filePath: "src/orders/list.ts",
+            functionName: "listOrders",
+            lineNumber: 42,
+          },
+        ],
+      }),
+    );
+
+    expect(detail[0]).toBe("**Slow operation in checkout**");
+    expect(detail).toContain("- Operation: `GET /orders`");
+    expect(detail).toContain(
+      "- In the last hour: 1,234 spans, p50 180 ms, p99 2.4 s",
+    );
+    expect(detail).toContain(
+      "- Slowest request: trace `4bf92f3577b34da6a3ce929d0e0e4736`, 2 s",
+    );
+    expect(detail).toContain("- Code: `src/orders/list.ts:42`");
+    expect(detail).toContain("**What the slowest request repeats**");
+    expect(detail).toContain(
+      "- The same database query ran 40 times under GET /orders: 1.6 s together, 80% of the request",
+    );
+    expect(detail).toContain(
+      "  - Query: `SELECT * FROM orders WHERE id = ?`",
+    );
+
+    // The facts come before the patterns, the code among the facts.
+    expect(detail.indexOf("- Code: `src/orders/list.ts:42`")).toBeLessThan(
+      detail.indexOf("**What the slowest request repeats**"),
+    );
+    // A slow operation says nothing about failures it was not read for.
+    expect(detail.join("\n")).not.toContain("Failed");
+    // "Request read" said nothing a person could act on.
+    expect(detail.join("\n")).not.toContain("Request read");
+  });
+
+  test("a failing operation: how many failed, with what, in how many of the newest, and a failed request", () => {
+    const detail: Array<string> = lines(
+      failingEvidence({
+        codeLocations: [{ filePath: "src/pay.ts", lineNumber: 9 }],
+      }),
+    );
+
+    expect(detail[0]).toBe("**Failing operation in checkout**");
+    expect(detail).toContain("- Failed: 340 (12%)");
+    // The service's "<" is escaped, so the placeholder is not read as HTML.
+    expect(detail).toContain(
+      "- Failed with: TimeoutError: payment provider did not answer in \\<NUMBER> ms (status 503)",
+    );
+    expect(detail).toContain("- In 4 of the 5 most recent failures");
+    expect(detail).toContain(
+      "- A failed request: trace `4bf92f3577b34da6a3ce929d0e0e4736`",
+    );
+    expect(detail).toContain("- Code: `src/pay.ts:9`");
+    expect(detail.join("\n")).not.toContain("Slowest request");
+  });
+
+  test("when every one of the newest failures failed the same way, it says each", () => {
+    const detail: Array<string> = lines(
+      failingEvidence({
+        error: {
+          exceptionType: "TypeError",
+          sampleMatches: 5,
+          sampleSize: 5,
+        },
+      }),
+    );
+
+    expect(detail).toContain("- In each of the 5 most recent failures");
+    expect(detail).not.toContain("- In 5 of the 5 most recent failures");
+  });
+
+  test("a service with no spans inside its requests: its p99 alone, never a p50 of 0 ms", () => {
+    const detail: Array<string> = lines(
+      {
+        serviceId: SERVICE_A,
+        kind: TraceInsightKind.MissingTracing,
+        gap: TraceTracingGap.NoChildSpans,
+        windowStartTime: "2026-10-24T08:00:00.000Z",
+        windowEndTime: "2026-10-24T09:00:00.000Z",
+        spanCount: 9200,
+        p99Ms: 1300,
+        topOperations: [
+          { name: "GET /", spanCount: 5100 },
+          { name: "GET /static/*", spanCount: 2900 },
+        ],
+      },
+      "edge",
+    );
+
+    expect(detail[0]).toBe("**Missing tracing in edge**");
+    expect(detail).toContain("- In the last hour: 9,200 spans, p99 1.3 s");
+    expect(detail.join("\n")).not.toContain("p50");
+    expect(detail).toContain(
+      "- Every span was its trace's only span: nothing is recorded inside a request",
+    );
+    expect(detail).toContain(
+      "- Busiest operations: `GET /` (5,100), `GET /static/*` (2,900)",
+    );
+  });
+
+  test("with no latency read at all, the count alone", () => {
+    expect(
+      lines({
+        serviceId: SERVICE_A,
+        kind: TraceInsightKind.MissingTracing,
+        gap: TraceTracingGap.NoChildSpans,
+        windowStartTime: "2026-10-24T08:00:00.000Z",
+        windowEndTime: "2026-10-24T09:00:00.000Z",
+        spanCount: 600,
+      }),
+    ).toContain("- In the last hour: 600 spans");
+  });
+
+  test("time no span accounts for, and failures that record nothing", () => {
+    const untraced: Array<string> = lines(
+      slowEvidence({
+        kind: TraceInsightKind.MissingTracing,
+        gap: TraceTracingGap.UntracedTime,
+        performanceFindings: undefined,
+        untracedSpanName: "ReportBuilder.build",
+        untracedMs: 2200,
+        sampleDurationMs: 3000,
+      }),
+    );
+
+    expect(untraced[0]).toBe("**Missing tracing in checkout**");
+    expect(untraced).toContain(
+      "- Untraced: 2.2 s in `ReportBuilder.build` itself, with no span under it",
+    );
+    expect(untraced).toContain(
+      "- Slowest request: trace `4bf92f3577b34da6a3ce929d0e0e4736`, 3 s",
+    );
+
+    const silent: Array<string> = lines(
+      failingEvidence({
+        kind: TraceInsightKind.MissingTracing,
+        gap: TraceTracingGap.SilentFailures,
+        error: undefined,
+      }),
+    );
+
+    expect(silent).toContain(
+      "- The most recent failures recorded no error message and no exception",
+    );
+    expect(silent).toContain(
+      "- A failed request: trace `4bf92f3577b34da6a3ce929d0e0e4736`",
+    );
+  });
+
+  test("the service's text is written escaped: a name, an operation or an error never turns into Markdown", () => {
+    const detail: string = buildTraceInsightDetail({
+      serviceName: "check*out",
+      evidence: failingEvidence({
+        operationName: "GET /`x`",
+        error: {
+          statusMessage: "![x](https://example.com/p.png)",
+          sampleMatches: 1,
+          sampleSize: 1,
+        },
+      }),
+    }).toString();
+
+    expect(detail).toContain("**Failing operation in check\\*out**");
+    expect(detail).not.toContain("![x](https://example.com/p.png)");
+  });
+
+  test("a pattern opens its line with a capital only where the words are OneUptime's", () => {
+    const base: PerformanceFinding =
+      readSlowRequest(nPlusOneRequest()).fixable[0]!;
+
+    expect(describeSlowFindingCostAsItem(base)).toBe(
+      "The same database query ran 40 times under GET /orders: 1.6 s together, 80% of the request",
+    );
+    // An operation's own name is kept as the service wrote it.
+    expect(
+      describeSlowFindingCostAsItem({
+        ...base,
+        findingType: PerformanceFindingType.DominantSpan,
+        normalizedDbStatement: undefined,
+        dbSystem: undefined,
+        implicatedSpans: [
+          { spanId: "1", name: "fetchPrice", durationMs: 1000 },
+        ],
+      }),
+    ).toMatch(/^fetchPrice took /u);
+    // Mid-sentence, the clause stays as it was.
+    expect(describeSlowFindingCost(base)).toMatch(/^the same database query/u);
   });
 });

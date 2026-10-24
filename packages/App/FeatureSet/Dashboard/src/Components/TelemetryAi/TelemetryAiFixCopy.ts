@@ -96,6 +96,23 @@ export const TELEMETRY_AI_FIX_COPY: {
   connectRepository: translationKey("Connect a repository to fix this with AI"),
 };
 
+/*
+ * How a Fix with AI strip lays out its picker and its button - this one and
+ * the Profiler's (ProfileFixStrip). Side by side only where the strip itself
+ * is wide enough for both (a container query, not the window's width): in
+ * a finding page's narrow rail beside the evidence they stack, and the
+ * button keeps its words on one line - side by side there at 1280 the
+ * button was squeezed into "Fix / with / AI" and the picker into two lines.
+ */
+export const FIX_STRIP_ACTION_CONTAINER_CLASS_NAME: string =
+  "[container-type:inline-size]";
+export const FIX_STRIP_ACTION_ROW_CLASS_NAME: string =
+  "flex flex-col gap-2 [@container(min-width:26rem)]:flex-row [@container(min-width:26rem)]:items-end";
+export const FIX_STRIP_PICKER_CLASS_NAME: string =
+  "w-full [@container(min-width:26rem)]:w-64";
+export const FIX_STRIP_BUTTON_CLASS_NAME: string =
+  "self-start whitespace-nowrap md:!ml-0 disabled:cursor-not-allowed disabled:opacity-50 [@container(min-width:26rem)]:self-end";
+
 // The data-testids of the strip's parts.
 export const TELEMETRY_AI_FIX_TEST_IDS: {
   strip: string;

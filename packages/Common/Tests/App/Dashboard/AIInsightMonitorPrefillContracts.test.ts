@@ -12,6 +12,7 @@ import {
   NEW_EXCEPTION_MIN_COUNT,
   NEW_EXCEPTION_MONITOR_WINDOW_SECONDS,
   SPIKE_MONITOR_WINDOW_SECONDS,
+  TRACE_FAILING_OPERATION_MIN_COUNT,
   buildAIInsightMonitorPrefill,
   getAIInsightMonitorBlocker,
   getStableExceptionMessageFragment,
@@ -43,6 +44,16 @@ import { sanitizeExceptionMessage } from "../../../Server/Utils/Telemetry/Except
 import ExceptionMonitorCriteria from "../../../Server/Utils/Monitor/Criteria/ExceptionMonitorCriteria";
 import LogMonitorCriteria from "../../../Server/Utils/Monitor/Criteria/LogMonitorCriteria";
 import MetricMonitorCriteria from "../../../Server/Utils/Monitor/Criteria/MetricMonitorCriteria";
+import TraceMonitorCriteria from "../../../Server/Utils/Monitor/Criteria/TraceMonitorCriteria";
+import {
+  TRACE_INSIGHT_MIN_FAILED_PERCENT,
+  TRACE_INSIGHT_MIN_FAILED_SPANS,
+  TRACE_INSIGHT_WINDOW_MINUTES,
+  pickFailingOperations,
+} from "../../../Utils/Traces/TraceInsight";
+import Span, { SpanStatus } from "../../../Models/AnalyticsModels/Span";
+import TraceMonitorResponse from "../../../Types/Monitor/TraceMonitor/TraceMonitorResponse";
+import { MonitorStepTraceMonitorUtil } from "../../../Types/Monitor/MonitorStepTraceMonitor";
 import AIInsightType from "../../../Types/AI/AIInsightType";
 import AIInsightSeverity from "../../../Types/AI/AIInsightSeverity";
 import AggregateModel from "../../../Types/BaseDatabase/AggregatedModel";
@@ -178,6 +189,25 @@ const exceptionSpikeInsight: AIInsightMonitorInput = {
   },
 };
 
+// A failing operation Traces' detector filed: 312 of 2,600 spans in its hour.
+const failingOperationInsight: AIInsightMonitorInput = {
+  insightType: AIInsightType.TraceFailingOperation,
+  severity: AIInsightSeverity.Medium,
+  serviceName: "checkout",
+  telemetryServiceId: SERVICE_ID,
+  evidence: {
+    trace: {
+      serviceId: SERVICE_ID,
+      kind: "Failing",
+      operationName: "POST /checkout",
+      windowStartTime: "2026-10-24T08:00:00.000Z",
+      windowEndTime: "2026-10-24T09:00:00.000Z",
+      spanCount: 2600,
+      failedSpanCount: 312,
+    },
+  },
+};
+
 const newExceptionInsight: AIInsightMonitorInput = {
   ...exceptionSpikeInsight,
   insightType: AIInsightType.NewException,
@@ -227,6 +257,41 @@ describe("parity with the detectors", () => {
 
   test("MetricDrift: relative change", () => {
     expect(METRIC_DRIFT_RELATIVE_CHANGE).toBe(METRIC_DRIFT_MIN_RELATIVE_CHANGE);
+  });
+
+  test("TraceFailingOperation: the floor of failed spans and the hour it reads", () => {
+    expect(TRACE_FAILING_OPERATION_MIN_COUNT).toBe(
+      TRACE_INSIGHT_MIN_FAILED_SPANS,
+    );
+    expect(SPIKE_MONITOR_WINDOW_SECONDS).toBe(
+      TRACE_INSIGHT_WINDOW_MINUTES * 60,
+    );
+
+    // The monitor's bar is the count the detector starts filing at.
+    const threshold: number = Number(
+      filterOf(build(failingOperationInsight), "unhealthy").value,
+    );
+    const operation: (failedSpanCount: number) => {
+      name: string;
+      spanCount: number;
+      failedSpanCount: number;
+      p50Ms: number;
+      p99Ms: number;
+    } = (failedSpanCount: number) => {
+      return {
+        name: "POST /checkout",
+        // A share well over the detector's 5%, so only the count decides.
+        spanCount: Math.ceil(
+          (failedSpanCount * 100) / TRACE_INSIGHT_MIN_FAILED_PERCENT,
+        ),
+        failedSpanCount: failedSpanCount,
+        p50Ms: 90,
+        p99Ms: 900,
+      };
+    };
+
+    expect(pickFailingOperations([operation(threshold)])).toHaveLength(1);
+    expect(pickFailingOperations([operation(threshold - 1)])).toHaveLength(0);
   });
 
   test("the monitor's threshold is exactly where the detector starts calling it a spike", () => {
@@ -432,6 +497,78 @@ describe("the step queries the worker compiles", () => {
   });
 });
 
+describe("a failing operation's Traces monitor queries what the detector counted", () => {
+  test("the operation's spans with the Error status, in its service, over the past hour", () => {
+    const query: Query<Span> = MonitorStepTraceMonitorUtil.toQuery(
+      stepOf(build(failingOperationInsight)).data!.traceMonitor!,
+    );
+
+    expect(query.name).toBeInstanceOf(Search);
+    expect((query.name as Search<string>).toString()).toBe("POST /checkout");
+    expect((query.statusCode as Includes).values).toEqual([SpanStatus.Error]);
+    expect(
+      ((query.primaryEntityId as Includes).values as Array<ObjectID>).map(
+        (id: ObjectID) => {
+          return id.toString();
+        },
+      ),
+    ).toEqual([SERVICE_ID]);
+    expect(query.attributes).toBeUndefined();
+
+    const window: InBetween<Date> = query.startTime as InBetween<Date>;
+
+    expect(
+      (window.endValue as Date).getTime() -
+        (window.startValue as Date).getTime(),
+    ).toBe(3600 * 1000);
+  });
+
+  test("its criteria fire at the floor and clear one below it", async () => {
+    const prefill: JSONObject = build(failingOperationInsight);
+    const threshold: number = Number(filterOf(prefill, "unhealthy").value);
+
+    const response: (spanCount: number) => TraceMonitorResponse = (
+      spanCount: number,
+    ): TraceMonitorResponse => {
+      return {
+        projectId: ObjectID.generate(),
+        spanCount: spanCount,
+        spanQuery: {},
+        monitorId: ObjectID.generate(),
+      };
+    };
+
+    // The 312 failed spans it was filed for, and the floor itself.
+    for (const spanCount of [312, threshold]) {
+      expect(
+        await TraceMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: response(spanCount),
+          criteriaFilter: filterOf(prefill, "unhealthy"),
+        }),
+      ).not.toBeNull();
+      expect(
+        await TraceMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess: response(spanCount),
+          criteriaFilter: filterOf(prefill, "healthy"),
+        }),
+      ).toBeNull();
+    }
+
+    expect(
+      await TraceMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+        dataToProcess: response(threshold - 1),
+        criteriaFilter: filterOf(prefill, "unhealthy"),
+      }),
+    ).toBeNull();
+    expect(
+      await TraceMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+        dataToProcess: response(threshold - 1),
+        criteriaFilter: filterOf(prefill, "healthy"),
+      }),
+    ).not.toBeNull();
+  });
+});
+
 describe("the telemetry worker's criteria fire on the spike and clear below it", () => {
   test("Logs: the spike's own count opens the incident; one below the bar is healthy", async () => {
     const prefill: JSONObject = build(errorLogSpikeInsight);
@@ -603,6 +740,7 @@ describe("the steps form keeps the prefill as built", () => {
     ["exception spike", exceptionSpikeInsight],
     ["new exception", newExceptionInsight],
     ["metric drift", metricDriftInsight],
+    ["failing operation", failingOperationInsight],
   ];
 
   for (const [name, insight] of insights) {

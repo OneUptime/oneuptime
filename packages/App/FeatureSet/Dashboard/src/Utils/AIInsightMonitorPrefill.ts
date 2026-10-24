@@ -3,6 +3,7 @@ import AIInsightEvidence, {
   ExceptionInsightEvidence,
   LogSpikeInsightEvidence,
   MetricDriftInsightEvidence,
+  TraceInsightEvidence,
 } from "Common/Types/AI/AIInsightEvidence";
 import AIInsightSeverity from "Common/Types/AI/AIInsightSeverity";
 import AIInsightType from "Common/Types/AI/AIInsightType";
@@ -20,6 +21,7 @@ import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstanc
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import { MonitorStepExceptionMonitorUtil } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
 import { MonitorStepLogMonitorUtil } from "Common/Types/Monitor/MonitorStepLogMonitor";
+import { MonitorStepTraceMonitorUtil } from "Common/Types/Monitor/MonitorStepTraceMonitor";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorRecommendationSeverityMapper from "Common/Types/Monitor/Recommendation/MonitorRecommendationSeverityMapper";
@@ -30,10 +32,12 @@ import {
   AggregationTemporality,
   MetricPointType,
 } from "Common/Models/AnalyticsModels/Metric";
+import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import {
   translateTemplate,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import { TRACE_INSIGHT_MIN_FAILED_SPANS } from "Common/Utils/Traces/TraceInsight";
 import PageMap from "./PageMap";
 import RouteMap, { RouteUtil } from "./RouteMap";
 
@@ -65,6 +69,15 @@ import RouteMap, { RouteUtil } from "./RouteMap";
  *                     monitor on some duration metric would watch a different
  *                     number (or one the service never reports) while looking
  *                     configured.
+ *   TraceFailingOperation -> Traces monitor: the operation's failed spans
+ *                     (its span name, the Error status) in its service in
+ *                     the past hour, at the fewest failed spans the Traces
+ *                     detector files a failing operation for.
+ *   TraceSlowOperation -> not offered, for the latency regression's reason:
+ *                     a slow operation is slow by its spans' latency.
+ *   TraceMissingTracing -> no Create Monitor at all (isAIInsightMonitorOffered):
+ *                     what a trace lacks is not a count a monitor can watch,
+ *                     so no button that could never be pressed is drawn.
  *
  * Pure (no network, no React) for the same reason as AIInsightExplorerLinks
  * and SecurityEventsMonitorPrefill: what it builds is a contract with the step
@@ -107,6 +120,14 @@ export const EXCEPTION_SPIKE_MULTIPLIER: number = 5;
 
 // NewExceptionDetector: NEW_EXCEPTION_MIN_OCCURRENCE_COUNT.
 export const NEW_EXCEPTION_MIN_COUNT: number = 3;
+
+/*
+ * The Traces detector files a failing operation at this many failed spans
+ * in its hour - and 5% or more of them, a share a count cannot hold. Read
+ * from Utils/Traces/TraceInsight, which is pure, rather than mirrored.
+ */
+export const TRACE_FAILING_OPERATION_MIN_COUNT: number =
+  TRACE_INSIGHT_MIN_FAILED_SPANS;
 
 // MetricDriftDetector.METRIC_DRIFT_MIN_RELATIVE_CHANGE.
 export const METRIC_DRIFT_RELATIVE_CHANGE: number = 0.5;
@@ -155,6 +176,14 @@ export const AI_INSIGHT_MONITOR_LATENCY_BLOCKER: string = translationKey(
 export const AI_INSIGHT_MONITOR_UNKNOWN_TYPE_BLOCKER: string = translationKey(
   "Monitors cannot be created from this kind of insight yet.",
 );
+export const AI_INSIGHT_MONITOR_SLOW_OPERATION_BLOCKER: string =
+  translationKey(
+    "Monitors cannot alert on how long an operation takes yet. To be alerted when it slows down, create a Metrics monitor on your service's request duration metric.",
+  );
+export const AI_INSIGHT_MONITOR_OPERATION_SCOPE_BLOCKER: string =
+  translationKey(
+    "This insight does not record which operation it is about, so a monitor could not be scoped to it.",
+  );
 export const AI_INSIGHT_MONITOR_EXCEPTION_SCOPE_BLOCKER: string =
   translationKey(
     "This insight does not record which exception it is about, so a monitor could not be scoped to it.",
@@ -258,6 +287,14 @@ function getMetricDriftEvidence(
 ): MetricDriftInsightEvidence | null {
   return asObject<MetricDriftInsightEvidence>(
     asObject<AIInsightEvidence>(input.evidence)?.metricDrift,
+  );
+}
+
+function getTraceEvidence(
+  input: AIInsightMonitorInput,
+): TraceInsightEvidence | null {
+  return asObject<TraceInsightEvidence>(
+    asObject<AIInsightEvidence>(input.evidence)?.trace,
   );
 }
 
@@ -417,6 +454,17 @@ function getMetricDriftDirection(
   };
 }
 
+/*
+ * Whether Create Monitor is offered on this kind of insight at all. Missing
+ * tracing is not: what a trace lacks is not a count a monitor can watch, so
+ * a greyed-out button that could never be pressed would only be clutter.
+ */
+export function isAIInsightMonitorOffered(
+  insightType: string | undefined,
+): boolean {
+  return insightType !== AIInsightType.TraceMissingTracing;
+}
+
 /**
  * Why this insight cannot become a monitor, or null when it can. The metric
  * shape is optional: without it a MetricDrift insight is judged on its own
@@ -477,6 +525,15 @@ export function getAIInsightMonitorBlocker(
 
     case AIInsightType.TraceLatencyRegression:
       return AI_INSIGHT_MONITOR_LATENCY_BLOCKER;
+
+    case AIInsightType.TraceFailingOperation:
+      // The operation is the scope: without it every span of the service counts.
+      return trimmedOrNull(getTraceEvidence(input)?.operationName)
+        ? null
+        : AI_INSIGHT_MONITOR_OPERATION_SCOPE_BLOCKER;
+
+    case AIInsightType.TraceSlowOperation:
+      return AI_INSIGHT_MONITOR_SLOW_OPERATION_BLOCKER;
 
     default:
       return AI_INSIGHT_MONITOR_UNKNOWN_TYPE_BLOCKER;
@@ -1062,6 +1119,83 @@ function buildExceptionMonitor(input: AIInsightMonitorInput): MonitorShape {
   };
 }
 
+/*
+ * A failing operation as a Traces monitor: its failed spans - its span name
+ * and the Error status, as the detector counts them - in its service, over
+ * the past hour, at the fewest the detector files a finding for. The
+ * operation's name only ever reaches the span name filter: like an
+ * exception message it is the service's own text, so the words around it
+ * name the service and numbers only (see the header).
+ */
+function buildTraceFailingOperationMonitor(
+  input: AIInsightMonitorInput,
+): MonitorShape {
+  const evidence: TraceInsightEvidence | null = getTraceEvidence(input);
+  const serviceId: ObjectID | null = getServiceId(input);
+  const serviceName: string | null = trimmedOrNull(input.serviceName);
+  const scopedServiceName: string | null =
+    serviceId && serviceName ? serviceName : null;
+  const threshold: number = TRACE_FAILING_OPERATION_MIN_COUNT;
+  const thresholdText: string = formatCount(threshold);
+
+  const name: string = scopedServiceName
+    ? translateTemplate("Failing operation in {{serviceName}}", {
+        serviceName: scopedServiceName,
+      })
+    : translateTemplate("Failing operation");
+
+  const condition: string = translateTemplate(
+    "{{threshold}} or more of the operation's spans failed within an hour.",
+    { threshold: thresholdText },
+  );
+
+  return {
+    monitorType: MonitorType.Traces,
+    name: name,
+    description: [
+      translateTemplate(
+        "Created from an AI insight that found a failing operation. Opens an incident when it fails again:",
+      ),
+      condition,
+      translateTemplate(
+        "{{threshold}} failed spans in an hour is the AI detector's bar for a failing operation.",
+        { threshold: thresholdText },
+      ),
+    ].join(" "),
+    configureStep: (step: MonitorStep): void => {
+      step.setTraceMonitor({
+        ...MonitorStepTraceMonitorUtil.getDefault(),
+        telemetryServiceIds: serviceId ? [serviceId] : [],
+        spanName: trimmedOrNull(evidence?.operationName) || "",
+        spanStatuses: [SpanStatus.Error],
+        lastXSecondsOfSpans: SPIKE_MONITOR_WINDOW_SECONDS,
+      });
+    },
+    criteria: {
+      checkOn: CheckOn.SpanCount,
+      unhealthyFilterType: FilterType.GreaterThanOrEqualTo,
+      healthyFilterType: FilterType.LessThan,
+      threshold: threshold,
+      unhealthyName: translateTemplate(
+        "{{threshold}} or more failed spans in an hour",
+        { threshold: thresholdText },
+      ),
+      unhealthyDescription: condition,
+      healthyDescription: translateTemplate(
+        "Fewer than {{threshold}} failed spans in the past hour.",
+        { threshold: thresholdText },
+      ),
+      incidentTitle: name,
+      incidentDescription: [
+        condition,
+        translateTemplate(
+          "Open the operation's failed spans in Traces to see the error they fail with, then check what was deployed or changed recently.",
+        ),
+      ].join(" "),
+    },
+  };
+}
+
 function buildMetricDriftMonitor(
   input: AIInsightMonitorInput,
   direction: MetricDriftDirection,
@@ -1227,6 +1361,9 @@ export function buildAIInsightMonitorPrefill(data: {
     case AIInsightType.NewException:
     case AIInsightType.ExceptionSpike:
       shape = buildExceptionMonitor(data.insight);
+      break;
+    case AIInsightType.TraceFailingOperation:
+      shape = buildTraceFailingOperationMonitor(data.insight);
       break;
     case AIInsightType.MetricDrift: {
       const direction: MetricDriftDirection | null = getMetricDriftDirection(

@@ -235,14 +235,19 @@ export const TELEMETRY_AI_LANE_COPY: Readonly<
     advancedDescription: translationKey(
       "Which services' operations OneUptime AI works on, when, and whether it opens pull requests on its own.",
     ),
+    /*
+     * "For each one it can fix": a failing operation's pull request waits
+     * for the code to be found at fault, and a fix may find nothing to
+     * change - a pull request for each problem would not be true.
+     */
     advancedDefaultsSummary: translationKey(
-      "OneUptime AI looks into every problem it finds in your traces right away, and opens a pull request for each.",
+      "OneUptime AI looks into every problem it finds in your traces right away, and opens a pull request for each one it can fix.",
     ),
     rulesCardDescription: translationKey(
-      "With no rule, OneUptime AI looks into every problem it finds in your traces right away, and opens a pull request for each. Add rules to choose which services it works on, when, and how each is fixed.",
+      "With no rule, OneUptime AI looks into every problem in your traces right away, and opens a pull request for each one it can fix. Add rules to choose which services it works on, when, and how each is fixed.",
     ),
     noRulesMessage: translationKey(
-      "No rules. Every problem found in your traces is looked into, and a pull request opened for it.",
+      "No rules. Every problem found in your traces is looked into, and a pull request opened for each one OneUptime AI can fix.",
     ),
 
     ruleNamePlaceholder: translationKey("Checkout services"),
@@ -378,7 +383,7 @@ export const TELEMETRY_AI_SWITCHES: Readonly<
       column: "enableAutomaticTraceRemediation",
       title: translationKey("Find and fix slow and failing operations"),
       description: translationKey(
-        "Every hour OneUptime looks through your traces for slow and failing operations and missing tracing. OneUptime AI opens a pull request to fix each.",
+        "Every hour OneUptime looks through your traces for slow and failing operations and missing tracing. OneUptime AI fixes what it can with pull requests.",
       ),
       note: translationKey("Needs a repository connected in Code."),
     },

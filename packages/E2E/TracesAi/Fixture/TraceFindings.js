@@ -39,6 +39,7 @@ import {
   getTelemetryAiFixOffer,
   telemetryAiFixSuggestionToJSON,
 } from "Common/Utils/Suggestions/TelemetryAiFixSuggestion";
+import { buildTraceInsightDetail } from "Common/Utils/Traces/TraceInsight";
 
 const params = new URLSearchParams(window.location.search);
 const insightsMode = params.get("aiInsights") || "full";
@@ -76,6 +77,7 @@ export const REPOSITORY_IDS = {
 };
 
 export const SAMPLE_TRACE_ID = "4bf92f3577b34da6a3ce929d0e0e4736";
+export const FAILED_TRACE_ID = "5bf92f3577b34da6a3ce929d0e0e4737";
 
 const RULE_IDS = {
   checkout: "50930000-0000-4000-8000-0000000000c1",
@@ -122,12 +124,18 @@ function slowEvidence(now) {
       operationName: "GET /orders",
       ...readWindow(now),
       spanCount: 1840,
-      failedSpanCount: 0,
       p50Ms: 640,
       p99Ms: 2400,
       sampleTraceId: SAMPLE_TRACE_ID,
       sampleSpanId: "00f067aa0ba902b7",
       sampleDurationMs: 2200,
+      codeLocations: [
+        {
+          filePath: "src/orders/OrderRepository.ts",
+          functionName: "load",
+          lineNumber: 57,
+        },
+      ],
       performanceFindings: [
         {
           findingType: PerformanceFindingType.NPlusOneQuery,
@@ -161,7 +169,7 @@ function failingEvidence(now) {
       failedSpanCount: 312,
       p50Ms: 180,
       p99Ms: 900,
-      sampleTraceId: "5bf92f3577b34da6a3ce929d0e0e4737",
+      sampleTraceId: FAILED_TRACE_ID,
       sampleSpanId: "10f067aa0ba902b8",
       error: {
         exceptionType: "TypeError",
@@ -171,6 +179,13 @@ function failingEvidence(now) {
         sampleMatches: 5,
         sampleSize: 5,
       },
+      codeLocations: [
+        {
+          filePath: "src/checkout/coupon.ts",
+          functionName: "applyCoupon",
+          lineNumber: 42,
+        },
+      ],
     },
   };
 }
@@ -183,13 +198,21 @@ function untracedEvidence(now) {
       gap: "NoChildSpans",
       ...readWindow(now),
       spanCount: 9200,
-      failedSpanCount: 40,
+      p99Ms: 1300,
       topOperations: [
         { name: "GET /", spanCount: 5100 },
         { name: "GET /static/*", spanCount: 2900 },
       ],
     },
   };
+}
+
+// The evidence as the detector writes it on the insight.
+function detailOf(serviceName, evidence) {
+  return buildTraceInsightDetail({
+    serviceName,
+    evidence: evidence.trace,
+  }).toString();
 }
 
 export function aiInsights(now) {
@@ -211,8 +234,7 @@ export function aiInsights(now) {
       firstSeenAt: new Date(now - 5 * HOUR),
       lastSeenAt: new Date(now - 4 * MINUTE),
       evidence: slowEvidence(now),
-      detailMarkdown:
-        "**GET /orders** in checkout has a P99 of **2.4 s** over the last hour (1,840 spans). Its slowest request ran the same database query **40 times** in `OrderRepository.load`: 1.4 s together, 64% of the request.\n\n- `SELECT * FROM order_items WHERE order_id = ?`\n- One query for all the order's items would do.",
+      detailMarkdown: detailOf("checkout", slowEvidence(now)),
     }),
     Object.assign(new AIInsight(), {
       _id: AI_INSIGHT_IDS.failing,
@@ -222,13 +244,13 @@ export function aiInsights(now) {
       status: AIInsightStatus.FixOpened,
       serviceName: "checkout",
       telemetryServiceId: new ObjectID(SERVICE_IDS.checkout),
+      traceId: FAILED_TRACE_ID,
       occurrenceCount: 3,
       firstSeenAt: new Date(now - 3 * HOUR),
       lastSeenAt: new Date(now - 4 * MINUTE),
       evidence: failingEvidence(now),
       fixAiRunId: new ObjectID(AI_TASK_IDS.automatic),
-      detailMarkdown:
-        "**312** of **2,600** POST /checkout spans failed over the last hour (12%), each with `TypeError: Cannot read properties of undefined (reading 'id')` in `applyCoupon`.",
+      detailMarkdown: detailOf("checkout", failingEvidence(now)),
     }),
     Object.assign(new AIInsight(), {
       _id: AI_INSIGHT_IDS.untraced,
@@ -242,8 +264,7 @@ export function aiInsights(now) {
       firstSeenAt: new Date(now - 8 * HOUR),
       lastSeenAt: new Date(now - 4 * MINUTE),
       evidence: untracedEvidence(now),
-      detailMarkdown:
-        "All **9,200** of edge's spans over the last hour were the only span of their trace: nothing records what a request did inside it.\n\n- Busiest: `GET /` (5,100), `GET /static/*` (2,900)",
+      detailMarkdown: detailOf("edge", untracedEvidence(now)),
     }),
   ];
 }
@@ -402,7 +423,7 @@ export function aiLogs(now, skip) {
       at: new Date(now - 2 * HOUR - 5 * MINUTE).toISOString(),
       state: "Done",
       insight: failing,
-      classification: "Actionable",
+      classification: "code-fault",
     },
     {
       runId: AI_TASK_IDS.asked,

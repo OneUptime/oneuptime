@@ -353,6 +353,16 @@ function FixtureRoutes() {
           path="/dashboard/:projectId/code"
           element={<PlaceholderPage title="Code" testId="code-page" />}
         />
+        {/* Create Monitor on a failing operation opens Monitor Create. */}
+        <Route
+          path="/dashboard/:projectId/monitors/create"
+          element={
+            <PlaceholderPage
+              title="Create Monitor"
+              testId="monitor-create-page"
+            />
+          }
+        />
         <Route
           path="/dashboard/:projectId/service/:modelId/*"
           element={<PlaceholderPage title="Service" testId="service-page" />}

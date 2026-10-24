@@ -29,6 +29,13 @@ const PLATFORM_REPOSITORY: string = "50930000-0000-4000-8000-0000000000b2";
 const STARTED_TASK: string = "50930000-0000-4000-8000-0000000000f3";
 const RUNNING_TASK: string = "50930000-0000-4000-8000-0000000000f4";
 
+/*
+ * A small button's height with its words on one line, on a laptop or a
+ * phone (Fix with AI squeezed beside the picker in the rail wrapped into
+ * three lines, over 60px).
+ */
+const ONE_LINE_BUTTON_HEIGHT: number = 40;
+
 const SLOW_TITLE: string =
   "GET /orders in checkout runs the same database query 40 times";
 const FAILING_TITLE: string =
@@ -171,6 +178,29 @@ async function expectAiSection(
   );
 }
 
+/*
+ * Where Fix with AI's repository picker and its button sit: stacked when
+ * the button's top is at or below the picker's bottom.
+ */
+async function measureFixStrip(
+  picker: Locator,
+  button: Locator,
+): Promise<{ isStacked: boolean; buttonHeight: number }> {
+  const pickerBox: { y: number; height: number } | null =
+    await picker.boundingBox();
+  const buttonBox: { y: number; height: number } | null =
+    await button.boundingBox();
+
+  if (!pickerBox || !buttonBox) {
+    throw new Error("The picker or the button is not drawn.");
+  }
+
+  return {
+    isStacked: buttonBox.y >= pickerBox.y + pickerBox.height - 1,
+    buttonHeight: buttonBox.height,
+  };
+}
+
 test.describe("Traces → AI tab", () => {
   test("sits between Insights and Setup Guide, and opens on what OneUptime found", async ({
     page,
@@ -222,6 +252,10 @@ test.describe("Traces → AI → Settings", () => {
         );
         await expect(switches).toContainText(
           "Every hour OneUptime looks through your traces for slow and failing operations and missing tracing.",
+        );
+        // What it fixes, not a pull request promised for every problem.
+        await expect(switches).toContainText(
+          "OneUptime AI fixes what it can with pull requests.",
         );
         await expect(
           page.getByRole("switch", {
@@ -284,8 +318,9 @@ test.describe("Traces → AI → Settings", () => {
     const advanced: Locator = page.getByTestId("telemetry-ai-advanced-section");
 
     await expect(advanced).toBeVisible({ timeout: 60000 });
+    // A pull request for each problem it can fix, not for each problem.
     await expect(advanced).toContainText(
-      "OneUptime AI looks into every problem it finds in your traces right away, and opens a pull request for each.",
+      "OneUptime AI looks into every problem it finds in your traces right away, and opens a pull request for each one it can fix.",
     );
     await advanced.getByRole("button", { name: /More settings/ }).click();
 
@@ -293,7 +328,7 @@ test.describe("Traces → AI → Settings", () => {
     if (!isPhone(testInfo)) {
       await expect(
         page.getByText(
-          "With no rule, OneUptime AI looks into every problem it finds in your traces right away, and opens a pull request for each.",
+          "With no rule, OneUptime AI looks into every problem in your traces right away, and opens a pull request for each one it can fix.",
           { exact: false },
         ),
       ).toBeVisible();
@@ -302,7 +337,7 @@ test.describe("Traces → AI → Settings", () => {
     // The empty table: no rules, and what that means for trace problems.
     await expect(
       page.getByText(
-        "Every problem found in your traces is looked into, and a pull request opened for it.",
+        "Every problem found in your traces is looked into, and a pull request opened for each one OneUptime AI can fix.",
       ),
     ).toBeVisible();
     // The card's own button (with no rule, the empty table offers it too).
@@ -809,6 +844,142 @@ test.describe("Traces → AI → a finding", () => {
     if (isPhone(testInfo)) {
       await expectNoSidewaysScroll(page);
     }
+  });
+
+  test("the evidence is the detector's own: the facts first, then what the slowest request repeats", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${AI}/insights/${SLOW_INSIGHT}`);
+
+    await expect(
+      page.getByText("In the last hour: 1,840 spans, p50 640 ms, p99 2.4 s", {
+        exact: true,
+      }),
+    ).toBeVisible({ timeout: 60000 });
+    await expect(
+      page.getByText("What the slowest request repeats", { exact: true }),
+    ).toBeVisible();
+    // OneUptime's own words open the line with a capital.
+    await expect(
+      page.getByText(
+        "The same database query ran 40 times under OrderRepository.load: 1.4 s together, 64% of the request",
+        { exact: true },
+      ),
+    ).toBeVisible();
+
+    if (isPhone(testInfo)) {
+      await expectNoSidewaysScroll(page);
+    }
+
+    // A failing operation: the error, and how many of the newest failures it is.
+    await page.goto(`${AI}/insights/${FAILING_INSIGHT}`);
+    await expect(
+      page.getByText("In each of the 5 most recent failures", { exact: true }),
+    ).toBeVisible({ timeout: 60000 });
+
+    // A service's own look reads its p99 only: no "p50 0 ms".
+    await page.goto(`${AI}/insights/${UNTRACED_INSIGHT}`);
+    await expect(
+      page.getByText("In the last hour: 9,200 spans, p99 1.3 s", {
+        exact: true,
+      }),
+    ).toBeVisible({ timeout: 60000 });
+    await expect(page.getByText("p50 0 ms", { exact: false })).toHaveCount(0);
+  });
+
+  test("Create Monitor: a failing operation's opens Monitor Create on the finding, a slow one's says why it cannot, and missing tracing draws none", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${AI}/insights/${FAILING_INSIGHT}`);
+
+    const createMonitor: Locator = page.getByRole("button", {
+      name: "Create Monitor",
+    });
+
+    // Not greyed out: a Traces monitor counts the operation's failed spans.
+    await expect(createMonitor).toBeEnabled({ timeout: 60000 });
+
+    if (isPhone(testInfo)) {
+      await expectNoSidewaysScroll(page);
+    }
+
+    await createMonitor.click();
+    await expect(page.getByTestId("monitor-create-page")).toBeVisible();
+
+    const address: URL = new URL(page.url());
+
+    expect(address.pathname).toBe(`/dashboard/${PROJECT_ID}/monitors/create`);
+    expect(address.searchParams.get("aiInsightId")).toBe(FAILING_INSIGHT);
+
+    // A slow operation: no monitor alerts on how long it takes yet - said.
+    await page.goto(`${AI}/insights/${SLOW_INSIGHT}`);
+
+    const slowCreateMonitor: Locator = page.getByRole("button", {
+      name: "Create Monitor",
+    });
+
+    await expect(slowCreateMonitor).toBeDisabled({ timeout: 60000 });
+
+    if (!isPhone(testInfo)) {
+      await slowCreateMonitor.locator("xpath=..").hover();
+      await expect(
+        page.getByText(
+          "Monitors cannot alert on how long an operation takes yet.",
+          { exact: false },
+        ),
+      ).toBeVisible();
+    }
+
+    // Missing tracing: nothing a monitor could count, so no button at all.
+    await page.goto(`${AI}/insights/${UNTRACED_INSIGHT}`);
+    await expect(
+      page.getByRole("button", { name: "Open in Traces" }),
+    ).toBeVisible({ timeout: 60000 });
+    await expect(
+      page.getByRole("button", { name: "Create Monitor" }),
+    ).toHaveCount(0);
+  });
+
+  test("a repository to pick and Fix with AI: stacked in the narrow rail, side by side where the strip is wide, the button on one line", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${AI}/insights/${SLOW_INSIGHT}?offer=pick`);
+
+    const picker: Locator = page.getByTestId("telemetry-ai-fix-repository");
+    const button: Locator = page.getByTestId("telemetry-ai-fix-with-ai");
+
+    await expect(picker).toBeVisible({ timeout: 60000 });
+
+    // A laptop draws the strip in the rail beside the evidence, a phone full width.
+    const narrow: { isStacked: boolean; buttonHeight: number } =
+      await measureFixStrip(picker, button);
+
+    expect(narrow.isStacked).toBe(true);
+    expect(narrow.buttonHeight).toBeLessThanOrEqual(ONE_LINE_BUTTON_HEIGHT);
+
+    if (isPhone(testInfo)) {
+      await expectNoSidewaysScroll(page);
+      return;
+    }
+
+    await screenshot(page, testInfo, "insight-pick-repository-rail");
+
+    // At 1024 the page is one column: the strip is wide enough for both.
+    await page.setViewportSize({ width: 1024, height: 900 });
+    await expect
+      .poll(async (): Promise<boolean> => {
+        return (await measureFixStrip(picker, button)).isStacked;
+      })
+      .toBe(false);
+    expect(
+      (await measureFixStrip(picker, button)).buttonHeight,
+    ).toBeLessThanOrEqual(ONE_LINE_BUTTON_HEIGHT);
   });
 });
 

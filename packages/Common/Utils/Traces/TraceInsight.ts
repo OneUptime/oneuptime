@@ -14,6 +14,7 @@ import {
   getFindingsWorthFixing,
   isDatabaseFinding,
 } from "../Suggestions/TracePerformanceFixSuggestion";
+import FeedMarkdown, { mdText, MarkdownText } from "../Markdown/FeedMarkdown";
 import SpanTreeAnalyzer, {
   AnalyzableSpan,
   DOMINANT_SPAN_MIN_FRACTION,
@@ -940,6 +941,22 @@ export function describeSlowFindingCost(finding: PerformanceFinding): string {
   }
 }
 
+/*
+ * The same, as a list item of the evidence opens: "The same database query
+ * ran 40 times ...". Only OneUptime's own words are capitalized - a clause
+ * that opens with the operation's name keeps it as the service wrote it
+ * ("fetchPrice ran 6 times ...").
+ */
+export function describeSlowFindingCostAsItem(
+  finding: PerformanceFinding,
+): string {
+  const text: string = describeSlowFindingCost(finding);
+
+  return isDatabaseFinding(finding)
+    ? `${text.charAt(0).toUpperCase()}${text.slice(1)}`
+    : text;
+}
+
 function withService(operation: string, serviceName: string): string {
   return serviceName ? `${operation} in ${serviceName}` : operation;
 }
@@ -1094,6 +1111,154 @@ export function describeTraceProblem(evidence: TraceInsightEvidence): string {
         }
       }
   }
+}
+
+/*
+ * How many of the most recent failures failed with the error: "In each of
+ * the 5 most recent failures", "In 3 of the 5 most recent failures".
+ */
+function describeErrorShare(error: TraceInsightErrorEvidence): string {
+  return error.sampleMatches >= error.sampleSize && error.sampleSize > 1
+    ? `In each of the ${formatCount(error.sampleSize)} most recent failures`
+    : `In ${formatCount(error.sampleMatches)} of the ${formatCount(error.sampleSize)} most recent failures`;
+}
+
+/*
+ * The evidence as a person reads it on the insight (its detailMarkdown):
+ * real numbers only, the facts first, then what the slowest request
+ * repeats. Pure, so the detector writes it and the browser suite draws
+ * exactly what the detector wrote. Every name is written into Markdown
+ * escaped (mdText): an operation's name, a query or an error message is
+ * the service's, not ours.
+ */
+export function buildTraceInsightDetail(data: {
+  serviceName: string;
+  evidence: TraceInsightEvidence;
+}): MarkdownText {
+  const evidence: TraceInsightEvidence = data.evidence;
+  const lines: Array<MarkdownText> = [];
+  const isAboutFailures: boolean =
+    evidence.kind === TraceInsightKind.Failing ||
+    evidence.gap === TraceTracingGap.SilentFailures;
+
+  switch (evidence.kind) {
+    case TraceInsightKind.Slow:
+      lines.push(mdText`**Slow operation in ${data.serviceName}**`);
+      break;
+    case TraceInsightKind.Failing:
+      lines.push(mdText`**Failing operation in ${data.serviceName}**`);
+      break;
+    default:
+      lines.push(mdText`**Missing tracing in ${data.serviceName}**`);
+  }
+
+  lines.push(FeedMarkdown.empty());
+
+  if (evidence.operationName) {
+    lines.push(mdText`- Operation: \`${evidence.operationName}\``);
+  }
+
+  // Each percentile only when it was read: a service's look reads its p99.
+  const latency: string = [
+    isFiniteNumber(evidence.p50Ms)
+      ? `p50 ${formatTraceDuration(evidence.p50Ms)}`
+      : "",
+    isFiniteNumber(evidence.p99Ms)
+      ? `p99 ${formatTraceDuration(evidence.p99Ms)}`
+      : "",
+  ]
+    .filter(hasText)
+    .join(", ");
+
+  lines.push(
+    latency
+      ? mdText`- In the last hour: ${formatCount(evidence.spanCount)} spans, ${latency}`
+      : mdText`- In the last hour: ${formatCount(evidence.spanCount)} spans`,
+  );
+
+  if (evidence.failedSpanCount !== undefined) {
+    lines.push(
+      mdText`- Failed: ${formatCount(evidence.failedSpanCount)} (${formatTracePercent(
+        getFailedPercent({
+          spanCount: evidence.spanCount,
+          failedSpanCount: evidence.failedSpanCount,
+        }),
+      )})`,
+    );
+  }
+
+  if (evidence.error) {
+    lines.push(mdText`- Failed with: ${describeTraceError(evidence.error)}`);
+    lines.push(mdText`- ${describeErrorShare(evidence.error)}`);
+  }
+
+  if (evidence.gap === TraceTracingGap.SilentFailures) {
+    lines.push(
+      mdText`- The most recent failures recorded no error message and no exception`,
+    );
+  }
+
+  if (evidence.gap === TraceTracingGap.UntracedTime) {
+    lines.push(
+      mdText`- Untraced: ${formatTraceDuration(evidence.untracedMs || 0)} in \`${evidence.untracedSpanName || ""}\` itself, with no span under it`,
+    );
+  }
+
+  if (evidence.gap === TraceTracingGap.NoChildSpans) {
+    lines.push(
+      mdText`- Every span was its trace's only span: nothing is recorded inside a request`,
+    );
+
+    if (evidence.topOperations && evidence.topOperations.length > 0) {
+      lines.push(
+        mdText`- Busiest operations: ${FeedMarkdown.join(
+          evidence.topOperations.map(
+            (operation: { name: string; spanCount: number }): MarkdownText => {
+              return mdText`\`${operation.name}\` (${formatCount(operation.spanCount)})`;
+            },
+          ),
+          ", ",
+        )}`,
+      );
+    }
+  }
+
+  // The request it was read from: the slowest one, or a failed one.
+  if (evidence.sampleTraceId) {
+    const duration: string = evidence.sampleDurationMs
+      ? `, ${formatTraceDuration(evidence.sampleDurationMs)}`
+      : "";
+
+    lines.push(
+      isAboutFailures
+        ? mdText`- A failed request: trace \`${evidence.sampleTraceId}\`${duration}`
+        : mdText`- Slowest request: trace \`${evidence.sampleTraceId}\`${duration}`,
+    );
+  }
+
+  for (const location of evidence.codeLocations || []) {
+    lines.push(
+      mdText`- Code: \`${location.filePath}${location.lineNumber ? `:${location.lineNumber}` : ""}\``,
+    );
+  }
+
+  if (evidence.performanceFindings && evidence.performanceFindings.length) {
+    lines.push(
+      FeedMarkdown.empty(),
+      mdText`**What the slowest request repeats**`,
+      FeedMarkdown.empty(),
+    );
+
+    for (const finding of evidence.performanceFindings) {
+      lines.push(mdText`- ${describeSlowFindingCostAsItem(finding)}`);
+
+      if (finding.normalizedDbStatement) {
+        lines.push(mdText`  - Query: \`${finding.normalizedDbStatement}\``);
+      }
+    }
+  }
+
+  return FeedMarkdown.join(lines, "\n");
 }
 
 /*
