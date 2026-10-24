@@ -59,14 +59,16 @@ export const RULE_LIBRARY_TABLE_ID: string = "rule-library-table";
 /*
  * The Rule column is prose (Column.wrapContent): a name runs onto a second
  * line rather than being cut short, its description wraps under it. As
- * wide as they want, up to 34rem, and never narrower than 14rem. Between
+ * wide as they want, up to 34rem, and never narrower than 12rem. Between
  * the two it gives way, so the table fits its card beside the side menu
  * (1024px wide) with Data, Severity and Add in sight, rather than
- * scrolling sideways to reach them.
+ * scrolling sideways to reach them - in English with room to spare, and in
+ * the languages with the longest words (German's Hinzufügen, Swedish's
+ * Allvarlighetsgrad, Dutch's Aanmeldgebeurtenissen) too.
  */
 export const RULE_LIBRARY_RULE_COLUMN_MAX_WIDTH_CLASS_NAME: string =
   "max-w-[34rem]";
-export const RULE_LIBRARY_RULE_COLUMN_CLASS_NAME: string = "min-w-[14rem]";
+export const RULE_LIBRARY_RULE_COLUMN_CLASS_NAME: string = "min-w-[12rem]";
 
 /*
  * A row's quieter lines under its name - what it finds, its ATT&CK tags:
@@ -77,12 +79,25 @@ export const RULE_LIBRARY_ROW_FACT_CLASS_NAME: string =
   "font-normal text-gray-500";
 
 /*
- * Added (and Off) at a row's end, as tall as the Add button it takes the
- * place of (30px, centred on the row's first line), so the word sits on the
- * name's line as the button does.
+ * Added at a row's end, as tall as the Add button it takes the place of
+ * (30px, centred on the row's first line), so the word sits on the name's
+ * line as the button does; Off, when the project's copy is turned off,
+ * under it rather than beside it, so the column stays the button's width.
  */
 export const RULE_LIBRARY_ADDED_CLASS_NAME: string =
-  "inline-flex h-[30px] items-center gap-2 whitespace-nowrap";
+  "inline-flex h-[30px] items-center gap-1 whitespace-nowrap text-sm font-medium text-gray-700";
+
+/*
+ * The Data column wraps between words: "Kubernetes audit logs" runs onto a
+ * second line beside the side menu rather than pushing Add out of the card.
+ * A word stays whole - the column is never narrower than its longest
+ * (German's Anmeldeereignisse was cut into Anmeldeereignis and se). Never
+ * narrower than 7rem, never wider than 10rem, which the longest of them
+ * all, Dutch's Aanmeldgebeurtenissen, fits.
+ */
+export const RULE_LIBRARY_DATA_COLUMN_MAX_WIDTH_CLASS_NAME: string =
+  "max-w-[10rem]";
+export const RULE_LIBRARY_DATA_COLUMN_CLASS_NAME: string = "min-w-[7rem]";
 
 export interface ComponentProps {
   views: Array<LibraryRuleView>;
@@ -138,7 +153,7 @@ const DataFacts: FunctionComponent<{ view: LibraryRuleView }> = (props: {
 
   return (
     <>
-      <span className="truncate text-sm font-normal text-gray-700">
+      <span className="break-words text-sm font-normal text-gray-700">
         {translator.translateText(DATA_KIND_TITLES[props.view.entry.dataKind])}
       </span>
       <span>
@@ -271,9 +286,9 @@ const StatusCell: FunctionComponent<StatusCellProps> = (
 
   if (props.view.isAdded) {
     return (
-      <span className={RULE_LIBRARY_ADDED_CLASS_NAME}>
+      <span className="inline-flex flex-col items-end gap-0.5">
         <span
-          className="inline-flex items-center gap-1 text-sm font-medium text-gray-700"
+          className={RULE_LIBRARY_ADDED_CLASS_NAME}
           data-testid={`rule-library-added-${entry.id}`}
         >
           <Icon
@@ -284,7 +299,7 @@ const StatusCell: FunctionComponent<StatusCellProps> = (
         </span>
         {props.view.isTurnedOff ? (
           <span
-            className="rounded-md bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600"
+            className="whitespace-nowrap rounded-md bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600"
             data-testid={`rule-library-off-${entry.id}`}
           >
             {translator.translateText(TURNED_OFF)}
@@ -348,10 +363,13 @@ const RuleLibraryTable: FunctionComponent<ComponentProps> = (
       key: "dataStatus",
       disableSort: true,
       hideOnMobile: true,
+      wrapContent: true,
+      wrapMaxWidthClassName: RULE_LIBRARY_DATA_COLUMN_MAX_WIDTH_CLASS_NAME,
+      contentClassName: RULE_LIBRARY_DATA_COLUMN_CLASS_NAME,
       getElement: (view: LibraryRuleView): ReactElement => {
         return (
           <div
-            className="grid min-w-[8.5rem] grid-cols-1"
+            className="flex flex-col"
             data-testid={`rule-library-data-${view.entry.id}`}
           >
             <DataFacts view={view} />

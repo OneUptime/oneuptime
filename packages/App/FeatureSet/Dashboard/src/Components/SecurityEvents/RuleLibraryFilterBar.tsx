@@ -42,7 +42,9 @@ import React, { FunctionComponent, ReactElement } from "react";
  * many rules are in sight and the way back to all of them at the row's
  * end. Selects rather than a row of buttons: a row of buttons across the
  * card read as tabs. A select that narrows the list is tinted, so a
- * filtered list says so at a glance; on a phone the selects stack.
+ * filtered list says so at a glance. On a phone the selects stack, each
+ * the card's width: two side by side cut the Japanese and French names of
+ * "Any status" and "Any data" short.
  */
 
 export const RULE_LIBRARY_CATEGORY_SELECT_TEST_ID: string =
@@ -105,7 +107,7 @@ const RuleLibraryFilterBar: FunctionComponent<ComponentProps> = (
   return (
     <div className="space-y-2" data-testid="rule-library-filters">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+        <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center">
           <select
             data-testid={RULE_LIBRARY_CATEGORY_SELECT_TEST_ID}
             aria-label={translator.translateText(CATEGORY_FILTER_LABEL)}
@@ -116,7 +118,7 @@ const RuleLibraryFilterBar: FunctionComponent<ComponentProps> = (
                 category: event.target.value as LibraryRuleFilter,
               });
             }}
-            className={`col-span-2 ${selectClassName(Boolean(props.filters.category))}`}
+            className={selectClassName(Boolean(props.filters.category))}
           >
             {LIBRARY_RULE_FILTERS.map(
               (item: LibraryRuleFilter): ReactElement => {
