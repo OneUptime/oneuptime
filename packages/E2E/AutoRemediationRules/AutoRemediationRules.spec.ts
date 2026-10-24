@@ -2944,3 +2944,345 @@ test.describe("the LLM Provider field, at 1280px and 390px, light and dark", () 
     }
   }
 });
+
+/*
+ * A rule's AI context (issue #5198): notes for OneUptime AI about what the
+ * rule matches - one product's architecture, its owners, where its logs
+ * are - read after the project's AI context by the investigation and the
+ * fix the rule starts. Under More fields, right after the LLM provider, as
+ * a Markdown field counted against its 5,000 characters as it is typed;
+ * named by its size on the folded line once written; not asked of a rule
+ * that only runs its runbooks every time, which asks no AI anything.
+ */
+const AI_CONTEXT_FIELD_TEST_ID: string = "auto-remediation-ai-context-field";
+const AI_CONTEXT_DESCRIPTION: string =
+  "Notes OneUptime AI reads after the project's AI context when it investigates or fixes what this rule matches. Leave secrets out.";
+const AI_CONTEXT_PLACEHOLDER: string =
+  "For example: checkout's logs are in Loki under app=checkout, and payments-db is its database.";
+// The count past its limit, in the field's red.
+const TOO_LONG_CLASS: RegExp = /text-red-600/;
+// The saved rule's notes, as the fixture holds them (?ruleContext=1).
+const SAVED_RULE_NOTES: RegExp = /is a PostgreSQL primary on/;
+// The page in dark mode.
+const DARK_CLASS: RegExp = /dark/;
+
+const aiContextEditor: (dialog: Locator) => Locator = (
+  dialog: Locator,
+): Locator => {
+  return dialog.getByTestId(AI_CONTEXT_FIELD_TEST_ID);
+};
+
+const aiContextLength: (dialog: Locator) => Locator = (
+  dialog: Locator,
+): Locator => {
+  return dialog.getByTestId("ai-context-length");
+};
+
+// The editor's Markdown source, where a test types.
+const aiContextSource: (dialog: Locator) => Promise<Locator> = async (
+  dialog: Locator,
+): Promise<Locator> => {
+  const editor: Locator = aiContextEditor(dialog);
+  const toggle: Locator = editor.getByRole("button", {
+    name: "Markdown",
+    exact: true,
+  });
+
+  if (await toggle.isVisible()) {
+    await toggle.click();
+  }
+
+  const textarea: Locator = editor.locator("textarea").first();
+  await expect(textarea).toBeVisible();
+  return textarea;
+};
+
+// About how many tokens a text of plain ASCII is read as.
+const tokensOf: (text: string) => number = (text: string): number => {
+  return Math.ceil(text.length / 4);
+};
+
+test.describe("a rule's AI context", () => {
+  test("More fields holds it right after the LLM provider, with its line and its count", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page);
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+
+    await expect(aiContextEditor(dialog)).toBeVisible();
+    await expect(dialog).toContainText(AI_CONTEXT_DESCRIPTION);
+    await expect(aiContextLength(dialog)).toHaveText("0 of 5,000 characters");
+    // Empty is an answer of its own - the project's notes alone.
+    await expect(dialog).not.toContainText("AI context (Optional)");
+
+    // After the LLM provider, before the runbooks.
+    const order: Array<number> = await dialog.evaluate(
+      (element: Element, testIds: Array<string>) => {
+        return testIds.map((testId: string): number => {
+          const field: Element | null = element.querySelector(
+            `[data-testid='${testId}']`,
+          );
+          return field ? field.getBoundingClientRect().top : -1;
+        });
+      },
+      [
+        "rule-llm-provider-picker",
+        AI_CONTEXT_FIELD_TEST_ID,
+        "auto-remediation-runbooks-field",
+      ],
+    );
+
+    expect(order[0]).toBeGreaterThan(-1);
+    expect(order[0]!).toBeLessThan(order[1]!);
+    expect(order[1]!).toBeLessThan(order[2]!);
+
+    await dialogScreenshot(
+      dialog,
+      aiContextEditor(dialog),
+      "ai-rule-ai-context-empty",
+    );
+  });
+
+  test("notes typed are counted, named by their size on the folded line, and sent with the rule", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page);
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+
+    const notes: string =
+      "## Checkout\n\n- checkout-api runs on the payments cluster. Its logs are in Loki, app=checkout.";
+    const source: Locator = await aiContextSource(dialog);
+    await expect(source).toHaveAttribute("placeholder", AI_CONTEXT_PLACEHOLDER);
+    await source.fill(notes);
+
+    await expect(aiContextLength(dialog)).toHaveText(
+      `${notes.length} of 5,000 characters · about ${tokensOf(notes)} tokens`,
+    );
+
+    await dialogScreenshot(
+      dialog,
+      aiContextEditor(dialog),
+      "ai-rule-ai-context-written",
+    );
+
+    // Folded, the line names the notes by their size.
+    await moreFieldsButton(dialog).click();
+    expect((await foldedItemsOf(dialog)).join(" | ")).toContain(
+      `AI context: about ${tokensOf(notes)} tokens`,
+    );
+
+    await create(page, dialog);
+
+    const sent: Recorded = await recorded(page);
+    expect(sent.creates).toHaveLength(1);
+    expect(sent.creates[0]!.data["aiContext"]).toBe(notes);
+  });
+
+  test("a rule made without its notes sends none", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page);
+    const dialog: Locator = await openFixStep(page, card);
+
+    await create(page, dialog);
+
+    const sent: Recorded = await recorded(page);
+    expect([undefined, null, ""]).toContain(sent.creates[0]!.data["aiContext"]);
+  });
+
+  test("past 5,000 characters the count turns red and the rule is refused, saying what to do", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page);
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+
+    const source: Locator = await aiContextSource(dialog);
+    await source.fill("a".repeat(5001));
+
+    await expect(aiContextLength(dialog)).toContainText(
+      "5,001 of 5,000 characters",
+    );
+    await expect(aiContextLength(dialog)).toHaveClass(TOO_LONG_CLASS);
+
+    await dialog.getByRole("button", { name: CREATE }).click();
+
+    await expect(dialog).toContainText("Use 5,000 characters or fewer.");
+    await expect(dialog).toBeVisible();
+    expect((await recorded(page)).creates).toEqual([]);
+  });
+
+  test("a rule that doesn't fix keeps it: its investigation reads the notes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page);
+    const dialog: Locator = await openFixStep(page, card);
+    await fixChoice(dialog, "Don't fix").click();
+    await openMoreFields(dialog);
+
+    await expect(aiContextEditor(dialog)).toBeVisible();
+  });
+
+  test("a rule that only runs its runbooks every time asks no AI anything, so it is not asked for notes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, { query: "rules=saved" });
+    const dialog: Locator = await editRule(
+      page,
+      card,
+      "Restart checkout every time",
+    );
+    await openMoreFields(dialog);
+
+    await expect(everyTimeSwitch(dialog)).toBeChecked();
+    await expect(aiContextEditor(dialog)).toHaveCount(0);
+
+    // Investigating too, OneUptime AI works for it: its notes are asked.
+    await openStep(dialog, "Investigate");
+    await dialog.getByRole("button", { name: INVESTIGATE_TOO }).click();
+    await openStep(dialog, "Fix");
+    await openMoreFields(dialog);
+    await expect(aiContextEditor(dialog)).toBeVisible();
+  });
+
+  test("a saved rule opens with its notes, and an edit sends the ones changed", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, {
+      query: "rules=saved&ruleContext=1",
+    });
+    const dialog: Locator = await editRule(
+      page,
+      card,
+      "Fix database incidents",
+    );
+
+    // Folded, its notes are named by their size.
+    expect((await foldedItemsOf(dialog)).join(" | ")).toContain(
+      "AI context: about",
+    );
+
+    await openMoreFields(dialog);
+
+    const source: Locator = await aiContextSource(dialog);
+    await expect(source).toHaveValue(SAVED_RULE_NOTES);
+
+    await source.fill("Fail over payments-db only after checking lag.");
+    await dialog.getByRole("button", { name: "Save Changes" }).click();
+    await expect(dialog).toBeHidden();
+
+    const update: { data: Record<string, unknown> } | undefined = (
+      await recorded(page)
+    ).updates.find((entry: { id: string }) => {
+      return entry.id === SAVED_RULE_IDS["aiWithRunner"];
+    });
+
+    expect(update).toBeDefined();
+    expect(update!.data["aiContext"]).toBe(
+      "Fail over payments-db only after checking lag.",
+    );
+  });
+
+  for (const width of [1280, 390]) {
+    for (const theme of ["light", "dark"]) {
+      test(`${width}px, ${theme}: the field fits its dialog, and the dialog the screen`, async ({
+        page,
+      }: {
+        page: Page;
+      }) => {
+        const card: Locator = await openRulesCard(page, {
+          query: [
+            "rules=saved",
+            "ruleContext=1",
+            theme === "dark" ? "theme=dark" : "",
+          ]
+            .filter(Boolean)
+            .join("&"),
+        });
+        if (theme === "dark") {
+          await expect(page.locator("html")).toHaveClass(DARK_CLASS);
+        }
+        /*
+         * The saved rule is opened from its table row, then the screen
+         * narrowed: a phone draws the rules as cards, without the row.
+         */
+        const dialog: Locator = await editRule(
+          page,
+          card,
+          "Fix database incidents",
+        );
+        await page.setViewportSize({ width, height: 900 });
+        await openMoreFields(dialog);
+        await expect(aiContextEditor(dialog)).toBeVisible();
+        await aiContextEditor(dialog).scrollIntoViewIfNeeded();
+        await expect(aiContextLength(dialog)).toContainText(
+          "of 5,000 characters",
+        );
+
+        expect(
+          await page.evaluate(() => {
+            return document.documentElement.scrollWidth;
+          }),
+        ).toBeLessThanOrEqual(width);
+
+        const dialogBox: { x: number; width: number } =
+          (await dialog.boundingBox())!;
+        const fieldBox: { x: number; width: number } =
+          (await aiContextEditor(dialog).boundingBox())!;
+        expect(fieldBox.x).toBeGreaterThanOrEqual(dialogBox.x);
+        expect(fieldBox.x + fieldBox.width).toBeLessThanOrEqual(
+          dialogBox.x + dialogBox.width,
+        );
+
+        await dialogScreenshot(
+          dialog,
+          aiContextEditor(dialog),
+          `ai-rule-ai-context-${width}-${theme}`,
+        );
+      });
+    }
+  }
+
+  test("German: the field and its count in the Dashboard's German words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, {
+      query: "rules=saved&ruleContext=1&lang=de",
+      isGerman: true,
+    });
+    const dialog: Locator = await openDialogWith(
+      page,
+      card
+        .locator("tbody tr")
+        .filter({ hasText: "Fix database incidents" })
+        .getByRole("button", { name: GERMAN["Edit"] || "Edit", exact: true }),
+    );
+    await openStep(dialog, GERMAN["Fix"] || "Fix");
+    // The fold's button starts with its title, then says what it holds.
+    await dialog
+      .getByRole("button", { name: GERMAN["More fields"] || "More fields" })
+      .click();
+
+    await expect(aiContextEditor(dialog)).toBeVisible();
+    await expect(dialog).toContainText(GERMAN[AI_CONTEXT_DESCRIPTION]!);
+    await expect(aiContextLength(dialog)).toContainText("von 5.000 Zeichen");
+  });
+});

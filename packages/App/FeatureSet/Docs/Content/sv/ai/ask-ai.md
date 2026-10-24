@@ -11,7 +11,7 @@ Fråga AI är OneUptimes chatt över ditt projekts data. Fråga om loggar, spår
 
 ## Så svarar Fråga AI
 
-Fråga AI svarar bara med det som verktygen returnerar: den kör frågor mot ditt projekt i stället för att svara ur minnet. Varje fakta i ett svar har en källbricka som visar frågan bakom och öppnar de data den läste. När du ber den ändra något avgör samtalets behörighetsläge om den frågar dig först.
+Fråga AI svarar bara med det som verktygen returnerar: den kör frågor mot ditt projekt i stället för att svara ur minnet. Varje fakta i ett svar har en källbricka som visar frågan bakom och öppnar de data den läste. När du ber den ändra något avgör samtalets behörighetsläge om den frågar dig först. Före din fråga läser den projektets [AI-kontext](/docs/ai/ai-context): det ditt team har skrivit ner åt OneUptime AI om era egna system.
 
 ```mermaid title="Från en fråga till ett svar med källor"
 flowchart TB

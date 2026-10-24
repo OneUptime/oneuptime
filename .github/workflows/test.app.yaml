@@ -331,7 +331,12 @@ jobs:
           # More fields, the declarer's teams one click away, the owner rules
           # the review says will run, and an owner rule's Creator's Team, at
           # 1280 and 390 pixels, dark and German) joined it the same day:
-          # about 19.
+          # about 19. AI Context (about 1.5 minutes with its bundle locally,
+          # Chromium only: Project Settings > AI > AI Features' AI context
+          # card and its dialog, and the line a run's activity draws for what
+          # it read with the dialog its View opens, at 1280 and 390 pixels,
+          # light and dark, German and Persian) joined it on 2026-10-24, the
+          # lightest group: about 20.5.
           - group: 5
             browsers: chromium
             suites: >-
@@ -351,6 +356,7 @@ jobs:
               test-dashboard-value-widget-ui
               test-kubernetes-events-ui
               test-owners-on-create-ui
+              test-ai-context-ui
           # Added when group 5 took 25.5 of the job's 30 minutes and groups 1,
           # 3 and 4 23.5 to 24.3 on one run: group 5's last five suites, with
           # Discovery from group 3, Status Page Theme from group 1 and Calendar
@@ -675,6 +681,8 @@ jobs:
             output/playwright/auto-remediation-rules-ui/test-results
             output/playwright/external-mcp-servers-ui/*.png
             output/playwright/external-mcp-servers-ui/test-results
+            output/playwright/ai-context-ui/*.png
+            output/playwright/ai-context-ui/test-results
             output/playwright/resource-topology-ui/*.png
             output/playwright/resource-topology-ui/test-results
             output/playwright/runbook-variables-ui/*.png

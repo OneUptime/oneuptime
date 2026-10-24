@@ -23,6 +23,7 @@ import {
   RULE_MCP_SERVERS_FIELD_COPY,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ExternalMcpServer/ExternalMcpServerCopy";
 import { RULE_CODE_REPOSITORIES_FIELD_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/RuleCodeRepositoriesCopy";
+import { AI_RULE_AI_CONTEXT_FIELD_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AiContextCopy";
 import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import { CardSelectOption } from "../../../UI/Components/CardSelect/CardSelect";
@@ -116,6 +117,10 @@ const SENTENCES: Array<string> = [
   RULE_MCP_SERVERS_FIELD_COPY.aiRuleDescription,
   RULE_CODE_REPOSITORIES_FIELD_COPY.aiRuleDescription,
   EXTERNAL_MCP_SERVER_TOOLS_COPY.description,
+  // The rule's AI context, under More fields after the LLM provider (#5198).
+  AI_RULE_AI_CONTEXT_FIELD_COPY.title,
+  AI_RULE_AI_CONTEXT_FIELD_COPY.description,
+  AI_RULE_AI_CONTEXT_FIELD_COPY.placeholder,
   // AI Insights' reasons an incident was not investigated.
   NOT_INVESTIGATED_REASONS.incident.no_investigation_rule_matched,
   NOT_INVESTIGATED_REASONS.incident.resolved_before_investigation,

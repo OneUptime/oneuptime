@@ -53,6 +53,12 @@ import FeedMarkdown, {
   MarkdownText,
   mdText,
 } from "../../../../Utils/Markdown/FeedMarkdown";
+import {
+  AiContextActivity,
+  AiContextRule,
+} from "../../../../Types/AI/AiContext";
+import AiContextReader from "../AiContext/AiContextReader";
+import { getAiContextEventSummary } from "../AiContext/AiContextPrompt";
 
 /*
  * AI SRE — the shared autonomous-investigation engine.
@@ -247,6 +253,13 @@ export interface InvestigationRequest {
   additionalInstructions?: string | undefined;
   // Replaces the "A new signal has just been declared..." user preamble.
   questionOverride?: string | undefined;
+  /*
+   * The AI rules whose AI context the run reads after the project's
+   * (Types/AI/AiContext): the rules that investigate its incident or alert
+   * and match it, or the rule a fix works for. The project's own AI
+   * context every run reads, without being asked: the engine reads it.
+   */
+  aiContextRules?: Array<AiContextRule> | undefined;
   /*
    * What the runner's starting context read, for people: each one is
    * recorded in the run's activity as a ProgressLog event before the model
@@ -592,6 +605,30 @@ export default class AIInvestigationEngine {
     const llmProviderId: ObjectID | undefined = llmProviderChoice.llmProviderId;
 
     /*
+     * What the project's team wrote for OneUptime AI (issue #5198): the
+     * project's AI context, and the AI context of the rules that started
+     * the run. Read once, placed first in the system prompt of every call
+     * of the agent loop - inside the prefix the provider caches - and
+     * recorded word for word in the run's activity, so people can see what
+     * OneUptime AI was given. Nothing to read: nothing recorded, and the
+     * prompt is the one it always was.
+     */
+    const aiContext: AiContextActivity | null = await AiContextReader.read({
+      projectId,
+      rules: request.aiContextRules,
+    });
+
+    if (aiContext) {
+      await this.emitEvent({
+        projectId,
+        aiRunId,
+        sequence: sequence++,
+        eventType: AIRunEventType.ProgressLog,
+        resultSummary: getAiContextEventSummary(aiContext),
+      });
+    }
+
+    /*
      * The model reads text: an image embedded in the subject's text - a
      * synthetic monitor's screenshot is hundreds of kilobytes of base64 -
      * would only be billed, on every call of the run (issue #4587). The
@@ -742,6 +779,8 @@ export default class AIInvestigationEngine {
            */
           props: { isRoot: true, tenantId: projectId },
           feature: request.feature,
+          // Read above, and recorded: null when there is none to read.
+          aiContext,
           systemInstructions: `${request.personaOverride ?? INVESTIGATION_PERSONA}${
             request.additionalInstructions
               ? `\n\n${request.additionalInstructions}`

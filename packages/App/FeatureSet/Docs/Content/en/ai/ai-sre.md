@@ -48,7 +48,7 @@ An investigation runs until it is done: it has **no time limit** and no small qu
 
 ## What an investigation reads
 
-An investigation starts from the incident or alert and from the infrastructure it is linked to: the hosts, Docker and Podman hosts, Kubernetes clusters, databases and services its monitors watch. A website, API or synthetic monitor watches what you link it to under **Monitor → Overview → Linked Resources**, so link it to the hosts that serve what it checks, and every investigation of its incidents starts there.
+An investigation starts from the incident or alert and from the infrastructure it is linked to: the hosts, Docker and Podman hosts, Kubernetes clusters, databases and services its monitors watch. A website, API or synthetic monitor watches what you link it to under **Monitor → Overview → Linked Resources**, so link it to the hosts that serve what it checks, and every investigation of its incidents starts there. Before all of it, an investigation reads the project's [AI context](/docs/ai/ai-context): what your team wrote down for OneUptime AI about your own systems, with the notes of the AI rules that match.
 
 - The alerts on that infrastructure that opened in the 30 minutes before the incident, or are still open, newest first, such as the high CPU alert of the host behind a slow site. Private alerts are left out.
 - The infrastructure's own metrics, read the way people read them. Host metrics such as `system.cpu.utilization` and `system.memory.utilization` are reported once per state, and the states add up to 100%, so one average across them says nothing. OneUptime AI reads them one state at a time (busy CPU is user plus system), and any metric per container, per mount point or by any other attribute.

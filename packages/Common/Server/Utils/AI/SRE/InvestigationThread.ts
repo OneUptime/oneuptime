@@ -30,6 +30,8 @@ import { ChatExtraTool } from "../Chat/ChatAgentRunner";
 import PostedRootCause from "./PostedRootCause";
 import logger from "../../Logger";
 import PromptText from "../../../../Utils/AI/PromptText";
+import { AiContextRule } from "../../../../Types/AI/AiContext";
+import AiContextReader from "../AiContext/AiContextReader";
 
 /*
  * The shared conversation inside an incident's (or alert's) AI
@@ -98,6 +100,13 @@ export interface InvestigationThreadTurnContext {
   extraTools: Array<ChatExtraTool>;
   pageContext: AIChatPageContext;
   title: string;
+  /*
+   * The AI context of the AI rules that investigate the subject and match
+   * it - what its investigation read after the project's - so a question
+   * about the investigation is answered knowing what it knew. Absent:
+   * none.
+   */
+  aiContextRules?: Array<AiContextRule> | undefined;
 }
 
 export default class InvestigationThread {
@@ -694,11 +703,24 @@ export default class InvestigationThread {
       sections.push(INFRASTRUCTURE_OUT_OF_VIEW_SECTION);
     }
 
+    // The matching AI rules' notes, as the investigation read them.
+    const aiContextRules: Array<AiContextRule> =
+      data.subject.type === "incident"
+        ? await AiContextReader.forIncident({
+            projectId: data.projectId,
+            incidentId: data.subject.id,
+          })
+        : await AiContextReader.forAlert({
+            projectId: data.projectId,
+            alertId: data.subject.id,
+          });
+
     return {
       additionalSystemInstructions: sections.join("\n\n"),
       extraTools,
       pageContext: details.pageContext,
       title: `${details.label}: ${details.title}`,
+      aiContextRules,
     };
   }
 }
