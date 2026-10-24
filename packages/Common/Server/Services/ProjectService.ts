@@ -47,6 +47,7 @@ import DeletedProjectService from "./DeletedProjectService";
 import IncidentSeverityService from "./IncidentSeverityService";
 import IncidentStateService from "./IncidentStateService";
 import IncidentPostmortemStatusService from "./IncidentPostmortemStatusService";
+import SecurityCaseDefaultValues from "../Utils/SecurityCase/SecurityCaseDefaultValues";
 import IncidentRoleService from "./IncidentRoleService";
 import MailService from "./MailService";
 import MonitorStatusService from "./MonitorStatusService";
@@ -2795,6 +2796,8 @@ export class ProjectService extends ProjectReferencesService<Model> {
       this.addDefaultIncidentRoles(createdItem),
       this.addDefaultNetworkSiteTypes(createdItem),
       this.addDefaultNetworkDeviceRoles(createdItem),
+      this.addDefaultSecurityCasePriorities(createdItem),
+      this.addDefaultSecurityCaseStatuses(createdItem),
     ]);
 
     if (createdItem.createdOwnerEmail) {
@@ -2999,6 +3002,30 @@ export class ProjectService extends ProjectReferencesService<Model> {
         },
       });
     }
+
+    return createdItem;
+  }
+
+  /*
+   * The project's security case priorities and statuses (Security Events >
+   * Settings): the five priorities and four statuses every case had before
+   * they became the project's own, each the built-in one of its detection
+   * severity or stage (SecurityCaseDefaultValues). Idempotent.
+   */
+  @CaptureSpan()
+  public async addDefaultSecurityCasePriorities(
+    createdItem: Model,
+  ): Promise<Model> {
+    await SecurityCaseDefaultValues.addDefaultPriorities(createdItem.id!);
+
+    return createdItem;
+  }
+
+  @CaptureSpan()
+  public async addDefaultSecurityCaseStatuses(
+    createdItem: Model,
+  ): Promise<Model> {
+    await SecurityCaseDefaultValues.addDefaultStatuses(createdItem.id!);
 
     return createdItem;
   }

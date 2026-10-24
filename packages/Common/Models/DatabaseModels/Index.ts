@@ -165,6 +165,8 @@ import ThreatIntelFeed from "./ThreatIntelFeed";
 import SecurityCase from "./SecurityCase";
 import SecurityCaseFeed from "./SecurityCaseFeed";
 import SecurityCaseNote from "./SecurityCaseNote";
+import SecurityCasePriority from "./SecurityCasePriority";
+import SecurityCaseStatus from "./SecurityCaseStatus";
 import SecurityDetection from "./SecurityDetection";
 import SecurityPlaybook from "./SecurityPlaybook";
 import SecurityPlaybookRun from "./SecurityPlaybookRun";
@@ -592,6 +594,8 @@ const AllModelTypes: Array<{
   SecurityCase,
   SecurityCaseFeed,
   SecurityCaseNote,
+  SecurityCasePriority,
+  SecurityCaseStatus,
   SecurityDetection,
   SecurityPlaybook,
   SecurityPlaybookRun,

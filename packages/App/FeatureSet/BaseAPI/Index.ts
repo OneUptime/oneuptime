@@ -615,6 +615,12 @@ import SecurityPlaybookService, {
 import SecurityProtectedEntityService, {
   Service as SecurityProtectedEntityServiceType,
 } from "Common/Server/Services/SecurityProtectedEntityService";
+import SecurityCasePriorityService, {
+  Service as SecurityCasePriorityServiceType,
+} from "Common/Server/Services/SecurityCasePriorityService";
+import SecurityCaseStatusService, {
+  Service as SecurityCaseStatusServiceType,
+} from "Common/Server/Services/SecurityCaseStatusService";
 import LogScrubRuleService, {
   Service as LogScrubRuleServiceType,
 } from "Common/Server/Services/LogScrubRuleService";
@@ -1629,6 +1635,8 @@ import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
+import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
 import MetricPipelineRule from "Common/Models/DatabaseModels/MetricPipelineRule";
 import MetricRecordingRule from "Common/Models/DatabaseModels/MetricRecordingRule";
@@ -4014,6 +4022,23 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<SecurityProtectedEntity, SecurityProtectedEntityServiceType>(
         SecurityProtectedEntity,
         SecurityProtectedEntityService,
+      ).getRouter(),
+    );
+
+    // A project's own case priorities and statuses (Security Events > Settings).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityCasePriority, SecurityCasePriorityServiceType>(
+        SecurityCasePriority,
+        SecurityCasePriorityService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityCaseStatus, SecurityCaseStatusServiceType>(
+        SecurityCaseStatus,
+        SecurityCaseStatusService,
       ).getRouter(),
     );
 

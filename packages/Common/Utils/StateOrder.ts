@@ -9,12 +9,13 @@ import {
 } from "./ListOrder";
 
 /*
- * What the order of a project's states, severities, monitor statuses and
- * postmortem statuses means, and what it has to keep. No database and no
- * React in it, so the server that guards these lists and the settings pages
- * that show them read the same rules.
+ * What the order of a project's states, severities, monitor statuses,
+ * postmortem statuses and security case statuses and priorities means, and
+ * what it has to keep. No database and no React in it, so the server that
+ * guards these lists and the settings pages that show them read the same
+ * rules.
  *
- * All seven are drag-ordered lists (@ListOrderColumn, Common/Utils/ListOrder):
+ * All nine are drag-ordered lists (@ListOrderColumn, Common/Utils/ListOrder):
  * 1 is the top. On top of that:
  *
  *   - Incident, alert and scheduled maintenance states are a path. An
@@ -41,6 +42,21 @@ import {
  *     state, a postmortem can move back up (reopened for another look); the
  *     order only says what each status counts as
  *     (Common/Utils/Incident/PostmortemStatus).
+ *   - Security case statuses are how far a case has come: new, taken on
+ *     (acknowledged), contained, closed. A status at or below the
+ *     acknowledged one counts as acknowledged, at or below the contained one
+ *     as contained, at or below the closed one as closed - a project's own
+ *     "Closed - Duplicate" goes after it - so the four built-in statuses keep
+ *     that order, and a new status goes just above the closed one. Like a
+ *     postmortem, a case can move back up (reopened); the order only says
+ *     what each status counts as (Common/Utils/SecurityCase/
+ *     SecurityCaseStatuses).
+ *   - Security case priorities are ranked, most urgent first, like
+ *     severities, but five of them are built in: the priorities a Critical,
+ *     High, Medium, Low and Informational detection opens its case at. They
+ *     keep that order, so a more severe detection never lands lower, and
+ *     the project's own go anywhere among them; a new one goes to the end
+ *     (Common/Utils/SecurityCase/SecurityCasePriorities).
  *   - Every built-in row (the created, acknowledged and resolved states, the
  *     operational and offline statuses...) is something OneUptime itself
  *     moves things into, so a list keeps at least one of each kind.
@@ -54,6 +70,8 @@ export enum StateListType {
   IncidentSeverity = "IncidentSeverity",
   AlertSeverity = "AlertSeverity",
   IncidentPostmortemStatus = "IncidentPostmortemStatus",
+  SecurityCaseStatus = "SecurityCaseStatus",
+  SecurityCasePriority = "SecurityCasePriority",
 }
 
 export interface StateListBuiltIn {
@@ -172,6 +190,35 @@ export const STATE_LISTS: Record<StateListType, StateListDefinition> = {
     keepsBuiltInOrder: true,
     insertAboveFlag: "isCompletedStatus",
     orderReason: "A postmortem is started, drafted and then completed",
+  },
+  [StateListType.SecurityCaseStatus]: {
+    type: StateListType.SecurityCaseStatus,
+    orderColumn: "order",
+    subject: { singular: "security case", plural: "security cases" },
+    builtIns: [
+      { flag: "isNewStatus", role: "new status" },
+      { flag: "isAcknowledgedStatus", role: "acknowledged status" },
+      { flag: "isContainedStatus", role: "contained status" },
+      { flag: "isClosedStatus", role: "closed status" },
+    ],
+    keepsBuiltInOrder: true,
+    insertAboveFlag: "isClosedStatus",
+    orderReason: "A case is opened, taken on, contained and then closed",
+  },
+  [StateListType.SecurityCasePriority]: {
+    type: StateListType.SecurityCasePriority,
+    orderColumn: "order",
+    subject: { singular: "security case", plural: "security cases" },
+    builtIns: [
+      { flag: "isCriticalPriority", role: "critical priority" },
+      { flag: "isHighPriority", role: "high priority" },
+      { flag: "isMediumPriority", role: "medium priority" },
+      { flag: "isLowPriority", role: "low priority" },
+      { flag: "isInformationalPriority", role: "informational priority" },
+    ],
+    keepsBuiltInOrder: true,
+    orderReason:
+      "Priorities are ranked most urgent first, and detections open their cases at the built-in priority of their severity",
   },
 };
 
