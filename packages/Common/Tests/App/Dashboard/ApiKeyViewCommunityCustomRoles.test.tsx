@@ -31,6 +31,20 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   - the key's own Permissions card never lists a role's copies.
  */
 
+/*
+ * A self-hosted Community Edition install: billing off and not the
+ * Enterprise Edition, whatever the environment says. CI's config.env turns
+ * billing on for every suite, and with billing on the page asks the
+ * project's plan instead of the edition.
+ */
+jest.mock("../../../UI/Config", () => {
+  return {
+    ...(jest.requireActual("../../../UI/Config") as Record<string, unknown>),
+    BILLING_ENABLED: false,
+    IS_ENTERPRISE_EDITION: false,
+  };
+});
+
 let allPermissionsForTest: Array<string> = [];
 let projectPermissionsForTest: unknown = null;
 
