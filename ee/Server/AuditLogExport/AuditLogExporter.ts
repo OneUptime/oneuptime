@@ -37,6 +37,7 @@ import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import { redactAuditLogExportRecord } from "./AuditLogExportRedaction";
 import AuditLogExportDestinationRegistry from "./Destinations/DestinationRegistry";
 import {
   AuditLogExportBatch,
@@ -281,16 +282,19 @@ export default class AuditLogExporter {
     const deadline: number =
       startedAt.getTime() + AUDIT_LOG_EXPORT_RUN_BUDGET_IN_MS;
 
-    const exports: Array<AuditLogExport> = await AuditLogExportService.findAllBy(
-      {
+    /*
+     * Never named "exports": the compiled CommonJS reads this module's own
+     * exported constants through a variable of that name.
+     */
+    const enabledExports: Array<AuditLogExport> =
+      await AuditLogExportService.findAllBy({
         query: { isEnabled: true },
         select: { _id: true, nextAttemptAt: true },
         sort: { _id: SortOrder.Ascending },
         props: { isRoot: true },
-      },
-    );
+      });
 
-    const due: Array<AuditLogExport> = exports.filter(
+    const due: Array<AuditLogExport> = enabledExports.filter(
       (item: AuditLogExport): boolean => {
         return (
           !item.nextAttemptAt ||
@@ -465,12 +469,11 @@ export default class AuditLogExporter {
       return result;
     }
 
-    const egress: EgressGuardOptions = AuditLogExportSettingsUtil.getEgressOptions(
-      {
+    const egress: EgressGuardOptions =
+      AuditLogExportSettingsUtil.getEgressOptions({
         isInstanceExport: AuditLogExportServiceClass.isInstanceExport(item),
         targetLabel: definition.title,
-      },
-    );
+      });
 
     const startsAt: Date = new Date(
       item.startsAt || item.createdAt || this.now(),
@@ -609,7 +612,8 @@ export default class AuditLogExporter {
   }
 
   /*
-   * The batch from what was read: every valid entry, in order, up to the
+   * The batch from what was read: every valid entry, in order, its secrets
+   * redacted again on the way out (AuditLogExportRedaction), up to the
    * destination's byte limit - always at least one, so an entry larger
    * than the limit on its own still goes, alone.
    */
@@ -621,11 +625,13 @@ export default class AuditLogExporter {
     let bytes: number = 0;
 
     for (const row of data.rows) {
-      const record: AuditLogExportRecord | null = toAuditLogExportRecord(row);
+      const read: AuditLogExportRecord | null = toAuditLogExportRecord(row);
 
-      if (!record) {
+      if (!read) {
         continue;
       }
+
+      const record: AuditLogExportRecord = redactAuditLogExportRecord(read);
 
       const size: number =
         Buffer.byteLength(serializeAuditLogExportRecord(record), "utf8") + 1;

@@ -344,7 +344,11 @@ export const AuditLogExportDestinationCatalog: Array<AuditLogExportDestinationDe
       kind: AuditLogExportDestinationKind.Stream,
       docsPath: `${AUDIT_LOG_EXPORT_DOCS_PATH}#webhook`,
       maxEntriesPerBatch: 500,
-      maxBytesPerBatch: 1024 * 1024,
+      /*
+       * Half of nginx's default 1 MB request limit (client_max_body_size),
+       * which sits in front of many log shippers; a 413 splits a batch anyway.
+       */
+      maxBytesPerBatch: 512 * 1024,
       configFields: [
         {
           key: "url",

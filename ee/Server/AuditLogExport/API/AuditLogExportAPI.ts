@@ -111,14 +111,13 @@ async function readSettingsToTest(data: {
     throw new BadDataException("A valid export ID is required.");
   }
 
-  const visible: AuditLogExport | null =
-    await AuditLogExportService.findOneBy({
-      query: data.projectId
-        ? { _id: exportId, projectId: data.projectId }
-        : { _id: exportId },
-      select: { _id: true, projectId: true },
-      props: data.props,
-    });
+  const visible: AuditLogExport | null = await AuditLogExportService.findOneBy({
+    query: data.projectId
+      ? { _id: exportId, projectId: data.projectId }
+      : { _id: exportId },
+    select: { _id: true, projectId: true },
+    props: data.props,
+  });
 
   if (data.projectId) {
     CommonAPI.assertResourceBelongsToProject({
@@ -200,42 +199,89 @@ function readSecrets(value: unknown): JSONObject {
   return value as JSONObject;
 }
 
-async function runTest(data: {
-  req: ExpressRequest;
-  res: ExpressResponse;
-  props: DatabaseCommonInteractionProps;
-  projectId: ObjectID | null;
-}): Promise<void> {
-  const body: JSONObject = readBody(data.req.body);
-
-  const { settings, isInstanceExport } = await readSettingsToTest({
-    body,
-    props: data.props,
-    projectId: data.projectId,
-  });
-
-  const definition: AuditLogExportDestinationDefinition =
-    getAuditLogExportDestinationDefinition(settings.type)!;
-
-  let receipt: AuditLogExportDeliveryReceipt;
-
-  try {
-    receipt = await AuditLogExporter.sendTest({
-      settings,
-      isInstanceExport,
+/*
+ * What the two routes answer, without the request around it, so the suites
+ * can ask it as any caller. A refusal of the caller throws (the route answers
+ * it as an error); a test that ran answers { isSuccessful, message }.
+ */
+export class AuditLogExportTest {
+  private static async run(data: {
+    body: JSONObject;
+    props: DatabaseCommonInteractionProps;
+    projectId: ObjectID | null;
+  }): Promise<JSONObject> {
+    const { settings, isInstanceExport } = await readSettingsToTest({
+      body: data.body,
+      props: data.props,
       projectId: data.projectId,
     });
-  } catch (error) {
-    return Response.sendJsonObjectResponse(data.req, data.res, {
-      isSuccessful: false,
-      message: ConnectorErrorMessage.toMessage(error),
+
+    const definition: AuditLogExportDestinationDefinition =
+      getAuditLogExportDestinationDefinition(settings.type)!;
+
+    let receipt: AuditLogExportDeliveryReceipt;
+
+    try {
+      receipt = await AuditLogExporter.sendTest({
+        settings,
+        isInstanceExport,
+        projectId: data.projectId,
+      });
+    } catch (error) {
+      return {
+        isSuccessful: false,
+        message: ConnectorErrorMessage.toMessage(error),
+      };
+    }
+
+    return {
+      isSuccessful: true,
+      message: describeTestSuccess({ definition, receipt }),
+    };
+  }
+
+  /*
+   * A project's test asks exactly what creating an export in the project
+   * asks - Project Owner or Admin, the Enterprise plan on OneUptime Cloud,
+   * the Enterprise Edition with audit logs when self-hosted - before it
+   * reads anything as OneUptime.
+   */
+  public static async testProjectExport(data: {
+    body: unknown;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<JSONObject> {
+    const projectId: ObjectID = CommonAPI.assertAuthenticatedProjectMember(
+      data.props,
+    );
+
+    const probe: AuditLogExport = new AuditLogExport();
+    probe.name = "Test";
+    await AuditLogExportService.checkCallerMayCreate({
+      data: probe,
+      props: data.props,
+    });
+
+    return this.run({
+      body: readBody(data.body),
+      props: data.props,
+      projectId,
     });
   }
 
-  return Response.sendJsonObjectResponse(data.req, data.res, {
-    isSuccessful: true,
-    message: describeTestSuccess({ definition, receipt }),
-  });
+  // The instance's, for a master admin (the route's middleware has said so).
+  public static async testInstanceExport(data: {
+    body: unknown;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<JSONObject> {
+    // Enterprise configuration: only while the license includes audit logs.
+    EnterpriseEdition.assertFeatureAvailableSync(EnterpriseFeature.AuditLogs);
+
+    return this.run({
+      body: readBody(data.body),
+      props: { ...data.props, isMasterAdmin: true },
+      projectId: null,
+    });
+  }
 }
 
 router.post(
@@ -246,22 +292,12 @@ router.post(
     try {
       const props: DatabaseCommonInteractionProps =
         await CommonAPI.getDatabaseCommonInteractionProps(req);
-      const projectId: ObjectID =
-        CommonAPI.assertAuthenticatedProjectMember(props);
 
-      /*
-       * Exactly what creating an export in this project asks: Project Owner
-       * or Admin, the Enterprise plan on OneUptime Cloud, and the Enterprise
-       * Edition with audit logs when self-hosted.
-       */
-      const probe: AuditLogExport = new AuditLogExport();
-      probe.name = "Test";
-      await AuditLogExportService.checkCallerMayCreate({
-        data: probe,
-        props,
-      });
-
-      await runTest({ req, res, props, projectId });
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        await AuditLogExportTest.testProjectExport({ body: req.body, props }),
+      );
     } catch (error) {
       next(error);
     }
@@ -277,15 +313,11 @@ router.post(
       const props: DatabaseCommonInteractionProps =
         await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-      // Enterprise configuration: only while the license includes audit logs.
-      EnterpriseEdition.assertFeatureAvailableSync(EnterpriseFeature.AuditLogs);
-
-      await runTest({
+      return Response.sendJsonObjectResponse(
         req,
         res,
-        props: { ...props, isMasterAdmin: true },
-        projectId: null,
-      });
+        await AuditLogExportTest.testInstanceExport({ body: req.body, props }),
+      );
     } catch (error) {
       next(error);
     }

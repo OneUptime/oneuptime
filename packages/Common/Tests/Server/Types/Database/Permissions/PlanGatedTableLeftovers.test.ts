@@ -108,6 +108,8 @@ const USER_ID: ObjectID = new ObjectID("6d000000-0000-4000-8000-000000000002");
 const READABLE_BELOW_PLAN_TABLES: ReadonlyArray<string> = [
   "ApiKey",
   "APIKeyPermission",
+  // Exports stop below the plan (the exporter asks it); readable to see what stopped, switch it off and delete it.
+  "AuditLogExport",
   "OnCallDutyPolicySchedule",
   "ProjectOIDC",
   "ProjectSCIM",
@@ -138,6 +140,7 @@ const RESTRICTION_COLUMN: RegExp = /^is(Block|Deny|Excluded?)/;
  * switched off. A table with no switch is stopped by deleting its records.
  */
 const SWITCHABLE_TABLES: ReadonlyArray<string> = [
+  "AuditLogExport",
   "ExternalMcpServer",
   "Form",
   "OnCallDutyPolicyScheduleCalendarFeed",
