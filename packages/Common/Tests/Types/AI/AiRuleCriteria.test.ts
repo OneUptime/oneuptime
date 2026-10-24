@@ -24,6 +24,7 @@ const Incident: AutoRemediationTriggerEntity =
 const Alert: AutoRemediationTriggerEntity = AutoRemediationTriggerEntity.Alert;
 const Profile: AutoRemediationTriggerEntity =
   AutoRemediationTriggerEntity.Profile;
+const Trace: AutoRemediationTriggerEntity = AutoRemediationTriggerEntity.Trace;
 
 describe("the criteria fields", () => {
   test("an incident rule matches on incident severities, never alert ones", () => {
@@ -144,7 +145,7 @@ describe("isAiRuleTriggerEntity", () => {
 describe("getAiRuleCriteriaProblem", () => {
   test("an unknown trigger entity type is refused, naming the allowed ones", () => {
     const expected: string =
-      "Trigger Entity Type must be one of Incident, Alert, Profile.";
+      "Trigger Entity Type must be one of Incident, Alert, Profile, Trace.";
 
     expect(getAiRuleCriteriaProblem({ triggerEntityType: "Monitor" })).toBe(
       expected,
@@ -372,19 +373,63 @@ describe("getAiRuleCriteriaProblem", () => {
         triggerEntityType: Incident,
         criteria: { filters: [{ field: "services" }] },
       }),
-    ).toBe("Services can only be used by profile AI rules.");
+    ).toBe(
+      "Services can only be used by profile AI rules or trace AI rules.",
+    );
     expect(
       getAiRuleCriteriaProblem({
         triggerEntityType: Alert,
         values: { serviceLabels: [{ _id: "x" }] },
       }),
-    ).toBe("Service Labels can only be used by profile AI rules.");
+    ).toBe(
+      "Service Labels can only be used by profile AI rules or trace AI rules.",
+    );
     expect(
       getAiRuleCriteriaProblem({
         triggerEntityType: Incident,
         values: { serviceNamePattern: "checkout" },
       }),
-    ).toBe("Service Name Pattern can only be used by profile AI rules.");
+    ).toBe(
+      "Service Name Pattern can only be used by profile AI rules or trace AI rules.",
+    );
+  });
+
+  test("a trace rule matches on the service, as a profile rule does", () => {
+    expect(AI_RULE_CRITERIA_FIELDS_BY_TRIGGER[Trace]).toEqual(
+      AI_RULE_CRITERIA_FIELDS_BY_TRIGGER[Profile],
+    );
+    expect(
+      getAiRuleCriteriaProblem({
+        triggerEntityType: Trace,
+        criteria: {
+          filters: [
+            { field: "services" },
+            { field: "serviceLabels" },
+            { field: "serviceNamePattern" },
+          ],
+        },
+        values: {
+          services: ["a"],
+          serviceLabels: ["b"],
+          serviceNamePattern: "^checkout",
+        },
+      }),
+    ).toBeNull();
+  });
+
+  test("a trace rule may not match on an incident's or an alert's criteria", () => {
+    expect(
+      getAiRuleCriteriaProblem({
+        triggerEntityType: Trace,
+        criteria: { filters: [{ field: "monitors" }] },
+      }),
+    ).toBe("Monitors can only be used by incident AI rules or alert AI rules.");
+    expect(
+      getAiRuleCriteriaProblem({
+        triggerEntityType: Trace,
+        values: { alertSeverities: ["x"] },
+      }),
+    ).toBe("Alert Severities can only be used by alert AI rules.");
   });
 
   test("the never-match pattern the dashboard writes beside conditions is no criterion", () => {

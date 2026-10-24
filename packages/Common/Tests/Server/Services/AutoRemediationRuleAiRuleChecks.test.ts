@@ -394,7 +394,7 @@ describe("AutoRemediationRuleService - what an AI rule matches", () => {
         );
 
         expect((error as Error).message).toBe(
-          "Trigger Entity Type must be one of Incident, Alert, Profile.",
+          "Trigger Entity Type must be one of Incident, Alert, Profile, Trace.",
         );
       }
     });
@@ -508,7 +508,7 @@ describe("AutoRemediationRuleService - what an AI rule matches", () => {
             criteria: criteriaOn("services"),
           })) as Error
         ).message,
-      ).toBe("Services can only be used by profile AI rules.");
+      ).toBe("Services can only be used by profile AI rules or trace AI rules.");
       expect(
         (
           (await createError({
@@ -516,7 +516,7 @@ describe("AutoRemediationRuleService - what an AI rule matches", () => {
             serviceNamePattern: "checkout",
           })) as Error
         ).message,
-      ).toBe("Service Name Pattern can only be used by profile AI rules.");
+      ).toBe("Service Name Pattern can only be used by profile AI rules or trace AI rules.");
     });
 
     it("an edit that writes a service pattern is judged against each rule's kind", async () => {
@@ -534,7 +534,7 @@ describe("AutoRemediationRuleService - what an AI rule matches", () => {
       );
 
       expect((refused.error as Error).message).toBe(
-        "Service Name Pattern can only be used by profile AI rules.",
+        "Service Name Pattern can only be used by profile AI rules or trace AI rules.",
       );
     });
 
@@ -545,6 +545,56 @@ describe("AutoRemediationRuleService - what an AI rule matches", () => {
           [{ triggerEntityType: Incident, investigates: true, fixes: true }],
         ),
       ).toEqual({ error: null, reads: 0 });
+    });
+  });
+
+  /*
+   * Traces' AI rules match on the service too: the same columns and
+   * conditions a profile rule uses, refused to incident and alert rules.
+   */
+  describe("a trace AI rule", () => {
+    const Trace: AutoRemediationTriggerEntity =
+      AutoRemediationTriggerEntity.Trace;
+
+    it("is accepted on the service's conditions and columns", async () => {
+      expect(
+        await createError({
+          triggerEntityType: Trace,
+          investigates: true,
+          fixes: true,
+          criteria: criteriaOn("services"),
+        }),
+      ).toBeNull();
+      expect(
+        await createError({
+          triggerEntityType: Trace,
+          investigates: true,
+          serviceNamePattern: "^checkout",
+          serviceLabels: [ref(Label)],
+        }),
+      ).toBeNull();
+    });
+
+    it("is refused an alert's criteria", async () => {
+      expect(
+        (
+          (await createError({
+            triggerEntityType: Trace,
+            investigates: true,
+            criteria: criteriaOn("alertSeverities"),
+          })) as Error
+        ).message,
+      ).toBe("Alert Severities can only be used by alert AI rules.");
+    });
+
+    it("an edit that writes a service pattern on a trace rule is accepted", async () => {
+      expect(
+        (
+          await updateError({ serviceNamePattern: "^api" }, [
+            { triggerEntityType: Trace, investigates: true, fixes: true },
+          ])
+        ).error,
+      ).toBeNull();
     });
   });
 
