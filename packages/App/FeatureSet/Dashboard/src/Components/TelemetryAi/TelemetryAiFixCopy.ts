@@ -27,6 +27,7 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  */
 export const TELEMETRY_AI_FIX_LANES: ReadonlyArray<TelemetryAiLane> = [
   TelemetryAiLane.Trace,
+  TelemetryAiLane.Log,
 ];
 
 /*
@@ -62,6 +63,15 @@ export const TELEMETRY_AI_FIX_LEADS: Readonly<
   ),
   [AIInsightType.TraceMissingTracing]: translationKey(
     "OneUptime AI opens a pull request that adds the tracing this lacks, for you to review.",
+  ),
+  [AIInsightType.LogErrorPattern]: translationKey(
+    "OneUptime AI opens a pull request that fixes why this error is logged, for you to review.",
+  ),
+  [AIInsightType.LogMissingLogging]: translationKey(
+    "OneUptime AI opens a pull request that adds the logging this lacks, for you to review.",
+  ),
+  [AIInsightType.LogNoisyPattern]: translationKey(
+    "OneUptime AI opens a pull request that logs this line less, for you to review.",
   ),
 };
 

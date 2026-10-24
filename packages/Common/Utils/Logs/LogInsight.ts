@@ -386,17 +386,28 @@ export function pickNoisyLogServices(
 /*
  * The words of a message's pattern that are its own: runs of two or more
  * letters outside the values the pattern and the sanitizer mask ("<num>",
- * "<uuid>", "<SERVICE_ID>", "<token>", ...).
+ * "<uuid>", "<SERVICE_ID>", "<token>", ...). Chinese and Japanese are
+ * written without spaces between words, so their runs are counted a word
+ * in every two characters - "決済に失敗しました" says more than "失敗" does.
  */
 const LETTER_RUN: RegExp = /\p{L}{2,}/gu;
 const MASKED_VALUE: RegExp = /<[A-Za-z_]{1,32}>/g;
+const UNSPACED_PAIR: RegExp =
+  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]{2}/gu;
 
 export function getPatternWords(pattern: string | undefined | null): number {
   if (typeof pattern !== "string" || pattern.length === 0) {
     return 0;
   }
 
-  return (pattern.replace(MASKED_VALUE, " ").match(LETTER_RUN) || []).length;
+  return (
+    pattern
+      .replace(MASKED_VALUE, " ")
+      .replace(UNSPACED_PAIR, (pair: string): string => {
+        return `${pair} `;
+      })
+      .match(LETTER_RUN) || []
+  ).length;
 }
 
 // Whether a message says enough of its own to be filed.
@@ -796,7 +807,7 @@ export function describeLogProblem(evidence: LogInsightEvidence): string {
   switch (evidence.kind) {
     case LogInsightKind.Error: {
       const traces: string = evidence.traceCount
-        ? ` Its lines were written in ${plural(evidence.traceCount, "trace", "traces")}.`
+        ? ` It was logged in ${plural(evidence.traceCount, "trace", "traces")}.`
         : "";
 
       return `Over the last hour it logged this error ${plural(evidence.patternCount || 0, "time", "times")}${describeAt(evidence.severities)}: "${evidence.pattern || ""}".${traces}`;
@@ -813,7 +824,13 @@ export function describeLogProblem(evidence: LogInsightEvidence): string {
         return `Over the last hour ${formatCount(evidence.failedSpanCount || 0)} of its ${plural(evidence.operationSpanCount || 0, "request", "requests")} to ${evidence.operationName || "the operation"} failed (${describeFailedShare(evidence)}), and none of the ${plural(evidence.failedSampleSize || 0, "most recent failed request", "most recent failed requests")} wrote a log line, so nobody reading the logs can see them fail.${recorded}`;
       }
 
-      return `Over the last hour it wrote ${plural(evidence.logCount, "log", "logs")} and ${plural(evidence.serviceSpanCount || 0, "span", "spans")}, and ${formatCount(evidence.tracedLogCount || 0)} of its logs (${formatTracePercent(getTracedLogPercent({ logCount: evidence.logCount, tracedLogCount: evidence.tracedLogCount || 0 }))}) carried a trace id, so a request's logs cannot be read beside its trace.`;
+      const traced: number = evidence.tracedLogCount || 0;
+      const carried: string =
+        traced > 0
+          ? `only ${formatCount(traced)} of its logs (${formatTracePercent(getTracedLogPercent({ logCount: evidence.logCount, tracedLogCount: traced }))}) carried a trace id`
+          : "none of its logs carried a trace id";
+
+      return `Over the last hour it wrote ${plural(evidence.logCount, "log", "logs")} and ${plural(evidence.serviceSpanCount || 0, "span", "spans")}, but ${carried}, so a request's logs cannot be read beside its trace.`;
     }
   }
 }
@@ -879,7 +896,7 @@ export function buildLogInsightDetail(data: {
   if (evidence.kind === LogInsightKind.Noisy) {
     lines.push(mdText`- Message: \`${evidence.pattern || ""}\``);
     lines.push(
-      mdText`- Share: ${formatTracePercent(getNoisyPercent(evidence))} of the ${plural(evidence.sampledLogCount || 0, "line", "lines")} read of the last hour`,
+      mdText`- Share: ${formatTracePercent(getNoisyPercent(evidence))} of the ${plural(evidence.sampledLogCount || 0, "line", "lines")} read from the last hour`,
     );
     lines.push(
       mdText`- In the last hour: about ${plural(evidence.patternCount || 0, "line", "lines")} of the service's ${formatCount(evidence.logCount)}`,
@@ -972,7 +989,7 @@ export function getLogFixRequestTitle(data: {
  * request, so said in each.
  */
 export const LOG_FIX_PRIVACY_RULE: string =
-  "Never log secrets or personal data, and do not copy log lines into the pull request: the message's pattern is all it needs.";
+  "Never log secrets or personal data, and never copy log lines into the pull request.";
 
 // What the AI is asked to do, by kind - and what it must not.
 function getLogFixAsk(evidence: LogInsightEvidence): string {

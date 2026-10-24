@@ -756,6 +756,10 @@ export const LogsRoutePath: Dictionary<string> = {
   [PageMap.LOGS_SETTINGS_DROP_FILTER_VIEW]: `settings/drop-filters/${RouteParams.ModelID}`,
   [PageMap.LOGS_SETTINGS_SCRUB_RULES]: "settings/scrub-rules",
   [PageMap.LOGS_SETTINGS_RECORDING_RULES]: "settings/recording-rules",
+  [PageMap.LOGS_AI_INSIGHTS]: "ai/insights",
+  [PageMap.LOGS_AI_INSIGHT_VIEW]: `ai/insights/${RouteParams.ModelID}`,
+  [PageMap.LOGS_AI_ACTIVITY]: "ai/activity",
+  [PageMap.LOGS_AI_SETTINGS]: "ai/settings",
 };
 
 // Security Events product routes
@@ -6725,6 +6729,30 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.LOGS_SETTINGS_RECORDING_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/logs/${
       LogsRoutePath[PageMap.LOGS_SETTINGS_RECORDING_RULES]
+    }`,
+  ),
+
+  [PageMap.LOGS_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/logs/${
+      LogsRoutePath[PageMap.LOGS_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.LOGS_AI_INSIGHT_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/logs/${
+      LogsRoutePath[PageMap.LOGS_AI_INSIGHT_VIEW]
+    }`,
+  ),
+
+  [PageMap.LOGS_AI_ACTIVITY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/logs/${
+      LogsRoutePath[PageMap.LOGS_AI_ACTIVITY]
+    }`,
+  ),
+
+  [PageMap.LOGS_AI_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/logs/${
+      LogsRoutePath[PageMap.LOGS_AI_SETTINGS]
     }`,
   ),
 

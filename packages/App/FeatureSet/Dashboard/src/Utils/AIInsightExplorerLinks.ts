@@ -38,6 +38,11 @@ import {
  *   TraceSlowOperation /   -> traces explorer: the service, the operation
  *   TraceFailingOperation /   (its span name) and the hour it was read in -
  *   TraceMissingTracing       only its failed spans for a failing one
+ *   LogErrorPattern /      -> logs explorer: the service, the hour it was
+ *   LogNoisyPattern /         read in and the message's own words (at
+ *   LogMissingLogging         Error and Fatal for an error log); a failure
+ *                             that writes no log line opens its failed
+ *                             spans in the traces explorer instead
  *
  * Everything here is pure (no network, no React) so App/Tests/Dashboard can
  * exercise the whole matrix in plain Node; the caller resolves service
@@ -62,6 +67,8 @@ export const LATENCY_REGRESSION_WINDOW_MINUTES: number = 60;
 export const METRIC_DRIFT_WINDOW_MINUTES: number = 14 * 24 * 60;
 export const EXCEPTION_INSIGHT_WINDOW_MINUTES: number = 24 * 60;
 export const DEPLOY_REGRESSION_WINDOW_MINUTES: number = 2 * 60;
+// Common/Utils/Logs/LogInsight's LOG_INSIGHT_WINDOW_MINUTES (pinned in tests).
+export const LOG_FINDING_WINDOW_MINUTES: number = 60;
 
 /*
  * The severities ErrorLogSpikeDetector counts
@@ -135,6 +142,23 @@ export interface AIInsightExplorerLinkInput {
         operationName?: string | undefined;
         kind?: string | undefined;
         gap?: string | undefined;
+        windowStartTime?: string | undefined;
+        windowEndTime?: string | undefined;
+      }
+    | undefined;
+  /**
+   * Logs' findings: the message's own words, its severities, and the hour
+   * it was read in (evidence.log), when the caller has them - and, for a
+   * failure that writes no log line, its operation. Without them the link
+   * opens the service's logs around when it was last seen.
+   */
+  log?:
+    | {
+        kind?: string | undefined;
+        gap?: string | undefined;
+        searchText?: string | undefined;
+        severities?: Array<string> | undefined;
+        operationName?: string | undefined;
         windowStartTime?: string | undefined;
         windowEndTime?: string | undefined;
       }
@@ -224,6 +248,12 @@ export const getInsightDetectionWindow: GetInsightDetectionWindowFunction =
       case AIInsightType.TraceFailingOperation:
       case AIInsightType.TraceMissingTracing:
         windowMinutes = LATENCY_REGRESSION_WINDOW_MINUTES;
+        break;
+      // Logs' findings read one hour (Utils/Logs/LogInsight).
+      case AIInsightType.LogErrorPattern:
+      case AIInsightType.LogMissingLogging:
+      case AIInsightType.LogNoisyPattern:
+        windowMinutes = LOG_FINDING_WINDOW_MINUTES;
         break;
       case AIInsightType.DeployRegression:
         windowMinutes = DEPLOY_REGRESSION_WINDOW_MINUTES;
@@ -481,6 +511,84 @@ function buildTraceFindingLink(
   };
 }
 
+/*
+ * The logs explorer on a Logs finding: its service, the hour it was read
+ * in and the message's own words as a contains-match chip - the words the
+ * detector found as written in a line, so the list holds the lines the
+ * finding counted - only at Error and Fatal for an error log, at the
+ * severities it was logged at for a noisy one. A failure that writes no
+ * log line has no lines to show: it opens its operation's failed spans in
+ * the traces explorer, the requests that failed silently.
+ */
+function buildLogFindingLink(
+  input: AIInsightExplorerLinkInput,
+): AIInsightExplorerLink | null {
+  if (input.log?.gap === "SilentFailures" && input.log.operationName) {
+    return buildTraceFindingLink({
+      ...input,
+      trace: {
+        operationName: input.log.operationName,
+        gap: "SilentFailures",
+        windowStartTime: input.log.windowStartTime,
+        windowEndTime: input.log.windowEndTime,
+      },
+    });
+  }
+
+  const serviceScope: InsightServiceScope = buildServiceScope(input);
+  const startTime: Date | null = toValidDate(input.log?.windowStartTime);
+  const endTime: Date | null = toValidDate(input.log?.windowEndTime);
+  const window: InsightDetectionWindow | null =
+    startTime && endTime && startTime.getTime() < endTime.getTime()
+      ? { startTime, endTime }
+      : getInsightDetectionWindow({
+          insightType: input.insightType,
+          lastSeenAt: input.lastSeenAt,
+        });
+
+  const severityTexts: Array<string> =
+    input.insightType === AIInsightType.LogErrorPattern
+      ? [...ERROR_LOG_SPIKE_SEVERITIES]
+      : input.insightType === AIInsightType.LogNoisyPattern
+        ? (input.log?.severities || []).filter((severity: string): boolean => {
+            return typeof severity === "string" && severity.trim().length > 0;
+          })
+        : [];
+
+  const searchText: string | null =
+    input.insightType === AIInsightType.LogMissingLogging
+      ? null
+      : trimmedOrNull(input.log?.searchText);
+
+  const scope: TelemetryCrossSignalScope = {
+    serviceIds: serviceScope.serviceIds,
+    attributes: serviceScope.attributes,
+    ...(severityTexts.length > 0 ? { severityTexts } : {}),
+    ...(searchText ? { bodyContains: searchText } : {}),
+    startTime: window?.startTime,
+    endTime: window?.endTime,
+  };
+
+  const serialized: CrossSignalQueryParams = toLogsExplorerQueryParams(scope);
+
+  const route: Route | null = withQueryParams(
+    RouteUtil.populateRouteParams(RouteMap[PageMap.LOGS] as Route),
+    serialized.params,
+  );
+
+  if (!route) {
+    return null;
+  }
+
+  return {
+    target: "logs",
+    label: "Open in Logs",
+    icon: IconProp.Logs,
+    route,
+    dropped: serialized.dropped,
+  };
+}
+
 type BuildInsightInvestigationLinkFunction = (
   input: AIInsightExplorerLinkInput,
 ) => AIInsightExplorerLink | null;
@@ -682,6 +790,12 @@ export const buildInsightInvestigationLink: BuildInsightInvestigationLinkFunctio
       case AIInsightType.TraceFailingOperation:
       case AIInsightType.TraceMissingTracing: {
         return buildTraceFindingLink(input);
+      }
+
+      case AIInsightType.LogErrorPattern:
+      case AIInsightType.LogMissingLogging:
+      case AIInsightType.LogNoisyPattern: {
+        return buildLogFindingLink(input);
       }
 
       case AIInsightType.ProfileHotspot: {

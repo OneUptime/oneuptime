@@ -1,6 +1,7 @@
 import Route from "Common/Types/API/Route";
 import AIInsightEvidence, {
   ExceptionInsightEvidence,
+  LogInsightEvidence,
   LogSpikeInsightEvidence,
   MetricDriftInsightEvidence,
   TraceInsightEvidence,
@@ -38,6 +39,7 @@ import {
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import { TRACE_INSIGHT_MIN_FAILED_SPANS } from "Common/Utils/Traces/TraceInsight";
+import { LOG_INSIGHT_MIN_ERROR_PATTERN_COUNT } from "Common/Utils/Logs/LogInsight";
 import PageMap from "./PageMap";
 import RouteMap, { RouteUtil } from "./RouteMap";
 
@@ -78,6 +80,14 @@ import RouteMap, { RouteUtil } from "./RouteMap";
  *   TraceMissingTracing -> no Create Monitor at all (isAIInsightMonitorOffered):
  *                     what a trace lacks is not a count a monitor can watch,
  *                     so no button that could never be pressed is drawn.
+ *   LogErrorPattern -> Logs monitor: the service's Error and Fatal lines
+ *                     whose body holds the message's own words (the search
+ *                     words the detector found as written in a line), in
+ *                     the past hour, at the fewest lines the Logs detector
+ *                     files an error log for.
+ *   LogMissingLogging / LogNoisyPattern -> no Create Monitor at all: a log
+ *                     line that is not written cannot be counted, and a
+ *                     noisy line is fixed, not paged on.
  *
  * Pure (no network, no React) for the same reason as AIInsightExplorerLinks
  * and SecurityEventsMonitorPrefill: what it builds is a contract with the step
@@ -128,6 +138,13 @@ export const NEW_EXCEPTION_MIN_COUNT: number = 3;
  */
 export const TRACE_FAILING_OPERATION_MIN_COUNT: number =
   TRACE_INSIGHT_MIN_FAILED_SPANS;
+
+/*
+ * The Logs detector files an error log at this many lines of one message
+ * in its hour. Read from Utils/Logs/LogInsight, which is pure.
+ */
+export const LOG_ERROR_PATTERN_MIN_COUNT: number =
+  LOG_INSIGHT_MIN_ERROR_PATTERN_COUNT;
 
 // MetricDriftDetector.METRIC_DRIFT_MIN_RELATIVE_CHANGE.
 export const METRIC_DRIFT_RELATIVE_CHANGE: number = 0.5;
@@ -186,6 +203,10 @@ export const AI_INSIGHT_MONITOR_OPERATION_SCOPE_BLOCKER: string =
 export const AI_INSIGHT_MONITOR_EXCEPTION_SCOPE_BLOCKER: string =
   translationKey(
     "This insight does not record which exception it is about, so a monitor could not be scoped to it.",
+  );
+export const AI_INSIGHT_MONITOR_LOG_MESSAGE_SCOPE_BLOCKER: string =
+  translationKey(
+    "This insight does not record words of its message a monitor could search for, so a monitor could not be scoped to it.",
   );
 export const AI_INSIGHT_MONITOR_METRIC_NAME_BLOCKER: string = translationKey(
   "This insight does not record which metric drifted.",
@@ -294,6 +315,14 @@ function getTraceEvidence(
 ): TraceInsightEvidence | null {
   return asObject<TraceInsightEvidence>(
     asObject<AIInsightEvidence>(input.evidence)?.trace,
+  );
+}
+
+function getLogEvidence(
+  input: AIInsightMonitorInput,
+): LogInsightEvidence | null {
+  return asObject<LogInsightEvidence>(
+    asObject<AIInsightEvidence>(input.evidence)?.log,
   );
 }
 
@@ -454,6 +483,16 @@ function getMetricDriftDirection(
 }
 
 /*
+ * The Logs findings no monitor could ever watch: a line a service does not
+ * write cannot be counted, and a noisy line is a cost to fix, not a reason
+ * to page anyone.
+ */
+export const AI_INSIGHT_TYPES_NOT_MONITORED: ReadonlyArray<AIInsightType> = [
+  AIInsightType.LogMissingLogging,
+  AIInsightType.LogNoisyPattern,
+];
+
+/*
  * Whether Create Monitor is offered on this kind of insight at all. Missing
  * tracing is not: what a trace lacks is not a count a monitor can watch, so
  * a greyed-out button that could never be pressed would only be clutter.
@@ -461,7 +500,12 @@ function getMetricDriftDirection(
 export function isAIInsightMonitorOffered(
   insightType: string | undefined,
 ): boolean {
-  return insightType !== AIInsightType.TraceMissingTracing;
+  return (
+    insightType !== AIInsightType.TraceMissingTracing &&
+    !(AI_INSIGHT_TYPES_NOT_MONITORED as ReadonlyArray<string>).includes(
+      insightType || "",
+    )
+  );
 }
 
 /**
@@ -533,6 +577,12 @@ export function getAIInsightMonitorBlocker(
 
     case AIInsightType.TraceSlowOperation:
       return AI_INSIGHT_MONITOR_SLOW_OPERATION_BLOCKER;
+
+    case AIInsightType.LogErrorPattern:
+      // The message's words are the scope: without them every error counts.
+      return trimmedOrNull(getLogEvidence(input)?.searchText)
+        ? null
+        : AI_INSIGHT_MONITOR_LOG_MESSAGE_SCOPE_BLOCKER;
 
     default:
       return AI_INSIGHT_MONITOR_UNKNOWN_TYPE_BLOCKER;
@@ -1195,6 +1245,84 @@ function buildTraceFailingOperationMonitor(
   };
 }
 
+/*
+ * An error log as a Logs monitor: the service's Error and Fatal lines whose
+ * body holds the message's own words - the search words the detector found
+ * as written in a line, a contains-match as the monitor's body filter is -
+ * over the past hour, at the fewest lines the detector files an error log
+ * for. The words only ever reach the body filter: like an exception message
+ * they are the service's own text, so the words around them name the
+ * service and numbers only (see the header).
+ */
+function buildLogErrorPatternMonitor(
+  input: AIInsightMonitorInput,
+): MonitorShape {
+  const evidence: LogInsightEvidence | null = getLogEvidence(input);
+  const serviceId: ObjectID | null = getServiceId(input);
+  const serviceName: string | null = trimmedOrNull(input.serviceName);
+  const scopedServiceName: string | null =
+    serviceId && serviceName ? serviceName : null;
+  const threshold: number = LOG_ERROR_PATTERN_MIN_COUNT;
+  const thresholdText: string = formatCount(threshold);
+
+  const name: string = scopedServiceName
+    ? translateTemplate("Error log in {{serviceName}}", {
+        serviceName: scopedServiceName,
+      })
+    : translateTemplate("Error log");
+
+  const condition: string = translateTemplate(
+    "The error was logged {{threshold}} or more times within an hour.",
+    { threshold: thresholdText },
+  );
+
+  return {
+    monitorType: MonitorType.Logs,
+    name: name,
+    description: [
+      translateTemplate(
+        "Created from an AI insight that found an error logged again and again. Opens an incident when it is logged again:",
+      ),
+      condition,
+      translateTemplate(
+        "{{threshold}} lines in an hour is the AI detector's bar for an error log.",
+        { threshold: thresholdText },
+      ),
+    ].join(" "),
+    configureStep: (step: MonitorStep): void => {
+      step.setLogMonitor({
+        ...MonitorStepLogMonitorUtil.getDefault(),
+        body: trimmedOrNull(evidence?.searchText) || "",
+        severityTexts: [...ERROR_LOG_SPIKE_LOG_SEVERITIES],
+        telemetryServiceIds: serviceId ? [serviceId] : [],
+        lastXSecondsOfLogs: SPIKE_MONITOR_WINDOW_SECONDS,
+      });
+    },
+    criteria: {
+      checkOn: CheckOn.LogCount,
+      unhealthyFilterType: FilterType.GreaterThanOrEqualTo,
+      healthyFilterType: FilterType.LessThan,
+      threshold: threshold,
+      unhealthyName: translateTemplate(
+        "{{threshold}} or more of these error logs in an hour",
+        { threshold: thresholdText },
+      ),
+      unhealthyDescription: condition,
+      healthyDescription: translateTemplate(
+        "Fewer than {{threshold}} of these error logs in the past hour.",
+        { threshold: thresholdText },
+      ),
+      incidentTitle: name,
+      incidentDescription: [
+        condition,
+        translateTemplate(
+          "Open the logs for the past hour to see the lines and the requests they were logged in, then check what was deployed or changed recently.",
+        ),
+      ].join(" "),
+    },
+  };
+}
+
 function buildMetricDriftMonitor(
   input: AIInsightMonitorInput,
   direction: MetricDriftDirection,
@@ -1363,6 +1491,9 @@ export function buildAIInsightMonitorPrefill(data: {
       break;
     case AIInsightType.TraceFailingOperation:
       shape = buildTraceFailingOperationMonitor(data.insight);
+      break;
+    case AIInsightType.LogErrorPattern:
+      shape = buildLogErrorPatternMonitor(data.insight);
       break;
     case AIInsightType.MetricDrift: {
       const direction: MetricDriftDirection | null = getMetricDriftDirection(

@@ -26,7 +26,6 @@ import CaptureSpan from "../../../../Telemetry/CaptureSpan";
 import { sanitizeExceptionMessage } from "../../../../Telemetry/ExceptionSanitizer";
 import LogExceptionExtractor from "../../../../Telemetry/LogExceptionExtractor";
 import { MarkdownText } from "../../../../../../Utils/Markdown/FeedMarkdown";
-import { getErrorPatternSearchText } from "../../../../../../Utils/Telemetry/LogErrorPattern";
 import {
   FailedRequestLogsReading,
   LOG_INSIGHT_ERROR_PATTERN_ROWS,
@@ -116,6 +115,31 @@ import {
 
 // The fewest characters a message's search words need to narrow a search.
 const SEARCH_TEXT_MIN_LENGTH: number = 6;
+
+// Any masked value of a pattern: the grouping's, the sanitizer's, a token's.
+const MASKED_VALUE: RegExp = /<[A-Za-z_]{1,32}>/g;
+
+// Punctuation a masked value leaves at the edges of the words around it.
+const EDGE_GLUE: ReadonlySet<string> = new Set<string>(
+  " \t\r\n\"':,;=()[]{}".split(""),
+);
+const WHITESPACE_RUN: RegExp = /\s+/;
+
+// A run of words without the glue at its two ends, read once from each end.
+function trimGlue(text: string): string {
+  let start: number = 0;
+  let end: number = text.length;
+
+  while (start < end && EDGE_GLUE.has(text.charAt(start))) {
+    start++;
+  }
+
+  while (end > start && EDGE_GLUE.has(text.charAt(end - 1))) {
+    end--;
+  }
+
+  return text.slice(start, end);
+}
 
 // The most characters of a code location kept, as the traces lane does.
 const MAX_CODE_TEXT_LENGTH: number = 500;
@@ -210,29 +234,48 @@ export default class LogProblemDetector {
   }
 
   /*
-   * The words a message's lines can be searched by: a run of its own words
-   * found as written in its newest line - kept only when the sanitizer
-   * leaves it as it is, so no value it would mask is searched for in the
-   * open. Pure.
+   * The words a message's lines can be searched by: the longest run of its
+   * own words - taken from the SANITIZED pattern, so no value the sanitizer
+   * masks is ever searched for in the open - that its newest line holds as
+   * written (a run across a collapsed line break would match nothing), else
+   * the longest single word it holds. "" when none is long enough to narrow
+   * a search. Pure.
    */
   public static getSearchText(data: {
     pattern: string;
     sampleBody: string;
   }): string {
-    const text: string = getErrorPatternSearchText(data.pattern, {
-      sampleBody: data.sampleBody,
-      minimumLength: SEARCH_TEXT_MIN_LENGTH,
-    });
+    const sanitized: string = LogProblemDetector.sanitizePattern(data.pattern);
+    const candidates: Array<string> = [];
 
-    if (
-      !text ||
-      !data.sampleBody.includes(text) ||
-      LogProblemDetector.sanitizePattern(text) !== text
-    ) {
-      return "";
+    for (const segment of sanitized.split(MASKED_VALUE)) {
+      const run: string = trimGlue(segment);
+
+      if (run) {
+        candidates.push(run);
+      }
+
+      for (const word of segment.split(WHITESPACE_RUN)) {
+        const trimmed: string = trimGlue(word);
+
+        if (trimmed) {
+          candidates.push(trimmed);
+        }
+      }
     }
 
-    return text;
+    candidates.sort((a: string, b: string): number => {
+      return b.length - a.length;
+    });
+
+    return (
+      candidates.find((candidate: string): boolean => {
+        return (
+          candidate.length >= SEARCH_TEXT_MIN_LENGTH &&
+          data.sampleBody.includes(candidate)
+        );
+      }) || ""
+    );
   }
 
   // A row of a service's error messages, as the gates read it. Pure.

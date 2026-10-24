@@ -890,6 +890,11 @@ export enum ProjectAiNoticeContext {
    * traces, still found with AI off.
    */
   Traces = "Traces",
+  /*
+   * Logs → AI → Settings: error, missing and noisy logs OneUptime finds in
+   * logs, still found with AI off.
+   */
+  Logs = "Logs",
 }
 
 // Project.enableAi, as the page knows it.
@@ -1094,6 +1099,14 @@ export const PROJECT_AI_NOTICE_CONTEXT_COPY: Record<
     ),
     providerConsequence: translationKey(
       "Until it has one, slow and failing operations are still found, but none are looked into or fixed.",
+    ),
+  },
+  [ProjectAiNoticeContext.Logs]: {
+    aiOffDescription: translationKey(
+      "OneUptime AI is off for this project. Error, missing and noisy logs are still found, but none are looked into and no pull requests are opened.",
+    ),
+    providerConsequence: translationKey(
+      "Until it has one, error, missing and noisy logs are still found, but none are looked into or fixed.",
     ),
   },
 };

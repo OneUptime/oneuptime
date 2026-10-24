@@ -18,6 +18,7 @@ import TelemetryAiRouting, {
 } from "../../../../../Server/Utils/AI/TelemetryAi/TelemetryAiRouting";
 import TelemetryAiRules from "../../../../../Server/Utils/AI/TelemetryAi/TelemetryAiRules";
 import TraceInsightFix from "../../../../../Server/Utils/AI/TelemetryAi/TraceInsightFix";
+import LogInsightFix from "../../../../../Server/Utils/AI/TelemetryAi/LogInsightFix";
 import AIInsight from "../../../../../Models/DatabaseModels/AIInsight";
 import AutoRemediationRule from "../../../../../Models/DatabaseModels/AutoRemediationRule";
 import Project from "../../../../../Models/DatabaseModels/Project";
@@ -345,10 +346,11 @@ describe("TelemetryAiRouting.sweepLane", () => {
     });
   });
 
-  test("every lane has its fix starter: the Profiler's and Traces'", () => {
+  test("every lane has its fix starter: the Profiler's, Traces' and Logs'", () => {
     expect(Object.keys(TELEMETRY_AI_FIX_STARTERS)).toEqual([
       TelemetryAiLane.Profile,
       TelemetryAiLane.Trace,
+      TelemetryAiLane.Log,
     ]);
   });
 
@@ -540,5 +542,184 @@ describe("TelemetryAiRouting.sweepLane - the Trace lane", () => {
 
     expect(result.waitingForVerdict).toBe(0);
     expect(startTraceFix).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Logs' look: the same routing, its own fix starter, and an error log's
+ * pull request opened on its own only once its investigation found the
+ * code at fault - an error may be logged on purpose. Missing logging and
+ * noisy logs change how the code logs: they wait for nothing.
+ */
+describe("TelemetryAiRouting.sweepLane - the Log lane", () => {
+  let problems: Array<AIInsight>;
+  let rules: Array<AutoRemediationRule> | null;
+  let findProblems: SpyInstance<typeof AIInsightService.findBy>;
+  let triage: SpyInstance<typeof InsightTriage.enqueueInsightTriage>;
+  let startLogFix: SpyInstance<typeof LogInsightFix.start>;
+  let startTraceFix: SpyInstance<typeof TraceInsightFix.start>;
+  const fixTaskId: ObjectID = ObjectID.generate();
+  const LLM_PROVIDER: string = "5092cccc-0000-4000-8000-0000000000c9";
+
+  function logProblem(overrides: Partial<AIInsight> = {}): AIInsight {
+    return problem({
+      insightType: AIInsightType.LogNoisyPattern,
+      title: '"cache hit for key <uuid>" is 62% of checkout\'s logs',
+      ...overrides,
+    });
+  }
+
+  beforeEach(() => {
+    problems = [logProblem()];
+    rules = [];
+
+    findProblems = jest
+      .spyOn(AIInsightService, "findBy")
+      .mockImplementation(async () => {
+        return problems;
+      });
+    jest.spyOn(TelemetryAiRules, "readRules").mockImplementation(async () => {
+      return rules;
+    });
+    jest.spyOn(TelemetryAiRules, "readServices").mockResolvedValue(new Map());
+    triage = jest
+      .spyOn(InsightTriage, "enqueueInsightTriage")
+      .mockResolvedValue({ triageAiRunId: ObjectID.generate() });
+    startLogFix = jest
+      .spyOn(LogInsightFix, "start")
+      .mockResolvedValue({ taskId: fixTaskId });
+    startTraceFix = jest
+      .spyOn(TraceInsightFix, "start")
+      .mockResolvedValue({ taskId: fixTaskId });
+    jest.spyOn(AIInsightService, "updateOneBy").mockResolvedValue(1);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  async function sweep(over?: Project): Promise<TelemetryAiSweepResult> {
+    return TelemetryAiRouting.sweepLane({
+      project:
+        over ||
+        project({
+          enableAutomaticProfileRemediation: false,
+          enableAutomaticLogRemediation: true,
+        }),
+      lane: TelemetryAiLane.Log,
+      now: NOW,
+    });
+  }
+
+  test("its switch is its own: off, nothing is read, whatever the other lanes say", async () => {
+    await sweep(
+      project({
+        enableAutomaticProfileRemediation: true,
+        enableAutomaticTraceRemediation: true,
+        enableAutomaticLogRemediation: false,
+      }),
+    );
+
+    expect(findProblems).not.toHaveBeenCalled();
+  });
+
+  test("reads Logs' three kinds of finding, and starts Logs' own fix", async () => {
+    const result: TelemetryAiSweepResult = await sweep();
+
+    const query: JSONObject = (
+      findProblems.mock.calls[0]![0] as unknown as JSONObject
+    )["query"] as JSONObject;
+
+    for (const type of [
+      AIInsightType.LogErrorPattern,
+      AIInsightType.LogMissingLogging,
+      AIInsightType.LogNoisyPattern,
+    ]) {
+      expect(JSON.stringify(query["insightType"])).toContain(type);
+    }
+
+    expect(JSON.stringify(query["insightType"])).not.toContain(
+      AIInsightType.TraceFailingOperation,
+    );
+    expect(JSON.stringify(query["insightType"])).not.toContain(
+      AIInsightType.ErrorLogSpike,
+    );
+    expect(result.fixesStarted).toBe(1);
+    expect(startLogFix).toHaveBeenCalledTimes(1);
+    expect(startTraceFix).not.toHaveBeenCalled();
+  });
+
+  test("missing logging and a noisy log open their pull request with the investigation", async () => {
+    problems = [
+      logProblem(),
+      logProblem({ insightType: AIInsightType.LogMissingLogging }),
+    ];
+
+    const result: TelemetryAiSweepResult = await sweep();
+
+    expect(result.investigationsStarted).toBe(2);
+    expect(result.fixesStarted).toBe(2);
+    expect(result.waitingForVerdict).toBe(0);
+  });
+
+  test("an error log waits for its investigation's verdict", async () => {
+    problems = [logProblem({ insightType: AIInsightType.LogErrorPattern })];
+
+    const result: TelemetryAiSweepResult = await sweep();
+
+    expect(triage).toHaveBeenCalledTimes(1);
+    expect(startLogFix).not.toHaveBeenCalled();
+    expect(result.waitingForVerdict).toBe(1);
+  });
+
+  test("an error log the investigation found the code at fault in gets its pull request", async () => {
+    problems = [
+      logProblem({
+        insightType: AIInsightType.LogErrorPattern,
+        triageAiRunId: ObjectID.generate(),
+        triageCompletedAt: new Date(NOW.getTime() - HOUR),
+        classification: "code-fault",
+      }),
+    ];
+
+    const result: TelemetryAiSweepResult = await sweep();
+
+    expect(triage).not.toHaveBeenCalled();
+    expect(startLogFix).toHaveBeenCalledTimes(1);
+    expect(result.fixesStarted).toBe(1);
+  });
+
+  test("an error logged on purpose - a refused sign-in - never gets one on its own", async () => {
+    for (const classification of [
+      "expected-denial",
+      "user-error",
+      "infrastructure",
+      "unknown",
+    ]) {
+      startLogFix.mockClear();
+      problems = [
+        logProblem({
+          insightType: AIInsightType.LogErrorPattern,
+          triageAiRunId: ObjectID.generate(),
+          triageCompletedAt: new Date(NOW.getTime() - HOUR),
+          classification: classification,
+        }),
+      ];
+
+      const result: TelemetryAiSweepResult = await sweep();
+
+      expect(startLogFix).not.toHaveBeenCalled();
+      expect(result.waitingForVerdict).toBe(0);
+    }
+  });
+
+  test("the rules' LLM provider is handed to the investigation", async () => {
+    rules = [rule({ llmProviderId: new ObjectID(LLM_PROVIDER) })];
+
+    await sweep();
+
+    expect(triage.mock.calls[0]![0].llmProviderId?.toString()).toBe(
+      LLM_PROVIDER,
+    );
   });
 });

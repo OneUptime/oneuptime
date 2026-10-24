@@ -72,6 +72,13 @@ export const TELEMETRY_AI_PAGES: Readonly<
     logs: PageMap.TRACES_AI_LOGS,
     settings: PageMap.TRACES_AI_SETTINGS,
   },
+  // Its logs page is Activity: inside Logs, "Logs" would read as log lines.
+  [TelemetryAiLane.Log]: {
+    insights: PageMap.LOGS_AI_INSIGHTS,
+    insightView: PageMap.LOGS_AI_INSIGHT_VIEW,
+    logs: PageMap.LOGS_AI_ACTIVITY,
+    settings: PageMap.LOGS_AI_SETTINGS,
+  },
 };
 
 export interface TelemetryAiLaneCopy {
@@ -280,6 +287,85 @@ export const TELEMETRY_AI_LANE_COPY: Readonly<
       ),
     },
   },
+  /*
+   * Logs: error logs, missing logging and noisy logs (Common/Utils/Logs/
+   * LogInsight) - "problems in your logs" where all three are meant, and
+   * each by its name where one is. An error log's pull request opens on its
+   * own only once the investigation finds the code at fault: the Fix step's
+   * answer says so.
+   */
+  [TelemetryAiLane.Log]: {
+    noticeContext: ProjectAiNoticeContext.Logs,
+    ruleCriteriaSubject: RuleCriteriaSubject.Services,
+
+    insightsIntro: translationKey(
+      "Every hour OneUptime looks through your services' logs for errors they log again and again, failures they do not log, and lines that flood them, and files what it finds here with the evidence. OneUptime AI looks into each finding and opens a pull request to fix it, as your AI settings say.",
+    ),
+    insightsEmptyTitle: translationKey("No error, missing or noisy logs found"),
+    insightsEmptyDescription: translationKey(
+      "Every hour OneUptime looks through your services' logs and files a finding when an error repeats, a failure goes unlogged, or one line floods them.",
+    ),
+    insightsOffEmptyTitle: translationKey(
+      "OneUptime is not looking for error, missing or noisy logs",
+    ),
+    insightsOffEmptyDescription: translationKey(
+      "Turn on 'Find and fix error, missing and noisy logs' in AI Settings, and OneUptime looks through your services' logs every hour.",
+    ),
+
+    logsIntro: translationKey(
+      "Everything OneUptime AI did with the problems it found in your logs, newest first: each investigation, and each pull request it opened or was asked to open.",
+    ),
+    logsEmptyTitle: translationKey("Nothing yet"),
+    logsEmptyDescription: translationKey(
+      "When OneUptime AI looks into a problem in your logs or opens a pull request for it, it shows up here.",
+    ),
+
+    switchesCardDescription: translationKey(
+      "It works on error, missing and noisy logs on its own. Turn it off if you do not want it to.",
+    ),
+    advancedDescription: translationKey(
+      "Which services' logs OneUptime AI works on, when, and whether it opens pull requests on its own.",
+    ),
+    advancedDefaultsSummary: translationKey(
+      "OneUptime AI looks into every problem it finds in your logs right away, and opens a pull request for each one it can fix.",
+    ),
+    rulesCardDescription: translationKey(
+      "With no rule, OneUptime AI looks into every problem in your logs right away, and opens a pull request for each one it can fix. Add rules to choose which services it works on, when, and how each is fixed.",
+    ),
+    noRulesMessage: translationKey(
+      "No rules. Every problem found in your logs is looked into, and a pull request opened for each one OneUptime AI can fix.",
+    ),
+
+    ruleNamePlaceholder: translationKey("Checkout services"),
+    waitDescription: translationKey(
+      "Counted from when the problem was first found. When several rules match, the shortest wait decides. At most 1440 (a day).",
+    ),
+    timing: {
+      [InvestigationRuleTiming.RightAway]: {
+        title: translationKey("Right away"),
+        description: translationKey(
+          "OneUptime AI starts as soon as the problem is found.",
+        ),
+      },
+      [InvestigationRuleTiming.AfterWait]: {
+        title: translationKey("Only if still found after a wait"),
+        description: translationKey(
+          "A problem that goes away during the wait is not looked into.",
+        ),
+      },
+    },
+    fixOptionDescriptions: {
+      [AiRuleFix.DoNotFix]: translationKey(
+        "OneUptime AI looks into the problem and writes what it found on the finding. It opens no pull request.",
+      ),
+      [AiRuleFix.AskFirst]: translationKey(
+        "The finding offers the pull request, and someone opens it with one click.",
+      ),
+      [AiRuleFix.WithoutAsking]: translationKey(
+        "OneUptime AI opens the pull request on its own, for an error log once it finds the code at fault. Nothing is ever merged.",
+      ),
+    },
+  },
 };
 
 /*
@@ -320,6 +406,15 @@ export const TELEMETRY_AI_INSIGHTS_SCOPES: Readonly<
     emptyDescription:
       TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Trace].insightsEmptyDescription,
   },
+  [TelemetryAiLane.Log]: {
+    insightTypes: TELEMETRY_AI_LANES[TelemetryAiLane.Log].insightTypes,
+    viewPage: TELEMETRY_AI_PAGES[TelemetryAiLane.Log].insightView,
+    settingsPage: TELEMETRY_AI_PAGES[TelemetryAiLane.Log].settings,
+    intro: TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Log].insightsIntro,
+    emptyTitle: TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Log].insightsEmptyTitle,
+    emptyDescription:
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Log].insightsEmptyDescription,
+  },
 };
 
 /*
@@ -343,6 +438,12 @@ export const TELEMETRY_AI_INSIGHTS_SCOPES_WHILE_OFF: Readonly<
       TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Trace].insightsOffEmptyTitle,
     emptyDescription:
       TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Trace].insightsOffEmptyDescription,
+  },
+  [TelemetryAiLane.Log]: {
+    ...TELEMETRY_AI_INSIGHTS_SCOPES[TelemetryAiLane.Log],
+    emptyTitle: TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Log].insightsOffEmptyTitle,
+    emptyDescription:
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Log].insightsOffEmptyDescription,
   },
 };
 
@@ -384,6 +485,16 @@ export const TELEMETRY_AI_SWITCHES: Readonly<
       title: translationKey("Find and fix slow and failing operations"),
       description: translationKey(
         "Every hour OneUptime looks through your traces for slow and failing operations and missing tracing. OneUptime AI fixes what it can with pull requests.",
+      ),
+      note: translationKey("Needs a repository connected in Code."),
+    },
+  ],
+  [TelemetryAiLane.Log]: [
+    {
+      column: "enableAutomaticLogRemediation",
+      title: translationKey("Find and fix error, missing and noisy logs"),
+      description: translationKey(
+        "Every hour OneUptime looks through your logs for repeated errors, unlogged failures and noisy lines. OneUptime AI fixes what it can with pull requests.",
       ),
       note: translationKey("Needs a repository connected in Code."),
     },

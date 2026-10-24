@@ -5,7 +5,7 @@ import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 
-export type LogsTabKey = "viewer" | "insights" | "setup" | "settings";
+export type LogsTabKey = "viewer" | "insights" | "ai" | "setup" | "settings";
 
 interface Props {
   active: LogsTabKey;
@@ -29,6 +29,18 @@ const LogsNavTabs: FunctionComponent<Props> = (props: Props): ReactElement => {
         RouteMap[PageMap.LOGS_INSIGHTS] as Route,
       ),
       carriesScope: true,
+    },
+    /*
+     * What OneUptime AI found in the project's logs and did with it, and
+     * its settings (Types/AI/TelemetryAi): its own side menu, as Settings.
+     */
+    {
+      key: "ai",
+      label: "AI",
+      icon: IconProp.Sparkles,
+      to: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.LOGS_AI_INSIGHTS] as Route,
+      ),
     },
     {
       key: "setup",

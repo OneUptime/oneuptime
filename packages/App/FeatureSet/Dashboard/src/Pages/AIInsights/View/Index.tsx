@@ -546,6 +546,7 @@ const AIInsightViewPage: FunctionComponent<
       spikeWindowMinutes: insight.evidence?.logSpike?.windowMinutes,
       profile: insight.evidence?.profile,
       trace: insight.evidence?.trace,
+      log: insight.evidence?.log,
     });
   }, [insight, serviceIdString, telemetryExceptionId]);
 
