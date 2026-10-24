@@ -885,6 +885,11 @@ export enum ProjectAiNoticeContext {
    * (Common/Types/AI/TelemetryAi), which is still found with AI off.
    */
   Profiles = "Profiles",
+  /*
+   * Traces → AI → Settings: slow and failing operations OneUptime finds in
+   * traces, still found with AI off.
+   */
+  Traces = "Traces",
 }
 
 // Project.enableAi, as the page knows it.
@@ -1081,6 +1086,14 @@ export const PROJECT_AI_NOTICE_CONTEXT_COPY: Record<
     ),
     providerConsequence: translationKey(
       "Until it has one, slow code is still found, but none of it is looked into or fixed.",
+    ),
+  },
+  [ProjectAiNoticeContext.Traces]: {
+    aiOffDescription: translationKey(
+      "OneUptime AI is off for this project. Slow and failing operations are still found, but none are looked into and no pull requests are opened.",
+    ),
+    providerConsequence: translationKey(
+      "Until it has one, slow and failing operations are still found, but none are looked into or fixed.",
     ),
   },
 };

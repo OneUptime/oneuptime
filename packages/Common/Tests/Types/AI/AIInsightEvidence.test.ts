@@ -6,6 +6,7 @@ import AIInsightEvidence, {
   LogSpikeInsightEvidence,
   MetricDriftInsightEvidence,
   ProfileInsightEvidence,
+  TraceInsightEvidence,
 } from "../../../Types/AI/AIInsightEvidence";
 import AIInsightType from "../../../Types/AI/AIInsightType";
 import { PerformanceFindingType } from "../../../Types/AI/CodeFixTaskContext";
@@ -33,6 +34,9 @@ const SECTION_FOR_TYPE: Record<AIInsightType, EvidenceSection> = {
   [AIInsightType.MetricDrift]: "metricDrift",
   [AIInsightType.DeployRegression]: "deployRegression",
   [AIInsightType.ProfileHotspot]: "profile",
+  [AIInsightType.TraceSlowOperation]: "trace",
+  [AIInsightType.TraceFailingOperation]: "trace",
+  [AIInsightType.TraceMissingTracing]: "trace",
 };
 
 const ALL_SECTIONS: Array<EvidenceSection> = [
@@ -42,6 +46,7 @@ const ALL_SECTIONS: Array<EvidenceSection> = [
   "metricDrift",
   "deployRegression",
   "profile",
+  "trace",
 ];
 
 const setSections: (evidence: AIInsightEvidence) => Array<string> = (
@@ -173,6 +178,32 @@ const profileEvidence: ProfileInsightEvidence = {
   callees: [{ functionName: "JSON.parse", fileName: "", share: 15.75 }],
 };
 
+const traceEvidence: TraceInsightEvidence = {
+  serviceId: "7e6a3c1a-1111-4222-8333-944455556666",
+  kind: "Failing",
+  operationName: "POST /checkout",
+  windowStartTime: "2026-10-24T08:00:00.000Z",
+  windowEndTime: "2026-10-24T09:00:00.000Z",
+  spanCount: 2800,
+  failedSpanCount: 340,
+  p50Ms: 90.5,
+  p99Ms: 912.25,
+  sampleTraceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+  sampleSpanId: "00f067aa0ba902b7",
+  sampleDurationMs: 5012.5,
+  error: {
+    exceptionType: "TimeoutError",
+    exceptionMessage: "payment provider did not answer in <NUMBER> ms",
+    stackTrace: "TimeoutError: x\n    at charge (src/pay.ts:9)",
+    statusCode: "503",
+    sampleMatches: 4,
+    sampleSize: 5,
+  },
+  codeLocations: [
+    { filePath: "src/pay.ts", functionName: "charge", lineNumber: 9 },
+  ],
+};
+
 describe("AIInsightEvidence", () => {
   test("every insight type maps to a known evidence section", () => {
     for (const type of Object.values(AIInsightType)) {
@@ -198,6 +229,7 @@ describe("AIInsightEvidence", () => {
     ["metricDrift", { metricDrift: metricDriftEvidence }],
     ["deployRegression", { deployRegression: deployRegressionEvidence }],
     ["profile", { profile: profileEvidence }],
+    ["trace", { trace: traceEvidence }],
   ] as Array<[EvidenceSection, AIInsightEvidence]>)(
     "%s evidence survives a JSON round trip with exactly one section set",
     (section: EvidenceSection, evidence: AIInsightEvidence) => {
@@ -267,6 +299,32 @@ describe("AIInsightEvidence", () => {
 
     expect(Object.keys(roundTrip({ profile: hot }).profile!)).not.toContain(
       "ownShareBefore",
+    );
+  });
+
+  test("trace evidence keeps its counts, its error and its code exactly", () => {
+    const restored: AIInsightEvidence = roundTrip({ trace: traceEvidence });
+
+    expect(restored.trace?.p99Ms).toBe(912.25);
+    expect(restored.trace?.failedSpanCount).toBe(340);
+    expect(restored.trace?.error?.sampleMatches).toBe(4);
+    expect(restored.trace?.error?.stackTrace).toContain("src/pay.ts:9");
+    expect(restored.trace?.codeLocations?.[0]?.lineNumber).toBe(9);
+  });
+
+  test("a trace finding of the service as a whole needs no operation", () => {
+    const service: TraceInsightEvidence = {
+      serviceId: "7e6a3c1a-1111-4222-8333-944455556666",
+      kind: "MissingTracing",
+      gap: "NoChildSpans",
+      windowStartTime: "2026-10-24T08:00:00.000Z",
+      windowEndTime: "2026-10-24T09:00:00.000Z",
+      spanCount: 2400,
+      topOperations: [{ name: "GET /", spanCount: 2000 }],
+    };
+
+    expect(Object.keys(roundTrip({ trace: service }).trace!)).not.toContain(
+      "operationName",
     );
   });
 

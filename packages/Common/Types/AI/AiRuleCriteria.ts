@@ -19,7 +19,8 @@ export const TELEMETRY_AI_RULE_CRITERIA_FIELDS: ReadonlyArray<string> = [
  * reads the same everywhere. One table serves every kind of AI rule, told
  * apart by triggerEntityType, and each uses only its own share: an
  * incident has an IncidentSeverity, an alert an AlertSeverity, and slow
- * code in a profile the service it runs in.
+ * code in a profile - or a slow or failing operation in a trace - the
+ * service it runs in.
  */
 export const AI_RULE_CRITERIA_FIELDS_BY_TRIGGER: Readonly<
   Record<AutoRemediationTriggerEntity, ReadonlyArray<string>>
@@ -41,6 +42,7 @@ export const AI_RULE_CRITERIA_FIELDS_BY_TRIGGER: Readonly<
     "descriptionPattern",
   ],
   [AutoRemediationTriggerEntity.Profile]: TELEMETRY_AI_RULE_CRITERIA_FIELDS,
+  [AutoRemediationTriggerEntity.Trace]: TELEMETRY_AI_RULE_CRITERIA_FIELDS,
 };
 
 const TRIGGER_ENTITY_TYPES: ReadonlyArray<AutoRemediationTriggerEntity> =
@@ -65,6 +67,7 @@ const RULES_NAME_BY_TRIGGER: Readonly<
   [AutoRemediationTriggerEntity.Incident]: "incident AI rules",
   [AutoRemediationTriggerEntity.Alert]: "alert AI rules",
   [AutoRemediationTriggerEntity.Profile]: "profile AI rules",
+  [AutoRemediationTriggerEntity.Trace]: "trace AI rules",
 };
 
 // What a refusal calls each criterion: its column's title in the API docs.

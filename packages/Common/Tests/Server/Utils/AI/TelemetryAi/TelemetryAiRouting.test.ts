@@ -17,6 +17,7 @@ import TelemetryAiRouting, {
   TelemetryAiSweepResult,
 } from "../../../../../Server/Utils/AI/TelemetryAi/TelemetryAiRouting";
 import TelemetryAiRules from "../../../../../Server/Utils/AI/TelemetryAi/TelemetryAiRules";
+import TraceInsightFix from "../../../../../Server/Utils/AI/TelemetryAi/TraceInsightFix";
 import AIInsight from "../../../../../Models/DatabaseModels/AIInsight";
 import AutoRemediationRule from "../../../../../Models/DatabaseModels/AutoRemediationRule";
 import Project from "../../../../../Models/DatabaseModels/Project";
@@ -143,6 +144,7 @@ describe("TelemetryAiRouting.sweepLane", () => {
       investigationsStarted: 0,
       fixesStarted: 0,
       waiting: 0,
+      waitingForVerdict: 0,
     });
     expect(findProblems).not.toHaveBeenCalled();
   });
@@ -186,6 +188,7 @@ describe("TelemetryAiRouting.sweepLane", () => {
       investigationsStarted: 1,
       fixesStarted: 1,
       waiting: 0,
+      waitingForVerdict: 0,
     });
     expect(triage).toHaveBeenCalledWith({
       insight: problems[0],
@@ -338,12 +341,204 @@ describe("TelemetryAiRouting.sweepLane", () => {
       investigationsStarted: 0,
       fixesStarted: 0,
       waiting: 0,
+      waitingForVerdict: 0,
     });
   });
 
-  test("the Profile lane's fix is a Code task for the slow code", () => {
+  test("every lane has its fix starter: the Profiler's and Traces'", () => {
     expect(Object.keys(TELEMETRY_AI_FIX_STARTERS)).toEqual([
       TelemetryAiLane.Profile,
+      TelemetryAiLane.Trace,
     ]);
+  });
+
+  test("the look reads what each problem's investigation concluded", async () => {
+    await sweep();
+
+    const call: JSONObject = findProblems.mock
+      .calls[0]![0] as unknown as JSONObject;
+
+    expect(call["select"]).toMatchObject({
+      classification: true,
+      triageCompletedAt: true,
+    });
+  });
+});
+
+/*
+ * Traces' look: the same routing, its own fix starter, and a failing
+ * operation's pull request opened on its own only once its investigation
+ * found the code at fault.
+ */
+describe("TelemetryAiRouting.sweepLane - the Trace lane", () => {
+  let problems: Array<AIInsight>;
+  let rules: Array<AutoRemediationRule> | null;
+  let findProblems: SpyInstance<typeof AIInsightService.findBy>;
+  let triage: SpyInstance<typeof InsightTriage.enqueueInsightTriage>;
+  let startTraceFix: SpyInstance<typeof TraceInsightFix.start>;
+  let startProfileFix: SpyInstance<typeof ProfileInsightFix.start>;
+  const fixTaskId: ObjectID = ObjectID.generate();
+
+  function traceProblem(overrides: Partial<AIInsight> = {}): AIInsight {
+    return problem({
+      insightType: AIInsightType.TraceSlowOperation,
+      title: "GET /orders in checkout runs the same database query 40 times",
+      ...overrides,
+    });
+  }
+
+  beforeEach(() => {
+    problems = [traceProblem()];
+    rules = [];
+
+    findProblems = jest
+      .spyOn(AIInsightService, "findBy")
+      .mockImplementation(async () => {
+        return problems;
+      });
+    jest.spyOn(TelemetryAiRules, "readRules").mockImplementation(async () => {
+      return rules;
+    });
+    jest.spyOn(TelemetryAiRules, "readServices").mockResolvedValue(new Map());
+    triage = jest
+      .spyOn(InsightTriage, "enqueueInsightTriage")
+      .mockResolvedValue({ triageAiRunId: ObjectID.generate() });
+    startTraceFix = jest
+      .spyOn(TraceInsightFix, "start")
+      .mockResolvedValue({ taskId: fixTaskId });
+    startProfileFix = jest
+      .spyOn(ProfileInsightFix, "start")
+      .mockResolvedValue({ taskId: fixTaskId });
+    jest.spyOn(AIInsightService, "updateOneBy").mockResolvedValue(1);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  async function sweep(over?: Project): Promise<TelemetryAiSweepResult> {
+    return TelemetryAiRouting.sweepLane({
+      project:
+        over ||
+        project({
+          enableAutomaticProfileRemediation: false,
+          enableAutomaticTraceRemediation: true,
+        }),
+      lane: TelemetryAiLane.Trace,
+      now: NOW,
+    });
+  }
+
+  test("its switch is its own: off, nothing is read, whatever the Profiler's says", async () => {
+    await sweep(
+      project({
+        enableAutomaticProfileRemediation: true,
+        enableAutomaticTraceRemediation: false,
+      }),
+    );
+
+    expect(findProblems).not.toHaveBeenCalled();
+  });
+
+  test("reads Traces' three kinds of finding, and starts Traces' own fix", async () => {
+    const result: TelemetryAiSweepResult = await sweep();
+
+    const query: JSONObject = (
+      findProblems.mock.calls[0]![0] as unknown as JSONObject
+    )["query"] as JSONObject;
+
+    for (const type of [
+      AIInsightType.TraceSlowOperation,
+      AIInsightType.TraceFailingOperation,
+      AIInsightType.TraceMissingTracing,
+    ]) {
+      expect(JSON.stringify(query["insightType"])).toContain(type);
+    }
+
+    expect(JSON.stringify(query["insightType"])).not.toContain(
+      AIInsightType.ProfileHotspot,
+    );
+    expect(result.fixesStarted).toBe(1);
+    expect(startTraceFix).toHaveBeenCalledTimes(1);
+    expect(startProfileFix).not.toHaveBeenCalled();
+  });
+
+  test("a slow operation and missing tracing open their pull request with the investigation", async () => {
+    problems = [
+      traceProblem(),
+      traceProblem({ insightType: AIInsightType.TraceMissingTracing }),
+    ];
+
+    const result: TelemetryAiSweepResult = await sweep();
+
+    expect(result.investigationsStarted).toBe(2);
+    expect(result.fixesStarted).toBe(2);
+    expect(result.waitingForVerdict).toBe(0);
+  });
+
+  test("a failing operation waits for its investigation's verdict", async () => {
+    problems = [
+      traceProblem({ insightType: AIInsightType.TraceFailingOperation }),
+    ];
+
+    const result: TelemetryAiSweepResult = await sweep();
+
+    expect(triage).toHaveBeenCalledTimes(1);
+    expect(startTraceFix).not.toHaveBeenCalled();
+    expect(result.waitingForVerdict).toBe(1);
+  });
+
+  test("a failing operation the investigation found the code at fault in gets its pull request", async () => {
+    problems = [
+      traceProblem({
+        insightType: AIInsightType.TraceFailingOperation,
+        triageAiRunId: ObjectID.generate(),
+        triageCompletedAt: new Date(NOW.getTime() - HOUR),
+        classification: "code-fault",
+      }),
+    ];
+
+    const result: TelemetryAiSweepResult = await sweep();
+
+    expect(triage).not.toHaveBeenCalled();
+    expect(startTraceFix).toHaveBeenCalledTimes(1);
+    expect(result.fixesStarted).toBe(1);
+    expect(result.waitingForVerdict).toBe(0);
+  });
+
+  test("a failing operation that fails on purpose never gets one on its own", async () => {
+    for (const classification of [
+      "expected-denial",
+      "user-error",
+      "infrastructure",
+      "unknown",
+    ]) {
+      startTraceFix.mockClear();
+      problems = [
+        traceProblem({
+          insightType: AIInsightType.TraceFailingOperation,
+          triageAiRunId: ObjectID.generate(),
+          triageCompletedAt: new Date(NOW.getTime() - HOUR),
+          classification: classification,
+        }),
+      ];
+
+      const result: TelemetryAiSweepResult = await sweep();
+
+      expect(startTraceFix).not.toHaveBeenCalled();
+      expect(result.waitingForVerdict).toBe(0);
+    }
+  });
+
+  test("ask before fixing waits for no verdict, and opens nothing", async () => {
+    rules = [rule({ executionMode: AutoRemediationExecutionMode.Suggest })];
+    problems = [
+      traceProblem({ insightType: AIInsightType.TraceFailingOperation }),
+    ];
+
+    const result: TelemetryAiSweepResult = await sweep();
+
+    expect(result.waitingForVerdict).toBe(0);
+    expect(startTraceFix).not.toHaveBeenCalled();
   });
 });

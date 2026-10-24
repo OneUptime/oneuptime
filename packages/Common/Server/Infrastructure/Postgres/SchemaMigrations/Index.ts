@@ -189,6 +189,7 @@ import { AddNetworkControllerConnection1807020000000 } from "./1807020000000-Add
 import { AddProfileAiRules1807030000000 } from "./1807030000000-AddProfileAiRules";
 import { AddAiContext1807100000000 } from "./1807100000000-AddAiContext";
 import { AddAuditLogExport1807110000000 } from "./1807110000000-AddAuditLogExport";
+import { AddTraceAiSwitch1807120000000 } from "./1807120000000-AddTraceAiSwitch";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1580,4 +1581,5 @@ export default [
   AddProfileAiRules1807030000000,
   AddAiContext1807100000000,
   AddAuditLogExport1807110000000,
+  AddTraceAiSwitch1807120000000,
 ];

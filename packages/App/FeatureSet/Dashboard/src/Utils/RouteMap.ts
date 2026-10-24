@@ -823,6 +823,10 @@ export const TracesRoutePath: Dictionary<string> = {
   [PageMap.TRACES_SETTINGS_DROP_FILTER_VIEW]: `settings/drop-filters/${RouteParams.ModelID}`,
   [PageMap.TRACES_SETTINGS_SCRUB_RULES]: "settings/scrub-rules",
   [PageMap.TRACES_SETTINGS_RECORDING_RULES]: "settings/recording-rules",
+  [PageMap.TRACES_AI_INSIGHTS]: "ai/insights",
+  [PageMap.TRACES_AI_INSIGHT_VIEW]: `ai/insights/${RouteParams.ModelID}`,
+  [PageMap.TRACES_AI_LOGS]: "ai/logs",
+  [PageMap.TRACES_AI_SETTINGS]: "ai/settings",
 };
 
 // Profiles product routes
@@ -6984,6 +6988,30 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.TRACES_SETTINGS_RECORDING_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/traces/${
       TracesRoutePath[PageMap.TRACES_SETTINGS_RECORDING_RULES]
+    }`,
+  ),
+
+  [PageMap.TRACES_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/traces/${
+      TracesRoutePath[PageMap.TRACES_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.TRACES_AI_INSIGHT_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/traces/${
+      TracesRoutePath[PageMap.TRACES_AI_INSIGHT_VIEW]
+    }`,
+  ),
+
+  [PageMap.TRACES_AI_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/traces/${
+      TracesRoutePath[PageMap.TRACES_AI_LOGS]
+    }`,
+  ),
+
+  [PageMap.TRACES_AI_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/traces/${
+      TracesRoutePath[PageMap.TRACES_AI_SETTINGS]
     }`,
   ),
 

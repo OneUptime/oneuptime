@@ -16,6 +16,8 @@ import FixRunBudget, { FixRunBudgetDecision } from "../../CodeFix/FixRunBudget";
 import { getFindingsWorthFixing } from "../../../../../Utils/Suggestions/TracePerformanceFixSuggestion";
 import logger from "../../../Logger";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
+import TelemetryAiRules from "../../TelemetryAi/TelemetryAiRules";
+import { TelemetryAiLane } from "../../../../../Types/AI/TelemetryAi";
 
 /*
  * Deterministic fix routing for newly created insights — gated on the
@@ -98,6 +100,25 @@ export default class InsightFixRouting {
        * grounded recipe to run — they route to triage + the human inbox.
        */
       if (!isExceptionInsight && !isLatencyInsight) {
+        return {};
+      }
+
+      /*
+       * While the Traces product's AI section works on the project's traces
+       * ("Find and fix slow and failing operations", Types/AI/TelemetryAi),
+       * a slow request's pull request is its: it opens one for each slow
+       * operation it finds, as its own AI rules say - never a second one
+       * from here for the same slowness. The latency insight is still filed
+       * and triaged. The scanner selects every lane's switch onto the
+       * project row it hands us.
+       */
+      if (
+        isLatencyInsight &&
+        TelemetryAiRules.isLaneOn(project, TelemetryAiLane.Trace)
+      ) {
+        logger.debug(
+          `AI insights: not routing a fix for latency insight ${insight.id.toString()} — the Traces AI section fixes the project's slow operations.`,
+        );
         return {};
       }
 

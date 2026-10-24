@@ -169,6 +169,7 @@ import AIInsightViewPage from "../../../../App/FeatureSet/Dashboard/src/Pages/AI
 import {
   AI_INSIGHT_MONITOR_CUMULATIVE_COUNTER_BLOCKER,
   AI_INSIGHT_MONITOR_LATENCY_BLOCKER,
+  AI_INSIGHT_MONITOR_SLOW_OPERATION_BLOCKER,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/AIInsightMonitorPrefill";
 import Metric, {
   AggregationTemporality,
@@ -268,6 +269,48 @@ const METRIC_DRIFT: AIInsight = buildInsight({
     },
   },
 });
+
+// Traces' three kinds of finding (Traces → AI): one of each.
+function traceInsight(
+  insightType: AIInsightType,
+  title: string,
+  trace: Partial<NonNullable<AIInsightEvidence["trace"]>>,
+): AIInsight {
+  return buildInsight({
+    insightType: insightType,
+    title: title,
+    serviceName: "checkout",
+    telemetryServiceId: SERVICE_ID,
+    evidence: {
+      trace: {
+        serviceId: SERVICE_ID,
+        kind: "Failing",
+        windowStartTime: "2026-10-24T08:00:00.000Z",
+        windowEndTime: "2026-10-24T09:00:00.000Z",
+        spanCount: 2600,
+        ...trace,
+      },
+    },
+  });
+}
+
+const FAILING_OPERATION: AIInsight = traceInsight(
+  AIInsightType.TraceFailingOperation,
+  "POST /checkout in checkout fails 12% of the time",
+  { kind: "Failing", operationName: "POST /checkout", failedSpanCount: 312 },
+);
+
+const SLOW_OPERATION: AIInsight = traceInsight(
+  AIInsightType.TraceSlowOperation,
+  "GET /orders in checkout runs the same database query 40 times",
+  { kind: "Slow", operationName: "GET /orders", p99Ms: 2400 },
+);
+
+const MISSING_TRACING: AIInsight = traceInsight(
+  AIInsightType.TraceMissingTracing,
+  "checkout's requests have no spans inside them",
+  { kind: "MissingTracing", gap: "NoChildSpans" },
+);
 
 function metricPoint(data: {
   pointType: MetricPointType;
@@ -507,5 +550,85 @@ describe("AI insight detail — Create Monitor", () => {
     await renderInsight(NEW_EXCEPTION);
 
     expect(createMonitorButton()).toBeEnabled();
+  });
+});
+
+describe("AI insight detail — Create Monitor on Traces' findings", () => {
+  beforeEach(() => {
+    isMasterAdminForTest = false;
+    permissionsForTest = [Permission.ProjectAdmin];
+    metricShapeRows = [];
+    analyticsListRequests = [];
+    PermissionGate.clearPermissionPropsCache();
+    window.localStorage.clear();
+
+    navigateMock = jest.fn() as jest.Mock<any, any>;
+    getJestSpyOn(Navigation, "navigate").mockImplementation(
+      (...args: Array<unknown>): void => {
+        navigateMock(...args);
+      },
+    );
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+
+  test("a failing operation offers it - not greyed out - and goes to Monitor Create with the finding", async () => {
+    await renderInsight(FAILING_OPERATION);
+
+    const button: HTMLButtonElement | null = createMonitorButton();
+
+    expect(button).not.toBeNull();
+    expect(button).toBeEnabled();
+
+    const tooltip: HTMLElement = await tooltipOf(button!);
+
+    expect(tooltip).toHaveTextContent("pre-filled from this insight");
+
+    await act(async () => {
+      fireEvent.click(createMonitorButton()!);
+    });
+
+    const destination: string = String(navigateMock.mock.calls[0]![0]);
+
+    expect(destination).toContain("/monitors/create");
+    expect(
+      new URLSearchParams(destination.substring(destination.indexOf("?"))).get(
+        "aiInsightId",
+      ),
+    ).toBe(INSIGHT_ID);
+  });
+
+  test("a slow operation keeps the button, disabled, and says monitors cannot watch how long it takes", async () => {
+    await renderInsight(SLOW_OPERATION);
+
+    const button: HTMLButtonElement | null = createMonitorButton();
+
+    expect(button).not.toBeNull();
+    expect(button).toBeDisabled();
+
+    const tooltip: HTMLElement = await tooltipOf(button!);
+
+    expect(tooltip).toHaveTextContent(
+      AI_INSIGHT_MONITOR_SLOW_OPERATION_BLOCKER,
+    );
+    // Not "this kind of insight yet", and not a latency regression's words.
+    expect(tooltip).not.toHaveTextContent("this kind of insight");
+    expect(tooltip).not.toHaveTextContent("Latency regressions");
+
+    fireEvent.click(button!);
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  test("missing tracing draws no Create Monitor at all - nothing a monitor could count - and keeps every other action", async () => {
+    await renderInsight(MISSING_TRACING);
+
+    expect(createMonitorButton()).toBeNull();
+
+    for (const name of ["Confirm", "Dismiss", "Resolve"]) {
+      expect(screen.getByRole("button", { name: name })).toBeEnabled();
+    }
   });
 });

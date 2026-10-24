@@ -1551,6 +1551,28 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
         ],
       },
+      telemetryAiSection({
+        insights: PageMap.TRACES_AI_INSIGHTS,
+        logs: PageMap.TRACES_AI_LOGS,
+        settings: PageMap.TRACES_AI_SETTINGS,
+        keywords: {
+          insights: [
+            "slow operations",
+            "failing operations",
+            "slow endpoints",
+            "missing tracing",
+            "n+1 queries",
+          ],
+          logs: ["ai logs", "ai activity", "fix pull requests"],
+          settings: [
+            "ai settings",
+            "ai rules",
+            "find and fix slow and failing operations",
+            "performance remediation",
+            "auto fix",
+          ],
+        },
+      }),
     ],
   },
   {

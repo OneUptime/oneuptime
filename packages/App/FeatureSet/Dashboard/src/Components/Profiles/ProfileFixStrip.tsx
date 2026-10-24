@@ -59,6 +59,12 @@ import {
   fetchProfileFixSuggestion,
 } from "./ProfilesApi";
 import useProfileRequest, { ProfileRequestState } from "./UseProfileRequest";
+import {
+  FIX_STRIP_ACTION_CONTAINER_CLASS_NAME,
+  FIX_STRIP_ACTION_ROW_CLASS_NAME,
+  FIX_STRIP_BUTTON_CLASS_NAME,
+  FIX_STRIP_PICKER_CLASS_NAME,
+} from "../TelemetryAi/TelemetryAiFixCopy";
 
 /*
  * "FIX WITH AI", ONLY WHERE IT APPLIES, SAYING WHY.
@@ -337,57 +343,63 @@ const ProfileFixStrip: FunctionComponent<ComponentProps> = (
         },
       );
 
+    // Side by side only where the strip is wide enough (TelemetryAiFixCopy).
     return (
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-        {needsRepositoryPick ? (
-          <div className="w-full sm:w-64" data-testid="profiles-fix-repository">
-            <p
-              className="mb-1 text-sm font-medium text-gray-700"
-              id="profiles-fix-repository-label"
+      <div className={FIX_STRIP_ACTION_CONTAINER_CLASS_NAME}>
+        <div className={FIX_STRIP_ACTION_ROW_CLASS_NAME}>
+          {needsRepositoryPick ? (
+            <div
+              className={FIX_STRIP_PICKER_CLASS_NAME}
+              data-testid="profiles-fix-repository"
             >
-              {translator.translateText(FIX_PICK_REPOSITORY)}
-            </p>
-            <Dropdown
-              options={repositoryOptions}
-              value={repositoryOptions.find(
-                (option: DropdownOption): boolean => {
-                  return option.value === pickedRepositoryId;
-                },
-              )}
-              placeholder={translator.translateText(
-                FIX_PICK_REPOSITORY_PLACEHOLDER,
-              )}
-              ariaLabelledby="profiles-fix-repository-label"
-              isClearable={false}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                setPickedRepositoryId(value ? value.toString() : "");
-              }}
-            />
-          </div>
-        ) : (
-          <></>
-        )}
-        <Button
-          title={FIX_WITH_AI}
-          icon={IconProp.Bolt}
-          buttonStyle={ButtonStyleType.NORMAL}
-          buttonSize={ButtonSize.Small}
-          isLoading={isCreating}
-          disabled={needsRepositoryPick && !pickedRepositoryId}
-          // Said above it already where the finding is not.
-          tooltip={isFindingShown ? FIX_WITH_AI_TOOLTIP : undefined}
-          dataTestId="profiles-fix-with-ai"
-          /*
-           * Waiting for a repository to be picked, it looks it: the shared
-           * Button draws no disabled state of its own.
-           */
-          className="md:!ml-0 disabled:cursor-not-allowed disabled:opacity-50"
-          onClick={() => {
-            void startFix();
-          }}
-        />
+              <p
+                className="mb-1 text-sm font-medium text-gray-700"
+                id="profiles-fix-repository-label"
+              >
+                {translator.translateText(FIX_PICK_REPOSITORY)}
+              </p>
+              <Dropdown
+                options={repositoryOptions}
+                value={repositoryOptions.find(
+                  (option: DropdownOption): boolean => {
+                    return option.value === pickedRepositoryId;
+                  },
+                )}
+                placeholder={translator.translateText(
+                  FIX_PICK_REPOSITORY_PLACEHOLDER,
+                )}
+                ariaLabelledby="profiles-fix-repository-label"
+                isClearable={false}
+                onChange={(
+                  value: DropdownValue | Array<DropdownValue> | null,
+                ) => {
+                  setPickedRepositoryId(value ? value.toString() : "");
+                }}
+              />
+            </div>
+          ) : (
+            <></>
+          )}
+          <Button
+            title={FIX_WITH_AI}
+            icon={IconProp.Bolt}
+            buttonStyle={ButtonStyleType.NORMAL}
+            buttonSize={ButtonSize.Small}
+            isLoading={isCreating}
+            disabled={needsRepositoryPick && !pickedRepositoryId}
+            // Said above it already where the finding is not.
+            tooltip={isFindingShown ? FIX_WITH_AI_TOOLTIP : undefined}
+            dataTestId="profiles-fix-with-ai"
+            /*
+             * Waiting for a repository to be picked, it looks it: the shared
+             * Button draws no disabled state of its own.
+             */
+            className={FIX_STRIP_BUTTON_CLASS_NAME}
+            onClick={() => {
+              void startFix();
+            }}
+          />
+        </div>
       </div>
     );
   };

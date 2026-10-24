@@ -19,6 +19,13 @@ enum AutoRemediationTriggerEntity {
    * whether it opens a pull request that makes it faster.
    */
   Profile = "Profile",
+  /*
+   * The slow and failing operations OneUptime found in a service's traces,
+   * and the ones whose traces cannot say why (Traces → AI): the rule says
+   * which services' problems OneUptime AI looks into, and whether it opens
+   * a pull request that fixes the code or adds the tracing it lacks.
+   */
+  Trace = "Trace",
 }
 
 export default AutoRemediationTriggerEntity;
