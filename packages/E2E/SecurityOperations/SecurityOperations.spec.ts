@@ -2419,8 +2419,10 @@ test.describe("detections", () => {
 
     await page.getByTestId("rule-library-clear-filters").click();
 
-    // The search finds a technique by its id, and the rules of its sub-techniques.
-    // "/" opens the search, as every table's does.
+    /*
+     * The search finds a technique by its id, and the rules of its
+     * sub-techniques. "/" opens the search, as every table's does.
+     */
     await page.keyboard.press("/");
     await expect(page.getByTestId(RULE_LIBRARY_SEARCH)).toBeFocused();
     await page.keyboard.type("T1110");

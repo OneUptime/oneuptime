@@ -29,7 +29,6 @@ import {
   getRecommendedRulesNotAdded,
   getRuleLibraryHeaderActions,
   getRuleLibraryQueryParams,
-  isLibraryRuleAdded,
   isNothingSent,
   isRuleLibraryFiltered,
   matchesLibrarySearch,
