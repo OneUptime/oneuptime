@@ -7,6 +7,7 @@ import { ProductBranding } from "Common/Types/Branding/ProductBranding";
 import EnterpriseArea from "./Types/EnterpriseArea";
 import AdminHealthArea, { getAdminHealthRouter } from "./AdminHealth/Index";
 import AuditLogArea, { getAuditLogRecorder } from "./AuditLog/Index";
+import AuditLogExportArea from "./AuditLogExport/Index";
 import IdentityArea from "./Identity/Index";
 import LicenseArea, { licensing } from "./License/Index";
 import LicenseServerArea from "./LicenseServer/Index";
@@ -39,6 +40,7 @@ export const ENTERPRISE_AREAS: ReadonlyArray<EnterpriseArea> = [
   WorkersArea,
   WhiteLabelArea,
   MarketplaceArea,
+  AuditLogExportArea,
 ];
 
 type RouterHook = (area: EnterpriseArea) => Array<ExpressRouter> | undefined;

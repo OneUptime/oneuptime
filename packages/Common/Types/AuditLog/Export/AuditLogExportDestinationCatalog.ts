@@ -79,6 +79,13 @@ export enum AuditLogExportSyslogProtocol {
   Tcp = "tcp",
 }
 
+export enum AuditLogExportSyslogFraming {
+  // Each message preceded by its length in bytes (RFC 5425, RFC 6587).
+  OctetCounting = "octet-counting",
+  // Each message followed by a line break, as older receivers read TCP.
+  NewLine = "newline",
+}
+
 export enum AuditLogExportAzureAuthentication {
   SasToken = "sas",
   AccessKey = "access-key",
@@ -437,6 +444,26 @@ export const AuditLogExportDestinationCatalog: Array<AuditLogExportDestinationDe
           options: [
             { label: "TLS", value: AuditLogExportSyslogProtocol.Tls },
             { label: "TCP", value: AuditLogExportSyslogProtocol.Tcp },
+          ],
+        },
+        {
+          key: "framing",
+          title: "Framing",
+          description:
+            "How messages are separated: each preceded by its length (RFC 5425), or each on a line of its own.",
+          type: "dropdown",
+          required: false,
+          defaultValue: AuditLogExportSyslogFraming.OctetCounting,
+          isAdvanced: true,
+          options: [
+            {
+              label: "Octet counting (RFC 5425)",
+              value: AuditLogExportSyslogFraming.OctetCounting,
+            },
+            {
+              label: "One message per line",
+              value: AuditLogExportSyslogFraming.NewLine,
+            },
           ],
         },
         {
