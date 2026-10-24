@@ -3237,10 +3237,11 @@ const WAITING_INCIDENT_TITLE: RegExp = new RegExp(
 const WAITING_ALERT_TITLE: RegExp = new RegExp(
   `^OneUptime AI investigates at ${WAIT_TIME} if this alert is still open$`,
 );
+// Since one AI rule investigates and fixes (#5221), the card names it so.
 const WAITING_INCIDENT_DESCRIPTION: string =
-  "An investigation rule makes OneUptime AI wait 10 minutes, so incidents resolved by then are not investigated.";
+  "An AI rule makes OneUptime AI wait 10 minutes, so incidents resolved by then are not investigated.";
 const WAITING_ALERT_DESCRIPTION: string =
-  "An investigation rule makes OneUptime AI wait 10 minutes, so alerts resolved by then are not investigated.";
+  "An AI rule makes OneUptime AI wait 10 minutes, so alerts resolved by then are not investigated.";
 // InvestigationRuleWait's refusal when the project's own daily limit is reached.
 const DAILY_LIMIT_REFUSAL: string =
   "This project has reached its own daily AI limit. It resets at midnight UTC.";
@@ -3390,7 +3391,7 @@ test.describe("an investigation rule's wait (issue #5074)", () => {
       /^OneUptime AI investigates tomorrow at (5:20 PM|17:20) if this incident is still open$/,
     );
     await expect(waiting).toContainText(
-      "An investigation rule makes OneUptime AI wait 1,440 minutes, so incidents resolved by then are not investigated.",
+      "An AI rule makes OneUptime AI wait 1,440 minutes, so incidents resolved by then are not investigated.",
     );
   });
 
