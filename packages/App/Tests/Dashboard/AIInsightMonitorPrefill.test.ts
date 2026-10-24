@@ -663,19 +663,30 @@ describe("getAIInsightMonitorBlocker", () => {
     );
   });
 
-  test("missing tracing is not offered at all; every other kind is", () => {
-    expect(
-      Prefill.isAIInsightMonitorOffered(AIInsightType.TraceMissingTracing),
-    ).toBe(false);
+  test("missing tracing and Metrics' findings are not offered at all; every other kind is", () => {
+    const notOffered: Array<AIInsightType> = [
+      AIInsightType.TraceMissingTracing,
+      AIInsightType.MetricHighCardinality,
+      AIInsightType.MetricHistogramBuckets,
+      AIInsightType.MetricMissingMetrics,
+    ];
+
+    for (const insightType of notOffered) {
+      expect(Prefill.isAIInsightMonitorOffered(insightType)).toBe(false);
+    }
 
     for (const insightType of Object.values(AIInsightType).filter(
       (value: AIInsightType): boolean => {
-        return value !== AIInsightType.TraceMissingTracing;
+        return !notOffered.includes(value);
       },
     )) {
       expect(Prefill.isAIInsightMonitorOffered(insightType)).toBe(true);
     }
 
+    // AI Insights' own metric finding, a drift, still offers its monitor.
+    expect(Prefill.isAIInsightMonitorOffered(AIInsightType.MetricDrift)).toBe(
+      true,
+    );
     expect(Prefill.isAIInsightMonitorOffered(undefined)).toBe(true);
   });
 

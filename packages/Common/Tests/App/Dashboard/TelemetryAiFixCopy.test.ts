@@ -31,11 +31,16 @@ import ObjectID from "../../../Types/ObjectID";
 const LINE_LIMIT: number = 150;
 
 describe("which findings draw Fix with AI", () => {
-  test("Traces' kinds, while open and with no fix linked", () => {
-    expect(TELEMETRY_AI_FIX_LANES).toEqual([TelemetryAiLane.Trace]);
+  test("Traces' and Metrics' kinds, while open and with no fix linked", () => {
+    expect(TELEMETRY_AI_FIX_LANES).toEqual([
+      TelemetryAiLane.Trace,
+      TelemetryAiLane.Metric,
+    ]);
 
-    for (const insightType of TELEMETRY_AI_LANES[TelemetryAiLane.Trace]
-      .insightTypes) {
+    for (const insightType of [
+      ...TELEMETRY_AI_LANES[TelemetryAiLane.Trace].insightTypes,
+      ...TELEMETRY_AI_LANES[TelemetryAiLane.Metric].insightTypes,
+    ]) {
       for (const status of [
         AIInsightStatus.Detected,
         AIInsightStatus.ActionRequired,
@@ -72,6 +77,8 @@ describe("which findings draw Fix with AI", () => {
       AIInsightType.ProfileHotspot,
       AIInsightType.TraceLatencyRegression,
       AIInsightType.NewException,
+      // AI Insights' week-over-week drift is a heads-up, never a fix.
+      AIInsightType.MetricDrift,
       "Unknown",
       undefined,
     ]) {
@@ -98,6 +105,34 @@ describe("what Fix with AI says", () => {
     }
 
     expect(getTelemetryAiFixLead("Unknown")).toBe(TELEMETRY_AI_FIX_LEAD);
+  });
+
+  test("each of Metrics' kinds says what its pull request does, short enough for two lines", () => {
+    const leads: Array<string> = [];
+
+    for (const insightType of TELEMETRY_AI_LANES[TelemetryAiLane.Metric]
+      .insightTypes) {
+      const lead: string | undefined = TELEMETRY_AI_FIX_LEADS[insightType];
+
+      expect(lead).toBeTruthy();
+      expect(lead!.length).toBeLessThanOrEqual(LINE_LIMIT);
+      expect(lead).toContain("pull request");
+      expect(lead).toMatch(/for you to review\.$/u);
+      expect(getTelemetryAiFixLead(insightType)).toBe(lead);
+      leads.push(lead!);
+    }
+
+    // Three kinds, three different pull requests.
+    expect(new Set(leads).size).toBe(3);
+    expect(TELEMETRY_AI_FIX_LEADS[AIInsightType.MetricHighCardinality]).toBe(
+      "OneUptime AI opens a pull request that stops recording these values on the metric, for you to review.",
+    );
+    expect(TELEMETRY_AI_FIX_LEADS[AIInsightType.MetricHistogramBuckets]).toBe(
+      "OneUptime AI opens a pull request that gives this histogram buckets that fit its values, for you to review.",
+    );
+    expect(TELEMETRY_AI_FIX_LEADS[AIInsightType.MetricMissingMetrics]).toBe(
+      "OneUptime AI opens a pull request that adds metrics to this service, for you to review.",
+    );
   });
 
   test("the button and the rest read as the Profiler's own", () => {

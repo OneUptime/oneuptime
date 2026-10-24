@@ -942,7 +942,14 @@ describe("buildInsightInvestigationLink — URL-hostile character sweep", () => 
         const query: URLSearchParams = queryOf(link!.route);
 
         switch (insightType) {
-          case AIInsightType.MetricDrift: {
+          /*
+           * Metrics' findings open the metric explorer as a drift does: the
+           * metric, and the service as its resource.service.name attribute
+           * while its id is unknown.
+           */
+          case AIInsightType.MetricDrift:
+          case AIInsightType.MetricHighCardinality:
+          case AIInsightType.MetricHistogramBuckets: {
             const queries: Array<SerializedMetricQuery> =
               MetricExplorerUrl.parseMetricQueriesParam(
                 query.get("metricQueries")!,
@@ -986,7 +993,9 @@ describe("buildInsightInvestigationLink — URL-hostile character sweep", () => 
           case AIInsightType.DeployRegression:
           case AIInsightType.TraceSlowOperation:
           case AIInsightType.TraceFailingOperation:
-          case AIInsightType.TraceMissingTracing: {
+          case AIInsightType.TraceMissingTracing:
+          // A service with no metrics opens its spans: what they would measure.
+          case AIInsightType.MetricMissingMetrics: {
             /*
              * The traces grammar carries the value in `search`, escaped
              * where a character would otherwise read as an operator, and

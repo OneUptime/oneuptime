@@ -5,6 +5,7 @@ import AIInsightEvidence, {
   LatencyInsightEvidence,
   LogSpikeInsightEvidence,
   MetricDriftInsightEvidence,
+  MetricInsightEvidence,
   ProfileInsightEvidence,
   TraceInsightEvidence,
 } from "../../../Types/AI/AIInsightEvidence";
@@ -37,6 +38,9 @@ const SECTION_FOR_TYPE: Record<AIInsightType, EvidenceSection> = {
   [AIInsightType.TraceSlowOperation]: "trace",
   [AIInsightType.TraceFailingOperation]: "trace",
   [AIInsightType.TraceMissingTracing]: "trace",
+  [AIInsightType.MetricHighCardinality]: "metric",
+  [AIInsightType.MetricHistogramBuckets]: "metric",
+  [AIInsightType.MetricMissingMetrics]: "metric",
 };
 
 const ALL_SECTIONS: Array<EvidenceSection> = [
@@ -47,6 +51,7 @@ const ALL_SECTIONS: Array<EvidenceSection> = [
   "deployRegression",
   "profile",
   "trace",
+  "metric",
 ];
 
 const setSections: (evidence: AIInsightEvidence) => Array<string> = (
@@ -204,6 +209,23 @@ const traceEvidence: TraceInsightEvidence = {
   ],
 };
 
+// An attribute's values are never stored: its key, its count, its shape.
+const metricEvidence: MetricInsightEvidence = {
+  serviceId: "7e6a3c1a-1111-4222-8333-944455556666",
+  kind: "HighCardinality",
+  shape: "Attribute",
+  windowStartTime: "2026-10-24T08:00:00.000Z",
+  windowEndTime: "2026-10-24T09:00:00.000Z",
+  metricName: "http.server.duration",
+  unit: "s",
+  dataPointCount: 1204800,
+  attributeKey: "user.id",
+  attributeValueCount: 47912,
+  valueShape: "Number",
+  otherAttributes: [{ key: "url.full", valueCount: 12034 }],
+  hasOverflow: true,
+};
+
 describe("AIInsightEvidence", () => {
   test("every insight type maps to a known evidence section", () => {
     for (const type of Object.values(AIInsightType)) {
@@ -230,6 +252,7 @@ describe("AIInsightEvidence", () => {
     ["deployRegression", { deployRegression: deployRegressionEvidence }],
     ["profile", { profile: profileEvidence }],
     ["trace", { trace: traceEvidence }],
+    ["metric", { metric: metricEvidence }],
   ] as Array<[EvidenceSection, AIInsightEvidence]>)(
     "%s evidence survives a JSON round trip with exactly one section set",
     (section: EvidenceSection, evidence: AIInsightEvidence) => {
