@@ -38,6 +38,7 @@ import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType
 import { JSONObject } from "../../../Types/JSON";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "../../../UI/Utils/Navigation";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
 
 jest.mock("react-i18next", () => {
@@ -419,6 +420,52 @@ describe("Profiler → AI → Logs", () => {
     expect(empty).toHaveTextContent(
       TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Profile].logsEmptyDescription,
     );
+  });
+
+  /*
+   * The way on, as the section's Insights page offers it: what OneUptime AI
+   * does on its own is chosen in AI Settings (the UI review: the empty
+   * state left a reader with nothing to do).
+   */
+  test("nothing yet: the way to the AI Settings, where what it does is chosen", async () => {
+    const navigate: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((): void => {
+        return undefined;
+      });
+    serve(ok({ entries: [], totalCount: 0 }));
+    openPage();
+
+    const button: HTMLElement = await screen.findByTestId(
+      TELEMETRY_AI_TEST_IDS.logsSettings,
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    expect(button).toHaveTextContent("Go to AI Settings");
+    expect(
+      screen.getByTestId(TELEMETRY_AI_TEST_IDS.logsEmpty),
+    ).toContainElement(button);
+
+    fireEvent.click(button);
+
+    expect(String(navigate.mock.calls[0]![0])).toBe(
+      RouteMap[PageMap.PROFILES_AI_SETTINGS]!.toString().replace(
+        ":projectId",
+        PROJECT_ID,
+      ),
+    );
+  });
+
+  test("with entries, no way to AI Settings is offered: the list is the page", async () => {
+    serve(ok({ entries: [entry({})], totalCount: 1 }));
+    openPage();
+
+    await shownEntries(1);
+
+    expect(
+      screen.queryByTestId(TELEMETRY_AI_TEST_IDS.logsSettings),
+    ).not.toBeInTheDocument();
   });
 
   test("a failed read says why, and reads again on Refresh", async () => {

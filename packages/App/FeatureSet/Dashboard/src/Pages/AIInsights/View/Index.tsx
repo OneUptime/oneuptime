@@ -19,6 +19,7 @@ import ProfileFixStrip from "../../../Components/Profiles/ProfileFixStrip";
 import {
   doesInsightOfferProfileFix,
   getProfileInsightFixRequest,
+  getProfileInsightMonitorRoute,
 } from "../../../Components/TelemetryAi/ProfileInsightFixRequest";
 import ChatActivityFeed from "../../../Components/AIChat/ChatActivityFeed";
 import ServiceElement from "../../../Components/Service/ServiceElement";
@@ -631,10 +632,20 @@ const AIInsightViewPage: FunctionComponent<
     new Monitor(),
     ModelAction.Create,
   );
-  const createMonitorBlocker: string | null = getAIInsightMonitorBlocker(
-    toAIInsightMonitorInput(insight),
-    { metricShape: metricShape },
-  );
+  /*
+   * Slow code becomes the Profiler's own monitor: a Profiles monitor that
+   * alerts when the function's share grows past a threshold
+   * (ProfileMonitorPrefill), as the function panel offers it.
+   */
+  const profileMonitorRoute: Route | null =
+    insightType === AIInsightType.ProfileHotspot
+      ? getProfileInsightMonitorRoute(insight.evidence?.profile)
+      : null;
+  const createMonitorBlocker: string | null = profileMonitorRoute
+    ? null
+    : getAIInsightMonitorBlocker(toAIInsightMonitorInput(insight), {
+        metricShape: metricShape,
+      });
   const isCreateMonitorShown: boolean =
     createMonitorGate.isAllowed || Boolean(createMonitorGate.disabledReason);
   const createMonitorDisabledReason: string | null = createMonitorGate.isAllowed
@@ -866,11 +877,14 @@ const AIInsightViewPage: FunctionComponent<
                   disabled={Boolean(createMonitorDisabledReason)}
                   tooltip={
                     createMonitorDisabledReason ||
-                    "Opens a new monitor pre-filled from this insight. Review the threshold and save it, and the next time this happens the monitor opens an incident."
+                    (profileMonitorRoute
+                      ? "Opens a monitor on this function's share of the time, set above what it takes now. Save it to be alerted when it grows past that."
+                      : "Opens a new monitor pre-filled from this insight. Review the threshold and save it, and the next time this happens the monitor opens an incident.")
                   }
                   onClick={() => {
                     Navigation.navigate(
-                      buildAIInsightMonitorRoute(modelId.toString()),
+                      profileMonitorRoute ||
+                        buildAIInsightMonitorRoute(modelId.toString()),
                     );
                   }}
                 />
@@ -1091,6 +1105,8 @@ const AIInsightViewPage: FunctionComponent<
             <ProfileFixStrip
               request={getProfileInsightFixRequest(insight.evidence?.profile)!}
               insightId={modelId.toString()}
+              // The page already says what was found, twice.
+              isFindingShown={false}
               onTaskStarted={() => {
                 fetchInsight().catch(() => {
                   // handled inside fetchInsight

@@ -313,10 +313,13 @@ describe("a turn: what was asked", () => {
 
   /*
    * A request nobody typed - OneUptime wrote it from slow code it found in
-   * a service's profiles: the finding that started it comes first, linked
-   * to it, and the request is OneUptime's, not "Someone"'s.
+   * a service's profiles: one message of OneUptime's, on the left, saying
+   * what started it (linked) and then what it asked, quoted - never
+   * "Someone"'s, and not a second OneUptime bubble on the right, where
+   * people ask (the UI review: OneUptime spoke twice in a row, once on
+   * each side).
    */
-  test("a request OneUptime wrote itself: its finding first, linked, and the request OneUptime's", () => {
+  test("a request OneUptime wrote itself: one message of OneUptime's, its finding linked, then what it asked", () => {
     draw(
       <ol>
         <CodeTaskTurn
@@ -349,24 +352,56 @@ describe("a turn: what was asked", () => {
       ),
     ).toBe(`/dashboard/${PROJECT_ID}/ai/insights/${INSIGHT_ID}`);
 
-    const request: HTMLElement = screen.getByTestId("code-turn-request");
-    expect(request).toHaveTextContent("OneUptime");
-    expect(request).not.toHaveTextContent("Someone");
+    // What it asked, quoted inside the same message, after why.
+    const request: HTMLElement = within(origin).getByTestId(
+      "code-turn-request-message",
+    );
     expect(request).toHaveTextContent(
       "Make OrderParser.parse in src/orders/parser.ts faster",
     );
-
-    // What started it is said before the request.
-    const items: Array<Element> = Array.from(
-      document.querySelectorAll(
-        "[data-testid='code-turn-origin'], [data-testid='code-turn-request']",
-      ),
-    );
     expect(
-      items.map((element: Element): string | null => {
-        return element.getAttribute("data-testid");
-      }),
-    ).toEqual(["code-turn-origin", "code-turn-request"]);
+      origin.querySelector("p")!.compareDocumentPosition(request) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    // No person's bubble: nobody asked, and OneUptime speaks once.
+    expect(screen.queryByTestId("code-turn-request")).toBeNull();
+    expect(document.body).not.toHaveTextContent("Someone");
+    expect(within(origin).getAllByText("OneUptime")).toHaveLength(1);
+  });
+
+  test("a request OneUptime wrote itself keeps the context it attached, under what it asked", () => {
+    draw(
+      <ol>
+        <CodeTaskTurn
+          isLatest={true}
+          origin={{
+            type: CodeTaskOriginType.Insight,
+            label: "OrderParser.parse takes 18% of the CPU time in checkout",
+            recordId: INSIGHT_ID,
+          }}
+          turn={turn({
+            requestedBy: undefined,
+            request: {
+              message: "Make OrderParser.parse in src/orders/parser.ts faster",
+              context: [
+                {
+                  type: CodeTaskContextType.File,
+                  label: "src/orders/parser.ts",
+                  path: "src/orders/parser.ts",
+                },
+              ],
+            },
+          })}
+        />
+      </ol>,
+    );
+
+    const origin: HTMLElement = screen.getByTestId("code-turn-origin");
+
+    expect(within(origin).getByTestId("code-turn-context")).toHaveTextContent(
+      "src/orders/parser.ts",
+    );
   });
 
   test("a person's request about a finding stays theirs, with no origin beside it", () => {

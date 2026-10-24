@@ -185,8 +185,15 @@ const AIInsightsPage: FunctionComponent<AIInsightsPageProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const scope: AIInsightsInboxScope | undefined = props.scope;
+  /*
+   * What the scope narrows the list to. The reads follow this alone, not
+   * the scope's words: a product that swaps its empty state's words (the
+   * Profiler, while its switch is off) does not read the list again.
+   */
+  const scopeInsightTypes: ReadonlyArray<AIInsightType> | undefined =
+    scope?.insightTypes;
   const insightTypes: ReadonlyArray<AIInsightType> =
-    scope?.insightTypes || ALL_INSIGHT_TYPES;
+    scopeInsightTypes || ALL_INSIGHT_TYPES;
   const settingsRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[scope?.settingsPage || PageMap.AI_INSIGHTS_SETTINGS] as Route,
   );
@@ -313,9 +320,9 @@ const AIInsightsPage: FunctionComponent<AIInsightsPageProps> = (
 
       if (typeFilter !== ALL_FILTER_VALUE) {
         (query as Record<string, unknown>)["insightType"] = typeFilter;
-      } else if (scope) {
+      } else if (scopeInsightTypes) {
         (query as Record<string, unknown>)["insightType"] = new Includes([
-          ...scope.insightTypes,
+          ...scopeInsightTypes,
         ]);
       }
 
@@ -337,7 +344,13 @@ const AIInsightsPage: FunctionComponent<AIInsightsPageProps> = (
 
       return query;
     },
-    [severityFilter, typeFilter, seenWithinFilter, debouncedSearchText, scope],
+    [
+      severityFilter,
+      typeFilter,
+      seenWithinFilter,
+      debouncedSearchText,
+      scopeInsightTypes,
+    ],
   );
 
   /*
@@ -678,6 +691,8 @@ const AIInsightsPage: FunctionComponent<AIInsightsPageProps> = (
                   key={item.id?.toString()}
                   insight={item}
                   viewPage={scope?.viewPage}
+                  // One kind of insight here: no row says its kind.
+                  isTypeShown={insightTypes.length > 1}
                 />
               );
             })}

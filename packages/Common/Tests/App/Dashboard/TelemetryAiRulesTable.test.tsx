@@ -52,6 +52,7 @@ import {
   TELEMETRY_AI_LANE_COPY,
   TELEMETRY_AI_RULES_CARD_TITLE,
   TELEMETRY_AI_RUNNER_HINT,
+  TELEMETRY_AI_TEST_IDS,
   getTelemetryAiFixOptions,
   getTelemetryAiRulesTableId,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiCopy";
@@ -65,7 +66,10 @@ import {
   INVESTIGATION_RULE_TIMING_FIELD_KEY,
   InvestigationRuleTiming,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/InvestigationRuleTiming";
-import { RULE_CODE_REPOSITORIES_FIELD_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/RuleCodeRepositoriesCopy";
+import {
+  RULE_CODE_REPOSITORIES_FIELD_COPY,
+  RULE_CODE_REPOSITORIES_HINT_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Code/RuleCodeRepositoriesCopy";
 import { RULE_MCP_SERVERS_FIELD_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/ExternalMcpServer/ExternalMcpServerCopy";
 import { mockRuleLlmProviders } from "./RuleLlmProviderFixtures";
 import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
@@ -248,6 +252,45 @@ describe("the profile AI rules table", () => {
     ).toBeTruthy();
   });
 
+  /*
+   * OneUptime looks for slow code once an hour: a wait starts on one look,
+   * found again on the next - not the incidents' 10 minutes, which reads as
+   * more than an hourly look can tell apart (the UI review).
+   */
+  test("a wait starts on an hour, one look of the Profiler's: found again on its next look", () => {
+    const props: Record<string, unknown> = tableFor();
+    const timing: CapturedField = fieldNamed(
+      props,
+      INVESTIGATION_RULE_TIMING_FIELD_KEY,
+    );
+
+    let written: Values | null = null;
+    timing.onChange!(
+      InvestigationRuleTiming.AfterWait,
+      { investigates: true } as Values,
+      (values: Values): void => {
+        written = values;
+      },
+    );
+
+    expect(written).toEqual(
+      expect.objectContaining({ onlyIfOpenAfterMinutes: 60 }),
+    );
+
+    // A wait already typed is kept.
+    timing.onChange!(
+      InvestigationRuleTiming.AfterWait,
+      { investigates: true, onlyIfOpenAfterMinutes: 180 } as unknown as Values,
+      (values: Values): void => {
+        written = values;
+      },
+    );
+
+    expect(written).toEqual(
+      expect.objectContaining({ onlyIfOpenAfterMinutes: 180 }),
+    );
+  });
+
   test("fixes as a pull request: the one Fix question, in the lane's words, writing both columns", () => {
     const props: Record<string, unknown> = tableFor();
     const fix: CapturedField = fieldNamed(props, AI_RULE_FIX_FIELD_KEY);
@@ -303,6 +346,21 @@ describe("the profile AI rules table", () => {
     render(fieldNamed(props, "codeRepositories").getFooterElement!());
 
     expect(screen.getByText(TELEMETRY_AI_RUNNER_HINT)).toBeInTheDocument();
+
+    /*
+     * One line of help under the field, in its size: where repositories
+     * are connected, then whose Runner works in them (it was a second,
+     * larger line).
+     */
+    const hint: HTMLElement = screen.getByTestId(
+      RULE_CODE_REPOSITORIES_HINT_TEST_ID,
+    );
+
+    expect(hint).toContainElement(
+      screen.getByTestId(TELEMETRY_AI_TEST_IDS.runnerHint),
+    );
+    expect(hint).toHaveTextContent(TELEMETRY_AI_RUNNER_HINT);
+    expect(hint.className).toContain("text-xs");
   });
 
   test("folds what most rules never change under More fields, the shared fields first", () => {

@@ -164,6 +164,18 @@ export function isTelemetryAiLaneScanTick(
   return minuteOfDay % every < INSIGHT_SCAN_EVERY_MINUTES;
 }
 
+/*
+ * The wait a rule's form starts on when "Only if still found after a wait"
+ * is picked: one look of the lane - slow code found again on the next look.
+ * A shorter wait reads as more than the lane can tell apart: nothing is
+ * looked at again before then.
+ */
+export function getTelemetryAiDefaultWaitMinutes(
+  lane: TelemetryAiLane,
+): number {
+  return TELEMETRY_AI_LANES[lane].scanEveryMinutes;
+}
+
 // What every lane's rules match on: the service the problem is in.
 export const TELEMETRY_AI_CRITERIA_FIELDS: ReadonlyArray<string> =
   TELEMETRY_AI_RULE_CRITERIA_FIELDS;

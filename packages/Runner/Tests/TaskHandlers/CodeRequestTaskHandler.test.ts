@@ -475,7 +475,7 @@ describe("a task OneUptime started on its own", () => {
         ")).",
     );
     expect(body).toContain(
-      "Started in OneUptime (task #42): [open the task](https://oneuptime.example/dashboard/p/code/tasks/" +
+      "Started by OneUptime (task #42): [open the task](https://oneuptime.example/dashboard/p/code/tasks/" +
         TASK_ID +
         "). Reply there to ask for changes",
     );
@@ -545,7 +545,33 @@ describe("a task OneUptime started on its own", () => {
     );
 
     expect(body).toContain("Requested by Jane Doe in OneUptime (task #42)");
-    expect(body).not.toContain("Started in OneUptime");
+    expect(body).not.toContain("Started by OneUptime");
+  });
+
+  /*
+   * The commit names who it is for once: the UI review found "Started by
+   * OneUptime in OneUptime (task #42)." on every commit OneUptime made.
+   */
+  test("its commit says OneUptime started it, once", () => {
+    const message: string =
+      CodeRequestTaskHandler.buildCommitMessage(startedByOneUptime());
+
+    expect(message).toContain("Started by OneUptime (task #42).");
+    expect(message).not.toContain("in OneUptime");
+    expect(message).not.toContain("Requested");
+  });
+
+  test("a commit for a person still says who asked, and where", () => {
+    expect(
+      CodeRequestTaskHandler.buildCommitMessage(
+        startedByOneUptime({ requestedBy: "Jane Doe" }),
+      ),
+    ).toContain("Requested in OneUptime (task #42) by Jane Doe.");
+    expect(
+      CodeRequestTaskHandler.buildCommitMessage(
+        details({ requestedBy: "Jane Doe" }),
+      ),
+    ).toContain("Requested in OneUptime (task #42) by Jane Doe.");
   });
 
   test("a task a person asked for says nothing of OneUptime's reasons", () => {

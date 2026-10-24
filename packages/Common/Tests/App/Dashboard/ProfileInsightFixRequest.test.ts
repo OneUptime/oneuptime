@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import {
   doesInsightOfferProfileFix,
   getProfileInsightFixRequest,
+  getProfileInsightMonitorRoute,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/ProfileInsightFixRequest";
 import { ProfileInsightEvidence } from "../../../Types/AI/AIInsightEvidence";
 import AIInsightStatus from "../../../Types/AI/AIInsightStatus";
@@ -14,6 +15,9 @@ import ObjectID from "../../../Types/ObjectID";
  * Profiler's function panel sends, built from the finding's evidence, and
  * only while the finding is open with no fix linked.
  */
+
+// Create Monitor's address, whatever project it is under.
+const MONITOR_CREATE_PATH: RegExp = /\/monitors\/create$/;
 
 const EVIDENCE: ProfileInsightEvidence = {
   serviceId: "5092cdcd-0000-4000-8000-000000000001",
@@ -115,5 +119,75 @@ describe("doesInsightOfferProfileFix", () => {
         insight as Parameters<typeof doesInsightOfferProfileFix>[0],
       ),
     ).toBe(false);
+  });
+});
+
+/*
+ * What a slow-code finding's Create Monitor opens
+ * (getProfileInsightMonitorRoute): the Profiler's own monitor on the
+ * function - the one its function panel offers - with a threshold above
+ * the share it takes now, so it alerts when it grows, not once it is saved.
+ * The UI review found the button greyed out on every finding ("Monitors
+ * cannot be created from this kind of insight yet").
+ */
+describe("getProfileInsightMonitorRoute", () => {
+  function queryOf(route: unknown): URLSearchParams {
+    const address: string = String(route);
+
+    return new URLSearchParams(address.substring(address.indexOf("?") + 1));
+  }
+
+  test("a Profiles monitor of the function in its service, for the kind it was found in", () => {
+    const route: unknown = getProfileInsightMonitorRoute(EVIDENCE);
+    const query: URLSearchParams = queryOf(route);
+
+    expect(String(route).split("?")[0]).toMatch(MONITOR_CREATE_PATH);
+    expect(query.get("profileServiceId")).toBe(EVIDENCE.serviceId);
+    expect(query.get("profileFunction")).toBe("OrderParser.parse");
+    expect(query.get("profileType")).toBe("cpu");
+  });
+
+  test("its threshold is above the whole share the function takes now", () => {
+    // 600 of 5000 samples: 12%, the share named too. 12 + 10, to the next 5.
+    expect(
+      queryOf(getProfileInsightMonitorRoute(EVIDENCE)).get("profileThreshold"),
+    ).toBe("25");
+
+    /*
+     * Its samples hold more than its own-code share (code of its own it
+     * calls): the monitor reads every stack it is in, so the larger one
+     * decides. 2000 of 5000 is 40%: 40 + 20, to the next 5.
+     */
+    expect(
+      queryOf(
+        getProfileInsightMonitorRoute({
+          ...EVIDENCE,
+          functionSampleCount: 2000,
+        }),
+      ).get("profileThreshold"),
+    ).toBe("60");
+  });
+
+  test("a service id that is not one is left out, and the kind falls back to CPU time", () => {
+    const query: URLSearchParams = queryOf(
+      getProfileInsightMonitorRoute({
+        ...EVIDENCE,
+        serviceId: "checkout",
+        profileType: "",
+        category: "",
+      }),
+    );
+
+    expect(query.get("profileServiceId")).toBeNull();
+    expect(query.get("profileType")).toBe("cpu");
+  });
+
+  test.each([
+    ["no evidence", undefined],
+    ["no function", { ...EVIDENCE, functionName: "  " }],
+  ])("nothing to watch with %s", (_name: string, evidence: unknown) => {
+    expect(
+      getProfileInsightMonitorRoute(evidence as ProfileInsightEvidence),
+    ).toBeNull();
   });
 });

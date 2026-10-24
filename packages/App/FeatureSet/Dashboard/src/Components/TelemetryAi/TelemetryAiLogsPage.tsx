@@ -21,6 +21,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import API from "Common/UI/Utils/API/API";
+import Navigation from "Common/UI/Utils/Navigation";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -386,6 +387,31 @@ const TelemetryAiLogsPage: FunctionComponent<ComponentProps> = (
             paddingClassName="py-16 md:py-24"
             title={copy.logsEmptyTitle}
             description={copy.logsEmptyDescription}
+            footer={
+              /*
+               * The way on, as the section's Insights page offers it: what
+               * OneUptime AI does on its own is chosen in AI Settings. The
+               * wrapper takes off the dialog-footer margin Button carries
+               * from md, which set it off centre.
+               */
+              <div className="[&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
+                <Button
+                  title="Go to AI Settings"
+                  icon={IconProp.Settings}
+                  buttonStyle={ButtonStyleType.NORMAL}
+                  dataTestId={TELEMETRY_AI_TEST_IDS.logsSettings}
+                  onClick={() => {
+                    Navigation.navigate(
+                      RouteUtil.populateRouteParams(
+                        RouteMap[
+                          TELEMETRY_AI_PAGES[props.lane].settings
+                        ] as Route,
+                      ),
+                    );
+                  }}
+                />
+              </div>
+            }
           />
         </div>
       );

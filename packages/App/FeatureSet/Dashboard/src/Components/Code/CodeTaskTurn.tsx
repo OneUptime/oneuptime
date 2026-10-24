@@ -501,8 +501,10 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
 
   /*
    * A request nobody typed - OneUptime wrote it from a problem it found
-   * (CodeTaskOrigin.isStartedByOneUptime): what started it comes first, and
-   * the request is OneUptime's, not "Someone"'s.
+   * (CodeTaskOrigin.isStartedByOneUptime): one message of OneUptime's, on
+   * the left as the AI's are, saying what started it and then what it
+   * asked. The right is where people ask: drawn there too, OneUptime
+   * spoke twice in a row, once on each side.
    */
   const isRequestByOneUptime: boolean = Boolean(
     turn.request &&
@@ -513,12 +515,7 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
 
   const renderAsk: () => ReactElement = (): ReactElement => {
     if (turn.request && isRequestByOneUptime) {
-      return (
-        <>
-          {renderOrigin()}
-          {renderRequest()}
-        </>
-      );
+      return renderOrigin();
     }
 
     if (turn.request) {
@@ -537,21 +534,15 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
       return <></>;
     }
 
-    const name: string = isRequestByOneUptime ? "OneUptime" : personName;
-
     return (
       <li data-testid="code-turn-request" className="flex flex-col items-end">
         <div className="flex max-w-full items-center gap-2">
-          {isRequestByOneUptime ? (
-            <OneUptimeMark />
-          ) : (
-            <PersonMark
-              name={personName}
-              seed={turn.requestedBy?.id || personName}
-            />
-          )}
+          <PersonMark
+            name={personName}
+            seed={turn.requestedBy?.id || personName}
+          />
           <span className="truncate text-xs font-medium text-gray-700">
-            {name}
+            {personName}
           </span>
           <CodeTimeAgo
             date={turn.createdAt}
@@ -631,6 +622,25 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
                 )
               )}
             </p>
+            {/*
+              What OneUptime asked, quoted under why: its own words, as
+              they were sent, with the context it attached.
+            */}
+            {turn.request && isRequestByOneUptime ? (
+              <>
+                <div
+                  data-testid="code-turn-request-message"
+                  className="mt-2 rounded-xl bg-gray-50 px-4 py-2.5 ring-1 ring-inset ring-gray-200"
+                >
+                  <p className="whitespace-pre-wrap break-words text-sm leading-6 text-gray-800">
+                    {turn.request.message}
+                  </p>
+                </div>
+                <ContextChips items={turn.request.context} />
+              </>
+            ) : (
+              <></>
+            )}
           </div>
         </li>
       );

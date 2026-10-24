@@ -11,6 +11,7 @@ import {
 import {
   TELEMETRY_AI_LANES,
   TelemetryAiLane,
+  getTelemetryAiDefaultWaitMinutes,
 } from "Common/Types/AI/TelemetryAi";
 import AutoRemediationAction from "Common/Types/AutoRemediation/AutoRemediationAction";
 import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
@@ -452,6 +453,10 @@ const TelemetryAiRulesTable: FunctionComponent<ComponentProps> = (
               getValuesForInvestigationRuleTiming({
                 values: currentValues,
                 timing: value,
+                // One look of the lane: found again on its next look.
+                defaultWaitMinutes: getTelemetryAiDefaultWaitMinutes(
+                  props.lane,
+                ),
               }),
             );
           },
@@ -608,16 +613,15 @@ const TelemetryAiRulesTable: FunctionComponent<ComponentProps> = (
             );
           },
           getFooterElement: (): ReactElement => {
+            // Where repositories are connected, then whose Runner works in them.
             return (
-              <div className="space-y-1">
-                <RuleCodeRepositoriesFieldHint />
-                <p
-                  className="text-sm text-gray-500"
-                  data-testid={TELEMETRY_AI_TEST_IDS.runnerHint}
-                >
-                  {translator.translateText(TELEMETRY_AI_RUNNER_HINT)}
-                </p>
-              </div>
+              <RuleCodeRepositoriesFieldHint
+                extra={
+                  <span data-testid={TELEMETRY_AI_TEST_IDS.runnerHint}>
+                    {translator.translateText(TELEMETRY_AI_RUNNER_HINT)}
+                  </span>
+                }
+              />
             );
           },
         },

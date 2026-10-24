@@ -92,6 +92,13 @@ export interface ComponentProps {
   insightId?: string | undefined;
   // Told once a task has started, with its id.
   onTaskStarted?: ((taskId: string) => void) | undefined;
+  /*
+   * Whether the strip says what was found first ("This is your code, and
+   * ... takes 23% of the CPU time"). Off on a finding's own page, whose
+   * title and evidence say it already: the strip says what Fix with AI
+   * does instead.
+   */
+  isFindingShown?: boolean | undefined;
 }
 
 // The strip's links: quiet, and plain to see under the keyboard.
@@ -188,7 +195,13 @@ const ProfileFixStrip: FunctionComponent<ComponentProps> = (
     { inSentence: true },
   );
 
-  const finding: ReactNode = suggestion.evidence ? (
+  const isFindingShown: boolean = props.isFindingShown !== false;
+
+  const finding: ReactNode = !isFindingShown ? (
+    suggestion.offer === SuggestionOffer.Act && !taskId ? (
+      translator.translateText(FIX_WITH_AI_TOOLTIP)
+    ) : null
+  ) : suggestion.evidence ? (
     suggestion.reason === ProfileFixReason.Grew &&
     suggestion.evidence.ownShareBefore !== undefined ? (
       <TranslatedSentence
@@ -363,7 +376,8 @@ const ProfileFixStrip: FunctionComponent<ComponentProps> = (
           buttonSize={ButtonSize.Small}
           isLoading={isCreating}
           disabled={needsRepositoryPick && !pickedRepositoryId}
-          tooltip={FIX_WITH_AI_TOOLTIP}
+          // Said above it already where the finding is not.
+          tooltip={isFindingShown ? FIX_WITH_AI_TOOLTIP : undefined}
           dataTestId="profiles-fix-with-ai"
           /*
            * Waiting for a repository to be picked, it looks it: the shared

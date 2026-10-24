@@ -27,6 +27,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
+  ReactNode,
   useEffect,
   useState,
 } from "react";
@@ -252,32 +253,43 @@ export const RuleCodeRepositoriesPicker: FunctionComponent<
  * new tab: the rule being edited stays, and the picker reads the
  * repositories again when the person comes back.
  */
-export const RuleCodeRepositoriesFieldHint: FunctionComponent =
-  (): ReactElement => {
-    const translator: Translator = useTranslator();
+export interface RuleCodeRepositoriesFieldHintProps {
+  /*
+   * A sentence more about the repositories, in the same line of help: a
+   * telemetry rule says whose Runner changes their code (it has no Runner
+   * field of its own).
+   */
+  extra?: ReactNode | undefined;
+}
 
-    return (
-      <p
-        className="mt-1.5 mb-2 text-xs text-gray-500"
-        data-testid={RULE_CODE_REPOSITORIES_HINT_TEST_ID}
-      >
-        <TranslatedSentence
-          template={RULE_CODE_REPOSITORIES_FIELD_COPY.manageHint}
-          slots={{
-            codeRepositoriesLink: (
-              <Link
-                to={RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.CODE_REPOSITORIES] as Route,
-                )}
-                openInNewTab={true}
-                className="underline"
-                dataTestId="rule-code-repositories-link"
-              >
-                {translator.translateText("Code › Repositories")}
-              </Link>
-            ),
-          }}
-        />
-      </p>
-    );
-  };
+export const RuleCodeRepositoriesFieldHint: FunctionComponent<
+  RuleCodeRepositoriesFieldHintProps
+> = (props: RuleCodeRepositoriesFieldHintProps): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  return (
+    <p
+      className="mt-1.5 mb-2 text-xs text-gray-500"
+      data-testid={RULE_CODE_REPOSITORIES_HINT_TEST_ID}
+    >
+      <TranslatedSentence
+        template={RULE_CODE_REPOSITORIES_FIELD_COPY.manageHint}
+        slots={{
+          codeRepositoriesLink: (
+            <Link
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.CODE_REPOSITORIES] as Route,
+              )}
+              openInNewTab={true}
+              className="underline"
+              dataTestId="rule-code-repositories-link"
+            >
+              {translator.translateText("Code › Repositories")}
+            </Link>
+          ),
+        }}
+      />
+      {props.extra ? <> {props.extra}</> : <></>}
+    </p>
+  );
+};

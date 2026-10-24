@@ -24,6 +24,12 @@ import { MemoryRouter } from "react-router-dom";
  * person. The fix it starts names the finding; once it has, the page reads
  * the finding again and shows its fix task instead. "Open in Profiler" goes
  * to the function, in the window it was found in.
+ *
+ * The UI review: the offer said what was found a third time (the title and
+ * the evidence say it), now it says what Fix with AI does; Create Monitor
+ * was greyed out ("Monitors cannot be created from this kind of insight
+ * yet"), now it opens the Profiler's own monitor on the function; and the
+ * panels' titles and labels were English in every language.
  */
 
 const INSIGHT_ID: string = "5092fafa-1111-4111-8111-111111111111";
@@ -79,12 +85,15 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
+// The words a test reads in another language; English otherwise.
+const translations: Record<string, string> = {};
+
 jest.mock("react-i18next", () => {
   return {
     useTranslation: () => {
       return {
         t: (value: string): string => {
-          return value;
+          return translations[value] || value;
         },
       };
     },
@@ -103,9 +112,16 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import SuggestionOffer from "../../../Utils/Suggestions/SuggestionOffer";
 import Navigation from "../../../UI/Utils/Navigation";
+import PermissionGate from "../../../UI/Utils/PermissionGate";
+import {
+  FIX_HOT_SENTENCE,
+  FIX_WITH_AI_TOOLTIP,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Profiles/ProfileCopy";
 
 // The Profiler's own address, whatever project it is under.
 const PROFILER_PATH: RegExp = /\/profiles$/;
+// Create Monitor's address, whatever project it is under.
+const MONITOR_CREATE_PATH: RegExp = /\/monitors\/create$/;
 
 const PROFILE: ProfileInsightEvidence = {
   serviceId: SERVICE_ID,
@@ -221,6 +237,11 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   jest.clearAllMocks();
+  jest.restoreAllMocks();
+
+  for (const key of Object.keys(translations)) {
+    delete translations[key];
+  }
 });
 
 async function renderPage(): Promise<void> {
@@ -285,6 +306,67 @@ describe("a slow-code finding's page", () => {
     await waitFor(() => {
       expect(screen.queryByTestId("profiles-fix")).not.toBeInTheDocument();
     });
+  });
+
+  test("the offer says what Fix with AI does, not the finding a third time", async () => {
+    await renderPage();
+
+    const strip: HTMLElement = await screen.findByTestId("profiles-fix");
+
+    expect(await screen.findByTestId("profiles-fix-finding")).toHaveTextContent(
+      FIX_WITH_AI_TOOLTIP,
+    );
+    // Not the Profiler's own lead, which names the share again.
+    expect(strip).not.toHaveTextContent(
+      FIX_HOT_SENTENCE.substring(0, FIX_HOT_SENTENCE.indexOf(",")),
+    );
+  });
+
+  test("Create Monitor opens a Profiles monitor on the function, set above the share it takes now", async () => {
+    jest.spyOn(PermissionGate, "check").mockReturnValue({ isAllowed: true });
+    const navigate: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((): void => {
+        return undefined;
+      });
+
+    await renderPage();
+
+    const button: HTMLElement = await screen.findByRole("button", {
+      name: "Create Monitor",
+    });
+
+    // Offered, not greyed out with "cannot be created from this kind".
+    expect(button).not.toBeDisabled();
+
+    fireEvent.click(button);
+
+    const target: string = String(navigate.mock.calls[0]![0]);
+    const query: URLSearchParams = new URLSearchParams(
+      target.substring(target.indexOf("?") + 1),
+    );
+
+    expect(target.split("?")[0]).toMatch(MONITOR_CREATE_PATH);
+    expect(query.get("profileServiceId")).toBe(SERVICE_ID);
+    expect(query.get("profileFunction")).toBe("OrderParser.parse");
+    expect(query.get("profileType")).toBe("cpu");
+    // 18% now: the threshold is above it (18 + 10, to the next 5).
+    expect(query.get("profileThreshold")).toBe("30");
+    // Not the AI insight prefill, which has no monitor for slow code.
+    expect(query.get("aiInsightId")).toBeNull();
+  });
+
+  test("its panels' titles and labels are drawn in the reader's language", async () => {
+    translations["Evidence"] = "Belege";
+    translations["Details"] = "Einzelheiten";
+    translations["Service"] = "Dienst";
+
+    await renderPage();
+
+    expect(await screen.findByText("Belege")).toBeInTheDocument();
+    expect(screen.getByText("Einzelheiten")).toBeInTheDocument();
+    expect(screen.getByText("Dienst")).toBeInTheDocument();
+    expect(screen.queryByText("Evidence")).not.toBeInTheDocument();
   });
 
   test("Open in Profiler goes to the function, in the window it was found in", async () => {

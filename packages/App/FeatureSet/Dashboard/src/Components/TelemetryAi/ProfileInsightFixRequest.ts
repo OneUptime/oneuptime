@@ -1,8 +1,14 @@
+import Route from "Common/Types/API/Route";
 import { ProfileInsightEvidence } from "Common/Types/AI/AIInsightEvidence";
 import AIInsightStatus, {
   AIInsightStatusHelper,
 } from "Common/Types/AI/AIInsightStatus";
 import AIInsightType from "Common/Types/AI/AIInsightType";
+import ObjectID from "Common/Types/ObjectID";
+import {
+  buildProfileMonitorRoute,
+  suggestFunctionShareThreshold,
+} from "../../Utils/ProfilesView";
 import {
   ProfileFixRequestBody,
   ProfileWindowRequest,
@@ -71,6 +77,44 @@ export function getProfileInsightFixRequest(
   }
 
   return request;
+}
+
+/*
+ * What a slow-code finding's Create Monitor opens: the Profiles monitor the
+ * Profiler's function panel offers ("Alert me when its share passes 55%"),
+ * on the function in its service, for the kind of profile it was found in,
+ * with a threshold above the share it takes now - so the monitor alerts
+ * the next time it grows, not the moment it is saved. The share a monitor
+ * reads is the function's whole share (every stack it is in), which its
+ * sample count gives; never less than the share the finding names. Null
+ * when the finding does not name its function.
+ */
+export function getProfileInsightMonitorRoute(
+  evidence: ProfileInsightEvidence | undefined | null,
+): Route | null {
+  const functionName: string = (evidence?.functionName || "").trim();
+
+  if (!evidence || !functionName) {
+    return null;
+  }
+
+  const sampleShare: number =
+    evidence.windowSampleCount > 0
+      ? (evidence.functionSampleCount / evidence.windowSampleCount) * 100
+      : 0;
+  const share: number = Math.max(
+    Number.isFinite(evidence.ownShare) ? evidence.ownShare : 0,
+    Number.isFinite(sampleShare) ? sampleShare : 0,
+  );
+
+  return buildProfileMonitorRoute({
+    serviceId: ObjectID.isValidUUID(evidence.serviceId || "")
+      ? evidence.serviceId
+      : undefined,
+    functionName,
+    profileType: evidence.profileType || evidence.category || "cpu",
+    threshold: suggestFunctionShareThreshold(share),
+  });
 }
 
 // Whether a finding offers "Fix with AI": open, slow code, and no fix yet.

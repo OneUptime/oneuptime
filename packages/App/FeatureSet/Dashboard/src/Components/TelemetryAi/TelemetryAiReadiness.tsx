@@ -38,50 +38,54 @@ import {
 } from "./TelemetryAiCopy";
 
 /*
- * Under a lane's switch on its AI Settings page: whether OneUptime AI can
- * open pull requests for what it finds, and when it cannot, the one thing
- * to do first - connect a repository in Code, or what Code's
- * gate says for it (the plan, AI credits, a Runner online), with Code's
- * own words and fix (CodeBlockerNotice). When all is ready it says where
- * the pull requests go, how many OneUptime AI may open on its own a day,
- * and that the code is changed on the Runner each repository picks.
+ * WHAT A LANE'S SWITCH LEADS TO: whether OneUptime AI can open pull
+ * requests for what it finds, and when it cannot, the one thing to do
+ * first - connect a repository in Code, or what Code's gate says for it
+ * (the plan, AI credits, a Runner online), in Code's own words and with
+ * its fix (CodeBlockerNotice). When all is ready it says where the pull
+ * requests go, how many OneUptime AI may open on its own a day, and that
+ * the code is changed on the Runner each repository picks.
  *
- * Nothing is drawn while Enable AI is off: the notice above the page says
- * that, with its switch. Read again whenever Enable AI or the lane's
- * switch is saved anywhere on the screen.
+ * Drawn under the lane's switch, inside its card (TelemetryAiSettingsPage
+ * hands it to ProjectAiSwitchesCard as the card's details), and only while
+ * it applies: never while Enable AI is off - the notice above the page says
+ * that, with its switch - nor while the lane's switch is off, when nothing
+ * is looked for and so nothing is opened. Read again whenever Enable AI or
+ * the lane's switch is saved anywhere on the screen.
  */
 
-export interface ComponentProps {
-  lane: TelemetryAiLane;
+export interface TelemetryAiReadinessState {
+  // The newest answer, or null before one arrives.
+  readiness: TelemetryAiReadinessJSON | null;
+  // Whether the newest read failed.
+  hasFailed: boolean;
 }
 
-const PANEL_CLASS_NAME: string =
-  "mb-5 rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm md:px-6";
-
-const LINK_CLASS_NAME: string =
-  "inline-flex items-center gap-1 rounded-sm font-medium text-indigo-600 hover:text-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
-
+// A blocker type the Dashboard knows how to word (CodeBlockerNotice).
 const isCodeTaskBlockerType: (value: string) => value is CodeTaskBlockerType = (
   value: string,
 ): value is CodeTaskBlockerType => {
   return (Object.values(CodeTaskBlockerType) as Array<string>).includes(value);
 };
 
-const TelemetryAiReadinessCard: FunctionComponent<ComponentProps> = (
-  props: ComponentProps,
-): ReactElement => {
-  const translator: Translator = useTranslator();
+/*
+ * The lane's readiness, read on mount and again each time Enable AI or the
+ * lane's switch is saved anywhere on the screen. Only the newest read is
+ * kept: an older answer arriving late is dropped.
+ */
+export function useTelemetryAiReadiness(
+  lane: TelemetryAiLane,
+): TelemetryAiReadinessState {
   const [readiness, setReadiness] = useState<TelemetryAiReadinessJSON | null>(
     null,
   );
   const [hasFailed, setHasFailed] = useState<boolean>(false);
-  // Only the newest read is drawn: an older answer arriving late is dropped.
   const readNumberRef: React.MutableRefObject<number> = useRef<number>(0);
 
   const read: () => void = useCallback((): void => {
     const readNumber: number = ++readNumberRef.current;
 
-    fetchTelemetryAiReadiness(props.lane)
+    fetchTelemetryAiReadiness(lane)
       .then((answer: TelemetryAiReadinessJSON): void => {
         if (readNumber === readNumberRef.current) {
           setReadiness(answer);
@@ -93,7 +97,7 @@ const TelemetryAiReadinessCard: FunctionComponent<ComponentProps> = (
           setHasFailed(true);
         }
       });
-  }, [props.lane]);
+  }, [lane]);
 
   useEffect(() => {
     read();
@@ -108,7 +112,7 @@ const TelemetryAiReadinessCard: FunctionComponent<ComponentProps> = (
 
     const unsubscribers: Array<() => void> = [
       ENABLE_AI_COLUMN,
-      TELEMETRY_AI_LANES[props.lane].switchColumn,
+      TELEMETRY_AI_LANES[lane].switchColumn,
     ].map((column: string): (() => void) => {
       return subscribeToModelSwitchSaved({
         modelType: Project,
@@ -125,27 +129,72 @@ const TelemetryAiReadinessCard: FunctionComponent<ComponentProps> = (
         unsubscribe();
       }
     };
-  }, [props.lane, read]);
+  }, [lane, read]);
 
-  if (hasFailed && !readiness) {
-    return (
+  return { readiness, hasFailed };
+}
+
+/*
+ * Whether there is anything to say under the switch: nothing while Enable
+ * AI or the lane's switch is off, and - before any answer - only that a
+ * read failed. `isLaneOn` is where the lane's switch is on the screen, when
+ * the page knows it: a flip hides or shows the lines at once, not after the
+ * readiness is read again.
+ */
+export function isTelemetryAiReadinessShown(
+  state: TelemetryAiReadinessState,
+  isLaneOn?: boolean | null | undefined,
+): boolean {
+  const isLaneOnNow: boolean | undefined =
+    typeof isLaneOn === "boolean" ? isLaneOn : state.readiness?.isLaneOn;
+
+  if (isLaneOnNow === false) {
+    return false;
+  }
+
+  if (!state.readiness) {
+    return state.hasFailed;
+  }
+
+  return state.readiness.isAiEnabled;
+}
+
+export interface ComponentProps {
+  state: TelemetryAiReadinessState;
+}
+
+// The fix's link, as Code's own notices draw it (CodeBlockerNotice).
+const LINK_CLASS_NAME: string =
+  "mt-1 inline-flex items-center gap-1 rounded-sm font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+
+const TelemetryAiReadiness: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  const translator: Translator = useTranslator();
+  const readiness: TelemetryAiReadinessJSON | null = props.state.readiness;
+
+  if (!readiness) {
+    return props.state.hasFailed ? (
       <p
-        className="mb-5 text-sm text-gray-500"
+        className="text-sm text-gray-500"
         data-testid={TELEMETRY_AI_TEST_IDS.readiness}
       >
         {translator.translateText(TELEMETRY_AI_READINESS_COPY.couldNotRead)}
       </p>
+    ) : (
+      <></>
     );
-  }
-
-  if (!readiness || !readiness.isAiEnabled) {
-    return <></>;
   }
 
   const steps: Array<TelemetryAiReadinessStep> =
     getTelemetryAiReadinessSteps(readiness);
 
   const getBody: () => ReactElement = (): ReactElement => {
+    /*
+     * No repository: the step to take, in the amber and the shape Code's
+     * own notices give a step (CodeBlockerNotice), as the step after it
+     * - AI credits, a Runner - is drawn.
+     */
     if (steps[0] === TelemetryAiReadinessStep.ConnectRepository) {
       const codeRoute: Route = RouteUtil.populateRouteParams(
         RouteMap[PageMap.CODE] as Route,
@@ -153,26 +202,26 @@ const TelemetryAiReadinessCard: FunctionComponent<ComponentProps> = (
 
       return (
         <div
-          className="flex items-start gap-3"
+          className="flex items-start gap-2 text-sm text-amber-900"
           data-testid={TELEMETRY_AI_TEST_IDS.readinessConnect}
         >
           <Icon
-            icon={IconProp.Code}
-            className="mt-0.5 h-5 w-5 flex-shrink-0 text-gray-400"
+            icon={IconProp.ExclaimationCircle}
+            className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600"
           />
-          <div className="min-w-0 space-y-1 text-sm">
-            <p className="text-gray-700">
+          <div className="min-w-0 flex-1">
+            <p className="leading-6">
               {translator.translateText(
                 TELEMETRY_AI_READINESS_COPY.connectRepository,
               )}
             </p>
             <Link to={codeRoute} className={LINK_CLASS_NAME}>
-              <span>
+              <>
                 {translator.translateText(
                   TELEMETRY_AI_READINESS_COPY.connectRepositoryLink,
                 )}
-              </span>
-              <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
+                <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
+              </>
             </Link>
           </div>
         </div>
@@ -203,15 +252,15 @@ const TelemetryAiReadinessCard: FunctionComponent<ComponentProps> = (
 
     return (
       <div
-        className="flex items-start gap-3"
+        className="flex items-start gap-2 text-sm text-gray-700"
         data-testid={TELEMETRY_AI_TEST_IDS.readinessReady}
       >
         <Icon
           icon={IconProp.CheckCircle}
-          className="mt-0.5 h-5 w-5 flex-shrink-0 text-green-500"
+          className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-600"
         />
-        <div className="min-w-0 space-y-1 text-sm text-gray-700">
-          <p>
+        <div className="min-w-0 flex-1">
+          <p className="leading-6">
             {translator.translatePlural(
               TELEMETRY_AI_READINESS_COPY.ready,
               readiness.connectedRepositoryCount,
@@ -224,7 +273,7 @@ const TelemetryAiReadinessCard: FunctionComponent<ComponentProps> = (
               },
             )}
           </p>
-          <p className="text-gray-500">
+          <p className="leading-6 text-gray-500">
             {translator.translateText(TELEMETRY_AI_RUNNER_HINT)}
           </p>
         </div>
@@ -234,7 +283,6 @@ const TelemetryAiReadinessCard: FunctionComponent<ComponentProps> = (
 
   return (
     <section
-      className={PANEL_CLASS_NAME}
       data-testid={TELEMETRY_AI_TEST_IDS.readiness}
       aria-label={translator.translateText(TELEMETRY_AI_READINESS_COPY.title)}
     >
@@ -243,4 +291,4 @@ const TelemetryAiReadinessCard: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default TelemetryAiReadinessCard;
+export default TelemetryAiReadiness;

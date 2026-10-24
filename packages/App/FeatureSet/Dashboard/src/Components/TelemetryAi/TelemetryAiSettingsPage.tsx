@@ -1,9 +1,14 @@
-import { TelemetryAiLane } from "Common/Types/AI/TelemetryAi";
+import Project from "Common/Models/DatabaseModels/Project";
+import {
+  TELEMETRY_AI_LANES,
+  TelemetryAiLane,
+} from "Common/Types/AI/TelemetryAi";
 import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
 import {
   FoldedSectionItem,
   foldedSectionItem,
 } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
+import { ModelSwitchColumn } from "Common/UI/Components/ModelSwitch/ModelSwitchUtil";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import ProjectAiNotice from "../AISettings/ProjectAiNotice";
 import ProjectAiSwitchesCard from "../AISettings/ProjectAiSwitchesCard";
@@ -16,7 +21,11 @@ import {
   TelemetryAiLaneCopy,
   getTelemetryAiRulesTableId,
 } from "./TelemetryAiCopy";
-import TelemetryAiReadinessCard from "./TelemetryAiReadinessCard";
+import TelemetryAiReadiness, {
+  TelemetryAiReadinessState,
+  isTelemetryAiReadinessShown,
+  useTelemetryAiReadiness,
+} from "./TelemetryAiReadiness";
 import TelemetryAiRulesTable from "./TelemetryAiRulesTable";
 
 /*
@@ -29,8 +38,10 @@ import TelemetryAiRulesTable from "./TelemetryAiRulesTable";
  *     else happens;
  *   - the lane's switch - "Find and fix slow code" - which saves the moment
  *     it is flipped: on for new projects, the rule "turned on by default";
- *   - whether OneUptime AI can open pull requests now, and what to do first
- *     when it cannot (TelemetryAiReadinessCard);
+ *     and under it, inside its card, whether OneUptime AI can open pull
+ *     requests now, and what to do first when it cannot
+ *     (TelemetryAiReadiness) - only while the switch is on and Enable AI
+ *     too, since with either off nothing is opened;
  *   - folded under More settings, the lane's AI rules (TelemetryAiRulesTable):
  *     which services' problems it works on, when, and whether it opens pull
  *     requests on its own. The folded header names the table, as a chip
@@ -76,6 +87,11 @@ const TelemetryAiSettingsPage: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const copy: TelemetryAiLaneCopy = TELEMETRY_AI_LANE_COPY[props.lane];
   const [ruleCount, setRuleCount] = useState<number | null>(null);
+  const readiness: TelemetryAiReadinessState = useTelemetryAiReadiness(
+    props.lane,
+  );
+  // Where the lane's switch is on the screen: null until the card reads it.
+  const [isLaneOn, setIsLaneOn] = useState<boolean | null>(null);
 
   return (
     <>
@@ -85,10 +101,18 @@ const TelemetryAiSettingsPage: FunctionComponent<ComponentProps> = (
         cardTitle={TELEMETRY_AI_SWITCHES_CARD_TITLE}
         cardDescription={copy.switchesCardDescription}
         switches={TELEMETRY_AI_SWITCHES[props.lane]}
+        onChange={(column: ModelSwitchColumn<Project>, isOn: boolean): void => {
+          if (column === TELEMETRY_AI_LANES[props.lane].switchColumn) {
+            setIsLaneOn(isOn);
+          }
+        }}
+        details={
+          isTelemetryAiReadinessShown(readiness, isLaneOn) ? (
+            <TelemetryAiReadiness state={readiness} />
+          ) : undefined
+        }
         dataTestId={TELEMETRY_AI_TEST_IDS.switches}
       />
-
-      <TelemetryAiReadinessCard lane={props.lane} />
 
       <AdvancedPageSection
         description={copy.advancedDescription}

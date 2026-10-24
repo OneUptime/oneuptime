@@ -77,6 +77,12 @@ export interface TelemetryAiLaneCopy {
   insightsIntro: string;
   insightsEmptyTitle: string;
   insightsEmptyDescription: string;
+  /*
+   * With nothing found while the lane's switch is off: nothing is looked
+   * for, so "nothing found" would not be true.
+   */
+  insightsOffEmptyTitle: string;
+  insightsOffEmptyDescription: string;
 
   // Logs.
   logsIntro: string;
@@ -121,6 +127,12 @@ export const TELEMETRY_AI_LANE_COPY: Readonly<
     insightsEmptyTitle: translationKey("No slow code found"),
     insightsEmptyDescription: translationKey(
       "Every hour OneUptime looks through your services' profiles and files a finding when your own code takes a large or growing share of their time.",
+    ),
+    insightsOffEmptyTitle: translationKey(
+      "OneUptime is not looking for slow code",
+    ),
+    insightsOffEmptyDescription: translationKey(
+      "Turn on 'Find and fix slow code' in AI Settings, and OneUptime looks through your services' profiles every hour.",
     ),
 
     logsIntro: translationKey(
@@ -208,6 +220,33 @@ export const TELEMETRY_AI_INSIGHTS_SCOPES: Readonly<
       TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Profile].insightsEmptyDescription,
   },
 };
+
+/*
+ * The same, while the lane's switch is off: its empty state says that
+ * nothing is looked for, and the way to turn it on (its AI Settings).
+ */
+export const TELEMETRY_AI_INSIGHTS_SCOPES_WHILE_OFF: Readonly<
+  Record<TelemetryAiLane, TelemetryAiInsightsScope>
+> = {
+  [TelemetryAiLane.Profile]: {
+    ...TELEMETRY_AI_INSIGHTS_SCOPES[TelemetryAiLane.Profile],
+    emptyTitle:
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Profile].insightsOffEmptyTitle,
+    emptyDescription:
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Profile]
+        .insightsOffEmptyDescription,
+  },
+};
+
+// A lane's inbox scope, as its switch stands: off only once read as off.
+export function getTelemetryAiInsightsScope(
+  lane: TelemetryAiLane,
+  isLaneOff: boolean,
+): TelemetryAiInsightsScope {
+  return isLaneOff
+    ? TELEMETRY_AI_INSIGHTS_SCOPES_WHILE_OFF[lane]
+    : TELEMETRY_AI_INSIGHTS_SCOPES[lane];
+}
 
 /*
  * Each lane's switch: on for new projects, off for projects made before
@@ -391,6 +430,7 @@ export const TELEMETRY_AI_TEST_IDS: {
   logs: string;
   logEntry: string;
   logsEmpty: string;
+  logsSettings: string;
   logsLoadMore: string;
   runnerHint: string;
 } = {
@@ -403,6 +443,7 @@ export const TELEMETRY_AI_TEST_IDS: {
   logs: "telemetry-ai-logs",
   logEntry: "telemetry-ai-log-entry",
   logsEmpty: "telemetry-ai-logs-empty",
+  logsSettings: "telemetry-ai-logs-settings",
   logsLoadMore: "telemetry-ai-logs-load-more",
   runnerHint: "telemetry-ai-runner-hint",
 };

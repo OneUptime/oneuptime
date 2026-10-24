@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import {
   TELEMETRY_AI_INSIGHTS_SCOPES,
+  TELEMETRY_AI_INSIGHTS_SCOPES_WHILE_OFF,
   TELEMETRY_AI_LANE_COPY,
   TELEMETRY_AI_LOG_KIND_LABELS,
   TELEMETRY_AI_LOG_STATE_CLASS_NAMES,
@@ -12,6 +13,7 @@ import {
   TelemetryAiLaneCopy,
   describeTelemetryAiRuleTiming,
   getTelemetryAiFixOptions,
+  getTelemetryAiInsightsScope,
   getTelemetryAiRulesTableId,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiCopy";
 import { AI_RULE_FIX_OPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AiRuleCopy";
@@ -105,6 +107,35 @@ describe("the Profiler's AI section", () => {
       emptyTitle: copy.insightsEmptyTitle,
       emptyDescription: copy.insightsEmptyDescription,
     });
+  });
+
+  /*
+   * While "Find and fix slow code" is off, nothing is looked for: the
+   * inbox's empty state says so and names the switch - the same list, read
+   * the same way, only its empty state's words differ.
+   */
+  test("while its switch is off, the inbox's empty state says nothing is looked for", () => {
+    const off: ReturnType<typeof getTelemetryAiInsightsScope> =
+      getTelemetryAiInsightsScope(TelemetryAiLane.Profile, true);
+
+    expect(off).toBe(
+      TELEMETRY_AI_INSIGHTS_SCOPES_WHILE_OFF[TelemetryAiLane.Profile],
+    );
+    expect(off).toEqual({
+      ...TELEMETRY_AI_INSIGHTS_SCOPES[TelemetryAiLane.Profile],
+      emptyTitle: copy.insightsOffEmptyTitle,
+      emptyDescription: copy.insightsOffEmptyDescription,
+    });
+    // The same kinds, the same array: the list is not read again for it.
+    expect(off.insightTypes).toBe(
+      TELEMETRY_AI_INSIGHTS_SCOPES[TelemetryAiLane.Profile].insightTypes,
+    );
+    expect(getTelemetryAiInsightsScope(TelemetryAiLane.Profile, false)).toBe(
+      TELEMETRY_AI_INSIGHTS_SCOPES[TelemetryAiLane.Profile],
+    );
+    expect(copy.insightsOffEmptyDescription).toContain(
+      TELEMETRY_AI_SWITCHES[TelemetryAiLane.Profile][0]!.title,
+    );
   });
 
   test("its switch is the rule turned on by default, named for what it does", () => {
@@ -201,6 +232,8 @@ describe("every description is short", () => {
 
     const lines: Record<string, string> = {
       insightsEmptyDescription: copy.insightsEmptyDescription,
+      insightsOffEmptyTitle: copy.insightsOffEmptyTitle,
+      insightsOffEmptyDescription: copy.insightsOffEmptyDescription,
       logsEmptyDescription: copy.logsEmptyDescription,
       advancedDescription: copy.advancedDescription,
       advancedDefaultsSummary: copy.advancedDefaultsSummary,

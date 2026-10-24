@@ -340,6 +340,61 @@ describe("ModelSwitchesCard reads the record once", () => {
     );
   });
 
+  /*
+   * What the switches lead to - the Profiler's "Find and fix slow code"
+   * says there whether pull requests can be opened now - sits inside the
+   * card, under every switch, in a row of its own.
+   */
+  test("lines under the switches: inside the card, after every switch, once the switches are drawn", async () => {
+    let resolveRead: (item: Project) => void = (): void => {
+      return undefined;
+    };
+
+    getItemMock.mockImplementation((): Promise<unknown> => {
+      return new Promise((resolve: (item: Project) => void) => {
+        resolveRead = resolve;
+      });
+    });
+
+    render(card({ details: <p>Two repositories are connected.</p> }));
+
+    // Not while the switches are read: the lines would stand alone.
+    expect(screen.queryByTestId(`${CARD_TEST_ID}-details`)).toBeNull();
+
+    await act(async () => {
+      const item: Project = new Project();
+      item._id = RECORD_ID;
+      resolveRead(item);
+    });
+    await loaded();
+
+    const body: HTMLElement = screen.getByTestId(CARD_TEST_ID);
+    const details: HTMLElement = screen.getByTestId(`${CARD_TEST_ID}-details`);
+
+    expect(details).toHaveTextContent("Two repositories are connected.");
+    expect(body).toContainElement(details);
+
+    const switches: Array<HTMLElement> = within(body).getAllByRole("switch");
+    const lastSwitch: HTMLElement = switches[switches.length - 1]!;
+
+    expect(
+      lastSwitch.compareDocumentPosition(details) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // A row of the card's own ruled list, as each switch's is.
+    expect(details.parentElement).toBe(
+      within(body).getByTestId("switch-investigate-row").parentElement
+        ?.parentElement,
+    );
+  });
+
+  test("no lines given, no row for them", async () => {
+    render(card());
+    await loaded();
+
+    expect(screen.queryByTestId(`${CARD_TEST_ID}-details`)).toBeNull();
+  });
+
   test("the caller hears where every switch is once it is read", async () => {
     stored = {
       enableAutomaticIncidentInvestigation: true,

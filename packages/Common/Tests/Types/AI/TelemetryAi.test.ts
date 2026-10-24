@@ -34,6 +34,7 @@ import {
   decideTelemetryAiWork,
   getAiInsightDashboardPath,
   getStillFoundMinutes,
+  getTelemetryAiDefaultWaitMinutes,
   getTelemetryAiInsightTypes,
   getTelemetryAiLaneOfInsightType,
   getTelemetryAiLaneOfTrigger,
@@ -187,6 +188,21 @@ describe("the limits that keep it quiet", () => {
     expect(TELEMETRY_AI_MAX_PROBLEMS_PER_SWEEP).toBe(50);
     expect(STILL_FOUND_TICKS).toBe(2);
     expect(getStillFoundMinutes(TelemetryAiLane.Profile)).toBe(120);
+  });
+
+  /*
+   * A rule's wait starts on one look of the lane - found again on the next
+   * look - since nothing is looked at again sooner (the UI review: the
+   * form started on the incidents' 10 minutes).
+   */
+  test("a rule's wait starts on one look: an hour for slow code", () => {
+    expect(getTelemetryAiDefaultWaitMinutes(TelemetryAiLane.Profile)).toBe(60);
+
+    for (const lane of TELEMETRY_AI_LANE_LIST) {
+      expect(getTelemetryAiDefaultWaitMinutes(lane)).toBe(
+        TELEMETRY_AI_LANES[lane].scanEveryMinutes,
+      );
+    }
   });
 });
 

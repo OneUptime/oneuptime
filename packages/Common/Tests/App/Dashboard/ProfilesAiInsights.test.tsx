@@ -23,7 +23,11 @@ import { MemoryRouter } from "react-router-dom";
  * OneUptime found in the project's profiles - only that kind of finding,
  * each opening under the Profiler, in the Profiler's words, with its AI
  * Settings as the way on. The highlights across every kind of finding, and
- * a type filter that would offer one type, are AI Insights' alone.
+ * a type filter that would offer one type, are AI Insights' alone. With
+ * nothing found while "Find and fix slow code" is off, it says nothing is
+ * looked for (the UI review: it said "Every hour OneUptime looks through
+ * your services' profiles" to every project made before the switch, where
+ * it starts off).
  */
 
 interface ListRequest {
@@ -36,6 +40,8 @@ interface ListRequest {
 let listRequests: Array<ListRequest> = [];
 let countQueries: Array<Record<string, unknown>> = [];
 let rows: Array<unknown> = [];
+// Where "Find and fix slow code" stands, as POST /telemetry-ai/readiness says.
+let isLaneOn: boolean = true;
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -86,7 +92,11 @@ import AIInsightType from "../../../Types/AI/AIInsightType";
 import { TelemetryAiLane } from "../../../Types/AI/TelemetryAi";
 import Route from "../../../Types/API/Route";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import { TELEMETRY_AI_READINESS_PATH } from "../../../Types/AI/TelemetryAiActivity";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import API from "../../../UI/Utils/API/API";
 import Navigation from "../../../UI/Utils/Navigation";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
 
@@ -142,6 +152,33 @@ beforeEach(() => {
   listRequests = [];
   countQueries = [];
   rows = [slowCode()];
+  isLaneOn = true;
+
+  jest
+    .spyOn(API, "post")
+    .mockImplementation(
+      async (request: unknown): Promise<HTTPResponse<JSONObject>> => {
+        const url: string = String((request as JSONObject)["url"]);
+
+        if (!url.endsWith(TELEMETRY_AI_READINESS_PATH)) {
+          throw new Error(`Unexpected request to ${url}`);
+        }
+
+        return new HTTPResponse<JSONObject>(
+          200,
+          {
+            lane: TelemetryAiLane.Profile,
+            isAiEnabled: true,
+            isLaneOn,
+            connectedRepositoryCount: 1,
+            blocker: null,
+            automaticFixesToday: 0,
+            maxAutomaticFixesPerDay: 5,
+          },
+          {},
+        );
+      },
+    );
 });
 
 afterEach(() => {
@@ -248,5 +285,72 @@ describe("Profiler → AI → Insights", () => {
     expect(String(navigate.mock.calls[0]![0])).toBe(
       pathOf(PageMap.PROFILES_AI_SETTINGS),
     );
+  });
+
+  test("with none found while Find and fix slow code is off: nothing is looked for, and the way to turn it on", async () => {
+    rows = [];
+    isLaneOn = false;
+    const navigate: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((): void => {
+        return undefined;
+      });
+
+    await renderPage();
+
+    expect(
+      await screen.findByText(
+        TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Profile].insightsOffEmptyTitle,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Profile]
+          .insightsOffEmptyDescription,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Profile].insightsEmptyTitle,
+      ),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Go to AI Settings" }));
+
+    expect(String(navigate.mock.calls[0]![0])).toBe(
+      pathOf(PageMap.PROFILES_AI_SETTINGS),
+    );
+  });
+
+  test("the switch's state changes the empty state's words only: the list is not read again for it", async () => {
+    isLaneOn = false;
+
+    await renderPage();
+
+    await screen.findByText(
+      "OrderParser.parse takes 18% of the CPU time in checkout",
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // One read of the list, though the readiness answered after it.
+    expect(listRequests).toHaveLength(1);
+  });
+
+  test("a row says its finding in up to two lines, and not its kind: every row here is slow code", async () => {
+    await renderPage();
+
+    const title: HTMLElement = await screen.findByText(
+      "OrderParser.parse takes 18% of the CPU time in checkout",
+    );
+
+    expect(title.className).toContain("line-clamp-2");
+    expect(title.className).not.toContain("truncate");
+
+    const row: HTMLElement = title.closest("a") as HTMLElement;
+
+    expect(row).toHaveTextContent("checkout");
+    expect(row).not.toHaveTextContent("Slow Code");
   });
 });

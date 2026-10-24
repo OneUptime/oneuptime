@@ -6,11 +6,13 @@ import ProfilesSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Pro
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import {
   DESKTOP_WIDTH,
+  MOBILE_WIDTH,
   PROJECT_ID,
   activeLinkTitles,
   goTo,
   isExpanded,
   linksIn,
+  mobileSummaryText,
   renderMenu,
   routeFor,
   sectionTitlesInOrder,
@@ -84,4 +86,26 @@ describe("Profiler side menu", () => {
       expect(activeLinkTitles()).toEqual([title]);
     },
   );
+
+  /*
+   * A finding's own page is one of the Insights: the UI review found no
+   * entry lit there, and a phone's menu button saying only "Navigation".
+   */
+  const FINDING_PATH: string = `/dashboard/${PROJECT_ID}/profiles/ai/insights/5092efef-0000-4000-8000-000000000001`;
+
+  test("a finding's own page keeps Insights lit, and the AI section open", async () => {
+    goTo(FINDING_PATH);
+    await renderProfilesMenu();
+
+    expect(isExpanded("AI")).toBe(true);
+    expect(activeLinkTitles()).toEqual(["Insights"]);
+  });
+
+  test("on a phone, a finding's page names where it is: AI / Insights", async () => {
+    setViewportWidth(MOBILE_WIDTH);
+    goTo(FINDING_PATH);
+    await renderProfilesMenu();
+
+    expect(mobileSummaryText()).toContain("AI / Insights");
+  });
 });

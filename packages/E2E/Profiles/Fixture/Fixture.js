@@ -1224,6 +1224,16 @@ ModelAPI.getItem = async (options) => {
     );
   }
 
+  // A rule's edit dialog reads the rule it opens on.
+  if (options.modelType === AutoRemediationRule) {
+    const id = options.id ? options.id.toString() : "";
+    return (
+      aiRules().find((rule) => {
+        return rule.id && rule.id.toString() === id;
+      }) || null
+    );
+  }
+
   return null;
 };
 ModelAPI.getCount = async () => 0;
