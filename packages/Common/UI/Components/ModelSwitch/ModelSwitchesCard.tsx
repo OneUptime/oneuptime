@@ -18,6 +18,7 @@ import {
 import React, {
   MutableRefObject,
   ReactElement,
+  ReactNode,
   useEffect,
   useRef,
   useState,
@@ -55,6 +56,13 @@ import { useCardRuledListClassName } from "../Card/CardSurface";
  * the same save as its own column (ModelSwitchRow's childSwitches). While
  * it is on, each one is flipped on its own, and the switch it belongs to is
  * locked while that save is out.
+ *
+ * Read-only lines can sit under the switches (`details`), as they can under
+ * ModelSwitchCard's one switch: what the switches decide and the server
+ * works out from it - the Profiler's "Find and fix slow code" says whether
+ * OneUptime AI can open pull requests now, or the one thing to do first. A
+ * row of their own, ruled like the switches', drawn only once the switches
+ * are.
  */
 
 // A switch on the card, or one under another switch.
@@ -110,6 +118,11 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   onSaved?:
     | ((column: ModelSwitchColumn<TBaseModel>, isOn: boolean) => void)
     | undefined;
+  /*
+   * Read-only lines under the switches, inside the card, in a row of their
+   * own (`${dataTestId}-details`); none while it is left out.
+   */
+  details?: ReactNode | undefined;
   // The card body's data-testid.
   dataTestId: string;
 }
@@ -446,6 +459,16 @@ const ModelSwitchesCard: <TBaseModel extends BaseModel>(
               </div>
             );
           },
+        )}
+        {props.details ? (
+          <div
+            className="px-5 py-4 md:px-6"
+            data-testid={`${props.dataTestId}-details`}
+          >
+            {props.details}
+          </div>
+        ) : (
+          <></>
         )}
       </div>
     );

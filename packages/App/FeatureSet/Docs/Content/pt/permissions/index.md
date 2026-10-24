@@ -139,7 +139,7 @@ A lista completa está na [Referência de permissões](/docs/permissions/referen
 
 ### Funções personalizadas
 
-Uma função personalizada é um conjunto de permissões que você nomeia uma vez e dá a equipes e chaves de API: por exemplo, um «Responsável por incidentes» feito de `IncidentMember`, `AlertMember` e `OnCallViewer`, ou um «Líder de equipe». Cada equipe e cada chave a que você a dá recebe as mesmas permissões, e você as altera para todas em um só lugar. No OneUptime Cloud, as funções personalizadas exigem o plano Scale, como alterar as permissões de uma equipe.
+Uma função personalizada é um conjunto de permissões que você nomeia uma vez e dá a equipes e chaves de API: por exemplo, um «Responsável por incidentes» feito de `IncidentMember`, `AlertMember` e `OnCallViewer`, ou um «Líder de equipe». Cada equipe e cada chave a que você a dá recebe as mesmas permissões, e você as altera para todas em um só lugar. No OneUptime Cloud, as funções personalizadas exigem o plano Scale, como alterar as permissões de uma equipe. Na hospedagem própria, elas fazem parte da Enterprise Edition: na Community Edition, as funções que suas equipes e chaves de API já têm continuam valendo e podem ser tiradas de uma equipe ou chave ou excluídas, mas não criadas nem alteradas.
 
 :::steps
 1. Abra **Equipes** no menu **Produtos**, em **Configurações**. Expanda **Configurações** no menu lateral, escolha **Funções** e clique em **Criar: Função personalizada**.

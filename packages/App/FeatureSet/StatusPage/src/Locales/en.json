@@ -340,7 +340,27 @@
       "title": "Forbidden",
       "description": "You do not have permission to access this page."
     },
-    "generic": "Something went wrong. Please try again."
+    "generic": "Something went wrong. Please try again.",
+    "addressNotSetUp": {
+      "title": "OneUptime is not set up for this address",
+      "description": "You opened {{visited}}, but this OneUptime is set up to open at {{configured}}.",
+      "openConfigured": "Open OneUptime at {{configured}}",
+      "hostHeading": "Use this address for OneUptime",
+      "hostStep": "In config.env, set HOST to this address:",
+      "restartStep": "Then start OneUptime again:",
+      "helm": "On Kubernetes, set host in your Helm values to this address instead, then upgrade the release.",
+      "domainHeading": "Is this a status page's domain?",
+      "domainSteps": "Add it to the status page under Custom Domains, then verify it. The status page shows here once it is verified.",
+      "proxyTitle": "Your proxy did not pass this address on",
+      "proxyDescription": "You opened {{visited}}, the address this OneUptime is set up for, but the request reached OneUptime under another host name.",
+      "proxyHeading": "Pass the host name on",
+      "proxySteps": "The proxy in front of OneUptime has to pass on the host name the browser asked for. Caddy does by default. For Nginx or Apache, add this line:",
+      "noPageTitle": "No status page at this address",
+      "noPageDescription": "{{visited}} is not the address of a status page.",
+      "copy": "Copy",
+      "copied": "Copied!",
+      "copyFailed": "Your browser didn't let this page copy the line. It's selected above, so you can copy it yourself."
+    }
   },
   "footer": {
     "poweredBy": "Powered by OneUptime"

@@ -1,0 +1,72 @@
+# What `helm install` and `helm upgrade` print first (templates/NOTES.txt).
+#
+# A newcomer's install is done when they can open OneUptime and sign up, so
+# the notes say where - httpProtocol://host - and that the first account
+# becomes the admin. host is the one address OneUptime serves its own pages
+# at (every other address is taken for a status page's custom domain), and
+# opening a new install at another address was the commonest way a
+# self-hosted install failed. So while host is still this computer's
+# (localhost, the chart's default), the notes say so, and give the commands
+# that find the nginx service's address and set host to it.
+suite: the notes helm prints first
+release:
+  name: ou
+  namespace: oneuptime
+templates:
+  - templates/NOTES.txt
+tests:
+  - it: starts with the pods to watch, and nothing before it
+    asserts:
+      - matchRegexRaw:
+          pattern: '^OneUptime is installed\. Its pods take a few minutes to start; watch them with:\n\n  kubectl get pods --namespace oneuptime\n'
+
+  - it: says where to open OneUptime and that the first account becomes its admin
+    set:
+      host: oneuptime.example.com
+      httpProtocol: https
+    asserts:
+      - matchRegexRaw:
+          pattern: 'Then open https://oneuptime\.example\.com and sign up\. The first account becomes the admin of this OneUptime\.'
+      - notMatchRegexRaw:
+          pattern: 'only this computer can open OneUptime'
+
+  - it: opens over http when httpProtocol is http, as the chart ships it
+    set:
+      host: 203.0.113.5
+    asserts:
+      - matchRegexRaw:
+          pattern: 'Then open http://203\.0\.113\.5 and sign up\.'
+      - notMatchRegexRaw:
+          pattern: 'only this computer can open OneUptime'
+
+  - it: on the chart's default host, says only this computer can open it, and how to set host
+    asserts:
+      - matchRegexRaw:
+          pattern: 'Then open http://localhost and sign up\.'
+      - matchRegexRaw:
+          pattern: 'host is localhost, so only this computer can open OneUptime\. To open it from other computers, set host to the address people will use'
+      - matchRegexRaw:
+          pattern: '\n  kubectl get svc --namespace oneuptime ou-nginx\n'
+      - matchRegexRaw:
+          pattern: '\n  helm upgrade ou oneuptime/oneuptime --namespace oneuptime --reuse-values --set host=<that address>\n?'
+
+  - it: 127.0.0.1 and LOCALHOST are this computer too
+    set:
+      host: LOCALHOST
+    asserts:
+      - matchRegexRaw:
+          pattern: 'host is LOCALHOST, so only this computer can open OneUptime\.'
+
+  - it: 127.0.0.1 is this computer
+    set:
+      host: 127.0.0.1
+    asserts:
+      - matchRegexRaw:
+          pattern: 'host is 127\.0\.0\.1, so only this computer can open OneUptime\.'
+
+  - it: a host that only starts like localhost is somebody's domain name
+    set:
+      host: localhost.example.com
+    asserts:
+      - notMatchRegexRaw:
+          pattern: 'only this computer can open OneUptime'

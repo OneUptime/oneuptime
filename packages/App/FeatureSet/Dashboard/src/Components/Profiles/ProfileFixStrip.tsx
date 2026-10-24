@@ -59,6 +59,12 @@ import {
   fetchProfileFixSuggestion,
 } from "./ProfilesApi";
 import useProfileRequest, { ProfileRequestState } from "./UseProfileRequest";
+import {
+  FIX_STRIP_ACTION_CONTAINER_CLASS_NAME,
+  FIX_STRIP_ACTION_ROW_CLASS_NAME,
+  FIX_STRIP_BUTTON_CLASS_NAME,
+  FIX_STRIP_PICKER_CLASS_NAME,
+} from "../TelemetryAi/TelemetryAiFixCopy";
 
 /*
  * "FIX WITH AI", ONLY WHERE IT APPLIES, SAYING WHY.
@@ -84,6 +90,21 @@ import useProfileRequest, { ProfileRequestState } from "./UseProfileRequest";
 
 export interface ComponentProps {
   request: ProfileFixRequestBody;
+  /*
+   * The slow-code finding the strip is drawn on, when it is (an AI rule
+   * that asks before fixing offers the pull request there): the task names
+   * it, and the finding links the task.
+   */
+  insightId?: string | undefined;
+  // Told once a task has started, with its id.
+  onTaskStarted?: ((taskId: string) => void) | undefined;
+  /*
+   * Whether the strip says what was found first ("This is your code, and
+   * ... takes 23% of the CPU time"). Off on a finding's own page, whose
+   * title and evidence say it already: the strip says what Fix with AI
+   * does instead.
+   */
+  isFindingShown?: boolean | undefined;
 }
 
 // The strip's links: quiet, and plain to see under the keyboard.
@@ -180,7 +201,13 @@ const ProfileFixStrip: FunctionComponent<ComponentProps> = (
     { inSentence: true },
   );
 
-  const finding: ReactNode = suggestion.evidence ? (
+  const isFindingShown: boolean = props.isFindingShown !== false;
+
+  const finding: ReactNode = !isFindingShown ? (
+    suggestion.offer === SuggestionOffer.Act && !taskId ? (
+      translator.translateText(FIX_WITH_AI_TOOLTIP)
+    ) : null
+  ) : suggestion.evidence ? (
     suggestion.reason === ProfileFixReason.Grew &&
     suggestion.evidence.ownShareBefore !== undefined ? (
       <TranslatedSentence
@@ -220,10 +247,12 @@ const ProfileFixStrip: FunctionComponent<ComponentProps> = (
         ...(needsRepositoryPick && pickedRepositoryId
           ? { repositoryId: pickedRepositoryId }
           : {}),
+        ...(props.insightId ? { insightId: props.insightId } : {}),
       });
 
       if (createdTaskId) {
         setStartedTask({ key, taskId: createdTaskId });
+        props.onTaskStarted?.(createdTaskId);
       }
     } catch (err) {
       const reason: string = API.getFriendlyMessage(err as Error);
@@ -292,10 +321,7 @@ const ProfileFixStrip: FunctionComponent<ComponentProps> = (
             dataTestId="profiles-fix-connect"
           >
             <>
-              <Icon
-                icon={IconProp.GitHub}
-                className="mt-0.5 h-4 w-4 flex-none"
-              />
+              <Icon icon={IconProp.Code} className="mt-0.5 h-4 w-4 flex-none" />
               <span>{translator.translateText(FIX_CONNECT_REPOSITORY)}</span>
             </>
           </Link>
@@ -317,56 +343,63 @@ const ProfileFixStrip: FunctionComponent<ComponentProps> = (
         },
       );
 
+    // Side by side only where the strip is wide enough (TelemetryAiFixCopy).
     return (
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-        {needsRepositoryPick ? (
-          <div className="w-full sm:w-64" data-testid="profiles-fix-repository">
-            <p
-              className="mb-1 text-sm font-medium text-gray-700"
-              id="profiles-fix-repository-label"
+      <div className={FIX_STRIP_ACTION_CONTAINER_CLASS_NAME}>
+        <div className={FIX_STRIP_ACTION_ROW_CLASS_NAME}>
+          {needsRepositoryPick ? (
+            <div
+              className={FIX_STRIP_PICKER_CLASS_NAME}
+              data-testid="profiles-fix-repository"
             >
-              {translator.translateText(FIX_PICK_REPOSITORY)}
-            </p>
-            <Dropdown
-              options={repositoryOptions}
-              value={repositoryOptions.find(
-                (option: DropdownOption): boolean => {
-                  return option.value === pickedRepositoryId;
-                },
-              )}
-              placeholder={translator.translateText(
-                FIX_PICK_REPOSITORY_PLACEHOLDER,
-              )}
-              ariaLabelledby="profiles-fix-repository-label"
-              isClearable={false}
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                setPickedRepositoryId(value ? value.toString() : "");
-              }}
-            />
-          </div>
-        ) : (
-          <></>
-        )}
-        <Button
-          title={FIX_WITH_AI}
-          icon={IconProp.Bolt}
-          buttonStyle={ButtonStyleType.NORMAL}
-          buttonSize={ButtonSize.Small}
-          isLoading={isCreating}
-          disabled={needsRepositoryPick && !pickedRepositoryId}
-          tooltip={FIX_WITH_AI_TOOLTIP}
-          dataTestId="profiles-fix-with-ai"
-          /*
-           * Waiting for a repository to be picked, it looks it: the shared
-           * Button draws no disabled state of its own.
-           */
-          className="md:!ml-0 disabled:cursor-not-allowed disabled:opacity-50"
-          onClick={() => {
-            void startFix();
-          }}
-        />
+              <p
+                className="mb-1 text-sm font-medium text-gray-700"
+                id="profiles-fix-repository-label"
+              >
+                {translator.translateText(FIX_PICK_REPOSITORY)}
+              </p>
+              <Dropdown
+                options={repositoryOptions}
+                value={repositoryOptions.find(
+                  (option: DropdownOption): boolean => {
+                    return option.value === pickedRepositoryId;
+                  },
+                )}
+                placeholder={translator.translateText(
+                  FIX_PICK_REPOSITORY_PLACEHOLDER,
+                )}
+                ariaLabelledby="profiles-fix-repository-label"
+                isClearable={false}
+                onChange={(
+                  value: DropdownValue | Array<DropdownValue> | null,
+                ) => {
+                  setPickedRepositoryId(value ? value.toString() : "");
+                }}
+              />
+            </div>
+          ) : (
+            <></>
+          )}
+          <Button
+            title={FIX_WITH_AI}
+            icon={IconProp.Bolt}
+            buttonStyle={ButtonStyleType.NORMAL}
+            buttonSize={ButtonSize.Small}
+            isLoading={isCreating}
+            disabled={needsRepositoryPick && !pickedRepositoryId}
+            // Said above it already where the finding is not.
+            tooltip={isFindingShown ? FIX_WITH_AI_TOOLTIP : undefined}
+            dataTestId="profiles-fix-with-ai"
+            /*
+             * Waiting for a repository to be picked, it looks it: the shared
+             * Button draws no disabled state of its own.
+             */
+            className={FIX_STRIP_BUTTON_CLASS_NAME}
+            onClick={() => {
+              void startFix();
+            }}
+          />
+        </div>
       </div>
     );
   };

@@ -35,7 +35,7 @@ Cette page décrit ce que comprend chaque édition, comment exécuter l'Enterpri
 | Fonction | Community | Enterprise | OneUptime Cloud |
 | --- | --- | --- | --- |
 | Supervision, alertes, incidents, astreinte, pages de statut, journaux, métriques, traces, exceptions, tableaux de bord, workflows, fonctions d'IA, API et Terraform | Oui | Oui | Tous les plans |
-| Connexion par mot de passe, authentification à deux facteurs, équipes, rôles et clés API | Oui | Oui | Tous les plans |
+| Connexion par mot de passe, authentification à deux facteurs, équipes, rôles intégrés et clés API | Oui | Oui | Tous les plans |
 | [SSO SAML et OpenID Connect](/docs/identity/sso) pour la connexion aux projets | Oui | Oui | Plan Scale et supérieurs |
 | SSO SAML et OpenID Connect pour la connexion aux pages de statut privées | Oui | Oui | Plan Scale et supérieurs |
 | [SSO et OIDC globaux (à l'échelle de l'instance)](/docs/identity/global-sso) | Oui | Oui | Sans objet |
@@ -43,6 +43,10 @@ Cette page décrit ce que comprend chaque édition, comment exécuter l'Enterpri
 | Paramètres de conformité d'équipe | Non | Oui | Plan Scale et supérieurs |
 | Journaux d'audit | Non | Oui | Plan Enterprise |
 | Remplacements de rétention : rétention par type de télémétrie (journaux, traces, métriques, profils, avec des règles par gravité de journal et statut de trace), et rétention par service et par ressource | Non | Oui | Plan Scale et supérieurs |
+| Rôles personnalisés : des ensembles d'autorisations que vous nommez une fois et donnez à des équipes et des clés API | Non | Oui | Plan Scale et supérieurs |
+| Listes d'autorisation IP pour les pages de statut, les tableaux de bord publics et les formulaires | Non | Oui | Plan Scale et supérieurs |
+| Contrôles d'accès des pages de statut : combien de temps les lecteurs d'une page de statut privée restent connectés, et qui peut s'abonner | Non | Oui | Plan Scale et supérieurs |
+| Masquer « Powered by OneUptime » sur les pages de statut | Non | Oui | Plan Scale et supérieurs |
 | Tableaux de bord **Health** de l'administration : vue d'ensemble de l'instance, files d'attente en arrière-plan, journaux de l'instance, PostgreSQL, Valkey, cluster ClickHouse, journaux de diagnostic et ingestion de télémétrie | Non | Oui | Sans objet |
 | **Query Console** de l'administration | Non | Oui | Non disponible |
 | Alertes de santé PostgreSQL et Valkey (Redis) | Non | Oui | Sans objet |
@@ -55,6 +59,8 @@ L'authentification unique comprend « Require SSO for login » pour les projets,
 Chaque édition dispose de la rétention de télémétrie par défaut du projet, dans **Paramètres du projet > Télémétrie & APM > Rétention des données**. Les remplacements de rétention sont ce que l'Enterprise Edition ajoute par-dessus.
 
 Sur OneUptime Cloud, une fonction payante peut toujours être désactivée, quel que soit le plan. Un remplacement de rétention qu'un essai (ou un passage à un plan inférieur) a laissé en place continue de s'appliquer à la nouvelle télémétrie ; en dessous du plan Scale, les pages de rétention l'affichent donc sous la carte de mise à niveau avec un bouton **Supprimer le remplacement**. La suppression fonctionne dans tous les plans ; en définir un à nouveau exige le plan Scale. La télémétrie déjà stockée garde la rétention avec laquelle elle a été stockée. De la même manière, **Paramètres du projet > Sécurité > SSO** affiche l'interrupteur **Exiger le SSO pour la connexion** sous sa carte de mise à niveau tant que le projet exige encore le SSO, afin de pouvoir le désactiver.
+
+Les rôles personnalisés, les listes d'autorisation IP, les contrôles d'accès des pages de statut et une ligne « Powered by OneUptime » masquée fonctionnent de la même manière : ce qu'un essai ou un plan inférieur a laissé en place continue de s'appliquer, et leurs paramètres l'affichent sous la carte de mise à niveau avec un bouton pour le supprimer.
 
 Les lignes « Sans objet » concernent des fonctions d'administration de l'instance. Sur OneUptime Cloud, OneUptime exploite l'instance pour vous.
 
@@ -185,12 +191,14 @@ Ce qui s'arrête lorsqu'une licence expire :
 - **Le provisionnement SCIM s'arrête.** Les requêtes SCIM de votre fournisseur d'identité sont refusées, déprovisionnement compris, et les verrous d'équipe SCIM sont levés, de sorte que les équipes gérées par des groupes push SCIM peuvent être modifiées à la main.
 - **La journalisation d'audit cesse d'enregistrer.** Les journaux d'audit déjà enregistrés sont conservés.
 - **Les remplacements de rétention cessent de s'appliquer.** La nouvelle télémétrie est conservée pendant la rétention par défaut du projet. La télémétrie déjà stockée garde la rétention avec laquelle elle a été écrite. Vous pouvez toujours effacer un remplacement par l'API, mais pas en définir un.
+- **Les pages de statut affichent de nouveau Powered by OneUptime.** Une page qui masque la ligne l'affiche jusqu'à ce qu'une licence soit activée. Le paramètre est conservé.
 
 Ce qui ne s'arrête **pas** :
 
 - **L'authentification unique.** La connexion SAML et OIDC aux projets, aux pages de statut privées, à toute l'instance (SSO global) et aux applications mobiles, ainsi que « Require SSO for login », font partie de chaque édition. Une licence expirée n'y change rien, et la configuration de l'authentification unique reste modifiable.
 - **La supervision de base n'est jamais affectée** : moniteurs, alertes, incidents, astreinte, pages de statut et télémétrie continuent tous de fonctionner.
 - **Les administrateurs principaux peuvent toujours se connecter avec leur mot de passe.**
+- **Les rôles personnalisés, les listes d'autorisation IP et les contrôles d'accès des pages de statut continuent de s'appliquer.** Vous pouvez les supprimer, mais pas les créer ni les modifier.
 - **Rien n'est supprimé.** La configuration SCIM, les journaux d'audit et les remplacements de rétention restent tels quels.
 
 **Tout reprend dès qu'une licence est activée**, sans redémarrage : le provisionnement SCIM, la journalisation d'audit et les remplacements de rétention reviennent avec la configuration que vous avez. OneUptime ne les désactive que lorsqu'il sait que la licence a expiré. Tant qu'il ne peut pas lire l'état de la licence, par exemple un instant pendant le démarrage du serveur, SCIM, la journalisation d'audit et les remplacements de rétention restent actifs.
@@ -206,6 +214,8 @@ Votre configuration reste dans la base de données. Revenir à l'image Enterpris
 - **Les verrous d'équipe SCIM sont levés**, de sorte que les équipes qui étaient gérées par des groupes push SCIM peuvent être modifiées à la main. Au démarrage, le serveur journalise les projets dont les verrous d'équipe SCIM ont été levés.
 - **La journalisation d'audit s'arrête.** Les journaux d'audit déjà enregistrés sont conservés, mais les pages des journaux d'audit affichent une invitation à passer à un plan supérieur.
 - **Les remplacements de rétention cessent de s'appliquer.** La nouvelle télémétrie est conservée pendant la rétention par défaut du projet, et les cartes de rétention de **Paramètres du projet > Télémétrie & APM > Rétention des données** et de la page de paramètres de chaque service et de chaque ressource affichent une invitation à passer à un plan supérieur. Les remplacements restent dans la base de données et s'appliquent de nouveau lorsque vous revenez en arrière.
+- **Les pages de statut affichent de nouveau Powered by OneUptime.** Le paramètre reste dans la base de données et masque de nouveau la ligne lorsque vous revenez en arrière.
+- **Les rôles personnalisés, les listes d'autorisation IP et les contrôles d'accès des pages de statut continuent de s'appliquer.** Leurs paramètres affichent une invitation à passer à un plan supérieur, avec ce qui est encore en place et un bouton pour le supprimer.
 - **Les pages de paramètres Enterprise affichent une invitation à passer à un plan supérieur.** Par l'API, vous pouvez toujours lire et supprimer la configuration Enterprise et réinitialiser un jeton bearer SCIM, mais rien créer ni modifier d'autre. La journalisation d'audit ne peut pas être activée.
 - **Les tableaux de bord Health Enterprise, la Query Console et les alertes de santé PostgreSQL et Valkey s'arrêtent.** La surveillance de la capacité et la purge ClickHouse, l'état des migrations et le bundle de support continuent de fonctionner.
 

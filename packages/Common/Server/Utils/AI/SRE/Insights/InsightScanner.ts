@@ -19,6 +19,16 @@ import AIRunService from "../../../../Services/AIRunService";
 import QueryHelper from "../../../../Types/Database/QueryHelper";
 import logger from "../../../Logger";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
+import TelemetryAiRouting from "../../TelemetryAi/TelemetryAiRouting";
+import TelemetryAiRules from "../../TelemetryAi/TelemetryAiRules";
+import {
+  TELEMETRY_AI_LANES,
+  TELEMETRY_AI_LANE_LIST,
+  TelemetryAiLane,
+  getTelemetryAiInsightTypes,
+  getTelemetryAiLaneOfInsightType,
+  isTelemetryAiLaneScanTick,
+} from "../../../../../Types/AI/TelemetryAi";
 
 /*
  * AI Insights — the scan orchestration (the "watch loop").
@@ -33,6 +43,13 @@ import CaptureSpan from "../../../Telemetry/CaptureSpan";
  * on (on for new projects) are scanned, insights never page and never
  * open incidents, and every layer (project, detector, insight) fails in
  * isolation — one broken tenant or sensor must not stop the sweep.
+ *
+ * The telemetry products' AI sections (Types/AI/TelemetryAi) ride on the
+ * same loop with switches of their own: a project with a lane's switch on
+ * is scanned for that lane's problems whatever enableAiInsights says, and
+ * on the lane's own tick its open problems are worked on as its AI rules
+ * say (TelemetryAiRouting) - the triage, and the fix pull request. Their
+ * insights are never triaged or fixed by the paths below.
  */
 export default class InsightScanner {
   /*
@@ -47,17 +64,7 @@ export default class InsightScanner {
     let projects: Array<Project> = [];
 
     try {
-      projects = await ProjectService.findBy({
-        query: { enableAiInsights: true },
-        select: {
-          _id: true,
-          enableInsightFixTasks: true,
-          enableAi: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: { isRoot: true },
-      });
+      projects = await this.listProjectsToScan();
     } catch (error) {
       logger.error(
         `AI Insights: failed to list opted-in projects for the scan tick: ${error}`,
@@ -74,6 +81,76 @@ export default class InsightScanner {
         );
       }
     }
+  }
+
+  /*
+   * Every project with AI Insights on, or a telemetry lane's switch on -
+   * each once, with every switch the scan reads.
+   */
+  public static async listProjectsToScan(): Promise<Array<Project>> {
+    const select: Record<string, true> = {
+      _id: true,
+      enableInsightFixTasks: true,
+      enableAi: true,
+      enableAiInsights: true,
+    };
+
+    for (const lane of TELEMETRY_AI_LANE_LIST) {
+      select[TELEMETRY_AI_LANES[lane].switchColumn] = true;
+    }
+
+    const queries: Array<Record<string, boolean>> = [
+      { enableAiInsights: true },
+      ...TELEMETRY_AI_LANE_LIST.map(
+        (lane: TelemetryAiLane): Record<string, boolean> => {
+          return { [TELEMETRY_AI_LANES[lane].switchColumn]: true };
+        },
+      ),
+    ];
+
+    const projects: Map<string, Project> = new Map<string, Project>();
+
+    for (const query of queries) {
+      const found: Array<Project> = await ProjectService.findBy({
+        query: query,
+        select: select,
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+      for (const project of found) {
+        const id: string | undefined = project.id?.toString();
+
+        if (id && !projects.has(id)) {
+          projects.set(id, project);
+        }
+      }
+    }
+
+    return Array.from(projects.values());
+  }
+
+  /*
+   * The detectors a project's scan runs at this moment: AI Insights' own
+   * while it is on, and each lane's on its tick while the lane is on.
+   */
+  public static getDetectorsForProject(
+    project: Project,
+    now: Date,
+  ): Array<InsightDetector> {
+    const detectors: Array<InsightDetector> =
+      project.enableAiInsights === true
+        ? InsightDetectors.getAllDetectors()
+        : [];
+
+    for (const lane of TelemetryAiRules.getLanesOn(project)) {
+      if (isTelemetryAiLaneScanTick(lane, now)) {
+        detectors.push(...InsightDetectors.getTelemetryAiDetectors(lane));
+      }
+    }
+
+    return detectors;
   }
 
   /*
@@ -111,7 +188,7 @@ export default class InsightScanner {
 
     const candidates: Array<InsightCandidate> = [];
     const detectors: Array<InsightDetector> =
-      InsightDetectors.getAllDetectors();
+      InsightScanner.getDetectorsForProject(project, now);
 
     for (const detector of detectors) {
       try {
@@ -125,28 +202,45 @@ export default class InsightScanner {
       }
     }
 
-    if (candidates.length === 0) {
-      return;
+    if (candidates.length > 0) {
+      const upsertResult: UpsertCandidatesResult =
+        await InsightStore.upsertCandidates({
+          projectId: projectId,
+          candidates: candidates,
+          now: now,
+        });
+
+      /*
+       * Only NEWLY created insights are routed — refreshed rows were routed
+       * on the tick that created them and their status is owned by humans
+       * and the fix flow from then on.
+       */
+      for (const insight of upsertResult.created) {
+        try {
+          await this.routeNewInsight({ insight: insight, project: project });
+        } catch (error) {
+          logger.error(
+            `AI Insights: routing failed for insight ${insight.id?.toString()} (project ${projectId.toString()}) — continuing with the remaining insights: ${error}`,
+          );
+        }
+      }
     }
 
-    const upsertResult: UpsertCandidatesResult =
-      await InsightStore.upsertCandidates({
-        projectId: projectId,
-        candidates: candidates,
-        now: now,
-      });
-
     /*
-     * Only NEWLY created insights are routed — refreshed rows were routed
-     * on the tick that created them and their status is owned by humans and
-     * the fix flow from then on.
+     * The telemetry lanes' looks, after their detectors filed this tick's
+     * findings: what OneUptime AI does with each open problem, as the
+     * lane's AI rules say.
      */
-    for (const insight of upsertResult.created) {
+    for (const lane of TelemetryAiRules.getLanesOn(project)) {
+      if (!isTelemetryAiLaneScanTick(lane, now)) {
+        continue;
+      }
+
       try {
-        await this.routeNewInsight({ insight: insight, project: project });
+        await TelemetryAiRouting.sweepLane({ project, lane, now });
       } catch (error) {
         logger.error(
-          `AI Insights: routing failed for insight ${insight.id?.toString()} (project ${projectId.toString()}) — continuing with the remaining insights: ${error}`,
+          `AI Insights: the ${lane} look failed for project ${projectId.toString()} — continuing with the scan: ${error}`,
         );
       }
     }
@@ -245,6 +339,8 @@ export default class InsightScanner {
       const untriaged: Array<AIInsight> = await AIInsightService.findBy({
         query: {
           projectId: projectId,
+          // A telemetry lane's problems are triaged as its rules say.
+          insightType: QueryHelper.notIn(getTelemetryAiInsightTypes()),
           status: AIInsightStatus.ActionRequired,
           triageCompletedAt: QueryHelper.isNull(),
           createdAt: QueryHelper.greaterThanEqualTo(
@@ -333,6 +429,8 @@ export default class InsightScanner {
       const unrouted: Array<AIInsight> = await AIInsightService.findBy({
         query: {
           projectId: projectId,
+          // A telemetry lane's problems are fixed as its rules say.
+          insightType: QueryHelper.notIn(getTelemetryAiInsightTypes()),
           status: AIInsightStatus.ActionRequired,
           classification: ExceptionAIClassification.CodeFault,
           fixAiRunId: QueryHelper.isNull(),
@@ -418,6 +516,22 @@ export default class InsightScanner {
     project: Project;
   }): Promise<void> {
     const { insight, project } = data;
+
+    /*
+     * A telemetry lane's problem waits, ActionRequired, for its lane's look
+     * (TelemetryAiRouting), which runs later in this same tick: its AI rules
+     * decide whether it is investigated and fixed - never the paths below.
+     */
+    if (getTelemetryAiLaneOfInsightType(insight.insightType)) {
+      await AIInsightService.updateOneById({
+        id: insight.id!,
+        data: {
+          status: AIInsightStatus.ActionRequired,
+        },
+        props: { isRoot: true },
+      });
+      return;
+    }
 
     /*
      * TraceLatencyRegression keeps DETERMINISTIC scan-time fix routing:

@@ -5,6 +5,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import TimeRange from "Common/Types/Time/TimeRange";
 import RouteMap, { RouteUtil } from "./RouteMap";
 import PageMap from "./PageMap";
+import { ProfilesUrlState, buildProfilesRoute } from "./ProfilesUrlState";
 /*
  * Sibling-relative on purpose: the `Common` package specifier resolves
  * through App/node_modules, which may symlink a checkout that predates
@@ -34,6 +35,9 @@ import {
  *   ExceptionSpike            the insight stores its telemetryExceptionId,
  *                             else the exceptions list scoped to the
  *                             service + a detection-sized window
+ *   TraceSlowOperation /   -> traces explorer: the service, the operation
+ *   TraceFailingOperation /   (its span name) and the hour it was read in -
+ *   TraceMissingTracing       only its failed spans for a failing one
  *
  * Everything here is pure (no network, no React) so App/Tests/Dashboard can
  * exercise the whole matrix in plain Node; the caller resolves service
@@ -79,7 +83,8 @@ export type InsightExplorerTarget =
   | "metrics"
   | "logs"
   | "traces"
-  | "exceptions";
+  | "exceptions"
+  | "profiles";
 
 /**
  * The insight fields the link builder reads. All optional and
@@ -106,6 +111,34 @@ export interface AIInsightExplorerLinkInput {
   lastSeenAt?: Date | string | undefined;
   /** ErrorLogSpike: evidence.logSpike.windowMinutes when available. */
   spikeWindowMinutes?: number | undefined;
+  /**
+   * ProfileHotspot: the slow function and the window it was read in
+   * (evidence.profile), when the caller has them. Without them the link
+   * opens the service's profiles.
+   */
+  profile?:
+    | {
+        functionName?: string | undefined;
+        fileName?: string | undefined;
+        profileType?: string | undefined;
+        windowStartTime?: string | undefined;
+        windowEndTime?: string | undefined;
+      }
+    | undefined;
+  /**
+   * Traces' findings: the operation and the hour it was read in
+   * (evidence.trace), when the caller has them. Without them the link opens
+   * the service's spans around when it was last seen.
+   */
+  trace?:
+    | {
+        operationName?: string | undefined;
+        kind?: string | undefined;
+        gap?: string | undefined;
+        windowStartTime?: string | undefined;
+        windowEndTime?: string | undefined;
+      }
+    | undefined;
 }
 
 export interface AIInsightExplorerLink {
@@ -187,6 +220,9 @@ export const getInsightDetectionWindow: GetInsightDetectionWindowFunction =
             : ERROR_LOG_SPIKE_DEFAULT_WINDOW_MINUTES;
         break;
       case AIInsightType.TraceLatencyRegression:
+      case AIInsightType.TraceSlowOperation:
+      case AIInsightType.TraceFailingOperation:
+      case AIInsightType.TraceMissingTracing:
         windowMinutes = LATENCY_REGRESSION_WINDOW_MINUTES;
         break;
       case AIInsightType.DeployRegression:
@@ -345,6 +381,105 @@ export const buildMetricExplorerRoute: BuildMetricExplorerRouteFunction =
       serialized.params,
     );
   };
+
+/*
+ * The traces explorer on a Traces finding: its service, its operation and
+ * the hour it was read in, and only the failed spans of a failing operation
+ * (or of one whose failures say nothing about why). Facets as the explorer's
+ * own sidebar writes them: one [key, value] pair per chip - a single span
+ * name matches as a substring, as a typed name does - and a Custom range
+ * with its start and end. A service whose id is unknown rides as its
+ * resource.service.name attribute, as every other trace link does.
+ */
+function buildTraceFindingLink(
+  input: AIInsightExplorerLinkInput,
+): AIInsightExplorerLink | null {
+  const serviceScope: InsightServiceScope = buildServiceScope(input);
+  const scopeParams: CrossSignalQueryParams = toTracesExplorerQueryParams({
+    serviceIds: serviceScope.serviceIds,
+    attributes: serviceScope.attributes,
+  });
+
+  const filters: Array<[string, string]> = [];
+
+  try {
+    const parsed: unknown = JSON.parse(scopeParams.params["filters"] || "[]");
+
+    if (Array.isArray(parsed)) {
+      for (const pair of parsed as Array<unknown>) {
+        if (
+          Array.isArray(pair) &&
+          pair.length === 2 &&
+          typeof pair[0] === "string" &&
+          typeof pair[1] === "string"
+        ) {
+          filters.push([pair[0], pair[1]]);
+        }
+      }
+    }
+  } catch {
+    // The scope's own filters are always JSON; nothing to keep otherwise.
+  }
+
+  const operationName: string | null = trimmedOrNull(
+    input.trace?.operationName,
+  );
+
+  if (operationName) {
+    filters.push(["name", operationName]);
+  }
+
+  const isAboutFailures: boolean =
+    input.insightType === AIInsightType.TraceFailingOperation ||
+    input.trace?.gap === "SilentFailures";
+
+  if (isAboutFailures) {
+    filters.push(["statusCode", "2"]);
+  }
+
+  const params: Dictionary<string> = {};
+
+  if (filters.length > 0) {
+    params["filters"] = JSON.stringify(filters);
+  }
+
+  if (scopeParams.params["search"]) {
+    params["search"] = scopeParams.params["search"];
+  }
+
+  const startTime: Date | null = toValidDate(input.trace?.windowStartTime);
+  const endTime: Date | null = toValidDate(input.trace?.windowEndTime);
+  const window: InsightDetectionWindow | null =
+    startTime && endTime && startTime.getTime() < endTime.getTime()
+      ? { startTime, endTime }
+      : getInsightDetectionWindow({
+          insightType: input.insightType,
+          lastSeenAt: input.lastSeenAt,
+        });
+
+  if (window) {
+    params["range"] = TimeRange.CUSTOM;
+    params["start"] = window.startTime.toISOString();
+    params["end"] = window.endTime.toISOString();
+  }
+
+  const route: Route | null = withQueryParams(
+    RouteUtil.populateRouteParams(RouteMap[PageMap.TRACES] as Route),
+    params,
+  );
+
+  if (!route) {
+    return null;
+  }
+
+  return {
+    target: "traces",
+    label: "Open in Traces",
+    icon: IconProp.RectangleStack,
+    route,
+    dropped: scopeParams.dropped,
+  };
+}
 
 type BuildInsightInvestigationLinkFunction = (
   input: AIInsightExplorerLinkInput,
@@ -541,6 +676,82 @@ export const buildInsightInvestigationLink: BuildInsightInvestigationLinkFunctio
           route,
           dropped,
         };
+      }
+
+      case AIInsightType.TraceSlowOperation:
+      case AIInsightType.TraceFailingOperation:
+      case AIInsightType.TraceMissingTracing: {
+        return buildTraceFindingLink(input);
+      }
+
+      case AIInsightType.ProfileHotspot: {
+        /*
+         * The Profiler on the slow function, in the window it was found
+         * in. The Profiler picks a service by its id alone: a finding with
+         * none (a name it cannot carry) opens the Profiler's overview, and
+         * says the service was dropped.
+         */
+        const serviceId: string | null = trimmedOrNull(input.serviceId);
+
+        if (!serviceId) {
+          return {
+            target: "profiles",
+            label: "Open in Profiler",
+            icon: IconProp.Fire,
+            route: buildProfilesRoute({}),
+            dropped: trimmedOrNull(input.serviceName) ? ["serviceIds"] : [],
+          };
+        }
+
+        const state: ProfilesUrlState = { serviceId };
+        const functionName: string | null = trimmedOrNull(
+          input.profile?.functionName,
+        );
+
+        if (functionName) {
+          state.functionName = functionName;
+
+          const fileName: string | null = trimmedOrNull(
+            input.profile?.fileName,
+          );
+
+          if (fileName) {
+            state.fileName = fileName;
+          }
+        }
+
+        const profileType: string | null = trimmedOrNull(
+          input.profile?.profileType,
+        );
+
+        if (profileType) {
+          state.profileType = profileType;
+        }
+
+        const startTime: Date = new Date(input.profile?.windowStartTime || "");
+        const endTime: Date = new Date(input.profile?.windowEndTime || "");
+
+        if (
+          !Number.isNaN(startTime.getTime()) &&
+          !Number.isNaN(endTime.getTime()) &&
+          startTime.getTime() < endTime.getTime()
+        ) {
+          state.startTime = startTime;
+          state.endTime = endTime;
+        }
+
+        try {
+          return {
+            target: "profiles",
+            label: "Open in Profiler",
+            icon: IconProp.Fire,
+            route: buildProfilesRoute(state),
+            dropped: [],
+          };
+        } catch {
+          // An unroutable value: no action rather than a crash.
+          return null;
+        }
       }
 
       default:

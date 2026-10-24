@@ -3,6 +3,7 @@
 
 const crypto = require("crypto");
 const fs = require("fs");
+const { ok, warn: warnLine, listed } = require("./StartOutput");
 
 /*
  * THE SECRETS THIS MAY SET
@@ -19,11 +20,10 @@ const fs = require("fs");
  * depends on, are set here: any start may replace their placeholder, and the
  * containers it recreates all get the new value together. That is not true of
  * PostgreSQL's password - PostgreSQL takes DATABASE_PASSWORD only when it
- * creates its database, so GenerateDatabasePassword.js, the start script's
- * first step, sets it before that and only then - nor of ENCRYPTION_SECRET,
- * whose change makes what was encrypted with it unreadable, so it is left to
- * the operator (the Docker Compose guide shows how to set it before the first
- * start).
+ * creates its database, so GenerateDatabasePassword.js, a step of the start
+ * script before this one, sets it before that and only then - nor of
+ * ENCRYPTION_SECRET, whose change makes what was encrypted with it
+ * unreadable, so the same step sets it on a new install only.
  *
  *   - ONEUPTIME_SECRET: the cluster key OneUptime's own services present
  *     to each other (Common/Server/Middleware/ClusterKeyAuthorization). The
@@ -75,7 +75,7 @@ const GENERATED_SECRETS = [
  * operator is told.
  *
  * Valkey was called Redis: REDIS_PASSWORD and REDIS_HOST are its older names,
- * which Compose falls back to (`${VALKEY_PASSWORD:-${REDIS_PASSWORD}}`), so
+ * which Compose falls back to (`${VALKEY_PASSWORD:-${REDIS_PASSWORD:-}}`), so
  * every name of the password that holds a placeholder gets the one new value.
  */
 const BUNDLED_DATASTORE_PASSWORDS = [
@@ -291,19 +291,11 @@ const datastoreOf = (name) => {
   return entry ? entry.datastore : null;
 };
 
-const listed = (names) => {
-  if (names.length <= 1) {
-    return names.join("");
-  }
-
-  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
-};
-
-// The line printed when replacePlaceholderSecrets set something.
+/*
+ * The line printed when replacePlaceholderSecrets set something, as a line
+ * of the list `npm start` prints first (Scripts/Install/StartOutput.js).
+ */
 const describeReplacedSecrets = (replaced) => {
-  const keys = replaced.filter((name) => {
-    return datastoreOf(name) === null;
-  });
   const datastores = [];
 
   for (const name of replaced) {
@@ -315,25 +307,18 @@ const describeReplacedSecrets = (replaced) => {
   }
 
   let message =
-    `config.env: ${replaced.join(", ")} still held the placeholder from config.example.env, ` +
-    "so each was set to a new random value.";
-
-  if (keys.length > 0) {
-    message +=
-      ` ${listed(keys)} ${keys.length === 1 ? "is a key" : "are keys"} OneUptime's own services, probes and the bundled Runner present to each other; ` +
-      "OneUptime refuses the public placeholder for every one of them, and each container reads its value from config.env.";
-  }
+    `Gave ${listed(replaced)} ${replaced.length === 1 ? "its own random value" : "their own random values"} in config.env, ` +
+    "in place of the public placeholders from config.example.env.";
 
   if (datastores.length > 0) {
     const one = datastores.length === 1;
 
     message +=
-      ` The bundled ${listed(datastores)} ${one ? "takes its" : "take their"} new password as this start recreates ${one ? "it" : "them"}, ` +
-      `together with every container that signs in to ${one ? "it" : "them"}; ` +
+      ` The bundled ${listed(datastores)} ${one ? "takes its new password" : "take their new passwords"} as this start recreates ${one ? "it" : "them"}; ` +
       `anything else that signs in to ${one ? "it" : "them"} needs the new value from config.env.`;
   }
 
-  return message;
+  return ok(message);
 };
 
 /*
@@ -344,10 +329,10 @@ const describeExternalDatastorePassword = (entry) => {
   const setting = entry.passwordSettings[0];
   const host = entry.hostSettings[0];
 
-  return (
-    `WARNING: ${setting} in config.env is still the placeholder from config.example.env, which is public, ` +
-    `and ${host} points at a ${entry.datastore} that Docker Compose does not run, so it was left as it is. ` +
-    `Give that ${entry.datastore} a long random password, and set ${setting} to it.`
+  return warnLine(
+    `${setting} in config.env is still the placeholder from config.example.env, which is public, ` +
+      `and ${host} points at a ${entry.datastore} that Docker Compose does not run, so it was left as it is. ` +
+      `Give that ${entry.datastore} a long random password, and set ${setting} to it.`,
   );
 };
 
@@ -355,11 +340,11 @@ const describeExternalDatastorePassword = (entry) => {
 const describeUnchangedConfig = (action, error) => {
   const reason = error && error.message ? error.message : String(error);
 
-  return (
+  return warnLine(
     `config.env could not be ${action} (${reason}), so its placeholder secrets were not given random values. ` +
-    "OneUptime starts anyway, but the bundled probes and Runners do not register while REGISTER_PROBE_KEY, " +
-    "GLOBAL_PROBE_1_KEY, GLOBAL_PROBE_2_KEY, ONEUPTIME_RUNNER_KEY or GLOBAL_RUNNER_KEY still holds the " +
-    "placeholder from config.example.env: set each to a long random value (openssl rand -hex 32 makes one)."
+      "OneUptime starts anyway, but the bundled probes and Runners do not register while REGISTER_PROBE_KEY, " +
+      "GLOBAL_PROBE_1_KEY, GLOBAL_PROBE_2_KEY, ONEUPTIME_RUNNER_KEY or GLOBAL_RUNNER_KEY still holds the " +
+      "placeholder from config.example.env: set each to a long random value (openssl rand -hex 32 makes one).",
   );
 };
 
@@ -416,7 +401,8 @@ const init = (options = {}) => {
  * the repository root) by `npm start` (a step of the start script, not a
  * prestart hook: npm skips pre- and post-scripts when ignore-scripts is set,
  * as many hardened servers do, and the placeholder keys must be replaced on
- * every install) and by Scripts/Install/configure.sh, which `npm run update`
+ * every install; `npm run update` ends with `npm run start`) and by
+ * Scripts/Install/configure.sh, which `npm run dev`
  * runs. Requiring it, as the tests do, only exports the functions.
  */
 if (require.main === module) {

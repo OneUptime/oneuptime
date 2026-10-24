@@ -1,7 +1,7 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
-import ApiKeyCustomRoleTable from "../../Components/ApiKey/ApiKeyCustomRoleTable";
+import ApiKeyCustomRolesSettings from "../../Components/ApiKey/ApiKeyCustomRolesSettings";
 import ApiKeyPermissionTable, {
   ApiKeyPermissionType,
 } from "../../Components/ApiKey/ApiKeyPermissionTable";
@@ -144,9 +144,11 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
 
       {/*
        * The custom roles it is given, once the project has any: what a
-       * change to a role changes for this key.
+       * change to a role changes for this key. Custom roles are an
+       * Enterprise feature: the shell draws the Enterprise card, or the
+       * roles the key still has, with Remove.
        */}
-      <ApiKeyCustomRoleTable apiKeyId={modelId} />
+      <ApiKeyCustomRolesSettings apiKeyId={modelId} />
 
       {/* What the key can do: a role, or single permissions. */}
       <ApiKeyPermissionTable

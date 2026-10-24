@@ -94,7 +94,7 @@ Cada linha é uma destas:
 
 Um endereço IPv4 precisa ser escrito como tal: escrito do jeito IPv6, como `::ffff:203.0.113.7`, ele é recusado. A lista é verificada sempre que é salva — pelo painel, pela API, pelo Terraform ou por um fluxo de trabalho —, e uma linha que nunca poderia corresponder é recusada com uma mensagem que a indica. Deixe a lista vazia para permitir todas as redes. Assim que ela tiver uma entrada, uma solicitação cujo endereço não possa ser determinado é recusada.
 
-No OneUptime Cloud, definir a lista de IPs permitidos requer o plano **Scale** — tanto quando um formulário é criado com uma pela API como quando é editado —, assim como a lista de IPs permitidos de um [painel público](/docs/dashboards/sharing). Esvaziá-la funciona em todos os planos.
+No OneUptime Cloud, definir a lista de IPs permitidos requer o plano **Scale** — tanto quando um formulário é criado com uma pela API como quando é editado —, assim como a lista de IPs permitidos de um [painel público](/docs/dashboards/sharing). Esvaziá-la funciona em todos os planos. Na hospedagem própria, alterá-la faz parte da Enterprise Edition: na Community Edition, uma lista já definida continua valendo e só pode ser removida.
 
 ### Solicitações de outros sites
 

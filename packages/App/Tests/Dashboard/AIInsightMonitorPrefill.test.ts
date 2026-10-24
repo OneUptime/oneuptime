@@ -22,6 +22,11 @@ import MonitorStepLogMonitor, {
   MonitorStepLogMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepLogMonitor";
 import MonitorStepMetricMonitor from "Common/Types/Monitor/MonitorStepMetricMonitor";
+import MonitorStepTraceMonitor, {
+  MonitorStepTraceMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepTraceMonitor";
+import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
+import { TRACE_INSIGHT_MIN_FAILED_SPANS } from "Common/Utils/Traces/TraceInsight";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
@@ -226,6 +231,37 @@ function metricDrift(
   };
 }
 
+// A failing operation Traces' detector filed (Utils/Traces/TraceInsight).
+function failingOperation(
+  overrides: Partial<AIInsightMonitorInput> = {},
+  trace: Partial<NonNullable<AIInsightEvidence["trace"]>> = {},
+): AIInsightMonitorInput {
+  return {
+    insightType: AIInsightType.TraceFailingOperation,
+    severity: AIInsightSeverity.Medium,
+    serviceName: "checkout",
+    telemetryServiceId: SERVICE_ID,
+    evidence: {
+      trace: {
+        serviceId: SERVICE_ID,
+        kind: "Failing",
+        operationName: "POST /checkout",
+        windowStartTime: "2026-10-24T08:00:00.000Z",
+        windowEndTime: "2026-10-24T09:00:00.000Z",
+        spanCount: 2600,
+        failedSpanCount: 312,
+        error: {
+          exceptionType: "TypeError",
+          sampleMatches: 5,
+          sampleSize: 5,
+        },
+        ...trace,
+      },
+    },
+    ...overrides,
+  };
+}
+
 function build(
   insight: AIInsightMonitorInput,
   seedOverrides: Partial<AIInsightMonitorSeedIds> = {},
@@ -386,6 +422,18 @@ describe("the windows are options the step forms offer", () => {
         "ExceptionMonitorStepForm.tsx",
       ),
     ).toContain(`value: ${Prefill.NEW_EXCEPTION_MONITOR_WINDOW_SECONDS}`);
+  });
+
+  test("the failing operation's hour is an option of the trace form", () => {
+    expect(
+      readDashboardSource(
+        "Components",
+        "Form",
+        "Monitor",
+        "TraceMonitor",
+        "TraceMonitorStepForm.tsx",
+      ),
+    ).toContain(`value: ${Prefill.SPIKE_MONITOR_WINDOW_SECONDS}`);
   });
 
   test("the metric window is a rolling time the picker offers", () => {
@@ -573,6 +621,62 @@ describe("getAIInsightMonitorBlocker", () => {
       }),
     ).toBe(Prefill.AI_INSIGHT_MONITOR_LATENCY_BLOCKER);
     expect(Prefill.AI_INSIGHT_MONITOR_LATENCY_BLOCKER).toMatch(/span/i);
+  });
+
+  test("a failing operation can become a monitor once it names its operation", () => {
+    expect(Prefill.getAIInsightMonitorBlocker(failingOperation())).toBeNull();
+    // A service that is not known by id still counts the operation's spans.
+    expect(
+      Prefill.getAIInsightMonitorBlocker(
+        failingOperation({ telemetryServiceId: undefined }),
+      ),
+    ).toBeNull();
+    // With no operation every span of the service would count: refused.
+    for (const operationName of [undefined, "", "   "]) {
+      expect(
+        Prefill.getAIInsightMonitorBlocker(
+          failingOperation({}, { operationName: operationName }),
+        ),
+      ).toBe(Prefill.AI_INSIGHT_MONITOR_OPERATION_SCOPE_BLOCKER);
+    }
+    expect(
+      Prefill.getAIInsightMonitorBlocker({
+        insightType: AIInsightType.TraceFailingOperation,
+      }),
+    ).toBe(Prefill.AI_INSIGHT_MONITOR_OPERATION_SCOPE_BLOCKER);
+  });
+
+  test("a slow operation is refused with a reason of its own: monitors cannot watch how long it takes", () => {
+    expect(
+      Prefill.getAIInsightMonitorBlocker({
+        insightType: AIInsightType.TraceSlowOperation,
+        serviceName: "checkout",
+        telemetryServiceId: SERVICE_ID,
+      }),
+    ).toBe(Prefill.AI_INSIGHT_MONITOR_SLOW_OPERATION_BLOCKER);
+    expect(Prefill.AI_INSIGHT_MONITOR_SLOW_OPERATION_BLOCKER).toContain(
+      "how long an operation takes",
+    );
+    // Not a latency regression's words.
+    expect(Prefill.AI_INSIGHT_MONITOR_SLOW_OPERATION_BLOCKER).not.toContain(
+      "regression",
+    );
+  });
+
+  test("missing tracing is not offered at all; every other kind is", () => {
+    expect(
+      Prefill.isAIInsightMonitorOffered(AIInsightType.TraceMissingTracing),
+    ).toBe(false);
+
+    for (const insightType of Object.values(AIInsightType).filter(
+      (value: AIInsightType): boolean => {
+        return value !== AIInsightType.TraceMissingTracing;
+      },
+    )) {
+      expect(Prefill.isAIInsightMonitorOffered(insightType)).toBe(true);
+    }
+
+    expect(Prefill.isAIInsightMonitorOffered(undefined)).toBe(true);
   });
 
   test("an unknown or absent insight type is refused, never a crash", () => {
@@ -798,6 +902,18 @@ describe("every prefill is a monitor the form can save", () => {
       },
     },
     {
+      name: "failing operation",
+      insight: () => {
+        return failingOperation();
+      },
+    },
+    {
+      name: "failing operation of a service not known by id",
+      insight: () => {
+        return failingOperation({ telemetryServiceId: undefined });
+      },
+    },
+    {
       name: "metric drift up",
       insight: () => {
         return metricDrift();
@@ -929,6 +1045,12 @@ describe("every prefill is a monitor the form can save", () => {
               "Upload failed ![x](https://evil.example/beacon.png) [click](https://evil.example/login) <NUMBER>";
           }
 
+          // An operation's name is the service's text too.
+          if (hostile.evidence?.trace) {
+            hostile.evidence.trace.operationName =
+              "GET /pay ![x](https://evil.example/beacon.png) [click](https://evil.example/login)";
+          }
+
           for (const sentence of proseOf(build(hostile))) {
             expect(sentence).not.toContain("evil.example");
             expect(sentence).not.toContain("](");
@@ -937,6 +1059,108 @@ describe("every prefill is a monitor the form can save", () => {
       });
     },
   );
+});
+
+describe("TraceFailingOperation → Traces monitor", () => {
+  test("watches the operation's failed spans in its service over an hour", () => {
+    const prefill: JSONObject = build(failingOperation());
+
+    expect(prefill["monitorType"]).toBe(MonitorType.Traces);
+    expect(prefill["name"]).toBe("Failing operation in checkout");
+
+    const traceMonitor: MonitorStepTraceMonitor =
+      stepOf(prefill).data!.traceMonitor!;
+
+    expect(traceMonitor.spanName).toBe("POST /checkout");
+    expect(traceMonitor.spanStatuses).toEqual([SpanStatus.Error]);
+    expect(idsOf(traceMonitor.telemetryServiceIds)).toEqual([SERVICE_ID]);
+    expect(traceMonitor.lastXSecondsOfSpans).toBe(3600);
+    // Nothing the detector does not filter on.
+    expect(traceMonitor.attributes).toEqual({});
+    expect(traceMonitor.entityKeys).toEqual([]);
+
+    // Every key of the type's default is present, so the form renders them all.
+    for (const key of Object.keys(MonitorStepTraceMonitorUtil.getDefault())) {
+      expect(Object.keys(traceMonitor)).toContain(key);
+    }
+  });
+
+  test("the threshold is the detector's own floor of failed spans in an hour", () => {
+    expect(Prefill.TRACE_FAILING_OPERATION_MIN_COUNT).toBe(
+      TRACE_INSIGHT_MIN_FAILED_SPANS,
+    );
+
+    const prefill: JSONObject = build(failingOperation());
+    const unhealthy: CriteriaFilter = onlyFilter(unhealthyOf(prefill));
+
+    expect(unhealthy.checkOn).toBe(CheckOn.SpanCount);
+    expect(unhealthy.filterType).toBe(FilterType.GreaterThanOrEqualTo);
+    expect(unhealthy.value).toBe(TRACE_INSIGHT_MIN_FAILED_SPANS);
+    expect(unhealthyOf(prefill).data?.name).toBe(
+      `${TRACE_INSIGHT_MIN_FAILED_SPANS} or more failed spans in an hour`,
+    );
+    expect(healthyOf(prefill).data?.description).toBe(
+      `Fewer than ${TRACE_INSIGHT_MIN_FAILED_SPANS} failed spans in the past hour.`,
+    );
+  });
+
+  test("its description says where it came from, when it fires and why at that number", () => {
+    const description: string = String(
+      build(failingOperation())["description"],
+    );
+
+    expect(description).toContain(
+      "Created from an AI insight that found a failing operation.",
+    );
+    expect(description).toContain(
+      `${TRACE_INSIGHT_MIN_FAILED_SPANS} or more of the operation's spans failed within an hour.`,
+    );
+    expect(description).toContain("the AI detector's bar");
+  });
+
+  test("the incident says what to look at next", () => {
+    const incident: { title: string; description: string } | undefined =
+      unhealthyOf(build(failingOperation())).data?.incidents[0];
+
+    expect(incident?.title).toBe("Failing operation in checkout");
+    expect(incident?.description).toContain(
+      "Open the operation's failed spans in Traces",
+    );
+  });
+
+  test("the operation's name reaches the span filter only, never a sentence", () => {
+    const prefill: JSONObject = build(
+      failingOperation({}, { operationName: "POST /checkout" }),
+    );
+
+    for (const sentence of proseOf(prefill)) {
+      expect(sentence).not.toContain("POST /checkout");
+    }
+
+    expect(stepOf(prefill).data!.traceMonitor!.spanName).toBe("POST /checkout");
+  });
+
+  test("a service not known by id: named for the operation alone, every service's spans of it counted", () => {
+    const prefill: JSONObject = build(
+      failingOperation({ telemetryServiceId: undefined }),
+    );
+
+    expect(prefill["name"]).toBe("Failing operation");
+    expect(stepOf(prefill).data!.traceMonitor!.telemetryServiceIds).toEqual([]);
+  });
+
+  test("a medium finding opens the next incident severity down; a high one the most severe", () => {
+    expect(
+      unhealthyOf(
+        build(failingOperation()),
+      ).data?.incidents[0]?.incidentSeverityId?.toString(),
+    ).toBe(MAJOR_INCIDENT_ID);
+    expect(
+      unhealthyOf(
+        build(failingOperation({ severity: AIInsightSeverity.High })),
+      ).data?.incidents[0]?.incidentSeverityId?.toString(),
+    ).toBe(CRITICAL_INCIDENT_ID);
+  });
 });
 
 describe("ErrorLogSpike → Logs monitor", () => {

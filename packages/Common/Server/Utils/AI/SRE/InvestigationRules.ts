@@ -28,6 +28,8 @@ import {
 } from "../../../../Types/AI/LlmProviderChoice";
 import AlertService from "../../../Services/AlertService";
 import IncidentService from "../../../Services/IncidentService";
+import QueryHelper from "../../../Types/Database/QueryHelper";
+import { AiContextRule, readAiContext } from "../../../../Types/AI/AiContext";
 
 /*
  * Which new incidents (or alerts) OneUptime AI investigates on its own,
@@ -71,6 +73,13 @@ import IncidentService from "../../../Services/IncidentService";
  * for the investigation the rules start and for one someone starts by
  * hand. With no rule, no matching rule that picks one, or rules that
  * cannot be read: the project's default provider, else the global one.
+ *
+ * A rule may also carry notes for OneUptime AI about the incidents it
+ * matches - its AI context (Types/AI/AiContext) - which an investigation
+ * reads after the project's own (getIncidentAiContextRules): every matching
+ * rule that investigates and has one, read for those columns only. Notes
+ * only add to what a run knows, so rules that cannot be read leave the run
+ * with the project's AI context alone.
  */
 export interface InvestigationRuleScope {
   isInScope: boolean;
@@ -505,6 +514,140 @@ export default class InvestigationRules {
       rulesSetUp: true,
       matchingRules,
     });
+  }
+
+  /*
+   * The AI rules that investigate this incident and carry an AI context,
+   * with it: the notes an investigation of the incident reads after the
+   * project's. None when no such rule matches, or the rules cannot be read.
+   */
+  @RuleEvaluation()
+  public static async getIncidentAiContextRules(data: {
+    projectId: ObjectID;
+    incident: Incident;
+  }): Promise<Array<AiContextRule>> {
+    const rules: Array<AutoRemediationRule> = await this.readAiContextRules({
+      projectId: data.projectId,
+      triggerEntityType: AutoRemediationTriggerEntity.Incident,
+    });
+
+    return await this.getMatchingAiContextRules(
+      rules,
+      (rule: AutoRemediationRule) => {
+        return IncidentAlertRuleMatcher.doesIncidentMatch(
+          data.incident,
+          rule,
+          "AI rule",
+        );
+      },
+    );
+  }
+
+  // The same, for an alert.
+  @RuleEvaluation()
+  public static async getAlertAiContextRules(data: {
+    projectId: ObjectID;
+    alert: Alert;
+  }): Promise<Array<AiContextRule>> {
+    const rules: Array<AutoRemediationRule> = await this.readAiContextRules({
+      projectId: data.projectId,
+      triggerEntityType: AutoRemediationTriggerEntity.Alert,
+    });
+
+    return await this.getMatchingAiContextRules(
+      rules,
+      (rule: AutoRemediationRule) => {
+        return IncidentAlertRuleMatcher.doesAlertMatch(
+          data.alert,
+          rule,
+          "AI rule",
+        );
+      },
+    );
+  }
+
+  /*
+   * The ones of these rules the signal matches, as the AI context reads
+   * them. Only a rule with an AI context is matched at all, so a project
+   * whose rules carry none matches nothing here.
+   */
+  private static async getMatchingAiContextRules(
+    rules: Array<AutoRemediationRule>,
+    matches: (rule: AutoRemediationRule) => Promise<boolean>,
+  ): Promise<Array<AiContextRule>> {
+    const matching: Array<AiContextRule> = [];
+
+    for (const rule of rules) {
+      if (!readAiContext(rule.aiContext)) {
+        continue;
+      }
+
+      if (!(await matches(rule))) {
+        continue;
+      }
+
+      matching.push({
+        ...(rule.id ? { id: rule.id.toString() } : {}),
+        name: rule.name || "",
+        aiContext: rule.aiContext,
+      });
+    }
+
+    return matching;
+  }
+
+  /*
+   * The enabled rules of one kind of signal that investigate and carry an
+   * AI context, with what they match on. None when they cannot be read:
+   * notes only add to what a run knows, so the run goes on with the
+   * project's AI context alone.
+   */
+  private static async readAiContextRules(data: {
+    projectId: ObjectID;
+    triggerEntityType: AutoRemediationTriggerEntity;
+  }): Promise<Array<AutoRemediationRule>> {
+    try {
+      const rules: Array<AutoRemediationRule> =
+        await AutoRemediationRuleService.findBy({
+          query: {
+            projectId: data.projectId,
+            isEnabled: true,
+            triggerEntityType: data.triggerEntityType,
+            investigates: true,
+            aiContext: QueryHelper.notNull(),
+          },
+          select: {
+            _id: true,
+            name: true,
+            criteria: true,
+            titlePattern: true,
+            descriptionPattern: true,
+            monitors: { _id: true },
+            incidentSeverities: { _id: true },
+            alertSeverities: { _id: true },
+            labels: { _id: true },
+            monitorLabels: { _id: true },
+            aiContext: true,
+          },
+          limit: MAX_RULES_EVALUATED_PER_PROJECT,
+          skip: 0,
+          props: { isRoot: true },
+        });
+
+      logIfRuleReadWasTruncated({
+        ruleKind: "AutoRemediationRule",
+        projectId: data.projectId,
+        rulesRead: rules.length,
+      });
+
+      return rules;
+    } catch (error) {
+      logger.error(
+        `AI: could not read the AI context of the AI rules that investigate; investigating with the project's AI context alone: ${error}`,
+        { projectId: data.projectId.toString() } as LogAttributes,
+      );
+      return [];
+    }
   }
 
   /*

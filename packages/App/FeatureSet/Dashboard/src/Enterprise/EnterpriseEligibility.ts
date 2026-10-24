@@ -67,6 +67,32 @@ export const AUDIT_LOGS_REQUIRED_PLAN: EnterpriseRequiredPlan =
   PlanType.Enterprise;
 
 /*
+ * Custom roles: @TableBillingAccessControl on CustomRole,
+ * CustomRolePermission and TeamCustomRole says Scale for creating and
+ * changing them.
+ */
+export const CUSTOM_ROLES_REQUIRED_PLAN: EnterpriseRequiredPlan =
+  PlanType.Scale;
+
+/*
+ * IP allow-lists of status pages, public dashboards and forms: the
+ * ipWhitelist column's @ColumnBillingAccessControl says Scale.
+ */
+export const IP_ALLOWLIST_REQUIRED_PLAN: EnterpriseRequiredPlan =
+  PlanType.Scale;
+
+/*
+ * A status page's Powered by OneUptime switch and its access controls
+ * (session length, only private users subscribe, subscribers' email
+ * domains): their @ColumnBillingAccessControl says Scale.
+ */
+export const STATUS_PAGE_BRANDING_REQUIRED_PLAN: EnterpriseRequiredPlan =
+  PlanType.Scale;
+
+export const STATUS_PAGE_ACCESS_CONTROLS_REQUIRED_PLAN: EnterpriseRequiredPlan =
+  PlanType.Scale;
+
+/*
  * Whether `currentPlan` is at or above `requiredPlan`, using the plan order
  * the Cloud configures (SUBSCRIPTION_PLAN_* in env.js) - the same comparison
  * the server's BillingPermission makes. An unknown plan, or plans that cannot

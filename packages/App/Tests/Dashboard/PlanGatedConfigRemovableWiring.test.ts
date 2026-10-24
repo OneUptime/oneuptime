@@ -81,6 +81,8 @@ const NEW_SENTENCES: Array<string> = [
   "On-call schedules still set up",
   "Notification rules still set up",
   "Summaries still set up",
+  "Audit log exports still set up",
+  "These stopped exporting: your plan does not include audit log export. Upgrading to the {{planName}} plan starts them again from where they stopped. You can still turn them off or delete them.",
 ];
 
 // Source with comments dropped and whitespace collapsed.
@@ -288,6 +290,40 @@ describe("the Scale pages draw what is left under their upsell", () => {
   });
 });
 
+/*
+ * Settings > Audit Logs > Export, under its Enterprise upsell: the exports
+ * the project still has. They stopped exporting below the plan (the
+ * exporter asks it), so their table says so, and they can be turned off
+ * and deleted.
+ */
+describe("the Enterprise page draws what is left under its upsell", () => {
+  test("Settings > Audit Logs > Export hands its upsell ProjectAuditLogExportsLeftover", () => {
+    const source: string = readDashboard("Pages/Settings/AuditLogExport.tsx");
+
+    expect(source).toContain(
+      'import { ProjectAuditLogExportsLeftover } from "../../Components/Billing/AuditLogExportPlanLeftovers";',
+    );
+    expect(source).toContain("belowPlan={<ProjectAuditLogExportsLeftover />}");
+    expect(source).toContain("requiredPlan={AUDIT_LOGS_REQUIRED_PLAN}");
+  });
+
+  test("which lists the project's exports at the audit log plan, saying they stopped", () => {
+    const source: string = readDashboard(
+      "Components/Billing/AuditLogExportPlanLeftovers.tsx",
+    );
+
+    expect(source).toContain(
+      "<PlanLeftoverTable<AuditLogExport> modelType={AuditLogExport}",
+    );
+    expect(source).toContain("requiredPlan={AUDIT_LOGS_REQUIRED_PLAN}");
+    expect(source).toContain("ProjectUtil.getCurrentProjectId()!");
+    expect(source).toContain("title={PlanLeftoverTitle.auditLogExports}");
+    expect(readDashboard("Components/Billing/PlanLeftoverCopy.ts")).toContain(
+      "if (data.tableName === AUDIT_LOG_EXPORT_TABLE_NAME) { return PlanLeftoverCopy.descriptionExportsStopped; }",
+    );
+  });
+});
+
 describe("the Growth pages become the plan note below the plan", () => {
   /*
    * The API key plan lives with the other plan cut-off rules
@@ -433,6 +469,7 @@ describe("what is left is only ever drawn below the plan", () => {
       .sort();
 
     expect(drawnIn).toEqual([
+      "Components/Billing/AuditLogExportPlanLeftovers.tsx",
       "Components/Billing/IdentityPlanLeftovers.tsx",
       "Components/Workspace/WorkspacePlanLeftoverGate.tsx",
       "Pages/OnCallDuty/OnCallDutySchedules.tsx",

@@ -19,29 +19,39 @@ Autoscaling is off by default, so this does not apply to a stock install.
 
 ## 1. Create a `values.yaml`
 
-Create a `values.yaml` file and set your host:
+Create a `values.yaml` file and set `host` to the domain name or IP address
+people will use to open OneUptime, without `http://`:
 
 ```yaml
-host: <ip-address-or-domain-of-server>
+host: oneuptime.example.com
+```
 
-# If you are NOT using SSL/TLS, change this to http
+OneUptime serves its own pages only at `host`: any other address is taken for
+a status page's custom domain, and shows a page that says which `host` to set.
+
+Keep `httpProtocol: http`, the chart's default, until people reach OneUptime
+over HTTPS. Then set it to `https`, so OneUptime builds HTTPS links and keeps
+its sign-in cookies on HTTPS:
+
+```yaml
 httpProtocol: https
 ```
 
-## 2. Pick a storage class
+## 2. Pick a storage class, if your cluster has no default
 
-Storage classes differ between cloud providers, so pick the right one for your
-cluster. List what's available:
+The chart's PostgreSQL, ClickHouse and Valkey keep their data in volumes of
+your cluster's default storage class. List the classes; the default is marked
+`(default)`:
 
 ```console
 kubectl get storageclass
 ```
 
-Then add it to `values.yaml`:
+Only when none is the default, add one to `values.yaml`:
 
 ```yaml
 global:
-  storageClass: "your-storage-class"
+  storageClass: "standard"
 ```
 
 ## 3. Install the chart
@@ -51,9 +61,10 @@ helm repo add oneuptime https://helm-chart.oneuptime.com/
 helm install my-oneuptime oneuptime/oneuptime -f values.yaml
 ```
 
-That's it — OneUptime will start up in your cluster. For the full list of
-settings you can put in `values.yaml`, see the
-[Configuration reference](configuration.md).
+`helm install` ends by printing the address to open. Once the pods are running
+(`kubectl get pods`), open it and sign up: the first account becomes the admin
+of this OneUptime. For the full list of settings you can put in `values.yaml`,
+see the [Configuration reference](configuration.md).
 
 ## Upgrading
 

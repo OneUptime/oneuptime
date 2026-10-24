@@ -397,12 +397,40 @@ function sentPayload(): JSONObject {
   return send.mock.calls[0]![2] as JSONObject;
 }
 
+/*
+ * The gate's own reads of the project: the ones that ask for enableAi. A
+ * postmortem route reads the project once more after the gate passes - for
+ * its AI context (Server/Utils/AI/AiContext/AiContextReader) - which is not
+ * the gate and is pinned on its own below.
+ */
+function gateReads(): Array<{
+  id: ObjectID;
+  select: Dictionary<boolean>;
+  props: { isRoot?: boolean };
+}> {
+  return projectLookup.mock.calls
+    .map((call: Array<unknown>) => {
+      return call[0] as {
+        id: ObjectID;
+        select: Dictionary<boolean>;
+        props: { isRoot?: boolean };
+      };
+    })
+    .filter((read: { select?: Dictionary<boolean> | undefined }): boolean => {
+      return read.select?.["enableAi"] === true;
+    });
+}
+
 // The projectId the gate actually looked the toggle up for.
 function gatedProjectId(): string {
-  const call: { id: ObjectID } = projectLookup.mock.calls[0]![0] as {
-    id: ObjectID;
-  };
-  return call.id.toString();
+  return gateReads()[0]!.id.toString();
+}
+
+// Every project any read of this request asked for, the AI context's included.
+function readProjectIds(): Array<string> {
+  return projectLookup.mock.calls.map((call: Array<unknown>): string => {
+    return (call[0] as { id: ObjectID }).id.toString();
+  });
 }
 
 beforeAll(() => {
@@ -537,8 +565,17 @@ describe.each(GENERATE_ROUTES)(
 
       await callRoute(route);
 
-      expect(projectLookup).toHaveBeenCalledTimes(1);
+      expect(gateReads()).toHaveLength(1);
       expect(gatedProjectId()).toBe(PROJECT_ID.toString());
+      /*
+       * And so is every other read of the project the route makes - the AI
+       * context a postmortem draft reads first is the row's project's, never
+       * the project the caller's header names.
+       */
+      expect(readProjectIds()).not.toContain(HEADER_PROJECT_ID.toString());
+      expect(new Set(readProjectIds())).toEqual(
+        new Set([PROJECT_ID.toString()]),
+      );
     });
   },
 );
@@ -747,7 +784,7 @@ describe("the shape of the gate's project read", () => {
 
     await callRoute(route);
 
-    expect(projectLookup).toHaveBeenCalledTimes(1);
+    expect(gateReads()).toHaveLength(1);
 
     const read: {
       select: Dictionary<boolean>;
@@ -757,6 +794,7 @@ describe("the shape of the gate's project read", () => {
       props: { isRoot?: boolean };
     };
 
+    // The gate reads first: before the AI context, before anything else.
     expect(read.select["enableAi"]).toBe(true);
     expect(read.props.isRoot).toBe(true);
   });

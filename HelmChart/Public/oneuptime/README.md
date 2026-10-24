@@ -14,15 +14,17 @@ on a status page. This Helm chart runs all of OneUptime on Kubernetes.
 
 ## Quick Start
 
-1. **Create a `values.yaml`** and set your host:
+1. **Create a `values.yaml`** and set your host, the domain name or IP
+   address people will use to open OneUptime, without `http://`:
 
    ```yaml
-   host: <ip-address-or-domain-of-server>
-   httpProtocol: https   # use http if you are not using SSL/TLS
-
-   global:
-     storageClass: "your-storage-class"   # run: kubectl get storageclass
+   host: oneuptime.example.com
    ```
+
+   Keep `httpProtocol: http`, the chart's default, until people reach
+   OneUptime over HTTPS, then set `httpProtocol: https`. The chart uses your
+   cluster's default storage class; set `global.storageClass` only when it
+   has none (`kubectl get storageclass` lists them).
 
 2. **Install the chart:**
 
@@ -30,6 +32,10 @@ on a status page. This Helm chart runs all of OneUptime on Kubernetes.
    helm repo add oneuptime https://helm-chart.oneuptime.com/
    helm install my-oneuptime oneuptime/oneuptime -f values.yaml
    ```
+
+3. **Open OneUptime** at the address `helm install` prints, once the pods are
+   running, and sign up. The first account becomes the admin of this
+   OneUptime.
 
 That's the whole happy path. For details, prerequisites, and upgrades, see the
 [Installation guide](https://github.com/OneUptime/oneuptime/blob/master/HelmChart/Public/oneuptime/docs/installation.md).

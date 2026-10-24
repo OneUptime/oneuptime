@@ -10,7 +10,7 @@
 :::
 
 > [!NOTE]
-> OneUptimes AI öppnar bara pull requests med rättningar i repositorier som är anslutna via GitHub App, så den kan ännu inte arbeta i ett GitLab-repositorium. Se [GitHub](/docs/integrations/github).
+> OneUptimes AI arbetar också i GitLab-repositorier: anslut dem i Kod med en åtkomsttoken, så öppnar den en merge request för varje rättning. Se [Ansluta ett repositorium](/docs/ai/ai-agent#ansluta-ett-repositorium).
 
 ## Så fungerar det
 

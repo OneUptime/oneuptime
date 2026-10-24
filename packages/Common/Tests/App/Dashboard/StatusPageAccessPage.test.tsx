@@ -29,9 +29,12 @@ import { getJestSpyOn } from "../../Spy";
  * Password" card with its own switch and a button for the password, and the
  * IP whitelist. None of them is left: who can see the page is one choice.
  *
- * The allowlist card is recorded rather than drawn (CardModelDetail has
- * suites of its own): what matters is what the page hands it - and what the
- * folded section says, which is the real section.
+ * The reader session limit and the IP allowlist are Enterprise features,
+ * each behind a core shell (StatusPageSessionLengthSettings,
+ * IpAllowlistSettings; EnterpriseSettingShells holds them, and
+ * ee/Tests/UI/IpAllowlists the Enterprise card). Both are recorded rather
+ * than drawn: what matters is what the page hands them - and what the folded
+ * section says, which is the real section.
  */
 
 type Recorded = { kind: string; props: Record<string, unknown> };
@@ -52,7 +55,10 @@ type Recorder = (
 
 const mockRecorder: Recorder = (kind: string) => {
   return (props: Record<string, unknown>): ReactElement => {
-    const name: string = (props["name"] as string | undefined) || kind;
+    const name: string =
+      (props["cardName"] as string | undefined) ||
+      (props["name"] as string | undefined) ||
+      kind;
 
     (
       globalThis as unknown as { __accessPageRecorded: RecorderStore }
@@ -80,9 +86,16 @@ jest.mock(
 );
 
 jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageSessionLengthCard",
+  "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageSessionLengthSettings",
   () => {
     return { __esModule: true, default: mockRecorder("session-length-card") };
+  },
+);
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/IpAllowlist/IpAllowlistSettings",
+  () => {
+    return { __esModule: true, default: mockRecorder("ip-allowlist-shell") };
   },
 );
 
@@ -98,8 +111,6 @@ import SubscriptionPlan, {
   PlanType,
 } from "../../../Types/Billing/SubscriptionPlan";
 import ObjectID from "../../../Types/ObjectID";
-import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
-import FieldType from "../../../UI/Components/Types/FieldType";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 import {
@@ -170,43 +181,14 @@ function propsOf(name: string): Record<string, unknown> {
   return card!.props;
 }
 
-type FieldShape = {
-  field?: Record<string, unknown>;
-  title?: string;
-  fieldType?: string;
-  required?: boolean;
-  description?: string;
-  placeholder?: string;
-  customValidation?: (values: Record<string, unknown>) => string | null;
-  getElement?: (item: StatusPage) => ReactElement;
-};
-
-function formFields(): Array<FieldShape> {
-  return propsOf(ALLOWLIST_CARD)["formFields"] as Array<FieldShape>;
-}
-
-function detailFields(): Array<FieldShape> {
-  return (
-    propsOf(ALLOWLIST_CARD)["modelDetailProps"] as Record<string, unknown>
-  )["fields"] as Array<FieldShape>;
-}
-
-// What the allowlist card reads, handed to the page as the card would.
+// What the allowlist shell reads, handed to the page as the shell would.
 async function loadAllowlist(ipWhitelist: string | undefined): Promise<void> {
-  const item: StatusPage = new StatusPage();
-
-  if (ipWhitelist !== undefined) {
-    item.ipWhitelist = ipWhitelist;
-  }
-
-  const onItemLoaded: (item: StatusPage) => void = (
-    propsOf(ALLOWLIST_CARD)["modelDetailProps"] as {
-      onItemLoaded: (item: StatusPage) => void;
-    }
-  ).onItemLoaded;
+  const onLoaded: (ipAllowlist: string) => void = propsOf(ALLOWLIST_CARD)[
+    "onLoaded"
+  ] as (ipAllowlist: string) => void;
 
   await act(async () => {
-    onItemLoaded(item);
+    onLoaded(ipWhitelist || "");
   });
 }
 
@@ -340,148 +322,29 @@ describe("the folded Advanced section", () => {
   });
 });
 
-describe("the IP allowlist card", () => {
-  test("is the IP Allowlist, with what it does and how to leave it", async () => {
+describe("the IP allowlist shell", () => {
+  test("is the status page's IP Allowlist, in the page's own words", async () => {
     await renderPage();
 
     const props: Record<string, unknown> = propsOf(ALLOWLIST_CARD);
-    const cardProps: Record<string, unknown> = props["cardProps"] as Record<
-      string,
-      unknown
-    >;
 
-    expect(cardProps["title"]).toBe("IP Allowlist");
-    expect(cardProps["description"]).toBe(
-      StatusPageAccessCopy.ipAllowlistDescription,
-    );
-    expect(props["editButtonText"]).toBe("Edit IP Allowlist");
-    expect(props["isEditable"]).toBe(true);
-    expect(
-      (props["modelDetailProps"] as Record<string, unknown>)["modelId"],
-    ).toEqual(new ObjectID(STATUS_PAGE_ID));
+    expect(props["modelType"]).toBe(StatusPage);
+    expect(props["modelId"]).toEqual(new ObjectID(STATUS_PAGE_ID));
+    expect(props).toMatchObject({
+      modelDetailId: "model-detail-status-page-ip-allowlist",
+      title: "IP Allowlist",
+      description: StatusPageAccessCopy.ipAllowlistDescription,
+      editButtonText: "Edit IP Allowlist",
+      fieldDescription: StatusPageAccessCopy.ipAllowlistFieldDescription,
+      emptyText: StatusPageAccessCopy.ipAllowlistEmpty,
+      noAddressText: StatusPageAccessCopy.ipAllowlistNoAddress,
+      entriesTestId: STATUS_PAGE_IP_ALLOWLIST_ENTRIES_TEST_ID,
+    });
   });
 
-  test("its form is the one list, not required, with what a line may hold", async () => {
+  test("tells the page each allowlist it reads, so the folded section can say Configured", async () => {
     await renderPage();
 
-    expect(formFields()).toHaveLength(1);
-
-    const field: FieldShape = formFields()[0]!;
-
-    expect(field.field).toEqual({ ipWhitelist: true });
-    expect(field.title).toBe("IP Allowlist");
-    expect(field.fieldType).toBe(FormFieldSchemaType.LongText);
-    expect(field.required).toBe(false);
-    expect(field.description).toBe(
-      StatusPageAccessCopy.ipAllowlistFieldDescription,
-    );
-  });
-
-  test("its form refuses a list the server would misread", async () => {
-    await renderPage();
-
-    const validate: (values: Record<string, unknown>) => string | null =
-      formFields()[0]!.customValidation!;
-
-    expect(validate({ ipWhitelist: "" })).toBeNull();
-    expect(validate({ ipWhitelist: "203.0.113.7\n10.0.0.0/8" })).toBeNull();
-    expect(validate({ ipWhitelist: "\n \n" })).toBe(
-      StatusPageAccessCopy.ipAllowlistBlank,
-    );
-    expect(validate({ ipWhitelist: "office.example.com" })).toBe(
-      "office.example.com is not an IP address or an IPv4 range such as 10.0.0.0/8.",
-    );
-  });
-
-  test.each([PlanType.Free, PlanType.Growth])(
-    "on %s, it names the Scale plan it needs",
-    async (current: PlanType) => {
-      plan = current;
-
-      await renderPage();
-
-      const rightElement: ReactElement = (
-        propsOf(ALLOWLIST_CARD)["cardProps"] as Record<string, unknown>
-      )["rightElement"] as ReactElement;
-
-      expect(rightElement).toBeTruthy();
-
-      render(rightElement);
-
-      expect(screen.getByText("Scale Plan")).toBeInTheDocument();
-    },
-  );
-
-  test.each([PlanType.Scale, PlanType.Enterprise, null])(
-    "on %s, no plan is named",
-    async (current: PlanType | null) => {
-      plan = current;
-
-      await renderPage();
-
-      expect(
-        (propsOf(ALLOWLIST_CARD)["cardProps"] as Record<string, unknown>)[
-          "rightElement"
-        ],
-      ).toBeUndefined();
-    },
-  );
-
-  describe("shows the list", () => {
-    function shown(ipWhitelist: string | undefined): HTMLElement {
-      const field: FieldShape = detailFields()[0]!;
-
-      expect(field.field).toEqual({ ipWhitelist: true });
-      expect(field.title).toBe("IP Allowlist");
-      expect(field.fieldType).toBe(FieldType.LongText);
-
-      const item: StatusPage = new StatusPage();
-
-      if (ipWhitelist !== undefined) {
-        item.ipWhitelist = ipWhitelist;
-      }
-
-      const view: ReturnType<typeof render> = render(field.getElement!(item));
-
-      return view.container;
-    }
-
-    test("one address or range a line, as typed", async () => {
-      await renderPage();
-
-      const container: HTMLElement = shown(" 203.0.113.7 \n\n10.0.0.0/8\n");
-      const list: HTMLElement = within(container).getByTestId(
-        STATUS_PAGE_IP_ALLOWLIST_ENTRIES_TEST_ID,
-      );
-
-      expect(
-        within(list)
-          .getAllByRole("listitem")
-          .map((item: HTMLElement): string => {
-            return item.textContent || "";
-          }),
-      ).toEqual(["203.0.113.7", "10.0.0.0/8"]);
-    });
-
-    test("an empty list says every address may open the page", async () => {
-      await renderPage();
-
-      expect(shown(undefined)).toHaveTextContent(
-        StatusPageAccessCopy.ipAllowlistEmpty,
-      );
-      cleanup();
-      await renderPage();
-      expect(shown("")).toHaveTextContent(
-        StatusPageAccessCopy.ipAllowlistEmpty,
-      );
-    });
-
-    test("a list of blank lines says no address may", async () => {
-      await renderPage();
-
-      expect(shown("\n \n")).toHaveTextContent(
-        StatusPageAccessCopy.ipAllowlistNoAddress,
-      );
-    });
+    expect(typeof propsOf(ALLOWLIST_CARD)["onLoaded"]).toBe("function");
   });
 });

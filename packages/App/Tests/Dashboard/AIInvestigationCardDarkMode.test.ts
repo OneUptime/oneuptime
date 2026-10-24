@@ -248,6 +248,13 @@ describe("the AI Investigation card in the dark theme", () => {
 
     expect(Array.from(modules.keys()).sort()).toEqual(
       expect.arrayContaining([
+        /*
+         * The card folded into one line when AI was off for the record,
+         * the rules it folds by and its words: drawn inside the same card.
+         */
+        "AiOffSummary.tsx",
+        "AiOffSummaryData.ts",
+        "AiOffSummaryWords.ts",
         "CallSummary/CallSummarySection.tsx",
         "CallSummary/UseCallRootCauseModal.tsx",
         "ClusterAccessNotice.tsx",

@@ -110,6 +110,12 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
             description:
               "Every new incident is investigated unless you narrow it down here.",
             buttons: whichGate.lockedButtons,
+            /*
+             * Its place on the page: a link to ".../ai/settings#
+             * WhichAreInvestigated" (an incident's AI card, when its
+             * severity was below the minimum) opens More settings here.
+             */
+            id: AiLaneAdvancedCard.WhichAreInvestigated,
           }}
           isEditable={whichGate.isEditable}
           editButtonText="Edit"

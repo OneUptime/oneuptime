@@ -19,7 +19,7 @@
 | **自定义域名** | 您自己的域名、它的 DNS 记录以及免费的 SSL 证书。 |
 | **HTML、CSS 和 JavaScript** | 页眉 HTML、页脚 HTML、自定义 CSS、自定义 JavaScript。 |
 
-有三项看起来像品牌设置的内容，实际位于 **状态页面 → 您的页面 → 高级 → 高级设置**（`{id}/settings`），因为它们决定的是页面显示什么，而不是页面的外观：总体正常运行时间百分比、哪些监视器状态会计入不可用时间，以及“Powered by OneUptime”这一行。三者都是那里 **状态页显示的内容** 卡片中的行。
+有三项看起来像品牌设置的内容，实际位于 **状态页面 → 您的页面 → 高级 → 高级设置**（`{id}/settings`），因为它们决定的是页面显示什么，而不是页面的外观：总体正常运行时间百分比、哪些监视器状态会计入不可用时间，以及“Powered by OneUptime”这一行。前两项是那里 **状态页显示的内容** 卡片中的行，而“Powered by OneUptime”这一行在它下方有单独的卡片。
 
 品牌设置以前分散在 **基本品牌**、**页眉**、**页脚**、**概览页面** 和 **语言** 几个独立的界面中。它们的旧地址（`{id}/header-style`、`{id}/footer-style`、`{id}/overview-page-branding` 和 `{id}/languages`）现在都会打开 **品牌** 页面，所以旧的书签和链接仍然有效。
 
@@ -295,7 +295,7 @@ API 密钥也是如此。只能读取状态页域名的密钥无法在 `/status-
 
 ## Powered by OneUptime
 
-“Powered by OneUptime”这一行不是品牌设置。它是 **状态页面 → 您的页面 → 高级 → 高级设置**（`{id}/settings`）上 **状态页显示的内容** 卡片的最后一个开关：**显示“由 OneUptime 提供支持”品牌标识**，默认开启。关闭它即可隐藏这一行；它会立即保存。在 OneUptime Cloud 上，隐藏它需要 **Scale** 套餐。
+“Powered by OneUptime”这一行不是品牌设置。它在 **状态页面 → 您的页面 → 高级 → 高级设置**（`{id}/settings`）上 **状态页显示的内容** 卡片下方有单独的卡片 **Powered by OneUptime**，其中的开关是 **显示“由 OneUptime 提供支持”品牌标识**，默认开启。关闭它即可隐藏这一行；它会立即保存。在 OneUptime Cloud 上，隐藏它需要 **Scale** 套餐。自托管时，隐藏它属于 Enterprise Edition：在 Community Edition 上，每个状态页都会显示这一行。
 
 ## 后续步骤
 

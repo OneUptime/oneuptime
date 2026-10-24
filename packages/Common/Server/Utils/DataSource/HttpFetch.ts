@@ -35,20 +35,32 @@ import { DataSourceConnectionSettings } from "./Types";
 export interface DataSourceHttpRequest {
   /*
    * DELETE is for the security response actions (ending a person's Okta
-   * sessions is a DELETE); it carries no body, like GET.
+   * sessions is a DELETE); it carries no body, like GET. PUT is an object
+   * storage upload (an audit log export's file): it carries a body, like
+   * POST.
    */
-  method: "GET" | "POST" | "DELETE";
+  method: "GET" | "POST" | "PUT" | "DELETE";
   url: string;
   headers?: Dictionary<string> | undefined;
   /*
-   * POST body. Strings are sent as-is; objects are JSON-encoded unless
-   * formUrlEncoded is set (Prometheus' query endpoints take form bodies).
+   * POST or PUT body. Strings are sent as-is; a Buffer is sent as its bytes
+   * (application/octet-stream unless a Content-Type is given); objects are
+   * JSON-encoded unless formUrlEncoded is set (Prometheus' query endpoints
+   * take form bodies).
    */
-  body?: string | Dictionary<string> | undefined;
+  body?: string | Buffer | Dictionary<string> | undefined;
   formUrlEncoded?: boolean | undefined;
   timeoutInMs?: number | undefined;
   // Test seam — forwarded to the egress guard.
   egressOptions?: EgressGuardOptions | undefined;
+  /*
+   * Answer every status as a response instead of throwing for anything
+   * outside 2xx: for a client that reads the status and headers itself - a
+   * 429's Retry-After, a redirect's Location (still never followed here: a
+   * redirect is the caller's to vet) - as the network controller clients
+   * do. Off by default.
+   */
+  acceptAnyStatus?: boolean | undefined;
 }
 
 export interface DataSourceHttpResponse {
@@ -112,9 +124,17 @@ export default class DataSourceHttpFetch {
       request.headers,
     );
 
-    let data: string | URLSearchParams | undefined = undefined;
-    if (request.method === "POST" && request.body !== undefined) {
-      if (typeof request.body === "string") {
+    let data: string | Buffer | URLSearchParams | undefined = undefined;
+    if (
+      (request.method === "POST" || request.method === "PUT") &&
+      request.body !== undefined
+    ) {
+      if (Buffer.isBuffer(request.body)) {
+        data = request.body;
+        if (!headers["Content-Type"]) {
+          headers["Content-Type"] = "application/octet-stream";
+        }
+      } else if (typeof request.body === "string") {
         data = request.body;
         if (!headers["Content-Type"]) {
           headers["Content-Type"] = "application/json";
@@ -148,8 +168,12 @@ export default class DataSourceHttpFetch {
         },
       ],
       validateStatus: (status: number): boolean => {
-        // 3xx must throw — redirects are refused by policy, not followed.
-        return status < 300;
+        /*
+         * 3xx must throw — redirects are refused by policy, not followed —
+         * unless the caller reads every status itself (maxRedirects stays 0
+         * either way, so nothing is followed here).
+         */
+        return request.acceptAnyStatus ? true : status < 300;
       },
       httpAgent: httpAgent,
       httpsAgent: httpsAgent,

@@ -174,12 +174,15 @@ export function isWaitChosen(values: unknown): boolean {
 /*
  * The form values an answer makes: right away clears the wait (null, so an
  * edit clears what a rule stored); a wait keeps the minutes already there,
- * or starts on DEFAULT_INVESTIGATION_RULE_WAIT_MINUTES. Everything else as
- * it was.
+ * or starts on the rule's own default - `defaultWaitMinutes`, for a lane
+ * that looks less often than incidents open (the Profiler looks once an
+ * hour) - or DEFAULT_INVESTIGATION_RULE_WAIT_MINUTES. Everything else as it
+ * was.
  */
 export function getValuesForInvestigationRuleTiming<TValues>(data: {
   values: TValues;
   timing: InvestigationRuleTiming;
+  defaultWaitMinutes?: number | undefined;
 }): TValues {
   const values: Values = asValues(data.values);
   const current: number = getInvestigationRuleWaitMinutes(
@@ -191,7 +194,9 @@ export function getValuesForInvestigationRuleTiming<TValues>(data: {
     [INVESTIGATION_RULE_TIMING_FIELD_KEY]: data.timing,
     [INVESTIGATION_RULE_WAIT_FIELD]:
       data.timing === InvestigationRuleTiming.AfterWait
-        ? current || DEFAULT_INVESTIGATION_RULE_WAIT_MINUTES
+        ? current ||
+          data.defaultWaitMinutes ||
+          DEFAULT_INVESTIGATION_RULE_WAIT_MINUTES
         : null,
   } as unknown as TValues;
 }

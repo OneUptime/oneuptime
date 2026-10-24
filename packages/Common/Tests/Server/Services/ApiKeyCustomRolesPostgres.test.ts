@@ -36,6 +36,11 @@ import {
   getCustomRoleGrantRefusedMessage,
 } from "../../../Types/Team/CustomRole";
 import UserType from "../../../Types/UserType";
+import EnterpriseFeature from "../../../Server/Enterprise/EnterpriseFeature";
+import {
+  installFakeEnterpriseModuleWithFeatures,
+  uninstallEnterpriseModule,
+} from "../Enterprise/FakeEnterpriseModule";
 import InMemoryLocks from "../TestingUtils/InMemoryLocks";
 import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import {
@@ -285,6 +290,12 @@ describePostgres(
     }
 
     beforeAll(async () => {
+      /*
+       * Custom roles are an Enterprise Edition feature: the edition check
+       * refuses every role write in a process with no enterprise module.
+       */
+      installFakeEnterpriseModuleWithFeatures([EnterpriseFeature.CustomRoles]);
+
       database = new DataSource({
         type: "postgres",
         host:
@@ -531,6 +542,7 @@ describePostgres(
 
     afterAll(async () => {
       jest.restoreAllMocks();
+      uninstallEnterpriseModule();
 
       if (database?.isInitialized) {
         await database.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);

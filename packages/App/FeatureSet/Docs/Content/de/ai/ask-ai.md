@@ -11,7 +11,7 @@ KI fragen ist der Chat von OneUptime über die Daten Ihres Projekts. Fragen Sie 
 
 ## Wie KI fragen antwortet
 
-KI fragen antwortet nur mit dem, was seine Werkzeuge zurückgeben: Der Chat führt Abfragen gegen Ihr Projekt aus, statt aus dem Gedächtnis zu antworten. Jede Tatsache in einer Antwort trägt einen Quellenchip, der die zugrunde liegende Abfrage zeigt und die gelesenen Daten öffnet. Wenn Sie ihn bitten, etwas zu ändern, entscheidet der Berechtigungsmodus der Unterhaltung, ob er Sie vorher fragt.
+KI fragen antwortet nur mit dem, was seine Werkzeuge zurückgeben: Der Chat führt Abfragen gegen Ihr Projekt aus, statt aus dem Gedächtnis zu antworten. Jede Tatsache in einer Antwort trägt einen Quellenchip, der die zugrunde liegende Abfrage zeigt und die gelesenen Daten öffnet. Wenn Sie ihn bitten, etwas zu ändern, entscheidet der Berechtigungsmodus der Unterhaltung, ob er Sie vorher fragt. Vor Ihrer Frage liest er den [KI-Kontext](/docs/ai/ai-context) des Projekts: was Ihr Team für OneUptime AI über Ihre eigenen Systeme aufgeschrieben hat.
 
 ```mermaid title="Von der Frage zur belegten Antwort"
 flowchart TB

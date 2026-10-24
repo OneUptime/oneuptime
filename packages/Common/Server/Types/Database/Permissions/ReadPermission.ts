@@ -50,7 +50,8 @@ export interface LabelledReferences {
  * provider, an ingestion key, the instance, a digest batch, the discovery
  * import a retry tries again, the AI run that opened a code task, the
  * playbook (playbooks carry no labels) a security case's AI triage
- * suggested.
+ * suggested, and the audit log entry an audit log export's cursor stands
+ * at (entries are kept in ClickHouse and carry no labels).
  */
 export const PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS: ReadonlySet<string> =
   new Set<string>([
@@ -63,6 +64,7 @@ export const PLAIN_COLUMNS_NAMING_UNLABELLED_RECORDS: ReadonlySet<string> =
     "NetworkDeviceDiscoveryImport.retryOfImportId",
     "AIRun.codeTaskId",
     "SecurityCase.aiSuggestedPlaybookId",
+    "AuditLogExport.cursorEntryId",
   ]);
 
 // Worked out once per model class: the columns do not change.

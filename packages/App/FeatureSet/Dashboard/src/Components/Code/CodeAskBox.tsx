@@ -9,12 +9,14 @@ import { getTaskRoute } from "./CodePaths";
 import CodeRepositoryPicker from "./CodeRepositoryPicker";
 import {
   CODE_TASK_EXAMPLE_REQUESTS,
-  CODE_TASK_START_FOOTER,
+  CODE_TASK_START_FOOTER_BRANCH_ONLY,
 } from "./CodeTaskCopy";
+import { getPullRequestCopy, opensPullRequests } from "./CodeHostCopy";
 import {
   CodeTaskBlocker,
   CodeTaskBlockerType,
   CodeTaskContextInput,
+  CodeTaskRepositoryConnectionJSON,
 } from "Common/Types/AI/CodeTask";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -271,6 +273,15 @@ const CodeAskBox: FunctionComponent<ComponentProps> = (
     : Boolean(pickedListItem?.isConnected);
   const defaultBranch: string =
     current?.repository.mainBranchName || pickedListItem?.mainBranchName || "";
+  /*
+   * Where the repository picked is hosted: a Git repository gets a branch
+   * pushed, not a pull request, and one only a Runner of the project's own
+   * reaches has no branches OneUptime reads.
+   */
+  const provider: string | undefined =
+    current?.repository.provider || pickedListItem?.provider;
+  const connection: CodeTaskRepositoryConnectionJSON | undefined =
+    current?.repository.connection || pickedListItem?.connection;
 
   const notice: ReactElement | undefined = blocker ? (
     <div
@@ -283,6 +294,7 @@ const CodeAskBox: FunctionComponent<ComponentProps> = (
       <CodeBlockerNotice
         blocker={blocker}
         repositoryId={pickedId || undefined}
+        provider={provider}
         isInline={true}
         connectGitHub={props.connectGitHub}
       />
@@ -324,6 +336,8 @@ const CodeAskBox: FunctionComponent<ComponentProps> = (
           defaultBranch={defaultBranch}
           value={branch}
           onChange={setBranch}
+          provider={provider}
+          isNotReadByServer={connection?.isReachableFromServer === false}
           isDisabled={isBlocked || isWaiting || !isConnected}
         />
       ) : (
@@ -372,7 +386,15 @@ const CodeAskBox: FunctionComponent<ComponentProps> = (
               data-testid="code-ask-footer"
               className="text-xs leading-5 text-gray-500"
             >
-              {translator.translateTemplate(CODE_TASK_START_FOOTER)}
+              {/*
+               * A pull request - a merge request, on GitLab - or, on a Git
+               * server, a branch pushed for the person to open one from.
+               */}
+              {translator.translateTemplate(
+                opensPullRequests(provider)
+                  ? getPullRequestCopy(provider).startFooter
+                  : CODE_TASK_START_FOOTER_BRANCH_ONLY,
+              )}
             </p>
           )
         }

@@ -38,6 +38,16 @@ import GitHubCommits, {
   GitHubRepositoryName,
 } from "../../CodeRepository/GitHub/GitHubCommits";
 import GitHubInstallationBinding from "../../CodeRepository/GitHub/GitHubInstallationBinding";
+import CodeHostAccess, {
+  CodeHostReader,
+} from "../../CodeRepository/CodeHost/CodeHostAccess";
+import {
+  CodeHostHttpError,
+  CodeHostHttpErrorKind,
+} from "../../CodeRepository/CodeHost/CodeHostHttp";
+import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
+import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
+import { CodeHost } from "../../../../Types/CodeRepository/CodeHost";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import FixProductionTelemetry from "./FixProductionTelemetry";
@@ -157,6 +167,11 @@ export interface VerifierRun {
   tokens: Map<string, string | null>;
   // Compares GitHub could not answer this run: asked again next run.
   failedCompares: Set<string>;
+  /*
+   * A GitLab, Forgejo or Gitea repository's reader, by repository id - or
+   * null where it cannot be read (its token refused, its connection gone).
+   */
+  readers?: Map<string, CodeHostReader | null> | undefined;
 }
 
 export default class FixProductionVerifier {
@@ -848,9 +863,10 @@ export default class FixProductionVerifier {
   }
 
   /*
-   * GitHub's compare of the fix's commit with a deploy's. An answer is
-   * remembered for good; a failure (no token, a rate limit, GitHub down) is
-   * asked again next run.
+   * GitHub's compare of the fix's commit with a deploy's - or, for a
+   * repository on GitLab, Forgejo or Gitea, its server's (compareOnCodeHost).
+   * An answer is remembered for good; a failure (no token, a rate limit,
+   * the server down) is asked again next run.
    */
   private static async compare(data: {
     fix: AIAgentTaskPullRequest;
@@ -860,6 +876,13 @@ export default class FixProductionVerifier {
     key: string;
     run: VerifierRun;
   }): Promise<string | undefined> {
+    if (
+      CodeHost.readType(data.fix.codeRepository?.repositoryHostedAt) !==
+      CodeRepositoryType.GitHub
+    ) {
+      return await FixProductionVerifier.compareOnCodeHost(data);
+    }
+
     const token: string | null = await FixProductionVerifier.tokenFor(
       data.fix,
       data.run,
@@ -897,6 +920,90 @@ export default class FixProductionVerifier {
 
     data.run.failedCompares.add(data.key);
     return undefined;
+  }
+
+  /*
+   * Whether a deploy contains the fix, asked of the fix's repository's own
+   * server - GitLab, Forgejo or Gitea - through its connection, as GitHub's
+   * compare is asked: "ahead" when it does, "diverged" when it does not
+   * (behind or diverged, the fix is not in it either way), "" for a commit
+   * the repository does not have. A plain Git server has no API to ask:
+   * only a deploy of the fix's own commit counts there (deployContainsFix).
+   */
+  private static async compareOnCodeHost(data: {
+    fix: AIAgentTaskPullRequest;
+    fixCommitSha: string;
+    deployCommitSha: string;
+    key: string;
+    run: VerifierRun;
+  }): Promise<string | undefined> {
+    const reader: CodeHostReader | null = await FixProductionVerifier.readerFor(
+      data.fix,
+      data.run,
+    );
+
+    if (reader && reader.canCompareCommits) {
+      try {
+        const contains: boolean = await reader.containsCommit({
+          commit: data.fixCommitSha,
+          containing: data.deployCommitSha,
+        });
+        const status: string = contains ? "ahead" : "diverged";
+
+        FixProductionVerifier.rememberCompare(data.key, status);
+        return status;
+      } catch (error) {
+        if (
+          error instanceof CodeHostHttpError &&
+          error.kind === CodeHostHttpErrorKind.NotFound
+        ) {
+          // No such commit in the repository, or no history the two share.
+          FixProductionVerifier.rememberCompare(data.key, "");
+          return undefined;
+        }
+
+        logger.debug(
+          `Fix verification: could not compare ${data.fixCommitSha} with ${data.deployCommitSha} on the repository's server: ${error}`,
+        );
+      }
+    }
+
+    data.run.failedCompares.add(data.key);
+    return undefined;
+  }
+
+  // The fix's repository's reader, read once a run.
+  private static async readerFor(
+    fix: AIAgentTaskPullRequest,
+    run: VerifierRun,
+  ): Promise<CodeHostReader | null> {
+    const repository: CodeRepository | undefined = fix.codeRepository;
+    const repositoryId: string | undefined = repository?.id?.toString();
+
+    if (!repository || !repositoryId) {
+      return null;
+    }
+
+    if (!run.readers) {
+      run.readers = new Map<string, CodeHostReader | null>();
+    }
+
+    if (run.readers.has(repositoryId)) {
+      return run.readers.get(repositoryId) || null;
+    }
+
+    let reader: CodeHostReader | null = null;
+
+    try {
+      reader = await CodeHostAccess.getReaderForRepository(repository);
+    } catch (error) {
+      logger.debug(
+        `Fix verification: no reader for repository ${repositoryId}: ${error}`,
+      );
+    }
+
+    run.readers.set(repositoryId, reader);
+    return reader;
   }
 
   /*
@@ -1035,12 +1142,18 @@ export default class FixProductionVerifier {
       deployedCommitSha: true,
       repoOrganizationName: true,
       repoName: true,
+      // What CodeHostAccess reads a repository by, on any host.
       codeRepository: {
         _id: true,
         projectId: true,
+        repositoryHostedAt: true,
         organizationName: true,
         repositoryName: true,
+        mainBranchName: true,
+        repositoryUrl: true,
+        gitLabProjectId: true,
         gitHubAppInstallationId: true,
+        codeRepositoryConnectionId: true,
       },
     } as never;
   }

@@ -7,6 +7,7 @@ Sporudforskeren finder de forespørgsler, der er gået gennem dine tjenester: de
 - [Læs et spor](#læs-et-spor): Hvor tiden gik hen, og hvilket trin der fejlede.
 - [Vis dine spans i diagrammer](#vis-dine-spans-i-diagrammer): Antal forespørgsler og svartider, grupperet efter dit valg.
 - [Indsigter i spor](#indsigter-i-spor): Fejlrater, latens og de langsomste forespørgsler.
+- [Find og ret langsomme og fejlende operationer med AI](#find-og-ret-langsomme-og-fejlende-operationer-med-ai): Pull requests, der retter dem og tilføjer den sporing, et spor mangler.
 :::
 
 ## Spor og spans
@@ -23,12 +24,13 @@ flowchart TB
 
 Hver række i udforskeren er et span, så en travl tjeneste fylder listen med sine databaseforespørgsler og interne kald. For at vise én række pr. forespørgsel skal du vælge **Root spans** under **Span-kategori** i sidepanelet.
 
-Udforskeren har fire faner:
+Udforskeren har fem faner:
 
 | Fane | Hvad den bruges til |
 | --- | --- |
 | **Seer** | Søg i og filtrér spans, og åbn deres spor. Den åbner på den seneste time, nyeste først, 50 spans pr. side. |
 | **Indsigter** | Antal forespørgsler, fejlrater og latens pr. tjeneste, og de forespørgsler, der er værd at kigge på. |
+| **AI** | De langsomme og fejlende operationer og den manglende sporing, som OneUptime finder i dine spor, og hvad OneUptime AI gjorde ved dem. Se [Find og ret langsomme og fejlende operationer med AI](#find-og-ret-langsomme-og-fejlende-operationer-med-ai). |
 | **Opsætningsvejledning** | Sådan sender du spor med OpenTelemetry med en af dine [indtagelsesnøgler](/docs/telemetry/ingestion-keys). |
 | **Indstillinger** | Hvad der sker med spans, når de ankommer: **Pipelines**, **Drop-filtre**, **Scrub-regler** og **Optagelsesregler**. |
 
@@ -112,6 +114,44 @@ Fanen **Indsigter** opsummerer forespørgslerne i et tidsinterval:
 - de seneste fejlede forespørgsler og de langsomste.
 
 Begræns den til bestemte tjenester med rullelisten ved siden af tidsvælgeren.
+
+## Find og ret langsomme og fejlende operationer med AI
+
+Hver time gennemgår OneUptime hver tjenestes spor fra den seneste time for operationer, der er langsomme, der fejler, eller hvis spor ikke kan vise hvorfor, og gemmer det, den finder, som AI-indsigter med beviserne. Derefter undersøger OneUptime AI hver enkelt og åbner en pull request, der retter det. Intet bliver nogensinde flettet: dit team gennemgår hver pull request.
+
+En operation er en tjenestes spans med samme navn, såsom `GET /orders`. OneUptime læser en tjeneste, så snart den har sendt mindst 100 spans i den seneste time, og opretter tre slags fund:
+
+| Fund | Hvornår OneUptime opretter det | Pull requesten |
+| --- | --- | --- |
+| **Langsom operation** | Operationens P99 er 1 sekund eller mere over mindst 20 spans, og dens langsomste forespørgsel gentager et mønster, der koster reel tid: det samme kald igen og igen, kald efter hinanden, der kunne køre parallelt, eller ét kald, der tager det meste af forespørgslen. | Gør operationen hurtigere. |
+| **Fejlende operation** | Mindst 20 af operationens spans fejlede, 5 % eller flere af dem, og de seneste fejl siger hvorfor, med en undtagelse eller en fejlmeddelelse. | Retter årsagen til, at den fejler. |
+| **Manglende sporing** | Sporene kan ikke vise hvorfor: hver af en tjenestes 500 eller flere spans var roden i sit spor uden noget span fra tjenesten under sig, en langsom forespørgsel brugte 60 % eller mere af sin tid (og 500 ms eller mere) i ét span uden noget sporet under sig, eller en operations fejl registrerede hverken en fejlmeddelelse eller en undtagelse. | Tilføjer den manglende sporing. |
+
+OneUptime AI åbner kun selv pull requesten for en fejlende operation, når den finder den skyldige kode. En fejl, der kommer et andet sted fra, såsom en afhængighed, der er nede, får ingen pull request, medmindre nogen beder om en med **Ret med AI**.
+
+### Slå det til
+
+**Spor → AI → Indstillinger** rummer kontakten **Find og ret langsomme og fejlende operationer**, der er slået til for nye projekter. Er **Aktivér AI** slået fra, findes langsomme og fejlende operationer stadig, men OneUptime AI gør intet med dem. For at åbne pull requests skal OneUptime AI have et repository forbundet i [Kode](/docs/ai/ai-agent): siden siger først, hvad der mangler. Koden i hvert repository ændres på den Runner, som repositoryet vælger i Kode.
+
+OneUptime AI åbner selv højst 5 pull requests om dagen (UTC), én for hvert fund, og aldrig flere end et repositorys grænse for åbne AI-pull requests.
+
+### AI-regler
+
+Uden regler undersøger OneUptime AI straks hvert problem, den finder i dine spor, og åbner en pull request for hvert, den kan rette. **AI-regler** under **Yderligere indstillinger** indsnævrer det, i tre trin:
+
+| Trin | Hvad det afgør |
+| --- | --- |
+| **Match** | Hvilke tjenester: de valgte, dem med bestemte etiketter eller dem, hvis navn passer til et mønster. |
+| **Undersøge** | **Med det samme** eller **Kun hvis stadig fundet efter en ventetid**: et problem, der forsvinder i ventetiden, undersøges ikke. |
+| **Rettelse** | **Ret ikke**, **Spørg, før der rettes** eller **Ret uden at spørge**. At spørge først overlader pull requesten til en person: fundet tilbyder **Ret med AI**. |
+
+Under **Flere felter** vælger en regel de koderepositorier, MCP-servere og den LLM-udbyder, som OneUptime AI må bruge for den. Er intet valgt, må den bruge dem alle og projektets standard-LLM-udbyder.
+
+### Se, hvad den gjorde
+
+- **Spor → AI → Indsigter** viser, hvad OneUptime fandt, hvert fund med sine beviser og **Åbn i Spor**, som åbner de spans, det handler om, fra den time, det blev fundet i, i **Seer**. For en fejlende operation opretter **Opret monitor** en spormonitor på dens fejlede spans.
+- **Spor → AI → Protokoller** viser hver undersøgelse og hver pull request, nyeste først, med status for hver.
+- I Kode siger opgaven, at OneUptime startede den, med et link til dens fund, og pull requesten siger, hvorfor den blev åbnet.
 
 ## Hvad der sker med spans, når de ankommer
 

@@ -33,6 +33,11 @@ import {
   TEAM_NOT_EDITABLE_FOR_ROLES_MESSAGE,
 } from "../../../Types/Team/CustomRole";
 import UserType from "../../../Types/UserType";
+import EnterpriseFeature from "../../../Server/Enterprise/EnterpriseFeature";
+import {
+  installFakeEnterpriseModuleWithFeatures,
+  uninstallEnterpriseModule,
+} from "../Enterprise/FakeEnterpriseModule";
 import InMemoryLocks from "../TestingUtils/InMemoryLocks";
 import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import {
@@ -290,6 +295,12 @@ describePostgres("custom roles against a migrated Postgres", () => {
   }
 
   beforeAll(async () => {
+    /*
+     * Custom roles are an Enterprise Edition feature: the edition check
+     * refuses every role write in a process with no enterprise module.
+     */
+    installFakeEnterpriseModuleWithFeatures([EnterpriseFeature.CustomRoles]);
+
     database = new DataSource({
       type: "postgres",
       host: process.env["CUSTOM_ROLE_TEST_DATABASE_HOST"] || "localhost",
@@ -527,6 +538,7 @@ describePostgres("custom roles against a migrated Postgres", () => {
 
   afterAll(async () => {
     jest.restoreAllMocks();
+    uninstallEnterpriseModule();
 
     if (database?.isInitialized) {
       await database.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);

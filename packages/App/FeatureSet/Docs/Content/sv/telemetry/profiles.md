@@ -321,6 +321,39 @@ Ett spans flik **Profil** innehåller även de sampel som är kopplade till span
 
 Ett spårs sida länkar också till profileraren för spårets tjänst under de 15 minuterna före och efter, när tjänsten profilerades då, och sidan **Prestandaprofiler** för en tjänst eller en värd öppnar profileraren för den tjänsten eller värden.
 
+## Hitta och åtgärda långsam kod med AI
+
+Varje timme går OneUptime igenom varje tjänsts profiler efter din egen kod som tar en stor eller växande del av tjänstens tid, och registrerar det den hittar som AI-insikter, med bevisen. Sedan undersöker OneUptime AI varje fynd och öppnar en pull request som gör koden lättare. Inget slås någonsin ihop: ditt team granskar varje pull request.
+
+En funktion i din egen kod registreras när dess tjänst har skickat minst 500 samples den senaste timmen, funktionen minst 50 av dem, och:
+
+- den tar minst 10 % av tjänstens CPU-tid eller väggklocktid den senaste timmen, eller
+- dess andel har växt med 5 punkter eller mer sedan samma timme dagen före, till minst 5 %.
+
+### Slå på det
+
+**Produkter → Prestandaprofiler → AI → Inställningar** har reglaget **Hitta och åtgärda långsam kod**, som är på för nya projekt. När **Aktivera AI** är av hittas långsam kod fortfarande, men OneUptime AI gör ingenting med den. För att öppna pull requests behöver OneUptime AI ett repository anslutet i [Kod](/docs/ai/ai-agent): sidan säger först vad som saknas. Koden i varje repository ändras på den Runner som repositoryt väljer i Kod.
+
+OneUptime AI öppnar själv högst 5 pull requests per dag (UTC), en för varje fynd, och aldrig fler än ett repositorys gräns för öppna AI-pull requests.
+
+### AI-regler
+
+Utan regler undersöker OneUptime AI direkt all långsam kod den hittar och öppnar en pull request för var och en. **AI-regler** under **Fler inställningar** begränsar det, i tre steg:
+
+| Steg | Vad det avgör |
+| --- | --- |
+| **Matcha** | Vilka tjänster: de valda, de med vissa etiketter eller de vars namn matchar ett mönster. |
+| **Utreda** | **Direkt**, eller **Bara om fortfarande hittad efter en väntetid**: långsam kod som försvinner under väntetiden undersöks inte. |
+| **Åtgärd** | **Åtgärda inte**, **Fråga innan något åtgärdas** eller **Åtgärda utan att fråga**. Att fråga först lämnar pull requesten till en person: fyndet erbjuder **Åtgärda med AI**. |
+
+Under **Fler fält** väljer en regel de kodrepositorier, MCP-servrar och den LLM-leverantör som OneUptime AI får använda för den. Är inget valt får den använda alla, och projektets standard-LLM-leverantör.
+
+### Se vad den gjorde
+
+- **Produkter → Prestandaprofiler → AI → Insikter** visar den långsamma kod som hittats, varje fynd med sina bevis och **Öppna i Profilerare**.
+- **Produkter → Prestandaprofiler → AI → Loggar** visar varje utredning och varje pull request, nyast först, med hur var och en står.
+- I Kod säger uppgiften att OneUptime startade den, med en länk till dess fynd, och pull requesten säger varför den öppnades.
+
 ## Datalagring
 
 Profiler sparas lika länge som projektets telemetri: **Projektinställningar → Telemetri och APM → Datalagring** anger **Standardlagring (dagar)**, 15 dagar om du inte ändrar den. Data raderas automatiskt när lagringsperioden är slut. Abonnemang med undantag för lagring kan också spara profiler längre eller kortare än annan telemetri, eller ange lagring per tjänst på tjänstens sida **Inställningar**.

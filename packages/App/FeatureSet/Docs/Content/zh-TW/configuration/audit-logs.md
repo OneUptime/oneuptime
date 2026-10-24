@@ -101,16 +101,17 @@ flowchart TB
 | vCenter 伺服器 | `vCenter` |
 | 封包擷取及其下載 | `Packet Capture` |
 | 安全案件、劇本及其執行，以及受保護的實體 | `Security Case`、`Security Playbook`、`Security Playbook Run`、`Protected Entity` |
+| 稽核日誌匯出 | `Audit Log Export` |
 
 當管理員在他人的帳戶上新增或移除通知方式或個人待命規則時，也會記錄，但不包含地址或號碼本身。
 
-其他資料不在稽核日誌中，例如誰在某個團隊中，或單獨新增給團隊的權限。任何人都無權讀取的欄位（例如密鑰）會從所有項目中省略。
+其他資料不在稽核日誌中，例如誰在某個團隊中，或單獨新增給團隊的權限。任何人都無權讀取的欄位會從所有項目中省略，金鑰、權杖和密碼記錄為 `[REDACTED]`：項目只顯示它們已變更，絕不顯示其值。
 
 ## 項目保留多久
 
 每個項目的保留時間，是其被記錄時專案所設的**保留時間（天）**，之後會被刪除。新的保留時間適用於新項目：已記錄的項目保持原有日期。
 
-要將項目保留超過 180 天，請使用擁有 **Read Audit Log** 的 API 金鑰透過 API 讀取它們，並儲存到你需要的地方。請參閱[OneUptime API 參考](/docs/api-reference/api-reference)。
+要將項目保留超過 180 天，請在記錄時將它們傳送到你自己的儲存空間或 SIEM：請參閱[稽核日誌匯出](/docs/configuration/audit-log-export)。你也可以使用擁有 **Read Audit Log** 的 API 金鑰透過 API 讀取它們，並儲存到你需要的地方。請參閱[OneUptime API 參考](/docs/api-reference/api-reference)。
 
 ## 當方案或授權不再包含稽核日誌時
 
@@ -130,6 +131,7 @@ flowchart TB
 ## 後續步驟
 
 :::cards
+- [稽核日誌匯出](/docs/configuration/audit-log-export): 將稽核日誌傳送到你自己的儲存空間或 SIEM。
 - [使用者、團隊與權限](/docs/permissions/index): 決定誰可以讀取稽核日誌。
 - [專案設定](/docs/configuration/project-settings): 專案的其他設定。
 - [帳單與用量](/docs/configuration/billing): 變更專案的方案。

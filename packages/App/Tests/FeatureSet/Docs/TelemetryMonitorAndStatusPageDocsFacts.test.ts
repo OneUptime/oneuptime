@@ -12,6 +12,9 @@ import StatusPageDisplaySettingsCopy, {
 import StatusPageBrandingCopy, {
   isDefaultBarColorChosen,
 } from "../../../FeatureSet/Dashboard/src/Components/StatusPage/StatusPageBrandingCopy";
+import StatusPagePoweredByCopy, {
+  POWERED_BY_COLUMN,
+} from "../../../FeatureSet/Dashboard/src/Components/StatusPage/StatusPagePoweredByCopy";
 import {
   STATUS_PAGE_GROUP_CSV_COLUMNS,
   StatusPageGroupCsvParseResult,
@@ -2673,15 +2676,26 @@ describe("status page branding", () => {
     );
   });
 
-  // #4578: the line names the product; the switch is the page's own.
-  it("Powered by OneUptime is the card's last switch, the inverse of hidePoweredByOneUptimeBranding, on by default", () => {
-    const poweredBy: DisplaySectionDefinition = DISPLAY_SECTIONS[
-      DISPLAY_SECTIONS.length - 1
-    ] as DisplaySectionDefinition;
-
-    expect(poweredBy.id).toBe("powered-by");
-    expect(poweredBy.show?.column).toBe("hidePoweredByOneUptimeBranding");
-    expect(poweredBy.show?.isInverted).toBe(true);
+  /*
+   * #4578: the line names the product; the switch is the page's own. Hiding
+   * it is an Enterprise feature, so it has a card of its own under "What
+   * your status page shows" (StatusPagePoweredBySettings), no longer a row
+   * of that card.
+   */
+  it("Powered by OneUptime has a card of its own, the inverse of hidePoweredByOneUptimeBranding, on by default", () => {
+    expect(
+      DISPLAY_SECTIONS.map((section: DisplaySectionDefinition): string => {
+        return section.id;
+      }),
+    ).not.toContain("powered-by");
+    expect(
+      DISPLAY_SECTIONS.map(
+        (section: DisplaySectionDefinition): string | undefined => {
+          return section.show?.column;
+        },
+      ),
+    ).not.toContain("hidePoweredByOneUptimeBranding");
+    expect(POWERED_BY_COLUMN).toBe("hidePoweredByOneUptimeBranding");
     expect(
       statusPage.getTableColumnMetadata("hidePoweredByOneUptimeBranding")
         .defaultValue,
@@ -2694,8 +2708,12 @@ describe("status page branding", () => {
       ),
     ).toContain("if (!props.hidePoweredByOneUptimeBranding) {");
     expect(BRANDING).toContain(
-      `It is the last switch of the **${StatusPageDisplaySettingsCopy.cardTitle}** card on **Status Pages → your page → Advanced → Advanced Settings** (\`{id}/settings\`): **${poweredBy.show?.title}**, on by default.`,
+      `It has a card of its own, **${StatusPagePoweredByCopy.cardTitle}**, under the **${StatusPageDisplaySettingsCopy.cardTitle}** card on **Status Pages → your page → Advanced → Advanced Settings** (\`{id}/settings\`): **${StatusPagePoweredByCopy.switchTitle}**, on by default.`,
     );
+    expect(BRANDING).toContain(
+      "Self-hosted, hiding it is part of the Enterprise Edition: on the Community Edition, every status page shows the line.",
+    );
+    expect(BRANDING).not.toContain("It is the last switch of the");
   });
 
   it("search engines may index a new status page, and a page kept out is served noindex, nofollow", () => {

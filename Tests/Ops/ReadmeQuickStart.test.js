@@ -3,12 +3,19 @@
 /**
  * The README's Docker Compose quick start, in English and every translation.
  *
- * It creates config.env from config.example.env and then gives every
- * placeholder secret its own random value, with the same loop the Docker
- * Compose guide's "Generate random secrets" step runs - before `npm start`,
- * so no secret starts out as a value that is public in this repository.
- * These tests hold every README to that block, hold the loop to the guide's,
- * and run the block's config step for real on config.example.env.
+ * It clones the release branch, copies config.example.env to config.env and
+ * runs `npm start` - nothing else. The secrets are not the reader's job:
+ * `npm start` gives each placeholder its own random value before it starts
+ * anything. GenerateDatabasePassword.js sets DATABASE_PASSWORD and
+ * ENCRYPTION_SECRET while the bundled PostgreSQL has no database yet, and
+ * ReplacePlaceholderSecrets.js sets every other one. (The quick start used to
+ * run a sed loop for that. Only GNU sed runs it - macOS's stops on it - and an
+ * install that skipped it ran on keys that are public in this repository.)
+ *
+ * These tests hold every README to that block, hold `npm start` to the steps
+ * the block leaves to it, and run the block's config step and those steps for
+ * real on config.example.env, with Docker answering that PostgreSQL has no
+ * database yet, as on a new install.
  */
 
 const fs = require("fs");
@@ -16,18 +23,16 @@ const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
 const GenerateDatabasePassword = require("../../Scripts/Install/GenerateDatabasePassword");
+const ReplacePlaceholderSecrets = require("../../Scripts/Install/ReplacePlaceholderSecrets");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const TRANSLATIONS_DIR = "Docs/translations";
-const GUIDE =
-  "packages/App/FeatureSet/Docs/Content/en/installation/docker-compose.md";
-const GUIDE_STEP = "### Generate random secrets";
 const PLACEHOLDER = "please-change-this-to-random-value";
 const PLACEHOLDER_MARK = "please-change-this";
+const CONFIG_STEP = "# 2. Create your config";
 const COPY_LINE = "cp config.example.env config.env";
+const UP_LINE = "OneUptime is up!";
 const RANDOM_VALUE = /^[0-9a-f]{64}$/;
-const PROBE_KEY_VALUE = /^probe-[12]-[0-9a-f]{64}$/;
-const PROBE_KEY_PREFIX = /^probe-[12]-/;
 const README_TRANSLATION = /^README\.[\w-]+\.md$/;
 
 const EXPECTED_QUICK_START = [
@@ -35,11 +40,8 @@ const EXPECTED_QUICK_START = [
   "git clone --depth 1 --single-branch --branch release https://github.com/OneUptime/oneuptime.git",
   "cd oneuptime",
   "",
-  "# 2. Create your config, with a random value for every secret",
+  CONFIG_STEP,
   COPY_LINE,
-  'while grep -q "please-change-this-to-random-value" config.env; do',
-  '  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env',
-  "done",
   "",
   "# 3. Start everything",
   "npm start",
@@ -94,20 +96,32 @@ function quickStartOf(relativePath) {
   });
 }
 
-// The guide's loop: its step's first block, without the line that counts what is left.
-function guideLoop() {
-  const guide = read(GUIDE);
-  const step = guide.slice(guide.indexOf(GUIDE_STEP));
-  const block = codeBlocks(step)[0];
+// The paragraph right after the quick start's block.
+function paragraphAfterQuickStart(relativePath) {
+  const markdown = read(relativePath);
+  const block = markdown.indexOf(COPY_LINE);
+  const end = markdown.indexOf("\n```\n", block) + "\n```\n".length;
 
-  expect(block[block.length - 1]).toBe(
-    'grep -c "please-change-this" config.env',
-  );
-  return block.slice(0, -1);
+  return markdown.slice(end).trim().split("\n\n")[0];
 }
 
-function settingsOf(contents) {
-  return GenerateDatabasePassword.readSettings(contents);
+function startScript() {
+  return JSON.parse(read("package.json")).scripts.start;
+}
+
+// `npm start`'s commands, in the order it runs them.
+function startSteps() {
+  return startScript()
+    .split("&&")
+    .map((step) => {
+      return step.trim();
+    });
+}
+
+function stepIndex(fragment) {
+  return startSteps().findIndex((step) => {
+    return step.includes(fragment);
+  });
 }
 
 describe("the README quick start", () => {
@@ -116,31 +130,114 @@ describe("the README quick start", () => {
   });
 
   test.each(readmes())(
-    "%s creates config.env with a random value for every secret, then starts OneUptime",
+    "%s clones the release branch, creates config.env and runs npm start",
     (readme) => {
       expect(quickStartOf(readme)).toEqual([EXPECTED_QUICK_START]);
     },
   );
 
-  test("its loop is the Docker Compose guide's Generate random secrets loop", () => {
-    const quickStart = EXPECTED_QUICK_START;
-    const loop = guideLoop();
-    const start = quickStart.indexOf(loop[0]);
+  test.each(readmes())(
+    "%s leaves the secrets to npm start: it never names the placeholder",
+    (readme) => {
+      expect(read(readme)).not.toContain(PLACEHOLDER_MARK);
+    },
+  );
 
-    expect(start).toBe(quickStart.indexOf(COPY_LINE) + 1);
-    expect(quickStart.slice(start, start + loop.length)).toEqual(loop);
+  test.each(readmes())(
+    "%s says to open OneUptime when npm start prints the status check's last line",
+    (readme) => {
+      const paragraph = paragraphAfterQuickStart(readme);
+
+      expect(paragraph).toContain("`npm start`");
+      expect(paragraph).toContain(UP_LINE);
+      expect(paragraph).toContain("`http://localhost`");
+    },
+  );
+
+  test("the English README says what npm start does before it starts anything", () => {
+    expect(paragraphAfterQuickStart("README.md")).toBe(
+      "`npm start` checks the server, gives every secret in `config.env` its own random value and starts OneUptime. " +
+        "When it prints **OneUptime is up!**, open `http://localhost`, or your server's address, and sign up. " +
+        "The first account becomes the instance's admin.",
+    );
+  });
+
+  test("the status check prints that line once OneUptime answers", () => {
+    expect(read("Tests/Scripts/status-check.sh")).toContain(
+      `echo "🚀 ${UP_LINE} 🚀"`,
+    );
+    expect(startSteps()[startSteps().length - 1]).toBe("npm run status-check");
+  });
+
+  test("npm start checks the server, then makes the secrets, then starts Compose", () => {
+    const preflight = stepIndex("Scripts/Install/Preflight.js");
+    const databasePassword = stepIndex(
+      "Scripts/Install/GenerateDatabasePassword.js",
+    );
+    const placeholders = stepIndex(
+      "Scripts/Install/ReplacePlaceholderSecrets.js",
+    );
+    const exportConfig = stepIndex("export $(grep -v '^#' config.env | xargs)");
+    const compose = stepIndex("docker compose up");
+
+    expect(preflight).toBe(0);
+    expect(databasePassword).toBe(1);
+    expect(placeholders).toBe(2);
+    expect(exportConfig).toBeGreaterThan(placeholders);
+    expect(compose).toBe(exportConfig + 1);
   });
 });
 
-describe("running the quick start's config step on config.example.env", () => {
+describe("running the quick start on config.example.env, up to npm start's secret steps", () => {
   let template;
-  let result;
-  let settings;
+  let copy;
+  let config;
+  let logs;
+  let warnings;
+  let dockerCalls;
+  let replaced;
+  let second;
+
+  function stubDocker(answer) {
+    return (args) => {
+      dockerCalls.push(args);
+      return { status: 0, stdout: `oneuptime-database:${answer}\n` };
+    };
+  }
+
+  // npm start's two secret steps, as it runs them, in `directory`.
+  function runSecretSteps(directory, databaseState) {
+    const output = { logs: [], warnings: [] };
+    const log = (line) => {
+      output.logs.push(line);
+    };
+    const warn = (line) => {
+      output.warnings.push(line);
+    };
+
+    GenerateDatabasePassword.run({
+      cwd: directory,
+      env: {},
+      runDocker: stubDocker(databaseState),
+      log,
+      warn,
+    });
+    output.replaced = ReplacePlaceholderSecrets.init({
+      path: path.join(directory, "config.env"),
+      log,
+      warn,
+    });
+    output.config = fs.readFileSync(path.join(directory, "config.env"), "utf8");
+
+    return output;
+  }
 
   beforeAll(() => {
     const directory = fs.mkdtempSync(
       path.join(os.tmpdir(), "oneuptime-readme-"),
     );
+
+    dockerCalls = [];
 
     try {
       fs.copyFileSync(
@@ -148,37 +245,48 @@ describe("running the quick start's config step on config.example.env", () => {
         path.join(directory, "config.example.env"),
       );
       const step = EXPECTED_QUICK_START.slice(
-        EXPECTED_QUICK_START.indexOf(COPY_LINE),
-        EXPECTED_QUICK_START.indexOf("done") + 1,
+        EXPECTED_QUICK_START.indexOf(CONFIG_STEP),
+        EXPECTED_QUICK_START.indexOf(COPY_LINE) + 1,
       );
-      result = spawnSync("bash", ["-e", "-c", step.join("\n")], {
+      copy = spawnSync("bash", ["-e", "-c", step.join("\n")], {
         cwd: directory,
         encoding: "utf8",
       });
       template = read("config.example.env");
-      result.config = fs.readFileSync(
-        path.join(directory, "config.env"),
-        "utf8",
+
+      const first = runSecretSteps(
+        directory,
+        GenerateDatabasePassword.DATABASE_STATE.NOT_CREATED,
       );
-      settings = settingsOf(result.config);
+
+      config = first.config;
+      logs = first.logs;
+      warnings = first.warnings;
+      replaced = first.replaced;
+
+      // The next start finds PostgreSQL created, with the new password.
+      second = runSecretSteps(
+        directory,
+        GenerateDatabasePassword.DATABASE_STATE.CREATED,
+      );
     } finally {
       fs.rmSync(directory, { recursive: true, force: true });
     }
   });
 
-  test("runs", () => {
-    expect(result.stderr).toBe("");
-    expect(result.status).toBe(0);
+  test("the config step copies config.example.env as it is", () => {
+    expect(copy.stderr).toBe("");
+    expect(copy.status).toBe(0);
+    expect(template).toContain(PLACEHOLDER);
   });
 
   test("leaves no placeholder", () => {
-    expect(template).toContain(PLACEHOLDER);
-    expect(result.config).not.toContain(PLACEHOLDER_MARK);
+    expect(config).not.toContain(PLACEHOLDER_MARK);
   });
 
   test("gives every placeholder its own random value, and changes no other line", () => {
     const before = template.split("\n");
-    const after = result.config.split("\n");
+    const after = config.split("\n");
     const values = [];
 
     expect(after).toHaveLength(before.length);
@@ -189,26 +297,49 @@ describe("running the quick start's config step on config.example.env", () => {
       }
 
       const key = before[index].slice(0, before[index].indexOf("="));
-      const value = after[index].slice(after[index].indexOf("=") + 1);
 
       expect(after[index].startsWith(`${key}=`)).toBe(true);
-      expect(value).toMatch(
-        key.startsWith("GLOBAL_PROBE_") ? PROBE_KEY_VALUE : RANDOM_VALUE,
-      );
-      values.push(value.replace(PROBE_KEY_PREFIX, ""));
+      values.push(after[index].slice(key.length + 1));
     }
 
-    expect(values.length).toBeGreaterThanOrEqual(9);
+    expect(values.length).toBeGreaterThanOrEqual(10);
+    for (const value of values) {
+      expect(value).toMatch(RANDOM_VALUE);
+    }
     expect(new Set(values).size).toBe(values.length);
   });
 
-  test("the database password is its own, so npm start finds nothing to replace", () => {
-    expect(settings.get("DATABASE_PASSWORD")).toMatch(RANDOM_VALUE);
-    expect(
-      GenerateDatabasePassword.decide(
-        settings,
-        GenerateDatabasePassword.DATABASE_STATE.NOT_CREATED,
-      ),
-    ).toBe("nothing");
+  test("asks Docker once whether PostgreSQL has a database, before setting its password", () => {
+    expect(dockerCalls).toEqual([
+      GenerateDatabasePassword.DATABASE_STATE_COMMAND,
+    ]);
+  });
+
+  test("says what it set in two lines, and warns about nothing", () => {
+    expect(warnings).toEqual([]);
+    expect(logs).toEqual([
+      GenerateDatabasePassword.ENCRYPTION_SECRET_MESSAGES["with-password"],
+      ReplacePlaceholderSecrets.describeReplacedSecrets(replaced),
+    ]);
+    expect(replaced).toEqual(
+      expect.arrayContaining([
+        "ONEUPTIME_SECRET",
+        "REGISTER_PROBE_KEY",
+        "CLICKHOUSE_PASSWORD",
+        "VALKEY_PASSWORD",
+        "GLOBAL_PROBE_1_KEY",
+        "GLOBAL_PROBE_2_KEY",
+        "ONEUPTIME_RUNNER_KEY",
+        "GLOBAL_RUNNER_KEY",
+      ]),
+    );
+  });
+
+  test("the next start changes nothing, says nothing and does not ask Docker again", () => {
+    expect(second.config).toBe(config);
+    expect(second.logs).toEqual([]);
+    expect(second.warnings).toEqual([]);
+    expect(second.replaced).toEqual([]);
+    expect(dockerCalls).toHaveLength(1);
   });
 });

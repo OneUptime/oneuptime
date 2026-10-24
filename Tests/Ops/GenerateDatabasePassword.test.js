@@ -1,15 +1,19 @@
 "use strict";
 
 /**
- * Scripts/Install/GenerateDatabasePassword.js, the first step of npm start.
+ * Scripts/Install/GenerateDatabasePassword.js, a step of npm start before
+ * Compose starts anything (after Preflight.js).
  *
  * The rule: a Docker Compose install never has PostgreSQL create its database
  * with the DATABASE_PASSWORD config.example.env ships. While the bundled
  * PostgreSQL has not created its database, a placeholder DATABASE_PASSWORD
  * gets a random value; once it has, config.env is left exactly as it is (the
  * database keeps the password it was created with) and the start says how to
- * change both. These tests run every branch with the Docker check stubbed;
- * ComposeDatabaseRuntime.test.js runs the check against real Docker.
+ * change both. ENCRYPTION_SECRET follows the same check: a placeholder gets a
+ * random value on a new install, before anything can have been encrypted
+ * with it, and is never touched once the database exists. These tests run
+ * every branch with the Docker check stubbed; ComposeDatabaseRuntime.test.js
+ * runs the check against real Docker.
  */
 
 const fs = require("fs");
@@ -17,6 +21,8 @@ const os = require("os");
 const path = require("path");
 const {
   SETTING,
+  ENCRYPTION_SECRET_SETTING,
+  ENCRYPTION_SECRET_MESSAGES,
   DATABASE_STATE,
   DATABASE_STATE_COMMAND,
   DATABASE_STATE_SCRIPT,
@@ -26,7 +32,9 @@ const {
   readSettings,
   generatePassword,
   replaceDatabasePassword,
+  replaceShippedValue,
   decide,
+  decideEncryptionSecret,
   needsDatabaseState,
   parseDatabaseState,
   bundledDatabaseState,
@@ -378,20 +386,53 @@ describe("asking Docker whether the bundled PostgreSQL has created its database"
 });
 
 describe("npm start on a new install: config.env copied from config.example.env", () => {
-  test("gives DATABASE_PASSWORD a random value before PostgreSQL creates its database, and says so", () => {
+  test("gives DATABASE_PASSWORD and ENCRYPTION_SECRET random values before PostgreSQL creates its database, and says so", () => {
     const docker = dockerAnswering(DATABASE_STATE.NOT_CREATED);
     const result = runIn(TEMPLATE, { runDocker: docker.runDocker });
-    const password = readSettings(result.config).get(SETTING);
+    const settings = readSettings(result.config);
+    const password = settings.get(SETTING);
+    const encryptionSecret = settings.get(ENCRYPTION_SECRET_SETTING);
 
     expect(result.decision).toBe("generate");
     expect(password).toMatch(RANDOM_PASSWORD);
-    expect(changedLines(TEMPLATE, result.config)).toHaveLength(1);
-    expect(result.logged).toEqual([MESSAGES.generate]);
+    expect(encryptionSecret).toMatch(RANDOM_PASSWORD);
+    expect(encryptionSecret).not.toBe(password);
+    expect(
+      changedLines(TEMPLATE, result.config).map((line) => {
+        return line.before;
+      }),
+    ).toEqual([
+      `DATABASE_PASSWORD=${PLACEHOLDER}`,
+      `ENCRYPTION_SECRET=${PLACEHOLDER}`,
+    ]);
+    expect(result.logged).toEqual([
+      ENCRYPTION_SECRET_MESSAGES["with-password"],
+    ]);
     expect(result.warned).toEqual([]);
-    // The new value is never printed.
+    // The new values are never printed.
     expect(result.logged.join("\n")).not.toContain(password);
+    expect(result.logged.join("\n")).not.toContain(encryptionSecret);
+    // One check of the database answers for both.
     expect(docker.calls).toHaveLength(1);
     expect(docker.calls[0].options.env.COMPOSE_PROJECT_NAME).toBe("oneuptime");
+  });
+
+  test("a new install whose operator set the password still gets its own ENCRYPTION_SECRET, and the password is never touched", () => {
+    const config = TEMPLATE.replace(
+      `DATABASE_PASSWORD=${PLACEHOLDER}`,
+      "DATABASE_PASSWORD=my-own-password",
+    );
+    const docker = dockerAnswering(DATABASE_STATE.NOT_CREATED);
+    const result = runIn(config, { runDocker: docker.runDocker });
+    const settings = readSettings(result.config);
+
+    expect(result.decision).toBe("nothing");
+    expect(settings.get(SETTING)).toBe("my-own-password");
+    expect(settings.get(ENCRYPTION_SECRET_SETTING)).toMatch(RANDOM_PASSWORD);
+    expect(changedLines(config, result.config)).toHaveLength(1);
+    expect(result.logged).toEqual([ENCRYPTION_SECRET_MESSAGES.alone]);
+    expect(result.warned).toEqual([]);
+    expect(docker.calls).toHaveLength(1);
   });
 
   test("the next npm start leaves config.env alone, and does not even ask Docker", () => {
@@ -408,7 +449,7 @@ describe("npm start on a new install: config.env copied from config.example.env"
     expect(docker.calls).toEqual([]);
   });
 
-  test("two new installs get two different passwords", () => {
+  test("two new installs get two different passwords and encryption secrets", () => {
     const one = runIn(TEMPLATE, {
       runDocker: dockerAnswering(DATABASE_STATE.NOT_CREATED).runDocker,
     });
@@ -418,6 +459,138 @@ describe("npm start on a new install: config.env copied from config.example.env"
 
     expect(readSettings(one.config).get(SETTING)).not.toBe(
       readSettings(two.config).get(SETTING),
+    );
+    expect(readSettings(one.config).get(ENCRYPTION_SECRET_SETTING)).not.toBe(
+      readSettings(two.config).get(ENCRYPTION_SECRET_SETTING),
+    );
+  });
+});
+
+describe("ENCRYPTION_SECRET", () => {
+  const withPassword = (password) => {
+    return TEMPLATE.replace(
+      `DATABASE_PASSWORD=${PLACEHOLDER}`,
+      `DATABASE_PASSWORD=${password}`,
+    );
+  };
+
+  test.each([
+    [DATABASE_STATE.NOT_CREATED, "generate"],
+    [DATABASE_STATE.CREATED, "nothing"],
+    [DATABASE_STATE.UNKNOWN, "nothing"],
+  ])("a placeholder with the bundled database %s: %s", (state, expected) => {
+    expect(
+      decideEncryptionSecret(settingsOf(TEMPLATE.split("\n")), state),
+    ).toBe(expected);
+  });
+
+  test("a placeholder for an external database is never replaced: nothing can say what it has encrypted", () => {
+    const settings = settingsOf(
+      TEMPLATE.replace(
+        "DATABASE_HOST=postgres",
+        "DATABASE_HOST=db.internal.example.com",
+      ).split("\n"),
+    );
+
+    expect(decideEncryptionSecret(settings, DATABASE_STATE.NOT_CREATED)).toBe(
+      "nothing",
+    );
+  });
+
+  test.each(["secret", `"${PLACEHOLDER}"`, `${PLACEHOLDER}-2`])(
+    "the shipped value %s counts as a placeholder",
+    (value) => {
+      const settings = settingsOf([
+        "DATABASE_HOST=postgres",
+        `ENCRYPTION_SECRET=${value}`,
+      ]);
+
+      expect(decideEncryptionSecret(settings, DATABASE_STATE.NOT_CREATED)).toBe(
+        "generate",
+      );
+    },
+  );
+
+  test.each(["", "an-operators-own-key"])(
+    "a value the operator set (%p) is left alone",
+    (value) => {
+      const settings = settingsOf([
+        "DATABASE_HOST=postgres",
+        `ENCRYPTION_SECRET=${value}`,
+      ]);
+
+      expect(decideEncryptionSecret(settings, DATABASE_STATE.NOT_CREATED)).toBe(
+        "nothing",
+      );
+    },
+  );
+
+  test("an install whose database exists keeps its ENCRYPTION_SECRET, placeholder or not, and the start says nothing of it", () => {
+    const config = withPassword("my-own-password");
+    const result = runIn(config, {
+      runDocker: dockerAnswering(DATABASE_STATE.CREATED).runDocker,
+    });
+
+    expect(result.config).toBe(config);
+    expect(result.logged).toEqual([]);
+    expect(result.warned).toEqual([]);
+  });
+
+  test("a check that cannot tell leaves it as it is", () => {
+    const config = withPassword("my-own-password");
+
+    for (const state of [DATABASE_STATE.UNKNOWN, "throws"]) {
+      const result = runIn(config, {
+        runDocker: dockerAnswering(state).runDocker,
+      });
+
+      expect(result.config).toBe(config);
+      expect(result.logged).toEqual([]);
+    }
+  });
+
+  test("with both set by the operator, Docker is not asked and nothing is written", () => {
+    const config = withPassword("my-own-password").replace(
+      `ENCRYPTION_SECRET=${PLACEHOLDER}`,
+      "ENCRYPTION_SECRET=my-own-key",
+    );
+    const docker = dockerAnswering(DATABASE_STATE.NOT_CREATED);
+    const result = runIn(config, { runDocker: docker.runDocker });
+
+    expect(result.config).toBe(config);
+    expect(result.logged).toEqual([]);
+    expect(docker.calls).toEqual([]);
+  });
+
+  test("replaceShippedValue changes that setting's placeholder lines only", () => {
+    const before = [
+      `# ENCRYPTION_SECRET=${PLACEHOLDER}`,
+      `ENCRYPTION_SECRET="${PLACEHOLDER}"\r`,
+      `ENCRYPTION_SECRET_OLD=${PLACEHOLDER}`,
+      `DATABASE_PASSWORD=${PLACEHOLDER}`,
+      "",
+    ].join("\n");
+    const result = replaceShippedValue(before, ENCRYPTION_SECRET_SETTING, "k");
+
+    expect(result.replaced).toBe(true);
+    expect(result.contents.split("\n")).toEqual([
+      `# ENCRYPTION_SECRET=${PLACEHOLDER}`,
+      "ENCRYPTION_SECRET=k\r",
+      `ENCRYPTION_SECRET_OLD=${PLACEHOLDER}`,
+      `DATABASE_PASSWORD=${PLACEHOLDER}`,
+      "",
+    ]);
+  });
+
+  test("the messages name the settings, as lines of npm start's list, and never a value", () => {
+    expect(ENCRYPTION_SECRET_MESSAGES["with-password"]).toBe(
+      "  ✓ Gave DATABASE_PASSWORD and ENCRYPTION_SECRET their own random values in config.env, before PostgreSQL creates its database.",
+    );
+    expect(ENCRYPTION_SECRET_MESSAGES.alone).toBe(
+      "  ✓ Gave ENCRYPTION_SECRET its own random value in config.env, before OneUptime stores anything encrypted with it.",
+    );
+    expect(MESSAGES.generate).toBe(
+      "  ✓ Gave DATABASE_PASSWORD its own random value in config.env, before PostgreSQL creates its database.",
     );
   });
 });
@@ -463,19 +636,18 @@ describe("npm start on an install whose database already exists", () => {
     expect(docker.calls).toEqual([]);
   });
 
-  test("a password the operator chose is never touched, and Docker is not asked", () => {
+  test("a password the operator chose is never touched", () => {
     const config = TEMPLATE.replace(
       `DATABASE_PASSWORD=${PLACEHOLDER}`,
       "DATABASE_PASSWORD=my-own-password",
     );
-    const docker = dockerAnswering(DATABASE_STATE.NOT_CREATED);
+    const docker = dockerAnswering(DATABASE_STATE.CREATED);
     const result = runIn(config, { runDocker: docker.runDocker });
 
     expect(result.decision).toBe("nothing");
     expect(result.config).toBe(config);
     expect(result.logged).toEqual([]);
     expect(result.warned).toEqual([]);
-    expect(docker.calls).toEqual([]);
   });
 
   test("no config.env: nothing to do (npm start reports the missing file itself)", () => {
@@ -573,6 +745,11 @@ describe("wiring", () => {
           );
         }
       }
+      // The module every step marks its lines with.
+      fs.copyFileSync(
+        path.join(REPO_ROOT, "Scripts", "Install", "StartOutput.js"),
+        path.join(directory, "Scripts", "Install", "StartOutput.js"),
+      );
       fs.writeFileSync(path.join(directory, "config.env"), TEMPLATE);
       fs.writeFileSync(
         path.join(directory, "package.json"),
@@ -610,6 +787,8 @@ describe("wiring", () => {
       env.PATH = `${path.join(directory, "bin")}${path.delimiter}${process.env.PATH}`;
       env.npm_config_ignore_scripts = ignoreScripts ? "true" : "false";
       env.npm_config_update_notifier = "false";
+      // The checks of the server have suites of their own (Preflight.test.js).
+      env.ONEUPTIME_SKIP_PREFLIGHT = "true";
 
       const result = spawnSync("npm", ["start"], {
         cwd: directory,
@@ -627,6 +806,9 @@ describe("wiring", () => {
         password: readSettings(
           fs.readFileSync(path.join(directory, "config.env"), "utf8"),
         ).get(SETTING),
+        encryptionSecret: readSettings(
+          fs.readFileSync(path.join(directory, "config.env"), "utf8"),
+        ).get(ENCRYPTION_SECRET_SETTING),
       };
     } finally {
       fs.rmSync(directory, { recursive: true, force: true });
@@ -634,7 +816,7 @@ describe("wiring", () => {
   }
 
   test.each([false, true])(
-    "npm start (ignore-scripts=%s) gives a new install its own password before docker compose up",
+    "npm start (ignore-scripts=%s) gives a new install its own password and encryption secret before docker compose up",
     (ignoreScripts) => {
       // npm start as the repository ships it: its start script and any hook.
       const shipped = {};
@@ -650,6 +832,7 @@ describe("wiring", () => {
         output: expect.any(String),
       });
       expect(result.password).toMatch(RANDOM_PASSWORD);
+      expect(result.encryptionSecret).toMatch(RANDOM_PASSWORD);
       expect(result.calls).toEqual([
         DATABASE_STATE_COMMAND.join(" "),
         "compose up --remove-orphans -d",
@@ -669,6 +852,7 @@ describe("wiring", () => {
 
     expect(result.status).toBe(0);
     expect(result.password).toBe(PLACEHOLDER);
+    expect(result.encryptionSecret).toBe(PLACEHOLDER);
     expect(result.calls).toEqual([
       "compose up --remove-orphans -d",
       "status-check",

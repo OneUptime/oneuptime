@@ -263,14 +263,14 @@ describe("Upgrading: how to upgrade, held to what does it", () => {
       JSON.parse(source("package.json")) as { scripts: Record<string, string> }
     ).scripts;
 
-    expect(scripts["update"]).toContain("npm run prerun");
+    expect(scripts["update"]).toContain("node ./Scripts/Install/Update.js");
     expect(scripts["update"]).toContain("docker compose pull");
     expect(scripts["update"]).toMatch(/npm run start$/);
     expect(scripts["start"]).toContain("docker compose up --remove-orphans");
     expect(scripts["start"]).toMatch(/npm run status-check$/);
-    expect(scripts["prerun"]).toContain("bash ./Scripts/Install/configure.sh");
-    expect(source("Scripts/Install/configure.sh")).toContain(
-      "node ./Scripts/Install/MergeEnvTemplate.js",
+    // Update.js merges config.env with the template before the images are pulled.
+    expect(source("Scripts/Install/Update.js")).toContain(
+      '} = require("./MergeEnvTemplate");',
     );
     expect(source("Tests/Scripts/status-check.sh")).toContain(
       "OneUptime is up!",
@@ -468,7 +468,7 @@ describe("Upgrading from 12 → 13: the cache rename, held to the code", () => {
 
     expect(networks["aliases"]).toContain("redis");
     expect(source("docker-compose.base.yml")).toContain(
-      "VALKEY_HOST: ${VALKEY_HOST:-${REDIS_HOST}}",
+      "VALKEY_HOST: ${VALKEY_HOST:-${REDIS_HOST:-}}",
     );
   });
 

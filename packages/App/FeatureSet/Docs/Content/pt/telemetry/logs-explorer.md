@@ -85,7 +85,7 @@ O modo ao vivo se desliga sozinho quando você muda a pesquisa, um filtro ou o i
 ## Escolher colunas e exportar
 
 - **Colunas** escolhe o que a lista mostra. **Hora**, **Serviço**, **Gravidade** e **Mensagem** vêm primeiro; adicione **ID do Traço**, **ID do span** ou qualquer atributo, mova as colunas para cima e para baixo, ou volte ao padrão com **Redefinir**.
-- **Export** baixa os registros da página que você está vendo. **Export as CSV** grava as colunas exibidas; **Export as JSON** grava cada campo de cada registro, com todos os atributos dele.
+- **Exportar** baixa os registros da página que você está vendo. **Export as CSV** grava as colunas exibidas; **Export as JSON** grava cada campo de cada registro, com todos os atributos dele.
 
 ## Salvar uma visualização
 

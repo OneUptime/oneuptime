@@ -598,6 +598,26 @@ describe("the long form detector", () => {
     expect(findStepProblems([form])).toEqual([]);
   });
 
+  test("follows a field list ee/'s UI imports from the Dashboard by its alias", () => {
+    /*
+     * ee/Dashboard reaches the Dashboard's src as @oneuptime/dashboard/...
+     * (its tsconfig paths), as the custom role permission table does for
+     * getPermissionScopeFields since #5216 moved it into ee/.
+     */
+    const form: FormFacts = only({
+      "Page.tsx": `
+        import { getScopeFields } from "@oneuptime/dashboard/Components/Permission/Scope";
+        const Page = () => <ModelTable name="Permissions" formFields={[${field("permission")}, ...getScopeFields({ isScopeShown: true })]} />;`,
+      "packages/App/FeatureSet/Dashboard/src/Components/Permission/Scope.ts": `
+        export function getScopeFields(data) {
+          return [${field("scope")}, ${field("labels")}];
+        }`,
+    });
+
+    expect(form.uncountableReasons).toEqual([]);
+    expect(form.visibleFieldCount).toBe(3);
+  });
+
   test("does not count a registration that is never shown", () => {
     const form: FormFacts = only({
       "Page.tsx": `const Page = () => <CardModelDetail name="Card" formFields={[${fields(2)}, ${field("hidden1", "showIf: () => { return false; },")}, ${field("hidden2", "showIf: () => false,")}]} />;`,

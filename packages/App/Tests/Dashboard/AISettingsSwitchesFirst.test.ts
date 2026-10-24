@@ -41,7 +41,15 @@ import {
   SECURITY_AI_SWITCHES,
   SecurityAiSettingsCopy,
 } from "../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
+import {
+  TELEMETRY_AI_SWITCHES,
+  TELEMETRY_AI_SWITCHES_CARD_TITLE,
+} from "../../FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiCopy";
 import Project from "Common/Models/DatabaseModels/Project";
+import {
+  TELEMETRY_AI_LANE_LIST,
+  TelemetryAiLane,
+} from "Common/Types/AI/TelemetryAi";
 import { getSwitchesInDrawnOrder } from "Common/UI/Components/ModelSwitch/ModelSwitchOrder";
 import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
 import TableColumnType from "Common/Types/Database/TableColumnType";
@@ -201,6 +209,12 @@ const ALL_SWITCHES: Array<ProjectAiSwitchDefinition<string>> = [
   ...getSwitchesInDrawnOrder(AI_LANE_SWITCHES[AiLane.Alert]),
   ...AI_INSIGHTS_SWITCHES,
   ...SECURITY_AI_SWITCHES,
+  // Each telemetry product's AI → Settings: the Profiler's, finding slow code.
+  ...TELEMETRY_AI_LANE_LIST.flatMap(
+    (lane: TelemetryAiLane): Array<ProjectAiSwitchDefinition<string>> => {
+      return TELEMETRY_AI_SWITCHES[lane];
+    },
+  ),
 ];
 
 function columnsOf(
@@ -445,9 +459,13 @@ describe("every AI behaviour is a switch", () => {
     ).toEqual(["enableInsightFixTasks"]);
 
     for (const definition of pullRequestSwitches) {
+      /*
+       * A repository connected in Code: on GitHub, GitLab, Forgejo, Gitea
+       * or any Git server - not only through the GitHub App.
+       */
       expect([definition.title, definition.note]).toEqual([
         definition.title,
-        "Needs a repository connected through the GitHub App.",
+        "Needs a repository connected in Code.",
       ]);
       expect(definition.description).toContain(
         "Nothing is merged automatically.",
@@ -619,6 +637,34 @@ describe("the pages draw switches first, and fold the limits", () => {
     );
   });
 
+  test("Profiler → AI → Settings is the notice, its one switch, and its AI rules folded under More settings", () => {
+    const page: string = readDashboard(
+      "Components/TelemetryAi/TelemetryAiSettingsPage.tsx",
+    );
+
+    expect(page).toContain("<ProjectAiNotice context={copy.noticeContext} />");
+    expect(page).toContain("switches={TELEMETRY_AI_SWITCHES[props.lane]}");
+    expect(page).toContain("cardTitle={TELEMETRY_AI_SWITCHES_CARD_TITLE}");
+    expect(page).toContain("<AdvancedPageSection");
+    expect(page).toContain("<TelemetryAiRulesTable");
+    expect(page).not.toContain("CardModelDetail");
+    expect(readDashboard("Pages/Profiles/AI/Settings.tsx")).toContain(
+      "<TelemetryAiSettingsPage lane={TelemetryAiLane.Profile} />",
+    );
+
+    expect(
+      TELEMETRY_AI_SWITCHES[TelemetryAiLane.Profile].map(
+        (definition: ProjectAiSwitchDefinition<string>): string => {
+          return definition.column;
+        },
+      ),
+    ).toEqual(["enableAutomaticProfileRemediation"]);
+    // The card's title is every AI settings page's.
+    expect(TELEMETRY_AI_SWITCHES_CARD_TITLE).toBe(
+      AI_LANE_PAGE_COPY[AiLane.Incident].switchesCardTitle,
+    );
+  });
+
   test("AI → Insights → Settings is the notice and its three switches", () => {
     const page: string = readDashboard(INSIGHTS_PAGE);
 
@@ -644,14 +690,20 @@ describe("the pages draw switches first, and fold the limits", () => {
       ),
     );
     /*
-     * Switch first: the only card on the page - the project's Daily limits -
-     * is folded under More settings, after the switch and its notice.
+     * Switch first. Then the project's AI context (#5198), in sight: what
+     * OneUptime AI should know about the team's systems, one quiet line
+     * with none written. The page's other card - the project's Daily
+     * limits - is folded under More settings, after both.
      */
-    expect(page.indexOf("<AdvancedPageSection")).toBeGreaterThan(
+    expect(page.indexOf("<ProjectAiContextCard />")).toBeGreaterThan(
       page.indexOf(
         "<ProjectAiNotice context={ProjectAiNoticeContext.AiFeatures} />",
       ),
     );
+    expect(page.indexOf("<AdvancedPageSection")).toBeGreaterThan(
+      page.indexOf("<ProjectAiContextCard />"),
+    );
+    expect(page.split("<ProjectAiContextCard").length - 1).toBe(1);
     expect(page.indexOf("<CardModelDetail")).toBeGreaterThan(
       page.indexOf("<AdvancedPageSection"),
     );

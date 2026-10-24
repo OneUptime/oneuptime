@@ -156,6 +156,36 @@ export default class McpInvestigationTools {
     }
   }
 
+  /*
+   * A telemetry problem's investigation - the triage of slow code OneUptime
+   * found (Types/AI/TelemetryAi): the servers its lane's AI rules allow for
+   * it (all of them with no rule, or a matching rule that names none), and
+   * only their tools that read.
+   */
+  public static async forTelemetryProblem(data: {
+    projectId: ObjectID;
+    insightId: ObjectID;
+    aiRunId: ObjectID;
+    outputPager: ToolOutputPager;
+    runDeadlineAtMs?: number | undefined;
+    allowance: ExternalMcpServerAllowance;
+  }): Promise<McpRunToolkit | null> {
+    try {
+      return await this.buildToolkit({
+        projectId: data.projectId,
+        aiRunId: data.aiRunId,
+        outputPager: data.outputPager,
+        runDeadlineAtMs: data.runDeadlineAtMs,
+        allowance: data.allowance,
+      });
+    } catch (error) {
+      logger.error(
+        `AI: could not offer external MCP servers for insight ${data.insightId.toString()}; investigating it without them: ${error}`,
+      );
+      return null;
+    }
+  }
+
   private static async buildToolkit(data: {
     projectId: ObjectID;
     aiRunId: ObjectID;

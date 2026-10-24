@@ -3,10 +3,14 @@ import CommonAPI from "Common/Server/API/CommonAPI";
 import NetworkTrafficSummaryUtil, {
   ParsedNetworkTrafficRequest,
 } from "Common/Server/Utils/NetworkFlow/NetworkTrafficSummary";
+import NetworkTrafficUsageSummaryUtil, {
+  ParsedNetworkTrafficUsageRequest,
+} from "Common/Server/Utils/NetworkFlow/NetworkTrafficUsageSummary";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import { NetworkTrafficSummary } from "Common/Types/NetFlow/NetworkTraffic";
+import { NetworkTrafficUsageSummary } from "Common/Types/NetFlow/NetworkTrafficUsage";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -21,6 +25,11 @@ import Response from "Common/Server/Utils/Response";
  * page's filters (NetworkTrafficSummaryUtil decides whose flows, and the
  * aggregation service reads them). It replaces the device-only
  * /network-device/flow/top-talkers.
+ *
+ * And its Meraki side: POST /network-traffic/usage-summary - the same
+ * page's traffic as a Meraki connection read it (uplinks, applications,
+ * destinations, clients), decided the same way whose it is
+ * (NetworkTrafficUsageSummaryUtil).
  */
 export default class NetworkTrafficAPI {
   public getRouter(): ExpressRouter {
@@ -45,6 +54,41 @@ export default class NetworkTrafficAPI {
 
           const summary: NetworkTrafficSummary =
             await NetworkTrafficSummaryUtil.build({
+              props: props,
+              request: request,
+              now: now,
+            });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            summary as unknown as JSONObject,
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    router.post(
+      "/network-traffic/usage-summary",
+      UserMiddleware.getUserMiddleware,
+      async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ): Promise<void> => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const now: Date = OneUptimeDate.getCurrentDate();
+
+          const request: ParsedNetworkTrafficUsageRequest =
+            NetworkTrafficUsageSummaryUtil.parseRequest(req.body, now);
+
+          const summary: NetworkTrafficUsageSummary =
+            await NetworkTrafficUsageSummaryUtil.build({
               props: props,
               request: request,
               now: now,

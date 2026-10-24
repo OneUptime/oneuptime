@@ -32,6 +32,7 @@ import NetworkDeviceLink from "./NetworkDeviceLink";
 import NetworkDeviceLinkRule from "./NetworkDeviceLinkRule";
 import NetworkTopologySuppression from "./NetworkTopologySuppression";
 import NetworkSiteAssignmentRule from "./NetworkSiteAssignmentRule";
+import NetworkControllerConnection from "./NetworkControllerConnection";
 import DockerHostOwnerTeam from "./DockerHostOwnerTeam";
 import DockerHostOwnerUser from "./DockerHostOwnerUser";
 import DockerResource from "./DockerResource";
@@ -169,6 +170,7 @@ import SecurityPlaybook from "./SecurityPlaybook";
 import SecurityPlaybookRun from "./SecurityPlaybookRun";
 import SecurityProtectedEntity from "./SecurityProtectedEntity";
 import SecurityEventDestination from "./SecurityEventDestination";
+import AuditLogExport from "./AuditLogExport";
 import SecurityLogSource from "./SecurityLogSource";
 import LogScrubRule from "./LogScrubRule";
 import MetricPipelineRule from "./MetricPipelineRule";
@@ -300,6 +302,7 @@ import Service from "./Service";
 import ServiceOwnerTeam from "./ServiceOwnerTeam";
 import ServiceOwnerUser from "./ServiceOwnerUser";
 import CodeRepository from "./CodeRepository";
+import CodeRepositoryConnection from "./CodeRepositoryConnection";
 // Short link.
 import ShortLink from "./ShortLink";
 // SMS
@@ -595,6 +598,7 @@ const AllModelTypes: Array<{
   SecurityPlaybookRun,
   SecurityProtectedEntity,
   SecurityEventDestination,
+  AuditLogExport,
   SecurityLogSource,
   LogScrubRule,
   MetricPipelineRule,
@@ -935,6 +939,7 @@ const AllModelTypes: Array<{
 
   // Code Repository
   CodeRepository,
+  CodeRepositoryConnection,
 
   ProbeOwnerTeam,
   ProbeOwnerUser,
@@ -1041,6 +1046,7 @@ const AllModelTypes: Array<{
   NetworkDeviceLinkRule,
   NetworkTopologySuppression,
   NetworkSiteAssignmentRule,
+  NetworkControllerConnection,
   DockerHostOwnerTeam,
   DockerHostOwnerUser,
   DockerResource,

@@ -101,16 +101,17 @@ Monitors, incidenten, waarschuwingen, statuspagina's, SLO's en veel andere resou
 | vCenters | `vCenter` |
 | Pakketopnames, en hun downloads | `Packet Capture` |
 | Beveiligingszaken, playbooks en hun uitvoeringen, en beschermde entiteiten | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
+| Exports van het auditlogboek | `Audit Log Export` |
 
 Ook wordt vastgelegd wanneer een beheerder een meldingsmethode of een persoonlijke piketregel aan het account van iemand anders toevoegt of ervan verwijdert, zonder het adres of nummer zelf.
 
-Andere gegevens staan niet in het auditlogboek, zoals wie in een team zit, of een machtiging die los aan een team is toegevoegd. Velden die niemand mag lezen, zoals geheime sleutels, ontbreken in elke vermelding.
+Andere gegevens staan niet in het auditlogboek, zoals wie in een team zit, of een machtiging die los aan een team is toegevoegd. Velden die niemand mag lezen, ontbreken in elke vermelding, en sleutels, tokens en wachtwoorden worden vastgelegd als `[REDACTED]`: de vermelding laat zien dat ze zijn gewijzigd, nooit hun waarde.
 
 ## Hoe lang vermeldingen blijven
 
 Elke vermelding blijft voor de **Bewaring (dagen)** die het project had toen die werd vastgelegd, en wordt daarna verwijderd. Een nieuwe bewaring geldt voor nieuwe vermeldingen: de vermeldingen die al zijn vastgelegd, houden hun data.
 
-Om vermeldingen langer dan 180 dagen te bewaren, leest u ze via de API met een API-sleutel die **Read Audit Log** heeft, en slaat u ze op waar u ze nodig hebt. Zie [OneUptime API-referentie](/docs/api-reference/api-reference).
+Om vermeldingen langer dan 180 dagen te bewaren, stuurt u ze zodra ze worden vastgelegd naar uw eigen opslag of SIEM: zie [Export van auditlogboek](/docs/configuration/audit-log-export). U kunt ze ook via de API lezen met een API-sleutel die **Read Audit Log** heeft, en ze opslaan waar u ze nodig hebt. Zie [OneUptime API-referentie](/docs/api-reference/api-reference).
 
 ## Als het abonnement of de licentie geen auditlogboeken meer omvat
 
@@ -130,6 +131,7 @@ Controleer of de resource bij [Wat wordt vastgelegd](#wat-wordt-vastgelegd) staa
 ## Volgende stappen
 
 :::cards
+- [Export van auditlogboek](/docs/configuration/audit-log-export): Het auditlogboek naar uw eigen opslag of SIEM sturen.
 - [Gebruikers, teams en machtigingen](/docs/permissions/index): Bepalen wie het auditlogboek mag lezen.
 - [Projectinstellingen](/docs/configuration/project-settings): De overige instellingen van het project.
 - [Facturering en gebruik](/docs/configuration/billing): Het abonnement van het project wijzigen.

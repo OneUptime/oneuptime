@@ -269,8 +269,23 @@ export enum CodeTaskBlockerType {
   NoPermission = "NoPermission",
   // Project Settings > AI > AI Features: Enable AI is off.
   AiDisabled = "AiDisabled",
-  // Not connected through the GitHub App, or the installation is gone.
+  /*
+   * Not connected: a GitHub repository the project's GitHub App no longer
+   * reaches, or a repository whose connection to its Git server is gone.
+   */
   RepositoryNotConnected = "RepositoryNotConnected",
+  /*
+   * The repository's Git server (GitLab, Forgejo, Gitea, a Git server)
+   * refused its access token: expired or revoked. Replacing it in the
+   * repository's settings connects it again.
+   */
+  RepositoryTokenRefused = "RepositoryTokenRefused",
+  /*
+   * The repository's Git server is on a private network OneUptime does not
+   * reach, so a global Runner cannot work in it either: it needs one of the
+   * project's own Runners, on that network.
+   */
+  RepositoryNeedsOwnRunner = "RepositoryNeedsOwnRunner",
   NoLlmProvider = "NoLlmProvider",
   NoAiCredits = "NoAiCredits",
   DailyLimitReached = "DailyLimitReached",
@@ -489,8 +504,19 @@ export interface CodeTaskRepositoryJSON {
   repositoryName?: string | undefined;
   mainBranchName?: string | undefined;
   repositoryUrl?: string | undefined;
-  // Connected through the GitHub App, so AI can work in it.
+  /*
+   * Reachable, so AI can work in it: through the project's GitHub App, or
+   * through its connection to its Git server, whose token was not refused.
+   */
   isConnected: boolean;
+  /*
+   * Where it is hosted (CodeRepositoryType: GitHub, GitLab, Forgejo, Git),
+   * and so what Code can do in it (Types/CodeRepository/CodeHost). Left out
+   * by servers older than the hosts beside GitHub: read as GitHub.
+   */
+  provider?: string | undefined;
+  // How it connects, for a repository that is not on GitHub.
+  connection?: CodeTaskRepositoryConnectionJSON | undefined;
   /*
    * Whether OneUptime reviews its pull requests against production on its
    * own (CodeRepository.isProductionReviewEnabled; unset is off). Left out
@@ -503,6 +529,33 @@ export interface CodeTaskRepositoryJSON {
    * on). Left out where the column was not read.
    */
   isGitHubCommandsEnabled?: boolean | undefined;
+}
+
+/*
+ * How a repository that is not on GitHub connects (CodeRepositoryConnection),
+ * as Code shows it: never the token, only its last characters.
+ */
+export interface CodeTaskRepositoryConnectionJSON {
+  // The connection's id: what Replace access token replaces the token of.
+  id?: string | undefined;
+  // The Git server: https://gitlab.example.com.
+  hostUrl?: string | undefined;
+  // "Forgejo" or "Gitea", for a Forgejo-family server.
+  hostProduct?: string | undefined;
+  // The account the token acts as.
+  accountLogin?: string | undefined;
+  // The token's last characters.
+  credentialHint?: string | undefined;
+  // The server refused the token: replace it to connect again.
+  isTokenRefused: boolean;
+  /*
+   * OneUptime's server does not reach the Git server (a private network):
+   * only a Runner of the project's own on that network works in it, and
+   * nothing is read from it on the server (branches, files).
+   */
+  isReachableFromServer: boolean;
+  // How many of the project's repositories use the connection.
+  repositoryCount?: number | undefined;
 }
 
 /*
@@ -556,6 +609,14 @@ export interface CodeTaskAgentTurn {
   context?: Array<CodeTaskAgentContextItem> | undefined;
 }
 
+// Why OneUptime started a task on its own (CodeTaskAgentDetails.startedBy).
+export interface CodeTaskAgentStartedBy {
+  // The finding, as its insight's title says it.
+  finding: string;
+  // The insight's page in OneUptime.
+  findingUrl: string;
+}
+
 export interface CodeTaskAgentDetails {
   // CodeFixTaskType.CodeRequest
   taskType: string;
@@ -587,6 +648,14 @@ export interface CodeTaskAgentDetails {
   } | null;
   // Otherwise: the branch to create from the default branch for a change.
   newBranchName: string;
+  /*
+   * When OneUptime started the task on its own, from a problem it found in
+   * the project's telemetry (slow code in a service's profiles): what it
+   * found, in one line, and the page that shows it - what the pull request
+   * says it was opened for. Absent for a task a person asked for. A Runner
+   * older than this field writes the pull request it always did.
+   */
+  startedBy?: CodeTaskAgentStartedBy | undefined;
   /*
    * The branch the person picked for the task to start from, when they
    * picked one (repository.mainBranchName names it too, for Runners older

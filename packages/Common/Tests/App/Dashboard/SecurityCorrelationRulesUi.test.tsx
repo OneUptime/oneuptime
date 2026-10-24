@@ -101,6 +101,7 @@ import {
   DetectionRuleType,
   getDetectionRuleTypeDefinition,
 } from "../../../Types/SecurityEvent/SigmaCorrelation";
+import AnalyticsModelAPI from "../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
@@ -584,6 +585,10 @@ describe("correlations in the Rule Library", () => {
       skip: 0,
       limit: 100,
     } as never);
+    // What the project sends: nothing this week.
+    jest
+      .spyOn(AnalyticsModelAPI, "aggregate")
+      .mockResolvedValue({ data: [] } as never);
   });
 
   async function renderLibrary(): Promise<void> {
@@ -685,12 +690,13 @@ describe("correlations in the Rule Library", () => {
     await renderLibrary();
 
     const entry: DetectionRuleLibraryEntry = CORRELATIONS[0]!;
-    const card: HTMLElement = screen.getByTestId(
+    const row: HTMLElement = screen.getByTestId(
       `rule-library-entry-${entry.id}`,
     );
 
+    // The rule's name opens its details beside the list.
     await act(async () => {
-      fireEvent.click(within(card).getByText("View Rule"));
+      fireEvent.click(within(row).getByTestId(`rule-library-name-${entry.id}`));
     });
 
     const summary: HTMLElement = await screen.findByTestId(

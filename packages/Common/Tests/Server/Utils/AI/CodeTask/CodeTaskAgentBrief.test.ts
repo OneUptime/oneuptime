@@ -4,8 +4,11 @@ import CodeTaskAgentBrief, {
 import CodeTaskOrigin from "../../../../../Server/Utils/AI/CodeTask/CodeTaskOrigin";
 import CodeTaskThread from "../../../../../Server/Utils/AI/CodeTask/CodeTaskThread";
 import AIAgentTaskPullRequest from "../../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
+import AIInsight from "../../../../../Models/DatabaseModels/AIInsight";
+import { DashboardClientUrl } from "../../../../../Server/EnvironmentConfig";
 import AIRun from "../../../../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../../../../Models/DatabaseModels/CodeRepository";
+import AIInsightType from "../../../../../Types/AI/AIInsightType";
 import AIRunStatus from "../../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../../Types/AI/AIRunType";
 import CodeFixTaskType from "../../../../../Types/AI/CodeFixTaskType";
@@ -522,5 +525,112 @@ describe("CodeTaskAgentBrief.capConversation", () => {
     );
 
     expect(total).toBeLessThanOrEqual(MAX_CONVERSATION_LENGTH);
+  });
+});
+
+/*
+ * A task OneUptime started on its own, from slow code it found
+ * (Types/AI/TelemetryAi): the Runner is told what was found and where it is
+ * shown, so the pull request says why it was opened; and in a later turn's
+ * conversation the request reads as OneUptime's, not a person's.
+ */
+describe("a task OneUptime started from an insight", () => {
+  const INSIGHT_ID: ObjectID = new ObjectID(
+    "9a5b8c7d-1e2f-4a3b-8c4d-6e7f8a9b0c1d",
+  );
+
+  function startedByOneUptime(): void {
+    turns[0]!.userId = undefined as never;
+    turns[0]!.triggeredByAiInsightId = INSIGHT_ID;
+    turns[0]!.taskContext = {
+      request: {
+        message: "Make OrderParser.parse faster",
+        context: [],
+      },
+    };
+
+    const insight: AIInsight = new AIInsight();
+    insight._id = INSIGHT_ID.toString();
+    insight.title = `OrderParser.parse takes 18% of the CPU time in checkout, key ${AWS_KEY}`;
+
+    jest.spyOn(CodeTaskOrigin, "loadSubjects").mockResolvedValue({
+      exceptions: new Map(),
+      incidents: new Map(),
+      alerts: new Map(),
+      insights: new Map([[INSIGHT_ID.toString(), insight]]),
+    });
+  }
+
+  test("the Runner is told what OneUptime found, redacted, and the page that shows it", async () => {
+    startedByOneUptime();
+
+    const details: CodeTaskAgentDetails = await brief(0);
+
+    expect(details.requestedBy).toBeUndefined();
+    expect(details.startedBy?.finding).toContain(
+      "OrderParser.parse takes 18% of the CPU time in checkout",
+    );
+    expect(details.startedBy?.finding).not.toContain(AWS_KEY);
+    expect(details.startedBy?.findingUrl).toBe(
+      `${DashboardClientUrl.toString()}/${PROJECT_ID.toString()}/ai/insights/${INSIGHT_ID.toString()}`,
+    );
+  });
+
+  test("a later turn a person asked still knows why the task was started, and who asked now", async () => {
+    startedByOneUptime();
+
+    const details: CodeTaskAgentDetails = await brief(1);
+
+    expect(details.requestedBy).toBe("Jane Doe");
+    expect(details.startedBy?.findingUrl).toContain(INSIGHT_ID.toString());
+
+    const first: CodeTaskAgentTurn = details.conversation[0]!;
+    expect(first.role).toBe("person");
+    expect(first.author).toBe("OneUptime");
+    expect(first.text).toBe("Make OrderParser.parse faster");
+  });
+
+  test("a task a person asked for carries no reason of OneUptime's", async () => {
+    const details: CodeTaskAgentDetails = await brief(0);
+
+    expect(details.startedBy).toBeUndefined();
+    expect(details.requestedBy).toBe("Jane Doe");
+  });
+
+  test("slow code's finding is linked where its product shows it: the Profiler's AI section", async () => {
+    startedByOneUptime();
+
+    const subjects: Awaited<ReturnType<typeof CodeTaskOrigin.loadSubjects>> =
+      await CodeTaskOrigin.loadSubjects({
+        projectId: PROJECT_ID,
+        runs: [],
+        props: { isRoot: true },
+      });
+    subjects.insights!.get(INSIGHT_ID.toString())!.insightType =
+      AIInsightType.ProfileHotspot;
+
+    const details: CodeTaskAgentDetails = await brief(0);
+
+    expect(details.startedBy?.findingUrl).toBe(
+      `${DashboardClientUrl.toString()}/${PROJECT_ID.toString()}/profiles/ai/insights/${INSIGHT_ID.toString()}`,
+    );
+  });
+
+  /*
+   * A rule that asks before fixing leaves the pull request to a person, who
+   * starts it from the finding: the request is theirs, and the pull request
+   * still says what was found.
+   */
+  test("a task a person started from the finding: theirs, with what OneUptime found", async () => {
+    startedByOneUptime();
+    turns[0]!.userId = USER_ID;
+
+    const details: CodeTaskAgentDetails = await brief(0);
+
+    expect(details.requestedBy).toBe("Jane Doe");
+    expect(details.startedBy?.finding).toContain(
+      "OrderParser.parse takes 18% of the CPU time in checkout",
+    );
+    expect(details.startedBy?.findingUrl).toContain(INSIGHT_ID.toString());
   });
 });

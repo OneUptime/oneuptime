@@ -65,17 +65,14 @@ Zet vóór stap 3 `HOST` in `config.env` op de domeinnaam of het IP-adres waarme
 git clone --depth 1 --single-branch --branch release https://github.com/OneUptime/oneuptime.git
 cd oneuptime
 
-# 2. Create your config, with a random value for every secret
+# 2. Create your config
 cp config.example.env config.env
-while grep -q "please-change-this-to-random-value" config.env; do
-  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env
-done
 
 # 3. Start everything
 npm start
 ```
 
-Wanneer `npm start` **OneUptime is up!** toont, opent u `http://localhost` of het adres van uw server en registreert u zich. Het eerste account wordt de beheerder van de instantie.
+`npm start` controleert de server, geeft elk geheim in `config.env` een eigen willekeurige waarde en start OneUptime. Wanneer `npm start` **OneUptime is up!** toont, opent u `http://localhost` of het adres van uw server en registreert u zich. Het eerste account wordt de beheerder van de instantie.
 
 De [Docker Compose-handleiding](https://oneuptime.com/docs/nl/installation/docker-compose) behandelt servergroottes, HTTPS, back-ups en updates.
 

@@ -930,10 +930,7 @@ describe("the Status Pages Overview: choosing what shows on the page", () => {
       "showScheduledEventLabelsOnStatusPage",
       "showEpisodeHistoryInDays",
     ];
-    const scale: Array<string> = [
-      "showOverallUptimePercentOnStatusPage",
-      "hidePoweredByOneUptimeBranding",
-    ];
+    const scale: Array<string> = ["showOverallUptimePercentOnStatusPage"];
     const anyPlan: Array<string> = [
       "showIncidentHistoryInDays",
       "showAnnouncementHistoryInDays",
@@ -972,7 +969,33 @@ describe("the Status Pages Overview: choosing what shows on the page", () => {
     }
 
     expect(card).toContain(
-      'The four list switches, the three labels switches and the episodes\' history need **Growth**; showing the overall uptime percent and hiding the "Powered by OneUptime" line need **Scale**. The other history windows, **Uptime History**, **Precision**, **Counts as downtime** and **Only Show Incidents Scoped to This Page** can be changed on every plan',
+      "The four list switches, the three labels switches and the episodes' history need **Growth**; showing the overall uptime percent needs **Scale**. The other history windows, **Uptime History**, **Precision**, **Counts as downtime** and **Only Show Incidents Scoped to This Page** can be changed on every plan",
+    );
+  });
+
+  /*
+   * Hiding Powered by OneUptime is an Enterprise feature with a card of its
+   * own (StatusPagePoweredBySettings), under the card above: the overview
+   * says so after the card's rows, with its plan on OneUptime Cloud and its
+   * edition self-hosted.
+   */
+  it("gives Powered by OneUptime a paragraph of its own: its card, its switch, its plan and its edition", () => {
+    expect(planOf("hidePoweredByOneUptimeBranding")).toBe(PlanType.Scale);
+    expect(card).not.toContain("- **Show Powered By OneUptime Branding**");
+    expect(card).toContain(
+      'The "Powered by OneUptime" line has a card of its own, just under it.',
+    );
+    expect(card).toContain(
+      "**Powered by OneUptime**, the card under this one, has one switch: **Show Powered By OneUptime Branding**, on by default",
+    );
+    expect(card).toContain(
+      "On OneUptime Cloud, hiding the line needs **Scale**; below it, the card says when a page still hides the line, with a button that shows it again.",
+    );
+    expect(card).toContain(
+      "Self-hosted, hiding the line is part of the Enterprise Edition: on the Community Edition every status page shows it.",
+    );
+    expect(card.indexOf("**A list that is off**")).toBeLessThan(
+      card.indexOf("**Powered by OneUptime**, the card under this one"),
     );
   });
 });

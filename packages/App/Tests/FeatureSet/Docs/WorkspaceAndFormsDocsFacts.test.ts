@@ -1992,7 +1992,7 @@ describe("Forms, against the builder, the Share page and the public page", () =>
       share.indexOf("<FormStatusCard"),
       share.indexOf("<FormShareLinkCard"),
       share.indexOf("title: FormsCopy.afterSubmittingTitle"),
-      share.indexOf('title: "Access"'),
+      share.indexOf('cardTitle="Access"'),
     ];
 
     expect(

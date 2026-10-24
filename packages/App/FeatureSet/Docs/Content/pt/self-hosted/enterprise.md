@@ -35,7 +35,7 @@ Esta página explica o que cada edição inclui, como executar a Enterprise Edit
 | Recurso | Community | Enterprise | OneUptime Cloud |
 | --- | --- | --- | --- |
 | Monitoramento, alertas, incidentes, plantão, páginas de status, logs, métricas, traces, exceções, dashboards, workflows, recursos de IA, API e Terraform | Sim | Sim | Todos os planos |
-| Login com senha, autenticação de dois fatores, equipes, funções e chaves de API | Sim | Sim | Todos os planos |
+| Login com senha, autenticação de dois fatores, equipes, funções integradas e chaves de API | Sim | Sim | Todos os planos |
 | [SSO SAML e OpenID Connect](/docs/identity/sso) para login em projetos | Sim | Sim | Plano Scale e superiores |
 | SSO SAML e OpenID Connect para login em páginas de status privadas | Sim | Sim | Plano Scale e superiores |
 | [SSO e OIDC globais (para toda a instância)](/docs/identity/global-sso) | Sim | Sim | Não se aplica |
@@ -43,6 +43,10 @@ Esta página explica o que cada edição inclui, como executar a Enterprise Edit
 | Configurações de conformidade de equipes | Não | Sim | Plano Scale e superiores |
 | Logs de auditoria | Não | Sim | Plano Enterprise |
 | Substituições de retenção: retenção por tipo de telemetria (logs, traces, métricas, perfis, com regras por severidade do log e status do trace) e retenção por serviço e por recurso | Não | Sim | Plano Scale e superiores |
+| Funções personalizadas: conjuntos de permissões que você nomeia uma vez e dá a equipes e chaves de API | Não | Sim | Plano Scale e superiores |
+| Listas de IPs permitidos para páginas de status, painéis públicos e formulários | Não | Sim | Plano Scale e superiores |
+| Controles de acesso das páginas de status: por quanto tempo os leitores de uma página de status privada continuam conectados, e quem pode se inscrever | Não | Sim | Plano Scale e superiores |
+| Ocultar «Powered by OneUptime» nas páginas de status | Não | Sim | Plano Scale e superiores |
 | Painéis **Health** da administração: visão geral da instância, filas em segundo plano, logs da instância, PostgreSQL, Valkey, cluster ClickHouse, logs de diagnóstico e ingestão de telemetria | Não | Sim | Não se aplica |
 | **Query Console** da administração | Não | Sim | Não disponível |
 | Alertas de saúde do PostgreSQL e do Valkey (Redis) | Não | Sim | Não se aplica |
@@ -55,6 +59,8 @@ O login único inclui «Require SSO for login» para projetos, páginas de statu
 Todas as edições têm a retenção de telemetria padrão do projeto, em **Configurações do projeto > Telemetria e APM > Retenção de dados**. As substituições de retenção são o que a Enterprise Edition acrescenta por cima disso.
 
 No OneUptime Cloud, um recurso pago sempre pode ser desativado, em qualquer plano. Uma substituição de retenção que um período de teste (ou uma mudança para um plano inferior) deixou configurada continua valendo para a telemetria nova, então abaixo do plano Scale as páginas de retenção a mostram sob o cartão de upgrade com um botão **Remover substituição**. A remoção funciona em todos os planos; configurar uma de novo exige o plano Scale. A telemetria já armazenada mantém a retenção com que foi armazenada. Da mesma forma, **Configurações do projeto > Segurança > SSO** mostra a chave **Exigir SSO para login** sob o seu cartão de upgrade enquanto o projeto ainda exigir SSO, para que ela possa ser desligada.
+
+Funções personalizadas, listas de IPs permitidos, controles de acesso das páginas de status e uma linha «Powered by OneUptime» oculta funcionam da mesma forma: o que um período de teste ou um plano inferior deixou configurado continua valendo, e as configurações mostram isso sob o cartão de upgrade com um botão para remover.
 
 As linhas «Não se aplica» são recursos de administração da instância. No OneUptime Cloud, o OneUptime opera a instância para você.
 
@@ -185,12 +191,14 @@ O que para quando uma licença expira:
 - **O provisionamento SCIM para.** As solicitações SCIM do seu provedor de identidade são recusadas, incluindo o desprovisionamento, e os bloqueios de equipe do SCIM são removidos, então as equipes gerenciadas por grupos push do SCIM podem ser editadas manualmente.
 - **O registro de auditoria deixa de gravar.** Os logs de auditoria gravados até então são mantidos.
 - **As substituições de retenção deixam de valer.** A telemetria nova é mantida pela retenção padrão do projeto. A telemetria já armazenada mantém a retenção com que foi gravada. Você ainda pode apagar uma substituição pela API, mas não configurar uma.
+- **As páginas de status voltam a mostrar Powered by OneUptime.** Uma página que oculta a linha a mostra até que uma licença seja ativada. A configuração é mantida.
 
 O que **não** para:
 
 - **O login único.** O login SAML e OIDC em projetos, páginas de status privadas, na instância inteira (SSO global) e nos aplicativos móveis, e «Require SSO for login», fazem parte de todas as edições. Uma licença expirada não muda nada disso, e a configuração do login único continua editável.
 - **O monitoramento principal nunca é afetado**: monitores, alertas, incidentes, plantão, páginas de status e telemetria continuam funcionando.
 - **Os administradores master sempre podem entrar com a sua senha.**
+- **Funções personalizadas, listas de IPs permitidos e controles de acesso das páginas de status continuam valendo.** Você pode removê-los, mas não criá-los nem alterá-los.
 - **Nada é excluído.** A configuração do SCIM, os logs de auditoria e as substituições de retenção ficam como estão.
 
 **Tudo volta a funcionar assim que uma licença é ativada**, sem reiniciar: o provisionamento SCIM, o registro de auditoria e as substituições de retenção voltam com a configuração que você tem. O OneUptime só os desliga quando sabe que a licença expirou. Enquanto não consegue ler o estado da licença, por exemplo por um momento enquanto o servidor inicia, SCIM, o registro de auditoria e as substituições de retenção continuam ligados.
@@ -206,6 +214,8 @@ A sua configuração fica no banco de dados. Voltar para a imagem Enterprise res
 - **Os bloqueios de equipe do SCIM são removidos**, então as equipes que eram gerenciadas por grupos push do SCIM podem ser editadas manualmente. Na inicialização, o servidor registra em quais projetos os bloqueios de equipe do SCIM foram removidos.
 - **O registro de auditoria para.** Os logs de auditoria gravados até então são mantidos, mas as páginas de logs de auditoria mostram um convite para fazer upgrade.
 - **As substituições de retenção deixam de valer.** A telemetria nova é mantida pela retenção padrão do projeto, e os cartões de retenção em **Configurações do projeto > Telemetria e APM > Retenção de dados** e na página de configurações de cada serviço e de cada recurso mostram um convite para fazer upgrade. As substituições ficam no banco de dados e voltam a valer quando você volta.
+- **As páginas de status voltam a mostrar Powered by OneUptime.** A configuração fica no banco de dados e oculta a linha de novo quando você volta.
+- **Funções personalizadas, listas de IPs permitidos e controles de acesso das páginas de status continuam valendo.** As configurações deles mostram um convite para fazer upgrade, com o que ainda está configurado e um botão para remover.
 - **As páginas de configurações enterprise mostram um convite para fazer upgrade.** Pela API você ainda pode ler e excluir a configuração enterprise e redefinir um token bearer do SCIM, mas não criar nem alterar mais nada. O registro de auditoria não pode ser ativado.
 - **Os painéis Health enterprise, a Query Console e os alertas de saúde do PostgreSQL e do Valkey param.** O monitoramento de capacidade e a limpeza do ClickHouse, o status das migrações e o pacote de suporte continuam funcionando.
 

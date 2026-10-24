@@ -702,6 +702,221 @@ describe("buildInsightInvestigationLink — tilde-bearing content", () => {
   });
 });
 
+/*
+ * Slow code a service's profiles show (ProfileHotspot): the Profiler on the
+ * function, in the window it was found in.
+ */
+describe("buildInsightInvestigationLink — ProfileHotspot", () => {
+  test("opens the Profiler on the service and the function, in the finding's window", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.ProfileHotspot,
+          serviceId: SERVICE_ID,
+          serviceName: "checkout",
+          profile: {
+            functionName: "OrderParser.parse",
+            fileName: "src/orders/parser.ts",
+            profileType: "wall",
+            windowStartTime: "2026-08-14T09:00:00.000Z",
+            windowEndTime: "2026-08-14T10:00:00.000Z",
+          },
+        }),
+      );
+
+    expect(link).not.toBeNull();
+    expect(link!.target).toBe("profiles");
+    expect(link!.label).toBe("Open in Profiler");
+    expect(link!.dropped).toEqual([]);
+    expect(link!.route.toString().split("?")[0]).toBe(
+      "/dashboard/:projectId/profiles",
+    );
+
+    const query: URLSearchParams = queryOf(link!.route);
+
+    expect(query.get("serviceId")).toBe(SERVICE_ID);
+    expect(query.get("function")).toBe("OrderParser.parse");
+    expect(query.get("file")).toBe("src/orders/parser.ts");
+    expect(query.get("profileType")).toBe("wall");
+    expect(query.get("startTime")).toBe("2026-08-14T09:00:00.000Z");
+    expect(query.get("endTime")).toBe("2026-08-14T10:00:00.000Z");
+  });
+
+  test("without the function's evidence (a list row), the service's profiles", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.ProfileHotspot,
+          serviceId: SERVICE_ID,
+        }),
+      );
+
+    const query: URLSearchParams = queryOf(link!.route);
+
+    expect(query.get("serviceId")).toBe(SERVICE_ID);
+    expect(query.get("function")).toBeNull();
+    expect(query.get("startTime")).toBeNull();
+  });
+
+  test("a window that does not hold together is left out, never thrown on", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.ProfileHotspot,
+          serviceId: SERVICE_ID,
+          profile: {
+            functionName: "f",
+            windowStartTime: "2026-08-14T10:00:00.000Z",
+            windowEndTime: "2026-08-14T09:00:00.000Z",
+          },
+        }),
+      );
+
+    const query: URLSearchParams = queryOf(link!.route);
+
+    expect(query.get("function")).toBe("f");
+    expect(query.get("startTime")).toBeNull();
+    expect(query.get("endTime")).toBeNull();
+  });
+});
+
+/*
+ * Traces' findings (TraceSlowOperation, TraceFailingOperation,
+ * TraceMissingTracing): the traces explorer on the service and the
+ * operation, in the hour the finding was read in - only the failed spans of
+ * a failing operation, or of one whose failures say nothing about why.
+ */
+describe("buildInsightInvestigationLink — Traces' findings", () => {
+  const TRACE_WINDOW: {
+    windowStartTime: string;
+    windowEndTime: string;
+  } = {
+    windowStartTime: "2026-08-14T09:00:00.000Z",
+    windowEndTime: "2026-08-14T10:00:00.000Z",
+  };
+
+  test("a slow operation: its spans in its service, in the hour it was found in", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.TraceSlowOperation,
+          serviceId: SERVICE_ID,
+          trace: { operationName: "GET /orders", ...TRACE_WINDOW },
+        }),
+      );
+
+    expect(link).not.toBeNull();
+    expect(link!.target).toBe("traces");
+    expect(link!.label).toBe("Open in Traces");
+    expect(link!.dropped).toEqual([]);
+    expect(pathOf(link!.route)).toBe("/dashboard/:projectId/traces");
+
+    const query: URLSearchParams = queryOf(link!.route);
+
+    expect(JSON.parse(query.get("filters") || "[]")).toEqual([
+      ["primaryEntityId", SERVICE_ID],
+      ["name", "GET /orders"],
+    ]);
+    expect(query.get("range")).toBe(TimeRange.CUSTOM);
+    expect(query.get("start")).toBe(TRACE_WINDOW.windowStartTime);
+    expect(query.get("end")).toBe(TRACE_WINDOW.windowEndTime);
+  });
+
+  test("a failing operation, or failures that say nothing: only its failed spans", () => {
+    for (const data of [
+      { insightType: AIInsightType.TraceFailingOperation, gap: undefined },
+      {
+        insightType: AIInsightType.TraceMissingTracing,
+        gap: "SilentFailures",
+      },
+    ]) {
+      const link: AIInsightExplorerLink | null =
+        Links.buildInsightInvestigationLink(
+          input({
+            insightType: data.insightType,
+            serviceId: SERVICE_ID,
+            trace: {
+              operationName: "POST /checkout",
+              gap: data.gap,
+              ...TRACE_WINDOW,
+            },
+          }),
+        );
+
+      expect(JSON.parse(queryOf(link!.route).get("filters") || "[]")).toEqual([
+        ["primaryEntityId", SERVICE_ID],
+        ["name", "POST /checkout"],
+        ["statusCode", "2"],
+      ]);
+    }
+  });
+
+  test("a service with no spans inside its requests: the service's spans, no operation", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.TraceMissingTracing,
+          serviceId: SERVICE_ID,
+          trace: { gap: "NoChildSpans", ...TRACE_WINDOW },
+        }),
+      );
+
+    expect(JSON.parse(queryOf(link!.route).get("filters") || "[]")).toEqual([
+      ["primaryEntityId", SERVICE_ID],
+    ]);
+  });
+
+  test("without its evidence (a list row), the hour before it was last seen", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.TraceSlowOperation,
+          serviceId: SERVICE_ID,
+        }),
+      );
+
+    const query: URLSearchParams = queryOf(link!.route);
+
+    expect(query.get("start")).toBe("2026-08-14T09:00:00.000Z");
+    expect(query.get("end")).toBe(LAST_SEEN.toISOString());
+  });
+
+  test("a service whose id is unknown rides as its resource.service.name search token", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.TraceSlowOperation,
+          serviceName: "checkout",
+          trace: { operationName: "GET /orders", ...TRACE_WINDOW },
+        }),
+      );
+
+    const query: URLSearchParams = queryOf(link!.route);
+
+    expect(query.get("search")).toContain("@resource.service.name:checkout");
+    expect(JSON.parse(query.get("filters") || "[]")).toEqual([
+      ["name", "GET /orders"],
+    ]);
+  });
+
+  test("a window that does not hold together falls back to the detection hour, never a throw", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.TraceFailingOperation,
+          serviceId: SERVICE_ID,
+          trace: {
+            operationName: "x",
+            windowStartTime: "2026-08-14T10:00:00.000Z",
+            windowEndTime: "not a date",
+          },
+        }),
+      );
+
+    expect(queryOf(link!.route).get("end")).toBe(LAST_SEEN.toISOString());
+  });
+});
+
 describe("buildInsightInvestigationLink — URL-hostile character sweep", () => {
   test("every hostile value builds a usable link for every insight type — never a throw", () => {
     Object.values(AIInsightType).forEach((insightType: AIInsightType) => {
@@ -768,7 +983,10 @@ describe("buildInsightInvestigationLink — URL-hostile character sweep", () => 
           }
 
           case AIInsightType.TraceLatencyRegression:
-          case AIInsightType.DeployRegression: {
+          case AIInsightType.DeployRegression:
+          case AIInsightType.TraceSlowOperation:
+          case AIInsightType.TraceFailingOperation:
+          case AIInsightType.TraceMissingTracing: {
             /*
              * The traces grammar carries the value in `search`, escaped
              * where a character would otherwise read as an operator, and
@@ -804,6 +1022,19 @@ describe("buildInsightInvestigationLink — URL-hostile character sweep", () => 
               });
 
             expect(carried).toBe(true);
+            break;
+          }
+
+          case AIInsightType.ProfileHotspot: {
+            /*
+             * The Profiler picks a service by its id alone: a finding that
+             * names a service it cannot carry opens the Profiler's
+             * overview, and says the service was dropped.
+             */
+            expect(link!.label).toBe("Open in Profiler");
+            expect(link!.target).toBe("profiles");
+            expect(query.get("serviceId")).toBeNull();
+            expect(link!.dropped).toEqual(["serviceIds"]);
             break;
           }
 

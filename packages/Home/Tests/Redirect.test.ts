@@ -245,6 +245,20 @@ describe("route table wiring", () => {
     expect(
       fs.existsSync(path.join(__dirname, "..", "Scripts", "Install.sh")),
     ).toBe(true);
+
+    /*
+     * What the E2E (Tests/Home/InstallScript.spec.ts) reads from the body
+     * /install.sh serves: a bash shebang and the installer saying what it
+     * installs. Held here on every commit, so a rewrite of the script
+     * updates the E2E with it instead of failing only when a release is cut.
+     */
+    const installer: string = fs.readFileSync(
+      path.join(__dirname, "..", "Scripts", "Install.sh"),
+      "utf-8",
+    );
+
+    expect(installer).toMatch(/^#!(?:\/usr\/bin\/env bash|\/bin\/bash)\n/);
+    expect(installer).toContain("Installs OneUptime with Docker Compose");
   });
 
   test.each([

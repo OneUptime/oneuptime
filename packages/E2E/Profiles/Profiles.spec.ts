@@ -513,14 +513,14 @@ test.describe("Fix with AI", () => {
   });
 
   test.describe("what stands in the way is said in its place", () => {
-    test("no repository connected: Connect GitHub", async ({
+    test("no repository connected: Connect a repository", async ({
       page,
     }: {
       page: Page;
     }) => {
       await openLoaded(page, `${PARSE_ORDER}&repo=none`);
       await expect(page.getByTestId("profiles-fix-connect")).toHaveText(
-        "Connect GitHub to fix this with AI",
+        "Connect a repository to fix this with AI",
       );
       await expect(page.getByTestId("profiles-fix-with-ai")).toHaveCount(0);
     });

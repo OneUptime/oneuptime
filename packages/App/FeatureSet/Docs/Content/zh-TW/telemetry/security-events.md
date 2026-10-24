@@ -39,7 +39,7 @@ flowchart TB
 | **實體** | 事件 | 你的偵測結果中最常提到的使用者、主機和位址 |
 | **關聯分析** | 事件 | 共用同一主機、使用者或 IP 位址的事件構成的圖 |
 | **Detection Rules** | Detections | 依排程執行並開啟案件的 Sigma 規則 |
-| **Rule Library** | Detections | 可直接新增的現成偵測規則，建議的規則會加上標記 |
+| **Rule Library** | Detections | 可直接新增的現成偵測規則，每條都會顯示它讀取的事件以及這些事件是否送達，建議的規則會加上標記 |
 | **Threat Intel** | Detections | 已知惡意指標的 STIX/TAXII 情資來源 |
 | **ATT&CK Coverage** | Detections | 你的規則涵蓋的 MITRE ATT&CK 技術 |
 | **Playbooks** | Playbooks | 在案件上自動或手動執行的步驟 |

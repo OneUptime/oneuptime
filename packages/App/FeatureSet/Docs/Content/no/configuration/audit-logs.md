@@ -101,16 +101,17 @@ Monitorer, hendelser, varsler, statussider, SLO-er og mange andre ressurser har 
 | vCenter-servere | `vCenter` |
 | Pakkeopptak og nedlastingene av dem | `Packet Capture` |
 | Sikkerhetssaker, playbooks og kjøringene deres, og beskyttede enheter | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
+| Eksporter av revisjonsloggen | `Audit Log Export` |
 
 Det registreres også når en administrator legger til eller fjerner en varslingsmetode eller en personlig vaktregel på en annens konto, uten selve adressen eller nummeret.
 
-Andre data er ikke i revisjonsloggen, som hvem som er med i et team, eller en tillatelse som er lagt til et team for seg. Felt som ingen kan lese, som hemmelige nøkler, utelates fra alle oppføringer.
+Andre data er ikke i revisjonsloggen, som hvem som er med i et team, eller en tillatelse som er lagt til et team for seg. Felt som ingen kan lese, utelates fra alle oppføringer, og nøkler, tokener og passord registreres som `[REDACTED]`: oppføringen viser at de er endret, aldri verdien deres.
 
 ## Hvor lenge oppføringer beholdes
 
 Hver oppføring beholdes i den **Oppbevaring (dager)** prosjektet hadde da den ble registrert, og slettes deretter. En ny oppbevaring gjelder for nye oppføringer: oppføringene som allerede er registrert, beholder datoene sine.
 
-For å beholde oppføringer i mer enn 180 dager leser du dem via API-et med en API-nøkkel som har **Read Audit Log**, og lagrer dem der du trenger dem. Se [OneUptime API-referanse](/docs/api-reference/api-reference).
+For å beholde oppføringer i mer enn 180 dager sender du dem etter hvert som de registreres til din egen lagring eller ditt SIEM: se [Eksport av revisjonslogg](/docs/configuration/audit-log-export). Du kan også lese dem via API-et med en API-nøkkel som har **Read Audit Log**, og lagre dem der du trenger dem. Se [OneUptime API-referanse](/docs/api-reference/api-reference).
 
 ## Når abonnementet eller lisensen ikke lenger inkluderer revisjonslogger
 
@@ -130,6 +131,7 @@ Sjekk at ressursen står under [Hva som registreres](#hva-som-registreres), og a
 ## Neste steg
 
 :::cards
+- [Eksport av revisjonslogg](/docs/configuration/audit-log-export): Send revisjonsloggen til din egen lagring eller ditt SIEM.
 - [Brukere, team og tillatelser](/docs/permissions/index): Bestem hvem som kan lese revisjonsloggen.
 - [Prosjektinnstillinger](/docs/configuration/project-settings): Prosjektets andre innstillinger.
 - [Fakturering og bruk](/docs/configuration/billing): Endre prosjektets abonnement.

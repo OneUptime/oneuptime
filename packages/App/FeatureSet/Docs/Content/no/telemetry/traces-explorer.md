@@ -7,6 +7,7 @@ Sporutforskeren finner forespørslene som har gått gjennom tjenestene dine: de 
 - [Les et spor](#les-et-spor): Hvor tiden gikk, og hvilket trinn som feilet.
 - [Vis spannene dine i diagrammer](#vis-spannene-dine-i-diagrammer): Antall forespørsler og svartider, gruppert slik du vil.
 - [Innsikt i spor](#innsikt-i-spor): Feilrater, latens og de tregeste forespørslene.
+- [Finn og rett trege og feilende operasjoner med KI](#finn-og-rett-trege-og-feilende-operasjoner-med-ki): Pull-forespørsler som retter dem og legger til sporingen et spor mangler.
 :::
 
 ## Spor og spans
@@ -23,12 +24,13 @@ flowchart TB
 
 Hver rad i utforskeren er et span, så en travel tjeneste fyller listen med databasespørringer og interne kall. For å vise én rad per forespørsel velger du **Root spans** under **Span-kategori** i sidepanelet.
 
-Utforskeren har fire faner:
+Utforskeren har fem faner:
 
 | Fane | Hva den er til |
 | --- | --- |
 | **Viser** | Søk i og filtrer spans, og åpne sporene deres. Den åpner på siste time, nyeste først, 50 spans per side. |
 | **Innsikt** | Antall forespørsler, feilrater og latens per tjeneste, og forespørslene som er verdt en titt. |
+| **KI** | De trege og feilende operasjonene og den manglende sporingen OneUptime finner i sporene dine, og hva OneUptime AI gjorde med dem. Se [Finn og rett trege og feilende operasjoner med KI](#finn-og-rett-trege-og-feilende-operasjoner-med-ki). |
 | **Oppsettveiledning** | Hvordan du sender spor med OpenTelemetry med en av [inntaksnøklene](/docs/telemetry/ingestion-keys) dine. |
 | **Innstillinger** | Hva som skjer med spans når de kommer inn: **Pipelines**, **Drop-filtre**, **Scrub-regler** og **Opptaksregler**. |
 
@@ -112,6 +114,44 @@ Fanen **Innsikt** oppsummerer forespørslene i et tidsintervall:
 - de siste mislykkede forespørslene, og de tregeste.
 
 Begrens den til bestemte tjenester med nedtrekkslisten ved siden av tidsvelgeren.
+
+## Finn og rett trege og feilende operasjoner med KI
+
+Hver time går OneUptime gjennom sporene fra siste time til hver tjeneste etter operasjoner som er trege, som feiler, eller der sporene ikke kan si hvorfor, og registrerer det den finner som KI-innsikt, med bevisene. Deretter undersøker OneUptime AI hvert funn og åpner en pull-forespørsel som retter det. Ingenting flettes noen gang: teamet ditt gjennomgår hver pull-forespørsel.
+
+En operasjon er en tjenestes spans med samme navn, for eksempel `GET /orders`. OneUptime leser en tjeneste så snart den har sendt minst 100 spans i siste time, og registrerer tre typer funn:
+
+| Funn | Når OneUptime registrerer det | Pull-forespørselen |
+| --- | --- | --- |
+| **Treg operasjon** | Operasjonens P99 er 1 sekund eller mer over minst 20 spans, og den tregeste forespørselen gjentar et mønster som koster reell tid: det samme kallet igjen og igjen, kall etter hverandre som kunne kjørt parallelt, eller ett kall som tar mesteparten av forespørselen. | Gjør operasjonen raskere. |
+| **Feilende operasjon** | Minst 20 av operasjonens spans feilet, 5 % eller flere av dem, og de siste feilene sier hvorfor, med et unntak eller en feilmelding. | Retter årsaken til at den feiler. |
+| **Manglende sporing** | Sporene kan ikke si hvorfor: hver av en tjenestes 500 eller flere spans var roten i sporet sitt, uten noe span fra tjenesten under seg, en treg forespørsel brukte 60 % eller mer av tiden sin (og 500 ms eller mer) i ett span uten noe sporet under seg, eller en operasjons feil registrerte verken en feilmelding eller et unntak. | Legger til sporingen som mangler. |
+
+OneUptime AI åpner bare selv pull-forespørselen for en feilende operasjon når den finner koden som har skylden. En feil som kommer fra et annet sted, for eksempel en avhengighet som er nede, får ingen pull-forespørsel med mindre noen ber om en med **Fiks med AI**.
+
+### Slå det på
+
+**Spor → KI → Innstillinger** har bryteren **Finn og rett trege og feilende operasjoner**, som er på for nye prosjekter. Når **Aktiver AI** er av, blir trege og feilende operasjoner fortsatt funnet, men OneUptime AI gjør ingenting med dem. For å åpne pull-forespørsler trenger OneUptime AI et kodelager koblet til i [Kode](/docs/ai/ai-agent): siden sier først hva som mangler. Koden i hvert kodelager endres på Runneren kodelageret velger i Kode.
+
+OneUptime AI åpner selv høyst 5 pull-forespørsler per dag (UTC), én for hvert funn, og aldri flere enn et kodelagers grense for åpne KI-pull-forespørsler.
+
+### KI-regler
+
+Uten regler undersøker OneUptime AI hvert problem den finner i sporene dine med en gang, og åpner en pull-forespørsel for hvert den kan rette. **AI-regler** under **Flere innstillinger** snevrer det inn, i tre trinn:
+
+| Trinn | Hva det avgjør |
+| --- | --- |
+| **Treff** | Hvilke tjenester: de valgte, de med bestemte etiketter eller de der navnet passer til et mønster. |
+| **Undersøke** | **Med en gang**, eller **Bare hvis fortsatt funnet etter en ventetid**: et problem som forsvinner i ventetiden, blir ikke undersøkt. |
+| **Rettelse** | **Ikke rett**, **Spør før retting** eller **Rett uten å spørre**. Å spørre først overlater pull-forespørselen til en person: funnet tilbyr **Fiks med AI**. |
+
+Under **Flere felt** velger en regel kodelagrene, MCP-serverne og LLM-leverandøren OneUptime AI kan bruke for den. Er ingenting valgt, kan den bruke alle, og prosjektets standard LLM-leverandør.
+
+### Se hva den gjorde
+
+- **Spor → KI → Innsikt** viser hva OneUptime fant, hvert funn med bevisene og **Åpne i Spor**, som åpner spansene det gjelder, fra timen det ble funnet i, i **Viser**. For en feilende operasjon setter **Opprett monitor** opp en spormonitor på de feilede spansene.
+- **Spor → KI → Logger** viser hver undersøkelse og hver pull-forespørsel, nyeste først, med status for hver.
+- I Kode sier oppgaven at OneUptime startet den, med en lenke til funnet, og pull-forespørselen sier hvorfor den ble åpnet.
 
 ## Hva som skjer med spans når de kommer inn
 

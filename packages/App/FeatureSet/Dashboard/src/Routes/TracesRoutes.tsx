@@ -2,6 +2,7 @@ import ComponentProps from "../Pages/PageComponentProps";
 import TracesLayout from "../Pages/Traces/Layout";
 import TracesSettingsLayout from "../Pages/Traces/Settings/Layout";
 import TracesViewLayout from "../Pages/Traces/View/Layout";
+import TracesAILayout from "../Pages/Traces/AI/Layout";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, TracesRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -20,6 +21,10 @@ import TracesSettingsScrubRules from "../Pages/Traces/Settings/ScrubRules";
 import TracesSettingsRecordingRules from "../Pages/Traces/Settings/RecordingRules";
 
 import TraceViewPage from "../Pages/Traces/View/Index";
+import TracesAIInsightsPage from "../Pages/Traces/AI/Insights";
+import TracesAIInsightViewPage from "../Pages/Traces/AI/InsightView";
+import TracesAILogsPage from "../Pages/Traces/AI/Logs";
+import TracesAISettingsPage from "../Pages/Traces/AI/Settings";
 
 const TracesRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -54,6 +59,46 @@ const TracesRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {/* The AI section: what OneUptime found, what it did, its settings. */}
+        <PageRoute element={<TracesAILayout />}>
+          <PageRoute
+            path={TracesRoutePath[PageMap.TRACES_AI_INSIGHTS] || ""}
+            element={
+              <TracesAIInsightsPage
+                {...props}
+                pageRoute={RouteMap[PageMap.TRACES_AI_INSIGHTS] as Route}
+              />
+            }
+          />
+          <PageRoute
+            path={TracesRoutePath[PageMap.TRACES_AI_INSIGHT_VIEW] || ""}
+            element={
+              <TracesAIInsightViewPage
+                {...props}
+                pageRoute={RouteMap[PageMap.TRACES_AI_INSIGHT_VIEW] as Route}
+              />
+            }
+          />
+          <PageRoute
+            path={TracesRoutePath[PageMap.TRACES_AI_LOGS] || ""}
+            element={
+              <TracesAILogsPage
+                {...props}
+                pageRoute={RouteMap[PageMap.TRACES_AI_LOGS] as Route}
+              />
+            }
+          />
+          <PageRoute
+            path={TracesRoutePath[PageMap.TRACES_AI_SETTINGS] || ""}
+            element={
+              <TracesAISettingsPage
+                {...props}
+                pageRoute={RouteMap[PageMap.TRACES_AI_SETTINGS] as Route}
+              />
+            }
+          />
+        </PageRoute>
 
         {/* Settings Routes */}
         <PageRoute element={<TracesSettingsLayout />}>

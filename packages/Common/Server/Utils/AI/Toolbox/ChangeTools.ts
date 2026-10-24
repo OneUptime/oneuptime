@@ -34,6 +34,8 @@ import GitHubCommits, {
 } from "../../CodeRepository/GitHub/GitHubCommits";
 import logger from "../../Logger";
 import { findReadableRepositories } from "./CodeTools";
+import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
+import { CodeHost } from "../../../../Types/CodeRepository/CodeHost";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import {
   ObservabilityTool,
@@ -544,6 +546,18 @@ async function readChangeCode(data: {
     ...(data.serviceName ? { serviceName: data.serviceName } : {}),
     ctx: data.ctx,
   });
+
+  /*
+   * A deploy's commits are read with GitHub's compare API: a repository on
+   * another host says so, rather than no repository matching.
+   */
+  if (
+    repository &&
+    CodeHost.readType(repository.repositoryHostedAt) !==
+      CodeRepositoryType.GitHub
+  ) {
+    return `The change's repository, ${repository.organizationName}/${repository.repositoryName}, is on ${CodeHost.getFacts(repository.repositoryHostedAt).name}. OneUptime lists the commits a deploy shipped for GitHub repositories only, so they are not listed.`;
+  }
 
   if (
     !repository ||

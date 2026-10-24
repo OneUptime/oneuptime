@@ -101,16 +101,17 @@ Monitor, incidenti, avvisi, pagine di stato, SLO e molte altre risorse hanno anc
 | vCenter | `vCenter` |
 | Catture dei pacchetti, e i loro download | `Packet Capture` |
 | Casi di sicurezza, playbook e le loro esecuzioni, ed entità protette | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
+| Esportazioni del registro di audit | `Audit Log Export` |
 
 Viene registrato anche quando un amministratore aggiunge o rimuove un metodo di notifica o una regola di reperibilità personale sull'account di un'altra persona, senza l'indirizzo o il numero stesso.
 
-Altri dati non sono nel registro di audit, come chi fa parte di un team o un permesso aggiunto da solo a un team. I campi che nessuno può leggere, come le chiavi segrete, sono esclusi da ogni voce.
+Altri dati non sono nel registro di audit, come chi fa parte di un team o un permesso aggiunto da solo a un team. I campi che nessuno può leggere sono esclusi da ogni voce, e chiavi, token e password vengono registrati come `[REDACTED]`: la voce mostra che sono cambiati, mai il loro valore.
 
 ## Per quanto tempo restano le voci
 
 Ogni voce resta per la **Conservazione (giorni)** che il progetto aveva quando è stata registrata, poi viene eliminata. Una nuova conservazione vale per le nuove voci: quelle già registrate mantengono le loro date.
 
-Per conservare le voci oltre 180 giorni, leggile tramite l'API con una chiave API che abbia **Read Audit Log** e salvale dove ti servono. Vedi [Riferimento API OneUptime](/docs/api-reference/api-reference).
+Per conservare le voci oltre 180 giorni, inviale man mano che vengono registrate al tuo storage o SIEM: vedi [Esportazione del registro di audit](/docs/configuration/audit-log-export). Puoi anche leggerle tramite l'API con una chiave API che abbia **Read Audit Log** e salvarle dove ti servono. Vedi [Riferimento API OneUptime](/docs/api-reference/api-reference).
 
 ## Quando il piano o la licenza non include più i registri di audit
 
@@ -130,6 +131,7 @@ Controlla che la risorsa sia in [Che cosa viene registrato](#che-cosa-viene-regi
 ## Passi successivi
 
 :::cards
+- [Esportazione del registro di audit](/docs/configuration/audit-log-export): Inviare il registro di audit al proprio storage o SIEM.
 - [Utenti, team e autorizzazioni](/docs/permissions/index): Decidere chi può leggere il registro di audit.
 - [Impostazioni del progetto](/docs/configuration/project-settings): Le altre impostazioni del progetto.
 - [Fatturazione e utilizzo](/docs/configuration/billing): Cambiare il piano del progetto.

@@ -9,6 +9,7 @@ Código é onde você pede à OneUptime AI que trabalhe nos seus repositórios, 
 - [Onde as tarefas de correção começam](#onde-as-tarefas-de-correção-começam): As tarefas que o OneUptime inicia, e o que cada pull request faz.
 - [Telemetria de produção em uma correção](#telemetria-de-produção-em-uma-correção): O que uma correção lê da produção enquanto escreve a alteração.
 - [Revisão de produção de pull requests](#revisão-de-produção-de-pull-requests): O que a produção diz do código que cada pull request altera.
+- [Conectar um repositório](#conectar-um-repositório): GitHub, GitLab, Forgejo ou Gitea, ou qualquer servidor Git.
 - [Antes de começar](#antes-de-começar): Um modelo, um repositório conectado e um Runner.
 - [Quando uma correção falha](#quando-uma-correção-falha): O que acontece com uma execução que falha, trava ou fica esperando.
 :::
@@ -21,7 +22,7 @@ Código é onde você pede à OneUptime AI que trabalhe nos seus repositórios, 
 :::steps
 ### Abra o Código
 
-Abra **Produtos → Código**. Ele abre em **O que a IA deve fazer?**: a caixa onde você pede, com todas as tarefas abaixo, as mais recentes primeiro. Se ainda não houver nenhum repositório, ele oferece **Conectar o GitHub** no lugar (veja [Antes de começar](#antes-de-começar)). **Repositórios**, no menu lateral, lista os repositórios em que a IA pode trabalhar, e agrupa em **Não conectado** os que a GitHub App não alcança mais. A página de cada repositório tem a mesma caixa para aquele repositório.
+Abra **Produtos → Código**. Ele abre em **O que a IA deve fazer?**: a caixa onde você pede, com todas as tarefas abaixo, as mais recentes primeiro. Se ainda não houver nenhum repositório, ele oferece **Conectar o GitHub** no lugar, com GitLab, Forgejo ou Gitea e qualquer servidor Git abaixo (veja [Conectar um repositório](#conectar-um-repositório)). **Repositórios**, no menu lateral, lista os repositórios em que a IA pode trabalhar, e agrupa em **Não conectado** os que o OneUptime não alcança mais. A página de cada repositório tem a mesma caixa para aquele repositório.
 
 ### Escolha o repositório e o branch
 
@@ -204,6 +205,25 @@ Fazer o merge de uma correção não corrige nada até ela rodar. Assim que um p
 
 Até um deploy entregá-la, a correção mostra **Mesclado, aguardando um deploy**, depois **Implantado, em observação em produção** enquanto é observada. Uma que nenhum deploy registrado contém em 14 dias, ou sobre a qual a produção não pode dizer nada, mostra **Não verificado em produção**. [Correções automáticas de código](/docs/ai/ai-sre#correções-automáticas-de-código) traz as regras. Um teste de regressão, um tratamento de erros melhor, uma revisão e uma solicitação no Code não são observados: a produção não consegue mostrar o que eles mudam.
 
+## Conectar um repositório
+
+Abra **Repositórios** no menu lateral do Código e clique em **Conectar repositórios**: o Código pergunta onde está o seu código e conecta cada lugar do seu jeito. O que a IA faz num repositório depende de onde ele está:
+
+| Onde está o código | Como se conecta | O que a IA faz lá |
+| --- | --- | --- |
+| **GitHub** | A GitHub App do OneUptime, instalada nos repositórios que ela escolhe. | Tudo o que esta página descreve, com os comandos do GitHub (veja [GitHub App](/docs/ai/github-app)) e as [revisões de produção](#revisão-de-produção-de-pull-requests). |
+| **GitLab**, no GitLab.com ou no seu | Um token de acesso: um token pessoal, de grupo ou de projeto com os escopos `api` e `write_repository`, e pelo menos o papel Developer. | Tarefas e correções, cada alteração num merge request; o seletor de branch; o código por onde passa um stack trace ou um perfil; se uma correção foi mesclada e o que a produção mostrou depois que ela foi entregue. |
+| **Forgejo ou Gitea**, no Codeberg ou no seu | Um token de acesso com acesso de leitura e escrita aos repositórios e de leitura ao usuário. | O mesmo que no GitLab, cada alteração num pull request. |
+| **Qualquer servidor Git**, por HTTPS | O endereço com que você clona o repositório, um nome de usuário e uma senha ou token de acesso que possa ler o repositório e enviar para ele. | A IA clona o repositório e envia cada alteração para um novo branch, que a resposta dela nomeia: você abre o pull request. No Bitbucket e no Azure DevOps, ela leva até onde você o abre. |
+
+Comandos em comentários e revisões de produção precisam da GitHub App, por isso só funcionam, por enquanto, em repositórios do GitHub, e as **Configurações** do repositório dizem isso.
+
+Para GitLab, Forgejo ou Gitea, insira o endereço do servidor (GitLab.com e Codeberg vêm preenchidos) e o token, e escolha os repositórios a conectar: a lista oferece só aqueles para os quais o token pode enviar, e conectar mais depois pode reaproveitar o token. O OneUptime verifica cada token com o servidor dele antes de guardá-lo, guarda-o criptografado e nunca mais o mostra. As **Configurações** do repositório mostram o servidor, a conta e os últimos caracteres do token, com **Substituir o token de acesso**. Quando o servidor recusa um token expirado ou revogado, os repositórios dele mostram **Token recusado** e a IA para de trabalhar neles, até que substituir o token conecte de novo todos os repositórios que o usam.
+
+### Um servidor Git numa rede privada
+
+O OneUptime Cloud só alcança servidores Git na internet, nunca um endereço privado, de loopback ou link-local. Conecte um servidor que só a sua rede alcança como **Qualquer servidor Git**: o Código diz que não consegue alcançá-lo, e **Conectar mesmo assim** o conecta para um dos seus próprios Runners nessa rede. Escolha esse Runner no cartão **Runner** do repositório (veja [Escolha o Runner do repositório](#escolha-o-runner-do-repositório)). Um Runner global nunca trabalha nele, e o OneUptime não lê nada dele no servidor, então o seletor de branch oferece só o branch principal. Um OneUptime auto-hospedado, e o Runner global dele, alcançam os servidores Git da própria rede.
+
 ## Antes de começar
 
 Uma tarefa precisa de três coisas. A caixa de pedidos do Código e a página **AI Assistance** da exceção verificam as três antes de oferecer o início, e dizem o que falta.
@@ -212,6 +232,7 @@ Uma tarefa precisa de três coisas. A caixa de pedidos do Código e a página **
 | --- | --- | --- |
 | Um provedor de LLM | Nada a configurar: um projeto sem provedor próprio usa o provedor global, pago com os créditos de IA do projeto. Um provedor seu, em **Configurações do projeto → IA → Provedores LLM**, tem prioridade. | Defina uma vez as variáveis de ambiente `GLOBAL_LLM_PROVIDER_*` no servidor, ou adicione um provedor ao projeto. |
 | Um repositório conectado pela GitHub App | **Produtos → Código**, depois **Conectar o GitHub**. Se a app já estiver instalada na conta do GitHub, clique em **Conectar uma instalação existente** em vez disso: instalá-la de novo não a conecta. Requer o plano Growth. | O mesmo, assim que a sua instância tiver uma GitHub App (veja [Integração com o GitHub](/docs/self-hosted/github-integration)). |
+| Ou um repositório no GitLab, Forgejo ou Gitea, ou em qualquer servidor Git | **Repositórios** no Código, depois **Conectar repositórios** (veja [Conectar um repositório](#conectar-um-repositório)). Requer o plano Growth. | O mesmo, sem GitHub App para configurar. |
 | Um Runner que executa correções de código por IA | Nada a operar: um repositório que não escolhe nenhum trabalha nos Runners globais do OneUptime. | O serviço `runner` do Docker Compose, ou o Runner do chart Helm (`runner.enabled`, ativado por padrão), se registra sozinho e executa correções de código por IA em todo repositório que não escolhe nenhum Runner. |
 
 Em uma instância auto-hospedada, o provedor global é um bloco do `config.env` (Docker Compose) ou dos seus valores do Helm. Para um Ollama auto-hospedado:
@@ -284,7 +305,7 @@ Enquanto a correção estiver ativada, uma investigação que termina com uma ca
 
 Todo o resto é igual ao botão:
 
-- O pull request abre pronto para revisão, escrito a partir da análise publicada, e precisa de um repositório conectado pela GitHub App, um dos que as regras correspondentes nomeiam quando nomeiam algum, e de um Runner online para trabalhar nele: o que o repositório escolhe, ou um Runner global.
+- O pull request abre pronto para revisão, escrito a partir da análise publicada, e precisa de um repositório conectado, um dos que as regras correspondentes nomeiam quando nomeiam algum, e de um Runner online para trabalhar nele: o que o repositório escolhe, ou um Runner global.
 - Ele conta para o limite diário de tarefas de correção daquele sinal (**Daily Incident AI Fix Task Limit** ou **Daily Alert AI Fix Task Limit**, em **Mais configurações** na página de configurações de IA dele) e para o teto de pull requests abertos do repositório, quando algum deles está definido. Sem definição, nenhum deles limita nada.
 - Cada gatilho procura primeiro uma tarefa de correção já na fila ou em execução para o mesmo incidente ou alerta, então um gatilho automático e um clique normalmente viram uma única tarefa, não dois pull requests. A verificação é uma leitura antes da escrita, não um bloqueio, então dois gatilhos no mesmo instante ainda podem passar os dois.
 - A execução é escrita pelo sistema, não é atribuída a ninguém, e nada é mesclado sozinho.
@@ -306,12 +327,6 @@ Uma tarefa que espera mais de 30 minutos enquanto o Runner que deve assumi-la n�
 ## Privacidade
 
 O clone do seu repositório fica em um espaço de trabalho dentro do contêiner do Runner e é apagado quando a execução termina, com sucesso ou não. O Runner nunca tem a chave de API do seu provedor de LLM: o servidor do OneUptime faz as chamadas ao LLM por ele, e também executa as consultas de telemetria de produção. O OneUptime não guarda o seu repositório e não treina com o seu código. O log da tarefa guarda os primeiros 300 caracteres da saída de cada passo, para você poder verificar o que o Runner fez, e isso pode incluir trechos de código. Execute um Runner auto-hospedado com o seu próprio provedor de LLM (Ollama local incluído), e o seu código nunca sai da sua infraestrutura.
-
-## No roadmap
-
-Planejado, e **ainda não disponível**:
-
-- **Suporte ao GitLab.** Os repositórios se conectam apenas pela GitHub App.
 
 ## Próximos passos
 

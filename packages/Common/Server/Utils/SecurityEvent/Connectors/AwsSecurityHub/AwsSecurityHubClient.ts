@@ -285,7 +285,8 @@ export interface AwsSecurityHubFindingCount {
  * against AWS's published test vectors, which use service "service".
  */
 export interface AwsSigV4SignInput {
-  method: "GET" | "POST";
+  // PUT is an object upload to S3 (an audit log export's file).
+  method: "GET" | "POST" | "PUT";
   host: string;
   // Absolute path starting with "/", without the query string.
   path: string;
@@ -294,6 +295,12 @@ export interface AwsSigV4SignInput {
   // Headers to sign, Host excluded (it is added from `host`).
   headers?: Dictionary<string> | undefined;
   body: string;
+  /*
+   * The body's SHA-256 (hex), for a body that is bytes rather than text: an
+   * S3 upload signs the hash it sends as x-amz-content-sha256. When it is
+   * set, `body` is not read.
+   */
+  payloadHash?: string | undefined;
   accessKeyId: string;
   secretAccessKey: string;
   sessionToken?: string | undefined;
@@ -556,7 +563,8 @@ export default class AwsSecurityHubClient {
             })
             .join("/");
 
-    const payloadHash: string = AwsSecurityHubClient.sha256Hex(input.body);
+    const payloadHash: string =
+      input.payloadHash || AwsSecurityHubClient.sha256Hex(input.body);
 
     const canonicalRequest: string = [
       input.method,

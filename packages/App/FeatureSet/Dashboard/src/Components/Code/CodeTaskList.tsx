@@ -11,6 +11,7 @@ import CodeMetaList from "./CodeMetaList";
 import { getTaskRoute } from "./CodePaths";
 import {
   CODE_TASK_ASKED_BY,
+  CODE_TASK_STARTED_BY_ONEUPTIME,
   CODE_TASK_STATE_COPY,
   CODE_TASK_STATE_TEXT_CLASS_NAMES,
   getRecipeLabel,
@@ -18,7 +19,8 @@ import {
 } from "./CodeTaskCopy";
 import CodeTaskStateMark from "./CodeTaskStateMark";
 import CodeTimeAgo from "./CodeTimeAgo";
-import { GitHubMark } from "./GitHubConnect";
+import CodeHostMark from "./CodeHostMark";
+import { getPullRequestCopy } from "./CodeHostCopy";
 import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
 import {
   CodeTaskListKind,
@@ -69,7 +71,20 @@ export interface ComponentProps {
    * row then says which repository it is in.
    */
   repositoryNames?: Map<string, string> | undefined;
+  // Where each repository is hosted, by id: the mark beside its name.
+  repositoryHosts?: Map<string, CodeTaskRepositoryHost> | undefined;
+  /*
+   * Where the one repository a list is about is hosted (its own page): how
+   * its rows name a pull request - "MR !12" on GitLab, "PR #12" elsewhere.
+   */
+  repositoryHost?: CodeTaskRepositoryHost | undefined;
   dataTestId?: string | undefined;
+}
+
+// Where a task's repository is hosted, for the mark beside its name.
+export interface CodeTaskRepositoryHost {
+  provider?: string | undefined;
+  hostProduct?: string | undefined;
 }
 
 /*
@@ -213,6 +228,11 @@ const CodeTaskList: FunctionComponent<ComponentProps> = (
                   ? props.repositoryNames.get(task.codeRepositoryId)
                   : undefined
               }
+              repositoryHost={
+                (props.repositoryHosts && task.codeRepositoryId
+                  ? props.repositoryHosts.get(task.codeRepositoryId)
+                  : undefined) || props.repositoryHost
+              }
             />
           );
         })}
@@ -272,9 +292,12 @@ export const CodeTaskRow: FunctionComponent<{
   task: CodeTaskSummaryJSON;
   // The task's repository, named on a list across repositories.
   repositoryName?: string | undefined;
+  // Where it is hosted: the mark beside its name.
+  repositoryHost?: CodeTaskRepositoryHost | undefined;
 }> = (props: {
   task: CodeTaskSummaryJSON;
   repositoryName?: string | undefined;
+  repositoryHost?: CodeTaskRepositoryHost | undefined;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const task: CodeTaskSummaryJSON = props.task;
@@ -311,7 +334,9 @@ export const CodeTaskRow: FunctionComponent<{
         ? translator.translateTemplate(CODE_TASK_ASKED_BY, {
             name: task.origin.label,
           })
-        : ""
+        : task.origin.type === CodeTaskOriginType.Insight
+          ? translator.translateText(CODE_TASK_STARTED_BY_ONEUPTIME) || ""
+          : ""
       : translator.translateText(getRecipeLabel(task.recipe)) || "";
 
   const meta: Array<ReactElement> = [];
@@ -382,7 +407,13 @@ export const CodeTaskRow: FunctionComponent<{
         title={props.repositoryName}
         className="inline-flex min-w-0 items-center gap-1 text-gray-600"
       >
-        <GitHubMark className="h-3 w-3 flex-shrink-0 text-gray-400" />
+        <span className="inline-flex flex-shrink-0 text-gray-400">
+          <CodeHostMark
+            provider={props.repositoryHost?.provider}
+            hostProduct={props.repositoryHost?.hostProduct}
+            className="h-3 w-3"
+          />
+        </span>
         <span className="truncate">{props.repositoryName}</span>
       </span>,
     );
@@ -402,9 +433,12 @@ export const CodeTaskRow: FunctionComponent<{
         className="inline-flex items-center gap-1"
       >
         <GitPullRequestMark className="h-3 w-3 flex-shrink-0" />
-        {translator.translateTemplate("PR #{{number}}", {
-          number: task.pullRequest.number.toString(),
-        })}
+        {translator.translateTemplate(
+          getPullRequestCopy(props.repositoryHost?.provider).short,
+          {
+            number: task.pullRequest.number.toString(),
+          },
+        )}
       </span>,
     );
   }

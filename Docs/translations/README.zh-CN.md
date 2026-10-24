@@ -65,17 +65,14 @@ OneUptime 是一个开源的可观测性平台。它检查你的网站、API 和
 git clone --depth 1 --single-branch --branch release https://github.com/OneUptime/oneuptime.git
 cd oneuptime
 
-# 2. Create your config, with a random value for every secret
+# 2. Create your config
 cp config.example.env config.env
-while grep -q "please-change-this-to-random-value" config.env; do
-  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env
-done
 
 # 3. Start everything
 npm start
 ```
 
-当 `npm start` 输出 **OneUptime is up!** 后，打开 `http://localhost` 或服务器的地址并注册。第一个账号会成为该实例的管理员。
+`npm start` 会先检查服务器，为 `config.env` 中的每个密钥生成各自的随机值，然后启动 OneUptime。当 `npm start` 输出 **OneUptime is up!** 后，打开 `http://localhost` 或服务器的地址并注册。第一个账号会成为该实例的管理员。
 
 [Docker Compose 指南](https://oneuptime.com/docs/zh-CN/installation/docker-compose)介绍了服务器规格、HTTPS、备份和更新。
 

@@ -3,7 +3,7 @@
 使用 Docker Compose 在一台 Linux 伺服器上執行完整、免費的 OneUptime 執行個體。本頁帶你從一台全新的伺服器走到一個執行中的執行個體，接著說明 HTTPS、正式環境強化、備份、更新與移除。如果要開發 OneUptime 本身的程式碼，請參閱 [本機開發](/docs/installation/local-development)。
 
 :::cards
-- [安裝 OneUptime](#安裝-oneuptime): 從全新伺服器到第一個帳號，共六個步驟。
+- [安裝 OneUptime](#安裝-oneuptime): 從全新伺服器到第一個帳號，共五個步驟。
 - [設定 HTTPS](#設定-https): 讓 OneUptime 取得憑證，或在前面放置你自己的代理。
 - [正式環境檢查清單](#正式環境檢查清單): 真實流量進來前需要確定的事項。
 - [更新 OneUptime](#更新-oneuptime): 升級到最新版本。
@@ -92,6 +92,12 @@ flowchart TB
 
 ## 安裝 OneUptime
 
+在全新的 Ubuntu、Debian 或以 RHEL 為基礎的伺服器上，一個指令就能替你完成下面的步驟：它會安裝缺少的 Docker、Git 與 Node.js，把 release 分支複製到 `oneuptime` 資料夾，詢問大家將使用的位址，然後執行 `npm start`：
+
+```bash
+curl -fsSL https://oneuptime.com/install.sh | bash
+```
+
 :::steps
 ### 複製 release 分支
 
@@ -118,18 +124,32 @@ cp config.example.env config.env
 HOST=oneuptime.example.com
 ```
 
+### 啟動 OneUptime
+
+:::tabs
+@tab npm
+```bash
+npm start
+```
+@tab Docker CLI
+```bash
+(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
+```
+第一次啟動前，請依照 [產生隨機密鑰](#產生隨機密鑰) 中的說明自行替換預留位置密鑰：只有 `npm start` 會替你完成這一步。
+:::
+
+`npm start` 會先檢查伺服器：Docker、記憶體、磁碟空間、OneUptime 使用的連接埠以及 `HOST`。遇到任何會讓 OneUptime 無法運作的問題，它都會停下來並說明要改什麼。接著它為 `config.env` 中的每個預留位置密鑰產生各自的隨機值，啟動 OneUptime，並等待每個部分都有回應。第一次啟動需要幾分鐘，因為 Docker 要下載映像檔，OneUptime 要建立資料庫。最後它輸出 **OneUptime is up!** 與要開啟的位址。
+
+### 建立第一個帳號
+
+開啟 `http://` 加上你的 `HOST`（例如 `http://localhost`）並註冊。新執行個體上的第一個帳號會成為它的主要管理員，可以在 `/admin` 開啟 Admin Dashboard。
+
+在你之後，任何能連到該頁面的人都可以註冊。若要阻止這種情況，請開啟 Admin Dashboard，前往 **設定 > 驗證**，並關閉 **允許註冊**。你邀請加入專案的人仍然可以建立帳號。
+:::
+
 ### 產生隨機密鑰
 
-範例檔案附帶的預留位置密鑰在 GitHub 上是公開的。請把每一個都換成各自的隨機值：
-
-```bash
-while grep -q "please-change-this-to-random-value" config.env; do
-  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env
-done
-grep -c "please-change-this" config.env
-```
-
-最後一個指令會輸出 `0`：表示沒有剩下任何預留位置。這個迴圈使用 GNU `sed`，每台 Linux 伺服器都有。它會填入以下設定：
+`config.example.env` 中的每個密鑰都是預留位置，而這些預留位置在 GitHub 上是公開的。`npm start` 會在啟動任何內容之前為每一個產生各自的隨機值，並列出它填入的設定：
 
 | 設定 | 保護的內容 |
 | --- | --- |
@@ -142,29 +162,18 @@ grep -c "please-change-this" config.env
 | `GLOBAL_RUNNER_KEY` | 內建的全域 Runner，執行所有專案的 JavaScript 步驟。 |
 
 > [!IMPORTANT]
-> 請在第一次啟動前設定這些密鑰，之後保持不變。PostgreSQL 只在建立資料庫時採用密碼，而之後變更 `ENCRYPTION_SECRET` 會讓所有以舊密鑰加密的值都無法讀取。如果第一次啟動時 `DATABASE_PASSWORD` 仍是預留位置，`npm start` 會在 PostgreSQL 建立資料庫之前為它設定一個隨機值。
+> OneUptime 啟動後，請保持這些密鑰不變。PostgreSQL 只在建立資料庫時採用密碼，而之後變更 `ENCRYPTION_SECRET` 會讓所有以舊密鑰加密的值都無法讀取。因此 `npm start` 只在全新安裝、PostgreSQL 建立資料庫之前設定 `DATABASE_PASSWORD` 與 `ENCRYPTION_SECRET`。
 
-### 啟動 OneUptime
+如果使用 Docker CLI，請在第一次啟動前自行替換預留位置：
 
-:::tabs
-@tab npm
 ```bash
-npm start
+while grep -q "please-change-this-to-random-value" config.env; do
+  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env
+done
+grep -c "please-change-this" config.env
 ```
-@tab Docker CLI
-```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
-```
-:::
 
-第一次啟動需要幾分鐘：Docker 要下載映像檔，OneUptime 要建立資料庫。`npm start` 會等待每個部分都有回應，最後輸出 **OneUptime is up!**
-
-### 建立第一個帳號
-
-開啟 `http://` 加上你的 `HOST`（例如 `http://localhost`）並註冊。新執行個體上的第一個帳號會成為它的主要管理員，可以在 `/admin` 開啟 Admin Dashboard。
-
-在你之後，任何能連到該頁面的人都可以註冊。若要阻止這種情況，請開啟 Admin Dashboard，前往 **設定 > 驗證**，並關閉 **允許註冊**。你邀請加入專案的人仍然可以建立帳號。
-:::
+最後一個指令會輸出 `0`：表示沒有剩下任何預留位置。這個迴圈使用 GNU `sed`，每台 Linux 伺服器都有。
 
 ## 設定 HTTPS
 
@@ -218,14 +227,14 @@ npm start
 :::steps
 #### 將 ingress 移出連接埠 80 和 443
 
-代理需要連接埠 80 和 443，所以要把 ingress 移到其他連接埠，並且只發布在這台伺服器的回送位址 `127.0.0.1` 上，讓訪客只能透過你的代理連到 OneUptime。探針與 Runner 使用主機的網路，透過 `http://localhost` 連到 OneUptime，因此它們也要一起調整：
+代理需要連接埠 80 和 443，所以要把 ingress 移到其他連接埠，並且只發布在這台伺服器的回送位址 `127.0.0.1` 上，讓訪客只能透過你的代理連到 OneUptime：
 
 ```ini title="config.env"
 ONEUPTIME_HTTP_PORT=127.0.0.1:8080
 STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
-GLOBAL_PROBE_1_ONEUPTIME_URL=http://localhost:8080
-ONEUPTIME_RUNNER_ONEUPTIME_URL=http://localhost:8080
 ```
+
+探針與 Runner 使用主機的網路，透過 `http://localhost` 連到 OneUptime。`npm start` 會把它們改到 ingress 的新連接埠 `http://localhost:8080`，並加以說明。
 
 #### 告訴 OneUptime 它位於代理之後
 
@@ -241,11 +250,10 @@ TRUSTED_PROXY_HOPS=2
 #### 在新連接埠上重新啟動 OneUptime
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
-bash Tests/Scripts/status-check.sh localhost:8080
+npm start
 ```
 
-`npm start` 檢查的是連接埠 80 上的 `http://localhost`，而那裡將是你的代理，所以請自行檢查新連接埠。指令碼最後輸出 **OneUptime is up!**
+`npm start` 會在新連接埠 `localhost:8080` 上檢查 OneUptime，最後輸出 **OneUptime is up!**
 
 #### 設定代理
 
@@ -445,7 +453,7 @@ git pull
 npm run update
 ```
 
-`npm run update` 會詢問你的 sudo 密碼，把 `config.example.env` 中的新設定加入你的 `config.env`（你自己的值保持不變），下載新映像檔並重新啟動 OneUptime。與 `npm start` 一樣，它最後輸出 **OneUptime is up!**
+`npm run update` 會把 `config.example.env` 中的新設定加入你的 `config.env`（你自己的值保持不變），下載新映像檔並重新啟動 OneUptime。與 `npm start` 一樣，它最後輸出 **OneUptime is up!**
 
 升級到新的主要版本（例如從 13 到 14）可能需要更多步驟：開始前請閱讀 [升級 OneUptime](/docs/installation/upgrading)。
 
@@ -472,6 +480,14 @@ npm run down
 
 ## 疑難排解
 
+:::details npm start 在啟動 OneUptime 之前停止
+`npm start` 會先檢查伺服器，遇到任何會讓 OneUptime 無法運作的問題都會停下來：缺少 Docker 或其 Compose 外掛程式、Docker 未執行或你的使用者無權使用、某個連接埠被其他程式占用，或是 `HOST` 為任何瀏覽器都開不了的位址。每一行標有 ✗ 的內容都說明了要改什麼。改好後再次執行 `npm start`。如果某項檢查對你的伺服器判斷有誤，可以略過檢查啟動：
+
+```bash
+ONEUPTIME_SKIP_PREFLIGHT=true npm start
+```
+:::
+
 :::details 執行 npm start 時 Docker 顯示 "permission denied"
 你的使用者無法連到 Docker 精靈程序。把該使用者加入 `docker` 群組，然後登出再重新登入：
 
@@ -481,7 +497,7 @@ sudo usermod -aG docker $USER
 :::
 
 :::details ingress 無法啟動，因為連接埠 80 或 443 已被占用
-伺服器上的另一個程式（通常是網頁伺服器）占用了該連接埠。停止它，或把 ingress 移到其他連接埠，並依照 [使用你自己的反向代理](#使用你自己的反向代理) 中的說明把該程式放在 OneUptime 前面。
+伺服器上的另一個程式（通常是網頁伺服器）占用了該連接埠。`npm start` 會在啟動任何內容之前檢查連接埠，如果占用連接埠的是 Docker 執行的容器，還會列出它的名稱。停止該程式，或把 ingress 移到其他連接埠，並依照 [使用你自己的反向代理](#使用你自己的反向代理) 中的說明把該程式放在 OneUptime 前面。
 :::
 
 :::details npm start 以 "Maximum retries reached" 結束
@@ -492,7 +508,11 @@ npm run ps
 npm run logs
 ```
 
-所有容器都執行後，用 `npm run status-check` 再次執行檢查。如果你把 ingress 移出了連接埠 80，請改為檢查它的新連接埠：`bash Tests/Scripts/status-check.sh localhost:8080`。
+所有容器都執行後，用 `npm run status-check` 再次執行檢查。它會在 `ONEUPTIME_HTTP_PORT` 設定的連接埠上檢查 ingress。
+:::
+
+:::details 瀏覽器顯示 "此位址未設定 OneUptime"
+你是用 `HOST` 以外的位址開啟 OneUptime 的，例如在 `HOST` 仍為 `localhost` 時使用了伺服器的 IP 位址。頁面會顯示與你開啟的位址對應的 `HOST` 行，並提供複製按鈕：把這一行寫入 `config.env`，然後執行 `npm start`。如果你開啟的就是 `HOST` 中的位址，而頁面指出你的代理伺服器沒有傳遞該位址，請讓代理伺服器原樣傳遞瀏覽器要求的主機名稱：Caddy 預設就會這樣做，Nginx 要用 `proxy_set_header Host $host;`，Apache 要用 `ProxyPreserveHost On`。
 :::
 
 :::details 部分頁面能載入，但即時更新或上傳失敗
@@ -521,7 +541,7 @@ npm run logs
 :::
 
 :::details 移動 ingress 連接埠後，內建探針顯示已中斷連線
-Admin Dashboard 在 **設定 > 監控 > 全域探針** 下列出該探針。它透過 `GLOBAL_PROBE_1_ONEUPTIME_URL` 連到 OneUptime，預設值為 `http://localhost`（連接埠 80）。把它設為 ingress 的新連接埠，例如 `http://localhost:8080`，用同樣的方式設定 `ONEUPTIME_RUNNER_ONEUPTIME_URL`，然後重新啟動 OneUptime。
+Admin Dashboard 在 **設定 > 監控 > 全域探針** 下列出該探針。它透過 `GLOBAL_PROBE_1_ONEUPTIME_URL` 連到 OneUptime，預設值為 `http://localhost`（連接埠 80）。只要它與 `ONEUPTIME_RUNNER_ONEUPTIME_URL` 指向 `localhost`，`npm start` 就會把它們改到 ingress 的連接埠。如果你把它們設成其他位址，或是以 Docker CLI 啟動 OneUptime，請把兩者都設為 ingress 的新連接埠，例如 `http://localhost:8080`，然後重新啟動 OneUptime。
 :::
 
 ## 後續步驟

@@ -37,6 +37,16 @@ export default interface EnableAuditLogOn {
    */
   ignoreColumns?: Array<string> | undefined;
   /*
+   * Columns whose VALUES never reach an entry: a change to one is still
+   * recorded - who rotated a monitor's secret key, and when - with
+   * "[REDACTED]" (AUDIT_LOG_REDACTED_VALUE) in place of each value. For
+   * secrets the resource's own readers may see (an API key, a heartbeat
+   * monitor's key) that the audit log - read by other roles too, and
+   * exported out of OneUptime - must not carry. Encrypted and hashed columns
+   * are redacted without being listed (AuditLogRedaction).
+   */
+  redactColumns?: Array<string> | undefined;
+  /*
    * An Entity (many-to-one) column whose target names this row, for rows with
    * no name, title or displayName of their own - an owner row is just a user
    * id or a team id. A user is named by their name, else their email; any

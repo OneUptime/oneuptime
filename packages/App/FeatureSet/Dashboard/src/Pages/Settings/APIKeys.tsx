@@ -43,6 +43,10 @@ import PlanLeftoverPage from "../../Components/Billing/PlanLeftoverPage";
 import PlanLeftoverTable from "../../Components/Billing/PlanLeftoverTable";
 import { PlanLeftoverTitle } from "../../Components/Billing/PlanLeftoverCopy";
 import { API_KEY_REQUIRED_PLAN } from "../../Components/Billing/PlanCutoff";
+import {
+  CUSTOM_ROLES_REQUIRED_PLAN,
+  isEnterpriseFeatureEligible,
+} from "../../Enterprise/EnterpriseEligibility";
 import React, {
   Fragment,
   FunctionComponent,
@@ -83,7 +87,10 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
    * permission of each that a key would hold being one they may hand on,
    * and at least one that a key holds (not every one limited to what
    * someone owns) - as Access cards. Read once, after the page opens: null
-   * until then, and none for someone who may not read them.
+   * until then, and none for someone who may not read them. Giving a custom
+   * role is an Enterprise feature, so none either where the project may not
+   * use custom roles (the Community Edition, or OneUptime Cloud below the
+   * plan): the server would refuse the key the role.
    */
   const [customRoleOptions, setCustomRoleOptions] =
     useState<Array<CardSelectOption> | null>(null);
@@ -91,7 +98,10 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
   useEffect(() => {
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
-    if (!projectId) {
+    if (
+      !projectId ||
+      !isEnterpriseFeatureEligible(CUSTOM_ROLES_REQUIRED_PLAN)
+    ) {
       setCustomRoleOptions([]);
       return;
     }

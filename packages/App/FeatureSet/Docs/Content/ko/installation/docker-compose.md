@@ -3,7 +3,7 @@
 Docker Compose로 완전한 무료 OneUptime 인스턴스를 Linux 서버 한 대에서 실행합니다. 이 페이지는 새 서버에서 인스턴스가 실행되기까지를 안내한 뒤 HTTPS, 프로덕션 강화, 백업, 업데이트, 제거를 다룹니다. 대신 OneUptime 자체의 코드를 개발하려면 [로컬 개발](/docs/installation/local-development) 을 참조하세요.
 
 :::cards
-- [OneUptime 설치](#oneuptime-설치): 새 서버에서 첫 계정까지 여섯 단계.
+- [OneUptime 설치](#oneuptime-설치): 새 서버에서 첫 계정까지 다섯 단계.
 - [HTTPS 설정](#https-설정): OneUptime이 인증서를 받게 하거나, 직접 운영하는 프록시를 앞에 둡니다.
 - [프로덕션 체크리스트](#프로덕션-체크리스트): 실제 트래픽이 들어오기 전에 정리할 것.
 - [OneUptime 업데이트](#oneuptime-업데이트): 최신 릴리스로 옮깁니다.
@@ -92,6 +92,12 @@ flowchart TB
 
 ## OneUptime 설치
 
+새 Ubuntu, Debian 또는 RHEL 계열 서버에서는 명령 하나로 아래 단계를 대신 실행할 수 있습니다. 없는 Docker, Git, Node.js를 설치하고, release 브랜치를 `oneuptime` 폴더에 클론하고, 사람들이 사용할 주소를 물은 다음 `npm start`를 실행합니다.
+
+```bash
+curl -fsSL https://oneuptime.com/install.sh | bash
+```
+
 :::steps
 ### release 브랜치 클론
 
@@ -118,18 +124,32 @@ cp config.example.env config.env
 HOST=oneuptime.example.com
 ```
 
+### OneUptime 시작
+
+:::tabs
+@tab npm
+```bash
+npm start
+```
+@tab Docker CLI
+```bash
+(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
+```
+처음 시작하기 전에 [임의의 비밀 값 생성](#임의의-비밀-값-생성)에 나온 대로 자리 표시자 비밀 값을 직접 바꾸세요. 이 작업을 대신해 주는 것은 `npm start`뿐입니다.
+:::
+
+`npm start`는 먼저 서버를 확인합니다. Docker, 메모리, 디스크 공간, OneUptime이 쓰는 포트, 그리고 `HOST`입니다. OneUptime이 동작하지 못하게 할 문제가 있으면 멈추고 무엇을 바꿔야 하는지 알려 줍니다. 그다음 `config.env`의 자리 표시자 비밀 값마다 고유한 임의 값을 넣고, OneUptime을 시작한 뒤 모든 부분이 응답할 때까지 기다립니다. 첫 시작에는 몇 분이 걸립니다. Docker가 이미지를 내려받고 OneUptime이 데이터베이스를 만들기 때문입니다. 마지막에 열 주소와 함께 다음을 출력합니다: **OneUptime is up!**
+
+### 첫 계정 만들기
+
+`http://` 뒤에 `HOST`를 붙인 주소(예: `http://localhost`)를 열고 가입합니다. 새 인스턴스의 첫 계정은 마스터 관리자가 되며, `/admin`에서 Admin Dashboard를 열 수 있습니다.
+
+페이지에 접근할 수 있는 사람은 누구나 여러분 다음에 가입할 수 있습니다. 이를 막으려면 Admin Dashboard를 열고 **설정 > 인증**으로 가서 **가입 허용**을 끄세요. 프로젝트에 초대한 사람은 여전히 계정을 만들 수 있습니다.
+:::
+
 ### 임의의 비밀 값 생성
 
-예제 파일에는 GitHub에 공개된 자리 표시자 비밀 값이 들어 있습니다. 각각을 고유한 임의 값으로 바꾸세요.
-
-```bash
-while grep -q "please-change-this-to-random-value" config.env; do
-  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env
-done
-grep -c "please-change-this" config.env
-```
-
-마지막 명령은 `0`을 출력합니다. 남은 자리 표시자가 없다는 뜻입니다. 이 반복문은 모든 Linux 서버에 있는 GNU `sed`를 사용합니다. 채워지는 설정은 다음과 같습니다.
+`config.example.env`에는 모든 비밀 값이 GitHub에 공개된 자리 표시자로 들어 있습니다. `npm start`는 무엇이든 시작하기 전에 각각에 고유한 임의 값을 넣고, 채운 설정의 이름을 알려 줍니다.
 
 | 설정 | 보호하는 것 |
 | --- | --- |
@@ -142,29 +162,18 @@ grep -c "please-change-this" config.env
 | `GLOBAL_RUNNER_KEY` | 모든 프로젝트의 JavaScript 단계를 실행하는, 함께 제공되는 글로벌 Runner. |
 
 > [!IMPORTANT]
-> 비밀 값은 처음 시작하기 전에 설정하고, 그 뒤로는 유지하세요. PostgreSQL은 데이터베이스를 만들 때만 비밀번호를 받으며, 나중에 `ENCRYPTION_SECRET`을 바꾸면 이전 값으로 암호화된 모든 값을 읽을 수 없게 됩니다. 처음 시작할 때 `DATABASE_PASSWORD`가 아직 자리 표시자라면, PostgreSQL이 데이터베이스를 만들기 전에 `npm start`가 임의의 값을 넣습니다.
+> OneUptime이 시작된 뒤에는 비밀 값을 유지하세요. PostgreSQL은 데이터베이스를 만들 때만 비밀번호를 받으며, 나중에 `ENCRYPTION_SECRET`을 바꾸면 이전 값으로 암호화된 모든 값을 읽을 수 없게 됩니다. 그래서 `npm start`는 새로 설치할 때, PostgreSQL이 데이터베이스를 만들기 전에만 `DATABASE_PASSWORD`와 `ENCRYPTION_SECRET`을 설정합니다.
 
-### OneUptime 시작
+Docker CLI를 쓴다면 처음 시작하기 전에 자리 표시자를 직접 바꾸세요.
 
-:::tabs
-@tab npm
 ```bash
-npm start
+while grep -q "please-change-this-to-random-value" config.env; do
+  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env
+done
+grep -c "please-change-this" config.env
 ```
-@tab Docker CLI
-```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
-```
-:::
 
-첫 시작에는 몇 분이 걸립니다. Docker가 이미지를 내려받고 OneUptime이 데이터베이스를 만들기 때문입니다. `npm start`는 모든 부분이 응답할 때까지 기다린 뒤 마지막에 다음을 출력합니다: **OneUptime is up!**
-
-### 첫 계정 만들기
-
-`http://` 뒤에 `HOST`를 붙인 주소(예: `http://localhost`)를 열고 가입합니다. 새 인스턴스의 첫 계정은 마스터 관리자가 되며, `/admin`에서 Admin Dashboard를 열 수 있습니다.
-
-페이지에 접근할 수 있는 사람은 누구나 여러분 다음에 가입할 수 있습니다. 이를 막으려면 Admin Dashboard를 열고 **설정 > 인증**으로 가서 **가입 허용**을 끄세요. 프로젝트에 초대한 사람은 여전히 계정을 만들 수 있습니다.
-:::
+마지막 명령은 `0`을 출력합니다. 남은 자리 표시자가 없다는 뜻입니다. 이 반복문은 모든 Linux 서버에 있는 GNU `sed`를 사용합니다.
 
 ## HTTPS 설정
 
@@ -218,14 +227,14 @@ npm start
 :::steps
 #### ingress를 포트 80과 443에서 옮기기
 
-프록시에 포트 80과 443이 필요하므로 ingress를 다른 포트로 옮기고, 이 서버의 루프백 주소 `127.0.0.1`에서만 공개해 방문자가 프록시를 통해서만 OneUptime에 닿게 합니다. 프로브와 Runner는 호스트의 네트워크를 사용해 `http://localhost`로 OneUptime에 접근하므로 함께 옮겨집니다.
+프록시에 포트 80과 443이 필요하므로 ingress를 다른 포트로 옮기고, 이 서버의 루프백 주소 `127.0.0.1`에서만 공개해 방문자가 프록시를 통해서만 OneUptime에 닿게 합니다.
 
 ```ini title="config.env"
 ONEUPTIME_HTTP_PORT=127.0.0.1:8080
 STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
-GLOBAL_PROBE_1_ONEUPTIME_URL=http://localhost:8080
-ONEUPTIME_RUNNER_ONEUPTIME_URL=http://localhost:8080
 ```
+
+프로브와 Runner는 호스트의 네트워크를 사용해 `http://localhost`로 OneUptime에 접근합니다. `npm start`가 이들을 ingress의 새 포트인 `http://localhost:8080`으로 옮기고 그 사실을 알려 줍니다.
 
 #### OneUptime에 프록시 뒤에 있다고 알리기
 
@@ -241,11 +250,10 @@ TRUSTED_PROXY_HOPS=2
 #### 새 포트로 OneUptime 다시 시작
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
-bash Tests/Scripts/status-check.sh localhost:8080
+npm start
 ```
 
-`npm start`는 포트 80의 `http://localhost`를 확인하는데, 그 자리에는 프록시가 들어가므로 새 포트는 직접 확인하세요. 스크립트는 마지막에 다음을 출력합니다: **OneUptime is up!**
+`npm start`는 새 포트 `localhost:8080`에서 OneUptime을 확인하고 마지막에 다음을 출력합니다: **OneUptime is up!**
 
 #### 프록시 구성
 
@@ -445,7 +453,7 @@ git pull
 npm run update
 ```
 
-`npm run update`는 sudo 비밀번호를 묻고, `config.example.env`의 새 설정을 `config.env`에 추가하며(직접 넣은 값은 그대로 남습니다), 새 이미지를 받아 OneUptime을 다시 시작합니다. `npm start`처럼 마지막에 다음을 출력합니다: **OneUptime is up!**
+`npm run update`는 `config.example.env`의 새 설정을 `config.env`에 추가하며(직접 넣은 값은 그대로 남습니다), 새 이미지를 받아 OneUptime을 다시 시작합니다. `npm start`처럼 마지막에 다음을 출력합니다: **OneUptime is up!**
 
 새 메이저 버전으로 옮길 때(예: 13에서 14로)는 더 많은 작업이 필요할 수 있습니다. 시작하기 전에 [OneUptime 업그레이드](/docs/installation/upgrading)를 읽으세요.
 
@@ -472,6 +480,14 @@ npm run down
 
 ## 문제 해결
 
+:::details npm start가 OneUptime을 시작하기 전에 멈춤
+`npm start`는 먼저 서버를 확인하고, OneUptime이 동작하지 못하게 할 문제가 있으면 멈춥니다. Docker나 Compose 플러그인이 없거나, Docker가 실행 중이 아니거나 사용자가 쓸 수 없거나, 다른 프로그램이 포트를 쓰고 있거나, `HOST`가 어떤 브라우저도 열 수 없는 주소인 경우입니다. ✗로 표시된 줄마다 무엇을 바꿔야 하는지 나와 있습니다. 고친 다음 `npm start`를 다시 실행하세요. 검사가 서버를 잘못 판단한다면 검사 없이 시작하세요.
+
+```bash
+ONEUPTIME_SKIP_PREFLIGHT=true npm start
+```
+:::
+
 :::details npm start를 실행하면 Docker가 "permission denied"를 표시함
 사용자가 Docker 데몬에 접근할 수 없습니다. 사용자를 `docker` 그룹에 추가한 뒤 로그아웃했다가 다시 로그인하세요.
 
@@ -481,7 +497,7 @@ sudo usermod -aG docker $USER
 :::
 
 :::details 포트 80 또는 443이 사용 중이라 ingress를 시작할 수 없음
-서버의 다른 프로그램(대개 웹 서버)이 포트를 쓰고 있습니다. 그 프로그램을 멈추거나, ingress를 다른 포트로 옮기고 [직접 운영하는 리버스 프록시 사용](#직접-운영하는-리버스-프록시-사용)에 설명된 대로 그 프로그램을 OneUptime 앞에 두세요.
+서버의 다른 프로그램(대개 웹 서버)이 포트를 쓰고 있습니다. `npm start`는 무엇이든 시작하기 전에 포트를 확인하고, 포트를 쓰는 것이 Docker 컨테이너라면 그 이름을 알려 줍니다. 그 프로그램을 멈추거나, ingress를 다른 포트로 옮기고 [직접 운영하는 리버스 프록시 사용](#직접-운영하는-리버스-프록시-사용)에 설명된 대로 그 프로그램을 OneUptime 앞에 두세요.
 :::
 
 :::details npm start가 "Maximum retries reached"로 끝남
@@ -492,7 +508,11 @@ npm run ps
 npm run logs
 ```
 
-모든 컨테이너가 실행되면 `npm run status-check`로 검사를 다시 실행합니다. ingress를 포트 80에서 옮겼다면 대신 새 포트를 확인하세요: `bash Tests/Scripts/status-check.sh localhost:8080`.
+모든 컨테이너가 실행되면 `npm run status-check`로 검사를 다시 실행합니다. 이 검사는 `ONEUPTIME_HTTP_PORT`가 정한 포트에서 ingress를 확인합니다.
+:::
+
+:::details 브라우저에 "이 주소에는 OneUptime이 설정되어 있지 않습니다"가 표시됨
+OneUptime을 `HOST`가 아닌 주소로 열었습니다. 예를 들어 `HOST`가 아직 `localhost`인데 서버의 IP 주소로 연 경우입니다. 페이지에는 연 주소에 맞는 `HOST` 줄과 그 줄을 복사하는 버튼이 나옵니다. 그 줄을 `config.env`에 넣고 `npm start`를 실행하세요. `HOST`의 주소로 열었는데 프록시가 주소를 전달하지 않았다고 페이지에 나온다면, 브라우저가 요청한 호스트 이름을 그대로 전달하도록 프록시를 설정하세요. Caddy는 기본으로 그렇게 하고, Nginx는 `proxy_set_header Host $host;`로, Apache는 `ProxyPreserveHost On`으로 전달합니다.
 :::
 
 :::details 일부 페이지는 열리지만 실시간 업데이트나 업로드가 실패함
@@ -521,7 +541,7 @@ Let's Encrypt가 인증서를 발급하기 전까지 ingress는 임시 자체 �
 :::
 
 :::details ingress 포트를 옮긴 뒤 함께 제공되는 프로브가 연결 끊김으로 표시됨
-Admin Dashboard는 **설정 > 모니터링 > 글로벌 프로브**에서 프로브를 보여 줍니다. 프로브는 `GLOBAL_PROBE_1_ONEUPTIME_URL`로 OneUptime에 접근하며, 기본값은 `http://localhost`(포트 80)입니다. 이를 ingress의 새 포트(예: `http://localhost:8080`)로 설정하고, `ONEUPTIME_RUNNER_ONEUPTIME_URL`도 같은 방식으로 설정한 뒤 OneUptime을 다시 시작하세요.
+Admin Dashboard는 **설정 > 모니터링 > 글로벌 프로브**에서 프로브를 보여 줍니다. 프로브는 `GLOBAL_PROBE_1_ONEUPTIME_URL`로 OneUptime에 접근하며, 기본값은 `http://localhost`(포트 80)입니다. 이 값과 `ONEUPTIME_RUNNER_ONEUPTIME_URL`이 `localhost`를 가리키는 동안에는 `npm start`가 ingress의 포트로 옮겨 줍니다. 다른 주소로 설정했거나 Docker CLI로 OneUptime을 시작했다면, 둘 다 ingress의 새 포트(예: `http://localhost:8080`)로 설정한 뒤 OneUptime을 다시 시작하세요.
 :::
 
 ## 다음 단계

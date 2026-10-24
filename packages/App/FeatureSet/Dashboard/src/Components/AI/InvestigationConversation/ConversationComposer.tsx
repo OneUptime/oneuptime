@@ -35,6 +35,13 @@ export interface ComponentProps {
   label: string;
   permissionMode: AIChatPermissionMode;
   onPermissionModeChange: (mode: AIChatPermissionMode) => void;
+  /*
+   * A new number when the reader asked to type here - the AI card's one
+   * line, pressed Ask OneUptime AI: the box takes the focus then, once for
+   * each number. 0 or left out never moves the focus, so a page that loads
+   * with the composer on it does not jump to it.
+   */
+  focusRequest?: number | undefined;
 }
 
 const MAX_TEXTAREA_HEIGHT_PX: number = 160;
@@ -76,6 +83,19 @@ const ConversationComposer: FunctionComponent<ComponentProps> = (
       MAX_TEXTAREA_HEIGHT_PX,
     )}px`;
   }, [props.value]);
+
+  // The last focus request the box has answered.
+  const handledFocusRequestRef: React.MutableRefObject<number> =
+    useRef<number>(0);
+
+  useEffect(() => {
+    const request: number = props.focusRequest || 0;
+
+    if (request > handledFocusRequestRef.current) {
+      handledFocusRequestRef.current = request;
+      textareaRef.current?.focus();
+    }
+  }, [props.focusRequest]);
 
   const isSendable: boolean = Boolean(props.value.trim()) && props.canSend;
 

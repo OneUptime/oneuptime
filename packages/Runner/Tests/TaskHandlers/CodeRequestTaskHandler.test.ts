@@ -417,6 +417,194 @@ describe("a first request", () => {
   });
 });
 
+/*
+ * A task OneUptime started on its own, from slow code it found in a
+ * service's profiles (Types/AI/TelemetryAi): its pull request says why it
+ * was opened, linked to the finding, and its prompt says nobody is waiting -
+ * change nothing rather than guess.
+ */
+// A "](" that is not escaped: the end of a link's words and its address.
+const UNESCAPED_LINK: RegExp = /[^\\]\]\(/u;
+
+describe("a task OneUptime started on its own", () => {
+  const FINDING_URL: string =
+    "https://oneuptime.example/dashboard/p/ai/insights/9a5b8c7d-1e2f-4a3b-8c4d-6e7f8a9b0c1d";
+
+  function startedByOneUptime(
+    overrides: Partial<CodeTaskAgentDetails> = {},
+  ): CodeTaskAgentDetails {
+    const value: CodeTaskAgentDetails = details({
+      taskTitle: "Make OrderParser.parse faster",
+      startedBy: {
+        finding: "OrderParser.parse takes 18% of the CPU time in checkout",
+        findingUrl: FINDING_URL,
+      },
+      ...overrides,
+    });
+
+    // Nobody asked - unless a later turn's person did.
+    if (!overrides.requestedBy) {
+      delete value.requestedBy;
+    }
+
+    return value;
+  }
+
+  test("its pull request says why it was opened, linked to the finding, and where to reply", async () => {
+    const origin: string = makeOrigin();
+    const harness: Harness = setUp({
+      origin,
+      details: startedByOneUptime(),
+      script: ADD_RETRY,
+    });
+
+    const result: TaskResult = await new CodeRequestTaskHandler().execute(
+      harness.context,
+    );
+
+    expect(result.pullRequestsCreated).toBe(1);
+
+    const body: string = (
+      harness.createPullRequest.mock.calls[0]![0] as { body: string }
+    ).body;
+
+    expect(body).toContain("### Why this pull request");
+    expect(body).toContain(
+      "OneUptime found this in your production telemetry and started this task on its own: **OrderParser.parse takes 18% of the CPU time in checkout** ([see what it found](" +
+        FINDING_URL +
+        ")).",
+    );
+    expect(body).toContain(
+      "Started by OneUptime (task #42): [open the task](https://oneuptime.example/dashboard/p/code/tasks/" +
+        TASK_ID +
+        "). Reply there to ask for changes",
+    );
+    expect(body).toContain("Nothing is merged automatically.");
+    expect(body).not.toContain("Requested by");
+  });
+
+  test("its prompt says OneUptime started it, what was found, and to change nothing rather than guess", async () => {
+    const origin: string = makeOrigin();
+    const harness: Harness = setUp({
+      origin,
+      details: startedByOneUptime(),
+      script: ADD_RETRY,
+    });
+
+    await new CodeRequestTaskHandler().execute(harness.context);
+
+    const prompt: string = harness.prompts[0]!;
+
+    expect(prompt).toContain(
+      'on a task OneUptime started on its own after it found this in the project\'s telemetry: "OrderParser.parse takes 18% of the CPU time in checkout".',
+    );
+    expect(prompt).toContain("say so and change nothing");
+    expect(prompt).not.toContain("at the request of");
+  });
+
+  test("a later turn a person asked is theirs, and the pull request still says why the task began", () => {
+    const value: CodeTaskAgentDetails = startedByOneUptime({
+      requestedBy: "Jane Doe",
+    });
+
+    expect(CodeRequestTaskHandler.describeWhoAsked(value)).toContain(
+      "at the request of Jane Doe",
+    );
+
+    const body: string = CodeRequestTaskHandler.buildPullRequestBody(
+      value,
+      "Batched the parse.",
+    );
+
+    expect(body).toContain("### Why this pull request");
+    expect(body).toContain("Requested by Jane Doe in OneUptime (task #42)");
+  });
+
+  /*
+   * A rule that asks before fixing leaves the pull request to a person, who
+   * starts it from the finding: the request is theirs, and its pull request
+   * says what OneUptime found - without claiming OneUptime started it.
+   */
+  test("a task a person started from the finding: theirs, saying what OneUptime found", () => {
+    const value: CodeTaskAgentDetails = startedByOneUptime({
+      requestedBy: "Jane Doe",
+    });
+
+    const section: string = CodeRequestTaskHandler.buildStartedBySection(value);
+
+    expect(section).toContain(
+      "OneUptime found this in your production telemetry: **OrderParser.parse takes 18% of the CPU time in checkout** ([see what it found](" +
+        FINDING_URL +
+        ")).",
+    );
+    expect(section).not.toContain("started this task on its own");
+
+    const body: string = CodeRequestTaskHandler.buildPullRequestBody(
+      value,
+      "Batched the parse.",
+    );
+
+    expect(body).toContain("Requested by Jane Doe in OneUptime (task #42)");
+    expect(body).not.toContain("Started by OneUptime");
+  });
+
+  /*
+   * The commit names who it is for once: the UI review found "Started by
+   * OneUptime in OneUptime (task #42)." on every commit OneUptime made.
+   */
+  test("its commit says OneUptime started it, once", () => {
+    const message: string =
+      CodeRequestTaskHandler.buildCommitMessage(startedByOneUptime());
+
+    expect(message).toContain("Started by OneUptime (task #42).");
+    expect(message).not.toContain("in OneUptime");
+    expect(message).not.toContain("Requested");
+  });
+
+  test("a commit for a person still says who asked, and where", () => {
+    expect(
+      CodeRequestTaskHandler.buildCommitMessage(
+        startedByOneUptime({ requestedBy: "Jane Doe" }),
+      ),
+    ).toContain("Requested in OneUptime (task #42) by Jane Doe.");
+    expect(
+      CodeRequestTaskHandler.buildCommitMessage(
+        details({ requestedBy: "Jane Doe" }),
+      ),
+    ).toContain("Requested in OneUptime (task #42) by Jane Doe.");
+  });
+
+  test("a task a person asked for says nothing of OneUptime's reasons", () => {
+    expect(CodeRequestTaskHandler.buildStartedBySection(details())).toBe("");
+    expect(
+      CodeRequestTaskHandler.buildPullRequestBody(details(), "Done."),
+    ).not.toContain("Why this pull request");
+  });
+
+  test("the finding is placed as text: what it holds never becomes Markdown, and only a web address is linked", () => {
+    const section: string = CodeRequestTaskHandler.buildStartedBySection(
+      startedByOneUptime({
+        startedBy: {
+          finding: "a*b](javascript:alert(1)) [x](y)\n# heading",
+          findingUrl: "javascript:alert(1)",
+        },
+      }),
+    );
+
+    // Every bracket it holds is escaped: no link is made of it.
+    expect(section).not.toMatch(UNESCAPED_LINK);
+    expect(section).toContain("\\](javascript:");
+    expect(section).not.toContain("see what it found");
+    expect(section).toContain("a\\*b\\]");
+    // The finding stays on one line: no heading of its own.
+    expect(
+      section.split("\n").filter((line: string): boolean => {
+        return line.startsWith("# ");
+      }),
+    ).toEqual([]);
+  });
+});
+
 describe("a reply", () => {
   test("builds on the task's open pull request: same branch, one more commit, nothing new opened", async () => {
     const origin: string = makeOrigin();

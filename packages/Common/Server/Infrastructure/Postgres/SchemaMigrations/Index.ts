@@ -183,6 +183,13 @@ import { MergeDuplicateHostsAndAddUniqueHostIdentifier1806700000000 } from "./18
 import { AddNetworkDeviceDiscoveredDetails1806800000000 } from "./1806800000000-AddNetworkDeviceDiscoveredDetails";
 import { AddAiRuleInvestigation1806900000000 } from "./1806900000000-AddAiRuleInvestigation";
 import { MergeInvestigationRulesIntoAiRules1806910000000 } from "./1806910000000-MergeInvestigationRulesIntoAiRules";
+import { AddCodeRepositoryConnections1807000000000 } from "./1807000000000-AddCodeRepositoryConnections";
+import { AddCodeRepositoryConnectionIndexAndKey1807010000000 } from "./1807010000000-AddCodeRepositoryConnectionIndexAndKey";
+import { AddNetworkControllerConnection1807020000000 } from "./1807020000000-AddNetworkControllerConnection";
+import { AddProfileAiRules1807030000000 } from "./1807030000000-AddProfileAiRules";
+import { AddAiContext1807100000000 } from "./1807100000000-AddAiContext";
+import { AddAuditLogExport1807110000000 } from "./1807110000000-AddAuditLogExport";
+import { AddTraceAiSwitch1807120000000 } from "./1807120000000-AddTraceAiSwitch";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1568,4 +1575,11 @@ export default [
   AddNetworkDeviceDiscoveredDetails1806800000000,
   AddAiRuleInvestigation1806900000000,
   MergeInvestigationRulesIntoAiRules1806910000000,
+  AddCodeRepositoryConnections1807000000000,
+  AddCodeRepositoryConnectionIndexAndKey1807010000000,
+  AddNetworkControllerConnection1807020000000,
+  AddProfileAiRules1807030000000,
+  AddAiContext1807100000000,
+  AddAuditLogExport1807110000000,
+  AddTraceAiSwitch1807120000000,
 ];

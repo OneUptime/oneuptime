@@ -398,11 +398,15 @@ describe("one-switch cards in the frontends", () => {
       }),
     ).toEqual([]);
 
-    // The walk really reads the dashboards' pages (Sharing's IP allowlist).
+    /*
+     * The walk really reads the dashboards' pages (Overview's card). Sharing's
+     * IP allowlist, the card this used to count, is an Enterprise card now
+     * (ee/Dashboard/IpAllowlists).
+     */
     expect(
       forms.filter((form: FormFacts): boolean => {
         return (
-          form.file === `${DASHBOARD}/Pages/Dashboards/View/Sharing.tsx` &&
+          form.file === `${DASHBOARD}/Pages/Dashboards/View/Overview.tsx` &&
           isCard(form)
         );
       }).length,

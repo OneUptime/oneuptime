@@ -20,8 +20,10 @@ import { getAiRuleShapeProblem } from "../../Types/AI/AiRule";
 import {
   AI_RULE_CRITERIA_FIELDS,
   getAiRuleCriteriaProblem,
+  hasAiRuleCriterionValue,
 } from "../../Types/AI/AiRuleCriteria";
 import { getInvestigationRuleWaitProblem } from "../../Types/AI/InvestigationRuleWait";
+import { AiContextOwner, getAiContextProblem } from "../../Types/AI/AiContext";
 
 // The keys a write names the rule's Runner by: the id, or the relation.
 const RUNNER_KEYS: Array<string> = ["runnerId", "runner"];
@@ -85,10 +87,28 @@ export class Service extends ProjectReferencesService<Model> {
 
     Service.assertWaitFits(data.onlyIfOpenAfterMinutes);
 
+    Service.assertAiContextFits(data.aiContext);
+
     Service.assertCriteriaFitTrigger({
       triggerEntityType: data.triggerEntityType,
       data: data as unknown as Record<string, unknown>,
     });
+  }
+
+  /*
+   * A rule's AI context (Types/AI/AiContext) is text, or nothing, of at
+   * most AI_RULE_AI_CONTEXT_MAX_CHARACTERS - the limit the rule form counts
+   * against as it is written. Refused, never cut.
+   */
+  public static assertAiContextFits(value: unknown): void {
+    const problem: string | null = getAiContextProblem({
+      value,
+      owner: AiContextOwner.AiRule,
+    });
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
   }
 
   /*
@@ -148,8 +168,7 @@ export class Service extends ProjectReferencesService<Model> {
     return (
       (data["criteria"] !== undefined && data["criteria"] !== null) ||
       AI_RULE_CRITERIA_FIELDS.some((field: string): boolean => {
-        const value: unknown = data[field];
-        return Array.isArray(value) && value.length > 0;
+        return hasAiRuleCriterionValue(field, data[field]);
       })
     );
   }
@@ -266,6 +285,11 @@ export class Service extends ProjectReferencesService<Model> {
     // An edit that leaves the wait alone is not judged on it.
     if (data["onlyIfOpenAfterMinutes"] !== undefined) {
       Service.assertWaitFits(data["onlyIfOpenAfterMinutes"]);
+    }
+
+    // Nor one that leaves the AI context alone.
+    if (data["aiContext"] !== undefined) {
+      Service.assertAiContextFits(data["aiContext"]);
     }
 
     if (

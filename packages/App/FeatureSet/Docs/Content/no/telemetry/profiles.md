@@ -321,6 +321,39 @@ Fanen **Profil** for et span inneholder også samplene som er knyttet til spans 
 
 Siden for et spor lenker også til profilereren for sporets tjeneste i de 15 minuttene før og etter, når tjenesten ble profilert da, og siden **Ytelsesprofiler** for en tjeneste eller en vert åpner profilereren for den tjenesten eller verten.
 
+## Finn og rett treg kode med KI
+
+Hver time går OneUptime gjennom profilene til hver tjeneste etter din egen kode som bruker en stor eller økende del av tjenestens tid, og registrerer det den finner som KI-innsikt, med bevisene. Deretter undersøker OneUptime AI hvert funn og åpner en pull-forespørsel som gjør koden lettere. Ingenting flettes noen gang: teamet ditt gjennomgår hver pull-forespørsel.
+
+En funksjon i din egen kode registreres når tjenesten har sendt minst 500 samples den siste timen, funksjonen minst 50 av dem, og:
+
+- den bruker minst 10 % av tjenestens CPU-tid eller veggklokketid den siste timen, eller
+- andelen har økt med 5 poeng eller mer siden samme time dagen før, til minst 5 %.
+
+### Slå det på
+
+**Produkter → Ytelsesprofiler → KI → Innstillinger** har bryteren **Finn og rett treg kode**, som er på for nye prosjekter. Når **Aktiver AI** er av, blir treg kode fortsatt funnet, men OneUptime AI gjør ingenting med den. For å åpne pull-forespørsler trenger OneUptime AI et kodelager koblet til i [Kode](/docs/ai/ai-agent): siden sier først hva som mangler. Koden i hvert kodelager endres på Runneren kodelageret velger i Kode.
+
+OneUptime AI åpner selv høyst 5 pull-forespørsler per dag (UTC), én for hvert funn, og aldri flere enn et kodelagers grense for åpne KI-pull-forespørsler.
+
+### KI-regler
+
+Uten regler undersøker OneUptime AI all treg kode den finner med en gang, og åpner en pull-forespørsel for hver. **AI-regler** under **Flere innstillinger** snevrer det inn, i tre trinn:
+
+| Trinn | Hva det avgjør |
+| --- | --- |
+| **Treff** | Hvilke tjenester: de valgte, de med bestemte etiketter eller de der navnet passer til et mønster. |
+| **Undersøke** | **Med en gang**, eller **Bare hvis fortsatt funnet etter en ventetid**: treg kode som forsvinner i ventetiden, blir ikke undersøkt. |
+| **Rettelse** | **Ikke rett**, **Spør før retting** eller **Rett uten å spørre**. Å spørre først overlater pull-forespørselen til en person: funnet tilbyr **Fiks med AI**. |
+
+Under **Flere felt** velger en regel kodelagrene, MCP-serverne og LLM-leverandøren OneUptime AI kan bruke for den. Er ingenting valgt, kan den bruke alle, og prosjektets standard LLM-leverandør.
+
+### Se hva den gjorde
+
+- **Produkter → Ytelsesprofiler → KI → Innsikt** viser den trege koden som er funnet, hvert funn med bevisene og **Åpne i Profilering**.
+- **Produkter → Ytelsesprofiler → KI → Logger** viser hver undersøkelse og hver pull-forespørsel, nyeste først, med status for hver.
+- I Kode sier oppgaven at OneUptime startet den, med en lenke til funnet, og pull-forespørselen sier hvorfor den ble åpnet.
+
 ## Dataoppbevaring
 
 Profiler oppbevares like lenge som prosjektets telemetri: **Prosjektinnstillinger → Telemetri og APM → Dataoppbevaring** setter **Standard oppbevaring (dager)**, 15 dager med mindre du endrer det. Data slettes automatisk når oppbevaringsperioden er over. Abonnementer med unntak for oppbevaring kan også beholde profiler lenger eller kortere enn annen telemetri, eller sette oppbevaring per tjeneste på tjenestens side **Innstillinger**.

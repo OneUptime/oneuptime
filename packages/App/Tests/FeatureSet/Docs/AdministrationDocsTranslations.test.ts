@@ -6,6 +6,7 @@ import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import {
   ADMINISTRATION_PAGES,
   AUDIT_LOGS,
+  AUDIT_LOG_EXPORT,
   AdministrationDocsPageEntry,
   BILLING,
   DIAGRAM_KINDS,
@@ -116,6 +117,7 @@ const WIDEST_DIAGRAM_LINE: Record<string, ReadonlyArray<number>> = {
   [PROJECT_SETTINGS]: [26],
   [BILLING]: [26],
   [AUDIT_LOGS]: [26],
+  [AUDIT_LOG_EXPORT]: [26],
 };
 
 /*
@@ -450,7 +452,7 @@ function navGroup(title: string): NavGroup {
 }
 
 describe("the lists this test keeps", () => {
-  it("name only the four pages", () => {
+  it("name only these pages", () => {
     for (const lists of [
       KEPT_AS_WRITTEN,
       PERMISSION_TITLES,

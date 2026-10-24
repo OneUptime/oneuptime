@@ -11,7 +11,7 @@ Ask AI is OneUptime's chat over your project's data. Ask it about logs, traces, 
 
 ## How Ask AI answers
 
-Ask AI answers only from what its tools return: it runs queries against your project rather than answering from memory. Each fact in an answer carries a citation chip that shows the query behind it and opens the data it read. When you ask it to change something, the conversation's permission mode decides whether it asks you first.
+Ask AI answers only from what its tools return: it runs queries against your project rather than answering from memory. Each fact in an answer carries a citation chip that shows the query behind it and opens the data it read. When you ask it to change something, the conversation's permission mode decides whether it asks you first. Before your question, it reads the project's [AI context](/docs/ai/ai-context): what your team wrote down for OneUptime AI about your own systems.
 
 ```mermaid title="From a question to a cited answer"
 flowchart TB

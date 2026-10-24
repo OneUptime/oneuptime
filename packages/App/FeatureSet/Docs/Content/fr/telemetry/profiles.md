@@ -321,6 +321,39 @@ L'onglet **Profil** d'un span inclut aussi les échantillons liés aux spans imb
 
 La page d'une trace renvoie aussi vers le Profiler sur le service de la trace, pour les 15 minutes avant et après, quand ce service était profilé à ce moment-là, et la page **Profils de performance** d'un service ou d'un hôte ouvre le Profiler sur ce service ou cet hôte.
 
+## Trouver et corriger le code lent avec l'IA
+
+Chaque heure, OneUptime parcourt les profils de chaque service à la recherche de votre propre code qui prend une part importante ou croissante du temps du service, et enregistre ce qu'il trouve comme analyses IA, avec les preuves. OneUptime AI examine ensuite chacune d'elles et ouvre une pull request qui allège le code. Rien n'est jamais fusionné : votre équipe relit chaque pull request.
+
+Une fonction de votre propre code est enregistrée quand son service a envoyé au moins 500 échantillons au cours de la dernière heure, la fonction au moins 50 d'entre eux, et :
+
+- elle prend au moins 10 % du temps CPU ou du temps réel du service sur la dernière heure, ou
+- sa part a augmenté de 5 points ou plus depuis la même heure la veille, pour atteindre au moins 5 %.
+
+### L'activer
+
+**Produits → Profils de performance → IA → Paramètres** contient l'interrupteur **Trouver et corriger le code lent**, activé pour les nouveaux projets. Avec **Activer l'IA** désactivé, le code lent est toujours trouvé, mais OneUptime AI n'en fait rien. Pour ouvrir des pull requests, OneUptime AI a besoin d'un dépôt connecté dans [Code](/docs/ai/ai-agent) : la page indique d'abord ce qui manque. Le code de chaque dépôt est modifié sur le Runner que le dépôt choisit dans Code.
+
+OneUptime AI ouvre de lui-même au plus 5 pull requests par jour (UTC), une par constat, et jamais plus que la limite de pull requests IA ouvertes d'un dépôt.
+
+### Règles IA
+
+Sans règle, OneUptime AI examine immédiatement tout le code lent qu'il trouve et ouvre une pull request pour chacun. Les **Règles IA** sous **Plus de paramètres** restreignent cela, en trois étapes :
+
+| Étape | Ce qu'elle décide |
+| --- | --- |
+| **Correspondance** | Quels services : ceux choisis, ceux qui portent certaines étiquettes, ou ceux dont le nom correspond à un motif. |
+| **Investiguer** | **Immédiatement**, ou **Seulement s'il est encore trouvé après une attente** : le code lent qui disparaît pendant l'attente n'est pas examiné. |
+| **Correction** | **Ne pas corriger**, **Demander avant de corriger** ou **Corriger sans demander**. Demander d'abord laisse la pull request à une personne : le constat propose **Corriger avec l'IA**. |
+
+Sous **Plus de champs**, une règle choisit les dépôts de code, les serveurs MCP et le fournisseur de LLM qu'OneUptime AI peut utiliser pour elle. Si rien n'est choisi, il peut tous les utiliser, ainsi que le fournisseur de LLM par défaut du projet.
+
+### Voir ce qu'il a fait
+
+- **Produits → Profils de performance → IA → Analyses** liste le code lent trouvé, chaque constat avec ses preuves et **Ouvrir dans le Profileur**.
+- **Produits → Profils de performance → IA → Journaux** liste chaque investigation et chaque pull request, de la plus récente à la plus ancienne, avec l'état de chacune.
+- Dans Code, la tâche indique qu'OneUptime l'a lancée, avec un lien vers son constat, et la pull request explique pourquoi elle a été ouverte.
+
 ## Rétention des données
 
 Les profils sont conservés pendant la rétention de télémétrie de votre projet : **Paramètres du projet → Télémétrie & APM → Rétention des données** fixe la **Conservation par défaut (jours)**, 15 jours si vous ne la changez pas. Les données sont supprimées automatiquement à la fin de la période de rétention. Les offres qui incluent des remplacements de rétention peuvent aussi garder les profils plus ou moins longtemps que les autres données de télémétrie, ou fixer la rétention par service sur la page **Paramètres** du service.
