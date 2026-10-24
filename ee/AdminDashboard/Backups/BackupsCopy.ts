@@ -40,6 +40,8 @@ export const BackupsCopy: {
   statusOff: string;
   statusFailing: string;
   statusNoBackupYet: string;
+  statusLocked: string;
+  statusLockedText: string;
   lastBackup: string;
   lastBackupSize: string;
   nextBackup: string;
@@ -225,6 +227,10 @@ export const BackupsCopy: {
   statusOff: translationKey("Scheduled backups are off"),
   statusFailing: translationKey("The last backup failed"),
   statusNoBackupYet: translationKey("No backup yet"),
+  statusLocked: translationKey("New backups are paused"),
+  statusLockedText: translationKey(
+    "They need a license that includes backups. Restoring and deleting backups still work.",
+  ),
   lastBackup: translationKey("Last backup {{time}}"),
   lastBackupSize: translationKey("{{size}} in {{duration}}"),
   nextBackup: translationKey("Next backup {{time}}"),
@@ -295,7 +301,7 @@ export const BackupsCopy: {
   previousDestinationNote: translationKey("At a previous destination"),
   viewStepsAction: translationKey("View steps"),
   deleteAction: translationKey("Delete"),
-  deleteTitle: translationKey("Delete this backup?"),
+  deleteTitle: translationKey("Delete the backup of {{time}}?"),
   deleteDescription: translationKey(
     "Its files are deleted from the destination. It cannot be restored afterwards.",
   ),

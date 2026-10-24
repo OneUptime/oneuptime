@@ -23,7 +23,10 @@ import {
   BackupRunKind,
   BackupRunStatus,
   BackupRunTrigger,
+  BackupStep,
+  getFailedBackupStep,
   isBackupRunActive,
+  readBackupSteps,
 } from "Common/Types/Backup/BackupRunTypes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -105,6 +108,12 @@ const BackupRunsTable: FunctionComponent<ComponentProps> = (
       userPreferencesKey={
         isBackups ? BACKUP_RUNS_TABLE_ID : RESTORE_RUNS_TABLE_ID
       }
+      singularName={
+        isBackups ? BackupsCopy.backupColumn : BackupsCopy.restoreColumn
+      }
+      pluralName={
+        isBackups ? BackupsCopy.backupsTitle : BackupsCopy.restoresTitle
+      }
       isDeleteable={false}
       isEditable={false}
       isCreateable={false}
@@ -166,6 +175,12 @@ const BackupRunsTable: FunctionComponent<ComponentProps> = (
           title: BackupsCopy.viewStepsAction,
           icon: IconProp.ListBullet,
           buttonStyleType: ButtonStyleType.OUTLINE,
+          // A backup found at the destination has no steps of this installation's.
+          isVisible: (item: BackupRun): boolean => {
+            return (
+              readBackupSteps(item.steps).length > 0 || Boolean(item.error)
+            );
+          },
           onClick: (item: BackupRun, onCompleteAction: () => void): void => {
             props.onViewSteps(item);
             onCompleteAction();
@@ -317,6 +332,10 @@ const BackupRunsTable: FunctionComponent<ComponentProps> = (
               status === BackupRunStatus.Running
                 ? getBackupRunProgress(item)
                 : null;
+            const failedStep: BackupStep | undefined =
+              status === BackupRunStatus.Failed
+                ? getFailedBackupStep(readBackupSteps(item.steps))
+                : undefined;
 
             return (
               <div className="flex min-w-0 flex-col items-start gap-1">
@@ -337,13 +356,21 @@ const BackupRunsTable: FunctionComponent<ComponentProps> = (
                 ) : (
                   <></>
                 )}
-                {status === BackupRunStatus.Failed && item.error ? (
+                {status === BackupRunStatus.Failed ? (
+                  /*
+                   * The step it stopped on; why, on hover and in View steps
+                   * (an error is a paragraph, and this column is narrow).
+                   */
                   <span
-                    className="line-clamp-2 max-w-xs break-words text-xs text-red-700"
-                    title={item.error}
-                    data-testid="backup-run-error"
+                    className="text-xs text-red-700"
+                    title={item.error || undefined}
+                    data-testid="backup-run-failed-step"
                   >
-                    {item.error}
+                    {failedStep
+                      ? translator.translateText(
+                          BACKUP_STEP_COPY[failedStep.key],
+                        )
+                      : ""}
                   </span>
                 ) : (
                   <></>

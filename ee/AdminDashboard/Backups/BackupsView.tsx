@@ -7,7 +7,11 @@ import BackupRunsTable from "./BackupRunsTable";
 import BackupSettingsCard from "./BackupSettingsCard";
 import BackupSettingsFormModal from "./BackupSettingsFormModal";
 import BackupStatusCard from "./BackupStatusCard";
-import { isBackupAtCurrentDestination } from "./BackupFormat";
+import {
+  formatBackupDateTime,
+  isBackupAtCurrentDestination,
+} from "./BackupFormat";
+import { getFeedClock } from "Common/UI/Components/Feed/FeedTime";
 import RestoreBackupModal from "./RestoreBackupModal";
 import { EnterpriseLicenseMode } from "../../Dashboard/Identity/License/EnterpriseLicenseMode";
 import AdminModelAPI from "@oneuptime/admin-dashboard/Utils/ModelAPI";
@@ -634,7 +638,14 @@ const BackupsView: FunctionComponent<ComponentProps> = (
 
       {deleteRun ? (
         <ConfirmModal
-          title={BackupsCopy.deleteTitle}
+          title={translator.translateTemplate(BackupsCopy.deleteTitle, {
+            time: deleteRun.startedAt
+              ? formatBackupDateTime(
+                  new Date(deleteRun.startedAt),
+                  getFeedClock({ language: translator.language }),
+                )
+              : "",
+          })}
           description={
             isBackupAtCurrentDestination({
               run: deleteRun,

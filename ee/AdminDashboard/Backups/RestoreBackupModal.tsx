@@ -248,15 +248,17 @@ const RestoreBackupModal: FunctionComponent<ComponentProps> = (
 
   if (backupCounts) {
     postgresLines.push(
-      `${translator.translateTemplate(BackupsCopy.restorePostgresCounts, {
+      translator.translateTemplate(BackupsCopy.restorePostgresCounts, {
         counts: backupCounts,
-      })}${
-        currentCounts
-          ? ` ${translator.translateTemplate(BackupsCopy.restorePostgresNow, {
-              counts: currentCounts,
-            })}`
-          : ""
-      }`,
+      }),
+    );
+  }
+
+  if (backupCounts && currentCounts) {
+    postgresLines.push(
+      translator.translateTemplate(BackupsCopy.restorePostgresNow, {
+        counts: currentCounts,
+      }),
     );
   }
 
@@ -412,7 +414,7 @@ const RestoreBackupModal: FunctionComponent<ComponentProps> = (
           {takeBackupFirst ? (
             <></>
           ) : (
-            <p
+            <div
               className="mt-2 flex items-start gap-2 text-sm text-amber-700"
               data-testid="restore-backup-without-backup"
             >
@@ -425,7 +427,7 @@ const RestoreBackupModal: FunctionComponent<ComponentProps> = (
                   BackupsCopy.restoreWithoutBackupWarning,
                 )}
               </span>
-            </p>
+            </div>
           )}
         </div>
 

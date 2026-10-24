@@ -19,6 +19,7 @@ import {
   BackupRunStatus,
   BackupRunTrigger,
   BackupStep,
+  BackupStepKey,
   BackupStepStatus,
   isBackupRunActive,
   readBackupSteps,
@@ -131,7 +132,9 @@ export function describeStepFacts(data: {
     facts.push(
       progress.totalBytes &&
         step.status === BackupStepStatus.Running &&
-        progress.doneBytes < progress.totalBytes
+        progress.doneBytes < progress.totalBytes &&
+        // A dump is compressed: the database's size says nothing of how far it is.
+        step.key !== BackupStepKey.BackUpPostgres
         ? data.translator.translateTemplate(BackupsCopy.stepsRead, {
             done: formatBackupSize(
               progress.doneBytes,
@@ -210,6 +213,17 @@ const BackupRunStepsModal: FunctionComponent<ComponentProps> = (
     ? formatBackupDateTime(new Date(String(backupTime)), clock)
     : "";
   const duration: number | null = getBackupRunDurationInMs(run, now);
+  /*
+   * The run's error on its own, unless the step it stopped on already says
+   * it: an error with no step behind it (the worker stopped, a cancel).
+   */
+  const showsErrorBox: boolean = Boolean(
+    run.error &&
+      status !== BackupRunStatus.Running &&
+      !steps.some((step: BackupStep): boolean => {
+        return step.message === run.error;
+      }),
+  );
 
   return (
     <Modal
@@ -228,7 +242,7 @@ const BackupRunStepsModal: FunctionComponent<ComponentProps> = (
             textToBeCopied={run.error}
             label={BackupsCopy.copyError}
             size="md"
-            variant="solid"
+            variant="soft"
           />
         ) : undefined
       }
@@ -362,7 +376,7 @@ const BackupRunStepsModal: FunctionComponent<ComponentProps> = (
           })}
         </ol>
 
-        {run.error && status !== BackupRunStatus.Running ? (
+        {showsErrorBox ? (
           <div
             className="rounded-lg border border-red-200 bg-red-50 px-4 py-3"
             data-testid="backup-run-error-box"

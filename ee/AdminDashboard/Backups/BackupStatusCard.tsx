@@ -234,9 +234,17 @@ const BackupStatusCard: FunctionComponent<ComponentProps> = (
               {!isQueued && written !== undefined && written > 0 ? (
                 <span className="text-gray-500">
                   {" · "}
-                  {translator.translateTemplate(BackupsCopy.stepsWritten, {
-                    size: formatBackupSize(written, translator.language),
-                  })}
+                  {isRestore && progress.step?.progress?.totalBytes
+                    ? translator.translateTemplate(BackupsCopy.stepsRead, {
+                        done: formatBackupSize(written, translator.language),
+                        total: formatBackupSize(
+                          progress.step.progress.totalBytes,
+                          translator.language,
+                        ),
+                      })
+                    : translator.translateTemplate(BackupsCopy.stepsWritten, {
+                        size: formatBackupSize(written, translator.language),
+                      })}
                 </span>
               ) : (
                 <></>
@@ -271,11 +279,18 @@ const BackupStatusCard: FunctionComponent<ComponentProps> = (
     }
 
     const last: BackupRun | null = props.lastBackup;
+    /*
+     * Without a license that includes backups nothing new runs, whatever
+     * the schedule says: the card says so rather than promise a next backup.
+     */
+    const isLocked: boolean = !props.canBackUp;
     const title: string = lastFailed
       ? BackupsCopy.statusFailing
-      : isOn
-        ? BackupsCopy.statusOn
-        : BackupsCopy.statusOff;
+      : isLocked
+        ? BackupsCopy.statusLocked
+        : isOn
+          ? BackupsCopy.statusOn
+          : BackupsCopy.statusOff;
     const lines: Array<ReactElement> = [];
 
     if (last?.startedAt && !lastFailed) {
@@ -333,13 +348,15 @@ const BackupStatusCard: FunctionComponent<ComponentProps> = (
 
     lines.push(
       <div key="next" data-testid="backups-status-next">
-        {isOn && props.nextBackupAt
-          ? translator.translateTemplate(BackupsCopy.nextBackup, {
-              time: `${formatBackupDateTime(new Date(props.nextBackupAt), clock)} (${formatBackupTimeUntil(new Date(props.nextBackupAt), clock)})`,
-            })
-          : isOn
-            ? ""
-            : translator.translateText(BackupsCopy.nextBackupOff)}
+        {isLocked
+          ? translator.translateText(BackupsCopy.statusLockedText)
+          : isOn && props.nextBackupAt
+            ? translator.translateTemplate(BackupsCopy.nextBackup, {
+                time: `${formatBackupDateTime(new Date(props.nextBackupAt), clock)} (${formatBackupTimeUntil(new Date(props.nextBackupAt), clock)})`,
+              })
+            : isOn
+              ? ""
+              : translator.translateText(BackupsCopy.nextBackupOff)}
       </div>,
     );
 
@@ -352,11 +369,11 @@ const BackupStatusCard: FunctionComponent<ComponentProps> = (
           icon={
             lastFailed
               ? IconProp.Error
-              : isOn
+              : isOn && !isLocked
                 ? IconProp.CheckCircle
                 : IconProp.PauseCircle
           }
-          tone={lastFailed ? "red" : isOn ? "green" : "gray"}
+          tone={lastFailed ? "red" : isOn && !isLocked ? "green" : "gray"}
         />
         <div className="min-w-0 flex-1">
           <div
@@ -369,7 +386,7 @@ const BackupStatusCard: FunctionComponent<ComponentProps> = (
             {lines}
           </div>
           {lastFailed && last ? (
-            <div className="mt-2 [&>button]:ml-0 [&>button]:md:ml-0">
+            <div className="mt-2 [&>button]:ml-0 [&>button]:pl-0 [&>button]:md:ml-0">
               <Button
                 title={BackupsCopy.viewStepsButton}
                 icon={IconProp.ListBullet}

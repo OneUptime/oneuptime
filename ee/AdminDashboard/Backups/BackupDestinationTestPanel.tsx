@@ -8,7 +8,13 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import API from "Common/UI/Utils/API/API";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 /*
  * "Test the destination", inside the form, before anything is saved: the
@@ -153,6 +159,28 @@ const BackupDestinationTestPanel: FunctionComponent<ComponentProps> = (
     setIsTesting(false);
   };
 
+  /*
+   * The result is under the form's last field: brought into view when it
+   * arrives, so a check that failed is never below the fold unread.
+   */
+  const resultRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!result || isTesting) {
+      return undefined;
+    }
+
+    // Once the dialog has laid the result out: scrolled at once, it is not there yet.
+    const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
+      resultRef.current?.scrollIntoView?.({ block: "end" });
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [result, isTesting]);
+
   return (
     <div className="space-y-3" data-testid="backup-destination-test">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
@@ -177,7 +205,9 @@ const BackupDestinationTestPanel: FunctionComponent<ComponentProps> = (
         </p>
       </div>
       {!isTesting && result && result.key === settingsKey ? (
-        <BackupTestResultBox result={result.value} refusal={result.refusal} />
+        <div ref={resultRef}>
+          <BackupTestResultBox result={result.value} refusal={result.refusal} />
+        </div>
       ) : (
         <></>
       )}
