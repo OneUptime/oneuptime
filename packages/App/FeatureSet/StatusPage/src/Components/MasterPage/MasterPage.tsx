@@ -52,9 +52,8 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import { applyStatusPageLanguageSettings } from "../../Utils/i18n";
 import StatusPageThemeUtil from "../../Utils/StatusPageTheme";
-import StatusPageTheme, {
-  parseStatusPageTheme,
-} from "Common/Types/StatusPage/StatusPageTheme";
+import { parseStatusPageTheme } from "Common/Types/StatusPage/StatusPageTheme";
+import PublicPageTheme from "Common/Types/Theme/PublicPageTheme";
 
 export interface ComponentProps {
   children: ReactElement | Array<ReactElement>;
@@ -352,7 +351,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
          * No page here to read a theme from: the one the reader's device
          * asks for, so the explanation is not a white page on a dark screen.
          */
-        StatusPageThemeUtil.setPageTheme(StatusPageTheme.System);
+        StatusPageThemeUtil.setPageTheme(PublicPageTheme.System);
         setAddressNotSetUp(
           getAddressNotSetUpFacts({
             visitedHost: window.location.host,
