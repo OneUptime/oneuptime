@@ -470,7 +470,11 @@ jobs:
           # Its UI review added a device's and a site's pages, each
           # connection's one button, a stale connection, a member and the
           # offer at a flows page's foot the same day (2.2 minutes for its 40
-          # tests locally, from 1.3): about 19.5 for the nine.
+          # tests locally, from 1.3): about 19.5 for the nine. Traces AI
+          # (1.3 minutes with its bundle locally, Chromium only: Traces' AI
+          # tab - Insights, a finding's Fix with AI and Open in Traces, Logs
+          # and Settings - at 1280 and 390 pixels, light and dark) joined
+          # them on 2026-10-24: about 21 for the ten.
           - group: 8
             browsers: chromium
             suites: >-
@@ -483,6 +487,7 @@ jobs:
               test-public-addresses-ui
               test-security-events-empty-states-ui
               test-meraki-traffic-ui
+              test-traces-ai-ui
           # Added on 2026-10-21, when every group took 20 to 26 minutes on one
           # run (groups 1 and 5 near 25) and Resource Topology would have
           # taken group 7 past 22: Code (6.4 minutes on that run, a laptop
@@ -724,6 +729,8 @@ jobs:
             output/playwright/public-dashboard-theme-ui/test-results
             output/playwright/profiles-ui/*.png
             output/playwright/profiles-ui/test-results
+            output/playwright/traces-ai-ui/*.png
+            output/playwright/traces-ai-ui/test-results
             output/playwright/dashboard-templates-ui/*.png
             output/playwright/dashboard-templates-ui/test-results
             output/playwright/dashboard-time-range-ui/*.png
