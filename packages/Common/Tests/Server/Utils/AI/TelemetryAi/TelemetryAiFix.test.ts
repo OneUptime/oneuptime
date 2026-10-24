@@ -31,11 +31,31 @@ import { NO_TELEMETRY_AI_FIX_SUGGESTION } from "../../../../../Utils/Suggestions
 
 /*
  * What every telemetry lane's pull request shares (TelemetryAiFix): the
- * day's share counted across lanes - the Profiler's and Traces' together -
- * and one task per problem. And a person's Fix with AI on a finding
+ * day's share counted across lanes - the Profiler's, Traces' and
+ * Exceptions' together, whatever Code recipe each lane's pull requests are
+ * - and one task per problem. And a person's Fix with AI on a finding
  * (TelemetryAiPersonFix), handed to the lane the finding is, read under
  * the person's own permissions.
  */
+
+// The SQL an IN operator writes, with its values in place of their names.
+function inValuesOf(operator: unknown): Array<string> {
+  const raw: { _objectLiteralParameters?: Record<string, unknown> } =
+    operator as { _objectLiteralParameters?: Record<string, unknown> };
+
+  return Object.values(raw._objectLiteralParameters || {}).flatMap(
+    (value: unknown): Array<string> => {
+      return Array.isArray(value) ? (value as Array<string>) : [];
+    },
+  );
+}
+
+// Every lane's recipes: a request in Code, and an exception's own AI tasks.
+const LANE_RECIPES: Array<string> = [
+  CodeFixTaskType.CodeRequest,
+  CodeFixTaskType.FixException,
+  CodeFixTaskType.ImproveExceptionHandling,
+];
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "5229dddd-0000-4000-8000-000000000001",
@@ -71,7 +91,10 @@ describe("TelemetryAiFix.countStartedToday", () => {
 
     expect(String(query["projectId"])).toBe(PROJECT_ID.toString());
     expect(query["runType"]).toBe(AIRunType.CodeFix);
-    expect(query["codeFixTaskType"]).toBe(CodeFixTaskType.CodeRequest);
+    // Every lane's recipes: Profiles' and Traces' requests, Exceptions' own.
+    expect(inValuesOf(query["codeFixTaskType"]).sort()).toEqual(
+      [...LANE_RECIPES].sort(),
+    );
     // Nobody asked, it is a task's first turn, and it names an insight.
     expect(sqlOf(query["userId"], "userId")).toBe("(userId IS NULL)");
     expect(sqlOf(query["codeTaskId"], "codeTaskId")).toBe(
@@ -115,7 +138,9 @@ describe("TelemetryAiFix.findActiveTaskIdForInsight", () => {
     ] as JSONObject;
 
     expect(String(query["triggeredByAiInsightId"])).toBe(INSIGHT_ID.toString());
-    expect(query["codeFixTaskType"]).toBe(CodeFixTaskType.CodeRequest);
+    expect(inValuesOf(query["codeFixTaskType"]).sort()).toEqual(
+      [...LANE_RECIPES].sort(),
+    );
     expect(JSON.stringify(query["status"])).toContain("Completed");
   });
 
@@ -172,12 +197,15 @@ describe("TelemetryAiPersonFix", () => {
       });
   });
 
-  test("Traces plans its own; the Profiler's findings keep the Profiler's own", () => {
+  test("Traces and Exceptions plan their own; the Profiler's findings keep the Profiler's own", () => {
     expect(
       TELEMETRY_AI_PERSON_FIX_PLANNERS[TelemetryAiLane.Profile],
     ).toBeNull();
     expect(
       TELEMETRY_AI_PERSON_FIX_PLANNERS[TelemetryAiLane.Trace],
+    ).not.toBeNull();
+    expect(
+      TELEMETRY_AI_PERSON_FIX_PLANNERS[TelemetryAiLane.Exception],
     ).not.toBeNull();
   });
 
@@ -212,7 +240,7 @@ describe("TelemetryAiPersonFix", () => {
       jest.spyOn(TraceInsightFix, "createFixTask");
 
     for (const type of [
-      AIInsightType.NewException,
+      AIInsightType.ErrorLogSpike,
       AIInsightType.ProfileHotspot,
       null,
     ]) {

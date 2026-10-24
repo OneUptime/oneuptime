@@ -145,7 +145,7 @@ describe("isAiRuleTriggerEntity", () => {
 describe("getAiRuleCriteriaProblem", () => {
   test("an unknown trigger entity type is refused, naming the allowed ones", () => {
     const expected: string =
-      "Trigger Entity Type must be one of Incident, Alert, Profile, Trace.";
+      "Trigger Entity Type must be one of Incident, Alert, Profile, Trace, Exception.";
 
     expect(getAiRuleCriteriaProblem({ triggerEntityType: "Monitor" })).toBe(
       expected,
@@ -373,14 +373,14 @@ describe("getAiRuleCriteriaProblem", () => {
         triggerEntityType: Incident,
         criteria: { filters: [{ field: "services" }] },
       }),
-    ).toBe("Services can only be used by profile AI rules or trace AI rules.");
+    ).toBe("Services can only be used by profile AI rules, trace AI rules or exception AI rules.");
     expect(
       getAiRuleCriteriaProblem({
         triggerEntityType: Alert,
         values: { serviceLabels: [{ _id: "x" }] },
       }),
     ).toBe(
-      "Service Labels can only be used by profile AI rules or trace AI rules.",
+      "Service Labels can only be used by profile AI rules, trace AI rules or exception AI rules.",
     );
     expect(
       getAiRuleCriteriaProblem({
@@ -388,7 +388,7 @@ describe("getAiRuleCriteriaProblem", () => {
         values: { serviceNamePattern: "checkout" },
       }),
     ).toBe(
-      "Service Name Pattern can only be used by profile AI rules or trace AI rules.",
+      "Service Name Pattern can only be used by profile AI rules, trace AI rules or exception AI rules.",
     );
   });
 

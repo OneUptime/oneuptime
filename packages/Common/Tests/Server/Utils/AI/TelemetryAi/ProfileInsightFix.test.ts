@@ -306,7 +306,10 @@ describe("ProfileInsightFix.start", () => {
     const query: JSONObject = (
       countRuns.mock.calls[0]![0] as unknown as JSONObject
     )["query"] as JSONObject;
-    expect(query["codeFixTaskType"]).toBe("CodeRequest");
+    // Every lane's recipes: the Profiler's requests among them.
+    expect(JSON.stringify(query["codeFixTaskType"])).toContain(
+      '"CodeRequest"',
+    );
     expect(query["runType"]).toBe("CodeFix");
     expect(Object.keys(query).sort()).toEqual(
       [

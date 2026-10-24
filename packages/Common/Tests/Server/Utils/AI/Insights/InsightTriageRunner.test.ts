@@ -23,7 +23,7 @@ import ObjectID from "../../../../../Types/ObjectID";
 import TelemetryAiRules from "../../../../../Server/Utils/AI/TelemetryAi/TelemetryAiRules";
 import { decideTelemetryAiWork } from "../../../../../Types/AI/TelemetryAi";
 import { NO_EXTERNAL_MCP_SERVER } from "../../../../../Types/AI/ExternalMcpServer/ExternalMcpServerAllowance";
-import { describe, expect, test, afterEach } from "@jest/globals";
+import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
  * The insight triage runner — the Preventive lane's quiet-inbox executor.
@@ -93,6 +93,20 @@ function makeConfidence(): ConfidenceSignal {
 }
 
 describe("InsightTriageRunner.executeTriage", () => {
+  /*
+   * New and spiking exceptions are the Exceptions lane's while its switch
+   * is on, and AI Insights' while it is off: the runner reads the project
+   * to tell. By default here it is off - AI Insights' triage, as these
+   * tests were written for; a test that needs the project says so itself.
+   */
+  beforeEach(() => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: projectId,
+      enableAi: true,
+      enableAutomaticExceptionRemediation: false,
+    } as unknown as Project);
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });

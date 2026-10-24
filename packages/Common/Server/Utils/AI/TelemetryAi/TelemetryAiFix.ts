@@ -1,19 +1,10 @@
 import AIRunService from "../../../Services/AIRunService";
-import ProjectService from "../../../Services/ProjectService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
-import TelemetryAiRules, {
-  TELEMETRY_AI_PROJECT_SELECT,
-} from "./TelemetryAiRules";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
-import Project from "../../../../Models/DatabaseModels/Project";
 import { AIRunStatusHelper } from "../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../Types/AI/AIRunType";
-import {
-  TelemetryAiLane,
-  getTelemetryAiCountedFixTaskTypes,
-  getTelemetryAiFixTaskTypes,
-} from "../../../../Types/AI/TelemetryAi";
+import { getTelemetryAiFixTaskTypes } from "../../../../Types/AI/TelemetryAi";
 import OneUptimeDate from "../../../../Types/Date";
 import ObjectID from "../../../../Types/ObjectID";
 
@@ -47,33 +38,21 @@ export interface TelemetryAiFixResult {
 export default class TelemetryAiFix {
   /*
    * The tasks OneUptime started on its own in the project since UTC
-   * midnight, every lane together: Code tasks of the lanes' recipes no
-   * person asked, each stamped with the insight it came from (a task's
-   * first turn only - its replies are the same task) - a lane's own
-   * recipes only while its switch is on (getTelemetryAiCountedFixTaskTypes).
+   * midnight, every lane together: Code tasks of the lanes' recipes
+   * (getTelemetryAiFixTaskTypes) no person asked, each stamped with the
+   * insight it came from (a task's first turn only - its replies are the
+   * same task). An exception's own AI task AI Insights opened from a
+   * finding, while the Exceptions switch is off, is one of them too: it is
+   * a pull request OneUptime opened on its own for a telemetry problem.
    */
   @CaptureSpan()
   public static async countStartedToday(projectId: ObjectID): Promise<number> {
-    const project: Project | null = await ProjectService.findOneById({
-      id: projectId,
-      select: TELEMETRY_AI_PROJECT_SELECT,
-      props: { isRoot: true },
-    });
-
     return (
       await AIRunService.countBy({
         query: {
           projectId,
           runType: AIRunType.CodeFix,
-          codeFixTaskType: QueryHelper.any(
-            getTelemetryAiCountedFixTaskTypes(
-              (lane: TelemetryAiLane): boolean => {
-                return project
-                  ? TelemetryAiRules.isLaneOn(project, lane)
-                  : false;
-              },
-            ),
-          ),
+          codeFixTaskType: QueryHelper.any(getTelemetryAiFixTaskTypes()),
           userId: QueryHelper.isNull(),
           codeTaskId: QueryHelper.isNull(),
           triggeredByAiInsightId: QueryHelper.notNull(),

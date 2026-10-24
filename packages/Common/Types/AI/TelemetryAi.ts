@@ -531,28 +531,6 @@ export function getTelemetryAiFixTaskTypes(): Array<CodeFixTaskType> {
   );
 }
 
-/*
- * The recipes the day's share counts, in a project whose lanes' switches
- * `isLaneOn` reads: a request in Code always - Profiles' and Traces' pull
- * requests, as before any lane had recipes of its own - and a lane's own
- * recipes while its switch is on. An exception's AI tasks OneUptime starts
- * while the Exceptions switch is off are AI Insights' (its "Open a fix pull
- * request" switch), which never counted against the lanes' share.
- */
-export function getTelemetryAiCountedFixTaskTypes(
-  isLaneOn: (lane: TelemetryAiLane) => boolean,
-): Array<CodeFixTaskType> {
-  return Array.from(
-    new Set([
-      CodeFixTaskType.CodeRequest,
-      ...TELEMETRY_AI_LANE_LIST.filter(isLaneOn).flatMap(
-        (lane: TelemetryAiLane): ReadonlyArray<CodeFixTaskType> => {
-          return getTelemetryAiLaneFixTaskTypes(lane);
-        },
-      ),
-    ]),
-  );
-}
 
 // What the decision reads off an AI rule of the lane that matched.
 export interface TelemetryAiRuleFacts {

@@ -371,6 +371,7 @@ describe("the lane's switch", () => {
       enableAi: true,
       enableAutomaticProfileRemediation: true,
       enableAutomaticTraceRemediation: true,
+      enableAutomaticExceptionRemediation: true,
     });
   });
 });

@@ -191,8 +191,17 @@ export function getAiRuleCriteriaProblem(data: {
       return RULES_NAME_BY_TRIGGER[owner];
     });
 
-    return `${TRIGGER_SPECIFIC_FIELD_TITLES[field] || field} can only be used by ${owners.join(" or ")}.`;
+    return `${TRIGGER_SPECIFIC_FIELD_TITLES[field] || field} can only be used by ${joinWithOr(owners)}.`;
   }
 
   return null;
+}
+
+// "a or b", and "a, b or c" once there are more than two.
+function joinWithOr(items: Array<string>): string {
+  if (items.length <= 2) {
+    return items.join(" or ");
+  }
+
+  return `${items.slice(0, -1).join(", ")} or ${items[items.length - 1]}`;
 }

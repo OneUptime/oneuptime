@@ -19,7 +19,6 @@ import {
   TelemetryAiWork,
   decideTelemetryAiWork,
   getTelemetryAiInsightTypesWorkedOn,
-  getTelemetryAiLaneOfInsightType,
   getTelemetryAiLaneWorkingOn,
 } from "../../../../Types/AI/TelemetryAi";
 import ObjectID from "../../../../Types/ObjectID";
@@ -194,15 +193,18 @@ export default class TelemetryAiRules {
 
   /*
    * The work the rules decide for one problem now (the triage runner and
-   * the insight's routes read it): null for an insight no lane works on.
+   * the insight's routes read it): null for an insight no lane works on -
+   * a kind a lane shares with AI Insights, while that lane's switch is off,
+   * included (getLaneWorkingOn).
    */
   @CaptureSpan()
   public static async decideForInsight(data: {
     insight: AIInsight;
     project: Project;
   }): Promise<TelemetryAiWork | null> {
-    const lane: TelemetryAiLane | null = getTelemetryAiLaneOfInsightType(
+    const lane: TelemetryAiLane | null = TelemetryAiRules.getLaneWorkingOn(
       data.insight.insightType,
+      data.project,
     );
     const projectId: ObjectID | undefined =
       data.insight.projectId || data.project.id || undefined;
