@@ -83,6 +83,8 @@ function writeStub(directory, name, body) {
  *   docker        "ok", "permission", "compose-missing" or "missing"
  *   answers       what the person types, or null for nobody to ask
  *   existing      "clone" (an earlier install), "folder" (not a clone) or null
+ *   osId          the ID /etc/os-release gives ("ubuntu", "rocky", ...)
+ *   systemctl     "ok", or "fails" as it does where systemd does not run
  */
 function sandbox(options) {
   const given = Object.assign(
@@ -95,6 +97,8 @@ function sandbox(options) {
       answers: null,
       existing: null,
       existingHost: "oneuptime.example.com",
+      osId: "ubuntu",
+      systemctl: "ok",
     },
     options || {},
   );
@@ -131,7 +135,14 @@ function sandbox(options) {
   );
   // sudo runs the command, marked so docker answers as for root.
   writeStub(bin, "sudo", `${record}\nSUDO_USER=tester exec "$@"`);
-  writeStub(bin, "systemctl", record);
+  writeStub(
+    bin,
+    "systemctl",
+    given.systemctl === "fails"
+      ? `${record}\necho "System has not been booted with systemd as init system (PID 1). Can't operate." >&2\nexit 1`
+      : record,
+  );
+  fs.writeFileSync(path.join(root, "os-release"), `ID=${given.osId}\n`);
   writeStub(bin, "usermod", record);
   // sg runs its command with the group the session lacks.
   writeStub(bin, "sg", `${record}\nIN_DOCKER_GROUP=1 exec bash -c "$3"`);
@@ -162,6 +173,7 @@ function sandbox(options) {
     record,
     'case "$*" in',
     `  *nodejs*) printf '#!/bin/sh\\necho v22.11.0\\n' > "${bin}/node"; chmod 755 "${bin}/node" ;;`,
+    `  *docker-ce*) cp "${root}/docker.stub" "${bin}/docker"; chmod 755 "${bin}/docker" ;;`,
     `  *compose*) : > "${root}/compose-installed" ;;`,
     "esac",
   ].join("\n");
@@ -179,9 +191,12 @@ function sandbox(options) {
       ? `    if [ -e "${root}/compose-installed" ]; then echo 'Docker Compose version v2.29.7'; exit 0; fi; echo "docker: 'compose' is not a docker command." >&2; exit 1 ;;`
       : "    echo 'Docker Compose version v2.29.7'; exit 0 ;;",
     "  info)",
-    given.docker === "permission"
-      ? '    if [ -n "$SUDO_USER" ] || [ -n "$IN_DOCKER_GROUP" ]; then exit 0; fi; echo "permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock" >&2; exit 1 ;;'
-      : "    exit 0 ;;",
+    {
+      permission:
+        '    if [ -n "$SUDO_USER" ] || [ -n "$IN_DOCKER_GROUP" ]; then exit 0; fi; echo "permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock" >&2; exit 1 ;;',
+      "not-running":
+        '    echo "Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?" >&2; exit 1 ;;',
+    }[given.docker] || "    exit 0 ;;",
     "esac",
   ].join("\n");
 
@@ -270,6 +285,7 @@ function run(options, env) {
           HOME: box.home,
           ONEUPTIME_REPOSITORY: REPOSITORY,
           ONEUPTIME_INSTALL_INPUT: box.input,
+          ONEUPTIME_OS_RELEASE: path.join(box.root, "os-release"),
         },
         env || {},
       ),
@@ -487,6 +503,61 @@ describe("installing what is missing", () => {
     ]);
     expect(result.calls).toContain("sudo sh");
     expect(callsOf(result, "npm")).toEqual(["npm start"]);
+  });
+
+  test.each(["rocky", "almalinux"])(
+    "no Docker on %s: Docker's CentOS repository, which get.docker.com does not use there",
+    (osId) => {
+      const result = run({
+        docker: "missing",
+        manager: "dnf",
+        osId: osId,
+        answers: null,
+      });
+
+      expect(result.status).toBe(0);
+      expect(result.calls).toContain("dnf install -y dnf-plugins-core");
+      expect(result.calls).toContain(
+        "sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo",
+      );
+      expect(result.calls).toContain(
+        "dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin",
+      );
+      expect(callsOf(result, "curl")).toEqual([]);
+      expect(callsOf(result, "npm")).toEqual(["npm start"]);
+    },
+  );
+
+  test("no Docker on Fedora: Docker's own installer, which supports it", () => {
+    const result = run({
+      docker: "missing",
+      manager: "dnf",
+      osId: "fedora",
+      answers: null,
+    });
+
+    expect(callsOf(result, "curl")).toEqual([
+      "curl -fsSL https://get.docker.com",
+    ]);
+  });
+
+  test("a Docker that does not run is started; one that cannot be is said so, and nothing starts", () => {
+    const started = run({ docker: "ok", answers: null });
+
+    expect(callsOf(started, "systemctl")).toEqual([]);
+
+    const result = run({
+      docker: "not-running",
+      systemctl: "fails",
+      answers: null,
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.calls).toContain("sudo systemctl enable --now docker");
+    expect(result.output).toContain(
+      "Docker is installed but could not be started. Start it (sudo systemctl start docker, or by opening Docker Desktop), then run this again.",
+    );
+    expect(callsOf(result, "npm")).toEqual([]);
   });
 
   test("Docker without the Compose plugin: the plugin's package", () => {

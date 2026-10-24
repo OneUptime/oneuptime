@@ -22,6 +22,7 @@
 # For the tests (Tests/Ops/HomeInstallScript.test.js):
 #   ONEUPTIME_INSTALL_INPUT   where answers are read from (/dev/tty)
 #   ONEUPTIME_REPOSITORY      what to clone
+#   ONEUPTIME_OS_RELEASE      the system's os-release file (/etc/os-release)
 
 set -euo pipefail
 
@@ -29,6 +30,7 @@ REPOSITORY="${ONEUPTIME_REPOSITORY:-https://github.com/OneUptime/oneuptime.git}"
 BRANCH="${ONEUPTIME_BRANCH:-release}"
 INSTALL_DIR="${ONEUPTIME_DIR:-oneuptime}"
 INPUT="${ONEUPTIME_INSTALL_INPUT:-/dev/tty}"
+OS_RELEASE="${ONEUPTIME_OS_RELEASE:-/etc/os-release}"
 DOCS_URL="https://oneuptime.com/docs/installation/docker-compose"
 
 # The oldest Node.js npm start's scripts run on.
@@ -175,6 +177,38 @@ ensure_node() {
     done_line "Node.js $(node --version)"
 }
 
+# The ID in /etc/os-release (ubuntu, debian, rocky, almalinux, ...), or "".
+os_id() {
+    if [ -r "$OS_RELEASE" ]; then
+        # shellcheck disable=SC1090
+        (. "$OS_RELEASE" && printf '%s' "${ID:-}")
+    fi
+}
+
+# Docker's own repository for RHEL's rebuilds, which get.docker.com does not
+# install on (it looks for a repository named after them that Docker does not
+# publish): the CentOS one, as Docker's install guide for them says.
+RHEL_REBUILDS="rocky almalinux ol centos"
+DOCKER_CENTOS_REPOSITORY="https://download.docker.com/linux/centos/docker-ce.repo"
+
+install_docker() {
+    local id
+    id=$(os_id)
+
+    case " $RHEL_REBUILDS " in
+        *" $id "*)
+            if [ -n "$id" ] && command_exists dnf; then
+                install_packages dnf-plugins-core
+                as_root dnf config-manager --add-repo "$DOCKER_CENTOS_REPOSITORY"
+                install_packages docker-ce docker-ce-cli containerd.io docker-compose-plugin
+                return 0
+            fi
+            ;;
+    esac
+
+    curl -fsSL https://get.docker.com | as_root sh
+}
+
 ensure_docker() {
     if ! command_exists docker; then
         if [ "$(uname -s)" = "Darwin" ]; then
@@ -182,7 +216,7 @@ ensure_docker() {
         fi
 
         step "Installing Docker"
-        curl -fsSL https://get.docker.com | as_root sh
+        install_docker
     fi
 
     if ! docker compose version >/dev/null 2>&1; then
@@ -200,7 +234,8 @@ ensure_docker() {
     if ! docker info >/dev/null 2>&1 && ! as_root docker info >/dev/null 2>&1; then
         if command_exists systemctl; then
             step "Starting Docker"
-            as_root systemctl enable --now docker
+            as_root systemctl enable --now docker ||
+                fail "Docker is installed but could not be started. Start it (sudo systemctl start docker, or by opening Docker Desktop), then run this again."
         fi
     fi
 
