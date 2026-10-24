@@ -74,7 +74,7 @@ Ett runbook kan blanda alla. Styrkan med runbooks är att väva samman mänsklig
 | En runbook-regel | **Incidenter**, **Varningar** eller **Schemalagt underhåll** → **Regler** → **Runbook-regler** | Den nya incidenten, larmet eller händelsen |
 | **Kör Runbook** | Sidan **Runbooks** för en incident, ett larm eller en schemalagd underhållshändelse | Den händelsen |
 | **Run Now** | Runbookets sida **Översikt** | Ingenting: en ad hoc-körning |
-| En regel för automatisk åtgärd | Se [AI SRE](/docs/ai/ai-sre) | Incidenten eller larmet |
+| En AI-regel | Se [AI SRE](/docs/ai/ai-sre) | Incidenten eller larmet |
 | Runbookets schema | Runbookets sida **Utlösare**, se [Runbook-utlösare](/docs/runbooks/triggers#kör-enligt-ett-schema) | Ingenting: en obevakad körning |
 | Ett anrop till runbookets webhook-URL | Runbookets sida **Utlösare**, se [Runbook-utlösare](/docs/runbooks/triggers#anropa-webhooken) | Ingenting: körningen sparar värdena som anropet skickade |
 

@@ -19,7 +19,7 @@ flowchart TB
 - **Monitor-Regeln** auf einer Statusseite. Sie gleichen die Seite ohnehin bei jedem Speichern einer Regel neu ab; wenn Sie eine ausführen, geschieht das sofort.
 - **Monitor-Regeln** auf einem SLO. Sie gleichen das SLO ohnehin bei jedem Speichern einer Regel neu ab; wenn Sie eine ausführen, werden die Monitore des SLOs sofort neu abgeglichen. Siehe [Monitore und Monitor-Regeln](/docs/slo/monitor-rules).
 
-Regeln, die eine Aktion auslösen, statt eine Ressource zu beschreiben – **Bereitschaftsregeln**, **Runbook-Regeln**, **Regeln für automatische Behebung** und **Gruppierungsregeln** –, lassen sich nicht auf bestehende Datensätze anwenden. Sie auszuführen würde Personen alarmieren, Runbooks ausführen, Behebungen starten oder Episoden für Vorfälle umordnen, die längst vorbei sind.
+Regeln, die eine Aktion auslösen, statt eine Ressource zu beschreiben – **Bereitschaftsregeln**, **Runbook-Regeln**, **KI-Regeln** und **Gruppierungsregeln** –, lassen sich nicht auf bestehende Datensätze anwenden. Sie auszuführen würde Personen alarmieren, Runbooks ausführen, Behebungen starten oder Episoden für Vorfälle umordnen, die längst vorbei sind.
 
 ## Bevor Sie beginnen
 

@@ -157,7 +157,7 @@ const OWN_NAMESPACE_PATTERN: RegExp = /own namespace/;
 const REFUSED_UP_FRONT_PATTERN: RegExp =
   /(when|before)[^.]{0,40}\bproposed or approved\b|proposes it and again when someone approves it/;
 const NEVER_RULE_RUNNER_PATTERN: RegExp =
-  /never accepted as an auto-remediation rule's command Runner/;
+  /never accepted as an AI rule's command Runner/;
 // A custom resource named like a built-in kind is judged by its namespace.
 const CUSTOM_RESOURCE_BY_NAMESPACE_PATTERN: RegExp =
   /custom resource is judged by (the namespace it is written in|its namespace|`-n`)/;
@@ -876,7 +876,7 @@ describe("the AI SRE page's cluster-access section", () => {
       "Turning fixes on — any move from **Off** to another mode",
     );
     expect(whoMay).toContain(
-      "writing the kubectl allowlist, or binding a Runner — takes a Project Owner, a Project Admin or the **Edit Auto Remediation Rule** permission",
+      "writing the kubectl allowlist, or binding a Runner — takes a Project Owner, a Project Admin or the **Edit AI Rule** permission, the same people who may create an AI rule that fixes without asking",
     );
     expect(whoMay).toContain("**Reset agent** takes the same people");
     expect(whoMay).toContain(
@@ -1318,7 +1318,7 @@ describe("custom resources named like built-in kinds", () => {
   });
 });
 
-describe("the Kubernetes AI agent and auto-remediation rules", () => {
+describe("the Kubernetes AI agent and AI rules", () => {
   /*
    * A rule's command Runners are Runner rows; the agent is not one. The
    * legacy in-cluster Runner is a Runner row, and the server refuses it

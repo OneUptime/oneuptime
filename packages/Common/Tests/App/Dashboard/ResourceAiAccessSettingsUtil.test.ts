@@ -407,7 +407,7 @@ describe("who may loosen", () => {
       ]),
     );
     expect(getResourceAiAccessAdminPermissionTitles().join(", ")).toContain(
-      "Edit Auto Remediation Rule",
+      "Edit AI Rule",
     );
     // Duplicates and unknown permissions add nothing.
     expect(
@@ -914,7 +914,7 @@ describe("what loosens", () => {
     expect(refusal).toContain(
       'Entry 2 ("docker stop db") is not in the saved allowlist.',
     );
-    expect(refusal).toContain("Edit Auto Remediation Rule");
+    expect(refusal).toContain("Edit AI Rule");
   });
 });
 

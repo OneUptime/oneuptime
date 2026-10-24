@@ -281,7 +281,7 @@ Quando Microsoft ti riporta indietro senza un collegamento, la pagina da cui sei
 :::
 
 :::details Il bot dice che il mio account non è collegato
-Premi **Connect Microsoft Teams account** nella risposta del bot per collegarlo in un solo passaggio, oppure collegalo in **Impostazioni utente** > **Area di lavoro** > **Microsoft Teams** con **Connect my account with Microsoft Teams**, con l'accesso effettuato nell'organizzazione a cui è collegato il progetto. Un account ospite di un'altra organizzazione non è lo stesso account.
+Premi **Connect Microsoft Teams account** nella risposta del bot per collegarlo in un solo passaggio, oppure collegalo in **Impostazioni utente** > **Area di lavoro** > **Microsoft Teams** con **Connect my account with Microsoft Teams**. In entrambi i casi accedi all'organizzazione a cui è collegato il progetto, come ospite se lì sei un ospite. Se sei un ospite e in passato hai collegato l'account della tua organizzazione, collegalo di nuovo.
 :::
 
 :::details Tutte le notifiche falliscono su un server self-hosted

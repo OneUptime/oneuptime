@@ -1,5 +1,5 @@
 /*
- * What a matched Auto Remediation Rule does to fix the incident or alert.
+ * What a matched AI rule that fixes does to fix the incident or alert.
  *
  * OneUptimeAI: OneUptime AI fixes it on the Kubernetes clusters and
  * infrastructure the signal is linked to, the way each one's AI agent page

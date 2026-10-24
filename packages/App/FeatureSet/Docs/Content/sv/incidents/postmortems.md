@@ -86,7 +86,7 @@ Med **Skriv ett utkast till efteranalys när en incident är löst** påslaget s
 
 Utan regler får varje löst incident ett utkast i OneUptime AI:s standardupplägg. **Postmortem-regler**, under **Fler inställningar** på samma sida, ändrar det:
 
-- En regel matchar **Alla incidenter**, eller **Endast incidenter som uppfyller villkoren** på monitorer, allvarlighetsgrader, etiketter, monitoretiketter, rubrik och beskrivning, så som en utredningsregel gör.
+- En regel matchar **Alla incidenter**, eller **Endast incidenter som uppfyller villkoren** på monitorer, allvarlighetsgrader, etiketter, monitoretiketter, rubrik och beskrivning, så som en AI-regel gör.
 - Dess **Mallar** är de mallar för efteranalys som utkastet får följa. Utan någon följer utkastet standardupplägget; med en, den mallen; med flera, den som OneUptime AI bedömer passar incidenten bäst. Utkastets inlägg i flödet nämner mallen det följde.
 - Dess **LLM-leverantör**, under **Fler fält**, är den leverantör som OneUptime AI skriver utkastet och väljer dess mall med. Med ingen vald är det projektets standardleverantör, annars den globala. Utkastets inlägg i flödet nämner den leverantör som en regel valde, eller den som användes i stället, och varför. Se [Vilken LLM-leverantör en regel använder](/docs/ai/ai-sre#vilken-llm-leverantör-en-regel-använder).
 - Den första aktiverade regeln som matchar incidenten avgör, räknat från toppen av listan: dra en regel för att flytta den. En incident som ingen regel matchar får inget utkast, och det får ingen incident så länge reglerna inte kan läsas.

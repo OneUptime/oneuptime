@@ -10,6 +10,8 @@ import MicrosoftTeamsAPI from "../../../Server/API/MicrosoftTeamsAPI";
 const MOCK_TEAMS_CLIENT_ID: string = "11111111-2222-3333-4444-555555555555";
 const MOCK_TEAMS_CLIENT_SECRET: string =
   "mock-teams-client-secret-that-must-never-be-echoed";
+// The app registration's Directory (tenant) ID.
+const MOCK_TEAMS_TENANT_ID: string = "0d3b1c0e-58f1-4bd1-8bb0-2b0f6f3f6c11";
 
 /*
  * The route reads the client id / secret from EnvironmentConfig at request
@@ -20,9 +22,14 @@ const MOCK_TEAMS_CLIENT_SECRET: string =
  * factory is hoisted above every module-scope declaration in this file.
  */
 jest.mock("../../../Server/EnvironmentConfig", () => {
-  const state: { clientId: string | null; clientSecret: string | null } = {
+  const state: {
+    clientId: string | null;
+    clientSecret: string | null;
+    tenantId: string | null;
+  } = {
     clientId: "11111111-2222-3333-4444-555555555555",
     clientSecret: "mock-teams-client-secret-that-must-never-be-echoed",
+    tenantId: "0d3b1c0e-58f1-4bd1-8bb0-2b0f6f3f6c11",
   };
 
   const mocked: Record<string, unknown> = {
@@ -37,6 +44,9 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
       state.clientId = clientId;
       state.clientSecret = clientSecret;
     },
+    setMockTeamsTenantId: (tenantId: string | null): void => {
+      state.tenantId = tenantId;
+    },
   };
 
   Object.defineProperty(mocked, "MicrosoftTeamsAppClientId", {
@@ -48,6 +58,12 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
   Object.defineProperty(mocked, "MicrosoftTeamsAppClientSecret", {
     get: (): string | null => {
       return state.clientSecret;
+    },
+  });
+
+  Object.defineProperty(mocked, "MicrosoftTeamsAppTenantId", {
+    get: (): string | null => {
+      return state.tenantId;
     },
   });
 
@@ -73,6 +89,18 @@ const setTeamsConfig: SetTeamsConfigFunction = (
       setMockTeamsConfig: SetMockTeamsConfigFunction;
     }
   ).setMockTeamsConfig(clientId, clientSecret);
+};
+
+type SetMockTeamsTenantIdFunction = (tenantId: string | null) => void;
+
+const setTeamsTenantId: SetMockTeamsTenantIdFunction = (
+  tenantId: string | null,
+): void => {
+  (
+    jest.requireMock("../../../Server/EnvironmentConfig") as {
+      setMockTeamsTenantId: SetMockTeamsTenantIdFunction;
+    }
+  ).setMockTeamsTenantId(tenantId);
 };
 
 type ExpressRouteHandler = (
@@ -166,6 +194,7 @@ const joinStrings: JoinStringsFunction = (values: unknown): string => {
 describe("GET /microsoft-bot/test", () => {
   beforeEach(() => {
     setTeamsConfig(MOCK_TEAMS_CLIENT_ID, MOCK_TEAMS_CLIENT_SECRET);
+    setTeamsTenantId(MOCK_TEAMS_TENANT_ID);
   });
 
   afterEach(() => {
@@ -209,7 +238,7 @@ describe("GET /microsoft-bot/test", () => {
       expect(messagingEndpoint.endsWith("/microsoft-bot/messages")).toBe(true);
     });
 
-    test("verified is a non-empty array naming both Teams environment variables", async () => {
+    test("verified is a non-empty array naming all three Teams environment variables", async () => {
       const response: InvokedResponse = await callBotTest();
       const verified: Array<string> = response.body[
         "verified"
@@ -220,6 +249,37 @@ describe("GET /microsoft-bot/test", () => {
       const joined: string = joinStrings(verified);
       expect(joined).toContain("microsoft_teams_app_client_id");
       expect(joined).toContain("microsoft_teams_app_client_secret");
+      expect(joined).toContain("microsoft_teams_app_tenant_id");
+    });
+
+    test("reports the tenant id, to compare with the app registration's Directory (tenant) ID", async () => {
+      setTeamsTenantId(` ${MOCK_TEAMS_TENANT_ID.toUpperCase()} `);
+
+      const response: InvokedResponse = await callBotTest();
+
+      expect(response.body["tenantId"]).toBe(MOCK_TEAMS_TENANT_ID);
+      expect(joinStrings(response.body["notVerified"])).toContain(
+        "the tenant id is the directory (tenant) id of the app registration",
+      );
+    });
+
+    test("says where connecting an account signs people in: the project's organization, else this tenant - never common (#5202)", async () => {
+      const response: InvokedResponse = await callBotTest();
+
+      expect(response.body["accountSignIn"]).toBe(
+        `Connecting a Microsoft Teams account signs people in to the Microsoft 365 organization their project is connected to, or to tenant ${MOCK_TEAMS_TENANT_ID} while the project is not connected yet — never at Microsoft's common endpoint, which an app registered as single tenant refuses (AADSTS50194).`,
+      );
+    });
+
+    test("a tenant named by its domain is reported as its domain", async () => {
+      setTeamsTenantId("Contoso.onmicrosoft.com");
+
+      const response: InvokedResponse = await callBotTest();
+
+      expect(response.body["tenantId"]).toBe("contoso.onmicrosoft.com");
+      expect(response.body["accountSignIn"]).toContain(
+        "or to tenant contoso.onmicrosoft.com while the project is not connected yet",
+      );
     });
 
     test("notVerified is a non-empty array", async () => {
@@ -324,6 +384,35 @@ describe("GET /microsoft-bot/test", () => {
       expect(response.body["status"]).toBeUndefined();
       expect(response.body["botId"]).toBeUndefined();
     });
+
+    test("tenant id unset responds with an error: the bot authenticates in it, and unconnected projects sign in to it", async () => {
+      setTeamsTenantId(null);
+
+      const response: InvokedResponse = await callBotTest();
+
+      expect(response.body["error"]).toBe(
+        "Microsoft Teams App Tenant ID not configured",
+      );
+      expect(response.body["status"]).toBeUndefined();
+      expect(response.body["botId"]).toBeUndefined();
+      expect(response.body["tenantId"]).toBeUndefined();
+      expect(response.body["accountSignIn"]).toBeUndefined();
+    });
+
+    test.each(["common", "organizations", "consumers", "not a tenant"])(
+      "tenant id %j, which names no tenant, responds with an error saying what to set",
+      async (tenantId: string) => {
+        setTeamsTenantId(tenantId);
+
+        const response: InvokedResponse = await callBotTest();
+
+        expect(response.body["error"]).toBe(
+          "Microsoft Teams App Tenant ID is not a tenant ID. Set MICROSOFT_TEAMS_APP_TENANT_ID to the app registration's Directory (tenant) ID.",
+        );
+        expect(response.body["status"]).toBeUndefined();
+        expect(response.body["tenantId"]).toBeUndefined();
+      },
+    );
 
     test("an empty-string client id is treated as unset", async () => {
       setTeamsConfig("", MOCK_TEAMS_CLIENT_SECRET);

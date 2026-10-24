@@ -43,7 +43,8 @@ import {
   RuleLlmProviderChoices,
   UNREAD_RULE_LLM_PROVIDER_CHOICES,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/RuleLlmProviderCopy";
-import AIInvestigationRule from "../../../Models/DatabaseModels/AIInvestigationRule";
+// The AI rule, whose form lists the field (AiRulesTable).
+import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
@@ -486,16 +487,16 @@ describe("a rule's LLM provider", () => {
 });
 
 describe("the field, as a rule form lists it", () => {
-  type Values = FormValues<AIInvestigationRule>;
+  type Values = FormValues<AutoRemediationRule>;
 
-  const SECTION: FormFieldCollapsibleSection<AIInvestigationRule> =
-    getAdvancedFormSection<AIInvestigationRule>({});
+  const SECTION: FormFieldCollapsibleSection<AutoRemediationRule> =
+    getAdvancedFormSection<AutoRemediationRule>({});
 
   function fieldFor(data: {
     choices: RuleLlmProviderChoices | null;
     showIf?: (values: Values) => boolean;
-  }): ModelField<AIInvestigationRule> {
-    return getRuleLlmProviderFormField<AIInvestigationRule>({
+  }): ModelField<AutoRemediationRule> {
+    return getRuleLlmProviderFormField<AutoRemediationRule>({
       stepId: "investigation",
       collapsibleSection: SECTION,
       dataTestId: "rule-llm-provider-field",
@@ -532,7 +533,7 @@ describe("the field, as a rule form lists it", () => {
    * starts - an investigation, a fix and its pull requests, a draft.
    */
   test("is the rule's llmProviderId, under its More fields, with the one line every rule has", () => {
-    const field: ModelField<AIInvestigationRule> = fieldFor({
+    const field: ModelField<AutoRemediationRule> = fieldFor({
       choices: READ,
     });
 
@@ -555,8 +556,8 @@ describe("the field, as a rule form lists it", () => {
 
   test("folded, names the provider a rule picks - by the providers as the table last read them", () => {
     let choices: RuleLlmProviderChoices | null = null;
-    const field: ModelField<AIInvestigationRule> =
-      getRuleLlmProviderFormField<AIInvestigationRule>({
+    const field: ModelField<AutoRemediationRule> =
+      getRuleLlmProviderFormField<AutoRemediationRule>({
         stepId: "investigation",
         collapsibleSection: SECTION,
         dataTestId: "rule-llm-provider-field",
@@ -580,7 +581,7 @@ describe("the field, as a rule form lists it", () => {
   });
 
   test("hands the form what the picker picks", async () => {
-    const field: ModelField<AIInvestigationRule> = fieldFor({
+    const field: ModelField<AutoRemediationRule> = fieldFor({
       choices: READ,
     });
     const handed: Array<unknown> = [];
@@ -607,7 +608,7 @@ describe("the field, as a rule form lists it", () => {
     const showIf: (values: Values) => boolean = (values: Values): boolean => {
       return (values as { name?: string }).name !== "hidden";
     };
-    const field: ModelField<AIInvestigationRule> = fieldFor({
+    const field: ModelField<AutoRemediationRule> = fieldFor({
       choices: READ,
       showIf,
     });

@@ -32,7 +32,7 @@ flowchart TB
 
 En leverantör är ett projekts standard när **Ange som standard** är påslaget, vilket det är för varje ny leverantör. Ett projekt där alla leverantörer har standard avslaget faller tillbaka på den globala leverantören, som om det inte hade någon.
 
-Varje OneUptime AI-regel – utredningsregler, regler för automatisk åtgärd och regler för efteranalys – kan i stället välja en egen leverantör under **Fler fält**: en av projektets leverantörer eller en global, som används för allt som regeln startar. En regel som inte väljer någon använder standardleverantören, och en vald leverantör som inte längre kan användas faller tillbaka på den. Se [Vilken LLM-leverantör en regel använder](/docs/ai/ai-sre#vilken-llm-leverantör-en-regel-använder).
+Varje OneUptime AI-regel – AI-regler och regler för efteranalys – kan i stället välja en egen leverantör under **Fler fält**: en av projektets leverantörer eller en global, som används för allt som regeln startar. En regel som inte väljer någon använder standardleverantören, och en vald leverantör som inte längre kan användas faller tillbaka på den. Se [Vilken LLM-leverantör en regel använder](/docs/ai/ai-sre#vilken-llm-leverantör-en-regel-använder).
 
 ## OneUptime Cloud
 

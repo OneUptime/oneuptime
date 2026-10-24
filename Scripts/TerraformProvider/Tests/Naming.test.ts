@@ -1,7 +1,7 @@
 import { StringUtils } from "../Core/StringUtils";
 import { OpenAPIParser } from "../Core/OpenAPIParser";
 import { TerraformDataSource, TerraformResource } from "../Core/Types";
-import { buildFixtureSpec } from "./Fixtures";
+import { buildFixtureSpec, crudPaths } from "./Fixtures";
 
 /*
  * Type names are what people type in every block. Splitting on every change
@@ -108,5 +108,91 @@ describe("renamed types keep their old names", () => {
 
     expect(monitor.schema["custom_java_script"]).toBeDefined();
     expect(monitor.schema["custom_javascript"]).toBeUndefined();
+  });
+});
+
+/*
+ * A model renamed in the product keeps its old name in Terraform: its tag
+ * says what it was called before (x-former-names, from TableMetadata's
+ * formerSingularName), and the old name stays registered as a deprecated
+ * alias - auto remediation rules became AI rules, and
+ * oneuptime_auto_remediation_rule keeps working.
+ */
+describe("a model renamed in the product keeps its old name", () => {
+  function parseWithRenamedModel(formerNames?: Array<string>): OpenAPIParser {
+    const spec: ReturnType<typeof buildFixtureSpec> = buildFixtureSpec();
+
+    spec.tags = [
+      ...(spec.tags || []),
+      {
+        name: "AI Rule",
+        description: "Which incidents OneUptime AI investigates and fixes.",
+        ...(formerNames ? { "x-former-names": formerNames } : {}),
+      },
+    ];
+    spec.paths = {
+      ...spec.paths,
+      ...crudPaths({
+        path: "/auto-remediation-rule",
+        table: "AutoRemediationRule",
+        tag: "AI Rule",
+        schema: "IoTFleet",
+      }),
+    };
+
+    const parser: OpenAPIParser = new OpenAPIParser();
+    parser.setSpec(spec);
+    return parser;
+  }
+
+  test("the resource and its data source keep the former name as their alias", () => {
+    const parser: OpenAPIParser = parseWithRenamedModel([
+      "Auto Remediation Rule",
+    ]);
+    const resource: TerraformResource | undefined = parser
+      .getResources()
+      .find((candidate: TerraformResource) => {
+        return candidate.name === "ai_rule";
+      });
+
+    expect(resource).toBeDefined();
+    expect(resource!.legacyName).toBe("auto_remediation_rule");
+    expect(
+      parser.getDataSources().find((candidate: TerraformDataSource) => {
+        return candidate.name === "ai_rule";
+      })?.legacyName,
+    ).toBe("auto_remediation_rule");
+  });
+
+  test("the former name is spelled the way the provider always spelled it", () => {
+    const parser: OpenAPIParser = parseWithRenamedModel(["IoT Rule"]);
+
+    expect(
+      parser.getResources().find((candidate: TerraformResource) => {
+        return candidate.name === "ai_rule";
+      })?.legacyName,
+    ).toBe("io_t_rule");
+  });
+
+  test("without a former name nothing is aliased", () => {
+    const parser: OpenAPIParser = parseWithRenamedModel();
+
+    expect(
+      parser.getResources().find((candidate: TerraformResource) => {
+        return candidate.name === "ai_rule";
+      })?.legacyName,
+    ).toBeUndefined();
+  });
+
+  test("the fixture's other renamed type keeps the alias the old spelling gives it", () => {
+    const parser: OpenAPIParser = parseWithRenamedModel([
+      "Auto Remediation Rule",
+    ]);
+
+    expect(
+      parser.getResources().find((candidate: TerraformResource) => {
+        return candidate.name === "iot_fleet";
+      })?.legacyName,
+    ).toBe("io_t_fleet");
   });
 });

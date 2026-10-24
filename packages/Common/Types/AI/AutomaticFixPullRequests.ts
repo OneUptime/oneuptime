@@ -296,11 +296,11 @@ export function describeAutomaticFixPullRequestBlocker(data: {
     case AutomaticFixPullRequestBlocker.FixOff:
       return `project has fixing new ${signal}s automatically off, and its ${pullRequest} open only while it is on`;
     case AutomaticFixPullRequestBlocker.RulesUnreadable:
-      return `the auto remediation rules could not be read, so no ${pullRequest} open`;
+      return `the AI rules could not be read, so no ${pullRequest} open`;
     case AutomaticFixPullRequestBlocker.NoMatchingRule:
-      return `no auto remediation rule matches this ${signal}, so it is not fixed`;
+      return `no AI rule that fixes matches this ${signal}, so it is not fixed`;
     case AutomaticFixPullRequestBlocker.PullRequestOff:
-      return `the auto remediation rules that match this ${signal} have ${pullRequest} off`;
+      return `the AI rules that match this ${signal} have ${pullRequest} off`;
     default: {
       const unhandled: never = data.blocker;
       return unhandled;

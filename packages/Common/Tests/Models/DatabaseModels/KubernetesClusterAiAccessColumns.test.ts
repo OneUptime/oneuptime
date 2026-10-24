@@ -259,7 +259,7 @@ describe("KubernetesCluster AI access columns", () => {
 
     /*
      * The admin set is required ON TOP of the right to edit the cluster:
-     * a holder of only Edit Auto Remediation Rule cannot update a cluster
+     * a holder of only Edit AI Rule cannot update a cluster
      * at all. Owners and admins hold both.
      */
     it("adds to the right to edit the cluster rather than replacing it", () => {

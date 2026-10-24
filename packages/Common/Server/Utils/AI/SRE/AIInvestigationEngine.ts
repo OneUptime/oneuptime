@@ -414,7 +414,7 @@ export default class AIInvestigationEngine {
       llmProviderId = await data.getRuleLlmProviderId();
     } catch (error) {
       logger.error(
-        `AI: could not read the LLM provider the investigation rules pick for project ${data.projectId.toString()}: ${error}`,
+        `AI: could not read the LLM provider the AI rules pick for project ${data.projectId.toString()}: ${error}`,
       );
     }
 

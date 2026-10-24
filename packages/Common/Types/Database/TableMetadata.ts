@@ -16,6 +16,14 @@ export default (props: {
    * Set it only where that would pick the wrong column, or none.
    */
   displayNameColumn?: string | undefined;
+  /*
+   * The singularName the model had before it was renamed. What callers of
+   * the API named it by keeps working where the name is part of a contract:
+   * the OpenAPI tag carries it (x-former-names), and the Terraform provider
+   * keeps a resource and a data source of the old name as deprecated
+   * aliases of the new ones (Scripts/TerraformProvider OpenAPIParser).
+   */
+  formerSingularName?: string | undefined;
 }) => {
   return (ctr: GenericFunction) => {
     ctr.prototype.singularName = props.singularName;
@@ -28,6 +36,9 @@ export default (props: {
     }
     if (props.displayNameColumn) {
       ctr.prototype.displayNameColumn = props.displayNameColumn;
+    }
+    if (props.formerSingularName) {
+      ctr.prototype.formerSingularName = props.formerSingularName;
     }
   };
 };

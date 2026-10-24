@@ -43,9 +43,8 @@ import {
  * standard outline), one, or several for OneUptime AI to pick the one that
  * fits the incident best (Server/Utils/AI/SRE/PostmortemRules).
  *
- * A rule's conditions are the ones the project's other incident AI rules
- * offer (Investigation Rules, Auto Remediation Rules), read the same way
- * (IncidentAlertRuleMatcher). The switch stays the one way to turn drafting
+ * A rule's conditions are the ones the project's incident AI rules offer,
+ * read the same way (IncidentAlertRuleMatcher). The switch stays the one way to turn drafting
  * off. Changing what AI does is the AI settings' business, so a rule takes
  * what changing those takes: Project Owner or Project Admin.
  */

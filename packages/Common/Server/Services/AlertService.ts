@@ -1469,7 +1469,7 @@ export class Service extends ProjectReferencesService<Model> {
           });
         } catch (error) {
           logger.error(
-            `Apply auto-remediation rules failed in AlertService.onCreateSuccess: ${error}`,
+            `Apply AI rules failed in AlertService.onCreateSuccess: ${error}`,
             {
               projectId: createdItem.projectId?.toString(),
               alertId: createdItem.id?.toString(),

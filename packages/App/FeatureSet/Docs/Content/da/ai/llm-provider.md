@@ -32,7 +32,7 @@ flowchart TB
 
 En udbyder er et projekts standard, når **Indstil som standard** er slået til, hvilket den er for hver ny udbyder. Et projekt, hvor alle udbydere har standard slået fra, falder tilbage på den globale udbyder, som om det ikke havde nogen.
 
-Hver OneUptime AI-regel – undersøgelsesregler, regler for automatisk afhjælpning og postmortem-regler – kan i stedet vælge sin egen udbyder under **Flere felter**: en af projektets udbydere eller en global, som bruges til alt, hvad reglen starter. En regel, der ikke vælger nogen, bruger standardudbyderen, og en valgt udbyder, der ikke længere kan bruges, falder tilbage til den. Se [Hvilken LLM-udbyder en regel bruger](/docs/ai/ai-sre#hvilken-llm-udbyder-en-regel-bruger).
+Hver OneUptime AI-regel – AI-regler og postmortem-regler – kan i stedet vælge sin egen udbyder under **Flere felter**: en af projektets udbydere eller en global, som bruges til alt, hvad reglen starter. En regel, der ikke vælger nogen, bruger standardudbyderen, og en valgt udbyder, der ikke længere kan bruges, falder tilbage til den. Se [Hvilken LLM-udbyder en regel bruger](/docs/ai/ai-sre#hvilken-llm-udbyder-en-regel-bruger).
 
 ## OneUptime Cloud
 

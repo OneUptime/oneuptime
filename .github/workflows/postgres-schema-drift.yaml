@@ -2138,6 +2138,28 @@ jobs:
           Tests/Server/Infrastructure/Postgres/AddRuleLlmProvidersPostgres.test.ts
           --forceExit
 
+      # Investigation rules become AI rules, on migrated Postgres: the
+      # AddAiRuleInvestigation and MergeInvestigationRulesIntoAiRules
+      # migrations on copies of both rule tables, seeded with every
+      # combination (each kind alone, matching and different conditions,
+      # disabled rules, name order, both kinds of signal, a deleted rule and
+      # project). Each rule's new shape is checked, and so is the behaviour:
+      # for a spread of incidents and alerts, what is investigated (wait, LLM
+      # provider, MCP servers, repositories), which rules fix it and which
+      # pull requests open is the same before and after. up() run again
+      # changes nothing, and down() gives the rules back.
+      - name: Test merging investigation rules into AI rules on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_AI_RULE_MERGE_TESTS: "true"
+          AI_RULE_MERGE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          AI_RULE_MERGE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          AI_RULE_MERGE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/MergeInvestigationRulesIntoAiRulesPostgres.test.ts
+          --forceExit
+
       # Labels in natural order (#5183), on migrated Postgres: the
       # AddLabelNameSortKey migration on a copy of the Label table that
       # already holds labels (the key added empty, under the "C" collation),

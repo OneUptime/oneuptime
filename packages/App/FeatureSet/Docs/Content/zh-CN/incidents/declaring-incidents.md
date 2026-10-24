@@ -295,7 +295,7 @@ flowchart TB
 - **处于或越过确认状态** —— **已确认**，或在 **事件 → 设置 → 事件状态** 中放在它下面的任何状态——不会运行任何值班策略，因此不会呼叫任何人。事件仍会列出它的策略，包括你选择的和值班规则添加的，它的信息流会用一行说明原因：_No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ 如果有规则为它设置了 SLA，该 SLA 会以已响应的状态开始。下文中的其他一切照常运行，和任何新事件一样。
 - **处于或越过解决状态** —— **已解决**，或放在它下面的任何状态——事件已经结束，所以在此基础上，任何应对进行中事件的东西都不会运行：
   - 它不会被归入片段，因为那可能会再次呼叫；
-  - 不会有 Runbook 规则或自动补救规则作用于它；
+  - 不会有 Runbook 规则或 AI 规则作用于它；
   - OneUptime AI 不会调查它——它的 **AI Investigation** 卡片会说明它创建时就已解决，而下方的 **Ask OneUptime AI** 仍会回答关于它的问题；
   - 不会为它创建 Slack 或 Microsoft Teams 频道；
   - 无论 **将监视器状态更改为** 如何设置，它的监视器都会保持其状态并继续被监视；

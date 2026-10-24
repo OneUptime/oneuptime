@@ -16,9 +16,22 @@ import { readAutoRemediationIds } from "../../Types/AutoRemediation/AutoRemediat
 import RunnerAiCommandsPick from "../Utils/Runner/RunnerAiCommandsPick";
 import { getRuleExternalMcpServersProblem } from "../../Types/AI/ExternalMcpServer/ExternalMcpServerAllowance";
 import { getRuleCodeRepositoriesProblem } from "../../Types/CodeRepository/CodeRepositoryAllowance";
+import { getAiRuleShapeProblem } from "../../Types/AI/AiRule";
+import {
+  AI_RULE_CRITERIA_FIELDS,
+  getAiRuleCriteriaProblem,
+} from "../../Types/AI/AiRuleCriteria";
+import { getInvestigationRuleWaitProblem } from "../../Types/AI/InvestigationRuleWait";
 
 // The keys a write names the rule's Runner by: the id, or the relation.
 const RUNNER_KEYS: Array<string> = ["runnerId", "runner"];
+
+/*
+ * The AI rules of incidents and alerts (Types/AI/AiRule): the table the
+ * auto remediation rules had, which the investigation rules moved into. A
+ * rule investigates what it matches, fixes it, or both; it may wait before
+ * investigating; and its conditions are its own kind of signal's.
+ */
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -54,6 +67,96 @@ export class Service extends ProjectReferencesService<Model> {
     if (data["codeRepositories"] !== undefined) {
       this.assertCodeRepositoriesFit(data["codeRepositories"]);
     }
+  }
+
+  /*
+   * What a new rule does and matches, judged after the project check and
+   * before anything here reads a Runner: these read nothing.
+   *
+   * What it does is what the write says, else the columns' defaults - it
+   * fixes, and does not investigate, as an auto remediation rule an older
+   * API or Terraform client creates always did.
+   */
+  public static assertNewRuleFits(data: Model): void {
+    Service.assertShapeFits({
+      investigates: data.investigates,
+      fixes: data.fixes,
+    });
+
+    Service.assertWaitFits(data.onlyIfOpenAfterMinutes);
+
+    Service.assertCriteriaFitTrigger({
+      triggerEntityType: data.triggerEntityType,
+      data: data as unknown as Record<string, unknown>,
+    });
+  }
+
+  /*
+   * A rule investigates, fixes, or both: one that does neither does
+   * nothing, and would still narrow what is fixed (Types/AI/AiRule).
+   */
+  public static assertShapeFits(rule: {
+    investigates?: unknown;
+    fixes?: unknown;
+  }): void {
+    const problem: string | null = getAiRuleShapeProblem(rule);
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
+  }
+
+  /*
+   * A rule's wait (onlyIfOpenAfterMinutes, issue #5074) is a whole number of
+   * minutes, at most a day, or nothing. Refused with a message that says
+   * so, rather than saved as a wait OneUptime AI would read differently.
+   */
+  public static assertWaitFits(value: unknown): void {
+    const problem: string | null = getInvestigationRuleWaitProblem(value);
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
+  }
+
+  /*
+   * One table holds incident and alert rules, and each can only match on
+   * its own kind of signal's criteria: a condition on alert severities can
+   * never be true for an incident. Such a rule is refused instead of being
+   * saved as one that silently never matches - which, since rules narrow
+   * what is investigated and fixed, would quietly stop both.
+   */
+  public static assertCriteriaFitTrigger(data: {
+    triggerEntityType: unknown;
+    data: Record<string, unknown>;
+  }): void {
+    const problem: string | null = getAiRuleCriteriaProblem({
+      triggerEntityType: data.triggerEntityType,
+      criteria: data.data["criteria"],
+      values: data.data,
+    });
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
+  }
+
+  // Whether an update writes the rule's conditions.
+  public static doesUpdateChangeCriteria(
+    data: Record<string, unknown>,
+  ): boolean {
+    return (
+      (data["criteria"] !== undefined && data["criteria"] !== null) ||
+      AI_RULE_CRITERIA_FIELDS.some((field: string): boolean => {
+        const value: unknown = data[field];
+        return Array.isArray(value) && value.length > 0;
+      })
+    );
+  }
+
+  // Whether an update writes what the rule does: investigate, fix, or both.
+  public static doesUpdateChangeShape(data: Record<string, unknown>): boolean {
+    return data["investigates"] !== undefined || data["fixes"] !== undefined;
   }
 
   private assertMcpServersFit(servers: unknown): void {
@@ -94,6 +197,8 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     // The project's own records only, before anything here reads one.
     await super.onBeforeCreate(createBy);
+
+    Service.assertNewRuleFits(createBy.data);
 
     createBy.data.remediationAction = Service.getRemediationActionOnCreate(
       createBy.data,
@@ -136,12 +241,18 @@ export class Service extends ProjectReferencesService<Model> {
    * path never serves it shell work - so it narrows the rule to nothing it
    * can target. Adding one is refused.
    *
+   * An edit of what the rule does (investigates, fixes) is judged with the
+   * rule's other column as stored - one that would leave a rule doing
+   * neither is refused - and an edit of its conditions against the rule's
+   * own kind of signal (its trigger cannot change).
+   *
    * It reads the rules the update writes - the ones its caller may write -
    * once, and the update is held to the rules read
    * (findRowsAndHoldUpdateToThem), so a rule the check did not see is never
    * written. Nothing is read when the update names no kubernetes-agent
-   * Runner. A Runner the update picks is let run OneUptime AI's commands
-   * once the check passes (RunnerAiCommandsPick).
+   * Runner and changes neither what the rule does nor its conditions. A
+   * Runner the update picks is let run OneUptime AI's commands once the
+   * checks pass (RunnerAiCommandsPick).
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
@@ -151,6 +262,11 @@ export class Service extends ProjectReferencesService<Model> {
     await super.onBeforeUpdate(updateBy);
 
     const data: JSONObject = (updateBy.data || {}) as unknown as JSONObject;
+
+    // An edit that leaves the wait alone is not judged on it.
+    if (data["onlyIfOpenAfterMinutes"] !== undefined) {
+      Service.assertWaitFits(data["onlyIfOpenAfterMinutes"]);
+    }
 
     if (
       data["remediationAction"] === null ||
@@ -173,7 +289,14 @@ export class Service extends ProjectReferencesService<Model> {
         ...writtenRunnerIds,
       ]);
 
-    if (agentRunners.length === 0) {
+    const written: Record<string, unknown> = data as unknown as Record<
+      string,
+      unknown
+    >;
+    const changesShape: boolean = Service.doesUpdateChangeShape(written);
+    const changesCriteria: boolean = Service.doesUpdateChangeCriteria(written);
+
+    if (agentRunners.length === 0 && !changesShape && !changesCriteria) {
       await this.allowPickedRunners({
         updateBy,
         runnerIds: writtenRunnerIds,
@@ -193,8 +316,30 @@ export class Service extends ProjectReferencesService<Model> {
         projectId: true,
         commandRunners: { _id: true },
         runnerId: true,
+        triggerEntityType: true,
+        investigates: true,
+        fixes: true,
       },
     );
+
+    for (const rule of rules) {
+      if (changesShape) {
+        Service.assertShapeFits({
+          investigates:
+            written["investigates"] !== undefined
+              ? written["investigates"]
+              : rule.investigates,
+          fixes: written["fixes"] !== undefined ? written["fixes"] : rule.fixes,
+        });
+      }
+
+      if (changesCriteria) {
+        Service.assertCriteriaFitTrigger({
+          triggerEntityType: rule.triggerEntityType,
+          data: written,
+        });
+      }
+    }
 
     for (const agentRunner of agentRunners) {
       const isHeldByEveryRule: boolean = rules.every((rule: Model) => {

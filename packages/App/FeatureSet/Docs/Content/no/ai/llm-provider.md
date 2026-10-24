@@ -32,7 +32,7 @@ flowchart TB
 
 En leverandør er et prosjekts standard når **Angi som standard** er slått på, noe den er for hver ny leverandør. Et prosjekt der alle leverandørene har standard slått av, faller tilbake på den globale leverandøren, som om det ikke hadde noen.
 
-Hver OneUptime AI-regel – undersøkelsesregler, regler for automatisk utbedring og etteranalyseregler – kan i stedet velge sin egen leverandør under **Flere felt**: en av prosjektets leverandører eller en global, som brukes for alt regelen starter. En regel som ikke velger noen, bruker standardleverandøren, og en valgt leverandør som ikke lenger kan brukes, faller tilbake til den. Se [Hvilken LLM-leverandør en regel bruker](/docs/ai/ai-sre#hvilken-llm-leverandør-en-regel-bruker).
+Hver OneUptime AI-regel – AI-regler og etteranalyseregler – kan i stedet velge sin egen leverandør under **Flere felt**: en av prosjektets leverandører eller en global, som brukes for alt regelen starter. En regel som ikke velger noen, bruker standardleverandøren, og en valgt leverandør som ikke lenger kan brukes, faller tilbake til den. Se [Hvilken LLM-leverandør en regel bruker](/docs/ai/ai-sre#hvilken-llm-leverandør-en-regel-bruker).
 
 ## OneUptime Cloud
 

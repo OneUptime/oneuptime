@@ -74,7 +74,7 @@ Et runbook kan blande alle sammen. Styrken ved runbooks er å flette menneskelig
 | En runbook-regel | **Hendelser**, **Varsler** eller **Planlagt vedlikehold** → **Regler** → **Runbook-regler** | Den nye hendelsen, varselet eller begivenheten |
 | **Kjør runbook** | Siden **Runbooks** for en hendelse, et varsel eller en planlagt vedlikeholdshendelse | Den begivenheten |
 | **Run Now** | Runbookets side **Oversikt** | Ingenting: en ad hoc-kjøring |
-| En regel for automatisk utbedring | Se [AI SRE](/docs/ai/ai-sre) | Hendelsen eller varselet |
+| En AI-regel | Se [AI SRE](/docs/ai/ai-sre) | Hendelsen eller varselet |
 | Runbookets tidsplan | Runbookets side **Utløsere**, se [Runbook-utløsere](/docs/runbooks/triggers#kjør-etter-en-tidsplan) | Ingenting: en kjøring uten tilsyn |
 | Et kall til runbookets webhook-URL | Runbookets side **Utløsere**, se [Runbook-utløsere](/docs/runbooks/triggers#kall-webhooken) | Ingenting: kjøringen tar vare på verdiene kallet sendte |
 

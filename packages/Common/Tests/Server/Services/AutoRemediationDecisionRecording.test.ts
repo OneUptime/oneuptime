@@ -874,7 +874,153 @@ describe("AutoRemediationRuleEngineService records its decision", () => {
     });
   });
 
-  describe("Auto Remediation Rules", () => {
+  describe("AI rules", () => {
+    /*
+     * An AI rule that only investigates ("Don't fix") fixes nothing it
+     * matches: with rules, a signal is fixed only when a rule that fixes
+     * matches it (Types/AI/AiRule). Its Remediation card says which rule
+     * matched, and why nothing was fixed.
+     */
+    it("reads whether each rule fixes", async () => {
+      const harness: Harness = mockEngine({
+        rules: [rule()],
+        matchingRuleIds: [],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(
+        (
+          AutoRemediationRuleService.findBy as unknown as {
+            mock: { calls: Array<Array<{ select?: Record<string, unknown> }>> };
+          }
+        ).mock.calls[0]![0]!.select,
+      ).toMatchObject({ fixes: true });
+      expect(reasonsOf(harness)).toEqual([
+        AutoRemediationDecisionReason.NotMatchedByAnyRule,
+      ]);
+    });
+
+    it("a signal that matches only rules that do not fix is not fixed, and says which rule matched", async () => {
+      const suggest: SpyInstance<EngineInternals["suggestRunbook"]> = jest
+        .spyOn(engine, "suggestRunbook")
+        .mockResolvedValue(undefined);
+      const harness: Harness = mockEngine({
+        clusters: [cluster(CLUSTER_A)],
+        rules: [
+          rule({ name: "Payments: investigate only", fixes: false }),
+          rule({
+            _id: OTHER_RULE_ID.toString(),
+            name: "Checkout: investigate only",
+            fixes: false,
+          }),
+        ],
+        matchingRuleIds: [RULE_ID.toString(), OTHER_RULE_ID.toString()],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(reasonsOf(harness)).toEqual([
+        AutoRemediationDecisionReason.MatchedRulesDoNotFix,
+      ]);
+      expect(
+        entryFor(harness, AutoRemediationDecisionReason.MatchedRulesDoNotFix),
+      ).toMatchObject({
+        lane: AutoRemediationDecisionLane.Rule,
+        ruleId: RULE_ID.toString(),
+        ruleName: "Payments: investigate only",
+        rulesChecked: 2,
+      });
+      // Nothing is fixed: no runbook, no cluster round.
+      expect(suggest).not.toHaveBeenCalled();
+      expect(harness.clusterStatuses).not.toHaveBeenCalled();
+    });
+
+    it("a rule that fixes acts on its match, whatever rules that do not fix also match", async () => {
+      const suggest: SpyInstance<EngineInternals["suggestRunbook"]> = jest
+        .spyOn(engine, "suggestRunbook")
+        .mockResolvedValue(undefined);
+      const harness: Harness = mockEngine({
+        rules: [
+          rule({
+            _id: OTHER_RULE_ID.toString(),
+            name: "Payments: investigate only",
+            fixes: false,
+          }),
+          rule({ fixes: true }),
+        ],
+        matchingRuleIds: [RULE_ID.toString(), OTHER_RULE_ID.toString()],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(reasonsOf(harness)).not.toContain(
+        AutoRemediationDecisionReason.MatchedRulesDoNotFix,
+      );
+      expect(
+        entryFor(harness, AutoRemediationDecisionReason.RuleRunbookProposed),
+      ).toMatchObject({
+        ruleId: RULE_ID.toString(),
+        ruleName: "Restart checkout",
+      });
+      // Only the rule that fixes proposed anything.
+      expect(suggest).toHaveBeenCalledTimes(1);
+    });
+
+    it("a rule read without the column fixes, as every auto remediation rule did", async () => {
+      const suggest: SpyInstance<EngineInternals["suggestRunbook"]> = jest
+        .spyOn(engine, "suggestRunbook")
+        .mockResolvedValue(undefined);
+      const harness: Harness = mockEngine({
+        rules: [rule()],
+        matchingRuleIds: [RULE_ID.toString()],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(reasonsOf(harness)).toContain(
+        AutoRemediationDecisionReason.RuleRunbookProposed,
+      );
+      expect(suggest).toHaveBeenCalledTimes(1);
+    });
+
+    it("an alert that matches only rules that do not fix is not fixed either", async () => {
+      const harness: Harness = mockEngine({
+        rules: [rule({ name: "Payments: investigate only", fixes: false })],
+        matchingRuleIds: [RULE_ID.toString()],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToAlert(alert());
+
+      expect(reasonsOf(harness)).toEqual([
+        AutoRemediationDecisionReason.MatchedRulesDoNotFix,
+      ]);
+      expect(
+        entryFor(harness, AutoRemediationDecisionReason.MatchedRulesDoNotFix)
+          .rulesChecked,
+      ).toBe(1);
+    });
+
+    it("rules that do not fix and do not match leave the signal unfixed, counted with the rest", async () => {
+      const harness: Harness = mockEngine({
+        rules: [
+          rule({ fixes: false }),
+          rule({ _id: OTHER_RULE_ID.toString(), fixes: true }),
+        ],
+        matchingRuleIds: [],
+      });
+
+      await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
+
+      expect(reasonsOf(harness)).toEqual([
+        AutoRemediationDecisionReason.NotMatchedByAnyRule,
+      ]);
+      expect(
+        entryFor(harness, AutoRemediationDecisionReason.NotMatchedByAnyRule)
+          .rulesChecked,
+      ).toBe(2);
+    });
+
     it("says how many rules were checked when none matched, and fixes nothing else", async () => {
       const harness: Harness = mockEngine({
         clusters: [cluster(CLUSTER_A)],
@@ -1476,8 +1622,7 @@ describe("the fixing switch and the rules decide which signals are fixed, and ho
 
     expect(clusterRunArgs(start)).toEqual([
       expect.objectContaining({
-        askFirstReason:
-          'Auto Remediation Rule "Payments ask" asks before fixing',
+        askFirstReason: 'AI rule "Payments ask" asks before fixing',
       }),
     ]);
     expect(
@@ -1534,8 +1679,7 @@ describe("the fixing switch and the rules decide which signals are fixed, and ho
 
     expect(clusterRunArgs(start)).toEqual([
       expect.objectContaining({
-        askFirstReason:
-          'Auto Remediation Rule "Databases ask" asks before fixing',
+        askFirstReason: 'AI rule "Databases ask" asks before fixing',
       }),
     ]);
   });
@@ -1579,7 +1723,7 @@ describe("the fixing switch and the rules decide which signals are fixed, and ho
     await AutoRemediationRuleEngineService.applyRulesToIncident(incident());
 
     expect(startResource.mock.calls[0]![0]).toMatchObject({
-      askFirstReason: 'Auto Remediation Rule "Staging asks" asks before fixing',
+      askFirstReason: 'AI rule "Staging asks" asks before fixing',
     });
     expect(
       entryFor(harness, AutoRemediationDecisionReason.ResourceRoundStarted),

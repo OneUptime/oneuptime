@@ -3,17 +3,20 @@ import fs from "fs";
 import path from "path";
 
 /*
- * Investigation rules can wait (issue #5074): "only if the incident is still
- * open after N minutes", on Incidents -> AI -> Settings and Alerts -> AI ->
- * Settings, in a browser, against the offline fixture of the AI settings
- * page (AutoRemediationRules/Fixture, ?investigationRules=saved).
+ * AI rules can wait before they investigate (issue #5074): "only if the
+ * incident is still open after N minutes", on Incidents -> AI -> Settings
+ * and Alerts -> AI -> Settings, in a browser, against the offline fixture of
+ * the AI settings page (AutoRemediationRules/Fixture,
+ * ?investigationRules=saved: the rules the upgrade made of a lane's
+ * investigation rules, which investigate and fix nothing).
  *
- * A rule asks Match, then Investigate: when to investigate - Right away, the
- * default and what every rule saved before rules could wait does, or Only if
- * still open after a wait, which asks the minutes (10 to start with, 1 to
- * 1440). The table says when each rule investigates. The fixture records
- * every create and update the page sends, so the tests check what was sent
- * as well as what was drawn.
+ * The investigation rules became AI rules: a rule asks Match, then
+ * Investigate - when to investigate: Right away, the default and what every
+ * rule saved before rules could wait does, or Only if still open after a
+ * wait, which asks the minutes (10 to start with, 1 to 1440) - then Fix,
+ * which names it. The table says when each rule investigates. The fixture
+ * records every create and update the page sends, so the tests check what
+ * was sent as well as what was drawn.
  */
 
 const PROJECT_ID: string = "10000000-0000-4000-8000-0000000000a1";
@@ -35,8 +38,8 @@ const GERMAN: Record<string, string> = JSON.parse(
   ),
 ) as Record<string, string>;
 
-const CARD_TITLE: string = "Investigation rules";
-const CREATE: string = "Create Investigation Rule";
+const CARD_TITLE: string = "AI rules";
+const CREATE: string = "Create AI Rule";
 const SAVE: string = "Save Changes";
 const WHEN: string = "When to investigate";
 const RIGHT_AWAY: string = "Right away";
@@ -88,7 +91,7 @@ interface OpenOptions {
   rules?: "saved" | "many";
 }
 
-// The page, its More settings unfolded, and the investigation rules card.
+// The page, its More settings unfolded, and the AI rules card.
 const openRulesCard: (
   page: Page,
   options?: OpenOptions,
@@ -139,30 +142,33 @@ const recorded: (page: Page) => Promise<Recorded> = async (
   })) as Recorded;
 };
 
-// The cell under a column of a row, by the column's header.
-const cellOf: (
+/*
+ * What a row's rule does, as the table's one column ("Investigates and
+ * fixes") says it: when it investigates, then how it fixes.
+ */
+const rowOf: (card: Locator, rowName: string) => Locator = (
   card: Locator,
   rowName: string,
-  column: string,
-) => Promise<string> = async (
+): Locator => {
+  return card.locator("tbody tr").filter({ hasText: rowName }).first();
+};
+
+const timingOf: (card: Locator, rowName: string) => Promise<string> = async (
   card: Locator,
   rowName: string,
-  column: string,
 ): Promise<string> => {
-  const headers: Array<string> = (
-    await card.locator("thead th").allInnerTexts()
-  ).map((text: string): string => {
-    return text.trim();
-  });
-  const index: number = headers.indexOf(column);
-  expect(index).toBeGreaterThan(-1);
+  return (
+    await rowOf(card, rowName).getByTestId("ai-rule-timing").innerText()
+  ).trim();
+};
 
-  const row: Locator = card
-    .locator("tbody tr")
-    .filter({ hasText: rowName })
-    .first();
-
-  return ((await row.locator("td").nth(index).innerText()) || "").trim();
+const fixOf: (card: Locator, rowName: string) => Promise<string> = async (
+  card: Locator,
+  rowName: string,
+): Promise<string> => {
+  return (await rowOf(card, rowName).getByTestId("ai-rule-fix").innerText())
+    .replace(/\s+/g, " ")
+    .trim();
 };
 
 // The create dialog, walked past Match (all incidents) to Investigate.
@@ -181,6 +187,20 @@ const openInvestigateStep: (
   await expect(dialog.getByRole("radio", { name: RIGHT_AWAY })).toBeVisible();
 
   return dialog;
+};
+
+/*
+ * On to the Fix step, which names the rule and creates it - as one that
+ * only investigates, what an investigation rule was, unless told to fix.
+ */
+const createNamed: (dialog: Locator, name: string) => Promise<void> = async (
+  dialog: Locator,
+  name: string,
+): Promise<void> => {
+  await dialog.getByRole("button", { name: "Next", exact: true }).click();
+  await dialog.getByRole("radio", { name: /^Don't fix/ }).click();
+  await dialog.getByRole("textbox", { name: /^Name/ }).fill(name);
+  await dialog.getByRole("button", { name: CREATE }).click();
 };
 
 const waitField: (dialog: Locator) => Locator = (dialog: Locator): Locator => {
@@ -214,14 +234,14 @@ const createdRule: (page: Page) => Promise<Record<string, unknown>> = async (
 ): Promise<Record<string, unknown>> => {
   const creates: Recorded["creates"] = (await recorded(page)).creates.filter(
     (create: Recorded["creates"][number]): boolean => {
-      return create.model === "AIInvestigationRule";
+      return create.model === "AutoRemediationRule";
     },
   );
   expect(creates).toHaveLength(1);
   return creates[0]!.data;
 };
 
-test.describe("investigation rules: when to investigate (issue #5074)", () => {
+test.describe("AI rules: when to investigate (issue #5074)", () => {
   test("the table says when each rule investigates", async ({
     page,
   }: {
@@ -229,16 +249,16 @@ test.describe("investigation rules: when to investigate (issue #5074)", () => {
   }) => {
     const card: Locator = await openRulesCard(page);
 
-    expect(await cellOf(card, "Production incidents", "Investigates")).toBe(
-      RIGHT_AWAY,
-    );
-    expect(await cellOf(card, "Flapping checks", "Investigates")).toBe(
+    expect(await timingOf(card, "Production incidents")).toBe(RIGHT_AWAY);
+    expect(await timingOf(card, "Flapping checks")).toBe(
       "If still open after 10 minutes",
     );
+    // What an investigation rule was: a rule that fixes nothing.
+    expect(await fixOf(card, "Flapping checks")).toBe("Doesn't fix");
     await expect(card).toContainText(
-      "With no rule, OneUptime AI investigates every new incident right away. Add rules to investigate only the incidents that match one of them, or only those still open after a wait.",
+      "With no rule, OneUptime AI investigates every new incident right away, and fixes it while fixing is on, pull requests included. Add rules to choose which incidents it works on, when, and how each is fixed.",
     );
-    await screenshot(page, "investigation-rules-table");
+    await screenshot(page, "ai-rules-table");
   });
 
   /*
@@ -305,7 +325,7 @@ test.describe("investigation rules: when to investigate (issue #5074)", () => {
           const cell: Locator = card
             .locator("tbody tr")
             .filter({ hasText: rowName })
-            .getByTestId("investigation-rule-timing");
+            .getByTestId("ai-rule-timing");
 
           await expect(cell).toHaveText(text);
           // One line box: the sentence is not broken in two.
@@ -317,14 +337,90 @@ test.describe("investigation rules: when to investigate (issue #5074)", () => {
         }
       }
 
+      await screenshot(page, `ai-rules-table-1280${isGerman ? "-de" : ""}`);
+    });
+
+    /*
+     * The pill under a rule's timing says how it fixes, and names fixing:
+     * "Asks before fixing", "Fixes without asking", "Doesn't fix" - under
+     * "Right away", the auto remediation rules' "Asks first" read as asking
+     * before the investigation. A longer language's pill wraps onto a
+     * second line rather than lose its last words to an ellipsis, and the
+     * table still keeps Status in sight.
+     */
+    test(`at 1280px, rules that fix and rules that don't: every pill reads whole${isGerman ? ", in German too" : ""}`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const card: Locator = await openRulesCard(page, {
+        query: `layout=page&rules=saved${isGerman ? "&lang=de" : ""}`,
+        isGerman,
+      });
+      // The four that were auto remediation rules, and the two that investigate.
+      await expect(card.locator("tbody tr")).toHaveCount(6);
+
+      const pills: Locator = card
+        .getByTestId("ai-rule-fix")
+        .getByTestId("pill-text");
+      await expect(pills).toHaveCount(6);
+
+      const words: (english: string) => string = (english: string): string => {
+        return (isGerman && GERMAN[english]) || english;
+      };
+      const texts: Array<string> = (await pills.allInnerTexts()).map(
+        (text: string): string => {
+          return text.replace(/\s+/g, " ").trim();
+        },
+      );
+      expect(new Set(texts)).toEqual(
+        new Set([
+          words("Asks before fixing"),
+          words("Fixes without asking"),
+          words("Doesn't fix"),
+        ]),
+      );
+
+      for (const pill of await pills.all()) {
+        // Nothing cut short: what is drawn is all there is.
+        expect(
+          await pill.evaluate((element: HTMLElement): boolean => {
+            return element.scrollWidth <= element.clientWidth + 1;
+          }),
+        ).toBe(true);
+      }
+
+      const fit: TableFit = await card
+        .locator("table")
+        .evaluate((table: HTMLElement): TableFit => {
+          const headers: Array<DOMRect> = Array.from(
+            table.querySelectorAll("thead th"),
+          ).map((header: Element): DOMRect => {
+            return header.getBoundingClientRect();
+          });
+
+          return {
+            cardWidth: table
+              .closest("[data-card-surface='section']")!
+              .getBoundingClientRect().width,
+            scrollWidth: table.parentElement!.scrollWidth,
+            clientWidth: table.parentElement!.clientWidth,
+            statusRight: headers[headers.length - 2]!.right,
+            actionsLeft: headers[headers.length - 1]!.left,
+          };
+        });
+
+      expect(fit.scrollWidth).toBeLessThanOrEqual(fit.clientWidth + 1);
+      expect(fit.statusRight).toBeLessThanOrEqual(fit.actionsLeft + 1);
+
       await screenshot(
         page,
-        `investigation-rules-table-1280${isGerman ? "-de" : ""}`,
+        `ai-rules-table-fixing-1280${isGerman ? "-de" : ""}`,
       );
     });
   }
 
-  test("a new rule asks Match, then Investigate, and starts on Right away, with no minutes asked", async ({
+  test("a new rule asks Match, then Investigate, and starts on Right away, with no minutes asked; Fix names it", async ({
     page,
   }: {
     page: Page;
@@ -339,14 +435,15 @@ test.describe("investigation rules: when to investigate (issue #5074)", () => {
     ).not.toBeChecked();
     await expect(waitField(dialog)).toHaveCount(0);
     await expect(dialog.getByText(WAIT_FIELD, { exact: true })).toHaveCount(0);
-    await screenshotDialog(page, "investigation-rule-investigate-step");
+    await screenshotDialog(page, "ai-rule-investigate-step");
 
-    await dialog.getByRole("textbox", { name: /^Name/ }).fill("Every page");
-    await dialog.getByRole("button", { name: CREATE }).click();
+    await createNamed(dialog, "Every page");
     await expect(dialog).toBeHidden();
 
     const sent: Record<string, unknown> = await createdRule(page);
     expect(sent["name"]).toBe("Every page");
+    expect(sent["investigates"]).toBe(true);
+    expect(sent["fixes"]).toBe(false);
     // No wait: the column is left empty, as before rules could wait.
     expect(sent["onlyIfOpenAfterMinutes"] ?? null).toBeNull();
     // The form's own choice is never sent as a column.
@@ -366,11 +463,10 @@ test.describe("investigation rules: when to investigate (issue #5074)", () => {
     await expect(minutes).toBeVisible();
     await expect(minutes).toHaveValue("10");
     await expect(dialog).toContainText(INCIDENT_WAIT_HELP);
-    await screenshotDialog(page, "investigation-rule-investigate-step-wait");
+    await screenshotDialog(page, "ai-rule-investigate-step-wait");
 
     await minutes.fill("30");
-    await dialog.getByRole("textbox", { name: /^Name/ }).fill("Flaky checks");
-    await dialog.getByRole("button", { name: CREATE }).click();
+    await createNamed(dialog, "Flaky checks");
     await expect(dialog).toBeHidden();
 
     const sent: Record<string, unknown> = await createdRule(page);
@@ -383,7 +479,7 @@ test.describe("investigation rules: when to investigate (issue #5074)", () => {
     ).toContainText("If still open after 30 minutes");
   });
 
-  test("a wait the server would refuse is stopped in the form, saying why", async ({
+  test("a wait the server would refuse is stopped on the step, saying why", async ({
     page,
   }: {
     page: Page;
@@ -392,22 +488,16 @@ test.describe("investigation rules: when to investigate (issue #5074)", () => {
     const dialog: Locator = await openInvestigateStep(page, card);
 
     await dialog.getByRole("radio", { name: AFTER_WAIT }).check();
-    await dialog.getByRole("textbox", { name: /^Name/ }).fill("Too long");
 
     for (const value of ["0", "1441", "2.5"]) {
       await waitField(dialog).fill(value);
-      await dialog.getByRole("button", { name: CREATE }).click();
+      await dialog.getByRole("button", { name: "Next", exact: true }).click();
       await expect(dialog.getByText(WAIT_REFUSED)).toBeVisible();
-      await expect(dialog).toBeVisible();
+      // Still on Investigate: the rule cannot be named until the wait is right.
+      await expect(waitField(dialog)).toBeVisible();
     }
 
-    expect(
-      (await recorded(page)).creates.filter(
-        (create: Recorded["creates"][number]): boolean => {
-          return create.model === "AIInvestigationRule";
-        },
-      ),
-    ).toEqual([]);
+    expect((await recorded(page)).creates).toEqual([]);
   });
 
   test("a rule that waits opens on its minutes, and Right away clears them", async ({
@@ -431,13 +521,15 @@ test.describe("investigation rules: when to investigate (issue #5074)", () => {
 
     await dialog.getByRole("radio", { name: RIGHT_AWAY }).check();
     await expect(waitField(dialog)).toHaveCount(0);
+    // Saved from the last step, Fix.
+    await dialog.getByRole("button", { name: "Next", exact: true }).click();
     await dialog.getByRole("button", { name: SAVE }).click();
     await expect(dialog).toBeHidden();
 
     const updates: Recorded["updates"] = (await recorded(page)).updates.filter(
       (update: Recorded["updates"][number]): boolean => {
         return (
-          update.model === "AIInvestigationRule" &&
+          update.model === "AutoRemediationRule" &&
           update.id === WAITING_RULE_ID
         );
       },
@@ -455,7 +547,7 @@ test.describe("investigation rules: when to investigate (issue #5074)", () => {
   }) => {
     const card: Locator = await openRulesCard(page, { lane: "alert" });
 
-    expect(await cellOf(card, "Flapping checks", "Investigates")).toBe(
+    expect(await timingOf(card, "Flapping checks")).toBe(
       "If still open after 10 minutes",
     );
 
@@ -486,7 +578,7 @@ test.describe("investigation rules: when to investigate (issue #5074)", () => {
         );
       }),
     ).toBe(0);
-    await screenshotDialog(page, "investigation-rule-investigate-step-phone");
+    await screenshotDialog(page, "ai-rule-investigate-step-phone");
   });
 
   test("dark mode and German draw the step in their own colours and words", async ({
@@ -502,9 +594,9 @@ test.describe("investigation rules: when to investigate (issue #5074)", () => {
     // "{{itemName}} erstellen", the rule's German name in it.
     const createInGerman: string = GERMAN["Create {{itemName}}"]!.replace(
       "{{itemName}}",
-      GERMAN["Investigation Rule"]!,
+      GERMAN["AI Rule"]!,
     );
-    expect(createInGerman).toBe("Untersuchungsregel erstellen");
+    expect(createInGerman).toBe("KI-Regel erstellen");
 
     await card
       .getByRole("button", { name: createInGerman, exact: true })
@@ -521,6 +613,6 @@ test.describe("investigation rules: when to investigate (issue #5074)", () => {
     ).toBeChecked();
     await dialog.getByRole("radio", { name: GERMAN[AFTER_WAIT]! }).check();
     await expect(dialog.getByText(GERMAN[WAIT_FIELD]!)).toBeVisible();
-    await screenshotDialog(page, "investigation-rule-investigate-step-dark-de");
+    await screenshotDialog(page, "ai-rule-investigate-step-dark-de");
   });
 });

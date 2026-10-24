@@ -1,10 +1,10 @@
-import AIInvestigationRule from "../../../../Models/DatabaseModels/AIInvestigationRule";
+import AutoRemediationRule from "../../../../Models/DatabaseModels/AutoRemediationRule";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import Incident from "../../../../Models/DatabaseModels/Incident";
-import AIInvestigationRuleTriggerEntity from "../../../../Types/AI/AIInvestigationRuleTriggerEntity";
+import AutoRemediationTriggerEntity from "../../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import ObjectID from "../../../../Types/ObjectID";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../../../Utils/Rules/RuleEngineLimits";
-import AIInvestigationRuleService from "../../../Services/AIInvestigationRuleService";
+import AutoRemediationRuleService from "../../../Services/AutoRemediationRuleService";
 import logger, { LogAttributes } from "../../Logger";
 import IncidentAlertRuleMatcher from "../../Rules/IncidentAlertRuleMatcher";
 import logIfRuleReadWasTruncated from "../../Rules/RuleEngineRuleRead";
@@ -30,12 +30,17 @@ import AlertService from "../../../Services/AlertService";
 import IncidentService from "../../../Services/IncidentService";
 
 /*
- * Investigation rules: which new incidents (or alerts) OneUptime AI
- * investigates on its own, once "Investigate new incidents" is on.
+ * Which new incidents (or alerts) OneUptime AI investigates on its own,
+ * once "Investigate new incidents" is on: the project's AI rules that
+ * investigate (Types/AI/AiRule) - the rules that say which incidents
+ * OneUptime AI works on, and whether it fixes them too.
  *
- * No enabled rule: every one is in scope. Enabled rules: only those that
- * match at least one are. A rule is only conditions, read exactly as the
- * Auto Remediation Rules read theirs (IncidentAlertRuleMatcher).
+ * No enabled rule that investigates: every one is in scope. Enabled rules
+ * that investigate: only those that match at least one are. A rule that
+ * only fixes (one set up as an auto remediation rule before investigation
+ * and auto remediation rules merged) never decided which incidents are
+ * investigated, and is not read here. Conditions are read exactly as the
+ * fixing side reads them (IncidentAlertRuleMatcher).
  *
  * Investigating only reads, so a failure to read the rules leaves the signal
  * in scope - it is investigated rather than silently skipped.
@@ -129,26 +134,26 @@ export default class InvestigationRules {
     projectId: ObjectID;
     incident: Incident;
   }): Promise<InvestigationRuleScope> {
-    const rules: Array<AIInvestigationRule> | null = await this.readRules({
+    const rules: Array<AutoRemediationRule> | null = await this.readRules({
       projectId: data.projectId,
-      triggerEntityType: AIInvestigationRuleTriggerEntity.Incident,
+      triggerEntityType: AutoRemediationTriggerEntity.Incident,
     });
 
     if (!rules || rules.length === 0) {
       return IN_SCOPE_WITHOUT_RULES;
     }
 
-    return await this.getScope(rules, (rule: AIInvestigationRule) => {
+    return await this.getScope(rules, (rule: AutoRemediationRule) => {
       return IncidentAlertRuleMatcher.doesIncidentMatch(
         data.incident,
         rule,
-        "investigation rule",
+        "AI rule",
       );
     });
   }
 
   /*
-   * The LLM provider the investigation rules pick for this incident: the
+   * The LLM provider the AI rules that investigate pick for this incident: the
    * pick of the first matching rule by name that picks one, or undefined -
    * the project's default provider, else the global one. For an
    * investigation the rules did not decide on (someone started it, or it
@@ -160,18 +165,18 @@ export default class InvestigationRules {
     projectId: ObjectID;
     incident: Incident;
   }): Promise<ObjectID | undefined> {
-    const rules: Array<AIInvestigationRule> | null = await this.readRules({
+    const rules: Array<AutoRemediationRule> | null = await this.readRules({
       projectId: data.projectId,
-      triggerEntityType: AIInvestigationRuleTriggerEntity.Incident,
+      triggerEntityType: AutoRemediationTriggerEntity.Incident,
     });
 
     return await this.getPickedLlmProviderId(
       rules || [],
-      (rule: AIInvestigationRule) => {
+      (rule: AutoRemediationRule) => {
         return IncidentAlertRuleMatcher.doesIncidentMatch(
           data.incident,
           rule,
-          "investigation rule",
+          "AI rule",
         );
       },
     );
@@ -183,18 +188,18 @@ export default class InvestigationRules {
     projectId: ObjectID;
     alert: Alert;
   }): Promise<ObjectID | undefined> {
-    const rules: Array<AIInvestigationRule> | null = await this.readRules({
+    const rules: Array<AutoRemediationRule> | null = await this.readRules({
       projectId: data.projectId,
-      triggerEntityType: AIInvestigationRuleTriggerEntity.Alert,
+      triggerEntityType: AutoRemediationTriggerEntity.Alert,
     });
 
     return await this.getPickedLlmProviderId(
       rules || [],
-      (rule: AIInvestigationRule) => {
+      (rule: AutoRemediationRule) => {
         return IncidentAlertRuleMatcher.doesAlertMatch(
           data.alert,
           rule,
-          "investigation rule",
+          "AI rule",
         );
       },
     );
@@ -242,7 +247,7 @@ export default class InvestigationRules {
       }
     } catch (error) {
       logger.error(
-        `AI: could not read which LLM provider the investigation rules pick; using the project's provider: ${error}`,
+        `AI: could not read which LLM provider the AI rules pick for an investigation; using the project's provider: ${error}`,
         { projectId: data.projectId.toString() } as LogAttributes,
       );
     }
@@ -256,8 +261,8 @@ export default class InvestigationRules {
    * that pick one are matched at all.
    */
   private static async getPickedLlmProviderId(
-    rules: Array<AIInvestigationRule>,
-    matches: (rule: AIInvestigationRule) => Promise<boolean>,
+    rules: Array<AutoRemediationRule>,
+    matches: (rule: AutoRemediationRule) => Promise<boolean>,
   ): Promise<ObjectID | undefined> {
     for (const rule of getLlmProviderPickingRules(rules)) {
       if (await matches(rule)) {
@@ -273,20 +278,20 @@ export default class InvestigationRules {
     projectId: ObjectID;
     alert: Alert;
   }): Promise<InvestigationRuleScope> {
-    const rules: Array<AIInvestigationRule> | null = await this.readRules({
+    const rules: Array<AutoRemediationRule> | null = await this.readRules({
       projectId: data.projectId,
-      triggerEntityType: AIInvestigationRuleTriggerEntity.Alert,
+      triggerEntityType: AutoRemediationTriggerEntity.Alert,
     });
 
     if (!rules || rules.length === 0) {
       return IN_SCOPE_WITHOUT_RULES;
     }
 
-    return await this.getScope(rules, (rule: AIInvestigationRule) => {
+    return await this.getScope(rules, (rule: AutoRemediationRule) => {
       return IncidentAlertRuleMatcher.doesAlertMatch(
         data.alert,
         rule,
-        "investigation rule",
+        "AI rule",
       );
     });
   }
@@ -300,8 +305,8 @@ export default class InvestigationRules {
    * name that picks one (getPickedLlmProviderId), matched apart.
    */
   private static async getScope(
-    rules: Array<AIInvestigationRule>,
-    matches: (rule: AIInvestigationRule) => Promise<boolean>,
+    rules: Array<AutoRemediationRule>,
+    matches: (rule: AutoRemediationRule) => Promise<boolean>,
   ): Promise<InvestigationRuleScope> {
     let shortestWait: number | null = null;
 
@@ -349,9 +354,9 @@ export default class InvestigationRules {
     projectId: ObjectID;
     incident: Incident;
   }): Promise<ExternalMcpServerAllowance> {
-    const rules: Array<AIInvestigationRule> | null = await this.readRules({
+    const rules: Array<AutoRemediationRule> | null = await this.readRules({
       projectId: data.projectId,
-      triggerEntityType: AIInvestigationRuleTriggerEntity.Incident,
+      triggerEntityType: AutoRemediationTriggerEntity.Incident,
     });
 
     if (!rules) {
@@ -362,14 +367,14 @@ export default class InvestigationRules {
       return EVERY_EXTERNAL_MCP_SERVER;
     }
 
-    const matchingRules: Array<AIInvestigationRule> = [];
+    const matchingRules: Array<AutoRemediationRule> = [];
 
     for (const rule of rules) {
       if (
         await IncidentAlertRuleMatcher.doesIncidentMatch(
           data.incident,
           rule,
-          "investigation rule",
+          "AI rule",
         )
       ) {
         matchingRules.push(rule);
@@ -391,9 +396,9 @@ export default class InvestigationRules {
     projectId: ObjectID;
     incident: Incident;
   }): Promise<CodeRepositoryAllowance> {
-    const rules: Array<AIInvestigationRule> | null = await this.readRules({
+    const rules: Array<AutoRemediationRule> | null = await this.readRules({
       projectId: data.projectId,
-      triggerEntityType: AIInvestigationRuleTriggerEntity.Incident,
+      triggerEntityType: AutoRemediationTriggerEntity.Incident,
     });
 
     if (!rules) {
@@ -404,14 +409,14 @@ export default class InvestigationRules {
       return EVERY_CODE_REPOSITORY;
     }
 
-    const matchingRules: Array<AIInvestigationRule> = [];
+    const matchingRules: Array<AutoRemediationRule> = [];
 
     for (const rule of rules) {
       if (
         await IncidentAlertRuleMatcher.doesIncidentMatch(
           data.incident,
           rule,
-          "investigation rule",
+          "AI rule",
         )
       ) {
         matchingRules.push(rule);
@@ -430,9 +435,9 @@ export default class InvestigationRules {
     projectId: ObjectID;
     alert: Alert;
   }): Promise<CodeRepositoryAllowance> {
-    const rules: Array<AIInvestigationRule> | null = await this.readRules({
+    const rules: Array<AutoRemediationRule> | null = await this.readRules({
       projectId: data.projectId,
-      triggerEntityType: AIInvestigationRuleTriggerEntity.Alert,
+      triggerEntityType: AutoRemediationTriggerEntity.Alert,
     });
 
     if (!rules) {
@@ -443,14 +448,14 @@ export default class InvestigationRules {
       return EVERY_CODE_REPOSITORY;
     }
 
-    const matchingRules: Array<AIInvestigationRule> = [];
+    const matchingRules: Array<AutoRemediationRule> = [];
 
     for (const rule of rules) {
       if (
         await IncidentAlertRuleMatcher.doesAlertMatch(
           data.alert,
           rule,
-          "investigation rule",
+          "AI rule",
         )
       ) {
         matchingRules.push(rule);
@@ -469,9 +474,9 @@ export default class InvestigationRules {
     projectId: ObjectID;
     alert: Alert;
   }): Promise<ExternalMcpServerAllowance> {
-    const rules: Array<AIInvestigationRule> | null = await this.readRules({
+    const rules: Array<AutoRemediationRule> | null = await this.readRules({
       projectId: data.projectId,
-      triggerEntityType: AIInvestigationRuleTriggerEntity.Alert,
+      triggerEntityType: AutoRemediationTriggerEntity.Alert,
     });
 
     if (!rules) {
@@ -482,14 +487,14 @@ export default class InvestigationRules {
       return EVERY_EXTERNAL_MCP_SERVER;
     }
 
-    const matchingRules: Array<AIInvestigationRule> = [];
+    const matchingRules: Array<AutoRemediationRule> = [];
 
     for (const rule of rules) {
       if (
         await IncidentAlertRuleMatcher.doesAlertMatch(
           data.alert,
           rule,
-          "investigation rule",
+          "AI rule",
         )
       ) {
         matchingRules.push(rule);
@@ -502,18 +507,22 @@ export default class InvestigationRules {
     });
   }
 
-  // The enabled rules of one kind of signal, or null when they cannot be read.
+  /*
+   * The enabled rules of one kind of signal that investigate, or null when
+   * they cannot be read.
+   */
   private static async readRules(data: {
     projectId: ObjectID;
-    triggerEntityType: AIInvestigationRuleTriggerEntity;
-  }): Promise<Array<AIInvestigationRule> | null> {
+    triggerEntityType: AutoRemediationTriggerEntity;
+  }): Promise<Array<AutoRemediationRule> | null> {
     try {
-      const rules: Array<AIInvestigationRule> =
-        await AIInvestigationRuleService.findBy({
+      const rules: Array<AutoRemediationRule> =
+        await AutoRemediationRuleService.findBy({
           query: {
             projectId: data.projectId,
             isEnabled: true,
             triggerEntityType: data.triggerEntityType,
+            investigates: true,
           },
           select: {
             _id: true,
@@ -539,7 +548,7 @@ export default class InvestigationRules {
         });
 
       logIfRuleReadWasTruncated({
-        ruleKind: "AIInvestigationRule",
+        ruleKind: "AutoRemediationRule",
         projectId: data.projectId,
         rulesRead: rules.length,
       });
@@ -547,7 +556,7 @@ export default class InvestigationRules {
       return rules;
     } catch (error) {
       logger.error(
-        `AI: could not read the investigation rules; investigating as if there were none: ${error}`,
+        `AI: could not read the AI rules that investigate; investigating as if there were none: ${error}`,
         { projectId: data.projectId.toString() } as LogAttributes,
       );
       return null;

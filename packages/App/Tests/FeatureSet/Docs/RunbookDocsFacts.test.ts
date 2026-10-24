@@ -1052,7 +1052,7 @@ describe("the Runner the runbook pages describe", () => {
       "AI is not a capability. A code repository picks the Runner AI works in it on, in its settings in Code, and the Runner's page lists the repositories that pick it.",
     );
     expect(setup).toContain(
-      "An auto remediation rule picks the Runner OneUptime AI runs its commands on: picking a Runner there is what lets OneUptime AI's commands run on it.",
+      "An AI rule picks the Runner OneUptime AI runs its commands on: picking a Runner there is what lets OneUptime AI's commands run on it.",
     );
 
     for (const [name, on] of defaults) {

@@ -384,7 +384,6 @@ import RunbookRule from "./RunbookRule";
 import AutoRemediationRule from "./AutoRemediationRule";
 import AutoRemediationSuggestion from "./AutoRemediationSuggestion";
 import AutoRemediationDecision from "./AutoRemediationDecision";
-import AIInvestigationRule from "./AIInvestigationRule";
 import AIPostmortemRule from "./AIPostmortemRule";
 import ExternalMcpServer from "./ExternalMcpServer";
 
@@ -810,7 +809,6 @@ const AllModelTypes: Array<{
   AutoRemediationRule,
   AutoRemediationSuggestion,
   AutoRemediationDecision,
-  AIInvestigationRule,
   AIPostmortemRule,
   ExternalMcpServer,
   Runner,

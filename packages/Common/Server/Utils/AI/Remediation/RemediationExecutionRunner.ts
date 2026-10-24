@@ -25,6 +25,7 @@ import {
   getAutoRemediationFixKind,
   getRuleCommandRunnerIds,
 } from "../../../../Types/AutoRemediation/AutoRemediationFix";
+import { doesAiRuleFix } from "../../../../Types/AI/AiRule";
 import {
   AiRemediationCommand,
   AiRemediationCommandExecutionStatus,
@@ -1181,6 +1182,7 @@ export default class RemediationExecutionRunner {
                 select: {
                   _id: true,
                   isEnabled: true,
+                  fixes: true,
                   executionMode: true,
                   remediationAction: true,
                   aiComposesCommands: true,
@@ -1202,12 +1204,13 @@ export default class RemediationExecutionRunner {
         if (
           !rule ||
           rule.isEnabled === false ||
+          !doesAiRuleFix(rule) ||
           !doesRuleRunCommandsOnRunners(rule)
         ) {
           await this.settleNoneApplicable({
             suggestion,
             rationaleMarkdown:
-              "The auto-remediation rule behind this suggestion was deleted, disabled, or no longer runs commands on a Runner — nothing was run or proposed.",
+              "The AI rule behind this suggestion was deleted, disabled, set to only investigate, or no longer runs commands on a Runner — nothing was run or proposed.",
           });
           await this.completeRunQuietly(aiRunId);
           return;
@@ -3017,7 +3020,7 @@ export default class RemediationExecutionRunner {
     } else {
       lines.push("");
       lines.push(
-        `Matched auto-remediation rule: ${data.suggestion.ruleNameSnapshot || "N/A"}`,
+        `Matched AI rule: ${data.suggestion.ruleNameSnapshot || "N/A"}`,
       );
 
       if (data.mode === "FullAuto") {
@@ -3484,7 +3487,7 @@ export default class RemediationExecutionRunner {
   /*
    * "AI remediation for cluster X" reads as itself; rules keep their prefix.
    * A cluster round whose cluster was deleted (the link is nulled) is still
-   * a cluster round, never "Auto Remediation Rule ...".
+   * a cluster round, never "AI rule ...".
    *
    * Plain text: the round's name - a rule's name, or one naming a cluster or
    * a resource as its agent reported it - goes into a feed item's Markdown
@@ -3502,7 +3505,7 @@ export default class RemediationExecutionRunner {
     if (isResourceRemediationRound(suggestion)) {
       return suggestion.ruleNameSnapshot || "AI remediation";
     }
-    return `Auto Remediation Rule "${suggestion.ruleNameSnapshot || "Auto Remediation Rule"}"`;
+    return `AI rule "${suggestion.ruleNameSnapshot || "AI rule"}"`;
   }
 
   private static async completeRunQuietly(aiRunId: ObjectID): Promise<void> {

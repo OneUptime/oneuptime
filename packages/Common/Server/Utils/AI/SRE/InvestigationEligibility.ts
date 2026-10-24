@@ -155,20 +155,25 @@ export default class InvestigationEligibility {
         nextStep:
           "Review recent investigations for the affected monitor, or adjust the investigation cooldown for new records. An earlier run may still be queued, running, or may have failed.",
       },
+      /*
+       * The AI rules that investigate (Types/AI/AiRule): the code kept the
+       * name investigation rules had, so records written before they became
+       * AI rules read the same way.
+       */
       no_investigation_rule_matched: {
         title: recorded
-          ? `This ${kind} was outside the investigation rules ${atDecision}`
-          : `This ${kind} is currently outside the investigation rules`,
+          ? `This ${kind} was outside the AI rules that investigate ${atDecision}`
+          : `This ${kind} is currently outside the AI rules that investigate`,
         /*
          * After a wait the record matched a rule when it was created - the
          * rule that made it wait - so what changed is said instead.
          */
         description: isAfterWait
-          ? `An investigation rule made OneUptime AI wait${waitDuration} before investigating this ${kind}, and when the wait ended it matched none of ${details?.rulesChecked ? `the ${details.rulesChecked} investigation ${details.rulesChecked === 1 ? "rule" : "rules"}` : "the investigation rules"} any more: the ${kind} or the rules had changed. Only the ${kind}s that match one are investigated automatically.`
-          : `${recorded ? `When this ${kind} was created, investigation rules were set up for ${kind}s, and it` : `Investigation rules are set up for ${kind}s, and this ${kind}`} ${recorded ? "matched" : "matches"} none of ${details?.rulesChecked ? `the ${details.rulesChecked} ${details.rulesChecked === 1 ? "rule" : "rules"}` : "them"}. Only the ${kind}s that match one are investigated automatically.`,
+          ? `An AI rule made OneUptime AI wait${waitDuration} before investigating this ${kind}, and when the wait ended it matched none of ${details?.rulesChecked ? `the ${details.rulesChecked} AI ${details.rulesChecked === 1 ? "rule that investigates" : "rules that investigate"}` : "the AI rules that investigate"} any more: the ${kind} or the rules had changed. Only the ${kind}s that match one are investigated automatically.`
+          : `${recorded ? `When this ${kind} was created, AI rules that investigate were set up for ${kind}s, and it` : `AI rules that investigate are set up for ${kind}s, and this ${kind}`} ${recorded ? "matched" : "matches"} none of ${details?.rulesChecked ? `the ${details.rulesChecked} ${details.rulesChecked === 1 ? "rule" : "rules"}` : "them"}. Only the ${kind}s that match one are investigated automatically.`,
         nextStep: recorded
-          ? `Review the investigation rules under ${kind === "alert" ? "Alerts" : "Incidents"} → AI → Settings → More settings. Changing them does not retry this ${kind}; to look into it anyway, ask OneUptime AI below.`
-          : `Review the investigation rules under ${kind === "alert" ? "Alerts" : "Incidents"} → AI → Settings → More settings. Existing records are not automatically retried.`,
+          ? `Review the AI rules under ${kind === "alert" ? "Alerts" : "Incidents"} → AI → Settings → More settings. Changing them does not retry this ${kind}; to look into it anyway, ask OneUptime AI below.`
+          : `Review the AI rules under ${kind === "alert" ? "Alerts" : "Incidents"} → AI → Settings → More settings. Existing records are not automatically retried.`,
       },
       created_resolved: {
         title: `This ${kind} was created already resolved`,
@@ -184,8 +189,8 @@ export default class InvestigationEligibility {
        */
       resolved_before_investigation: {
         title: "Resolved before the investigation started",
-        description: `An investigation rule made OneUptime AI wait${waitDuration} to see whether this ${kind} would still be open. It was resolved first, so it was not investigated.`,
-        nextStep: `To look into it anyway, ask OneUptime AI below. The wait is set on the investigation rules under ${kind === "alert" ? "Alerts" : "Incidents"} → AI → Settings → More settings.`,
+        description: `An AI rule made OneUptime AI wait${waitDuration} to see whether this ${kind} would still be open. It was resolved first, so it was not investigated.`,
+        nextStep: `To look into it anyway, ask OneUptime AI below. The wait is set on the AI rules under ${kind === "alert" ? "Alerts" : "Incidents"} → AI → Settings → More settings.`,
       },
       daily_budget_exhausted: {
         title:

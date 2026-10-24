@@ -574,16 +574,18 @@ describe("Incidents → AI → Settings", () => {
       { timeout: WAIT_TIMEOUT },
     );
     expect(setChips(advancedHeader())).toEqual([]);
-    // Six cards: four named, the rest counted, as every folded section does.
+    /*
+     * Five cards, every one named: one past the four a folded section names
+     * is named rather than counted ("1 more" takes the room of its name).
+     */
     expect(listedNames(advancedHeader())).toEqual([
-      "Investigation rules",
+      "AI rules",
       "Which incidents are investigated",
       "Investigation limits",
-      "Auto remediation rules",
+      "Postmortem rules",
+      "Daily limits",
     ]);
-    expect(
-      within(section).getByTestId("folded-section-more"),
-    ).toHaveTextContent("2 more");
+    expect(within(section).queryByTestId("folded-section-more")).toBeNull();
   });
 
   test("turning on Fix new incidents automatically saves it alone", async () => {
@@ -601,8 +603,7 @@ describe("Incidents → AI → Settings", () => {
   });
 
   test.each([
-    ["AIInvestigationRule", "Investigation rules"],
-    ["AutoRemediationRule", "Auto remediation rules"],
+    ["AutoRemediationRule", "AI rules"],
     ["AIPostmortemRule", "Postmortem rules"],
   ])(
     "with an enabled %s, folded More settings shows its table as a chip with how many",
@@ -635,15 +636,15 @@ describe("Incidents → AI → Settings", () => {
     expect(
       (
         await within(section).findAllByText(
-          "Investigation rules",
+          "AI rules",
           {},
           { timeout: WAIT_TIMEOUT },
         )
       ).length,
     ).toBeGreaterThan(0);
-    expect(
-      within(section).getAllByText("Auto remediation rules").length,
-    ).toBeGreaterThan(0);
+    // One table of AI rules: the two kinds of rule it replaced are gone.
+    expect(within(section).queryByText("Investigation rules")).toBeNull();
+    expect(within(section).queryByText("Auto remediation rules")).toBeNull();
     // Only the switches are above the fold.
     expect(
       within(
@@ -682,30 +683,18 @@ describe("Incidents → AI → Settings", () => {
       );
       /*
        * Its cards and rules tables, by name - the one that holds a limit
-       * always among them, as a chip - four named and the rest counted.
+       * among them, as a chip - all five named: one past four is named
+       * rather than counted.
        */
-      const isDailyLimit: boolean = Object.keys(values).some(
-        (column: string): boolean => {
-          return column.startsWith("incidentAiDaily");
-        },
-      );
-
-      expect(listedNames(advancedHeader())).toEqual(
-        isDailyLimit
-          ? [
-              "Investigation rules",
-              "Which incidents are investigated",
-              "Investigation limits",
-              "Daily limits",
-            ]
-          : [
-              "Investigation rules",
-              "Which incidents are investigated",
-              "Investigation limits",
-              "Auto remediation rules",
-            ],
-      );
-      expect(advancedHeader()).toHaveTextContent("2 more");
+      expect(listedNames(advancedHeader())).toEqual([
+        "AI rules",
+        "Which incidents are investigated",
+        "Investigation limits",
+        "Postmortem rules",
+        "Daily limits",
+      ]);
+      // Linear: a run of digits is tried from its first digit only.
+      expect(advancedHeader()).not.toHaveTextContent(/(?<!\d)\d+ more/);
       expect(setChips(advancedHeader())).toHaveLength(1);
       expect(advancedHeader()).not.toHaveTextContent(
         "nothing limits how much OneUptime AI does",
@@ -1054,12 +1043,11 @@ describe("Alerts → AI → Settings", () => {
       { timeout: WAIT_TIMEOUT },
     );
 
-    // An alert has no postmortem: five cards, every one named, none of them postmortem rules.
+    // An alert has no postmortem: four cards, every one named, none of them postmortem rules.
     expect(listedNames(advancedHeader())).toEqual([
-      "Investigation rules",
+      "AI rules",
       "Which alerts are investigated",
       "Investigation limits",
-      "Auto remediation rules",
       "Daily limits",
     ]);
     expect(advancedHeader()).not.toHaveTextContent(/postmortem/i);
@@ -1072,12 +1060,9 @@ describe("Alerts → AI → Settings", () => {
     fireEvent.click(advancedHeader());
 
     expect(
-      await screen.findByText(
-        "Auto remediation rules",
-        {},
-        { timeout: WAIT_TIMEOUT },
-      ),
-    ).toBeInTheDocument();
+      (await screen.findAllByText("AI rules", {}, { timeout: WAIT_TIMEOUT }))
+        .length,
+    ).toBeGreaterThan(0);
     expect(screen.queryByText("Postmortem rules")).toBeNull();
     expect(
       (
@@ -1114,7 +1099,7 @@ describe("Alerts → AI → Settings", () => {
       },
       { timeout: WAIT_TIMEOUT },
     );
-    expect(setChips(advancedHeader())[0]).toContain("Auto remediation rules");
+    expect(setChips(advancedHeader())[0]).toContain("AI rules");
 
     // Each table reads its own kind of rule only.
     const queries: Array<Record<string, unknown>> = (
@@ -1324,11 +1309,11 @@ describe("the pull requests are the auto remediation rules', not the page's", ()
   );
 
   test.each(FIX_LANES)(
-    "%s: the auto remediation rules card says the pull requests come with fixing when there is no rule",
+    "%s: the AI rules card says the pull requests come with fixing when there is no rule",
     (_name: string, lane: FixLane) => {
-      expect(
-        AI_LANE_RULES_COPY[lane.lane].remediationRulesDescription,
-      ).toContain("while fixing is on, pull requests included.");
+      expect(AI_LANE_RULES_COPY[lane.lane].aiRulesDescription).toContain(
+        "while fixing is on, pull requests included.",
+      );
     },
   );
 
