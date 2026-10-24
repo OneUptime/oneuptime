@@ -8,6 +8,7 @@ Protokoludforskeren er stedet, hvor du søger i og læser de protokoller, som di
 - [Følg protokoller live](#følg-protokoller-live): Nye linjer hvert 10. sekund.
 - [Gem en visning](#gem-en-visning): Gem en søgning, dens filtre og dens kolonner til alle.
 - [Indsigter i protokoller](#indsigter-i-protokoller): De største fejl, alvorligheder og hvem der logger hvad.
+- [Find og ret fejllogs, manglende og støjende logs med AI](#find-og-ret-fejllogs-manglende-og-støjende-logs-med-ai): Pull requests, der retter fejl, logger det, der ikke logges, og dæmper støjende linjer.
 :::
 
 ## Sådan indsnævrer udforskeren dine protokoller
@@ -23,12 +24,13 @@ flowchart TB
     list --> details["Én protokol: detaljer<br/>og kontekst"]
 ```
 
-Udforskeren har fire faner:
+Udforskeren har fem faner:
 
 | Fane | Hvad den bruges til |
 | --- | --- |
 | **Seer** | Søg i, filtrér og læs protokoller. Den åbner på den seneste time, nyeste først, 100 protokoller pr. side. |
 | **Indsigter** | Hvad dine tjenester har logget i et tidsinterval, og hvad der gik galt. |
+| **AI** | De fejllogs, den manglende logning og de støjende logs, som OneUptime finder i dine logs, og hvad OneUptime AI gjorde ved dem. Se [Find og ret fejllogs, manglende og støjende logs med AI](#find-og-ret-fejllogs-manglende-og-støjende-logs-med-ai). |
 | **Opsætningsvejledning** | Sådan sender du protokoller med OpenTelemetry, Fluent Bit eller Fluentd med en af dine [indtagelsesnøgler](/docs/telemetry/ingestion-keys). |
 | **Indstillinger** | Hvad der sker med protokoller, når de ankommer: **Pipelines**, **Drop-filtre**, **Scrub-regler** og **Optagelsesregler**. |
 
@@ -129,6 +131,46 @@ Fanen **Indsigter** viser, hvad dine tjenester har logget i et tidsinterval, og 
 | **Sources reporting logs** | Volumen og fejlsignal for hver tjeneste, vært eller anden kilde. |
 
 Vælg en af de største fejl for at se, hvad der skete omkring den: hvornår den opstod, hvad dens forekomster har til fælles, hvor den opstår, de spor, der bærer den, og dens seneste linjer. **Open matching logs** åbner dem i **Seer**, og **Explain with AI** åbner [Spørg AI](/docs/ai/ask-ai) med fejlen og dens beviser som en prompt, du kan redigere.
+
+## Find og ret fejllogs, manglende og støjende logs med AI
+
+Hver time gennemgår OneUptime hver tjenestes logs fra den seneste time for fejl, den logger igen og igen, fejlende forespørgsler, den ikke logger, og linjer, der oversvømmer dens logs, og gemmer det, den finder, som AI-indsigter med beviserne. Derefter undersøger OneUptime AI hver enkelt og åbner en pull request, der retter det. Intet bliver nogensinde flettet: dit team gennemgår hver pull request.
+
+OneUptime opretter tre slags fund:
+
+| Fund | Hvornår OneUptime opretter det | Pull requesten |
+| --- | --- | --- |
+| **Fejllog** | En tjeneste loggede den samme meddelelse med Error eller Fatal 20 gange eller mere i timen, en meddelelse med egne ord og uden undtagelse. En meddelelse, der logges med en undtagelse eller med en stakspore i, følges i stedet i [Undtagelsessporing](/docs/telemetry/exceptions). | Retter årsagen til, at fejlen logges, eller logger den på det niveau, den fortjener. |
+| **Manglende logning** | Mindst 20 af en operations spans fejlede i timen, 5 % eller flere af dem, mens mindst 100 af tjenestens logs bærer et sporings-id, og ingen af operationens 20 seneste fejlede forespørgsler skrev en loglinje. Eller en tjeneste sendte 500 logs eller flere og 100 spans eller flere i timen, og under 1 % af dens logs bærer et sporings-id. | Logger fejlen, hvor den sker, eller får tjenestens logs til at bære sporings-id'et. |
+| **Støjende log** | Én meddelelse logget under Error udgør 25 % eller mere af en tjenestes linjer i timen, omkring 10.000 linjer eller flere. | Logger linjen mindre: med Debug, én gang pr. batch eller slet ikke. |
+
+Et fund gemmer en meddelelse som dens mønster: de dele, der ændrer sig fra linje til linje, såsom tal og id'er, maskeres. Pull requesten bestilles med det mønster, aldrig med en linje, som den blev logget, og OneUptime AI får besked på aldrig at logge hemmeligheder eller personoplysninger eller kopiere loglinjer ind i pull requesten.
+
+OneUptime AI åbner kun selv pull requesten for en fejllog, når den finder den skyldige kode. En fejl, der kommer et andet sted fra, såsom en afhængighed, der er nede, får ingen pull request, medmindre nogen beder om en med **Ret med AI**.
+
+### Slå det til
+
+**Protokoller → AI → Indstillinger** rummer kontakten **Find og ret fejllogs, manglende og støjende logs**, der er slået til for nye projekter. Er **Aktivér AI** slået fra, findes fejllogs, manglende og støjende logs stadig, men OneUptime AI gør intet med dem. For at åbne pull requests skal OneUptime AI have et repository forbundet i [Kode](/docs/ai/ai-agent): siden siger først, hvad der mangler. Koden i hvert repository ændres på den Runner, som repositoryet vælger i Kode.
+
+OneUptime AI åbner selv højst 5 pull requests om dagen (UTC), for al den telemetri, den retter, tilsammen, én for hvert fund, og aldrig flere end et repositorys grænse for åbne AI-pull requests.
+
+### AI-regler
+
+Uden regler undersøger OneUptime AI straks hvert problem, den finder i dine logs, og åbner en pull request for hvert, den kan rette. **AI-regler** under **Yderligere indstillinger** indsnævrer det, i tre trin:
+
+| Trin | Hvad det afgør |
+| --- | --- |
+| **Match** | Hvilke tjenester: de valgte, dem med bestemte etiketter eller dem, hvis navn passer til et mønster. |
+| **Undersøge** | **Med det samme** eller **Kun hvis stadig fundet efter en ventetid**: et problem, der forsvinder i ventetiden, undersøges ikke. |
+| **Rettelse** | **Ret ikke**, **Spørg, før der rettes** eller **Ret uden at spørge**. At spørge først overlader pull requesten til en person: fundet tilbyder **Ret med AI**. |
+
+Under **Flere felter** vælger en regel de koderepositorier, MCP-servere og den LLM-udbyder, som OneUptime AI må bruge for den. Er intet valgt, må den bruge dem alle og projektets standard-LLM-udbyder.
+
+### Se, hvad den gjorde
+
+- **Protokoller → AI → Indsigter** viser, hvad OneUptime fandt, hvert fund med sine beviser og **Åbn i Protokoller**, som åbner de linjer, det handler om, fra den time, det blev fundet i, i **Seer**. En fejl, der ikke skriver nogen loglinje, har ingen linjer at åbne: **Åbn i Spor** åbner i stedet dens fejlede spans. For en fejllog opretter **Opret monitor** en logmonitor, der tæller meddelelsens linjer.
+- **Protokoller → AI → Aktivitet** viser hver undersøgelse og hver pull request, nyeste først, med status for hver.
+- I Kode siger opgaven, at OneUptime startede den, med et link til dens fund, og pull requesten siger, hvorfor den blev åbnet.
 
 ## Hvad der sker med protokoller, når de ankommer
 

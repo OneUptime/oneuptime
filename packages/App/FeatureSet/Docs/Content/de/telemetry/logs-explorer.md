@@ -8,6 +8,7 @@ Im Protokoll-Explorer durchsuchen und lesen Sie die Protokolle, die Ihre Dienste
 - [Protokolle live verfolgen](#protokolle-live-verfolgen): Neue Zeilen alle 10 Sekunden.
 - [Eine Ansicht speichern](#eine-ansicht-speichern): Eine Suche, ihre Filter und ihre Spalten für alle behalten.
 - [Protokoll-Einblicke](#protokoll-einblicke): Häufigste Fehler, Schweregrade und wer was protokolliert.
+- [Fehlerprotokolle, fehlende und übermäßige Protokolle mit KI finden und beheben](#fehlerprotokolle-fehlende-und-übermäßige-protokolle-mit-ki-finden-und-beheben): Pull Requests, die Fehler beheben, protokollieren, was nicht protokolliert wird, und übermäßige Zeilen leiser machen.
 :::
 
 ## Wie der Explorer Ihre Protokolle eingrenzt
@@ -23,12 +24,13 @@ flowchart TB
     list --> details["Ein Protokoll: Details<br/>und Kontext"]
 ```
 
-Der Explorer hat vier Tabs:
+Der Explorer hat fünf Tabs:
 
 | Tab | Wofür er da ist |
 | --- | --- |
 | **Betrachter** | Protokolle suchen, filtern und lesen. Er öffnet mit der letzten Stunde, neueste zuerst, 100 Protokolle pro Seite. |
 | **Einblicke** | Was Ihre Dienste in einem Zeitraum protokolliert haben und was schiefging. |
+| **KI** | Die Fehlerprotokolle, die fehlende Protokollierung und die übermäßigen Protokolle, die OneUptime in Ihren Protokollen findet, und was OneUptime AI dagegen getan hat. Siehe [Fehlerprotokolle, fehlende und übermäßige Protokolle mit KI finden und beheben](#fehlerprotokolle-fehlende-und-übermäßige-protokolle-mit-ki-finden-und-beheben). |
 | **Einrichtungsanleitung** | Wie Sie Protokolle mit OpenTelemetry, Fluent Bit oder Fluentd senden, mit einem Ihrer [Aufnahmeschlüssel](/docs/telemetry/ingestion-keys). |
 | **Einstellungen** | Was mit Protokollen beim Eintreffen geschieht: **Pipelines**, **Drop-Filter**, **Scrub-Regeln** und **Aufzeichnungsregeln**. |
 
@@ -129,6 +131,46 @@ Der Tab **Einblicke** zeigt, was Ihre Dienste in einem Zeitraum protokolliert ha
 | **Quellen, die Protokolle melden** | Das Volumen und das Fehlersignal jedes Dienstes, Hosts oder jeder anderen Quelle. |
 
 Wählen Sie einen der häufigsten Fehler, um zu sehen, was um ihn herum geschah: wann er auftrat, was seine Vorkommen gemeinsam haben, wo er auftritt, welche Traces ihn tragen und seine letzten Zeilen. **Passende Protokolle öffnen** öffnet sie im **Betrachter**, und **Explain with AI** öffnet [Ask AI](/docs/ai/ask-ai) mit dem Fehler und seinen Belegen als Prompt, den Sie bearbeiten können.
+
+## Fehlerprotokolle, fehlende und übermäßige Protokolle mit KI finden und beheben
+
+Jede Stunde durchsucht OneUptime die Protokolle jedes Dienstes aus der letzten Stunde nach Fehlern, die er immer wieder protokolliert, nach Fehlschlägen, die er nicht protokolliert, und nach Zeilen, die seine Protokolle überfluten, und legt seine Befunde mit den Belegen als KI-Einblicke an. OneUptime AI untersucht dann jeden Befund und öffnet einen Pull Request, der ihn behebt. Nichts wird je zusammengeführt: Ihr Team prüft jeden Pull Request.
+
+OneUptime legt drei Arten von Befunden an:
+
+| Befund | Wann OneUptime ihn anlegt | Der Pull Request |
+| --- | --- | --- |
+| **Fehlerprotokoll** | Ein Dienst hat in der Stunde eine Meldung 20-mal oder öfter mit Error oder Fatal protokolliert, eine Meldung mit eigenen Wörtern und ohne Ausnahme. Eine Meldung, die mit einer Ausnahme oder mit einem Stacktrace darin protokolliert wird, wird stattdessen in der [Ausnahmenverfolgung](/docs/telemetry/exceptions) erfasst. | Behebt, warum der Fehler protokolliert wird, oder protokolliert ihn mit dem Schweregrad, den er verdient. |
+| **Fehlende Protokollierung** | Mindestens 20 Spans eines Vorgangs sind in der Stunde fehlgeschlagen, 5 % oder mehr davon, während mindestens 100 Protokolle des Dienstes eine Trace-ID tragen, und keine der 20 jüngsten fehlgeschlagenen Anfragen des Vorgangs hat eine Protokollzeile geschrieben. Oder ein Dienst hat in der Stunde 500 oder mehr Protokolle und 100 oder mehr Spans gesendet, und weniger als 1 % seiner Protokolle tragen eine Trace-ID. | Protokolliert den Fehlschlag dort, wo er passiert, oder sorgt dafür, dass die Protokolle des Dienstes die Trace-ID tragen. |
+| **Übermäßiges Protokoll** | Eine Meldung, die unterhalb von Error protokolliert wird, macht in der Stunde 25 % oder mehr der Zeilen eines Dienstes aus, etwa 10.000 Zeilen oder mehr. | Protokolliert die Zeile seltener: mit Debug, einmal pro Stapel oder gar nicht. |
+
+Ein Befund hält eine Meldung als ihr Muster fest: Die Teile, die sich von Zeile zu Zeile ändern, etwa Zahlen und IDs, werden maskiert. Der Pull Request wird mit diesem Muster angefordert, nie mit einer Zeile, wie sie protokolliert wurde, und OneUptime AI wird angewiesen, nie Geheimnisse oder personenbezogene Daten zu protokollieren oder Protokollzeilen in den Pull Request zu kopieren.
+
+OneUptime AI öffnet den Pull Request für ein Fehlerprotokoll nur dann selbstständig, wenn es den schuldigen Code findet. Ein Fehler, der von anderswo kommt, etwa von einer ausgefallenen Abhängigkeit, bekommt keinen Pull Request, es sei denn, jemand fordert ihn mit **Mit KI beheben** an.
+
+### Einschalten
+
+**Protokolle → KI → Einstellungen** enthält den Schalter **Fehlerprotokolle, fehlende und übermäßige Protokolle finden und beheben**, der für neue Projekte eingeschaltet ist. Ist **KI aktivieren** aus, werden Fehlerprotokolle, fehlende und übermäßige Protokolle weiterhin gefunden, aber OneUptime AI tut nichts damit. Um Pull Requests zu öffnen, braucht OneUptime AI ein in [Code](/docs/ai/ai-agent) verbundenes Repository: Die Seite sagt, was zuerst fehlt. Der Code eines Repositorys wird auf dem Runner geändert, den das Repository in Code auswählt.
+
+OneUptime AI öffnet von sich aus höchstens 5 Pull Requests pro Tag (UTC), für alle Telemetrie, die es behebt, zusammen, einen pro Befund, und nie mehr, als ein Repository an offenen KI-Pull-Requests zulässt.
+
+### KI-Regeln
+
+Ohne Regel untersucht OneUptime AI jedes Problem, das es in Ihren Protokollen findet, sofort und öffnet für jedes, das es beheben kann, einen Pull Request. Die **KI-Regeln** unter **Weitere Einstellungen** schränken das in drei Schritten ein:
+
+| Schritt | Was er entscheidet |
+| --- | --- |
+| **Übereinstimmung** | Welche Dienste: die ausgewählten, die mit bestimmten Labels oder die, deren Namen zu einem Muster passen. |
+| **Untersuchen** | **Sofort** oder **Nur falls nach einer Wartezeit noch gefunden**: Ein Problem, das während der Wartezeit verschwindet, wird nicht untersucht. |
+| **Behebung** | **Nicht beheben**, **Vor dem Beheben fragen** oder **Ohne Nachfrage beheben**. Wer zuerst fragt, überlässt den Pull Request einer Person: Der Befund bietet **Mit KI beheben** an. |
+
+Unter **Weitere Felder** wählt eine Regel die Code-Repositories, die MCP-Server und den LLM-Anbieter, die OneUptime AI für sie verwenden darf. Ist nichts ausgewählt, darf es alle verwenden, und den Standard-LLM-Anbieter des Projekts.
+
+### Sehen, was es getan hat
+
+- **Protokolle → KI → Einblicke** listet, was OneUptime gefunden hat, jeden Befund mit seinen Belegen und **In Protokollen öffnen**, das die betroffenen Zeilen aus der Stunde, in der er gefunden wurde, im **Betrachter** öffnet. Ein Fehlschlag, der keine Protokollzeile schreibt, hat keine Zeilen zum Öffnen: **In Traces öffnen** öffnet stattdessen seine fehlgeschlagenen Spans. Bei einem Fehlerprotokoll richtet **Monitor erstellen** einen Protokoll-Monitor ein, der die Zeilen der Meldung zählt.
+- **Protokolle → KI → Aktivität** listet jede Untersuchung und jeden Pull Request, das Neueste zuerst, jeweils mit ihrem Stand.
+- In Code sagt die Aufgabe, dass OneUptime sie gestartet hat, mit einem Link zu ihrem Befund, und der Pull Request sagt, warum er geöffnet wurde.
 
 ## Was mit Protokollen beim Eintreffen geschieht
 

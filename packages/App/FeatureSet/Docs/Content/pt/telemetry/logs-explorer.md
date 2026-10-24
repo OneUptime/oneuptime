@@ -8,6 +8,7 @@ O explorador de registros é onde você pesquisa e lê os registros que seus ser
 - [Acompanhar registros ao vivo](#acompanhar-registros-ao-vivo): Linhas novas a cada 10 segundos.
 - [Salvar uma visualização](#salvar-uma-visualização): Guardar uma pesquisa, seus filtros e suas colunas para todos.
 - [Insights de registros](#insights-de-registros): Principais erros, gravidades e quem registra o quê.
+- [Encontrar e corrigir com IA logs de erro, ausentes ou ruidosos](#encontrar-e-corrigir-com-ia-logs-de-erro-ausentes-ou-ruidosos): Pull requests que corrigem erros, registram o que não é registrado e silenciam linhas ruidosas.
 :::
 
 ## Como o explorador reduz seus registros
@@ -23,12 +24,13 @@ flowchart TB
     list --> details["Um registro: detalhes<br/>e contexto"]
 ```
 
-O explorador tem quatro abas:
+O explorador tem cinco abas:
 
 | Aba | Para que serve |
 | --- | --- |
 | **Visualizador** | Pesquisar, filtrar e ler registros. Abre na última hora, os mais recentes primeiro, 100 registros por página. |
 | **Insights** | O que seus serviços registraram em um intervalo de tempo, e o que deu errado. |
+| **IA** | Os logs de erro, os logs ausentes e os logs ruidosos que o OneUptime encontra nos seus logs, e o que o OneUptime AI fez a respeito. Veja [Encontrar e corrigir com IA logs de erro, ausentes ou ruidosos](#encontrar-e-corrigir-com-ia-logs-de-erro-ausentes-ou-ruidosos). |
 | **Guia de configuração** | Como enviar registros com OpenTelemetry, Fluent Bit ou Fluentd, usando uma das suas [chaves de ingestão](/docs/telemetry/ingestion-keys). |
 | **Configurações** | O que acontece com os registros quando chegam: **Pipelines**, **Filtros de descarte**, **Regras de mascaramento** e **Regras de gravação**. |
 
@@ -129,6 +131,46 @@ A aba **Insights** mostra o que seus serviços registraram em um intervalo de te
 | **Sources reporting logs** | O volume e o sinal de erros de cada serviço, host ou outra origem. |
 
 Selecione um dos principais erros para ver o que acontecia ao redor dele: quando ocorreu, o que as ocorrências têm em comum, onde ocorre, os traços que o carregam e as linhas mais recentes dele. **Open matching logs** os abre no **Visualizador**, e **Explain with AI** abre o [Pergunte à IA](/docs/ai/ask-ai) com o erro e as evidências dele como um prompt que você pode editar.
+
+## Encontrar e corrigir com IA logs de erro, ausentes ou ruidosos
+
+A cada hora o OneUptime procura, nos logs da última hora de cada serviço, erros que ele registra repetidas vezes, falhas que ele não registra e linhas que inundam seus logs, e registra o que encontra como insights de IA, com as evidências. Em seguida, o OneUptime AI analisa cada um e abre um pull request para corrigi-lo. Nada é mesclado: sua equipe revisa cada pull request.
+
+O OneUptime registra três tipos de constatação:
+
+| Constatação | Quando o OneUptime a registra | O pull request |
+| --- | --- | --- |
+| **Log de erro** | Um serviço registrou uma mesma mensagem em Error ou Fatal 20 vezes ou mais na hora, uma mensagem com palavras próprias e sem exceção. Uma mensagem registrada com uma exceção, ou com um stack trace dentro, é acompanhada em [Rastreamento de exceções](/docs/telemetry/exceptions) em vez disso. | Corrige o motivo de o erro ser registrado, ou o registra no nível que ele merece. |
+| **Logs ausentes** | Pelo menos 20 spans de uma operação falharam na hora, 5% ou mais deles, enquanto pelo menos 100 logs do serviço trazem um ID de traço, e nenhuma das 20 requisições com falha mais recentes da operação escreveu uma linha de log. Ou um serviço enviou 500 logs ou mais e 100 spans ou mais na hora, e menos de 1% dos seus logs trazem um ID de traço. | Registra a falha onde ela acontece, ou faz os logs do serviço trazerem o ID de traço. |
+| **Log ruidoso** | Uma mensagem registrada abaixo de Error é 25% ou mais das linhas de um serviço na hora, cerca de 10.000 linhas ou mais. | Registra a linha menos: em Debug, uma vez por lote ou nunca. |
+
+Uma constatação guarda uma mensagem como o seu padrão: as partes que mudam de uma linha para outra, como números e IDs, são mascaradas. O pull request é pedido com esse padrão, nunca com uma linha como foi registrada, e o OneUptime AI é instruído a nunca registrar segredos ou dados pessoais, nem copiar linhas de log para o pull request.
+
+O OneUptime AI abre por conta própria o pull request de um log de erro só quando encontra o código culpado. Um erro que vem de outro lugar, como uma dependência fora do ar, não recebe pull request, a menos que alguém peça um com **Corrigir com IA**.
+
+### Ativar
+
+**Registros → IA → Configurações** contém a chave **Encontrar e corrigir logs de erro, ausentes ou ruidosos**, ativada em projetos novos. Com **Habilitar IA** desativado, os logs de erro, ausentes ou ruidosos continuam sendo encontrados, mas o OneUptime AI não faz nada com eles. Para abrir pull requests, o OneUptime AI precisa de um repositório conectado em [Código](/docs/ai/ai-agent): a página diz primeiro o que falta. O código de cada repositório é alterado no Runner que o repositório escolhe em Código.
+
+O OneUptime AI abre por conta própria no máximo 5 pull requests por dia (UTC), para toda a telemetria que corrige, um por constatação, e nunca mais do que o limite de pull requests de IA abertos de um repositório.
+
+### Regras de IA
+
+Sem regras, o OneUptime AI analisa imediatamente cada problema que encontra nos seus logs e abre um pull request para cada um que puder corrigir. As **Regras de IA** em **Mais configurações** restringem isso, em três etapas:
+
+| Etapa | O que ela decide |
+| --- | --- |
+| **Corresponder** | Quais serviços: os escolhidos, os que têm certos rótulos ou aqueles cujo nome corresponde a um padrão. |
+| **Investigar** | **Imediatamente**, ou **Só se ainda for encontrado após uma espera**: um problema que desaparece durante a espera não é analisado. |
+| **Correção** | **Não corrigir**, **Perguntar antes de corrigir** ou **Corrigir sem perguntar**. Perguntar antes deixa o pull request para uma pessoa: a constatação oferece **Corrigir com IA**. |
+
+Em **Mais campos** uma regra escolhe os repositórios de código, os servidores MCP e o provedor de LLM que o OneUptime AI pode usar para ela. Se nada for escolhido, ele pode usar qualquer um, e o provedor de LLM padrão do projeto.
+
+### Ver o que ele fez
+
+- **Registros → IA → Insights** lista o que o OneUptime encontrou, cada constatação com suas evidências e **Abrir em Registros**, que abre as linhas de que ela trata, da hora em que foi encontrada, no **Visualizador**. Uma falha que não escreve nenhuma linha de log não tem linhas a abrir: **Abrir em Traços** abre os seus spans com falha em vez disso. Em um log de erro, **Criar monitor** configura um monitor de logs que conta as linhas da mensagem.
+- **Registros → IA → Atividade** lista cada investigação e cada pull request, do mais recente, com a situação de cada um.
+- Em Código, a tarefa diz que o OneUptime a iniciou, com um link para a constatação, e o pull request diz por que foi aberto.
 
 ## O que acontece com os registros quando chegam
 

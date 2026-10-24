@@ -8,6 +8,7 @@ Loggutforskeren er der du søker i og leser loggene som tjenestene, vertene og a
 - [Følg logger direkte](#følg-logger-direkte): Nye linjer hvert 10. sekund.
 - [Lagre en visning](#lagre-en-visning): Behold et søk, filtrene og kolonnene for alle.
 - [Innsikt i logger](#innsikt-i-logger): De største feilene, alvorlighetsgrader og hvem som logger hva.
+- [Finn og rett feillogger, manglende og støyende logger med KI](#finn-og-rett-feillogger-manglende-og-støyende-logger-med-ki): Pull-forespørsler som retter feil, logger det som ikke logges, og demper støyende linjer.
 :::
 
 ## Slik snevrer utforskeren inn loggene dine
@@ -23,12 +24,13 @@ flowchart TB
     list --> details["Én logg: detaljer<br/>og kontekst"]
 ```
 
-Utforskeren har fire faner:
+Utforskeren har fem faner:
 
 | Fane | Hva den er til |
 | --- | --- |
 | **Viser** | Søk i, filtrer og les logger. Den åpner på siste time, nyeste først, 100 logger per side. |
 | **Innsikt** | Hva tjenestene dine logget i et tidsintervall, og hva som gikk galt. |
+| **KI** | Feilloggene, den manglende loggingen og de støyende loggene OneUptime finner i loggene dine, og hva OneUptime AI gjorde med dem. Se [Finn og rett feillogger, manglende og støyende logger med KI](#finn-og-rett-feillogger-manglende-og-støyende-logger-med-ki). |
 | **Oppsettveiledning** | Hvordan du sender logger med OpenTelemetry, Fluent Bit eller Fluentd med en av [inntaksnøklene](/docs/telemetry/ingestion-keys) dine. |
 | **Innstillinger** | Hva som skjer med logger når de kommer inn: **Pipelines**, **Drop-filtre**, **Scrub-regler** og **Opptaksregler**. |
 
@@ -129,6 +131,46 @@ Fanen **Innsikt** viser hva tjenestene dine logget i et tidsintervall, og hva so
 | **Sources reporting logs** | Volumet og feilsignalet for hver tjeneste, vert eller annen kilde. |
 
 Velg en av de største feilene for å se hva som skjedde rundt den: når den oppstod, hva forekomstene har felles, hvor den oppstår, sporene som bærer den og de nyeste linjene. **Open matching logs** åpner dem i **Viser**, og **Explain with AI** åpner [Spør AI](/docs/ai/ask-ai) med feilen og bevisene som en ledetekst du kan redigere.
+
+## Finn og rett feillogger, manglende og støyende logger med KI
+
+Hver time går OneUptime gjennom loggene fra siste time til hver tjeneste etter feil den logger igjen og igjen, feilende forespørsler den ikke logger, og linjer som oversvømmer loggene, og registrerer det den finner som KI-innsikt, med bevisene. Deretter undersøker OneUptime AI hvert funn og åpner en pull-forespørsel som retter det. Ingenting flettes noen gang: teamet ditt gjennomgår hver pull-forespørsel.
+
+OneUptime registrerer tre typer funn:
+
+| Funn | Når OneUptime registrerer det | Pull-forespørselen |
+| --- | --- | --- |
+| **Feillogg** | En tjeneste logget den samme meldingen med Error eller Fatal 20 ganger eller mer i timen, en melding med egne ord og uten unntak. En melding som logges med et unntak, eller med en stakksporing i seg, spores i stedet i [Unntakssporing](/docs/telemetry/exceptions). | Retter årsaken til at feilen logges, eller logger den på nivået den fortjener. |
+| **Manglende logging** | Minst 20 av en operasjons spans feilet i timen, 5 % eller flere av dem, mens minst 100 av tjenestens logger har en sporings-ID, og ingen av operasjonens 20 siste feilede forespørsler skrev en logglinje. Eller en tjeneste sendte 500 logger eller flere og 100 spans eller flere i timen, og under 1 % av loggene har en sporings-ID. | Logger feilen der den skjer, eller får tjenestens logger til å ha sporings-ID-en. |
+| **Støyende logg** | Én melding logget under Error utgjør 25 % eller mer av en tjenestes linjer i timen, rundt 10 000 linjer eller flere. | Logger linjen mindre: med Debug, én gang per bunt, eller ikke i det hele tatt. |
+
+Et funn tar vare på en melding som mønsteret dens: delene som endrer seg fra linje til linje, for eksempel tall og ID-er, maskeres. Pull-forespørselen bestilles med det mønsteret, aldri med en linje slik den ble logget, og OneUptime AI får beskjed om aldri å logge hemmeligheter eller personopplysninger, eller kopiere logglinjer inn i pull-forespørselen.
+
+OneUptime AI åpner bare selv pull-forespørselen for en feillogg når den finner koden som har skylden. En feil som kommer fra et annet sted, for eksempel en avhengighet som er nede, får ingen pull-forespørsel med mindre noen ber om en med **Fiks med AI**.
+
+### Slå det på
+
+**Logger → KI → Innstillinger** har bryteren **Finn og rett feillogger, manglende og støyende logger**, som er på for nye prosjekter. Når **Aktiver AI** er av, blir feillogger, manglende og støyende logger fortsatt funnet, men OneUptime AI gjør ingenting med dem. For å åpne pull-forespørsler trenger OneUptime AI et kodelager koblet til i [Kode](/docs/ai/ai-agent): siden sier først hva som mangler. Koden i hvert kodelager endres på Runneren kodelageret velger i Kode.
+
+OneUptime AI åpner selv høyst 5 pull-forespørsler per dag (UTC), for all telemetrien den retter samlet, én for hvert funn, og aldri flere enn et kodelagers grense for åpne KI-pull-forespørsler.
+
+### KI-regler
+
+Uten regler undersøker OneUptime AI hvert problem den finner i loggene dine med en gang, og åpner en pull-forespørsel for hvert den kan rette. **AI-regler** under **Flere innstillinger** snevrer det inn, i tre trinn:
+
+| Trinn | Hva det avgjør |
+| --- | --- |
+| **Treff** | Hvilke tjenester: de valgte, de med bestemte etiketter eller de der navnet passer til et mønster. |
+| **Undersøke** | **Med en gang**, eller **Bare hvis fortsatt funnet etter en ventetid**: et problem som forsvinner i ventetiden, blir ikke undersøkt. |
+| **Rettelse** | **Ikke rett**, **Spør før retting** eller **Rett uten å spørre**. Å spørre først overlater pull-forespørselen til en person: funnet tilbyr **Fiks med AI**. |
+
+Under **Flere felt** velger en regel kodelagrene, MCP-serverne og LLM-leverandøren OneUptime AI kan bruke for den. Er ingenting valgt, kan den bruke alle, og prosjektets standard LLM-leverandør.
+
+### Se hva den gjorde
+
+- **Logger → KI → Innsikt** viser hva OneUptime fant, hvert funn med bevisene og **Åpne i Logger**, som åpner linjene det gjelder, fra timen det ble funnet i, i **Viser**. En feil som ikke skriver noen logglinje, har ingen linjer å åpne: **Åpne i Spor** åpner i stedet de feilede spansene. For en feillogg setter **Opprett monitor** opp en loggmonitor som teller meldingens linjer.
+- **Logger → KI → Aktivitet** viser hver undersøkelse og hver pull-forespørsel, nyeste først, med status for hver.
+- I Kode sier oppgaven at OneUptime startet den, med en lenke til funnet, og pull-forespørselen sier hvorfor den ble åpnet.
 
 ## Hva som skjer med logger når de kommer inn
 

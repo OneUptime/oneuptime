@@ -8,6 +8,7 @@ The Logs explorer is where you search and read the logs your services, hosts and
 - [Follow logs live](#follow-logs-live): New lines every 10 seconds.
 - [Save a view](#save-a-view): Keep a search, its filters and its columns for everyone.
 - [Logs Insights](#logs-insights): Top errors, severities and who is logging what.
+- [Find and fix error, missing and noisy logs with AI](#find-and-fix-error-missing-and-noisy-logs-with-ai): Pull requests that fix errors, log what goes unlogged and quiet noisy lines.
 :::
 
 ## How the explorer narrows your logs
@@ -23,12 +24,13 @@ flowchart TB
     list --> details["One log: its details<br/>and context"]
 ```
 
-The explorer has four tabs:
+The explorer has five tabs:
 
 | Tab | What it is for |
 | --- | --- |
 | **Viewer** | Search, filter and read logs. It opens on the past hour, newest first, 100 logs per page. |
 | **Insights** | What your services logged in a time range, and what went wrong. |
+| **AI** | The error logs, missing logging and noisy logs OneUptime finds in your logs, and what OneUptime AI did about them. See [Find and fix error, missing and noisy logs with AI](#find-and-fix-error-missing-and-noisy-logs-with-ai). |
 | **Setup Guide** | How to send logs with OpenTelemetry, Fluent Bit or Fluentd, using one of your [ingestion keys](/docs/telemetry/ingestion-keys). |
 | **Settings** | What happens to logs as they arrive: **Pipelines**, **Drop Filters**, **Scrub Rules** and **Recording Rules**. |
 
@@ -129,6 +131,46 @@ The **Insights** tab shows what your services logged in a time range, and what w
 | **Sources reporting logs** | The volume and error signal of each service, host or other source. |
 
 Select a top error to see what was happening around it: when it happened, what its occurrences share, where it happens, the traces carrying it and its most recent lines. **Open matching logs** opens them in the **Viewer**, and **Explain with AI** opens [Ask AI](/docs/ai/ask-ai) with the error and its evidence as a prompt you can edit.
+
+## Find and fix error, missing and noisy logs with AI
+
+Every hour OneUptime looks through each service's logs from the last hour for errors it logs again and again, failures it does not log, and lines that flood its logs, and files what it finds as AI insights, with the evidence. OneUptime AI then looks into each one and opens a pull request to fix it. Nothing is ever merged: your team reviews each pull request.
+
+OneUptime files three kinds of finding:
+
+| Finding | When OneUptime files it | The pull request |
+| --- | --- | --- |
+| **Error Log** | A service logged one message at Error or Fatal 20 or more times in the hour, a message with words of its own and no exception. A message logged with an exception, or with a stack trace in it, is tracked in [Exception Tracking](/docs/telemetry/exceptions) instead. | Fixes why the error is logged, or logs it at the level it deserves. |
+| **Missing Logging** | At least 20 of an operation's spans failed in the hour, 5% or more of them, while at least 100 of the service's logs carry a trace id, and none of the operation's 20 most recent failed requests wrote a log line. Or a service sent 500 or more logs and 100 or more spans in the hour, and fewer than 1% of its logs carry a trace id. | Logs the failure where it happens, or makes the service's logs carry the trace id. |
+| **Noisy Log** | One message logged below Error is 25% or more of a service's lines in the hour, and some 10,000 lines or more. | Logs the line less: at Debug, once for a batch, or not at all. |
+
+A finding keeps a message as its pattern: the parts that change from line to line, such as numbers and ids, are masked. The pull request is asked for with that pattern, never with a line as it was logged, and OneUptime AI is told never to log secrets or personal data, or to copy log lines into the pull request.
+
+OneUptime AI opens an error log's pull request on its own only once it finds the code at fault. An error that comes from somewhere else, such as a dependency that is down, gets no pull request unless someone asks for one with **Fix with AI**.
+
+### Turn it on
+
+**Logs → AI → Settings** holds the switch **Find and fix error, missing and noisy logs**, on for new projects. With **Enable AI** off, error, missing and noisy logs are still found, but OneUptime AI does nothing with them. To open pull requests, OneUptime AI needs a repository connected in [Code](/docs/ai/ai-agent): the page says what is missing first. Each repository's code is changed on the Runner the repository picks in Code.
+
+OneUptime AI opens at most 5 pull requests on its own each day (UTC), for all the telemetry it fixes together, one for each finding, and never more than a repository's limit on open AI pull requests.
+
+### AI rules
+
+With no rule, OneUptime AI looks into every problem it finds in your logs right away, and opens a pull request for each one it can fix. The **AI rules** under **More settings** narrow that, in three steps:
+
+| Step | What it decides |
+| --- | --- |
+| **Match** | Which services: the ones picked, the ones with certain labels, or the ones whose names match a pattern. |
+| **Investigate** | **Right away**, or **Only if still found after a wait**: a problem that goes away during the wait is not looked into. |
+| **Fix** | **Don't fix**, **Ask before fixing** or **Fix without asking**. Asking first leaves the pull request to a person: the finding offers **Fix with AI**. |
+
+Under **More fields** a rule picks the code repositories, the MCP servers and the LLM provider OneUptime AI may use for it. With none picked, it may use any of them, and the project's default LLM provider.
+
+### See what it did
+
+- **Logs → AI → Insights** lists what OneUptime found, each finding with its evidence and **Open in Logs**, which opens the lines it is about, from the hour it was found in, in the **Viewer**. A failure that writes no log line has no lines to open: **Open in Traces** opens its failed spans instead. On an error log, **Create Monitor** sets up a Logs monitor that counts the message's lines.
+- **Logs → AI → Activity** lists every investigation and pull request, newest first, with how each one stands.
+- In Code, the task says OneUptime started it, with a link to its finding, and the pull request says why it was opened.
 
 ## What happens to logs as they arrive
 

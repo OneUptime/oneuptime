@@ -8,6 +8,7 @@ L'esploratore log è il luogo in cui cercate e leggete i log che i vostri serviz
 - [Seguire i log in diretta](#seguire-i-log-in-diretta): Nuove righe ogni 10 secondi.
 - [Salvare una vista](#salvare-una-vista): Conservare una ricerca, i suoi filtri e le sue colonne per tutti.
 - [Informazioni sui log](#informazioni-sui-log): Errori principali, gravità e chi registra cosa.
+- [Trovare e correggere con l'IA i log di errore, mancanti o rumorosi](#trovare-e-correggere-con-lia-i-log-di-errore-mancanti-o-rumorosi): Pull request che correggono gli errori, registrano ciò che non viene registrato e attenuano le righe rumorose.
 :::
 
 ## Come l'esploratore restringe i vostri log
@@ -23,12 +24,13 @@ flowchart TB
     list --> details["Un log: dettagli<br/>e contesto"]
 ```
 
-L'esploratore ha quattro schede:
+L'esploratore ha cinque schede:
 
 | Scheda | A cosa serve |
 | --- | --- |
 | **Visualizzatore** | Cercare, filtrare e leggere i log. Si apre sull'ultima ora, prima i più recenti, 100 log per pagina. |
 | **Informazioni** | Che cosa hanno registrato i vostri servizi in un intervallo di tempo, e che cosa è andato storto. |
+| **IA** | I log di errore, i log mancanti e i log rumorosi che OneUptime trova nei vostri log, e ciò che OneUptime AI ha fatto al riguardo. Vedete [Trovare e correggere con l'IA i log di errore, mancanti o rumorosi](#trovare-e-correggere-con-lia-i-log-di-errore-mancanti-o-rumorosi). |
 | **Guida alla configurazione** | Come inviare log con OpenTelemetry, Fluent Bit o Fluentd, usando una delle vostre [chiavi di ingestione](/docs/telemetry/ingestion-keys). |
 | **Impostazioni** | Che cosa succede ai log quando arrivano: **Pipeline**, **Filtri di scarto**, **Regole di mascheramento** e **Regole di registrazione**. |
 
@@ -129,6 +131,46 @@ La scheda **Informazioni** mostra che cosa hanno registrato i vostri servizi in 
 | **Sources reporting logs** | Il volume e il segnale di errore di ogni servizio, host o altra sorgente. |
 
 Selezionate un errore principale per vedere che cosa succedeva intorno: quando è accaduto, che cosa hanno in comune le sue occorrenze, dove si verifica, le tracce che lo riportano e le sue righe più recenti. **Open matching logs** li apre nel **Visualizzatore**, e **Explain with AI** apre [Chiedi all'IA](/docs/ai/ask-ai) con l'errore e le sue prove come prompt modificabile.
+
+## Trovare e correggere con l'IA i log di errore, mancanti o rumorosi
+
+Ogni ora OneUptime esamina i log dell'ultima ora di ogni servizio alla ricerca di errori che registra più e più volte, fallimenti che non registra e righe che inondano i suoi log, e registra ciò che trova come insight IA, con le prove. Poi OneUptime AI analizza ciascuno e apre una pull request per correggerlo. Non viene mai unito nulla: il vostro team revisiona ogni pull request.
+
+OneUptime registra tre tipi di rilevamento:
+
+| Rilevamento | Quando OneUptime lo registra | La pull request |
+| --- | --- | --- |
+| **Log di errore** | Un servizio ha registrato uno stesso messaggio in Error o Fatal 20 volte o più nell'ora, un messaggio con parole proprie e senza eccezione. Un messaggio registrato con un'eccezione, o con uno stack trace al suo interno, viene invece seguito nel [Tracciamento delle eccezioni](/docs/telemetry/exceptions). | Corregge il motivo per cui l'errore viene registrato, o lo registra al livello che merita. |
+| **Log mancanti** | Almeno 20 span di un'operazione sono falliti nell'ora, il 5% o più di essi, mentre almeno 100 log del servizio portano un ID di traccia, e nessuna delle 20 richieste fallite più recenti dell'operazione ha scritto una riga di log. Oppure un servizio ha inviato 500 log o più e 100 span o più nell'ora, e meno dell'1% dei suoi log porta un ID di traccia. | Registra il fallimento dove avviene, o fa sì che i log del servizio portino l'ID di traccia. |
+| **Log rumoroso** | Un messaggio registrato sotto Error è il 25% o più delle righe di un servizio nell'ora, circa 10.000 righe o più. | Registra la riga meno spesso: in Debug, una volta per lotto o per niente. |
+
+Un rilevamento conserva un messaggio come il suo schema: le parti che cambiano da una riga all'altra, come numeri e ID, sono mascherate. La pull request viene chiesta con quello schema, mai con una riga così come è stata registrata, e a OneUptime AI viene detto di non registrare mai segreti o dati personali, né di copiare righe di log nella pull request.
+
+OneUptime AI apre da solo la pull request di un log di errore solo quando trova il codice responsabile. Un errore che viene da altrove, come una dipendenza non disponibile, non riceve alcuna pull request a meno che qualcuno non la chieda con **Correggi con l'IA**.
+
+### Attivarlo
+
+**Log → IA → Impostazioni** contiene l'interruttore **Trova e correggi i log di errore, mancanti o rumorosi**, attivo per i nuovi progetti. Con **Abilita IA** disattivato, i log di errore, mancanti o rumorosi vengono ancora trovati, ma OneUptime AI non ne fa nulla. Per aprire pull request, OneUptime AI ha bisogno di un repository collegato in [Codice](/docs/ai/ai-agent): la pagina dice prima cosa manca. Il codice di ogni repository viene modificato sul Runner che il repository sceglie in Codice.
+
+OneUptime AI apre da solo al massimo 5 pull request al giorno (UTC), per tutta la telemetria che corregge, una per rilevamento, e mai più del limite di pull request IA aperte di un repository.
+
+### Regole IA
+
+Senza regole, OneUptime AI analizza subito ogni problema che trova nei vostri log e apre una pull request per ciascuno che può correggere. Le **Regole IA** in **Altre impostazioni** lo restringono, in tre passaggi:
+
+| Passaggio | Cosa decide |
+| --- | --- |
+| **Corrispondenza** | Quali servizi: quelli scelti, quelli con determinate etichette o quelli il cui nome corrisponde a un modello. |
+| **Indagare** | **Subito**, oppure **Solo se ancora trovato dopo un'attesa**: un problema che scompare durante l'attesa non viene analizzato. |
+| **Correzione** | **Non correggere**, **Chiedi prima di correggere** o **Correggi senza chiedere**. Chiedere prima lascia la pull request a una persona: il rilevamento offre **Correggi con l'IA**. |
+
+In **Altri campi** una regola sceglie i repository di codice, i server MCP e il provider LLM che OneUptime AI può usare per essa. Se non se ne sceglie nessuno, può usarli tutti, e il provider LLM predefinito del progetto.
+
+### Vedere cosa ha fatto
+
+- **Log → IA → Informazioni** elenca ciò che OneUptime ha trovato, ogni rilevamento con le sue prove e **Apri in Registri**, che apre le righe di cui si tratta, dell'ora in cui è stato trovato, nel **Visualizzatore**. Un fallimento che non scrive alcuna riga di log non ha righe da aprire: **Apri in Tracce** apre invece i suoi span falliti. Su un log di errore, **Crea monitor** imposta un monitor dei log che conta le righe del messaggio.
+- **Log → IA → Attività** elenca ogni indagine e ogni pull request, dalla più recente, con lo stato di ciascuna.
+- In Codice, l'attività indica che l'ha avviata OneUptime, con un link al suo rilevamento, e la pull request spiega perché è stata aperta.
 
 ## Che cosa succede ai log quando arrivano
 
