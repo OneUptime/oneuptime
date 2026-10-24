@@ -1397,6 +1397,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/configuration/audit-logs",
       },
       {
+        title: "Audit Log Export",
+        url: "/docs/configuration/audit-log-export",
+      },
+      {
         title: "IP Addresses",
         url: "/docs/configuration/ip-addresses",
       },

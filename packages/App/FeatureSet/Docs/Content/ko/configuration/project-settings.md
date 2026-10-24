@@ -38,7 +38,7 @@ flowchart LR
 | **고급** | **도메인**, **API 키**, **기능 플래그**, **다른 도구에서 가져오기** | [사용자 지정 도메인](/docs/status-pages/branding-and-domains#사용자-정의-도메인), [API 키](/docs/permissions/index#api-키), [기능 플래그](#기능-플래그), [Opsgenie에서 이전](/docs/moving-to-oneuptime/opsgenie) 및 기타 이전 가이드 |
 | **보안** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **결제 및 청구서** | **결제**, **사용 기록**, **청구서** | [결제 및 사용량](/docs/configuration/billing) |
-| **감사 로그** | **감사 로그**, **설정** | [감사 로그](/docs/configuration/audit-logs) |
+| **감사 로그** | **감사 로그**, **설정**, **내보내기** | [감사 로그](/docs/configuration/audit-logs), [감사 로그 내보내기](/docs/configuration/audit-log-export) |
 | **위험 영역** | **위험 영역** | [프로젝트 삭제](#프로젝트-삭제) |
 
 **결제 및 청구서**와 **AI 크레딧**은 OneUptime Cloud에만 있습니다. 자체 호스팅 설치에는 결제가 없습니다.
