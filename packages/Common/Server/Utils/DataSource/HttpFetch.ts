@@ -49,6 +49,14 @@ export interface DataSourceHttpRequest {
   timeoutInMs?: number | undefined;
   // Test seam — forwarded to the egress guard.
   egressOptions?: EgressGuardOptions | undefined;
+  /*
+   * Answer every status as a response instead of throwing for anything
+   * outside 2xx: for a client that reads the status and headers itself - a
+   * 429's Retry-After, a redirect's Location (still never followed here: a
+   * redirect is the caller's to vet) - as the network controller clients
+   * do. Off by default.
+   */
+  acceptAnyStatus?: boolean | undefined;
 }
 
 export interface DataSourceHttpResponse {
@@ -148,8 +156,12 @@ export default class DataSourceHttpFetch {
         },
       ],
       validateStatus: (status: number): boolean => {
-        // 3xx must throw — redirects are refused by policy, not followed.
-        return status < 300;
+        /*
+         * 3xx must throw — redirects are refused by policy, not followed —
+         * unless the caller reads every status itself (maxRedirects stays 0
+         * either way, so nothing is followed here).
+         */
+        return request.acceptAnyStatus ? true : status < 300;
       },
       httpAgent: httpAgent,
       httpsAgent: httpsAgent,

@@ -234,6 +234,49 @@ describe("DataSourceHttpFetch.fetch - hardened axios config", () => {
       expect(validateStatus(status)).toBe(false);
     }
   });
+
+  test("acceptAnyStatus answers every status - and still follows no redirect", async () => {
+    await DataSourceHttpFetch.fetch(makeRequest({ acceptAnyStatus: true }));
+    const config: AxiosRequestConfig = getAxiosConfig();
+    const validateStatus: (status: number) => boolean =
+      config.validateStatus as (status: number) => boolean;
+
+    for (const status of [200, 301, 308, 401, 429, 500, 503]) {
+      expect(validateStatus(status)).toBe(true);
+    }
+    expect(config.maxRedirects).toBe(0);
+  });
+
+  test("acceptAnyStatus hands back a 429 with its headers, for the caller to wait as asked", async () => {
+    axiosMock.mockResolvedValue({
+      status: 429,
+      data: '{"errors":["API rate limit exceeded for organization"]}',
+      headers: {
+        "Retry-After": "2",
+        Link: "<https://api.example.com/next>; rel=next",
+      },
+    });
+
+    const response: DataSourceHttpResponse = await DataSourceHttpFetch.fetch(
+      makeRequest({ acceptAnyStatus: true }),
+    );
+
+    expect(response.statusCode).toBe(429);
+    expect(response.bodyJson).toEqual({
+      errors: ["API rate limit exceeded for organization"],
+    });
+    expect(response.headers?.["retry-after"]).toBe("2");
+    expect(response.headers?.["link"]).toBe(
+      "<https://api.example.com/next>; rel=next",
+    );
+  });
+
+  test("acceptAnyStatus is off unless asked for", async () => {
+    await DataSourceHttpFetch.fetch(makeRequest({ acceptAnyStatus: false }));
+    expect(
+      (getAxiosConfig().validateStatus as (status: number) => boolean)(429),
+    ).toBe(false);
+  });
 });
 
 describe("DataSourceHttpFetch.fetch - pinned socket lookup", () => {

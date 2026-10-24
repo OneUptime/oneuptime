@@ -37,7 +37,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     one of my devices (its Other Addresses).
  *
  * The network (the traffic POST, the device list and update) is replaced;
- * so is the range picker. The chart is ChartZoomStandIn.
+ * so is the range picker. The chart is ChartZoomStandIn. The page's read
+ * of its Meraki side (issue #5140) has a mock of its own, answering that
+ * the page has none: these tests count and read the flow reads.
  */
 
 const DEVICE_ID: string = "11111111-1111-4111-8111-111111111111";
@@ -49,6 +51,7 @@ const NOW: Date = new Date("2026-10-01T12:00:00.000Z");
 const UNKNOWN_EXPORTER: string = "198.51.100.7";
 
 const apiPostMock: MockFunction = getJestMockFunction();
+const usagePostMock: MockFunction = getJestMockFunction();
 const getListMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
 
@@ -97,6 +100,14 @@ jest.mock("../../../UI/Utils/API/API", () => {
     __esModule: true,
     default: {
       post: (...args: Array<unknown>): unknown => {
+        if (
+          String((args[0] as { url?: unknown } | undefined)?.url).includes(
+            "/usage-summary",
+          )
+        ) {
+          return usagePostMock(...args);
+        }
+
         return apiPostMock(...args);
       },
       getFriendlyMessage: (error: Error): string => {
@@ -267,6 +278,8 @@ beforeEach(() => {
   jest.setSystemTime(NOW);
   window.history.replaceState(null, "", "/");
   apiPostMock.mockReset();
+  usagePostMock.mockReset();
+  usagePostMock.mockResolvedValue({ data: { isAvailable: false } });
   getListMock.mockReset();
   updateByIdMock.mockReset();
   resetStandInCharts();
