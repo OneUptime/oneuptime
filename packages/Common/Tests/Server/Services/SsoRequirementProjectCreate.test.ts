@@ -151,6 +151,8 @@ const SEEDERS: Array<string> = [
   "addDefaultIncidentRoles",
   "addDefaultNetworkSiteTypes",
   "addDefaultNetworkDeviceRoles",
+  "addDefaultSecurityCasePriorities",
+  "addDefaultSecurityCaseStatuses",
 ];
 
 const propsOf: (creator: Creator) => DatabaseCommonInteractionProps = (

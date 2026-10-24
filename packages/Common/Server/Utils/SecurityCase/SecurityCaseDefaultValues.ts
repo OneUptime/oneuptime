@@ -60,11 +60,7 @@ export default class SecurityCaseDefaultValues {
     const names: Set<string> = this.getNames(existing);
     const flags: Set<string> = this.getFlags(
       existing,
-      SECURITY_CASE_PRIORITY_LEVELS.map((level: string): string => {
-        return SECURITY_CASE_PRIORITY_LEVEL_FLAGS[
-          level as keyof typeof SECURITY_CASE_PRIORITY_LEVEL_FLAGS
-        ];
-      }),
+      Object.values(SECURITY_CASE_PRIORITY_LEVEL_FLAGS),
     );
 
     for (const value of DEFAULT_SECURITY_CASE_PRIORITIES) {
@@ -107,11 +103,7 @@ export default class SecurityCaseDefaultValues {
     const names: Set<string> = this.getNames(existing);
     const flags: Set<string> = this.getFlags(
       existing,
-      SECURITY_CASE_STAGES.map((stage: string): string => {
-        return SECURITY_CASE_STAGE_FLAGS[
-          stage as keyof typeof SECURITY_CASE_STAGE_FLAGS
-        ];
-      }),
+      Object.values(SECURITY_CASE_STAGE_FLAGS),
     );
 
     for (const value of DEFAULT_SECURITY_CASE_STATUSES) {

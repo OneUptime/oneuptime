@@ -881,6 +881,30 @@ export class AddSecurityCasePrioritiesAndStatuses1807200000000
       `CREATE INDEX "IDX_b845ed92cfae3be744524365ad" ON "SecurityCase" ("status") `,
     );
     await queryRunner.query(
+      `ALTER TABLE "SecurityCaseStatus" DROP CONSTRAINT "FK_2849e27ac567081a0ce0337eb35"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SecurityCaseStatus" DROP CONSTRAINT "FK_8a7e06954a615df93c18fbe2e83"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SecurityCaseStatus" DROP CONSTRAINT "FK_747d0c28cc80529417fa1cfd058"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SecurityCaseStatus" DROP CONSTRAINT "FK_b50cbc86765a0ba89132442430b"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SecurityCasePriority" DROP CONSTRAINT "FK_ddfe33560801cef57c57c7752a4"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SecurityCasePriority" DROP CONSTRAINT "FK_e97acad296e748d93a341f7d84c"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SecurityCasePriority" DROP CONSTRAINT "FK_796ccda10de15c0c4d9be63ef67"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "SecurityCasePriority" DROP CONSTRAINT "FK_b5ee8dde39cc07c8835ce9dfbae"`,
+    );
+    await queryRunner.query(
       `DROP INDEX "public"."IDX_1f822f29c59716b9247ed0344c"`,
     );
     await queryRunner.query(

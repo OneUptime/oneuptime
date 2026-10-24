@@ -332,7 +332,7 @@ export default class SecurityCaseStatus extends BaseModel {
     title: "Order",
     required: false,
     description:
-      "Where the status sits in the list: 1 is the top. A new, acknowledged, contained and closed status keep that order. A new status without a number goes just above the closed status.",
+      "Where this status sits in the project's list of security case statuses: 1 is the top. A case in a status at or below the acknowledged (contained, closed) status counts as acknowledged (contained, closed), so the new, acknowledged, contained and closed statuses have to stay in that order. A new status without a number goes just above the closed status. Setting a number moves the status to that place, and the ones in between shift by one. In the dashboard, drag the rows to reorder them.",
   })
   @Column({
     type: ColumnType.SmallNumber,

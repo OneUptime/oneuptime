@@ -2,6 +2,8 @@ import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import AlertState from "../../../Models/DatabaseModels/AlertState";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentPostmortemStatus from "../../../Models/DatabaseModels/IncidentPostmortemStatus";
+import SecurityCasePriority from "../../../Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "../../../Models/DatabaseModels/SecurityCaseStatus";
 import IncidentRole from "../../../Models/DatabaseModels/IncidentRole";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
@@ -29,7 +31,7 @@ import {
 import { describe, expect, test } from "@jest/globals";
 
 /*
- * The nine models whose rows are values records pick from, as archiving
+ * The eleven models whose rows are values records pick from, as archiving
  * needs them: one switch and two stamps of the same shape every archivable
  * resource has, open to whoever may edit the value and to every read that
  * reaches one through a record, stamped by OneUptime alone, and in the
@@ -48,6 +50,8 @@ const MODELS: Array<{ name: string; modelType: ModelType }> = [
   { name: "Label", modelType: Label },
   { name: "IncidentRole", modelType: IncidentRole },
   { name: "IncidentPostmortemStatus", modelType: IncidentPostmortemStatus },
+  { name: "SecurityCaseStatus", modelType: SecurityCaseStatus },
+  { name: "SecurityCasePriority", modelType: SecurityCasePriority },
 ];
 
 const sorted: (permissions: Array<Permission> | undefined) => Array<string> = (
@@ -56,7 +60,7 @@ const sorted: (permissions: Array<Permission> | undefined) => Array<string> = (
   return [...(permissions || [])].map(String).sort();
 };
 
-test("the models are the registry's nine values, by table", () => {
+test("the models are the registry's eleven values, by table", () => {
   expect(
     MODELS.map(({ modelType }: { modelType: ModelType }): string => {
       return new modelType().tableName || "";
