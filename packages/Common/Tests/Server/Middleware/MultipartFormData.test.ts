@@ -349,6 +349,23 @@ describe("MultipartFormData - breaches answer 413, not 500", () => {
     expect((outcome.error as Exception).message).toContain("LIMIT_FIELD_COUNT");
   });
 
+  test("a field value right at the size limit is accepted", async () => {
+    /*
+     * The other side of the boundary below. Multer 2.5 adds the one busboy
+     * needs to every size limit; a middleware that added it as well let a
+     * value one byte over through, and one that added it under Multer 2.4
+     * - which did not - rejected a value of exactly the limit.
+     */
+    const outcome: Outcome = await run([
+      { name: "html", value: Buffer.alloc(MAX_MULTIPART_FIELD_BYTES) },
+    ]);
+
+    expect(outcome.error).toBeUndefined();
+    expect((outcome.req.body as Record<string, string>)["html"]).toHaveLength(
+      MAX_MULTIPART_FIELD_BYTES,
+    );
+  });
+
   test("one field value over the size limit", async () => {
     const outcome: Outcome = await run([
       { name: "html", value: Buffer.alloc(MAX_MULTIPART_FIELD_BYTES + 1) },
