@@ -39,7 +39,7 @@ flowchart TB
 | **Entitäten** | Ereignisse | Die Benutzer, Hosts und Adressen, die Ihre Befunde am häufigsten nennen |
 | **Korrelieren** | Ereignisse | Ein Graph der Ereignisse, die einen Host, einen Benutzer oder eine IP-Adresse teilen |
 | **Erkennungsregeln** | Erkennungen | Sigma-Regeln, die nach Zeitplan laufen und Fälle eröffnen |
-| **Rule Library** | Erkennungen | Fertige Erkennungsregeln zum Hinzufügen, die empfohlenen markiert |
+| **Rule Library** | Erkennungen | Fertige Erkennungsregeln zum Hinzufügen, jede mit den Ereignissen, die sie liest, und ob sie eingehen, die empfohlenen markiert |
 | **Threat Intel** | Erkennungen | STIX/TAXII-Feeds bekannter bösartiger Indikatoren |
 | **ATT&CK Coverage** | Erkennungen | Die Techniken von MITRE ATT&CK, die Ihre Regeln abdecken |
 | **Playbooks** | Playbooks | Schritte, die auf Fällen laufen, von selbst oder per Hand |

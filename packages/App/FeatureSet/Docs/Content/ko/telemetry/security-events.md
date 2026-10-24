@@ -39,7 +39,7 @@ flowchart TB
 | **엔티티** | 이벤트 | 탐지 결과에 가장 많이 등장하는 사용자, 호스트, 주소 |
 | **상관 분석** | 이벤트 | 같은 호스트, 사용자, IP 주소를 공유하는 이벤트의 그래프 |
 | **Detection Rules** | Detections | 일정에 따라 실행되어 케이스를 여는 Sigma 규칙 |
-| **Rule Library** | Detections | 추가할 수 있는 기성 탐지 규칙. 권장 규칙에 표시가 붙습니다 |
+| **Rule Library** | Detections | 추가할 수 있는 기성 탐지 규칙. 각 규칙이 읽는 이벤트와 그 이벤트가 들어오는지 보여 주며, 권장 규칙에 표시가 붙습니다 |
 | **Threat Intel** | Detections | 알려진 악성 지표의 STIX/TAXII 피드 |
 | **ATT&CK Coverage** | Detections | 규칙이 다루는 MITRE ATT&CK 기법 |
 | **Playbooks** | Playbooks | 케이스에 대해 자동으로 또는 직접 실행되는 단계 |
