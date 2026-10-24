@@ -48,11 +48,15 @@ import {
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
-import SecurityCasePriority from "Common/Types/SecurityCase/SecurityCasePriority";
+import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import {
-  DEFAULT_SECURITY_CASE_NOTIFICATION_PRIORITY,
-  readSecurityCaseNotificationPriority,
-} from "Common/Types/SecurityCase/SecurityCaseNotificationPriority";
+  SECURITY_CASE_NOTIFICATION_CHOICE_TEMPLATES,
+  SecurityCaseNotificationChoiceKind,
+  SecurityCaseNotificationPriorityChoice,
+  getSecurityCaseNotificationPriorityChoices,
+  readSecurityCaseNotificationMinimum,
+} from "Common/Utils/SecurityCase/SecurityCaseNotificationPriority";
+import useSecurityCaseValues from "../../Components/SecurityCase/useSecurityCaseValues";
 
 export type ChannelKey =
   | "alertByEmail"
@@ -153,7 +157,7 @@ interface EventDef {
   description: string;
   /*
    * The row also asks for the lowest priority that notifies: the New
-   * Security Case setting (UserNotificationSetting.minimumSecurityCasePriority).
+   * Security Case setting (UserNotificationSetting.minimumSecurityCasePriorityId).
    */
   hasPriorityChoice?: boolean | undefined;
 }
@@ -163,35 +167,35 @@ const PRIORITY_CHOICE_EVENT_TYPES: ReadonlyArray<NotificationSettingEventType> =
   [NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION];
 
 /*
- * The New Security Case row's choices, each the lowest priority that
- * notifies, as the server names them in its emails
- * (SECURITY_CASE_NOTIFICATION_PRIORITY_CHOICES).
+ * The New Security Case row's choices: one per priority of the project's
+ * (Security Events > Settings > Case Priorities), most urgent first, each the
+ * lowest priority that notifies, worded as the server words them in its
+ * emails (SECURITY_CASE_NOTIFICATION_CHOICE_TEMPLATES): the top one
+ * "Critical only", the last one "Every case", the rest "High and above".
  */
-export const SECURITY_CASE_PRIORITY_CHOICE_LABELS: ReadonlyArray<{
-  priority: SecurityCasePriority;
-  label: string;
-}> = [
-  {
-    priority: SecurityCasePriority.Critical,
-    label: translationKey("Critical only"),
-  },
-  {
-    priority: SecurityCasePriority.High,
-    label: translationKey("High and Critical"),
-  },
-  {
-    priority: SecurityCasePriority.Medium,
-    label: translationKey("Medium and above"),
-  },
-  {
-    priority: SecurityCasePriority.Low,
-    label: translationKey("Low and above"),
-  },
-  {
-    priority: SecurityCasePriority.Informational,
-    label: translationKey("Every case"),
-  },
-];
+export const SECURITY_CASE_PRIORITY_CHOICE_TEMPLATES: Readonly<
+  Record<SecurityCaseNotificationChoiceKind, string>
+> = {
+  [SecurityCaseNotificationChoiceKind.Only]: translationKey(
+    "{{priority}} only",
+  ),
+  [SecurityCaseNotificationChoiceKind.AndAbove]: translationKey(
+    "{{priority}} and above",
+  ),
+  [SecurityCaseNotificationChoiceKind.Every]: translationKey("Every case"),
+};
+
+// A choice in the reader's language, the priority's name looked up too.
+export function describePriorityChoice(
+  choice: Pick<SecurityCaseNotificationPriorityChoice, "name" | "kind">,
+  translator: Translator,
+): string {
+  return translator.translateTemplate(
+    SECURITY_CASE_PRIORITY_CHOICE_TEMPLATES[choice.kind] ||
+      SECURITY_CASE_NOTIFICATION_CHOICE_TEMPLATES[choice.kind],
+    { priority: translatableTerm(choice.name) },
+  );
+}
 
 const EVENT_LIBRARY: Record<
   NotificationSettingEventType,
@@ -538,13 +542,17 @@ const ChannelCell: FunctionComponent<ChannelCellProps> = (
 };
 
 interface PriorityChoiceProps {
-  value: SecurityCasePriority;
-  onChange: (next: SecurityCasePriority) => Promise<void>;
+  // The project's case priorities; null until they are read.
+  priorities: Array<SecurityCasePriority> | null;
+  // The id the person chose; empty for the default.
+  chosenId: ObjectID | undefined;
+  onChange: (nextId: string) => Promise<void>;
 }
 
 /*
  * The lowest priority that notifies, under the New Security Case row. A
  * plain select, saved as soon as it changes, like the switches beside it.
+ * Its choices are the project's priorities; it waits for them.
  */
 const PriorityChoice: FunctionComponent<PriorityChoiceProps> = (
   props: PriorityChoiceProps,
@@ -552,31 +560,46 @@ const PriorityChoice: FunctionComponent<PriorityChoiceProps> = (
   const translator: Translator = useTranslator();
   const [isBusy, setIsBusy] = useState<boolean>(false);
 
+  if (!props.priorities) {
+    return <></>;
+  }
+
+  const chosen: SecurityCasePriority | null =
+    readSecurityCaseNotificationMinimum(props.priorities, props.chosenId);
+  const choices: Array<SecurityCaseNotificationPriorityChoice> =
+    getSecurityCaseNotificationPriorityChoices({
+      priorities: props.priorities,
+      currentId: chosen?.id,
+    });
+
+  if (!chosen?.id || choices.length === 0) {
+    return <></>;
+  }
+
   return (
     <label className="mt-2 flex items-center gap-2 text-xs text-gray-600">
       <span>{translator.translateText("Notify me about")}</span>
       <select
         className="rounded-md border border-gray-300 bg-white py-1 pl-2 pr-7 text-xs text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-60"
-        value={props.value}
+        value={chosen.id.toString()}
         disabled={isBusy}
+        data-testid="security-case-notification-priority"
         onChange={async (event: React.ChangeEvent<HTMLSelectElement>) => {
           setIsBusy(true);
           try {
-            await props.onChange(event.target.value as SecurityCasePriority);
+            await props.onChange(event.target.value);
           } finally {
             setIsBusy(false);
           }
         }}
       >
-        {SECURITY_CASE_PRIORITY_CHOICE_LABELS.map(
-          (choice: { priority: SecurityCasePriority; label: string }) => {
-            return (
-              <option key={choice.priority} value={choice.priority}>
-                {translator.translateText(choice.label)}
-              </option>
-            );
-          },
-        )}
+        {choices.map((choice: SecurityCaseNotificationPriorityChoice) => {
+          return (
+            <option key={choice.priorityId} value={choice.priorityId}>
+              {describePriorityChoice(choice, translator)}
+            </option>
+          );
+        })}
       </select>
     </label>
   );
@@ -591,6 +614,8 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
 ): ReactElement => {
   const { translateString } = useTranslateValue();
   const translator: Translator = useTranslator();
+  // The project's case priorities, which the New Security Case row picks from.
+  const { values: caseValues } = useSecurityCaseValues();
   const eventTypes: Array<NotificationSettingEventType> = useMemo(() => {
     return props.section.events.map((event: EventDef) => {
       return event.type;
@@ -645,7 +670,7 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
               alertBySlack: true,
               alertByMicrosoftTeams: true,
               alertByWebhook: true,
-              minimumSecurityCasePriority: true,
+              minimumSecurityCasePriorityId: true,
             },
             sort: {},
           });
@@ -757,10 +782,10 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
    */
   const persistPriority: (
     eventType: NotificationSettingEventType,
-    next: SecurityCasePriority,
+    next: string,
   ) => Promise<void> = async (
     eventType: NotificationSettingEventType,
-    next: SecurityCasePriority,
+    next: string,
   ): Promise<void> => {
     const previous: UserNotificationSetting | undefined =
       rowsByEvent.get(eventType);
@@ -784,7 +809,7 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
         optimistic.projectId = ProjectUtil.getCurrentProjectId()!;
         optimistic.userId = User.getUserId();
         optimistic.eventType = eventType;
-        optimistic.minimumSecurityCasePriority = next;
+        optimistic.minimumSecurityCasePriorityId = new ObjectID(next);
 
         const optimisticMap: Map<
           NotificationSettingEventType,
@@ -796,7 +821,7 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
         await ModelAPI.updateById<UserNotificationSetting>({
           modelType: UserNotificationSetting,
           id: previous.id as ObjectID,
-          data: { minimumSecurityCasePriority: next } as JSONObject,
+          data: { minimumSecurityCasePriorityId: next } as JSONObject,
         });
       } else {
         const newModel: UserNotificationSetting = new UserNotificationSetting();
@@ -807,7 +832,7 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
           (newModel as unknown as Record<string, boolean>)[channel.key] =
             channel.key === "alertByEmail" || channel.key === "alertByPush";
         }
-        newModel.minimumSecurityCasePriority = next;
+        newModel.minimumSecurityCasePriorityId = new ObjectID(next);
         await ModelAPI.create<UserNotificationSetting>({
           model: newModel,
           modelType: UserNotificationSetting,
@@ -909,16 +934,11 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
                         </div>
                         {event.hasPriorityChoice ? (
                           <PriorityChoice
-                            value={
-                              row
-                                ? readSecurityCaseNotificationPriority(
-                                    row.minimumSecurityCasePriority,
-                                  )
-                                : DEFAULT_SECURITY_CASE_NOTIFICATION_PRIORITY
+                            priorities={
+                              caseValues ? caseValues.priorities : null
                             }
-                            onChange={async (
-                              next: SecurityCasePriority,
-                            ): Promise<void> => {
+                            chosenId={row?.minimumSecurityCasePriorityId}
+                            onChange={async (next: string): Promise<void> => {
                               await persistPriority(event.type, next);
                             }}
                           />

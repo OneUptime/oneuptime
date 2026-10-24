@@ -119,6 +119,24 @@ export const ARCHIVABLE_VALUE_COPY: Record<
       "Postmortems in these statuses stay in them. Nobody can move a postmortem to them again.",
     ),
   },
+  [ArchivableValueType.SecurityCaseStatus]: {
+    archiveMessage: translationKey(
+      "Nobody can move a case to an archived status again. Cases in it stay in it until someone moves them, and you can still filter by it. You can unarchive it at any time.",
+    ),
+    archivedTitle: translationKey("Archived Case Statuses"),
+    archivedDescription: translationKey(
+      "Cases in these statuses stay in them. Nobody can move a case to them again.",
+    ),
+  },
+  [ArchivableValueType.SecurityCasePriority]: {
+    archiveMessage: translationKey(
+      "Nobody can give a case an archived priority again. Cases at it keep it, playbooks that use it keep running, and you can still filter by it. You can unarchive it at any time.",
+    ),
+    archivedTitle: translationKey("Archived Case Priorities"),
+    archivedDescription: translationKey(
+      "Cases at these priorities keep them. Nobody can give a case one of them again.",
+    ),
+  },
 };
 
 /*

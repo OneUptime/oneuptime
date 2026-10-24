@@ -1,7 +1,7 @@
+import { Gray500 } from "Common/Types/BrandColors";
+import Color from "Common/Types/Color";
 import IconProp from "Common/Types/Icon/IconProp";
 import { getSecurityCaseAiVerdictColor } from "Common/Types/SecurityCase/SecurityCaseAiVerdict";
-import { getSecurityCasePriorityColor } from "Common/Types/SecurityCase/SecurityCasePriority";
-import { getSecurityCaseStatusColor } from "Common/Types/SecurityCase/SecurityCaseStatus";
 import { getSecurityCaseVerdictColor } from "Common/Types/SecurityCase/SecurityCaseVerdict";
 import SecurityDetectionSource from "Common/Types/SecurityCase/SecurityDetectionSource";
 import {
@@ -12,11 +12,13 @@ import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
- * The pills a case, a detection and a playbook run are read by. Each takes
- * its color from the type it shows (Common/Types/SecurityCase), so the
- * queue, the case page and the overview never disagree on what red means.
- * The text is the record's own value; Pill translates it
- * (SecurityCaseTerms.ts registers every one).
+ * The pills a case, a detection and a playbook run are read by. A case's
+ * priority and status are the project's own (Security Events > Settings):
+ * each pill shows the name and colour the project gave it, so the queue,
+ * the case page and the overview never disagree. The other values take
+ * their color from the type they show (Common/Types/SecurityCase). The text
+ * is the record's own value; Pill translates it (SecurityCaseTerms.ts
+ * registers every built-in one).
  */
 
 interface ValuePillProps {
@@ -35,38 +37,47 @@ const NoValue: FunctionComponent = (): ReactElement => {
   return <span className="text-gray-400">-</span>;
 };
 
-export const SecurityCasePriorityPill: FunctionComponent<ValuePillProps> = (
-  props: ValuePillProps,
+// A priority or a status of the project's: its name and its colour.
+export interface SecurityCaseValueLike {
+  name?: string | undefined;
+  color?: Color | undefined;
+}
+
+interface CaseValuePillProps {
+  value: SecurityCaseValueLike | undefined | null;
+  size?: PillSize | undefined;
+  isMinimal?: boolean | undefined;
+  tooltip?: string | undefined;
+}
+
+const CaseValuePill: FunctionComponent<CaseValuePillProps> = (
+  props: CaseValuePillProps,
 ): ReactElement => {
-  if (!props.value) {
+  if (!props.value?.name) {
     return <NoValue />;
   }
 
   return (
     <Pill
-      text={props.value}
-      color={getSecurityCasePriorityColor(props.value)}
+      text={props.value.name}
+      color={props.value.color || Gray500}
       size={props.size}
       isMinimal={props.isMinimal}
+      tooltip={props.tooltip}
     />
   );
 };
 
-export const SecurityCaseStatusPill: FunctionComponent<ValuePillProps> = (
-  props: ValuePillProps,
-): ReactElement => {
-  if (!props.value) {
-    return <NoValue />;
-  }
+export const SecurityCasePriorityPill: FunctionComponent<
+  CaseValuePillProps
+> = (props: CaseValuePillProps): ReactElement => {
+  return <CaseValuePill {...props} />;
+};
 
-  return (
-    <Pill
-      text={props.value}
-      color={getSecurityCaseStatusColor(props.value)}
-      size={props.size}
-      isMinimal={props.isMinimal}
-    />
-  );
+export const SecurityCaseStatusPill: FunctionComponent<CaseValuePillProps> = (
+  props: CaseValuePillProps,
+): ReactElement => {
+  return <CaseValuePill {...props} />;
 };
 
 /*

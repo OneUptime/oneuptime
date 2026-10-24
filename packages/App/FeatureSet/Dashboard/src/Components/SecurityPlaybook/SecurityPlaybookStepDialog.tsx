@@ -14,9 +14,15 @@ import Workflow from "Common/Models/DatabaseModels/Workflow";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { JSONObject } from "Common/Types/JSON";
 import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
-import SecurityCasePriority from "Common/Types/SecurityCase/SecurityCasePriority";
-import SecurityCaseStatus from "Common/Types/SecurityCase/SecurityCaseStatus";
+import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
+import SecurityCaseStage from "Common/Types/SecurityCase/SecurityCaseStage";
 import SecurityCaseVerdict from "Common/Types/SecurityCase/SecurityCaseVerdict";
+import SecurityCaseStatuses from "Common/Utils/SecurityCase/SecurityCaseStatuses";
+import { SecurityCaseValueLists } from "../SecurityCase/SecurityCaseValues";
+import {
+  getSecurityCasePriorityOptions,
+  getSecurityCaseStatusOptions,
+} from "../SecurityCase/SecurityCaseValueOptions";
 import {
   SECURITY_PLAYBOOK_ACTIONS,
   SECURITY_PLAYBOOK_ACTION_CATEGORIES,
@@ -70,6 +76,8 @@ export interface ComponentProps {
   // Where the step sits (or will sit) in the playbook, for its messages.
   index: number;
   connections: Array<PlaybookConnectionOption>;
+  // The project's case priorities and statuses, which the case steps set.
+  caseValues: SecurityCaseValueLists;
   onClose: () => void;
   onSubmit: (step: SecurityPlaybookStep) => Promise<void>;
 }
@@ -168,8 +176,25 @@ const ContainmentApprovalNote: FunctionComponent<{ isOff: boolean }> = (props: {
   );
 };
 
-function priorityOptions(): Array<DropdownOption> {
-  return DropdownUtil.getDropdownOptionsFromEnum(SecurityCasePriority);
+/*
+ * The statuses Set status offers: every one but where each case starts,
+ * nobody's archived ones (keeping the step's own).
+ */
+export function getStepStatusOptions(
+  statuses: ReadonlyArray<SecurityCaseStatus>,
+  keepId?: string | undefined,
+): Array<DropdownOption> {
+  const newStatus: SecurityCaseStatus | null =
+    SecurityCaseStatuses.getStatusOfStage(statuses, SecurityCaseStage.New);
+
+  return getSecurityCaseStatusOptions(
+    statuses.filter((status: SecurityCaseStatus): boolean => {
+      return (
+        !newStatus || status.id?.toString() !== newStatus.id?.toString()
+      );
+    }),
+    { keepId },
+  );
 }
 
 function connectionOptions(
@@ -193,10 +218,37 @@ function connectionOptions(
  */
 export function getStepSettingsFields(
   connections: Array<PlaybookConnectionOption>,
-  options: { mayTurnOffContainmentApproval: boolean } = {
+  options: {
+    mayTurnOffContainmentApproval: boolean;
+    caseValues?: SecurityCaseValueLists | undefined;
+    // The step's own priority and status ids, kept in the pickers if archived.
+    step?: SecurityPlaybookStep | undefined;
+  } = {
     mayTurnOffContainmentApproval: false,
   },
 ): Array<Field<JSONObject>> {
+  const priorities: SecurityCaseValueLists["priorities"] =
+    options.caseValues?.priorities || [];
+  const statuses: SecurityCaseValueLists["statuses"] =
+    options.caseValues?.statuses || [];
+  const stepConfig: JSONObject = options.step?.config || {};
+  const keep: (key: string) => string | undefined = (
+    key: string,
+  ): string | undefined => {
+    const value: unknown = stepConfig[key];
+
+    return typeof value === "string" && value ? value : undefined;
+  };
+  // A status that closes a case takes a verdict.
+  const closesCase: (values: FormValues<JSONObject>) => boolean = (
+    values: FormValues<JSONObject>,
+  ): boolean => {
+    return SecurityCaseStatuses.isClosed(
+      statuses,
+      values["statusId"] as string | undefined,
+    );
+  };
+
   const connectionField: (
     provider: SecurityEventConnectorProvider,
     actions: Array<SecurityPlaybookActionType>,
@@ -265,11 +317,13 @@ export function getStepSettingsFields(
       },
     },
     {
-      field: { priority: true },
+      field: { priorityId: true },
       title: "Priority",
       fieldType: FormFieldSchemaType.Dropdown,
       stepId: "settings",
-      dropdownOptions: priorityOptions(),
+      dropdownOptions: getSecurityCasePriorityOptions(priorities, {
+        keepId: keep("priorityId"),
+      }),
       required: (values: FormValues<JSONObject>): boolean => {
         return isAction(values, SecurityPlaybookActionType.SetCasePriority);
       },
@@ -278,12 +332,11 @@ export function getStepSettingsFields(
       },
     },
     {
-      field: { status: true },
+      field: { statusId: true },
       title: "Status",
       fieldType: FormFieldSchemaType.Dropdown,
       stepId: "settings",
-      dropdownOptions:
-        DropdownUtil.getDropdownOptionsFromEnum(SecurityCaseStatus),
+      dropdownOptions: getStepStatusOptions(statuses, keep("statusId")),
       required: (values: FormValues<JSONObject>): boolean => {
         return isAction(values, SecurityPlaybookActionType.SetCaseStatus);
       },
@@ -302,13 +355,13 @@ export function getStepSettingsFields(
       required: (values: FormValues<JSONObject>): boolean => {
         return (
           isAction(values, SecurityPlaybookActionType.SetCaseStatus) &&
-          values["status"] === SecurityCaseStatus.Closed
+          closesCase(values)
         );
       },
       showIf: (values: FormValues<JSONObject>): boolean => {
         return (
           isAction(values, SecurityPlaybookActionType.SetCaseStatus) &&
-          values["status"] === SecurityCaseStatus.Closed
+          closesCase(values)
         );
       },
     },
@@ -345,13 +398,15 @@ export function getStepSettingsFields(
       },
     },
     {
-      field: { raisePriorityTo: true },
+      field: { raisePriorityToId: true },
       title: "On a Match, Raise Priority To",
       description:
         "Optional. When an entity is a known indicator, the case's priority rises to at least this.",
       fieldType: FormFieldSchemaType.Dropdown,
       stepId: "settings",
-      dropdownOptions: priorityOptions(),
+      dropdownOptions: getSecurityCasePriorityOptions(priorities, {
+        keepId: keep("raisePriorityToId"),
+      }),
       required: false,
       showIf: (values: FormValues<JSONObject>): boolean => {
         return isAction(values, SecurityPlaybookActionType.CheckThreatIntel);
@@ -729,6 +784,8 @@ const SecurityPlaybookStepDialog: FunctionComponent<ComponentProps> = (
             mayTurnOffContainmentApproval: PermissionGate.holdsAnyOf(
               TURN_OFF_CONTAINMENT_APPROVAL_PERMISSIONS,
             ),
+            caseValues: props.caseValues,
+            step: props.step,
           }),
         ],
       }}

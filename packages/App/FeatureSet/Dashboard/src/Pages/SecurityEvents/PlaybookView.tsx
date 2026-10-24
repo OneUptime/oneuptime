@@ -10,6 +10,9 @@ import {
 import useSecurityPlaybookRuns, {
   UseSecurityPlaybookRunsResult,
 } from "../../Components/SecurityPlaybook/useSecurityPlaybookRuns";
+import { SecurityCaseValueLists } from "../../Components/SecurityCase/SecurityCaseValues";
+import { getSecurityCasePriorityOptions } from "../../Components/SecurityCase/SecurityCaseValueOptions";
+import useSecurityCaseValues from "../../Components/SecurityCase/useSecurityCaseValues";
 import { getSecurityEventsBreadcrumbs } from "../../Utils/Breadcrumbs";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -29,7 +32,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
-import SecurityCasePriority from "Common/Types/SecurityCase/SecurityCasePriority";
+import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import SecurityDetectionSource from "Common/Types/SecurityCase/SecurityDetectionSource";
 import {
   SecurityPlaybookStep,
@@ -136,7 +140,7 @@ const SecurityPlaybookViewPage: FunctionComponent<
             description: true,
             isEnabled: true,
             trigger: true,
-            minimumPriority: true,
+            minimumSecurityCasePriorityId: true,
             detectionSource: true,
             detectionRuleIds: true,
             steps: true,
@@ -209,6 +213,7 @@ const SecurityPlaybookViewPage: FunctionComponent<
       setConnections(connectionList);
       setRules(ruleNames || new Map());
       setLookup({
+        ...emptyStepNameLookup(),
         onCallPolicies: onCallPolicies || new Map(),
         incidentSeverities: incidentSeverities || new Map(),
         labels: labels || new Map(),
@@ -225,6 +230,31 @@ const SecurityPlaybookViewPage: FunctionComponent<
 
     void loadLookups();
   }, []);
+
+  /*
+   * The project's case priorities and statuses: what the minimum and the
+   * case steps pick from, and the names their ids stand for.
+   */
+  const { values: caseValues } = useSecurityCaseValues();
+  const caseLists: SecurityCaseValueLists = caseValues || {
+    priorities: [],
+    statuses: [],
+  };
+  const lookupWithCaseValues: StepNameLookup = {
+    ...lookup,
+    casePriorities: new Map(
+      caseLists.priorities.map(
+        (priority: SecurityCasePriority): [string, string] => {
+          return [priority.id?.toString() || "", priority.name || ""];
+        },
+      ),
+    ),
+    caseStatuses: new Map(
+      caseLists.statuses.map((status: SecurityCaseStatus): [string, string] => {
+        return [status.id?.toString() || "", status.name || ""];
+      }),
+    ),
+  };
 
   const runs: UseSecurityPlaybookRunsResult = useSecurityPlaybookRuns({
     query: { securityPlaybookId: playbookId },
@@ -319,13 +349,16 @@ const SecurityPlaybookViewPage: FunctionComponent<
               required: true,
             },
             {
-              field: { minimumPriority: true },
+              field: { minimumSecurityCasePriorityId: true },
               stepId: "when",
               title: "For Cases At Least",
               description: "Optional. Only cases of this priority or higher.",
               fieldType: FormFieldSchemaType.Dropdown,
-              dropdownOptions:
-                DropdownUtil.getDropdownOptionsFromEnum(SecurityCasePriority),
+              // Its own minimum stays offered, even if archived since.
+              dropdownOptions: getSecurityCasePriorityOptions(
+                caseLists.priorities,
+                { keepId: playbook.minimumSecurityCasePriorityId },
+              ),
               required: false,
             },
             {
@@ -372,10 +405,21 @@ const SecurityPlaybookViewPage: FunctionComponent<
                 fieldType: FieldType.Text,
               },
               {
-                field: { minimumPriority: true },
+                field: { minimumSecurityCasePriority: { name: true } },
                 title: "For Cases At Least",
-                fieldType: FieldType.Text,
-                placeholder: "Any priority",
+                fieldType: FieldType.Element,
+                getElement: (item: SecurityPlaybook): ReactElement => {
+                  const name: string =
+                    item.minimumSecurityCasePriority?.name || "";
+
+                  return name ? (
+                    <span>{translator.translateText(name) || name}</span>
+                  ) : (
+                    <span className="text-gray-400">
+                      {translator.translateText("Any priority")}
+                    </span>
+                  );
+                },
               },
               {
                 field: { detectionSource: true },
@@ -442,8 +486,9 @@ const SecurityPlaybookViewPage: FunctionComponent<
 
         <SecurityPlaybookStepsEditor
           steps={steps}
-          lookup={lookup}
+          lookup={lookupWithCaseValues}
           connections={connections}
+          caseValues={caseLists}
           canEdit={updateGate.isAllowed}
           disabledReason={updateGate.disabledReason}
           onSave={async (newSteps: Array<SecurityPlaybookStep>) => {

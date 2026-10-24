@@ -3,6 +3,7 @@ import {
   StateSettingsSharedCopy,
 } from "./StateSettingsCopy";
 import {
+  getStateSettingsBuiltInColumnText,
   getStateSettingsBuiltInTooltip,
   getStateSettingsCountsAs,
 } from "./StateSettingsRows";
@@ -205,6 +206,37 @@ export const getStateSettingsColumns: <T extends BaseModel>(data: {
             text={countsAs(item)}
             isOwnCopy={true}
             testId="state-settings-counts-as"
+          />
+        );
+      },
+    });
+  }
+
+  if (data.copy.builtInColumn) {
+    const builtInText: (item: T) => string = (item: T): string => {
+      return (
+        getStateSettingsBuiltInColumnText({
+          definition: data.definition,
+          copy: data.copy,
+          item: item,
+        }) || ""
+      );
+    };
+
+    columns.push({
+      // Read off the row's own built-in flag.
+      field: selectField<T>("_id"),
+      id: "built-in",
+      title: data.copy.builtInColumn.title,
+      headerTooltip: data.copy.builtInColumn.tooltip,
+      type: FieldType.Text,
+      getExportValue: builtInText,
+      getElement: (item: T): ReactElement => {
+        return (
+          <StateSettingsTextCell
+            text={builtInText(item)}
+            isOwnCopy={true}
+            testId="state-settings-built-in-column"
           />
         );
       },

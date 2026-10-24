@@ -5,6 +5,7 @@ import SecurityCaseApi, {
   EntityFindingSummary,
   SecurityOverview,
 } from "../../Components/SecurityCase/SecurityCaseApi";
+import { SecurityOverviewValue } from "../../Components/SecurityCase/SecurityCaseApiTypes";
 import { getCorrelateRouteForEntity } from "../../Components/SecurityCase/SecurityEntityChips";
 import RankedBars, {
   RankedBarItem,
@@ -42,13 +43,8 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { describeMitreId } from "Common/Types/SecurityEvent/MitreAttack";
 import { ocsfSeverityFromId } from "Common/Types/SecurityEvent/OcsfSeverity";
-import SecurityCasePriority, {
-  SECURITY_CASE_PRIORITIES,
-  getSecurityCasePriorityColor,
-} from "Common/Types/SecurityCase/SecurityCasePriority";
-import SecurityCaseStatus, {
-  getSecurityCaseStatusColor,
-} from "Common/Types/SecurityCase/SecurityCaseStatus";
+import SecurityCasePriorities from "Common/Utils/SecurityCase/SecurityCasePriorities";
+import SecurityCaseStatuses from "Common/Utils/SecurityCase/SecurityCaseStatuses";
 import SecurityCaseVerdict, {
   getSecurityCaseVerdictColor,
 } from "Common/Types/SecurityCase/SecurityCaseVerdict";
@@ -242,12 +238,16 @@ const SecurityOverviewPage: FunctionComponent<
     metrics.openCases === 0 &&
     metrics.casesOpenedInWindow === 0 &&
     metrics.detectionsInWindow === 0;
-  // The queue as the card's band and its cases cell read it.
+  /*
+   * The queue as the card's band and its cases cell read it. Critical and
+   * high are counted by the project's priorities: at or above its critical
+   * one, and at or above its high one below that (SecurityCasePriorities),
+   * whatever the project calls them.
+   */
   const queue: SecurityOverviewQueue = {
     openCases: metrics.openCases,
-    criticalOpenCases:
-      metrics.openByPriority[SecurityCasePriority.Critical] || 0,
-    highOpenCases: metrics.openByPriority[SecurityCasePriority.High] || 0,
+    criticalOpenCases: metrics.criticalOpenCases || 0,
+    highOpenCases: metrics.highOpenCases || 0,
     myOpenCases: overview.myOpenCases,
     unassignedOpenCases: metrics.unassignedOpenCases,
     runsWaitingForApproval: overview.runsWaitingForApproval,
@@ -288,12 +288,17 @@ const SecurityOverviewPage: FunctionComponent<
     overview.caseWindowInDays,
   );
 
-  const prioritySeries: Array<StackedSeries> = [...SECURITY_CASE_PRIORITIES]
+  // The project's priorities, most urgent at the top of each bar.
+  const priorities: Array<SecurityOverviewValue> = SecurityCasePriorities.sort(
+    overview.priorities,
+  );
+  const prioritySeries: Array<StackedSeries> = [...priorities]
     .reverse()
-    .map((priority: SecurityCasePriority): StackedSeries => {
+    .map((priority: SecurityOverviewValue): StackedSeries => {
       return {
-        key: priority,
-        color: getSecurityCasePriorityColor(priority).toString(),
+        key: priority._id,
+        label: priority.name,
+        color: priority.color || Gray500.toString(),
       };
     });
 
@@ -303,29 +308,40 @@ const SecurityOverviewPage: FunctionComponent<
     },
   );
 
-  const openByPriority: Array<RankedBarItem> = SECURITY_CASE_PRIORITIES.map(
-    (priority: SecurityCasePriority): RankedBarItem => {
+  /*
+   * The open cases by the project's priorities and by the statuses a case is
+   * open in, in the project's order. An archived one is drawn only while a
+   * case still has it.
+   */
+  const openByPriority: Array<RankedBarItem> = priorities
+    .filter((priority: SecurityOverviewValue): boolean => {
+      return (
+        !priority.isArchived || (metrics.openByPriority[priority._id] || 0) > 0
+      );
+    })
+    .map((priority: SecurityOverviewValue): RankedBarItem => {
       return {
-        key: priority,
-        label: translator.translateText(priority) || priority,
-        count: metrics.openByPriority[priority] || 0,
-        color: getSecurityCasePriorityColor(priority).toString(),
+        key: priority._id,
+        label: translator.translateText(priority.name) || priority.name,
+        count: metrics.openByPriority[priority._id] || 0,
+        color: priority.color || Gray500.toString(),
       };
-    },
-  );
+    });
 
-  const openByStatus: Array<RankedBarItem> = [
-    SecurityCaseStatus.New,
-    SecurityCaseStatus.Investigating,
-    SecurityCaseStatus.Contained,
-  ].map((status: SecurityCaseStatus): RankedBarItem => {
-    return {
-      key: status,
-      label: translator.translateText(status) || status,
-      count: metrics.openByStatus[status] || 0,
-      color: getSecurityCaseStatusColor(status).toString(),
-    };
-  });
+  const openByStatus: Array<RankedBarItem> = SecurityCaseStatuses.getOpenStatuses(
+    overview.statuses,
+  )
+    .filter((status: SecurityOverviewValue): boolean => {
+      return !status.isArchived || (metrics.openByStatus[status._id] || 0) > 0;
+    })
+    .map((status: SecurityOverviewValue): RankedBarItem => {
+      return {
+        key: status._id,
+        label: translator.translateText(status.name) || status.name,
+        count: metrics.openByStatus[status._id] || 0,
+        color: status.color || Gray500.toString(),
+      };
+    });
 
   const verdicts: Array<RankedBarItem> = Object.values(SecurityCaseVerdict).map(
     (verdict: SecurityCaseVerdict): RankedBarItem => {
