@@ -429,7 +429,7 @@ describe("BillingService keeps its shape", () => {
 
 describe("without a payment provider, BillingService answers as a server without billing does", () => {
   it.each(
-    PROVIDER_CALLS.map((call: ProviderCall) => {
+    PROVIDER_CALLS.map((call: ProviderCall): [string, ProviderCall] => {
       return [call.method, call];
     }),
   )(
@@ -442,7 +442,7 @@ describe("without a payment provider, BillingService answers as a server without
   );
 
   it.each(
-    PROVIDER_CALLS.map((call: ProviderCall) => {
+    PROVIDER_CALLS.map((call: ProviderCall): [string, ProviderCall] => {
       return [call.method, call];
     }),
   )(
@@ -453,7 +453,7 @@ describe("without a payment provider, BillingService answers as a server without
   );
 
   it.each(
-    PROVIDER_CALLS.map((call: ProviderCall) => {
+    PROVIDER_CALLS.map((call: ProviderCall): [string, ProviderCall] => {
       return [call.method, call];
     }),
   )(
@@ -467,7 +467,7 @@ describe("without a payment provider, BillingService answers as a server without
   );
 
   it.each(
-    PROVIDER_CALLS.map((call: ProviderCall) => {
+    PROVIDER_CALLS.map((call: ProviderCall): [string, ProviderCall] => {
       return [call.method, call];
     }),
   )(
@@ -484,7 +484,7 @@ describe("without a payment provider, BillingService answers as a server without
   );
 
   it.each(
-    PROVIDER_CALLS.map((call: ProviderCall) => {
+    PROVIDER_CALLS.map((call: ProviderCall): [string, ProviderCall] => {
       return [call.method, call];
     }),
   )(
@@ -519,7 +519,7 @@ describe("with billing on, BillingService hands every call to the enterprise mod
   });
 
   it.each(
-    PROVIDER_CALLS.map((call: ProviderCall) => {
+    PROVIDER_CALLS.map((call: ProviderCall): [string, ProviderCall] => {
       return [call.method, call];
     }),
   )(

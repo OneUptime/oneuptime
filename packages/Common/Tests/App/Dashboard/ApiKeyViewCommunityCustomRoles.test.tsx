@@ -110,7 +110,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       },
       count: async (params: any): Promise<number> => {
         return (
-          globalThis as unknown as { __apiKeyRoleCount: () => number }
+          globalThis as unknown as {
+            __apiKeyRoleCount: (params: any) => number;
+          }
         ).__apiKeyRoleCount(params);
       },
       deleteItem: (...args: Array<any>) => {
