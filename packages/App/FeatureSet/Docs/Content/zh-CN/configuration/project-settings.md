@@ -38,7 +38,7 @@ flowchart LR
 | **高级** | **域名**、**API 密钥**、**功能标志**、**从其他工具导入** | [自定义域名](/docs/status-pages/branding-and-domains#自定义域名)、[API 密钥](/docs/permissions/index#api-密钥)、[功能标志](#功能标志)、[从 Opsgenie 迁移](/docs/moving-to-oneuptime/opsgenie)及其他迁移指南 |
 | **安全** | **SSO**、**SCIM** | [SSO](/docs/identity/sso)、[SCIM](/docs/identity/scim) |
 | **账单和发票** | **账单**、**使用历史**、**发票** | [账单与用量](/docs/configuration/billing) |
-| **审计日志** | **审计日志**、**设置** | [审计日志](/docs/configuration/audit-logs) |
+| **审计日志** | **审计日志**、**设置**、**导出** | [审计日志](/docs/configuration/audit-logs)、[审计日志导出](/docs/configuration/audit-log-export) |
 | **危险区域** | **危险区域** | [删除项目](#删除项目) |
 
 **账单和发票**和**AI 积分**仅存在于 OneUptime Cloud：自托管安装没有账单功能。

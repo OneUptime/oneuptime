@@ -101,16 +101,17 @@ flowchart TB
 | vCenter 服务器 | `vCenter` |
 | 抓包及其下载 | `Packet Capture` |
 | 安全案例、剧本及其运行，以及受保护的实体 | `Security Case`、`Security Playbook`、`Security Playbook Run`、`Protected Entity` |
+| 审计日志导出 | `Audit Log Export` |
 
 当管理员在他人的账户上添加或移除通知方式或个人值班规则时，也会记录，但不包含地址或号码本身。
 
-其他数据不在审计日志中，例如谁在某个团队中，或单独添加给团队的权限。任何人都无权读取的字段（例如密钥）会从所有条目中省略。
+其他数据不在审计日志中，例如谁在某个团队中，或单独添加给团队的权限。任何人都无权读取的字段会从所有条目中省略，密钥、令牌和密码记录为 `[REDACTED]`：条目只显示它们已更改，绝不显示其值。
 
 ## 条目保留多久
 
 每个条目的保留时间，是其被记录时项目所设的**保留时长（天）**，之后会被删除。新的保留时长适用于新条目：已记录的条目保持原有日期。
 
-要将条目保留超过 180 天，请使用拥有 **Read Audit Log** 的 API 密钥通过 API 读取它们，并存储到你需要的地方。参见[OneUptime API 参考](/docs/api-reference/api-reference)。
+要将条目保留超过 180 天，请在记录时将它们发送到你自己的存储或 SIEM：参见[审计日志导出](/docs/configuration/audit-log-export)。你也可以使用拥有 **Read Audit Log** 的 API 密钥通过 API 读取它们，并存储到你需要的地方。参见[OneUptime API 参考](/docs/api-reference/api-reference)。
 
 ## 当套餐或许可证不再包含审计日志时
 
@@ -130,6 +131,7 @@ flowchart TB
 ## 后续步骤
 
 :::cards
+- [审计日志导出](/docs/configuration/audit-log-export): 将审计日志发送到你自己的存储或 SIEM。
 - [用户、团队与权限](/docs/permissions/index): 决定谁可以读取审计日志。
 - [项目设置](/docs/configuration/project-settings): 项目的其他设置。
 - [账单与用量](/docs/configuration/billing): 更改项目的套餐。

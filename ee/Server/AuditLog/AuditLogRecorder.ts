@@ -23,6 +23,10 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import Project from "Common/Models/DatabaseModels/Project";
 import User from "Common/Models/DatabaseModels/User";
 import AuditLogAction from "Common/Types/AuditLog/AuditLogAction";
+import {
+  getAuditLogRedactedColumns,
+  redactAuditLogValue,
+} from "Common/Types/AuditLog/AuditLogRedaction";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { AuditLogRootResource } from "Common/Types/BaseDatabase/EnableAuditLogOn";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
@@ -758,6 +762,7 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
   }): JSONArray {
     const changes: JSONArray = [];
     const excludedFields: Set<string> = this.getExcludedFields(data.model);
+    const redactedFields: Set<string> = getAuditLogRedactedColumns(data.model);
     const columns: Array<string> = data.model.getTableColumns().columns;
     const itemRecord: Record<string, unknown> = data.item as unknown as Record<
       string,
@@ -777,7 +782,10 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
 
       changes.push({
         field: column,
-        [data.valueKey]: this.serializeValue(data.model, column, value),
+        // A secret is recorded as set, never with its value (AuditLogRedaction).
+        [data.valueKey]: redactedFields.has(column)
+          ? redactAuditLogValue(value)
+          : this.serializeValue(data.model, column, value),
       } as JSONObject);
     }
 
@@ -791,6 +799,7 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
   }): JSONArray {
     const changes: JSONArray = [];
     const excludedFields: Set<string> = this.getExcludedFields(data.model);
+    const redactedFields: Set<string> = getAuditLogRedactedColumns(data.model);
     const beforeRecord: Record<string, unknown> =
       data.before as unknown as Record<string, unknown>;
 
@@ -810,6 +819,19 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
           newValue,
         })
       ) {
+        continue;
+      }
+
+      /*
+       * A secret that changed is recorded as changed - by whom, when -
+       * without either value (AuditLogRedaction).
+       */
+      if (redactedFields.has(field)) {
+        changes.push({
+          field,
+          oldValue: redactAuditLogValue(oldValue),
+          newValue: redactAuditLogValue(newValue),
+        } as JSONObject);
         continue;
       }
 

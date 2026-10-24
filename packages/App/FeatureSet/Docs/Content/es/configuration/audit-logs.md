@@ -101,16 +101,17 @@ Los monitores, incidentes, alertas, páginas de estado, SLO y muchos otros recur
 | vCenter | `vCenter` |
 | Capturas de paquetes, y sus descargas | `Packet Capture` |
 | Casos de seguridad, playbooks y sus ejecuciones, y entidades protegidas | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
+| Exportaciones del registro de auditoría | `Audit Log Export` |
 
 También se registra que un administrador añada o quite un método de notificación o una regla de guardia personal en la cuenta de otra persona, sin la dirección ni el número en sí.
 
-Otros datos no están en el registro de auditoría, como quién está en un equipo o un permiso añadido por separado a un equipo. Los campos que nadie puede leer, como las claves secretas, se omiten en cada entrada.
+Otros datos no están en el registro de auditoría, como quién está en un equipo o un permiso añadido por separado a un equipo. Los campos que nadie puede leer se omiten en cada entrada, y las claves, los tokens y las contraseñas se registran como `[REDACTED]`: la entrada muestra que cambiaron, nunca su valor.
 
 ## Cuánto tiempo se conservan las entradas
 
 Cada entrada se conserva durante la **Retención (días)** que tenía el proyecto cuando se registró, y después se elimina. Una retención nueva se aplica a las entradas nuevas: las ya registradas conservan sus fechas.
 
-Para conservar entradas más de 180 días, léalas a través de la API con una clave de API que tenga **Read Audit Log**, y guárdelas donde las necesite. Consulte [Referencia de la API de OneUptime](/docs/api-reference/api-reference).
+Para conservar entradas más de 180 días, envíelas a su propio almacenamiento o SIEM a medida que se registran: consulte [Exportación del registro de auditoría](/docs/configuration/audit-log-export). También puede leerlas a través de la API con una clave de API que tenga **Read Audit Log**, y guardarlas donde las necesite. Consulte [Referencia de la API de OneUptime](/docs/api-reference/api-reference).
 
 ## Cuando el plan o la licencia ya no incluyen los registros de auditoría
 
@@ -130,6 +131,7 @@ Compruebe que el recurso está en [Qué se registra](#qué-se-registra), y que e
 ## Próximos pasos
 
 :::cards
+- [Exportación del registro de auditoría](/docs/configuration/audit-log-export): Enviar el registro de auditoría a su propio almacenamiento o SIEM.
 - [Usuarios, equipos y permisos](/docs/permissions/index): Decidir quién puede leer el registro de auditoría.
 - [Ajustes del proyecto](/docs/configuration/project-settings): Los demás ajustes del proyecto.
 - [Facturación y uso](/docs/configuration/billing): Cambiar el plan del proyecto.

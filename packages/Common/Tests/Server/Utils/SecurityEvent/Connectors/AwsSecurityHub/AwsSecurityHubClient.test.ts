@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { describe, expect, test } from "@jest/globals";
 import AwsSecurityHubClient, {
   AWS_SECURITY_HUB_DEFAULT_PAGE_SIZE,
@@ -417,6 +418,78 @@ describe("AwsSecurityHubClient", () => {
 
     test("formats x-amz-date without separators or fractional seconds", () => {
       expect(AwsSecurityHubClient.toAmzDate(CLOCK)).toBe("20260913T100507Z");
+    });
+
+    /*
+     * Amazon S3's own example of a signed PUT Object (Signature Calculations
+     * for the Authorization Header: Transferring Payload in a Single Chunk):
+     * the payload is signed by the hash sent as x-amz-content-sha256 - what
+     * an audit log export's upload passes as payloadHash, its body being
+     * bytes - and a "$" in the key is encoded once, as S3 wants.
+     */
+    test("S3 PUT Object: a precomputed payload hash is signed in place of the body's", () => {
+      const payloadHash: string =
+        "44ce7dd67c959e0d3524ffac1771dfbba87d2b6b4b4e99e42034a8b803f8b072";
+
+      expect(
+        createHash("sha256").update("Welcome to Amazon S3.").digest("hex"),
+      ).toBe(payloadHash);
+
+      const signed: AwsSigV4SignResult = AwsSecurityHubClient.signRequest({
+        method: "PUT",
+        host: "examplebucket.s3.amazonaws.com",
+        path: "/test$file.text",
+        headers: {
+          Date: "Fri, 24 May 2013 00:00:00 GMT",
+          "x-amz-storage-class": "REDUCED_REDUNDANCY",
+          "x-amz-content-sha256": payloadHash,
+        },
+        // Not read when payloadHash is given.
+        body: "ignored",
+        payloadHash,
+        accessKeyId: "AKIAIOSFODNN7EXAMPLE",
+        secretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+        region: "us-east-1",
+        service: "s3",
+        date: new Date("2013-05-24T00:00:00.000Z"),
+      });
+
+      expect(signed.canonicalRequest).toBe(
+        [
+          "PUT",
+          "/test%24file.text",
+          "",
+          "date:Fri, 24 May 2013 00:00:00 GMT",
+          "host:examplebucket.s3.amazonaws.com",
+          `x-amz-content-sha256:${payloadHash}`,
+          "x-amz-date:20130524T000000Z",
+          "x-amz-storage-class:REDUCED_REDUNDANCY",
+          "",
+          "date;host;x-amz-content-sha256;x-amz-date;x-amz-storage-class",
+          payloadHash,
+        ].join("\n"),
+      );
+      expect(signed.signature).toBe(
+        "98ad721746da40c64f1a55b78f14c238d841ea1380cd77a1b5971af0ece108bd",
+      );
+    });
+
+    test("without a payload hash the body is hashed, as before", () => {
+      const withBody: AwsSigV4SignResult = AwsSecurityHubClient.signRequest({
+        method: "PUT",
+        host: SUITE_HOST,
+        path: "/",
+        body: "Param1=value1",
+        accessKeyId: SUITE_ACCESS_KEY_ID,
+        secretAccessKey: SUITE_SECRET,
+        region: "us-east-1",
+        service: "service",
+        date: SUITE_DATE,
+      });
+
+      expect(withBody.canonicalRequest.split("\n").pop()).toBe(
+        createHash("sha256").update("Param1=value1").digest("hex"),
+      );
     });
   });
 

@@ -38,7 +38,7 @@ flowchart LR
 | **उन्नत** | **डोमेन**, **API कुंजियाँ**, **फ़ीचर फ़्लैग**, **किसी दूसरे टूल से इंपोर्ट करें** | [कस्टम डोमेन](/docs/status-pages/branding-and-domains#कस्टम-डोमेन), [API कुंजियाँ](/docs/permissions/index#api-कुंजियाँ), [फ़ीचर फ़्लैग](#फ़ीचर-फ़्लैग), [Opsgenie से आना](/docs/moving-to-oneuptime/opsgenie) और बाकी माइग्रेशन गाइड |
 | **सुरक्षा** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **बिलिंग और चालान** | **बिलिंग**, **उपयोग इतिहास**, **चालान** | [बिलिंग और उपयोग](/docs/configuration/billing) |
-| **ऑडिट लॉग** | **ऑडिट लॉग**, **सेटिंग्स** | [ऑडिट लॉग](/docs/configuration/audit-logs) |
+| **ऑडिट लॉग** | **ऑडिट लॉग**, **सेटिंग्स**, **एक्सपोर्ट** | [ऑडिट लॉग](/docs/configuration/audit-logs), [ऑडिट लॉग एक्सपोर्ट](/docs/configuration/audit-log-export) |
 | **खतरा क्षेत्र** | **खतरा क्षेत्र** | [प्रोजेक्ट हटाएं](#प्रोजेक्ट-हटाएं) |
 
 **बिलिंग और चालान** और **AI क्रेडिट** केवल OneUptime Cloud पर हैं: सेल्फ-होस्टेड इंस्टॉलेशन में कोई बिलिंग नहीं होती।

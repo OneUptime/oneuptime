@@ -589,6 +589,9 @@ import CloudConnectionAPI from "Common/Server/API/CloudConnectionAPI";
 import NetworkControllerConnectionAPI from "Common/Server/API/NetworkControllerConnectionAPI";
 import ExternalMcpServerAPI from "Common/Server/API/ExternalMcpServerAPI";
 import SecurityEventDestinationAPI from "Common/Server/API/SecurityEventDestinationAPI";
+import AuditLogExportService, {
+  Service as AuditLogExportServiceType,
+} from "Common/Server/Services/AuditLogExportService";
 import SecurityLogSourceService, {
   Service as SecurityLogSourceServiceType,
 } from "Common/Server/Services/SecurityLogSourceService";
@@ -1624,6 +1627,7 @@ import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import SecurityEventConnectionRun from "Common/Models/DatabaseModels/SecurityEventConnectionRun";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
+import AuditLogExport from "Common/Models/DatabaseModels/AuditLogExport";
 import SecurityCaseFeed from "Common/Models/DatabaseModels/SecurityCaseFeed";
 import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
@@ -3956,6 +3960,19 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new SecurityEventDestinationAPI().getRouter(),
+    );
+
+    /*
+     * Where the audit log is exported. The exports are enterprise
+     * configuration: creating or changing one needs the Enterprise Edition
+     * (EditionPermission), and the exporter and its test route are ee/'s.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AuditLogExport, AuditLogExportServiceType>(
+        AuditLogExport,
+        AuditLogExportService,
+      ).getRouter(),
     );
 
     app.use(
