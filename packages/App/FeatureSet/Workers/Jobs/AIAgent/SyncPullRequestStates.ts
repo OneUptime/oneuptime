@@ -31,11 +31,23 @@ import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import logger from "Common/Server/Utils/Logger";
 import GitHubInstallationBinding from "Common/Server/Utils/CodeRepository/GitHub/GitHubInstallationBinding";
+import CodeHostAccess, {
+  CodeHostReader,
+} from "Common/Server/Utils/CodeRepository/CodeHost/CodeHostAccess";
+import {
+  CodeHostCiSummary,
+  CodeHostPullRequestState,
+} from "Common/Server/Utils/CodeRepository/CodeHost/CodeHostTypes";
+
+import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
+import { CodeHost } from "Common/Types/CodeRepository/CodeHost";
 
 /**
- * Syncs the state of AI-agent-created pull requests from GitHub
- * (Open -> Merged / Closed), and — B4 Tier 1 — reads each open PR's CI
- * check-run conclusion into ciStatus/ciStatusAt.
+ * Syncs the state of AI-agent-created pull requests from their host - GitHub,
+ * GitLab (merge requests), Forgejo or Gitea - (Open -> Merged / Closed), and
+ * — B4 Tier 1 — reads each open PR's CI conclusion into ciStatus/ciStatusAt:
+ * GitHub's check runs, GitLab's head pipeline, Forgejo's commit statuses. A
+ * Git repository has no pull requests of OneUptime's, so none is recorded.
  *
  * This is the outcome instrumentation for the AI fix path: the merged /
  * closed-unmerged ratio of agent PRs is the precision baseline that gates
@@ -214,6 +226,152 @@ async function getTaskTypeForRun(
   return taskType;
 }
 
+/*
+ * One pull (or merge) request of a repository on GitLab, Forgejo or Gitea:
+ * its state, its merge commit once merged, and the CI on its head, read
+ * through the repository's connection, written as a GitHub one's is. A
+ * repository that is not reachable now (its token refused, its connection
+ * gone) is passed by, and tried again on the next sweep.
+ */
+export async function syncPullRequestOnCodeHost(data: {
+  pullRequest: AIAgentTaskPullRequest;
+  readerByRepositoryId: Map<string, CodeHostReader | null>;
+  taskTypeByRunId: Map<string, CodeFixTaskType>;
+}): Promise<void> {
+  const pullRequest: AIAgentTaskPullRequest = data.pullRequest;
+  const repositoryId: string =
+    pullRequest.codeRepository?._id?.toString() ||
+    pullRequest.codeRepository?.id?.toString() ||
+    "";
+
+  if (!repositoryId || !pullRequest.pullRequestNumber) {
+    return;
+  }
+
+  try {
+    let reader: CodeHostReader | null | undefined =
+      data.readerByRepositoryId.get(repositoryId);
+
+    if (reader === undefined) {
+      reader = pullRequest.codeRepository?.projectId
+        ? await CodeHostAccess.getReader({
+            projectId: pullRequest.codeRepository.projectId,
+            repositoryId: new ObjectID(repositoryId),
+          })
+        : null;
+
+      data.readerByRepositoryId.set(repositoryId, reader);
+    }
+
+    if (!reader || !reader.canTrackPullRequests) {
+      return;
+    }
+
+    const read: CodeHostPullRequestState & { ci: CodeHostCiSummary | null } =
+      await reader.getPullRequestState({
+        number: pullRequest.pullRequestNumber,
+        headRefName: pullRequest.headRefName || undefined,
+      });
+
+    const updateData: {
+      pullRequestState?: PullRequestState;
+      ciStatus?: FixPullRequestCiStatus;
+      ciStatusAt?: Date;
+    } & Partial<FixMergedFields> = {};
+
+    if (read.state !== PullRequestState.Open) {
+      updateData.pullRequestState = read.state;
+    }
+
+    if (read.state === PullRequestState.Merged) {
+      Object.assign(
+        updateData,
+        fieldsWhenMerged({
+          mergeCommitSha: read.mergeCommitSha,
+          mergedAt: read.mergedAt,
+          productionCheck: pullRequest.aiRunId
+            ? FixProductionCheckHelper.forTaskType(
+                await getTaskTypeForRun(
+                  pullRequest.aiRunId,
+                  data.taskTypeByRunId,
+                ),
+              )
+            : null,
+          now: OneUptimeDate.getCurrentDate(),
+        }),
+      );
+    }
+
+    let ciChangeMessage: string | null = null;
+
+    if (read.ci) {
+      let ciStatus: FixPullRequestCiStatus = read.ci.conclusion;
+
+      if (ciStatus === FixPullRequestCiStatus.Red && pullRequest.aiRunId) {
+        ciStatus = FixPullRequestCiStatusHelper.applyTaskType({
+          conclusion: ciStatus,
+          taskType: await getTaskTypeForRun(
+            pullRequest.aiRunId,
+            data.taskTypeByRunId,
+          ),
+        });
+      }
+
+      if (ciStatus !== pullRequest.ciStatus) {
+        updateData.ciStatus = ciStatus;
+        updateData.ciStatusAt = OneUptimeDate.getCurrentDate();
+        ciChangeMessage = FixPullRequestCiStatusHelper.describeForProgressLog({
+          ciStatus: ciStatus,
+          counts: read.ci,
+        });
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return;
+    }
+
+    await AIAgentTaskPullRequestService.updateOneById({
+      id: pullRequest.id!,
+      data: updateData,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (updateData.pullRequestState && pullRequest.aiRunId) {
+      logger.info(
+        `AI agent pull request ${pullRequest.repoOrganizationName}/${pullRequest.repoName}#${pullRequest.pullRequestNumber} is now ${read.state}`,
+        { service: "workers" },
+      );
+
+      await applyExceptionFeedbackForStateChange({
+        newState: updateData.pullRequestState,
+        aiRunId: pullRequest.aiRunId,
+      });
+    }
+
+    if (ciChangeMessage && pullRequest.aiRunId && pullRequest.projectId) {
+      await AIRunEventService.appendEventToRun({
+        projectId: pullRequest.projectId,
+        aiRunId: pullRequest.aiRunId,
+        eventType: AIRunEventType.ProgressLog,
+        resultSummary: {
+          message: ciChangeMessage,
+          severity: LogSeverity.Information,
+        },
+      });
+    }
+  } catch (error) {
+    // One unreachable pull request must not stop the sweep.
+    logger.error(
+      `Failed to sync state for AI agent pull request ${pullRequest.id?.toString()}:`,
+      { service: "workers" },
+    );
+    logger.error(error, { service: "workers" });
+  }
+}
+
 RunCron(
   "AIAgent:SyncPullRequestStates",
   {
@@ -241,6 +399,7 @@ RunCron(
             organizationName: true,
             repositoryName: true,
             gitHubAppInstallationId: true,
+            repositoryHostedAt: true,
           },
         },
         skip: 0,
@@ -265,7 +424,27 @@ RunCron(
     const deadInstallationIds: Set<string> = new Set();
     const taskTypeByRunId: Map<string, CodeFixTaskType> = new Map();
 
+    // A reader per repository on another host, for the sweep.
+    const readerByRepositoryId: Map<string, CodeHostReader | null> = new Map();
+
     for (const pullRequest of openPullRequests) {
+      /*
+       * A repository on another host (GitLab, Forgejo, Gitea) is read
+       * through its connection (CodeHostAccess), with the same updates.
+       */
+      if (
+        pullRequest.codeRepository &&
+        CodeHost.readType(pullRequest.codeRepository.repositoryHostedAt) !==
+          CodeRepositoryType.GitHub
+      ) {
+        await syncPullRequestOnCodeHost({
+          pullRequest,
+          readerByRepositoryId,
+          taskTypeByRunId,
+        });
+        continue;
+      }
+
       const installationId: string | undefined =
         pullRequest.codeRepository?.gitHubAppInstallationId;
       const organizationName: string | undefined =

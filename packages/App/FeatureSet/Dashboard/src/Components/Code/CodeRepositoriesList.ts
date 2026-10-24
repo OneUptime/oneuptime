@@ -1,5 +1,7 @@
 import { CodeRepositoryListItem } from "./CodeApi";
 import { getRepositoryFullName } from "./CodePaths";
+import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
+import { CodeHost } from "Common/Types/CodeRepository/CodeHost";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -26,6 +28,8 @@ export const CODE_REPOSITORIES_COPY: {
   notConnectedTitle: string;
   notConnectedSummary: string;
   notConnectedExplanation: string;
+  notConnectedSummaryAnyHost: string;
+  notConnectedExplanationAnyHost: string;
   noneConnectedTitle: string;
   noMatchTitle: string;
   searchPlaceholder: string;
@@ -42,6 +46,17 @@ export const CODE_REPOSITORIES_COPY: {
   // Open: what that means, and what to do.
   notConnectedExplanation: translationKey(
     "Their tasks stay readable. Connect GitHub with access to them to use them again, or open one to delete it.",
+  ),
+  /*
+   * The same, when some of them are not on GitHub (GitLab, Forgejo, Gitea,
+   * a Git server): their server refused the access token, or their
+   * connection is gone.
+   */
+  notConnectedSummaryAnyHost: translationKey(
+    "OneUptime cannot reach these repositories any more, so AI cannot work in them.",
+  ),
+  notConnectedExplanationAnyHost: translationKey(
+    "Their tasks stay readable. Open a repository to replace its refused access token, or to delete it. Connect GitHub again for those on GitHub.",
   ),
   noneConnectedTitle: translationKey("No connected repositories"),
   noMatchTitle: translationKey("No repository matches your search."),
@@ -152,6 +167,30 @@ export const isFoundOnlyUnderNotConnected: (
     groups.connected.length === 0 &&
     groups.notConnected.length > 0
   );
+};
+
+/*
+ * Whether a repository is on GitHub, as the server says (a server older than
+ * the other hosts says nothing: GitHub).
+ */
+export const isGitHubRepository: (
+  repository: Pick<CodeRepositoryListItem, "provider">,
+) => boolean = (
+  repository: Pick<CodeRepositoryListItem, "provider">,
+): boolean => {
+  return CodeHost.readType(repository.provider) === CodeRepositoryType.GitHub;
+};
+
+/*
+ * Whether every repository listed is on GitHub: the page's words for the
+ * repositories it cannot reach then name GitHub, as they always did.
+ */
+export const areAllOnGitHub: (
+  repositories: Array<CodeRepositoryListItem>,
+) => boolean = (repositories: Array<CodeRepositoryListItem>): boolean => {
+  return repositories.every((repository: CodeRepositoryListItem): boolean => {
+    return isGitHubRepository(repository);
+  });
 };
 
 /*

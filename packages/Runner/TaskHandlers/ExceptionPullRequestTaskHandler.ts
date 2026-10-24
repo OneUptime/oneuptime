@@ -2,7 +2,6 @@ import {
   BaseTaskHandler,
   TaskContext,
   TaskResult,
-  TaskResultData,
 } from "./TaskHandlerInterface";
 import {
   ExceptionDetails,
@@ -13,9 +12,7 @@ import RepositoryManager, {
   RepositoryConfig,
   CloneResult,
 } from "../Utils/RepositoryManager";
-import PullRequestCreator, {
-  PullRequestResult,
-} from "../Utils/PullRequestCreator";
+import { PushedBranch } from "../Utils/PushedBranches";
 import BuildVerification, {
   VerificationOutcome,
 } from "../Utils/BuildVerification";
@@ -159,7 +156,7 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
           "error",
         );
         return this.createFailureResult(
-          "Could not resolve a repository for this exception: its stack-trace files were not found in any connected repository, no repository name matches the service, and the project has more than one repository. Connect the right repository through the GitHub App.",
+          "Could not resolve a repository for this exception: its stack-trace files were not found in any connected repository, no repository name matches the service, and the project has more than one repository. Connect the right repository in Code.",
           { isError: true },
         );
       }
@@ -211,28 +208,28 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
         }
       }
 
-      // Step 6: Return result
-      if (pullRequestUrls.length > 0) {
+      /*
+       * Step 6: Return result. A branch pushed to a repository with no pull
+       * requests (a Git repository) is a change too: the run says where it
+       * is, rather than that it found no fix.
+       */
+      const pushedBranches: Array<PushedBranch> = context.pushedBranches || [];
+
+      if (pullRequestUrls.length > 0 || pushedBranches.length > 0) {
         await this.log(
           context,
-          `Successfully created ${pullRequestUrls.length} pull request(s)`,
+          `Successfully created ${pullRequestUrls.length} pull request(s)${
+            pushedBranches.length > 0
+              ? ` and pushed ${pushedBranches.length} branch(es)`
+              : ""
+          }`,
         );
 
-        const resultData: TaskResultData = {
-          pullRequests: pullRequestUrls,
-        };
-
-        if (errors.length > 0) {
-          resultData.errors = errors;
-        }
-
-        return {
-          success: true,
-          message: `Created ${pullRequestUrls.length} pull request(s)`,
-          pullRequestsCreated: pullRequestUrls.length,
+        return this.createChangedResult({
           pullRequestUrls,
-          data: resultData,
-        };
+          pushedBranches,
+          errors,
+        });
       }
 
       /*
@@ -306,6 +303,7 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
       token: tokenData.token,
       repositoryUrl: tokenData.repositoryUrl,
       baseBranch: repo.mainBranchName || undefined,
+      ...(tokenData.codeHost ? { codeHost: tokenData.codeHost } : {}),
     };
 
     const repoManager: RepositoryManager = new RepositoryManager(
@@ -474,48 +472,33 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
       repoConfig,
     );
 
-    // Create pull request
-    await this.log(context, "Creating pull request...");
-    const prCreator: PullRequestCreator = new PullRequestCreator(
-      context.logger,
-    );
-
+    /*
+     * Open the pull (or merge) request where the repository's host takes
+     * them, and record it; a Git repository's pushed branch is kept for the
+     * run's outcome instead.
+     */
     const prTitle: string = this.buildPullRequestTitle(exceptionDetails);
 
     const prBody: string =
       this.buildPullRequestBody(exceptionDetails, agentResult.summary) +
       BuildVerification.buildPullRequestBodySection(verification);
 
-    const prResult: PullRequestResult = await prCreator.createPullRequest({
-      token: tokenData.token,
-      organizationName: tokenData.organizationName,
-      repositoryName: tokenData.repositoryName,
+    const prUrl: string | null = await this.finishPushedChange(context, {
+      repositoryId: repo.id,
+      token: tokenData,
+      repositoryManager: repoManager,
+      repositoryPath: cloneResult.repositoryPath,
       baseBranch,
       headBranch: branchName,
       title: prTitle,
       body: prBody,
-    });
-
-    await this.log(context, `Pull request created: ${prResult.htmlUrl}`);
-
-    // Record the PR in the backend
-    await this.recordOpenedPullRequest(context, {
-      taskId: context.taskId.toString(),
-      codeRepositoryId: repo.id,
-      pullRequestUrl: prResult.htmlUrl,
-      pullRequestNumber: prResult.number,
-      pullRequestId: prResult.id,
-      title: prResult.title,
-      description: prBody.substring(0, 1000),
-      headRefName: branchName,
-      baseRefName: baseBranch,
-      runnerVerificationStatus: verification.status,
-      runnerVerificationSummary: verification.summary,
+      summary: agentResult.summary,
+      verification,
     });
 
     // Cleanup agent
     await agent.cleanup();
 
-    return prResult.htmlUrl;
+    return prUrl;
   }
 }

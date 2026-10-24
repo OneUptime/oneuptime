@@ -26,6 +26,7 @@
     "Incident",
     "Incident {{number}}: {{title}}",
     "Information",
+    "Merge request !{{number}}",
     "Null",
     "Object Gateway",
     "Object Gateways",

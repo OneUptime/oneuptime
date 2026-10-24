@@ -22,7 +22,7 @@ export default class ImproveInstrumentationTaskHandler extends SubjectPullReques
   protected readonly noActionMessage: string =
     "No instrumentation could be added to any repository";
   protected readonly noRepositoryMessage: string =
-    "Could not resolve a repository for this instrumentation task. Connect the right repository through the GitHub App.";
+    "Could not resolve a repository for this instrumentation task. Connect the right repository in Code.";
 
   // Build the prompt for the code agent
   protected buildPrompt(

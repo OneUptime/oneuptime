@@ -224,26 +224,27 @@ export default class CodeFixReadiness {
   }
 
   /*
-   * The project-wide repository gate: at least one GitHub-App-connected
-   * repository exists. This is the WEAKER claim — it deliberately says
-   * nothing about whether a given exception's stack trace will match one.
-   * Only GitHub is supported: the agent's clone/push path rejects every
-   * other host (see AIAgentDataAPI's repositoryHostedAt guard).
+   * The project-wide repository gate: at least one repository the agent
+   * can clone and push to - connected through the GitHub App, or through
+   * its connection to GitLab, Forgejo, Gitea or any Git server
+   * (SubjectCodeFixRun.hasConnectedRepository). This is the WEAKER claim -
+   * it deliberately says nothing about whether a given exception's stack
+   * trace will match one.
    */
   @CaptureSpan()
   public static async getRepositoryConnectedCheck(params: {
     projectId: ObjectID;
   }): Promise<AIFixReadinessCheck> {
     const hasRepository: boolean =
-      await SubjectCodeFixRun.hasGitHubAppConnectedRepository(params.projectId);
+      await SubjectCodeFixRun.hasConnectedRepository(params.projectId);
 
     return {
       id: "repositoryConnected",
       ok: hasRepository,
-      title: "GitHub repository",
+      title: "Code repository",
       detail: hasRepository
-        ? "Connected through the GitHub App. The agent opens its fix pull requests here."
-        : "AI opens its fixes as pull requests, so it needs a repository to push to. Connect one through the GitHub App — installing it imports all of its repositories automatically.",
+        ? "Connected. The agent pushes its fixes there and opens a pull request where the repository's host has them."
+        : "AI pushes its fixes to a repository and opens them as pull requests, so it needs one. Connect one in Code: through the GitHub App, or from GitLab, Forgejo, Gitea or any Git server.",
     };
   }
 

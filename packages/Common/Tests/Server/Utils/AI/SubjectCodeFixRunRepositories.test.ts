@@ -1,5 +1,7 @@
 import SubjectCodeFixRun from "../../../../Server/Utils/AI/SRE/SubjectCodeFixRun";
 import CodeRepositoryService from "../../../../Server/Services/CodeRepositoryService";
+import CodeHostAccess from "../../../../Server/Utils/CodeRepository/CodeHost/CodeHostAccess";
+import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
 import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
 import {
   EVERY_CODE_REPOSITORY,
@@ -11,10 +13,11 @@ import type { SpyInstance } from "jest-mock";
 
 /*
  * Whether a fix pull request can be opened at all: the project needs a
- * repository connected through the GitHub App - and, for one the auto
- * remediation rules open, one of the repositories they allow. Asked before
- * a run is queued, so a rule that names only repositories that are not
- * connected opens nothing, rather than a run that can only fail.
+ * connected repository - one connected through the GitHub App, or one on
+ * GitLab, Forgejo, Gitea or a Git server whose connection works - and, for
+ * one the auto remediation rules open, one of the repositories they allow.
+ * Asked before a run is queued, so a rule that names only repositories that
+ * are not connected opens nothing, rather than a run that can only fail.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -33,18 +36,31 @@ function mockConnected(
   } as never);
 }
 
+// The project's repositories on other hosts, as their rows are read.
+function mockOtherHosts(
+  ids: Array<string>,
+): SpyInstance<typeof CodeRepositoryService.findBy> {
+  return jest.spyOn(CodeRepositoryService, "findBy").mockResolvedValue(
+    ids.map((id: string): CodeRepository => {
+      const repository: CodeRepository = new CodeRepository();
+      repository.id = new ObjectID(id);
+      return repository;
+    }),
+  );
+}
+
 afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("SubjectCodeFixRun.hasGitHubAppConnectedRepository", () => {
+describe("SubjectCodeFixRun.hasConnectedRepository", () => {
   test("counts the project's GitHub-App-connected repositories, as root", async () => {
     const countBy: SpyInstance<typeof CodeRepositoryService.countBy> =
       mockConnected(1);
 
-    expect(
-      await SubjectCodeFixRun.hasGitHubAppConnectedRepository(PROJECT_ID),
-    ).toBe(true);
+    expect(await SubjectCodeFixRun.hasConnectedRepository(PROJECT_ID)).toBe(
+      true,
+    );
 
     const query: Record<string, unknown> = countBy.mock.calls[0]![0]
       .query as Record<string, unknown>;
@@ -62,7 +78,7 @@ describe("SubjectCodeFixRun.hasGitHubAppConnectedRepository", () => {
       mockConnected(2);
 
     expect(
-      await SubjectCodeFixRun.hasGitHubAppConnectedRepository(
+      await SubjectCodeFixRun.hasConnectedRepository(
         PROJECT_ID,
         EVERY_CODE_REPOSITORY,
       ),
@@ -77,7 +93,7 @@ describe("SubjectCodeFixRun.hasGitHubAppConnectedRepository", () => {
       mockConnected(1);
 
     expect(
-      await SubjectCodeFixRun.hasGitHubAppConnectedRepository(PROJECT_ID, {
+      await SubjectCodeFixRun.hasConnectedRepository(PROJECT_ID, {
         isEveryRepository: false,
         repositoryIds: [CHECKOUT_REPO, BILLING_REPO],
       }),
@@ -94,9 +110,10 @@ describe("SubjectCodeFixRun.hasGitHubAppConnectedRepository", () => {
 
   test("the allowed repositories are not connected: no pull request can open", async () => {
     mockConnected(0);
+    mockOtherHosts([]);
 
     expect(
-      await SubjectCodeFixRun.hasGitHubAppConnectedRepository(PROJECT_ID, {
+      await SubjectCodeFixRun.hasConnectedRepository(PROJECT_ID, {
         isEveryRepository: false,
         repositoryIds: [CHECKOUT_REPO],
       }),
@@ -108,11 +125,82 @@ describe("SubjectCodeFixRun.hasGitHubAppConnectedRepository", () => {
       mockConnected(5);
 
     expect(
-      await SubjectCodeFixRun.hasGitHubAppConnectedRepository(
+      await SubjectCodeFixRun.hasConnectedRepository(
         PROJECT_ID,
         NO_CODE_REPOSITORY,
       ),
     ).toBe(false);
     expect(countBy).not.toHaveBeenCalled();
+  });
+});
+
+describe("SubjectCodeFixRun.hasConnectedRepository, off GitHub", () => {
+  test("a repository on GitLab whose connection works counts, asked of its connection", async () => {
+    mockConnected(0);
+    const findBy: SpyInstance<typeof CodeRepositoryService.findBy> =
+      mockOtherHosts([CHECKOUT_REPO]);
+    const reachable: SpyInstance<
+      typeof CodeHostAccess.getReachableRepositoryIds
+    > = jest
+      .spyOn(CodeHostAccess, "getReachableRepositoryIds")
+      .mockResolvedValue(new Set([CHECKOUT_REPO]));
+
+    expect(await SubjectCodeFixRun.hasConnectedRepository(PROJECT_ID)).toBe(
+      true,
+    );
+
+    const query: Record<string, unknown> = findBy.mock.calls[0]![0]
+      .query as Record<string, unknown>;
+
+    expect(query["projectId"]).toBe(PROJECT_ID);
+    // Only repositories with a connection of their own are read.
+    expect(query["codeRepositoryConnectionId"]).toBeDefined();
+    expect(findBy.mock.calls[0]![0].props).toEqual({ isRoot: true });
+    expect(
+      reachable.mock.calls[0]![0].repositoryIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    ).toEqual([CHECKOUT_REPO]);
+  });
+
+  test("one whose token its server refused does not count", async () => {
+    mockConnected(0);
+    mockOtherHosts([CHECKOUT_REPO]);
+    jest
+      .spyOn(CodeHostAccess, "getReachableRepositoryIds")
+      .mockResolvedValue(new Set());
+
+    expect(await SubjectCodeFixRun.hasConnectedRepository(PROJECT_ID)).toBe(
+      false,
+    );
+  });
+
+  test("the rules' allowance holds there too", async () => {
+    mockConnected(0);
+    const findBy: SpyInstance<typeof CodeRepositoryService.findBy> =
+      mockOtherHosts([]);
+
+    expect(
+      await SubjectCodeFixRun.hasConnectedRepository(PROJECT_ID, {
+        isEveryRepository: false,
+        repositoryIds: [BILLING_REPO],
+      }),
+    ).toBe(false);
+    expect(
+      JSON.stringify(
+        (findBy.mock.calls[0]![0].query as Record<string, unknown>)["_id"],
+      ),
+    ).toContain(BILLING_REPO);
+  });
+
+  test("a GitHub repository connected through the App answers before any other host is asked", async () => {
+    mockConnected(1);
+    const findBy: SpyInstance<typeof CodeRepositoryService.findBy> =
+      mockOtherHosts([CHECKOUT_REPO]);
+
+    expect(await SubjectCodeFixRun.hasConnectedRepository(PROJECT_ID)).toBe(
+      true,
+    );
+    expect(findBy).not.toHaveBeenCalled();
   });
 });

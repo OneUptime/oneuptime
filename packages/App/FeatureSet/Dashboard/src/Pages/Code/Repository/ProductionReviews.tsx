@@ -14,6 +14,10 @@ import {
 } from "../../../Components/Code/CodeProductionReviewCopy";
 import CodeTaskList from "../../../Components/Code/CodeTaskList";
 import { CodeTaskListKind } from "Common/Types/AI/CodeTask";
+import {
+  CodeHost,
+  CodeHostCapability,
+} from "Common/Types/CodeRepository/CodeHost";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -89,6 +93,32 @@ const CodeRepositoryProductionReviews: FunctionComponent<
 
   if (!repository) {
     return <PageLoader isVisible={true} />;
+  }
+
+  /*
+   * A repository on GitLab, Forgejo, Gitea or a Git server: the GitHub App
+   * reviews pull requests, so this one has none - said plainly, with
+   * nothing to turn on (its menu does not offer the page; an address can).
+   */
+  if (
+    !CodeHost.can(
+      repository.repository.provider,
+      CodeHostCapability.ProductionReview,
+    )
+  ) {
+    return (
+      <div
+        data-testid={CODE_PRODUCTION_REVIEWS_TEST_ID}
+        className={`${CODE_COLUMN_CLASS_NAME} pb-10`}
+      >
+        <p
+          data-testid="code-production-reviews-github-only"
+          className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm leading-6 text-gray-700 shadow-sm"
+        >
+          {translator.translateText(PRODUCTION_REVIEW_COPY.gitHubOnly)}
+        </p>
+      </div>
+    );
   }
 
   const isOn: boolean =

@@ -115,7 +115,7 @@ Sidan **AI Assistance** erbjuder tre uppgifter. Var och en körs som en AI-uppgi
 | **Generate Regression Test** | Lägger till ett test som misslyckas tills felet är rättat. |
 | **Förbättra felhantering** | För förväntade fel: validerar indata tidigare, håller användardata utanför meddelanden och markerar felet som hanterat. |
 
-AI behöver tre saker först: en LLM-leverantör, ett GitHub-förråd anslutet via GitHub App, och en AI-agent online som kör uppgiften. Sidan kontrollerar var och en och länkar till det som saknas. Uppgifterna pausas medan undantaget är löst eller arkiverat. Se [Kod](/docs/ai/ai-agent).
+AI behöver tre saker först: en LLM-leverantör, ett anslutet förråd (på GitHub, GitLab, Forgejo eller Gitea, eller valfri Git-server), och en AI-agent online som kör uppgiften. Sidan kontrollerar var och en och länkar till det som saknas. Uppgifterna pausas medan undantaget är löst eller arkiverat. Se [Kod](/docs/ai/ai-agent).
 
 ## Insikter i undantag
 

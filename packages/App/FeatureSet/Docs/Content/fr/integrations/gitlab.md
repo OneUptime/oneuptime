@@ -10,7 +10,7 @@ Ouvrez une issue [GitLab](https://gitlab.com) pour chaque incident OneUptime, af
 :::
 
 > [!NOTE]
-> L'IA de OneUptime n'ouvre des pull requests de correction que dans les dépôts connectés via l'application GitHub : elle ne peut donc pas encore travailler dans un dépôt GitLab. Voir [GitHub](/docs/integrations/github).
+> L'IA de OneUptime travaille aussi dans les dépôts GitLab : connectez-les dans Code avec un jeton d'accès, et elle ouvre une demande de fusion pour chaque correction. Voir [Connecter un dépôt](/docs/ai/ai-agent#connecter-un-dépôt).
 
 ## Fonctionnement
 

@@ -445,9 +445,13 @@ describe("every AI behaviour is a switch", () => {
     ).toEqual(["enableInsightFixTasks"]);
 
     for (const definition of pullRequestSwitches) {
+      /*
+       * A repository connected in Code: on GitHub, GitLab, Forgejo, Gitea
+       * or any Git server - not only through the GitHub App.
+       */
       expect([definition.title, definition.note]).toEqual([
         definition.title,
-        "Needs a repository connected through the GitHub App.",
+        "Needs a repository connected in Code.",
       ]);
       expect(definition.description).toContain(
         "Nothing is merged automatically.",

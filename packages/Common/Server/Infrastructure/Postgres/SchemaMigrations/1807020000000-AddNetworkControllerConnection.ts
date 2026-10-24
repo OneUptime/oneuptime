@@ -17,10 +17,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * formatting are hand-written. Every index and foreign key is on the table
  * this migration creates, so none holds a lock on rows anyone writes.
  */
-export class AddNetworkControllerConnection1806920000000
+export class AddNetworkControllerConnection1807020000000
   implements MigrationInterface
 {
-  public name: string = "AddNetworkControllerConnection1806920000000";
+  public name: string = "AddNetworkControllerConnection1807020000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

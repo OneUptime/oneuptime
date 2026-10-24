@@ -290,7 +290,7 @@ export default class FixPerformanceTaskTrigger {
      */
     const hasConnectedRepository: boolean = activeRun
       ? true
-      : await SubjectCodeFixRun.hasGitHubAppConnectedRepository(data.projectId);
+      : await SubjectCodeFixRun.hasConnectedRepository(data.projectId);
 
     const offer: TracePerformanceFixOffer = getTracePerformanceFixOffer({
       findings,
@@ -423,11 +423,11 @@ export default class FixPerformanceTaskTrigger {
   }): Promise<AIRun> {
     // Gate — a repository the agent can actually open a PR against.
     const hasConnectedRepository: boolean =
-      await SubjectCodeFixRun.hasGitHubAppConnectedRepository(data.projectId);
+      await SubjectCodeFixRun.hasConnectedRepository(data.projectId);
 
     if (!hasConnectedRepository) {
       throw new BadDataException(
-        "No GitHub-App-connected repository exists for this project, so the agent has nowhere to open the performance-fix pull request. Connect one in Code.",
+        "No connected repository exists for this project, so the agent has nowhere to open the performance-fix pull request. Connect one in Code.",
       );
     }
 

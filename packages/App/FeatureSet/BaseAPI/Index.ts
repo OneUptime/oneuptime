@@ -52,6 +52,7 @@ import AIAgentGitHubAPI from "Common/Server/API/AIAgentGitHubAPI";
 import AIAgentCodeTaskAPI from "Common/Server/API/AIAgentCodeTaskAPI";
 import AIAgentTelemetryAPI from "Common/Server/API/AIAgentTelemetryAPI";
 import CodeTaskAPI from "Common/Server/API/CodeTaskAPI";
+import CodeRepositoryConnectionAPI from "Common/Server/API/CodeRepositoryConnectionAPI";
 import CodeFixRunAPI from "Common/Server/API/CodeFixRunAPI";
 import LlmProviderAPI from "Common/Server/API/LlmProviderAPI";
 import DataSourceAPI from "Common/Server/API/DataSourceAPI";
@@ -5842,6 +5843,12 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     // Code: repositories, their tasks, and asking AI in them.
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new CodeTaskAPI().getRouter());
+
+    // Code: connecting repositories on GitLab, Forgejo, Gitea or a Git server.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CodeRepositoryConnectionAPI().getRouter(),
+    );
 
     // Code Fix Runs (dashboard reads of CodeFix AIRuns + their event trails)
     app.use(

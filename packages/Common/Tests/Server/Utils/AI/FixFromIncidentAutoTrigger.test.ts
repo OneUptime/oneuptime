@@ -364,7 +364,7 @@ describe("FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask", () => {
     expect(decision.reason).toMatch(/exactly one/);
   });
 
-  test("does not enqueue without a GitHub-App-connected repository the rules allow", () => {
+  test("does not enqueue without a connected repository the rules allow", () => {
     const decision: AutoFixTaskGateDecision =
       FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask({
         project: fakeProject(),
@@ -376,7 +376,7 @@ describe("FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask", () => {
 
     expect(decision.enqueue).toBe(false);
     expect(decision.reason).toBe(
-      "project has no GitHub-App-connected repository the AI rules allow",
+      "project has no connected repository the AI rules allow",
     );
   });
 
@@ -430,7 +430,7 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation", (
         runsToday: 0,
       });
     hasRepository = jest
-      .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
       .mockResolvedValue(true);
     findNonTerminalRun = jest
       .spyOn(SubjectCodeFixRun, "findNonTerminalRunForSubject")
@@ -879,7 +879,7 @@ describe("FixFromIncidentTaskTrigger and the LLM provider the rules pick", () =>
       runsToday: 0,
     });
     jest
-      .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
       .mockResolvedValue(true);
     jest
       .spyOn(SubjectCodeFixRun, "findNonTerminalRunForSubject")

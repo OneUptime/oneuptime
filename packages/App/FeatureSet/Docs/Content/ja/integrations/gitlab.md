@@ -10,7 +10,7 @@ OneUptime のインシデントごとに [GitLab](https://gitlab.com) の issue 
 :::
 
 > [!NOTE]
-> OneUptime の AI が修正の pull request を作成するのは GitHub App で接続したリポジトリだけなので、GitLab のリポジトリではまだ作業できません。[GitHub](/docs/integrations/github) を参照してください。
+> OneUptime の AI は GitLab のリポジトリでも作業できます。アクセストークンで「コード」に接続すると、修正ごとにマージリクエストを作成します。[リポジトリを接続する](/docs/ai/ai-agent#リポジトリを接続する) を参照してください。
 
 ## 仕組み
 

@@ -9,6 +9,7 @@ Code is where you ask OneUptime AI to work in your repositories, the way you wou
 - [Where fix tasks start](#where-fix-tasks-start): The tasks OneUptime starts, and what each pull request does.
 - [Production telemetry in a fix](#production-telemetry-in-a-fix): What a fix reads of production while it writes the change.
 - [Production review of pull requests](#production-review-of-pull-requests): What production says about the code each pull request changes.
+- [Connect a repository](#connect-a-repository): GitHub, GitLab, Forgejo or Gitea, or any Git server.
 - [Before you begin](#before-you-begin): A model, a connected repository and a Runner.
 - [When a fix fails](#when-a-fix-fails): What happens to a run that errors, stalls or waits.
 :::
@@ -21,7 +22,7 @@ Code is where you ask OneUptime AI to work in your repositories, the way you wou
 :::steps
 ### Open Code
 
-Open **Products → Code**. It opens on **What should AI do?**: the box where you ask, with every task under it, newest first. With no repository yet, it offers **Connect GitHub** instead (see [Before you begin](#before-you-begin)). **Repositories**, in its side menu, lists the repositories AI can work in, and folds those the GitHub App no longer reaches under **Not connected**. Each repository's page has the same box for that repository.
+Open **Products → Code**. It opens on **What should AI do?**: the box where you ask, with every task under it, newest first. With no repository yet, it offers **Connect GitHub** instead, with GitLab, Forgejo or Gitea and any Git server under it (see [Connect a repository](#connect-a-repository)). **Repositories**, in its side menu, lists the repositories AI can work in, and folds those OneUptime no longer reaches under **Not connected**. Each repository's page has the same box for that repository.
 
 ### Pick the repository and the branch
 
@@ -204,6 +205,25 @@ Merging a fix fixes nothing until it runs. Once a fix pull request merges, OneUp
 
 Until a deploy ships it, the fix reads **Merged, waiting for a deploy**, then **Deployed, watching in production** while it is watched. One that no recorded deploy contains within 14 days, or that production cannot tell about, reads **Not verified in production**. [Automatic code fixes](/docs/ai/ai-sre#automatic-code-fixes) has the rules. A regression test, better error handling, a review and a request in Code are not watched: production cannot show what they change.
 
+## Connect a repository
+
+Open **Repositories** in Code's side menu and click **Connect repositories**: Code asks where your code is, and connects each place its own way. What AI does in a repository depends on where it is:
+
+| Where the code is | How it connects | What AI does there |
+| --- | --- | --- |
+| **GitHub** | The OneUptime GitHub App, installed on the repositories it picks. | Everything on this page, with commands from GitHub (see [GitHub App](/docs/ai/github-app)) and [production reviews](#production-review-of-pull-requests). |
+| **GitLab**, on GitLab.com or your own | An access token: a personal, group or project token with the `api` and `write_repository` scopes, and at least the Developer role. | Tasks and fixes, each change in a merge request; the branch picker; the code a stack trace or a profile runs through; whether a fix merged, and what production showed once it shipped. |
+| **Forgejo or Gitea**, on Codeberg or your own | An access token with read and write access to repositories, and read access to the user. | The same as on GitLab, each change in a pull request. |
+| **Any Git server**, over HTTPS | The address you clone the repository with, a username, and a password or access token that can read the repository and push to it. | AI clones the repository and pushes each change to a new branch, and its reply says which: you open the pull request. On Bitbucket and Azure DevOps it links to where you open it. |
+
+Commands from comments and production reviews need the GitHub App, so they work in GitHub repositories only, for now, and the repository's **Settings** say so.
+
+For GitLab, Forgejo or Gitea, enter the server's address (GitLab.com and Codeberg are filled in) and the token, then pick the repositories to connect: the list offers only those the token can push to, and connecting more later can reuse the token. OneUptime checks every token with its server before it keeps it, keeps it encrypted and never shows it again. The repository's **Settings** show its server, the account and the token's last characters, with **Replace access token**. When the server refuses a token that expired or was revoked, its repositories show **Token refused** and AI stops working in them, until replacing the token connects every repository that uses it again.
+
+### A Git server on a private network
+
+OneUptime Cloud reaches Git servers on the internet only, never a private, loopback or link-local address. Connect a server only your network reaches as **Any Git server**: Code says it cannot reach it, and **Connect anyway** connects it for one of your own Runners on that network. Pick that Runner on the repository's **Runner** card (see [Pick the repository's Runner](#pick-the-repositorys-runner)). A global Runner never works in it, and OneUptime reads nothing from it on the server, so the branch picker offers its main branch only. A self-hosted OneUptime, and its global Runner, reach the Git servers of its own network.
+
 ## Before you begin
 
 A task needs three things. Code's request box and the exception's **AI Assistance** page check all three before they offer to start, and say what is missing.
@@ -212,6 +232,7 @@ A task needs three things. Code's request box and the exception's **AI Assistanc
 | --- | --- | --- |
 | An LLM provider | Nothing to set up: a project with no provider of its own uses the global provider, paid from the project's AI credits. A provider of your own, under **Project Settings → AI → LLM Providers**, comes first. | Set the `GLOBAL_LLM_PROVIDER_*` environment variables once on the server, or add a provider to the project. |
 | A repository connected through the GitHub App | **Products → Code**, then **Connect GitHub**. If the app is already installed on the GitHub account, click **Connect an existing installation** instead: installing it again does not connect it. Needs the Growth plan. | The same, once your instance has a GitHub App (see [GitHub Integration](/docs/self-hosted/github-integration)). |
+| Or a repository on GitLab, Forgejo or Gitea, or any Git server | **Repositories** in Code, then **Connect repositories** (see [Connect a repository](#connect-a-repository)). Needs the Growth plan. | The same, with no GitHub App to set up. |
 | A Runner that runs AI code fixes | Nothing to run: a repository that picks none works on OneUptime's global Runners. | The `runner` service of Docker Compose, or the Helm chart's Runner (`runner.enabled`, on by default), registers itself and runs AI code fixes in every repository that picks no Runner. |
 
 On a self-hosted instance, the global provider is one block of `config.env` (Docker Compose) or of your Helm values. For a self-hosted Ollama:
@@ -284,7 +305,7 @@ While fixing is on, an investigation that ends with a confident, evidenced root 
 
 Everything else matches the button:
 
-- The pull request opens ready for review, written from the posted analysis, and needs a repository connected through the GitHub App, one the matching rules name when they name some, and a Runner online to work in it: the one the repository picks, or a global Runner.
+- The pull request opens ready for review, written from the posted analysis, and needs a connected repository, one the matching rules name when they name some, and a Runner online to work in it: the one the repository picks, or a global Runner.
 - It counts toward that signal's daily fix-task limit (**Daily Incident AI Fix Task Limit** or **Daily Alert AI Fix Task Limit**, under **More settings** on its AI settings page) and toward the repository's cap on open pull requests, when either is set. Unset, neither limits anything.
 - Every trigger first looks for a fix task already queued or running for the same incident or alert, so an automatic trigger and a click normally become one task, not two pull requests. The check is a read before the write, not a lock, so two triggers at the very same moment can still both get through.
 - The run is written by the system, not credited to anyone, and nothing merges on its own.
@@ -306,12 +327,6 @@ A task that waits more than 30 minutes while the Runner that should take it is n
 ## Privacy
 
 The clone of your repository lives in a workspace inside the Runner's container and is deleted when the run ends, whether it succeeded or not. The Runner never holds your LLM provider's API key: the OneUptime server makes the LLM calls for it, and runs the production telemetry queries too. OneUptime does not keep your repository and does not train on your code. The task's log keeps the first 300 characters of each step's output, so you can check what the Runner did, and that can include pieces of code. Run a self-hosted Runner with your own LLM provider (local Ollama included), and your code never leaves your infrastructure.
-
-## On the roadmap
-
-Planned, and **not available today**:
-
-- **GitLab support.** Repositories connect through the GitHub App only.
 
 ## Next steps
 
