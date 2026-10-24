@@ -584,6 +584,51 @@ describe("AIIncidentPostmortemRunner.draftPostmortemOnResolve", () => {
       ).toContain("from the incident timeline and telemetry.");
     });
 
+    /*
+     * The project's AI context (issue #5198): the draft reads it first,
+     * and its feed item names it among what the draft was written from.
+     */
+    it("writes with the project's AI context, and says so in the feed", async () => {
+      mockProject(
+        draftOn({ aiContext: "## Who owns what\n- payments-db: payments" }),
+      );
+
+      await resolveAt(RESOLVED_AT);
+
+      const handed: {
+        aiContext: { parts: Array<{ source: string; text: string }> } | null;
+      } = generate.mock.calls[0]![0] as {
+        aiContext: { parts: Array<{ source: string; text: string }> } | null;
+      };
+
+      expect(handed.aiContext!.parts).toEqual([
+        {
+          source: "Project",
+          text: "## Who owns what\n- payments-db: payments",
+        },
+      ]);
+      expect(
+        (feed.mock.calls[0]![0] as { feedInfoInMarkdown: string })
+          .feedInfoInMarkdown,
+      ).toContain(
+        "from the incident timeline, telemetry and the project's AI context.",
+      );
+    });
+
+    it("names the calls and the AI context together when it read both", async () => {
+      mockProject(draftOn({ aiContext: "Notes" }));
+      callsRead.mockResolvedValue(new PositiveNumber(1));
+
+      await resolveAt(RESOLVED_AT);
+
+      expect(
+        (feed.mock.calls[0]![0] as { feedInfoInMarkdown: string })
+          .feedInfoInMarkdown,
+      ).toContain(
+        "from the incident timeline, telemetry, what was said on its calls and the project's AI context.",
+      );
+    });
+
     it("a wait that cannot be noted is logged, never thrown into the resolve", async () => {
       callWait.mockResolvedValue(true);
       startWait.mockRejectedValue(new Error("database unavailable"));
