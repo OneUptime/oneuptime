@@ -279,9 +279,15 @@ export class AuditLogService extends AnalyticsDatabaseService<AuditLog> {
         value: Math.max(1, Math.trunc(data.limit)),
       }}`,
     );
+    /*
+     * Stopped at the limit, the read fails rather than breaking off: a
+     * sorted read cut short answers some rows that are not the first ones,
+     * and the cursor would move past entries never sent.
+     */
     statement.append(
       getQuerySettings({
         maxExecutionTimeInSeconds: AUDIT_LOG_EXPORT_READ_TIME_LIMIT_IN_SECONDS,
+        timeoutOverflowMode: "throw",
       }),
     );
 

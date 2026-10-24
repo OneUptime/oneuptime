@@ -104,9 +104,9 @@ describe("AuditLogService.toExportReadStatement", () => {
   });
 
   test("the first read of a new export has no cursor condition", () => {
-    expect(oneLine(build({ projectId: PROJECT_ID, after: null }))).not.toContain(
-      "_id >",
-    );
+    expect(
+      oneLine(build({ projectId: PROJECT_ID, after: null })),
+    ).not.toContain("_id >");
   });
 
   test("the limit is a whole number of at least one", () => {
@@ -133,6 +133,14 @@ describe("AuditLogService.toExportReadStatement", () => {
     expect(oneLine(build({ projectId: null, after: null }))).toContain(
       `SETTINGS max_execution_time = ${AUDIT_LOG_EXPORT_READ_TIME_LIMIT_IN_SECONDS}`,
     );
+  });
+
+  // A sorted read cut short answers rows that are not the first ones: the cursor would skip entries.
+  test("fails at the limit rather than breaking off with some rows", () => {
+    const query: string = oneLine(build({ projectId: null, after: null }));
+
+    expect(query).toContain("timeout_overflow_mode = 'throw'");
+    expect(query).not.toContain("'break'");
   });
 
   test("no value is written into the query text", () => {
