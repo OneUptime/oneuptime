@@ -71,13 +71,18 @@ export default class PushedBranches {
     };
   }
 
-  // What the person reads about one pushed branch, after the agent's own words.
+  /*
+   * What the person reads about one pushed branch, after the agent's own
+   * words: where the work is, then the one thing left to do - open the pull
+   * request, linked where the server's pages are known. The page already
+   * says that a Git server gets a branch, not a pull request.
+   */
   public static describe(branch: PushedBranch): string {
     const where: string = branch.newPullRequestUrl
       ? `[Open a pull request](${branch.newPullRequestUrl}) from it into \`${branch.baseBranchName}\`.`
       : `Open a pull request from it into \`${branch.baseBranchName}\` on your Git server.`;
 
-    return `Pushed to the branch \`${branch.branchName}\` of ${branch.repositoryName}: it has no pull requests OneUptime opens. ${where}`;
+    return `Pushed the branch \`${branch.branchName}\` to ${branch.repositoryName}. ${where}`;
   }
 
   /*

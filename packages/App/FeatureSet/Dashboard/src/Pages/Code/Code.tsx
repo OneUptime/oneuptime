@@ -306,8 +306,9 @@ const CodePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
     <div className="space-y-5">
       <AIPlanGate />
       {connection.notices}
-      {connectDialog.elements}
+      {connectDialog.notice}
       {renderBody()}
+      {connectDialog.dialog}
     </div>
   );
 };

@@ -1073,7 +1073,9 @@ test.describe("fix performance with AI", () => {
     const strip: Locator = page.getByTestId("trace-performance-suggestion");
     await expect(strip).toHaveAttribute("data-offer", "SetUp");
     await expect(
-      strip.getByRole("link", { name: "Connect GitHub to fix this with AI" }),
+      strip.getByRole("link", {
+        name: "Connect a repository to fix this with AI",
+      }),
     ).toBeVisible();
     // Said in the strip's own words: no refusal, no button.
     await expect(page.getByTestId("trace-fix-performance-error")).toHaveCount(
@@ -1121,7 +1123,7 @@ test.describe("fix performance with AI", () => {
     await screenshot(page, "performance-suggestion-connect", false);
 
     await page
-      .getByRole("link", { name: "Connect GitHub to fix this with AI" })
+      .getByRole("link", { name: "Connect a repository to fix this with AI" })
       .click();
     await expect(page).toHaveURL(`/dashboard/${PROJECT_ID}/code`);
     await expect(page.getByRole("heading", { name: "Code" })).toBeVisible();

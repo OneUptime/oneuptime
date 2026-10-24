@@ -1502,8 +1502,8 @@ function advanceReview(task, current) {
 
 /*
  * hosts=1: billing-service's task opened GitLab's merge request !12, and
- * infra-scripts' pushed a branch - a Git server has no pull requests
- * OneUptime opens - saying where to open one (Runner PushedBranches).
+ * infra-scripts' pushed a branch - OneUptime opens no pull request on a
+ * Git server - saying where to open one (Runner PushedBranches).
  */
 if (hasOtherHosts) {
   tasks.push(
@@ -1605,7 +1605,7 @@ if (hasOtherHosts) {
           ],
           outcome: {
             summary:
-              "Every provider in `terraform/versions.tf` is now pinned to the version production runs, and `terraform validate` passes.\n\nPushed to the branch `oneuptime-task-6-9a8b7c6d` of ops/infra-scripts: it has no pull requests OneUptime opens. Open a pull request from it into `main` on your Git server.",
+              "Every provider in `terraform/versions.tf` is now pinned to the version production runs, and `terraform validate` passes.\n\nPushed the branch `oneuptime-task-6-9a8b7c6d` to ops/infra-scripts. Open a pull request from it into `main` on your Git server.",
             filesChanged: [
               {
                 path: "terraform/versions.tf",
@@ -2734,7 +2734,7 @@ function answerConnect(path, body) {
         200,
         {
           needsConfirmation: true,
-          message: `OneUptime cannot reach ${address.host} to check it (${address.host} is on a private network OneUptime does not reach). Connect it anyway, and pick one of your own Runners on its network to work in it: OneUptime never reaches it, so it does not read its branches.`,
+          message: `OneUptime cannot reach ${address.host}. Check the address. If the server is on a private network, connect it anyway and pick one of your own Runners on that network to work in it.`,
         },
         {},
       );

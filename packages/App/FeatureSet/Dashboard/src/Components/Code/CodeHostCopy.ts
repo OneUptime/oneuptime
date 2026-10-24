@@ -83,7 +83,6 @@ export const CODE_CONNECT_COPY: {
   pickTitle: string;
   pickDescription: string;
   searchPlaceholder: string;
-  privateBadge: string;
   connectedBadge: string;
   cannotPushBadge: string;
   cannotPushReason: string;
@@ -95,6 +94,8 @@ export const CODE_CONNECT_COPY: {
   connectedNoticeDescription: string;
   gitTitle: string;
   gitDescription: string;
+  gitConfirmTitle: string;
+  gitConfirmDescription: string;
   gitUrlTitle: string;
   gitUrlPlaceholder: string;
   gitUrlHelp: string;
@@ -138,9 +139,12 @@ export const CODE_CONNECT_COPY: {
   pickTitle: translationKey("Pick repositories"),
   pickDescription: translationKey("Signed in to {{host}} as {{account}}."),
   searchPlaceholder: translationKey("Find a repository"),
-  privateBadge: translationKey("Private"),
   connectedBadge: translationKey("Connected"),
-  cannotPushBadge: translationKey("Cannot push"),
+  /*
+   * A repository the token may only read: it cannot be picked, since AI
+   * could not push its work there. The reason is the row's tooltip.
+   */
+  cannotPushBadge: translationKey("Read-only"),
   cannotPushReason: translationKey(
     "The access token cannot push to this repository, so AI could not work in it.",
   ),
@@ -163,7 +167,17 @@ export const CODE_CONNECT_COPY: {
   ),
   gitTitle: translationKey("Connect a Git repository"),
   gitDescription: translationKey(
-    "AI clones the repository, works on a new branch and pushes it. Git has no pull requests: you open one from the branch on your Git server.",
+    "AI works on a new branch and pushes it. You open the pull request yourself, on your Git server.",
+  ),
+  /*
+   * A Git server OneUptime's server may not reach (a private network, an
+   * address the outbound policy refuses, a name that does not resolve): the
+   * dialog names the host, so a typo shows, and asks before it connects it
+   * for a Runner of the project's own on that network.
+   */
+  gitConfirmTitle: translationKey("OneUptime cannot reach {{host}}"),
+  gitConfirmDescription: translationKey(
+    "Check the address. If the server is on a private network, connect it anyway and pick one of your own Runners on that network to work in it.",
   ),
   gitUrlTitle: translationKey("Repository address"),
   gitUrlPlaceholder: "https://git.example.com/team/app.git",
@@ -301,6 +315,12 @@ export interface CodePullRequestCopy {
   short: string;
   // The reply box, while it is open: where a change goes.
   replyFooter: string;
+  /*
+   * Under the request box, before a task opens one: what AI does with a
+   * change. The same words as CODE_TASK_START_FOOTER (CodeTaskCopy), which
+   * a test holds them to.
+   */
+  startFooter: string;
 }
 
 const PULL_REQUEST_COPY: CodePullRequestCopy = {
@@ -311,6 +331,9 @@ const PULL_REQUEST_COPY: CodePullRequestCopy = {
   replyFooter: translationKey(
     "Changes you ask for are pushed to pull request #{{number}}.",
   ),
+  startFooter: translationKey(
+    "AI works on a new branch and opens a pull request for you to review when it changes code. Nothing is merged on its own.",
+  ),
 };
 
 const MERGE_REQUEST_COPY: CodePullRequestCopy = {
@@ -320,6 +343,9 @@ const MERGE_REQUEST_COPY: CodePullRequestCopy = {
   short: translationKey("MR !{{number}}"),
   replyFooter: translationKey(
     "Changes you ask for are pushed to merge request !{{number}}.",
+  ),
+  startFooter: translationKey(
+    "AI works on a new branch and opens a merge request for you to review when it changes code. Nothing is merged on its own.",
   ),
 };
 
@@ -362,6 +388,7 @@ export const CODE_REPOSITORY_CONNECTION_COPY: {
   replaceButton: string;
   replaceTitle: string;
   replaceDescription: string;
+  replaceDescriptionNoCheck: string;
   replaceTokenTitle: string;
   replaceTokenHelp: string;
   replaceUsernameHelp: string;
@@ -381,12 +408,20 @@ export const CODE_REPOSITORY_CONNECTION_COPY: {
     "Its connection to its Git server is gone. Connect it again from Code's Repositories.",
   ),
   notReachableFromServer: translationKey(
-    "OneUptime does not reach this Git server, so only one of your own Runners on its network works in it.",
+    "Only one of your own Runners on its network can reach this Git server.",
   ),
   replaceButton: translationKey("Replace access token"),
   replaceTitle: translationKey("Replace access token"),
+  /*
+   * {{host}} is the host's name ("GitLab", "Gitea") or, for a Git server,
+   * its address ("git.example.com").
+   */
   replaceDescription: translationKey(
     "Every repository that uses this connection uses the new token from then on. OneUptime checks it with {{host}} first.",
+  ),
+  // A Git server only a Runner reaches: OneUptime cannot check the new one.
+  replaceDescriptionNoCheck: translationKey(
+    "Every repository that uses this connection uses the new token from then on.",
   ),
   replaceTokenTitle: translationKey("New access token"),
   replaceTokenHelp: translationKey(
@@ -400,9 +435,10 @@ export const CODE_REPOSITORY_CONNECTION_COPY: {
 };
 
 /*
- * What a repository on another host lacks, said plainly where the GitHub
- * settings would be: commands from the host's comments and production
- * reviews are GitHub's, for now.
+ * What a repository on another host lacks, said plainly and briefly under
+ * its connection, where the GitHub settings would be: commands from the
+ * host's comments and production reviews are GitHub's, for now - and a Git
+ * server gets a pushed branch, not a pull request.
  */
 export const CODE_HOST_GITHUB_ONLY_NOTE: Record<
   | CodeRepositoryType.GitLab
@@ -411,12 +447,12 @@ export const CODE_HOST_GITHUB_ONLY_NOTE: Record<
   string
 > = {
   [CodeRepositoryType.GitLab]: translationKey(
-    "Commands from GitLab comments and production reviews of merge requests work in GitHub repositories only, for now. Ask AI here in Code.",
+    "Commands from GitLab comments and production reviews work in GitHub repositories only, for now.",
   ),
   [CodeRepositoryType.Forgejo]: translationKey(
-    "Commands from comments on the server and production reviews of pull requests work in GitHub repositories only, for now. Ask AI here in Code.",
+    "Commands from comments and production reviews work in GitHub repositories only, for now.",
   ),
   [CodeRepositoryType.Git]: translationKey(
-    "A Git server has no pull requests OneUptime opens: AI pushes a branch, and you open the pull request. Commands from comments and production reviews work in GitHub repositories only.",
+    "On a Git server, AI pushes a branch and you open the pull request. Commands from comments and production reviews work in GitHub repositories only.",
   ),
 };

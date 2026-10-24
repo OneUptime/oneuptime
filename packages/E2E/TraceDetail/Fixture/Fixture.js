@@ -1276,7 +1276,7 @@ createRoot(document.getElementById("root")).render(
           path="/dashboard/:projectId/code/tasks/:taskId"
           element={<PlaceholderPage title="Code Task" testId="ai-task-page" />}
         />
-        {/* Code, where "Connect GitHub to fix this with AI" leads. */}
+        {/* Code, where "Connect a repository to fix this with AI" leads. */}
         <Route
           path="/dashboard/:projectId/code"
           element={<PlaceholderPage title="Code" testId="code-page" />}

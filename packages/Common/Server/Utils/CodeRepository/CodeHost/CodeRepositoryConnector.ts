@@ -518,12 +518,24 @@ export default class CodeRepositoryConnector {
         throw error;
       }
 
+      // Why, for the operator: the person is asked about the host alone.
+      logger.debug(
+        `Could not check the Git server ${address.host} before connecting it: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+
+      /*
+       * The question, in the words Code's dialog says it in (its
+       * gitConfirmTitle and gitConfirmDescription): the host, so a typo
+       * shows, then what Connect anyway does. Why the policy refused the
+       * address stays out: on OneUptime Cloud it would say what a name
+       * resolved to, and it says nothing a person can act on.
+       */
       if (!data.connectWithoutCheck) {
         return {
           needsConfirmation: true,
-          message: `OneUptime cannot reach ${address.host} to check it (${
-            error instanceof Error ? error.message : ""
-          }). Connect it anyway, and pick one of your own Runners on its network to work in it: OneUptime never reaches it, so it does not read its branches.`,
+          message: `OneUptime cannot reach ${address.host}. Check the address. If the server is on a private network, connect it anyway and pick one of your own Runners on that network to work in it.`,
         };
       }
 

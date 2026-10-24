@@ -348,11 +348,16 @@ export const useGitHubConnect: (
   // Locked, with one sentence, for someone who may not connect it.
   const connectLock: GitHubConnectLock = getGitHubConnectLock();
 
+  /*
+   * Each with the space under it that ConnectCallbackNotice keeps, so none
+   * sits on the page's first card: Repositories draws them in a plain box.
+   */
   const notices: ReactElement = (
     <>
       {showGitHubConnectedBanner && (
         <Alert
           type={AlertType.SUCCESS}
+          className="mb-5"
           dataTestId="github-connected-notice"
           strongTitle="GitHub connected"
           title="Your repositories were imported. Pick one to ask AI to work in it."
@@ -369,6 +374,7 @@ export const useGitHubConnect: (
       {showGitHubInstalledNotice && !connectLock.isLocked && (
         <Alert
           type={AlertType.INFO}
+          className="mb-5"
           dataTestId="github-installed-notice"
           strongTitle="The GitHub App is installed"
           title={
@@ -401,6 +407,7 @@ export const useGitHubConnect: (
       {connectError && (
         <Alert
           type={AlertType.DANGER}
+          className="mb-5"
           dataTestId="github-connect-error"
           title={connectError}
           onClose={() => {
@@ -500,7 +507,9 @@ export const GitHubMark: FunctionComponent<{
  * with one sentence for someone who may not connect. Under it, the other
  * places a repository can be: GitLab, Forgejo or Gitea, and any Git server
  * (CodeOtherHosts), each opening Code's connect dialog at its step - and on
- * a server with no GitHub App, the way to connect at all.
+ * a server with no GitHub App, the way to connect at all: there they come
+ * first, under a mark that is not GitHub's, and what GitHub needs on the
+ * server follows them, as the way to add it.
  */
 export const ConnectGitHubEmptyState: FunctionComponent<{
   connection: UseGitHubConnect;
@@ -512,6 +521,18 @@ export const ConnectGitHubEmptyState: FunctionComponent<{
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const connectLock: GitHubConnectLock = props.connection.connectLock;
+  // No GitHub App here: the other hosts are how to connect, so they lead.
+  const areOtherHostsFirst: boolean = Boolean(
+    props.onConnectOtherHost && !props.connection.isGitHubAppConfigured,
+  );
+  const otherHosts: ReactElement = props.onConnectOtherHost ? (
+    <CodeOtherHosts
+      isAfterGitHub={props.connection.isGitHubAppConfigured}
+      onChoose={props.onConnectOtherHost}
+    />
+  ) : (
+    <></>
+  );
 
   return (
     <div
@@ -519,7 +540,11 @@ export const ConnectGitHubEmptyState: FunctionComponent<{
       className="rounded-2xl border border-gray-200 bg-white px-6 py-12 text-center shadow-sm sm:px-12"
     >
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-900 text-white">
-        <GitHubMark className="h-7 w-7" />
+        {areOtherHostsFirst ? (
+          <Icon icon={IconProp.Code} className="h-7 w-7" />
+        ) : (
+          <GitHubMark className="h-7 w-7" />
+        )}
       </div>
       <h2 className="mt-5 text-lg font-semibold text-gray-900">
         {translator.translateText("Connect your code")}
@@ -531,6 +556,8 @@ export const ConnectGitHubEmptyState: FunctionComponent<{
             : "Connect GitHub and ask OneUptime AI to work in your repositories: fix a bug, write tests, explain the code. It opens a pull request for you to review.",
         )}
       </p>
+
+      {areOtherHostsFirst ? otherHosts : <></>}
 
       {props.connection.isGitHubAppConfigured ? (
         <div className="mt-6 flex flex-col items-center gap-3">
@@ -594,7 +621,9 @@ export const ConnectGitHubEmptyState: FunctionComponent<{
       ) : (
         <div
           data-testid="code-github-not-configured"
-          className="mx-auto mt-6 max-w-lg rounded-lg border border-gray-200 bg-gray-50 p-4 text-left"
+          className={`mx-auto max-w-lg rounded-lg border border-gray-200 bg-gray-50 p-4 text-left ${
+            areOtherHostsFirst ? "mt-8" : "mt-6"
+          }`}
         >
           <h3 className="text-sm font-semibold text-gray-900">
             {translator.translateText(
@@ -630,14 +659,7 @@ export const ConnectGitHubEmptyState: FunctionComponent<{
         </div>
       )}
 
-      {props.onConnectOtherHost ? (
-        <CodeOtherHosts
-          isAfterGitHub={props.connection.isGitHubAppConfigured}
-          onChoose={props.onConnectOtherHost}
-        />
-      ) : (
-        <></>
-      )}
+      {areOtherHostsFirst ? <></> : otherHosts}
     </div>
   );
 };

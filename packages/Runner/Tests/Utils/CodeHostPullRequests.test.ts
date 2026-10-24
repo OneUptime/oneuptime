@@ -320,7 +320,7 @@ describe("a pushed branch, for a repository with no pull requests", () => {
       "https://bitbucket.org/acme/app/pull-requests/new?source=oneuptime%2Ffix-7&dest=main",
     );
     expect(PushedBranches.describe(pushed)).toBe(
-      "Pushed to the branch `oneuptime/fix-7` of acme/app: it has no pull requests OneUptime opens. [Open a pull request](https://bitbucket.org/acme/app/pull-requests/new?source=oneuptime%2Ffix-7&dest=main) from it into `main`.",
+      "Pushed the branch `oneuptime/fix-7` to acme/app. [Open a pull request](https://bitbucket.org/acme/app/pull-requests/new?source=oneuptime%2Ffix-7&dest=main) from it into `main`.",
     );
   });
 
@@ -344,8 +344,8 @@ describe("a pushed branch, for a repository with no pull requests", () => {
     expect(outcome!.branchName).toBe("oneuptime/fix-7");
     expect(outcome!.pullRequestNumber).toBeUndefined();
     expect(outcome!.summary).toContain("Fixed the null check in the checkout.");
-    expect(outcome!.summary).toContain("of acme/app");
-    expect(outcome!.summary).toContain("of acme/other");
+    expect(outcome!.summary).toContain("to acme/app.");
+    expect(outcome!.summary).toContain("to acme/other.");
     expect(outcome!.filesChanged).toEqual([
       {
         path: "src/checkout.ts",

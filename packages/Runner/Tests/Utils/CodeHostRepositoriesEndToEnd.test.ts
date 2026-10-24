@@ -189,7 +189,7 @@ describeWithGit("a plain Git repository", () => {
       }),
     ).toEqual(["src/index.ts"]);
     expect(PushedBranches.toOutcome([pushed])?.summary).toContain(
-      "Pushed to the branch `oneuptime/fix-answer` of team/app",
+      "Pushed the branch `oneuptime/fix-answer` to team/app.",
     );
   });
 

@@ -756,7 +756,14 @@ describe("connecting a Git repository", () => {
       });
 
     expect(asked.needsConfirmation).toBe(true);
-    expect(asked.message).toContain("Connect it anyway");
+    /*
+     * The host, so a typo shows, then what Connect anyway does - the words
+     * Code's dialog says it in. Why the policy refused it stays out.
+     */
+    expect(asked.message).toBe(
+      "OneUptime cannot reach 10.0.0.5. Check the address. If the server is on a private network, connect it anyway and pick one of your own Runners on that network to work in it.",
+    );
+    expect(asked.message).not.toContain("is not allowed");
     expect(connections).toHaveLength(0);
 
     const connected: GitRepositoryConnectResultJSON =

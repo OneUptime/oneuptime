@@ -1,4 +1,5 @@
 import CodeConnectApi from "./CodeConnectApi";
+import CodeMetaList from "./CodeMetaList";
 import {
   CODE_CONNECT_COPY,
   CODE_HOST_GITHUB_ONLY_NOTE,
@@ -40,9 +41,10 @@ export interface ComponentProps {
 }
 
 /*
- * The facts under a connection's status, joined as one quiet line: its
- * server, the account the token acts as, and the token's last characters.
- * React-free words, so App's tests read them.
+ * The facts under a connection's status, drawn as one quiet line of facts
+ * (CodeMetaList: a narrow screen wraps it between facts, never inside the
+ * token's "…x7Kq"): its server, the account the token acts as, and the
+ * token's last characters. React-free words, so App's tests read them.
  */
 export const getConnectionFacts: (data: {
   provider: CodeRepositoryType;
@@ -121,6 +123,18 @@ const CodeRepositoryConnection: FunctionComponent<ComponentProps> = (
     translator,
   });
 
+  /*
+   * What Replace access token checks the new one with: the host, by name -
+   * or a Git server, by its address - and nothing for a Git server only a
+   * Runner reaches, which OneUptime cannot ask.
+   */
+  const checkedWith: string | null =
+    provider === CodeRepositoryType.Git
+      ? connection?.isReachableFromServer === false
+        ? null
+        : getHostLabel(connection?.hostUrl) || hostName
+      : hostName;
+
   return (
     <div
       data-testid={CODE_REPOSITORY_CONNECTION_TEST_ID}
@@ -134,12 +148,21 @@ const CodeRepositoryConnection: FunctionComponent<ComponentProps> = (
         isTokenRefused={connection?.isTokenRefused}
       />
       {facts.length > 0 ? (
-        <p
-          data-testid="code-repository-connection-facts"
-          className="break-words text-sm text-gray-600"
-        >
-          {facts.join(" · ")}
-        </p>
+        <CodeMetaList
+          dataTestId="code-repository-connection-facts"
+          className="text-sm text-gray-600"
+          items={facts.map((fact: string, index: number): ReactElement => {
+            return (
+              <span
+                key={index}
+                data-testid="code-repository-connection-fact"
+                className="truncate"
+              >
+                {fact}
+              </span>
+            );
+          })}
+        />
       ) : (
         <></>
       )}
@@ -230,7 +253,8 @@ const CodeRepositoryConnection: FunctionComponent<ComponentProps> = (
         <ReplaceTokenDialog
           connectionId={connection.id}
           provider={provider}
-          hostName={hostName}
+          checkedWith={checkedWith}
+          currentUsername={connection.accountLogin}
           onClose={() => {
             setIsReplacing(false);
           }}
@@ -249,19 +273,24 @@ const CodeRepositoryConnection: FunctionComponent<ComponentProps> = (
 
 /*
  * The new token - and, for a Git server, the username Git signs in with,
- * kept as it is when left empty. Whatever the server refuses is said in
+ * kept as it is when left empty (the one it signs in with now is the
+ * field's placeholder). The token comes first: it is what the dialog is
+ * for, and where the focus starts. Whatever the server refuses is said in
  * the dialog, in its words, and keeps what was typed.
  */
 const ReplaceTokenDialog: FunctionComponent<{
   connectionId: string;
   provider: CodeRepositoryType;
-  hostName: string;
+  // What OneUptime checks the new token with first; null: nothing it can ask.
+  checkedWith: string | null;
+  currentUsername?: string | undefined;
   onClose: () => void;
   onReplaced: () => void;
 }> = (props: {
   connectionId: string;
   provider: CodeRepositoryType;
-  hostName: string;
+  checkedWith: string | null;
+  currentUsername?: string | undefined;
   onClose: () => void;
   onReplaced: () => void;
 }): ReactElement => {
@@ -299,10 +328,16 @@ const ReplaceTokenDialog: FunctionComponent<{
       title={translator.translateTemplate(
         CODE_REPOSITORY_CONNECTION_COPY.replaceTitle,
       )}
-      description={translator.translateTemplate(
-        CODE_REPOSITORY_CONNECTION_COPY.replaceDescription,
-        { host: props.hostName },
-      )}
+      description={
+        props.checkedWith
+          ? translator.translateTemplate(
+              CODE_REPOSITORY_CONNECTION_COPY.replaceDescription,
+              { host: props.checkedWith },
+            )
+          : translator.translateText(
+              CODE_REPOSITORY_CONNECTION_COPY.replaceDescriptionNoCheck,
+            )
+      }
       modalWidth={ModalWidth.Medium}
       onClose={props.onClose}
       onSubmit={() => {
@@ -316,30 +351,6 @@ const ReplaceTokenDialog: FunctionComponent<{
       error={error || undefined}
     >
       <div data-testid="code-replace-token-dialog" className="space-y-4">
-        {isGit ? (
-          <div>
-            <FieldLabelElement
-              title={CODE_CONNECT_COPY.gitUsernameTitle}
-              htmlFor="code-replace-token-username"
-              required={false}
-              description={CODE_REPOSITORY_CONNECTION_COPY.replaceUsernameHelp}
-            />
-            <div className="mt-2">
-              <Input
-                id="code-replace-token-username"
-                dataTestId="code-replace-token-username"
-                value={username}
-                disableSpellCheck={true}
-                autoComplete="off"
-                onChange={(value: string) => {
-                  setUsername(value);
-                }}
-              />
-            </div>
-          </div>
-        ) : (
-          <></>
-        )}
         <div>
           <FieldLabelElement
             title={
@@ -367,6 +378,34 @@ const ReplaceTokenDialog: FunctionComponent<{
             />
           </div>
         </div>
+        {isGit ? (
+          <div>
+            <FieldLabelElement
+              title={CODE_CONNECT_COPY.gitUsernameTitle}
+              htmlFor="code-replace-token-username"
+              required={false}
+              description={CODE_REPOSITORY_CONNECTION_COPY.replaceUsernameHelp}
+            />
+            <div className="mt-2">
+              <Input
+                id="code-replace-token-username"
+                dataTestId="code-replace-token-username"
+                value={username}
+                placeholder={props.currentUsername || undefined}
+                disableSpellCheck={true}
+                autoComplete="off"
+                onChange={(value: string) => {
+                  setUsername(value);
+                }}
+                onEnterPress={() => {
+                  void replace();
+                }}
+              />
+            </div>
+          </div>
+        ) : (
+          <></>
+        )}
       </div>
     </Modal>
   );

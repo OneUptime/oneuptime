@@ -1,6 +1,5 @@
 import CodeConnectApi, { CodeConnectSource } from "./CodeConnectApi";
 import CodeHostChoices from "./CodeHostChoices";
-import CodeHostMark from "./CodeHostMark";
 import {
   CODE_CONNECT_COPY,
   CODE_CONNECT_DOCS,
@@ -11,6 +10,8 @@ import {
 import {
   CodeConnectStep,
   getConnectableIds,
+  getDefaultConnectionId,
+  getGitAddressHost,
   getTokenProviderOf,
   isTokenProvider,
   readTokenForm,
@@ -27,6 +28,7 @@ import {
 } from "Common/Types/CodeRepository/CodeHostConnect";
 import Exception from "Common/Types/Exception/Exception";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
@@ -64,6 +66,13 @@ import React, {
  * server refuses is said in the dialog, in its words, and keeps what was
  * typed. A Git repository whose address OneUptime cannot reach is asked
  * about first: connect it anyway, for a Runner on its network to work in.
+ *
+ * Drawn as Code's other stepped dialogs are (CreateWorkflowModal): Back on
+ * the footer's left, Cancel and the step's action on its right. A project
+ * that already has a connection to the host starts on it - connecting more
+ * repositories from the same server is why most people come back - and
+ * each step puts the focus on its first thing to fill in, so a keyboard
+ * never lands on the page behind the dialog when a step changes.
  */
 
 export interface ComponentProps {
@@ -132,6 +141,10 @@ const CodeConnectDialog: FunctionComponent<ComponentProps> = (
 
   // Only the latest listing counts: an answer to an older search is dropped.
   const listingRef: React.MutableRefObject<number> = useRef<number>(0);
+  // The step's body, and the step the focus was last put in.
+  const bodyRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+  const focusedStepRef: React.MutableRefObject<CodeConnectStep | null> =
+    useRef<CodeConnectStep | null>(null);
   const searchTimerRef: React.MutableRefObject<ReturnType<
     typeof setTimeout
   > | null> = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -156,6 +169,7 @@ const CodeConnectDialog: FunctionComponent<ComponentProps> = (
       .then((found: Array<CodeHostConnectionJSON>) => {
         if (isCurrent) {
           setConnections(found);
+          setConnectionId(getDefaultConnectionId(found, provider));
         }
       })
       .catch(() => {
@@ -168,7 +182,85 @@ const CodeConnectDialog: FunctionComponent<ComponentProps> = (
     return () => {
       isCurrent = false;
     };
+  }, [step, connections, provider]);
+
+  /*
+   * A new step's first thing to fill in takes the focus: the tile picked,
+   * the field typed into or the Back pressed is gone with the step before,
+   * which would leave the focus on the page behind the dialog. The token
+   * step waits for the project's connections, which decide what it shows.
+   */
+  useEffect(() => {
+    if (step === CodeConnectStep.Token && connections === null) {
+      return;
+    }
+
+    if (focusedStepRef.current === step) {
+      return;
+    }
+
+    focusedStepRef.current = step;
+
+    const body: HTMLDivElement | null = bodyRef.current;
+
+    if (!body) {
+      return;
+    }
+
+    const selectors: Record<CodeConnectStep, Array<string>> = {
+      [CodeConnectStep.Choose]: [
+        "[data-testid='code-host-choice']:not(:disabled)",
+      ],
+      [CodeConnectStep.Token]: [
+        "[data-testid='code-connect-connections'] input:checked",
+        hostUrl.trim()
+          ? "[data-testid='code-connect-token-input']"
+          : "[data-testid='code-connect-host-url']",
+      ],
+      [CodeConnectStep.Pick]: ["[data-testid='code-connect-search']"],
+      [CodeConnectStep.Git]: ["[data-testid='code-connect-git-url']"],
+    };
+
+    for (const selector of selectors[step]) {
+      const target: HTMLElement | null =
+        body.querySelector<HTMLElement>(selector);
+
+      if (target) {
+        target.focus();
+        return;
+      }
+    }
   }, [step, connections]);
+
+  /*
+   * The question about a Git server OneUptime cannot reach comes in under
+   * the fields: on a phone, below the body's fold, with Connect anyway
+   * already in the footer. It is brought into view, so it is read before
+   * the button that answers it is pressed.
+   */
+  useEffect(() => {
+    if (confirmation === null) {
+      return;
+    }
+
+    const question: HTMLElement | null =
+      bodyRef.current?.querySelector<HTMLElement>(
+        "[data-testid='code-connect-git-confirm']",
+      ) || null;
+
+    if (!question || typeof question.scrollIntoView !== "function") {
+      return;
+    }
+
+    const prefersReducedMotion: boolean =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    question.scrollIntoView({
+      block: "nearest",
+      behavior: prefersReducedMotion ? "auto" : "smooth",
+    });
+  }, [confirmation]);
 
   const providerConnections: Array<CodeHostConnectionJSON> = (
     connections || []
@@ -191,7 +283,7 @@ const CodeConnectDialog: FunctionComponent<ComponentProps> = (
 
     if (isTokenProvider(picked)) {
       setHostUrl(getDefaultHostUrl(picked));
-      setConnectionId(null);
+      setConnectionId(getDefaultConnectionId(connections, picked));
       setStep(CodeConnectStep.Token);
       return;
     }
@@ -540,20 +632,6 @@ const CodeConnectDialog: FunctionComponent<ComponentProps> = (
 
     return (
       <div data-testid="code-connect-pick" className="space-y-3">
-        {listing ? (
-          <p
-            data-testid="code-connect-signed-in"
-            className="text-sm text-gray-600"
-          >
-            {translator.translateTemplate(CODE_CONNECT_COPY.pickDescription, {
-              host: getHostLabel(listing.hostUrl),
-              account: `@${listing.account.login}`,
-            })}
-          </p>
-        ) : (
-          <></>
-        )}
-
         <div className="flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 shadow-sm focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500">
           <Icon
             icon={IconProp.Search}
@@ -645,15 +723,6 @@ const CodeConnectDialog: FunctionComponent<ComponentProps> = (
                           >
                             {repository.fullName}
                           </span>
-                          {repository.isPrivate ? (
-                            <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                              {translator.translateText(
-                                CODE_CONNECT_COPY.privateBadge,
-                              )}
-                            </span>
-                          ) : (
-                            <></>
-                          )}
                           {repository.isConnected ? (
                             <span
                               data-testid="code-connect-repository-connected"
@@ -718,6 +787,10 @@ const CodeConnectDialog: FunctionComponent<ComponentProps> = (
   };
 
   const renderGitStep: () => ReactElement = (): ReactElement => {
+    // The host the address names, said in the question below.
+    const confirmationHost: string =
+      confirmation !== null ? getGitAddressHost(gitUrl) : "";
+
     return (
       <div data-testid="code-connect-git" className="space-y-4">
         <div>
@@ -783,16 +856,26 @@ const CodeConnectDialog: FunctionComponent<ComponentProps> = (
           </div>
         </div>
         {confirmation !== null ? (
-          <div
-            data-testid="code-connect-git-confirm"
-            role="alert"
-            className="flex items-start gap-3 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900"
-          >
-            <Icon
-              icon={IconProp.ExclaimationCircle}
-              className="mt-0.5 h-4 w-4 flex-none text-amber-600"
+          /*
+           * The host, named, so a typo shows; then what Connect anyway
+           * does. In the reader's language - the server's own sentence
+           * only for an address the dialog cannot read a host from.
+           */
+          <div data-testid="code-connect-git-confirm" role="alert">
+            <Alert
+              type={AlertType.WARNING}
+              {...(confirmationHost
+                ? {
+                    strongTitle: translator.translateTemplate(
+                      CODE_CONNECT_COPY.gitConfirmTitle,
+                      { host: confirmationHost },
+                    ),
+                    title: translator.translateTemplate(
+                      CODE_CONNECT_COPY.gitConfirmDescription,
+                    ),
+                  }
+                : { title: confirmation })}
             />
-            <p className="leading-6">{confirmation}</p>
           </div>
         ) : (
           <></>
@@ -813,10 +896,20 @@ const CodeConnectDialog: FunctionComponent<ComponentProps> = (
     [CodeConnectStep.Git]: CODE_CONNECT_COPY.gitTitle,
   };
 
+  /*
+   * Under the title: where the code is, the account the token signed in as
+   * (the repositories listed are the ones it reaches), and what a Git
+   * server gets.
+   */
   const descriptions: Record<CodeConnectStep, string | undefined> = {
     [CodeConnectStep.Choose]: CODE_CONNECT_COPY.dialogDescription,
     [CodeConnectStep.Token]: undefined,
-    [CodeConnectStep.Pick]: undefined,
+    [CodeConnectStep.Pick]: listing
+      ? translator.translateTemplate(CODE_CONNECT_COPY.pickDescription, {
+          host: getHostLabel(listing.hostUrl),
+          account: `@${listing.account.login}`,
+        })
+      : undefined,
     [CodeConnectStep.Git]: CODE_CONNECT_COPY.gitDescription,
   };
 
@@ -866,32 +959,34 @@ const CodeConnectDialog: FunctionComponent<ComponentProps> = (
       onSubmit={submit}
       submitButtonText={submitText}
       isLoading={isLoading}
+      /*
+       * The token step draws once the project's connections are read: one
+       * of them may be what it starts on, and a form that swapped itself
+       * for a list a moment after it was drawn would move under the cursor.
+       */
+      isBodyLoading={step === CodeConnectStep.Token && connections === null}
       disableSubmitButton={
-        (step === CodeConnectStep.Pick && selected.length === 0) ||
-        (step === CodeConnectStep.Token && connections === null)
+        step === CodeConnectStep.Pick && selected.length === 0
       }
       error={error || undefined}
-      secondaryButton={
-        step === CodeConnectStep.Choose
-          ? undefined
-          : {
-              title: translator.translateTemplate(CODE_CONNECT_COPY.backButton),
-              onClick: goBack,
-              dataTestId: "code-connect-back",
-            }
-      }
-      rightElement={
-        provider && step !== CodeConnectStep.Choose ? (
-          <span
-            aria-hidden="true"
-            className="flex h-8 w-8 flex-none items-center justify-center rounded-md bg-gray-900 text-white"
-          >
-            <CodeHostMark provider={provider} className="h-4 w-4" />
-          </span>
-        ) : undefined
+      leftFooterElement={
+        step === CodeConnectStep.Choose ? undefined : (
+          <Button
+            title={CODE_CONNECT_COPY.backButton}
+            buttonStyle={ButtonStyleType.OUTLINE}
+            icon={IconProp.ChevronLeft}
+            disabled={isLoading}
+            dataTestId="code-connect-back"
+            onClick={goBack}
+          />
+        )
       }
     >
-      <div data-testid={CODE_CONNECT_DIALOG_TEST_ID} data-step={step}>
+      <div
+        ref={bodyRef}
+        data-testid={CODE_CONNECT_DIALOG_TEST_ID}
+        data-step={step}
+      >
         {step === CodeConnectStep.Choose ? (
           <CodeHostChoices gitHub={props.gitHub} onChoose={choose} />
         ) : step === CodeConnectStep.Token ? (
@@ -922,8 +1017,17 @@ const CodeConnectDialog: FunctionComponent<ComponentProps> = (
 export interface UseCodeConnectDialog {
   // Opens the dialog: at its first step, or at a host's.
   open: (provider?: CodeRepositoryType | undefined) => void;
-  // The dialog while it is open, and the notice once repositories connect.
-  elements: ReactElement;
+  /*
+   * Once repositories connect, the notice saying how many, with the space
+   * under it that keeps it off the page's first card.
+   */
+  notice: ReactElement;
+  /*
+   * The dialog while it is open. Its wrapper takes no room of its own, but
+   * a page that spaces its children would space it too: drawn after the
+   * page's content, it moves nothing.
+   */
+  dialog: ReactElement;
 }
 
 /*
@@ -947,52 +1051,50 @@ export const useCodeConnectDialog: (data: {
     provider: CodeRepositoryType;
   } | null>(null);
 
-  const elements: ReactElement = (
-    <>
-      {notice ? (
-        <Alert
-          type={AlertType.SUCCESS}
-          dataTestId="code-connected-notice"
-          strongTitle={
-            notice.provider === CodeRepositoryType.Git
-              ? translator.translateTemplate(
-                  CODE_CONNECT_COPY.gitConnectedNoticeTitle,
-                )
-              : translator.translatePlural(
-                  CODE_CONNECT_COPY.connectedNoticeTitle,
-                  notice.count,
-                )
-          }
-          title={translator.translateTemplate(
-            CODE_CONNECT_COPY.connectedNoticeDescription,
-          )}
-          onClose={() => {
-            setNotice(null);
-          }}
-        />
-      ) : (
-        <></>
+  const noticeElement: ReactElement = notice ? (
+    <Alert
+      type={AlertType.SUCCESS}
+      dataTestId="code-connected-notice"
+      className="mb-5"
+      strongTitle={
+        notice.provider === CodeRepositoryType.Git
+          ? translator.translateTemplate(
+              CODE_CONNECT_COPY.gitConnectedNoticeTitle,
+            )
+          : translator.translatePlural(
+              CODE_CONNECT_COPY.connectedNoticeTitle,
+              notice.count,
+            )
+      }
+      title={translator.translateTemplate(
+        CODE_CONNECT_COPY.connectedNoticeDescription,
       )}
-      {openAt ? (
-        <CodeConnectDialog
-          initialProvider={openAt.provider}
-          gitHub={data.gitHub}
-          onClose={() => {
-            setOpenAt(null);
-          }}
-          onConnected={(result: {
-            count: number;
-            provider: CodeRepositoryType;
-          }) => {
-            setOpenAt(null);
-            setNotice({ count: result.count, provider: result.provider });
-            data.onConnected();
-          }}
-        />
-      ) : (
-        <></>
-      )}
-    </>
+      onClose={() => {
+        setNotice(null);
+      }}
+    />
+  ) : (
+    <></>
+  );
+
+  const dialogElement: ReactElement = openAt ? (
+    <CodeConnectDialog
+      initialProvider={openAt.provider}
+      gitHub={data.gitHub}
+      onClose={() => {
+        setOpenAt(null);
+      }}
+      onConnected={(result: {
+        count: number;
+        provider: CodeRepositoryType;
+      }) => {
+        setOpenAt(null);
+        setNotice({ count: result.count, provider: result.provider });
+        data.onConnected();
+      }}
+    />
+  ) : (
+    <></>
   );
 
   return {
@@ -1000,7 +1102,8 @@ export const useCodeConnectDialog: (data: {
       setNotice(null);
       setOpenAt({ provider });
     },
-    elements,
+    notice: noticeElement,
+    dialog: dialogElement,
   };
 };
 

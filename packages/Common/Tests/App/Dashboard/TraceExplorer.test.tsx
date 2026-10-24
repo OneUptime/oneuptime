@@ -2318,7 +2318,7 @@ describe("performance fix with AI", () => {
 
     expect(
       await within(strip).findByTestId("trace-fix-performance-connect"),
-    ).toHaveTextContent("Connect GitHub to fix this with AI");
+    ).toHaveTextContent("Connect a repository to fix this with AI");
     expect(strip).toHaveAttribute("data-offer", "SetUp");
     // Said in the strip's own words, not the server's.
     expect(
@@ -2379,7 +2379,9 @@ describe("performance fix with AI", () => {
     const connect: HTMLElement = within(strip).getByTestId(
       "trace-fix-performance-connect",
     );
-    expect(connect).toHaveTextContent("Connect GitHub to fix this with AI");
+    expect(connect).toHaveTextContent(
+      "Connect a repository to fix this with AI",
+    );
     expect(connect.closest("a")!.getAttribute("href")).toContain(
       `/dashboard/${PROJECT_ID}/code`,
     );

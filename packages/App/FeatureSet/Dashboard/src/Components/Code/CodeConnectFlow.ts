@@ -6,7 +6,10 @@ import {
   MAX_ACCESS_TOKEN_LENGTH,
   MAX_REPOSITORIES_PER_CONNECT,
 } from "Common/Types/CodeRepository/CodeHost";
-import { CodeHostListedRepositoryJSON } from "Common/Types/CodeRepository/CodeHostConnect";
+import {
+  CodeHostConnectionJSON,
+  CodeHostListedRepositoryJSON,
+} from "Common/Types/CodeRepository/CodeHostConnect";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -139,6 +142,43 @@ export const readTokenForm: (data: {
   return {
     source: { provider: data.provider, hostUrl, token },
   };
+};
+
+/*
+ * The connection a token step starts on: the project's first one to the
+ * host whose token its server still takes - coming back to connect more
+ * repositories from the same server is why most people open the step
+ * again - or none, for a new token. A refused one is offered, not picked.
+ */
+export const getDefaultConnectionId: (
+  connections: Array<CodeHostConnectionJSON> | null,
+  provider: CodeRepositoryType | null,
+) => string | null = (
+  connections: Array<CodeHostConnectionJSON> | null,
+  provider: CodeRepositoryType | null,
+): string | null => {
+  const usable: CodeHostConnectionJSON | undefined = (connections || []).find(
+    (connection: CodeHostConnectionJSON): boolean => {
+      return connection.provider === provider && !connection.isTokenRefused;
+    },
+  );
+
+  return usable ? usable.id : null;
+};
+
+/*
+ * The host a Git repository's address names, as the dialog says it when
+ * OneUptime cannot reach it ("git.example.com:8443"), or "" for an address
+ * that names none.
+ */
+export const getGitAddressHost: (address: string) => string = (
+  address: string,
+): string => {
+  try {
+    return CodeHostUrl.readGitRemoteUrl(address, { allowHttp: true }).host;
+  } catch {
+    return "";
+  }
 };
 
 /*

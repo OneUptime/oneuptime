@@ -576,8 +576,9 @@ const CodeRepositoriesPage: FunctionComponent<
   return (
     <div>
       {connection.notices}
-      {connectDialog.elements}
+      {connectDialog.notice}
       {renderBody()}
+      {connectDialog.dialog}
     </div>
   );
 };

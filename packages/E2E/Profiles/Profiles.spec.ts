@@ -520,7 +520,7 @@ test.describe("Fix with AI", () => {
     }) => {
       await openLoaded(page, `${PARSE_ORDER}&repo=none`);
       await expect(page.getByTestId("profiles-fix-connect")).toHaveText(
-        "Connect GitHub to fix this with AI",
+        "Connect a repository to fix this with AI",
       );
       await expect(page.getByTestId("profiles-fix-with-ai")).toHaveCount(0);
     });

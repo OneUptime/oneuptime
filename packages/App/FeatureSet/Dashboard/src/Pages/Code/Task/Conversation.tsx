@@ -14,7 +14,6 @@ import {
 } from "../../../Components/Code/CodePaths";
 import { CodeRepositorySetting } from "../../../Components/Code/CodeRepositorySettingsCopy";
 import {
-  CODE_TASK_START_FOOTER,
   CODE_TASK_START_FOOTER_BRANCH_ONLY,
   getRecipeLabel,
 } from "../../../Components/Code/CodeTaskCopy";
@@ -398,7 +397,7 @@ const CodeTaskConversation: FunctionComponent<
                 })
               : translator.translateText(
                   opensPullRequests(repositoryHost.provider)
-                    ? CODE_TASK_START_FOOTER
+                    ? pullRequestCopy.startFooter
                     : CODE_TASK_START_FOOTER_BRANCH_ONLY,
                 )}
           </p>

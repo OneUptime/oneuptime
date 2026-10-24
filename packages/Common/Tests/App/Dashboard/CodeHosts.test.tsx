@@ -69,10 +69,13 @@ import {
   CODE_CONNECT_FORM_ERRORS,
   CODE_HOST_URL_REFUSALS,
   getConnectableIds,
+  getDefaultConnectionId,
+  getGitAddressHost,
   readTokenForm,
   toggleSelection,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeConnectFlow";
 import {
+  CODE_CONNECT_COPY,
   CODE_HOST_GITHUB_ONLY_NOTE,
   getCodeHostName,
   getDefaultHostUrl,
@@ -81,6 +84,7 @@ import {
   getRepositoryHostNote,
   opensPullRequests,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeHostCopy";
+import { CODE_TASK_START_FOOTER } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskCopy";
 import { getRepositoryTaskWords } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeRepositoriesTable";
 import CodeHostMark from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeHostMark";
 import CodeRepositoryConnection, {
@@ -97,7 +101,10 @@ import CodeApi, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi";
 import { CodeTaskRow } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskList";
 import * as GitHubConnectLock from "../../../../App/FeatureSet/Dashboard/src/Components/CodeRepository/GitHubConnectLock";
-import { UseGitHubConnect } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/GitHubConnect";
+import {
+  ConnectGitHubEmptyState,
+  UseGitHubConnect,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Code/GitHubConnect";
 import CodeRepositorySideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Code/Repository/SideMenu";
 import CodeRepositoryModel from "../../../Models/DatabaseModels/CodeRepository";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -341,6 +348,61 @@ describe("the connect dialog's rules", () => {
     }
   });
 
+  test("a token step starts on the project's first connection to the host whose token still works - else a new token", () => {
+    const connection: (
+      id: string,
+      provider: CodeRepositoryType,
+      isTokenRefused: boolean,
+    ) => CodeHostConnectionJSON = (
+      id: string,
+      provider: CodeRepositoryType,
+      isTokenRefused: boolean,
+    ): CodeHostConnectionJSON => {
+      return {
+        id,
+        provider,
+        hostUrl: "https://codeberg.org",
+        isTokenRefused,
+        isReachableFromServer: true,
+        repositoryCount: 1,
+      };
+    };
+    const connections: Array<CodeHostConnectionJSON> = [
+      connection("gitlab", CodeRepositoryType.GitLab, false),
+      connection("refused", CodeRepositoryType.Forgejo, true),
+      connection("works", CodeRepositoryType.Forgejo, false),
+    ];
+
+    expect(
+      getDefaultConnectionId(connections, CodeRepositoryType.Forgejo),
+    ).toBe("works");
+    expect(getDefaultConnectionId(connections, CodeRepositoryType.GitLab)).toBe(
+      "gitlab",
+    );
+    // A refused token is offered, never started on.
+    expect(
+      getDefaultConnectionId(
+        [connection("refused", CodeRepositoryType.Forgejo, true)],
+        CodeRepositoryType.Forgejo,
+      ),
+    ).toBeNull();
+    // Not read yet, or none: a new token.
+    expect(getDefaultConnectionId(null, CodeRepositoryType.GitLab)).toBeNull();
+    expect(getDefaultConnectionId([], CodeRepositoryType.GitLab)).toBeNull();
+  });
+
+  test("names the host a Git repository's address points at, as the question about it says it", () => {
+    expect(getGitAddressHost("https://git.example.com:8443/team/app.git")).toBe(
+      "git.example.com:8443",
+    );
+    expect(getGitAddressHost("  10.0.4.12/ops/infra.git ")).toBe("10.0.4.12");
+    expect(getGitAddressHost("http://git.internal/team/app.git")).toBe(
+      "git.internal",
+    );
+    expect(getGitAddressHost("git@github.com:acme/app.git")).toBe("");
+    expect(getGitAddressHost("")).toBe("");
+  });
+
   test("only a repository the token can push to, and the project does not have, may be picked - at most 50", () => {
     expect(getConnectableIds(listing().repositories)).toEqual(["11"]);
 
@@ -409,6 +471,43 @@ describe("each host's words and marks", () => {
     expect(opensPullRequests("GitLab")).toBe(true);
     expect(opensPullRequests("Git")).toBe(false);
     expect(opensPullRequests(undefined)).toBe(true);
+  });
+
+  test("under the request box, a GitLab repository's change opens a merge request; the others' a pull request, in Code's words", () => {
+    expect(getPullRequestCopy("GitLab").startFooter).toBe(
+      "AI works on a new branch and opens a merge request for you to review when it changes code. Nothing is merged on its own.",
+    );
+    // GitHub's and Forgejo's are the words Code always said.
+    expect(getPullRequestCopy("GitHub").startFooter).toBe(
+      CODE_TASK_START_FOOTER,
+    );
+    expect(getPullRequestCopy("Forgejo").startFooter).toBe(
+      CODE_TASK_START_FOOTER,
+    );
+    expect(
+      (germanLocale as unknown as Record<string, string>)[
+        getPullRequestCopy("GitLab").startFooter
+      ],
+    ).toContain("Merge Request");
+  });
+
+  test("the question about a Git server OneUptime cannot reach is the dialog's own, translated - the server's sentence says the same", () => {
+    expect(CODE_CONNECT_COPY.gitConfirmTitle).toBe(
+      "OneUptime cannot reach {{host}}",
+    );
+
+    for (const key of [
+      CODE_CONNECT_COPY.gitConfirmTitle,
+      CODE_CONNECT_COPY.gitConfirmDescription,
+      CODE_CONNECT_COPY.gitDescription,
+    ]) {
+      expect((englishLocale as unknown as Record<string, string>)[key]).toBe(
+        key,
+      );
+      expect((germanLocale as unknown as Record<string, string>)[key]).not.toBe(
+        key,
+      );
+    }
   });
 
   test("draws each host's own mark, Gitea's for a Gitea server", () => {
@@ -567,9 +666,10 @@ describe("the connect dialog", () => {
 
     expect(await screen.findByText("Connect GitLab")).toBeInTheDocument();
 
-    const host: HTMLInputElement = screen.getByTestId(
+    // Drawn once the project's connections are read (it has none).
+    const host: HTMLInputElement = (await screen.findByTestId(
       "code-connect-host-url",
-    ) as HTMLInputElement;
+    )) as HTMLInputElement;
     const token: HTMLInputElement = screen.getByTestId(
       "code-connect-token-input",
     ) as HTMLInputElement;
@@ -577,11 +677,19 @@ describe("the connect dialog", () => {
     // The public server most people use, filled in; the token typed unseen.
     expect(host.value).toBe("https://gitlab.com");
     expect(token).toHaveAttribute("type", "password");
+    // The server is filled in: the token is the first thing to type.
+    await waitFor(() => {
+      expect(token).toHaveFocus();
+    });
 
     fireEvent.change(token, { target: { value: TOKEN } });
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 
     expect(await screen.findByTestId("code-connect-pick")).toBeInTheDocument();
+    // The step's own field takes the focus, not the page behind the dialog.
+    await waitFor(() => {
+      expect(screen.getByTestId("code-connect-search")).toHaveFocus();
+    });
     expect(list).toHaveBeenCalledWith({
       source: {
         provider: CodeRepositoryType.GitLab,
@@ -591,7 +699,8 @@ describe("the connect dialog", () => {
       search: "",
       page: 1,
     });
-    expect(screen.getByTestId("code-connect-signed-in")).toHaveTextContent(
+    // The account the token signed in as, under the step's title.
+    expect(screen.getByTestId("modal-description")).toHaveTextContent(
       "Signed in to gitlab.com as @alice.",
     );
     // The token is not on the page any more.
@@ -605,11 +714,17 @@ describe("the connect dialog", () => {
     });
 
     expect(boxes[0]).toBeEnabled();
+    // Whether a repository is private does not decide what to connect.
+    expect(within(rows[0]!).queryByText("Private")).toBeNull();
     // One it cannot push to, and one the project has, cannot be picked.
     expect(boxes[1]).toBeDisabled();
     expect(
       within(rows[1]!).getByTestId("code-connect-repository-cannot-push"),
-    ).toBeInTheDocument();
+    ).toHaveTextContent("Read-only");
+    expect(rows[1]).toHaveAttribute(
+      "title",
+      "The access token cannot push to this repository, so AI could not work in it.",
+    );
     expect(boxes[2]).toBeDisabled();
     expect(boxes[2]).toBeChecked();
     // Nothing picked yet: the button says what it does, not "Connect 0".
@@ -718,6 +833,12 @@ describe("the connect dialog", () => {
     expect(offered[0]).toHaveTextContent("codeberg.org");
     expect(offered[0]).toHaveTextContent("@alice · 3 repositories");
     expect(offered[0]).toHaveTextContent("Token refused");
+    // Its token was refused: offered, but the step starts on a new token.
+    expect(within(offered[0]!).getByRole("radio")).not.toBeChecked();
+    expect(
+      within(screen.getByTestId("code-connect-new-token")).getByRole("radio"),
+    ).toBeChecked();
+    expect(screen.getByTestId("code-connect-token-input")).toBeInTheDocument();
 
     fireEvent.click(within(offered[0]!).getByRole("radio"));
     // A connection needs no server or token typed.
@@ -772,9 +893,16 @@ describe("the connect dialog", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Connect" }));
 
-    expect(
-      await screen.findByTestId("code-connect-git-confirm"),
-    ).toHaveTextContent("Connect it anyway");
+    const question: HTMLElement = await screen.findByTestId(
+      "code-connect-git-confirm",
+    );
+
+    // The host, named so a typo shows, then what Connect anyway does.
+    expect(question).toHaveAttribute("role", "alert");
+    expect(question).toHaveTextContent("OneUptime cannot reach 10.0.0.5");
+    expect(question).toHaveTextContent(
+      "Check the address. If the server is on a private network, connect it anyway and pick one of your own Runners on that network to work in it.",
+    );
     expect(connectGit).toHaveBeenLastCalledWith({
       url: "https://10.0.0.5/team/app.git",
       username: "deploy",
@@ -794,6 +922,129 @@ describe("the connect dialog", () => {
     expect(connectGit).toHaveBeenLastCalledWith(
       expect.objectContaining({ connectWithoutCheck: true }),
     );
+  });
+
+  test("asks about a Git server it cannot reach in the reader's language, and Back goes to the hosts with the focus on the first one", async () => {
+    jest.spyOn(CodeConnectApi, "connectGitRepository").mockResolvedValue({
+      needsConfirmation: true,
+      message: "OneUptime cannot reach git.internal. Check the address.",
+    });
+
+    drawInGerman(
+      <CodeConnectDialog
+        gitHub={gitHub()}
+        onClose={jest.fn()}
+        onConnected={jest.fn()}
+      />,
+    );
+
+    fireEvent.click(
+      screen
+        .getAllByTestId("code-host-choice")
+        .find((tile: HTMLElement): boolean => {
+          return tile.getAttribute("data-provider") === "Git";
+        })!,
+    );
+
+    // The address is the first thing to fill in.
+    await waitFor(() => {
+      expect(screen.getByTestId("code-connect-git-url")).toHaveFocus();
+    });
+
+    fireEvent.change(screen.getByTestId("code-connect-git-url"), {
+      target: { value: "https://git.internal/team/app.git" },
+    });
+    fireEvent.change(screen.getByTestId("code-connect-git-password"), {
+      target: { value: "secret-password-000001" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Verbinden" }));
+
+    expect(
+      await screen.findByTestId("code-connect-git-confirm"),
+    ).toHaveTextContent("OneUptime erreicht git.internal nicht");
+    expect(
+      screen.getByRole("button", { name: "Trotzdem verbinden" }),
+    ).toBeInTheDocument();
+
+    // Back sits apart from the step's action, on the footer's left.
+    const back: HTMLElement = screen.getByTestId("code-connect-back");
+
+    expect(back).toHaveTextContent("Zurück");
+    expect(
+      screen.getByTestId("modal-footer").firstElementChild,
+    ).toContainElement(back);
+
+    fireEvent.click(back);
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("code-host-choice")[0]).toHaveFocus();
+    });
+  });
+
+  test("Forgejo or Gitea starts on the project's connection whose token works: nothing to type, and Continue lists what it reaches", async () => {
+    jest.spyOn(CodeConnectApi, "listConnections").mockResolvedValue([
+      {
+        id: CONNECTION_ID,
+        provider: CodeRepositoryType.Forgejo,
+        hostUrl: "https://codeberg.org",
+        hostProduct: "Forgejo",
+        accountLogin: "alice",
+        isTokenRefused: false,
+        isReachableFromServer: true,
+        repositoryCount: 2,
+      },
+    ]);
+    const list: SpyInstance<typeof CodeConnectApi.listRepositories> = jest
+      .spyOn(CodeConnectApi, "listRepositories")
+      .mockResolvedValue(listing({ hostUrl: "https://codeberg.org" }));
+
+    draw(
+      <CodeConnectDialog
+        initialProvider={CodeRepositoryType.Forgejo}
+        gitHub={gitHub()}
+        onClose={jest.fn()}
+        onConnected={jest.fn()}
+      />,
+    );
+
+    const offered: HTMLElement = await screen.findByTestId(
+      "code-connect-connection",
+    );
+    const radio: HTMLElement = within(offered).getByRole("radio");
+
+    expect(radio).toBeChecked();
+    await waitFor(() => {
+      expect(radio).toHaveFocus();
+    });
+    expect(screen.queryByTestId("code-connect-token-input")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    await waitFor(() => {
+      expect(list).toHaveBeenCalledWith({
+        source: { connectionId: CONNECTION_ID },
+        search: "",
+        page: 1,
+      });
+    });
+
+    cleanup();
+    draw(
+      <CodeConnectDialog
+        initialProvider={CodeRepositoryType.Forgejo}
+        gitHub={gitHub()}
+        onClose={jest.fn()}
+        onConnected={jest.fn()}
+      />,
+    );
+
+    // A new token is one click away.
+    fireEvent.click(
+      within(await screen.findByTestId("code-connect-new-token")).getByRole(
+        "radio",
+      ),
+    );
+    expect(screen.getByTestId("code-connect-token-input")).toBeInTheDocument();
   });
 
   test("someone who may not connect repositories sees every tile locked, and why", () => {
@@ -853,7 +1104,7 @@ describe("the connect dialog", () => {
 
     expect(await screen.findByText("GitLab verbinden")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByTestId("code-connect-host-url"), {
+    fireEvent.change(await screen.findByTestId("code-connect-host-url"), {
       target: { value: "https://alice:secret@gitlab.example.com" },
     });
     fireEvent.change(screen.getByTestId("code-connect-token-input"), {
@@ -885,17 +1136,48 @@ describe("a repository's connection, in its settings", () => {
     expect(
       within(block).getByTestId("repository-connection-status"),
     ).toHaveAttribute("data-connection", "access-token");
+    // One fact each: a narrow screen wraps between facts, never inside one.
     expect(
-      within(block).getByTestId("code-repository-connection-facts"),
-    ).toHaveTextContent(
-      "gitlab.example.com · Signed in as alice · Access token ending in …ab12",
-    );
+      within(block)
+        .getAllByTestId("code-repository-connection-fact")
+        .map((fact: HTMLElement): string => {
+          return fact.textContent || "";
+        }),
+    ).toEqual([
+      "gitlab.example.com",
+      "Signed in as alice",
+      "Access token ending in …ab12",
+    ]);
     expect(
       within(block).getByTestId("code-repository-github-only"),
     ).toHaveTextContent(CODE_HOST_GITHUB_ONLY_NOTE[CodeRepositoryType.GitLab]);
     expect(
       within(block).queryByTestId("code-repository-connection-refused"),
     ).toBeNull();
+  });
+
+  test("says the account in the reader's language", () => {
+    drawInGerman(
+      <CodeRepositoryConnection
+        repository={repository()}
+        onReplaced={jest.fn()}
+      />,
+    );
+
+    expect(
+      screen
+        .getAllByTestId("code-repository-connection-fact")
+        .map((fact: HTMLElement): string => {
+          return fact.textContent || "";
+        }),
+    ).toEqual([
+      "gitlab.example.com",
+      "Angemeldet als alice",
+      "Zugriffstoken, endet auf …ab12",
+    ]);
+    expect(screen.getByTestId("code-repository-github-only")).toHaveTextContent(
+      "Befehle aus GitLab-Kommentaren und Produktionsprüfungen funktionieren vorerst nur in GitHub-Repositorys.",
+    );
   });
 
   test("a refused token says what happened and how to connect again", () => {
@@ -1010,6 +1292,10 @@ describe("a repository's connection, in its settings", () => {
     ) as HTMLInputElement;
 
     expect(input).toHaveAttribute("type", "password");
+    expect(input).toHaveFocus();
+    expect(screen.getByTestId("modal-description")).toHaveTextContent(
+      "Every repository that uses this connection uses the new token from then on. OneUptime checks it with GitLab first.",
+    );
     // GitLab signs in as the token's account: no username to ask.
     expect(
       within(dialog).queryByTestId("code-replace-token-username"),
@@ -1048,12 +1334,27 @@ describe("a repository's connection, in its settings", () => {
     const dialog: HTMLElement = await screen.findByTestId(
       "code-replace-token-dialog",
     );
+    const password: HTMLElement = within(dialog).getByTestId(
+      "code-replace-token-input",
+    );
+    const username: HTMLElement = within(dialog).getByTestId(
+      "code-replace-token-username",
+    );
 
+    // The password is what the dialog is for: first, and focused.
     expect(
-      within(dialog).getByTestId("code-replace-token-username"),
-    ).toBeInTheDocument();
+      password.compareDocumentPosition(username) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(password).toHaveFocus();
+    // The username it keeps when left empty, shown as the placeholder.
+    expect(username).toHaveAttribute("placeholder", "alice");
+    // A Git server is checked by its address.
+    expect(screen.getByTestId("modal-description")).toHaveTextContent(
+      "OneUptime checks it with gitlab.example.com first.",
+    );
 
-    fireEvent.change(within(dialog).getByTestId("code-replace-token-input"), {
+    fireEvent.change(password, {
       target: { value: "new-password-000001" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Replace token" }));
@@ -1064,6 +1365,34 @@ describe("a repository's connection, in its settings", () => {
         token: "new-password-000001",
       });
     });
+  });
+
+  test("a Git server only a Runner reaches is not said to be checked: OneUptime cannot ask it", async () => {
+    draw(
+      <CodeRepositoryConnection
+        repository={repository({
+          provider: CodeRepositoryType.Git,
+          connection: {
+            id: CONNECTION_ID,
+            hostUrl: "https://10.0.0.5",
+            accountLogin: "deploy",
+            isTokenRefused: false,
+            isReachableFromServer: false,
+          },
+        })}
+        onReplaced={jest.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("code-repository-replace-token"));
+    await screen.findByTestId("code-replace-token-dialog");
+
+    expect(screen.getByTestId("modal-description")).toHaveTextContent(
+      "Every repository that uses this connection uses the new token from then on.",
+    );
+    expect(screen.getByTestId("modal-description")).not.toHaveTextContent(
+      "checks it",
+    );
   });
 
   test("someone who may not connect repositories is told why instead of offered the button", () => {
@@ -1102,6 +1431,55 @@ describe("a repository's connection, in its settings", () => {
     expect(statuses[0]).toHaveTextContent("GitHub App");
     expect(statuses[1]).toHaveAttribute("data-connection", "not-connected");
     expect(statuses[1]).toHaveAttribute("data-provider", "GitLab");
+  });
+});
+
+describe("Code with no repository yet", () => {
+  function isBefore(first: HTMLElement, second: HTMLElement): boolean {
+    return Boolean(
+      first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  }
+
+  test("on a server with no GitHub App, the other hosts come first and what GitHub needs follows them", () => {
+    draw(
+      <ConnectGitHubEmptyState
+        connection={gitHub({ isGitHubAppConfigured: false })}
+        onConnectOtherHost={jest.fn()}
+      />,
+    );
+
+    const hosts: HTMLElement = screen.getByTestId("code-other-hosts");
+
+    expect(
+      isBefore(hosts, screen.getByTestId("code-github-not-configured")),
+    ).toBe(true);
+    // The only way to connect here, so no "Or".
+    expect(hosts).toHaveTextContent("Connect from");
+    expect(hosts).not.toHaveTextContent("Or connect from");
+    expect(screen.queryByRole("button", { name: "Connect GitHub" })).toBeNull();
+  });
+
+  test("with a GitHub App, Connect GitHub leads and the other hosts follow it", () => {
+    const onConnectOtherHost: MockFunction = getJestMockFunction();
+
+    draw(
+      <ConnectGitHubEmptyState
+        connection={gitHub()}
+        onConnectOtherHost={onConnectOtherHost}
+      />,
+    );
+
+    const hosts: HTMLElement = screen.getByTestId("code-other-hosts");
+
+    expect(
+      isBefore(screen.getByRole("button", { name: "Connect GitHub" }), hosts),
+    ).toBe(true);
+    expect(hosts).toHaveTextContent("Or connect from");
+
+    fireEvent.click(within(hosts).getByRole("button", { name: /GitLab/ }));
+
+    expect(onConnectOtherHost).toHaveBeenCalledWith(CodeRepositoryType.GitLab);
   });
 });
 

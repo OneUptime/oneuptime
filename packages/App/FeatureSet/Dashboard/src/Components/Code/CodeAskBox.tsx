@@ -9,10 +9,9 @@ import { getTaskRoute } from "./CodePaths";
 import CodeRepositoryPicker from "./CodeRepositoryPicker";
 import {
   CODE_TASK_EXAMPLE_REQUESTS,
-  CODE_TASK_START_FOOTER,
   CODE_TASK_START_FOOTER_BRANCH_ONLY,
 } from "./CodeTaskCopy";
-import { opensPullRequests } from "./CodeHostCopy";
+import { getPullRequestCopy, opensPullRequests } from "./CodeHostCopy";
 import {
   CodeTaskBlocker,
   CodeTaskBlockerType,
@@ -387,9 +386,13 @@ const CodeAskBox: FunctionComponent<ComponentProps> = (
               data-testid="code-ask-footer"
               className="text-xs leading-5 text-gray-500"
             >
+              {/*
+               * A pull request - a merge request, on GitLab - or, on a Git
+               * server, a branch pushed for the person to open one from.
+               */}
               {translator.translateTemplate(
                 opensPullRequests(provider)
-                  ? CODE_TASK_START_FOOTER
+                  ? getPullRequestCopy(provider).startFooter
                   : CODE_TASK_START_FOOTER_BRANCH_ONLY,
               )}
             </p>
