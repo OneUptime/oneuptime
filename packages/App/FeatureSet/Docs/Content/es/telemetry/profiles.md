@@ -321,6 +321,39 @@ La pestaña **Perfil** de un span incluye también las muestras vinculadas a los
 
 La página de una traza también enlaza al Profiler en el servicio de la traza, para los 15 minutos anteriores y posteriores, cuando ese servicio se perfilaba entonces, y la página **Perfiles de rendimiento** de un servicio o de un host abre el Profiler en ese servicio o host.
 
+## Encontrar y corregir código lento con IA
+
+Cada hora OneUptime revisa los perfiles de cada servicio en busca de tu propio código que ocupa una parte grande o creciente del tiempo del servicio, y registra lo que encuentra como hallazgos de IA, con las pruebas. Después, la IA de OneUptime analiza cada uno y abre una pull request que aligera el código. Nunca se fusiona nada: tu equipo revisa cada pull request.
+
+Una función de tu propio código se registra cuando su servicio envió al menos 500 muestras en la última hora, la función al menos 50 de ellas, y:
+
+- ocupa al menos el 10 % del tiempo de CPU o del tiempo real del servicio en la última hora, o
+- su parte creció 5 puntos o más desde la misma hora del día anterior, hasta al menos el 5 %.
+
+### Activarlo
+
+**Productos → Perfiles de rendimiento → IA → Ajustes** contiene el interruptor **Encontrar y corregir código lento**, activado en los proyectos nuevos. Con **Habilitar IA** desactivado, el código lento se sigue encontrando, pero la IA de OneUptime no hace nada con él. Para abrir pull requests, la IA de OneUptime necesita un repositorio conectado mediante la GitHub App en [Código](/docs/ai/ai-agent): la página indica primero lo que falta. El código de cada repositorio se cambia en el Runner que el repositorio elige en Código.
+
+La IA de OneUptime abre por su cuenta como máximo 5 pull requests al día (UTC), una por hallazgo, y nunca más que el límite de pull requests de IA abiertas de un repositorio.
+
+### Reglas de IA
+
+Sin reglas, la IA de OneUptime analiza de inmediato todo el código lento que encuentra y abre una pull request para cada uno. Las **Reglas de IA** de **Más ajustes** lo acotan, en tres pasos:
+
+| Paso | Qué decide |
+| --- | --- |
+| **Coincidencia** | Qué servicios: los elegidos, los que tienen ciertas etiquetas o aquellos cuyo nombre coincide con un patrón. |
+| **Investigar** | **De inmediato**, o **Solo si sigue encontrándose tras una espera**: el código lento que desaparece durante la espera no se analiza. |
+| **Corrección** | **No corregir**, **Preguntar antes de corregir** o **Corregir sin preguntar**. Preguntar primero deja la pull request en manos de una persona: el hallazgo ofrece **Corregir con IA**. |
+
+En **Más campos** una regla elige los repositorios de código, los servidores MCP y el proveedor de LLM que la IA de OneUptime puede usar para ella. Si no se elige ninguno, puede usar cualquiera, y el proveedor de LLM predeterminado del proyecto.
+
+### Ver lo que hizo
+
+- **Productos → Perfiles de rendimiento → IA → Análisis** muestra el código lento encontrado, cada hallazgo con sus pruebas y **Abrir en el Perfilador**.
+- **Productos → Perfiles de rendimiento → IA → Registros** muestra cada investigación y cada pull request, lo más reciente primero, con el estado de cada una.
+- En Código, la tarea indica que OneUptime la inició, con un enlace a su hallazgo, y la pull request explica por qué se abrió.
+
 ## Retención de datos
 
 Los perfiles se conservan durante la retención de telemetría de su proyecto: **Ajustes del proyecto → Telemetría y APM → Retención de datos** fija la **Retención predeterminada (días)**, 15 días si no la cambia. Los datos se eliminan automáticamente al terminar el periodo de retención. Los planes que incluyen excepciones de retención también pueden conservar los perfiles más o menos tiempo que el resto de la telemetría, o fijar la retención por servicio en la página **Ajustes** del servicio.

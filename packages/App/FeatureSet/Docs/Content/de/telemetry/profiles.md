@@ -321,6 +321,39 @@ Der Tab **Profil** eines Spans enthält auch die Samples der darunter verschacht
 
 Die Seite eines Traces verlinkt außerdem auf den Profiler für den Dienst des Traces, für die 15 Minuten davor und danach, wenn dieser Dienst in der Zeit profiliert wurde, und die Seite **Leistungsprofile** eines Dienstes oder Hosts öffnet den Profiler für diesen Dienst oder Host.
 
+## Langsamen Code mit KI finden und beheben
+
+Jede Stunde durchsucht OneUptime die Profile jedes Dienstes nach Ihrem eigenen Code, der einen großen oder wachsenden Anteil der Zeit des Dienstes beansprucht, und legt seine Befunde mit den Belegen als KI-Einblicke an. OneUptime AI untersucht dann jeden Befund und öffnet einen Pull Request, der den Code entlastet. Nichts wird je zusammengeführt: Ihr Team prüft jeden Pull Request.
+
+Eine Funktion Ihres eigenen Codes wird angelegt, wenn ihr Dienst in der letzten Stunde mindestens 500 Samples gesendet hat, die Funktion mindestens 50 davon, und:
+
+- sie in der letzten Stunde mindestens 10 % der CPU-Zeit oder der Wall-Zeit des Dienstes beansprucht, oder
+- ihr Anteil seit derselben Stunde am Vortag um 5 Punkte oder mehr auf mindestens 5 % gestiegen ist.
+
+### Einschalten
+
+**Produkte → Performance-Profile → KI → Einstellungen** enthält den Schalter **Langsamen Code finden und beheben**, der für neue Projekte eingeschaltet ist. Ist **KI aktivieren** aus, wird langsamer Code weiterhin gefunden, aber OneUptime AI tut nichts damit. Um Pull Requests zu öffnen, braucht OneUptime AI ein über die GitHub-App verbundenes Repository in [Code](/docs/ai/ai-agent): Die Seite sagt, was zuerst fehlt. Der Code eines Repositorys wird auf dem Runner geändert, den das Repository in Code auswählt.
+
+OneUptime AI öffnet von sich aus höchstens 5 Pull Requests pro Tag (UTC), einen pro Befund, und nie mehr, als ein Repository an offenen KI-Pull-Requests zulässt.
+
+### KI-Regeln
+
+Ohne Regel untersucht OneUptime AI jeden gefundenen langsamen Code sofort und öffnet für jeden einen Pull Request. Die **KI-Regeln** unter **Weitere Einstellungen** schränken das in drei Schritten ein:
+
+| Schritt | Was er entscheidet |
+| --- | --- |
+| **Übereinstimmung** | Welche Dienste: die ausgewählten, die mit bestimmten Labels oder die, deren Namen zu einem Muster passen. |
+| **Untersuchen** | **Sofort** oder **Nur falls nach einer Wartezeit noch gefunden**: Langsamer Code, der während der Wartezeit verschwindet, wird nicht untersucht. |
+| **Behebung** | **Nicht beheben**, **Vor dem Beheben fragen** oder **Ohne Nachfrage beheben**. Wer zuerst fragt, überlässt den Pull Request einer Person: Der Befund bietet **Mit KI beheben** an. |
+
+Unter **Weitere Felder** wählt eine Regel die Code-Repositories, die MCP-Server und den LLM-Anbieter, die OneUptime AI für sie verwenden darf. Ist nichts ausgewählt, darf es alle verwenden, und den Standard-LLM-Anbieter des Projekts.
+
+### Sehen, was es getan hat
+
+- **Produkte → Performance-Profile → KI → Einblicke** listet den gefundenen langsamen Code, jeden Befund mit seinen Belegen und **Im Profiler öffnen**.
+- **Produkte → Performance-Profile → KI → Protokolle** listet jede Untersuchung und jeden Pull Request, das Neueste zuerst, jeweils mit ihrem Stand.
+- In Code sagt die Aufgabe, dass OneUptime sie gestartet hat, mit einem Link zu ihrem Befund, und der Pull Request sagt, warum er geöffnet wurde.
+
 ## Datenaufbewahrung
 
 Profile werden so lange aufbewahrt wie die Telemetrie Ihres Projekts: **Projekteinstellungen → Telemetrie & APM → Datenaufbewahrung** legt die **Standardaufbewahrung (Tage)** fest, 15 Tage, sofern Sie sie nicht ändern. Daten werden nach Ablauf der Aufbewahrungsfrist automatisch gelöscht. Tarife mit Aufbewahrungs-Überschreibungen können Profile auch länger oder kürzer als andere Telemetrie behalten oder die Aufbewahrung pro Dienst auf der Seite **Einstellungen** des Dienstes festlegen.

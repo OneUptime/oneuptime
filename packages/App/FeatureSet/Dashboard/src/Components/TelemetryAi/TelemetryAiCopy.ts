@@ -68,8 +68,6 @@ export const TELEMETRY_AI_PAGES: Readonly<
 };
 
 export interface TelemetryAiLaneCopy {
-  // What the lane's problems are called in a sentence ("slow code").
-  problemsNoun: string;
   // The Enable AI notice's words for the lane's Settings page.
   noticeContext: ProjectAiNoticeContext;
   // What the rules' conditions are about: "All services".
@@ -114,7 +112,6 @@ export const TELEMETRY_AI_LANE_COPY: Readonly<
   Record<TelemetryAiLane, TelemetryAiLaneCopy>
 > = {
   [TelemetryAiLane.Profile]: {
-    problemsNoun: translationKey("slow code"),
     noticeContext: ProjectAiNoticeContext.Profiles,
     ruleCriteriaSubject: RuleCriteriaSubject.Services,
 
@@ -279,8 +276,8 @@ export const TELEMETRY_AI_RUNNER_HINT: string = translationKey(
 export const TELEMETRY_AI_RIGHT_AWAY: string = translationKey("Right away");
 
 const STILL_FOUND_AFTER: PluralTemplate = {
-  one: translationKey("If still found after {{count}} minute"),
-  other: translationKey("If still found after {{count}} minutes"),
+  one: "If still found after {{count}} minute",
+  other: "If still found after {{count}} minutes",
 };
 
 /*
@@ -312,12 +309,9 @@ export const TELEMETRY_AI_READINESS_COPY: {
   ),
   connectRepositoryLink: translationKey("Connect a repository in Code"),
   ready: {
-    one: translationKey(
-      "OneUptime AI can open pull requests in {{count}} connected repository.",
-    ),
-    other: translationKey(
+    one: "OneUptime AI can open pull requests in {{count}} connected repository.",
+    other:
       "OneUptime AI can open pull requests in {{count}} connected repositories.",
-    ),
   },
   automaticToday: translationKey(
     "It opens at most {{max}} on its own each day (UTC): {{today}} so far today.",
@@ -347,7 +341,7 @@ export const TELEMETRY_AI_LOG_STATE_LABELS: Readonly<
   Record<TelemetryAiLogState, string>
 > = {
   [TelemetryAiLogState.Waiting]: translationKey("Waiting to start"),
-  [TelemetryAiLogState.Working]: translationKey("Working"),
+  [TelemetryAiLogState.Working]: translationKey("In progress"),
   [TelemetryAiLogState.Done]: translationKey("Done"),
   [TelemetryAiLogState.NothingToChange]: translationKey("Nothing to change"),
   [TelemetryAiLogState.WaitingForYou]: translationKey("Waiting for you"),
@@ -386,8 +380,8 @@ export const TELEMETRY_AI_LOG_VIEW_PULL_REQUEST: string =
   translationKey("View pull request");
 
 export const TELEMETRY_AI_LOGS_SHOWING: PluralTemplate = {
-  one: translationKey("Showing {{shown}} of {{total}} entry"),
-  other: translationKey("Showing {{shown}} of {{total}} entries"),
+  one: "Showing {{shown}} of {{total}} entry",
+  other: "Showing {{shown}} of {{total}} entries",
 };
 
 export const TELEMETRY_AI_LOGS_COULD_NOT_LOAD: string = translationKey(

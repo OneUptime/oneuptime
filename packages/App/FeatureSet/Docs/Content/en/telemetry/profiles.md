@@ -321,6 +321,39 @@ A span's **Profile** tab also includes the samples linked to the spans nested un
 
 A trace's page also links to the Profiler on the trace's service for the 15 minutes either side of it, when that service was profiled then, and a service's or a host's **Performance Profiles** page opens the Profiler on that service or host.
 
+## Find and fix slow code with AI
+
+Every hour OneUptime looks through each service's profiles for your own code that takes a large or growing share of the service's time, and files what it finds as AI insights, with the evidence. OneUptime AI then looks into each one and opens a pull request that makes the code lighter. Nothing is ever merged: your team reviews each pull request.
+
+A function of your own code is filed when its service sent at least 500 samples in the last hour, the function at least 50 of them, and:
+
+- it takes at least 10% of the service's CPU time or wall time over the last hour, or
+- its share grew by 5 points or more since the same hour the day before, to at least 5%.
+
+### Turn it on
+
+**Products → Performance Profiles → AI → Settings** holds the switch **Find and fix slow code**, on for new projects. With **Enable AI** off, slow code is still found, but OneUptime AI does nothing with it. To open pull requests, OneUptime AI needs a repository connected through the GitHub App in [Code](/docs/ai/ai-agent): the page says what is missing first. Each repository's code is changed on the Runner the repository picks in Code.
+
+OneUptime AI opens at most 5 pull requests on its own each day (UTC), one for each finding, and never more than a repository's limit on open AI pull requests.
+
+### AI rules
+
+With no rule, OneUptime AI looks into all slow code it finds right away, and opens a pull request for each. The **AI rules** under **More settings** narrow that, in three steps:
+
+| Step | What it decides |
+| --- | --- |
+| **Match** | Which services: the ones picked, the ones with certain labels, or the ones whose names match a pattern. |
+| **Investigate** | **Right away**, or **Only if still found after a wait**: slow code that goes away during the wait is not looked into. |
+| **Fix** | **Don't fix**, **Ask before fixing** or **Fix without asking**. Asking first leaves the pull request to a person: the finding offers **Fix with AI**. |
+
+Under **More fields** a rule picks the code repositories, the MCP servers and the LLM provider OneUptime AI may use for it. With none picked, it may use any of them, and the project's default LLM provider.
+
+### See what it did
+
+- **Products → Performance Profiles → AI → Insights** lists the slow code found, each finding with its evidence and **Open in Profiler**.
+- **Products → Performance Profiles → AI → Logs** lists every investigation and pull request, newest first, with how each one stands.
+- In Code, the task says OneUptime started it, with a link to its finding, and the pull request says why it was opened.
+
 ## Data Retention
 
 Profiles are kept for your project's telemetry retention: **Project Settings → Telemetry & APM → Data Retention** sets the **Default Retention (Days)**, 15 days unless you change it. Data is deleted automatically when the retention period ends. Plans that include retention overrides can also keep profiles longer or shorter than other telemetry, or set retention per service on the service's **Settings** page.

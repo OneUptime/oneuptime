@@ -321,6 +321,39 @@ Het tabblad **Profiel** van een span bevat ook de samples die gekoppeld zijn aan
 
 De pagina van een trace linkt ook naar de Profiler op de service van de trace, voor de 15 minuten ervoor en erna, wanneer die service toen werd geprofileerd, en de pagina **Prestatieprofielen** van een service of host opent de Profiler op die service of host.
 
+## Trage code vinden en oplossen met AI
+
+Elk uur doorzoekt OneUptime de profielen van elke dienst op uw eigen code die een groot of groeiend deel van de tijd van de dienst kost, en legt wat het vindt vast als AI-inzichten, met het bewijs. Daarna onderzoekt OneUptime AI elk ervan en opent een pull request die de code lichter maakt. Er wordt nooit iets samengevoegd: uw team beoordeelt elke pull request.
+
+Een functie van uw eigen code wordt vastgelegd als de dienst in het afgelopen uur minstens 500 samples stuurde, de functie minstens 50 daarvan, en:
+
+- de functie in het afgelopen uur minstens 10% van de CPU-tijd of de wandkloktijd van de dienst kost, of
+- haar aandeel sinds hetzelfde uur een dag eerder met 5 punten of meer groeide, tot minstens 5%.
+
+### Inschakelen
+
+**Producten → Prestatieprofielen → AI → Instellingen** bevat de schakelaar **Trage code vinden en oplossen**, die voor nieuwe projecten aan staat. Staat **AI inschakelen** uit, dan wordt trage code nog gevonden, maar doet OneUptime AI er niets mee. Om pull requests te openen heeft OneUptime AI een repository nodig die via de GitHub App is gekoppeld in [Code](/docs/ai/ai-agent): de pagina zegt eerst wat ontbreekt. De code van elke repository wordt gewijzigd op de Runner die de repository in Code kiest.
+
+OneUptime AI opent zelf maximaal 5 pull requests per dag (UTC), één per bevinding, en nooit meer dan de limiet van een repository voor open AI-pull requests.
+
+### AI-regels
+
+Zonder regel onderzoekt OneUptime AI alle gevonden trage code meteen en opent voor elk een pull request. De **AI-regels** onder **Meer instellingen** beperken dat, in drie stappen:
+
+| Stap | Wat die beslist |
+| --- | --- |
+| **Overeenkomst** | Welke diensten: de gekozen diensten, die met bepaalde labels of die waarvan de naam bij een patroon past. |
+| **Onderzoeken** | **Meteen**, of **Alleen als het na een wachttijd nog gevonden wordt**: trage code die tijdens de wachttijd verdwijnt, wordt niet onderzocht. |
+| **Herstel** | **Niet herstellen**, **Eerst om goedkeuring vragen** of **Herstellen zonder te vragen**. Eerst vragen laat de pull request aan een persoon over: de bevinding biedt **Oplossen met AI** aan. |
+
+Onder **Meer velden** kiest een regel de coderepositories, de MCP-servers en de LLM-provider die OneUptime AI ervoor mag gebruiken. Is er niets gekozen, dan mag het ze allemaal gebruiken, en de standaard-LLM-provider van het project.
+
+### Zien wat het deed
+
+- **Producten → Prestatieprofielen → AI → Inzichten** toont de gevonden trage code, elke bevinding met haar bewijs en **Openen in Profiler**.
+- **Producten → Prestatieprofielen → AI → Logboeken** toont elk onderzoek en elke pull request, nieuwste eerst, met hoe elk ervoor staat.
+- In Code zegt de taak dat OneUptime haar startte, met een link naar haar bevinding, en de pull request zegt waarom hij werd geopend.
+
 ## Gegevensbewaring
 
 Profielen worden bewaard zolang de telemetrie van uw project: **Projectinstellingen → Telemetrie & APM → Gegevensbewaring** stelt de **Standaardbewaring (dagen)** in, 15 dagen tenzij u die wijzigt. Gegevens worden automatisch verwijderd wanneer de bewaartermijn afloopt. Abonnementen met bewaaruitzonderingen kunnen profielen ook langer of korter bewaren dan andere telemetrie, of de bewaring per service instellen op de pagina **Instellingen** van de service.
