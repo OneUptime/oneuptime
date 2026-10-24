@@ -38,7 +38,7 @@ flowchart LR
 | **Advanced** | **Domains**, **API Keys**, **Feature Flags**, **Import from another tool** | [Custom domains](/docs/status-pages/branding-and-domains#custom-domains), [API keys](/docs/permissions/index#api-keys), [Feature flags](#feature-flags), [Moving from Opsgenie](/docs/moving-to-oneuptime/opsgenie) and the other moving guides |
 | **Security** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Billing and Invoices** | **Billing**, **Usage History**, **Invoices** | [Billing & Usage](/docs/configuration/billing) |
-| **Audit Logs** | **Audit Logs**, **Settings** | [Audit Logs](/docs/configuration/audit-logs) |
+| **Audit Logs** | **Audit Logs**, **Settings**, **Export** | [Audit Logs](/docs/configuration/audit-logs), [Audit Log Export](/docs/configuration/audit-log-export) |
 | **Danger Zone** | **Danger Zone** | [Delete the project](#delete-the-project) |
 
 **Billing and Invoices** and **AI Credits** are on OneUptime Cloud only: a self-hosted installation has no billing.

@@ -378,6 +378,7 @@ import DetectionRuleService from "./DetectionRuleService";
 import SecurityEventConnectionService from "./SecurityEventConnectionService";
 import SecurityEventConnectionRunService from "./SecurityEventConnectionRunService";
 import SecurityEventDestinationService from "./SecurityEventDestinationService";
+import AuditLogExportService from "./AuditLogExportService";
 import SecurityLogSourceService from "./SecurityLogSourceService";
 import ThreatIntelFeedService from "./ThreatIntelFeedService";
 import ThreatIntelIndicatorService from "./ThreatIntelIndicatorService";
@@ -881,6 +882,7 @@ const services: Array<BaseService> = [
   SecurityEventConnectionService,
   SecurityEventConnectionRunService,
   SecurityEventDestinationService,
+  AuditLogExportService,
   SecurityLogSourceService,
   ThreatIntelFeedService,
   SecurityCaseService,

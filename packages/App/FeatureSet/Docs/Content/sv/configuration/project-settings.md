@@ -38,7 +38,7 @@ flowchart LR
 | **Avancerad** | **Domäner**, **API-nycklar**, **Funktionsflaggor**, **Importera från ett annat verktyg** | [Egna domäner](/docs/status-pages/branding-and-domains#anpassade-domäner), [API-nycklar](/docs/permissions/index#api-nycklar), [Funktionsflaggor](#funktionsflaggor), [Byt från Opsgenie](/docs/moving-to-oneuptime/opsgenie) och de andra flyttguiderna |
 | **Säkerhet** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Fakturering och fakturor** | **Fakturering**, **Användningshistorik**, **Fakturor** | [Fakturering och användning](/docs/configuration/billing) |
-| **Granskningsloggar** | **Granskningsloggar**, **Inställningar** | [Granskningsloggar](/docs/configuration/audit-logs) |
+| **Granskningsloggar** | **Granskningsloggar**, **Inställningar**, **Export** | [Granskningsloggar](/docs/configuration/audit-logs), [Export av granskningslogg](/docs/configuration/audit-log-export) |
 | **Farozon** | **Farozon** | [Ta bort projektet](#ta-bort-projektet) |
 
 **Fakturering och fakturor** och **AI-krediter** finns bara i OneUptime Cloud: en självhostad installation har ingen fakturering.

@@ -145,6 +145,13 @@ export interface DashboardEnterprisePlugins {
   SettingsAuditLogsSettings?:
     | EnterprisePluginComponent<PageComponentProps>
     | undefined;
+  /*
+   * Settings > Audit Logs > Export: where the project's audit log is sent
+   * (S3, Google Cloud Storage, Azure Blob Storage, a webhook, syslog).
+   */
+  SettingsAuditLogExport?:
+    | EnterprisePluginComponent<PageComponentProps>
+    | undefined;
 
   // Status page > SCIM for private status page users (includes its logs).
   StatusPageSCIM?: EnterprisePluginComponent<PageComponentProps> | undefined;
@@ -243,6 +250,7 @@ export type DashboardEnterprisePluginKey = Exclude<
 const PLUGIN_KEY_SET: Record<DashboardEnterprisePluginKey, true> = {
   SettingsSCIM: true,
   SettingsAuditLogsSettings: true,
+  SettingsAuditLogExport: true,
   StatusPageSCIM: true,
   TeamCompliance: true,
   AuditLogsTable: true,

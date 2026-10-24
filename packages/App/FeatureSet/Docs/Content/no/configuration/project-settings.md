@@ -38,7 +38,7 @@ flowchart LR
 | **Avansert** | **Domener**, **API-nøkler**, **Funksjonsflagg**, **Importer fra et annet verktøy** | [Egne domener](/docs/status-pages/branding-and-domains#egendefinerte-domener), [API-nøkler](/docs/permissions/index#api-nøkler), [Funksjonsflagg](#funksjonsflagg), [Bytt fra Opsgenie](/docs/moving-to-oneuptime/opsgenie) og de andre flytteveiledningene |
 | **Sikkerhet** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Fakturering og fakturaer** | **Fakturering**, **Brukshistorikk**, **Fakturaer** | [Fakturering og bruk](/docs/configuration/billing) |
-| **Revisjonslogger** | **Revisjonslogger**, **Innstillinger** | [Revisjonslogger](/docs/configuration/audit-logs) |
+| **Revisjonslogger** | **Revisjonslogger**, **Innstillinger**, **Eksport** | [Revisjonslogger](/docs/configuration/audit-logs), [Eksport av revisjonslogg](/docs/configuration/audit-log-export) |
 | **Faresone** | **Faresone** | [Slett prosjektet](#slett-prosjektet) |
 
 **Fakturering og fakturaer** og **AI-kreditter** finnes bare i OneUptime Cloud: en selvhostet installasjon har ingen fakturering.

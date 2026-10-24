@@ -101,16 +101,17 @@ Monitore, Vorfälle, Alarme, Statusseiten, SLOs und viele andere Ressourcen habe
 | vCenter | `vCenter` |
 | Paketmitschnitte, und ihre Downloads | `Packet Capture` |
 | Sicherheitsfälle, Playbooks und ihre Ausführungen sowie geschützte Entitäten | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
+| Audit-Protokoll-Exporte | `Audit Log Export` |
 
 Fügt ein Administrator eine Benachrichtigungsmethode oder eine persönliche Bereitschaftsregel zum Konto einer anderen Person hinzu oder entfernt sie, wird das ebenfalls erfasst, ohne die Adresse oder Nummer selbst.
 
-Andere Datensätze stehen nicht im Audit-Protokoll, etwa wer in einem Team ist oder eine Berechtigung, die einem Team einzeln hinzugefügt wurde. Felder, die niemand lesen darf, etwa geheime Schlüssel, fehlen in jedem Eintrag.
+Andere Datensätze stehen nicht im Audit-Protokoll, etwa wer in einem Team ist oder eine Berechtigung, die einem Team einzeln hinzugefügt wurde. Felder, die niemand lesen darf, fehlen in jedem Eintrag, und Schlüssel, Tokens und Passwörter werden als `[REDACTED]` erfasst: Der Eintrag zeigt, dass sie sich geändert haben, nie ihren Wert.
 
 ## Wie lange Einträge bleiben
 
 Jeder Eintrag bleibt für die **Aufbewahrung (Tage)**, die das Projekt bei seiner Erfassung hatte, und wird dann gelöscht. Eine neue Aufbewahrung gilt für neue Einträge: Die bisher erfassten Einträge behalten ihre Daten.
 
-Um Einträge länger als 180 Tage aufzubewahren, lesen Sie sie über die API mit einem API-Schlüssel, der **Read Audit Log** hat, und speichern Sie sie dort, wo Sie sie brauchen. Siehe [OneUptime-API-Referenz](/docs/api-reference/api-reference).
+Um Einträge länger als 180 Tage aufzubewahren, senden Sie sie, sobald sie erfasst werden, an Ihren eigenen Speicher oder Ihr SIEM: siehe [Audit-Protokoll-Export](/docs/configuration/audit-log-export). Sie können sie auch über die API mit einem API-Schlüssel lesen, der **Read Audit Log** hat, und dort speichern, wo Sie sie brauchen. Siehe [OneUptime-API-Referenz](/docs/api-reference/api-reference).
 
 ## Wenn der Tarif oder die Lizenz keine Audit-Protokolle mehr enthält
 
@@ -130,6 +131,7 @@ Prüfen Sie, ob die Ressource unter [Was erfasst wird](#was-erfasst-wird) steht 
 ## Nächste Schritte
 
 :::cards
+- [Audit-Protokoll-Export](/docs/configuration/audit-log-export): Das Audit-Protokoll an Ihren eigenen Speicher oder Ihr SIEM senden.
 - [Benutzer, Teams & Berechtigungen](/docs/permissions/index): Festlegen, wer das Audit-Protokoll lesen darf.
 - [Projekteinstellungen](/docs/configuration/project-settings): Die übrigen Einstellungen des Projekts.
 - [Abrechnung & Nutzung](/docs/configuration/billing): Den Tarif des Projekts ändern.

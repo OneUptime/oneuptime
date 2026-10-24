@@ -758,6 +758,8 @@ describe("EnterpriseEdition model to feature map", () => {
     ["CustomRolePermission", EnterpriseFeature.CustomRoles],
     ["TeamCustomRole", EnterpriseFeature.CustomRoles],
     ["ApiKeyCustomRole", EnterpriseFeature.CustomRoles],
+    // Exporting the audit log is part of audit logging.
+    ["AuditLogExport", EnterpriseFeature.AuditLogs],
   ] as Array<[string, EnterpriseFeature]>)(
     "table %s is gated by %s",
     (tableName: string, feature: EnterpriseFeature) => {
@@ -765,9 +767,10 @@ describe("EnterpriseEdition model to feature map", () => {
     },
   );
 
-  test("maps exactly the seven enterprise configuration tables", () => {
+  test("maps exactly the eight enterprise configuration tables", () => {
     expect(EnterpriseEdition.getMappedTableNames().sort()).toEqual(
       [
+        "AuditLogExport",
         "ProjectSCIM",
         "StatusPageSCIM",
         "TeamComplianceSetting",

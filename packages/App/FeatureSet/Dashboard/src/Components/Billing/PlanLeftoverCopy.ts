@@ -32,6 +32,8 @@ export const PlanLeftoverCopy: {
   // For API keys, which stop below their plan, and SCIM connections, which only remove people.
   descriptionStopped: string;
   descriptionScimStopped: string;
+  // For audit log exports, which stop exporting below their plan and keep their place.
+  descriptionExportsStopped: string;
   // An API key's own page, below the plan.
   apiKeyStoppedTitle: string;
   apiKeyStoppedDescription: string;
@@ -56,6 +58,9 @@ export const PlanLeftoverCopy: {
   ),
   descriptionScimStopped: translationKey(
     "Your plan does not include these, so they only remove people: your identity provider can still deactivate and remove people here, but can no longer add or change them. Upgrading to the {{planName}} plan turns them fully back on as they are. You can still delete them.",
+  ),
+  descriptionExportsStopped: translationKey(
+    "These stopped exporting: your plan does not include audit log export. Upgrading to the {{planName}} plan starts them again from where they stopped. You can still turn them off or delete them.",
   ),
   apiKeyStoppedTitle: translationKey("This API key stopped working"),
   apiKeyStoppedDescription: translationKey(
@@ -84,6 +89,7 @@ export const PlanLeftoverTitle: {
   onCallSchedules: string;
   notificationRules: string;
   summaries: string;
+  auditLogExports: string;
 } = {
   samlProviders: translationKey("SAML providers still set up"),
   oidcProviders: translationKey("OIDC providers still set up"),
@@ -92,12 +98,17 @@ export const PlanLeftoverTitle: {
   onCallSchedules: translationKey("On-call schedules still set up"),
   notificationRules: translationKey("Notification rules still set up"),
   summaries: translationKey("Summaries still set up"),
+  auditLogExports: translationKey("Audit log exports still set up"),
 };
+
+// The table of the audit log exports a project still has (AuditLogExportPlanLeftovers).
+const AUDIT_LOG_EXPORT_TABLE_NAME: string = "AuditLogExport";
 
 /*
  * A table's description: for API keys, that they stopped, and for SCIM
  * connections, that they only remove people - an upgrade turns both fully
- * back on; for the rest, that what is on still works, as it does.
+ * back on; for audit log exports, that they stopped exporting and resume
+ * where they stopped; for the rest, that what is on still works, as it does.
  */
 export const getPlanLeftoverDescription: (data: {
   tableName: string | null | undefined;
@@ -110,6 +121,10 @@ export const getPlanLeftoverDescription: (data: {
     return data.tableName === PlanCutoffCredential.ApiKey
       ? PlanLeftoverCopy.descriptionStopped
       : PlanLeftoverCopy.descriptionScimStopped;
+  }
+
+  if (data.tableName === AUDIT_LOG_EXPORT_TABLE_NAME) {
+    return PlanLeftoverCopy.descriptionExportsStopped;
   }
 
   return data.hasSwitch

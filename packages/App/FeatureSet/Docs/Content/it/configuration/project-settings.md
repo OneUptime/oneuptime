@@ -38,7 +38,7 @@ flowchart LR
 | **Avanzato** | **Domini**, **Chiavi API**, **Flag delle funzionalità**, **Importa da un altro strumento** | [Domini personalizzati](/docs/status-pages/branding-and-domains#domini-personalizzati), [Chiavi API](/docs/permissions/index#chiavi-api), [Flag delle funzionalità](#flag-delle-funzionalità), [Migrare da Opsgenie](/docs/moving-to-oneuptime/opsgenie) e le altre guide alla migrazione |
 | **Sicurezza** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Fatturazione e fatture** | **Fatturazione**, **Cronologia utilizzo**, **Fatture** | [Fatturazione e utilizzo](/docs/configuration/billing) |
-| **Registri di audit** | **Registri di audit**, **Impostazioni** | [Registri di audit](/docs/configuration/audit-logs) |
+| **Registri di audit** | **Registri di audit**, **Impostazioni**, **Esporta** | [Registri di audit](/docs/configuration/audit-logs), [Esportazione del registro di audit](/docs/configuration/audit-log-export) |
 | **Zona pericolosa** | **Zona pericolosa** | [Eliminare il progetto](#eliminare-il-progetto) |
 
 **Fatturazione e fatture** e **Crediti IA** esistono solo su OneUptime Cloud: un'installazione self-hosted non ha fatturazione.

@@ -85,7 +85,7 @@ Direktemodus slår seg av selv når du endrer søket, et filter eller tidsinterv
 ## Velg kolonner og eksporter
 
 - **Kolonner** velger hva listen viser. **Tid**, **Tjeneste**, **Alvorlighetsgrad** og **Melding** kommer først; legg til **Spor-ID**, **Span-ID** eller et hvilket som helst attributt, flytt kolonner opp og ned, eller gå tilbake til standarden med **Tilbakestill**.
-- **Export** laster ned loggene på siden du ser på. **Export as CSV** skriver kolonnene du viser; **Export as JSON** skriver hvert felt i hver logg med alle attributtene.
+- **Eksport** laster ned loggene på siden du ser på. **Export as CSV** skriver kolonnene du viser; **Export as JSON** skriver hvert felt i hver logg med alle attributtene.
 
 ## Lagre en visning
 

@@ -63,7 +63,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.EditProjectApiKey,
   ],
 })
-@EnableAuditLog()
+/*
+ * The key itself is a secret its own readers see, but the audit log (read by
+ * other roles too, and exported) records only that it changed.
+ */
+@EnableAuditLog({ redactColumns: ["apiKey"] })
 @TableMetadata({
   tableName: "ApiKey",
   singularName: "API Key",

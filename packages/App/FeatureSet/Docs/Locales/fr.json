@@ -152,6 +152,7 @@
     "Project Settings": "Paramètres du projet",
     "Billing & Usage": "Facturation et utilisation",
     "Audit Logs": "Journaux d'audit",
+    "Audit Log Export": "Export du journal d'audit",
     "Terraform Overview": "Vue d'ensemble de Terraform",
     "Quick Start": "Démarrage rapide",
     "Complete Guide": "Guide complet",
