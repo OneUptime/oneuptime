@@ -2,6 +2,7 @@ import ComponentProps from "../Pages/PageComponentProps";
 import MetricsLayout from "../Pages/Metrics/Layout";
 import MetricsSettingsLayout from "../Pages/Metrics/Settings/Layout";
 import MetricsViewLayout from "../Pages/Metrics/View/Layout";
+import MetricsAILayout from "../Pages/Metrics/AI/Layout";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, MetricsRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -16,6 +17,10 @@ import MetricsSettingsPipelineRules from "../Pages/Metrics/Settings/PipelineRule
 import MetricsSettingsRecordingRules from "../Pages/Metrics/Settings/RecordingRules";
 
 import MetricViewPage from "../Pages/Metrics/View/Index";
+import MetricsAIInsightsPage from "../Pages/Metrics/AI/Insights";
+import MetricsAIInsightViewPage from "../Pages/Metrics/AI/InsightView";
+import MetricsAILogsPage from "../Pages/Metrics/AI/Logs";
+import MetricsAISettingsPage from "../Pages/Metrics/AI/Settings";
 
 const MetricsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -45,6 +50,46 @@ const MetricsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+
+        {/* The AI section: what OneUptime found, what it did, its settings. */}
+        <PageRoute element={<MetricsAILayout />}>
+          <PageRoute
+            path={MetricsRoutePath[PageMap.METRICS_AI_INSIGHTS] || ""}
+            element={
+              <MetricsAIInsightsPage
+                {...props}
+                pageRoute={RouteMap[PageMap.METRICS_AI_INSIGHTS] as Route}
+              />
+            }
+          />
+          <PageRoute
+            path={MetricsRoutePath[PageMap.METRICS_AI_INSIGHT_VIEW] || ""}
+            element={
+              <MetricsAIInsightViewPage
+                {...props}
+                pageRoute={RouteMap[PageMap.METRICS_AI_INSIGHT_VIEW] as Route}
+              />
+            }
+          />
+          <PageRoute
+            path={MetricsRoutePath[PageMap.METRICS_AI_LOGS] || ""}
+            element={
+              <MetricsAILogsPage
+                {...props}
+                pageRoute={RouteMap[PageMap.METRICS_AI_LOGS] as Route}
+              />
+            }
+          />
+          <PageRoute
+            path={MetricsRoutePath[PageMap.METRICS_AI_SETTINGS] || ""}
+            element={
+              <MetricsAISettingsPage
+                {...props}
+                pageRoute={RouteMap[PageMap.METRICS_AI_SETTINGS] as Route}
+              />
+            }
+          />
+        </PageRoute>
 
         {/* Settings Routes */}
         <PageRoute element={<MetricsSettingsLayout />}>

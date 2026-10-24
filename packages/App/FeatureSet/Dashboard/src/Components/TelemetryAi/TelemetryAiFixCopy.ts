@@ -21,12 +21,13 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  */
 
 /*
- * The lanes whose findings draw this strip: Traces. The Profiler's draw the
- * Profiler's own Fix with AI (ProfileFixStrip), which starts from the
- * function rather than the finding.
+ * The lanes whose findings draw this strip: Traces and Metrics. The
+ * Profiler's draw the Profiler's own Fix with AI (ProfileFixStrip), which
+ * starts from the function rather than the finding.
  */
 export const TELEMETRY_AI_FIX_LANES: ReadonlyArray<TelemetryAiLane> = [
   TelemetryAiLane.Trace,
+  TelemetryAiLane.Metric,
 ];
 
 /*
@@ -62,6 +63,15 @@ export const TELEMETRY_AI_FIX_LEADS: Readonly<
   ),
   [AIInsightType.TraceMissingTracing]: translationKey(
     "OneUptime AI opens a pull request that adds the tracing this lacks, for you to review.",
+  ),
+  [AIInsightType.MetricHighCardinality]: translationKey(
+    "OneUptime AI opens a pull request that stops recording these values on the metric, for you to review.",
+  ),
+  [AIInsightType.MetricHistogramBuckets]: translationKey(
+    "OneUptime AI opens a pull request that gives this histogram buckets that fit its values, for you to review.",
+  ),
+  [AIInsightType.MetricMissingMetrics]: translationKey(
+    "OneUptime AI opens a pull request that adds metrics to this service, for you to review.",
   ),
 };
 

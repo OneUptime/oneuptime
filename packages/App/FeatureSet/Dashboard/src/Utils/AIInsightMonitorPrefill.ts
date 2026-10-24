@@ -78,6 +78,12 @@ import RouteMap, { RouteUtil } from "./RouteMap";
  *   TraceMissingTracing -> no Create Monitor at all (isAIInsightMonitorOffered):
  *                     what a trace lacks is not a count a monitor can watch,
  *                     so no button that could never be pressed is drawn.
+ *   MetricHighCardinality / MetricHistogramBuckets / MetricMissingMetrics ->
+ *                     no Create Monitor either: how many values a metric
+ *                     records, whether a histogram's buckets fit its values
+ *                     and the metrics a service does not send are facts
+ *                     about its code, not numbers a monitor watches - the
+ *                     pull request is their fix.
  *
  * Pure (no network, no React) for the same reason as AIInsightExplorerLinks
  * and SecurityEventsMonitorPrefill: what it builds is a contract with the step
@@ -454,14 +460,26 @@ function getMetricDriftDirection(
 }
 
 /*
+ * The kinds of insight no monitor could ever watch: what a trace lacks, and
+ * Metrics' findings - facts about the code, not numbers that go up and down.
+ */
+const AI_INSIGHT_TYPES_WITHOUT_MONITOR: ReadonlyArray<string> = [
+  AIInsightType.TraceMissingTracing,
+  AIInsightType.MetricHighCardinality,
+  AIInsightType.MetricHistogramBuckets,
+  AIInsightType.MetricMissingMetrics,
+];
+
+/*
  * Whether Create Monitor is offered on this kind of insight at all. Missing
  * tracing is not: what a trace lacks is not a count a monitor can watch, so
- * a greyed-out button that could never be pressed would only be clutter.
+ * a greyed-out button that could never be pressed would only be clutter -
+ * nor are Metrics' findings, whose fix is the pull request.
  */
 export function isAIInsightMonitorOffered(
   insightType: string | undefined,
 ): boolean {
-  return insightType !== AIInsightType.TraceMissingTracing;
+  return !AI_INSIGHT_TYPES_WITHOUT_MONITOR.includes(insightType || "");
 }
 
 /**

@@ -29,6 +29,7 @@ import {
   AIInsightExplorerLink,
   buildInsightInvestigationLink,
   buildMetricExplorerRoute,
+  getEvidenceWindow,
 } from "../../../Utils/AIInsightExplorerLinks";
 import { buildTraceViewRoute } from "../../../Utils/LogsCrossSignalPivot";
 import {
@@ -546,6 +547,7 @@ const AIInsightViewPage: FunctionComponent<
       spikeWindowMinutes: insight.evidence?.logSpike?.windowMinutes,
       profile: insight.evidence?.profile,
       trace: insight.evidence?.trace,
+      metric: insight.evidence?.metric,
     });
   }, [insight, serviceIdString, telemetryExceptionId]);
 
@@ -731,10 +733,14 @@ const AIInsightViewPage: FunctionComponent<
   }
 
   if (insight.metricName) {
+    // A Metrics finding opens the metric on the hour it was read in.
     const metricRoute: Route | null = buildMetricExplorerRoute({
       metricName: insight.metricName,
       serviceName: insight.serviceName,
       lastSeenAt: insight.lastSeenAt,
+      window: insight.evidence?.metric
+        ? getEvidenceWindow(insight.evidence.metric)
+        : null,
     });
 
     facts.push({

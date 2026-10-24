@@ -809,6 +809,10 @@ export const MetricsRoutePath: Dictionary<string> = {
   [PageMap.METRICS_DOCUMENTATION]: "documentation",
   [PageMap.METRICS_SETTINGS_PIPELINE_RULES]: "settings/pipeline-rules",
   [PageMap.METRICS_SETTINGS_RECORDING_RULES]: "settings/recording-rules",
+  [PageMap.METRICS_AI_INSIGHTS]: "ai/insights",
+  [PageMap.METRICS_AI_INSIGHT_VIEW]: `ai/insights/${RouteParams.ModelID}`,
+  [PageMap.METRICS_AI_LOGS]: "ai/logs",
+  [PageMap.METRICS_AI_SETTINGS]: "ai/settings",
 };
 
 // Traces product routes
@@ -6927,6 +6931,30 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.METRICS_SETTINGS_RECORDING_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/metrics/${
       MetricsRoutePath[PageMap.METRICS_SETTINGS_RECORDING_RULES]
+    }`,
+  ),
+
+  [PageMap.METRICS_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/metrics/${
+      MetricsRoutePath[PageMap.METRICS_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.METRICS_AI_INSIGHT_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/metrics/${
+      MetricsRoutePath[PageMap.METRICS_AI_INSIGHT_VIEW]
+    }`,
+  ),
+
+  [PageMap.METRICS_AI_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/metrics/${
+      MetricsRoutePath[PageMap.METRICS_AI_LOGS]
+    }`,
+  ),
+
+  [PageMap.METRICS_AI_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/metrics/${
+      MetricsRoutePath[PageMap.METRICS_AI_SETTINGS]
     }`,
   ),
 

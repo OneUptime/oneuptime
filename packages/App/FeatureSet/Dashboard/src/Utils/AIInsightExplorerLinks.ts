@@ -38,6 +38,12 @@ import {
  *   TraceSlowOperation /   -> traces explorer: the service, the operation
  *   TraceFailingOperation /   (its span name) and the hour it was read in -
  *   TraceMissingTracing       only its failed spans for a failing one
+ *   MetricHighCardinality /-> metric explorer: the metric, the service and
+ *   MetricHistogramBuckets    the hour it was read in - or, for metric names
+ *                             with ids in them, the metric list searched for
+ *                             them in the service
+ *   MetricMissingMetrics   -> traces explorer: the service's spans of the
+ *                             hour, the operations its metrics would measure
  *
  * Everything here is pure (no network, no React) so App/Tests/Dashboard can
  * exercise the whole matrix in plain Node; the caller resolves service
@@ -62,6 +68,11 @@ export const LATENCY_REGRESSION_WINDOW_MINUTES: number = 60;
 export const METRIC_DRIFT_WINDOW_MINUTES: number = 14 * 24 * 60;
 export const EXCEPTION_INSIGHT_WINDOW_MINUTES: number = 24 * 60;
 export const DEPLOY_REGRESSION_WINDOW_MINUTES: number = 2 * 60;
+// Utils/Metrics/MetricInsight: each look reads one whole hour.
+export const METRIC_INSIGHT_WINDOW_MINUTES: number = 60;
+
+// What a metric name's parts are joined by: not words a search finds it by.
+const METRIC_NAME_SEPARATORS: RegExp = /[._\-/:]/g;
 
 /*
  * The severities ErrorLogSpikeDetector counts
@@ -135,6 +146,22 @@ export interface AIInsightExplorerLinkInput {
         operationName?: string | undefined;
         kind?: string | undefined;
         gap?: string | undefined;
+        windowStartTime?: string | undefined;
+        windowEndTime?: string | undefined;
+      }
+    | undefined;
+  /**
+   * Metrics' findings: the metric - or the name pattern its names share -
+   * and the hour it was read in (evidence.metric), when the caller has
+   * them. Without them the link opens the service's metrics around when it
+   * was last seen.
+   */
+  metric?:
+    | {
+        metricName?: string | undefined;
+        kind?: string | undefined;
+        shape?: string | undefined;
+        namePattern?: string | undefined;
         windowStartTime?: string | undefined;
         windowEndTime?: string | undefined;
       }
@@ -224,6 +251,11 @@ export const getInsightDetectionWindow: GetInsightDetectionWindowFunction =
       case AIInsightType.TraceFailingOperation:
       case AIInsightType.TraceMissingTracing:
         windowMinutes = LATENCY_REGRESSION_WINDOW_MINUTES;
+        break;
+      case AIInsightType.MetricHighCardinality:
+      case AIInsightType.MetricHistogramBuckets:
+      case AIInsightType.MetricMissingMetrics:
+        windowMinutes = METRIC_INSIGHT_WINDOW_MINUTES;
         break;
       case AIInsightType.DeployRegression:
         windowMinutes = DEPLOY_REGRESSION_WINDOW_MINUTES;
@@ -328,19 +360,26 @@ type BuildMetricExplorerRouteFunction = (args: {
   metricName?: string | undefined;
   serviceName?: string | undefined;
   lastSeenAt?: Date | string | undefined;
+  /*
+   * The window to open on, when the insight says which: the hour a Metrics
+   * finding was read in. Without it, the metric-drift comparison window.
+   */
+  window?: InsightDetectionWindow | null | undefined;
 }) => Route | null;
 
 /**
  * Metric-explorer route for one metric name over the metric-drift
- * comparison window (both weeks, so the drift itself is on screen). Used
- * for the MetricDrift investigate action AND to linkify a bare metricName
- * fact. Null when there is no usable metric name.
+ * comparison window (both weeks, so the drift itself is on screen) - or
+ * over the window the caller names. Used for the MetricDrift investigate
+ * action AND to linkify a bare metricName fact. Null when there is no
+ * usable metric name.
  */
 export const buildMetricExplorerRoute: BuildMetricExplorerRouteFunction =
   (args: {
     metricName?: string | undefined;
     serviceName?: string | undefined;
     lastSeenAt?: Date | string | undefined;
+    window?: InsightDetectionWindow | null | undefined;
   }): Route | null => {
     const metricName: string | null = trimmedOrNull(args.metricName);
 
@@ -348,10 +387,12 @@ export const buildMetricExplorerRoute: BuildMetricExplorerRouteFunction =
       return null;
     }
 
-    const window: InsightDetectionWindow | null = getInsightDetectionWindow({
-      insightType: AIInsightType.MetricDrift,
-      lastSeenAt: args.lastSeenAt,
-    });
+    const window: InsightDetectionWindow | null =
+      args.window ||
+      getInsightDetectionWindow({
+        insightType: AIInsightType.MetricDrift,
+        lastSeenAt: args.lastSeenAt,
+      });
 
     const serviceName: string | null = trimmedOrNull(args.serviceName);
 
@@ -479,6 +520,162 @@ function buildTraceFindingLink(
     route,
     dropped: scopeParams.dropped,
   };
+}
+
+/*
+ * The window a finding's evidence says it was read in, when it says a
+ * whole one; null otherwise.
+ */
+export function getEvidenceWindow(data: {
+  windowStartTime?: string | undefined;
+  windowEndTime?: string | undefined;
+}): InsightDetectionWindow | null {
+  const startTime: Date | null = toValidDate(data.windowStartTime);
+  const endTime: Date | null = toValidDate(data.windowEndTime);
+
+  return startTime && endTime && startTime.getTime() < endTime.getTime()
+    ? { startTime, endTime }
+    : null;
+}
+
+/*
+ * The part of a metric name pattern a search can find its names by: its
+ * longest stretch between the ids ("job.{id}.duration" -> ".duration",
+ * "orders_{id}_total" -> "_total"), or null when nothing long enough is
+ * left.
+ */
+export function getMetricNamePatternSearch(
+  namePattern: string | undefined,
+): string | null {
+  const parts: Array<string> = (namePattern || "")
+    .split("{id}")
+    .map((part: string): string => {
+      return part.trim();
+    })
+    .filter((part: string): boolean => {
+      return part.replace(METRIC_NAME_SEPARATORS, "").length >= 2;
+    })
+    .sort((a: string, b: string): number => {
+      return b.length - a.length;
+    });
+
+  return parts[0] || null;
+}
+
+/*
+ * The explorer a Metrics finding is proven or disproven in: the metric in
+ * the metric explorer, for the service and the hour it was read in; for
+ * metric names with ids in them, the metric list searched for those names
+ * in the service; and for a service that sends no metrics, its spans of
+ * the hour - the operations its metrics would measure.
+ */
+function buildMetricFindingLink(
+  input: AIInsightExplorerLinkInput,
+): AIInsightExplorerLink | null {
+  const window: InsightDetectionWindow | null =
+    getEvidenceWindow(input.metric || {}) ||
+    getInsightDetectionWindow({
+      insightType: input.insightType,
+      lastSeenAt: input.lastSeenAt,
+    });
+  const serviceScope: InsightServiceScope = buildServiceScope(input);
+
+  if (input.insightType === AIInsightType.MetricMissingMetrics) {
+    const serialized: CrossSignalQueryParams = toTracesExplorerQueryParams({
+      serviceIds: serviceScope.serviceIds,
+      attributes: serviceScope.attributes,
+      startTime: window?.startTime,
+      endTime: window?.endTime,
+    });
+
+    const route: Route | null = withQueryParams(
+      RouteUtil.populateRouteParams(RouteMap[PageMap.TRACES] as Route),
+      serialized.params,
+    );
+
+    return route
+      ? {
+          target: "traces",
+          label: "Open in Traces",
+          icon: IconProp.RectangleStack,
+          route,
+          dropped: serialized.dropped,
+        }
+      : null;
+  }
+
+  if (input.metric?.shape === "Name") {
+    const params: Dictionary<string> = {};
+    const search: string | null = getMetricNamePatternSearch(
+      input.metric.namePattern,
+    );
+    const serviceId: string | null = trimmedOrNull(input.serviceId);
+    const dropped: Array<string> = [];
+
+    if (search) {
+      params["search"] = search;
+    }
+
+    if (serviceId) {
+      params["filters"] = JSON.stringify([["primaryEntityId", serviceId]]);
+    } else if (trimmedOrNull(input.serviceName)) {
+      dropped.push("serviceIds");
+    }
+
+    if (window) {
+      params["range"] = TimeRange.CUSTOM;
+      params["start"] = window.startTime.toISOString();
+      params["end"] = window.endTime.toISOString();
+    }
+
+    const route: Route | null = withQueryParams(
+      RouteUtil.populateRouteParams(RouteMap[PageMap.METRICS] as Route),
+      params,
+    );
+
+    return route
+      ? {
+          target: "metrics",
+          label: "Open in Metrics",
+          icon: IconProp.ChartBar,
+          route,
+          dropped,
+        }
+      : null;
+  }
+
+  const metricName: string | null = trimmedOrNull(
+    input.metric?.metricName || input.metricName,
+  );
+
+  if (!metricName) {
+    return null;
+  }
+
+  const serialized: CrossSignalQueryParams = toMetricsExplorerQueryParams(
+    {
+      serviceIds: serviceScope.serviceIds,
+      attributes: serviceScope.attributes,
+      startTime: window?.startTime,
+      endTime: window?.endTime,
+    },
+    metricName,
+  );
+
+  const route: Route | null = withQueryParams(
+    RouteUtil.populateRouteParams(RouteMap[PageMap.METRIC_VIEW] as Route),
+    serialized.params,
+  );
+
+  return route
+    ? {
+        target: "metrics",
+        label: "Open in Metrics",
+        icon: IconProp.ChartBar,
+        route,
+        dropped: serialized.dropped,
+      }
+    : null;
 }
 
 type BuildInsightInvestigationLinkFunction = (
@@ -682,6 +879,12 @@ export const buildInsightInvestigationLink: BuildInsightInvestigationLinkFunctio
       case AIInsightType.TraceFailingOperation:
       case AIInsightType.TraceMissingTracing: {
         return buildTraceFindingLink(input);
+      }
+
+      case AIInsightType.MetricHighCardinality:
+      case AIInsightType.MetricHistogramBuckets:
+      case AIInsightType.MetricMissingMetrics: {
+        return buildMetricFindingLink(input);
       }
 
       case AIInsightType.ProfileHotspot: {
