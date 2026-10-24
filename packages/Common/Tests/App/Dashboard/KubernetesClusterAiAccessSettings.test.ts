@@ -1776,7 +1776,7 @@ describe("who may loosen a cluster's AI access", () => {
       /*
        * Resetting the agent takes the same set, and an edit of the cluster
        * (the server's route asks both): the owner and admin roles edit
-       * clusters, Edit Auto Remediation Rule alone does not.
+       * clusters, Edit AI Rule alone does not.
        */
       expect(canResetKubernetesAiAgent()).toBe(
         permission !== Permission.EditAutoRemediationRule,
@@ -1795,7 +1795,7 @@ describe("who may loosen a cluster's AI access", () => {
       expect.arrayContaining([
         "Project Owner",
         "Project Admin",
-        "Edit Auto Remediation Rule",
+        "Edit AI Rule",
       ]),
     );
   });

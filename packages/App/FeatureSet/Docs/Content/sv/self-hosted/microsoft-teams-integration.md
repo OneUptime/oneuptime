@@ -58,7 +58,7 @@ Videosamtal (ett Teams-möte för en incident) använder inte den här boten: de
 Välj **Register** och lägg sedan till en andra Web-omdirigerings-URI, `https://your-oneuptime-domain.com/api/microsoft-teams/admin-consent/callback`. Anteckna **Application (client) ID** och **Directory (tenant) ID**: du behöver båda senare.
 
 > [!NOTE]
-> **Varför en enda klientorganisation:** en självhostad OneUptime-installation betjänar en organisation, och dess bot är registrerad för den enda klientorganisation du anger i `MICROSOFT_TEAMS_APP_TENANT_ID` (steg 6). Att registrera appen för flera klientorganisationer utökar inte det och inför ett sätt att misslyckas: gäst- / B2B-användare vars egen Microsoft-klientorganisation skiljer sig från din når boten med sitt eget klientorganisations-ID, som OneUptime inte kan koppla till ditt projekt. Har du redan registrerat en app för flera klientorganisationer fortsätter den att fungera; se bara till att `MICROSOFT_TEAMS_APP_TENANT_ID` är din egen klientorganisation, och räkna med att gästkonton behöver ett konto i din klientorganisation för att använda boten.
+> **Varför en enda klientorganisation:** en självhostad OneUptime betjänar en organisation och loggar in alla i dess klientorganisation: administratörer som ger medgivande och varje person som väljer **Connect my account with Microsoft Teams**. Gäster i din organisation loggar in med sitt gästkonto, det som Teams använder för dem. En app för flera klientorganisationer fungerar på samma sätt, men en enda klientorganisation håller appen inom din organisation.
 
 ### Steg 2: Konfigurera appens behörigheter
 
@@ -193,7 +193,7 @@ Anteckningar:
 | --- | --- | --- |
 | `MICROSOFT_TEAMS_APP_CLIENT_ID` | `microsoftTeamsApp.clientId` | **Application (client) ID**. Det är också bot-ID:t i Teams-apppaketet, så det måste vara ett GUID. |
 | `MICROSOFT_TEAMS_APP_CLIENT_SECRET` | `microsoftTeamsApp.clientSecret` | Klienthemlighetens **Value**, inte dess ID. |
-| `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | **Directory (tenant) ID**. Boten autentiserar sig som en app för en enda klientorganisation i den här klientorganisationen. |
+| `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | **Directory (tenant) ID**. Boten autentiserar sig som en app för en enda klientorganisation i den här klientorganisationen, och personer loggar in i den för att ansluta sitt Microsoft Teams-konto. |
 | `HOST` | `host` | Ditt offentliga värdnamn. Omdirigerings-URI:erna, meddelandeslutpunkten och Teams-apppaketet byggs utifrån det. |
 | `HTTP_PROTOCOL` | `httpProtocol` | `https`. Azure Bot Service anropar bara HTTPS-slutpunkter. |
 
@@ -320,7 +320,7 @@ En gruppchatt som saknar namn i Teams visas med medlemmarnas namn, och det är a
 curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test | jq
 ```
 
-Det här rapporterar vad OneUptime kan se lokalt: om `MICROSOFT_TEAMS_APP_CLIENT_ID` och `MICROSOFT_TEAMS_APP_CLIENT_SECRET` är angivna, den meddelandeslutpunkt som den här installationen förväntar sig och, mest användbart, det **bot-ID** som ditt Teams-apppaket måste innehålla.
+Det här rapporterar vad OneUptime kan se lokalt: om `MICROSOFT_TEAMS_APP_CLIENT_ID`, `MICROSOFT_TEAMS_APP_CLIENT_SECRET` och `MICROSOFT_TEAMS_APP_TENANT_ID` är angivna, den klientorganisation som personer loggar in i när de ansluter sitt konto, den meddelandeslutpunkt som den här installationen förväntar sig och, mest användbart, det **bot-ID** som ditt Teams-apppaket måste innehålla.
 
 Det läser miljövariabler och inget annat. Det anropar inte Azure, så det kan inte tala om för dig om Azure Bot-resursen finns, om dess meddelandeslutpunkt pekar hit, om Teams-kanalen är aktiverad, om hemligheten fortfarande är giltig eller om Azure kan nå dig. Svaret säger det själv genom att lista vad det kontrollerade och vad det inte kontrollerade, så att det aldrig misstas för grönt ljus.
 
@@ -389,7 +389,15 @@ När Microsoft skickar tillbaka dig och anslutningen inte gjordes (när du bevil
 | **"Du loggade in hos Microsoft som någon annan än personen som tryckte på anslutningsknappen i Microsoft Teams, så inget anslöts."** | En knapp **Connect Microsoft Teams account** fungerar bara för det Microsoft-konto som tryckte på den. Logga in hos Microsoft som dig själv, eller be personen som tryckte på den att trycka på den. |
 | **"Anslutningen avbröts, så inget ändrades."** | Inget samtycke beviljades hos Microsoft. Börja om och godkänn det. |
 | **"Microsoft Teams är inte konfigurerat på den här OneUptime-servern."** | Ange klient-ID och hemlighet för Microsoft Teams-appen (se [steg 6](#steg-6-konfigurera-oneuptimes-miljövariabler)) och starta om OneUptime. |
-| **"OneUptime kunde inte slutföra anslutningen. Försök igen."** | Microsoft svarade med ett fel, eller så misslyckades en begäran eller en skrivning under slutförandet. OneUptimes serverlogg säger vilken. Försök igen; om det fortsätter kontrollerar du loggen och appregistreringens inställningar. |
+| **"OneUptime kunde inte slutföra anslutningen. Försök igen."** | Microsoft svarade med ett fel, eller så misslyckades en begäran eller en skrivning under slutförandet. OneUptimes serverlogg säger vilken. Försök igen; om det fortsätter kontrollerar du loggen och appregistreringens inställningar. Om Microsoft svarade `AADSTS50194`, se [Inloggningen misslyckas med AADSTS50194](#inloggningen-misslyckas-med-aadsts50194). |
+
+### Inloggningen misslyckas med AADSTS50194
+
+Microsoft nekar inloggningen med `AADSTS50194` när appen är registrerad för en organisation och inloggningen går till Microsofts slutpunkt för alla organisationer, `/common`. Microsoft Teams-sidan säger då att OneUptime inte kunde slutföra anslutningen, och OneUptimes serverlogg har Microsofts svar.
+
+- **Uppgradera OneUptime.** Äldre versioner skickade **Connect my account with Microsoft Teams** till `/common`, så med en app för en enda klientorganisation, som i steg 1, kunde ingen ansluta sitt konto. Aktuella versioner loggar in personer i din klientorganisation.
+- **Tills du kan uppgradera,** gör du appregistreringen till en app för flera klientorganisationer: under **Authentication** ställer du in **Supported account types** på konton i valfri organisationskatalog. För att hålla appen till dina egna användare öppnar du den under **Enterprise applications**, ställer in **Assignment required?** på Yes under **Properties** och lägger till dem som använder OneUptime under **Users and groups**. Gör den till en enda klientorganisation igen när du har uppgraderat.
+- **På en aktuell version** kontrollerar du att `MICROSOFT_TEAMS_APP_TENANT_ID` är inställt på appens **Directory (tenant) ID**: ett projekt som ännu inte är anslutet loggar in personer i den klientorganisationen.
 
 Vi vill förbättra den här integrationen, så feedback är välkommen på [hello@oneuptime.com](mailto:hello@oneuptime.com).
 

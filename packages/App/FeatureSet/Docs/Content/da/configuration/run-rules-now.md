@@ -19,7 +19,7 @@ flowchart TB
 - **Monitor Rules** på en statusside. De synkroniserer allerede siden igen, hver gang en regel gemmes; at køre en synkroniserer den med det samme.
 - **Monitor Rules** på et SLO. De synkroniserer allerede SLO'et igen, hver gang en regel gemmes; at køre en synkroniserer SLO'ets monitorer med det samme. Se [Monitorer og monitorregler](/docs/slo/monitor-rules).
 
-Regler, der udfører en handling i stedet for at beskrive en ressource (**Vagtregler**, **Runbook-regler**, **Regler for automatisk afhjælpning** og **Grupperingsregler**), kan ikke køres på eksisterende poster. At køre dem ville tilkalde folk, køre runbooks, starte rettelser eller omorganisere episoder for hændelser, der allerede er overstået.
+Regler, der udfører en handling i stedet for at beskrive en ressource (**Vagtregler**, **Runbook-regler**, **AI-regler** og **Grupperingsregler**), kan ikke køres på eksisterende poster. At køre dem ville tilkalde folk, køre runbooks, starte rettelser eller omorganisere episoder for hændelser, der allerede er overstået.
 
 ## Før du begynder
 

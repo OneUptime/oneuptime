@@ -1,9 +1,25 @@
 import EntityType from "../../Types/Telemetry/EntityType";
 import { NetworkTopologyDeviceRole } from "../../Types/Monitor/SnmpMonitor/NetworkTopology";
 import {
+  NetworkDeviceDiscoverySighting,
+  NetworkDeviceOtherMachineSighting,
+} from "../../Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
+import {
   classifyDeviceRole,
   labelForDeviceRole,
 } from "../Monitor/NetworkDeviceRoleUtil";
+import {
+  NetworkDeviceAssetFactsOptions,
+  NetworkDeviceAssetSource,
+  NetworkDeviceFactDetail,
+  NetworkDeviceFactDetails,
+  getNetworkDeviceFactDetails,
+} from "../NetworkDevice/NetworkDeviceAssetFacts";
+import {
+  AssetFactDifference,
+  AssetFactSource,
+  AssetFactSourceKind,
+} from "./AssetFactSource";
 
 /*
  * One set of asset details for every machine in Inventory (OneUptime issue
@@ -140,6 +156,18 @@ export interface InventoryAssetDetail {
   field: InventoryAssetField;
   // The value, or undefined when nothing has reported it.
   value: string | undefined;
+  /*
+   * Where the value came from and when it was read (issue #5185), when that
+   * is known: always for a host, and for a network device read from its own
+   * record (getNetworkDeviceInventoryAssetDetails). A network device's item
+   * alone does not say.
+   */
+  source?: AssetFactSource | undefined;
+  /*
+   * What discovery read for the same detail, when it differs from a value
+   * saved on the device. The saved value is the one shown.
+   */
+  discoveredDifferent?: AssetFactDifference | undefined;
 }
 
 export interface InventoryAssetDetails {
@@ -151,6 +179,12 @@ export interface InventoryAssetDetails {
   details: Array<InventoryAssetDetail>;
   // The facts of INVENTORY_ASSET_FIELDS with no value, in order.
   unknownFields: Array<InventoryAssetField>;
+  /*
+   * A network device read from its own record: the discovery scan that last
+   * found it at its address, and a scan that found another machine there.
+   */
+  foundBy?: NetworkDeviceDiscoverySighting | undefined;
+  otherMachine?: NetworkDeviceOtherMachineSighting | undefined;
 }
 
 // What an Inventory item contributes. Read defensively: these come off API rows.
@@ -158,6 +192,11 @@ export interface InventoryAssetSource {
   entityType?: unknown;
   identifyingAttributes?: unknown;
   descriptiveAttributes?: unknown;
+  /*
+   * When the item was last reported: for a host, its collector's last batch,
+   * which is when every detail it carries was last read.
+   */
+  lastSeenAt?: unknown;
 }
 
 const ASSET_KIND_BY_ENTITY_TYPE: ReadonlyMap<string, InventoryAssetKind> =
@@ -359,7 +398,37 @@ export function getInventoryAssetDetails(
     values.set(field, read(keyOf(field)));
   }
 
+  /*
+   * Where each value came from. A host's are all its collector's, read with
+   * its last report, except the two the card works out when the collector
+   * does not say: a type classified from its OS and name, and a location
+   * standing in from its cloud zone. A network device's item does not say
+   * (the device's own record does: getNetworkDeviceInventoryAssetDetails).
+   */
+  const sources: Map<InventoryAssetField, AssetFactSource> = new Map<
+    InventoryAssetField,
+    AssetFactSource
+  >();
+  let defaultSource: AssetFactSource | undefined = undefined;
+
   if (kind === InventoryAssetKind.Host) {
+    defaultSource = {
+      kind: AssetFactSourceKind.Collector,
+      readAt: readIsoTime(item.lastSeenAt),
+    };
+
+    if (!values.get(InventoryAssetField.DeviceType)) {
+      sources.set(InventoryAssetField.DeviceType, {
+        kind: AssetFactSourceKind.Classified,
+      });
+    }
+
+    if (!values.get(InventoryAssetField.Location)) {
+      sources.set(InventoryAssetField.Location, {
+        kind: AssetFactSourceKind.CloudPlacement,
+      });
+    }
+
     const osDescription: string | undefined = read(
       keyOf(InventoryAssetField.SystemDescription),
     );
@@ -415,24 +484,160 @@ export function getInventoryAssetDetails(
   const details: Array<InventoryAssetDetail> = [];
   const unknownFields: Array<InventoryAssetField> = [];
 
-  for (const field of INVENTORY_ASSET_FIELDS) {
+  const detailOf: (field: InventoryAssetField) => InventoryAssetDetail = (
+    field: InventoryAssetField,
+  ): InventoryAssetDetail => {
     const value: string | undefined = values.get(field);
-    details.push({ field: field, value: value });
+    const source: AssetFactSource | undefined = value
+      ? sources.get(field) || defaultSource
+      : undefined;
 
-    if (!value) {
+    return source
+      ? { field: field, value: value, source: source }
+      : { field: field, value: value };
+  };
+
+  for (const field of INVENTORY_ASSET_FIELDS) {
+    const detail: InventoryAssetDetail = detailOf(field);
+    details.push(detail);
+
+    if (!detail.value) {
       unknownFields.push(field);
     }
   }
 
   for (const field of INVENTORY_ASSET_OPTIONAL_FIELDS) {
-    const value: string | undefined = values.get(field);
+    const detail: InventoryAssetDetail = detailOf(field);
 
-    if (value) {
-      details.push({ field: field, value: value });
+    if (detail.value) {
+      details.push(detail);
     }
   }
 
   return { kind: kind, details: details, unknownFields: unknownFields };
+}
+
+/*
+ * An item's time - a Date, or a date string off an API row - as ISO-8601, or
+ * undefined for anything else.
+ */
+function readIsoTime(value: unknown): string | undefined {
+  let time: number = Number.NaN;
+
+  if (value instanceof Date) {
+    time = value.getTime();
+  } else if (typeof value === "string" && value.trim()) {
+    time = new Date(value.trim()).getTime();
+  }
+
+  return Number.isNaN(time) ? undefined : new Date(time).toISOString();
+}
+
+/*
+ * One network device fact as an asset detail, with its source and any
+ * disagreement.
+ */
+function assetDetailOf(
+  field: InventoryAssetField,
+  fact: NetworkDeviceFactDetail,
+): InventoryAssetDetail {
+  const detail: InventoryAssetDetail = { field: field, value: fact.value };
+
+  if (fact.value && fact.source) {
+    detail.source = fact.source;
+  }
+
+  if (fact.value && fact.discoveredDifferent) {
+    detail.discoveredDifferent = fact.discoveredDifferent;
+  }
+
+  return detail;
+}
+
+/**
+ * A network device's asset details read from its OWN record rather than from
+ * its Inventory item, with where each one came from and when (issue #5185).
+ *
+ * The same facts, in the same order, as getInventoryAssetDetails gives for
+ * the device's item - the mirror writes the item from the very same
+ * getNetworkDeviceFactDetails - but current to the moment, rather than to
+ * the mirror's last pass, and with their sources, which an item does not
+ * carry. The Asset Details card reads the device this way when it may.
+ */
+export function getNetworkDeviceInventoryAssetDetails(
+  device: NetworkDeviceAssetSource,
+  options?: NetworkDeviceAssetFactsOptions | undefined,
+): InventoryAssetDetails {
+  const facts: NetworkDeviceFactDetails = getNetworkDeviceFactDetails(
+    device,
+    options,
+  );
+
+  /*
+   * Location reads as the item's does: the site first, then where the device
+   * says it is. Its source is the reported location's when there is one -
+   * the site is a choice, and says so on its own.
+   */
+  const location: NetworkDeviceFactDetail = facts.facts.location.value
+    ? {
+        ...facts.facts.location,
+        value: joinParts([facts.facts.site.value, facts.facts.location.value]),
+      }
+    : facts.facts.site;
+
+  const byField: Record<InventoryAssetField, NetworkDeviceFactDetail> = {
+    [InventoryAssetField.Hostname]: facts.facts.hostname,
+    [InventoryAssetField.IpAddress]: facts.facts.ipAddress,
+    [InventoryAssetField.MacAddress]: facts.facts.macAddress,
+    [InventoryAssetField.SerialNumber]: facts.facts.serialNumber,
+    [InventoryAssetField.Manufacturer]: facts.facts.manufacturer,
+    [InventoryAssetField.Model]: facts.facts.model,
+    [InventoryAssetField.FirmwareVersion]: facts.facts.firmwareVersion,
+    [InventoryAssetField.OperatingSystem]: facts.facts.operatingSystem,
+    [InventoryAssetField.OsVersion]: facts.facts.osVersion,
+    [InventoryAssetField.DeviceType]: facts.facts.deviceType,
+    [InventoryAssetField.Location]: location,
+    [InventoryAssetField.DnsName]: facts.facts.dnsName,
+    // A network device has no architecture to report.
+    [InventoryAssetField.Architecture]: {},
+    [InventoryAssetField.SystemDescription]: facts.system.sysDescr,
+  };
+
+  const details: Array<InventoryAssetDetail> = [];
+  const unknownFields: Array<InventoryAssetField> = [];
+
+  for (const field of INVENTORY_ASSET_FIELDS) {
+    const detail: InventoryAssetDetail = assetDetailOf(field, byField[field]);
+    details.push(detail);
+
+    if (!detail.value) {
+      unknownFields.push(field);
+    }
+  }
+
+  for (const field of INVENTORY_ASSET_OPTIONAL_FIELDS) {
+    const detail: InventoryAssetDetail = assetDetailOf(field, byField[field]);
+
+    if (detail.value) {
+      details.push(detail);
+    }
+  }
+
+  const result: InventoryAssetDetails = {
+    kind: InventoryAssetKind.NetworkDevice,
+    details: details,
+    unknownFields: unknownFields,
+  };
+
+  if (facts.foundBy) {
+    result.foundBy = facts.foundBy;
+  }
+
+  if (facts.otherMachine) {
+    result.otherMachine = facts.otherMachine;
+  }
+
+  return result;
 }
 
 /**

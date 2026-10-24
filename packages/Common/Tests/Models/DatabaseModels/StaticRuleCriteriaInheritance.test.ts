@@ -94,7 +94,6 @@ const STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES: Array<string> = [
   "ServiceLevelObjectiveMonitorRule",
   "ServiceLevelObjectiveLabelRule",
   "ServiceLevelObjectiveOwnerRule",
-  "AIInvestigationRule",
   "AIPostmortemRule",
 ];
 
@@ -118,8 +117,8 @@ function getRegisteredModelType(modelName: string): ModelType {
 
 describe("static match-criteria rule model inheritance", () => {
   it("keeps the explicit model inventory complete and duplicate-free", () => {
-    expect(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES).toHaveLength(84);
-    expect(new Set(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES).size).toBe(84);
+    expect(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES).toHaveLength(83);
+    expect(new Set(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES).size).toBe(83);
   });
 
   it.each(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES)(

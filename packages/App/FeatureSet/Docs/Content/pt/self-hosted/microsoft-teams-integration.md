@@ -58,7 +58,7 @@ No [portal do Azure](https://portal.azure.com), abra **App registrations** e sel
 Selecione **Register** e depois adicione um segundo URI de redirecionamento Web, `https://your-oneuptime-domain.com/api/microsoft-teams/admin-consent/callback`. Anote o **Application (client) ID** e o **Directory (tenant) ID**: você vai precisar dos dois mais adiante.
 
 > [!NOTE]
-> **Por que um único locatário:** uma instância auto-hospedada do OneUptime atende uma organização, e o bot dela é registrado para o único locatário que você define em `MICROSOFT_TEAMS_APP_TENANT_ID` (passo 6). Registrar o app como multilocatário não amplia isso e introduz um modo de falha: usuários convidados / B2B cujo locatário Microsoft de origem é diferente do seu chegam ao bot com o próprio ID de locatário, que o OneUptime não consegue associar ao seu projeto. Se você já registrou um app multilocatário, ele continua funcionando; só garanta que `MICROSOFT_TEAMS_APP_TENANT_ID` seja o seu próprio locatário, e conte com o fato de que contas convidadas vão precisar de uma conta no seu locatário para usar o bot.
+> **Por que um único locatário:** um OneUptime auto-hospedado atende uma organização e faz todos entrarem no locatário dela: os administradores que dão o consentimento e cada pessoa que seleciona **Connect my account with Microsoft Teams**. Os convidados da sua organização entram com a conta de convidado, a que o Teams usa para eles. Um app multilocatário funciona da mesma forma, mas um único locatário mantém o app restrito à sua organização.
 
 ### Passo 2: Configure as permissões do app
 
@@ -193,7 +193,7 @@ Observações:
 | --- | --- | --- |
 | `MICROSOFT_TEAMS_APP_CLIENT_ID` | `microsoftTeamsApp.clientId` | O **Application (client) ID**. Ele também é o ID do bot no pacote de app do Teams, então precisa ser um GUID. |
 | `MICROSOFT_TEAMS_APP_CLIENT_SECRET` | `microsoftTeamsApp.clientSecret` | O **Value** do segredo do cliente, não o ID dele. |
-| `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | O **Directory (tenant) ID**. O bot se autentica como um app de locatário único nesse locatário. |
+| `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | O **Directory (tenant) ID**. O bot se autentica como um app de locatário único nesse locatário, e as pessoas entram nele para conectar a conta do Microsoft Teams. |
 | `HOST` | `host` | O seu nome de host público. Os URIs de redirecionamento, o endpoint de mensagens e o pacote de app do Teams são montados a partir dele. |
 | `HTTP_PROTOCOL` | `httpProtocol` | `https`. O Azure Bot Service só chama endpoints HTTPS. |
 
@@ -320,7 +320,7 @@ Um chat em grupo que não tem nome no Teams aparece com os nomes dos membros, po
 curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test | jq
 ```
 
-Isso informa o que o OneUptime consegue ver localmente: se `MICROSOFT_TEAMS_APP_CLIENT_ID` e `MICROSOFT_TEAMS_APP_CLIENT_SECRET` estão definidos, o endpoint de mensagens que esta instância espera e, o mais útil, o **ID do bot** que o seu pacote de app do Teams precisa levar.
+Isso informa o que o OneUptime consegue ver localmente: se `MICROSOFT_TEAMS_APP_CLIENT_ID`, `MICROSOFT_TEAMS_APP_CLIENT_SECRET` e `MICROSOFT_TEAMS_APP_TENANT_ID` estão definidos, o locatário em que as pessoas entram ao conectar a conta, o endpoint de mensagens que esta instância espera e, o mais útil, o **ID do bot** que o seu pacote de app do Teams precisa levar.
 
 Ele lê variáveis de ambiente e nada mais. Não chama o Azure, então não consegue dizer se o recurso Azure Bot existe, se o endpoint de mensagens dele aponta para cá, se o canal do Teams está ativado, se o segredo ainda é válido ou se o Azure consegue alcançar você. A resposta diz isso ela mesma, listando o que verificou e o que não verificou, para nunca ser confundida com sinal verde.
 
@@ -389,7 +389,15 @@ Quando a Microsoft devolve você e a conexão não foi feita (ao conceder o cons
 | **"Você entrou na Microsoft como uma pessoa diferente da que pressionou o botão de conexão no Microsoft Teams, então nada foi conectado."** | Um botão **Connect Microsoft Teams account** só funciona para a conta Microsoft que o pressionou. Entre na Microsoft como você mesmo, ou peça à pessoa que o pressionou que o pressione. |
 | **"A conexão foi cancelada, então nada foi alterado."** | O consentimento não foi concedido na Microsoft. Comece de novo e aceite-o. |
 | **"O Microsoft Teams não está configurado neste servidor do OneUptime."** | Defina o ID de cliente e o segredo do app do Microsoft Teams (veja o [passo 6](#passo-6-configure-as-variáveis-de-ambiente-do-oneuptime)) e reinicie o OneUptime. |
-| **"O OneUptime não conseguiu concluir a conexão. Tente novamente."** | A Microsoft respondeu com um erro, ou uma requisição ou uma gravação falhou durante a conclusão. O log do servidor do OneUptime diz qual. Tente de novo; se continuar acontecendo, verifique o log e as configurações do registro do app. |
+| **"O OneUptime não conseguiu concluir a conexão. Tente novamente."** | A Microsoft respondeu com um erro, ou uma requisição ou uma gravação falhou durante a conclusão. O log do servidor do OneUptime diz qual. Tente de novo; se continuar acontecendo, verifique o log e as configurações do registro do app. Se a Microsoft respondeu `AADSTS50194`, veja [O login falha com AADSTS50194](#o-login-falha-com-aadsts50194). |
+
+### O login falha com AADSTS50194
+
+A Microsoft recusa o login com `AADSTS50194` quando o app está registrado para uma única organização e o login vai para o endpoint da Microsoft para todas as organizações, `/common`. A página do Microsoft Teams diz então que o OneUptime não conseguiu concluir a conexão, e o log do servidor do OneUptime tem a resposta da Microsoft.
+
+- **Atualize o OneUptime.** As versões antigas enviavam **Connect my account with Microsoft Teams** para `/common`, então, com um app de locatário único, como no passo 1, ninguém conseguia conectar a conta. As versões atuais fazem as pessoas entrarem no seu locatário.
+- **Até poder atualizar,** torne o registro do app multilocatário: em **Authentication**, defina **Supported account types** como contas em qualquer diretório organizacional. Para restringir o app às suas próprias pessoas, abra-o em **Enterprise applications**, defina **Assignment required?** como Yes em **Properties** e adicione em **Users and groups** as pessoas que usam o OneUptime. Volte a deixá-lo como locatário único depois de atualizar.
+- **Em uma versão atual,** verifique se `MICROSOFT_TEAMS_APP_TENANT_ID` está definido com o **Directory (tenant) ID** do app: um projeto que ainda não está conectado faz as pessoas entrarem nesse locatário.
 
 Queremos melhorar esta integração, então os seus comentários são bem-vindos em [hello@oneuptime.com](mailto:hello@oneuptime.com).
 

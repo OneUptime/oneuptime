@@ -155,6 +155,13 @@ function withQuery(path: string, query: Record<string, string>): string {
   return `${path}?${new URLSearchParams(query).toString()}`;
 }
 
+// An absolute URL without its query: the endpoint it opens.
+function endpointOf(url: string): string {
+  const parsed: globalThis.URL = new globalThis.URL(url);
+
+  return `${parsed.origin}${parsed.pathname}`;
+}
+
 describe("Microsoft Teams OAuth state", () => {
   let app: RunningApp;
   let projectId: ObjectID;
@@ -1152,11 +1159,14 @@ describe("Microsoft Teams OAuth state", () => {
         permissions: [Permission.Viewer],
       });
 
-      expect(
-        url.startsWith(
-          "https://login.microsoftonline.com/common/oauth2/v2.0/authorize?",
-        ),
-      ).toBe(true);
+      /*
+       * No project connection and no app tenant here: the endpoint for any
+       * organization - never `common` (#5202). Where it goes otherwise is
+       * MicrosoftTeamsSignInTenantEndToEnd's.
+       */
+      expect(endpointOf(url)).toBe(
+        "https://login.microsoftonline.com/organizations/oauth2/v2.0/authorize",
+      );
       expect(queryOf(url).get("redirect_uri")).toBe(
         `${AppApiClientUrl.toString()}/microsoft-teams/auth`,
       );
@@ -1165,6 +1175,77 @@ describe("Microsoft Teams OAuth state", () => {
       );
       expect(state).toMatch(/^[A-Za-z0-9_-]{43}$/);
       expect(url).not.toContain(projectId.toString());
+    });
+
+    test("a connected project's sign-in goes to its tenant, pinned to the state, and the code is exchanged there", async () => {
+      getProjectAuth.mockImplementation(async () => {
+        return {
+          workspaceProjectId: TENANT_ID,
+          miscData: { tenantId: TENANT_ID, adminConsentGranted: true },
+        };
+      });
+
+      const { state, url, browser } = await startFlow(SIGN_IN_START);
+
+      expect(endpointOf(url)).toBe(
+        `https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/authorize`,
+      );
+
+      const stored: JSONObject = JSON.parse(
+        Array.from(mockCacheStore.values())[0]!.value,
+      );
+      expect(stored["tenantId"]).toBe(TENANT_ID);
+
+      postSpy.mockImplementation(async () => {
+        return new HTTPResponse<JSONObject>(
+          200,
+          { access_token: "user-access-token" },
+          {},
+        ) as any;
+      });
+      getSpy.mockImplementation(async () => {
+        return new HTTPResponse<JSONObject>(
+          200,
+          { id: "aad-user-1", displayName: "Ada" },
+          {},
+        ) as any;
+      });
+
+      const response: ProbeResponse = await callback(
+        SIGN_IN_CALLBACK,
+        { code: "code", state },
+        browser,
+      );
+
+      expect(response.location).toBe(teamsPage());
+      expect(postSpy).toHaveBeenCalledTimes(1);
+      expect((postSpy.mock.calls[0]![0] as any).url.toString()).toBe(
+        `https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token`,
+      );
+      expect(refreshUserAuth).toHaveBeenCalledTimes(1);
+    });
+
+    test("a sign-in for a tenant the project is no longer connected to links nothing, and exchanges no code", async () => {
+      getProjectAuth.mockImplementation(async () => {
+        return { workspaceProjectId: TENANT_ID, miscData: {} };
+      });
+
+      const { state, browser } = await startFlow(SIGN_IN_START);
+
+      // Disconnected, and connected to another organization meanwhile.
+      getProjectAuth.mockImplementation(async () => {
+        return { workspaceProjectId: OTHER_TENANT_ID, miscData: {} };
+      });
+
+      const response: ProbeResponse = await callback(
+        SIGN_IN_CALLBACK,
+        { code: "code", state },
+        browser,
+      );
+
+      expectAnsweredOnTeamsPage(response, "teams-other-tenant");
+      expectNoTokenRequested();
+      expectNothingWritten();
     });
 
     test("refuses the legacy <projectId>:<userId> state and exchanges no code", async () => {

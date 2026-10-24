@@ -1718,8 +1718,8 @@ Agent retired in OneUptime 12
   once the AI agent has stopped. After that, OneUptime may have removed the
   old Runner, and the rolled-back one is not used until you bind it to the
   cluster again with the API or Terraform (the cluster's **AI Access
-  Runner**; a Project Owner, a Project Admin or **Edit Auto Remediation
-  Rule** may do it), or you upgrade the chart again.
+  Runner**; a Project Owner, a Project Admin or **Edit AI Rule** may do
+  it), or you upgrade the chart again.
 
 ```bash
 helm repo update
@@ -2010,6 +2010,21 @@ them from your configuration. An auto remediation rule's
 unless you set them, and a rule of either kind names its repositories in
 `codeRepositories` (`code_repositories`), empty for every connected
 repository.
+
+### Investigation rules and auto remediation rules are now AI rules
+
+**Incidents → AI → Settings** and **Alerts → AI → Settings** had two tables of rules under **More settings**: investigation rules, which narrowed which incidents (or alerts) OneUptime AI investigates, and auto remediation rules, which narrowed which it fixes and how. There is no fixing without investigating, so they are one table now, **AI rules**: a rule's conditions are written once, and the rule says when OneUptime AI investigates what it matches, and whether and how it fixes it. See [Which incidents are investigated and fixed](/docs/ai/ai-sre#which-incidents-are-investigated-and-fixed).
+
+The upgrade keeps every project's AI doing what it did, for incidents and for alerts alike:
+
+- An investigation rule and an auto remediation rule that match the same incidents — the same conditions, both enabled or both disabled — and allow the same MCP servers, code repositories and LLM provider become one rule: the auto remediation rule, which now investigates too, after the investigation rule's wait. It keeps its name, fix, runbooks, Runner and pull-request switches.
+- Every other investigation rule becomes an AI rule that investigates and does not fix, with its name, conditions, wait, MCP servers, code repositories and LLM provider.
+- Every other auto remediation rule fixes as before. Where an enabled investigation rule decided what is investigated, it does not investigate — its **Investigates and fixes** column says **Doesn't investigate** — so what is investigated does not change. Where none did, it investigates too, unless it picks an LLM provider; and if an enabled rule now investigates, the project also gets **Investigate every incident** (or **Investigate every alert**), which investigates every one and fixes nothing, so every incident is still investigated — unless a rule that investigates matches every one already.
+- Where an enabled investigation rule decided what is investigated and no enabled auto remediation rule decided what is fixed, every incident was fixed while fixing was on. A project with fixing on gets **Fix every incident** (or **Fix every alert**), which fixes every one the way OneUptime AI did with no rule and does not investigate; a project with fixing off gets no rule that fixes. If you turn fixing on there later, add a rule that fixes first: with rules set up, OneUptime AI fixes only what a rule that fixes matches.
+
+API clients and Terraform configurations: an AI rule is an `AutoRemediationRule`, at `/api/auto-remediation-rule`, with the route, permissions and ids the auto remediation rules had. `investigates` and `fixes` say what it does — `false` and `true` unless you set them, so a client written before still creates rules that only fix — and `onlyIfOpenAfterMinutes` is its wait. In Terraform it is `oneuptime_ai_rule`; `oneuptime_auto_remediation_rule` still works, deprecated, and a `moved` block switches a rule over without replacing it. The investigation rules' route, `/api/ai-investigation-rule`, answers `410 Gone` with what to use instead, and `oneuptime_investigation_rule` is gone: write such a rule as an `oneuptime_ai_rule` with `investigates` set to `true` and `fixes` set to `false`.
+
+The rules' permissions are the auto remediation rules', renamed **Create AI Rule**, **Edit AI Rule**, **Delete AI Rule** and **Read AI Rule**. A custom role that has them may now also manage rules that only investigate, which took a Project Owner or a Project Admin before.
 
 ### Verify the edition and the license
 

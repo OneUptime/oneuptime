@@ -312,7 +312,7 @@ describe("getRemediationDecisionLines", () => {
 
       expect(line.tone).toBe("acted");
       expect(line.text).toBe(
-        'OneUptime AI is composing a fix for cluster "prod-east". Nothing runs until you approve it, because Auto Remediation Rule "Payments ask first" asks before fixing.',
+        'OneUptime AI is composing a fix for cluster "prod-east". Nothing runs until you approve it, because AI rule "Payments ask first" asks before fixing.',
       );
       expect(hrefsOf(line)).toEqual([
         `/dashboard/${PROJECT_ID}/kubernetes/${CLUSTER_ID}/ai/agent`,
@@ -429,7 +429,7 @@ describe("getRemediationDecisionLines", () => {
 
       expect(line.tone).toBe("acted");
       expect(line.text).toBe(
-        'OneUptime AI is composing a fix for Docker host "web-1". Nothing runs until you approve it, because Auto Remediation Rule "Staging asks" asks before fixing.',
+        'OneUptime AI is composing a fix for Docker host "web-1". Nothing runs until you approve it, because AI rule "Staging asks" asks before fixing.',
       );
       expect(hrefsOf(line)).toEqual([
         `/dashboard/${PROJECT_ID}/docker/${RESOURCE_ID}/ai/agent`,
@@ -519,21 +519,19 @@ describe("getRemediationDecisionLines", () => {
     });
   });
 
-  describe("Auto Remediation Rules", () => {
+  describe("AI rules", () => {
     test("links to the rules of the right kind of signal, on its AI settings page", () => {
       const incidentLine: RemediationDecisionLine = onlyLine({
         lane: AutoRemediationDecisionLane.Rule,
         reason: AutoRemediationDecisionReason.NoRulesConfigured,
       });
       expect(incidentLine.text).toBe(
-        "No Auto Remediation Rule is set up for this kind of incident. A rule can propose or start a runbook when a matching one is created.",
+        "No AI rule is set up for this kind of incident. A rule can propose or start a runbook when a matching one is created.",
       );
       expect(hrefsOf(incidentLine)).toEqual([
         `/dashboard/${PROJECT_ID}/incidents/ai/settings`,
       ]);
-      expect(incidentLine.links[0]!.text).toBe(
-        "Incident Auto Remediation Rules",
-      );
+      expect(incidentLine.links[0]!.text).toBe("Incident AI rules");
 
       const alertLine: RemediationDecisionLine = onlyLine(
         {
@@ -545,7 +543,7 @@ describe("getRemediationDecisionLines", () => {
       expect(hrefsOf(alertLine)).toEqual([
         `/dashboard/${PROJECT_ID}/alerts/ai/settings`,
       ]);
-      expect(alertLine.links[0]!.text).toBe("Alert Auto Remediation Rules");
+      expect(alertLine.links[0]!.text).toBe("Alert AI rules");
     });
 
     test("with rules set up and none matching, says nothing was fixed, and why", () => {
@@ -557,7 +555,7 @@ describe("getRemediationDecisionLines", () => {
 
       expect(one.tone).toBe("info");
       expect(one.text).toBe(
-        "The 1 Auto Remediation Rule set up does not match this incident, so it was not fixed. With rules set up, only what matches one is fixed.",
+        "The 1 AI rule set up does not match this incident, so it was not fixed. With rules set up, OneUptime AI fixes only what matches a rule that fixes.",
       );
       expect(hrefsOf(one)).toEqual([
         `/dashboard/${PROJECT_ID}/incidents/ai/settings`,
@@ -573,11 +571,51 @@ describe("getRemediationDecisionLines", () => {
       );
 
       expect(many.text).toBe(
-        "None of the 3 Auto Remediation Rules set up match this alert, so it was not fixed. With rules set up, only what matches one is fixed.",
+        "None of the 3 AI rules set up match this alert, so it was not fixed. With rules set up, OneUptime AI fixes only what matches a rule that fixes.",
       );
       expect(hrefsOf(many)).toEqual([
         `/dashboard/${PROJECT_ID}/alerts/ai/settings`,
       ]);
+    });
+
+    /*
+     * Rules matched, and each only investigates ("Don't fix"): with rules
+     * set up, OneUptime AI fixes only what matches a rule that fixes - the
+     * line names the rule, or how many, and links to them.
+     */
+    test("with only rules that do not fix matching, says they only investigate, and links to them", () => {
+      const one: RemediationDecisionLine = onlyLine({
+        lane: AutoRemediationDecisionLane.Rule,
+        reason: AutoRemediationDecisionReason.MatchedRulesDoNotFix,
+        rulesChecked: 1,
+        ruleName: "Payments: investigate only",
+      });
+
+      expect(one.tone).toBe("info");
+      expect(one.text).toBe(
+        'AI rule "Payments: investigate only" matched this incident, and it only investigates, so it was not fixed.',
+      );
+      expect(hrefsOf(one)).toEqual([
+        `/dashboard/${PROJECT_ID}/incidents/ai/settings`,
+      ]);
+
+      const many: RemediationDecisionLine = onlyLine(
+        {
+          lane: AutoRemediationDecisionLane.Rule,
+          reason: AutoRemediationDecisionReason.MatchedRulesDoNotFix,
+          rulesChecked: 2,
+          ruleName: "Payments: investigate only",
+        },
+        "alert",
+      );
+
+      expect(many.text).toBe(
+        "2 AI rules matched this alert, and they only investigate, so it was not fixed.",
+      );
+      expect(hrefsOf(many)).toEqual([
+        `/dashboard/${PROJECT_ID}/alerts/ai/settings`,
+      ]);
+      expect(many.links[0]!.text).toBe("Alert AI rules");
     });
 
     test("says a matching rule has OneUptime AI fix the signal, and whether it asks first", () => {
@@ -616,7 +654,7 @@ describe("getRemediationDecisionLines", () => {
 
       expect(line.tone).toBe("info");
       expect(line.text).toBe(
-        "No Auto Remediation Rule that matches this incident fixes with OneUptime AI, so OneUptime AI did not fix it on the clusters or hosts it is linked to.",
+        "No AI rule that matches this incident fixes with OneUptime AI, so OneUptime AI did not fix it on the clusters or hosts it is linked to.",
       );
       expect(hrefsOf(line)).toEqual([
         `/dashboard/${PROJECT_ID}/incidents/ai/settings`,
@@ -630,16 +668,14 @@ describe("getRemediationDecisionLines", () => {
           reason: AutoRemediationDecisionReason.NoRuleMatched,
           rulesChecked: 1,
         }).text,
-      ).toBe("The 1 Auto Remediation Rule set up did not match this incident.");
+      ).toBe("The 1 AI rule set up did not match this incident.");
       expect(
         onlyLine({
           lane: AutoRemediationDecisionLane.Rule,
           reason: AutoRemediationDecisionReason.NoRuleMatched,
           rulesChecked: 4,
         }).text,
-      ).toBe(
-        "None of the 4 Auto Remediation Rules set up matched this incident.",
-      );
+      ).toBe("None of the 4 AI rules set up matched this incident.");
     });
 
     test.each([
@@ -769,7 +805,7 @@ describe("getRemediationDecisionLines", () => {
 
       expect(line.tone).toBe("attention");
       expect(line.text).toBe(
-        "Enable AI is off for this project, so nothing is fixed automatically: no cluster or resource fix and no Auto Remediation Rule runs.",
+        "Enable AI is off for this project, so nothing is fixed automatically: no cluster or resource fix and no AI rule runs.",
       );
       expect(hrefsOf(line)).toEqual([
         `/dashboard/${PROJECT_ID}/settings/ai-features`,

@@ -257,6 +257,31 @@ describe("processNetworkDeviceWalkFromQueue", () => {
       expect(args["snmpResponse"]).toBeUndefined();
     });
 
+    /*
+     * Issue #5185: a ping of a DNS name reports the address the name
+     * resolved to. The pipeline records it as the device's IP address, so it
+     * has to arrive exactly as the probe sent it.
+     */
+    test("a ping of a DNS name reaches the pipeline with the address it resolved to", async () => {
+      const resolvedPing: JSONObject = {
+        ...okPing,
+        resolvedHost: "core-fw-01.acme.example",
+        resolvedAddress: "10.0.0.1",
+      };
+      const body: JSONObject = makeWalkBody({
+        isOnline: true,
+        pollMode: "ping",
+        pingResponse: resolvedPing,
+      });
+      delete body["snmpResponse"];
+
+      await processNetworkDeviceWalkFromQueue(makeJobData(body));
+
+      const ping: JSONObject = processedArgs()["pingResponse"] as JSONObject;
+      expect(ping["resolvedHost"]).toBe("core-fw-01.acme.example");
+      expect(ping["resolvedAddress"]).toBe("10.0.0.1");
+    });
+
     test("a ping-first probe's unreachable ping-mode poll: verdict false is a verdict, not a missing field", async () => {
       const body: JSONObject = makeWalkBody({
         isOnline: false,

@@ -19,7 +19,7 @@ flowchart TB
 - **Monitor Rules** op een statuspagina. Die synchroniseren de pagina al opnieuw telkens wanneer een regel wordt opgeslagen; er een uitvoeren synchroniseert haar meteen.
 - **Monitor Rules** op een SLO. Die synchroniseren de SLO al opnieuw telkens wanneer een regel wordt opgeslagen; er een uitvoeren synchroniseert de monitoren van de SLO meteen. Zie [Monitoren en monitorregels](/docs/slo/monitor-rules).
 
-Regels die een actie uitvoeren in plaats van een resource te beschrijven (**Bereikbaarheidsregels**, **Runbook-regels**, **Regels voor automatisch herstel** en **Groeperingsregels**) kunnen niet op bestaande records worden uitgevoerd. Ze uitvoeren zou mensen oproepen, runbooks starten, herstelacties starten of episodes herschikken voor incidenten die al voorbij zijn.
+Regels die een actie uitvoeren in plaats van een resource te beschrijven (**Bereikbaarheidsregels**, **Runbook-regels**, **AI-regels** en **Groeperingsregels**) kunnen niet op bestaande records worden uitgevoerd. Ze uitvoeren zou mensen oproepen, runbooks starten, herstelacties starten of episodes herschikken voor incidenten die al voorbij zijn.
 
 ## Voordat u begint
 

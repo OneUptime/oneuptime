@@ -97,7 +97,7 @@ Allez dans **Runbooks → Agents de runbook** et créez un nouvel agent. Cliquez
 | **Exécute les runbooks** | Sous **Plus de champs** | Activé par défaut. Permet à cet agent de prendre des étapes de runbook. |
 | **Étiquettes** | Sous **Plus de champs** | Facultatif. |
 
-Un agent Runbook prend en compte un changement de ses capacités à son prochain heartbeat ; inutile de le redémarrer. L'IA n'est pas une capacité. Un dépôt de code choisit, dans ses paramètres dans Code, l'agent sur lequel l'IA y travaille, et la page de l'agent liste les dépôts qui le choisissent. Une règle de remédiation automatique choisit l'agent sur lequel OneUptime AI exécute ses commandes : c'est ce choix qui permet aux commandes de OneUptime AI de s'exécuter sur l'agent.
+Un agent Runbook prend en compte un changement de ses capacités à son prochain heartbeat ; inutile de le redémarrer. L'IA n'est pas une capacité. Un dépôt de code choisit, dans ses paramètres dans Code, l'agent sur lequel l'IA y travaille, et la page de l'agent liste les dépôts qui le choisissent. Une règle IA choisit l'agent sur lequel OneUptime AI exécute ses commandes : c'est ce choix qui permet aux commandes de OneUptime AI de s'exécuter sur l'agent.
 
 ### 2. Copier la commande d'installation
 
@@ -171,7 +171,7 @@ Une étape qui a choisi un agent le garde, quel que soit l'agent par défaut, et
 
 L'agent par défaut est l'un des agents propres au projet qui exécute les étapes de runbook : pas un agent Runbook global, pas l'agent dans le cluster que l'agent Kubernetes a installé, et pas un agent dont **Exécute les runbooks** est désactivé. Tant qu'un agent est l'agent par défaut, son **Exécute les runbooks** reste activé. Quand l'agent par défaut n'est pas connecté, la liste déroulante d'une étape le dit, et une étape sur lui l'attend, comme pour tout agent, jusqu'à l'expiration de son délai de prise en charge.
 
-Seules les étapes de runbook utilisent l'agent par défaut. Un dépôt de code choisit son agent dans ses paramètres dans Code, et une règle de remédiation automatique choisit le sien.
+Seules les étapes de runbook utilisent l'agent par défaut. Un dépôt de code choisit son agent dans ses paramètres dans Code, et une règle IA choisit le sien.
 
 ## Notes d'exploitation
 

@@ -326,20 +326,18 @@ describe("the docs send readers to Numbering, never to More Settings or a Number
 
   /*
    * The AI settings page has a folded "More settings" section, which holds
-   * the investigation and auto remediation rules, and most languages name it
-   * as they named the old page. The lines that describe the AI settings page
-   * - the one that gives its address, and the one that names its rules - may
-   * name that section; it is not the page that moved.
+   * the AI rules, and most languages name it as they named the old page.
+   * The lines that describe the AI settings page - the one that gives its
+   * address, and the ones that name its rules - may name that section; it
+   * is not the page that moved.
    */
   function withoutAiSettingsFold(language: string, markdown: string): string {
-    const investigationRules: string = `**${uiName(language, "Investigation Rules")}**`;
+    const aiRules: string = `**${uiName(language, "AI rules")}**`;
 
     return markdown
       .split("\n")
       .filter((line: string): boolean => {
-        return (
-          !line.includes("/incidents/ai/") && !line.includes(investigationRules)
-        );
+        return !line.includes("/incidents/ai/") && !line.includes(aiRules);
       })
       .join("\n");
   }

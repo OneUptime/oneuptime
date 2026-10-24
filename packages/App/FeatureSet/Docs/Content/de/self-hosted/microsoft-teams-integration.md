@@ -58,7 +58,7 @@ Videoanrufe (ein Teams-Meeting für einen Vorfall) nutzen diesen Bot nicht: Sie 
 Wählen Sie **Register** und fügen Sie dann eine zweite Web-Redirect-URI hinzu, `https://your-oneuptime-domain.com/api/microsoft-teams/admin-consent/callback`. Notieren Sie die **Application (client) ID** und die **Directory (tenant) ID**: Sie brauchen später beide.
 
 > [!NOTE]
-> **Warum Single Tenant:** Eine selbst gehostete OneUptime-Instanz dient einer Organisation, und ihr Bot ist für den einen Tenant registriert, den Sie in `MICROSOFT_TEAMS_APP_TENANT_ID` festlegen (Schritt 6). Die App als Multitenant zu registrieren, erweitert das nicht und bringt eine Fehlerquelle mit sich: Gast- bzw. B2B-Benutzer, deren Microsoft-Heimat-Tenant sich von Ihrem unterscheidet, erreichen den Bot mit ihrer eigenen Tenant-ID, die OneUptime keinem Ihrer Projekte zuordnen kann. Haben Sie bereits eine Multitenant-App registriert, funktioniert sie weiter — achten Sie nur darauf, dass `MICROSOFT_TEAMS_APP_TENANT_ID` Ihr eigener Tenant ist, und rechnen Sie damit, dass Gastkonten ein Konto in Ihrem Tenant brauchen, um den Bot zu nutzen.
+> **Warum Single Tenant:** Eine selbst gehostete OneUptime-Instanz dient einer Organisation und meldet alle in deren Tenant an: Administratoren, die die Einwilligung erteilen, und jede Person, die **Connect my account with Microsoft Teams** wählt. Gäste in Ihrer Organisation melden sich mit ihrem Gastkonto an, dem Konto, das Teams für sie verwendet. Eine Multitenant-App funktioniert genauso, aber Single Tenant beschränkt die App auf Ihre Organisation.
 
 ### Schritt 2: App-Berechtigungen konfigurieren
 
@@ -193,7 +193,7 @@ Hinweise:
 | --- | --- | --- |
 | `MICROSOFT_TEAMS_APP_CLIENT_ID` | `microsoftTeamsApp.clientId` | Die **Application (client) ID**. Sie ist auch die Bot-ID im Teams-App-Paket und muss daher eine GUID sein. |
 | `MICROSOFT_TEAMS_APP_CLIENT_SECRET` | `microsoftTeamsApp.clientSecret` | Der **Value** des Client Secrets, nicht seine ID. |
-| `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | Die **Directory (tenant) ID**. Der Bot authentifiziert sich als Single-Tenant-App in diesem Tenant. |
+| `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | Die **Directory (tenant) ID**. Der Bot authentifiziert sich als Single-Tenant-App in diesem Tenant, und Personen melden sich darin an, um ihr Microsoft-Teams-Konto zu verbinden. |
 | `HOST` | `host` | Ihr öffentlicher Hostname. Redirect-URIs, der Messaging-Endpunkt und das Teams-App-Paket werden daraus gebildet. |
 | `HTTP_PROTOCOL` | `httpProtocol` | `https`. Azure Bot Service ruft nur HTTPS-Endpunkte auf. |
 
@@ -320,7 +320,7 @@ Ein Gruppenchat, der in Teams keinen Namen hat, wird absichtlich mit den Namen s
 curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test | jq
 ```
 
-Das meldet, was OneUptime lokal sehen kann: ob `MICROSOFT_TEAMS_APP_CLIENT_ID` und `MICROSOFT_TEAMS_APP_CLIENT_SECRET` gesetzt sind, den Messaging-Endpunkt, den diese Bereitstellung erwartet, und — am nützlichsten — die **Bot-ID**, die Ihr Teams-App-Paket tragen muss.
+Das meldet, was OneUptime lokal sehen kann: ob `MICROSOFT_TEAMS_APP_CLIENT_ID`, `MICROSOFT_TEAMS_APP_CLIENT_SECRET` und `MICROSOFT_TEAMS_APP_TENANT_ID` gesetzt sind, den Tenant, in dem sich Personen anmelden, wenn sie ihr Konto verbinden, den Messaging-Endpunkt, den diese Bereitstellung erwartet, und — am nützlichsten — die **Bot-ID**, die Ihr Teams-App-Paket tragen muss.
 
 Es liest Umgebungsvariablen und sonst nichts. Es ruft Azure nicht auf und kann Ihnen daher nicht sagen, ob die Ressource Azure Bot existiert, ob ihr Messaging-Endpunkt hierher zurückzeigt, ob der Teams-Kanal aktiviert ist, ob das Secret noch gültig ist oder ob Azure Sie erreichen kann. Die Antwort sagt das auch, indem sie auflistet, was geprüft wurde und was nicht, damit sie nie für grünes Licht gehalten wird.
 
@@ -389,7 +389,15 @@ Wenn Microsoft Sie zurückschickt und die Verbindung nicht zustande gekommen ist
 | **"Sie haben sich bei Microsoft als eine andere Person angemeldet als die, die in Microsoft Teams die Schaltfläche zum Verbinden gedrückt hat, daher wurde nichts verbunden."** | Eine Schaltfläche **Connect Microsoft Teams account** funktioniert nur für das Microsoft-Konto, das sie gedrückt hat. Melden Sie sich bei Microsoft als Sie selbst an, oder bitten Sie die Person, die sie gedrückt hat, sie zu drücken. |
 | **"Die Verbindung wurde abgebrochen, daher wurde nichts geändert."** | Die Zustimmung wurde bei Microsoft nicht erteilt. Beginnen Sie erneut und akzeptieren Sie sie. |
 | **"Microsoft Teams ist auf diesem OneUptime-Server nicht eingerichtet."** | Setzen Sie Client-ID und Secret der Microsoft-Teams-App (siehe [Schritt 6](#schritt-6-umgebungsvariablen-von-oneuptime-konfigurieren)) und starten Sie OneUptime neu. |
-| **"OneUptime konnte die Verbindung nicht abschließen. Bitte versuchen Sie es erneut."** | Microsoft hat mit einem Fehler geantwortet, oder eine Anfrage oder ein Schreibvorgang ist beim Abschließen fehlgeschlagen. Das Log des OneUptime-Servers sagt, was davon. Versuchen Sie es erneut; passiert es weiterhin, prüfen Sie das Log und die Einstellungen der App-Registrierung. |
+| **"OneUptime konnte die Verbindung nicht abschließen. Bitte versuchen Sie es erneut."** | Microsoft hat mit einem Fehler geantwortet, oder eine Anfrage oder ein Schreibvorgang ist beim Abschließen fehlgeschlagen. Das Log des OneUptime-Servers sagt, was davon. Versuchen Sie es erneut; passiert es weiterhin, prüfen Sie das Log und die Einstellungen der App-Registrierung. Hat Microsoft mit `AADSTS50194` geantwortet, siehe [Die Anmeldung schlägt mit AADSTS50194 fehl](#die-anmeldung-schlägt-mit-aadsts50194-fehl). |
+
+### Die Anmeldung schlägt mit AADSTS50194 fehl
+
+Microsoft lehnt die Anmeldung mit `AADSTS50194` ab, wenn die App für eine Organisation registriert ist und die Anmeldung an Microsofts Endpunkt für alle Organisationen geht, `/common`. Die Microsoft-Teams-Seite sagt dann, dass OneUptime die Verbindung nicht abschließen konnte, und das Log des OneUptime-Servers enthält die Antwort von Microsoft.
+
+- **Aktualisieren Sie OneUptime.** Ältere Versionen schickten **Connect my account with Microsoft Teams** an `/common`, sodass mit einer Single-Tenant-App wie in Schritt 1 niemand sein Konto verbinden konnte. Aktuelle Versionen melden Personen in Ihrem Tenant an.
+- **Bis Sie aktualisieren können,** machen Sie die App-Registrierung zu einer Multitenant-App: Setzen Sie unter **Authentication** die **Supported account types** auf Konten in einem beliebigen Organisationsverzeichnis. Um die App auf Ihre eigenen Leute zu beschränken, öffnen Sie sie unter **Enterprise applications**, setzen Sie **Assignment required?** unter **Properties** auf Yes und fügen Sie unter **Users and groups** die Personen hinzu, die OneUptime nutzen. Machen Sie sie nach dem Aktualisieren wieder zu einer Single-Tenant-App.
+- **In einer aktuellen Version** prüfen Sie, ob `MICROSOFT_TEAMS_APP_TENANT_ID` auf die **Directory (tenant) ID** der App gesetzt ist: Ein Projekt, das noch nicht verbunden ist, meldet Personen in diesem Tenant an.
 
 Wir möchten diese Integration verbessern, daher ist Feedback unter [hello@oneuptime.com](mailto:hello@oneuptime.com) willkommen.
 

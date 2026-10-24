@@ -97,7 +97,7 @@ Gehen Sie zu **Runbooks → Runbook-Agents** und legen Sie einen neuen Agenten a
 | **Führt Runbooks aus** | Unter **Weitere Felder** | Standardmäßig an. Lässt diesen Runner Runbook-Schritte übernehmen. |
 | **Beschriftungen** | Unter **Weitere Felder** | Optional. |
 
-Ein Runner übernimmt eine Änderung seiner Fähigkeiten beim nächsten Heartbeat; ein Neustart ist nicht nötig. KI ist keine Fähigkeit. Ein Code-Repository wählt in seinen Einstellungen in Code den Runner aus, auf dem die KI darin arbeitet, und die Seite des Runners listet die Repositorys auf, die ihn auswählen. Eine Regel für automatische Behebung wählt den Runner aus, auf dem OneUptime AI seine Befehle ausführt: Erst diese Auswahl lässt die Befehle von OneUptime AI auf dem Runner laufen.
+Ein Runner übernimmt eine Änderung seiner Fähigkeiten beim nächsten Heartbeat; ein Neustart ist nicht nötig. KI ist keine Fähigkeit. Ein Code-Repository wählt in seinen Einstellungen in Code den Runner aus, auf dem die KI darin arbeitet, und die Seite des Runners listet die Repositorys auf, die ihn auswählen. Eine KI-Regel wählt den Runner aus, auf dem OneUptime AI seine Befehle ausführt: Erst diese Auswahl lässt die Befehle von OneUptime AI auf dem Runner laufen.
 
 ### 2. Den Installationsbefehl kopieren
 
@@ -171,7 +171,7 @@ Ein Schritt, der einen Runner gewählt hat, behält ihn, was auch immer der Stan
 
 Der Standard ist einer der eigenen Runner des Projekts, der Runbook-Schritte ausführt: kein globaler Runner, nicht der In-Cluster-Runner, den der Kubernetes-Agent installiert hat, und keiner, bei dem **Führt Runbooks aus** aus ist. Solange ein Runner der Standard ist, bleibt sein **Führt Runbooks aus** an. Ist der Standard nicht verbunden, sagt die Dropdown-Liste eines Schritts das, und ein Schritt auf ihm wartet auf ihn, wie auf jeden Runner, bis sein Übernahme-Timeout abgelaufen ist.
 
-Nur Runbook-Schritte nutzen den Standard. Ein Code-Repository wählt seinen Runner in seinen Einstellungen in Code, und eine Regel für automatische Behebung wählt ihren eigenen.
+Nur Runbook-Schritte nutzen den Standard. Ein Code-Repository wählt seinen Runner in seinen Einstellungen in Code, und eine KI-Regel wählt ihren eigenen.
 
 ## Betriebshinweise
 

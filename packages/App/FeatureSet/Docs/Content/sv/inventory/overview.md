@@ -72,7 +72,9 @@ En relation som OneUptime har upptäckt tas bort när den inte har setts igen p�
 En värd eller en nätverksenhet har ett kort **Tillgångsdetaljer** som beskriver båda på samma sätt: värdnamn, IP-adress, MAC-adress, serienummer, tillverkare, modell, firmwareversion, operativsystem, OS-version, enhetstyp och plats. En uppgift som inget har rapporterat står som **Okänd**, och kortet förklarar hur de okända fylls i.
 
 - En värds uppgifter kommer från resursattributen i dess telemetri: dess IP- och MAC-adresser, arkitektur och operativsystem från början, och dess serienummer, märke, modell och firmware när du stämplar på dem.
-- En nätverksenhets uppgifter kommer från dess SNMP-pollning, dess roll och dess plats. En enhet utan ENTITY-MIB, som en Meraki MX, får ändå sitt märke och sin modell från sin systembeskrivning. Dess IP-adress visas aldrig som dess värdnamn.
+- En nätverksenhets uppgifter kommer från dess SNMP-pollning, dess roll och dess plats. Det som dess pollning inte har läst kommer från discovery: den senaste skanningen av dess adress, en routers ARP-tabell eller dess sonds DNS-uppslag. En enhet utan ENTITY-MIB, som en Meraki MX, får ändå sitt märke och sin modell från sin systembeskrivning. Dess IP-adress visas aldrig som dess värdnamn.
+
+Kortet visar var varje uppgift kom ifrån och när. Den källa som de flesta uppgifterna delar, som en värds collector, en nätverksenhets egen SNMP-pollning eller den discovery-skanning som läste den, nämns en gång, under uppgifterna. Varje annan källa, som en routers ARP-tabell eller ett värde som sparats på enheten, nämns under sin uppgift. Ett värde som har sparats på en nätverksenhet ersätts aldrig av det som discovery läser, och när de två skiljer sig visar kortet båda.
 
 Samma uppgifter är kolumner i listan **All Items**, dolda tills du slår på dem, och de följer med i dess CSV-export. [Exportera till en CMDB](/docs/inventory/cmdb-sync#tillgångsdetaljer) listar deras nycklar.
 

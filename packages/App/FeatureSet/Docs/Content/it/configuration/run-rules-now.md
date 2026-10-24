@@ -19,7 +19,7 @@ flowchart TB
 - **Monitor Rules** su una pagina di stato. Risincronizzano già la pagina ogni volta che si salva una regola; eseguirne una la risincronizza subito.
 - **Monitor Rules** su uno SLO. Risincronizzano già lo SLO ogni volta che si salva una regola; eseguirne una risincronizza subito i monitor dello SLO. Vedi [Monitor e regole dei monitor](/docs/slo/monitor-rules).
 
-Le regole che compiono un'azione invece di descrivere una risorsa (**Regole di reperibilità**, **Regole di runbook**, **Regole di rimedio automatico** e **Regole di raggruppamento**) non si possono eseguire sui record esistenti. Eseguirle chiamerebbe persone, avvierebbe runbook, lancerebbe correzioni o riorganizzerebbe episodi per incidenti già conclusi.
+Le regole che compiono un'azione invece di descrivere una risorsa (**Regole di reperibilità**, **Regole di runbook**, **Regole IA** e **Regole di raggruppamento**) non si possono eseguire sui record esistenti. Eseguirle chiamerebbe persone, avvierebbe runbook, lancerebbe correzioni o riorganizzerebbe episodi per incidenti già conclusi.
 
 ## Prima di iniziare
 

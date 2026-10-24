@@ -281,7 +281,7 @@ Quand Microsoft vous renvoie sans connexion, la page d'où vous êtes parti indi
 :::
 
 :::details Le bot dit que mon compte n'est pas connecté
-Pressez **Connect Microsoft Teams account** dans la réponse du bot pour le connecter en une étape, ou associez-le dans **Paramètres utilisateur** > **Espace de travail** > **Microsoft Teams** avec **Connect my account with Microsoft Teams**, connecté à l'organisation à laquelle le projet est connecté. Un compte invité d'une autre organisation n'est pas le même compte.
+Pressez **Connect Microsoft Teams account** dans la réponse du bot pour le connecter en une étape, ou associez-le dans **Paramètres utilisateur** > **Espace de travail** > **Microsoft Teams** avec **Connect my account with Microsoft Teams**. Dans les deux cas, vous vous connectez à l'organisation à laquelle le projet est connecté, en tant qu'invité si vous y êtes invité. Si vous êtes invité et avez déjà connecté le compte de votre propre organisation, connectez-le à nouveau.
 :::
 
 :::details Toutes les notifications échouent sur un serveur auto-hébergé

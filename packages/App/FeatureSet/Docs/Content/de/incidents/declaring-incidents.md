@@ -295,7 +295,7 @@ flowchart TB
 - **In Ihrem bestätigten Status oder danach** – **Bestätigt** oder ein Status, der unter **Vorfälle → Einstellungen → Vorfallsstatus** darunter steht – läuft keine Bereitschaftsrichtlinie, es wird also niemand alarmiert. Der Vorfall listet seine Richtlinien weiterhin auf, die gewählten und die von Bereitschaftsregeln hinzugefügten, und sein Feed sagt in einer Zeile, warum: _No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ Sein SLA, falls eine Regel ihm eines gibt, beginnt bereits als beantwortet. Alles Weitere unten läuft wie bei jedem neuen Vorfall.
 - **In Ihrem behobenen Status oder danach** – **Behoben** oder ein Status darunter – ist der Vorfall vorbei; zusätzlich läuft also nichts, was auf einen laufenden Vorfall reagiert:
   - er wird keiner Episode zugeordnet, die erneut alarmieren könnte;
-  - keine Runbook-Regel und keine Auto-Behebungsregel wirkt auf ihn;
+  - keine Runbook-Regel und keine KI-Regel wirkt auf ihn;
   - die OneUptime-KI untersucht ihn nicht – seine Karte **KI-Untersuchung** sagt, dass er bereits behoben angelegt wurde, und **Ask OneUptime AI** darunter beantwortet weiterhin Fragen dazu;
   - es wird kein Slack- oder Microsoft-Teams-Kanal für ihn angelegt;
   - seine Monitore behalten ihren Status und werden weiter überwacht, egal was **Monitor-Status ändern in** sagt;

@@ -37,6 +37,27 @@ import {
   ManyToOne,
 } from "typeorm";
 
+/*
+ * AN AI RULE: which new incidents (or alerts) OneUptime AI works on, and
+ * what it does with each - investigate it (right away, or only if it is
+ * still open after a wait) and fix it or not (asking first, or without
+ * asking), with the runbooks, the Runner, the MCP servers, the code
+ * repositories and the LLM provider the rule allows. With no rule, every
+ * new incident is investigated and fixed while the incident AI switches
+ * are on; with rules, only the incidents a rule matches are, each the way
+ * its rules say (Types/AI/AiRule).
+ *
+ * Investigation rules and auto remediation rules used to be two tables
+ * with the same conditions. "Should incident investigation rule and
+ * remediation rule be the same entity - we can call it Incident AI rules ...
+ * Since its not possible to remediate without investigation" - the
+ * maintainer. They are this one now: the auto remediation rules' table,
+ * route (/auto-remediation-rule), permissions and fixes kept their ids, and
+ * every investigation rule moved in (MergeInvestigationRulesIntoAiRules),
+ * as a rule that investigates and does not fix - or, where an investigation
+ * rule and an auto remediation rule matched exactly the same incidents, as
+ * the one rule that does both.
+ */
 @EnableDocumentation()
 @TenantColumn("projectId")
 @TableAccessControl({
@@ -69,11 +90,13 @@ import {
 })
 @TableMetadata({
   tableName: "AutoRemediationRule",
-  singularName: "Auto Remediation Rule",
-  pluralName: "Auto Remediation Rules",
-  icon: IconProp.Bolt,
+  singularName: "AI Rule",
+  pluralName: "AI Rules",
+  // Terraform's oneuptime_auto_remediation_rule keeps working, deprecated.
+  formerSingularName: "Auto Remediation Rule",
+  icon: IconProp.Sparkles,
   tableDescription:
-    "Which new incidents or alerts OneUptime AI fixes automatically, and whether it asks first. It may run the project's runbooks (only the rule's, when it names some), Bash commands on a Runner the rule picks, the tools of the project's external MCP servers (only the rule's, when it names some), and open fix and telemetry pull requests in the project's code repositories (only the rule's, when it names some). With no rule, OneUptime AI fixes every one while automatic fixing is on, pull requests included.",
+    "Which new incidents or alerts OneUptime AI investigates and fixes, and how. A rule investigates what it matches (right away, or only if still open after a wait), and fixes it or not, asking first or not. A fix may run the project's runbooks (only the rule's, when it names some), Bash commands on a Runner the rule picks, the tools of the project's external MCP servers (only the rule's, when it names some), and open fix and telemetry pull requests in the project's code repositories (only the rule's, when it names some). With no rule, OneUptime AI investigates every one, and fixes every one while automatic fixing is on. These were auto remediation rules, and investigation rules are AI rules now too.",
 })
 export default class AutoRemediationRule extends RuleBaseModel {
   @ColumnAccessControl({
@@ -167,7 +190,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     title: "Name",
-    description: "Name of this auto-remediation rule.",
+    description: "Name of this AI rule.",
   })
   @Column({
     nullable: false,
@@ -199,7 +222,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     required: false,
     type: TableColumnType.LongText,
     title: "Description",
-    description: "Description of this auto-remediation rule.",
+    description: "Description of this AI rule.",
   })
   @Column({
     nullable: true,
@@ -264,7 +287,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     type: TableColumnType.ShortText,
     title: "Trigger Entity Type",
     description:
-      "Entity type that triggers this rule on creation: Incident or Alert.",
+      "Which kind of new signal this rule decides about: Incident or Alert.",
   })
   @Column({
     nullable: false,
@@ -272,6 +295,135 @@ export default class AutoRemediationRule extends RuleBaseModel {
     length: ColumnLength.ShortText,
   })
   public triggerEntityType?: AutoRemediationTriggerEntity = undefined;
+
+  /*
+   * Whether matching the rule puts an incident (or alert) in OneUptime AI's
+   * investigation scope (Types/AI/AiRule). Every rule the dashboard makes
+   * investigates. Off by default: a rule an API or Terraform client written
+   * before investigation and auto remediation rules merged creates says
+   * nothing about investigating, and must not start deciding which incidents
+   * are investigated - it fixes, as it did. A rule that only fixes never
+   * narrows what is investigated: while no enabled rule investigates, every
+   * new incident is.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Investigates",
+    description:
+      "Whether OneUptime AI investigates the incidents or alerts this rule matches. With enabled rules that investigate, only their matches are investigated. Off, the rule only fixes, and does not change which incidents are investigated. The dashboard turns it on for every rule; left out of an API write, it is off.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public investigates?: boolean = undefined;
+
+  /*
+   * The rule's wait (issue #5074): OneUptime AI waits this many minutes
+   * after an incident (or alert) the rule matches was created, and
+   * investigates it then only if it is still open. Empty (or 0) is no wait.
+   * When several rules match, the shortest wait decides
+   * (Types/AI/InvestigationRuleWait). Only for a rule that investigates.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Only If Open After (Minutes)",
+    description:
+      "Investigate only incidents or alerts still open this many minutes after they were created: OneUptime AI waits that long, then investigates if it is still open. Leave empty to investigate right away. When several rules match, the shortest wait decides. At most 1440 minutes (a day).",
+    example: 10,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public onlyIfOpenAfterMinutes?: number = undefined;
+
+  /*
+   * Whether the rule fixes what it matches (Types/AI/AiRule). On by
+   * default: every auto remediation rule fixed, and an API or Terraform
+   * client written before the merge creates rules that fix. Off, the rule
+   * only investigates: with enabled rules, an incident is fixed only when a
+   * rule that fixes matches it.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Fixes",
+    description:
+      "Whether OneUptime AI fixes the incidents or alerts this rule matches, the way its Execution Mode says. Off, the rule only investigates them. With enabled rules, an incident is fixed only when a rule that fixes matches it. On by default.",
+    defaultValue: true,
+    isDefaultValueColumn: true,
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public fixes?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -298,7 +450,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     type: TableColumnType.ShortText,
     title: "Execution Mode",
     description:
-      "Suggest asks before fixing: every fix the rule starts waits for one-click human approval. FullAuto fixes without asking: OneUptime AI fixes on its own where the cluster's or resource's AI agent page allows, a runbook it picks from the ones the rule names starts right away (one it picks from all of the project's runbooks still waits for approval), a change through an MCP server the rule names is made right away (through any of the project's MCP servers, it still waits for approval), and a rule that runs its runbooks every time starts them immediately.",
+      "How a rule that fixes asks. Suggest asks before fixing: every fix the rule starts waits for one-click human approval. FullAuto fixes without asking: OneUptime AI fixes on its own where the cluster's or resource's AI agent page allows, a runbook it picks from the ones the rule names starts right away (one it picks from all of the project's runbooks still waits for approval), a change through an MCP server the rule names is made right away (through any of the project's MCP servers, it still waits for approval), and a rule that runs its runbooks every time starts them immediately.",
     defaultValue: AutoRemediationExecutionMode.Suggest,
     isDefaultValueColumn: true,
   })
@@ -866,15 +1018,15 @@ export default class AutoRemediationRule extends RuleBaseModel {
   public runbooks?: Array<Runbook> = undefined;
 
   /*
-   * The external MCP servers OneUptime AI may use while it fixes what this
-   * rule matches. None named is all of the project's servers that are on
-   * (ExternalMcpServerAllowance). A change made through a server's tools
-   * follows the rule's Execution Mode: it waits for approval unless the
-   * rule fixes without asking AND names its servers here - with none named
-   * a change is always proposed first, as a runbook picked from all of the
-   * project's runbooks is. Only the project's own servers can be named
-   * (ProjectReferencesService). A rule that runs its runbooks every time
-   * uses none.
+   * The external MCP servers OneUptime AI may use while it investigates
+   * (their tools that read) and fixes what this rule matches. None named is
+   * all of the project's servers that are on (ExternalMcpServerAllowance).
+   * A change made through a server's tools follows the rule's Execution
+   * Mode: it waits for approval unless the rule fixes without asking AND
+   * names its servers here - with none named a change is always proposed
+   * first, as a runbook picked from all of the project's runbooks is. Only
+   * the project's own servers can be named (ProjectReferencesService). A
+   * rule that runs its runbooks every time uses none.
    */
   @ColumnAccessControl({
     create: [
@@ -901,7 +1053,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     modelType: ExternalMcpServer,
     title: "MCP Servers",
     description:
-      "The external MCP servers OneUptime AI may use while it fixes what this rule matches. Leave empty to let it use all of the project's MCP servers; changes through them are then always proposed for approval first.",
+      "The external MCP servers OneUptime AI may use while it investigates and fixes what this rule matches (an investigation uses only their tools that read). Leave empty to let it use all of the project's MCP servers; changes through them are then always proposed for approval first.",
   })
   @ManyToMany(
     () => {
@@ -1028,8 +1180,9 @@ export default class AutoRemediationRule extends RuleBaseModel {
   public runnerId?: ObjectID = undefined;
 
   /*
-   * The code repositories OneUptime AI may use while it fixes what this rule
-   * matches: read their code, and open this rule's pull requests in them.
+   * The code repositories OneUptime AI may use while it investigates and
+   * fixes what this rule matches: read their code, and open this rule's
+   * pull requests in them.
    * None named is every repository the project has connected
    * (CodeRepositoryAllowance) - "if no code repo is selected - it should be
    * able to read and investigate all the repos that are connected", the
@@ -1062,7 +1215,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     modelType: CodeRepository,
     title: "Code Repositories",
     description:
-      "The code repositories OneUptime AI may read while it fixes what this rule matches, and open the rule's pull requests in. Leave empty to let it use every repository the project has connected.",
+      "The code repositories OneUptime AI may read while it investigates and fixes what this rule matches, and open the rule's pull requests in. Leave empty to let it use every repository the project has connected.",
   })
   @ManyToMany(
     () => {
@@ -1084,11 +1237,13 @@ export default class AutoRemediationRule extends RuleBaseModel {
   public codeRepositories?: Array<CodeRepository> = undefined;
 
   /*
-   * The LLM provider OneUptime AI fixes what this rule matches with - its
-   * runbook picks, its commands, its MCP fixes and the pull requests the
-   * rule opens: one of the project's own providers, or a global one. None
-   * picked is the project's default provider, else the global one. Read
-   * the way an investigation rule's is (Types/AI/LlmProviderChoice).
+   * The LLM provider OneUptime AI uses for everything this rule starts - the
+   * investigation of what it matches, and its fixes: runbook picks,
+   * commands, MCP fixes and the pull requests the rule opens. One of the
+   * project's own providers, or a global one. None picked is the project's
+   * default provider, else the global one. When several rules match, the
+   * first of them by name that picks one decides
+   * (Types/AI/LlmProviderChoice).
    */
   @ColumnAccessControl({
     create: [

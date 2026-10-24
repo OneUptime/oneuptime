@@ -649,13 +649,19 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
        * folding transitions visibility with the rest, so it turns invisible
        * once the fold has finished; opening leaves it out, so the fields can
        * be tabbed to at once (CollapsibleSection does the same).
+       *
+       * Open, nothing caps its height, as the line's body: a fold can hold
+       * a whole guide - the Microsoft Teams setup guide is taller than
+       * 5,000 pixels on a desktop and twice that on a phone - and a cap
+       * (max-h-[5000px], with overflow-hidden for the rounded corners) cut
+       * its last sections off with nothing to scroll to.
        */}
       <div
         id={bodyId}
         className={`overflow-hidden duration-200 ease-in-out motion-reduce:transition-none ${
           isCollapsed
             ? "max-h-0 opacity-0 invisible transition-all"
-            : "max-h-[5000px] opacity-100 transition-[max-height,opacity]"
+            : "opacity-100 transition-opacity"
         }${
           props.isBodyFlush
             ? props.isElevated

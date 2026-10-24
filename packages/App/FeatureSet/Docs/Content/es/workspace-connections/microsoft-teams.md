@@ -281,7 +281,7 @@ Cuando Microsoft te devuelve sin conexión, la página desde la que empezaste di
 :::
 
 :::details El bot dice que mi cuenta no está conectada
-Pulsa **Connect Microsoft Teams account** en la respuesta del bot para conectarla en un solo paso, o vincúlala en **Ajustes de usuario** > **Espacio de trabajo** > **Microsoft Teams** con **Connect my account with Microsoft Teams**, con la sesión iniciada en la organización a la que está conectado el proyecto. Una cuenta de invitado de otra organización no es la misma cuenta.
+Pulsa **Connect Microsoft Teams account** en la respuesta del bot para conectarla en un solo paso, o vincúlala en **Ajustes de usuario** > **Espacio de trabajo** > **Microsoft Teams** con **Connect my account with Microsoft Teams**. En ambos casos inicias sesión en la organización a la que está conectado el proyecto, como invitado si lo eres allí. Si eres invitado y antes conectaste la cuenta de tu propia organización, vuelve a conectarla.
 :::
 
 :::details Todas las notificaciones fallan en un servidor autoalojado

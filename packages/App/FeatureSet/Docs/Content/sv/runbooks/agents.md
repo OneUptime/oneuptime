@@ -97,7 +97,7 @@ Gå till **Runbooks → Runbook-agenter** och skapa en ny agent. Klicka på **Sk
 | **Kör Runbooks** | Under **Fler fält** | Påslaget som standard. Låter den här Runnern ta runbook-steg. |
 | **Etiketter** | Under **Fler fält** | Valfritt. |
 
-En Runner hämtar en ändring av sina funktioner vid nästa heartbeat; den behöver inte startas om. AI är ingen funktion. Ett kodrepository väljer i sina inställningar i Kod den Runner som AI arbetar i det på, och Runnerns sida listar de repositoryn som väljer den. En regel för automatisk åtgärd väljer den Runner som OneUptime AI kör sina kommandon på: Det är valet av en Runner där som låter OneUptime AI:s kommandon köras på den.
+En Runner hämtar en ändring av sina funktioner vid nästa heartbeat; den behöver inte startas om. AI är ingen funktion. Ett kodrepository väljer i sina inställningar i Kod den Runner som AI arbetar i det på, och Runnerns sida listar de repositoryn som väljer den. En AI-regel väljer den Runner som OneUptime AI kör sina kommandon på: Det är valet av en Runner där som låter OneUptime AI:s kommandon köras på den.
 
 ### 2. Kopiera installationskommandot
 
@@ -171,7 +171,7 @@ Ett steg som har valt en Runner behåller den, vad standarden än är, och ett J
 
 Standarden är en av projektets egna Runners som kör runbook-steg: inte en global Runner, inte den Runner i klustret som Kubernetes-agenten installerade, och inte en med **Kör Runbooks** avstängt. Så länge en Runner är standarden förblir dess **Kör Runbooks** påslaget. När standarden inte är ansluten säger ett stegs rullgardinsmeny det, och ett steg på den väntar på den, som på vilken Runner som helst, tills dess claim timeout har gått.
 
-Bara runbook-steg använder standarden. Ett kodrepository väljer sin Runner i sina inställningar i Kod, och en regel för automatisk åtgärd väljer sin egen.
+Bara runbook-steg använder standarden. Ett kodrepository väljer sin Runner i sina inställningar i Kod, och en AI-regel väljer sin egen.
 
 ## Driftanteckningar
 

@@ -295,7 +295,7 @@ flowchart TB
 - **At or past your acknowledged state** — **Acknowledged**, or any state placed below it at **Incidents → Settings → Incident State** — no on-call policy runs, so no one is paged. The incident still lists its policies, the ones you picked and the ones on-call rules add, and its feed says why in one line: _No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ Its SLA, if a rule gives it one, starts already responded to. Everything else below runs as for any new incident.
 - **At or past your resolved state** — **Resolved**, or any state placed below it — the incident is over, so on top of that nothing that answers a live incident runs:
   - it is not grouped into an episode, which could page again;
-  - no runbook rule and no auto-remediation rule acts on it;
+  - no runbook rule and no AI rule acts on it;
   - OneUptime AI does not investigate it — its **AI Investigation** card says it was created already resolved, and **Ask OneUptime AI** below it still answers questions about it;
   - no Slack or Microsoft Teams channel is created for it;
   - its monitors keep their status and keep being monitored, whatever **Change Monitor Status to** says;

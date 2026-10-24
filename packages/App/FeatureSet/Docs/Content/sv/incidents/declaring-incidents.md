@@ -295,7 +295,7 @@ flowchart TB
 - **Vid eller efter ditt bekräftade tillstånd** — **Bekräftad**, eller varje tillstånd som står under det i **Incidenter → Inställningar → Incidentstatus** — körs ingen jourpolicy, så ingen larmas. Incidenten nämner fortfarande sina policyer, de du valde och de som jourregler lägger till, och dess flöde säger varför på en rad: _No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ Dess SLA, om en regel ger den en, börjar redan som besvarad. Allt annat nedan körs som för varje ny incident.
 - **Vid eller efter ditt lösta tillstånd** — **Löst**, eller varje tillstånd som står under det — är incidenten över, så dessutom körs inget som reagerar på en pågående incident:
   - den grupperas inte i en episod, som skulle kunna larma igen;
-  - ingen runbook-regel och ingen regel för automatisk åtgärd agerar på den;
+  - ingen runbook-regel och ingen AI-regel agerar på den;
   - OneUptime AI utreder den inte — dess kort **AI Investigation** säger att den skapades redan löst, och **Ask OneUptime AI** under det besvarar fortfarande frågor om den;
   - ingen Slack- eller Microsoft Teams-kanal skapas för den;
   - dess monitorer behåller sin status och fortsätter att övervakas, vad **Ändra övervakningsstatus till** än säger;

@@ -32,7 +32,7 @@ flowchart TB
 
 Ein Anbieter ist der Standard eines Projekts, wenn **Als Standard festlegen** eingeschaltet ist, was bei jedem neuen Anbieter der Fall ist. Ein Projekt, bei dessen Anbietern der Standard überall ausgeschaltet ist, weicht auf den globalen Anbieter aus, als hätte es keinen.
 
-Jede OneUptime-AI-Regel – Untersuchungsregeln, Regeln für automatische Behebung und Postmortem-Regeln – kann stattdessen unter **Weitere Felder** einen eigenen Anbieter wählen: einen der Anbieter des Projekts oder einen globalen, der für alles genutzt wird, was die Regel startet. Eine Regel, die keinen wählt, nutzt den Standardanbieter, und ein gewählter Anbieter, der nicht mehr genutzt werden kann, fällt auf ihn zurück. Siehe [Welchen LLM-Anbieter eine Regel nutzt](/docs/ai/ai-sre#welchen-llm-anbieter-eine-regel-nutzt).
+Jede OneUptime-AI-Regel – KI-Regeln und Postmortem-Regeln – kann stattdessen unter **Weitere Felder** einen eigenen Anbieter wählen: einen der Anbieter des Projekts oder einen globalen, der für alles genutzt wird, was die Regel startet. Eine Regel, die keinen wählt, nutzt den Standardanbieter, und ein gewählter Anbieter, der nicht mehr genutzt werden kann, fällt auf ihn zurück. Siehe [Welchen LLM-Anbieter eine Regel nutzt](/docs/ai/ai-sre#welchen-llm-anbieter-eine-regel-nutzt).
 
 ## OneUptime Cloud
 

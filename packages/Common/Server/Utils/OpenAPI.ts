@@ -57,7 +57,11 @@ export default class OpenAPIUtil {
     }
 
     const registry: OpenAPIRegistry = new OpenAPIRegistry();
-    const tags: Array<{ name: string; description: string }> = [];
+    const tags: Array<{
+      name: string;
+      description: string;
+      "x-former-names"?: Array<string>;
+    }> = [];
 
     // Register schemas and paths for all models
     for (const ModelClass of Models) {
@@ -84,6 +88,13 @@ export default class OpenAPIUtil {
         name: singularModelName,
         description:
           model.tableDescription || `API endpoints for ${singularModelName}`,
+        /*
+         * The name it had before it was renamed, so the Terraform provider
+         * keeps that name working as a deprecated alias.
+         */
+        ...(model.formerSingularName
+          ? { "x-former-names": [model.formerSingularName] }
+          : {}),
       });
 
       // register the model schema

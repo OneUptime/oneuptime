@@ -114,6 +114,17 @@ export interface DeviceReachabilityCheck {
   avgRttMs: number | null;
   packetLossPercent: number | null;
   failureCause: string;
+  /*
+   * For a device polled at a DNS name: the name, and the address ping
+   * resolved it to and sent its echoes to (OneUptime issue #5185). The
+   * server records the address as the device's IP address, which a device
+   * known only by its name otherwise never has. Present whenever the name
+   * resolved - a host that did not answer still has the address it did not
+   * answer at - and absent for a device polled at an address, or a name that
+   * did not resolve.
+   */
+  resolvedHost?: string | undefined;
+  resolvedAddress?: string | undefined;
 }
 
 /*
@@ -316,12 +327,18 @@ export default class PingMonitor {
           packetCount,
         );
 
+        const resolved: Pick<
+          DeviceReachabilityCheck,
+          "resolvedHost" | "resolvedAddress"
+        > = this.getResolvedAddress(hostAddress, res);
+
         if (res.alive) {
           return {
             isOnline: true,
             avgRttMs: stats.avgRoundTripTimeInMs ?? null,
             packetLossPercent: stats.packetLossPercent,
             failureCause: "",
+            ...resolved,
           };
         }
 
@@ -331,6 +348,7 @@ export default class PingMonitor {
           packetLossPercent: stats.packetLossPercent,
           failureCause: this.describeDeadHost(hostAddress, packetCount, res)
             .cause,
+          ...resolved,
         };
 
         logger.debug(
@@ -351,6 +369,34 @@ export default class PingMonitor {
     }
 
     return lastFailure;
+  }
+
+  /*
+   * The address a DNS name was pinged at, as the `ping` library read it off
+   * the OS ping's header line ("PING core-sw-01.corp (10.20.0.1) 56(84)
+   * bytes of data."). Exposed for tests.
+   *
+   * Nothing for a target that already is an address - there is nothing to
+   * resolve - or when what the library parsed is not an address literal (an
+   * output it could not read, a name echoed back): a value that is not an
+   * address must never be reported as one.
+   */
+  public static getResolvedAddress(
+    hostAddress: string,
+    res: Pick<ping.PingResponse, "numeric_host">,
+  ): Pick<DeviceReachabilityCheck, "resolvedHost" | "resolvedAddress"> {
+    if (!hostAddress || IP.isIP(hostAddress)) {
+      return {};
+    }
+
+    const numericHost: string =
+      typeof res.numeric_host === "string" ? res.numeric_host.trim() : "";
+
+    if (!numericHost || !IP.isIP(numericHost)) {
+      return {};
+    }
+
+    return { resolvedHost: hostAddress, resolvedAddress: numericHost };
   }
 
   /*

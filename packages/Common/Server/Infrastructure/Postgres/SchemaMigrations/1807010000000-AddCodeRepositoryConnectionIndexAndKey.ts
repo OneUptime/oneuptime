@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration alongside
- * AddCodeRepositoryConnections1806800000000, and moved into a migration of
+ * AddCodeRepositoryConnections1807000000000, and moved into a migration of
  * its own: "CodeRepository" already exists, so the index on its new
  * "codeRepositoryConnectionId" column is built online, and the foreign key
  * to "CodeRepositoryConnection" is added NOT VALID and then validated,
@@ -12,10 +12,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * again after a stop part way: an index or key that is already there is
  * left as it is.
  */
-export class AddCodeRepositoryConnectionIndexAndKey1806810000000
+export class AddCodeRepositoryConnectionIndexAndKey1807010000000
   implements MigrationInterface
 {
-  public name: string = "AddCodeRepositoryConnectionIndexAndKey1806810000000";
+  public name: string = "AddCodeRepositoryConnectionIndexAndKey1807010000000";
 
   // CREATE INDEX CONCURRENTLY and the validation run outside a transaction.
   public transaction: boolean = false;

@@ -19,7 +19,7 @@ flowchart TB
 - **Monitor Rules** numa página de status. Elas já ressincronizam a página sempre que uma regra é salva; executar uma ressincroniza a página na hora.
 - **Monitor Rules** num SLO. Elas já ressincronizam o SLO sempre que uma regra é salva; executar uma ressincroniza na hora os monitores do SLO. Veja [Monitores e regras de monitor](/docs/slo/monitor-rules).
 
-As regras que executam uma ação em vez de descrever um recurso (**Regras de Plantão**, **Regras de runbook**, **Regras de remediação automática** e **Regras de agrupamento**) não podem ser executadas sobre registros existentes. Executá-las acionaria pessoas, rodaria runbooks, iniciaria correções ou reorganizaria episódios de incidentes que já terminaram.
+As regras que executam uma ação em vez de descrever um recurso (**Regras de Plantão**, **Regras de runbook**, **Regras de IA** e **Regras de agrupamento**) não podem ser executadas sobre registros existentes. Executá-las acionaria pessoas, rodaria runbooks, iniciaria correções ou reorganizaria episódios de incidentes que já terminaram.
 
 ## Antes de começar
 

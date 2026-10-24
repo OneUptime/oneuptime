@@ -480,7 +480,7 @@ describe("every AI behaviour is a switch", () => {
         );
       }
 
-      expect(AI_LANE_RULES_COPY[lane].remediationRulesDescription).toContain(
+      expect(AI_LANE_RULES_COPY[lane].aiRulesDescription).toContain(
         "while fixing is on, pull requests included.",
       );
     }
@@ -570,24 +570,26 @@ describe("the pages draw switches first, and fold the limits", () => {
     [INCIDENT_PAGE, "AiLane.Incident"],
     [ALERT_PAGE, "AiLane.Alert"],
   ])(
-    "%s folds the investigation rules and the auto remediation rules under More settings, each reporting what it holds",
+    "%s folds the one table of AI rules under More settings, first, reporting what it holds",
     (file: string, lane: string) => {
       const page: string = readDashboard(file);
       const advanced: string = page.slice(page.indexOf("<AdvancedPageSection"));
 
       expect(advanced).toContain(
-        `<AIInvestigationRulesTable lane={${lane}} onRulesLoaded={advanced.onRulesLoaded( AiLaneAdvancedCard.InvestigationRules, )} />`,
-      );
-      expect(advanced).toContain(
-        `<AutoRemediationRulesTable lane={${lane}} onRulesLoaded={advanced.onRulesLoaded( AiLaneAdvancedCard.RemediationRules, )} />`,
+        `<AiRulesTable lane={${lane}} onRulesLoaded={advanced.onRulesLoaded(AiLaneAdvancedCard.AiRules)} />`,
       );
       // Nothing about rules shows above the fold.
-      expect(page.indexOf("<AIInvestigationRulesTable")).toBeGreaterThan(
+      expect(page.indexOf("<AiRulesTable")).toBeGreaterThan(
         page.indexOf("<AdvancedPageSection"),
       );
-      expect(page.indexOf("<AutoRemediationRulesTable")).toBeGreaterThan(
-        page.indexOf("<AdvancedPageSection"),
+      // First under it: which incidents OneUptime AI works on, and how.
+      expect(advanced.indexOf("<AiRulesTable")).toBeLessThan(
+        advanced.indexOf("<CardModelDetail"),
       );
+      // Once, and the two tables it replaced are gone.
+      expect(page.split("<AiRulesTable").length).toBe(2);
+      expect(page).not.toContain("AIInvestigationRulesTable");
+      expect(page).not.toContain("AutoRemediationRulesTable");
     },
   );
 
@@ -900,22 +902,18 @@ describe("what folded Advanced says", () => {
   }
 
   /*
-   * What a lane's rules tables read: investigation and remediation rules on
-   * both pages, and postmortem rules on the incidents' (0 unless said).
+   * What a lane's rules tables read: the AI rules on both pages, and
+   * postmortem rules on the incidents' (0 unless said).
    */
   function readRules(
     state: AiLaneAdvancedState,
-    counts: { investigation: number; remediation: number; postmortem?: number },
+    counts: { aiRules: number; postmortem?: number },
     lane: AiLane = AiLane.Incident,
   ): AiLaneAdvancedState {
     let read: AiLaneAdvancedState = recordAiLaneAdvancedRules({
-      state: recordAiLaneAdvancedRules({
-        state,
-        card: AiLaneAdvancedCard.InvestigationRules,
-        count: counts.investigation,
-      }),
-      card: AiLaneAdvancedCard.RemediationRules,
-      count: counts.remediation,
+      state,
+      card: AiLaneAdvancedCard.AiRules,
+      count: counts.aiRules,
     });
 
     if (lane === AiLane.Incident) {
@@ -929,7 +927,7 @@ describe("what folded Advanced says", () => {
     return read;
   }
 
-  test("the three cards hold the lane's six limits, two each, once, and the two rules tables none", () => {
+  test("the three cards hold the lane's six limits, two each, once, and the rules tables none", () => {
     for (const lane of [AiLane.Incident, AiLane.Alert]) {
       for (const card of AI_LANE_ADVANCED_CARDS[lane]) {
         if (isAiLaneRulesCard(card)) {
@@ -954,10 +952,7 @@ describe("what folded Advanced says", () => {
   });
 
   test("once every card has read and nothing is set, it says what the defaults do", () => {
-    const none: { investigation: number; remediation: number } = {
-      investigation: 0,
-      remediation: 0,
-    };
+    const none: { aiRules: number } = { aiRules: 0 };
 
     expect(
       getAiLaneAdvancedSummary(
@@ -981,25 +976,25 @@ describe("what folded Advanced says", () => {
     expect(
       getAiLaneAdvancedSummary(
         AiLane.Incident,
-        readRules(
-          read(AiLane.Incident, {}),
-          { investigation: 0, remediation: 0 },
-          AiLane.Alert,
-        ),
+        readRules(read(AiLane.Incident, {}), { aiRules: 0 }, AiLane.Alert),
       ),
     ).toBeUndefined();
   });
 
-  test("until both rules tables have read, it claims nothing about the defaults", () => {
+  test("until the rules tables have read, it claims nothing about the defaults", () => {
     expect(
       getAiLaneAdvancedSummary(AiLane.Incident, read(AiLane.Incident, {})),
     ).toBeUndefined();
+    expect(
+      getAiLaneAdvancedSummary(AiLane.Alert, read(AiLane.Alert, {})),
+    ).toBeUndefined();
+    // The AI rules read, the postmortem rules not yet.
     expect(
       getAiLaneAdvancedSummary(
         AiLane.Incident,
         recordAiLaneAdvancedRules({
           state: read(AiLane.Incident, {}),
-          card: AiLaneAdvancedCard.InvestigationRules,
+          card: AiLaneAdvancedCard.AiRules,
           count: 0,
         }),
       ),
@@ -1008,9 +1003,9 @@ describe("what folded Advanced says", () => {
 
   test("an enabled rule in either table makes it Configured, with no defaults claim", () => {
     for (const counts of [
-      { investigation: 1, remediation: 0 },
-      { investigation: 0, remediation: 2 },
-      { investigation: 0, remediation: 0, postmortem: 3 },
+      { aiRules: 1 },
+      { aiRules: 2, postmortem: 0 },
+      { aiRules: 0, postmortem: 3 },
     ]) {
       const state: AiLaneAdvancedState = readRules(
         read(AiLane.Incident, {}),
@@ -1089,10 +1084,7 @@ describe("what folded Advanced says", () => {
   test("a rules table reading again replaces its count", () => {
     let state: AiLaneAdvancedState = readRules(
       read(AiLane.Alert, {}),
-      {
-        investigation: 3,
-        remediation: 0,
-      },
+      { aiRules: 3 },
       AiLane.Alert,
     );
 
@@ -1100,12 +1092,13 @@ describe("what folded Advanced says", () => {
 
     state = recordAiLaneAdvancedRules({
       state,
-      card: AiLaneAdvancedCard.InvestigationRules,
+      card: AiLaneAdvancedCard.AiRules,
       count: 0,
     });
 
     expect(isAiLaneAdvancedConfigured(AiLane.Alert, state)).toBe(false);
-    expect(state.loadedCards).toHaveLength(5);
+    // The alert page's four cards: the AI rules and the three of limits.
+    expect(state.loadedCards).toHaveLength(4);
   });
 });
 

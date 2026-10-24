@@ -33,6 +33,7 @@ import AIRunService from "../../../Services/AIRunService";
 import AlertFeedService from "../../../Services/AlertFeedService";
 import AlertService from "../../../Services/AlertService";
 import AutoRemediationRuleService from "../../../Services/AutoRemediationRuleService";
+import { doesAiRuleFix } from "../../../../Types/AI/AiRule";
 import AutoRemediationSuggestionService from "../../../Services/AutoRemediationSuggestionService";
 import ExternalMcpServerService from "../../../Services/ExternalMcpServerService";
 import IncidentFeedService from "../../../Services/IncidentFeedService";
@@ -385,6 +386,7 @@ export default class McpRemediationRunner {
           _id: true,
           projectId: true,
           isEnabled: true,
+          fixes: true,
           executionMode: true,
           externalMcpServers: { _id: true },
         },
@@ -400,6 +402,10 @@ export default class McpRemediationRunner {
 
     if (rule.isEnabled === false) {
       return mdText`The rule behind this fix was turned off before ${getAiName()} could work on it, so it changed nothing.`.toString();
+    }
+
+    if (!doesAiRuleFix(rule)) {
+      return mdText`The rule behind this fix was set to only investigate before ${getAiName()} could work on it, so it changed nothing.`.toString();
     }
 
     const namesServers: boolean =
@@ -646,8 +652,8 @@ export default class McpRemediationRunner {
     lines.push("");
     lines.push(
       suggestion.autoRemediationRuleId
-        ? `Matched auto-remediation rule: ${suggestion.ruleNameSnapshot || "N/A"}`
-        : "No auto-remediation rule is set up: OneUptime AI fixes every new signal, and asks before every change.",
+        ? `Matched AI rule: ${suggestion.ruleNameSnapshot || "N/A"}`
+        : "No AI rule is set up: OneUptime AI fixes every new signal, and asks before every change.",
     );
 
     return ToolResultSerializer.redact(lines.join("\n")).text;

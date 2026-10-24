@@ -490,6 +490,24 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/Telemetry/InventoryMirrorPostgres.test.ts --forceExit
 
+      # Clones the migrated NetworkDevice table into an isolated schema and
+      # runs the merge of what discovery read about a device (issue #5185):
+      # one UPDATE per batch that unpacks its patches with jsonb_to_recordset
+      # and merges each as (details - unset) || set. Only a database shows
+      # that it keeps every other writer's keys, never reaches another
+      # project's or a deleted device, and loses nothing to a concurrent
+      # merge.
+      - name: Test the discovered details merge against Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_NETWORK_DEVICE_DISCOVERED_DETAILS_TESTS: "true"
+          NETWORK_DEVICE_DISCOVERED_DETAILS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          NETWORK_DEVICE_DISCOVERED_DETAILS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          NETWORK_DEVICE_DISCOVERED_DETAILS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/NetworkDeviceDiscoveredDetailsPostgres.test.ts --forceExit
+
       # Clones the migrated CloudResource table into an isolated schema and
       # runs the discovered resources' sweeps against it: Not reporting,
       # auto-archive, restore when a resource reports again, and the budget's
@@ -2118,6 +2136,28 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Infrastructure/Postgres/AddRuleLlmProvidersPostgres.test.ts
+          --forceExit
+
+      # Investigation rules become AI rules, on migrated Postgres: the
+      # AddAiRuleInvestigation and MergeInvestigationRulesIntoAiRules
+      # migrations on copies of both rule tables, seeded with every
+      # combination (each kind alone, matching and different conditions,
+      # disabled rules, name order, both kinds of signal, a deleted rule and
+      # project). Each rule's new shape is checked, and so is the behaviour:
+      # for a spread of incidents and alerts, what is investigated (wait, LLM
+      # provider, MCP servers, repositories), which rules fix it and which
+      # pull requests open is the same before and after. up() run again
+      # changes nothing, and down() gives the rules back.
+      - name: Test merging investigation rules into AI rules on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_AI_RULE_MERGE_TESTS: "true"
+          AI_RULE_MERGE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          AI_RULE_MERGE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          AI_RULE_MERGE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/MergeInvestigationRulesIntoAiRulesPostgres.test.ts
           --forceExit
 
       # Labels in natural order (#5183), on migrated Postgres: the

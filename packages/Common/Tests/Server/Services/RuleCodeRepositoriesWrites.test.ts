@@ -1,4 +1,3 @@
-import AIInvestigationRuleService from "../../../Server/Services/AIInvestigationRuleService";
 import AutoRemediationRuleService from "../../../Server/Services/AutoRemediationRuleService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import ProjectReferenceCheck, {
@@ -10,6 +9,7 @@ import {
   MAX_CODE_REPOSITORIES_PER_RULE,
   RULE_TOO_MANY_CODE_REPOSITORIES_MESSAGE,
 } from "../../../Types/CodeRepository/CodeRepositoryAllowance";
+import AutoRemediationTriggerEntity from "../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -20,12 +20,13 @@ import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayW
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
- * The code repositories an auto remediation rule or an investigation rule
- * names: only the project's own - another project's is refused with the
- * same words as an id that matches nothing, through the rule services' real
- * hooks - and at most MAX_CODE_REPOSITORIES_PER_RULE, refused before any
- * repository is looked up (more than that means all of them: leave the list
- * empty). An edit that leaves the list alone is not judged on it.
+ * The code repositories an AI rule names (investigation rules and auto
+ * remediation rules are one AI rule now): only the project's own - another
+ * project's is refused with the same words as an id that matches nothing,
+ * through the rule service's real hooks - and at most
+ * MAX_CODE_REPOSITORIES_PER_RULE, refused before any repository is looked
+ * up (more than that means all of them: leave the list empty). An edit that
+ * leaves the list alone is not judged on it.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -40,10 +41,6 @@ const SERVICES: Array<[string, DatabaseService<DatabaseBaseModel>]> = [
   [
     "AutoRemediationRuleService",
     AutoRemediationRuleService as unknown as DatabaseService<DatabaseBaseModel>,
-  ],
-  [
-    "AIInvestigationRuleService",
-    AIInvestigationRuleService as unknown as DatabaseService<DatabaseBaseModel>,
   ],
 ];
 
@@ -66,6 +63,7 @@ function ruleWith(
   rule.setColumnValue("projectId", PROJECT_ID);
   Object.assign(rule, {
     name: "Checkout",
+    triggerEntityType: AutoRemediationTriggerEntity.Incident,
     codeRepositories: codeRepositories.map((id: string) => {
       return { _id: id };
     }),

@@ -1,17 +1,17 @@
 import InvestigationRules from "../../../../Server/Utils/AI/SRE/InvestigationRules";
 import InvestigationCodeRepositories from "../../../../Server/Utils/AI/SRE/InvestigationCodeRepositories";
-import AIInvestigationRuleService from "../../../../Server/Services/AIInvestigationRuleService";
+import AutoRemediationRuleService from "../../../../Server/Services/AutoRemediationRuleService";
 import AlertService from "../../../../Server/Services/AlertService";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import logger from "../../../../Server/Utils/Logger";
-import AIInvestigationRule from "../../../../Models/DatabaseModels/AIInvestigationRule";
+import AutoRemediationRule from "../../../../Models/DatabaseModels/AutoRemediationRule";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
-import AIInvestigationRuleTriggerEntity from "../../../../Types/AI/AIInvestigationRuleTriggerEntity";
+import AutoRemediationTriggerEntity from "../../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import {
   CodeRepositoryAllowance,
   EVERY_CODE_REPOSITORY,
@@ -24,10 +24,10 @@ import type { SpyInstance } from "jest-mock";
 /*
  * The code repositories an investigation may read: "if no code repo is
  * selected - it should be able to read and investigate all the repos that
- * are connected" - the maintainer. Each investigation rule names some, or
- * none (all of them), under its More fields:
+ * are connected" - the maintainer. Each AI rule that investigates names
+ * some, or none (all of them), under its More fields:
  *
- *   - no enabled rule: every connected repository;
+ *   - no enabled rule that investigates: every connected repository;
  *   - a matching rule that names none: every connected repository;
  *   - matching rules that name some: the ones any of them names;
  *   - rules set up, none matching: none (nothing would have started a run);
@@ -65,8 +65,8 @@ function ref<T extends { _id?: string | undefined }>(
   return model;
 }
 
-function rule(values: Partial<AIInvestigationRule>): AIInvestigationRule {
-  return Object.assign(new AIInvestigationRule(), {
+function rule(values: Partial<AutoRemediationRule>): AutoRemediationRule {
+  return Object.assign(new AutoRemediationRule(), {
     _id: ObjectID.generate().toString(),
     name: "Production",
     ...values,
@@ -98,10 +98,10 @@ function alert(): Alert {
 }
 
 function mockRules(
-  rules: Array<AIInvestigationRule> | Error,
-): SpyInstance<typeof AIInvestigationRuleService.findBy> {
+  rules: Array<AutoRemediationRule> | Error,
+): SpyInstance<typeof AutoRemediationRuleService.findBy> {
   return jest
-    .spyOn(AIInvestigationRuleService, "findBy")
+    .spyOn(AutoRemediationRuleService, "findBy")
     .mockImplementation(async () => {
       if (rules instanceof Error) {
         throw rules;
@@ -127,7 +127,7 @@ afterEach(() => {
 
 describe("InvestigationRules.getIncidentCodeRepositoryAllowance", () => {
   async function allowanceFor(
-    rules: Array<AIInvestigationRule> | Error,
+    rules: Array<AutoRemediationRule> | Error,
   ): Promise<CodeRepositoryAllowance> {
     mockRules(rules);
 
@@ -141,8 +141,8 @@ describe("InvestigationRules.getIncidentCodeRepositoryAllowance", () => {
     expect(await allowanceFor([])).toEqual(EVERY_CODE_REPOSITORY);
   });
 
-  test("reads the project's enabled incident rules with the repositories each names, as root", async () => {
-    const findBy: SpyInstance<typeof AIInvestigationRuleService.findBy> =
+  test("reads the project's enabled incident rules that investigate, with the repositories each names, as root", async () => {
+    const findBy: SpyInstance<typeof AutoRemediationRuleService.findBy> =
       mockRules([]);
 
     await InvestigationRules.getIncidentCodeRepositoryAllowance({
@@ -155,7 +155,8 @@ describe("InvestigationRules.getIncidentCodeRepositoryAllowance", () => {
       query: {
         projectId: PROJECT_ID,
         isEnabled: true,
-        triggerEntityType: AIInvestigationRuleTriggerEntity.Incident,
+        triggerEntityType: AutoRemediationTriggerEntity.Incident,
+        investigates: true,
       },
       select: {
         monitors: { _id: true },
@@ -258,7 +259,7 @@ describe("InvestigationRules.getIncidentCodeRepositoryAllowance", () => {
 
 describe("InvestigationRules.getAlertCodeRepositoryAllowance", () => {
   test("reads the alert rules, and matches the alert on its own severity and monitor", async () => {
-    const findBy: SpyInstance<typeof AIInvestigationRuleService.findBy> =
+    const findBy: SpyInstance<typeof AutoRemediationRuleService.findBy> =
       mockRules([
         rule({
           alertSeverities: [ref(AlertSeverity, SEVERITY_LOW)],
@@ -277,7 +278,7 @@ describe("InvestigationRules.getAlertCodeRepositoryAllowance", () => {
       }),
     ).toEqual(only(BILLING_REPO));
     expect(findBy.mock.calls[0]![0]).toMatchObject({
-      query: { triggerEntityType: AIInvestigationRuleTriggerEntity.Alert },
+      query: { triggerEntityType: AutoRemediationTriggerEntity.Alert },
     });
   });
 

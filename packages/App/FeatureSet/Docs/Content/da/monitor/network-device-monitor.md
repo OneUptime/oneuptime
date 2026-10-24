@@ -506,7 +506,13 @@ En undersøgelse fra OneUptime AI af en hændelse eller advarsel fra en netværk
 
 Efter det første vellykkede walk læser OneUptime SNMPv2-systemgruppen og, hvor enheden understøtter det, ENTITY-MIB og udfylder enhedens post: systemnavn, beskrivelse, placering, kontakt, oppetid, producent, model, serienummer og firmwareversion. Producentens enterprise-OID (`sysObjectID`) er enhedens fingeraftryk: den navngiver producenten og vælger den tilsvarende producentskabelon. De samme oplysninger vises i [inventaret](/docs/inventory/cmdb-sync#aktivattributter-for-netværksenheder) sammen med alle dine andre aktiver.
 
-En enhed kun med ping beholder det navn og den adresse, du, eller en discovery-scanning, gav den: der er ingen SNMP-agent at spørge om noget bedre.
+En enhed kun med ping beholder det navn og den adresse, du, eller en discovery-scanning, gav den. Det, dens egen polling ikke har læst, får den fra discovery:
+
+- Det systemnavn, den beskrivelse, `sysObjectID`, placering og kontakt, som den seneste [discovery-scanning](#find-enheder-med-en-netværksscanning) af dens adresse læste over SNMP, og de reverse-DNS- og NetBIOS-navne, den fandt.
+- Dens MAC-adresse, fra ARP-tabellen i en gennemgået router på dens site.
+- For en enhed, der polles på et DNS-navn, den adresse, dens sonde slog navnet op til.
+
+De gemmes ved siden af enhedens egne felter, skrives aldrig ind i dem, og hver scanning, router-walk eller polling, der læser en af dem igen, opdaterer den. Enhedens oversigt og dens element i inventaret viser, hvilken scanning, router eller sonde der læste hver værdi, og hvornår. En værdi, du har gemt på enheden, erstattes aldrig. Når en scanning finder en anden maskine på enhedens adresse, for eksempel et DHCP-lease, der er flyttet, siger oversigten det, og intet af det, den scanning læste der, bruges.
 
 ## Find enheder med en netværksscanning
 

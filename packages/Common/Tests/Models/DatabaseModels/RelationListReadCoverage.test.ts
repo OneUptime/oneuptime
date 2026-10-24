@@ -386,7 +386,6 @@ const CREDENTIAL_REFERENCES: Array<[string, string, string]> = [
   // A custom role given to a key: the key holds what the role gives.
   ["ApiKeyCustomRole", "apiKey", "ApiKey"],
   ["ThreatIntelFeed", "securityEventConnection", "SecurityEventConnection"],
-  ["AIInvestigationRule", "llmProvider", "LlmProvider"],
   ["AutoRemediationRule", "llmProvider", "LlmProvider"],
   ["AIPostmortemRule", "llmProvider", "LlmProvider"],
 ];

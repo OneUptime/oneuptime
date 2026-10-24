@@ -295,7 +295,7 @@ flowchart TB
 - **Ved eller etter den bekreftede tilstanden din** — **Bekreftet**, eller enhver tilstand som står under den i **Hendelser → Innstillinger → Hendelsesstatus** — kjører ingen vaktpolicy, så ingen tilkalles. Hendelsen nevner fortsatt policyene sine, dem du valgte og dem vaktregler legger til, og feeden sier hvorfor på én linje: _No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ SLA-en, hvis en regel gir den en, starter allerede som besvart. Alt annet nedenfor kjører som for enhver ny hendelse.
 - **Ved eller etter den løste tilstanden din** — **Løst**, eller enhver tilstand som står under den — er hendelsen over, så i tillegg kjører ingenting som reagerer på en live hendelse:
   - den grupperes ikke i en episode, som kunne tilkalle igjen;
-  - ingen runbook-regel og ingen regel for automatisk utbedring handler på den;
+  - ingen runbook-regel og ingen AI-regel handler på den;
   - OneUptime AI undersøker den ikke — kortet **AI Investigation** sier at den ble opprettet allerede løst, og **Ask OneUptime AI** under det svarer fortsatt på spørsmål om den;
   - det opprettes ingen Slack- eller Microsoft Teams-kanal for den;
   - monitorene beholder statusen sin og fortsetter å bli overvåket, uansett hva **Endre overvåkingsstatus til** sier;

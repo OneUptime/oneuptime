@@ -18,12 +18,12 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * The new table is empty, so its index and foreign keys are built here. The
  * column is nullable with no default, which Postgres adds without
  * rewriting or scanning "CodeRepository"; its index and foreign key are
- * built online in AddCodeRepositoryConnectionIndexAndKey1806810000000.
+ * built online in AddCodeRepositoryConnectionIndexAndKey1807010000000.
  */
-export class AddCodeRepositoryConnections1806800000000
+export class AddCodeRepositoryConnections1807000000000
   implements MigrationInterface
 {
-  public name: string = "AddCodeRepositoryConnections1806800000000";
+  public name: string = "AddCodeRepositoryConnections1807000000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

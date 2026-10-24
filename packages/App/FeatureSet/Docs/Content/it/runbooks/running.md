@@ -39,7 +39,7 @@ Una nuova esecuzione è **Programmato** finché un Worker non la prende in caric
 
 Un'esecuzione di runbook viene creata in cinque modi:
 
-1. **Automaticamente tramite una regola**: una [regola di runbook](/docs/runbooks/rules) la avvia quando viene creato un incidente, un avviso o un evento di manutenzione programmata corrispondente. Anche una regola di rimedio automatico può avviarne una; vedi [AI SRE](/docs/ai/ai-sre).
+1. **Automaticamente tramite una regola**: una [regola di runbook](/docs/runbooks/rules) la avvia quando viene creato un incidente, un avviso o un evento di manutenzione programmata corrispondente. Anche una regola IA può avviarne una; vedi [AI SRE](/docs/ai/ai-sre).
 2. **Manualmente da un evento**: fai clic su **Esegui Runbook** su un incidente, un avviso o un evento di manutenzione programmata. L'esecuzione è collegata a quell'evento.
 3. **Manualmente dalla pagina del runbook**: fai clic su **Run Now** nella pagina **Panoramica** di un runbook. L'esecuzione non è collegata ad alcun incidente, avviso o evento di manutenzione programmata.
 4. **Secondo una pianificazione**: la pianificazione del runbook la avvia a orari stabiliti. Vedi [Eseguire secondo una pianificazione](/docs/runbooks/triggers#eseguire-secondo-una-pianificazione).

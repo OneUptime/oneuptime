@@ -86,7 +86,7 @@ Con **Redactar un post mortem cuando se resuelve un incidente** activado, OneUpt
 
 Sin reglas, cada incidente resuelto recibe un borrador, con el esquema estándar de OneUptime AI. Las **Reglas de post mortem**, en **Más ajustes** de la misma página, cambian eso:
 
-- Una regla coincide con **Todos los incidentes**, o con **Solo los incidentes que cumplen las condiciones** sobre monitores, gravedades, etiquetas, etiquetas de monitor, título y descripción, como hace una regla de investigación.
+- Una regla coincide con **Todos los incidentes**, o con **Solo los incidentes que cumplen las condiciones** sobre monitores, gravedades, etiquetas, etiquetas de monitor, título y descripción, como hace una regla de IA.
 - Sus **Plantillas** son las plantillas de post mortem que puede seguir el borrador. Sin ninguna, el borrador sigue el esquema estándar; con una, esa plantilla; con varias, la que OneUptime AI considera que mejor se ajusta al incidente. La publicación del borrador en el feed nombra la plantilla que siguió.
 - Su **Proveedor de LLM**, en **Más campos**, es el proveedor con el que OneUptime AI escribe el borrador y elige su plantilla. Si no se elige ninguno, es el proveedor predeterminado del proyecto o, si no hay, el global. La publicación del borrador en el feed nombra el proveedor que eligió una regla, o el que se usó en su lugar y por qué. Consulte [Qué proveedor de LLM usa una regla](/docs/ai/ai-sre#qué-proveedor-de-llm-usa-una-regla).
 - Decide la primera regla habilitada que coincide con el incidente, empezando por arriba de la lista: arrastre una regla para cambiar su posición. Un incidente con el que no coincide ninguna regla no recibe borrador, y tampoco ningún incidente mientras no se puedan leer las reglas.

@@ -523,7 +523,7 @@ describe("describeAutomaticFixPullRequestBlocker", () => {
         pullRequest: AutomaticFixPullRequest.MissingTelemetry,
       }),
     ).toBe(
-      "the auto remediation rules could not be read, so no telemetry pull requests open",
+      "the AI rules could not be read, so no telemetry pull requests open",
     );
     expect(
       describeAutomaticFixPullRequestBlocker({
@@ -531,7 +531,7 @@ describe("describeAutomaticFixPullRequestBlocker", () => {
         signal: AutoRemediationTriggerEntity.Alert,
         pullRequest: AutomaticFixPullRequest.CodeFix,
       }),
-    ).toBe("no auto remediation rule matches this alert, so it is not fixed");
+    ).toBe("no AI rule that fixes matches this alert, so it is not fixed");
     expect(
       describeAutomaticFixPullRequestBlocker({
         blocker: AutomaticFixPullRequestBlocker.PullRequestOff,
@@ -539,7 +539,7 @@ describe("describeAutomaticFixPullRequestBlocker", () => {
         pullRequest: AutomaticFixPullRequest.MissingTelemetry,
       }),
     ).toBe(
-      "the auto remediation rules that match this incident have telemetry pull requests off",
+      "the AI rules that match this incident have telemetry pull requests off",
     );
   });
 });

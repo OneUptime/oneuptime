@@ -24,10 +24,10 @@ import * as React from "react";
  *
  * Only the props the table hands to ModelTable are under test, so the table
  * is captured instead of rendered: a drag-ordered list (the first rule that
- * matches decides), a form that asks what the rule matches - the
- * investigation rule's incident conditions, drawn as one conditions builder
- * - then the Draft step (templates, and a name that follows them), and,
- * below the plan postmortem templates need, no template at all.
+ * matches decides), a form that asks what the rule matches - an incident
+ * AI rule's conditions, drawn as one conditions builder - then the Draft
+ * step (templates, and a name that follows them), and, below the plan
+ * postmortem templates need, no template at all.
  */
 const mockCapturedTableProps: Array<Record<string, unknown>> = [];
 
@@ -62,10 +62,9 @@ jest.mock(
 );
 
 import AIPostmortemRulesTable from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AIPostmortemRulesTable";
-import AIInvestigationRulesTable from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AIInvestigationRulesTable";
+import AiRulesTable from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AiRulesTable";
 import {
-  AI_LANE_INVESTIGATION_RULES_TABLE_ID,
-  AI_LANE_REMEDIATION_RULES_TABLE_ID,
+  AI_LANE_AI_RULES_TABLE_ID,
   AI_POSTMORTEM_RULES_TABLE_ID,
   AiLane,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
@@ -272,8 +271,8 @@ describe("the postmortem rules table", () => {
     expect(props["userPreferencesKey"]).toBe(AI_POSTMORTEM_RULES_TABLE_ID);
     expect(AI_POSTMORTEM_RULES_TABLE_ID).toBe("ai-postmortem-rules-table");
     expect([
-      AI_LANE_INVESTIGATION_RULES_TABLE_ID[AiLane.Incident],
-      AI_LANE_REMEDIATION_RULES_TABLE_ID[AiLane.Incident],
+      AI_LANE_AI_RULES_TABLE_ID[AiLane.Incident],
+      AI_LANE_AI_RULES_TABLE_ID[AiLane.Alert],
     ]).not.toContain(AI_POSTMORTEM_RULES_TABLE_ID);
     expect(props["isCreateable"]).toBe(true);
     expect(props["isEditable"]).toBe(true);
@@ -503,14 +502,14 @@ describe("the postmortem rule form", () => {
     ]);
   });
 
-  test("its conditions are an investigation rule's for incidents, read the same way", () => {
+  test("its conditions are an incident AI rule's, read the same way", () => {
     const postmortem: Array<CapturedField> = fieldsOf(table()).filter(
       (field: CapturedField): boolean => {
         return field.stepId === "match-criteria";
       },
     );
-    const investigation: Array<CapturedField> = fieldsOf(
-      captured(<AIInvestigationRulesTable lane={AiLane.Incident} />),
+    const aiRule: Array<CapturedField> = fieldsOf(
+      captured(<AiRulesTable lane={AiLane.Incident} />),
     ).filter((field: CapturedField): boolean => {
       return field.stepId === "match-criteria";
     });
@@ -520,7 +519,7 @@ describe("the postmortem rule form", () => {
         return [keyOf(field), field.title, field.fieldType];
       }),
     ).toEqual(
-      investigation.map((field: CapturedField) => {
+      aiRule.map((field: CapturedField) => {
         return [keyOf(field), field.title, field.fieldType];
       }),
     );

@@ -281,7 +281,7 @@ Microsoft 拒绝了发布，因为机器人不在该团队中。将应用添加�
 :::
 
 :::details 机器人提示我的账户未连接
-在机器人的回复中按 **Connect Microsoft Teams account** 即可一步连接，或在登录到项目所连接的组织的情况下，在 **用户设置** > **工作区** > **Microsoft Teams** 中通过 **Connect my account with Microsoft Teams** 关联它。来自其他组织的来宾账户不是同一个账户。
+在机器人的回复中按 **Connect Microsoft Teams account** 即可一步连接，或在 **用户设置** > **工作区** > **Microsoft Teams** 中通过 **Connect my account with Microsoft Teams** 关联它。无论哪种方式，您都会登录到项目所连接的组织；如果您是该组织的来宾，则以来宾身份登录。如果您是来宾，并且之前关联的是您自己组织的账户，请重新连接。
 :::
 
 :::details 在自托管服务器上所有通知都失败

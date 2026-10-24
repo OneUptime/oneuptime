@@ -1083,7 +1083,7 @@ If you prefer to manually sideload the app:
             isBodyFlush={true}
           >
             <CardSections>
-              <MicrosoftTeamsIntegrationDocumentation />
+              <MicrosoftTeamsIntegrationDocumentation isFolded={true} />
             </CardSections>
           </FoldedSection>
         </div>

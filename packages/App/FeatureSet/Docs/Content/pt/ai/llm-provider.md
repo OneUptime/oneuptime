@@ -32,7 +32,7 @@ flowchart TB
 
 Um provedor é o padrão de um projeto quando **Definir como padrão** está ativado, o que acontece em todo provedor novo. Um projeto cujos provedores estão todos com essa opção desativada recorre ao provedor global, como se não tivesse nenhum.
 
-Toda regra da OneUptime AI — regras de investigação, de remediação automática e de post-mortem — pode escolher, em vez disso, um provedor próprio em **Mais campos**: um dos provedores do projeto ou um global, usado para tudo o que a regra inicia. Uma regra que não escolhe nenhum usa o provedor padrão, e um provedor escolhido que não pode mais ser usado volta a ele. Veja [Qual provedor LLM uma regra usa](/docs/ai/ai-sre#qual-provedor-llm-uma-regra-usa).
+Toda regra da OneUptime AI — regras de IA e regras de post-mortem — pode escolher, em vez disso, um provedor próprio em **Mais campos**: um dos provedores do projeto ou um global, usado para tudo o que a regra inicia. Uma regra que não escolhe nenhum usa o provedor padrão, e um provedor escolhido que não pode mais ser usado volta a ele. Veja [Qual provedor LLM uma regra usa](/docs/ai/ai-sre#qual-provedor-llm-uma-regra-usa).
 
 ## OneUptime Cloud
 

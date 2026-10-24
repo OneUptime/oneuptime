@@ -74,7 +74,7 @@ HTTP 和 AI 步骤在 OneUptime Worker 上运行。Bash、SSH 和 kubectl 步骤
 | Runbook 规则 | **事件** 、 **警报** 或 **计划维护** → **规则** → **Runbook 规则** | 新的事件、警报或计划维护事件 |
 | **运行 Runbook** | 事件、警报或计划维护事件的 **运行手册** 页面 | 该事件、警报或计划维护事件 |
 | **Run Now** | Runbook 的 **概览** 页面 | 无：一次临时运行 |
-| 自动修复规则 | 参见 [AI SRE](/docs/ai/ai-sre) | 事件或警报 |
+| AI 规则 | 参见 [AI SRE](/docs/ai/ai-sre) | 事件或警报 |
 | Runbook 的计划 | Runbook 的 **触发器** 页面，参见 [Runbook 触发器](/docs/runbooks/triggers#按计划运行) | 无：一次无人值守的运行 |
 | 对 Runbook Webhook URL 的调用 | Runbook 的 **触发器** 页面，参见 [Runbook 触发器](/docs/runbooks/triggers#调用-webhook) | 无：运行会保留调用发送的值 |
 

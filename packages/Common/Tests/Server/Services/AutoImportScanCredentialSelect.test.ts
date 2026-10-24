@@ -325,11 +325,21 @@ describe("AUTO_IMPORT_SCAN_BUILDER_SELECT", () => {
     expect(properties).not.toContain("ON");
   });
 
-  test("selects the credential columns plus the naming choice, and nothing else", () => {
+  test("selects the credential columns, the naming choice and the scan's provenance, and nothing else", () => {
     expect(Object.keys(AUTO_IMPORT_SCAN_BUILDER_SELECT).sort()).toEqual(
       [
         ...Object.keys(AUTO_IMPORT_SCAN_CREDENTIAL_SELECT),
         "useShortDeviceNames",
+        /*
+         * Which scan read a host, under what name, and when: what an imported
+         * device's discovered details credit (issue #5185). None of them
+         * changes what is created.
+         */
+        "_id",
+        "name",
+        "cidr",
+        "completedAt",
+        "startedAt",
       ].sort(),
     );
 

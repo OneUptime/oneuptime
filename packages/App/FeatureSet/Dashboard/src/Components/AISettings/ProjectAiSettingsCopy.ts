@@ -51,20 +51,25 @@ import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemed
  * project's only AI switch.
  *
  * The pull requests OneUptime AI opens - a fix in the code, and missing
- * telemetry - are part of fixing, and live in the auto remediation rules,
- * under each rule's More fields, on by default (and on with no rule): "Both
- * of these toggles should be inside of Remediation Rule, inside of More,
- * and they should be checked by default ... You can remove these toggles
- * from the main card" - the maintainer. They open only while fixing is on
+ * telemetry - are part of fixing, and live in the AI rules that fix, under
+ * each rule's More fields, on by default (and on with no rule): "Both of
+ * these toggles should be inside of Remediation Rule, inside of More, and
+ * they should be checked by default ... You can remove these toggles from
+ * the main card" - the maintainer. They open only while fixing is on
  * (Common/Types/AI/AutomaticFixPullRequests), and the fix switch's line says
  * a pull request is one of the ways it fixes.
  *
  * Which incidents (or alerts) are investigated, and which are fixed and how,
- * can be narrowed by rules - Investigation rules and Auto remediation rules,
- * folded under More settings with the limits. With no rule, every one is.
- * So can which resolved incidents get a postmortem draft, and the templates
- * each draft follows: Postmortem rules, on the incident page only - alerts
- * have no postmortem (PostmortemRulesCopy).
+ * can be narrowed by AI rules, folded under More settings with the limits:
+ * one rule says which incidents it matches, when OneUptime AI investigates
+ * them and whether - and how - it fixes them (Common/Types/AI/AiRule). With
+ * no rule, every one is investigated and fixed. They were two kinds of rule
+ * with the same conditions, Investigation rules and Auto remediation rules:
+ * "Should incident investigation rule and remediation rule be the same
+ * entity ... Since its not possible to remediate without investigation" -
+ * the maintainer. So can which resolved incidents get a postmortem draft,
+ * and the templates each draft follows: Postmortem rules, on the incident
+ * page only - alerts have no postmortem (PostmortemRulesCopy).
  *
  * Project Settings → AI → AI Features has a More settings fold of its own, with
  * the project's daily limits on everything OneUptime AI does - a ceiling above
@@ -85,9 +90,9 @@ export enum AiLane {
 }
 
 /*
- * What a lane's investigation and remediation rules apply to: "All
- * incidents" or "Only incidents that match conditions" (RuleCriteriaSubject).
- * One table of rules holds both lanes, so the page names them.
+ * What a lane's AI rules apply to: "All incidents" or "Only incidents that
+ * match conditions" (RuleCriteriaSubject). One table of rules holds both
+ * lanes, so the page names them.
  */
 export const AI_LANE_RULE_CRITERIA_SUBJECTS: Readonly<
   Record<AiLane, RuleCriteriaSubject>
@@ -157,8 +162,8 @@ const REMEDIATION_NOTE: string = translationKey(
 /*
  * A lane's fix switch, by the column the server reads
  * (Common/Types/AI/AutomaticFixPullRequests). It has no switches under it:
- * the pull requests that are part of fixing are each auto remediation
- * rule's (More settings), on by default.
+ * the pull requests that are part of fixing are each AI rule's (More
+ * settings), on by default.
  */
 const getFixSwitch: (data: {
   signal: AutoRemediationTriggerEntity;
@@ -275,14 +280,15 @@ export const AI_LANE_ADVANCED_COLUMNS: Record<AiLane, AiLaneAdvancedColumns> = {
  * columns, each with its own Edit, and the others are tables of rules.
  */
 export enum AiLaneAdvancedCard {
-  // Investigation rules: which incidents (or alerts) are investigated.
-  InvestigationRules = "InvestigationRules",
+  /*
+   * AI rules: which incidents (or alerts) OneUptime AI investigates, and
+   * whether - and how - it fixes them.
+   */
+  AiRules = "AiRules",
   // Minimum severity and re-investigation cooldown.
   WhichAreInvestigated = "WhichAreInvestigated",
   // How many run at once, and for how long.
   InvestigationLimits = "InvestigationLimits",
-  // Auto remediation rules: which are fixed, and how.
-  RemediationRules = "RemediationRules",
   /*
    * Postmortem rules: which resolved incidents get a postmortem draft, and
    * the templates it follows. Incidents only: an alert has no postmortem.
@@ -293,28 +299,27 @@ export enum AiLaneAdvancedCard {
 }
 
 /*
- * Each lane's cards under More settings, in the order they are drawn: in
- * the order of the switches above them - investigating, fixing and, for
- * incidents, the postmortem draft - then the daily limits, which hold all of
- * them.
+ * Each lane's cards under More settings, in the order they are drawn: the
+ * AI rules first - which incidents are investigated and fixed, and how -
+ * then the rest in the order of the switches above them: investigating and,
+ * for incidents, the postmortem draft; then the daily limits, which hold all
+ * of them.
  */
 export const AI_LANE_ADVANCED_CARDS: Record<
   AiLane,
   Array<AiLaneAdvancedCard>
 > = {
   [AiLane.Incident]: [
-    AiLaneAdvancedCard.InvestigationRules,
+    AiLaneAdvancedCard.AiRules,
     AiLaneAdvancedCard.WhichAreInvestigated,
     AiLaneAdvancedCard.InvestigationLimits,
-    AiLaneAdvancedCard.RemediationRules,
     AiLaneAdvancedCard.PostmortemRules,
     AiLaneAdvancedCard.DailyLimits,
   ],
   [AiLane.Alert]: [
-    AiLaneAdvancedCard.InvestigationRules,
+    AiLaneAdvancedCard.AiRules,
     AiLaneAdvancedCard.WhichAreInvestigated,
     AiLaneAdvancedCard.InvestigationLimits,
-    AiLaneAdvancedCard.RemediationRules,
     AiLaneAdvancedCard.DailyLimits,
   ],
 };
@@ -325,8 +330,7 @@ export const AI_LANE_ADVANCED_CARDS: Record<
  * it, so the folded header draws it as a chip with how many it holds.
  */
 export const AI_LANE_RULES_CARDS: Array<AiLaneAdvancedCard> = [
-  AiLaneAdvancedCard.InvestigationRules,
-  AiLaneAdvancedCard.RemediationRules,
+  AiLaneAdvancedCard.AiRules,
   AiLaneAdvancedCard.PostmortemRules,
 ];
 
@@ -484,33 +488,23 @@ export type AiLaneAdvancedCardTitles = {
 
 export const AI_LANE_ADVANCED_CARD_TITLES: AiLaneAdvancedCardTitles = {
   [AiLane.Incident]: {
-    [AiLaneAdvancedCard.InvestigationRules]: translationKey(
-      "Investigation rules",
-    ),
+    [AiLaneAdvancedCard.AiRules]: translationKey("AI rules"),
     [AiLaneAdvancedCard.WhichAreInvestigated]: translationKey(
       "Which incidents are investigated",
     ),
     [AiLaneAdvancedCard.InvestigationLimits]: translationKey(
       "Investigation limits",
     ),
-    [AiLaneAdvancedCard.RemediationRules]: translationKey(
-      "Auto remediation rules",
-    ),
     [AiLaneAdvancedCard.PostmortemRules]: translationKey("Postmortem rules"),
     [AiLaneAdvancedCard.DailyLimits]: translationKey("Daily limits"),
   },
   [AiLane.Alert]: {
-    [AiLaneAdvancedCard.InvestigationRules]: translationKey(
-      "Investigation rules",
-    ),
+    [AiLaneAdvancedCard.AiRules]: translationKey("AI rules"),
     [AiLaneAdvancedCard.WhichAreInvestigated]: translationKey(
       "Which alerts are investigated",
     ),
     [AiLaneAdvancedCard.InvestigationLimits]: translationKey(
       "Investigation limits",
-    ),
-    [AiLaneAdvancedCard.RemediationRules]: translationKey(
-      "Auto remediation rules",
     ),
     [AiLaneAdvancedCard.DailyLimits]: translationKey("Daily limits"),
   },
@@ -553,7 +547,7 @@ export const isAiLaneAdvancedCardConfigured: (
 
 /*
  * What the folded More settings header lists: every card, set or not, and
- * how many rules a rules table holds ("Investigation rules: 2").
+ * how many rules a rules table holds ("AI rules: 2").
  */
 export const getAiLaneAdvancedItems: (
   lane: AiLane,
@@ -665,39 +659,44 @@ export const getAiLaneAdvancedSummary: (
 };
 
 /*
- * The two tables of rules under a lane's More settings. With no rule, every
- * incident (or alert) is investigated, and every one is fixed while fixing
- * is on - its pull requests included; rules narrow that to the ones that
- * match.
+ * The table of AI rules under a lane's More settings. With no rule, every
+ * incident (or alert) is investigated right away, and every one is fixed
+ * while fixing is on - its pull requests included; rules narrow that to the
+ * ones that match, each the way its rule says.
  *
- * An investigation rule is conditions and when to investigate; the MCP
- * servers and code repositories OneUptime AI may read are folded under its
- * More fields. An auto remediation rule is conditions and one answer:
- * whether a fix waits for someone to approve it. OneUptime AI fixes; the
- * runbooks it may run, the Runner it runs its commands on, the MCP servers
- * and code repositories it may use, and the two pull requests it opens are
+ * A rule is conditions, when to investigate, and one answer about fixing:
+ * don't, ask first, or without asking. The runbooks OneUptime AI may run,
+ * the Runner it runs its commands on, the LLM provider, the MCP servers and
+ * code repositories it may use, and the two pull requests it opens are
  * folded under the rule's More fields.
  */
 export interface AiLaneRulesCopy {
-  investigationRulesDescription: string;
-  remediationRulesDescription: string;
+  aiRulesDescription: string;
+  noAiRulesMessage: string;
 }
 
+/*
+ * The card's line names a rule's three steps in their order - which
+ * incidents (Match), when (Investigate) and how each is fixed (Fix) - within
+ * a card description's two lines at 1280px (ShortDescriptionsGuard's 210
+ * characters, which it cannot read through the lane's index here, so
+ * AiRuleCopy's tests hold it to them).
+ */
 export const AI_LANE_RULES_COPY: Record<AiLane, AiLaneRulesCopy> = {
   [AiLane.Incident]: {
-    investigationRulesDescription: translationKey(
-      "With no rule, OneUptime AI investigates every new incident right away. Add rules to investigate only the incidents that match one of them, or only those still open after a wait.",
+    aiRulesDescription: translationKey(
+      "With no rule, OneUptime AI investigates every new incident right away, and fixes it while fixing is on, pull requests included. Add rules to choose which incidents it works on, when, and how each is fixed.",
     ),
-    remediationRulesDescription: translationKey(
-      "With no rule, OneUptime AI fixes every new incident while fixing is on, pull requests included. Add rules to fix only the incidents that match one, to ask first, or to choose what it may use.",
+    noAiRulesMessage: translationKey(
+      "No rules. Every new incident is investigated, and fixed while fixing is on.",
     ),
   },
   [AiLane.Alert]: {
-    investigationRulesDescription: translationKey(
-      "With no rule, OneUptime AI investigates every new alert right away. Add rules to investigate only the alerts that match one of them, or only those still open after a wait.",
+    aiRulesDescription: translationKey(
+      "With no rule, OneUptime AI investigates every new alert right away, and fixes it while fixing is on, pull requests included. Add rules to choose which alerts it works on, when, and how each is fixed.",
     ),
-    remediationRulesDescription: translationKey(
-      "With no rule, OneUptime AI fixes every new alert while fixing is on, pull requests included. Add rules to fix only the alerts that match one, to ask first, or to choose what it may use.",
+    noAiRulesMessage: translationKey(
+      "No rules. Every new alert is investigated, and fixed while fixing is on.",
     ),
   },
 };
@@ -713,14 +712,9 @@ export const AI_LANE_ADVANCED_SECTION_TEST_ID: Record<AiLane, string> = {
   [AiLane.Alert]: "alert-ai-advanced-section",
 };
 
-export const AI_LANE_INVESTIGATION_RULES_TABLE_ID: Record<AiLane, string> = {
-  [AiLane.Incident]: "ai-investigation-rules-table-Incident",
-  [AiLane.Alert]: "ai-investigation-rules-table-Alert",
-};
-
-export const AI_LANE_REMEDIATION_RULES_TABLE_ID: Record<AiLane, string> = {
-  [AiLane.Incident]: "auto-remediation-rules-table-Incident",
-  [AiLane.Alert]: "auto-remediation-rules-table-Alert",
+export const AI_LANE_AI_RULES_TABLE_ID: Record<AiLane, string> = {
+  [AiLane.Incident]: "ai-rules-table-Incident",
+  [AiLane.Alert]: "ai-rules-table-Alert",
 };
 
 // Incidents only: an alert has no postmortem.

@@ -307,9 +307,15 @@ describe("words that say what they mean", () => {
       "Index.tsx",
     );
 
-    expect(view).toContain("return isDifferentText(item.sysName, item.name);");
+    /*
+     * The values as they stand (issue #5185): the device's own, or what a
+     * discovery scan read when its poll has not.
+     */
     expect(view).toContain(
-      "return isDifferentText(item.sysDescr, item.description);",
+      'return isDifferentText( effectiveDetail(item, "sysName").value, item.name, );',
+    );
+    expect(view).toContain(
+      'return isDifferentText( effectiveDetail(item, "sysDescr").value, item.description, );',
     );
     expect(readCode("Pages", "NetworkDevice", "Devices.tsx")).toContain(
       "{isDifferentText(item.sysName, item.name) && (",
