@@ -39,10 +39,19 @@ export function redactDeliveryMessage(
   return LlmProviderError.redact(message, secretValues);
 }
 
-// An error's own words, without a closing full stop (the sentence adds its own).
+/*
+ * An error's own words, without a closing full stop (the sentence adds its
+ * own). Read by shape: an error Node's own http code made can come from
+ * another realm than this module's (a sandbox), where instanceof Error is
+ * false.
+ */
 function errorText(error: unknown): string {
+  const message: unknown =
+    error && typeof error === "object"
+      ? (error as { message?: unknown }).message
+      : undefined;
   let text: string =
-    error instanceof Error ? error.message || error.name : String(error);
+    typeof message === "string" && message ? message : String(error);
 
   text = text.trim();
 

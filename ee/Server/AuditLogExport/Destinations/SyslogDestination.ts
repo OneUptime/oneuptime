@@ -128,11 +128,18 @@ export function describeSyslogError(data: {
   port: number;
   protocol: string;
 }): AuditLogExportDeliveryError {
-  const error: NodeJS.ErrnoException =
-    data.error instanceof Error
-      ? (data.error as NodeJS.ErrnoException)
-      : new Error(String(data.error));
-  const code: string = String(error.code || "");
+  /*
+   * Read by shape, not by instanceof Error: a socket's error is made by
+   * Node's own net and tls code, which a sandbox (jest's) sees as an object
+   * of another realm.
+   */
+  const raw: { code?: unknown; message?: unknown } =
+    data.error && typeof data.error === "object"
+      ? (data.error as { code?: unknown; message?: unknown })
+      : { message: String(data.error) };
+  const code: string = typeof raw.code === "string" ? raw.code : "";
+  const message: string =
+    typeof raw.message === "string" ? raw.message : String(data.error);
   const target: string = `${data.host}:${data.port}`;
 
   if (
@@ -174,7 +181,7 @@ export function describeSyslogError(data: {
   return new AuditLogExportDeliveryError(
     `The connection to the syslog receiver at ${target} failed${
       code ? ` (${code})` : ""
-    }: ${error.message}. It is retried automatically.`,
+    }: ${message.endsWith(".") ? message.slice(0, -1) : message}. It is retried automatically.`,
     { retryable: true },
   );
 }
@@ -182,18 +189,21 @@ export function describeSyslogError(data: {
 export default class SyslogDestination implements AuditLogExportDestination {
   private readonly resolveTarget: SyslogTargetResolver;
   private readonly timeoutInMs: number;
+  private readonly closeGraceInMs: number;
   private readonly hostName: string;
 
   public constructor(
     options: {
       resolveTarget?: SyslogTargetResolver | undefined;
       timeoutInMs?: number | undefined;
+      closeGraceInMs?: number | undefined;
       hostName?: string | undefined;
     } = {},
   ) {
     this.resolveTarget = options.resolveTarget || defaultResolver;
     this.timeoutInMs =
       options.timeoutInMs || AUDIT_LOG_EXPORT_SYSLOG_TIMEOUT_IN_MS;
+    this.closeGraceInMs = options.closeGraceInMs || SYSLOG_CLOSE_GRACE_IN_MS;
     this.hostName = getSyslogHostName(options.hostName ?? Host);
   }
 
@@ -348,7 +358,7 @@ export default class SyslogDestination implements AuditLogExportDestination {
               finish();
               socket.destroy();
             }
-          }, SYSLOG_CLOSE_GRACE_IN_MS).unref();
+          }, this.closeGraceInMs).unref();
         });
 
         // A receiver that answers is drained, so the connection can close.

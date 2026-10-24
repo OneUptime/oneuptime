@@ -64,7 +64,11 @@ afterEach(() => {
 
 describe("the Marketplace area", () => {
   it("is part of the enterprise module, after every area that was there before it", () => {
-    expect(ENTERPRISE_AREAS[ENTERPRISE_AREAS.length - 1]).toBe(MarketplaceArea);
+    // Only the audit log export, added after it, comes later.
+    expect(ENTERPRISE_AREAS[ENTERPRISE_AREAS.length - 2]).toBe(MarketplaceArea);
+    expect(ENTERPRISE_AREAS[ENTERPRISE_AREAS.length - 1]?.name).toBe(
+      "AuditLogExport",
+    );
     expect(MarketplaceArea.name).toBe("Marketplace");
   });
 
