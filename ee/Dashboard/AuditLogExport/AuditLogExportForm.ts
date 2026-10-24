@@ -14,6 +14,12 @@ import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import HashedString from "Common/Types/HashedString";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
+import {
+  RelativeTimeUnit,
+  TimeAgoDistance,
+  getFeedLocale,
+  getFeedTimeAgoDistance,
+} from "Common/UI/Components/Feed/FeedTime";
 
 /*
  * The audit log export form and table, without React: what the form's
@@ -41,6 +47,11 @@ export function exportSecretFieldName(
   return `${type}__secret__${key}`;
 }
 
+/*
+ * What the form saves. Not whether the export is on: that is the row's Turn
+ * on and Turn off, so an edit never writes back a switch someone flipped
+ * while the form was open.
+ */
 export interface AuditLogExportFormSubmission {
   destinationType: AuditLogExportDestinationType;
   name: string;
@@ -49,7 +60,6 @@ export interface AuditLogExportFormSubmission {
   secrets: JSONObject;
   // Only when one was picked: empty on create means from now on.
   startsAt: Date | null;
-  isEnabled: boolean;
 }
 
 function readText(value: JSONValue | undefined): string {
@@ -207,7 +217,6 @@ export function readAuditLogExportForm(
     config,
     secrets: readSecrets(definition, values, config),
     startsAt: readStartsAt(values["startsAt"] as JSONValue | undefined),
-    isEnabled: values["isEnabled"] !== false,
   };
 }
 
@@ -264,7 +273,6 @@ export function auditLogExportUpdatePayload(data: {
   return {
     name: data.submission.name,
     config: data.submission.config,
-    isEnabled: data.submission.isEnabled,
     ...(Object.keys(data.submission.secrets).length > 0
       ? { secrets: JSON.stringify(data.submission.secrets) }
       : {}),
@@ -351,7 +359,6 @@ export function getAuditLogExportInitialValues(
 
   const values: JSONObject = {
     name: auditLogExport?.name || definition?.title || "",
-    isEnabled: auditLogExport ? auditLogExport.isEnabled !== false : true,
   };
 
   if (lockedType) {
@@ -380,10 +387,30 @@ export function getAuditLogExportInitialValues(
   return values;
 }
 
+// Two or more slashes in a row, where a folder's own slashes meet the path's.
+const REPEATED_SLASHES: RegExp = /\/+/g;
+
+/*
+ * The host (and port) of an address the form holds - a webhook's URL, an
+ * S3-compatible endpoint - or the address as typed when it is not a URL.
+ */
+function readHost(address: string): string {
+  if (!address) {
+    return "";
+  }
+
+  try {
+    return new URL(address).host || address;
+  } catch {
+    return address;
+  }
+}
+
 /*
  * Where an export sends, in one short line under its name: a bucket and
- * its folder, a storage account and its container, a webhook's host, a
- * syslog receiver. Never a credential.
+ * its folder (on its endpoint's host, for S3-compatible storage), a storage
+ * account and its container, a webhook's host, a syslog receiver. Never a
+ * credential.
  */
 export function describeAuditLogExportTarget(
   auditLogExport: Pick<AuditLogExport, "destinationType" | "config">,
@@ -402,30 +429,87 @@ export function describeAuditLogExportTarget(
   if (definition.kind === AuditLogExportDestinationKind.Files) {
     const folder: string = text("folder") || AUDIT_LOG_EXPORT_DEFAULT_FOLDER;
 
-    if (definition.type === AuditLogExportDestinationType.AzureBlobStorage) {
-      return [text("accountName"), text("container"), folder]
-        .filter(Boolean)
-        .join("/")
-        .replace(/\/+/g, "/");
-    }
+    /*
+     * As a path-style address reads it: minio.acme.internal:9000/audit/...
+     * Without its host, every S3-compatible export read like any other
+     * bucket, whichever storage it wrote to.
+     */
+    const place: Array<string> =
+      definition.type === AuditLogExportDestinationType.AzureBlobStorage
+        ? [text("accountName"), text("container"), folder]
+        : definition.type === AuditLogExportDestinationType.S3Compatible
+          ? [readHost(text("endpoint")), text("bucket"), folder]
+          : [text("bucket"), folder];
 
-    return [text("bucket"), folder]
-      .filter(Boolean)
-      .join("/")
-      .replace(/\/+/g, "/");
+    return place.filter(Boolean).join("/").replace(REPEATED_SLASHES, "/");
   }
 
   if (definition.type === AuditLogExportDestinationType.Webhook) {
-    try {
-      return new URL(text("url")).host;
-    } catch {
-      return text("url");
-    }
+    return readHost(text("url"));
   }
 
   const port: string = text("port");
 
   return port ? `${text("host")}:${port}` : text("host");
+}
+
+/*
+ * The parts of Intl.NumberFormat used to word a span: its unit style is
+ * newer than the ES2017 library ee compiles against, while every browser
+ * the Dashboard supports has it.
+ */
+interface UnitNumberFormat {
+  format: (value: number) => string;
+}
+
+type UnitNumberFormatConstructor = new (
+  locale: string,
+  options: { style: "unit"; unit: string; unitDisplay: "long" },
+) => UnitNumberFormat;
+
+const ENGLISH_DURATION_UNITS: Record<RelativeTimeUnit, [string, string]> = {
+  second: ["second", "seconds"],
+  minute: ["minute", "minutes"],
+  hour: ["hour", "hours"],
+  day: ["day", "days"],
+  month: ["month", "months"],
+  year: ["year", "years"],
+};
+
+/*
+ * How long something has lasted, in the reader's language - "2 hours",
+ * "2 Stunden", "2 時間" - for "Failing for {{duration}}". Rounded as the
+ * table's "Last exported 3 minutes ago" is (getFeedTimeAgoDistance), never
+ * under a minute. English when the browser cannot word the unit; empty for
+ * a date that is not one.
+ */
+export function formatAuditLogExportDuration(data: {
+  since: Date;
+  now: Date;
+  language: string;
+}): string {
+  const seconds: number = (data.now.getTime() - data.since.getTime()) / 1000;
+
+  if (Number.isNaN(seconds)) {
+    return "";
+  }
+
+  const distance: TimeAgoDistance = getFeedTimeAgoDistance(seconds);
+
+  try {
+    const NumberFormat: UnitNumberFormatConstructor =
+      Intl.NumberFormat as unknown as UnitNumberFormatConstructor;
+
+    return new NumberFormat(getFeedLocale(data.language), {
+      style: "unit",
+      unit: distance.unit,
+      unitDisplay: "long",
+    }).format(distance.count);
+  } catch {
+    const names: [string, string] = ENGLISH_DURATION_UNITS[distance.unit];
+
+    return `${distance.count} ${distance.count === 1 ? names[0] : names[1]}`;
+  }
 }
 
 export function getAuditLogExportHealth(

@@ -29,8 +29,10 @@ import { MemoryRouter } from "react-router-dom";
  *   - who may add, change and test one: the project's permission, and the
  *     Enterprise license - a lapsed one, or one without audit logs, leaves
  *     reading and deleting only, and says so above the table;
- *   - that audit logging being off in the project is said above it;
- *   - what each row says, and its last error;
+ *   - that audit logging being off in the project is said above it, with
+ *     the way to turn it on;
+ *   - what each row says, its last error, and Turn on / Turn off;
+ *   - the empty table's way to the guide;
  *   - the form, for real: the settings are tested as typed before anything
  *     is saved, a project's export is saved in the project, the instance's
  *     in none, and an edit never re-sends a credential it did not type.
@@ -103,6 +105,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 
@@ -128,7 +131,11 @@ type ActionButton = {
   disabled?: boolean;
   tooltip?: string;
   isVisible?: (item: AuditLogExport) => boolean;
-  onClick: (item: AuditLogExport, done: () => void) => void;
+  onClick: (
+    item: AuditLogExport,
+    done: () => void,
+    onError?: (err: Error) => void,
+  ) => void;
 };
 
 type Column = {
@@ -326,11 +333,12 @@ describe("a project's exports: Settings > Audit Logs > Export", () => {
         return candidate.title;
       }),
     ).toEqual(["Name", "Status"]);
+    // Turn on before Send a test: an export that is off shows it as its button.
     expect(
       actions().map((button: ActionButton) => {
         return button.title;
       }),
-    ).toEqual(["View Error", "Send a test", "Edit"]);
+    ).toEqual(["View Error", "Turn on", "Send a test", "Turn off", "Edit"]);
     // Credentials are never asked for.
     expect(
       Object.keys(table()["selectMoreFields"] as Record<string, unknown>),
@@ -350,7 +358,7 @@ describe("a project's exports: Settings > Audit Logs > Export", () => {
       "Exporting the audit log takes Project Owner or Admin.",
     );
 
-    for (const title of ["Send a test", "Edit"]) {
+    for (const title of ["Turn on", "Send a test", "Turn off", "Edit"]) {
       expect(action(title).disabled).toBe(true);
       expect(action(title).tooltip).toBe(
         "Exporting the audit log takes Project Owner or Admin.",
@@ -399,6 +407,11 @@ describe("a project's exports: Settings > Audit Logs > Export", () => {
       expect(action("Edit").disabled).toBe(true);
       expect(action("Send a test").disabled).toBe(true);
       expect(action("Send a test").tooltip).toBe(LICENSE_REASON);
+      // Pausing and resuming change the export, which the license stopped.
+      for (const title of ["Turn on", "Turn off"]) {
+        expect(action(title).disabled).toBe(true);
+        expect(action(title).tooltip).toBe(LICENSE_REASON);
+      }
       expect(table()["isDeleteable"]).toBe(true);
     },
   );
@@ -438,9 +451,15 @@ describe("a project's exports: Settings > Audit Logs > Export", () => {
     auditLoggingOn = false;
     await renderProjectPage();
 
-    expect(
-      await screen.findByTestId("audit-log-export-audit-logging-off"),
-    ).toHaveTextContent("Audit logging is off for this project.");
+    const banner: HTMLElement = await screen.findByTestId(
+      "audit-log-export-audit-logging-off",
+    );
+
+    expect(banner).toHaveTextContent("Audit logging is off for this project.");
+    expect(banner).toHaveTextContent(
+      "Nothing new is recorded, so nothing new is exported.",
+    );
+    expect(banner).toHaveTextContent("Turn on audit logging");
 
     cleanup();
     auditLoggingOn = true;
@@ -452,6 +471,143 @@ describe("a project's exports: Settings > Audit Logs > Export", () => {
     expect(
       screen.queryByTestId("audit-log-export-audit-logging-off"),
     ).toBeNull();
+  });
+
+  test("the audit-logging-off banner opens Settings > Audit Logs > Settings, where its switch is", async () => {
+    auditLoggingOn = false;
+    jest.spyOn(Navigation, "navigate").mockImplementation((() => {}) as never);
+
+    await renderProjectPage();
+
+    const banner: HTMLElement = await screen.findByTestId(
+      "audit-log-export-audit-logging-off",
+    );
+
+    await act(async () => {
+      fireEvent.click(
+        within(banner).getByRole("button", {
+          name: /Audit logging is off for this project/,
+        }),
+      );
+    });
+
+    expect(Navigation.navigate).toHaveBeenCalledTimes(1);
+    expect(String(jest.mocked(Navigation.navigate).mock.calls[0]![0])).toBe(
+      `/dashboard/${PROJECT_ID.toString()}/settings/audit-logs/settings`,
+    );
+  });
+
+  test("Turn on shows on an export that is off, Turn off on one that is on, and each writes the switch alone", async () => {
+    await renderProjectPage();
+
+    const on: AuditLogExport = savedExport();
+    const off: AuditLogExport = savedExport({ isEnabled: false });
+
+    expect(action("Turn on").isVisible!(on)).toBe(false);
+    expect(action("Turn on").isVisible!(off)).toBe(true);
+    expect(action("Turn off").isVisible!(on)).toBe(true);
+    expect(action("Turn off").isVisible!(off)).toBe(false);
+    expect(action("Turn on").tooltip).toBe(
+      "Send what was recorded while it was off, then carry on.",
+    );
+    expect(action("Turn off").tooltip).toBe(
+      "Stop sending. It keeps its place and catches up when turned back on.",
+    );
+
+    const refreshBefore: unknown = table()["refreshToggle"];
+
+    for (const [title, item, isEnabled] of [
+      ["Turn off", on, false],
+      ["Turn on", off, true],
+    ] as Array<[string, AuditLogExport, boolean]>) {
+      const outcome: Array<string> = [];
+
+      await act(async () => {
+        action(title).onClick(
+          item,
+          () => {
+            outcome.push("done");
+          },
+          (err: Error) => {
+            outcome.push(`error: ${err.message}`);
+          },
+        );
+      });
+
+      await waitFor(() => {
+        expect(outcome).toEqual(["done"]);
+      });
+
+      const calls: Array<Array<unknown>> = jest.mocked(ModelAPI.updateById).mock
+        .calls as unknown as Array<Array<unknown>>;
+      const update: { id: ObjectID; data: JSONObject } = calls[
+        calls.length - 1
+      ]![0] as { id: ObjectID; data: JSONObject };
+
+      expect(update.id.toString()).toBe(EXPORT_ID);
+      expect(update.data).toEqual({ isEnabled });
+    }
+
+    // The list is read again, so the row's status says what it now is.
+    expect(table()["refreshToggle"]).not.toBe(refreshBefore);
+  });
+
+  test("a refused Turn off is the row's own error, in words", async () => {
+    /*
+     * Refused when it is called, as the server refuses: a promise rejected
+     * up front is reported by the test environment's zone before anyone
+     * could handle it.
+     */
+    jest.spyOn(ModelAPI, "updateById").mockImplementation((async () => {
+      throw new Error("Audit logs need a valid license.");
+    }) as never);
+
+    await renderProjectPage();
+
+    const outcome: Array<string> = [];
+
+    await act(async () => {
+      action("Turn off").onClick(
+        savedExport(),
+        () => {
+          outcome.push("done");
+        },
+        (err: Error) => {
+          outcome.push(`error: ${err.message}`);
+        },
+      );
+    });
+
+    await waitFor(() => {
+      expect(outcome).toEqual(["error: Audit logs need a valid license."]);
+    });
+  });
+
+  test("on the instance's page, Turn on and Turn off go through the Admin Dashboard's model API", async () => {
+    jest
+      .spyOn(AdminModelAPI, "updateById")
+      .mockResolvedValue(new HTTPResponse(200, {}, {}) as never);
+
+    await renderInstancePage();
+
+    await act(async () => {
+      action("Turn off").onClick(
+        savedExport({ projectId: undefined }),
+        () => {},
+        () => {},
+      );
+    });
+
+    await waitFor(() => {
+      expect(AdminModelAPI.updateById).toHaveBeenCalledTimes(1);
+    });
+    expect(
+      (
+        jest.mocked(AdminModelAPI.updateById).mock.calls[0]![0] as unknown as {
+          data: JSONObject;
+        }
+      ).data,
+    ).toEqual({ isEnabled: false });
   });
 
   test("each row says where it sends under its name, never a credential", async () => {
@@ -470,6 +626,41 @@ describe("a project's exports: Settings > Audit Logs > Export", () => {
       "Amazon S3 · acme-audit-logs/oneuptime/audit-logs/",
     );
     expect(document.body).not.toHaveTextContent(SECRET);
+  });
+
+  test("a long name is cut short on its own line, with an ellipsis, and the address wraps under it whole", async () => {
+    await renderProjectPage();
+
+    render(
+      <MemoryRouter>
+        {column("Name").getElement!(
+          savedExport({
+            name: "Compliance archive for the SOC 2 and ISO 27001 auditors (production, EU)",
+            destinationType: AuditLogExportDestinationType.S3Compatible,
+            config: {
+              endpoint: "https://minio.acme.internal:9000",
+              bucket: "acme-sec-lake",
+              region: "us-east-1",
+              accessKeyId: "minio-audit",
+            },
+          }),
+        )}
+      </MemoryRouter>,
+    );
+
+    // A block of its own: an ellipsis does not reach into a box inside a line.
+    expect(screen.getByTestId("audit-log-export-name").tagName).toBe("DIV");
+    expect(screen.getByTestId("audit-log-export-name")).toHaveClass("truncate");
+    // S3-compatible storage names its endpoint, as a path-style address does.
+    expect(screen.getByTestId("audit-log-export-detail")).toHaveTextContent(
+      "S3-compatible storage · minio.acme.internal:9000/acme-sec-lake/oneuptime/audit-logs/",
+    );
+    // The address is one box on the line: it never breaks at a hyphen of its bucket.
+    expect(
+      screen.getByText(
+        "minio.acme.internal:9000/acme-sec-lake/oneuptime/audit-logs/",
+      ),
+    ).toHaveClass("inline-block", "max-w-full");
   });
 
   test("each row's status says how exporting goes", async () => {
@@ -491,7 +682,8 @@ describe("a project's exports: Settings > Audit Logs > Export", () => {
           lastExportedAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
         },
         "Failing",
-        "Failing since 2 hours ago",
+        // A span: "Failing since 2 hours ago" read oddly, in every language.
+        "Failing for 2 hours",
       ],
       [{ isEnabled: false }, "Paused", null],
       [{}, "Starting", null],
@@ -731,6 +923,7 @@ describe("a project's exports: Settings > Audit Logs > Export", () => {
     ).mock.calls[0]![0] as unknown as { id: ObjectID; data: JSONObject };
 
     expect(update.id.toString()).toBe(EXPORT_ID);
+    // Never the switch: that is the row's Turn on and Turn off.
     expect(update.data).toEqual({
       name: "Compliance archive",
       config: {
@@ -738,7 +931,52 @@ describe("a project's exports: Settings > Audit Logs > Export", () => {
         region: "eu-west-1",
         accessKeyId: "AKIAIOSFODNN7EXAMPLE",
       },
-      isEnabled: true,
+    });
+  });
+
+  test("the edit form has no on/off switch: its last step is the name and Export From", async () => {
+    await renderProjectPage();
+
+    await act(async () => {
+      action("Edit").onClick(savedExport({ isEnabled: false }), () => {});
+    });
+
+    await next();
+
+    expect(screen.getByLabelText(/^Name/)).toHaveValue("Compliance archive");
+    expect(within(dialog()).queryByRole("switch")).toBeNull();
+    expect(
+      within(dialog()).getByRole("button", { name: "Save changes" }),
+    ).toBeInTheDocument();
+  });
+
+  test("the empty table says what is supported, and opens the guide in a new tab", async () => {
+    jest.spyOn(Navigation, "navigate").mockImplementation((() => {}) as never);
+
+    await renderProjectPage();
+
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          {table()["noItemsMessage"] as ReactElement}
+        </MemoryRouter>,
+      );
+    });
+
+    expect(screen.getByTestId("audit-log-exports-empty")).toHaveTextContent(
+      "Amazon S3, S3-compatible storage, Google Cloud Storage, Azure Blob Storage, webhooks and syslog are supported.",
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("audit-log-exports-empty-docs"));
+    });
+
+    expect(Navigation.navigate).toHaveBeenCalledTimes(1);
+    expect(String(jest.mocked(Navigation.navigate).mock.calls[0]![0])).toBe(
+      "/docs/configuration/audit-log-export",
+    );
+    expect(jest.mocked(Navigation.navigate).mock.calls[0]![1]).toEqual({
+      openInNewTab: true,
     });
   });
 });

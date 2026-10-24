@@ -162,7 +162,7 @@ Um lote é tentado três vezes, com poucos segundos de intervalo, e então a exp
 
 Nada é pulado: as entradas esperam no registro de auditoria, e a próxima entrega que funcionar recupera o atraso a partir da mais antiga. Uma entrada mais antiga que a retenção do registro de auditoria do projeto dela é excluída antes de poder ser enviada, então corrija uma exportação com falha dentro desse prazo.
 
-Para pausar uma exportação, desative **Exportar** em **Editar**: ela mantém a posição e, quando reativada, envia o que foi registrado nesse meio-tempo. No OneUptime Cloud, um projeto que sai do plano Enterprise para de exportar, e as exportações dele esperam sob o cartão de upgrade, onde podem ser desativadas ou excluídas. Quando você hospeda o OneUptime, a exportação para enquanto a licença não inclui os registros de auditoria, e continua de onde parou assim que uma licença os inclui.
+Para pausar uma exportação, escolha **Desativar** no menu da linha dela: ela mantém a posição, e **Ativar** envia o que foi registrado nesse meio-tempo. No OneUptime Cloud, um projeto que sai do plano Enterprise para de exportar, e as exportações dele esperam sob o cartão de upgrade, onde podem ser desativadas ou excluídas. Quando você hospeda o OneUptime, a exportação para enquanto a licença não inclui os registros de auditoria, e continua de onde parou assim que uma licença os inclui.
 
 ## Solução de problemas
 

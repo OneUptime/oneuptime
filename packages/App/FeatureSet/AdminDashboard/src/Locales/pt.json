@@ -1077,7 +1077,6 @@
   "Send a test": "Envie um teste",
   "Send one test entry with the saved settings.": "Envie uma entrada de teste com as configurações salvas.",
   "Last exported {{time}}": "Última exportação {{time}}",
-  "Failing since {{time}}": "Falhando desde {{time}}",
   "Last Error": "Último erro",
   "What the destination answered the last time OneUptime tried to deliver to it. Credentials are never shown.": "O que o destino respondeu na última vez que o OneUptime tentou entregar a ele. As credenciais nunca são exibidas.",
   "Copy Error": "Copiar erro",
@@ -1115,7 +1114,6 @@
   "Export from": "Exportar a partir de",
   "Leave empty to send what is recorded from now on. An earlier date also sends the entries still kept since then.": "Deixe vazio para enviar o que for registrado a partir de agora. Uma data anterior também envia as entradas ainda mantidas desde então.",
   "Change it to send again every entry kept since this date, then carry on. Entries already delivered may arrive twice.": "Altere-a para enviar novamente cada entrada mantida desde esta data e depois continuar. Entradas já entregues podem chegar duas vezes.",
-  "Turned off, nothing is sent. The export keeps its place: turned back on, it sends what was recorded meanwhile.": "Desativada, nada é enviado. A exportação mantém sua posição: ao ser reativada, envia o que foi registrado nesse meio-tempo.",
   "Unchanged": "Inalterado",
   "Setup guide": "Guia de configuração",
   "Write a test file": "Gravar um arquivo de teste",
@@ -1197,5 +1195,11 @@
   "One message per line": "Uma mensagem por linha",
   "CA certificate": "Certificado da CA",
   "Only for a receiver whose certificate a private CA signed: that CA's certificate (PEM).": "Apenas para um receptor cujo certificado foi assinado por uma CA privada: o certificado dessa CA (PEM).",
-  "Audit Log Export": "Exportação do registro de auditoria"
+  "Audit Log Export": "Exportação do registro de auditoria",
+  "Failing for {{duration}}": "Falhando há {{duration}}",
+  "Send what was recorded while it was off, then carry on.": "Envia o que foi registrado enquanto estava desativada e depois continua.",
+  "Stop sending. It keeps its place and catches up when turned back on.": "Para de enviar. Mantém sua posição e recupera o atraso quando for reativada.",
+  "Turn on": "Ativar",
+  "Turn off": "Desativar",
+  "View Documentation": "Ver documentação"
 }

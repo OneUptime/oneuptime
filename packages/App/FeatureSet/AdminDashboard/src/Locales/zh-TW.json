@@ -1077,7 +1077,6 @@
   "Send a test": "傳送測試",
   "Send one test entry with the saved settings.": "使用已儲存的設定傳送一個測試條目。",
   "Last exported {{time}}": "上次匯出：{{time}}",
-  "Failing since {{time}}": "自{{time}}起失敗",
   "Last Error": "最近的錯誤",
   "What the destination answered the last time OneUptime tried to deliver to it. Credentials are never shown.": "OneUptime 上次嘗試傳送時目的地回應的內容。憑證永遠不會顯示。",
   "Copy Error": "複製錯誤",
@@ -1115,7 +1114,6 @@
   "Export from": "匯出起始時間",
   "Leave empty to send what is recorded from now on. An earlier date also sends the entries still kept since then.": "留空則傳送從現在起記錄的內容。選擇更早的日期還會傳送自那時起仍保留的條目。",
   "Change it to send again every entry kept since this date, then carry on. Entries already delivered may arrive twice.": "變更後會重新傳送自此日期起保留的每個條目，然後繼續。已送達的條目可能會重複到達。",
-  "Turned off, nothing is sent. The export keeps its place: turned back on, it sends what was recorded meanwhile.": "關閉後不會傳送任何內容。匯出會保留位置：重新開啟後，會傳送期間記錄的內容。",
   "Unchanged": "未變更",
   "Setup guide": "設定指南",
   "Write a test file": "寫入測試檔案",
@@ -1197,5 +1195,11 @@
   "One message per line": "每行一則訊息",
   "CA certificate": "CA 憑證",
   "Only for a receiver whose certificate a private CA signed: that CA's certificate (PEM).": "僅適用於憑證由私有 CA 簽發的接收器：該 CA 的憑證（PEM）。",
-  "Audit Log Export": "稽核日誌匯出"
+  "Audit Log Export": "稽核日誌匯出",
+  "Failing for {{duration}}": "已失敗{{duration}}",
+  "Send what was recorded while it was off, then carry on.": "傳送關閉期間記錄的內容，然後繼續傳送。",
+  "Stop sending. It keeps its place and catches up when turned back on.": "停止傳送。它會保留目前位置，重新開啟後補送錯過的內容。",
+  "Turn on": "開啟",
+  "Turn off": "關閉",
+  "View Documentation": "檢視文件"
 }

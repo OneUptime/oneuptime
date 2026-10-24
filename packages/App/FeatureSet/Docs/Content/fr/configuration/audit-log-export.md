@@ -162,7 +162,7 @@ Un lot est tenté trois fois, à quelques secondes d'intervalle, puis l'export a
 
 Rien n'est sauté : les entrées attendent dans le journal d'audit, et la prochaine livraison qui réussit rattrape le retard depuis la plus ancienne. Une entrée plus ancienne que la rétention du journal d'audit de son projet est supprimée avant de pouvoir être envoyée : corrigez donc un export en échec dans ce délai.
 
-Pour mettre un export en pause, désactivez **Export** dans **Modifier** : il garde sa place, et une fois réactivé, il envoie ce qui a été enregistré entre-temps. Sur OneUptime Cloud, un projet qui quitte le forfait Enterprise cesse d'exporter, et ses exports attendent sous la carte de mise à niveau, où ils peuvent être désactivés ou supprimés. Quand vous hébergez vous-même, l'export s'arrête tant que la licence n'inclut pas les journaux d'audit, et reprend là où il s'était arrêté dès qu'une licence les inclut.
+Pour mettre un export en pause, choisissez **Désactiver** dans le menu de sa ligne : il garde sa place, et **Activer** envoie ce qui a été enregistré entre-temps. Sur OneUptime Cloud, un projet qui quitte le forfait Enterprise cesse d'exporter, et ses exports attendent sous la carte de mise à niveau, où ils peuvent être désactivés ou supprimés. Quand vous hébergez vous-même, l'export s'arrête tant que la licence n'inclut pas les journaux d'audit, et reprend là où il s'était arrêté dès qu'une licence les inclut.
 
 ## Dépannage
 

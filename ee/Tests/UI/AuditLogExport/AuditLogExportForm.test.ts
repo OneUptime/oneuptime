@@ -11,6 +11,7 @@ import {
   describeAuditLogExportTarget,
   exportConfigFieldName,
   exportSecretFieldName,
+  formatAuditLogExportDuration,
   getAuditLogExportHealth,
   getAuditLogExportInitialValues,
   readAuditLogExportForm,
@@ -30,7 +31,8 @@ import ObjectID from "Common/Types/ObjectID";
  * values become when they are saved or tested, and what the table says about
  * an export. A credential is sent only when typed, never read back into the
  * form, and never shown in the table; a field another field turns off is
- * not sent; Export From restarts an export only when it moved.
+ * not sent; Export From restarts an export only when it moved; the form
+ * never writes the on/off switch, which is the row's Turn on and Turn off.
  */
 
 const S3: AuditLogExportDestinationType =
@@ -96,7 +98,6 @@ describe("readAuditLogExportForm", () => {
       },
       secrets: { secretAccessKey: "wJalrXUtnFEMI/K7MDENG" },
       startsAt: null,
-      isEnabled: true,
     });
   });
 
@@ -334,7 +335,6 @@ describe("what an edit saves", () => {
         region: "eu-west-1",
         accessKeyId: "AKIAIOSFODNN7EXAMPLE",
       },
-      isEnabled: true,
     });
   });
 
@@ -368,13 +368,18 @@ describe("what an edit saves", () => {
     expect(moved["startsAt"]).toBe("2026-09-01T00:00:00.000Z");
   });
 
-  test("turned off is saved off", () => {
-    expect(
-      auditLogExportUpdatePayload({
-        submission: readAuditLogExportForm(s3Values({ isEnabled: false }), S3),
-        auditLogExport: stored,
-      })["isEnabled"],
-    ).toBe(false);
+  test("never writes the on/off switch: a switch flipped in the row while the form was open stays flipped", () => {
+    for (const isEnabled of [true, false]) {
+      expect(
+        auditLogExportUpdatePayload({
+          submission: readAuditLogExportForm(s3Values({ isEnabled }), S3),
+          auditLogExport: savedExport({
+            destinationType: S3,
+            isEnabled: !isEnabled,
+          }),
+        }),
+      ).not.toHaveProperty("isEnabled");
+    }
   });
 });
 
@@ -394,7 +399,6 @@ describe("the form's values for a saved export", () => {
 
     expect(values).toEqual({
       name: "Compliance archive",
-      isEnabled: false,
       destinationType: SYSLOG,
       startsAt: "2026-10-01T12:00:00.000Z",
       [exportConfigFieldName(SYSLOG, "host")]: "siem.acme.internal",
@@ -404,10 +408,9 @@ describe("the form's values for a saved export", () => {
     expect(JSON.stringify(values)).not.toContain("never");
   });
 
-  test("a new export starts on, unnamed, with no destination picked", () => {
+  test("a new export starts unnamed, with no destination picked", () => {
     expect(getAuditLogExportInitialValues(undefined, undefined)).toEqual({
       name: "",
-      isEnabled: true,
     });
   });
 });
@@ -415,6 +418,30 @@ describe("the form's values for a saved export", () => {
 describe("where an export sends, under its name", () => {
   test.each<[AuditLogExportDestinationType, JSONObject, string]>([
     [S3, { bucket: "acme", region: "eu-west-1" }, "acme/oneuptime/audit-logs/"],
+    // S3-compatible storage names its endpoint's host, as a path-style address does.
+    [
+      AuditLogExportDestinationType.S3Compatible,
+      {
+        endpoint: "https://minio.acme.internal:9000",
+        bucket: "acme",
+        folder: "/audit/",
+      },
+      "minio.acme.internal:9000/acme/audit/",
+    ],
+    [
+      AuditLogExportDestinationType.S3Compatible,
+      {
+        endpoint: "https://0123abcd.r2.cloudflarestorage.com/",
+        bucket: "acme",
+      },
+      "0123abcd.r2.cloudflarestorage.com/acme/oneuptime/audit-logs/",
+    ],
+    // An endpoint that is not a URL reads as typed; none, as the bucket alone.
+    [
+      AuditLogExportDestinationType.S3Compatible,
+      { endpoint: "minio", bucket: "acme", folder: "a/" },
+      "minio/acme/a/",
+    ],
     [
       AuditLogExportDestinationType.S3Compatible,
       { bucket: "acme", folder: "/audit/" },
@@ -469,6 +496,71 @@ describe("where an export sends, under its name", () => {
         } as AuditLogExport),
       ).not.toContain("SECRET-VALUE");
     }
+  });
+});
+
+describe("how long an export has been failing, in the reader's language", () => {
+  const NOW: Date = new Date("2026-10-24T12:00:00.000Z");
+  // French puts a no-break space between a number and its unit.
+  const ANY_SPACE: RegExp = /\s/gu;
+  const before: (seconds: number) => Date = (seconds: number): Date => {
+    return new Date(NOW.getTime() - seconds * 1000);
+  };
+
+  test.each<[string, number, string]>([
+    // A span, never "ago": it fills "Failing for {{duration}}".
+    ["en", 2 * 60 * 60, "2 hours"],
+    ["en", 60 * 60, "1 hour"],
+    ["en", 3 * 24 * 60 * 60, "3 days"],
+    // Rounded as the table's "3 minutes ago" is, and never under a minute.
+    ["en", 20, "1 minute"],
+    ["en", 7 * 60 + 20, "7 minutes"],
+    // Each language words its own unit: "seit 2 Stunden", never "seit vor 2 Stunden".
+    ["de", 2 * 60 * 60, "2 Stunden"],
+    ["fr", 2 * 60 * 60, "2 heures"],
+    ["ru", 5 * 60 * 60, "5 часов"],
+    ["ja", 2 * 60 * 60, "2 時間"],
+  ])(
+    "%s, %i seconds -> %s",
+    (language: string, seconds: number, expected: string) => {
+      expect(
+        formatAuditLogExportDuration({
+          since: before(seconds),
+          now: NOW,
+          language,
+        }).replace(ANY_SPACE, " "),
+      ).toBe(expected);
+    },
+  );
+
+  test("digits are Latin in every language, as every other date on the page", () => {
+    expect(
+      formatAuditLogExportDuration({
+        since: before(2 * 60 * 60),
+        now: NOW,
+        language: "fa",
+      }),
+    ).toContain("2");
+  });
+
+  test("a clock a little ahead of the server's still reads one minute", () => {
+    expect(
+      formatAuditLogExportDuration({
+        since: new Date(NOW.getTime() + 30 * 1000),
+        now: NOW,
+        language: "en",
+      }),
+    ).toBe("1 minute");
+  });
+
+  test("a date that is not one says nothing", () => {
+    expect(
+      formatAuditLogExportDuration({
+        since: new Date("not a date"),
+        now: NOW,
+        language: "en",
+      }),
+    ).toBe("");
   });
 });
 

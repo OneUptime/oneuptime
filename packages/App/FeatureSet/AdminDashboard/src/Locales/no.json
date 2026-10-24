@@ -1077,7 +1077,6 @@
   "Send a test": "Send en test",
   "Send one test entry with the saved settings.": "Send én testoppføring med de lagrede innstillingene.",
   "Last exported {{time}}": "Sist eksportert {{time}}",
-  "Failing since {{time}}": "Feiler siden {{time}}",
   "Last Error": "Siste feil",
   "What the destination answered the last time OneUptime tried to deliver to it. Credentials are never shown.": "Hva målet svarte sist OneUptime prøvde å levere til det. Påloggingsinformasjon vises aldri.",
   "Copy Error": "Kopier feil",
@@ -1115,7 +1114,6 @@
   "Export from": "Eksporter fra",
   "Leave empty to send what is recorded from now on. An earlier date also sends the entries still kept since then.": "La feltet stå tomt for å sende det som registreres fra nå av. En tidligere dato sender også oppføringene som fortsatt oppbevares siden da.",
   "Change it to send again every entry kept since this date, then carry on. Entries already delivered may arrive twice.": "Endre den for å sende hver oppføring som er oppbevart siden denne datoen på nytt, og deretter fortsette. Oppføringer som allerede er levert, kan komme frem to ganger.",
-  "Turned off, nothing is sent. The export keeps its place: turned back on, it sends what was recorded meanwhile.": "Slått av sendes ingenting. Eksporten beholder plassen sin: slås den på igjen, sender den det som ble registrert i mellomtiden.",
   "Unchanged": "Uendret",
   "Setup guide": "Oppsettveiledning",
   "Write a test file": "Skriv en testfil",
@@ -1197,5 +1195,11 @@
   "One message per line": "Én melding per linje",
   "CA certificate": "CA-sertifikat",
   "Only for a receiver whose certificate a private CA signed: that CA's certificate (PEM).": "Bare for en mottaker der en privat CA har signert sertifikatet: sertifikatet til den CA-en (PEM).",
-  "Audit Log Export": "Eksport av revisjonslogg"
+  "Audit Log Export": "Eksport av revisjonslogg",
+  "Failing for {{duration}}": "Har feilet i {{duration}}",
+  "Send what was recorded while it was off, then carry on.": "Sender det som ble registrert mens den var slått av, og fortsetter deretter.",
+  "Stop sending. It keeps its place and catches up when turned back on.": "Slutter å sende. Den beholder plassen sin og tar igjen det tapte når den slås på igjen.",
+  "Turn on": "Slå på",
+  "Turn off": "Slå av",
+  "View Documentation": "Vis dokumentasjon"
 }

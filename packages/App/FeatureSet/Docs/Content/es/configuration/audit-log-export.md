@@ -162,7 +162,7 @@ Un lote se intenta tres veces, con pocos segundos de diferencia, y luego la expo
 
 Nada se omite: las entradas esperan en el registro de auditoría, y la siguiente entrega que funcione se pone al día desde la más antigua. Una entrada más antigua que la retención del registro de auditoría de su proyecto se elimina antes de poder enviarse, así que corrija una exportación que falla dentro de ese plazo.
 
-Para pausar una exportación, desactive **Exportar** en **Editar**: conserva su posición y, al volver a activarla, envía lo que se registró mientras tanto. En OneUptime Cloud, un proyecto que deja el plan Enterprise deja de exportar, y sus exportaciones esperan bajo la tarjeta de mejora, donde se pueden desactivar o eliminar. Si lo aloja usted mismo, la exportación se detiene mientras la licencia no incluya los registros de auditoría, y continúa desde donde se detuvo en cuanto una los incluya.
+Para pausar una exportación, elija **Desactivar** en el menú de su fila: conserva su posición, y **Activar** envía lo que se registró mientras tanto. En OneUptime Cloud, un proyecto que deja el plan Enterprise deja de exportar, y sus exportaciones esperan bajo la tarjeta de mejora, donde se pueden desactivar o eliminar. Si lo aloja usted mismo, la exportación se detiene mientras la licencia no incluya los registros de auditoría, y continúa desde donde se detuvo en cuanto una los incluya.
 
 ## Solución de problemas
 

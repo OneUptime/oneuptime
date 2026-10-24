@@ -1077,7 +1077,6 @@
   "Send a test": "Send en test",
   "Send one test entry with the saved settings.": "Send én testpost med de gemte indstillinger.",
   "Last exported {{time}}": "Senest eksporteret {{time}}",
-  "Failing since {{time}}": "Fejler siden {{time}}",
   "Last Error": "Seneste fejl",
   "What the destination answered the last time OneUptime tried to deliver to it. Credentials are never shown.": "Hvad destinationen svarede, sidste gang OneUptime forsøgte at levere til den. Loginoplysninger vises aldrig.",
   "Copy Error": "Kopiér fejl",
@@ -1115,7 +1114,6 @@
   "Export from": "Eksportér fra",
   "Leave empty to send what is recorded from now on. An earlier date also sends the entries still kept since then.": "Lad feltet stå tomt for at sende det, der registreres fra nu af. En tidligere dato sender også de poster, der stadig opbevares siden da.",
   "Change it to send again every entry kept since this date, then carry on. Entries already delivered may arrive twice.": "Skift den for at sende alle poster, der er opbevaret siden denne dato, igen og derefter fortsætte. Poster, der allerede er leveret, kan komme frem to gange.",
-  "Turned off, nothing is sent. The export keeps its place: turned back on, it sends what was recorded meanwhile.": "Slået fra sendes intet. Eksporten beholder sin plads: slås den til igen, sender den, hvad der blev registreret i mellemtiden.",
   "Unchanged": "Uændret",
   "Setup guide": "Opsætningsvejledning",
   "Write a test file": "Skriv en testfil",
@@ -1197,5 +1195,11 @@
   "One message per line": "Én meddelelse pr. linje",
   "CA certificate": "CA-certifikat",
   "Only for a receiver whose certificate a private CA signed: that CA's certificate (PEM).": "Kun til en modtager, hvis certifikat en privat CA har signeret: den CA's certifikat (PEM).",
-  "Audit Log Export": "Eksport af auditlog"
+  "Audit Log Export": "Eksport af auditlog",
+  "Failing for {{duration}}": "Har fejlet i {{duration}}",
+  "Send what was recorded while it was off, then carry on.": "Sender det, der blev registreret, mens den var slået fra, og fortsætter derefter.",
+  "Stop sending. It keeps its place and catches up when turned back on.": "Stopper afsendelsen. Den beholder sin plads og indhenter det forsømte, når den slås til igen.",
+  "Turn on": "Slå til",
+  "Turn off": "Slå fra",
+  "View Documentation": "Vis dokumentation"
 }

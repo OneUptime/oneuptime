@@ -162,7 +162,7 @@ En batch försöks tre gånger med några sekunders mellanrum, och sedan väntar
 
 Inget hoppas över: Posterna väntar i granskningsloggen, och nästa leverans som lyckas tar igen från den äldsta. En post som är äldre än lagringstiden för projektets granskningslogg tas bort innan den kan skickas, så åtgärda en export som misslyckas inom den tiden.
 
-Stäng av **Export** under **Redigera** för att pausa en export: Den behåller sin plats, och när den slås på igen skickar den det som registrerats under tiden. I OneUptime Cloud slutar ett projekt som lämnar Enterprise-planen att exportera, och dess exporter väntar under uppgraderingskortet, där de kan stängas av eller tas bort. När du kör självhostat stoppar exporten så länge licensen inte omfattar granskningsloggar, och fortsätter där den slutade så snart en licens gör det.
+Välj **Stäng av** i radens meny för att pausa en export: Den behåller sin plats, och **Slå på** skickar det som registrerats under tiden. I OneUptime Cloud slutar ett projekt som lämnar Enterprise-planen att exportera, och dess exporter väntar under uppgraderingskortet, där de kan stängas av eller tas bort. När du kör självhostat stoppar exporten så länge licensen inte omfattar granskningsloggar, och fortsätter där den slutade så snart en licens gör det.
 
 ## Felsökning
 

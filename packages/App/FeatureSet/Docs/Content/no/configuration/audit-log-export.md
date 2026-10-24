@@ -162,7 +162,7 @@ En batch prøves tre ganger med noen sekunders mellomrom, og så venter eksporte
 
 Ingenting hoppes over: Oppføringene venter i revisjonsloggen, og den neste leveringen som lykkes, tar igjen fra den eldste. En oppføring som er eldre enn oppbevaringstiden for prosjektets revisjonslogg, slettes før den kan sendes, så rett en eksport som feiler innen den tiden.
 
-Slå av **Eksport** under **Rediger** for å pause en eksport: Den beholder plassen sin, og når den slås på igjen, sender den det som ble registrert i mellomtiden. I OneUptime Cloud slutter et prosjekt som forlater Enterprise-abonnementet å eksportere, og eksportene venter under oppgraderingskortet, der de kan slås av eller slettes. Når du selvhoster, stopper eksporten så lenge lisensen ikke inkluderer revisjonslogger, og fortsetter der den stoppet så snart en lisens gjør det.
+Velg **Slå av** i menyen på raden for å pause en eksport: Den beholder plassen sin, og **Slå på** sender det som ble registrert i mellomtiden. I OneUptime Cloud slutter et prosjekt som forlater Enterprise-abonnementet å eksportere, og eksportene venter under oppgraderingskortet, der de kan slås av eller slettes. Når du selvhoster, stopper eksporten så lenge lisensen ikke inkluderer revisjonslogger, og fortsetter der den stoppet så snart en lisens gjør det.
 
 ## Feilsøking
 

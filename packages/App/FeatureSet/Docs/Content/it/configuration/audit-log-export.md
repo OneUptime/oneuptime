@@ -162,7 +162,7 @@ Un lotto viene tentato tre volte, a pochi secondi di distanza, poi l'esportazion
 
 Nulla viene saltato: le voci aspettano nel registro di audit, e la prossima consegna che riesce recupera dalla più vecchia. Una voce più vecchia della conservazione del registro di audit del suo progetto viene eliminata prima di poter essere inviata, quindi correggi un'esportazione in errore entro quel tempo.
 
-Per mettere in pausa un'esportazione, disattiva **Esporta** in **Modifica**: mantiene la sua posizione e, riattivata, invia ciò che è stato registrato nel frattempo. Su OneUptime Cloud, un progetto che lascia il piano Enterprise smette di esportare, e le sue esportazioni aspettano sotto la scheda di upgrade, dove possono essere disattivate o eliminate. Quando ospiti OneUptime in proprio, l'esportazione si ferma finché la licenza non include i registri di audit, e riprende da dove si era fermata appena una licenza li include.
+Per mettere in pausa un'esportazione, scegli **Disattiva** nel menu della sua riga: mantiene la sua posizione, e **Attiva** invia ciò che è stato registrato nel frattempo. Su OneUptime Cloud, un progetto che lascia il piano Enterprise smette di esportare, e le sue esportazioni aspettano sotto la scheda di upgrade, dove possono essere disattivate o eliminate. Quando ospiti OneUptime in proprio, l'esportazione si ferma finché la licenza non include i registri di audit, e riprende da dove si era fermata appena una licenza li include.
 
 ## Risoluzione dei problemi
 

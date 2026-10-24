@@ -568,8 +568,9 @@ describeWhenEnterprisePresent(
         "Start exporting",
         "Send a test",
         "View Error",
+        "Turn off",
+        "Turn on",
         "Export from",
-        "Export",
         "Exporting",
         "Failing",
         "Paused",
@@ -593,10 +594,16 @@ describeWhenEnterprisePresent(
       expect(page).toContain(
         "Click **Next**, name the export, and click **Start exporting**.",
       );
-      // The edit form's Export switch is what pauses an export.
-      expect(copy).toContain('enabledField: translationKey("Export"),');
+      /*
+       * An export is paused and resumed from its row - Turn off in its
+       * menu, Turn on as the button of one that is off - and the edit form
+       * has no switch of its own.
+       */
+      expect(copy).toContain('turnOffAction: translationKey("Turn off"),');
+      expect(copy).toContain('turnOnAction: translationKey("Turn on"),');
+      expect(modal).not.toContain("FormFieldSchemaType.Toggle");
       expect(page).toContain(
-        "To pause an export, turn off **Export** in **Edit**",
+        "To pause an export, choose **Turn off** in its row's menu: it keeps its place, and **Turn on** sends what was recorded meanwhile.",
       );
     });
 

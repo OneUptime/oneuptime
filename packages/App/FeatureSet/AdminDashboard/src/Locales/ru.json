@@ -1077,7 +1077,6 @@
   "Send a test": "Отправьте тест",
   "Send one test entry with the saved settings.": "Отправить одну тестовую запись с сохранёнными настройками.",
   "Last exported {{time}}": "Последний экспорт {{time}}",
-  "Failing since {{time}}": "Сбои с {{time}}",
   "Last Error": "Последняя ошибка",
   "What the destination answered the last time OneUptime tried to deliver to it. Credentials are never shown.": "Что ответило место назначения, когда OneUptime в последний раз пытался доставить записи. Учётные данные никогда не показываются.",
   "Copy Error": "Скопировать ошибку",
@@ -1115,7 +1114,6 @@
   "Export from": "Экспортировать с",
   "Leave empty to send what is recorded from now on. An earlier date also sends the entries still kept since then.": "Оставьте пустым, чтобы отправлять то, что будет записано с этого момента. Более ранняя дата также отправит записи, сохранившиеся с того времени.",
   "Change it to send again every entry kept since this date, then carry on. Entries already delivered may arrive twice.": "Измените дату, чтобы заново отправить все записи, сохранившиеся с неё, и продолжить дальше. Уже доставленные записи могут прийти повторно.",
-  "Turned off, nothing is sent. The export keeps its place: turned back on, it sends what was recorded meanwhile.": "Пока экспорт выключен, ничего не отправляется. Он сохраняет позицию: после включения отправит то, что было записано за это время.",
   "Unchanged": "Без изменений",
   "Setup guide": "Руководство по настройке",
   "Write a test file": "Записать тестовый файл",
@@ -1197,5 +1195,11 @@
   "One message per line": "Одно сообщение на строку",
   "CA certificate": "Сертификат ЦС",
   "Only for a receiver whose certificate a private CA signed: that CA's certificate (PEM).": "Только для приёмника, сертификат которого подписан частным ЦС: сертификат этого ЦС (PEM).",
-  "Audit Log Export": "Экспорт журнала аудита"
+  "Audit Log Export": "Экспорт журнала аудита",
+  "Failing for {{duration}}": "Сбои уже {{duration}}",
+  "Send what was recorded while it was off, then carry on.": "Отправляет всё, что было записано, пока он был выключен, и продолжает работу.",
+  "Stop sending. It keeps its place and catches up when turned back on.": "Прекращает отправку. Экспорт сохраняет свою позицию и наверстает упущенное после повторного включения.",
+  "Turn on": "Включить",
+  "Turn off": "Выключить",
+  "View Documentation": "Просмотр документации"
 }

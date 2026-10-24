@@ -162,7 +162,7 @@ A batch is tried three times, a few seconds apart, then the export waits before 
 
 Nothing is skipped: the entries wait in the audit log, and the next delivery that works catches up from the oldest. An entry older than its project's audit log retention is deleted before it can be sent, so fix a failing export within that time.
 
-To pause an export, turn off **Export** in **Edit**: it keeps its place, and turned back on, it sends what was recorded meanwhile. On OneUptime Cloud, a project that leaves the Enterprise plan stops exporting, and its exports wait under the upgrade card, where they can be turned off or deleted. When you self-host, exporting stops while the license does not include audit logs, and carries on from where it stopped once one does.
+To pause an export, choose **Turn off** in its row's menu: it keeps its place, and **Turn on** sends what was recorded meanwhile. On OneUptime Cloud, a project that leaves the Enterprise plan stops exporting, and its exports wait under the upgrade card, where they can be turned off or deleted. When you self-host, exporting stops while the license does not include audit logs, and carries on from where it stopped once one does.
 
 ## Troubleshooting
 

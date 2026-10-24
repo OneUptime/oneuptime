@@ -9,18 +9,23 @@ import {
 } from "./AuditLogExportCopy";
 import {
   describeAuditLogExportTarget,
+  formatAuditLogExportDuration,
   getAuditLogExportHealth,
   getAuditLogExportHealthColor,
 } from "./AuditLogExportForm";
 import AuditLogExportFormModal from "./AuditLogExportFormModal";
 import { AuditLogExportTestModal } from "./AuditLogExportTest";
 import AuditLogExport from "Common/Models/DatabaseModels/AuditLogExport";
-import { getAuditLogExportDestinationTitle } from "Common/Types/AuditLog/Export/AuditLogExportDestinationCatalog";
+import Route from "Common/Types/API/Route";
+import {
+  AUDIT_LOG_EXPORT_DOCS_PATH,
+  getAuditLogExportDestinationTitle,
+} from "Common/Types/AuditLog/Export/AuditLogExportDestinationCatalog";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import Query from "Common/Types/BaseDatabase/Query";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
-import { VoidFunction } from "Common/Types/FunctionTypes";
+import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -33,10 +38,13 @@ import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import TableEmptyState, {
+  TableEmptyStateActionStyle,
   TableEmptyStateKind,
 } from "Common/UI/Components/Table/TableEmptyState";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -75,10 +83,18 @@ function lockedBy(
   return { isAllowed: gate.isAllowed, reason: gate.disabledReason };
 }
 
+// The guide to every destination, the record schema and the timings.
+export const openAuditLogExportDocs: VoidFunction = (): void => {
+  Navigation.navigate(Route.fromString(AUDIT_LOG_EXPORT_DOCS_PATH), {
+    openInNewTab: true,
+  });
+};
+
 /*
  * What the empty table says, drawn like every other empty table: what is
- * true now (nothing is exported), which destinations are supported, and one
- * button that opens the form. Whoever may not add one reads why under it.
+ * true now (nothing is exported), which destinations are supported, one
+ * button that opens the form, and the guide for whoever wants to read
+ * first. Whoever may not add one reads why under it.
  */
 export const AuditLogExportsEmptyState: FunctionComponent<{
   canCreate: boolean;
@@ -105,6 +121,13 @@ export const AuditLogExportsEmptyState: FunctionComponent<{
           tooltip: props.canCreate ? undefined : props.createDisabledReason,
           dataTestId: "audit-log-exports-empty-add",
           onClick: props.onAdd,
+        },
+        {
+          title: AuditLogExportCopy.docsLink,
+          icon: IconProp.Book,
+          style: TableEmptyStateActionStyle.Link,
+          dataTestId: "audit-log-exports-empty-docs",
+          onClick: openAuditLogExportDocs,
         },
       ]}
       note={props.canCreate ? undefined : props.createDisabledReason}
@@ -153,6 +176,35 @@ const AuditLogExportTable: FunctionComponent<ComponentProps> = (
 
   const openCreateForm: VoidFunction = (): void => {
     setFormExport("new");
+  };
+
+  /*
+   * Turn on and Turn off: the switch alone, then the list again, so the
+   * row's status says what it now is. A refusal (the license, a permission)
+   * is the row's own error dialog.
+   */
+  const setEnabled: (
+    item: AuditLogExport,
+    isEnabled: boolean,
+    onCompleteAction: VoidFunction,
+    onError: ErrorFunction,
+  ) => Promise<void> = async (
+    item: AuditLogExport,
+    isEnabled: boolean,
+    onCompleteAction: VoidFunction,
+    onError: ErrorFunction,
+  ): Promise<void> => {
+    try {
+      await props.modelAPI.updateById<AuditLogExport>({
+        modelType: AuditLogExport,
+        id: item.id!,
+        data: { isEnabled },
+      });
+      onCompleteAction();
+      refresh();
+    } catch (err) {
+      onError(new Error(API.getFriendlyMessage(err)));
+    }
   };
 
   const formatTimeAgo: (date: Date | undefined) => string = (
@@ -237,6 +289,29 @@ const AuditLogExportTable: FunctionComponent<ComponentProps> = (
               onCompleteAction();
             },
           },
+          /*
+           * Before Send a test: the first action a row shows is its button,
+           * and an export that is off is turned on before anything else.
+           */
+          {
+            title: AuditLogExportCopy.turnOnAction,
+            icon: IconProp.Play,
+            buttonStyleType: ButtonStyleType.OUTLINE,
+            isVisible: (item: AuditLogExport): boolean => {
+              return item.isEnabled === false;
+            },
+            disabled: !update.isAllowed,
+            tooltip: update.isAllowed
+              ? AuditLogExportCopy.turnOnActionTooltip
+              : update.reason,
+            onClick: (
+              item: AuditLogExport,
+              onCompleteAction: VoidFunction,
+              onError: ErrorFunction,
+            ): void => {
+              void setEnabled(item, true, onCompleteAction, onError);
+            },
+          },
           {
             title: AuditLogExportCopy.testRowAction,
             icon: IconProp.PaperAirplane,
@@ -251,6 +326,25 @@ const AuditLogExportTable: FunctionComponent<ComponentProps> = (
             ): void => {
               setTestExport(item);
               onCompleteAction();
+            },
+          },
+          {
+            title: AuditLogExportCopy.turnOffAction,
+            icon: IconProp.Stop,
+            buttonStyleType: ButtonStyleType.OUTLINE,
+            isVisible: (item: AuditLogExport): boolean => {
+              return item.isEnabled !== false;
+            },
+            disabled: !update.isAllowed,
+            tooltip: update.isAllowed
+              ? AuditLogExportCopy.turnOffActionTooltip
+              : update.reason,
+            onClick: (
+              item: AuditLogExport,
+              onCompleteAction: VoidFunction,
+              onError: ErrorFunction,
+            ): void => {
+              void setEnabled(item, false, onCompleteAction, onError);
             },
           },
           {
@@ -281,7 +375,11 @@ const AuditLogExportTable: FunctionComponent<ComponentProps> = (
                * What it is and where it sends read under its name: "Amazon
                * S3 · my-audit-logs/oneuptime/audit-logs/". When room runs
                * out the line wraps between its two parts rather than
-               * widening the column.
+               * widening the column - the address is one box on the line,
+               * so it moves under the destination whole instead of
+               * breaking at a hyphen of its bucket ("acme-sec-" over
+               * "lake/..."), and wraps inside only when it is longer than
+               * the column itself.
                */
               const parts: Array<string> = [
                 getAuditLogExportDestinationTitle(item.destinationType),
@@ -290,9 +388,17 @@ const AuditLogExportTable: FunctionComponent<ComponentProps> = (
                 return Boolean(part);
               });
 
+              /*
+               * The name on one line, cut short with an ellipsis where the
+               * column ends (the cell shows it in full under the pointer):
+               * a block of its own, since an ellipsis does not reach into
+               * a box inside the cell's line.
+               */
               return (
-                <div>
-                  <span>{item.name}</span>
+                <div className="min-w-0">
+                  <div className="truncate" data-testid="audit-log-export-name">
+                    {item.name}
+                  </div>
                   <div
                     className="whitespace-normal break-words text-xs text-gray-500"
                     data-testid="audit-log-export-detail"
@@ -302,7 +408,11 @@ const AuditLogExportTable: FunctionComponent<ComponentProps> = (
 
                       return (
                         <Fragment key={index}>
-                          <span>
+                          <span
+                            className={
+                              index === 0 ? "" : "inline-block max-w-full"
+                            }
+                          >
                             {index === 0
                               ? translator.translateText(part)
                               : part}
@@ -329,8 +439,14 @@ const AuditLogExportTable: FunctionComponent<ComponentProps> = (
               const line: string =
                 health === AuditLogExportHealth.Failing && item.failingSince
                   ? translator.translateTemplate(
-                      AuditLogExportCopy.failingSince,
-                      { time: formatTimeAgo(item.failingSince) },
+                      AuditLogExportCopy.failingFor,
+                      {
+                        duration: formatAuditLogExportDuration({
+                          since: new Date(item.failingSince),
+                          now: new Date(),
+                          language: translator.language,
+                        }),
+                      },
                     )
                   : item.lastExportedAt
                     ? translator.translateTemplate(

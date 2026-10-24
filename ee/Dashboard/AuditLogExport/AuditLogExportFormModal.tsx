@@ -379,18 +379,10 @@ const AuditLogExportFormModal: FunctionComponent<ComponentProps> = (
       required: false,
       placeholder: AuditLogExportCopy.namePlaceholder,
     },
-    ...(isEditing
-      ? [
-          {
-            field: { isEnabled: true },
-            title: AuditLogExportCopy.enabledField,
-            description: AuditLogExportCopy.enabledFieldDescription,
-            stepId: EXPORT_SETTINGS_STEP_ID,
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          } as Field<JSONObject>,
-        ]
-      : []),
+    /*
+     * No on/off switch here: an export is paused and resumed from its row
+     * (Turn off, Turn on), one click, where its status shows.
+     */
     {
       field: { startsAt: true },
       title: AuditLogExportCopy.startsAtField,

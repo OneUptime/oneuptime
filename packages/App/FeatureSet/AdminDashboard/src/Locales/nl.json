@@ -1077,7 +1077,6 @@
   "Send a test": "Stuur een test",
   "Send one test entry with the saved settings.": "Stuur één testvermelding met de opgeslagen instellingen.",
   "Last exported {{time}}": "Laatst geëxporteerd {{time}}",
-  "Failing since {{time}}": "Mislukt sinds {{time}}",
   "Last Error": "Laatste fout",
   "What the destination answered the last time OneUptime tried to deliver to it. Credentials are never shown.": "Wat de bestemming antwoordde toen OneUptime voor het laatst probeerde te leveren. Inloggegevens worden nooit getoond.",
   "Copy Error": "Fout kopiëren",
@@ -1115,7 +1114,6 @@
   "Export from": "Exporteren vanaf",
   "Leave empty to send what is recorded from now on. An earlier date also sends the entries still kept since then.": "Laat leeg om te verzenden wat vanaf nu wordt vastgelegd. Een eerdere datum verstuurt ook de vermeldingen die sindsdien nog bewaard zijn.",
   "Change it to send again every entry kept since this date, then carry on. Entries already delivered may arrive twice.": "Wijzig dit om elke vermelding die sinds deze datum bewaard is opnieuw te sturen en daarna door te gaan. Al geleverde vermeldingen kunnen twee keer aankomen.",
-  "Turned off, nothing is sent. The export keeps its place: turned back on, it sends what was recorded meanwhile.": "Uitgeschakeld wordt er niets verzonden. De export houdt zijn plaats: weer ingeschakeld verstuurt hij wat er in de tussentijd is vastgelegd.",
   "Unchanged": "Ongewijzigd",
   "Setup guide": "Installatiegids",
   "Write a test file": "Testbestand schrijven",
@@ -1197,5 +1195,11 @@
   "One message per line": "Eén bericht per regel",
   "CA certificate": "CA-certificaat",
   "Only for a receiver whose certificate a private CA signed: that CA's certificate (PEM).": "Alleen voor een ontvanger waarvan een privé-CA het certificaat heeft ondertekend: het certificaat van die CA (PEM).",
-  "Audit Log Export": "Export van auditlogboek"
+  "Audit Log Export": "Export van auditlogboek",
+  "Failing for {{duration}}": "Mislukt al {{duration}}",
+  "Send what was recorded while it was off, then carry on.": "Verstuurt wat is vastgelegd terwijl hij uit stond, en gaat dan verder.",
+  "Stop sending. It keeps its place and catches up when turned back on.": "Stopt met versturen. Hij houdt zijn plek en haalt de achterstand in zodra hij weer aan staat.",
+  "Turn on": "Inschakelen",
+  "Turn off": "Uitzetten",
+  "View Documentation": "Documentatie bekijken"
 }

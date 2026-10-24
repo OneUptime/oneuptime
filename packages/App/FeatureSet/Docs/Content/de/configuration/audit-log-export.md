@@ -162,7 +162,7 @@ Ein Batch wird dreimal im Abstand weniger Sekunden versucht, dann wartet der Exp
 
 Nichts wird übersprungen: Die Einträge warten im Audit-Protokoll, und die nächste Zustellung, die gelingt, holt ab dem ältesten auf. Ein Eintrag, der älter ist als die Aufbewahrung des Audit-Protokolls seines Projekts, wird gelöscht, bevor er gesendet werden kann, beheben Sie einen fehlerhaften Export also innerhalb dieser Zeit.
 
-Um einen Export zu pausieren, schalten Sie unter **Bearbeiten** den Schalter **Export** aus: Er behält seine Stelle und sendet, wieder eingeschaltet, was in der Zwischenzeit erfasst wurde. In OneUptime Cloud hört ein Projekt, das den Enterprise-Tarif verlässt, mit dem Exportieren auf, und seine Exporte warten unter der Upgrade-Karte, wo sie ausgeschaltet oder gelöscht werden können. Beim Selbsthosten hört das Exportieren auf, solange die Lizenz keine Audit-Protokolle enthält, und macht dort weiter, wo es aufgehört hat, sobald eine Lizenz sie enthält.
+Um einen Export zu pausieren, wählen Sie im Menü seiner Zeile **Ausschalten**: Er behält seine Stelle, und **Einschalten** sendet, was in der Zwischenzeit erfasst wurde. In OneUptime Cloud hört ein Projekt, das den Enterprise-Tarif verlässt, mit dem Exportieren auf, und seine Exporte warten unter der Upgrade-Karte, wo sie ausgeschaltet oder gelöscht werden können. Beim Selbsthosten hört das Exportieren auf, solange die Lizenz keine Audit-Protokolle enthält, und macht dort weiter, wo es aufgehört hat, sobald eine Lizenz sie enthält.
 
 ## Fehlerbehebung
 

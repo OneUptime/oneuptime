@@ -1077,7 +1077,6 @@
   "Send a test": "테스트 보내기",
   "Send one test entry with the saved settings.": "저장된 설정으로 테스트 항목 하나를 보냅니다.",
   "Last exported {{time}}": "마지막 내보내기: {{time}}",
-  "Failing since {{time}}": "{{time}}부터 실패 중",
   "Last Error": "마지막 오류",
   "What the destination answered the last time OneUptime tried to deliver to it. Credentials are never shown.": "OneUptime이 마지막으로 전송을 시도했을 때 대상이 보낸 응답입니다. 자격 증명은 표시되지 않습니다.",
   "Copy Error": "오류 복사",
@@ -1115,7 +1114,6 @@
   "Export from": "내보내기 시작 시점",
   "Leave empty to send what is recorded from now on. An earlier date also sends the entries still kept since then.": "비워 두면 지금부터 기록되는 항목을 보냅니다. 이전 날짜를 지정하면 그 이후로 보관 중인 항목도 보냅니다.",
   "Change it to send again every entry kept since this date, then carry on. Entries already delivered may arrive twice.": "변경하면 이 날짜 이후로 보관된 모든 항목을 다시 보낸 뒤 계속 진행합니다. 이미 전달된 항목이 두 번 도착할 수 있습니다.",
-  "Turned off, nothing is sent. The export keeps its place: turned back on, it sends what was recorded meanwhile.": "끄면 아무것도 보내지 않습니다. 내보내기는 위치를 유지하므로 다시 켜면 그 사이에 기록된 항목을 보냅니다.",
   "Unchanged": "변경 없음",
   "Setup guide": "설정 가이드",
   "Write a test file": "테스트 파일 쓰기",
@@ -1197,5 +1195,11 @@
   "One message per line": "줄당 메시지 하나",
   "CA certificate": "CA 인증서",
   "Only for a receiver whose certificate a private CA signed: that CA's certificate (PEM).": "사설 CA가 서명한 인증서를 쓰는 수신기에만 해당합니다. 그 CA의 인증서(PEM)입니다.",
-  "Audit Log Export": "감사 로그 내보내기"
+  "Audit Log Export": "감사 로그 내보내기",
+  "Failing for {{duration}}": "{{duration}}째 실패 중",
+  "Send what was recorded while it was off, then carry on.": "꺼져 있는 동안 기록된 항목을 보낸 뒤 계속 보냅니다.",
+  "Stop sending. It keeps its place and catches up when turned back on.": "보내기를 멈춥니다. 위치를 유지하고 다시 켜면 밀린 항목을 따라잡습니다.",
+  "Turn on": "켜기",
+  "Turn off": "끄기",
+  "View Documentation": "문서 보기"
 }

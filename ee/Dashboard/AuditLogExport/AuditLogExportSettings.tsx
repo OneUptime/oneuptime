@@ -11,10 +11,14 @@ import {
 } from "../Identity/License/EnterpriseLicenseMode";
 import useEnterpriseLicenseMode from "../Identity/License/UseEnterpriseLicenseMode";
 import PageComponentProps from "@oneuptime/dashboard/Pages/PageComponentProps";
+import PageMap from "@oneuptime/dashboard/Utils/PageMap";
+import RouteMap, { RouteUtil } from "@oneuptime/dashboard/Utils/RouteMap";
 import Project from "Common/Models/DatabaseModels/Project";
+import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, {
   Fragment,
@@ -77,10 +81,22 @@ const AuditLogExportSettings: FunctionComponent<PageComponentProps> = (
     <Fragment>
       <AuditLogExportLicenseNotice mode={licenseMode} />
       {isAuditLoggingOff ? (
+        /*
+         * The way to turn it on is one click away: the banner opens
+         * Settings > Audit Logs > Settings, where the switch is.
+         */
         <Alert
           type={AlertType.WARNING}
           strongTitle={AuditLogExportProjectCopy.auditLoggingOffTitle}
           title={AuditLogExportProjectCopy.auditLoggingOffDescription}
+          textOnRight={AuditLogExportProjectCopy.auditLoggingOffAction}
+          onClick={(): void => {
+            Navigation.navigate(
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.SETTINGS_AUDIT_LOGS_SETTINGS] as Route,
+              ),
+            );
+          }}
           dataTestId="audit-log-export-audit-logging-off"
           className="mb-5"
         />

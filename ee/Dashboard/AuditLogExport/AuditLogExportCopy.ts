@@ -50,6 +50,7 @@ export const AuditLogExportCopy: {
   addButton: string;
   emptyTitle: string;
   emptyDescription: string;
+  docsLink: string;
   // The form.
   createTitle: string;
   createDescription: string;
@@ -69,8 +70,6 @@ export const AuditLogExportCopy: {
   startsAtField: string;
   startsAtCreateDescription: string;
   startsAtEditDescription: string;
-  enabledField: string;
-  enabledFieldDescription: string;
   unchangedPlaceholder: string;
   // The test.
   testFilesButton: string;
@@ -91,7 +90,11 @@ export const AuditLogExportCopy: {
   // The table.
   statusColumn: string;
   lastExported: string;
-  failingSince: string;
+  failingFor: string;
+  turnOnAction: string;
+  turnOnActionTooltip: string;
+  turnOffAction: string;
+  turnOffActionTooltip: string;
   viewErrorAction: string;
   errorTitle: string;
   errorDescription: string;
@@ -105,6 +108,8 @@ export const AuditLogExportCopy: {
   emptyDescription: translationKey(
     "Amazon S3, S3-compatible storage, Google Cloud Storage, Azure Blob Storage, webhooks and syslog are supported.",
   ),
+  // The empty table's way to read more: the setup guide of every destination.
+  docsLink: translationKey("View Documentation"),
   createTitle: translationKey("Export audit logs"),
   createDescription: translationKey(
     "Choose where the audit log goes and how to reach it, then send a test before saving.",
@@ -134,10 +139,6 @@ export const AuditLogExportCopy: {
   ),
   startsAtEditDescription: translationKey(
     "Change it to send again every entry kept since this date, then carry on. Entries already delivered may arrive twice.",
-  ),
-  enabledField: translationKey("Export"),
-  enabledFieldDescription: translationKey(
-    "Turned off, nothing is sent. The export keeps its place: turned back on, it sends what was recorded meanwhile.",
   ),
   unchangedPlaceholder: translationKey("Unchanged"),
   testFilesButton: translationKey("Write a test file"),
@@ -169,7 +170,23 @@ export const AuditLogExportCopy: {
   ),
   statusColumn: translationKey("Status"),
   lastExported: translationKey("Last exported {{time}}"),
-  failingSince: translationKey("Failing since {{time}}"),
+  /*
+   * How long it has been failing: a span ("2 hours"), never a time ago -
+   * "Failing since 2 hours ago" read oddly, and "seit vor 2 Stunden" wrong.
+   */
+  failingFor: translationKey("Failing for {{duration}}"),
+  /*
+   * Pausing and resuming, from the row: an export that is off shows Turn on
+   * as its button, one that is on keeps Turn off in its menu.
+   */
+  turnOnAction: translationKey("Turn on"),
+  turnOnActionTooltip: translationKey(
+    "Send what was recorded while it was off, then carry on.",
+  ),
+  turnOffAction: translationKey("Turn off"),
+  turnOffActionTooltip: translationKey(
+    "Stop sending. It keeps its place and catches up when turned back on.",
+  ),
   viewErrorAction: translationKey("View Error"),
   errorTitle: translationKey("Last Error"),
   errorDescription: translationKey(
@@ -183,17 +200,23 @@ export const AuditLogExportCopy: {
   ),
 };
 
-// What only a project's page says (Settings > Audit Logs > Export).
+/*
+ * What only a project's page says (Settings > Audit Logs > Export): that
+ * audit logging is off, with the way to turn it on - the banner opens
+ * Settings > Audit Logs > Settings, where its switch is.
+ */
 export const AuditLogExportProjectCopy: {
   auditLoggingOffTitle: string;
   auditLoggingOffDescription: string;
+  auditLoggingOffAction: string;
 } = {
   auditLoggingOffTitle: translationKey(
     "Audit logging is off for this project.",
   ),
   auditLoggingOffDescription: translationKey(
-    "Nothing new is recorded, so nothing new is exported. Turn it on in Audit Logs > Settings.",
+    "Nothing new is recorded, so nothing new is exported.",
   ),
+  auditLoggingOffAction: translationKey("Turn on audit logging"),
 };
 
 // How an export is doing, as its Status column says.

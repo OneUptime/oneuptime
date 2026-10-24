@@ -162,7 +162,7 @@ Een batch wordt drie keer geprobeerd, met een paar seconden ertussen, waarna de 
 
 Er wordt niets overgeslagen: de vermeldingen wachten in het auditlogboek, en de volgende levering die lukt, haalt de achterstand in vanaf de oudste. Een vermelding die ouder is dan de bewaartermijn van het auditlogboek van haar project, wordt verwijderd voordat ze kan worden verzonden, dus herstel een mislukte export binnen die tijd.
 
-Om een export te pauzeren, zet u **Export** uit onder **Bewerken**: hij houdt zijn plaats, en weer ingeschakeld verstuurt hij wat er in de tussentijd is vastgelegd. In OneUptime Cloud stopt een project dat het Enterprise-abonnement verlaat met exporteren, en zijn exports wachten onder de upgradekaart, waar ze kunnen worden uitgeschakeld of verwijderd. Als u zelf host, stopt het exporteren zolang de licentie geen auditlogboeken omvat, en gaat het verder waar het was gebleven zodra een licentie ze omvat.
+Om een export te pauzeren, kiest u **Uitzetten** in het menu van zijn rij: hij houdt zijn plaats, en **Inschakelen** verstuurt wat er in de tussentijd is vastgelegd. In OneUptime Cloud stopt een project dat het Enterprise-abonnement verlaat met exporteren, en zijn exports wachten onder de upgradekaart, waar ze kunnen worden uitgeschakeld of verwijderd. Als u zelf host, stopt het exporteren zolang de licentie geen auditlogboeken omvat, en gaat het verder waar het was gebleven zodra een licentie ze omvat.
 
 ## Problemen oplossen
 

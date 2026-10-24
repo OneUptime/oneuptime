@@ -1077,7 +1077,6 @@
   "Send a test": "یک آزمایش بفرستید",
   "Send one test entry with the saved settings.": "یک مورد آزمایشی با تنظیمات ذخیره‌شده بفرستید.",
   "Last exported {{time}}": "آخرین خروجی {{time}}",
-  "Failing since {{time}}": "ناموفق از {{time}}",
   "Last Error": "آخرین خطا",
   "What the destination answered the last time OneUptime tried to deliver to it. Credentials are never shown.": "پاسخ مقصد در آخرین باری که OneUptime تلاش کرد به آن تحویل دهد. اعتبارنامه‌ها هرگز نمایش داده نمی‌شوند.",
   "Copy Error": "کپی خطا",
@@ -1115,7 +1114,6 @@
   "Export from": "خروجی گرفتن از",
   "Leave empty to send what is recorded from now on. An earlier date also sends the entries still kept since then.": "برای فرستادن آنچه از این پس ثبت می‌شود خالی بگذارید. تاریخ قدیمی‌تر، مواردی را هم که از آن زمان هنوز نگه داشته شده‌اند می‌فرستد.",
   "Change it to send again every entry kept since this date, then carry on. Entries already delivered may arrive twice.": "با تغییر آن، هر موردی که از این تاریخ نگه داشته شده دوباره فرستاده می‌شود و سپس کار ادامه می‌یابد. مواردی که قبلاً تحویل شده‌اند ممکن است دو بار برسند.",
-  "Turned off, nothing is sent. The export keeps its place: turned back on, it sends what was recorded meanwhile.": "وقتی خاموش باشد چیزی فرستاده نمی‌شود. خروجی جایگاهش را حفظ می‌کند: وقتی دوباره روشن شود، آنچه در این فاصله ثبت شده را می‌فرستد.",
   "Unchanged": "بدون تغییر",
   "Setup guide": "راهنمای راه‌اندازی",
   "Write a test file": "نوشتن فایل آزمایشی",
@@ -1197,5 +1195,11 @@
   "One message per line": "یک پیام در هر خط",
   "CA certificate": "گواهی CA",
   "Only for a receiver whose certificate a private CA signed: that CA's certificate (PEM).": "فقط برای گیرنده‌ای که گواهی آن را یک CA خصوصی امضا کرده است: گواهی همان CA (PEM).",
-  "Audit Log Export": "خروجی گزارش ممیزی"
+  "Audit Log Export": "خروجی گزارش ممیزی",
+  "Failing for {{duration}}": "{{duration}} است که ناموفق است",
+  "Send what was recorded while it was off, then carry on.": "آنچه را که در زمان خاموش بودن ثبت شده است می‌فرستد و سپس ادامه می‌دهد.",
+  "Stop sending. It keeps its place and catches up when turned back on.": "ارسال را متوقف می‌کند. جای خود را نگه می‌دارد و پس از روشن شدن دوباره، عقب‌ماندگی را جبران می‌کند.",
+  "Turn on": "روشن کردن",
+  "Turn off": "خاموش کردن",
+  "View Documentation": "مشاهده مستندات"
 }

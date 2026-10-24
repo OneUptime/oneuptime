@@ -1077,7 +1077,6 @@
   "Send a test": "Envoyer un test",
   "Send one test entry with the saved settings.": "Envoyer une entrée de test avec les paramètres enregistrés.",
   "Last exported {{time}}": "Dernier export {{time}}",
-  "Failing since {{time}}": "En échec depuis {{time}}",
   "Last Error": "Dernière erreur",
   "What the destination answered the last time OneUptime tried to deliver to it. Credentials are never shown.": "Ce que la destination a répondu la dernière fois que OneUptime a tenté de lui livrer des entrées. Les identifiants ne sont jamais affichés.",
   "Copy Error": "Copier l'erreur",
@@ -1115,7 +1114,6 @@
   "Export from": "Exporter à partir du",
   "Leave empty to send what is recorded from now on. An earlier date also sends the entries still kept since then.": "Laissez vide pour envoyer ce qui est enregistré à partir de maintenant. Une date antérieure envoie aussi les entrées encore conservées depuis.",
   "Change it to send again every entry kept since this date, then carry on. Entries already delivered may arrive twice.": "Modifiez-la pour renvoyer chaque entrée conservée depuis cette date, puis continuer. Les entrées déjà livrées peuvent arriver deux fois.",
-  "Turned off, nothing is sent. The export keeps its place: turned back on, it sends what was recorded meanwhile.": "Désactivé, rien n'est envoyé. L'export garde sa position : une fois réactivé, il envoie ce qui a été enregistré entre-temps.",
   "Unchanged": "Inchangé",
   "Setup guide": "Guide de configuration",
   "Write a test file": "Écrire un fichier de test",
@@ -1197,5 +1195,11 @@
   "One message per line": "Un message par ligne",
   "CA certificate": "Certificat de l'AC",
   "Only for a receiver whose certificate a private CA signed: that CA's certificate (PEM).": "Uniquement pour un récepteur dont le certificat a été signé par une AC privée : le certificat de cette AC (PEM).",
-  "Audit Log Export": "Export du journal d'audit"
+  "Audit Log Export": "Export du journal d'audit",
+  "Failing for {{duration}}": "En échec depuis {{duration}}",
+  "Send what was recorded while it was off, then carry on.": "Envoie ce qui a été enregistré pendant qu'il était désactivé, puis continue.",
+  "Stop sending. It keeps its place and catches up when turned back on.": "Arrête l'envoi. Il garde sa position et rattrape son retard une fois réactivé.",
+  "Turn on": "Activer",
+  "Turn off": "Désactiver",
+  "View Documentation": "Voir la documentation"
 }

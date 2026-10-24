@@ -162,7 +162,7 @@ En batch forsøges tre gange med få sekunders mellemrum, og derefter venter eks
 
 Intet springes over: Posterne venter i auditloggen, og den næste levering, der lykkes, indhenter fra den ældste. En post, der er ældre end opbevaringen for dens projekts auditlog, slettes, før den kan sendes, så ret en eksport, der fejler, inden for den tid.
 
-Slå **Eksport** fra under **Rediger** for at sætte en eksport på pause: Den beholder sin plads, og når den slås til igen, sender den, hvad der blev registreret i mellemtiden. I OneUptime Cloud holder et projekt, der forlader Enterprise-planen, op med at eksportere, og dets eksporter venter under opgraderingskortet, hvor de kan slås fra eller slettes. Når du selv hoster, stopper eksporten, så længe licensen ikke omfatter auditlogs, og fortsætter, hvor den slap, så snart en licens gør.
+Vælg **Slå fra** i menuen på dens række for at sætte en eksport på pause: Den beholder sin plads, og **Slå til** sender, hvad der blev registreret i mellemtiden. I OneUptime Cloud holder et projekt, der forlader Enterprise-planen, op med at eksportere, og dets eksporter venter under opgraderingskortet, hvor de kan slås fra eller slettes. Når du selv hoster, stopper eksporten, så længe licensen ikke omfatter auditlogs, og fortsætter, hvor den slap, så snart en licens gør.
 
 ## Fejlfinding
 
