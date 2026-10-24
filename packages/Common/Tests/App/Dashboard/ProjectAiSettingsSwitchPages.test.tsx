@@ -52,7 +52,9 @@ import {
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import Project from "../../../Models/DatabaseModels/Project";
 import { AUTOMATIC_FIX_SWITCH_COLUMNS } from "../../../Types/AI/AutomaticFixPullRequests";
-import AutoRemediationTriggerEntity from "../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
+import AutoRemediationTriggerEntity, {
+  IncidentOrAlertTriggerEntity,
+} from "../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
@@ -1162,8 +1164,8 @@ describe("Alerts → AI → Settings", () => {
  */
 interface FixLane {
   lane: AiLane;
-  signal: AutoRemediationTriggerEntity;
-  otherSignal: AutoRemediationTriggerEntity;
+  signal: IncidentOrAlertTriggerEntity;
+  otherSignal: IncidentOrAlertTriggerEntity;
   fixTitle: string;
   open: () => void;
 }

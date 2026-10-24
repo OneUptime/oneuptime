@@ -65,17 +65,14 @@ OneUptime — платформа наблюдаемости с открытым 
 git clone --depth 1 --single-branch --branch release https://github.com/OneUptime/oneuptime.git
 cd oneuptime
 
-# 2. Create your config, with a random value for every secret
+# 2. Create your config
 cp config.example.env config.env
-while grep -q "please-change-this-to-random-value" config.env; do
-  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env
-done
 
 # 3. Start everything
 npm start
 ```
 
-Когда `npm start` выведет **OneUptime is up!**, откройте `http://localhost` или адрес своего сервера и зарегистрируйтесь. Первая учётная запись становится администратором экземпляра.
+`npm start` проверяет сервер, задаёт каждому секрету в `config.env` собственное случайное значение и запускает OneUptime. Когда `npm start` выведет **OneUptime is up!**, откройте `http://localhost` или адрес своего сервера и зарегистрируйтесь. Первая учётная запись становится администратором экземпляра.
 
 В [руководстве по Docker Compose](https://oneuptime.com/docs/ru/installation/docker-compose) описаны размеры сервера, HTTPS, резервные копии и обновления.
 

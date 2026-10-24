@@ -227,6 +227,11 @@ export const MAX_BALANCE_ADJUSTMENT_IN_USD_CENTS: number = 10_000 * 100;
  * them on itself. The pull requests OneUptime AI opens are part of fixing:
  * they open only while fixing is on, as each auto remediation rule says -
  * on by default, and on with no rule (Types/AI/AutomaticFixPullRequests).
+ *
+ * Finding and fixing slow code (enableAutomaticProfileRemediation, Profiles
+ * → AI → Settings) starts on: its fix is a pull request in a repository,
+ * which changes no infrastructure and is never merged - "a rule that is
+ * turned on by default" - the maintainer (Types/AI/TelemetryAi).
  */
 export type NewProjectAiDefaultColumn =
   | "enableAutomaticIncidentInvestigation"
@@ -235,6 +240,7 @@ export type NewProjectAiDefaultColumn =
   | "enableAutomaticPostmortemDraft"
   | "enableAiInsights"
   | "enableInsightFixTasks"
+  | "enableAutomaticProfileRemediation"
   | "autoArchiveNonActionableExceptions";
 
 export const NEW_PROJECT_AI_DEFAULT_COLUMNS: ReadonlyArray<NewProjectAiDefaultColumn> =
@@ -245,6 +251,7 @@ export const NEW_PROJECT_AI_DEFAULT_COLUMNS: ReadonlyArray<NewProjectAiDefaultCo
     "enableAutomaticPostmortemDraft",
     "enableAiInsights",
     "enableInsightFixTasks",
+    "enableAutomaticProfileRemediation",
     "autoArchiveNonActionableExceptions",
   ];
 

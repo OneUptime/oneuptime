@@ -2499,6 +2499,50 @@ export default class Project extends TenantModel {
   })
   public enableInsightFixTasks?: boolean = undefined;
 
+  /*
+   * Profiles → AI → Settings: "Find and fix slow code". While it is on,
+   * OneUptime reads each service's profiles once an hour for functions of
+   * its own code that take a large or growing share of its time, files each
+   * as an insight, and OneUptime AI looks into it and opens a pull request
+   * that makes it faster - in a connected repository, on the Runner that
+   * repository picks, never merged. Profile AI rules (AutoRemediationRule
+   * with triggerEntityType Profile), when there are any, narrow which
+   * services' slow code is worked on and how (Types/AI/TelemetryAi). On for
+   * new projects - the rule "turned on by default" the maintainer asked for
+   * - and off for projects that existed before, so an upgrade spends no AI
+   * credits and opens no pull request unasked. Enable AI turns it off with
+   * everything else.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Automatic Profile Remediation",
+    description:
+      "When enabled, OneUptime reads each service's profiles once an hour for functions of its own code that take a large or growing share of its time and files each as an insight, and OneUptime AI looks into it and opens a pull request that makes it faster, in a repository connected through the GitHub App. Pull requests are never merged automatically, and honor the repository's open pull request cap. Profile AI rules, when there are any, choose which services' slow code is worked on, whether a person approves the pull request first, and which repositories and LLM provider are used. On for new projects created in OneUptime; projects that existed before keep it off. Requires AI to be enabled.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAutomaticProfileRemediation?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [Permission.User],
     read: [

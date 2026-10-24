@@ -17,7 +17,7 @@
  *
  *   - `npm start` runs the script as a step of the start script (not a
  *     prestart hook, which npm skips under ignore-scripts);
- *   - `npm run update` runs it through prerun -> Scripts/Install/configure.sh,
+ *   - `npm run update` ends with `npm run start`; `npm run dev` runs it through prerun -> Scripts/Install/configure.sh,
  *     right after the template merge.
  *
  * The shared keys are ONEUPTIME_SECRET (the cluster key), REGISTER_PROBE_KEY,
@@ -98,15 +98,28 @@ function valueOf(contents, key) {
 }
 
 /**
- * Runs the real script against a throwaway config.env, from a directory shaped
- * like the repository root, the way the start script and configure.sh run it.
+ * Copies the script, and the module that marks its lines
+ * (Scripts/Install/StartOutput.js), into a directory shaped like the
+ * repository root.
  */
-function runScript(dir, configEnvContents) {
+function copyScript(dir) {
   fs.mkdirSync(path.join(dir, "Scripts", "Install"), { recursive: true });
   fs.copyFileSync(
     SCRIPT_PATH,
     path.join(dir, "Scripts", "Install", "ReplacePlaceholderSecrets.js"),
   );
+  fs.copyFileSync(
+    path.join(path.dirname(SCRIPT_PATH), "StartOutput.js"),
+    path.join(dir, "Scripts", "Install", "StartOutput.js"),
+  );
+}
+
+/**
+ * Runs the real script against a throwaway config.env, from a directory shaped
+ * like the repository root, the way the start script and configure.sh run it.
+ */
+function runScript(dir, configEnvContents) {
+  copyScript(dir);
 
   if (configEnvContents !== undefined) {
     fs.writeFileSync(path.join(dir, "config.env"), configEnvContents);
@@ -394,17 +407,21 @@ describe("replacePlaceholderSecrets", () => {
     expect(values.size).toBe(20);
   });
 
+  /*
+   * One line of the list npm start prints first (StartOutput.js): what it
+   * set, never the values.
+   */
   test("says what it did, listing the keys it set", () => {
     expect(
       describeReplacedSecrets(["ONEUPTIME_SECRET", "REGISTER_PROBE_KEY"]),
     ).toBe(
-      "config.env: ONEUPTIME_SECRET, REGISTER_PROBE_KEY still held the placeholder from config.example.env, so each was set to a new random value. ONEUPTIME_SECRET and REGISTER_PROBE_KEY are keys OneUptime's own services, probes and the bundled Runner present to each other; OneUptime refuses the public placeholder for every one of them, and each container reads its value from config.env.",
+      "  ✓ Gave ONEUPTIME_SECRET and REGISTER_PROBE_KEY their own random values in config.env, in place of the public placeholders from config.example.env.",
     );
   });
 
   test("says what it did for one key", () => {
     expect(describeReplacedSecrets(["ONEUPTIME_RUNNER_KEY"])).toBe(
-      "config.env: ONEUPTIME_RUNNER_KEY still held the placeholder from config.example.env, so each was set to a new random value. ONEUPTIME_RUNNER_KEY is a key OneUptime's own services, probes and the bundled Runner present to each other; OneUptime refuses the public placeholder for every one of them, and each container reads its value from config.env.",
+      "  ✓ Gave ONEUPTIME_RUNNER_KEY its own random value in config.env, in place of the public placeholders from config.example.env.",
     );
   });
 
@@ -412,22 +429,25 @@ describe("replacePlaceholderSecrets", () => {
     expect(
       describeReplacedSecrets(["CLICKHOUSE_PASSWORD", "VALKEY_PASSWORD"]),
     ).toBe(
-      "config.env: CLICKHOUSE_PASSWORD, VALKEY_PASSWORD still held the placeholder from config.example.env, so each was set to a new random value. The bundled ClickHouse and Valkey take their new password as this start recreates them, together with every container that signs in to them; anything else that signs in to them needs the new value from config.env.",
+      "  ✓ Gave CLICKHOUSE_PASSWORD and VALKEY_PASSWORD their own random values in config.env, in place of the public placeholders from config.example.env. The bundled ClickHouse and Valkey take their new passwords as this start recreates them; anything else that signs in to them needs the new value from config.env.",
     );
     expect(describeReplacedSecrets(["REDIS_PASSWORD"])).toBe(
-      "config.env: REDIS_PASSWORD still held the placeholder from config.example.env, so each was set to a new random value. The bundled Valkey takes its new password as this start recreates it, together with every container that signs in to it; anything else that signs in to it needs the new value from config.env.",
+      "  ✓ Gave REDIS_PASSWORD its own random value in config.env, in place of the public placeholders from config.example.env. The bundled Valkey takes its new password as this start recreates it; anything else that signs in to it needs the new value from config.env.",
     );
   });
 
   test("says both when it set keys and passwords, as a new install's first start does", () => {
-    const message = describeReplacedSecrets(
-      replacePlaceholderSecrets(TEMPLATE, fakeSecret).replaced,
-    );
+    const replaced = replacePlaceholderSecrets(TEMPLATE, fakeSecret).replaced;
+    const message = describeReplacedSecrets(replaced);
 
     expect(message).toContain(
-      "ONEUPTIME_SECRET, REGISTER_PROBE_KEY, GLOBAL_PROBE_1_KEY, GLOBAL_PROBE_2_KEY, ONEUPTIME_RUNNER_KEY and GLOBAL_RUNNER_KEY are keys",
+      "ONEUPTIME_SECRET, REGISTER_PROBE_KEY, CLICKHOUSE_PASSWORD, VALKEY_PASSWORD, GLOBAL_PROBE_1_KEY, GLOBAL_PROBE_2_KEY, ONEUPTIME_RUNNER_KEY and GLOBAL_RUNNER_KEY their own random values",
     );
-    expect(message).toContain("The bundled ClickHouse and Valkey take their");
+    expect(message).toContain(
+      "The bundled ClickHouse and Valkey take their new passwords",
+    );
+    // One line, as every line of the list.
+    expect(message.split("\n")).toHaveLength(1);
   });
 });
 
@@ -487,7 +507,7 @@ describe("the passwords of the datastores Docker Compose runs", () => {
     // Valkey takes it on its command line, from either name, keeps nothing on
     // disk, and answers to "redis" as well.
     expect(base.services.valkey.command).toBe(
-      'valkey-server --requirepass "${VALKEY_PASSWORD:-${REDIS_PASSWORD}}" --save "" --appendonly no',
+      'valkey-server --requirepass "${VALKEY_PASSWORD:-${REDIS_PASSWORD:-}}" --save "" --appendonly no',
     );
     expect(base.services.valkey.networks.oneuptime.aliases).toEqual(["redis"]);
 
@@ -496,7 +516,7 @@ describe("the passwords of the datastores Docker Compose runs", () => {
       "${CLICKHOUSE_PASSWORD}",
     );
     expect(base["x-common-runtime-variables"].VALKEY_PASSWORD).toBe(
-      "${VALKEY_PASSWORD:-${REDIS_PASSWORD}}",
+      "${VALKEY_PASSWORD:-${REDIS_PASSWORD:-}}",
     );
   });
 
@@ -684,10 +704,10 @@ describe("the passwords of the datastores Docker Compose runs", () => {
     const [clickhouse, valkey] = BUNDLED_DATASTORE_PASSWORDS;
 
     expect(describeExternalDatastorePassword(clickhouse)).toBe(
-      "WARNING: CLICKHOUSE_PASSWORD in config.env is still the placeholder from config.example.env, which is public, and CLICKHOUSE_HOST points at a ClickHouse that Docker Compose does not run, so it was left as it is. Give that ClickHouse a long random password, and set CLICKHOUSE_PASSWORD to it.",
+      "  ! CLICKHOUSE_PASSWORD in config.env is still the placeholder from config.example.env, which is public, and CLICKHOUSE_HOST points at a ClickHouse that Docker Compose does not run, so it was left as it is. Give that ClickHouse a long random password, and set CLICKHOUSE_PASSWORD to it.",
     );
     expect(describeExternalDatastorePassword(valkey)).toBe(
-      "WARNING: VALKEY_PASSWORD in config.env is still the placeholder from config.example.env, which is public, and VALKEY_HOST points at a Valkey that Docker Compose does not run, so it was left as it is. Give that Valkey a long random password, and set VALKEY_PASSWORD to it.",
+      "  ! VALKEY_PASSWORD in config.env is still the placeholder from config.example.env, which is public, and VALKEY_HOST points at a Valkey that Docker Compose does not run, so it was left as it is. Give that Valkey a long random password, and set VALKEY_PASSWORD to it.",
     );
   });
 });
@@ -715,7 +735,7 @@ describe("the script, run the way npm start and configure.sh run it", () => {
       TEMPLATE.replace(GENERATED_KEY_LINE, ""),
     );
     expect(run.stdout).toContain(
-      "still held the placeholder from config.example.env",
+      "in place of the public placeholders from config.example.env",
     );
   });
 
@@ -748,11 +768,7 @@ describe("the script, run the way npm start and configure.sh run it", () => {
     const configPath = path.join(dir, "config.env");
 
     for (const pass of [1, 2]) {
-      fs.mkdirSync(path.join(dir, "Scripts", "Install"), { recursive: true });
-      fs.copyFileSync(
-        SCRIPT_PATH,
-        path.join(dir, "Scripts", "Install", "ReplacePlaceholderSecrets.js"),
-      );
+      copyScript(dir);
 
       if (pass === 1) {
         fs.writeFileSync(configPath, contents);
@@ -766,8 +782,8 @@ describe("the script, run the way npm start and configure.sh run it", () => {
 
       expect(started.status).toBe(0);
       expect(started.stdout).toBe("");
-      expect(started.stderr.trim()).toBe(
-        describeExternalDatastorePassword(BUNDLED_DATASTORE_PASSWORDS[0]),
+      expect(started.stderr).toBe(
+        `${describeExternalDatastorePassword(BUNDLED_DATASTORE_PASSWORDS[0])}\n`,
       );
       expect(fs.readFileSync(configPath, "utf8")).toBe(contents);
     }
@@ -933,17 +949,13 @@ describe("a config.env it cannot read or write", () => {
         new Error("EROFS: read-only file system"),
       ),
     ).toBe(
-      "config.env could not be written (EROFS: read-only file system), so its placeholder secrets were not given random values. OneUptime starts anyway, but the bundled probes and Runners do not register while REGISTER_PROBE_KEY, GLOBAL_PROBE_1_KEY, GLOBAL_PROBE_2_KEY, ONEUPTIME_RUNNER_KEY or GLOBAL_RUNNER_KEY still holds the placeholder from config.example.env: set each to a long random value (openssl rand -hex 32 makes one).",
+      "  ! config.env could not be written (EROFS: read-only file system), so its placeholder secrets were not given random values. OneUptime starts anyway, but the bundled probes and Runners do not register while REGISTER_PROBE_KEY, GLOBAL_PROBE_1_KEY, GLOBAL_PROBE_2_KEY, ONEUPTIME_RUNNER_KEY or GLOBAL_RUNNER_KEY still holds the placeholder from config.example.env: set each to a long random value (openssl rand -hex 32 makes one).",
     );
   });
 
   test("the real script exits 0 when config.env is not a file it can read, so npm start goes on", () => {
     const dir = workspace();
-    fs.mkdirSync(path.join(dir, "Scripts", "Install"), { recursive: true });
-    fs.copyFileSync(
-      SCRIPT_PATH,
-      path.join(dir, "Scripts", "Install", "ReplacePlaceholderSecrets.js"),
-    );
+    copyScript(dir);
     // A directory where config.env belongs: it exists, and reading it fails.
     fs.mkdirSync(path.join(dir, "config.env"));
 
@@ -979,7 +991,7 @@ describe("where it runs", () => {
     expect(packageJson.scripts.update).toContain("npm run start");
   });
 
-  test("configure.sh (npm run update, npm run dev) runs it right after the template merge, before config.env is read", () => {
+  test("configure.sh (npm run dev) runs it right after the template merge, before config.env is read", () => {
     const configure = fs.readFileSync(
       path.join(REPO_ROOT, "Scripts", "Install", "configure.sh"),
       "utf8",

@@ -154,8 +154,12 @@ export const CODE_TASK_ORIGIN_SENTENCES: Record<CodeTaskOriginType, string> = {
   [CodeTaskOriginType.Service]: translationKey(
     "OneUptime started this task for the service {{label}}",
   ),
+  /*
+   * A request OneUptime wrote itself from a problem it found - slow code in
+   * a service's profiles: the finding's own title, linked to it.
+   */
   [CodeTaskOriginType.Insight]: translationKey(
-    "OneUptime started this task from an AI insight",
+    "OneUptime started this task from an AI insight: {{label}}",
   ),
   [CodeTaskOriginType.GitHubIssue]: translationKey(
     "Started from GitHub issue {{label}}",
@@ -171,6 +175,11 @@ export const CODE_TASK_ORIGIN_SENTENCES: Record<CodeTaskOriginType, string> = {
  * by its kind there ("Fix Exception"); its title already names the record.
  */
 export const CODE_TASK_ASKED_BY: string = translationKey("Asked by {{name}}");
+
+// A request OneUptime wrote itself, in a list row's meta line.
+export const CODE_TASK_STARTED_BY_ONEUPTIME: string = translationKey(
+  "Started by OneUptime",
+);
 
 // A step the AI took, as the conversation words it.
 export const CODE_TASK_STEP_SENTENCES: Record<CodeTaskStepKind, string> = {

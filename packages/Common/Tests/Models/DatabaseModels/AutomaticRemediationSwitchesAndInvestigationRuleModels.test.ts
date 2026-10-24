@@ -1,6 +1,8 @@
 import Models from "../../../Models/DatabaseModels/Index";
 import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
 import CodeRepository from "../../../Models/DatabaseModels/CodeRepository";
+import Label from "../../../Models/DatabaseModels/Label";
+import Service from "../../../Models/DatabaseModels/Service";
 import Project from "../../../Models/DatabaseModels/Project";
 import RuleBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/RuleBaseModel";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -354,9 +356,11 @@ describe("the AI rule", () => {
       ...OWNER_OR_ADMIN,
       Permission.CreateAutoRemediationRule,
     ]);
+    // Incidents and alerts, and the slow code a service's profiles show.
     expect(Object.values(AutoRemediationTriggerEntity)).toEqual([
       "Incident",
       "Alert",
+      "Profile",
     ]);
   });
 
@@ -389,6 +393,27 @@ describe("the AI rule", () => {
       "AutoRemediationRuleMonitorLabel autoRemediationRuleId labelId",
       "AutoRemediationRuleRunbook autoRemediationRuleId runbookId",
       "AutoRemediationRuleRunner autoRemediationRuleId runnerId",
+      // What a profile AI rule matches on: the service, and its labels.
+      "AutoRemediationRuleService autoRemediationRuleId serviceId",
+      "AutoRemediationRuleServiceLabel autoRemediationRuleId labelId",
     ]);
+  });
+
+  it("matches a profile AI rule on the service: picked, labelled or named", () => {
+    for (const column of ["services", "serviceLabels", "serviceNamePattern"]) {
+      expect(model.getTableColumnMetadata(column)).toBeTruthy();
+      expect(model.getTableColumnMetadata(column)?.required).toBe(false);
+      expect(model.getColumnAccessControlFor(column)).toEqual(
+        model.getColumnAccessControlFor("labels"),
+      );
+    }
+
+    expect(model.getTableColumnMetadata("services")?.modelType).toBe(Service);
+    expect(model.getTableColumnMetadata("serviceLabels")?.modelType).toBe(
+      Label,
+    );
+    expect(
+      model.getTableColumnMetadata("triggerEntityType")?.description,
+    ).toContain("Profile");
   });
 });

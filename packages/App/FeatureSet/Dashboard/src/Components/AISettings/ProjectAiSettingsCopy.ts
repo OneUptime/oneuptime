@@ -22,7 +22,9 @@ import ProjectAiDailyLimits, {
   ProjectAiDailyUsage,
 } from "Common/Types/AI/ProjectAiDailyLimits";
 import { AUTOMATIC_FIX_SWITCH_COLUMNS } from "Common/Types/AI/AutomaticFixPullRequests";
-import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
+import AutoRemediationTriggerEntity, {
+  IncidentOrAlertTriggerEntity,
+} from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
 
 /*
  * What the project's AI settings pages say, in one place: Incidents → AI
@@ -166,11 +168,11 @@ const REMEDIATION_NOTE: string = translationKey(
  * settings), on by default.
  */
 const getFixSwitch: (data: {
-  signal: AutoRemediationTriggerEntity;
+  signal: IncidentOrAlertTriggerEntity;
   title: string;
   description: string;
 }) => ProjectAiSwitchDefinition<AiLaneSwitchColumn> = (data: {
-  signal: AutoRemediationTriggerEntity;
+  signal: IncidentOrAlertTriggerEntity;
   title: string;
   description: string;
 }): ProjectAiSwitchDefinition<AiLaneSwitchColumn> => {
@@ -878,6 +880,11 @@ export enum ProjectAiNoticeContext {
   ExternalMcpServers = "ExternalMcpServers",
   // Security Events → AI → Settings: triaging security cases.
   SecurityEvents = "SecurityEvents",
+  /*
+   * Profiler → AI → Settings: slow code OneUptime finds in profiles
+   * (Common/Types/AI/TelemetryAi), which is still found with AI off.
+   */
+  Profiles = "Profiles",
 }
 
 // Project.enableAi, as the page knows it.
@@ -1066,6 +1073,14 @@ export const PROJECT_AI_NOTICE_CONTEXT_COPY: Record<
     aiOffDescription: AI_OFF_EVENT_PAGE,
     providerConsequence: translationKey(
       "Until it has one, security cases are not triaged.",
+    ),
+  },
+  [ProjectAiNoticeContext.Profiles]: {
+    aiOffDescription: translationKey(
+      "OneUptime AI is off for this project. Slow code is still found, but none of it is looked into and no pull requests are opened.",
+    ),
+    providerConsequence: translationKey(
+      "Until it has one, slow code is still found, but none of it is looked into or fixed.",
     ),
   },
 };

@@ -65,17 +65,14 @@ OneUptime은 오픈 소스 옵저버빌리티 플랫폼입니다. 웹사이트, 
 git clone --depth 1 --single-branch --branch release https://github.com/OneUptime/oneuptime.git
 cd oneuptime
 
-# 2. Create your config, with a random value for every secret
+# 2. Create your config
 cp config.example.env config.env
-while grep -q "please-change-this-to-random-value" config.env; do
-  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env
-done
 
 # 3. Start everything
 npm start
 ```
 
-`npm start`에서 **OneUptime is up!** 메시지가 나오면 `http://localhost`나 서버 주소를 열고 가입합니다. 첫 계정이 인스턴스의 관리자가 됩니다.
+`npm start`는 서버를 확인하고, `config.env`의 모든 시크릿에 각자의 무작위 값을 넣은 다음 OneUptime을 시작합니다. `npm start`에서 **OneUptime is up!** 메시지가 나오면 `http://localhost`나 서버 주소를 열고 가입합니다. 첫 계정이 인스턴스의 관리자가 됩니다.
 
 서버 크기, HTTPS, 백업, 업데이트는 [Docker Compose 가이드](https://oneuptime.com/docs/ko/installation/docker-compose)에서 다룹니다.
 

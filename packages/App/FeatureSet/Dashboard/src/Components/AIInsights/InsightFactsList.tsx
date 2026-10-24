@@ -1,5 +1,7 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface InsightFact {
@@ -17,11 +19,14 @@ export interface ComponentProps {
 /*
  * The label/value rail on the insight detail page. Label left, value right,
  * hairline between rows — the same shape a reader already knows from every
- * other "details" sidebar, so nothing has to be decoded.
+ * other "details" sidebar, so nothing has to be decoded. Each label is
+ * given in English and drawn in the reader's language.
  */
 const InsightFactsList: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <dl className="divide-y divide-gray-100">
       {props.facts.map((fact: InsightFact, index: number) => {
@@ -34,7 +39,7 @@ const InsightFactsList: FunctionComponent<ComponentProps> = (
               <span className="flex-shrink-0 text-gray-400">
                 <Icon icon={fact.icon} className="h-3.5 w-3.5" />
               </span>
-              {fact.label}
+              {translator.translateText(fact.label)}
             </dt>
             {/*
              * Fall back to the value itself so a truncated Service or Metric

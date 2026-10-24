@@ -139,6 +139,49 @@ function describePlace(place: EditPlace): string {
 }
 
 /*
+ * A model whose rows are split between tables by a column, each row edited
+ * in exactly one of them: the one AI rule - an incident's or an alert's in
+ * AiRulesTable, a telemetry product's (the Profiler's) in
+ * TelemetryAiRulesTable - by triggerEntityType. Each table reads only its
+ * own triggers, so a rule is never edited from both. Held below: every
+ * table of the split reads its rows by that column.
+ */
+interface SplitModel {
+  column: string;
+  files: Array<string>;
+}
+
+const SPLIT_MODELS: Record<string, SplitModel> = {
+  AutoRemediationRule: {
+    column: "triggerEntityType",
+    files: [
+      "packages/App/FeatureSet/Dashboard/src/Components/AISettings/AiRulesTable.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiRulesTable.tsx",
+    ],
+  },
+};
+
+// Whether a detail's places are the tables of a split, one each.
+function isOnePlacePerSplit(places: Array<EditPlace>): boolean {
+  const split: SplitModel | undefined = SPLIT_MODELS[places[0]?.model || ""];
+
+  if (!split) {
+    return false;
+  }
+
+  const files: Array<string> = places.map((place: EditPlace): string => {
+    return place.file;
+  });
+
+  return (
+    new Set(files).size === files.length &&
+    files.every((file: string): boolean => {
+      return split.files.includes(file);
+    })
+  );
+}
+
+/*
  * The details an existing record's form edits. Create-only forms add a
  * record (a list's Create, a ModelForm or dialog of FormType.Create), and
  * DuplicateModel makes a copy, so neither is a second place to change one:
@@ -715,6 +758,9 @@ function readCode(file: string): string {
   return fs.readFileSync(path.join(REPOSITORY_ROOT, file), "utf8");
 }
 
+// A run of whitespace, squashed out of code compared as text.
+const WHITESPACE_RUN: RegExp = /\s+/g;
+
 // Comments out: what the code says, not what a comment says about it.
 function readCodeWithoutComments(file: string): string {
   return readCode(file)
@@ -744,12 +790,33 @@ describe("where a record's details are edited", () => {
     const twice: Array<string> = [];
 
     for (const [detail, places] of byDetail) {
-      if (places.length > 1) {
+      if (places.length > 1 && !isOnePlacePerSplit(places)) {
         twice.push(`${detail}: ${places.map(describePlace).join(" and ")}`);
       }
     }
 
     expect(twice).toEqual([]);
+  });
+
+  test("a model split between tables is read by its column in every one of them", () => {
+    for (const [model, split] of Object.entries(SPLIT_MODELS)) {
+      for (const file of split.files) {
+        const code: string = readCodeWithoutComments(file).replace(
+          WHITESPACE_RUN,
+          "",
+        );
+
+        expect([model, file, code.includes(`modelType={${model}}`)]).toEqual([
+          model,
+          file,
+          true,
+        ]);
+        expect([
+          file,
+          code.includes(`query={{${split.column}:${split.column}}}`),
+        ]).toEqual([file, true]);
+      }
+    }
   });
 
   test("counts a table's row Edit as a place, and its Create form as none", () => {

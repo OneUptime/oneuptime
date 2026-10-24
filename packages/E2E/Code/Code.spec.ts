@@ -59,6 +59,13 @@ const TASK: Record<
 
 const INCIDENT_ID: string = "50000000-0000-4000-8000-0000000000e1";
 
+/*
+ * insight=1: a task OneUptime started on its own from slow code it found
+ * in checkout's profiles (the Profiler's AI section), and the finding.
+ */
+const INSIGHT_TASK_ID: string = "40000000-0000-4000-8000-0000000000da";
+const INSIGHT_ID: string = "50000000-0000-4000-8000-0000000000e6";
+
 // The project's own Runners a repository may pick (Code/Fixture).
 const RUNNER: Record<"prod" | "office" | "agent", string> = {
   prod: "60000000-0000-4000-8000-0000000000f1",
@@ -3159,6 +3166,88 @@ test.describe("a repository's Runner", () => {
     await expect(
       settingsCard(page).getByRole("button", { name: "Edit" }),
     ).toBeFocused();
+  });
+});
+
+test.describe("a task OneUptime started on its own, from slow code it found", () => {
+  test("its row says OneUptime started it - nobody asked", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openCode(page, "insight=1");
+
+    const row: Locator = page
+      .getByTestId("code-task-row")
+      .filter({ hasText: "Make parseOrder in src/orders/parse.ts faster" });
+
+    await expect(row).toBeVisible();
+    await expect(row.getByTestId("code-task-row-meta")).toContainText(
+      "Started by OneUptime",
+    );
+    await expect(row.getByTestId("code-task-row-meta")).not.toContainText(
+      "Asked by",
+    );
+
+    if (isPhone(testInfo)) {
+      await expectNoSidewaysScroll(page);
+    }
+  });
+
+  /*
+   * One message of OneUptime's, on the left as the AI's are: why it began
+   * - the finding, linked - then what it asked, quoted. The right is where
+   * people ask (the UI review: OneUptime spoke twice in a row, once on each
+   * side).
+   */
+  test("its conversation opens on one message of OneUptime's: the finding, linked, then what it asked", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openTask(page, INSIGHT_TASK_ID, "insight=1");
+
+    const origin: Locator = page.getByTestId("code-turn-origin");
+
+    await expect(origin).toHaveCount(1);
+    await expect(origin).toContainText(
+      "OneUptime started this task from an AI insight: parseOrder takes 34% of the CPU time in checkout",
+    );
+    await expect(
+      origin.getByRole("link", {
+        name: "parseOrder takes 34% of the CPU time in checkout",
+      }),
+    ).toHaveAttribute("href", `${DASHBOARD}/ai/insights/${INSIGHT_ID}`);
+    await expect(origin.getByTestId("code-turn-request-message")).toContainText(
+      "OneUptime found this in the service's profiles on its own.",
+    );
+    await expect(origin.getByTestId("code-turn-context")).toContainText(
+      "parseOrder",
+    );
+
+    // No person's bubble: nobody asked.
+    await expect(page.getByTestId("code-turn-request")).toHaveCount(0);
+    await expect(page.getByTestId("code-task-turns")).not.toContainText(
+      "Someone",
+    );
+
+    // The request sits under why, inside the same message.
+    const [why, request] = await Promise.all([
+      origin.locator("p").first().boundingBox(),
+      origin.getByTestId("code-turn-request-message").boundingBox(),
+    ]);
+
+    expect(why).not.toBeNull();
+    expect(request).not.toBeNull();
+    expect(request!.y).toBeGreaterThan(why!.y);
+    expect(Math.abs(request!.x - why!.x)).toBeLessThan(2);
+
+    await expect(page.getByTestId("code-turn-pull-request")).toContainText(
+      "Opened pull request #431",
+    );
+
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-task-started-by-oneuptime");
   });
 });
 

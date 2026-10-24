@@ -14,7 +14,7 @@ const port: string = process.env["PROFILES_FIXTURE_PORT"] || "4391";
 
 export default defineConfig({
   testDir: "./Profiles",
-  testMatch: ["Profiles.spec.ts"],
+  testMatch: ["Profiles.spec.ts", "ProfilesAi.spec.ts"],
   fullyParallel: false,
   workers: 1,
   timeout: 90000,

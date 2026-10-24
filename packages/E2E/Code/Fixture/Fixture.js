@@ -35,6 +35,11 @@
  *                       them holds (140), so the branch picker searches the
  *                       server by what is typed
  *   - other=1           tasks that have no repository (Other tasks)
+ *   - insight=1         checkout-api has a task OneUptime started on its
+ *                       own, from slow code it found in checkout's profiles
+ *                       (the Profiler's AI section): its request is
+ *                       OneUptime's, its origin the finding, and it opened
+ *                       pull request #431
  *   - hosts=1           repositories beyond GitHub too, each through its
  *                       connection: billing-service on GitLab (gitlab.com)
  *                       with merge request !12, status-widgets on Forgejo
@@ -207,6 +212,8 @@ const TASK_IDS = {
   // hosts=1: a GitLab merge request, and a branch pushed to a Git server.
   invoices: "40000000-0000-4000-8000-0000000000d8",
   terraform: "40000000-0000-4000-8000-0000000000d9",
+  // insight=1: started by OneUptime, from slow code it found.
+  insight: "40000000-0000-4000-8000-0000000000da",
 };
 
 const RECORD_IDS = {
@@ -215,6 +222,8 @@ const RECORD_IDS = {
   exception: "50000000-0000-4000-8000-0000000000e3",
   monitor: "50000000-0000-4000-8000-0000000000e4",
   service: "50000000-0000-4000-8000-0000000000e5",
+  // The slow-code finding (an AI insight) insight=1's task came from.
+  insight: "50000000-0000-4000-8000-0000000000e6",
 };
 
 /*
@@ -239,6 +248,7 @@ const hasGlobalCodeRunner = params.get("global") !== "0";
 const reposParam = params.get("repos") || "some";
 const isGitHubGone = params.get("connected") === "none";
 const hasNoTasks = params.get("tasks") === "none";
+const hasInsightTask = params.get("insight") === "1";
 const hasManyBranches = params.get("branches") === "many";
 const hasLongNames = params.get("names") === "long";
 const blockerParam = params.get("blocker");
@@ -1501,6 +1511,85 @@ function advanceReview(task, current) {
 }
 
 /*
+ * insight=1: OneUptime found parseOrder taking a third of checkout's CPU
+ * time and, as the Profiler's AI rules let it, started a task on its own
+ * (ProfileInsightFix): a Code request nobody typed, stamped with the
+ * finding, which opened pull request #431.
+ */
+if (hasInsightTask && !hasNoTasks) {
+  tasks.push({
+    id: TASK_IDS.insight,
+    repositoryId: REPOSITORY_IDS.checkout,
+    taskNumber: 14,
+    title: "Make parseOrder in src/orders/parse.ts faster",
+    turns: [
+      turn({
+        runId: TASK_IDS.insight,
+        status: AIRunStatus.Completed,
+        createdAt: minutesAgo(50),
+        startedAt: minutesAgo(49),
+        completedAt: minutesAgo(41),
+        request: {
+          message: [
+            "Make parseOrder in src/orders/parse.ts faster",
+            "",
+            "OneUptime found this in the service's profiles on its own. It takes 34% of checkout's CPU time (counting the library and runtime code it calls), in 65,400 samples between 09:00 and 10:00 UTC.",
+            "",
+            "The profile attached shows who calls it, what it spends its time calling, and its hottest line. Find why it is costly, change the code so it does less work, keep its behaviour the same, and add or update tests that show it still works. If it cannot be made meaningfully faster without changing what it does, or the cost is not in this repository's code, say why and change nothing.",
+          ].join("\n"),
+          context: [
+            {
+              type: CodeTaskContextType.Profile,
+              label: "Performance profile",
+              serviceId: RECORD_IDS.service,
+              functionName: "parseOrder",
+              fileName: "src/orders/parse.ts",
+              profileType: "cpu",
+            },
+          ],
+        },
+        steps: [
+          step(1, CodeTaskStepKind.Read, "src/orders/parse.ts"),
+          step(2, CodeTaskStepKind.Edited, "src/orders/parse.ts"),
+          step(3, CodeTaskStepKind.Ran, "npm test -- orders"),
+          step(4, CodeTaskStepKind.PullRequest, "Opened pull request #431"),
+        ],
+        outcome: {
+          summary:
+            "parseOrder parsed the whole order body twice: once to validate it and once to read it. It now parses it once and validates the parsed object. The order tests pass.",
+          filesChanged: [
+            {
+              path: "src/orders/parse.ts",
+              status: CodeTaskFileStatus.Modified,
+              additions: 6,
+              deletions: 9,
+            },
+          ],
+          branchName: "oneuptime-task-14-9c8b7a6d",
+          pullRequestNumber: 431,
+          pullRequestUrl: "https://github.com/acme/checkout-api/pull/431",
+          openedPullRequest: true,
+        },
+        pullRequests: [
+          {
+            number: 431,
+            url: "https://github.com/acme/checkout-api/pull/431",
+            title: "Make parseOrder in src/orders/parse.ts faster",
+            state: "open",
+            branch: "oneuptime-task-14-9c8b7a6d",
+          },
+        ],
+      }),
+    ],
+    origin: {
+      type: CodeTaskOriginType.Insight,
+      label: "parseOrder takes 34% of the CPU time in checkout",
+      recordId: RECORD_IDS.insight,
+    },
+  });
+}
+
+/*
  * hosts=1: billing-service's task opened GitLab's merge request !12, and
  * infra-scripts' pushed a branch - OneUptime opens no pull request on a
  * Git server - saying where to open one (Runner PushedBranches).
@@ -2003,6 +2092,13 @@ function turnJSON(task, item, index, canSeeChanges) {
   }
   if (item.request) {
     json.request = item.request;
+    /*
+     * As the server (CodeTaskPresenter): a request OneUptime wrote itself
+     * shows what started it - the finding - above what it asked.
+     */
+    if (index === 0 && originOf(task).type !== CodeTaskOriginType.Request) {
+      json.origin = originOf(task);
+    }
   } else if (index === 0) {
     json.origin = originOf(task);
   }

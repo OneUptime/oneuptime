@@ -609,6 +609,14 @@ export interface CodeTaskAgentTurn {
   context?: Array<CodeTaskAgentContextItem> | undefined;
 }
 
+// Why OneUptime started a task on its own (CodeTaskAgentDetails.startedBy).
+export interface CodeTaskAgentStartedBy {
+  // The finding, as its insight's title says it.
+  finding: string;
+  // The insight's page in OneUptime.
+  findingUrl: string;
+}
+
 export interface CodeTaskAgentDetails {
   // CodeFixTaskType.CodeRequest
   taskType: string;
@@ -640,6 +648,14 @@ export interface CodeTaskAgentDetails {
   } | null;
   // Otherwise: the branch to create from the default branch for a change.
   newBranchName: string;
+  /*
+   * When OneUptime started the task on its own, from a problem it found in
+   * the project's telemetry (slow code in a service's profiles): what it
+   * found, in one line, and the page that shows it - what the pull request
+   * says it was opened for. Absent for a task a person asked for. A Runner
+   * older than this field writes the pull request it always did.
+   */
+  startedBy?: CodeTaskAgentStartedBy | undefined;
   /*
    * The branch the person picked for the task to start from, when they
    * picked one (repository.mainBranchName names it too, for Runners older

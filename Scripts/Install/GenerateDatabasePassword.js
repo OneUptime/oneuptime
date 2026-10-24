@@ -1,9 +1,11 @@
-// Gives a new Docker Compose install a random DATABASE_PASSWORD before
-// PostgreSQL creates its database with the placeholder from config.example.env.
+// Gives a new Docker Compose install a random DATABASE_PASSWORD and
+// ENCRYPTION_SECRET before PostgreSQL creates its database, in place of the
+// placeholders from config.example.env.
 
 const crypto = require("crypto");
 const fs = require("fs");
 const { spawnSync } = require("child_process");
+const { ok, warn } = require("./StartOutput");
 
 /*
  * WHY
@@ -25,12 +27,26 @@ const { spawnSync } = require("child_process");
  * config.env alone would lock OneUptime out of it, so this then only says how
  * to change both.
  *
+ * ENCRYPTION_SECRET is the same kind of setting: everything OneUptime
+ * encrypts in the database (integration tokens, SMTP passwords, calendar feed
+ * tokens) is encrypted with it, so a new value makes what was encrypted with
+ * the old one unreadable. It too can be given a random value safely only
+ * before PostgreSQL has created its database - nothing can have been
+ * encrypted with it yet - and only then is it: on a new install, with the
+ * same check. Until this did so, a newcomer had to run the README's sed
+ * loop (GNU sed only) to replace it, and an install that skipped the loop
+ * ran on a key that is public in this repository. Once the database exists
+ * it is left as it is, and nothing is said here: the App says it at every
+ * start (EnvironmentConfig.EncryptionSecretWarning), and changing it is no
+ * longer a fix.
+ *
  * Nothing here stops a start: a check that cannot tell (no Docker, Compose
  * failing) changes nothing, and the script always exits 0.
  */
 
 const SETTING = "DATABASE_PASSWORD";
 const HOST_SETTING = "DATABASE_HOST";
+const ENCRYPTION_SECRET_SETTING = "ENCRYPTION_SECRET";
 
 // The compose service that runs the bundled PostgreSQL (docker-compose.yml),
 // which is also the DATABASE_HOST config.example.env ships.
@@ -148,16 +164,16 @@ const generatePassword = () => {
 };
 
 /*
- * Pure: config.env's contents in, the contents with every DATABASE_PASSWORD
- * line that holds a shipped value set to `password` out. Every other line,
- * and each line's ending, comes back exactly as it was, so a second run
- * changes nothing.
+ * Pure: config.env's contents in, the contents with every `setting` line
+ * that holds a shipped value set to `value` out. Every other line, and each
+ * line's ending, comes back exactly as it was, so a second run changes
+ * nothing.
  */
-const replaceDatabasePassword = (contents, password) => {
+const replaceShippedValue = (contents, setting, value) => {
   let replaced = false;
 
   const lines = contents.split("\n").map((line) => {
-    if (assignedKeyOf(line) !== SETTING) {
+    if (assignedKeyOf(line) !== setting) {
       return line;
     }
 
@@ -169,10 +185,15 @@ const replaceDatabasePassword = (contents, password) => {
     }
 
     replaced = true;
-    return `${body.slice(0, body.indexOf("=") + 1)}${password}${lineEnding}`;
+    return `${body.slice(0, body.indexOf("=") + 1)}${value}${lineEnding}`;
   });
 
   return { contents: lines.join("\n"), replaced };
+};
+
+// The same, for DATABASE_PASSWORD.
+const replaceDatabasePassword = (contents, password) => {
+  return replaceShippedValue(contents, SETTING, password);
 };
 
 /*
@@ -206,9 +227,27 @@ const decide = (settings, databaseState) => {
   return "warn-unknown";
 };
 
+/*
+ * Pure: whether ENCRYPTION_SECRET gets a random value - "generate" - or is
+ * left as it is - "nothing": a shipped value, the bundled PostgreSQL, and no
+ * database yet, so nothing can have been encrypted with it.
+ */
+const decideEncryptionSecret = (settings, databaseState) => {
+  if (
+    isShippedValue(settings.get(ENCRYPTION_SECRET_SETTING)) &&
+    (settings.get(HOST_SETTING) || "").trim() === BUNDLED_DATABASE_SERVICE &&
+    databaseState === DATABASE_STATE.NOT_CREATED
+  ) {
+    return "generate";
+  }
+
+  return "nothing";
+};
+
 const needsDatabaseState = (settings) => {
   return (
-    isShippedValue(settings.get(SETTING)) &&
+    (isShippedValue(settings.get(SETTING)) ||
+      isShippedValue(settings.get(ENCRYPTION_SECRET_SETTING))) &&
     (settings.get(HOST_SETTING) || "").trim() === BUNDLED_DATABASE_SERVICE
   );
 };
@@ -276,26 +315,49 @@ const bundledDatabaseState = (settings, options = {}) => {
   }
 };
 
+/*
+ * What a start says, as a line of the list `npm start` prints first
+ * (Scripts/Install/StartOutput.js). The new values are never printed.
+ */
 const MESSAGES = {
-  generate:
-    `config.env: ${SETTING} was still the placeholder from config.example.env. ` +
-    "It now holds a random value, which PostgreSQL takes as it creates its database on this start.",
-  "warn-created":
-    `WARNING: ${SETTING} in config.env is still the placeholder from config.example.env, which is public, ` +
-    "and PostgreSQL was created with it. " +
-    `PostgreSQL keeps the password it was created with: change it there and in config.env together, as ${CHANGE_PASSWORD_DOCS_URL} shows.`,
-  "warn-external":
-    `WARNING: ${SETTING} in config.env is still the placeholder from config.example.env, which is public. ` +
-    `Give the database at ${HOST_SETTING} a long random password, and set ${SETTING} to it.`,
-  "warn-unknown":
-    `WARNING: ${SETTING} in config.env is still the placeholder from config.example.env, which is public, ` +
-    "and Docker could not say whether PostgreSQL has created its database yet, so it was left as it is. " +
-    `Before the first start, set ${SETTING} to a long random value; after it, see ${CHANGE_PASSWORD_DOCS_URL}`,
+  generate: ok(
+    `Gave ${SETTING} its own random value in config.env, before PostgreSQL creates its database.`,
+  ),
+  "warn-created": warn(
+    `${SETTING} in config.env is still the placeholder from config.example.env, which is public, ` +
+      "and PostgreSQL was created with it. " +
+      `PostgreSQL keeps the password it was created with: change it there and in config.env together, as ${CHANGE_PASSWORD_DOCS_URL} shows.`,
+  ),
+  "warn-external": warn(
+    `${SETTING} in config.env is still the placeholder from config.example.env, which is public. ` +
+      `Give the database at ${HOST_SETTING} a long random password, and set ${SETTING} to it.`,
+  ),
+  "warn-unknown": warn(
+    `${SETTING} in config.env is still the placeholder from config.example.env, which is public, ` +
+      "and Docker could not say whether PostgreSQL has created its database yet, so it was left as it is. " +
+      `Before the first start, set ${SETTING} to a long random value; after it, see ${CHANGE_PASSWORD_DOCS_URL}`,
+  ),
 };
 
 /*
- * Reads ./config.env, and writes it back only to set a new password. Returns
- * what it decided. Every effect is passed in, so tests run it without Docker.
+ * What a start says when it gave ENCRYPTION_SECRET a value: with
+ * DATABASE_PASSWORD's, or alone (an install whose operator set the
+ * password).
+ */
+const ENCRYPTION_SECRET_MESSAGES = {
+  "with-password": ok(
+    `Gave ${SETTING} and ${ENCRYPTION_SECRET_SETTING} their own random values in config.env, before PostgreSQL creates its database.`,
+  ),
+  alone: ok(
+    `Gave ${ENCRYPTION_SECRET_SETTING} its own random value in config.env, before OneUptime stores anything encrypted with it.`,
+  ),
+};
+
+/*
+ * Reads ./config.env, and writes it back only to set new values. Returns
+ * what it decided for DATABASE_PASSWORD (ENCRYPTION_SECRET follows the same
+ * check: decideEncryptionSecret). Every effect is passed in, so tests run it
+ * without Docker.
  */
 const run = (options = {}) => {
   const cwd = options.cwd || process.cwd();
@@ -317,21 +379,43 @@ const run = (options = {}) => {
       })
     : DATABASE_STATE.UNKNOWN;
   const decision = decide(settings, databaseState);
+  const encryptionSecretDecision = decideEncryptionSecret(
+    settings,
+    databaseState,
+  );
+  const makeValue = options.generatePassword || generatePassword;
+  let updated = contents;
 
-  if (decision === "nothing") {
-    return decision;
+  if (decision === "generate") {
+    updated = replaceDatabasePassword(updated, makeValue()).contents;
+  }
+
+  if (encryptionSecretDecision === "generate") {
+    updated = replaceShippedValue(
+      updated,
+      ENCRYPTION_SECRET_SETTING,
+      makeValue(),
+    ).contents;
+  }
+
+  if (updated !== contents) {
+    fs.writeFileSync(path, updated);
   }
 
   if (decision === "generate") {
-    const password = (options.generatePassword || generatePassword)();
-    const result = replaceDatabasePassword(contents, password);
-
-    fs.writeFileSync(path, result.contents);
-    log(MESSAGES.generate);
-    return decision;
+    log(
+      encryptionSecretDecision === "generate"
+        ? ENCRYPTION_SECRET_MESSAGES["with-password"]
+        : MESSAGES.generate,
+    );
+  } else if (encryptionSecretDecision === "generate") {
+    log(ENCRYPTION_SECRET_MESSAGES.alone);
   }
 
-  warn(MESSAGES[decision]);
+  if (decision !== "nothing" && decision !== "generate") {
+    warn(MESSAGES[decision]);
+  }
+
   return decision;
 };
 
@@ -353,6 +437,7 @@ if (require.main === module) {
 module.exports = {
   SETTING,
   HOST_SETTING,
+  ENCRYPTION_SECRET_SETTING,
   BUNDLED_DATABASE_SERVICE,
   SHIPPED_FALLBACK,
   PLACEHOLDER_MARK,
@@ -361,11 +446,14 @@ module.exports = {
   DATABASE_STATE_SCRIPT,
   CHANGE_PASSWORD_DOCS_URL,
   MESSAGES,
+  ENCRYPTION_SECRET_MESSAGES,
   isShippedValue,
   readSettings,
   generatePassword,
+  replaceShippedValue,
   replaceDatabasePassword,
   decide,
+  decideEncryptionSecret,
   needsDatabaseState,
   parseDatabaseState,
   bundledDatabaseState,

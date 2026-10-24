@@ -3,7 +3,7 @@
 Docker Compose を使って、完全で無料の OneUptime インスタンスを 1 台の Linux サーバーで動かします。このページでは、新しいサーバーからインスタンスが動き出すまでを案内し、続いて HTTPS、本番向けの強化、バックアップ、アップデート、削除について説明します。OneUptime 自体のコードを開発する場合は、 [ローカル開発](/docs/installation/local-development) を参照してください。
 
 :::cards
-- [OneUptime をインストールする](#oneuptime-をインストールする): 新しいサーバーから最初のアカウントまで 6 ステップ。
+- [OneUptime をインストールする](#oneuptime-をインストールする): 新しいサーバーから最初のアカウントまで 5 ステップ。
 - [HTTPS を設定する](#https-を設定する): OneUptime に証明書を取得させるか、自分のプロキシを前に置きます。
 - [本番環境のチェックリスト](#本番環境のチェックリスト): 実際のトラフィックが来る前に決めておくこと。
 - [OneUptime をアップデートする](#oneuptime-をアップデートする): 最新リリースに移行します。
@@ -92,6 +92,12 @@ flowchart TB
 
 ## OneUptime をインストールする
 
+新しい Ubuntu、Debian、または RHEL 系のサーバーでは、1 つのコマンドで以下の手順をまとめて実行できます。足りない Docker、Git、Node.js をインストールし、release ブランチを `oneuptime` フォルダーにクローンし、利用者が開くアドレスを尋ねてから `npm start` を実行します。
+
+```bash
+curl -fsSL https://oneuptime.com/install.sh | bash
+```
+
 :::steps
 ### release ブランチをクローンする
 
@@ -118,18 +124,32 @@ cp config.example.env config.env
 HOST=oneuptime.example.com
 ```
 
+### OneUptime を起動する
+
+:::tabs
+@tab npm
+```bash
+npm start
+```
+@tab Docker CLI
+```bash
+(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
+```
+最初の起動の前に、[ランダムなシークレットを生成する](#ランダムなシークレットを生成する) のとおりにプレースホルダーのシークレットを自分で置き換えてください。自動で置き換えるのは `npm start` だけです。
+:::
+
+`npm start` は最初にサーバーを確認します。対象は Docker、メモリー、ディスクの空き容量、OneUptime が使うポート、そして `HOST` です。OneUptime の動作を妨げる問題があればそこで止まり、何を変えればよいかを示します。続いて `config.env` のプレースホルダーのシークレットそれぞれにランダムな値を設定し、OneUptime を起動して、すべての部分が応答するまで待ちます。最初の起動には数分かかります。Docker がイメージをダウンロードし、OneUptime がデータベースを作成するためです。最後に **OneUptime is up!** と開くアドレスを表示して終了します。
+
+### 最初のアカウントを作成する
+
+`http://` に続けて `HOST` を開き (例: `http://localhost`)、サインアップします。新しいインスタンスの最初のアカウントはマスター管理者になり、`/admin` で Admin Dashboard を開けます。
+
+ページにアクセスできる人は誰でも、あなたのあとにサインアップできます。それを止めるには、Admin Dashboard を開いて **設定 > 認証** に移動し、 **サインアップを許可** をオフにします。プロジェクトに招待した人は引き続きアカウントを作成できます。
+:::
+
 ### ランダムなシークレットを生成する
 
-サンプルファイルには、GitHub で公開されているプレースホルダーのシークレットが入っています。それぞれを独自のランダムな値に置き換えます。
-
-```bash
-while grep -q "please-change-this-to-random-value" config.env; do
-  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env
-done
-grep -c "please-change-this" config.env
-```
-
-最後のコマンドが `0` を出力すれば、プレースホルダーは残っていません。ループは GNU `sed` を使い、これはどの Linux サーバーにもあります。埋められる設定は次のとおりです。
+`config.example.env` では、すべてのシークレットが GitHub で公開されているプレースホルダーになっています。`npm start` は何かを起動する前にそれぞれへ独自のランダムな値を設定し、埋めた設定の名前を表示します。
 
 | 設定 | 保護するもの |
 | --- | --- |
@@ -142,29 +162,18 @@ grep -c "please-change-this" config.env
 | `GLOBAL_RUNNER_KEY` | すべてのプロジェクトの JavaScript のステップを実行する、同梱のグローバル Runner。 |
 
 > [!IMPORTANT]
-> シークレットは最初の起動前に設定し、その後は変えないでください。PostgreSQL はデータベースを作成するときにしかパスワードを受け取りません。また、あとから `ENCRYPTION_SECRET` を変えると、古い値で暗号化されたものはすべて読めなくなります。最初の起動時に `DATABASE_PASSWORD` がまだプレースホルダーのままなら、PostgreSQL がデータベースを作成する前に `npm start` がランダムな値を設定します。
+> OneUptime を起動したあとは、シークレットを変えないでください。PostgreSQL はデータベースを作成するときにしかパスワードを受け取りません。また、あとから `ENCRYPTION_SECRET` を変えると、古い値で暗号化されたものはすべて読めなくなります。そのため `npm start` が `DATABASE_PASSWORD` と `ENCRYPTION_SECRET` を設定するのは、PostgreSQL がデータベースを作成する前の新規インストールのときだけです。
 
-### OneUptime を起動する
+Docker CLI を使う場合は、最初の起動の前にプレースホルダーを自分で置き換えます。
 
-:::tabs
-@tab npm
 ```bash
-npm start
+while grep -q "please-change-this-to-random-value" config.env; do
+  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env
+done
+grep -c "please-change-this" config.env
 ```
-@tab Docker CLI
-```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
-```
-:::
 
-最初の起動には数分かかります。Docker がイメージをダウンロードし、OneUptime がデータベースを作成するためです。`npm start` はすべての部分が応答するまで待ち、最後に **OneUptime is up!** と表示して終了します。
-
-### 最初のアカウントを作成する
-
-`http://` に続けて `HOST` を開き (例: `http://localhost`)、サインアップします。新しいインスタンスの最初のアカウントはマスター管理者になり、`/admin` で Admin Dashboard を開けます。
-
-ページにアクセスできる人は誰でも、あなたのあとにサインアップできます。それを止めるには、Admin Dashboard を開いて **設定 > 認証** に移動し、 **サインアップを許可** をオフにします。プロジェクトに招待した人は引き続きアカウントを作成できます。
-:::
+最後のコマンドが `0` を出力すれば、プレースホルダーは残っていません。ループは GNU `sed` を使い、これはどの Linux サーバーにもあります。
 
 ## HTTPS を設定する
 
@@ -218,14 +227,14 @@ npm start
 :::steps
 #### ingress をポート 80 と 443 から移す
 
-プロキシがポート 80 と 443 を使うので、ingress を別のポートに移し、このサーバーのループバックアドレス `127.0.0.1` だけで公開して、訪問者がプロキシを通してしか OneUptime に届かないようにします。プローブと Runner はホストのネットワークを使い、`http://localhost` 経由で OneUptime に到達するため、一緒に移ります。
+プロキシがポート 80 と 443 を使うので、ingress を別のポートに移し、このサーバーのループバックアドレス `127.0.0.1` だけで公開して、訪問者がプロキシを通してしか OneUptime に届かないようにします。
 
 ```ini title="config.env"
 ONEUPTIME_HTTP_PORT=127.0.0.1:8080
 STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443
-GLOBAL_PROBE_1_ONEUPTIME_URL=http://localhost:8080
-ONEUPTIME_RUNNER_ONEUPTIME_URL=http://localhost:8080
 ```
+
+プローブと Runner はホストのネットワークを使い、`http://localhost` 経由で OneUptime に到達します。`npm start` がこれらを ingress の新しいポート `http://localhost:8080` に移し、そのことを表示します。
 
 #### プロキシの背後にあることを OneUptime に伝える
 
@@ -241,11 +250,10 @@ TRUSTED_PROXY_HOPS=2
 #### 新しいポートで OneUptime を再起動する
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
-bash Tests/Scripts/status-check.sh localhost:8080
+npm start
 ```
 
-`npm start` はポート 80 の `http://localhost` を確認しますが、そこにはプロキシが入るので、新しいポートは自分で確認してください。スクリプトは最後に **OneUptime is up!** と表示して終了します。
+`npm start` は新しいポート `localhost:8080` で OneUptime を確認し、最後に **OneUptime is up!** と表示して終了します。
 
 #### プロキシを構成する
 
@@ -445,7 +453,7 @@ git pull
 npm run update
 ```
 
-`npm run update` は sudo のパスワードを求め、`config.example.env` の新しい設定を `config.env` に追加し (独自の値はそのまま残ります)、新しいイメージを取得して OneUptime を再起動します。`npm start` と同様に、最後に **OneUptime is up!** と表示して終了します。
+`npm run update` は `config.example.env` の新しい設定を `config.env` に追加し (独自の値はそのまま残ります)、新しいイメージを取得して OneUptime を再起動します。`npm start` と同様に、最後に **OneUptime is up!** と表示して終了します。
 
 新しいメジャーバージョンへの移行 (たとえば 13 から 14) では、さらに作業が必要な場合があります。始める前に [OneUptime のアップグレード](/docs/installation/upgrading) を読んでください。
 
@@ -472,6 +480,14 @@ npm run down
 
 ## トラブルシューティング
 
+:::details npm start が OneUptime を起動する前に止まる
+`npm start` は最初にサーバーを確認し、OneUptime の動作を妨げる問題があればそこで止まります。Docker やその Compose プラグインがない、Docker が動いていないかユーザーから使えない、別のプログラムがポートを使っている、`HOST` がどのブラウザーでも開けないアドレスになっている、といった場合です。✗ の付いた各行が、何を変えればよいかを示します。それを直してから、もう一度 `npm start` を実行します。チェックがサーバーについて誤っている場合は、チェックなしで起動します。
+
+```bash
+ONEUPTIME_SKIP_PREFLIGHT=true npm start
+```
+:::
+
 :::details npm start を実行すると Docker が "permission denied" と表示する
 ユーザーが Docker デーモンにアクセスできません。ユーザーを `docker` グループに追加し、サインアウトしてからサインインし直します。
 
@@ -481,7 +497,7 @@ sudo usermod -aG docker $USER
 :::
 
 :::details ポート 80 または 443 が使用中で ingress が起動できない
-サーバー上の別のプログラム (多くの場合は Web サーバー) がポートを使っています。そのプログラムを停止するか、ingress を別のポートに移し、 [独自のリバースプロキシを使う](#独自のリバースプロキシを使う) の説明どおりにそのプログラムを OneUptime の前に置きます。
+サーバー上の別のプログラム (多くの場合は Web サーバー) がポートを使っています。`npm start` は何かを起動する前にポートを確認し、ポートを使っているのが Docker のコンテナーならその名前を表示します。そのプログラムを停止するか、ingress を別のポートに移し、 [独自のリバースプロキシを使う](#独自のリバースプロキシを使う) の説明どおりにそのプログラムを OneUptime の前に置きます。
 :::
 
 :::details npm start が "Maximum retries reached" で終了する
@@ -492,7 +508,11 @@ npm run ps
 npm run logs
 ```
 
-すべてのコンテナーが動いたら、`npm run status-check` でもう一度チェックします。ingress をポート 80 から移した場合は、代わりに新しいポートを確認します: `bash Tests/Scripts/status-check.sh localhost:8080`。
+すべてのコンテナーが動いたら、`npm run status-check` でもう一度チェックします。このチェックは、`ONEUPTIME_HTTP_PORT` が指定するポートで ingress を確認します。
+:::
+
+:::details ブラウザーに "このアドレスでは OneUptime が設定されていません" と表示される
+`HOST` とは別のアドレスで OneUptime を開いています。たとえば `HOST` がまだ `localhost` のまま、サーバーの IP アドレスで開いた場合です。ページには開いたアドレス用の `HOST` の行と、それをコピーするボタンが表示されます。その行を `config.env` に書き、`npm start` を実行してください。`HOST` のアドレスで開いたのに、プロキシがアドレスを渡していないとページに表示される場合は、ブラウザーが要求したホスト名をそのまま渡すようにプロキシを設定します。Caddy は既定でそうします。Nginx では `proxy_set_header Host $host;`、Apache では `ProxyPreserveHost On` を使います。
 :::
 
 :::details 一部のページは表示されるが、ライブ更新やアップロードが失敗する
@@ -521,7 +541,7 @@ Let's Encrypt が証明書を発行するまで、ingress は一時的な自己�
 :::
 
 :::details ingress のポートを移したあと、同梱のプローブが切断済みと表示される
-Admin Dashboard は **設定 > 監視 > グローバルプローブ** でプローブを表示します。プローブは `GLOBAL_PROBE_1_ONEUPTIME_URL` で OneUptime に到達し、その値はデフォルトで `http://localhost` (ポート 80) です。これを ingress の新しいポート (例: `http://localhost:8080`) に設定し、`ONEUPTIME_RUNNER_ONEUPTIME_URL` も同じように設定してから OneUptime を再起動します。
+Admin Dashboard は **設定 > 監視 > グローバルプローブ** でプローブを表示します。プローブは `GLOBAL_PROBE_1_ONEUPTIME_URL` で OneUptime に到達し、その値はデフォルトで `http://localhost` (ポート 80) です。これと `ONEUPTIME_RUNNER_ONEUPTIME_URL` が `localhost` を指している間は、`npm start` が ingress のポートに合わせて移します。別のアドレスに設定した場合や、Docker CLI で OneUptime を起動した場合は、両方を ingress の新しいポート (例: `http://localhost:8080`) に設定してから OneUptime を再起動します。
 :::
 
 ## 次のステップ

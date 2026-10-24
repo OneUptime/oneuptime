@@ -23,6 +23,18 @@ function getPageTitle(path: string): string {
   if (path === RouteUtil.getRouteString(PageMap.PROFILES_DOCUMENTATION)) {
     return translationKey("Profiler — Setup guide");
   }
+  if (path === RouteUtil.getRouteString(PageMap.PROFILES_AI_INSIGHTS)) {
+    return translationKey("Profiler — AI insights");
+  }
+  if (path === RouteUtil.getRouteString(PageMap.PROFILES_AI_INSIGHT_VIEW)) {
+    return translationKey("Profiler — AI insight");
+  }
+  if (path === RouteUtil.getRouteString(PageMap.PROFILES_AI_LOGS)) {
+    return translationKey("Profiler — AI logs");
+  }
+  if (path === RouteUtil.getRouteString(PageMap.PROFILES_AI_SETTINGS)) {
+    return translationKey("Profiler — AI settings");
+  }
   return translationKey("Profiler — Overview");
 }
 

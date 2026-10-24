@@ -181,6 +181,40 @@ describe("getValuesForInvestigationRuleTiming: what a pick writes", () => {
     });
   });
 
+  /*
+   * A lane that looks less often than incidents open - the Profiler looks
+   * once an hour - starts a wait on its own default.
+   */
+  test("a wait starts on the rule's own default, when it has one", () => {
+    expect(
+      getValuesForInvestigationRuleTiming({
+        values: { name: "Checkout" },
+        timing: InvestigationRuleTiming.AfterWait,
+        defaultWaitMinutes: 60,
+      }),
+    ).toEqual({
+      name: "Checkout",
+      [CHOICE]: InvestigationRuleTiming.AfterWait,
+      [WAIT]: 60,
+    });
+
+    // The minutes already there still win, and right away still clears.
+    expect(
+      getValuesForInvestigationRuleTiming({
+        values: { [WAIT]: 45 },
+        timing: InvestigationRuleTiming.AfterWait,
+        defaultWaitMinutes: 60,
+      }),
+    ).toEqual({ [CHOICE]: InvestigationRuleTiming.AfterWait, [WAIT]: 45 });
+    expect(
+      getValuesForInvestigationRuleTiming({
+        values: { [WAIT]: 45 },
+        timing: InvestigationRuleTiming.RightAway,
+        defaultWaitMinutes: 60,
+      }),
+    ).toEqual({ [CHOICE]: InvestigationRuleTiming.RightAway, [WAIT]: null });
+  });
+
   test("a wait keeps the minutes already there", () => {
     expect(
       getValuesForInvestigationRuleTiming({
