@@ -227,7 +227,12 @@ jobs:
           # locally with its bundle, Chromium only: where each asset detail
           # came from on Inventory's Asset Details card and a device's
           # Inventory card, at 1280 and 390 pixels, dark, Japanese and German)
-          # joined them the same day: about 16.
+          # joined them the same day: about 16. Traces AI (1.5 minutes with
+          # its bundle locally, Chromium only: Traces' AI tab - Insights, a
+          # finding's evidence, Fix with AI, Create Monitor and Open in
+          # Traces, Logs and Settings - at 1280 and 390 pixels, light and
+          # dark) joined them on 2026-10-24, when this group took 14.9 minutes
+          # and group 8 22.4: about 16.5.
           - group: 1
             browsers: chromium
             event_overview_shard: 1/2
@@ -235,6 +240,7 @@ jobs:
               test-event-overview-ui
               test-snmp-walk-ui
               test-asset-details-ui
+              test-traces-ai-ui
           # The Alerts suite also runs in Firefox, and so do Code Editor (the
           # editor's text layers must line up in both) and Diagrams. Diagrams
           # and Navigation Search (about 8 minutes together) moved here from
@@ -470,14 +476,9 @@ jobs:
           # Its UI review added a device's and a site's pages, each
           # connection's one button, a stale connection, a member and the
           # offer at a flows page's foot the same day (2.2 minutes for its 40
-          # tests locally, from 1.3): about 19.5 for the nine. Traces AI
-          # (1.3 minutes with its bundle locally, Chromium only: Traces' AI
-          # tab - Insights, a finding's Fix with AI and Open in Traces, Logs
-          # and Settings - at 1280 and 390 pixels, light and dark) joined
-          # them on 2026-10-24: about 21 for the ten. Its UI review added
-          # six tests the same day (the evidence, Create Monitor on each kind
-          # of finding, the picker in the rail): 1.5 minutes with its bundle
-          # locally, about 21.3 for the ten.
+          # tests locally, from 1.3): about 19.5 for the nine. It took 22.4
+          # minutes on master's run of 2026-10-24 10:57, so Traces AI went to
+          # group 1 instead.
           - group: 8
             browsers: chromium
             suites: >-
@@ -490,7 +491,6 @@ jobs:
               test-public-addresses-ui
               test-security-events-empty-states-ui
               test-meraki-traffic-ui
-              test-traces-ai-ui
           # Added on 2026-10-21, when every group took 20 to 26 minutes on one
           # run (groups 1 and 5 near 25) and Resource Topology would have
           # taken group 7 past 22: Code (6.4 minutes on that run, a laptop
