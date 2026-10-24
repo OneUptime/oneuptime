@@ -33719,7 +33719,7 @@
   "No networks in this time range.": "此時間範圍內沒有網路。",
   "No uplink usage in this time range. Uplink usage comes from MX and Z appliances.": "此時間範圍內沒有上行鏈路用量。上行鏈路用量來自 MX 與 Z 設備。",
   "Not read lately": "近期未讀取",
-  "Not read since {{time}}: the traffic below stops there.": "自 {{time}} 起未讀取：下方流量止於該時刻。",
+  "Last read {{time}}: the traffic below stops there.": "上次讀取：{{time}}。下方流量止於該時刻。",
   "Not read yet. Check that OneUptime's Workers are running.": "尚未讀取。請檢查 OneUptime 的 Workers 是否正在執行。",
   "OneUptime could not read the answer to the test.": "OneUptime 無法讀取測試的回應。",
   "OneUptime reads uplink usage, applications and clients through the Meraki dashboard API. Nothing changes in Meraki or on the devices.": "OneUptime 透過 Meraki 儀表板 API 讀取上行鏈路用量、應用程式與用戶端。Meraki 與裝置上都不會有任何變更。",

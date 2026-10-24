@@ -581,6 +581,11 @@ test("in German", async ({ page }: { page: Page }, testInfo: TestInfo) => {
       "The Meraki dashboard API reports totals, not conversations",
     ),
   ).toHaveCount(0);
+  // When it read is German too: vor 2 Minuten, not 2 minutes ago.
+  await expect(page.getByTestId("meraki-connection-line")).toContainText(
+    "vor 2 Minuten",
+  );
+  await expect(page.getByText(/minutes? ago/)).toHaveCount(0);
   expect(await scrollsSideways(page)).toBe(false);
   await screenshot(page, testInfo, "organization-de");
 });

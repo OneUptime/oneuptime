@@ -84,6 +84,7 @@ import {
   getMerakiConnectionSentence,
   getMerakiIntervalOptions,
   getMerakiIntervalWords,
+  getMerakiReadTime,
   getMerakiTestWords,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkTraffic/Meraki/MerakiWords";
 import NetworkControllerConnection from "Common/Models/DatabaseModels/NetworkControllerConnection";
@@ -513,6 +514,88 @@ describe("what the page says", () => {
         }),
       ).template,
     ).toBe("Not read yet. Check that OneUptime's Workers are running.");
+  });
+
+  test("a connection that stopped reading says when it last read", () => {
+    const now: Date = new Date("2026-10-24T12:00:00.000Z");
+
+    expect(
+      getMerakiConnectionSentence(
+        connection({ status: NetworkControllerConnectionStatus.Stale }),
+        { now },
+      ),
+    ).toEqual({
+      template: "Last read {{time}}: the traffic below stops there.",
+      values: { time: "2 minutes ago" },
+    });
+  });
+
+  test("when it read is in the reader's language", () => {
+    const now: Date = new Date("2026-10-24T12:00:00.000Z");
+
+    expect(getMerakiReadTime("2026-10-24T11:58:00.000Z", { now })).toBe(
+      "2 minutes ago",
+    );
+    expect(
+      getMerakiReadTime("2026-10-24T11:58:00.000Z", { now, language: "de" }),
+    ).toBe("vor 2 Minuten");
+    expect(
+      getMerakiReadTime("2026-10-24T09:00:00.000Z", { now, language: "fr" }),
+    ).toBe("il y a 3 heures");
+    expect(
+      getMerakiConnectionSentence(connection(), { now, language: "de" }),
+    ).toEqual({
+      template: "Read {{time}}.",
+      values: { time: "vor 2 Minuten" },
+    });
+    expect(
+      getMerakiConnectionSentence(
+        connection({ status: NetworkControllerConnectionStatus.Failing }),
+        { now, language: "ja" },
+      ).values,
+    ).toEqual({ time: "2 分前" });
+  });
+
+  test("a read under a minute ago gives its seconds - never now, which reads as the Read now button", () => {
+    const now: Date = new Date("2026-10-24T12:00:00.000Z");
+
+    expect(getMerakiReadTime("2026-10-24T11:59:48.000Z", { now })).toBe(
+      "12 seconds ago",
+    );
+    expect(
+      getMerakiReadTime("2026-10-24T11:59:48.000Z", { now, language: "de" }),
+    ).toBe("vor 12 Sekunden");
+    expect(getMerakiReadTime("2026-10-24T12:00:00.000Z", { now })).toBe(
+      "1 second ago",
+    );
+  });
+
+  test("a server clock ahead of the browser's never says a read is to come", () => {
+    const now: Date = new Date("2026-10-24T12:00:00.000Z");
+
+    expect(getMerakiReadTime("2026-10-24T12:03:00.000Z", { now })).toBe(
+      "1 second ago",
+    );
+  });
+
+  test("no time, or not a time, reads as nothing; a language it does not know reads English", () => {
+    const now: Date = new Date("2026-10-24T12:00:00.000Z");
+
+    expect(getMerakiReadTime(undefined, { now })).toBe("");
+    expect(getMerakiReadTime("", { now })).toBe("");
+    expect(getMerakiReadTime("not a time", { now })).toBe("");
+    expect(
+      getMerakiReadTime("2026-10-24T11:58:00.000Z", {
+        now,
+        language: "not a language!",
+      }),
+    ).toBe("2 minutes ago");
+    expect(
+      getMerakiReadTime("2026-10-24T11:59:48.000Z", {
+        now,
+        language: "not a language!",
+      }),
+    ).toBe("12 seconds ago");
   });
 
   test("how often it reads", () => {

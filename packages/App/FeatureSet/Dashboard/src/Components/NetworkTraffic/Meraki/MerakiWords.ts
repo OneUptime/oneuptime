@@ -27,6 +27,7 @@ import {
   Translator,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import { formatRelativeTime, isJustNow } from "../../Home/HomeRelativeTime";
 
 /*
  * What the Traffic pages say about a Meraki connection, in the dashboard's
@@ -103,23 +104,72 @@ export const MERAKI_TONE_TEXT: Record<MerakiTone, string> = {
   gray: "text-gray-600",
 };
 
-function when(value: string | undefined): string {
+export interface MerakiTimeOptions {
+  // The reader's language code ("de" reads "vor 2 Minuten"); English if unset.
+  language?: string | undefined;
+  // Handed in by the tests; the current time otherwise.
+  now?: Date | undefined;
+}
+
+/*
+ * When a read happened, in the reader's language: "2 minutes ago",
+ * "vor 2 Minuten". A read under a minute ago gives its seconds, never "now",
+ * which beside the Read now button would read as the button; and a server
+ * clock a little ahead of the browser's never says "in 2 minutes".
+ */
+export function getMerakiReadTime(
+  value: string | undefined,
+  options: MerakiTimeOptions = {},
+): string {
   if (!value) {
     return "";
   }
 
   const date: Date = new Date(value);
 
-  return Number.isNaN(date.getTime()) ? "" : OneUptimeDate.fromNow(date);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const now: Date = options.now || OneUptimeDate.getCurrentDate();
+  const readAt: Date = date.getTime() > now.getTime() ? now : date;
+
+  if (!isJustNow({ date: readAt, now })) {
+    return formatRelativeTime({
+      date: readAt,
+      now,
+      language: options.language,
+    });
+  }
+
+  const seconds: number = Math.max(
+    1,
+    Math.round((now.getTime() - readAt.getTime()) / 1000),
+  );
+
+  try {
+    return new Intl.RelativeTimeFormat(options.language || "en", {
+      numeric: "always",
+    }).format(-seconds, "second");
+  } catch {
+    return `${seconds} ${seconds === 1 ? "second" : "seconds"} ago`;
+  }
 }
 
 /*
  * One sentence on how a connection is doing - beside its name in the list,
- * and over the traffic it read.
+ * and over the traffic it read - with its times in the reader's language.
  */
 export function getMerakiConnectionSentence(
   connection: NetworkTrafficUsageConnection,
+  options: MerakiTimeOptions = {},
 ): MerakiTemplate {
+  const when: (value: string | undefined) => string = (
+    value: string | undefined,
+  ): string => {
+    return getMerakiReadTime(value, options);
+  };
+
   switch (connection.status) {
     case NetworkControllerConnectionStatus.Off:
       return {
@@ -144,7 +194,7 @@ export function getMerakiConnectionSentence(
       return connection.lastSuccessfulPullAt
         ? {
             template: translationKey(
-              "Not read since {{time}}: the traffic below stops there.",
+              "Last read {{time}}: the traffic below stops there.",
             ),
             values: { time: when(connection.lastSuccessfulPullAt) },
           }

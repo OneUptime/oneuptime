@@ -184,7 +184,9 @@ const ConnectionLines: FunctionComponent<{
                 {" · "}
                 {drawMerakiTemplate(
                   translator,
-                  getMerakiConnectionSentence(connection),
+                  getMerakiConnectionSentence(connection, {
+                    language: translator.language,
+                  }),
                 )}
               </span>
               {detail ? (

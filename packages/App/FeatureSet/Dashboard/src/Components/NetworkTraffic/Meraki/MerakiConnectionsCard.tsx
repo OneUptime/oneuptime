@@ -496,7 +496,9 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
                             <>
                               {drawMerakiTemplate(
                                 translator,
-                                getMerakiConnectionSentence(facts.connection),
+                                getMerakiConnectionSentence(facts.connection, {
+                                  language: translator.language,
+                                }),
                               )}{" "}
                             </>
                           )}

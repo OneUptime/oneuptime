@@ -33719,7 +33719,7 @@
   "No networks in this time range.": "이 기간에 네트워크가 없습니다.",
   "No uplink usage in this time range. Uplink usage comes from MX and Z appliances.": "이 기간에 업링크 사용량이 없습니다. 업링크 사용량은 MX 및 Z 어플라이언스에서 옵니다.",
   "Not read lately": "최근 읽지 않음",
-  "Not read since {{time}}: the traffic below stops there.": "{{time}} 이후 읽지 않았습니다: 아래 트래픽은 그 시점에서 멈춥니다.",
+  "Last read {{time}}: the traffic below stops there.": "마지막 읽기: {{time}}. 아래 트래픽은 그 시점에서 멈춥니다.",
   "Not read yet. Check that OneUptime's Workers are running.": "아직 읽지 않았습니다. OneUptime의 Workers가 실행 중인지 확인하세요.",
   "OneUptime could not read the answer to the test.": "OneUptime이 테스트 응답을 읽지 못했습니다.",
   "OneUptime reads uplink usage, applications and clients through the Meraki dashboard API. Nothing changes in Meraki or on the devices.": "OneUptime은 Meraki 대시보드 API로 업링크 사용량, 애플리케이션, 클라이언트를 읽습니다. Meraki와 장치에서는 아무것도 바뀌지 않습니다.",

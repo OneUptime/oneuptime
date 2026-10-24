@@ -33719,7 +33719,7 @@
   "No networks in this time range.": "Ingen netværk i dette tidsrum.",
   "No uplink usage in this time range. Uplink usage comes from MX and Z appliances.": "Intet uplinkforbrug i dette tidsrum. Uplinkforbrug kommer fra MX- og Z-appliances.",
   "Not read lately": "Ikke læst for nylig",
-  "Not read since {{time}}: the traffic below stops there.": "Ikke læst siden {{time}}: trafikken nedenfor stopper der.",
+  "Last read {{time}}: the traffic below stops there.": "Sidst læst {{time}}: trafikken nedenfor stopper der.",
   "Not read yet. Check that OneUptime's Workers are running.": "Ikke læst endnu. Kontrollér, at OneUptimes Workers kører.",
   "OneUptime could not read the answer to the test.": "OneUptime kunne ikke læse svaret på testen.",
   "OneUptime reads uplink usage, applications and clients through the Meraki dashboard API. Nothing changes in Meraki or on the devices.": "OneUptime læser uplinkforbrug, applikationer og klienter gennem Meraki-dashboardets API. Intet ændres i Meraki eller på enhederne.",
