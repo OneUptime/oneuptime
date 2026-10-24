@@ -59,16 +59,17 @@ export const RULE_LIBRARY_TABLE_ID: string = "rule-library-table";
 /*
  * The Rule column is prose (Column.wrapContent): a name runs onto a second
  * line rather than being cut short, its description wraps under it. As
- * wide as they want, up to 34rem, and never narrower than 12rem. Between
+ * wide as they want, up to 34rem, and never narrower than 11rem. Between
  * the two it gives way, so the table fits its card beside the side menu
  * (1024px wide) with Data, Severity and Add in sight, rather than
  * scrolling sideways to reach them - in English with room to spare, and in
- * the languages with the longest words (German's Hinzufügen, Swedish's
- * Allvarlighetsgrad, Dutch's Aanmeldgebeurtenissen) too.
+ * the languages with the longest words too (German's Hinzufügen, Swedish's
+ * Allvarlighetsgrad, Dutch's Aanmeldgebeurtenissen: Dutch was 2px over at
+ * 12rem).
  */
 export const RULE_LIBRARY_RULE_COLUMN_MAX_WIDTH_CLASS_NAME: string =
   "max-w-[34rem]";
-export const RULE_LIBRARY_RULE_COLUMN_CLASS_NAME: string = "min-w-[12rem]";
+export const RULE_LIBRARY_RULE_COLUMN_CLASS_NAME: string = "min-w-[11rem]";
 
 /*
  * A row's quieter lines under its name - what it finds, its ATT&CK tags:
@@ -92,11 +93,11 @@ export const RULE_LIBRARY_ADDED_CLASS_NAME: string =
  * second line beside the side menu rather than pushing Add out of the card.
  * A word stays whole - the column is never narrower than its longest
  * (German's Anmeldeereignisse was cut into Anmeldeereignis and se). Never
- * narrower than 7rem, never wider than 10rem, which the longest of them
- * all, Dutch's Aanmeldgebeurtenissen, fits.
+ * narrower than 7rem, never wider than 11rem, which the longest of them
+ * all, Dutch's Aanmeldgebeurtenissen (161px), fits.
  */
 export const RULE_LIBRARY_DATA_COLUMN_MAX_WIDTH_CLASS_NAME: string =
-  "max-w-[10rem]";
+  "max-w-[11rem]";
 export const RULE_LIBRARY_DATA_COLUMN_CLASS_NAME: string = "min-w-[7rem]";
 
 export interface ComponentProps {
