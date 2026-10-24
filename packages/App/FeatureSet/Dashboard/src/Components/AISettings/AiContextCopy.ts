@@ -36,7 +36,7 @@ export const AI_CONTEXT_CARD_COPY: {
   fieldTitle: string;
   fieldDescription: string;
   fieldPlaceholder: string;
-  showAllText: string;
+  showMoreText: string;
   showLessText: string;
 } = {
   cardTitle: translationKey("AI context"),
@@ -57,7 +57,8 @@ export const AI_CONTEXT_CARD_COPY: {
   fieldPlaceholder: translationKey(
     "For example: checkout-api serves the checkout page and depends on payments-db.",
   ),
-  showAllText: translationKey("Show all"),
+  // As a long description folds on an incident or alert (EventWhatHappenedCard).
+  showMoreText: translationKey("Show more"),
   showLessText: translationKey("Show less"),
 };
 
@@ -258,7 +259,8 @@ export const AI_CONTEXT_ACTIVITY_COPY: {
   },
   leftOut: {
     one: "Left out the AI context of {{count}} AI rule: a run reads at most {{max}} characters of AI context",
-    other: "Left out the AI context of {{count}} AI rules: a run reads at most {{max}} characters of AI context",
+    other:
+      "Left out the AI context of {{count}} AI rules: a run reads at most {{max}} characters of AI context",
   },
   viewButtonText: translationKey("View"),
   modalTitle: translationKey("AI context this run read"),
@@ -337,6 +339,7 @@ export const AI_CONTEXT_CARD_ANCHOR: string = "ai-context";
 export const AI_CONTEXT_TEST_IDS: {
   card: string;
   view: string;
+  frame: string;
   empty: string;
   length: string;
   outlineButton: string;
@@ -347,6 +350,7 @@ export const AI_CONTEXT_TEST_IDS: {
 } = {
   card: "project-ai-context-card",
   view: "project-ai-context-view",
+  frame: "project-ai-context-frame",
   empty: "project-ai-context-empty",
   length: "ai-context-length",
   outlineButton: "ai-context-outline-button",

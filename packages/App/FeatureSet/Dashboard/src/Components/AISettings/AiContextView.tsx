@@ -9,26 +9,39 @@ import { AiContextOwner, readAiContext } from "Common/Types/AI/AiContext";
 import LazyMarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement, useId, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 /*
- * A text this long, or with this many lines, is drawn folded to
- * FOLDED_CLASS_NAME's height with "Show all" under it: notes of a few
- * thousand words would otherwise push the rest of the settings page a
- * screen or more down.
+ * How much of the notes shows before Show more: about fourteen lines of
+ * prose. The frame is held to it whenever the notes are not opened, so
+ * whether they are longer can be measured against it; notes that fit are as
+ * tall as they are, and nothing about them changes.
  */
-const FOLD_AFTER_LINES: number = 14;
-const FOLD_AFTER_CHARACTERS: number = 1_200;
+export const AI_CONTEXT_FOLDED_FRAME_CLASS_NAME: string =
+  "max-h-72 overflow-hidden";
 
-// About fourteen lines of prose, fading out at the bottom.
-const FOLDED_CLASS_NAME: string = "max-h-72 overflow-hidden";
+/*
+ * Longer notes' last visible lines fade out - a mask, so they fade into
+ * whatever the card's colour is, in either theme - instead of being cut
+ * through the middle.
+ */
+export const AI_CONTEXT_FADED_FRAME_CLASS_NAME: string =
+  "[-webkit-mask-image:linear-gradient(to_bottom,black_calc(100%-3rem),transparent)] [mask-image:linear-gradient(to_bottom,black_calc(100%-3rem),transparent)]";
 
-export function isAiContextFolded(text: string): boolean {
-  return (
-    text.split("\n").length > FOLD_AFTER_LINES ||
-    text.length > FOLD_AFTER_CHARACTERS
-  );
-}
+/*
+ * The notes start and end flush with the card's body: a first heading's
+ * top margin would open a gap under the card's header, a last paragraph's
+ * bottom margin one above the count.
+ */
+const FLUSH_CLASS_NAME: string =
+  "[&>div>div>*:first-child]:mt-0 [&>div>div>*:last-child]:mb-0";
 
 export interface ComponentProps {
   text: string | null | undefined;
@@ -37,17 +50,73 @@ export interface ComponentProps {
 /*
  * The project's AI context on its card: the notes as they read, rendered,
  * and under them how long they are and about how many tokens a model reads
- * them as. A long text is folded, with Show all / Show less. With none:
- * one quiet line, the card's own button ("Add AI context") being the way
- * to write it.
+ * them as. Notes taller than about fourteen lines are folded, fading out,
+ * with Show more / Show less. With none: one quiet line, the card's own
+ * button ("Add AI context") being the way to write it.
  */
 const AiContextView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const bodyId: string = useId();
+  const frameId: string = useId();
+  const frameRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+  const contentRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
+  const [isLong, setIsLong] = useState<boolean>(false);
+  const [shownText, setShownText] = useState<string | null | undefined>(
+    props.text,
+  );
   const text: string = readAiContext(props.text);
+
+  // Changed notes are a different read: they start folded.
+  if (shownText !== props.text) {
+    setShownText(props.text);
+    setIsExpanded(false);
+  }
+
+  /*
+   * Whether the notes are taller than the folded frame is measured, not
+   * guessed from their length: the card runs from a phone's width to a
+   * wide monitor's, and Markdown lays out its own way. The content is
+   * observed as well as the frame - the frame stops growing at its cap,
+   * the content does not - so a viewer that finishes loading after the
+   * first paint is measured again. While open, the last measurement
+   * stands, which keeps Show less on screen for the reader who opened it.
+   */
+  useLayoutEffect(() => {
+    const frame: HTMLDivElement | null = frameRef.current;
+    const content: HTMLDivElement | null = contentRef.current;
+
+    if (!frame || !content || isExpanded) {
+      return undefined;
+    }
+
+    const measure: () => void = (): void => {
+      // The extra pixel absorbs sub-pixel rounding between the two heights.
+      setIsLong(content.scrollHeight > frame.clientHeight + 1);
+    };
+
+    measure();
+
+    // ResizeObserver is missing in jsdom and in older browsers.
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", measure);
+
+      return () => {
+        window.removeEventListener("resize", measure);
+      };
+    }
+
+    const observer: ResizeObserver = new ResizeObserver(measure);
+    observer.observe(content);
+    observer.observe(frame);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [isExpanded, text]);
 
   if (!text) {
     return (
@@ -64,32 +133,28 @@ const AiContextView: FunctionComponent<ComponentProps> = (
     value: text,
     owner: AiContextOwner.Project,
   });
-  const isFoldable: boolean = isAiContextFolded(text);
-  const isFolded: boolean = isFoldable && !isExpanded;
 
   return (
     <div data-testid={AI_CONTEXT_TEST_IDS.view} className="min-w-0">
       <div
-        id={bodyId}
-        className={`relative min-w-0 break-words ${isFolded ? FOLDED_CLASS_NAME : ""}`}
+        ref={frameRef}
+        id={frameId}
+        data-testid={AI_CONTEXT_TEST_IDS.frame}
+        className={`min-w-0 break-words ${FLUSH_CLASS_NAME} ${
+          isExpanded ? "" : AI_CONTEXT_FOLDED_FRAME_CLASS_NAME
+        } ${!isExpanded && isLong ? AI_CONTEXT_FADED_FRAME_CLASS_NAME : ""}`}
       >
-        <LazyMarkdownViewer text={text} />
-        {isFolded ? (
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white to-transparent"
-          />
-        ) : (
-          <></>
-        )}
+        <div ref={contentRef}>
+          <LazyMarkdownViewer text={text} />
+        </div>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
-        {isFoldable ? (
+        {isLong ? (
           <button
             type="button"
             data-testid={AI_CONTEXT_TEST_IDS.toggle}
             aria-expanded={isExpanded}
-            aria-controls={bodyId}
+            aria-controls={frameId}
             className="rounded font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
             onClick={() => {
               setIsExpanded(!isExpanded);
@@ -98,7 +163,7 @@ const AiContextView: FunctionComponent<ComponentProps> = (
             {translator.translateText(
               isExpanded
                 ? AI_CONTEXT_CARD_COPY.showLessText
-                : AI_CONTEXT_CARD_COPY.showAllText,
+                : AI_CONTEXT_CARD_COPY.showMoreText,
             )}
           </button>
         ) : (

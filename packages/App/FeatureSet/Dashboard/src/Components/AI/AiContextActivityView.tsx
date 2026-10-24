@@ -94,7 +94,11 @@ const AiContextViewButton: FunctionComponent<ComponentProps> = (
                     <h3 className="text-sm font-semibold text-gray-900">
                       {getAiContextPartTitle(part, translator)}
                     </h3>
-                    <div className="mt-2 min-w-0 break-words rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                    {/*
+                     * Flush with the box: a first heading's top margin
+                     * would open a gap under its border.
+                     */}
+                    <div className="mt-2 min-w-0 break-words rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 [&>div>*:first-child]:mt-0 [&>div>*:last-child]:mb-0">
                       <LazyMarkdownViewer text={part.text} />
                     </div>
                     <p className="mt-1.5 text-xs text-gray-500">

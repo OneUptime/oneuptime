@@ -1431,12 +1431,10 @@ export default class RemediationExecutionRunner {
       });
 
     // The AI context of the rule the fix works for, after the project's.
-    const aiContextRules: Array<AiContextRule> = await AiContextReader.forRule(
-      {
-        projectId,
-        autoRemediationRuleId: suggestion!.autoRemediationRuleId,
-      },
-    );
+    const aiContextRules: Array<AiContextRule> = await AiContextReader.forRule({
+      projectId,
+      autoRemediationRuleId: suggestion!.autoRemediationRuleId,
+    });
 
     await AIInvestigationEngine.executeRun({
       aiRunId,

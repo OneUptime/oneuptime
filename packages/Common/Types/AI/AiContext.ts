@@ -30,7 +30,9 @@
  */
 
 // The column that holds a project's (and an AI rule's) AI context.
-export const AI_CONTEXT_COLUMN: "aiContext" = "aiContext";
+export type AiContextColumn = "aiContext";
+
+export const AI_CONTEXT_COLUMN: AiContextColumn = "aiContext";
 
 // The most a project's AI context may hold, in characters.
 export const PROJECT_AI_CONTEXT_MAX_CHARACTERS: number = 20_000;

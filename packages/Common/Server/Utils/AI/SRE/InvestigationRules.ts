@@ -29,10 +29,7 @@ import {
 import AlertService from "../../../Services/AlertService";
 import IncidentService from "../../../Services/IncidentService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
-import {
-  AiContextRule,
-  readAiContext,
-} from "../../../../Types/AI/AiContext";
+import { AiContextRule, readAiContext } from "../../../../Types/AI/AiContext";
 
 /*
  * Which new incidents (or alerts) OneUptime AI investigates on its own,

@@ -1092,8 +1092,7 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
                   <>
                     {" "}
                     <span className="inline-block text-gray-400">
-                      ·{" "}
-                      <AiContextViewButton activity={step.aiContext} />
+                      · <AiContextViewButton activity={step.aiContext} />
                     </span>
                   </>
                 ) : (

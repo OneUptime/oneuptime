@@ -589,8 +589,9 @@ export default class AIAlertInvestigationRunner {
      * it: read after the project's own, which the engine reads for every
      * run.
      */
-    const aiContextRules: Array<AiContextRule> =
-      await AiContextReader.forAlert({ projectId, alertId });
+    const aiContextRules: Array<AiContextRule> = await AiContextReader.forAlert(
+      { projectId, alertId },
+    );
 
     // Long command output is paged, never cut: offer the reader with the commands.
     if (extraTools.length > 0) {
