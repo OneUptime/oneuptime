@@ -340,7 +340,27 @@
       "title": "Accès interdit",
       "description": "Vous n'avez pas la permission d'accéder à cette page."
     },
-    "generic": "Une erreur est survenue. Veuillez réessayer."
+    "generic": "Une erreur est survenue. Veuillez réessayer.",
+    "addressNotSetUp": {
+      "title": "OneUptime n'est pas configuré pour cette adresse",
+      "description": "Vous avez ouvert {{visited}}, mais ce OneUptime est configuré pour s'ouvrir à {{configured}}.",
+      "openConfigured": "Ouvrir OneUptime à {{configured}}",
+      "hostHeading": "Utiliser cette adresse pour OneUptime",
+      "hostStep": "Dans config.env, définissez HOST sur cette adresse :",
+      "restartStep": "Puis redémarrez OneUptime :",
+      "helm": "Sur Kubernetes, définissez plutôt host sur cette adresse dans vos valeurs Helm, puis mettez à niveau la release.",
+      "domainHeading": "Est-ce le domaine d'une page de statut ?",
+      "domainSteps": "Ajoutez-le à la page de statut sous Domaines personnalisés, puis vérifiez-le. La page de statut s'affiche ici une fois le domaine vérifié.",
+      "proxyTitle": "Votre proxy n'a pas transmis cette adresse",
+      "proxyDescription": "Vous avez ouvert {{visited}}, l'adresse pour laquelle ce OneUptime est configuré, mais la requête est arrivée à OneUptime sous un autre nom d'hôte.",
+      "proxyHeading": "Transmettre le nom d'hôte",
+      "proxySteps": "Le proxy placé devant OneUptime doit transmettre le nom d'hôte demandé par le navigateur. Caddy le fait par défaut. Pour Nginx ou Apache, ajoutez cette ligne :",
+      "noPageTitle": "Aucune page de statut à cette adresse",
+      "noPageDescription": "{{visited}} n'est pas l'adresse d'une page de statut.",
+      "copy": "Copier",
+      "copied": "Copié !",
+      "copyFailed": "Votre navigateur n'a pas autorisé cette page à copier la ligne. Elle est sélectionnée ci-dessus pour que vous puissiez la copier vous-même."
+    }
   },
   "footer": {
     "poweredBy": "Propulsé par OneUptime"

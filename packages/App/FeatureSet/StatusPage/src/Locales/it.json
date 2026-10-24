@@ -340,7 +340,27 @@
       "title": "Accesso negato",
       "description": "Non hai il permesso di accedere a questa pagina."
     },
-    "generic": "Qualcosa è andato storto. Per favore, riprova."
+    "generic": "Qualcosa è andato storto. Per favore, riprova.",
+    "addressNotSetUp": {
+      "title": "OneUptime non è configurato per questo indirizzo",
+      "description": "Hai aperto {{visited}}, ma questo OneUptime è configurato per aprirsi su {{configured}}.",
+      "openConfigured": "Apri OneUptime su {{configured}}",
+      "hostHeading": "Usa questo indirizzo per OneUptime",
+      "hostStep": "In config.env, imposta HOST su questo indirizzo:",
+      "restartStep": "Poi avvia di nuovo OneUptime:",
+      "helm": "Su Kubernetes, imposta invece host su questo indirizzo nei tuoi valori Helm, poi aggiorna la release.",
+      "domainHeading": "È il dominio di una pagina di stato?",
+      "domainSteps": "Aggiungilo alla pagina di stato in Domini personalizzati, poi verificalo. La pagina di stato compare qui appena il dominio è verificato.",
+      "proxyTitle": "Il tuo proxy non ha passato questo indirizzo",
+      "proxyDescription": "Hai aperto {{visited}}, l'indirizzo per cui è configurato questo OneUptime, ma la richiesta è arrivata a OneUptime con un altro nome host.",
+      "proxyHeading": "Passa il nome host",
+      "proxySteps": "Il proxy davanti a OneUptime deve passare il nome host richiesto dal browser. Caddy lo fa già di default. Per Nginx o Apache, aggiungi questa riga:",
+      "noPageTitle": "Nessuna pagina di stato a questo indirizzo",
+      "noPageDescription": "{{visited}} non è l'indirizzo di una pagina di stato.",
+      "copy": "Copia",
+      "copied": "Copiato!",
+      "copyFailed": "Il tuo browser non ha permesso a questa pagina di copiare la riga. È selezionata qui sopra, così puoi copiarla tu."
+    }
   },
   "footer": {
     "poweredBy": "Offerto da OneUptime"

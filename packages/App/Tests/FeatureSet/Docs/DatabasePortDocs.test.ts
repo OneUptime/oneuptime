@@ -336,12 +336,12 @@ describe("the Docker Compose guide on PostgreSQL's port", () => {
 });
 
 describe("the Docker Compose guide on the database password", () => {
-  it("says npm start gives a placeholder DATABASE_PASSWORD a random value on the first start - its script does, first", () => {
+  it("says npm start gives a placeholder DATABASE_PASSWORD a random value on a new install only - its script does, before Compose starts", () => {
     expect(leadingInstallSteps(rootScripts()["start"] as string)).toContain(
       GENERATE_STEP,
     );
     expect(ENGLISH_GUIDE).toContain(
-      "If `DATABASE_PASSWORD` is still the placeholder at the first start, `npm start` gives it a random value before PostgreSQL creates its database.",
+      "That is why `npm start` sets `DATABASE_PASSWORD` and `ENCRYPTION_SECRET` only on a new install, before PostgreSQL creates its database.",
     );
   });
 

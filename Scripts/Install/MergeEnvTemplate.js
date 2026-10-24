@@ -16,7 +16,7 @@ const fs = require("fs");
  * So: a renamed key whose OLD name is still set is left alone entirely. The
  * user's config.env keeps the one copy of the secret it already has, and
  * docker-compose.base.yml resolves the new name to it via
- * `${VALKEY_PASSWORD:-${REDIS_PASSWORD}}`. Nothing is rewritten, so rolling back
+ * `${VALKEY_PASSWORD:-${REDIS_PASSWORD:-}}`. Nothing is rewritten, so rolling back
  * to an older OneUptime release still works.
  */
 const RENAMED_FROM = {
