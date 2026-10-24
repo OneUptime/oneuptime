@@ -22,7 +22,7 @@ import { getFeedClock } from "Common/UI/Components/Feed/FeedTime";
 import Icon from "Common/UI/Components/Icon/Icon";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -196,9 +196,6 @@ const BackupStatusCard: FunctionComponent<ComponentProps> = (
       const progress: BackupRunProgress = getBackupRunProgress(run);
       const isRestore: boolean = run.kind === BackupRunKind.Restore;
       const isQueued: boolean = run.status === BackupRunStatus.Queued;
-      const stepTitle: string = progress.step
-        ? translator.translateText(BACKUP_STEP_COPY[progress.step.key]) || ""
-        : "";
       const written: number | undefined = progress.step?.progress?.doneBytes;
 
       return (
@@ -229,7 +226,14 @@ const BackupStatusCard: FunctionComponent<ComponentProps> = (
                 : translator.translateTemplate(BackupsCopy.stepOf, {
                     number: translator.formatNumber(progress.number),
                     total: translator.formatNumber(progress.total),
-                    step: stepTitle,
+                    // The step's name in the sentence's language.
+                    step: composedValue((sentence: Translator): string => {
+                      return progress.step
+                        ? sentence.translateText(
+                            BACKUP_STEP_COPY[progress.step.key],
+                          ) || ""
+                        : "";
+                    }),
                   })}
               {!isQueued && written !== undefined && written > 0 ? (
                 <span className="text-gray-500">

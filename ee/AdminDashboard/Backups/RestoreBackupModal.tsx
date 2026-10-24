@@ -17,7 +17,7 @@ import { getFeedClock } from "Common/UI/Components/Feed/FeedTime";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -246,10 +246,16 @@ const RestoreBackupModal: FunctionComponent<ComponentProps> = (
     translator,
   });
 
+  // The counts in the sentence's own language: a sentence a locale lacks reads wholly in English.
   if (backupCounts) {
     postgresLines.push(
       translator.translateTemplate(BackupsCopy.restorePostgresCounts, {
-        counts: backupCounts,
+        counts: composedValue((sentence: Translator): string => {
+          return describeBackupCounts({
+            counts: preview?.backup.postgres?.counts,
+            translator: sentence,
+          });
+        }),
       }),
     );
   }
@@ -257,7 +263,12 @@ const RestoreBackupModal: FunctionComponent<ComponentProps> = (
   if (backupCounts && currentCounts) {
     postgresLines.push(
       translator.translateTemplate(BackupsCopy.restorePostgresNow, {
-        counts: currentCounts,
+        counts: composedValue((sentence: Translator): string => {
+          return describeBackupCounts({
+            counts: preview?.current.postgres?.counts,
+            translator: sentence,
+          });
+        }),
       }),
     );
   }

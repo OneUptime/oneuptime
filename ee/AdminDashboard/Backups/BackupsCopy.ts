@@ -51,9 +51,7 @@ export const BackupsCopy: {
   turnOnButton: string;
   turnOnTooltip: string;
   turnOffAction: string;
-  turnOffTooltip: string;
   findBackupsAction: string;
-  findBackupsTooltip: string;
   foundNoBackups: string;
   backingUp: string;
   restoring: string;
@@ -65,7 +63,6 @@ export const BackupsCopy: {
   viewStepsButton: string;
   queuedText: string;
   restoreRunningNote: string;
-  lastFailedTitle: string;
   // The settings card.
   settingsTitle: string;
   settingsDescription: string;
@@ -74,7 +71,6 @@ export const BackupsCopy: {
   scheduleLabel: string;
   retentionLabel: string;
   contentsLabel: string;
-  contentsBoth: string;
   contentsPostgres: string;
   sizeNow: string;
   // The schedule, in words.
@@ -109,7 +105,6 @@ export const BackupsCopy: {
   stepsTitleBackup: string;
   stepsTitleRestore: string;
   stepsStarted: string;
-  stepsFinished: string;
   stepsTook: string;
   stepsWhere: string;
   stepsWritten: string;
@@ -176,7 +171,6 @@ export const BackupsCopy: {
   restoreWhileRunningText: string;
   restoreSignInText: string;
   restoreButton: string;
-  restoreStarted: string;
   restoreChooseSomething: string;
   // License.
   licenseRequired: string;
@@ -191,9 +185,7 @@ export const BackupsCopy: {
   cannotRestoreTitle: string;
   cannotRestoreDescription: string;
   // General.
-  loading: string;
   couldNotLoad: string;
-  tryAgain: string;
   close: string;
   databasePostgres: string;
   databaseClickhouse: string;
@@ -242,13 +234,7 @@ export const BackupsCopy: {
   turnOnButton: translationKey("Turn on"),
   turnOnTooltip: translationKey("Back up on the schedule again."),
   turnOffAction: translationKey("Turn off scheduled backups"),
-  turnOffTooltip: translationKey(
-    "Stop backing up on the schedule. Back up now still works, and no backup is deleted.",
-  ),
   findBackupsAction: translationKey("Find backups"),
-  findBackupsTooltip: translationKey(
-    "Look for backups at the destination that this list does not show, such as another server's.",
-  ),
   foundNoBackups: translationKey("Found no backups at the destination."),
   backingUp: translationKey("Backing up"),
   restoring: translationKey("Restoring the backup of {{time}}"),
@@ -264,7 +250,6 @@ export const BackupsCopy: {
   restoreRunningNote: translationKey(
     "OneUptime keeps working on the current data until the switch-over, which takes a moment.",
   ),
-  lastFailedTitle: translationKey("Why it failed"),
   settingsTitle: translationKey("Backup settings"),
   settingsDescription: translationKey(
     "Where backups go, how often they run and how long they are kept.",
@@ -274,7 +259,6 @@ export const BackupsCopy: {
   scheduleLabel: translationKey("Schedule"),
   retentionLabel: translationKey("Kept for"),
   contentsLabel: translationKey("Backed up"),
-  contentsBoth: translationKey("PostgreSQL and ClickHouse"),
   contentsPostgres: translationKey("PostgreSQL only"),
   sizeNow: translationKey("{{size}} now"),
   scheduleAt: translationKey("{{frequency}} at {{time}} UTC"),
@@ -317,11 +301,10 @@ export const BackupsCopy: {
     "Every restore of a backup, newest first.",
   ),
   restoreColumn: translationKey("Restore"),
-  fromBackupColumn: translationKey("Of the backup of"),
+  fromBackupColumn: translationKey("Backup restored"),
   stepsTitleBackup: translationKey("Backup of {{time}}"),
   stepsTitleRestore: translationKey("Restore of the backup of {{time}}"),
   stepsStarted: translationKey("Started {{time}}"),
-  stepsFinished: translationKey("Finished {{time}}"),
   stepsTook: translationKey("Took {{duration}}"),
   stepsWhere: translationKey("Where"),
   stepsWritten: translationKey("{{size}} written"),
@@ -357,7 +340,7 @@ export const BackupsCopy: {
     "Choose a quiet hour. Every 6 or 12 hours count from it.",
   ),
   timeOption: translationKey("{{utc}} UTC ({{local}} your time)"),
-  dayField: translationKey("On"),
+  dayField: translationKey("Day of the week"),
   retentionField: translationKey("Keep backups for (days)"),
   retentionFieldDescription: translationKey(
     "Older backups are deleted after each new one, except the newest that succeeded.",
@@ -421,9 +404,6 @@ export const BackupsCopy: {
     "You may be signed out afterwards: sign in with an account that is in the backup.",
   ),
   restoreButton: translationKey("Restore"),
-  restoreStarted: translationKey(
-    "The restore has started. Each step shows on this page.",
-  ),
   restoreChooseSomething: translationKey("Choose what to restore."),
   licenseRequired: translationKey(
     "Needs a valid Enterprise license that includes backups.",
@@ -451,9 +431,7 @@ export const BackupsCopy: {
   cannotRestoreDescription: translationKey(
     "The database user {{user}} may not create databases, which a restore does. Run ALTER USER {{user}} CREATEDB; on PostgreSQL. Backups work as they are.",
   ),
-  loading: translationKey("Loading…"),
   couldNotLoad: translationKey("Backups could not be loaded."),
-  tryAgain: translationKey("Try again"),
   close: translationKey("Close"),
   databasePostgres: translationKey("PostgreSQL"),
   databaseClickhouse: translationKey("ClickHouse"),

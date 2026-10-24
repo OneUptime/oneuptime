@@ -29,7 +29,7 @@ import {
   formatFeedTimeAgo,
   getFeedLocale,
 } from "Common/UI/Components/Feed/FeedTime";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * How the Backups page writes what it shows, without React: sizes,
@@ -333,7 +333,9 @@ export function describeUtcHourOption(data: {
 
 /*
  * The schedule as a sentence: "Every day at 02:00 UTC", "Every Sunday at
- * 02:00 UTC", "Every 6 hours at 02:00 UTC", "Every hour".
+ * 02:00 UTC", "Every 6 hours at 02:00 UTC", "Every hour". The weekday and
+ * the frequency are written in the sentence's language, so a sentence a
+ * locale lacks reads wholly in English.
  */
 export function describeBackupSchedule(data: {
   schedule: {
@@ -360,19 +362,23 @@ export function describeBackupSchedule(data: {
   }
 
   if (frequency === BackupFrequency.Weekly) {
+    const dayOfWeek: number = data.schedule.dayOfWeek ?? 0;
+
     return data.translator.translateTemplate(BackupsCopy.scheduleWeekly, {
-      day: getWeekdayName(
-        data.schedule.dayOfWeek ?? 0,
-        data.translator.language,
-      ),
+      day: composedValue((sentence: Translator): string => {
+        return getWeekdayName(dayOfWeek, sentence.language);
+      }),
       time: timeText,
     });
   }
 
   return data.translator.translateTemplate(BackupsCopy.scheduleAt, {
-    frequency:
-      data.translator.translateText(BACKUP_FREQUENCY_COPY[frequency]) ||
-      BACKUP_FREQUENCY_COPY[frequency],
+    frequency: composedValue((sentence: Translator): string => {
+      return (
+        sentence.translateText(BACKUP_FREQUENCY_COPY[frequency]) ||
+        BACKUP_FREQUENCY_COPY[frequency]
+      );
+    }),
     time: timeText,
   });
 }

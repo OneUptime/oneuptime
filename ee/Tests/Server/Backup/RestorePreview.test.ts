@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import {
   getBackupClickhouseMetadataKey,
   getBackupManifestKey,
@@ -352,6 +354,45 @@ describe("buildRestorePreview", () => {
     expect(answer.problems).toEqual([]);
     expect(answer.current.postgres).toBeNull();
     expect(postgres.calls).toEqual([]);
+  });
+});
+
+describe("the codes the restore dialog words", () => {
+  /*
+   * The Admin Dashboard words each code in the reader's language
+   * (RESTORE_ISSUE_COPY); a code it does not know reads as the server's
+   * English sentence. Read from the copy's source: the server's tests do
+   * not load the frontend.
+   */
+  test("every code the server names has the dialog's own wording", () => {
+    const copy: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "AdminDashboard",
+        "Backups",
+        "BackupsCopy.ts",
+      ),
+      "utf8",
+    );
+    const section: string = copy.slice(
+      copy.indexOf("export const RESTORE_ISSUE_COPY"),
+    );
+    const entries: string = section.slice(0, section.indexOf("};"));
+    const key: RegExp = /^\s+"([a-z-]+)": translationKey\(/gm;
+    const worded: Array<string> = [];
+    let match: RegExpExecArray | null = key.exec(entries);
+
+    while (match) {
+      worded.push(match[1] as string);
+      match = key.exec(entries);
+    }
+
+    expect(worded.sort()).toEqual(
+      (Object.values(RestoreIssueCode) as Array<string>).sort(),
+    );
   });
 });
 
