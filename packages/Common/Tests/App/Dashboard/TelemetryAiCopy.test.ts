@@ -277,3 +277,100 @@ describe("every description is short", () => {
     expect(tooLong).toEqual([]);
   });
 });
+
+describe("Traces' AI section", () => {
+  const copy: TelemetryAiLaneCopy = TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Trace];
+
+  test("lives under Traces: its four pages are Traces'", () => {
+    expect(TELEMETRY_AI_PAGES[TelemetryAiLane.Trace]).toEqual({
+      insights: PageMap.TRACES_AI_INSIGHTS,
+      insightView: PageMap.TRACES_AI_INSIGHT_VIEW,
+      logs: PageMap.TRACES_AI_LOGS,
+      settings: PageMap.TRACES_AI_SETTINGS,
+    });
+  });
+
+  test("its rules are about services, and its notice about slow and failing operations", () => {
+    expect(copy.ruleCriteriaSubject).toBe(RuleCriteriaSubject.Services);
+    expect(copy.noticeContext).toBe(ProjectAiNoticeContext.Traces);
+    expect(
+      PROJECT_AI_NOTICE_CONTEXT_COPY[ProjectAiNoticeContext.Traces]
+        .aiOffDescription,
+    ).toContain("Slow and failing operations are still found");
+  });
+
+  test("its inbox lists its three kinds of finding, opened in its own view, apart from the Profiler's", () => {
+    expect(TELEMETRY_AI_INSIGHTS_SCOPES[TelemetryAiLane.Trace]).toEqual({
+      insightTypes: TELEMETRY_AI_LANES[TelemetryAiLane.Trace].insightTypes,
+      viewPage: PageMap.TRACES_AI_INSIGHT_VIEW,
+      settingsPage: PageMap.TRACES_AI_SETTINGS,
+      intro: copy.insightsIntro,
+      emptyTitle: copy.insightsEmptyTitle,
+      emptyDescription: copy.insightsEmptyDescription,
+    });
+    expect(copy.insightsEmptyTitle).toBe("No slow or failing operations found");
+  });
+
+  test("while its switch is off, the inbox says nothing is looked for, and names the switch", () => {
+    const off: ReturnType<typeof getTelemetryAiInsightsScope> =
+      getTelemetryAiInsightsScope(TelemetryAiLane.Trace, true);
+
+    expect(off).toBe(TELEMETRY_AI_INSIGHTS_SCOPES_WHILE_OFF[TelemetryAiLane.Trace]);
+    expect(off.insightTypes).toBe(
+      TELEMETRY_AI_INSIGHTS_SCOPES[TelemetryAiLane.Trace].insightTypes,
+    );
+    expect(off.emptyTitle).toBe(
+      "OneUptime is not looking for slow and failing operations",
+    );
+    expect(copy.insightsOffEmptyDescription).toContain(
+      TELEMETRY_AI_SWITCHES[TelemetryAiLane.Trace][0]!.title,
+    );
+  });
+
+  test("its switch is the rule turned on by default, named for what it does", () => {
+    const [findAndFix] = TELEMETRY_AI_SWITCHES[TelemetryAiLane.Trace];
+
+    expect(findAndFix!.column).toBe("enableAutomaticTraceRemediation");
+    expect(findAndFix!.title).toBe("Find and fix slow and failing operations");
+    expect(findAndFix!.description).toContain("missing tracing");
+    expect(findAndFix!.description).toContain("pull request");
+    expect(findAndFix!.note).toBe("Needs a repository connected in Code.");
+  });
+
+  test("its Fix step's answers, in its words: a failing operation's pull request waits for the code to be found at fault", () => {
+    const options: Array<CardSelectOption> = getTelemetryAiFixOptions(
+      TelemetryAiLane.Trace,
+    );
+
+    expect(
+      options.map((option: CardSelectOption) => {
+        return [option.value, option.title, option.icon];
+      }),
+    ).toEqual(
+      AI_RULE_FIX_OPTIONS.map((option: CardSelectOption) => {
+        return [option.value, option.title, option.icon];
+      }),
+    );
+    expect(copy.fixOptionDescriptions[AiRuleFix.DoNotFix]).toContain(
+      "opens no pull request",
+    );
+    expect(copy.fixOptionDescriptions[AiRuleFix.AskFirst]).toContain(
+      "one click",
+    );
+    expect(copy.fixOptionDescriptions[AiRuleFix.WithoutAsking]).toContain(
+      "for a failing operation once it finds the code at fault",
+    );
+    expect(copy.fixOptionDescriptions[AiRuleFix.WithoutAsking]).toContain(
+      "Nothing is ever merged",
+    );
+  });
+
+  test("its rules table has an id of its own, apart from the Profiler's", () => {
+    expect(getTelemetryAiRulesTableId(TelemetryAiLane.Trace)).toBe(
+      "telemetry-ai-rules-table-Trace",
+    );
+    expect(getTelemetryAiRulesTableId(TelemetryAiLane.Trace)).not.toBe(
+      getTelemetryAiRulesTableId(TelemetryAiLane.Profile),
+    );
+  });
+});
