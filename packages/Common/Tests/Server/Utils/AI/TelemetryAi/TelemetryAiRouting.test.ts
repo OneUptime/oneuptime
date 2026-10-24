@@ -519,7 +519,7 @@ describe("TelemetryAiRouting.sweepLane - the Trace lane", () => {
           insightType: AIInsightType.TraceFailingOperation,
           triageAiRunId: ObjectID.generate(),
           triageCompletedAt: new Date(NOW.getTime() - HOUR),
-          classification: classification as AIInsight["classification"],
+          classification: classification,
         }),
       ];
 
