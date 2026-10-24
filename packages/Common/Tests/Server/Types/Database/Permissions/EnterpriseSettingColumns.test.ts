@@ -173,11 +173,10 @@ const SETTING_FEATURES: ReadonlyArray<EnterpriseFeature> = [
   EnterpriseFeature.StatusPageAccessControls,
 ];
 
-const SETTING_ROWS: ReadonlyArray<[string, SettingColumn]> = SETTING_COLUMNS.map(
-  (setting: SettingColumn): [string, SettingColumn] => {
+const SETTING_ROWS: ReadonlyArray<[string, SettingColumn]> =
+  SETTING_COLUMNS.map((setting: SettingColumn): [string, SettingColumn] => {
     return [`${setting.table}.${setting.column}`, setting];
-  },
-);
+  });
 
 const projectId: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",

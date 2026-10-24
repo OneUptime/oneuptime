@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import EnterpriseFeature, {
   ALL_ENTERPRISE_FEATURES,
 } from "../../../../Server/Enterprise/EnterpriseFeature";
