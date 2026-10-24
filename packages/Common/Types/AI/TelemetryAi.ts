@@ -124,6 +124,40 @@ export const TELEMETRY_AI_LANE_LIST: ReadonlyArray<TelemetryAiLane> =
  */
 export const STILL_FOUND_TICKS: number = 2;
 
+/*
+ * The most pull requests OneUptime AI opens on its own for a project's
+ * telemetry problems in a day (UTC), whatever its rules say: a project that
+ * connects its profiles for the first time may hold many findings at once,
+ * and a team reviews a few pull requests a day, not a queue of them. Each
+ * repository's own cap on open AI pull requests applies too, and the
+ * project's daily AI limits. A person can always open more from an insight.
+ */
+export const TELEMETRY_AI_MAX_AUTOMATIC_FIXES_PER_DAY: number = 5;
+
+/*
+ * How many problems of a lane one look works on, newest first: the rest
+ * wait for the next look.
+ */
+export const TELEMETRY_AI_MAX_PROBLEMS_PER_SWEEP: number = 50;
+
+// How often the insight scanner looks (Workers' AIInsight:ScanForInsights).
+export const INSIGHT_SCAN_EVERY_MINUTES: number = 15;
+
+/*
+ * Whether the scanner's look at this moment is the lane's: a lane that
+ * looks once an hour looks on the scanner's first look of each hour (UTC).
+ * Its detectors and the work on its problems both run then.
+ */
+export function isTelemetryAiLaneScanTick(
+  lane: TelemetryAiLane,
+  now: Date,
+): boolean {
+  const every: number = TELEMETRY_AI_LANES[lane].scanEveryMinutes;
+  const minuteOfDay: number = now.getUTCHours() * 60 + now.getUTCMinutes();
+
+  return minuteOfDay % every < INSIGHT_SCAN_EVERY_MINUTES;
+}
+
 // What every lane's rules match on: the service the problem is in.
 export const TELEMETRY_AI_CRITERIA_FIELDS: ReadonlyArray<string> =
   TELEMETRY_AI_RULE_CRITERIA_FIELDS;

@@ -81,22 +81,33 @@ const TRIGGER_SPECIFIC_FIELD_TITLES: Readonly<Record<string, string>> = {
   serviceNamePattern: "Service Name Pattern",
 };
 
+// The criteria that are a pattern on a text, rather than a list of records.
+const PATTERN_FIELDS: ReadonlyArray<string> = [
+  "titlePattern",
+  "descriptionPattern",
+  "serviceNamePattern",
+];
+
 /*
- * Whether a write gives a criterion a value: a list with something in it,
- * or a pattern with text in it. A pattern that can never match
- * (RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN, which the dashboard writes in
- * a rule's own pattern column beside its conditions) says nothing either.
+ * Whether a write gives a criterion a value: a list of records with
+ * something in it, or a pattern with text in it. A pattern that can never
+ * match (RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN, which the dashboard
+ * writes in a rule's own pattern column beside its conditions) says
+ * nothing, nor does a list criterion given anything but a list.
  */
-export function hasAiRuleCriterionValue(value: unknown): boolean {
-  if (Array.isArray(value)) {
-    return value.length > 0;
+export function hasAiRuleCriterionValue(
+  field: string,
+  value: unknown,
+): boolean {
+  if (PATTERN_FIELDS.includes(field)) {
+    return (
+      typeof value === "string" &&
+      value.trim().length > 0 &&
+      value.trim() !== RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN
+    );
   }
 
-  return (
-    typeof value === "string" &&
-    value.trim().length > 0 &&
-    value.trim() !== RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN
-  );
+  return Array.isArray(value) && value.length > 0;
 }
 
 export function isAiRuleTriggerEntity(
@@ -154,7 +165,7 @@ export function getAiRuleCriteriaProblem(data: {
   const usedFields: Array<string> = getCriteriaFilterFields(data.criteria);
 
   for (const field of AI_RULE_CRITERIA_FIELDS) {
-    if (hasAiRuleCriterionValue(data.values?.[field])) {
+    if (hasAiRuleCriterionValue(field, data.values?.[field])) {
       usedFields.push(field);
     }
   }

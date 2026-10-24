@@ -5,6 +5,7 @@ import AIInsightEvidence, {
   LatencyInsightEvidence,
   LogSpikeInsightEvidence,
   MetricDriftInsightEvidence,
+  ProfileInsightEvidence,
 } from "../../../Types/AI/AIInsightEvidence";
 import AIInsightType from "../../../Types/AI/AIInsightType";
 import { PerformanceFindingType } from "../../../Types/AI/CodeFixTaskContext";
@@ -31,6 +32,7 @@ const SECTION_FOR_TYPE: Record<AIInsightType, EvidenceSection> = {
   [AIInsightType.TraceLatencyRegression]: "latency",
   [AIInsightType.MetricDrift]: "metricDrift",
   [AIInsightType.DeployRegression]: "deployRegression",
+  [AIInsightType.ProfileHotspot]: "profile",
 };
 
 const ALL_SECTIONS: Array<EvidenceSection> = [
@@ -39,6 +41,7 @@ const ALL_SECTIONS: Array<EvidenceSection> = [
   "latency",
   "metricDrift",
   "deployRegression",
+  "profile",
 ];
 
 const setSections: (evidence: AIInsightEvidence) => Array<string> = (
@@ -148,6 +151,28 @@ const deployRegressionEvidence: DeployRegressionInsightEvidence = {
   newExceptionTypes: [{ exceptionType: "TypeError", occurrenceCount: 80 }],
 };
 
+const profileEvidence: ProfileInsightEvidence = {
+  serviceId: "7e6a3c1a-1111-4222-8333-944455556666",
+  functionName: "OrderParser.parse",
+  fileName: "src/orders/parser.ts",
+  lineNumber: 42,
+  profileType: "cpu",
+  category: "cpu",
+  reason: "Grew",
+  ownShare: 18.5,
+  ownShareBefore: 4.25,
+  functionSampleCount: 1840,
+  windowSampleCount: 9950,
+  windowStartTime: "2026-10-24T08:00:00.000Z",
+  windowEndTime: "2026-10-24T09:00:00.000Z",
+  baselineStartTime: "2026-10-23T08:00:00.000Z",
+  baselineEndTime: "2026-10-23T09:00:00.000Z",
+  callers: [
+    { functionName: "handleOrder", fileName: "src/orders/api.ts", share: 18 },
+  ],
+  callees: [{ functionName: "JSON.parse", fileName: "", share: 15.75 }],
+};
+
 describe("AIInsightEvidence", () => {
   test("every insight type maps to a known evidence section", () => {
     for (const type of Object.values(AIInsightType)) {
@@ -172,6 +197,7 @@ describe("AIInsightEvidence", () => {
     ["latency", { latency: latencyEvidence }],
     ["metricDrift", { metricDrift: metricDriftEvidence }],
     ["deployRegression", { deployRegression: deployRegressionEvidence }],
+    ["profile", { profile: profileEvidence }],
   ] as Array<[EvidenceSection, AIInsightEvidence]>)(
     "%s evidence survives a JSON round trip with exactly one section set",
     (section: EvidenceSection, evidence: AIInsightEvidence) => {
@@ -221,6 +247,27 @@ describe("AIInsightEvidence", () => {
       "NPlusOneQuery",
     );
     expect(restored.latency?.codeLocations?.[0]?.lineNumber).toBe(88);
+  });
+
+  test("profile evidence keeps its shares, windows and neighbours exactly", () => {
+    const restored: AIInsightEvidence = roundTrip({ profile: profileEvidence });
+
+    expect(restored.profile?.ownShare).toBe(18.5);
+    expect(restored.profile?.ownShareBefore).toBe(4.25);
+    expect(restored.profile?.windowStartTime).toBe("2026-10-24T08:00:00.000Z");
+    expect(restored.profile?.callees[0]?.share).toBe(15.75);
+    expect(restored.profile?.callers[0]?.functionName).toBe("handleOrder");
+  });
+
+  test("a Hot profile finding needs no baseline", () => {
+    const hot: ProfileInsightEvidence = { ...profileEvidence, reason: "Hot" };
+    delete hot.ownShareBefore;
+    delete hot.baselineStartTime;
+    delete hot.baselineEndTime;
+
+    expect(Object.keys(roundTrip({ profile: hot }).profile!)).not.toContain(
+      "ownShareBefore",
+    );
   });
 
   test("log spike topServices preserves order", () => {

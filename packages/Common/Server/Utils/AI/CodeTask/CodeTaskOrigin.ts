@@ -1,8 +1,10 @@
+import AIInsightService from "../../../Services/AIInsightService";
 import AlertService from "../../../Services/AlertService";
 import IncidentService from "../../../Services/IncidentService";
 import TelemetryExceptionService from "../../../Services/TelemetryExceptionService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import { sanitizeExceptionMessage } from "../../Telemetry/ExceptionSanitizer";
+import AIInsight from "../../../../Models/DatabaseModels/AIInsight";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import Incident from "../../../../Models/DatabaseModels/Incident";
@@ -32,6 +34,11 @@ import ObjectID from "../../../../Types/ObjectID";
  * at once (loadSubjects), under the reader's own permissions: a person who
  * may read a repository's tasks but not the incident one was started from
  * reads "started from an incident", not its title.
+ *
+ * A request OneUptime wrote itself - from slow code it found in a service's
+ * profiles (Types/AI/TelemetryAi) - is a Code request nobody asked for: its
+ * origin is the insight that holds the problem, named by the insight's
+ * title, and its first turn shows both that origin and the request.
  */
 
 const LABEL_LENGTH: number = 120;
@@ -40,6 +47,8 @@ export interface CodeTaskOriginSubjects {
   exceptions: Map<string, TelemetryException>;
   incidents: Map<string, Incident>;
   alerts: Map<string, Alert>;
+  // Read only for the requests OneUptime started itself.
+  insights?: Map<string, AIInsight> | undefined;
 }
 
 export default class CodeTaskOrigin {
@@ -53,8 +62,13 @@ export default class CodeTaskOrigin {
     const exceptionIds: Set<string> = new Set<string>();
     const incidentIds: Set<string> = new Set<string>();
     const alertIds: Set<string> = new Set<string>();
+    const insightIds: Set<string> = new Set<string>();
 
     for (const run of data.runs) {
+      if (CodeTaskOrigin.isStartedByOneUptime(run)) {
+        insightIds.add(run.triggeredByAiInsightId!.toString());
+      }
+
       if (run.triggeredByTelemetryExceptionId) {
         exceptionIds.add(run.triggeredByTelemetryExceptionId.toString());
       }
@@ -68,10 +82,11 @@ export default class CodeTaskOrigin {
       }
     }
 
-    const [exceptions, incidents, alerts]: [
+    const [exceptions, incidents, alerts, insights]: [
       Array<TelemetryException>,
       Array<Incident>,
       Array<Alert>,
+      Array<AIInsight>,
     ] = await Promise.all([
       exceptionIds.size > 0
         ? CodeTaskOrigin.readable(
@@ -125,13 +140,44 @@ export default class CodeTaskOrigin {
             }),
           )
         : Promise.resolve([]),
+      insightIds.size > 0
+        ? CodeTaskOrigin.readable(
+            AIInsightService.findBy({
+              query: {
+                _id: QueryHelper.any(Array.from(insightIds)),
+                projectId: data.projectId,
+              },
+              select: { _id: true, title: true, insightType: true },
+              limit: insightIds.size,
+              skip: 0,
+              props: data.props,
+            }),
+          )
+        : Promise.resolve([]),
     ]);
 
     return {
       exceptions: CodeTaskOrigin.byId(exceptions),
       incidents: CodeTaskOrigin.byId(incidents),
       alerts: CodeTaskOrigin.byId(alerts),
+      insights: CodeTaskOrigin.byId(insights),
     };
+  }
+
+  /*
+   * A Code request OneUptime wrote itself, from a problem it found: no
+   * person asked it, and it names the insight it came from.
+   */
+  public static isStartedByOneUptime(run: {
+    codeFixTaskType?: CodeFixTaskType | string | null | undefined;
+    userId?: ObjectID | null | undefined;
+    triggeredByAiInsightId?: ObjectID | null | undefined;
+  }): boolean {
+    return (
+      CodeFixTaskTypeHelper.isCodeRequest(run.codeFixTaskType) &&
+      !run.userId &&
+      Boolean(run.triggeredByAiInsightId)
+    );
   }
 
   /*
@@ -148,6 +194,18 @@ export default class CodeTaskOrigin {
     const taskType: CodeFixTaskType = CodeFixTaskTypeHelper.fromDatabaseValue(
       run.codeFixTaskType,
     );
+
+    if (CodeTaskOrigin.isStartedByOneUptime(run)) {
+      const insight: AIInsight | undefined = data.subjects.insights?.get(
+        run.triggeredByAiInsightId!.toString(),
+      );
+
+      return {
+        type: CodeTaskOriginType.Insight,
+        label: insight ? CodeTaskOrigin.shorten(insight.title || "") : "",
+        recordId: run.triggeredByAiInsightId!.toString(),
+      };
+    }
 
     if (CodeFixTaskTypeHelper.isCodeRequest(taskType)) {
       return {

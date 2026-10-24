@@ -37,6 +37,7 @@ import {
   CodeTaskRequest,
 } from "../../../../Types/AI/CodeTask";
 import ObjectID from "../../../../Types/ObjectID";
+import AIInsight from "../../../../Models/DatabaseModels/AIInsight";
 
 /*
  * WHAT A RUNNER IS TOLD WHEN IT TAKES A REQUEST FROM CODE.
@@ -58,6 +59,8 @@ import ObjectID from "../../../../Types/ObjectID";
 export const MAX_CONVERSATION_LENGTH: number = 40000;
 export const MAX_EARLIER_REPLY_LENGTH: number = 6000;
 const MAX_ORIGIN_DETAIL_LENGTH: number = 6000;
+// An insight's title, as the pull request names the finding.
+const MAX_FINDING_LENGTH: number = 300;
 const STACK_TRACE_LINES: number = 40;
 
 export default class CodeTaskAgentBrief {
@@ -196,6 +199,7 @@ export default class CodeTaskAgentBrief {
       ...(run.userId && people.get(run.userId.toString())
         ? { requestedBy: people.get(run.userId.toString())!.name }
         : {}),
+      ...CodeTaskAgentBrief.getStartedBy({ projectId, task, subjects }),
       repository: {
         id: data.repository.id!.toString(),
         name: data.repository.name || "",
@@ -230,6 +234,35 @@ export default class CodeTaskAgentBrief {
     };
   }
 
+  /*
+   * Why OneUptime started a task nobody asked for - the insight it found -
+   * for the pull request's body to say, and the prompt: nothing for a task a
+   * person asked for.
+   */
+  public static getStartedBy(data: {
+    projectId: ObjectID;
+    task: AIRun;
+    subjects: CodeTaskOriginSubjects;
+  }): Pick<CodeTaskAgentDetails, "startedBy"> {
+    if (!CodeTaskOrigin.isStartedByOneUptime(data.task)) {
+      return {};
+    }
+
+    const insightId: string = data.task.triggeredByAiInsightId!.toString();
+    const insight: AIInsight | undefined =
+      data.subjects.insights?.get(insightId);
+
+    return {
+      startedBy: {
+        finding: CodeTaskAgentBrief.cut(
+          CodeTaskAgentBrief.redact(insight?.title || ""),
+          MAX_FINDING_LENGTH,
+        ),
+        findingUrl: `${DashboardClientUrl.toString()}/${data.projectId.toString()}/ai/insights/${insightId}`,
+      },
+    };
+  }
+
   // One earlier turn, as what the person said and what the AI answered.
   private static async describeTurn(data: {
     turn: AIRun;
@@ -253,7 +286,11 @@ export default class CodeTaskAgentBrief {
     if (request) {
       turns.push({
         role: "person",
-        ...(author ? { author } : {}),
+        ...(author
+          ? { author }
+          : CodeTaskOrigin.isStartedByOneUptime(turn)
+            ? { author: "OneUptime" }
+            : {}),
         text: CodeTaskAgentBrief.redact(request.message),
         context: request.context.map(
           (item: CodeTaskContextItem): CodeTaskAgentContextItem => {

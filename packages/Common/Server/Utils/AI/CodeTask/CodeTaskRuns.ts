@@ -118,6 +118,49 @@ export default class CodeTaskRuns {
     });
   }
 
+  /*
+   * A task OneUptime starts on its own: a request nobody typed, written by
+   * OneUptime from a problem it found in the project's telemetry - slow code
+   * in a service's profiles (Types/AI/TelemetryAi) - and stamped with the
+   * insight that holds that problem, so Code says what started the task and
+   * its pull request says why it was opened. It is an ordinary Code task from
+   * then on: a conversation anyone who may ask in the repository can reply
+   * in, retry or stop, worked by the Runner the repository picks. The rules
+   * that let OneUptime start it pick its LLM provider, when they do.
+   */
+  @CaptureSpan()
+  public static async startForOneUptime(data: {
+    projectId: ObjectID;
+    repository: CodeRepository;
+    message: string;
+    context: Array<CodeTaskContextItem>;
+    triggeredByAiInsightId: ObjectID;
+    llmProviderId?: ObjectID | undefined;
+  }): Promise<AIRun> {
+    const message: string = CodeTaskRuns.readMessage(data.message);
+
+    // Subjectless AI work: no daily fix-task limit applies (FixRunBudget).
+    await FixRunBudget.assertWithinBudget(data.projectId, {});
+
+    const run: AIRun = CodeTaskRuns.newTurn({
+      projectId: data.projectId,
+      codeRepositoryId: data.repository.id!,
+      request: { message, context: data.context },
+    });
+
+    run.title = CodeTaskTitle.fromMessage(message);
+    run.triggeredByAiInsightId = data.triggeredByAiInsightId;
+
+    if (data.llmProviderId) {
+      run.llmProviderId = data.llmProviderId;
+    }
+
+    return await AIRunService.create({
+      data: run,
+      props: { isRoot: true },
+    });
+  }
+
   // A reply in the task's conversation: its next turn.
   @CaptureSpan()
   public static async reply(data: {
@@ -350,9 +393,10 @@ export default class CodeTaskRuns {
     }
   }
 
+  // A turn asked by a person, or by OneUptime itself (no userId).
   private static newTurn(data: {
     projectId: ObjectID;
-    userId: ObjectID;
+    userId?: ObjectID | undefined;
     codeRepositoryId: ObjectID;
     request: CodeTaskRequest;
   }): AIRun {
@@ -361,7 +405,11 @@ export default class CodeTaskRuns {
     run.runType = AIRunType.CodeFix;
     run.codeFixTaskType = CodeFixTaskType.CodeRequest;
     run.status = AIRunStatus.Queued;
-    run.userId = data.userId;
+
+    if (data.userId) {
+      run.userId = data.userId;
+    }
+
     run.codeRepositoryId = data.codeRepositoryId;
     run.taskContext = { request: data.request };
     return run;
