@@ -71,6 +71,35 @@ export const getStateSettingsCountsAs: (data: {
 };
 
 /**
+ * What a row's built-in column says - which detections open their cases at
+ * a built-in priority, read off its own flag - or null on a page that has no
+ * such column.
+ */
+export const getStateSettingsBuiltInColumnText: (data: {
+  definition: StateListDefinition;
+  copy: StateSettingsPageCopy;
+  item: unknown;
+}) => string | null = (data: {
+  definition: StateListDefinition;
+  copy: StateSettingsPageCopy;
+  item: unknown;
+}): string | null => {
+  if (!data.copy.builtInColumn) {
+    return null;
+  }
+
+  const builtIn: StateListBuiltIn | null = getStateListBuiltIn(
+    data.definition,
+    toStateListRow(data.definition, data.item),
+  );
+
+  return (
+    (builtIn ? data.copy.builtInColumn.byBuiltIn[builtIn.flag] : undefined) ||
+    data.copy.builtInColumn.otherwise
+  );
+};
+
+/**
  * What OneUptime does with this row, for the Built-in tag beside its name -
  * or undefined for a row the project added itself.
  */

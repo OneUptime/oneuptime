@@ -12,6 +12,8 @@ import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import Label from "../../Models/DatabaseModels/Label";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenanceState from "../../Models/DatabaseModels/ScheduledMaintenanceState";
+import SecurityCasePriority from "../../Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "../../Models/DatabaseModels/SecurityCaseStatus";
 import OpenAPIUtil from "../../Server/Utils/OpenAPI";
 import { JSONObject } from "../../Types/JSON";
 import {
@@ -107,6 +109,18 @@ const RESOURCES: Array<ArchivableResource> = [
     apiPath: "/incident-postmortem-status",
     // Named after the model's singular name, as every resource is.
     terraformType: "oneuptime_postmortem_status",
+  },
+  {
+    table: "SecurityCaseStatus",
+    modelType: SecurityCaseStatus,
+    apiPath: "/security-case-status",
+    terraformType: "oneuptime_security_case_status",
+  },
+  {
+    table: "SecurityCasePriority",
+    modelType: SecurityCasePriority,
+    apiPath: "/security-case-priority",
+    terraformType: "oneuptime_security_case_priority",
   },
 ];
 

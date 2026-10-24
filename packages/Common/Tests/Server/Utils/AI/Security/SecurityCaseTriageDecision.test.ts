@@ -5,7 +5,7 @@ import {
   removeSecurityCaseTriageDecisionLines,
 } from "../../../../../Server/Utils/AI/Security/SecurityCaseTriageDecision";
 import SecurityCaseAiVerdict from "../../../../../Types/SecurityCase/SecurityCaseAiVerdict";
-import SecurityCasePriority from "../../../../../Types/SecurityCase/SecurityCasePriority";
+import SecurityCasePriorityLevel from "../../../../../Types/SecurityCase/SecurityCasePriorityLevel";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -64,7 +64,7 @@ describe("readSecurityCaseTriageDecision", () => {
   test("a malicious read, with the priority and an offered playbook", () => {
     expect(read(MALICIOUS_ANSWER)).toEqual({
       verdict: SecurityCaseAiVerdict.LikelyMalicious,
-      suggestedPriority: SecurityCasePriority.Critical,
+      suggestedPriority: SecurityCasePriorityLevel.Critical,
       suggestedPlaybookId: PLAYBOOK_ID,
       verdictSetAside: false,
     });
@@ -73,7 +73,7 @@ describe("readSecurityCaseTriageDecision", () => {
   test("a benign read with no playbook", () => {
     expect(read(BENIGN_ANSWER)).toEqual({
       verdict: SecurityCaseAiVerdict.LikelyBenign,
-      suggestedPriority: SecurityCasePriority.Low,
+      suggestedPriority: SecurityCasePriorityLevel.Low,
       suggestedPlaybookId: undefined,
       verdictSetAside: false,
     });
@@ -117,7 +117,7 @@ Playbook: ${PLAYBOOK_ID}`;
 
     expect(read(answer)).toEqual({
       verdict: SecurityCaseAiVerdict.LikelyMalicious,
-      suggestedPriority: SecurityCasePriority.High,
+      suggestedPriority: SecurityCasePriorityLevel.High,
       suggestedPlaybookId: PLAYBOOK_ID,
       verdictSetAside: false,
     });
@@ -130,7 +130,7 @@ playbook = ${PLAYBOOK_ID.toUpperCase()}`;
 
     expect(read(answer)).toEqual({
       verdict: SecurityCaseAiVerdict.LikelyFalsePositive,
-      suggestedPriority: SecurityCasePriority.Informational,
+      suggestedPriority: SecurityCasePriorityLevel.Informational,
       suggestedPlaybookId: PLAYBOOK_ID,
       verdictSetAside: false,
     });
@@ -181,7 +181,7 @@ Playbook: ${PLAYBOOK_ID}`;
 
     expect(read(answer)).toEqual({
       verdict: SecurityCaseAiVerdict.LikelyFalsePositive,
-      suggestedPriority: SecurityCasePriority.Informational,
+      suggestedPriority: SecurityCasePriorityLevel.Informational,
       suggestedPlaybookId: PLAYBOOK_ID,
       verdictSetAside: false,
     });
@@ -196,7 +196,7 @@ Playbook: ${PLAYBOOK_ID}`;
   test("a malicious or inconclusive read stands whatever the data held", () => {
     expect(read(MALICIOUS_ANSWER, { injection: true })).toEqual({
       verdict: SecurityCaseAiVerdict.LikelyMalicious,
-      suggestedPriority: SecurityCasePriority.Critical,
+      suggestedPriority: SecurityCasePriorityLevel.Critical,
       suggestedPlaybookId: PLAYBOOK_ID,
       verdictSetAside: false,
     });

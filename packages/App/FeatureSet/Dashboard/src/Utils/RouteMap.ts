@@ -799,6 +799,10 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
   [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS]: "workspace-connections",
   // AI, at the address Incidents' and Alerts' AI settings pages have.
   [PageMap.SECURITY_EVENTS_SETTINGS_AI]: "ai/settings",
+  // Settings, at the addresses every product's settings pages have.
+  [PageMap.SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES]:
+    "settings/case-priorities",
+  [PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES]: "settings/case-statuses",
 };
 
 // Metrics product routes
@@ -6898,6 +6902,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SECURITY_EVENTS_SETTINGS_AI]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_SETTINGS_AI]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES]
     }`,
   ),
 

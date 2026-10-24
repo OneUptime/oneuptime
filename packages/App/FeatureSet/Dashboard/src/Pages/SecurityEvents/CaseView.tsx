@@ -20,19 +20,22 @@ import {
   getSecurityCaseTeamPickerConfig,
 } from "../../Components/SecurityCase/SecurityCaseAssigneePicker";
 import SecurityCasePlaybookRuns from "../../Components/SecurityPlaybook/SecurityCasePlaybookRuns";
+import useSecurityCaseValues from "../../Components/SecurityCase/useSecurityCaseValues";
 import { getSecurityEventsBreadcrumbs } from "../../Utils/Breadcrumbs";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Label from "Common/Models/DatabaseModels/Label";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
+import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import ModelEventType from "Common/Types/Realtime/ModelEventType";
-import SecurityCasePriority from "Common/Types/SecurityCase/SecurityCasePriority";
-import SecurityCaseStatus from "Common/Types/SecurityCase/SecurityCaseStatus";
+import SecurityCaseStage from "Common/Types/SecurityCase/SecurityCaseStage";
 import { formatDurationInMinutes } from "Common/Utils/SecurityCase/SecurityOverviewMetrics";
+import SecurityCaseStatuses from "Common/Utils/SecurityCase/SecurityCaseStatuses";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -95,6 +98,16 @@ const SecurityCaseViewPage: FunctionComponent<PageComponentProps> = (
   const path: string = Navigation.getRoutePath(RouteUtil.getRoutes());
 
   const [securityCase, setSecurityCase] = useState<SecurityCase | null>(null);
+  // The project's case priorities and statuses, which the case is drawn with.
+  const {
+    values,
+    error: valuesError,
+    retry: retryValues,
+  } = useSecurityCaseValues();
+  // The status Close Case (or a closing step) closes the case into.
+  const [closeToStatus, setCloseToStatus] = useState<SecurityCaseStatus | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [actionError, setActionError] = useState<string>("");
@@ -114,8 +127,8 @@ const SecurityCaseViewPage: FunctionComponent<PageComponentProps> = (
           caseNumberWithPrefix: true,
           title: true,
           description: true,
-          status: true,
-          priority: true,
+          securityCaseStatusId: true,
+          securityCasePriorityId: true,
           verdict: true,
           closingNote: true,
           source: true,
@@ -153,7 +166,7 @@ const SecurityCaseViewPage: FunctionComponent<PageComponentProps> = (
           },
           // OneUptime AI's triage of the case, for its AI card.
           aiVerdict: true,
-          aiSuggestedPriority: true,
+          aiSuggestedSecurityCasePriorityId: true,
           aiSuggestedPlaybookId: true,
           aiTriageReport: true,
           aiTriagedAt: true,
@@ -235,7 +248,15 @@ const SecurityCaseViewPage: FunctionComponent<PageComponentProps> = (
   const breadcrumbs: ReturnType<typeof getSecurityEventsBreadcrumbs> =
     getSecurityEventsBreadcrumbs(path);
 
-  if (isLoading && !securityCase) {
+  if (valuesError && !values) {
+    return (
+      <Page title="Case" breadcrumbLinks={breadcrumbs}>
+        <ErrorMessage message={valuesError} onRefreshClick={retryValues} />
+      </Page>
+    );
+  }
+
+  if ((isLoading && !securityCase) || (!values && !error)) {
     return (
       <Page title="Case" breadcrumbLinks={breadcrumbs} isLoading={true}>
         <></>
@@ -243,13 +264,23 @@ const SecurityCaseViewPage: FunctionComponent<PageComponentProps> = (
     );
   }
 
-  if (error || !securityCase) {
+  if (error || !securityCase || !values) {
     return (
       <Page title="Case" breadcrumbLinks={breadcrumbs}>
         <ErrorMessage message={error || "This case could not be loaded."} />
       </Page>
     );
   }
+
+  const isClosed: boolean = SecurityCaseStatuses.isClosed(
+    values.statuses,
+    securityCase.securityCaseStatusId,
+  );
+  const projectClosedStatus: SecurityCaseStatus | null =
+    SecurityCaseStatuses.getStatusOfStage(
+      values.statuses,
+      SecurityCaseStage.Closed,
+    );
 
   const entities: ReturnType<typeof readSecurityEntities> =
     readSecurityEntities(securityCase.entities);
@@ -276,20 +307,30 @@ const SecurityCaseViewPage: FunctionComponent<PageComponentProps> = (
 
         <SecurityCaseHeader
           securityCase={securityCase}
+          values={values}
           isWorking={isWorking}
           onAssignToMe={() => {
             void updateCase({ assignedToUserId: User.getUserId().toString() });
           }}
           onChangeStatus={(status: SecurityCaseStatus) => {
-            if (status === SecurityCaseStatus.Closed) {
+            // A status that closes the case asks for its verdict first.
+            if (
+              !isClosed &&
+              SecurityCaseStatuses.isClosed(values.statuses, status.id)
+            ) {
+              setCloseToStatus(status);
               setDialog("close");
               return;
             }
 
-            void updateCase({ status });
+            void updateCase({
+              securityCaseStatusId: status.id!.toString(),
+            });
           }}
           onChangePriority={(priority: SecurityCasePriority) => {
-            void updateCase({ priority });
+            void updateCase({
+              securityCasePriorityId: priority.id!.toString(),
+            });
           }}
           onRunPlaybook={() => {
             setPlaybookToRun(null);
@@ -326,11 +367,7 @@ const SecurityCaseViewPage: FunctionComponent<PageComponentProps> = (
           <EventStatTile
             variant="segment"
             icon={IconProp.Clock}
-            label={
-              securityCase.status === SecurityCaseStatus.Closed
-                ? "Took"
-                : "Open For"
-            }
+            label={isClosed ? "Took" : "Open For"}
             value={formatDurationInMinutes(openFor)}
           />
           <EventStatTile
@@ -355,11 +392,14 @@ const SecurityCaseViewPage: FunctionComponent<PageComponentProps> = (
             */}
             <SecurityCaseAiCard
               securityCase={securityCase}
+              priorities={values.priorities}
               refreshToggle={refreshToggle}
               isWorking={isWorking}
               onTriaged={refreshAll}
               onSetPriority={(priority: SecurityCasePriority) => {
-                void updateCase({ priority });
+                void updateCase({
+                  securityCasePriorityId: priority.id!.toString(),
+                });
               }}
               onRunPlaybook={(playbookId: ObjectID) => {
                 setPlaybookToRun(playbookId);
@@ -401,9 +441,14 @@ const SecurityCaseViewPage: FunctionComponent<PageComponentProps> = (
         </div>
       </div>
 
-      {dialog === "close" ? (
+      {dialog === "close" && (closeToStatus || projectClosedStatus) ? (
         <CloseSecurityCaseModal
           securityCase={securityCase}
+          closeToStatus={(closeToStatus || projectClosedStatus)!}
+          isProjectClosedStatus={
+            !closeToStatus ||
+            closeToStatus.id?.toString() === projectClosedStatus?.id?.toString()
+          }
           onClose={() => {
             setDialog(null);
           }}

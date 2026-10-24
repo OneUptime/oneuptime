@@ -385,6 +385,8 @@ import ThreatIntelIndicatorService from "./ThreatIntelIndicatorService";
 import SecurityCaseService from "./SecurityCaseService";
 import SecurityCaseFeedService from "./SecurityCaseFeedService";
 import SecurityCaseNoteService from "./SecurityCaseNoteService";
+import SecurityCasePriorityService from "./SecurityCasePriorityService";
+import SecurityCaseStatusService from "./SecurityCaseStatusService";
 import SecurityDetectionService from "./SecurityDetectionService";
 import SecurityPlaybookService from "./SecurityPlaybookService";
 import SecurityPlaybookRunService from "./SecurityPlaybookRunService";
@@ -888,6 +890,8 @@ const services: Array<BaseService> = [
   SecurityCaseService,
   SecurityCaseFeedService,
   SecurityCaseNoteService,
+  SecurityCasePriorityService,
+  SecurityCaseStatusService,
   SecurityDetectionService,
   SecurityPlaybookService,
   SecurityPlaybookRunService,

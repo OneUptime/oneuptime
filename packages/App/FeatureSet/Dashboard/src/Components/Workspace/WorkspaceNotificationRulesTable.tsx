@@ -21,6 +21,8 @@ import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
 import API from "Common/UI/Utils/API/API";
@@ -85,6 +87,10 @@ import {
   VIDEO_CALL_STEP_TITLE,
 } from "./NotificationRuleForm/NotificationRuleCopy";
 import { canRuleCreateChannel } from "./NotificationRuleForm/NotificationRuleOwnChannel";
+import {
+  SecurityCaseValueLists,
+  getSecurityCaseValues,
+} from "../SecurityCase/SecurityCaseValues";
 
 /*
  * How each step of the rule wizard opens: with its question as a heading
@@ -146,6 +152,13 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
     React.useState<Array<ScheduledMaintenanceState>>([]);
   const [monitorStatus, setMonitorStatus] = React.useState<
     Array<MonitorStatus>
+  >([]);
+  // A security case rule's priorities and statuses: the project's own.
+  const [securityCasePriorities, setSecurityCasePriorities] = React.useState<
+    Array<SecurityCasePriority>
+  >([]);
+  const [securityCaseStatuses, setSecurityCaseStatuses] = React.useState<
+    Array<SecurityCaseStatus>
   >([]);
   const [teams, setTeams] = React.useState<Array<Team>>([]);
   const [microsoftTeamsTeams, setMicrosoftTeams] = React.useState<
@@ -371,6 +384,16 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         });
 
       setScheduledMaintenanceStates(scheduledMaintenanceStates.data);
+
+      // Read only for the security case rules, whose conditions name them.
+      if (props.eventType === NotificationRuleEventType.SecurityCase) {
+        const caseValues: SecurityCaseValueLists = await getSecurityCaseValues(
+          ProjectUtil.getCurrentProjectId()!,
+        );
+
+        setSecurityCasePriorities(caseValues.priorities);
+        setSecurityCaseStatuses(caseValues.statuses);
+      }
 
       const monitorStatus: ListResult<MonitorStatus> = await ModelAPI.getList({
         modelType: MonitorStatus,
@@ -661,6 +684,8 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         incidentSeverities={incidentSeverities}
         incidentStates={incidentStates}
         scheduledMaintenanceStates={scheduledMaintenanceStates}
+        securityCasePriorities={securityCasePriorities}
+        securityCaseStatuses={securityCaseStatuses}
         monitorStatus={monitorStatus}
         workspaceType={props.workspaceType}
         teams={teams}
@@ -1067,6 +1092,8 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           incidentSeverities: incidentSeverities,
           incidentStates: incidentStates,
           scheduledMaintenanceStates: scheduledMaintenanceStates,
+          securityCasePriorities: securityCasePriorities,
+          securityCaseStatuses: securityCaseStatuses,
           monitorStatus: monitorStatus,
           teams: teams,
           users: users,

@@ -27,6 +27,8 @@ import NetworkSiteAssignmentRuleService from "Common/Server/Services/NetworkSite
 import ScheduledMaintenanceMeasurementService from "Common/Server/Services/ScheduledMaintenanceMeasurementService";
 import ScheduledMaintenanceReminderRuleService from "Common/Server/Services/ScheduledMaintenanceReminderRuleService";
 import ScheduledMaintenanceStateService from "Common/Server/Services/ScheduledMaintenanceStateService";
+import SecurityCasePriorityService from "Common/Server/Services/SecurityCasePriorityService";
+import SecurityCaseStatusService from "Common/Server/Services/SecurityCaseStatusService";
 import StatusPageFooterLinkService from "Common/Server/Services/StatusPageFooterLinkService";
 import StatusPageHeaderLinkService from "Common/Server/Services/StatusPageHeaderLinkService";
 import StatusPageHistoryChartBarColorRuleService from "Common/Server/Services/StatusPageHistoryChartBarColorRuleService";
@@ -109,6 +111,9 @@ export default class NormalizeListOrder extends DataMigrationBase {
       AlertSeverityService,
       // A project's postmortem statuses, made with their places since they began.
       IncidentPostmortemStatusService,
+      // A project's security case statuses and priorities, the same since they began.
+      SecurityCaseStatusService,
+      SecurityCasePriorityService,
     ] as Array<DatabaseService<any>>;
   }
 

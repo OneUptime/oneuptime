@@ -16,10 +16,19 @@ import Team from "../../../Models/DatabaseModels/Team";
 import User from "../../../Models/DatabaseModels/User";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import SecurityCasePriority from "../../../Types/SecurityCase/SecurityCasePriority";
-import SecurityCaseStatus from "../../../Types/SecurityCase/SecurityCaseStatus";
+import SecurityCasePriorityLevel from "../../../Types/SecurityCase/SecurityCasePriorityLevel";
+import SecurityCaseStage from "../../../Types/SecurityCase/SecurityCaseStage";
 import { SETUP_TEST_SOURCE_IP } from "../../../Types/SecurityEvent/SecuritySetupTest";
 import { getJestSpyOn } from "../../Spy";
+import {
+  TEST_PRIORITY_IDS,
+  TEST_STATUS_IDS,
+  buildDefaultTestPriorities,
+  buildTestPriority,
+  testPriorityId,
+  testStatusId,
+} from "../../Helpers/SecurityCaseValues";
+import { stubSecurityCaseValues } from "../../Helpers/SecurityCaseValuesStub";
 import {
   afterEach,
   beforeEach,
@@ -63,6 +72,8 @@ let reached: Array<JSONObject>;
 let assigned: Array<JSONObject>;
 
 beforeEach(() => {
+  // The project's priorities and statuses: a new project's.
+  stubSecurityCaseValues();
   reached = [];
   assigned = [];
 
@@ -114,8 +125,10 @@ function created(overrides: Partial<SecurityCase> = {}): SecurityCase {
   const securityCase: SecurityCase = new SecurityCase();
   securityCase._id = CASE_ID.toString();
   securityCase.projectId = PROJECT_ID;
-  securityCase.priority = SecurityCasePriority.High;
-  securityCase.status = SecurityCaseStatus.New;
+  securityCase.securityCasePriorityId = testPriorityId(
+    SecurityCasePriorityLevel.High,
+  );
+  securityCase.securityCaseStatusId = testStatusId(SecurityCaseStage.New);
   securityCase.groupingKey = "entity:198.51.100.7";
   Object.assign(securityCase, overrides);
   return securityCase;
@@ -176,7 +189,11 @@ describe("a case that opens", () => {
   test("opened by a detection: queued the same, by nobody in particular", async () => {
     await service.onCreateSuccess(
       onCreate({ openedByDetection: true }),
-      created({ priority: SecurityCasePriority.Critical }),
+      created({
+        securityCasePriorityId: testPriorityId(
+          SecurityCasePriorityLevel.Critical,
+        ),
+      }),
     );
 
     expect(reached).toEqual([
@@ -208,7 +225,8 @@ describe("a case that changes", () => {
   function onUpdate(data: {
     change: JSONObject;
     before: Partial<{
-      priority: SecurityCasePriority;
+      // The case's priority before: a level's built-in, or an id of the project's own.
+      priority: SecurityCasePriorityLevel | string;
       assignedToUserId: string;
       assignedToTeamId: string;
     }>;
@@ -236,8 +254,12 @@ describe("a case that changes", () => {
           {
             id: CASE_ID.toString(),
             projectId: PROJECT_ID,
-            status: SecurityCaseStatus.Investigating,
-            priority: data.before.priority || SecurityCasePriority.Medium,
+            statusId: TEST_STATUS_IDS[SecurityCaseStage.Acknowledged],
+            priorityId:
+              TEST_PRIORITY_IDS[
+                (data.before.priority ||
+                  SecurityCasePriorityLevel.Medium) as SecurityCasePriorityLevel
+              ] || data.before.priority,
             verdict: undefined,
             assignedToUserId: data.before.assignedToUserId,
             assignedToTeamId: data.before.assignedToTeamId,
@@ -252,8 +274,12 @@ describe("a case that changes", () => {
   test("a rise in priority may reach somebody's priority now", async () => {
     await service.onUpdateSuccess(
       onUpdate({
-        change: { priority: SecurityCasePriority.Critical },
-        before: { priority: SecurityCasePriority.Medium },
+        change: {
+          securityCasePriorityId: testPriorityId(
+            SecurityCasePriorityLevel.Critical,
+          ),
+        },
+        before: { priority: SecurityCasePriorityLevel.Medium },
         userId: PERSON_ID,
       }),
       [CASE_ID],
@@ -268,18 +294,57 @@ describe("a case that changes", () => {
     ]);
   });
 
+  test("a rise is read off the project's order: up to its own Emergency, above Critical", async () => {
+    const emergencyId: string = "c1000000-0000-4000-8000-0000000000e1";
+    stubSecurityCaseValues({
+      priorities: [
+        buildTestPriority({ id: emergencyId, name: "Emergency", order: 0 }),
+        ...buildDefaultTestPriorities(),
+      ],
+    });
+
+    await service.onUpdateSuccess(
+      onUpdate({
+        change: { securityCasePriorityId: emergencyId },
+        before: { priority: SecurityCasePriorityLevel.Critical },
+      }),
+      [CASE_ID],
+    );
+    expect(reached).toHaveLength(1);
+
+    reached = [];
+    await service.onUpdateSuccess(
+      onUpdate({
+        change: {
+          securityCasePriorityId: testPriorityId(
+            SecurityCasePriorityLevel.Critical,
+          ),
+        },
+        before: { priority: emergencyId },
+      }),
+      [CASE_ID],
+    );
+    expect(reached).toEqual([]);
+  });
+
   test("a lower priority, or the same one, tells nobody", async () => {
     await service.onUpdateSuccess(
       onUpdate({
-        change: { priority: SecurityCasePriority.Low },
-        before: { priority: SecurityCasePriority.High },
+        change: {
+          securityCasePriorityId: testPriorityId(SecurityCasePriorityLevel.Low),
+        },
+        before: { priority: SecurityCasePriorityLevel.High },
       }),
       [CASE_ID],
     );
     await service.onUpdateSuccess(
       onUpdate({
-        change: { priority: SecurityCasePriority.High },
-        before: { priority: SecurityCasePriority.High },
+        change: {
+          securityCasePriorityId: testPriorityId(
+            SecurityCasePriorityLevel.High,
+          ),
+        },
+        before: { priority: SecurityCasePriorityLevel.High },
       }),
       [CASE_ID],
     );

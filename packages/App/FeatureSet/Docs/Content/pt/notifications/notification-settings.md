@@ -71,7 +71,7 @@ A aba **Plantão** é sobre você, não sobre os registros que são seus:
 
 A aba **Segurança** é sobre os casos de segurança que você pode ver:
 
-- **Novo caso de segurança** tem uma prioridade embaixo do nome: a prioridade mais baixa que um caso precisa ter para notificar você. Ela é **Alta e Crítica**, a menos que você escolha **Somente Crítica**, **Média e acima**, **Baixa e acima** ou **Todos os casos**.
+- **Novo caso de segurança** tem uma prioridade embaixo do nome: a prioridade mais baixa que um caso precisa ter para notificar você. Ela é **Alta e acima**, a menos que você escolha **Somente Crítica**, **Média e acima**, **Baixa e acima** ou **Todos os casos**.
 - **Caso de segurança atribuído a mim** acompanha os casos atribuídos a você e às equipes de que você faz parte.
 - **Etapa de playbook aguardando minha aprovação** pede que você aprove ou rejeite uma etapa de playbook em um caso no qual você pode aprovar etapas.
 

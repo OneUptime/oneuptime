@@ -71,7 +71,7 @@ La pestaña **De guardia** trata de ti, no de los registros que son tuyos:
 
 La pestaña **Seguridad** trata de los casos de seguridad que puedes ver:
 
-- **Nuevo caso de seguridad** tiene una prioridad debajo de su nombre: la prioridad mínima de los casos que te avisan. Es **Alta y Crítica** salvo que elijas **Solo Crítica**, **Media y superior**, **Baja y superior** o **Todos los casos**.
+- **Nuevo caso de seguridad** tiene una prioridad debajo de su nombre: la prioridad mínima de los casos que te avisan. Es **Alta y superior** salvo que elijas **Solo Crítica**, **Media y superior**, **Baja y superior** o **Todos los casos**.
 - **Caso de seguridad asignado a mí** sigue los casos asignados a ti y a los equipos de los que formas parte.
 - **Paso de playbook esperando mi aprobación** te pide que apruebes o rechaces un paso de playbook en un caso en el que puedes aprobar.
 

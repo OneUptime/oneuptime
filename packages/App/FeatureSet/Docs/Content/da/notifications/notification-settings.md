@@ -71,7 +71,7 @@ Fanen **Vagt** handler om dig, ikke om de ting, du ejer:
 
 Fanen **Sikkerhed** handler om de sikkerhedssager, du kan se:
 
-- **Ny sikkerhedssag** har en prioritet under sit navn: den laveste prioritet, en sag skal have for at give dig besked. Den er **Høj og Kritisk**, medmindre du vælger **Kun Kritisk**, **Mellem og højere**, **Lav og højere** eller **Alle sager**.
+- **Ny sikkerhedssag** har en prioritet under sit navn: den laveste prioritet, en sag skal have for at give dig besked. Den er **Høj og højere**, medmindre du vælger **Kun Kritisk**, **Mellem og højere**, **Lav og højere** eller **Alle sager**.
 - **Sikkerhedssag tildelt mig** følger de sager, der er tildelt dig, og dem, der er tildelt de teams, du er med i.
 - **Playbook-trin venter på min godkendelse** beder dig godkende eller afvise et playbook-trin på en sag, hvor du må godkende trin.
 

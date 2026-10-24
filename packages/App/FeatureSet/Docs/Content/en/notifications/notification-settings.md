@@ -71,7 +71,7 @@ The **On-Call** tab is about you, not about records you own:
 
 The **Security** tab is about the security cases you can see:
 
-- **New security case** has a priority under its name: the lowest priority of case that notifies you. It is **High and Critical** unless you choose **Critical only**, **Medium and above**, **Low and above** or **Every case**.
+- **New security case** has a priority under its name: the lowest priority of case that notifies you. It is **High and above** unless you choose **Critical only**, **Medium and above**, **Low and above** or **Every case**.
 - **Security case assigned to me** follows the cases assigned to you, and to the teams you are on.
 - **Playbook step waiting for my approval** asks you to approve or reject a playbook step on a case you can approve.
 

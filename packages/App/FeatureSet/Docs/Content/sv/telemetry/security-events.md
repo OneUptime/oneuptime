@@ -49,8 +49,10 @@ flowchart TB
 | **Inställningar** | AI | Om OneUptime AI bedömer varje nytt ärende |
 | **Connections** | Connections | Dina loggar, säkerhetsprodukterna som OneUptime hämtar från och de SIEM som det skickar till |
 | **Installationsguide** | Connections | Kodsnuttar för att skicka händelser, ifyllda med din ingestion-nyckel |
+| **Ärendeprioriteter** | Inställningar | Hur brådskande ett ärende är: projektets egna prioriteter, den mest brådskande först |
+| **Ärendestatusar** | Inställningar | Stegen ett ärende går igenom, och vad ett ärende i varje steg räknas som |
 
-**Detections**, **AI** och **Connections**, som sätts upp en gång, förblir hopfällda tills du öppnar dem. Ny inom säkerhet? [Kom igång med säkerhet](/docs/telemetry/security-getting-started) sätter upp det med två klick.
+**Detections**, **AI**, **Connections** och **Inställningar**, som sätts upp en gång, förblir hopfällda tills du öppnar dem. Ny inom säkerhet? [Kom igång med säkerhet](/docs/telemetry/security-getting-started) sätter upp det med två klick.
 
 ## Innan du börjar
 

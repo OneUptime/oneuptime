@@ -194,7 +194,7 @@ Datensätze nehmen `list`, `get`, `create`, `update`, `delete` und `count`:
 | Statusseiten | `status-page`, `status-page-announcement` |
 | Geplante Wartung | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
 | Teams und Bereitschaft | `team`, `on-call-policy` |
-| Sicherheit | `security-case`, `security-case-note`, `security-detection`, `security-playbook` |
+| Sicherheit | `security-case`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-detection`, `security-playbook` |
 | Labels | `label` |
 
 Telemetrie nimmt `list`, `create` und `count`:

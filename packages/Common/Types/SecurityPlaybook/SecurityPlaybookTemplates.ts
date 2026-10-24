@@ -1,7 +1,7 @@
 import IconProp from "../Icon/IconProp";
 import ObjectID from "../ObjectID";
-import SecurityCasePriority from "../SecurityCase/SecurityCasePriority";
-import SecurityCaseStatus from "../SecurityCase/SecurityCaseStatus";
+import SecurityCasePriorityLevel from "../SecurityCase/SecurityCasePriorityLevel";
+import SecurityCaseStage from "../SecurityCase/SecurityCaseStage";
 import SecurityDetectionSource from "../SecurityCase/SecurityDetectionSource";
 import { SecurityPlaybookActionType } from "./SecurityPlaybookAction";
 import { SecurityPlaybookStep } from "./SecurityPlaybookStep";
@@ -15,16 +15,31 @@ import SecurityPlaybookTrigger from "./SecurityPlaybookTrigger";
  *
  * Shared by the dashboard (Playbooks: "Start from a template") and the
  * server (the one-click setup turns the first one on).
+ *
+ * A template names case priorities and statuses by what they mean - the
+ * high priority, the acknowledged status - never by name: every project
+ * keeps one of each (SecurityCasePriorityLevel, SecurityCaseStage), and the
+ * playbook made from a template names the project's own by id
+ * (SecurityTemplateRecords hands getSteps the project's ids).
  */
+export interface SecurityPlaybookTemplateValues {
+  // The id of the project's built-in priority of a level ("" when it has none).
+  priorityId: (level: SecurityCasePriorityLevel) => string;
+  // The id of the project's built-in status of a stage ("" when it has none).
+  statusId: (stage: SecurityCaseStage) => string;
+}
+
 export interface SecurityPlaybookTemplateDefinition {
   key: string;
   title: string;
   description: string;
   icon: IconProp;
   trigger: SecurityPlaybookTrigger;
-  minimumPriority?: SecurityCasePriority | undefined;
+  minimumPriorityLevel?: SecurityCasePriorityLevel | undefined;
   detectionSource?: SecurityDetectionSource | undefined;
-  getSteps: () => Array<SecurityPlaybookStep>;
+  getSteps: (
+    values: SecurityPlaybookTemplateValues,
+  ) => Array<SecurityPlaybookStep>;
 }
 
 function step(
@@ -59,11 +74,17 @@ export const SECURITY_PLAYBOOK_TEMPLATE_DEFINITIONS: ReadonlyArray<SecurityPlayb
         "As a case opens: check its entities against threat intel, count their recent activity, and leave a triage checklist on the case.",
       icon: IconProp.MagnifyingGlass,
       trigger: SecurityPlaybookTrigger.CaseOpened,
-      getSteps: (): Array<SecurityPlaybookStep> => {
+      getSteps: (
+        values: SecurityPlaybookTemplateValues,
+      ): Array<SecurityPlaybookStep> => {
         return [
           step(
             SecurityPlaybookActionType.CheckThreatIntel,
-            { raisePriorityTo: SecurityCasePriority.High },
+            {
+              raisePriorityToId: values.priorityId(
+                SecurityCasePriorityLevel.High,
+              ),
+            },
             { continueOnFailure: true },
           ),
           step(
@@ -84,17 +105,21 @@ export const SECURITY_PLAYBOOK_TEMPLATE_DEFINITIONS: ReadonlyArray<SecurityPlayb
         "When a detection joins a case: if any entity is a known threat-intel indicator, raise the case to Critical and move it to Investigating.",
       icon: IconProp.Bug,
       trigger: SecurityPlaybookTrigger.DetectionAdded,
-      getSteps: (): Array<SecurityPlaybookStep> => {
+      getSteps: (
+        values: SecurityPlaybookTemplateValues,
+      ): Array<SecurityPlaybookStep> => {
         return [
           step(SecurityPlaybookActionType.CheckThreatIntel, {}),
           step(
             SecurityPlaybookActionType.SetCasePriority,
-            { priority: SecurityCasePriority.Critical },
+            {
+              priorityId: values.priorityId(SecurityCasePriorityLevel.Critical),
+            },
             { onlyIfThreatIntelMatched: true },
           ),
           step(
             SecurityPlaybookActionType.SetCaseStatus,
-            { status: SecurityCaseStatus.Investigating },
+            { statusId: values.statusId(SecurityCaseStage.Acknowledged) },
             { onlyIfThreatIntelMatched: true },
           ),
         ];

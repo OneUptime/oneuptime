@@ -22,8 +22,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * AddProfileAiRules), so nothing else changes. The column with a constant
  * default is added without rewriting a row.
  */
-export class AddExceptionAiSwitch1807140000000 implements MigrationInterface {
-  public name: string = "AddExceptionAiSwitch1807140000000";
+export class AddExceptionAiSwitch1807220000000 implements MigrationInterface {
+  public name: string = "AddExceptionAiSwitch1807220000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

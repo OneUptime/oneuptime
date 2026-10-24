@@ -314,6 +314,9 @@ const REFERENCED_AS_A_WHOLE_TABLE: Record<string, string> = {
   IncidentRole: PROJECT_SETTING,
   // An incident's postmortem status: one of the project's statuses.
   IncidentPostmortemStatus: PROJECT_SETTING,
+  // A security case's status and priority, a playbook's minimum, a person's notification minimum.
+  SecurityCaseStatus: PROJECT_SETTING,
+  SecurityCasePriority: PROJECT_SETTING,
   AlertGroupingRule: PROJECT_SETTING,
   IncidentGroupingRule: PROJECT_SETTING,
   IncidentSlaRule: PROJECT_SETTING,

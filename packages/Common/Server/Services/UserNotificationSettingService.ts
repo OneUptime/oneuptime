@@ -27,7 +27,9 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import NotificationSettingEventType from "../../Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
-import { isSecurityCasePriority } from "../../Types/SecurityCase/SecurityCasePriority";
+import SecurityCasePriorities from "../../Utils/SecurityCase/SecurityCasePriorities";
+import SecurityCaseValues from "../Utils/SecurityCase/SecurityCaseValues";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { SMSMessage } from "../../Types/SMS/SMS";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import TelegramMessage, {
@@ -70,24 +72,24 @@ export const SECURITY_CASE_NOTIFICATION_EVENT_TYPES: ReadonlyArray<NotificationS
     NotificationSettingEventType.SEND_SECURITY_PLAYBOOK_APPROVAL_NOTIFICATION,
   ];
 
+// The setting's priority choice, by either spelling: the ID column first.
+const MINIMUM_PRIORITY_KEYS: Array<string> = [
+  "minimumSecurityCasePriorityId",
+  "minimumSecurityCasePriority",
+];
+
 /*
- * A setting's priority choice (minimumSecurityCasePriority) is a priority or
- * nothing, and only the New Security Case setting has one.
+ * A setting's priority choice (minimumSecurityCasePriorityId) is one of the
+ * setting's project's case priorities, or nothing, and only the New Security
+ * Case setting has one.
  */
-function checkMinimumSecurityCasePriority(data: {
-  minimumSecurityCasePriority: unknown;
+async function checkMinimumSecurityCasePriority(data: {
+  minimumSecurityCasePriorityId: ObjectID | null;
   eventType: unknown;
-}): void {
-  const value: unknown = data.minimumSecurityCasePriority;
-
-  if (value === undefined || value === null || value === "") {
+  projectIds: Array<ObjectID>;
+}): Promise<void> {
+  if (!data.minimumSecurityCasePriorityId) {
     return;
-  }
-
-  if (!isSecurityCasePriority(value)) {
-    throw new BadDataException(
-      "The priority must be Critical, High, Medium, Low or Informational.",
-    );
   }
 
   if (
@@ -98,6 +100,19 @@ function checkMinimumSecurityCasePriority(data: {
     throw new BadDataException(
       "Only the New Security Case setting has a priority to choose.",
     );
+  }
+
+  for (const projectId of data.projectIds) {
+    if (
+      !SecurityCasePriorities.find(
+        await SecurityCaseValues.getPriorities(projectId),
+        data.minimumSecurityCasePriorityId,
+      )
+    ) {
+      throw new BadDataException(
+        "Choose one of this project's security case priorities.",
+      );
+    }
   }
 }
 
@@ -1248,9 +1263,14 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       );
     }
 
-    checkMinimumSecurityCasePriority({
-      minimumSecurityCasePriority: createBy.data.minimumSecurityCasePriority,
+    await checkMinimumSecurityCasePriority({
+      minimumSecurityCasePriorityId: RelationIdUtil.readIntoIdColumn(
+        createBy.data as unknown as Record<string, unknown>,
+        MINIMUM_PRIORITY_KEYS,
+        "Minimum Security Case Priority",
+      ),
       eventType: createBy.data.eventType,
+      projectIds: createBy.data.projectId ? [createBy.data.projectId] : [],
     });
 
     return {
@@ -1270,24 +1290,31 @@ export class Service extends DatabaseService<UserNotificationSetting> {
      * by its rows reads them (findRowsAndHoldUpdateToThem), with the update
      * held to them - so the rows checked are the rows written.
      */
-    const minimumSecurityCasePriority: unknown = (
-      updateBy.data as unknown as Record<string, unknown>
-    )["minimumSecurityCasePriority"];
+    const minimumSecurityCasePriorityId: ObjectID | null =
+      RelationIdUtil.readIntoIdColumn(
+        updateBy.data as unknown as Record<string, unknown>,
+        MINIMUM_PRIORITY_KEYS,
+        "Minimum Security Case Priority",
+      );
 
-    if (
-      minimumSecurityCasePriority !== undefined &&
-      minimumSecurityCasePriority !== null &&
-      minimumSecurityCasePriority !== ""
-    ) {
-      checkMinimumSecurityCasePriority({
-        minimumSecurityCasePriority,
-        eventType: undefined,
-      });
-
+    if (minimumSecurityCasePriorityId) {
       const rows: Array<UserNotificationSetting> =
         await this.findRowsAndHoldUpdateToThem(updateBy, {
           eventType: true,
+          projectId: true,
         });
+
+      await checkMinimumSecurityCasePriority({
+        minimumSecurityCasePriorityId,
+        eventType: undefined,
+        projectIds: rows
+          .map((row: UserNotificationSetting): ObjectID | undefined => {
+            return row.projectId;
+          })
+          .filter((id: ObjectID | undefined): id is ObjectID => {
+            return Boolean(id);
+          }),
+      });
 
       const isAnotherEventsRow: boolean = rows.some(
         (row: UserNotificationSetting): boolean => {
