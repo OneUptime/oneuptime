@@ -174,6 +174,8 @@ import IncidentAIContextBuilder, {
   AIGenerationContext,
   IncidentContextData,
 } from "../Utils/AI/IncidentAIContextBuilder";
+import { AiContextActivity } from "../../Types/AI/AiContext";
+import AiContextReader from "../Utils/AI/AiContext/AiContextReader";
 import IncidentAlertService, {
   AcknowledgeDeclaredAlertsResult,
   AlertsToAcknowledgeOnDeclare,
@@ -7604,6 +7606,12 @@ ${incidentSeverity.name}
      * project's provider.
      */
     llmProviderId?: ObjectID | undefined;
+    /*
+     * What the draft reads of the project's AI context (Types/AI/AiContext):
+     * read by the caller when it says what the draft was written from (the
+     * automatic draft's feed item), null for none. Left out, it is read here.
+     */
+    aiContext?: AiContextActivity | null | undefined;
   }): Promise<string> {
     // Get the incident to verify it exists and get the project ID
     const incident: Model | null = await this.findOneById({
@@ -7642,11 +7650,18 @@ ${incidentSeverity.name}
         includeCalls: true,
       });
 
+    // The project's AI context: the team's notes on its systems.
+    const projectAiContext: AiContextActivity | null =
+      data.aiContext !== undefined
+        ? data.aiContext
+        : await AiContextReader.read({ projectId: incident.projectId });
+
     // Format context for postmortem generation
     const aiContext: AIGenerationContext =
       IncidentAIContextBuilder.formatIncidentContextForPostmortem(
         contextData,
         data.template,
+        projectAiContext,
       );
 
     /*

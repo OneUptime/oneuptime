@@ -693,6 +693,9 @@ export default class InvestigationThreadService {
             additionalSystemInstructions: context.additionalSystemInstructions,
             extraTools: context.extraTools,
             pageContext: context.pageContext,
+            ...(context.aiContextRules.length > 0
+              ? { aiContextRules: context.aiContextRules }
+              : {}),
           }
         : {}),
     };

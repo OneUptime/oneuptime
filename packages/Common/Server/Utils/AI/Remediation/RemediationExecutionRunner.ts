@@ -102,6 +102,8 @@ import AutoRemediationRuleEngineService, {
 import AIInvestigationEngine from "../SRE/AIInvestigationEngine";
 import RemediationCodeRepositories from "./RemediationCodeRepositories";
 import { CodeRepositoryAllowance } from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
+import { AiContextRule } from "../../../../Types/AI/AiContext";
+import AiContextReader from "../AiContext/AiContextReader";
 import AIInvestigationQueue from "../SRE/InvestigationQueue";
 import PostedRootCause from "../SRE/PostedRootCause";
 import { ConfidenceSignal } from "../SRE/ConfidenceSignal";
@@ -1428,6 +1430,14 @@ export default class RemediationExecutionRunner {
         autoRemediationRuleId: suggestion!.autoRemediationRuleId,
       });
 
+    // The AI context of the rule the fix works for, after the project's.
+    const aiContextRules: Array<AiContextRule> = await AiContextReader.forRule(
+      {
+        projectId,
+        autoRemediationRuleId: suggestion!.autoRemediationRuleId,
+      },
+    );
+
     await AIInvestigationEngine.executeRun({
       aiRunId,
       projectId,
@@ -1438,6 +1448,7 @@ export default class RemediationExecutionRunner {
         alertId: suggestion!.alertId,
         contextSummary,
         codeRepositoryAllowance,
+        ...(aiContextRules.length > 0 ? { aiContextRules } : {}),
         personaOverride: persona,
         questionOverride: resolvedClusterTarget
           ? resolvedMode === "FullAuto"

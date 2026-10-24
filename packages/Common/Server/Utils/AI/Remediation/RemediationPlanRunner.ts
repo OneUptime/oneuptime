@@ -48,6 +48,8 @@ import Semaphore, { SemaphoreMutex } from "../../../Infrastructure/Semaphore";
 import { AI_REMEDIATION_PLANNING_FEATURE } from "../../../Services/AIService";
 import AIInvestigationEngine from "../SRE/AIInvestigationEngine";
 import RemediationCodeRepositories from "./RemediationCodeRepositories";
+import { AiContextRule } from "../../../../Types/AI/AiContext";
+import AiContextReader from "../AiContext/AiContextReader";
 import { CodeRepositoryAllowance } from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
 import AIInvestigationQueue from "../SRE/InvestigationQueue";
 import PostedRootCause from "../SRE/PostedRootCause";
@@ -378,6 +380,14 @@ export default class RemediationPlanRunner {
         autoRemediationRuleId: suggestion!.autoRemediationRuleId,
       });
 
+    // The AI context of the rule the pick is for, after the project's.
+    const aiContextRules: Array<AiContextRule> = await AiContextReader.forRule(
+      {
+        projectId,
+        autoRemediationRuleId: suggestion!.autoRemediationRuleId,
+      },
+    );
+
     await AIInvestigationEngine.executeRun({
       aiRunId,
       projectId,
@@ -388,6 +398,7 @@ export default class RemediationPlanRunner {
         alertId: suggestion!.alertId,
         contextSummary,
         codeRepositoryAllowance,
+        ...(aiContextRules.length > 0 ? { aiContextRules } : {}),
         postAnalysis: async (postData: {
           analysisMarkdown: string;
           confidence: ConfidenceSignal;
