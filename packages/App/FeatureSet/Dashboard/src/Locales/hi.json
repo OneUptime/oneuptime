@@ -33677,6 +33677,7 @@
   "Read over SNMP by a discovery scan, {{time}}.": "किसी डिस्कवरी स्कैन ने इसे {{time}} SNMP पर पढ़ा।",
   "Read over SNMP by discovery scan {{name}}, {{time}}.": "डिस्कवरी स्कैन {{name}} ने इसे {{time}} SNMP पर पढ़ा।",
   "Worked out from its name and what it reports": "इसके नाम और इसकी भेजी जानकारी से तय किया गया",
+  "Nothing has been read from this device yet. Its details fill in after its first SNMP walk, or the next discovery scan of its address.": "इस डिवाइस से अभी तक कुछ भी नहीं पढ़ा गया है। इसके पहले SNMP वॉक या इसके पते के अगले डिस्कवरी स्कैन के बाद इसका विवरण भर जाएगा।",
   "Appliance {{appliance}}": "अप्लायंस {{appliance}}",
   "Bytes through the appliances' uplinks in this time range, as Meraki counts them: what they received (download) and sent (upload). Meraki reports them in five-minute windows; a window at the edge of the range counts for the part inside it.": "इस समय-सीमा में अप्लायंस के अपलिंक से गुज़रे बाइट, जैसे Meraki उन्हें गिनता है: जो उन्होंने पाया (डाउनलोड) और भेजा (अपलोड)। Meraki इन्हें पाँच मिनट की विंडो में बताता है; सीमा के किनारे की विंडो का केवल अंदर वाला हिस्सा गिना जाता है।",
   "Check that your OneUptime server can reach the Meraki dashboard API over HTTPS, then try again.": "जाँचें कि आपका OneUptime सर्वर HTTPS पर Meraki डैशबोर्ड API तक पहुँच सकता है, फिर दोबारा कोशिश करें।",

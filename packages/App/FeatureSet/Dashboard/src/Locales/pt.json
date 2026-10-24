@@ -33677,6 +33677,7 @@
   "Read over SNMP by a discovery scan, {{time}}.": "Lido via SNMP por uma varredura de descoberta, {{time}}.",
   "Read over SNMP by discovery scan {{name}}, {{time}}.": "Lido via SNMP pela varredura de descoberta {{name}}, {{time}}.",
   "Worked out from its name and what it reports": "Deduzido do nome e do que ele informa",
+  "Nothing has been read from this device yet. Its details fill in after its first SNMP walk, or the next discovery scan of its address.": "Nada foi lido deste dispositivo ainda. Os detalhes aparecem depois do primeiro walk SNMP ou da próxima varredura de descoberta do endereço dele.",
   "Appliance {{appliance}}": "Appliance {{appliance}}",
   "Bytes through the appliances' uplinks in this time range, as Meraki counts them: what they received (download) and sent (upload). Meraki reports them in five-minute windows; a window at the edge of the range counts for the part inside it.": "Bytes pelos uplinks dos appliances neste intervalo, como o Meraki os conta: o que receberam (download) e enviaram (upload). O Meraki os informa em janelas de cinco minutos; uma janela na borda do intervalo conta pela parte que fica dentro dele.",
   "Check that your OneUptime server can reach the Meraki dashboard API over HTTPS, then try again.": "Verifique se o seu servidor do OneUptime alcança a API do painel do Meraki por HTTPS e tente de novo.",

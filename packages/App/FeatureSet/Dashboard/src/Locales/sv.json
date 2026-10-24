@@ -33677,6 +33677,7 @@
   "Read over SNMP by a discovery scan, {{time}}.": "Läst via SNMP av en upptäcktsskanning, {{time}}.",
   "Read over SNMP by discovery scan {{name}}, {{time}}.": "Läst via SNMP av upptäcktsskanningen {{name}}, {{time}}.",
   "Worked out from its name and what it reports": "Härlett ur namnet och det den rapporterar",
+  "Nothing has been read from this device yet. Its details fill in after its first SNMP walk, or the next discovery scan of its address.": "Inget har lästs från den här enheten ännu. Uppgifterna fylls i efter den första SNMP-walken eller nästa upptäcktsskanning av adressen.",
   "Appliance {{appliance}}": "Appliance {{appliance}}",
   "Bytes through the appliances' uplinks in this time range, as Meraki counts them: what they received (download) and sent (upload). Meraki reports them in five-minute windows; a window at the edge of the range counts for the part inside it.": "Byte genom appliancernas upplänkar under det här tidsintervallet, så som Meraki räknar dem: vad de tog emot (nedladdning) och skickade (uppladdning). Meraki rapporterar dem i femminutersfönster; ett fönster i kanten av intervallet räknas för den del som ligger inom det.",
   "Check that your OneUptime server can reach the Meraki dashboard API over HTTPS, then try again.": "Kontrollera att din OneUptime-server når Meraki-instrumentpanelens API över HTTPS och försök igen.",

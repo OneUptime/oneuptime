@@ -33677,6 +33677,7 @@
   "Read over SNMP by a discovery scan, {{time}}.": "由发现扫描通过 SNMP 读取：{{time}}。",
   "Read over SNMP by discovery scan {{name}}, {{time}}.": "由发现扫描 {{name}} 通过 SNMP 读取：{{time}}。",
   "Worked out from its name and what it reports": "根据其名称和报告的信息推断",
+  "Nothing has been read from this device yet. Its details fill in after its first SNMP walk, or the next discovery scan of its address.": "尚未从此设备读取任何信息。首次 SNMP 遍历或下一次对其地址的发现扫描之后，将填入其详细信息。",
   "Appliance {{appliance}}": "设备 {{appliance}}",
   "Bytes through the appliances' uplinks in this time range, as Meraki counts them: what they received (download) and sent (upload). Meraki reports them in five-minute windows; a window at the edge of the range counts for the part inside it.": "此时间范围内经过设备上行链路的字节数，按 Meraki 的统计：接收（下载）和发送（上传）。Meraki 以五分钟为窗口上报；跨越范围边界的窗口只计入范围内的部分。",
   "Check that your OneUptime server can reach the Meraki dashboard API over HTTPS, then try again.": "请检查 OneUptime 服务器能否通过 HTTPS 访问 Meraki 控制面板 API，然后重试。",
