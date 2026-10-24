@@ -69,7 +69,10 @@ function SwitchesHarness(props: {
   subjectType: AiOffSubjectType;
   isEnabled: boolean;
 }): React.ReactElement {
-  switches = useAiLaneSwitchStates(props);
+  switches = useAiLaneSwitchStates({
+    subjectType: props.subjectType,
+    isEnabled: props.isEnabled,
+  });
   return <div />;
 }
 

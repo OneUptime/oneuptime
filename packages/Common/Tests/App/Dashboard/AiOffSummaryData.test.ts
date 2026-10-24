@@ -278,12 +278,15 @@ describe("what fixing did, as the AI card reads it", () => {
     [AutoRemediationDecisionReason.NoRuleMatched, "no_rule_matched"],
     [AutoRemediationDecisionReason.NoRulesConfigured, "no_rule_matched"],
     [AutoRemediationDecisionReason.MatchedRulesDoNotFix, "rules_do_not_fix"],
-  ])("%s is off: %s", (reason: AutoRemediationDecisionReason, expected) => {
-    expect(evaluatedState([entry(reason)])).toEqual({
-      kind: "off",
-      reason: expected,
-    });
-  });
+  ])(
+    "%s is off: %s",
+    (reason: AutoRemediationDecisionReason, expected: RemediationOffReason) => {
+      expect(evaluatedState([entry(reason)])).toEqual({
+        kind: "off",
+        reason: expected,
+      });
+    },
+  );
 
   test("every other entry means fixing was on and has something to say", () => {
     const offReasons: Array<AutoRemediationDecisionReason> = [
@@ -505,9 +508,16 @@ describe("how the AI card is drawn", () => {
       },
       "full",
     ],
-  ])("%s", (_name: string, input, expected: AiCardFold) => {
-    expect(getAiCardFold(input)).toBe(expected);
-  });
+  ])(
+    "%s",
+    (
+      _name: string,
+      input: Parameters<typeof getAiCardFold>[0],
+      expected: AiCardFold,
+    ) => {
+      expect(getAiCardFold(input)).toBe(expected);
+    },
+  );
 
   test("the Remediation card leaves 'nothing was fixed' to the line, and only that", () => {
     const off: RemediationFoldState = { kind: "off", reason: "fixing_off" };
