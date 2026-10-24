@@ -952,9 +952,7 @@ test("a member sees the connections without buttons, and why - and the guide's o
 
   await open(page, "state=none&role=member");
   await expect(page.getByTestId("traffic-setup-meraki")).toBeVisible();
-  await expect(page.getByTestId("traffic-setup-connect-meraki")).toHaveCount(
-    0,
-  );
+  await expect(page.getByTestId("traffic-setup-connect-meraki")).toHaveCount(0);
   await expect(page.getByTestId("traffic-setup-meraki-locked")).toContainText(
     "You do not have permission to create this Meraki connection.",
   );

@@ -5,11 +5,11 @@ network's traffic as a Meraki connection reads it from the Meraki dashboard API,
 switch, Connect Meraki and the connections at the page's foot - and a device's and a site's own
 Traffic pages.
 
-| Page | Route (from `RouteMap`) | Production components |
-| ---- | ----------------------- | --------------------- |
-| Network > Traffic | `NETWORK_TRAFFIC` `/dashboard/:projectId/network-devices/traffic` | `Pages/Network/Layout` (the Network side menu) and `Pages/NetworkDevice/Traffic` (`NetworkTrafficView`, `Meraki/MerakiTrafficView`, `Meraki/MerakiConnectModal`, `Meraki/MerakiConnectionsCard`), with every part they mount |
-| A device's Traffic | `NETWORK_DEVICE_VIEW_TRAFFIC` `/dashboard/:projectId/network-devices/40000000-0000-4000-8000-000000000001/traffic` | `Pages/NetworkDevice/View/Layout` (the device's side menu) and `Pages/NetworkDevice/View/Traffic`: the Head Office MX, a device in OneUptime |
-| A site's Traffic | `NETWORK_SITE_VIEW_TRAFFIC` `/dashboard/:projectId/network-sites/view/50000000-0000-4000-8000-000000000001/traffic` | `Pages/NetworkSite/View/Layout` (the site's side menu) and `Pages/NetworkSite/View/Traffic`: the Branches site, of the Leeds and Bristol networks |
+| Page               | Route (from `RouteMap`)                                                                                             | Production components                                                                                                                                                                                                        |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Network > Traffic  | `NETWORK_TRAFFIC` `/dashboard/:projectId/network-devices/traffic`                                                   | `Pages/Network/Layout` (the Network side menu) and `Pages/NetworkDevice/Traffic` (`NetworkTrafficView`, `Meraki/MerakiTrafficView`, `Meraki/MerakiConnectModal`, `Meraki/MerakiConnectionsCard`), with every part they mount |
+| A device's Traffic | `NETWORK_DEVICE_VIEW_TRAFFIC` `/dashboard/:projectId/network-devices/40000000-0000-4000-8000-000000000001/traffic`  | `Pages/NetworkDevice/View/Layout` (the device's side menu) and `Pages/NetworkDevice/View/Traffic`: the Head Office MX, a device in OneUptime                                                                                 |
+| A site's Traffic   | `NETWORK_SITE_VIEW_TRAFFIC` `/dashboard/:projectId/network-sites/view/50000000-0000-4000-8000-000000000001/traffic` | `Pages/NetworkSite/View/Layout` (the site's side menu) and `Pages/NetworkSite/View/Traffic`: the Branches site, of the Leeds and Bristol networks                                                                            |
 
 Run from `packages/E2E`:
 

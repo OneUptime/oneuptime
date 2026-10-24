@@ -1036,8 +1036,7 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
                           : undefined
                       }
                       connectMerakiLockedReason={
-                        scope.kind === "network" &&
-                        !merakiConnectGate.isAllowed
+                        scope.kind === "network" && !merakiConnectGate.isAllowed
                           ? merakiConnectGate.disabledReason
                           : undefined
                       }

@@ -782,7 +782,9 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
                           <div
                             key={note.text}
                             className={`mt-1.5 flex items-start gap-1.5 text-xs ${
-                              note.isToActOn ? "text-amber-800" : "text-gray-500"
+                              note.isToActOn
+                                ? "text-amber-800"
+                                : "text-gray-500"
                             }`}
                             data-testid="meraki-connection-note"
                             data-tone={note.isToActOn ? "act" : "info"}

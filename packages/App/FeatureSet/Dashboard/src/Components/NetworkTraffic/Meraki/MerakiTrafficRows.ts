@@ -87,9 +87,7 @@ export function getNewestBeforeRange(
     }
   }
 
-  return newest && Number.isFinite(start) && newestTime < start
-    ? newest
-    : null;
+  return newest && Number.isFinite(start) && newestTime < start ? newest : null;
 }
 
 // Whether the page has any Meraki traffic in its range.

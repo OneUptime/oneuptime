@@ -516,10 +516,7 @@ describe("when the key does not work", () => {
 
   test("a key that cannot read the organization: Try again once it is fixed in Meraki, or another key", async () => {
     answerWith(() => {
-      return refused(
-        "permission",
-        "API access is turned off for Acme Retail.",
-      );
+      return refused("permission", "API access is turned off for Acme Retail.");
     });
 
     await open();

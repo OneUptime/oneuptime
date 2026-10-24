@@ -374,9 +374,9 @@ describe("the Meraki numbers through the flow side's tiles and chart", () => {
       "Apple",
     ]);
     // Named, without an address: its MAC.
-    expect(getClientDetails({ ...named, ip: "" }, { withNetwork: false })).toEqual(
-      ["22:33:44:55:66:77", "Apple"],
-    );
+    expect(
+      getClientDetails({ ...named, ip: "" }, { withNetwork: false }),
+    ).toEqual(["22:33:44:55:66:77", "Apple"]);
     // Known by its MAC alone: nothing more to find it by.
     expect(
       getClientDetails(
@@ -418,7 +418,10 @@ describe("the Meraki numbers through the flow side's tiles and chart", () => {
   test("a page is of one network when it is narrowed to one, or its traffic is one network's", () => {
     expect(isOfOneNetwork({ filters: {}, networkCount: 4 })).toBe(false);
     expect(
-      isOfOneNetwork({ filters: { controllerNetworkId: "L_1" }, networkCount: 4 }),
+      isOfOneNetwork({
+        filters: { controllerNetworkId: "L_1" },
+        networkCount: 4,
+      }),
     ).toBe(true);
     expect(isOfOneNetwork({ filters: {}, networkCount: 1 })).toBe(true);
     expect(isOfOneNetwork({ filters: {}, networkCount: 0 })).toBe(true);
@@ -960,11 +963,7 @@ describe("what the page says", () => {
     [LlmConnectionFailureKind.Other, true, false],
   ])(
     "a test that failed (%s) offers Try again: %s, Change API key: %s",
-    (
-      kind: LlmConnectionFailureKind,
-      tryAgain: boolean,
-      changeKey: boolean,
-    ) => {
+    (kind: LlmConnectionFailureKind, tryAgain: boolean, changeKey: boolean) => {
       expect(
         getMerakiTestActions({
           provider: "meraki",
@@ -1109,8 +1108,10 @@ describe("every word is a key of the English locale", () => {
     expectKey(RATE_LIMITED_NOTE);
     expectKey(FILTER_NETWORK_LABEL);
     expectKey(FILTER_APPLIANCE_LABEL);
-    // The UI review's words: a refused key, a test that could not run, an
-    // empty range after the reads stopped, and the connection's own name.
+    /*
+     * The UI review's words: a refused key, a test that could not run, an
+     * empty range after the reads stopped, and the connection's own name.
+     */
     expectKey(KEY_REFUSED_BY_DASHBOARD);
     expectKey(TEST_COULD_NOT_RUN);
     expectKey(NEWEST_TRAFFIC_BEFORE_RANGE);

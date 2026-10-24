@@ -374,8 +374,7 @@ describe("the list", () => {
       return (
         within(row)
           .getByTestId("meraki-connection-status")
-          .querySelector('[data-testid="pill"]')
-          ?.textContent || ""
+          .querySelector('[data-testid="pill"]')?.textContent || ""
       );
     });
     expect(pills).toEqual(["Working", "Not working", "Off"]);
@@ -484,7 +483,9 @@ describe("the list", () => {
     await renderCard();
 
     expect(
-      screen.getByTestId("meraki-connections").closest("#traffic-meraki-connections"),
+      screen
+        .getByTestId("meraki-connections")
+        .closest("#traffic-meraki-connections"),
     ).not.toBeNull();
   });
 });
@@ -567,9 +568,7 @@ describe("one button, the next thing to do", () => {
     await flush();
 
     expect(screen.getByTestId("meraki-edit")).toBeInTheDocument();
-    expect(document.activeElement).toBe(
-      screen.getByTestId("meraki-edit-key"),
-    );
+    expect(document.activeElement).toBe(screen.getByTestId("meraki-edit-key"));
   });
 });
 
@@ -797,9 +796,7 @@ describe("who may do what", () => {
 
     await renderCard();
 
-    fireEvent.click(
-      within(rows()[0]!).getByTestId("meraki-connection-more"),
-    );
+    fireEvent.click(within(rows()[0]!).getByTestId("meraki-connection-more"));
     await flush();
 
     expect(screen.queryByText("Edit")).toBeNull();

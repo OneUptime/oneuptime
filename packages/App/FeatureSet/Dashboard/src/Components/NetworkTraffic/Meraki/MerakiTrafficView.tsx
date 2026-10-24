@@ -626,7 +626,10 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
             data-testid="meraki-traffic-body"
           >
             {lines.length > 0 ? (
-              <ConnectionLines connections={lines} scopeKind={props.scopeKind} />
+              <ConnectionLines
+                connections={lines}
+                scopeKind={props.scopeKind}
+              />
             ) : (
               <></>
             )}

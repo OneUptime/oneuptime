@@ -889,8 +889,6 @@ describe("the flow side's card in every language", () => {
 
     await renderView(NETWORK);
 
-    expect(
-      screen.getByText(FLOW_DESCRIPTIONS.network),
-    ).toBeInTheDocument();
+    expect(screen.getByText(FLOW_DESCRIPTIONS.network)).toBeInTheDocument();
   });
 });

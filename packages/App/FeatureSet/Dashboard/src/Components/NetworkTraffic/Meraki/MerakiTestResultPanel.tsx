@@ -71,7 +71,8 @@ const MerakiTestResultPanel: FunctionComponent<ComponentProps> = (
   const tone: { box: string; icon: IconProp; iconColor: string } =
     TONES[words.tone];
   const actions: MerakiTestActions = getMerakiTestActions(props.result);
-  const showChangeKey: boolean = actions.changeKey && Boolean(props.onChangeKey);
+  const showChangeKey: boolean =
+    actions.changeKey && Boolean(props.onChangeKey);
   const showTryAgain: boolean = actions.tryAgain && Boolean(props.onTryAgain);
 
   return (

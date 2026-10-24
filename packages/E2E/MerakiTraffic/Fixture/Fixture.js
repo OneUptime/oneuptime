@@ -496,10 +496,14 @@ function usageFor(body) {
   // A device's page is its MX's network; a site's page its networks.
   const inScope = (network) => {
     if (body.networkDeviceId) {
-      return body.networkDeviceId === DEVICE_ID && network.serial === DEVICE_SERIAL;
+      return (
+        body.networkDeviceId === DEVICE_ID && network.serial === DEVICE_SERIAL
+      );
     }
     if (body.networkSiteId) {
-      return body.networkSiteId === SITE_ID && SITE_NETWORKS.includes(network.id);
+      return (
+        body.networkSiteId === SITE_ID && SITE_NETWORKS.includes(network.id)
+      );
     }
     return true;
   };
