@@ -151,6 +151,68 @@ export interface ProfileInsightEvidence {
   callees: Array<ProfileInsightNeighbourEvidence>;
 }
 
+/*
+ * What a failing operation failed with, read off a sample of its failed
+ * spans (Utils/Traces/TraceInsight): the most common error of the sample,
+ * already sanitized (ExceptionSanitizer) - an error message is written by
+ * whatever made the request fail, never by OneUptime.
+ */
+export interface TraceInsightErrorEvidence {
+  // The recorded exception's type and message, when the spans recorded one.
+  exceptionType?: string | undefined;
+  exceptionMessage?: string | undefined;
+  // The top frames of its stack trace, sanitized and cut.
+  stackTrace?: string | undefined;
+  // The span's own status message, when it set one.
+  statusMessage?: string | undefined;
+  // The HTTP or RPC status the failed request answered with.
+  statusCode?: string | undefined;
+  // How many of the sampled failed spans failed with this error.
+  sampleMatches: number;
+  sampleSize: number;
+}
+
+/*
+ * Evidence for the Traces product's insights (TraceSlowOperation,
+ * TraceFailingOperation, TraceMissingTracing): one service's operation over
+ * the window it was read in, and what was found in it. `kind` says which of
+ * the three it is; `gap` says, for missing tracing, what the traces lack.
+ */
+export interface TraceInsightEvidence {
+  serviceId: string;
+  // "Slow", "Failing" or "MissingTracing" (Utils/Traces/TraceInsight).
+  kind: string;
+  // MissingTracing only: "NoChildSpans", "UntracedTime" or "SilentFailures".
+  gap?: string | undefined;
+  // The operation (its span name), absent when the finding is the service's.
+  operationName?: string | undefined;
+  // ISO-8601: the hour it was read in.
+  windowStartTime: string;
+  windowEndTime: string;
+  // The operation's spans in the window, or the service's.
+  spanCount: number;
+  failedSpanCount?: number | undefined;
+  // The operation's (or the service's) latency over the window.
+  p50Ms?: number | undefined;
+  p99Ms?: number | undefined;
+  // The request the evidence was read from: a slow one, or a failed one.
+  sampleTraceId?: string | undefined;
+  sampleSpanId?: string | undefined;
+  // How long that request took.
+  sampleDurationMs?: number | undefined;
+  // Slow: the patterns worth fixing in it, the costliest first.
+  performanceFindings?: Array<PerformanceFinding> | undefined;
+  // UntracedTime: the span whose own work no span under it accounts for.
+  untracedSpanName?: string | undefined;
+  untracedMs?: number | undefined;
+  // Failing: what it failed with.
+  error?: TraceInsightErrorEvidence | undefined;
+  // NoChildSpans: its busiest operations, to start the tracing from.
+  topOperations?: Array<{ name: string; spanCount: number }> | undefined;
+  // code.* attribute locations, to find the repository that holds the code.
+  codeLocations?: Array<PerformanceCodeLocation> | undefined;
+}
+
 export interface AIInsightEvidence {
   exception?: ExceptionInsightEvidence | undefined;
   logSpike?: LogSpikeInsightEvidence | undefined;
@@ -158,6 +220,7 @@ export interface AIInsightEvidence {
   metricDrift?: MetricDriftInsightEvidence | undefined;
   deployRegression?: DeployRegressionInsightEvidence | undefined;
   profile?: ProfileInsightEvidence | undefined;
+  trace?: TraceInsightEvidence | undefined;
 }
 
 export default AIInsightEvidence;

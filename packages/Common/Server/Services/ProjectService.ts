@@ -230,7 +230,10 @@ export const MAX_BALANCE_ADJUSTMENT_IN_USD_CENTS: number = 10_000 * 100;
  * Finding and fixing slow code (enableAutomaticProfileRemediation, Profiles
  * → AI → Settings) starts on: its fix is a pull request in a repository,
  * which changes no infrastructure and is never merged - "a rule that is
- * turned on by default" - the maintainer (Types/AI/TelemetryAi).
+ * turned on by default" - the maintainer (Types/AI/TelemetryAi). So does
+ * finding and fixing slow and failing operations in traces
+ * (enableAutomaticTraceRemediation, Traces → AI → Settings), for the same
+ * reason.
  */
 export type NewProjectAiDefaultColumn =
   | "enableAutomaticIncidentInvestigation"
@@ -240,6 +243,7 @@ export type NewProjectAiDefaultColumn =
   | "enableAiInsights"
   | "enableInsightFixTasks"
   | "enableAutomaticProfileRemediation"
+  | "enableAutomaticTraceRemediation"
   | "autoArchiveNonActionableExceptions";
 
 export const NEW_PROJECT_AI_DEFAULT_COLUMNS: ReadonlyArray<NewProjectAiDefaultColumn> =
@@ -251,6 +255,7 @@ export const NEW_PROJECT_AI_DEFAULT_COLUMNS: ReadonlyArray<NewProjectAiDefaultCo
     "enableAiInsights",
     "enableInsightFixTasks",
     "enableAutomaticProfileRemediation",
+    "enableAutomaticTraceRemediation",
     "autoArchiveNonActionableExceptions",
   ];
 

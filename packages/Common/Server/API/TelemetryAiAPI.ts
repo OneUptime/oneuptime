@@ -8,14 +8,21 @@ import Express, {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import TelemetryAiActivityReader from "../Utils/AI/TelemetryAi/TelemetryAiActivityReader";
+import TelemetryAiPersonFix from "../Utils/AI/TelemetryAi/TelemetryAiPersonFix";
 import { TelemetryAiLane, isTelemetryAiLane } from "../../Types/AI/TelemetryAi";
 import {
+  TELEMETRY_AI_FIX_PATH,
+  TELEMETRY_AI_FIX_SUGGESTION_PATH,
   TELEMETRY_AI_LOGS_PAGE_SIZE,
   TELEMETRY_AI_LOGS_PATH,
   TELEMETRY_AI_READINESS_PATH,
   TelemetryAiLogsJSON,
   TelemetryAiReadinessJSON,
 } from "../../Types/AI/TelemetryAiActivity";
+import {
+  TelemetryAiFixSuggestion,
+  telemetryAiFixSuggestionToJSON,
+} from "../../Utils/Suggestions/TelemetryAiFixSuggestion";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
@@ -39,6 +46,16 @@ const router: ExpressRouter = Express.getRouter();
  *     What OneUptime AI did with the lane's problems, newest first, a page
  *     at a time (TelemetryAiLogsJSON): only about problems the caller may
  *     read (TelemetryAiActivityReader).
+ *
+ *   POST /telemetry-ai/fix-suggestion   { insightId }
+ *     What "Fix with AI" offers on one of the lane's findings
+ *     (TelemetryAiFixSuggestion): decided by the gates the next route
+ *     checks, under the caller's own permissions (TelemetryAiPersonFix).
+ *
+ *   POST /telemetry-ai/fix   { insightId, repositoryId? }
+ *     The pull request that finding asks for: a Code task the caller
+ *     starts, in the repository that holds the code - or the one they
+ *     picked, when none was found for certain. Response: { taskId }.
  */
 
 // The most entries a page may start after: older ones are not paged to.
@@ -79,6 +96,34 @@ export function parseTelemetryAiLane(body: unknown): TelemetryAiLane {
   }
 
   return lane;
+}
+
+// The finding a fix request names: an insight's id, always.
+export function parseTelemetryAiFixInsightId(body: unknown): ObjectID {
+  const insightId: unknown = readBody(body)["insightId"];
+
+  if (typeof insightId !== "string" || !ObjectID.isValidUUID(insightId)) {
+    throw new BadDataException("insightId must be an insight's ID.");
+  }
+
+  return new ObjectID(insightId);
+}
+
+// The repository a person picked, when the body names one.
+export function parseTelemetryAiFixRepositoryId(
+  body: unknown,
+): ObjectID | undefined {
+  const repositoryId: unknown = readBody(body)["repositoryId"];
+
+  if (repositoryId === undefined || repositoryId === null) {
+    return undefined;
+  }
+
+  if (typeof repositoryId !== "string" || !ObjectID.isValidUUID(repositoryId)) {
+    throw new BadDataException("repositoryId must be a repository's ID.");
+  }
+
+  return new ObjectID(repositoryId);
 }
 
 // Where a logs page starts: 0 when the body does not say.
@@ -158,6 +203,78 @@ router.post(
         });
 
       Response.sendJsonObjectResponse(req, res, logs as unknown as JSONObject);
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+router.post(
+  TELEMETRY_AI_FIX_SUGGESTION_PATH,
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const {
+        projectId,
+        props,
+      }: { projectId: ObjectID; props: DatabaseCommonInteractionProps } =
+        await getTenantProps(req);
+      const insightId: ObjectID = parseTelemetryAiFixInsightId(req.body);
+
+      const suggestion: TelemetryAiFixSuggestion =
+        await TelemetryAiPersonFix.getSuggestion({
+          projectId,
+          insightId,
+          props,
+        });
+
+      Response.sendJsonObjectResponse(
+        req,
+        res,
+        telemetryAiFixSuggestionToJSON(suggestion),
+      );
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+router.post(
+  TELEMETRY_AI_FIX_PATH,
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const {
+        projectId,
+        props,
+      }: { projectId: ObjectID; props: DatabaseCommonInteractionProps } =
+        await getTenantProps(req);
+      const insightId: ObjectID = parseTelemetryAiFixInsightId(req.body);
+      const repositoryId: ObjectID | undefined =
+        parseTelemetryAiFixRepositoryId(req.body);
+
+      const created: { taskId: string } =
+        await TelemetryAiPersonFix.createFixTask({
+          projectId,
+          insightId,
+          userId: props.userId!,
+          props,
+          ...(repositoryId ? { repositoryId } : {}),
+        });
+
+      Response.sendJsonObjectResponse(req, res, { taskId: created.taskId });
       return;
     } catch (err) {
       next(err);
