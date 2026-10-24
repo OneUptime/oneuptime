@@ -5,6 +5,7 @@ Das Produkt Sicherheitsereignisse macht aus den Funden Ihrer Erkennungsregeln, I
 :::cards
 - [Woher Fälle kommen](#woher-fälle-kommen): Erkennungsregeln, Threat Intelligence, verbundene Produkte und Personen.
 - [Einen Fall bearbeiten](#einen-fall-bearbeiten): Ihn zuweisen, seine Entitäten untersuchen und ihn mit einer Bewertung schließen.
+- [Fallprioritäten und Fallstatus](#fallprioritäten-und-fallstatus): Umbenennen, umfärben, neu ordnen und eigene hinzufügen.
 - [Benachrichtigungen](#benachrichtigungen): Wer von einem neuen Fall, einer Zuweisung und einem Schritt erfährt, der auf Genehmigung wartet.
 - [Playbooks](#playbooks): Schritte, die auf einem Fall laufen, mit Genehmigung, wo es darauf ankommt.
 - [Die Übersicht](#die-übersicht): Was gerade Aufmerksamkeit braucht, und wie schnell Fälle bearbeitet werden.
@@ -60,7 +61,7 @@ Eine Erkennung betrifft eine Entität: den Wert, nach dem ihre Regel gruppiert, 
 - Gibt es keinen, wird ein neuer Fall eröffnet, benannt nach der Erkennung und mit deren Priorität.
 - Eine Erkennung, die erneut auslöst, zählt in ihrer Zeile hoch, statt eine weitere hinzuzufügen.
 
-Die Priorität eines Falls ergibt sich aus dem Schweregrad der Erkennung:
+Die Priorität eines Falls ergibt sich aus dem Schweregrad der Erkennung, als die vordefinierte Priorität des Projekts für diese Stufe, wie auch immer Sie sie benannt haben:
 
 | Schweregrad | Priorität |
 | --- | --- |
@@ -72,7 +73,7 @@ Die Priorität eines Falls ergibt sich aus dem Schweregrad der Erkennung:
 
 ## Einen Fall bearbeiten
 
-Ein Fall durchläuft vier Status. Er kann einen davon überspringen, etwa wenn ein False Positive direkt aus „Neu“ heraus geschlossen wird, und er kann wieder geöffnet werden.
+Die Fälle eines neuen Projekts durchlaufen vier Status, die Sie umbenennen und um eigene ergänzen können (siehe [Fallprioritäten und Fallstatus](#fallprioritäten-und-fallstatus)). Ein Fall kann einen davon überspringen, etwa wenn ein False Positive direkt aus „Neu“ heraus geschlossen wird, und er kann wieder geöffnet werden.
 
 | Status | Bedeutung |
 | --- | --- |
@@ -112,6 +113,25 @@ Ein Fall, der aus Google SecOps-Warnungen eröffnet wurde, schließt sie auch in
 
 **Vorfall melden** öffnet für den Fall einen OneUptime-Vorfall mit dem Schweregrad, den Sie wählen, und verknüpft beide in beide Richtungen: Die Beschreibung des Vorfalls nennt den Fall, und der Kopfbereich des Falls verlinkt auf den Vorfall. Ab dort übernehmen Bereitschaft, Statusseiten und das Postmortem. Dafür braucht es eine Rolle, die sowohl Fälle bearbeiten als auch Vorfälle erstellen darf.
 
+## Fallprioritäten und Fallstatus
+
+Jedes Projekt hat seine eigenen Fallprioritäten und Fallstatus, unter **Produkte → Sicherheitsereignisse → Einstellungen → Fallprioritäten** und **Fallstatus**. Benennen Sie sie um, färben Sie sie um, ziehen Sie sie in eine andere Reihenfolge und fügen Sie eigene hinzu, etwa einen Status „Triage“ oder eine Priorität „Notfall“ über **Kritisch**. Ein neuer Name gilt sofort überall: in der Warteschlange, auf den Fallseiten und in der Übersicht, in Benachrichtigungen, in Slack und Microsoft Teams und in Playbook-Nachrichten.
+
+Einige sind vordefiniert, weil OneUptime liest, was sie bedeuten. Sie lassen sich umbenennen und umfärben, aber weder löschen noch archivieren, und sie behalten ihre Reihenfolge:
+
+| Vordefiniert | Was OneUptime damit macht |
+| --- | --- |
+| Der neue Status | Neue Fälle beginnen darin |
+| Der bestätigte Status | Erreicht ein Fall ihn, wird festgehalten, wann er bestätigt wurde, und **Wieder öffnen** setzt einen geschlossenen Fall darauf zurück |
+| Der eingedämmte Status | Erreicht ein Fall ihn, wird festgehalten, wann er eingedämmt wurde |
+| Der geschlossene Status | **Close Case** setzt einen Fall darauf, mit einer Bewertung |
+| Die Prioritäten Kritisch, Hoch, Medium, Low und Hinweise | Eine Erkennung eröffnet ihren Fall mit der Priorität ihres Schweregrads, und ein Fall, den jemand eröffnet, beginnt mit Medium |
+
+- Wo ein Status steht, entscheidet, wofür ein Fall darin zählt, wie die Spalte **Zählt als** zeigt: ab dem bestätigten Status abwärts als bestätigt, ab dem eingedämmten Status abwärts als eingedämmt, ab dem geschlossenen Status abwärts als geschlossen. Ein Status, den Sie hinzufügen, kommt direkt über den geschlossenen Status, und wer einen Fall in einen Status setzt, der ihn schließt, wird zuerst nach einer Bewertung gefragt.
+- Der Rang einer Priorität ist ihre Dringlichkeit, die dringendste zuerst: **For Cases At Least**, die Auswahl bei den Benachrichtigungen und die Regeln für Slack und Microsoft Teams lesen diese Reihenfolge. Eine Priorität, die Sie hinzufügen, kommt ans Ende, und die Spalte **Erkennungen** zeigt, welche Erkennungen ihre Fälle mit welcher vordefinierten Priorität eröffnen.
+
+Um einen eigenen Status oder eine eigene Priorität nicht mehr zu verwenden, nutzen Sie **Archivieren** in ihrer Zeile. Niemand kann sie dann mehr wählen, und die API, Terraform und MCP lehnen sie ab, aber die Fälle, die sie haben, behalten sie, und Sie können weiter danach filtern. Archivierte Werte stehen im eingeklappten Abschnitt **Archivierte Fallstatus** oder **Archivierte Fallprioritäten** unter der Tabelle, wo **Aus Archiv entfernen** einen zurückholt. **Löschen** wird abgelehnt, solange Fälle den Wert haben oder ein Playbook ab der Priorität läuft.
+
 ## Benachrichtigungen
 
 OneUptime informiert Personen über drei Dinge an einem Fall. Niemand muss dafür etwas einrichten: Ein Projekt, das nur auf **Empfohlenes aktivieren** geklickt hat, erfährt von seinen Fällen mit Priorität Hoch und Kritisch per E-Mail und Push.
@@ -136,10 +156,12 @@ Jede Person wählt selbst, unter **Benutzereinstellungen → Benachrichtigungsei
 | Auswahl | Benachrichtigt über Fälle der Priorität |
 | --- | --- |
 | Nur Kritisch | Kritisch |
-| Hoch und Kritisch | Hoch und Kritisch (die Voreinstellung) |
+| Hoch und höher | Kritisch und Hoch (die Voreinstellung) |
 | Mittel und höher | Kritisch, Hoch und Medium |
 | Niedrig und höher | Jede außer Hinweise |
 | Jeder Fall | Jede |
+
+Die Auswahl folgt den Fallprioritäten des Projekts, unter ihren eigenen Namen: Dies sind die eines neuen Projekts.
 
 Für Sicherheitsfälle werden keine WhatsApp-Nachrichten gesendet. Eine Push-Benachrichtigung öffnet die OneUptime-App, und ihr Link öffnet den Fall im Browser.
 
@@ -149,9 +171,9 @@ Um in einem Kanal zu posten, fügen Sie unter **Produkte → Sicherheitsereignis
 
 | Bedingung | Trifft zu auf |
 | --- | --- |
-| Priorität des Sicherheitsfalls | Kritisch, Hoch, Medium, Low oder Hinweise |
+| Priorität des Sicherheitsfalls | Eine der Fallprioritäten des Projekts, etwa Kritisch oder Hoch |
 | Titel des Sicherheitsfalls, Beschreibung des Sicherheitsfalls | Text, den der Titel oder die Beschreibung des Falls enthält, mit dem sie beginnen oder auf den sie enden |
-| Status des Sicherheitsfalls | Neu, Untersuchung läuft, Contained oder Geschlossen |
+| Status des Sicherheitsfalls | Einer der Fallstatus des Projekts, etwa Neu oder Geschlossen |
 | Quelle des Sicherheitsfalls | Erkennungsregel, Threat Intel, Connected Product oder Manuell |
 | Beschriftungen des Sicherheitsfalls | Die Labels des Falls |
 
@@ -184,7 +206,7 @@ Ein deaktiviertes Playbook läuft weder von selbst noch per Hand.
 | --- | --- | --- |
 | Fall | Assign the case | Übergibt den Fall an eine Person, ein Team oder beide |
 | Fall | Set the priority | Hebt oder senkt die Priorität des Falls |
-| Fall | Set the status | Setzt den Fall auf „Untersuchung läuft“, „Contained“ oder „Geschlossen“, mit der Bewertung, die Sie wählen |
+| Fall | Set the status | Setzt den Fall auf einen anderen Status des Projekts, mit der Bewertung, die Sie wählen, wenn dieser Status ihn schließt |
 | Fall | Add a note | Schreibt eine Notiz an den Fall, etwa eine Checkliste für den Analysten |
 | Fall | Add labels | Versieht den Fall mit Labels |
 | Untersuchen | Check entities against threat intel | Schlägt jede Entität in Ihrer Threat Intelligence nach und kann bei einem Treffer die Priorität anheben |
@@ -247,8 +269,8 @@ Eine Notiz, eine E-Mail, ein Slack-Beitrag und ein Teams-Beitrag können die Wer
 | --- | --- |
 | `{{case.number}}` | Die Fallnummer, etwa CASE-42 |
 | `{{case.title}}` | Der Titel des Falls |
-| `{{case.priority}}` | Critical, High, Medium, Low oder Informational |
-| `{{case.status}}` | New, Investigating, Contained oder Closed |
+| `{{case.priority}}` | Die Priorität des Falls, wie Ihr Projekt sie nennt, etwa High |
+| `{{case.status}}` | Der Status des Falls, wie Ihr Projekt ihn nennt, etwa Investigating |
 | `{{case.assignee}}` | Wem der Fall zugewiesen ist |
 | `{{case.url}}` | Ein Link zum Fall in OneUptime |
 | `{{case.entities}}` | Die Benutzer, Hosts und Adressen, um die es im Fall geht |
@@ -278,7 +300,7 @@ Eine Ausführung, von deren Worker nichts mehr kommt, etwa nach einem Neustart, 
 **Produkte → Sicherheitsereignisse → Übersicht** ist die Seite, mit der das Produkt öffnet:
 
 - Die offenen Fälle, die Ihnen zugewiesen sind, die offenen Fälle, die noch niemand übernommen hat, und die Playbook-Schritte, die auf Genehmigung warten; jede Zahl öffnet die Seite, die sie auflistet.
-- **Mittlere Zeit bis zur Bestätigung**, **Mittlere Zeit bis zur Eindämmung** und **Mittlere Zeit bis zum Schließen**, über die in den letzten 30 Tagen eröffneten Fälle: von der Eröffnung eines Falls, bis jemand ihn übernimmt (eine Person zuweist oder ihn aus „Neu“ herausholt), bis „Contained“ und bis „Geschlossen“. Ein Fall, der noch wartet, geht in keinen Mittelwert ein.
+- **Mittlere Zeit bis zur Bestätigung**, **Mittlere Zeit bis zur Eindämmung** und **Mittlere Zeit bis zum Schließen**, über die in den letzten 30 Tagen eröffneten Fälle: von der Eröffnung eines Falls, bis jemand ihn übernimmt (eine Person zuweist oder ihn in einen Status setzt, der als bestätigt zählt), bis zu einem Status, der als eingedämmt zählt, und bis zu einem, der als geschlossen zählt. Ein Fall, der noch wartet, geht in keinen Mittelwert ein.
 - Die pro Tag eröffneten Fälle über 30 Tage, nach Priorität, und die pro Tag ausgelösten Erkennungen über 14 Tage, nach Quelle.
 - Die offenen Fälle nach Priorität und nach Status, die Bewertungen der letzten 30 Tage, die ATT&CK-Taktiken hinter den Fällen, die am häufigsten ausgelösten Erkennungen und die Entitäten, die in den meisten Befunden vorkommen.
 
@@ -293,8 +315,9 @@ Darüber zeigt ein Streifen, wie Sicherheit eingerichtet ist: ihre Quellen, Erke
 ## Automatisieren
 
 - **Arbeitsabläufe**: Ein Fall oder eine Notiz kann einen Workflow starten, wenn er oder sie erstellt, aktualisiert oder gelöscht wird. Ein Schritt **Run a workflow** startet einen Workflow, dessen Trigger ein Webhook ist.
-- **API**: Fälle, Notizen, Erkennungen, Playbooks, Ausführungen und geschützte Entitäten haben dieselbe REST-API wie der Rest von OneUptime, unter `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run` und `/security-protected-entity`. Siehe [API-Referenz](/docs/api-reference/api-reference).
-- KI-Agenten: Der MCP-Server hat Werkzeuge für Fälle, Notizen, Erkennungen und Playbooks. Siehe [MCP-Server](/docs/ai/mcp-server).
+- **API**: Fälle, Notizen, Erkennungen, Playbooks, Ausführungen, geschützte Entitäten sowie Fallprioritäten und Fallstatus haben dieselbe REST-API wie der Rest von OneUptime, unter `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` und `/security-case-status`. Siehe [API-Referenz](/docs/api-reference/api-reference).
+- KI-Agenten: Der MCP-Server hat Werkzeuge für Fälle, Notizen, Erkennungen, Playbooks sowie Fallprioritäten und Fallstatus. Siehe [MCP-Server](/docs/ai/mcp-server).
+- Terraform: Die Ressourcen `oneuptime_security_case_priority` und `oneuptime_security_case_status` halten die Prioritäten und Status eines Projekts als Code fest.
 
 ## Fehlerbehebung
 
@@ -303,7 +326,7 @@ Prüfen Sie **Open a Case on Match** im Schritt **Bei Treffer** der Regel. Eine 
 :::
 
 :::details Niemand wurde über einen Fall informiert
-Sehen Sie in der **Zeitachse** des Falls nach, die zeigt, wer benachrichtigt wurde. Eine Benachrichtigung **Neuer Sicherheitsfall** geht an die Personen, deren gewählte Priorität der Fall erreicht; ein Fall mit Medium benachrichtigt also niemanden, der die Voreinstellung **Hoch und Kritisch** behalten hat. Prüfen Sie, dass die Personen, die davon erfahren sollen, Sicherheitsfälle sehen können (eine Security-Rolle oder Project Owner bzw. Project Admin) und dass die Benachrichtigung für sie unter **Benutzereinstellungen → Benachrichtigungseinstellungen → Sicherheit** eingeschaltet ist.
+Sehen Sie in der **Zeitachse** des Falls nach, die zeigt, wer benachrichtigt wurde. Eine Benachrichtigung **Neuer Sicherheitsfall** geht an die Personen, deren gewählte Priorität der Fall erreicht; ein Fall mit Medium benachrichtigt also niemanden, der die Voreinstellung **Hoch und höher** behalten hat. Prüfen Sie, dass die Personen, die davon erfahren sollen, Sicherheitsfälle sehen können (eine Security-Rolle oder Project Owner bzw. Project Admin) und dass die Benachrichtigung für sie unter **Benutzereinstellungen → Benachrichtigungseinstellungen → Sicherheit** eingeschaltet ist.
 :::
 
 :::details Ein Playbook ist nicht gelaufen
@@ -316,6 +339,10 @@ Prüfen Sie, dass es aktiviert ist, dass sein **Auslöser** passt (Case Opened l
 
 :::details Ein Eindämmungsschritt wurde übersprungen
 Im Fall geht es um keinen Benutzer und keinen Host, etwa nur um eine Adresse, oder jeder Benutzer oder Host, um den es darin geht, ist geschützt. Öffnen Sie die Ausführung am Fall: Der Schritt sagt, was davon zutrifft.
+:::
+
+:::details Ein Status oder eine Priorität lässt sich nicht löschen oder archivieren
+Ein vordefinierter Wert lässt sich umbenennen und umfärben, aber nie löschen oder archivieren: Sein **Archivieren** ist gesperrt, mit dem Grund. Einen eigenen Wert können Sie nicht löschen, solange Fälle ihn haben oder ein Playbook ab ihm läuft: Setzen Sie die Fälle zuerst auf einen anderen, oder archivieren Sie ihn.
 :::
 
 ## Nächste Schritte

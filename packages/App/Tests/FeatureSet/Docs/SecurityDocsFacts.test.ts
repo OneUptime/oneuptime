@@ -515,6 +515,7 @@ describe("the Security Events page", () => {
       "Playbooks",
       "AI",
       "Connections",
+      "Settings",
     ]);
     expect(
       rowsOf(page, "How it works").map(
@@ -535,9 +536,9 @@ describe("the Security Events page", () => {
       ).map((section: SecurityEventsMenuSection): string => {
         return section.title;
       }),
-    ).toEqual(["Detections", "AI", "Connections"]);
+    ).toEqual(["Detections", "AI", "Connections", "Settings"]);
     expect(page).toContain(
-      "**Detections**, **AI** and **Connections**, set up once, stay folded until you open them.",
+      "**Detections**, **AI**, **Connections** and **Settings**, set up once, stay folded until you open them.",
     );
   });
 

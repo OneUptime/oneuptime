@@ -49,8 +49,10 @@ flowchart TB
 | **设置** | 人工智能 | OneUptime AI 是否研判每个新案例 |
 | **Connections** | Connections | 您的日志、OneUptime 轮询的安全产品，以及它发送到的 SIEM |
 | **设置指南** | Connections | 发送事件的代码片段，已填好你的摄取密钥 |
+| **案例优先级** | 设置 | 案例有多紧急：项目自己的优先级，最紧急的在前 |
+| **案例状态** | 设置 | 案例经历的各个步骤，以及每个步骤中的案例被视为什么 |
 
-只需设置一次的 **Detections**、**人工智能** 和 **Connections** 会保持折叠，直到你打开它们。刚开始使用安全功能？[安全入门](/docs/telemetry/security-getting-started) 两次点击即可完成设置。
+只需设置一次的 **Detections**、**人工智能**、**Connections** 和 **设置** 会保持折叠，直到你打开它们。刚开始使用安全功能？[安全入门](/docs/telemetry/security-getting-started) 两次点击即可完成设置。
 
 ## 开始之前
 

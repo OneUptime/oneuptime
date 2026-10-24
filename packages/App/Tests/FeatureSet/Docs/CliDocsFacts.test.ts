@@ -410,8 +410,12 @@ describe("the command reference", () => {
     expect(discovery).toContain('.replace(/([a-z])([A-Z])/g, "$1-$2")');
     expect(discovery).toContain('.replace(/[\\s_]+/g, "-")');
 
-    // postmortem-status, the 28th, came with the Postmortems list.
-    expect(recordCommands()).toHaveLength(28);
+    /*
+     * postmortem-status, the 28th, came with the Postmortems list;
+     * security-case-priority and security-case-status with Security Events >
+     * Settings.
+     */
+    expect(recordCommands()).toHaveLength(30);
     expect(telemetryCommands()).toHaveLength(9);
     expect(commandsInResourcesTable(0)).toEqual(recordCommands());
     expect(commandsInResourcesTable(1)).toEqual(telemetryCommands());

@@ -39,7 +39,7 @@ Il server è senza stato: non emette id di sessione e ogni richiesta è indipend
 - **Manutenzione programmata**: creare e gestire eventi di manutenzione.
 - **Telemetria**: interrogare log, metriche, tracce, eccezioni, log dei monitor, eventi di sicurezza e altro, in sola lettura.
 
-Ci sono strumenti per creare, leggere, elencare, aggiornare, eliminare e contare per 28 tipi di record, strumenti per elencare e contare per 9 tipi di telemetria, e strumenti pensati per la risposta agli incidenti. Gli strumenti in sola lettura hanno `readOnlyHint`, ogni strumento che modifica qualcosa ha `destructiveHint` e solo gli strumenti delle pagine di stato pubbliche hanno `openWorldHint`, così un client può eseguire da solo le chiamate in sola lettura e chiederti conferma prima di qualsiasi modifica. Una chiamata a uno strumento fallita torna come risultato dello strumento (`isError: true`) con uno `statusCode`, i dettagli e un suggerimento, non come errore del protocollo MCP, così l'agente può leggere l'errore e correggersi.
+Ci sono strumenti per creare, leggere, elencare, aggiornare, eliminare e contare per 30 tipi di record, strumenti per elencare e contare per 9 tipi di telemetria, e strumenti pensati per la risposta agli incidenti. Gli strumenti in sola lettura hanno `readOnlyHint`, ogni strumento che modifica qualcosa ha `destructiveHint` e solo gli strumenti delle pagine di stato pubbliche hanno `openWorldHint`, così un client può eseguire da solo le chiamate in sola lettura e chiederti conferma prima di qualsiasi modifica. Una chiamata a uno strumento fallita torna come risultato dello strumento (`isError: true`) con uno `statusCode`, i dettagli e un suggerimento, non come errore del protocollo MCP, così l'agente può leggere l'errore e correggersi.
 
 ## Prima di iniziare
 
@@ -477,7 +477,7 @@ Il server MCP è senza stato: non emette né traccia id di sessione, quindi ogni
 | Manutenzione programmata | Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
 | Team e reperibilità | Team, On-Call Policy |
 | Etichette | Label |
-| Sicurezza | Security Case, Security Case Note, Security Detection, Security Playbook |
+| Sicurezza | Security Case, Security Case Note, Security Case Priority, Security Case Status, Security Detection, Security Playbook |
 
 | Area | Telemetria con soli strumenti per elencare e contare |
 | --- | --- |

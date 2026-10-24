@@ -5,6 +5,7 @@
 :::cards
 - [Origine des dossiers](#origine-des-dossiers): Les règles de détection, le renseignement sur les menaces, les produits connectés et les personnes.
 - [Traiter un dossier](#traiter-un-dossier): L'assigner, enquêter sur ses entités, le fermer avec un verdict.
+- [Priorités et statuts des dossiers](#priorités-et-statuts-des-dossiers): Renommez-les, changez leur couleur et leur ordre, et ajoutez les vôtres.
 - [Notifications](#notifications): Qui est prévenu d'un nouveau dossier, d'une attribution et d'une étape en attente d'approbation.
 - [Playbooks](#playbooks): Des étapes qui s'exécutent sur un dossier, avec une approbation là où elle compte.
 - [La vue d'ensemble](#la-vue-densemble): Ce qui demande une intervention maintenant, et la rapidité de traitement des dossiers.
@@ -60,7 +61,7 @@ Une détection porte sur une entité : la valeur selon laquelle sa règle regrou
 - Quand aucun dossier ouvert ne porte sur elle, un nouveau dossier s'ouvre, nommé d'après la détection, avec la priorité de la détection.
 - Une détection qui se déclenche de nouveau incrémente le compteur de sa ligne au lieu d'en ajouter une nouvelle.
 
-La priorité d'un dossier découle de la gravité de la détection :
+La priorité d'un dossier découle de la gravité de la détection, à la priorité prédéfinie du projet pour ce niveau, quel que soit le nom que vous lui avez donné :
 
 | Gravité | Priorité |
 | --- | --- |
@@ -72,7 +73,7 @@ La priorité d'un dossier découle de la gravité de la détection :
 
 ## Traiter un dossier
 
-Un dossier passe par quatre statuts. Il peut en sauter un, comme un faux positif fermé directement depuis Nouveau, et il peut être rouvert.
+Les dossiers d'un nouveau projet passent par quatre statuts, que vous pouvez renommer et compléter (voir [Priorités et statuts des dossiers](#priorités-et-statuts-des-dossiers)). Un dossier peut en sauter un, comme un faux positif fermé directement depuis Nouveau, et il peut être rouvert.
 
 | Statut | Signification |
 | --- | --- |
@@ -112,6 +113,25 @@ Un dossier ouvert à partir d'alertes Google SecOps les ferme aussi dans Google 
 
 **Déclarer un incident** ouvre un incident OneUptime pour le dossier, avec la gravité de votre choix, et les relie dans les deux sens : la description de l'incident nomme le dossier, et l'en-tête du dossier renvoie vers l'incident. L'astreinte, les pages de statut et le post-mortem prennent ensuite le relais. Il faut un rôle qui puisse à la fois traiter des dossiers et créer des incidents.
 
+## Priorités et statuts des dossiers
+
+Chaque projet a ses propres priorités et statuts de dossier, sous **Produits → Événements de sécurité → Paramètres → Priorités des dossiers** et **Statuts des dossiers**. Renommez-les, changez leur couleur, faites-les glisser dans un autre ordre et ajoutez les vôtres, comme un statut « Triage » ou une priorité « Urgence » au-dessus de **Critique**. Un nouveau nom s'affiche partout à la fois : dans la file, sur les pages des dossiers et la vue d'ensemble, dans les notifications, dans Slack et Microsoft Teams, et dans les messages des playbooks.
+
+Certains sont prédéfinis, car OneUptime lit ce qu'ils signifient. On peut les renommer et changer leur couleur, mais pas les supprimer ni les archiver, et ils gardent leur ordre :
+
+| Prédéfini | Ce que OneUptime en fait |
+| --- | --- |
+| Le statut nouveau | Les nouveaux dossiers commencent dans ce statut |
+| Le statut pris en charge | L'atteindre enregistre le moment de la prise en charge du dossier, et **Reopen** y ramène un dossier fermé |
+| Le statut confiné | L'atteindre enregistre le moment où le dossier a été confiné |
+| Le statut fermé | **Close Case** y place un dossier, avec un verdict |
+| Les priorités Critique, Élevé, Medium, Low et Informatifs | Une détection ouvre son dossier à la priorité de sa gravité, et un dossier ouvert par quelqu'un commence à Medium |
+
+- L'emplacement d'un statut décide de ce que compte un dossier qui s'y trouve, comme le montre la colonne **Compte comme** : à partir du statut pris en charge, pris en charge ; à partir du statut confiné, confiné ; à partir du statut fermé, fermé. Un statut que vous ajoutez se place juste au-dessus du statut fermé, et faire passer un dossier dans un statut qui le ferme demande d'abord un verdict.
+- Le rang d'une priorité indique son urgence, la plus urgente en premier : **For Cases At Least**, les choix de notification et les règles Slack et Microsoft Teams lisent cet ordre. Une priorité que vous ajoutez se place à la fin, et la colonne **Détections** indique quelles détections ouvrent leurs dossiers à chaque priorité prédéfinie.
+
+Pour ne plus utiliser un statut ou une priorité à vous, utilisez **Archiver** sur sa ligne. Plus personne ne peut le choisir, et l'API, Terraform et MCP le refusent, mais les dossiers qui l'ont le gardent, et vous pouvez toujours filtrer dessus. Les valeurs archivées sont listées dans la section repliée **Statuts de dossier archivés** ou **Priorités de dossier archivées** sous le tableau, où **Désarchiver** en rétablit une. **Supprimer** est refusé tant que des dossiers ont la valeur ou qu'un playbook part de la priorité.
+
 ## Notifications
 
 OneUptime prévient les personnes concernées de trois choses sur un dossier. Personne n'a rien à configurer : un projet qui a seulement cliqué sur **Activer les recommandations** est prévenu de ses dossiers de priorité Élevé et Critique par e-mail et par push.
@@ -136,10 +156,12 @@ Chaque personne choisit pour elle-même, dans **Paramètres utilisateur → Para
 | Choix | Prévient des dossiers de priorité |
 | --- | --- |
 | Critique uniquement | Critique |
-| Élevé et Critique | Élevé et Critique (le choix par défaut) |
+| Élevé et au-dessus | Critique et Élevé (le choix par défaut) |
 | Moyen et au-dessus | Critique, Élevé et Medium |
 | Faible et au-dessus | Toutes sauf Informatifs |
 | Tous les dossiers | Toutes |
+
+Les choix suivent les priorités de dossier du projet, sous leurs propres noms : voici ceux d'un nouveau projet.
 
 Aucun message WhatsApp n'est envoyé pour les dossiers de sécurité. Une notification push ouvre l'application OneUptime, et son lien ouvre le dossier dans le navigateur.
 
@@ -149,9 +171,9 @@ Pour publier dans un canal, ajoutez une règle sous **Produits → Événements 
 
 | Condition | Correspond à |
 | --- | --- |
-| Priorité du dossier de sécurité | Critique, Élevé, Medium, Low ou Informatifs |
+| Priorité du dossier de sécurité | L'une des priorités de dossier du projet, comme Critique ou Élevé |
 | Titre du dossier de sécurité, Description du dossier de sécurité | Un texte que le titre ou la description du dossier contient, par lequel il commence ou par lequel il se termine |
-| Statut du dossier de sécurité | Nouveau, Investigation en cours, Confiné ou Fermé |
+| Statut du dossier de sécurité | L'un des statuts de dossier du projet, comme Nouveau ou Fermé |
 | Source du dossier de sécurité | Règle de détection, Threat Intel, Connected Product ou Manuel |
 | Étiquettes du dossier de sécurité | Les étiquettes du dossier |
 
@@ -184,7 +206,7 @@ Un playbook désactivé ne s'exécute ni de lui-même ni à la main.
 | --- | --- | --- |
 | Dossier | Assign the case | Confie le dossier à une personne, à une équipe, ou aux deux |
 | Dossier | Set the priority | Relève ou abaisse la priorité du dossier |
-| Dossier | Set the status | Fait passer le dossier à Investigation en cours, Confiné ou Fermé, avec le verdict de votre choix |
+| Dossier | Set the status | Fait passer le dossier à un autre statut du projet, avec le verdict de votre choix quand ce statut le ferme |
 | Dossier | Add a note | Écrit une note sur le dossier, comme une liste de vérification pour l'analyste |
 | Dossier | Add labels | Applique des étiquettes au dossier |
 | Investigation | Check entities against threat intel | Recherche chaque entité dans votre renseignement sur les menaces, et peut relever la priorité en cas de correspondance |
@@ -247,8 +269,8 @@ Une note, un e-mail, une publication Slack et une publication Teams peuvent util
 | --- | --- |
 | `{{case.number}}` | Le numéro du dossier, comme CASE-42 |
 | `{{case.title}}` | Le titre du dossier |
-| `{{case.priority}}` | Critical, High, Medium, Low ou Informational |
-| `{{case.status}}` | New, Investigating, Contained ou Closed |
+| `{{case.priority}}` | La priorité du dossier, telle que votre projet la nomme, comme High |
+| `{{case.status}}` | Le statut du dossier, tel que votre projet le nomme, comme Investigating |
 | `{{case.assignee}}` | La personne à qui le dossier est assigné |
 | `{{case.url}}` | Un lien vers le dossier dans OneUptime |
 | `{{case.entities}}` | Les utilisateurs, hôtes et adresses sur lesquels porte le dossier |
@@ -278,7 +300,7 @@ Une exécution dont le worker ne donne plus signe de vie, après un redémarrage
 Le produit s'ouvre sur **Produits → Événements de sécurité → Vue d'ensemble** :
 
 - Les dossiers ouverts qui vous sont assignés, les dossiers ouverts que personne n'a encore pris en charge, et les étapes de playbook en attente d'approbation, chacun ouvrant la page qui les liste.
-- **Temps moyen de prise en charge**, **Temps moyen de confinement** et **Temps moyen de clôture**, sur les dossiers ouverts au cours des 30 derniers jours : de l'ouverture d'un dossier à sa prise en charge (assignation à une personne, ou sortie du statut Nouveau), à son passage à Confiné, et à sa fermeture. Un dossier encore en attente n'est pas compté dans une moyenne.
+- **Temps moyen de prise en charge**, **Temps moyen de confinement** et **Temps moyen de clôture**, sur les dossiers ouverts au cours des 30 derniers jours : de l'ouverture d'un dossier à sa prise en charge (assignation à une personne, ou passage à un statut qui compte comme pris en charge), à un statut qui compte comme confiné, et à un statut qui compte comme fermé. Un dossier encore en attente n'est pas compté dans une moyenne.
 - Les dossiers ouverts chaque jour sur 30 jours, par priorité, et les détections levées chaque jour sur 14 jours, par source.
 - Les dossiers ouverts par priorité et par statut, les verdicts des 30 derniers jours, les tactiques ATT&CK à l'origine des dossiers, les détections qui se sont le plus déclenchées, et les entités nommées par le plus de constats.
 
@@ -293,8 +315,9 @@ Au-dessus, un bandeau montre comment la sécurité est mise en place : ses sourc
 ## Automatiser
 
 - **Flux de travail** : un dossier ou une note peut lancer un flux de travail quand il est créé, mis à jour ou supprimé. Une étape **Run a workflow** lance un flux de travail dont le déclencheur est un webhook.
-- **API** : les dossiers, les notes, les détections, les playbooks, les exécutions et les entités protégées ont la même API REST que le reste de OneUptime, sous `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run` et `/security-protected-entity`. Voir [Référence de l'API](/docs/api-reference/api-reference).
-- Agents IA : le serveur MCP dispose d'outils pour les dossiers, les notes, les détections et les playbooks. Voir [Serveur MCP](/docs/ai/mcp-server).
+- **API** : les dossiers, les notes, les détections, les playbooks, les exécutions, les entités protégées ainsi que les priorités et statuts de dossier ont la même API REST que le reste de OneUptime, sous `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` et `/security-case-status`. Voir [Référence de l'API](/docs/api-reference/api-reference).
+- Agents IA : le serveur MCP dispose d'outils pour les dossiers, les notes, les détections, les playbooks ainsi que les priorités et statuts de dossier. Voir [Serveur MCP](/docs/ai/mcp-server).
+- Terraform : les ressources `oneuptime_security_case_priority` et `oneuptime_security_case_status` gèrent sous forme de code les priorités et statuts d'un projet.
 
 ## Dépannage
 
@@ -303,7 +326,7 @@ Vérifiez **Open a Case on Match** à l'étape **En cas de correspondance** de l
 :::
 
 :::details Personne n'a été prévenu d'un dossier
-Consultez la **Chronologie** du dossier, qui indique qui a été notifié. Une notification **Nouveau dossier de sécurité** va aux personnes dont la priorité choisie est atteinte par le dossier : un dossier Medium ne prévient donc personne qui ait gardé le choix par défaut, **Élevé et Critique**. Vérifiez que les personnes qui devraient être prévenues peuvent voir les dossiers de sécurité (avec un rôle de sécurité, ou comme Project Owner ou Project Admin), et que la notification est activée pour elles dans **Paramètres utilisateur → Paramètres de notification → Sécurité**.
+Consultez la **Chronologie** du dossier, qui indique qui a été notifié. Une notification **Nouveau dossier de sécurité** va aux personnes dont la priorité choisie est atteinte par le dossier : un dossier Medium ne prévient donc personne qui ait gardé le choix par défaut, **Élevé et au-dessus**. Vérifiez que les personnes qui devraient être prévenues peuvent voir les dossiers de sécurité (avec un rôle de sécurité, ou comme Project Owner ou Project Admin), et que la notification est activée pour elles dans **Paramètres utilisateur → Paramètres de notification → Sécurité**.
 :::
 
 :::details Un playbook ne s'est pas exécuté
@@ -316,6 +339,10 @@ Ouvrez l'exécution sur le dossier : l'étape indique, pour chaque utilisateur o
 
 :::details Une étape de confinement a été sautée
 Le dossier ne porte sur aucun utilisateur ni aucun hôte, seulement sur une adresse par exemple, ou chaque utilisateur ou hôte sur lequel il porte est protégé. Ouvrez l'exécution sur le dossier : l'étape indique la raison.
+:::
+
+:::details Un statut ou une priorité ne peut être ni supprimé ni archivé
+Une valeur prédéfinie peut être renommée et changer de couleur, mais jamais être supprimée ni archivée : son **Archiver** est verrouillé, avec la raison. Une valeur à vous ne peut pas être supprimée tant que des dossiers l'ont ou qu'un playbook part d'elle : déplacez d'abord les dossiers vers une autre, ou archivez-la.
 :::
 
 ## Étapes suivantes

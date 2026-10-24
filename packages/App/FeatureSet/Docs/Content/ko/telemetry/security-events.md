@@ -49,8 +49,10 @@ flowchart TB
 | **설정** | AI | OneUptime AI가 새 케이스마다 트리아지할지 여부 |
 | **Connections** | Connections | 로그, OneUptime이 가져오는 보안 제품, 그리고 이벤트를 보내는 SIEM |
 | **설정 가이드** | Connections | 이벤트를 보내는 스니펫. 수집 키가 미리 채워져 있음 |
+| **케이스 우선순위** | 설정 | 케이스의 긴급도. 가장 긴급한 것부터 정한 프로젝트 자체의 우선순위 |
+| **케이스 상태** | 설정 | 케이스가 거치는 단계와, 각 단계의 케이스를 무엇으로 간주하는지 |
 
-한 번 설정하면 되는 **Detections**, **AI** 와 **Connections** 는 열기 전까지 접혀 있습니다. 보안이 처음이라면 [보안 시작하기](/docs/telemetry/security-getting-started)에서 두 번의 클릭으로 설정할 수 있습니다.
+한 번 설정하면 되는 **Detections**, **AI**, **Connections** 와 **설정** 은 열기 전까지 접혀 있습니다. 보안이 처음이라면 [보안 시작하기](/docs/telemetry/security-getting-started)에서 두 번의 클릭으로 설정할 수 있습니다.
 
 ## 시작하기 전에
 

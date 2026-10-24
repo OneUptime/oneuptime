@@ -5,6 +5,7 @@ Eventos de seguridad convierte en casos lo que encuentran tus reglas de detecci�
 :::cards
 - [De dónde vienen los casos](#de-dónde-vienen-los-casos): Reglas de detección, inteligencia de amenazas, productos conectados y personas.
 - [Gestionar un caso](#gestionar-un-caso): Asígnalo, investiga sus entidades y ciérralo con un veredicto.
+- [Prioridades y estados de los casos](#prioridades-y-estados-de-los-casos): Cámbiales el nombre, el color y el orden, y añade los tuyos.
 - [Notificaciones](#notificaciones): A quién se avisa de un caso nuevo, de una asignación y de un paso que espera aprobación.
 - [Playbooks](#playbooks): Pasos que se ejecutan sobre un caso, con aprobación donde importa.
 - [La vista general](#la-vista-general): Lo que necesita atención ahora y la rapidez con que se gestionan los casos.
@@ -60,7 +61,7 @@ Una detección trata sobre una entidad: el valor por el que agrupa su regla, com
 - Cuando no lo hay, se abre un caso nuevo, con el nombre de la detección y con la prioridad de esta.
 - Una detección que se vuelve a disparar incrementa el recuento de su fila en lugar de añadir otra.
 
-La prioridad de un caso se deriva de la gravedad de la detección:
+La prioridad de un caso se deriva de la gravedad de la detección, en la prioridad predefinida del proyecto para ese nivel, sea cual sea el nombre que le hayas dado:
 
 | Gravedad | Prioridad |
 | --- | --- |
@@ -72,7 +73,7 @@ La prioridad de un caso se deriva de la gravedad de la detección:
 
 ## Gestionar un caso
 
-Un caso pasa por cuatro estados. Puede saltarse alguno, como un falso positivo que se cierra directamente desde Nuevo, y se puede reabrir.
+Los casos de un proyecto nuevo pasan por cuatro estados, a los que puedes cambiar el nombre y añadir otros (consulta [Prioridades y estados de los casos](#prioridades-y-estados-de-los-casos)). Un caso puede saltarse alguno, como un falso positivo que se cierra directamente desde Nuevo, y se puede reabrir.
 
 | Estado | Significado |
 | --- | --- |
@@ -112,6 +113,25 @@ Un caso abierto a partir de alertas de Google SecOps también las cierra en Goog
 
 **Declarar incidente** abre un incidente de OneUptime para el caso, con la gravedad que elijas, y enlaza los dos en ambos sentidos: la descripción del incidente nombra el caso, y la cabecera del caso enlaza al incidente. A partir de ahí toman el relevo la guardia, las páginas de estado y el postmortem. Requiere un rol que pueda tanto gestionar casos como crear incidentes.
 
+## Prioridades y estados de los casos
+
+Cada proyecto tiene sus propias prioridades y estados de caso, en **Productos → Eventos de seguridad → Ajustes → Prioridades de casos** y **Estados de casos**. Cámbiales el nombre o el color, arrástralos a otro orden y añade los tuyos, como un estado «Triaje» o una prioridad «Emergencia» por encima de **Crítico**. Un nombre nuevo se ve en todas partes a la vez: en la cola, en las páginas de los casos y en la vista general, en las notificaciones, en Slack y Microsoft Teams, y en los mensajes de los playbooks.
+
+Algunos son predefinidos, porque OneUptime lee lo que significan. Se les puede cambiar el nombre y el color, pero no eliminarlos ni archivarlos, y conservan su orden:
+
+| Predefinido | Qué hace OneUptime con él |
+| --- | --- |
+| El estado nuevo | Los casos nuevos empiezan en él |
+| El estado reconocido | Al llegar a él se registra cuándo se reconoció el caso, y **Reabrir** devuelve a él un caso cerrado |
+| El estado contenido | Al llegar a él se registra cuándo se contuvo el caso |
+| El estado cerrado | **Close Case** lleva un caso a él, con un veredicto |
+| Las prioridades Crítico, Alta, Medium, Low e Informativos | Una detección abre su caso en la prioridad de su gravedad, y un caso que abre una persona empieza en Medium |
+
+- El lugar de un estado decide qué cuenta un caso que está en él, como muestra la columna **Cuenta como**: desde el estado reconocido hacia abajo, reconocido; desde el estado contenido hacia abajo, contenido; desde el estado cerrado hacia abajo, cerrado. Un estado que añades se coloca justo encima del estado cerrado, y pasar un caso a un estado que lo cierra pide antes un veredicto.
+- El puesto de una prioridad es su urgencia, la más urgente primero: **For Cases At Least**, las opciones de notificación y las reglas de Slack y Microsoft Teams leen este orden. Una prioridad que añades va al final, y la columna **Detecciones** muestra qué detecciones abren sus casos en cada prioridad predefinida.
+
+Para dejar de usar un estado o una prioridad propios, usa **Archivar** en su fila. Nadie puede volver a elegirlo, y la API, Terraform y MCP lo rechazan, pero los casos que lo tienen lo conservan, y puedes seguir filtrando por él. Los valores archivados aparecen en la sección plegada **Estados de caso archivados** o **Prioridades de caso archivadas** bajo la tabla, donde **Desarchivar** devuelve uno. **Eliminar** se rechaza mientras haya casos con el valor o un playbook que parta de la prioridad.
+
 ## Notificaciones
 
 OneUptime avisa a las personas de tres cosas de un caso. Nadie tiene que configurar nada: un proyecto que solo hizo clic en **Activar lo recomendado** se entera de sus casos de prioridad Alta y Crítica por correo y por push.
@@ -136,10 +156,12 @@ Cada persona elige por sí misma, en **Ajustes de usuario → Ajustes de notific
 | Opción | Avisa de los casos de prioridad |
 | --- | --- |
 | Solo Crítica | Crítico |
-| Alta y Crítica | Alta y Crítico (la opción predeterminada) |
+| Alta y superior | Crítico y Alta (la opción predeterminada) |
 | Media y superior | Crítico, Alta y Medium |
 | Baja y superior | Todas menos Informativos |
 | Todos los casos | Todas |
+
+Las opciones siguen las prioridades de caso del proyecto, con sus propios nombres: estas son las de un proyecto nuevo.
 
 No se envían mensajes de WhatsApp para los casos de seguridad. Una notificación push abre la app de OneUptime, y su enlace abre el caso en el navegador.
 
@@ -149,9 +171,9 @@ Para publicar en un canal, añade una regla en **Productos → Eventos de seguri
 
 | Condición | Coincide con |
 | --- | --- |
-| Prioridad del caso de seguridad | Crítico, Alta, Medium, Low o Informativos |
+| Prioridad del caso de seguridad | Una de las prioridades de caso del proyecto, como Crítico o Alta |
 | Título del caso de seguridad, Descripción del caso de seguridad | Un texto que el título o la descripción del caso contiene, por el que empieza o con el que termina |
-| Estado del caso de seguridad | Nuevo, Investigando, Contenido o Cerrado |
+| Estado del caso de seguridad | Uno de los estados de caso del proyecto, como Nuevo o Cerrado |
 | Origen del caso de seguridad | Regla de detección, Inteligencia de amenazas, Connected Product o Manual |
 | Etiquetas del caso de seguridad | Las etiquetas del caso |
 
@@ -184,7 +206,7 @@ Un playbook deshabilitado no se ejecuta ni por sí solo ni a mano.
 | --- | --- | --- |
 | Caso | Assign the case | Asigna el caso a una persona, a un equipo o a ambos |
 | Caso | Set the priority | Sube o baja la prioridad del caso |
-| Caso | Set the status | Pasa el caso a Investigando, Contenido o Cerrado, con el veredicto que elijas |
+| Caso | Set the status | Pasa el caso a otro estado del proyecto, con el veredicto que elijas cuando ese estado lo cierra |
 | Caso | Add a note | Escribe una nota en el caso, como una lista de comprobación para el analista |
 | Caso | Add labels | Pone etiquetas al caso |
 | Investigación | Check entities against threat intel | Busca cada entidad en tu inteligencia de amenazas y puede subir la prioridad si hay una coincidencia |
@@ -247,8 +269,8 @@ Una nota, un email, una publicación de Slack y una de Teams pueden usar los val
 | --- | --- |
 | `{{case.number}}` | El número del caso, como CASE-42 |
 | `{{case.title}}` | El título del caso |
-| `{{case.priority}}` | Critical, High, Medium, Low o Informational |
-| `{{case.status}}` | New, Investigating, Contained o Closed |
+| `{{case.priority}}` | La prioridad del caso, tal como la llama tu proyecto, como High |
+| `{{case.status}}` | El estado del caso, tal como lo llama tu proyecto, como Investigating |
 | `{{case.assignee}}` | A quién está asignado el caso |
 | `{{case.url}}` | Un enlace al caso en OneUptime |
 | `{{case.entities}}` | Los usuarios, hosts y direcciones de los que trata el caso |
@@ -278,7 +300,7 @@ Una ejecución que deja de recibir noticias de su worker, por ejemplo tras un re
 El producto se abre en **Productos → Eventos de seguridad → Vista general**:
 
 - Los casos abiertos asignados a ti, los casos abiertos que nadie ha tomado todavía y los pasos de playbook que esperan aprobación; cada uno abre la página que los lista.
-- **Tiempo medio de reconocimiento**, **Tiempo medio de contención** y **Tiempo medio de cierre**, sobre los casos abiertos en los últimos 30 días: desde que se abre un caso hasta que alguien se hace cargo de él (se asigna a una persona o sale de Nuevo), hasta que pasa a Contenido y hasta que pasa a Cerrado. Un caso que sigue esperando no cuenta en la media.
+- **Tiempo medio de reconocimiento**, **Tiempo medio de contención** y **Tiempo medio de cierre**, sobre los casos abiertos en los últimos 30 días: desde que se abre un caso hasta que alguien se hace cargo de él (se asigna a una persona o pasa a un estado que cuenta como reconocido), hasta que pasa a un estado que cuenta como contenido y hasta que pasa a uno que cuenta como cerrado. Un caso que sigue esperando no cuenta en la media.
 - Los casos abiertos cada día durante 30 días, por prioridad, y las detecciones generadas cada día durante 14 días, por origen.
 - Los casos abiertos por prioridad y por estado, los veredictos de los últimos 30 días, las tácticas de ATT&CK detrás de los casos, las detecciones que más se dispararon y las entidades que nombran más hallazgos.
 
@@ -293,8 +315,9 @@ Encima, una franja muestra cómo está configurada la seguridad: sus orígenes, 
 ## Automatizar
 
 - **Flujos de trabajo**: un caso o una nota puede iniciar un flujo de trabajo cuando se crea, se actualiza o se elimina. Un paso **Run a workflow** inicia un flujo de trabajo cuyo desencadenante es un webhook.
-- **API**: los casos, las notas, las detecciones, los playbooks, las ejecuciones y las entidades protegidas tienen la misma API REST que el resto de OneUptime, en `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run` y `/security-protected-entity`. Consulta [Referencia de la API](/docs/api-reference/api-reference).
-- Agentes de IA: el servidor MCP tiene herramientas para casos, notas, detecciones y playbooks. Consulta [Servidor MCP](/docs/ai/mcp-server).
+- **API**: los casos, las notas, las detecciones, los playbooks, las ejecuciones, las entidades protegidas y las prioridades y estados de caso tienen la misma API REST que el resto de OneUptime, en `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` y `/security-case-status`. Consulta [Referencia de la API](/docs/api-reference/api-reference).
+- Agentes de IA: el servidor MCP tiene herramientas para casos, notas, detecciones, playbooks y prioridades y estados de caso. Consulta [Servidor MCP](/docs/ai/mcp-server).
+- Terraform: los recursos `oneuptime_security_case_priority` y `oneuptime_security_case_status` mantienen como código las prioridades y estados de un proyecto.
 
 ## Solución de problemas
 
@@ -303,7 +326,7 @@ Comprueba **Open a Case on Match** en el paso **Al coincidir** de la regla. Una 
 :::
 
 :::details No se avisó a nadie de un caso
-Mira la **Cronología** del caso, que indica a quién se notificó. Una notificación **Nuevo caso de seguridad** va a las personas cuya prioridad elegida alcanza el caso, así que un caso Medium no avisa a nadie que haya mantenido la opción predeterminada, **Alta y Crítica**. Comprueba que las personas que deberían enterarse pueden ver los casos de seguridad (con un rol de seguridad, o como Project Owner o Project Admin) y que tienen la notificación activada en **Ajustes de usuario → Ajustes de notificaciones → Seguridad**.
+Mira la **Cronología** del caso, que indica a quién se notificó. Una notificación **Nuevo caso de seguridad** va a las personas cuya prioridad elegida alcanza el caso, así que un caso Medium no avisa a nadie que haya mantenido la opción predeterminada, **Alta y superior**. Comprueba que las personas que deberían enterarse pueden ver los casos de seguridad (con un rol de seguridad, o como Project Owner o Project Admin) y que tienen la notificación activada en **Ajustes de usuario → Ajustes de notificaciones → Seguridad**.
 :::
 
 :::details Un playbook no se ejecutó
@@ -316,6 +339,10 @@ Abre la ejecución en el caso: el paso indica, para cada usuario o host, si el p
 
 :::details Se omitió un paso de contención
 El caso no trata de ningún usuario ni host, solo de una dirección, por ejemplo, o todos los usuarios o hosts de los que trata están protegidos. Abre la ejecución en el caso: el paso indica el motivo.
+:::
+
+:::details No se puede eliminar ni archivar un estado o una prioridad
+Uno predefinido se puede renombrar y cambiar de color, pero nunca eliminar ni archivar: su **Archivar** está bloqueado, con el motivo. Uno propio no se puede eliminar mientras haya casos que lo tengan o un playbook que parta de él: pasa antes los casos a otro, o archívalo.
 :::
 
 ## Próximos pasos

@@ -194,7 +194,7 @@ Records nemen `list`, `get`, `create`, `update`, `delete` en `count`:
 | Statuspagina's | `status-page`, `status-page-announcement` |
 | Gepland onderhoud | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
 | Teams en dienst | `team`, `on-call-policy` |
-| Beveiliging | `security-case`, `security-case-note`, `security-detection`, `security-playbook` |
+| Beveiliging | `security-case`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-detection`, `security-playbook` |
 | Labels | `label` |
 
 Telemetrie neemt `list`, `create` en `count`:

@@ -49,8 +49,10 @@ Open **Products → Security Events**, under **Observability**. Its menu has a s
 | **Settings** | AI | Whether OneUptime AI triages each new case |
 | **Connections** | Connections | Your logs, the security products OneUptime polls, and the SIEMs it sends to |
 | **Setup Guide** | Connections | Snippets to send events, filled in with your ingestion key |
+| **Case Priorities** | Settings | How urgent a case is: the project's own priorities, most urgent first |
+| **Case Statuses** | Settings | The steps a case moves through, and what a case in each counts as |
 
-**Detections**, **AI** and **Connections**, set up once, stay folded until you open them. New to Security? [Get Started with Security](/docs/telemetry/security-getting-started) sets it up in two clicks.
+**Detections**, **AI**, **Connections** and **Settings**, set up once, stay folded until you open them. New to Security? [Get Started with Security](/docs/telemetry/security-getting-started) sets it up in two clicks.
 
 ## Before you begin
 

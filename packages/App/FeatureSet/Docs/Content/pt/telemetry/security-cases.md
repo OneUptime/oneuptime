@@ -5,6 +5,7 @@ O Security Events transforma o que as suas regras de detecção, a inteligência
 :::cards
 - [De onde vêm os casos](#de-onde-vêm-os-casos): Regras de detecção, inteligência de ameaças, produtos conectados e pessoas.
 - [Tratar um caso](#tratar-um-caso): Atribua-o, investigue as entidades dele e feche-o com um veredito.
+- [Prioridades e status dos casos](#prioridades-e-status-dos-casos): Renomeie, mude a cor e a ordem, e adicione os seus.
 - [Notificações](#notificações): Quem fica sabendo de um novo caso, de uma atribuição e de uma etapa aguardando aprovação.
 - [Playbooks](#playbooks): Etapas que rodam em um caso, com aprovação onde ela importa.
 - [A visão geral](#a-visão-geral): O que precisa de alguém agora, e com que rapidez os casos são tratados.
@@ -60,7 +61,7 @@ Uma detecção é sobre uma entidade: o valor pelo qual a regra dela agrupa, com
 - Quando nenhum caso aberto é sobre ela, um novo caso é aberto, com o nome e a prioridade da detecção.
 - Uma detecção que dispara de novo aumenta a contagem na própria linha em vez de acrescentar outra.
 
-A prioridade de um caso vem da gravidade da detecção:
+A prioridade de um caso vem da gravidade da detecção, na prioridade predefinida do projeto para esse nível, qualquer que seja o nome que você deu a ela:
 
 | Gravidade | Prioridade |
 | --- | --- |
@@ -72,7 +73,7 @@ A prioridade de um caso vem da gravidade da detecção:
 
 ## Tratar um caso
 
-Um caso passa por quatro status. Ele pode pular um, como um falso positivo fechado direto de Novo, e pode ser reaberto.
+Os casos de um projeto novo passam por quatro status, que você pode renomear e completar com outros (veja [Prioridades e status dos casos](#prioridades-e-status-dos-casos)). Um caso pode pular um, como um falso positivo fechado direto de Novo, e pode ser reaberto.
 
 | Status | Significado |
 | --- | --- |
@@ -112,6 +113,25 @@ Um caso aberto a partir de alertas do Google SecOps também os fecha no Google S
 
 **Declarar incidente** abre um incidente do OneUptime para o caso, com a severidade que você escolher, e liga os dois nos dois sentidos: a descrição do incidente cita o caso, e o cabeçalho do caso tem um link para o incidente. A partir daí, o plantão, as páginas de status e o postmortem assumem. É preciso um papel que possa tanto tratar casos quanto criar incidentes.
 
+## Prioridades e status dos casos
+
+Cada projeto tem suas próprias prioridades e status de caso, em **Produtos → Security Events → Configurações → Prioridades de casos** e **Status de casos**. Renomeie-os, mude a cor, arraste-os para outra ordem e adicione os seus, como um status "Triagem" ou uma prioridade "Emergência" acima de **Crítico**. Um nome novo aparece em todo lugar ao mesmo tempo: na fila, nas páginas dos casos e na visão geral, nas notificações, no Slack e no Microsoft Teams, e nas mensagens dos playbooks.
+
+Alguns são predefinidos, porque o OneUptime lê o que eles significam. Eles podem ser renomeados e mudar de cor, mas não excluídos nem arquivados, e mantêm sua ordem:
+
+| Predefinido | O que o OneUptime faz com ele |
+| --- | --- |
+| O status novo | Casos novos começam nele |
+| O status reconhecido | Chegar a ele registra quando o caso foi reconhecido, e **Reopen** devolve a ele um caso fechado |
+| O status contido | Chegar a ele registra quando o caso foi contido |
+| O status fechado | **Close Case** leva um caso para ele, com um veredito |
+| As prioridades Crítico, High, Medium, Low e Informativos | Uma detecção abre seu caso na prioridade da sua gravidade, e um caso que alguém abre começa em Medium |
+
+- A posição de um status decide como conta um caso que está nele, como mostra a coluna **Conta como**: do status reconhecido para baixo, reconhecido; do status contido para baixo, contido; do status fechado para baixo, fechado. Um status que você adiciona fica logo acima do status fechado, e mover um caso para um status que o fecha pede um veredito antes.
+- A posição de uma prioridade é a sua urgência, a mais urgente primeiro: **For Cases At Least**, as escolhas de notificação e as regras do Slack e do Microsoft Teams leem essa ordem. Uma prioridade que você adiciona vai para o fim, e a coluna **Detections** mostra quais detecções abrem seus casos em cada prioridade predefinida.
+
+Para parar de usar um status ou uma prioridade seus, use **Arquivar** na linha dele. Ninguém pode escolhê-lo de novo, e a API, o Terraform e o MCP o recusam, mas os casos que o têm o mantêm, e você ainda pode filtrar por ele. Os valores arquivados ficam listados na seção recolhida **Status de caso arquivados** ou **Prioridades de caso arquivadas** abaixo da tabela, onde **Desarquivar** traz um de volta. **Excluir** é recusado enquanto houver casos com o valor ou um playbook que parta da prioridade.
+
 ## Notificações
 
 O OneUptime avisa as pessoas sobre três coisas em um caso. Ninguém precisa configurar nada: um projeto que só clicou em **Ativar o recomendado** fica sabendo dos seus casos High e Crítico por e-mail e push.
@@ -136,10 +156,12 @@ Cada pessoa escolhe por si mesma, em **Configurações do usuário → Configura
 | Opção | Notifica sobre casos de prioridade |
 | --- | --- |
 | Somente Crítica | Crítico |
-| Alta e Crítica | High e Crítico (o padrão) |
+| Alta e acima | Crítico e High (o padrão) |
 | Média e acima | Crítico, High e Medium |
 | Baixa e acima | Todas as prioridades, menos Informativos |
 | Todos os casos | Todas as prioridades |
+
+As escolhas seguem as prioridades de caso do projeto, com os próprios nomes: estas são as de um projeto novo.
 
 Mensagens de WhatsApp não são enviadas para casos de segurança. Uma notificação push abre o app do OneUptime, e o link dela abre o caso no navegador.
 
@@ -149,9 +171,9 @@ Para publicar em um canal, adicione uma regra em **Produtos → Security Events 
 
 | Condição | Corresponde a |
 | --- | --- |
-| Prioridade do caso de segurança | Crítico, High, Medium, Low ou Informativos |
+| Prioridade do caso de segurança | Uma das prioridades de caso do projeto, como Crítico ou High |
 | Título do caso de segurança, Descrição do caso de segurança | Um texto que o título ou a descrição do caso contém, com que começa ou com que termina |
-| Status do caso de segurança | Novo, Investigando, Contained ou Fechado |
+| Status do caso de segurança | Um dos status de caso do projeto, como Novo ou Fechado |
 | Origem do caso de segurança | Detection Rule, Threat Intel, Connected Product ou Manual |
 | Rótulos do caso de segurança | Os rótulos do caso |
 
@@ -184,7 +206,7 @@ Um playbook desabilitado não roda nem sozinho nem manualmente.
 | --- | --- | --- |
 | Caso | Assign the case | Atribui o caso a uma pessoa, a uma equipe ou a ambas |
 | Caso | Set the priority | Aumenta ou diminui a prioridade do caso |
-| Caso | Set the status | Define o status do caso como Investigando, Contained ou Fechado, com o veredito que você escolher |
+| Caso | Set the status | Leva o caso para outro status do projeto, com o veredito que você escolher quando esse status o fecha |
 | Caso | Add a note | Escreve uma nota no caso, como uma checklist para o analista |
 | Caso | Add labels | Marca o caso com rótulos |
 | Investigação | Check entities against threat intel | Procura cada entidade na sua inteligência de ameaças, e pode aumentar a prioridade quando encontra uma correspondência |
@@ -247,8 +269,8 @@ Uma nota, um e-mail, uma publicação no Slack e uma publicação no Teams podem
 | --- | --- |
 | `{{case.number}}` | O número do caso, como CASE-42 |
 | `{{case.title}}` | O título do caso |
-| `{{case.priority}}` | Critical, High, Medium, Low ou Informational |
-| `{{case.status}}` | New, Investigating, Contained ou Closed |
+| `{{case.priority}}` | A prioridade do caso, como o seu projeto a chama, por exemplo High |
+| `{{case.status}}` | O status do caso, como o seu projeto o chama, por exemplo Investigating |
 | `{{case.assignee}}` | A quem o caso está atribuído |
 | `{{case.url}}` | Um link para o caso no OneUptime |
 | `{{case.entities}}` | Os usuários, hosts e endereços de que o caso trata |
@@ -278,7 +300,7 @@ Uma execução que deixa de receber sinais do worker dela, depois de uma reinici
 **Produtos → Security Events → Visão geral** é onde o produto abre:
 
 - Os casos abertos atribuídos a você, os casos abertos que ninguém assumiu, e as etapas de playbooks aguardando aprovação, cada um abrindo a página que os lista.
-- **Tempo médio para reconhecer**, **Tempo médio para conter** e **Tempo médio para fechar**, sobre os casos abertos nos últimos 30 dias: da abertura de um caso até alguém assumi-lo (atribuindo-o a uma pessoa, ou tirando-o de Novo), até Contained e até Fechado. Um caso que ainda está esperando não entra na média.
+- **Tempo médio para reconhecer**, **Tempo médio para conter** e **Tempo médio para fechar**, sobre os casos abertos nos últimos 30 dias: da abertura de um caso até alguém assumi-lo (atribuindo-o a uma pessoa, ou levando-o para um status que conta como reconhecido), até um status que conta como contido e até um que conta como fechado. Um caso que ainda está esperando não entra na média.
 - Os casos abertos a cada dia, nos últimos 30 dias, por prioridade, e as detecções geradas a cada dia, nos últimos 14 dias, por origem.
 - Os casos abertos por prioridade e por status, os vereditos dos últimos 30 dias, as táticas ATT&CK por trás dos casos, as detecções que mais dispararam e as entidades citadas pelo maior número de achados.
 
@@ -293,8 +315,9 @@ Acima, uma faixa mostra como a segurança está configurada: suas origens, detec
 ## Automatizar
 
 - **Fluxos de trabalho**: criar, atualizar ou excluir um caso ou uma nota pode iniciar um fluxo de trabalho. Uma etapa **Run a workflow** inicia um fluxo de trabalho cujo gatilho é um webhook.
-- **API**: casos, notas, detecções, playbooks, execuções e entidades protegidas têm a mesma API REST que o resto do OneUptime, em `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run` e `/security-protected-entity`. Veja [Referência da API](/docs/api-reference/api-reference).
-- Agentes de IA: o servidor MCP tem ferramentas para casos, notas, detecções e playbooks. Veja [Servidor MCP](/docs/ai/mcp-server).
+- **API**: casos, notas, detecções, playbooks, execuções, entidades protegidas e as prioridades e status de caso têm a mesma API REST que o resto do OneUptime, em `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` e `/security-case-status`. Veja [Referência da API](/docs/api-reference/api-reference).
+- Agentes de IA: o servidor MCP tem ferramentas para casos, notas, detecções, playbooks e as prioridades e status de caso. Veja [Servidor MCP](/docs/ai/mcp-server).
+- Terraform: os recursos `oneuptime_security_case_priority` e `oneuptime_security_case_status` mantêm como código as prioridades e os status de um projeto.
 
 ## Solução de problemas
 
@@ -303,7 +326,7 @@ Confira **Open a Case on Match** na etapa **Ao corresponder** da regra. Uma dete
 :::
 
 :::details Ninguém foi avisado sobre um caso
-Veja a **Linha do tempo** do caso, que diz quem foi notificado. Uma notificação **Novo caso de segurança** vai para as pessoas cuja prioridade escolhida o caso alcança, então um caso Medium não notifica ninguém que manteve o padrão, **Alta e Crítica**. Confira se as pessoas que deveriam ser avisadas podem ver casos de segurança (um papel de segurança, ou Project Owner ou Project Admin) e se a notificação está ativada para elas em **Configurações do usuário → Configurações de notificação → Segurança**.
+Veja a **Linha do tempo** do caso, que diz quem foi notificado. Uma notificação **Novo caso de segurança** vai para as pessoas cuja prioridade escolhida o caso alcança, então um caso Medium não notifica ninguém que manteve o padrão, **Alta e acima**. Confira se as pessoas que deveriam ser avisadas podem ver casos de segurança (um papel de segurança, ou Project Owner ou Project Admin) e se a notificação está ativada para elas em **Configurações do usuário → Configurações de notificação → Segurança**.
 :::
 
 :::details Um playbook não rodou
@@ -316,6 +339,10 @@ Abra a execução no caso: a etapa diz, para cada usuário ou host, se o produto
 
 :::details Uma etapa de contenção foi pulada
 O caso não trata de nenhum usuário ou host, só de um endereço, por exemplo, ou todos os usuários ou hosts de que ele trata estão protegidos. Abra a execução no caso: a etapa diz qual dos dois.
+:::
+
+:::details Um status ou uma prioridade não pode ser excluído nem arquivado
+Um predefinido pode ser renomeado e mudar de cor, mas nunca ser excluído nem arquivado: o **Arquivar** dele fica bloqueado, com o motivo. Um seu não pode ser excluído enquanto houver casos com ele ou um playbook que parta dele: mova os casos para outro antes, ou arquive-o.
 :::
 
 ## Próximos passos

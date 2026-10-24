@@ -100,7 +100,7 @@ Los monitores, incidentes, alertas, páginas de estado, SLO y muchos otros recur
 | Configuraciones del recolector | `Collector Config` |
 | vCenter | `vCenter` |
 | Capturas de paquetes, y sus descargas | `Packet Capture` |
-| Casos de seguridad, playbooks y sus ejecuciones, y entidades protegidas | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
+| Casos de seguridad y sus prioridades y estados, playbooks y sus ejecuciones, y entidades protegidas | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
 | Exportaciones del registro de auditoría | `Audit Log Export` |
 
 También se registra que un administrador añada o quite un método de notificación o una regla de guardia personal en la cuenta de otra persona, sin la dirección ni el número en sí.
