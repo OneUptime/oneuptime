@@ -433,8 +433,12 @@ function getResourceRoundStartedTemplate(
   );
 }
 
-// Lanes that only say "another lane took this signal": never drawn.
-const SILENT_REASONS: Array<AutoRemediationDecisionReason> = [
+/*
+ * Lanes that only say "another lane took this signal": never drawn. The AI
+ * card reads them the same way (AiOffSummaryData): they say nothing about
+ * whether fixing was on.
+ */
+export const SILENT_REASONS: ReadonlyArray<AutoRemediationDecisionReason> = [
   AutoRemediationDecisionReason.ClusterSkippedForResourceRound,
   AutoRemediationDecisionReason.ResourceSkippedForClusterRound,
 ];

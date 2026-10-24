@@ -437,3 +437,62 @@ describe("ConversationComposer — what OneUptime AI may do", () => {
     ).toHaveTextContent("Only reads and answers. It never changes anything.");
   });
 });
+
+/*
+ * The box takes the focus only when the reader asked to type in it - the AI
+ * card's one line, pressed Ask OneUptime AI - and once for each such ask: a
+ * page that loads with the composer on it never jumps to it.
+ */
+describe("ConversationComposer — taking the focus when asked", () => {
+  function composerWith(focusRequest?: number): React.ReactElement {
+    return (
+      <ConversationComposer
+        value=""
+        onChange={(): void => {}}
+        onSend={(): void => {}}
+        canSend={true}
+        isWorking={false}
+        placeholder="Ask about this incident…"
+        label="Ask OneUptime AI"
+        permissionMode={AIChatPermissionMode.AutoRun}
+        onPermissionModeChange={(): void => {}}
+        {...(focusRequest === undefined ? {} : { focusRequest })}
+      />
+    );
+  }
+
+  function box(): HTMLElement {
+    return screen.getByRole("textbox", { name: "Ask OneUptime AI" });
+  }
+
+  test("never by itself: left out, or 0", () => {
+    const view: ReturnType<typeof render> = render(composerWith());
+    expect(box()).not.toHaveFocus();
+
+    view.rerender(composerWith(0));
+    expect(box()).not.toHaveFocus();
+  });
+
+  test("drawn because it was asked for, it takes the focus at once", () => {
+    render(composerWith(1));
+
+    expect(box()).toHaveFocus();
+  });
+
+  test("once per ask: a new number takes it again, the same one does not", () => {
+    const view: ReturnType<typeof render> = render(composerWith(0));
+
+    view.rerender(composerWith(1));
+    expect(box()).toHaveFocus();
+
+    // The reader moves on.
+    box().blur();
+    expect(box()).not.toHaveFocus();
+
+    view.rerender(composerWith(1));
+    expect(box()).not.toHaveFocus();
+
+    view.rerender(composerWith(2));
+    expect(box()).toHaveFocus();
+  });
+});

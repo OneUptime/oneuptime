@@ -70,6 +70,9 @@ import InvestigationPanel, {
 import InvestigationConversation from "../../../Components/AI/InvestigationConversation/InvestigationConversation";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import RemediationSuggestionCard from "../../../Components/AutoRemediation/RemediationSuggestionCard";
+import useAiCardFold, {
+  AiCardFoldWiring,
+} from "../../../Components/AI/useAiCardFold";
 import IncidentAffectedResources from "./AffectedResources";
 import MonitorSummarySnapshotCard from "../../../Components/Monitor/MonitorSummarySnapshotCard";
 import IncidentMemberRoleAssignment from "../../../Components/Incident/IncidentMemberRoleAssignment";
@@ -225,6 +228,14 @@ const IncidentView: FunctionComponent<
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const modelIdString: string = modelId.toString();
+  /*
+   * The AI card folds into one line - "AI investigation is off", and why -
+   * when OneUptime AI neither investigated nor fixed this incident because
+   * something was off for it. The Remediation card tells it whether fixing
+   * did anything, and it tells the Remediation card when the line says
+   * "nothing was fixed" for both (useAiCardFold).
+   */
+  const aiCardFold: AiCardFoldWiring = useAiCardFold(modelIdString);
 
   const [incidentStateTimeline, setIncidentStateTimeline] = useState<
     IncidentStateTimeline[]
@@ -1229,12 +1240,15 @@ const IncidentView: FunctionComponent<
             onReportSummaryChange={onAIInvestigationReportSummaryChange}
             onVerdictChange={onAIInvestigationVerdictChange}
             onAnalysisAvailable={refreshFeedAfterAnalysisAvailable}
+            remediationState={aiCardFold.remediationState}
+            onCardFoldChange={aiCardFold.onFoldChange}
             renderConversation={(slot: InvestigationConversationSlot) => {
               return (
                 <InvestigationConversation
                   subjectType="incident"
                   subjectId={modelId}
                   investigationStage={slot.investigationStage}
+                  fold={slot.fold}
                 />
               );
             }}
@@ -1408,7 +1422,12 @@ const IncidentView: FunctionComponent<
             seriesLabels={seriesLabels}
           />
 
-          <RemediationSuggestionCard incidentId={modelId} hideIfEmpty={true} />
+          <RemediationSuggestionCard
+            incidentId={modelId}
+            hideIfEmpty={true}
+            onFoldStateChange={aiCardFold.onRemediationStateChange}
+            aiCardFold={aiCardFold.fold}
+          />
 
           <EntityRunbooks incidentId={modelId} hideIfEmpty={true} />
 

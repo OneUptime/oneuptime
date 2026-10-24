@@ -560,6 +560,12 @@ const AiRulesTable: FunctionComponent<ComponentProps> = (
         title:
           AI_LANE_ADVANCED_CARD_TITLES[props.lane][AiLaneAdvancedCard.AiRules],
         description: AI_LANE_RULES_COPY[props.lane].aiRulesDescription,
+        /*
+         * Its place on the page: a link to ".../ai/settings#AiRules" (an
+         * incident's or alert's AI card, when it matched none of the rules)
+         * opens More settings at this table.
+         */
+        id: AiLaneAdvancedCard.AiRules,
       }}
       noItemsMessage={AI_LANE_RULES_COPY[props.lane].noAiRulesMessage}
       sortBy="name"
