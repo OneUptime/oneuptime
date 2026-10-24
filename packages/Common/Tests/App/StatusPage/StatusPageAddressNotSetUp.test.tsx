@@ -366,7 +366,10 @@ describe("the page", () => {
     render(<AddressNotSetUp facts={factsFor({})} />);
 
     expect(
-      screen.getByRole("heading", { level: 1, name: ENGLISH["title"] }),
+      screen.getByRole("heading", {
+        level: 1,
+        name: ENGLISH["title"] as string,
+      }),
     ).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -430,7 +433,10 @@ describe("the page", () => {
     );
 
     expect(
-      screen.getByRole("heading", { level: 1, name: ENGLISH["proxyTitle"] }),
+      screen.getByRole("heading", {
+        level: 1,
+        name: ENGLISH["proxyTitle"] as string,
+      }),
     ).toBeInTheDocument();
     expect(screen.getByTestId("address-not-set-up-proxy")).toHaveTextContent(
       ENGLISH["proxySteps"] as string,
@@ -466,7 +472,10 @@ describe("the page", () => {
     );
 
     expect(
-      screen.getByRole("heading", { level: 1, name: ENGLISH["noPageTitle"] }),
+      screen.getByRole("heading", {
+        level: 1,
+        name: ENGLISH["noPageTitle"] as string,
+      }),
     ).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -664,7 +673,7 @@ describe("the master page, at an address with no status page", () => {
     expect(
       await screen.findByRole("heading", {
         level: 1,
-        name: ENGLISH["noPageTitle"],
+        name: ENGLISH["noPageTitle"] as string,
       }),
     ).toBeInTheDocument();
     expect(document.body).not.toHaveTextContent("config.env");
