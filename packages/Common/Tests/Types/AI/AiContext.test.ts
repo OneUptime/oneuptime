@@ -39,11 +39,7 @@ function textOf(characters: number, unit: string = "a"): string {
   return unit.repeat(characters);
 }
 
-function rule(
-  id: string,
-  name: string,
-  aiContext: unknown,
-): AiContextRule {
+function rule(id: string, name: string, aiContext: unknown): AiContextRule {
   return { id, name, aiContext };
 }
 
@@ -79,7 +75,9 @@ describe("the limits", () => {
 
 describe("readAiContext", () => {
   test("a stored text, without the white space at its ends", () => {
-    expect(readAiContext("  ## Services\n- api\n\n")).toBe("## Services\n- api");
+    expect(readAiContext("  ## Services\n- api\n\n")).toBe(
+      "## Services\n- api",
+    );
   });
 
   test("anything that is not text reads as none", () => {
@@ -285,8 +283,16 @@ describe("composeAiContext: what one run reads", () => {
     const activity: AiContextActivity | null = composeAiContext({
       projectContext: "Project notes",
       rules: [
-        rule("bbbbbbbb-0000-4000-8000-000000000002", "payments", "Payments notes"),
-        rule("aaaaaaaa-0000-4000-8000-000000000001", "Checkout", "Checkout notes"),
+        rule(
+          "bbbbbbbb-0000-4000-8000-000000000002",
+          "payments",
+          "Payments notes",
+        ),
+        rule(
+          "aaaaaaaa-0000-4000-8000-000000000001",
+          "Checkout",
+          "Checkout notes",
+        ),
       ],
     });
 
@@ -306,7 +312,9 @@ describe("composeAiContext: what one run reads", () => {
       },
     ]);
     expect(activity!.characterCount).toBe(
-      "Project notes".length + "Checkout notes".length + "Payments notes".length,
+      "Project notes".length +
+        "Checkout notes".length +
+        "Payments notes".length,
     );
   });
 
@@ -374,7 +382,11 @@ describe("composeAiContext: what one run reads", () => {
       projectContext: textOf(PROJECT_AI_CONTEXT_MAX_CHARACTERS),
       rules: [
         rule("r1", "A first", textOf(AI_RULE_AI_CONTEXT_MAX_CHARACTERS, "a")),
-        rule("r2", "B second", textOf(AI_RULE_AI_CONTEXT_MAX_CHARACTERS - 10, "b")),
+        rule(
+          "r2",
+          "B second",
+          textOf(AI_RULE_AI_CONTEXT_MAX_CHARACTERS - 10, "b"),
+        ),
         rule("r3", "C third", textOf(AI_RULE_AI_CONTEXT_MAX_CHARACTERS, "c")),
         rule("r4", "D fourth", textOf(10, "d")),
       ],

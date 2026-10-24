@@ -48,7 +48,11 @@ const AI_CONTEXT: AiContextActivity = composeAiContext({
 
 function reply(data: {
   content?: string;
-  toolCalls?: Array<{ id: string; name: string; arguments: object }>;
+  toolCalls?: Array<{
+    id: string;
+    name: string;
+    arguments: Record<string, unknown>;
+  }>;
 }): AILogResponse {
   return {
     content: data.content ?? "",

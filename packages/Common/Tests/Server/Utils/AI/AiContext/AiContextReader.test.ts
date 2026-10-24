@@ -40,12 +40,8 @@ const PROJECT_B: ObjectID = new ObjectID(
 const INCIDENT_ID: ObjectID = new ObjectID(
   "33333333-3333-4333-8333-333333333333",
 );
-const ALERT_ID: ObjectID = new ObjectID(
-  "44444444-4444-4444-8444-444444444444",
-);
-const RULE_ID: ObjectID = new ObjectID(
-  "55555555-5555-4555-8555-555555555555",
-);
+const ALERT_ID: ObjectID = new ObjectID("44444444-4444-4444-8444-444444444444");
+const RULE_ID: ObjectID = new ObjectID("55555555-5555-4555-8555-555555555555");
 const MONITOR_CHECKOUT: ObjectID = new ObjectID(
   "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
 );
@@ -231,9 +227,7 @@ describe("AiContextReader.forRule: the notes of the rule a fix works for", () =>
     const findOneBy: SpyInstance<typeof AutoRemediationRuleService.findOneBy> =
       jest.spyOn(AutoRemediationRuleService, "findOneBy");
 
-    expect(
-      await AiContextReader.forRule({ projectId: PROJECT_A }),
-    ).toEqual([]);
+    expect(await AiContextReader.forRule({ projectId: PROJECT_A })).toEqual([]);
     expect(
       await AiContextReader.forRule({
         projectId: PROJECT_A,
@@ -399,9 +393,7 @@ describe("AiContextReader.forIncident and forAlert: the matching rules' notes", 
       );
     const findBy: SpyInstance<typeof AutoRemediationRuleService.findBy> = jest
       .spyOn(AutoRemediationRuleService, "findBy")
-      .mockResolvedValue([
-        rule({ name: "Alerts", aiContext: "Alert notes" }),
-      ]);
+      .mockResolvedValue([rule({ name: "Alerts", aiContext: "Alert notes" })]);
 
     const rules: Array<AiContextRule> = await AiContextReader.forAlert({
       projectId: PROJECT_A,
@@ -473,9 +465,9 @@ describe("InvestigationRules.getIncidentAiContextRules: the rules a run reads no
     ).query.aiContext;
 
     expect(aiContextFilter.getSql('"aiContext"')).toBe(
-      (
-        QueryHelper.notNull() as { getSql: (alias: string) => string }
-      ).getSql('"aiContext"'),
+      (QueryHelper.notNull() as { getSql: (alias: string) => string }).getSql(
+        '"aiContext"',
+      ),
     );
     expect(aiContextFilter.getSql('"aiContext"')).toBe(
       '("aiContext" IS NOT NULL)',

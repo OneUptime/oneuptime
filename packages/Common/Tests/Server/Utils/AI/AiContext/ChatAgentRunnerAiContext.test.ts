@@ -193,7 +193,9 @@ describe("ChatAgentRunner.runTurn: the project's AI context", () => {
       content.indexOf("Checkout runs on k8s."),
     );
     expect(content.indexOf("Checkout runs on k8s.")).toBeLessThan(
-      content.indexOf("You are answering in the shared thread of incident #42."),
+      content.indexOf(
+        "You are answering in the shared thread of incident #42.",
+      ),
     );
     expect(
       aiContextEvents()[0]!.resultSummary!.aiContext!.parts.map(

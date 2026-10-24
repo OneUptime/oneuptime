@@ -25,7 +25,14 @@ import Permission, {
   UserPermission,
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
-import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayWrite";
@@ -53,7 +60,9 @@ function permissionRow(permission: Permission): UserPermission {
   };
 }
 
-function propsWith(...permissions: Array<Permission>): DatabaseCommonInteractionProps {
+function propsWith(
+  ...permissions: Array<Permission>
+): DatabaseCommonInteractionProps {
   const tenantPermission: UserTenantAccessPermission = {
     _type: "UserTenantAccessPermission",
     projectId: PROJECT_ID,
@@ -100,13 +109,17 @@ describe("Project.aiContext: the column", () => {
   const project: Project = new Project();
 
   it("is Markdown, optional, titled for the API reference", () => {
-    const metadata: { type: TableColumnType; required?: boolean; title?: string; description?: string } =
-      project.getTableColumnMetadata(AI_CONTEXT_COLUMN) as unknown as {
-        type: TableColumnType;
-        required?: boolean;
-        title?: string;
-        description?: string;
-      };
+    const metadata: {
+      type: TableColumnType;
+      required?: boolean;
+      title?: string;
+      description?: string;
+    } = project.getTableColumnMetadata(AI_CONTEXT_COLUMN) as unknown as {
+      type: TableColumnType;
+      required?: boolean;
+      title?: string;
+      description?: string;
+    };
 
     expect(metadata.type).toBe(TableColumnType.Markdown);
     expect(metadata.required).toBe(false);
@@ -116,13 +129,13 @@ describe("Project.aiContext: the column", () => {
   });
 
   it("a Project Owner or Project Admin writes it, and no one else", () => {
-    expect(project.getColumnAccessControlFor(AI_CONTEXT_COLUMN)?.update).toEqual(
-      [Permission.ProjectOwner, Permission.ProjectAdmin],
-    );
+    expect(
+      project.getColumnAccessControlFor(AI_CONTEXT_COLUMN)?.update,
+    ).toEqual([Permission.ProjectOwner, Permission.ProjectAdmin]);
     // Nobody names it on a new project: it is written in settings.
-    expect(project.getColumnAccessControlFor(AI_CONTEXT_COLUMN)?.create).toEqual(
-      [],
-    );
+    expect(
+      project.getColumnAccessControlFor(AI_CONTEXT_COLUMN)?.create,
+    ).toEqual([]);
   });
 
   it("those who see the project's settings read it - not everyone with a place in the project", () => {
@@ -184,13 +197,17 @@ describe("AutoRemediationRule.aiContext: the column", () => {
   const rule: AutoRemediationRule = new AutoRemediationRule();
 
   it("is Markdown, optional, titled for the API reference", () => {
-    const metadata: { type: TableColumnType; required?: boolean; title?: string; description?: string } =
-      rule.getTableColumnMetadata(AI_CONTEXT_COLUMN) as unknown as {
-        type: TableColumnType;
-        required?: boolean;
-        title?: string;
-        description?: string;
-      };
+    const metadata: {
+      type: TableColumnType;
+      required?: boolean;
+      title?: string;
+      description?: string;
+    } = rule.getTableColumnMetadata(AI_CONTEXT_COLUMN) as unknown as {
+      type: TableColumnType;
+      required?: boolean;
+      title?: string;
+      description?: string;
+    };
 
     expect(metadata.type).toBe(TableColumnType.Markdown);
     expect(metadata.required).toBe(false);
@@ -374,9 +391,11 @@ describe("AutoRemediationRuleService: how much an AI rule may hold", () => {
 
   it("an edit of the notes is held to the same limit", async () => {
     expect(
-      ((await updateError(
-        "a".repeat(AI_RULE_AI_CONTEXT_MAX_CHARACTERS + 1),
-      )) as Error).message,
+      (
+        (await updateError(
+          "a".repeat(AI_RULE_AI_CONTEXT_MAX_CHARACTERS + 1),
+        )) as Error
+      ).message,
     ).toContain("can hold at most 5,000 characters");
     expect(await updateError("Checkout runs on k8s.")).toBeNull();
     expect(await updateError(null)).toBeNull();

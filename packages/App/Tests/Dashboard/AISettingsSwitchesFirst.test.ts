@@ -648,14 +648,20 @@ describe("the pages draw switches first, and fold the limits", () => {
       ),
     );
     /*
-     * Switch first: the only card on the page - the project's Daily limits -
-     * is folded under More settings, after the switch and its notice.
+     * Switch first. Then the project's AI context (#5198), in sight: what
+     * OneUptime AI should know about the team's systems, one quiet line
+     * with none written. The page's other card - the project's Daily
+     * limits - is folded under More settings, after both.
      */
-    expect(page.indexOf("<AdvancedPageSection")).toBeGreaterThan(
+    expect(page.indexOf("<ProjectAiContextCard />")).toBeGreaterThan(
       page.indexOf(
         "<ProjectAiNotice context={ProjectAiNoticeContext.AiFeatures} />",
       ),
     );
+    expect(page.indexOf("<AdvancedPageSection")).toBeGreaterThan(
+      page.indexOf("<ProjectAiContextCard />"),
+    );
+    expect(page.split("<ProjectAiContextCard").length - 1).toBe(1);
     expect(page.indexOf("<CardModelDetail")).toBeGreaterThan(
       page.indexOf("<AdvancedPageSection"),
     );

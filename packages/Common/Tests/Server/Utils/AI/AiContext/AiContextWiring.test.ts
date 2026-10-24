@@ -54,6 +54,20 @@ function readServer(relative: string): string {
   return fs.readFileSync(path.join(SERVER_DIRECTORY, relative), "utf8");
 }
 
+// Whitespace, which a formatter moves, and the trailing commas it adds.
+const WHITESPACE: RegExp = /\s+/g;
+const TRAILING_COMMA: RegExp = /,([)\]}])/g;
+
+// Code as it reads, whatever lines a formatter broke it across.
+function squash(code: string): string {
+  return code.replace(WHITESPACE, "").replace(TRAILING_COMMA, "$1");
+}
+
+// A server file's code, squashed.
+function readCode(relative: string): string {
+  return squash(readServer(relative));
+}
+
 // Every .ts file under Server, repository-relative to it.
 function serverFiles(directory: string = SERVER_DIRECTORY): Array<string> {
   const files: Array<string> = [];
@@ -69,7 +83,9 @@ function serverFiles(directory: string = SERVER_DIRECTORY): Array<string> {
     }
 
     if (entry.name.endsWith(".ts")) {
-      files.push(path.relative(SERVER_DIRECTORY, full).split(path.sep).join("/"));
+      files.push(
+        path.relative(SERVER_DIRECTORY, full).split(path.sep).join("/"),
+      );
     }
   }
 
@@ -77,6 +93,10 @@ function serverFiles(directory: string = SERVER_DIRECTORY): Array<string> {
 }
 
 const SYSTEM_MESSAGE: string = 'role: "system"';
+
+// A fix's runner reads the notes of the rule its suggestion names (squashed).
+const READS_THE_FIX_RULES_NOTES: RegExp =
+  /AiContextReader\.forRule\(\{projectId,autoRemediationRuleId:suggestion!?\.autoRemediationRuleId\}\)/;
 
 // The files that write a system prompt OneUptime AI's AI context belongs in.
 const READS_AI_CONTEXT: Record<string, string> = {
@@ -180,60 +200,91 @@ describe("every system prompt OneUptime AI writes has decided about the AI conte
 
 describe("every run of the investigation engine reads it", () => {
   test("the engine reads the project's AI context and the rules it is handed, records it, and hands it to the loop", () => {
-    const engine: string = readServer("Utils/AI/SRE/AIInvestigationEngine.ts");
+    const engine: string = readCode("Utils/AI/SRE/AIInvestigationEngine.ts");
 
     expect(engine).toContain(
-      "await AiContextReader.read({\n      projectId,\n      rules: request.aiContextRules,\n    });",
+      squash(
+        "await AiContextReader.read({ projectId, rules: request.aiContextRules });",
+      ),
     );
-    expect(engine).toContain("resultSummary: getAiContextEventSummary(aiContext)");
+    expect(engine).toContain(
+      squash("resultSummary: getAiContextEventSummary(aiContext)"),
+    );
     // The loop is told what was read - null too - so it never reads again.
-    expect(engine).toContain("          aiContext,\n");
+    expect(engine).toContain(squash("ObservabilityAssistant.answerQuestion("));
+    expect(engine).toContain(squash("aiContext,"));
   });
 
   test("the loop reads the project's itself only when no caller read it", () => {
-    const loop: string = readServer("Utils/AI/Chat/ObservabilityAssistant.ts");
+    const loop: string = readCode("Utils/AI/Chat/ObservabilityAssistant.ts");
 
     expect(loop).toContain(
-      "request.aiContext !== undefined\n        ? request.aiContext\n        : await AiContextReader.read({ projectId: request.projectId });",
+      squash(
+        "request.aiContext !== undefined ? request.aiContext : await AiContextReader.read({ projectId: request.projectId });",
+      ),
     );
   });
 
-  // The source of the engine call: from executeRun( to its closing "});".
+  // The engine call's code, squashed: from executeRun( to its closing ")".
   function engineCall(source: string): string {
-    const start: number = source.indexOf("AIInvestigationEngine.executeRun(");
+    const code: string = squash(source);
+    const start: number = code.indexOf("AIInvestigationEngine.executeRun(");
 
     expect(start).toBeGreaterThan(-1);
 
-    return source.slice(start, source.indexOf("\n    });", start));
+    let depth: number = 0;
+
+    for (let index: number = start; index < code.length; index++) {
+      if (code[index] === "(") {
+        depth++;
+      } else if (code[index] === ")") {
+        depth--;
+
+        if (depth === 0) {
+          return code.slice(start, index + 1);
+        }
+      }
+    }
+
+    return code.slice(start);
   }
+
+  const HANDS_THE_RULES_TO_THE_RUN: string = squash(
+    "...(aiContextRules.length > 0 ? { aiContextRules } : {}),",
+  );
 
   test.each([
     "Utils/AI/Remediation/RemediationPlanRunner.ts",
     "Utils/AI/Remediation/RemediationExecutionRunner.ts",
     "Utils/AI/Remediation/McpRemediationRunner.ts",
-  ])("%s reads the notes of the rule the fix works for, and hands them to the run", (file: string) => {
-    const source: string = readServer(file);
+  ])(
+    "%s reads the notes of the rule the fix works for, and hands them to the run",
+    (file: string) => {
+      const source: string = readServer(file);
 
-    expect(source).toMatch(
-      /AiContextReader\.forRule\(\s*\{\s+projectId,\s+autoRemediationRuleId: suggestion!?\.autoRemediationRuleId,\s+\},?\s*\)/,
-    );
-    expect(engineCall(source)).toContain(
-      "...(aiContextRules.length > 0 ? { aiContextRules } : {}),",
-    );
-  });
+      expect(squash(source)).toMatch(READS_THE_FIX_RULES_NOTES);
+      expect(engineCall(source)).toContain(HANDS_THE_RULES_TO_THE_RUN);
+    },
+  );
 
   test.each([
-    ["Utils/AI/SRE/IncidentInvestigationRunner.ts", "forIncident({ projectId, incidentId })"],
-    ["Utils/AI/SRE/AlertInvestigationRunner.ts", "forAlert({ projectId, alertId })"],
+    [
+      "Utils/AI/SRE/IncidentInvestigationRunner.ts",
+      "forIncident({ projectId, incidentId })",
+    ],
+    [
+      "Utils/AI/SRE/AlertInvestigationRunner.ts",
+      "forAlert({ projectId, alertId })",
+    ],
   ])(
     "%s reads the notes of the rules that investigate and match, and hands them to the run",
     (file: string, read: string) => {
       const source: string = readServer(file);
 
-      expect(source).toContain(`await AiContextReader.${read};`);
-      expect(engineCall(source)).toContain(
-        "...(aiContextRules.length > 0 ? { aiContextRules } : {}),",
+      expect(squash(source)).toContain(
+        squash(`await AiContextReader.${read};`),
       );
+      expect(engineCall(source)).toContain(HANDS_THE_RULES_TO_THE_RUN);
     },
   );
 
@@ -253,48 +304,56 @@ describe("every run of the investigation engine reads it", () => {
 
 describe("Ask AI and the postmortem drafts read it", () => {
   test("a chat turn reads it, records it after it starts, and places it first", () => {
-    const runner: string = readServer("Utils/AI/Chat/ChatAgentRunner.ts");
+    const runner: string = readCode("Utils/AI/Chat/ChatAgentRunner.ts");
+    const records: string = squash(
+      "resultSummary: getAiContextEventSummary(aiContext)",
+    );
 
     expect(runner).toContain(
-      "await AiContextReader.read({\n        projectId: request.projectId,\n        rules: request.aiContextRules,\n      });",
+      squash(
+        "await AiContextReader.read({ projectId: request.projectId, rules: request.aiContextRules });",
+      ),
     );
-    expect(runner).toContain("resultSummary: getAiContextEventSummary(aiContext)");
-    expect(runner.indexOf("eventType: AIRunEventType.RunStarted")).toBeLessThan(
-      runner.indexOf("resultSummary: getAiContextEventSummary(aiContext)"),
-    );
+    expect(runner).toContain(records);
+    expect(
+      runner.indexOf(squash("eventType: AIRunEventType.RunStarted")),
+    ).toBeLessThan(runner.indexOf(records));
   });
 
   test("a shared thread hands the turn the notes of the rules its investigation read", () => {
-    const thread: string = readServer("Utils/AI/SRE/InvestigationThread.ts");
-    const service: string = readServer(
+    const thread: string = readCode("Utils/AI/SRE/InvestigationThread.ts");
+    const service: string = readCode(
       "Utils/AI/SRE/InvestigationThreadService.ts",
     );
 
-    expect(thread).toContain("await AiContextReader.forIncident({");
-    expect(thread).toContain("await AiContextReader.forAlert({");
+    expect(thread).toContain(squash("await AiContextReader.forIncident({"));
+    expect(thread).toContain(squash("await AiContextReader.forAlert({"));
     expect(service).toContain(
-      "{ aiContextRules: context.aiContextRules }",
+      squash("{ aiContextRules: context.aiContextRules }"),
     );
   });
 
   test("Generate with AI reads the row's project's notes for an incident's and an episode's postmortem", () => {
-    expect(readServer("API/IncidentAPI.ts")).toContain(
-      "await AiContextReader.read({ projectId: incident.projectId }),",
+    expect(readCode("API/IncidentAPI.ts")).toContain(
+      squash("await AiContextReader.read({ projectId: incident.projectId })"),
     );
-    expect(readServer("API/IncidentEpisodeAPI.ts")).toContain(
-      "await AiContextReader.read({ projectId: episode.projectId }),",
+    expect(readCode("API/IncidentEpisodeAPI.ts")).toContain(
+      squash("await AiContextReader.read({ projectId: episode.projectId })"),
     );
   });
 
   test("the automatic draft reads them first and hands them to the draft", () => {
-    const runner: string = readServer(
-      "Utils/AI/SRE/IncidentPostmortemRunner.ts",
-    );
+    const runner: string = readCode("Utils/AI/SRE/IncidentPostmortemRunner.ts");
 
     expect(runner).toContain(
-      "const aiContext: AiContextActivity | null = await AiContextReader.read({\n      projectId,\n    });",
+      squash(
+        "const aiContext: AiContextActivity | null = await AiContextReader.read({ projectId });",
+      ),
     );
-    expect(runner).toContain("        aiContext,\n");
+    // The draft is written with what was read.
+    expect(runner).toContain(
+      squash("llmProviderId: llmProviderChoice.llmProviderId, aiContext })"),
+    );
   });
 
   test("an incident's note drafts and public notes never read it", () => {

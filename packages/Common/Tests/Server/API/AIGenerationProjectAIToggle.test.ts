@@ -416,11 +416,9 @@ function gateReads(): Array<{
         props: { isRoot?: boolean };
       };
     })
-    .filter(
-      (read: { select?: Dictionary<boolean> | undefined }): boolean => {
-        return read.select?.["enableAi"] === true;
-      },
-    );
+    .filter((read: { select?: Dictionary<boolean> | undefined }): boolean => {
+      return read.select?.["enableAi"] === true;
+    });
 }
 
 // The projectId the gate actually looked the toggle up for.

@@ -35,9 +35,10 @@ import * as React from "react";
  *     the merge), a note saying so and "Investigate too";
  *   - Fix: don't fix, ask before fixing, or fix without asking - and its
  *     name. Folded under More fields: the code repositories and MCP servers
- *     OneUptime AI may use, the LLM provider, the runbooks it may run (none
- *     picked: any) and "Run them every time", the Runner its Bash commands
- *     run on, the two pull requests, and the description.
+ *     OneUptime AI may use, the LLM provider, the rule's AI context (notes
+ *     OneUptime AI reads after the project's, #5198), the runbooks it may
+ *     run (none picked: any) and "Run them every time", the Runner its Bash
+ *     commands run on, the two pull requests, and the description.
  *
  * The table names each rule's timing in an Investigates column and its fix
  * in a Fix column. A rule saved before auto remediation rules were
@@ -213,8 +214,13 @@ interface CapturedField {
     values: Values,
     props: CustomElementProps,
   ) => React.ReactElement;
-  getFooterElement?: () => React.ReactElement;
+  getFooterElement?: (
+    values: Values,
+    error?: string,
+    footer?: { setValue: (value: unknown) => void },
+  ) => React.ReactElement | undefined;
   hideColumnDescription?: boolean;
+  allowImageUpload?: boolean;
 }
 
 interface CapturedColumn {
@@ -381,6 +387,7 @@ const MORE_FIELDS: Array<string> = [
   "codeRepositories",
   "externalMcpServers",
   "llmProviderId",
+  "aiContext",
   "runbooks",
   "remediationAction",
   "runnerId",
@@ -1303,6 +1310,118 @@ describe.each([
         "OneUptime AI may use any of your MCP servers and connected repositories.",
       ]);
       expect(field.getFoldedValue!(DOES_NOT_FIX)).toBeNull();
+    });
+
+    /*
+     * The rule's AI context (issue #5198): notes about what the rule
+     * matches, read after the project's AI context by the investigation and
+     * the fix the rule starts - so asked of every rule OneUptime AI works
+     * for, as the LLM provider is, and counted against its 5,000 characters
+     * as it is typed.
+     */
+    test("the AI context is under More fields, after the LLM provider, for every rule AI works for", () => {
+      const props: Record<string, unknown> = tableFor(lane);
+      const field: CapturedField = fieldNamed(props, "aiContext");
+      const keys: Array<string> = fieldsOf(props).map(keyOf);
+
+      expect(keys.indexOf("aiContext")).toBe(keys.indexOf("llmProviderId") + 1);
+      expect(field.title).toBe("AI context");
+      expect(field.description).toBe(
+        "Notes OneUptime AI reads after the project's AI context when it investigates or fixes what this rule matches. Leave secrets out.",
+      );
+      expect(field.placeholder).toBe(
+        "For example: checkout's logs are in Loki under app=checkout, and payments-db is its database.",
+      );
+      expect(field.fieldType).toBe(FormFieldSchemaType.Markdown);
+      expect(field.required).toBe(false);
+      // Empty is an answer of its own - the project's notes alone.
+      expect(field.hideOptionalLabel).toBe(true);
+      // A model is never given an image's bytes.
+      expect(field.allowImageUpload).toBe(false);
+      expect(field.dataTestId).toBe("auto-remediation-ai-context-field");
+
+      const provider: CapturedField = fieldNamed(props, "llmProviderId");
+      for (const [, formValues] of EVERY_KIND_OF_RULE) {
+        expect(field.showIf!(formValues)).toBe(provider.showIf!(formValues));
+      }
+      expect(field.showIf!(NEW_RULE)).toBe(true);
+      expect(field.showIf!(DOES_NOT_FIX)).toBe(true);
+      expect(field.showIf!(EVERY_TIME)).toBe(true);
+      // Only running its runbooks every time, no AI reads anything for it.
+      expect(field.showIf!(ONLY_FIXES_EVERY_TIME)).toBe(false);
+    });
+
+    test("the AI context is refused past 5,000 characters, with the count, and never before", () => {
+      const field: CapturedField = fieldNamed(tableFor(lane), "aiContext");
+
+      expect(
+        field.customValidation!(
+          withValues(NEW_RULE, { aiContext: "a".repeat(5001) }),
+        ),
+      ).toBe("At most 5,000 characters. This has 5,001.");
+      for (const aiContext of [undefined, "", "a".repeat(5000)]) {
+        expect(
+          field.customValidation!(withValues(NEW_RULE, { aiContext })),
+        ).toBeNull();
+      }
+    });
+
+    test("folded, the AI context is named by its size once written, and not for a rule no AI works for", () => {
+      const field: CapturedField = fieldNamed(tableFor(lane), "aiContext");
+      const notes: string = "a".repeat(1240);
+
+      expect(field.getFoldedValue!(NEW_RULE)).toBeNull();
+      expect(
+        field.getFoldedValue!(withValues(NEW_RULE, { aiContext: notes })),
+      ).toBe("about 310 tokens");
+      expect(
+        field.getFoldedValue!(withValues(DOES_NOT_FIX, { aiContext: notes })),
+      ).toBe("about 310 tokens");
+      expect(
+        field.getFoldedValue!(
+          withValues(ONLY_FIXES_EVERY_TIME, { aiContext: notes }),
+        ),
+      ).toBeNull();
+    });
+
+    test("under the AI context, its count against 5,000 characters, red past it, and no outline", () => {
+      const field: CapturedField = fieldNamed(tableFor(lane), "aiContext");
+      const setValue: Mock<(value: unknown) => void> = jest.fn();
+
+      const empty: ReturnType<typeof render> = render(
+        field.getFooterElement!(NEW_RULE, undefined, { setValue })!,
+      );
+      expect(
+        within(empty.container).getByTestId("ai-context-length"),
+      ).toHaveTextContent("0 of 5,000 characters");
+      // A rule's notes start from the rule, not the project's outline.
+      expect(
+        within(empty.container).queryByTestId("ai-context-outline-button"),
+      ).not.toBeInTheDocument();
+      empty.unmount();
+
+      const written: ReturnType<typeof render> = render(
+        field.getFooterElement!(
+          withValues(NEW_RULE, { aiContext: "a".repeat(400) }),
+        )!,
+      );
+      expect(
+        within(written.container).getByTestId("ai-context-length"),
+      ).toHaveTextContent("400 of 5,000 characters · about 100 tokens");
+      expect(
+        within(written.container).getByTestId("ai-context-length"),
+      ).toHaveClass("text-gray-500");
+      written.unmount();
+
+      const tooLong: ReturnType<typeof render> = render(
+        field.getFooterElement!(
+          withValues(NEW_RULE, { aiContext: "a".repeat(5001) }),
+        )!,
+      );
+      expect(
+        within(tooLong.container).getByTestId("ai-context-length"),
+      ).toHaveClass("text-red-600");
+      expect(setValue).not.toHaveBeenCalled();
     });
 
     test("Runbooks: none picked is any runbook, only for a rule that fixes, and some are needed only to run them every time", () => {

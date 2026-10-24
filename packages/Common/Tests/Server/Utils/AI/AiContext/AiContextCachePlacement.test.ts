@@ -108,10 +108,7 @@ function bodyOf(spy: PostSpy, callIndex: number): JSONObject {
 }
 
 // The conversation of a loop: the system prompt, the run's data, then a step.
-function conversation(
-  systemPrompt: string,
-  steps: number,
-): Array<LLMMessage> {
+function conversation(systemPrompt: string, steps: number): Array<LLMMessage> {
   const messages: Array<LLMMessage> = [
     { role: "system", content: systemPrompt },
     { role: "user", content: QUESTION },
@@ -246,9 +243,9 @@ describe("Anthropic: the AI context is inside the system block's cache_control m
       AI_CONTEXT_PROMPT_HEADING,
     );
     // The run's own data is the conversation's first message.
-    expect(JSON.stringify((body["messages"] as Array<JSONObject>)[0])).toContain(
-      "Checkout is down",
-    );
+    expect(
+      JSON.stringify((body["messages"] as Array<JSONObject>)[0]),
+    ).toContain("Checkout is down");
   });
 
   test("every call of a loop sends the same marked system block: the cache matches it", async () => {
@@ -288,9 +285,9 @@ describe("Anthropic: the AI context is inside the system block's cache_control m
     });
 
     expect(bodyOf(spy, 0)).toEqual(bodyOf(spy, 1));
-    expect(
-      (bodyOf(spy, 0)["system"] as Array<JSONObject>)[0]!["text"],
-    ).toBe(BASE_PROMPT);
+    expect((bodyOf(spy, 0)["system"] as Array<JSONObject>)[0]!["text"]).toBe(
+      BASE_PROMPT,
+    );
   });
 });
 

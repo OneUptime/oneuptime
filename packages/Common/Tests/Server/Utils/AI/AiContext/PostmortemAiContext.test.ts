@@ -193,12 +193,10 @@ describe("IncidentService.generatePostmortemFromAI", () => {
       .spyOn(IncidentAIContextBuilder, "buildIncidentContext")
       .mockResolvedValue(incidentContext());
 
-    return jest
-      .spyOn(AIService, "executeWithLogging")
-      .mockResolvedValue({
-        content: "## Summary\nDrafted.",
-        llmLog: {},
-      } as unknown as AILogResponse);
+    return jest.spyOn(AIService, "executeWithLogging").mockResolvedValue({
+      content: "## Summary\nDrafted.",
+      llmLog: {},
+    } as unknown as AILogResponse);
   }
 
   function systemPromptOf(

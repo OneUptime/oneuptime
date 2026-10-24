@@ -139,11 +139,13 @@ describe("AIInvestigationEngine.executeRun: the project's AI context", () => {
       });
     jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
     jest.spyOn(AIRunService, "updateOneBy").mockResolvedValue(1);
-    jest.spyOn(AIConfidenceSignal, "computeConfidenceSignal").mockResolvedValue({
-      confident: true,
-      codeFixRecommended: false,
-      source: "classification",
-    });
+    jest
+      .spyOn(AIConfidenceSignal, "computeConfidenceSignal")
+      .mockResolvedValue({
+        confident: true,
+        codeFixRecommended: false,
+        source: "classification",
+      });
     jest.spyOn(InvestigationTldr, "generateTldr").mockResolvedValue(null);
     jest.spyOn(LlmProviderChoice, "decideForRun").mockResolvedValue(NO_PICK);
     answer = jest
@@ -198,8 +200,7 @@ describe("AIInvestigationEngine.executeRun: the project's AI context", () => {
   test("hands the loop exactly what it recorded, and keeps the persona as it was", async () => {
     await run(PROJECT_A);
 
-    const given: AiContextActivity | null | undefined =
-      loopRequest().aiContext;
+    const given: AiContextActivity | null | undefined = loopRequest().aiContext;
 
     expect(given).toEqual(aiContextEvents()[0]!.resultSummary!.aiContext);
     expect(loopRequest().systemInstructions).toBe(INVESTIGATION_PERSONA);
