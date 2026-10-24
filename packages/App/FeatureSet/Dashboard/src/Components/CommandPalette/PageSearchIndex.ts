@@ -1655,6 +1655,27 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           setupGuide(PageMap.EXCEPTIONS_DOCUMENTATION),
         ],
       },
+      telemetryAiSection({
+        insights: PageMap.EXCEPTIONS_AI_INSIGHTS,
+        logs: PageMap.EXCEPTIONS_AI_LOGS,
+        settings: PageMap.EXCEPTIONS_AI_SETTINGS,
+        keywords: {
+          insights: [
+            "new exceptions",
+            "rising exceptions",
+            "exception spikes",
+            "missing stack traces",
+          ],
+          logs: ["ai logs", "ai activity", "fix pull requests"],
+          settings: [
+            "ai settings",
+            "ai rules",
+            "find and fix new and rising exceptions",
+            "exception remediation",
+            "auto fix",
+          ],
+        },
+      }),
     ],
   },
   {

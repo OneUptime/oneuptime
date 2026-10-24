@@ -43,7 +43,8 @@ import {
 } from "./TelemetryAiFixCopy";
 
 /*
- * "FIX WITH AI" ON A FINDING OF A TELEMETRY PRODUCT - Traces' first: the
+ * "FIX WITH AI" ON A FINDING OF A TELEMETRY PRODUCT - Traces' first, then
+ * Exceptions': the
  * pull request OneUptime AI would open on its own, asked for by a person
  * (an AI rule that asks before fixing leaves it to them, and anyone may ask
  * on an open finding with no fix yet). The server decides what is offered
@@ -323,10 +324,13 @@ const TelemetryAiFixStrip: FunctionComponent<ComponentProps> = (
     );
   };
 
-  // What Fix with AI does: said while it is offered, not once it is started.
+  /*
+   * What Fix with AI does: said while it is offered, not once it is started
+   * - for the pull request the server says it starts, when it says.
+   */
   const lead: string | null =
     suggestion.offer === SuggestionOffer.Act && !taskId
-      ? getTelemetryAiFixLead(props.insightType)
+      ? getTelemetryAiFixLead(props.insightType, suggestion.recipe)
       : null;
 
   return (

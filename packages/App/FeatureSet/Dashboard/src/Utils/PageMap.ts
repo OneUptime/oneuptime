@@ -1357,6 +1357,14 @@ enum PageMap {
   EXCEPTIONS_VIEW_AI_ASSISTANCE = "EXCEPTIONS_VIEW_AI_ASSISTANCE",
   EXCEPTIONS_VIEW_SETTINGS = "EXCEPTIONS_VIEW_SETTINGS",
   EXCEPTIONS_DOCUMENTATION = "EXCEPTIONS_DOCUMENTATION",
+  /*
+   * Exceptions' AI section (Types/AI/TelemetryAi): new and rising
+   * exceptions, missing stack traces, and their fixes.
+   */
+  EXCEPTIONS_AI_INSIGHTS = "EXCEPTIONS_AI_INSIGHTS",
+  EXCEPTIONS_AI_INSIGHT_VIEW = "EXCEPTIONS_AI_INSIGHT_VIEW",
+  EXCEPTIONS_AI_LOGS = "EXCEPTIONS_AI_LOGS",
+  EXCEPTIONS_AI_SETTINGS = "EXCEPTIONS_AI_SETTINGS",
 
   /*
    * Inventory — the estate catalog. One row per thing OneUptime knows about,
