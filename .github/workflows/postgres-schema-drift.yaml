@@ -2218,3 +2218,21 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest
           Tests/Server/TeamCompliance/TeamComplianceStatusPostgres.test.ts
           --selectProjects server --runInBand --forceExit
+
+      # The audit log exporter (Enterprise) on copies of the migrated Project,
+      # User and AuditLogExport tables: exports saved through the real service,
+      # sent by the real exporter, the cursor and failure state written by its
+      # compare-and-set UPDATE - across a restart and two racing exporters, a
+      # project's export kept to its project, Export From, a pause, and the
+      # project's foreign key.
+      - name: Test the audit log exporter on migrated Postgres (Enterprise)
+        working-directory: ee
+        env:
+          RUN_POSTGRES_AUDIT_LOG_EXPORT_TESTS: "true"
+          AUDIT_LOG_EXPORT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          AUDIT_LOG_EXPORT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          AUDIT_LOG_EXPORT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest
+          Tests/Server/AuditLogExport/AuditLogExporterPostgres.test.ts
+          --selectProjects server --runInBand --forceExit

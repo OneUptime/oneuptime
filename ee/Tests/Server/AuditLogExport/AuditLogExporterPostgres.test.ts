@@ -84,6 +84,9 @@ import RecordingDestination from "./Fakes/RecordingDestination";
  *     Tests/Server/AuditLogExport/AuditLogExporterPostgres.test.ts \
  *     --selectProjects server --runInBand --forceExit
  *
+ * CI runs it in .github/workflows/postgres-schema-drift.yaml, right after
+ * that job has applied every registered migration to an empty database.
+ *
  * Everything runs in a uniquely named schema holding structure-only clones
  * of the tables involved, the export's foreign keys among them; the schema
  * is dropped afterwards. Every statement Postgres rejects fails the test.
