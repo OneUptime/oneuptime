@@ -8,6 +8,8 @@ Det finnes en Trafikk-side tre steder:
 - **Trafikk**-siden til en lokasjon: enhetene på den lokasjonen.
 - **Trafikk**-fanen til en enhet: den ene enheten med grensesnittene sine. Pakkeopptak som kjøres på enhetens sonde, står under flytene, for når du trenger selve pakkene.
 
+Et Cisco Meraki-miljø kan også leses uten å eksportere noe: koble til Meraki-dashbordet, så viser Trafikk-sidene uplinkene, applikasjonene og klientene til appliancene slik Meraki rapporterer dem. Se [Cisco Meraki uten NetFlow](#cisco-meraki-uten-netflow).
+
 ## Hva Trafikk-siden viser
 
 - Fire tall for tidsrommet: **Trafikk** (bytes), **Gjennomsnitt**- og **Topp**-raten, og **Flyter** (hvor mange flytposter enhetene sendte).
@@ -53,6 +55,8 @@ Innsamleren er slått på som standard. Innstillingene er miljøvariabler på so
 | PROBE_IPFIX_RECEIVER_PORT           | IPFIX-porten; `0` slutter å lytte på den                            | 4739    |
 | PROBE_SFLOW_RECEIVER_PORT           | sFlow-porten; `0` slutter å lytte på den                            | 6343    |
 | PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE | Godtatte datagrammer per minutt, på tvers av alle enheter og porter | 6000    |
+
+Disse 6 000 datagrammene i minuttet deles av alle enhetene som eksporterer til sonden. Med hundrevis av enheter bør du øke `PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE` eller fordele enhetene på flere sonder: datagrammer over grensen forkastes, og sondens logg sier hvor mange (se [Feilsøking](#feilsøking)). Et Meraki-miljø trenger ingen eksport i det hele tatt: se [Cisco Meraki uten NetFlow](#cisco-meraki-uten-netflow).
 
 ### Cisco IOS XE (Flexible NetFlow)
 
@@ -113,6 +117,8 @@ MX-appliances og hjemmekontor-gatewayer i Z-serien eksporterer NetFlow v9 fra Me
 
 En MX eller Z ser bare trafikken som går gjennom den. Trafikk som en svitsj holder innenfor et VLAN, når den aldri, så den er ikke med i eksporten.
 
+For å lese hver lokasjon uten å sette opp hver MX kobler du heller til Meraki-dashbordet: se [Cisco Meraki uten NetFlow](#cisco-meraki-uten-netflow). Den trafikken har ingen samtaler, så de to utfyller hverandre godt.
+
 ### Juniper (inline J-Flow)
 
 Eksporterer IPFIX til UDP 4739 fra MX-rutere; bruk FPC-en som bærer grensesnittene du sampler.
@@ -171,6 +177,31 @@ softflowd -i eth0 -n <probe-address>:2055 -v 9 -t maxlife=60
 
 Send NetFlow v5, NetFlow v9 eller IPFIX til sondens IP-adresse på UDP 2055 (eller 4739), eller sFlow v5 på UDP 6343. Sett enhetens aktive flyttidsavbrudd til 60 sekunder, og send for NetFlow v9 og IPFIX malene hvert 60. sekund. [Veiledningene for nettverksleverandører](/docs/monitor/network-vendor-guides) dekker Sophos og Extreme Networks.
 
+## Cisco Meraki uten NetFlow
+
+Et Meraki-miljø har en annen vei inn, uten noe å sette opp på enhetene og uten en sonde i veien: OneUptime leser organisasjonens trafikk fra Meraki-dashbordets API. Det passer for hundrevis eller tusenvis av lokasjoner, der det vanskelige er å sette opp NetFlow på hver MX.
+
+Velg **Koble til Meraki** på **Nettverk** -> **Trafikk**:
+
+1. **API-nøkkel.** Lag en i Meraki-dashbordet under **Organization** > **API & Webhooks** > **API keys and access**. Nøkkelen til en skrivebeskyttet administrator holder. OneUptime lagrer den kryptert, viser den aldri igjen og sender den ikke til noe annet enn Meraki-dashbordets API i nøkkelens region. Hvis du logger inn på Meraki et annet sted enn dashboard.meraki.com, velger du **Dashbordregion** under **Flere felt**: dashbordet for Canada, Kina, India eller USAs FedRAMP-dashbord.
+2. **Organisasjon.** Nøkkelen testes så snart trinnet åpnes: organisasjonene den kan lese, listes opp, og for den du velger, teller dialogen nettverkene og MX- og Z-appliancene en lesing vil dekke, før noe lagres.
+
+Den første lesingen starter innen ett minutt og henter det siste døgnet. Etter det har Trafikk-sidene en bryter **Flows** | **Meraki** i toppen: en side med flytposter åpner på dem som før, og en side med bare Meraki-trafikk åpner på Meraki.
+
+| På siden | Hva Meraki rapporterer | Hvor ofte det leses |
+| --- | --- | --- |
+| De fire tallene, diagrammet, **Toppnettverk** og **Uplinker** | Uplinkbruken til hver MX- og Z-appliance (wan1, wan2, cellular), for hele organisasjonen i ett kall | Hvert 5. minutt som standard, opptil hver time, i femminuttersvinduer |
+| **Toppapplikasjoner** og **Toppmål** | Trafikkanalysene til hvert nettverk | Annenhver time: Meraki summerer dem over to timer eller mer |
+| **Toppklienter** | Klientene i hvert nettverk og hva de brukte | Annenhver time, sammen med applikasjonene |
+
+Et klikk på et nettverk begrenser siden til det og viser uplinkene. Trafikken til en appliance hører til enheten dens i OneUptime når en enhet har serienummeret eller MAC-adressen til appliancen: den vises da også på Trafikk-sidene til den enheten og lokasjonen dens. Trafikken til en appliance som ikke er en enhet i OneUptime, vises på nettverkets side.
+
+Meraki gir hver organisasjon 10 API-forespørsler i sekundet, delt av alle applikasjonene som leser den. OneUptime bruker høyst 3 av dem, senker farten når Meraki ber om det, og stopper en lesing etter 900 forespørsler eller 6 minutter; den neste fortsetter ett minutt senere. En organisasjon med 1 200 nettverk får uplinkene lest med ett kall per vindu, og nettverkenes applikasjoner og klienter over noen få lesinger.
+
+Tilkoblingene står nederst på nettverkets Trafikk-side under **Meraki**, hver med hvordan det går og hva den siste lesingen dekket. **Les nå** leser én med en gang, og menyen har **Rediger** (navnet, hvor ofte uplinkene leses, en ny nøkkel), **Slå av** og **Slett**. En lesing som feiler, sier hvorfor, der og over trafikken: en avvist nøkkel, en nøkkel som ikke kan lese organisasjonen, Meraki som ber OneUptime senke farten, eller nettverk med trafikkanalyse slått av.
+
+Meraki-dashbordets API rapporterer totaler, aldri hvem som snakket med hvem, så Meraki-siden har ingen samtaler. For å se dem sender du også NetFlow fra MX-appliancene ([Cisco Meraki MX og Z](#cisco-meraki-mx-og-z)): siden har da begge, én bryter unna.
+
 ## Adresser som ennå ikke er enheter
 
 Flyter kan komme før enheten som sender dem, er lagt til i OneUptime. På din egen sonde lagres de, og nettverkets Trafikk-side viser adressen deres under **Avsendere av flyter**, merket **Ennå ikke en enhet**:
@@ -192,7 +223,7 @@ Flere enheter bak én NAT-adresse deler den adressen, så flytene deres går til
 
 - **Varsler på flyter.** Det finnes ennå ingen flytbasert monitor. For å få varsel om en travel lenke bruker du varslene for grensesnittutnyttelse i [nettverksenhetsmonitoren](/docs/monitor/network-device-monitor), som leser SNMP.
 - **Applikasjonsnavn utover porten.** Det finnes ingen dyp pakkeinspeksjon, og Cisco NBAR-applikasjonsnavn leses ikke.
-- **Meraki Dashboard-API-et.** Meraki-trafikkanalyser importeres ikke; MX- og Z-appliances sender NetFlow til sonden i stedet.
+- **Samtaler fra Meraki-dashbordets API.** Det rapporterer totaler, ikke hvem som snakket med hvem: send også NetFlow fra MX-appliancene for å se samtaler.
 - **Avviksdeteksjon** i trafikken.
 - **Grensesnittnavn fra flytposter.** Navn og hastigheter for grensesnitt kommer fra enhetens SNMP-walk; en enhet uten walk viser grensesnittnumre.
 
@@ -205,3 +236,11 @@ Hvis Trafikk-siden fortsatt viser oppsettstrinnene sine:
 - **Sondens logg.** Én gang i minuttet logger sonden det den ikke kunne lese: datagrammer i et format som ikke støttes (NetFlow v1, v6, v7 eller v8, eller sFlow før versjon 5), ugyldige datagrammer, data som venter på en mal, og datagrammer som ble forkastet over `PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE`.
 - **Maler.** NetFlow v9 og IPFIX sender oppbygningen av postene sine som maler. Sonden holder data som kommer før malen, i opptil 10 minutter; still inn enheten til å sende malene hvert 60. sekund, så fylles siden innen ett minutt.
 - **En global sonde.** En enhet som polles av en global sonde, kan ikke sende flyter til den fra et privat nettverk. Kjør en egendefinert sonde på enhetens nettverk, og velg den i enhetens innstillinger.
+
+Hvis en Meraki-tilkobling sier at den ikke kan lese:
+
+- **Nøkkelen avvises.** Kopier den på nytt fra Meraki-dashbordet, og sjekk **Dashbordregion**: en nøkkel leser bare dashbordet den ble laget i.
+- **Nøkkelen kan ikke lese organisasjonen.** Slå på API-tilgang for organisasjonen under **Organization** > **API & Webhooks**, eller bruk nøkkelen til en av administratorene.
+- **Ingen applikasjoner på noen nettverk.** Trafikkanalysen deres er slått av: slå den på under **Network-wide** > **General** > **Traffic analysis**.
+- **Meraki ba OneUptime senke farten.** Andre applikasjoner bruker organisasjonens API-budsjett. OneUptime leser saktere og fortsetter.
+- **Denne OneUptime når ikke API-et.** Tillat HTTPS (port 443) fra OneUptimes servere til `api.meraki.com`, eller API-verten for regionen din.

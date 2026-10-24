@@ -8,6 +8,8 @@
 - 站點的**流量**頁面：該站點的裝置。
 - 裝置的**流量**分頁：這一台裝置及其介面。在裝置的探測器上執行的封包擷取列在流的下方，供你需要封包本身時使用。
 
+Cisco Meraki 環境也可以在不匯出任何資料的情況下讀取：連接 Meraki 儀表板後，流量頁面會依 Meraki 的回報顯示其設備的上行鏈路、應用程式和用戶端。請參閱[不用 NetFlow 的 Cisco Meraki](#不用-netflow-的-cisco-meraki)。
+
 ## 流量頁面顯示什麼
 
 - 時間範圍內的四個數字：**流量**（位元組）、**平均**和**峰值**速率，以及**流**（裝置傳送的流記錄數）。
@@ -53,6 +55,8 @@
 | PROBE_IPFIX_RECEIVER_PORT           | IPFIX 連接埠；設為 `0` 則不再監聽該連接埠                           | 4739    |
 | PROBE_SFLOW_RECEIVER_PORT           | sFlow 連接埠；設為 `0` 則不再監聽該連接埠                           | 6343    |
 | PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE | 所有裝置和連接埠合計每分鐘接受的資料包數                            | 6000    |
+
+每分鐘這 6000 個資料包由所有向探測器匯出的裝置共用。裝置有數百台時，請調高 `PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE`，或把裝置分散到多個探測器上：超出限制的資料包會被丟棄，探測器的記錄會顯示丟棄了多少（請參閱[疑難排解](#疑難排解)）。Meraki 環境完全不需要匯出：請參閱[不用 NetFlow 的 Cisco Meraki](#不用-netflow-的-cisco-meraki)。
 
 ### Cisco IOS XE（Flexible NetFlow）
 
@@ -113,6 +117,8 @@ MX 設備和 Z 系列遠端工作閘道從 Meraki 儀表板匯出 NetFlow v9：
 
 MX 或 Z 只能看到經過它的流量。交換器在 VLAN 內部轉送的流量不會到達它，因此不在匯出資料中。
 
+要讀取每個站點而不逐台設定 MX，請改為連接 Meraki 儀表板：請參閱[不用 NetFlow 的 Cisco Meraki](#不用-netflow-的-cisco-meraki)。它的流量沒有對話，所以兩者可以很好地互補。
+
 ### Juniper（內嵌 J-Flow）
 
 從 MX 路由器將 IPFIX 匯出到 UDP 4739；請使用承載你要取樣之介面的 FPC。
@@ -171,6 +177,31 @@ softflowd -i eth0 -n <probe-address>:2055 -v 9 -t maxlife=60
 
 將 NetFlow v5、NetFlow v9 或 IPFIX 傳送到探測器 IP 位址的 UDP 2055（或 4739），或將 sFlow v5 傳送到 UDP 6343。將裝置的作用中流逾時設為 60 秒；對於 NetFlow v9 和 IPFIX，每 60 秒傳送一次範本。[網路廠商指南](/docs/monitor/network-vendor-guides)介紹了 Sophos 和 Extreme Networks。
 
+## 不用 NetFlow 的 Cisco Meraki
+
+Meraki 環境還有第二種方式，既不用在裝置上設定，中間也不需要探測器：OneUptime 透過 Meraki 儀表板 API 讀取組織的流量。它適合數百乃至數千個站點，在這種規模下，替每台 MX 設定 NetFlow 才是難處。
+
+在 **網路** -> **流量** 中選擇 **連線 Meraki**：
+
+1. **API 金鑰。** 在 Meraki 儀表板的 **Organization** > **API & Webhooks** > **API keys and access** 中建立一個。唯讀管理員的金鑰就夠了。OneUptime 會加密儲存它，不再顯示，並且只把它傳送到該金鑰所在區域的 Meraki 儀表板 API。如果你不是在 dashboard.meraki.com 登入 Meraki，請在 **更多欄位** 中選擇 **儀表板區域**：加拿大、中國、印度或美國 FedRAMP 儀表板。
+2. **組織。** 開啟這一步時會測試金鑰：列出它能讀取的組織；對你選擇的組織，對話方塊會在儲存之前統計一次讀取將涵蓋的網路以及 MX 和 Z 設備的數量。
+
+第一次讀取會在一分鐘內開始，並取回最近一天的資料。此後，流量頁面的頁首會有一個 **Flows** | **Meraki** 切換：有流記錄的頁面像以前一樣開啟流記錄，只有 Meraki 流量的頁面開啟 Meraki。
+
+| 頁面上 | Meraki 回報的內容 | 讀取頻率 |
+| --- | --- | --- |
+| 四個數字、圖表、**主要網路** 和 **上行鏈路** | 每台 MX 和 Z 設備的上行鏈路用量（wan1、wan2、cellular），整個組織一次呼叫 | 預設每 5 分鐘，最長每小時一次，以五分鐘為一個時段 |
+| **主要應用程式** 和 **主要目的位址** | 每個網路的流量分析 | 每兩小時：Meraki 以兩小時或更長時間彙總 |
+| **主要用戶端** | 每個網路的用戶端及其用量 | 每兩小時，與應用程式一起讀取 |
+
+點按某個網路會把頁面範圍縮小到該網路，並列出它的上行鏈路。如果 OneUptime 中有裝置的序號或 MAC 位址與某台 Meraki 設備相同，這台設備的流量就歸屬於該裝置，並且也會顯示在該裝置及其站點的流量頁面上。不是 OneUptime 裝置的 Meraki 設備，其流量顯示在網路頁面上。
+
+Meraki 給每個組織每秒 10 個 API 請求，由所有讀取該組織的應用程式共用。OneUptime 最多使用其中 3 個，在 Meraki 要求時放慢速度，並在 900 個請求或 6 分鐘後停止一次讀取；下一次讀取會在一分鐘後繼續。對於一個有 1200 個網路的組織，其上行鏈路每個時段一次呼叫讀完，各網路的應用程式和用戶端則分幾次讀取完成。
+
+連線列在網路流量頁面底部的 **Meraki** 下，每個都顯示其狀態以及上次讀取涵蓋的內容。**立即讀取** 會立即讀取一個連線，其選單中有 **編輯**（名稱、讀取上行鏈路的頻率、新金鑰）、**關閉** 和 **刪除**。讀取失敗時，會在那裡和流量上方說明原因：金鑰被拒絕、金鑰無法讀取該組織、Meraki 要求 OneUptime 放慢速度，或網路的流量分析已關閉。
+
+Meraki 儀表板 API 只回報總量，從不回報誰和誰通訊，所以 Meraki 一側沒有對話。要查看對話，請同時從 MX 設備傳送 NetFlow（[Cisco Meraki MX 和 Z](#cisco-meraki-mx-和-z)）：這樣頁面兩者都有，用切換即可來回查看。
+
 ## 尚未成為裝置的位址
 
 流可能在傳送它們的裝置新增到 OneUptime 之前就已到達。在你自己的探測器上，這些流會被保留，網路的流量頁面會在**流的傳送方**下列出它們的位址，並標示為**尚未成為裝置**：
@@ -192,7 +223,7 @@ softflowd -i eth0 -n <probe-address>:2055 -v 9 -t maxlife=60
 
 - **以流為基礎的警示。** 目前還沒有以流為基礎的監視器。要對繁忙的連結發出警示，請使用讀取 SNMP 的[網路裝置監視器](/docs/monitor/network-device-monitor)中的介面使用率警示。
 - **連接埠以外的應用程式名稱。** 沒有深度封包檢測，也不讀取 Cisco NBAR 的應用程式名稱。
-- **Meraki Dashboard API。** 不匯入 Meraki 的流量分析；MX 和 Z 設備改為向探測器傳送 NetFlow。
+- **來自 Meraki 儀表板 API 的對話。** 它只回報總量，不回報誰和誰通訊：要查看對話，請同時從 MX 設備傳送 NetFlow。
 - 流量的**異常偵測**。
 - **來自流記錄的介面名稱。** 介面名稱和速率來自裝置的 SNMP 巡檢；未巡檢的裝置顯示介面編號。
 
@@ -205,3 +236,11 @@ softflowd -i eth0 -n <probe-address>:2055 -v 9 -t maxlife=60
 - **探測器記錄。** 探測器每分鐘記錄一次無法讀取的內容：不支援格式的資料包（NetFlow v1、v6、v7 或 v8，或版本 5 之前的 sFlow）、格式錯誤的資料包、等待範本的資料，以及超出 `PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE` 而被捨棄的資料包。
 - **範本。** NetFlow v9 和 IPFIX 以範本的形式傳送其記錄的結構。探測器會將先於範本到達的資料最多保留 10 分鐘；請讓裝置每 60 秒傳送一次範本，以便頁面在一分鐘內顯示資料。
 - **全域探測器。** 由全域探測器輪詢的裝置無法從私人網路向其傳送流。請在裝置所在網路中執行自訂探測器，並在裝置設定中選擇它。
+
+如果某個 Meraki 連線顯示無法讀取：
+
+- **金鑰被拒絕。** 從 Meraki 儀表板重新複製金鑰，並檢查 **儀表板區域**：一個金鑰只能讀取建立它的那個儀表板。
+- **金鑰無法讀取該組織。** 在 **Organization** > **API & Webhooks** 中為該組織開啟 API 存取，或使用其某位管理員的金鑰。
+- **部分網路沒有應用程式。** 這些網路的流量分析已關閉：在 **Network-wide** > **General** > **Traffic analysis** 中開啟。
+- **Meraki 要求 OneUptime 放慢速度。** 其他應用程式正在使用該組織的 API 配額。OneUptime 會放慢讀取並繼續。
+- **這個 OneUptime 無法連到 API。** 允許從 OneUptime 的伺服器到 `api.meraki.com` 或你所在區域的 API 主機的 HTTPS（連接埠 443）。
