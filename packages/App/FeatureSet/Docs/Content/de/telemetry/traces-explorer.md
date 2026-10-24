@@ -137,7 +137,7 @@ OneUptime AI öffnet von sich aus höchstens 5 Pull Requests pro Tag (UTC), eine
 
 ### KI-Regeln
 
-Ohne Regel untersucht OneUptime AI jedes Problem, das es in Ihren Traces findet, sofort und öffnet für jedes einen Pull Request. Die **KI-Regeln** unter **Weitere Einstellungen** schränken das in drei Schritten ein:
+Ohne Regel untersucht OneUptime AI jedes Problem, das es in Ihren Traces findet, sofort und öffnet für jedes, das es beheben kann, einen Pull Request. Die **KI-Regeln** unter **Weitere Einstellungen** schränken das in drei Schritten ein:
 
 | Schritt | Was er entscheidet |
 | --- | --- |
@@ -149,7 +149,7 @@ Unter **Weitere Felder** wählt eine Regel die Code-Repositories, die MCP-Server
 
 ### Sehen, was es getan hat
 
-- **Traces → KI → Einblicke** listet, was OneUptime gefunden hat, jeden Befund mit seinen Belegen und **In Traces öffnen**, das die betroffenen Spans aus der Stunde, in der er gefunden wurde, im **Betrachter** öffnet.
+- **Traces → KI → Einblicke** listet, was OneUptime gefunden hat, jeden Befund mit seinen Belegen und **In Traces öffnen**, das die betroffenen Spans aus der Stunde, in der er gefunden wurde, im **Betrachter** öffnet. Bei einem fehlschlagenden Vorgang richtet **Monitor erstellen** einen Traces-Monitor auf seine fehlgeschlagenen Spans ein.
 - **Traces → KI → Protokolle** listet jede Untersuchung und jeden Pull Request, das Neueste zuerst, jeweils mit ihrem Stand.
 - In Code sagt die Aufgabe, dass OneUptime sie gestartet hat, mit einem Link zu ihrem Befund, und der Pull Request sagt, warum er geöffnet wurde.
 

@@ -137,7 +137,7 @@ La IA de OneUptime abre por su cuenta como máximo 5 pull requests al día (UTC)
 
 ### Reglas de IA
 
-Sin reglas, la IA de OneUptime analiza de inmediato cada problema que encuentra en sus trazas y abre una pull request para cada uno. Las **Reglas de IA** de **Más ajustes** lo acotan, en tres pasos:
+Sin reglas, la IA de OneUptime analiza de inmediato cada problema que encuentra en sus trazas y abre una pull request para cada uno que pueda corregir. Las **Reglas de IA** de **Más ajustes** lo acotan, en tres pasos:
 
 | Paso | Qué decide |
 | --- | --- |
@@ -149,7 +149,7 @@ En **Más campos** una regla elige los repositorios de código, los servidores M
 
 ### Ver lo que hizo
 
-- **Trazas → IA → Análisis** muestra lo que OneUptime encontró, cada hallazgo con sus pruebas y **Abrir en Trazas**, que abre los spans de los que trata, de la hora en que se encontró, en el **Visor**.
+- **Trazas → IA → Análisis** muestra lo que OneUptime encontró, cada hallazgo con sus pruebas y **Abrir en Trazas**, que abre los spans de los que trata, de la hora en que se encontró, en el **Visor**. En una operación que falla, **Crear monitor** configura un monitor de trazas sobre sus spans fallidos.
 - **Trazas → IA → Registros** muestra cada investigación y cada pull request, lo más reciente primero, con el estado de cada una.
 - En Código, la tarea indica que OneUptime la inició, con un enlace a su hallazgo, y la pull request explica por qué se abrió.
 

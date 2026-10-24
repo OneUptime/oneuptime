@@ -137,7 +137,7 @@ OneUptime AI opent zelf maximaal 5 pull requests per dag (UTC), één per bevind
 
 ### AI-regels
 
-Zonder regel onderzoekt OneUptime AI elk probleem dat het in uw traces vindt meteen en opent voor elk een pull request. De **AI-regels** onder **Meer instellingen** beperken dat, in drie stappen:
+Zonder regel onderzoekt OneUptime AI elk probleem dat het in uw traces vindt meteen en opent een pull request voor elk probleem dat het kan oplossen. De **AI-regels** onder **Meer instellingen** beperken dat, in drie stappen:
 
 | Stap | Wat die beslist |
 | --- | --- |
@@ -149,7 +149,7 @@ Onder **Meer velden** kiest een regel de coderepositories, de MCP-servers en de 
 
 ### Zien wat het deed
 
-- **Traces → AI → Inzichten** toont wat OneUptime vond, elke bevinding met haar bewijs en **Openen in Traces**, dat de spans waar het om gaat, uit het uur waarin ze werd gevonden, in de **Kijker** opent.
+- **Traces → AI → Inzichten** toont wat OneUptime vond, elke bevinding met haar bewijs en **Openen in Traces**, dat de spans waar het om gaat, uit het uur waarin ze werd gevonden, in de **Kijker** opent. Bij een falende bewerking stelt **Monitor maken** een tracesmonitor in op haar mislukte spans.
 - **Traces → AI → Logboeken** toont elk onderzoek en elke pull request, nieuwste eerst, met hoe elk ervoor staat.
 - In Code zegt de taak dat OneUptime haar startte, met een link naar haar bevinding, en de pull request zegt waarom hij werd geopend.
 

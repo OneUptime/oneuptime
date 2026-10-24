@@ -137,7 +137,7 @@ OneUptime AI opens at most 5 pull requests on its own each day (UTC), one for ea
 
 ### AI rules
 
-With no rule, OneUptime AI looks into every problem it finds in your traces right away, and opens a pull request for each. The **AI rules** under **More settings** narrow that, in three steps:
+With no rule, OneUptime AI looks into every problem it finds in your traces right away, and opens a pull request for each one it can fix. The **AI rules** under **More settings** narrow that, in three steps:
 
 | Step | What it decides |
 | --- | --- |
@@ -149,7 +149,7 @@ Under **More fields** a rule picks the code repositories, the MCP servers and th
 
 ### See what it did
 
-- **Traces → AI → Insights** lists what OneUptime found, each finding with its evidence and **Open in Traces**, which opens the spans it is about, from the hour it was found in, in the **Viewer**.
+- **Traces → AI → Insights** lists what OneUptime found, each finding with its evidence and **Open in Traces**, which opens the spans it is about, from the hour it was found in, in the **Viewer**. On a failing operation, **Create Monitor** sets up a Traces monitor on its failed spans.
 - **Traces → AI → Logs** lists every investigation and pull request, newest first, with how each one stands.
 - In Code, the task says OneUptime started it, with a link to its finding, and the pull request says why it was opened.
 

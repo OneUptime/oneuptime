@@ -14,6 +14,14 @@ import path from "path";
  *
  * Each test asserts what the page drew - on a laptop (1280) and on a phone
  * (390), in light and dark - with no sideways scroll on the phone.
+ *
+ * The UI review added: the evidence is the detector's own words (the
+ * fixture draws it with buildTraceInsightDetail); Create Monitor opens a
+ * Traces monitor on a failing operation, is disabled with its reason on a
+ * slow one, and is not drawn on missing tracing; the repository picker and
+ * Fix with AI stack in the finding page's narrow rail, the button on one
+ * line; and the summaries promise a pull request for each problem
+ * OneUptime AI can fix, not for each problem.
  */
 
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
@@ -861,11 +869,11 @@ test.describe("Traces → AI → a finding", () => {
     await expect(
       page.getByText("What the slowest request repeats", { exact: true }),
     ).toBeVisible();
-    // OneUptime's own words open the line with a capital.
+    // OneUptime's own words open the line with a capital (the line holds its query too).
     await expect(
       page.getByText(
         "The same database query ran 40 times under OrderRepository.load: 1.4 s together, 64% of the request",
-        { exact: true },
+        { exact: false },
       ),
     ).toBeVisible();
 

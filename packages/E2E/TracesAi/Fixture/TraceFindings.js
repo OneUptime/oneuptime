@@ -8,7 +8,9 @@
  * /telemetry-ai/fix, decided by Common's getTelemetryAiFixOffer as the
  * server decides it), the project's switches and its LLM providers.
  *
- * Every record is fabricated. Scenarios, by query parameter:
+ * Every record is fabricated; each finding's evidence text is what the
+ * detector writes for it (buildTraceInsightDetail). Scenarios, by query
+ * parameter:
  *
  *   ?aiInsights= full (default) | empty
  *   ?aiRules=    none (default) | two

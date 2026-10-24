@@ -27,10 +27,14 @@ The suite covers, on a laptop and on a phone, light and dark:
   connected, and Enable AI off;
 - Insights: the three kinds of finding, the empty state and the one shown
   while the switch is off;
-- a finding: its evidence, Open in Traces (the operation's spans, only the
-  failed ones for a failing operation, from the hour it was found in), Fix
-  with AI saying what the pull request does, a repository picked when none
-  was found to hold the code, and every reason it is not offered;
+- a finding: its evidence as the detector writes it (drawn with Common's
+  `buildTraceInsightDetail`), Open in Traces (the operation's spans, only
+  the failed ones for a failing operation, from the hour it was found in),
+  Fix with AI saying what the pull request does, a repository picked when
+  none was found to hold the code - stacked above the button in the
+  finding page's narrow rail - and every reason it is not offered; Create
+  Monitor opening Monitor Create on a failing operation, disabled with its
+  reason on a slow one, and not drawn on missing tracing;
 - Logs: every investigation and pull request, newest first, a page at a
   time, nothing yet and a read that failed.
 

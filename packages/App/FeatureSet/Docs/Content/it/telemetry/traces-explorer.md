@@ -137,7 +137,7 @@ OneUptime AI apre da solo al massimo 5 pull request al giorno (UTC), una per ril
 
 ### Regole IA
 
-Senza regole, OneUptime AI analizza subito ogni problema che trova nelle vostre tracce e apre una pull request per ciascuno. Le **Regole IA** in **Altre impostazioni** lo restringono, in tre passaggi:
+Senza regole, OneUptime AI analizza subito ogni problema che trova nelle vostre tracce e apre una pull request per ciascuno che può correggere. Le **Regole IA** in **Altre impostazioni** lo restringono, in tre passaggi:
 
 | Passaggio | Cosa decide |
 | --- | --- |
@@ -149,7 +149,7 @@ In **Altri campi** una regola sceglie i repository di codice, i server MCP e il 
 
 ### Vedere cosa ha fatto
 
-- **Tracce → IA → Informazioni** elenca ciò che OneUptime ha trovato, ogni rilevamento con le sue prove e **Apri in Tracce**, che apre gli span di cui si tratta, dell'ora in cui è stato trovato, nel **Visualizzatore**.
+- **Tracce → IA → Informazioni** elenca ciò che OneUptime ha trovato, ogni rilevamento con le sue prove e **Apri in Tracce**, che apre gli span di cui si tratta, dell'ora in cui è stato trovato, nel **Visualizzatore**. Su un'operazione che fallisce, **Crea monitor** imposta un monitor delle tracce sui suoi span falliti.
 - **Tracce → IA → Registri** elenca ogni indagine e ogni pull request, dalla più recente, con lo stato di ciascuna.
 - In Codice, l'attività indica che l'ha avviata OneUptime, con un link al suo rilevamento, e la pull request spiega perché è stata aperta.
 

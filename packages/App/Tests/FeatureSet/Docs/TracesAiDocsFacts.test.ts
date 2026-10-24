@@ -298,6 +298,42 @@ describe("the Traces Explorer page's section on finding and fixing slow and fail
     expect(section).not.toContain("GitHub");
   });
 
+  /*
+   * A failing operation's pull request waits for the code at fault, and a
+   * fix may find nothing to change: "for each one it can fix", as the
+   * settings page's own summary says it.
+   */
+  it("says a pull request opens for each problem OneUptime AI can fix, as the settings page says it", () => {
+    const copy: { advancedDefaultsSummary: string } =
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Trace];
+
+    expect(copy.advancedDefaultsSummary).toContain(
+      "opens a pull request for each one it can fix",
+    );
+    expect(section).toContain(
+      "With no rule, OneUptime AI looks into every problem it finds in your traces right away, and opens a pull request for each one it can fix.",
+    );
+  });
+
+  it("says a failing operation offers Create Monitor, a Traces monitor on its failed spans, as the finding page draws it", () => {
+    // Read from the source: the prefill util needs a browser to load.
+    const prefill: string = readSource(
+      "App/FeatureSet/Dashboard/src/Utils/AIInsightMonitorPrefill.ts",
+    );
+    const traceMonitor: string = prefill.slice(
+      prefill.indexOf("function buildTraceFailingOperationMonitor("),
+    );
+
+    expect(prefill).toContain(
+      "shape = buildTraceFailingOperationMonitor(data.insight);",
+    );
+    expect(traceMonitor).toContain("monitorType: MonitorType.Traces");
+    expect(traceMonitor).toContain("spanStatuses: [SpanStatus.Error]");
+    expect(section).toContain(
+      "On a failing operation, **Create Monitor** sets up a Traces monitor on its failed spans.",
+    );
+  });
+
   it("says how many pull requests OneUptime AI opens on its own a day", () => {
     expect(section).toContain(
       `OneUptime AI opens at most ${TELEMETRY_AI_MAX_AUTOMATIC_FIXES_PER_DAY} pull requests on its own each day (UTC), one for each finding`,

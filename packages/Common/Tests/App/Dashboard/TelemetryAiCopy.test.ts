@@ -330,6 +330,28 @@ describe("Traces' AI section", () => {
     );
   });
 
+  /*
+   * A failing operation's pull request waits for the code to be found at
+   * fault, and a fix may find nothing to change: no line may promise a pull
+   * request for every problem.
+   */
+  test("its summaries promise a pull request for each problem it can fix, not for each problem", () => {
+    for (const line of [
+      copy.advancedDefaultsSummary,
+      copy.rulesCardDescription,
+      copy.noRulesMessage,
+    ]) {
+      expect(line).toContain("can fix");
+      expect(line).not.toMatch(/pull request for each\./u);
+      expect(line).not.toContain("a pull request opened for it.");
+    }
+
+    const [traceSwitch] = TELEMETRY_AI_SWITCHES[TelemetryAiLane.Trace];
+
+    expect(traceSwitch!.description).toContain("fixes what it can");
+    expect(traceSwitch!.description).not.toContain("to fix each");
+  });
+
   test("its switch is the rule turned on by default, named for what it does", () => {
     const [findAndFix] = TELEMETRY_AI_SWITCHES[TelemetryAiLane.Trace];
 
