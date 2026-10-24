@@ -15,7 +15,6 @@ import { JSONObject } from "Common/Types/JSON";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import ObjectID from "Common/Types/ObjectID";
 import { LogInsightKind, LogLoggingGap } from "Common/Utils/Logs/LogInsight";
-import type { ClickHouseSettings } from "@clickhouse/client";
 import {
   afterAll,
   afterEach,
@@ -74,7 +73,9 @@ jest.mock("Common/Server/Utils/Logger", () => {
 import LogService from "Common/Server/Services/LogService";
 import SpanService from "Common/Server/Services/SpanService";
 import ServiceService from "Common/Server/Services/ServiceService";
-import AnalyticsDatabaseService from "Common/Server/Services/AnalyticsDatabaseService";
+import AnalyticsDatabaseService, {
+  ClickHouseSettings,
+} from "Common/Server/Services/AnalyticsDatabaseService";
 import LogAggregationService, {
   ErrorPatternCodeLocation,
   ServiceLogHealthRow,
