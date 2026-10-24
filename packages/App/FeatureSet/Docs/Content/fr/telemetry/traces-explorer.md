@@ -7,6 +7,7 @@ L'explorateur de traces retrouve les requêtes qui ont traversé vos services : 
 - [Lire une trace](#lire-une-trace): Où le temps est passé, et quelle étape a échoué.
 - [Représenter vos spans en graphiques](#représenter-vos-spans-en-graphiques): Nombres de requêtes et temps de réponse, regroupés à votre façon.
 - [Analyses des traces](#analyses-des-traces): Taux d'erreur, latence et requêtes les plus lentes.
+- [Trouver et corriger les opérations lentes ou en échec avec l'IA](#trouver-et-corriger-les-opérations-lentes-ou-en-échec-avec-lia): Des pull requests qui les corrigent, et ajoutent le traçage qui manque à une trace.
 :::
 
 ## Traces et spans
@@ -23,12 +24,13 @@ flowchart TB
 
 Chaque ligne de l'explorateur est un span : un service très sollicité remplit donc la liste de ses requêtes en base et de ses appels internes. Pour lister une ligne par requête, choisissez **Root spans** sous **Catégorie de span** dans la barre latérale.
 
-L'explorateur a quatre onglets :
+L'explorateur a cinq onglets :
 
 | Onglet | À quoi il sert |
 | --- | --- |
 | **Lecteur** | Chercher et filtrer des spans, et ouvrir leurs traces. Il s'ouvre sur la dernière heure, les plus récents d'abord, 50 spans par page. |
 | **Analyses** | Débits de requêtes, taux d'erreur et latence par service, et les requêtes qui méritent un coup d'œil. |
+| **IA** | Les opérations lentes ou en échec et le traçage manquant qu'OneUptime trouve dans vos traces, et ce qu'OneUptime AI en a fait. Voir [Trouver et corriger les opérations lentes ou en échec avec l'IA](#trouver-et-corriger-les-opérations-lentes-ou-en-échec-avec-lia). |
 | **Guide de configuration** | Comment envoyer des traces avec OpenTelemetry, avec l'une de vos [clés d'ingestion](/docs/telemetry/ingestion-keys). |
 | **Paramètres** | Ce qui arrive aux spans à leur arrivée : **Pipelines**, **Filtres de suppression**, **Règles de masquage** et **Règles d'enregistrement**. |
 
@@ -112,6 +114,44 @@ L'onglet **Analyses** résume les requêtes d'une plage de temps :
 - les requêtes en échec les plus récentes, et les plus lentes.
 
 Limitez-le à certains services avec la liste déroulante à côté du sélecteur de temps.
+
+## Trouver et corriger les opérations lentes ou en échec avec l'IA
+
+Chaque heure, OneUptime parcourt les traces de la dernière heure de chaque service à la recherche d'opérations lentes, qui échouent ou dont les traces ne disent pas pourquoi, et enregistre ce qu'il trouve comme analyses IA, avec les preuves. OneUptime AI examine ensuite chacune d'elles et ouvre une pull request pour la corriger. Rien n'est jamais fusionné : votre équipe relit chaque pull request.
+
+Une opération, ce sont les spans d'un même nom dans un service, comme `GET /orders`. OneUptime lit un service dès qu'il a envoyé au moins 100 spans dans la dernière heure, et enregistre trois sortes de constats :
+
+| Constat | Quand OneUptime l'enregistre | La pull request |
+| --- | --- | --- |
+| **Opération lente** | Le P99 de l'opération est de 1 seconde ou plus sur au moins 20 spans, et sa requête la plus lente répète un motif qui coûte du temps réel : le même appel fait encore et encore, des appels faits l'un après l'autre qui pourraient s'exécuter en parallèle, ou un appel qui prend l'essentiel de la requête. | Rend l'opération plus rapide. |
+| **Opération en échec** | Au moins 20 spans de l'opération ont échoué, 5 % ou plus d'entre eux, et les échecs les plus récents disent pourquoi, avec une exception ou un message d'erreur. | Corrige la cause de l'échec. |
+| **Traçage manquant** | Les traces ne disent pas pourquoi : chacun des 500 spans ou plus d'un service était la racine de sa trace, sans aucun span du service en dessous, une requête lente a passé 60 % ou plus de son temps (et 500 ms ou plus) dans un span sous lequel rien n'est tracé, ou les échecs d'une opération n'ont enregistré ni message d'erreur ni exception. | Ajoute le traçage qui manque. |
+
+OneUptime AI n'ouvre de lui-même la pull request d'une opération en échec qu'une fois qu'il a trouvé le code en cause. Un échec qui vient d'ailleurs, comme une dépendance en panne, n'obtient aucune pull request, sauf si quelqu'un en demande une avec **Corriger avec l'IA**.
+
+### L'activer
+
+**Traces → IA → Paramètres** contient l'interrupteur **Trouver et corriger les opérations lentes ou en échec**, activé pour les nouveaux projets. Avec **Activer l'IA** désactivé, les opérations lentes ou en échec sont toujours trouvées, mais OneUptime AI n'en fait rien. Pour ouvrir des pull requests, OneUptime AI a besoin d'un dépôt connecté dans [Code](/docs/ai/ai-agent) : la page indique d'abord ce qui manque. Le code de chaque dépôt est modifié sur le Runner que le dépôt choisit dans Code.
+
+OneUptime AI ouvre de lui-même au plus 5 pull requests par jour (UTC), une par constat, et jamais plus que la limite de pull requests IA ouvertes d'un dépôt.
+
+### Règles IA
+
+Sans règle, OneUptime AI examine immédiatement chaque problème qu'il trouve dans vos traces et ouvre une pull request pour chacun. Les **Règles IA** sous **Plus de paramètres** restreignent cela, en trois étapes :
+
+| Étape | Ce qu'elle décide |
+| --- | --- |
+| **Correspondance** | Quels services : ceux choisis, ceux qui portent certaines étiquettes, ou ceux dont le nom correspond à un motif. |
+| **Investiguer** | **Immédiatement**, ou **Seulement s'il est encore trouvé après une attente** : un problème qui disparaît pendant l'attente n'est pas examiné. |
+| **Correction** | **Ne pas corriger**, **Demander avant de corriger** ou **Corriger sans demander**. Demander d'abord laisse la pull request à une personne : le constat propose **Corriger avec l'IA**. |
+
+Sous **Plus de champs**, une règle choisit les dépôts de code, les serveurs MCP et le fournisseur de LLM qu'OneUptime AI peut utiliser pour elle. Si rien n'est choisi, il peut tous les utiliser, ainsi que le fournisseur de LLM par défaut du projet.
+
+### Voir ce qu'il a fait
+
+- **Traces → IA → Analyses** liste ce qu'OneUptime a trouvé, chaque constat avec ses preuves et **Ouvrir dans Traces**, qui ouvre les spans concernés, de l'heure où il a été trouvé, dans le **Lecteur**.
+- **Traces → IA → Journaux** liste chaque investigation et chaque pull request, de la plus récente à la plus ancienne, avec l'état de chacune.
+- Dans Code, la tâche indique qu'OneUptime l'a lancée, avec un lien vers son constat, et la pull request explique pourquoi elle a été ouverte.
 
 ## Ce qui arrive aux spans à leur arrivée
 
