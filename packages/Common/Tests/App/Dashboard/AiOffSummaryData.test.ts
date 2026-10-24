@@ -13,6 +13,7 @@ import {
   AiLaneSwitchStates,
   AiOffStep,
   AiOffStepKey,
+  AiOffStepLink,
   AiOffSubjectType,
   AiOffSummary,
   getAiCardFold,
@@ -27,6 +28,7 @@ import {
   RemediationFoldState,
   RemediationOffReason,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AiOffSummaryData";
+import { getAiOffSummaryLinks } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AiOffSummary";
 import { SILENT_REASONS } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationDecisionLines";
 import {
   AI_LANE_SWITCHES,
@@ -963,7 +965,13 @@ describe.each(SUBJECT_TYPES)(
       expect(severity.link?.route.toString()).toBe(
         `${settingsPath(subjectType)}#WhichAreInvestigated`,
       );
+      // The card it opens at, by its own name: not a second settings link.
       expect(severity.link?.text).toBe(
+        subjectType === "incident"
+          ? "Which incidents are investigated"
+          : "Which alerts are investigated",
+      );
+      expect(step(summary, "fix-switch").link?.text).toBe(
         subjectType === "incident"
           ? "Incident AI settings"
           : "Alert AI settings",
@@ -1011,6 +1019,70 @@ describe.each(SUBJECT_TYPES)(
             ]) {
               expect(text.trim().length).toBeGreaterThan(0);
               expect(text).not.toContain("{{");
+            }
+          }
+        }
+      }
+    });
+
+    /*
+     * The line lists each place once (getAiOffSummaryLinks), and two places
+     * never share a name: the minimum severity's card and the switches are
+     * on the same page, so its link is the card's name, not a second
+     * "Incident AI settings" that goes elsewhere.
+     */
+    test("no two places the line links to share their words, whatever was off", () => {
+      for (const code of AI_OFF_INVESTIGATION_CODES) {
+        for (const remediationReason of [
+          "ai_off",
+          "fixing_off",
+          "no_rule_matched",
+          "rules_do_not_fix",
+          "not_recorded",
+        ] as Array<RemediationOffReason>) {
+          for (const isAiOn of [true, false]) {
+            for (const switches of [
+              {},
+              { investigate: false, fix: false },
+              { investigate: true, fix: true },
+            ] as Array<AiLaneSwitchStates>) {
+              const links: Array<{ text: string; route: string }> =
+                getAiOffSummaryLinks(
+                  summaryFor({
+                    subjectType,
+                    code,
+                    remediationReason,
+                    ruleName: "Checkout investigations",
+                    isAiOn,
+                    switches,
+                  }).steps,
+                  (): boolean => {
+                    return true;
+                  },
+                ).map(
+                  (item: AiOffStepLink): { text: string; route: string } => {
+                    return { text: item.text, route: item.route.toString() };
+                  },
+                );
+              const texts: Array<string> = links.map(
+                (item: { text: string }): string => {
+                  return item.text;
+                },
+              );
+
+              expect({
+                code,
+                remediationReason,
+                isAiOn,
+                switches,
+                texts: new Set(texts).size,
+              }).toEqual({
+                code,
+                remediationReason,
+                isAiOn,
+                switches,
+                texts: links.length,
+              });
             }
           }
         }

@@ -265,14 +265,33 @@ const AiOffSummary: FunctionComponent<ComponentProps> = (
                 className="mt-3 flex flex-wrap gap-x-5 gap-y-1"
               >
                 {links.map((stepLink: AiOffStepLink): ReactElement => {
+                  /*
+                   * The arrow is part of the words' line, glued to the last
+                   * one by a no-break space that cannot wrap away from it: a
+                   * name that wraps on a phone ends with its arrow, which
+                   * never sits alone at the card's far edge or on a line of
+                   * its own.
+                   */
                   return (
                     <Link
                       key={stepLink.route.toString()}
                       to={stepLink.route}
-                      className="inline-flex items-center gap-1 rounded text-sm font-medium leading-6 text-indigo-600 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                      className="min-w-0 break-words rounded text-sm font-medium leading-6 text-indigo-600 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                     >
-                      <span className="break-words">{stepLink.text}</span>
-                      <Icon icon={IconProp.ArrowRight} className="h-4 w-4" />
+                      {stepLink.text}
+                      <span className="whitespace-nowrap">
+                        {" "}
+                        <span
+                          aria-hidden="true"
+                          data-testid="ai-off-summary-link-arrow"
+                          className="inline-block align-middle"
+                        >
+                          <Icon
+                            icon={IconProp.ArrowRight}
+                            className="h-4 w-4"
+                          />
+                        </span>
+                      </span>
                     </Link>
                   );
                 })}

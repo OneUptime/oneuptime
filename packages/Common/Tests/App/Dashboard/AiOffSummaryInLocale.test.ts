@@ -96,6 +96,8 @@ const BORROWED: Array<string> = [
   AI_OFF_LINK_TEXTS.settings.alert,
   AI_OFF_LINK_TEXTS.rules.incident,
   AI_OFF_LINK_TEXTS.rules.alert,
+  AI_OFF_LINK_TEXTS.minimumSeverity.incident,
+  AI_OFF_LINK_TEXTS.minimumSeverity.alert,
   AI_OFF_WHO_CAN_CHANGE.aiSwitch,
   AI_OFF_WHAT_YOU_CAN_DO,
   EnableAiCopy.switchTitle,

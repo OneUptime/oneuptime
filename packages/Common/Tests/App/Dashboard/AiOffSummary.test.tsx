@@ -299,6 +299,55 @@ describe("what can be done, for someone who may do it", () => {
     ]);
   });
 
+  /*
+   * On a phone a long name wraps: its arrow is part of the words' line,
+   * glued to the last one by a no-break space, so it ends the name rather
+   * than sitting alone at the card's far edge (an inline-flex link put it
+   * there). Screen readers hear only the name.
+   */
+  test("a link's arrow follows its last word, glued by a no-break space, and is not read out", () => {
+    renderLine({
+      summary: summaryFor({
+        code: "severity_below_threshold",
+        remediationReason: "fixing_off",
+      }),
+      isOpen: true,
+    });
+
+    const links: Array<HTMLElement> = within(
+      screen.getByTestId("ai-off-summary-links"),
+    ).getAllByRole("link");
+
+    expect(
+      links.map((link: HTMLElement): string => {
+        return link.textContent?.trim() || "";
+      }),
+    ).toEqual(["Which incidents are investigated", "Incident AI settings"]);
+    expect(
+      screen.getByRole("link", { name: "Which incidents are investigated" }),
+    ).toHaveAttribute(
+      "href",
+      `${routeFor(PageMap.INCIDENTS_SETTINGS_AI)}#WhichAreInvestigated`,
+    );
+
+    for (const link of links) {
+      const arrow: HTMLElement = within(link).getByTestId(
+        "ai-off-summary-link-arrow",
+      );
+
+      // Inline, in the words' flow: not a flex row that parks it at the edge.
+      expect(link.className).not.toMatch(/(^|\s)(inline-)?flex(\s|$)/);
+      expect(arrow.className).toContain("inline-block");
+      expect(arrow).toHaveAttribute("aria-hidden", "true");
+      // The words, a no-break space, then the arrow: nothing between.
+      expect(arrow.previousSibling?.textContent).toBe(" ");
+      expect(link.textContent?.endsWith(" ")).toBe(true);
+      // And no line can break between the space and the arrow.
+      expect(arrow.parentElement?.className).toBe("whitespace-nowrap");
+      expect(arrow.parentElement?.parentElement).toBe(link);
+    }
+  });
+
   test("the AI rules link opens the settings page at the rules", () => {
     renderLine({
       summary: summaryFor({
