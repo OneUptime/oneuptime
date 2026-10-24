@@ -19,6 +19,7 @@ import {
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ModelListCache from "Common/UI/Utils/ModelListCache";
 import Navigation from "Common/UI/Utils/Navigation";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import React, {
   Fragment,
   FunctionComponent,
@@ -28,6 +29,13 @@ import React, {
 
 const DEFINITION: StateListDefinition =
   STATE_LISTS[StateListType.SecurityCasePriority];
+
+/*
+ * What the page calls one priority and several: "Create Case Priority"
+ * under the Case Priorities title, as Case Statuses does.
+ */
+const SINGULAR_NAME: string = translationKey("Case Priority");
+const PLURAL_NAME: string = translationKey("Case Priorities");
 
 /*
  * Security Events > Settings > Case Priorities: how urgent a case is, the
@@ -51,6 +59,8 @@ const SecurityCasePrioritiesPage: FunctionComponent<
     useArchivableValues<SecurityCasePriority>({
       modelType: SecurityCasePriority,
       type: ArchivableValueType.SecurityCasePriority,
+      singularName: SINGULAR_NAME,
+      pluralName: PLURAL_NAME,
     });
 
   const [rows, setRows] = useState<Array<SecurityCasePriority>>([]);
@@ -59,6 +69,8 @@ const SecurityCasePrioritiesPage: FunctionComponent<
     <Fragment>
       <ModelTable<SecurityCasePriority>
         modelType={SecurityCasePriority}
+        singularName={SINGULAR_NAME}
+        pluralName={PLURAL_NAME}
         query={archive.query}
         actionButtons={archive.actionButtons}
         getDeleteConfirmation={archive.getDeleteConfirmation}

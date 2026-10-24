@@ -504,8 +504,10 @@ describe("Security Cases and Playbooks docs", () => {
 
     expect(statusCopy.countsAs?.title).toBe("Counts as");
     expect(text).toContain("as the **Counts as** column shows");
-    expect(priorityCopy.builtInColumn?.title).toBe("Detections");
-    expect(text).toContain("the **Detections** column shows which detections");
+    expect(priorityCopy.builtInColumn?.title).toBe("Detection severity");
+    expect(text).toContain(
+      "the **Detection severity** column shows which detections",
+    );
 
     expect(
       ARCHIVABLE_VALUE_COPY[ArchivableValueType.SecurityCaseStatus]

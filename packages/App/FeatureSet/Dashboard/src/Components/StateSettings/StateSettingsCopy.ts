@@ -36,9 +36,10 @@ export interface StateSettingsCountsAsCopy {
 
 /*
  * A column that says what each built-in row is for, read off its own flag
- * rather than where it sits - the Case Priorities page's Detections: which
- * detection severity opens its cases at each built-in priority. A row of the
- * project's own reads `otherwise`.
+ * rather than where it sits - the Case Priorities page's Detection
+ * severity: which detection severity opens its cases at each built-in
+ * priority. A row of the project's own reads `otherwise`, drawn muted, as an
+ * empty value is.
  */
 export interface StateSettingsBuiltInColumnCopy {
   title: string;
@@ -288,13 +289,13 @@ export const STATE_SETTINGS_COPY: Record<StateListType, StateSettingsPageCopy> =
       description:
         "Most urgent first. Drag a priority to change its rank: playbooks and notifications that say at least High read this order. A new priority is added at the end.",
       builtInColumn: {
-        title: "Detections",
+        title: "Detection severity",
         tooltip:
-          "Which detections open their cases at each priority. A case rises when a more severe detection joins it. A priority you add is set by people and playbooks.",
+          "Detections of this severity open their cases at this priority, and a case rises when a more severe detection joins it. People and playbooks set the priorities you add.",
         byBuiltIn: {
           isCriticalPriority: "Critical",
           isHighPriority: "High",
-          isMediumPriority: "Medium, and unknown",
+          isMediumPriority: "Medium or unknown",
           isLowPriority: "Low",
           isInformationalPriority: "Informational",
         },
@@ -302,7 +303,7 @@ export const STATE_SETTINGS_COPY: Record<StateListType, StateSettingsPageCopy> =
       },
       builtInTooltips: {
         isCriticalPriority:
-          "Critical detections open their cases at this priority, and its cases are sent at once. It can be renamed, but not deleted.",
+          "Critical detections open their cases at this priority, and people hear about its cases at once. It can be renamed, but not deleted.",
         isHighPriority:
           "High detections open their cases at this priority. People hear about cases from here up, unless they choose otherwise. It can be renamed, but not deleted.",
         isMediumPriority:

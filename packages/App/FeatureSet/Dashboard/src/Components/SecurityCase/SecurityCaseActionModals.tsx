@@ -143,22 +143,23 @@ export const CloseSecurityCaseModal: FunctionComponent<CloseCaseModalProps> = (
   );
 
   /*
-   * What the verdict's field says first: OneUptime AI's read of the case,
-   * and - closing into a status of the project's own, not its closed one -
-   * the status the case moves to. Both, when both apply.
+   * What the verdict's field says first: closing into a status of the
+   * project's own, not its closed one, the status the case moves to - what
+   * the dialog does comes first - then OneUptime AI's read of the case,
+   * which ends on what to do: "Pick what you found." Both, when both apply.
    */
   const closeHints: Array<string> = [
-    ...(aiRead
-      ? [
-          translator.translateTemplate(SecurityCaseAiCopy.closeVerdictHint, {
-            read: translatableTerm(aiRead),
-          }),
-        ]
-      : []),
     ...(!props.isProjectClosedStatus
       ? [
           translator.translateTemplate(CLOSE_INTO_STATUS, {
             status: translatableTerm(props.closeToStatus.name || ""),
+          }),
+        ]
+      : []),
+    ...(aiRead
+      ? [
+          translator.translateTemplate(SecurityCaseAiCopy.closeVerdictHint, {
+            read: translatableTerm(aiRead),
           }),
         ]
       : []),

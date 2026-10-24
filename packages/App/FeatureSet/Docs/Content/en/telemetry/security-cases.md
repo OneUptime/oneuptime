@@ -128,7 +128,7 @@ Some are built in, because OneUptime reads what they mean. They can be renamed a
 | The Critical, High, Medium, Low and Informational priorities | A detection opens its case at the one of its severity, and a case someone opens starts at Medium |
 
 - Where a status sits decides what a case in it counts as, as the **Counts as** column shows: from the acknowledged status down, acknowledged; from the contained status down, contained; from the closed status down, closed. A status you add goes just above the closed status, and moving a case into a status that closes it asks for a verdict first.
-- A priority's rank is how urgent it is, the most urgent first: **For Cases At Least**, the notification choices and the Slack and Microsoft Teams rules read this order. A priority you add goes to the end, and the **Detections** column shows which detections open their cases at each built-in priority.
+- A priority's rank is how urgent it is, the most urgent first: **For Cases At Least**, the notification choices and the Slack and Microsoft Teams rules read this order. A priority you add goes to the end, and the **Detection severity** column shows which detections open their cases at each built-in priority.
 
 To stop using a status or priority of your own, use **Archive** on its row. Nobody can pick it again, and the API, Terraform and MCP refuse it, but the cases that have it keep it, and you can still filter by it. Archived values are listed in the folded **Archived Case Statuses** or **Archived Case Priorities** section under the table, where **Unarchive** puts one back. **Delete** is refused while cases have the value or a playbook runs from the priority.
 

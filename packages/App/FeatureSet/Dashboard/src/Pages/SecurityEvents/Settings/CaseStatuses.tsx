@@ -19,6 +19,7 @@ import {
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ModelListCache from "Common/UI/Utils/ModelListCache";
 import Navigation from "Common/UI/Utils/Navigation";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import React, {
   Fragment,
   FunctionComponent,
@@ -28,6 +29,14 @@ import React, {
 
 const DEFINITION: StateListDefinition =
   STATE_LISTS[StateListType.SecurityCaseStatus];
+
+/*
+ * What the page calls one status and several: "Create Case Status" under
+ * the Case Statuses title, not the model's "Security Case Status" - the
+ * menu, the breadcrumbs and the title already say it is Security Events.
+ */
+const SINGULAR_NAME: string = translationKey("Case Status");
+const PLURAL_NAME: string = translationKey("Case Statuses");
 
 /*
  * Security Events > Settings > Case Statuses: the project's own statuses a
@@ -52,6 +61,8 @@ const SecurityCaseStatusesPage: FunctionComponent<
     useArchivableValues<SecurityCaseStatus>({
       modelType: SecurityCaseStatus,
       type: ArchivableValueType.SecurityCaseStatus,
+      singularName: SINGULAR_NAME,
+      pluralName: PLURAL_NAME,
     });
 
   // The rows on the page, which "Counts as" is worked out from.
@@ -61,6 +72,8 @@ const SecurityCaseStatusesPage: FunctionComponent<
     <Fragment>
       <ModelTable<SecurityCaseStatus>
         modelType={SecurityCaseStatus}
+        singularName={SINGULAR_NAME}
+        pluralName={PLURAL_NAME}
         query={archive.query}
         actionButtons={archive.actionButtons}
         getDeleteConfirmation={archive.getDeleteConfirmation}

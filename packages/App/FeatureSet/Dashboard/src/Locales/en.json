@@ -34308,7 +34308,6 @@
   "The time to contain is measured to this status, so it can't be archived.": "The time to contain is measured to this status, so it can't be archived.",
   "Unlikely to be harmful, but worth a look.": "Unlikely to be harmful, but worth a look.",
   "Where a status sits decides what a case in it counts as. From the acknowledged status down, someone is on it. From the contained status down, it is contained. From the closed status down, it is closed and carries a verdict.": "Where a status sits decides what a case in it counts as. From the acknowledged status down, someone is on it. From the contained status down, it is contained. From the closed status down, it is closed and carries a verdict.",
-  "Which detections open their cases at each priority. A case rises when a more severe detection joins it. A priority you add is set by people and playbooks.": "Which detections open their cases at each priority. A case rises when a more severe detection joins it. A priority you add is set by people and playbooks.",
   "a removed priority": "a removed priority",
   "a removed status": "a removed status",
   "{{priority}} and above": "{{priority}} and above",
@@ -34322,12 +34321,12 @@
   "Emergency": "Emergency",
   "A confirmed breach. Page the team now.": "A confirmed breach. Page the team now.",
   "Built-in priorities can be renamed, but not deleted.": "Built-in priorities can be renamed, but not deleted.",
-  "Critical detections open their cases at this priority, and its cases are sent at once. It can be renamed, but not deleted.": "Critical detections open their cases at this priority, and its cases are sent at once. It can be renamed, but not deleted.",
+  "Critical detections open their cases at this priority, and people hear about its cases at once. It can be renamed, but not deleted.": "Critical detections open their cases at this priority, and people hear about its cases at once. It can be renamed, but not deleted.",
   "High detections open their cases at this priority. People hear about cases from here up, unless they choose otherwise. It can be renamed, but not deleted.": "High detections open their cases at this priority. People hear about cases from here up, unless they choose otherwise. It can be renamed, but not deleted.",
   "Medium detections, and the cases people open, start at this priority. It can be renamed, but not deleted.": "Medium detections, and the cases people open, start at this priority. It can be renamed, but not deleted.",
   "Low detections open their cases at this priority. It can be renamed, but not deleted.": "Low detections open their cases at this priority. It can be renamed, but not deleted.",
   "Informational detections open their cases at this priority. It can be renamed, but not deleted.": "Informational detections open their cases at this priority. It can be renamed, but not deleted.",
-  "Medium, and unknown": "Medium, and unknown",
+  "Medium or unknown": "Medium or unknown",
   "sudo logs": "sudo logs",
   "{{count}} of these read events this project does not send yet, so they find nothing until those arrive.": "{{count}} of these read events this project does not send yet, so they find nothing until those arrive.",
   "{{count}} of these read events this project does not send yet, so they find nothing until those arrive._one": "{{count}} of these reads events this project does not send yet, so it finds nothing until they arrive.",
@@ -34373,5 +34372,9 @@
   "With no rule, OneUptime AI looks into every problem in your traces right away, and opens a pull request for each one it can fix. Add rules to choose which services it works on, when, and how each is fixed.": "With no rule, OneUptime AI looks into every problem in your traces right away, and opens a pull request for each one it can fix. Add rules to choose which services it works on, when, and how each is fixed.",
   "{{threshold}} failed spans in an hour is the AI detector's bar for a failing operation.": "{{threshold}} failed spans in an hour is the AI detector's bar for a failing operation.",
   "{{threshold}} or more failed spans in an hour": "{{threshold}} or more failed spans in an hour",
-  "{{threshold}} or more of the operation's spans failed within an hour.": "{{threshold}} or more of the operation's spans failed within an hour."
+  "{{threshold}} or more of the operation's spans failed within an hour.": "{{threshold}} or more of the operation's spans failed within an hour.",
+  "Case Priority": "Case Priority",
+  "Case Status": "Case Status",
+  "Detection severity": "Detection severity",
+  "Detections of this severity open their cases at this priority, and a case rises when a more severe detection joins it. People and playbooks set the priorities you add.": "Detections of this severity open their cases at this priority, and a case rises when a more severe detection joins it. People and playbooks set the priorities you add."
 }

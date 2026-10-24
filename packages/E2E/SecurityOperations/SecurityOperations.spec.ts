@@ -4723,11 +4723,19 @@ test.describe("the project's case priorities and statuses", () => {
     await expect(archived).toContainText("Archived Case Statuses");
     await expect(page.locator("table").first()).not.toContainText("Escalated");
 
+    // The page names one value as its title does: Create Case Status, case statuses.
+    await expect(page.getByTestId("card-button").first()).toHaveText(
+      "Create Case Status",
+    );
+    await expect(page.locator("body")).toContainText(
+      "Showing 1-7 of 7 case statuses",
+    );
+
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
     await screenshot(page, "case-statuses-1280-light");
   });
 
-  test("Settings holds the project's case priorities: most urgent first, which detections open at each, the built-in ones tagged", async ({
+  test("Settings holds the project's case priorities: most urgent first, the detection severity each opens cases at, the built-in ones tagged", async ({
     page,
   }: {
     page: Page;
@@ -4757,10 +4765,33 @@ test.describe("the project's case priorities and statuses", () => {
       "None",
       "Critical",
       "High",
-      "Medium, and unknown",
+      "Medium or unknown",
       "Low",
       "Informational",
     ]);
+    // The column says what it holds; a priority of the project's own has none, drawn muted.
+    await expect(page.locator("table").first().locator("thead")).toContainText(
+      "Detection severity",
+    );
+    const noneCell: Locator = page
+      .getByTestId("state-settings-built-in-column")
+      .first();
+    const criticalCell: Locator = page
+      .getByTestId("state-settings-built-in-column")
+      .nth(1);
+    expect(
+      await noneCell.evaluate((cell: Element): string => {
+        return getComputedStyle(cell).color;
+      }),
+    ).not.toBe(
+      await criticalCell.evaluate((cell: Element): string => {
+        return getComputedStyle(cell).color;
+      }),
+    );
+    // The page names one value as its title does: Create Case Priority.
+    await expect(page.getByTestId("card-button").first()).toHaveText(
+      "Create Case Priority",
+    );
     expect(await builtInRows(page)).toEqual([
       false,
       true,
@@ -4943,7 +4974,10 @@ test.describe("the project's case priorities and statuses", () => {
       .click();
     const dialog: Locator = page.getByRole("dialog");
     await expect(dialog).toContainText("Close Case");
-    await expect(dialog).toContainText("The case moves to Closed - Duplicate.");
+    // Where the case goes comes first, before OneUptime AI's read of it.
+    await expect(dialog).toContainText(
+      "The case moves to Closed - Duplicate. OneUptime AI read this case as Likely Malicious. Pick what you found.",
+    );
     await dialog
       .getByRole("button", { name: "Close Case", exact: true })
       .click();
