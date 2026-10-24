@@ -40,7 +40,7 @@ export const AUDIT_LOG_EXPORT_SCOPE_COPY: Record<
   [AuditLogExportScope.Instance]: {
     cardTitle: translationKey("Export Audit Logs"),
     cardDescription: translationKey(
-      "Send the audit log of every project on this instance to storage or a service you choose, as it is recorded. Each entry is sent once, in order, as JSON. A project records audit logs while audit logging is on in its settings.",
+      "Send the audit log of every project on this instance to storage or a service you choose, as it is recorded. Each entry is sent once, in order, as JSON. Projects with audit logging off send nothing.",
     ),
     testRoute: "/audit-log-export/instance/test",
   },

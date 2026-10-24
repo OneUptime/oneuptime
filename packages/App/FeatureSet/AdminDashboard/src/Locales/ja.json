@@ -1069,7 +1069,7 @@
   "Deleting a license also deletes its instances. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.": "ライセンスを削除すると、そのインスタンスも削除されます。そのキーを使うインストールは、すでに持っているライセンスを期限まで使えますが、更新や再有効化はできなくなり、シート数の報告は拒否されます。",
   "Export Audit Logs": "監査ログのエクスポート",
   "Send this project's audit log to storage or a service you choose, as it is recorded. Each entry is sent once, in order, as JSON.": "このプロジェクトの監査ログを、記録されるたびに、選んだストレージやサービスへ送信します。各エントリは順番どおりに 1 回だけ JSON として送信されます。",
-  "Send the audit log of every project on this instance to storage or a service you choose, as it is recorded. Each entry is sent once, in order, as JSON. A project records audit logs while audit logging is on in its settings.": "このインスタンスのすべてのプロジェクトの監査ログを、記録されるたびに、選んだストレージやサービスへ送信します。各エントリは順番どおりに 1 回だけ JSON として送信されます。プロジェクトは、その設定で監査ログの記録がオンの間だけ監査ログを記録します。",
+  "Send the audit log of every project on this instance to storage or a service you choose, as it is recorded. Each entry is sent once, in order, as JSON. Projects with audit logging off send nothing.": "このインスタンスのすべてのプロジェクトの監査ログを、記録されるたびに、選んだストレージやサービスへ送信します。各エントリは順番どおりに 1 回だけ JSON として送信されます。監査ログの記録がオフのプロジェクトからは何も送信されません。",
   "Add export": "エクスポートを追加",
   "Nothing is exported yet": "まだ何もエクスポートされていません",
   "Amazon S3, S3-compatible storage, Google Cloud Storage, Azure Blob Storage, webhooks and syslog are supported.": "Amazon S3、S3 互換ストレージ、Google Cloud Storage、Azure Blob Storage、Webhook、syslog に対応しています。",

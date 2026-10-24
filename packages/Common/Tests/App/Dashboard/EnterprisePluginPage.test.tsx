@@ -812,6 +812,7 @@ describe("the Community plugin door (what this jest config resolves)", () => {
       [
         "AuditLogsTable",
         "SettingsAuditLogsSettings",
+        "SettingsAuditLogExport",
         "SettingsSCIM",
         "StatusPageSCIM",
         "TeamCompliance",

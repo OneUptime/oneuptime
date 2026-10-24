@@ -1069,7 +1069,7 @@
   "Deleting a license also deletes its instances. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.": "删除许可证也会删除其实例。使用其密钥的安装会保留已持有的许可证直到过期，但无法再刷新或重新激活它，且其席位报告会被拒绝。",
   "Export Audit Logs": "导出审计日志",
   "Send this project's audit log to storage or a service you choose, as it is recorded. Each entry is sent once, in order, as JSON.": "在记录时将此项目的审计日志发送到你选择的存储或服务。每个条目按顺序以 JSON 只发送一次。",
-  "Send the audit log of every project on this instance to storage or a service you choose, as it is recorded. Each entry is sent once, in order, as JSON. A project records audit logs while audit logging is on in its settings.": "在记录时将此实例上每个项目的审计日志发送到你选择的存储或服务。每个条目按顺序以 JSON 只发送一次。项目只有在其设置中开启审计日志记录时才会记录审计日志。",
+  "Send the audit log of every project on this instance to storage or a service you choose, as it is recorded. Each entry is sent once, in order, as JSON. Projects with audit logging off send nothing.": "在记录时将此实例上每个项目的审计日志发送到你选择的存储或服务。每个条目按顺序以 JSON 只发送一次。未开启审计日志记录的项目不会发送任何内容。",
   "Add export": "添加导出",
   "Nothing is exported yet": "尚未导出任何内容",
   "Amazon S3, S3-compatible storage, Google Cloud Storage, Azure Blob Storage, webhooks and syslog are supported.": "支持 Amazon S3、S3 兼容存储、Google Cloud Storage、Azure Blob Storage、Webhook 和 syslog。",

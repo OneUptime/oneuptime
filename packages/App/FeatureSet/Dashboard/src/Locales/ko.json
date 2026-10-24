@@ -34086,7 +34086,7 @@
   "Audit logging is off for this project.": "이 프로젝트에서 감사 로그 기록이 꺼져 있습니다.",
   "Nothing new is recorded, so nothing new is exported. Turn it on in Audit Logs > Settings.": "새로 기록되는 항목이 없으므로 새로 내보내는 항목도 없습니다. 감사 로그 > 설정에서 켜세요.",
   "Send this project's audit log to storage or a service you choose, as it is recorded. Each entry is sent once, in order, as JSON.": "이 프로젝트의 감사 로그를 기록되는 대로 원하는 스토리지나 서비스로 보냅니다. 각 항목은 순서대로 한 번만 JSON으로 전송됩니다.",
-  "Send the audit log of every project on this instance to storage or a service you choose, as it is recorded. Each entry is sent once, in order, as JSON. A project records audit logs while audit logging is on in its settings.": "이 인스턴스의 모든 프로젝트 감사 로그를 기록되는 대로 원하는 스토리지나 서비스로 보냅니다. 각 항목은 순서대로 한 번만 JSON으로 전송됩니다. 프로젝트는 설정에서 감사 로그 기록이 켜져 있는 동안 감사 로그를 기록합니다.",
+  "Send the audit log of every project on this instance to storage or a service you choose, as it is recorded. Each entry is sent once, in order, as JSON. Projects with audit logging off send nothing.": "이 인스턴스의 모든 프로젝트 감사 로그를 기록되는 대로 원하는 스토리지나 서비스로 보냅니다. 각 항목은 순서대로 한 번만 JSON으로 전송됩니다. 감사 로그 기록이 꺼진 프로젝트는 아무것도 보내지 않습니다.",
   "Add export": "내보내기 추가",
   "Nothing is exported yet": "아직 내보내는 항목이 없습니다",
   "Amazon S3, S3-compatible storage, Google Cloud Storage, Azure Blob Storage, webhooks and syslog are supported.": "Amazon S3, S3 호환 스토리지, Google Cloud Storage, Azure Blob Storage, 웹훅, syslog를 지원합니다.",

@@ -34086,7 +34086,7 @@
   "Audit logging is off for this project.": "このプロジェクトでは監査ログの記録がオフです。",
   "Nothing new is recorded, so nothing new is exported. Turn it on in Audit Logs > Settings.": "新しいエントリが記録されないため、新しくエクスポートされるものもありません。「監査ログ > 設定」でオンにしてください。",
   "Send this project's audit log to storage or a service you choose, as it is recorded. Each entry is sent once, in order, as JSON.": "このプロジェクトの監査ログを、記録されるたびに、選んだストレージやサービスへ送信します。各エントリは順番どおりに 1 回だけ JSON として送信されます。",
-  "Send the audit log of every project on this instance to storage or a service you choose, as it is recorded. Each entry is sent once, in order, as JSON. A project records audit logs while audit logging is on in its settings.": "このインスタンスのすべてのプロジェクトの監査ログを、記録されるたびに、選んだストレージやサービスへ送信します。各エントリは順番どおりに 1 回だけ JSON として送信されます。プロジェクトは、その設定で監査ログの記録がオンの間だけ監査ログを記録します。",
+  "Send the audit log of every project on this instance to storage or a service you choose, as it is recorded. Each entry is sent once, in order, as JSON. Projects with audit logging off send nothing.": "このインスタンスのすべてのプロジェクトの監査ログを、記録されるたびに、選んだストレージやサービスへ送信します。各エントリは順番どおりに 1 回だけ JSON として送信されます。監査ログの記録がオフのプロジェクトからは何も送信されません。",
   "Add export": "エクスポートを追加",
   "Nothing is exported yet": "まだ何もエクスポートされていません",
   "Amazon S3, S3-compatible storage, Google Cloud Storage, Azure Blob Storage, webhooks and syslog are supported.": "Amazon S3、S3 互換ストレージ、Google Cloud Storage、Azure Blob Storage、Webhook、syslog に対応しています。",
