@@ -3,13 +3,19 @@ import {
   canTeamTakeCustomRoles,
   CUSTOM_ROLE_ICON,
   CustomRoleSummary,
+  getApiKeyRoleCoverage,
+  getApiKeyRoleGrants,
   getCustomRoleCardSelectOption,
+  getOwnedPermissionCounts,
+  loadApiKeyIdsGivenCustomRole,
   loadCustomRoleGrants,
+  loadCustomRoleIdsOfApiKey,
   loadCustomRoleIdsOfTeam,
   loadCustomRoles,
   loadTeamIdsGivenCustomRole,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomRole/CustomRoleOptions";
 import { loadCustomRoleReach } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomRole/CustomRoleReach";
+import ApiKeyCustomRole from "../../../Models/DatabaseModels/ApiKeyCustomRole";
 import CustomRole from "../../../Models/DatabaseModels/CustomRole";
 import CustomRolePermission from "../../../Models/DatabaseModels/CustomRolePermission";
 import Label from "../../../Models/DatabaseModels/Label";
@@ -410,6 +416,65 @@ describe("every role's permissions, as the grant ceiling weighs them", () => {
     ]);
     expect(calls[0]!.modelType).toBe(CustomRolePermission);
     expect(calls[0]!.select["labels"]).toEqual({ _id: true });
+    // Every role's: no role named.
+    expect(calls[0]!.query["customRoleId"]).toBeUndefined();
+  });
+
+  test("one role's only, when a role's page asks what its API keys get", async () => {
+    const calls: Array<ListCall> = [];
+
+    const owned: CustomRolePermission = new CustomRolePermission();
+    owned.customRoleId = new ObjectID(LEAD_ID);
+    owned.permission = Permission.AlertMember;
+    owned.scope = PermissionScope.Owned;
+
+    const grants: Map<
+      string,
+      Array<TeamPermissionGrant>
+    > = await loadCustomRoleGrants({
+      projectId: PROJECT_ID,
+      customRoleId: new ObjectID(LEAD_ID),
+      modelAPI: listingModelAPI(
+        new Map<unknown, Array<unknown>>([[CustomRolePermission, [owned]]]),
+        calls,
+      ),
+    });
+
+    expect(String(calls[0]!.query["customRoleId"])).toBe(LEAD_ID);
+    expect(String(calls[0]!.query["projectId"])).toBe(PROJECT_ID.toString());
+    expect(grants.get(LEAD_ID)).toEqual([
+      {
+        permission: Permission.AlertMember,
+        scope: PermissionScope.Owned,
+        labelIds: [],
+      },
+    ]);
+  });
+});
+
+describe("how much of one role an API key holds", () => {
+  test("every permission but those scoped to what someone owns", () => {
+    expect(
+      getApiKeyRoleCoverage([
+        { permission: Permission.IncidentMember, scope: PermissionScope.All },
+        {
+          permission: Permission.MonitorViewer,
+          scope: PermissionScope.Labels,
+          labelIds: [LABEL_ID],
+        },
+        { permission: Permission.AlertMember, scope: PermissionScope.Owned },
+      ]),
+    ).toEqual({ permissionCount: 3, ownedCount: 1 });
+  });
+
+  test("a role with nothing scoped to what someone owns, and an empty role", () => {
+    expect(
+      getApiKeyRoleCoverage([{ permission: Permission.IncidentAdmin }]),
+    ).toEqual({ permissionCount: 1, ownedCount: 0 });
+    expect(getApiKeyRoleCoverage([])).toEqual({
+      permissionCount: 0,
+      ownedCount: 0,
+    });
   });
 });
 
@@ -495,12 +560,13 @@ describe("who a role reaches", () => {
         projectId: PROJECT_ID,
         modelAPI: listingModelAPI(new Map<unknown, Array<unknown>>(), calls),
       }),
-    ).toEqual({ teams: [], teamCount: 0, memberCount: 0 });
+    ).toEqual({ teams: [], teamCount: 0, memberCount: 0, apiKeyCount: 0 });
+    // The keys given it are counted too; the members of no team are not read.
     expect(
       calls.map((call: ListCall): unknown => {
         return call.modelType;
       }),
-    ).toEqual([TeamCustomRole]);
+    ).toEqual([TeamCustomRole, ApiKeyCustomRole]);
   });
 
   test("the teams only, when the reader may not read who is on them", async () => {
@@ -522,5 +588,213 @@ describe("who a role reaches", () => {
 
     expect(reach.teamCount).toBe(1);
     expect(reach.memberCount).toBeNull();
+  });
+
+  test("the API keys given it are counted, each once, from the rows that give it", async () => {
+    const calls: Array<ListCall> = [];
+    const key: string = "0e000000-0000-4000-8000-0000000000e1";
+
+    const reach: Awaited<ReturnType<typeof loadCustomRoleReach>> =
+      await loadCustomRoleReach({
+        customRoleId: new ObjectID(RESPONDER_ID),
+        projectId: PROJECT_ID,
+        modelAPI: listingModelAPI(
+          new Map<unknown, Array<unknown>>([
+            [
+              ApiKeyCustomRole,
+              [
+                keyGiven({ apiKeyId: key }),
+                keyGiven({ apiKeyId: key.toUpperCase() }),
+                keyGiven({ apiKeyId: "0e000000-0000-4000-8000-0000000000e2" }),
+                // A row whose key could not be read counts for nothing.
+                keyGiven({}),
+              ],
+            ],
+          ]),
+          calls,
+        ),
+      });
+
+    expect(reach.teamCount).toBe(0);
+    expect(reach.apiKeyCount).toBe(2);
+
+    const keysRead: ListCall = calls.find((call: ListCall): boolean => {
+      return call.modelType === ApiKeyCustomRole;
+    })!;
+    expect(String(keysRead.query["customRoleId"])).toBe(
+      new ObjectID(RESPONDER_ID).toString(),
+    );
+    expect(keysRead.query["projectId"]).toBe(PROJECT_ID);
+    expect(keysRead.select).toEqual({ apiKeyId: true });
+  });
+
+  test("the keys are not counted, and named nowhere, when the reader may not read the project's API keys", async () => {
+    const reach: Awaited<ReturnType<typeof loadCustomRoleReach>> =
+      await loadCustomRoleReach({
+        customRoleId: new ObjectID(RESPONDER_ID),
+        projectId: PROJECT_ID,
+        modelAPI: listingModelAPI(
+          new Map<unknown, Array<unknown>>([
+            [
+              TeamCustomRole,
+              [given({ teamId: TEAM_ID.toString(), teamName: "Support" })],
+            ],
+          ]),
+          [],
+          ApiKeyCustomRole,
+        ),
+      });
+
+    expect(reach.teamCount).toBe(1);
+    expect(reach.apiKeyCount).toBeNull();
+  });
+});
+
+function keyGiven(data: {
+  apiKeyId?: string;
+  customRoleId?: string;
+}): ApiKeyCustomRole {
+  const row: ApiKeyCustomRole = new ApiKeyCustomRole();
+  if (data.apiKeyId) {
+    row.apiKeyId = new ObjectID(data.apiKeyId);
+  }
+  if (data.customRoleId) {
+    row.customRoleId = new ObjectID(data.customRoleId);
+  }
+  return row;
+}
+
+describe("an API key's custom roles, and the keys a role is given to", () => {
+  const KEY_ID: ObjectID = new ObjectID("0e000000-0000-4000-8000-0000000000f1");
+
+  test("a key's roles are read by the key and the project, as ids in lower case, each once", async () => {
+    const calls: Array<ListCall> = [];
+
+    const ids: Set<string> = await loadCustomRoleIdsOfApiKey({
+      apiKeyId: KEY_ID,
+      projectId: PROJECT_ID,
+      modelAPI: listingModelAPI(
+        new Map<unknown, Array<unknown>>([
+          [
+            ApiKeyCustomRole,
+            [
+              keyGiven({ customRoleId: RESPONDER_ID }),
+              keyGiven({ customRoleId: RESPONDER_ID.toLowerCase() }),
+              keyGiven({ customRoleId: LEAD_ID }),
+              keyGiven({}),
+            ],
+          ],
+        ]),
+        calls,
+      ),
+    });
+
+    expect(Array.from(ids).sort()).toEqual(
+      [RESPONDER_ID.toLowerCase(), LEAD_ID].sort(),
+    );
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.modelType).toBe(ApiKeyCustomRole);
+    expect(calls[0]!.query["apiKeyId"]).toBe(KEY_ID);
+    expect(calls[0]!.query["projectId"]).toBe(PROJECT_ID);
+    expect(calls[0]!.select).toEqual({ customRoleId: true });
+  });
+
+  test("the keys a role is given to are read by the role and the project, as ids in lower case", async () => {
+    const calls: Array<ListCall> = [];
+
+    const ids: Set<string> = await loadApiKeyIdsGivenCustomRole({
+      customRoleId: new ObjectID(LEAD_ID),
+      projectId: PROJECT_ID,
+      modelAPI: listingModelAPI(
+        new Map<unknown, Array<unknown>>([
+          [
+            ApiKeyCustomRole,
+            [
+              keyGiven({ apiKeyId: KEY_ID.toString().toUpperCase() }),
+              keyGiven({}),
+            ],
+          ],
+        ]),
+        calls,
+      ),
+    });
+
+    expect(Array.from(ids)).toEqual([KEY_ID.toString().toLowerCase()]);
+    expect(calls[0]!.select).toEqual({ apiKeyId: true });
+    expect(String(calls[0]!.query["customRoleId"])).toBe(LEAD_ID);
+  });
+
+  test("a key holds every permission of a role but those limited to what someone owns", () => {
+    const grants: Array<TeamPermissionGrant> = [
+      { permission: Permission.IncidentMember, scope: PermissionScope.All },
+      {
+        permission: Permission.MonitorViewer,
+        scope: PermissionScope.Labels,
+        labelIds: [LABEL_ID],
+      },
+      { permission: Permission.AlertMember, scope: PermissionScope.Owned },
+      { permission: Permission.OnCallViewer },
+    ];
+
+    expect(
+      getApiKeyRoleGrants(grants).map(
+        (grant: TeamPermissionGrant): Permission => {
+          return grant.permission;
+        },
+      ),
+    ).toEqual([
+      Permission.IncidentMember,
+      Permission.MonitorViewer,
+      Permission.OnCallViewer,
+    ]);
+    expect(getApiKeyRoleGrants([])).toEqual([]);
+  });
+
+  test("each role's permissions that give a key nothing are counted, by role id in lower case", () => {
+    const counts: Map<string, number> = getOwnedPermissionCounts(
+      new Map<string, Array<TeamPermissionGrant>>([
+        [
+          RESPONDER_ID,
+          [
+            {
+              permission: Permission.IncidentMember,
+              scope: PermissionScope.All,
+            },
+            {
+              permission: Permission.AlertMember,
+              scope: PermissionScope.Owned,
+            },
+            {
+              permission: Permission.MonitorViewer,
+              scope: PermissionScope.Owned,
+            },
+          ],
+        ],
+        [LEAD_ID, [{ permission: Permission.IncidentAdmin }]],
+      ]),
+    );
+
+    expect(counts.get(RESPONDER_ID.toLowerCase())).toBe(2);
+    expect(counts.get(LEAD_ID)).toBe(0);
+    expect(counts.has(RESPONDER_ID)).toBe(false);
+  });
+
+  test("a key's picker card says how many of the role's permissions apply to the key instead of how many it holds", () => {
+    const option: CardSelectOption = getCustomRoleCardSelectOption(
+      ENGLISH,
+      {
+        id: RESPONDER_ID,
+        name: "Incident Responder",
+        description: "Declares, works and resolves incidents.",
+        permissionCount: 6,
+      },
+      { permissionsText: "4 of its 6 permissions apply to this key" },
+    );
+
+    expect(option.description).toBe(
+      "4 of its 6 permissions apply to this key · Declares, works and resolves incidents.",
+    );
+    expect(option.title).toBe("Incident Responder");
+    expect(option.isUserContent).toBe(true);
   });
 });

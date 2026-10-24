@@ -41,7 +41,12 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   - the new key opens on its page;
  *   - a role the server refuses leaves the key, says why, and links to it;
  *   - the user sees only the roles they may hand on, and is not asked
- *     without the right to give keys permissions.
+ *     without the right to give keys permissions;
+ *   - the project's custom roles follow the built-in ones - those giving a
+ *     key something, each permission a key would hold one the user may
+ *     hand on (one limited to what someone owns gives a key nothing, so it
+ *     is not weighed) - and one picked is given to the new key
+ *     (ApiKeyCustomRole), with nothing else added.
  */
 
 let allPermissionsForTest: Array<string> = [];
@@ -162,11 +167,15 @@ import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import { getDefaultApiKeyExpiry } from "../../../../App/FeatureSet/Dashboard/src/Components/ApiKey/ApiKeyCreateForm";
 import { ROLE_ACCESS_LATER } from "../../../../App/FeatureSet/Dashboard/src/Components/Permission/RoleAccess";
 import ApiKey from "../../../Models/DatabaseModels/ApiKey";
+import ApiKeyCustomRole from "../../../Models/DatabaseModels/ApiKeyCustomRole";
 import ApiKeyPermission from "../../../Models/DatabaseModels/ApiKeyPermission";
+import CustomRole from "../../../Models/DatabaseModels/CustomRole";
+import CustomRolePermission from "../../../Models/DatabaseModels/CustomRolePermission";
 import Route from "../../../Types/API/Route";
 import OneUptimeDate from "../../../Types/Date";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import { JSONObject } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import { FormType } from "../../../UI/Components/Forms/ModelForm";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -782,6 +791,274 @@ describe("who is asked what", () => {
 
     expect(keyRequest().miscDataProps).toEqual({});
     expect(createMock).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * The project's custom roles: Incident Responder (Incident Member and Alert
+ * Member, with Monitor Viewer limited to monitors someone owns), Deputy
+ * Admin (Project Admin), Auditor, which holds nothing yet, and Own Things,
+ * whose one permission is limited to what someone owns.
+ */
+const RESPONDER_ID: string = "0e000000-0000-4000-8000-000000000011";
+const DEPUTY_ADMIN_ID: string = "0e000000-0000-4000-8000-000000000012";
+const AUDITOR_ID: string = "0e000000-0000-4000-8000-000000000013";
+const OWN_THINGS_ID: string = "0e000000-0000-4000-8000-000000000014";
+
+function customRole(
+  id: string,
+  name: string,
+  permissionCount: number,
+  description?: string,
+): CustomRole {
+  const role: CustomRole = new CustomRole();
+  role._id = id;
+  role.name = name;
+  role.permissionCount = permissionCount;
+  if (description) {
+    role.description = description;
+  }
+  return role;
+}
+
+function rolePermission(
+  customRoleId: string,
+  permission: Permission,
+  scope: PermissionScope = PermissionScope.All,
+): CustomRolePermission {
+  const row: CustomRolePermission = new CustomRolePermission();
+  row.customRoleId = new ObjectID(customRoleId);
+  row.permission = permission;
+  row.scope = scope;
+  row.labels = [];
+  return row;
+}
+
+function listing(data: Array<unknown>): any {
+  return { data: data, count: data.length, skip: 0, limit: 500 };
+}
+
+function withCustomRoles(options?: { unreadable?: boolean }): void {
+  getListMock.mockImplementation(async (args: any): Promise<any> => {
+    if (
+      args.modelType === CustomRole ||
+      args.modelType === CustomRolePermission
+    ) {
+      if (options?.unreadable) {
+        throw new Error(
+          "You do not have permissions to read Custom Role. You need one of these permissions: Project Owner, Project Admin.",
+        );
+      }
+    }
+
+    if (args.modelType === CustomRole) {
+      return listing([
+        customRole(AUDITOR_ID, "Auditor", 0),
+        customRole(DEPUTY_ADMIN_ID, "Deputy Admin", 1),
+        customRole(
+          RESPONDER_ID,
+          "Incident Responder",
+          3,
+          "Declares, works and resolves incidents.",
+        ),
+        customRole(OWN_THINGS_ID, "Own Things", 1),
+      ]);
+    }
+
+    if (args.modelType === CustomRolePermission) {
+      return listing([
+        rolePermission(RESPONDER_ID, Permission.IncidentMember),
+        rolePermission(RESPONDER_ID, Permission.AlertMember),
+        rolePermission(
+          RESPONDER_ID,
+          Permission.MonitorViewer,
+          PermissionScope.Owned,
+        ),
+        rolePermission(DEPUTY_ADMIN_ID, Permission.ProjectAdmin),
+        rolePermission(
+          OWN_THINGS_ID,
+          Permission.MonitorAdmin,
+          PermissionScope.Owned,
+        ),
+      ]);
+    }
+
+    return listing([]);
+  });
+}
+
+function customRoleValue(id: string): string {
+  return `customRole:${id}`;
+}
+
+// The custom roles are read after the page opens: wait for their cards.
+async function openCreateFormWithCustomRoles(
+  expectedCards: Array<string>,
+): Promise<HTMLElement> {
+  const modal: HTMLElement = await openCreateForm();
+
+  await waitFor(() => {
+    expect(accessCardValues(modal)).toEqual(expectedCards);
+  });
+
+  return modal;
+}
+
+const EVERY_ROLE_CARD: Array<string> = [
+  Permission.ProjectAdmin,
+  Permission.ProjectMember,
+  Permission.Viewer,
+  customRoleValue(DEPUTY_ADMIN_ID),
+  customRoleValue(RESPONDER_ID),
+  ROLE_ACCESS_LATER,
+];
+
+describe("a project's custom roles under Access", () => {
+  test("follow the built-in roles, each saying it is a custom role and how much of it a key holds", async () => {
+    withCustomRoles();
+
+    const modal: HTMLElement =
+      await openCreateFormWithCustomRoles(EVERY_ROLE_CARD);
+
+    const responder: HTMLElement = accessCard(
+      modal,
+      customRoleValue(RESPONDER_ID),
+    );
+    expect(responder).toHaveTextContent("Incident Responder");
+    // One of its three is limited to monitors someone owns: not the key's.
+    expect(responder).toHaveTextContent(
+      "Custom role · 2 of its 3 permissions apply to this key · Declares, works and resolves incidents.",
+    );
+    expect(
+      accessCard(modal, customRoleValue(DEPUTY_ADMIN_ID)),
+    ).toHaveTextContent("Custom role · 1 permission");
+  });
+
+  test("a role that would give a key nothing is not offered: none held yet, or only what someone owns", async () => {
+    withCustomRoles();
+
+    const modal: HTMLElement =
+      await openCreateFormWithCustomRoles(EVERY_ROLE_CARD);
+
+    for (const id of [AUDITOR_ID, OWN_THINGS_ID]) {
+      expect(
+        within(modal).queryByTestId(
+          `card-select-option-${customRoleValue(id)}`,
+        ),
+      ).toBeNull();
+    }
+  });
+
+  test("someone who could not give a role's permissions directly is not offered the role; what a key would not hold is not weighed", async () => {
+    withCustomRoles();
+    holding([
+      Permission.CreateProjectApiKey,
+      Permission.EditProjectApiKeyPermissions,
+      Permission.IncidentMember,
+      Permission.AlertMember,
+    ]);
+
+    /*
+     * Deputy Admin holds Project Admin, which they do not hold. Incident
+     * Responder's Monitor Viewer is limited to what someone owns - which
+     * they do not hold either, but a key would not hold it.
+     */
+    await openCreateFormWithCustomRoles([
+      customRoleValue(RESPONDER_ID),
+      ROLE_ACCESS_LATER,
+    ]);
+  });
+
+  test("picked: the key is made, given the role, and nothing else is added; its page opens", async () => {
+    withCustomRoles();
+
+    const modal: HTMLElement =
+      await openCreateFormWithCustomRoles(EVERY_ROLE_CARD);
+
+    typeName(modal, "Pager bridge");
+    fireEvent.click(accessCard(modal, customRoleValue(RESPONDER_ID)));
+    await submit(modal);
+
+    await waitFor(() => {
+      expect(createMock).toHaveBeenCalledTimes(1);
+    });
+
+    const request: any = createMock.mock.calls[0]![0];
+
+    expect(request.modelType).toBe(ApiKeyCustomRole);
+    expect(request.model).toBeInstanceOf(ApiKeyCustomRole);
+    expect(request.model.apiKeyId?.toString()).toBe(NEW_KEY_ID);
+    expect(request.model.projectId?.toString()).toBe(PROJECT_ID);
+    expect(request.model.customRoleId?.toString()).toBe(RESPONDER_ID);
+
+    // The key went first, and carried nothing of the role.
+    expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    expect(createOrUpdateMock.mock.invocationCallOrder[0]!).toBeLessThan(
+      createMock.mock.invocationCallOrder[0]!,
+    );
+    expect(keyRequest().miscDataProps).toEqual({});
+    expect(
+      Object.keys(ApiKey.toJSON(keyRequest().model, ApiKey)).sort(),
+    ).toEqual(["expiresAt", "name"]);
+
+    await waitFor(() => {
+      expect(navigateCalls).toEqual([keyRoute(NEW_KEY_ID)]);
+    });
+  });
+
+  test("a role the server refuses leaves the key, and says why in the server's words", async () => {
+    withCustomRoles();
+    const refusal: string =
+      "You can't give Incident Responder: it has Alert Member, and your own access doesn't include that permission at the same or a broader scope.";
+    createMock.mockImplementation(async (): Promise<never> => {
+      throw new Error(refusal);
+    });
+
+    const modal: HTMLElement =
+      await openCreateFormWithCustomRoles(EVERY_ROLE_CARD);
+
+    typeName(modal, "Pager bridge");
+    fireEvent.click(accessCard(modal, customRoleValue(RESPONDER_ID)));
+    await submit(modal);
+
+    const notice: HTMLElement = await screen.findByTestId(
+      "api-key-access-notice",
+    );
+
+    expect(notice).toHaveTextContent(
+      "Pager bridge was created without access.",
+    );
+    expect(notice).toHaveTextContent(refusal);
+    expect(navigateCalls).toEqual([]);
+    expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("custom roles the user may not read leave Access as it was", async () => {
+    withCustomRoles({ unreadable: true });
+
+    const modal: HTMLElement = await openCreateForm();
+
+    // Give the failed reads their turn, then check nothing was added.
+    await act(async (): Promise<void> => {});
+
+    expect(accessCardValues(modal)).toEqual([
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      ROLE_ACCESS_LATER,
+    ]);
+  });
+
+  test("someone who may not give a key permissions is asked nothing, custom roles included", async () => {
+    withCustomRoles();
+    holding([Permission.CreateProjectApiKey, Permission.ReadProjectApiKey]);
+
+    const modal: HTMLElement = await openCreateForm();
+
+    await act(async (): Promise<void> => {});
+
+    expect(within(modal).queryByText("Access")).toBeNull();
+    expect(within(modal).queryAllByRole("radio")).toEqual([]);
   });
 });
 

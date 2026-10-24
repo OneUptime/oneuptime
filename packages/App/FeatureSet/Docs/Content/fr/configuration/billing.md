@@ -24,7 +24,7 @@ flowchart TB
 | Quoi | Comment c'est facturé |
 | --- | --- |
 | Le forfait | Un prix par utilisateur et par mois, facturé mensuellement ou annuellement. Chaque personne du projet est un siège. |
-| Télémétrie | $0.10 par GB ingéré, avec 15 jours de rétention. Une rétention plus longue coûte plus : voir [Ce que coûte la rétention](/docs/telemetry/data-retention#ce-que-coûte-la-rétention). |
+| Télémétrie | $0.10 par GB ingéré, avec 15 jours de rétention. Une rétention plus longue coûte plus, et une rétention de moins de 7 jours est facturée comme 7 jours : voir [Ce que coûte la rétention](/docs/telemetry/data-retention#ce-que-coûte-la-rétention). |
 | Session replays | $2 par GB, avec 15 jours de rétention. |
 | Moniteurs actifs | $1 par moniteur et par mois. Tout moniteur sauf un moniteur manuel est actif, même quand il est désactivé. |
 | SMS, appels, WhatsApp et Telegram | Payés sur le solde du projet à l'envoi de chaque message. |

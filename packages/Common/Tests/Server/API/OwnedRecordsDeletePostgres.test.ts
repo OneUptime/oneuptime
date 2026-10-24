@@ -255,6 +255,8 @@ const TABLES: Array<string> = [
   "ApiKey",
   "ApiKeyPermission",
   "ApiKeyPermissionLabel",
+  // A role's sync keeps the API keys given it too.
+  "ApiKeyCustomRole",
   "Monitor",
   // The status a monitor created through its route starts in.
   "MonitorStatus",

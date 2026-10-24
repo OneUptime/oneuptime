@@ -96,7 +96,7 @@ Services, hosts, Kubernetes-clusters, Docker- en Podman-hosts, Docker Swarm-, Pr
 
 ## Wat bewaring kost
 
-- **Op OneUptime Cloud** wordt telemetrie gefactureerd per opgenomen GB, en de prijs per GB omvat 15 dagen bewaring. Langere bewaring kost naar verhouding meer: 30 dagen kost per GB twee keer zoveel als 15. **Projectinstellingen → Facturering en facturen → Gebruiksgeschiedenis** toont per dag hoeveel elke service stuurde en hoe lang dat wordt bewaard.
+- **Op OneUptime Cloud** wordt telemetrie gefactureerd per opgenomen GB, en de prijs per GB omvat 15 dagen bewaring. Langere bewaring kost naar verhouding meer: 30 dagen kost per GB twee keer zoveel als 15. Kortere bewaring kost naar verhouding minder, maar bewaring korter dan 7 dagen wordt gefactureerd als 7 dagen. **Projectinstellingen → Facturering en facturen → Gebruiksgeschiedenis** toont per dag hoeveel elke service stuurde en hoe lang dat wordt bewaard.
 - **Bij zelf hosten** staat telemetrie in ClickHouse, en bewaring vermenigvuldigt de schijfruimte ervan. Zie [Sizing](/docs/installation/sizing#de-bewaartermijn-en-het-effect-op-opslag).
 
 Telemetrie die u niet nodig hebt, kost niets als ze nooit wordt opgeslagen: [Drop-filters en scrub-regels](/docs/telemetry/drop-filters-and-scrub-rules) gooien haar weg zodra ze binnenkomt.

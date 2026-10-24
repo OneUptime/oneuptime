@@ -58,7 +58,7 @@ Incoming Webhook이나 Teams 워크플로 URL은 이 봇의 메시징 엔드포�
 **Register**를 선택한 다음 두 번째 Web 리디렉션 URI로 `https://your-oneuptime-domain.com/api/microsoft-teams/admin-consent/callback`을 추가합니다. **Application (client) ID**와 **Directory (tenant) ID**를 적어 두세요. 둘 다 나중에 필요합니다.
 
 > [!NOTE]
-> **단일 테넌트인 이유:** 자체 호스팅 OneUptime 배포는 하나의 조직을 위해 동작하며, 그 봇은 `MICROSOFT_TEAMS_APP_TENANT_ID`(6단계)에 설정한 단일 테넌트용으로 등록됩니다. 앱을 다중 테넌트로 등록해도 범위가 넓어지지 않고, 실패할 경로만 하나 늘어납니다. 홈 Microsoft 테넌트가 여러분의 테넌트와 다른 게스트 / B2B 사용자는 자신의 테넌트 ID로 봇에 접근하며, OneUptime은 이를 여러분의 프로젝트와 연결할 수 없습니다. 이미 다중 테넌트 앱을 등록했다면 그대로 계속 동작합니다. `MICROSOFT_TEAMS_APP_TENANT_ID`가 여러분의 테넌트인지만 확인하고, 게스트 계정이 봇을 사용하려면 여러분의 테넌트에 계정이 있어야 한다는 점을 염두에 두세요.
+> **단일 테넌트인 이유:** 자체 호스팅 OneUptime은 하나의 조직을 위해 동작하며, 모든 사람을 그 조직의 테넌트에 로그인시킵니다. 동의를 부여하는 관리자도, **Connect my account with Microsoft Teams**를 선택하는 각 사용자도 마찬가지입니다. 조직의 게스트는 Teams가 그들에게 사용하는 게스트 계정으로 로그인합니다. 다중 테넌트 앱도 같은 방식으로 동작하지만, 단일 테넌트는 앱을 여러분의 조직으로 한정합니다.
 
 ### 2단계: 앱 권한 구성
 
@@ -193,7 +193,7 @@ Microsoft Teams에서 **Apps > Manage your apps**를 열고 **Upload an app**, �
 | --- | --- | --- |
 | `MICROSOFT_TEAMS_APP_CLIENT_ID` | `microsoftTeamsApp.clientId` | **Application (client) ID**. Teams 앱 패키지의 봇 ID이기도 하므로 GUID여야 합니다. |
 | `MICROSOFT_TEAMS_APP_CLIENT_SECRET` | `microsoftTeamsApp.clientSecret` | 클라이언트 비밀의 ID가 아니라 **Value**. |
-| `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | **Directory (tenant) ID**. 봇은 이 테넌트에서 단일 테넌트 앱으로 인증합니다. |
+| `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | **Directory (tenant) ID**. 봇은 이 테넌트에서 단일 테넌트 앱으로 인증하며, 사람들은 Microsoft Teams 계정을 연결할 때 이 테넌트에 로그인합니다. |
 | `HOST` | `host` | 공개 호스트 이름. 리디렉션 URI, 메시징 엔드포인트, Teams 앱 패키지가 이 값으로 만들어집니다. |
 | `HTTP_PROTOCOL` | `httpProtocol` | `https`. Azure Bot Service는 HTTPS 엔드포인트만 호출합니다. |
 
@@ -320,7 +320,7 @@ Teams에서 이름이 없는 그룹 채팅은 설계상 구성원 이름으로 �
 curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test | jq
 ```
 
-이 명령은 OneUptime이 로컬에서 볼 수 있는 것을 알려 줍니다. `MICROSOFT_TEAMS_APP_CLIENT_ID`와 `MICROSOFT_TEAMS_APP_CLIENT_SECRET`가 설정되어 있는지, 이 배포가 기대하는 메시징 엔드포인트, 그리고 가장 유용한 것으로 Teams 앱 패키지에 들어 있어야 하는 **봇 ID**입니다.
+이 명령은 OneUptime이 로컬에서 볼 수 있는 것을 알려 줍니다. `MICROSOFT_TEAMS_APP_CLIENT_ID`, `MICROSOFT_TEAMS_APP_CLIENT_SECRET`, `MICROSOFT_TEAMS_APP_TENANT_ID`가 설정되어 있는지, 계정을 연결할 때 사람들이 로그인하는 테넌트, 이 배포가 기대하는 메시징 엔드포인트, 그리고 가장 유용한 것으로 Teams 앱 패키지에 들어 있어야 하는 **봇 ID**입니다.
 
 이 명령은 환경 변수만 읽습니다. Azure를 호출하지 않으므로 Azure Bot 리소스가 존재하는지, 그 메시징 엔드포인트가 이곳을 가리키는지, Teams 채널이 켜져 있는지, 비밀이 아직 유효한지, Azure가 여러분에게 도달할 수 있는지는 알 수 없습니다. 응답이 스스로 확인한 것과 확인하지 않은 것을 나열해 이 점을 알려 주므로, 청신호로 오해할 일이 없습니다.
 
@@ -389,7 +389,15 @@ Microsoft가 여러분을 돌려보냈는데 연결이 이루어지지 않았다
 | **"Microsoft Teams에서 연결 버튼을 누른 사람과 다른 사람으로 Microsoft에 로그인하여 아무것도 연결되지 않았습니다."** | **Connect Microsoft Teams account** 버튼은 그것을 누른 Microsoft 계정에 대해서만 작동합니다. 본인으로 Microsoft 에 로그인하거나, 버튼을 누른 사람에게 누르도록 요청하세요. |
 | **"연결이 취소되어 아무것도 변경되지 않았습니다."** | Microsoft에서 동의가 부여되지 않았습니다. 처음부터 다시 시작해 동의를 수락하세요. |
 | **"이 OneUptime 서버에는 Microsoft Teams가 설정되어 있지 않습니다."** | Microsoft Teams 앱의 클라이언트 ID와 비밀을 설정하고([6단계](#6단계-oneuptime-환경-변수-구성) 참고) OneUptime을 다시 시작하세요. |
-| **"OneUptime이 연결을 완료하지 못했습니다. 다시 시도하세요."** | Microsoft가 오류로 응답했거나, 마무리 중에 요청이나 쓰기가 실패했습니다. 어느 쪽인지는 OneUptime 서버 로그에 나옵니다. 다시 시도하고, 계속 발생하면 로그와 앱 등록 설정을 확인하세요. |
+| **"OneUptime이 연결을 완료하지 못했습니다. 다시 시도하세요."** | Microsoft가 오류로 응답했거나, 마무리 중에 요청이나 쓰기가 실패했습니다. 어느 쪽인지는 OneUptime 서버 로그에 나옵니다. 다시 시도하고, 계속 발생하면 로그와 앱 등록 설정을 확인하세요. Microsoft가 `AADSTS50194`로 응답했다면 [AADSTS50194로 로그인에 실패함](#aadsts50194로-로그인에-실패함)을 참고하세요. |
+
+### AADSTS50194로 로그인에 실패함
+
+Microsoft는 `AADSTS50194`로 로그인을 거부합니다. 앱이 하나의 조직용으로 등록되어 있는데 로그인이 모든 조직용 Microsoft 엔드포인트인 `/common`으로 갈 때입니다. 그러면 Microsoft Teams 페이지에 OneUptime이 연결을 완료하지 못했다고 표시되고, OneUptime 서버 로그에 Microsoft의 응답이 남습니다.
+
+- **OneUptime을 업그레이드하세요.** 이전 버전은 **Connect my account with Microsoft Teams**를 `/common`으로 보냈기 때문에, 1단계처럼 단일 테넌트 앱을 쓰면 아무도 계정을 연결할 수 없었습니다. 현재 버전은 사람들을 여러분의 테넌트에 로그인시킵니다.
+- **업그레이드할 수 있을 때까지는,** 앱 등록을 다중 테넌트로 바꾸세요. **Authentication**에서 **Supported account types**를 모든 조직 디렉터리의 계정으로 설정합니다. 앱을 여러분의 사람들로 한정하려면 **Enterprise applications**에서 앱을 열고, **Properties**에서 **Assignment required?** 를 Yes로 설정한 다음, OneUptime을 사용하는 사람들을 **Users and groups**에 추가하세요. 업그레이드한 뒤에는 다시 단일 테넌트로 바꾸세요.
+- **현재 버전에서는** `MICROSOFT_TEAMS_APP_TENANT_ID`가 앱의 **Directory (tenant) ID**로 설정되어 있는지 확인하세요. 아직 연결되지 않은 프로젝트는 사람들을 그 테넌트에 로그인시킵니다.
 
 이 통합을 더 좋게 만들고 싶습니다. 의견은 [hello@oneuptime.com](mailto:hello@oneuptime.com)으로 보내 주세요.
 

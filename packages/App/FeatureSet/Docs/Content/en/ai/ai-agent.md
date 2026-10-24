@@ -149,7 +149,7 @@ When no service maps to the repository, the task runs without production telemet
 
 ## Production review of pull requests
 
-OneUptime holds what your code does in production, so it can review a pull request with what no one reading the diff can see. Turn on **Review Pull Requests Against Production** on a repository's **Settings** page in Code, and each pull request someone with write access opens or pushes to gets one comment saying what production shows of the code it changes. The comment is edited in place on every push, and the repository's **Production Reviews** page in Code keeps each review, with **Review again**.
+OneUptime holds what your code does in production, so it can review a pull request with what no one reading the diff can see. Turn on **Review Pull Requests Against Production**, under **More settings** on a repository's **Settings** page in Code, and each pull request someone with write access opens or pushes to gets one comment saying what production shows of the code it changes. The comment is edited in place on every push, and the repository's **Production Reviews** page in Code keeps each review, with **Review again**.
 
 | It reads | Of the code the pull request changes |
 | --- | --- |
@@ -230,7 +230,7 @@ You do not map repositories to services. When a task starts, OneUptime finds the
 
 ### Pick the repository's Runner
 
-Each repository picks the Runner AI works in it on: on its **Settings** page in Code, click **Edit** on the **Runner** card and pick one. A repository the GitHub App imports starts on the project's [default Runner](/docs/runbooks/agents#the-projects-default-runner), when it has one. A repository that picks none works on **Global Runner**, which OneUptime runs for every project.
+Each repository picks the Runner AI works in it on: on its **Settings** page in Code, open **More settings**, click **Edit** on the **Runner** card and pick one. A repository the GitHub App imports starts on the project's [default Runner](/docs/runbooks/agents#the-projects-default-runner), when it has one. A repository that picks none works on **Global Runner**, which OneUptime runs for every project.
 
 | Runner | What it does with a task |
 | --- | --- |
@@ -258,7 +258,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### Pick it for the repository
 
-On the repository's **Settings** page in Code, click **Edit** on the **Runner** card and pick the Runner. The Runner picks the change up with its next heartbeat, within about a minute; there is nothing to restart.
+On the repository's **Settings** page in Code, open **More settings**, click **Edit** on the **Runner** card and pick the Runner. The Runner picks the change up with its next heartbeat, within about a minute; there is nothing to restart.
 
 ### Check that it connects
 
@@ -278,7 +278,7 @@ Any way of running the container works (Docker Compose, Kubernetes and so on), a
 
 ## Automatic code fixes from investigations
 
-When an [AI investigation](/docs/ai/ai-sre) posts a root cause analysis on an incident or an alert, and its careful classification recommends a change to the code, the investigation card offers **Open Fix PR from this analysis**: a fix task whose whole context is the posted analysis. The button is hidden when the remedy is operational, infrastructure-only, external, an expected denial, a user error, or inconclusive. Eligible fixes happen without the click while **Fix new incidents automatically** is on, on **Incidents → AI → Settings** (and **Fix new alerts automatically** on **Alerts → AI → Settings**). Fixing starts off, for new projects too. With no auto remediation rule every eligible fix opens; with rules, only one for what a rule matches, when the rule has **Fix pull requests** on (a new rule does), in the code repositories it names.
+When an [AI investigation](/docs/ai/ai-sre) posts a root cause analysis on an incident or an alert, and its careful classification recommends a change to the code, the investigation card offers **Open Fix PR from this analysis**: a fix task whose whole context is the posted analysis. The button is hidden when the remedy is operational, infrastructure-only, external, an expected denial, a user error, or inconclusive. Eligible fixes happen without the click while **Fix new incidents automatically** is on, on **Incidents → AI → Settings** (and **Fix new alerts automatically** on **Alerts → AI → Settings**). Fixing starts off, for new projects too. With no AI rule every eligible fix opens; with rules, only one for what a rule matches, when the rule has **Fix pull requests** on (a new rule does), in the code repositories it names.
 
 While fixing is on, an investigation that ends with a confident, evidenced root cause that a code change can fix queues the same fix task the button creates. The decision is a constrained classification the server checks, never a pattern matched against the analysis's text: only a positive code-fix verdict opens a pull request. Missing evidence, a remedy outside the code and a failed classification all end in doing nothing.
 

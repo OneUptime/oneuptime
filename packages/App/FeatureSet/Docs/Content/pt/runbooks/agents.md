@@ -97,7 +97,7 @@ Vá para **Runbooks → Agentes de runbook** e crie um novo agente. Clique em **
 | **Executa runbooks** | Em **Mais campos** | Ligado por padrão. Permite que este Runner assuma etapas de runbook. |
 | **Rótulos** | Em **Mais campos** | Opcional. |
 
-Um Runner aplica uma mudança nas suas capacidades no próximo heartbeat; não é preciso reiniciá-lo. A IA não é uma capacidade. Um repositório de código escolhe, nas configurações dele em Código, o Runner em que a IA trabalha nele, e a página do Runner lista os repositórios que o escolhem. Uma regra de remediação automática escolhe o Runner em que a OneUptime AI executa os seus comandos: escolher um Runner ali é o que permite que os comandos da OneUptime AI sejam executados nele.
+Um Runner aplica uma mudança nas suas capacidades no próximo heartbeat; não é preciso reiniciá-lo. A IA não é uma capacidade. Um repositório de código escolhe, nas configurações dele em Código, o Runner em que a IA trabalha nele, e a página do Runner lista os repositórios que o escolhem. Uma regra de IA escolhe o Runner em que a OneUptime AI executa os seus comandos: escolher um Runner ali é o que permite que os comandos da OneUptime AI sejam executados nele.
 
 ### 2. Copiar o comando de instalação
 
@@ -171,7 +171,7 @@ Uma etapa que escolheu um Runner o mantém, seja qual for o padrão, e uma etapa
 
 O padrão é um dos Runners próprios do projeto que roda etapas de runbook: não um Runner global, não o Runner dentro do cluster que o agente do Kubernetes instalou, e não um com **Executa runbooks** desligado. Enquanto um Runner é o padrão, o **Executa runbooks** dele continua ligado. Quando o padrão não está conectado, a lista suspensa de uma etapa avisa, e uma etapa nele espera por ele, como por qualquer Runner, até o claim timeout dela acabar.
 
-Só as etapas de runbook usam o padrão. Um repositório de código escolhe o Runner dele nas configurações dele em Código, e uma regra de remediação automática escolhe o seu.
+Só as etapas de runbook usam o padrão. Um repositório de código escolhe o Runner dele nas configurações dele em Código, e uma regra de IA escolhe o seu.
 
 ## Notas de operação
 

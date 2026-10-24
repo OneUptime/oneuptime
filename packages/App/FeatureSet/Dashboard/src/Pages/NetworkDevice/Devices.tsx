@@ -86,6 +86,7 @@ import React, {
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { ARCHIVE_INSTEAD_OF_DELETE } from "../../Components/Archive/ResourceArchiveCopy";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import useBulkOidTemplateActions from "../../Components/NetworkDevice/useBulkOidTemplateActions";
 import useBulkCreatePingMonitors from "../../Components/NetworkDevice/useBulkCreatePingMonitors";
@@ -672,6 +673,14 @@ const NetworkDevices: FunctionComponent<
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<NetworkDevice>({ modelType: NetworkDevice });
 
+  // Owners in Bulk Actions too: the list shows and filters devices by them.
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<NetworkDevice>({
+      ownerUserModelType: NetworkDeviceOwnerUser,
+      ownerTeamModelType: NetworkDeviceOwnerTeam,
+      resourceIdField: "networkDeviceId",
+    });
+
   const { archiveBulkActions } = useBulkArchiveActions<NetworkDevice>({
     modelType: NetworkDevice,
   });
@@ -1047,6 +1056,7 @@ const NetworkDevices: FunctionComponent<
             ...siteBulkActions,
             ...deviceRoleBulkActions,
             ...labelBulkActions,
+            ...ownerBulkActions,
             ...vendorTemplateBulkActions,
             ...oidTemplateBulkActions,
             ...snmpCredentialProfileBulkActions,
@@ -2032,6 +2042,15 @@ const NetworkDevices: FunctionComponent<
           oidTemplateId: true,
           sysObjectId: true,
           sysDescr: true,
+          /*
+           * What discovery read about a device its own poll has not, and
+           * when its poll last did (issue #5185): a switch OneUptime only
+           * pings shows the maker and model the scan of its address read.
+           * Only the Vendor / Model cell reads these, through the asset
+           * facts; the template actions keep to the device's own identity.
+           */
+          discoveredDetails: true,
+          lastSnmpSeenAt: true,
         }}
         onViewPage={(item: NetworkDevice): Promise<Route> => {
           return Promise.resolve(
@@ -2049,6 +2068,7 @@ const NetworkDevices: FunctionComponent<
       {siteBulkActionModals}
       {deviceRoleBulkActionModals}
       {labelBulkActionModals}
+      {ownerBulkActionModals}
       {vendorTemplateBulkActionModals}
       {oidTemplateBulkActionModals}
       {snmpCredentialProfileBulkActionModals}

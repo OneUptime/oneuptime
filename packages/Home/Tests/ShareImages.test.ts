@@ -313,17 +313,27 @@ describe("every page's share image", () => {
     }
   });
 
-  test("the on-call and workflows pages share the screenshot their hero shows", () => {
-    for (const [pagePath, template] of [
-      ["/product/on-call", "on-call.ejs"],
-      ["/product/workflows", "workflows.ejs"],
-    ] as Array<[string, string]>) {
-      const image: string = PageSEOConfig[pagePath]!.ogImage!;
+  test("the workflows page shares the screenshot its hero shows", () => {
+    const image: string = PageSEOConfig["/product/workflows"]!.ogImage!;
 
-      expect(
-        fs.readFileSync(path.join(VIEWS_ROOT, template), "utf8"),
-      ).toContain(`src="${image}"`);
-    }
+    expect(
+      fs.readFileSync(path.join(VIEWS_ROOT, "workflows.ejs"), "utf8"),
+    ).toContain(`src="${image}"`);
+  });
+
+  test("the on-call page shares the screenshot of its policies, which its hero now draws", () => {
+    /*
+     * The hero draws an escalation policy in HTML
+     * (Partials/home-mocks/mock-oncall.ejs), which a link preview cannot
+     * show, so the page keeps sharing the real screenshot of its policies.
+     */
+    const image: string = PageSEOConfig["/product/on-call"]!.ogImage!;
+
+    expect(image).toBe("/img/on-call-policies.png");
+    expect(fs.existsSync(path.join(STATIC_ROOT, image))).toBe(true);
+    expect(
+      fs.readFileSync(path.join(VIEWS_ROOT, "on-call.ejs"), "utf8"),
+    ).toContain("include('./Partials/home-mocks/mock-oncall')");
   });
 
   test("the large-card pages share an image at least as wide as a large card", async () => {

@@ -11,13 +11,13 @@ import { cleanup, render } from "@testing-library/react";
 import * as React from "react";
 
 /*
- * Runbook rules, auto-remediation rules and investigation rules are one
- * table each, shown on the incident, alert (and, for runbooks, scheduled
- * maintenance) settings. Their
- * criteria names are built from the kind of record the table matches, so the
- * same condition reads "Incident Title" on an incident rule and "Alert Title"
- * on an alert rule - the words the other rules of each product use - and never
- * the bare "Title Pattern" they had.
+ * Runbook rules and AI rules (investigation rules and auto remediation rules
+ * made one) are one table each, shown on the incident, alert (and, for
+ * runbooks, scheduled maintenance) settings. Their criteria names are built
+ * from the kind of record the table matches, so the same condition reads
+ * "Incident Title" on an incident rule and "Alert Title" on an alert rule -
+ * the words the other rules of each product use - and never the bare "Title
+ * Pattern" they had.
  */
 const mockCapturedTableProps: Array<Record<string, unknown>> = [];
 
@@ -31,8 +31,7 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   };
 });
 
-import AutoRemediationRulesTable from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/AutoRemediationRulesTable";
-import AIInvestigationRulesTable from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AIInvestigationRulesTable";
+import AiRulesTable from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AiRulesTable";
 import { AiLane } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import RunbookRulesTable, {
   getRunbookRuleCriteriaSubject,
@@ -113,33 +112,14 @@ describe("runbook rule criteria", () => {
   );
 });
 
-describe("auto-remediation and investigation rule criteria", () => {
+describe("AI rule criteria", () => {
   test.each([
     [AiLane.Incident, "Incident"],
     [AiLane.Alert, "Alert"],
   ])(
-    "%s auto-remediation rules name their criteria like the other rules of the kind",
+    "%s AI rules name their criteria like the other rules of the kind",
     (lane: AiLane, subject: string) => {
-      render(<AutoRemediationRulesTable lane={lane} />);
-
-      expect(criteriaTitles()).toEqual([
-        "Monitors",
-        `${subject} Severities`,
-        `${subject} Labels`,
-        "Monitor Labels",
-        `${subject} Title`,
-        `${subject} Description`,
-      ]);
-    },
-  );
-
-  test.each([
-    [AiLane.Incident, "Incident"],
-    [AiLane.Alert, "Alert"],
-  ])(
-    "%s investigation rules offer exactly the auto-remediation rules' conditions",
-    (lane: AiLane, subject: string) => {
-      render(<AIInvestigationRulesTable lane={lane} />);
+      render(<AiRulesTable lane={lane} />);
 
       expect(criteriaTitles()).toEqual([
         "Monitors",

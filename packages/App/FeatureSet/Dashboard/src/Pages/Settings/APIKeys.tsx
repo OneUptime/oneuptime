@@ -5,22 +5,39 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
   ROLE_ACCESS_FIELD_KEY,
   RoleAccessHolder,
+  getCustomRoleAccessValue,
+  getRoleAccessCustomRoleId,
   getRoleAccessOptionsForCurrentUser,
   getRoleAccessRole,
+  giveApiKeyCustomRoleAccess,
   giveRoleAccess,
 } from "../../Components/Permission/RoleAccess";
 import RoleAccessNotice from "../../Components/Permission/RoleAccessNotice";
 import { getApiKeyCreateFormFields } from "../../Components/ApiKey/ApiKeyCreateForm";
+import { getApiKeyRolePermissionCountText } from "../../Components/CustomRole/CustomRoleCopy";
+import {
+  CustomRoleSummary,
+  getApiKeyRoleGrants,
+  getCustomRoleCardSelectOption,
+  loadCustomRoleGrants,
+  loadCustomRoles,
+} from "../../Components/CustomRole/CustomRoleOptions";
 import Route from "Common/Types/API/Route";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
+import { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
+import GrantablePermission, {
+  TeamPermissionGrant,
+} from "Common/UI/Utils/GrantablePermission";
 import Navigation from "Common/UI/Utils/Navigation";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import ApiKey from "Common/Models/DatabaseModels/ApiKey";
 import PlanLeftoverPage from "../../Components/Billing/PlanLeftoverPage";
 import PlanLeftoverTable from "../../Components/Billing/PlanLeftoverTable";
@@ -31,6 +48,7 @@ import React, {
   FunctionComponent,
   MutableRefObject,
   ReactElement,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -46,11 +64,95 @@ interface AccessNotice {
   error: string;
 }
 
+/*
+ * What a new key starts with, picked under Access: a built-in role, one of
+ * the project's custom roles, or nothing (Choose permissions later).
+ */
+interface PendingAccess {
+  role: Permission | null;
+  customRoleId: string | null;
+}
+
+const NO_ACCESS: PendingAccess = { role: null, customRoleId: null };
+
 const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  /*
+   * The project's custom roles this user could give a key - every
+   * permission of each that a key would hold being one they may hand on,
+   * and at least one that a key holds (not every one limited to what
+   * someone owns) - as Access cards. Read once, after the page opens: null
+   * until then, and none for someone who may not read them.
+   */
+  const [customRoleOptions, setCustomRoleOptions] =
+    useState<Array<CardSelectOption> | null>(null);
+
+  useEffect(() => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+    if (!projectId) {
+      setCustomRoleOptions([]);
+      return;
+    }
+
+    Promise.all([
+      loadCustomRoles({ projectId: projectId }),
+      loadCustomRoleGrants({ projectId: projectId }),
+    ])
+      .then(
+        ([roles, grants]: [
+          Array<CustomRoleSummary>,
+          Map<string, Array<TeamPermissionGrant>>,
+        ]) => {
+          setCustomRoleOptions(
+            roles
+              .filter((role: CustomRoleSummary): boolean => {
+                const roleGrants: Array<TeamPermissionGrant> =
+                  grants.get(role.id) || [];
+
+                /*
+                 * A role that gives a key nothing yet - no permission, or
+                 * only ones limited to what someone owns - gives a new key
+                 * nothing, as Choose permissions later does.
+                 */
+                return (
+                  getApiKeyRoleGrants(roleGrants).length > 0 &&
+                  GrantablePermission.canCurrentUserGrantApiKeyRole(roleGrants)
+                );
+              })
+              .map((role: CustomRoleSummary): CardSelectOption => {
+                const roleGrants: Array<TeamPermissionGrant> =
+                  grants.get(role.id) || [];
+
+                return getCustomRoleCardSelectOption(translator, role, {
+                  value: getCustomRoleAccessValue(role.id),
+                  saysItIsCustom: true,
+                  permissionsText: getApiKeyRolePermissionCountText(
+                    translator,
+                    {
+                      permissionCount: role.permissionCount,
+                      ownedCount:
+                        roleGrants.length -
+                        getApiKeyRoleGrants(roleGrants).length,
+                    },
+                  ),
+                });
+              }),
+          );
+        },
+      )
+      .catch(() => {
+        // Roles the user may not read are roles Create API Key can't offer.
+        setCustomRoleOptions([]);
+      });
+  }, []);
+
   /*
    * Name, Access and, folded under Advanced, the description and the expiry
-   * date - a year from today (Components/ApiKey/ApiKeyCreateForm). Built
-   * once: the Access cards are the roles this user may hand on.
+   * date - a year from today (Components/ApiKey/ApiKeyCreateForm). The
+   * Access cards are the roles this user may hand on, then the custom
+   * roles they could give.
    */
   const createFormFields: Array<ModelField<ApiKey>> = useMemo((): Array<
     ModelField<ApiKey>
@@ -58,17 +160,18 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
     return getApiKeyCreateFormFields({
       accessOptions: getRoleAccessOptionsForCurrentUser(
         RoleAccessHolder.ApiKey,
+        customRoleOptions,
       ),
     });
-  }, []);
+  }, [customRoleOptions]);
 
   /*
    * The role picked under Access for the key being created. Read when the
    * form is submitted and used once the key exists; cleared as it is used,
    * so a later key never inherits it.
    */
-  const pendingAccessRole: MutableRefObject<Permission | null> =
-    useRef<Permission | null>(null);
+  const pendingAccess: MutableRefObject<PendingAccess> =
+    useRef<PendingAccess>(NO_ACCESS);
 
   const [accessNotice, setAccessNotice] = useState<AccessNotice | null>(null);
 
@@ -126,9 +229,12 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
           _miscDataProps: JSONObject,
           formValues: JSONObject,
         ): Promise<ApiKey> => {
-          pendingAccessRole.current = getRoleAccessRole(
-            formValues[ROLE_ACCESS_FIELD_KEY],
-          );
+          pendingAccess.current = {
+            role: getRoleAccessRole(formValues[ROLE_ACCESS_FIELD_KEY]),
+            customRoleId: getRoleAccessCustomRoleId(
+              formValues[ROLE_ACCESS_FIELD_KEY],
+            ),
+          };
 
           return item;
         }}
@@ -136,8 +242,9 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
           createdApiKey: ApiKey,
           modalType?: ModalType,
         ): Promise<ApiKey> => {
-          const role: Permission | null = pendingAccessRole.current;
-          pendingAccessRole.current = null;
+          const access: PendingAccess = pendingAccess.current;
+          pendingAccess.current = NO_ACCESS;
+          const role: Permission | null = access.role;
 
           if (modalType !== ModalType.Create || !createdApiKey.id) {
             return createdApiKey;
@@ -145,14 +252,22 @@ const APIKeys: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
           const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
-          if (role && projectId) {
+          if ((role || access.customRoleId) && projectId) {
             try {
-              await giveRoleAccess({
-                holder: RoleAccessHolder.ApiKey,
-                holderId: createdApiKey.id,
-                projectId: projectId,
-                role: role,
-              });
+              if (access.customRoleId) {
+                await giveApiKeyCustomRoleAccess({
+                  apiKeyId: createdApiKey.id,
+                  projectId: projectId,
+                  customRoleId: new ObjectID(access.customRoleId),
+                });
+              } else if (role) {
+                await giveRoleAccess({
+                  holder: RoleAccessHolder.ApiKey,
+                  holderId: createdApiKey.id,
+                  projectId: projectId,
+                  role: role,
+                });
+              }
             } catch (err) {
               /*
                * The key exists and stays: say so, say why it has no access,

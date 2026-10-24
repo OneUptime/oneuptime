@@ -19,7 +19,7 @@ flowchart TB
 - **Reglas de monitores** en una página de estado. Ya resincronizan la página cada vez que se guarda una regla; ejecutar una la resincroniza al momento.
 - **Reglas de monitores** en un SLO. Ya resincronizan el SLO cada vez que se guarda una regla; ejecutar una resincroniza al momento los monitores del SLO. Consulta [Monitores y reglas de monitores](/docs/slo/monitor-rules).
 
-Las reglas que realizan una acción en lugar de describir un recurso (**Reglas de guardia**, **Reglas de runbook**, **Reglas de remediación automática** y **Reglas de agrupación**) no se pueden ejecutar sobre registros existentes. Ejecutarlas avisaría a personas, ejecutaría runbooks, iniciaría correcciones o reorganizaría episodios de incidentes que ya terminaron.
+Las reglas que realizan una acción en lugar de describir un recurso (**Reglas de guardia**, **Reglas de runbook**, **Reglas de IA** y **Reglas de agrupación**) no se pueden ejecutar sobre registros existentes. Ejecutarlas avisaría a personas, ejecutaría runbooks, iniciaría correcciones o reorganizaría episodios de incidentes que ya terminaron.
 
 ## Antes de empezar
 

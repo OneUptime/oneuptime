@@ -241,13 +241,13 @@ describe("the automatic-fix switches", () => {
   });
 
   it.each(FIX_SWITCHES)(
-    "%s says its pull requests are the auto remediation rules', on by default and with no rule",
+    "%s says its pull requests are the AI rules', on by default and with no rule",
     (column: string) => {
       const description: string | undefined =
         new Project().getTableColumnMetadata(column).description;
 
       expect(description).toContain(
-        "Fix and telemetry pull requests open only while this is on, as each Auto Remediation Rule says (openCodeFixPullRequests, openTelemetryPullRequests - on by default, and on with no rule).",
+        "Fix and telemetry pull requests open only while this is on, as each AI Rule says (openCodeFixPullRequests, openTelemetryPullRequests - on by default, and on with no rule).",
       );
 
       for (const retired of RETIRED_PULL_REQUEST_SWITCHES) {

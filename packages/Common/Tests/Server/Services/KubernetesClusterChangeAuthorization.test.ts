@@ -344,7 +344,7 @@ describe("KubernetesClusterAiAccessService.assertCallerMayChangeCluster", () => 
         ],
       ],
       [
-        "an AI admin who may read clusters (Edit Auto Remediation Rule)",
+        "an AI admin who may read clusters (Edit AI Rule)",
         [
           { permission: Permission.EditAutoRemediationRule },
           { permission: Permission.ReadKubernetesCluster },

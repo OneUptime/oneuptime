@@ -382,6 +382,20 @@ Verzamelde waarden worden in grafieken getoond op de pagina **Metrieken** van he
 
 Lange OID-lijsten worden over meerdere SNMP GET-verzoeken verdeeld, zodat elk in één UDP-datagram past. Als je je OID-lijsten kort hield omdat een oudere versie een apparaat dat `tooBig` antwoordde als offline meldde, hoeft dat niet meer.
 
+### OID's vinden met een SNMP-walk
+
+De pagina **SNMP-walk** van een apparaat, onder **Meer** in zijn menu, toont elke OID waarop het apparaat antwoordt, met type, waarde en, waar OneUptime de MIB kent, naam. Het is de `snmpwalk` die je anders vanuit het netwerk van de sonde zou uitvoeren, uitgevoerd door de eigen sonde van het apparaat met de inloggegevens die OneUptime ervoor bewaart, die nooit je browser bereiken.
+
+Typ een numerieke OID bij **Start-OID** of kies er een uit **Veelgebruikte startpunten**: **Alles**, **Systeem**, **Interfaces**, **Hostbronnen** of **Leverancierspecifiek**. Klik daarna op **Walk starten**. De sonde pakt de walk binnen tien seconden op en stuurt één verzoek tegelijk, hoogstens 1.000 OID's in hoogstens 45 seconden, zodat een walk het apparaat nooit overspoelt. Is er meer te lezen, dan leest **Walk voortzetten** de volgende 1.000 vanaf waar hij stopte. Op een apparaat loopt steeds één walk tegelijk, en zijn walks worden twee dagen bewaard.
+
+Elke rij zegt waar zijn OID bekend is: een waarde die een gezondheidssjabloon van een leverancier verzamelt, een kolom van de SNMP-tabel van een leverancierssjabloon, een teller die de interface-walk al voor elke poort in een grafiek toont, of een OID onder de MIB van zijn leverancier. Vanuit een rij:
+
+- **Verzamelen** voegt de OID toe aan de **Device-Specific Health OIDs** van het apparaat: elke poll verzamelt hem vanaf de volgende, en de pagina **Metrieken** van het apparaat toont hem in een grafiek. Op een apparaat dat aan een OID Collection Template is gekoppeld, kan het menu van de rij hem in plaats daarvan aan het sjabloon toevoegen, voor elk apparaat dat het gebruikt.
+- **Waarschuwing instellen** verschijnt zodra de OID wordt verzameld en opent een nieuwe netwerkapparaat-monitor voor het apparaat met één criterium **SNMP OID Value** op de OID, uitgaand van de gelezen waarde: een teller of meter waarschuwt erboven, een uptime eronder (het apparaat is herstart), al het andere wanneer het verandert.
+- **OID kopiëren**, in het menu van de rij, kopieert de OID.
+
+Een mislukte walk zegt waarom, en wat je moet controleren: een apparaat dat niet antwoordt (SNMP uit, UDP 161 geblokkeerd of, bij v1 en v2c, een verkeerde communitystring, die een agent zonder melding negeert), een SNMPv3-gebruiker, -wachtwoord of -protocol dat het apparaat weigerde, of een deel van de boom dat de SNMP-view van de inloggegevens weglaat. Een walk die halverwege stopt, houdt wat hij las. Een walk vraagt de machtiging **Create Network Device Diagnostic** en een sonde die recent genoeg is voor SNMP-walks: bij een oudere vraagt de pagina je die bij te werken.
+
 ### SNMP-tabellen
 
 Een deel van wat een apparaat weet, is een lijst: één rij per IPsec-tunnel, wifi-radio, SSID, fabric-buur, ventilator of voeding. Een SNMP-tabel wordt gedefinieerd door haar kolommen, en elke rij wordt bij elke poll gewalkt, dus een tunnel die wordt toegevoegd, hernoemd of verwijderd, wordt gevolgd zonder dat iemand iets bewerkt.
@@ -492,7 +506,13 @@ Een onderzoek door OneUptime AI van een incident of waarschuwing van een netwerk
 
 Na de eerste geslaagde walk leest OneUptime de SNMPv2-systeemgroep en, waar het apparaat dat ondersteunt, ENTITY-MIB, en vult het apparaatrecord in: systeemnaam, beschrijving, locatie, contact, uptime, leverancier, model, serienummer en firmwareversie. De enterprise-OID van de leverancier (`sysObjectID`) is de vingerafdruk van het apparaat: ze noemt de leverancier en kiest het bijbehorende leverancierssjabloon. Dezelfde gegevens verschijnen in de [inventaris](/docs/inventory/cmdb-sync#assetattributen-van-netwerkapparaten) naast al je andere assets.
 
-Een apparaat met alleen ping houdt de naam en het adres die jij, of een discovery-scan, het gaf: er is geen SNMP-agent om om iets beters te vragen.
+Een apparaat met alleen ping houdt de naam en het adres die jij, of een discovery-scan, het gaf. Wat zijn eigen poll niet heeft gelezen, haalt het uit discovery:
+
+- De systeemnaam, beschrijving, `sysObjectID`, locatie en contactpersoon die de laatste [discovery-scan](#apparaten-ontdekken-met-een-netwerkscan) van zijn adres via SNMP las, en de reverse-DNS- en NetBIOS-namen die die vond.
+- Zijn MAC-adres, uit de ARP-tabel van een doorlopen router in zijn site.
+- Voor een apparaat dat op een DNS-naam wordt gepold, het adres waarnaar zijn probe die naam heeft omgezet.
+
+Deze worden naast de eigen velden van het apparaat bewaard, nooit erin geschreven, en elke scan, router-walk of poll die er een opnieuw leest, werkt die bij. Het overzicht van het apparaat en zijn item in de inventaris tonen welke scan, router of probe elke waarde las, en wanneer. Een waarde die je op het apparaat hebt opgeslagen, wordt nooit vervangen. Als een scan een andere machine op het adres van het apparaat vindt, zoals een DHCP-lease die is verschoven, meldt het overzicht dat, en wordt niets gebruikt van wat die scan daar las.
 
 ## Apparaten ontdekken met een netwerkscan
 
@@ -1064,6 +1084,8 @@ snmpget -v3 -u username -l authPriv -a SHA -A authpassword -x AES -X privpasswor
 :::
 
 Een antwoord met de beschrijving van het apparaat betekent dat de sonde het met die inloggegevens kan walken.
+
+Zodra het apparaat is toegevoegd, voert zijn pagina **SNMP-walk** die test voor je uit vanaf de sonde, met de inloggegevens die OneUptime ervoor bewaart, en toont alles waarop het apparaat antwoordt: zie [OID's vinden met een SNMP-walk](#oids-vinden-met-een-snmp-walk).
 :::
 
 ## Volgende stappen

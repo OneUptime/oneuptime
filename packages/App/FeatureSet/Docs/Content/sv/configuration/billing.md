@@ -24,7 +24,7 @@ flowchart TB
 | Vad | Hur det prissätts |
 | --- | --- |
 | Planen | Ett pris per användare och månad, fakturerat månadsvis eller årsvis. Varje person i projektet är en plats. |
-| Telemetri | $0.10 per inmatad GB, med 15 dagars lagring. Längre lagring kostar mer: se [Vad lagring kostar](/docs/telemetry/data-retention#vad-lagring-kostar). |
+| Telemetri | $0.10 per inmatad GB, med 15 dagars lagring. Längre lagring kostar mer, och lagring kortare än 7 dagar faktureras som 7 dagar: se [Vad lagring kostar](/docs/telemetry/data-retention#vad-lagring-kostar). |
 | Sessionsuppspelningar | $2 per GB, med 15 dagars lagring. |
 | Aktiva monitorer | $1 per monitor och månad. Alla monitorer utom manuella är aktiva, även när de är avstängda. |
 | SMS, samtal, WhatsApp och Telegram | Betalas från projektets saldo när varje meddelande skickas. |

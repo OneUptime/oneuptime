@@ -11,6 +11,8 @@ import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
+import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
@@ -91,6 +93,21 @@ const CloudResources: FunctionComponent<
   const { archiveBulkActions } = useBulkArchiveActions<CloudResource>({
     modelType: CloudResource,
   });
+
+  /*
+   * Labels and owners in Bulk Actions, as on every other resource list:
+   * the list shows and filters an environment by them, and they were set
+   * one at a time.
+   */
+  const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
+    useBulkLabelActions<CloudResource>({ modelType: CloudResource });
+
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<CloudResource>({
+      ownerUserModelType: CloudResourceOwnerUser,
+      ownerTeamModelType: CloudResourceOwnerTeam,
+      resourceIdField: "cloudResourceId",
+    });
 
   /*
    * The Owner and Labels chips above the table: an environment can be found by the
@@ -229,7 +246,11 @@ const CloudResources: FunctionComponent<
         isCreateable={true}
         isViewable={true}
         bulkActions={{
-          buttons: [...archiveBulkActions],
+          buttons: [
+            ...labelBulkActions,
+            ...ownerBulkActions,
+            ...archiveBulkActions,
+          ],
         }}
         showRefreshButton={true}
         showViewIdButton={true}
@@ -515,6 +536,8 @@ const CloudResources: FunctionComponent<
           description={FIRST_RUN_GUIDE_DESCRIPTION}
         />
       )}
+      {labelBulkActionModals}
+      {ownerBulkActionModals}
     </Fragment>
   );
 };

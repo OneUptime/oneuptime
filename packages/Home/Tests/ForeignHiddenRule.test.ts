@@ -96,7 +96,12 @@ interface HomeTarget {
   find: (page: RenderedPage) => RenderedElement;
 }
 
-// The mobile menu carries its own copies; it is md:hidden and script-toggled.
+/*
+ * The mobile menu carries its own copies; it is lg:hidden and script-toggled.
+ * The nav switches at lg, not md: from 768px its links and Sign in / Sign up
+ * did not fit beside the logo, which shrank to nothing, so tablets use the
+ * menu button too.
+ */
 function inMobileMenu(element: RenderedElement): boolean {
   return hasAncestor(element, (ancestor: RenderedElement): boolean => {
     return attributeOf(ancestor, "id") === "mobile-menu";
@@ -122,7 +127,7 @@ function inPrimaryNav(element: RenderedElement): boolean {
 
 const PRIMARY_NAV: HomeTarget = {
   name: "the primary nav",
-  breakpoint: "md",
+  breakpoint: "lg",
   find: (page: RenderedPage): RenderedElement => {
     return only(page, isPrimaryNav);
   },
@@ -131,7 +136,7 @@ const PRIMARY_NAV: HomeTarget = {
 // The way to every product page.
 const PRODUCTS_BUTTON: HomeTarget = {
   name: "the Products button",
-  breakpoint: "md",
+  breakpoint: "lg",
   find: (page: RenderedPage): RenderedElement => {
     return only(page, (element: RenderedElement): boolean => {
       return (
@@ -144,7 +149,7 @@ const PRODUCTS_BUTTON: HomeTarget = {
 
 const PRICING_LINK: HomeTarget = {
   name: "the Pricing link",
-  breakpoint: "md",
+  breakpoint: "lg",
   find: (page: RenderedPage): RenderedElement => {
     return only(page, (element: RenderedElement): boolean => {
       return (
@@ -158,7 +163,7 @@ const PRICING_LINK: HomeTarget = {
 
 const SIGN_IN: HomeTarget = {
   name: "Sign in",
-  breakpoint: "md",
+  breakpoint: "lg",
   find: (page: RenderedPage): RenderedElement => {
     return only(page, (element: RenderedElement): boolean => {
       return (
@@ -172,7 +177,7 @@ const SIGN_IN: HomeTarget = {
 
 const SIGN_UP: HomeTarget = {
   name: "Sign up",
-  breakpoint: "md",
+  breakpoint: "lg",
   find: (page: RenderedPage): RenderedElement => {
     return only(page, (element: RenderedElement): boolean => {
       return attributeOf(element, "data-testid") === "Sign-up";
@@ -190,7 +195,7 @@ const DESKTOP_TARGETS: Array<HomeTarget> = [
 
 const MOBILE_MENU_BUTTON: HomeTarget = {
   name: "the mobile menu button",
-  breakpoint: "md",
+  breakpoint: "lg",
   find: (page: RenderedPage): RenderedElement => {
     return only(page, (element: RenderedElement): boolean => {
       return attributeOf(element, "onclick") === "openMobileMenu()";

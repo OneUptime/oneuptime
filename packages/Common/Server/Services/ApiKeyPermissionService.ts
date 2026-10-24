@@ -19,17 +19,26 @@ import Model from "../../Models/DatabaseModels/ApiKeyPermission";
 import Label from "../../Models/DatabaseModels/Label";
 import ObjectID from "../../Types/ObjectID";
 import Permission, { UserPermission } from "../../Types/Permission";
+import { getApiKeyRoleCopyChangeRefusedMessage } from "../../Types/Team/CustomRole";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import CacheGenerations from "../Infrastructure/CacheGenerations";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 
 /*
- * 60s is the worst-case staleness on any single API node after a key's
- * permissions are edited. We invalidate in-process immediately on
- * create/update/delete; this TTL is the upper bound for *other* processes
- * (same bound the ApiKeyService key cache accepted).
+ * How long a key's permission rows are kept in a process, at most. A change
+ * to them - to a key's own permissions, or to a custom role a key is given
+ * (CustomRoleSync) - starts a new generation of its project's cached rows:
+ * in this process at once, and in every other process within
+ * CacheGenerations.SHARED_READ_TTL_MS, through Redis. While Redis cannot be
+ * reached, this TTL is the upper bound for other processes.
  */
 const PERMISSIONS_TTL_MS: number = 60 * 1000;
+
+// The Redis namespace of the generations, and how long one is kept there.
+export const API_KEY_PERMISSIONS_GENERATION_NAMESPACE: string =
+  "api-key-permissions-generation";
+const GENERATION_TTL_SECONDS: number = 24 * 60 * 60;
 
 const API_KEY_REFERENCE_KEYS: Array<string> = ["apiKeyId", "apiKey"];
 const PROJECT_REFERENCE_KEYS: Array<string> = ["projectId", "project"];
@@ -48,22 +57,65 @@ export interface ApiKeyPermissionRow {
 
 export class Service extends ProjectReferencesService<Model> {
   /*
-   * Cache of `(projectId, apiKeyId) -> permission rows`. Project is part of
-   * the key and the database query deliberately: even a malformed legacy row
-   * that points at another project's API key must never become authority in
-   * the project currently being authenticated.
+   * Cache of `(projectId, apiKeyId, generation) -> permission rows`. Project
+   * is part of the key and the database query deliberately: even a malformed
+   * legacy row that points at another project's API key must never become
+   * authority in the project currently being authenticated.
    */
   private permissionCache: InMemoryTTLCache<Array<CachedApiKeyPermissionRow>> =
     new InMemoryTTLCache(10_000);
   private permissionCacheGeneration: number = 0;
 
+  /*
+   * Each project's generation of cached key permissions: the shared one,
+   * from Redis, and this process's own (CacheGenerations). A change to what
+   * a project's keys may do starts a new one (forgetPermissionsOfProjects),
+   * so nothing read before it is served again - here at once, and in every
+   * other process within a second.
+   */
+  private generations: CacheGenerations = new CacheGenerations({
+    namespace: API_KEY_PERMISSIONS_GENERATION_NAMESPACE,
+    ttlSeconds: GENERATION_TTL_SECONDS,
+    maxKeys: 10_000,
+    description: "API key permissions",
+  });
+
   public constructor() {
     super(Model);
   }
 
+  // Drops every key's cached permissions in this process.
   public clearCache(): void {
     this.permissionCacheGeneration++;
     this.permissionCache.clear();
+  }
+
+  /*
+   * After what the keys of these projects may do changed - a key's own
+   * permission, or a custom role a key is given (CustomRoleSync,
+   * ApiKeyCustomRoleService): drops every key's cached permissions here,
+   * and starts a new generation of these projects' in every other process,
+   * through Redis. Never throws (CacheGenerations).
+   */
+  @CaptureSpan()
+  public async forgetPermissionsOfProjects(
+    projectIds: Array<ObjectID | string | undefined | null>,
+  ): Promise<void> {
+    this.clearCache();
+
+    const keys: Array<string> = projectIds
+      .map((projectId: ObjectID | string | undefined | null): string => {
+        return projectId ? projectId.toString().toLowerCase() : "";
+      })
+      .filter((key: string): boolean => {
+        return Boolean(key);
+      });
+
+    if (keys.length === 0) {
+      return;
+    }
+
+    await this.generations.bump(keys);
   }
 
   /**
@@ -77,7 +129,11 @@ export class Service extends ProjectReferencesService<Model> {
     apiKeyId: ObjectID,
     projectId: ObjectID,
   ): Promise<Array<ApiKeyPermissionRow>> {
-    const cacheKey: string = `${projectId.toString()}:${apiKeyId.toString()}`;
+    // The project's generation as it stands before the read: never throws.
+    const generation: string = await this.generations.get(
+      projectId.toString().toLowerCase(),
+    );
+    const cacheKey: string = `${projectId.toString()}:${apiKeyId.toString()}|${generation}`;
 
     let cachedRows: Array<CachedApiKeyPermissionRow> | undefined =
       this.permissionCache.get(cacheKey);
@@ -344,6 +400,47 @@ export class Service extends ProjectReferencesService<Model> {
     });
   }
 
+  /*
+   * A key's copy of a custom role's permission (CustomRoleSync) is the
+   * role's: it is changed and removed through the role - or by taking the
+   * role from the key - never on its own, or the key would no longer hold
+   * what the role gives. Only OneUptime's own writes touch one.
+   */
+  private assertNoRoleCopies(
+    rows: Array<Model>,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isRoot) {
+      return;
+    }
+
+    const copy: Model | undefined = rows.find((row: Model): boolean => {
+      return Boolean(row.apiKeyCustomRoleId || row.customRoleId);
+    });
+
+    if (copy) {
+      throw new BadDataException(
+        getApiKeyRoleCopyChangeRefusedMessage({
+          roleName: copy.customRole?.name,
+          permission: copy.permission!,
+        }),
+      );
+    }
+  }
+
+  // The projects of these rows, each once.
+  private getProjectIdsOf(rows: Array<Model>): Array<ObjectID> {
+    const projectIds: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+    for (const row of rows) {
+      if (row.projectId) {
+        projectIds.set(row.projectId.toString().toLowerCase(), row.projectId);
+      }
+    }
+
+    return Array.from(projectIds.values());
+  }
+
   /**
    * Permission-management is delegation, not a role minting primitive.
    * Owners may delegate anything. Every other editor, including a project
@@ -351,8 +448,12 @@ export class Service extends ProjectReferencesService<Model> {
    * they place on the API key. ProjectAdmin is not an implication of every
    * permission: destructive and billing permissions intentionally exclude it
    * in their model ACLs.
+   *
+   * Giving a key a custom role is held to it for every permission of the
+   * role the key would hold (ApiKeyCustomRoleService), and so is putting a
+   * permission into a role a key is given (CustomRolePermissionService).
    */
-  private assertCallerCanGrantPermission(data: {
+  public assertCallerCanGrantPermission(data: {
     permission: Permission;
     labels: Array<Label> | undefined;
     projectId: ObjectID;
@@ -428,16 +529,20 @@ export class Service extends ProjectReferencesService<Model> {
       props: createBy.props,
     });
 
-    // check if this permission is already assigned to this team and if yes then throw error.
-
     const isBlockPermission: boolean = createBy.data.isBlockPermission || false;
 
+    /*
+     * Only the key's own rows count: a copy of a custom role's permission is
+     * the role's (CustomRoleSync), and the key may hold the same permission
+     * of its own beside it - kept when the role is taken away.
+     */
     const existingPermission: Model | null = await this.findOneBy({
       query: {
         apiKeyId: references.apiKeyId,
         projectId: references.projectId,
         permission: createBy.data.permission,
         isBlockPermission: isBlockPermission,
+        apiKeyCustomRoleId: QueryHelper.isNull(),
       },
       select: {
         _id: true,
@@ -462,6 +567,7 @@ export class Service extends ProjectReferencesService<Model> {
           projectId: references.projectId,
           permission: createBy.data.permission,
           isBlockPermission: !isBlockPermission,
+          apiKeyCustomRoleId: QueryHelper.isNull(),
         },
         select: {
           _id: true,
@@ -522,7 +628,14 @@ export class Service extends ProjectReferencesService<Model> {
         projectId: true,
         apiKeyId: true,
         permission: true,
+        apiKeyCustomRoleId: true,
+        customRoleId: true,
+        customRole: {
+          name: true,
+        },
       });
+
+    this.assertNoRoleCopies(existingPermissions, updateBy.props);
 
     const rawUpdatedPermission: unknown = updateBy.data.permission;
     if (
@@ -611,6 +724,7 @@ export class Service extends ProjectReferencesService<Model> {
               updatedIsBlockPermission === undefined
                 ? existingPermission.isBlockPermission || false
                 : updatedIsBlockPermission,
+            apiKeyCustomRoleId: QueryHelper.isNull(),
           },
           select: {
             _id: true,
@@ -641,6 +755,7 @@ export class Service extends ProjectReferencesService<Model> {
             projectId: alreadySavedPermission.projectId!,
             permission: alreadySavedPermission.permission!,
             isBlockPermission: !isBlockPermission,
+            apiKeyCustomRoleId: QueryHelper.isNull(),
           },
           select: {
             _id: true,
@@ -670,7 +785,11 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    return { updateBy, carryForward: null };
+    // The projects whose keys' cached permissions go once the change is in.
+    return {
+      updateBy,
+      carryForward: this.getProjectIdsOf(existingPermissions),
+    };
   }
 
   @CaptureSpan()
@@ -678,6 +797,8 @@ export class Service extends ProjectReferencesService<Model> {
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     this.clearCache();
+
+    let projectIds: Array<ObjectID> = [];
 
     if (!deleteBy.props.isRoot && !deleteBy.props.isMasterAdmin) {
       /*
@@ -694,8 +815,17 @@ export class Service extends ProjectReferencesService<Model> {
           permission: true,
           labels: { _id: true },
           isBlockPermission: true,
+          apiKeyCustomRoleId: true,
+          customRoleId: true,
+          customRole: {
+            name: true,
+          },
         },
       );
+
+      this.assertNoRoleCopies(permissions, deleteBy.props);
+
+      projectIds = this.getProjectIdsOf(permissions);
 
       for (const permission of permissions) {
         /*
@@ -722,7 +852,9 @@ export class Service extends ProjectReferencesService<Model> {
         }
       }
     }
-    return { deleteBy, carryForward: null };
+
+    // The projects whose keys' cached permissions go once the delete is in.
+    return { deleteBy, carryForward: projectIds };
   }
 
   @CaptureSpan()
@@ -730,7 +862,7 @@ export class Service extends ProjectReferencesService<Model> {
     _onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<Model> {
-    this.clearCache();
+    await this.forgetPermissionsOfProjects([createdItem.projectId]);
     return createdItem;
   }
 
@@ -739,7 +871,9 @@ export class Service extends ProjectReferencesService<Model> {
     onUpdate: OnUpdate<Model>,
     _updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
-    this.clearCache();
+    await this.forgetPermissionsOfProjects(
+      (onUpdate.carryForward as Array<ObjectID> | null) || [],
+    );
     return onUpdate;
   }
 
@@ -748,7 +882,11 @@ export class Service extends ProjectReferencesService<Model> {
     onDelete: OnDelete<Model>,
     _itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
-    this.clearCache();
+    // The rows' projects, and the request's own when it names one.
+    await this.forgetPermissionsOfProjects([
+      ...((onDelete.carryForward as Array<ObjectID> | null) || []),
+      onDelete.deleteBy?.props?.tenantId,
+    ]);
     return onDelete;
   }
 

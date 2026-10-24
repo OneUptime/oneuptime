@@ -24,7 +24,7 @@ flowchart TB
 | Wat | Hoe het wordt berekend |
 | --- | --- |
 | Het abonnement | Een prijs per gebruiker per maand, maandelijks of jaarlijks gefactureerd. Iedereen in het project is een plaats. |
-| Telemetrie | $0.10 per opgenomen GB, met 15 dagen bewaring. Langere bewaring kost meer: zie [Wat bewaring kost](/docs/telemetry/data-retention#wat-bewaring-kost). |
+| Telemetrie | $0.10 per opgenomen GB, met 15 dagen bewaring. Langere bewaring kost meer, en bewaring korter dan 7 dagen wordt gefactureerd als 7 dagen: zie [Wat bewaring kost](/docs/telemetry/data-retention#wat-bewaring-kost). |
 | Session replays | $2 per GB, met 15 dagen bewaring. |
 | Actieve monitors | $1 per monitor per maand. Elke monitor behalve een handmatige is actief, ook als die is uitgeschakeld. |
 | Sms, oproepen, WhatsApp en Telegram | Betaald uit het saldo van het project terwijl elk bericht wordt verstuurd. |

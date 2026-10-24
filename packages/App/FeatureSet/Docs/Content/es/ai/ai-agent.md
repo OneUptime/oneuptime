@@ -149,7 +149,7 @@ Cuando ningún servicio corresponde al repositorio, la tarea se ejecuta sin tele
 
 ## Revisión de producción de pull requests
 
-OneUptime sabe lo que hace tu código en producción, así que puede revisar una pull request con lo que nadie ve al leer el diff. Activa **Revisar pull requests frente a producción** en la página **Ajustes** de un repositorio en Código, y cada pull request que alguien con acceso de escritura abre o actualiza recibe un comentario que dice lo que producción muestra del código que cambia. El comentario se edita en su sitio con cada push, y la página **Revisiones de producción** del repositorio en Código guarda cada revisión, con **Volver a revisar**.
+OneUptime sabe lo que hace tu código en producción, así que puede revisar una pull request con lo que nadie ve al leer el diff. Activa **Revisar pull requests frente a producción**, en **Más ajustes** de la página **Ajustes** de un repositorio en Código, y cada pull request que alguien con acceso de escritura abre o actualiza recibe un comentario que dice lo que producción muestra del código que cambia. El comentario se edita en su sitio con cada push, y la página **Revisiones de producción** del repositorio en Código guarda cada revisión, con **Volver a revisar**.
 
 | Lo que lee | Del código que cambia la pull request |
 | --- | --- |
@@ -230,7 +230,7 @@ No asignas repositorios a servicios. Cuando una tarea empieza, OneUptime encuent
 
 ### Elige el Runner del repositorio
 
-Cada repositorio elige el Runner en el que la IA trabaja en él: en su página **Ajustes** en Código, haz clic en **Editar** en la tarjeta **Runner** y elige uno. Un repositorio que importa la GitHub App empieza en el [Runner predeterminado](/docs/runbooks/agents#el-runner-predeterminado-del-proyecto) del proyecto, cuando lo tiene. Un repositorio que no elige ninguno trabaja en **Runner global**, que OneUptime ejecuta para todos los proyectos.
+Cada repositorio elige el Runner en el que la IA trabaja en él: en su página **Ajustes** en Código, abre **Más ajustes**, haz clic en **Editar** en la tarjeta **Runner** y elige uno. Un repositorio que importa la GitHub App empieza en el [Runner predeterminado](/docs/runbooks/agents#el-runner-predeterminado-del-proyecto) del proyecto, cuando lo tiene. Un repositorio que no elige ninguno trabaja en **Runner global**, que OneUptime ejecuta para todos los proyectos.
 
 | Runner | Qué hace con una tarea |
 | --- | --- |
@@ -258,7 +258,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### Elígelo para el repositorio
 
-En la página **Ajustes** del repositorio en Código, haz clic en **Editar** en la tarjeta **Runner** y elige el Runner. El Runner recoge el cambio con su siguiente heartbeat, en aproximadamente un minuto; no hay nada que reiniciar.
+En la página **Ajustes** del repositorio en Código, abre **Más ajustes**, haz clic en **Editar** en la tarjeta **Runner** y elige el Runner. El Runner recoge el cambio con su siguiente heartbeat, en aproximadamente un minuto; no hay nada que reiniciar.
 
 ### Comprueba que se conecta
 
@@ -278,7 +278,7 @@ Cualquier forma de ejecutar el contenedor sirve (Docker Compose, Kubernetes, etc
 
 ## Correcciones de código automáticas a partir de investigaciones
 
-Cuando una [investigación de IA](/docs/ai/ai-sre) publica un análisis de causa raíz en un incidente o una alerta, y su clasificación cuidadosa recomienda un cambio en el código, la tarjeta de la investigación ofrece **Abrir PR de corrección a partir de este análisis**: una tarea de corrección cuyo contexto entero es el análisis publicado. El botón se oculta cuando el remedio es operativo, solo de infraestructura, externo, una denegación esperada, un error del usuario o no concluyente. Las correcciones aptas ocurren sin el clic mientras **Corregir automáticamente los incidentes nuevos** está activado en **Incidentes → IA → Ajustes** (y **Corregir automáticamente las alertas nuevas** en **Alertas → IA → Ajustes**). La corrección empieza desactivada, también en los proyectos nuevos. Sin reglas de remediación automática se abre cada corrección apta; con reglas, solo una para lo que coincide con una regla, cuando la regla tiene **Pull requests de corrección** activado (una regla nueva lo tiene), en los repositorios de código que nombra.
+Cuando una [investigación de IA](/docs/ai/ai-sre) publica un análisis de causa raíz en un incidente o una alerta, y su clasificación cuidadosa recomienda un cambio en el código, la tarjeta de la investigación ofrece **Abrir PR de corrección a partir de este análisis**: una tarea de corrección cuyo contexto entero es el análisis publicado. El botón se oculta cuando el remedio es operativo, solo de infraestructura, externo, una denegación esperada, un error del usuario o no concluyente. Las correcciones aptas ocurren sin el clic mientras **Corregir automáticamente los incidentes nuevos** está activado en **Incidentes → IA → Ajustes** (y **Corregir automáticamente las alertas nuevas** en **Alertas → IA → Ajustes**). La corrección empieza desactivada, también en los proyectos nuevos. Sin reglas de IA se abre cada corrección apta; con reglas, solo una para lo que coincide con una regla, cuando la regla tiene **Pull requests de corrección** activado (una regla nueva lo tiene), en los repositorios de código que nombra.
 
 Mientras la corrección está activada, una investigación que termina con una causa raíz segura y respaldada por pruebas que un cambio de código puede corregir pone en cola la misma tarea de corrección que crea el botón. La decisión es una clasificación acotada que comprueba el servidor, nunca un patrón buscado en el texto del análisis: solo un veredicto positivo de corrección de código abre un pull request. La falta de pruebas, un remedio fuera del código y una clasificación fallida terminan todos sin hacer nada.
 

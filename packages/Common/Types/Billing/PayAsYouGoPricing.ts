@@ -26,6 +26,17 @@ export const SESSION_REPLAY_PRICE_IN_USD_PER_GB: number = 2;
 export const TELEMETRY_PRICE_RETENTION_IN_DAYS: number = 15;
 
 /*
+ * The fewest days of retention telemetry is billed for. Telemetry is billed
+ * per GB per day kept, but ingesting a GB - writing, indexing and merging it -
+ * costs the same however soon it is deleted, so a day or two of retention
+ * would bill less than the GB costs to ingest. Telemetry kept for less is
+ * billed as kept this long; it is still deleted when its own retention says.
+ * Session replay is not floored: it is billed at twenty times the telemetry
+ * rate, and an application can choose to keep its recordings for one day.
+ */
+export const TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS: number = 7;
+
+/*
  * Active monitoring. Every monitor except a Manual one is an active monitor -
  * see MonitorTypeHelper.isBilledAsActiveMonitor.
  */

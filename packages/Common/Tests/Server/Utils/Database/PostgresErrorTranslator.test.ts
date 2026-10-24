@@ -489,3 +489,130 @@ describe("PostgresErrorTranslator", () => {
     });
   });
 });
+
+/*
+ * isMissingRowOf (issue #5214): ingest wrote a deleted Docker host's
+ * containers against its cached id, and Postgres refused them with
+ *
+ *   insert or update on table "DockerResource" violates foreign key
+ *   constraint "FK_84fba362f2ac3a2550e08d16fb2"
+ *   Key (dockerHostId)=(66f44447-...) is not present in table "DockerHost".
+ *
+ * Ingest asks this to tell that refusal - the resource is gone, resolve it
+ * again - from every other failure, whether the error comes straight from
+ * the driver (a bulk upsert's manager.query) or through DatabaseService
+ * (translated into a BadDataException).
+ */
+describe("PostgresErrorTranslator.isMissingRowOf", () => {
+  const dockerResourceRefused: () => FakeQueryFailedError =
+    (): FakeQueryFailedError => {
+      return {
+        message:
+          'insert or update on table "DockerResource" violates foreign key constraint "FK_84fba362f2ac3a2550e08d16fb2"',
+        code: "23503",
+        table: "DockerResource",
+        detail:
+          'Key (dockerHostId)=(66f44447-ee93-4a12-99ec-79edd9a2421c) is not present in table "DockerHost".',
+      };
+    };
+
+  it("is true for the issue's refusal, raw from the driver, for the table it names", () => {
+    expect(
+      PostgresErrorTranslator.isMissingRowOf(
+        dockerResourceRefused(),
+        "DockerHost",
+      ),
+    ).toBe(true);
+  });
+
+  it("is true for it under a QueryFailedError's driverError too", () => {
+    const wrapped: FakeQueryFailedError = {
+      message: "query failed",
+      driverError: dockerResourceRefused(),
+    };
+
+    expect(PostgresErrorTranslator.isMissingRowOf(wrapped, "DockerHost")).toBe(
+      true,
+    );
+  });
+
+  it("is true for it once DatabaseService translated it", () => {
+    const translated: unknown = PostgresErrorTranslator.translate(
+      dockerResourceRefused(),
+    );
+
+    expect(translated).toBeInstanceOf(BadDataException);
+    expect(
+      (translated as TranslatedPostgresException).postgresMissingRowTable,
+    ).toBe("DockerHost");
+    expect(
+      PostgresErrorTranslator.isMissingRowOf(translated, "DockerHost"),
+    ).toBe(true);
+  });
+
+  it("is false for another table's missing row - the project, say", () => {
+    const projectGone: FakeQueryFailedError = {
+      ...dockerResourceRefused(),
+      detail:
+        'Key (projectId)=(66f44447-ee93-4a12-99ec-79edd9a2421c) is not present in table "Project".',
+    };
+
+    expect(
+      PostgresErrorTranslator.isMissingRowOf(projectGone, "DockerHost"),
+    ).toBe(false);
+    expect(
+      PostgresErrorTranslator.isMissingRowOf(
+        PostgresErrorTranslator.translate(projectGone),
+        "DockerHost",
+      ),
+    ).toBe(false);
+  });
+
+  it("is false for a table whose name only begins with the one asked about", () => {
+    const feedGone: FakeQueryFailedError = {
+      ...dockerResourceRefused(),
+      detail:
+        'Key (hostId)=(66f44447-ee93-4a12-99ec-79edd9a2421c) is not present in table "DockerHostFeed".',
+    };
+
+    expect(PostgresErrorTranslator.isMissingRowOf(feedGone, "DockerHost")).toBe(
+      false,
+    );
+  });
+
+  it("is false for a delete refused because rows still refer to the row", () => {
+    expect(
+      PostgresErrorTranslator.isMissingRowOf(
+        foreignKeyDeleteError(),
+        "MonitorStatusTimeline",
+      ),
+    ).toBe(false);
+  });
+
+  it("is false for a unique violation, another error, an Exception and nothing", () => {
+    expect(
+      PostgresErrorTranslator.isMissingRowOf(
+        twilioAccountSidCollision(),
+        "ProjectCallSMSConfig",
+      ),
+    ).toBe(false);
+    expect(
+      PostgresErrorTranslator.isMissingRowOf(
+        new Error('is not present in table "DockerHost"'),
+        "DockerHost",
+      ),
+    ).toBe(false);
+    expect(
+      PostgresErrorTranslator.isMissingRowOf(
+        new BadDataException("Nope"),
+        "DockerHost",
+      ),
+    ).toBe(false);
+    expect(PostgresErrorTranslator.isMissingRowOf(null, "DockerHost")).toBe(
+      false,
+    );
+    expect(
+      PostgresErrorTranslator.isMissingRowOf("is not present", "DockerHost"),
+    ).toBe(false);
+  });
+});

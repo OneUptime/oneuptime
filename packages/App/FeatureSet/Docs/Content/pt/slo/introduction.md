@@ -141,7 +141,7 @@ Um SLO desligado ou arquivado não é avaliado, então seu status fica como esta
 A página **SLOs** lista cada SLO não arquivado, com status, SLI, orçamento restante, taxa de consumo, meta, janela, monitores, rótulos e proprietários.
 
 - Os blocos acima da lista contam os SLOs por status: **Íntegro**, **Em risco**, **Orçamento esgotado**, **Misconfigured**, **Pausado** e **Desabilitado**. Eles aparecem assim que existe um SLO que não está arquivado. Clique em um bloco para ver só esses SLOs, e de novo para ver todos.
-- Selecione SLOs para adicionar ou remover rótulos e proprietários, arquivá-los ou excluí-los, todos de uma vez.
+- Selecione SLOs para adicionar ou remover rótulos e proprietários, ativá-los ou desativá-los, arquivá-los ou excluí-los, todos de uma vez.
 - A seção **Configurações** do menu lateral contém **Regras de Rótulos** e **Regras de proprietário**, que rotulam os SLOs novos e definem seus proprietários: veja [Regras de rótulos e proprietários](/docs/slo/label-and-owner-rules).
 - A seção **Avançado** do menu lateral contém **Arquivado**, a lista de SLOs arquivados.
 

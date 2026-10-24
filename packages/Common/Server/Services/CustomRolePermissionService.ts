@@ -5,6 +5,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import CustomRoleSync from "../Utils/CustomRole/CustomRoleSync";
 import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ApiKeyPermissionService from "./ApiKeyPermissionService";
 import CustomRoleService from "./CustomRoleService";
 import ProjectReferencesService from "./ProjectReferencesService";
 import TeamPermissionService from "./TeamPermissionService";
@@ -36,11 +37,17 @@ import Model from "../../Models/DatabaseModels/CustomRolePermission";
  *   - only by someone who could give the same permission, at the same
  *     scope and labels, to a team directly - the grant ceiling of team
  *     permissions (TeamPermissionService.assertCanGrantPermission), on a
- *     create and on every change. A role is given to teams, so putting a
- *     permission into one is giving it.
+ *     create and on every change. A role is given to teams and API keys, so
+ *     putting a permission into one is giving it. The ceiling of a key's
+ *     own permissions (ApiKeyPermissionService.assertCallerCanGrantPermission)
+ *     is never stricter than the team one for what a key's copy holds - the
+ *     role's permission, with its labels - so what passes here could be
+ *     given to every key with the role directly too
+ *     (Tests/Server/Services/ApiKeyCeilingWithinTeamCeiling holds the two
+ *     to that).
  *
- * Every team given the role holds a copy of each of its permissions
- * (CustomRoleSync):
+ * Every team and every API key given the role holds a copy of each of its
+ * permissions (CustomRoleSync) - a key of each that applies to a key:
  *
  *   - added: the copies are made on every team with the role, and the
  *     members' cached permissions rebuilt. If they cannot be made, the
@@ -51,7 +58,8 @@ import Model from "../../Models/DatabaseModels/CustomRolePermission";
  *     holds the old scope while the role holds the new - and a change that
  *     fails puts the copies back as the role is;
  *   - removed: the copies go in the same DELETE (ON DELETE CASCADE) and the
- *     members' cached permissions are rebuilt.
+ *     members' cached permissions are rebuilt, and the keys' forgotten on
+ *     every server.
  *
  * The role's permission count (CustomRole.permissionCount) is counted
  * again after each add and removal.
@@ -305,6 +313,9 @@ export class Service extends ProjectReferencesService<Model> {
         },
       });
 
+      // A key's copy made before the sync failed went with it: forget it everywhere.
+      await ApiKeyPermissionService.forgetPermissionsOfProjects([projectId]);
+
       await this.recountPermissions({
         customRoleId: customRoleId,
         projectId: projectId,
@@ -532,6 +543,13 @@ export class Service extends ProjectReferencesService<Model> {
         teamIds: change.teamIds,
       });
     }
+
+    // The keys' copies went in the same DELETE: every server stops serving them now.
+    await ApiKeyPermissionService.forgetPermissionsOfProjects(
+      changed.map((change: ChangedRolePermissions): ObjectID => {
+        return change.projectId;
+      }),
+    );
 
     return onDelete;
   }

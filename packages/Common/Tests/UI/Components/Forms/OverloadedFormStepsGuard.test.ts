@@ -434,13 +434,15 @@ describe("the project's stepped forms", () => {
       ],
     ],
     /*
-     * Five steps of fourteen fields once; three questions now - which
-     * incidents, who fixes them, ask first or not.
+     * Five steps of fourteen fields once, as an auto remediation rule; with
+     * investigation rules merged in, an AI rule asks three questions - which
+     * incidents, when to investigate, and whether and how to fix - the rest
+     * folded under More fields.
      */
     [
-      `${DASHBOARD}/Components/AutoRemediation/AutoRemediationRulesTable.tsx`,
-      "ModelTable: Settings > AI > Auto Remediation Rules",
-      ["basic-info", "match-criteria", "remediation"],
+      `${DASHBOARD}/Components/AISettings/AiRulesTable.tsx`,
+      "ModelTable: Settings > AI > AI Rules",
+      ["match-criteria", "investigate", "remediation"],
     ],
     [
       `${DASHBOARD}/Pages/Rum/View/SessionReplaySettings.tsx`,

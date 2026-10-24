@@ -50,11 +50,11 @@ const LONG_WORD_NAME: string =
 
 // What the Roles card says a custom role is.
 const ROLES_CARD_DESCRIPTION: string =
-  "A set of permissions you name once, such as Incident Responder, and give to teams. Changing a role changes every team that has it.";
+  "A set of permissions you name once, such as Incident Responder, and give to teams and API keys. Changing a role changes every team and key that has it.";
 
 // DeleteConsequences' sentence for a custom role.
 const ROLE_DELETE_CONSEQUENCE: string =
-  "Deleting a custom role takes its permissions from every team that has it. The teams stay, with their members and their other roles and permissions.";
+  "Deleting a custom role takes its permissions from every team and API key that has it. The teams and keys themselves stay, with everything else they have.";
 
 const SCREENSHOTS: string = path.resolve(
   __dirname,
@@ -621,7 +621,7 @@ test.describe("Teams > Settings > Roles", () => {
     ]);
   });
 
-  test("deleting a role no team has says no one loses access", async ({
+  test("deleting a role no team or key has says nothing loses access", async ({
     page,
   }: {
     page: Page;
@@ -631,7 +631,21 @@ test.describe("Teams > Settings > Roles", () => {
     await page.getByRole("menuitem", { name: "Delete" }).click();
 
     await expect(dialog(page)).toContainText(
-      "No team has this role right now, so no one loses access.",
+      "No team or API key has this role right now, so nothing loses access.",
+    );
+  });
+
+  test("names the API keys too, for a role given to one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRoles(page);
+    await row(page, "Team Lead").getByTestId("row-actions-more-button").click();
+    await page.getByRole("menuitem", { name: "Delete" }).click();
+
+    await expect(dialog(page)).toContainText(
+      "It is given to 1 team (3 people) and 1 API key right now.",
     );
   });
 

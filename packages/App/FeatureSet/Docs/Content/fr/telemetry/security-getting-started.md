@@ -29,7 +29,7 @@ Cliquez sur **Envoyer une attaque de test**. Une douzaine de connexions échoué
 Cliquez sur **Ouvrir le dossier**. Voici à quoi ressemble une vraie découverte : les événements qui la justifient, l'adresse concernée et ce qu'a trouvé **Enrich New Cases**. Fermez-le comme test une fois terminé.
 :::
 
-Dès lors, **Vue d'ensemble** s'ouvre sur ce qui attend quelqu'un : vos dossiers ouverts, ceux que personne n'a pris en charge et les étapes de playbook en attente d'approbation, ou **Tout est calme** s'il n'y en a aucun.
+Dès lors, **Vue d'ensemble** s'ouvre sur ce qui attend quelqu'un, sous **Attention requise** : vos dossiers ouverts, ceux que personne n'a pris en charge et les étapes de playbook en attente d'approbation. S'il n'y en a aucun, elle affiche **Tout est calme**.
 
 ## Fonctionnement
 
@@ -48,7 +48,7 @@ flowchart LR
 | **Dossiers de sécurité** | **Dossiers de sécurité** | Ce qui a été trouvé, regroupé par l'utilisateur, l'hôte ou l'adresse concernés |
 | **Playbooks** | **Playbooks** | Des étapes qui s'exécutent sur les nouveaux dossiers : les enrichir, prévenir, ouvrir un incident ou contenir |
 
-Le bandeau en haut de **Vue d'ensemble** montre chaque partie avec ses chiffres : les sources et leurs événements des dernières 24 heures, les règles actives, les dossiers ouverts et les playbooks qui répondent.
+En haut de **Vue d'ensemble**, sous ce qui attend quelqu'un, chaque partie montre ses chiffres : les sources et leurs événements des dernières 24 heures, les règles actives, les dossiers ouverts et les playbooks qui répondent. Une partie non configurée le dit et ouvre la page où la configurer.
 
 ## Trouver des événements de sécurité dans vos journaux
 
@@ -84,6 +84,14 @@ Le dossier s'ouvre en général avant que le bouton ne réponde ; quand la règl
 
 :::details Aucun événement de sécurité ne vient de mes journaux
 Vérifiez que **Trouver des événements de sécurité dans vos journaux** est activé et que la carte **Vos journaux** indique quand la dernière vérification a eu lieu. Seuls les types de lignes du tableau ci-dessus deviennent des événements : un serveur qui n'envoie ni journaux SSH, sudo, d'audit, CloudTrail ou d'accès n'a rien à trouver.
+:::
+
+:::details Vue d'ensemble indique que le dernier événement de sécurité date de plusieurs jours
+Rien n'a atteint Security depuis. Ouvrez **Connexions** et vérifiez que **Vos journaux** et chaque connexion sont toujours activés, et quand chacun a vérifié pour la dernière fois.
+:::
+
+:::details La carte qui active Security a disparu
+Quelqu'un l'a fermée avec **Masquer**. Tant que rien n'est encore surveillé pour détecter des menaces, **Vue d'ensemble** propose **Configurer Security**, qui la fait revenir.
 :::
 
 ## Étapes suivantes

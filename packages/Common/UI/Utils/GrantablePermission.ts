@@ -1,5 +1,6 @@
 import PermissionScope from "../../Types/Database/AccessControl/PermissionScope";
 import HeldPermissionsUtil from "../../Types/HeldPermissions";
+import { isRolePermissionGivenToApiKeys } from "../../Types/Team/CustomRoleCopyPlan";
 import Permission, {
   UserGlobalAccessPermission,
   UserPermission,
@@ -412,5 +413,25 @@ export default class GrantablePermission {
     return grants.every((grant: TeamPermissionGrant): boolean => {
       return canGrantTeamPermission({ grant: grant, rows: rows });
     });
+  }
+
+  /*
+   * Whether the signed-in user may give an API key a custom role with these
+   * permission rows: each row the key would hold - every one but those
+   * limited to what someone owns, which give a key nothing - weighed as a
+   * team's row is (canGrantTeamPermission). The server holds the give to
+   * the ceiling of a key's own permissions
+   * (ApiKeyPermissionService.assertCallerCanGrantPermission), which is
+   * never stricter than the team one for such a row, so what this says yes
+   * to the server accepts.
+   */
+  public static canCurrentUserGrantApiKeyRole(
+    grants: Array<TeamPermissionGrant>,
+  ): boolean {
+    return this.canCurrentUserGrantTeam(
+      grants.filter((grant: TeamPermissionGrant): boolean => {
+        return isRolePermissionGivenToApiKeys(grant.scope);
+      }),
+    );
   }
 }

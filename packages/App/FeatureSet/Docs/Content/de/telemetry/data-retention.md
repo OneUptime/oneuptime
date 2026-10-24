@@ -96,7 +96,7 @@ Dienste, Hosts, Kubernetes-Cluster, Docker- und Podman-Hosts, Docker Swarm-, Pro
 
 ## Was Aufbewahrung kostet
 
-- **In OneUptime Cloud** wird Telemetrie pro aufgenommenem GB abgerechnet, und der Preis pro GB enthält 15 Tage Aufbewahrung. Längere Aufbewahrung kostet anteilig mehr: 30 Tage kosten pro GB doppelt so viel wie 15. **Projekteinstellungen → Abrechnung und Rechnungen → Nutzungsverlauf** zeigt Tag für Tag, wie viel jeder Dienst gesendet hat und wie lange es aufbewahrt wird.
+- **In OneUptime Cloud** wird Telemetrie pro aufgenommenem GB abgerechnet, und der Preis pro GB enthält 15 Tage Aufbewahrung. Längere Aufbewahrung kostet anteilig mehr: 30 Tage kosten pro GB doppelt so viel wie 15. Kürzere Aufbewahrung kostet anteilig weniger, aber Aufbewahrung unter 7 Tagen wird als 7 Tage abgerechnet. **Projekteinstellungen → Abrechnung und Rechnungen → Nutzungsverlauf** zeigt Tag für Tag, wie viel jeder Dienst gesendet hat und wie lange es aufbewahrt wird.
 - **Beim Selbsthosten** liegt Telemetrie in ClickHouse, und die Aufbewahrung vervielfacht dessen Speicherplatz. Siehe [Dimensionierung](/docs/installation/sizing#aufbewahrung-und-ihr-einfluss-auf-den-speicher).
 
 Telemetrie, die Sie nicht brauchen, kostet nichts, wenn sie nie gespeichert wird: [Drop-Filter & Scrub-Regeln](/docs/telemetry/drop-filters-and-scrub-rules) verwerfen sie beim Ankommen.

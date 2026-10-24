@@ -11,6 +11,8 @@ import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
+import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import LabelsElement from "Common/UI/Components/Label/Labels";
@@ -96,6 +98,21 @@ const CloudMonitoredResources: FunctionComponent<
   });
 
   /*
+   * Labels and owners in Bulk Actions, as on every other resource list:
+   * the list shows and filters a resource by them, and they were set
+   * one at a time.
+   */
+  const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
+    useBulkLabelActions<CloudResource>({ modelType: CloudResource });
+
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<CloudResource>({
+      ownerUserModelType: CloudResourceOwnerUser,
+      ownerTeamModelType: CloudResourceOwnerTeam,
+      resourceIdField: "cloudResourceId",
+    });
+
+  /*
    * The Owner and Labels chips above the table: a resource can be found by the
    * person or the team that owns it - the server answers the Owner chip in
    * the list's own query - and the Owners column shows who that is.
@@ -157,7 +174,11 @@ const CloudMonitoredResources: FunctionComponent<
         isCreateable={false}
         isViewable={true}
         bulkActions={{
-          buttons: [...archiveBulkActions],
+          buttons: [
+            ...labelBulkActions,
+            ...ownerBulkActions,
+            ...archiveBulkActions,
+          ],
         }}
         showRefreshButton={true}
         showViewIdButton={true}
@@ -414,6 +435,8 @@ const CloudMonitoredResources: FunctionComponent<
           </CollapsibleSection>
         </div>
       )}
+      {labelBulkActionModals}
+      {ownerBulkActionModals}
     </Fragment>
   );
 };

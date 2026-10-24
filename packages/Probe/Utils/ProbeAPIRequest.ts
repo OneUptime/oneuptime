@@ -25,12 +25,19 @@ import ProbeCapability from "Common/Types/Probe/ProbeCapability";
  * probe that does not declare this as a probe that cannot walk tables, and
  * says so on the device's Wi-Fi and SNMP Tables pages.
  *
+ * "snmpWalk": the diagnostic job runs SNMP Walk diagnostics with the
+ * credentials the server hands it (Jobs/NetworkDevice/FetchDiagnostics). The
+ * server hands a walk, and the device's credentials, only to a probe that
+ * declares this, and settles an older probe's walks with a sentence saying
+ * to update it.
+ *
  * Add to this list only when the code that honours the new capability
  * ships in the same build.
  */
 export const PROBE_CAPABILITIES: Array<string> = [
   ProbeCapability.NetworkDevicePing,
   ProbeCapability.SnmpTables,
+  ProbeCapability.SnmpWalk,
 ];
 
 export default class ProbeAPIRequest {

@@ -141,7 +141,7 @@ A turned-off or archived SLO is not evaluated, so its status stays where it was;
 The **SLOs** page lists every SLO that is not archived, with its status, SLI, budget left, burn rate, target, window, monitors, labels and owners.
 
 - The tiles above the list count SLOs by status: **Healthy**, **At Risk**, **Budget Exhausted**, **Misconfigured**, **Paused** and **Disabled**. They show once there is an SLO that is not archived. Click a tile to show only those SLOs, and click it again to show them all.
-- Select SLOs to add or remove labels and owners, archive them or delete them, all at once.
+- Select SLOs to add or remove labels and owners, enable or disable them, archive them or delete them, all at once.
 - The side menu's **Settings** section holds **Label Rules** and **Owner Rules**, which label new SLOs and give them owners: see [Label and Owner Rules](/docs/slo/label-and-owner-rules).
 - The side menu's **Advanced** section holds **Archived**, the list of archived SLOs.
 

@@ -10,7 +10,9 @@ import { GitBranchMark } from "../../../Components/Code/CodeMarks";
 import {
   getRepositoryFullName,
   getRepositoryRoute,
+  getRepositorySettingsRoute,
 } from "../../../Components/Code/CodePaths";
+import { CodeRepositorySetting } from "../../../Components/Code/CodeRepositorySettingsCopy";
 import { getRecipeLabel } from "../../../Components/Code/CodeTaskCopy";
 import CodeTaskStateBadge from "../../../Components/Code/CodeTaskStateBadge";
 import { getCodeTaskTrail } from "../../../Components/Code/CodeTaskTrail";
@@ -537,10 +539,14 @@ const CodeTaskConversation: FunctionComponent<
               isLatest={index === turns.length - 1}
               origin={index === 0 ? data.task.origin : undefined}
               repositorySettingsRoute={
+                /*
+                 * A slow queue points at the repository's Runner: its
+                 * settings open there, with More settings open.
+                 */
                 data.repository
-                  ? RouteUtil.populateRouteParams(
-                      RouteMap[PageMap.CODE_REPOSITORY_VIEW_SETTINGS] as Route,
-                      { modelId: data.repository.id },
+                  ? getRepositorySettingsRoute(
+                      data.repository.id,
+                      CodeRepositorySetting.Runner,
                     )
                   : undefined
               }

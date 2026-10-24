@@ -94,6 +94,8 @@ const SOURCES: Record<string, string> = {
   ruleInvites:
     "Common/Types/Workspace/NotificationRules/NotificationRuleInvites.ts",
   teamsUtil: `${WORKSPACE_UTILS}/MicrosoftTeams/MicrosoftTeams.ts`,
+  teamsApi: "Common/Server/API/MicrosoftTeamsAPI.ts",
+  teamsSignInAuthority: `${WORKSPACE_UTILS}/MicrosoftTeams/MicrosoftTeamsSignInAuthority.ts`,
   summaryTable: `${DASHBOARD}/Components/Workspace/WorkspaceSummaryTable.tsx`,
   planLeftoverCopy: `${DASHBOARD}/Components/Billing/PlanLeftoverCopy.ts`,
   planLeftoverGate: `${DASHBOARD}/Components/Workspace/WorkspacePlanLeftoverGate.tsx`,
@@ -945,6 +947,50 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
         `the page you started from says **${notice}**`,
       );
     }
+  });
+
+  /*
+   * Issue #5202: connecting a Microsoft Teams account signs the person in to
+   * the organization the project is connected to - never at Microsoft's
+   * common endpoint, where a guest signed in to their own organization and
+   * linked an account the bot never sees.
+   */
+  it("says connecting a Microsoft Teams account signs in to the project's organization, guests as guests, as the sign-in does", () => {
+    const api: string = readSource("teamsApi");
+    const start: number = api.indexOf('"/microsoft-teams/sign-in-url"');
+    const signIn: string = api.slice(start, api.indexOf("router.get(", start));
+    const answer: string = lineStarting(
+      englishPage(TEAMS),
+      "Press **Connect Microsoft Teams account** in the bot's reply",
+    );
+
+    expect(start).toBeGreaterThan(0);
+    expect(signIn).toContain(
+      "projectTenantId: projectAuth?.workspaceProjectId,",
+    );
+    expect(signIn).toContain(
+      "MicrosoftTeamsSignInAuthorityUtil.getAuthorizeUrl(",
+    );
+    expect(api).not.toContain("login.microsoftonline.com/common");
+
+    // The project's organization first; the app's own tenant only without one.
+    const authority: string = readSource("teamsSignInAuthority");
+    const projectFirst: number = authority.indexOf(
+      "readTenant(data.projectTenantId)",
+    );
+
+    expect(projectFirst).toBeGreaterThan(0);
+    expect(authority.indexOf("readTenant(data.appTenantId)")).toBeGreaterThan(
+      projectFirst,
+    );
+
+    expect(answer).toContain(
+      "Either way, you sign in to the organization the project is connected to, as a guest if you are one there.",
+    );
+    expect(answer).toContain(
+      "If you are a guest and connected your own organization's account before, connect again.",
+    );
+    expect(answer).not.toContain("is not the same account");
   });
 
   it("names who may connect a workspace, and who may uninstall it, as the server holds them", () => {

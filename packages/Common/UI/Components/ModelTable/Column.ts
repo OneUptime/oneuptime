@@ -75,6 +75,13 @@ export default interface Columns<
   noValueMessage?: string | undefined;
   hideOnMobile?: boolean | undefined; // Hide column on mobile devices
   /*
+   * A phone's card draws this column's value without its title above it -
+   * for the one column a card is about, whose value names itself (a role's
+   * name on a key's Custom Roles card). Spread through to the table as is
+   * (see the Table Column of the same name).
+   */
+  hideTitleOnMobile?: boolean | undefined;
+  /*
    * List view (ShowAs.List) only: draw this column's row on an item's card
    * only when this says so - an empty description, or a setting the item
    * does not use, is left off its card instead of a label over nothing. A

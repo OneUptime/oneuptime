@@ -38,7 +38,7 @@ flowchart TB
 | Team | A named group inside a project that carries permissions. |
 | Team member | A user who has been invited to a team and accepted. |
 | Permission | A single capability, e.g. `CreateProjectMonitor`, or a role that bundles many, e.g. `MonitorAdmin`. |
-| Custom role | A set of permissions you name once and give to teams. |
+| Custom role | A set of permissions you name once and give to teams and API keys. |
 | Scope | How wide an allow permission reaches: all resources, only owned ones, or only labelled ones. |
 | Owner | A user or team marked as responsible for one specific resource. |
 | Label | A tag you put on resources, used to restrict permissions and to organise. |
@@ -139,20 +139,20 @@ The full list is in the [Permission Reference](/docs/permissions/reference).
 
 ### Custom roles
 
-A custom role is a set of permissions you name once and give to teams: an Incident Responder made of `IncidentMember`, `AlertMember` and `OnCallViewer`, say, or a Team Lead. Every team you give it to gets the same permissions, and you change them for all of those teams in one place. On OneUptime Cloud, custom roles need the Scale plan, as changing a team's permissions does.
+A custom role is a set of permissions you name once and give to teams and API keys: an Incident Responder made of `IncidentMember`, `AlertMember` and `OnCallViewer`, say, or a Team Lead. Every team and key you give it to gets the same permissions, and you change them for all of them in one place. On OneUptime Cloud, custom roles need the Scale plan, as changing a team's permissions does.
 
 :::steps
 1. Open **Teams** from the **Products** menu, under **Settings**. Expand **Settings** in its side menu, choose **Roles**, and click **Create Custom Role**.
 2. Type its **Name** and pick the built-in roles it bundles under **Permissions**, for every resource in the project. The description is under **More fields**.
 3. Create the role. It opens on its page, where **Add Role** adds another built-in role and **Add Permission** (in the card's **⋯** menu) a single permission, each with a scope and labels, as on a team.
-4. Click **Give to a Team** under **Teams with this Role**. A team's **Permissions** page has **Add Custom Role** too, and **Create Team** offers the custom roles you could give under **Access**.
+4. Click **Give to a Team** under **Teams with this Role**, or **Give to an API Key** under **API Keys with this Role**. A team's **Permissions** page and an API key's page have **Add Custom Role** too, and **Create Team** and **Create API Key** offer the custom roles you could give under **Access**.
 :::
 
 - A team's members get every permission of its custom roles, at the same scope and with the same labels, exactly as if the team held them itself. A block on the team still wins.
-- A role stays linked to the teams that have it: a change to it reaches all of them at once, and the role's page says how many teams and people that is. **Remove** takes the role from one team. Deleting the role takes its permissions from every team that has it; the teams keep their members and their other roles and permissions.
-- You can put into a role, and give a team a role, only what you could give the team directly: a role holding a permission you do not hold at the same or a broader scope is refused, and the refusal names the permission. A role never holds `ProjectOwner`, and **Owners** and **Admin** are never given one.
-- A team's **Permissions** page lists its custom roles above its own permissions. What a role gives is changed on the role's page, not on the team's.
-- API keys do not take custom roles. A key serves one integration, so give it exactly the permissions it needs on its own page.
+- A role stays linked to the teams and API keys that have it: a change to it reaches all of them at once, and the role's page says how many teams, people and keys that is. **Remove** takes the role from one team or key. Deleting the role takes its permissions from every team and key that has it; they keep everything else they have.
+- You can put into a role, and give a team or an API key a role, only what you could give it directly: a role holding a permission you do not hold at the same or a broader scope is refused, and the refusal names the permission. A role never holds `ProjectOwner`, and **Owners** and **Admin** are never given one.
+- A team's **Permissions** page and an API key's page list their custom roles above their own permissions. What a role gives is changed on the role's page, not on the team's or the key's.
+- An API key gets every permission of its custom roles, with the same labels, as if the key held them itself, and a block on the key still wins. A permission the role limits to what someone owns gives a key nothing: a key owns nothing.
 - The built-in roles are listed under **Built-in Roles**, at the bottom of the **Roles** page.
 
 ### Allow and block
@@ -247,11 +247,11 @@ Monitor logs, SLO history, network flows and Kubernetes cost allocations are rea
 
 ## API keys
 
-API keys are granted permissions directly, on the key itself — they do not belong to teams and are not affected by team membership.
+API keys are granted permissions directly, on the key itself, or through the custom roles they are given — they do not belong to teams and are not affected by team membership.
 
-- Assign the same granular permissions and roles you would give a team.
+- Assign the same granular permissions, roles and custom roles you would give a team.
 - Keys support **block permissions** and **label restrictions**, the same way teams do.
-- Keys do **not** support the Owned scope. Ownership resolves against a user, and a key is not a user, so grant keys the access they need explicitly.
+- Keys do **not** support the Owned scope. Ownership resolves against a user, and a key is not a user, so grant keys the access they need explicitly. A custom role's permission scoped to Owned gives a key nothing.
 
 **Creating a key** asks for a name and its **Access**:
 
@@ -260,6 +260,7 @@ API keys are granted permissions directly, on the key itself — they do not bel
 | Project Admin | Create, change and delete anything in the project, its settings included. Not billing, and not deleting the project. |
 | Project Member | Create, change and delete monitors, incidents, status pages and the project's other resources, as a project member can. |
 | Viewer | Read everything in the project, and change nothing. |
+| A custom role | Everything the role allows, but what it limits to resources someone owns. Listed when your project has one you could give. |
 | Choose permissions later | Nothing yet. Picked to start with. |
 
 :::steps
@@ -270,7 +271,7 @@ API keys are granted permissions directly, on the key itself — they do not bel
 
 The role you pick becomes the key's first permission as soon as the key exists, exactly as if you had added it on the key's page. You are offered only the roles you hold yourself — a key can never be given more than the person giving it has — and someone who may create keys but not change what they can do is not asked.
 
-On a key's page, **Add Role** adds a role from the same list a team's Permissions tab offers, and **Add Permission** (in the card's **⋯** menu) adds one granular permission. **Block Permissions** are under **More settings** at the bottom of the page, whose folded header shows how many the key has.
+On a key's page, **Custom Roles** lists the key's custom roles once your project has one, and **Add Custom Role** gives it another. **Add Role** adds a role from the same list a team's Permissions tab offers, and **Add Permission** (in the card's **⋯** menu) adds one granular permission. **Block Permissions** are under **More settings** at the bottom of the page, whose folded header shows how many the key has.
 
 > [!TIP]
 > Give each integration its own key with the narrowest set of permissions that works, so you can revoke one without disturbing the others.

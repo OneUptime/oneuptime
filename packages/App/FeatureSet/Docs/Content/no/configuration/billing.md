@@ -24,7 +24,7 @@ flowchart TB
 | Hva | Hvordan det prises |
 | --- | --- |
 | Abonnementet | En pris per bruker per måned, fakturert månedlig eller årlig. Hver person i prosjektet er en plass. |
-| Telemetri | $0.10 per inntatt GB, med 15 dagers oppbevaring. Lengre oppbevaring koster mer: se [Hva oppbevaring koster](/docs/telemetry/data-retention#hva-oppbevaring-koster). |
+| Telemetri | $0.10 per inntatt GB, med 15 dagers oppbevaring. Lengre oppbevaring koster mer, og oppbevaring under 7 dager faktureres som 7 dager: se [Hva oppbevaring koster](/docs/telemetry/data-retention#hva-oppbevaring-koster). |
 | Øktavspillinger | $2 per GB, med 15 dagers oppbevaring. |
 | Aktive monitorer | $1 per monitor per måned. Alle monitorer unntatt manuelle er aktive, også mens de er slått av. |
 | SMS, anrop, WhatsApp og Telegram | Betales fra prosjektets saldo etter hvert som hver melding sendes. |

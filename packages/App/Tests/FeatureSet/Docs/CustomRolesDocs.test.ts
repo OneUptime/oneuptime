@@ -1,3 +1,4 @@
+import ApiKeyCustomRole from "Common/Models/DatabaseModels/ApiKeyCustomRole";
 import ApiKeyPermission from "Common/Models/DatabaseModels/ApiKeyPermission";
 import CustomRole from "Common/Models/DatabaseModels/CustomRole";
 import CustomRolePermission from "Common/Models/DatabaseModels/CustomRolePermission";
@@ -30,15 +31,16 @@ import path from "path";
  * is what the product does.
  *
  * The section (Permissions > Custom roles) walks through making a role and
- * giving it to teams, then says how a role behaves. Each claim is held here
- * to the code that makes it true, so a change to the product that would
- * leave the docs behind fails here:
+ * giving it to teams and API keys, then says how a role behaves. Each claim
+ * is held here to the code that makes it true, so a change to the product
+ * that would leave the docs behind fails here:
  *
  *   - the example role is one the Create Custom Role form can make: built-in
  *     roles a custom role may hold;
  *   - a role never holds Project Owner (PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE);
  *   - custom roles take the plan changing a team's permissions takes;
- *   - API keys take no custom role: no key model points at one;
+ *   - API keys take custom roles, as teams do - a key holds copies of a
+ *     role's permissions, but of none limited to what someone owns;
  *   - every button and page the steps name is drawn by the Dashboard with
  *     that English label;
  *   - the steps find Roles where the Teams menu draws it: in its Settings
@@ -99,7 +101,7 @@ describe("the custom roles section", () => {
       page.indexOf("### Allow and block"),
     );
     expect(page).toContain(
-      "| Custom role | A set of permissions you name once and give to teams. |",
+      "| Custom role | A set of permissions you name once and give to teams and API keys. |",
     );
   });
 
@@ -161,6 +163,7 @@ describe("what the section says", () => {
       new CustomRole(),
       new CustomRolePermission(),
       new TeamCustomRole(),
+      new ApiKeyCustomRole(),
     ]) {
       expect(model.getCreateBillingPlan()).toBe(teamPlan);
     }
@@ -170,7 +173,7 @@ describe("what the section says", () => {
     );
   });
 
-  test("API keys take no custom role: no key model points at one", () => {
+  test("API keys take custom roles: a key is given one, and holds copies of its permissions", () => {
     const pointingAtARole: Array<string> = Entities.map(
       (modelType: { new (): DatabaseBaseModel }): DatabaseBaseModel => {
         return new modelType();
@@ -185,25 +188,63 @@ describe("what the section says", () => {
       .sort();
 
     expect(pointingAtARole).toEqual([
+      "ApiKeyCustomRole",
+      "ApiKeyPermission",
       "CustomRolePermission",
       "TeamCustomRole",
       "TeamPermission",
     ]);
-    expect(
-      new ApiKeyPermission().getTableColumns().columns.includes("customRoleId"),
-    ).toBe(false);
-    expect(englishSection()).toContain("API keys do not take custom roles.");
+
+    // A key's copy names the role, the role given to the key and the role's row, as a team's does.
+    const keyColumns: Array<string> = new ApiKeyPermission().getTableColumns()
+      .columns;
+
+    for (const column of [
+      "customRoleId",
+      "apiKeyCustomRoleId",
+      "customRolePermissionId",
+    ]) {
+      expect(keyColumns).toContain(column);
+    }
+
+    expect(englishSection()).toContain(
+      "A custom role is a set of permissions you name once and give to teams and API keys",
+    );
+    expect(englishSection()).toContain(
+      "- An API key gets every permission of its custom roles, with the same labels, as if the key held them itself, and a block on the key still wins.",
+    );
+    expect(englishSection()).not.toContain(
+      "API keys do not take custom roles.",
+    );
   });
 
-  test("a role's permissions are changed on the role, not on a team: a team's copy refuses a change", () => {
-    const service: string = fs.readFileSync(
-      path.join(REPO_ROOT, "Common/Server/Services/TeamPermissionService.ts"),
+  test("a permission limited to what someone owns gives a key nothing, and the section says so", () => {
+    const plan: string = fs.readFileSync(
+      path.join(REPO_ROOT, "Common/Types/Team/CustomRoleCopyPlan.ts"),
       "utf8",
     );
 
-    expect(service).toContain("assertNoRoleCopies");
+    expect(plan).toContain("isRolePermissionGivenToApiKeys");
     expect(englishSection()).toContain(
-      "What a role gives is changed on the role's page, not on the team's.",
+      "A permission the role limits to what someone owns gives a key nothing: a key owns nothing.",
+    );
+  });
+
+  test("a role's permissions are changed on the role, not on a team or a key: their copies refuse a change", () => {
+    for (const file of [
+      "Common/Server/Services/TeamPermissionService.ts",
+      "Common/Server/Services/ApiKeyPermissionService.ts",
+    ]) {
+      const service: string = fs.readFileSync(
+        path.join(REPO_ROOT, file),
+        "utf8",
+      );
+
+      expect(service).toContain("assertNoRoleCopies");
+    }
+
+    expect(englishSection()).toContain(
+      "What a role gives is changed on the role's page, not on the team's or the key's.",
     );
   });
 });
@@ -265,6 +306,16 @@ describe("the labels the steps name", () => {
       source: 'deleteButtonText="Remove"',
     },
     {
+      label: "Give to an API Key",
+      file: "Components/CustomRole/CustomRoleApiKeysTable.tsx",
+      source: 'title: "Give to an API Key"',
+    },
+    {
+      label: "API Keys with this Role",
+      file: "Components/CustomRole/CustomRoleApiKeysTable.tsx",
+      source: 'title: "API Keys with this Role"',
+    },
+    {
       label: "Add Custom Role",
       file: "Components/Team/TeamCustomRoleTable.tsx",
       source: 'title: "Add Custom Role"',
@@ -295,12 +346,26 @@ describe("the labels the steps name", () => {
     );
   });
 
-  test("Create Team offers the custom roles under Access", () => {
+  test("Create Team and Create API Key offer the custom roles under Access", () => {
     const teams: string = readSource("Pages/Teams/Index.tsx");
+    const apiKeys: string = readSource("Pages/Settings/APIKeys.tsx");
 
     expect(teams).toContain("getCustomRoleAccessValue(role.id)");
+    expect(apiKeys).toContain("getCustomRoleAccessValue(role.id)");
     expect(englishSection()).toContain(
-      "**Create Team** offers the custom roles you could give under **Access**",
+      "**Create Team** and **Create API Key** offer the custom roles you could give under **Access**",
+    );
+  });
+
+  test("an API key's page has Add Custom Role, as a team's Permissions page does", () => {
+    expect(readSource("Components/ApiKey/ApiKeyCustomRoleTable.tsx")).toContain(
+      'title: "Add Custom Role"',
+    );
+    expect(readSource("Pages/Settings/APIKeyView.tsx")).toContain(
+      "<ApiKeyCustomRoleTable",
+    );
+    expect(englishSection()).toContain(
+      "A team's **Permissions** page and an API key's page have **Add Custom Role** too",
     );
   });
 });

@@ -74,7 +74,7 @@ Ein Runbook kann alle Typen mischen. Die Stärke von Runbooks liegt darin, mensc
 | Eine Runbook-Regel | **Vorfälle**, **Warnungen** oder **Geplante Wartung** → **Regeln** → **Runbook-Regeln** | Dem neuen Vorfall, der neuen Warnung oder dem neuen Ereignis |
 | **Runbook ausführen** | Die Seite **Runbooks** eines Vorfalls, einer Warnung oder eines geplanten Wartungsereignisses | Diesem Ereignis |
 | **Jetzt ausführen** | Die Seite **Übersicht** des Runbooks | Nichts: ein Ad-hoc-Lauf |
-| Eine Regel zur automatischen Behebung | Siehe [AI SRE](/docs/ai/ai-sre) | Dem Vorfall oder der Warnung |
+| Eine KI-Regel | Siehe [AI SRE](/docs/ai/ai-sre) | Dem Vorfall oder der Warnung |
 | Der Zeitplan des Runbooks | Die Seite **Auslöser** des Runbooks, siehe [Runbook-Auslöser](/docs/runbooks/triggers#nach-zeitplan-ausführen) | Nichts: ein unbeaufsichtigter Lauf |
 | Ein Aufruf der Webhook-URL des Runbooks | Die Seite **Auslöser** des Runbooks, siehe [Runbook-Auslöser](/docs/runbooks/triggers#den-webhook-aufrufen) | Nichts: Der Lauf behält die Werte, die der Aufruf gesendet hat |
 

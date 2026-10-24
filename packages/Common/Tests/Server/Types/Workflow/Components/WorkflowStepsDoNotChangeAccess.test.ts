@@ -1,5 +1,6 @@
 import AllModelTypes from "../../../../../Models/DatabaseModels/Index";
 import ApiKey from "../../../../../Models/DatabaseModels/ApiKey";
+import ApiKeyCustomRole from "../../../../../Models/DatabaseModels/ApiKeyCustomRole";
 import ApiKeyPermission from "../../../../../Models/DatabaseModels/ApiKeyPermission";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import CustomRole from "../../../../../Models/DatabaseModels/CustomRole";
@@ -712,6 +713,7 @@ describe("every step that would write a record deciding access", () => {
     const all: Array<string> = [...WRITE_DATABASE_OPERATIONS].sort();
 
     expect(byModel).toEqual({
+      ApiKeyCustomRole: all,
       ApiKeyPermission: all,
       CustomRole: all,
       CustomRolePermission: all,
@@ -926,6 +928,7 @@ describe("people, API keys and OneUptime are held as before", () => {
 describe("the rule: a step writes no record that decides who may do what", () => {
   const ACCESS_MODELS: Array<{ new (): BaseModel }> = [
     ApiKey,
+    ApiKeyCustomRole,
     ApiKeyPermission,
     CustomRole,
     CustomRolePermission,

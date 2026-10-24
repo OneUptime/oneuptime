@@ -123,6 +123,7 @@
   "SMS",
   "SMTP",
   "SNMP",
+  "SNMP v{{version}}",
   "SQL",
   "SSO",
   "Slack",

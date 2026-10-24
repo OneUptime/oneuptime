@@ -131,7 +131,7 @@ describe("RemediationCodeRepositories.forRule", () => {
     mockRule(new Error("database is down"));
     expect(await forRule()).toEqual(NO_CODE_REPOSITORY);
     expect(String(error.mock.calls[0]![0])).toContain(
-      `could not read which code repositories auto remediation rule ${RULE_ID.toString()} allows`,
+      `could not read which code repositories AI rule ${RULE_ID.toString()} allows`,
     );
   });
 });
@@ -190,7 +190,7 @@ describe("every incident and alert AI run is held to its rules' repositories", (
     ["IncidentInvestigationRunner.ts", "forIncident"],
     ["AlertInvestigationRunner.ts", "forAlert"],
   ])(
-    "SRE/%s works out the investigation rules' repositories and passes them to the run",
+    "SRE/%s works out the repositories the AI rules that investigate allow, and passes them to the run",
     (file: string, reader: string) => {
       const source: string = read("SRE", file);
 

@@ -1,4 +1,5 @@
 import {
+  getApplicationSessionReplayRetentionInDays,
   getSessionReplayRetentionDate,
   resolveSessionReplayRetentionInDays,
 } from "../../../../Server/Utils/SessionReplay/SessionReplayRetention";
@@ -225,5 +226,49 @@ describe("getSessionReplayRetentionDate", () => {
     });
 
     expect(OneUptimeDate.getDaysBetweenTwoDates(earlier, later)).toBe(2);
+  });
+});
+
+/*
+ * The rule the session replay gate stamps recordings with, and the one usage
+ * billing prices replay with: an application is charged for exactly the days
+ * its recordings are kept.
+ */
+describe("getApplicationSessionReplayRetentionInDays", () => {
+  it("is the replay default of 7 days when the application sets nothing", () => {
+    expect(getApplicationSessionReplayRetentionInDays(undefined)).toBe(7);
+    expect(getApplicationSessionReplayRetentionInDays(null)).toBe(7);
+  });
+
+  it.each(SESSION_REPLAY_ALLOWED_RETENTION_DAYS)(
+    "keeps an allowed setting of %i days as it is",
+    (days: number) => {
+      expect(getApplicationSessionReplayRetentionInDays(days)).toBe(days);
+    },
+  );
+
+  it("rounds a setting between allowed values up, as ingest does", () => {
+    expect(getApplicationSessionReplayRetentionInDays(10)).toBe(14);
+    expect(getApplicationSessionReplayRetentionInDays(20)).toBe(30);
+  });
+
+  it("caps a setting above the largest allowed value", () => {
+    expect(getApplicationSessionReplayRetentionInDays(365)).toBe(90);
+  });
+
+  it.each([0, -3, Number.NaN, Number.POSITIVE_INFINITY])(
+    "reads an unusable setting (%p) as the default",
+    (days: number) => {
+      expect(getApplicationSessionReplayRetentionInDays(days)).toBe(
+        DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS,
+      );
+    },
+  );
+
+  it("never uses the telemetry retention the other pillars follow", () => {
+    // A 15-day telemetry default must not leak into replay.
+    expect(getApplicationSessionReplayRetentionInDays(undefined)).not.toBe(
+      resolveTelemetryRetentionInDays({ pillar: "logs" }),
+    );
   });
 });

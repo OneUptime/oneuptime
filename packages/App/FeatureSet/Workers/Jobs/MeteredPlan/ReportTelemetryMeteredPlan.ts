@@ -16,8 +16,25 @@ import {
   SessionReplayDataIngestMeteredPlan,
   SecurityEventsDataIngestMeteredPlan,
 } from "Common/Server/Types/Billing/MeteredPlan/AllMeteredPlans";
+import ServerMeteredPlan from "Common/Server/Types/Billing/MeteredPlan/ServerMeteredPlan";
 import logger from "Common/Server/Utils/Logger";
 import Project from "Common/Models/DatabaseModels/Project";
+
+/*
+ * Each plan is reported on its own. They used to share one try/catch per
+ * project, so the first one to fail - a Stripe error, a usage scan over its
+ * time cap - skipped every plan after it, and with staging targeting only
+ * yesterday, that day of those products was never billed.
+ */
+const METERED_PLANS_IN_REPORT_ORDER: Array<ServerMeteredPlan> = [
+  LogDataIngestMeteredPlan,
+  MetricsDataIngestMeteredPlan,
+  TracesDataIngestMetredPlan,
+  ActiveMonitoringMeteredPlan,
+  ProfilesDataIngestMeteredPlan,
+  SessionReplayDataIngestMeteredPlan,
+  SecurityEventsDataIngestMeteredPlan,
+];
 
 RunCron(
   "MeteredPlan:ReportTelemetryMeteredPlan",
@@ -44,64 +61,39 @@ RunCron(
     });
 
     for (const project of projects) {
+      if (!project.id) {
+        continue;
+      }
+
+      let plan: {
+        plan: PlanType | null;
+        isSubscriptionUnpaid: boolean;
+      };
+
       try {
-        if (project.id) {
-          const plan: {
-            plan: PlanType | null;
-            isSubscriptionUnpaid: boolean;
-          } = await ProjectService.getCurrentPlan(project.id);
-
-          if (plan.isSubscriptionUnpaid) {
-            // ignore and report when subscription is active.
-            continue;
-          }
-
-          await LogDataIngestMeteredPlan.reportQuantityToBillingProvider(
-            project.id,
-          );
-
-          await Sleep.sleep(1000);
-
-          await MetricsDataIngestMeteredPlan.reportQuantityToBillingProvider(
-            project.id,
-          );
-
-          await Sleep.sleep(1000);
-
-          await TracesDataIngestMetredPlan.reportQuantityToBillingProvider(
-            project.id,
-          );
-
-          await Sleep.sleep(1000);
-
-          await ActiveMonitoringMeteredPlan.reportQuantityToBillingProvider(
-            project.id!,
-          );
-
-          await Sleep.sleep(1000);
-
-          await ProfilesDataIngestMeteredPlan.reportQuantityToBillingProvider(
-            project.id,
-          );
-
-          await Sleep.sleep(1000);
-
-          await SessionReplayDataIngestMeteredPlan.reportQuantityToBillingProvider(
-            project.id,
-          );
-
-          await Sleep.sleep(1000);
-
-          await SecurityEventsDataIngestMeteredPlan.reportQuantityToBillingProvider(
-            project.id,
-          );
-
-          await Sleep.sleep(1000);
-        }
+        plan = await ProjectService.getCurrentPlan(project.id);
       } catch (error) {
         logger.error(
-          `MeteredPlan:ReportTelemetryMeteredPlan Error while reporting telemetry for project ${project.id}: ${error}`,
+          `MeteredPlan:ReportTelemetryMeteredPlan Error while reading the plan of project ${project.id}: ${error}`,
         );
+        continue;
+      }
+
+      if (plan.isSubscriptionUnpaid) {
+        // ignore and report when subscription is active.
+        continue;
+      }
+
+      for (const meteredPlan of METERED_PLANS_IN_REPORT_ORDER) {
+        try {
+          await meteredPlan.reportQuantityToBillingProvider(project.id, {});
+        } catch (error) {
+          logger.error(
+            `MeteredPlan:ReportTelemetryMeteredPlan Error while reporting ${meteredPlan.getProductType()} for project ${project.id}: ${error}`,
+          );
+        }
+
+        await Sleep.sleep(1000);
       }
     }
   },

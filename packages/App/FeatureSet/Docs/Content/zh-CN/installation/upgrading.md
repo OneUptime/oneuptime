@@ -351,7 +351,7 @@ WHERE command LIKE '%idx_attribute_values%';
 - **如果你的升级会等待，请镜像该镜像，或选择不启用代理。** chart 升级会添加一个拉取 `docker.io/oneuptime/kubernetes-ai-agent` 的 Pod。如果你的节点通过镜像仓库或镜像允许列表拉取镜像，并且你使用 `--wait` 或 `--atomic`、Terraform 或 Flux 进行升级，请镜像该镜像并设置 `aiAgent.image.repository`（私有镜像仓库还需设置 `aiAgent.imagePullSecrets`），或者传入 `--set aiAgent.enabled=false`。否则 Pod 永远不会就绪，升级会超时，而 `--atomic` 会回滚整个发布。
 - **`aiAccess` 设置会延续。** 写入权限、命名空间列表、节点操作开关和 `aiAccess.extraEnv` 会一直生效，直到你设置相应的 `aiAgent.*` 值，而该值始终优先。`aiAccess.enabled=false` 不会关闭 AI 代理——`--set aiAgent.enabled=false` 才会——`aiAccess.image` 和 `aiAccess.resources` 不会延续。
 - **集群的 AI 设置会保留**，服务器升级会做两处更改：有人解除绑定或删除了其 Runner（集群内 Runner 或其他任何 Runner）的集群，会以关闭 kubectl 访问的状态开始；而项目从未开启 **Enable AI Command Execution** 的集群上的 **自动** 或 **跳过批准**，会变为 **请求批准**。
-- **要降级 chart，请使用 `helm rollback`**，而不是 `helm upgrade --version <older version>`：较旧 chart 的 schema 会拒绝存储在发布中的 `aiAgent` 值。在升级后一周内，回滚会恢复集群内 Runner，一旦 AI 代理停止，它会自行重新连接。在那之后，OneUptime 可能已经移除了旧的 Runner，回滚后的 Runner 不会被使用，直到你通过 API 或 Terraform 再次将其绑定到集群（集群的 **AI Access Runner**；Project Owner、Project Admin 或 **Edit Auto Remediation Rule** 可以执行此操作），或者再次升级 chart。
+- **要降级 chart，请使用 `helm rollback`**，而不是 `helm upgrade --version <older version>`：较旧 chart 的 schema 会拒绝存储在发布中的 `aiAgent` 值。在升级后一周内，回滚会恢复集群内 Runner，一旦 AI 代理停止，它会自行重新连接。在那之后，OneUptime 可能已经移除了旧的 Runner，回滚后的 Runner 不会被使用，直到你通过 API 或 Terraform 再次将其绑定到集群（集群的 **AI Access Runner**；Project Owner、Project Admin 或 **Edit AI Rule** 可以执行此操作），或者再次升级 chart。
 
 ```bash
 helm repo update
@@ -469,6 +469,21 @@ API 客户端和 Terraform 配置可以用项目的 `enableAutomaticIncidentReme
 规则的 **Runner** 只列出你自己的 Runner。**AI agent on the cluster or host** 已被移除：受影响的集群或主机上的命令无论规则选择什么，始终通过其 AI 代理运行。之前没有选择任何 Runner 的规则显示为 **无 Runner**，并像以前一样修复。
 
 API 客户端和 Terraform 配置不再有项目字段 `enableAutomaticIncidentCodeFixes`、`enableIncidentInstrumentationFixTasks`、`enableAutomaticAlertCodeFixes` 和 `enableAlertInstrumentationFixTasks`（Terraform 中的 `enable_automatic_incident_code_fixes` 等）：请从配置中删除它们。自动补救规则的 `openCodeFixPullRequests` 和 `openTelemetryPullRequests`（`open_code_fix_pull_requests` 和 `open_telemetry_pull_requests`）除非你设置，否则都为 `true`，两种规则都在 `codeRepositories`（`code_repositories`）中指定存储库，为空表示所有已连接的存储库。
+
+### 调查规则和自动补救规则现在是 AI 规则
+
+**事件 → 人工智能 → 设置** 和 **警报 → 人工智能 → 设置** 的 **更多设置** 下原有两个规则表：调查规则，用于缩小 OneUptime AI 调查哪些事件（或警报）；自动补救规则，用于缩小它修复哪些以及如何修复。没有调查就没有修复，所以它们现在是一个表 **AI 规则**：规则的条件只写一次，规则决定 OneUptime AI 何时调查它匹配的对象，以及是否修复、如何修复。参见 [哪些事件会被调查和修复](/docs/ai/ai-sre#哪些事件会被调查和修复)。
+
+升级后，每个项目的 AI 对事件和警报都照旧行事：
+
+- 匹配相同事件（相同条件，同时启用或同时停用）、并允许相同 MCP 服务器、代码存储库和 LLM 提供商的调查规则和自动补救规则会合并为一条规则：即该自动补救规则，它现在也会在调查规则的等待之后进行调查。它保留自己的名称、修复、运行手册、Runner 和拉取请求开关。
+- 其他每条调查规则都会成为一条调查但不修复的 AI 规则，保留其名称、条件、等待、MCP 服务器、代码存储库和 LLM 提供商。
+- 其他每条自动补救规则照旧修复。在已启用的调查规则决定调查范围的地方，它不调查（其 **调查与修复** 列显示 **不调查**），因此调查范围不变。在没有这种规则的地方，它也会调查，除非它选择了 LLM 提供商；并且如果某条已启用的规则现在会调查，项目还会得到 **Investigate every incident**（或 **Investigate every alert**），它调查每一个且不修复任何内容，使每个事件仍会被调查——除非某条会调查的规则已经匹配所有对象。
+- 在已启用的调查规则决定调查范围、而没有已启用的自动补救规则决定修复范围的地方，修复开启时每个事件都会被修复。修复开启的项目会得到 **Fix every incident**（或 **Fix every alert**），它像没有规则时的 OneUptime AI 一样修复每一个，且不调查；修复关闭的项目不会得到任何修复的规则。如果之后在该项目中开启修复，请先添加一条会修复的规则：有规则时，OneUptime AI 只修复与会修复的规则匹配的内容。
+
+API 客户端和 Terraform 配置：AI 规则是位于 `/api/auto-remediation-rule` 的 `AutoRemediationRule`，沿用自动补救规则原有的路由、权限和 ID。`investigates` 和 `fixes` 表示它做什么（不设置时为 `false` 和 `true`，因此以前编写的客户端仍会创建只修复的规则），`onlyIfOpenAfterMinutes` 是它的等待时间。在 Terraform 中它是 `oneuptime_ai_rule`；`oneuptime_auto_remediation_rule` 仍然可用，但已弃用，`moved` 块可以在不替换规则的情况下完成切换。调查规则的路由 `/api/ai-investigation-rule` 会返回 `410 Gone` 并说明应改用什么，`oneuptime_investigation_rule` 已不复存在：请将此类规则写成 `investigates` 为 `true`、`fixes` 为 `false` 的 `oneuptime_ai_rule`。
+
+规则的权限沿用自动补救规则的权限，并更名为 **Create AI Rule**、**Edit AI Rule**、**Delete AI Rule** 和 **Read AI Rule**。拥有这些权限的自定义角色现在也可以管理只调查的规则，而以前这需要 Project Owner 或 Project Admin。
 
 ### 验证版本和许可证
 

@@ -32,6 +32,11 @@
  *            provider, credits, limit, injection, retry and auto-off.
  *   ?setup=  Turn on recommended that cannot do everything (SETUP_SCENARIOS
  *            below): partly or fail.
+ *   ?sources= silent: the sources sent their last event three days ago, and
+ *            nothing since.
+ *   ?fail=   status or overview: the Overview's set-up figures, or its
+ *            overview, cannot be read the first time (a 500); the next
+ *            read answers.
  *
  * Every read is recorded on window.__securityOperationsFixture: getItem,
  * list, count and API requests, the writes, and `unhandled` - anything the
@@ -223,6 +228,25 @@ const SETUP_SCENARIOS = ["partly", "fail"];
 const setupScenario = SETUP_SCENARIOS.includes(params.get("setup"))
   ? params.get("setup")
   : "";
+/*
+ * ?sources=silent: the project's sources sent their last security event
+ * three days ago and nothing since - a connection that stopped, as the
+ * Overview's top tells it apart from a quiet week.
+ */
+const areSourcesSilent = !isEmpty && params.get("sources") === "silent";
+/*
+ * ?fail=: one of the Overview's two reads fails the first time, as a server
+ * error would (500), and answers the next:
+ *
+ *   status    the set-up figures: the pipeline's place says so, Try again
+ *   overview  the overview: the page's place says so, Try again
+ */
+const READ_FAILURES = ["status", "overview"];
+const readFailure = READ_FAILURES.includes(params.get("fail"))
+  ? params.get("fail")
+  : "";
+let statusReads = 0;
+let overviewReads = 0;
 // The recommended rule the partly scenario leaves undone the first time.
 const PARTLY_UNDONE_RULE = "Password spraying";
 let turnOnCalls = 0;
@@ -1794,8 +1818,13 @@ function setupStatus() {
   return {
     connections: table(SecurityEventConnection).length,
     logsSourceEnabled: table(SecurityLogSource).some(isOn),
-    eventsLast24Hours: isEmpty ? 0 : hasHistory ? 18432 : 2310,
-    lastEventAt: isEmpty ? null : ago(1 * MINUTE).toISOString(),
+    eventsLast24Hours:
+      isEmpty || areSourcesSilent ? 0 : hasHistory ? 18432 : 2310,
+    lastEventAt: isEmpty
+      ? null
+      : areSourcesSilent
+        ? ago(3 * DAY).toISOString()
+        : ago(1 * MINUTE).toISOString(),
     enabledRules: rules.filter(isOn).length,
     recommendedRules: recommended.length,
     recommendedRulesOn: recommended.filter((entry) => {
@@ -2579,9 +2608,17 @@ async function handleApi(method, options) {
   const path = new window.URL(url).pathname;
 
   if (method === "POST" && path.endsWith("/security-case/overview")) {
+    overviewReads++;
+    if (readFailure === "overview" && overviewReads === 1) {
+      return new HTTPErrorResponse(500, { message: "Server Error" }, {});
+    }
     return new HTTPResponse(200, overview(), {});
   }
   if (method === "POST" && path.endsWith("/security-case/setup/status")) {
+    statusReads++;
+    if (readFailure === "status" && statusReads === 1) {
+      return new HTTPErrorResponse(500, { message: "Server Error" }, {});
+    }
     return new HTTPResponse(200, setupStatus(), {});
   }
   if (

@@ -34,9 +34,11 @@ describe("getDefaultRequestBody", () => {
        * such a device with community "public" and report it Down. A walk
        * from a probe that declares "snmpTables" and carries no
        * tableResults was handed no tables; from one that does not, the
-       * server says the probe has to be updated to walk them.
+       * server says the probe has to be updated to walk them. Only a probe
+       * that declares "snmpWalk" is handed SNMP walks, and the device's
+       * credentials with them.
        */
-      probeCapabilities: ["networkDevicePing", "snmpTables"],
+      probeCapabilities: ["networkDevicePing", "snmpTables", "snmpWalk"],
     });
   });
 });

@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/e2e",
-  "version": "14.0.87",
+  "version": "14.0.88",
   "description": "",
   "repository": {
     "type": "git",
@@ -55,6 +55,7 @@
     "test-pagination-ui": "playwright test --config playwright.pagination-ui.config.ts",
     "test-calendar-feed-ui": "playwright test --config playwright.calendar-feed-ui.config.ts",
     "test-list-delete-ui": "playwright test --config playwright.list-delete-ui.config.ts",
+    "test-bulk-actions-ui": "playwright test --config playwright.bulk-actions-ui.config.ts",
     "test-archivable-values-ui": "playwright test --config playwright.archivable-values-ui.config.ts",
     "test-custom-roles-ui": "playwright test --config playwright.custom-roles-ui.config.ts",
     "test-status-timeline-ui": "playwright test --config playwright.status-timeline-ui.config.ts",
@@ -87,7 +88,9 @@
     "test-acknowledgement-timeout-ui": "playwright test --config playwright.acknowledgement-timeout-ui.config.ts",
     "test-owners-on-create-ui": "playwright test --config playwright.owners-on-create-ui.config.ts",
     "test-owner-filters-ui": "playwright test --config playwright.owner-filters-ui.config.ts",
-    "test-kubernetes-events-ui": "playwright test --config playwright.kubernetes-events-ui.config.ts"
+    "test-kubernetes-events-ui": "playwright test --config playwright.kubernetes-events-ui.config.ts",
+    "test-snmp-walk-ui": "playwright test --config playwright.snmp-walk-ui.config.ts",
+    "test-asset-details-ui": "playwright test --config playwright.asset-details-ui.config.ts"
   },
   "keywords": [],
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",

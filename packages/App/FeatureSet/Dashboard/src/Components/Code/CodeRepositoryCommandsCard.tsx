@@ -1,5 +1,6 @@
 import {
   CODE_REPOSITORY_SETTINGS_COPY,
+  CodeRepositorySetting,
   CodeRepositorySettingsValues,
   hasRepositoryCommands,
 } from "./CodeRepositorySettingsCopy";
@@ -117,6 +118,7 @@ const CodeRepositoryCommandsCard: FunctionComponent<ComponentProps> = (
    */
   return (
     <Card
+      id={CodeRepositorySetting.Commands}
       title={CODE_REPOSITORY_SETTINGS_COPY.commandsCardTitle}
       description={CODE_REPOSITORY_SETTINGS_COPY.commandsCardDescription}
       headerLayout="stacked"

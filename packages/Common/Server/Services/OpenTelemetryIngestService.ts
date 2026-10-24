@@ -50,6 +50,7 @@ import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
 import EnterpriseFeature from "../Enterprise/EnterpriseFeature";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import InProcessMemo from "../Utils/InProcessMemo";
+import DiscoveredResourceIdCache from "../Utils/Telemetry/DiscoveredResourceIdCache";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import EntityType from "../../Types/Telemetry/EntityType";
 import { ExtractedEntity } from "../Utils/Telemetry/TelemetryEntity";
@@ -236,6 +237,21 @@ const SERVICE_RESOLUTION_CACHE_NAMESPACE: string = "service-resolution";
 const SERVICE_RESOLUTION_CACHE_TTL_SECONDS: number = 5 * 60;
 const serviceResolutionInProcessCache: Map<string, CachedServiceResolution> =
   new Map();
+
+/*
+ * A service deleted in this process is forgotten here at once - its Redis
+ * entry with it (DiscoveredResourceIdCache) - so the next batch that names
+ * it finds no row and creates it again, instead of stamping the deleted id.
+ * Another process keeps its entry for at most the TTL above.
+ */
+DiscoveredResourceIdCache.registerLocalLayer(
+  "Service",
+  (entry: { projectId: string; identity: string }): void => {
+    serviceResolutionInProcessCache.delete(
+      DiscoveredResourceIdCache.keyFor(entry.projectId, entry.identity),
+    );
+  },
+);
 
 /*
  * Per-resource retention overrides for non-Service telemetry (Host,

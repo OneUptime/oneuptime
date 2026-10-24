@@ -24,7 +24,7 @@ flowchart TB
 | Was | Wie es berechnet wird |
 | --- | --- |
 | Der Tarif | Ein Preis pro Benutzer und Monat, monatlich oder jährlich abgerechnet. Jede Person im Projekt ist ein Platz. |
-| Telemetrie | $0.10 pro aufgenommenem GB, mit 15 Tagen Aufbewahrung. Längere Aufbewahrung kostet mehr: siehe [Was Aufbewahrung kostet](/docs/telemetry/data-retention#was-aufbewahrung-kostet). |
+| Telemetrie | $0.10 pro aufgenommenem GB, mit 15 Tagen Aufbewahrung. Längere Aufbewahrung kostet mehr, und Aufbewahrung unter 7 Tagen wird als 7 Tage abgerechnet: siehe [Was Aufbewahrung kostet](/docs/telemetry/data-retention#was-aufbewahrung-kostet). |
 | Session Replays | $2 pro GB, mit 15 Tagen Aufbewahrung. |
 | Aktive Monitore | $1 pro Monitor und Monat. Jeder Monitor außer einem manuellen ist aktiv, auch wenn er ausgeschaltet ist. |
 | SMS, Anrufe, WhatsApp und Telegram | Aus dem Guthaben des Projekts bezahlt, sobald jede Nachricht gesendet wird. |

@@ -86,7 +86,7 @@ Los monitores, incidentes, alertas, páginas de estado, SLO y muchos otros recur
 | SLO | `Service Level Objective` |
 | Las reglas y propietarios de un SLO | `SLO Burn Rate Rule`, `SLO Monitor Rule`, `Service Level Objective User Owner`, `Service Level Objective Team Owner` |
 | Equipos | `Team` |
-| Roles personalizados, y los equipos que reciben uno | `Custom Role`, `Team Custom Role` |
+| Roles personalizados, y los equipos y claves de API que reciben uno | `Custom Role`, `Team Custom Role`, `API Key Custom Role` |
 | Etiquetas | `Label` |
 | Estados y gravedades de incidente | `Incident State`, `Incident Severity` |
 | Estados y gravedades de alerta | `Alert State`, `Alert Severity` |

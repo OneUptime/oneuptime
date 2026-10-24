@@ -281,7 +281,7 @@ When Microsoft sends you back without a connection, the page you started from sa
 :::
 
 :::details The bot says my account is not connected
-Press **Connect Microsoft Teams account** in the bot's reply to connect it in one step, or link it under **User Settings** > **Workspace** > **Microsoft Teams** with **Connect my account with Microsoft Teams**, signed in to the organization the project is connected to. A guest account from another organization is not the same account.
+Press **Connect Microsoft Teams account** in the bot's reply to connect it in one step, or link it under **User Settings** > **Workspace** > **Microsoft Teams** with **Connect my account with Microsoft Teams**. Either way, you sign in to the organization the project is connected to, as a guest if you are one there. If you are a guest and connected your own organization's account before, connect again.
 :::
 
 :::details Every notification fails on a self-hosted server

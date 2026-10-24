@@ -312,6 +312,19 @@ describe("Stripe rate-limit budget for pay-as-you-go billing", () => {
   });
 
   it("reads the flat-fee subscription once in a whole metered billing pass over one project", async () => {
+    /*
+     * The catch-up window has nothing staged yet and every product has
+     * telemetry yesterday only, so each plan stages that one day, as a
+     * regular daily pass does.
+     */
+    const now: Date = new Date();
+    const yesterday: string = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1),
+    )
+      .toISOString()
+      .slice(0, 10);
+    getJestSpyOn(TelemetryUsageBillingService, "findBy").mockResolvedValue([]);
+
     for (const service of [
       LogService,
       MetricService,
@@ -324,11 +337,15 @@ describe("Stripe rate-limit budget for pay-as-you-go billing", () => {
       getJestSpyOn(service, "groupTelemetryUsageByService").mockResolvedValue(
         [],
       );
+      getJestSpyOn(service, "getDaysWithRows").mockResolvedValue([yesterday]);
     }
     getJestSpyOn(
       RumSessionService,
       "groupSessionReplayUsageByEntity",
     ).mockResolvedValue([]);
+    getJestSpyOn(RumSessionService, "getDaysWithRows").mockResolvedValue([
+      yesterday,
+    ]);
     getJestSpyOn(
       TelemetryUsageBillingService,
       "waiveUnreportedUsageBilling",

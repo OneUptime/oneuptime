@@ -109,6 +109,27 @@ export interface ResourceHeartbeatWrite<TBaseModel extends BaseModel> {
   describe: string;
 }
 
+/*
+ * What a heartbeat found. A write that changed nothing because the row is not
+ * there any more - a person deleted the resource while its id sat in a cache
+ * (issue #5214) - says so, so the caller can stop writing against that id and
+ * resolve the resource again: ingest then adds it back, as on first contact.
+ */
+export interface ResourceHeartbeatResult {
+  /*
+   * True only when Postgres says the row is gone. A heartbeat the gates held
+   * back, one that landed, and one that yielded to a writer holding the row
+   * are all false - so is one whose check could not be read.
+   */
+  isRowGone: boolean;
+}
+
+export const HEARTBEAT_ROW_PRESENT: ResourceHeartbeatResult = {
+  isRowGone: false,
+};
+
+const HEARTBEAT_ROW_GONE: ResourceHeartbeatResult = { isRowGone: true };
+
 /** Derived from the model's liveness namespace — see cacheNamespace. */
 function fingerprintNamespace(cacheNamespace: string): string {
   return `${cacheNamespace}-fingerprint`;
@@ -157,7 +178,7 @@ export default class ResourceHeartbeat {
 
   public static async write<TBaseModel extends BaseModel>(
     input: ResourceHeartbeatWrite<TBaseModel>,
-  ): Promise<void> {
+  ): Promise<ResourceHeartbeatResult> {
     const cacheKey: string = input.id.toString();
     const memoKey: string = `${input.cacheNamespace}:${cacheKey}:${input.fingerprint}`;
 
@@ -166,7 +187,7 @@ export default class ResourceHeartbeat {
      * window. Zero network cost, no gates touched.
      */
     if (this.recentHeartbeatMemo.get(memoKey)) {
-      return;
+      return HEARTBEAT_ROW_PRESENT;
     }
 
     /*
@@ -174,11 +195,14 @@ export default class ResourceHeartbeat {
      * OTLP batch resolves the same resource once per contained resource — the
      * host-metrics collector config OneUptime ships emits hundreds per batch —
      * and without this every one of them independently asks Redis the same
-     * question and throws the answer away.
+     * question and throws the answer away. They all get what it found.
      */
-    await SingleFlight.run(memoKey, async () => {
-      await this.writeOnce(input, cacheKey, memoKey);
-    });
+    return await SingleFlight.run(
+      memoKey,
+      async (): Promise<ResourceHeartbeatResult> => {
+        return await this.writeOnce(input, cacheKey, memoKey);
+      },
+    );
   }
 
   /**
@@ -194,7 +218,7 @@ export default class ResourceHeartbeat {
     input: ResourceHeartbeatWrite<TBaseModel>,
     cacheKey: string,
     memoKey: string,
-  ): Promise<void> {
+  ): Promise<ResourceHeartbeatResult> {
     /*
      * Whether every Redis gate we consulted actually answered. A probe that
      * THREW fell back to a hardcoded outcome (open for liveness, closed for
@@ -304,7 +328,7 @@ export default class ResourceHeartbeat {
       if (gatesAnswered) {
         this.recentHeartbeatMemo.set(memoKey, true, memoTtlInMs);
       }
-      return;
+      return HEARTBEAT_ROW_PRESENT;
     }
 
     /*
@@ -344,12 +368,13 @@ export default class ResourceHeartbeat {
 
       await this.releaseGates(input.cacheNamespace, cacheKey, writeMetadata);
 
-      await input.service.updateColumnsByIdIfUnlockedWithoutHooks({
-        id: input.id,
-        data: input.liveness,
-      });
+      const livenessWrote: boolean =
+        await input.service.updateColumnsByIdIfUnlockedWithoutHooks({
+          id: input.id,
+          data: input.liveness,
+        });
 
-      return;
+      return livenessWrote ? HEARTBEAT_ROW_PRESENT : await this.check(input);
     }
 
     if (!wrote && writeMetadata) {
@@ -364,7 +389,7 @@ export default class ResourceHeartbeat {
        * statement that returns immediately when contended.
        */
       await this.releaseGates(input.cacheNamespace, cacheKey, true);
-      return;
+      return await this.check(input);
     }
 
     /*
@@ -377,6 +402,37 @@ export default class ResourceHeartbeat {
      */
     if (wrote && gatesAnswered) {
       this.recentHeartbeatMemo.set(memoKey, true, memoTtlInMs);
+    }
+
+    /*
+     * A liveness-only write that did not land: another writer held the row,
+     * storing the same now() - or there was no row to write to.
+     */
+    return wrote ? HEARTBEAT_ROW_PRESENT : await this.check(input);
+  }
+
+  /*
+   * After a write that changed nothing: is the row still there? Asked only
+   * then - a write that landed, or one the gates held back, says nothing new
+   * - so a live resource never pays for it. A row another writer held is
+   * there; a row that is gone is a resource deleted while its id was cached,
+   * and the caller resolves it again. A check that cannot be read answers
+   * "there": the caller keeps the id, as it always did.
+   */
+  private static async check<TBaseModel extends BaseModel>(
+    input: ResourceHeartbeatWrite<TBaseModel>,
+  ): Promise<ResourceHeartbeatResult> {
+    try {
+      return (await input.service.hasRowWithIdWithoutHooks(input.id))
+        ? HEARTBEAT_ROW_PRESENT
+        : HEARTBEAT_ROW_GONE;
+    } catch (err) {
+      logger.debug(
+        `ResourceHeartbeat: could not tell whether ${input.describe} is still there: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      return HEARTBEAT_ROW_PRESENT;
     }
   }
 

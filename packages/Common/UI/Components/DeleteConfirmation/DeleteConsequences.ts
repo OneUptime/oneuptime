@@ -283,19 +283,26 @@ export const DELETE_CONSEQUENCES: Readonly<Record<string, DeleteConsequence>> =
       sentence: translationKey(
         "Deleting an API key stops anything that uses it from working.",
       ),
-      deletedWith: ["ApiKeyPermission"],
+      deletedWith: ["ApiKeyPermission", "ApiKeyCustomRole"],
     },
     /*
-     * The permissions the role gave go from every team that has it, in the
-     * same delete: the teams' copies of them (TeamPermission) and the
-     * teams' hold of the role (TeamCustomRole) cascade with it.
+     * The permissions the role gave go from every team and API key that has
+     * it, in the same delete: the copies of them (TeamPermission,
+     * ApiKeyPermission) and the hold of the role (TeamCustomRole,
+     * ApiKeyCustomRole) cascade with it.
      */
     CustomRole: {
       sentence: translationKey(
-        "Deleting a custom role takes its permissions from every team that has it. The teams stay, with their members and their other roles and permissions.",
+        "Deleting a custom role takes its permissions from every team and API key that has it. The teams and keys themselves stay, with everything else they have.",
       ),
-      deletedWith: ["CustomRolePermission", "TeamCustomRole", "TeamPermission"],
-      stays: ["Team", "TeamMember"],
+      deletedWith: [
+        "CustomRolePermission",
+        "TeamCustomRole",
+        "TeamPermission",
+        "ApiKeyCustomRole",
+        "ApiKeyPermission",
+      ],
+      stays: ["Team", "TeamMember", "ApiKey"],
     },
     TelemetryIngestionKey: {
       sentence: translationKey(
@@ -452,6 +459,25 @@ export const DELETE_CONSEQUENCES: Readonly<Record<string, DeleteConsequence>> =
         service: "InventoryItemService",
         code: "private async upsertEntity(",
       },
+    },
+    /*
+     * OneUptime Cloud's Admin Dashboard (ee/AdminDashboard/EnterpriseLicenses):
+     * what deleting a license does to the self-hosted installations that use
+     * its key. Nothing switches them off - an installation keeps the signed
+     * license it already holds (its expiry is inside it) and ignores a
+     * refusal of its daily report (ee/Server/License/Jobs/ReportUserCount).
+     * What stops is everything the key is asked for: the license server
+     * answers "License key is invalid" to Refresh license, to activation and
+     * to the daily seat report (ee/Server/LicenseServer/EnterpriseLicenseAPI),
+     * and its instances (the license page's Instances card) go with it.
+     * ee/Tests/Server/LicenseServer/DeletedLicenseClaims holds those claims
+     * to the code.
+     */
+    EnterpriseLicense: {
+      sentence: translationKey(
+        "Deleting a license also deletes its instances. Installations that use its key keep the license they already hold until it expires, but can no longer refresh or reactivate it, and their seat reports are refused.",
+      ),
+      deletedWith: ["EnterpriseLicenseInstance"],
     },
   };
 

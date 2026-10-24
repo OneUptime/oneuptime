@@ -86,7 +86,7 @@ Monitor, incidenti, avvisi, pagine di stato, SLO e molte altre risorse hanno anc
 | SLO | `Service Level Objective` |
 | Le regole e i proprietari di uno SLO | `SLO Burn Rate Rule`, `SLO Monitor Rule`, `Service Level Objective User Owner`, `Service Level Objective Team Owner` |
 | Team | `Team` |
-| Ruoli personalizzati, e i team che ne ricevono uno | `Custom Role`, `Team Custom Role` |
+| Ruoli personalizzati, e i team e le chiavi API che ne ricevono uno | `Custom Role`, `Team Custom Role`, `API Key Custom Role` |
 | Etichette | `Label` |
 | Stati e gravità degli incidenti | `Incident State`, `Incident Severity` |
 | Stati e gravità degli avvisi | `Alert State`, `Alert Severity` |

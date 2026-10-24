@@ -271,7 +271,7 @@ test.describe("the page", () => {
     await expect(moreSettings(page)).not.toContainText(DEFAULTS_SUMMARY);
   });
 
-  test("the rules sit after the auto remediation rules and before the daily limits, like the switches above them", async ({
+  test("the rules sit after the AI rules and the investigation settings, and before the daily limits, like the switches above them", async ({
     page,
   }: {
     page: Page;
@@ -291,10 +291,9 @@ test.describe("the page", () => {
       });
 
     expect(headings).toEqual([
-      "Investigation rules",
+      "AI rules",
       "Which incidents are investigated",
       "Investigation limits",
-      "Auto remediation rules",
       CARD_TITLE,
       "Daily limits",
     ]);

@@ -16,6 +16,16 @@ import {
 } from "../../../Components/NetworkDevice/DeviceNameSourceDisplay";
 import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
 import { isDifferentText } from "../../../Components/NetworkDevice/DeviceDetailText";
+import AssetFactValue from "../../../Components/Inventory/AssetFactValue";
+import {
+  isNativeAssetFactSource,
+  isUndisputedSavedValue,
+} from "../../../Components/Inventory/AssetFactSourceText";
+import {
+  NetworkDeviceEffectiveInput,
+  NetworkDeviceEffectiveInputs,
+  getNetworkDeviceEffectiveInputs,
+} from "Common/Utils/NetworkDevice/NetworkDeviceAssetFacts";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -52,6 +62,57 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
  * opens. Its name, description, address and site used to be edited here
  * too, in a wizard of their own.
  */
+/*
+ * One of the device's own details - its DNS name, MAC address, SNMP system
+ * name or description - as it stands: the value saved on it or read by its
+ * poll, or what discovery read when it has none, with where it came from
+ * (OneUptime issue #5185).
+ */
+type EffectiveDetailKey = "dnsName" | "macAddress" | "sysName" | "sysDescr";
+
+function effectiveDetail(
+  item: NetworkDevice,
+  key: EffectiveDetailKey,
+): NetworkDeviceEffectiveInput {
+  const inputs: NetworkDeviceEffectiveInputs =
+    getNetworkDeviceEffectiveInputs(item);
+
+  return inputs[key];
+}
+
+function effectiveDetailElement(
+  item: NetworkDevice,
+  key: EffectiveDetailKey,
+): ReactElement {
+  const detail: NetworkDeviceEffectiveInput = effectiveDetail(item, key);
+
+  if (!detail.value) {
+    return <span>-</span>;
+  }
+
+  return (
+    <AssetFactValue
+      value={detail.value}
+      source={detail.source}
+      /*
+       * What the device's own SNMP poll read, and what is saved on it, is
+       * what this page shows by default - its Name and Hostname say nothing
+       * either. A saved value discovery reads differently says so, above
+       * what discovery read.
+       */
+      hideSource={
+        isNativeAssetFactSource(detail.source) ||
+        isUndisputedSavedValue(
+          detail.source,
+          Boolean(detail.discoveredDifferent),
+        )
+      }
+      discoveredDifferent={detail.discoveredDifferent}
+      testId={`network-device-details-${key}`}
+    />
+  );
+}
+
 const NetworkDeviceView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -127,10 +188,16 @@ const NetworkDeviceView: FunctionComponent<
           modelId: modelId,
           /*
            * The name discovery gave the device: the Name Source row below is
-           * shown only while the device is still called exactly that.
+           * shown only while the device is still called exactly that. And
+           * what discovery read about the device, with when its own poll
+           * last did and whether its MAC was learned, so each detail below
+           * says where it came from (issue #5185).
            */
           selectMoreFields: {
             discoveredName: true,
+            discoveredDetails: true,
+            lastSnmpSeenAt: true,
+            isMacAddressLearned: true,
           },
           fields: [
             {
@@ -180,7 +247,9 @@ const NetworkDeviceView: FunctionComponent<
              * #3678). It is a record of the name DNS gave the device — set by
              * discovery import from the PTR record, or kept from the old name
              * when the name was shortened — so the one place it is shown is
-             * next to the address it describes. Hidden when empty: most
+             * next to the address it describes. A device with none shows the
+             * reverse-DNS name a discovery scan found for its address, said
+             * as such (issue #5185). Hidden when neither has one: most
              * hand-made devices never have one.
              */
             {
@@ -188,19 +257,30 @@ const NetworkDeviceView: FunctionComponent<
                 dnsName: true,
               },
               title: "DNS Name",
-              fieldType: FieldType.Text,
+              fieldType: FieldType.Element,
+              getElement: (item: NetworkDevice): ReactElement => {
+                return effectiveDetailElement(item, "dnsName");
+              },
               showIf: (item: NetworkDevice): boolean => {
-                return Boolean(item.dnsName);
+                return Boolean(effectiveDetail(item, "dnsName").value);
               },
             },
+            /*
+             * Typed, or learned from a router's ARP table - which router, and
+             * when, said under it; and a typed MAC the ARP table contradicts
+             * is shown with what the table says (issue #5185).
+             */
             {
               field: {
                 macAddress: true,
               },
               title: "MAC Address",
-              fieldType: FieldType.Text,
+              fieldType: FieldType.Element,
+              getElement: (item: NetworkDevice): ReactElement => {
+                return effectiveDetailElement(item, "macAddress");
+              },
               showIf: (item: NetworkDevice): boolean => {
-                return Boolean(item.macAddress);
+                return Boolean(effectiveDetail(item, "macAddress").value);
               },
             },
             {
@@ -232,18 +312,29 @@ const NetworkDeviceView: FunctionComponent<
                 return <span>{item.site.name}</span>;
               },
             },
+            /*
+             * The device's SNMP system name and description: what its poll
+             * read, or what a discovery scan read at its address when its
+             * poll has not (issue #5185), with which.
+             */
             {
               field: {
                 sysName: true,
               },
               title: "System Name (sysName)",
-              fieldType: FieldType.Text,
+              fieldType: FieldType.Element,
+              getElement: (item: NetworkDevice): ReactElement => {
+                return effectiveDetailElement(item, "sysName");
+              },
               /*
                * Only when it says something the Name does not: a device
                * named after its SNMP name showed the same word twice.
                */
               showIf: (item: NetworkDevice): boolean => {
-                return isDifferentText(item.sysName, item.name);
+                return isDifferentText(
+                  effectiveDetail(item, "sysName").value,
+                  item.name,
+                );
               },
             },
             {
@@ -251,14 +342,20 @@ const NetworkDeviceView: FunctionComponent<
                 sysDescr: true,
               },
               title: "System Description (sysDescr)",
-              fieldType: FieldType.Text,
+              fieldType: FieldType.Element,
+              getElement: (item: NetworkDevice): ReactElement => {
+                return effectiveDetailElement(item, "sysDescr");
+              },
               /*
                * Only when it differs from the Description: a discovery import
                * fills the description from it, so the two used to stand one
                * under the other, word for word.
                */
               showIf: (item: NetworkDevice): boolean => {
-                return isDifferentText(item.sysDescr, item.description);
+                return isDifferentText(
+                  effectiveDetail(item, "sysDescr").value,
+                  item.description,
+                );
               },
             },
             {

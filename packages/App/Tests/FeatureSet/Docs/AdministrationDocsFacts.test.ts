@@ -60,6 +60,7 @@ import AuditLogAction from "Common/Types/AuditLog/AuditLogAction";
 import {
   ACTIVE_MONITOR_PRICE_IN_USD_PER_MONTH,
   SESSION_REPLAY_PRICE_IN_USD_PER_GB,
+  TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS,
   TELEMETRY_PRICE_IN_USD_PER_GB,
   TELEMETRY_PRICE_RETENTION_IN_DAYS,
   formatPriceInUSD,
@@ -1170,9 +1171,14 @@ describe("Billing & Usage", () => {
     expect(rowOf("Telemetry")).toContain(
       `${formatPriceInUSD(TELEMETRY_PRICE_IN_USD_PER_GB)} per GB ingested, with ${TELEMETRY_PRICE_RETENTION_IN_DAYS} days of retention.`,
     );
+    expect(rowOf("Telemetry")).toContain(
+      `retention under ${TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS} days is billed as ${TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS} days`,
+    );
     expect(rowOf("Session replays")).toContain(
       `${formatPriceInUSD(SESSION_REPLAY_PRICE_IN_USD_PER_GB)} per GB, with ${TELEMETRY_PRICE_RETENTION_IN_DAYS} days of retention.`,
     );
+    // Session replays are billed for the days they are kept, with no minimum.
+    expect(rowOf("Session replays")).not.toContain("billed as");
     expect(rowOf("Active monitors")).toContain(
       `${formatPriceInUSD(ACTIVE_MONITOR_PRICE_IN_USD_PER_MONTH)} per monitor per month.`,
     );

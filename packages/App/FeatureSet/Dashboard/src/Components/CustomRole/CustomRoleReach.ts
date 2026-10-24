@@ -1,4 +1,5 @@
 import { CustomRoleReach } from "./CustomRoleCopy";
+import ApiKeyCustomRole from "Common/Models/DatabaseModels/ApiKeyCustomRole";
 import TeamCustomRole from "Common/Models/DatabaseModels/TeamCustomRole";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import Includes from "Common/Types/BaseDatabase/Includes";
@@ -9,13 +10,16 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 
 /*
  * WHO A CUSTOM ROLE REACHES: the teams given it, and the people on them who
- * have accepted their invitation, each once - what a change to the role
- * changes at once, and what deleting it takes access from. Read when the
- * role's page opens and when its Delete is asked. React-free.
+ * have accepted their invitation, each once, and the API keys given it -
+ * what a change to the role changes at once, and what deleting it takes
+ * access from. Read when the role's page opens and when its Delete is
+ * asked. React-free.
  *
  * A reader who may not read the teams' members still learns the teams: the
  * people are then not counted (memberCount null), and the sentences name
- * the teams only.
+ * the teams only. A reader who may not read the project's API keys learns
+ * nothing of them (apiKeyCount null), and the sentences name the teams
+ * only.
  */
 
 export interface TeamWithRole {
@@ -68,8 +72,14 @@ export const loadCustomRoleReach: (data: {
     },
   );
 
+  const apiKeyCount: number | null = await countApiKeysGivenRole({
+    customRoleId: data.customRoleId,
+    projectId: data.projectId,
+    modelAPI: modelAPI,
+  });
+
   if (teams.length === 0) {
-    return { teams: [], teamCount: 0, memberCount: 0 };
+    return { teams: [], teamCount: 0, memberCount: 0, apiKeyCount };
   }
 
   let memberCount: number | null = null;
@@ -108,5 +118,48 @@ export const loadCustomRoleReach: (data: {
     memberCount = null;
   }
 
-  return { teams, teamCount: teams.length, memberCount };
+  return { teams, teamCount: teams.length, memberCount, apiKeyCount };
+};
+
+/*
+ * How many API keys are given the role, or null when the reader may not
+ * read the project's API keys.
+ */
+const countApiKeysGivenRole: (data: {
+  customRoleId: ObjectID;
+  projectId: ObjectID;
+  modelAPI: typeof ModelAPI;
+}) => Promise<number | null> = async (data: {
+  customRoleId: ObjectID;
+  projectId: ObjectID;
+  modelAPI: typeof ModelAPI;
+}): Promise<number | null> => {
+  try {
+    const given: ListResult<ApiKeyCustomRole> = await data.modelAPI.getList({
+      modelType: ApiKeyCustomRole,
+      query: {
+        customRoleId: data.customRoleId,
+        projectId: data.projectId,
+      },
+      select: {
+        apiKeyId: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      sort: {},
+    });
+
+    return new Set<string>(
+      given.data
+        .map((row: ApiKeyCustomRole): string => {
+          return row.apiKeyId?.toString().toLowerCase() || "";
+        })
+        .filter((apiKeyId: string): boolean => {
+          return Boolean(apiKeyId);
+        }),
+    ).size;
+  } catch {
+    // The keys are not the reader's to read: the sentences name the teams only.
+    return null;
+  }
 };

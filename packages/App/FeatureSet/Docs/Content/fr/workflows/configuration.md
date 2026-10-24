@@ -22,7 +22,7 @@ Servez-vous de cet interrupteur comme du feu vert « prêt à partir » :
 4. Basculez **Activé** quand il est prêt : à partir de là, son déclencheur se produit sur de vrais événements.
 :::
 
-Désactiver un workflow empêche son déclencheur de lancer de nouvelles exécutions. Une exécution déjà en cours se termine, mais une exécution lancée par son déclencheur qui attend sur un bloc **Sleep** est annulée à son réveil. Les exécutions de test continuent.
+Désactiver un workflow empêche son déclencheur de lancer de nouvelles exécutions. Une exécution déjà en cours se termine, mais une exécution lancée par son déclencheur qui attend sur un bloc **Sleep** est annulée à son réveil. Les exécutions de test continuent. Pour en activer ou en désactiver plusieurs à la fois, sélectionnez-les dans la liste **Flux de travail** et choisissez **Activer** ou **Désactiver** sous **Actions groupées**.
 
 ## Archiver un workflow
 

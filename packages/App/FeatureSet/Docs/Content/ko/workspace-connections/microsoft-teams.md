@@ -281,7 +281,7 @@ Microsoft 가 연결 없이 돌려보내면, 시작한 페이지에 **Microsoft 
 :::
 
 :::details 봇이 내 계정이 연결되지 않았다고 말함
-봇의 답글에서 **Connect Microsoft Teams account** 를 눌러 한 단계로 연결하거나, 프로젝트가 연결된 조직에 로그인한 상태로 **사용자 설정** > **워크스페이스** > **Microsoft Teams** 에서 **Connect my account with Microsoft Teams** 로 연결하세요. 다른 조직의 게스트 계정은 같은 계정이 아닙니다.
+봇의 답글에서 **Connect Microsoft Teams account** 를 눌러 한 단계로 연결하거나, **사용자 설정** > **워크스페이스** > **Microsoft Teams** 에서 **Connect my account with Microsoft Teams** 로 연결하세요. 어느 쪽이든 프로젝트가 연결된 조직에 로그인하며, 그 조직의 게스트라면 게스트로 로그인합니다. 게스트인데 이전에 자신의 조직 계정을 연결했다면 다시 연결하세요.
 :::
 
 :::details 자체 호스팅 서버에서 모든 알림이 실패함

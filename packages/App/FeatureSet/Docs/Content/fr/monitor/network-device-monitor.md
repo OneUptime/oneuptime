@@ -382,6 +382,20 @@ Les valeurs collectées sont tracées sur la page **Métriques** de l'équipemen
 
 Les longues listes d'OID sont réparties sur plusieurs requêtes SNMP GET pour que chacune tienne dans un datagramme UDP. Si vous avez gardé vos listes d'OID courtes parce qu'une ancienne version signalait hors ligne un équipement répondant `tooBig`, ce n'est plus nécessaire.
 
+### Trouver des OID avec un parcours SNMP
+
+La page **Parcours SNMP** d'un équipement, sous **Plus** dans son menu, liste chaque OID auquel l'équipement répond, avec son type, sa valeur et, quand OneUptime connaît la MIB, son nom. C'est le `snmpwalk` que vous lanceriez sinon depuis le réseau de la sonde, exécuté par la sonde de l'équipement avec les identifiants que conserve OneUptime pour lui, qui n'atteignent jamais votre navigateur.
+
+Saisissez un OID numérique sous **OID de départ**, ou choisissez-en un parmi les **Points de départ courants** : **Tout**, **Système**, **Interfaces**, **Ressources de l'hôte** ou **Propre au fabricant**. Cliquez ensuite sur **Parcourir**. La sonde prend en charge le parcours en dix secondes et envoie une requête à la fois, au plus 1 000 OID en au plus 45 secondes, si bien qu'un parcours ne submerge jamais l'équipement. S'il reste à lire, **Poursuivre le parcours** lit les 1 000 suivants à partir de l'endroit où il s'est arrêté. Un équipement n'a qu'un parcours en cours à la fois, et ses parcours sont conservés deux jours.
+
+Chaque ligne indique où son OID est connu : une valeur que collecte un modèle de santé de fabricant, une colonne de la table SNMP d'un modèle de fabricant, un compteur que le parcours des interfaces trace déjà pour chaque port, ou un OID sous la MIB de son fabricant. Depuis une ligne :
+
+- **Collecter** ajoute l'OID aux **OID de santé propres à l'équipement** de l'équipement : chaque interrogation le collecte à partir de la prochaine, et la page **Métriques** de l'équipement le trace. Sur un équipement lié à un modèle de collecte d'OID, le menu de la ligne peut plutôt l'ajouter au modèle, pour chaque équipement qui l'utilise.
+- **Créer une alerte**, qui apparaît une fois l'OID collecté, ouvre un nouveau moniteur Équipement réseau pour l'équipement avec un critère **SNMP OID Value** sur l'OID, à partir de la valeur lue : un compteur ou une jauge alerte au-dessus, une durée de fonctionnement en dessous (l'équipement a redémarré), tout le reste quand il change.
+- **Copier l'OID**, dans le menu de la ligne, copie l'OID.
+
+Un parcours qui échoue dit pourquoi, et quoi vérifier : un équipement qui ne répond pas (SNMP désactivé, UDP 161 bloqué ou, en v1 et v2c, une chaîne de communauté erronée, qu'un agent ignore sans rien dire), un utilisateur, un mot de passe ou un protocole SNMPv3 que l'équipement a refusé, ou une partie de l'arbre que la vue SNMP des identifiants exclut. Un parcours qui s'arrête en route garde ce qu'il a lu. Parcourir demande l'autorisation **Create Network Device Diagnostic** et une sonde assez récente pour parcourir SNMP : avec une sonde plus ancienne, la page vous demande de la mettre à jour.
+
 ### Tables SNMP
 
 Une partie de ce que sait un équipement est une liste : une ligne par tunnel IPsec, radio Wi-Fi, SSID, voisin de fabric, ventilateur ou alimentation. Une table SNMP se définit par ses colonnes, et chaque ligne est parcourue à chaque interrogation, si bien qu'un tunnel ajouté, renommé ou supprimé est suivi sans que personne ne modifie quoi que ce soit.
@@ -492,7 +506,13 @@ Une investigation de OneUptime AI sur un incident ou une alerte d'un moniteur É
 
 Après le premier parcours réussi, OneUptime lit le groupe système SNMPv2 et, si l'équipement le prend en charge, ENTITY-MIB, et remplit la fiche de l'équipement : nom système, description, emplacement, contact, durée de fonctionnement, constructeur, modèle, numéro de série et version du firmware. L'OID d'entreprise du constructeur (`sysObjectID`) est l'empreinte de l'équipement : il nomme le constructeur et choisit le modèle constructeur correspondant. Les mêmes informations apparaissent dans l'[inventaire](/docs/inventory/cmdb-sync#attributs-dactif-des-équipements-réseau) avec tous vos autres actifs.
 
-Un équipement seulement pingué garde le nom et l'adresse que vous, ou une analyse de découverte, lui avez donnés : il n'y a pas d'agent SNMP à qui demander mieux.
+Un équipement seulement pingué garde le nom et l'adresse que vous, ou une analyse de découverte, lui avez donnés. Ce que sa propre interrogation n'a pas lu, il le prend à la découverte :
+
+- Le nom système, la description, le `sysObjectID`, l'emplacement et le contact que la dernière [analyse de découverte](#découvrir-des-équipements-par-une-analyse-réseau) de son adresse a lus par SNMP, ainsi que les noms DNS inverse et NetBIOS qu'elle a trouvés.
+- Son adresse MAC, à partir de la table ARP d'un routeur parcouru de son site.
+- Pour un équipement interrogé par un nom DNS, l'adresse en laquelle sa sonde a résolu ce nom.
+
+Ces valeurs sont conservées à côté des champs de l'équipement, jamais écrites dedans, et chaque analyse, parcours de routeur ou interrogation qui en relit une la met à jour. L'aperçu de l'équipement et son élément d'inventaire indiquent quelle analyse, quel routeur ou quelle sonde a lu chaque valeur, et quand. Une valeur que vous avez enregistrée sur l'équipement n'est jamais remplacée. Quand une analyse trouve une autre machine à l'adresse de l'équipement, par exemple un bail DHCP qui a changé, l'aperçu le signale, et rien de ce que cette analyse y a lu n'est utilisé.
 
 ## Découvrir des équipements par une analyse réseau
 
@@ -1064,6 +1084,8 @@ snmpget -v3 -u username -l authPriv -a SHA -A authpassword -x AES -X privpasswor
 :::
 
 Une réponse contenant la description de l'équipement signifie que la sonde peut le parcourir avec ces identifiants.
+
+Une fois l'équipement ajouté, sa page **Parcours SNMP** fait ce test pour vous depuis la sonde, avec les identifiants que conserve OneUptime pour lui, et liste tout ce à quoi l'équipement répond : voir [Trouver des OID avec un parcours SNMP](#trouver-des-oid-avec-un-parcours-snmp).
 :::
 
 ## Étapes suivantes

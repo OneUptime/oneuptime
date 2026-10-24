@@ -1,4 +1,4 @@
-/* Offline fixture server for Incidents -> AI -> Settings and Alerts -> AI -> Settings and their auto remediation rules. No app/API server needed. */
+/* Offline fixture server for Incidents -> AI -> Settings and Alerts -> AI -> Settings and their AI rules. No app/API server needed. */
 const fs = require("fs");
 const http = require("http");
 const path = require("path");
@@ -43,7 +43,7 @@ const font = path.join(
  * on <html> that Theme.css and Tailwind's dark: variants read.
  */
 const env = `{HOST:"localhost",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development"}`;
-const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Auto remediation rules preview</title><script>window.process={env:${env}};window.global=window;if(new URLSearchParams(window.location.search).get("theme")==="dark"){document.documentElement.classList.add("dark");}</script><script src="/tailwind.js"></script><script>tailwind.config={darkMode:"class",theme:{extend:{fontFamily:{display:["Inter","sans-serif"],body:["Inter","sans-serif"]}}}};</script><style>@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/fonts/InterVariable.woff2') format('woff2');}body{margin:0;background:var(--ou-background-primary,#f8fafc)}*{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,sans-serif}</style></head><body><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
+const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI rules preview</title><script>window.process={env:${env}};window.global=window;if(new URLSearchParams(window.location.search).get("theme")==="dark"){document.documentElement.classList.add("dark");}</script><script src="/tailwind.js"></script><script>tailwind.config={darkMode:"class",theme:{extend:{fontFamily:{display:["Inter","sans-serif"],body:["Inter","sans-serif"]}}}};</script><style>@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/fonts/InterVariable.woff2') format('woff2');}body{margin:0;background:var(--ou-background-primary,#f8fafc)}*{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,sans-serif}</style></head><body><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
 async function main() {
   fs.mkdirSync(output, { recursive: true });
   await esbuild.build(config);
@@ -82,7 +82,7 @@ async function main() {
   });
   server.listen(port, "127.0.0.1", () => {
     console.log(
-      `Auto remediation rules fixture ready at http://127.0.0.1:${port}/dashboard/10000000-0000-4000-8000-0000000000a1/incidents/ai/settings`,
+      `AI rules fixture ready at http://127.0.0.1:${port}/dashboard/10000000-0000-4000-8000-0000000000a1/incidents/ai/settings`,
     );
   });
   process.on("SIGTERM", () => server.close());

@@ -52,7 +52,10 @@ jest.mock("../../../../Server/Services/ProjectService", () => {
 jest.mock("../../../../Server/Services/LogService", () => {
   return {
     __esModule: true,
-    default: { groupTelemetryUsageByService: jest.fn() },
+    default: {
+      groupTelemetryUsageByService: jest.fn(),
+      getDaysWithRows: jest.fn(),
+    },
   };
 });
 jest.mock("../../../../Server/Services/ServiceService", () => {
@@ -242,7 +245,7 @@ describe("metered billing payment protection", () => {
     beforeEach(() => {
       stage = getJestSpyOn(
         TelemetryUsageBillingService,
-        "stageTelemetryUsageForProject",
+        "stageUnstagedTelemetryUsageForProject",
       ).mockResolvedValue(undefined);
       waive = getJestSpyOn(
         TelemetryUsageBillingService,
@@ -301,6 +304,14 @@ describe("metered billing payment protection", () => {
       expect(waive.mock.invocationCallOrder[0]).toBeLessThan(
         stage.mock.invocationCallOrder[0]!,
       );
+      // The cutoff read once here spares staging a provider read per day.
+      expect(stage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          projectId: PROJECT_ID,
+          productType: ProductType.Logs,
+          billingStartsAt: CUTOFF,
+        }),
+      );
       expect(report).toHaveBeenCalledWith("sub_metered", plan, 125, {
         liveAuthorization: expect.objectContaining({
           projectId: PROJECT_ID.toString(),
@@ -323,6 +334,22 @@ describe("metered billing payment protection", () => {
         LogService,
         "groupTelemetryUsageByService",
       ).mockResolvedValue([]);
+      // Nothing staged yet in the catch-up window, and logs only yesterday.
+      getJestSpyOn(TelemetryUsageBillingService, "findBy").mockResolvedValue(
+        [],
+      );
+      const now: Date = new Date();
+      getJestSpyOn(LogService, "getDaysWithRows").mockResolvedValue([
+        new Date(
+          Date.UTC(
+            now.getUTCFullYear(),
+            now.getUTCMonth(),
+            now.getUTCDate() - 1,
+          ),
+        )
+          .toISOString()
+          .slice(0, 10),
+      ]);
 
       await plan.reportQuantityToBillingProvider(PROJECT_ID);
 
@@ -339,6 +366,35 @@ describe("metered billing payment protection", () => {
       expect(report).toHaveBeenCalledWith("sub_metered", plan, 125, {
         liveAuthorization,
       });
+    });
+
+    it("bills the usage that did stage when a day fails to stage, then reports the failure", async () => {
+      stage.mockRejectedValue(
+        new Error("Timeout exceeded: elapsed 120 seconds"),
+      );
+
+      await expect(
+        plan.reportQuantityToBillingProvider(PROJECT_ID),
+      ).rejects.toThrow("Timeout exceeded: elapsed 120 seconds");
+
+      expect(report).toHaveBeenCalledWith("sub_metered", plan, 125, {
+        liveAuthorization: expect.objectContaining({
+          projectId: PROJECT_ID.toString(),
+        }),
+      });
+      expect(markReported).toHaveBeenCalledTimes(1);
+    });
+
+    it("still reports a staging failure when nothing is left to bill", async () => {
+      stage.mockRejectedValue(
+        new Error("Timeout exceeded: elapsed 120 seconds"),
+      );
+      readUsage.mockResolvedValue([]);
+
+      await expect(
+        plan.reportQuantityToBillingProvider(PROJECT_ID),
+      ).rejects.toThrow("Timeout exceeded: elapsed 120 seconds");
+      expect(report).not.toHaveBeenCalled();
     });
 
     it("preserves prior usage for invoice and reseller contracts without a cutoff", async () => {

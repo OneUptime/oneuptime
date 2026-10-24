@@ -382,6 +382,20 @@ Os valores coletados aparecem em gráficos na página **Métricas** do dispositi
 
 Listas longas de OIDs são divididas em várias requisições SNMP GET para que cada uma caiba em um único datagrama UDP. Se você mantinha suas listas de OIDs curtas porque uma versão anterior informava como offline um dispositivo que respondia `tooBig`, não precisa mais.
 
+### Encontrar OIDs com um walk SNMP
+
+A página **Walk SNMP** de um dispositivo, em **Mais** no menu dele, lista cada OID que o dispositivo responde, com tipo, valor e, quando o OneUptime conhece a MIB, nome. É o `snmpwalk` que você executaria a partir da rede da sonda, executado pela própria sonda do dispositivo com as credenciais que o OneUptime guarda para ele, que nunca chegam ao seu navegador.
+
+Digite um OID numérico em **OID inicial** ou escolha um dos **Pontos de partida comuns**: **Tudo**, **Sistema**, **Interfaces**, **Recursos do host** ou **Específico do fabricante**. Depois clique em **Fazer walk**. A sonda pega o walk em até dez segundos e faz uma solicitação por vez, no máximo 1.000 OIDs em no máximo 45 segundos, então um walk nunca sobrecarrega o dispositivo. Quando há mais para ler, **Continuar o walk** lê os próximos 1.000 a partir de onde ele parou. Cada dispositivo tem um walk em andamento por vez, e os walks dele são mantidos por dois dias.
+
+Cada linha diz onde o OID dela é conhecido: um valor que um modelo de saúde de um fabricante coleta, uma coluna da tabela SNMP de um modelo de fabricante, um contador que o walk das interfaces já exibe em gráfico para cada porta, ou um OID sob a MIB do fabricante. A partir de uma linha:
+
+- **Coletar** adiciona o OID aos **Device-Specific Health OIDs** do dispositivo: cada sondagem o coleta a partir da próxima, e a página **Métricas** do dispositivo o exibe em gráfico. Em um dispositivo vinculado a um OID Collection Template, o menu da linha pode adicioná-lo ao modelo em vez disso, para cada dispositivo que o usa.
+- **Criar alerta**, que aparece quando o OID passa a ser coletado, abre um novo monitor de dispositivo de rede para o dispositivo com um critério **SNMP OID Value** no OID, a partir do valor lido: um contador ou medidor alerta acima dele, um tempo de atividade abaixo (o dispositivo reiniciou), qualquer outro valor quando muda.
+- **Copiar OID**, no menu da linha, copia o OID.
+
+Um walk que falha diz por quê, e o que verificar: um dispositivo que não responde (SNMP desligado, UDP 161 bloqueada ou, em v1 e v2c, uma community string errada, que um agente ignora sem dizer nada), um usuário, senha ou protocolo SNMPv3 que o dispositivo recusou, ou uma parte da árvore que a visão SNMP das credenciais deixa de fora. Um walk que para no meio do caminho mantém o que leu. Fazer walk exige a permissão **Create Network Device Diagnostic** e uma sonda recente o bastante para fazer walks SNMP: com uma mais antiga, a página pede que você a atualize.
+
 ### Tabelas SNMP
 
 Parte do que um dispositivo sabe é uma lista: uma linha por túnel IPsec, rádio Wi-Fi, SSID, vizinho do fabric, ventoinha ou fonte de alimentação. Uma tabela SNMP é definida pelas suas colunas, e cada linha passa por walk a cada sondagem, então um túnel adicionado, renomeado ou excluído é acompanhado sem que ninguém edite nada.
@@ -492,7 +506,13 @@ Uma investigação do OneUptime AI sobre um incidente ou alerta de um monitor de
 
 Depois do primeiro walk bem-sucedido, o OneUptime lê o grupo de sistema SNMPv2 e, quando o dispositivo oferece suporte, a ENTITY-MIB, e preenche o registro do dispositivo: nome do sistema, descrição, localização, contato, tempo ativo, fabricante, modelo, número de série e versão do firmware. O OID enterprise do fabricante (`sysObjectID`) é a impressão digital do dispositivo: ele indica o fabricante e escolhe o modelo do fabricante correspondente. As mesmas informações aparecem no [inventário](/docs/inventory/cmdb-sync#atributos-de-ativo-dos-dispositivos-de-rede) junto com todos os seus outros ativos.
 
-Um dispositivo só com ping mantém o nome e o endereço que você, ou uma varredura de descoberta, deu a ele: não há agente SNMP a quem pedir algo melhor.
+Um dispositivo só com ping mantém o nome e o endereço que você, ou uma varredura de descoberta, deu a ele. O que a sua própria consulta não leu, ele obtém da descoberta:
+
+- O nome do sistema, a descrição, o `sysObjectID`, a localização e o contato que a última [varredura de descoberta](#descobrir-dispositivos-com-uma-varredura-de-rede) do seu endereço leu por SNMP, e os nomes DNS reverso e NetBIOS que ela encontrou.
+- O endereço MAC, da tabela ARP de um roteador percorrido do seu site.
+- Para um dispositivo consultado por um nome DNS, o endereço para o qual a sonda resolveu esse nome.
+
+Esses valores ficam ao lado dos campos do próprio dispositivo, nunca gravados neles, e cada varredura, walk de roteador ou consulta que lê um deles de novo o atualiza. A visão geral do dispositivo e o seu item no inventário mostram qual varredura, roteador ou sonda leu cada valor, e quando. Um valor que você salvou no dispositivo nunca é substituído. Quando uma varredura encontra outra máquina no endereço do dispositivo, como uma concessão DHCP que mudou, a visão geral avisa, e nada do que essa varredura leu ali é usado.
 
 ## Descobrir dispositivos com uma varredura de rede
 
@@ -1064,6 +1084,8 @@ snmpget -v3 -u username -l authPriv -a SHA -A authpassword -x AES -X privpasswor
 :::
 
 Uma resposta com a descrição do dispositivo significa que a sonda consegue fazer o walk dele com essas credenciais.
+
+Depois que o dispositivo é adicionado, a página **Walk SNMP** dele faz esse teste por você a partir da sonda, com as credenciais que o OneUptime guarda para ele, e lista tudo o que o dispositivo responde: veja [Encontrar OIDs com um walk SNMP](#encontrar-oids-com-um-walk-snmp).
 :::
 
 ## Próximos passos

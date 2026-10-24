@@ -176,6 +176,13 @@ import { AddTwilioConfigUsedFor1806100000000 } from "./1806100000000-AddTwilioCo
 import { AddLabelNameSortKey1806200000000 } from "./1806200000000-AddLabelNameSortKey";
 import { AddOwnerRuleCreatorTeams1806300000000 } from "./1806300000000-AddOwnerRuleCreatorTeams";
 import { WidenDetectionRuleName1806400000000 } from "./1806400000000-WidenDetectionRuleName";
+import { AddApiKeyCustomRoles1806500000000 } from "./1806500000000-AddApiKeyCustomRoles";
+import { AddApiKeyPermissionCustomRoleLinks1806510000000 } from "./1806510000000-AddApiKeyPermissionCustomRoleLinks";
+import { AddNetworkDeviceDiagnosticSnmpWalk1806600000000 } from "./1806600000000-AddNetworkDeviceDiagnosticSnmpWalk";
+import { MergeDuplicateHostsAndAddUniqueHostIdentifier1806700000000 } from "./1806700000000-MergeDuplicateHostsAndAddUniqueHostIdentifier";
+import { AddNetworkDeviceDiscoveredDetails1806800000000 } from "./1806800000000-AddNetworkDeviceDiscoveredDetails";
+import { AddAiRuleInvestigation1806900000000 } from "./1806900000000-AddAiRuleInvestigation";
+import { MergeInvestigationRulesIntoAiRules1806910000000 } from "./1806910000000-MergeInvestigationRulesIntoAiRules";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1554,4 +1561,11 @@ export default [
   AddLabelNameSortKey1806200000000,
   AddOwnerRuleCreatorTeams1806300000000,
   WidenDetectionRuleName1806400000000,
+  AddApiKeyCustomRoles1806500000000,
+  AddApiKeyPermissionCustomRoleLinks1806510000000,
+  AddNetworkDeviceDiagnosticSnmpWalk1806600000000,
+  MergeDuplicateHostsAndAddUniqueHostIdentifier1806700000000,
+  AddNetworkDeviceDiscoveredDetails1806800000000,
+  AddAiRuleInvestigation1806900000000,
+  MergeInvestigationRulesIntoAiRules1806910000000,
 ];

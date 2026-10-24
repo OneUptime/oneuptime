@@ -86,7 +86,7 @@ Ist **Postmortem entwerfen, wenn ein Vorfall gelöst wird** eingeschaltet, entwi
 
 Ohne Regel erhält jeder gelöste Vorfall einen Entwurf in der Standardgliederung von OneUptime AI. **Postmortem-Regeln** unter **Weitere Einstellungen** auf derselben Seite ändern das:
 
-- Eine Regel passt auf **Alle Vorfälle** oder auf **Nur Vorfälle, die den Bedingungen entsprechen** zu Monitoren, Schweregraden, Labels, Monitor-Labels, Titel und Beschreibung, so wie eine Untersuchungsregel.
+- Eine Regel passt auf **Alle Vorfälle** oder auf **Nur Vorfälle, die den Bedingungen entsprechen** zu Monitoren, Schweregraden, Labels, Monitor-Labels, Titel und Beschreibung, so wie eine KI-Regel.
 - Ihre **Vorlagen** sind die Postmortem-Vorlagen, denen der Entwurf folgen darf. Ohne Vorlage folgt der Entwurf der Standardgliederung; mit einer dieser Vorlage; mit mehreren der, die nach Einschätzung von OneUptime AI am besten zum Vorfall passt. Der Beitrag des Entwurfs im Feed nennt die Vorlage, der er gefolgt ist.
 - Ihr **LLM-Anbieter** unter **Weitere Felder** ist der Anbieter, mit dem OneUptime AI den Entwurf schreibt und seine Vorlage wählt. Ist keiner ausgewählt, ist es der Standardanbieter des Projekts, sonst der globale. Der Beitrag des Entwurfs im Feed nennt den Anbieter, den eine Regel gewählt hat, oder den, der stattdessen genutzt wurde, und warum. Siehe [Welchen LLM-Anbieter eine Regel nutzt](/docs/ai/ai-sre#welchen-llm-anbieter-eine-regel-nutzt).
 - Es entscheidet die erste aktivierte Regel, die auf den Vorfall passt, von oben in der Liste gezählt: Ziehen Sie eine Regel, um ihre Position zu ändern. Ein Vorfall, auf den keine Regel passt, erhält keinen Entwurf, und solange sich die Regeln nicht lesen lassen, erhält ihn kein Vorfall.

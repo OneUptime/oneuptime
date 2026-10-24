@@ -1,5 +1,4 @@
 import Models from "../../../Models/DatabaseModels/Index";
-import AIInvestigationRule from "../../../Models/DatabaseModels/AIInvestigationRule";
 import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
 import CodeRepository from "../../../Models/DatabaseModels/CodeRepository";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -7,8 +6,8 @@ import RuleBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Rule
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import TableColumnType from "../../../Types/Database/TableColumnType";
-import AIInvestigationRuleTriggerEntity from "../../../Types/AI/AIInvestigationRuleTriggerEntity";
 import AutoRemediationAction from "../../../Types/AutoRemediation/AutoRemediationAction";
+import AutoRemediationTriggerEntity from "../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import Permission from "../../../Types/Permission";
 import { describe, expect, it } from "@jest/globals";
 import { getMetadataArgsStorage } from "typeorm";
@@ -25,12 +24,13 @@ import type { JoinTableMetadataArgs } from "typeorm/metadata-args/JoinTableMetad
  *   - AutoRemediationRule.openCodeFixPullRequests and
  *     openTelemetryPullRequests: the two pull requests fixing opens, on by
  *     default, per rule - the project's own switches for them are gone;
- *   - AutoRemediationRule.codeRepositories and
- *     AIInvestigationRule.codeRepositories: the code repositories OneUptime
- *     AI may use for what a rule matches (none named: all of them);
- *   - AIInvestigationRule: which new incidents and alerts are investigated,
- *     a project-scoped rule with the same conditions as the auto
- *     remediation rules, changed by a Project Owner or Admin.
+ *   - AutoRemediationRule.codeRepositories: the code repositories
+ *     OneUptime AI may use for what a rule matches (none named: all of
+ *     them);
+ *   - AutoRemediationRule is the AI rule: which new incidents and alerts
+ *     are investigated (investigates, onlyIfOpenAfterMinutes) and which are
+ *     fixed (fixes) - the investigation rules moved into it, and their own
+ *     table's model is gone.
  */
 
 const OWNER_OR_ADMIN: Array<Permission> = [
@@ -158,12 +158,6 @@ describe("the code repositories a rule names", () => {
       AutoRemediationRule as unknown as { new (): BaseModel },
       "AutoRemediationRuleCodeRepository autoRemediationRuleId codeRepositoryId",
     ],
-    [
-      "AIInvestigationRule",
-      new AIInvestigationRule() as BaseModel,
-      AIInvestigationRule as unknown as { new (): BaseModel },
-      "AIInvestigationRuleCodeRepository aiInvestigationRuleId codeRepositoryId",
-    ],
   ])(
     "%s.codeRepositories is an optional list of the project's code repositories",
     (
@@ -220,36 +214,70 @@ describe("AutoRemediationRule.remediationAction", () => {
   });
 });
 
-describe("AIInvestigationRule", () => {
-  const model: AIInvestigationRule = new AIInvestigationRule();
+/*
+ * "Should incident investigation rule and remediation rule be the same
+ * entity - we can call it Incident AI rules ... Since its not possible to
+ * remediate without investigation" - the maintainer. One AI rule, in the
+ * table the auto remediation rules had: the investigation rules moved in
+ * (MergeInvestigationRulesIntoAiRules).
+ */
+describe("the AI rule", () => {
+  const model: AutoRemediationRule = new AutoRemediationRule();
 
   it("is a rule with the shared conditions, registered so its table is created", () => {
     expect(model).toBeInstanceOf(RuleBaseModel);
     expect(
       Models.some((registered: { new (): BaseModel }) => {
-        return registered === AIInvestigationRule;
+        return registered === AutoRemediationRule;
       }),
     ).toBe(true);
   });
 
-  it("is scoped to a project, and served from its own endpoint", () => {
-    expect(model.getTenantColumn()).toBe("projectId");
-    expect(model.getCrudApiPath()?.toString()).toBe("/ai-investigation-rule");
+  it("is the one model of its kind: the investigation rules' model is gone", () => {
+    const tableNames: Array<string> = Models.map(
+      (registered: { new (): BaseModel }): string => {
+        return new registered().tableName || "";
+      },
+    );
+
+    expect(tableNames).toContain("AutoRemediationRule");
+    expect(tableNames).not.toContain("AIInvestigationRule");
   });
 
-  it("is changed by a Project Owner or Admin, and read by the project's members", () => {
-    expect(model.getCreatePermissions()).toEqual(OWNER_OR_ADMIN);
-    expect(model.getUpdatePermissions()).toEqual(OWNER_OR_ADMIN);
-    expect(model.getDeletePermissions()).toEqual(OWNER_OR_ADMIN);
+  it("is scoped to a project, and served from the endpoint the auto remediation rules had", () => {
+    expect(model.getTenantColumn()).toBe("projectId");
+    expect(model.getCrudApiPath()?.toString()).toBe("/auto-remediation-rule");
+  });
+
+  it("is named an AI rule, and says what it was", () => {
+    expect(model.singularName).toBe("AI Rule");
+    expect(model.pluralName).toBe("AI Rules");
+    expect(model.formerSingularName).toBe("Auto Remediation Rule");
+  });
+
+  it("is changed by a Project Owner or Admin or the AI rule permissions, and read by the project's members", () => {
+    expect(model.getCreatePermissions()).toEqual([
+      ...OWNER_OR_ADMIN,
+      Permission.CreateAutoRemediationRule,
+    ]);
+    expect(model.getUpdatePermissions()).toEqual([
+      ...OWNER_OR_ADMIN,
+      Permission.EditAutoRemediationRule,
+    ]);
+    expect(model.getDeletePermissions()).toEqual([
+      ...OWNER_OR_ADMIN,
+      Permission.DeleteAutoRemediationRule,
+    ]);
     expect(model.getReadPermissions()).toEqual([
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
     ]);
   });
 
-  it("holds a name, a switch, the kind of signal, and the conditions", () => {
+  it("holds a name, a switch, the kind of signal, the conditions, and what it does", () => {
     const columns: Array<string> = model.getTableColumns().columns;
 
     for (const column of [
@@ -265,6 +293,10 @@ describe("AIInvestigationRule", () => {
       "monitorLabels",
       "titlePattern",
       "descriptionPattern",
+      "investigates",
+      "onlyIfOpenAfterMinutes",
+      "fixes",
+      "executionMode",
     ]) {
       expect(columns).toContain(column);
     }
@@ -272,28 +304,72 @@ describe("AIInvestigationRule", () => {
     expect(model.getTableColumnMetadata("isEnabled").defaultValue).toBe(true);
   });
 
+  /*
+   * An auto remediation rule an older API or Terraform client creates says
+   * nothing of either: it fixes, and does not decide which incidents are
+   * investigated - what it always did.
+   */
+  it.each([
+    ["investigates", "Investigates", false],
+    ["fixes", "Fixes", true],
+  ])(
+    "%s is a required Boolean that starts %s",
+    (column: string, title: string, defaultValue: boolean) => {
+      const metadata: ReturnType<
+        AutoRemediationRule["getTableColumnMetadata"]
+      > = model.getTableColumnMetadata(column);
+
+      expect(metadata.type).toBe(TableColumnType.Boolean);
+      expect(metadata.title).toBe(title);
+      expect(metadata.defaultValue).toBe(defaultValue);
+      expect(metadata.required).toBe(true);
+      expect(metadata.isDefaultValueColumn).toBe(true);
+    },
+  );
+
+  it("waits, when it does, a number of minutes it may leave empty", () => {
+    const metadata: ReturnType<AutoRemediationRule["getTableColumnMetadata"]> =
+      model.getTableColumnMetadata("onlyIfOpenAfterMinutes");
+
+    expect(metadata.type).toBe(TableColumnType.Number);
+    expect(metadata.title).toBe("Only If Open After (Minutes)");
+    expect(metadata.required).toBe(false);
+  });
+
+  it.each([["investigates"], ["fixes"], ["onlyIfOpenAfterMinutes"]])(
+    "%s is written by whoever may write the rule's execution mode",
+    (column: string) => {
+      expect(model.getColumnAccessControlFor(column)).toEqual(
+        model.getColumnAccessControlFor("executionMode"),
+      );
+    },
+  );
+
   it("is for one kind of signal for good: the trigger is set on create only", () => {
     const accessControl: ColumnAccessControl | null =
       model.getColumnAccessControlFor("triggerEntityType");
 
     expect(accessControl?.update).toEqual([]);
-    expect(accessControl?.create).toEqual(OWNER_OR_ADMIN);
-    expect(Object.values(AIInvestigationRuleTriggerEntity)).toEqual([
+    expect(accessControl?.create).toEqual([
+      ...OWNER_OR_ADMIN,
+      Permission.CreateAutoRemediationRule,
+    ]);
+    expect(Object.values(AutoRemediationTriggerEntity)).toEqual([
       "Incident",
       "Alert",
     ]);
   });
 
   /*
-   * And the MCP servers and code repositories OneUptime AI may use for what
-   * the rule matches (allow-lists under More fields, not conditions): join
-   * tables too.
+   * And the runbooks, Runners, MCP servers and code repositories OneUptime AI
+   * may use for what the rule matches (allow-lists under More fields, not
+   * conditions): join tables too.
    */
-  it("keeps each condition list in a join table of its own", () => {
+  it("keeps each list in a join table of its own", () => {
     const joinTables: Array<JoinTableMetadataArgs> =
       getMetadataArgsStorage().joinTables.filter(
         (joinTable: JoinTableMetadataArgs): boolean => {
-          return joinTable.target === AIInvestigationRule;
+          return joinTable.target === AutoRemediationRule;
         },
       );
 
@@ -304,13 +380,15 @@ describe("AIInvestigationRule", () => {
         })
         .sort(),
     ).toEqual([
-      "AIInvestigationRuleAlertSeverity aiInvestigationRuleId alertSeverityId",
-      "AIInvestigationRuleCodeRepository aiInvestigationRuleId codeRepositoryId",
-      "AIInvestigationRuleExternalMcpServer aiInvestigationRuleId externalMcpServerId",
-      "AIInvestigationRuleIncidentSeverity aiInvestigationRuleId incidentSeverityId",
-      "AIInvestigationRuleLabel aiInvestigationRuleId labelId",
-      "AIInvestigationRuleMonitor aiInvestigationRuleId monitorId",
-      "AIInvestigationRuleMonitorLabel aiInvestigationRuleId labelId",
+      "AutoRemediationRuleAlertSeverity autoRemediationRuleId alertSeverityId",
+      "AutoRemediationRuleCodeRepository autoRemediationRuleId codeRepositoryId",
+      "AutoRemediationRuleExternalMcpServer autoRemediationRuleId externalMcpServerId",
+      "AutoRemediationRuleIncidentSeverity autoRemediationRuleId incidentSeverityId",
+      "AutoRemediationRuleLabel autoRemediationRuleId labelId",
+      "AutoRemediationRuleMonitor autoRemediationRuleId monitorId",
+      "AutoRemediationRuleMonitorLabel autoRemediationRuleId labelId",
+      "AutoRemediationRuleRunbook autoRemediationRuleId runbookId",
+      "AutoRemediationRuleRunner autoRemediationRuleId runnerId",
     ]);
   });
 });

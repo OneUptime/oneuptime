@@ -238,13 +238,14 @@ const incidentAlertAiSection: (pages: {
         title: "Settings",
         icon: IconProp.Settings,
         /*
-         * The rules for which incidents (or alerts) are investigated and
-         * fixed are under this page's More settings: they had a page of
-         * their own, Auto Remediation Rules, which is still how people
-         * search for them.
+         * The AI rules - which incidents (or alerts) are investigated and
+         * fixed - are under this page's More settings. They were two kinds
+         * of rule, one with a page of its own (Auto Remediation Rules), and
+         * people still search for them by those names.
          */
         keywords: [
           "ai settings",
+          "ai rules",
           "ai investigation",
           "root cause",
           "ai limits",

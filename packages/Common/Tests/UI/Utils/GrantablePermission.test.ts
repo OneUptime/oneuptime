@@ -1061,4 +1061,65 @@ describe("handing on one of a team's rows", () => {
       ]),
     ).toBe(true);
   });
+
+  /*
+   * A custom role given to an API key: the key holds every permission of
+   * the role but those limited to what someone owns (a key owns nothing),
+   * and only those are weighed - each as a team's row is.
+   */
+  test("the signed-in user may give a key a role when they may hand on every permission the key would hold", () => {
+    projectPermissionsForTest = tenant([
+      row({
+        permission: Permission.ProjectMember,
+        scope: PermissionScope.Labels,
+        labels: [LABEL_ID],
+      }),
+    ]);
+    globalPermissionsForTest = global([Permission.Public]);
+
+    // A role with nothing for a key, or nothing at all, is anyone's to give.
+    expect(GrantablePermission.canCurrentUserGrantApiKeyRole([])).toBe(true);
+    expect(
+      GrantablePermission.canCurrentUserGrantApiKeyRole([GRANTS[4]!.grant]),
+    ).toBe(true);
+
+    // The label they hold: yes; with an owned permission beside it, still yes.
+    expect(
+      GrantablePermission.canCurrentUserGrantApiKeyRole([GRANTS[2]!.grant]),
+    ).toBe(true);
+    expect(
+      GrantablePermission.canCurrentUserGrantApiKeyRole([
+        GRANTS[2]!.grant,
+        GRANTS[4]!.grant,
+      ]),
+    ).toBe(true);
+
+    // The whole project, which they do not hold: no - as for a team.
+    expect(
+      GrantablePermission.canCurrentUserGrantApiKeyRole([
+        GRANTS[2]!.grant,
+        GRANTS[0]!.grant,
+      ]),
+    ).toBe(false);
+    expect(
+      GrantablePermission.canCurrentUserGrantTeam([
+        GRANTS[2]!.grant,
+        GRANTS[0]!.grant,
+      ]),
+    ).toBe(false);
+
+    // A team would be handed the owned permission; a key is not.
+    expect(
+      GrantablePermission.canCurrentUserGrantTeam([GRANTS[4]!.grant]),
+    ).toBe(false);
+
+    isMasterAdminForTest = true;
+
+    expect(
+      GrantablePermission.canCurrentUserGrantApiKeyRole([
+        GRANTS[0]!.grant,
+        GRANTS[6]!.grant,
+      ]),
+    ).toBe(true);
+  });
 });

@@ -1,5 +1,7 @@
 import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import AccessTokenService from "../../Services/AccessTokenService";
+import ApiKeyCustomRoleService from "../../Services/ApiKeyCustomRoleService";
+import ApiKeyPermissionService from "../../Services/ApiKeyPermissionService";
 import CustomRolePermissionService from "../../Services/CustomRolePermissionService";
 import TeamCustomRoleService from "../../Services/TeamCustomRoleService";
 import TeamMemberService from "../../Services/TeamMemberService";
@@ -7,6 +9,8 @@ import TeamPermissionService from "../../Services/TeamPermissionService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import ApiKeyCustomRole from "../../../Models/DatabaseModels/ApiKeyCustomRole";
+import ApiKeyPermission from "../../../Models/DatabaseModels/ApiKeyPermission";
 import CustomRolePermission from "../../../Models/DatabaseModels/CustomRolePermission";
 import Label from "../../../Models/DatabaseModels/Label";
 import TeamCustomRole from "../../../Models/DatabaseModels/TeamCustomRole";
@@ -15,8 +19,13 @@ import TeamPermission from "../../../Models/DatabaseModels/TeamPermission";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  ApiKeyPermissionCopyRow,
+  ApiKeyPermissionCopyToCreate,
+  ApiKeyRoleCopyPlan,
+  planApiKeyRoleCopies,
   planRoleCopies,
   RoleCopyPlan,
+  RoleGivenToApiKey,
   RoleGivenToTeam,
   RolePermissionRow,
   TeamPermissionCopyRow,
@@ -47,6 +56,17 @@ import {
  * the copies as OneUptime (root, no hooks): no request may write them
  * (TeamPermission's columns for them are closed to every write), and the
  * checks were made on the change that called for them.
+ *
+ * API keys given a role (ApiKeyCustomRole) are kept the same way, in the
+ * same sync and under the same lock: each holds a copy of every permission
+ * of its roles that gives a key anything (planApiKeyRoleCopies) as an
+ * ordinary API key permission row. A key's permissions are cached by every
+ * server (ApiKeyPermissionService), so a sync that changes a key's rows
+ * starts a new generation of its project's cached key permissions - after
+ * the deletes, so no server goes on serving what was taken away, and again
+ * after the creates. Taking something away from a key needs no sync either:
+ * the copies go in the same DELETE, and the services that delete start the
+ * new generation after.
  */
 
 // How long a sync may keep the project's lock, and wait for it.
@@ -101,10 +121,11 @@ export default class CustomRoleSync {
   public static readonly LOCK_NAMESPACE: string = "CustomRoleSync";
 
   /*
-   * Brings the copies of these roles' permissions, on every team given one
-   * of them, to what the roles hold now, then rebuilds the cached
-   * permissions of every member of each team whose rows changed. The teams
-   * whose rows changed.
+   * Brings the copies of these roles' permissions, on every team and every
+   * API key given one of them, to what the roles hold now, then rebuilds the
+   * cached permissions of every member of each team whose rows changed (the
+   * keys' are forgotten as their rows are written: reconcileApiKeys). The
+   * teams whose rows changed.
    */
   @CaptureSpan()
   public static async syncRoles(data: {
@@ -120,10 +141,17 @@ export default class CustomRoleSync {
     const changedTeamIds: Array<ObjectID> = await this.inProjectLock(
       data.projectId,
       async (): Promise<Array<ObjectID>> => {
-        return await this.reconcile({
+        const teamIds: Array<ObjectID> = await this.reconcile({
           projectId: data.projectId,
           customRoleIds: customRoleIds,
         });
+
+        await this.reconcileApiKeys({
+          projectId: data.projectId,
+          customRoleIds: customRoleIds,
+        });
+
+        return teamIds;
       },
     );
 
@@ -168,24 +196,10 @@ export default class CustomRoleSync {
         },
       });
 
-    const rolePermissions: Array<CustomRolePermission> =
-      await CustomRolePermissionService.findAllBy({
-        query: {
-          projectId: data.projectId,
-          customRoleId: QueryHelper.any(customRoleIds),
-        },
-        select: {
-          _id: true,
-          customRoleId: true,
-          permission: true,
-          scope: true,
-          labels: {
-            _id: true,
-          },
-        },
-        props: {
-          isRoot: true,
-        },
+    const rolePermissions: Array<RolePermissionRow> =
+      await this.readRolePermissions({
+        projectId: data.projectId,
+        customRoleIds: customRoleIds,
       });
 
     const copies: Array<TeamPermission> = await TeamPermissionService.findAllBy(
@@ -223,17 +237,7 @@ export default class CustomRoleSync {
           };
         },
       ),
-      rolePermissions: rolePermissions.map(
-        (row: CustomRolePermission): RolePermissionRow => {
-          return {
-            id: idText(row.id),
-            customRoleId: idText(row.customRoleId),
-            permission: row.permission!,
-            scope: row.scope,
-            labelIds: labelIdsOf(row.labels),
-          };
-        },
-      ),
+      rolePermissions: rolePermissions,
       copies: copies.map((copy: TeamPermission): TeamPermissionCopyRow => {
         return {
           id: idText(copy.id),
@@ -266,11 +270,173 @@ export default class CustomRoleSync {
   }
 
   /*
-   * Deletes the copies of these permissions of a role from every team, now:
-   * a change to them is about to be written (CustomRolePermissionService
-   * .onUpdatePermitted), and a team must never hold the old one while the
-   * role holds the new. The sync that follows the change creates the new
-   * copies. The teams whose rows were deleted, for their members' refresh.
+   * The API key half of the sync, without the lock: read the roles given to
+   * keys, the roles' permissions and the keys' copies, then delete what no
+   * longer matches and create what is missing (planApiKeyRoleCopies) -
+   * starting a new generation of the project's cached key permissions after
+   * each, so every server reads the keys' rows afresh. The keys whose rows
+   * changed.
+   */
+  @CaptureSpan()
+  public static async reconcileApiKeys(data: {
+    projectId: ObjectID;
+    customRoleIds: Array<ObjectID>;
+  }): Promise<Array<ObjectID>> {
+    const customRoleIds: Array<ObjectID> = uniqueIds(data.customRoleIds);
+
+    if (customRoleIds.length === 0) {
+      return [];
+    }
+
+    const givenToApiKeys: Array<ApiKeyCustomRole> =
+      await ApiKeyCustomRoleService.findAllBy({
+        query: {
+          projectId: data.projectId,
+          customRoleId: QueryHelper.any(customRoleIds),
+        },
+        select: {
+          _id: true,
+          apiKeyId: true,
+          customRoleId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const copies: Array<ApiKeyPermission> =
+      await ApiKeyPermissionService.findAllBy({
+        query: {
+          projectId: data.projectId,
+          customRoleId: QueryHelper.any(customRoleIds),
+        },
+        select: {
+          _id: true,
+          apiKeyId: true,
+          customRoleId: true,
+          apiKeyCustomRoleId: true,
+          customRolePermissionId: true,
+          permission: true,
+          isBlockPermission: true,
+          labels: {
+            _id: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    // Nothing given to a key and nothing copied onto one: nothing to read further.
+    if (givenToApiKeys.length === 0 && copies.length === 0) {
+      return [];
+    }
+
+    const rolePermissions: Array<RolePermissionRow> =
+      await this.readRolePermissions({
+        projectId: data.projectId,
+        customRoleIds: customRoleIds,
+      });
+
+    const plan: ApiKeyRoleCopyPlan = planApiKeyRoleCopies({
+      rolesGivenToApiKeys: givenToApiKeys.map(
+        (given: ApiKeyCustomRole): RoleGivenToApiKey => {
+          return {
+            id: idText(given.id),
+            apiKeyId: idText(given.apiKeyId),
+            customRoleId: idText(given.customRoleId),
+          };
+        },
+      ),
+      rolePermissions: rolePermissions,
+      copies: copies.map((copy: ApiKeyPermission): ApiKeyPermissionCopyRow => {
+        return {
+          id: idText(copy.id),
+          apiKeyId: idText(copy.apiKeyId),
+          customRoleId: idText(copy.customRoleId) || null,
+          apiKeyCustomRoleId: idText(copy.apiKeyCustomRoleId) || null,
+          customRolePermissionId: idText(copy.customRolePermissionId) || null,
+          permission: copy.permission!,
+          labelIds: labelIdsOf(copy.labels),
+          isBlockPermission: copy.isBlockPermission,
+        };
+      }),
+    });
+
+    // What no longer matches goes first, everywhere: a key never holds more than its roles give.
+    if (plan.toDelete.length > 0) {
+      await this.deleteApiKeyCopies({
+        projectId: data.projectId,
+        ids: plan.toDelete,
+      });
+
+      await ApiKeyPermissionService.forgetPermissionsOfProjects([
+        data.projectId,
+      ]);
+    }
+
+    for (const copy of plan.toCreate) {
+      await this.createApiKeyCopy({
+        projectId: data.projectId,
+        copy: copy,
+      });
+    }
+
+    if (plan.toCreate.length > 0) {
+      await ApiKeyPermissionService.forgetPermissionsOfProjects([
+        data.projectId,
+      ]);
+    }
+
+    return uniqueIds(plan.changedApiKeyIds);
+  }
+
+  // The permissions of these roles, as the plans read them.
+  private static async readRolePermissions(data: {
+    projectId: ObjectID;
+    customRoleIds: Array<ObjectID>;
+  }): Promise<Array<RolePermissionRow>> {
+    const rolePermissions: Array<CustomRolePermission> =
+      await CustomRolePermissionService.findAllBy({
+        query: {
+          projectId: data.projectId,
+          customRoleId: QueryHelper.any(data.customRoleIds),
+        },
+        select: {
+          _id: true,
+          customRoleId: true,
+          permission: true,
+          scope: true,
+          labels: {
+            _id: true,
+          },
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    return rolePermissions.map(
+      (row: CustomRolePermission): RolePermissionRow => {
+        return {
+          id: idText(row.id),
+          customRoleId: idText(row.customRoleId),
+          permission: row.permission!,
+          scope: row.scope,
+          labelIds: labelIdsOf(row.labels),
+        };
+      },
+    );
+  }
+
+  /*
+   * Deletes the copies of these permissions of a role from every team and
+   * every API key, now: a change to them is about to be written
+   * (CustomRolePermissionService.onUpdatePermitted), and a team or a key
+   * must never hold the old one while the role holds the new. The sync that
+   * follows the change creates the new copies. The teams whose rows were
+   * deleted, for their members' refresh; the keys' cached permissions are
+   * forgotten here.
    */
   @CaptureSpan()
   public static async removeCopiesOfRolePermissions(data: {
@@ -305,6 +471,33 @@ export default class CustomRoleSync {
         return idText(copy.id);
       }),
     });
+
+    const apiKeyCopies: Array<ApiKeyPermission> =
+      await ApiKeyPermissionService.findAllBy({
+        query: {
+          projectId: data.projectId,
+          customRolePermissionId: QueryHelper.any(ids),
+        },
+        select: {
+          _id: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (apiKeyCopies.length > 0) {
+      await this.deleteApiKeyCopies({
+        projectId: data.projectId,
+        ids: apiKeyCopies.map((copy: ApiKeyPermission): string => {
+          return idText(copy.id);
+        }),
+      });
+
+      await ApiKeyPermissionService.forgetPermissionsOfProjects([
+        data.projectId,
+      ]);
+    }
 
     return uniqueIds(
       copies.map((copy: TeamPermission): string => {
@@ -437,6 +630,51 @@ export default class CustomRoleSync {
         },
       });
     }
+  }
+
+  private static async deleteApiKeyCopies(data: {
+    projectId: ObjectID;
+    ids: Array<string>;
+  }): Promise<void> {
+    for (let start: number = 0; start < data.ids.length; start += LIMIT_MAX) {
+      const ids: Array<string> = data.ids.slice(start, start + LIMIT_MAX);
+
+      await ApiKeyPermissionService.deleteBy({
+        query: {
+          projectId: data.projectId,
+          _id: QueryHelper.any(ids),
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+    }
+  }
+
+  private static async createApiKeyCopy(data: {
+    projectId: ObjectID;
+    copy: ApiKeyPermissionCopyToCreate;
+  }): Promise<void> {
+    const row: ApiKeyPermission = new ApiKeyPermission();
+    row.projectId = data.projectId;
+    row.apiKeyId = new ObjectID(data.copy.apiKeyId);
+    row.permission = data.copy.permission;
+    row.isBlockPermission = false;
+    row.labels = labelsOf(data.copy.labelIds);
+    row.customRoleId = new ObjectID(data.copy.customRoleId);
+    row.apiKeyCustomRoleId = new ObjectID(data.copy.apiKeyCustomRoleId);
+    row.customRolePermissionId = new ObjectID(data.copy.customRolePermissionId);
+
+    await ApiKeyPermissionService.create({
+      data: row,
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
   }
 
   private static async createCopy(data: {

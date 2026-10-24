@@ -37,17 +37,20 @@ import React, {
  * for every project, unless the repository picks one of the project's own
  * (Common/Types/Runner/CodeRepositoryRunner).
  *
- * Both halves read the choices themselves (RunnerChoicesLoader
- * .loadForCodeRepository, again when the person comes back to the tab), so
- * the Settings page's card and its edit form - whose elements are built
- * once - always draw the choices as they are now:
+ * Each half reads the choices (RunnerChoicesLoader.loadForCodeRepository,
+ * again when the person comes back to the tab - useCodeRepositoryRunnerChoices),
+ * so the Settings page's card and its edit form always draw the choices as
+ * they are now:
  *
  *   - CodeRepositoryRunnerPicker, the form's field: the one Runner picker
  *     (RunnerPicker), for a repository, drawn as a field of the form - the
  *     form gives it its title and description, as every other field;
  *   - CodeRepositoryRunnerValue, the card's value: what the repository
  *     runs on, with how it is doing, drawn as the Runners page draws a
- *     Runner's status (RunnerLiveStatusBubble).
+ *     Runner's status (RunnerLiveStatusBubble). The Settings page reads the
+ *     choices itself, once for the card and for what its folded More
+ *     settings says of the Runner, and draws the value from them
+ *     (CodeRepositoryRunnerValueView).
  *
  * While the choices are on their way, each holds the room it will take - a
  * line of text, a menu - so nothing below it jumps when they arrive.
@@ -189,6 +192,33 @@ export interface CodeRepositoryRunnerValueProps {
 }
 
 /*
+ * What the repository runs on, as the card shows it, reading the choices
+ * itself (CodeRepositoryRunnerValueView draws it).
+ */
+export const CodeRepositoryRunnerValue: FunctionComponent<
+  CodeRepositoryRunnerValueProps
+> = (props: CodeRepositoryRunnerValueProps): ReactElement => {
+  const choices: RunnerChoices | null = useCodeRepositoryRunnerChoices();
+
+  return (
+    <CodeRepositoryRunnerValueView
+      runnerId={props.runnerId}
+      choices={choices}
+    />
+  );
+};
+
+export interface CodeRepositoryRunnerValueViewProps {
+  runnerId: unknown;
+  /*
+   * The choices, as a page read them (useCodeRepositoryRunnerChoices) - the
+   * Settings page reads them once for this value and for what More settings
+   * says of the Runner while it is folded. Null while they are on their way.
+   */
+  choices: RunnerChoices | null;
+}
+
+/*
  * What the repository runs on, as the card shows it: "Global Runner", or
  * the Runner's name - a link to its page - and how it is doing, as the
  * Runners page draws it (a green dot for Connected, red for Disconnected,
@@ -197,11 +227,11 @@ export interface CodeRepositoryRunnerValueProps {
  * or test AI's change before the pull request opens - what a Runner of the
  * project's own does, the way the repository's AGENTS.md says.
  */
-export const CodeRepositoryRunnerValue: FunctionComponent<
-  CodeRepositoryRunnerValueProps
-> = (props: CodeRepositoryRunnerValueProps): ReactElement => {
+export const CodeRepositoryRunnerValueView: FunctionComponent<
+  CodeRepositoryRunnerValueViewProps
+> = (props: CodeRepositoryRunnerValueViewProps): ReactElement => {
   const translator: Translator = useTranslator();
-  const choices: RunnerChoices | null = useCodeRepositoryRunnerChoices();
+  const choices: RunnerChoices | null = props.choices;
   const runnerId: string = getRepositoryRunnerId(props.runnerId);
 
   if (!choices) {

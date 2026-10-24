@@ -22,7 +22,7 @@ Usa questo interruttore come via libera per la produzione:
 4. Accendi **Abilitato** quando è pronto: da quel momento, il suo trigger scatta sugli eventi reali.
 :::
 
-Spegnere un workflow impedisce al suo trigger di avviare nuove esecuzioni. Un'esecuzione già in corso termina, ma un'esecuzione avviata dal suo trigger e in attesa su un blocco **Sleep** viene annullata al risveglio. Le esecuzioni di prova continuano.
+Spegnere un workflow impedisce al suo trigger di avviare nuove esecuzioni. Un'esecuzione già in corso termina, ma un'esecuzione avviata dal suo trigger e in attesa su un blocco **Sleep** viene annullata al risveglio. Le esecuzioni di prova continuano. Per accenderne o spegnerne diversi insieme, selezionali nell'elenco **Flussi di lavoro** e scegli **Attiva** o **Disattiva** in **Azioni di massa**.
 
 ## Archiviare un workflow
 

@@ -490,6 +490,24 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/Telemetry/InventoryMirrorPostgres.test.ts --forceExit
 
+      # Clones the migrated NetworkDevice table into an isolated schema and
+      # runs the merge of what discovery read about a device (issue #5185):
+      # one UPDATE per batch that unpacks its patches with jsonb_to_recordset
+      # and merges each as (details - unset) || set. Only a database shows
+      # that it keeps every other writer's keys, never reaches another
+      # project's or a deleted device, and loses nothing to a concurrent
+      # merge.
+      - name: Test the discovered details merge against Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_NETWORK_DEVICE_DISCOVERED_DETAILS_TESTS: "true"
+          NETWORK_DEVICE_DISCOVERED_DETAILS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          NETWORK_DEVICE_DISCOVERED_DETAILS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          NETWORK_DEVICE_DISCOVERED_DETAILS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/NetworkDeviceDiscoveredDetailsPostgres.test.ts --forceExit
+
       # Clones the migrated CloudResource table into an isolated schema and
       # runs the discovered resources' sweeps against it: Not reporting,
       # auto-archive, restore when a resource reports again, and the budget's
@@ -1197,6 +1215,23 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/CustomRolesPostgres.test.ts
+          --forceExit
+
+      # Custom roles given to API keys: each key's copies kept by the real
+      # sync, what a request with the key carries and reads compared with
+      # the same permissions given directly, every change reaching the key's
+      # next request through its cached permissions, the grant ceiling and
+      # the read of the role, and the cascades the migrations declared.
+      - name: Test custom roles given to API keys on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_API_KEY_CUSTOM_ROLE_TESTS: "true"
+          API_KEY_CUSTOM_ROLE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          API_KEY_CUSTOM_ROLE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          API_KEY_CUSTOM_ROLE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ApiKeyCustomRolesPostgres.test.ts
           --forceExit
 
       - name: Test project data residency on migrated Postgres
@@ -1927,6 +1962,47 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Infrastructure/Postgres/AddAutoRemediationRuleRunnerPostgres.test.ts --forceExit
 
+      # One Docker host, Podman host and host per name (#5214), on migrated
+      # Postgres: MergeDuplicateHostsAndAddUniqueHostIdentifier on copies of
+      # the host tables and of every table the catalog lists as referring to
+      # them, holding a project's duplicates of one host in different cases.
+      # Each group is merged into its oldest row, every row that referred to
+      # the others moved to it (where the kept host already had a row's twin,
+      # the duplicates' copies go after what referred to them moves), what
+      # the agents last reported taken from the newest, other hosts left
+      # alone; then the unique index on project and lower-cased name is built
+      # online and valid, and a second run changes nothing.
+      - name: Test merging duplicate hosts and their unique names on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MERGE_DUPLICATE_HOSTS_TESTS: "true"
+          MERGE_DUPLICATE_HOSTS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MERGE_DUPLICATE_HOSTS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MERGE_DUPLICATE_HOSTS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/MergeDuplicateHostsAndAddUniqueHostIdentifierPostgres.test.ts
+          --forceExit
+
+      # Discovered resources made once and found gone (#5214), on copies of
+      # the migrated tables: Docker hosts, Podman hosts, hosts and Kubernetes
+      # clusters found or created by many callers at once come out as one row
+      # and one id, in any case, and the unique index refuses a second host of
+      # the name. A deleted host's heartbeat says its row is gone - one that
+      # another transaction holds is not - and the next resolution creates it
+      # again, once.
+      - name: Test discovered resources made once and found gone on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_DISCOVERED_RESOURCE_TESTS: "true"
+          DISCOVERED_RESOURCE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          DISCOVERED_RESOURCE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          DISCOVERED_RESOURCE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/DiscoveredResourceCreateAndGonePostgres.test.ts
+          --forceExit
+
       # App installs serve the suites below: the probe ones (App) and the
       # Enterprise one, whose jest resolves Common and App from their own
       # installs.
@@ -1970,6 +2046,24 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/ProbeShippedKeyUpgradePostgres.test.ts --forceExit
+
+      # A Docker host deleted while its agent runs (#5214), end to end: Docker
+      # metric batches through the metrics ingest worker, on copies of the
+      # migrated tables. Deleted in the Dashboard, the host comes back on the
+      # next batch with its heartbeat, containers and label; an id Redis kept
+      # from before the delete is found gone - by the refused container write
+      # or by the heartbeat - and resolved again; a re-installed agent's
+      # batches, arriving together on one worker or on several, make one host.
+      - name: Test a deleted Docker host coming back on migrated Postgres
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_DOCKER_HOST_REREGISTER_TESTS: "true"
+          DOCKER_HOST_REREGISTER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          DOCKER_HOST_REREGISTER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          DOCKER_HOST_REREGISTER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Telemetry/DockerHostReRegisterPostgres.test.ts --forceExit
 
       # Archiving the values records pick from, on migrated Postgres: the two
       # migrations on tables that already hold values (every value comes out
@@ -2042,6 +2136,28 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Infrastructure/Postgres/AddRuleLlmProvidersPostgres.test.ts
+          --forceExit
+
+      # Investigation rules become AI rules, on migrated Postgres: the
+      # AddAiRuleInvestigation and MergeInvestigationRulesIntoAiRules
+      # migrations on copies of both rule tables, seeded with every
+      # combination (each kind alone, matching and different conditions,
+      # disabled rules, name order, both kinds of signal, a deleted rule and
+      # project). Each rule's new shape is checked, and so is the behaviour:
+      # for a spread of incidents and alerts, what is investigated (wait, LLM
+      # provider, MCP servers, repositories), which rules fix it and which
+      # pull requests open is the same before and after. up() run again
+      # changes nothing, and down() gives the rules back.
+      - name: Test merging investigation rules into AI rules on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_AI_RULE_MERGE_TESTS: "true"
+          AI_RULE_MERGE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          AI_RULE_MERGE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          AI_RULE_MERGE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/MergeInvestigationRulesIntoAiRulesPostgres.test.ts
           --forceExit
 
       # Labels in natural order (#5183), on migrated Postgres: the

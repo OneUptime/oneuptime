@@ -70,7 +70,10 @@ import Project from "Common/Models/DatabaseModels/Project";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import TraceDropFilter from "Common/Models/DatabaseModels/TraceDropFilter";
 import TraceScrubRule from "Common/Models/DatabaseModels/TraceScrubRule";
-import { TELEMETRY_PRICE_RETENTION_IN_DAYS } from "Common/Types/Billing/PayAsYouGoPricing";
+import {
+  TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS,
+  TELEMETRY_PRICE_RETENTION_IN_DAYS,
+} from "Common/Types/Billing/PayAsYouGoPricing";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import Exception from "Common/Types/Exception/Exception";
 import ExceptionCode from "Common/Types/Exception/ExceptionCode";
@@ -1453,7 +1456,7 @@ describe("Data Retention (telemetry/data-retention)", () => {
         "Server/Types/Billing/MeteredPlan/TelemetryMeteredPlan.ts",
       ),
     ).toContain(
-      "return data.dataIngestedInGB * data.retentionInDays * this.unitCostInUSD;",
+      "this.getBillableRetentionInDays(data.retentionInDays) *\n      this.unitCostInUSD",
     );
     expect(
       readCommonSource("Server/Types/Billing/MeteredPlan/AllMeteredPlans.ts"),
@@ -1471,7 +1474,62 @@ describe("Data Retention (telemetry/data-retention)", () => {
       sectionByTitle(menuSections(SETTINGS_MENU), "Billing and Invoices").items,
     ).toContain("Usage History");
     expect(page).toContain(
-      "telemetry is billed per GB ingested, and the per-GB price includes 15 days of retention. Longer retention costs proportionally more: 30 days costs twice as much per GB as 15. **Project Settings → Billing and Invoices → Usage History**",
+      "telemetry is billed per GB ingested, and the per-GB price includes 15 days of retention. Longer retention costs proportionally more: 30 days costs twice as much per GB as 15. Shorter retention costs proportionally less, but retention under 7 days is billed as 7 days. **Project Settings → Billing and Invoices → Usage History**",
+    );
+  });
+
+  it("bills logs, traces, metrics and profiles for at least 7 days, and keeps them for the days set", () => {
+    expect(TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS).toBe(7);
+
+    const meteredPlan: string = readCommonSource(
+      "Server/Types/Billing/MeteredPlan/TelemetryMeteredPlan.ts",
+    );
+
+    expect(meteredPlan).toContain(
+      "return Math.max(retentionInDays, this.minimumBillableRetentionInDays);",
+    );
+    // The row keeps the days the telemetry is kept: Usage History shows them.
+    expect(
+      readCommonSource("Server/Services/TelemetryUsageBillingService.ts"),
+    ).toContain("retainTelemetryDataForDays: data.retentionInDays,");
+
+    const plans: string = readCommonSource(
+      "Server/Types/Billing/MeteredPlan/AllMeteredPlans.ts",
+    );
+
+    for (const productType of [
+      "Logs",
+      "Metrics",
+      "Traces",
+      "Profiles",
+      "SecurityEvents",
+    ]) {
+      expect({
+        productType,
+        // Read as one line: the formatter may wrap the value.
+        floored: between(
+          plans,
+          `productType: ProductType.${productType},`,
+          "});",
+        )
+          .replace(/\s+/g, " ")
+          .includes(
+            "minimumBillableRetentionInDays: TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS,",
+          ),
+      }).toEqual({ productType, floored: true });
+    }
+
+    // Session replays have a retention of their own, and no minimum.
+    expect(
+      between(plans, "productType: ProductType.SessionReplay,", "});"),
+    ).not.toContain("minimumBillableRetentionInDays");
+
+    // Retention is still set in whole days from 1: only what it costs changes.
+    expect(page).toContain(
+      "Click **Edit Retention Settings**, enter the number of days, at least 1, and click **Save Changes**.",
+    );
+    expect(page).toContain(
+      `retention under ${TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS} days is billed as ${TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS} days.`,
     );
   });
 

@@ -3,6 +3,8 @@ import PageComponentProps from "../PageComponentProps";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
+import useBulkSwitchActions from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
+import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import PageMap from "../../Utils/PageMap";
@@ -74,6 +76,16 @@ const IncomingCallPoliciesPage: FunctionComponent<
       ownerUserModelType: IncomingCallPolicyOwnerUser,
       ownerTeamModelType: IncomingCallPolicyOwnerTeam,
       resourceIdField: "incomingCallPolicyId",
+    });
+
+  /*
+   * Enable and Disable, as the list already filters by them: a disabled
+   * policy answers its number with a short message and pages nobody.
+   */
+  const switchBulkActions: Array<BulkActionButtonSchema<IncomingCallPolicy>> =
+    useBulkSwitchActions<IncomingCallPolicy>({
+      modelType: IncomingCallPolicy,
+      column: "isEnabled",
     });
 
   const incomingCallPolicyExtraFacets: Array<ResourceFacet> = [
@@ -229,7 +241,15 @@ const IncomingCallPoliciesPage: FunctionComponent<
         isCreateable={true}
         isViewable={true}
         bulkActions={{
-          buttons: [...labelBulkActions, ...ownerBulkActions],
+          buttons: [
+            ...switchBulkActions,
+            ...labelBulkActions,
+            ...ownerBulkActions,
+          ],
+        }}
+        // Whether each row is on, for Enable and Disable to count.
+        selectMoreFields={{
+          isEnabled: true,
         }}
         cardProps={{
           title: "Incoming Call Policies",

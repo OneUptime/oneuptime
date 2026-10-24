@@ -66,7 +66,7 @@ describe("the homepage", () => {
     expect(hero).not.toBeNull();
     expect(hero.querySelectorAll("img, picture, video")).toHaveLength(0);
     expect(hero.querySelector("h1")!.textContent!.trim()).toBe(
-      "Agentic observability",
+      "AI-native observability. From the first alert to the fix.",
     );
   });
 
@@ -104,8 +104,8 @@ describe("the homepage", () => {
       return image.closest("header") === null;
     });
 
-    // The logo roll twice over, a hundred and fifty review stars, the footer's logo.
-    expect(later.length).toBeGreaterThan(150);
+    // The customer logos and the footer's logo.
+    expect(later.length).toBeGreaterThan(10);
 
     const eager: Array<string> = later
       .filter((image: Element): boolean => {
@@ -154,19 +154,15 @@ describe("images below the fold elsewhere", () => {
     });
   };
 
-  test("the AI screenshot on the solution and industry pages", () => {
-    const [screenshot] = imagesIn(
-      path.join("Partials", "copilot.ejs"),
-      "/img/ai-agent.png",
+  test("the solution and industry pages draw OneUptime AI, with no screenshot to load", () => {
+    // Partials/copilot.ejs is the homepage's AI section, whose investigation is drawn in HTML.
+    expect(source(path.join("Partials", "copilot.ejs"))).toContain(
+      "include('./home-ai')",
     );
-
-    expect(screenshot).toBeDefined();
-    expect(screenshot!.getAttribute("loading")).toBe("lazy");
-    expect(screenshot!.getAttribute("decoding")).toBe("async");
-    expect(attributeRatio(screenshot!)).toBeCloseTo(
-      pngRatio("ai-agent.png"),
-      5,
-    );
+    expect(source(path.join("Partials", "home-ai.ejs"))).not.toMatch(/<img\b/);
+    expect(
+      source(path.join("Partials", "home-mocks", "mock-autofix.ejs")),
+    ).not.toMatch(/<img\b/);
   });
 
   test.each([

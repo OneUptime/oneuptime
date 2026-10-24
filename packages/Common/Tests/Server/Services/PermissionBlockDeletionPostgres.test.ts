@@ -134,6 +134,8 @@ describePostgres("permission block removal against Postgres", () => {
     "CustomRolePermission",
     "CustomRolePermissionLabel",
     "TeamCustomRole",
+    // And the roles given to API keys, whose copies are key permissions.
+    "ApiKeyCustomRole",
     "Label",
     "Monitor",
     "MonitorLabel",

@@ -210,7 +210,7 @@ You do not have permissions to create Incident Internal Note. It is read through
 
 #### 認証情報を保持する設定
 
-認証情報を保持する設定 (SMTP サーバー、通話と SMS のプロバイダー、SNMP の認証情報、ビデオ通話の接続、API キー、外部 MCP サーバー) を指定できるのは、その種類の設定を読み取れる呼び出し元だけです。対象は、ステータスページの `smtpConfig` と `callSmsConfig`、着信ポリシーの `projectCallSMSConfig`、ネットワークデバイスやサイトの `snmpCredentialProfile`、インシデントやアラートのビデオ通話の `videoCallConnection`、API キーの権限の `apiKey`、そして調査ルールや自動修復ルールの `externalMcpServers` です。その種類の設定を読む権限なしに、またはラベルなしのブロックが外す権限で指定すると、どちらの名前でも同じ `400` で拒否されます。レコードがすでに指定している設定を保つ変更は確認されません。着信ポリシーの番号検索と所有番号の一覧には、指定する通話と SMS の構成について同じ読み取りが必要です。
+認証情報を保持する設定 (SMTP サーバー、通話と SMS のプロバイダー、SNMP の認証情報、ビデオ通話の接続、API キー、外部 MCP サーバー) を指定できるのは、その種類の設定を読み取れる呼び出し元だけです。対象は、ステータスページの `smtpConfig` と `callSmsConfig`、着信ポリシーの `projectCallSMSConfig`、ネットワークデバイスやサイトの `snmpCredentialProfile`、インシデントやアラートのビデオ通話の `videoCallConnection`、API キーの権限の `apiKey`、そして AI ルールの `externalMcpServers` です。その種類の設定を読む権限なしに、またはラベルなしのブロックが外す権限で指定すると、どちらの名前でも同じ `400` で拒否されます。レコードがすでに指定している設定を保つ変更は確認されません。着信ポリシーの番号検索と所有番号の一覧には、指定する通話と SMS の構成について同じ読み取りが必要です。
 
 #### 作成時のラベルと所有者
 

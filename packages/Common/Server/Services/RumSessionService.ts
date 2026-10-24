@@ -21,11 +21,11 @@ export class RumSessionService extends AnalyticsDatabaseService<RumSession> {
    * reasons that both matter:
    *
    * 1. It meters off THIS table, never the chunk table. Chunks are
-   *    partitioned by expiry date, so a "yesterday" window over them cannot
+   *    partitioned by expiry date, so a one-day window over them cannot
    *    prune partitions and would full-scan a multi-gigabyte blob table under
-   *    the 120s cap. A timeout there is not a retry - stageTelemetryUsage
-   *    always targets yesterday and nothing re-stages an older date, so the
-   *    day would be billed as zero permanently.
+   *    the 120s cap. Billing's catch-up retries a failed day on every run,
+   *    but a scan that times out once times out every time, so the day
+   *    would never be billed.
    *
    * 2. It sums the exact payloadBytes recorded at ingest rather than
    *    byteSize(*). byteSize is ClickHouse's uncompressed in-memory row size,
@@ -33,9 +33,10 @@ export class RumSessionService extends AnalyticsDatabaseService<RumSession> {
    *    have nothing to do with what was actually ingested.
    *
    * isFinalized = 1 excludes provisional headers, whose aggregates are still
-   * zero. A session that finalizes across the staging boundary is therefore
-   * billed on the following day's run at its true size, rather than being
-   * billed now at zero and never corrected.
+   * zero. A session still provisional when its day is staged is left out of
+   * that day, and the day counts as staged from then on, so a session
+   * finalized later is not billed. Billing replay by finalization time would
+   * close that gap.
    *
    * The inner ORDER BY / LIMIT 1 BY collapses ReplacingMergeTree versions:
    * there is no FINAL support anywhere in this repo, so duplicate versions of

@@ -9,6 +9,7 @@ import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationR
 import Runner from "../../../Models/DatabaseModels/Runner";
 import AutoRemediationAction from "../../../Types/AutoRemediation/AutoRemediationAction";
 import AutoRemediationExecutionMode from "../../../Types/AutoRemediation/AutoRemediationExecutionMode";
+import AutoRemediationTriggerEntity from "../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -127,6 +128,7 @@ async function create(
   const rule: AutoRemediationRule = new AutoRemediationRule();
   rule.name = "Restart web on high latency";
   rule.projectId = PROJECT_ID;
+  rule.triggerEntityType = AutoRemediationTriggerEntity.Incident;
   Object.assign(rule, settings);
 
   try {

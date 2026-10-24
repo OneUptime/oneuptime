@@ -104,6 +104,11 @@ const TABLES: Array<string> = [
   "TeamCustomRole",
   "TeamPermission",
   "TeamPermissionLabel",
+  // The sync keeps the API keys given a role too (ApiKeyCustomRolesPostgres).
+  "ApiKey",
+  "ApiKeyPermission",
+  "ApiKeyPermissionLabel",
+  "ApiKeyCustomRole",
   "Monitor",
   "MonitorLabel",
   "MonitorOwnerTeam",

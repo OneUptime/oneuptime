@@ -22,7 +22,7 @@ Use this switch as your "ready to go" gate:
 4. Switch **Enabled** on when it's ready: from then on, its trigger fires on real events.
 :::
 
-Turning a workflow off stops its trigger from starting new runs. A run already in progress finishes, but a run its trigger started that is waiting on a **Sleep** block is cancelled when it wakes. Test runs carry on.
+Turning a workflow off stops its trigger from starting new runs. A run already in progress finishes, but a run its trigger started that is waiting on a **Sleep** block is cancelled when it wakes. Test runs carry on. To turn several on or off at once, select them in the **Workflows** list and choose **Enable** or **Disable** under **Bulk Actions**.
 
 ## Archiving a workflow
 

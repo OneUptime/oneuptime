@@ -199,7 +199,7 @@ describe("RemediationSuggestionCard with a recorded decision", () => {
     );
     expect(lines[1]).toHaveAttribute("data-tone", "info");
     expect(lines[1]).toHaveTextContent(
-      "No Auto Remediation Rule is set up for this kind of incident.",
+      "No AI rule is set up for this kind of incident.",
     );
   });
 

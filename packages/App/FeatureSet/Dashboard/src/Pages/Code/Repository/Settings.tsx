@@ -30,15 +30,19 @@ import RepositoryConnectionStatus from "../../../Components/CodeRepository/Repos
 import {
   CodeRepositoryRunnerCopy,
   CodeRepositoryRunnerPicker,
-  CodeRepositoryRunnerValue,
+  CodeRepositoryRunnerValueView,
+  useCodeRepositoryRunnerChoices,
 } from "../../../Components/Code/CodeRepositoryRunner";
+import { RunnerChoices } from "../../../Components/Runner/RunnerChoices";
 import CodeRepositoryCommandsCard from "../../../Components/Code/CodeRepositoryCommandsCard";
 import {
   CODE_REPOSITORY_SETTINGS_COPY,
+  CodeRepositorySetting,
   CodeRepositorySettingsValues,
   DEFAULT_GITHUB_TRIGGER_LABEL,
   getRepositoryMoreSettingsItems,
 } from "../../../Components/Code/CodeRepositorySettingsCopy";
+import { getRepositoryRunnerId } from "Common/Types/Runner/CodeRepositoryRunner";
 import CodeApi from "../../../Components/Code/CodeApi";
 import {
   PRODUCTION_REVIEW_CONTENT_ANSWERS,
@@ -74,21 +78,37 @@ export const CODE_REPOSITORY_PRODUCTION_REVIEW_TEST_ID: string =
  * that saves the moment it is flipped, an Edit beside the rest, and what
  * most people never change folded under More settings.
  *
- *   - Repository Details: its name, description and labels, where its code
- *     lives (the GitHub App's to say), and how it connects - Not connected
- *     where Code's Repositories folds it;
- *   - GitHub Commands: whether the GitHub App answers mentions, the trigger
- *     label and assignments here - on by default;
- *   - Production Review: whether OneUptime reviews the repository's pull
- *     requests against production on its own - on for repositories
- *     connected from now on, off for those connected before it existed;
- *   - Runner: where AI works in it (CodeRepository.runnerId): a Runner of
- *     the project's own, or a global Runner when it picks none;
- *   - More settings, folded: where AI's pull requests open and how many may
- *     be open at once, the trigger label, what a production review posts on
- *     a pull request, and - only on a repository that has them - the build
- *     and test commands an operator set before AI read how to build and
- *     test from the repository's own AGENTS.md.
+ *   - Repository Details, on top: its name, description and labels, where
+ *     its code lives (the GitHub App's to say), and how it connects - Not
+ *     connected where Code's Repositories folds it;
+ *   - More settings, folded, naming what it holds - every other setting,
+ *     each working as it did in sight:
+ *       - GitHub Commands: whether the GitHub App answers mentions, the
+ *         trigger label and assignments here - on by default;
+ *       - Production Review: whether OneUptime reviews the repository's
+ *         pull requests against production on its own - on for
+ *         repositories connected from now on, off for those connected
+ *         before it existed;
+ *       - Runner: where AI works in it (CodeRepository.runnerId): a Runner
+ *         of the project's own, or a global Runner when it picks none;
+ *       - Pull Requests: where AI's pull requests open and how many may be
+ *         open at once;
+ *       - GitHub Trigger Label: the label that hands an issue to the
+ *         GitHub App;
+ *       - Production Review Comment: what a production review posts on a
+ *         pull request;
+ *       - and, only on a repository that has them, the build and test
+ *         commands an operator set before AI read how to build and test
+ *         from the repository's own AGENTS.md.
+ *
+ * "GitHub commands and runner should be inside of more settings as well"
+ * (the maintainer, of the page that kept GitHub Commands and Runner in sight
+ * above More settings). Production Review, a switch whose default works for
+ * most repositories as GitHub Commands' does, went with them, and the three
+ * come first in the fold, in the order they had. A link to one of them
+ * lands on it with More settings open (CodeRepositorySetting): "Pick a
+ * Runner" opens ".../settings#runner", Production Reviews' "Turn on in
+ * Settings" ".../settings#production-review".
  *
  * It used to be one card whose Edit Settings opened a four-step dialog
  * (Pull Requests, GitHub Commands, Runner, Build & Test), whose GitHub
@@ -105,6 +125,25 @@ const CodeRepositorySettings: FunctionComponent<
   const [settings, setSettings] = useState<CodeRepositorySettingsValues | null>(
     null,
   );
+
+  /*
+   * The Runners a repository may pick, read once (and again when the person
+   * comes back to the tab) for the Runner card's value and for what More
+   * settings says of the Runner while it is folded.
+   */
+  const runnerChoices: RunnerChoices | null = useCodeRepositoryRunnerChoices();
+
+  // Keeps what a card in More settings read or a switch moved to.
+  const remember: (values: CodeRepositorySettingsValues) => void = (
+    values: CodeRepositorySettingsValues,
+  ): void => {
+    setSettings((current: CodeRepositorySettingsValues | null) => {
+      return {
+        ...(current || {}),
+        ...values,
+      };
+    });
+  };
 
   /*
    * Whether the project's GitHub App reaches the repository, as Code's
@@ -135,16 +174,13 @@ const CodeRepositorySettings: FunctionComponent<
   const rememberSettings: (item: CodeRepository) => void = (
     item: CodeRepository,
   ): void => {
-    setSettings((current: CodeRepositorySettingsValues | null) => {
-      return {
-        ...(current || {}),
-        mainBranchName: item.mainBranchName,
-        maxOpenFixPullRequests: item.maxOpenFixPullRequests,
-        gitHubTriggerLabel: item.gitHubTriggerLabel,
-        setupCommand: item.setupCommand,
-        buildCommand: item.buildCommand,
-        testCommand: item.testCommand,
-      };
+    remember({
+      mainBranchName: item.mainBranchName,
+      maxOpenFixPullRequests: item.maxOpenFixPullRequests,
+      gitHubTriggerLabel: item.gitHubTriggerLabel,
+      setupCommand: item.setupCommand,
+      buildCommand: item.buildCommand,
+      testCommand: item.testCommand,
     });
   };
 
@@ -248,113 +284,142 @@ const CodeRepositorySettings: FunctionComponent<
       />
 
       {/*
-       * One switch, saved the moment it is flipped. A repository that never
-       * set it reads as the column's default - on - as the server reads it.
+       * Every other setting, folded: their defaults work for most
+       * repositories. Folded, its header names them - and what is set to
+       * something else, with what - and a link to one of them opens it
+       * there (CodeRepositorySetting, the cards' ids).
        */}
-      <ModelSwitchCard<CodeRepository>
-        modelType={CodeRepository}
-        modelId={modelId}
-        column="isGitHubCommandsEnabled"
-        cardTitle={CODE_REPOSITORY_SETTINGS_COPY.gitHubCommandsCardTitle}
-        title={CODE_REPOSITORY_SETTINGS_COPY.gitHubCommandsSwitchTitle}
-        getDescription={(): string => {
-          return CODE_REPOSITORY_SETTINGS_COPY.gitHubCommandsSwitchDescription;
-        }}
-        dataTestId={CODE_REPOSITORY_GITHUB_COMMANDS_TEST_ID}
-      />
+      <AdvancedPageSection
+        description={CODE_REPOSITORY_SETTINGS_COPY.moreSettingsDescription}
+        items={getRepositoryMoreSettingsItems(
+          settings,
+          translator,
+          runnerChoices,
+        )}
+        dataTestId={CODE_REPOSITORY_MORE_SETTINGS_TEST_ID}
+      >
+        {/*
+         * One switch, saved the moment it is flipped. A repository that
+         * never set it reads as the column's default - on - as the server
+         * reads it.
+         */}
+        <ModelSwitchCard<CodeRepository>
+          modelType={CodeRepository}
+          modelId={modelId}
+          column="isGitHubCommandsEnabled"
+          cardId={CodeRepositorySetting.GitHubCommands}
+          cardTitle={CODE_REPOSITORY_SETTINGS_COPY.gitHubCommandsCardTitle}
+          title={CODE_REPOSITORY_SETTINGS_COPY.gitHubCommandsSwitchTitle}
+          getDescription={(): string => {
+            return CODE_REPOSITORY_SETTINGS_COPY.gitHubCommandsSwitchDescription;
+          }}
+          onChange={(isOn: boolean): void => {
+            remember({ isGitHubCommandsEnabled: isOn });
+          }}
+          dataTestId={CODE_REPOSITORY_GITHUB_COMMANDS_TEST_ID}
+        />
 
-      {/*
-       * One switch, saved the moment it is flipped: whether OneUptime
-       * reviews the repository's pull requests against production on its
-       * own. Unset - every repository connected before it existed - reads
-       * as off, as the server reads it.
-       */}
-      <ModelSwitchCard<CodeRepository>
-        modelType={CodeRepository}
-        modelId={modelId}
-        column="isProductionReviewEnabled"
-        cardTitle={PRODUCTION_REVIEW_SETTINGS_COPY.cardTitle}
-        title={PRODUCTION_REVIEW_SETTINGS_COPY.switchTitle}
-        getDescription={(): string => {
-          return PRODUCTION_REVIEW_SETTINGS_COPY.switchDescription;
-        }}
-        dataTestId={CODE_REPOSITORY_PRODUCTION_REVIEW_TEST_ID}
-      />
+        {/*
+         * One switch, saved the moment it is flipped: whether OneUptime
+         * reviews the repository's pull requests against production on its
+         * own. Unset - every repository connected before it existed - reads
+         * as off, as the server reads it.
+         */}
+        <ModelSwitchCard<CodeRepository>
+          modelType={CodeRepository}
+          modelId={modelId}
+          column="isProductionReviewEnabled"
+          cardId={CodeRepositorySetting.ProductionReview}
+          cardTitle={PRODUCTION_REVIEW_SETTINGS_COPY.cardTitle}
+          title={PRODUCTION_REVIEW_SETTINGS_COPY.switchTitle}
+          getDescription={(): string => {
+            return PRODUCTION_REVIEW_SETTINGS_COPY.switchDescription;
+          }}
+          onChange={(isOn: boolean): void => {
+            remember({ isProductionReviewEnabled: isOn });
+          }}
+          dataTestId={CODE_REPOSITORY_PRODUCTION_REVIEW_TEST_ID}
+        />
 
-      {/*
-       * Where AI works in the repository: the one Runner picker, with Global
-       * Runner first (empty), then the project's own Runners. Empty is
-       * Global Runner, an answer of its own, so it is not "(Optional)".
-       */}
-      <CardModelDetail<CodeRepository>
-        name="Repository > Runner"
-        cardProps={{
-          title: CODE_REPOSITORY_SETTINGS_COPY.runnerCardTitle,
-          description: CODE_REPOSITORY_SETTINGS_COPY.runnerCardDescription,
-        }}
-        isEditable={true}
-        editButtonText="Edit"
-        editModalTitle={CodeRepositoryRunnerCopy.fieldTitle}
-        formFields={[
-          {
-            field: {
-              runnerId: true,
-            },
-            title: CodeRepositoryRunnerCopy.fieldTitle,
-            description: CodeRepositoryRunnerCopy.fieldDescription,
-            fieldType: FormFieldSchemaType.CustomComponent,
-            required: false,
-            hideOptionalLabel: true,
-            dataTestId: "code-repository-runner",
-            getCustomElement: (
-              values: FormValues<CodeRepository>,
-              elementProps: CustomElementProps,
-            ): ReactElement => {
-              return (
-                <CodeRepositoryRunnerPicker
-                  value={values.runnerId}
-                  ariaLabelledby={elementProps.ariaLabelledby}
-                  onChange={(runnerId: string | null): void => {
-                    elementProps.onChange?.(runnerId);
-                  }}
-                />
-              );
-            },
-          },
-        ]}
-        modelDetailProps={{
-          modelType: CodeRepository,
-          id: "model-detail-code-repository-runner",
-          fields: [
-            /*
-             * The card is titled Runner and says what it is for: its value
-             * needs no label of its own.
-             */
+        {/*
+         * Where AI works in the repository: the one Runner picker, with
+         * Global Runner first (empty), then the project's own Runners. Empty
+         * is Global Runner, an answer of its own, so it is not "(Optional)".
+         */}
+        <CardModelDetail<CodeRepository>
+          name="Repository > Runner"
+          cardProps={{
+            title: CODE_REPOSITORY_SETTINGS_COPY.runnerCardTitle,
+            description: CODE_REPOSITORY_SETTINGS_COPY.runnerCardDescription,
+            id: CodeRepositorySetting.Runner,
+          }}
+          isEditable={true}
+          editButtonText="Edit"
+          editModalTitle={CodeRepositoryRunnerCopy.fieldTitle}
+          formFields={[
             {
               field: {
                 runnerId: true,
               },
-              fieldType: FieldType.Element,
-              getElement: (item: CodeRepository): ReactElement => {
-                return <CodeRepositoryRunnerValue runnerId={item.runnerId} />;
+              title: CodeRepositoryRunnerCopy.fieldTitle,
+              description: CodeRepositoryRunnerCopy.fieldDescription,
+              fieldType: FormFieldSchemaType.CustomComponent,
+              required: false,
+              hideOptionalLabel: true,
+              dataTestId: "code-repository-runner",
+              getCustomElement: (
+                values: FormValues<CodeRepository>,
+                elementProps: CustomElementProps,
+              ): ReactElement => {
+                return (
+                  <CodeRepositoryRunnerPicker
+                    value={values.runnerId}
+                    ariaLabelledby={elementProps.ariaLabelledby}
+                    onChange={(runnerId: string | null): void => {
+                      elementProps.onChange?.(runnerId);
+                    }}
+                  />
+                );
               },
             },
-          ],
-          modelId: modelId,
-        }}
-      />
+          ]}
+          modelDetailProps={{
+            modelType: CodeRepository,
+            id: "model-detail-code-repository-runner",
+            onItemLoaded: (item: CodeRepository): void => {
+              remember({ runnerId: getRepositoryRunnerId(item.runnerId) });
+            },
+            fields: [
+              /*
+               * The card is titled Runner and says what it is for: its value
+               * needs no label of its own.
+               */
+              {
+                field: {
+                  runnerId: true,
+                },
+                fieldType: FieldType.Element,
+                getElement: (item: CodeRepository): ReactElement => {
+                  return (
+                    <CodeRepositoryRunnerValueView
+                      runnerId={item.runnerId}
+                      choices={runnerChoices}
+                    />
+                  );
+                },
+              },
+            ],
+            modelId: modelId,
+          }}
+        />
 
-      <AdvancedPageSection
-        description={CODE_REPOSITORY_SETTINGS_COPY.moreSettingsDescription}
-        items={getRepositoryMoreSettingsItems(settings, translator)}
-        dataTestId={CODE_REPOSITORY_MORE_SETTINGS_TEST_ID}
-      >
         <CardModelDetail<CodeRepository>
           name="Repository > Pull Requests"
           cardProps={{
             title: CODE_REPOSITORY_SETTINGS_COPY.pullRequestsCardTitle,
             description:
               CODE_REPOSITORY_SETTINGS_COPY.pullRequestsCardDescription,
+            id: CodeRepositorySetting.PullRequests,
           }}
           isEditable={true}
           editButtonText="Edit"
@@ -509,6 +574,7 @@ const CodeRepositorySettings: FunctionComponent<
           cardProps={{
             title: CODE_REPOSITORY_SETTINGS_COPY.triggerLabelCardTitle,
             description: CODE_REPOSITORY_SETTINGS_COPY.triggerLabelCardSummary,
+            id: CodeRepositorySetting.TriggerLabel,
           }}
           isEditable={true}
           editButtonText="Edit"
@@ -530,12 +596,7 @@ const CodeRepositorySettings: FunctionComponent<
             modelType: CodeRepository,
             id: "model-detail-code-repository-trigger-label",
             onItemLoaded: (item: CodeRepository): void => {
-              setSettings((current: CodeRepositorySettingsValues | null) => {
-                return {
-                  ...(current || {}),
-                  gitHubTriggerLabel: item.gitHubTriggerLabel,
-                };
-              });
+              remember({ gitHubTriggerLabel: item.gitHubTriggerLabel });
             },
             fields: [
               /*
@@ -568,6 +629,7 @@ const CodeRepositorySettings: FunctionComponent<
           cardProps={{
             title: PRODUCTION_REVIEW_SETTINGS_COPY.contentCardTitle,
             description: PRODUCTION_REVIEW_SETTINGS_COPY.contentCardDescription,
+            id: CodeRepositorySetting.ProductionReviewComment,
           }}
           isEditable={true}
           editButtonText="Edit"
@@ -639,12 +701,9 @@ const CodeRepositorySettings: FunctionComponent<
             modelType: CodeRepository,
             id: "model-detail-code-repository-production-review-comment",
             onItemLoaded: (item: CodeRepository): void => {
-              setSettings((current: CodeRepositorySettingsValues | null) => {
-                return {
-                  ...(current || {}),
-                  productionReviewPullRequestContent:
-                    item.productionReviewPullRequestContent,
-                };
+              remember({
+                productionReviewPullRequestContent:
+                  item.productionReviewPullRequestContent,
               });
             },
             fields: [
@@ -682,13 +741,10 @@ const CodeRepositorySettings: FunctionComponent<
           repositoryId={modelId}
           repository={settings}
           onRemoved={(): void => {
-            setSettings((current: CodeRepositorySettingsValues | null) => {
-              return {
-                ...(current || {}),
-                setupCommand: null,
-                buildCommand: null,
-                testCommand: null,
-              };
+            remember({
+              setupCommand: null,
+              buildCommand: null,
+              testCommand: null,
             });
           }}
         />

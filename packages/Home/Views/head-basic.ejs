@@ -142,6 +142,11 @@
         .md\:space-x-10 > :not([hidden]) ~ :not([hidden]) { margin-left: 2.5rem; }
     }
     @media (min-width: 1024px) {
+        /* The nav: its links from a laptop up, its menu button below that */
+        .lg\:hidden { display: none; }
+        .lg\:flex { display: flex; }
+        .lg\:justify-start { justify-content: flex-start; }
+        .lg\:space-x-10 > :not([hidden]) ~ :not([hidden]) { margin-left: 2.5rem; }
         .lg\:w-0 { width: 0; }
         .lg\:flex-1 { flex: 1 1 0%; }
         .lg\:px-8 { padding-left: 2rem; padding-right: 2rem; }
@@ -149,10 +154,6 @@
     }
     .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .auto-rows-fr { grid-auto-rows: minmax(0, 1fr); }
-    /* Reserve space for logo-roll section to prevent CLS */
-    .marquee-container { overflow: hidden; min-height: 60px; }
-    .logo-item { min-width: 160px; height: 60px; }
-    .logo-item img { max-height: 36px; max-width: 140px; }
     /*
      * Desktop-only markup is written `max-md:hidden md:flex`, not
      * `hidden md:flex`: a browser extension or user stylesheet that declares

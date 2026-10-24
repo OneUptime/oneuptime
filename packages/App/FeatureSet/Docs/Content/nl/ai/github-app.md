@@ -134,7 +134,7 @@ Als een run niet kan starten, zegt de app in de thread waarom: hij mislukt nooit
 
 ## Uitzetten
 
-Elke repository heeft een schakelaar: **Respond to GitHub Commands**, op de pagina **Instellingen** van de repository. Hij staat aan voor elke repository en slaat op zodra je hem omzet. Staat die uit, dan negeert de app vermeldingen, toewijzingen en het triggerlabel in die repository, en vertelt hij iedereen die het vraagt waar de schakelaar zit.
+Elke repository heeft een schakelaar: **Respond to GitHub Commands**, onder **Meer instellingen** op de pagina **Instellingen** van de repository. Hij staat aan voor elke repository en slaat op zodra je hem omzet. Staat die uit, dan negeert de app vermeldingen, toewijzingen en het triggerlabel in die repository, en vertelt hij iedereen die het vraagt waar de schakelaar zit.
 
 Dezelfde pagina bevat het **GitHub Trigger Label**, onder **Meer instellingen**, als je een ander label dan `oneuptime` wilt.
 

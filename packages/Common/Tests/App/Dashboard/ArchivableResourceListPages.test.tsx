@@ -219,6 +219,16 @@ jest.mock("../../../UI/Components/BulkUpdate/BulkOwnerActions", () => {
   };
 });
 
+// Enable and Disable, on the lists of records that are switched on and off.
+jest.mock("../../../UI/Components/BulkUpdate/BulkSwitchActions", () => {
+  return {
+    __esModule: true,
+    default: () => {
+      return ["switch-action"];
+    },
+  };
+});
+
 jest.mock("../../../UI/Components/BulkUpdate/BulkArchiveActions", () => {
   return {
     __esModule: true,
@@ -313,6 +323,8 @@ interface ArchivableList {
   renderArchived: () => ReactElement;
   // Where View on the Archived page must go: the resource's own pages.
   viewPath: string;
+  // Whether its records are switched on and off (Enable and Disable in bulk).
+  isSwitched: boolean;
 }
 
 const LISTS: Array<ArchivableList> = [
@@ -329,6 +341,7 @@ const LISTS: Array<ArchivableList> = [
       return <WorkflowsArchived {...PAGE_PROPS} />;
     },
     viewPath: `/dashboard/${PROJECT_ID}/workflows/${RESOURCE_ID}`,
+    isSwitched: true,
   },
   {
     name: "Status Pages",
@@ -343,6 +356,7 @@ const LISTS: Array<ArchivableList> = [
       return <StatusPagesArchived {...PAGE_PROPS} />;
     },
     viewPath: `/dashboard/${PROJECT_ID}/status-pages/${RESOURCE_ID}`,
+    isSwitched: false,
   },
   {
     name: "Dashboards",
@@ -357,6 +371,7 @@ const LISTS: Array<ArchivableList> = [
       return <DashboardsArchived {...PAGE_PROPS} />;
     },
     viewPath: `/dashboard/${PROJECT_ID}/dashboards/${RESOURCE_ID}`,
+    isSwitched: false,
   },
   {
     name: "On-Call Policies",
@@ -371,6 +386,7 @@ const LISTS: Array<ArchivableList> = [
       return <OnCallDutyPoliciesArchived {...PAGE_PROPS} />;
     },
     viewPath: `/dashboard/${PROJECT_ID}/on-call-duty/policies/${RESOURCE_ID}`,
+    isSwitched: false,
   },
 ];
 
@@ -425,6 +441,8 @@ describe.each(LISTS)("$name list", (list: ArchivableList) => {
     const props: CapturedTableProps = await renderPage(list.renderLive());
 
     expect(props.bulkActions?.buttons).toEqual([
+      // A workflow is turned on and off first: what a set of them most needs.
+      ...(list.isSwitched ? ["switch-action"] : []),
       "label-action",
       "owner-action",
       "archive-action",

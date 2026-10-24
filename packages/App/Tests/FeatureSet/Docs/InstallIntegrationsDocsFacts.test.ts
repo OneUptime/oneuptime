@@ -136,6 +136,8 @@ const SOURCES: Record<string, string> = {
   slackIntegration: `${DASHBOARD}/Components/Slack/SlackIntegration.tsx`,
   slackDocumentation: `${DASHBOARD}/Components/Slack/SlackIntegrationDocumentation.tsx`,
   teamsApi: `${COMMON_SERVER}/API/MicrosoftTeamsAPI.ts`,
+  teamsSignInAuthority: `${COMMON_SERVER}/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsSignInAuthority.ts`,
+  teamsDocumentation: `${DASHBOARD}/Components/MicrosoftTeams/MicrosoftTeamsIntegrationDocumentation.tsx`,
   teamsUtil: `${COMMON_SERVER}/Utils/Workspace/MicrosoftTeams/MicrosoftTeams.ts`,
   teamsServiceUrl: `${COMMON_SERVER}/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsServiceUrl.ts`,
   teamsIntegration: `${DASHBOARD}/Components/MicrosoftTeams/MicrosoftTeamsIntegration.tsx`,
@@ -2353,6 +2355,94 @@ describe("Microsoft Teams Integration, against the server and the Teams card", (
   it("the variables the table names are the server's, and the chart sets each from its Helm value", () => {
     expect(expectEnvironmentTableHeld(TEAMS, "## Environment variables")).toBe(
       5,
+    );
+  });
+
+  /*
+   * Issue #5202: the page registers the app for one organization, and
+   * "Connect my account with Microsoft Teams" signed in at Microsoft's
+   * common endpoint, which refuses such an app (AADSTS50194).
+   */
+  it("the app is registered for one organization here and in the product, and the account sign-in goes to the tenant - never common", () => {
+    const signIn: string = blockFrom(
+      api,
+      '"/microsoft-teams/sign-in-url"',
+      "router.get(",
+    );
+    const accountType: string =
+      "**Supported account types:** Accounts in this organizational directory only (Single tenant)";
+
+    expect(page).toContain(`- ${accountType}`);
+    expect(readSource("teamsDocumentation")).toContain(`- ${accountType}`);
+    expect(readSource("teamsDocumentation")).not.toContain("Multitenant)");
+
+    // The project's tenant, else MICROSOFT_TEAMS_APP_TENANT_ID: where the note and the table say people sign in.
+    expect(signIn).toContain(
+      "projectTenantId: projectAuth?.workspaceProjectId,",
+    );
+    expect(signIn).toContain("appTenantId: MicrosoftTeamsAppTenantId,");
+    expect(signIn).toContain(
+      "MicrosoftTeamsSignInAuthorityUtil.getAuthorizeUrl(",
+    );
+    expect(api).not.toContain("/common/oauth2");
+    expect(readSource("teamsSignInAuthority")).toContain(
+      'export const MICROSOFT_ANY_ORGANIZATION: string = "organizations";',
+    );
+    /*
+     * The note says why single tenant, in three sentences: everyone signs
+     * in to the organization's tenant, guests as guests, and multitenant
+     * works too. Which tenant before a project is connected is the
+     * AADSTS50194 section's.
+     */
+    expect(
+      page.split("\n").find((line: string): boolean => {
+        return line.startsWith("> **Why single tenant:**");
+      }),
+    ).toBe(
+      "> **Why single tenant:** a self-hosted OneUptime serves one organization, and signs everyone in to its tenant: admins granting consent, and each person who selects **Connect my account with Microsoft Teams**. Guests in your organization sign in with their guest account, the one Teams uses for them. A multitenant app works the same way, but single tenant keeps the app to your organization.",
+    );
+    expect(page).toContain(
+      "The bot authenticates as a single-tenant app in this tenant, and people sign in to it to connect their Microsoft Teams account.",
+    );
+  });
+
+  it("an AADSTS50194 says what older versions did, the way round it until an upgrade, and what to check after", () => {
+    const section: string = blockFrom(
+      page,
+      "### Signing in fails with AADSTS50194",
+      "## Next steps",
+    );
+
+    expect(section).toContain(
+      "Older versions sent **Connect my account with Microsoft Teams** to `/common`",
+    );
+    expect(section).toContain(
+      "set **Assignment required?** to Yes under **Properties**",
+    );
+    expect(section).toContain(
+      "check that `MICROSOFT_TEAMS_APP_TENANT_ID` is set to the app's **Directory (tenant) ID**",
+    );
+    // Reached from the page's sentence for a connection Microsoft refused.
+    expect(page).toContain(
+      "If Microsoft answered `AADSTS50194`, see [Signing in fails with AADSTS50194](#signing-in-fails-with-aadsts50194).",
+    );
+    expect(readSource("teamsDocumentation")).toContain(
+      "**Signing in fails with AADSTS50194**",
+    );
+  });
+
+  it("the configuration check reads the tenant ID too, and says where people sign in", () => {
+    const check: string = blockFrom(
+      api,
+      '"/microsoft-bot/test"',
+      "router.get(",
+    );
+
+    expect(check).toContain("if (!MicrosoftTeamsAppTenantId) {");
+    expect(check).toContain('"MICROSOFT_TEAMS_APP_TENANT_ID is set"');
+    expect(check).toContain("accountSignIn:");
+    expect(page).toContain(
+      "whether `MICROSOFT_TEAMS_APP_CLIENT_ID`, `MICROSOFT_TEAMS_APP_CLIENT_SECRET` and `MICROSOFT_TEAMS_APP_TENANT_ID` are set, the tenant people sign in to when they connect their account,",
     );
   });
 

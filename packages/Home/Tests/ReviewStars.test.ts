@@ -6,6 +6,7 @@ import {
   renderView,
 } from "./Helpers/TailwindPages";
 import { beforeAll, describe, expect, test } from "@jest/globals";
+import ejs from "ejs";
 import fs from "fs";
 import { JSDOM } from "jsdom";
 import path from "path";
@@ -103,22 +104,30 @@ describe("a review", () => {
 });
 
 describe("the homepage", () => {
-  test("shows every review's stars as images, and no star SVG", async () => {
+  /*
+   * The homepage quotes three reviews - the first of each list the route
+   * deals them into - as plain quotes, without a star rating, so it draws
+   * no star in any form.
+   */
+  test("quotes three reviews, and draws no star", async () => {
     const homepage: MarketingPage = MARKETING_PAGES.find(
       (page: MarketingPage): boolean => {
         return page.template === "index.ejs";
       },
     )!;
     const html: string = await renderMarketingPage(homepage);
-    const reviews: number =
-      Reviews.reviewsList1.length +
-      Reviews.reviewsList2.length +
-      Reviews.reviewsList3.length;
+    const featured: Array<Review> = [
+      Reviews.reviewsList1[0]!,
+      Reviews.reviewsList2[0]!,
+      Reviews.reviewsList3[0]!,
+    ];
 
-    expect(reviews).toBeGreaterThan(20);
-    expect(html.split('src="/img/review-star.svg"').length - 1).toBe(
-      reviews * 5,
-    );
+    for (const review of featured) {
+      expect(html).toContain(ejs.escapeXML(review.name));
+      expect(html).toContain(ejs.escapeXML(review.text));
+    }
+
+    expect(html).not.toContain('src="/img/review-star.svg"');
     expect(html).not.toContain(STAR_PATH);
   }, 600000);
 });

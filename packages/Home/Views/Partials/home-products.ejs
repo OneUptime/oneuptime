@@ -1,258 +1,102 @@
-<section id="products" class="relative bg-white py-24 lg:py-32 overflow-hidden scroll-mt-24" aria-labelledby="products-title">
-  <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" aria-hidden="true"></div>
-  <div class="mx-auto max-w-7xl px-6 lg:px-8">
-    <!-- Header -->
-    <div data-reveal class="mx-auto max-w-2xl text-center mb-16">
-      <p class="text-sm font-medium text-gray-500 tracking-wide uppercase mb-4">The full platform &middot; 30 products</p>
-      <h2 id="products-title" class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900">
-        Everything in the box.
-      </h2>
-      <p class="mt-6 text-lg text-gray-600 leading-relaxed">
-        Every product below would be a separate subscription somewhere else. Here they ship together and talk to each other - it's how one 2:47 AM alert becomes one 3:26 AM pull request.
-      </p>
+<%
+  // Every product, by group.
+  const productGroups = [
+    {
+      name: 'Reliability & Response',
+      products: [
+        { href: '/product/monitoring', icon: 'monitoring', name: 'Uptime Monitoring', blurb: 'Websites, APIs & synthetics' },
+        { href: '/product/status-page', icon: 'status-page', name: 'Status Pages', blurb: 'Branded, on your domain' },
+        { href: '/product/incident-management', icon: 'incidents', name: 'Incident Management', blurb: 'From alert to postmortem' },
+        { href: '/product/on-call', icon: 'on-call', name: 'On-Call & Alerts', blurb: 'Wakes the right person' },
+        { href: '/product/scheduled-maintenance', icon: 'scheduled-maintenance', name: 'Scheduled Maintenance', blurb: 'Planned work, announced' },
+      ],
+    },
+    {
+      name: 'Observability',
+      products: [
+        { href: '/product/observability', icon: 'observability', name: 'Observability', blurb: 'Logs, metrics & traces in one' },
+        { href: '/product/topology', icon: 'topology', name: 'Topology', blurb: 'Service, infra & network maps' },
+        { href: '/product/security-events', icon: 'security-events', name: 'Security Events', blurb: 'SIEM signals & Sigma detections' },
+        { href: '/product/logs-management', icon: 'logs', name: 'Logs', blurb: 'Ingest, search & tail' },
+        { href: '/product/metrics', icon: 'metrics', name: 'Metrics', blurb: 'Prometheus & OTel compatible' },
+        { href: '/product/traces', icon: 'traces', name: 'Traces', blurb: 'Follow requests across services' },
+        { href: '/product/exceptions', icon: 'exceptions', name: 'Error Tracking', blurb: 'Exceptions, grouped & owned' },
+        { href: '/product/profiles', icon: 'profiles', name: 'Profiling', blurb: 'CPU & memory flamegraphs' },
+        { href: '/product/rum', icon: 'rum', name: 'Real User Monitoring', blurb: 'What users actually feel' },
+        { href: '/product/ai-observability', icon: 'ai-observability', name: 'AI & LLM Observability', blurb: 'Tokens, cost & prompts' },
+      ],
+    },
+    {
+      name: 'Infrastructure',
+      products: [
+        { href: '/product/kubernetes', icon: 'kubernetes', name: 'Kubernetes', blurb: 'Clusters, eBPF & service maps' },
+        { href: '/product/cloud', icon: 'cloud', name: 'Cloud Observability', blurb: 'AWS, GCP & Azure' },
+        { href: '/product/host', icon: 'host', name: 'Hosts & Servers', blurb: 'Linux, macOS & Windows' },
+        { href: '/product/databases', icon: 'databases', name: 'Databases', blurb: 'Queries & engine health' },
+        { href: '/product/queues', icon: 'queues', name: 'Queues', blurb: 'Backlog, lag & dead letters' },
+        { href: '/product/docker', icon: 'docker', name: 'Docker', blurb: 'See inside every container' },
+        { href: '/product/podman', icon: 'podman', name: 'Podman', blurb: 'Rootless containers, watched' },
+        { href: '/product/docker-swarm', icon: 'docker-swarm', name: 'Docker Swarm', blurb: 'Nodes, services & tasks' },
+        { href: '/product/proxmox', icon: 'proxmox', name: 'Proxmox', blurb: 'VMs, nodes & backups' },
+        { href: '/product/vmware', icon: 'vmware', name: 'VMware', blurb: 'vCenter, ESXi hosts & VMs' },
+        { href: '/product/ceph', icon: 'ceph', name: 'Ceph', blurb: 'Storage cluster health' },
+        { href: '/product/serverless', icon: 'serverless', name: 'Serverless', blurb: 'Functions & cold starts' },
+        { href: '/product/iot', icon: 'iot', name: 'IoT Devices', blurb: 'Fleets, sensors & gateways' },
+        { href: '/product/network-monitoring', icon: 'network-devices', name: 'Network Devices', blurb: 'Switches, routers & firewalls' },
+      ],
+    },
+    {
+      name: 'Automation & AI',
+      products: [
+        { href: '/product/workflows', icon: 'workflows', name: 'Workflows', blurb: '5,000+ integrations' },
+        { href: '/product/runbooks', icon: 'runbooks', name: 'Runbooks', blurb: 'Response steps, automated' },
+        { href: '/product/dashboards', icon: 'dashboards', name: 'Dashboards', blurb: 'All your data, one view' },
+        { href: '/product/ai-agent', icon: 'ai-agent', name: 'AI', blurb: 'Detects, diagnoses & fixes' },
+      ],
+    },
+  ];
+-%>
+<%# Followed straight by a call to action (the product pages), the section leaves the space below to it. -%>
+<section id="products" class="bg-white scroll-mt-20 <%= typeof productsFlushBottom !== 'undefined' && productsFlushBottom ? 'pt-24 sm:pt-32' : 'py-24 sm:py-32' %>" aria-labelledby="products-title">
+  <div class="mx-auto max-w-6xl px-6 lg:px-8">
+    <div class="max-w-3xl">
+      <p class="text-sm font-semibold text-emerald-600">Products</p>
+      <h2 id="products-title" class="mt-3 text-3xl font-semibold tracking-tight text-gray-950 sm:text-4xl">Every product, built in. <span class="text-gray-500">Start with one, add the rest when you need them.</span></h2>
+      <p class="mt-6 text-base leading-7 text-gray-600">Teams use OneUptime in place of separate tools like Pingdom, Statuspage, PagerDuty, Datadog and Sentry.</p>
+      <div class="mt-6 flex flex-wrap gap-x-6 gap-y-3">
+        <a href="/pricing" class="text-sm font-semibold text-gray-950 hover:text-gray-600">See pricing <span aria-hidden="true">&rarr;</span></a>
+        <a href="/compare" class="text-sm font-semibold text-gray-950 hover:text-gray-600">Compare OneUptime <span aria-hidden="true">&rarr;</span></a>
+      </div>
     </div>
 
-    <!-- Product index -->
-    <div data-reveal data-reveal-delay="100" class="mx-auto max-w-6xl rounded-3xl border border-gray-200 bg-gradient-to-b from-gray-50/80 to-white p-8 sm:p-10 lg:p-12">
-      <div class="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
-
-        <!-- Reliability & Response -->
-        <div data-reveal data-reveal-delay="200">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-5">Reliability &amp; Response</h3>
-          <ul class="space-y-4">
+    <%#
+      Three columns of about the same height: Reliability & Response over
+      Automation & AI, Observability, and Infrastructure two abreast.
+    -%>
+    <div class="mt-14 grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
+      <% [
+        { groups: [productGroups[0], productGroups[3]], wide: false },
+        { groups: [productGroups[1]], wide: false },
+        { groups: [productGroups[2]], wide: true },
+      ].forEach(function (column) { -%>
+      <div class="space-y-12 <%= column.wide ? 'sm:col-span-2' : '' %>">
+        <% column.groups.forEach(function (group) { -%>
+        <div>
+          <h3 class="text-sm font-semibold text-gray-950"><%= group.name %></h3>
+          <ul class="mt-5 grid grid-cols-2 gap-x-4 gap-y-1 <%= column.wide ? 'sm:gap-x-8' : 'sm:grid-cols-1' %>">
+            <% group.products.forEach(function (product) { -%>
             <li>
-              <a href="/product/monitoring" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/monitoring', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors">Uptime Monitoring</span><span class="block text-xs text-gray-500">Websites, APIs &amp; synthetics</span></span>
+              <a href="<%= product.href %>" class="group -mx-2 flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
+                <span class="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-gray-200"><%- include('./icons/' + product.icon, { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
+                <span class="min-w-0"><span class="block text-sm font-medium leading-5 text-gray-900 group-hover:underline"><%= product.name %></span><span class="text-xs text-gray-500 max-sm:hidden sm:block"><%= product.blurb %></span></span>
               </a>
             </li>
-            <li>
-              <a href="/product/status-page" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/status-page', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-emerald-600 transition-colors">Status Pages</span><span class="block text-xs text-gray-500">Branded, on your domain</span></span>
-              </a>
-            </li>
-            <li>
-              <a href="/product/incident-management" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/incidents', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-rose-600 transition-colors">Incident Management</span><span class="block text-xs text-gray-500">From alert to postmortem</span></span>
-              </a>
-            </li>
-            <li>
-              <a href="/product/on-call" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/on-call', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-stone-600 transition-colors">On-Call &amp; Alerts</span><span class="block text-xs text-gray-500">Wakes the right person</span></span>
-              </a>
-            </li>
-            <li>
-              <a href="/product/scheduled-maintenance" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/scheduled-maintenance', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-teal-600 transition-colors">Scheduled Maintenance</span><span class="block text-xs text-gray-500">Planned work, announced</span></span>
-              </a>
-            </li>
+            <% }); -%>
           </ul>
         </div>
-
-        <!-- Observability -->
-        <div data-reveal data-reveal-delay="275">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-5">Observability</h3>
-          <ul class="space-y-4">
-            <li>
-              <a href="/product/observability" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/observability', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">Observability</span><span class="block text-xs text-gray-500">Logs, metrics &amp; traces in one</span></span>
-              </a>
-            </li>
-            <li>
-              <a href="/product/topology" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/topology', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-teal-600 transition-colors">Topology</span><span class="block text-xs text-gray-500">Service, infra &amp; network maps</span></span>
-              </a>
-            </li>
-            <li>
-              <a href="/product/security-events" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/security-events', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-red-600 transition-colors">Security Events</span><span class="block text-xs text-gray-500">SIEM signals &amp; Sigma detections</span></span>
-              </a>
-            </li>
-            <li>
-              <a href="/product/logs-management" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/logs', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-amber-600 transition-colors">Logs</span><span class="block text-xs text-gray-500">Ingest, search &amp; tail</span></span>
-              </a>
-            </li>
-            <li>
-              <a href="/product/metrics" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/metrics', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-purple-600 transition-colors">Metrics</span><span class="block text-xs text-gray-500">Prometheus &amp; OTel compatible</span></span>
-              </a>
-            </li>
-            <li>
-              <a href="/product/traces" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/traces', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-yellow-600 transition-colors">Traces</span><span class="block text-xs text-gray-500">Follow requests across services</span></span>
-              </a>
-            </li>
-            <li>
-              <a href="/product/exceptions" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/exceptions', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-orange-600 transition-colors">Error Tracking</span><span class="block text-xs text-gray-500">Exceptions, grouped &amp; owned</span></span>
-              </a>
-            </li>
-            <li>
-              <a href="/product/profiles" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/profiles', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-rose-500 transition-colors">Profiling</span><span class="block text-xs text-gray-500">CPU &amp; memory flamegraphs</span></span>
-              </a>
-            </li>
-            <li>
-              <a href="/product/rum" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/rum', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">Real User Monitoring</span><span class="block text-xs text-gray-500">What users actually feel</span></span>
-              </a>
-            </li>
-            <li>
-              <a href="/product/ai-observability" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/ai-observability', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-violet-600 transition-colors">AI &amp; LLM Observability</span><span class="block text-xs text-gray-500">Tokens, cost &amp; prompts</span></span>
-              </a>
-            </li>
-          </ul>
-        </div>
-
-        <!-- Infrastructure -->
-        <div data-reveal data-reveal-delay="350">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-5">Infrastructure</h3>
-          <ul class="space-y-4">
-            <li>
-              <a href="/product/kubernetes" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/kubernetes', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-cyan-600 transition-colors">Kubernetes</span><span class="block text-xs text-gray-500">Clusters, eBPF &amp; service maps</span></span>
-              </a>
-            </li>
-            <li>
-              <a href="/product/cloud" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/cloud', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-sky-600 transition-colors">Cloud Observability</span><span class="block text-xs text-gray-500">AWS, GCP &amp; Azure</span></span>
-              </a>
-            </li>
-            <li>
-              <a href="/product/host" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/host', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-stone-600 transition-colors">Hosts &amp; Servers</span><span class="block text-xs text-gray-500">Linux, macOS &amp; Windows</span></span>
-              </a>
-            </li>
-            <li>
-              <a href="/product/databases" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/databases', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-emerald-600 transition-colors">Databases</span><span class="block text-xs text-gray-500">Queries &amp; engine health</span></span>
-              </a>
-            </li>
-            <li>
-              <a href="/product/queues" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/queues', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">Queues</span><span class="block text-xs text-gray-500">Backlog, lag &amp; dead letters</span></span>
-              </a>
-            </li>
-            <li>
-              <a href="/product/docker" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/docker', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors">Docker</span><span class="block text-xs text-gray-500">See inside every container</span></span>
-              </a>
-            </li>
-            <li>
-              <a href="/product/podman" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/podman', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-sky-600 transition-colors">Podman</span><span class="block text-xs text-gray-500">Rootless containers, watched</span></span>
-              </a>
-            </li>
-            <li>
-              <a href="/product/docker-swarm" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/docker-swarm', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-blue-500 transition-colors">Docker Swarm</span><span class="block text-xs text-gray-500">Nodes, services &amp; tasks</span></span>
-              </a>
-            </li>
-            <li>
-              <a href="/product/proxmox" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/proxmox', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-orange-600 transition-colors">Proxmox</span><span class="block text-xs text-gray-500">VMs, nodes &amp; backups</span></span>
-              </a>
-            </li>
-            <li>
-              <a href="/product/vmware" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/vmware', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">VMware</span><span class="block text-xs text-gray-500">vCenter, ESXi hosts &amp; VMs</span></span>
-              </a>
-            </li>
-            <li>
-              <a href="/product/ceph" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/ceph', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-red-600 transition-colors">Ceph</span><span class="block text-xs text-gray-500">Storage cluster health</span></span>
-              </a>
-            </li>
-            <li>
-              <a href="/product/serverless" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/serverless', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-fuchsia-600 transition-colors">Serverless</span><span class="block text-xs text-gray-500">Functions &amp; cold starts</span></span>
-              </a>
-            </li>
-            <li>
-              <a href="/product/iot" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/iot', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-green-600 transition-colors">IoT Devices</span><span class="block text-xs text-gray-500">Fleets, sensors &amp; gateways</span></span>
-              </a>
-            </li>
-            <li>
-              <a href="/product/network-monitoring" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/network-devices', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-sky-600 transition-colors">Network Devices</span><span class="block text-xs text-gray-500">Switches, routers &amp; firewalls</span></span>
-              </a>
-            </li>
-          </ul>
-        </div>
-
-        <!-- Automation & AI -->
-        <div data-reveal data-reveal-delay="425">
-          <h3 class="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-5">Automation &amp; AI</h3>
-          <ul class="space-y-4">
-            <li>
-              <a href="/product/workflows" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/workflows', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-sky-600 transition-colors">Workflows</span><span class="block text-xs text-gray-500">5,000+ integrations</span></span>
-              </a>
-            </li>
-            <li>
-              <a href="/product/runbooks" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/runbooks', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-lime-600 transition-colors">Runbooks</span><span class="block text-xs text-gray-500">Response steps, automated</span></span>
-              </a>
-            </li>
-            <li>
-              <a href="/product/dashboards" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/dashboards', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-indigo-600 transition-colors">Dashboards</span><span class="block text-xs text-gray-500">All your data, one view</span></span>
-              </a>
-            </li>
-            <li>
-              <a href="/product/ai-agent" class="group flex items-start gap-3 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">
-                <span class="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-50 ring-1 ring-inset ring-gray-100 transition-colors group-hover:bg-white group-hover:ring-gray-200"><%- include('./icons/ai-agent', { iconClass: 'h-4 w-4', useIconSprite: true }) -%></span>
-                <span class="min-w-0"><span class="block text-sm font-medium text-gray-900 group-hover:text-violet-600 transition-colors">AI</span><span class="block text-xs text-gray-500">Detects, diagnoses &amp; fixes</span></span>
-              </a>
-            </li>
-          </ul>
-
-          <!-- Everything-included note fills the shorter column -->
-          <div class="mt-10 rounded-2xl bg-gray-900 p-5">
-            <p class="text-sm font-medium text-white">All of it open source.<br />All of it included.</p>
-            <p class="mt-2 text-xs text-gray-400 leading-relaxed">No add-on SKUs, no per-product contracts. Start with one product and the rest are already there when you need them.</p>
-            <a href="/pricing" class="group mt-3 inline-flex items-center gap-1 text-xs font-medium text-gray-300 hover:text-white transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
-              See pricing
-              <svg class="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5" /></svg>
-            </a>
-          </div>
-        </div>
-
+        <% }); -%>
       </div>
+      <% }); -%>
     </div>
   </div>
 </section>

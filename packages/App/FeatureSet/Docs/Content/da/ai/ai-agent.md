@@ -149,7 +149,7 @@ Når ingen tjeneste hører til repositoriet, kører opgaven uden produktionstele
 
 ## Produktionsgennemgang af pull requests
 
-OneUptime ved, hvad din kode gør i produktion, så den kan gennemgå en pull request med det, ingen kan se ved at læse diffen. Slå **Gennemgå pull requests i forhold til produktion** til på et repositories side **Indstillinger** i Kode, så får hver pull request, som en person med skriveadgang åbner eller pusher til, én kommentar, der siger, hvad produktionen viser om den kode, den ændrer. Kommentaren redigeres på stedet ved hvert push, og repositoriets side **Produktionsgennemgange** i Kode gemmer hver gennemgang med **Gennemgå igen**.
+OneUptime ved, hvad din kode gør i produktion, så den kan gennemgå en pull request med det, ingen kan se ved at læse diffen. Slå **Gennemgå pull requests i forhold til produktion** til under **Yderligere indstillinger** på et repositories side **Indstillinger** i Kode, så får hver pull request, som en person med skriveadgang åbner eller pusher til, én kommentar, der siger, hvad produktionen viser om den kode, den ændrer. Kommentaren redigeres på stedet ved hvert push, og repositoriets side **Produktionsgennemgange** i Kode gemmer hver gennemgang med **Gennemgå igen**.
 
 | Den læser | Om den kode, pull requesten ændrer |
 | --- | --- |
@@ -230,7 +230,7 @@ Du tilknytter ikke repositorier til tjenester. Når en opgave starter, finder On
 
 ### Vælg repositoriets Runner
 
-Hvert repositorie vælger den Runner, AI arbejder i det på: på dets side **Indstillinger** i Kode skal du klikke på **Rediger** på kortet **Runner** og vælge en. Et repositorie, som GitHub App importerer, starter på projektets [standard-Runner](/docs/runbooks/agents#projektets-standard-runner), når projektet har en. Et repositorie, der ikke vælger nogen, arbejder på **Global Runner**, som OneUptime kører for alle projekter.
+Hvert repositorie vælger den Runner, AI arbejder i det på: på dets side **Indstillinger** i Kode skal du åbne **Yderligere indstillinger**, klikke på **Rediger** på kortet **Runner** og vælge en. Et repositorie, som GitHub App importerer, starter på projektets [standard-Runner](/docs/runbooks/agents#projektets-standard-runner), når projektet har en. Et repositorie, der ikke vælger nogen, arbejder på **Global Runner**, som OneUptime kører for alle projekter.
 
 | Runner | Hvad den gør med en opgave |
 | --- | --- |
@@ -258,7 +258,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### Vælg den til repositoriet
 
-På repositoriets side **Indstillinger** i Kode skal du klikke på **Rediger** på kortet **Runner** og vælge Runneren. Runneren opfanger ændringen ved sit næste heartbeat, inden for omkring et minut; der er intet at genstarte.
+På repositoriets side **Indstillinger** i Kode skal du åbne **Yderligere indstillinger**, klikke på **Rediger** på kortet **Runner** og vælge Runneren. Runneren opfanger ændringen ved sit næste heartbeat, inden for omkring et minut; der er intet at genstarte.
 
 ### Kontrollér, at den forbinder
 
@@ -278,7 +278,7 @@ Enhver måde at køre containeren på virker (Docker Compose, Kubernetes og så 
 
 ## Automatiske koderettelser fra undersøgelser
 
-Når en [AI-undersøgelse](/docs/ai/ai-sre) offentliggør en årsagsanalyse på en hændelse eller en advarsel, og dens omhyggelige klassificering anbefaler en ændring i koden, tilbyder undersøgelseskortet **Open Fix PR from this analysis**: en rettelsesopgave, hvis hele kontekst er den offentliggjorte analyse. Knappen er skjult, når afhjælpningen er driftsmæssig, kun handler om infrastruktur, er ekstern, er en forventet afvisning, en brugerfejl eller uden konklusion. Egnede rettelser sker uden klikket, så længe **Ret nye hændelser automatisk** er slået til på **Hændelser → AI → Indstillinger** (og **Ret nye advarsler automatisk** på **Advarsler → AI → Indstillinger**). Rettelse starter slået fra, også for nye projekter. Uden regler for automatisk afhjælpning åbnes hver egnet rettelse; med regler kun en for det, en regel matcher, når reglen har **Pull requests med rettelser** slået til (det har en ny regel), i de koderepositorier, den nævner.
+Når en [AI-undersøgelse](/docs/ai/ai-sre) offentliggør en årsagsanalyse på en hændelse eller en advarsel, og dens omhyggelige klassificering anbefaler en ændring i koden, tilbyder undersøgelseskortet **Open Fix PR from this analysis**: en rettelsesopgave, hvis hele kontekst er den offentliggjorte analyse. Knappen er skjult, når afhjælpningen er driftsmæssig, kun handler om infrastruktur, er ekstern, er en forventet afvisning, en brugerfejl eller uden konklusion. Egnede rettelser sker uden klikket, så længe **Ret nye hændelser automatisk** er slået til på **Hændelser → AI → Indstillinger** (og **Ret nye advarsler automatisk** på **Advarsler → AI → Indstillinger**). Rettelse starter slået fra, også for nye projekter. Uden AI-regler åbnes hver egnet rettelse; med regler kun en for det, en regel matcher, når reglen har **Pull requests med rettelser** slået til (det har en ny regel), i de koderepositorier, den nævner.
 
 Mens rettelse er slået til, sætter en undersøgelse, der ender med en sikker, underbygget grundlæggende årsag, som en kodeændring kan rette, den samme rettelsesopgave i kø, som knappen opretter. Beslutningen er en afgrænset klassificering, som serveren kontrollerer, aldrig et mønster, der matches mod analysens tekst: kun en positiv dom om en koderettelse åbner en pull request. Manglende belæg, en afhjælpning uden for koden og en mislykket klassificering ender alle med, at intet sker.
 

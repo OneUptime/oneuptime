@@ -6,8 +6,6 @@ import {
   getAutoRemediationFixKind,
   getRuleRunnerId,
 } from "Common/Types/AutoRemediation/AutoRemediationFix";
-import IconProp from "Common/Types/Icon/IconProp";
-import type { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
 import type FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
@@ -24,15 +22,17 @@ import {
 } from "Common/Types/AI/AutomaticFixPullRequests";
 
 /*
- * What an auto remediation rule's form and table say, React-free so the
- * table, its tests and the docs tests read these exact strings.
+ * What an AI rule's form and table say about fixing (AISettings/AiRuleCopy
+ * says the rest), React-free so the table, its tests and the docs tests
+ * read these exact strings.
  *
  * The maintainer, on the rule's Fix step: "Why should I pick between
  * OneUptime AI and Runbook? Can OneUptime AI do things by default, and I can
  * whitelist some Runbook for AI to pick and run? If I do not whitelist any
  * Runbook, it can basically run any Runbook by default." So the step asks
- * one question - whether a fix waits for someone to approve it - and
- * OneUptime AI fixes (Common/Types/AutoRemediation/AutoRemediationFix).
+ * one question - don't fix, ask before fixing, or fix without asking
+ * (AiRuleCopy's AI_RULE_FIX_OPTIONS) - and OneUptime AI fixes
+ * (Common/Types/AutoRemediation/AutoRemediationFix).
  * What most people never change is folded under More fields: the runbooks
  * OneUptime AI may run (none picked: any), whether the rule runs them every
  * time instead, the Runner OneUptime AI runs the rule's Bash commands on,
@@ -60,14 +60,6 @@ export const AUTO_REMEDIATION_FIX_WITH_TEXT: {
   // Rules saved before rules were simplified.
   runnerCommands: translationKey("OneUptime AI: commands on Runners"),
   aiPickedRunbook: translationKey("OneUptime AI: picks a runbook"),
-};
-
-export const AUTO_REMEDIATION_APPROVAL_TEXT: {
-  asksFirst: string;
-  withoutAsking: string;
-} = {
-  asksFirst: translationKey("Asks first"),
-  withoutAsking: translationKey("Without asking"),
 };
 
 export enum AutoRemediationFixWith {
@@ -123,66 +115,6 @@ export function getAutoRemediationFixWithText(
 ): string | null {
   return FIX_WITH_TEXT[getAutoRemediationFixWith(rule)];
 }
-
-/*
- * Whether a rule's fixes wait for approval. A runbook a rule saved before
- * rules were simplified has OneUptime AI pick is always proposed, never
- * started, whatever the rule says.
- */
-export function doesAutoRemediationRuleAskFirst(
-  rule: Pick<
-    AutoRemediationRule,
-    | "remediationAction"
-    | "aiComposesCommands"
-    | "aiSelectsRunbook"
-    | "executionMode"
-  >,
-): boolean {
-  if (
-    getAutoRemediationFixWith(rule) === AutoRemediationFixWith.AiPickedRunbook
-  ) {
-    return true;
-  }
-
-  return rule.executionMode !== AutoRemediationExecutionMode.FullAuto;
-}
-
-// The Fix step's one question, and its answers.
-export const AUTO_REMEDIATION_APPROVAL_FIELD_COPY: {
-  title: string;
-  description: string;
-} = {
-  title: translationKey("Approval"),
-  description: translationKey(
-    "OneUptime AI works out each fix. Choose whether it waits for someone to approve it.",
-  ),
-};
-
-export const AUTO_REMEDIATION_APPROVAL_OPTIONS: Array<CardSelectOption> = [
-  {
-    value: AutoRemediationExecutionMode.Suggest,
-    title: translationKey("Ask before fixing"),
-    description: translationKey(
-      "Nothing runs until someone approves the fix with one click.",
-    ),
-    icon: IconProp.HandRaised,
-  },
-  {
-    value: AutoRemediationExecutionMode.FullAuto,
-    title: translationKey("Fix without asking"),
-    /*
-     * Said whatever More fields holds: with no runbook picked, a runbook
-     * OneUptime AI picks from any of them still waits for approval
-     * (AutoRemediationFix.mayAiPickedRunbookStartWithoutAsking), and with
-     * no MCP server picked, every change through one waits too
-     * (McpRemediationRunner).
-     */
-    description: translationKey(
-      "OneUptime AI fixes on its own where the AI agent's settings allow it, and with the runbooks and MCP servers you pick under More fields.",
-    ),
-    icon: IconProp.Bolt,
-  },
-];
 
 // What More fields holds, in the order it shows them.
 export const AUTO_REMEDIATION_MORE_FIELDS_COPY: {

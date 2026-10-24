@@ -1,0 +1,78 @@
+<%
+  /*
+   * The questions buyers ask before they sign up. Answers that touch pricing,
+   * editions, AI or compliance say only what the pricing table and the claims
+   * matrix (Utils/Claims.ts) say.
+   */
+  const faqs = [
+    {
+      question: 'What is OneUptime?',
+      answer: 'OneUptime is an open-source observability and incident management platform. Uptime monitoring, status pages, on-call, incident management, logs, metrics, traces, error tracking, dashboards and workflows live in one place, so the alert, the evidence and the fix stay connected.',
+    },
+    {
+      question: 'Is there really a free plan?',
+      answer: 'Yes. OneUptime Cloud has a free plan with no credit card required, including a status page with 100 subscribers, website and API monitoring, and basic incident management. Paid plans start at $22 per user per month, with usage-based pricing for active monitors ($1 each a month) and telemetry ($0.10 per GB ingested).',
+      link: { href: '/pricing', text: 'See pricing' },
+    },
+    {
+      question: 'Can I self-host OneUptime?',
+      answer: 'Yes. The Community Edition is open source under Apache 2.0 and free to run yourself, with no license fee at any scale - with Docker Compose on a single host, or on Kubernetes with our Helm chart. The Enterprise Edition adds SCIM, audit logs, team compliance and instance health dashboards under the OneUptime Enterprise License, plus a support agreement.',
+      link: { href: '/enterprise/self-hosted', text: 'Read the self-hosting guide' },
+    },
+    {
+      question: 'Does OneUptime work with OpenTelemetry?',
+      answer: 'Yes - OneUptime is OpenTelemetry-native. Send logs, metrics and traces from the OpenTelemetry SDKs and collectors you already run, and your instrumentation stays portable.',
+      link: { href: '/docs', text: 'Read the docs' },
+    },
+    {
+      question: 'How does the AI agent work, and is it safe?',
+      answer: 'When something breaks, the agent reads the related traces, logs and your code, finds the likely root cause, and opens a pull request with the fix and a plain-English explanation. Investigations are read-only, secrets are redacted before anything reaches a model, and nothing merges without your review. You can bring your own LLM keys.',
+      link: { href: '/product/ai-agent', text: 'Explore OneUptime AI' },
+    },
+    {
+      question: 'Can OneUptime replace the tools we use today?',
+      answer: 'OneUptime covers uptime monitoring, status pages, on-call, incident management, logs, APM and error tracking - work that is usually split across tools like Pingdom, Statuspage, PagerDuty, Datadog and Sentry.',
+      link: { href: '/compare', text: 'See how it compares, tool by tool' },
+    },
+    {
+      question: 'Will OneUptime pass our security review?',
+      answer: 'OneUptime Cloud is ISO/IEC 27001 certified, and we share our SOC 2 Type II report under NDA. We sign a DPA with every customer and a BAA with covered entities, support SAML and OIDC single sign-on, and Enterprise plans add a 99.95% uptime target and a choice of data region.',
+      link: { href: '/trust', text: 'Visit the Trust Center' },
+    },
+    {
+      question: 'How long does it take to get started?',
+      answer: 'Minutes. Sign up, add a website or API monitor and invite your team - on-call schedules and a status page are a few clicks more. For full-stack observability, point an OpenTelemetry exporter at OneUptime.',
+      link: { href: '/accounts/register', text: 'Start for free' },
+    },
+  ];
+-%>
+<section id="faq" class="bg-white pt-24 scroll-mt-20 sm:pt-32" aria-labelledby="faq-title">
+  <div class="mx-auto max-w-6xl px-6 lg:px-8">
+    <div class="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
+      <div class="lg:col-span-4">
+        <p class="text-sm font-semibold text-emerald-600">FAQ</p>
+        <h2 id="faq-title" class="mt-3 text-3xl font-semibold tracking-tight text-gray-950 sm:text-4xl">Questions, answered.</h2>
+        <p class="mt-4 text-base leading-7 text-gray-600">
+          Something else on your mind? <a href="/enterprise/demo" class="font-medium text-gray-900 underline decoration-gray-300 underline-offset-4 hover:decoration-gray-500">Talk to our team</a> or <a href="/docs" class="font-medium text-gray-900 underline decoration-gray-300 underline-offset-4 hover:decoration-gray-500">read the docs</a>.
+        </p>
+      </div>
+
+      <div class="divide-y divide-gray-200 border-y border-gray-200 lg:col-span-8">
+        <% faqs.forEach(function (faq) { -%>
+        <details class="group">
+          <summary class="flex cursor-pointer list-none items-start justify-between gap-6 py-5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400 [&::-webkit-details-marker]:hidden">
+            <span class="text-base font-semibold leading-7 text-gray-950"><%= faq.question %></span>
+            <svg class="mt-1.5 h-4 w-4 flex-none text-gray-500 transition-transform group-open:rotate-45" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+          </summary>
+          <div class="pb-6 pr-10">
+            <p class="text-base leading-7 text-gray-600"><%= faq.answer %></p>
+            <% if (faq.link) { -%>
+            <a href="<%= faq.link.href %>" class="mt-3 inline-block text-sm font-semibold text-gray-900 hover:text-gray-600"><%= faq.link.text %> <span aria-hidden="true">&rarr;</span></a>
+            <% } -%>
+          </div>
+        </details>
+        <% }); -%>
+      </div>
+    </div>
+  </div>
+</section>

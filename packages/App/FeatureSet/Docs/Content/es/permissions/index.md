@@ -38,7 +38,7 @@ flowchart TB
 | Equipo | Un grupo con nombre dentro de un proyecto que lleva permisos. |
 | Miembro de equipo | Un usuario al que se ha invitado a un equipo y que ha aceptado. |
 | Permiso | Una capacidad concreta, p. ej. `CreateProjectMonitor`, o un rol que agrupa muchas, p. ej. `MonitorAdmin`. |
-| Rol personalizado | Un conjunto de permisos al que pone nombre una vez y que da a equipos. |
+| Rol personalizado | Un conjunto de permisos al que pone nombre una vez y que da a equipos y claves de API. |
 | Alcance | Hasta dónde llega un permiso concedido: todos los recursos, solo los propios o solo los etiquetados. |
 | Propietario | Un usuario o equipo marcado como responsable de un recurso concreto. |
 | Etiqueta | Una marca que pone en los recursos, usada para restringir permisos y para organizar. |
@@ -139,20 +139,20 @@ La lista completa está en la [Referencia de permisos](/docs/permissions/referen
 
 ### Roles personalizados
 
-Un rol personalizado es un conjunto de permisos al que pone nombre una vez y que da a equipos: por ejemplo, una «Respuesta a incidentes» formada por `IncidentMember`, `AlertMember` y `OnCallViewer`, o un «Líder de equipo». Cada equipo al que se lo da recibe los mismos permisos, y usted los cambia para todos esos equipos en un solo lugar. En OneUptime Cloud, los roles personalizados requieren el plan Scale, como cambiar los permisos de un equipo.
+Un rol personalizado es un conjunto de permisos al que pone nombre una vez y que da a equipos y claves de API: por ejemplo, una «Respuesta a incidentes» formada por `IncidentMember`, `AlertMember` y `OnCallViewer`, o un «Líder de equipo». Cada equipo y cada clave a los que se lo da reciben los mismos permisos, y usted los cambia para todos en un solo lugar. En OneUptime Cloud, los roles personalizados requieren el plan Scale, como cambiar los permisos de un equipo.
 
 :::steps
 1. Abra **Equipos** en el menú **Productos**, en **Ajustes**. Despliegue **Ajustes** en el menú lateral, elija **Roles** y haga clic en **Crear Rol personalizado**.
 2. Escriba su **Nombre** y elija en **Permisos** los roles predefinidos que agrupa, para cada recurso del proyecto. La descripción está en **Más campos**.
 3. Cree el rol. Se abre en su página, donde **Añadir rol** añade otro rol predefinido y **Añadir permiso** (en el menú **⋯** de la tarjeta) un permiso suelto, cada uno con un alcance y etiquetas, como en un equipo.
-4. Haga clic en **Dar a un equipo** en **Equipos con este rol**. La página **Permisos** de un equipo también tiene **Añadir rol personalizado**, y **Crear equipo** ofrece en **Acceso** los roles personalizados que usted podría dar.
+4. Haga clic en **Dar a un equipo** en **Equipos con este rol**, o en **Dar a una clave de API** en **Claves de API con este rol**. La página **Permisos** de un equipo y la página de una clave de API también tienen **Añadir rol personalizado**, y **Crear equipo** y **Crear Clave de API** ofrecen en **Acceso** los roles personalizados que usted podría dar.
 :::
 
 - Los miembros de un equipo reciben cada permiso de sus roles personalizados, con el mismo alcance y las mismas etiquetas, exactamente como si el equipo los tuviera. Un bloqueo en el equipo sigue ganando.
-- Un rol sigue vinculado a los equipos que lo tienen: un cambio en él les llega a todos al instante, y la página del rol dice cuántos equipos y personas son. **Eliminar** quita el rol a un equipo. Eliminar el propio rol quita sus permisos a cada equipo que lo tiene; los equipos conservan sus miembros y sus otros roles y permisos.
-- Solo puede poner en un rol, y dar como rol a un equipo, lo que podría dar al equipo directamente: un rol con un permiso que usted no tiene con el mismo alcance o uno más amplio se rechaza, y el rechazo nombra el permiso. Un rol nunca contiene `ProjectOwner`, y **Owners** y **Admin** nunca reciben uno.
-- La página **Permisos** de un equipo lista sus roles personalizados encima de sus propios permisos. Lo que da un rol se cambia en la página del rol, no en la del equipo.
-- Las claves de API no admiten roles personalizados. Una clave sirve a una sola integración, así que dele exactamente los permisos que necesita en su propia página.
+- Un rol sigue vinculado a los equipos y las claves de API que lo tienen: un cambio en él les llega a todos al instante, y la página del rol dice cuántos equipos, personas y claves son. **Eliminar** quita el rol a un equipo o a una clave. Eliminar el propio rol quita sus permisos a cada equipo y cada clave que lo tiene; conservan todo lo demás que tienen.
+- Solo puede poner en un rol, y dar como rol a un equipo o a una clave de API, lo que podría darle directamente: un rol con un permiso que usted no tiene con el mismo alcance o uno más amplio se rechaza, y el rechazo nombra el permiso. Un rol nunca contiene `ProjectOwner`, y **Owners** y **Admin** nunca reciben uno.
+- La página **Permisos** de un equipo y la página de una clave de API listan sus roles personalizados encima de sus propios permisos. Lo que da un rol se cambia en la página del rol, no en la del equipo ni en la de la clave.
+- Una clave de API recibe cada permiso de sus roles personalizados, con las mismas etiquetas, como si la clave los tuviera, y un bloqueo en la clave sigue ganando. Un permiso que el rol limita a lo que alguien posee no le da nada a una clave: una clave no posee nada.
 - Los roles predefinidos aparecen en **Roles predefinidos**, al final de la página **Roles**.
 
 ### Permitir y bloquear
@@ -247,11 +247,11 @@ Los logs de los monitores, el historial de SLO, los flujos de red y las asignaci
 
 ## Claves de API
 
-A las claves de API se les conceden permisos directamente, en la propia clave: no pertenecen a equipos ni se ven afectadas por la pertenencia a ellos.
+A las claves de API se les conceden permisos directamente, en la propia clave, o por los roles personalizados que se les dan: no pertenecen a equipos ni se ven afectadas por la pertenencia a ellos.
 
-- Asigne los mismos permisos granulares y roles que daría a un equipo.
+- Asigne los mismos permisos granulares, roles y roles personalizados que daría a un equipo.
 - Las claves admiten **permisos bloqueados** y **restricciones por etiquetas**, igual que los equipos.
-- Las claves **no** admiten el alcance Propios. La propiedad se resuelve contra un usuario, y una clave no es un usuario, así que conceda a las claves el acceso que necesiten de forma explícita.
+- Las claves **no** admiten el alcance Propios. La propiedad se resuelve contra un usuario, y una clave no es un usuario, así que conceda a las claves el acceso que necesiten de forma explícita. El permiso de un rol personalizado con el alcance Propios no le da nada a una clave.
 
 **Crear una clave** pide un nombre y su **Acceso**:
 
@@ -260,6 +260,7 @@ A las claves de API se les conceden permisos directamente, en la propia clave: n
 | Administrador del proyecto | Crear, cambiar y eliminar cualquier cosa del proyecto, incluidos sus ajustes. No la facturación, ni eliminar el proyecto. |
 | Miembro del proyecto | Crear, cambiar y eliminar monitores, incidentes, páginas de estado y los demás recursos del proyecto, como puede un miembro del proyecto. |
 | Visor | Leer todo en el proyecto y no cambiar nada. |
+| Un rol personalizado | Todo lo que permite el rol, excepto lo que limita a recursos que alguien posee. Aparece cuando su proyecto tiene uno que usted podría dar. |
 | Elegir los permisos más tarde | Nada todavía. Elegido de inicio. |
 
 :::steps
@@ -270,7 +271,7 @@ A las claves de API se les conceden permisos directamente, en la propia clave: n
 
 El rol que elija pasa a ser el primer permiso de la clave en cuanto la clave existe, exactamente como si lo hubiera añadido en la página de la clave. Solo se le ofrecen los roles que usted mismo tiene —una clave nunca puede recibir más de lo que tiene quien se la da—, y a quien puede crear claves pero no cambiar lo que pueden hacer no se le pregunta.
 
-En la página de una clave, **Añadir rol** añade un rol de la misma lista que ofrece la pestaña Permisos de un equipo, y **Añadir permiso** (en el menú **⋯** de la tarjeta) añade un permiso granular. **Bloquear permisos** está en **Más ajustes**, al final de la página, cuyo encabezado plegado muestra cuántos tiene la clave.
+En la página de una clave, **Roles personalizados** lista los roles personalizados de la clave en cuanto su proyecto tiene uno, y **Añadir rol personalizado** le da otro. **Añadir rol** añade un rol de la misma lista que ofrece la pestaña Permisos de un equipo, y **Añadir permiso** (en el menú **⋯** de la tarjeta) añade un permiso granular. **Bloquear permisos** está en **Más ajustes**, al final de la página, cuyo encabezado plegado muestra cuántos tiene la clave.
 
 > [!TIP]
 > Dé a cada integración su propia clave con el conjunto de permisos más estrecho que funcione, para poder revocar una sin afectar a las demás.

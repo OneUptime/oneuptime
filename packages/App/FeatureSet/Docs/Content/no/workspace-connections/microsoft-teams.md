@@ -281,7 +281,7 @@ Når Microsoft sender deg tilbake uten en tilkobling, sier siden du startet fra 
 :::
 
 :::details Boten sier at kontoen min ikke er koblet til
-Trykk på **Connect Microsoft Teams account** i svaret fra boten for å koble den til i ett trinn, eller koble den til under **Brukerinnstillinger** > **Arbeidsområde** > **Microsoft Teams** med **Connect my account with Microsoft Teams**, pålogget organisasjonen prosjektet er koblet til. En gjestekonto fra en annen organisasjon er ikke den samme kontoen.
+Trykk på **Connect Microsoft Teams account** i svaret fra boten for å koble den til i ett trinn, eller koble den til under **Brukerinnstillinger** > **Arbeidsområde** > **Microsoft Teams** med **Connect my account with Microsoft Teams**. Uansett logger du på organisasjonen prosjektet er koblet til, som gjest hvis du er gjest der. Er du gjest og har tidligere koblet til kontoen til din egen organisasjon, kobler du den til på nytt.
 :::
 
 :::details Alle varsler mislykkes på en selvdriftet server

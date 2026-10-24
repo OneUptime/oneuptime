@@ -37,6 +37,7 @@ import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import CloudResourceService from "Common/Server/Services/CloudResourceService";
 import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
+import { HEARTBEAT_ROW_PRESENT } from "Common/Server/Utils/Telemetry/ResourceHeartbeat";
 import {
   CloudMonitoredResource,
   buildCloudMonitoredResourceIdentifier,
@@ -167,7 +168,7 @@ beforeEach(() => {
     });
   sighting = jest
     .spyOn(CloudResourceService, "recordMonitoredResourceSighting")
-    .mockResolvedValue(undefined);
+    .mockResolvedValue(HEARTBEAT_ROW_PRESENT);
   jest.spyOn(logger, "error").mockImplementation(() => {
     return undefined;
   });

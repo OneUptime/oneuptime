@@ -16,7 +16,6 @@ import {
   isLlmProviderActivityWarning,
   readLlmProviderId,
 } from "../../../Types/AI/LlmProviderChoice";
-import AIInvestigationRule from "../../../Models/DatabaseModels/AIInvestigationRule";
 import AIPostmortemRule from "../../../Models/DatabaseModels/AIPostmortemRule";
 import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
 import LlmProvider from "../../../Models/DatabaseModels/LlmProvider";
@@ -92,13 +91,8 @@ describe("getRuleLlmProviderId", () => {
   });
 
   test("reads every rule kind's model row", () => {
-    for (const RuleType of [
-      AIInvestigationRule,
-      AutoRemediationRule,
-      AIPostmortemRule,
-    ]) {
-      const row: AIInvestigationRule | AutoRemediationRule | AIPostmortemRule =
-        new RuleType();
+    for (const RuleType of [AutoRemediationRule, AIPostmortemRule]) {
+      const row: AutoRemediationRule | AIPostmortemRule = new RuleType();
       expect(getRuleLlmProviderId(row)).toBe("");
       row.llmProviderId = new ObjectID(OPUS.id);
       expect(getRuleLlmProviderId(row)).toBe(OPUS.id);
@@ -743,15 +737,8 @@ describe("what a run says about its provider", () => {
 
 describe("the rule models", () => {
   test("every AI rule kind has the LLM provider it picks, kept as an id and a relation", () => {
-    for (const RuleType of [
-      AIInvestigationRule,
-      AutoRemediationRule,
-      AIPostmortemRule,
-    ]) {
-      const model:
-        | AIInvestigationRule
-        | AutoRemediationRule
-        | AIPostmortemRule = new RuleType();
+    for (const RuleType of [AutoRemediationRule, AIPostmortemRule]) {
+      const model: AutoRemediationRule | AIPostmortemRule = new RuleType();
 
       expect(model.getTableColumnMetadata("llmProviderId")?.title).toBe(
         "LLM Provider ID",

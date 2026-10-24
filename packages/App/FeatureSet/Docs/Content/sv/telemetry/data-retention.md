@@ -96,7 +96,7 @@ Tjänster, värdar, Kubernetes-kluster, Docker- och Podman-värdar, Docker Swarm
 
 ## Vad lagring kostar
 
-- **På OneUptime Cloud** faktureras telemetri per intagen GB, och priset per GB inkluderar 15 dagars lagring. Längre lagring kostar proportionellt mer: 30 dagar kostar dubbelt så mycket per GB som 15. **Projektinställningar → Fakturering och fakturor → Användningshistorik** visar dag för dag hur mycket varje tjänst skickade och hur länge det sparas.
+- **På OneUptime Cloud** faktureras telemetri per intagen GB, och priset per GB inkluderar 15 dagars lagring. Längre lagring kostar proportionellt mer: 30 dagar kostar dubbelt så mycket per GB som 15. Kortare lagring kostar proportionellt mindre, men lagring kortare än 7 dagar faktureras som 7 dagar. **Projektinställningar → Fakturering och fakturor → Användningshistorik** visar dag för dag hur mycket varje tjänst skickade och hur länge det sparas.
 - **När du kör själv** finns telemetrin i ClickHouse, och lagringen multiplicerar dess diskutrymme. Se [Dimensionering](/docs/installation/sizing#lagringstid-och-hur-den-påverkar-lagringen).
 
 Telemetri som du inte behöver kostar ingenting om den aldrig lagras: [Drop-filter och scrub-regler](/docs/telemetry/drop-filters-and-scrub-rules) kasserar den när den kommer in.

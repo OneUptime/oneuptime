@@ -86,7 +86,7 @@ flowchart TB
 | 서비스 수준 목표(SLO) | `Service Level Objective` |
 | SLO의 규칙과 소유자 | `SLO Burn Rate Rule`, `SLO Monitor Rule`, `Service Level Objective User Owner`, `Service Level Objective Team Owner` |
 | 팀 | `Team` |
-| 사용자 정의 역할과 그 역할을 받은 팀 | `Custom Role`, `Team Custom Role` |
+| 사용자 정의 역할과 그 역할을 받은 팀 및 API 키 | `Custom Role`, `Team Custom Role`, `API Key Custom Role` |
 | 레이블 | `Label` |
 | 인시던트 상태 및 심각도 | `Incident State`, `Incident Severity` |
 | 알림 상태 및 심각도 | `Alert State`, `Alert Severity` |

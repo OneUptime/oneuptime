@@ -64,7 +64,7 @@ Beschriftungen gruppieren Anwendungen in Listen und Filtern. Sie entscheiden auc
 
 | Wie | Wo |
 | --- | --- |
-| Von Hand | Im Erstellformular unter **Weitere Felder**, oder später mit **Details bearbeiten** auf der Karte **Anwendungsdetails** der Seite **Einstellungen** der Anwendung. |
+| Von Hand | Im Erstellformular unter **Weitere Felder**, oder später mit **Details bearbeiten** auf der Karte **Anwendungsdetails** der Seite **Einstellungen** der Anwendung. Für mehrere auf einmal wählen Sie sie in der Liste aus und wählen **Beschriftungen hinzufügen** unter **Massenaktionen**. |
 | Aus der Telemetrie | Ein Ressourcenattribut namens `oneuptime.label.<name>` fügt die Beschriftung `<name>:<value>` hinzu, wie unten gezeigt. |
 | Über eine Beschriftungsregel | Eine Regel versieht jede neue Anwendung, auf die sie passt, mit Beschriftungen. Siehe [Beschriftungs- und Eigentümerregeln](#beschriftungs-und-eigentümerregeln). |
 
@@ -93,7 +93,7 @@ Regeln laufen, wenn eine Anwendung angelegt wird, auch wenn sie entdeckt wurde. 
 
 ### Eigentümer
 
-Eigentümer sind die Personen und Teams, die für eine Anwendung verantwortlich sind. Die Eigentümer einer RUM-Anwendung stammen aus Eigentümerregeln: Das Dashboard hat keine Seite, um sie von Hand hinzuzufügen, und die API fügt sie über `/rum-application-owner-user` und `/rum-application-owner-team` hinzu. Ist **Eigentümer benachrichtigen** eingeschaltet, was die Voreinstellung ist, erfährt jeder Eigentümer, den eine Regel hinzufügt, davon. Schalten Sie es aus, bevor Sie eine Regel über viele Anwendungen laufen lassen, wenn niemand benachrichtigt werden soll.
+Eigentümer sind die Personen und Teams, die für eine Anwendung verantwortlich sind. Eigentümerregeln fügen sie neuen Anwendungen hinzu. Um sie von Hand hinzuzufügen oder zu entfernen, wählen Sie Anwendungen in der Liste aus und wählen **Eigentümer hinzufügen** oder **Eigentümer entfernen** unter **Massenaktionen**; die API fügt sie über `/rum-application-owner-user` und `/rum-application-owner-team` hinzu. Ist **Eigentümer benachrichtigen** eingeschaltet, was die Voreinstellung ist, erfährt jeder Eigentümer, den eine Regel hinzufügt, davon. Schalten Sie es aus, bevor Sie eine Regel über viele Anwendungen laufen lassen, wenn niemand benachrichtigt werden soll.
 
 ## Aufbewahrung
 

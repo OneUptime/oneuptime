@@ -11,6 +11,7 @@ import {
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -90,6 +91,17 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<IncidentEpisode>({ modelType: IncidentEpisode });
+
+  /*
+   * Owners in Bulk Actions, as the incidents and alerts lists have them:
+   * the list shows and filters episodes by their owners.
+   */
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<IncidentEpisode>({
+      ownerUserModelType: IncidentEpisodeOwnerUser,
+      ownerTeamModelType: IncidentEpisodeOwnerTeam,
+      resourceIdField: "incidentEpisodeId",
+    });
 
   /*
    * The page's saved views and the chips' selections in the address travel
@@ -328,6 +340,7 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
           buttons: [
             getBulkChangeStateAction(),
             ...labelBulkActions,
+            ...ownerBulkActions,
             ModalTableBulkDefaultActions.Delete,
           ],
         }}
@@ -563,6 +576,7 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
       />
 
       {labelBulkActionModals}
+      {ownerBulkActionModals}
 
       {error && (
         <ConfirmModal

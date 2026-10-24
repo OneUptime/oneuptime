@@ -301,7 +301,7 @@ const NOTIFICATION_METHOD: string =
 // The models a single reference may name without the caller's read of them, and why.
 const REFERENCED_AS_A_WHOLE_TABLE: Record<string, string> = {
   CustomRole:
-    "A custom role is read by everyone who may read a team's permissions; the reference check refuses another project's role, and giving one is held to the grant ceiling of every permission in it.",
+    "A custom role is read by everyone who may read a team's permissions; the reference check refuses another project's role, and giving one - to a team or an API key - is held to the grant ceiling of every permission in it, and to a read of the role for a key.",
   User: "People are held to membership of the project (ProjectScopedReferenceValidator), not to a read of the user table.",
   Team: "Every member reads the project's teams; the reference check refuses another project's team.",
   File: "A record points only at its own project's files (FileOwnership), checked on every create and update.",
@@ -381,8 +381,9 @@ const CREDENTIAL_REFERENCES: Array<[string, string, string]> = [
   ["IncidentVideoCall", "videoCallConnection", "VideoCallConnection"],
   ["AlertVideoCall", "videoCallConnection", "VideoCallConnection"],
   ["ApiKeyPermission", "apiKey", "ApiKey"],
+  // A custom role given to a key: the key holds what the role gives.
+  ["ApiKeyCustomRole", "apiKey", "ApiKey"],
   ["ThreatIntelFeed", "securityEventConnection", "SecurityEventConnection"],
-  ["AIInvestigationRule", "llmProvider", "LlmProvider"],
   ["AutoRemediationRule", "llmProvider", "LlmProvider"],
   ["AIPostmortemRule", "llmProvider", "LlmProvider"],
 ];

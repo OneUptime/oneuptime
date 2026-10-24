@@ -74,7 +74,7 @@ import {
  *
  * - LOOSENING (ANY move of the mode up — Off to anything, up to Automatic
  *   or Bypass approval — or adding an allowlist pattern) needs a GRANT of
- *   Project Owner, Project Admin or Edit Auto Remediation Rule;
+ *   Project Owner, Project Admin or Edit AI Rule;
  * - TIGHTENING (Off, moving down, removing patterns) and the investigation
  *   switch stay open to everyone who may edit the resource;
  * - an unchanged value re-posted by the AI page's form is not a change;

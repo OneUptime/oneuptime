@@ -86,7 +86,7 @@ flowchart TB
 | サービスレベル目標 (SLO) | `Service Level Objective` |
 | SLO のルールとオーナー | `SLO Burn Rate Rule`、`SLO Monitor Rule`、`Service Level Objective User Owner`、`Service Level Objective Team Owner` |
 | チーム | `Team` |
-| カスタムロールと、それを付与されたチーム | `Custom Role`、`Team Custom Role` |
+| カスタムロールと、それを付与されたチームや API キー | `Custom Role`、`Team Custom Role`、`API Key Custom Role` |
 | ラベル | `Label` |
 | インシデントの状態と重大度 | `Incident State`、`Incident Severity` |
 | アラートの状態と重大度 | `Alert State`、`Alert Severity` |

@@ -72,7 +72,9 @@ En relation, som OneUptime har fundet, fjernes, når den ikke er set igen i 30 d
 En vært eller en netværksenhed har et kort **Aktivdetaljer**, der beskriver begge på samme måde: værtsnavn, IP-adresse, MAC-adresse, serienummer, producent, model, firmwareversion, operativsystem, OS-version, enhedstype og placering. En oplysning, som intet har rapporteret, står som **Ukendt**, og kortet forklarer, hvordan de ukendte bliver udfyldt.
 
 - En værts oplysninger kommer fra ressourceattributterne på dens telemetri: dens IP- og MAC-adresser, arkitektur og operativsystem fra start, og dens serienummer, mærke, model og firmware, når du stempler dem på.
-- En netværksenheds oplysninger kommer fra dens SNMP-polling, dens rolle og dens site. En enhed uden ENTITY-MIB, som en Meraki MX, får stadig sit mærke og sin model fra sin systembeskrivelse. Dens IP-adresse vises aldrig som dens værtsnavn.
+- En netværksenheds oplysninger kommer fra dens SNMP-polling, dens rolle og dens site. Det, dens polling ikke har læst, kommer fra discovery: den seneste scanning af dens adresse, en routers ARP-tabel eller dens sondes DNS-opslag. En enhed uden ENTITY-MIB, som en Meraki MX, får stadig sit mærke og sin model fra sin systembeskrivelse. Dens IP-adresse vises aldrig som dens værtsnavn.
+
+Kortet viser, hvor hver oplysning kom fra, og hvornår. Den kilde, de fleste oplysninger deler, som en værts collector, en netværksenheds egen SNMP-polling eller den discovery-scanning, der læste den, nævnes én gang, under oplysningerne. Enhver anden kilde, som en routers ARP-tabel eller en værdi gemt på enheden, nævnes under sin oplysning. En værdi, der er gemt på en netværksenhed, erstattes aldrig af det, discovery læser, og når de to er forskellige, viser kortet begge.
 
 De samme oplysninger er kolonner i listen **All Items**, skjult indtil du slår dem til, og de kommer med i dens CSV-eksport. [Eksport til en CMDB](/docs/inventory/cmdb-sync#aktivdetaljer) viser deres nøgler.
 

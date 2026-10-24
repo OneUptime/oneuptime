@@ -1,0 +1,48 @@
+<%
+  // What happens when something breaks, in four steps.
+  const steps = [
+    {
+      title: 'Detect',
+      text: 'A check fails from several locations, and OneUptime opens an incident automatically.',
+      icon: 'M9.348 14.652a3.75 3.75 0 010-5.304m5.304 0a3.75 3.75 0 010 5.304m-7.425 2.121a6.75 6.75 0 010-9.546m9.546 0a6.75 6.75 0 010 9.546M5.106 18.894c-3.808-3.807-3.808-9.98 0-13.788m13.788 0c3.808 3.807 3.808 9.98 0 13.788M12 12h.008v.008H12V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z',
+    },
+    {
+      title: 'Alert',
+      text: 'The on-call engineer gets a call, a text or a Slack or Teams message. No answer? It escalates.',
+      icon: 'M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0',
+    },
+    {
+      title: 'Inform',
+      text: 'Your status page updates, and subscribers hear about it by email or SMS.',
+      icon: 'M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 01-1.44-4.282m3.102.069a18.03 18.03 0 01-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 018.835 2.535M10.34 6.66a23.847 23.847 0 008.835-2.535m0 0A23.74 23.74 0 0018.795 3m.38 1.125a23.91 23.91 0 011.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 001.014-5.395m0-3.46c.495.413.811 1.035.811 1.73 0 .695-.316 1.317-.811 1.73m0-3.46a24.347 24.347 0 010 3.46',
+    },
+    {
+      title: 'Resolve',
+      text: 'Traces, logs and the AI agent point you to the root cause, and to a fix.',
+      icon: 'M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z',
+    },
+  ];
+-%>
+<section id="how-it-works" class="border-y border-gray-100 bg-gray-50/70 py-24 scroll-mt-20 sm:py-32" aria-labelledby="how-it-works-title">
+  <div class="mx-auto max-w-6xl px-6 lg:px-8">
+    <div class="max-w-3xl">
+      <p class="text-sm font-semibold text-emerald-600">How it works</p>
+      <h2 id="how-it-works-title" class="mt-3 text-3xl font-semibold tracking-tight text-gray-950 sm:text-4xl">When something breaks, OneUptime takes the first steps. <span class="text-gray-500">You focus on the fix.</span></h2>
+    </div>
+
+    <ol class="relative mt-14 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <% steps.forEach(function (step, index) { -%>
+      <li class="relative rounded-2xl border border-gray-200 bg-white p-6 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
+        <div class="flex items-center justify-between">
+          <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-inset ring-emerald-100">
+            <svg class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="<%= step.icon %>" /></svg>
+          </span>
+          <span class="font-mono text-xs text-gray-400">0<%= index + 1 %></span>
+        </div>
+        <h3 class="mt-5 text-base font-semibold text-gray-950"><%= step.title %></h3>
+        <p class="mt-2 text-sm leading-6 text-gray-600"><%= step.text %></p>
+      </li>
+      <% }); -%>
+    </ol>
+  </div>
+</section>

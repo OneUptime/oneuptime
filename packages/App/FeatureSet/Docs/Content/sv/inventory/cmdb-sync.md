@@ -139,7 +139,7 @@ Värdar och nätverksenheter beskrivs med samma uppgifter, sparade under samma n
 | Uppgift | Nyckel | På en värd | På en nätverksenhet |
 | --- | --- | --- | --- |
 | Värdnamn | `host.name` | Värdens namn. Det är värdens identitet och står därför i `identifyingAttributes` | Enhetens eget namn: dess SNMP-`sysName`, annars det NetBIOS- eller DNS-namn som upptäckten hittade. Aldrig dess IP-adress |
-| IP-adress | `host.ip` | Varje adress som collectorn rapporterar | Adressen som OneUptime pollar, när den är en IP-adress |
+| IP-adress | `host.ip` | Varje adress som collectorn rapporterar | Adressen som OneUptime pollar, när den är en IP-adress, annars adressen som dess sond slog upp DNS-namnet till |
 | MAC-adress | `host.mac` | Upptäckt | Inskriven på enheten, eller inlärd från ARP-tabellen i en genomgången router |
 | Serienummer | `host.serial_number` | Stämplat | ENTITY-MIB |
 | Manufacturer | `device.manufacturer` | Stämplat | ENTITY-MIB, annars det `sysDescr` eller `sysObjectID` nämner |
@@ -189,7 +189,7 @@ En nätverksenhet (`entityType: network.device`) speglas från sin Network Devic
 | Fält | Nyckel | Var det kommer ifrån |
 | --- | --- | --- |
 | Värdnamn | `host.name` | Enhetens eget namn: dess SNMP-`sysName`, annars det NetBIOS- eller omvända DNS-namn som upptäckten hittade. Utelämnas när bara dess IP-adress namnger den |
-| IP-adress | `host.ip` | Adressen som OneUptime pollar, när den är en IP-adress |
+| IP-adress | `host.ip` | Adressen som OneUptime pollar, när den är en IP-adress. För en enhet som pollas på ett DNS-namn, adressen som dess sond senast slog upp namnet till |
 | DNS-namn | `net.device.dns_name` | Det omvända DNS-namn som hittades vid upptäckten, eller DNS-namnet som OneUptime pollar |
 | MAC-adress | `host.mac` | Inskriven på enheten, eller inlärd från ARP-tabellen i en genomgången router |
 | Märke | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`, annars tillverkaren som `sysDescr` nämner, annars leverantören av `sysObjectID` |
@@ -204,7 +204,9 @@ En nätverksenhet (`entityType: network.device`) speglas från sin Network Devic
 | Plats i nätverket | `oneuptime.site.name` | Den Network Site som enheten är tilldelad |
 | Pollad adress | `net.device.hostname` | Adressen som OneUptime pollar: en IP-adress eller ett DNS-namn. Kvar för synkroniseringar som skrevs innan `host.name` och `host.ip` fanns |
 
-Hårdvaruraderna fylls i efter enhetens första SNMP-walk, så en enhet som bara övervakas med ping, eller en som har lagts till men ännu inte pollats, visar inte mycket mer än sin adress. En enhet som inte implementerar ENTITY-MIB har inget serienummer eller firmware att rapportera. Dess `sysDescr` nämner ändå modellen och operativsystemet för många plattformar: en Cisco Meraki MX rapporterar `Meraki MX85`, vilket fyller i märke och modell. En plattform vars `sysDescr` inte har någon känd form lägger inte till något, i stället för att gissa.
+ENTITY-MIB-raderna fylls i efter enhetens första SNMP-walk. En enhet som inte gås igenom, eftersom den bara övervakas med ping eller ännu inte har pollats, får ändå sitt namn, märke, operativsystem och sin plats från det som den senaste discovery-skanningen av dess adress läste över SNMP, och sin MAC-adress från ARP-tabellen i en genomgången router. En enhet som inte implementerar ENTITY-MIB har inget serienummer eller firmware att rapportera. Dess `sysDescr` nämner ändå modellen och operativsystemet för många plattformar: en Cisco Meraki MX rapporterar `Meraki MX85`, vilket fyller i märke och modell. En plattform vars `sysDescr` inte har någon känd form lägger inte till något, i stället för att gissa.
+
+Ett värde som har sparats på enheten, inskrivet eller satt via API:et, ersätts aldrig av det som discovery läser. Av ett värde som enhetens egen walk läste och ett som en skanning läste används det nyaste. Det som en skanning läste används bara när skanningen hittade samma maskin på adressen: när systemnamnet, `sysObjectID` eller NetBIOS-namnet den läste motsäger enhetens används inget av det den läste där. Objektets kort **Tillgångsdetaljer** visar var varje värde kom ifrån och när.
 
 Värdnamnet är aldrig IP-adressen. En enhet som bara dess adress namnger har `host.ip` och inget `host.name`. När dess SNMP-walk rapporterar ett systemnamn följer `host.name` vid nästa genomgång.
 

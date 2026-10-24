@@ -71,6 +71,7 @@ import {
   TEAM_ACCESS_DESCRIPTION,
   TEAM_ACCESS_LATER_OPTION,
   buildApiKeyAccessPermission,
+  buildApiKeyCustomRoleAccess,
   buildTeamAccessPermission,
   buildTeamCustomRoleAccess,
   getCustomRoleAccessValue,
@@ -80,6 +81,7 @@ import {
   getRoleAccessOptions,
   getRoleAccessOptionsForCurrentUser,
   getRoleAccessRole,
+  giveApiKeyCustomRoleAccess,
   giveCustomRoleAccess,
   giveRoleAccess,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Permission/RoleAccess";
@@ -88,6 +90,7 @@ import {
   getRoleIcon,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Permission/RoleCardSelectOptions";
 import ApiKey from "../../../Models/DatabaseModels/ApiKey";
+import ApiKeyCustomRole from "../../../Models/DatabaseModels/ApiKeyCustomRole";
 import ApiKeyPermission from "../../../Models/DatabaseModels/ApiKeyPermission";
 import Team from "../../../Models/DatabaseModels/Team";
 import TeamCustomRole from "../../../Models/DatabaseModels/TeamCustomRole";
@@ -352,7 +355,7 @@ describe("a team's custom roles under Access", () => {
     ]);
   });
 
-  test("are never offered for a key: a key is given permissions of its own", () => {
+  test("are offered for a key too, after the built-in roles, as a key's Add Custom Role offers them", () => {
     expect(
       values(
         getRoleAccessOptions({
@@ -366,6 +369,8 @@ describe("a team's custom roles under Access", () => {
       Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
+      `customRole:${RESPONDER_ID}`,
+      `customRole:${TEAM_LEAD_ID}`,
       ROLE_ACCESS_LATER,
     ]);
   });
@@ -419,32 +424,21 @@ describe("a team's custom roles under Access", () => {
     ).toEqual([]);
   });
 
-  test("the signed-in user's cards take the custom roles the page read for a team only", () => {
+  test("the signed-in user's cards take the custom roles the page read, for a team and for a key", () => {
     isMasterAdminForTest = true;
 
-    expect(
-      values(
-        getRoleAccessOptionsForCurrentUser(
-          RoleAccessHolder.Team,
-          CUSTOM_ROLE_CARDS,
-        ),
-      ),
-    ).toEqual([
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      `customRole:${RESPONDER_ID}`,
-      `customRole:${TEAM_LEAD_ID}`,
-      ROLE_ACCESS_LATER,
-    ]);
-    expect(
-      values(
-        getRoleAccessOptionsForCurrentUser(
-          RoleAccessHolder.ApiKey,
-          CUSTOM_ROLE_CARDS,
-        ),
-      ),
-    ).not.toContain(`customRole:${RESPONDER_ID}`);
+    for (const holder of [RoleAccessHolder.Team, RoleAccessHolder.ApiKey]) {
+      expect(
+        values(getRoleAccessOptionsForCurrentUser(holder, CUSTOM_ROLE_CARDS)),
+      ).toEqual([
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.Viewer,
+        `customRole:${RESPONDER_ID}`,
+        `customRole:${TEAM_LEAD_ID}`,
+        ROLE_ACCESS_LATER,
+      ]);
+    }
   });
 
   /*
@@ -465,15 +459,12 @@ describe("a team's custom roles under Access", () => {
       areCustomRolesLoading: true,
     };
 
-    expect(
-      values(
-        getRoleAccessOptions({ holder: RoleAccessHolder.Team, ...loading }),
-      ),
-    ).toEqual([ROLE_ACCESS_LATER]);
-    // A key waits for no custom role: it never has any.
-    expect(
-      getRoleAccessOptions({ holder: RoleAccessHolder.ApiKey, ...loading }),
-    ).toEqual([]);
+    // A team and a key alike: a custom role may still come.
+    for (const holder of [RoleAccessHolder.Team, RoleAccessHolder.ApiKey]) {
+      expect(
+        values(getRoleAccessOptions({ holder: holder, ...loading })),
+      ).toEqual([ROLE_ACCESS_LATER]);
+    }
     // And no one is asked who may not add permissions to a team.
     expect(
       getRoleAccessOptions({
@@ -936,6 +927,20 @@ describe("the row a role becomes", () => {
     expect(given.getCrudApiPath()?.toString()).toBe("/team-custom-role");
   });
 
+  test("a custom role on a key: the role given to the key, as its Add Custom Role gives it", () => {
+    const given: ApiKeyCustomRole = buildApiKeyCustomRoleAccess({
+      apiKeyId: API_KEY_ID,
+      projectId: PROJECT_ID,
+      customRoleId: new ObjectID(RESPONDER_ID),
+    });
+
+    expect(given).toBeInstanceOf(ApiKeyCustomRole);
+    expect(given.apiKeyId?.toString()).toBe(API_KEY_ID.toString());
+    expect(given.projectId?.toString()).toBe(PROJECT_ID.toString());
+    expect(given.customRoleId?.toString()).toBe(RESPONDER_ID);
+    expect(given.getCrudApiPath()?.toString()).toBe("/api-key-custom-role");
+  });
+
   test("on a key: an allow row with no labels", () => {
     const row: ApiKeyPermission = buildApiKeyAccessPermission({
       apiKeyId: API_KEY_ID,
@@ -1025,6 +1030,46 @@ describe("giving a new record its access", () => {
         customRoleId: new ObjectID(RESPONDER_ID),
       }),
     );
+  });
+
+  test("a key given a custom role: one ApiKeyCustomRole, and no permission of its own", async () => {
+    const created: Array<CreateCall> = [];
+
+    await giveApiKeyCustomRoleAccess({
+      apiKeyId: API_KEY_ID,
+      projectId: PROJECT_ID,
+      customRoleId: new ObjectID(RESPONDER_ID),
+      modelAPI: recordingModelAPI(created),
+    });
+
+    expect(created).toHaveLength(1);
+    expect(created[0]!.modelType).toBe(ApiKeyCustomRole);
+    expect(created[0]!.model).toEqual(
+      buildApiKeyCustomRoleAccess({
+        apiKeyId: API_KEY_ID,
+        projectId: PROJECT_ID,
+        customRoleId: new ObjectID(RESPONDER_ID),
+      }),
+    );
+  });
+
+  test("a custom role the server refuses a key is the caller's to show, in the server's words", async () => {
+    const refusal: string =
+      "You can't give Incident Responder: it has Incident Admin, and your own access doesn't include that permission at the same or a broader scope.";
+    const modelAPI: typeof ModelAPI = {
+      create: async (): Promise<never> => {
+        throw new Error(refusal);
+      },
+    } as unknown as typeof ModelAPI;
+
+    await expect(
+      giveApiKeyCustomRoleAccess({
+        apiKeyId: API_KEY_ID,
+        projectId: PROJECT_ID,
+        customRoleId: new ObjectID(RESPONDER_ID),
+        modelAPI: modelAPI,
+      }),
+    ).rejects.toThrow(refusal);
   });
 
   test("a custom role the server refuses is the caller's to show, in the server's words", async () => {

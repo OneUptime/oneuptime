@@ -22,7 +22,7 @@ Usa este interruptor como tu señal de «listo para salir»:
 4. Activa **Habilitado** cuando esté listo: a partir de entonces, su disparador salta con eventos reales.
 :::
 
-Desactivar un flujo de trabajo impide que su disparador inicie ejecuciones nuevas. Una ejecución que ya está en curso termina, pero una ejecución que inició su disparador y que espera en un bloque **Sleep** se cancela al despertar. Las ejecuciones de prueba continúan.
+Desactivar un flujo de trabajo impide que su disparador inicie ejecuciones nuevas. Una ejecución que ya está en curso termina, pero una ejecución que inició su disparador y que espera en un bloque **Sleep** se cancela al despertar. Las ejecuciones de prueba continúan. Para activar o desactivar varios a la vez, selecciónalos en la lista **Flujos de trabajo** y elige **Activar** o **Desactivar** en **Acciones masivas**.
 
 ## Archivar un flujo de trabajo
 

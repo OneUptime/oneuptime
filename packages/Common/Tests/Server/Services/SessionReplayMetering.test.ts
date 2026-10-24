@@ -89,9 +89,9 @@ describe("Session replay usage aggregation SQL", () => {
    * This query is the one place a mistake becomes unrecoverable revenue loss
    * rather than a visible error, so its shape is pinned rather than trusted.
    *
-   * stageTelemetryUsageForProject always targets YESTERDAY, rethrows, and the
-   * caller only logs - nothing ever re-stages an older date. So if this query
-   * times out, that day is billed as zero permanently.
+   * Billing's catch-up (stageUnstagedTelemetryUsageForProject) re-stages a
+   * day whose staging failed, but a query that times out once times out on
+   * every retry, so that day would still never be billed.
    */
   async function captureUsageQuery(): Promise<string> {
     const service: RumSessionServiceType = new RumSessionServiceType();

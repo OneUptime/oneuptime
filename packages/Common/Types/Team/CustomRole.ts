@@ -5,10 +5,10 @@ import Permission, { PermissionHelper, PermissionProps } from "../Permission";
  * WHAT A CUSTOM ROLE MAY HOLD, AND WHAT ITS NAME MAY BE.
  *
  * A custom role ("Incident Responder", "Team Lead") is a set of permissions
- * named once and given to teams. The server holds every role to these rules
- * (CustomRoleService, CustomRolePermissionService) and the Dashboard offers
- * only what they allow, so the two never disagree. React-free and
- * server-free: both read it.
+ * named once and given to teams and API keys. The server holds every role
+ * to these rules (CustomRoleService, CustomRolePermissionService) and the
+ * Dashboard offers only what they allow, so the two never disagree.
+ * React-free and server-free: both read it.
  *
  *   - A role holds what a team may be given (PermissionHelper's tenant
  *     permissions), allow only: a team's blocks stay on the team.
@@ -264,6 +264,36 @@ export const getRoleCopyChangeRefusedMessage: (data: {
 
   return `${title} comes with the custom role ${data.roleName}. Change the role, or take the role away from the team.`;
 };
+
+/*
+ * Why an API key's copy of a role's permission is not changed or removed
+ * on its own: it is the role's.
+ */
+export const getApiKeyRoleCopyChangeRefusedMessage: (data: {
+  roleName?: string | undefined;
+  permission: Permission | string;
+}) => string = (data: {
+  roleName?: string | undefined;
+  permission: Permission | string;
+}): string => {
+  const title: string = getPermissionTitleForSentence(data.permission);
+
+  if (!data.roleName) {
+    return `${title} comes with a custom role. Change the role, or take the role away from the API key.`;
+  }
+
+  return `${title} comes with the custom role ${data.roleName}. Change the role, or take the role away from the API key.`;
+};
+
+export const API_KEY_ALREADY_HAS_ROLE_MESSAGE: string =
+  "This API key already has this role.";
+
+/*
+ * Why someone may not give a role to an API key: they may change what a
+ * key can do, but not read the project's custom roles.
+ */
+export const CUSTOM_ROLE_NOT_READABLE_MESSAGE: string =
+  "You can't give a custom role you can't see. Ask someone who can read the project's custom roles, such as a Project Admin.";
 
 export const TEAM_NOT_EDITABLE_FOR_ROLES_MESSAGE: string =
   "This team's permissions can't be changed, so it can't be given a custom role. Create a team of your own and give the role to it.";

@@ -141,7 +141,7 @@ Un SLO désactivé ou archivé n'est pas évalué, son statut reste donc tel que
 La page **SLOs** liste chaque SLO non archivé, avec son statut, son SLI, le budget restant, le taux de consommation, l'objectif, la fenêtre, les moniteurs, les étiquettes et les propriétaires.
 
 - Les tuiles au-dessus de la liste comptent les SLO par statut : **Sain**, **À risque**, **Budget épuisé**, **Mal configuré**, **En pause** et **Désactivé**. Elles s'affichent dès qu'il existe un SLO non archivé. Cliquez sur une tuile pour n'afficher que ces SLO, puis de nouveau pour tous les revoir.
-- Sélectionnez des SLO pour ajouter ou retirer des étiquettes et des propriétaires, les archiver ou les supprimer, tous en même temps.
+- Sélectionnez des SLO pour ajouter ou retirer des étiquettes et des propriétaires, les activer ou les désactiver, les archiver ou les supprimer, tous en même temps.
 - La section **Paramètres** du menu latéral contient **Règles d'étiquettes** et **Règles de propriétaire**, qui étiquettent les nouveaux SLO et leur donnent des propriétaires : voir [Règles d'étiquettes et de propriétaires](/docs/slo/label-and-owner-rules).
 - La section **Avancé** du menu latéral contient **Archivé**, la liste des SLO archivés.
 

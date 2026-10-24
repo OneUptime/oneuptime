@@ -86,7 +86,7 @@ Monitors, incidenten, waarschuwingen, statuspagina's, SLO's en veel andere resou
 | SLO's | `Service Level Objective` |
 | De regels en eigenaren van een SLO | `SLO Burn Rate Rule`, `SLO Monitor Rule`, `Service Level Objective User Owner`, `Service Level Objective Team Owner` |
 | Teams | `Team` |
-| Aangepaste rollen, en de teams die er een krijgen | `Custom Role`, `Team Custom Role` |
+| Aangepaste rollen, en de teams en API-sleutels die er een krijgen | `Custom Role`, `Team Custom Role`, `API Key Custom Role` |
 | Labels | `Label` |
 | Statussen en ernstniveaus van incidenten | `Incident State`, `Incident Severity` |
 | Statussen en ernstniveaus van waarschuwingen | `Alert State`, `Alert Severity` |

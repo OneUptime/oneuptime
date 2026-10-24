@@ -32,7 +32,7 @@ flowchart TB
 
 A provider is a project's default when **Set as Default** is on, which it is for every new provider. A project whose providers are all switched off as the default falls back to the global provider, as if it had none.
 
-Every OneUptime AI rule — investigation, auto remediation and postmortem rules — can pick a provider of its own instead, under its **More fields**: one of the project's providers or a global one, used for everything the rule starts. A rule that picks none uses the default provider, and a picked provider that can no longer be used falls back to it. See [Which LLM provider a rule uses](/docs/ai/ai-sre#which-llm-provider-a-rule-uses).
+Every OneUptime AI rule — AI rules and postmortem rules — can pick a provider of its own instead, under its **More fields**: one of the project's providers or a global one, used for everything the rule starts. A rule that picks none uses the default provider, and a picked provider that can no longer be used falls back to it. See [Which LLM provider a rule uses](/docs/ai/ai-sre#which-llm-provider-a-rule-uses).
 
 ## OneUptime Cloud
 

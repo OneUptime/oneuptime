@@ -107,6 +107,7 @@ import RumSessionErasureRequest from "./RumSessionErasureRequest";
 import RumSessionPin from "./RumSessionPin";
 // API Keys
 import ApiKey from "./ApiKey";
+import ApiKeyCustomRole from "./ApiKeyCustomRole";
 import ApiKeyPermission from "./ApiKeyPermission";
 import BillingInvoice from "./BillingInvoice";
 import BillingPaymentMethods from "./BillingPaymentMethod";
@@ -382,7 +383,6 @@ import RunbookRule from "./RunbookRule";
 import AutoRemediationRule from "./AutoRemediationRule";
 import AutoRemediationSuggestion from "./AutoRemediationSuggestion";
 import AutoRemediationDecision from "./AutoRemediationDecision";
-import AIInvestigationRule from "./AIInvestigationRule";
 import AIPostmortemRule from "./AIPostmortemRule";
 import ExternalMcpServer from "./ExternalMcpServer";
 
@@ -609,6 +609,7 @@ const AllModelTypes: Array<{
   TraceRecordingRule,
   LogRecordingRule,
   ApiKeyPermission,
+  ApiKeyCustomRole,
   ProjectSmtpConfig,
   StatusPage,
 
@@ -807,7 +808,6 @@ const AllModelTypes: Array<{
   AutoRemediationRule,
   AutoRemediationSuggestion,
   AutoRemediationDecision,
-  AIInvestigationRule,
   AIPostmortemRule,
   ExternalMcpServer,
   Runner,

@@ -1,12 +1,24 @@
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
-import NetworkDeviceService from "../../Services/NetworkDeviceService";
+import NetworkDeviceService, {
+  DiscoveredDetailsMerge,
+} from "../../Services/NetworkDeviceService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
+import OneUptimeDate from "../../../Types/Date";
+import {
+  NetworkDeviceDiscoveredField,
+  NetworkDeviceDiscoveredValue,
+  NetworkDeviceDiscoveryReaderType,
+  buildDiscoveredValue,
+  getDiscoveredTime,
+  readNetworkDeviceDiscoveredDetails,
+} from "../../../Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
 import DeviceMacLearningUtil, {
-  MacLearningCandidateDevice,
   MacLearningIpBinding,
   MacLearningPlanEntry,
+  MacObservationCandidateDevice,
+  MacObservationPlanEntry,
 } from "../../../Utils/Monitor/DeviceMacLearningUtil";
 import logger from "../Logger";
 
@@ -28,6 +40,13 @@ import logger from "../Logger";
  *
  * The write cannot tell the caller whether the compare-and-set matched a
  * row, so the result counts what was PLANNED, not what landed.
+ *
+ * It also records each trusted reading in the device's discovered details
+ * (OneUptime issue #5185): which router's table gave the device its MAC, and
+ * when - and, for a MAC someone typed that the table contradicts, what the
+ * table says, so both are shown. Never the column: a typed MAC is still never
+ * touched. Planned by DeviceMacLearningUtil.planMacObservations, which
+ * records a reading that has not changed at most once an hour.
  */
 
 // Same chunking NetworkDeviceService.getDevicesByHostnames uses.
@@ -37,6 +56,8 @@ export interface MacLearningResult {
   candidateDeviceCount: number;
   // Writes issued. A compare-and-set that matched nothing is not subtracted.
   plannedCount: number;
+  // Readings recorded in the devices' discovered details.
+  observationCount: number;
 }
 
 export default class NetworkDeviceMacLearningUtil {
@@ -44,6 +65,8 @@ export default class NetworkDeviceMacLearningUtil {
     projectId: ObjectID;
     // The router (or L3 switch) whose ARP table this is.
     observingDeviceId: ObjectID;
+    // Its name, which the readings it gives are credited to.
+    observingDeviceName?: string | undefined;
     observingSiteId: ObjectID | undefined;
     ipBindings: Array<MacLearningIpBinding>;
   }): Promise<MacLearningResult> {
@@ -60,7 +83,7 @@ export default class NetworkDeviceMacLearningUtil {
     );
 
     if (addresses.length === 0) {
-      return { candidateDeviceCount: 0, plannedCount: 0 };
+      return { candidateDeviceCount: 0, plannedCount: 0, observationCount: 0 };
     }
 
     /*
@@ -70,7 +93,7 @@ export default class NetworkDeviceMacLearningUtil {
      * device that already has a MAC, to refuse correctly - a query that
      * hid them would make "exactly one" true by accident.
      */
-    const candidates: Array<MacLearningCandidateDevice> = [];
+    const candidates: Array<MacObservationCandidateDevice> = [];
 
     for (
       let offset: number = 0;
@@ -94,6 +117,8 @@ export default class NetworkDeviceMacLearningUtil {
           siteId: true,
           macAddress: true,
           isMacAddressLearned: true,
+          // What an earlier reading recorded, and when.
+          discoveredDetails: true,
         },
         limit: LIMIT_MAX,
         skip: 0,
@@ -106,12 +131,20 @@ export default class NetworkDeviceMacLearningUtil {
         if (!device.id) {
           continue;
         }
+
+        const recorded: NetworkDeviceDiscoveredValue | undefined =
+          readNetworkDeviceDiscoveredDetails(device.discoveredDetails).values[
+            NetworkDeviceDiscoveredField.MacAddress
+          ];
+
         candidates.push({
           id: device.id.toString(),
           hostname: device.hostname,
           siteId: device.siteId?.toString(),
           macAddress: device.macAddress,
           isMacAddressLearned: device.isMacAddressLearned,
+          observedMacAddress: recorded?.value,
+          observedAt: getDiscoveredTime(recorded),
         });
       }
     }
@@ -153,6 +186,84 @@ export default class NetworkDeviceMacLearningUtil {
       );
     }
 
-    return { candidateDeviceCount: candidates.length, plannedCount };
+    const observationCount: number = await this.recordMacObservations({
+      projectId: data.projectId,
+      observingDeviceId: data.observingDeviceId,
+      observingDeviceName: data.observingDeviceName,
+      observingSiteId: data.observingSiteId,
+      ipBindings: data.ipBindings,
+      candidates: candidates,
+    });
+
+    return {
+      candidateDeviceCount: candidates.length,
+      plannedCount,
+      observationCount,
+    };
+  }
+
+  /*
+   * The readings of this table worth recording, merged into the devices'
+   * discovered details in one batched statement. Its own try/catch: the MACs
+   * above are already learned, and a failure here must not read as one there.
+   */
+  private static async recordMacObservations(data: {
+    projectId: ObjectID;
+    observingDeviceId: ObjectID;
+    observingDeviceName?: string | undefined;
+    observingSiteId: ObjectID | undefined;
+    ipBindings: Array<MacLearningIpBinding>;
+    candidates: Array<MacObservationCandidateDevice>;
+  }): Promise<number> {
+    try {
+      const now: Date = OneUptimeDate.getCurrentDate();
+      const observations: Array<MacObservationPlanEntry> =
+        DeviceMacLearningUtil.planMacObservations({
+          ipBindings: data.ipBindings,
+          devices: data.candidates,
+          observingSiteId: data.observingSiteId?.toString(),
+          now: now.getTime(),
+        });
+
+      const patches: Array<DiscoveredDetailsMerge> = [];
+
+      for (const observation of observations) {
+        const entry: NetworkDeviceDiscoveredValue | undefined =
+          buildDiscoveredValue({
+            field: NetworkDeviceDiscoveredField.MacAddress,
+            value: observation.macAddress,
+            readBy: {
+              type: NetworkDeviceDiscoveryReaderType.NetworkDevice,
+              id: data.observingDeviceId.toString(),
+              name: data.observingDeviceName,
+            },
+            readAt: now,
+          });
+
+        if (entry) {
+          patches.push({
+            deviceId: observation.deviceId,
+            set: { [NetworkDeviceDiscoveredField.MacAddress]: entry },
+          });
+        }
+      }
+
+      if (patches.length === 0) {
+        return 0;
+      }
+
+      await NetworkDeviceService.mergeDiscoveredDetails({
+        projectId: data.projectId,
+        patches: patches,
+      });
+
+      return patches.length;
+    } catch (err) {
+      logger.error(
+        `Failed to record the MAC addresses the ARP table of network device ${data.observingDeviceId.toString()} gives its neighbours:`,
+      );
+      logger.error(err);
+      return 0;
+    }
   }
 }

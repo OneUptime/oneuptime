@@ -149,7 +149,7 @@ Als er geen service bij de repository hoort, draait de taak zonder productietele
 
 ## Productiebeoordeling van pull requests
 
-OneUptime weet wat je code in productie doet, dus kan het een pull request beoordelen met wat niemand ziet die de diff leest. Zet **Pull requests beoordelen aan de hand van productie** aan op de pagina **Instellingen** van een repository in Code, en elke pull request die iemand met schrijfrechten opent of bijwerkt, krijgt één opmerking die zegt wat productie laat zien van de code die hij wijzigt. De opmerking wordt bij elke push ter plekke bijgewerkt, en de pagina **Productiebeoordelingen** van de repository in Code bewaart elke beoordeling, met **Opnieuw beoordelen**.
+OneUptime weet wat je code in productie doet, dus kan het een pull request beoordelen met wat niemand ziet die de diff leest. Zet **Pull requests beoordelen aan de hand van productie** aan onder **Meer instellingen** op de pagina **Instellingen** van een repository in Code, en elke pull request die iemand met schrijfrechten opent of bijwerkt, krijgt één opmerking die zegt wat productie laat zien van de code die hij wijzigt. De opmerking wordt bij elke push ter plekke bijgewerkt, en de pagina **Productiebeoordelingen** van de repository in Code bewaart elke beoordeling, met **Opnieuw beoordelen**.
 
 | Hij leest | Van de code die de pull request wijzigt |
 | --- | --- |
@@ -230,7 +230,7 @@ Je koppelt repositories niet aan services. Als een taak start, vindt OneUptime d
 
 ### De Runner van de repository kiezen
 
-Elke repository kiest de Runner waarop AI erin werkt: klik op zijn pagina **Instellingen** in Code op **Bewerken** op de kaart **Runner** en kies er een. Een repository die de GitHub App importeert, begint op de [standaard-Runner](/docs/runbooks/agents#de-standaard-runner-van-het-project) van het project, als het er een heeft. Een repository die er geen kiest, werkt op **Globale Runner**, die OneUptime voor elk project draait.
+Elke repository kiest de Runner waarop AI erin werkt: open op zijn pagina **Instellingen** in Code **Meer instellingen**, klik op **Bewerken** op de kaart **Runner** en kies er een. Een repository die de GitHub App importeert, begint op de [standaard-Runner](/docs/runbooks/agents#de-standaard-runner-van-het-project) van het project, als het er een heeft. Een repository die er geen kiest, werkt op **Globale Runner**, die OneUptime voor elk project draait.
 
 | Runner | Wat hij met een taak doet |
 | --- | --- |
@@ -258,7 +258,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### Kies hem voor de repository
 
-Klik op de pagina **Instellingen** van de repository in Code op **Bewerken** op de kaart **Runner** en kies de Runner. De Runner neemt de wijziging over bij zijn volgende heartbeat, binnen ongeveer een minuut; er hoeft niets opnieuw te starten.
+Open op de pagina **Instellingen** van de repository in Code **Meer instellingen**, klik op **Bewerken** op de kaart **Runner** en kies de Runner. De Runner neemt de wijziging over bij zijn volgende heartbeat, binnen ongeveer een minuut; er hoeft niets opnieuw te starten.
 
 ### Controleer of hij verbinding maakt
 
@@ -278,7 +278,7 @@ Elke manier om de container te draaien werkt (Docker Compose, Kubernetes enzovoo
 
 ## Automatische codeherstellingen uit onderzoeken
 
-Als een [AI-onderzoek](/docs/ai/ai-sre) een analyse van de hoofdoorzaak plaatst bij een incident of een waarschuwing, en de zorgvuldige classificatie ervan een wijziging in de code aanbeveelt, biedt de onderzoekskaart **Open Fix PR from this analysis** aan: een hersteltaak waarvan de hele context de geplaatste analyse is. De knop is verborgen als de oplossing operationeel is, alleen de infrastructuur betreft, extern is, een verwachte weigering, een gebruikersfout of zonder conclusie. Geschikte herstellingen gebeuren zonder de klik zolang **Nieuwe incidenten automatisch herstellen** aan staat op **Incidenten → AI → Instellingen** (en **Nieuwe waarschuwingen automatisch herstellen** op **Waarschuwingen → AI → Instellingen**). Herstellen begint uit, ook voor nieuwe projecten. Zonder regel voor automatisch herstel wordt elke geschikte fix geopend; met regels alleen een voor wat een regel matcht, wanneer de regel **Pull requests met oplossing** aan heeft staan (een nieuwe regel heeft dat), in de code-repository's die hij noemt.
+Als een [AI-onderzoek](/docs/ai/ai-sre) een analyse van de hoofdoorzaak plaatst bij een incident of een waarschuwing, en de zorgvuldige classificatie ervan een wijziging in de code aanbeveelt, biedt de onderzoekskaart **Open Fix PR from this analysis** aan: een hersteltaak waarvan de hele context de geplaatste analyse is. De knop is verborgen als de oplossing operationeel is, alleen de infrastructuur betreft, extern is, een verwachte weigering, een gebruikersfout of zonder conclusie. Geschikte herstellingen gebeuren zonder de klik zolang **Nieuwe incidenten automatisch herstellen** aan staat op **Incidenten → AI → Instellingen** (en **Nieuwe waarschuwingen automatisch herstellen** op **Waarschuwingen → AI → Instellingen**). Herstellen begint uit, ook voor nieuwe projecten. Zonder AI-regel wordt elke geschikte fix geopend; met regels alleen een voor wat een regel matcht, wanneer de regel **Pull requests met oplossing** aan heeft staan (een nieuwe regel heeft dat), in de code-repository's die hij noemt.
 
 Zolang herstellen aan staat, zet een onderzoek dat eindigt met een zekere, onderbouwde hoofdoorzaak die een codewijziging kan herstellen, dezelfde hersteltaak in de wachtrij die de knop aanmaakt. De beslissing is een begrensde classificatie die de server controleert, nooit een patroon dat op de tekst van de analyse wordt toegepast: alleen een positief oordeel voor een codeherstel opent een pull request. Ontbrekend bewijs, een oplossing buiten de code en een mislukte classificatie eindigen allemaal in niets doen.
 

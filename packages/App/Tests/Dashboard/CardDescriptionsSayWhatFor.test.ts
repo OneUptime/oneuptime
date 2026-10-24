@@ -147,7 +147,7 @@ const LIST_DESCRIPTIONS: Array<[string, string]> = [
   ],
   [
     "Pages/Settings/UsageHistory.tsx",
-    "How much telemetry each service sent each day, how long it is kept and what it cost. The pricing page has the rates.",
+    "How much telemetry each service sent each day, how long it is kept and what it cost. Except for session replays, telemetry kept for fewer than 7 days is billed as 7 days. The pricing page has the rates.",
   ],
   [
     "Pages/UserSettings/OnCallLogs.tsx",

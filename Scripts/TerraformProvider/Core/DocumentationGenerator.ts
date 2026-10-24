@@ -394,7 +394,7 @@ Pin \`ref\` to a published tag: this repository is regenerated on every release,
     return `
 ## Renamed resources
 
-These resources were renamed so that names like IoT and vCenter read as one word. Each old name still works, as a deprecated alias, so no configuration breaks; plans that use one say so.
+These resources were renamed: names like IoT and vCenter now read as one word, and auto remediation rules became AI rules. Each old name still works, as a deprecated alias, so no configuration breaks; plans that use one say so.
 
 | Old name | New name |
 |----------|----------|

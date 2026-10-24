@@ -55,6 +55,17 @@ import TransceiverWalker, {
   TRANSCEIVER_WALK_BUDGET_MS,
   TransceiverWalkResult,
 } from "../../Snmp/TransceiverWalker";
+import SnmpOidWalker, {
+  SnmpOidWalkOutcome,
+  SnmpOidWalkSession,
+} from "../../Snmp/SnmpOidWalker";
+import SnmpWalkErrorClassifier from "../../Snmp/SnmpWalkErrorClassifier";
+import { toSnmpWalkRow } from "../../Snmp/SnmpWalkRowFormatter";
+import {
+  NetworkDeviceDiagnosticSnmpWalkResult,
+  NetworkDeviceSnmpWalkRequest,
+  SnmpWalkStopReason,
+} from "Common/Types/NetworkDevice/NetworkDeviceSnmpWalk";
 import { TransceiverInterfaceCandidate } from "../../Snmp/TransceiverParsers";
 import {
   DEFAULT_SNMP_TABLE_MAX_ROWS,
@@ -710,6 +721,8 @@ export default class SnmpMonitor {
   private static createSnmpSession(
     config: MonitorStepSnmpMonitor,
     options: SnmpQueryOptions,
+    // Retries per request inside net-snmp; queries retry whole, so 0 there.
+    sessionRetries: number = 0,
   ): snmp.Session {
     if (config.snmpVersion === SnmpVersion.V3) {
       /*
@@ -726,7 +739,7 @@ export default class SnmpMonitor {
       const sessionOptionsV3: snmp.SessionOptionsV3 = {
         port: config.port || 161,
         timeout: options.timeout || config.timeout || 5000,
-        retries: 0, // We handle retries ourselves
+        retries: sessionRetries, // We handle retries ourselves
         version: snmp.Version3,
         transport: SnmpMonitor.getTransportForHost(config.hostname),
       };
@@ -737,7 +750,7 @@ export default class SnmpMonitor {
     const sessionOptions: snmp.SessionOptions = {
       port: config.port || 161,
       timeout: options.timeout || config.timeout || 5000,
-      retries: 0, // We handle retries ourselves
+      retries: sessionRetries, // We handle retries ourselves
       version:
         config.snmpVersion === SnmpVersion.V1 ? snmp.Version1 : snmp.Version2c,
       transport: SnmpMonitor.getTransportForHost(config.hostname),
@@ -747,6 +760,112 @@ export default class SnmpMonitor {
       config.communityString || "public",
       sessionOptions,
     );
+  }
+
+  /*
+   * An SNMP walk of a device's OID tree, from the device's SNMP Walk page
+   * (issue #5184): every OID under `request.rootOid` (after
+   * `request.afterOid`, for a walk that continues another), with its type
+   * and value, within the request's bounds - see SnmpOidWalker.
+   *
+   * Never throws. Whatever goes wrong is part of the answer: credentials
+   * that cannot open a session, an agent that refuses them, a device that
+   * does not answer. Rows read before a failure are kept, so a walk that
+   * timed out halfway shows the half it read and where to continue.
+   *
+   * One retry per request inside the session: a walk is dozens of requests,
+   * and one lost UDP datagram should not end it.
+   */
+  public static async walkOidTree(
+    config: MonitorStepSnmpMonitor,
+    request: NetworkDeviceSnmpWalkRequest,
+  ): Promise<NetworkDeviceDiagnosticSnmpWalkResult> {
+    const startedAt: number = Date.now();
+
+    const result: NetworkDeviceDiagnosticSnmpWalkResult = {
+      rootOid: request.rootOid,
+      rows: [],
+      stopReason: SnmpWalkStopReason.Failed,
+      snmpVersion: config.snmpVersion,
+      requestCount: 0,
+      durationInMs: 0,
+    };
+
+    if (request.afterOid) {
+      result.afterOid = request.afterOid;
+    }
+
+    let session: snmp.Session;
+
+    try {
+      /*
+       * A v1 / v2c config with no community would be walked as "public"
+       * (createSnmpSession's default for monitors): a walk only ever uses
+       * the credentials the device was given.
+       */
+      if (
+        config.snmpVersion !== SnmpVersion.V3 &&
+        !(config.communityString || "").trim()
+      ) {
+        throw new Error(
+          `No SNMP community string is configured for ${config.hostname}.`,
+        );
+      }
+
+      session = SnmpMonitor.createSnmpSession(
+        config,
+        { timeout: request.requestTimeoutInMs },
+        1,
+      );
+    } catch (err) {
+      result.failure = SnmpWalkErrorClassifier.configuration(err);
+      result.durationInMs = Date.now() - startedAt;
+      return result;
+    }
+
+    try {
+      const outcome: SnmpOidWalkOutcome = await SnmpOidWalker.walk(
+        session as unknown as SnmpOidWalkSession,
+        {
+          rootOid: request.rootOid,
+          afterOid: request.afterOid,
+          maxOids: request.maxOids,
+          timeBudgetInMs: request.timeBudgetInMs,
+          maxRepetitions: request.maxRepetitions,
+          pauseBetweenRequestsInMs: request.pauseBetweenRequestsInMs,
+          useGetNext: config.snmpVersion === SnmpVersion.V1,
+        },
+      );
+
+      result.rows = outcome.varbinds.map((varbind: snmp.Varbind) => {
+        return toSnmpWalkRow(varbind);
+      });
+      result.stopReason = outcome.stopReason;
+      result.requestCount = outcome.requestCount;
+
+      if (outcome.nextOid) {
+        result.nextOid = outcome.nextOid;
+      }
+
+      if (outcome.error !== undefined) {
+        result.failure = SnmpWalkErrorClassifier.classify(
+          outcome.error,
+          config.hostname,
+        );
+      }
+    } catch (err) {
+      // SnmpOidWalker turns request failures into outcomes; this is the rest.
+      result.failure = SnmpWalkErrorClassifier.classify(err, config.hostname);
+    } finally {
+      try {
+        session.close();
+      } catch {
+        // A session that broke mid-walk may already be closed.
+      }
+    }
+
+    result.durationInMs = Date.now() - startedAt;
+    return result;
   }
 
   /*

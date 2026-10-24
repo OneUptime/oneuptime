@@ -16,8 +16,10 @@ import path from "path";
  * where AI is asked with context, a task's conversation filling in as the
  * AI works, replying in it, stopping it and trying again, whatever stops AI
  * working said once at the top of the box with what fixes it, a
- * repository's settings - the GitHub Commands switch, the Runner AI works
- * on, More settings and commands an operator set - read-only members, the
+ * repository's settings - the repository on top, and under More settings
+ * the GitHub Commands switch, the Production Review switch, the Runner AI
+ * works on and the rest, links that land on one of them with More settings
+ * open, and commands an operator set - read-only members, the
  * old Tasks and Code Repositories addresses, a repository's pull requests
  * reviewed against production (their page, a review's page, Review again
  * and the setting), a phone, dark mode and German.
@@ -1170,16 +1172,33 @@ test.describe("Code's Repositories", () => {
  * don't need this step at all because repos have an agents.md file in
  * them". A repository's settings are cards now, its GitHub commands one
  * switch, and what most people never change folded under More settings.
+ *
+ * And (task doc, block 69), of the page that kept GitHub Commands and the
+ * Runner above the fold: "GitHub commands and runner should be inside of
+ * more settings as well." The repository's details are the page's top;
+ * everything else - GitHub Commands, Production Review and Runner first,
+ * in the order they had - is under More settings, which names them while
+ * it is folded and opens by itself where a link lands on one of them.
  */
 test.describe("a repository's settings", () => {
   const SETTINGS: string = `${repositoryPath(REPOSITORY.checkout)}/settings`;
 
+  // Found by its test id: folded, the switch is out of sight (no role).
   function commandsSwitch(page: Page): Locator {
-    return page.getByRole("switch", { name: "Respond to GitHub Commands" });
+    return page.getByTestId("code-repository-github-commands");
   }
 
   function moreSettings(page: Page): Locator {
     return page.getByTestId("code-repository-more-settings");
+  }
+
+  function moreSettingsHeader(page: Page): Locator {
+    return moreSettings(page).getByTestId("folded-section-header");
+  }
+
+  // What folded More settings names, in its order.
+  function foldedNames(page: Page): Locator {
+    return moreSettings(page).getByTestId("folded-section-item");
   }
 
   async function openMoreSettings(page: Page): Promise<void> {
@@ -1191,11 +1210,73 @@ test.describe("a repository's settings", () => {
     ).toHaveAttribute("aria-expanded", "true");
   }
 
-  test("cards, not a four-step dialog: GitHub Commands is on, and a flip saves at once", async ({
+  test("the repository on top; GitHub Commands, Production Review and Runner first under More settings - named while it is folded", async ({
     page,
   }: {
     page: Page;
   }, testInfo: TestInfo) => {
+    await page.goto(SETTINGS);
+
+    const details: Locator = page.getByTestId("card").filter({
+      has: page
+        .getByTestId("card-details-heading")
+        .getByText("Repository Details", { exact: true }),
+    });
+    await expect(details).toBeVisible();
+    await expect(moreSettingsHeader(page)).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    // Folded, it names the first four and counts the rest.
+    await expect(foldedNames(page)).toHaveText([
+      "GitHub Commands",
+      "Production Review",
+      "Runner",
+      "Pull Requests",
+    ]);
+    await expect(
+      moreSettings(page).getByTestId("folded-section-more"),
+    ).toHaveText("2 more");
+    // Nothing folded is in sight: the page is the repository and the fold.
+    await expect(commandsSwitch(page)).toBeHidden();
+    await expect(page.getByTestId("code-repository-runner")).toBeHidden();
+    await expect(page.getByRole("switch")).toHaveCount(0);
+    const detailsBox: { y: number; height: number } | null =
+      await details.boundingBox();
+    const foldBox: { y: number } | null =
+      await moreSettings(page).boundingBox();
+    expect(foldBox!.y).toBeGreaterThanOrEqual(
+      detailsBox!.y + detailsBox!.height,
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repository-settings");
+
+    // Open: every card, in that order, each a section of the one card.
+    await openMoreSettings(page);
+    await expect(
+      moreSettings(page).getByTestId("card-details-heading"),
+    ).toHaveText([
+      "GitHub Commands",
+      "Production Review",
+      "Runner",
+      "Pull Requests",
+      "GitHub Trigger Label",
+      "Production Review Comment",
+    ]);
+    await expect(
+      moreSettings(page).getByTestId("folded-section-description"),
+    ).toHaveText(
+      "GitHub commands, production reviews, where AI works, and where its pull requests open.",
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repository-more-settings-open");
+  });
+
+  test("cards, not a four-step dialog: GitHub Commands is on, and a flip from More settings saves at once", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await page.goto(SETTINGS);
 
     await expect(commandsSwitch(page)).toHaveAttribute("aria-checked", "true");
@@ -1203,13 +1284,11 @@ test.describe("a repository's settings", () => {
       page.getByRole("button", { name: "Edit Settings" }),
     ).toHaveCount(0);
     await expect(page.getByText("Build & Test")).toHaveCount(0);
-    await expect(
-      moreSettings(page).getByRole("button", { name: "More settings" }),
-    ).toHaveAttribute("aria-expanded", "false");
-    await expectNoSidewaysScroll(page);
-    await screenshot(page, testInfo, "code-repository-settings");
 
-    await commandsSwitch(page).click();
+    await openMoreSettings(page);
+    await page
+      .getByRole("switch", { name: "Respond to GitHub Commands" })
+      .click();
     await expect
       .poll(async () => {
         return (await recorded(page)).settings;
@@ -1217,18 +1296,152 @@ test.describe("a repository's settings", () => {
       .toEqual([{ isGitHubCommandsEnabled: false }]);
     await expect(commandsSwitch(page)).toHaveAttribute("aria-checked", "false");
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+
+    // Folded again, it says so.
+    await moreSettingsHeader(page).click();
+    await expect(foldedNames(page).first()).toHaveText("GitHub Commands: Off");
   });
 
-  test("a repository that never set it reads as on, and one turned off as off", async ({
+  test("a repository that never set it reads as on, and one turned off as off - said while folded too", async ({
     page,
   }: {
     page: Page;
   }) => {
     await page.goto(`${SETTINGS}?ghcommands=unset`);
     await expect(commandsSwitch(page)).toHaveAttribute("aria-checked", "true");
+    await expect(foldedNames(page).first()).toHaveText("GitHub Commands");
 
     await page.goto(`${SETTINGS}?ghcommands=off`);
     await expect(commandsSwitch(page)).toHaveAttribute("aria-checked", "false");
+    await expect(foldedNames(page).first()).toHaveText("GitHub Commands: Off");
+  });
+
+  test("a link that names a setting lands on it, with More settings open - at a laptop's width and a phone's", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${SETTINGS}#github-commands`);
+
+    await expect(moreSettingsHeader(page)).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    const toggle: Locator = page.getByRole("switch", {
+      name: "Respond to GitHub Commands",
+    });
+    await expect(toggle).toBeVisible();
+    await expect(toggle).toBeInViewport();
+    await screenshot(page, testInfo, "code-repository-settings-at-commands");
+
+    // As it works anywhere: flipped, saved at once.
+    await toggle.click();
+    await expect
+      .poll(async () => {
+        return (await recorded(page)).settings;
+      })
+      .toEqual([{ isGitHubCommandsEnabled: false }]);
+
+    // Opened at a place no setting has, the page opens as ever: folded.
+    await page.goto(`${SETTINGS}?ghcommands=unset#reply`);
+    await expect(moreSettingsHeader(page)).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+  });
+
+  test("a member who may only read: More settings shows every setting, the switches and every Edit locked", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
+    await page.goto(`${SETTINGS}?role=viewer`);
+    await expect(foldedNames(page)).toHaveText([
+      "GitHub Commands",
+      "Production Review",
+      "Runner",
+      "Pull Requests",
+    ]);
+
+    await openMoreSettings(page);
+    for (const name of [
+      "Respond to GitHub Commands",
+      "Review Pull Requests Against Production",
+    ]) {
+      await expect(page.getByRole("switch", { name })).toHaveAttribute(
+        "aria-disabled",
+        "true",
+      );
+    }
+    const edits: Locator = moreSettings(page).getByRole("button", {
+      name: "Edit",
+    });
+    await expect(edits).toHaveCount(4);
+    for (let index: number = 0; index < 4; index++) {
+      await expect(edits.nth(index)).toBeDisabled();
+    }
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repository-settings-read-only");
+
+    // A locked switch saves nothing.
+    await page
+      .getByRole("switch", { name: "Respond to GitHub Commands" })
+      .click({ force: true });
+    expect((await recorded(page)).settings).toEqual([]);
+  });
+
+  test("dark mode: the repository and More settings, open, draw on dark surfaces", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
+    await page.goto(`${SETTINGS}?theme=dark&ghcommands=off&runner=prod`);
+    // Folded: its chips, the set ones too.
+    await expect(foldedNames(page).first()).toHaveText("GitHub Commands: Off");
+
+    const lightSurfaces: () => Promise<Array<string>> = async (): Promise<
+      Array<string>
+    > => {
+      return await page.evaluate((channelPattern: string): Array<string> => {
+        const found: Array<string> = [];
+        for (const element of Array.from(
+          document.querySelectorAll(
+            "[data-testid='card'], [data-testid='code-repository-more-settings'] [data-testid='folded-section'], [data-testid='code-repository-more-settings'] [data-testid='folded-section-item']",
+          ),
+        )) {
+          const background: string =
+            window.getComputedStyle(element).backgroundColor;
+          const channels: Array<number> = (
+            background.match(new RegExp(channelPattern, "g")) || []
+          )
+            .slice(0, 3)
+            .map(Number);
+          if (
+            channels.length === 3 &&
+            channels.every((value: number) => {
+              return value > 200;
+            })
+          ) {
+            found.push(element.getAttribute("data-testid") || "");
+          }
+        }
+        return found;
+      }, COLOUR_CHANNELS.source);
+    };
+
+    expect(await lightSurfaces()).toEqual([]);
+    await screenshot(page, testInfo, "code-repository-settings-dark");
+
+    await openMoreSettings(page);
+    await expect(
+      page.getByTestId("code-repository-runner").getByRole("link"),
+    ).toHaveText("prod-eu-west-1");
+    expect(await lightSurfaces()).toEqual([]);
+    await screenshot(page, testInfo, "code-repository-more-settings-dark");
   });
 
   test("More settings: where pull requests open and how many, and the trigger label - each with its Edit, on one page", async ({
@@ -1237,8 +1450,7 @@ test.describe("a repository's settings", () => {
     page: Page;
   }, testInfo: TestInfo) => {
     await page.goto(SETTINGS);
-    await expect(moreSettings(page)).toContainText("Pull Requests");
-    await expect(moreSettings(page)).toContainText("GitHub Trigger Label");
+    await expect(foldedNames(page).nth(3)).toHaveText("Pull Requests");
 
     await openMoreSettings(page);
     await screenshot(page, testInfo, "code-repository-more-settings");
@@ -1685,7 +1897,11 @@ test.describe("a repository's page: ask AI", () => {
     );
   });
 
-  const SETTINGS_OF_CHECKOUT: string = `${repositoryPath(REPOSITORY.checkout)}/settings`;
+  /*
+   * The repository's settings at its Runner: folded under More settings,
+   * which opens there.
+   */
+  const SETTINGS_OF_CHECKOUT: string = `${repositoryPath(REPOSITORY.checkout)}/settings#runner`;
 
   const BLOCKERS: Array<{
     type: string;
@@ -1911,9 +2127,19 @@ test.describe("a repository's page: ask AI", () => {
  * picked none shows - then the project's own Runners, never the in-cluster
  * Runner the Kubernetes agent chart installed. The fixture records what
  * the settings save.
+ *
+ * The Runner is folded under More settings ("GitHub commands and runner
+ * should be inside of more settings as well"): these open the settings at
+ * the Runner (#runner), as "Pick a Runner" and a Runner's own page do, and
+ * More settings opens there by itself.
  */
 test.describe("a repository's Runner", () => {
   const SETTINGS: string = `${repositoryPath(REPOSITORY.checkout)}/settings`;
+
+  // The settings, at the Runner: the fixture's switches first, then "#runner".
+  function atRunner(search: string = ""): string {
+    return `${SETTINGS}${search ? `?${search}` : ""}#runner`;
+  }
 
   // The Runner card of the repository's settings.
   function settingsCard(page: Page): Locator {
@@ -1984,7 +2210,15 @@ test.describe("a repository's Runner", () => {
   }: {
     page: Page;
   }, testInfo: TestInfo) => {
-    await page.goto(SETTINGS);
+    await page.goto(atRunner());
+
+    // Opened at the Runner: More settings is open, the Runner in sight.
+    await expect(
+      page
+        .getByTestId("code-repository-more-settings")
+        .getByTestId("folded-section-header"),
+    ).toHaveAttribute("aria-expanded", "true");
+    await expect(settingsCard(page)).toBeInViewport();
 
     const value: Locator = await expectRunnerValue(
       page,
@@ -2009,7 +2243,7 @@ test.describe("a repository's Runner", () => {
   }: {
     page: Page;
   }, testInfo: TestInfo) => {
-    await page.goto(SETTINGS);
+    await page.goto(atRunner());
     const modal: Locator = await openRunnerStep(page);
 
     /*
@@ -2070,6 +2304,48 @@ test.describe("a repository's Runner", () => {
       "href",
       `${DASHBOARD}/runbooks/runners/${RUNNER.prod}`,
     );
+
+    // Folded, More settings names it now.
+    await page
+      .getByTestId("code-repository-more-settings")
+      .getByTestId("folded-section-header")
+      .click();
+    await expect(
+      page
+        .getByTestId("code-repository-more-settings")
+        .getByTestId("folded-section-item")
+        .filter({ hasText: "Runner" }),
+    ).toHaveText("Runner: prod-eu-west-1");
+  });
+
+  /*
+   * Every case is held in jsdom (CodeRepositorySettingsPage.test.tsx); here,
+   * one of the project's own Runners and none at all, as the page reads
+   * them. A global Runner - the default, its name alone - is the folded
+   * header of every other settings test.
+   */
+  test("folded, More settings says what a repository works on when it is not a global Runner", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
+    const runnerChip: (search: string) => Promise<Locator> = async (
+      search: string,
+    ): Promise<Locator> => {
+      await page.goto(`${SETTINGS}${search ? `?${search}` : ""}`);
+      const chip: Locator = page
+        .getByTestId("code-repository-more-settings")
+        .locator("[data-testid='folded-section-item'][data-item-key='runner']");
+      await expect(chip).toBeVisible();
+      return chip;
+    };
+
+    const ownRunner: Locator = await runnerChip("runner=prod");
+    await expect(ownRunner).toHaveText("Runner: prod-eu-west-1");
+    await expect(ownRunner).toHaveAttribute("data-item-set", "true");
+    await expect(await runnerChip("uses=0")).toHaveText("Runner: None");
   });
 
   test("picking Global Runner again saves no Runner", async ({
@@ -2077,7 +2353,7 @@ test.describe("a repository's Runner", () => {
   }: {
     page: Page;
   }) => {
-    await page.goto(`${SETTINGS}?runner=prod`);
+    await page.goto(atRunner("runner=prod"));
     await expectRunnerValue(page, "prod-eu-west-1", "Connected");
 
     const modal: Locator = await openRunnerStep(page);
@@ -2097,7 +2373,7 @@ test.describe("a repository's Runner", () => {
   }: {
     page: Page;
   }) => {
-    await page.goto(`${SETTINGS}?uses=0`);
+    await page.goto(atRunner("uses=0"));
     await expect(page.getByTestId("code-repository-runner")).toHaveText(
       "None: this project does not use global Runners",
     );
@@ -2120,7 +2396,7 @@ test.describe("a repository's Runner", () => {
   }: {
     page: Page;
   }) => {
-    await page.goto(`${SETTINGS}?global=0`);
+    await page.goto(atRunner("global=0"));
     await expect(page.getByTestId("code-repository-runner")).toHaveText(
       "None: this server runs no global Runner",
     );
@@ -2137,7 +2413,7 @@ test.describe("a repository's Runner", () => {
      * deleted one leaves it on Global Runner: one the page cannot name is
      * one the reader may not see - never an id, never a warning.
      */
-    await page.goto(`${SETTINGS}?runner=gone`);
+    await page.goto(atRunner("runner=gone"));
     await expect(page.getByTestId("code-repository-runner")).toHaveText(
       "A Runner you do not have access to",
     );
@@ -2158,7 +2434,7 @@ test.describe("a repository's Runner", () => {
   }: {
     page: Page;
   }) => {
-    await page.goto(`${SETTINGS}?gstatus=disconnected`);
+    await page.goto(atRunner("gstatus=disconnected"));
     await expectRunnerValue(page, "Global Runner", "Disconnected");
 
     await openRunnerStep(page);
@@ -2169,11 +2445,31 @@ test.describe("a repository's Runner", () => {
     );
   });
 
-  test("a blocker's Pick a Runner opens the repository's settings, where its Runner is picked", async ({
+  test("a blocker's Pick a Runner opens the repository's settings at its Runner, More settings open there", async ({
     page,
   }: {
     page: Page;
-  }) => {
+  }, testInfo: TestInfo) => {
+    /*
+     * Which settings were marked as landed on, kept as they are marked: the
+     * mark is held for the tint's 2.4 s only (PAGE_ANCHOR_LANDED_IN_MS).
+     */
+    await page.addInitScript(() => {
+      const landed: Array<string> = [];
+      (window as unknown as { __landed: Array<string> }).__landed = landed;
+      new MutationObserver((records: Array<MutationRecord>): void => {
+        for (const record of records) {
+          const target: Element = record.target as Element;
+          if (target.hasAttribute("data-page-anchor-landed")) {
+            landed.push(target.id);
+          }
+        }
+      }).observe(document, {
+        attributes: true,
+        attributeFilter: ["data-page-anchor-landed"],
+        subtree: true,
+      });
+    });
     await openRepository(
       page,
       REPOSITORY.checkout,
@@ -2181,8 +2477,53 @@ test.describe("a repository's Runner", () => {
     );
 
     await page.getByTestId("code-blocker-fix").click();
-    await expect(page).toHaveURL(SETTINGS);
+    await expect(page).toHaveURL(`${SETTINGS}#runner`);
+    await expect(
+      page
+        .getByTestId("code-repository-more-settings")
+        .getByTestId("folded-section-header"),
+    ).toHaveAttribute("aria-expanded", "true");
     await expect(page.getByTestId("code-repository-runner")).toBeVisible();
+    // Landed on: the Runner card in sight, its Edit within reach.
+    await expect(settingsCard(page)).toBeInViewport();
+    await expect(
+      settingsCard(page).getByRole("button", { name: "Edit" }),
+    ).toBeInViewport();
+
+    /*
+     * As high in the window as the page lets it go: its divider where the
+     * sticky header ends (the fixture draws none), no strip of the setting
+     * above it in sight - unless the page ends first.
+     */
+    await expect
+      .poll(async (): Promise<number> => {
+        return await page.evaluate((): number => {
+          const card: Element = document.getElementById("runner")!;
+          const top: number = card.getBoundingClientRect().top;
+          const lowestScroll: number =
+            document.documentElement.scrollHeight - window.innerHeight;
+          const highestTop: number = Math.max(
+            0,
+            top + window.scrollY - lowestScroll,
+          );
+          return Math.round(Math.abs(top - highestTop));
+        });
+      })
+      .toBe(0);
+    // The one marked among the six, and the one holding the focus.
+    expect(
+      await page.evaluate((): Array<string> => {
+        return (window as unknown as { __landed: Array<string> }).__landed;
+      }),
+    ).toEqual(["runner"]);
+    await expect(settingsCard(page)).toBeFocused();
+    await screenshot(page, testInfo, "code-repository-settings-at-runner");
+
+    // So Tab goes on to its Edit, not to the top of the page.
+    await page.keyboard.press("Tab");
+    await expect(
+      settingsCard(page).getByRole("button", { name: "Edit" }),
+    ).toBeFocused();
   });
 });
 
@@ -2726,9 +3067,11 @@ test.describe("a repository's pull requests, reviewed against production", () =>
     await expectNoSidewaysScroll(page);
     await screenshot(page, testInfo, "code-production-reviews");
 
+    // The way to Settings lands on the switch, with More settings open there.
     await page.getByTestId("code-production-reviews-settings").click();
-    await expect(page).toHaveURL(SETTINGS);
+    await expect(page).toHaveURL(`${SETTINGS}#production-review`);
     await expect(reviewSwitch(page)).toHaveAttribute("aria-checked", "true");
+    await expect(reviewSwitch(page)).toBeInViewport();
   });
 
   test("a row opens its review; the repository's own tasks leave the reviews out", async ({
@@ -3017,12 +3360,22 @@ test.describe("a repository's pull requests, reviewed against production", () =>
     ).toHaveCount(0);
   });
 
-  test("the setting: one switch, on for this repository and saved the moment it is flipped - and what a review posts, under More settings", async ({
+  test("the setting: one switch under More settings, on for this repository and saved the moment it is flipped - and what a review posts, beside it", async ({
     page,
   }: {
     page: Page;
   }, testInfo: TestInfo) => {
     await page.goto(SETTINGS);
+    const moreSettings: Locator = page.getByTestId(
+      "code-repository-more-settings",
+    );
+    // Folded, under More settings: named, nothing in sight.
+    await expect(
+      moreSettings.getByTestId("folded-section-item").nth(1),
+    ).toHaveText("Production Review");
+    await expect(reviewSwitch(page)).toHaveCount(0);
+
+    await moreSettings.getByRole("button", { name: "More settings" }).click();
     await expect(reviewSwitch(page)).toHaveAttribute("aria-checked", "true");
     await expect(
       page.getByText(
@@ -3038,13 +3391,7 @@ test.describe("a repository's pull requests, reviewed against production", () =>
       .toEqual([{ isProductionReviewEnabled: false }]);
     await expect(reviewSwitch(page)).toHaveAttribute("aria-checked", "false");
 
-    // Folded, More settings names the choice; open, its card says what it is set to.
-    const moreSettings: Locator = page.getByTestId(
-      "code-repository-more-settings",
-    );
-    await expect(moreSettings).toContainText("Production Review Comment");
-    await moreSettings.getByRole("button", { name: "More settings" }).click();
-
+    // What a review posts is a card of its own in the same fold.
     const comment: Locator = page.getByTestId("card").filter({
       has: page
         .getByTestId("card-details-heading")
@@ -3078,6 +3425,12 @@ test.describe("a repository's pull requests, reviewed against production", () =>
       comment.getByTestId("production-review-content-value"),
     ).toHaveText("Only a link to the review");
     await expectNoSidewaysScroll(page);
+
+    // Folded again, More settings says the switch is off.
+    await moreSettings.getByRole("button", { name: "More settings" }).click();
+    await expect(
+      moreSettings.getByTestId("folded-section-item").nth(1),
+    ).toHaveText("Production Review: Off");
   });
 
   test("a repository connected before production review existed reads as off; the reviews page then says how to ask", async ({
@@ -3085,7 +3438,7 @@ test.describe("a repository's pull requests, reviewed against production", () =>
   }: {
     page: Page;
   }) => {
-    await page.goto(`${SETTINGS}?review=unset`);
+    await page.goto(`${SETTINGS}?review=unset#production-review`);
     await expect(reviewSwitch(page)).toHaveAttribute("aria-checked", "false");
 
     await page.goto(`${REVIEWS}?review=unset`);
@@ -3169,12 +3522,20 @@ test.describe("a repository's pull requests, reviewed against production", () =>
       "Erneut prüfen",
     );
 
-    await page.goto(`${SETTINGS}?lang=de`);
+    await page.goto(`${SETTINGS}?lang=de#production-review`);
     await expect(
       page.getByRole("switch", {
         name: "Pull Requests gegen die Produktion prüfen",
       }),
     ).toBeVisible();
+    // Under More settings, which says what it holds in German too.
+    await expect(
+      page
+        .getByTestId("code-repository-more-settings")
+        .getByTestId("folded-section-description"),
+    ).toHaveText(
+      "GitHub-Befehle, Produktionsprüfungen, wo die KI arbeitet und wo ihre Pull Requests geöffnet werden.",
+    );
   });
 });
 

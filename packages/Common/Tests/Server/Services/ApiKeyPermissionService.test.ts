@@ -577,6 +577,21 @@ describe("ApiKeyPermissionService.findPermissionsByApiKeyId", () => {
 
       const overlappingAuthRead: Promise<Array<ApiKeyPermissionRow>> =
         ApiKeyPermissionService.findPermissionsByApiKeyId(apiKeyId, projectId);
+
+      /*
+       * The read asks for its project's generation first (CacheGenerations,
+       * never more than a few ticks), then the database: wait until it is
+       * reading.
+       */
+      for (
+        let tick: number = 0;
+        tick < 100 && findBy.mock.calls.length === 0;
+        tick++
+      ) {
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 0);
+        });
+      }
       expect(findBy).toHaveBeenCalledTimes(1);
 
       await asHooks(ApiKeyPermissionService).onDeleteSuccess(

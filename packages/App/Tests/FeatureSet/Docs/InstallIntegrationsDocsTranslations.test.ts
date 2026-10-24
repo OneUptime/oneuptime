@@ -216,6 +216,17 @@ const EXTERNAL_CONSOLE_LABELS: Record<string, Array<string>> = {
     "Teams apps > Manage apps",
     "Setup policies",
     "Manage team > Apps",
+    /*
+     * The way round AADSTS50194 on a version that signs in at common: the
+     * app registration's account types, and Enterprise applications'
+     * assignment.
+     */
+    "Authentication",
+    "Supported account types",
+    "Enterprise applications",
+    "Assignment required?",
+    "Properties",
+    "Users and groups",
   ],
   [TWILIO]: ["Account SID", "Auth Token"],
   [GITHUB]: [
@@ -496,6 +507,9 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "The Azure Bot has no Microsoft Teams channel.",
     "The app is installed for you, or in a chat, but not in the team.",
     "The channel is private.",
+    "Upgrade OneUptime.",
+    "Until you can upgrade,",
+    "On a current version,",
   ],
   [GITHUB]: [
     "For an organization:",

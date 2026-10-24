@@ -58,7 +58,7 @@ Incoming Webhook 或 Teams 工作流 URL 都不能替代此机器人的消息传
 选择 **Register**，然后添加第二个 Web 重定向 URI：`https://your-oneuptime-domain.com/api/microsoft-teams/admin-consent/callback`。记下 **Application (client) ID** 和 **Directory (tenant) ID**：后面两者都会用到。
 
 > [!NOTE]
-> **为什么是单租户：** 自托管的 OneUptime 部署服务于一个组织，它的机器人是为你在 `MICROSOFT_TEAMS_APP_TENANT_ID`（第 6 步）中设置的那一个租户注册的。把应用注册为多租户并不会扩大这个范围，反而会引入一种失败情形：主 Microsoft 租户与你不同的来宾 / B2B 用户会带着他们自己的租户 ID 访问机器人，而 OneUptime 无法把它与你的项目对应起来。如果你已经注册了多租户应用，它仍然可以工作；只要确保 `MICROSOFT_TEAMS_APP_TENANT_ID` 是你自己的租户，并且预计来宾账号需要在你的租户中拥有账号才能使用机器人。
+> **为什么是单租户：** 自托管的 OneUptime 服务于一个组织，并让所有人登录到该组织的租户：授予同意的管理员，以及选择 **Connect my account with Microsoft Teams** 的每个人。你组织中的来宾使用他们的来宾账号登录，也就是 Teams 为他们使用的账号。多租户应用也以同样的方式工作，但单租户会把应用限制在你的组织内。
 
 ### 第 2 步：配置应用权限
 
@@ -193,7 +193,7 @@ OneUptime 重新运行后，**项目设置 > 工作区 > Microsoft Teams** 会�
 | --- | --- | --- |
 | `MICROSOFT_TEAMS_APP_CLIENT_ID` | `microsoftTeamsApp.clientId` | **Application (client) ID**。它也是 Teams 应用包中的机器人 ID，因此必须是 GUID。 |
 | `MICROSOFT_TEAMS_APP_CLIENT_SECRET` | `microsoftTeamsApp.clientSecret` | 客户端密码的 **Value**，而不是它的 ID。 |
-| `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | **Directory (tenant) ID**。机器人在此租户中以单租户应用的身份进行身份验证。 |
+| `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | **Directory (tenant) ID**。机器人在此租户中以单租户应用的身份进行身份验证，用户连接 Microsoft Teams 账号时也登录到此租户。 |
 | `HOST` | `host` | 你的公共主机名。重定向 URI、消息传递端点和 Teams 应用包都基于它生成。 |
 | `HTTP_PROTOCOL` | `httpProtocol` | `https`。Azure Bot Service 只调用 HTTPS 端点。 |
 
@@ -320,7 +320,7 @@ Teams 不会可靠地把群聊名称发送给机器人，所以 OneUptime 从 Mi
 curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test | jq
 ```
 
-它报告 OneUptime 在本地能看到的内容：`MICROSOFT_TEAMS_APP_CLIENT_ID` 和 `MICROSOFT_TEAMS_APP_CLIENT_SECRET` 是否已设置、此部署期望的消息传递端点，以及最有用的一项：你的 Teams 应用包必须带有的 **机器人 ID**。
+它报告 OneUptime 在本地能看到的内容：`MICROSOFT_TEAMS_APP_CLIENT_ID`、`MICROSOFT_TEAMS_APP_CLIENT_SECRET` 和 `MICROSOFT_TEAMS_APP_TENANT_ID` 是否已设置、用户连接账号时登录的租户、此部署期望的消息传递端点，以及最有用的一项：你的 Teams 应用包必须带有的 **机器人 ID**。
 
 它只读取环境变量，别无其他。它不会调用 Azure，因此无法告诉你 Azure Bot 资源是否存在、其消息传递端点是否指向这里、Teams 频道是否已启用、密码是否仍然有效，或 Azure 能否访问你。响应本身会说明这一点，列出它检查了什么、没有检查什么，以免被误认为一切正常。
 
@@ -389,7 +389,15 @@ WHERE "workspaceType" = 'MicrosoftTeams';
 | **"您登录 Microsoft 时使用的不是在 Microsoft Teams 中按下连接按钮的那个人的账户，因此未连接任何内容。"** | **Connect Microsoft Teams account** 按钮只对按下它的 Microsoft 账户有效。请以您本人的身份登录 Microsoft，或请按下它的人来按。 |
 | **"连接已取消，因此未做任何更改。"** | 未在 Microsoft 中授予许可。请重新开始并接受它。 |
 | **"此 OneUptime 服务器未设置 Microsoft Teams。"** | 设置 Microsoft Teams 应用的客户端 ID 和密码（请参阅 [第 6 步](#第-6-步配置-oneuptime-环境变量)），然后重启 OneUptime。 |
-| **"OneUptime 无法完成连接。请重试。"** | Microsoft 返回了错误，或者在完成连接时某个请求或写入失败。OneUptime 的服务器日志会说明是哪一种。请重试；如果问题持续出现，请检查日志和应用注册的设置。 |
+| **"OneUptime 无法完成连接。请重试。"** | Microsoft 返回了错误，或者在完成连接时某个请求或写入失败。OneUptime 的服务器日志会说明是哪一种。请重试；如果问题持续出现，请检查日志和应用注册的设置。 如果 Microsoft 返回的是 `AADSTS50194`，请参阅 [登录因 AADSTS50194 失败](#登录因-aadsts50194-失败)。 |
+
+### 登录因 AADSTS50194 失败
+
+Microsoft 会以 `AADSTS50194` 拒绝登录：应用只为一个组织注册，而登录却发往 Microsoft 面向所有组织的端点 `/common`。此时 Microsoft Teams 页面会显示 OneUptime 无法完成连接，OneUptime 的服务器日志中有 Microsoft 的回答。
+
+- **升级 OneUptime。** 旧版本把 **Connect my account with Microsoft Teams** 发往 `/common`，因此使用单租户应用（如第 1 步所注册的）时，谁都无法连接自己的账号。当前版本会让用户登录到你的租户。
+- **在能够升级之前，** 把应用注册改为多租户：在 **Authentication** 中，将 **Supported account types** 设为任何组织目录中的账户。若要把应用限制在你自己的人员范围内，请在 **Enterprise applications** 中打开它，在 **Properties** 中将 **Assignment required?** 设为 Yes，并在 **Users and groups** 中添加使用 OneUptime 的人员。升级之后再把它改回单租户。
+- **在当前版本中，** 检查 `MICROSOFT_TEAMS_APP_TENANT_ID` 是否设为应用的 **Directory (tenant) ID**：尚未连接的项目会让用户登录到该租户。
 
 我们希望改进这一集成，欢迎将你的反馈发送至 [hello@oneuptime.com](mailto:hello@oneuptime.com)。
 

@@ -295,7 +295,7 @@ flowchart TB
 - **En tu estado reconocido o después** — **Reconocido**, o cualquier estado situado por debajo en **Incidentes → Ajustes → Estado del incidente** — no se ejecuta ninguna política de guardia, así que no se avisa a nadie. El incidente sigue listando sus políticas, las que elegiste y las que añaden las reglas de guardia, y su feed dice por qué en una línea: _No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ Su SLA, si una regla le da uno, empieza ya marcado como respondido. Todo lo demás de abajo se ejecuta como en cualquier incidente nuevo.
 - **En tu estado resuelto o después** — **Resuelto**, o cualquier estado situado por debajo — el incidente ha terminado, así que, además, no se ejecuta nada de lo que responde a un incidente en curso:
   - no se agrupa en un episodio, lo que podría volver a avisar;
-  - ninguna regla de runbook ni de autorremediación actúa sobre él;
+  - ninguna regla de runbook ni de IA actúa sobre él;
   - OneUptime AI no lo investiga: su tarjeta **Investigación de IA** dice que se creó ya resuelto, y **Ask OneUptime AI** debajo sigue respondiendo preguntas sobre él;
   - no se crea ningún canal de Slack ni de Microsoft Teams para él;
   - sus monitores conservan su estado y siguen monitorizándose, diga lo que diga **Cambiar el estado del monitor a**;

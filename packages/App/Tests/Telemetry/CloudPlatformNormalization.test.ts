@@ -50,6 +50,7 @@ import LabelService from "Common/Server/Services/LabelService";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
 import ObjectID from "Common/Types/ObjectID";
+import { HEARTBEAT_ROW_PRESENT } from "Common/Server/Utils/Telemetry/ResourceHeartbeat";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import { CLOUD_PLATFORM_ALIASES } from "Common/Types/Cloud/CloudPlatform";
 import fs from "fs";
@@ -270,7 +271,7 @@ describe("the auto-discovery gates read the canonical spelling", () => {
       });
     jest
       .spyOn(CloudResourceService, "updateLastSeen")
-      .mockImplementation(async (): Promise<void> => {});
+      .mockResolvedValue(HEARTBEAT_ROW_PRESENT);
     jest
       .spyOn(CloudResourceInstanceService, "recordInstance")
       .mockImplementation(async (): Promise<void> => {});
@@ -283,7 +284,7 @@ describe("the auto-discovery gates read the canonical spelling", () => {
       });
     jest
       .spyOn(ServerlessFunctionService, "updateLastSeen")
-      .mockImplementation(async (): Promise<void> => {});
+      .mockResolvedValue(HEARTBEAT_ROW_PRESENT);
     jest
       .spyOn(ServerlessFunctionInstanceService, "recordInstance")
       .mockImplementation(async (): Promise<void> => {});
@@ -434,7 +435,7 @@ describe("the auto-discovery gates read the canonical spelling", () => {
     });
     jest
       .spyOn(HostService, "updateLastSeen")
-      .mockImplementation(async (): Promise<void> => {});
+      .mockResolvedValue(HEARTBEAT_ROW_PRESENT);
 
     const result: unknown = await baseService["autoDiscoverHost"]({
       projectId: PROJECT_ID,

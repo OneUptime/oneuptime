@@ -47,10 +47,34 @@ The suite drives custom roles the way a person does:
 - long names (`?long=1`) wrapping inside their cards at a phone's and a
   laptop's width, and dark mode (`?theme=dark`).
 
+It also mounts the production `SettingsRoutes`, for custom roles on API keys
+(`ApiKeyCustomRoles.spec.ts`). The project holds two keys: Deploy bot, given
+Team Lead and Incident Helper, with Workflow Viewer of its own; and Terraform,
+given no role, with Monitor Admin of its own. Team Lead's Alert Member is
+limited to what someone owns, which gives a key nothing, so Deploy bot holds 2
+of its 3 permissions. That suite drives, at 1280 and 390 pixels:
+
+- a key's page: its Custom Roles card above its own Permissions, each role a
+  link with how many of its permissions apply to the key - and, behind an
+  (i), why not the rest - the role's copies left out of the key's own list,
+  Add Custom Role offering only the roles the key does not have, Remove
+  saying what the key keeps, and the page as it always was in a project with
+  no custom role (`?roles=none`);
+- a role's page: API Keys with this Role under the teams, saying what a key
+  gets of the role (and following a permission's removal), Give to an API
+  Key offering only the keys without it and off once every key has it,
+  Remove, the reach and Delete counting the keys, a project with no key yet
+  (`?keys=none`: the card links to the API Keys page), and nothing about keys
+  for someone who may not read them (`?user=editor`);
+- Create API Key: the custom roles that give a key something, and the new key
+  opening on its page with the role picked;
+- long names (`?long=1`, given to Deploy bot too) on a phone, and dark mode.
+
 `Fixture/Fixture.js` records every create, update, delete and list request the
 pages send on `window.__fixture`, and answers writes as the services do: a role
-given to a team copies its permissions to the team, and a role's permission
-count follows what it holds.
+given to a team or an API key copies its permissions to it (to a key, all but
+those limited to what someone owns), and a role's permission count follows
+what it holds.
 
 ## Run it
 
@@ -72,8 +96,8 @@ node CustomRoles/Fixture/server.js
 Then open
 `http://127.0.0.1:4313/dashboard/10000000-0000-4000-8000-000000000001/teams/roles`,
 adding `?roles=none`, `?roles=many`, `?long=1`, `?user=editor`,
-`?refuse=AlertMember`, `?members=hidden`, `?lang=de`, `?lang=ja` or
-`?theme=dark` as needed.
+`?refuse=AlertMember`, `?members=hidden`, `?keys=none`, `?lang=de`,
+`?lang=ja` or `?theme=dark` as needed.
 
 The other pages:
 
@@ -83,5 +107,9 @@ The other pages:
   `http://127.0.0.1:4313/dashboard/10000000-0000-4000-8000-000000000001/teams/50000000-0000-4000-8000-000000000004/permissions`
 - the Teams list, with Create Team:
   `http://127.0.0.1:4313/dashboard/10000000-0000-4000-8000-000000000001/teams`
+- Deploy bot's page, with its custom roles:
+  `http://127.0.0.1:4313/dashboard/10000000-0000-4000-8000-000000000001/settings/api-keys/60000000-0000-4000-8000-000000000001`
+- the API Keys list, with Create API Key:
+  `http://127.0.0.1:4313/dashboard/10000000-0000-4000-8000-000000000001/settings/api-keys`
 
 `CUSTOM_ROLES_FIXTURE_PORT` serves it on another port.

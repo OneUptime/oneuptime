@@ -1,151 +1,31 @@
-<style>
-  @keyframes scroll {
-    0% {
-      transform: translateX(0);
-    }
-    100% {
-      transform: translateX(-50%);
-    }
-  }
-
-  .logo-marquee {
-    display: flex;
-    width: max-content;
-    animation: scroll 45s linear infinite;
-  }
-
-  .logo-marquee:hover {
-    animation-play-state: paused;
-  }
-
-  .logo-item {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 160px;
-    height: 60px;
-    padding: 0 20px;
-    flex-shrink: 0;
-  }
-
-  .logo-item img {
-    max-height: 36px;
-    max-width: 140px;
-    width: auto;
-    height: auto;
-    object-fit: contain;
-    filter: grayscale(100%) brightness(0) invert(1);
-    opacity: 0.5;
-    transition: opacity 0.3s ease;
-  }
-
-  .logo-item img:hover {
-    opacity: 0.8;
-  }
-
-  .marquee-container {
-    overflow: hidden;
-    mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
-    -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
-  }
-</style>
-
-<div class="bg-gray-900">
-  <div class="mx-auto max-w-7xl py-12 px-6 sm:py-16 lg:px-8">
-    <p class="text-center text-sm font-medium uppercase tracking-wider text-gray-400 mb-8">
-      Powering thousands of teams from startups to the Fortune 500
-    </p>
-
-    <div class="marquee-container">
-      <div class="logo-marquee">
-        <!-- First set of logos -->
-        <div class="logo-item">
-          <img src="/img/mistral-ai-full.png" alt="Mistral AI" width="140" height="36" loading="lazy" decoding="async">
-        </div>
-        <div class="logo-item">
-          <img src="/img/securonix-blue.svg" alt="Securonix" width="140" height="36" loading="lazy" decoding="async">
-        </div>
-        <div class="logo-item">
-          <img src="/img/aareon.svg" alt="Aareon" width="140" height="36" loading="lazy" decoding="async">
-        </div>
-        <div class="logo-item">
-          <img src="/img/viewsonic.svg" alt="ViewSonic" width="140" height="36" loading="lazy" decoding="async">
-        </div>
-        <div class="logo-item">
-          <img src="/img/syniti.png" alt="Syniti" width="140" height="36" loading="lazy" decoding="async" style="transform: translateY(4px);">
-        </div>
-        <div class="logo-item">
-          <img src="/img/skillable-logo.svg" alt="Skillable" width="140" height="46" loading="lazy" decoding="async" style="max-height: 46px; transform: translateY(-8px);">
-        </div>
-        <div class="logo-item">
-          <img src="/img/nt-ware.png" alt="NT-ware" width="140" height="26" loading="lazy" decoding="async" style="max-height: 26px;">
-        </div>
-        <div class="logo-item">
-          <img src="/img/sodexo.svg" alt="Sodexo" width="140" height="40" loading="lazy" decoding="async" style="max-height: 40px; transform: translateY(-4px);">
-        </div>
-        <div class="logo-item">
-          <img src="/img/avolve.webp" alt="Avolve Software" width="140" height="36" loading="lazy" decoding="async" style="transform: translateY(-4px);">
-        </div>
-        <div class="logo-item">
-          <img src="/img/Dotdash_Meredith.svg" alt="Dotdash Meredith" width="140" height="36" loading="lazy" decoding="async">
-        </div>
-        <div class="logo-item">
-          <img src="/img/trustify.svg" alt="Trustify" width="140" height="46" loading="lazy" decoding="async" style="max-height: 46px;">
-        </div>
-        <div class="logo-item">
-          <img src="/img/bowie.svg" alt="Bowie" width="140" height="66" loading="lazy" decoding="async" style="max-height: 66px; transform: translateY(-8px);">
-        </div>
-        <div class="logo-item">
-          <img src="/img/talkwalker.svg" alt="Talkwalker" width="140" height="56" loading="lazy" decoding="async" style="max-height: 56px;">
-        </div>
-        <div class="logo-item">
-          <img src="/img/cscs.svg" alt="CSCS" width="140" height="36" loading="lazy" decoding="async">
-        </div>
-
-        <!-- Duplicate set for seamless loop -->
-        <div class="logo-item">
-          <img src="/img/mistral-ai-full.png" alt="Mistral AI" width="140" height="36" loading="lazy" decoding="async">
-        </div>
-        <div class="logo-item">
-          <img src="/img/securonix-blue.svg" alt="Securonix" width="140" height="36" loading="lazy" decoding="async">
-        </div>
-        <div class="logo-item">
-          <img src="/img/aareon.svg" alt="Aareon" width="140" height="36" loading="lazy" decoding="async">
-        </div>
-        <div class="logo-item">
-          <img src="/img/viewsonic.svg" alt="ViewSonic" width="140" height="36" loading="lazy" decoding="async">
-        </div>
-        <div class="logo-item">
-          <img src="/img/syniti.png" alt="Syniti" width="140" height="36" loading="lazy" decoding="async" style="transform: translateY(4px);">
-        </div>
-        <div class="logo-item">
-          <img src="/img/skillable-logo.svg" alt="Skillable" width="140" height="46" loading="lazy" decoding="async" style="max-height: 46px; transform: translateY(-8px);">
-        </div>
-        <div class="logo-item">
-          <img src="/img/nt-ware.png" alt="NT-ware" width="140" height="26" loading="lazy" decoding="async" style="max-height: 26px;">
-        </div>
-        <div class="logo-item">
-          <img src="/img/sodexo.svg" alt="Sodexo" width="140" height="40" loading="lazy" decoding="async" style="max-height: 40px; transform: translateY(-4px);">
-        </div>
-        <div class="logo-item">
-          <img src="/img/avolve.webp" alt="Avolve Software" width="140" height="36" loading="lazy" decoding="async" style="transform: translateY(-4px);">
-        </div>
-        <div class="logo-item">
-          <img src="/img/Dotdash_Meredith.svg" alt="Dotdash Meredith" width="140" height="36" loading="lazy" decoding="async">
-        </div>
-        <div class="logo-item">
-          <img src="/img/trustify.svg" alt="Trustify" width="140" height="46" loading="lazy" decoding="async" style="max-height: 46px;">
-        </div>
-        <div class="logo-item">
-          <img src="/img/bowie.svg" alt="Bowie" width="140" height="66" loading="lazy" decoding="async" style="max-height: 66px; transform: translateY(-8px);">
-        </div>
-        <div class="logo-item">
-          <img src="/img/talkwalker.svg" alt="Talkwalker" width="140" height="56" loading="lazy" decoding="async" style="max-height: 56px;">
-        </div>
-        <div class="logo-item">
-          <img src="/img/cscs.svg" alt="CSCS" width="140" height="36" loading="lazy" decoding="async">
-        </div>
-      </div>
-    </div>
+<%
+  // Customer logos, in grey. Each height is what its artwork needs to look the same size as the rest.
+  const customerLogos = [
+    { src: '/img/mistral-ai-full.png', alt: 'Mistral AI', height: 28 },
+    { src: '/img/securonix-blue.svg', alt: 'Securonix', height: 28 },
+    { src: '/img/aareon.svg', alt: 'Aareon', height: 26 },
+    { src: '/img/viewsonic.svg', alt: 'ViewSonic', height: 26 },
+    { src: '/img/syniti.png', alt: 'Syniti', height: 28 },
+    { src: '/img/skillable-logo.svg', alt: 'Skillable', height: 34 },
+    { src: '/img/nt-ware.png', alt: 'NT-ware', height: 20 },
+    { src: '/img/sodexo.svg', alt: 'Sodexo', height: 30 },
+    { src: '/img/avolve.webp', alt: 'Avolve Software', height: 28 },
+    { src: '/img/Dotdash_Meredith.svg', alt: 'Dotdash Meredith', height: 28 },
+    { src: '/img/trustify.svg', alt: 'Trustify', height: 34 },
+    { src: '/img/bowie.svg', alt: 'Bowie', height: 44 },
+    { src: '/img/talkwalker.svg', alt: 'Talkwalker', height: 40 },
+    { src: '/img/cscs.svg', alt: 'CSCS', height: 28 },
+  ];
+-%>
+<div class="bg-white py-12 sm:py-16">
+  <div class="mx-auto max-w-6xl px-6 lg:px-8">
+    <p class="text-center text-sm font-medium text-gray-500">Trusted by engineering teams at</p>
+    <ul class="mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-6 sm:mt-10 sm:gap-x-10 sm:gap-y-10" aria-label="Customers">
+      <% customerLogos.forEach(function (logo) { -%>
+      <li class="flex h-10 w-16 items-center justify-center sm:h-12 sm:w-28">
+        <img src="<%= logo.src %>" alt="<%= logo.alt %>" width="120" height="<%= logo.height %>" class="h-auto w-auto max-w-full object-contain opacity-50 brightness-0" style="max-height: <%= logo.height %>px;" loading="lazy" decoding="async">
+      </li>
+      <% }); -%>
+    </ul>
   </div>
 </div>

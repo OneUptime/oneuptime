@@ -1,3 +1,4 @@
+import ApiKeyCustomRole from "Common/Models/DatabaseModels/ApiKeyCustomRole";
 import ApiKeyPermission from "Common/Models/DatabaseModels/ApiKeyPermission";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import TeamCustomRole from "Common/Models/DatabaseModels/TeamCustomRole";
@@ -52,14 +53,16 @@ import { getRoleIcon, ROLE_CARD_SUMMARIES } from "./RoleCardSelectOptions";
  * picked (the cards' icons come from RoleCardSelectOptions). React-free, so
  * tests can read it without rendering a page.
  *
- * A team can also start with one of the project's custom roles ("Incident
- * Responder"): Create Team lists them after the built-in roles, as the
- * cards a team's Add Custom Role shows, and only the ones the user could
- * give - every permission in the role being one they may hand on
- * (GrantablePermission.canCurrentUserGrantTeam). The role is given once the
- * team exists, through POST /team-custom-role, the endpoint the team's
- * Custom Roles card uses. An API key is never offered one: a key's reach
- * changes only when someone changes that key.
+ * A team or a key can also start with one of the project's custom roles
+ * ("Incident Responder"): Create Team and Create API Key list them after
+ * the built-in roles, as the cards a team's or a key's Add Custom Role
+ * shows, and only the ones the user could give - every permission in the
+ * role being one they may hand on (GrantablePermission
+ * .canCurrentUserGrantTeam, .canCurrentUserGrantApiKeyRole), and for a key
+ * only a role with a permission that applies to a key (not every one
+ * limited to what someone owns). The role is given once the team or key
+ * exists, through POST /team-custom-role or /api-key-custom-role, the
+ * endpoint its Custom Roles card uses.
  */
 
 // Who the access is for: what the cards are offered on, and what they create.
@@ -204,12 +207,12 @@ type GetRoleAccessOptionsFunction = (data: {
   // Whether the user may add permissions to a key or a team at all.
   canAddPermissions: boolean;
   /*
-   * A team's: the project's custom roles the user could give, as cards
-   * whose values are getCustomRoleAccessValue(id). Never a key's.
+   * The project's custom roles the user could give the team or the key, as
+   * cards whose values are getCustomRoleAccessValue(id).
    */
   customRoleOptions?: Array<CardSelectOption> | undefined;
   /*
-   * A team's custom roles are still being read. A form gives a field its
+   * The custom roles are still being read. A form gives a field its
    * default only when it opens (BasicForm), so the question is asked from
    * the start - Choose permissions later picked - even before a role is
    * known to be offered, and it is there, answered, when the roles arrive.
@@ -240,18 +243,13 @@ export const getRoleAccessOptions: GetRoleAccessOptionsFunction = (data: {
     },
   );
 
-  const customRoles: Array<CardSelectOption> =
-    data.holder === RoleAccessHolder.Team
-      ? (data.customRoleOptions || []).filter(
-          (option: CardSelectOption): boolean => {
-            return String(option.value).startsWith(CUSTOM_ROLE_ACCESS_PREFIX);
-          },
-        )
-      : [];
+  const customRoles: Array<CardSelectOption> = (
+    data.customRoleOptions || []
+  ).filter((option: CardSelectOption): boolean => {
+    return String(option.value).startsWith(CUSTOM_ROLE_ACCESS_PREFIX);
+  });
 
-  const mayStillOfferCustomRoles: boolean =
-    data.holder === RoleAccessHolder.Team &&
-    Boolean(data.areCustomRolesLoading);
+  const mayStillOfferCustomRoles: boolean = Boolean(data.areCustomRolesLoading);
 
   if (
     roles.length === 0 &&
@@ -273,8 +271,8 @@ export const getRoleAccessOptions: GetRoleAccessOptionsFunction = (data: {
 export const getRoleAccessOptionsForCurrentUser: (
   holder: RoleAccessHolder,
   /*
-   * A team's: the project's custom roles the user could give - or null
-   * while they are being read.
+   * The project's custom roles the user could give the team or the key - or
+   * null while they are being read.
    */
   customRoleOptions?: Array<CardSelectOption> | null | undefined,
 ) => Array<CardSelectOption> = (
@@ -473,6 +471,55 @@ export const giveCustomRoleAccess: (data: {
       customRoleId: data.customRoleId,
     }),
     modelType: TeamCustomRole,
+  });
+};
+
+/*
+ * The row a custom role becomes on a new API key: the role given to the
+ * key, exactly what Add Custom Role on the key's page creates.
+ */
+export const buildApiKeyCustomRoleAccess: (data: {
+  apiKeyId: ObjectID;
+  projectId: ObjectID;
+  customRoleId: ObjectID;
+}) => ApiKeyCustomRole = (data: {
+  apiKeyId: ObjectID;
+  projectId: ObjectID;
+  customRoleId: ObjectID;
+}): ApiKeyCustomRole => {
+  const given: ApiKeyCustomRole = new ApiKeyCustomRole();
+  given.apiKeyId = data.apiKeyId;
+  given.projectId = data.projectId;
+  given.customRoleId = data.customRoleId;
+
+  return given;
+};
+
+/*
+ * Gives a new API key the custom role picked under Access, through the
+ * endpoint its Custom Roles card uses. A refusal is thrown for the page to
+ * show: the key exists either way.
+ */
+export const giveApiKeyCustomRoleAccess: (data: {
+  apiKeyId: ObjectID;
+  projectId: ObjectID;
+  customRoleId: ObjectID;
+  modelAPI?: typeof ModelAPI | undefined;
+}) => Promise<void> = async (data: {
+  apiKeyId: ObjectID;
+  projectId: ObjectID;
+  customRoleId: ObjectID;
+  modelAPI?: typeof ModelAPI | undefined;
+}): Promise<void> => {
+  const modelAPI: typeof ModelAPI = data.modelAPI || ModelAPI;
+
+  await modelAPI.create<ApiKeyCustomRole>({
+    model: buildApiKeyCustomRoleAccess({
+      apiKeyId: data.apiKeyId,
+      projectId: data.projectId,
+      customRoleId: data.customRoleId,
+    }),
+    modelType: ApiKeyCustomRole,
   });
 };
 

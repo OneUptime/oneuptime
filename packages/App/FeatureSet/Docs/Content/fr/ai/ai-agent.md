@@ -149,7 +149,7 @@ Quand aucun service ne correspond au dépôt, la tâche s'exécute sans télém�
 
 ## Revue de production des pull requests
 
-OneUptime sait ce que fait votre code en production : il peut donc relire une pull request avec ce que personne ne voit en lisant le diff. Activez **Relire les demandes de tirage au regard de la production** sur la page **Paramètres** d'un dépôt dans Code, et chaque pull request qu'une personne ayant l'accès en écriture ouvre ou met à jour reçoit un commentaire qui dit ce que la production montre du code qu'elle modifie. Le commentaire est modifié sur place à chaque push, et la page **Revues de production** du dépôt dans Code garde chaque revue, avec **Relire à nouveau**.
+OneUptime sait ce que fait votre code en production : il peut donc relire une pull request avec ce que personne ne voit en lisant le diff. Activez **Relire les demandes de tirage au regard de la production**, sous **Plus de paramètres** sur la page **Paramètres** d'un dépôt dans Code, et chaque pull request qu'une personne ayant l'accès en écriture ouvre ou met à jour reçoit un commentaire qui dit ce que la production montre du code qu'elle modifie. Le commentaire est modifié sur place à chaque push, et la page **Revues de production** du dépôt dans Code garde chaque revue, avec **Relire à nouveau**.
 
 | Ce qu'elle lit | Du code que modifie la pull request |
 | --- | --- |
@@ -230,7 +230,7 @@ Vous n'associez pas de dépôts à des services. Quand une tâche démarre, OneU
 
 ### Choisir le Runner du dépôt
 
-Chaque dépôt choisit le Runner sur lequel l'IA y travaille : sur sa page **Paramètres** dans Code, cliquez sur **Modifier** sur la carte **Agent Runbook** et choisissez-en un. Un dépôt que la GitHub App importe démarre sur le [Runner par défaut](/docs/runbooks/agents#lagent-runbook-par-défaut-du-projet) du projet, quand il en a un. Un dépôt qui n'en choisit aucun travaille sur **Agent Runbook global**, que OneUptime fait tourner pour chaque projet.
+Chaque dépôt choisit le Runner sur lequel l'IA y travaille : sur sa page **Paramètres** dans Code, ouvrez **Plus de paramètres**, cliquez sur **Modifier** sur la carte **Agent Runbook** et choisissez-en un. Un dépôt que la GitHub App importe démarre sur le [Runner par défaut](/docs/runbooks/agents#lagent-runbook-par-défaut-du-projet) du projet, quand il en a un. Un dépôt qui n'en choisit aucun travaille sur **Agent Runbook global**, que OneUptime fait tourner pour chaque projet.
 
 | Runner | Ce qu'il fait d'une tâche |
 | --- | --- |
@@ -258,7 +258,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### Le choisir pour le dépôt
 
-Sur la page **Paramètres** du dépôt dans Code, cliquez sur **Modifier** sur la carte **Agent Runbook** et choisissez le Runner. Le Runner prend en compte le changement à son prochain heartbeat, en une minute environ ; il n'y a rien à redémarrer.
+Sur la page **Paramètres** du dépôt dans Code, ouvrez **Plus de paramètres**, cliquez sur **Modifier** sur la carte **Agent Runbook** et choisissez le Runner. Le Runner prend en compte le changement à son prochain heartbeat, en une minute environ ; il n'y a rien à redémarrer.
 
 ### Vérifier qu'il se connecte
 
@@ -278,7 +278,7 @@ Toute façon de faire tourner le conteneur convient (Docker Compose, Kubernetes,
 
 ## Corrections de code automatiques à partir des investigations
 
-Quand une [investigation IA](/docs/ai/ai-sre) publie une analyse de cause racine sur un incident ou une alerte, et que sa classification soignée recommande une modification du code, la carte de l'investigation propose **Ouvrir une PR de correctif à partir de cette analyse** : une tâche de correction dont tout le contexte est l'analyse publiée. Le bouton est masqué quand le remède est opérationnel, limité à l'infrastructure, externe, un refus attendu, une erreur de l'utilisateur ou non concluant. Les corrections éligibles se font sans le clic tant que **Corriger automatiquement les nouveaux incidents** est activé sur **Incidents → IA → Paramètres** (et **Corriger automatiquement les nouvelles alertes** sur **Alertes → IA → Paramètres**). La correction commence désactivée, y compris pour les nouveaux projets. Sans règle de remédiation automatique, chaque correction éligible s'ouvre ; avec des règles, seulement pour ce qu'une règle cible, quand la règle a **Pull requests de correctif** activé (c'est le cas d'une nouvelle règle), dans les dépôts de code qu'elle nomme.
+Quand une [investigation IA](/docs/ai/ai-sre) publie une analyse de cause racine sur un incident ou une alerte, et que sa classification soignée recommande une modification du code, la carte de l'investigation propose **Ouvrir une PR de correctif à partir de cette analyse** : une tâche de correction dont tout le contexte est l'analyse publiée. Le bouton est masqué quand le remède est opérationnel, limité à l'infrastructure, externe, un refus attendu, une erreur de l'utilisateur ou non concluant. Les corrections éligibles se font sans le clic tant que **Corriger automatiquement les nouveaux incidents** est activé sur **Incidents → IA → Paramètres** (et **Corriger automatiquement les nouvelles alertes** sur **Alertes → IA → Paramètres**). La correction commence désactivée, y compris pour les nouveaux projets. Sans règle IA, chaque correction éligible s'ouvre ; avec des règles, seulement pour ce qu'une règle cible, quand la règle a **Pull requests de correctif** activé (c'est le cas d'une nouvelle règle), dans les dépôts de code qu'elle nomme.
 
 Tant que la correction est activée, une investigation qui se termine sur une cause racine sûre et étayée, qu'une modification de code peut corriger, met en file la même tâche de correction que celle que crée le bouton. La décision est une classification encadrée que le serveur vérifie, jamais un motif recherché dans le texte de l'analyse : seul un verdict positif de correction de code ouvre une pull request. Des preuves manquantes, un remède hors du code et une classification en échec aboutissent tous à ne rien faire.
 

@@ -168,7 +168,7 @@ describe("holdToGlobalRunnerShape: a Runner is a project's own, or global", () =
 
   /*
    * A Runner has no AI switch left: a code repository picks its Runner, and
-   * an auto remediation rule the one that runs OneUptime AI's commands - so
+   * an AI rule the one that runs OneUptime AI's commands - so
    * the message names where they are picked, never a switch. (A cluster's
    * AI settings picked one too, with a Kubernetes runbook credential, until
    * runbook credentials were removed.)
@@ -178,7 +178,7 @@ describe("holdToGlobalRunnerShape: a Runner is a project's own, or global", () =
       "never OneUptime AI's commands",
     );
     expect(GLOBAL_RUNNER_CAPABILITY_MESSAGE).toContain(
-      "that an auto remediation rule picks.",
+      "that an AI rule picks.",
     );
     expect(GLOBAL_RUNNER_CAPABILITY_MESSAGE).not.toContain("Kubernetes");
     expect(GLOBAL_RUNNER_CAPABILITY_MESSAGE).not.toContain(

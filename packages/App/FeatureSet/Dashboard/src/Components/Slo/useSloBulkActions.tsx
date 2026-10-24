@@ -4,6 +4,7 @@ import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/Service
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
+import useBulkSwitchActions from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
 import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import {
   SLO_BULK_ARCHIVE_CONFIRM_MESSAGE,
@@ -43,8 +44,8 @@ export interface SloBulkActionsResult {
 export type UseSloBulkActionsFunction = () => SloBulkActionsResult;
 
 /**
- * "Add Labels" / "Remove Labels" / "Add Owner" / "Remove Owner", plus
- * "Archive" / "Unarchive", for a table of SLOs.
+ * "Enable" / "Disable", "Add Labels" / "Remove Labels" / "Add Owner" /
+ * "Remove Owner", plus "Archive" / "Unarchive", for a table of SLOs.
  *
  * Labels are how SLOs get grouped into a team's or a service's view, and
  * owners are who gets notified when one of them changes status — both were
@@ -72,6 +73,20 @@ export const useSloBulkActions: UseSloBulkActionsFunction =
       });
 
     /*
+     * Enable and Disable (the shared bulk switch): a disabled SLO is not
+     * evaluated, which is how a set of them is paused while their monitors
+     * are reworked. Every list reads isEnabled (SLO_TABLE_SELECT_MORE_FIELDS).
+     */
+    const switchBulkActions: Array<
+      BulkActionButtonSchema<ServiceLevelObjective>
+    > = useBulkSwitchActions<ServiceLevelObjective>({
+      modelType: ServiceLevelObjective,
+      column: "isEnabled",
+      singularName: "SLO",
+      pluralName: "SLOs",
+    });
+
+    /*
      * Plain updates confirmed through the action bar's own dialog, so they
      * bring no modals of their own. The copy is the SLO's: the generic "will
      * keep collecting telemetry" is the opposite of what an archived SLO does.
@@ -86,7 +101,11 @@ export const useSloBulkActions: UseSloBulkActionsFunction =
       });
 
     return {
-      bulkActions: [...labelBulkActions, ...ownerBulkActions],
+      bulkActions: [
+        ...switchBulkActions,
+        ...labelBulkActions,
+        ...ownerBulkActions,
+      ],
       archiveBulkActions: archiveBulkActions,
       unarchiveBulkActions: unarchiveBulkActions,
       modals: (

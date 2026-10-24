@@ -139,7 +139,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | 정보 | 키 | 호스트의 경우 | 네트워크 장치의 경우 |
 | --- | --- | --- | --- |
 | 호스트 이름 | `host.name` | 호스트의 이름. 호스트의 식별 정보이므로 `identifyingAttributes`에 있습니다 | 장치 자체의 이름. SNMP `sysName`, 없으면 검색 중에 찾은 NetBIOS 또는 DNS 이름. IP 주소가 되는 일은 없습니다 |
-| IP 주소 | `host.ip` | 수집기가 보고하는 모든 주소 | OneUptime이 폴링하는 주소(IP 주소인 경우) |
+| IP 주소 | `host.ip` | 수집기가 보고하는 모든 주소 | OneUptime이 폴링하는 주소(IP 주소인 경우). 그렇지 않으면 프로브가 그 DNS 이름을 확인한 주소 |
 | MAC 주소 | `host.mac` | 감지됨 | 장치에 입력한 값, 또는 순회한 라우터의 ARP 테이블에서 알아낸 값 |
 | 일련 번호 | `host.serial_number` | 지정함 | ENTITY-MIB |
 | Manufacturer | `device.manufacturer` | 지정함 | ENTITY-MIB, 없으면 `sysDescr` 또는 `sysObjectID`가 가리키는 것 |
@@ -189,7 +189,7 @@ CMDB가 이미 하드웨어 식별자를 키로 쓴다면 `host.id`를 대조 �
 | 필드 | 키 | 출처 |
 | --- | --- | --- |
 | 호스트 이름 | `host.name` | 장치 자체의 이름. SNMP `sysName`, 없으면 검색 중에 찾은 NetBIOS 또는 역방향 DNS 이름. IP 주소로만 이름이 붙는 경우에는 빠집니다 |
-| IP 주소 | `host.ip` | OneUptime이 폴링하는 주소(IP 주소인 경우) |
+| IP 주소 | `host.ip` | OneUptime이 폴링하는 주소(IP 주소인 경우). DNS 이름으로 폴링하는 장치는 프로브가 그 이름을 마지막으로 확인한 주소 |
 | DNS 이름 | `net.device.dns_name` | 검색 중에 찾은 역방향 DNS 이름, 또는 OneUptime이 폴링하는 DNS 이름 |
 | MAC 주소 | `host.mac` | 장치에 입력한 값, 또는 순회한 라우터의 ARP 테이블에서 알아낸 값 |
 | 제조사 | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`, 없으면 `sysDescr`가 가리키는 제조사, 없으면 `sysObjectID`의 벤더 |
@@ -204,7 +204,9 @@ CMDB가 이미 하드웨어 식별자를 키로 쓴다면 `host.id`를 대조 �
 | 사이트 | `oneuptime.site.name` | 장치가 지정된 Network Site |
 | 폴링 주소 | `net.device.hostname` | OneUptime이 폴링하는 주소. IP 주소 또는 DNS 이름입니다. `host.name`과 `host.ip`가 생기기 전에 작성된 동기화를 위해 남겨 두었습니다 |
 
-하드웨어 행은 장치의 첫 SNMP 워크 뒤에 채워지므로, ping으로만 모니터링하는 장치나 추가했지만 아직 폴링하지 않은 장치는 주소 말고는 거의 보여 주지 않습니다. ENTITY-MIB를 구현하지 않은 장치에는 보고할 일련 번호나 펌웨어가 없습니다. 그래도 많은 플랫폼에서 `sysDescr`가 모델과 운영 체제를 알려 줍니다. Cisco Meraki MX는 `Meraki MX85`를 보고하고, 이것으로 제조사와 모델이 채워집니다. `sysDescr`가 알려진 형식이 아닌 플랫폼은 추측하지 않고 아무것도 추가하지 않습니다.
+ENTITY-MIB 행은 장치의 첫 SNMP 워크 뒤에 채워집니다. ping으로만 모니터링하거나 아직 폴링하지 않아 워크되지 않는 장치도 이름, 제조사, 운영 체제, 위치는 그 주소의 마지막 검색 스캔이 SNMP로 읽은 내용에서, MAC 주소는 순회한 라우터의 ARP 테이블에서 얻습니다. ENTITY-MIB를 구현하지 않은 장치에는 보고할 일련 번호나 펌웨어가 없습니다. 그래도 많은 플랫폼에서 `sysDescr`가 모델과 운영 체제를 알려 줍니다. Cisco Meraki MX는 `Meraki MX85`를 보고하고, 이것으로 제조사와 모델이 채워집니다. `sysDescr`가 알려진 형식이 아닌 플랫폼은 추측하지 않고 아무것도 추가하지 않습니다.
+
+장치에 저장된 값(직접 입력했거나 API로 설정한 값)은 검색이 읽은 내용으로 바뀌지 않습니다. 장치 자체의 워크가 읽은 값과 스캔이 읽은 값 중에서는 더 새로운 값이 쓰입니다. 스캔이 읽은 내용은 스캔이 그 주소에서 같은 기계를 찾았을 때만 쓰입니다. 읽은 시스템 이름, `sysObjectID` 또는 NetBIOS 이름이 장치의 것과 어긋나면 그곳에서 읽은 내용은 하나도 쓰이지 않습니다. 항목의 **자산 세부 정보** 카드는 각 값의 출처와 시각을 보여 줍니다.
 
 호스트 이름은 결코 IP 주소가 아닙니다. 주소로만 이름이 붙는 장치에는 `host.ip`가 있고 `host.name`은 없습니다. SNMP 워크가 시스템 이름을 보고하면 다음 처리 때 `host.name`이 생깁니다.
 

@@ -31,7 +31,9 @@ import {
  * report (SNMP Tables, Wi-Fi). What most visits are for stays open - is it
  * OK, its ports, its numbers, its traffic and logs, what alerts on it - and
  * the vendor tables fold under More, opening by themselves on their own
- * pages so a link to one still lands somewhere you can see.
+ * pages so a link to one still lands somewhere you can see. The SNMP walk
+ * (issue #5184), a tool for setting a device up rather than a page of every
+ * visit, folds there with them, beside the SNMP tables it helps fill.
  */
 
 const DEVICE_ID: ObjectID = new ObjectID(
@@ -108,7 +110,7 @@ describe("a network device's own menu", () => {
     ]);
   });
 
-  test("folds the vendor tables under More", async () => {
+  test("folds the vendor tables and the SNMP walk under More", async () => {
     await renderDeviceMenu();
 
     expect(isExpanded("More")).toBe(false);
@@ -117,10 +119,21 @@ describe("a network device's own menu", () => {
         title: "SNMP Tables",
         href: deviceRoute(PageMap.NETWORK_DEVICE_VIEW_TABLES),
       },
+      {
+        title: "SNMP Walk",
+        href: deviceRoute(PageMap.NETWORK_DEVICE_VIEW_SNMP_WALK),
+      },
       { title: "Wi-Fi", href: deviceRoute(PageMap.NETWORK_DEVICE_VIEW_WIFI) },
     ]);
     expect(titles(linksIn("Device"))).not.toContain("SNMP Tables");
+    expect(titles(linksIn("Device"))).not.toContain("SNMP Walk");
     expect(titles(linksIn("Device"))).not.toContain("Wi-Fi");
+  });
+
+  test("the SNMP walk lives at the device's snmp-walk address", () => {
+    expect(deviceRoute(PageMap.NETWORK_DEVICE_VIEW_SNMP_WALK)).toBe(
+      `/dashboard/${PROJECT_ID}/network-devices/${DEVICE_ID.toString()}/snmp-walk`,
+    );
   });
 
   test("More opens on a click", async () => {
@@ -136,6 +149,7 @@ describe("a network device's own menu", () => {
 
   test.each([
     [PageMap.NETWORK_DEVICE_VIEW_TABLES, "SNMP Tables"],
+    [PageMap.NETWORK_DEVICE_VIEW_SNMP_WALK, "SNMP Walk"],
     [PageMap.NETWORK_DEVICE_VIEW_WIFI, "Wi-Fi"],
   ])(
     "%s opens More by itself and highlights %s",

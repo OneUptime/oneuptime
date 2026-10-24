@@ -5,11 +5,11 @@ import { JSONObject } from "../JSON";
  *
  * Four things can fix a signal: the AI fix of a Kubernetes cluster it is
  * linked to (the cluster's AI page), the AI fix of an infrastructure
- * resource it is linked to (the resource's AI page), and the project's Auto
- * Remediation Rules. When none of them acted, the incident used to say
- * nothing at all - the remediation card hid itself - and people could not
- * tell "fixes are off on that cluster" from "this incident is not linked to
- * any cluster" from "no rule matched".
+ * resource it is linked to (the resource's AI page), and the project's AI
+ * rules (which were auto remediation rules). When none of them acted, the
+ * incident used to say nothing at all - the remediation card hid itself -
+ * and people could not tell "fixes are off on that cluster" from "this
+ * incident is not linked to any cluster" from "no rule matched".
  *
  * The rule engine now writes down, every time it evaluates a signal, one
  * entry per fix path: what it did, or why it did nothing. The dashboard
@@ -42,7 +42,7 @@ export enum AutoRemediationDecisionLane {
   KubernetesCluster = "KubernetesCluster",
   // An infrastructure resource the signal is linked to (its AI page).
   Resource = "Resource",
-  // The project's Auto Remediation Rules.
+  // The project's AI rules (they were auto remediation rules).
   Rule = "Rule",
 }
 
@@ -123,7 +123,7 @@ export enum AutoRemediationDecisionReason {
   ResourceNotChosen = "ResourceNotChosen",
 
   /*
-   * --- Auto Remediation Rules ---
+   * --- AI rules ---
    * The signal ran out of suggestions before the rules' turn.
    */
   RulesSkippedLimit = "RulesSkippedLimit",
@@ -157,10 +157,16 @@ export enum AutoRemediationDecisionReason {
   // The rule matched after the signal ran out of suggestions.
   RuleSkippedLimit = "RuleSkippedLimit",
   /*
-   * Auto Remediation Rules are set up, and none matched: with rules, only
-   * the signals that match one are fixed (rulesChecked says how many).
+   * AI rules are set up, and none matched: with rules, only the signals
+   * that match one that fixes are fixed (rulesChecked says how many).
    */
   NotMatchedByAnyRule = "NotMatchedByAnyRule",
+  /*
+   * AI rules matched, and each of them only investigates: with rules, only
+   * the signals a rule that fixes matches are fixed. ruleName is the first
+   * of them, rulesChecked how many matched.
+   */
+  MatchedRulesDoNotFix = "MatchedRulesDoNotFix",
   /*
    * Rules matched, and none of them fixes with OneUptime AI (each runs its
    * runbooks, or does what a rule saved before rules were simplified did):

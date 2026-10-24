@@ -97,7 +97,7 @@ Ve a **Runbooks → Agentes de runbook** y crea un agente nuevo. Haz clic en **C
 | **Ejecuta runbooks** | En **Más campos** | Activado por defecto. Permite a este Runner tomar pasos de runbook. |
 | **Etiquetas** | En **Más campos** | Opcional. |
 
-Un Runner aplica un cambio de sus capacidades en su siguiente heartbeat; no hace falta reiniciarlo. La IA no es una capacidad. Un repositorio de código elige, en sus ajustes en Código, el Runner en el que la IA trabaja en él, y la página del Runner lista los repositorios que lo eligen. Una regla de remediación automática elige el Runner en el que OneUptime AI ejecuta sus comandos: elegir un Runner ahí es lo que permite que los comandos de OneUptime AI se ejecuten en él.
+Un Runner aplica un cambio de sus capacidades en su siguiente heartbeat; no hace falta reiniciarlo. La IA no es una capacidad. Un repositorio de código elige, en sus ajustes en Código, el Runner en el que la IA trabaja en él, y la página del Runner lista los repositorios que lo eligen. Una regla de IA elige el Runner en el que OneUptime AI ejecuta sus comandos: elegir un Runner ahí es lo que permite que los comandos de OneUptime AI se ejecuten en él.
 
 ### 2. Copiar el comando de instalación
 
@@ -171,7 +171,7 @@ Un paso que eligió un Runner lo conserva, sea cual sea el predeterminado, y un 
 
 El predeterminado es uno de los Runners propios del proyecto que ejecuta pasos de runbook: no un Runner global, no el Runner dentro del clúster que instaló el agente de Kubernetes, y no uno con **Ejecuta runbooks** desactivado. Mientras un Runner es el predeterminado, su **Ejecuta runbooks** sigue activado. Cuando el predeterminado no está conectado, la lista desplegable de un paso lo indica, y un paso en él lo espera, como a cualquier Runner, hasta que vence su tiempo de reclamación.
 
-Solo los pasos de runbook usan el predeterminado. Un repositorio de código elige su Runner en sus ajustes en Código, y una regla de remediación automática elige el suyo.
+Solo los pasos de runbook usan el predeterminado. Un repositorio de código elige su Runner en sus ajustes en Código, y una regla de IA elige el suyo.
 
 ## Notas de operación
 

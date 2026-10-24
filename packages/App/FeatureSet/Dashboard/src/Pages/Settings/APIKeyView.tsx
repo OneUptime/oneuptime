@@ -1,6 +1,7 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
+import ApiKeyCustomRoleTable from "../../Components/ApiKey/ApiKeyCustomRoleTable";
 import ApiKeyPermissionTable, {
   ApiKeyPermissionType,
 } from "../../Components/ApiKey/ApiKeyPermissionTable";
@@ -21,8 +22,10 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /*
  * An API key's page, in the order it is used: what the key is (and the key
- * itself, to copy), what it can do, resetting it, then - folded under More
- * settings - what it can never do, and deleting it.
+ * itself, to copy), what it can do - the custom roles it is given (shown
+ * once the project has a custom role), then its own roles and permissions -
+ * resetting it, then - folded under More settings - what it can never do,
+ * and deleting it.
  *
  * Block permissions are rarely needed and were always on screen, as large as
  * what the key can do; they now sit in the More settings section, whose
@@ -138,6 +141,12 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
           modelId: modelId,
         }}
       />
+
+      {/*
+       * The custom roles it is given, once the project has any: what a
+       * change to a role changes for this key.
+       */}
+      <ApiKeyCustomRoleTable apiKeyId={modelId} />
 
       {/* What the key can do: a role, or single permissions. */}
       <ApiKeyPermissionTable

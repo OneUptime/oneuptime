@@ -1,0 +1,26 @@
+<%#
+  The Dashboard's top bar, drawn as OneUptime draws it: the wordmark, the
+  project picker, the open-incident count when there is one, help and the
+  signed-in person. `incidentCount` is the open-incident count (0 hides it).
+-%>
+<% const openIncidents = typeof incidentCount !== 'undefined' ? incidentCount : 0; -%>
+<div class="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-2.5 sm:px-5">
+  <div class="flex min-w-0 items-center gap-3">
+    <span class="flex items-center gap-1 text-[15px] font-bold tracking-tight text-gray-950">OneUptime<span class="mb-1.5 h-1.5 w-1.5 rounded-[1px] bg-[#7ed957]"></span></span>
+    <span class="inline-flex min-w-0 items-center gap-1.5 rounded-md border border-gray-200 px-2 py-1 text-[12px] text-gray-700">
+      <svg class="h-3.5 w-3.5 flex-none text-gray-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" /></svg>
+      <span class="truncate">Acme Commerce</span>
+      <svg class="h-3 w-3 flex-none text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" /></svg>
+    </span>
+    <% if (openIncidents > 0) { -%>
+    <span class="inline-flex flex-none items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-[12px] font-medium text-red-700 max-sm:hidden sm:inline-flex">
+      <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+      <%= openIncidents %> Incident<%= openIncidents === 1 ? '' : 's' %>
+    </span>
+    <% } -%>
+  </div>
+  <div class="flex flex-none items-center gap-3 text-gray-400">
+    <svg class="h-[18px] w-[18px] max-sm:hidden sm:block" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" /></svg>
+    <span class="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-semibold text-white">MC</span>
+  </div>
+</div>

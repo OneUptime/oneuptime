@@ -1174,6 +1174,9 @@ import CustomRolePermissionService, {
 import TeamCustomRoleService, {
   Service as TeamCustomRoleServiceType,
 } from "Common/Server/Services/TeamCustomRoleService";
+import ApiKeyCustomRoleService, {
+  Service as ApiKeyCustomRoleServiceType,
+} from "Common/Server/Services/ApiKeyCustomRoleService";
 import TeamComplianceSettingService, {
   TeamComplianceSettingService as TeamComplianceSettingServiceType,
 } from "Common/Server/Services/TeamComplianceSettingService";
@@ -1220,9 +1223,7 @@ import AutoRemediationSuggestionService, {
 import AutoRemediationDecisionService, {
   Service as AutoRemediationDecisionServiceType,
 } from "Common/Server/Services/AutoRemediationDecisionService";
-import AIInvestigationRuleService, {
-  Service as AIInvestigationRuleServiceType,
-} from "Common/Server/Services/AIInvestigationRuleService";
+import RetiredApiRoute from "Common/Server/API/RetiredApiRoute";
 import AIPostmortemRuleService, {
   Service as AIPostmortemRuleServiceType,
 } from "Common/Server/Services/AIPostmortemRuleService";
@@ -1568,6 +1569,7 @@ import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import CustomRole from "Common/Models/DatabaseModels/CustomRole";
 import CustomRolePermission from "Common/Models/DatabaseModels/CustomRolePermission";
 import TeamCustomRole from "Common/Models/DatabaseModels/TeamCustomRole";
+import ApiKeyCustomRole from "Common/Models/DatabaseModels/ApiKeyCustomRole";
 import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
 import TelemetryUsageBilling from "Common/Models/DatabaseModels/TelemetryUsageBilling";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
@@ -1582,7 +1584,6 @@ import RunbookRule from "Common/Models/DatabaseModels/RunbookRule";
 import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
 import AutoRemediationDecision from "Common/Models/DatabaseModels/AutoRemediationDecision";
-import AIInvestigationRule from "Common/Models/DatabaseModels/AIInvestigationRule";
 import AIPostmortemRule from "Common/Models/DatabaseModels/AIPostmortemRule";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import RunnerOwnerTeam from "Common/Models/DatabaseModels/RunnerOwnerTeam";
@@ -3847,6 +3848,14 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ApiKeyCustomRole, ApiKeyCustomRoleServiceType>(
+        ApiKeyCustomRole,
+        ApiKeyCustomRoleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<TeamComplianceSetting, TeamComplianceSettingServiceType>(
         TeamComplianceSetting,
         TeamComplianceSettingService,
@@ -4215,13 +4224,12 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<AIInvestigationRule, AIInvestigationRuleServiceType>(
-        AIInvestigationRule,
-        AIInvestigationRuleService,
-      ).getRouter(),
-    );
+    /*
+     * Investigation rules are AI rules now (the AI Rule resource above, at
+     * /auto-remediation-rule): their old route answers 410 Gone with what
+     * to use instead (RetiredApiRoute).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, RetiredApiRoute.getRouter());
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

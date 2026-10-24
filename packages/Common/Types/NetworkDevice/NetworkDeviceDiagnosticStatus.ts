@@ -1,9 +1,9 @@
 /*
- * The lifecycle of one on-demand device diagnostic (ping / traceroute), as
- * the strings its `status` column holds. Mirrors DiscoveryScanStatus: the
- * column is a ShortText, and the same four words are read by the claim
- * query, the probe's result report, and the dashboard's poll loop, so they
- * live in one place.
+ * The lifecycle of one on-demand device diagnostic (ping, traceroute or
+ * SNMP walk), as the strings its `status` column holds. Mirrors
+ * DiscoveryScanStatus: the column is a ShortText, and the same four words
+ * are read by the claim query, the probe's result report, and the
+ * dashboard's poll loop, so they live in one place.
  *
  * Values are NOT a TypeScript enum: they are persisted strings, and a plain
  * object keeps them readable in a query, in jsonb and in a log line.
@@ -18,7 +18,10 @@ export const NetworkDeviceDiagnosticStatus: {
   Pending: "Pending",
   // Claimed by the probe and running right now.
   InProgress: "In Progress",
-  // The probe reported a result. `pingResult` / `traceRouteResult` is set.
+  /*
+   * The probe reported a result. `pingResult`, `traceRouteResult` or
+   * `snmpWalkResult` is set.
+   */
   Completed: "Completed",
   /*
    * The probe could not run it (unsupported type, unusable hostname, an

@@ -893,6 +893,94 @@ export default class AnalyticsDatabaseService<
     return results;
   }
 
+  /**
+   * The UTC days (YYYY-MM-DD) in a window on which a project has at least
+   * one row in this table. It reads only projectId and the timestamp, so it
+   * costs a fraction of groupTelemetryUsageByService's byteSize(*) scan:
+   * usage billing asks it which missed days are worth a full usage scan,
+   * instead of scanning every day of its catch-up window for every project.
+   */
+  @CaptureSpan()
+  public async getDaysWithRows(data: {
+    projectId: ObjectID;
+    timestampColumnName: keyof TBaseModel | string;
+    startDate: Date;
+    endDate: Date;
+    // Rows never billed, left out as groupTelemetryUsageByService leaves them out.
+    excludeNames?: Array<string> | undefined;
+  }): Promise<Array<string>> {
+    const timestampColumnName: string = data.timestampColumnName.toString();
+
+    if (!this.model.getTableColumn(timestampColumnName)) {
+      throw new BadDataException(
+        `Invalid timestampColumnName: ${timestampColumnName}`,
+      );
+    }
+
+    const excludeNames: Array<string> = data.excludeNames || [];
+
+    // Same refusal, for the same reason, as groupTelemetryUsageByService.
+    if (
+      excludeNames.length > 0 &&
+      !this.model.getTableColumn("name")?.required
+    ) {
+      throw new BadDataException(
+        `excludeNames needs a required name column, and ${this.model.tableName} has none`,
+      );
+    }
+
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+    const databaseName: string =
+      this.database!.getDatasourceOptions().database!;
+
+    const statement: Statement = SQL`SELECT toString(toDate(${timestampColumnName}, 'UTC')) AS day FROM ${databaseName}.${this.model.tableName} WHERE projectId = ${{
+      type: TableColumnType.ObjectID,
+      value: data.projectId,
+    }} AND ${timestampColumnName} >= ${{
+      type: TableColumnType.DateTime64,
+      value: data.startDate,
+    }} AND ${timestampColumnName} <= ${{
+      type: TableColumnType.DateTime64,
+      value: data.endDate,
+    }}`;
+
+    if (excludeNames.length > 0) {
+      statement.append(
+        SQL` AND name NOT IN ${{
+          type: TableColumnType.ArrayText,
+          value: excludeNames,
+        }}`,
+      );
+    }
+
+    statement.append(SQL` GROUP BY day ORDER BY day`);
+
+    /*
+     * No timeout_overflow_mode='break', as on the usage scan: a partial
+     * answer would hide a day that still needs billing.
+     */
+    statement.append(getQuerySettings({ maxExecutionTimeInSeconds: 120 }));
+
+    const dbResult: ResultSet<"JSON"> = await this.executeQuery(statement);
+    const responseJSON: ResponseJSON<JSONObject> =
+      await dbResult.json<JSONObject>();
+    const items: Array<JSONObject> = responseJSON.data ? responseJSON.data : [];
+
+    const days: Array<string> = [];
+
+    for (const item of items) {
+      const day: unknown = item["day"];
+
+      if (typeof day === "string" && day) {
+        days.push(day);
+      }
+    }
+
+    return days;
+  }
+
   @CaptureSpan()
   public async aggregateBy(
     aggregateBy: AggregateBy<TBaseModel>,

@@ -281,7 +281,7 @@ Når Microsoft sender dig tilbage uden en forbindelse, siger den side, du starte
 :::
 
 :::details Botten siger, at min konto ikke er forbundet
-Tryk på **Connect Microsoft Teams account** i botens svar for at forbinde den i ét trin, eller knyt den under **Brugerindstillinger** > **Arbejdsområde** > **Microsoft Teams** med **Connect my account with Microsoft Teams**, logget ind i den organisation, projektet er forbundet med. En gæstekonto fra en anden organisation er ikke den samme konto.
+Tryk på **Connect Microsoft Teams account** i botens svar for at forbinde den i ét trin, eller knyt den under **Brugerindstillinger** > **Arbejdsområde** > **Microsoft Teams** med **Connect my account with Microsoft Teams**. Uanset hvad logger du ind i den organisation, projektet er forbundet med, som gæst, hvis du er gæst der. Er du gæst og har tidligere forbundet din egen organisations konto, så forbind den igen.
 :::
 
 :::details Alle notifikationer fejler på en selvhostet server

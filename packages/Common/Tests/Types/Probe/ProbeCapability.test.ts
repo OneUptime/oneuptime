@@ -16,6 +16,35 @@ describe("ProbeCapability", () => {
   test("the wire strings never change: probes and servers of every age compare them", () => {
     expect(ProbeCapability.NetworkDevicePing).toBe("networkDevicePing");
     expect(ProbeCapability.SnmpTables).toBe("snmpTables");
+    // Only a probe declaring this is handed SNMP walks and credentials.
+    expect(ProbeCapability.SnmpWalk).toBe("snmpWalk");
+  });
+
+  test("every capability is a distinct wire string a request is read for", () => {
+    const values: Array<string> = Object.values(ProbeCapability);
+
+    expect(new Set(values).size).toBe(values.length);
+    expect(values.length).toBeLessThanOrEqual(MAX_PROBE_CAPABILITIES);
+
+    for (const value of values) {
+      expect(value.length).toBeLessThanOrEqual(MAX_PROBE_CAPABILITY_LENGTH);
+      expect(ProbeCapabilityUtil.parse([value])).toEqual([value]);
+    }
+  });
+
+  test("a probe that declares snmpWalk has it, one that does not has not", () => {
+    expect(
+      ProbeCapabilityUtil.has(
+        ProbeCapabilityUtil.parse(["networkDevicePing", "snmpWalk"]),
+        ProbeCapability.SnmpWalk,
+      ),
+    ).toBe(true);
+    expect(
+      ProbeCapabilityUtil.has(
+        ProbeCapabilityUtil.parse(["networkDevicePing", "snmpTables"]),
+        ProbeCapability.SnmpWalk,
+      ),
+    ).toBe(false);
   });
 
   test("SNMP tables first shipped in 14.0.18", () => {
