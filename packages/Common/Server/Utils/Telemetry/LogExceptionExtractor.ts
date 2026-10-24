@@ -173,6 +173,21 @@ export default class LogExceptionExtractor {
     };
   }
 
+  /**
+   * Whether a log body holds a stack trace as the body scan reads one: the
+   * signature, then at least one parsed frame - the same test that makes a
+   * line an exception here, so a reader elsewhere (the Logs product's AI
+   * section, Utils/Logs/LogInsight) tells an exception from a plain error
+   * message exactly as ingest does. Never throws.
+   */
+  public static bodyHoldsStackTrace(body: string): boolean {
+    try {
+      return LogExceptionExtractor.extractFromBody(body) !== null;
+    } catch {
+      return false;
+    }
+  }
+
   private static extractFromBody(body: string): ExtractedLogException | null {
     if (!body) {
       return null;

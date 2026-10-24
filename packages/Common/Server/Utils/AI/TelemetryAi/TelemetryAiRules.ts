@@ -118,11 +118,13 @@ export const TELEMETRY_AI_PROJECT_SELECT: {
   enableAi: true;
   enableAutomaticProfileRemediation: true;
   enableAutomaticTraceRemediation: true;
+  enableAutomaticLogRemediation: true;
 } = {
   _id: true,
   enableAi: true,
   enableAutomaticProfileRemediation: true,
   enableAutomaticTraceRemediation: true,
+  enableAutomaticLogRemediation: true,
 };
 
 export default class TelemetryAiRules {
@@ -148,6 +150,7 @@ export default class TelemetryAiRules {
       problem.telemetryServiceId?.toString() ||
       problem.evidence?.profile?.serviceId ||
       problem.evidence?.trace?.serviceId ||
+      problem.evidence?.log?.serviceId ||
       ""
     )
       .trim()

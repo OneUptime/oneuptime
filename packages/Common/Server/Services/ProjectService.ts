@@ -245,6 +245,7 @@ export type NewProjectAiDefaultColumn =
   | "enableInsightFixTasks"
   | "enableAutomaticProfileRemediation"
   | "enableAutomaticTraceRemediation"
+  | "enableAutomaticLogRemediation"
   | "autoArchiveNonActionableExceptions";
 
 export const NEW_PROJECT_AI_DEFAULT_COLUMNS: ReadonlyArray<NewProjectAiDefaultColumn> =
@@ -257,6 +258,7 @@ export const NEW_PROJECT_AI_DEFAULT_COLUMNS: ReadonlyArray<NewProjectAiDefaultCo
     "enableInsightFixTasks",
     "enableAutomaticProfileRemediation",
     "enableAutomaticTraceRemediation",
+    "enableAutomaticLogRemediation",
     "autoArchiveNonActionableExceptions",
   ];
 

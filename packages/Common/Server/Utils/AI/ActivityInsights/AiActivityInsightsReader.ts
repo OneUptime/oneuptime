@@ -29,6 +29,7 @@ import AIInsightStatus from "../../../../Types/AI/AIInsightStatus";
 import AIInsightType from "../../../../Types/AI/AIInsightType";
 import { PROFILE_INSIGHT_FINGERPRINT_PREFIX } from "../../../../Utils/Profiles/ProfileInsight";
 import { isTraceInsightFingerprintOfService } from "../../../../Utils/Traces/TraceInsight";
+import { isLogInsightFingerprintOfService } from "../../../../Utils/Logs/LogInsight";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import {
   AI_ACTIVITY_INSIGHTS_MAX_FIXES,
@@ -276,6 +277,11 @@ export function isPreventiveInsightAboutScope(data: {
     case AIInsightType.TraceFailingOperation:
     case AIInsightType.TraceMissingTracing:
       return isTraceInsightFingerprintOfService(fingerprint, scopeId);
+    // A service's logs: Utils/Logs/LogInsight's fingerprints.
+    case AIInsightType.LogErrorPattern:
+    case AIInsightType.LogMissingLogging:
+    case AIInsightType.LogNoisyPattern:
+      return isLogInsightFingerprintOfService(fingerprint, scopeId);
     case AIInsightType.NewException:
     case AIInsightType.ExceptionSpike: {
       const exceptionId: string | undefined =

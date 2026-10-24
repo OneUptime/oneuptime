@@ -74,6 +74,26 @@ enum AIInsightType {
    * message nor an exception.
    */
   TraceMissingTracing = "TraceMissingTracing",
+  /*
+   * An error log: one message a service logged again and again at Error or
+   * Fatal severity over the last hour (Utils/Logs/LogInsight's gates) that
+   * carries no exception - an error that does is the Exceptions product's.
+   * Filed for the Logs product's AI section (Types/AI/TelemetryAi), with the
+   * message's pattern as its evidence.
+   */
+  LogErrorPattern = "LogErrorPattern",
+  /*
+   * Missing logging: what a service's logs do not say - requests that fail
+   * without writing a single log line, or logs that carry no trace context,
+   * so a request's logs cannot be read beside its trace.
+   */
+  LogMissingLogging = "LogMissingLogging",
+  /*
+   * A noisy log: one message below Error severity that makes up a large
+   * share of a service's logs - it costs storage and buries the lines that
+   * matter.
+   */
+  LogNoisyPattern = "LogNoisyPattern",
 }
 
 export default AIInsightType;

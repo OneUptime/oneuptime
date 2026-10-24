@@ -190,6 +190,7 @@ import { AddProfileAiRules1807030000000 } from "./1807030000000-AddProfileAiRule
 import { AddAiContext1807100000000 } from "./1807100000000-AddAiContext";
 import { AddAuditLogExport1807110000000 } from "./1807110000000-AddAuditLogExport";
 import { AddTraceAiSwitch1807120000000 } from "./1807120000000-AddTraceAiSwitch";
+import { AddLogAiSwitch1807150000000 } from "./1807150000000-AddLogAiSwitch";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1582,4 +1583,5 @@ export default [
   AddAiContext1807100000000,
   AddAuditLogExport1807110000000,
   AddTraceAiSwitch1807120000000,
+  AddLogAiSwitch1807150000000,
 ];
