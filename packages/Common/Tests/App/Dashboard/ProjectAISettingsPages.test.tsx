@@ -157,13 +157,15 @@ const RETIRED_SWITCH_WORDING: Array<RegExp> = [
 ];
 
 /*
- * Every Project column the page may read or write: Enable AI, and the
- * project's daily AI limits in the Daily limits card under More settings.
- * Anything else on a request is a field riding along.
+ * Every Project column the page may read or write: Enable AI, the AI
+ * context its team wrote for OneUptime AI (the AI context card, issue
+ * #5198), and the project's daily AI limits in the Daily limits card under
+ * More settings. Anything else on a request is a field riding along.
  */
 const AI_FEATURES_COLUMNS: Array<string> = [
   "_id",
   "enableAi",
+  "aiContext",
   "aiDailyTokenLimit",
   "aiDailySpendLimitInUSD",
 ];
@@ -584,7 +586,7 @@ describe("AI Features page", () => {
     expectNoRetiredSwitch(document.body);
   });
 
-  test("reads the project it is on: Enable AI and the daily AI limits, nothing else", async () => {
+  test("reads the project it is on: Enable AI, the AI context and the daily AI limits, nothing else", async () => {
     openAiFeatures();
     await enableAiSwitch();
 
@@ -601,14 +603,21 @@ describe("AI Features page", () => {
       { timeout: WAIT_TIMEOUT },
     );
 
-    // Enable AI's switch reads its own column.
-    expect(
-      itemRequests().some(
-        (request: { select?: Record<string, unknown> }): boolean => {
-          return Boolean(request.select?.["enableAi"]);
+    // Enable AI's switch reads its own column, and the AI context card its own.
+    for (const column of ["enableAi", "aiContext"]) {
+      await waitFor(
+        () => {
+          expect(
+            itemRequests().some(
+              (request: { select?: Record<string, unknown> }): boolean => {
+                return Boolean(request.select?.[column]);
+              },
+            ),
+          ).toBe(true);
         },
-      ),
-    ).toBe(true);
+        { timeout: WAIT_TIMEOUT },
+      );
+    }
 
     for (const call of getItemSpy.mock.calls) {
       const request: { id?: unknown; select?: Record<string, unknown> } =

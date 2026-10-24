@@ -1880,6 +1880,48 @@ export default class Project extends TenantModel {
   public enableAi?: boolean = undefined;
 
   /*
+   * What the project's team wants OneUptime AI to know about its systems
+   * (issue #5198): how they fit together, which service owns which symptom,
+   * where the logs are, the words the team uses. Markdown, read first in the
+   * system prompt of everything OneUptime AI does for the team - an
+   * investigation, a fix, a postmortem draft, a security case's triage, Ask
+   * AI - and recorded on each run as what it read (Types/AI/AiContext). At
+   * most PROJECT_AI_CONTEXT_MAX_CHARACTERS (ProjectService refuses more).
+   *
+   * Written by a Project Owner or Project Admin, as the project's other AI
+   * settings are. Read by everyone in the project who can see its
+   * settings: a run shows what it read to everyone who can see the run,
+   * so it is the team's reference material, never a place for secrets.
+   * Empty until someone writes it, and a run reads nothing more than it
+   * always did.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Markdown,
+    title: "AI Context",
+    description:
+      "Notes for OneUptime AI about your systems: what depends on what, who owns which symptom, where the logs are. Markdown, at most 20,000 characters.",
+    example:
+      "## Services\n- checkout-api owns the checkout page and depends on payments-db.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Markdown,
+  })
+  public aiContext?: string = undefined;
+
+  /*
    * The project's own daily limits on OneUptime AI, a ceiling above the
    * incident and alert limits: see Types/AI/ProjectAiDailyLimits. Both are
    * unset (no limit) until someone sets one, and only the people who may

@@ -357,11 +357,12 @@ More details stay here.
     );
 
     /*
-     * The AI rules form (investigation rules and auto remediation rules made
-     * one: Match, Investigate, Fix) has no help panel, nor has the
-     * postmortem rules form (Match, then Draft).
+     * The AI rules forms (investigation rules and auto remediation rules made
+     * one: Match, Investigate, Fix - for incidents and alerts, and for each
+     * telemetry lane in TelemetryAiRulesTable) have no help panel, nor has
+     * the postmortem rules form (Match, then Draft).
      */
-    expect(staticRuleFormFiles).toHaveLength(71);
+    expect(staticRuleFormFiles).toHaveLength(72);
     expect(helpFormFiles).toHaveLength(62);
     // 68, and the five episode rule help texts that now have the heading too.
     expect(helpMarkdown).toHaveLength(73);

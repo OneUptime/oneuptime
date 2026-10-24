@@ -15,6 +15,12 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
+import EnterpriseEdition from "../../../Server/Enterprise/EnterpriseEdition";
+import EnterpriseFeature from "../../../Server/Enterprise/EnterpriseFeature";
+import {
+  installFakeEnterpriseModuleWithFeatures,
+  uninstallEnterpriseModule,
+} from "../Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import { getJestSpyOn } from "../../Spy";
 import { useInMemoryLimitTransactions } from "../TestingUtils/LimitTransactionsInMemory";
@@ -65,7 +71,10 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
  *     through on every plan;
  *   - at the plan it goes through - including the report schedule the
  *     status page service fills in when reports are switched on;
- *   - with billing off (self-hosted), nothing is asked.
+ *   - with billing off (self-hosted), no plan is asked. An IP allow-list
+ *     is an Enterprise Edition feature there (EditionPermissions), so the
+ *     Community Edition refuses one in the edition's words - not a plan's -
+ *     and the Enterprise Edition creates it, whatever plan the props carry.
  *
  * Existing records are not touched by any of this: only creates are
  * checked, and an update of a record a trial left with a feature on still
@@ -482,9 +491,14 @@ describe("on OneUptime Cloud (billing on), FormService.create", () => {
   });
 });
 
-describe("on a self-hosted install (billing off)", () => {
+describe("on a self-hosted Enterprise Edition (billing off)", () => {
   beforeEach(() => {
     setTestBillingEnabled(false);
+    installFakeEnterpriseModuleWithFeatures([EnterpriseFeature.IpAllowlists]);
+  });
+
+  afterEach(() => {
+    uninstallEnterpriseModule();
   });
 
   test("a status page, a dashboard and a form are created with paid settings on, whatever plan the props carry", async () => {
@@ -494,6 +508,7 @@ describe("on a self-hosted install (billing off)", () => {
         customCSS: "body { margin: 0; }",
         enableSlackSubscribers: true,
         isReportEnabled: true,
+        ipWhitelist: "10.0.0.0/8",
       }),
     ).toBe(REACHED_SAVE);
     expect(
@@ -505,5 +520,75 @@ describe("on a self-hosted install (billing off)", () => {
     expect(
       await createForm(PlanType.Free, { ipWhitelist: "203.0.113.0/24" }),
     ).toBe(REACHED_SAVE);
+    expect(saved).toHaveLength(3);
+  });
+});
+
+describe("on a self-hosted Community Edition (billing off)", () => {
+  beforeEach(() => {
+    setTestBillingEnabled(false);
+    uninstallEnterpriseModule();
+  });
+
+  test("a status page, a dashboard and a form are created with the settings a plan sells on, whatever plan the props carry", async () => {
+    expect(
+      await createStatusPage(PlanType.Free, {
+        isPublicStatusPage: false,
+        customCSS: "body { margin: 0; }",
+        enableSlackSubscribers: true,
+        isReportEnabled: true,
+      }),
+    ).toBe(REACHED_SAVE);
+    expect(
+      await createDashboard(PlanType.Free, { isPublicDashboard: true }),
+    ).toBe(REACHED_SAVE);
+    expect(await createForm(PlanType.Free, {})).toBe(REACHED_SAVE);
+    expect(saved).toHaveLength(3);
+  });
+
+  test.each([
+    [
+      "a status page",
+      (): Promise<string> => {
+        return createStatusPage(PlanType.Enterprise, {
+          ipWhitelist: "10.0.0.0/8",
+        });
+      },
+    ],
+    [
+      "a dashboard",
+      (): Promise<string> => {
+        return createDashboard(PlanType.Enterprise, {
+          isPublicDashboard: true,
+          ipWhitelist: "203.0.113.7",
+        });
+      },
+    ],
+    [
+      "a form",
+      (): Promise<string> => {
+        return createForm(PlanType.Enterprise, {
+          ipWhitelist: "203.0.113.0/24",
+        });
+      },
+    ],
+  ] as Array<[string, () => Promise<string>]>)(
+    "%s created with an IP allow-list is refused in the edition's words, not a plan's, whatever plan the props carry, and nothing is saved",
+    async (_name: string, create: () => Promise<string>) => {
+      expect(await create()).toBe(EnterpriseEdition.COMMUNITY_EDITION_MESSAGE);
+      expect(saved).toHaveLength(0);
+    },
+  );
+
+  test("an empty IP allow-list turns nothing on, so a dashboard and a form with one are created", async () => {
+    expect(
+      await createDashboard(PlanType.Free, {
+        isPublicDashboard: true,
+        ipWhitelist: "",
+      }),
+    ).toBe(REACHED_SAVE);
+    expect(await createForm(PlanType.Free, { ipWhitelist: "" })).toBe(
+      REACHED_SAVE,
+    );
   });
 });

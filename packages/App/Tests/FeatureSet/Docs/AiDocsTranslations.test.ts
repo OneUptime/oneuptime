@@ -7,6 +7,7 @@ import {
   ACCOUNTS_LABELS,
   ADMIN_PATHS,
   AI_PAGES,
+  AI_CONTEXT,
   AI_SRE,
   ASK_AI,
   AiDocsPageEntry,
@@ -140,6 +141,7 @@ const ACCOUNTS_LOCALES_DIR: string = path.resolve(
 const WIDEST_DIAGRAM_LINE: Record<string, number> = {
   [ASK_AI]: 23,
   [AI_SRE]: 24,
+  [AI_CONTEXT]: 24,
   [INFRASTRUCTURE_AI_AGENTS]: 26,
   [CODE_PAGE]: 25,
   [GITHUB_APP]: 25,
@@ -536,16 +538,25 @@ describe("the lists this test keeps", () => {
   });
 
   it("follow the AI nav group, page for page, Microsoft Foundry aside", () => {
+    // Microsoft Foundry follows LLM Providers, the page it is a provider of.
+    const foundryAt: number =
+      AI_PAGES.findIndex((entry: AiDocsPageEntry): boolean => {
+        return entry.page === LLM_PROVIDERS;
+      }) + 1;
+
+    expect(foundryAt).toBeGreaterThan(0);
     expect(
       navGroup("AI").links.map((link: NavLink): Array<string> => {
         return [link.url, link.title];
       }),
     ).toEqual(
-      [...AI_PAGES.slice(0, 6), MICROSOFT_FOUNDRY, ...AI_PAGES.slice(6)].map(
-        (entry: AiDocsPageEntry): Array<string> => {
-          return [`/docs/${entry.page}`, entry.navTitle];
-        },
-      ),
+      [
+        ...AI_PAGES.slice(0, foundryAt),
+        MICROSOFT_FOUNDRY,
+        ...AI_PAGES.slice(foundryAt),
+      ].map((entry: AiDocsPageEntry): Array<string> => {
+        return [`/docs/${entry.page}`, entry.navTitle];
+      }),
     );
   });
 

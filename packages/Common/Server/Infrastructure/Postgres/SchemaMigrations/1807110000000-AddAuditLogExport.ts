@@ -16,8 +16,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *
  * The new table is empty, so its indexes and foreign keys are built here.
  */
-export class AddAuditLogExport1807100000000 implements MigrationInterface {
-  public name: string = "AddAuditLogExport1807100000000";
+export class AddAuditLogExport1807110000000 implements MigrationInterface {
+  public name: string = "AddAuditLogExport1807110000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
