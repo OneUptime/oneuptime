@@ -46,11 +46,17 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
   folded apart under Not connected, with Connect GitHub; a search box once
   there are more than six, which opens Not connected when only a folded one
   matches; GitHub's connection gone said once, in the empty list;
-- a repository's settings: cards, not a stepped dialog - GitHub Commands, on
-  by default and saved the moment it is flipped; the Runner card; More
-  settings with Pull Requests, the trigger label and, on a repository that
-  has them, its build and test commands with Remove Commands; Connection
-  saying Not connected where Repositories folds the repository;
+- a repository's settings: cards, not a stepped dialog - the repository's
+  details on top and every other setting under More settings, named while it
+  is folded (GitHub Commands, Production Review, Runner, Pull Requests and
+  how many more; a setting off or a Runner of the project's own said as a
+  chip): GitHub Commands, on by default and saved the moment it is flipped;
+  Production Review; the Runner card; Pull Requests, the trigger label and,
+  on a repository that has them, its build and test commands with Remove
+  Commands; a link that names one of them (`#github-commands`, `#runner`,
+  `#production-review`) opening More settings at it; a member who may only
+  read; dark mode; Connection saying Not connected where Repositories folds
+  the repository;
 - a repository's page: its tasks newest first, examples on a repository with
   no task yet, asking with context - a file, a note and an incident picked
   from the project - recorded as sent, then the new task's conversation
@@ -59,7 +65,10 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
 - Enter sending and Shift + Enter a new line; a refused request keeping what
   was typed; every reason AI cannot work said above the request box with the
   link that fixes it, and nothing sendable;
-- a repository's Runner in its settings: Global Runner and how it is doing,
+- a repository's Runner in its settings, reached as Pick a Runner reaches it
+  (`#runner`, More settings open, the Runner card as high as the page lets
+  it go, marked and holding the focus, so Tab goes on to its Edit): Global
+  Runner and how it is doing,
   the Runner card's Edit, a project that turned global Runners off
   (`?uses=0`), a server with none (`?global=0`) or one not heard from
   (`?gstatus=disconnected`), and a pick the page is not shown
@@ -79,12 +88,26 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
   `?reviewcomment=Link|ReviewEvenIfPublic`);
 - the old addresses forwarding with their ids, query strings and hashes, and
   GitHub's way back still saying GitHub connected;
+- repositories beyond GitHub (`?hosts=1`): Connect repositories asking where
+  the code is, each step's first field focused; GitLab with a server and a
+  token - typed once, never shown again - then the repositories it can push
+  to, a token GitLab refuses (`revoked...`), Forgejo or Gitea starting on
+  the project's connection, any Git server asked about first (naming the
+  host, in view on a phone) when only a Runner reaches it; the connected
+  notice keeping its space above the list; each row's
+  host mark and its own server; a GitLab repository's settings (its server,
+  account, token's last characters, Replace access token, what is GitHub's
+  only) and a Git repository's (Branches, the Runner it needs); a refused
+  token (`?token=refused`) or no Runner (`?gitrunner=none`) said with its
+  fix; GitLab's merge request !12, and a Git repository's pushed branch;
 - dark mode (`?theme=dark`: no light surface, and a spinner's arc that keeps
   its own colour) and German (`?lang=de`).
 
 What the pages send is recorded on `window.__fixture` (`creates`, `replies`,
 `retries`, `stops`, `settings`, `deletes`, `navigations`, `branchReads`,
-`lists`, `reviewLists`, `reviewAgains`), so the tests check what was sent as
+`lists`, `reviewLists`, `reviewAgains`, and the connect dialog's
+`connectReads`, `connects`, `gitConnects` and `tokenReplacements`), so the
+tests check what was sent as
 well as what was drawn. The
 query string steers the fixture; `Fixture/Fixture.js` lists every switch.
 Screenshots go to `output/playwright/code-ui/`.

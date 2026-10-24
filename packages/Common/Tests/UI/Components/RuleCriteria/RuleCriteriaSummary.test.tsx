@@ -40,7 +40,7 @@ import RuleCriteria, {
 import { RuleCriteriaSubject } from "../../../../Types/Rules/RuleCriteriaSubject";
 import IncidentOnCallRule from "../../../../Models/DatabaseModels/IncidentOnCallRule";
 import StatusPageMonitorRule from "../../../../Models/DatabaseModels/StatusPageMonitorRule";
-import AIInvestigationRule from "../../../../Models/DatabaseModels/AIInvestigationRule";
+import AutoRemediationRule from "../../../../Models/DatabaseModels/AutoRemediationRule";
 import Field from "../../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import RuleCriteriaSummary from "../../../../UI/Components/RuleCriteria/RuleCriteriaSummary";
@@ -80,7 +80,7 @@ describe("a rule's Match Criteria summary", () => {
   });
 
   test("a table of several kinds of record names the ones it lists", () => {
-    const rule: AIInvestigationRule = new AIInvestigationRule();
+    const rule: AutoRemediationRule = new AutoRemediationRule();
     rule.criteria = criteria([]);
 
     render(

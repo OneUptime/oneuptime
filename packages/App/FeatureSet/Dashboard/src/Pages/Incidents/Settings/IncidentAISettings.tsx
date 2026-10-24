@@ -5,9 +5,8 @@ import {
   getProjectColumnsEditGate,
 } from "../../Settings/ProjectColumnEditGate";
 import ProjectAiNotice from "../../../Components/AISettings/ProjectAiNotice";
-import AIInvestigationRulesTable from "../../../Components/AISettings/AIInvestigationRulesTable";
+import AiRulesTable from "../../../Components/AISettings/AiRulesTable";
 import AIPostmortemRulesTable from "../../../Components/AISettings/AIPostmortemRulesTable";
-import AutoRemediationRulesTable from "../../../Components/AutoRemediation/AutoRemediationRulesTable";
 import ProjectAiSwitchesCard from "../../../Components/AISettings/ProjectAiSwitchesCard";
 import {
   AI_LANE_ADVANCED_SECTION_TEST_ID,
@@ -36,10 +35,11 @@ export type ComponentProps = PageComponentProps;
 /*
  * Incidents → AI → Settings: what OneUptime AI does on its own as incidents
  * happen, as switches that save the moment they are flipped, then - folded
- * under Advanced - which incidents it investigates or fixes and the limits
- * on its work, each card one question with its own Edit, and the rules that
- * narrow which incidents are investigated, which are fixed (and how), and
- * which get a postmortem draft when they resolve (and in which template).
+ * under Advanced - the AI rules first (which incidents OneUptime AI
+ * investigates, and whether and how it fixes them), the limits on its work,
+ * each card one question with its own Edit, and the rules that narrow which
+ * incidents get a postmortem draft when they resolve (and in which
+ * template).
  *
  * It used to be one card of nine read-only rows whose Update opened a
  * three-step wizard (Investigation / Limits / Fix Tasks), and a second card
@@ -98,11 +98,9 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
         summary={advanced.summary}
         dataTestId={AI_LANE_ADVANCED_SECTION_TEST_ID[AiLane.Incident]}
       >
-        <AIInvestigationRulesTable
+        <AiRulesTable
           lane={AiLane.Incident}
-          onRulesLoaded={advanced.onRulesLoaded(
-            AiLaneAdvancedCard.InvestigationRules,
-          )}
+          onRulesLoaded={advanced.onRulesLoaded(AiLaneAdvancedCard.AiRules)}
         />
 
         <CardModelDetail<Project>
@@ -112,6 +110,12 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
             description:
               "Every new incident is investigated unless you narrow it down here.",
             buttons: whichGate.lockedButtons,
+            /*
+             * Its place on the page: a link to ".../ai/settings#
+             * WhichAreInvestigated" (an incident's AI card, when its
+             * severity was below the minimum) opens More settings here.
+             */
+            id: AiLaneAdvancedCard.WhichAreInvestigated,
           }}
           isEditable={whichGate.isEditable}
           editButtonText="Edit"
@@ -240,13 +244,6 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
             ],
             modelId: ProjectUtil.getCurrentProjectId()!,
           }}
-        />
-
-        <AutoRemediationRulesTable
-          lane={AiLane.Incident}
-          onRulesLoaded={advanced.onRulesLoaded(
-            AiLaneAdvancedCard.RemediationRules,
-          )}
         />
 
         <AIPostmortemRulesTable

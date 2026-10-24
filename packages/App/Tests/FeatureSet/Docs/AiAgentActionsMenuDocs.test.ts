@@ -179,7 +179,7 @@ describe("the docs put an AI agent's actions in the ⋯ next to its status", () 
       "shows it as Connected within a minute, and **Test connection**, in the **⋯** menu next to that status, runs `kubectl version` and `kubectl auth can-i --list` through it.",
     );
     expect(text).toContain(
-      "**Reset agent**, in the **⋯** menu next to the agent's status on the AI agent page, makes the server forget the agent's key once you confirm it (a Project Owner, a Project Admin or **Edit Auto Remediation Rule** may do it, on a cluster they may edit);",
+      "**Reset agent**, in the **⋯** menu next to the agent's status on the AI agent page, makes the server forget the agent's key once you confirm it (a Project Owner, a Project Admin or **Edit AI Rule** may do it, on a cluster they may edit);",
     );
   });
 

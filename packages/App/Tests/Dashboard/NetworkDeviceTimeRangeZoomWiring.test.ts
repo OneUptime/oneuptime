@@ -125,9 +125,18 @@ describe("Traffic pages: the traffic view's range is the page's", () => {
     expect(code).toMatch(SCOPE_IMPORT);
     const open: number = scopeOpening(code, "view.range", "setRange");
     expect(code.slice(open - "return ( ".length, open)).toBe("return ( ");
+    /*
+     * The first load waits for the page's Meraki side too (issue #5140):
+     * which side the page opens on depends on both answers.
+     */
     expect(
-      indexOfOrFail(code, "{!loaded && isLoading ? <ComponentLoader />"),
+      indexOfOrFail(
+        code,
+        "{(!loaded && isLoading) || !isUsageSettled ? ( <ComponentLoader />",
+      ),
     ).toBeGreaterThan(open);
+    // Both sides are inside the scope: the Meraki chart zooms the page too.
+    expect(indexOfOrFail(code, "<MerakiTrafficView")).toBeGreaterThan(open);
   });
 
   test("a refetch keeps the last data on screen: the loader and the full error are for the first load only", () => {
@@ -146,9 +155,12 @@ describe("Traffic pages: the traffic view's range is the page's", () => {
 
   test("the picker sets the range directly, with Reset zoom beside it", () => {
     expect(code).toContain(RESET_IMPORT);
+    // One header for both sides, the Flows | Meraki switch before the picker.
     expect(code).toContain(
-      '<div className="flex items-center gap-2"> <RangeStartAndEndDateView dashboardStartAndEndDate={view.range} onChange={setRange} /> <ResetTimeRangeZoomButton /> </div>',
+      'const headerElement: ReactElement = ( <div className="flex flex-wrap items-center justify-end gap-2"> {sourceSwitch} <RangeStartAndEndDateView dashboardStartAndEndDate={view.range} onChange={setRange} /> <ResetTimeRangeZoomButton /> </div> );',
     );
+    expect(code).toContain("rightElement={headerElement}");
+    expect(code).toContain("headerElement={headerElement}");
   });
 
   test("the traffic chart is the shared area chart on a time axis, with no zoom of its own", () => {

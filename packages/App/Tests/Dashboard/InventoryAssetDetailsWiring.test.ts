@@ -228,6 +228,23 @@ describe("the card reads in every Dashboard language", () => {
       INVENTORY_ASSET_HELP[InventoryAssetKind.NetworkDevice].linkText,
       INVENTORY_ASSET_HELP[InventoryAssetKind.Host].unknown.other,
       INVENTORY_ASSET_HELP[InventoryAssetKind.NetworkDevice].unknown.other,
+      // Where each detail came from, and when (issue #5185).
+      "Discovery scan {{name}} (SNMP)",
+      "Discovery scan {{name}} (reverse DNS)",
+      "Discovery scan {{name}} (NetBIOS)",
+      "ARP table of {{name}}",
+      "DNS lookup by its probe ({{name}})",
+      "Saved on this device",
+      "The address its probe polls",
+      "Worked out from its name and what it reports",
+      "{{source}} says {{value}}",
+      "Last found at its address by discovery scan {{name}}, {{time}}.",
+      "Discovery scan {{name}} found another machine at this address {{time}} ({{machine}}), so nothing it read there is used.",
+      "Reported by its collector, {{time}}.",
+      "Read over SNMP by its probe, {{time}}.",
+      // The scan a device its poll has not read was read by, said once.
+      "Read over SNMP by discovery scan {{name}}, {{time}}.",
+      "Read over SNMP by a discovery scan, {{time}}.",
     ];
 
     for (const [locale, entries] of Object.entries(all)) {
@@ -282,14 +299,19 @@ describe("the network pages read the same asset facts as Inventory", () => {
       .replace(SPACE, " ");
   }
 
-  test("the device's Inventory card shows the asset facts", () => {
+  /*
+   * Each value with where it came from (issue #5185): the card reads the
+   * facts with their sources, and fetches every column they are read from -
+   * what discovery read, and when the device's own poll last did.
+   */
+  test("the device's Inventory card shows the asset facts, with their sources", () => {
     const card: string = readCode(
       "Components",
       "NetworkDevice",
       "DeviceInventoryCard.tsx",
     );
 
-    expect(card).toContain("getNetworkDeviceAssetFacts(item)[fact]");
+    expect(card).toContain("getNetworkDeviceFactDetails(item).facts[key]");
     for (const fact of [
       "manufacturer",
       "model",
@@ -297,10 +319,10 @@ describe("the network pages read the same asset facts as Inventory", () => {
       "operatingSystem",
       "osVersion",
     ]) {
-      expect(card).toContain(`factElement(item, "${fact}")`);
+      expect(card).toContain(`factField(fact("${fact}")`);
     }
     expect(card).toContain(
-      "selectMoreFields: { sysDescr: true, sysObjectId: true, }",
+      "selectMoreFields: { ...NETWORK_DEVICE_ASSET_FACT_COLUMNS, }",
     );
   });
 
@@ -309,5 +331,92 @@ describe("the network pages read the same asset facts as Inventory", () => {
 
     expect(list).toContain("getNetworkDeviceAssetFacts(item)");
     expect(list).toContain("sysObjectId: true, sysDescr: true,");
+    // What discovery read about a device its poll has not, and when.
+    expect(list).toContain("discoveredDetails: true, lastSnmpSeenAt: true,");
+  });
+
+  test("the device Overview reads what discovery read, and says which", () => {
+    const overview: string = readCode(
+      "Pages",
+      "NetworkDevice",
+      "View",
+      "Index.tsx",
+    );
+
+    expect(overview).toContain(
+      "selectMoreFields: { discoveredName: true, discoveredDetails: true, lastSnmpSeenAt: true, isMacAddressLearned: true, }",
+    );
+    for (const key of ["dnsName", "macAddress", "sysName", "sysDescr"]) {
+      expect(overview).toContain(`effectiveDetailElement(item, "${key}")`);
+    }
+  });
+});
+
+/*
+ * One list of the columns the asset facts read (NetworkDeviceAssetSelect),
+ * for every Dashboard read that shows them: a column missing from it is a
+ * fact that reads "Unknown", or a source that reads wrong, on one page and
+ * not another. Each column the facts read must be in it.
+ */
+describe("the Dashboard reads every column the asset facts read (issue #5185)", () => {
+  const COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
+
+  function sourceColumns(): Array<string> {
+    const facts: string = fs
+      .readFileSync(
+        path.join(
+          APP_ROOT,
+          "..",
+          "Common",
+          "Utils",
+          "NetworkDevice",
+          "NetworkDeviceAssetFacts.ts",
+        ),
+        "utf8",
+      )
+      .replace(COMMENT, " ");
+    const start: number = facts.indexOf(
+      "export interface NetworkDeviceAssetSource {",
+    );
+    expect(start).toBeGreaterThan(-1);
+    const body: string = facts.substring(start, facts.indexOf("\n}", start));
+
+    // One optional member per line: `name?: unknown;`.
+    const columns: Array<string> = [];
+    for (const line of body.split("\n")) {
+      const member: RegExpMatchArray | null = line.trim().match(/^(\w+)\?:/);
+      if (member) {
+        columns.push(member[1]!);
+      }
+    }
+    return columns;
+  }
+
+  test("the select names every column of NetworkDeviceAssetSource", () => {
+    const select: string = fs.readFileSync(
+      path.join(
+        DASHBOARD_SRC,
+        "Components",
+        "Inventory",
+        "NetworkDeviceAssetSelect.ts",
+      ),
+      "utf8",
+    );
+    const columns: Array<string> = sourceColumns();
+
+    expect(columns).toEqual(
+      expect.arrayContaining([
+        "discoveredDetails",
+        "lastSnmpSeenAt",
+        "isMacAddressLearned",
+      ]),
+    );
+
+    for (const column of columns) {
+      expect({ column, selected: select.includes(`${column}:`) }).toEqual({
+        column,
+        selected: true,
+      });
+    }
   });
 });

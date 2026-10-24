@@ -144,7 +144,7 @@ describe("no card inside a card, anywhere in the product", () => {
 
     for (const file of [
       "packages/App/FeatureSet/Dashboard/src/Components/ApiKey/ApiKeyPermissionTable.tsx",
-      "packages/App/FeatureSet/Dashboard/src/Components/AISettings/AIInvestigationRulesTable.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Components/AISettings/AiRulesTable.tsx",
       "packages/App/FeatureSet/Dashboard/src/Components/StatusPage/SearchEngineIndexingCard.tsx",
       "packages/App/FeatureSet/Dashboard/src/Components/MicrosoftTeams/MicrosoftTeamsIntegrationDocumentation.tsx",
       "packages/Common/UI/Components/ModelSwitch/ModelSwitchCard.tsx",

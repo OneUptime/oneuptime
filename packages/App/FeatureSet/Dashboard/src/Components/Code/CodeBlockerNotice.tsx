@@ -3,10 +3,15 @@ import {
   CODE_TASK_BLOCKER_FIXES,
   CODE_TASK_BLOCKER_SENTENCES,
   CODE_TASK_BLOCKER_WHO_CAN_FIX,
+  CODE_TASK_CONNECT_REPOSITORIES,
+  CODE_TASK_REPOSITORY_CONNECTION_GONE,
   CODE_TASK_REPOSITORY_SETTINGS_FIXES,
   CODE_TASK_RUNNER_NOT_ONLINE_NAMED,
   CodeTaskBlockerFix,
 } from "./CodeTaskCopy";
+import { CodeHost } from "Common/Types/CodeRepository/CodeHost";
+import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
+import { getRepositorySettingsRoute } from "./CodePaths";
 import {
   getProjectBalanceAccess,
   ProjectBalanceAccess,
@@ -63,7 +68,58 @@ export interface ComponentProps {
    * indent them in the strip.
    */
   isInline?: boolean | undefined;
+  /*
+   * Where the repository is hosted (CodeRepositoryType), when the page
+   * knows: one that is not on GitHub and is not connected has lost its
+   * connection to its Git server - nothing the GitHub App would mend - so
+   * the notice says that, and links Repositories, where it connects again.
+   * Unknown is GitHub.
+   */
+  provider?: string | undefined;
 }
+
+/*
+ * What a blocker says, and what fixes it, for a repository on the host the
+ * page knows: a repository off GitHub that is not connected is told its
+ * connection is gone, not to connect GitHub.
+ */
+export const getBlockerCopy: (data: {
+  type: CodeTaskBlockerType;
+  provider?: string | undefined;
+}) => {
+  sentence: string | undefined;
+  fix: CodeTaskBlockerFix | undefined;
+} = (data: {
+  type: CodeTaskBlockerType;
+  provider?: string | undefined;
+}): {
+  sentence: string | undefined;
+  fix: CodeTaskBlockerFix | undefined;
+} => {
+  if (
+    data.type === CodeTaskBlockerType.RepositoryNotConnected &&
+    CodeHost.readType(data.provider) !== CodeRepositoryType.GitHub
+  ) {
+    return {
+      sentence: CODE_TASK_REPOSITORY_CONNECTION_GONE,
+      fix: {
+        pageMap: PageMap.CODE_REPOSITORIES,
+        title: CODE_TASK_CONNECT_REPOSITORIES,
+      },
+    };
+  }
+
+  return {
+    sentence: CODE_TASK_BLOCKER_SENTENCES[data.type],
+    fix:
+      data.type === CodeTaskBlockerType.NoAiCredits
+        ? {
+            pageMap: PageMap.SETTINGS_AI_CREDITS,
+            title: CODE_TASK_ADD_AI_CREDITS,
+          }
+        : CODE_TASK_BLOCKER_FIXES[data.type],
+  };
+};
 
 // A gate's answer as yes, no, or not yet known (the snapshot is on its way).
 const toAccess: (gate: PermissionGateResult) => ProjectBalanceAccess = (
@@ -88,7 +144,9 @@ const toAccess: (gate: PermissionGateResult) => ProjectBalanceAccess = (
  *   - turning AI on: whoever may change Project.enableAi - the column's own
  *     update permissions, as the AI investigation card asks;
  *   - an LLM provider: whoever may create one;
- *   - the repository's Runner setting: whoever may change the repository.
+ *   - the repository's Runner setting: whoever may change the repository;
+ *   - its access token: whoever may connect repositories - create code
+ *     repositories - as the server asks when it is replaced.
  *
  * The plan, the bill and a disconnected repository are linked for everyone:
  * those pages say themselves who may change them, as the plan banner on
@@ -121,8 +179,13 @@ export const getBlockerFixAccess: (
     case CodeTaskBlockerType.NoAgent:
     case CodeTaskBlockerType.RunnerNotOnline:
     case CodeTaskBlockerType.GlobalRunnersOff:
+    case CodeTaskBlockerType.RepositoryNeedsOwnRunner:
       return toAccess(
         PermissionGate.check(new CodeRepository(), ModelAction.Update),
+      );
+    case CodeTaskBlockerType.RepositoryTokenRefused:
+      return toAccess(
+        PermissionGate.check(new CodeRepository(), ModelAction.Create),
       );
     default:
       return ProjectBalanceAccess.Yes;
@@ -145,27 +208,32 @@ const CodeBlockerNotice: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const access: ProjectBalanceAccess = getBlockerFixAccess(props.blocker.type);
+  const copy: {
+    sentence: string | undefined;
+    fix: CodeTaskBlockerFix | undefined;
+  } = getBlockerCopy({
+    type: props.blocker.type,
+    provider: props.provider,
+  });
   const fix: CodeTaskBlockerFix | undefined =
-    props.blocker.type === CodeTaskBlockerType.NoAiCredits
-      ? {
-          pageMap: PageMap.SETTINGS_AI_CREDITS,
-          title: CODE_TASK_ADD_AI_CREDITS,
-        }
-      : CODE_TASK_REPOSITORY_SETTINGS_FIXES.includes(props.blocker.type) &&
-          !props.repositoryId
-        ? undefined
-        : CODE_TASK_BLOCKER_FIXES[props.blocker.type];
+    CODE_TASK_REPOSITORY_SETTINGS_FIXES.includes(props.blocker.type) &&
+    !props.repositoryId
+      ? undefined
+      : copy.fix;
   const whoCanFix: string | undefined =
     props.blocker.type === CodeTaskBlockerType.NoAiCredits
       ? WHO_CAN_ADD_AI_CREDITS
       : CODE_TASK_BLOCKER_WHO_CAN_FIX[props.blocker.type];
   const isPermission: boolean =
     props.blocker.type === CodeTaskBlockerType.NoPermission;
-  const sentence: string | undefined =
-    CODE_TASK_BLOCKER_SENTENCES[props.blocker.type];
-  // GitHub connected from here, rather than on Repositories.
+  const sentence: string | undefined = copy.sentence;
+  /*
+   * GitHub connected from here, rather than on Repositories - only for a
+   * repository on GitHub.
+   */
   const connectHere: CodeConnectGitHubFix | undefined =
-    props.blocker.type === CodeTaskBlockerType.RepositoryNotConnected
+    props.blocker.type === CodeTaskBlockerType.RepositoryNotConnected &&
+    CodeHost.readType(props.provider) === CodeRepositoryType.GitHub
       ? props.connectGitHub
       : undefined;
 
@@ -192,12 +260,18 @@ const CodeBlockerNotice: FunctionComponent<ComponentProps> = (
       <>
         {fix && access === ProjectBalanceAccess.Yes ? (
           <Link
-            to={RouteUtil.populateRouteParams(
-              RouteMap[fix.pageMap] as Route,
-              CODE_TASK_REPOSITORY_SETTINGS_FIXES.includes(props.blocker.type)
-                ? { modelId: props.repositoryId }
-                : undefined,
-            )}
+            to={
+              /*
+               * The repository's own settings open at the setting that
+               * fixes it - its Runner, with More settings open there; its
+               * access token, in Repository Details on top.
+               */
+              CODE_TASK_REPOSITORY_SETTINGS_FIXES.includes(
+                props.blocker.type,
+              ) && props.repositoryId
+                ? getRepositorySettingsRoute(props.repositoryId, fix.setting)
+                : RouteUtil.populateRouteParams(RouteMap[fix.pageMap] as Route)
+            }
             dataTestId="code-blocker-fix"
             className="mt-1 inline-flex items-center gap-1 font-medium text-indigo-600 hover:text-indigo-500"
           >

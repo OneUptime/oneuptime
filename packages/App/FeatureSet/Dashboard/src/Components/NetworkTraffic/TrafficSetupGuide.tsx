@@ -8,6 +8,10 @@ import {
 } from "./NetworkTrafficSetup";
 import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
@@ -22,6 +26,11 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  * the device needs a few lines of configuration (step 2, per vendor, ready
  * to paste); and records are matched to the device by the address they come
  * from (step 3, with the addresses this device is known by).
+ *
+ * The whole network's guide also offers the other way in, above the steps:
+ * a Meraki network needs no flow export at all - connecting the Meraki
+ * dashboard reads every network's uplinks, applications and clients through
+ * its API (issue #5140).
  */
 
 export interface ComponentProps {
@@ -33,6 +42,13 @@ export interface ComponentProps {
   matchAddresses?: Array<string> | undefined;
   // Where the device's Other Addresses are edited.
   settingsRoute?: Route | undefined;
+  // The whole network's page: connect a Meraki organization instead.
+  onConnectMeraki?: (() => void) | undefined;
+  /*
+   * Why this reader may not connect one (PermissionGate's sentence): the
+   * offer still says Meraki can be read, and says why there is no button.
+   */
+  connectMerakiLockedReason?: string | undefined;
 }
 
 const PortBadge: FunctionComponent<{
@@ -106,6 +122,60 @@ const TrafficSetupGuide: FunctionComponent<ComponentProps> = (
           </p>
         </div>
       </div>
+
+      {props.onConnectMeraki || props.connectMerakiLockedReason ? (
+        <div
+          className="mt-5 flex flex-col gap-3 rounded-lg bg-gray-50 p-4 ring-1 ring-gray-200 sm:flex-row sm:items-center sm:justify-between"
+          data-testid="traffic-setup-meraki"
+        >
+          <div className="flex min-w-0 items-start gap-3">
+            <Icon
+              icon={IconProp.Cloud}
+              className="mt-0.5 h-5 w-5 flex-shrink-0 text-gray-500"
+            />
+            <div className="min-w-0">
+              <div className="text-sm font-medium text-gray-900">
+                {translator.translateText("Using Cisco Meraki?")}
+              </div>
+              <p className="mt-0.5 text-sm text-gray-600">
+                {translator.translateText(
+                  "Connect the Meraki dashboard instead: OneUptime reads every network's uplinks, applications and clients through its API, with nothing to set up on the devices.",
+                )}
+              </p>
+              {props.onConnectMeraki ? (
+                <></>
+              ) : (
+                <div
+                  className="mt-2 flex items-start gap-1.5 text-sm text-gray-500"
+                  data-testid="traffic-setup-meraki-locked"
+                >
+                  <Icon
+                    icon={IconProp.Lock}
+                    className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
+                  />
+                  <span>{props.connectMerakiLockedReason}</span>
+                </div>
+              )}
+            </div>
+          </div>
+          {props.onConnectMeraki ? (
+            <div className="flex-shrink-0">
+              <Button
+                title="Connect Meraki"
+                icon={IconProp.Add}
+                buttonSize={ButtonSize.Small}
+                buttonStyle={ButtonStyleType.NORMAL}
+                onClick={props.onConnectMeraki}
+                dataTestId="traffic-setup-connect-meraki"
+              />
+            </div>
+          ) : (
+            <></>
+          )}
+        </div>
+      ) : (
+        <></>
+      )}
 
       <ol className="mt-6 space-y-6">
         <li className="flex gap-3">

@@ -107,7 +107,6 @@ describe("RULE_CRITERIA_SUBJECT_BY_MODEL", () => {
 
   test("leaves the tables of several kinds of record to name their own", () => {
     expect([...RULE_CRITERIA_MODELS_NAMED_BY_THEIR_TABLE].sort()).toEqual([
-      "AIInvestigationRule",
       "AutoRemediationRule",
       "RunbookRule",
     ]);

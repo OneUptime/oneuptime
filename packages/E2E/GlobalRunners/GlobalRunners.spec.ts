@@ -1374,7 +1374,7 @@ test.describe("a Runner and AI code fixes", () => {
    * code repositories that pick the Runner, after what it may run - not a
    * card of its own between Runner Status and the setup command.
    */
-  test("a Runner's details list the code repositories that pick it, each linked to its settings in Code", async ({
+  test("a Runner's details list the code repositories that pick it, each linked to its Runner setting in Code", async ({
     page,
   }: {
     page: Page;
@@ -1390,9 +1390,10 @@ test.describe("a Runner and AI code fixes", () => {
     const link: Locator = repositories.getByRole("link", {
       name: "checkout-service",
     });
+    // The repository's Settings, opened on its Runner (under More settings).
     await expect(link).toHaveAttribute(
       "href",
-      `/dashboard/${PROJECT_ID}/code/repositories/${CHECKOUT_REPOSITORY_ID}/settings`,
+      `/dashboard/${PROJECT_ID}/code/repositories/${CHECKOUT_REPOSITORY_ID}/settings#runner`,
     );
     // A repository that picks no Runner works on a global Runner: not listed.
     await expect(repositories).not.toContainText("web-app");

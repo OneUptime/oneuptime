@@ -1,134 +1,64 @@
 <!-- markdownlint-disable MD033 MD041 -->
 <p align="center">
-  <a href="/README.md">English</a> ·
-  <a href="/Docs/translations/README.zh-CN.md">简体中文</a> ·
-  <a href="/Docs/translations/README.zh-TW.md">繁體中文</a> ·
-  <a href="/Docs/translations/README.ja.md">日本語</a> ·
-  <a href="/Docs/translations/README.ko.md">한국어</a> ·
-  <a href="/Docs/translations/README.es.md">Español</a> ·
-  <a href="/Docs/translations/README.fr.md">Français</a> ·
-  <a href="/Docs/translations/README.de.md">Deutsch</a> ·
-  <a href="/Docs/translations/README.pt.md">Português</a> ·
-  <a href="/Docs/translations/README.it.md">Italiano</a> ·
-  <a href="/Docs/translations/README.ru.md">Русский</a> ·
-  <a href="/Docs/translations/README.hi.md">हिन्दी</a> ·
-  <a href="/Docs/translations/README.fa.md">فارسی</a> ·
-  <a href="/Docs/translations/README.nl.md">Nederlands</a> ·
-  <a href="/Docs/translations/README.da.md">Dansk</a> ·
-  <a href="/Docs/translations/README.sv.md">Svenska</a> ·
+  <a href="/README.md">English</a>&nbsp;·
+  <a href="/Docs/translations/README.zh-CN.md">简&#8288;体&#8288;中&#8288;文</a>&nbsp;·
+  <a href="/Docs/translations/README.zh-TW.md">繁&#8288;體&#8288;中&#8288;文</a>&nbsp;·
+  <a href="/Docs/translations/README.ja.md">日&#8288;本&#8288;語</a>&nbsp;·
+  <a href="/Docs/translations/README.ko.md">한&#8288;국&#8288;어</a>&nbsp;·
+  <a href="/Docs/translations/README.es.md">Español</a>&nbsp;·
+  <a href="/Docs/translations/README.fr.md">Français</a>&nbsp;·
+  <a href="/Docs/translations/README.de.md">Deutsch</a>&nbsp;·
+  <a href="/Docs/translations/README.pt.md">Português</a>&nbsp;·
+  <a href="/Docs/translations/README.it.md">Italiano</a>&nbsp;·
+  <a href="/Docs/translations/README.ru.md">Русский</a>&nbsp;·
+  <a href="/Docs/translations/README.hi.md">हिन्दी</a>&nbsp;·
+  <a href="/Docs/translations/README.fa.md">فارسی</a>&nbsp;·
+  <a href="/Docs/translations/README.nl.md">Nederlands</a>&nbsp;·
+  <a href="/Docs/translations/README.da.md">Dansk</a>&nbsp;·
+  <a href="/Docs/translations/README.sv.md">Svenska</a>&nbsp;·
   <a href="/Docs/translations/README.no.md">Norsk</a>
 </p>
 
-<div align="center">
-  <a href="https://oneuptime.com">
-    <img alt="لوگوی OneUptime" width="55%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/OneUptimePNG/7.png"/>
-  </a>
+<p align="center">
+  <a href="https://oneuptime.com"><picture><source media="(prefers-color-scheme: dark)" srcset="/packages/App/FeatureSet/Docs/Static/images/logo-dark.svg"><img alt="OneUptime" width="42%" src="/packages/App/FeatureSet/Docs/Static/images/logo-light.svg"></picture></a>
+</p>
 
-  <h3>مشاهده‌پذیری عامل‌محور — یک پلتفرم متن‌باز برای زمان کارکرد، حوادث، آنکال، صفحات وضعیت، لاگ‌ها، ترِیس‌ها، متریک‌ها و APM.</h3>
+<p align="center">
+  <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
+  <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
+</p>
 
-  <p><b>وقتی چیزی خراب می‌شود، اولین کسی باشید که می‌فهمد — و سریع‌ترین کسی که آن را درست می‌کند.</b></p>
+‏OneUptime یک پلتفرم متن‌باز مشاهده‌پذیری است. بررسی می‌کند که وب‌سایت‌ها، APIها و سرورهای شما کار می‌کنند، لاگ‌ها، متریک‌ها و ترِیس‌هایی را که برنامه‌هایتان می‌فرستند جمع‌آوری می‌کند، وقتی چیزی خراب می‌شود هر کسی را که آنکال است خبر می‌کند، و در یک صفحه وضعیت به مشتریانتان اطلاع می‌دهد. همه این‌ها در یک محصول اتفاق می‌افتد، بنابراین همان ابزاری که مشکل را می‌بیند تیم شما را خبر می‌کند.
 
-  <p>OneUptime یک قفسه کامل از ابزارهای SaaS را با یک پلتفرم جایگزین می‌کند که می‌توانید رایگان خودمیزبانی‌اش کنید. قطعی را می‌گیرد، به فرد درست فراخوان می‌دهد، صفحه وضعیت شما را به‌روز می‌کند، علت ریشه‌ای را پیدا می‌کند و حتی PR اصلاحی را باز می‌کند.</p>
+می‌توانید از [OneUptime Cloud](https://oneuptime.com) استفاده کنید یا آن را روی سرورهای خودتان اجرا کنید.
 
-  <p>
-    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
-    <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
-    <a href="https://github.com/OneUptime/oneuptime/stargazers"><img src="https://img.shields.io/github/stars/OneUptime/oneuptime?style=flat" alt="Stars"></a>
-    <a href="https://artifacthub.io/packages/helm/oneuptime/oneuptime"><img src="https://img.shields.io/badge/Helm-Chart-0f1689" alt="Helm Chart"></a>
-    <a href="https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA"><img src="https://img.shields.io/badge/Slack-Community-4A154B" alt="Slack"></a>
-  </p>
+<p align="center">
+  <img alt="OneUptime در جریان یک حادثه: خط زمانی آن، کسی که آنکال است، صفحه وضعیت و بررسی OneUptime AI" width="100%" src="/packages/Home/Static/img/readme/hero-command-center.png">
+</p>
 
-  <p>
-    <a href="https://oneuptime.com"><b>وب‌سایت</b></a> &nbsp;•&nbsp;
-    <a href="https://oneuptime.com/docs"><b>مستندات</b></a> &nbsp;•&nbsp;
-    <a href="#quick-start"><b>شروع سریع</b></a> &nbsp;•&nbsp;
-    <a href="https://oneuptime.com/pricing"><b>قیمت‌گذاری</b></a> &nbsp;•&nbsp;
-    <a href="#contributing"><b>مشارکت</b></a>
-  </p>
+## کارهایی که OneUptime انجام می‌دهد
 
-  <a href="https://oneuptime.com"><b>🚀 OneUptime Cloud را امتحان کنید — طرح همیشه رایگان، بدون کارت اعتباری ←</b></a>
-</div>
+- **[پایش](https://oneuptime.com/docs/fa/monitor/create-monitor)**: وب‌سایت‌ها، APIها، پورت‌ها، DNS و گواهی‌ها را از پراب‌هایی در سراسر جهان یا از داخل شبکه خودتان بررسی کنید. OneUptime سرورها، Kubernetes، Docker، VMware، پایگاه‌های داده و تجهیزات شبکه را هم زیر نظر می‌گیرد.
+- **[حوادث و آنکال](https://oneuptime.com/docs/fa/incidents/index)**: هر حادثه را روی یک خط زمانی پیش ببرید. هر کسی را که آنکال است با تماس تلفنی، پیامک، ایمیل، اعلان، Slack یا Microsoft Teams خبر کنید، و تا وقتی کسی پاسخ دهد تشدید کنید.
+- **[صفحات وضعیت](https://oneuptime.com/docs/fa/status-pages/index)**: مشتریان را در صفحات وضعیت عمومی یا خصوصی در جریان بگذارید، و تعمیر و نگهداری زمان‌بندی‌شده را همان‌جا اعلام کنید.
+- **[لاگ‌ها، متریک‌ها و ترِیس‌ها](https://oneuptime.com/docs/fa/telemetry/open-telemetry)**: آن‌ها را با OpenTelemetry بفرستید، در آن‌ها جستجو کنید و داشبورد بسازید. استثناها، پروفایل‌ها، پایش کاربر واقعی و رویدادهای امنیتی هم در همین‌جا هستند.
+- **[گردش‌های کاری و رانبوک‌ها](https://oneuptime.com/docs/fa/workflows/index)**: کارهای تکراری را خودکار کنید، و Jira، ServiceNow و ابزارهای دیگری را که تیمتان از قبل به کار می‌برد وصل کنید.
+- **[‏OneUptime AI](https://oneuptime.com/docs/fa/ai/ai-sre)**: حوادث و هشدارهای تازه را بررسی می‌کند و یک تحلیل علت ریشه‌ای با منبع منتشر می‌کند. وقتی اصلاح را روشن کنید، می‌تواند یک Pull Request با یک اصلاح باز کند تا تیمتان آن را بازبینی کند.
+- **[‏API، CLI و Terraform](https://oneuptime.com/docs/fa/api-reference/api-reference)**: OneUptime را از اسکریپت‌ها و CI خود خودکار کنید، و مانیتورها، صفحات وضعیت و آنکال را به‌صورت کد مدیریت کنید.
 
-<br/>
+باقی چیزها در [مستندات](https://oneuptime.com/docs/fa/introduction/getting-started) آمده است.
 
-<div align="center">
-  <img alt="مرکز فرماندهی OneUptime در جریان یک حادثه زنده" width="92%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/readme/hero-command-center.png"/>
-</div>
+## شروع کنید
 
----
+### ‏OneUptime Cloud
 
-## کل پشته مشاهده‌پذیری خود را جایگزین کنید
+[ثبت‌نام کنید](https://oneuptime.com/accounts/register) و یک پروژه بسازید. طرح رایگان به کارت اعتباری نیاز ندارد.
 
-OneUptime پایش، هشداردهی، پاسخ به حادثه و مشاهده‌پذیری را در یک برنامه متن‌باز گرد هم می‌آورد — تا دیگر برای ده‌ها ابزار جداگانه هزینه ندهید و آن‌ها را به هم وصله نکنید.
+### میزبانی روی سرور خودتان با Docker Compose
 
-| به‌جای… | از OneUptime استفاده کنید برای… |
-|---|---|
-| Pingdom / UptimeRobot | **پایش زمان کارکرد** — بررسی وب‌سایت، API، پینگ، پورت، SSL، DNS و سینتتیک از سراسر دنیا |
-| StatusPage.io | **صفحات وضعیت** — صفحات وضعیت عمومی و خصوصی با برند خودتان، به‌همراه مشترکان |
-| PagerDuty / Opsgenie | **آنکال و هشدارها** — زمان‌بندی‌ها، سیاست‌های تشدید، پیامک / تماس / پوش / Slack |
-| Incident.io | **مدیریت حادثه** — اعلام، غربالگری، اطلاع‌رسانی و گزارش پس از حادثه |
-| Datadog / New Relic | **APM و متریک‌ها** — ترِیس‌ها، داشبوردها و کارایی سرویس‌ها |
-| Loggly | **مدیریت لاگ** — جمع‌آوری، جستجو و هشدار روی لاگ‌ها |
-| Sentry | **ردیابی خطا** — استثناها با ردیابی پشته کامل و بافتار |
+به یک سرور Linux با دست‌کم ۸ GB حافظه، و Docker، Docker Compose، Git و Node.js نیاز دارید.
 
-همه این‌ها **متن‌باز (Apache 2.0)** و در نسخه انجمنی برای خودمیزبانی رایگان است.
-
----
-
-<details>
-<summary><b>🌙 یک حادثه، از ابتدا تا انتها</b></summary>
-
-<br/>
-
-ساعت ۲:۴۷ بامداد است. پرداخت نهایی شروع به تایم‌اوت شدن می‌کند. آنچه OneUptime پیش از آنکه بیشتر ابزارها حتی اولین هشدار را بفرستند انجام می‌دهد — و آنچه تصویرهای زیر واقعاً نشان می‌دهند:
-
-### ۱ · تشخیص — *در چند ثانیه بدانید*
-
-پراب‌هایی در چند منطقه می‌بینند که تأخیر پرداخت نهایی از آستانه ۵ ثانیه شما فراتر رفته است و به‌صورت خودکار یک حادثه باز می‌کنند — پیش از آنکه مشتریانتان صفحه را دوباره بارگذاری کنند.
-
-![تشخیص — پایش سراسری، افت API پرداخت نهایی را می‌گیرد](/packages/Home/Static/img/readme/detect.png?raw=true)
-
-### ۲ · پاسخ — *فراخوان به فرد درست*
-
-با مهندس آنکال سیاست پرداخت تماس گرفته می‌شود، پیامک و اعلان پوش می‌گیرد و تا وقتی کسی حادثه را تأیید نکند به‌صورت خودکار به نفر پشتیبان تشدید می‌شود.
-
-![پاسخ — حادثه به آنکال مسیریابی و تأیید می‌شود](/packages/Home/Static/img/readme/respond.png?raw=true)
-
-### ۳ · اطلاع‌رسانی — *مشتریان در جریان*
-
-صفحه وضعیت شما خودش را به‌روز می‌کند و به همه مشترکان از طریق ایمیل و پیامک اطلاع داده می‌شود — کسی لازم نیست به‌روزرسانی را دستی بنویسد.
-
-![اطلاع‌رسانی — صفحه وضعیت عمومی به‌روز می‌شود و به مشترکان اطلاع می‌دهد](/packages/Home/Static/img/readme/communicate.png?raw=true)
-
-### ۴ · عیب‌یابی — *علت ریشه‌ای، پیدا شد*
-
-ترِیس‌ها، لاگ‌ها و متریک‌ها تا دقیقاً همان اسپن با هم هم‌بسته می‌شوند: یک `SELECT … FOR UPDATE` کند روی `orders` که به‌خاطر یک ایندکس گم‌شده گیر کرده است.
-
-![عیب‌یابی — آبشار ترِیس، اسپن کند پایگاه داده را دقیق نشان می‌دهد](/packages/Home/Static/img/readme/diagnose.png?raw=true)
-
-### ۵ · اصلاح خودکار — *اصلاح، برای شما آماده شد*
-
-عامل هوش مصنوعی یک pull request با اصلاح باز می‌کند که به حادثه پیوند خورده و پیش از باز شدن با دستورهای build و test پیکربندی‌شده مخزن شما راستی‌آزمایی شده است — شما بازبینی و ادغام می‌کنید. مثل یک SRE که هرگز نمی‌خوابد.
-
-![اصلاح خودکار — عامل هوش مصنوعی یک pull request با اصلاح باز می‌کند](/packages/Home/Static/img/readme/autofix.png?raw=true)
-
-</details>
-
----
-
-<a name="quick-start"></a>
-
-## ⚡ شروع سریع
-
-### ☁️ OneUptime Cloud — راه آسان
-
-بدون راه‌اندازی، همیشه به‌روز، و هزینه پروژه متن‌باز را تأمین می‌کند.
-
-**← [رایگان در oneuptime.com ثبت‌نام کنید](https://oneuptime.com)**
-
-### 🐳 خودمیزبانی با Docker Compose
-
-هر آنچه لازم دارید روی یک سرور (Debian / Ubuntu / RHEL، به‌همراه Docker و Docker Compose). برای هوم‌لب‌ها و تیم‌های کوچک عالی است — حتی یک Raspberry Pi هم کار می‌کند.
+پیش از گام ۳، `HOST` را در `config.env` روی نام دامنه یا نشانی IP‌ای بگذارید که دیگران برای رسیدن به OneUptime به کار می‌برند، بدون `http://`‎. فقط برای امتحان OneUptime روی رایانهٔ خودتان `localhost` را نگه دارید.
 
 ```bash
 # 1. Clone the release branch
@@ -145,110 +75,41 @@ done
 npm start
 ```
 
-OneUptime اکنون روی **http://localhost** اجرا می‌شود — آن را باز کنید و اولین حساب خود را بسازید.
+وقتی `npm start` پیام **OneUptime is up!‎** را نشان داد، `http://localhost` یا نشانی سرورتان را باز کنید و ثبت‌نام کنید. نخستین حساب، مدیر نمونه می‌شود.
 
-📖 راهنمای کامل: [نصب با Docker Compose](/packages/App/FeatureSet/Docs/Content/en/installation/docker-compose.md) · [تعیین اندازه و پیش‌نیازها](/packages/App/FeatureSet/Docs/Content/en/installation/sizing.md)
+[راهنمای Docker Compose](https://oneuptime.com/docs/fa/installation/docker-compose) اندازه سرور، HTTPS، پشتیبان‌گیری و به‌روزرسانی را پوشش می‌دهد.
 
-### ☸️ Kubernetes با Helm — برای محیط عملیاتی
+### نصب روی Kubernetes با Helm
+
+برای محیط تولید در مقیاس بزرگ، یا دسترس‌پذیری بالا، چارت Helm را نصب کنید. `host` را روی نام دامنه یا نشانی IP بگذارید که دیگران با آن به OneUptime می‌رسند:
 
 ```bash
-helm repo add oneuptime https://helm-chart.oneuptime.com
-helm install oneuptime oneuptime/oneuptime
+helm repo add oneuptime https://helm-chart.oneuptime.com/
+helm install my-oneuptime oneuptime/oneuptime --set host=oneuptime.example.com
 ```
 
-📖 دستورالعمل کامل نصب و مقادیر در [Artifact Hub ←](https://artifacthub.io/packages/helm/oneuptime/oneuptime)
+‏[README چارت](/HelmChart/Public/oneuptime/README.md) ذخیره‌سازی، HTTPS، پایگاه‌های داده و ارتقا را پوشش می‌دهد.
 
-> **نصب موجودی را ارتقا می‌دهید؟** [راهنمای ارتقا](/packages/App/FeatureSet/Docs/Content/en/installation/upgrading.md) را ببینید.
+## نسخه‌های Community و Enterprise
 
----
+- **‏Community Edition**: رایگان و متن‌باز، با همه موارد بالا، از جمله ورود یکپارچه SAML و OIDC.
+- **‏Enterprise Edition**: تأمین SCIM، گزارش‌های ممیزی، انطباق تیم و داشبوردهای سلامت نمونه را همراه با پشتیبانی اولویت‌دار اضافه می‌کند. استفاده در محیط تولید به مجوز نیاز دارد: [تماس با فروش](mailto:sales@oneuptime.com).
 
-## ✨ همه‌چیز در یک بسته
+مستندات [این دو نسخه را مقایسه می‌کند](https://oneuptime.com/docs/fa/self-hosted/enterprise).
 
-| | قابلیت | چه کاری می‌کند |
-|---|---|---|
-| 📊 | **پایش زمان کارکرد** | مانیتورهای وب‌سایت، API، IP، پورت، SSL، DNS و سینتتیک از چند منطقه در سراسر دنیا. |
-| 📋 | **صفحات وضعیت** | صفحات وضعیت زیبا با برند خودتان، تاریخچه حوادث، تعمیر و نگهداری زمان‌بندی‌شده و اعلان به مشترکان. |
-| 🚨 | **مدیریت حادثه** | گردش کاری سرتاسری حادثه: اعلام، تخصیص، اطلاع‌رسانی، رفع و گزارش پس از حادثه. |
-| 📞 | **آنکال و هشدارها** | زمان‌بندی‌های آنکال و سیاست‌های تشدید با هشدار پیامکی، تماس تلفنی، پوش، ایمیل و Slack. |
-| 📝 | **مدیریت لاگ** | دریافت، ذخیره، جستجو و هشدار روی لاگ‌ها از طریق OpenTelemetry. |
-| 🔍 | **APM و ترِیس‌ها** | ترِیس‌های توزیع‌شده، اسپن‌ها و داشبوردهای کارایی برای یافتن مسیرهای کند و گلوگاه‌ها. |
-| 📈 | **متریک‌ها و داشبوردها** | داشبوردهای سفارشی روی تله‌متری شما — نماهایی که تیمتان لازم دارد بسازید. |
-| 🐛 | **ردیابی خطا** | ثبت استثناها با ردیابی پشته کامل، بافتار و پیگیری نسخه‌ها. |
-| ⚡ | **گردش‌های کاری** | خودکارسازی و یکپارچه‌سازی با Slack، Jira، GitHub، Microsoft Teams و بیش از ۵٬۰۰۰ برنامه. |
-| 🤖 | **همیار هوش مصنوعی** | عاملی همیشه‌فعال که ناهنجاری‌ها را در لاگ‌ها، ترِیس‌ها و متریک‌ها می‌یابد، علت‌های ریشه‌ای را تشخیص می‌دهد و PRهای اصلاحی باز می‌کند. |
+## کمک گرفتن
 
-<details>
-<summary><b>⚡ کارهای تکراری را خودکار کنید</b></summary>
+- در [انجمن OneUptime در Slack](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA) سؤال بپرسید.
+- باگ‌ها را گزارش کنید و قابلیت‌ها را در [issueهای GitHub](https://github.com/OneUptime/oneuptime/issues) درخواست کنید.
+- آسیب‌پذیری‌های امنیتی را به‌صورت خصوصی گزارش کنید، همان‌طور که [SECURITY.md](/.github/SECURITY.md) توضیح می‌دهد.
+- برای هر چیز دیگری به [support@oneuptime.com](mailto:support@oneuptime.com) ایمیل بزنید.
 
-<br/>
+## مشارکت
 
-تشدیدها، تیکت‌ها و اعلان‌ها را روی یک بوم بصری و بدون کدنویسی به هم وصل کنید — یا کد سفارشی خودتان را بگذارید. حادثه بالا بدون آنکه کسی دست بجنباند به آنکال فراخوان داد، یک تیکت Jira باز کرد و در Slack پیام گذاشت.
+از رفع باگ، قابلیت تازه، مستندات و تست استقبال می‌کنیم. [راهنمای توسعه محلی](https://oneuptime.com/docs/fa/installation/local-development) نشان می‌دهد چطور OneUptime را از کد منبع اجرا کنید، و [رهنمودهای مشارکت](/.github/CONTRIBUTING.md) توضیح می‌دهند Pull Requestها و مجوزها چطور کار می‌کنند. issueهایی با برچسب [good first issue](https://github.com/OneUptime/oneuptime/labels/good%20first%20issue) جای خوبی برای شروع هستند.
 
-![گردش‌های کاری — بوم خودکارسازی بدون کد برای تشدید حادثه](/packages/Home/Static/img/readme/workflows.png?raw=true)
+اگر OneUptime برایتان مفید است، به این مخزن ستاره بدهید یا [از پروژه حمایت مالی کنید](https://github.com/sponsors/OneUptime).
 
-</details>
+## مجوز
 
-### 🖥️ پایش زیرساخت
-
-عامل‌های **مبتنی بر OpenTelemetry** را با کپی و جای‌گذاری اضافه کنید تا هر چیزی که سرویس‌هایتان روی آن اجرا می‌شود زیر نظر باشد — به‌همراه قالب‌های آماده هشدار:
-
-- **سرورها و ماشین‌های مجازی** — پردازنده، حافظه، دیسک، شبکه، فرایندها و لاگ‌ها از Linux، macOS و Windows. [مستندات ←](/packages/App/FeatureSet/Docs/Content/en/telemetry/host-otel-collector.md)
-- **Kubernetes** — یک `helm install` متریک‌های گره/پاد/کانتینر/خوشه، رویدادها، لاگ‌ها و ترِیس‌ها و نقشه‌های سرویس مبتنی بر eBPF را می‌آورد. [مستندات ←](/packages/App/FeatureSet/Docs/Content/en/telemetry/kubernetes-agent.md)
-- **Docker** — یک عامل واحد هر کانتینر را به‌صورت خودکار کشف می‌کند و متریک‌ها و لاگ‌ها را می‌فرستد. [مستندات ←](/packages/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
-- **Podman** — همان کشف خودکار با یک عامل، از طریق سوکت سازگار با Docker در Podman. [مستندات ←](/packages/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
-- **Proxmox** — گره‌ها، ماشین‌های مجازی، کانتینرها، ذخیره‌سازی، وضعیت HA، پوشش پشتیبان‌گیری و سلامت همانندسازی. [مستندات ←](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
-- **VMware** — vCenter، میزبان‌های ESXi، ماشین‌های مجازی، دیتااستورها، خوشه‌ها، استخرهای منابع و vSAN. [مستندات ←](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
-- **Ceph** — سلامت خوشه، پیش‌بینی ظرفیت و دید بر OSD/استخر/PG/مانیتور. [مستندات ←](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
-- **آرایه‌های ذخیره‌سازی** — Pure Storage FlashArray و FlashBlade: ظرفیت، تأخیر، ولوم‌ها، میزبان‌ها، تکثیر، سلامت سخت‌افزار، سیستم‌فایل‌ها و باکت‌ها. [مستندات ←](/packages/App/FeatureSet/Docs/Content/en/telemetry/storage-arrays.md)
-- **پایگاه‌های داده** — PostgreSQL، MySQL، Redis، MongoDB و موارد دیگر، شناسایی خودکار از ردیابی‌های برنامه، Kubernetes و Docker، همراه با متریک‌های موتور، نمونه‌های پرس‌وجو و لاگ‌ها از یک عامل collector مبتنی بر پیکربندی. [مستندات ←](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
-
----
-
-## 💼 نسخه انجمنی در برابر سازمانی
-
-| | **انجمنی** | **سازمانی** |
-|---|---|---|
-| **مناسب برای** | خودمیزبان‌ها و تیم‌های کوچک | تیم‌های تحت مقررات که به پشتیبانی ویژه نیاز دارند |
-| **هزینه** | رایگان و متن‌باز | [تماس با فروش](mailto:sales@oneuptime.com) |
-| **مجوز** | Apache 2.0 | Apache 2.0، به‌علاوه [OneUptime Enterprise License](/ee/LICENSE) برای پوشه `ee/` |
-| **قابلیت‌ها** | همه موارد بخش بالا — پایش، صفحه‌های وضعیت، حوادث، آنکال، لاگ‌ها، ردیابی‌ها، سنجه‌ها، ردیابی خطا، گردش‌کارها و هوش مصنوعی — به‌علاوه ورود یکپارچه SAML و OIDC | همه قابلیت‌های نسخه انجمنی + تأمین کاربر SCIM، گزارش‌های ممیزی، انطباق تیم و داشبوردهای سلامت نمونه، همراه با پشتیبانی اولویت‌دار، قابلیت‌های سفارشی و اقامت داده |
-
-قابلیت‌های سازمانی در پوشه [`ee/`](/ee) قرار دارند و فقط در ایمیج سازمانی عرضه می‌شوند. برای مقایسه کامل، [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md) را ببینید.
-
----
-
-## 💡 چرا OneUptime؟
-
-مأموریت ما ساده است: **کاهش زمان قطعی و کمک به موفقیت محصولات بیشتر.** به‌جای چسباندن هفت فروشنده به هم، یک پلتفرم دارید که کمک می‌کند بفهمید *چرا* چیزها خراب می‌شوند، سریع به حوادث پاسخ دهید و بار عملیاتی را کم کنید — با هسته‌ای متن‌باز (Apache 2.0)، تا داده‌ها و پشته خودتان در اختیار خودتان بماند.
-
----
-
-<a name="contributing"></a>
-
-## 🤝 مشارکت
-
-از مشارکت در هر اندازه‌ای استقبال می‌کنیم. از اینجا شروع کنید:
-
-- 🐛 **[مسائل باز](https://github.com/OneUptime/oneuptime/issues)** — یکی را بردارید، یا [مسئله جدیدی ثبت کنید](https://github.com/OneUptime/oneuptime/issues/new)
-- ✅ **[در نوشتن تست کمک کنید](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)** برای این کدبیس
-- 🧑‍💻 **[راهنمای توسعه محلی](/packages/App/FeatureSet/Docs/Content/en/installation/local-development.md)** برای راه‌اندازی
-- 📖 **[راهنمای مشارکت](/.github/CONTRIBUTING.md)** را بخوانید
-- 💬 در **[Slack توسعه‌دهندگان](https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ)** یا **[Slack انجمن](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)** با ما گفتگو کنید
-
-## ❤️ از پروژه حمایت کنید
-
-اگر OneUptime برایتان مفید است:
-
-- ⭐ **به این مخزن ستاره بدهید** — واقعاً کمک می‌کند بقیه ما را پیدا کنند
-- 💵 **[حامی ما شوید](https://github.com/sponsors/OneUptime)** — هر دلار، قابلیت‌های تازه‌ای را به سرانجام می‌رساند
-- 🛍️ **[از فروشگاه ما خرید کنید](https://shop.oneuptime.com)** — همه درآمد صرف توسعه متن‌باز می‌شود
-
----
-
-## 📄 مجوز
-
-OneUptime تحت [مجوز Apache نسخه ۲.۰](/LICENSE) متن‌باز است، به‌جز پوشه [`ee/`](/ee). این پوشه نسخه سازمانی (Enterprise Edition) را در بر دارد و تحت [OneUptime Enterprise License](/ee/LICENSE) منتشر شده است. ایمیج نسخه انجمنی هیچ کدی از `ee/` ندارد. فایل [`LICENSE`](/LICENSE) در ریشه مخزن این تقسیم را مشخص می‌کند.
-
-<div align="center">
-  <sub>ساخته‌شده با ❤️ توسط تیم <a href="https://oneuptime.com">OneUptime</a> و <a href="https://github.com/OneUptime/oneuptime/graphs/contributors">مشارکت‌کنندگان</a>.</sub>
-</div>
+‏OneUptime تحت [مجوز Apache نسخه ۲.۰](/LICENSE) متن‌باز است، به‌جز پوشه [`ee/`](/ee)‎. این پوشه Enterprise Edition را در بر دارد و تحت [OneUptime Enterprise License](/ee/LICENSE) منتشر شده است. ایمیج Community Edition هیچ کدی از `ee/`‎ ندارد. فایل [`LICENSE`](/LICENSE) در ریشه مخزن این تقسیم را مشخص می‌کند.

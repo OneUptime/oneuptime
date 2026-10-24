@@ -25,7 +25,10 @@ const DASHBOARD_SRC: string = path.join(
   "src",
 );
 
-// The whole folder: a file added to it is checked without a list.
+/*
+ * The whole folder, its subfolders too (the Meraki side, issue #5140): a
+ * file added anywhere under it is checked without a list.
+ */
 const FOLDERS: Array<string> = ["Components/NetworkTraffic"];
 
 // The pages that draw it.
@@ -58,16 +61,25 @@ function readCode(relativePath: string): string {
     .replace(WHITESPACE, " ");
 }
 
+function addFolder(modules: Map<string, string>, folder: string): void {
+  for (const entry of fs.readdirSync(path.join(DASHBOARD_SRC, folder), {
+    withFileTypes: true,
+  })) {
+    const relativePath: string = `${folder}/${entry.name}`;
+
+    if (entry.isDirectory()) {
+      addFolder(modules, relativePath);
+    } else if (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")) {
+      modules.set(relativePath, readCode(relativePath));
+    }
+  }
+}
+
 function getModules(): Map<string, string> {
   const modules: Map<string, string> = new Map();
 
   for (const folder of FOLDERS) {
-    for (const name of fs.readdirSync(path.join(DASHBOARD_SRC, folder))) {
-      if (name.endsWith(".ts") || name.endsWith(".tsx")) {
-        const relativePath: string = `${folder}/${name}`;
-        modules.set(relativePath, readCode(relativePath));
-      }
-    }
+    addFolder(modules, folder);
   }
 
   for (const file of FILES) {
@@ -193,6 +205,13 @@ describe("the Traffic pages in the dark theme", () => {
         "Components/NetworkTraffic/TrafficSourcesCard.tsx",
         "Components/NetworkTraffic/TrafficOverTimeChart.tsx",
         "Pages/NetworkDevice/Traffic.tsx",
+        // The Meraki side, its connect dialog and its connections.
+        "Components/NetworkTraffic/Meraki/MerakiTrafficView.tsx",
+        "Components/NetworkTraffic/Meraki/MerakiConnectModal.tsx",
+        "Components/NetworkTraffic/Meraki/MerakiConnectionsCard.tsx",
+        "Components/NetworkTraffic/Meraki/MerakiConnectionEditModal.tsx",
+        "Components/NetworkTraffic/Meraki/MerakiTestResultPanel.tsx",
+        "Components/NetworkTraffic/Meraki/MerakiWords.ts",
       ]),
     );
   });

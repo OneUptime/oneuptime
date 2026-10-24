@@ -90,6 +90,11 @@ const TrafficTile: FunctionComponent<TileProps> = (
 export interface ComponentProps {
   summary: NetworkTrafficSummary;
   windowSeconds: number;
+  /*
+   * What the tiles' (i) say, when the numbers are not flow records' - the
+   * Meraki side of a page, whose traffic is its appliances' uplinks.
+   */
+  help?: Partial<typeof TILE_HELP> | undefined;
 }
 
 const TrafficSummaryTiles: FunctionComponent<ComponentProps> = (
@@ -97,6 +102,7 @@ const TrafficSummaryTiles: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const summary: NetworkTrafficSummary = props.summary;
+  const help: typeof TILE_HELP = { ...TILE_HELP, ...(props.help || {}) };
 
   return (
     <div>
@@ -107,7 +113,7 @@ const TrafficSummaryTiles: FunctionComponent<ComponentProps> = (
         <TrafficTile
           label="Traffic"
           value={formatTrafficBytes(summary.totals.octets)}
-          help={TILE_HELP.traffic}
+          help={help.traffic}
           icon={IconProp.ArrowUpDown}
           tone="bg-indigo-50 text-indigo-600"
           dataTestId="traffic-tile-total"
@@ -117,7 +123,7 @@ const TrafficSummaryTiles: FunctionComponent<ComponentProps> = (
           value={formatBitsPerSecond(
             getBitsPerSecond(summary.totals.octets, props.windowSeconds),
           )}
-          help={TILE_HELP.average}
+          help={help.average}
           icon={IconProp.Gauge}
           tone="bg-sky-50 text-sky-600"
           dataTestId="traffic-tile-average"
@@ -127,7 +133,7 @@ const TrafficSummaryTiles: FunctionComponent<ComponentProps> = (
           value={formatBitsPerSecond(
             getPeakBitsPerSecond(summary.series, summary.bucketSeconds),
           )}
-          help={TILE_HELP.peak}
+          help={help.peak}
           icon={IconProp.Bolt}
           tone="bg-amber-50 text-amber-600"
           dataTestId="traffic-tile-peak"
@@ -135,7 +141,7 @@ const TrafficSummaryTiles: FunctionComponent<ComponentProps> = (
         <TrafficTile
           label="Flows"
           value={translator.formatNumber(summary.totals.flows)}
-          help={TILE_HELP.flows}
+          help={help.flows}
           icon={IconProp.FlowDiagram}
           tone="bg-emerald-50 text-emerald-600"
           dataTestId="traffic-tile-flows"

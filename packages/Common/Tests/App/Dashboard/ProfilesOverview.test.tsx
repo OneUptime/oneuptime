@@ -829,7 +829,7 @@ describe("Fix with AI", () => {
     const strip: HTMLElement = await screen.findByTestId("profiles-fix");
 
     expect(within(strip).getByTestId("profiles-fix-connect")).toHaveTextContent(
-      "Connect GitHub to fix this with AI",
+      "Connect a repository to fix this with AI",
     );
     expect(within(strip).queryByTestId("profiles-fix-with-ai")).toBeNull();
   });

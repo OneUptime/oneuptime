@@ -30,7 +30,9 @@ import DiscoveredResourceUpdate, {
   MatchColumn,
   matchedOnIdentifier,
 } from "../Utils/Telemetry/DiscoveredResourceUpdate";
-import ResourceHeartbeat from "../Utils/Telemetry/ResourceHeartbeat";
+import ResourceHeartbeat, {
+  ResourceHeartbeatResult,
+} from "../Utils/Telemetry/ResourceHeartbeat";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
 import OneUptimeDate from "../../Types/Date";
@@ -235,7 +237,7 @@ export class Service extends ProjectReferencesService<Model> {
       osVersion?: string | undefined;
       agentVersion?: string | undefined;
     },
-  ): Promise<void> {
+  ): Promise<ResourceHeartbeatResult> {
     const extrasFingerprint: string = crypto
       .createHash("sha1")
       .update(
@@ -272,7 +274,7 @@ export class Service extends ProjectReferencesService<Model> {
      * ResourceHeartbeat — see there for why this row's throttle used to
      * provide no throttling at all.
      */
-    await ResourceHeartbeat.write({
+    return await ResourceHeartbeat.write({
       service: this,
       id: hostId,
       cacheNamespace: LAST_SEEN_CACHE_NAMESPACE,

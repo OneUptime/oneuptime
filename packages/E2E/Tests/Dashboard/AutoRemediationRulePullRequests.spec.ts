@@ -25,10 +25,15 @@ import {
  *  - Alerts → AI → Settings and Incidents → AI → Settings draw no pull
  *    request switch: fixing is one switch, and turning it on saves it
  *    alone;
- *  - an auto remediation rule holds the two pull requests, both on unless
- *    a write says otherwise, and the code repositories it names (none:
- *    every connected one); a write turns one off, and it stays off;
- *  - an investigation rule names its code repositories the same way.
+ *  - an AI rule - the auto remediation rule it was - holds the two pull
+ *    requests, both on unless a write says otherwise, and the code
+ *    repositories it names (none: every connected one); a write turns one
+ *    off, and it stays off;
+ *  - a rule that only investigates, what an investigation rule was, names
+ *    its code repositories the same way; an API client that says nothing of
+ *    what a rule does gets one that fixes and does not investigate, as an
+ *    auto remediation rule did, and the investigation rules' old route
+ *    answers 410 Gone, naming the AI rule resource.
  *
  * Nothing here needs an LLM provider: no investigation runs. Whether a pull
  * request then opens is the server's rule, covered by the Common suites
@@ -77,12 +82,14 @@ const switchTestId: (column: string) => string = (column: string): string => {
 
 interface StoredRule {
   _id?: string;
+  investigates?: boolean;
+  fixes?: boolean;
   openCodeFixPullRequests?: boolean;
   openTelemetryPullRequests?: boolean;
   codeRepositories?: Array<unknown>;
 }
 
-test.describe("fix pull requests are each auto remediation rule's", () => {
+test.describe("fix pull requests are each AI rule's", () => {
   let page: Page;
   let projectId: string = "";
 
@@ -125,11 +132,11 @@ test.describe("fix pull requests are each auto remediation rule's", () => {
 
   // A rule of the lane's kind, created as the API is sent one.
   const createRule: (data: {
-    path: "auto-remediation-rule" | "ai-investigation-rule";
+    path: "auto-remediation-rule";
     lane: Lane;
     fields?: Record<string, unknown>;
   }) => Promise<string> = async (data: {
-    path: "auto-remediation-rule" | "ai-investigation-rule";
+    path: "auto-remediation-rule";
     lane: Lane;
     fields?: Record<string, unknown>;
   }): Promise<string> => {
@@ -156,11 +163,11 @@ test.describe("fix pull requests are each auto remediation rule's", () => {
   };
 
   const readRule: (data: {
-    path: "auto-remediation-rule" | "ai-investigation-rule";
+    path: "auto-remediation-rule";
     id: string;
     select: Record<string, unknown>;
   }) => Promise<StoredRule> = async (data: {
-    path: "auto-remediation-rule" | "ai-investigation-rule";
+    path: "auto-remediation-rule";
     id: string;
     select: Record<string, unknown>;
   }): Promise<StoredRule> => {
@@ -228,7 +235,7 @@ test.describe("fix pull requests are each auto remediation rule's", () => {
     }
   });
 
-  test("an auto remediation rule opens both pull requests, in every connected repository, unless it says otherwise", async () => {
+  test("an AI rule opens both pull requests, in every connected repository, unless it says otherwise", async () => {
     for (const lane of [INCIDENTS, ALERTS]) {
       const id: string = await createRule({
         path: "auto-remediation-rule",
@@ -296,19 +303,63 @@ test.describe("fix pull requests are each auto remediation rule's", () => {
     });
   });
 
-  test("an investigation rule names no code repository unless it says so: it reads every connected one", async () => {
+  test("a rule that only investigates names no code repository unless it says so: it reads every connected one", async () => {
     const id: string = await createRule({
-      path: "ai-investigation-rule",
+      path: "auto-remediation-rule",
       lane: ALERTS,
+      fields: { investigates: true, fixes: false },
     });
 
     const stored: StoredRule = await readRule({
-      path: "ai-investigation-rule",
+      path: "auto-remediation-rule",
       id,
-      select: { codeRepositories: { _id: true } },
+      select: {
+        investigates: true,
+        fixes: true,
+        codeRepositories: { _id: true },
+      },
     });
 
+    expect(stored.investigates).toBe(true);
+    expect(stored.fixes).toBe(false);
     expect(stored.codeRepositories || []).toEqual([]);
+  });
+
+  test("a rule an API client makes without saying what it does fixes, and does not investigate, as an auto remediation rule did", async () => {
+    const id: string = await createRule({
+      path: "auto-remediation-rule",
+      lane: INCIDENTS,
+    });
+
+    expect(
+      await readRule({
+        path: "auto-remediation-rule",
+        id,
+        select: { investigates: true, fixes: true },
+      }),
+    ).toMatchObject({ investigates: false, fixes: true });
+  });
+
+  test("the investigation rules' old route answers 410 Gone, naming the AI rule resource", async () => {
+    const response: APIResponse = await page.request.post(
+      urlFor("/api/ai-investigation-rule"),
+      {
+        headers: { tenantid: projectId },
+        data: {
+          data: {
+            projectId,
+            name: "E2E old investigation rule",
+            isEnabled: true,
+            triggerEntityType: ALERTS.trigger,
+          },
+        },
+      },
+    );
+
+    expect(response.status()).toBe(410);
+    const answer: string = await response.text();
+    expect(answer).toContain("/api/auto-remediation-rule");
+    expect(answer).toContain("oneuptime_ai_rule");
   });
 
   test("a rule cannot name a code repository of another project", async () => {

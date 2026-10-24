@@ -217,7 +217,7 @@ export default class GitHubCommandAuthorizer {
         outcome: GitHubAuthorizationOutcome.CommandsDisabled,
         codeRepository: codeRepository,
         reason:
-          "GitHub commands are switched off for this repository. A project admin can turn them back on in OneUptime under Code → this repository → Settings.",
+          "GitHub commands are switched off for this repository. A project admin can turn them back on in OneUptime under Code → this repository → Settings → More settings.",
       };
     }
 

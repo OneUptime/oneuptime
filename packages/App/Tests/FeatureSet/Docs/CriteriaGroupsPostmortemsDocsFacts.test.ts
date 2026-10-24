@@ -2949,7 +2949,7 @@ describe("which resolved incidents get a draft, and the template it follows", ()
     );
   });
 
-  it("matches as an investigation rule does, with the conditions builder's two answers", () => {
+  it("matches as an AI rule does, with the conditions builder's two answers", () => {
     const subject: RuleCriteriaSubject | null =
       getRuleCriteriaSubjectForModel("AIPostmortemRule");
     const fields: ReadonlyArray<string> =
@@ -2965,18 +2965,24 @@ describe("which resolved incidents get a draft, and the template it follows", ()
       "descriptionPattern",
     ]);
 
-    // An investigation rule's incident fields, every one of them.
+    /*
+     * An AI rule's incident fields, every one of them (the AI rules hold
+     * the investigation rules now).
+     */
     for (const field of fields) {
-      expect(RULE_CRITERIA_FIELDS_BY_MODEL["AIInvestigationRule"]).toContain(
+      expect(RULE_CRITERIA_FIELDS_BY_MODEL["AutoRemediationRule"]).toContain(
         field,
       );
     }
+    expect(
+      RULE_CRITERIA_FIELDS_BY_MODEL["AIInvestigationRule"],
+    ).toBeUndefined();
 
     expect(POSTMORTEM_RULES_PLAN).toContain(
       "await IncidentAlertRuleMatcher.doesIncidentMatch(",
     );
     expect(rules).toContain(
-      `- A rule matches **${RULE_CRITERIA_SUBJECT_COPY[RuleCriteriaSubject.Incidents].all}**, or **${RULE_CRITERIA_SUBJECT_COPY[RuleCriteriaSubject.Incidents].matching}** on monitors, severities, labels, monitor labels, title and description, as an investigation rule does.`,
+      `- A rule matches **${RULE_CRITERIA_SUBJECT_COPY[RuleCriteriaSubject.Incidents].all}**, or **${RULE_CRITERIA_SUBJECT_COPY[RuleCriteriaSubject.Incidents].matching}** on monitors, severities, labels, monitor labels, title and description, as an AI rule does.`,
     );
   });
 

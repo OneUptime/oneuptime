@@ -223,13 +223,18 @@ jobs:
           # subtree, continuing a walk, Collect, Alert on it, Copy OID and why
           # a walk failed - at 1280 and 390 pixels, dark, Japanese and German)
           # joined it on 2026-10-23, the group with the most room once Event
-          # Overview ran in halves: about 15.
+          # Overview ran in halves: about 15. Asset Details (about 40 seconds
+          # locally with its bundle, Chromium only: where each asset detail
+          # came from on Inventory's Asset Details card and a device's
+          # Inventory card, at 1280 and 390 pixels, dark, Japanese and German)
+          # joined them the same day: about 16.
           - group: 1
             browsers: chromium
             event_overview_shard: 1/2
             suites: >-
               test-event-overview-ui
               test-snmp-walk-ui
+              test-asset-details-ui
           # The Alerts suite also runs in Firefox, and so do Code Editor (the
           # editor's text layers must line up in both) and Diagrams. Diagrams
           # and Navigation Search (about 8 minutes together) moved here from
@@ -449,7 +454,17 @@ jobs:
           # the eight. Security Events Empty States (about 3 minutes, Chromium
           # only) moved here from group 3 later that day, when this group took
           # 15 to 17 minutes: about 20 for the nine. Code moved on to group 9
-          # when this group took 22.6 minutes on the next run.
+          # when this group took 22.6 minutes on the next run: about 16 for
+          # the eight. Meraki Traffic (about 2.5 minutes with its bundle
+          # locally, Chromium only: Network > Traffic's Meraki side - Connect
+          # Meraki, the first read filling the page in, an organization's
+          # traffic, the Flows | Meraki switch, a refused and a revoked key and
+          # a large organization read in part - at 1280 and 390 pixels, dark
+          # and German) joined them on 2026-10-24: about 18.5 for the nine.
+          # Its UI review added a device's and a site's pages, each
+          # connection's one button, a stale connection, a member and the
+          # offer at a flows page's foot the same day (2.2 minutes for its 40
+          # tests locally, from 1.3): about 19.5 for the nine.
           - group: 8
             browsers: chromium
             suites: >-
@@ -461,6 +476,7 @@ jobs:
               test-security-operations-ui
               test-public-addresses-ui
               test-security-events-empty-states-ui
+              test-meraki-traffic-ui
           # Added on 2026-10-21, when every group took 20 to 26 minutes on one
           # run (groups 1 and 5 near 25) and Resource Topology would have
           # taken group 7 past 22: Code (6.4 minutes on that run, a laptop
@@ -667,6 +683,8 @@ jobs:
             output/playwright/runbook-steps-ui/test-results
             output/playwright/network-first-run-ui/*.png
             output/playwright/network-first-run-ui/test-results
+            output/playwright/meraki-traffic-ui/*.png
+            output/playwright/meraki-traffic-ui/test-results
             output/playwright/code-ui/*.png
             output/playwright/code-ui/test-results
             output/playwright/infrastructure-first-run-ui/*.png
@@ -722,4 +740,6 @@ jobs:
             output/playwright/kubernetes-events-ui/test-results
             output/playwright/snmp-walk-ui/*.png
             output/playwright/snmp-walk-ui/test-results
+            output/playwright/asset-details-ui/*.png
+            output/playwright/asset-details-ui/test-results
           retention-days: 7

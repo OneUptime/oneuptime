@@ -210,7 +210,7 @@ You do not have permissions to create Incident Internal Note. It is read through
 
 #### 保存凭据的设置
 
-保存凭据的设置——SMTP 服务器、电话和短信提供商、SNMP 凭据、视频通话连接、API 密钥、外部 MCP 服务器——只能由可以读取该类设置的调用方指定：状态页面的 `smtpConfig` 和 `callSmsConfig`、来电策略的 `projectCallSMSConfig`、网络设备或站点的 `snmpCredentialProfile`、事件或警报的视频通话 `videoCallConnection`、API 密钥权限的 `apiKey`，以及调查规则或自动补救规则的 `externalMcpServers`。在没有读取该类设置的权限时指定其中之一——或使用被不带标签的阻止所移除的权限——无论用哪个名称，都会以同样的 `400` 被拒绝；保留记录已指定的设置的更改不会被检查。来电策略的号码搜索和已拥有号码列表，需要对其所指定的电话和短信配置有同样的读取权限。
+保存凭据的设置——SMTP 服务器、电话和短信提供商、SNMP 凭据、视频通话连接、API 密钥、外部 MCP 服务器——只能由可以读取该类设置的调用方指定：状态页面的 `smtpConfig` 和 `callSmsConfig`、来电策略的 `projectCallSMSConfig`、网络设备或站点的 `snmpCredentialProfile`、事件或警报的视频通话 `videoCallConnection`、API 密钥权限的 `apiKey`，以及 AI 规则的 `externalMcpServers`。在没有读取该类设置的权限时指定其中之一——或使用被不带标签的阻止所移除的权限——无论用哪个名称，都会以同样的 `400` 被拒绝；保留记录已指定的设置的更改不会被检查。来电策略的号码搜索和已拥有号码列表，需要对其所指定的电话和短信配置有同样的读取权限。
 
 #### 创建时的标签和所有者
 

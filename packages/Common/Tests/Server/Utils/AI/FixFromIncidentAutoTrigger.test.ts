@@ -239,7 +239,7 @@ describe("FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask", () => {
     ).toBe(false);
   });
 
-  test("with no auto remediation rule, it enqueues - in any connected repository", () => {
+  test("with no AI rule, it enqueues - in any connected repository", () => {
     const decision: AutoFixTaskGateDecision =
       FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask({
         project: fakeProject(),
@@ -290,7 +290,7 @@ describe("FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask", () => {
 
     expect(decision.enqueue).toBe(false);
     expect(decision.reason).toBe(
-      "no auto remediation rule matches this incident, so it is not fixed",
+      "no AI rule that fixes matches this incident, so it is not fixed",
     );
   });
 
@@ -309,7 +309,7 @@ describe("FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask", () => {
 
     expect(decision.enqueue).toBe(false);
     expect(decision.reason).toBe(
-      "the auto remediation rules that match this alert have fix pull requests off",
+      "the AI rules that match this alert have fix pull requests off",
     );
   });
 
@@ -364,7 +364,7 @@ describe("FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask", () => {
     expect(decision.reason).toMatch(/exactly one/);
   });
 
-  test("does not enqueue without a GitHub-App-connected repository the rules allow", () => {
+  test("does not enqueue without a connected repository the rules allow", () => {
     const decision: AutoFixTaskGateDecision =
       FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask({
         project: fakeProject(),
@@ -376,7 +376,7 @@ describe("FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask", () => {
 
     expect(decision.enqueue).toBe(false);
     expect(decision.reason).toBe(
-      "project has no GitHub-App-connected repository the auto remediation rules allow",
+      "project has no connected repository the AI rules allow",
     );
   });
 
@@ -430,7 +430,7 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation", (
         runsToday: 0,
       });
     hasRepository = jest
-      .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
       .mockResolvedValue(true);
     findNonTerminalRun = jest
       .spyOn(SubjectCodeFixRun, "findNonTerminalRunForSubject")
@@ -438,7 +438,7 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation", (
     enqueue = jest
       .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
       .mockResolvedValue(fakeRun());
-    // No auto remediation rule by default: every subject's PR may open.
+    // No AI rule by default: every subject's PR may open.
     getRules = jest
       .spyOn(RemediationRulePullRequests, "getRulesForSignal")
       .mockResolvedValue(NO_RULES);
@@ -879,7 +879,7 @@ describe("FixFromIncidentTaskTrigger and the LLM provider the rules pick", () =>
       runsToday: 0,
     });
     jest
-      .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
       .mockResolvedValue(true);
     jest
       .spyOn(SubjectCodeFixRun, "findNonTerminalRunForSubject")

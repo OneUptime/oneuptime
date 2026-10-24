@@ -1484,7 +1484,7 @@ describe("Code's Repositories", () => {
     expect(gets[0]?.endsWith("/github/install-url")).toBe(true);
   });
 
-  test("Connect repositories, in the list's header, starts GitHub's install; its ⋯ reads the list again", async () => {
+  test("Connect repositories, in the list's header, asks where the code is - GitHub starts its install; its ⋯ reads the list again", async () => {
     const gets: Array<string> = answersInstallUrl();
     getRepositoriesMock.mockResolvedValue({
       repositories: [CHECKOUT],
@@ -1497,6 +1497,31 @@ describe("Code's Repositories", () => {
 
     fireEvent.click(
       screen.getByRole("button", { name: "Connect repositories" }),
+    );
+
+    /*
+     * Where is your code? GitHub, GitLab, Forgejo or Gitea, any Git server
+     * - and GitHub, picked, hands over to the GitHub App's install.
+     */
+    const dialog: HTMLElement = await screen.findByTestId(
+      "code-connect-dialog",
+    );
+    expect(dialog).toHaveAttribute("data-step", "choose");
+    expect(
+      within(dialog)
+        .getAllByTestId("code-host-choice")
+        .map((tile: HTMLElement): string | null => {
+          return tile.getAttribute("data-provider");
+        }),
+    ).toEqual(["GitHub", "GitLab", "Forgejo", "Git"]);
+    expect(navigateMock).not.toHaveBeenCalled();
+
+    fireEvent.click(
+      within(dialog)
+        .getAllByTestId("code-host-choice")
+        .find((tile: HTMLElement): boolean => {
+          return tile.getAttribute("data-provider") === "GitHub";
+        })!,
     );
 
     await waitFor(() => {
@@ -2537,6 +2562,39 @@ describe("a task's conversation", () => {
       await Promise.resolve();
     });
     expect(getTaskMock).toHaveBeenCalledTimes(2);
+  });
+
+  /*
+   * Queued for long, the turn says to check the repository's Runner in its
+   * settings: the link lands on the Runner, folded under More settings,
+   * which opens there.
+   */
+  test("queued for long: the way to check its Runner opens the repository's settings at the Runner", async () => {
+    getTaskMock.mockResolvedValue(
+      taskAnswer({
+        task: summary({ state: CodeTaskState.Working, isQueued: true }),
+        turns: [
+          turn({
+            status: AIRunStatus.Queued,
+            state: CodeTaskState.Working,
+            startedAt: undefined,
+            completedAt: undefined,
+            createdAt: new Date(Date.now() - 12 * 60000).toISOString(),
+          }),
+        ],
+      }) as never,
+    );
+
+    draw(<CodeTaskConversation {...PAGE_PROPS} />);
+
+    const slow: HTMLElement = await screen.findByTestId("code-turn-slow-queue");
+
+    expect(
+      within(slow).getByRole("link", { name: "Settings" }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/settings#runner`,
+    );
   });
 
   test("a reader who may only read: no Stop while AI works, and no box after", async () => {

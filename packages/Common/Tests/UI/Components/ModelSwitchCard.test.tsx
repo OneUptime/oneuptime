@@ -144,6 +144,36 @@ function getItemCall(index: number = 0): GetItemCall {
   return getItemMock.mock.calls[index]![0] as GetItemCall;
 }
 
+/*
+ * A switch card can be a place on its page (`cardId`, Card's `id`): a link
+ * naming it after the address's "#" lands on the switch - a repository's
+ * GitHub Commands, folded under More settings, at ".../settings#github-
+ * commands" - and More settings opens there.
+ */
+describe("ModelSwitchCard's place on its page", () => {
+  test("its card carries the id it is given, round the switch, from before its read is in", async () => {
+    stored = { enableMcpServer: true };
+
+    render(mcpCard({ cardId: "mcp-server" }));
+
+    // The place is there while the switch is read.
+    const card: HTMLElement = screen.getByTestId("card");
+    expect(card).toHaveAttribute("id", "mcp-server");
+
+    const control: HTMLElement = await loaded();
+    expect(document.getElementById("mcp-server")).toContainElement(control);
+  });
+
+  test("with none, its card has no id", async () => {
+    stored = { enableMcpServer: true };
+
+    render(mcpCard());
+    await loaded();
+
+    expect(screen.getByTestId("card")).not.toHaveAttribute("id");
+  });
+});
+
 describe("ModelSwitchCard reads its column", () => {
   test("it is a card with its title and line, then the switch", async () => {
     stored = { enableMcpServer: true };

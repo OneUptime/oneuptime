@@ -4,6 +4,7 @@ import CodeApi, {
 } from "../../../Components/Code/CodeApi";
 import { CODE_COLUMN_CLASS_NAME } from "../../../Components/Code/CodeAskBox";
 import { getRepositorySettingsRoute } from "../../../Components/Code/CodePaths";
+import { CodeRepositorySetting } from "../../../Components/Code/CodeRepositorySettingsCopy";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -13,6 +14,10 @@ import {
 } from "../../../Components/Code/CodeProductionReviewCopy";
 import CodeTaskList from "../../../Components/Code/CodeTaskList";
 import { CodeTaskListKind } from "Common/Types/AI/CodeTask";
+import {
+  CodeHost,
+  CodeHostCapability,
+} from "Common/Types/CodeRepository/CodeHost";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -90,6 +95,32 @@ const CodeRepositoryProductionReviews: FunctionComponent<
     return <PageLoader isVisible={true} />;
   }
 
+  /*
+   * A repository on GitLab, Forgejo, Gitea or a Git server: the GitHub App
+   * reviews pull requests, so this one has none - said plainly, with
+   * nothing to turn on (its menu does not offer the page; an address can).
+   */
+  if (
+    !CodeHost.can(
+      repository.repository.provider,
+      CodeHostCapability.ProductionReview,
+    )
+  ) {
+    return (
+      <div
+        data-testid={CODE_PRODUCTION_REVIEWS_TEST_ID}
+        className={`${CODE_COLUMN_CLASS_NAME} pb-10`}
+      >
+        <p
+          data-testid="code-production-reviews-github-only"
+          className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm leading-6 text-gray-700 shadow-sm"
+        >
+          {translator.translateText(PRODUCTION_REVIEW_COPY.gitHubOnly)}
+        </p>
+      </div>
+    );
+  }
+
   const isOn: boolean =
     repository.repository.isProductionReviewEnabled === true;
   /*
@@ -113,10 +144,16 @@ const CodeRepositoryProductionReviews: FunctionComponent<
       {getProductionReviewCommand()}
     </code>
   );
-  // Off, the one thing to do is to turn it on.
+  /*
+   * Off, the one thing to do is to turn it on. Either way the link lands
+   * on the switch itself, with More settings, where it is, open.
+   */
   const settingsLink: ReactElement = (
     <Link
-      to={getRepositorySettingsRoute(repositoryId)}
+      to={getRepositorySettingsRoute(
+        repositoryId,
+        CodeRepositorySetting.ProductionReview,
+      )}
       dataTestId="code-production-reviews-settings"
       className="font-medium text-indigo-600 hover:text-indigo-500"
     >

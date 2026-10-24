@@ -11,6 +11,7 @@
     "Agent",
     "Alarm",
     "App",
+    "Appliance {{appliance}}",
     "CPU Ready {{percent}}",
     "CloudWatch Metric Streams",
     "Container {{container}}: {{reason}}",
@@ -23,6 +24,7 @@
     "Gemini for Google Workspace",
     "Goroutines",
     "ICMP (ping)",
+    "Merge request !{{number}}",
     "Null",
     "Object Gateway",
     "Object Gateways",
@@ -54,6 +56,7 @@
     "{{count}} KB",
     "{{count}} MB",
     "{{count}} alarm",
+    "{{count}} appliance",
     "{{count}} repository",
     "{{count}} samples",
     "{{tokens}} tokens"

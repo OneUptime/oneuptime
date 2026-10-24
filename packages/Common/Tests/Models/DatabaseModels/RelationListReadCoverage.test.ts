@@ -369,6 +369,8 @@ const CREDENTIAL_SETTINGS: Record<string, string> = {
     "A security tool's key (a Google SecOps service account, an API token): a threat-intel feed that names one reads that tool's indicators with it.",
   LlmProvider:
     "An LLM provider's API key: an investigation, auto remediation or postmortem rule that names one has OneUptime AI do the work it starts with that provider, on that key.",
+  CodeRepositoryConnection:
+    "A Git server's access token or password (GitLab, Forgejo, Gitea, any Git server): a code repository that names one is read, cloned and pushed to with it, and its pull requests opened.",
 };
 
 // The references to them, each held to the read of the table it names.
@@ -384,7 +386,6 @@ const CREDENTIAL_REFERENCES: Array<[string, string, string]> = [
   // A custom role given to a key: the key holds what the role gives.
   ["ApiKeyCustomRole", "apiKey", "ApiKey"],
   ["ThreatIntelFeed", "securityEventConnection", "SecurityEventConnection"],
-  ["AIInvestigationRule", "llmProvider", "LlmProvider"],
   ["AutoRemediationRule", "llmProvider", "LlmProvider"],
   ["AIPostmortemRule", "llmProvider", "LlmProvider"],
 ];

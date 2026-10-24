@@ -58,7 +58,7 @@ Incoming Webhook や Teams のワークフロー URL は、このボットのメ
 **Register** を選択し、2 つ目の Web リダイレクト URI として `https://your-oneuptime-domain.com/api/microsoft-teams/admin-consent/callback` を追加します。**Application (client) ID** と **Directory (tenant) ID** を控えておいてください。どちらも後で必要になります。
 
 > [!NOTE]
-> **シングルテナントにする理由:** セルフホストの OneUptime は 1 つの組織にサービスを提供し、そのボットは `MICROSOFT_TEAMS_APP_TENANT_ID` (ステップ 6) で設定した 1 つのテナント用に登録されます。アプリをマルチテナントとして登録しても対象は広がらず、失敗の原因が 1 つ増えるだけです。ホームの Microsoft テナントがあなたのテナントと異なるゲスト / B2B ユーザーは自分のテナント ID でボットにアクセスし、OneUptime はそれをあなたのプロジェクトに対応付けられません。すでにマルチテナントのアプリを登録している場合もそのまま動作します。`MICROSOFT_TEAMS_APP_TENANT_ID` が自分のテナントであることを確認し、ゲストアカウントがボットを使うにはあなたのテナントのアカウントが必要になると考えてください。
+> **シングルテナントにする理由:** セルフホストの OneUptime は 1 つの組織にサービスを提供し、全員をその組織のテナントにサインインさせます。同意を付与する管理者も、**自分のアカウントを Microsoft Teams に接続** を選ぶ各ユーザーも同じです。組織のゲストは、Teams がそのゲストに使うゲストアカウントでサインインします。マルチテナントのアプリでも同じように動作しますが、シングルテナントならアプリを自分の組織に限定できます。
 
 ### ステップ 2: アプリのアクセス許可を設定する
 
@@ -193,7 +193,7 @@ Microsoft Teams で **Apps > Manage your apps** を開き、**Upload an app**、
 | --- | --- | --- |
 | `MICROSOFT_TEAMS_APP_CLIENT_ID` | `microsoftTeamsApp.clientId` | **Application (client) ID**。Teams アプリパッケージのボット ID でもあるため、GUID でなければなりません。 |
 | `MICROSOFT_TEAMS_APP_CLIENT_SECRET` | `microsoftTeamsApp.clientSecret` | クライアントシークレットの **Value** (ID ではありません)。 |
-| `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | **Directory (tenant) ID**。ボットはこのテナントでシングルテナントアプリとして認証します。 |
+| `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | **Directory (tenant) ID**。ボットはこのテナントでシングルテナントアプリとして認証し、ユーザーは Microsoft Teams アカウントを接続するときにこのテナントにサインインします。 |
 | `HOST` | `host` | 公開ホスト名。リダイレクト URI、メッセージングエンドポイント、Teams アプリパッケージはこれをもとに組み立てられます。 |
 | `HTTP_PROTOCOL` | `httpProtocol` | `https`。Azure Bot Service は HTTPS のエンドポイントしか呼び出しません。 |
 
@@ -320,7 +320,7 @@ Teams で名前の付いていないグループチャットは、仕様どお�
 curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test | jq
 ```
 
-これは OneUptime がローカルで確認できる内容を報告します。`MICROSOFT_TEAMS_APP_CLIENT_ID` と `MICROSOFT_TEAMS_APP_CLIENT_SECRET` が設定されているか、このデプロイが想定しているメッセージングエンドポイント、そして最も役に立つ、Teams アプリパッケージに入っていなければならない **ボット ID** です。
+これは OneUptime がローカルで確認できる内容を報告します。`MICROSOFT_TEAMS_APP_CLIENT_ID`、`MICROSOFT_TEAMS_APP_CLIENT_SECRET`、`MICROSOFT_TEAMS_APP_TENANT_ID` が設定されているか、アカウントを接続するときにユーザーがサインインするテナント、このデプロイが想定しているメッセージングエンドポイント、そして最も役に立つ、Teams アプリパッケージに入っていなければならない **ボット ID** です。
 
 読み取るのは環境変数だけです。Azure を呼び出さないため、Azure Bot リソースが存在するか、そのメッセージングエンドポイントがここを指しているか、Teams チャネルが有効か、シークレットがまだ有効か、Azure が到達できるかはわかりません。応答自体が、確認したことと確認していないことを一覧にして、そのことを伝えます。ゴーサインと誤解されないようにするためです。
 
@@ -389,7 +389,15 @@ Microsoft から戻ってきたのに接続されていなかった場合 (管�
 | **"Microsoft Teams で接続ボタンを押した人とは別の人として Microsoft にサインインしたため、何も接続されませんでした。"** | **Connect Microsoft Teams account** ボタンは、それを押した Microsoft アカウントに対してのみ機能します。自分として Microsoft にサインインするか、ボタンを押した人に押してもらってください。 |
 | **"接続がキャンセルされたため、何も変更されていません。"** | Microsoft で同意が付与されませんでした。最初からやり直し、同意を承認してください。 |
 | **"この OneUptime サーバーでは Microsoft Teams が設定されていません。"** | Microsoft Teams アプリのクライアント ID とシークレットを設定し ([ステップ 6](#ステップ-6-oneuptime-の環境変数を設定する) を参照)、OneUptime を再起動してください。 |
-| **"OneUptime は接続を完了できませんでした。もう一度お試しください。"** | Microsoft がエラーを返したか、完了処理中にリクエストか書き込みが失敗しました。どれが起きたかは OneUptime のサーバーログでわかります。もう一度試し、繰り返し起きる場合はログとアプリ登録の設定を確認してください。 |
+| **"OneUptime は接続を完了できませんでした。もう一度お試しください。"** | Microsoft がエラーを返したか、完了処理中にリクエストか書き込みが失敗しました。どれが起きたかは OneUptime のサーバーログでわかります。もう一度試し、繰り返し起きる場合はログとアプリ登録の設定を確認してください。 Microsoft の応答が `AADSTS50194` だった場合は、[AADSTS50194 でサインインに失敗する](#aadsts50194-でサインインに失敗する) を参照してください。 |
+
+### AADSTS50194 でサインインに失敗する
+
+Microsoft は `AADSTS50194` でサインインを拒否します。アプリが 1 つの組織用に登録されていて、サインインが全組織向けの Microsoft のエンドポイント `/common` に送られた場合です。そのとき Microsoft Teams のページには OneUptime が接続を完了できなかったと表示され、OneUptime のサーバーログに Microsoft の応答が残ります。
+
+- **OneUptime をアップグレードしてください。** 以前のバージョンは **自分のアカウントを Microsoft Teams に接続** を `/common` に送っていたため、ステップ 1 のようなシングルテナントのアプリでは誰もアカウントを接続できませんでした。現在のバージョンはユーザーをあなたのテナントにサインインさせます。
+- **アップグレードできるまでは、** アプリの登録をマルチテナントにします。**Authentication** で **Supported account types** を任意の組織ディレクトリのアカウントに設定します。アプリを自分の組織の人に限定するには、**Enterprise applications** でアプリを開き、**Properties** で **Assignment required?** を Yes にして、OneUptime を使う人を **Users and groups** に追加します。アップグレード後はシングルテナントに戻してください。
+- **現在のバージョンでは、** `MICROSOFT_TEAMS_APP_TENANT_ID` がアプリの **Directory (tenant) ID** に設定されていることを確認してください。まだ接続されていないプロジェクトは、ユーザーをそのテナントにサインインさせます。
 
 この統合をより良くしたいと考えています。ご意見は [hello@oneuptime.com](mailto:hello@oneuptime.com) までお寄せください。
 

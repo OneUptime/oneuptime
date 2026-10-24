@@ -66,7 +66,7 @@ flowchart TB
 | | Verktyg som bara läser | Verktyg som kan ändra något |
 | --- | --- | --- |
 | **Utredningar** | Används, tillsammans med OneUptimes egna data | Används aldrig: OneUptime avvisar anropet |
-| **Åtgärder** | Används för att ta fram åtgärden | Föreslås för godkännande eller används direkt, så som **Godkännande** i regeln för automatisk åtgärd säger |
+| **Åtgärder** | Används för att ta fram åtgärden | Föreslås för godkännande eller används direkt, så som **Åtgärd** i AI-regeln säger |
 
 **I en utredning** listar OneUptime AI verktygen på de servrar den får använda och anropar dem som läser, för att titta på det som OneUptime inte själv ser: ditt molnkonto, en driftsättning, ett ärendesystem. Svaren använder den i sin rotorsaksanalys. Se [AI SRE](/docs/ai/ai-sre).
 
@@ -81,12 +81,12 @@ För att få OneUptime AI att sluta använda en server stänger du av **Låt One
 
 ## Välj de servrar en regel får använda
 
-Utredningsregler och regler för automatisk åtgärd kan var för sig nämna de MCP-servrar som OneUptime AI får använda för det de matchar. Fältet är **MCP-servrar**, under **Fler fält**. Tills du väljer några får OneUptime AI använda alla, och det hopfällda avsnittet säger det.
+Varje AI-regel kan nämna de MCP-servrar som OneUptime AI får använda för det den matchar. Fältet är **MCP-servrar**, under **Fler fält**. Tills du väljer några får OneUptime AI använda alla, och det hopfällda avsnittet säger det.
 
 - **Ingen vald** – alla projektets påslagna servrar.
-- **Några valda** – bara de. På en regel för automatisk åtgärd som åtgärdar utan att fråga är det också att nämna dess servrar som låter OneUptime AI göra deras ändringar utan att fråga.
+- **Några valda** – bara de. På en AI-regel som åtgärdar utan att fråga är det också att nämna dess servrar som låter OneUptime AI göra deras ändringar utan att fråga.
 
-När flera utredningsregler matchar får OneUptime AI använda varje server som någon av dem tillåter; om reglerna inte kan läsas använder utredningen ingen MCP-server alls. Varje matchande regel för automatisk åtgärd tar fram sin egen åtgärd via sina servrar, och de regler som inte nämner någon delar på en åtgärd via alla.
+När flera regler som utreder matchar får OneUptime AI använda varje server som någon av dem tillåter; om reglerna inte kan läsas använder utredningen ingen MCP-server alls. Varje matchande regel som åtgärdar tar fram sin egen åtgärd via sina servrar, och de regler som inte nämner någon delar på en åtgärd via alla.
 
 ## Säkerhet
 

@@ -295,7 +295,7 @@ flowchart TB
 - **處於或越過確認狀態** —— **已確認**，或在 **事件 → 設定 → 事件狀態** 中放在它下面的任何狀態——不會執行任何待命策略，因此不會呼叫任何人。事件仍會列出它的策略，包括你選擇的和待命規則新增的，它的動態會用一行說明原因：_No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ 如果有規則為它設定了 SLA，該 SLA 會以已回應的狀態開始。下文中的其他一切照常執行，和任何新事件一樣。
 - **處於或越過解決狀態** —— **已解決**，或放在它下面的任何狀態——事件已經結束，所以在此基礎上，任何因應進行中事件的東西都不會執行：
   - 它不會被歸入片段，因為那可能會再次呼叫；
-  - 不會有 Runbook 規則或自動補救規則作用於它；
+  - 不會有 Runbook 規則或 AI 規則作用於它；
   - OneUptime AI 不會調查它——它的 **AI Investigation** 卡片會說明它建立時就已解決，而下方的 **Ask OneUptime AI** 仍會回答關於它的問題；
   - 不會為它建立 Slack 或 Microsoft Teams 頻道；
   - 無論 **將監測器狀態變更為** 如何設定，它的監測器都會維持其狀態並繼續被監測；

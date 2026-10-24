@@ -9,6 +9,7 @@ Code est l'endroit où vous demandez à OneUptime AI de travailler dans vos dép
 - [Où démarrent les tâches de correction](#où-démarrent-les-tâches-de-correction): Les tâches que OneUptime lance, et ce que fait chaque pull request.
 - [Télémétrie de production dans une correction](#télémétrie-de-production-dans-une-correction): Ce qu'une correction lit de la production pendant qu'elle écrit la modification.
 - [Revue de production des pull requests](#revue-de-production-des-pull-requests): Ce que la production dit du code que modifie chaque pull request.
+- [Connecter un dépôt](#connecter-un-dépôt): GitHub, GitLab, Forgejo ou Gitea, ou tout serveur Git.
 - [Avant de commencer](#avant-de-commencer): Un modèle, un dépôt connecté et un Runner.
 - [Quand une correction échoue](#quand-une-correction-échoue): Ce qui arrive à une exécution qui échoue, se bloque ou attend.
 :::
@@ -21,7 +22,7 @@ Code est l'endroit où vous demandez à OneUptime AI de travailler dans vos dép
 :::steps
 ### Ouvrir Code
 
-Ouvrez **Produits → Code**. Code s'ouvre sur **Que doit faire l'IA ?** : la zone où vous demandez, avec toutes les tâches en dessous, les plus récentes d'abord. S'il n'y a encore aucun dépôt, Code propose plutôt **Connecter GitHub** (voir [Avant de commencer](#avant-de-commencer)). **Dépôts**, dans son menu latéral, liste les dépôts où l'IA peut travailler, et regroupe sous **Non connecté** ceux que la GitHub App n'atteint plus. La page de chaque dépôt a la même zone pour ce dépôt.
+Ouvrez **Produits → Code**. Code s'ouvre sur **Que doit faire l'IA ?** : la zone où vous demandez, avec toutes les tâches en dessous, les plus récentes d'abord. S'il n'y a encore aucun dépôt, Code propose plutôt **Connecter GitHub**, avec GitLab, Forgejo ou Gitea et tout serveur Git en dessous (voir [Connecter un dépôt](#connecter-un-dépôt)). **Dépôts**, dans son menu latéral, liste les dépôts où l'IA peut travailler, et regroupe sous **Non connecté** ceux que OneUptime n'atteint plus. La page de chaque dépôt a la même zone pour ce dépôt.
 
 ### Choisir le dépôt et la branche
 
@@ -149,7 +150,7 @@ Quand aucun service ne correspond au dépôt, la tâche s'exécute sans télém�
 
 ## Revue de production des pull requests
 
-OneUptime sait ce que fait votre code en production : il peut donc relire une pull request avec ce que personne ne voit en lisant le diff. Activez **Relire les demandes de tirage au regard de la production** sur la page **Paramètres** d'un dépôt dans Code, et chaque pull request qu'une personne ayant l'accès en écriture ouvre ou met à jour reçoit un commentaire qui dit ce que la production montre du code qu'elle modifie. Le commentaire est modifié sur place à chaque push, et la page **Revues de production** du dépôt dans Code garde chaque revue, avec **Relire à nouveau**.
+OneUptime sait ce que fait votre code en production : il peut donc relire une pull request avec ce que personne ne voit en lisant le diff. Activez **Relire les demandes de tirage au regard de la production**, sous **Plus de paramètres** sur la page **Paramètres** d'un dépôt dans Code, et chaque pull request qu'une personne ayant l'accès en écriture ouvre ou met à jour reçoit un commentaire qui dit ce que la production montre du code qu'elle modifie. Le commentaire est modifié sur place à chaque push, et la page **Revues de production** du dépôt dans Code garde chaque revue, avec **Relire à nouveau**.
 
 | Ce qu'elle lit | Du code que modifie la pull request |
 | --- | --- |
@@ -204,6 +205,25 @@ Fusionner un correctif ne corrige rien tant qu'il ne tourne pas. Dès qu'une pul
 
 Tant qu'aucun déploiement ne le livre, le correctif affiche **Fusionné, en attente d'un déploiement**, puis **Déployé, surveillé en production** pendant qu'il est surveillé. Un correctif qu'aucun déploiement enregistré ne contient dans les 14 jours, ou dont la production ne peut rien dire, affiche **Non vérifié en production**. [Correctifs de code automatiques](/docs/ai/ai-sre#correctifs-de-code-automatiques) donne les règles. Un test de non-régression, une meilleure gestion des erreurs, une revue et une demande dans Code ne sont pas surveillés : la production ne peut pas montrer ce qu'ils changent.
 
+## Connecter un dépôt
+
+Ouvrez **Dépôts** dans le menu latéral de Code et cliquez sur **Connecter des dépôts** : Code demande où se trouve votre code, et connecte chaque endroit à sa façon. Ce que l'IA fait dans un dépôt dépend de l'endroit où il se trouve :
+
+| Où est le code | Comment il se connecte | Ce que l'IA y fait |
+| --- | --- | --- |
+| **GitHub** | La GitHub App de OneUptime, installée sur les dépôts qu'elle choisit. | Tout ce que décrit cette page, avec les commandes depuis GitHub (voir [GitHub App](/docs/ai/github-app)) et les [revues de production](#revue-de-production-des-pull-requests). |
+| **GitLab**, sur GitLab.com ou le vôtre | Un jeton d'accès : un jeton personnel, de groupe ou de projet avec les portées `api` et `write_repository`, et au moins le rôle Developer. | Les tâches et les correctifs, chaque modification dans une demande de fusion ; le choix de la branche ; le code que parcourt une trace de pile ou un profil ; si un correctif a été fusionné, et ce que la production a montré une fois livré. |
+| **Forgejo ou Gitea**, sur Codeberg ou le vôtre | Un jeton d'accès avec un accès en lecture et en écriture aux dépôts, et en lecture à l'utilisateur. | La même chose que sur GitLab, chaque modification dans une demande de tirage. |
+| **Tout serveur Git**, en HTTPS | L'adresse avec laquelle vous clonez le dépôt, un nom d'utilisateur, et un mot de passe ou un jeton d'accès qui peut lire le dépôt et y pousser. | L'IA clone le dépôt et pousse chaque modification sur une nouvelle branche, que sa réponse nomme : c'est vous qui ouvrez la demande de tirage. Sur Bitbucket et Azure DevOps, elle renvoie vers l'endroit où l'ouvrir. |
+
+Les commandes depuis les commentaires et les revues de production ont besoin de la GitHub App : elles ne fonctionnent donc pour l'instant que dans les dépôts GitHub, et les **Paramètres** du dépôt le disent.
+
+Pour GitLab, Forgejo ou Gitea, saisissez l'adresse du serveur (GitLab.com et Codeberg sont préremplis) et le jeton, puis choisissez les dépôts à connecter : la liste ne propose que ceux dans lesquels le jeton peut pousser, et en connecter d'autres plus tard peut réutiliser le jeton. OneUptime vérifie chaque jeton auprès de son serveur avant de le garder, le conserve chiffré et ne l'affiche plus jamais. Les **Paramètres** du dépôt montrent son serveur, le compte et les derniers caractères du jeton, avec **Remplacer le jeton d'accès**. Quand le serveur refuse un jeton expiré ou révoqué, ses dépôts affichent **Jeton refusé** et l'IA cesse d'y travailler, jusqu'à ce que le remplacement du jeton reconnecte chaque dépôt qui l'utilise.
+
+### Un serveur Git sur un réseau privé
+
+OneUptime Cloud n'atteint que les serveurs Git sur Internet, jamais une adresse privée, de bouclage ou locale au lien. Connectez un serveur que seul votre réseau atteint comme **Tout serveur Git** : Code indique qu'il ne peut pas l'atteindre, et **Connecter quand même** le connecte pour l'un de vos propres Runners sur ce réseau. Choisissez ce Runner sur la carte **Agent Runbook** du dépôt (voir [Choisir le Runner du dépôt](#choisir-le-runner-du-dépôt)). Un Runner global n'y travaille jamais, et OneUptime n'en lit rien sur le serveur : le choix de la branche ne propose donc que sa branche principale. Un OneUptime auto-hébergé, et son Runner global, atteignent les serveurs Git de son propre réseau.
+
 ## Avant de commencer
 
 Une tâche a besoin de trois choses. La zone de demande de Code et la page **Assistance IA** de l'exception vérifient les trois avant de proposer de démarrer, et indiquent ce qui manque.
@@ -212,6 +232,7 @@ Une tâche a besoin de trois choses. La zone de demande de Code et la page **Ass
 | --- | --- | --- |
 | Un fournisseur LLM | Rien à configurer : un projet sans fournisseur propre utilise le fournisseur global, payé sur les crédits IA du projet. Un fournisseur à vous, sous **Paramètres du projet → IA → Fournisseurs LLM**, passe en premier. | Définissez une fois les variables d'environnement `GLOBAL_LLM_PROVIDER_*` sur le serveur, ou ajoutez un fournisseur au projet. |
 | Un dépôt connecté via la GitHub App | **Produits → Code**, puis **Connecter GitHub**. Si l'application est déjà installée sur le compte GitHub, cliquez plutôt sur **Connecter une installation existante** : l'installer de nouveau ne la connecte pas. Nécessite le plan Growth. | Pareil, une fois que votre instance a une GitHub App (voir [Intégration GitHub](/docs/self-hosted/github-integration)). |
+| Ou un dépôt sur GitLab, Forgejo ou Gitea, ou tout serveur Git | **Dépôts** dans Code, puis **Connecter des dépôts** (voir [Connecter un dépôt](#connecter-un-dépôt)). Nécessite le plan Growth. | Pareil, sans GitHub App à configurer. |
 | Un Runner qui exécute les corrections de code IA | Rien à faire tourner : un dépôt qui n'en choisit aucun travaille sur les Runners globaux de OneUptime. | Le service `runner` de Docker Compose, ou le Runner du chart Helm (`runner.enabled`, activé par défaut), s'enregistre tout seul et exécute les corrections de code IA dans chaque dépôt qui ne choisit aucun Runner. |
 
 Sur une instance auto-hébergée, le fournisseur global est un bloc de `config.env` (Docker Compose) ou de vos valeurs Helm. Pour un Ollama auto-hébergé :
@@ -230,7 +251,7 @@ Vous n'associez pas de dépôts à des services. Quand une tâche démarre, OneU
 
 ### Choisir le Runner du dépôt
 
-Chaque dépôt choisit le Runner sur lequel l'IA y travaille : sur sa page **Paramètres** dans Code, cliquez sur **Modifier** sur la carte **Agent Runbook** et choisissez-en un. Un dépôt que la GitHub App importe démarre sur le [Runner par défaut](/docs/runbooks/agents#lagent-runbook-par-défaut-du-projet) du projet, quand il en a un. Un dépôt qui n'en choisit aucun travaille sur **Agent Runbook global**, que OneUptime fait tourner pour chaque projet.
+Chaque dépôt choisit le Runner sur lequel l'IA y travaille : sur sa page **Paramètres** dans Code, ouvrez **Plus de paramètres**, cliquez sur **Modifier** sur la carte **Agent Runbook** et choisissez-en un. Un dépôt que la GitHub App importe démarre sur le [Runner par défaut](/docs/runbooks/agents#lagent-runbook-par-défaut-du-projet) du projet, quand il en a un. Un dépôt qui n'en choisit aucun travaille sur **Agent Runbook global**, que OneUptime fait tourner pour chaque projet.
 
 | Runner | Ce qu'il fait d'une tâche |
 | --- | --- |
@@ -258,7 +279,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### Le choisir pour le dépôt
 
-Sur la page **Paramètres** du dépôt dans Code, cliquez sur **Modifier** sur la carte **Agent Runbook** et choisissez le Runner. Le Runner prend en compte le changement à son prochain heartbeat, en une minute environ ; il n'y a rien à redémarrer.
+Sur la page **Paramètres** du dépôt dans Code, ouvrez **Plus de paramètres**, cliquez sur **Modifier** sur la carte **Agent Runbook** et choisissez le Runner. Le Runner prend en compte le changement à son prochain heartbeat, en une minute environ ; il n'y a rien à redémarrer.
 
 ### Vérifier qu'il se connecte
 
@@ -278,13 +299,13 @@ Toute façon de faire tourner le conteneur convient (Docker Compose, Kubernetes,
 
 ## Corrections de code automatiques à partir des investigations
 
-Quand une [investigation IA](/docs/ai/ai-sre) publie une analyse de cause racine sur un incident ou une alerte, et que sa classification soignée recommande une modification du code, la carte de l'investigation propose **Ouvrir une PR de correctif à partir de cette analyse** : une tâche de correction dont tout le contexte est l'analyse publiée. Le bouton est masqué quand le remède est opérationnel, limité à l'infrastructure, externe, un refus attendu, une erreur de l'utilisateur ou non concluant. Les corrections éligibles se font sans le clic tant que **Corriger automatiquement les nouveaux incidents** est activé sur **Incidents → IA → Paramètres** (et **Corriger automatiquement les nouvelles alertes** sur **Alertes → IA → Paramètres**). La correction commence désactivée, y compris pour les nouveaux projets. Sans règle de remédiation automatique, chaque correction éligible s'ouvre ; avec des règles, seulement pour ce qu'une règle cible, quand la règle a **Pull requests de correctif** activé (c'est le cas d'une nouvelle règle), dans les dépôts de code qu'elle nomme.
+Quand une [investigation IA](/docs/ai/ai-sre) publie une analyse de cause racine sur un incident ou une alerte, et que sa classification soignée recommande une modification du code, la carte de l'investigation propose **Ouvrir une PR de correctif à partir de cette analyse** : une tâche de correction dont tout le contexte est l'analyse publiée. Le bouton est masqué quand le remède est opérationnel, limité à l'infrastructure, externe, un refus attendu, une erreur de l'utilisateur ou non concluant. Les corrections éligibles se font sans le clic tant que **Corriger automatiquement les nouveaux incidents** est activé sur **Incidents → IA → Paramètres** (et **Corriger automatiquement les nouvelles alertes** sur **Alertes → IA → Paramètres**). La correction commence désactivée, y compris pour les nouveaux projets. Sans règle IA, chaque correction éligible s'ouvre ; avec des règles, seulement pour ce qu'une règle cible, quand la règle a **Pull requests de correctif** activé (c'est le cas d'une nouvelle règle), dans les dépôts de code qu'elle nomme.
 
 Tant que la correction est activée, une investigation qui se termine sur une cause racine sûre et étayée, qu'une modification de code peut corriger, met en file la même tâche de correction que celle que crée le bouton. La décision est une classification encadrée que le serveur vérifie, jamais un motif recherché dans le texte de l'analyse : seul un verdict positif de correction de code ouvre une pull request. Des preuves manquantes, un remède hors du code et une classification en échec aboutissent tous à ne rien faire.
 
 Tout le reste correspond au bouton :
 
-- La pull request s'ouvre prête à être relue, rédigée à partir de l'analyse publiée, et nécessite un dépôt connecté via la GitHub App, l'un de ceux que nomment les règles qui la ciblent quand elles en nomment, et un Runner en ligne pour y travailler : celui que le dépôt choisit, ou un Runner global.
+- La pull request s'ouvre prête à être relue, rédigée à partir de l'analyse publiée, et nécessite un dépôt connecté, l'un de ceux que nomment les règles qui la ciblent quand elles en nomment, et un Runner en ligne pour y travailler : celui que le dépôt choisit, ou un Runner global.
 - Elle compte dans la limite quotidienne de tâches de correction de ce signal (**Limite quotidienne de tâches de correctif IA pour les incidents** ou **Limite quotidienne de tâches de correctif IA pour les alertes**, sous **Plus de paramètres** sur sa page de paramètres IA) et dans le plafond de pull requests ouvertes du dépôt, quand l'un ou l'autre est défini. Non définis, ni l'un ni l'autre ne limite quoi que ce soit.
 - Chaque déclencheur cherche d'abord une tâche de correction déjà en file ou en cours pour le même incident ou la même alerte, si bien qu'un déclencheur automatique et un clic donnent normalement une seule tâche, pas deux pull requests. La vérification est une lecture avant l'écriture, pas un verrou, si bien que deux déclencheurs au même instant peuvent encore passer tous les deux.
 - L'exécution est écrite par le système, n'est attribuée à personne, et rien ne fusionne tout seul.
@@ -306,12 +327,6 @@ Une tâche qui attend plus de 30 minutes alors que le Runner qui doit la prendre
 ## Confidentialité
 
 Le clone de votre dépôt réside dans un espace de travail à l'intérieur du conteneur du Runner et est supprimé à la fin de l'exécution, qu'elle ait réussi ou non. Le Runner ne détient jamais la clé d'API de votre fournisseur LLM : le serveur OneUptime effectue les appels au LLM pour lui, et exécute aussi les requêtes de télémétrie de production. OneUptime ne conserve pas votre dépôt et ne s'entraîne pas sur votre code. Le journal de la tâche garde les 300 premiers caractères de la sortie de chaque étape, pour que vous puissiez vérifier ce qu'a fait le Runner, et cela peut inclure des extraits de code. Faites tourner un Runner auto-hébergé avec votre propre fournisseur LLM (Ollama local compris), et votre code ne quitte jamais votre infrastructure.
-
-## Feuille de route
-
-Prévu, et **pas encore disponible** :
-
-- **Prise en charge de GitLab.** Les dépôts se connectent uniquement via la GitHub App.
 
 ## Étapes suivantes
 

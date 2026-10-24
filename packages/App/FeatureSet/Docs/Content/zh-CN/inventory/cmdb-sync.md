@@ -139,7 +139,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | 信息 | 键 | 在主机上 | 在网络设备上 |
 | --- | --- | --- | --- |
 | 主机名 | `host.name` | 主机的名称。它是主机的身份，因此位于 `identifyingAttributes` 中 | 设备自己的名称：其 SNMP `sysName`，否则为发现时找到的 NetBIOS 或 DNS 名称。绝不会是它的 IP 地址 |
-| IP 地址 | `host.ip` | 采集器报告的每个地址 | OneUptime 轮询的地址（当它是 IP 地址时） |
+| IP 地址 | `host.ip` | 采集器报告的每个地址 | OneUptime 轮询的地址（当它是 IP 地址时），否则为其探测器将该 DNS 名称解析到的地址 |
 | MAC 地址 | `host.mac` | 检测得到 | 在设备上输入，或从遍历过的路由器的 ARP 表中获知 |
 | 序列号 | `host.serial_number` | 标注 | ENTITY-MIB |
 | Manufacturer | `device.manufacturer` | 标注 | ENTITY-MIB，否则为 `sysDescr` 或 `sysObjectID` 指明的内容 |
@@ -189,7 +189,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | 字段 | 键 | 来源 |
 | --- | --- | --- |
 | 主机名 | `host.name` | 设备自己的名称：其 SNMP `sysName`，否则为发现时找到的 NetBIOS 或反向 DNS 名称。只有 IP 地址能命名它时省略 |
-| IP 地址 | `host.ip` | OneUptime 轮询的地址（当它是 IP 地址时） |
+| IP 地址 | `host.ip` | OneUptime 轮询的地址（当它是 IP 地址时）。对于按 DNS 名称轮询的设备，为其探测器最近一次将该名称解析到的地址 |
 | DNS 名称 | `net.device.dns_name` | 发现时找到的反向 DNS 名称，或 OneUptime 轮询的 DNS 名称 |
 | MAC 地址 | `host.mac` | 在设备上输入，或从遍历过的路由器的 ARP 表中获知 |
 | 制造商 | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`，否则为 `sysDescr` 指明的厂商，否则为 `sysObjectID` 的供应商 |
@@ -204,7 +204,9 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | 站点 | `oneuptime.site.name` | 设备所分配到的 Network Site |
 | 轮询地址 | `net.device.hostname` | OneUptime 轮询的地址：IP 地址或 DNS 名称。为在 `host.name` 和 `host.ip` 出现之前编写的同步而保留 |
 
-硬件行会在设备的首次 SNMP 遍历之后填充，因此仅通过 ping 监控的设备，或已添加但尚未轮询的设备，除了地址之外显示的信息很少。不实现 ENTITY-MIB 的设备没有可报告的序列号或固件。不过对许多平台而言，它的 `sysDescr` 仍会指明型号和操作系统：Cisco Meraki MX 报告 `Meraki MX85`，从而填充制造商和型号。`sysDescr` 没有已知格式的平台不会添加任何内容，而不是去猜测。
+ENTITY-MIB 行会在设备的首次 SNMP 遍历之后填充。未被遍历的设备（仅通过 ping 监控或尚未轮询）仍会从对其地址的最近一次发现扫描通过 SNMP 读取的内容中获得名称、制造商、操作系统和位置，并从遍历过的路由器的 ARP 表中获得 MAC 地址。不实现 ENTITY-MIB 的设备没有可报告的序列号或固件。不过对许多平台而言，它的 `sysDescr` 仍会指明型号和操作系统：Cisco Meraki MX 报告 `Meraki MX85`，从而填充制造商和型号。`sysDescr` 没有已知格式的平台不会添加任何内容，而不是去猜测。
+
+保存在设备上的值（手动输入或通过 API 设置）绝不会被发现读取的内容替换。在设备自身遍历读取的值和扫描读取的值之间，使用较新的那个。只有当扫描在该地址找到的是同一台机器时，才会使用它读取的内容：当它读取的系统名称、`sysObjectID` 或 NetBIOS 名称与设备的不符时，它在那里读取的任何内容都不会被使用。条目的 **资产详情** 卡片会说明每个值的来源和时间。
 
 主机名永远不会是 IP 地址。只有地址能命名的设备有 `host.ip`，没有 `host.name`。一旦它的 SNMP 遍历报告了系统名称，`host.name` 会在下一轮处理时出现。
 

@@ -506,7 +506,13 @@ An investigation by OneUptime AI of an incident or alert from a Network Device m
 
 After the first successful walk, OneUptime reads the SNMPv2 system group and, where the device supports it, ENTITY-MIB, and fills in the device record: system name, description, location, contact, uptime, vendor, model, serial number and firmware version. The vendor's enterprise OID (`sysObjectID`) is the device's fingerprint: it names the vendor and picks the matching vendor template. The same facts appear in [Inventory](/docs/inventory/cmdb-sync#network-device-asset-attributes) with every other asset.
 
-A ping-only device keeps the name and address you, or a discovery scan, gave it: there is no SNMP agent to ask for anything better.
+A ping-only device keeps the name and address you, or a discovery scan, gave it. What its own poll has not read, it takes from discovery:
+
+- The system name, description, `sysObjectID`, location and contact the last [discovery scan](#discovering-devices-with-a-network-scan) of its address read over SNMP, and the reverse-DNS and NetBIOS names it found.
+- Its MAC address, from the ARP table of a walked router in its site.
+- For a device polled at a DNS name, the address its probe resolved the name to.
+
+These are kept beside the device's own fields, never written into them, and each scan, router walk or poll that reads one again brings it up to date. The device's Overview and its Inventory item say which scan, router or probe read each value, and when. A value you saved on the device is never replaced. When a scan finds another machine at the device's address, such as a DHCP lease that moved, the Overview says so, and nothing that scan read there is used.
 
 ## Discovering Devices with a Network Scan
 

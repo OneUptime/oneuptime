@@ -52,6 +52,7 @@ import AIAgentGitHubAPI from "Common/Server/API/AIAgentGitHubAPI";
 import AIAgentCodeTaskAPI from "Common/Server/API/AIAgentCodeTaskAPI";
 import AIAgentTelemetryAPI from "Common/Server/API/AIAgentTelemetryAPI";
 import CodeTaskAPI from "Common/Server/API/CodeTaskAPI";
+import CodeRepositoryConnectionAPI from "Common/Server/API/CodeRepositoryConnectionAPI";
 import CodeFixRunAPI from "Common/Server/API/CodeFixRunAPI";
 import LlmProviderAPI from "Common/Server/API/LlmProviderAPI";
 import DataSourceAPI from "Common/Server/API/DataSourceAPI";
@@ -584,6 +585,7 @@ import DetectionRuleAPI from "Common/Server/API/DetectionRuleAPI";
 import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectionAPI";
 import LlmObservabilityConnectionAPI from "Common/Server/API/LlmObservabilityConnectionAPI";
 import CloudConnectionAPI from "Common/Server/API/CloudConnectionAPI";
+import NetworkControllerConnectionAPI from "Common/Server/API/NetworkControllerConnectionAPI";
 import ExternalMcpServerAPI from "Common/Server/API/ExternalMcpServerAPI";
 import SecurityEventDestinationAPI from "Common/Server/API/SecurityEventDestinationAPI";
 import SecurityLogSourceService, {
@@ -1221,9 +1223,7 @@ import AutoRemediationSuggestionService, {
 import AutoRemediationDecisionService, {
   Service as AutoRemediationDecisionServiceType,
 } from "Common/Server/Services/AutoRemediationDecisionService";
-import AIInvestigationRuleService, {
-  Service as AIInvestigationRuleServiceType,
-} from "Common/Server/Services/AIInvestigationRuleService";
+import RetiredApiRoute from "Common/Server/API/RetiredApiRoute";
 import AIPostmortemRuleService, {
   Service as AIPostmortemRuleServiceType,
 } from "Common/Server/Services/AIPostmortemRuleService";
@@ -1584,7 +1584,6 @@ import RunbookRule from "Common/Models/DatabaseModels/RunbookRule";
 import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
 import AutoRemediationDecision from "Common/Models/DatabaseModels/AutoRemediationDecision";
-import AIInvestigationRule from "Common/Models/DatabaseModels/AIInvestigationRule";
 import AIPostmortemRule from "Common/Models/DatabaseModels/AIPostmortemRule";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import RunnerOwnerTeam from "Common/Models/DatabaseModels/RunnerOwnerTeam";
@@ -3310,6 +3309,12 @@ const BaseAPIFeatureSet: FeatureSet = {
       new CloudConnectionAPI().getRouter(),
     );
 
+    // Network controller connections: Meraki organizations read on a schedule.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new NetworkControllerConnectionAPI().getRouter(),
+    );
+
     // External MCP servers OneUptime AI may use, and their connection test.
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -4225,13 +4230,12 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<AIInvestigationRule, AIInvestigationRuleServiceType>(
-        AIInvestigationRule,
-        AIInvestigationRuleService,
-      ).getRouter(),
-    );
+    /*
+     * Investigation rules are AI rules now (the AI Rule resource above, at
+     * /auto-remediation-rule): their old route answers 410 Gone with what
+     * to use instead (RetiredApiRoute).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, RetiredApiRoute.getRouter());
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -5822,6 +5826,12 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     // Code: repositories, their tasks, and asking AI in them.
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new CodeTaskAPI().getRouter());
+
+    // Code: connecting repositories on GitLab, Forgejo, Gitea or a Git server.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CodeRepositoryConnectionAPI().getRouter(),
+    );
 
     // Code Fix Runs (dashboard reads of CodeFix AIRuns + their event trails)
     app.use(

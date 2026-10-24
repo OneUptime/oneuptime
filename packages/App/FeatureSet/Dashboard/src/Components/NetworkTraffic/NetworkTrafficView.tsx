@@ -1,4 +1,16 @@
 import { fetchNetworkTraffic } from "./NetworkTrafficApi";
+import { fetchNetworkTrafficUsage } from "./NetworkTrafficUsageApi";
+import MerakiConnectModal from "./Meraki/MerakiConnectModal";
+import MerakiConnectionsCard from "./Meraki/MerakiConnectionsCard";
+import MerakiTrafficView from "./Meraki/MerakiTrafficView";
+import { MERAKI_CONNECTION_NAME } from "./Meraki/MerakiWords";
+import {
+  TrafficSide,
+  pickTrafficSide,
+  readTrafficSide,
+  readNetworkTrafficUsageFilters,
+  toMerakiUrlParams,
+} from "./Meraki/MerakiUrlState";
 import {
   formatBitsPerSecond,
   formatTrafficBytes,
@@ -28,6 +40,7 @@ import TrafficTopList, { TrafficTopRow } from "./TrafficTopList";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
+import NetworkControllerConnection from "Common/Models/DatabaseModels/NetworkControllerConnection";
 import Route from "Common/Types/API/Route";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import OneUptimeDate from "Common/Types/Date";
@@ -44,6 +57,11 @@ import {
   NetworkTrafficSource,
   NetworkTrafficSummary,
 } from "Common/Types/NetFlow/NetworkTraffic";
+import {
+  NetworkTrafficUsageFilters,
+  NetworkTrafficUsageRequest,
+  NetworkTrafficUsageSummary,
+} from "Common/Types/NetFlow/NetworkTrafficUsage";
 import ObjectID from "Common/Types/ObjectID";
 import NetworkDeviceOtherAddressesUtil from "Common/Utils/NetworkDevice/NetworkDeviceOtherAddresses";
 import RangeStartAndEndDateTime, {
@@ -69,6 +87,10 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 import {
   translatableTerm,
   Translator,
@@ -105,6 +127,15 @@ import React, {
  * A drag across the chart zooms the page's range, a double-click (or Reset
  * zoom) puts it back (issue #4105); while a new window loads the last one
  * stays on screen, dimmed, so the page never collapses under the pointer.
+ *
+ * A page can show its traffic a second way (issue #5140): as a Meraki
+ * connection read it from the Meraki dashboard API - uplinks, applications,
+ * clients - with nothing set up on the devices (MerakiTrafficView). When
+ * the page has both, a switch in the header picks one, and it is kept in
+ * the URL (MerakiUrlState); a page with Meraki traffic and no flow records
+ * opens on Meraki, and every other page opens as it did before. The whole
+ * network's page lists the connections at its foot, and its set-up guide
+ * offers to connect one.
  */
 
 export type NetworkTrafficScope =
@@ -160,6 +191,27 @@ export const TRAFFIC_HELP: {
 };
 
 export const CONVERSATIONS_TITLE: string = translationKey("Top conversations");
+
+/*
+ * What the flow side's card says it is, by whose page it is - keys, so
+ * the extractor finds them and the card draws them in the reader's
+ * language, as the Meraki side's (MERAKI_DESCRIPTIONS) beside it.
+ */
+export const FLOW_DESCRIPTIONS: {
+  device: string;
+  site: string;
+  network: string;
+} = {
+  device: translationKey(
+    "Where this device's traffic goes, from the flow records it exports.",
+  ),
+  site: translationKey(
+    "Where this site's traffic goes, from the flow records its devices export.",
+  ),
+  network: translationKey(
+    "Where your network's traffic goes, from the flow records your devices export.",
+  ),
+};
 
 function getWindowSeconds(summary: NetworkTrafficSummary): number {
   const start: number = new Date(summary.windowStartAt).getTime();
@@ -245,8 +297,46 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
   const [addressError, setAddressError] = useState<string>("");
   const [refreshKey, setRefreshKey] = useState<number>(0);
 
+  // The Meraki side: the side picked, its filters, and what it answered.
+  const [pickedSource, setPickedSource] = useState<TrafficSide | null>(
+    (): TrafficSide | null => {
+      return readTrafficSide((name: string): string | null => {
+        return Navigation.getQueryStringByName(name);
+      });
+    },
+  );
+  const [usageFilters, setUsageFiltersState] =
+    useState<NetworkTrafficUsageFilters>((): NetworkTrafficUsageFilters => {
+      return readNetworkTrafficUsageFilters((name: string): string | null => {
+        return Navigation.getQueryStringByName(name);
+      });
+    });
+  const [usage, setUsage] = useState<NetworkTrafficUsageSummary | null>(null);
+  const [isUsageSettled, setIsUsageSettled] = useState<boolean>(false);
+  const [isUsageLoading, setIsUsageLoading] = useState<boolean>(true);
+  const [usageError, setUsageError] = useState<string>("");
+  const [isConnectOpen, setIsConnectOpen] = useState<boolean>(false);
+  const [connectionsRefreshKey, setConnectionsRefreshKey] = useState<number>(0);
+
   // Only the newest fetch lands: a drag and a double-click can overlap.
   const latestFetchRef: React.MutableRefObject<number> = useRef<number>(0);
+  const latestUsageFetchRef: React.MutableRefObject<number> = useRef<number>(0);
+
+  const setSource: (next: TrafficSide) => void = (next: TrafficSide): void => {
+    setPickedSource(next);
+    Navigation.setQueryString(
+      toMerakiUrlParams({ source: next, filters: usageFilters }),
+    );
+  };
+
+  const setUsageFilters: (next: NetworkTrafficUsageFilters) => void = (
+    next: NetworkTrafficUsageFilters,
+  ): void => {
+    setUsageFiltersState(next);
+    Navigation.setQueryString(
+      toMerakiUrlParams({ source: pickedSource, filters: next }),
+    );
+  };
 
   const setView: (next: NetworkTrafficViewState) => void = useCallback(
     (next: NetworkTrafficViewState): void => {
@@ -334,6 +424,58 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
       setIsLoading(false);
     });
   }, [load]);
+
+  /*
+   * The same window as the Meraki connections read it. A page without one
+   * is answered at once (isAvailable false); a failure leaves the page on
+   * its flows, saying nothing - or, on the Meraki side, that it could not
+   * refresh.
+   */
+  useEffect(() => {
+    latestUsageFetchRef.current += 1;
+    const fetchId: number = latestUsageFetchRef.current;
+
+    const loadUsage: () => Promise<void> = async (): Promise<void> => {
+      setIsUsageLoading(true);
+      setUsageError("");
+
+      try {
+        const dateRange: InBetween<Date> =
+          RangeStartAndEndDateTimeUtil.getStartAndEndDate(view.range);
+        const request: NetworkTrafficUsageRequest = {
+          startTime: OneUptimeDate.toString(dateRange.startValue),
+          endTime: OneUptimeDate.toString(dateRange.endValue),
+          filters: usageFilters,
+        };
+
+        if (scope.kind === "device") {
+          request.networkDeviceId = scope.networkDeviceId.toString();
+        } else if (scope.kind === "site") {
+          request.networkSiteId = scope.networkSiteId.toString();
+        }
+
+        const next: NetworkTrafficUsageSummary =
+          await fetchNetworkTrafficUsage(request);
+
+        if (fetchId === latestUsageFetchRef.current) {
+          setUsage(next);
+        }
+      } catch (err) {
+        if (fetchId === latestUsageFetchRef.current) {
+          setUsageError(API.getFriendlyMessage(err));
+        }
+      } finally {
+        if (fetchId === latestUsageFetchRef.current) {
+          setIsUsageLoading(false);
+          setIsUsageSettled(true);
+        }
+      }
+    };
+
+    loadUsage().catch(() => {
+      // handled inside.
+    });
+  }, [scopeKey, view.range, usageFilters, refreshKey]);
 
   const summary: NetworkTrafficSummary | null = loaded?.summary || null;
   const shownView: NetworkTrafficViewState = loaded?.view || view;
@@ -667,12 +809,7 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
     },
   );
 
-  const description: string =
-    scope.kind === "device"
-      ? "Where this device's traffic goes, from the flow records it exports."
-      : scope.kind === "site"
-        ? "Where this site's traffic goes, from the flow records its devices export."
-        : "Where your network's traffic goes, from the flow records your devices export.";
+  const description: string = FLOW_DESCRIPTIONS[scope.kind];
 
   const deviceStatus: ReactElement | null = ((): ReactElement | null => {
     if (scope.kind !== "device" || !summary || needsSetup) {
@@ -743,526 +880,668 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
     return null;
   })();
 
+  const isMerakiAvailable: boolean = Boolean(usage?.isAvailable);
+  const hasFlowRecords: boolean = Boolean(summary) && !needsSetup;
+  const side: TrafficSide = pickTrafficSide({
+    picked: pickedSource,
+    isMerakiAvailable,
+    hasFlows: hasFlowRecords,
+  });
+  const isMerakiShown: boolean = isUsageSettled && side === TrafficSide.Meraki;
+
+  /*
+   * Connecting Meraki is for who may add a connection (project owners and
+   * admins). Anyone else reads the offer with why there is no button - or,
+   * before the permissions have loaded, no button and nothing said.
+   */
+  const merakiConnectGate: PermissionGateResult = PermissionGate.check(
+    new NetworkControllerConnection(),
+    ModelAction.Create,
+    { singularName: MERAKI_CONNECTION_NAME },
+  );
+
+  const sourceSwitch: ReactElement = isMerakiAvailable ? (
+    <div
+      className="inline-flex rounded-md bg-gray-50 p-0.5 ring-1 ring-gray-200"
+      role="group"
+      aria-label={translator.translateText("Show traffic from")}
+      data-testid="traffic-source-switch"
+    >
+      {[TrafficSide.Flows, TrafficSide.Meraki].map(
+        (option: TrafficSide): ReactElement => {
+          return (
+            <button
+              key={option}
+              type="button"
+              aria-pressed={side === option}
+              className={`rounded px-2.5 py-1 text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                side === option
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-900"
+              }`}
+              onClick={() => {
+                setSource(option);
+              }}
+              data-testid={`traffic-source-${option}`}
+            >
+              {option === TrafficSide.Meraki
+                ? translator.translateText("Meraki")
+                : translator.translateText("Flows")}
+            </button>
+          );
+        },
+      )}
+    </div>
+  ) : (
+    <></>
+  );
+
+  const headerElement: ReactElement = (
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      {sourceSwitch}
+      <RangeStartAndEndDateView
+        dashboardStartAndEndDate={view.range}
+        onChange={setRange}
+      />
+      <ResetTimeRangeZoomButton />
+    </div>
+  );
+
   return (
     <TimeRangeZoomScope timeRange={view.range} onTimeRangeChange={setRange}>
-      <Card
-        title="Traffic"
-        description={description}
-        rightElement={
-          <div className="flex items-center gap-2">
-            <RangeStartAndEndDateView
-              dashboardStartAndEndDate={view.range}
-              onChange={setRange}
-            />
-            <ResetTimeRangeZoomButton />
-          </div>
-        }
-      >
-        {!loaded && isLoading ? <ComponentLoader /> : <></>}
-
-        {!loaded && !isLoading && error ? (
-          <ErrorMessage message={error} />
-        ) : (
-          <></>
-        )}
-
-        {loaded && summary ? (
-          <div className="relative" aria-busy={isLoading}>
-            {error ? (
-              <div
-                role="alert"
-                className="mb-4 flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
-              >
-                <Icon
-                  icon={IconProp.Error}
-                  className="h-4 w-4 shrink-0 text-red-500"
-                />
-                <span>
-                  {translator.translateTemplate(
-                    "Couldn't refresh — showing previously loaded data. {{error}}",
-                    { error: error },
-                  )}
-                </span>
-              </div>
+      {isMerakiShown && usage ? (
+        <MerakiTrafficView
+          scopeKind={scope.kind}
+          summary={usage}
+          isLoading={isUsageLoading}
+          error={usageError}
+          filters={usageFilters}
+          onFiltersChange={setUsageFilters}
+          headerElement={headerElement}
+          hasFlows={hasFlowRecords}
+          onShowFlows={() => {
+            setSource(TrafficSide.Flows);
+          }}
+        />
+      ) : (
+        <Fragment>
+          <Card
+            title="Traffic"
+            description={description}
+            rightElement={headerElement}
+          >
+            {(!loaded && isLoading) || !isUsageSettled ? (
+              <ComponentLoader />
             ) : (
               <></>
             )}
 
-            {isLoading ? (
-              <div
-                className="pointer-events-none absolute right-0 top-0 z-10 inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-500 shadow-sm"
-                data-testid="traffic-refreshing"
-              >
-                <Icon
-                  icon={IconProp.Refresh}
-                  className="h-3 w-3 animate-spin text-gray-400"
-                />
-                {translator.translateText("Refreshing")}
-              </div>
+            {!loaded && !isLoading && error ? (
+              <ErrorMessage message={error} />
             ) : (
               <></>
             )}
 
-            <div
-              className={isLoading ? "opacity-75 transition-opacity" : ""}
-              data-testid="traffic-body"
-            >
-              {needsSetup ? (
-                <TrafficSetupGuide
-                  scope={scope.kind}
-                  probeName={props.device?.probeName}
-                  isGlobalProbe={props.device?.isGlobalProbe}
-                  matchAddresses={[
-                    ...(props.device?.hostname ? [props.device.hostname] : []),
-                    ...NetworkDeviceOtherAddressesUtil.parse(
-                      props.device?.otherAddresses,
-                    ).addresses,
-                  ]}
-                  settingsRoute={
-                    scope.kind === "device"
-                      ? RouteUtil.populateRouteParams(
-                          RouteMap[
-                            PageMap.NETWORK_DEVICE_VIEW_SETTINGS
-                          ] as Route,
-                          { modelId: scope.networkDeviceId },
-                        )
-                      : undefined
-                  }
-                />
-              ) : (
-                <Fragment>
-                  {deviceStatus}
+            {loaded && summary && isUsageSettled ? (
+              <div className="relative" aria-busy={isLoading}>
+                {error ? (
+                  <div
+                    role="alert"
+                    className="mb-4 flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
+                  >
+                    <Icon
+                      icon={IconProp.Error}
+                      className="h-4 w-4 shrink-0 text-red-500"
+                    />
+                    <span>
+                      {translator.translateTemplate(
+                        "Couldn't refresh — showing previously loaded data. {{error}}",
+                        { error: error },
+                      )}
+                    </span>
+                  </div>
+                ) : (
+                  <></>
+                )}
 
-                  {scope.kind === "network" && unknownSources.length > 0 ? (
-                    <div
-                      className="mb-4 flex flex-wrap items-center gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 ring-1 ring-amber-200"
-                      data-testid="traffic-unknown-sources"
-                    >
-                      <Icon
-                        icon={IconProp.Info}
-                        className="h-4 w-4 text-amber-600"
-                      />
-                      <span>
-                        {translator.translatePlural(
-                          {
-                            one: "{{count}} address sending flow records is not a device yet.",
-                            other:
-                              "{{count}} addresses sending flow records are not devices yet.",
-                          },
-                          unknownSources.length,
-                        )}
-                      </span>
-                      <a
-                        href="#traffic-sources"
-                        className="font-medium text-amber-900 underline"
-                      >
-                        {translator.translateText("Review")}
-                      </a>
-                    </div>
+                {isLoading ? (
+                  <div
+                    className="pointer-events-none absolute right-0 top-0 z-10 inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-500 shadow-sm"
+                    data-testid="traffic-refreshing"
+                  >
+                    <Icon
+                      icon={IconProp.Refresh}
+                      className="h-3 w-3 animate-spin text-gray-400"
+                    />
+                    {translator.translateText("Refreshing")}
+                  </div>
+                ) : (
+                  <></>
+                )}
+
+                <div
+                  className={isLoading ? "opacity-75 transition-opacity" : ""}
+                  data-testid="traffic-body"
+                >
+                  {needsSetup ? (
+                    <TrafficSetupGuide
+                      scope={scope.kind}
+                      probeName={props.device?.probeName}
+                      isGlobalProbe={props.device?.isGlobalProbe}
+                      onConnectMeraki={
+                        scope.kind === "network" && merakiConnectGate.isAllowed
+                          ? () => {
+                              setIsConnectOpen(true);
+                            }
+                          : undefined
+                      }
+                      connectMerakiLockedReason={
+                        scope.kind === "network" && !merakiConnectGate.isAllowed
+                          ? merakiConnectGate.disabledReason
+                          : undefined
+                      }
+                      matchAddresses={[
+                        ...(props.device?.hostname
+                          ? [props.device.hostname]
+                          : []),
+                        ...NetworkDeviceOtherAddressesUtil.parse(
+                          props.device?.otherAddresses,
+                        ).addresses,
+                      ]}
+                      settingsRoute={
+                        scope.kind === "device"
+                          ? RouteUtil.populateRouteParams(
+                              RouteMap[
+                                PageMap.NETWORK_DEVICE_VIEW_SETTINGS
+                              ] as Route,
+                              { modelId: scope.networkDeviceId },
+                            )
+                          : undefined
+                      }
+                    />
                   ) : (
-                    <></>
-                  )}
+                    <Fragment>
+                      {deviceStatus}
 
-                  {/*
-                   * Nothing to narrow in an empty window, unless it is
-                   * empty because of the filters: then the chips are how
-                   * they come off.
-                   */}
-                  {hasTraffic || isFiltered ? (
-                    <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                      <div
-                        className="flex min-h-[2rem] flex-wrap items-center gap-2"
-                        data-testid="traffic-filters"
-                      >
-                        {chips.length === 0 ? (
-                          <span className="text-sm text-gray-500">
-                            {translator.translateText(
-                              "Click any row to see only its traffic.",
+                      {scope.kind === "network" && unknownSources.length > 0 ? (
+                        <div
+                          className="mb-4 flex flex-wrap items-center gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 ring-1 ring-amber-200"
+                          data-testid="traffic-unknown-sources"
+                        >
+                          <Icon
+                            icon={IconProp.Info}
+                            className="h-4 w-4 text-amber-600"
+                          />
+                          <span>
+                            {translator.translatePlural(
+                              {
+                                one: "{{count}} address sending flow records is not a device yet.",
+                                other:
+                                  "{{count}} addresses sending flow records are not devices yet.",
+                              },
+                              unknownSources.length,
                             )}
                           </span>
-                        ) : (
-                          <Fragment>
-                            {chips.map(
-                              (
-                                chip: NetworkTrafficFilterChip,
-                              ): ReactElement => {
-                                const text: string =
-                                  translator.translateTemplate(
-                                    chip.template,
-                                    chip.values,
-                                  );
+                          <a
+                            href="#traffic-sources"
+                            className="font-medium text-amber-900 underline"
+                          >
+                            {translator.translateText("Review")}
+                          </a>
+                        </div>
+                      ) : (
+                        <></>
+                      )}
 
-                                return (
-                                  <span
-                                    key={chip.kind}
-                                    className="inline-flex items-center gap-1 rounded-full bg-indigo-50 py-1 pl-3 pr-1 text-sm font-medium text-indigo-700 ring-1 ring-indigo-200"
-                                    data-testid={`traffic-filter-${chip.kind}`}
-                                  >
-                                    {text}
-                                    <button
-                                      type="button"
-                                      className="flex h-5 w-5 items-center justify-center rounded-full text-indigo-600 hover:bg-indigo-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                                      aria-label={translator.translateTemplate(
-                                        "Remove the filter {{filter}}",
-                                        { filter: text },
-                                      )}
-                                      onClick={() => {
-                                        setFilters(
-                                          withoutNetworkTrafficFilter(
-                                            view.filters,
-                                            chip.kind,
-                                          ),
-                                        );
-                                      }}
-                                    >
-                                      <Icon
-                                        icon={IconProp.Close}
-                                        className="h-3 w-3"
-                                      />
-                                    </button>
-                                  </span>
-                                );
+                      {/*
+                       * Nothing to narrow in an empty window, unless it is
+                       * empty because of the filters: then the chips are how
+                       * they come off.
+                       */}
+                      {hasTraffic || isFiltered ? (
+                        <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                          <div
+                            className="flex min-h-[2rem] flex-wrap items-center gap-2"
+                            data-testid="traffic-filters"
+                          >
+                            {chips.length === 0 ? (
+                              <span className="text-sm text-gray-500">
+                                {translator.translateText(
+                                  "Click any row to see only its traffic.",
+                                )}
+                              </span>
+                            ) : (
+                              <Fragment>
+                                {chips.map(
+                                  (
+                                    chip: NetworkTrafficFilterChip,
+                                  ): ReactElement => {
+                                    const text: string =
+                                      translator.translateTemplate(
+                                        chip.template,
+                                        chip.values,
+                                      );
+
+                                    return (
+                                      <span
+                                        key={chip.kind}
+                                        className="inline-flex items-center gap-1 rounded-full bg-indigo-50 py-1 pl-3 pr-1 text-sm font-medium text-indigo-700 ring-1 ring-indigo-200"
+                                        data-testid={`traffic-filter-${chip.kind}`}
+                                      >
+                                        {text}
+                                        <button
+                                          type="button"
+                                          className="flex h-5 w-5 items-center justify-center rounded-full text-indigo-600 hover:bg-indigo-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                                          aria-label={translator.translateTemplate(
+                                            "Remove the filter {{filter}}",
+                                            { filter: text },
+                                          )}
+                                          onClick={() => {
+                                            setFilters(
+                                              withoutNetworkTrafficFilter(
+                                                view.filters,
+                                                chip.kind,
+                                              ),
+                                            );
+                                          }}
+                                        >
+                                          <Icon
+                                            icon={IconProp.Close}
+                                            className="h-3 w-3"
+                                          />
+                                        </button>
+                                      </span>
+                                    );
+                                  },
+                                )}
+                                <button
+                                  type="button"
+                                  className="text-sm font-medium text-gray-500 hover:text-gray-900 hover:underline"
+                                  onClick={() => {
+                                    setFilters({});
+                                  }}
+                                  data-testid="traffic-filters-clear"
+                                >
+                                  {translator.translateText("Clear filters")}
+                                </button>
+                              </Fragment>
+                            )}
+                          </div>
+                          <form
+                            className="flex flex-shrink-0 items-start gap-2"
+                            onSubmit={onFindAddress}
+                            data-testid="traffic-find-address"
+                          >
+                            <div>
+                              <input
+                                type="text"
+                                inputMode="text"
+                                value={addressInput}
+                                onChange={(
+                                  event: React.ChangeEvent<HTMLInputElement>,
+                                ) => {
+                                  setAddressInput(event.target.value);
+                                  setAddressError("");
+                                }}
+                                placeholder={translator.translateText(
+                                  "Find an IP address",
+                                )}
+                                aria-label={translator.translateText(
+                                  "Find an IP address",
+                                )}
+                                className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 lg:w-56"
+                              />
+                              {addressError ? (
+                                <p className="mt-1 text-xs text-red-600">
+                                  {addressError}
+                                </p>
+                              ) : (
+                                <></>
+                              )}
+                            </div>
+                            <Button
+                              title="Find"
+                              type={ButtonType.Submit}
+                              icon={IconProp.Search}
+                              buttonSize={ButtonSize.Small}
+                              buttonStyle={ButtonStyleType.OUTLINE}
+                              dataTestId="traffic-find-address-button"
+                            />
+                          </form>
+                        </div>
+                      ) : (
+                        <></>
+                      )}
+
+                      {hasTraffic ? (
+                        <Fragment>
+                          <TrafficSummaryTiles
+                            summary={summary}
+                            windowSeconds={windowSeconds}
+                          />
+                          <div className="group/zoomhint mt-6">
+                            <div className="mb-1 text-sm font-medium text-gray-900">
+                              {translator.translateText("Traffic over time")}
+                            </div>
+                            <TrafficOverTimeChart
+                              series={fillTrafficSeriesGaps(
+                                summary.series,
+                                summary.bucketSeconds,
+                                summary.windowStartAt,
+                                summary.windowEndAt,
+                              )}
+                              bucketSeconds={summary.bucketSeconds}
+                              windowStartAt={summary.windowStartAt}
+                              windowEndAt={summary.windowEndAt}
+                            />
+                          </div>
+                          <div className="mt-2 text-xs text-gray-500">
+                            {translator.translateTemplate(
+                              "{{bytes}} at an average of {{rate}}.",
+                              {
+                                bytes: formatTrafficBytes(
+                                  summary.totals.octets,
+                                ),
+                                rate: formatBitsPerSecond(
+                                  getBitsPerSecond(
+                                    summary.totals.octets,
+                                    windowSeconds,
+                                  ),
+                                ),
                               },
                             )}
-                            <button
-                              type="button"
-                              className="text-sm font-medium text-gray-500 hover:text-gray-900 hover:underline"
+                          </div>
+                        </Fragment>
+                      ) : isFiltered ? (
+                        <div
+                          className="flex flex-col items-center justify-center px-6 py-14 text-center"
+                          data-testid="traffic-no-match"
+                        >
+                          <div className="text-sm font-medium text-gray-900">
+                            {translator.translateText(
+                              "No traffic matches these filters in this time range.",
+                            )}
+                          </div>
+                          <div className="mt-3">
+                            <Button
+                              title="Clear filters"
+                              buttonStyle={ButtonStyleType.OUTLINE}
+                              buttonSize={ButtonSize.Small}
                               onClick={() => {
                                 setFilters({});
                               }}
-                              data-testid="traffic-filters-clear"
-                            >
-                              {translator.translateText("Clear filters")}
-                            </button>
-                          </Fragment>
-                        )}
-                      </div>
-                      <form
-                        className="flex flex-shrink-0 items-start gap-2"
-                        onSubmit={onFindAddress}
-                        data-testid="traffic-find-address"
-                      >
-                        <div>
-                          <input
-                            type="text"
-                            inputMode="text"
-                            value={addressInput}
-                            onChange={(
-                              event: React.ChangeEvent<HTMLInputElement>,
-                            ) => {
-                              setAddressInput(event.target.value);
-                              setAddressError("");
-                            }}
-                            placeholder={translator.translateText(
-                              "Find an IP address",
-                            )}
-                            aria-label={translator.translateText(
-                              "Find an IP address",
-                            )}
-                            className="block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 lg:w-56"
-                          />
-                          {addressError ? (
-                            <p className="mt-1 text-xs text-red-600">
-                              {addressError}
-                            </p>
-                          ) : (
-                            <></>
-                          )}
+                            />
+                          </div>
                         </div>
-                        <Button
-                          title="Find"
-                          type={ButtonType.Submit}
-                          icon={IconProp.Search}
-                          buttonSize={ButtonSize.Small}
-                          buttonStyle={ButtonStyleType.OUTLINE}
-                          dataTestId="traffic-find-address-button"
-                        />
-                      </form>
-                    </div>
-                  ) : (
-                    <></>
-                  )}
-
-                  {hasTraffic ? (
-                    <Fragment>
-                      <TrafficSummaryTiles
-                        summary={summary}
-                        windowSeconds={windowSeconds}
-                      />
-                      <div className="group/zoomhint mt-6">
-                        <div className="mb-1 text-sm font-medium text-gray-900">
-                          {translator.translateText("Traffic over time")}
-                        </div>
-                        <TrafficOverTimeChart
-                          series={fillTrafficSeriesGaps(
-                            summary.series,
-                            summary.bucketSeconds,
-                            summary.windowStartAt,
-                            summary.windowEndAt,
-                          )}
-                          bucketSeconds={summary.bucketSeconds}
-                          windowStartAt={summary.windowStartAt}
-                          windowEndAt={summary.windowEndAt}
-                        />
-                      </div>
-                      <div className="mt-2 text-xs text-gray-500">
-                        {translator.translateTemplate(
-                          "{{bytes}} at an average of {{rate}}.",
-                          {
-                            bytes: formatTrafficBytes(summary.totals.octets),
-                            rate: formatBitsPerSecond(
-                              getBitsPerSecond(
-                                summary.totals.octets,
-                                windowSeconds,
-                              ),
-                            ),
-                          },
-                        )}
-                      </div>
+                      ) : (
+                        <ZoomedEmptyState />
+                      )}
                     </Fragment>
-                  ) : isFiltered ? (
-                    <div
-                      className="flex flex-col items-center justify-center px-6 py-14 text-center"
-                      data-testid="traffic-no-match"
-                    >
-                      <div className="text-sm font-medium text-gray-900">
-                        {translator.translateText(
-                          "No traffic matches these filters in this time range.",
-                        )}
-                      </div>
-                      <div className="mt-3">
-                        <Button
-                          title="Clear filters"
-                          buttonStyle={ButtonStyleType.OUTLINE}
-                          buttonSize={ButtonSize.Small}
-                          onClick={() => {
-                            setFilters({});
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <ZoomedEmptyState />
                   )}
-                </Fragment>
-              )}
-            </div>
-          </div>
-        ) : (
-          <></>
-        )}
-      </Card>
-
-      {loaded && summary && !needsSetup && hasTraffic ? (
-        <Fragment>
-          <div className="grid grid-cols-1 gap-x-5 lg:grid-cols-2">
-            {scope.kind === "device" ? (
-              <Fragment>
-                <TrafficTopList
-                  title="Top sources"
-                  description="Who sent the most."
-                  help={TRAFFIC_HELP.sources}
-                  rows={addressRows(summary.topSources, "source")}
-                  totalOctets={summary.totals.octets}
-                  emptyMessage="No sources in this time range."
-                  dataTestId="traffic-top-sources"
-                />
-                <TrafficTopList
-                  title="Top destinations"
-                  description="Who received the most."
-                  help={TRAFFIC_HELP.destinations}
-                  rows={addressRows(summary.topDestinations, "destination")}
-                  totalOctets={summary.totals.octets}
-                  emptyMessage="No destinations in this time range."
-                  dataTestId="traffic-top-destinations"
-                />
-                <TrafficTopList
-                  title="Top applications"
-                  description="What the traffic is for, by service port."
-                  help={TRAFFIC_HELP.applications}
-                  rows={applicationRows}
-                  totalOctets={summary.totals.octets}
-                  emptyMessage="No applications in this time range."
-                  dataTestId="traffic-top-applications"
-                />
-                <TrafficTopList
-                  title="Top interfaces"
-                  description="Which ports the traffic went through."
-                  help={TRAFFIC_HELP.interfaces}
-                  rows={interfaceRows}
-                  totalOctets={
-                    // In and out are both counted: every share is of both.
-                    summary.topInterfaces.reduce(
-                      (
-                        total: number,
-                        row: NetworkTrafficInterfaceRow,
-                      ): number => {
-                        return total + row.inOctets + row.outOctets;
-                      },
-                      0,
-                    )
-                  }
-                  emptyMessage="The device's flow records name no interfaces."
-                  dataTestId="traffic-top-interfaces"
-                />
-              </Fragment>
+                </div>
+              </div>
             ) : (
-              <Fragment>
-                <TrafficTopList
-                  title="Top devices"
-                  description="Which devices reported the most traffic."
-                  help={TRAFFIC_HELP.devices}
-                  rows={deviceRows}
-                  totalOctets={summary.totals.octets}
-                  emptyMessage="No devices in this time range."
-                  dataTestId="traffic-top-devices"
-                />
-                <TrafficTopList
-                  title="Top applications"
-                  description="What the traffic is for, by service port."
-                  help={TRAFFIC_HELP.applications}
-                  rows={applicationRows}
-                  totalOctets={summary.totals.octets}
-                  emptyMessage="No applications in this time range."
-                  dataTestId="traffic-top-applications"
-                />
-                <TrafficTopList
-                  title="Top sources"
-                  description="Who sent the most."
-                  help={TRAFFIC_HELP.sources}
-                  rows={addressRows(summary.topSources, "source")}
-                  totalOctets={summary.totals.octets}
-                  emptyMessage="No sources in this time range."
-                  dataTestId="traffic-top-sources"
-                />
-                <TrafficTopList
-                  title="Top destinations"
-                  description="Who received the most."
-                  help={TRAFFIC_HELP.destinations}
-                  rows={addressRows(summary.topDestinations, "destination")}
-                  totalOctets={summary.totals.octets}
-                  emptyMessage="No destinations in this time range."
-                  dataTestId="traffic-top-destinations"
-                />
-              </Fragment>
+              <></>
             )}
-          </div>
+          </Card>
 
-          <Card
-            title={
-              <span className="inline-flex items-center gap-1.5">
-                {translator.translateText(CONVERSATIONS_TITLE)}
-                <InfoTooltip
-                  label={CONVERSATIONS_TITLE}
-                  text={TRAFFIC_HELP.conversations}
-                />
-              </span>
-            }
-            description="Who talks to whom, busiest first."
-            rightElement={
-              <div
-                className="max-sm:hidden inline-flex rounded-md bg-gray-50 p-0.5 ring-1 ring-gray-200 sm:flex"
-                role="group"
-                aria-label={translator.translateText("Show conversations as")}
-              >
-                {(["diagram", "list"] as Array<"diagram" | "list">).map(
-                  (mode: "diagram" | "list"): ReactElement => {
-                    return (
-                      <button
-                        key={mode}
-                        type="button"
-                        aria-pressed={conversationMode === mode}
-                        className={`rounded px-2.5 py-1 text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-                          conversationMode === mode
-                            ? "bg-white text-gray-900 shadow-sm"
-                            : "text-gray-500 hover:text-gray-900"
-                        }`}
-                        onClick={() => {
-                          setConversationMode(mode);
-                        }}
-                        data-testid={`traffic-conversations-${mode}`}
-                      >
-                        {translator.translateText(
-                          mode === "diagram" ? "Diagram" : "List",
-                        )}
-                      </button>
-                    );
-                  },
+          {loaded && summary && isUsageSettled && !needsSetup && hasTraffic ? (
+            <Fragment>
+              <div className="mb-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
+                {scope.kind === "device" ? (
+                  <Fragment>
+                    <TrafficTopList
+                      title="Top sources"
+                      description="Who sent the most."
+                      help={TRAFFIC_HELP.sources}
+                      rows={addressRows(summary.topSources, "source")}
+                      totalOctets={summary.totals.octets}
+                      emptyMessage="No sources in this time range."
+                      dataTestId="traffic-top-sources"
+                    />
+                    <TrafficTopList
+                      title="Top destinations"
+                      description="Who received the most."
+                      help={TRAFFIC_HELP.destinations}
+                      rows={addressRows(summary.topDestinations, "destination")}
+                      totalOctets={summary.totals.octets}
+                      emptyMessage="No destinations in this time range."
+                      dataTestId="traffic-top-destinations"
+                    />
+                    <TrafficTopList
+                      title="Top applications"
+                      description="What the traffic is for, by service port."
+                      help={TRAFFIC_HELP.applications}
+                      rows={applicationRows}
+                      totalOctets={summary.totals.octets}
+                      emptyMessage="No applications in this time range."
+                      dataTestId="traffic-top-applications"
+                    />
+                    <TrafficTopList
+                      title="Top interfaces"
+                      description="Which ports the traffic went through."
+                      help={TRAFFIC_HELP.interfaces}
+                      rows={interfaceRows}
+                      totalOctets={
+                        // In and out are both counted: every share is of both.
+                        summary.topInterfaces.reduce(
+                          (
+                            total: number,
+                            row: NetworkTrafficInterfaceRow,
+                          ): number => {
+                            return total + row.inOctets + row.outOctets;
+                          },
+                          0,
+                        )
+                      }
+                      emptyMessage="The device's flow records name no interfaces."
+                      dataTestId="traffic-top-interfaces"
+                    />
+                  </Fragment>
+                ) : (
+                  <Fragment>
+                    <TrafficTopList
+                      title="Top devices"
+                      description="Which devices reported the most traffic."
+                      help={TRAFFIC_HELP.devices}
+                      rows={deviceRows}
+                      totalOctets={summary.totals.octets}
+                      emptyMessage="No devices in this time range."
+                      dataTestId="traffic-top-devices"
+                    />
+                    <TrafficTopList
+                      title="Top applications"
+                      description="What the traffic is for, by service port."
+                      help={TRAFFIC_HELP.applications}
+                      rows={applicationRows}
+                      totalOctets={summary.totals.octets}
+                      emptyMessage="No applications in this time range."
+                      dataTestId="traffic-top-applications"
+                    />
+                    <TrafficTopList
+                      title="Top sources"
+                      description="Who sent the most."
+                      help={TRAFFIC_HELP.sources}
+                      rows={addressRows(summary.topSources, "source")}
+                      totalOctets={summary.totals.octets}
+                      emptyMessage="No sources in this time range."
+                      dataTestId="traffic-top-sources"
+                    />
+                    <TrafficTopList
+                      title="Top destinations"
+                      description="Who received the most."
+                      help={TRAFFIC_HELP.destinations}
+                      rows={addressRows(summary.topDestinations, "destination")}
+                      totalOctets={summary.totals.octets}
+                      emptyMessage="No destinations in this time range."
+                      dataTestId="traffic-top-destinations"
+                    />
+                  </Fragment>
                 )}
               </div>
-            }
-          >
-            <div data-testid="traffic-top-conversations">
-              {summary.topConversations.length === 0 ? (
-                <p className="py-6 text-center text-sm text-gray-500">
-                  {translator.translateText(
-                    "No conversations in this time range.",
-                  )}
-                </p>
-              ) : (
-                <Fragment>
-                  {conversationMode === "diagram" ? (
-                    <div className="max-sm:hidden">
-                      <TrafficConversationDiagram
-                        conversations={summary.topConversations}
-                        onSelectConversation={onSelectConversation}
-                        onSelectSource={onSelectSource}
-                        onSelectDestination={onSelectDestination}
-                      />
-                    </div>
-                  ) : (
-                    <></>
-                  )}
+
+              <Card
+                title={
+                  <span className="inline-flex items-center gap-1.5">
+                    {translator.translateText(CONVERSATIONS_TITLE)}
+                    <InfoTooltip
+                      label={CONVERSATIONS_TITLE}
+                      text={TRAFFIC_HELP.conversations}
+                    />
+                  </span>
+                }
+                description="Who talks to whom, busiest first."
+                rightElement={
                   <div
-                    className={
-                      conversationMode === "diagram" ? "sm:hidden" : undefined
-                    }
+                    className="max-sm:hidden inline-flex rounded-md bg-gray-50 p-0.5 ring-1 ring-gray-200 sm:flex"
+                    role="group"
+                    aria-label={translator.translateText(
+                      "Show conversations as",
+                    )}
                   >
-                    <ol className="-mx-2 space-y-0.5">
-                      {conversationRows.map(
-                        (row: TrafficTopRow): ReactElement => {
-                          return (
-                            <li key={row.key}>
-                              <button
-                                type="button"
-                                className={`block w-full rounded-md px-2 py-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-                                  row.isActive
-                                    ? "bg-indigo-50"
-                                    : "hover:bg-gray-50"
-                                }`}
-                                aria-pressed={row.isActive}
-                                aria-label={row.ariaLabel}
-                                onClick={row.onClick}
-                                data-testid="traffic-conversation-row"
-                              >
-                                <div className="flex items-baseline justify-between gap-3">
-                                  <span className="min-w-0 truncate font-mono text-sm text-gray-900">
-                                    {row.label}
-                                  </span>
-                                  <span className="flex-shrink-0 text-sm tabular-nums text-gray-900">
-                                    {formatTrafficBytes(row.octets)}
-                                  </span>
-                                </div>
-                              </button>
-                            </li>
-                          );
-                        },
-                      )}
-                    </ol>
+                    {(["diagram", "list"] as Array<"diagram" | "list">).map(
+                      (mode: "diagram" | "list"): ReactElement => {
+                        return (
+                          <button
+                            key={mode}
+                            type="button"
+                            aria-pressed={conversationMode === mode}
+                            className={`rounded px-2.5 py-1 text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                              conversationMode === mode
+                                ? "bg-white text-gray-900 shadow-sm"
+                                : "text-gray-500 hover:text-gray-900"
+                            }`}
+                            onClick={() => {
+                              setConversationMode(mode);
+                            }}
+                            data-testid={`traffic-conversations-${mode}`}
+                          >
+                            {translator.translateText(
+                              mode === "diagram" ? "Diagram" : "List",
+                            )}
+                          </button>
+                        );
+                      },
+                    )}
                   </div>
-                </Fragment>
-              )}
-            </div>
-          </Card>
+                }
+              >
+                <div data-testid="traffic-top-conversations">
+                  {summary.topConversations.length === 0 ? (
+                    <p className="py-6 text-center text-sm text-gray-500">
+                      {translator.translateText(
+                        "No conversations in this time range.",
+                      )}
+                    </p>
+                  ) : (
+                    <Fragment>
+                      {conversationMode === "diagram" ? (
+                        <div className="max-sm:hidden">
+                          <TrafficConversationDiagram
+                            conversations={summary.topConversations}
+                            onSelectConversation={onSelectConversation}
+                            onSelectSource={onSelectSource}
+                            onSelectDestination={onSelectDestination}
+                          />
+                        </div>
+                      ) : (
+                        <></>
+                      )}
+                      <div
+                        className={
+                          conversationMode === "diagram"
+                            ? "sm:hidden"
+                            : undefined
+                        }
+                      >
+                        <ol className="-mx-2 space-y-0.5">
+                          {conversationRows.map(
+                            (row: TrafficTopRow): ReactElement => {
+                              return (
+                                <li key={row.key}>
+                                  <button
+                                    type="button"
+                                    className={`block w-full rounded-md px-2 py-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                                      row.isActive
+                                        ? "bg-indigo-50"
+                                        : "hover:bg-gray-50"
+                                    }`}
+                                    aria-pressed={row.isActive}
+                                    aria-label={row.ariaLabel}
+                                    onClick={row.onClick}
+                                    data-testid="traffic-conversation-row"
+                                  >
+                                    <div className="flex items-baseline justify-between gap-3">
+                                      <span className="min-w-0 truncate font-mono text-sm text-gray-900">
+                                        {row.label}
+                                      </span>
+                                      <span className="flex-shrink-0 text-sm tabular-nums text-gray-900">
+                                        {formatTrafficBytes(row.octets)}
+                                      </span>
+                                    </div>
+                                  </button>
+                                </li>
+                              );
+                            },
+                          )}
+                        </ol>
+                      </div>
+                    </Fragment>
+                  )}
+                </div>
+              </Card>
+            </Fragment>
+          ) : (
+            <></>
+          )}
         </Fragment>
+      )}
+
+      {scope.kind === "network" && summary && !isMerakiShown ? (
+        <TrafficSourcesCard
+          sources={summary.sources}
+          onLinked={() => {
+            setRefreshKey((key: number) => {
+              return key + 1;
+            });
+          }}
+        />
       ) : (
         <></>
       )}
 
-      {scope.kind === "network" && summary ? (
-        <TrafficSourcesCard
-          sources={summary.sources}
-          onLinked={() => {
+      {scope.kind === "network" ? (
+        <MerakiConnectionsCard
+          /*
+           * Without a connection, a page that shows its flows offers Meraki
+           * at its foot; a page still setting up offers it in its guide.
+           */
+          offerWhenEmpty={Boolean(summary) && !needsSetup}
+          refreshKey={connectionsRefreshKey}
+          onChanged={() => {
+            setRefreshKey((key: number) => {
+              return key + 1;
+            });
+          }}
+          onConnect={() => {
+            setIsConnectOpen(true);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {isConnectOpen ? (
+        <MerakiConnectModal
+          onClose={() => {
+            setIsConnectOpen(false);
+          }}
+          onConnected={() => {
+            setIsConnectOpen(false);
+            setSource(TrafficSide.Meraki);
+            setConnectionsRefreshKey((key: number) => {
+              return key + 1;
+            });
             setRefreshKey((key: number) => {
               return key + 1;
             });

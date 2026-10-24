@@ -66,6 +66,7 @@ import {
   buildKubernetesDatabaseAliases,
 } from "Common/Types/DatabaseServer/DatabaseEndpoint";
 import ObjectID from "Common/Types/ObjectID";
+import { HEARTBEAT_ROW_PRESENT } from "Common/Server/Utils/Telemetry/ResourceHeartbeat";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import {
@@ -277,7 +278,7 @@ beforeEach(() => {
     .mockResolvedValue(databaseServerRow(LINKED_ID));
   recordCollectorHeartbeat = jest
     .spyOn(DatabaseServerService, "recordCollectorHeartbeat")
-    .mockResolvedValue(undefined);
+    .mockResolvedValue(HEARTBEAT_ROW_PRESENT);
   attachLabels = jest
     .spyOn(DatabaseServerService, "attachLabels")
     .mockResolvedValue(undefined);
@@ -1115,7 +1116,9 @@ describe("autoDiscoverHost refuses a database's batch", () => {
     getString.mockImplementation(async (namespace: string) => {
       return namespace === "host-id" ? HOST_ID : null;
     });
-    jest.spyOn(HostService, "updateLastSeen").mockResolvedValue(undefined);
+    jest
+      .spyOn(HostService, "updateLastSeen")
+      .mockResolvedValue(HEARTBEAT_ROW_PRESENT);
     jest
       .spyOn(baseService, "tryLinkHostToProxmoxGuest")
       .mockResolvedValue(undefined);
@@ -1192,7 +1195,9 @@ describe("runBatchHostEnrichment skips database blocks", () => {
     findOrCreateHost = jest
       .spyOn(HostService, "findOrCreateByHostIdentifier")
       .mockResolvedValue(host);
-    jest.spyOn(HostService, "updateLastSeen").mockResolvedValue(undefined);
+    jest
+      .spyOn(HostService, "updateLastSeen")
+      .mockResolvedValue(HEARTBEAT_ROW_PRESENT);
   });
 
   function resourceMetric(

@@ -29,7 +29,8 @@ import path from "path";
  * default." - the maintainer.
  *
  * The two pull requests fixing opens - a fix to the code, and the telemetry
- * an investigation found missing - are each auto remediation rule's now
+ * an investigation found missing - are each AI rule's now (each auto
+ * remediation rule's, before the two kinds of rule became one)
  * (Common/Types/AI/AutomaticFixPullRequests): on for a new rule, on with no
  * rule, opening only while fixing is on, in the code repositories the rules
  * name. The docs say so in the words the dashboard uses, and the upgrade
@@ -43,7 +44,10 @@ const NOTE_HEADING: string =
   "### The pull-request switches moved into the auto remediation rules";
 const FIXING_NOTE_HEADING: string =
   "### Fixing new incidents and alerts has a switch of its own";
-const NEXT_NOTE_HEADING: string = "### Verify the edition and the license";
+// The note on the AI rules follows it, then the edition checks.
+const AI_RULES_NOTE_HEADING: string =
+  "### Investigation rules and auto remediation rules are now AI rules";
+const EDITION_NOTE_HEADING: string = "### Verify the edition and the license";
 const NEW_PROJECTS_NOTE_HEADING: string =
   "### New projects start with every AI feature on";
 
@@ -93,7 +97,7 @@ describe("the upgrade note", () => {
   const upgrading: string = read(UPGRADING_PAGE);
   const note: string = flat(getSection(upgrading, NOTE_HEADING));
 
-  it("sits in the 13 → 14 notes, right after fixing's own note and before the edition checks, once", () => {
+  it("sits in the 13 → 14 notes, right after fixing's own note and before the AI rules' note and the edition checks, once", () => {
     const headings: Array<string> = getHeadings(
       getSection(upgrading, THIRTEEN_TO_FOURTEEN_HEADING),
     );
@@ -101,7 +105,8 @@ describe("the upgrade note", () => {
 
     expect(position).toBeGreaterThan(0);
     expect(headings[position - 1]).toBe(FIXING_NOTE_HEADING);
-    expect(headings[position + 1]).toBe(NEXT_NOTE_HEADING);
+    expect(headings[position + 1]).toBe(AI_RULES_NOTE_HEADING);
+    expect(headings[position + 2]).toBe(EDITION_NOTE_HEADING);
     expect(
       getHeadings(upgrading).filter((heading: string): boolean => {
         return heading === NOTE_HEADING;
@@ -223,13 +228,13 @@ describe("the AI SRE page", () => {
       "Fixing starts off, and the pull requests that are part of it open only while it is on",
     );
     expect(page).toContain(
-      "each auto remediation rule sets them: with no rule both open, and a rule can turn either off under its **More fields**",
+      "each AI rule sets them: with no rule both open, and a rule can turn either off under its **More fields**",
     );
     expect(codeFixes).toContain(
       "they open only while **Fix new incidents automatically** (on **Incidents → AI → Settings**) or **Fix new alerts automatically** (on **Alerts → AI → Settings**) is on, and fixing starts **off**, for new projects too.",
     );
     expect(codeFixes).toContain(
-      `With no auto remediation rule they open for every investigation that qualifies; with rules, each rule says for what it matches, with **${AUTO_REMEDIATION_MORE_FIELDS_COPY.codeFixTitle}** under its **More fields**, on for a new rule.`,
+      `With no AI rule they open for every investigation that qualifies; with rules, each rule says for what it matches, with **${AUTO_REMEDIATION_MORE_FIELDS_COPY.codeFixTitle}** under its **More fields**, on for a new rule.`,
     );
     expect(codeFixes).toContain(
       `**${AUTO_REMEDIATION_MORE_FIELDS_COPY.telemetryTitle}**, beside it under a rule's **More fields** and on for a new rule too,`,
@@ -241,7 +246,7 @@ describe("the AI SRE page", () => {
       "With rules set up, a pull request opens only for an incident (or alert) a rule matches, when a matching rule has that pull request on, and only in the code repositories the matching rules name; a matching rule that names none allows every connected repository.",
     );
     expect(codeFixes).toContain(
-      "To get the pull requests without OneUptime AI changing your clusters or hosts, turn fixing on, keep **Fixes** off on each Kubernetes cluster's and host's **AI agent** page (off is their default), and add no auto remediation rule",
+      "To get the pull requests without OneUptime AI changing your clusters or hosts, turn fixing on, keep **Fixes** off on each Kubernetes cluster's and host's **AI agent** page (off is their default), and add no AI rule",
     );
   });
 
@@ -273,14 +278,14 @@ describe("the AI SRE page", () => {
       `- **Runner** — where OneUptime AI runs Bash commands for the rule, inside your network. It lists your own Runners, the project's default first, and a new rule starts on the default; with **${REMEDIATION_NO_RUNNER_PLACEHOLDER}**, OneUptime AI runs no commands of its own for the rule.`,
     );
     expect(rules).toContain(
-      `- **${RULE_CODE_REPOSITORIES_FIELD_COPY.title}** — the repositories OneUptime AI may read while it fixes, and open pull requests in. With none picked (**${RULE_CODE_REPOSITORIES_FIELD_COPY.placeholder}**) it may use every repository connected to the project.`,
+      `- **${RULE_CODE_REPOSITORIES_FIELD_COPY.title}** — the repositories OneUptime AI may read while it investigates and fixes, and open pull requests in. With none picked (**${RULE_CODE_REPOSITORIES_FIELD_COPY.placeholder}**) it may use every repository connected to the project.`,
     );
     expect(rules).toContain(
       `- **${AUTO_REMEDIATION_MORE_FIELDS_COPY.codeFixTitle}** and **${AUTO_REMEDIATION_MORE_FIELDS_COPY.telemetryTitle}** — whether OneUptime AI opens a fix pull request, or one that adds missing telemetry, for the incidents the rule matches`,
     );
-    // An investigation rule names the repositories it may read, too.
+    // One list for both: the pull requests are only a rule that fixes'.
     expect(rules).toContain(
-      `and the code repositories it may read (**${RULE_CODE_REPOSITORIES_FIELD_COPY.placeholder}** when it names none).`,
+      "the runbooks, the Runner and the two pull requests are only for a rule that fixes",
     );
   });
 });
@@ -298,7 +303,7 @@ describe("the other pages that name the pull requests", () => {
       "Eligible fixes happen without the click while **Fix new incidents automatically** is on",
     );
     expect(section).toContain(
-      `With no auto remediation rule every eligible fix opens; with rules, only one for what a rule matches, when the rule has **${AUTO_REMEDIATION_MORE_FIELDS_COPY.codeFixTitle}** on (a new rule does), in the code repositories it names.`,
+      `With no AI rule every eligible fix opens; with rules, only one for what a rule matches, when the rule has **${AUTO_REMEDIATION_MORE_FIELDS_COPY.codeFixTitle}** on (a new rule does), in the code repositories it names.`,
     );
     for (const title of OLD_SWITCH_TITLES) {
       expect(section).not.toContain(title);

@@ -295,7 +295,7 @@ flowchart TB
 - **Al vostro stato riconosciuto o oltre** — **Riconosciuto**, o qualsiasi stato posto sotto di esso in **Incidenti → Impostazioni → Stato incidente** — non viene eseguita alcuna policy di reperibilità, quindi nessuno viene avvisato. L'incidente elenca comunque le sue policy, quelle che avete scelto e quelle aggiunte dalle regole di reperibilità, e il suo feed dice perché in una riga: _No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ Il suo SLA, se una regola gliene assegna uno, parte già con la risposta registrata. Tutto il resto qui sotto viene eseguito come per qualsiasi nuovo incidente.
 - **Al vostro stato risolto o oltre** — **Risolto**, o qualsiasi stato posto sotto di esso — l'incidente è finito, quindi in più non viene eseguito nulla di ciò che risponde a un incidente in corso:
   - non viene raggruppato in un episodio, che potrebbe avvisare di nuovo;
-  - nessuna regola di runbook e nessuna regola di rimedio automatico agisce su di esso;
+  - nessuna regola di runbook e nessuna regola IA agisce su di esso;
   - OneUptime AI non lo esamina — la sua scheda **AI Investigation** dice che è stato creato già risolto, e **Ask OneUptime AI** sotto di essa risponde comunque a domande su di esso;
   - non viene creato alcun canale Slack o Microsoft Teams per esso;
   - i suoi monitor mantengono il loro stato e continuano a essere monitorati, qualunque cosa dica **Cambia lo stato del monitor in**;

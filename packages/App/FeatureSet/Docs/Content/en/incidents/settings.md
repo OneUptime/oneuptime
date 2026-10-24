@@ -28,7 +28,7 @@ Open **Incidents** from the **Products** menu in the top bar, then expand **Sett
 | **Episode Membership**   | Choose whether an incident can be in only one episode. Off by default. |
 | **Numbering**            | The text in front of incident and episode numbers, such as `INC-` in `INC-42`, and the number the next one gets. |
 
-What OneUptime AI does on its own is not set here: it has a section of its own, **Incidents → AI**, at routes beginning `/dashboard/{projectId}/incidents/ai/`. Its **Settings** page switches investigating new incidents, fixing them automatically (off until you turn it on), and drafting postmortems on or off, each saving as soon as you flip it; the investigation rules and auto remediation rules that narrow which incidents are investigated and fixed, and with which code repositories and pull requests, the postmortem rules that choose which resolved incidents get a draft and the templates it follows, and the optional limits AI works under, are folded under **More settings**, and none apply until you set them. **Insights** and **Logs** are next to it: what AI learned from your incidents, and everything it did. See [AI SRE](/docs/ai/ai-sre).
+What OneUptime AI does on its own is not set here: it has a section of its own, **Incidents → AI**, at routes beginning `/dashboard/{projectId}/incidents/ai/`. Its **Settings** page switches investigating new incidents, fixing them automatically (off until you turn it on), and drafting postmortems on or off, each saving as soon as you flip it; the AI rules that narrow which incidents are investigated and fixed, and with which code repositories and pull requests, the postmortem rules that choose which resolved incidents get a draft and the templates it follows, and the optional limits AI works under, are folded under **More settings**, and none apply until you set them. **Insights** and **Logs** are next to it: what AI learned from your incidents, and everything it did. See [AI SRE](/docs/ai/ai-sre).
 
 **Incident State** and **Incident Severity** are covered in depth on [Incident States & Severities](/docs/incidents/states-and-severities) — the rest of this page picks up from **Incident Templates**. Forms that let people outside your team report incidents are a product of their own: see [Forms](/docs/forms/index). Tools that open incidents on their own, such as [Huntress](/docs/integrations/huntress), are set up as workflows.
 
@@ -555,7 +555,7 @@ An incident can be in several episodes at once. **Incidents → Settings → Epi
 
 ## Rules that run when an incident is created
 
-**Incidents → Rules** holds eight rule engines, and **Incidents → AI → Settings** two more, under **More settings**: **Auto Remediation Rules** and **Investigation Rules**. They all do the same job — look at an incident the moment it is created, and act if it matches — but they differ in what they do and in how multiple matching rules resolve. A third table under **More settings** there, **Postmortem Rules**, looks at an incident when it resolves instead: which resolved incidents OneUptime AI drafts a postmortem for, and the templates the draft may follow. See [Postmortems](/docs/incidents/postmortems#choose-which-incidents-get-a-draft-and-its-template).
+**Incidents → Rules** holds eight rule engines, and **Incidents → AI → Settings** one more, under **More settings**: **AI rules**. They all do the same job — look at an incident the moment it is created, and act if it matches — but they differ in what they do and in how multiple matching rules resolve. A second table under **More settings** there, **Postmortem Rules**, looks at an incident when it resolves instead: which resolved incidents OneUptime AI drafts a postmortem for, and the templates the draft may follow. See [Postmortems](/docs/incidents/postmortems#choose-which-incidents-get-a-draft-and-its-template).
 
 ```mermaid title="The rules a new incident passes through, in order"
 flowchart TB
@@ -567,25 +567,24 @@ flowchart TB
     runbook --> execute["On-call policies execute"]
 ```
 
-Grouping, SLA, reminder, investigation and auto remediation rules act on the new incident as well, each on its own: see each rule below.
+Grouping, SLA, reminder and AI rules act on the new incident as well, each on its own: see each rule below.
 
 - **Grouping Rules** — group related incidents into episodes. Rules are evaluated from the top of the list down; drag a rule to change its place. Covered in detail below.
 - **On-Call Rules** — execute on-call duty policies for matching incidents. Covered in detail below.
 - **Owner Rules** — assign owners automatically.
 - **Runbook Rules** — start a [runbook](/docs/runbooks/index) when an incident matches.
-- **Auto Remediation Rules**, under **AI** → **Settings** — which new incidents are fixed while **Fix new incidents automatically** is on, and how: asking before fixing or not, and the runbooks OneUptime AI may run. With no rule, every new incident is fixed. If an AI investigation is queued for the incident, they run once it finishes, with its analysis in hand.
-- **Investigation Rules**, under **AI** → **Settings** — which new incidents OneUptime AI investigates. With no rule, every one is. A rule can also make it wait, and investigate only the incidents still open after that many minutes. See [AI SRE](/docs/ai/ai-sre).
+- **AI rules**, under **AI** → **Settings** — which new incidents OneUptime AI investigates and, while **Fix new incidents automatically** is on, which it fixes, and how: asking before fixing or not, and the runbooks OneUptime AI may run. With no rule, every new incident is investigated, and fixed while fixing is on. A rule can also make OneUptime AI wait, and investigate only the incidents still open after that many minutes. If an AI investigation is queued for the incident, fixing starts once it finishes, with its analysis in hand. See [AI SRE](/docs/ai/ai-sre).
 - **Privacy Rules** — decide whether a matching incident is private.
 - **Label Rules** — apply labels automatically.
 - **SLA Rules** — track response and resolution times. Rules are evaluated from the top of the list down; drag a rule to change its place.
 - **Reminder Rules** — periodically remind incident owners while an incident is still open. Rules are evaluated from the top of the list down and the first matching rule wins; drag a rule to change its place. An incident's rule is matched again, and the wait for its next reminder starts over, when its severity or labels change or its **Send reminders** switch is flipped. Saving the severity and labels it already has — every save of the **Incident Details** card sends them — leaves its next reminder where it was. Alerts work the same way.
 
 > [!IMPORTANT]
-> **Order semantics are not uniform.** Grouping Rules, SLA Rules and Reminder Rules are order-evaluated, and their lists are put in order by dragging: a new rule is added to the end. On-Call Rules are not — every matching rule fires. Do not assume one model applies to all ten.
+> **Order semantics are not uniform.** Grouping Rules, SLA Rules and Reminder Rules are order-evaluated, and their lists are put in order by dragging: a new rule is added to the end. On-Call Rules are not — every matching rule fires. Do not assume one model applies to all nine.
 
-The **On-Call Rules**, **Owner Rules**, **Label Rules** and **Privacy Rules** pages are tabbed — an **Incident Rules** tab and an **Episode Rules** tab, each with its own table. Configure the **Incident Rules** tab unless you specifically mean episodes. **Grouping Rules**, **Runbook Rules**, **Auto Remediation Rules**, **Investigation Rules**, **SLA Rules** and **Reminder Rules** are single tables.
+The **On-Call Rules**, **Owner Rules**, **Label Rules** and **Privacy Rules** pages are tabbed — an **Incident Rules** tab and an **Episode Rules** tab, each with its own table. Configure the **Incident Rules** tab unless you specifically mean episodes. **Grouping Rules**, **Runbook Rules**, **AI rules**, **SLA Rules** and **Reminder Rules** are single tables.
 
-Owner, Label and Privacy Rules only act on incidents and episodes created after the rule exists. To apply one of them to incidents that are already there, use **Run Now** on the rule's row, on its own page, or from the table's bulk actions — see [Run Rules on Existing Resources](/docs/configuration/run-rules-now). On-Call, Runbook, Auto Remediation, Investigation, Grouping, SLA and Reminder Rules cannot be run against existing incidents.
+Owner, Label and Privacy Rules only act on incidents and episodes created after the rule exists. To apply one of them to incidents that are already there, use **Run Now** on the rule's row, on its own page, or from the table's bulk actions — see [Run Rules on Existing Resources](/docs/configuration/run-rules-now). On-Call, Runbook, AI, Grouping, SLA and Reminder Rules cannot be run against existing incidents.
 
 **A new rule starts on.** Creating a rule does not ask whether it should be enabled: it starts enabled, exactly as one created through the API or Terraform does, and every other switch on the form starts the way the API would store it — **Notify Owners** on an owner rule is on, for example. To pause a rule without deleting it, switch **Enabled** off on its edit form; the list shows a green **Enabled** or red **Disabled** pill for each rule. Grouping rules are the exception: their create form shows the **Enabled** switch, already on.
 

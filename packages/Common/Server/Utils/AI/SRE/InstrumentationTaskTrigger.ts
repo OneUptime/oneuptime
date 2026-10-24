@@ -60,8 +60,9 @@ export interface InstrumentationTaskGateInput {
    */
   rules?: AutomaticFixPullRequestRules | null | undefined;
   /*
-   * Whether a GitHub-App-connected repository the rules allow exists: one
-   * the agent can actually open the pull request in.
+   * Whether a connected repository the rules allow exists - on GitHub,
+   * GitLab, Forgejo, Gitea or any Git server (SubjectCodeFixRun
+   * .hasConnectedRepository): one the agent can actually push the change to.
    */
   hasConnectedRepository: boolean;
   // A non-terminal ImproveInstrumentation run for the same subject, if any.
@@ -143,9 +144,7 @@ export default class InstrumentationTaskTrigger {
     }
 
     if (!input.hasConnectedRepository) {
-      return skip(
-        "project has no GitHub-App-connected repository the auto remediation rules allow",
-      );
+      return skip("project has no connected repository the AI rules allow");
     }
 
     /*
@@ -287,7 +286,7 @@ export default class InstrumentationTaskTrigger {
        * with the FixFromIncident sibling — see SubjectCodeFixRun.
        */
       const hasConnectedRepository: boolean =
-        await SubjectCodeFixRun.hasGitHubAppConnectedRepository(
+        await SubjectCodeFixRun.hasConnectedRepository(
           projectId,
           ruleDecision.repositories,
         );

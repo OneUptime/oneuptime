@@ -1,134 +1,64 @@
 <!-- markdownlint-disable MD033 MD041 -->
 <p align="center">
-  <a href="/README.md">English</a> ·
-  <a href="/Docs/translations/README.zh-CN.md">简体中文</a> ·
-  <a href="/Docs/translations/README.zh-TW.md">繁體中文</a> ·
-  <a href="/Docs/translations/README.ja.md">日本語</a> ·
-  <a href="/Docs/translations/README.ko.md">한국어</a> ·
-  <a href="/Docs/translations/README.es.md">Español</a> ·
-  <a href="/Docs/translations/README.fr.md">Français</a> ·
-  <a href="/Docs/translations/README.de.md">Deutsch</a> ·
-  <a href="/Docs/translations/README.pt.md">Português</a> ·
-  <a href="/Docs/translations/README.it.md">Italiano</a> ·
-  <a href="/Docs/translations/README.ru.md">Русский</a> ·
-  <a href="/Docs/translations/README.hi.md">हिन्दी</a> ·
-  <a href="/Docs/translations/README.fa.md">فارسی</a> ·
-  <a href="/Docs/translations/README.nl.md">Nederlands</a> ·
-  <a href="/Docs/translations/README.da.md">Dansk</a> ·
-  <a href="/Docs/translations/README.sv.md">Svenska</a> ·
+  <a href="/README.md">English</a>&nbsp;·
+  <a href="/Docs/translations/README.zh-CN.md">简&#8288;体&#8288;中&#8288;文</a>&nbsp;·
+  <a href="/Docs/translations/README.zh-TW.md">繁&#8288;體&#8288;中&#8288;文</a>&nbsp;·
+  <a href="/Docs/translations/README.ja.md">日&#8288;本&#8288;語</a>&nbsp;·
+  <a href="/Docs/translations/README.ko.md">한&#8288;국&#8288;어</a>&nbsp;·
+  <a href="/Docs/translations/README.es.md">Español</a>&nbsp;·
+  <a href="/Docs/translations/README.fr.md">Français</a>&nbsp;·
+  <a href="/Docs/translations/README.de.md">Deutsch</a>&nbsp;·
+  <a href="/Docs/translations/README.pt.md">Português</a>&nbsp;·
+  <a href="/Docs/translations/README.it.md">Italiano</a>&nbsp;·
+  <a href="/Docs/translations/README.ru.md">Русский</a>&nbsp;·
+  <a href="/Docs/translations/README.hi.md">हिन्दी</a>&nbsp;·
+  <a href="/Docs/translations/README.fa.md">فارسی</a>&nbsp;·
+  <a href="/Docs/translations/README.nl.md">Nederlands</a>&nbsp;·
+  <a href="/Docs/translations/README.da.md">Dansk</a>&nbsp;·
+  <a href="/Docs/translations/README.sv.md">Svenska</a>&nbsp;·
   <a href="/Docs/translations/README.no.md">Norsk</a>
 </p>
 
-<div align="center">
-  <a href="https://oneuptime.com">
-    <img alt="OneUptime ロゴ" width="55%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/OneUptimePNG/7.png"/>
-  </a>
+<p align="center">
+  <a href="https://oneuptime.com"><picture><source media="(prefers-color-scheme: dark)" srcset="/packages/App/FeatureSet/Docs/Static/images/logo-dark.svg"><img alt="OneUptime" width="42%" src="/packages/App/FeatureSet/Docs/Static/images/logo-light.svg"></picture></a>
+</p>
 
-  <h3>エージェント型オブザーバビリティ — 稼働監視、インシデント、オンコール、ステータスページ、ログ、トレース、メトリクス、APM をひとつにまとめたオープンソースプラットフォーム。</h3>
+<p align="center">
+  <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
+  <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
+</p>
 
-  <p><b>障害が起きたとき、いち早く気づき、誰よりも速く直す。</b></p>
+OneUptime はオープンソースのオブザーバビリティプラットフォームです。ウェブサイト、API、サーバーが動いていることを確認し、アプリが送るログ、メトリクス、トレースを集め、何かが壊れたときはオンコール担当者を呼び出し、ステータスページで顧客に知らせます。これらはすべて 1 つの製品の中で行われるため、問題に気づいたツールがそのままチームを呼び出します。
 
-  <p>OneUptime は、無料でセルフホストできるひとつのプラットフォームで、棚いっぱいの SaaS ツールを置き換えます。障害を検知し、適切な担当者を呼び出し、ステータスページを更新し、根本原因を突き止め、さらには修正用の PR まで作成します。</p>
+[OneUptime Cloud](https://oneuptime.com) で使うことも、自分のサーバーで動かすこともできます。
 
-  <p>
-    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
-    <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
-    <a href="https://github.com/OneUptime/oneuptime/stargazers"><img src="https://img.shields.io/github/stars/OneUptime/oneuptime?style=flat" alt="Stars"></a>
-    <a href="https://artifacthub.io/packages/helm/oneuptime/oneuptime"><img src="https://img.shields.io/badge/Helm-Chart-0f1689" alt="Helm Chart"></a>
-    <a href="https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA"><img src="https://img.shields.io/badge/Slack-Community-4A154B" alt="Slack"></a>
-  </p>
+<p align="center">
+  <img alt="インシデント中の OneUptime: タイムライン、オンコール担当者、ステータスページ、OneUptime AI の調査" width="100%" src="/packages/Home/Static/img/readme/hero-command-center.png">
+</p>
 
-  <p>
-    <a href="https://oneuptime.com"><b>ウェブサイト</b></a> &nbsp;•&nbsp;
-    <a href="https://oneuptime.com/docs"><b>ドキュメント</b></a> &nbsp;•&nbsp;
-    <a href="#quick-start"><b>クイックスタート</b></a> &nbsp;•&nbsp;
-    <a href="https://oneuptime.com/pricing"><b>料金</b></a> &nbsp;•&nbsp;
-    <a href="#contributing"><b>コントリビュート</b></a>
-  </p>
+## できること
 
-  <a href="https://oneuptime.com"><b>🚀 OneUptime Cloud を試す — ずっと無料のプラン、クレジットカード不要 →</b></a>
-</div>
+- **[モニタリング](https://oneuptime.com/docs/ja/monitor/create-monitor)**: ウェブサイト、API、ポート、DNS、証明書を、世界中のプローブや自社ネットワークの内側からチェックします。サーバー、Kubernetes、Docker、VMware、データベース、ネットワーク機器も見守ります。
+- **[インシデントとオンコール](https://oneuptime.com/docs/ja/incidents/index)**: 各インシデントを 1 つのタイムラインで扱います。オンコール担当者を電話、SMS、メール、プッシュ通知、Slack、Microsoft Teams で呼び出し、誰かが応答するまでエスカレーションします。
+- **[ステータスページ](https://oneuptime.com/docs/ja/status-pages/index)**: 公開または非公開のステータスページで顧客に状況を伝え、予定メンテナンスもそこで告知します。
+- **[ログ、メトリクス、トレース](https://oneuptime.com/docs/ja/telemetry/open-telemetry)**: OpenTelemetry で送信し、検索し、ダッシュボードを作れます。例外、プロファイル、リアルユーザーモニタリング、セキュリティイベントも同じ場所にあります。
+- **[ワークフローと Runbook](https://oneuptime.com/docs/ja/workflows/index)**: 定型作業を自動化し、Jira、ServiceNow など、チームがすでに使っているツールと接続します。
+- **[OneUptime AI](https://oneuptime.com/docs/ja/ai/ai-sre)**: 新しいインシデントやアラートを調査し、出典付きの根本原因分析を投稿します。修正をオンにすると、チームがレビューする修正のプルリクエストを開くこともできます。
+- **[API、CLI、Terraform](https://oneuptime.com/docs/ja/api-reference/api-reference)**: スクリプトや CI から OneUptime を自動化し、モニター、ステータスページ、オンコールをコードとして管理します。
 
-<br/>
+そのほかのことはすべて[ドキュメント](https://oneuptime.com/docs/ja/introduction/getting-started)にあります。
 
-<div align="center">
-  <img alt="ライブインシデント中の OneUptime コマンドセンター" width="92%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/readme/hero-command-center.png"/>
-</div>
+## 使い始める
 
----
+### OneUptime Cloud
 
-## オブザーバビリティスタックをまるごと置き換える
+[サインアップ](https://oneuptime.com/accounts/register)してプロジェクトを作成します。無料プランにクレジットカードは不要です。
 
-OneUptime は、監視、アラート、インシデント対応、オブザーバビリティをひとつのオープンソースアプリに統合します。だから、十数個もの別々のツールに支払い続けたり、それらをつなぎ合わせたりする必要はもうありません。
+### Docker Compose でセルフホストする
 
-| 従来のツール… | OneUptime でできること… |
-|---|---|
-| Pingdom / UptimeRobot | **稼働監視** — 世界中の拠点からのウェブサイト、API、ping、ポート、SSL、DNS、シンセティックチェック |
-| StatusPage.io | **ステータスページ** — サブスクライバー対応の、ブランドを反映した公開・非公開ステータスページ |
-| PagerDuty / Opsgenie | **オンコールとアラート** — スケジュール、エスカレーションポリシー、SMS / 通話 / プッシュ / Slack |
-| Incident.io | **インシデント管理** — 宣言、トリアージ、コミュニケーション、ポストモーテム |
-| Datadog / New Relic | **APM とメトリクス** — トレース、ダッシュボード、サービスパフォーマンス |
-| Loggly | **ログ管理** — ログの収集、検索、アラート |
-| Sentry | **エラートラッキング** — 完全なスタックトレースとコンテキストを備えた例外 |
+8 GB 以上のメモリを持つ Linux サーバーと、Docker、Docker Compose、Git、Node.js が必要です。
 
-これらすべてが **オープンソース（Apache 2.0）** で、Community Edition なら無料でセルフホストできます。
-
----
-
-<details>
-<summary><b>🌙 ひとつのインシデントを、最初から最後まで対応</b></summary>
-
-<br/>
-
-時刻は午前 2:47。チェックアウトがタイムアウトし始めます。ほとんどのツールが最初のアラートを発するより前に OneUptime が行うこと、そして下のスクリーンショットが実際に示していることを紹介します。
-
-### 1 · 検知 — *数秒で気づく*
-
-複数リージョンのプローブが、チェックアウトのレイテンシが 5 秒のしきい値を突破したことを検知し、自動的にインシデントを作成します。お客様が更新ボタンを押すよりも前に。
-
-![検知 — グローバル監視がチェックアウト API の劣化を捉える](/packages/Home/Static/img/readme/detect.png?raw=true)
-
-### 2 · 対応 — *適切な担当者を呼び出す*
-
-Payments ポリシーのオンコールエンジニアに、通話、テキスト、プッシュ通知で連絡が入り、誰かが確認するまで自動的にバックアップへエスカレーションします。
-
-![対応 — インシデントがオンコールに振り分けられ確認される](/packages/Home/Static/img/readme/respond.png?raw=true)
-
-### 3 · 周知 — *お客様に状況を共有*
-
-ステータスページは自動で更新され、すべてのサブスクライバーにメールと SMS で通知されます。誰も更新内容を手で書く必要はありません。
-
-![周知 — 公開ステータスページが更新されサブスクライバーに通知される](/packages/Home/Static/img/readme/communicate.png?raw=true)
-
-### 4 · 診断 — *根本原因を突き止める*
-
-トレース、ログ、メトリクスが、正確なスパンまで相関付けられます。原因は `orders` テーブルに対する遅い `SELECT … FOR UPDATE` で、インデックスの欠落によって滞っていました。
-
-![診断 — トレースウォーターフォールが遅いデータベーススパンを特定する](/packages/Home/Static/img/readme/diagnose.png?raw=true)
-
-### 5 · 自動修正 — *修正案まで下書き済み*
-
-AI エージェントが、インシデントに紐付いた修正内容のプルリクエストを、テストがグリーンの状態で作成します。あなたはレビューしてマージするだけ。まるで決して眠らない SRE のように。
-
-![自動修正 — AI エージェントが修正のプルリクエストを作成する](/packages/Home/Static/img/readme/autofix.png?raw=true)
-
-</details>
-
----
-
-<a name="quick-start"></a>
-
-## ⚡ クイックスタート
-
-### ☁️ OneUptime Cloud — 手軽な方法
-
-セットアップ不要、常に最新、そしてオープンソースプロジェクトの支援にもなります。
-
-**→ [oneuptime.com で無料登録](https://oneuptime.com)**
-
-### 🐳 Docker Compose でセルフホスト
-
-必要なものすべてを 1 台のサーバーに（Debian / Ubuntu / RHEL、Docker + Docker Compose）。ホームラボや小規模チームに最適で、Raspberry Pi でも動作します。
+手順 3 の前に、`config.env` の `HOST` に OneUptime へのアクセスに使うドメイン名または IP アドレスを `http://` なしで設定します。`localhost` のままにするのは、自分のコンピューターで OneUptime を試す場合だけにしてください。
 
 ```bash
 # 1. Clone the release branch
@@ -145,110 +75,41 @@ done
 npm start
 ```
 
-OneUptime は **http://localhost** で起動しました。開いて最初のアカウントを作成してください。
+`npm start` が **OneUptime is up!** と表示したら、`http://localhost` またはサーバーのアドレスを開いてサインアップします。最初のアカウントがインスタンスの管理者になります。
 
-📖 詳しいガイド: [Docker Compose インストール](/packages/App/FeatureSet/Docs/Content/en/installation/docker-compose.md) · [サイジングと要件](/packages/App/FeatureSet/Docs/Content/en/installation/sizing.md)
+サーバーのサイズ、HTTPS、バックアップ、更新については [Docker Compose ガイド](https://oneuptime.com/docs/ja/installation/docker-compose)を参照してください。
 
-### ☸️ Helm を使った Kubernetes — 本番環境向け
+### Helm で Kubernetes にインストールする
+
+大規模な本番環境や高可用性が必要なら、Helm チャートをインストールします。`host` には、OneUptime にアクセスするときに使うドメイン名または IP アドレスを指定します。
 
 ```bash
-helm repo add oneuptime https://helm-chart.oneuptime.com
-helm install oneuptime oneuptime/oneuptime
+helm repo add oneuptime https://helm-chart.oneuptime.com/
+helm install my-oneuptime oneuptime/oneuptime --set host=oneuptime.example.com
 ```
 
-📖 詳しいインストール手順と values は [Artifact Hub →](https://artifacthub.io/packages/helm/oneuptime/oneuptime)
+ストレージ、HTTPS、データベース、アップグレードについては[チャートの README](/HelmChart/Public/oneuptime/README.md) を参照してください。
 
-> **既存のインストールをアップグレードしますか？** [アップグレードガイド](/packages/App/FeatureSet/Docs/Content/en/installation/upgrading.md) を参照してください。
+## Community と Enterprise
 
----
+- **Community Edition**: 無料のオープンソースで、ここまでに挙げたすべてと、SAML と OIDC のシングルサインオンを含みます。
+- **Enterprise Edition**: SCIM プロビジョニング、監査ログ、チームコンプライアンス、インスタンスヘルスダッシュボードと優先サポートを追加します。本番環境で使うにはライセンスが必要です。詳しくは[営業にお問い合わせください](mailto:sales@oneuptime.com)。
 
-## ✨ すべてが揃っている
+2 つのエディションの比較は[ドキュメント](https://oneuptime.com/docs/ja/self-hosted/enterprise)にあります。
 
-| | 機能 | できること |
-|---|---|---|
-| 📊 | **稼働監視** | 複数のグローバルリージョンからのウェブサイト、API、IP、ポート、SSL、DNS、シンセティックモニター。 |
-| 📋 | **ステータスページ** | 美しくブランドを反映したステータスページ、インシデント履歴、計画メンテナンス、サブスクライバー通知。 |
-| 🚨 | **インシデント管理** | 宣言、割り当て、周知、解決、ポストモーテムまで、エンドツーエンドのインシデントワークフロー。 |
-| 📞 | **オンコールとアラート** | SMS、電話、プッシュ、メール、Slack アラートに対応したオンコールスケジュールとエスカレーションポリシー。 |
-| 📝 | **ログ管理** | OpenTelemetry によるログの取り込み、保存、検索、アラート。 |
-| 🔍 | **APM とトレース** | 遅いパスやボトルネックを見つける分散トレース、スパン、パフォーマンスダッシュボード。 |
-| 📈 | **メトリクスとダッシュボード** | テレメトリを対象にしたカスタムダッシュボード — チームに必要なビューを構築。 |
-| 🐛 | **エラートラッキング** | 完全なスタックトレース、コンテキスト、リリーストラッキングとともに例外を捕捉。 |
-| ⚡ | **ワークフロー** | Slack、Jira、GitHub、Microsoft Teams、そして 5,000 以上のアプリと自動化・連携。 |
-| 🤖 | **AI コパイロット** | ログ、トレース、メトリクスを横断して異常を見つけ、根本原因を突き止め、修正の PR を作成する常時稼働のエージェント。 |
+## サポート
 
-<details>
-<summary><b>⚡ 面倒な作業を自動化する</b></summary>
+- 質問は [Slack の OneUptime コミュニティ](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)へどうぞ。
+- バグの報告や機能の要望は [GitHub の Issues](https://github.com/OneUptime/oneuptime/issues) へお寄せください。
+- セキュリティの脆弱性は、[SECURITY.md](/.github/SECURITY.md) の説明どおり非公開で報告してください。
+- そのほかのことは [support@oneuptime.com](mailto:support@oneuptime.com) までメールでどうぞ。
 
-<br/>
+## コントリビュート
 
-エスカレーション、チケット管理、通知を、ビジュアルなノーコードのキャンバス上で組み立てられます。カスタムコードを差し込むことも可能です。上記のインシデントでは、誰も手を動かすことなく、オンコールを呼び出し、Jira チケットを作成し、Slack に投稿しました。
+バグ修正、機能、ドキュメント、テストのどれも歓迎します。ソースから OneUptime を動かす方法は[ローカル開発ガイド](https://oneuptime.com/docs/ja/installation/local-development)に、プルリクエストとライセンスの仕組みは[コントリビューションガイドライン](/.github/CONTRIBUTING.md)にあります。最初の一歩には [good first issue](https://github.com/OneUptime/oneuptime/labels/good%20first%20issue) ラベルの付いた Issue がおすすめです。
 
-![ワークフロー — インシデントエスカレーションのためのノーコード自動化キャンバス](/packages/Home/Static/img/readme/workflows.png?raw=true)
+OneUptime が役に立ったら、このリポジトリにスターを付けるか、[プロジェクトをスポンサー](https://github.com/sponsors/OneUptime)してください。
 
-</details>
-
-### 🖥️ インフラ監視
-
-コピー＆ペーストで導入できる **OpenTelemetry ベース** のエージェントを差し込むだけで、サービスが動作するあらゆる基盤を監視できます。すぐに使えるアラートテンプレートも同梱されています。
-
-- **サーバーと VM** — Linux、macOS、Windows の CPU、メモリ、ディスク、ネットワーク、プロセス、ログ。[ドキュメント →](/packages/App/FeatureSet/Docs/Content/en/telemetry/host-otel-collector.md)
-- **Kubernetes** — 1 回の `helm install` で、ノード / Pod / コンテナ / クラスターのメトリクス、イベント、ログ、eBPF トレース、サービスマップを提供。[ドキュメント →](/packages/App/FeatureSet/Docs/Content/en/telemetry/kubernetes-agent.md)
-- **Docker** — 単一のエージェントがすべてのコンテナを自動検出し、メトリクスとログを送信。[ドキュメント →](/packages/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
-- **Podman** — Podman の Docker 互換ソケットを介した、同じワンエージェントによる自動検出。[ドキュメント →](/packages/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
-- **Proxmox** — ノード、VM、コンテナ、ストレージ、HA 状態、バックアップの網羅状況、レプリケーションの健全性。[ドキュメント →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
-- **VMware** — vCenter、ESXi ホスト、仮想マシン、データストア、クラスタ、リソースプール、vSAN。[ドキュメント →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
-- **Ceph** — クラスターの健全性、容量予測、OSD / プール / PG / モニターの可視化。[ドキュメント →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
-- **ストレージアレイ** — Pure Storage FlashArray と FlashBlade の容量、レイテンシー、ボリューム、ホスト、レプリケーション、ハードウェアの健全性、ファイルシステム、バケット。[ドキュメント →](/packages/App/FeatureSet/Docs/Content/en/telemetry/storage-arrays.md)
-- **データベース** — PostgreSQL、MySQL、Redis、MongoDB など。アプリケーションのトレース、Kubernetes、Docker から自動検出し、設定のみの Collector エージェントからエンジンのメトリクス、クエリサンプル、ログを取得。[ドキュメント →](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
-
----
-
-## 💼 Community と Enterprise
-
-| | **Community** | **Enterprise** |
-|---|---|---|
-| **こんな方に** | セルフホスターと小規模チーム | プレミアムサポートを必要とする規制対象チーム |
-| **費用** | 無料＆オープンソース | [営業に問い合わせ](mailto:sales@oneuptime.com) |
-| **ライセンス** | Apache 2.0 | Apache 2.0、ただし `ee/` ディレクトリは [OneUptime Enterprise License](/ee/LICENSE) |
-| **機能** | 上記「すべてが揃っている」の全機能（監視、ステータスページ、インシデント、オンコール、ログ、トレース、メトリクス、エラートラッキング、ワークフロー、AI）と SAML・OIDC シングルサインオン | Community の全機能 + SCIM プロビジョニング、監査ログ、チームコンプライアンス、インスタンスヘルスダッシュボード、さらに優先サポート、カスタム機能、データレジデンシー |
-
-Enterprise の機能は [`ee/`](/ee) ディレクトリにあり、Enterprise イメージにのみ含まれます。詳しい比較は [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md) をご覧ください。
-
----
-
-## 💡 なぜ OneUptime なのか？
-
-私たちのミッションはシンプルです。**ダウンタイムを減らし、より多くのプロダクトの成功を後押しする** こと。7 つものベンダーをつぎはぎするのではなく、なぜ障害が起きるのかを *理解* し、インシデントに素早く対応し、運用の負担を削減する助けとなるひとつのプラットフォームが手に入ります。コアはオープンソース（Apache 2.0）なので、データもスタックもあなたのものです。
-
----
-
-<a name="contributing"></a>
-
-## 🤝 コントリビュート
-
-大小を問わず、あらゆる貢献を歓迎します。まずはこちらから。
-
-- 🐛 **[未解決の Issue](https://github.com/OneUptime/oneuptime/issues)** — ひとつ選んで取り組むか、[新しく起票](https://github.com/OneUptime/oneuptime/issues/new)してください
-- ✅ コードベースの **[テスト作成を手伝う](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)**
-- 🧑‍💻 環境構築のための **[ローカル開発ガイド](/packages/App/FeatureSet/Docs/Content/en/installation/local-development.md)**
-- 📖 **[コントリビューションガイドライン](/.github/CONTRIBUTING.md)** を読む
-- 💬 **[Developer Slack](https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ)** または **[Community Slack](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)** で私たちとチャット
-
-## ❤️ プロジェクトを支援する
-
-OneUptime がお役に立っているなら:
-
-- ⭐ **このリポジトリにスターを** — 他の人が私たちを見つける助けに本当になります
-- 💵 **[スポンサーになる](https://github.com/sponsors/OneUptime)** — いただいた 1 ドルごとが新機能の開発につながります
-- 🛍️ **[グッズを手に入れる](https://shop.oneuptime.com)** — 収益はすべてオープンソース開発の資金になります
-
----
-
-## 📄 ライセンス
+## ライセンス
 
 OneUptime は [Apache License 2.0](/LICENSE) のもとで公開されているオープンソースです。ただし [`ee/`](/ee) ディレクトリは例外です。このディレクトリには Enterprise Edition が含まれ、[OneUptime Enterprise License](/ee/LICENSE) のもとでライセンスされています。Community Edition のイメージには `ee/` のコードは一切含まれません。この区分は、リポジトリのルートにある [`LICENSE`](/LICENSE) ファイルに定められています。
-
-<div align="center">
-  <sub><a href="https://oneuptime.com">OneUptime</a> チームと <a href="https://github.com/OneUptime/oneuptime/graphs/contributors">コントリビューター</a> が ❤️ を込めて制作しました。</sub>
-</div>

@@ -39,16 +39,22 @@ describe("AI SRE: the limits folded under More settings", () => {
     );
   });
 
+  /*
+   * The incident page folds five cards - the AI rules, the three sections and
+   * the postmortem rules - and one past four is named rather than counted,
+   * so the folded line names them all on both pages.
+   */
   it("says what the folded header names, and shows the table or section a set rule or limit is in", () => {
     expect(page).toContain(
-      "Folded, **More settings** names its rules tables and the three sections (on the incident page, four of them and how many more) and says what the defaults do",
+      "Folded, **More settings** names its rules tables and the three sections and says what the defaults do",
     );
+    expect(page).not.toContain("four of them and how many more");
     expect(page).toContain("shows the table or section that holds it.");
     expect(page).not.toContain("names the two rules tables");
   });
 
   /*
-   * The incident page holds a third rules table, the postmortem rules, and
+   * The incident page holds a second rules table, the postmortem rules, and
    * its folded line says drafts happen by default too (ProjectAiSettingsCopy).
    */
   it("names the postmortem rules on the incident page, and the drafts among the defaults", () => {

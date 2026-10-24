@@ -58,7 +58,7 @@ In the [Azure Portal](https://portal.azure.com), open **App registrations** and 
 Select **Register**, then add a second Web redirect URI, `https://your-oneuptime-domain.com/api/microsoft-teams/admin-consent/callback`. Note the **Application (client) ID** and the **Directory (tenant) ID**: you need both later.
 
 > [!NOTE]
-> **Why single tenant:** a self-hosted OneUptime instance serves one organization, and its bot is registered against the single tenant you set in `MICROSOFT_TEAMS_APP_TENANT_ID` (Step 6). Registering the app as multitenant does not extend that, and it introduces a failure mode: guest / B2B users whose Microsoft home tenant differs from yours will reach the bot with their own tenant id, which OneUptime cannot map to your project. If you already registered a multitenant app it will keep working — just make sure `MICROSOFT_TEAMS_APP_TENANT_ID` is your own tenant, and expect guest accounts to need an account in your tenant to use the bot.
+> **Why single tenant:** a self-hosted OneUptime serves one organization, and signs everyone in to its tenant: admins granting consent, and each person who selects **Connect my account with Microsoft Teams**. Guests in your organization sign in with their guest account, the one Teams uses for them. A multitenant app works the same way, but single tenant keeps the app to your organization.
 
 ### Step 2: Configure App Permissions
 
@@ -193,7 +193,7 @@ Notes:
 | --- | --- | --- |
 | `MICROSOFT_TEAMS_APP_CLIENT_ID` | `microsoftTeamsApp.clientId` | The **Application (client) ID**. It is also the bot id in the Teams app package, so it must be a GUID. |
 | `MICROSOFT_TEAMS_APP_CLIENT_SECRET` | `microsoftTeamsApp.clientSecret` | The client secret's **Value**, not its ID. |
-| `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | The **Directory (tenant) ID**. The bot authenticates as a single-tenant app in this tenant. |
+| `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | The **Directory (tenant) ID**. The bot authenticates as a single-tenant app in this tenant, and people sign in to it to connect their Microsoft Teams account. |
 | `HOST` | `host` | Your public hostname. Redirect URIs, the messaging endpoint and the Teams app package are built from it. |
 | `HTTP_PROTOCOL` | `httpProtocol` | `https`. Azure Bot Service only calls HTTPS endpoints. |
 
@@ -320,7 +320,7 @@ A group chat that has no name in Teams is listed by its members' names by design
 curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test | jq
 ```
 
-This reports what OneUptime can see locally: whether `MICROSOFT_TEAMS_APP_CLIENT_ID` and `MICROSOFT_TEAMS_APP_CLIENT_SECRET` are set, the messaging endpoint this deployment expects, and — most usefully — the **bot id** your Teams app package must carry.
+This reports what OneUptime can see locally: whether `MICROSOFT_TEAMS_APP_CLIENT_ID`, `MICROSOFT_TEAMS_APP_CLIENT_SECRET` and `MICROSOFT_TEAMS_APP_TENANT_ID` are set, the tenant people sign in to when they connect their account, the messaging endpoint this deployment expects, and — most usefully — the **bot id** your Teams app package must carry.
 
 It reads environment variables and nothing else. It does not call Azure, so it cannot tell you the Azure Bot resource exists, that its messaging endpoint points back here, that the Teams channel is enabled, that the secret is still valid, or that Azure can reach you. The response says as much, listing what it checked and what it did not, so it is never mistaken for a green light.
 
@@ -389,7 +389,15 @@ When Microsoft sends you back and the connection was not made (granting admin co
 | **"You signed in to Microsoft as someone other than the person who pressed Connect in Microsoft Teams, so nothing was connected."** | A **Connect Microsoft Teams account** button works only for the Microsoft account that pressed it. Sign in to Microsoft as yourself, or ask the person who pressed it to press it. |
 | **"The connection was cancelled, so nothing was changed."** | Consent was not granted in Microsoft. Start again and accept it. |
 | **"Microsoft Teams is not set up on this OneUptime server."** | Set the Microsoft Teams app's client ID and secret (see [Step 6](#step-6-configure-oneuptime-environment-variables)) and restart OneUptime. |
-| **"OneUptime could not finish connecting. Please try again."** | Microsoft answered with an error, or a request or a write failed while finishing. The OneUptime server log says which. Try again; if it keeps happening, check the log and the app registration's settings. |
+| **"OneUptime could not finish connecting. Please try again."** | Microsoft answered with an error, or a request or a write failed while finishing. The OneUptime server log says which. Try again; if it keeps happening, check the log and the app registration's settings. If Microsoft answered `AADSTS50194`, see [Signing in fails with AADSTS50194](#signing-in-fails-with-aadsts50194). |
+
+### Signing in fails with AADSTS50194
+
+Microsoft refuses the sign-in with `AADSTS50194` when the app is registered for one organization and the sign-in goes to Microsoft's endpoint for every organization, `/common`. The Microsoft Teams page then says OneUptime could not finish connecting, and the OneUptime server log has Microsoft's answer.
+
+- **Upgrade OneUptime.** Older versions sent **Connect my account with Microsoft Teams** to `/common`, so with a single-tenant app, as in Step 1, nobody could connect their account. Current versions sign people in to your tenant.
+- **Until you can upgrade,** make the app registration multitenant: in **Authentication**, set **Supported account types** to accounts in any organizational directory. To keep the app to your own people, open it in **Enterprise applications**, set **Assignment required?** to Yes under **Properties**, and add the people who use OneUptime under **Users and groups**. Make it single tenant again after you upgrade.
+- **On a current version,** check that `MICROSOFT_TEAMS_APP_TENANT_ID` is set to the app's **Directory (tenant) ID**: a project that is not connected yet signs people in to that tenant.
 
 We would like to improve this integration, so feedback is welcome at [hello@oneuptime.com](mailto:hello@oneuptime.com).
 

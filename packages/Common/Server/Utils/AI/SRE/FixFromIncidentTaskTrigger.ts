@@ -78,8 +78,9 @@ export interface AutoFixTaskGateInput {
    */
   rules?: AutomaticFixPullRequestRules | null | undefined;
   /*
-   * Whether a GitHub-App-connected repository the rules allow exists: one
-   * the agent can actually open the pull request in.
+   * Whether a connected repository the rules allow exists - on GitHub,
+   * GitLab, Forgejo, Gitea or any Git server (SubjectCodeFixRun
+   * .hasConnectedRepository): one the agent can actually push the change to.
    */
   hasConnectedRepository: boolean;
   // A non-terminal FixFromIncident run for the same subject, if any.
@@ -251,11 +252,11 @@ export default class FixFromIncidentTaskTrigger {
 
     // Gate 2: a repository the agent can actually open a PR against.
     const hasConnectedRepository: boolean =
-      await SubjectCodeFixRun.hasGitHubAppConnectedRepository(data.projectId);
+      await SubjectCodeFixRun.hasConnectedRepository(data.projectId);
 
     if (!hasConnectedRepository) {
       throw new BadDataException(
-        "No GitHub-App-connected repository exists for this project, so the agent has nowhere to open the fix pull request. Connect one in Code.",
+        "No connected repository exists for this project, so the agent has nowhere to open the fix pull request. Connect one in Code.",
       );
     }
 
@@ -353,9 +354,7 @@ export default class FixFromIncidentTaskTrigger {
     }
 
     if (!input.hasConnectedRepository) {
-      return skip(
-        "project has no GitHub-App-connected repository the auto remediation rules allow",
-      );
+      return skip("project has no connected repository the AI rules allow");
     }
 
     /*
@@ -553,7 +552,7 @@ export default class FixFromIncidentTaskTrigger {
       }
 
       const hasConnectedRepository: boolean =
-        await SubjectCodeFixRun.hasGitHubAppConnectedRepository(
+        await SubjectCodeFixRun.hasConnectedRepository(
           projectId,
           ruleDecision.repositories,
         );

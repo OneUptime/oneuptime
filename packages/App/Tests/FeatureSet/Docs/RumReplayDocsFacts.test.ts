@@ -475,9 +475,16 @@ describe("Managing Applications: connection status", () => {
     expect(ingest).toContain(
       "private static readonly MAINTENANCE_FENCE_TTL_SECONDS: number = 5 * 60;",
     );
-    // Last Seen and label promotion run only inside that window.
+    /*
+     * Last Seen and label promotion run only inside that window: the RUM
+     * application's heartbeat is the maintenance of its fence scope, which
+     * maintainDiscoveredResource runs only once shouldRunMaintenance admits it.
+     */
     expect(ingest).toMatch(
-      /shouldRunMaintenance\("rum-application", appIdStr\)\)[\s\S]*?RumApplicationService\.updateLastSeen/,
+      /fenceScope: "rum-application",[\s\S]*?RumApplicationService\.updateLastSeen/,
+    );
+    expect(ingest).toMatch(
+      /protected static async maintainDiscoveredResource\([\s\S]*?if \(!\(await this\.shouldRunMaintenance\(data\.fenceScope, id\)\)\) \{\s*return id;\s*\}[\s\S]*?await data\.heartbeat\(/,
     );
     expect(service).toContain("const LAST_SEEN_THROTTLE_SECONDS: number = 60;");
     expect(status).toContain("trail live traffic by up to about five minutes");

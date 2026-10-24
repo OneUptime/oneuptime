@@ -18,6 +18,7 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
+import UNSYNCHRONIZED_INDEX from "../../Types/Database/UnsynchronizedIndex";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
@@ -75,6 +76,24 @@ import {
 @CrudApiEndpoint(new Route("/podman-host"))
 @SlugifyColumn("name", "slug")
 @Index(["projectId", "isArchived"])
+/*
+ * One Podman host per host name in a project, however many ingest workers meet a
+ * new one at once (issue #5214: a re-installed agent's first batches made
+ * two). The real definition is UNIQUE on ("projectId", LOWER("hostIdentifier"))
+ * WHERE "deletedAt" IS NULL - the comparison findOrCreateByHostIdentifier's
+ * lookup (QueryHelper.findWithSameText) makes - and lives in migration
+ * 1806700000000-MergeDuplicateHostsAndAddUniqueHostIdentifier, which merges the
+ * duplicates a project already has first. @Index() cannot express LOWER(), so
+ * the index is declared here by name with synchronize: false
+ * (Types/Database/UnsynchronizedIndex): the schema builder neither drops it
+ * nor tries to create it. A create that loses the race is refused by it, and
+ * the service reads the row that won.
+ */
+@Index(
+  "IDX_podman_host_project_lower_host_identifier",
+  ["projectId", "hostIdentifier"],
+  UNSYNCHRONIZED_INDEX,
+)
 @TableMetadata({
   tableName: "PodmanHost",
   singularName: "Podman Host",
@@ -1082,7 +1101,7 @@ export default class PodmanHost extends BaseModel {
      * Types/ResourceAiAgent/ResourceAiAccess.ts (the canonical text).
      */
     description:
-      "Disabled: AI never proposes or runs a change on this Podman host. RequireApproval: AI composes a command plan and a human approves it with one click before anything runs. Automatic: safe changes (SafeWrite) run without a human; a riskier change is proposed for approval unless the Podman host's allowlist names its exact shape. BypassApproval: every change the policy allows — safe AND riskier — runs on its own, except what always needs a human. In EVERY mode: Denied commands never run, commands the policy marks requiresHuman always ask, and the agent itself refuses every write unless it was started with ONEUPTIME_AI_ALLOW_WRITES=true (and then only on the targets ONEUPTIME_AI_WRITE_TARGETS allows, never its protected targets). Anyone who may edit the Podman host can lower the mode; raising it needs Project Owner, Project Admin or Edit Auto Remediation Rule.",
+      "Disabled: AI never proposes or runs a change on this Podman host. RequireApproval: AI composes a command plan and a human approves it with one click before anything runs. Automatic: safe changes (SafeWrite) run without a human; a riskier change is proposed for approval unless the Podman host's allowlist names its exact shape. BypassApproval: every change the policy allows — safe AND riskier — runs on its own, except what always needs a human. In EVERY mode: Denied commands never run, commands the policy marks requiresHuman always ask, and the agent itself refuses every write unless it was started with ONEUPTIME_AI_ALLOW_WRITES=true (and then only on the targets ONEUPTIME_AI_WRITE_TARGETS allows, never its protected targets). Anyone who may edit the Podman host can lower the mode; raising it needs Project Owner, Project Admin or Edit AI Rule.",
     defaultValue: ResourceAiRemediationMode.Disabled,
     example: ResourceAiRemediationMode.RequireApproval,
   })
@@ -1120,7 +1139,7 @@ export default class PodmanHost extends BaseModel {
     required: false,
     title: "AI Command Allowlist",
     description:
-      "Optional JSON array of command patterns that Automatic mode may run on this Podman host without approval even though they are riskier changes. Each pattern is one command line for this Podman host's agent (docker, against the Podman API) and is compared with the command word by word: * stands for exactly one word (a name, an id), never for extra words or flags, and every flag the command uses must be written out in the pattern. At most 50 patterns of at most 500 characters each; a pattern that is not one valid write command for this Podman host is refused. Destructive commands (Denied tier) never run regardless, and a command that always needs a human still asks. Adding a pattern needs Project Owner, Project Admin or Edit Auto Remediation Rule; anyone who may edit the Podman host can remove patterns or clear the list.",
+      "Optional JSON array of command patterns that Automatic mode may run on this Podman host without approval even though they are riskier changes. Each pattern is one command line for this Podman host's agent (docker, against the Podman API) and is compared with the command word by word: * stands for exactly one word (a name, an id), never for extra words or flags, and every flag the command uses must be written out in the pattern. At most 50 patterns of at most 500 characters each; a pattern that is not one valid write command for this Podman host is refused. Destructive commands (Denied tier) never run regardless, and a command that always needs a human still asks. Adding a pattern needs Project Owner, Project Admin or Edit AI Rule; anyone who may edit the Podman host can remove patterns or clear the list.",
   })
   @Column({
     type: ColumnType.JSON,

@@ -17,7 +17,14 @@ import CodeTaskAccess, {
 import CodeTaskContextBuilder from "../Utils/AI/CodeTask/CodeTaskContextBuilder";
 import CodeTaskGate, {
   CODE_TASK_REPOSITORY_NOT_CONNECTED_MESSAGE,
+  getRepositoryNotReachableMessage,
 } from "../Utils/AI/CodeTask/CodeTaskGate";
+import CodeHostAccess, {
+  CodeHostConnectionState,
+  CodeHostConnectionSummary,
+  CodeHostReader,
+} from "../Utils/CodeRepository/CodeHost/CodeHostAccess";
+import { CodeHostBranch } from "../Utils/CodeRepository/CodeHost/CodeHostTypes";
 import CodeTaskPresenter from "../Utils/AI/CodeTask/CodeTaskPresenter";
 import CodeTaskRuns from "../Utils/AI/CodeTask/CodeTaskRuns";
 import CodeTaskStats from "../Utils/AI/CodeTask/CodeTaskStats";
@@ -29,9 +36,6 @@ import SourceLocator, {
 import CodeTaskThread, {
   CODE_TASK_TURN_SELECT,
 } from "../Utils/AI/CodeTask/CodeTaskThread";
-import GitHubUtil, {
-  GitHubBranchInfo,
-} from "../Utils/CodeRepository/GitHub/GitHub";
 import logger from "../Utils/Logger";
 import AIRun from "../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
@@ -57,6 +61,7 @@ import {
   CodeTaskContextInputUtil,
   CodeTaskContextItem,
   CodeTaskListKind,
+  CodeTaskRepositoryConnectionJSON,
   CodeTaskRepositoryJSON,
   CodeTaskSummaryJSON,
   CodeTaskTurnJSON,
@@ -70,6 +75,7 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import PositiveNumber from "../../Types/PositiveNumber";
+import { CodeHost } from "../../Types/CodeRepository/CodeHost";
 
 /*
  * CODE: the project's repositories, their tasks, and asking OneUptime AI to
@@ -113,10 +119,18 @@ export const CODE_TASK_NOT_A_PRODUCTION_REVIEW_MESSAGE: string =
 export { CodeTaskListKind };
 
 export const CODE_TASK_BRANCHES_UNREADABLE_MESSAGE: string =
-  "OneUptime could not read this repository's branches from GitHub. Try again in a moment.";
+  "OneUptime could not read this repository's branches from its Git server. Try again in a moment.";
 
 export const CODE_TASK_BRANCH_NOT_FOUND_MESSAGE: string =
-  "That branch is not in the repository on GitHub any more. Pick another branch.";
+  "That branch is not in the repository any more. Pick another branch.";
+
+/*
+ * A repository whose branches OneUptime does not read: its Git server is on
+ * a network OneUptime's server does not reach. A task starts from its main
+ * branch, or from a branch typed in by name, which the Runner checks.
+ */
+export const CODE_TASK_BRANCHES_NOT_READ_MESSAGE: string =
+  "OneUptime does not read this repository's branches: its Git server is on a network only your Runner reaches. A task starts from its main branch.";
 
 const DEFAULT_PAGE_SIZE: number = 20;
 const MAX_PAGE_SIZE: number = 50;
@@ -262,17 +276,20 @@ export default class CodeTaskAPI {
     const mayReadTasksWithoutRepository: boolean =
       CodeTaskAccess.mayReadTasksWithoutRepository(props);
 
-    const [stats, reachable, tasksWithoutRepository]: [
+    const [stats, connections, tasksWithoutRepository]: [
       Map<string, CodeRepositoryTaskStatsJSON>,
-      Set<string>,
+      Map<string, CodeHostConnectionSummary>,
       number,
     ] = await Promise.all([
       CodeTaskStats.getRepositoryStats({ projectId, repositoryIds }),
-      CodeTaskGate.getReachableRepositoryIds({ projectId, repositoryIds }),
+      CodeHostAccess.getConnectionSummaries({ projectId, repositoryIds }),
       mayReadTasksWithoutRepository
         ? CodeTaskStats.countTasksWithoutRepository(projectId)
         : Promise.resolve(0),
     ]);
+
+    const connectionUse: Map<string, number> =
+      await CodeTaskAPI.countConnectionUse({ projectId, connections });
 
     return {
       repositories: repositories.map(
@@ -280,7 +297,8 @@ export default class CodeTaskAPI {
           return {
             ...CodeTaskAPI.toRepositoryJSON(
               repository,
-              reachable.has(repository.id!.toString()),
+              connections.get(repository.id!.toString()),
+              connectionUse,
             ),
             stats: (stats.get(repository.id!.toString()) ||
               CodeTaskStats.empty()) as unknown as JSONObject,
@@ -318,26 +336,30 @@ export default class CodeTaskAPI {
       repositoryId,
     });
 
-    const [blocker, stats, reachable]: [
+    const [blocker, stats, connections]: [
       CodeTaskBlocker | null,
       Map<string, CodeRepositoryTaskStatsJSON>,
-      Set<string>,
+      Map<string, CodeHostConnectionSummary>,
     ] = await Promise.all([
       CodeTaskGate.getBlocker({ props, projectId, repository, canAsk }),
       CodeTaskStats.getRepositoryStats({
         projectId,
         repositoryIds: [repositoryId],
       }),
-      CodeTaskGate.getReachableRepositoryIds({
+      CodeHostAccess.getConnectionSummaries({
         projectId,
         repositoryIds: [repositoryId],
       }),
     ]);
 
+    const connectionUse: Map<string, number> =
+      await CodeTaskAPI.countConnectionUse({ projectId, connections });
+
     return {
       repository: CodeTaskAPI.toRepositoryJSON(
         repository,
-        reachable.has(repositoryId.toString()),
+        connections.get(repositoryId.toString()),
+        connectionUse,
       ) as unknown as JSONObject,
       stats: (stats.get(repositoryId.toString()) ||
         CodeTaskStats.empty()) as unknown as JSONObject,
@@ -463,9 +485,10 @@ export default class CodeTaskAPI {
 
   /*
    * A repository's branches, for the person picking the branch a task
-   * starts from: its main branch first, then the branches GitHub lists -
-   * or, with `search`, those whose names start with it. Only for those who
-   * may ask AI in the repository, and only where the GitHub App reaches it.
+   * starts from: its main branch first, then the branches its Git server
+   * lists - or, with `search`, those whose names start with it. Only for
+   * those who may ask AI in the repository, and only where OneUptime
+   * reaches it (CodeHostAccess): through the GitHub App, or its connection.
    * Body: { search?: string }.
    */
   private async listBranches(
@@ -499,23 +522,19 @@ export default class CodeTaskAPI {
       ((req.body as JSONObject) || {})["search"],
     );
 
-    const installationId: string | null =
-      await CodeTaskGate.getReachableInstallationId({
-        projectId,
-        repositoryId,
-      });
+    const reader: CodeHostReader = await CodeTaskAPI.getReachableReader({
+      projectId,
+      repositoryId,
+    });
 
-    if (!installationId) {
-      throw new BadDataException(CODE_TASK_REPOSITORY_NOT_CONNECTED_MESSAGE);
+    if (!reader.canListBranches) {
+      throw new BadDataException(CODE_TASK_BRANCHES_NOT_READ_MESSAGE);
     }
 
     let listed: { names: Array<string>; isComplete: boolean };
 
     try {
-      listed = await GitHubUtil.listBranchNames({
-        installationId,
-        organizationName: repository.organizationName || "",
-        repositoryName: repository.repositoryName || "",
+      listed = await reader.listBranchNames({
         search,
         limit: CODE_TASK_LIMITS.maxListedBranches,
       });
@@ -570,10 +589,10 @@ export default class CodeTaskAPI {
         })
       : false;
 
-    const [conversation, blocker, reachable]: [
+    const [conversation, blocker, connections]: [
       { task: CodeTaskSummaryJSON; turns: Array<CodeTaskTurnJSON> },
       CodeTaskBlocker | null,
-      Set<string>,
+      Map<string, CodeHostConnectionSummary>,
     ] = await Promise.all([
       /*
        * The diff is the repository's code: shown to the people who may ask
@@ -589,11 +608,11 @@ export default class CodeTaskAPI {
         ? CodeTaskGate.getBlocker({ props, projectId, repository, canAsk })
         : Promise.resolve(null),
       repository
-        ? CodeTaskGate.getReachableRepositoryIds({
+        ? CodeHostAccess.getConnectionSummaries({
             projectId,
             repositoryIds: [repository.id!],
           })
-        : Promise.resolve(new Set<string>()),
+        : Promise.resolve(new Map<string, CodeHostConnectionSummary>()),
     ]);
 
     return {
@@ -602,7 +621,7 @@ export default class CodeTaskAPI {
       repository: repository
         ? (CodeTaskAPI.toRepositoryJSON(
             repository,
-            reachable.has(repository.id!.toString()),
+            connections.get(repository.id!.toString()),
           ) as unknown as JSONObject)
         : null,
       canAsk: canAsk,
@@ -657,7 +676,9 @@ export default class CodeTaskAPI {
     /*
      * The branch the task starts from, when the person picked one other
      * than the repository's main branch (where a task starts anyway): it
-     * must be on GitHub now, or the Runner would start from another.
+     * must be on the repository's Git server now, or the Runner would start
+     * from another. A repository whose server OneUptime does not reach is
+     * checked by its Runner, which stops when the branch is not there.
      */
     const baseBranch: string | null =
       pickedBranch && pickedBranch !== repository.mainBranchName
@@ -935,15 +956,60 @@ export default class CodeTaskAPI {
     return await CodeTaskContextBuilder.build({ inputs, projectId, props });
   }
 
+  /*
+   * A repository as the Code pages read it: what it is, where it is hosted,
+   * and how it connects (CodeHostAccess's summary - never a token). With no
+   * summary it reads as not connected.
+   */
   public static toRepositoryJSON(
     repository: CodeRepository,
-    isConnected: boolean,
+    connection: CodeHostConnectionSummary | undefined,
+    connectionUse?: Map<string, number> | undefined,
   ): CodeTaskRepositoryJSON {
     const json: CodeTaskRepositoryJSON = {
       id: repository.id!.toString(),
       name: repository.name || "",
-      isConnected,
+      isConnected: connection?.state === CodeHostConnectionState.Connected,
+      provider: CodeHost.readType(repository.repositoryHostedAt),
     };
+
+    if (connection && CodeHost.usesConnection(connection.provider)) {
+      const summary: CodeTaskRepositoryConnectionJSON = {
+        isTokenRefused:
+          connection.state === CodeHostConnectionState.TokenRefused,
+        isReachableFromServer: connection.isReachableFromServer,
+      };
+
+      if (connection.connectionId) {
+        summary.id = connection.connectionId;
+
+        const repositoryCount: number | undefined = connectionUse?.get(
+          connection.connectionId,
+        );
+
+        if (repositoryCount !== undefined) {
+          summary.repositoryCount = repositoryCount;
+        }
+      }
+
+      if (connection.hostUrl) {
+        summary.hostUrl = connection.hostUrl;
+      }
+
+      if (connection.hostProduct) {
+        summary.hostProduct = connection.hostProduct;
+      }
+
+      if (connection.accountLogin) {
+        summary.accountLogin = connection.accountLogin;
+      }
+
+      if (connection.credentialHint) {
+        summary.credentialHint = connection.credentialHint;
+      }
+
+      json.connection = summary;
+    }
 
     if (repository.description) {
       json.description = repository.description;
@@ -1019,31 +1085,29 @@ export default class CodeTaskAPI {
     return search;
   }
 
-  // The branch is on GitHub now, in the repository AI reaches.
+  /*
+   * The branch is on the repository's Git server now. A repository whose
+   * server OneUptime does not reach is not asked: its Runner checks the
+   * branch out, and stops when it is not there.
+   */
   private static async assertBranchExists(data: {
     projectId: ObjectID;
     repository: CodeRepository;
     branchName: string;
   }): Promise<void> {
-    const installationId: string | null =
-      await CodeTaskGate.getReachableInstallationId({
-        projectId: data.projectId,
-        repositoryId: data.repository.id!,
-      });
+    const reader: CodeHostReader = await CodeTaskAPI.getReachableReader({
+      projectId: data.projectId,
+      repositoryId: data.repository.id!,
+    });
 
-    if (!installationId) {
-      throw new BadDataException(CODE_TASK_REPOSITORY_NOT_CONNECTED_MESSAGE);
+    if (!reader.canListBranches) {
+      return;
     }
 
-    let branch: GitHubBranchInfo | null = null;
+    let branch: CodeHostBranch | null = null;
 
     try {
-      branch = await GitHubUtil.getBranch({
-        installationId,
-        organizationName: data.repository.organizationName || "",
-        repositoryName: data.repository.repositoryName || "",
-        branchName: data.branchName,
-      });
+      branch = await reader.getBranch(data.branchName);
     } catch (error) {
       logger.error(error);
       throw new BadDataException(CODE_TASK_BRANCHES_UNREADABLE_MESSAGE);
@@ -1052,6 +1116,55 @@ export default class CodeTaskAPI {
     if (!branch) {
       throw new BadDataException(CODE_TASK_BRANCH_NOT_FOUND_MESSAGE);
     }
+  }
+
+  /*
+   * The reader of a repository OneUptime reaches, or a refusal that says
+   * why it does not (CodeTaskGate's words).
+   */
+  private static async getReachableReader(data: {
+    projectId: ObjectID;
+    repositoryId: ObjectID;
+  }): Promise<CodeHostReader> {
+    const reader: CodeHostReader | null = await CodeHostAccess.getReader(data);
+
+    if (reader) {
+      return reader;
+    }
+
+    const summary: CodeHostConnectionSummary | undefined = (
+      await CodeHostAccess.getConnectionSummaries({
+        projectId: data.projectId,
+        repositoryIds: [data.repositoryId],
+      })
+    ).get(data.repositoryId.toString());
+
+    throw new BadDataException(getRepositoryNotReachableMessage(summary));
+  }
+
+  /*
+   * How many of the project's repositories use each connection the
+   * summaries name: what Replace access token says it changes.
+   */
+  private static async countConnectionUse(data: {
+    projectId: ObjectID;
+    connections: Map<string, CodeHostConnectionSummary>;
+  }): Promise<Map<string, number>> {
+    const connectionIds: Array<string> = [];
+
+    for (const summary of data.connections.values()) {
+      if (
+        summary.connectionId &&
+        !connectionIds.includes(summary.connectionId)
+      ) {
+        connectionIds.push(summary.connectionId);
+      }
+    }
+
+    return await CodeHostAccess.countRepositoriesByConnection({
+      projectId: data.projectId,
+      connectionIds,
+    });
   }
 
   private static readId(raw: unknown, what: string): ObjectID {

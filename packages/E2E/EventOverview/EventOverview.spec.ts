@@ -3238,9 +3238,9 @@ const WAITING_ALERT_TITLE: RegExp = new RegExp(
   `^OneUptime AI investigates at ${WAIT_TIME} if this alert is still open$`,
 );
 const WAITING_INCIDENT_DESCRIPTION: string =
-  "An investigation rule makes OneUptime AI wait 10 minutes, so incidents resolved by then are not investigated.";
+  "An AI rule makes OneUptime AI wait 10 minutes, so incidents resolved by then are not investigated.";
 const WAITING_ALERT_DESCRIPTION: string =
-  "An investigation rule makes OneUptime AI wait 10 minutes, so alerts resolved by then are not investigated.";
+  "An AI rule makes OneUptime AI wait 10 minutes, so alerts resolved by then are not investigated.";
 // InvestigationRuleWait's refusal when the project's own daily limit is reached.
 const DAILY_LIMIT_REFUSAL: string =
   "This project has reached its own daily AI limit. It resets at midnight UTC.";
@@ -3390,7 +3390,7 @@ test.describe("an investigation rule's wait (issue #5074)", () => {
       /^OneUptime AI investigates tomorrow at (5:20 PM|17:20) if this incident is still open$/,
     );
     await expect(waiting).toContainText(
-      "An investigation rule makes OneUptime AI wait 1,440 minutes, so incidents resolved by then are not investigated.",
+      "An AI rule makes OneUptime AI wait 1,440 minutes, so incidents resolved by then are not investigated.",
     );
   });
 
@@ -5734,6 +5734,1110 @@ test.describe("one AI card: the investigation and the conversation", () => {
 
     await expect(questions(page)).toHaveCount(2, { timeout: 30000 });
   });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The AI card as one line, when AI was off for the record (?ai=off-*)
+ * ---------------------------------------------------------------------------
+ * "When AI investigation and remediation are off, can we please collapse
+ * this card into one simple line that says, 'AI investigation is off.
+ * Here's why.' ... Then you can expand that card to see what more you can
+ * do to enable AI." - the maintainer.
+ *
+ * When OneUptime AI neither investigated nor fixed the record because
+ * something was off for it - automatic investigation (?ai=off-switch),
+ * Enable AI (off-project), the AI rules (off-rules) or the minimum severity
+ * (off-severity), with fixing off beside it (?fixing=) - the AI card is one
+ * line: what is off and why, Ask OneUptime AI while AI is on, and a chevron
+ * that opens what to turn on, where, and who can. The Remediation card
+ * leaves saying why nothing was fixed to it. When fixing did something
+ * (?fixing=acted), both cards stay whole.
+ */
+
+const AI_OFF_TITLE: string = "AI investigation is off";
+// Once what would have the next one investigated is on now.
+const AI_WAS_OFF_TITLE: string = "AI investigation was off";
+const PROJECT_AI_OFF_TITLE: string = "AI is off for this project";
+// The chevron's name, and its tooltip: what it opens.
+const WHAT_YOU_CAN_DO: string = "What you can do";
+const INCIDENT_AI_SETTINGS_HREF: string = `${DASHBOARD}/incidents/ai/settings`;
+const ALERT_AI_SETTINGS_HREF: string = `${DASHBOARD}/alerts/ai/settings`;
+const AI_FEATURES_HREF: string = `${DASHBOARD}/settings/ai-features`;
+// What opens ends with this: none of it reaches back to the record.
+const INCIDENT_NOTE_WITH_ASK: string =
+  "This applies to new incidents only, not to this one. You can still ask OneUptime AI about it.";
+const INCIDENT_NOTE_AI_OFF: string =
+  "This applies to new incidents only, not to this one.";
+const WHO_CAN_CHANGE_INCIDENT_SETTINGS: string =
+  "A project owner or admin can make these changes in Incidents → AI → Settings.";
+const WHO_CAN_CHANGE_INCIDENT_RULES: string =
+  "A project owner or admin, or someone who may edit AI rules, can change them in Incidents → AI → Settings.";
+const WHO_CAN_TURN_AI_ON: string =
+  "A project owner or someone with Manage Billing can turn AI on in Project Settings → AI → AI Features.";
+
+interface AiOffStepRow {
+  step: string | null;
+  done: string | null;
+  text: string;
+}
+
+interface AiOffLinkRow {
+  text: string;
+  href: string | null;
+}
+
+function aiOffLine(page: Page): Locator {
+  return page.getByTestId("ai-off-summary");
+}
+
+// The AI card, folded: the line is its header and all it shows at rest.
+function aiOffCard(page: Page): Locator {
+  return page.getByTestId("card").filter({ has: aiOffLine(page) });
+}
+
+function aiOffTitle(page: Page): Locator {
+  return aiOffLine(page).getByTestId("ai-off-summary-title");
+}
+
+function aiOffReason(page: Page): Locator {
+  return aiOffLine(page).getByTestId("ai-off-summary-reason");
+}
+
+function aiOffToggle(page: Page): Locator {
+  return aiOffLine(page).getByRole("button", {
+    name: WHAT_YOU_CAN_DO,
+    exact: true,
+  });
+}
+
+function aiOffAsk(page: Page): Locator {
+  return aiOffLine(page).getByRole("button", {
+    name: CONVERSATION_TITLE,
+    exact: true,
+  });
+}
+
+function aiOffStepsPanel(page: Page): Locator {
+  return aiOffLine(page).getByTestId("ai-off-summary-steps");
+}
+
+function remediationCard(page: Page): Locator {
+  return card(page, "Remediation");
+}
+
+async function openAiOffLine(
+  page: Page,
+  pagePath: string,
+  query: string,
+  title: string = AI_OFF_TITLE,
+): Promise<Locator> {
+  await open(page, pagePath, query);
+  await expect(aiOffLine(page).getByRole("heading", { level: 2 })).toHaveText(
+    title,
+    { timeout: 30000 },
+  );
+  // What happened sits above the card: measure only once it stops moving.
+  await expectWhatHappenedSettled(page);
+  return aiOffLine(page);
+}
+
+async function openAiOffSteps(page: Page): Promise<Locator> {
+  await aiOffToggle(page).click();
+  const steps: Locator = aiOffStepsPanel(page);
+  await expect(steps).toBeVisible();
+  return steps;
+}
+
+async function aiOffStepRows(page: Page): Promise<Array<AiOffStepRow>> {
+  return aiOffLine(page)
+    .getByTestId("ai-off-summary-step")
+    .evaluateAll((items: Array<Element>): Array<AiOffStepRow> => {
+      return items.map((item: Element): AiOffStepRow => {
+        return {
+          step: item.getAttribute("data-step"),
+          done: item.getAttribute("data-done"),
+          text: (item.textContent || "").trim(),
+        };
+      });
+    });
+}
+
+async function aiOffLinkRows(page: Page): Promise<Array<AiOffLinkRow>> {
+  return aiOffLine(page)
+    .getByTestId("ai-off-summary-links")
+    .getByRole("link")
+    .evaluateAll((links: Array<Element>): Array<AiOffLinkRow> => {
+      return links.map((link: Element): AiOffLinkRow => {
+        return {
+          text: (link.textContent || "").trim(),
+          href: link.getAttribute("href"),
+        };
+      });
+    });
+}
+
+function aiOffStep(
+  key: string,
+  text: string,
+  isDone: boolean = false,
+): AiOffStepRow {
+  return { step: key, done: isDone ? "true" : "false", text };
+}
+
+// WCAG's relative luminance of an rgb()/rgba() colour, its alpha left out.
+function relativeLuminance(color: string): number {
+  const channels: Array<number> = (color.match(/[\d.]+/g) || [])
+    .slice(0, 3)
+    .map((value: string): number => {
+      const channel: number = Number(value) / 255;
+      return channel <= 0.03928
+        ? channel / 12.92
+        : Math.pow((channel + 0.055) / 1.055, 2.4);
+    });
+
+  return (
+    0.2126 * (channels[0] || 0) +
+    0.7152 * (channels[1] || 0) +
+    0.0722 * (channels[2] || 0)
+  );
+}
+
+function contrastRatio(foreground: string, background: string): number {
+  const first: number = relativeLuminance(foreground);
+  const second: number = relativeLuminance(background);
+  return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
+}
+
+interface AiOffLineLook {
+  // The surface the line is drawn on: the card's.
+  surface: string;
+  mark: string;
+  texts: Array<{ name: string; color: string }>;
+}
+
+// The colours of the line and what it opened, and of the card under them.
+async function aiOffLineLook(page: Page): Promise<AiOffLineLook> {
+  return aiOffLine(page).evaluate((line: Element): AiOffLineLook => {
+    const zeroAlpha: RegExp = /rgba\([^)]*,\s*0\)$/;
+    let surface: string = "";
+    let ancestor: Element | null = line;
+
+    while (ancestor && !surface) {
+      const background: string =
+        window.getComputedStyle(ancestor).backgroundColor;
+
+      if (background !== "transparent" && !zeroAlpha.test(background)) {
+        surface = background;
+      }
+
+      ancestor = ancestor.parentElement;
+    }
+
+    const colorOf: (selector: string) => string = (
+      selector: string,
+    ): string => {
+      const element: Element | null = line.querySelector(selector);
+      return element ? window.getComputedStyle(element).color : "";
+    };
+    const mark: Element | null = line.querySelector(
+      "[data-testid='ai-off-summary-mark']",
+    );
+
+    return {
+      surface,
+      mark: mark ? window.getComputedStyle(mark).backgroundColor : "",
+      texts: [
+        { name: "title", selector: "[data-testid='ai-off-summary-title']" },
+        { name: "reason", selector: "[data-testid='ai-off-summary-reason']" },
+        { name: "step", selector: "[data-testid='ai-off-summary-step'] p" },
+        { name: "link", selector: "[data-testid='ai-off-summary-links'] a" },
+        { name: "note", selector: "[data-testid='ai-off-summary-note']" },
+        { name: "ask", selector: "[data-testid='ai-off-summary-ask']" },
+      ].map(
+        (entry: {
+          name: string;
+          selector: string;
+        }): { name: string; color: string } => {
+          return { name: entry.name, color: colorOf(entry.selector) };
+        },
+      ),
+    };
+  });
+}
+
+interface AiOffCase {
+  name: string;
+  query: string;
+  title: string;
+  reason: string;
+  steps: Array<AiOffStepRow>;
+  links: Array<AiOffLinkRow>;
+  // Whether the line offers Ask OneUptime AI: only while AI is on.
+  hasAsk: boolean;
+  note: string;
+}
+
+const AI_OFF_CASES: ReadonlyArray<AiOffCase> = [
+  {
+    name: "automatic investigation was off when it was created (?ai=off-switch)",
+    query: "ai=off-switch",
+    title: AI_OFF_TITLE,
+    reason:
+      "“Investigate new incidents” was off when this incident was created.",
+    steps: [
+      aiOffStep("investigate-switch", "Turn on “Investigate new incidents”."),
+      aiOffStep("fix-switch", "Turn on “Fix new incidents automatically”."),
+    ],
+    // Both switches are on one page: one link.
+    links: [{ text: "Incident AI settings", href: INCIDENT_AI_SETTINGS_HREF }],
+    hasAsk: true,
+    note: INCIDENT_NOTE_WITH_ASK,
+  },
+  {
+    name: "AI is off for the project (?ai=off-project)",
+    query: "ai=off-project",
+    title: PROJECT_AI_OFF_TITLE,
+    reason: "OneUptime AI did not investigate or fix this incident.",
+    steps: [
+      aiOffStep("enable-ai", "Turn on “Enable AI”."),
+      aiOffStep("investigate-switch", "Turn on “Investigate new incidents”."),
+      aiOffStep("fix-switch", "Turn on “Fix new incidents automatically”."),
+    ],
+    links: [
+      { text: "AI Features", href: AI_FEATURES_HREF },
+      { text: "Incident AI settings", href: INCIDENT_AI_SETTINGS_HREF },
+    ],
+    hasAsk: false,
+    note: INCIDENT_NOTE_AI_OFF,
+  },
+  {
+    name: "it matched none of the AI rules that investigate (?ai=off-rules)",
+    query: "ai=off-rules",
+    title: AI_OFF_TITLE,
+    reason: "This incident matched none of the AI rules that investigate.",
+    // A rule that matches it investigates it and can fix it: one step.
+    steps: [
+      aiOffStep(
+        "investigate-rules",
+        "Add or change an AI rule so it matches incidents like this one.",
+      ),
+    ],
+    links: [
+      {
+        text: "Incident AI rules",
+        href: `${INCIDENT_AI_SETTINGS_HREF}#AiRules`,
+      },
+    ],
+    hasAsk: true,
+    note: INCIDENT_NOTE_WITH_ASK,
+  },
+  {
+    name: "its severity was below the minimum (?ai=off-severity)",
+    query: "ai=off-severity",
+    title: AI_OFF_TITLE,
+    reason:
+      "This incident's severity was below the minimum for AI investigation.",
+    steps: [
+      aiOffStep(
+        "minimum-severity",
+        "Lower or clear the minimum severity for AI investigation.",
+      ),
+      aiOffStep("fix-switch", "Turn on “Fix new incidents automatically”."),
+    ],
+    // The minimum severity's card by its own name, then the page's switches.
+    links: [
+      {
+        text: "Which incidents are investigated",
+        href: `${INCIDENT_AI_SETTINGS_HREF}#WhichAreInvestigated`,
+      },
+      { text: "Incident AI settings", href: INCIDENT_AI_SETTINGS_HREF },
+    ],
+    hasAsk: true,
+    note: INCIDENT_NOTE_WITH_ASK,
+  },
+];
+
+test.describe("the AI card as one line when AI was off for the record (?ai=off-*)", () => {
+  for (const scenario of AI_OFF_CASES) {
+    test(`${scenario.name}: one line says what is off and why, closed`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openAiOffLine(page, INCIDENT_PATH, scenario.query, scenario.title);
+
+      await expect(aiOffReason(page)).toHaveText(scenario.reason);
+      await expect(aiOffToggle(page)).toHaveAttribute("aria-expanded", "false");
+      await expect(aiOffToggle(page)).toHaveAttribute("title", WHAT_YOU_CAN_DO);
+      await expect(aiOffStepsPanel(page)).toBeHidden();
+      await expect(aiOffAsk(page)).toHaveCount(scenario.hasAsk ? 1 : 0);
+
+      // One AI card, folded: no header, pill or anything the full card shows.
+      await expect(aiOffCard(page)).toHaveCount(1);
+      await expect(investigationCard(page)).toHaveCount(0);
+      await expect(
+        page.getByRole("heading", {
+          level: 2,
+          name: "AI Investigation",
+          exact: true,
+        }),
+      ).toHaveCount(0);
+      await expect(page.getByLabel("Investigation status")).toHaveCount(0);
+      await expect(page.getByTestId("investigation-not-started")).toHaveCount(
+        0,
+      );
+      await expect(
+        aiOffCard(page).getByRole("heading", {
+          level: 3,
+          name: WHAT_YOU_CAN_DO,
+        }),
+      ).toHaveCount(0);
+      // Nobody has asked: no conversation until someone does.
+      await expect(conversation(page)).toHaveCount(0);
+      // The line says why nothing was fixed: no Remediation card.
+      await expect(remediationCard(page)).toHaveCount(0);
+      // Nothing in the header says AI is working on it.
+      await expect(
+        hero(page).getByRole("button", { name: "View full report" }),
+      ).toHaveCount(0);
+      // The region the header points at, settled, and no panel inside it.
+      await expect(
+        aiOffCard(page).locator("#ai-investigation"),
+      ).toHaveAttribute("aria-busy", "false");
+      await expect(aiOffCard(page).getByTestId("card")).toHaveCount(0);
+      expect(await panelsInsideTheCard(page)).toEqual([]);
+    });
+
+    test(`${scenario.name}: its chevron opens what to turn on and where, and that it does not reach back`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openAiOffLine(page, INCIDENT_PATH, scenario.query, scenario.title);
+
+      const steps: Locator = await openAiOffSteps(page);
+      await expect(aiOffToggle(page)).toHaveAttribute("aria-expanded", "true");
+      // The chevron names what it opens.
+      expect(
+        await steps.evaluate((element: Element): string => {
+          return element.id;
+        }),
+      ).toBe(await aiOffToggle(page).getAttribute("aria-controls"));
+
+      expect(await aiOffStepRows(page)).toEqual(scenario.steps);
+      expect(await aiOffLinkRows(page)).toEqual(scenario.links);
+      // A Project Owner may make every change: nobody to ask.
+      await expect(steps.getByTestId("ai-off-summary-who")).toHaveCount(0);
+      await expect(steps.getByTestId("ai-off-summary-note")).toHaveText(
+        scenario.note,
+      );
+      // The line keeps saying what is off and why above it.
+      await expect(aiOffTitle(page)).toHaveText(scenario.title);
+      await expect(aiOffReason(page)).toHaveText(scenario.reason);
+      expect(await panelsInsideTheCard(page)).toEqual([]);
+
+      // And it closes again.
+      await aiOffToggle(page).click();
+      await expect(steps).toBeHidden();
+      await expect(aiOffToggle(page)).toHaveAttribute("aria-expanded", "false");
+    });
+  }
+
+  test("the chevron opens and closes from the keyboard, its focus ring kept", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAiOffLine(page, INCIDENT_PATH, "ai=off-switch");
+
+    await aiOffToggle(page).focus();
+    await page.keyboard.press("Enter");
+    await expect(aiOffStepsPanel(page)).toBeVisible();
+    await expect(aiOffToggle(page)).toBeFocused();
+    await page.keyboard.press("Space");
+    await expect(aiOffStepsPanel(page)).toBeHidden();
+    await expect(aiOffToggle(page)).toHaveAttribute("aria-expanded", "false");
+
+    // Tab from the line's Ask OneUptime AI reaches the chevron next.
+    await aiOffAsk(page).focus();
+    await page.keyboard.press("Tab");
+    await expect(aiOffToggle(page)).toBeFocused();
+  });
+
+  /*
+   * The changes made in one place go together, with that place's link
+   * under them: "Turn on Enable AI" over AI Features, the two switches over
+   * the incident's AI settings - not every link in a row at the end, for
+   * the reader to match to the steps.
+   */
+  for (const width of [1280, 390]) {
+    test(`at ${width}px each place's link sits under the steps made there, lined up with their words (?ai=off-project)`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await openAiOffLine(
+        page,
+        INCIDENT_PATH,
+        "ai=off-project",
+        PROJECT_AI_OFF_TITLE,
+      );
+      await openAiOffSteps(page);
+
+      const groups: Locator = aiOffLine(page).getByTestId(
+        "ai-off-summary-group",
+      );
+      await expect(groups).toHaveCount(2);
+      const stepWords: (key: string) => Locator = (key: string): Locator => {
+        return aiOffLine(page).locator(
+          `[data-testid='ai-off-summary-step'][data-step='${key}'] p`,
+        );
+      };
+
+      const enableAi: Box = await documentBox(stepWords("enable-ai"));
+      const aiFeatures: Box = await documentBox(
+        groups.nth(0).getByRole("link", { name: "AI Features" }),
+      );
+      const investigate: Box = await documentBox(
+        stepWords("investigate-switch"),
+      );
+      const fix: Box = await documentBox(stepWords("fix-switch"));
+      const settings: Box = await documentBox(
+        groups.nth(1).getByRole("link", { name: "Incident AI settings" }),
+      );
+
+      // In reading order: Enable AI, its page, the two switches, theirs.
+      expect(aiFeatures.y).toBeGreaterThanOrEqual(
+        enableAi.y + enableAi.height - 1,
+      );
+      expect(investigate.y).toBeGreaterThanOrEqual(
+        aiFeatures.y + aiFeatures.height,
+      );
+      expect(fix.y).toBeGreaterThanOrEqual(investigate.y + investigate.height);
+      expect(settings.y).toBeGreaterThanOrEqual(fix.y + fix.height - 1);
+      // Each link starts where the words of its steps do.
+      expect(Math.abs(aiFeatures.x - enableAi.x)).toBeLessThanOrEqual(1);
+      expect(Math.abs(settings.x - fix.x)).toBeLessThanOrEqual(1);
+      /*
+       * A group stands apart from the next: more room between groups than
+       * between the two switches in one.
+       */
+      expect(
+        investigate.y - (aiFeatures.y + aiFeatures.height),
+      ).toBeGreaterThan(fix.y - (investigate.y + investigate.height));
+      await expectNoHorizontalOverflow(page);
+    });
+  }
+
+  test("a click on what is off or on why opens it too, as a folded section's header does; Ask OneUptime AI does not", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAiOffLine(page, INCIDENT_PATH, "ai=off-switch");
+
+    await aiOffTitle(page).click();
+    await expect(aiOffStepsPanel(page)).toBeVisible();
+    await expect(aiOffToggle(page)).toHaveAttribute("aria-expanded", "true");
+
+    await aiOffReason(page).click();
+    await expect(aiOffStepsPanel(page)).toBeHidden();
+    await expect(aiOffToggle(page)).toHaveAttribute("aria-expanded", "false");
+
+    // The pointer says the line opens.
+    expect(
+      await aiOffTitle(page).evaluate((element: Element): string => {
+        return window.getComputedStyle(element).cursor;
+      }),
+    ).toBe("pointer");
+
+    await aiOffAsk(page).click();
+    await expect(composerBox(page)).toBeFocused();
+    await expect(aiOffStepsPanel(page)).toBeHidden();
+  });
+
+  test("someone who may not change the switches is told who can, with no links (?role=member)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAiOffLine(page, INCIDENT_PATH, "ai=off-switch&role=member");
+
+    const steps: Locator = await openAiOffSteps(page);
+    expect(await aiOffStepRows(page)).toEqual(AI_OFF_CASES[0]!.steps);
+    await expect(steps.getByTestId("ai-off-summary-links")).toHaveCount(0);
+    await expect(steps.getByRole("link")).toHaveCount(0);
+    // Once, for both switches.
+    await expect(
+      steps.getByTestId("ai-off-summary-who").locator("p"),
+    ).toHaveText([WHO_CAN_CHANGE_INCIDENT_SETTINGS]);
+    await expect(steps.getByTestId("ai-off-summary-note")).toHaveText(
+      INCIDENT_NOTE_WITH_ASK,
+    );
+  });
+
+  test("someone who may not edit AI rules is told who can (?ai=off-rules&role=member)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAiOffLine(page, INCIDENT_PATH, "ai=off-rules&role=member");
+
+    const steps: Locator = await openAiOffSteps(page);
+    await expect(steps.getByRole("link")).toHaveCount(0);
+    await expect(
+      steps.getByTestId("ai-off-summary-who").locator("p"),
+    ).toHaveText([WHO_CAN_CHANGE_INCIDENT_RULES]);
+  });
+
+  test("someone who may not turn AI on is told who can, for Enable AI and for the switches (?ai=off-project&role=member)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAiOffLine(
+      page,
+      INCIDENT_PATH,
+      "ai=off-project&role=member",
+      PROJECT_AI_OFF_TITLE,
+    );
+
+    const steps: Locator = await openAiOffSteps(page);
+    await expect(steps.getByRole("link")).toHaveCount(0);
+    await expect(
+      steps.getByTestId("ai-off-summary-who").locator("p"),
+    ).toHaveText([WHO_CAN_TURN_AI_ON, WHO_CAN_CHANGE_INCIDENT_SETTINGS]);
+    await expect(steps.getByTestId("ai-off-summary-note")).toHaveText(
+      INCIDENT_NOTE_AI_OFF,
+    );
+  });
+
+  test("switches turned on since are said done, and the line says AI investigation was off for this incident (?switches=on)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAiOffLine(
+      page,
+      INCIDENT_PATH,
+      "ai=off-switch&switches=on",
+      AI_WAS_OFF_TITLE,
+    );
+
+    await expect(aiOffReason(page)).toHaveText(
+      "“Investigate new incidents” was off when this incident was created.",
+    );
+    const steps: Locator = await openAiOffSteps(page);
+    expect(await aiOffStepRows(page)).toEqual([
+      aiOffStep(
+        "investigate-switch",
+        "“Investigate new incidents” is on now.",
+        true,
+      ),
+      aiOffStep(
+        "fix-switch",
+        "“Fix new incidents automatically” is on now.",
+        true,
+      ),
+    ]);
+    // Nothing left to change: no link, nobody to ask.
+    await expect(steps.getByTestId("ai-off-summary-links")).toHaveCount(0);
+    await expect(steps.getByTestId("ai-off-summary-who")).toHaveCount(0);
+    // And it still does not reach back.
+    await expect(steps.getByTestId("ai-off-summary-note")).toHaveText(
+      INCIDENT_NOTE_WITH_ASK,
+    );
+  });
+
+  test("AI turned on for the project since: it was off when this incident was created, and Ask OneUptime AI is back (?ai=off-project&switches=on)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAiOffLine(
+      page,
+      INCIDENT_PATH,
+      "ai=off-project&switches=on",
+      AI_WAS_OFF_TITLE,
+    );
+
+    await expect(aiOffReason(page)).toHaveText(
+      "AI was off for this project when this incident was created.",
+    );
+    await expect(aiOffAsk(page)).toBeVisible();
+    await openAiOffSteps(page);
+    expect(await aiOffStepRows(page)).toEqual([
+      aiOffStep("enable-ai", "“Enable AI” is on now.", true),
+    ]);
+    expect(await aiOffLinkRows(page)).toEqual([]);
+  });
+
+  test("a reason read from today's settings, none recorded, says how things are now (?decided=now)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [query, reason] of [
+      ["ai=off-switch&decided=now", "“Investigate new incidents” is off."],
+      [
+        "ai=off-rules&decided=now",
+        "This incident matches none of the AI rules that investigate.",
+      ],
+      [
+        "ai=off-severity&decided=now",
+        "This incident's severity is below the minimum for AI investigation.",
+      ],
+    ] as Array<[string, string]>) {
+      await openAiOffLine(page, INCIDENT_PATH, query);
+      await expect(aiOffReason(page)).toHaveText(reason);
+    }
+  });
+
+  test("the one AI rule that matched only investigates: set it to fix too, on the same link (?ai=off-rules&fixing=rules-investigate)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAiOffLine(
+      page,
+      INCIDENT_PATH,
+      "ai=off-rules&fixing=rules-investigate",
+    );
+
+    await openAiOffSteps(page);
+    expect(await aiOffStepRows(page)).toEqual([
+      aiOffStep(
+        "investigate-rules",
+        "Add or change an AI rule so it matches incidents like this one.",
+      ),
+      aiOffStep(
+        "fix-rules",
+        "Set AI rule “Checkout investigations” to fix too, or add a rule that does.",
+      ),
+    ]);
+    expect(await aiOffLinkRows(page)).toEqual([
+      {
+        text: "Incident AI rules",
+        href: `${INCIDENT_AI_SETTINGS_HREF}#AiRules`,
+      },
+    ]);
+  });
+
+  test("nothing recorded about fixing, as for an incident from before: still one line, asking only for the investigation (?fixing=none)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAiOffLine(page, INCIDENT_PATH, "ai=off-switch&fixing=none");
+
+    await openAiOffSteps(page);
+    expect(await aiOffStepRows(page)).toEqual([
+      aiOffStep("investigate-switch", "Turn on “Investigate new incidents”."),
+    ]);
+    await expect(remediationCard(page)).toHaveCount(0);
+  });
+
+  test("when fixing did something, both cards stay whole (?fixing=acted)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "ai=off-switch&fixing=acted");
+
+    const investigation: Locator = investigationCard(page);
+    await expect(investigation.getByLabel("Investigation status")).toHaveText(
+      "Not investigated",
+      { timeout: 30000 },
+    );
+    await expect(remediationCard(page)).toBeVisible({ timeout: 30000 });
+    await expect(remediationCard(page)).toContainText("prod-eu-west-1");
+    await expect(
+      investigation.getByRole("heading", {
+        level: 3,
+        name: "Automatic incident investigation was off at creation",
+      }),
+    ).toBeVisible();
+    // The full card, closed by its conversation, and no line.
+    await expect(
+      investigation.getByTestId("investigation-conversation"),
+    ).toHaveCount(1);
+    await expect(aiOffLine(page)).toHaveCount(0);
+  });
+
+  test("Ask OneUptime AI on the line opens the conversation in the same card, its box focused, and the line stays", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAiOffLine(page, INCIDENT_PATH, "ai=off-switch");
+    await expect(conversation(page)).toHaveCount(0);
+
+    await aiOffAsk(page).click();
+
+    await expect(
+      conversation(page).getByRole("heading", {
+        level: 3,
+        name: CONVERSATION_TITLE,
+      }),
+    ).toBeVisible();
+    await expect(composerBox(page)).toBeFocused();
+    // In the folded card, under the line, which no longer offers it.
+    await expect(
+      aiOffCard(page).getByTestId("investigation-conversation"),
+    ).toHaveCount(1);
+    await expect(aiOffAsk(page)).toHaveCount(0);
+    await expect(aiOffTitle(page)).toHaveText(AI_OFF_TITLE);
+    await expectAbove(
+      aiOffLine(page),
+      conversation(page),
+      "the conversation opens under the line",
+    );
+    await expect(suggestions(page).first()).toHaveText(ROOT_CAUSE_SUGGESTION);
+
+    // A question being typed survives opening and closing the fold.
+    await composerBox(page).fill("Why was this incident not investigated?");
+    await openAiOffSteps(page);
+    await aiOffToggle(page).click();
+    await expect(composerBox(page)).toHaveValue(
+      "Why was this incident not investigated?",
+    );
+    expect(await panelsInsideTheCard(page)).toEqual([]);
+  });
+
+  test("a conversation someone already started shows under the line by itself, with no Ask on the line (?thread=answered)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAiOffLine(page, INCIDENT_PATH, "ai=off-switch&thread=answered");
+
+    await expect(questions(page)).toHaveCount(2, { timeout: 30000 });
+    await expect(aiOffAsk(page)).toHaveCount(0);
+    await expect(
+      aiOffCard(page).getByTestId("investigation-conversation"),
+    ).toHaveCount(1);
+    await expectAbove(
+      aiOffLine(page),
+      conversation(page),
+      "the thread runs under the line",
+    );
+    await expect(remediationCard(page)).toHaveCount(0);
+  });
+
+  test("the alert page folds its AI card the same way, in an alert's words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAiOffLine(page, ALERT_PATH, "ai=off-switch");
+
+    await expect(aiOffReason(page)).toHaveText(
+      "“Investigate new alerts” was off when this alert was created.",
+    );
+    await expect(aiOffAsk(page)).toBeVisible();
+    const steps: Locator = await openAiOffSteps(page);
+    expect(await aiOffStepRows(page)).toEqual([
+      aiOffStep("investigate-switch", "Turn on “Investigate new alerts”."),
+      aiOffStep("fix-switch", "Turn on “Fix new alerts automatically”."),
+    ]);
+    expect(await aiOffLinkRows(page)).toEqual([
+      { text: "Alert AI settings", href: ALERT_AI_SETTINGS_HREF },
+    ]);
+    await expect(steps.getByTestId("ai-off-summary-note")).toHaveText(
+      "This applies to new alerts only, not to this one. You can still ask OneUptime AI about it.",
+    );
+    await expect(remediationCard(page)).toHaveCount(0);
+    await expect(investigationCard(page)).toHaveCount(0);
+    expect(await panelsInsideTheCard(page)).toEqual([]);
+  });
+
+  test("an alert that matched none of the AI rules links to the alert AI rules", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAiOffLine(page, ALERT_PATH, "ai=off-rules");
+
+    await expect(aiOffReason(page)).toHaveText(
+      "This alert matched none of the AI rules that investigate.",
+    );
+    await openAiOffSteps(page);
+    expect(await aiOffLinkRows(page)).toEqual([
+      { text: "Alert AI rules", href: `${ALERT_AI_SETTINGS_HREF}#AiRules` },
+    ]);
+  });
+
+  test("an episode has no AI card to fold", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_EPISODE_PAGE, "ai=off-switch");
+
+    await expect(aiOffLine(page)).toHaveCount(0);
+    await expect(investigationCard(page)).toHaveCount(0);
+  });
+
+  test("at 1280px the line is one row - what is off, Ask OneUptime AI, the chevron at its end - with why under it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openAiOffLine(page, INCIDENT_PATH, "ai=off-switch");
+
+    const title: Box = await documentBox(aiOffTitle(page));
+    const ask: Box = await documentBox(aiOffAsk(page));
+    const toggle: Box = await documentBox(aiOffToggle(page));
+    const reason: Box = await documentBox(aiOffReason(page));
+    const line: Box = await documentBox(aiOffLine(page));
+
+    expect(Math.abs(centreOf(ask) - centreOf(title))).toBeLessThanOrEqual(2);
+    expect(Math.abs(centreOf(toggle) - centreOf(title))).toBeLessThanOrEqual(2);
+    expect(ask.x).toBeGreaterThan(title.x);
+    expect(toggle.x).toBeGreaterThanOrEqual(ask.x + ask.width - 1);
+    // The chevron ends where the line does, as a card that opens has it.
+    expect(line.x + line.width - (toggle.x + toggle.width)).toBeLessThanOrEqual(
+      8,
+    );
+    // Why runs under them, from where the title starts.
+    expect(reason.y).toBeGreaterThanOrEqual(title.y + title.height - 1);
+    expect(Math.abs(reason.x - title.x)).toBeLessThanOrEqual(1);
+  });
+
+  test("on a 390px phone the chevron keeps the title's row and Ask OneUptime AI follows why, nothing past the card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openAiOffLine(page, INCIDENT_PATH, "ai=off-switch");
+
+    const title: Box = await documentBox(aiOffTitle(page));
+    const ask: Box = await documentBox(aiOffAsk(page));
+    const toggle: Box = await documentBox(aiOffToggle(page));
+    const reason: Box = await documentBox(aiOffReason(page));
+    const cardBox: Box = await documentBox(aiOffCard(page));
+
+    expect(Math.abs(centreOf(toggle) - centreOf(title))).toBeLessThanOrEqual(2);
+    expect(toggle.x).toBeGreaterThan(title.x);
+    // Ask comes after why, its words lined up with why's.
+    expect(ask.y).toBeGreaterThanOrEqual(reason.y + reason.height - 1);
+    expect(
+      Math.abs(
+        (await documentBox(aiOffAsk(page).locator("svg").first())).x - reason.x,
+      ),
+    ).toBeLessThanOrEqual(1);
+
+    await openAiOffSteps(page);
+    for (const part of [
+      title,
+      ask,
+      toggle,
+      reason,
+      await documentBox(aiOffStepsPanel(page)),
+    ]) {
+      expect(part.x).toBeGreaterThanOrEqual(cardBox.x);
+      expect(part.x + part.width).toBeLessThanOrEqual(
+        cardBox.x + cardBox.width,
+      );
+    }
+    await expectNoHorizontalOverflow(page);
+  });
+
+  /*
+   * "Which incidents are investigated" wraps in a phone's card: its arrow
+   * ends the name, on its last line right after its last word, rather than
+   * sitting alone at the card's far edge.
+   */
+  test("on a 390px phone a link's arrow follows its last word, wherever the name wraps", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openAiOffLine(page, INCIDENT_PATH, "ai=off-severity");
+    await openAiOffSteps(page);
+
+    const links: Locator = aiOffLine(page)
+      .getByTestId("ai-off-summary-links")
+      .getByRole("link");
+    await expect(links).toHaveCount(2);
+
+    for (const index of [0, 1]) {
+      const placement: { gap: number; onLastLine: boolean } = await links
+        .nth(index)
+        .evaluate((link: Element): { gap: number; onLastLine: boolean } => {
+          // The name's own text, without the no-break space after it.
+          const range: Range = document.createRange();
+          range.selectNodeContents(link.firstChild as Node);
+          const lines: Array<DOMRect> = Array.from(range.getClientRects());
+          const last: DOMRect = lines[lines.length - 1] as DOMRect;
+          const arrow: DOMRect = (
+            link.querySelector(
+              "[data-testid='ai-off-summary-link-arrow']",
+            ) as Element
+          ).getBoundingClientRect();
+
+          return {
+            gap: arrow.left - last.right,
+            onLastLine: arrow.top < last.bottom && arrow.bottom > last.top,
+          };
+        });
+
+      expect(placement.onLastLine).toBe(true);
+      // Only the no-break space between them.
+      expect(placement.gap).toBeGreaterThanOrEqual(0);
+      expect(placement.gap).toBeLessThanOrEqual(8);
+    }
+  });
+
+  for (const theme of ["light", "dark"]) {
+    for (const width of [1280, 390]) {
+      test(`in the ${theme} theme at ${width}px every word on the line reads on the card, and the line draws no panel`, async ({
+        page,
+      }: {
+        page: Page;
+      }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await openAiOffLine(
+          page,
+          INCIDENT_PATH,
+          `ai=off-severity${theme === "dark" ? "&theme=dark" : ""}`,
+        );
+        await screenshotElement(
+          aiOffCard(page),
+          `incident-ai-off-line-${width}-${theme}`,
+        );
+
+        await openAiOffSteps(page);
+        const look: AiOffLineLook = await aiOffLineLook(page);
+        const surfaceLuminance: number = relativeLuminance(look.surface);
+
+        // The card's own surface: white, or the dark card.
+        if (theme === "dark") {
+          expect(surfaceLuminance).toBeLessThan(0.05);
+          // The mark is a quiet tile on it, not a light square.
+          expect(relativeLuminance(look.mark)).toBeLessThan(0.1);
+        } else {
+          expect(surfaceLuminance).toBeGreaterThan(0.9);
+        }
+
+        for (const text of look.texts) {
+          expect({
+            text: text.name,
+            readable: contrastRatio(text.color, look.surface) >= 4.5,
+          }).toEqual({ text: text.name, readable: true });
+        }
+
+        expect(await panelsInsideTheCard(page)).toEqual([]);
+        await expectNoHorizontalOverflow(page);
+        await screenshotElement(
+          aiOffCard(page),
+          `incident-ai-off-line-${width}-${theme}-open`,
+        );
+      });
+    }
+  }
+
+  /*
+   * "KI ist für dieses Projekt ausgeschaltet" takes two lines in a phone's
+   * card: its lines stay close, and the chevron stays level with the first
+   * one rather than dropping between them.
+   */
+  test("on a 390px phone a title that wraps keeps its lines close and its chevron level with its first line (?ai=off-project&lang=de)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openAiOffLine(
+      page,
+      INCIDENT_PATH,
+      "ai=off-project&lang=de",
+      "KI ist für dieses Projekt ausgeschaltet",
+    );
+
+    const title: Box = await documentBox(aiOffTitle(page));
+    const toggle: Locator = aiOffLine(page).getByRole("button", {
+      name: "Was Sie tun können",
+      exact: true,
+    });
+    const chevron: Box = await documentBox(toggle);
+    const mark: Box = await documentBox(
+      aiOffLine(page).getByTestId("ai-off-summary-mark"),
+    );
+    const lineHeight: string = await aiOffTitle(page).evaluate(
+      (element: Element): string => {
+        return window.getComputedStyle(element).lineHeight;
+      },
+    );
+
+    // Two lines of 24px, inside the 2px above and under one.
+    expect(lineHeight).toBe("24px");
+    expect(title.height).toBeGreaterThanOrEqual(2 * 24);
+    expect(title.height).toBeLessThanOrEqual(2 * 24 + 4 + 1);
+    // The chevron and the mark start where the title does.
+    expect(Math.abs(chevron.y - title.y)).toBeLessThanOrEqual(1);
+    expect(Math.abs(mark.y - title.y)).toBeLessThanOrEqual(1);
+    await expectNoHorizontalOverflow(page);
+  });
+
+  for (const width of [1280, 390]) {
+    test(`reads in German at ${width}px (?lang=de)`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await openAiOffLine(
+        page,
+        INCIDENT_PATH,
+        "ai=off-switch&lang=de",
+        "KI-Untersuchung ist aus",
+      );
+
+      await expect(aiOffReason(page)).toHaveText(
+        "„Neue Vorfälle untersuchen“ war ausgeschaltet, als dieser Vorfall erstellt wurde.",
+      );
+      const toggle: Locator = aiOffLine(page).getByRole("button", {
+        name: "Was Sie tun können",
+        exact: true,
+      });
+      await expect(toggle).toHaveAttribute("aria-expanded", "false");
+      await toggle.click();
+
+      expect(await aiOffStepRows(page)).toEqual([
+        aiOffStep(
+          "investigate-switch",
+          "Schalten Sie „Neue Vorfälle untersuchen“ ein.",
+        ),
+        aiOffStep(
+          "fix-switch",
+          "Schalten Sie „Neue Vorfälle automatisch beheben“ ein.",
+        ),
+      ]);
+      expect(await aiOffLinkRows(page)).toEqual([
+        {
+          text: "KI-Einstellungen für Vorfälle",
+          href: INCIDENT_AI_SETTINGS_HREF,
+        },
+      ]);
+      await expect(
+        aiOffStepsPanel(page).getByTestId("ai-off-summary-note"),
+      ).toHaveText(
+        "Das gilt nur für neue Vorfälle, nicht für diesen. Sie können OneUptime AI trotzdem dazu befragen.",
+      );
+
+      await expectNoHorizontalOverflow(page);
+      await screenshotElement(
+        aiOffCard(page),
+        `incident-ai-off-line-${width}-de-open`,
+      );
+    });
+  }
 });
 
 /*

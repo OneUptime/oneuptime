@@ -10,7 +10,7 @@
 :::
 
 > [!NOTE]
-> Die KI von OneUptime öffnet Pull Requests mit Korrekturen nur in Repositories, die über die GitHub-App verbunden sind, und kann deshalb noch nicht in einem GitLab-Repository arbeiten. Siehe [GitHub](/docs/integrations/github).
+> Die KI von OneUptime arbeitet auch in GitLab-Repositorys: Verbinden Sie sie in Code mit einem Zugriffstoken, und sie öffnet für jede Korrektur einen Merge Request. Siehe [Ein Repository verbinden](/docs/ai/ai-agent#ein-repository-verbinden).
 
 ## So funktioniert es
 

@@ -9,9 +9,9 @@ import RepositoryManager, {
   RepositoryConfig,
 } from "../Utils/RepositoryManager";
 import WorkspaceManager, { WorkspaceInfo } from "../Utils/WorkspaceManager";
-import PullRequestCreator, {
-  PullRequestResult,
-} from "../Utils/PullRequestCreator";
+import { PullRequestResult } from "../Utils/PullRequestCreator";
+import PullRequestOpener from "../Utils/PullRequestOpener";
+import PushedBranches, { PushedBranch } from "../Utils/PushedBranches";
 import BuildVerification, {
   VerificationOutcome,
 } from "../Utils/BuildVerification";
@@ -105,7 +105,16 @@ export default class CodeRequestTaskHandler extends BaseTaskHandler {
           details.workingBranch ||
           details.repository.mainBranchName ||
           undefined,
+        ...(tokenData.codeHost ? { codeHost: tokenData.codeHost } : {}),
       };
+
+      /*
+       * A repository whose host takes no pull requests from OneUptime (a
+       * Git repository) gets the change on a pushed branch, and the reply
+       * says where it is.
+       */
+      const opensPullRequest: boolean =
+        PullRequestOpener.hasPullRequests(tokenData);
 
       const repositoryManager: RepositoryManager = new RepositoryManager(
         context.logger,
@@ -166,7 +175,9 @@ export default class CodeRequestTaskHandler extends BaseTaskHandler {
 
       await agent.initialize(agentConfig, context.logger);
 
-      const prompt: string = CodeRequestTaskHandler.buildPrompt(details);
+      const prompt: string = CodeRequestTaskHandler.buildPrompt(details, {
+        opensPullRequest,
+      });
 
       await this.log(context, "AI is working on the request...");
 
@@ -279,6 +290,33 @@ export default class CodeRequestTaskHandler extends BaseTaskHandler {
         changes,
       };
 
+      if (!opensPullRequest) {
+        const pushed: PushedBranch = PushedBranches.create({
+          repositoryId: details.repository.id,
+          token: tokenData,
+          branchName,
+          baseBranchName: cloneResult.baseBranch,
+          summary,
+          changes,
+        });
+
+        outcome.summary = [summary, PushedBranches.describe(pushed)]
+          .filter((part: string): boolean => {
+            return Boolean(part);
+          })
+          .join("\n\n");
+
+        await this.log(context, PushedBranches.describe(pushed));
+
+        return {
+          success: true,
+          message: `Pushed ${branchName} (${filesChanged.length} file(s) changed). Its Git server takes no pull requests from OneUptime.`,
+          pullRequestsCreated: 0,
+          data: { pushedBranches: [branchName] },
+          outcome,
+        };
+      }
+
       if (details.workingBranch && details.pullRequest) {
         if (details.pullRequest.number) {
           outcome.pullRequestNumber = details.pullRequest.number;
@@ -303,18 +341,14 @@ export default class CodeRequestTaskHandler extends BaseTaskHandler {
         };
       }
 
-      const prCreator: PullRequestCreator = new PullRequestCreator(
-        context.logger,
-      );
-
       const prBody: string =
         CodeRequestTaskHandler.buildPullRequestBody(details, summary) +
         BuildVerification.buildPullRequestBodySection(verification);
 
-      const prResult: PullRequestResult = await prCreator.createPullRequest({
-        token: repositoryConfig.token,
-        organizationName: repositoryConfig.organizationName,
-        repositoryName: repositoryConfig.repositoryName,
+      const prResult: PullRequestResult = await new PullRequestOpener(
+        context.logger,
+      ).open({
+        token: tokenData,
         baseBranch: cloneResult.baseBranch,
         headBranch: branchName,
         title: CodeRequestTaskHandler.buildPullRequestTitle(details),
@@ -408,14 +442,30 @@ export default class CodeRequestTaskHandler extends BaseTaskHandler {
     };
   }
 
-  public static buildPrompt(details: CodeTaskAgentDetails): string {
+  public static buildPrompt(
+    details: CodeTaskAgentDetails,
+    options?: {
+      /*
+       * Whether a change opens a pull request: false for a repository whose
+       * host takes none from OneUptime (a Git repository), where the branch
+       * is pushed for the person to open one.
+       */
+      opensPullRequest?: boolean | undefined;
+    },
+  ): string {
+    const opensPullRequest: boolean = options?.opensPullRequest !== false;
+
     const where: string = details.workingBranch
       ? `The working copy is checked out on \`${details.workingBranch}\`, the branch of this task's open pull request${
           details.pullRequest?.number ? ` (#${details.pullRequest.number})` : ""
         }: the changes earlier turns made are already in it. Build on them - do not redo or revert them unless that is what is asked.`
       : `The working copy is on a new branch cut from \`${
           details.repository.mainBranchName || "the default branch"
-        }\`. If you change code, a pull request is opened for review with your changes.`;
+        }\`. ${
+          opensPullRequest
+            ? "If you change code, a pull request is opened for review with your changes."
+            : "If you change code, the branch is pushed with your changes, for the person to open a pull request from."
+        }`;
 
     return `You are a senior software engineer working in the repository ${details.repository.organizationName}/${details.repository.repositoryName}, at the request of ${
       details.requestedBy || "a person on their team"

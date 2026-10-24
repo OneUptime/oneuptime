@@ -352,7 +352,7 @@ WHERE command LIKE '%idx_attribute_values%';
 - **アップグレードが待機する場合は、イメージをミラーするか、エージェントを無効にしてください。** チャートのアップグレードは、`docker.io/oneuptime/kubernetes-ai-agent` を取得する Pod を追加します。ノードがミラーやイメージの許可リストを通じてイメージを取得し、`--wait` や `--atomic`、Terraform、Flux でアップグレードしている場合は、イメージをミラーして `aiAgent.image.repository`（プライベートレジストリの場合は `aiAgent.imagePullSecrets` も）を設定するか、`--set aiAgent.enabled=false` を渡してください。そうしないと Pod が準備完了にならず、アップグレードはタイムアウトし、`--atomic` はリリース全体をロールバックします。
 - **`aiAccess` の設定は引き継がれます。** 書き込みアクセス、名前空間の一覧、ノード操作のスイッチ、`aiAccess.extraEnv` は、対応する `aiAgent.*` の値を設定するまで適用され続け、その値は常に優先されます。`aiAccess.enabled=false` は AI エージェントをオフにしません（オフにするのは `--set aiAgent.enabled=false` です）。`aiAccess.image` と `aiAccess.resources` は引き継がれません。
 - **クラスターの AI 設定は保持され**、サーバーのアップグレードによって 2 つの変更が加えられます。誰かが Runner（クラスター内の Runner でもそれ以外でも）のバインドを解除するか削除していたクラスターは、kubectl アクセスがオフの状態で始まり、 **Enable AI Command Execution** を一度もオンにしなかったプロジェクトのクラスターでの **自動** または **承認をバイパス** は、 **承認を求める** になります。
-- **チャートをダウングレードするには `helm rollback` を使い**、`helm upgrade --version <older version>` は使わないでください。古いチャートのスキーマは、リリースに保存された `aiAgent` の値を拒否します。アップグレードから 1 週間以内なら、ロールバックでクラスター内の Runner が戻り、AI エージェントが停止すると自動的に再接続します。それ以降は OneUptime が古い Runner を削除している可能性があり、ロールバックした Runner は、API か Terraform でクラスターに再びバインドする（クラスターの **AI アクセスの Runner**。Project Owner、Project Admin、 **Edit Auto Remediation Rule** がこれを行えます）か、チャートを再びアップグレードするまで使われません。
+- **チャートをダウングレードするには `helm rollback` を使い**、`helm upgrade --version <older version>` は使わないでください。古いチャートのスキーマは、リリースに保存された `aiAgent` の値を拒否します。アップグレードから 1 週間以内なら、ロールバックでクラスター内の Runner が戻り、AI エージェントが停止すると自動的に再接続します。それ以降は OneUptime が古い Runner を削除している可能性があり、ロールバックした Runner は、API か Terraform でクラスターに再びバインドする（クラスターの **AI アクセスの Runner**。Project Owner、Project Admin、 **Edit AI Rule** がこれを行えます）か、チャートを再びアップグレードするまで使われません。
 
 ```bash
 helm repo update
@@ -470,6 +470,21 @@ API クライアントと Terraform の構成は、プロジェクトの `enable
 ルールの **Runner** には、自分の Runner だけが表示されます。**AI agent on the cluster or host** はなくなりました。影響を受けたクラスターやホストでのコマンドは、ルールの選択にかかわらず常にその AI エージェントを通じて実行されます。何も選んでいなかったルールは **Runner なし** と表示され、これまでどおり修正します。
 
 API クライアントと Terraform の構成からは、プロジェクトのフィールド `enableAutomaticIncidentCodeFixes`、`enableIncidentInstrumentationFixTasks`、`enableAutomaticAlertCodeFixes`、`enableAlertInstrumentationFixTasks`(Terraform では `enable_automatic_incident_code_fixes` など)がなくなります。構成から削除してください。自動修復ルールの `openCodeFixPullRequests` と `openTelemetryPullRequests`(`open_code_fix_pull_requests` と `open_telemetry_pull_requests`)は、設定しなければ `true` で、どちらの種類のルールも `codeRepositories`(`code_repositories`)でリポジトリを指定します。空なら接続済みのすべてのリポジトリです。
+
+### 調査ルールと自動修復ルールは AI ルールになりました
+
+**インシデント → AI → 設定** と **アラート → AI → 設定** には、**その他の設定** の下に二つのルールの表がありました。OneUptime AI が調査するインシデント(またはアラート)を絞り込む調査ルールと、修正するものとその方法を絞り込む自動修復ルールです。調査なしに修正はないため、今は一つの表 **AI ルール** になりました。ルールの条件は一度だけ書き、ルールは一致したものを OneUptime AI がいつ調査するか、そしてそれを修正するかどうかとその方法を決めます。[調査・修正されるインシデント](/docs/ai/ai-sre#調査修正されるインシデント) を参照してください。
+
+アップグレード後も、各プロジェクトの AI はインシデントでもアラートでもこれまでどおりに動作します。
+
+- 同じインシデントに一致し(同じ条件で、両方が有効または両方が無効)、同じ MCP サーバー、コードリポジトリ、LLM プロバイダーを許可する調査ルールと自動修復ルールは、一つのルールになります。自動修復ルールが、調査ルールの待機の後で調査もするようになります。名前、修正、Runbook、Runner、プルリクエストのスイッチはそのまま残ります。
+- それ以外の調査ルールは、名前、条件、待機、MCP サーバー、コードリポジトリ、LLM プロバイダーを保ったまま、調査して修正しない AI ルールになります。
+- それ以外の自動修復ルールは、これまでどおり修正します。有効な調査ルールが調査対象を決めていた場合は調査しません(**調査と修正** 列には **調査しない** と表示されます)。そのため、調査されるものは変わりません。そうでなかった場合は、LLM プロバイダーを選んでいない限り調査もします。そして有効なルールが調査するようになった場合、プロジェクトには **Investigate every incident**(または **Investigate every alert**)も追加されます。これはすべてを調査して何も修正しないルールで、すべてのインシデントが引き続き調査されるようにします。ただし、調査するルールがすでにすべてに一致している場合は追加されません。
+- 有効な調査ルールが調査対象を決め、有効な自動修復ルールが修正対象を決めていなかった場合、修正がオンの間はすべてのインシデントが修正されていました。修正がオンのプロジェクトには **Fix every incident**(または **Fix every alert**)が追加されます。これはルールがないときの OneUptime AI と同じようにすべてを修正し、調査はしません。修正がオフのプロジェクトには、修正するルールは追加されません。後でそのプロジェクトで修正をオンにする場合は、先に修正するルールを追加してください。ルールがあると、OneUptime AI は修正するルールに一致するものだけを修正します。
+
+API クライアントと Terraform の構成: AI ルールは `/api/auto-remediation-rule` にある `AutoRemediationRule` で、自動修復ルールが持っていたルート、権限、ID をそのまま使います。`investigates` と `fixes` がルールの動作を表し(設定しなければ `false` と `true` なので、以前に書かれたクライアントは引き続き修正だけをするルールを作成します)、`onlyIfOpenAfterMinutes` が待機時間です。Terraform では `oneuptime_ai_rule` です。`oneuptime_auto_remediation_rule` も引き続き使えますが非推奨で、`moved` ブロックを使えばルールを置き換えずに移行できます。調査ルールのルート `/api/ai-investigation-rule` は、代わりに使うものを示して `410 Gone` を返し、`oneuptime_investigation_rule` はなくなりました。そのようなルールは、`investigates` を `true`、`fixes` を `false` にした `oneuptime_ai_rule` として書いてください。
+
+ルールの権限は自動修復ルールの権限で、名前が **Create AI Rule**、**Edit AI Rule**、**Delete AI Rule**、**Read AI Rule** に変わりました。これらを持つカスタムロールは、これまで Project Owner または Project Admin が必要だった、調査だけをするルールも管理できるようになります。
 
 ### エディションとライセンスを確認する
 

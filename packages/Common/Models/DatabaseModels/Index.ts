@@ -32,6 +32,7 @@ import NetworkDeviceLink from "./NetworkDeviceLink";
 import NetworkDeviceLinkRule from "./NetworkDeviceLinkRule";
 import NetworkTopologySuppression from "./NetworkTopologySuppression";
 import NetworkSiteAssignmentRule from "./NetworkSiteAssignmentRule";
+import NetworkControllerConnection from "./NetworkControllerConnection";
 import DockerHostOwnerTeam from "./DockerHostOwnerTeam";
 import DockerHostOwnerUser from "./DockerHostOwnerUser";
 import DockerResource from "./DockerResource";
@@ -300,6 +301,7 @@ import Service from "./Service";
 import ServiceOwnerTeam from "./ServiceOwnerTeam";
 import ServiceOwnerUser from "./ServiceOwnerUser";
 import CodeRepository from "./CodeRepository";
+import CodeRepositoryConnection from "./CodeRepositoryConnection";
 // Short link.
 import ShortLink from "./ShortLink";
 // SMS
@@ -383,7 +385,6 @@ import RunbookRule from "./RunbookRule";
 import AutoRemediationRule from "./AutoRemediationRule";
 import AutoRemediationSuggestion from "./AutoRemediationSuggestion";
 import AutoRemediationDecision from "./AutoRemediationDecision";
-import AIInvestigationRule from "./AIInvestigationRule";
 import AIPostmortemRule from "./AIPostmortemRule";
 import ExternalMcpServer from "./ExternalMcpServer";
 
@@ -809,7 +810,6 @@ const AllModelTypes: Array<{
   AutoRemediationRule,
   AutoRemediationSuggestion,
   AutoRemediationDecision,
-  AIInvestigationRule,
   AIPostmortemRule,
   ExternalMcpServer,
   Runner,
@@ -937,6 +937,7 @@ const AllModelTypes: Array<{
 
   // Code Repository
   CodeRepository,
+  CodeRepositoryConnection,
 
   ProbeOwnerTeam,
   ProbeOwnerUser,
@@ -1043,6 +1044,7 @@ const AllModelTypes: Array<{
   NetworkDeviceLinkRule,
   NetworkTopologySuppression,
   NetworkSiteAssignmentRule,
+  NetworkControllerConnection,
   DockerHostOwnerTeam,
   DockerHostOwnerUser,
   DockerResource,

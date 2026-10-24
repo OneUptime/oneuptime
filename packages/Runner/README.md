@@ -34,7 +34,7 @@ the limits it always had (see [AI kubectl access](#ai-kubectl-access)). It
 only runs kubectl for its own cluster, so its row cannot be renamed, **Runs
 Runbooks** cannot be turned on for it and no code repository can pick it (its
 page in the dashboard leaves the name and that switch out), and it is never
-accepted as an auto-remediation rule's command Runner. While the cluster's
+accepted as an AI rule's command Runner. While the cluster's
 Kubernetes AI agent is online, the server refuses the legacy Runner's
 registration; the Runner keeps retrying, so a `helm rollback` of the chart
 within a week of the upgrade brings it back once the AI agent has stopped.
@@ -105,7 +105,7 @@ should be updated.
 Three separate switches must all be on before an AI-composed command can run,
 and every one of them defaults to off: the project-level setting, the **Runs
 AI Remediation Commands** toggle on this Runner, and the opt-in on each
-individual auto-remediation rule. Turning any one of them off stops the work.
+individual AI rule. Turning any one of them off stops the work.
 
 OneUptime AI composes no SSH command for a Runner: such a command reached
 another host with a runbook credential, and runbook credentials were removed.

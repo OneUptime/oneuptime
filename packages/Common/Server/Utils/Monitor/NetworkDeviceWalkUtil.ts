@@ -53,6 +53,12 @@ export interface NetworkDevicePingResult {
   packetsSent?: number | undefined;
   packetsReceived?: number | undefined;
   failureCause?: string | undefined;
+  /*
+   * For a device polled at a DNS name: the name, and the address the ping
+   * resolved it to (issue #5185). Absent from older probes.
+   */
+  resolvedHost?: string | undefined;
+  resolvedAddress?: string | undefined;
 }
 
 /*
@@ -322,6 +328,19 @@ export default class NetworkDeviceWalkUtil {
       pollMode: pollMode,
       snmpTableSnapshot: snmpTableSnapshot,
       transceiverSnapshot: transceiverSnapshot,
+      probeId: data.probeId,
+      dnsResolution: data.pingResponse
+        ? {
+            hostname:
+              typeof data.pingResponse.resolvedHost === "string"
+                ? data.pingResponse.resolvedHost
+                : undefined,
+            address:
+              typeof data.pingResponse.resolvedAddress === "string"
+                ? data.pingResponse.resolvedAddress
+                : undefined,
+          }
+        : undefined,
     });
 
     try {

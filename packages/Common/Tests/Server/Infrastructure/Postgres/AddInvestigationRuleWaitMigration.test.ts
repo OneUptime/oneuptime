@@ -3,7 +3,6 @@ import { AddInvestigationRuleWait1805030000000 } from "../../../../Server/Infras
 import { AddInvestigationRuleWaitIndexes1805040000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805040000000-AddInvestigationRuleWaitIndexes";
 import { AddAutoRemediationRuleRunnerIndexAndKey1804800000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1804800000000-AddAutoRemediationRuleRunnerIndexAndKey";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import AIInvestigationRule from "../../../../Models/DatabaseModels/AIInvestigationRule";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import Incident from "../../../../Models/DatabaseModels/Incident";
@@ -202,17 +201,17 @@ describe("the investigation rule wait migrations", () => {
     ]);
   });
 
+  /*
+   * AIInvestigationRule.onlyIfOpenAfterMinutes is left in the database,
+   * unread: the investigation rules moved into the AI rules, their waits
+   * with them (MergeInvestigationRulesIntoAiRules), and the AI rule's own
+   * column is AddAiRuleInvestigation's.
+   */
   describe("the models declare what the migrations build", () => {
     test.each([
       ["Incident", Incident, "aiInvestigationWaitUntil", TableColumnType.Date],
       ["Alert", Alert, "aiInvestigationWaitUntil", TableColumnType.Date],
       ["AIRun", AIRun, "ruleWaitMinutes", TableColumnType.Number],
-      [
-        "AIInvestigationRule",
-        AIInvestigationRule,
-        "onlyIfOpenAfterMinutes",
-        TableColumnType.Number,
-      ],
     ])(
       "%s.%s",
       (

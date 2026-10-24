@@ -74,7 +74,7 @@ Un runbook può combinarli tutti. La forza dei runbook sta nell'alternare verifi
 | Una regola di runbook | **Incidenti**, **Avvisi** o **Manutenzione programmata** → **Regole** → **Regole di runbook** | Il nuovo incidente, avviso o evento |
 | **Esegui Runbook** | La pagina **Runbook** di un incidente, un avviso o un evento di manutenzione programmata | Quell'evento |
 | **Run Now** | La pagina **Panoramica** del runbook | Niente: un'esecuzione estemporanea |
-| Una regola di rimedio automatico | Vedi [AI SRE](/docs/ai/ai-sre) | L'incidente o l'avviso |
+| Una regola IA | Vedi [AI SRE](/docs/ai/ai-sre) | L'incidente o l'avviso |
 | La pianificazione del runbook | La pagina **Trigger** del runbook, vedi [Trigger dei runbook](/docs/runbooks/triggers#eseguire-secondo-una-pianificazione) | Nulla: un'esecuzione non presidiata |
 | Una chiamata all'URL del webhook del runbook | La pagina **Trigger** del runbook, vedi [Trigger dei runbook](/docs/runbooks/triggers#chiamare-il-webhook) | Nulla: l'esecuzione conserva i valori inviati dalla chiamata |
 

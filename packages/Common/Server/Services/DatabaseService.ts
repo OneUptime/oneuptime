@@ -177,6 +177,7 @@ import RelatedFileAccess, {
 } from "../Utils/File/RelatedFileAccess";
 import PublishedImages, { CascadedRow } from "../Utils/File/PublishedImages";
 import StatusPageOverviewCache from "../Utils/StatusPage/StatusPageOverviewCache";
+import DiscoveredResourceIdCache from "../Utils/Telemetry/DiscoveredResourceIdCache";
 import CallerPlan from "../Utils/Billing/CallerPlan";
 import QueryIdCondition from "../Utils/Database/QueryIdCondition";
 import {
@@ -7359,6 +7360,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         lookupSelect[lookupTenantColumn] = true;
       }
 
+      // What ingest found the rows by, to forget. See DiscoveredResourceIdCache.
+      for (const column of DiscoveredResourceIdCache.getColumnsToRead(
+        this.model.tableName,
+      )) {
+        lookupSelect[column] = true;
+      }
+
       const items: Array<TBaseModel> = await this._findBy(
         {
           query: beforeDeleteBy.query,
@@ -7416,6 +7424,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         await StatusPageOverviewCache.afterDelete({
           tableName: this.model.tableName,
           rows: rowsDeleted,
+        });
+
+        /*
+         * Ingest stops writing against the ids, and a resource whose data
+         * still arrives comes back. See DiscoveredResourceIdCache.
+         */
+        await DiscoveredResourceIdCache.afterDelete({
+          tableName: this.model.tableName,
+          rows: items,
         });
       }
 
@@ -7637,6 +7654,13 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         (select as Dictionary<unknown>)[column] = true;
       }
 
+      // What ingest found the rows by, to forget. See DiscoveredResourceIdCache.
+      for (const column of DiscoveredResourceIdCache.getColumnsToRead(
+        this.model.tableName,
+      )) {
+        (select as Dictionary<unknown>)[column] = true;
+      }
+
       /*
        * If audit logging on delete is enabled, fetch all scalar columns so we
        * can record a full snapshot of the record before it is deleted.
@@ -7731,6 +7755,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
         // Gone from every status page at once. See StatusPageOverviewCache.
         await StatusPageOverviewCache.afterDelete({
+          tableName: this.model.tableName,
+          rows: items,
+        });
+
+        /*
+         * Ingest stops writing against the ids, and a resource whose data
+         * still arrives comes back. See DiscoveredResourceIdCache.
+         */
+        await DiscoveredResourceIdCache.afterDelete({
           tableName: this.model.tableName,
           rows: items,
         });
@@ -9840,6 +9873,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       });
 
       /*
+       * A resource no longer matched on what ingest found it by is no longer
+       * found by it. See DiscoveredResourceIdCache.
+       */
+      await DiscoveredResourceIdCache.afterUpdate({
+        tableName: this.model.tableName,
+        rowsBefore: affectedItems,
+        written: data,
+      });
+
+      /*
        * Before onUpdateSuccess, so a service hook that reads the list (an
        * escalation order, a roster) sees it in its new order.
        */
@@ -10795,6 +10838,38 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }" FROM "updated"`;
 
     const result: unknown = await repository.manager.query(sql, params);
+
+    return Array.isArray(result) && result.length > 0;
+  }
+
+  /*
+   * Whether a row with this id is there - not deleted, soft or hard - read
+   * without hooks and without taking any lock. For a hook-free write that
+   * changed nothing (updateColumnsByIdIfUnlockedWithoutHooks answers false
+   * both for a row another writer held and for one that is gone) to tell the
+   * two apart: ResourceHeartbeat asks it, so ingest can stop writing against
+   * the id of a resource deleted while its agent kept sending.
+   */
+  @CaptureSpan()
+  public async hasRowWithIdWithoutHooks(id: ObjectID): Promise<boolean> {
+    if (!id) {
+      throw new BadDataException("id is required");
+    }
+
+    const repository: Repository<TBaseModel> = this.getRepository();
+    const metadata: EntityMetadata = repository.metadata;
+
+    const primaryColumnName: string =
+      metadata.primaryColumns[0]?.databaseName || "_id";
+
+    const notDeleted: string = metadata.deleteDateColumn
+      ? ` AND "${metadata.deleteDateColumn.databaseName}" IS NULL`
+      : "";
+
+    const result: unknown = await repository.manager.query(
+      `SELECT 1 FROM "${metadata.tableName}" WHERE "${primaryColumnName}" = $1${notDeleted} LIMIT 1`,
+      [id.toString()],
+    );
 
     return Array.isArray(result) && result.length > 0;
   }

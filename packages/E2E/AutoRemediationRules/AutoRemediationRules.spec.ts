@@ -3,10 +3,23 @@ import fs from "fs";
 import path from "path";
 
 /*
- * Auto remediation rules - which new incidents (or alerts) OneUptime AI
- * fixes, and whether it asks first - on Incidents -> AI -> Settings and
- * Alerts -> AI -> Settings, in a browser, against the offline fixture
+ * AI rules - which new incidents (or alerts) OneUptime AI investigates, and
+ * whether and how it fixes them - on Incidents -> AI -> Settings and Alerts
+ * -> AI -> Settings, in a browser, against the offline fixture
  * (AutoRemediationRules/Fixture).
+ *
+ * The maintainer: "Should incident investigation rule and remediation rule
+ * be the same entity - we can call it Incident AI rules ... Since its not
+ * possible to remediate without investigation." So the investigation rules
+ * and the auto remediation rules are one table, AI rules, whose rule asks a
+ * step each: Match, Investigate (right away, or only if still open after a
+ * wait - InvestigationRules.spec.ts) and Fix: don't fix, ask before fixing
+ * or fix without asking. What most rules never change is folded under the
+ * Fix step's More fields, for both: the code repositories, MCP servers and
+ * LLM provider OneUptime AI investigates and fixes with, and - for a rule
+ * that fixes - the runbooks, the Runner and the two pull requests. A rule
+ * that was an auto remediation rule may only fix: its Investigate step says
+ * so, with "Investigate too".
  *
  * The maintainer's ask, on the rule's Fix step: "Why should I pick between
  * oneuptime AI and Runbook? Can oneuptime AI do things by default, and I can
@@ -80,10 +93,13 @@ const GERMAN: Record<string, string> = JSON.parse(
   ),
 ) as Record<string, string>;
 
-const CARD_TITLE: string = "Auto remediation rules";
-const CREATE: string = "Create Auto Remediation Rule";
-const APPROVAL_DESCRIPTION: string =
-  "OneUptime AI works out each fix. Choose whether it waits for someone to approve it.";
+const CARD_TITLE: string = "AI rules";
+const CREATE: string = "Create AI Rule";
+// The Fix step's one question, and its first answer: investigate, change nothing.
+const FIX_DESCRIPTION: string =
+  "After it investigates, OneUptime AI can fix what it found. Choose whether it does, and whether a fix waits for approval.";
+const DONT_FIX_DESCRIPTION: string =
+  "OneUptime AI investigates and posts what it finds. It changes nothing.";
 const FIX_WITHOUT_ASKING_DESCRIPTION: string =
   "OneUptime AI fixes on its own where the AI agent's settings allow it, and with the runbooks and MCP servers you pick under More fields.";
 /*
@@ -97,9 +113,13 @@ const ANY_RUNBOOK_SUMMARY: string =
   "OneUptime AI may run any of your runbooks.";
 const REPOSITORIES_SUMMARY: string =
   "OneUptime AI may read all connected repositories, and open pull requests in them.";
-// An investigation rule's, while it holds both of its defaults.
-const INVESTIGATION_DEFAULTS_SUMMARY: string =
+// A rule that doesn't fix, while it holds both of its defaults.
+const NOT_FIXING_DEFAULTS_SUMMARY: string =
   "OneUptime AI may use any of your MCP servers and connected repositories.";
+// A rule that was an auto remediation rule, on its Investigate step.
+const ONLY_FIXES_NOTE: string =
+  "This rule only fixes: it was an auto remediation rule, and does not decide which incidents are investigated.";
+const INVESTIGATE_TOO: string = "Investigate too";
 /*
  * The fixture's project has the global LLM provider alone unless
  * ?providers= says otherwise: nothing to pick between, so the folded line
@@ -132,10 +152,9 @@ const CODE_REPOSITORY_IDS: Record<string, string> = {
   billing: "d0000000-0000-4000-8000-000000000f02",
 };
 const ALL_REPOSITORIES: string = "All connected repositories";
-const REMEDIATION_REPOSITORIES_DESCRIPTION: string =
-  "OneUptime AI may read all of your connected repositories, and open pull requests in them. Pick some to let it use only those.";
-const INVESTIGATION_REPOSITORIES_DESCRIPTION: string =
-  "OneUptime AI may read all of your connected repositories while it investigates. Pick some to let it read only those.";
+// One line for every rule: a rule that doesn't fix reads them, and opens none.
+const REPOSITORIES_DESCRIPTION: string =
+  "OneUptime AI may use all of your connected repositories. Pick some to let it use only those.";
 const REPOSITORIES_HINT: string =
   "Connect and manage repositories on the Code › Repositories page.";
 const FIX_PULL_REQUESTS: string = "Fix pull requests";
@@ -265,7 +284,10 @@ const openDialogWith: (
   return dialog;
 };
 
-// The create dialog, walked to its Fix step: a name, then all incidents.
+/*
+ * The create dialog, walked to its Fix step: all incidents, investigated
+ * right away, then a name on the step that creates the rule.
+ */
 const openFixStep: (page: Page, card: Locator) => Promise<Locator> = async (
   page: Page,
   card: Locator,
@@ -275,15 +297,34 @@ const openFixStep: (page: Page, card: Locator) => Promise<Locator> = async (
     card.getByRole("button", { name: CREATE }).first(),
   );
 
-  await dialog.getByRole("textbox", { name: /^Name/ }).fill("Fix checkout");
-  await dialog.getByRole("button", { name: "Next", exact: true }).click();
   await expect(
     dialog.getByRole("radio", { name: /^All incidents|^All alerts/ }),
   ).toBeChecked();
   await dialog.getByRole("button", { name: "Next", exact: true }).click();
-  await expect(dialog).toContainText(APPROVAL_DESCRIPTION);
+  await expect(
+    dialog.getByRole("radio", { name: /^Right away/ }),
+  ).toBeChecked();
+  await dialog.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(dialog).toContainText(FIX_DESCRIPTION);
+  await dialog.getByRole("textbox", { name: /^Name/ }).fill("Fix checkout");
 
   return dialog;
+};
+
+// One of the Fix step's three answers, by its title.
+const fixChoice: (dialog: Locator, title: string) => Locator = (
+  dialog: Locator,
+  title: string,
+): Locator => {
+  return dialog.getByRole("radio", { name: new RegExp(`^${title}`) });
+};
+
+// An edit dialog's step, from its list of steps.
+const openStep: (dialog: Locator, title: string) => Promise<void> = async (
+  dialog: Locator,
+  title: string,
+): Promise<void> => {
+  await dialog.getByText(title, { exact: true }).first().click();
 };
 
 const moreFieldsButton: (dialog: Locator) => Locator = (
@@ -411,32 +452,6 @@ const dialogScreenshot: (
   await dialog.screenshot({ path: path.join(SCREENSHOTS, `${name}.png`) });
 };
 
-// The cell under a column of a row, by the column's header.
-const cellOf: (
-  card: Locator,
-  rowName: string,
-  column: string,
-) => Promise<string> = async (
-  card: Locator,
-  rowName: string,
-  column: string,
-): Promise<string> => {
-  const headers: Array<string> = (
-    await card.locator("thead th").allInnerTexts()
-  ).map((text: string): string => {
-    return text.trim();
-  });
-  const index: number = headers.indexOf(column);
-  expect(index).toBeGreaterThan(-1);
-
-  const row: Locator = card
-    .locator("tbody tr")
-    .filter({ hasText: rowName })
-    .first();
-
-  return ((await row.locator("td").nth(index).innerText()) || "").trim();
-};
-
 // An id as a save sends it: a string, or an ObjectID left as the form read it.
 const idOfValue: (value: unknown) => string = (value: unknown): string => {
   if (typeof value === "string") {
@@ -447,12 +462,37 @@ const idOfValue: (value: unknown) => string = (value: unknown): string => {
   return String(row["value"] || row["_id"] || "");
 };
 
-// The Fix cell of a row, its pill and its line read as one sentence.
+/*
+ * What a row's rule does, as the table's one column says it ("Investigates
+ * and fixes"): when it investigates, and under it how it fixes.
+ */
+const COLUMN: string = "Investigates and fixes";
+
+const rowOf: (card: Locator, rowName: string) => Locator = (
+  card: Locator,
+  rowName: string,
+): Locator => {
+  return card.locator("tbody tr").filter({ hasText: rowName }).first();
+};
+
+// The fix under it, its pill and its line read as one sentence.
 const fixOf: (card: Locator, rowName: string) => Promise<string> = async (
   card: Locator,
   rowName: string,
 ): Promise<string> => {
-  return (await cellOf(card, rowName, "Fix")).replace(/\s+/g, " ");
+  return (await rowOf(card, rowName).getByTestId("ai-rule-fix").innerText())
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+// When it investigates - or that it does not - above the fix.
+const timingOf: (card: Locator, rowName: string) => Promise<string> = async (
+  card: Locator,
+  rowName: string,
+): Promise<string> => {
+  return (
+    await rowOf(card, rowName).getByTestId("ai-rule-timing").innerText()
+  ).trim();
 };
 
 const editRule: (
@@ -472,14 +512,14 @@ const editRule: (
       .getByRole("button", { name: "Edit", exact: true }),
   );
   // An edit dialog opens any step from its list.
-  await dialog.getByText("Fix", { exact: true }).click();
+  await openStep(dialog, "Fix");
   // Every rule's Fix step ends with More fields (an older one may ask nothing).
   await expect(moreFieldsButton(dialog)).toBeVisible();
   return dialog;
 };
 
 test.describe("the Fix step", () => {
-  test("asks only whether a fix waits for approval: no OneUptime AI or Runbooks choice, and More fields folded", async ({
+  test("asks one question - whether OneUptime AI fixes, and whether it asks first - with no OneUptime AI or Runbooks choice, and More fields folded", async ({
     page,
   }: {
     page: Page;
@@ -497,13 +537,20 @@ test.describe("the Fix step", () => {
       0,
     );
 
-    // The one question: Approval, with its two answers, asking by default.
-    await expect(
-      dialog.getByRole("radio", { name: /^Ask before fixing/ }),
-    ).toHaveAttribute("aria-checked", "true");
-    await expect(
-      dialog.getByRole("radio", { name: /^Fix without asking/ }),
-    ).toHaveAttribute("aria-checked", "false");
+    // The one question, with its three answers, asking first by default.
+    await expect(fixChoice(dialog, "Don't fix")).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+    await expect(fixChoice(dialog, "Ask before fixing")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await expect(fixChoice(dialog, "Fix without asking")).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+    await expect(dialog).toContainText(DONT_FIX_DESCRIPTION);
     await expect(dialog).toContainText(FIX_WITHOUT_ASKING_DESCRIPTION);
 
     // The rest is folded, and its line says what the defaults do.
@@ -635,7 +682,7 @@ test.describe("the Fix step", () => {
     expect(sent.creates[0]!.data["runnerId"]).toBe(RUNNER_IDS["prodEu"]);
   });
 
-  test("folded, a rule with No Runner names the field alone, and one not connected says so", async ({
+  test("folded, a rule with No Runner names no Runner, and one picked is named - one not connected says so", async ({
     page,
   }: {
     page: Page;
@@ -653,13 +700,18 @@ test.describe("the Fix step", () => {
       });
     };
 
-    // No Runner is the field's empty answer: "Runner", with nothing after it.
-    expect(await foldedItems()).toContain("Runner");
+    /*
+     * No Runner is the field's empty answer, never named with one; the
+     * line lists the fields in their order, so it may leave the field to
+     * its "more".
+     */
+    expect((await foldedItems()).join(" ")).not.toContain("Runner:");
 
     await openMoreFields(dialog);
     await pickOption(page, runnerPicker(dialog), /^office-runner/);
     await moreFieldsButton(dialog).click();
 
+    // A Runner picked is always named, however many fields come before it.
     expect(await foldedItems()).toContain(
       "Runner: office-runner · Never connected",
     );
@@ -688,7 +740,7 @@ test.describe("the Fix step", () => {
     expect(sent.creates[0]!.data["runnerId"] || null).toBeNull();
   });
 
-  test("a rule made without opening More fields is OneUptime AI's, with any runbook, no Runner, every repository and both pull requests", async ({
+  test("a rule made without opening More fields investigates right away and asks before fixing, with any runbook, no Runner, every repository and both pull requests", async ({
     page,
   }: {
     page: Page;
@@ -702,6 +754,10 @@ test.describe("the Fix step", () => {
     expect(sent.creates).toHaveLength(1);
     expect(sent.creates[0]!.model).toBe("AutoRemediationRule");
     expect(sent.creates[0]!.data["triggerEntityType"]).toBe("Incident");
+    // There is no fixing without investigating: a rule made here does both.
+    expect(sent.creates[0]!.data["investigates"]).toBe(true);
+    expect(sent.creates[0]!.data["fixes"]).toBe(true);
+    expect(sent.creates[0]!.data["onlyIfOpenAfterMinutes"] ?? null).toBeNull();
     // Always said, so a rule with runbooks is never read as "every time".
     expect(sent.creates[0]!.data["remediationAction"]).toBe("OneUptimeAI");
     expect(sent.creates[0]!.data["executionMode"]).toBe("Suggest");
@@ -713,7 +769,8 @@ test.describe("the Fix step", () => {
     expect(sent.creates[0]!.data["openTelemetryPullRequests"]).toBe(true);
 
     // Listed as asking first - and nothing more: OneUptime AI fixes every rule.
-    expect(await fixOf(card, "Fix checkout")).toBe("Asks first");
+    expect(await fixOf(card, "Fix checkout")).toBe("Asks before fixing");
+    expect(await timingOf(card, "Fix checkout")).toBe("Right away");
   });
 
   test("the runbooks and the Runner picked are sent, and the folded line names them", async ({
@@ -797,7 +854,7 @@ test.describe("the Fix step", () => {
     expect(sent.creates[0]!.data["runnerId"] || null).toBeNull();
 
     expect(await fixOf(card, "Fix checkout")).toBe(
-      "Without asking Its runbooks, every time",
+      "Fixes without asking Its runbooks, every time",
     );
   });
 
@@ -855,6 +912,82 @@ test.describe("the Fix step", () => {
     const sent: Recorded = await recorded(page);
     expect(sent.creates[0]!.data["runnerId"] || null).toBeNull();
   });
+
+  /*
+   * A rule that only investigates - what an investigation rule was - is a
+   * rule whose Fix answer is Don't fix: More fields keeps what OneUptime AI
+   * reads and thinks with, and drops what only a fix uses.
+   */
+  test("Don't fix: the rule only investigates - no runbooks, Runner or pull requests to set - and is sent as fixing nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page);
+    const dialog: Locator = await openFixStep(page, card);
+
+    await fixChoice(dialog, "Don't fix").click();
+    await expect(fixChoice(dialog, "Don't fix")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    // Folded, the line says what such a rule may read.
+    await expect(foldedSummary(dialog)).toHaveText(NOT_FIXING_DEFAULTS_SUMMARY);
+
+    await openMoreFields(dialog);
+    await expect(repositoriesPicker(dialog)).toBeVisible();
+    await expect(mcpServersPicker(dialog)).toBeVisible();
+    await expect(runbooksPicker(dialog)).toHaveCount(0);
+    await expect(runnerPicker(dialog)).toHaveCount(0);
+    await expect(pullRequestSwitch(dialog, FIX_PULL_REQUESTS)).toHaveCount(0);
+    await expect(
+      pullRequestSwitch(dialog, TELEMETRY_PULL_REQUESTS),
+    ).toHaveCount(0);
+    await dialogScreenshot(
+      dialog,
+      dialog.getByTestId("rule-code-repositories-hint"),
+      "dont-fix-more-fields",
+    );
+
+    await create(page, dialog);
+
+    const sent: Recorded = await recorded(page);
+    expect(sent.creates[0]!.data["investigates"]).toBe(true);
+    expect(sent.creates[0]!.data["fixes"]).toBe(false);
+    expect(sent.creates[0]!.data["runnerId"] || null).toBeNull();
+    expect(idsOf(sent.creates[0]!.data["runbooks"])).toEqual([]);
+
+    expect(await fixOf(card, "Fix checkout")).toBe("Doesn't fix");
+    expect(await timingOf(card, "Fix checkout")).toBe("Right away");
+  });
+
+  test("an answer taken back keeps what was picked: Don't fix, then Fix without asking, sends the runbooks", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page);
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+
+    await pickOption(page, runbooksPicker(dialog), "Restart checkout");
+    await page.keyboard.press("Escape");
+
+    await fixChoice(dialog, "Don't fix").click();
+    await expect(runbooksPicker(dialog)).toHaveCount(0);
+    await fixChoice(dialog, "Fix without asking").click();
+    await expect(runbooksPicker(dialog)).toBeVisible();
+
+    await create(page, dialog);
+
+    const sent: Recorded = await recorded(page);
+    expect(sent.creates[0]!.data["fixes"]).toBe(true);
+    expect(sent.creates[0]!.data["executionMode"]).toBe("FullAuto");
+    expect(idsOf(sent.creates[0]!.data["runbooks"])).toEqual([
+      RUNBOOK_IDS["restartCheckout"]!,
+    ]);
+    expect(await fixOf(card, "Fix checkout")).toBe("Fixes without asking");
+  });
 });
 
 /*
@@ -862,7 +995,8 @@ test.describe("the Fix step", () => {
  * ... you can allow certain MCP servers to be picked, or in the
  * investigation rule ... If there are no MCP servers selected, by default,
  * you can say, 'Allow all MCP servers to be used.' They should be in more
- * options and not directly visible by default."
+ * options and not directly visible by default." One AI rule names them
+ * once, for the investigation and the fix.
  */
 const MCP_SERVER_IDS: Record<string, string> = {
   aws: "c0000000-0000-4000-8000-000000000e01",
@@ -870,10 +1004,8 @@ const MCP_SERVER_IDS: Record<string, string> = {
 };
 const ALL_MCP_SERVERS_SUMMARY: string =
   "OneUptime AI may use all of your MCP servers.";
-const REMEDIATION_MCP_DESCRIPTION: string =
-  "OneUptime AI may use all of your MCP servers to fix. Pick some to let it use only those.";
-const INVESTIGATION_MCP_DESCRIPTION: string =
-  "OneUptime AI may use all of your MCP servers while it investigates. Pick some to let it use only those.";
+const MCP_DESCRIPTION: string =
+  "OneUptime AI may use all of your MCP servers. Pick some to let it use only those.";
 
 const mcpServersPicker: (dialog: Locator) => Locator = (
   dialog: Locator,
@@ -900,7 +1032,7 @@ test.describe("MCP servers", () => {
       "placeholder",
       "All MCP servers",
     );
-    await expect(dialog).toContainText(REMEDIATION_MCP_DESCRIPTION);
+    await expect(dialog).toContainText(MCP_DESCRIPTION);
     await expect(dialog).not.toContainText("MCP Servers (Optional)");
 
     // Where the servers are added, as a link to that page.
@@ -931,7 +1063,13 @@ test.describe("MCP servers", () => {
       .getByTestId("folded-section-item")
       .allInnerTexts();
     expect(folded.join(" ")).toContain("MCP Servers: 1");
-    await expect(dialog).not.toContainText(ALL_MCP_SERVERS_SUMMARY);
+    /*
+     * The folded line, not the dialog: the field's own line, kept in the
+     * folded section, starts with the same words.
+     */
+    await expect(foldedSummary(dialog)).not.toContainText(
+      ALL_MCP_SERVERS_SUMMARY,
+    );
     // The defaults left, each said: any runbook, every repository.
     await expect(foldedSummary(dialog)).toContainText(ANY_RUNBOOK_SUMMARY);
     await expect(foldedSummary(dialog)).toContainText(REPOSITORIES_SUMMARY);
@@ -959,7 +1097,35 @@ test.describe("MCP servers", () => {
     expect(idsOf(sent.creates[0]!.data["externalMcpServers"])).toEqual([]);
   });
 
-  test("a rule that runs its runbooks every time fixes through no MCP server, so it is not asked", async ({
+  /*
+   * A new rule investigates, with the MCP servers' tools that read, so it
+   * keeps the field even when it runs its runbooks every time. A rule that
+   * was an auto remediation rule and only fixes - its runbooks, every time -
+   * uses no MCP server, so it is not asked, until it investigates too.
+   */
+  test("a rule that runs its runbooks every time and does not investigate uses no MCP server, so it is not asked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, { query: "rules=saved" });
+    const dialog: Locator = await editRule(
+      page,
+      card,
+      "Restart checkout every time",
+    );
+    await openMoreFields(dialog);
+    await expect(everyTimeSwitch(dialog)).toBeChecked();
+    await expect(mcpServersPicker(dialog)).toHaveCount(0);
+
+    await openStep(dialog, "Investigate");
+    await dialog.getByRole("button", { name: INVESTIGATE_TOO }).click();
+    await openStep(dialog, "Fix");
+    await openMoreFields(dialog);
+    await expect(mcpServersPicker(dialog)).toBeVisible();
+  });
+
+  test("a new rule that runs its runbooks every time still investigates with the MCP servers", async ({
     page,
   }: {
     page: Page;
@@ -970,72 +1136,39 @@ test.describe("MCP servers", () => {
 
     await pickOption(page, runbooksPicker(dialog), "Restart checkout");
     await page.keyboard.press("Escape");
-    await expect(mcpServersPicker(dialog)).toBeVisible();
-
     await everyTimeSwitch(dialog).click();
     await expect(everyTimeSwitch(dialog)).toBeChecked();
-    await expect(mcpServersPicker(dialog)).toHaveCount(0);
+    await expect(mcpServersPicker(dialog)).toBeVisible();
   });
 
-  test("an investigation rule asks the same on its Investigate step: folded, none picked is all of them", async ({
+  test("a rule that doesn't fix still names the MCP servers it investigates with, and they are sent", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await openRulesCard(page);
+    const card: Locator = await openRulesCard(page);
+    const dialog: Locator = await openFixStep(page, card);
+    await fixChoice(dialog, "Don't fix").click();
 
-    const investigationCard: Locator = page
-      .locator("[data-card-surface='section']")
-      .filter({
-        has: page.getByRole("heading", {
-          name: "Investigation rules",
-          exact: true,
-        }),
-      });
-    await expect(investigationCard).toBeVisible();
-
-    const dialog: Locator = await openDialogWith(
-      page,
-      investigationCard
-        .getByRole("button", { name: "Create Investigation Rule" })
-        .first(),
-    );
-
-    // Match first (all incidents), then what the rule does.
-    await dialog.getByRole("button", { name: "Next", exact: true }).click();
-    await dialog
-      .getByRole("textbox", { name: /^Name/ })
-      .fill("Investigate with AWS");
-
-    // On the Investigate step, folded, with what the defaults do.
+    // Folded, with what the defaults do.
     await expect(mcpServersPicker(dialog)).toBeHidden();
-    await expect(foldedSummary(dialog)).toHaveText(
-      INVESTIGATION_DEFAULTS_SUMMARY,
-    );
+    await expect(foldedSummary(dialog)).toHaveText(NOT_FIXING_DEFAULTS_SUMMARY);
 
     await openMoreFields(dialog);
-    await expect(dialog).toContainText(INVESTIGATION_MCP_DESCRIPTION);
+    await expect(dialog).toContainText(MCP_DESCRIPTION);
     await expect(mcpServersPicker(dialog)).toHaveAttribute(
       "placeholder",
       "All MCP servers",
     );
     await pickOption(page, mcpServersPicker(dialog), "GitHub");
     await page.keyboard.press("Escape");
-    await screenshot(page, "investigation-rule-mcp-servers");
+    await screenshot(page, "dont-fix-mcp-servers");
 
-    // The Investigate step is the last: it creates the rule.
-    await dialog
-      .getByRole("button", { name: "Create Investigation Rule" })
-      .click();
-    await expect(dialog).toBeHidden();
+    await create(page, dialog);
 
     const sent: Recorded = await recorded(page);
-    const investigationRule: { model: string; data: Record<string, unknown> } =
-      sent.creates.find((created: { model: string }): boolean => {
-        return created.model === "AIInvestigationRule";
-      })!;
-    expect(investigationRule).toBeTruthy();
-    expect(idsOf(investigationRule.data["externalMcpServers"])).toEqual([
+    expect(sent.creates[0]!.data["fixes"]).toBe(false);
+    expect(idsOf(sent.creates[0]!.data["externalMcpServers"])).toEqual([
       MCP_SERVER_IDS["github"]!,
     ]);
   });
@@ -1056,20 +1189,40 @@ test.describe("rules saved before", () => {
     ).map((text: string): string => {
       return text.trim();
     });
-    expect(headers).toContain("Fix");
+    // One column says what each rule does, its fix under its timing.
+    expect(headers).toContain(COLUMN);
+    expect(headers).not.toContain("Investigates");
+    expect(headers).not.toContain("Fix");
     expect(headers).not.toContain("Fixed by");
     expect(headers).not.toContain("Approval");
 
-    expect(await fixOf(card, "Fix database incidents")).toBe("Asks first");
+    /*
+     * The one merged with an investigation rule of the same conditions
+     * investigates right away; the others were auto remediation rules in a
+     * lane whose investigation rules decided what is investigated: they only
+     * fix, and say so.
+     */
+    expect(await timingOf(card, "Fix database incidents")).toBe("Right away");
+    for (const name of [
+      "Restart checkout every time",
+      "Commands on the bastion",
+      "AI picks a runbook",
+    ]) {
+      expect(await timingOf(card, name)).toBe("Doesn't investigate");
+    }
+
+    expect(await fixOf(card, "Fix database incidents")).toBe(
+      "Asks before fixing",
+    );
     expect(await fixOf(card, "Restart checkout every time")).toBe(
-      "Without asking Its runbooks, every time",
+      "Fixes without asking Its runbooks, every time",
     );
     expect(await fixOf(card, "Commands on the bastion")).toBe(
-      "Asks first OneUptime AI: commands on Runners",
+      "Asks before fixing OneUptime AI: commands on Runners",
     );
     // A runbook AI picks for such a rule is always proposed.
     expect(await fixOf(card, "AI picks a runbook")).toBe(
-      "Asks first OneUptime AI: picks a runbook",
+      "Asks before fixing OneUptime AI: picks a runbook",
     );
 
     await screenshot(page, "rules-saved");
@@ -1241,7 +1394,7 @@ test.describe("rules saved before", () => {
     expect(update!.data["aiSelectsRunbook"]).toBe(false);
     expect(idOfValue(update!.data["runnerId"])).toBe(RUNNER_IDS["office"]);
     expect(await fixOf(card, "Commands on the bastion")).toBe(
-      "Asks first OneUptime AI: commands on Runners",
+      "Asks before fixing OneUptime AI: commands on Runners",
     );
   });
 
@@ -1290,7 +1443,76 @@ test.describe("rules saved before", () => {
     expect(update!.data["remediationAction"]).toBe("OneUptimeAI");
     // It fixed without asking on paper; made new, it asks until told not to.
     expect(update!.data["executionMode"]).toBe("Suggest");
-    expect(await fixOf(card, "AI picks a runbook")).toBe("Asks first");
+    expect(await fixOf(card, "AI picks a runbook")).toBe("Asks before fixing");
+  });
+
+  test("a rule that only fixes says so on its Investigate step, and Investigate too makes it investigate right away", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, { query: "rules=saved" });
+    const dialog: Locator = await editRule(
+      page,
+      card,
+      "Restart checkout every time",
+    );
+
+    await openStep(dialog, "Investigate");
+    const note: Locator = dialog.getByTestId("ai-rule-only-fixes-note");
+    await expect(note).toContainText(ONLY_FIXES_NOTE);
+    // The question it does not answer is not asked.
+    await expect(
+      dialog.getByRole("radio", { name: /^Right away/ }),
+    ).toHaveCount(0);
+    await dialogScreenshot(dialog, note, "edit-only-fixes");
+
+    await note.getByRole("button", { name: INVESTIGATE_TOO }).click();
+    await expect(note).toHaveCount(0);
+    await expect(
+      dialog.getByRole("radio", { name: /^Right away/ }),
+    ).toBeChecked();
+
+    // Saved from the last step, Fix.
+    await openStep(dialog, "Fix");
+    await dialog.getByRole("button", { name: "Save Changes" }).click();
+    await expect(dialog).toBeHidden();
+
+    const sent: Recorded = await recorded(page);
+    const update: Recorded["updates"][number] | undefined = sent.updates.find(
+      (candidate: Recorded["updates"][number]): boolean => {
+        return candidate.id === SAVED_RULE_IDS["everyTime"];
+      },
+    );
+    expect(update).toBeDefined();
+    expect(update!.data["investigates"]).toBe(true);
+    expect(update!.data["fixes"]).toBe(true);
+    // Still what it was: its runbooks, every time.
+    expect(update!.data["remediationAction"]).toBe("Runbooks");
+    expect(await timingOf(card, "Restart checkout every time")).toBe(
+      "Right away",
+    );
+  });
+
+  test("a rule that only fixes cannot be made to do nothing: Don't fix says to investigate first", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, { query: "rules=saved" });
+    const dialog: Locator = await editRule(
+      page,
+      card,
+      "Restart checkout every time",
+    );
+
+    await fixChoice(dialog, "Don't fix").click();
+    await dialog.getByRole("button", { name: "Save Changes" }).click();
+    await expect(dialog).toContainText(
+      "A rule that doesn't investigate must fix. Turn investigating on in the Investigate step first.",
+    );
+    await expect(dialog).toBeVisible();
+    expect((await recorded(page)).updates).toEqual([]);
   });
 
   test("Cancel leaves an older rule as it was", async ({
@@ -1310,13 +1532,75 @@ test.describe("rules saved before", () => {
 
     expect((await recorded(page)).updates).toEqual([]);
     expect(await fixOf(card, "AI picks a runbook")).toBe(
-      "Asks first OneUptime AI: picks a runbook",
+      "Asks before fixing OneUptime AI: picks a runbook",
     );
+  });
+
+  /*
+   * Each note's button takes the note away. Pressed from the keyboard,
+   * focus would fall back to the page with the button gone, and the next
+   * Tab would start again from the dialog's top: it goes to the question
+   * that takes the note's place instead (FocusWhenDrawn).
+   */
+  test("keyboard: Investigate too leaves focus on the answer of When to investigate", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, { query: "rules=saved" });
+    const dialog: Locator = await editRule(
+      page,
+      card,
+      "Restart checkout every time",
+    );
+
+    await openStep(dialog, "Investigate");
+    const investigateToo: Locator = dialog.getByRole("button", {
+      name: INVESTIGATE_TOO,
+    });
+    await investigateToo.focus();
+    await page.keyboard.press("Enter");
+
+    const rightAway: Locator = dialog.getByRole("radio", {
+      name: /^Right away/,
+    });
+    await expect(rightAway).toBeChecked();
+    await expect(rightAway).toBeFocused();
+
+    // The keyboard carries on from there: the other answer is one key away.
+    await page.keyboard.press("ArrowDown");
+    await expect(
+      dialog.getByRole("radio", { name: /^Only if still open after a wait/ }),
+    ).toBeChecked();
+    await expect(
+      dialog.getByTestId("investigation-rule-wait-minutes"),
+    ).toBeVisible();
+  });
+
+  test("keyboard: Fix like a new rule leaves focus on the Fix answer it now asks", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, { query: "rules=saved" });
+    const dialog: Locator = await editRule(page, card, "AI picks a runbook");
+
+    const fixLikeANewRule: Locator = dialog
+      .getByTestId(OLDER_RULE_TEST_ID)
+      .getByRole("button", { name: FIX_LIKE_A_NEW_RULE });
+    await fixLikeANewRule.focus();
+    await page.keyboard.press("Enter");
+
+    const askFirst: Locator = dialog.getByRole("radio", {
+      name: /^Ask before fixing/,
+    });
+    await expect(askFirst).toHaveAttribute("aria-checked", "true");
+    await expect(askFirst).toBeFocused();
   });
 });
 
 test.describe("alerts", () => {
-  test("an alert rule asks the same: Approval up front, the runbooks and the Runner folded", async ({
+  test("an alert rule asks the same: Fix up front, the runbooks and the Runner folded", async ({
     page,
   }: {
     page: Page;
@@ -1412,20 +1696,22 @@ test.describe("people and screens", () => {
     // "{{itemName}} erstellen", the rule's German name in it.
     const createInGerman: string = GERMAN["Create {{itemName}}"]!.replace(
       "{{itemName}}",
-      GERMAN["Auto Remediation Rule"]!,
+      GERMAN["AI Rule"]!,
     );
-    expect(createInGerman).toBe("Regel für automatische Behebung erstellen");
+    expect(createInGerman).toBe("KI-Regel erstellen");
     const dialog: Locator = await openDialogWith(
       page,
       card.getByRole("button", { name: createInGerman, exact: true }).first(),
     );
 
+    // Match, Investigate, then the Fix step, which names the rule.
+    await dialog.getByRole("button", { name: GERMAN["Next"]! }).click();
+    await dialog.getByRole("button", { name: GERMAN["Next"]! }).click();
     await dialog.getByRole("textbox").first().fill("Checkout reparieren");
-    await dialog.getByRole("button", { name: GERMAN["Next"]! }).click();
-    await dialog.getByRole("button", { name: GERMAN["Next"]! }).click();
 
     for (const english of [
-      APPROVAL_DESCRIPTION,
+      FIX_DESCRIPTION,
+      DONT_FIX_DESCRIPTION,
       FIX_WITHOUT_ASKING_DESCRIPTION,
       DEFAULTS_SUMMARY,
     ]) {
@@ -1441,7 +1727,8 @@ test.describe("people and screens", () => {
     for (const english of [
       RUNBOOKS_DESCRIPTION,
       RUNNER_DESCRIPTION,
-      REMEDIATION_REPOSITORIES_DESCRIPTION,
+      REPOSITORIES_DESCRIPTION,
+      MCP_DESCRIPTION,
       FIX_PULL_REQUESTS,
       TELEMETRY_PULL_REQUESTS,
     ]) {
@@ -1482,7 +1769,7 @@ test.describe("code repositories and pull requests", () => {
       "placeholder",
       ALL_REPOSITORIES,
     );
-    await expect(dialog).toContainText(REMEDIATION_REPOSITORIES_DESCRIPTION);
+    await expect(dialog).toContainText(REPOSITORIES_DESCRIPTION);
     await expect(dialog).not.toContainText("Code Repositories (Optional)");
 
     const hint: Locator = dialog.getByTestId("rule-code-repositories-hint");
@@ -1695,17 +1982,18 @@ test.describe("code repositories and pull requests", () => {
       return box!.y + box!.height;
     };
 
+    // In More fields' order: the repositories, the MCP servers, the provider.
     const nextFields: Array<[string, Locator, Locator]> = [
-      [
-        "rule-mcp-servers-hint",
-        mcpServersPicker(dialog),
-        // The label holds the title and a space before its "(Optional)" slot.
-        dialog.locator("label").filter({ hasText: /^Code Repositories\s*$/ }),
-      ],
       [
         "rule-code-repositories-hint",
         repositoriesPicker(dialog),
-        pullRequestSwitch(dialog, FIX_PULL_REQUESTS),
+        // The label holds the title and a space before its "(Optional)" slot.
+        dialog.locator("label").filter({ hasText: /^MCP Servers\s*$/ }),
+      ],
+      [
+        "rule-mcp-servers-hint",
+        mcpServersPicker(dialog),
+        dialog.locator("label").filter({ hasText: /^LLM Provider\s*$/ }),
       ],
     ];
 
@@ -1920,7 +2208,7 @@ test.describe("code repositories and pull requests", () => {
 
     // The rule being edited is still here, as it was.
     await expect(dialog).toBeVisible();
-    await expect(dialog).toContainText(APPROVAL_DESCRIPTION);
+    await expect(dialog).toContainText(FIX_DESCRIPTION);
 
     // Connected in the other tab; this tab takes the focus back.
     await page.evaluate(() => {
@@ -2057,70 +2345,46 @@ test.describe("code repositories and pull requests", () => {
     expect(sent.creates[0]!.data["openTelemetryPullRequests"]).toBe(true);
   });
 
-  test("an investigation rule names its repositories under More fields too, and picks no Runner", async ({
+  test("a rule that doesn't fix names the repositories it reads, opens no pull request, and picks no Runner", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await openRulesCard(page);
+    const card: Locator = await openRulesCard(page);
+    const dialog: Locator = await openFixStep(page, card);
+    await fixChoice(dialog, "Don't fix").click();
 
-    const investigationCard: Locator = page
-      .locator("[data-card-surface='section']")
-      .filter({
-        has: page.getByRole("heading", {
-          name: "Investigation rules",
-          exact: true,
-        }),
-      });
-    const dialog: Locator = await openDialogWith(
-      page,
-      investigationCard
-        .getByRole("button", { name: "Create Investigation Rule" })
-        .first(),
-    );
-
-    await dialog.getByRole("button", { name: "Next", exact: true }).click();
-    await dialog
-      .getByRole("textbox", { name: /^Name/ })
-      .fill("Investigate billing");
-
-    await expect(foldedSummary(dialog)).toHaveText(
-      INVESTIGATION_DEFAULTS_SUMMARY,
-    );
+    await expect(foldedSummary(dialog)).toHaveText(NOT_FIXING_DEFAULTS_SUMMARY);
     await openMoreFields(dialog);
-    await expect(dialog).toContainText(INVESTIGATION_REPOSITORIES_DESCRIPTION);
+    await expect(dialog).toContainText(REPOSITORIES_DESCRIPTION);
     await expect(runnerPicker(dialog)).toHaveCount(0);
+    await expect(pullRequestSwitch(dialog, FIX_PULL_REQUESTS)).toHaveCount(0);
 
     await pickOption(page, repositoriesPicker(dialog), /^billing/);
     await page.keyboard.press("Escape");
     await dialogScreenshot(
       dialog,
       repositoriesPicker(dialog),
-      "investigation-rule-code-repositories",
+      "dont-fix-code-repositories",
     );
 
-    await dialog
-      .getByRole("button", { name: "Create Investigation Rule" })
-      .click();
-    await expect(dialog).toBeHidden();
+    await create(page, dialog);
 
     const sent: Recorded = await recorded(page);
-    const investigationRule: { model: string; data: Record<string, unknown> } =
-      sent.creates.find((created: { model: string }): boolean => {
-        return created.model === "AIInvestigationRule";
-      })!;
-    expect(idsOf(investigationRule.data["codeRepositories"])).toEqual([
+    expect(sent.creates[0]!.data["fixes"]).toBe(false);
+    expect(idsOf(sent.creates[0]!.data["codeRepositories"])).toEqual([
       CODE_REPOSITORY_IDS["billing"]!,
     ]);
   });
 });
 
 /*
- * The AI card and both rule dialogs, as a person sees them: 1280px and a
- * phone's 390px, light and dark. The card draws fixing alone - no pull
- * request switch under it - and nothing runs off a phone's screen.
+ * The AI card and the rule dialog, as a person sees them: 1280px and a
+ * phone's 390px, light and dark - a rule that fixes, and one that doesn't.
+ * The card draws fixing alone - no pull request switch under it - and
+ * nothing runs off a phone's screen.
  */
-test.describe("the AI card and the rule dialogs, at 1280px and 390px, light and dark", () => {
+test.describe("the AI card and the rule dialog, at 1280px and 390px, light and dark", () => {
   for (const width of [1280, 390]) {
     for (const theme of ["light", "dark"]) {
       test(`${width}px, ${theme}`, async ({ page }: { page: Page }) => {
@@ -2160,40 +2424,22 @@ test.describe("the AI card and the rule dialogs, at 1280px and 390px, light and 
         await dialogScreenshot(
           dialog,
           pullRequestSwitch(dialog, TELEMETRY_PULL_REQUESTS),
-          `remediation-rule-more-fields-${width}-${theme}`,
+          `ai-rule-more-fields-${width}-${theme}`,
         );
 
-        await dialog.getByRole("button", { name: "Cancel" }).click();
-        await expect(dialog).toBeHidden();
-
-        const investigationCard: Locator = page
-          .locator("[data-card-surface='section']")
-          .filter({
-            has: page.getByRole("heading", {
-              name: "Investigation rules",
-              exact: true,
-            }),
-          });
-        const investigationDialog: Locator = await openDialogWith(
-          page,
-          investigationCard
-            .getByRole("button", { name: "Create Investigation Rule" })
-            .first(),
-        );
-        await investigationDialog
-          .getByRole("button", { name: "Next", exact: true })
-          .click();
-        await openMoreFields(investigationDialog);
-        await expect(repositoriesPicker(investigationDialog)).toBeVisible();
+        // A rule that doesn't fix: what OneUptime AI reads, and nothing more.
+        await fixChoice(dialog, "Don't fix").click();
+        await expect(repositoriesPicker(dialog)).toBeVisible();
+        await expect(runbooksPicker(dialog)).toHaveCount(0);
         expect(
           await page.evaluate(() => {
             return document.documentElement.scrollWidth;
           }),
         ).toBeLessThanOrEqual(width);
         await dialogScreenshot(
-          investigationDialog,
-          investigationDialog.getByTestId("rule-code-repositories-hint"),
-          `investigation-rule-more-fields-${width}-${theme}`,
+          dialog,
+          dialog.getByTestId("rule-code-repositories-hint"),
+          `ai-rule-dont-fix-more-fields-${width}-${theme}`,
         );
       });
     }
@@ -2206,11 +2452,12 @@ test.describe("the AI card and the rule dialogs, at 1280px and 390px, light and 
  * not selected, select the project LLM provider by default if one is set to
  * default, or you can select the global LLM provider as well. If one is
  * selected, use that LLM provider to do everything." So the field sits under
- * More fields - after "Run them every time", which turns AI off - its empty
- * box names the provider a rule that picks none uses, and so does the
- * folded line while there is more than one to pick from; a pick is sent
- * with the rule and named on the folded line. Every rule's field has the
- * same one line, and a locked box looks locked.
+ * More fields - after the code repositories and MCP servers OneUptime AI
+ * reads with, before what only a fix uses - its empty box names the
+ * provider a rule that picks none uses, and so does the folded line while
+ * there is more than one to pick from; a pick is sent with the rule and
+ * named on the folded line. Every rule's field has the same one line, and a
+ * locked box looks locked.
  */
 const PROVIDER_IDS: Record<string, string> = {
   oneUptimeAi: "9d9d9d9d-0000-4000-8000-000000000001",
@@ -2257,33 +2504,6 @@ const foldedItemsOf: (dialog: Locator) => Promise<Array<string>> = async (
   );
 };
 
-// The investigation rules card beside the remediation one, and its create dialog's Investigate step.
-const openInvestigateStep: (page: Page) => Promise<Locator> = async (
-  page: Page,
-): Promise<Locator> => {
-  const investigationCard: Locator = page
-    .locator("[data-card-surface='section']")
-    .filter({
-      has: page.getByRole("heading", {
-        name: "Investigation rules",
-        exact: true,
-      }),
-    });
-  await expect(investigationCard).toBeVisible();
-
-  const dialog: Locator = await openDialogWith(
-    page,
-    investigationCard
-      .getByRole("button", { name: "Create Investigation Rule" })
-      .first(),
-  );
-  await dialog.getByRole("button", { name: "Next", exact: true }).click();
-  await dialog
-    .getByRole("textbox", { name: /^Name/ })
-    .fill("Investigate checkout");
-  return dialog;
-};
-
 test.describe("the LLM provider a rule picks", () => {
   test("with a project default, the empty box and the folded line name it, and the providers are listed with what each is", async ({
     page,
@@ -2320,11 +2540,16 @@ test.describe("the LLM provider a rule picks", () => {
       "_blank",
     );
 
-    // After the runbooks, before the Runner: what OneUptime AI thinks with.
+    /*
+     * After what OneUptime AI reads with - the repositories and the MCP
+     * servers - and before what only a fix uses: the runbooks and the Runner.
+     */
     const order: Array<number> = [];
     for (const locator of [
-      runbooksPicker(dialog),
+      repositoriesPicker(dialog),
+      mcpServersPicker(dialog),
       providerBox(dialog),
+      runbooksPicker(dialog),
       runnerPicker(dialog),
     ]) {
       order.push((await locator.boundingBox())!.y);
@@ -2460,7 +2685,36 @@ test.describe("the LLM provider a rule picks", () => {
     );
   });
 
-  test("a rule that runs its runbooks every time uses no AI: no provider to pick, and More fields stays open", async ({
+  /*
+   * A rule that only runs its runbooks every time, and does not investigate
+   * - one that was an auto remediation rule - uses no AI: no provider to
+   * pick, and its folded line names none. A new rule that runs them every
+   * time still investigates, with its provider.
+   */
+  test("a rule that runs its runbooks every time and does not investigate uses no AI: no provider to pick", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, {
+      query: "providers=project&rules=saved",
+    });
+    const dialog: Locator = await editRule(
+      page,
+      card,
+      "Restart checkout every time",
+    );
+
+    await expect(foldedSummary(dialog)).not.toContainText("LLM provider");
+    expect((await foldedItemsOf(dialog)).join(" ")).not.toContain(
+      PROVIDER_TITLE,
+    );
+    await openMoreFields(dialog);
+    await expect(everyTimeSwitch(dialog)).toBeChecked();
+    await expect(providerPicker(dialog)).toHaveCount(0);
+  });
+
+  test("a new rule that runs its runbooks every time still investigates with its provider, and More fields stays open", async ({
     page,
   }: {
     page: Page;
@@ -2476,17 +2730,10 @@ test.describe("the LLM provider a rule picks", () => {
 
     await everyTimeSwitch(dialog).click();
     await expect(everyTimeSwitch(dialog)).toBeChecked();
-    await expect(providerPicker(dialog)).toHaveCount(0);
+    await expect(providerPicker(dialog)).toBeVisible();
     await expect(moreFieldsButton(dialog)).toHaveAttribute(
       "aria-expanded",
       "true",
-    );
-
-    // Folded, the line names no provider for it.
-    await moreFieldsButton(dialog).click();
-    await expect(foldedSummary(dialog)).not.toContainText("LLM provider");
-    expect((await foldedItemsOf(dialog)).join(" ")).not.toContain(
-      PROVIDER_TITLE,
     );
   });
 
@@ -2600,44 +2847,45 @@ test.describe("the LLM provider a rule picks", () => {
     await expect(providerShown(dialog)).toContainText("Gemini");
   });
 
-  test("an investigation rule picks one first under its More fields, and it is sent", async ({
+  test("a rule that doesn't fix picks one under its More fields, for its investigations, and it is sent", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await openRulesCard(page, { query: "providers=project" });
-    const dialog: Locator = await openInvestigateStep(page);
+    const card: Locator = await openRulesCard(page, {
+      query: "providers=project",
+    });
+    const dialog: Locator = await openFixStep(page, card);
+    await fixChoice(dialog, "Don't fix").click();
 
     await expect(foldedSummary(dialog)).toHaveText(
-      `${PROJECT_DEFAULT_SUMMARY} ${INVESTIGATION_DEFAULTS_SUMMARY}`,
+      `${PROJECT_DEFAULT_SUMMARY} ${NOT_FIXING_DEFAULTS_SUMMARY}`,
     );
     await openMoreFields(dialog);
     await expect(dialog).toContainText(PROVIDER_DESCRIPTION);
-    // First under More fields, above the MCP servers.
-    expect((await providerBox(dialog).boundingBox())!.y).toBeLessThan(
+    // After the MCP servers, and nothing a fix uses after it.
+    expect((await providerBox(dialog).boundingBox())!.y).toBeGreaterThan(
       (await mcpServersPicker(dialog).boundingBox())!.y,
     );
+    await expect(runbooksPicker(dialog)).toHaveCount(0);
 
     await providerBox(dialog).click();
     await page.getByRole("option", { name: /^Claude Opus/ }).click();
-    await dialog
-      .getByRole("button", { name: "Create Investigation Rule" })
-      .click();
-    await expect(dialog).toBeHidden();
+    await create(page, dialog);
 
     const sent: Recorded = await recorded(page);
-    const created: { model: string; data: Record<string, unknown> } =
-      sent.creates.find((each: { model: string }): boolean => {
-        return each.model === "AIInvestigationRule";
-      })!;
-    expect(idOfValue(created.data["llmProviderId"])).toBe(PROVIDER_IDS["opus"]);
+    expect(sent.creates[0]!.data["fixes"]).toBe(false);
+    expect(idOfValue(sent.creates[0]!.data["llmProviderId"])).toBe(
+      PROVIDER_IDS["opus"],
+    );
   });
 });
 
 /*
- * Both rule dialogs' LLM Provider field, open, as a person sees it: 1280px
- * and a phone's 390px, light and dark - the menu's choices with what each
- * is, the line to LLM Providers, and nothing running off the screen.
+ * The rule dialog's LLM Provider field, open, as a person sees it: 1280px
+ * and a phone's 390px, light and dark - for a rule that fixes and one that
+ * doesn't - the menu's choices with what each is, the line to LLM
+ * Providers, and nothing running off the screen.
  */
 test.describe("the LLM Provider field, at 1280px and 390px, light and dark", () => {
   for (const width of [1280, 390]) {
@@ -2675,25 +2923,22 @@ test.describe("the LLM Provider field, at 1280px and 390px, light and dark", () 
         await dialogScreenshot(
           dialog,
           providerPicker(dialog),
-          `remediation-rule-llm-provider-${width}-${theme}`,
+          `ai-rule-llm-provider-${width}-${theme}`,
         );
         await page.keyboard.press("Escape");
 
-        await dialog.getByRole("button", { name: "Cancel" }).click();
-        await expect(dialog).toBeHidden();
-
-        const investigationDialog: Locator = await openInvestigateStep(page);
-        await openMoreFields(investigationDialog);
-        await expect(providerBox(investigationDialog)).toBeVisible();
+        // A rule that doesn't fix keeps its provider, for its investigations.
+        await fixChoice(dialog, "Don't fix").click();
+        await expect(providerBox(dialog)).toBeVisible();
         expect(
           await page.evaluate(() => {
             return document.documentElement.scrollWidth;
           }),
         ).toBeLessThanOrEqual(width);
         await dialogScreenshot(
-          investigationDialog,
-          investigationDialog.getByTestId("rule-llm-provider-hint"),
-          `investigation-rule-llm-provider-${width}-${theme}`,
+          dialog,
+          dialog.getByTestId("rule-llm-provider-hint"),
+          `ai-rule-dont-fix-llm-provider-${width}-${theme}`,
         );
       });
     }

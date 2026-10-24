@@ -134,7 +134,7 @@ Si una ejecución no puede empezar, la app dice por qué en el hilo: nunca falla
 
 ## Desactivarla
 
-Cada repositorio tiene un interruptor: **Responder a comandos de GitHub**, en la página **Ajustes** del repositorio. Está activado en todos los repositorios y se guarda en cuanto lo cambias. Desactivado, la app ignora las menciones, las asignaciones y la etiqueta de activación en ese repositorio, y le dice a quien pregunte dónde está el interruptor.
+Cada repositorio tiene un interruptor: **Responder a comandos de GitHub**, en **Más ajustes** de la página **Ajustes** del repositorio. Está activado en todos los repositorios y se guarda en cuanto lo cambias. Desactivado, la app ignora las menciones, las asignaciones y la etiqueta de activación en ese repositorio, y le dice a quien pregunte dónde está el interruptor.
 
 La misma página contiene la **Etiqueta de activación de GitHub**, en **Más ajustes**, si quieres una etiqueta distinta de `oneuptime`.
 

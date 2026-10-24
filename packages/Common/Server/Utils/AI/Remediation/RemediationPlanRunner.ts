@@ -34,6 +34,7 @@ import AIRunService from "../../../Services/AIRunService";
 import AlertFeedService from "../../../Services/AlertFeedService";
 import AlertService from "../../../Services/AlertService";
 import AutoRemediationRuleService from "../../../Services/AutoRemediationRuleService";
+import { doesAiRuleFix } from "../../../../Types/AI/AiRule";
 import AutoRemediationSuggestionService from "../../../Services/AutoRemediationSuggestionService";
 import IncidentFeedService from "../../../Services/IncidentFeedService";
 import IncidentService from "../../../Services/IncidentService";
@@ -309,7 +310,7 @@ export default class RemediationPlanRunner {
           suggestion,
           runbook: null,
           rationaleMarkdown:
-            "The auto-remediation rule behind this suggestion was deleted before planning ran — no runbook was proposed.",
+            "The AI rule behind this suggestion was deleted before planning ran — no runbook was proposed.",
           isQuietWhenNone: false,
         });
         await AIRunService.attemptStatusTransition({
@@ -538,15 +539,14 @@ export default class RemediationPlanRunner {
     runbook: Runbook;
     proposalNote?: string | null | undefined;
   }): string {
-    const ruleName: string =
-      data.suggestion.ruleNameSnapshot || "Auto Remediation Rule";
+    const ruleName: string = data.suggestion.ruleNameSnapshot || "AI rule";
     const runbookName: string = data.runbook.name || "Runbook";
 
     if (data.suggestion.autoRemediationRuleId) {
       return (
         data.proposalNote
-          ? mdText`⚡ **Auto Remediation Rule "${ruleName}": AI proposed runbook "${runbookName}".** ${data.proposalNote} Approve it with one click to start remediation.`
-          : mdText`⚡ **Auto Remediation Rule "${ruleName}": AI proposed runbook "${runbookName}".** Review the reasoning and approve it with one click to start remediation.`
+          ? mdText`⚡ **AI rule "${ruleName}": AI proposed runbook "${runbookName}".** ${data.proposalNote} Approve it with one click to start remediation.`
+          : mdText`⚡ **AI rule "${ruleName}": AI proposed runbook "${runbookName}".** Review the reasoning and approve it with one click to start remediation.`
       ).toString();
     }
 
@@ -562,7 +562,7 @@ export default class RemediationPlanRunner {
     runbook: Runbook;
   }): string {
     return data.suggestion.autoRemediationRuleId
-      ? mdText`⚡ **Auto Remediation Rule "${data.suggestion.ruleNameSnapshot || "Auto Remediation Rule"}": AI started runbook "${data.runbook.name}".** The rule fixes without asking and allows this runbook. Follow its progress on the runbook execution page.`.toString()
+      ? mdText`⚡ **AI rule "${data.suggestion.ruleNameSnapshot || "AI rule"}": AI started runbook "${data.runbook.name}".** The rule fixes without asking and allows this runbook. Follow its progress on the runbook execution page.`.toString()
       : mdText`⚡ **OneUptime AI started runbook "${data.runbook.name}".** Follow its progress on the runbook execution page.`.toString();
   }
 
@@ -573,10 +573,9 @@ export default class RemediationPlanRunner {
       return mdText`⚡ **OneUptime AI evaluated the project's runbooks and none applies.** No remediation was proposed.`.toString();
     }
 
-    const ruleName: string =
-      suggestion.ruleNameSnapshot || "Auto Remediation Rule";
+    const ruleName: string = suggestion.ruleNameSnapshot || "AI rule";
 
-    return mdText`⚡ **Auto Remediation Rule "${ruleName}": AI evaluated the candidate runbooks and none applies.** No remediation was proposed.`.toString();
+    return mdText`⚡ **AI rule "${ruleName}": AI evaluated the candidate runbooks and none applies.** No remediation was proposed.`.toString();
   }
 
   /*
@@ -611,6 +610,7 @@ export default class RemediationPlanRunner {
         select: {
           _id: true,
           isEnabled: true,
+          fixes: true,
           executionMode: true,
           remediationAction: true,
           aiComposesCommands: true,
@@ -620,9 +620,11 @@ export default class RemediationPlanRunner {
         props: { isRoot: true },
       });
 
+    // A rule turned off, or set to only investigate, starts nothing now.
     if (
       !rule ||
       rule.isEnabled === false ||
+      !doesAiRuleFix(rule) ||
       !isOneUptimeAiFixRule(rule) ||
       rule.executionMode !== AutoRemediationExecutionMode.FullAuto ||
       !getRuleRunbookIds(rule).includes(runbook.id.toString().toLowerCase())
@@ -988,8 +990,8 @@ export default class RemediationPlanRunner {
     lines.push("");
     lines.push(
       data.suggestion.autoRemediationRuleId
-        ? `Matched auto-remediation rule: ${data.suggestion.ruleNameSnapshot || "N/A"}`
-        : "No auto-remediation rule is set up: OneUptime AI fixes every new signal, with any of the project's runbooks.",
+        ? `Matched AI rule: ${data.suggestion.ruleNameSnapshot || "N/A"}`
+        : "No AI rule is set up: OneUptime AI fixes every new signal, with any of the project's runbooks.",
     );
 
     lines.push("");
@@ -1237,7 +1239,7 @@ export default class RemediationPlanRunner {
    * How the sweeper's feed note names a stranded round. A resource round
    * (a Docker host's, a database server's, ...) names its resource —
    * 'AI remediation for Docker host "web-1"' — as the execution runner's
-   * notes do, never "Auto Remediation Rule ...": only a resource round
+   * notes do, never "AI rule ...": only a resource round
    * carries resourceType and resourceId (a rule round never sets them).
    * Every other round keeps its label unchanged.
    */
@@ -1248,7 +1250,7 @@ export default class RemediationPlanRunner {
       return suggestion.ruleNameSnapshot || "AI remediation";
     }
 
-    return `Auto Remediation Rule "${suggestion.ruleNameSnapshot || "Auto Remediation Rule"}"`;
+    return `AI rule "${suggestion.ruleNameSnapshot || "AI rule"}"`;
   }
 
   // Why a Planning suggestion counts as stranded — or null if it does not.

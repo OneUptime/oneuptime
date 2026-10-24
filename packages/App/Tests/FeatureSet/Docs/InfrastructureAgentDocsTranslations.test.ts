@@ -168,7 +168,7 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
 
 // Permission names, which the docs write as the product names them, in English.
 const PERMISSIONS: Record<string, Array<string>> = {
-  [KUBERNETES]: ["Edit Auto Remediation Rule"],
+  [KUBERNETES]: ["Edit AI Rule"],
 };
 
 /*

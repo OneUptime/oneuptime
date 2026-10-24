@@ -7,8 +7,10 @@ import Query from "../../../../../Server/Types/Database/Query";
 import WorkflowPrincipal from "../../../../../Server/Utils/Workflow/WorkflowPrincipal";
 import AllModelTypes from "../../../../../Models/DatabaseModels/Index";
 import ApiKey from "../../../../../Models/DatabaseModels/ApiKey";
+import ApiKeyCustomRole from "../../../../../Models/DatabaseModels/ApiKeyCustomRole";
 import ApiKeyPermission from "../../../../../Models/DatabaseModels/ApiKeyPermission";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import CodeRepositoryConnection from "../../../../../Models/DatabaseModels/CodeRepositoryConnection";
 import ExternalMcpServer from "../../../../../Models/DatabaseModels/ExternalMcpServer";
 import IncomingCallPolicy from "../../../../../Models/DatabaseModels/IncomingCallPolicy";
 import LlmProvider from "../../../../../Models/DatabaseModels/LlmProvider";
@@ -197,6 +199,13 @@ const NAMED_SETTINGS: Array<NamedSetting> = [
     title: "Api Key",
     settings: "API Keys",
   },
+  {
+    label: "the API key a custom role is given to",
+    modelType: ApiKeyCustomRole,
+    data: { apiKeyId: API_KEY_A },
+    title: "API Key",
+    settings: "API Keys",
+  },
 ];
 
 describe("a workflow's step naming a setting that holds credentials", () => {
@@ -297,10 +306,28 @@ describe("a workflow's step naming a setting that holds credentials", () => {
     expect(RelationListPermission.mayReadTable(StatusPage, step())).toBe(true);
   });
 
+  /*
+   * A code repository's connection to GitLab, Forgejo, Gitea or a Git
+   * server holds its access token: nobody reads it through the API at all -
+   * not a step, not a Project Admin - only the server, as root.
+   */
+  test("a code repository's connection is read by no step, and by no member either", () => {
+    expect(
+      RelationListPermission.mayReadTable(CodeRepositoryConnection, step()),
+    ).toBe(false);
+    expect(
+      RelationListPermission.mayReadTable(
+        CodeRepositoryConnection,
+        member([Permission.ProjectOwner, Permission.ProjectAdmin]),
+      ),
+    ).toBe(false);
+  });
+
   test("covers every setting that holds credentials", () => {
     expect(RelationListPermission.getCredentialSettingsTables().sort()).toEqual(
       [
         new ApiKey().tableName!,
+        new CodeRepositoryConnection().tableName!,
         new ExternalMcpServer().tableName!,
         new LlmProvider().tableName!,
         new NetworkSnmpCredentialProfile().tableName!,

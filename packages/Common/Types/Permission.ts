@@ -18,7 +18,8 @@ export enum PermissionGroup {
   Workflow = "Workflow",
   Runbook = "Runbook",
   Form = "Form",
-  AutoRemediation = "Auto Remediation",
+  // The AI rules of incidents and alerts (they were auto remediation rules).
+  AutoRemediation = "AI Rules",
   Team = "Team",
   Billing = "Billing",
   ServiceCatalog = "Service Catalog",
@@ -5112,9 +5113,9 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateAutoRemediationRule,
-        title: "Create Auto Remediation Rule",
+        title: "Create AI Rule",
         description:
-          "This permission can create Auto Remediation Rules in this project.",
+          "This permission can create AI Rules in this project: which incidents and alerts OneUptime AI investigates and fixes.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -5122,9 +5123,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteAutoRemediationRule,
-        title: "Delete Auto Remediation Rule",
-        description:
-          "This permission can delete Auto Remediation Rules in this project.",
+        title: "Delete AI Rule",
+        description: "This permission can delete AI Rules in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -5132,9 +5132,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditAutoRemediationRule,
-        title: "Edit Auto Remediation Rule",
-        description:
-          "This permission can edit Auto Remediation Rules in this project.",
+        title: "Edit AI Rule",
+        description: "This permission can edit AI Rules in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -5142,9 +5141,8 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadAutoRemediationRule,
-        title: "Read Auto Remediation Rule",
-        description:
-          "This permission can read Auto Remediation Rules in this project.",
+        title: "Read AI Rule",
+        description: "This permission can read AI Rules in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

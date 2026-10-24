@@ -4,12 +4,12 @@
 
 # OneUptime Helm Chart
 
-OneUptime is a comprehensive solution for monitoring and managing your online
-services — availability monitoring, status pages, incident management, on-call
-rotations, log/performance/error analysis, and more. This Helm chart deploys the
-full OneUptime platform on Kubernetes.
+OneUptime is an open-source observability platform. It checks that your
+websites, APIs and servers work, collects the logs, metrics and traces your apps
+send, pages whoever is on call when something breaks, and tells your customers
+on a status page. This Helm chart runs all of OneUptime on Kubernetes.
 
-- **Website:** [oneuptime.com](http://www.oneuptime.com)
+- **Website:** [oneuptime.com](https://oneuptime.com)
 - **Video tutorial:** [youtu.be/Ho5WyPHExTU](https://youtu.be/Ho5WyPHExTU)
 
 ## Quick Start

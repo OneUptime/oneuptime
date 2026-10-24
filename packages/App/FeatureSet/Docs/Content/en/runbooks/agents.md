@@ -97,7 +97,7 @@ Go to **Runbooks → Runners** and create a new agent. Click **Create Runner** a
 | **Runs Runbooks** | Under **More fields** | On by default. Lets this Runner take runbook steps. |
 | **Labels** | Under **More fields** | Optional. |
 
-A Runner picks up a change to its capabilities on its next heartbeat; there is no need to restart it. AI is not a capability. A code repository picks the Runner AI works in it on, in its settings in Code, and the Runner's page lists the repositories that pick it. An auto remediation rule picks the Runner OneUptime AI runs its commands on: picking a Runner there is what lets OneUptime AI's commands run on it.
+A Runner picks up a change to its capabilities on its next heartbeat; there is no need to restart it. AI is not a capability. A code repository picks the Runner AI works in it on, in its settings in Code, and the Runner's page lists the repositories that pick it. An AI rule picks the Runner OneUptime AI runs its commands on: picking a Runner there is what lets OneUptime AI's commands run on it.
 
 ### 2. Copy the install command
 
@@ -171,7 +171,7 @@ A step that picked a Runner keeps it, whatever the default is, and a JavaScript 
 
 The default is one of the project's own Runners that runs runbook steps: not a global Runner, not the in-cluster Runner the Kubernetes agent installed, and not one with **Runs Runbooks** off. While a Runner is the default, its **Runs Runbooks** stays on. When the default is not connected, a step's dropdown says so, and a step on it waits for it, as for any Runner, until its claim timeout.
 
-Only runbook steps use the default. A code repository picks its Runner in its settings in Code, and an auto remediation rule picks its own.
+Only runbook steps use the default. A code repository picks its Runner in its settings in Code, and an AI rule picks its own.
 
 ## Operational notes
 

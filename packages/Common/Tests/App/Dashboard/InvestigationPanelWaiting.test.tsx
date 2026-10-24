@@ -167,7 +167,7 @@ describe("an incident whose investigation waits", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "An investigation rule makes OneUptime AI wait 10 minutes, so incidents resolved by then are not investigated.",
+        "An AI rule makes OneUptime AI wait 10 minutes, so incidents resolved by then are not investigated.",
       ),
     ).toBeInTheDocument();
     expect(screen.getByTestId("investigation-waiting")).toHaveAttribute(
@@ -199,7 +199,7 @@ describe("an incident whose investigation waits", () => {
 
     expect(
       await screen.findByText(
-        "An investigation rule makes OneUptime AI wait 1 minute, so incidents resolved by then are not investigated.",
+        "An AI rule makes OneUptime AI wait 1 minute, so incidents resolved by then are not investigated.",
       ),
     ).toBeInTheDocument();
   });
@@ -361,7 +361,7 @@ describe("an alert whose investigation waits", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "An investigation rule makes OneUptime AI wait 5 minutes, so alerts resolved by then are not investigated.",
+        "An AI rule makes OneUptime AI wait 5 minutes, so alerts resolved by then are not investigated.",
       ),
     ).toBeInTheDocument();
 

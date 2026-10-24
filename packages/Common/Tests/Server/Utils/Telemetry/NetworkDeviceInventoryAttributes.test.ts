@@ -440,6 +440,166 @@ describe("describeNetworkDevice (issues #4107, #4569)", () => {
   });
 });
 
+/*
+ * Issue #5185: what discovery read about a device - a scan's SNMP reading of
+ * its system group, the address its probe resolved its DNS name to - fills
+ * the details nothing on the device holds, on the device's inventory item as
+ * on its own page. A value saved on the device is never replaced.
+ */
+describe("describeNetworkDevice with what discovery read (issue #5185)", () => {
+  const SCAN_READER: JSONObject = {
+    type: "discoveryScan",
+    id: "80000000-0000-4000-8000-000000000001",
+    name: "Store subnets",
+  };
+
+  function scanReading(value: string, readAt: string): JSONObject {
+    return {
+      value: value,
+      method: "snmp",
+      readBy: SCAN_READER,
+      readAt: readAt,
+    };
+  }
+
+  /*
+   * A switch at a store that answers ping, imported by a scan that read its
+   * system group; OneUptime has never walked it.
+   */
+  function pingOnlySwitch(
+    overrides: Record<string, unknown> = {},
+  ): NetworkDevice {
+    const device: NetworkDevice = new NetworkDevice();
+    device._id = DEVICE_ID.toString();
+    device.projectId = PROJECT_ID;
+    device.name = "10.20.12.7";
+    device.hostname = "10.20.12.7";
+    device.discoveredDetails = {
+      sysName: scanReading("edge-sw-07", "2026-09-28T07:00:00.000Z"),
+      sysDescr: scanReading(CISCO_SYS_DESCR, "2026-09-28T07:00:00.000Z"),
+      sysObjectId: scanReading(
+        "1.3.6.1.4.1.9.1.1745",
+        "2026-09-28T07:00:00.000Z",
+      ),
+      sysLocation: scanReading(
+        "Store 12, back office rack",
+        "2026-09-28T07:00:00.000Z",
+      ),
+    };
+    Object.assign(device, overrides);
+    return device;
+  }
+
+  test("a device its poll never walked reads what the scan read", () => {
+    const bag: Dictionary<string> = describeNetworkDevice(pingOnlySwitch());
+
+    expect(bag[key(InventoryAssetField.Hostname)]).toBe("edge-sw-07");
+    expect(bag[key(InventoryAssetField.Manufacturer)]).toBe("Cisco");
+    expect(bag[key(InventoryAssetField.OperatingSystem)]).toBe("Cisco IOS XE");
+    expect(bag[key(InventoryAssetField.OsVersion)]).toBe("16.12.4");
+    expect(bag[key(InventoryAssetField.SystemDescription)]).toBe(
+      CISCO_SYS_DESCR,
+    );
+    expect(bag[key(InventoryAssetField.Location)]).toBe(
+      "Store 12, back office rack",
+    );
+    expect(bag[key(InventoryAssetField.DeviceType)]).toBe("Switch");
+    // Polled at an address: that address, not anything discovery read.
+    expect(bag[key(InventoryAssetField.IpAddress)]).toBe("10.20.12.7");
+  });
+
+  test("without discovered details the device reads exactly as it did before", () => {
+    expect(
+      describeNetworkDevice(pingOnlySwitch({ discoveredDetails: undefined })),
+    ).toEqual({
+      [INVENTORY_POLLED_ADDRESS_ATTRIBUTE_KEY]: "10.20.12.7",
+      [key(InventoryAssetField.IpAddress)]: "10.20.12.7",
+    });
+  });
+
+  test("a value saved on the device is never replaced by what a scan read", () => {
+    const bag: Dictionary<string> = describeNetworkDevice(
+      polledSwitch({
+        discoveredDetails: {
+          sysLocation: scanReading(
+            "A scan's idea of where it is",
+            "2026-09-28T09:00:00.000Z",
+          ),
+        },
+      }),
+    );
+
+    // Never walked by its own poll: Hall 2, Rack 14 was saved, and stays.
+    expect(bag[key(InventoryAssetField.Location)]).toBe("Hall 2, Rack 14");
+  });
+
+  test("of two automatic readings, the newer one describes the device", () => {
+    const discovered: JSONObject = {
+      sysLocation: scanReading("Hall 3, Rack 2", "2026-09-28T09:00:00.000Z"),
+    };
+
+    // The scan read it after the poll last succeeded: the scan's wins.
+    expect(
+      describeNetworkDevice(
+        polledSwitch({
+          lastSnmpSeenAt: new Date("2026-09-28T08:00:00.000Z"),
+          discoveredDetails: discovered,
+        }),
+      )[key(InventoryAssetField.Location)],
+    ).toBe("Hall 3, Rack 2");
+
+    // The poll succeeded since: the poll's wins.
+    expect(
+      describeNetworkDevice(
+        polledSwitch({
+          lastSnmpSeenAt: new Date("2026-09-28T09:30:00.000Z"),
+          discoveredDetails: discovered,
+        }),
+      )[key(InventoryAssetField.Location)],
+    ).toBe("Hall 2, Rack 14");
+  });
+
+  test("a device polled at a DNS name has the address its probe resolved", () => {
+    const bag: Dictionary<string> = describeNetworkDevice(
+      merakiMx({
+        hostname: "un0362-mx.stores.example",
+        discoveredDetails: {
+          ipAddress: {
+            value: "10.241.124.1",
+            method: "dns",
+            readBy: {
+              type: "probe",
+              id: "30000000-0000-4000-8000-000000000001",
+            },
+            readAt: "2026-09-28T09:00:00.000Z",
+          },
+        },
+      }),
+    );
+
+    expect(bag[key(InventoryAssetField.IpAddress)]).toBe("10.241.124.1");
+    expect(bag[key(InventoryAssetField.DnsName)]).toBe(
+      "un0362-mx.stores.example",
+    );
+  });
+
+  test("a scan that found another machine at the address describes nothing of it", () => {
+    const bag: Dictionary<string> = describeNetworkDevice(
+      merakiMx({
+        discoveredDetails: {
+          otherMachine: {
+            readBy: SCAN_READER,
+            readAt: "2026-09-28T09:00:00.000Z",
+            sysName: "printer-02",
+          },
+        },
+      }),
+    );
+
+    expect(bag).toEqual(describeNetworkDevice(merakiMx()));
+  });
+});
+
 describe("toOtelMacAddress", () => {
   test.each([
     ["00:1b:54:c2:7a:01", "00-1B-54-C2-7A-01"],
@@ -765,6 +925,95 @@ describe("the NetworkDevice source selects every column it projects", () => {
       "London DC1",
     );
     expect(rows[0]!.descriptiveAttributes["device.type"]).toBe("Access Switch");
+  });
+
+  /*
+   * Issue #5185: the select carries what discovery read about the device, and
+   * when its own poll last read anything - or its item would read "Unknown"
+   * for what the device's own page shows, or an older reading than it shows.
+   */
+  test("the select names the discovered details, the last poll time and how the MAC was learned", async () => {
+    stubRoles([]);
+    const selects: Array<Dictionary<SelectValue>> = [];
+    deviceService.findBy = (call: {
+      query: JSONObject;
+      select: Dictionary<SelectValue>;
+    }): Promise<Array<unknown>> => {
+      selects.push(call.select);
+      return Promise.resolve([]);
+    };
+
+    await networkSource().fetchPage({ skip: 0, limit: 1 });
+
+    expect(selects).toHaveLength(1);
+    expect(selects[0]!["discoveredDetails"]).toBe(true);
+    expect(selects[0]!["lastSnmpSeenAt"]).toBe(true);
+    expect(selects[0]!["isMacAddressLearned"]).toBe(true);
+  });
+
+  test("what a scan read about a device its poll never walked makes it through select", async () => {
+    stubRoles([]);
+    const full: NetworkDevice = merakiMx({
+      name: "10.20.12.7",
+      hostname: "10.20.12.7",
+      discoveredDetails: {
+        sysName: {
+          value: "edge-sw-07",
+          method: "snmp",
+          readBy: {
+            type: "discoveryScan",
+            id: "scan-1",
+            name: "Store subnets",
+          },
+          readAt: "2026-09-28T07:00:00.000Z",
+        },
+        sysDescr: {
+          value: CISCO_SYS_DESCR,
+          method: "snmp",
+          readBy: {
+            type: "discoveryScan",
+            id: "scan-1",
+            name: "Store subnets",
+          },
+          readAt: "2026-09-28T07:00:00.000Z",
+        },
+      },
+    });
+
+    // Never walked: none of the system group of its own.
+    delete full.sysName;
+    delete full.sysDescr;
+
+    const rows: Array<InventoryRowProjection> = await fetchThroughSelect(full);
+
+    expect(rows[0]!.descriptiveAttributes).toEqual(describeNetworkDevice(full));
+    expect(rows[0]!.descriptiveAttributes["host.name"]).toBe("edge-sw-07");
+    expect(rows[0]!.descriptiveAttributes["os.description"]).toBe(
+      CISCO_SYS_DESCR,
+    );
+  });
+
+  test("the time of the device's last poll makes it through select: a newer scan reading wins", async () => {
+    stubRoles([]);
+    const full: NetworkDevice = polledSwitch({
+      lastSnmpSeenAt: new Date("2026-09-28T08:00:00.000Z"),
+      discoveredDetails: {
+        sysLocation: {
+          value: "Hall 3, Rack 2",
+          method: "snmp",
+          readBy: { type: "discoveryScan", id: "scan-1" },
+          readAt: "2026-09-28T09:00:00.000Z",
+        },
+      },
+    });
+
+    const rows: Array<InventoryRowProjection> = await fetchThroughSelect(full);
+
+    // Without the poll's time the column would count as saved, and win.
+    expect(rows[0]!.descriptiveAttributes).toEqual(describeNetworkDevice(full));
+    expect(rows[0]!.descriptiveAttributes["device.location"]).toBe(
+      "Hall 3, Rack 2",
+    );
   });
 
   test("the naming facts discovery recorded make it through select", async () => {

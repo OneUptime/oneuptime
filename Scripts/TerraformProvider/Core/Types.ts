@@ -71,6 +71,11 @@ export interface OpenAPISpec {
   tags?: Array<{
     name: string;
     description?: string;
+    /*
+     * The names the model had before it was renamed (TableMetadata's
+     * formerSingularName): the first is kept as a deprecated alias.
+     */
+    "x-former-names"?: Array<string>;
   }>;
 }
 

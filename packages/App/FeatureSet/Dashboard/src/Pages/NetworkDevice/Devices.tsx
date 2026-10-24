@@ -2042,6 +2042,15 @@ const NetworkDevices: FunctionComponent<
           oidTemplateId: true,
           sysObjectId: true,
           sysDescr: true,
+          /*
+           * What discovery read about a device its own poll has not, and
+           * when its poll last did (issue #5185): a switch OneUptime only
+           * pings shows the maker and model the scan of its address read.
+           * Only the Vendor / Model cell reads these, through the asset
+           * facts; the template actions keep to the device's own identity.
+           */
+          discoveredDetails: true,
+          lastSnmpSeenAt: true,
         }}
         onViewPage={(item: NetworkDevice): Promise<Route> => {
           return Promise.resolve(

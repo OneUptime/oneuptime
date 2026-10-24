@@ -32,7 +32,7 @@ flowchart TB
 
 Un fournisseur est celui par défaut d'un projet quand **Définir par défaut** est activé, ce qui est le cas pour chaque nouveau fournisseur. Un projet dont tous les fournisseurs ont cette option désactivée se rabat sur le fournisseur global, comme s'il n'en avait aucun.
 
-Chaque règle de OneUptime AI — règles d'investigation, de remédiation automatique et de post-mortem — peut à la place choisir son propre fournisseur, sous **Plus de champs** : l'un des fournisseurs du projet ou un fournisseur global, utilisé pour tout ce que la règle lance. Une règle qui n'en choisit aucun utilise le fournisseur par défaut, et un fournisseur choisi qui ne peut plus être utilisé revient à celui-ci. Voir [Quel fournisseur LLM une règle utilise](/docs/ai/ai-sre#quel-fournisseur-llm-une-règle-utilise).
+Chaque règle de OneUptime AI — règles IA et règles de post-mortem — peut à la place choisir son propre fournisseur, sous **Plus de champs** : l'un des fournisseurs du projet ou un fournisseur global, utilisé pour tout ce que la règle lance. Une règle qui n'en choisit aucun utilise le fournisseur par défaut, et un fournisseur choisi qui ne peut plus être utilisé revient à celui-ci. Voir [Quel fournisseur LLM une règle utilise](/docs/ai/ai-sre#quel-fournisseur-llm-une-règle-utilise).
 
 ## OneUptime Cloud
 

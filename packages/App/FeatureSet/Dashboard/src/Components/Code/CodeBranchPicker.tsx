@@ -3,6 +3,8 @@ import { GitBranchMark } from "./CodeMarks";
 import CodePicker, { CodePickerOption } from "./CodePicker";
 import { CODE_PICKER_COPY } from "./CodeTaskCopy";
 import { CodeRepositoryBranchesJSON } from "Common/Types/AI/CodeTask";
+import { CodeHost } from "Common/Types/CodeRepository/CodeHost";
+import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -24,6 +26,17 @@ export interface ComponentProps {
   value: string | null;
   onChange: (branch: string | null) => void;
   isDisabled?: boolean | undefined;
+  /*
+   * Where the repository is hosted (CodeRepositoryType), for what a read
+   * that fails names: GitHub, or its Git server. Unknown is GitHub.
+   */
+  provider?: string | undefined;
+  /*
+   * A Git server only a Runner of the project's own reaches: OneUptime
+   * reads none of its branches, so the picker offers the main branch and
+   * says why - it never asks the server for the rest.
+   */
+  isNotReadByServer?: boolean | undefined;
 }
 
 // How long typing rests before the server is asked for matching branches.
@@ -55,10 +68,13 @@ export const filterBranches: (
 /*
  * The branch a task starts from, picked beside the repository the way
  * coding agents pick one: the repository's main branch until another is
- * picked. Its branches are read from GitHub the first time it opens - the
- * main branch first, marked Default. A repository with more branches than
- * one read holds is searched on the server by what the person types; one
- * that is not read says so, with Try again.
+ * picked. Its branches are read from its host (GitHub, GitLab, Forgejo,
+ * Gitea, a Git server) the first time it opens - the main branch first,
+ * marked Default. A repository with more branches than one read holds is
+ * searched on the server by what the person types; one that is not read
+ * says so, with Try again. A Git server only the project's own Runner
+ * reaches is never read: the main branch is offered, and the picker says
+ * why.
  */
 const CodeBranchPicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -128,7 +144,11 @@ const CodeBranchPicker: FunctionComponent<ComponentProps> = (
       }
 
       setError(
-        translator.translateTemplate(CODE_PICKER_COPY.branchesUnreadable),
+        translator.translateTemplate(
+          CodeHost.readType(props.provider) === CodeRepositoryType.GitHub
+            ? CODE_PICKER_COPY.branchesUnreadable
+            : CODE_PICKER_COPY.branchesUnreadableAnyHost,
+        ),
       );
     }
 
@@ -144,9 +164,11 @@ const CodeBranchPicker: FunctionComponent<ComponentProps> = (
   // A search the server answers is loading until its answer arrives.
   const isSearching: boolean = searchesServer && (isLoading || found === null);
 
-  const names: Array<string> = searchesServer
-    ? found || []
-    : filterBranches(listing?.branches || [], search);
+  const names: Array<string> = props.isNotReadByServer
+    ? filterBranches(defaultBranch ? [defaultBranch] : [], search)
+    : searchesServer
+      ? found || []
+      : filterBranches(listing?.branches || [], search);
 
   const options: Array<CodePickerOption> = names.map(
     (name: string): CodePickerOption => {
@@ -184,7 +206,7 @@ const CodeBranchPicker: FunctionComponent<ComponentProps> = (
       )}
       noMatchText={translator.translateTemplate(CODE_PICKER_COPY.branchNoMatch)}
       onOpen={() => {
-        if (!listing && !isLoading) {
+        if (!listing && !isLoading && !props.isNotReadByServer) {
           void read("");
         }
       }}
@@ -212,11 +234,13 @@ const CodeBranchPicker: FunctionComponent<ComponentProps> = (
         void read(searchesServer ? searchText : "");
       }}
       note={
-        listing && !listing.isComplete && !searchText
-          ? translator.translateTemplate(
-              CODE_PICKER_COPY.branchesSearchToFindMore,
-            )
-          : null
+        props.isNotReadByServer
+          ? translator.translateTemplate(CODE_PICKER_COPY.branchesNotRead)
+          : listing && !listing.isComplete && !searchText
+            ? translator.translateTemplate(
+                CODE_PICKER_COPY.branchesSearchToFindMore,
+              )
+            : null
       }
       isDisabled={props.isDisabled}
     />

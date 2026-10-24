@@ -9,6 +9,7 @@ Kod är där du ber OneUptime AI att arbeta i dina repositorier, så som du skul
 - [Var åtgärdsuppgifter startar](#var-åtgärdsuppgifter-startar): Uppgifterna som OneUptime startar, och vad varje pull request gör.
 - [Produktionstelemetri i en åtgärd](#produktionstelemetri-i-en-åtgärd): Vad en åtgärd läser från produktionen medan den skriver ändringen.
 - [Produktionsgranskning av pull requests](#produktionsgranskning-av-pull-requests): Vad produktionen säger om koden som varje pull request ändrar.
+- [Ansluta ett repositorium](#ansluta-ett-repositorium): GitHub, GitLab, Forgejo eller Gitea, eller valfri Git-server.
 - [Innan du börjar](#innan-du-börjar): En modell, ett anslutet repository och en Runner.
 - [När en åtgärd misslyckas](#när-en-åtgärd-misslyckas): Vad som händer med en körning som fallerar, fastnar eller väntar.
 :::
@@ -21,7 +22,7 @@ Kod är där du ber OneUptime AI att arbeta i dina repositorier, så som du skul
 :::steps
 ### Öppna Kod
 
-Öppna **Produkter → Kod**. Kod öppnas på **Vad ska AI göra?**: rutan där du ber om saker, med alla uppgifter under den, de senaste först. Finns det inget repositorium ännu erbjuder Kod i stället **Anslut GitHub** (se [Innan du börjar](#innan-du-börjar)). **Arkiv** i sidomenyn listar de repositorier som AI kan arbeta i, och samlar dem som GitHub App inte längre når under **Inte ansluten**. Varje repositoriums sida har samma ruta för det repositoriet.
+Öppna **Produkter → Kod**. Kod öppnas på **Vad ska AI göra?**: rutan där du ber om saker, med alla uppgifter under den, de senaste först. Finns det inget repositorium ännu erbjuder Kod i stället **Anslut GitHub**, med GitLab, Forgejo eller Gitea och valfri Git-server under (se [Ansluta ett repositorium](#ansluta-ett-repositorium)). **Arkiv** i sidomenyn listar de repositorier som AI kan arbeta i, och samlar dem som OneUptime inte längre når under **Inte ansluten**. Varje repositoriums sida har samma ruta för det repositoriet.
 
 ### Välj repositoriet och branchen
 
@@ -149,7 +150,7 @@ När ingen tjänst hör till repositoriet körs uppgiften utan produktionsteleme
 
 ## Produktionsgranskning av pull requests
 
-OneUptime vet vad din kod gör i produktion, så den kan granska en pull request med det som ingen ser när de läser diffen. Slå på **Granska pull-förfrågningar mot produktion** på ett repositorys sida **Inställningar** i Kod, så får varje pull request som någon med skrivbehörighet öppnar eller pushar till en kommentar som säger vad produktionen visar om koden den ändrar. Kommentaren redigeras på plats vid varje push, och repositoriets sida **Produktionsgranskningar** i Kod sparar varje granskning, med **Granska igen**.
+OneUptime vet vad din kod gör i produktion, så den kan granska en pull request med det som ingen ser när de läser diffen. Slå på **Granska pull-förfrågningar mot produktion** under **Fler inställningar** på ett repositorys sida **Inställningar** i Kod, så får varje pull request som någon med skrivbehörighet öppnar eller pushar till en kommentar som säger vad produktionen visar om koden den ändrar. Kommentaren redigeras på plats vid varje push, och repositoriets sida **Produktionsgranskningar** i Kod sparar varje granskning, med **Granska igen**.
 
 | Den läser | Om koden som pull requesten ändrar |
 | --- | --- |
@@ -204,6 +205,25 @@ Att slå samman en korrigering åtgärdar ingenting förrän den körs. När en 
 
 Tills en driftsättning levererar den står det **Mergad, väntar på en deploy** vid korrigeringen, sedan **Deployad, bevakas i produktion** medan den bevakas. En korrigering som ingen registrerad driftsättning innehåller inom 14 dagar, eller som produktionen inte kan säga något om, står som **Inte verifierad i produktion**. [Automatiska kodkorrigeringar](/docs/ai/ai-sre#automatiska-kodkorrigeringar) har reglerna. Ett regressionstest, bättre felhantering, en granskning och en begäran i Code bevakas inte: produktionen kan inte visa vad de ändrar.
 
+## Ansluta ett repositorium
+
+Öppna **Arkiv** i Kods sidomeny och klicka på **Anslut arkiv**: Kod frågar var din kod finns och ansluter varje ställe på sitt eget sätt. Vad AI gör i ett repositorium beror på var det finns:
+
+| Var koden finns | Hur den ansluts | Vad AI gör där |
+| --- | --- | --- |
+| **GitHub** | OneUptime GitHub App, installerad på de repositorier den väljer. | Allt på den här sidan, med kommandon från GitHub (se [GitHub App](/docs/ai/github-app)) och [produktionsgranskningar](#produktionsgranskning-av-pull-requests). |
+| **GitLab**, på GitLab.com eller ditt eget | En åtkomsttoken: en personlig token, grupp- eller projekttoken med omfången `api` och `write_repository`, och minst rollen Developer. | Uppgifter och rättningar, varje ändring i en merge request; grenväljaren; koden som en stackspårning eller en profil går igenom; om en rättning slogs ihop, och vad produktionen visade när den hade levererats. |
+| **Forgejo eller Gitea**, på Codeberg eller ditt eget | En åtkomsttoken med läs- och skrivåtkomst till repositorier och läsåtkomst till användaren. | Samma sak som på GitLab, varje ändring i en pull request. |
+| **Valfri Git-server**, över HTTPS | Adressen som du klonar repositoriet med, ett användarnamn och ett lösenord eller en åtkomsttoken som kan läsa repositoriet och pusha till det. | AI klonar repositoriet och pushar varje ändring till en ny gren, som svaret nämner: du öppnar pull-förfrågan. På Bitbucket och Azure DevOps länkar den till där du öppnar den. |
+
+Kommandon från kommentarer och produktionsgranskningar kräver GitHub App, så än så länge fungerar de bara i GitHub-repositorier, och repositoriets **Inställningar** säger det.
+
+För GitLab, Forgejo eller Gitea anger du serverns adress (GitLab.com och Codeberg är ifyllda) och token, och väljer sedan vilka repositorier som ska anslutas: listan visar bara dem som token kan pusha till, och fler kan anslutas senare med samma token. OneUptime kontrollerar varje token hos dess server innan den sparas, sparar den krypterad och visar den aldrig igen. Repositoriets **Inställningar** visar dess server, kontot och tokens sista tecken, med **Ersätt åtkomsttoken**. När servern avvisar en token som har gått ut eller återkallats, visar dess repositorier **Token avvisad** och AI slutar arbeta i dem, tills en ersättning av token ansluter varje repositorium som använder den igen.
+
+### En Git-server i ett privat nätverk
+
+OneUptime Cloud når bara Git-servrar på internet, aldrig en privat, loopback- eller link-local-adress. Anslut en server som bara ditt nätverk når som **Valfri Git-server**: Kod säger att den inte når den, och **Anslut ändå** ansluter den för en av dina egna Runners i det nätverket. Välj den Runnern på repositoriets **Runner**-kort (se [Välj repositoryts Runner](#välj-repositoryts-runner)). En global Runner arbetar aldrig i det, och OneUptime läser ingenting från det på servern, så grenväljaren erbjuder bara dess huvudgren. En egen OneUptime-installation och dess globala Runner når Git-servrarna i sitt eget nätverk.
+
 ## Innan du börjar
 
 En uppgift behöver tre saker. Kods begäransruta och undantagets sida **AI Assistance** kontrollerar alla tre innan de erbjuder att starta, och säger vad som saknas.
@@ -212,6 +232,7 @@ En uppgift behöver tre saker. Kods begäransruta och undantagets sida **AI Assi
 | --- | --- | --- |
 | En LLM-leverantör | Inget att ställa in: ett projekt utan egen leverantör använder den globala leverantören, betald med projektets AI-krediter. En egen leverantör, under **Projektinställningar → AI → LLM-leverantörer**, går först. | Sätt miljövariablerna `GLOBAL_LLM_PROVIDER_*` en gång på servern, eller lägg till en leverantör i projektet. |
 | Ett repository anslutet via GitHub App | **Produkter → Kod**, sedan **Anslut GitHub**. Om appen redan är installerad på GitHub-kontot klickar du i stället på **Anslut en befintlig installation**: den ansluts inte av att installera den igen. Kräver Growth-planen. | Samma sak, när din instans har en GitHub App (se [GitHub-integration](/docs/self-hosted/github-integration)). |
+| Eller ett repository på GitLab, Forgejo eller Gitea, eller valfri Git-server | **Arkiv** i Kod, sedan **Anslut arkiv** (se [Ansluta ett repositorium](#ansluta-ett-repositorium)). Kräver Growth-planen. | Samma sak, utan någon GitHub App att konfigurera. |
 | En Runner som kör AI-kodfixar | Inget att drifta: ett repository som inte väljer någon arbetar på OneUptimes globala Runners. | Docker Compose-tjänsten `runner`, eller Helm-chartets Runner (`runner.enabled`, påslagen som standard), registrerar sig själv och kör AI-kodfixar i varje repository som inte väljer någon Runner. |
 
 På en självhostad instans är den globala leverantören ett block i `config.env` (Docker Compose) eller i dina Helm-värden. För en självhostad Ollama:
@@ -230,7 +251,7 @@ Du kopplar inte repositories till tjänster. När en uppgift startar hittar OneU
 
 ### Välj repositoryts Runner
 
-Varje repository väljer den Runner som AI arbetar i det på: klicka på **Redigera** på kortet **Runner** på dess sida **Inställningar** i Kod och välj en. Ett repository som GitHub App importerar startar på projektets [standard-Runner](/docs/runbooks/agents#projektets-standard-runner) när projektet har en. Ett repository som inte väljer någon arbetar på **Global Runner**, som OneUptime kör för alla projekt.
+Varje repository väljer den Runner som AI arbetar i det på: öppna **Fler inställningar** på dess sida **Inställningar** i Kod, klicka på **Redigera** på kortet **Runner** och välj en. Ett repository som GitHub App importerar startar på projektets [standard-Runner](/docs/runbooks/agents#projektets-standard-runner) när projektet har en. Ett repository som inte väljer någon arbetar på **Global Runner**, som OneUptime kör för alla projekt.
 
 | Runner | Vad den gör med en uppgift |
 | --- | --- |
@@ -258,7 +279,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### Välj den för repositoryt
 
-Klicka på **Redigera** på kortet **Runner** på repositoryts sida **Inställningar** i Kod och välj Runnern. Runnern plockar upp ändringen vid nästa heartbeat, inom ungefär en minut; det finns inget att starta om.
+Öppna **Fler inställningar** på repositoryts sida **Inställningar** i Kod, klicka på **Redigera** på kortet **Runner** och välj Runnern. Runnern plockar upp ändringen vid nästa heartbeat, inom ungefär en minut; det finns inget att starta om.
 
 ### Kontrollera att den ansluter
 
@@ -278,13 +299,13 @@ Alla sätt att köra containern fungerar (Docker Compose, Kubernetes och så vid
 
 ## Automatiska kodåtgärder från utredningar
 
-När en [AI-utredning](/docs/ai/ai-sre) publicerar en grundorsaksanalys på en incident eller ett larm, och dess noggranna klassificering rekommenderar en ändring i koden, erbjuder utredningskortet **Open Fix PR from this analysis**: en åtgärdsuppgift vars hela kontext är den publicerade analysen. Knappen är dold när åtgärden är driftmässig, bara gäller infrastruktur, är extern, är ett förväntat nekande, ett användarfel eller utan slutsats. Lämpliga åtgärder sker utan klicket så länge **Åtgärda nya incidenter automatiskt** är på på **Incidenter → AI → Inställningar** (och **Åtgärda nya larm automatiskt** på **Varningar → AI → Inställningar**). Åtgärdandet börjar avslaget, även för nya projekt. Utan regler för automatisk åtgärd öppnas varje lämplig korrigering; med regler bara en för det som en regel matchar, när regeln har **Pull requests med korrigeringar** påslaget (det har en ny regel), i de kodrepositorier som den nämner.
+När en [AI-utredning](/docs/ai/ai-sre) publicerar en grundorsaksanalys på en incident eller ett larm, och dess noggranna klassificering rekommenderar en ändring i koden, erbjuder utredningskortet **Open Fix PR from this analysis**: en åtgärdsuppgift vars hela kontext är den publicerade analysen. Knappen är dold när åtgärden är driftmässig, bara gäller infrastruktur, är extern, är ett förväntat nekande, ett användarfel eller utan slutsats. Lämpliga åtgärder sker utan klicket så länge **Åtgärda nya incidenter automatiskt** är på på **Incidenter → AI → Inställningar** (och **Åtgärda nya larm automatiskt** på **Varningar → AI → Inställningar**). Åtgärdandet börjar avslaget, även för nya projekt. Utan AI-regler öppnas varje lämplig korrigering; med regler bara en för det som en regel matchar, när regeln har **Pull requests med korrigeringar** påslaget (det har en ny regel), i de kodrepositorier som den nämner.
 
 Medan åtgärdandet är på ställer en utredning som slutar med en säker, belagd grundorsak som en kodändring kan åtgärda samma åtgärdsuppgift i kö som knappen skapar. Beslutet är en avgränsad klassificering som servern kontrollerar, aldrig ett mönster som matchas mot analysens text: bara en positiv bedömning om en kodåtgärd öppnar en pull request. Saknade belägg, en åtgärd utanför koden och en misslyckad klassificering slutar alla med att inget händer.
 
 Allt annat är som med knappen:
 
-- Pull requesten öppnas redo för granskning, skriven utifrån den publicerade analysen, och behöver ett repository anslutet via GitHub App, ett av dem som de matchande reglerna nämner när de nämner något, och en Runner som är online för att arbeta i det: den som repositoryt väljer, eller en global Runner.
+- Pull requesten öppnas redo för granskning, skriven utifrån den publicerade analysen, och behöver ett anslutet repository, ett av dem som de matchande reglerna nämner när de nämner något, och en Runner som är online för att arbeta i det: den som repositoryt väljer, eller en global Runner.
 - Den räknas mot signalens dagliga gräns för åtgärdsuppgifter (**Daily Incident AI Fix Task Limit** eller **Daily Alert AI Fix Task Limit**, under **Fler inställningar** på dess AI-inställningssida) och mot repositoriets tak för öppna pull requests, när något av dem är satt. Osatta begränsar ingen av dem något.
 - Varje utlösare letar först efter en åtgärdsuppgift som redan står i kö eller körs för samma incident eller larm, så en automatisk utlösare och ett klick blir normalt en uppgift, inte två pull requests. Kontrollen är en läsning före skrivningen, inte ett lås, så två utlösare i exakt samma ögonblick kan fortfarande båda komma igenom.
 - Körningen skrivs av systemet, tillskrivs ingen, och inget mergas av sig självt.
@@ -306,12 +327,6 @@ En uppgift som väntar mer än 30 minuter medan den Runner som ska ta den inte �
 ## Integritet
 
 Klonen av ditt repository ligger i en arbetsyta i Runnerns container och tas bort när körningen slutar, oavsett om den lyckades eller inte. Runnern har aldrig din LLM-leverantörs API-nyckel: OneUptime-servern gör LLM-anropen åt den, och kör även frågorna mot produktionstelemetrin. OneUptime behåller inte ditt repository och tränar inte på din kod. Uppgiftens logg behåller de första 300 tecknen av varje stegs utdata, så att du kan kontrollera vad Runnern gjorde, och det kan innehålla kodsnuttar. Kör en självhostad Runner med din egen LLM-leverantör (lokal Ollama inräknad), så lämnar din kod aldrig din infrastruktur.
-
-## På färdplanen
-
-Planerat, och **inte tillgängligt i dag**:
-
-- **Stöd för GitLab.** Repositories ansluts bara via GitHub App.
 
 ## Nästa steg
 

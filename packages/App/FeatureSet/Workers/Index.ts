@@ -346,6 +346,8 @@ import "./Jobs/IoT/CleanupStaleResources";
 // Cloud environment disconnection sweeper + instance inventory cleanup.
 import "./Jobs/Cloud/CleanupStaleResources";
 import "./Jobs/Cloud/ReadCloudConnections";
+// Network controller connections (Meraki): traffic read on a schedule.
+import "./Jobs/Network/ReadNetworkControllerConnections";
 
 // Serverless function disconnection sweeper + instance inventory cleanup.
 import "./Jobs/Serverless/CleanupStaleResources";

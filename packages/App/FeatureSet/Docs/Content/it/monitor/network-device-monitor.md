@@ -506,7 +506,13 @@ Un'indagine di OneUptime AI su un incidente o un avviso di un monitor del dispos
 
 Dopo il primo walk riuscito, OneUptime legge il gruppo di sistema SNMPv2 e, dove il dispositivo lo supporta, ENTITY-MIB, e compila la scheda del dispositivo: nome di sistema, descrizione, posizione, contatto, tempo di attività, produttore, modello, numero di serie e versione del firmware. L'OID enterprise del produttore (`sysObjectID`) è l'impronta del dispositivo: indica il produttore e sceglie il modello del produttore corrispondente. Le stesse informazioni compaiono nell'[inventario](/docs/inventory/cmdb-sync#attributi-di-asset-dei-dispositivi-di-rete) insieme a tutti gli altri asset.
 
-Un dispositivo solo ping mantiene il nome e l'indirizzo che gli hai dato tu, o una scansione di rilevamento: non c'è alcun agente SNMP a cui chiedere di meglio.
+Un dispositivo solo ping mantiene il nome e l'indirizzo che gli hai dato tu, o una scansione di rilevamento. Ciò che il suo polling non ha letto, lo prende dal rilevamento:
+
+- Il nome di sistema, la descrizione, il `sysObjectID`, la posizione e il contatto che l'ultima [scansione di rilevamento](#rilevare-i-dispositivi-con-una-scansione-di-rete) del suo indirizzo ha letto via SNMP, e i nomi DNS inverso e NetBIOS che ha trovato.
+- Il suo indirizzo MAC, dalla tabella ARP di un router percorso del suo sito.
+- Per un dispositivo interrogato tramite un nome DNS, l'indirizzo in cui la sua sonda ha risolto quel nome.
+
+Questi valori sono tenuti accanto ai campi del dispositivo, mai scritti al loro interno, e ogni scansione, walk di un router o polling che ne rilegge uno lo aggiorna. La panoramica del dispositivo e il suo elemento nell'inventario indicano quale scansione, router o sonda ha letto ogni valore, e quando. Un valore che hai salvato sul dispositivo non viene mai sostituito. Quando una scansione trova un'altra macchina all'indirizzo del dispositivo, per esempio un lease DHCP che si è spostato, la panoramica lo dice, e non si usa nulla di ciò che quella scansione vi ha letto.
 
 ## Rilevare i dispositivi con una scansione di rete
 

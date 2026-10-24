@@ -199,10 +199,8 @@ const LINK_CLUSTER_AI_PAGE: string = translationKey(
   "Open the cluster's AI agent page",
 );
 const LINK_RESOURCE_AI_PAGE: string = translationKey("Open its AI agent page");
-const LINK_INCIDENT_RULES: string = translationKey(
-  "Incident Auto Remediation Rules",
-);
-const LINK_ALERT_RULES: string = translationKey("Alert Auto Remediation Rules");
+const LINK_INCIDENT_RULES: string = translationKey("Incident AI rules");
+const LINK_ALERT_RULES: string = translationKey("Alert AI rules");
 const LINK_AI_FEATURES: string = translationKey("AI settings");
 const LINK_INCIDENT_AI_SETTINGS: string = translationKey(
   "Incident AI settings",
@@ -288,9 +286,9 @@ function resourceLink(
 }
 
 /*
- * The Auto Remediation Rules are under the AI settings page's More
- * settings (they had a page of their own), with the switch that turns
- * fixing on.
+ * The AI rules are under the AI settings page's More settings (as auto
+ * remediation rules they had a page of their own), with the switch that
+ * turns fixing on.
  */
 function getAiSettingsPage(signal: RemediationDecisionSignal): PageMap {
   return signal === "incident"
@@ -378,8 +376,8 @@ function getGapText(entry: AutoRemediationDecisionEntry): {
 
 /*
  * The started round's sentence, by the fix mode it runs in. A round that
- * would have run on its own asks first when a matching Auto Remediation Rule
- * asks before fixing, and says which rule.
+ * would have run on its own asks first when a matching AI rule asks before
+ * fixing, and says which rule.
  */
 function getClusterRoundStartedTemplate(
   mode: string | undefined,
@@ -387,7 +385,7 @@ function getClusterRoundStartedTemplate(
 ): string {
   if (ruleName) {
     return translationKey(
-      'OneUptime AI is composing a fix for cluster "{{clusterName}}". Nothing runs until you approve it, because Auto Remediation Rule "{{ruleName}}" asks before fixing.',
+      'OneUptime AI is composing a fix for cluster "{{clusterName}}". Nothing runs until you approve it, because AI rule "{{ruleName}}" asks before fixing.',
     );
   }
 
@@ -414,7 +412,7 @@ function getResourceRoundStartedTemplate(
 ): string {
   if (ruleName) {
     return translationKey(
-      'OneUptime AI is composing a fix for {{resourceKind}} "{{resourceName}}". Nothing runs until you approve it, because Auto Remediation Rule "{{ruleName}}" asks before fixing.',
+      'OneUptime AI is composing a fix for {{resourceKind}} "{{resourceName}}". Nothing runs until you approve it, because AI rule "{{ruleName}}" asks before fixing.',
     );
   }
 
@@ -435,8 +433,12 @@ function getResourceRoundStartedTemplate(
   );
 }
 
-// Lanes that only say "another lane took this signal": never drawn.
-const SILENT_REASONS: Array<AutoRemediationDecisionReason> = [
+/*
+ * Lanes that only say "another lane took this signal": never drawn. The AI
+ * card reads them the same way (AiOffSummaryData): they say nothing about
+ * whether fixing was on.
+ */
+export const SILENT_REASONS: ReadonlyArray<AutoRemediationDecisionReason> = [
   AutoRemediationDecisionReason.ClusterSkippedForResourceRound,
   AutoRemediationDecisionReason.ResourceSkippedForClusterRound,
 ];
@@ -515,7 +517,7 @@ export function getRemediationDecisionLines(input: {
           key,
           tone: "attention",
           text: translator.translateTemplate(
-            "Enable AI is off for this project, so nothing is fixed automatically: no cluster or resource fix and no Auto Remediation Rule runs.",
+            "Enable AI is off for this project, so nothing is fixed automatically: no cluster or resource fix and no AI rule runs.",
           ),
           links: link(
             translator,
@@ -853,13 +855,13 @@ export function getRemediationDecisionLines(input: {
         });
         return;
 
-      // --- Auto Remediation Rules ---
+      // --- AI rules ---
       case AutoRemediationDecisionReason.RulesSkippedLimit:
         lines.push({
           key,
           tone: "info",
           text: translator.translateTemplate(
-            "Auto Remediation Rules were not checked: this {{signal}} already has the most fixes one {{signal}} can get.",
+            "AI rules were not checked: this {{signal}} already has the most fixes one {{signal}} can get.",
             { signal: signalTerm },
           ),
           links: [],
@@ -870,7 +872,7 @@ export function getRemediationDecisionLines(input: {
           key,
           tone: "info",
           text: translator.translateTemplate(
-            "No Auto Remediation Rule is set up for this kind of {{signal}}. A rule can propose or start a runbook when a matching one is created.",
+            "No AI rule is set up for this kind of {{signal}}. A rule can propose or start a runbook when a matching one is created.",
             { signal: signalTerm },
           ),
           links: rulesLink(translator, signal),
@@ -882,9 +884,9 @@ export function getRemediationDecisionLines(input: {
           tone: "info",
           text: translator.translatePlural(
             {
-              one: "The {{count}} Auto Remediation Rule set up did not match this {{signal}}.",
+              one: "The {{count}} AI rule set up did not match this {{signal}}.",
               other:
-                "None of the {{count}} Auto Remediation Rules set up matched this {{signal}}.",
+                "None of the {{count}} AI rules set up matched this {{signal}}.",
             },
             entry.rulesChecked || 0,
             { signal: signalTerm },
@@ -898,12 +900,32 @@ export function getRemediationDecisionLines(input: {
           tone: "info",
           text: translator.translatePlural(
             {
-              one: "The {{count}} Auto Remediation Rule set up does not match this {{signal}}, so it was not fixed. With rules set up, only what matches one is fixed.",
+              one: "The {{count}} AI rule set up does not match this {{signal}}, so it was not fixed. With rules set up, OneUptime AI fixes only what matches a rule that fixes.",
               other:
-                "None of the {{count}} Auto Remediation Rules set up match this {{signal}}, so it was not fixed. With rules set up, only what matches one is fixed.",
+                "None of the {{count}} AI rules set up match this {{signal}}, so it was not fixed. With rules set up, OneUptime AI fixes only what matches a rule that fixes.",
             },
             entry.rulesChecked || 0,
             { signal: signalTerm },
+          ),
+          links: rulesLink(translator, signal),
+        });
+        return;
+      /*
+       * Rules matched, and each only investigates: with rules, a signal is
+       * fixed only when a rule that fixes matches it. Named by the first.
+       */
+      case AutoRemediationDecisionReason.MatchedRulesDoNotFix:
+        lines.push({
+          key,
+          tone: "info",
+          text: translator.translatePlural(
+            {
+              one: 'AI rule "{{ruleName}}" matched this {{signal}}, and it only investigates, so it was not fixed.',
+              other:
+                "{{count}} AI rules matched this {{signal}}, and they only investigate, so it was not fixed.",
+            },
+            entry.rulesChecked || 1,
+            { ruleName, signal: signalTerm },
           ),
           links: rulesLink(translator, signal),
         });
@@ -913,7 +935,7 @@ export function getRemediationDecisionLines(input: {
           key,
           tone: "info",
           text: translator.translateTemplate(
-            "No Auto Remediation Rule that matches this {{signal}} fixes with OneUptime AI, so OneUptime AI did not fix it on the clusters or hosts it is linked to.",
+            "No AI rule that matches this {{signal}} fixes with OneUptime AI, so OneUptime AI did not fix it on the clusters or hosts it is linked to.",
             { signal: signalTerm },
           ),
           links: rulesLink(translator, signal),

@@ -19,8 +19,12 @@ import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import { getRepositorySettingsRoute } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodePaths";
+import { CodeRepositorySetting } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeRepositorySettingsCopy";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
+import Navigation from "../../../UI/Utils/Navigation";
+import { Location } from "react-router-dom";
 import {
   DESKTOP_WIDTH,
   MOBILE_WIDTH,
@@ -173,6 +177,49 @@ describe("a repository's side menu", () => {
     expect(repositoryRoute(PageMap.CODE_REPOSITORY_VIEW_DELETE)).toBe(
       `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/delete`,
     );
+  });
+
+  /*
+   * A link to one of the repository's settings lands on it, More settings
+   * open there: "Pick a Runner" opens ".../settings#runner", Production
+   * Reviews' Settings link ".../settings#production-review".
+   */
+  test("a link to one of its settings is its Settings page with that setting after the '#'", () => {
+    const settings: string = `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/settings`;
+
+    expect(getRepositorySettingsRoute(REPOSITORY_ID).toString()).toBe(settings);
+    expect(
+      getRepositorySettingsRoute(
+        new ObjectID(REPOSITORY_ID),
+        CodeRepositorySetting.Runner,
+      ).toString(),
+    ).toBe(`${settings}#runner`);
+
+    for (const setting of Object.values(CodeRepositorySetting)) {
+      expect(
+        getRepositorySettingsRoute(REPOSITORY_ID, setting).toString(),
+      ).toBe(`${settings}#${setting}`);
+    }
+  });
+
+  test("opened at one of its settings, the menu still marks Settings", async () => {
+    const settings: string = `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/settings`;
+
+    window.history.pushState({}, "", `${settings}#runner`);
+    Navigation.setLocation({
+      pathname: settings,
+      search: "",
+      hash: "#runner",
+      state: null,
+      key: "test",
+    } as Location);
+
+    await renderMenu(
+      <CodeRepositorySideMenu modelId={new ObjectID(REPOSITORY_ID)} />,
+    );
+
+    expect(activeLinkTitles()).toEqual(["Settings"]);
+    window.history.pushState({}, "", settings);
   });
 
   test.each([

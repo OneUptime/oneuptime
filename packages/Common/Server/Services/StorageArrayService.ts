@@ -18,7 +18,9 @@ import DiscoveredResourceUpdate, {
   MatchColumn,
   matchedOnName,
 } from "../Utils/Telemetry/DiscoveredResourceUpdate";
-import ResourceHeartbeat from "../Utils/Telemetry/ResourceHeartbeat";
+import ResourceHeartbeat, {
+  ResourceHeartbeatResult,
+} from "../Utils/Telemetry/ResourceHeartbeat";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
 import OneUptimeDate from "../../Types/Date";
@@ -271,7 +273,7 @@ export class Service extends ProjectReferencesService<Model> {
   public async updateLastSeen(
     arrayId: ObjectID,
     extra?: StorageArraySnapshotExtras,
-  ): Promise<void> {
+  ): Promise<ResourceHeartbeatResult> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const liveness: any = {
       lastSeenAt: OneUptimeDate.getCurrentDate(),
@@ -337,7 +339,7 @@ export class Service extends ProjectReferencesService<Model> {
      * fail-closed split and the liveness-only fallback all live in
      * ResourceHeartbeat.
      */
-    await ResourceHeartbeat.write({
+    return await ResourceHeartbeat.write({
       service: this,
       id: arrayId,
       cacheNamespace: LAST_SEEN_CACHE_NAMESPACE + shapeSuffix,

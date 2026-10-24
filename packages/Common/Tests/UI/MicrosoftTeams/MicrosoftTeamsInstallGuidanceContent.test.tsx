@@ -440,6 +440,10 @@ describe("MicrosoftTeamsIntegration setup guide is one card", () => {
   const GUIDE_CARD_TITLE: string =
     "Integrating Microsoft Teams with your OneUptime Project";
 
+  // What the guide drawn on its own says: the server has no app yet.
+  const GUIDE_CARD_NOT_CONNECTED: string =
+    "Microsoft Teams is not connected to OneUptime.";
+
   // A card's frame: the white box, its border, rounded corners and shadow.
   const FRAME_TOKENS: Array<string> = [
     "bg-white",
@@ -492,6 +496,18 @@ describe("MicrosoftTeamsIntegration setup guide is one card", () => {
     ).toHaveTextContent(GUIDE_CARD_TITLE);
   });
 
+  /*
+   * The fold is on the page of a server that has its Microsoft Teams app,
+   * often of a project already connected: its section says nothing about
+   * the connection, the fold's header saying what it holds.
+   */
+  test("the guide's section says nothing untrue about the connection: the fold says what it is", async () => {
+    const root: HTMLElement = await guide();
+
+    expect(root).toHaveTextContent(MICROSOFT_TEAMS_SETUP_GUIDE_DESCRIPTION);
+    expect(root).not.toHaveTextContent(GUIDE_CARD_NOT_CONNECTED);
+  });
+
   test("it is a real button that starts folded and says what is in it", async () => {
     const root: HTMLElement = await guide();
     const header: HTMLElement = within(root).getByRole("button", {
@@ -527,6 +543,42 @@ describe("MicrosoftTeamsIntegration setup guide is one card", () => {
     expect(header).toHaveAttribute("aria-expanded", "false");
   });
 
+  /*
+   * The guide is taller than 5,000 pixels on a desktop and twice that on a
+   * phone. Under the fold's old max-h-[5000px] its end - the bot
+   * configuration check, AADSTS50194 (#5202) and Other checks - was cut
+   * off, with nothing to scroll to, on exactly the server where an admin
+   * reads it: one already set up.
+   */
+  test("open, the guide is there to its end: nothing caps the fold's height", async () => {
+    const root: HTMLElement = await guide();
+    const header: HTMLElement = within(root).getByRole("button", {
+      name: SETUP_GUIDE_TITLE,
+    });
+    const body: HTMLElement = document.getElementById(
+      header.getAttribute("aria-controls") as string,
+    ) as HTMLElement;
+
+    fireEvent.click(header);
+
+    const heightCaps: Array<string> = (body.getAttribute("class") || "")
+      .split(" ")
+      .filter((name: string): boolean => {
+        return name.startsWith("max-h-");
+      });
+
+    expect(heightCaps).toEqual([]);
+
+    const markdown: HTMLElement =
+      await within(body).findByTestId("react-markdown");
+    const guideText: string = markdown.textContent || "";
+
+    expect(guideText).toContain("**Signing in fails with AADSTS50194**");
+    expect(
+      guideText.trim().endsWith("Please send us any at hello@oneuptime.com"),
+    ).toBe(true);
+  });
+
   test("drawn on its own, the guide is a card with its frame, as before", async () => {
     render(<MicrosoftTeamsIntegrationDocumentation />);
 
@@ -535,6 +587,8 @@ describe("MicrosoftTeamsIntegration setup guide is one card", () => {
     expect(card).not.toHaveAttribute("data-card-surface");
     expect(card).toHaveClass("mb-5");
     expect(card.firstElementChild).toHaveClass("rounded-xl", "shadow-sm");
+    // The server has no Microsoft Teams app yet, and the card says so.
+    expect(card).toHaveTextContent(GUIDE_CARD_NOT_CONNECTED);
   });
 });
 
@@ -691,10 +745,94 @@ describe("MicrosoftTeamsIntegrationDocumentation", () => {
     );
     expect(troubleshooting).toContain("Refresh Chats");
   });
+
+  /*
+   * Issue #5202: this guide asked for a multitenant app while the docs asked
+   * for a single-tenant one, and the account sign-in went to common, which a
+   * single-tenant app is refused at (AADSTS50194). The guide and the docs
+   * now ask for the same thing, and the sign-in goes to the tenant.
+   */
+  test("Step 2 registers the app for one organization, as the self-hosted docs do", async () => {
+    const text: string = await renderDocumentationText();
+    const stepTwo: string = text
+      .split("##### Step 2")[1]!
+      .split("##### Step 3")[0]!;
+    const accountType: string =
+      "**Supported account types:** Accounts in this organizational directory only (Single tenant)";
+
+    expect(stepTwo).toContain(accountType);
+    expect(text).not.toContain("Multitenant");
+    expect(readSource(DOCS_MARKDOWN_PATH)).toContain(accountType);
+    expect(stepTwo).toContain('"Directory (tenant) ID"');
+    // A dash that sets the two apart, not a hyphen: it reads as one.
+    expect(stepTwo).toContain(
+      "OneUptime signs everyone in to your tenant — admins granting consent, and each person who selects **Connect my account with Microsoft Teams** — so an app registered for your organization only is all it needs.",
+    );
+  });
+
+  test("Step 5 makes the Azure Bot single tenant too", async () => {
+    const text: string = await renderDocumentationText();
+    const stepFive: string = text
+      .split("##### Step 5")[1]!
+      .split("##### Step 6")[0]!;
+
+    expect(stepFive).toContain(
+      "**Type of App:** Single Tenant, with the App (client) ID and Tenant ID from your app registration",
+    );
+  });
+
+  test("Step 7 says what each environment variable is, the tenant ID included", async () => {
+    const text: string = await renderDocumentationText();
+    const stepSeven: string = text
+      .split("##### Step 7")[1]!
+      .split("##### Step 8")[0]!;
+
+    expect(stepSeven).toContain(
+      "- `MICROSOFT_TEAMS_APP_CLIENT_ID` (`clientId`): the app registration's **Application (client) ID**.",
+    );
+    expect(stepSeven).toContain(
+      "- `MICROSOFT_TEAMS_APP_CLIENT_SECRET` (`clientSecret`): the client secret's **Value** from Step 4.",
+    );
+    expect(stepSeven).toContain(
+      "- `MICROSOFT_TEAMS_APP_TENANT_ID` (`tenantId`): the **Directory (tenant) ID**. The bot authenticates in this tenant, and people sign in to it to connect their Microsoft Teams account.",
+    );
+  });
+
+  test("Troubleshooting says what AADSTS50194 means and what to check", async () => {
+    const text: string = await renderDocumentationText();
+    const troubleshooting: string = text.split("##### Troubleshooting")[1]!;
+    const aadsts: string = troubleshooting
+      .split("**Signing in fails with AADSTS50194**")[1]!
+      .split("**Other checks**")[0]!;
+
+    expect(aadsts).toContain("(`/common`)");
+    expect(aadsts).toContain(
+      "Older OneUptime versions sent **Connect my account with Microsoft Teams** there; this one signs people in to your tenant.",
+    );
+    // The configuration check says where people sign in, as the endpoint does.
+    expect(troubleshooting).toContain(
+      "which environment variables are set, and the tenant people sign in to when they connect their account.",
+    );
+
+    // Named in bold, as Step 7 and the docs name the Azure portal's field.
+    expect(aadsts).toContain(
+      "check that `MICROSOFT_TEAMS_APP_TENANT_ID` is set to the app's **Directory (tenant) ID**: a project that is not connected yet signs people in to that tenant.",
+    );
+  });
 });
 
 describe("Self-hosted docs markdown", () => {
   const docsMarkdown: string = readSource(DOCS_MARKDOWN_PATH);
+
+  test("registers the app single tenant, and says where people sign in and what AADSTS50194 means", () => {
+    expect(docsMarkdown).toContain(
+      "- **Supported account types:** Accounts in this organizational directory only (Single tenant)",
+    );
+    expect(docsMarkdown).toContain(
+      "signs everyone in to its tenant: admins granting consent, and each person who selects **Connect my account with Microsoft Teams**. Guests in your organization sign in with their guest account, the one Teams uses for them.",
+    );
+    expect(docsMarkdown).toContain("### Signing in fails with AADSTS50194");
+  });
 
   test("does not describe TeamsAppInstallation.ReadForTeam.All as optional", () => {
     const permissionLine: string =

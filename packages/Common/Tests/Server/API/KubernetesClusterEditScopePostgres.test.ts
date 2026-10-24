@@ -1438,7 +1438,7 @@ describePostgres(
         expect(agentResets).toEqual([stagingClusterId.toString()]);
       });
 
-      test("Edit Auto Remediation Rule without any edit of clusters resets no agent", async () => {
+      test("Edit AI Rule without any edit of clusters resets no agent", async () => {
         await setTeamPermissions(memberTeamId, [
           { permission: Permission.ReadKubernetesCluster },
           { permission: Permission.EditAutoRemediationRule },
@@ -1450,7 +1450,7 @@ describePostgres(
         );
       });
 
-      test("Edit Auto Remediation Rule with an edit of Staging clusters resets only Staging agents", async () => {
+      test("Edit AI Rule with an edit of Staging clusters resets only Staging agents", async () => {
         await setTeamPermissions(memberTeamId, [
           { permission: Permission.ReadKubernetesCluster },
           { permission: Permission.EditAutoRemediationRule },
@@ -1521,7 +1521,7 @@ describePostgres(
         expect(resourceAgentResets).toEqual([stagingHostId.toString()]);
       });
 
-      test("Edit Auto Remediation Rule with an edit of Staging Docker hosts resets only the Staging one", async () => {
+      test("Edit AI Rule with an edit of Staging Docker hosts resets only the Staging one", async () => {
         await setTeamPermissions(memberTeamId, [
           { permission: Permission.ReadDockerHost },
           { permission: Permission.EditAutoRemediationRule },

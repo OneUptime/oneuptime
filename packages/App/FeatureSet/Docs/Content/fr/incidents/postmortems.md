@@ -86,7 +86,7 @@ Avec **Rédiger un post-mortem quand un incident est résolu** activé, OneUptim
 
 Sans règle, chaque incident résolu reçoit un brouillon, selon le plan standard de OneUptime AI. Les **Règles de post-mortem**, sous **Plus de paramètres** sur la même page, changent cela :
 
-- Une règle cible **Tous les incidents**, ou **Uniquement les incidents qui correspondent aux conditions** sur les moniteurs, sévérités, labels, labels de moniteur, titre et description, comme une règle d'investigation.
+- Une règle cible **Tous les incidents**, ou **Uniquement les incidents qui correspondent aux conditions** sur les moniteurs, sévérités, labels, labels de moniteur, titre et description, comme une règle IA.
 - Ses **Modèles** sont les modèles de post-mortem que le brouillon peut suivre. Sans aucun, le brouillon suit le plan standard ; avec un, ce modèle ; avec plusieurs, celui qui, selon OneUptime AI, convient le mieux à l'incident. La publication du brouillon dans le fil nomme le modèle qu'il a suivi.
 - Son **Fournisseur LLM**, sous **Plus de champs**, est le fournisseur avec lequel OneUptime AI écrit le brouillon et choisit son modèle. Si aucun n'est choisi, c'est le fournisseur par défaut du projet, sinon le fournisseur global. La publication du brouillon dans le fil nomme le fournisseur choisi par une règle, ou celui utilisé à la place, et pourquoi. Voir [Quel fournisseur LLM une règle utilise](/docs/ai/ai-sre#quel-fournisseur-llm-une-règle-utilise).
 - La première règle activée qui correspond à l'incident décide, en partant du haut de la liste : faites glisser une règle pour changer sa place. Un incident auquel aucune règle ne correspond ne reçoit pas de brouillon, et aucun incident n'en reçoit tant que les règles ne peuvent pas être lues.

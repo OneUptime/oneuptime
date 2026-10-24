@@ -84,6 +84,7 @@ import NetworkDeviceLinkService from "./NetworkDeviceLinkService";
 import NetworkDeviceLinkRuleService from "./NetworkDeviceLinkRuleService";
 import NetworkTopologySuppressionService from "./NetworkTopologySuppressionService";
 import NetworkSiteAssignmentRuleService from "./NetworkSiteAssignmentRuleService";
+import NetworkControllerConnectionService from "./NetworkControllerConnectionService";
 import PodmanHostService from "./PodmanHostService";
 import PodmanHostOwnerRuleService from "./PodmanHostOwnerRuleService";
 import PodmanHostOwnerUserService from "./PodmanHostOwnerUserService";
@@ -465,6 +466,7 @@ import OnCallDutyPolicyUserOverrideService from "./OnCallDutyPolicyUserOverrideS
 
 import MonitorLogService from "./MonitorLogService";
 import NetworkFlowService from "./NetworkFlowService";
+import NetworkTrafficUsageService from "./NetworkTrafficUsageService";
 
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import ProjectSCIMLogService from "./ProjectSCIMLogService";
@@ -472,6 +474,7 @@ import ProjectSCIMUserService from "./ProjectSCIMUserService";
 import StatusPageSCIMLogService from "./StatusPageSCIMLogService";
 import DeletedProjectService from "./DeletedProjectService";
 import CodeRepositoryService from "./CodeRepositoryService";
+import CodeRepositoryConnectionService from "./CodeRepositoryConnectionService";
 import WebhookLogService from "./WebhookLogService";
 import HostLabelRuleService from "./HostLabelRuleService";
 import HostOwnerRuleService from "./HostOwnerRuleService";
@@ -620,6 +623,7 @@ const services: Array<BaseService> = [
   NetworkDeviceLinkRuleService,
   NetworkTopologySuppressionService,
   NetworkSiteAssignmentRuleService,
+  NetworkControllerConnectionService,
   PodmanHostService,
   PodmanHostOwnerRuleService,
   PodmanHostOwnerUserService,
@@ -983,6 +987,7 @@ const services: Array<BaseService> = [
   CloudResourceOwnerTeamService,
   CloudResourceOwnerUserService,
   CodeRepositoryService,
+  CodeRepositoryConnectionService,
   HostLabelRuleService,
   HostOwnerRuleService,
   HostOwnerTeamService,
@@ -1046,6 +1051,7 @@ export const AnalyticsServices: Array<
   KubernetesCostAllocationService,
   MonitorLogService,
   NetworkFlowService,
+  NetworkTrafficUsageService,
   ProfileService,
   ProfileSampleService,
   /*

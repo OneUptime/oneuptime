@@ -16,8 +16,10 @@ import path from "path";
  * where AI is asked with context, a task's conversation filling in as the
  * AI works, replying in it, stopping it and trying again, whatever stops AI
  * working said once at the top of the box with what fixes it, a
- * repository's settings - the GitHub Commands switch, the Runner AI works
- * on, More settings and commands an operator set - read-only members, the
+ * repository's settings - the repository on top, and under More settings
+ * the GitHub Commands switch, the Production Review switch, the Runner AI
+ * works on and the rest, links that land on one of them with More settings
+ * open, and commands an operator set - read-only members, the
  * old Tasks and Code Repositories addresses, a repository's pull requests
  * reviewed against production (their page, a review's page, Review again
  * and the setting), a phone, dark mode and German.
@@ -724,8 +726,14 @@ test.describe("Code opens on the request box, like Claude Code and Codex", () =>
     const empty: Locator = page.getByTestId("code-connect-github");
     await expect(empty).toContainText("Connect your code");
     await expect(empty).toContainText(
-      "ask OneUptime AI to work in your repositories",
+      "Connect your repositories and ask OneUptime AI to work in them",
     );
+    // Under Connect GitHub, the other places a repository can be.
+    await expect(empty.getByTestId("code-other-host")).toHaveText([
+      "GitLab",
+      "Forgejo or Gitea",
+      "Any Git server",
+    ]);
     // No box to write in before there is anywhere for AI to work.
     await expect(page.getByTestId("code-ask")).toHaveCount(0);
     await expectNoSidewaysScroll(page);
@@ -1054,7 +1062,7 @@ test.describe("Code's Repositories", () => {
     await screenshot(page, testInfo, "code-repositories-german");
   });
 
-  test("Connect repositories, the list's main button, starts GitHub's install", async ({
+  test("Connect repositories, the list's main button, asks where the code is - GitHub starts GitHub's install", async ({
     page,
   }: {
     page: Page;
@@ -1063,6 +1071,12 @@ test.describe("Code's Repositories", () => {
 
     await connectedCard(page)
       .getByRole("button", { name: "Connect repositories" })
+      .click();
+    // Nothing leaves the page before the reader says where the code is.
+    expect((await recorded(page)).navigations).toEqual([]);
+    await page
+      .getByRole("dialog")
+      .locator("[data-testid='code-host-choice'][data-provider='GitHub']")
       .click();
     await expect
       .poll(async () => {
@@ -1170,16 +1184,656 @@ test.describe("Code's Repositories", () => {
  * don't need this step at all because repos have an agents.md file in
  * them". A repository's settings are cards now, its GitHub commands one
  * switch, and what most people never change folded under More settings.
+ *
+ * And (task doc, block 69), of the page that kept GitHub Commands and the
+ * Runner above the fold: "GitHub commands and runner should be inside of
+ * more settings as well." The repository's details are the page's top;
+ * everything else - GitHub Commands, Production Review and Runner first,
+ * in the order they had - is under More settings, which names them while
+ * it is folded and opens by itself where a link lands on one of them.
  */
+/*
+ * The maintainer's ask (2026-10-23): "We have a GitHub connection to
+ * oneuptime in terms of our Code product. Can we have other connections as
+ * well, maybe like a normal Git repo or forgejo? What do you recommend?"
+ * Code connects GitLab, Forgejo or Gitea and any Git server beside GitHub.
+ * Each does what Code does there - tasks, branches, merge or pull requests
+ * - and says plainly what it cannot: commands from comments and production
+ * reviews are GitHub's, and a Git server gets a pushed branch. A token is
+ * typed once, never shown again; a Git server only the project's own
+ * Runner reaches is asked about first.
+ */
+test.describe("repositories beyond GitHub: GitLab, Forgejo or Gitea, any Git server", () => {
+  const BILLING: string = "20000000-0000-4000-8000-0000000000b4";
+  const INFRA: string = "20000000-0000-4000-8000-0000000000b6";
+  const INVOICES_TASK: string = "40000000-0000-4000-8000-0000000000d8";
+  const TERRAFORM_TASK: string = "40000000-0000-4000-8000-0000000000d9";
+  const GITLAB_CONNECTION: string = "70000000-0000-4000-8000-0000000000a1";
+  const FORGEJO_CONNECTION: string = "70000000-0000-4000-8000-0000000000a2";
+  const TOKEN: string = "glpat-e2e-token-000000000001";
+
+  interface ConnectRecorded {
+    connectReads: Array<Record<string, unknown>>;
+    connects: Array<Record<string, unknown>>;
+    gitConnects: Array<Record<string, unknown>>;
+    tokenReplacements: Array<Record<string, unknown>>;
+  }
+
+  async function connectRecorded(page: Page): Promise<ConnectRecorded> {
+    return await page.evaluate((): ConnectRecorded => {
+      return (window as unknown as { __fixture: ConnectRecorded }).__fixture;
+    });
+  }
+
+  // Repositories' main button, Connect repositories: where is your code?
+  async function openConnectDialog(
+    page: Page,
+    search: string = "",
+  ): Promise<Locator> {
+    await page.goto(`${CODE}/repositories${search ? `?${search}` : ""}`);
+    await page
+      .getByTestId("code-repositories-card")
+      .getByRole("button", { name: "Connect repositories" })
+      .click();
+    const dialog: Locator = page.getByRole("dialog");
+    await expect(dialog.getByTestId("code-host-choice")).toHaveCount(4);
+    return dialog;
+  }
+
+  function hostChoice(dialog: Locator, provider: string): Locator {
+    return dialog.locator(
+      `[data-testid='code-host-choice'][data-provider='${provider}']`,
+    );
+  }
+
+  function repositoryRow(page: Page, name: string): Locator {
+    return page.getByTestId("code-repository-row").filter({
+      has: page.getByRole("link", { name: name, exact: true }),
+    });
+  }
+
+  function settingsPath(id: string): string {
+    return `${repositoryPath(id)}/settings`;
+  }
+
+  test("Connect repositories asks where the code is: GitHub, GitLab, Forgejo or Gitea, any Git server - each saying how it connects", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    const dialog: Locator = await openConnectDialog(page);
+
+    await expect(dialog).toContainText("Connect repositories");
+    await expect(dialog).toContainText("Where is your code?");
+    await expect(dialog.getByTestId("code-host-choice")).toHaveText([
+      /^GitHubInstall the OneUptime GitHub App\.$/,
+      /^GitLabGitLab\.com or your own GitLab, with an access token\.$/,
+      /^Forgejo or GiteaCodeberg or your own server, with an access token\.$/,
+      /^Any Git serverOver HTTPS\. AI pushes a branch, and you open the pull request\.$/,
+    ]);
+    // Each tile draws its host's own mark.
+    expect(
+      await dialog
+        .getByTestId("code-host-choice")
+        .evaluateAll((tiles: Array<Element>): Array<string | null> => {
+          return tiles.map((tile: Element): string | null => {
+            return (
+              tile
+                .querySelector("[data-testid='code-host-mark']")
+                ?.getAttribute("data-provider") || null
+            );
+          });
+        }),
+    ).toEqual(["GitHub", "GitLab", "Forgejo", "Git"]);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-connect-where");
+  });
+
+  test("GitLab: the server and an access token, then the repositories it can push to - picked, connected, and the token never shown again", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    const dialog: Locator = await openConnectDialog(page);
+    await hostChoice(dialog, "GitLab").click();
+
+    await expect(dialog.getByTestId("code-connect-dialog")).toHaveAttribute(
+      "data-step",
+      "token",
+    );
+    await expect(dialog).toContainText("Connect GitLab");
+    // The public server most people use, filled in; the token typed unseen.
+    await expect(dialog.getByTestId("code-connect-host-url")).toHaveValue(
+      "https://gitlab.com",
+    );
+    const token: Locator = dialog.getByTestId("code-connect-token-input");
+    await expect(token).toHaveAttribute("type", "password");
+    // The server is filled in: the token is where typing starts.
+    await expect(token).toBeFocused();
+    await token.fill(TOKEN);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-connect-gitlab-token");
+
+    await dialog.getByRole("button", { name: "Continue" }).click();
+
+    // The account the token signed in as, under the step's title.
+    await expect(dialog.getByTestId("modal-description")).toHaveText(
+      "Signed in to gitlab.com as @ada.",
+    );
+    await expect(dialog.getByTestId("code-connect-search")).toBeFocused();
+    const rows: Locator = dialog.getByTestId("code-connect-repository");
+    await expect(rows).toHaveCount(4);
+    // One the token may only read cannot be picked, and says so.
+    await expect(rows.nth(2)).toContainText("acme/handbook");
+    await expect(rows.nth(2).getByRole("checkbox")).toBeDisabled();
+    await expect(
+      rows.nth(2).getByTestId("code-connect-repository-cannot-push"),
+    ).toHaveText("Read-only");
+    // Whether a repository is private does not decide what to connect.
+    await expect(rows.getByText("Private", { exact: true })).toHaveCount(0);
+    // The token is nowhere on the page once it was sent.
+    expect(await page.content()).not.toContain(TOKEN);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-connect-gitlab-pick");
+
+    await rows.nth(1).getByRole("checkbox").check();
+    await rows.nth(3).getByRole("checkbox").check();
+    await dialog
+      .getByRole("button", { name: "Connect 2 repositories" })
+      .click();
+
+    const notice: Locator = page.getByTestId("code-connected-notice");
+    await expect(notice).toContainText("2 repositories connected");
+    // The notice keeps its space above the list, as a page's notices do.
+    const noticeBox: { y: number; height: number } | null =
+      await notice.boundingBox();
+    const cardBox: { y: number } | null = await page
+      .getByTestId("code-repositories-card")
+      .boundingBox();
+    expect(
+      cardBox!.y - (noticeBox!.y + noticeBox!.height),
+    ).toBeGreaterThanOrEqual(16);
+    // The list reads its repositories again: both are in it, with GitLab's mark.
+    for (const name of ["ledger", "mobile-app"]) {
+      await expect(
+        repositoryRow(page, name).getByTestId("code-host-mark"),
+      ).toHaveAttribute("data-provider", "GitLab");
+    }
+
+    const sent: ConnectRecorded = await connectRecorded(page);
+    expect(sent.connectReads).toEqual([
+      {
+        provider: "GitLab",
+        hostUrl: "https://gitlab.com",
+        token: TOKEN,
+        page: 1,
+      },
+    ]);
+    expect(sent.connects).toEqual([
+      {
+        provider: "GitLab",
+        hostUrl: "https://gitlab.com",
+        token: TOKEN,
+        repositoryIds: ["acme/ledger", "acme/mobile-app"],
+      },
+    ]);
+    expect(await page.content()).not.toContain(TOKEN);
+    await screenshot(page, testInfo, "code-connect-gitlab-connected");
+  });
+
+  test("a token GitLab refuses is said in the dialog, which keeps what was typed", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const dialog: Locator = await openConnectDialog(page);
+    await hostChoice(dialog, "GitLab").click();
+    await dialog
+      .getByTestId("code-connect-token-input")
+      .fill("revoked-token-0000000001");
+    await dialog.getByRole("button", { name: "Continue" }).click();
+
+    await expect(dialog).toContainText(
+      "GitLab refused the access token. It may have expired or been revoked: create a new token and use it instead.",
+    );
+    await expect(dialog.getByTestId("code-connect-dialog")).toHaveAttribute(
+      "data-step",
+      "token",
+    );
+    await expect(dialog.getByTestId("code-connect-token-input")).toHaveValue(
+      "revoked-token-0000000001",
+    );
+    expect((await connectRecorded(page)).connects).toEqual([]);
+  });
+
+  test("Forgejo or Gitea: the project's connection to Codeberg is offered again, by server and account, and needs no token", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    const dialog: Locator = await openConnectDialog(page, "hosts=1");
+    await hostChoice(dialog, "Forgejo").click();
+
+    // Only Forgejo's: the project's GitLab and Git connections are their hosts'.
+    const offered: Locator = dialog.getByTestId("code-connect-connection");
+    await expect(offered).toHaveCount(1);
+    await expect(offered).toContainText("codeberg.org");
+    await expect(offered).toContainText("@ada");
+    // The step starts on it: nothing to type to connect more from Codeberg.
+    await expect(offered.getByRole("radio")).toBeChecked();
+    await expect(offered.getByRole("radio")).toBeFocused();
+    await expect(dialog.getByTestId("code-connect-token-input")).toHaveCount(0);
+    await screenshot(page, testInfo, "code-connect-forgejo-connection");
+
+    await dialog.getByRole("button", { name: "Continue" }).click();
+    const rows: Locator = dialog.getByTestId("code-connect-repository");
+    await expect(rows).toHaveCount(2);
+    // status-widgets is one of the project's already.
+    await expect(
+      rows.first().getByTestId("code-connect-repository-connected"),
+    ).toBeVisible();
+    await expect(rows.first().getByRole("checkbox")).toBeDisabled();
+
+    await rows.nth(1).getByRole("checkbox").check();
+    await dialog.getByRole("button", { name: "Connect 1 repository" }).click();
+
+    await expect(page.getByTestId("code-connected-notice")).toContainText(
+      "1 repository connected",
+    );
+    expect((await connectRecorded(page)).connects).toEqual([
+      {
+        connectionId: FORGEJO_CONNECTION,
+        repositoryIds: ["acme/uptime-badges"],
+      },
+    ]);
+    await expect(
+      repositoryRow(page, "uptime-badges").getByTestId("code-host-mark"),
+    ).toHaveAttribute("data-provider", "Forgejo");
+  });
+
+  test("any Git server: one OneUptime cannot reach is asked about first, then connected for a Runner of the project's own", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    const dialog: Locator = await openConnectDialog(page);
+    await hostChoice(dialog, "Git").click();
+
+    await expect(dialog).toContainText("Connect a Git repository");
+    await expect(dialog).toContainText(
+      "AI works on a new branch and pushes it. You open the pull request yourself, on your Git server.",
+    );
+    await expect(dialog.getByTestId("code-connect-git-url")).toBeFocused();
+    await expect(
+      dialog.getByTestId("code-connect-git-password"),
+    ).toHaveAttribute("type", "password");
+    await dialog
+      .getByTestId("code-connect-git-url")
+      .fill("https://10.0.4.12/ops/deploy-tools.git");
+    await dialog.getByTestId("code-connect-git-username").fill("deploy");
+    await dialog
+      .getByTestId("code-connect-git-password")
+      .fill("deploy-password-000001");
+    await dialog.getByRole("button", { name: "Connect", exact: true }).click();
+
+    const confirm: Locator = dialog.getByTestId("code-connect-git-confirm");
+    // The host, named so a typo shows, then what Connect anyway does.
+    await expect(confirm).toContainText("OneUptime cannot reach 10.0.4.12");
+    // Brought into view: on a phone it comes in under the body's fold.
+    await expect(confirm).toBeInViewport({ ratio: 0.9 });
+    await expect(confirm).toContainText(
+      "Check the address. If the server is on a private network, connect it anyway and pick one of your own Runners on that network to work in it.",
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-connect-git-confirm");
+
+    await dialog.getByRole("button", { name: "Connect anyway" }).click();
+    await expect(page.getByTestId("code-connected-notice")).toContainText(
+      "Repository connected",
+    );
+    expect(
+      (await connectRecorded(page)).gitConnects.map(
+        (sent: Record<string, unknown>): unknown => {
+          return sent["connectWithoutCheck"];
+        },
+      ),
+    ).toEqual([false, true]);
+    // Its row names the Git server, beside its path.
+    const row: Locator = repositoryRow(page, "deploy-tools");
+    await expect(row.getByTestId("code-host-mark")).toHaveAttribute(
+      "data-provider",
+      "Git",
+    );
+    await expect(row.getByTestId("code-repository-full-name")).toHaveText(
+      "ops/deploy-tools · 10.0.4.12",
+    );
+    expect(await page.content()).not.toContain("deploy-password-000001");
+  });
+
+  test("Repositories: each repository with its host's mark, a server of its own named beside it", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${CODE}/repositories?hosts=1`);
+
+    for (const [name, provider] of [
+      ["checkout-api", "GitHub"],
+      ["billing-service", "GitLab"],
+      ["status-widgets", "Forgejo"],
+      ["infra-scripts", "Git"],
+    ]) {
+      await expect(
+        repositoryRow(page, name!).getByTestId("code-host-mark"),
+      ).toHaveAttribute("data-provider", provider!);
+    }
+    // gitlab.com and codeberg.org go without saying; a server of its own does not.
+    await expect(
+      repositoryRow(page, "billing-service").getByTestId(
+        "code-repository-full-name",
+      ),
+    ).toHaveText("acme/billing-service");
+    await expect(
+      repositoryRow(page, "infra-scripts").getByTestId(
+        "code-repository-full-name",
+      ),
+    ).toHaveText("ops/infra-scripts · 10.0.4.12");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repositories-hosts");
+  });
+
+  test("a token GitLab refused: Token refused on Repositories, and the repository's page says so with Replace access token", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${CODE}/repositories?hosts=1&token=refused`);
+    const folded: Locator = page.getByTestId("code-repositories-not-connected");
+    await folded.getByRole("button", { name: "Not connected" }).click();
+    await expect(
+      repositoryRow(page, "billing-service").getByTestId(
+        "code-repository-token-refused",
+      ),
+    ).toHaveText("Token refused");
+
+    await page.goto(`${repositoryPath(BILLING)}?hosts=1&token=refused`);
+    const blocker: Locator = page.getByTestId("code-blocker");
+    await expect(blocker).toHaveAttribute(
+      "data-blocker",
+      "RepositoryTokenRefused",
+    );
+    await expect(blocker).toContainText(
+      "This repository's Git server refused its access token, so AI cannot work in it.",
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repository-token-refused");
+
+    await blocker.getByTestId("code-blocker-fix").click();
+    await expect(page).toHaveURL(
+      new RegExp(`/code/repositories/${BILLING}/settings`),
+    );
+    const connection: Locator = page.getByTestId("code-repository-connection");
+    await expect(
+      connection.getByTestId("repository-connection-status"),
+    ).toHaveAttribute("data-connection", "token-refused");
+    await expect(
+      connection.getByTestId("code-repository-connection-refused"),
+    ).toHaveText(
+      "GitLab refused the access token: it may have expired or been revoked. Replace it to connect the repository again.",
+    );
+  });
+
+  test("a GitLab repository's settings: its server, account and token's last characters - Replace access token - and plainly what works on GitHub only", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${settingsPath(BILLING)}?hosts=1`);
+
+    const connection: Locator = page.getByTestId("code-repository-connection");
+    // One fact each: a phone wraps between them, never inside "…x7Kq".
+    await expect(
+      connection.getByTestId("code-repository-connection-fact"),
+    ).toHaveText([
+      "gitlab.com",
+      "Signed in as ada",
+      "Access token ending in …x7Kq",
+    ]);
+    await expect(
+      connection.getByTestId("code-repository-github-only"),
+    ).toHaveText(
+      "Commands from GitLab comments and production reviews work in GitHub repositories only, for now.",
+    );
+    // More settings holds only what GitLab has.
+    const moreSettings: Locator = page.getByTestId(
+      "code-repository-more-settings",
+    );
+    await expect(moreSettings.getByTestId("folded-section-item")).toHaveText([
+      "Runner",
+      "Pull Requests",
+    ]);
+    await expect(
+      page.getByTestId("code-repository-github-commands"),
+    ).toHaveCount(0);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repository-settings-gitlab");
+
+    await connection.getByTestId("code-repository-replace-token").click();
+    await expect(page.getByRole("dialog")).toContainText(
+      "Every repository that uses this connection uses the new token from then on. OneUptime checks it with GitLab first.",
+    );
+    const dialog: Locator = page.getByTestId("code-replace-token-dialog");
+    const input: Locator = dialog.getByTestId("code-replace-token-input");
+    await expect(input).toHaveAttribute("type", "password");
+    // GitLab signs in as the token's account: no username to ask.
+    await expect(dialog.getByTestId("code-replace-token-username")).toHaveCount(
+      0,
+    );
+    await input.fill("glpat-replaced-0000000002");
+    await screenshot(page, testInfo, "code-repository-replace-token");
+    await page.getByRole("button", { name: "Replace token" }).click();
+
+    await expect(
+      page.getByTestId("code-repository-connection-replaced"),
+    ).toHaveText("Access token replaced.");
+    // Read again: the new token's last characters, never the token.
+    await expect(
+      page.getByTestId("code-repository-connection-facts"),
+    ).toContainText("Access token ending in …0002");
+    expect((await connectRecorded(page)).tokenReplacements).toEqual([
+      { connectionId: GITLAB_CONNECTION, token: "glpat-replaced-0000000002" },
+    ]);
+    expect(await page.content()).not.toContain("glpat-replaced-0000000002");
+  });
+
+  test("a Git repository's settings: Branches where the others have Pull Requests, and the server only a Runner of the project's own reaches", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${settingsPath(INFRA)}?hosts=1`);
+
+    const connection: Locator = page.getByTestId("code-repository-connection");
+    await expect(
+      connection.getByTestId("code-repository-connection-fact"),
+    ).toHaveText(["10.0.4.12", "Signed in as deploy"]);
+    await expect(
+      connection.getByTestId("code-repository-connection-runner-only"),
+    ).toHaveText(
+      "Only one of your own Runners on its network can reach this Git server.",
+    );
+    await expect(
+      connection.getByTestId("code-repository-github-only"),
+    ).toHaveText(
+      "On a Git server, AI pushes a branch and you open the pull request. Commands from comments and production reviews work in GitHub repositories only.",
+    );
+    const moreSettings: Locator = page.getByTestId(
+      "code-repository-more-settings",
+    );
+    await expect(moreSettings.getByTestId("folded-section-item")).toHaveText([
+      "Runner: prod-eu-west-1",
+      "Branches",
+    ]);
+    await moreSettings.getByRole("button", { name: "More settings" }).click();
+    await expect(moreSettings).toContainText(
+      "AI starts from the main branch and pushes its work to a new branch, for you to open a pull request from on your Git server.",
+    );
+    await expect(page.locator("#pull-requests")).toHaveCount(0);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repository-settings-git");
+  });
+
+  test("a Git server only a Runner reaches, with none picked: AI says so, and Pick a Runner opens its Runner setting", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${repositoryPath(INFRA)}?hosts=1&gitrunner=none`);
+
+    const blocker: Locator = page.getByTestId("code-blocker");
+    await expect(blocker).toHaveAttribute(
+      "data-blocker",
+      "RepositoryNeedsOwnRunner",
+    );
+    await expect(blocker).toContainText(
+      "This repository's Git server is on a network OneUptime does not reach, so a global Runner cannot work in it.",
+    );
+    await blocker.getByTestId("code-blocker-fix").click();
+    await expect(page).toHaveURL(
+      new RegExp(`/code/repositories/${INFRA}/settings#runner$`),
+    );
+  });
+
+  test("a GitLab task: Opened merge request !12, with GitLab's mark and View on GitLab - and no Production Reviews in its repository's menu", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openRepository(page, BILLING, "hosts=1");
+    await expect(page.getByTestId("code-task-row-pull-request")).toHaveText(
+      /MR !12/,
+    );
+    await expect(
+      page.getByRole("link", { name: "Production Reviews" }),
+    ).toHaveCount(0);
+    // GitLab's own word for it, before a task opens one.
+    await expect(page.getByTestId("code-ask-footer")).toHaveText(
+      "AI works on a new branch and opens a merge request for you to review when it changes code. Nothing is merged on its own.",
+    );
+
+    await openTask(page, INVOICES_TASK, "hosts=1");
+    const line: Locator = page.getByTestId("code-turn-pull-request");
+    await expect(line).toContainText("Opened merge request !12");
+    await expect(line.getByTestId("code-host-mark")).toHaveAttribute(
+      "data-provider",
+      "GitLab",
+    );
+    await expect(
+      line.getByRole("link", { name: /View on GitLab/ }),
+    ).toHaveAttribute(
+      "href",
+      "https://gitlab.com/acme/billing-service/-/merge_requests/12",
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-task-gitlab");
+  });
+
+  test("a Git repository's task: the pushed branch and where to open the pull request - and the branch picker offers the main branch, saying why", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openTask(page, TERRAFORM_TASK, "hosts=1");
+    await expect(turnReplies(page).last()).toContainText(
+      "Pushed the branch oneuptime-task-6-9a8b7c6d to ops/infra-scripts. Open a pull request from it into main on your Git server.",
+    );
+    await expect(page.getByTestId("code-turn-pull-request")).toHaveCount(0);
+    await expect(page.getByTestId("code-task-composer-footer")).toHaveText(
+      "AI works on a new branch and pushes it when it changes code, for you to open a pull request from. Nothing is merged on its own.",
+    );
+    await screenshot(page, testInfo, "code-task-git");
+
+    await openRepository(page, INFRA, "hosts=1");
+    await page.getByTestId("code-branch-picker-button").click();
+    await expect(page.getByTestId("code-branch-picker-option")).toHaveCount(1);
+    await expect(page.getByTestId("code-branch-picker-note")).toHaveText(
+      "OneUptime does not read this repository's branches: only your Runner reaches its Git server. A task starts from its main branch.",
+    );
+    // The server is never asked for branches it does not read.
+    expect(
+      (await recorded(page)).branchReads.filter(
+        (read: { repositoryId: string }): boolean => {
+          return read.repositoryId === INFRA;
+        },
+      ),
+    ).toEqual([]);
+  });
+
+  test("dark mode: the connect dialog and a GitLab repository's settings draw on dark surfaces", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    test.skip(isPhone(testInfo), "width-independent");
+    const dialog: Locator = await openConnectDialog(page, "theme=dark");
+    await hostChoice(dialog, "GitLab").click();
+    await expect(dialog.getByTestId("code-connect-token-input")).toBeVisible();
+    await screenshot(page, testInfo, "code-connect-gitlab-token-dark");
+
+    await page.goto(`${settingsPath(BILLING)}?hosts=1&theme=dark`);
+    await expect(
+      page.getByTestId("code-repository-connection-facts"),
+    ).toBeVisible();
+    const background: string = await page
+      .getByTestId("code-repository-connection")
+      .evaluate((element: Element): string => {
+        let current: Element | null = element;
+        while (current) {
+          const colour: string =
+            window.getComputedStyle(current).backgroundColor;
+          if (
+            colour &&
+            colour !== "rgba(0, 0, 0, 0)" &&
+            colour !== "transparent"
+          ) {
+            return colour;
+          }
+          current = current.parentElement;
+        }
+        return "";
+      });
+    const channels: Array<number> = (background.match(COLOUR_CHANNELS) || [])
+      .slice(0, 3)
+      .map(Number);
+    // Its card is dark, not a light box in a dark page.
+    expect(
+      channels.every((value: number) => {
+        return value < 100;
+      }),
+    ).toBe(true);
+    await screenshot(page, testInfo, "code-repository-settings-gitlab-dark");
+  });
+});
+
 test.describe("a repository's settings", () => {
   const SETTINGS: string = `${repositoryPath(REPOSITORY.checkout)}/settings`;
 
+  // Found by its test id: folded, the switch is out of sight (no role).
   function commandsSwitch(page: Page): Locator {
-    return page.getByRole("switch", { name: "Respond to GitHub Commands" });
+    return page.getByTestId("code-repository-github-commands");
   }
 
   function moreSettings(page: Page): Locator {
     return page.getByTestId("code-repository-more-settings");
+  }
+
+  function moreSettingsHeader(page: Page): Locator {
+    return moreSettings(page).getByTestId("folded-section-header");
+  }
+
+  // What folded More settings names, in its order.
+  function foldedNames(page: Page): Locator {
+    return moreSettings(page).getByTestId("folded-section-item");
   }
 
   async function openMoreSettings(page: Page): Promise<void> {
@@ -1191,11 +1845,73 @@ test.describe("a repository's settings", () => {
     ).toHaveAttribute("aria-expanded", "true");
   }
 
-  test("cards, not a four-step dialog: GitHub Commands is on, and a flip saves at once", async ({
+  test("the repository on top; GitHub Commands, Production Review and Runner first under More settings - named while it is folded", async ({
     page,
   }: {
     page: Page;
   }, testInfo: TestInfo) => {
+    await page.goto(SETTINGS);
+
+    const details: Locator = page.getByTestId("card").filter({
+      has: page
+        .getByTestId("card-details-heading")
+        .getByText("Repository Details", { exact: true }),
+    });
+    await expect(details).toBeVisible();
+    await expect(moreSettingsHeader(page)).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    // Folded, it names the first four and counts the rest.
+    await expect(foldedNames(page)).toHaveText([
+      "GitHub Commands",
+      "Production Review",
+      "Runner",
+      "Pull Requests",
+    ]);
+    await expect(
+      moreSettings(page).getByTestId("folded-section-more"),
+    ).toHaveText("2 more");
+    // Nothing folded is in sight: the page is the repository and the fold.
+    await expect(commandsSwitch(page)).toBeHidden();
+    await expect(page.getByTestId("code-repository-runner")).toBeHidden();
+    await expect(page.getByRole("switch")).toHaveCount(0);
+    const detailsBox: { y: number; height: number } | null =
+      await details.boundingBox();
+    const foldBox: { y: number } | null =
+      await moreSettings(page).boundingBox();
+    expect(foldBox!.y).toBeGreaterThanOrEqual(
+      detailsBox!.y + detailsBox!.height,
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repository-settings");
+
+    // Open: every card, in that order, each a section of the one card.
+    await openMoreSettings(page);
+    await expect(
+      moreSettings(page).getByTestId("card-details-heading"),
+    ).toHaveText([
+      "GitHub Commands",
+      "Production Review",
+      "Runner",
+      "Pull Requests",
+      "GitHub Trigger Label",
+      "Production Review Comment",
+    ]);
+    await expect(
+      moreSettings(page).getByTestId("folded-section-description"),
+    ).toHaveText(
+      "GitHub commands, production reviews, where AI works, and where its pull requests open.",
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repository-more-settings-open");
+  });
+
+  test("cards, not a four-step dialog: GitHub Commands is on, and a flip from More settings saves at once", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await page.goto(SETTINGS);
 
     await expect(commandsSwitch(page)).toHaveAttribute("aria-checked", "true");
@@ -1203,13 +1919,11 @@ test.describe("a repository's settings", () => {
       page.getByRole("button", { name: "Edit Settings" }),
     ).toHaveCount(0);
     await expect(page.getByText("Build & Test")).toHaveCount(0);
-    await expect(
-      moreSettings(page).getByRole("button", { name: "More settings" }),
-    ).toHaveAttribute("aria-expanded", "false");
-    await expectNoSidewaysScroll(page);
-    await screenshot(page, testInfo, "code-repository-settings");
 
-    await commandsSwitch(page).click();
+    await openMoreSettings(page);
+    await page
+      .getByRole("switch", { name: "Respond to GitHub Commands" })
+      .click();
     await expect
       .poll(async () => {
         return (await recorded(page)).settings;
@@ -1217,18 +1931,152 @@ test.describe("a repository's settings", () => {
       .toEqual([{ isGitHubCommandsEnabled: false }]);
     await expect(commandsSwitch(page)).toHaveAttribute("aria-checked", "false");
     await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+
+    // Folded again, it says so.
+    await moreSettingsHeader(page).click();
+    await expect(foldedNames(page).first()).toHaveText("GitHub Commands: Off");
   });
 
-  test("a repository that never set it reads as on, and one turned off as off", async ({
+  test("a repository that never set it reads as on, and one turned off as off - said while folded too", async ({
     page,
   }: {
     page: Page;
   }) => {
     await page.goto(`${SETTINGS}?ghcommands=unset`);
     await expect(commandsSwitch(page)).toHaveAttribute("aria-checked", "true");
+    await expect(foldedNames(page).first()).toHaveText("GitHub Commands");
 
     await page.goto(`${SETTINGS}?ghcommands=off`);
     await expect(commandsSwitch(page)).toHaveAttribute("aria-checked", "false");
+    await expect(foldedNames(page).first()).toHaveText("GitHub Commands: Off");
+  });
+
+  test("a link that names a setting lands on it, with More settings open - at a laptop's width and a phone's", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${SETTINGS}#github-commands`);
+
+    await expect(moreSettingsHeader(page)).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    const toggle: Locator = page.getByRole("switch", {
+      name: "Respond to GitHub Commands",
+    });
+    await expect(toggle).toBeVisible();
+    await expect(toggle).toBeInViewport();
+    await screenshot(page, testInfo, "code-repository-settings-at-commands");
+
+    // As it works anywhere: flipped, saved at once.
+    await toggle.click();
+    await expect
+      .poll(async () => {
+        return (await recorded(page)).settings;
+      })
+      .toEqual([{ isGitHubCommandsEnabled: false }]);
+
+    // Opened at a place no setting has, the page opens as ever: folded.
+    await page.goto(`${SETTINGS}?ghcommands=unset#reply`);
+    await expect(moreSettingsHeader(page)).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+  });
+
+  test("a member who may only read: More settings shows every setting, the switches and every Edit locked", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
+    await page.goto(`${SETTINGS}?role=viewer`);
+    await expect(foldedNames(page)).toHaveText([
+      "GitHub Commands",
+      "Production Review",
+      "Runner",
+      "Pull Requests",
+    ]);
+
+    await openMoreSettings(page);
+    for (const name of [
+      "Respond to GitHub Commands",
+      "Review Pull Requests Against Production",
+    ]) {
+      await expect(page.getByRole("switch", { name })).toHaveAttribute(
+        "aria-disabled",
+        "true",
+      );
+    }
+    const edits: Locator = moreSettings(page).getByRole("button", {
+      name: "Edit",
+    });
+    await expect(edits).toHaveCount(4);
+    for (let index: number = 0; index < 4; index++) {
+      await expect(edits.nth(index)).toBeDisabled();
+    }
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repository-settings-read-only");
+
+    // A locked switch saves nothing.
+    await page
+      .getByRole("switch", { name: "Respond to GitHub Commands" })
+      .click({ force: true });
+    expect((await recorded(page)).settings).toEqual([]);
+  });
+
+  test("dark mode: the repository and More settings, open, draw on dark surfaces", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
+    await page.goto(`${SETTINGS}?theme=dark&ghcommands=off&runner=prod`);
+    // Folded: its chips, the set ones too.
+    await expect(foldedNames(page).first()).toHaveText("GitHub Commands: Off");
+
+    const lightSurfaces: () => Promise<Array<string>> = async (): Promise<
+      Array<string>
+    > => {
+      return await page.evaluate((channelPattern: string): Array<string> => {
+        const found: Array<string> = [];
+        for (const element of Array.from(
+          document.querySelectorAll(
+            "[data-testid='card'], [data-testid='code-repository-more-settings'] [data-testid='folded-section'], [data-testid='code-repository-more-settings'] [data-testid='folded-section-item']",
+          ),
+        )) {
+          const background: string =
+            window.getComputedStyle(element).backgroundColor;
+          const channels: Array<number> = (
+            background.match(new RegExp(channelPattern, "g")) || []
+          )
+            .slice(0, 3)
+            .map(Number);
+          if (
+            channels.length === 3 &&
+            channels.every((value: number) => {
+              return value > 200;
+            })
+          ) {
+            found.push(element.getAttribute("data-testid") || "");
+          }
+        }
+        return found;
+      }, COLOUR_CHANNELS.source);
+    };
+
+    expect(await lightSurfaces()).toEqual([]);
+    await screenshot(page, testInfo, "code-repository-settings-dark");
+
+    await openMoreSettings(page);
+    await expect(
+      page.getByTestId("code-repository-runner").getByRole("link"),
+    ).toHaveText("prod-eu-west-1");
+    expect(await lightSurfaces()).toEqual([]);
+    await screenshot(page, testInfo, "code-repository-more-settings-dark");
   });
 
   test("More settings: where pull requests open and how many, and the trigger label - each with its Edit, on one page", async ({
@@ -1237,8 +2085,7 @@ test.describe("a repository's settings", () => {
     page: Page;
   }, testInfo: TestInfo) => {
     await page.goto(SETTINGS);
-    await expect(moreSettings(page)).toContainText("Pull Requests");
-    await expect(moreSettings(page)).toContainText("GitHub Trigger Label");
+    await expect(foldedNames(page).nth(3)).toHaveText("Pull Requests");
 
     await openMoreSettings(page);
     await screenshot(page, testInfo, "code-repository-more-settings");
@@ -1685,7 +2532,11 @@ test.describe("a repository's page: ask AI", () => {
     );
   });
 
-  const SETTINGS_OF_CHECKOUT: string = `${repositoryPath(REPOSITORY.checkout)}/settings`;
+  /*
+   * The repository's settings at its Runner: folded under More settings,
+   * which opens there.
+   */
+  const SETTINGS_OF_CHECKOUT: string = `${repositoryPath(REPOSITORY.checkout)}/settings#runner`;
 
   const BLOCKERS: Array<{
     type: string;
@@ -1911,9 +2762,19 @@ test.describe("a repository's page: ask AI", () => {
  * picked none shows - then the project's own Runners, never the in-cluster
  * Runner the Kubernetes agent chart installed. The fixture records what
  * the settings save.
+ *
+ * The Runner is folded under More settings ("GitHub commands and runner
+ * should be inside of more settings as well"): these open the settings at
+ * the Runner (#runner), as "Pick a Runner" and a Runner's own page do, and
+ * More settings opens there by itself.
  */
 test.describe("a repository's Runner", () => {
   const SETTINGS: string = `${repositoryPath(REPOSITORY.checkout)}/settings`;
+
+  // The settings, at the Runner: the fixture's switches first, then "#runner".
+  function atRunner(search: string = ""): string {
+    return `${SETTINGS}${search ? `?${search}` : ""}#runner`;
+  }
 
   // The Runner card of the repository's settings.
   function settingsCard(page: Page): Locator {
@@ -1984,7 +2845,15 @@ test.describe("a repository's Runner", () => {
   }: {
     page: Page;
   }, testInfo: TestInfo) => {
-    await page.goto(SETTINGS);
+    await page.goto(atRunner());
+
+    // Opened at the Runner: More settings is open, the Runner in sight.
+    await expect(
+      page
+        .getByTestId("code-repository-more-settings")
+        .getByTestId("folded-section-header"),
+    ).toHaveAttribute("aria-expanded", "true");
+    await expect(settingsCard(page)).toBeInViewport();
 
     const value: Locator = await expectRunnerValue(
       page,
@@ -2009,7 +2878,7 @@ test.describe("a repository's Runner", () => {
   }: {
     page: Page;
   }, testInfo: TestInfo) => {
-    await page.goto(SETTINGS);
+    await page.goto(atRunner());
     const modal: Locator = await openRunnerStep(page);
 
     /*
@@ -2070,6 +2939,48 @@ test.describe("a repository's Runner", () => {
       "href",
       `${DASHBOARD}/runbooks/runners/${RUNNER.prod}`,
     );
+
+    // Folded, More settings names it now.
+    await page
+      .getByTestId("code-repository-more-settings")
+      .getByTestId("folded-section-header")
+      .click();
+    await expect(
+      page
+        .getByTestId("code-repository-more-settings")
+        .getByTestId("folded-section-item")
+        .filter({ hasText: "Runner" }),
+    ).toHaveText("Runner: prod-eu-west-1");
+  });
+
+  /*
+   * Every case is held in jsdom (CodeRepositorySettingsPage.test.tsx); here,
+   * one of the project's own Runners and none at all, as the page reads
+   * them. A global Runner - the default, its name alone - is the folded
+   * header of every other settings test.
+   */
+  test("folded, More settings says what a repository works on when it is not a global Runner", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
+    const runnerChip: (search: string) => Promise<Locator> = async (
+      search: string,
+    ): Promise<Locator> => {
+      await page.goto(`${SETTINGS}${search ? `?${search}` : ""}`);
+      const chip: Locator = page
+        .getByTestId("code-repository-more-settings")
+        .locator("[data-testid='folded-section-item'][data-item-key='runner']");
+      await expect(chip).toBeVisible();
+      return chip;
+    };
+
+    const ownRunner: Locator = await runnerChip("runner=prod");
+    await expect(ownRunner).toHaveText("Runner: prod-eu-west-1");
+    await expect(ownRunner).toHaveAttribute("data-item-set", "true");
+    await expect(await runnerChip("uses=0")).toHaveText("Runner: None");
   });
 
   test("picking Global Runner again saves no Runner", async ({
@@ -2077,7 +2988,7 @@ test.describe("a repository's Runner", () => {
   }: {
     page: Page;
   }) => {
-    await page.goto(`${SETTINGS}?runner=prod`);
+    await page.goto(atRunner("runner=prod"));
     await expectRunnerValue(page, "prod-eu-west-1", "Connected");
 
     const modal: Locator = await openRunnerStep(page);
@@ -2097,7 +3008,7 @@ test.describe("a repository's Runner", () => {
   }: {
     page: Page;
   }) => {
-    await page.goto(`${SETTINGS}?uses=0`);
+    await page.goto(atRunner("uses=0"));
     await expect(page.getByTestId("code-repository-runner")).toHaveText(
       "None: this project does not use global Runners",
     );
@@ -2120,7 +3031,7 @@ test.describe("a repository's Runner", () => {
   }: {
     page: Page;
   }) => {
-    await page.goto(`${SETTINGS}?global=0`);
+    await page.goto(atRunner("global=0"));
     await expect(page.getByTestId("code-repository-runner")).toHaveText(
       "None: this server runs no global Runner",
     );
@@ -2137,7 +3048,7 @@ test.describe("a repository's Runner", () => {
      * deleted one leaves it on Global Runner: one the page cannot name is
      * one the reader may not see - never an id, never a warning.
      */
-    await page.goto(`${SETTINGS}?runner=gone`);
+    await page.goto(atRunner("runner=gone"));
     await expect(page.getByTestId("code-repository-runner")).toHaveText(
       "A Runner you do not have access to",
     );
@@ -2158,7 +3069,7 @@ test.describe("a repository's Runner", () => {
   }: {
     page: Page;
   }) => {
-    await page.goto(`${SETTINGS}?gstatus=disconnected`);
+    await page.goto(atRunner("gstatus=disconnected"));
     await expectRunnerValue(page, "Global Runner", "Disconnected");
 
     await openRunnerStep(page);
@@ -2169,11 +3080,31 @@ test.describe("a repository's Runner", () => {
     );
   });
 
-  test("a blocker's Pick a Runner opens the repository's settings, where its Runner is picked", async ({
+  test("a blocker's Pick a Runner opens the repository's settings at its Runner, More settings open there", async ({
     page,
   }: {
     page: Page;
-  }) => {
+  }, testInfo: TestInfo) => {
+    /*
+     * Which settings were marked as landed on, kept as they are marked: the
+     * mark is held for the tint's 2.4 s only (PAGE_ANCHOR_LANDED_IN_MS).
+     */
+    await page.addInitScript(() => {
+      const landed: Array<string> = [];
+      (window as unknown as { __landed: Array<string> }).__landed = landed;
+      new MutationObserver((records: Array<MutationRecord>): void => {
+        for (const record of records) {
+          const target: Element = record.target as Element;
+          if (target.hasAttribute("data-page-anchor-landed")) {
+            landed.push(target.id);
+          }
+        }
+      }).observe(document, {
+        attributes: true,
+        attributeFilter: ["data-page-anchor-landed"],
+        subtree: true,
+      });
+    });
     await openRepository(
       page,
       REPOSITORY.checkout,
@@ -2181,8 +3112,53 @@ test.describe("a repository's Runner", () => {
     );
 
     await page.getByTestId("code-blocker-fix").click();
-    await expect(page).toHaveURL(SETTINGS);
+    await expect(page).toHaveURL(`${SETTINGS}#runner`);
+    await expect(
+      page
+        .getByTestId("code-repository-more-settings")
+        .getByTestId("folded-section-header"),
+    ).toHaveAttribute("aria-expanded", "true");
     await expect(page.getByTestId("code-repository-runner")).toBeVisible();
+    // Landed on: the Runner card in sight, its Edit within reach.
+    await expect(settingsCard(page)).toBeInViewport();
+    await expect(
+      settingsCard(page).getByRole("button", { name: "Edit" }),
+    ).toBeInViewport();
+
+    /*
+     * As high in the window as the page lets it go: its divider where the
+     * sticky header ends (the fixture draws none), no strip of the setting
+     * above it in sight - unless the page ends first.
+     */
+    await expect
+      .poll(async (): Promise<number> => {
+        return await page.evaluate((): number => {
+          const card: Element = document.getElementById("runner")!;
+          const top: number = card.getBoundingClientRect().top;
+          const lowestScroll: number =
+            document.documentElement.scrollHeight - window.innerHeight;
+          const highestTop: number = Math.max(
+            0,
+            top + window.scrollY - lowestScroll,
+          );
+          return Math.round(Math.abs(top - highestTop));
+        });
+      })
+      .toBe(0);
+    // The one marked among the six, and the one holding the focus.
+    expect(
+      await page.evaluate((): Array<string> => {
+        return (window as unknown as { __landed: Array<string> }).__landed;
+      }),
+    ).toEqual(["runner"]);
+    await expect(settingsCard(page)).toBeFocused();
+    await screenshot(page, testInfo, "code-repository-settings-at-runner");
+
+    // So Tab goes on to its Edit, not to the top of the page.
+    await page.keyboard.press("Tab");
+    await expect(
+      settingsCard(page).getByRole("button", { name: "Edit" }),
+    ).toBeFocused();
   });
 });
 
@@ -2726,9 +3702,11 @@ test.describe("a repository's pull requests, reviewed against production", () =>
     await expectNoSidewaysScroll(page);
     await screenshot(page, testInfo, "code-production-reviews");
 
+    // The way to Settings lands on the switch, with More settings open there.
     await page.getByTestId("code-production-reviews-settings").click();
-    await expect(page).toHaveURL(SETTINGS);
+    await expect(page).toHaveURL(`${SETTINGS}#production-review`);
     await expect(reviewSwitch(page)).toHaveAttribute("aria-checked", "true");
+    await expect(reviewSwitch(page)).toBeInViewport();
   });
 
   test("a row opens its review; the repository's own tasks leave the reviews out", async ({
@@ -3017,12 +3995,22 @@ test.describe("a repository's pull requests, reviewed against production", () =>
     ).toHaveCount(0);
   });
 
-  test("the setting: one switch, on for this repository and saved the moment it is flipped - and what a review posts, under More settings", async ({
+  test("the setting: one switch under More settings, on for this repository and saved the moment it is flipped - and what a review posts, beside it", async ({
     page,
   }: {
     page: Page;
   }, testInfo: TestInfo) => {
     await page.goto(SETTINGS);
+    const moreSettings: Locator = page.getByTestId(
+      "code-repository-more-settings",
+    );
+    // Folded, under More settings: named, nothing in sight.
+    await expect(
+      moreSettings.getByTestId("folded-section-item").nth(1),
+    ).toHaveText("Production Review");
+    await expect(reviewSwitch(page)).toHaveCount(0);
+
+    await moreSettings.getByRole("button", { name: "More settings" }).click();
     await expect(reviewSwitch(page)).toHaveAttribute("aria-checked", "true");
     await expect(
       page.getByText(
@@ -3038,13 +4026,7 @@ test.describe("a repository's pull requests, reviewed against production", () =>
       .toEqual([{ isProductionReviewEnabled: false }]);
     await expect(reviewSwitch(page)).toHaveAttribute("aria-checked", "false");
 
-    // Folded, More settings names the choice; open, its card says what it is set to.
-    const moreSettings: Locator = page.getByTestId(
-      "code-repository-more-settings",
-    );
-    await expect(moreSettings).toContainText("Production Review Comment");
-    await moreSettings.getByRole("button", { name: "More settings" }).click();
-
+    // What a review posts is a card of its own in the same fold.
     const comment: Locator = page.getByTestId("card").filter({
       has: page
         .getByTestId("card-details-heading")
@@ -3078,6 +4060,12 @@ test.describe("a repository's pull requests, reviewed against production", () =>
       comment.getByTestId("production-review-content-value"),
     ).toHaveText("Only a link to the review");
     await expectNoSidewaysScroll(page);
+
+    // Folded again, More settings says the switch is off.
+    await moreSettings.getByRole("button", { name: "More settings" }).click();
+    await expect(
+      moreSettings.getByTestId("folded-section-item").nth(1),
+    ).toHaveText("Production Review: Off");
   });
 
   test("a repository connected before production review existed reads as off; the reviews page then says how to ask", async ({
@@ -3085,7 +4073,7 @@ test.describe("a repository's pull requests, reviewed against production", () =>
   }: {
     page: Page;
   }) => {
-    await page.goto(`${SETTINGS}?review=unset`);
+    await page.goto(`${SETTINGS}?review=unset#production-review`);
     await expect(reviewSwitch(page)).toHaveAttribute("aria-checked", "false");
 
     await page.goto(`${REVIEWS}?review=unset`);
@@ -3169,12 +4157,20 @@ test.describe("a repository's pull requests, reviewed against production", () =>
       "Erneut prüfen",
     );
 
-    await page.goto(`${SETTINGS}?lang=de`);
+    await page.goto(`${SETTINGS}?lang=de#production-review`);
     await expect(
       page.getByRole("switch", {
         name: "Pull Requests gegen die Produktion prüfen",
       }),
     ).toBeVisible();
+    // Under More settings, which says what it holds in German too.
+    await expect(
+      page
+        .getByTestId("code-repository-more-settings")
+        .getByTestId("folded-section-description"),
+    ).toHaveText(
+      "GitHub-Befehle, Produktionsprüfungen, wo die KI arbeitet und wo ihre Pull Requests geöffnet werden.",
+    );
   });
 });
 

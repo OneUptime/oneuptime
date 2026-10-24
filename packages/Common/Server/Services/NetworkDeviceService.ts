@@ -62,6 +62,12 @@ import {
   parseDeviceHealthGroup,
 } from "../Utils/NetworkDevice/DeviceHealthAggregation";
 import { SubscriptionStatusUtil } from "../../Types/Billing/SubscriptionStatus";
+import {
+  isDiscoveredDetailsKey,
+  readNetworkDeviceDiscoveredDetails,
+  sanitizeDiscoveredDetailsOnWrite,
+  toDiscoveredDetailsJson,
+} from "../../Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
 
 /**
@@ -272,6 +278,48 @@ function recordDiscoveredNameOnCreate(data: Record<string, unknown>): void {
 
   data["discoveredName"] = name;
 }
+
+/*
+ * What a discovery import may create a device with in its discovered details
+ * (OneUptime issue #5185): exactly what OneUptime itself would have written,
+ * read back through the same reader every other reader uses. Anything else -
+ * an unknown key, a value its normaliser refuses, a reader that does not
+ * read that field - is dropped rather than refused, so an import never fails
+ * over bookkeeping. A SQL-expression function is left alone, for the reason
+ * normalizeMacAddressOnWrite gives.
+ */
+function sanitizeDiscoveredDetailsOnCreate(
+  data: Record<string, unknown>,
+): void {
+  if (!("discoveredDetails" in data)) {
+    return;
+  }
+
+  const raw: unknown = data["discoveredDetails"];
+
+  if (raw === undefined || typeof raw === "function") {
+    return;
+  }
+
+  data["discoveredDetails"] = sanitizeDiscoveredDetailsOnWrite(raw);
+}
+
+/*
+ * One device's change to its discovered details: whole entries to set, and
+ * keys to drop. See NetworkDeviceService.mergeDiscoveredDetails.
+ */
+export interface DiscoveredDetailsMerge {
+  deviceId: ObjectID | string;
+  set?: Record<string, unknown> | undefined;
+  unset?: Array<string> | undefined;
+}
+
+/*
+ * Patches per mergeDiscoveredDetails statement. Every patch rides in ONE
+ * jsonb parameter, so the bound is on the statement's size (a few hundred
+ * bytes per device), not on Postgres's parameter count.
+ */
+export const DISCOVERED_DETAILS_MERGE_CHUNK_SIZE: number = 500;
 
 function normalizeIdentityValue(value: unknown): string {
   if (value === null || value === undefined) {
@@ -1313,6 +1361,11 @@ export class Service extends ProjectReferencesService<Model> {
 
     // The name a discovery import created the device under, and from where.
     recordDiscoveredNameOnCreate(
+      createBy.data as unknown as Record<string, unknown>,
+    );
+
+    // What the scan it is imported from read about it, and nothing else.
+    sanitizeDiscoveredDetailsOnCreate(
       createBy.data as unknown as Record<string, unknown>,
     );
 
@@ -2465,6 +2518,22 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
+    /*
+     * Everything discovery read about a device was read at its address. A
+     * device moved to a new address keeps none of it: the next scan of the
+     * new address, its next poll and the routers' next walks read it again.
+     */
+    try {
+      await this.clearDiscoveredDetailsAfterAddressChange(
+        onUpdate,
+        updatedItemIds,
+      );
+    } catch (error) {
+      logger.error(
+        `Error in NetworkDeviceService.onUpdateSuccess clearing discovered details after an address change: ${error}`,
+      );
+    }
+
     try {
       await this.reconcileAlertPoliciesAfterUpdate(onUpdate, updatedItemIds);
     } catch (error) {
@@ -3111,6 +3180,144 @@ export class Service extends ProjectReferencesService<Model> {
     );
 
     return claimedIds;
+  }
+
+  /*
+   * The devices of this update whose address changed lose their discovered
+   * details (issue #5185). Read off the snapshot onBeforeUpdate takes for
+   * every write of an identity column, hostname among them. Hook-free and
+   * without moving updatedAt: it is the server's bookkeeping, riding on a
+   * write that already moved it.
+   */
+  private async clearDiscoveredDetailsAfterAddressChange(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<void> {
+    const data: Record<string, unknown> = (onUpdate.updateBy.data ||
+      {}) as unknown as Record<string, unknown>;
+
+    if (!("hostname" in data) || data["hostname"] === undefined) {
+      return;
+    }
+
+    const newAddress: string = normalizeIdentityValue(data["hostname"]);
+    const updatedIds: Set<string> = new Set<string>(
+      updatedItemIds.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    );
+    const previousDevices: Array<Model> =
+      (onUpdate.carryForward?.previousDevices as Array<Model> | undefined) ||
+      [];
+
+    for (const previousDevice of previousDevices) {
+      if (!previousDevice.id || !updatedIds.has(previousDevice.id.toString())) {
+        continue;
+      }
+
+      if (normalizeIdentityValue(previousDevice.hostname) === newAddress) {
+        continue;
+      }
+
+      await this.updateColumnsByIdWithoutHooks({
+        id: previousDevice.id,
+        data: { discoveredDetails: null } as unknown as PartialEntity<Model>,
+        skipUpdateDateColumn: true,
+      });
+    }
+  }
+
+  /*
+   * Merges what discovery read into devices' discovered details (OneUptime
+   * issue #5185) - the one way the server writes that column after a device
+   * is created.
+   *
+   * Three writers share the column: the discovery engine (what a scan read
+   * at each device's address), the ARP learner (the MAC a router's table
+   * gave a device) and the poll pipeline (the address a device's DNS name
+   * resolves to). Each owns its own top-level keys, and a merge is
+   * `(details - unset) || set` inside one UPDATE, so a writer can never
+   * overwrite a key another one wrote moments earlier: the row lock
+   * serialises the statements, and each reads the column as the one before
+   * it left it. No read-modify-write, so no lost update.
+   *
+   * Batched: every patch of a chunk travels in ONE jsonb parameter and is
+   * unpacked by jsonb_to_recordset, so a scan that reports thousands of
+   * registered devices costs a statement per DISCOVERED_DETAILS_MERGE_
+   * CHUNK_SIZE devices rather than one per device. Scoped to the project the
+   * caller names and to devices that are not deleted, so a patch can never
+   * reach another tenant's row, nor bring a deleted one back to life.
+   *
+   * Every entry is re-read through the column's own reader before it is
+   * written, and only the column's own keys may be set or dropped: what
+   * reaches the database is exactly what the reader accepts.
+   *
+   * Hook-free and leaves `updatedAt` alone, like the poll's own bookkeeping
+   * writes: nothing about the device's settings changed. Returns how many
+   * patches were sent.
+   */
+  @CaptureSpan()
+  public async mergeDiscoveredDetails(data: {
+    projectId: ObjectID;
+    patches: Array<DiscoveredDetailsMerge>;
+  }): Promise<number> {
+    const rows: Array<{
+      id: string;
+      set: Record<string, unknown>;
+      unset: Array<string>;
+    }> = [];
+
+    for (const patch of data.patches) {
+      const id: string = patch.deviceId ? patch.deviceId.toString() : "";
+
+      if (!ObjectID.isValidUUID(id)) {
+        continue;
+      }
+
+      const set: Record<string, unknown> = toDiscoveredDetailsJson(
+        readNetworkDeviceDiscoveredDetails(patch.set || {}),
+      );
+      const unset: Array<string> = (patch.unset || []).filter(
+        (key: string): boolean => {
+          return isDiscoveredDetailsKey(key) && !(key in set);
+        },
+      );
+
+      if (Object.keys(set).length === 0 && unset.length === 0) {
+        continue;
+      }
+
+      rows.push({ id: id, set: set, unset: unset });
+    }
+
+    for (
+      let offset: number = 0;
+      offset < rows.length;
+      offset += DISCOVERED_DETAILS_MERGE_CHUNK_SIZE
+    ) {
+      const chunk: Array<{
+        id: string;
+        set: Record<string, unknown>;
+        unset: Array<string>;
+      }> = rows.slice(offset, offset + DISCOVERED_DETAILS_MERGE_CHUNK_SIZE);
+
+      await this.getRepository().manager.query(
+        `
+        UPDATE "NetworkDevice" AS nd
+        SET "discoveredDetails" =
+          (COALESCE(nd."discoveredDetails", '{}'::jsonb) - patch."unset")
+          || patch."set"
+        FROM jsonb_to_recordset($1::jsonb)
+          AS patch("id" uuid, "set" jsonb, "unset" text[])
+        WHERE nd."_id" = patch."id"
+          AND nd."projectId" = $2
+          AND nd."deletedAt" IS NULL
+      `,
+        [JSON.stringify(chunk), data.projectId.toString()],
+      );
+    }
+
+    return rows.length;
   }
 }
 

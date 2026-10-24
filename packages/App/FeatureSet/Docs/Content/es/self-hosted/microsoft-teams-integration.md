@@ -58,7 +58,7 @@ En el [portal de Azure](https://portal.azure.com), abre **App registrations** y 
 Selecciona **Register** y después añade un segundo URI de redirección Web, `https://your-oneuptime-domain.com/api/microsoft-teams/admin-consent/callback`. Anota el **Application (client) ID** y el **Directory (tenant) ID**: necesitarás ambos más adelante.
 
 > [!NOTE]
-> **Por qué un solo inquilino:** una instancia autoalojada de OneUptime sirve a una organización, y su bot está registrado para el único inquilino que defines en `MICROSOFT_TEAMS_APP_TENANT_ID` (paso 6). Registrar la aplicación como multiinquilino no amplía eso e introduce un modo de fallo: los usuarios invitados / B2B cuyo inquilino de Microsoft de origen es distinto del tuyo llegan al bot con su propio ID de inquilino, que OneUptime no puede asociar con tu proyecto. Si ya registraste una aplicación multiinquilino, seguirá funcionando; solo asegúrate de que `MICROSOFT_TEAMS_APP_TENANT_ID` sea tu propio inquilino, y cuenta con que las cuentas invitadas necesitarán una cuenta en tu inquilino para usar el bot.
+> **Por qué un solo inquilino:** un OneUptime autoalojado sirve a una organización e inicia la sesión de todos en su inquilino: los administradores que dan el consentimiento y cada persona que selecciona **Connect my account with Microsoft Teams**. Los invitados de tu organización inician sesión con su cuenta de invitado, la que Teams usa para ellos. Una aplicación multiinquilino funciona igual, pero un solo inquilino limita la aplicación a tu organización.
 
 ### Paso 2: Configura los permisos de la aplicación
 
@@ -193,7 +193,7 @@ Notas:
 | --- | --- | --- |
 | `MICROSOFT_TEAMS_APP_CLIENT_ID` | `microsoftTeamsApp.clientId` | El **Application (client) ID**. También es el ID del bot en el paquete de aplicación de Teams, así que debe ser un GUID. |
 | `MICROSOFT_TEAMS_APP_CLIENT_SECRET` | `microsoftTeamsApp.clientSecret` | El **Value** del secreto de cliente, no su ID. |
-| `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | El **Directory (tenant) ID**. El bot se autentica como aplicación de un solo inquilino en este inquilino. |
+| `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | El **Directory (tenant) ID**. El bot se autentica como aplicación de un solo inquilino en este inquilino, y las personas inician sesión en él para conectar su cuenta de Microsoft Teams. |
 | `HOST` | `host` | Tu nombre de host público. Los URI de redirección, el endpoint de mensajería y el paquete de aplicación de Teams se construyen a partir de él. |
 | `HTTP_PROTOCOL` | `httpProtocol` | `https`. Azure Bot Service solo llama a endpoints HTTPS. |
 
@@ -320,7 +320,7 @@ Un chat de grupo que no tiene nombre en Teams aparece con los nombres de sus mie
 curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test | jq
 ```
 
-Esto informa de lo que OneUptime puede ver localmente: si `MICROSOFT_TEAMS_APP_CLIENT_ID` y `MICROSOFT_TEAMS_APP_CLIENT_SECRET` están definidos, el endpoint de mensajería que espera esta instancia y, lo más útil, el **ID de bot** que debe llevar tu paquete de aplicación de Teams.
+Esto informa de lo que OneUptime puede ver localmente: si `MICROSOFT_TEAMS_APP_CLIENT_ID`, `MICROSOFT_TEAMS_APP_CLIENT_SECRET` y `MICROSOFT_TEAMS_APP_TENANT_ID` están definidos, el inquilino en el que las personas inician sesión al conectar su cuenta, el endpoint de mensajería que espera esta instancia y, lo más útil, el **ID de bot** que debe llevar tu paquete de aplicación de Teams.
 
 Lee variables de entorno y nada más. No llama a Azure, así que no puede decirte si existe el recurso Azure Bot, si su endpoint de mensajería apunta aquí, si el canal de Teams está activado, si el secreto sigue siendo válido o si Azure puede llegar a ti. La respuesta lo dice ella misma, enumerando lo que comprobó y lo que no, para que nunca se tome por luz verde.
 
@@ -389,7 +389,15 @@ Cuando Microsoft te devuelve y la conexión no se hizo (al conceder el consentim
 | **"Iniciaste sesión en Microsoft como una persona distinta de la que pulsó el botón de conexión en Microsoft Teams, así que no se conectó nada."** | Un botón **Connect Microsoft Teams account** solo funciona para la cuenta de Microsoft que lo pulsó. Inicia sesión en Microsoft como tú mismo, o pide a la persona que lo pulsó que lo pulse. |
 | **"Se canceló la conexión, así que no se cambió nada."** | No se concedió el consentimiento en Microsoft. Empieza de nuevo y acéptalo. |
 | **"Microsoft Teams no está configurado en este servidor de OneUptime."** | Define el ID de cliente y el secreto de la aplicación de Microsoft Teams (consulta el [paso 6](#paso-6-configura-las-variables-de-entorno-de-oneuptime)) y reinicia OneUptime. |
-| **"OneUptime no pudo terminar la conexión. Inténtalo de nuevo."** | Microsoft respondió con un error, o falló una solicitud o una escritura al terminar. El log del servidor de OneUptime dice cuál. Vuelve a intentarlo; si sigue pasando, revisa el log y los ajustes del registro de aplicación. |
+| **"OneUptime no pudo terminar la conexión. Inténtalo de nuevo."** | Microsoft respondió con un error, o falló una solicitud o una escritura al terminar. El log del servidor de OneUptime dice cuál. Vuelve a intentarlo; si sigue pasando, revisa el log y los ajustes del registro de aplicación. Si Microsoft respondió `AADSTS50194`, consulta [El inicio de sesión falla con AADSTS50194](#el-inicio-de-sesión-falla-con-aadsts50194). |
+
+### El inicio de sesión falla con AADSTS50194
+
+Microsoft rechaza el inicio de sesión con `AADSTS50194` cuando la aplicación está registrada para una sola organización y el inicio de sesión va al endpoint de Microsoft para todas las organizaciones, `/common`. La página de Microsoft Teams dice entonces que OneUptime no pudo terminar la conexión, y el log del servidor de OneUptime tiene la respuesta de Microsoft.
+
+- **Actualiza OneUptime.** Las versiones anteriores enviaban **Connect my account with Microsoft Teams** a `/common`, así que con una aplicación de un solo inquilino, como la del paso 1, nadie podía conectar su cuenta. Las versiones actuales inician la sesión de las personas en tu inquilino.
+- **Hasta que puedas actualizar,** haz que el registro de aplicación sea multiinquilino: en **Authentication**, cambia **Supported account types** a cuentas de cualquier directorio organizativo. Para limitar la aplicación a tu gente, ábrela en **Enterprise applications**, pon **Assignment required?** en Yes en **Properties** y añade en **Users and groups** a las personas que usan OneUptime. Vuelve a dejarla de un solo inquilino después de actualizar.
+- **En una versión actual,** comprueba que `MICROSOFT_TEAMS_APP_TENANT_ID` tenga el **Directory (tenant) ID** de la aplicación: un proyecto que aún no está conectado inicia la sesión de las personas en ese inquilino.
 
 Queremos mejorar esta integración, así que agradecemos tus comentarios en [hello@oneuptime.com](mailto:hello@oneuptime.com).
 

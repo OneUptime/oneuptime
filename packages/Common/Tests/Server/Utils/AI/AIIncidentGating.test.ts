@@ -99,14 +99,14 @@ function gate(): Promise<IncidentGateDecision> {
   });
 }
 
-// No investigation rule unless a test sets some: every incident is in scope.
+// No AI rule that investigates unless a test sets some: every incident is in scope.
 beforeEach(() => {
   jest
     .spyOn(InvestigationRules, "getIncidentScope")
     .mockResolvedValue({ isInScope: true, rulesChecked: 0 });
 });
 
-describe("AIIncidentInvestigationRunner.shouldInvestigateIncident — investigation rules", () => {
+describe("AIIncidentInvestigationRunner.shouldInvestigateIncident — AI rules that investigate", () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -131,7 +131,7 @@ describe("AIIncidentInvestigationRunner.shouldInvestigateIncident — investigat
       notStartedDetails: { rulesChecked: 3 },
       monitorId: MONITOR_A,
     });
-    expect(decision.reason).toContain("investigation rules");
+    expect(decision.reason).toContain("AI rules that investigate");
     // Checked first: neither the floor nor the cooldown is read.
     expect(project).not.toHaveBeenCalled();
     expect(runs).not.toHaveBeenCalled();

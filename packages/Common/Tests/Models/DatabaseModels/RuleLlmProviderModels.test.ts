@@ -1,4 +1,3 @@
-import AIInvestigationRule from "../../../Models/DatabaseModels/AIInvestigationRule";
 import AIPostmortemRule from "../../../Models/DatabaseModels/AIPostmortemRule";
 import AIRun from "../../../Models/DatabaseModels/AIRun";
 import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
@@ -16,7 +15,8 @@ import type { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadat
  * Where an AI rule keeps the LLM provider it picks, and where a run keeps the
  * pick of the rule that started it (Common/Types/AI/LlmProviderChoice):
  *
- *   - each rule kind - investigation, auto remediation, postmortem - has
+ *   - each rule kind - AI rule (investigation and auto remediation rules
+ *     merged), postmortem - has
  *     "llmProvider" (the relation) and "llmProviderId" (its id), written and
  *     read by exactly whoever writes and reads the rule's own name: the pick
  *     is part of the rule;
@@ -32,7 +32,6 @@ import type { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadat
 type RuleModel = { new (): BaseModel };
 
 const RULE_MODELS: Array<[string, RuleModel]> = [
-  ["AIInvestigationRule", AIInvestigationRule],
   ["AutoRemediationRule", AutoRemediationRule],
   ["AIPostmortemRule", AIPostmortemRule],
 ];
