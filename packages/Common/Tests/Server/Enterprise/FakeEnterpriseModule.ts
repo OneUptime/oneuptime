@@ -10,7 +10,9 @@ import EnterpriseServerModule, {
   AuditLogRecorder,
   ENTERPRISE_SERVER_MODULE_NAME,
   EnterpriseLicensingProvider,
+  ProjectBillingHooks,
 } from "../../../Server/Enterprise/EnterpriseServerModule";
+import type BillingProvider from "../../../Server/Types/Billing/BillingProvider";
 import type { ExpressRouter } from "../../../Server/Utils/Express";
 import type { ProductBranding } from "../../../Types/Branding/ProductBranding";
 import { setTestBillingEnabled } from "./TestBillingFlag";
@@ -128,6 +130,29 @@ export const createAuditLogRecorderSpy: () => MockedAuditLogRecorder =
     };
   };
 
+/*
+ * Each method is both the hook and a jest spy that does nothing, so a test
+ * can assert on what ProjectService told OneUptime Cloud's billing.
+ */
+export type MockedProjectBillingHooks = {
+  [K in keyof ProjectBillingHooks]: ProjectBillingHooks[K] & jest.Mock;
+};
+
+export const createProjectBillingHooksSpy: () => MockedProjectBillingHooks =
+  (): MockedProjectBillingHooks => {
+    return {
+      beforeProjectsDelete: jest.fn(async (): Promise<void> => {
+        return undefined;
+      }) as unknown as MockedProjectBillingHooks["beforeProjectsDelete"],
+      afterProjectsDelete: jest.fn(async (): Promise<void> => {
+        return undefined;
+      }) as unknown as MockedProjectBillingHooks["afterProjectsDelete"],
+      afterMarketplacePlanChange: jest.fn(async (): Promise<void> => {
+        return undefined;
+      }) as unknown as MockedProjectBillingHooks["afterMarketplacePlanChange"],
+    };
+  };
+
 export interface FakeEnterpriseModuleOptions {
   /*
    * What getCachedSnapshot() and getSnapshot() return. Defaults to a valid,
@@ -153,6 +178,16 @@ export interface FakeEnterpriseModuleOptions {
    * itself. Defaults to null (OneUptime's own).
    */
   productBranding?: ProductBranding | null | undefined;
+  /*
+   * What getBillingProvider() answers: the payment provider BillingService
+   * hands its calls to. Defaults to null (no provider, as with billing off).
+   */
+  billingProvider?: BillingProvider | null | undefined;
+  /*
+   * What getProjectBillingHooks() answers. Defaults to null (no hooks, as
+   * with billing off).
+   */
+  projectBillingHooks?: ProjectBillingHooks | null | undefined;
 }
 
 class FakeLicensingProvider implements EnterpriseLicensingProvider {
@@ -232,6 +267,12 @@ export default class FakeEnterpriseModule implements EnterpriseServerModule {
   public productBranding: ProductBranding | null;
   // When set, getProductBranding throws it.
   public productBrandingError: Error | undefined = undefined;
+  public billingProvider: BillingProvider | null;
+  // When set, getBillingProvider throws it.
+  public billingProviderError: Error | undefined = undefined;
+  public projectBillingHooks: ProjectBillingHooks | null;
+  // When set, getProjectBillingHooks throws it.
+  public projectBillingHooksError: Error | undefined = undefined;
   public initCount: number = 0;
   public registerWorkerJobsCount: number = 0;
 
@@ -246,6 +287,8 @@ export default class FakeEnterpriseModule implements EnterpriseServerModule {
         ? createAuditLogRecorderSpy()
         : options.auditLogRecorder;
     this.productBranding = options.productBranding || null;
+    this.billingProvider = options.billingProvider || null;
+    this.projectBillingHooks = options.projectBillingHooks || null;
   }
 
   public getProductBranding(): ProductBranding | null {
@@ -254,6 +297,22 @@ export default class FakeEnterpriseModule implements EnterpriseServerModule {
     }
 
     return this.productBranding;
+  }
+
+  public getBillingProvider(): BillingProvider | null {
+    if (this.billingProviderError) {
+      throw this.billingProviderError;
+    }
+
+    return this.billingProvider;
+  }
+
+  public getProjectBillingHooks(): ProjectBillingHooks | null {
+    if (this.projectBillingHooksError) {
+      throw this.projectBillingHooksError;
+    }
+
+    return this.projectBillingHooks;
   }
 
   public async init(): Promise<void> {
@@ -343,11 +402,14 @@ export interface LicenseStateCase {
 
 /*
  * A license that entitles everything except the runtime features (SCIM, audit
- * logs, retention overrides).
+ * logs, retention overrides, status pages without Powered by OneUptime).
  */
 export const FEATURES_WITHOUT_RUNTIME_FEATURES: Array<EnterpriseFeature> = [
   EnterpriseFeature.TeamCompliance,
   EnterpriseFeature.InstanceHealth,
+  EnterpriseFeature.CustomRoles,
+  EnterpriseFeature.IpAllowlists,
+  EnterpriseFeature.StatusPageAccessControls,
 ];
 
 export const LICENSE_STATE_CASES: ReadonlyArray<LicenseStateCase> = [

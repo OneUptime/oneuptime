@@ -19,7 +19,7 @@ Abre una página de estado: la sección **Marca** de su menú lateral tiene tres
 | **Dominios personalizados** | Tu propio dominio, su registro DNS y su certificado SSL gratuito. |
 | **HTML, CSS y JavaScript** | HTML de la cabecera, HTML del pie de página, CSS personalizado y JavaScript personalizado. |
 
-Tres cosas que parecen de marca están en cambio en **Páginas de estado → tu página → Avanzado → Ajustes avanzados** (`{id}/settings`), porque deciden qué muestra la página y no su aspecto: el porcentaje de tiempo de actividad general, qué estados de monitor cuentan contra el tiempo de actividad y la línea «Powered by OneUptime». Las tres son filas de la tarjeta **Lo que muestra tu página de estado** de esa pantalla.
+Tres cosas que parecen de marca están en cambio en **Páginas de estado → tu página → Avanzado → Ajustes avanzados** (`{id}/settings`), porque deciden qué muestra la página y no su aspecto: el porcentaje de tiempo de actividad general, qué estados de monitor cuentan contra el tiempo de actividad y la línea «Powered by OneUptime». Las dos primeras son filas de la tarjeta **Lo que muestra tu página de estado** de esa pantalla, y la línea tiene su propia tarjeta, justo debajo.
 
 Antes, la marca estaba repartida en pantallas separadas: **Marca esencial**, **Cabecera**, **Pie de página**, **Página de vista general** e **Idiomas**. Sus antiguas direcciones (`{id}/header-style`, `{id}/footer-style`, `{id}/overview-page-branding` y `{id}/languages`) abren ahora la página **Marca**, así que los marcadores y enlaces antiguos siguen funcionando.
 
@@ -295,7 +295,7 @@ Lo mismo vale para las claves de API. Una clave que solo puede leer los dominios
 
 ## Powered by OneUptime
 
-La línea «Powered by OneUptime» no es un ajuste de marca. Es el último interruptor de la tarjeta **Lo que muestra tu página de estado**, en **Páginas de estado → tu página → Avanzado → Ajustes avanzados** (`{id}/settings`): **Mostrar la marca Powered By OneUptime**, activado de forma predeterminada. Desactívalo para ocultar la línea; se guarda al momento. En OneUptime Cloud, ocultarla requiere el plan **Scale**.
+La línea «Powered by OneUptime» no es un ajuste de marca. Tiene su propia tarjeta, **Powered by OneUptime**, debajo de la tarjeta **Lo que muestra tu página de estado**, en **Páginas de estado → tu página → Avanzado → Ajustes avanzados** (`{id}/settings`): **Mostrar la marca Powered By OneUptime**, activado de forma predeterminada. Desactívalo para ocultar la línea; se guarda al momento. En OneUptime Cloud, ocultarla requiere el plan **Scale**. En instalaciones autoalojadas, ocultarla forma parte de la Enterprise Edition: en la Community Edition, todas las páginas de estado muestran la línea.
 
 ## Próximos pasos
 

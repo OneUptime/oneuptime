@@ -474,7 +474,8 @@ describe("BillingPaymentMethodAPI", () => {
 
     /*
      * The service translates a failed provider write into an Exception before
-     * it gets here (BillingService.writePaymentProvider). That matters at this
+     * it gets here (writePaymentProvider, in the Stripe provider BillingService
+     * hands its calls to: ee/Server/Billing). That matters at this
      * boundary: the global handler only formats an Exception, so anything else
      * is answered as an opaque 500 {"error":"Server Error"} - and the billing
      * page would then tell the customer "Reason: Server Error" for what is

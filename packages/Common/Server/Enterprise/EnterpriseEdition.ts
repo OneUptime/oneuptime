@@ -7,7 +7,9 @@ import {
 } from "./EnterpriseLicenseSnapshot";
 import EnterpriseServerModule, {
   AuditLogRecorder,
+  ProjectBillingHooks,
 } from "./EnterpriseServerModule";
+import type BillingProvider from "../Types/Billing/BillingProvider";
 /*
  * EnvironmentConfig never imports anything under Server/Enterprise, so this
  * import cannot form a cycle. IsBillingEnabled is only ever read inside a
@@ -33,6 +35,16 @@ const ENTERPRISE_FEATURE_BY_TABLE_NAME: ReadonlyMap<string, EnterpriseFeature> =
     ["ProjectSCIM", EnterpriseFeature.SCIM],
     ["StatusPageSCIM", EnterpriseFeature.SCIM],
     ["TeamComplianceSetting", EnterpriseFeature.TeamCompliance],
+    /*
+     * A custom role, the permissions in it, and the teams and API keys it
+     * is given to. What a team or a key already holds through a role is
+     * its own TeamPermission or ApiKeyPermission rows (CustomRoleSync), so
+     * it keeps applying in every edition.
+     */
+    ["CustomRole", EnterpriseFeature.CustomRoles],
+    ["CustomRolePermission", EnterpriseFeature.CustomRoles],
+    ["TeamCustomRole", EnterpriseFeature.CustomRoles],
+    ["ApiKeyCustomRole", EnterpriseFeature.CustomRoles],
   ]);
 
 /*
@@ -59,6 +71,18 @@ export const TELEMETRY_RETENTION_RESOURCE_TABLE_NAMES: ReadonlyArray<string> = [
 ];
 
 /*
+ * The tables with an IP allow-list (ipWhitelist): a private status page, a
+ * public dashboard and a form. Setting or changing one needs
+ * EnterpriseFeature.IpAllowlists; a list already set is enforced in every
+ * edition, because dropping it would open what its owners restricted.
+ */
+export const IP_ALLOWLIST_TABLE_NAMES: ReadonlyArray<string> = [
+  "StatusPage",
+  "Dashboard",
+  "Form",
+];
+
+/*
  * Enterprise configuration kept in COLUMNS of core models rather than in a
  * model of its own, keyed by table name and then column. Writing a value to
  * one of these columns needs the column's feature, exactly as creating or
@@ -73,6 +97,14 @@ export const TELEMETRY_RETENTION_RESOURCE_TABLE_NAMES: ReadonlyArray<string> = [
  *   <resource>.retainTelemetryDataForDays  per-service and per-resource
  *   <resource>.telemetryRetentionConfig    retention, and their retention by
  *                                          telemetry type.
+ *   StatusPage, Dashboard, Form            the IP allow-list.
+ *     .ipWhitelist
+ *   StatusPage                             removing "Powered by OneUptime".
+ *     .hidePoweredByOneUptimeBranding
+ *   StatusPage                             the access controls: how long
+ *     .privateUserSessionLengthInHours     private users stay signed in, only
+ *     .limitSubscribersToPrivateUsers      private users can subscribe, and
+ *     .allowedSubscriberEmailDomains       subscribers' email domains.
  */
 const ENTERPRISE_FEATURE_BY_TABLE_COLUMN: ReadonlyMap<
   string,
@@ -95,6 +127,20 @@ const ENTERPRISE_FEATURE_BY_TABLE_COLUMN: ReadonlyMap<
       ];
     },
   ),
+  [
+    "StatusPage",
+    {
+      ipWhitelist: EnterpriseFeature.IpAllowlists,
+      hidePoweredByOneUptimeBranding: EnterpriseFeature.StatusPageBranding,
+      privateUserSessionLengthInHours:
+        EnterpriseFeature.StatusPageAccessControls,
+      limitSubscribersToPrivateUsers:
+        EnterpriseFeature.StatusPageAccessControls,
+      allowedSubscriberEmailDomains: EnterpriseFeature.StatusPageAccessControls,
+    },
+  ],
+  ["Dashboard", { ipWhitelist: EnterpriseFeature.IpAllowlists }],
+  ["Form", { ipWhitelist: EnterpriseFeature.IpAllowlists }],
 ]);
 
 /*
@@ -105,6 +151,7 @@ export const RUNTIME_ENTERPRISE_FEATURES: ReadonlyArray<EnterpriseFeature> = [
   EnterpriseFeature.SCIM,
   EnterpriseFeature.AuditLogs,
   EnterpriseFeature.TelemetryRetention,
+  EnterpriseFeature.StatusPageBranding,
 ];
 
 // How the lapse log names each feature.
@@ -117,6 +164,13 @@ const FEATURE_NAMES: ReadonlyMap<EnterpriseFeature, string> = new Map<
   [EnterpriseFeature.TeamCompliance, "team compliance"],
   [EnterpriseFeature.InstanceHealth, "the OneUptime Health dashboards"],
   [EnterpriseFeature.TelemetryRetention, "retention overrides"],
+  [EnterpriseFeature.CustomRoles, "custom roles"],
+  [EnterpriseFeature.IpAllowlists, "IP allow-lists"],
+  [
+    EnterpriseFeature.StatusPageBranding,
+    "removing Powered by OneUptime from status pages",
+  ],
+  [EnterpriseFeature.StatusPageAccessControls, "status page access controls"],
 ]);
 
 /*
@@ -149,7 +203,9 @@ export type EnterpriseFeatureStateListener = (
  *   isFeatureActive()     the ee code is present AND the feature is licensed
  *                         right now. Governs RUNTIME behaviour: SCIM
  *                         provisioning and its team locks, audit-log
- *                         recording. When a self-hosted license lapses these
+ *                         recording, retention overrides and status pages
+ *                         without "Powered by OneUptime". When a self-hosted
+ *                         license lapses these
  *                         stop, exactly as on the Community Edition, and they
  *                         resume without a restart when a license is
  *                         activated. An UNKNOWN license state counts as
@@ -241,7 +297,9 @@ export default class EnterpriseEdition {
 
   /*
    * Whether the feature's runtime behaviour runs right now: SCIM provisioning
-   * and its team locks (SCIM), audit-log recording (AuditLogs). Synchronous,
+   * and its team locks (SCIM), audit-log recording (AuditLogs), retention
+   * overrides at ingest (TelemetryRetention) and status pages served without
+   * "Powered by OneUptime" (StatusPageBranding). Synchronous,
    * because it is asked on every request that could need it; the license
    * changes at runtime and routers are mounted once, so callers ask per
    * request.
@@ -509,6 +567,57 @@ export default class EnterpriseEdition {
     } catch (err) {
       logger.error(
         "EnterpriseEdition: the enterprise module failed to provide its audit log recorder.",
+      );
+      logger.error(err);
+      return null;
+    }
+  }
+
+  /*
+   * The payment provider OneUptime Cloud bills cards through, or null: on the
+   * Community Edition, when the module has no say in it, when it answers null
+   * (billing off) and when it fails. Never throws - BillingService asks on
+   * every payment-provider call, and without a provider it answers as a
+   * server without billing does.
+   */
+  public static getBillingProvider(): BillingProvider | null {
+    const enterpriseModule: EnterpriseServerModule | null =
+      EnterpriseEdition.module;
+
+    if (!enterpriseModule || !enterpriseModule.getBillingProvider) {
+      return null;
+    }
+
+    try {
+      return enterpriseModule.getBillingProvider() || null;
+    } catch (err) {
+      logger.error(
+        "EnterpriseEdition: the enterprise module failed to provide its billing provider.",
+      );
+      logger.error(err);
+      return null;
+    }
+  }
+
+  /*
+   * What OneUptime Cloud's marketplace billing does when a project is deleted
+   * or changes plan, or null: on the Community Edition, when the module has
+   * no say in it, when it answers null (billing off) and when it fails.
+   * Never throws.
+   */
+  public static getProjectBillingHooks(): ProjectBillingHooks | null {
+    const enterpriseModule: EnterpriseServerModule | null =
+      EnterpriseEdition.module;
+
+    if (!enterpriseModule || !enterpriseModule.getProjectBillingHooks) {
+      return null;
+    }
+
+    try {
+      return enterpriseModule.getProjectBillingHooks() || null;
+    } catch (err) {
+      logger.error(
+        "EnterpriseEdition: the enterprise module failed to provide its project billing hooks.",
       );
       logger.error(err);
       return null;

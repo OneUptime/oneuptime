@@ -94,7 +94,7 @@ Elke regel is een van deze:
 
 Een IPv4-adres moet als IPv4-adres worden geschreven: op de IPv6-manier geschreven, zoals `::ffff:203.0.113.7`, wordt het geweigerd. De lijst wordt gecontroleerd telkens als hij wordt opgeslagen — vanuit het dashboard, de API, Terraform of een workflow —, en een regel die nooit kan passen, wordt geweigerd met een bericht dat hem noemt. Laat de lijst leeg om elk netwerk toe te staan. Zodra hij een invoer heeft, wordt een verzoek waarvan het adres niet kan worden vastgesteld, geweigerd.
 
-Op OneUptime Cloud vereist het instellen van de IP-toelatingslijst het **Scale**-abonnement — zowel als een formulier er via de API mee wordt aangemaakt als wanneer het wordt bewerkt —, net als de IP-toelatingslijst van een [openbaar dashboard](/docs/dashboards/sharing). Hem leegmaken werkt met elk abonnement.
+Op OneUptime Cloud vereist het instellen van de IP-toelatingslijst het **Scale**-abonnement — zowel als een formulier er via de API mee wordt aangemaakt als wanneer het wordt bewerkt —, net als de IP-toelatingslijst van een [openbaar dashboard](/docs/dashboards/sharing). Hem leegmaken werkt met elk abonnement. Zelf gehost hoort het wijzigen bij de Enterprise Edition: in de Community Edition blijft een al ingestelde lijst gelden en kan die alleen worden verwijderd.
 
 ### Verzoeken van andere websites
 

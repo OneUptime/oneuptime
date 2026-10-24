@@ -106,6 +106,12 @@ editions.
 ### What to do before you upgrade
 
 - **Community Edition without SCIM:** nothing. Upgrade as usual.
+- **Community Edition with custom roles, IP allowlists, status page access
+  controls, or Powered by OneUptime hidden:** custom roles, IP allowlists and
+  status page access controls moved to the Enterprise Edition. The ones you
+  set keep applying, and you can remove them, but not create or change them.
+  Status pages show Powered by OneUptime again. Switch to the Enterprise image
+  to keep managing them.
 - **Helm with `image.type: enterprise-edition`:** nothing. The chart already
   pulls the `enterprise-` images, which now contain the enterprise modules.
 - **Docker Compose with `IS_ENTERPRISE_EDITION=true`:** switch to the

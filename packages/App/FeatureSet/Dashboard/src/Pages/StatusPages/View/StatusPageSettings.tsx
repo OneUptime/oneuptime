@@ -5,6 +5,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import StatusPageDisplaySettingsCard from "../../../Components/StatusPage/StatusPageDisplaySettingsCard";
+import StatusPagePoweredBySettings from "../../../Components/StatusPage/StatusPagePoweredBySettings";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import { STATUS_PAGE_ARCHIVE_COPY } from "../../../Components/Archive/ResourceArchiveCopy";
 import PageMap from "../../../Utils/PageMap";
@@ -32,6 +33,12 @@ const StatusPageSettings: FunctionComponent<
   return (
     <Fragment>
       <StatusPageDisplaySettingsCard statusPageId={modelId} />
+
+      {/*
+       * The Powered by OneUptime line, under what the page shows: hiding it
+       * is an Enterprise feature, so it has a card of its own.
+       */}
+      <StatusPagePoweredBySettings statusPageId={modelId} />
 
       {/*
        * The page's JSON export lived on a page no menu linked to. The status

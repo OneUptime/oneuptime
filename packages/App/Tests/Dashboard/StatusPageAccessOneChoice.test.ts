@@ -112,15 +112,22 @@ const ACCESS_PAGE: string = dashboardFile(
 describe("the Access page", () => {
   const page: string = readSource(ACCESS_PAGE);
 
+  /*
+   * The reader session limit and the IP allowlist are Enterprise features:
+   * their shells (StatusPageSessionLengthSettings, IpAllowlistSettings)
+   * render the Enterprise cards, or the upsell with what the page still has
+   * of them.
+   */
   test("opens on the one choice, then how long readers stay signed in, then folds the IP allowlist under Advanced", () => {
     expect(page).toContain(
-      "<StatusPageAccessCard statusPageId={modelId} /> <StatusPageSessionLengthCard statusPageId={modelId} /> <AdvancedPageSection",
+      "<StatusPageAccessCard statusPageId={modelId} /> <StatusPageSessionLengthSettings statusPageId={modelId} /> <AdvancedPageSection",
     );
-    expect(page.split("<CardModelDetail").length - 1).toBe(1);
+    expect(page.split("<IpAllowlistSettings").length - 1).toBe(1);
+    expect(page).not.toContain("<CardModelDetail");
     expect(page.indexOf("<AdvancedPageSection")).toBeLessThan(
-      page.indexOf("<CardModelDetail"),
+      page.indexOf("<IpAllowlistSettings"),
     );
-    expect(page).toContain('name="Status Page > IP Allowlist"');
+    expect(page).toContain('cardName="Status Page > IP Allowlist"');
   });
 
   test("has no switch, no password button and no column of the choice", () => {
@@ -141,9 +148,26 @@ describe("the Access page", () => {
     }
   });
 
-  test("the IP allowlist refuses lines the server cannot read", () => {
-    expect(page).toContain("customValidation:");
-    expect(page).toContain("getIpAllowlistProblem(");
+  /*
+   * The Enterprise card refuses lines the server cannot read, with
+   * getIpAllowlistProblem (ee/Tests/UI/IpAllowlists/IpAllowlistCard.test.tsx,
+   * which core CI does not run): this page hands it the allowlist's words.
+   */
+  test("the IP allowlist card is handed this page's words for the allowlist", () => {
+    for (const prop of [
+      "title={StatusPageAccessCopy.ipAllowlistTitle}",
+      "description={StatusPageAccessCopy.ipAllowlistDescription}",
+      "editButtonText={StatusPageAccessCopy.ipAllowlistEditButton}",
+      "fieldDescription={StatusPageAccessCopy.ipAllowlistFieldDescription}",
+      "emptyText={StatusPageAccessCopy.ipAllowlistEmpty}",
+      "noAddressText={StatusPageAccessCopy.ipAllowlistNoAddress}",
+      "entriesTestId={STATUS_PAGE_IP_ALLOWLIST_ENTRIES_TEST_ID}",
+    ]) {
+      expect({ prop, handed: page.includes(prop) }).toEqual({
+        prop,
+        handed: true,
+      });
+    }
   });
 });
 

@@ -589,7 +589,7 @@ describe("Claims put single sign-on in the Community Edition", () => {
     expect(communitySide).toContain("The Community Edition");
     expect(communitySide).toContain("SAML and OIDC single sign-on included");
     expect(enterpriseSide).toContain(
-      "the Enterprise Edition adds SCIM, audit logs, team compliance, and instance health dashboards",
+      "the Enterprise Edition adds SCIM, audit logs, team compliance, custom roles, IP allowlists, and instance health dashboards",
     );
     expect(enterpriseSide).not.toMatch(SINGLE_SIGN_ON_WORDING);
   });
@@ -704,7 +704,7 @@ describe("The single sign-on edition rule", () => {
       "SAML and OIDC single sign-on are part of the Apache 2.0 Community Edition",
     );
     expect(ssoRule.replacement).toContain(
-      "the Enterprise Edition adds SCIM, audit logs, team compliance, and instance health dashboards",
+      "the Enterprise Edition adds SCIM, audit logs, team compliance, custom roles, IP allowlists, and instance health dashboards",
     );
   });
 

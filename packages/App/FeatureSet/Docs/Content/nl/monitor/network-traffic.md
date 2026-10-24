@@ -8,6 +8,8 @@ Er is op drie plekken een Verkeer-pagina:
 - De **Verkeer**-pagina van een locatie: de apparaten op die locatie.
 - Het **Verkeer**-tabblad van een apparaat: dat ene apparaat, met zijn interfaces. Pakketcaptures die op de probe van het apparaat draaien, staan onder de flows, voor als je de pakketten zelf nodig hebt.
 
+Een Cisco Meraki-omgeving is ook te lezen zonder iets te exporteren: koppel het Meraki-dashboard, en de Verkeer-pagina's tonen de uplinks, applicaties en clients van de appliances zoals Meraki ze rapporteert. Zie [Cisco Meraki zonder NetFlow](#cisco-meraki-zonder-netflow).
+
 ## Wat de Verkeer-pagina laat zien
 
 - Vier getallen voor de periode: **Verkeer** (bytes), de **Gemiddelde** en de **Piek**-snelheid, en **Flows** (hoeveel flowrecords de apparaten stuurden).
@@ -53,6 +55,8 @@ De collector staat standaard aan. De instellingen zijn omgevingsvariabelen van d
 | PROBE_IPFIX_RECEIVER_PORT           | De IPFIX-poort; `0` stopt met luisteren erop                        | 4739    |
 | PROBE_SFLOW_RECEIVER_PORT           | De sFlow-poort; `0` stopt met luisteren erop                        | 6343    |
 | PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE | Geaccepteerde datagrammen per minuut, over alle apparaten en poorten | 6000    |
+
+Die 6.000 datagrammen per minuut worden gedeeld door alle apparaten die naar de probe exporteren. Met honderden apparaten verhoog je `PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE` of verdeel je de apparaten over meerdere probes: datagrammen boven de limiet worden weggegooid, en het logboek van de probe zegt hoeveel (zie [Problemen oplossen](#problemen-oplossen)). Een Meraki-omgeving heeft helemaal geen export nodig: zie [Cisco Meraki zonder NetFlow](#cisco-meraki-zonder-netflow).
 
 ### Cisco IOS XE (Flexible NetFlow)
 
@@ -113,6 +117,8 @@ MX-appliances en teleworker-gateways uit de Z-serie exporteren NetFlow v9 vanuit
 
 Een MX of Z ziet alleen het verkeer dat erdoorheen gaat. Verkeer dat een switch binnen een VLAN houdt, bereikt hem nooit, dus dat staat niet in de export.
 
+Om elke locatie te lezen zonder elke MX in te stellen, koppel je in plaats daarvan het Meraki-dashboard: zie [Cisco Meraki zonder NetFlow](#cisco-meraki-zonder-netflow). Dat verkeer heeft geen gesprekken, dus de twee vullen elkaar goed aan.
+
 ### Juniper (inline J-Flow)
 
 Exporteert IPFIX naar UDP 4739 vanaf MX-routers; gebruik de FPC die de interfaces draagt die je samplet.
@@ -171,6 +177,31 @@ softflowd -i eth0 -n <probe-address>:2055 -v 9 -t maxlife=60
 
 Stuur NetFlow v5, NetFlow v9 of IPFIX naar het IP-adres van de probe op UDP 2055 (of 4739), of sFlow v5 op UDP 6343. Zet de actieve flowtime-out van het apparaat op 60 seconden en stuur voor NetFlow v9 en IPFIX de templates elke 60 seconden. De [netwerkleveranciershandleidingen](/docs/monitor/network-vendor-guides) behandelen Sophos en Extreme Networks.
 
+## Cisco Meraki zonder NetFlow
+
+Een Meraki-omgeving heeft een tweede ingang, zonder iets op de apparaten in te stellen en zonder probe ertussen: OneUptime leest het verkeer van de organisatie via de Meraki-dashboard-API. Dat past bij honderden of duizenden locaties, waar NetFlow op elke MX instellen het lastige deel is.
+
+Kies op **Netwerk** -> **Verkeer** voor **Meraki koppelen**:
+
+1. **API-sleutel.** Maak er een in het Meraki-dashboard onder **Organization** > **API & Webhooks** > **API keys and access**. De sleutel van een beheerder met alleen-lezentoegang is genoeg. OneUptime bewaart hem versleuteld, toont hem nooit meer en stuurt hem nergens anders heen dan naar de Meraki-dashboard-API van de regio van de sleutel. Meld je je ergens anders dan op dashboard.meraki.com aan bij Meraki, kies dan de **Dashboardregio** onder **Meer velden**: het dashboard voor Canada, China, India of het FedRAMP-dashboard van de Verenigde Staten.
+2. **Organisatie.** De sleutel wordt getest zodra de stap opent: de organisaties die hij kan lezen worden vermeld, en voor de organisatie die je kiest telt het venster de netwerken en de MX- en Z-appliances die een leesbeurt dekt, voordat er iets wordt opgeslagen.
+
+De eerste leesbeurt begint binnen een minuut en haalt de laatste dag op. Vanaf dan hebben de Verkeer-pagina's een schakelaar **Flows** | **Meraki** in hun kop: een pagina met flowrecords opent daarop, zoals voorheen, en een pagina met alleen Meraki-verkeer opent op Meraki.
+
+| Op de pagina | Wat Meraki rapporteert | Hoe vaak het wordt gelezen |
+| --- | --- | --- |
+| De vier getallen, de grafiek, **Topnetwerken** en **Uplinks** | Het uplinkgebruik van elke MX- en Z-appliance (wan1, wan2, cellular), voor de hele organisatie in één aanroep | Standaard elke 5 minuten, tot elk uur, in vensters van vijf minuten |
+| **Topapplicaties** en **Topbestemmingen** | De verkeersanalyses van elk netwerk | Elke twee uur: Meraki telt ze op over twee uur of meer |
+| **Topclients** | De clients van elk netwerk en wat ze gebruikten | Elke twee uur, samen met de applicaties |
+
+Een klik op een netwerk beperkt de pagina tot dat netwerk en toont de uplinks ervan. Het verkeer van een appliance hoort bij zijn apparaat in OneUptime als een apparaat het serienummer of MAC-adres van de appliance heeft: het verschijnt dan ook op de Verkeer-pagina's van dat apparaat en zijn locatie. Het verkeer van een appliance die in OneUptime geen apparaat is, verschijnt op de pagina van het netwerk.
+
+Meraki geeft elke organisatie 10 API-verzoeken per seconde, gedeeld door alle applicaties die haar lezen. OneUptime gebruikt er hoogstens 3, gaat langzamer als Meraki daarom vraagt en stopt een leesbeurt na 900 verzoeken of 6 minuten; de volgende gaat een minuut later verder. Bij een organisatie met 1.200 netwerken worden de uplinks gelezen met één aanroep per venster, en de applicaties en clients van de netwerken verspreid over een paar leesbeurten.
+
+De koppelingen staan onderaan de Verkeer-pagina van het netwerk, onder **Meraki**, elk met hoe het ermee gaat en wat de laatste leesbeurt dekte. Elke koppeling heeft één knop voor de volgende stap: **Nu lezen** leest hem direct, **Inschakelen** zet hem weer aan als hij uit staat, en **API-sleutel bijwerken** vervangt een sleutel die Meraki weigerde en test de nieuwe sleutel voordat die wordt opgeslagen. Het menu heeft **Bewerken** (de naam, hoe vaak de uplinks worden gelezen, een nieuwe sleutel), **Uitzetten** en **Verwijderen**. Een mislukte leesbeurt zegt waarom, daar en boven het verkeer: een geweigerde sleutel, een sleutel die de organisatie niet kan lezen, Meraki dat OneUptime vraagt langzamer te gaan, of netwerken waarvan de verkeersanalyse uit staat. Boven het verkeer leidt **Bekijken** naar de koppeling. Alleen projecteigenaren en projectbeheerders kunnen Meraki koppelen en een koppeling wijzigen of lezen.
+
+De Meraki-dashboard-API rapporteert totalen, nooit wie met wie sprak, dus de Meraki-kant heeft geen gesprekken. Om ze te zien stuur je ook NetFlow vanaf de MX-appliances ([Cisco Meraki MX en Z](#cisco-meraki-mx-en-z)): de pagina heeft dan allebei, één schakelaar van elkaar.
+
 ## Adressen die nog geen apparaten zijn
 
 Flows kunnen binnenkomen voordat het apparaat dat ze verstuurt aan OneUptime is toegevoegd. Op je eigen probe worden ze bewaard, en de Verkeer-pagina van het netwerk vermeldt hun adres onder **Afzenders van flows**, gemarkeerd als **Nog geen apparaat**:
@@ -192,7 +223,7 @@ Meerdere apparaten achter één NAT-adres delen dat adres, dus hun flows gaan na
 
 - **Waarschuwingen op flows.** Er is nog geen monitor op basis van flows. Gebruik voor een drukke verbinding de waarschuwingen voor interfacebenutting van de [netwerkapparaatmonitor](/docs/monitor/network-device-monitor), die SNMP lezen.
 - **Applicatienamen voorbij de poort.** Er is geen deep packet inspection, en Cisco NBAR-applicatienamen worden niet gelezen.
-- **De Meraki Dashboard API.** Meraki-verkeersanalyses worden niet geïmporteerd; MX- en Z-appliances sturen in plaats daarvan NetFlow naar de probe.
+- **Gesprekken uit de Meraki-dashboard-API.** Die rapporteert totalen, niet wie met wie sprak: stuur ook NetFlow vanaf de MX-appliances om gesprekken te zien.
 - **Anomaliedetectie** op verkeer.
 - **Interfacenamen uit flowrecords.** Namen en snelheden van interfaces komen uit de SNMP-walk van het apparaat; een apparaat zonder walk toont interfacenummers.
 
@@ -205,3 +236,11 @@ Als de Verkeer-pagina nog steeds de installatiestappen toont:
 - **Het logboek van de probe.** Eén keer per minuut logt de probe wat hij niet kon lezen: datagrammen in een niet-ondersteund formaat (NetFlow v1, v6, v7 of v8, of sFlow van vóór versie 5), misvormde datagrammen, data die op een template wacht, en datagrammen die boven `PROBE_NETFLOW_RATE_LIMIT_PER_MINUTE` zijn weggegooid.
 - **Templates.** NetFlow v9 en IPFIX sturen de opbouw van hun records als templates. De probe houdt data die vóór het template binnenkomt tot 10 minuten vast; laat het apparaat zijn templates elke 60 seconden sturen, zodat de pagina binnen een minuut gevuld is.
 - **Een globale probe.** Een apparaat dat door een globale probe wordt bevraagd, kan er vanuit een privénetwerk geen flows naartoe sturen. Draai een aangepaste probe in het netwerk van het apparaat en kies die in de instellingen van het apparaat.
+
+Als een Meraki-koppeling zegt dat ze niet kan lezen:
+
+- **De sleutel wordt geweigerd.** Kopieer hem opnieuw uit het Meraki-dashboard en controleer de **Dashboardregio**: een sleutel leest alleen het dashboard waarin hij is gemaakt. Plak de nieuwe sleutel met **API-sleutel bijwerken** bij de koppeling.
+- **De sleutel kan de organisatie niet lezen.** Zet API-toegang voor de organisatie aan onder **Organization** > **API & Webhooks**, of gebruik de sleutel van een van haar beheerders.
+- **Geen applicaties op sommige netwerken.** Hun verkeersanalyse staat uit: zet die aan onder **Network-wide** > **General** > **Traffic analysis**.
+- **Meraki vroeg OneUptime langzamer te gaan.** Andere applicaties gebruiken het API-budget van de organisatie. OneUptime leest langzamer en gaat door.
+- **Deze OneUptime bereikt de API niet.** Sta HTTPS (poort 443) toe van de servers van OneUptime naar `api.meraki.com`, of de API-host van je regio.

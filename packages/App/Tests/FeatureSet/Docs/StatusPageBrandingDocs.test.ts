@@ -563,7 +563,7 @@ describe("the rest of the English docs", () => {
 
     // Its precision saves on every plan, the switch needs Scale.
     expect(overview).toContain(
-      'showing the overall uptime percent and hiding the "Powered by OneUptime" line need **Scale**',
+      "showing the overall uptime percent needs **Scale**",
     );
   });
 

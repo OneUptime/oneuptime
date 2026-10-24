@@ -1,8 +1,23 @@
-/* Offline fixture server for the real custom roles pages. No app/API server needed. */
+/*
+ * Offline fixture server for the real custom roles pages. No app/API server
+ * needed.
+ *
+ * Custom roles are an Enterprise feature: the pages that make and give them
+ * ship in ee/Dashboard/CustomRoles, which the Dashboard reaches through its
+ * plugin specifier. This server resolves that specifier the way the
+ * Dashboard's own build does (Common/UI/esbuild-enterprise.js): the ee
+ * plugin when ee/ is checked out, the Community stub otherwise, and serves
+ * the Enterprise Edition's pages as such (IS_ENTERPRISE_EDITION). /edition.json
+ * says which, so the specs that need the Enterprise pages skip where they are
+ * not there (the Dashboard Offline UI jobs run without ee/).
+ */
 const fs = require("fs");
 const http = require("http");
 const path = require("path");
 const { createConfig } = require("../../../Common/UI/esbuild-config.js");
+const {
+  resolveEnterpriseBuild,
+} = require("../../../Common/UI/esbuild-enterprise.js");
 const esbuild = require("../../../Common/node_modules/esbuild");
 const repository = path.resolve(__dirname, "../../../..");
 const output = path.join(
@@ -10,12 +25,20 @@ const output = path.join(
   "output/playwright/custom-roles-ui/fixture",
 );
 const port = Number(process.env.CUSTOM_ROLES_FIXTURE_PORT || 4313);
+const enterprise = resolveEnterpriseBuild({
+  frontendDir: path.join(repository, "packages/App/FeatureSet/Dashboard"),
+  pluginSpecifier: "@oneuptime/ee-dashboard",
+  eeSubdir: "Dashboard",
+  internalSpecifier: "@oneuptime/dashboard",
+});
 const config = createConfig({
   serviceName: "custom-roles-fixture",
   publicPath: "/dist/",
   entryPoint: path.join(__dirname, "Fixture.js"),
   outdir: output,
   additionalAlias: {
+    ...enterprise.alias,
+    // One copy of Common for the pages, the Enterprise screens and the fixture.
     Common: path.join(repository, "packages/Common"),
     react: path.join(repository, "packages/Common/node_modules/react"),
     "react-dom": path.join(
@@ -42,7 +65,7 @@ const font = path.join(
  * ?theme=dark draws the page as the Dashboard does in dark mode: the class
  * on <html> that Theme.css and Tailwind's dark: variants read.
  */
-const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Custom roles preview</title><script>window.process={env:{HOST:"localhost",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERSION:"1.0.0"}};window.global=window;window.process.env.NODE_ENV="development";if(new URLSearchParams(window.location.search).get("theme")==="dark"){document.documentElement.classList.add("dark");}</script><script src="/tailwind.js"></script><script>tailwind.config={darkMode:"class",theme:{extend:{fontFamily:{display:["Inter","sans-serif"],body:["Inter","sans-serif"]}}}};</script><style>@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/fonts/InterVariable.woff2') format('woff2');}body{margin:0;background:var(--ou-background-primary,#f8fafc)}*{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,sans-serif}</style></head><body><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
+const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Custom roles preview</title><script>window.process={env:{HOST:"localhost",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",IS_ENTERPRISE_EDITION:"${enterprise.edition === "enterprise" ? "true" : "false"}",VERSION:"1.0.0"}};window.global=window;window.process.env.NODE_ENV="development";if(new URLSearchParams(window.location.search).get("theme")==="dark"){document.documentElement.classList.add("dark");}</script><script src="/tailwind.js"></script><script>tailwind.config={darkMode:"class",theme:{extend:{fontFamily:{display:["Inter","sans-serif"],body:["Inter","sans-serif"]}}}};</script><style>@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/fonts/InterVariable.woff2') format('woff2');}body{margin:0;background:var(--ou-background-primary,#f8fafc)}*{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,sans-serif}</style></head><body><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
 async function main() {
   fs.mkdirSync(output, { recursive: true });
   await esbuild.build(config);
@@ -53,6 +76,11 @@ async function main() {
       "Content-Security-Policy",
       "connect-src 'self'; font-src 'self' data:;",
     );
+    if (url.pathname === "/edition.json") {
+      response.setHeader("Content-Type", "application/json");
+      response.end(JSON.stringify({ edition: enterprise.edition }));
+      return;
+    }
     if (url.pathname === "/tailwind.js") {
       response.setHeader("Content-Type", "application/javascript");
       fs.createReadStream(tailwind).pipe(response);
@@ -81,7 +109,7 @@ async function main() {
   });
   server.listen(port, "127.0.0.1", () => {
     console.log(
-      `Custom roles fixture ready at http://127.0.0.1:${port}/dashboard/10000000-0000-4000-8000-000000000001/teams/roles`,
+      `Custom roles fixture (${enterprise.edition}) ready at http://127.0.0.1:${port}/dashboard/10000000-0000-4000-8000-000000000001/teams/roles`,
     );
   });
   process.on("SIGTERM", () => server.close());

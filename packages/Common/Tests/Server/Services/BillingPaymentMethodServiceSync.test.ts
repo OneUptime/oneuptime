@@ -8,12 +8,6 @@ import ObjectID from "../../../Types/ObjectID";
 import { getJestSpyOn } from "../../Spy";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
-jest.mock("stripe", () => {
-  return jest.fn(() => {
-    return {};
-  });
-});
-
 const PROJECT_ID: ObjectID = ObjectID.generate();
 const CUSTOMER_ID: string = "cus_sync_test";
 

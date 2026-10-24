@@ -12,9 +12,12 @@ import Path from "path";
  * that is not renamed, so those subjects read exactly as they did.
  *
  * Pinned over the server's source: no subject written as a string names
- * OneUptime, except the billing emails, which are about a OneUptime
- * subscription and come from OneUptime. The sender's name falls back to the
- * product's name too.
+ * OneUptime. The sender's name falls back to the product's name too.
+ *
+ * The billing emails - the invoice and the past-due subscription reminder -
+ * are about a OneUptime subscription and come from OneUptime, whatever the
+ * installation is called. They are OneUptime Cloud's, sent from the
+ * enterprise module (ee/Server/Billing), so none is in the scanned source.
  */
 
 const PACKAGES_DIR: string = Path.resolve(__dirname, "..", "..", "..");
@@ -32,12 +35,6 @@ const SKIPPED_DIRECTORIES: ReadonlySet<string> = new Set<string>([
   "Docs",
   "Home",
 ]);
-
-// About a OneUptime subscription: from OneUptime, whatever the installation is called.
-const BILLING_SUBJECTS: ReadonlyArray<string> = [
-  "Common/Server/Services/BillingService.ts",
-  "App/FeatureSet/Workers/Jobs/PaymentProvider/SendDailyEmailsToOwnersIfSubscriptionIsOverdue.ts",
-];
 
 const SUBJECT_LITERAL: RegExp = /\bsubject:\s*(["'`])((?:\\.|(?!\1)[^\\])*)\1/g;
 
@@ -88,7 +85,7 @@ describe("email subjects", () => {
     expect(files.length).toBeGreaterThan(500);
   });
 
-  test("no subject written as a string names OneUptime, outside billing", () => {
+  test("no subject written as a string names OneUptime", () => {
     const offenders: Array<string> = [];
 
     for (const file of files) {
@@ -101,10 +98,7 @@ describe("email subjects", () => {
       for (const match of source.matchAll(SUBJECT_LITERAL)) {
         const text: string = match[2] || "";
 
-        if (
-          ONEUPTIME_WORD.test(text) &&
-          !BILLING_SUBJECTS.includes(toPackagePath(file))
-        ) {
+        if (ONEUPTIME_WORD.test(text)) {
           offenders.push(`${toPackagePath(file)}: ${text}`);
         }
       }

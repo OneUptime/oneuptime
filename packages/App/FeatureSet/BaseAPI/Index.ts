@@ -81,8 +81,6 @@ import TelegramLogAPI from "./TelegramLogAPI";
 
 // Import API
 import ResellerPlanAPI from "Common/Server/API/ResellerPlanAPI";
-import MarketplaceAPI from "Common/Server/API/MarketplaceAPI";
-import VercelMarketplaceProviderAPI from "Common/Server/API/VercelMarketplaceProviderAPI";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import OpenSourceDeploymentAPI from "Common/Server/API/OpenSourceDeploymentAPI";
 import MonitorAPI from "Common/Server/API/MonitorAPI";
@@ -587,6 +585,7 @@ import DetectionRuleAPI from "Common/Server/API/DetectionRuleAPI";
 import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectionAPI";
 import LlmObservabilityConnectionAPI from "Common/Server/API/LlmObservabilityConnectionAPI";
 import CloudConnectionAPI from "Common/Server/API/CloudConnectionAPI";
+import NetworkControllerConnectionAPI from "Common/Server/API/NetworkControllerConnectionAPI";
 import ExternalMcpServerAPI from "Common/Server/API/ExternalMcpServerAPI";
 import SecurityEventDestinationAPI from "Common/Server/API/SecurityEventDestinationAPI";
 import SecurityLogSourceService, {
@@ -3310,6 +3309,12 @@ const BaseAPIFeatureSet: FeatureSet = {
       new CloudConnectionAPI().getRouter(),
     );
 
+    // Network controller connections: Meraki organizations read on a schedule.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new NetworkControllerConnectionAPI().getRouter(),
+    );
+
     // External MCP servers OneUptime AI may use, and their connection test.
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -5683,28 +5688,13 @@ const BaseAPIFeatureSet: FeatureSet = {
       new ResellerPlanAPI().getRouter(),
     );
     /*
-     * AWS Marketplace, Microsoft Marketplace and Google Cloud Marketplace:
-     * their landing pages, webhooks and event deliveries, and the purchase
-     * page's routes (OneUptime Cloud only - see MarketplaceAPI).
-     */
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new MarketplaceAPI().getRouter(),
-    );
-    /*
-     * Vercel Marketplace: the provider API Vercel calls when a team installs
-     * OneUptime and adds, changes or deletes a resource, and its webhooks
-     * (OneUptime Cloud only - see VercelMarketplaceProviderAPI).
-     */
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new VercelMarketplaceProviderAPI().getRouter(),
-    );
-    /*
      * Enterprise API routers from the Enterprise Edition module (ee/): the
      * license client (activate / refresh), team compliance status, and - only
      * on the hosted oneuptime.com (billing enabled) - the license server with
-     * its instance usage. The Community Edition mounts none of them.
+     * its instance usage, and the cloud marketplaces' and Vercel
+     * Marketplace's routes (landing pages, webhooks, the provider API Vercel
+     * calls, the purchase page's routes). The Community Edition mounts none
+     * of them.
      */
     const enterpriseApiRouters: Array<ExpressRouter> =
       EnterpriseEdition.getModule()?.getApiRouters() || [];

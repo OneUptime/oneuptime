@@ -18,7 +18,8 @@
   "license": "SEE LICENSE IN LICENSE",
   "dependencies": {
     "App": "file:../packages/App",
-    "Common": "file:../packages/Common"
+    "Common": "file:../packages/Common",
+    "stripe": "^10.17.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",
