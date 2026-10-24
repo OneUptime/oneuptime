@@ -34376,5 +34376,9 @@
   "Case Priority": "案例優先順序",
   "Case Status": "案例狀態",
   "Detection severity": "偵測嚴重程度",
-  "Detections of this severity open their cases at this priority, and a case rises when a more severe detection joins it. People and playbooks set the priorities you add.": "此嚴重程度的偵測會以此優先順序建立案例；當更嚴重的偵測加入時，案例的優先順序會上升。您新增的優先順序由人員和劇本設定。"
+  "Detections of this severity open their cases at this priority, and a case rises when a more severe detection joins it. People and playbooks set the priorities you add.": "此嚴重程度的偵測會以此優先順序建立案例；當更嚴重的偵測加入時，案例的優先順序會上升。您新增的優先順序由人員和劇本設定。",
+  "How fast a case at this priority needs a person, in a sentence.": "用一句話說明此優先順序的案例需要多快有人處理。",
+  "What a case in this status is waiting for, in a sentence.": "用一句話說明處於此狀態的案例在等待什麼。",
+  "What the priority is called, like High or P1.": "優先順序的名稱，例如「High」或「P1」。",
+  "What the status is called, like Investigating or Triage.": "狀態的名稱，例如「調查中」或「初步研判」。"
 }

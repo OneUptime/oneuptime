@@ -296,6 +296,8 @@ export const getStateSettingsFormFields: <T extends BaseModel>(
     {
       field: selectField<T>("name"),
       title: StateSettingsSharedCopy.nameFieldTitle,
+      // Said in the reader's language, where the page has its own words for it.
+      ...(copy.nameDescription ? { description: copy.nameDescription } : {}),
       fieldType: FormFieldSchemaType.Text,
       required: true,
       placeholder: copy.namePlaceholder,
@@ -306,6 +308,9 @@ export const getStateSettingsFormFields: <T extends BaseModel>(
     {
       field: selectField<T>("description"),
       title: StateSettingsSharedCopy.descriptionFieldTitle,
+      ...(copy.descriptionDescription
+        ? { description: copy.descriptionDescription }
+        : {}),
       fieldType: FormFieldSchemaType.LongText,
       required: false,
       placeholder: copy.descriptionPlaceholder,

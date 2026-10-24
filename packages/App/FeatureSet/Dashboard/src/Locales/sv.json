@@ -34376,5 +34376,9 @@
   "Case Priority": "Ärendeprioritet",
   "Case Status": "Ärendestatus",
   "Detection severity": "Detekteringens allvarlighetsgrad",
-  "Detections of this severity open their cases at this priority, and a case rises when a more severe detection joins it. People and playbooks set the priorities you add.": "Detekteringar med den här allvarlighetsgraden öppnar sina ärenden med den här prioriteten, och ett ärende stiger när en allvarligare detektering ansluter. Prioriteter som du lägger till sätts av personer och playbooks."
+  "Detections of this severity open their cases at this priority, and a case rises when a more severe detection joins it. People and playbooks set the priorities you add.": "Detekteringar med den här allvarlighetsgraden öppnar sina ärenden med den här prioriteten, och ett ärende stiger när en allvarligare detektering ansluter. Prioriteter som du lägger till sätts av personer och playbooks.",
+  "How fast a case at this priority needs a person, in a sentence.": "Hur snabbt ett ärende med den här prioriteten behöver en person, i en mening.",
+  "What a case in this status is waiting for, in a sentence.": "Vad ett ärende med den här statusen väntar på, i en mening.",
+  "What the priority is called, like High or P1.": "Vad prioriteten heter, som High eller P1.",
+  "What the status is called, like Investigating or Triage.": "Vad statusen heter, som Undersöker eller Bedömning."
 }

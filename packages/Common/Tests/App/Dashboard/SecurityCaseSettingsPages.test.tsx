@@ -103,6 +103,7 @@ import { ARCHIVED_SECTION_TEST_ID } from "../../../../App/FeatureSet/Dashboard/s
 import {
   STATE_SETTINGS_COPY,
   StateSettingsBuiltInColumnCopy,
+  getStateSettingsStrings,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/StateSettings/StateSettingsCopy";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import SecurityCasePriority from "../../../Models/DatabaseModels/SecurityCasePriority";
@@ -134,6 +135,8 @@ interface PageCase {
   singularName: string;
   pluralName: string;
   columnTitles: Array<string>;
+  // What the create and edit form says under Name and under Description.
+  formHelp: [string, string];
 }
 
 const PAGES: Array<PageCase> = [
@@ -146,6 +149,10 @@ const PAGES: Array<PageCase> = [
     singularName: "Case Status",
     pluralName: "Case Statuses",
     columnTitles: ["Name", "Counts as", "Description"],
+    formHelp: [
+      "What the status is called, like Investigating or Triage.",
+      "What a case in this status is waiting for, in a sentence.",
+    ],
   },
   {
     name: "Case Priorities",
@@ -156,6 +163,10 @@ const PAGES: Array<PageCase> = [
     singularName: "Case Priority",
     pluralName: "Case Priorities",
     columnTitles: ["Name", "Detection severity", "Description"],
+    formHelp: [
+      "What the priority is called, like High or P1.",
+      "How fast a case at this priority needs a person, in a sentence.",
+    ],
   },
 ];
 
@@ -246,6 +257,31 @@ describe.each(PAGES)("$name", (pageCase: PageCase) => {
     expect(archived).toBeDefined();
     expect(archived!["singularName"]).toBe(pageCase.singularName);
     expect(archived!["pluralName"]).toBe(pageCase.pluralName);
+  });
+
+  test("its form says what Name and Description are for in its own words, which a locale translates", async () => {
+    await renderPage(pageCase);
+
+    const fields: Array<{
+      field?: Record<string, unknown>;
+      description?: string;
+    }> = table(pageCase.tableId)!["formFields"] as Array<{
+      field?: Record<string, unknown>;
+      description?: string;
+    }>;
+
+    expect(
+      fields.map((field: { field?: Record<string, unknown> }): string => {
+        return Object.keys(field.field || {})[0] || "";
+      }),
+    ).toEqual(["name", "description", "color"]);
+    expect([fields[0]!.description, fields[1]!.description]).toEqual(
+      pageCase.formHelp,
+    );
+    // The words a locale translates, not the model's API description.
+    for (const help of pageCase.formHelp) {
+      expect(getStateSettingsStrings()).toContain(help);
+    }
   });
 
   test("lists the name, what the page says of each, then the description", async () => {

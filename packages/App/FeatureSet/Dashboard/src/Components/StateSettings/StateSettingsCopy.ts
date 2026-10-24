@@ -63,6 +63,13 @@ export interface StateSettingsPageCopy {
   // The create and edit form.
   namePlaceholder: string;
   descriptionPlaceholder: string;
+  /*
+   * What the form says under Name and Description, in the reader's
+   * language. Left out, the form says what the model's columns say, in
+   * English (an API reader's words).
+   */
+  nameDescription?: string | undefined;
+  descriptionDescription?: string | undefined;
 }
 
 export const StateSettingsSharedCopy: {
@@ -278,6 +285,10 @@ export const STATE_SETTINGS_COPY: Record<StateListType, StateSettingsPageCopy> =
       namePlaceholder: "Triage",
       descriptionPlaceholder:
         "Someone is checking whether the detection is real.",
+      nameDescription:
+        "What the status is called, like Investigating or Triage.",
+      descriptionDescription:
+        "What a case in this status is waiting for, in a sentence.",
     },
     /*
      * Ranked like severities, but with a built-in priority for each
@@ -317,6 +328,9 @@ export const STATE_SETTINGS_COPY: Record<StateListType, StateSettingsPageCopy> =
         "Built-in priorities can be renamed, but not deleted.",
       namePlaceholder: "Emergency",
       descriptionPlaceholder: "A confirmed breach. Page the team now.",
+      nameDescription: "What the priority is called, like High or P1.",
+      descriptionDescription:
+        "How fast a case at this priority needs a person, in a sentence.",
     },
   };
 
@@ -332,6 +346,14 @@ export const getStateSettingsStrings: () => Array<string> =
       strings.add(page.description);
       strings.add(page.namePlaceholder);
       strings.add(page.descriptionPlaceholder);
+
+      if (page.nameDescription) {
+        strings.add(page.nameDescription);
+      }
+
+      if (page.descriptionDescription) {
+        strings.add(page.descriptionDescription);
+      }
 
       if (page.deleteLockedReason) {
         strings.add(page.deleteLockedReason);

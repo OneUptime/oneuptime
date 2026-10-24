@@ -34376,5 +34376,9 @@
   "Case Priority": "ケース優先度",
   "Case Status": "ケースステータス",
   "Detection severity": "検出の重大度",
-  "Detections of this severity open their cases at this priority, and a case rises when a more severe detection joins it. People and playbooks set the priorities you add.": "この重大度の検出は、この優先度でケースを作成します。より深刻な検出が加わると、ケースの優先度は上がります。追加した優先度は、ユーザーとプレイブックが設定します。"
+  "Detections of this severity open their cases at this priority, and a case rises when a more severe detection joins it. People and playbooks set the priorities you add.": "この重大度の検出は、この優先度でケースを作成します。より深刻な検出が加わると、ケースの優先度は上がります。追加した優先度は、ユーザーとプレイブックが設定します。",
+  "How fast a case at this priority needs a person, in a sentence.": "この優先度のケースにどれだけ早く担当者が必要かを一文で書きます。",
+  "What a case in this status is waiting for, in a sentence.": "このステータスのケースが何を待っているかを一文で書きます。",
+  "What the priority is called, like High or P1.": "優先度の名前です（例: 高、P1）。",
+  "What the status is called, like Investigating or Triage.": "ステータスの名前です（例: 調査中、トリアージ）。"
 }

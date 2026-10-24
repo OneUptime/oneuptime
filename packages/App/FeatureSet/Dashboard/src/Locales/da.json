@@ -34376,5 +34376,9 @@
   "Case Priority": "Sagsprioritet",
   "Case Status": "Sagsstatus",
   "Detection severity": "Detekteringens alvorlighed",
-  "Detections of this severity open their cases at this priority, and a case rises when a more severe detection joins it. People and playbooks set the priorities you add.": "Detekteringer med denne alvorlighed åbner deres sager med denne prioritet, og en sag stiger, når en mere alvorlig detektering kommer til. Prioriteter, du tilføjer, sættes af personer og playbooks."
+  "Detections of this severity open their cases at this priority, and a case rises when a more severe detection joins it. People and playbooks set the priorities you add.": "Detekteringer med denne alvorlighed åbner deres sager med denne prioritet, og en sag stiger, når en mere alvorlig detektering kommer til. Prioriteter, du tilføjer, sættes af personer og playbooks.",
+  "How fast a case at this priority needs a person, in a sentence.": "Hvor hurtigt en sag med denne prioritet har brug for en person, i én sætning.",
+  "What a case in this status is waiting for, in a sentence.": "Hvad en sag med denne status venter på, i én sætning.",
+  "What the priority is called, like High or P1.": "Hvad prioriteten hedder, som High eller P1.",
+  "What the status is called, like Investigating or Triage.": "Hvad statussen hedder, som Undersøger eller Vurdering."
 }

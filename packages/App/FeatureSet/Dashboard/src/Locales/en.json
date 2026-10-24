@@ -34376,5 +34376,9 @@
   "Case Priority": "Case Priority",
   "Case Status": "Case Status",
   "Detection severity": "Detection severity",
-  "Detections of this severity open their cases at this priority, and a case rises when a more severe detection joins it. People and playbooks set the priorities you add.": "Detections of this severity open their cases at this priority, and a case rises when a more severe detection joins it. People and playbooks set the priorities you add."
+  "Detections of this severity open their cases at this priority, and a case rises when a more severe detection joins it. People and playbooks set the priorities you add.": "Detections of this severity open their cases at this priority, and a case rises when a more severe detection joins it. People and playbooks set the priorities you add.",
+  "How fast a case at this priority needs a person, in a sentence.": "How fast a case at this priority needs a person, in a sentence.",
+  "What a case in this status is waiting for, in a sentence.": "What a case in this status is waiting for, in a sentence.",
+  "What the priority is called, like High or P1.": "What the priority is called, like High or P1.",
+  "What the status is called, like Investigating or Triage.": "What the status is called, like Investigating or Triage."
 }

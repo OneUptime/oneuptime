@@ -34376,5 +34376,9 @@
   "Case Priority": "केस प्राथमिकता",
   "Case Status": "केस स्थिति",
   "Detection severity": "डिटेक्शन की गंभीरता",
-  "Detections of this severity open their cases at this priority, and a case rises when a more severe detection joins it. People and playbooks set the priorities you add.": "इस गंभीरता वाले डिटेक्शन अपने केस इसी प्राथमिकता पर खोलते हैं, और जब कोई अधिक गंभीर डिटेक्शन जुड़ता है तो केस ऊपर उठता है। आपकी जोड़ी गई प्राथमिकताएं लोग और प्लेबुक सेट करते हैं।"
+  "Detections of this severity open their cases at this priority, and a case rises when a more severe detection joins it. People and playbooks set the priorities you add.": "इस गंभीरता वाले डिटेक्शन अपने केस इसी प्राथमिकता पर खोलते हैं, और जब कोई अधिक गंभीर डिटेक्शन जुड़ता है तो केस ऊपर उठता है। आपकी जोड़ी गई प्राथमिकताएं लोग और प्लेबुक सेट करते हैं।",
+  "How fast a case at this priority needs a person, in a sentence.": "इस प्राथमिकता वाले केस को कितनी जल्दी किसी व्यक्ति की ज़रूरत है, एक वाक्य में।",
+  "What a case in this status is waiting for, in a sentence.": "इस स्थिति में केस किस बात की प्रतीक्षा कर रहा है, एक वाक्य में।",
+  "What the priority is called, like High or P1.": "प्राथमिकता का नाम, जैसे High या P1।",
+  "What the status is called, like Investigating or Triage.": "स्थिति का नाम, जैसे जाँच की जा रही है या प्राथमिक जाँच।"
 }

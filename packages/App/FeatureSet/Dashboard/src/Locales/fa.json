@@ -34376,5 +34376,9 @@
   "Case Priority": "اولویت پرونده",
   "Case Status": "وضعیت پرونده",
   "Detection severity": "شدت تشخیص",
-  "Detections of this severity open their cases at this priority, and a case rises when a more severe detection joins it. People and playbooks set the priorities you add.": "تشخیص‌های با این شدت پرونده‌هایشان را با این اولویت باز می‌کنند و وقتی تشخیصی شدیدتر به پرونده بپیوندد، اولویت آن بالا می‌رود. اولویت‌هایی را که خودتان می‌افزایید افراد و پلی‌بوک‌ها تعیین می‌کنند."
+  "Detections of this severity open their cases at this priority, and a case rises when a more severe detection joins it. People and playbooks set the priorities you add.": "تشخیص‌های با این شدت پرونده‌هایشان را با این اولویت باز می‌کنند و وقتی تشخیصی شدیدتر به پرونده بپیوندد، اولویت آن بالا می‌رود. اولویت‌هایی را که خودتان می‌افزایید افراد و پلی‌بوک‌ها تعیین می‌کنند.",
+  "How fast a case at this priority needs a person, in a sentence.": "پرونده‌ای با این اولویت چقدر زود به یک نفر نیاز دارد، در یک جمله.",
+  "What a case in this status is waiting for, in a sentence.": "پرونده‌ای در این وضعیت منتظر چه چیزی است، در یک جمله.",
+  "What the priority is called, like High or P1.": "نام اولویت، مانند «High» یا «P1».",
+  "What the status is called, like Investigating or Triage.": "نام وضعیت، مانند «در حال بررسی» یا «تریاژ»."
 }

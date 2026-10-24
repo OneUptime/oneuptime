@@ -34376,5 +34376,9 @@
   "Case Priority": "케이스 우선순위",
   "Case Status": "케이스 상태",
   "Detection severity": "탐지 심각도",
-  "Detections of this severity open their cases at this priority, and a case rises when a more severe detection joins it. People and playbooks set the priorities you add.": "이 심각도의 탐지는 이 우선순위로 케이스를 열며, 더 심각한 탐지가 합류하면 케이스의 우선순위가 올라갑니다. 직접 추가한 우선순위는 사람과 플레이북이 지정합니다."
+  "Detections of this severity open their cases at this priority, and a case rises when a more severe detection joins it. People and playbooks set the priorities you add.": "이 심각도의 탐지는 이 우선순위로 케이스를 열며, 더 심각한 탐지가 합류하면 케이스의 우선순위가 올라갑니다. 직접 추가한 우선순위는 사람과 플레이북이 지정합니다.",
+  "How fast a case at this priority needs a person, in a sentence.": "이 우선순위의 케이스에 얼마나 빨리 사람이 필요한지 한 문장으로 적습니다.",
+  "What a case in this status is waiting for, in a sentence.": "이 상태의 케이스가 무엇을 기다리는지 한 문장으로 적습니다.",
+  "What the priority is called, like High or P1.": "우선순위의 이름입니다(예: High, P1).",
+  "What the status is called, like Investigating or Triage.": "상태의 이름입니다(예: 조사 중, 분류)."
 }

@@ -34376,5 +34376,9 @@
   "Case Priority": "Priorité de dossier",
   "Case Status": "Statut de dossier",
   "Detection severity": "Gravité de la détection",
-  "Detections of this severity open their cases at this priority, and a case rises when a more severe detection joins it. People and playbooks set the priorities you add.": "Les détections de cette gravité ouvrent leurs dossiers à cette priorité, et un dossier monte lorsqu'une détection plus grave le rejoint. Les priorités que vous ajoutez sont définies par des personnes et des playbooks."
+  "Detections of this severity open their cases at this priority, and a case rises when a more severe detection joins it. People and playbooks set the priorities you add.": "Les détections de cette gravité ouvrent leurs dossiers à cette priorité, et un dossier monte lorsqu'une détection plus grave le rejoint. Les priorités que vous ajoutez sont définies par des personnes et des playbooks.",
+  "How fast a case at this priority needs a person, in a sentence.": "En combien de temps un dossier de cette priorité a besoin de quelqu'un, en une phrase.",
+  "What a case in this status is waiting for, in a sentence.": "Ce qu'attend un dossier dans ce statut, en une phrase.",
+  "What the priority is called, like High or P1.": "Le nom de la priorité, comme Élevé ou P1.",
+  "What the status is called, like Investigating or Triage.": "Le nom du statut, comme Investigation en cours ou Tri initial."
 }

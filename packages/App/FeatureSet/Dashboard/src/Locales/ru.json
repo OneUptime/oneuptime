@@ -34376,5 +34376,9 @@
   "Case Priority": "Приоритет кейса",
   "Case Status": "Статус кейса",
   "Detection severity": "Серьёзность обнаружения",
-  "Detections of this severity open their cases at this priority, and a case rises when a more severe detection joins it. People and playbooks set the priorities you add.": "Обнаружения этой серьёзности открывают свои кейсы с этим приоритетом, а кейс повышается, когда к нему присоединяется более серьёзное обнаружение. Добавленные вами приоритеты назначают люди и плейбуки."
+  "Detections of this severity open their cases at this priority, and a case rises when a more severe detection joins it. People and playbooks set the priorities you add.": "Обнаружения этой серьёзности открывают свои кейсы с этим приоритетом, а кейс повышается, когда к нему присоединяется более серьёзное обнаружение. Добавленные вами приоритеты назначают люди и плейбуки.",
+  "How fast a case at this priority needs a person, in a sentence.": "Как быстро кейсу с этим приоритетом нужен человек, одним предложением.",
+  "What a case in this status is waiting for, in a sentence.": "Чего ждёт кейс в этом статусе, одним предложением.",
+  "What the priority is called, like High or P1.": "Как называется приоритет, например «High» или «P1».",
+  "What the status is called, like Investigating or Triage.": "Как называется статус, например «Расследование» или «Сортировка»."
 }
