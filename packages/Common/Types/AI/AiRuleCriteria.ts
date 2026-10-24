@@ -1,11 +1,25 @@
 import AutoRemediationTriggerEntity from "../AutoRemediation/AutoRemediationTriggerEntity";
+import { RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN } from "../Rules/RuleCriteria";
+
+/*
+ * What an AI rule of the telemetry products can match on: the service the
+ * problem is in - picked, by its labels, or by its name - the conditions a
+ * service's own label and owner rules use (ServiceLabelRule), so a
+ * condition written once reads the same everywhere.
+ */
+export const TELEMETRY_AI_RULE_CRITERIA_FIELDS: ReadonlyArray<string> = [
+  "services",
+  "serviceLabels",
+  "serviceNamePattern",
+];
 
 /*
  * What an AI rule can match on: what the project's other incident and alert
  * rules do (Runbook Rules, Postmortem Rules), so a condition written once
- * reads the same everywhere. One table serves incident and alert rules,
- * told apart by triggerEntityType, and each uses only its own share: an
- * incident has an IncidentSeverity, an alert an AlertSeverity.
+ * reads the same everywhere. One table serves every kind of AI rule, told
+ * apart by triggerEntityType, and each uses only its own share: an
+ * incident has an IncidentSeverity, an alert an AlertSeverity, and slow
+ * code in a profile the service it runs in.
  */
 export const AI_RULE_CRITERIA_FIELDS_BY_TRIGGER: Readonly<
   Record<AutoRemediationTriggerEntity, ReadonlyArray<string>>
@@ -26,6 +40,7 @@ export const AI_RULE_CRITERIA_FIELDS_BY_TRIGGER: Readonly<
     "titlePattern",
     "descriptionPattern",
   ],
+  [AutoRemediationTriggerEntity.Profile]: TELEMETRY_AI_RULE_CRITERIA_FIELDS,
 };
 
 const TRIGGER_ENTITY_TYPES: ReadonlyArray<AutoRemediationTriggerEntity> =
@@ -49,12 +64,40 @@ const RULES_NAME_BY_TRIGGER: Readonly<
 > = {
   [AutoRemediationTriggerEntity.Incident]: "incident AI rules",
   [AutoRemediationTriggerEntity.Alert]: "alert AI rules",
+  [AutoRemediationTriggerEntity.Profile]: "profile AI rules",
 };
 
+// What a refusal calls each criterion: its column's title in the API docs.
 const TRIGGER_SPECIFIC_FIELD_TITLES: Readonly<Record<string, string>> = {
+  monitors: "Monitors",
   incidentSeverities: "Incident Severities",
   alertSeverities: "Alert Severities",
+  labels: "Labels",
+  monitorLabels: "Monitor Labels",
+  titlePattern: "Title Pattern",
+  descriptionPattern: "Description Pattern",
+  services: "Services",
+  serviceLabels: "Service Labels",
+  serviceNamePattern: "Service Name Pattern",
 };
+
+/*
+ * Whether a write gives a criterion a value: a list with something in it,
+ * or a pattern with text in it. A pattern that can never match
+ * (RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN, which the dashboard writes in
+ * a rule's own pattern column beside its conditions) says nothing either.
+ */
+export function hasAiRuleCriterionValue(value: unknown): boolean {
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+
+  return (
+    typeof value === "string" &&
+    value.trim().length > 0 &&
+    value.trim() !== RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN
+  );
+}
 
 export function isAiRuleTriggerEntity(
   value: unknown,
@@ -89,12 +132,13 @@ function getCriteriaFilterFields(criteria: unknown): Array<string> {
 
 /*
  * Why an AI rule cannot be saved like this, or null when it can. A
- * condition on the other kind of signal's severity (an incident rule asking
- * for alert severities) could never be true, so it is refused rather than
- * saved as a rule that silently never matches - which, since rules narrow
- * what is investigated and fixed, would quietly stop both - whether it
- * comes as a condition or in the severity column itself. Malformed criteria
- * are left to the shared criteria validation, which words its own refusal.
+ * condition on another kind of signal's criterion (an incident rule asking
+ * for alert severities, a profile rule asking for monitors) could never be
+ * true, so it is refused rather than saved as a rule that silently never
+ * matches - which, since rules narrow what is investigated and fixed, would
+ * quietly stop both - whether it comes as a condition or in the
+ * criterion's column itself. Malformed criteria are left to the shared
+ * criteria validation, which words its own refusal.
  */
 export function getAiRuleCriteriaProblem(data: {
   triggerEntityType: unknown;
@@ -110,9 +154,7 @@ export function getAiRuleCriteriaProblem(data: {
   const usedFields: Array<string> = getCriteriaFilterFields(data.criteria);
 
   for (const field of AI_RULE_CRITERIA_FIELDS) {
-    const value: unknown = data.values?.[field];
-
-    if (Array.isArray(value) && value.length > 0) {
+    if (hasAiRuleCriterionValue(data.values?.[field])) {
       usedFields.push(field);
     }
   }
