@@ -361,11 +361,13 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
     ).rejects.toThrow(/does not match its durable recommendation snapshot/i);
   });
 
-  test("no GitHub-App repository rejects without enqueueing", async () => {
+  test("no connected repository - on GitHub or any other host - rejects without enqueueing", async () => {
     jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(fakeRun());
     jest
       .spyOn(CodeRepositoryService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
+    // No repository connected through GitLab, Forgejo, Gitea or Git either.
+    jest.spyOn(CodeRepositoryService, "findBy").mockResolvedValue([]);
     const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
 
     await expect(
@@ -375,7 +377,7 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
         investigationRunId,
         userId,
       }),
-    ).rejects.toThrow(/GitHub/);
+    ).rejects.toThrow(/^No connected repository exists for this project/);
 
     expect(create).not.toHaveBeenCalled();
   });

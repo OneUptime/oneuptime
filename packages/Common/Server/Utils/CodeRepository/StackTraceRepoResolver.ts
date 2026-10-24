@@ -34,6 +34,11 @@ export interface ResolvableRepository {
   repositoryName: string;
   mainBranchName: string;
   gitHubAppInstallationId: string | null;
+  /*
+   * Where it is hosted (CodeRepositoryType), which decides how its tree is
+   * read. Absent: GitHub, through gitHubAppInstallationId.
+   */
+  repositoryHostedAt?: string | undefined;
 }
 
 export interface RepoResolution {

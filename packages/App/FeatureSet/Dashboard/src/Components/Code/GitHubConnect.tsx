@@ -44,6 +44,8 @@ import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
+import { CodeOtherHosts } from "./CodeHostChoices";
 
 /*
  * CONNECTING GITHUB, FROM CODE.
@@ -346,11 +348,16 @@ export const useGitHubConnect: (
   // Locked, with one sentence, for someone who may not connect it.
   const connectLock: GitHubConnectLock = getGitHubConnectLock();
 
+  /*
+   * Each with the space under it that ConnectCallbackNotice keeps, so none
+   * sits on the page's first card: Repositories draws them in a plain box.
+   */
   const notices: ReactElement = (
     <>
       {showGitHubConnectedBanner && (
         <Alert
           type={AlertType.SUCCESS}
+          className="mb-5"
           dataTestId="github-connected-notice"
           strongTitle="GitHub connected"
           title="Your repositories were imported. Pick one to ask AI to work in it."
@@ -367,6 +374,7 @@ export const useGitHubConnect: (
       {showGitHubInstalledNotice && !connectLock.isLocked && (
         <Alert
           type={AlertType.INFO}
+          className="mb-5"
           dataTestId="github-installed-notice"
           strongTitle="The GitHub App is installed"
           title={
@@ -399,6 +407,7 @@ export const useGitHubConnect: (
       {connectError && (
         <Alert
           type={AlertType.DANGER}
+          className="mb-5"
           dataTestId="github-connect-error"
           title={connectError}
           onClose={() => {
@@ -472,9 +481,9 @@ export const useGitHubConnect: (
 };
 
 // The GitHub mark, drawn in place (no network font for one icon).
-export const GitHubMark: FunctionComponent<{ className?: string }> = (props: {
-  className?: string;
-}): ReactElement => {
+export const GitHubMark: FunctionComponent<{
+  className?: string | undefined;
+}> = (props: { className?: string | undefined }): ReactElement => {
   return (
     <svg
       className={props.className || "h-5 w-5"}
@@ -493,14 +502,37 @@ export const GitHubMark: FunctionComponent<{ className?: string }> = (props: {
 
 /*
  * Code's first page with no repository yet: what Code is for, in one
- * sentence, and the one thing to do - connect GitHub. The button is a real
- * button, locked with one sentence for someone who may not connect.
+ * sentence, and the one thing to do - connect GitHub, the place Code does
+ * the most in, with the GitHub App. The button is a real button, locked
+ * with one sentence for someone who may not connect. Under it, the other
+ * places a repository can be: GitLab, Forgejo or Gitea, and any Git server
+ * (CodeOtherHosts), each opening Code's connect dialog at its step - and on
+ * a server with no GitHub App, the way to connect at all: there they come
+ * first, under a mark that is not GitHub's, and what GitHub needs on the
+ * server follows them, as the way to add it.
  */
 export const ConnectGitHubEmptyState: FunctionComponent<{
   connection: UseGitHubConnect;
-}> = (props: { connection: UseGitHubConnect }): ReactElement => {
+  // Connect a repository that is not on GitHub, from the host picked.
+  onConnectOtherHost?: ((provider: CodeRepositoryType) => void) | undefined;
+}> = (props: {
+  connection: UseGitHubConnect;
+  onConnectOtherHost?: ((provider: CodeRepositoryType) => void) | undefined;
+}): ReactElement => {
   const translator: Translator = useTranslator();
   const connectLock: GitHubConnectLock = props.connection.connectLock;
+  // No GitHub App here: the other hosts are how to connect, so they lead.
+  const areOtherHostsFirst: boolean = Boolean(
+    props.onConnectOtherHost && !props.connection.isGitHubAppConfigured,
+  );
+  const otherHosts: ReactElement = props.onConnectOtherHost ? (
+    <CodeOtherHosts
+      isAfterGitHub={props.connection.isGitHubAppConfigured}
+      onChoose={props.onConnectOtherHost}
+    />
+  ) : (
+    <></>
+  );
 
   return (
     <div
@@ -508,16 +540,24 @@ export const ConnectGitHubEmptyState: FunctionComponent<{
       className="rounded-2xl border border-gray-200 bg-white px-6 py-12 text-center shadow-sm sm:px-12"
     >
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-900 text-white">
-        <GitHubMark className="h-7 w-7" />
+        {areOtherHostsFirst ? (
+          <Icon icon={IconProp.Code} className="h-7 w-7" />
+        ) : (
+          <GitHubMark className="h-7 w-7" />
+        )}
       </div>
       <h2 className="mt-5 text-lg font-semibold text-gray-900">
         {translator.translateText("Connect your code")}
       </h2>
       <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-gray-500">
         {translator.translateText(
-          "Connect GitHub and ask OneUptime AI to work in your repositories: fix a bug, write tests, explain the code. It opens a pull request for you to review.",
+          props.onConnectOtherHost
+            ? "Connect your repositories and ask OneUptime AI to work in them: fix a bug, write tests, explain the code. It opens a pull request for you to review."
+            : "Connect GitHub and ask OneUptime AI to work in your repositories: fix a bug, write tests, explain the code. It opens a pull request for you to review.",
         )}
       </p>
+
+      {areOtherHostsFirst ? otherHosts : <></>}
 
       {props.connection.isGitHubAppConfigured ? (
         <div className="mt-6 flex flex-col items-center gap-3">
@@ -581,7 +621,9 @@ export const ConnectGitHubEmptyState: FunctionComponent<{
       ) : (
         <div
           data-testid="code-github-not-configured"
-          className="mx-auto mt-6 max-w-lg rounded-lg border border-gray-200 bg-gray-50 p-4 text-left"
+          className={`mx-auto max-w-lg rounded-lg border border-gray-200 bg-gray-50 p-4 text-left ${
+            areOtherHostsFirst ? "mt-8" : "mt-6"
+          }`}
         >
           <h3 className="text-sm font-semibold text-gray-900">
             {translator.translateText(
@@ -590,7 +632,11 @@ export const ConnectGitHubEmptyState: FunctionComponent<{
           </h3>
           <p className="mt-1 text-sm text-gray-500">
             <TranslatedSentence
-              template="Connecting a repository requires the GitHub App environment variables (like {{appName}} and {{appId}}) to be configured on your OneUptime server. See the {{documentation}} for setup instructions."
+              template={
+                props.onConnectOtherHost
+                  ? "Connecting GitHub requires the GitHub App environment variables (like {{appName}} and {{appId}}) to be configured on your OneUptime server. See the {{documentation}} for setup instructions."
+                  : "Connecting a repository requires the GitHub App environment variables (like {{appName}} and {{appId}}) to be configured on your OneUptime server. See the {{documentation}} for setup instructions."
+              }
               slots={{
                 appName: <code>GITHUB_APP_NAME</code>,
                 appId: <code>GITHUB_APP_ID</code>,
@@ -612,6 +658,8 @@ export const ConnectGitHubEmptyState: FunctionComponent<{
           </p>
         </div>
       )}
+
+      {areOtherHostsFirst ? <></> : otherHosts}
     </div>
   );
 };

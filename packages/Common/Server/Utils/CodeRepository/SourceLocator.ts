@@ -2,8 +2,13 @@ import CodeRepositoryService from "../../Services/CodeRepositoryService";
 import CodeTaskAccess from "../AI/CodeTask/CodeTaskAccess";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import logger from "../Logger";
-import GitHubInstallationBinding from "./GitHub/GitHubInstallationBinding";
 import GitHubUtil from "./GitHub/GitHub";
+import CodeHostAccess, {
+  CODE_HOST_REPOSITORY_SELECT,
+  CodeHostConnectionState,
+  CodeHostConnectionSummary,
+  CodeHostReader,
+} from "./CodeHost/CodeHostAccess";
 import {
   matchPathInTree,
   normalizeCandidatePath,
@@ -11,6 +16,10 @@ import {
 import CodeRepository from "../../../Models/DatabaseModels/CodeRepository";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType";
+import {
+  CodeHost,
+  CodeHostCapability,
+} from "../../../Types/CodeRepository/CodeHost";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import ObjectID from "../../../Types/ObjectID";
 
@@ -19,14 +28,17 @@ import ObjectID from "../../../Types/ObjectID";
  *
  * A profile frame names a file as the running process saw it - an absolute
  * path in a container ("/app/src/orders/parser.ts"), a path under a build
- * directory, a Windows path. The repositories connected through the GitHub
- * App name it relative to their root ("src/orders/parser.ts"). This finds,
- * for each frame, the repository and path that hold it, and a link to the
- * line on GitHub:
+ * directory, a Windows path. The project's repositories name it relative to
+ * their root ("src/orders/parser.ts"). This finds, for each frame, the
+ * repository and path that hold it, and a link to the line on its host
+ * (GitHub, GitLab, Forgejo or Gitea):
  *
- *   - only repositories the person may read, and the GitHub App can reach
- *     (their installation still bound to this project) - a tree is read with
- *     the App's token, so an unbound row would read another tenant's code;
+ *   - only repositories the person may read, that OneUptime reaches and
+ *     whose files it reads (CodeHostAccess): through the GitHub App, its
+ *     installation still bound to this project - a tree is read with the
+ *     App's token, so an unbound row would read another tenant's code - or
+ *     through the repository's connection, whose token was not refused. A
+ *     Git repository's files are not read, so it gets no link;
  *   - the frame's path is normalized the way stack-trace resolution does it
  *     (container prefixes off; a library's file, under node_modules or
  *     site-packages, is nobody's own code and gets no link), then matched by
@@ -37,8 +49,8 @@ import ObjectID from "../../../Types/ObjectID";
  *     leave it without a link: a link that might be the wrong file is worse
  *     than none.
  *
- * The trees are cached (GitHubUtil.getRepositoryTreePaths), so a page that
- * asks for the same repositories again costs no GitHub call.
+ * The trees are cached (GitHubUtil.getRepositoryTreePaths, CodeHostAccess),
+ * so a page that asks for the same repositories again calls no host.
  */
 
 export interface SourceFrame {
@@ -54,7 +66,7 @@ export interface SourceLink {
   repositoryName: string;
   // The file's path in the repository.
   path: string;
-  // The file (and line) on GitHub, on the repository's main branch.
+  // The file (and line) on its host, on the repository's main branch.
   url: string;
 }
 
@@ -65,7 +77,17 @@ export interface LocatableRepository {
   repositoryName: string;
   mainBranchName: string;
   repositoryUrl?: string | undefined;
+  // Where it is hosted (CodeRepositoryType); absent is GitHub.
+  repositoryHostedAt?: string | undefined;
 }
+
+// A repository whose tree OneUptime reads for the person, and how.
+export type LocatableRepositoryWithTree = LocatableRepository & {
+  // GitHub: the installation bound to the project, the tree is read with.
+  gitHubAppInstallationId?: string | undefined;
+  // Any other host: the project, its reader is found in.
+  projectId?: string | undefined;
+};
 
 // The most repositories whose trees one request reads.
 export const MAX_REPOSITORIES_PROBED: number = 10;
@@ -197,12 +219,31 @@ export default class SourceLocator {
     return links;
   }
 
-  // The file on GitHub, on the repository's main branch, at its line.
+  /*
+   * The file on its host, on the repository's main branch, at its line:
+   * GitHub's, GitLab's, Forgejo's or Gitea's page for it.
+   */
   public static getFileUrl(
     repository: LocatableRepository,
     path: string,
     lineNumber: number,
   ): string {
+    const type: CodeRepositoryType = CodeHost.readType(
+      repository.repositoryHostedAt,
+    );
+
+    if (type !== CodeRepositoryType.GitHub) {
+      return (
+        CodeHost.getFileWebUrl({
+          type,
+          webUrl: repository.repositoryUrl,
+          branchName: repository.mainBranchName || "main",
+          path,
+          lineNumber,
+        }) || ""
+      );
+    }
+
     let base: string =
       repository.repositoryUrl ||
       `https://github.com/${encodeURIComponent(repository.organizationName)}/${encodeURIComponent(repository.repositoryName)}`;
@@ -226,23 +267,14 @@ export default class SourceLocator {
   }
 
   /*
-   * The repositories a person may read that the GitHub App can reach in
-   * this project: the only ones whose trees are read for them.
+   * The repositories a person may read whose files OneUptime reads in this
+   * project (CodeHostAccess): the only ones whose trees are read for them.
    */
   @CaptureSpan()
   public static async getLocatableRepositories(data: {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
-  }): Promise<
-    Array<LocatableRepository & { gitHubAppInstallationId: string }>
-  > {
-    const boundInstallationId: string | null =
-      await GitHubInstallationBinding.getBoundInstallationId(data.projectId);
-
-    if (!boundInstallationId) {
-      return [];
-    }
-
+  }): Promise<Array<LocatableRepositoryWithTree>> {
     const readable: Array<CodeRepository> =
       await CodeTaskAccess.listReadableRepositories({
         props: data.props,
@@ -253,63 +285,106 @@ export default class SourceLocator {
       return [];
     }
 
-    // The installation id is not every reader's to see: it is read as root.
-    const reachable: Array<CodeRepository> = await CodeRepositoryService.findBy(
-      {
-        query: {
-          _id: QueryHelper.any(
-            readable.map((repository: CodeRepository): ObjectID => {
-              return repository.id!;
-            }),
-          ),
-          projectId: data.projectId,
-          repositoryHostedAt: CodeRepositoryType.GitHub,
-          gitHubAppInstallationId: boundInstallationId,
-        },
-        select: {
-          _id: true,
-          name: true,
-          organizationName: true,
-          repositoryName: true,
-          mainBranchName: true,
-          repositoryUrl: true,
-        },
-        limit: readable.length,
-        skip: 0,
-        props: { isRoot: true },
+    const readableIds: Array<ObjectID> = readable.map(
+      (repository: CodeRepository): ObjectID => {
+        return repository.id!;
       },
     );
 
-    return reachable
+    const summaries: Map<string, CodeHostConnectionSummary> =
+      await CodeHostAccess.getConnectionSummaries({
+        projectId: data.projectId,
+        repositoryIds: readableIds,
+      });
+
+    // The installation id is not every reader's to see: it is read as root.
+    const rows: Array<CodeRepository> = await CodeRepositoryService.findBy({
+      query: {
+        _id: QueryHelper.any(readableIds),
+        projectId: data.projectId,
+      },
+      select: { ...CODE_HOST_REPOSITORY_SELECT, name: true },
+      limit: readable.length,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    return rows
       .filter((repository: CodeRepository): boolean => {
+        const summary: CodeHostConnectionSummary | undefined = repository.id
+          ? summaries.get(repository.id.toString())
+          : undefined;
+
         return Boolean(
           repository.id &&
             repository.organizationName &&
-            repository.repositoryName,
+            repository.repositoryName &&
+            summary &&
+            summary.state === CodeHostConnectionState.Connected &&
+            summary.isReachableFromServer &&
+            CodeHost.can(summary.provider, CodeHostCapability.ReadCode),
         );
       })
-      .map(
-        (
-          repository: CodeRepository,
-        ): LocatableRepository & { gitHubAppInstallationId: string } => {
-          const locatable: LocatableRepository & {
-            gitHubAppInstallationId: string;
-          } = {
-            id: repository.id!.toString(),
-            name: repository.name || repository.repositoryName || "",
-            organizationName: repository.organizationName || "",
-            repositoryName: repository.repositoryName || "",
-            mainBranchName: repository.mainBranchName || "main",
-            gitHubAppInstallationId: boundInstallationId,
-          };
+      .map((repository: CodeRepository): LocatableRepositoryWithTree => {
+        const type: CodeRepositoryType = CodeHost.readType(
+          repository.repositoryHostedAt,
+        );
 
-          if (repository.repositoryUrl) {
-            locatable.repositoryUrl = repository.repositoryUrl.toString();
-          }
+        const locatable: LocatableRepositoryWithTree = {
+          id: repository.id!.toString(),
+          name: repository.name || repository.repositoryName || "",
+          organizationName: repository.organizationName || "",
+          repositoryName: repository.repositoryName || "",
+          mainBranchName: repository.mainBranchName || "main",
+          repositoryHostedAt: type,
+        };
 
-          return locatable;
-        },
-      );
+        if (type === CodeRepositoryType.GitHub) {
+          locatable.gitHubAppInstallationId =
+            repository.gitHubAppInstallationId || "";
+        } else {
+          locatable.projectId = data.projectId.toString();
+        }
+
+        if (repository.repositoryUrl) {
+          locatable.repositoryUrl = repository.repositoryUrl.toString();
+        }
+
+        return locatable;
+      });
+  }
+
+  /*
+   * A locatable repository's tree: GitHub's through the installation, any
+   * other host's through its reader (both cached).
+   */
+  public static async getTreePaths(
+    repository: LocatableRepositoryWithTree,
+  ): Promise<Array<string>> {
+    if (
+      CodeHost.readType(repository.repositoryHostedAt) ===
+      CodeRepositoryType.GitHub
+    ) {
+      return await GitHubUtil.getRepositoryTreePaths({
+        installationId: repository.gitHubAppInstallationId || "",
+        organizationName: repository.organizationName,
+        repositoryName: repository.repositoryName,
+        branchName: repository.mainBranchName,
+      });
+    }
+
+    const reader: CodeHostReader | null = repository.projectId
+      ? await CodeHostAccess.getReader({
+          projectId: new ObjectID(repository.projectId),
+          repositoryId: new ObjectID(repository.id),
+        })
+      : null;
+
+    if (!reader || !reader.canReadCode) {
+      return [];
+    }
+
+    return await reader.getTreePaths(repository.mainBranchName);
   }
 
   /*
@@ -322,12 +397,11 @@ export default class SourceLocator {
     props: DatabaseCommonInteractionProps;
     frames: Array<SourceFrame>;
   }): Promise<Array<SourceLink>> {
-    const repositories: Array<
-      LocatableRepository & { gitHubAppInstallationId: string }
-    > = await SourceLocator.getLocatableRepositories({
-      projectId: data.projectId,
-      props: data.props,
-    });
+    const repositories: Array<LocatableRepositoryWithTree> =
+      await SourceLocator.getLocatableRepositories({
+        projectId: data.projectId,
+        props: data.props,
+      });
 
     return await SourceLocator.matchFrames({
       frames: data.frames,
@@ -335,18 +409,9 @@ export default class SourceLocator {
       getTreePaths: (
         repository: LocatableRepository,
       ): Promise<Array<string>> => {
-        const withInstallation: LocatableRepository & {
-          gitHubAppInstallationId: string;
-        } = repository as LocatableRepository & {
-          gitHubAppInstallationId: string;
-        };
-
-        return GitHubUtil.getRepositoryTreePaths({
-          installationId: withInstallation.gitHubAppInstallationId,
-          organizationName: withInstallation.organizationName,
-          repositoryName: withInstallation.repositoryName,
-          branchName: withInstallation.mainBranchName,
-        });
+        return SourceLocator.getTreePaths(
+          repository as LocatableRepositoryWithTree,
+        );
       },
     });
   }

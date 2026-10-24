@@ -209,12 +209,14 @@ describe("read_code_file — repository targeting", () => {
     expect(result.dataForLlm).toContain("const a = 1;");
   });
 
-  test("explains when the project has no connected repository at all", async () => {
+  test("explains when the project has no connected repository at all - and which hosts' code is read", async () => {
     mockRepositories([]);
 
     await expect(
       ReadCodeFileTool.execute({ filePath: "src/index.ts" }, ctx),
-    ).rejects.toThrow(/no GitHub-connected code repositories/);
+    ).rejects.toThrow(
+      "This project has no connected code repository whose source OneUptime can read. Connect one in Code: GitHub, GitLab, Forgejo and Gitea repositories are read (a plain Git repository's files are not).",
+    );
   });
 
   test("reports a missing file as fixable rather than crashing", async () => {

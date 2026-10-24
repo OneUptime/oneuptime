@@ -542,7 +542,7 @@ describe("CodeFixReadiness.getRepositoryConnectedCheck", () => {
    */
   test("a connected repository is ready under the repositoryConnected id", async () => {
     jest
-      .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
       .mockResolvedValue(true);
 
     const check: AIFixReadinessCheck =
@@ -554,7 +554,7 @@ describe("CodeFixReadiness.getRepositoryConnectedCheck", () => {
 
   test("no connected repository: not ready, and points at the GitHub App", async () => {
     jest
-      .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
       .mockResolvedValue(false);
 
     const check: AIFixReadinessCheck =
@@ -578,7 +578,7 @@ describe("CodeFixReadiness.getProjectReadiness", () => {
 
   function mockAll(params: MockAllParams): void {
     jest
-      .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
       .mockResolvedValue(params.hasRepo);
     jest
       .spyOn(LlmProviderService, "getLlmProviderForMeteredAgentPath")

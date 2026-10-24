@@ -19,7 +19,7 @@ export default class ImproveTracingTaskHandler extends SubjectPullRequestTaskHan
   protected readonly noActionMessage: string =
     "No tracing improvements could be applied to any repository";
   protected readonly noRepositoryMessage: string =
-    "Could not resolve a repository for this tracing-improvement task. Connect the right repository through the GitHub App.";
+    "Could not resolve a repository for this tracing-improvement task. Connect the right repository in Code.";
 
   // Build the prompt for the code agent
   protected buildPrompt(

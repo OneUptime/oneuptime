@@ -300,6 +300,7 @@ import Service from "./Service";
 import ServiceOwnerTeam from "./ServiceOwnerTeam";
 import ServiceOwnerUser from "./ServiceOwnerUser";
 import CodeRepository from "./CodeRepository";
+import CodeRepositoryConnection from "./CodeRepositoryConnection";
 // Short link.
 import ShortLink from "./ShortLink";
 // SMS
@@ -935,6 +936,7 @@ const AllModelTypes: Array<{
 
   // Code Repository
   CodeRepository,
+  CodeRepositoryConnection,
 
   ProbeOwnerTeam,
   ProbeOwnerUser,

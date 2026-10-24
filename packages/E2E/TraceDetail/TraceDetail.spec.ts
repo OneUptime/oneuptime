@@ -1056,12 +1056,12 @@ test.describe("fix performance with AI", () => {
     await page.getByTestId("trace-fix-performance").click();
 
     await expect(page.getByTestId("trace-fix-performance-error")).toContainText(
-      "Could not start the fix: No GitHub-App-connected repository exists for this project",
+      "Could not start the fix: No connected repository exists for this project",
     );
     await expect(page.getByTestId("trace-fix-performance")).toBeEnabled();
   });
 
-  test("a repository disconnected since the page loaded: the refused click becomes the quiet Connect GitHub link", async ({
+  test("a repository disconnected since the page loaded: the refused click becomes the quiet link to connect a repository", async ({
     page,
   }: {
     page: Page;
@@ -1073,7 +1073,9 @@ test.describe("fix performance with AI", () => {
     const strip: Locator = page.getByTestId("trace-performance-suggestion");
     await expect(strip).toHaveAttribute("data-offer", "SetUp");
     await expect(
-      strip.getByRole("link", { name: "Connect GitHub to fix this with AI" }),
+      strip.getByRole("link", {
+        name: "Connect a repository to fix this with AI",
+      }),
     ).toBeVisible();
     // Said in the strip's own words: no refusal, no button.
     await expect(page.getByTestId("trace-fix-performance-error")).toHaveCount(
@@ -1104,7 +1106,7 @@ test.describe("fix performance with AI", () => {
     expect(finding.height).toBeLessThan(30);
   });
 
-  test("no repository connected: a quiet link to connect GitHub in place of the button", async ({
+  test("no repository connected: a quiet link to connect a repository in place of the button", async ({
     page,
   }: {
     page: Page;
@@ -1121,7 +1123,7 @@ test.describe("fix performance with AI", () => {
     await screenshot(page, "performance-suggestion-connect", false);
 
     await page
-      .getByRole("link", { name: "Connect GitHub to fix this with AI" })
+      .getByRole("link", { name: "Connect a repository to fix this with AI" })
       .click();
     await expect(page).toHaveURL(`/dashboard/${PROJECT_ID}/code`);
     await expect(page.getByRole("heading", { name: "Code" })).toBeVisible();
@@ -1434,7 +1436,7 @@ test.describe("phone", () => {
     });
   });
 
-  test("the Connect GitHub link and the working line keep in line with the words", async ({
+  test("the connect link and the working line keep in line with the words", async ({
     page,
   }: {
     page: Page;

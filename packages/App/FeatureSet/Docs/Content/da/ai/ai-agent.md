@@ -9,6 +9,7 @@ Kode er stedet, hvor du beder OneUptime AI om at arbejde i dine repositorier, s�
 - [Hvor rettelsesopgaver starter](#hvor-rettelsesopgaver-starter): Opgaverne, OneUptime starter, og hvad hver pull request gør.
 - [Produktionstelemetri i en rettelse](#produktionstelemetri-i-en-rettelse): Hvad en rettelse læser fra produktionen, mens den skriver ændringen.
 - [Produktionsgennemgang af pull requests](#produktionsgennemgang-af-pull-requests): Hvad produktionen siger om den kode, hver pull request ændrer.
+- [Forbind et repositorie](#forbind-et-repositorie): GitHub, GitLab, Forgejo eller Gitea, eller enhver Git-server.
 - [Før du begynder](#før-du-begynder): En model, et forbundet repositorie og en Runner.
 - [Når en rettelse mislykkes](#når-en-rettelse-mislykkes): Hvad der sker med en kørsel, der fejler, går i stå eller venter.
 :::
@@ -21,7 +22,7 @@ Kode er stedet, hvor du beder OneUptime AI om at arbejde i dine repositorier, s�
 :::steps
 ### Åbn Kode
 
-Åbn **Produkter → Kode**. Kode åbner på **Hvad skal AI gøre?**: feltet, hvor du spørger, med alle opgaver under det, de nyeste først. Er der endnu intet repositorie, tilbyder Kode i stedet **Forbind GitHub** (se [Før du begynder](#før-du-begynder)). **Repositorier** i sidemenuen viser de repositorier, AI kan arbejde i, og samler dem, som GitHub App ikke længere når, under **Ikke forbundet**. Hvert repositories side har det samme felt til det repositorie.
+Åbn **Produkter → Kode**. Kode åbner på **Hvad skal AI gøre?**: feltet, hvor du spørger, med alle opgaver under det, de nyeste først. Er der endnu intet repositorie, tilbyder Kode i stedet **Forbind GitHub** med GitLab, Forgejo eller Gitea og enhver Git-server nedenunder (se [Forbind et repositorie](#forbind-et-repositorie)). **Repositorier** i sidemenuen viser de repositorier, AI kan arbejde i, og samler dem, som OneUptime ikke længere når, under **Ikke forbundet**. Hvert repositories side har det samme felt til det repositorie.
 
 ### Vælg repositoriet og branchen
 
@@ -204,6 +205,25 @@ At flette en rettelse retter intet, før den kører. Når en pull request med en
 
 Indtil en udrulning leverer den, står der **Merget, venter på et deploy** ved rettelsen, derefter **Deployet, overvåges i produktion**, mens der holdes øje med den. En rettelse, som ingen registreret udrulning indeholder inden for 14 dage, eller som produktionen ikke kan sige noget om, står som **Ikke verificeret i produktion**. [Automatiske koderettelser](/docs/ai/ai-sre#automatiske-koderettelser) har reglerne. En regressionstest, bedre fejlhåndtering, en gennemgang og en anmodning i Code holdes der ikke øje med: produktionen kan ikke vise, hvad de ændrer.
 
+## Forbind et repositorie
+
+Åbn **Repositorier** i Kodes sidemenu, og klik på **Forbind repositorier**: Kode spørger, hvor din kode ligger, og forbinder hvert sted på sin egen måde. Hvad AI gør i et repositorie, afhænger af, hvor det ligger:
+
+| Hvor koden ligger | Sådan forbindes den | Hvad AI gør der |
+| --- | --- | --- |
+| **GitHub** | OneUptime GitHub App, installeret på de repositorier, den vælger. | Alt på denne side, med kommandoer fra GitHub (se [GitHub App](/docs/ai/github-app)) og [produktionsgennemgange](#produktionsgennemgang-af-pull-requests). |
+| **GitLab**, på GitLab.com eller dit eget | Et adgangstoken: et personligt token, et gruppe- eller projekttoken med scopes `api` og `write_repository` og mindst rollen Developer. | Opgaver og rettelser, hver ændring i en merge request; grenvælgeren; den kode, et stakspor eller en profil går gennem; om en rettelse blev merget, og hvad produktionen viste, da den var udrullet. |
+| **Forgejo eller Gitea**, på Codeberg eller dit eget | Et adgangstoken med læse- og skriveadgang til repositorier og læseadgang til brugeren. | Det samme som på GitLab, hver ændring i en pull request. |
+| **Enhver Git-server**, over HTTPS | Den adresse, du kloner repositoriet med, et brugernavn og en adgangskode eller et adgangstoken, der kan læse repositoriet og pushe til det. | AI kloner repositoriet og pusher hver ændring til en ny gren, som dens svar nævner: du åbner pull requesten. På Bitbucket og Azure DevOps linker den til, hvor du åbner den. |
+
+Kommandoer fra kommentarer og produktionsgennemgange kræver GitHub App, så indtil videre virker de kun i GitHub-repositorier, og repositoriets **Indstillinger** siger det.
+
+For GitLab, Forgejo eller Gitea angiver du serverens adresse (GitLab.com og Codeberg er udfyldt på forhånd) og tokenet og vælger så de repositorier, der skal forbindes: listen viser kun dem, tokenet kan pushe til, og når du forbinder flere senere, kan tokenet bruges igen. OneUptime tjekker hvert token hos dets server, før det gemmer det, gemmer det krypteret og viser det aldrig igen. Repositoriets **Indstillinger** viser dets server, kontoen og tokenets sidste tegn, med **Erstat adgangstoken**. Når serveren afviser et udløbet eller tilbagekaldt token, viser dets repositorier **Token afvist**, og AI holder op med at arbejde i dem, indtil en erstatning af tokenet forbinder hvert repositorie, der bruger det, igen.
+
+### En Git-server på et privat netværk
+
+OneUptime Cloud når kun Git-servere på internettet, aldrig en privat, loopback- eller link-local-adresse. Forbind en server, som kun dit netværk når, som **Enhver Git-server**: Kode siger, at den ikke kan nå den, og **Forbind alligevel** forbinder den til en af dine egne Runnere på det netværk. Vælg den Runner på repositoriets **Runner**-kort (se [Vælg repositoriets Runner](#vælg-repositoriets-runner)). En global Runner arbejder aldrig i det, og OneUptime læser intet fra det på serveren, så grenvælgeren viser kun dets hovedgren. En selvhostet OneUptime og dens globale Runner når Git-serverne på sit eget netværk.
+
 ## Før du begynder
 
 En opgave kræver tre ting. Kodes anmodningsfelt og undtagelsens side **AI Assistance** kontrollerer alle tre, før de tilbyder at starte, og fortæller, hvad der mangler.
@@ -212,6 +232,7 @@ En opgave kræver tre ting. Kodes anmodningsfelt og undtagelsens side **AI Assis
 | --- | --- | --- |
 | En LLM-udbyder | Intet at sætte op: et projekt uden egen udbyder bruger den globale udbyder, betalt af projektets AI-kreditter. En udbyder af din egen under **Projektindstillinger → AI → LLM-udbydere** går forud. | Sæt miljøvariablerne `GLOBAL_LLM_PROVIDER_*` én gang på serveren, eller føj en udbyder til projektet. |
 | Et repositorie forbundet via GitHub App | **Produkter → Kode**, derefter **Forbind GitHub**. Hvis appen allerede er installeret på GitHub-kontoen, så klik i stedet på **Forbind en eksisterende installation**: den bliver ikke forbundet af at installere den igen. Kræver Growth-planen. | Det samme, når din instans har en GitHub App (se [GitHub-integration](/docs/self-hosted/github-integration)). |
+| Eller et repositorie på GitLab, Forgejo eller Gitea eller enhver Git-server | **Repositorier** i Kode, derefter **Forbind repositorier** (se [Forbind et repositorie](#forbind-et-repositorie)). Kræver Growth-planen. | Det samme, uden en GitHub App at sætte op. |
 | En Runner, der kører AI-koderettelser | Intet at drive: et repositorie, der ikke vælger nogen, arbejder på OneUptimes globale Runnere. | Docker Compose-tjenesten `runner` eller Helm-chartets Runner (`runner.enabled`, slået til som standard) registrerer sig selv og kører AI-koderettelser i hvert repositorie, der ikke vælger nogen Runner. |
 
 På en selvhostet instans er den globale udbyder én blok i `config.env` (Docker Compose) eller i dine Helm-værdier. Til en selvhostet Ollama:
@@ -284,7 +305,7 @@ Mens rettelse er slået til, sætter en undersøgelse, der ender med en sikker, 
 
 Alt andet svarer til knappen:
 
-- Pull requesten åbnes klar til gennemgang, skrevet ud fra den offentliggjorte analyse, og kræver et repositorie forbundet via GitHub App, et af dem, de matchende regler nævner, når de nævner nogen, og en Runner, der er online til at arbejde i det: den, repositoriet vælger, eller en global Runner.
+- Pull requesten åbnes klar til gennemgang, skrevet ud fra den offentliggjorte analyse, og kræver et forbundet repositorie, et af dem, de matchende regler nævner, når de nævner nogen, og en Runner, der er online til at arbejde i det: den, repositoriet vælger, eller en global Runner.
 - Den tæller med i signalets daglige grænse for rettelsesopgaver (**Daily Incident AI Fix Task Limit** eller **Daily Alert AI Fix Task Limit**, under **Yderligere indstillinger** på dets AI-indstillingsside) og i repositoriets loft over åbne pull requests, når et af dem er sat. Uden at være sat begrænser ingen af dem noget.
 - Hver udløser leder først efter en rettelsesopgave, der allerede står i kø eller kører for den samme hændelse eller advarsel, så en automatisk udløser og et klik normalt bliver til én opgave, ikke to pull requests. Kontrollen er en læsning før skrivningen, ikke en lås, så to udløsere i præcis samme øjeblik stadig begge kan komme igennem.
 - Kørslen skrives af systemet, krediteres ingen, og intet merges af sig selv.
@@ -306,12 +327,6 @@ En opgave, der venter mere end 30 minutter, mens den Runner, der skal tage den, 
 ## Privatliv
 
 Klonen af dit repositorie ligger i et arbejdsområde i Runnerens container og slettes, når kørslen slutter, uanset om den lykkedes eller ej. Runneren har aldrig din LLM-udbyders API-nøgle: OneUptime-serveren foretager LLM-kaldene for den og kører også forespørgslerne til produktionstelemetrien. OneUptime beholder ikke dit repositorie og træner ikke på din kode. Opgavens log beholder de første 300 tegn af hvert trins output, så du kan kontrollere, hvad Runneren gjorde, og det kan indeholde kodestykker. Kør en selvhostet Runner med din egen LLM-udbyder (lokal Ollama inklusive), og din kode forlader aldrig din infrastruktur.
-
-## På køreplanen
-
-Planlagt og **ikke tilgængeligt i dag**:
-
-- **Understøttelse af GitLab.** Repositorier forbindes kun via GitHub App.
 
 ## Næste trin
 

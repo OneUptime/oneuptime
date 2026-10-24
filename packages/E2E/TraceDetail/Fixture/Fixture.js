@@ -1203,7 +1203,7 @@ async function handleApi(method, options) {
         400,
         {
           message:
-            "No GitHub-App-connected repository exists for this project, so the agent has nowhere to open the performance-fix pull request. Connect one in Code.",
+            "No connected repository exists for this project, so the agent has nowhere to open the performance-fix pull request. Connect one in Code.",
         },
         {},
       );
@@ -1276,7 +1276,7 @@ createRoot(document.getElementById("root")).render(
           path="/dashboard/:projectId/code/tasks/:taskId"
           element={<PlaceholderPage title="Code Task" testId="ai-task-page" />}
         />
-        {/* Code, where "Connect GitHub to fix this with AI" leads. */}
+        {/* Code, where "Connect a repository to fix this with AI" leads. */}
         <Route
           path="/dashboard/:projectId/code"
           element={<PlaceholderPage title="Code" testId="code-page" />}

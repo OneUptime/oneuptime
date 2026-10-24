@@ -21,6 +21,7 @@
     "Interfaces",
     "Link",
     "Marketplace",
+    "Merge request !{{number}}",
     "Monitor",
     "Offline",
     "PR #{{number}}",
