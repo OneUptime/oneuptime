@@ -66,6 +66,7 @@ const SUBJECT_TYPES: Array<AiOffSubjectType> = ["incident", "alert"];
 const SENTENCES: Array<string> = Array.from(
   new Set<string>([
     AI_OFF_TITLES.investigationOff,
+    AI_OFF_TITLES.investigationWasOff,
     AI_OFF_TITLES.projectAiOff,
     ...SUBJECT_TYPES.flatMap((subjectType: AiOffSubjectType): Array<string> => {
       return [
@@ -137,8 +138,8 @@ for (const language of LANGUAGES) {
 }
 
 describe("English holds every sentence under its own words", () => {
-  test("there is something to check: the 33 keys the line added", () => {
-    expect(SENTENCES.length).toBe(33);
+  test("there is something to check: the 34 keys the line added", () => {
+    expect(SENTENCES.length).toBe(34);
   });
 
   test.each([...SENTENCES, ...BORROWED, ...KEPT_AS_THE_LOCALE_HAS_THEM])(

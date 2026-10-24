@@ -9,7 +9,8 @@ import { MutableRefObject, useEffect, useRef, useState } from "react";
  * The project's "Investigate new ..." and "Fix new ... automatically"
  * switches for a kind of record, as they are now - for the AI card's
  * one-line summary, which then says "is on now" for a switch that was off
- * when the record was created rather than asking to turn on what is on.
+ * when the record was created rather than asking to turn on what is on,
+ * and says AI investigation "was off" rather than "is off" once it is on.
  *
  * Read once per project and kind, and only while isEnabled: the summary is
  * the only thing that needs them, and most records never fold. A switch
@@ -17,6 +18,15 @@ import { MutableRefObject, useEffect, useRef, useState } from "react";
  * fails) stays unknown, and the summary words its step as it would without
  * knowing.
  */
+
+export interface AiLaneSwitchRead {
+  states: AiLaneSwitchStates;
+  /*
+   * The read is done - answered, refused, or there was nothing to read (no
+   * project selected) - so the line can be drawn in its final words.
+   */
+  isRead: boolean;
+}
 
 interface ReadSwitches {
   key: string;
@@ -30,10 +40,10 @@ function readBoolean(value: unknown): boolean | undefined {
 const useAiLaneSwitchStates: (data: {
   subjectType: AiOffSubjectType;
   isEnabled: boolean;
-}) => AiLaneSwitchStates = (data: {
+}) => AiLaneSwitchRead = (data: {
   subjectType: AiOffSubjectType;
   isEnabled: boolean;
-}): AiLaneSwitchStates => {
+}): AiLaneSwitchRead => {
   let projectId: string = "";
 
   try {
@@ -42,17 +52,14 @@ const useAiLaneSwitchStates: (data: {
     projectId = "";
   }
 
+  const canRead: boolean =
+    Boolean(projectId) && ObjectID.isValidUUID(projectId);
   const key: string = `${projectId}:${data.subjectType}`;
   const [read, setRead] = useState<ReadSwitches>({ key: "", states: {} });
   const requestedKeyRef: MutableRefObject<string> = useRef<string>("");
 
   useEffect(() => {
-    if (
-      !data.isEnabled ||
-      !projectId ||
-      !ObjectID.isValidUUID(projectId) ||
-      requestedKeyRef.current === key
-    ) {
+    if (!data.isEnabled || !canRead || requestedKeyRef.current === key) {
       return;
     }
 
@@ -106,14 +113,20 @@ const useAiLaneSwitchStates: (data: {
 
     return () => {
       isCurrent = false;
-      // A read that was cut short is read again when the card next folds.
+      // A read that was cut short is read again when the card next may fold.
       if (!isSettled && requestedKeyRef.current === key) {
         requestedKeyRef.current = "";
       }
     };
-  }, [data.isEnabled, data.subjectType, key, projectId]);
+  }, [data.isEnabled, data.subjectType, key, projectId, canRead]);
 
-  return read.key === key ? read.states : {};
+  const isReadForKey: boolean = read.key === key;
+
+  return {
+    states: isReadForKey ? read.states : {},
+    // Nothing to read is as good as read: the line never waits on it.
+    isRead: isReadForKey || !canRead,
+  };
 };
 
 export default useAiLaneSwitchStates;

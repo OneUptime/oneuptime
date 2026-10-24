@@ -33710,5 +33710,6 @@
   "“{{switchName}}” is off.": "Параметр «{{switchName}}» выключен.",
   "“{{switchName}}” is on now.": "Параметр «{{switchName}}» теперь включён.",
   "“{{switchName}}” was off when this alert was created.": "Параметр «{{switchName}}» был выключен, когда это оповещение было создано.",
-  "“{{switchName}}” was off when this incident was created.": "Параметр «{{switchName}}» был выключен, когда этот инцидент был создан."
+  "“{{switchName}}” was off when this incident was created.": "Параметр «{{switchName}}» был выключен, когда этот инцидент был создан.",
+  "AI investigation was off": "Расследование ИИ было выключено"
 }

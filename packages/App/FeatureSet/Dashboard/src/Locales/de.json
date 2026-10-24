@@ -33699,9 +33699,9 @@
   "This alert's severity is below the minimum for AI investigation.": "Der Schweregrad dieser Warnung liegt unter dem Mindestwert für KI-Untersuchungen.",
   "This alert's severity was below the minimum for AI investigation.": "Der Schweregrad dieser Warnung lag unter dem Mindestwert für KI-Untersuchungen.",
   "This applies to new alerts only, not to this one.": "Das gilt nur für neue Warnungen, nicht für diese.",
-  "This applies to new alerts only, not to this one. You can still ask OneUptime AI about it.": "Das gilt nur für neue Warnungen, nicht für diese. Sie können OneUptime AI trotzdem dazu fragen.",
+  "This applies to new alerts only, not to this one. You can still ask OneUptime AI about it.": "Das gilt nur für neue Warnungen, nicht für diese. Sie können OneUptime AI trotzdem dazu befragen.",
   "This applies to new incidents only, not to this one.": "Das gilt nur für neue Vorfälle, nicht für diesen.",
-  "This applies to new incidents only, not to this one. You can still ask OneUptime AI about it.": "Das gilt nur für neue Vorfälle, nicht für diesen. Sie können OneUptime AI trotzdem dazu fragen.",
+  "This applies to new incidents only, not to this one. You can still ask OneUptime AI about it.": "Das gilt nur für neue Vorfälle, nicht für diesen. Sie können OneUptime AI trotzdem dazu befragen.",
   "This incident matched none of the AI rules that investigate.": "Dieser Vorfall passte zu keiner der KI-Regeln, die untersuchen.",
   "This incident matches none of the AI rules that investigate.": "Dieser Vorfall passt zu keiner der KI-Regeln, die untersuchen.",
   "This incident's severity is below the minimum for AI investigation.": "Der Schweregrad dieses Vorfalls liegt unter dem Mindestwert für KI-Untersuchungen.",
@@ -33710,5 +33710,6 @@
   "“{{switchName}}” is off.": "„{{switchName}}“ ist ausgeschaltet.",
   "“{{switchName}}” is on now.": "„{{switchName}}“ ist jetzt eingeschaltet.",
   "“{{switchName}}” was off when this alert was created.": "„{{switchName}}“ war ausgeschaltet, als diese Warnung erstellt wurde.",
-  "“{{switchName}}” was off when this incident was created.": "„{{switchName}}“ war ausgeschaltet, als dieser Vorfall erstellt wurde."
+  "“{{switchName}}” was off when this incident was created.": "„{{switchName}}“ war ausgeschaltet, als dieser Vorfall erstellt wurde.",
+  "AI investigation was off": "KI-Untersuchung war aus"
 }

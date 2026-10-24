@@ -27,15 +27,17 @@ import InvestigationStatusBadge, {
 import AiOffSummary from "./AiOffSummary";
 import {
   AiCardFold,
-  AiLaneSwitchStates,
   AiOffSummary as AiOffSummaryCopy,
+  canAiCardFold,
   getAiCardFold,
   getAiOffSummary,
   InvestigationConversationFold,
   isAiOffInvestigationReason,
   RemediationFoldState,
 } from "./AiOffSummaryData";
-import useAiLaneSwitchStates from "./useAiLaneSwitchStates";
+import useAiLaneSwitchStates, {
+  AiLaneSwitchRead,
+} from "./useAiLaneSwitchStates";
 import ClusterAccessNotice, {
   ClusterAccessNoticeRow,
   getClusterAccessSignature,
@@ -1184,18 +1186,31 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     isAiOffInvestigationReason(notInvestigatedReason)
       ? notInvestigatedReason
       : null;
+  /*
+   * The record's switches as they are now, which the line's title and steps
+   * say (is on now, was off): read as soon as the card may fold - beside the
+   * Remediation card's own read - and only then, since most cards never do.
+   */
+  const laneSwitches: AiLaneSwitchRead = useAiLaneSwitchStates({
+    subjectType,
+    isEnabled: canAiCardFold({
+      offReason,
+      remediation: props.remediationState,
+    }),
+  });
   const cardFold: AiCardFold = getAiCardFold({
     isInvestigationLoaded,
     offReason,
     remediation: props.remediationState,
+    areSwitchesRead: laneSwitches.isRead,
   });
   const isFolded: boolean = cardFold === "folded";
   /*
    * The card is still asking whether this subject has a run - or, with no
    * run for a reason the project chose, still waiting to know whether
-   * fixing did anything. Until then it cannot tell whether it is one line
-   * or the whole card, and draws its checking state rather than one and
-   * then the other.
+   * fixing did anything, and what is on now. Until then it cannot tell
+   * whether it is one line or the whole card, and draws its checking state
+   * rather than one and then the other.
    */
   const isCheckingStatus: boolean = cardFold === "checking";
   const hasRun: boolean = !isCheckingStatus && Boolean(runStatus);
@@ -1208,14 +1223,6 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     onCardFoldChangeRef.current?.(cardFold);
   }, [cardFold, subjectKey]);
 
-  /*
-   * Folded, the line says whether each switch it names is on now, read
-   * only then: most cards never fold.
-   */
-  const laneSwitches: AiLaneSwitchStates = useAiLaneSwitchStates({
-    subjectType,
-    isEnabled: isFolded,
-  });
   const remediationState: RemediationFoldState | undefined =
     props.remediationState;
   const offSummary: AiOffSummaryCopy | null =
@@ -1226,7 +1233,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           remediationReason: remediationState.reason,
           ruleName: remediationState.ruleName,
           isAiOn: isAiOffered,
-          switches: laneSwitches,
+          switches: laneSwitches.states,
           translator,
         })
       : null;

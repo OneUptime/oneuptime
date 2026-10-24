@@ -49,58 +49,85 @@ export const AI_OFF_SUMMARY_LAYOUT_CLASS_NAMES: {
 };
 
 /*
- * The places the steps send someone who may make them: each once, in the
- * order the steps first name them, so two switches on one page get one
- * link.
+ * The steps as the line draws them: each run of steps made in one place,
+ * followed by where that is - a link, for someone who may make them - or
+ * by who can make them, for everyone else. So the link sits under the
+ * steps it is for: "Turn on Enable AI" over AI Features, the two switches
+ * over the record's AI settings. Steps done since go together, with
+ * nothing after them. Each place, and each who-can sentence, is said once.
  */
-export function getAiOffSummaryLinks(
-  steps: Array<AiOffStep>,
-  canChange: (step: AiOffStep) => boolean,
-): Array<AiOffStepLink> {
-  const links: Array<AiOffStepLink> = [];
-
-  for (const step of steps) {
-    if (step.isDone || !step.link || !canChange(step)) {
-      continue;
-    }
-
-    const route: string = step.link.route.toString();
-    const isListed: boolean = links.some((link: AiOffStepLink): boolean => {
-      return link.route.toString() === route;
-    });
-
-    if (!isListed) {
-      links.push(step.link);
-    }
-  }
-
-  return links;
+export interface AiOffStepGroup {
+  // The first step's key: unique, since a step is in one group only.
+  key: string;
+  steps: Array<AiOffStep>;
+  // Where the steps are made, for someone who may make them.
+  link: AiOffStepLink | null;
+  // Who can make them, for someone who may not.
+  whoCanChange: string | null;
 }
 
 /*
- * Who can make the steps the reader may not, said once per sentence: "a
- * project owner or admin can change this" covers both switches.
+ * A menu path in a who-can sentence ("in Incidents → AI → Settings") never
+ * starts a line with its arrow: the space before each arrow does not
+ * break, so a line ends with the arrow and the next menu starts the next.
+ * Right-to-left languages write the path with "←".
  */
-export function getAiOffSummaryWhoCanChange(
+export function keepMenuPathArrowsInLine(text: string): string {
+  return text
+    .split(" \u2192 ")
+    .join("\u00a0\u2192 ")
+    .split(" \u2190 ")
+    .join("\u00a0\u2190 ");
+}
+
+export function getAiOffStepGroups(
   steps: Array<AiOffStep>,
   canChange: (step: AiOffStep) => boolean,
-): Array<string> {
-  const sentences: Array<string> = [];
+): Array<AiOffStepGroup> {
+  const groups: Array<AiOffStepGroup> = [];
+  // What follows each group: the same for every step in it.
+  const followers: Array<string> = [];
+  const linked: Set<string> = new Set<string>();
+  const told: Set<string> = new Set<string>();
 
   for (const step of steps) {
-    if (
-      step.isDone ||
-      canChange(step) ||
-      !step.whoCanChange ||
-      sentences.includes(step.whoCanChange)
-    ) {
+    const mayChange: boolean = !step.isDone && canChange(step);
+    const route: string =
+      mayChange && step.link ? step.link.route.toString() : "";
+    const who: string =
+      !step.isDone && !mayChange && step.whoCanChange ? step.whoCanChange : "";
+    const follower: string = step.isDone
+      ? "done"
+      : route
+        ? `link:${route}`
+        : who
+          ? `who:${who}`
+          : `none:${step.key}`;
+    const last: AiOffStepGroup | undefined = groups[groups.length - 1];
+
+    if (last && followers[followers.length - 1] === follower) {
+      last.steps.push(step);
       continue;
     }
 
-    sentences.push(step.whoCanChange);
+    groups.push({
+      key: step.key,
+      steps: [step],
+      link: route && !linked.has(route) ? step.link : null,
+      whoCanChange: who && !told.has(who) ? who : null,
+    });
+    followers.push(follower);
+
+    if (route) {
+      linked.add(route);
+    }
+
+    if (who) {
+      told.add(who);
+    }
   }
 
-  return sentences;
+  return groups;
 }
 
 /*
@@ -133,12 +160,32 @@ const AiOffSummary: FunctionComponent<ComponentProps> = (
   };
   const whatYouCanDo: string =
     translator.translateText(AI_OFF_WHAT_YOU_CAN_DO) || AI_OFF_WHAT_YOU_CAN_DO;
-  const links: Array<AiOffStepLink> = props.isOpen
-    ? getAiOffSummaryLinks(summary.steps, canChange)
+  const groups: Array<AiOffStepGroup> = props.isOpen
+    ? getAiOffStepGroups(summary.steps, canChange)
     : [];
-  const whoCanChange: Array<string> = props.isOpen
-    ? getAiOffSummaryWhoCanChange(summary.steps, canChange)
-    : [];
+
+  /*
+   * The line opens where it is clicked, as a folded section's header does:
+   * on what is off, on why, on its mark - not only on the chevron, which
+   * stays the control a keyboard and a screen reader use. A click on Ask
+   * OneUptime AI or the chevron is theirs, and one that ends selecting the
+   * words is not taken for a click.
+   */
+  const onLineClick: (event: React.MouseEvent<HTMLElement>) => void = (
+    event: React.MouseEvent<HTMLElement>,
+  ): void => {
+    const target: EventTarget | null = event.target;
+
+    if (target instanceof Element && target.closest("button, a")) {
+      return;
+    }
+
+    if (window.getSelection()?.toString()) {
+      return;
+    }
+
+    props.onToggle();
+  };
 
   return (
     <div
@@ -153,13 +200,18 @@ const AiOffSummary: FunctionComponent<ComponentProps> = (
         <div
           aria-hidden="true"
           data-testid="ai-off-summary-mark"
-          className="flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-gray-100 text-gray-500"
+          onClick={onLineClick}
+          className="flex h-7 w-7 flex-none cursor-pointer items-center justify-center rounded-lg bg-gray-100 text-gray-500"
         >
           <Icon icon={IconProp.Sparkles} className="h-4 w-4" />
         </div>
 
         <div className="min-w-0 flex-1 [container-type:inline-size]">
-          <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5">
+          <div
+            data-testid="ai-off-summary-header"
+            onClick={onLineClick}
+            className="group flex cursor-pointer flex-wrap items-center gap-x-1 gap-y-0.5"
+          >
             <h2
               data-testid="ai-off-summary-title"
               className={`${AI_OFF_SUMMARY_LAYOUT_CLASS_NAMES.title} me-2 break-words text-sm font-semibold leading-7 text-gray-900`}
@@ -182,8 +234,10 @@ const AiOffSummary: FunctionComponent<ComponentProps> = (
             )}
 
             {/*
-              The fold opens on its chevron, as a card that opens does. Its
-              name says what opens: what you can do to turn AI on.
+              The fold's control, where a card that opens has it: its name
+              says what opens - what you can do to turn AI on - and it
+              brightens while the pointer is anywhere on the line, which
+              opens it too.
             */}
             <button
               type="button"
@@ -193,7 +247,7 @@ const AiOffSummary: FunctionComponent<ComponentProps> = (
               aria-label={whatYouCanDo}
               title={whatYouCanDo}
               onClick={props.onToggle}
-              className={`${AI_OFF_SUMMARY_LAYOUT_CLASS_NAMES.toggle} flex h-7 w-7 flex-none items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500`}
+              className={`${AI_OFF_SUMMARY_LAYOUT_CLASS_NAMES.toggle} flex h-7 w-7 flex-none items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 group-hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500`}
             >
               <Icon
                 icon={IconProp.ChevronDown}
@@ -213,9 +267,10 @@ const AiOffSummary: FunctionComponent<ComponentProps> = (
 
           {/*
             What would have OneUptime AI investigate - and fix - the next
-            one: each change in a sentence, then where it is made for those
-            who may make it, and who can for everyone else; then that none
-            of it reaches back to this record.
+            one: each change in a sentence, the changes made in one place
+            together, and under them where that is for those who may make
+            them, or who can for everyone else; then that none of it
+            reaches back to this record.
           */}
           <div
             id={stepsId}
@@ -223,103 +278,112 @@ const AiOffSummary: FunctionComponent<ComponentProps> = (
             hidden={!props.isOpen}
             className="mt-4 border-t border-gray-200 pt-4"
           >
-            <ul role="list" className="space-y-1.5">
-              {summary.steps.map((step: AiOffStep): ReactElement => {
+            <ul role="list" className="space-y-4">
+              {groups.map((group: AiOffStepGroup): ReactElement => {
                 return (
                   <li
-                    key={step.key}
-                    data-testid="ai-off-summary-step"
-                    data-step={step.key}
-                    data-done={step.isDone ? "true" : "false"}
-                    className="flex items-start gap-2.5"
+                    key={group.key}
+                    data-testid="ai-off-summary-group"
+                    className="space-y-1"
                   >
-                    {/* A div, not a span: Icon renders its own div around the svg. */}
-                    <div
-                      aria-hidden="true"
-                      className="flex h-6 w-4 flex-none items-center justify-center"
-                    >
-                      {step.isDone ? (
-                        <Icon
-                          icon={IconProp.CheckCircle}
-                          className="h-4 w-4 text-emerald-600"
-                        />
-                      ) : (
-                        <span className="h-3 w-3 rounded-full border-2 border-gray-300" />
-                      )}
-                    </div>
-                    <p
-                      className={`min-w-0 flex-1 break-words text-sm leading-6 ${
-                        step.isDone ? "text-gray-500" : "text-gray-900"
-                      }`}
-                    >
-                      {step.text}
-                    </p>
+                    {group.steps.map((step: AiOffStep): ReactElement => {
+                      return (
+                        <div
+                          key={step.key}
+                          data-testid="ai-off-summary-step"
+                          data-step={step.key}
+                          data-done={step.isDone ? "true" : "false"}
+                          className="flex items-start gap-2.5"
+                        >
+                          {/* A div, not a span: Icon renders its own div around the svg. */}
+                          <div
+                            aria-hidden="true"
+                            className="flex h-6 w-4 flex-none items-center justify-center"
+                          >
+                            {step.isDone ? (
+                              <Icon
+                                icon={IconProp.CheckCircle}
+                                className="h-4 w-4 text-emerald-600"
+                              />
+                            ) : (
+                              <span className="h-3 w-3 rounded-full border-2 border-gray-300" />
+                            )}
+                          </div>
+                          <p
+                            className={`min-w-0 flex-1 break-words text-sm leading-6 ${
+                              step.isDone ? "text-gray-500" : "text-gray-900"
+                            }`}
+                          >
+                            {step.text}
+                          </p>
+                        </div>
+                      );
+                    })}
+
+                    {group.link || group.whoCanChange ? (
+                      /*
+                       * Under the steps' words, past their marks: where
+                       * they are made, or who can make them.
+                       */
+                      <div className="flex items-start gap-2.5">
+                        <div aria-hidden="true" className="w-4 flex-none" />
+                        {group.link ? (
+                          <div
+                            data-testid="ai-off-summary-links"
+                            className="min-w-0 flex-1"
+                          >
+                            {/*
+                              The arrow is part of the words' line, glued to
+                              the last one by a no-break space that cannot
+                              wrap away from it: a name that wraps on a
+                              phone ends with its arrow, which never sits
+                              alone at the card's far edge or on a line of
+                              its own.
+                            */}
+                            <Link
+                              to={group.link.route}
+                              className="min-w-0 break-words rounded text-sm font-medium leading-6 text-indigo-600 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                            >
+                              {group.link.text}
+                              <span className="whitespace-nowrap">
+                                {"\u00a0"}
+                                <span
+                                  aria-hidden="true"
+                                  data-testid="ai-off-summary-link-arrow"
+                                  className="inline-block align-middle"
+                                >
+                                  <Icon
+                                    icon={IconProp.ArrowRight}
+                                    className="h-4 w-4"
+                                  />
+                                </span>
+                              </span>
+                            </Link>
+                          </div>
+                        ) : (
+                          <div
+                            data-testid="ai-off-summary-who"
+                            className="min-w-0 flex-1"
+                          >
+                            <p className="break-words text-sm leading-6 text-gray-600">
+                              {keepMenuPathArrowsInLine(
+                                group.whoCanChange || "",
+                              )}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <></>
+                    )}
                   </li>
                 );
               })}
             </ul>
 
-            {links.length > 0 ? (
-              <div
-                data-testid="ai-off-summary-links"
-                className="mt-3 flex flex-wrap gap-x-5 gap-y-1"
-              >
-                {links.map((stepLink: AiOffStepLink): ReactElement => {
-                  /*
-                   * The arrow is part of the words' line, glued to the last
-                   * one by a no-break space that cannot wrap away from it: a
-                   * name that wraps on a phone ends with its arrow, which
-                   * never sits alone at the card's far edge or on a line of
-                   * its own.
-                   */
-                  return (
-                    <Link
-                      key={stepLink.route.toString()}
-                      to={stepLink.route}
-                      className="min-w-0 break-words rounded text-sm font-medium leading-6 text-indigo-600 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-                    >
-                      {stepLink.text}
-                      <span className="whitespace-nowrap">
-                        {" "}
-                        <span
-                          aria-hidden="true"
-                          data-testid="ai-off-summary-link-arrow"
-                          className="inline-block align-middle"
-                        >
-                          <Icon
-                            icon={IconProp.ArrowRight}
-                            className="h-4 w-4"
-                          />
-                        </span>
-                      </span>
-                    </Link>
-                  );
-                })}
-              </div>
-            ) : (
-              <></>
-            )}
-
-            {whoCanChange.length > 0 ? (
-              <div data-testid="ai-off-summary-who" className="mt-3 space-y-1">
-                {whoCanChange.map((sentence: string): ReactElement => {
-                  return (
-                    <p
-                      key={sentence}
-                      className="break-words text-sm leading-6 text-gray-600"
-                    >
-                      {sentence}
-                    </p>
-                  );
-                })}
-              </div>
-            ) : (
-              <></>
-            )}
-
             <p
               data-testid="ai-off-summary-note"
-              className="mt-3 break-words text-xs leading-5 text-gray-500"
+              className="mt-4 break-words text-xs leading-5 text-gray-500"
             >
               {summary.note}
             </p>

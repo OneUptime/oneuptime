@@ -33710,5 +33710,6 @@
   "“{{switchName}}” is off.": "「{{switchName}}」はオフです。",
   "“{{switchName}}” is on now.": "「{{switchName}}」は現在オンです。",
   "“{{switchName}}” was off when this alert was created.": "このアラートの作成時、「{{switchName}}」はオフでした。",
-  "“{{switchName}}” was off when this incident was created.": "このインシデントの作成時、「{{switchName}}」はオフでした。"
+  "“{{switchName}}” was off when this incident was created.": "このインシデントの作成時、「{{switchName}}」はオフでした。",
+  "AI investigation was off": "AI 調査はオフでした"
 }

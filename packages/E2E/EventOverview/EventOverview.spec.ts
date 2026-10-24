@@ -5756,6 +5756,8 @@ test.describe("one AI card: the investigation and the conversation", () => {
  */
 
 const AI_OFF_TITLE: string = "AI investigation is off";
+// Once what would have the next one investigated is on now.
+const AI_WAS_OFF_TITLE: string = "AI investigation was off";
 const PROJECT_AI_OFF_TITLE: string = "AI is off for this project";
 // The chevron's name, and its tooltip: what it opens.
 const WHAT_YOU_CAN_DO: string = "What you can do";
@@ -6163,6 +6165,99 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
     await expect(aiOffToggle(page)).toBeFocused();
   });
 
+  /*
+   * The changes made in one place go together, with that place's link
+   * under them: "Turn on Enable AI" over AI Features, the two switches over
+   * the incident's AI settings - not every link in a row at the end, for
+   * the reader to match to the steps.
+   */
+  for (const width of [1280, 390]) {
+    test(`at ${width}px each place's link sits under the steps made there, lined up with their words (?ai=off-project)`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await openAiOffLine(
+        page,
+        INCIDENT_PATH,
+        "ai=off-project",
+        PROJECT_AI_OFF_TITLE,
+      );
+      await openAiOffSteps(page);
+
+      const groups: Locator = aiOffLine(page).getByTestId(
+        "ai-off-summary-group",
+      );
+      await expect(groups).toHaveCount(2);
+      const stepWords: (key: string) => Locator = (key: string): Locator => {
+        return aiOffLine(page).locator(
+          `[data-testid='ai-off-summary-step'][data-step='${key}'] p`,
+        );
+      };
+
+      const enableAi: Box = await documentBox(stepWords("enable-ai"));
+      const aiFeatures: Box = await documentBox(
+        groups.nth(0).getByRole("link", { name: "AI Features" }),
+      );
+      const investigate: Box = await documentBox(
+        stepWords("investigate-switch"),
+      );
+      const fix: Box = await documentBox(stepWords("fix-switch"));
+      const settings: Box = await documentBox(
+        groups.nth(1).getByRole("link", { name: "Incident AI settings" }),
+      );
+
+      // In reading order: Enable AI, its page, the two switches, theirs.
+      expect(aiFeatures.y).toBeGreaterThanOrEqual(
+        enableAi.y + enableAi.height - 1,
+      );
+      expect(investigate.y).toBeGreaterThanOrEqual(
+        aiFeatures.y + aiFeatures.height,
+      );
+      expect(fix.y).toBeGreaterThanOrEqual(investigate.y + investigate.height);
+      expect(settings.y).toBeGreaterThanOrEqual(fix.y + fix.height - 1);
+      // Each link starts where the words of its steps do.
+      expect(Math.abs(aiFeatures.x - enableAi.x)).toBeLessThanOrEqual(1);
+      expect(Math.abs(settings.x - fix.x)).toBeLessThanOrEqual(1);
+      /*
+       * A group stands apart from the next: more room between groups than
+       * between the two switches in one.
+       */
+      expect(
+        investigate.y - (aiFeatures.y + aiFeatures.height),
+      ).toBeGreaterThan(fix.y - (investigate.y + investigate.height));
+      await expectNoHorizontalOverflow(page);
+    });
+  }
+
+  test("a click on what is off or on why opens it too, as a folded section's header does; Ask OneUptime AI does not", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openAiOffLine(page, INCIDENT_PATH, "ai=off-switch");
+
+    await aiOffTitle(page).click();
+    await expect(aiOffStepsPanel(page)).toBeVisible();
+    await expect(aiOffToggle(page)).toHaveAttribute("aria-expanded", "true");
+
+    await aiOffReason(page).click();
+    await expect(aiOffStepsPanel(page)).toBeHidden();
+    await expect(aiOffToggle(page)).toHaveAttribute("aria-expanded", "false");
+
+    // The pointer says the line opens.
+    expect(
+      await aiOffTitle(page).evaluate((element: Element): string => {
+        return window.getComputedStyle(element).cursor;
+      }),
+    ).toBe("pointer");
+
+    await aiOffAsk(page).click();
+    await expect(composerBox(page)).toBeFocused();
+    await expect(aiOffStepsPanel(page)).toBeHidden();
+  });
+
   test("someone who may not change the switches is told who can, with no links (?role=member)", async ({
     page,
   }: {
@@ -6219,12 +6314,17 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
     );
   });
 
-  test("switches turned on since are said done, and the line still says they were off for this incident (?switches=on)", async ({
+  test("switches turned on since are said done, and the line says AI investigation was off for this incident (?switches=on)", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await openAiOffLine(page, INCIDENT_PATH, "ai=off-switch&switches=on");
+    await openAiOffLine(
+      page,
+      INCIDENT_PATH,
+      "ai=off-switch&switches=on",
+      AI_WAS_OFF_TITLE,
+    );
 
     await expect(aiOffReason(page)).toHaveText(
       "“Investigate new incidents” was off when this incident was created.",
@@ -6256,7 +6356,12 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
   }: {
     page: Page;
   }) => {
-    await openAiOffLine(page, INCIDENT_PATH, "ai=off-project&switches=on");
+    await openAiOffLine(
+      page,
+      INCIDENT_PATH,
+      "ai=off-project&switches=on",
+      AI_WAS_OFF_TITLE,
+    );
 
     await expect(aiOffReason(page)).toHaveText(
       "AI was off for this project when this incident was created.",
@@ -6680,7 +6785,7 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
       await expect(
         aiOffStepsPanel(page).getByTestId("ai-off-summary-note"),
       ).toHaveText(
-        "Das gilt nur für neue Vorfälle, nicht für diesen. Sie können OneUptime AI trotzdem dazu fragen.",
+        "Das gilt nur für neue Vorfälle, nicht für diesen. Sie können OneUptime AI trotzdem dazu befragen.",
       );
 
       await expectNoHorizontalOverflow(page);

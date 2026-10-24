@@ -33710,5 +33710,6 @@
   "“{{switchName}}” is off.": "“{{switchName}}”已关闭。",
   "“{{switchName}}” is on now.": "“{{switchName}}”现已开启。",
   "“{{switchName}}” was off when this alert was created.": "创建此警报时，“{{switchName}}”已关闭。",
-  "“{{switchName}}” was off when this incident was created.": "创建此事件时，“{{switchName}}”已关闭。"
+  "“{{switchName}}” was off when this incident was created.": "创建此事件时，“{{switchName}}”已关闭。",
+  "AI investigation was off": "AI 调查当时已关闭"
 }

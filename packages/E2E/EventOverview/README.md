@@ -397,8 +397,8 @@ relative times against the real clock, not the pinned one.
 - Telemetry snapshots: no event carries a `telemetryQuery`, so the Logs / Spans / Metrics /
   Exceptions preview tabs and their analytics queries are not rendered.
 - The Monitor Summary card, the series-label "Affected Resource" card, runbook executions,
-  custom fields, and auto-remediation suggestions and decisions (what auto-remediation did,
-  which the Remediation card reads beside the suggestions) are empty, so those cards stay
-  hidden.
+  custom fields and auto-remediation suggestions are empty, so those cards stay hidden.
+  Auto-remediation decisions (what auto-remediation did, which the Remediation card reads
+  beside the suggestions) are empty too, unless `?fixing=` or an off `?ai=` records one.
 - Stubs ignore `select`: every read returns the whole record, so a missing column in a page's
   select is not caught unless a test asserts on the recorded `select`.

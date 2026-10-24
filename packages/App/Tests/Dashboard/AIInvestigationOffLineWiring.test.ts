@@ -169,7 +169,7 @@ describe("the AI card draws the line inside its one card", () => {
       "isAiOffInvestigationReason(notInvestigatedReason)",
     );
     expect(PANEL).toContain(
-      "const cardFold: AiCardFold = getAiCardFold({ isInvestigationLoaded, offReason, remediation: props.remediationState, });",
+      "const cardFold: AiCardFold = getAiCardFold({ isInvestigationLoaded, offReason, remediation: props.remediationState, areSwitchesRead: laneSwitches.isRead, });",
     );
     expect(PANEL).toContain("onCardFoldChangeRef.current?.(cardFold);");
     // Until the Remediation card has read, the card checks.
@@ -189,10 +189,19 @@ describe("the AI card draws the line inside its one card", () => {
     );
   });
 
-  test("reads the record's switches only while folded", () => {
+  /*
+   * Read as soon as the card may fold, beside the Remediation card's own
+   * read, and the card folds only once they are read: the line is drawn
+   * once, in its final words ("was off", "is on now").
+   */
+  test("reads the record's switches once the card may fold, and folds once they are read", () => {
     expect(PANEL).toContain(
-      "useAiLaneSwitchStates({ subjectType, isEnabled: isFolded, })",
+      "const laneSwitches: AiLaneSwitchRead = useAiLaneSwitchStates({ subjectType, isEnabled: canAiCardFold({ offReason, remediation: props.remediationState, }), });",
     );
+    expect(PANEL.indexOf("useAiLaneSwitchStates({")).toBeLessThan(
+      PANEL.indexOf("getAiCardFold({"),
+    );
+    expect(PANEL).toContain("switches: laneSwitches.states,");
   });
 });
 
@@ -211,14 +220,15 @@ describe("the line is a line", () => {
     expect(SUMMARY).toContain("aria-controls={stepsId}");
     expect(SUMMARY).toContain("aria-label={whatYouCanDo}");
     expect(SUMMARY).toContain("hidden={!props.isOpen}");
+    // The line itself opens it too, as a folded section's header does.
+    expect(count(SUMMARY, "onClick={onLineClick}")).toBe(2);
+    expect(SUMMARY).toContain('target.closest("button, a")');
   });
 
   test("only a step the reader may make links anywhere", () => {
     expect(SUMMARY).toContain("PermissionGate.holdsAnyOf(step.permissions)");
-    expect(SUMMARY).toContain("getAiOffSummaryLinks(summary.steps, canChange)");
-    expect(SUMMARY).toContain(
-      "getAiOffSummaryWhoCanChange(summary.steps, canChange)",
-    );
+    // Each group of steps ends with its link, or who can for everyone else.
+    expect(SUMMARY).toContain("getAiOffStepGroups(summary.steps, canChange)");
   });
 
   test("its rules stay React-free, so App's tests can read them", () => {

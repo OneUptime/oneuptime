@@ -33710,5 +33710,6 @@
   "“{{switchName}}” is off.": "“{{switchName}}” is off.",
   "“{{switchName}}” is on now.": "“{{switchName}}” is on now.",
   "“{{switchName}}” was off when this alert was created.": "“{{switchName}}” was off when this alert was created.",
-  "“{{switchName}}” was off when this incident was created.": "“{{switchName}}” was off when this incident was created."
+  "“{{switchName}}” was off when this incident was created.": "“{{switchName}}” was off when this incident was created.",
+  "AI investigation was off": "AI investigation was off"
 }

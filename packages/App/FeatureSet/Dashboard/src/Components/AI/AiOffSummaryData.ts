@@ -245,11 +245,17 @@ export interface InvestigationConversationFold {
  * one either. "checking" while the Remediation card is still reading.
  * Without what the Remediation card read (a page that does not pass it on)
  * the card never folds: it cannot tell that fixing did nothing.
+ *
+ * It also waits for the record's switches as they are now
+ * (areSwitchesRead: read, or found unreadable): the line's title and steps
+ * say what is on now, so it is drawn once, in its final words, never as
+ * "AI investigation is off" that a moment later says it was.
  */
 export function getAiCardFold(input: {
   isInvestigationLoaded: boolean;
   offReason: InvestigationNotStartedReason | null;
   remediation: RemediationFoldState | undefined;
+  areSwitchesRead: boolean;
 }): AiCardFold {
   if (!input.isInvestigationLoaded) {
     return "checking";
@@ -263,7 +269,26 @@ export function getAiCardFold(input: {
     return "checking";
   }
 
-  return input.remediation.kind === "off" ? "folded" : "full";
+  if (input.remediation.kind !== "off") {
+    return "full";
+  }
+
+  return input.areSwitchesRead ? "folded" : "checking";
+}
+
+/*
+ * Whether the card may still fold, so the record's switches are worth
+ * reading now: not investigated for a reason the project chose, and the
+ * Remediation card has not said that fixing did something. Read this early
+ * - beside the Remediation card's own read - the line is not held up by it.
+ */
+export function canAiCardFold(input: {
+  offReason: InvestigationNotStartedReason | null;
+  remediation: RemediationFoldState | undefined;
+}): boolean {
+  return Boolean(
+    input.offReason && input.remediation && input.remediation.kind !== "on",
+  );
 }
 
 /*
@@ -284,10 +309,10 @@ export function isRemediationFoldedIntoAiCard(input: {
 
 /*
  * The project's two switches for the record's kind as they are now, read
- * when the card folds: true or false, or undefined while unknown (not read
- * yet, or not readable by this reader). The summary says "is on now" for a
- * switch that was off when the record was created and is on since, rather
- * than asking someone to turn on what is already on.
+ * once the card may fold (canAiCardFold): true or false, or undefined while
+ * unknown (not read yet, or not readable by this reader). The summary says
+ * "is on now" for a switch that was off when the record was created and is
+ * on since, rather than asking someone to turn on what is already on.
  */
 export interface AiLaneSwitchStates {
   investigate?: boolean | undefined;
@@ -348,6 +373,14 @@ export type AiOffStepKey =
   | "minimum-severity"
   | "fix-switch"
   | "fix-rules";
+
+// The steps that make the next record investigated, not only fixed.
+export const INVESTIGATION_STEP_KEYS: ReadonlyArray<AiOffStepKey> = [
+  "enable-ai",
+  "investigate-switch",
+  "investigate-rules",
+  "minimum-severity",
+];
 
 export interface AiOffStepLink {
   // Translated.
@@ -481,13 +514,6 @@ export function getAiOffSummary(input: {
       switchName: translatableTerm(getSwitchTitle(subjectType, column)),
     };
   };
-
-  const title: string =
-    translator.translateText(
-      input.isAiOn
-        ? AI_OFF_TITLES.investigationOff
-        : AI_OFF_TITLES.projectAiOff,
-    ) || "";
 
   let reasonText: string = "";
 
@@ -679,6 +705,26 @@ export function getAiOffSummary(input: {
             "",
     );
   }
+
+  /*
+   * What is off, said as the steps below it say it: "AI investigation is
+   * off" while something that would have it investigate the next one is
+   * left to do, and "was off" once all of that is on now - never "is off"
+   * over steps that all say "is on now".
+   */
+  const isInvestigationStepLeft: boolean = steps.some(
+    (step: AiOffStep): boolean => {
+      return !step.isDone && INVESTIGATION_STEP_KEYS.includes(step.key);
+    },
+  );
+  const title: string =
+    translator.translateText(
+      !input.isAiOn
+        ? AI_OFF_TITLES.projectAiOff
+        : isInvestigationStepLeft
+          ? AI_OFF_TITLES.investigationOff
+          : AI_OFF_TITLES.investigationWasOff,
+    ) || "";
 
   return {
     title,

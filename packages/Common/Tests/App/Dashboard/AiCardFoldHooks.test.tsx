@@ -27,7 +27,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 import useAiCardFold, {
   AiCardFoldWiring,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/useAiCardFold";
-import useAiLaneSwitchStates from "../../../../App/FeatureSet/Dashboard/src/Components/AI/useAiLaneSwitchStates";
+import useAiLaneSwitchStates, {
+  AiLaneSwitchRead,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AI/useAiLaneSwitchStates";
 import {
   AiLaneSwitchStates,
   AiOffSubjectType,
@@ -43,7 +45,9 @@ import ProjectUtil from "../../../UI/Utils/Project";
  *     fixing did, the AI card says how it is drawn, each for one record and
  *     never for the next one;
  *   - useAiLaneSwitchStates, the record's two switches as they are now, read
- *     once per project and kind of record, and only while the card is folded.
+ *     once per project and kind of record, and only while the card may fold;
+ *     the card folds once they are read, so the line is drawn in its final
+ *     words.
  */
 
 const PROJECT_ID: string = "33333333-3333-4333-8333-333333333333";
@@ -64,21 +68,25 @@ function FoldHarness(props: { recordKey: string }): React.ReactElement {
 }
 
 let switches: AiLaneSwitchStates = {};
+let isRead: boolean = false;
 
 function SwitchesHarness(props: {
   subjectType: AiOffSubjectType;
   isEnabled: boolean;
 }): React.ReactElement {
-  switches = useAiLaneSwitchStates({
+  const read: AiLaneSwitchRead = useAiLaneSwitchStates({
     subjectType: props.subjectType,
     isEnabled: props.isEnabled,
   });
+  switches = read.states;
+  isRead = read.isRead;
   return <div />;
 }
 
 beforeEach(() => {
   wiring = null;
   switches = {};
+  isRead = false;
   getItemMock.mockReset();
   jest
     .spyOn(ProjectUtil, "getCurrentProjectId")
@@ -181,12 +189,40 @@ describe("useAiCardFold, between a page's AI card and its Remediation card", () 
 });
 
 describe("useAiLaneSwitchStates, the record's switches as they are now", () => {
-  test("reads nothing while the card is not folded", async () => {
+  test("reads nothing while the card cannot fold", async () => {
     render(<SwitchesHarness subjectType="incident" isEnabled={false} />);
     await settle();
 
     expect(getItemMock).not.toHaveBeenCalled();
     expect(switches).toEqual({});
+    expect(isRead).toBe(false);
+  });
+
+  test("is not read until the answer is in: the card waits rather than redraw the line", async () => {
+    let answer: (project: Project) => void = (): void => {};
+    getItemMock.mockImplementationOnce((): Promise<Project> => {
+      return new Promise<Project>((resolve: (project: Project) => void) => {
+        answer = resolve;
+      });
+    });
+
+    render(<SwitchesHarness subjectType="incident" isEnabled={true} />);
+    await settle();
+
+    expect(getItemMock).toHaveBeenCalledTimes(1);
+    expect(isRead).toBe(false);
+    expect(switches).toEqual({});
+
+    answer(
+      Object.assign(new Project(), {
+        enableAutomaticIncidentInvestigation: true,
+        enableAutomaticIncidentRemediation: false,
+      }),
+    );
+    await settle();
+
+    expect(isRead).toBe(true);
+    expect(switches).toEqual({ investigate: true, fix: false });
   });
 
   test.each<[AiOffSubjectType, Record<string, boolean>]>([
@@ -227,6 +263,7 @@ describe("useAiLaneSwitchStates, the record's switches as they are now", () => {
         (getItemMock.mock.calls[0]![0] as { id: ObjectID }).id.toString(),
       ).toBe(PROJECT_ID);
       expect(switches).toEqual({ investigate: true, fix: false });
+      expect(isRead).toBe(true);
     },
   );
 
@@ -249,6 +286,7 @@ describe("useAiLaneSwitchStates, the record's switches as they are now", () => {
 
     expect(getItemMock).toHaveBeenCalledTimes(1);
     expect(switches).toEqual({ investigate: false, fix: false });
+    expect(isRead).toBe(true);
   });
 
   test("a value it cannot read stays unknown", async () => {
@@ -258,6 +296,7 @@ describe("useAiLaneSwitchStates, the record's switches as they are now", () => {
     await settle();
 
     expect(switches).toEqual({ investigate: undefined, fix: undefined });
+    expect(isRead).toBe(true);
   });
 
   test("a read refused stays unknown, and says nothing", async () => {
@@ -267,6 +306,8 @@ describe("useAiLaneSwitchStates, the record's switches as they are now", () => {
     await settle();
 
     expect(switches).toEqual({});
+    // Refused is answered: the line is drawn without them.
+    expect(isRead).toBe(true);
   });
 
   test("a read cut short by the card unfolding is read again when it folds again", async () => {
@@ -299,12 +340,14 @@ describe("useAiLaneSwitchStates, the record's switches as they are now", () => {
     await settle();
 
     expect(switches).toEqual({});
+    expect(isRead).toBe(false);
 
     view.rerender(<SwitchesHarness subjectType="incident" isEnabled={true} />);
     await settle();
 
     expect(getItemMock).toHaveBeenCalledTimes(2);
     expect(switches).toEqual({ investigate: true, fix: true });
+    expect(isRead).toBe(true);
   });
 
   test("without a selected project there is nothing to read", async () => {
@@ -315,5 +358,7 @@ describe("useAiLaneSwitchStates, the record's switches as they are now", () => {
 
     expect(getItemMock).not.toHaveBeenCalled();
     expect(switches).toEqual({});
+    // Nothing to wait for: the line is drawn at once.
+    expect(isRead).toBe(true);
   });
 });

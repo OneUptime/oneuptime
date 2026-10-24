@@ -26,7 +26,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * part did something, or could not for a reason that needs someone to
  * look. Folded, the line is the card's header, the conversation it closes
  * with is folded into the line's Ask OneUptime AI while it is empty, and
- * the project's switches are read so the line says what is on now.
+ * the project's switches are read so the line says what is on now - read
+ * while the card may still fold, and folded only once they are, so the
+ * line is drawn once, in its final words.
  */
 
 const postMock: MockFunction = getJestMockFunction();
@@ -325,26 +327,39 @@ describe.each<[InvestigationSubjectType]>([["incident"], ["alert"]])(
   (subjectType: InvestigationSubjectType) => {
     const noun: string = subjectType;
 
-    test.each<[InvestigationNotStartedCode, string]>([
+    /*
+     * AI was off for the project then and is on now: with the record's
+     * switch not known to be off, nothing is left to do to investigate the
+     * next one, so the line says it was off.
+     */
+    test.each<[InvestigationNotStartedCode, string, string]>([
       [
         "automatic_investigation_disabled",
+        "AI investigation is off",
         `“Investigate new ${noun}s” was off when this ${noun} was created.`,
       ],
       [
         "ai_disabled",
+        "AI investigation was off",
         `AI was off for this project when this ${noun} was created.`,
       ],
       [
         "no_investigation_rule_matched",
+        "AI investigation is off",
         `This ${noun} matched none of the AI rules that investigate.`,
       ],
       [
         "severity_below_threshold",
+        "AI investigation is off",
         `This ${noun}'s severity was below the minimum for AI investigation.`,
       ],
     ])(
       "%s with fixing off: one line, the card's only header",
-      async (code: InvestigationNotStartedCode, reason: string) => {
+      async (
+        code: InvestigationNotStartedCode,
+        title: string,
+        reason: string,
+      ) => {
         postMock.mockResolvedValue(noRun(code));
         const { onFold } = renderPanel({
           subjectType,
@@ -361,7 +376,7 @@ describe.each<[InvestigationSubjectType]>([["incident"], ["alert"]])(
         expect(
           screen.getByRole("heading", {
             level: 2,
-            name: "AI investigation is off",
+            name: title,
           }),
         ).toBeVisible();
         expect(screen.getByTestId("ai-off-summary-reason")).toHaveTextContent(
@@ -589,6 +604,59 @@ describe.each<[InvestigationSubjectType]>([["incident"], ["alert"]])(
       // Settled polls do not read them again.
       await advance(30_000);
       await advance(30_000);
+
+      expect(getItemMock).toHaveBeenCalledTimes(1);
+    });
+
+    test("waits for the switches, then draws the line once, in its final words", async () => {
+      let answer: (project: Project) => void = (): void => {};
+      getItemMock.mockImplementationOnce((): Promise<Project> => {
+        return new Promise<Project>((resolve: (project: Project) => void) => {
+          answer = resolve;
+        });
+      });
+      postMock.mockResolvedValue(noRun("automatic_investigation_disabled"));
+      const { onFold } = renderPanel({
+        subjectType,
+        remediationState: FIXING_OFF,
+      });
+      await flush();
+
+      // Still checking: no line yet that would say "is off" and then "was off".
+      expect(getItemMock).toHaveBeenCalledTimes(1);
+      expect(region()).toHaveAttribute("aria-busy", "true");
+      expect(screen.queryByTestId("ai-off-summary")).toBeNull();
+      expect(lastFold(onFold)).toBe("checking");
+
+      answer(
+        Object.assign(new Project(), {
+          enableAutomaticIncidentInvestigation: true,
+          enableAutomaticIncidentRemediation: true,
+          enableAutomaticAlertInvestigation: true,
+          enableAutomaticAlertRemediation: true,
+        }),
+      );
+      await flush();
+
+      expect(
+        screen.getByRole("heading", {
+          level: 2,
+          name: "AI investigation was off",
+        }),
+      ).toBeVisible();
+      expect(screen.getByTestId("ai-off-summary-reason")).toHaveTextContent(
+        `“Investigate new ${noun}s” was off when this ${noun} was created.`,
+      );
+      expect(lastFold(onFold)).toBe("folded");
+      // The card never drew the present tense over steps that are done.
+      expect(screen.queryByText("AI investigation is off")).toBeNull();
+    });
+
+    test("reads the switches beside the Remediation card's own read", async () => {
+      postMock.mockResolvedValue(noRun("automatic_investigation_disabled"));
+      renderPanel({ subjectType, remediationState: { kind: "loading" } });
+      await flush();
+      await flush();
 
       expect(getItemMock).toHaveBeenCalledTimes(1);
     });

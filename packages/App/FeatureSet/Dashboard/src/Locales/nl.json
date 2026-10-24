@@ -33710,5 +33710,6 @@
   "“{{switchName}}” is off.": "‘{{switchName}}’ staat uit.",
   "“{{switchName}}” is on now.": "‘{{switchName}}’ staat nu aan.",
   "“{{switchName}}” was off when this alert was created.": "‘{{switchName}}’ stond uit toen deze waarschuwing werd aangemaakt.",
-  "“{{switchName}}” was off when this incident was created.": "‘{{switchName}}’ stond uit toen dit incident werd aangemaakt."
+  "“{{switchName}}” was off when this incident was created.": "‘{{switchName}}’ stond uit toen dit incident werd aangemaakt.",
+  "AI investigation was off": "AI-onderzoek stond uit"
 }

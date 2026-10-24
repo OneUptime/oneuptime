@@ -18,8 +18,9 @@ import * as React from "react";
 import AiOffSummary, {
   AI_OFF_SUMMARY_LAYOUT_CLASS_NAMES,
   AI_OFF_SUMMARY_TEST_ID,
-  getAiOffSummaryLinks,
-  getAiOffSummaryWhoCanChange,
+  AiOffStepGroup,
+  getAiOffStepGroups,
+  keepMenuPathArrowsInLine,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AiOffSummary";
 import {
   AiLaneSwitchStates,
@@ -41,9 +42,10 @@ import { goTo, PROJECT_ID, routeFor } from "./SideMenuHarness";
 /*
  * The AI card as one line (AiOffSummary): what is off and why, a chevron
  * that opens what can be done, and - while AI is on - Ask OneUptime AI.
- * Opened, each change is a sentence; where it is made is one link per page
- * for someone who may make it, and who can is said instead to everyone
- * else; then that none of it reaches back to this record.
+ * Opened, each change is a sentence, and the changes made in one place go
+ * together with that place under them: its link for someone who may make
+ * them, who can for everyone else - one link per page. Then that none of
+ * it reaches back to this record.
  */
 
 function summaryFor(data: {
@@ -110,6 +112,40 @@ function stepTexts(): Array<string> {
     });
 }
 
+interface GroupRow {
+  // The steps in the group, by key.
+  steps: Array<string | null>;
+  // The link under them: its words and where it goes.
+  link: string | null;
+  href: string | null;
+  // Who can make them, said instead of a link.
+  who: string | null;
+}
+
+const WHITESPACE: RegExp = /\s+/g;
+
+// The opened steps as groups: what is in each, and what follows it.
+function groupRows(): Array<GroupRow> {
+  return within(steps())
+    .queryAllByTestId("ai-off-summary-group")
+    .map((group: HTMLElement): GroupRow => {
+      const link: HTMLAnchorElement | null = group.querySelector("a");
+      const who: HTMLElement | null =
+        within(group).queryByTestId("ai-off-summary-who");
+
+      return {
+        steps: within(group)
+          .getAllByTestId("ai-off-summary-step")
+          .map((item: HTMLElement): string | null => {
+            return item.getAttribute("data-step");
+          }),
+        link: link ? (link.textContent || "").trim() : null,
+        href: link ? link.getAttribute("href") : null,
+        who: who ? (who.textContent || "").replace(WHITESPACE, " ") : null,
+      };
+    });
+}
+
 beforeEach(() => {
   goTo(`/dashboard/${PROJECT_ID}/incidents`);
   holds([Permission.ProjectOwner]);
@@ -166,6 +202,83 @@ describe("the folded line", () => {
     fireEvent.click(button);
 
     expect(onToggle).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * As a folded section's header does, the line opens where it is clicked:
+   * on what is off, on why, on its mark. The chevron stays the one control
+   * a keyboard and a screen reader use.
+   */
+  test("opens on a click anywhere on the line, once per click", () => {
+    const onToggle: MockFunction = getJestMockFunction();
+    const onAskAi: MockFunction = getJestMockFunction();
+
+    renderLine({
+      summary: summaryFor({ code: "automatic_investigation_disabled" }),
+      onToggle: onToggle as unknown as () => void,
+      onAskAi: onAskAi as unknown as () => void,
+    });
+
+    for (const target of [
+      "ai-off-summary-title",
+      "ai-off-summary-reason",
+      "ai-off-summary-mark",
+      "ai-off-summary-header",
+    ]) {
+      onToggle.mockClear();
+      fireEvent.click(screen.getByTestId(target));
+      expect({ target, toggled: onToggle.mock.calls.length }).toEqual({
+        target,
+        toggled: 1,
+      });
+    }
+
+    // The chevron's own click is not counted twice by the line.
+    onToggle.mockClear();
+    fireEvent.click(toggle());
+    expect(onToggle).toHaveBeenCalledTimes(1);
+
+    // Ask OneUptime AI asks, and does not open the fold.
+    onToggle.mockClear();
+    fireEvent.click(screen.getByTestId("ai-off-summary-ask"));
+    expect(onAskAi).toHaveBeenCalledTimes(1);
+    expect(onToggle).not.toHaveBeenCalled();
+
+    // Only the line: the words under it once open are not a toggle.
+    expect(screen.getByTestId("ai-off-summary-header")).not.toContainElement(
+      steps(),
+    );
+    // A pointer over the line says it opens, and the chevron brightens.
+    expect(screen.getByTestId("ai-off-summary-header").className).toContain(
+      "cursor-pointer",
+    );
+    expect(screen.getByTestId("ai-off-summary-header").className).toContain(
+      "group",
+    );
+    expect(toggle().className).toContain("group-hover:text-gray-700");
+    // Not a second control: the line itself is not focusable.
+    expect(screen.getByTestId("ai-off-summary-header")).not.toHaveAttribute(
+      "tabindex",
+    );
+  });
+
+  test("a click that ends selecting the words does not open it", () => {
+    const onToggle: MockFunction = getJestMockFunction();
+
+    renderLine({
+      summary: summaryFor({ code: "automatic_investigation_disabled" }),
+      onToggle: onToggle as unknown as () => void,
+    });
+
+    jest.spyOn(window, "getSelection").mockReturnValue({
+      toString: (): string => {
+        return "was off when this incident was created";
+      },
+    } as unknown as Selection);
+
+    fireEvent.click(screen.getByTestId("ai-off-summary-reason"));
+
+    expect(onToggle).not.toHaveBeenCalled();
   });
 
   test("open, the chevron says so and the steps show", () => {
@@ -243,7 +356,7 @@ describe("the folded line", () => {
 });
 
 describe("what can be done, for someone who may do it", () => {
-  test("each change a sentence, then where - one link per page, in order", () => {
+  test("each change a sentence; the changes made in one place together, with that place's link under them", () => {
     renderLine({
       summary: summaryFor({
         code: "automatic_investigation_disabled",
@@ -256,25 +369,55 @@ describe("what can be done, for someone who may do it", () => {
       "Turn on “Investigate new incidents”.",
       "Turn on “Fix new incidents automatically”.",
     ]);
-
-    const links: Array<HTMLElement> = within(
-      screen.getByTestId("ai-off-summary-links"),
-    ).getAllByRole("link");
-
-    // Both switches are on one page: one link.
-    expect(links).toHaveLength(1);
-    expect(links[0]).toHaveTextContent("Incident AI settings");
-    expect(links[0]).toHaveAttribute(
-      "href",
-      routeFor(PageMap.INCIDENTS_SETTINGS_AI),
-    );
+    // Both switches are on one page: one group, one link under both.
+    expect(groupRows()).toEqual([
+      {
+        steps: ["investigate-switch", "fix-switch"],
+        link: "Incident AI settings",
+        href: routeFor(PageMap.INCIDENTS_SETTINGS_AI),
+        who: null,
+      },
+    ]);
+    expect(within(steps()).getAllByRole("link")).toHaveLength(1);
     expect(screen.queryByTestId("ai-off-summary-who")).toBeNull();
     expect(screen.getByTestId("ai-off-summary-note")).toHaveTextContent(
       "This applies to new incidents only, not to this one. You can still ask OneUptime AI about it.",
     );
   });
 
-  test("Enable AI and the record's settings are two places: two links, Enable AI's first", () => {
+  test("the link comes after the steps it is for, lined up with their words", () => {
+    renderLine({
+      summary: summaryFor({
+        code: "automatic_investigation_disabled",
+        remediationReason: "fixing_off",
+      }),
+      isOpen: true,
+    });
+
+    const group: HTMLElement = within(steps()).getByTestId(
+      "ai-off-summary-group",
+    );
+    const link: HTMLElement = within(group).getByRole("link");
+    const lastStep: HTMLElement = within(group).getAllByTestId(
+      "ai-off-summary-step",
+    )[1]!;
+
+    // After the steps, in the same list item.
+    expect(
+      lastStep.compareDocumentPosition(link) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(link.closest("li")).toBe(group);
+    // Past the steps' marks: an empty mark-wide column, then the link.
+    const row: HTMLElement = screen.getByTestId(
+      "ai-off-summary-links",
+    ).parentElement!;
+
+    expect(row.className).toBe("flex items-start gap-2.5");
+    expect(row.firstElementChild).toHaveAttribute("aria-hidden", "true");
+    expect(row.firstElementChild?.className).toBe("w-4 flex-none");
+  });
+
+  test("Enable AI and the record's settings are two places: each link under its own steps, Enable AI's first", () => {
     renderLine({
       summary: summaryFor({
         code: "ai_disabled",
@@ -285,17 +428,44 @@ describe("what can be done, for someone who may do it", () => {
       isOpen: true,
     });
 
-    const links: Array<HTMLElement> = within(
-      screen.getByTestId("ai-off-summary-links"),
-    ).getAllByRole("link");
+    expect(groupRows()).toEqual([
+      {
+        steps: ["enable-ai"],
+        link: "AI Features",
+        href: routeFor(PageMap.SETTINGS_AI_FEATURES),
+        who: null,
+      },
+      {
+        steps: ["investigate-switch", "fix-switch"],
+        link: "Incident AI settings",
+        href: routeFor(PageMap.INCIDENTS_SETTINGS_AI),
+        who: null,
+      },
+    ]);
+  });
 
-    expect(
-      links.map((link: HTMLElement): [string, string | null] => {
-        return [link.textContent?.trim() || "", link.getAttribute("href")];
+  test("the minimum severity's card and the switches: two links, each under its step", () => {
+    renderLine({
+      summary: summaryFor({
+        code: "severity_below_threshold",
+        remediationReason: "fixing_off",
       }),
-    ).toEqual([
-      ["AI Features", routeFor(PageMap.SETTINGS_AI_FEATURES)],
-      ["Incident AI settings", routeFor(PageMap.INCIDENTS_SETTINGS_AI)],
+      isOpen: true,
+    });
+
+    expect(groupRows()).toEqual([
+      {
+        steps: ["minimum-severity"],
+        link: "Which incidents are investigated",
+        href: `${routeFor(PageMap.INCIDENTS_SETTINGS_AI)}#WhichAreInvestigated`,
+        who: null,
+      },
+      {
+        steps: ["fix-switch"],
+        link: "Incident AI settings",
+        href: routeFor(PageMap.INCIDENTS_SETTINGS_AI),
+        who: null,
+      },
     ]);
   });
 
@@ -314,9 +484,7 @@ describe("what can be done, for someone who may do it", () => {
       isOpen: true,
     });
 
-    const links: Array<HTMLElement> = within(
-      screen.getByTestId("ai-off-summary-links"),
-    ).getAllByRole("link");
+    const links: Array<HTMLElement> = within(steps()).getAllByRole("link");
 
     expect(
       links.map((link: HTMLElement): string => {
@@ -366,7 +534,7 @@ describe("what can be done, for someone who may do it", () => {
     );
   });
 
-  test("a change made since is said with a check, and sends nobody anywhere", () => {
+  test("a change made since is said with a check, on its own, and sends nobody anywhere", () => {
     renderLine({
       summary: summaryFor({
         code: "automatic_investigation_disabled",
@@ -391,13 +559,19 @@ describe("what can be done, for someone who may do it", () => {
     expect(items[0]).toHaveTextContent(
       "“Investigate new incidents” is on now.",
     );
-    // The one left to do still has its page.
-    expect(
-      within(screen.getByTestId("ai-off-summary-links")).getAllByRole("link"),
-    ).toHaveLength(1);
+    // The one left to do still has its page, under it alone.
+    expect(groupRows()).toEqual([
+      { steps: ["investigate-switch"], link: null, href: null, who: null },
+      {
+        steps: ["fix-switch"],
+        link: "Incident AI settings",
+        href: routeFor(PageMap.INCIDENTS_SETTINGS_AI),
+        who: null,
+      },
+    ]);
   });
 
-  test("with every change made since, no link and no who-can", () => {
+  test("with every change made since, one group of checks, no link and no who-can", () => {
     renderLine({
       summary: summaryFor({
         code: "automatic_investigation_disabled",
@@ -407,6 +581,14 @@ describe("what can be done, for someone who may do it", () => {
       isOpen: true,
     });
 
+    expect(groupRows()).toEqual([
+      {
+        steps: ["investigate-switch", "fix-switch"],
+        link: null,
+        href: null,
+        who: null,
+      },
+    ]);
     expect(screen.queryByTestId("ai-off-summary-links")).toBeNull();
     expect(screen.queryByTestId("ai-off-summary-who")).toBeNull();
     expect(screen.getByTestId("ai-off-summary-note")).toBeVisible();
@@ -418,7 +600,7 @@ describe("what can be done, for someone who may not", () => {
     holds([Permission.ProjectMember]);
   });
 
-  test("no link to a page whose save would be refused; who can, once", () => {
+  test("no link to a page whose save would be refused; who can, once, under the steps", () => {
     renderLine({
       summary: summaryFor({
         code: "automatic_investigation_disabled",
@@ -430,17 +612,18 @@ describe("what can be done, for someone who may not", () => {
     expect(stepTexts()).toHaveLength(2);
     expect(screen.queryByRole("link")).toBeNull();
     expect(screen.queryByTestId("ai-off-summary-links")).toBeNull();
-
-    const who: HTMLElement = screen.getByTestId("ai-off-summary-who");
-
-    // Both switches take the same people: said once.
-    expect(within(who).getAllByText(/./)).toHaveLength(1);
-    expect(who).toHaveTextContent(
-      "A project owner or admin can make these changes in Incidents → AI → Settings.",
-    );
+    // Both switches take the same people: one group, said once.
+    expect(groupRows()).toEqual([
+      {
+        steps: ["investigate-switch", "fix-switch"],
+        link: null,
+        href: null,
+        who: "A project owner or admin can make these changes in Incidents → AI → Settings.",
+      },
+    ]);
   });
 
-  test("a rule and a switch take different people: each said", () => {
+  test("a rule and a switch take different people: each said, under its own step", () => {
     renderLine({
       summary: summaryFor({
         subjectType: "alert",
@@ -450,15 +633,38 @@ describe("what can be done, for someone who may not", () => {
       isOpen: true,
     });
 
-    expect(
-      Array.from(
-        screen.getByTestId("ai-off-summary-who").querySelectorAll("p"),
-      ).map((sentence: HTMLParagraphElement): string => {
-        return sentence.textContent || "";
+    expect(groupRows()).toEqual([
+      {
+        steps: ["investigate-rules"],
+        link: null,
+        href: null,
+        who: "A project owner or admin, or someone who may edit AI rules, can change them in Alerts → AI → Settings.",
+      },
+      {
+        steps: ["fix-switch"],
+        link: null,
+        href: null,
+        who: "A project owner or admin can make these changes in Alerts → AI → Settings.",
+      },
+    ]);
+  });
+
+  test("the minimum severity and the fixing switch take the same people: said once, under both", () => {
+    renderLine({
+      summary: summaryFor({
+        code: "severity_below_threshold",
+        remediationReason: "fixing_off",
       }),
-    ).toEqual([
-      "A project owner or admin, or someone who may edit AI rules, can change them in Alerts → AI → Settings.",
-      "A project owner or admin can make these changes in Alerts → AI → Settings.",
+      isOpen: true,
+    });
+
+    expect(groupRows()).toEqual([
+      {
+        steps: ["minimum-severity", "fix-switch"],
+        link: null,
+        href: null,
+        who: "A project owner or admin can make these changes in Incidents → AI → Settings.",
+      },
     ]);
   });
 
@@ -476,9 +682,20 @@ describe("what can be done, for someone who may not", () => {
     expect(
       screen.getByRole("link", { name: "Incident AI rules" }),
     ).toBeVisible();
-    expect(screen.getByTestId("ai-off-summary-who")).toHaveTextContent(
-      "A project owner or admin can make these changes in Incidents → AI → Settings.",
-    );
+    expect(groupRows()).toEqual([
+      {
+        steps: ["investigate-rules"],
+        link: "Incident AI rules",
+        href: `${routeFor(PageMap.INCIDENTS_SETTINGS_AI)}#AiRules`,
+        who: null,
+      },
+      {
+        steps: ["fix-switch"],
+        link: null,
+        href: null,
+        who: "A project owner or admin can make these changes in Incidents → AI → Settings.",
+      },
+    ]);
   });
 
   test("Manage Billing may turn AI on, and is told who may change the rest", () => {
@@ -498,13 +715,46 @@ describe("what can be done, for someone who may not", () => {
     expect(
       screen.queryByRole("link", { name: "Incident AI settings" }),
     ).toBeNull();
-    expect(screen.getByTestId("ai-off-summary-who")).toHaveTextContent(
-      "A project owner or admin can make these changes in Incidents → AI → Settings.",
+    expect(groupRows()).toEqual([
+      {
+        steps: ["enable-ai"],
+        link: "AI Features",
+        href: routeFor(PageMap.SETTINGS_AI_FEATURES),
+        who: null,
+      },
+      {
+        steps: ["investigate-switch", "fix-switch"],
+        link: null,
+        href: null,
+        who: "A project owner or admin can make these changes in Incidents → AI → Settings.",
+      },
+    ]);
+  });
+
+  /*
+   * "… in Incidents → AI → Settings." wraps on a phone: a line may end with
+   * an arrow, never start with one.
+   */
+  test("a menu path's arrows never start a line", () => {
+    renderLine({
+      summary: summaryFor({
+        code: "automatic_investigation_disabled",
+        remediationReason: "fixing_off",
+      }),
+      isOpen: true,
+    });
+
+    const sentence: string =
+      screen.getByTestId("ai-off-summary-who").textContent || "";
+
+    expect(sentence).toBe(
+      "A project owner or admin can make these changes in Incidents → AI → Settings.",
     );
+    expect(sentence).not.toContain(" →");
   });
 });
 
-describe("the links and who-can, as lists", () => {
+describe("the steps, grouped by where they are made", () => {
   function stepOf(data: {
     key: AiOffStep["key"];
     route: string;
@@ -519,6 +769,24 @@ describe("the links and who-can, as lists", () => {
       permissions: [],
       whoCanChange: data.whoCanChange,
     };
+  }
+
+  function shape(
+    groups: Array<AiOffStepGroup>,
+  ): Array<[Array<string>, string | null, string | null]> {
+    return groups.map(
+      (
+        group: AiOffStepGroup,
+      ): [Array<string>, string | null, string | null] => {
+        return [
+          group.steps.map((step: AiOffStep): string => {
+            return step.key;
+          }),
+          group.link ? group.link.route.toString() : null,
+          group.whoCanChange,
+        ];
+      },
+    );
   }
 
   const all: Array<AiOffStep> = [
@@ -546,36 +814,102 @@ describe("the links and who-can, as lists", () => {
     }),
   ];
 
-  test("each page once, in the order the steps first name it; never for a done step", () => {
+  test("each place once, under the run of steps made there; never for a done step", () => {
     expect(
-      getAiOffSummaryLinks(all, (): boolean => {
-        return true;
-      }).map((link: { route: Route }): string => {
-        return link.route.toString();
-      }),
-    ).toEqual(["/a", "/b", "/b#AiRules"]);
+      shape(
+        getAiOffStepGroups(all, (): boolean => {
+          return true;
+        }),
+      ),
+    ).toEqual([
+      [["enable-ai"], "/a", null],
+      [["investigate-switch", "fix-switch"], "/b", null],
+      [["investigate-rules"], "/b#AiRules", null],
+      [["minimum-severity"], null, null],
+    ]);
   });
 
-  test("only the steps the reader may make", () => {
+  test("who can, under the steps the reader may not make, once per sentence", () => {
     expect(
-      getAiOffSummaryLinks(all, (step: AiOffStep): boolean => {
-        return step.key === "investigate-rules";
-      }).map((link: { route: Route }): string => {
-        return link.route.toString();
-      }),
-    ).toEqual(["/b#AiRules"]);
+      shape(
+        getAiOffStepGroups(all, (step: AiOffStep): boolean => {
+          return step.key === "enable-ai";
+        }),
+      ),
+    ).toEqual([
+      [["enable-ai"], "/a", null],
+      [["investigate-switch", "fix-switch"], null, "Owner or admin."],
+      [["investigate-rules"], null, "Rule editors."],
+      [["minimum-severity"], null, null],
+    ]);
   });
 
-  test("who can, once per sentence, for the steps the reader may not make", () => {
+  test("steps done since go together, with nothing after them", () => {
     expect(
-      getAiOffSummaryWhoCanChange(all, (step: AiOffStep): boolean => {
-        return step.key === "enable-ai";
-      }),
-    ).toEqual(["Owner or admin.", "Rule editors."]);
+      shape(
+        getAiOffStepGroups(
+          [
+            stepOf({
+              key: "investigate-switch",
+              route: "/b",
+              isDone: true,
+              whoCanChange: "Owner or admin.",
+            }),
+            stepOf({
+              key: "fix-switch",
+              route: "/b",
+              isDone: true,
+              whoCanChange: "Owner or admin.",
+            }),
+          ],
+          (): boolean => {
+            return true;
+          },
+        ),
+      ),
+    ).toEqual([[["investigate-switch", "fix-switch"], null, null]]);
+  });
+
+  test("a place or a sentence met again later is not said twice", () => {
     expect(
-      getAiOffSummaryWhoCanChange(all, (): boolean => {
-        return true;
-      }),
-    ).toEqual([]);
+      shape(
+        getAiOffStepGroups(
+          [
+            stepOf({
+              key: "investigate-switch",
+              route: "/b",
+              whoCanChange: "Owner or admin.",
+            }),
+            stepOf({
+              key: "investigate-rules",
+              route: "/b#AiRules",
+              whoCanChange: "Rule editors.",
+            }),
+            stepOf({
+              key: "fix-switch",
+              route: "/b",
+              whoCanChange: "Owner or admin.",
+            }),
+          ],
+          (step: AiOffStep): boolean => {
+            return step.key !== "investigate-rules";
+          },
+        ),
+      ),
+    ).toEqual([
+      [["investigate-switch"], "/b", null],
+      [["investigate-rules"], null, "Rule editors."],
+      [["fix-switch"], null, null],
+    ]);
+  });
+
+  test("a menu path keeps each arrow with the menu before it, in either direction", () => {
+    expect(keepMenuPathArrowsInLine("in Incidents → AI → Settings.")).toBe(
+      "in Incidents → AI → Settings.",
+    );
+    expect(keepMenuPathArrowsInLine("در حوادث ← هوش مصنوعی ← تنظیمات")).toBe(
+      "در حوادث ← هوش مصنوعی ← تنظیمات",
+    );
+    expect(keepMenuPathArrowsInLine("No menu here.")).toBe("No menu here.");
   });
 });

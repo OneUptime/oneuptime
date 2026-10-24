@@ -33710,5 +33710,6 @@
   "“{{switchName}}” is off.": "\"{{switchName}}\" बंद है।",
   "“{{switchName}}” is on now.": "\"{{switchName}}\" अब चालू है।",
   "“{{switchName}}” was off when this alert was created.": "जब यह अलर्ट बनाया गया था, तब \"{{switchName}}\" बंद था।",
-  "“{{switchName}}” was off when this incident was created.": "जब यह घटना बनाई गई थी, तब \"{{switchName}}\" बंद था।"
+  "“{{switchName}}” was off when this incident was created.": "जब यह घटना बनाई गई थी, तब \"{{switchName}}\" बंद था।",
+  "AI investigation was off": "AI जांच बंद थी"
 }

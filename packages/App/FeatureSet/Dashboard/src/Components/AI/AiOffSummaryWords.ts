@@ -36,13 +36,17 @@ export const AI_OFF_INVESTIGATION_CODES: ReadonlyArray<InvestigationNotStartedCo
 /*
  * What is off, in the maintainer's words. The reason under it says for
  * which record and since when, so the line stays true once the switch is
- * turned on: it never reaches back to this record.
+ * turned on: it never reaches back to this record. Once investigating is
+ * known to be on now, the line says it was off - never "is off" above a
+ * step that says it is on.
  */
 export const AI_OFF_TITLES: {
   investigationOff: string;
+  investigationWasOff: string;
   projectAiOff: string;
 } = {
   investigationOff: translationKey("AI investigation is off"),
+  investigationWasOff: translationKey("AI investigation was off"),
   projectAiOff: translationKey("AI is off for this project"),
 };
 

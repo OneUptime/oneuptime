@@ -33710,5 +33710,6 @@
   "“{{switchName}}” is off.": "«{{switchName}}» خاموش است.",
   "“{{switchName}}” is on now.": "«{{switchName}}» اکنون روشن است.",
   "“{{switchName}}” was off when this alert was created.": "وقتی این هشدار ایجاد شد، «{{switchName}}» خاموش بود.",
-  "“{{switchName}}” was off when this incident was created.": "وقتی این حادثه ایجاد شد، «{{switchName}}» خاموش بود."
+  "“{{switchName}}” was off when this incident was created.": "وقتی این حادثه ایجاد شد، «{{switchName}}» خاموش بود.",
+  "AI investigation was off": "بررسی هوش مصنوعی خاموش بود"
 }

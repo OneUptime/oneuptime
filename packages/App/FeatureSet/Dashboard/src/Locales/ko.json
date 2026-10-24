@@ -33710,5 +33710,6 @@
   "“{{switchName}}” is off.": "\"{{switchName}}\"이(가) 꺼져 있습니다.",
   "“{{switchName}}” is on now.": "\"{{switchName}}\"이(가) 이제 켜져 있습니다.",
   "“{{switchName}}” was off when this alert was created.": "이 경고가 생성될 때 \"{{switchName}}\"이(가) 꺼져 있었습니다.",
-  "“{{switchName}}” was off when this incident was created.": "이 인시던트가 생성될 때 \"{{switchName}}\"이(가) 꺼져 있었습니다."
+  "“{{switchName}}” was off when this incident was created.": "이 인시던트가 생성될 때 \"{{switchName}}\"이(가) 꺼져 있었습니다.",
+  "AI investigation was off": "AI 조사가 꺼져 있었습니다"
 }

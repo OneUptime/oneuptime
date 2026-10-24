@@ -33710,5 +33710,6 @@
   "“{{switchName}}” is off.": "«{{switchName}}» è disattivato.",
   "“{{switchName}}” is on now.": "«{{switchName}}» ora è attivo.",
   "“{{switchName}}” was off when this alert was created.": "«{{switchName}}» era disattivato quando questo avviso è stato creato.",
-  "“{{switchName}}” was off when this incident was created.": "«{{switchName}}» era disattivato quando questo incidente è stato creato."
+  "“{{switchName}}” was off when this incident was created.": "«{{switchName}}» era disattivato quando questo incidente è stato creato.",
+  "AI investigation was off": "L'indagine IA era disattivata"
 }

@@ -33710,5 +33710,6 @@
   "“{{switchName}}” is off.": "\"{{switchName}}\" er slået fra.",
   "“{{switchName}}” is on now.": "\"{{switchName}}\" er slået til nu.",
   "“{{switchName}}” was off when this alert was created.": "\"{{switchName}}\" var slået fra, da denne advarsel blev oprettet.",
-  "“{{switchName}}” was off when this incident was created.": "\"{{switchName}}\" var slået fra, da denne hændelse blev oprettet."
+  "“{{switchName}}” was off when this incident was created.": "\"{{switchName}}\" var slået fra, da denne hændelse blev oprettet.",
+  "AI investigation was off": "AI-undersøgelse var slået fra"
 }

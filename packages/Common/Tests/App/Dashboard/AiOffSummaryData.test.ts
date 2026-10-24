@@ -16,6 +16,7 @@ import {
   AiOffStepLink,
   AiOffSubjectType,
   AiOffSummary,
+  canAiCardFold,
   getAiCardFold,
   getAiLane,
   getAiLaneSwitchColumns,
@@ -24,11 +25,15 @@ import {
   isAiOffInvestigationReason,
   isRemediationFoldedIntoAiCard,
   isSameRemediationFoldState,
+  INVESTIGATION_STEP_KEYS,
   REMEDIATION_FOLD_LOADING,
   RemediationFoldState,
   RemediationOffReason,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AiOffSummaryData";
-import { getAiOffSummaryLinks } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AiOffSummary";
+import {
+  AiOffStepGroup,
+  getAiOffStepGroups,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AiOffSummary";
 import { SILENT_REASONS } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationDecisionLines";
 import {
   AI_LANE_SWITCHES,
@@ -451,6 +456,7 @@ describe("how the AI card is drawn", () => {
         isInvestigationLoaded: false,
         offReason: null,
         remediation: { kind: "off", reason: "fixing_off" },
+        areSwitchesRead: true,
       },
       "checking",
     ],
@@ -460,6 +466,7 @@ describe("how the AI card is drawn", () => {
         isInvestigationLoaded: true,
         offReason: null,
         remediation: { kind: "off", reason: "fixing_off" },
+        areSwitchesRead: true,
       },
       "full",
     ],
@@ -469,6 +476,7 @@ describe("how the AI card is drawn", () => {
         isInvestigationLoaded: true,
         offReason,
         remediation: undefined,
+        areSwitchesRead: true,
       },
       "full",
     ],
@@ -478,6 +486,7 @@ describe("how the AI card is drawn", () => {
         isInvestigationLoaded: true,
         offReason,
         remediation: { kind: "loading" },
+        areSwitchesRead: true,
       },
       "checking",
     ],
@@ -487,6 +496,7 @@ describe("how the AI card is drawn", () => {
         isInvestigationLoaded: true,
         offReason,
         remediation: { kind: "off", reason: "fixing_off" },
+        areSwitchesRead: true,
       },
       "folded",
     ],
@@ -496,6 +506,7 @@ describe("how the AI card is drawn", () => {
         isInvestigationLoaded: true,
         offReason,
         remediation: { kind: "off", reason: "not_recorded" },
+        areSwitchesRead: true,
       },
       "folded",
     ],
@@ -505,6 +516,41 @@ describe("how the AI card is drawn", () => {
         isInvestigationLoaded: true,
         offReason,
         remediation: { kind: "on" },
+        areSwitchesRead: true,
+      },
+      "full",
+    ],
+    /*
+     * The line says what is on now ("was off", "is on now"): it waits for
+     * the switches rather than be drawn in words it changes a moment later.
+     */
+    [
+      "checking while the switches are being read, when it would fold",
+      {
+        isInvestigationLoaded: true,
+        offReason,
+        remediation: { kind: "off", reason: "fixing_off" },
+        areSwitchesRead: false,
+      },
+      "checking",
+    ],
+    [
+      "whole without waiting for the switches when fixing did something",
+      {
+        isInvestigationLoaded: true,
+        offReason,
+        remediation: { kind: "on" },
+        areSwitchesRead: false,
+      },
+      "full",
+    ],
+    [
+      "whole without waiting for the switches when the record was not off",
+      {
+        isInvestigationLoaded: true,
+        offReason: null,
+        remediation: { kind: "off", reason: "fixing_off" },
+        areSwitchesRead: false,
       },
       "full",
     ],
@@ -518,6 +564,30 @@ describe("how the AI card is drawn", () => {
       expect(getAiCardFold(input)).toBe(expected);
     },
   );
+
+  test("the switches are worth reading only while the card may still fold", () => {
+    // Not investigated for a choice, and fixing not known to have acted.
+    expect(canAiCardFold({ offReason, remediation: { kind: "loading" } })).toBe(
+      true,
+    );
+    expect(
+      canAiCardFold({
+        offReason,
+        remediation: { kind: "off", reason: "fixing_off" },
+      }),
+    ).toBe(true);
+    // A whole card never reads them.
+    expect(canAiCardFold({ offReason, remediation: { kind: "on" } })).toBe(
+      false,
+    );
+    expect(canAiCardFold({ offReason, remediation: undefined })).toBe(false);
+    expect(
+      canAiCardFold({
+        offReason: null,
+        remediation: { kind: "off", reason: "fixing_off" },
+      }),
+    ).toBe(false);
+  });
 
   test("the Remediation card leaves 'nothing was fixed' to the line, and only that", () => {
     const off: RemediationFoldState = { kind: "off", reason: "fixing_off" };
@@ -616,6 +686,134 @@ describe.each(SUBJECT_TYPES)(
           isAiOn: false,
         }).title,
       ).toBe("AI is off for this project");
+    });
+
+    /*
+     * Never "is off" over steps that all say "is on now": once what would
+     * have the next one investigated is on, the line says it was off.
+     */
+    test("once investigating is on now, it says AI investigation was off", () => {
+      expect(AI_OFF_TITLES.investigationWasOff).toBe(
+        "AI investigation was off",
+      );
+
+      // The switch that was off is on now; fixing too, or not.
+      for (const fix of [true, false]) {
+        expect(
+          summaryFor({
+            subjectType,
+            code: "automatic_investigation_disabled",
+            switches: { investigate: true, fix },
+          }).title,
+        ).toBe("AI investigation was off");
+      }
+
+      // AI was off then and is on now: was off, unless its switch is off now.
+      expect(
+        summaryFor({
+          subjectType,
+          code: "ai_disabled",
+          remediationReason: "ai_off",
+          switches: { investigate: true, fix: true },
+        }).title,
+      ).toBe("AI investigation was off");
+      expect(
+        summaryFor({
+          subjectType,
+          code: "ai_disabled",
+          remediationReason: "ai_off",
+        }).title,
+      ).toBe("AI investigation was off");
+      expect(
+        summaryFor({
+          subjectType,
+          code: "ai_disabled",
+          remediationReason: "ai_off",
+          switches: { investigate: false, fix: true },
+        }).title,
+      ).toBe("AI investigation is off");
+
+      // Not known to be on: worded as still off, as its step is.
+      for (const switches of [{}, { investigate: false, fix: true }]) {
+        expect(
+          summaryFor({
+            subjectType,
+            code: "automatic_investigation_disabled",
+            switches,
+          }).title,
+        ).toBe("AI investigation is off");
+      }
+
+      // The rules and the minimum severity are never known to be done.
+      for (const code of [
+        "no_investigation_rule_matched",
+        "severity_below_threshold",
+      ] as Array<InvestigationNotStartedCode>) {
+        expect(
+          summaryFor({
+            subjectType,
+            code,
+            switches: { investigate: true, fix: true },
+          }).title,
+        ).toBe("AI investigation is off");
+      }
+
+      // AI off for the project now says so, whatever the switches.
+      expect(
+        summaryFor({
+          subjectType,
+          code: "automatic_investigation_disabled",
+          isAiOn: false,
+          switches: { investigate: true, fix: true },
+        }).title,
+      ).toBe("AI is off for this project");
+    });
+
+    test("the title says is off exactly when a step to investigate is left", () => {
+      for (const code of AI_OFF_INVESTIGATION_CODES) {
+        for (const remediationReason of [
+          "ai_off",
+          "fixing_off",
+          "no_rule_matched",
+          "rules_do_not_fix",
+          "not_recorded",
+        ] as Array<RemediationOffReason>) {
+          for (const switches of [
+            {},
+            { investigate: false, fix: false },
+            { investigate: true, fix: false },
+            { investigate: true, fix: true },
+          ] as Array<AiLaneSwitchStates>) {
+            const summary: AiOffSummary = summaryFor({
+              subjectType,
+              code,
+              remediationReason,
+              switches,
+            });
+            const isLeft: boolean = summary.steps.some(
+              (item: AiOffStep): boolean => {
+                return (
+                  !item.isDone && INVESTIGATION_STEP_KEYS.includes(item.key)
+                );
+              },
+            );
+
+            expect({
+              code,
+              remediationReason,
+              switches,
+              title: summary.title,
+            }).toEqual({
+              code,
+              remediationReason,
+              switches,
+              title: isLeft
+                ? "AI investigation is off"
+                : "AI investigation was off",
+            });
+          }
+        }
+      }
     });
 
     test.each<[InvestigationNotStartedCode, string, string]>([
@@ -1036,10 +1234,11 @@ describe.each(SUBJECT_TYPES)(
     });
 
     /*
-     * The line lists each place once (getAiOffSummaryLinks), and two places
-     * never share a name: the minimum severity's card and the switches are
-     * on the same page, so its link is the card's name, not a second
-     * "Incident AI settings" that goes elsewhere.
+     * The line links each place once, under the steps made there
+     * (getAiOffStepGroups), and two places never share a name: the minimum
+     * severity's card and the switches are on the same page, so its link is
+     * the card's name, not a second "Incident AI settings" that goes
+     * elsewhere.
      */
     test("no two places the line links to share their words, whatever was off", () => {
       for (const code of AI_OFF_INVESTIGATION_CODES) {
@@ -1056,24 +1255,58 @@ describe.each(SUBJECT_TYPES)(
               { investigate: false, fix: false },
               { investigate: true, fix: true },
             ] as Array<AiLaneSwitchStates>) {
-              const links: Array<{ text: string; route: string }> =
-                getAiOffSummaryLinks(
-                  summaryFor({
-                    subjectType,
-                    code,
-                    remediationReason,
-                    ruleName: "Checkout investigations",
-                    isAiOn,
-                    switches,
-                  }).steps,
-                  (): boolean => {
-                    return true;
-                  },
-                ).map(
-                  (item: AiOffStepLink): { text: string; route: string } => {
-                    return { text: item.text, route: item.route.toString() };
+              const groups: Array<AiOffStepGroup> = getAiOffStepGroups(
+                summaryFor({
+                  subjectType,
+                  code,
+                  remediationReason,
+                  ruleName: "Checkout investigations",
+                  isAiOn,
+                  switches,
+                }).steps,
+                (): boolean => {
+                  return true;
+                },
+              );
+              const links: Array<{ text: string; route: string }> = groups
+                .map((group: AiOffStepGroup): AiOffStepLink | null => {
+                  return group.link;
+                })
+                .filter((item: AiOffStepLink | null): boolean => {
+                  return Boolean(item);
+                })
+                .map(
+                  (
+                    item: AiOffStepLink | null,
+                  ): { text: string; route: string } => {
+                    return {
+                      text: item!.text,
+                      route: item!.route.toString(),
+                    };
                   },
                 );
+
+              // Every link sits under steps made where it goes.
+              for (const group of groups) {
+                for (const item of group.steps) {
+                  expect({
+                    step: item.key,
+                    route: group.link ? item.link?.route.toString() : null,
+                  }).toEqual({
+                    step: item.key,
+                    route: group.link ? group.link.route.toString() : null,
+                  });
+                }
+              }
+
+              // Each place once.
+              expect(
+                new Set(
+                  links.map((item: { route: string }): string => {
+                    return item.route;
+                  }),
+                ).size,
+              ).toBe(links.length);
               const texts: Array<string> = links.map(
                 (item: { text: string }): string => {
                   return item.text;
