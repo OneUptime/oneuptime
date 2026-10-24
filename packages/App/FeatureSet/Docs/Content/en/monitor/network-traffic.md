@@ -198,7 +198,7 @@ A click on a network narrows the page to it, and lists its uplinks. An appliance
 
 Meraki gives each organization 10 API requests a second, shared by every application that reads it. OneUptime uses at most 3 of them, slows down when Meraki asks it to, and stops a read after 900 requests or 6 minutes; the next read carries on a minute later. An organization of 1,200 networks has its uplinks read in one call a window, and its networks' applications and clients over a few reads.
 
-The connections are listed at the foot of the network's Traffic page, under **Meraki**, each with how it is doing and what its last read covered. **Read now** reads one at once, and its menu has **Edit** (its name, how often to read the uplinks, a new key), **Turn off** and **Delete**. A read that fails says why, there and over the traffic: a refused key, a key that cannot read the organization, Meraki asking OneUptime to slow down, or networks whose traffic analysis is off.
+The connections are listed at the foot of the network's Traffic page, under **Meraki**, each with how it is doing and what its last read covered. Each has one button for the next thing to do: **Read now** reads it at once, **Turn on** turns it back on when it is off, and **Update API key** replaces a key Meraki refused, testing the new key before it is saved. Its menu has **Edit** (its name, how often to read the uplinks, a new key), **Turn off** and **Delete**. A read that fails says why, there and over the traffic: a refused key, a key that cannot read the organization, Meraki asking OneUptime to slow down, or networks whose traffic analysis is off. Over the traffic, **Review** leads to the connection. Only project owners and admins can connect Meraki and change or read a connection.
 
 The Meraki dashboard API reports totals, never who talked to whom, so the Meraki side has no conversations. To see them, send NetFlow from the MX appliances as well ([Cisco Meraki MX and Z](#cisco-meraki-mx-and-z)): the page then has both, one switch apart.
 
@@ -239,7 +239,7 @@ If the Traffic page still shows its set-up steps:
 
 If a Meraki connection says it cannot read:
 
-- **The key is refused.** Copy it again from the Meraki dashboard, and check the **Dashboard region**: a key reads only the dashboard it was made in.
+- **The key is refused.** Copy it again from the Meraki dashboard, and check the **Dashboard region**: a key reads only the dashboard it was made in. Paste the new key with **Update API key** on the connection.
 - **The key cannot read the organization.** Turn on API access for the organization under **Organization** > **API & Webhooks**, or use the key of one of its administrators.
 - **No applications on some networks.** Their traffic analysis is off: turn it on under **Network-wide** > **General** > **Traffic analysis**.
 - **Meraki asked OneUptime to slow down.** Other applications are using the organization's API budget. OneUptime reads more slowly and carries on.

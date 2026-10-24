@@ -198,7 +198,7 @@ Ett klick på ett nätverk begränsar sidan till det och listar dess uplinks. En
 
 Meraki ger varje organisation 10 API-förfrågningar per sekund, delade av alla applikationer som läser den. OneUptime använder högst 3 av dem, saktar ner när Meraki ber om det och stoppar en läsning efter 900 förfrågningar eller 6 minuter; nästa fortsätter en minut senare. En organisation med 1 200 nätverk får sina uplinks lästa med ett anrop per fönster, och nätverkens applikationer och klienter över några läsningar.
 
-Anslutningarna listas längst ned på nätverkets Trafik-sida under **Meraki**, var och en med hur den mår och vad dess senaste läsning täckte. **Läs nu** läser en direkt, och dess meny har **Redigera** (dess namn, hur ofta uplinks läses, en ny nyckel), **Stäng av** och **Ta bort**. En läsning som misslyckas säger varför, där och ovanför trafiken: en nekad nyckel, en nyckel som inte kan läsa organisationen, Meraki som ber OneUptime sakta ner, eller nätverk vars trafikanalys är avstängd.
+Anslutningarna listas längst ned på nätverkets Trafik-sida under **Meraki**, var och en med hur den mår och vad dess senaste läsning täckte. Var och en har en knapp för nästa steg: **Läs nu** läser den direkt, **Slå på** slår på den igen när den är avstängd, och **Uppdatera API-nyckel** ersätter en nyckel som Meraki nekade och testar den nya nyckeln innan den sparas. Dess meny har **Redigera** (dess namn, hur ofta uplinks läses, en ny nyckel), **Stäng av** och **Ta bort**. En läsning som misslyckas säger varför, där och ovanför trafiken: en nekad nyckel, en nyckel som inte kan läsa organisationen, Meraki som ber OneUptime sakta ner, eller nätverk vars trafikanalys är avstängd. Ovanför trafiken leder **Granska** till anslutningen. Bara projektägare och projektadministratörer kan ansluta Meraki och ändra eller läsa en anslutning.
 
 Meraki-dashboardens API rapporterar summor, aldrig vem som pratade med vem, så Meraki-sidan har inga konversationer. För att se dem skickar du också NetFlow från MX-appliancerna ([Cisco Meraki MX och Z](#cisco-meraki-mx-och-z)): sidan har då båda, en växel ifrån varandra.
 
@@ -239,7 +239,7 @@ Om Trafik-sidan fortfarande visar sina konfigurationssteg:
 
 Om en Meraki-anslutning säger att den inte kan läsa:
 
-- **Nyckeln nekas.** Kopiera den igen från Meraki-dashboarden och kontrollera **Instrumentpanelens region**: en nyckel läser bara dashboarden den skapades i.
+- **Nyckeln nekas.** Kopiera den igen från Meraki-dashboarden och kontrollera **Instrumentpanelens region**: en nyckel läser bara dashboarden den skapades i. Klistra in den nya nyckeln med **Uppdatera API-nyckel** på anslutningen.
 - **Nyckeln kan inte läsa organisationen.** Slå på API-åtkomst för organisationen under **Organization** > **API & Webhooks**, eller använd nyckeln från en av dess administratörer.
 - **Inga applikationer på vissa nätverk.** Deras trafikanalys är avstängd: slå på den under **Network-wide** > **General** > **Traffic analysis**.
 - **Meraki bad OneUptime att sakta ner.** Andra applikationer använder organisationens API-budget. OneUptime läser långsammare och fortsätter.

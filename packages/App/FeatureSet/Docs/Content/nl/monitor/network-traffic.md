@@ -198,7 +198,7 @@ Een klik op een netwerk beperkt de pagina tot dat netwerk en toont de uplinks er
 
 Meraki geeft elke organisatie 10 API-verzoeken per seconde, gedeeld door alle applicaties die haar lezen. OneUptime gebruikt er hoogstens 3, gaat langzamer als Meraki daarom vraagt en stopt een leesbeurt na 900 verzoeken of 6 minuten; de volgende gaat een minuut later verder. Bij een organisatie met 1.200 netwerken worden de uplinks gelezen met één aanroep per venster, en de applicaties en clients van de netwerken verspreid over een paar leesbeurten.
 
-De koppelingen staan onderaan de Verkeer-pagina van het netwerk, onder **Meraki**, elk met hoe het ermee gaat en wat de laatste leesbeurt dekte. **Nu lezen** leest er direct een, en het menu heeft **Bewerken** (de naam, hoe vaak de uplinks worden gelezen, een nieuwe sleutel), **Uitzetten** en **Verwijderen**. Een mislukte leesbeurt zegt waarom, daar en boven het verkeer: een geweigerde sleutel, een sleutel die de organisatie niet kan lezen, Meraki dat OneUptime vraagt langzamer te gaan, of netwerken waarvan de verkeersanalyse uit staat.
+De koppelingen staan onderaan de Verkeer-pagina van het netwerk, onder **Meraki**, elk met hoe het ermee gaat en wat de laatste leesbeurt dekte. Elke koppeling heeft één knop voor de volgende stap: **Nu lezen** leest hem direct, **Inschakelen** zet hem weer aan als hij uit staat, en **API-sleutel bijwerken** vervangt een sleutel die Meraki weigerde en test de nieuwe sleutel voordat die wordt opgeslagen. Het menu heeft **Bewerken** (de naam, hoe vaak de uplinks worden gelezen, een nieuwe sleutel), **Uitzetten** en **Verwijderen**. Een mislukte leesbeurt zegt waarom, daar en boven het verkeer: een geweigerde sleutel, een sleutel die de organisatie niet kan lezen, Meraki dat OneUptime vraagt langzamer te gaan, of netwerken waarvan de verkeersanalyse uit staat. Boven het verkeer leidt **Bekijken** naar de koppeling. Alleen projecteigenaren en projectbeheerders kunnen Meraki koppelen en een koppeling wijzigen of lezen.
 
 De Meraki-dashboard-API rapporteert totalen, nooit wie met wie sprak, dus de Meraki-kant heeft geen gesprekken. Om ze te zien stuur je ook NetFlow vanaf de MX-appliances ([Cisco Meraki MX en Z](#cisco-meraki-mx-en-z)): de pagina heeft dan allebei, één schakelaar van elkaar.
 
@@ -239,7 +239,7 @@ Als de Verkeer-pagina nog steeds de installatiestappen toont:
 
 Als een Meraki-koppeling zegt dat ze niet kan lezen:
 
-- **De sleutel wordt geweigerd.** Kopieer hem opnieuw uit het Meraki-dashboard en controleer de **Dashboardregio**: een sleutel leest alleen het dashboard waarin hij is gemaakt.
+- **De sleutel wordt geweigerd.** Kopieer hem opnieuw uit het Meraki-dashboard en controleer de **Dashboardregio**: een sleutel leest alleen het dashboard waarin hij is gemaakt. Plak de nieuwe sleutel met **API-sleutel bijwerken** bij de koppeling.
 - **De sleutel kan de organisatie niet lezen.** Zet API-toegang voor de organisatie aan onder **Organization** > **API & Webhooks**, of gebruik de sleutel van een van haar beheerders.
 - **Geen applicaties op sommige netwerken.** Hun verkeersanalyse staat uit: zet die aan onder **Network-wide** > **General** > **Traffic analysis**.
 - **Meraki vroeg OneUptime langzamer te gaan.** Andere applicaties gebruiken het API-budget van de organisatie. OneUptime leest langzamer en gaat door.

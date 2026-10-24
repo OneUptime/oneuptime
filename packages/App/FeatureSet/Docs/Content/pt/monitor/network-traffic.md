@@ -198,7 +198,7 @@ Um clique em uma rede restringe a página a ela e lista os seus uplinks. O tráf
 
 O Meraki dá a cada organização 10 requisições de API por segundo, compartilhadas por todas as aplicações que a leem. O OneUptime usa no máximo 3, desacelera quando o Meraki pede e encerra uma leitura após 900 requisições ou 6 minutos; a próxima continua um minuto depois. Uma organização de 1.200 redes tem os seus uplinks lidos com uma chamada por janela, e as aplicações e os clientes das suas redes ao longo de algumas leituras.
 
-As conexões aparecem no fim da página de Tráfego da rede, em **Meraki**, cada uma com o seu estado e o que a última leitura cobriu. **Ler agora** lê uma na hora, e o menu dela tem **Editar** (o nome, com que frequência ler os uplinks, uma nova chave), **Desativar** e **Excluir**. Uma leitura que falha diz por quê, ali e acima do tráfego: uma chave recusada, uma chave que não consegue ler a organização, o Meraki pedindo ao OneUptime que desacelere, ou redes com a análise de tráfego desligada.
+As conexões aparecem no fim da página de Tráfego da rede, em **Meraki**, cada uma com o seu estado e o que a última leitura cobriu. Cada uma tem um botão para o próximo passo: **Ler agora** a lê na hora, **Ativar** a reativa quando está desativada, e **Atualizar a chave de API** substitui uma chave que o Meraki recusou, testando a nova chave antes de salvá-la. O menu dela tem **Editar** (o nome, com que frequência ler os uplinks, uma nova chave), **Desativar** e **Excluir**. Uma leitura que falha diz por quê, ali e acima do tráfego: uma chave recusada, uma chave que não consegue ler a organização, o Meraki pedindo ao OneUptime que desacelere, ou redes com a análise de tráfego desligada. Acima do tráfego, **Revisar** leva à conexão. Só os proprietários e os administradores do projeto podem conectar o Meraki e alterar ou ler uma conexão.
 
 A API do painel do Meraki relata totais, nunca quem falou com quem, então o lado do Meraki não tem conversas. Para vê-las, envie também NetFlow dos appliances MX ([Cisco Meraki MX e Z](#cisco-meraki-mx-e-z)): a página passa a ter os dois, a um seletor de distância.
 
@@ -239,7 +239,7 @@ Se a página de Tráfego ainda mostra os passos de configuração:
 
 Se uma conexão do Meraki diz que não consegue ler:
 
-- **A chave é recusada.** Copie-a de novo do painel do Meraki e confira a **Região do painel**: uma chave só lê o painel em que foi criada.
+- **A chave é recusada.** Copie-a de novo do painel do Meraki e confira a **Região do painel**: uma chave só lê o painel em que foi criada. Cole a nova chave com **Atualizar a chave de API** na conexão.
 - **A chave não consegue ler a organização.** Ative o acesso à API da organização em **Organization** > **API & Webhooks**, ou use a chave de um dos seus administradores.
 - **Nenhuma aplicação em algumas redes.** A análise de tráfego delas está desligada: ligue-a em **Network-wide** > **General** > **Traffic analysis**.
 - **O Meraki pediu ao OneUptime que desacelerasse.** Outras aplicações estão usando o orçamento de API da organização. O OneUptime lê mais devagar e continua.

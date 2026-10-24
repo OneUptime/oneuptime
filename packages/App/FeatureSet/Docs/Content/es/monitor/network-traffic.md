@@ -198,7 +198,7 @@ Un clic en una red limita la página a esa red y lista sus uplinks. El tráfico 
 
 Meraki da a cada organización 10 solicitudes de API por segundo, compartidas por todas las aplicaciones que la leen. OneUptime usa como máximo 3, va más despacio cuando Meraki se lo pide y detiene una lectura tras 900 solicitudes o 6 minutos; la siguiente continúa un minuto después. En una organización de 1200 redes, sus uplinks se leen con una llamada por ventana, y las aplicaciones y clientes de sus redes a lo largo de unas pocas lecturas.
 
-Las conexiones aparecen al pie de la página de Tráfico de la red, en **Meraki**, cada una con su estado y lo que cubrió su última lectura. **Leer ahora** lee una al instante, y su menú tiene **Editar** (su nombre, cada cuánto leer los uplinks, una clave nueva), **Desactivar** y **Eliminar**. Una lectura que falla dice por qué, ahí y sobre el tráfico: una clave rechazada, una clave que no puede leer la organización, Meraki pidiendo a OneUptime que vaya más despacio, o redes con el análisis de tráfico desactivado.
+Las conexiones aparecen al pie de la página de Tráfico de la red, en **Meraki**, cada una con su estado y lo que cubrió su última lectura. Cada una tiene un botón para el siguiente paso: **Leer ahora** la lee al instante, **Activar** la vuelve a activar cuando está desactivada, y **Actualizar la clave de API** reemplaza una clave que Meraki rechazó, probando la clave nueva antes de guardarla. Su menú tiene **Editar** (su nombre, cada cuánto leer los uplinks, una clave nueva), **Desactivar** y **Eliminar**. Una lectura que falla dice por qué, ahí y sobre el tráfico: una clave rechazada, una clave que no puede leer la organización, Meraki pidiendo a OneUptime que vaya más despacio, o redes con el análisis de tráfico desactivado. Sobre el tráfico, **Revisar** lleva a la conexión. Solo los propietarios y los administradores del proyecto pueden conectar Meraki y cambiar o leer una conexión.
 
 La API del panel de Meraki informa totales, nunca quién habló con quién, así que el lado de Meraki no tiene conversaciones. Para verlas, envía también NetFlow desde los appliances MX ([Cisco Meraki MX y Z](#cisco-meraki-mx-y-z)): la página tiene entonces las dos cosas, a un selector de distancia.
 
@@ -239,7 +239,7 @@ Si la página de Tráfico sigue mostrando sus pasos de configuración:
 
 Si una conexión de Meraki dice que no puede leer:
 
-- **La clave se rechaza.** Cópiala de nuevo desde el panel de Meraki y comprueba la **Región del panel**: una clave solo lee el panel en el que se creó.
+- **La clave se rechaza.** Cópiala de nuevo desde el panel de Meraki y comprueba la **Región del panel**: una clave solo lee el panel en el que se creó. Pega la clave nueva con **Actualizar la clave de API** en la conexión.
 - **La clave no puede leer la organización.** Activa el acceso a la API de la organización en **Organization** > **API & Webhooks**, o usa la clave de uno de sus administradores.
 - **No hay aplicaciones en algunas redes.** Tienen el análisis de tráfico desactivado: actívalo en **Network-wide** > **General** > **Traffic analysis**.
 - **Meraki pidió a OneUptime que fuera más despacio.** Otras aplicaciones están usando el presupuesto de API de la organización. OneUptime lee más despacio y continúa.
