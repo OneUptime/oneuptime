@@ -12,6 +12,13 @@ import path from "path";
  *
  * Each test asserts what the page drew - on a laptop (1280) and on a phone
  * (390), in light and dark - with no sideways scroll on the phone.
+ *
+ * The UI review added what a person meets first: whether pull requests can
+ * be opened sits under the switch, inside its card, and only while the
+ * switch is on; an inbox that is empty because the switch is off says so;
+ * a finding's page keeps Insights lit and offers a monitor on the
+ * function; a rule's wait starts on an hour; and an empty Logs page leads
+ * to AI Settings.
  */
 
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
@@ -156,7 +163,10 @@ test.describe("Profiler → AI → Settings", () => {
           page.getByTestId("ai-switch-enableAutomaticProfileRemediation"),
         ).toBeVisible();
 
-        const ready: Locator = page.getByTestId("telemetry-ai-readiness-ready");
+        // What the switch leads to sits under it, inside its card.
+        const ready: Locator = switches.getByTestId(
+          "telemetry-ai-readiness-ready",
+        );
 
         await expect(ready).toContainText(
           "OneUptime AI can open pull requests in 2 connected repositories.",
@@ -248,6 +258,12 @@ test.describe("Profiler → AI → Settings", () => {
       "OneUptime AI starts as soon as the slow code is found.",
     );
 
+    // A wait starts on an hour: one look of the Profiler's, not 10 minutes.
+    await dialog.getByText("Only if still found after a wait").click();
+    await expect(
+      dialog.getByTestId("telemetry-ai-rule-wait-minutes"),
+    ).toHaveValue("60");
+
     // Fix: in pull requests, with no Runner to pick.
     await next.click();
     await expect(dialog).toContainText(
@@ -261,6 +277,12 @@ test.describe("Profiler → AI → Settings", () => {
     await expect(dialog).toContainText(
       "Pull requests are made on the Runner each repository picks in Code.",
     );
+    // One line of help under the repositories, in the hint's own size.
+    await expect(
+      dialog
+        .getByTestId("rule-code-repositories-hint")
+        .getByTestId("telemetry-ai-runner-hint"),
+    ).toBeVisible();
     await expect(
       dialog.getByTestId("auto-remediation-runner-field"),
     ).toHaveCount(0);
@@ -273,6 +295,74 @@ test.describe("Profiler → AI → Settings", () => {
     await screenshot(page, testInfo, "settings-new-rule-fix");
   });
 
+  test("a rule opens for editing on what it says: its wait and its Fix answer", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${AI}/settings?aiRules=two`);
+
+    const advanced: Locator = page.getByTestId("telemetry-ai-advanced-section");
+
+    await expect(advanced).toBeVisible({ timeout: 60000 });
+    await advanced.getByRole("button", { name: /More settings/ }).click();
+    await expect(page.getByText("Checkout services")).toBeVisible();
+
+    // The rules are sorted by name: Checkout services is the first.
+    await page
+      .getByRole("button", { name: "Edit", exact: true })
+      .first()
+      .click();
+
+    const dialog: Locator = page.getByRole("dialog");
+    const next: Locator = dialog.getByRole("button", { name: "Next" });
+
+    await expect(dialog).toContainText("Edit AI Rule");
+    await expect(dialog).not.toContainText("Cannot edit");
+    await next.click();
+    await expect(
+      dialog.getByTestId("telemetry-ai-rule-wait-minutes"),
+    ).toHaveValue("60");
+    await next.click();
+    await expect(dialog.getByRole("textbox", { name: /^Name/ })).toHaveValue(
+      "Checkout services",
+    );
+
+    if (isPhone(testInfo)) {
+      await expectNoSidewaysScroll(page);
+    }
+  });
+
+  test("with Find and fix slow code off, nothing is said about pull requests; turned on, it is, under the switch", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${AI}/settings?lane=off`);
+
+    const switches: Locator = page.getByTestId("telemetry-ai-switches");
+    const laneSwitch: Locator = page.getByRole("switch", {
+      name: "Find and fix slow code",
+    });
+
+    await expect(laneSwitch).toBeVisible({ timeout: 60000 });
+    await expect(laneSwitch).toHaveAttribute("aria-checked", "false");
+    await expect(page.getByTestId("telemetry-ai-readiness")).toHaveCount(0);
+
+    await laneSwitch.click();
+
+    await expect(laneSwitch).toHaveAttribute("aria-checked", "true");
+    await expect(
+      switches.getByTestId("telemetry-ai-readiness-ready"),
+    ).toContainText(
+      "OneUptime AI can open pull requests in 2 connected repositories.",
+    );
+
+    if (isPhone(testInfo)) {
+      await expectNoSidewaysScroll(page);
+    }
+  });
+
   test("with no repository connected, the one step to take: connect one in Code", async ({
     page,
   }: {
@@ -280,7 +370,9 @@ test.describe("Profiler → AI → Settings", () => {
   }, testInfo: TestInfo) => {
     await page.goto(`${AI}/settings?readiness=connect`);
 
-    const connect: Locator = page.getByTestId("telemetry-ai-readiness-connect");
+    const connect: Locator = page
+      .getByTestId("telemetry-ai-switches")
+      .getByTestId("telemetry-ai-readiness-connect");
 
     await expect(connect).toBeVisible({ timeout: 60000 });
     await expect(connect).toContainText(
@@ -349,10 +441,30 @@ test.describe("Profiler → AI → Insights", () => {
             },
           ),
         ).toBeVisible();
-        // One kind of finding: no type filter.
+        // One kind of finding: no type filter, and no row says its kind.
         await expect(
           page.getByRole("combobox", { name: "Filter by insight type" }),
         ).toHaveCount(0);
+        await expect(page.getByText("Slow Code", { exact: true })).toHaveCount(
+          0,
+        );
+
+        // A title is drawn whole, in up to two lines: never cut at a laptop's width.
+        const title: Locator = page.getByText(
+          "normalizeLineItems grew to 9% of the CPU time in checkout, from 3%",
+        );
+        const isCut: boolean = await title.evaluate(
+          (element: Element): boolean => {
+            return (
+              element.scrollWidth > element.clientWidth ||
+              element.scrollHeight > element.clientHeight + 1
+            );
+          },
+        );
+
+        if (!isPhone(testInfo)) {
+          expect(isCut).toBe(false);
+        }
 
         await expectAiSection(page, testInfo, "Profiler — AI insights");
 
@@ -390,6 +502,39 @@ test.describe("Profiler → AI → Insights", () => {
     }
   });
 
+  test("none found while Find and fix slow code is off: it says nothing is looked for, and the way to turn it on", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await inBothThemes(
+      page,
+      `${AI}/insights?aiInsights=empty&lane=off`,
+      async (theme: "light" | "dark"): Promise<void> => {
+        await expect(
+          page.getByText("OneUptime is not looking for slow code"),
+        ).toBeVisible({ timeout: 60000 });
+        await expect(
+          page.getByText(
+            "Turn on 'Find and fix slow code' in AI Settings, and OneUptime looks through your services' profiles every hour.",
+          ),
+        ).toBeVisible();
+        await expect(page.getByText("No slow code found")).toHaveCount(0);
+
+        if (isPhone(testInfo)) {
+          await expectNoSidewaysScroll(page);
+        }
+
+        await screenshot(page, testInfo, `insights-off-${theme}`);
+      },
+    );
+
+    await page.getByRole("button", { name: "Go to AI Settings" }).click();
+    await expect(
+      page.getByRole("switch", { name: "Find and fix slow code" }),
+    ).toHaveAttribute("aria-checked", "false", { timeout: 60000 });
+  });
+
   test("a finding with no fix yet: its evidence, Open in Profiler, and Fix with AI naming the finding", async ({
     page,
   }: {
@@ -415,6 +560,24 @@ test.describe("Profiler → AI → Insights", () => {
       },
     );
 
+    // The offer says what Fix with AI does: the page says what was found.
+    await expect(page.getByTestId("profiles-fix-finding")).toHaveText(
+      "OneUptime AI opens a pull request that makes this lighter, for you to review.",
+    );
+
+    // A finding is one of the Insights: the menu keeps it lit.
+    if (isPhone(testInfo)) {
+      await expect(page.getByTestId("mobile-sidemenu-toggle")).toContainText(
+        "Insights",
+      );
+    } else {
+      await expect(
+        page
+          .getByRole("navigation", { name: "Main navigation" })
+          .getByRole("link", { name: "Insights" }),
+      ).toHaveClass(/bg-indigo-50/);
+    }
+
     await page.getByTestId("profiles-fix-with-ai").click();
     await expect(page.getByTestId("profiles-fix-task-link")).toBeVisible();
 
@@ -428,6 +591,39 @@ test.describe("Profiler → AI → Insights", () => {
         fileName: "src/orders/parse.ts",
       }),
     );
+  });
+
+  test("Create Monitor opens the Profiler's own monitor on the function, set above its share", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${AI}/insights/${HOT_INSIGHT}`);
+
+    const createMonitor: Locator = page.getByRole("button", {
+      name: "Create Monitor",
+    });
+
+    await expect(createMonitor).toBeEnabled({ timeout: 60000 });
+
+    if (isPhone(testInfo)) {
+      await expectNoSidewaysScroll(page);
+    }
+
+    await createMonitor.click();
+
+    const target: Locator = page.getByTestId("monitor-create-page");
+
+    await expect(target).toBeVisible();
+
+    const address: URL = new URL(page.url());
+
+    expect(address.pathname).toBe(`/dashboard/${PROJECT_ID}/monitors/create`);
+    expect(address.searchParams.get("profileFunction")).toBe("parseOrder");
+    expect(address.searchParams.get("profileType")).toBe("cpu");
+    // 34% now: 34 + 17, to the next 5.
+    expect(address.searchParams.get("profileThreshold")).toBe("55");
+    expect(address.searchParams.get("aiInsightId")).toBeNull();
   });
 
   test("a finding OneUptime already opened a pull request for: its fix task, and no second offer", async ({
@@ -517,6 +713,10 @@ test.describe("Profiler → AI → Logs", () => {
     if (isPhone(testInfo)) {
       await expectNoSidewaysScroll(page);
     }
+
+    // The way on: what OneUptime AI does is chosen in AI Settings.
+    await page.getByTestId("telemetry-ai-logs-settings").click();
+    await expect(page.getByTestId("telemetry-ai-switches")).toBeVisible();
 
     await page.goto(`${AI}/logs?aiLogs=fail`);
     await expect(
