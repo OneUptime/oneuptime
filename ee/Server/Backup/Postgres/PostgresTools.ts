@@ -80,7 +80,9 @@ function isExecutable(file: string): boolean {
 
 function candidateDirectories(): Array<string> {
   const directories: Array<string> = [];
-  const fromEnv: string = (process.env[BACKUP_POSTGRES_BIN_DIR_ENV] || "").trim();
+  const fromEnv: string = (
+    process.env[BACKUP_POSTGRES_BIN_DIR_ENV] || ""
+  ).trim();
 
   if (fromEnv) {
     directories.push(fromEnv);
@@ -254,7 +256,9 @@ export function buildPostgresToolEnvironment(
   let directory: string | null = null;
 
   if (target.ssl) {
-    env["PGSSLMODE"] = target.ssl.rejectUnauthorized ? "verify-full" : "require";
+    env["PGSSLMODE"] = target.ssl.rejectUnauthorized
+      ? "verify-full"
+      : "require";
 
     const files: Array<[string, string | undefined]> = [
       ["PGSSLROOTCERT", target.ssl.ca],
@@ -268,7 +272,9 @@ export function buildPostgresToolEnvironment(
       }
 
       if (!directory) {
-        directory = fs.mkdtempSync(path.join(os.tmpdir(), "oneuptime-backup-tls-"));
+        directory = fs.mkdtempSync(
+          path.join(os.tmpdir(), "oneuptime-backup-tls-"),
+        );
         fs.chmodSync(directory, 0o700);
       }
 

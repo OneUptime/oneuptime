@@ -186,7 +186,9 @@ function startSoon(): void {
   }
 
   void backupScheduler.tick().catch((error: unknown) => {
-    logger.warn(`Backups: could not start the run at once: ${errorText(error)}`);
+    logger.warn(
+      `Backups: could not start the run at once: ${errorText(error)}`,
+    );
   });
 }
 
@@ -202,17 +204,18 @@ export class BackupApiHandlers {
     if (body["settingId"]) {
       // The saved settings, with the edit form's unsaved values over them.
       const settingId: ObjectID = readId(body["settingId"], "settings ID");
-      const stored: BackupSetting | null = await BackupSettingService.findOneById({
-        id: settingId,
-        select: {
-          _id: true,
-          destinationType: true,
-          destinationProvider: true,
-          config: true,
-          secrets: true,
-        },
-        props: { isRoot: true },
-      });
+      const stored: BackupSetting | null =
+        await BackupSettingService.findOneById({
+          id: settingId,
+          select: {
+            _id: true,
+            destinationType: true,
+            destinationProvider: true,
+            config: true,
+            secrets: true,
+          },
+          props: { isRoot: true },
+        });
 
       if (!stored?.destinationType) {
         throw new BadDataException("The backup settings no longer exist.");
@@ -258,7 +261,8 @@ export class BackupApiHandlers {
   }
 
   public static async overview(): Promise<JSONObject> {
-    const setting: BackupSetting | null = await BackupSettingService.getSetting();
+    const setting: BackupSetting | null =
+      await BackupSettingService.getSetting();
     const isActive: boolean = EnterpriseEdition.isFeatureActive(
       EnterpriseFeature.Backups,
     );
@@ -294,7 +298,9 @@ export class BackupApiHandlers {
 
     try {
       const info: Awaited<
-        ReturnType<ReturnType<BackupRunner["getPostgresEngine"]>["getServerInfo"]>
+        ReturnType<
+          ReturnType<BackupRunner["getPostgresEngine"]>["getServerInfo"]
+        >
       > = await this.runner.getPostgresEngine().getServerInfo();
       overview["postgres"] = {
         version: info.version,
@@ -521,7 +527,8 @@ export class BackupApiHandlers {
     let deletedFiles: number = 0;
 
     if (run.kind === BackupRunKind.Backup && run.name) {
-      const setting: BackupSetting | null = await BackupSettingService.getSetting();
+      const setting: BackupSetting | null =
+        await BackupSettingService.getSetting();
 
       if (setting?.id) {
         const settings: BackupDestinationSettings =

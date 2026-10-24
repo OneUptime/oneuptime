@@ -213,11 +213,12 @@ export async function testBackupDestination(data: {
 
   // Whatever the test wrote goes, whichever check stopped it.
   if (storageCheck.isSuccessful) {
-    await deleteBackupPrefix({ storage: data.storage, prefix: folderKey }).catch(
-      () => {
-        // Its folder says what it is; the storage check already passed.
-      },
-    );
+    await deleteBackupPrefix({
+      storage: data.storage,
+      prefix: folderKey,
+    }).catch(() => {
+      // Its folder says what it is; the storage check already passed.
+    });
   }
 
   return {

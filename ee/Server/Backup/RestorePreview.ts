@@ -124,7 +124,11 @@ export function compareOneUptimeVersions(a: string, b: string): number | null {
     return null;
   }
 
-  for (let index: number = 0; index < Math.max(left.length, right.length); index++) {
+  for (
+    let index: number = 0;
+    index < Math.max(left.length, right.length);
+    index++
+  ) {
     const difference: number = (left[index] || 0) - (right[index] || 0);
 
     if (difference !== 0) {
@@ -291,8 +295,9 @@ export async function buildRestorePreview(data: {
 
       try {
         const info: PostgresServerInfo = await data.postgres.getServerInfo();
-        const contents: Awaited<ReturnType<PostgresBackupEngine["getContents"]>> =
-          await data.postgres.getContents();
+        const contents: Awaited<
+          ReturnType<PostgresBackupEngine["getContents"]>
+        > = await data.postgres.getContents();
 
         preview.current.postgres = {
           database: info.database,
@@ -310,7 +315,8 @@ export async function buildRestorePreview(data: {
         pickPostgresToolSet({
           toolSets: await data.postgres.getToolSets(),
           serverMajor: info.major,
-          atLeastMajor: parseInt(manifest.postgres.toolVersion, 10) || undefined,
+          atLeastMajor:
+            parseInt(manifest.postgres.toolVersion, 10) || undefined,
         });
       } catch (error) {
         problems.push({
@@ -354,7 +360,8 @@ export async function buildRestorePreview(data: {
       if (!metadata) {
         problems.push({
           code: RestoreIssueCode.ClickhouseFileMissing,
-          message: "ClickHouse's part of the backup is not at the destination any more.",
+          message:
+            "ClickHouse's part of the backup is not at the destination any more.",
         });
       }
 

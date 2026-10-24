@@ -28,6 +28,7 @@ import {
   BackupRunKind,
   BackupRunStatus,
   BackupStepKey,
+  BackupStepStatus,
 } from "Common/Types/Backup/BackupRunTypes";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
@@ -81,7 +82,9 @@ export interface BackupRunnerDependencies {
   postgres?: PostgresBackupEngine | undefined;
   clickhouse?: ClickhouseBackupEngine | undefined;
   // The storage for the destination's settings (BackupStorageFactory by default).
-  createStorage?: ((settings: BackupDestinationSettings) => BackupStorage) | undefined;
+  createStorage?:
+    | ((settings: BackupDestinationSettings) => BackupStorage)
+    | undefined;
   now?: (() => Date) | undefined;
 }
 
@@ -91,15 +94,20 @@ export interface BackupOutcome {
 }
 
 function sumSizes(listing: BackupListing): number {
-  return listing.objects.reduce((total: number, object: BackupObject): number => {
-    return total + object.sizeInBytes;
-  }, 0);
+  return listing.objects.reduce(
+    (total: number, object: BackupObject): number => {
+      return total + object.sizeInBytes;
+    },
+    0,
+  );
 }
 
 export default class BackupRunner {
   private readonly postgres: PostgresBackupEngine;
   private readonly clickhouse: ClickhouseBackupEngine;
-  private readonly createStorage: (settings: BackupDestinationSettings) => BackupStorage;
+  private readonly createStorage: (
+    settings: BackupDestinationSettings,
+  ) => BackupStorage;
   private readonly now: () => Date;
 
   public constructor(dependencies: BackupRunnerDependencies = {}) {
@@ -159,6 +167,8 @@ export default class BackupRunner {
 
     let storage: BackupStorage | null = null;
     let folderKey: string | null = null;
+    // Once the folder was found free, what is in it is this backup's own.
+    const claim: { isFolderClaimed: boolean } = { isFolderClaimed: false };
 
     try {
       const setting: BackupSetting | null =
@@ -203,6 +213,7 @@ export default class BackupRunner {
           ? null
           : setting.retentionInDays || null,
         signal: data.signal,
+        claim,
       });
 
       await recorder.finish(BackupRunStatus.Succeeded, {
@@ -212,13 +223,17 @@ export default class BackupRunner {
       return outcome;
     } catch (error) {
       const isCancelled: boolean =
-        error instanceof BackupRunCancelledError || Boolean(data.signal?.aborted);
+        error instanceof BackupRunCancelledError ||
+        Boolean(data.signal?.aborted);
       const message: string = isCancelled
         ? "The backup was cancelled. Nothing it wrote was kept."
         : errorText(error) + ".";
 
-      // Whatever was written goes: the destination keeps whole backups only.
-      if (storage && folderKey) {
+      /*
+       * Whatever this backup wrote goes: the destination keeps whole backups
+       * only. Never a folder it found taken - that is not its to delete.
+       */
+      if (storage && folderKey && claim.isFolderClaimed) {
         await deleteBackupPrefix({ storage, prefix: folderKey }).catch(
           (cleanupError: unknown) => {
             logger.warn(
@@ -255,6 +270,7 @@ export default class BackupRunner {
     startedAt: Date;
     retentionInDays: number | null;
     signal?: AbortSignal | undefined;
+    claim: { isFolderClaimed: boolean };
   }): Promise<BackupOutcome> {
     const { recorder, identity, settings, storage, folder, name } = data;
     const folderKey: string = getBackupFolderKey(folder, name);
@@ -312,6 +328,8 @@ export default class BackupRunner {
           `Something is already at ${storage.describeKey(folderKey)}. Nothing was overwritten.`,
         );
       }
+
+      data.claim.isFolderClaimed = true;
 
       if (identity.includesPostgres) {
         const info: PostgresServerInfo = await this.postgres.getServerInfo();
@@ -546,7 +564,13 @@ export default class BackupRunner {
     } else {
       const retentionInDays: number = data.retentionInDays;
 
-      await recorder.runStep(BackupStepKey.DeleteOldBackups, async () => {
+      /*
+       * The new backup is whole and kept whatever happens here: old backups
+       * that could not be deleted now are deleted after the next one.
+       */
+      await recorder.startStep(BackupStepKey.DeleteOldBackups);
+
+      try {
         const deleted: number = await this.applyRetention({
           settings,
           storage,
@@ -554,14 +578,24 @@ export default class BackupRunner {
           justFinishedId: identity.id,
         });
 
-        return {
-          value: undefined,
-          message:
-            deleted === 0
-              ? "No backup was older than the retention."
-              : `Deleted ${deleted} backup${deleted === 1 ? "" : "s"} older than ${retentionInDays} day${retentionInDays === 1 ? "" : "s"}.`,
-        };
-      });
+        await recorder.finishStep(
+          BackupStepKey.DeleteOldBackups,
+          BackupStepStatus.Succeeded,
+          deleted === 0
+            ? "No backup was older than the retention."
+            : `Deleted ${deleted} backup${deleted === 1 ? "" : "s"} older than ${retentionInDays} day${retentionInDays === 1 ? "" : "s"}.`,
+        );
+      } catch (error) {
+        logger.warn(
+          `Backups: could not delete the backups older than the retention: ${errorText(error)}`,
+        );
+
+        await recorder.finishStep(
+          BackupStepKey.DeleteOldBackups,
+          BackupStepStatus.Failed,
+          `Could not delete the backups older than the retention: ${errorText(error)}. This backup is kept; the old ones are deleted after the next backup.`,
+        );
+      }
     }
 
     return { manifest, folderKey };

@@ -8,7 +8,10 @@ import AwsSecurityHubClient, {
 } from "Common/Server/Utils/SecurityEvent/Connectors/AwsSecurityHub/AwsSecurityHubClient";
 import BackupDestinationType from "Common/Types/Backup/BackupDestinationType";
 import Dictionary from "Common/Types/Dictionary";
-import { getS3Target, S3Target } from "../../AuditLogExport/Destinations/S3Destination";
+import {
+  getS3Target,
+  S3Target,
+} from "../../AuditLogExport/Destinations/S3Destination";
 import {
   BackupHttpMethod,
   BackupHttpResponse,
@@ -121,7 +124,8 @@ export function getS3ServiceTitle(type: BackupDestinationType): string {
 /*
  * What the storage refused, and what to change, from the XML error it
  * answers with - in a backup's words: the key may need to read, list and
- * delete as well as write.
+ * delete as well as write. A HEAD request's error has no body: S3 names the
+ * bucket's region in a header instead (x-amz-bucket-region).
  */
 export function describeS3BackupFailure(data: {
   status: number;
@@ -130,10 +134,24 @@ export function describeS3BackupFailure(data: {
   bucket: string;
   folder: string;
   operation: string;
+  // The region S3 says the bucket is in, when it says (x-amz-bucket-region).
+  bucketRegion?: string | undefined;
+  // The region the request was signed for.
+  region?: string | undefined;
 }): string {
   const serviceTitle: string = getS3ServiceTitle(data.type);
   const code: string = readXmlTag(data.bodyText || "", "Code");
   const status: string = `HTTP ${data.status}${code ? `, ${code}` : ""}`;
+
+  if (
+    !code &&
+    data.bucketRegion &&
+    data.region &&
+    data.bucketRegion !== data.region &&
+    [301, 307, 400, 403].includes(data.status)
+  ) {
+    return `The bucket ${data.bucket} is in another region (${data.bucketRegion}) (${status}). Set Region to the bucket's region.`;
+  }
   const checkBucket: string =
     data.type === BackupDestinationType.S3Compatible
       ? "Check the bucket name and the endpoint"
@@ -398,6 +416,8 @@ export default class S3BackupStorage implements BackupStorage {
               bucket: this.bucket,
               folder: this.folder,
               operation: request.operation,
+              bucketRegion: response.headers["x-amz-bucket-region"],
+              region: this.region,
             }),
           ),
           {
@@ -443,12 +463,22 @@ export default class S3BackupStorage implements BackupStorage {
     });
 
     let uploadId: string | null = null;
+    let starting: Promise<string> | null = null;
 
-    const start: () => Promise<string> = async (): Promise<string> => {
-      if (uploadId) {
-        return uploadId;
+    /*
+     * The upload is started by the first part that needs it - once: the
+     * first two parts go up at the same time, and both wait for the same
+     * upload ID (two uploads would each hold half the parts).
+     */
+    const start: () => Promise<string> = (): Promise<string> => {
+      if (!starting) {
+        starting = createUpload();
       }
 
+      return starting;
+    };
+
+    const createUpload: () => Promise<string> = async (): Promise<string> => {
       const response: BackupHttpResponse = await this.send({
         method: "POST",
         key: options.key,
@@ -561,7 +591,10 @@ export default class S3BackupStorage implements BackupStorage {
        * S3 can answer 200 and still fail the upload: the error is in the
        * body. Read it, and treat an <Error> as the failure it is.
        */
-      const text: string = await readResponseText(response, MAX_ERROR_TEXT_IN_BYTES);
+      const text: string = await readResponseText(
+        response,
+        MAX_ERROR_TEXT_IN_BYTES,
+      );
 
       if (text.includes("<Error>")) {
         throw new BackupStorageError(
@@ -585,7 +618,10 @@ export default class S3BackupStorage implements BackupStorage {
   }
 
   // Abandons an upload's parts; a failure here leaves them to the bucket's lifecycle.
-  private async abortUpload(key: string, uploadId: string | null): Promise<void> {
+  private async abortUpload(
+    key: string,
+    uploadId: string | null,
+  ): Promise<void> {
     if (!uploadId) {
       return;
     }

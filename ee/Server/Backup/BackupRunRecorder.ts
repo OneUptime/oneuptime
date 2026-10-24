@@ -97,7 +97,10 @@ export default class BackupRunRecorder {
 
   public getSteps(): Array<BackupStep> {
     return this.steps.map((step: BackupStep): BackupStep => {
-      return { ...step, ...(step.progress ? { progress: { ...step.progress } } : {}) };
+      return {
+        ...step,
+        ...(step.progress ? { progress: { ...step.progress } } : {}),
+      };
     });
   }
 
@@ -204,7 +207,10 @@ export default class BackupRunRecorder {
 
   public async finishStep(
     key: BackupStepKey,
-    status: BackupStepStatus.Succeeded | BackupStepStatus.Failed | BackupStepStatus.Skipped,
+    status:
+      | BackupStepStatus.Succeeded
+      | BackupStepStatus.Failed
+      | BackupStepStatus.Skipped,
     message?: string,
   ): Promise<void> {
     const step: BackupStep = this.getStep(key);
@@ -266,7 +272,10 @@ export default class BackupRunRecorder {
   }
 
   public async finish(
-    status: BackupRunStatus.Succeeded | BackupRunStatus.Failed | BackupRunStatus.Cancelled,
+    status:
+      | BackupRunStatus.Succeeded
+      | BackupRunStatus.Failed
+      | BackupRunStatus.Cancelled,
     fields: BackupRunFields = {},
   ): Promise<void> {
     this.stopHeartbeat();

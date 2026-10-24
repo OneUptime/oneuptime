@@ -397,7 +397,11 @@ export default class RestoreRunner {
 
       await throwIfCancelled();
 
-      const short: string = identity.id.toString().split("-").join("").slice(0, 8);
+      const short: string = identity.id
+        .toString()
+        .split("-")
+        .join("")
+        .slice(0, 8);
 
       // Restore PostgreSQL, beside the live database.
       let postgresInfo: PostgresServerInfo | null = null;
@@ -409,7 +413,8 @@ export default class RestoreRunner {
         postgresInfo = await recorder.runStep(
           BackupStepKey.RestorePostgres,
           async () => {
-            const info: PostgresServerInfo = await this.postgres.getServerInfo();
+            const info: PostgresServerInfo =
+              await this.postgres.getServerInfo();
             const restoreDatabase: string = getSuffixedDatabaseName(
               info.database,
               `_restore_${short}`,
@@ -537,8 +542,12 @@ export default class RestoreRunner {
             id: restoreId,
             onProgress: (status: ClickhouseBackupStatus): void => {
               recorder.progress(BackupStepKey.RestoreClickhouse, {
-                ...(status.bytesRead > 0 ? { doneBytes: status.bytesRead } : {}),
-                ...(status.filesRead > 0 ? { doneFiles: status.filesRead } : {}),
+                ...(status.bytesRead > 0
+                  ? { doneBytes: status.bytesRead }
+                  : {}),
+                ...(status.filesRead > 0
+                  ? { doneFiles: status.filesRead }
+                  : {}),
               });
             },
           });
@@ -556,7 +565,11 @@ export default class RestoreRunner {
       }
 
       // Switch over to the restored PostgreSQL.
-      if (identity.includesPostgres && postgresInfo && state.postgresRestoreDatabase) {
+      if (
+        identity.includesPostgres &&
+        postgresInfo &&
+        state.postgresRestoreDatabase
+      ) {
         const info: PostgresServerInfo = postgresInfo;
         const restoreDatabase: string = state.postgresRestoreDatabase;
 
@@ -643,7 +656,9 @@ export default class RestoreRunner {
 
         if (state.clickhouseSetAsideDatabase && state.clickhouseRestored) {
           if (canDrop) {
-            await this.clickhouse.dropDatabase(state.clickhouseSetAsideDatabase);
+            await this.clickhouse.dropDatabase(
+              state.clickhouseSetAsideDatabase,
+            );
           } else {
             kept.push(state.clickhouseSetAsideDatabase);
           }
@@ -707,7 +722,9 @@ export default class RestoreRunner {
    * error. Once PostgreSQL is switched over, the restore is what is live:
    * nothing is undone.
    */
-  public async undo(data: { state: RestoreRunnerState }): Promise<Array<string>> {
+  public async undo(data: {
+    state: RestoreRunnerState;
+  }): Promise<Array<string>> {
     const state: RestoreRunnerState = data.state;
     const done: Array<string> = [];
 
@@ -718,7 +735,9 @@ export default class RestoreRunner {
     if (state.clickhouseSetAsideDatabase) {
       const live: string = this.clickhouse.database;
 
-      if (await this.clickhouse.databaseExists(state.clickhouseSetAsideDatabase)) {
+      if (
+        await this.clickhouse.databaseExists(state.clickhouseSetAsideDatabase)
+      ) {
         await this.clickhouse.dropDatabase(live);
         await this.clickhouse.renameDatabase(
           state.clickhouseSetAsideDatabase,

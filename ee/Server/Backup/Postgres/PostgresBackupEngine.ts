@@ -106,7 +106,7 @@ export class HashingStream extends Transform {
 
   public override _transform(
     chunk: Buffer,
-    _encoding: BufferEncoding,
+    _encoding: string,
     callback: TransformCallback,
   ): void {
     this.hash.update(chunk);
@@ -234,24 +234,32 @@ export default class PostgresBackupEngine {
       database || this.target.database,
       async (
         client: PostgresAdminClient,
-      ): Promise<{ counts: BackupPostgresCounts; lastMigration: string | null }> => {
-        const count: (table: string, where: string) => Promise<number | undefined> =
-          async (table: string, where: string): Promise<number | undefined> => {
-            const exists: Array<PostgresRow> = await client.query(
-              "SELECT to_regclass($1) IS NOT NULL AS present",
-              [`public."${table}"`],
-            );
+      ): Promise<{
+        counts: BackupPostgresCounts;
+        lastMigration: string | null;
+      }> => {
+        const count: (
+          table: string,
+          where: string,
+        ) => Promise<number | undefined> = async (
+          table: string,
+          where: string,
+        ): Promise<number | undefined> => {
+          const exists: Array<PostgresRow> = await client.query(
+            "SELECT to_regclass($1) IS NOT NULL AS present",
+            [`public."${table}"`],
+          );
 
-            if (exists[0]?.["present"] !== true) {
-              return undefined;
-            }
+          if (exists[0]?.["present"] !== true) {
+            return undefined;
+          }
 
-            const rows: Array<PostgresRow> = await client.query(
-              `SELECT count(*) AS count FROM public.${PostgresAdminConnection.quoteIdentifier(table)}${where}`,
-            );
+          const rows: Array<PostgresRow> = await client.query(
+            `SELECT count(*) AS count FROM public.${PostgresAdminConnection.quoteIdentifier(table)}${where}`,
+          );
 
-            return readNumber(rows[0], "count");
-          };
+          return readNumber(rows[0], "count");
+        };
 
         const notDeleted: string = ` WHERE "deletedAt" IS NULL`;
         const counts: BackupPostgresCounts = {};
@@ -430,13 +438,11 @@ export default class PostgresBackupEngine {
       );
     }
 
-    return listing
-      .split("\n")
-      .filter((line: string): boolean => {
-        const trimmed: string = line.trim();
+    return listing.split("\n").filter((line: string): boolean => {
+      const trimmed: string = line.trim();
 
-        return Boolean(trimmed) && !trimmed.startsWith(";");
-      }).length;
+      return Boolean(trimmed) && !trimmed.startsWith(";");
+    }).length;
   }
 
   public async databaseExists(name: string): Promise<boolean> {

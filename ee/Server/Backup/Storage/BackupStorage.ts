@@ -156,7 +156,11 @@ export async function deleteBackupPrefix(data: {
 
   const workers: Array<Promise<void>> = [];
 
-  for (let index: number = 0; index < Math.min(concurrency, keys.length); index++) {
+  for (
+    let index: number = 0;
+    index < Math.min(concurrency, keys.length);
+    index++
+  ) {
     workers.push(worker());
   }
 

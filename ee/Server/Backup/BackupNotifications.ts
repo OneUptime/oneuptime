@@ -7,7 +7,10 @@ import BackupSettingService from "Common/Server/Services/BackupSettingService";
 import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import logger from "Common/Server/Utils/Logger";
 import BackupSetting from "Common/Models/DatabaseModels/BackupSetting";
-import { BackupRunKind, BackupRunTrigger } from "Common/Types/Backup/BackupRunTypes";
+import {
+  BackupRunKind,
+  BackupRunTrigger,
+} from "Common/Types/Backup/BackupRunTypes";
 import OneUptimeDate from "Common/Types/Date";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 
@@ -24,8 +27,11 @@ import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 
 export const BACKUP_FAILURE_NOTIFICATION_INTERVAL_IN_HOURS: number = 12;
 
-// Where the email's button opens: Admin Dashboard > Settings > Backups.
-export const BACKUPS_PAGE_ROUTE: string = "/admin/settings/backups";
+/*
+ * Where the email's button opens: Admin Dashboard > Settings > Backups,
+ * from the Admin Dashboard's own address (which ends in /admin).
+ */
+export const BACKUPS_PAGE_ROUTE: string = "/settings/backups";
 
 export function shouldNotifyBackupFailure(data: {
   kind: BackupRunKind;
@@ -42,7 +48,10 @@ export function shouldNotifyBackupFailure(data: {
   );
 }
 
-function describeTrigger(kind: BackupRunKind, trigger: BackupRunTrigger): string {
+function describeTrigger(
+  kind: BackupRunKind,
+  trigger: BackupRunTrigger,
+): string {
   if (kind === BackupRunKind.Restore) {
     return "A restore started from the Admin Dashboard";
   }
@@ -67,7 +76,8 @@ export default class BackupNotifications {
     now?: Date | undefined;
   }): Promise<NotificationDeliverySummary | null> {
     const now: Date = data.now || OneUptimeDate.getCurrentDate();
-    const setting: BackupSetting | null = await BackupSettingService.getSetting();
+    const setting: BackupSetting | null =
+      await BackupSettingService.getSetting();
 
     if (
       !shouldNotifyBackupFailure({
@@ -137,7 +147,8 @@ export default class BackupNotifications {
 
   // The next backup that succeeds: the next failure is told at once.
   public static async clearFailureNotification(): Promise<void> {
-    const setting: BackupSetting | null = await BackupSettingService.getSetting();
+    const setting: BackupSetting | null =
+      await BackupSettingService.getSetting();
 
     if (setting?.id && setting.lastFailureNotifiedAt) {
       await BackupSettingService.updateOneById({

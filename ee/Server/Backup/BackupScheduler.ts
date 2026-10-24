@@ -64,6 +64,11 @@ const LOCK_REFRESH_INTERVAL_IN_MS: number = 20 * 1000;
 // A running run whose heartbeat is older than this has lost its worker.
 export const STALE_RUN_AFTER_IN_MS: number = 3 * 60 * 1000;
 
+export const BACKUP_SHUTDOWN_HANDLER_NAME: string = "Backups";
+
+// How long shutdown waits for a run to stop.
+export const BACKUP_SHUTDOWN_WAIT_IN_MS: number = 8000;
+
 export const BACKUP_LICENSE_REQUIRED_MESSAGE: string =
   "Backups need an Enterprise license that includes backups. Restoring and deleting backups still work.";
 
@@ -271,7 +276,9 @@ export default class BackupScheduler {
         location: run.location,
         startedAt: run.startedAt,
       }).catch((error: unknown) => {
-        logger.warn(`Backups: could not tell the master admins: ${errorText(error)}`);
+        logger.warn(
+          `Backups: could not tell the master admins: ${errorText(error)}`,
+        );
       });
 
       recovered++;
@@ -281,7 +288,8 @@ export default class BackupScheduler {
   }
 
   private async cleanUpInterruptedBackup(run: BackupRun): Promise<string> {
-    const setting: BackupSetting | null = await BackupSettingService.getSetting();
+    const setting: BackupSetting | null =
+      await BackupSettingService.getSetting();
 
     if (setting?.id && run.name) {
       const settings: BackupDestinationSettings =
@@ -310,7 +318,8 @@ export default class BackupScheduler {
    * backups are off, or while the license does not include them.
    */
   public async queueScheduledBackup(): Promise<BackupRun | null> {
-    const setting: BackupSetting | null = await BackupSettingService.getSetting();
+    const setting: BackupSetting | null =
+      await BackupSettingService.getSetting();
 
     if (!setting?.id || setting.isEnabled === false) {
       return null;
@@ -377,7 +386,10 @@ export default class BackupScheduler {
     run.includesPostgres = true;
     run.includesClickhouse = setting.includesClickhouse !== false;
 
-    return await BackupRunService.create({ data: run, props: { isRoot: true } });
+    return await BackupRunService.create({
+      data: run,
+      props: { isRoot: true },
+    });
   }
 
   /*
@@ -444,24 +456,31 @@ export default class BackupScheduler {
     }
   }
 
-  private start(
-    run: BackupRun,
-    lock: { release: () => Promise<void> },
-  ): void {
+  private start(run: BackupRun, lock: { release: () => Promise<void> }): void {
     const controller: AbortController = new AbortController();
     const runId: string = run.id!.toString();
 
-    const shutdownName: string = `Backups#${runId}`;
+    /*
+     * One handler for the process (a name registers once): it stops the run
+     * going on at shutdown, whichever it is, and gives it a few seconds to
+     * stop the tools and abandon its uploads; the next tick cleans up the rest.
+     */
     GracefulShutdown.registerHandler(
-      shutdownName,
+      BACKUP_SHUTDOWN_HANDLER_NAME,
       ShutdownPriority.Workers,
       async (): Promise<void> => {
-        controller.abort();
-        // A few seconds to stop the tools and abandon uploads; the next tick cleans up the rest.
+        const current: CurrentRun | null = this.current;
+
+        if (!current) {
+          return;
+        }
+
+        current.controller.abort();
+
         await Promise.race([
-          this.current?.done,
+          current.done,
           new Promise<void>((resolve: () => void) => {
-            setTimeout(resolve, 8000).unref();
+            setTimeout(resolve, BACKUP_SHUTDOWN_WAIT_IN_MS).unref();
           }),
         ]);
       },
@@ -531,7 +550,10 @@ export default class BackupScheduler {
       run.createdByUserId = data.createdByUserId;
     }
 
-    return await BackupRunService.create({ data: run, props: { isRoot: true } });
+    return await BackupRunService.create({
+      data: run,
+      props: { isRoot: true },
+    });
   }
 }
 

@@ -123,7 +123,8 @@ export function getClickhouseBackupEngine(data: {
     data.endpointOverride || BackupSettingsUtil.getS3Endpoint(settings) || "";
   const url: string = getS3Target({
     isAmazonS3:
-      settings.type === BackupDestinationType.AmazonS3 && !data.endpointOverride,
+      settings.type === BackupDestinationType.AmazonS3 &&
+      !data.endpointOverride,
     endpoint,
     bucket: BackupSettingsUtil.readConfigText(settings, "bucket"),
     region: BackupSettingsUtil.getS3Region(settings),
@@ -256,7 +257,10 @@ export function aggregateClickhouseBackupRows(
     }
 
     fileCount = Math.max(fileCount, readNumber(row, "num_files"));
-    totalSizeInBytes = Math.max(totalSizeInBytes, readNumber(row, "total_size"));
+    totalSizeInBytes = Math.max(
+      totalSizeInBytes,
+      readNumber(row, "total_size"),
+    );
     filesRead = Math.max(filesRead, readNumber(row, "files_read"));
     bytesRead = Math.max(bytesRead, readNumber(row, "bytes_read"));
   }

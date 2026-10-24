@@ -52,9 +52,7 @@ export const BACKUP_HTTP_IDLE_TIMEOUT_IN_MS: number = 5 * 60 * 1000;
 // The most a response the clients read whole (an error, a listing) may hold.
 export const BACKUP_HTTP_MAX_TEXT_RESPONSE_IN_BYTES: number = 8 * 1024 * 1024;
 
-function lowerHeaders(
-  headers: http.IncomingHttpHeaders,
-): Dictionary<string> {
+function lowerHeaders(headers: http.IncomingHttpHeaders): Dictionary<string> {
   const lowered: Dictionary<string> = {};
 
   for (const name of Object.keys(headers)) {
@@ -94,15 +92,20 @@ export function createGuardedBackupTransport(
 
   return (request: BackupHttpRequest): Promise<BackupHttpResponse> => {
     return new Promise<BackupHttpResponse>(
-      (resolve: (value: BackupHttpResponse) => void, reject: (error: unknown) => void) => {
+      (
+        resolve: (value: BackupHttpResponse) => void,
+        reject: (error: unknown) => void,
+      ) => {
         let url: URL;
 
         try {
           url = new URL(request.url);
         } catch {
-          reject(new BackupStorageError(`${request.url} is not an address.`, {
-            retryable: false,
-          }));
+          reject(
+            new BackupStorageError(`${request.url} is not an address.`, {
+              retryable: false,
+            }),
+          );
           return;
         }
 
@@ -131,7 +134,9 @@ export function createGuardedBackupTransport(
               request.idleTimeoutInMs || BACKUP_HTTP_IDLE_TIMEOUT_IN_MS,
               () => {
                 incoming.destroy(
-                  new Error("the storage stopped sending in the middle of an answer"),
+                  new Error(
+                    "the storage stopped sending in the middle of an answer",
+                  ),
                 );
               },
             );
