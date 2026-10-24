@@ -579,7 +579,7 @@ describe("starting the fix from a slow-code finding", () => {
     const readFinding: jest.SpiedFunction<typeof AIInsightService.findOneBy> =
       jest.spyOn(AIInsightService, "findOneBy").mockResolvedValue(finding());
     const linkFinding: jest.SpiedFunction<typeof AIInsightService.updateOneBy> =
-      jest.spyOn(AIInsightService, "updateOneBy").mockResolvedValue();
+      jest.spyOn(AIInsightService, "updateOneBy").mockResolvedValue(1);
 
     const created: { taskId: string } =
       await ProfileFixTaskTrigger.createFixTask({ ...REQUEST, insightId });
@@ -625,7 +625,7 @@ describe("starting the fix from a slow-code finding", () => {
     const spies: World = world();
     jest.spyOn(AIInsightService, "findOneBy").mockResolvedValue(null);
     const linkFinding: jest.SpiedFunction<typeof AIInsightService.updateOneBy> =
-      jest.spyOn(AIInsightService, "updateOneBy").mockResolvedValue();
+      jest.spyOn(AIInsightService, "updateOneBy").mockResolvedValue(1);
 
     await expect(
       ProfileFixTaskTrigger.createFixTask({ ...REQUEST, insightId }),

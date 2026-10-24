@@ -404,10 +404,9 @@ describe("the profile AI rules table", () => {
   });
 
   test("tells the page how many enabled rules there are after every read", async () => {
-    const onRulesLoaded: jest.Mock = jest.fn();
-    const props: Record<string, unknown> = tableFor(
-      onRulesLoaded as unknown as (count: number) => void,
-    );
+    const onRulesLoaded: ReturnType<typeof jest.fn<(count: number) => void>> =
+      jest.fn<(count: number) => void>();
+    const props: Record<string, unknown> = tableFor(onRulesLoaded);
 
     const { default: ModelAPI } = await import(
       "../../../UI/Utils/ModelAPI/ModelAPI"

@@ -84,6 +84,7 @@ import AIInsightSeverity from "../../../Types/AI/AIInsightSeverity";
 import AIInsightStatus from "../../../Types/AI/AIInsightStatus";
 import AIInsightType from "../../../Types/AI/AIInsightType";
 import { TelemetryAiLane } from "../../../Types/AI/TelemetryAi";
+import Route from "../../../Types/API/Route";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import ObjectID from "../../../Types/ObjectID";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -119,7 +120,11 @@ async function renderPage(): Promise<void> {
   await act(async () => {
     render(
       <MemoryRouter>
-        <ProfilesAIInsights {...({} as never)} />
+        <ProfilesAIInsights
+          pageRoute={new Route("/")}
+          currentProject={null}
+          hasPaymentMethod={true}
+        />
       </MemoryRouter>,
     );
   });

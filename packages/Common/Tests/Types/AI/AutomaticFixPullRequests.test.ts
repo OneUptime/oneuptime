@@ -20,7 +20,9 @@ import {
   EVERY_CODE_REPOSITORY,
   NO_CODE_REPOSITORY,
 } from "../../../Types/CodeRepository/CodeRepositoryAllowance";
-import AutoRemediationTriggerEntity from "../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
+import AutoRemediationTriggerEntity, {
+  IncidentOrAlertTriggerEntity,
+} from "../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
 import Project from "../../../Models/DatabaseModels/Project";
 import TableColumnType from "../../../Types/Database/TableColumnType";
@@ -39,7 +41,7 @@ import { describe, expect, test } from "@jest/globals";
  * are no rules, by the way, this should happen by default."
  */
 
-const SIGNALS: Array<AutoRemediationTriggerEntity> = [
+const SIGNALS: Array<IncidentOrAlertTriggerEntity> = [
   AutoRemediationTriggerEntity.Incident,
   AutoRemediationTriggerEntity.Alert,
 ];
@@ -61,7 +63,7 @@ const API: string = "c1111111-1111-4111-8111-111111111111";
 const WEB: string = "c2222222-2222-4222-8222-222222222222";
 
 function fixingOn(
-  signal: AutoRemediationTriggerEntity,
+  signal: IncidentOrAlertTriggerEntity,
 ): AutomaticFixSwitchValues {
   return { [AUTOMATIC_FIX_SWITCH_COLUMNS[signal]]: true };
 }
@@ -77,12 +79,12 @@ function rule(
 }
 
 function decide(data: {
-  signal?: AutoRemediationTriggerEntity;
+  signal?: IncidentOrAlertTriggerEntity;
   pullRequest?: AutomaticFixPullRequest;
   project?: AutomaticFixSwitchValues;
   rules: AutomaticFixPullRequestRules | null;
 }): AutomaticFixPullRequestDecision {
-  const signal: AutoRemediationTriggerEntity =
+  const signal: IncidentOrAlertTriggerEntity =
     data.signal || AutoRemediationTriggerEntity.Incident;
 
   return decideAutomaticFixPullRequest({

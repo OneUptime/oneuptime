@@ -115,8 +115,17 @@ async function inBothThemes(
   }
 }
 
-// The side menu's AI section, open on its own pages.
-async function expectAiSection(page: Page, testInfo: TestInfo): Promise<void> {
+/*
+ * The page's own title ("Profiler — AI settings"), and the side menu's AI
+ * section, open on its own pages.
+ */
+async function expectAiSection(
+  page: Page,
+  testInfo: TestInfo,
+  title: string,
+): Promise<void> {
+  await expect(page.getByText(title, { exact: true }).first()).toBeVisible();
+
   if (isPhone(testInfo)) {
     // On a phone the menu folds into a summary above the page.
     return;
@@ -167,7 +176,7 @@ test.describe("Profiler → AI → Settings", () => {
         );
 
         await expect(advanced).toContainText("AI rules");
-        await expectAiSection(page, testInfo);
+        await expectAiSection(page, testInfo, "Profiler — AI settings");
 
         if (isPhone(testInfo)) {
           await expectNoSidewaysScroll(page);
@@ -345,7 +354,7 @@ test.describe("Profiler → AI → Insights", () => {
           page.getByRole("combobox", { name: "Filter by insight type" }),
         ).toHaveCount(0);
 
-        await expectAiSection(page, testInfo);
+        await expectAiSection(page, testInfo, "Profiler — AI insights");
 
         if (isPhone(testInfo)) {
           await expectNoSidewaysScroll(page);
@@ -465,7 +474,7 @@ test.describe("Profiler → AI → Logs", () => {
         await expect(entries.nth(2)).toContainText("Asked by Ada Lovelace");
         await expect(entries.nth(2)).toContainText("Nothing to change");
 
-        await expectAiSection(page, testInfo);
+        await expectAiSection(page, testInfo, "Profiler — AI logs");
 
         if (isPhone(testInfo)) {
           await expectNoSidewaysScroll(page);

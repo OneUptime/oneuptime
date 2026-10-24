@@ -98,6 +98,7 @@ import AIInsightSeverity from "../../../Types/AI/AIInsightSeverity";
 import AIInsightStatus from "../../../Types/AI/AIInsightStatus";
 import AIInsightType from "../../../Types/AI/AIInsightType";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
+import Route from "../../../Types/API/Route";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import SuggestionOffer from "../../../Utils/Suggestions/SuggestionOffer";
@@ -226,7 +227,11 @@ async function renderPage(): Promise<void> {
   await act(async () => {
     render(
       <MemoryRouter>
-        <AIInsightViewPage {...({} as never)} />
+        <AIInsightViewPage
+          pageRoute={new Route("/")}
+          currentProject={null}
+          hasPaymentMethod={true}
+        />
       </MemoryRouter>,
     );
   });

@@ -411,7 +411,9 @@ describe("TelemetryAiActivityReader.readLogs", () => {
 
     // The count is of the same query.
     expect(
-      (countRuns.mock.calls[0]![0] as Record<string, unknown>)["query"],
+      (countRuns.mock.calls[0]![0] as unknown as Record<string, unknown>)[
+        "query"
+      ],
     ).toBe(query);
   });
 
@@ -455,7 +457,9 @@ describe("TelemetryAiActivityReader.readLogs", () => {
 
     // The repositories are read as the reader, the pull requests by the tasks.
     expect(
-      (readRepositories.mock.calls[0]![0] as Record<string, unknown>)["props"],
+      (
+        readRepositories.mock.calls[0]![0] as unknown as Record<string, unknown>
+      )["props"],
     ).toBe(READER);
     expect(
       (

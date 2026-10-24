@@ -15,6 +15,7 @@ import {
   RuleCriteriaSubject,
 } from "../../../Types/Rules/RuleCriteriaSubject";
 import { describe, expect, it } from "@jest/globals";
+import { TELEMETRY_AI_RULE_CRITERIA_FIELDS } from "../../../Types/AI/AiRuleCriteria";
 import { getMetadataArgsStorage } from "typeorm";
 import type { JoinTableMetadataArgs } from "typeorm/metadata-args/JoinTableMetadataArgs";
 
@@ -153,11 +154,18 @@ describe("AIPostmortemRule", () => {
       INCIDENT_CONDITIONS,
     );
 
-    // The AI rule's share for incidents, in the same order.
+    /*
+     * The AI rule's share for incidents, in the same order: neither the
+     * alerts' severities nor the service conditions a telemetry product's
+     * AI rules match on (Types/AI/TelemetryAi).
+     */
     expect(
       (getRuleCriteriaFieldsForModel("AutoRemediationRule") || []).filter(
         (field: string): boolean => {
-          return field !== "alertSeverities";
+          return (
+            field !== "alertSeverities" &&
+            !TELEMETRY_AI_RULE_CRITERIA_FIELDS.includes(field)
+          );
         },
       ),
     ).toEqual(INCIDENT_CONDITIONS);

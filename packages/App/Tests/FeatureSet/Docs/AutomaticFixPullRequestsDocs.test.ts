@@ -15,7 +15,7 @@ import {
   AUTOMATIC_FIX_SWITCH_COLUMNS,
   REMEDIATION_RULE_PULL_REQUEST_COLUMNS,
 } from "Common/Types/AI/AutomaticFixPullRequests";
-import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
+import { INCIDENT_AND_ALERT_TRIGGER_ENTITIES } from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
 import { SIGNAL_COLUMNS } from "Common/Server/Infrastructure/Postgres/SchemaMigrations/1805830000000-MoveFixPullRequestSwitchesIntoRules";
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import { describe, expect, it } from "@jest/globals";
@@ -251,10 +251,7 @@ describe("the AI SRE page", () => {
   });
 
   it("names the fields the API and Terraform write, and links to the upgrade note", () => {
-    for (const signal of [
-      AutoRemediationTriggerEntity.Incident,
-      AutoRemediationTriggerEntity.Alert,
-    ]) {
+    for (const signal of INCIDENT_AND_ALERT_TRIGGER_ENTITIES) {
       expect(codeFixes).toContain(
         `\`${AUTOMATIC_FIX_SWITCH_COLUMNS[signal]}\``,
       );

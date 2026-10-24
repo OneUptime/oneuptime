@@ -32,7 +32,7 @@ import AIChatPermissionMode, {
   AIChatPermissionModeHelper,
 } from "Common/Types/AI/AIChatPermissionMode";
 import { AUTOMATIC_FIX_SWITCH_COLUMNS } from "Common/Types/AI/AutomaticFixPullRequests";
-import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
+import { INCIDENT_AND_ALERT_TRIGGER_ENTITIES } from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
 import {
   CODE_TASK_LIMITS,
   CODE_TASK_LOG_WINDOWS_IN_HOURS,
@@ -1790,10 +1790,7 @@ describe("AI SRE and the infrastructure AI agents", () => {
     );
     const how: string = flat(englishSection(AI_SRE, "## How it works"));
 
-    for (const signal of [
-      AutoRemediationTriggerEntity.Incident,
-      AutoRemediationTriggerEntity.Alert,
-    ]) {
+    for (const signal of INCIDENT_AND_ALERT_TRIGGER_ENTITIES) {
       expect(defaults).not.toContain(
         `"${AUTOMATIC_FIX_SWITCH_COLUMNS[signal]}"`,
       );
