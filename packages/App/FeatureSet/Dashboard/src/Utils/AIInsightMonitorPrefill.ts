@@ -176,10 +176,9 @@ export const AI_INSIGHT_MONITOR_LATENCY_BLOCKER: string = translationKey(
 export const AI_INSIGHT_MONITOR_UNKNOWN_TYPE_BLOCKER: string = translationKey(
   "Monitors cannot be created from this kind of insight yet.",
 );
-export const AI_INSIGHT_MONITOR_SLOW_OPERATION_BLOCKER: string =
-  translationKey(
-    "Monitors cannot alert on how long an operation takes yet. To be alerted when it slows down, create a Metrics monitor on your service's request duration metric.",
-  );
+export const AI_INSIGHT_MONITOR_SLOW_OPERATION_BLOCKER: string = translationKey(
+  "Monitors cannot alert on how long an operation takes yet. To be alerted when it slows down, create a Metrics monitor on your service's request duration metric.",
+);
 export const AI_INSIGHT_MONITOR_OPERATION_SCOPE_BLOCKER: string =
   translationKey(
     "This insight does not record which operation it is about, so a monitor could not be scoped to it.",

@@ -277,9 +277,7 @@ const TelemetryAiFixStrip: FunctionComponent<ComponentProps> = (
                 className="mb-1 text-sm font-medium text-gray-700"
                 id={REPOSITORY_LABEL_ID}
               >
-                {translator.translateText(
-                  TELEMETRY_AI_FIX_COPY.pickRepository,
-                )}
+                {translator.translateText(TELEMETRY_AI_FIX_COPY.pickRepository)}
               </p>
               <Dropdown
                 options={repositoryOptions}

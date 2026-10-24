@@ -1480,7 +1480,10 @@ describe("what the task is given beside the trace", () => {
  * facts first, then what the slowest request repeats.
  */
 describe("the evidence a person reads on the finding", () => {
-  function lines(evidence: TraceInsightEvidence, serviceName?: string) {
+  function lines(
+    evidence: TraceInsightEvidence,
+    serviceName?: string,
+  ): Array<string> {
     return buildTraceInsightDetail({
       serviceName: serviceName ?? "checkout",
       evidence: evidence,
@@ -1515,9 +1518,7 @@ describe("the evidence a person reads on the finding", () => {
     expect(detail).toContain(
       "- The same database query ran 40 times under GET /orders: 1.6 s together, 80% of the request",
     );
-    expect(detail).toContain(
-      "  - Query: `SELECT * FROM orders WHERE id = ?`",
-    );
+    expect(detail).toContain("  - Query: `SELECT * FROM orders WHERE id = ?`");
 
     // The facts come before the patterns, the code among the facts.
     expect(detail.indexOf("- Code: `src/orders/list.ts:42`")).toBeLessThan(

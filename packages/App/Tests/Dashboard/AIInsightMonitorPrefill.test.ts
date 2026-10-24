@@ -1137,9 +1137,7 @@ describe("TraceFailingOperation → Traces monitor", () => {
       expect(sentence).not.toContain("POST /checkout");
     }
 
-    expect(stepOf(prefill).data!.traceMonitor!.spanName).toBe(
-      "POST /checkout",
-    );
+    expect(stepOf(prefill).data!.traceMonitor!.spanName).toBe("POST /checkout");
   });
 
   test("a service not known by id: named for the operation alone, every service's spans of it counted", () => {
@@ -1148,9 +1146,7 @@ describe("TraceFailingOperation → Traces monitor", () => {
     );
 
     expect(prefill["name"]).toBe("Failing operation");
-    expect(stepOf(prefill).data!.traceMonitor!.telemetryServiceIds).toEqual(
-      [],
-    );
+    expect(stepOf(prefill).data!.traceMonitor!.telemetryServiceIds).toEqual([]);
   });
 
   test("a medium finding opens the next incident severity down; a high one the most severe", () => {
