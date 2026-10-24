@@ -4,6 +4,8 @@ import {
   DATA_FILTER_LABEL,
   DATA_FILTER_OPTIONS,
   DATA_STATUS_UNKNOWN,
+  GO_TO_CONNECTIONS,
+  NOTHING_SENT,
   RECOMMENDED,
   RULE_COUNT,
   RULE_LIBRARY_CATEGORY_TITLES,
@@ -21,7 +23,13 @@ import {
   RuleLibraryFilters,
   isRuleLibraryFiltered,
 } from "./RuleLibraryUtil";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
+import IconProp from "Common/Types/Icon/IconProp";
 import { DetectionRuleLibraryCategory } from "Common/Types/SecurityEvent/DetectionRuleLibrary";
+import Icon from "Common/UI/Components/Icon/Icon";
+import Link from "Common/UI/Components/Link/Link";
 import { CLEAR_FILTERS } from "Common/UI/Components/Table/TableEmptyStateBuilders";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -60,6 +68,11 @@ export interface ComponentProps {
   // The events could not be read: said once, with a way to try again.
   isDataFailed: boolean;
   onRetryData: () => void;
+  /*
+   * The project sent no security event this week: said once, with the way
+   * to Connections, rather than "Not receiving" on every rule.
+   */
+  isNothingSent: boolean;
 }
 
 function getCategoryOptionText(
@@ -119,7 +132,7 @@ const RuleLibraryFilterBar: FunctionComponent<ComponentProps> = (
             data-testid={RULE_LIBRARY_DATA_SELECT_TEST_ID}
             aria-label={translator.translateText(DATA_FILTER_LABEL)}
             value={props.filters.data}
-            disabled={!props.isDataKnown}
+            disabled={!props.isDataKnown || props.isNothingSent}
             title={
               props.isDataFailed
                 ? translator.translateText(DATA_STATUS_UNKNOWN)
@@ -132,7 +145,9 @@ const RuleLibraryFilterBar: FunctionComponent<ComponentProps> = (
               });
             }}
             className={selectClassName(
-              Boolean(props.filters.data) && props.isDataKnown,
+              Boolean(props.filters.data) &&
+                props.isDataKnown &&
+                !props.isNothingSent,
             )}
           >
             {LIBRARY_DATA_FILTERS.map(
@@ -198,7 +213,7 @@ const RuleLibraryFilterBar: FunctionComponent<ComponentProps> = (
         </div>
       </div>
       {props.isDataFailed ? (
-        <p
+        <div
           className="flex flex-wrap items-center gap-x-2 text-xs text-gray-500"
           data-testid="rule-library-data-unknown"
         >
@@ -211,7 +226,31 @@ const RuleLibraryFilterBar: FunctionComponent<ComponentProps> = (
           >
             {translator.translateText("Try again")}
           </button>
-        </p>
+        </div>
+      ) : (
+        <></>
+      )}
+      {props.isNothingSent ? (
+        <div
+          className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500"
+          data-testid="rule-library-nothing-sent"
+        >
+          <span>{translator.translateText(NOTHING_SENT)}</span>
+          <Link
+            to={
+              RouteUtil.populateRouteParams(
+                RouteMap[PageMap.SECURITY_EVENTS_CONNECTIONS] as Route,
+              ) as Route
+            }
+            className="inline-flex items-center gap-1 rounded-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            dataTestId="rule-library-nothing-sent-link"
+          >
+            <>
+              {translator.translateText(GO_TO_CONNECTIONS)}
+              <Icon icon={IconProp.ArrowRight} className="h-3 w-3" />
+            </>
+          </Link>
+        </div>
       ) : (
         <></>
       )}

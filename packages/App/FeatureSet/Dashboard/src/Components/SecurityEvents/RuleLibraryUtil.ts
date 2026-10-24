@@ -274,6 +274,22 @@ export function isLibraryRuleAdded(
 }
 
 /*
+ * Whether the project sent no security event at all in the window: a new
+ * project, or one whose sources all stopped. Every rule would read "Not
+ * receiving" - the page says it once instead.
+ */
+export function isNothingSent(
+  seen: SecurityEventKindsSeen | null | undefined,
+): boolean {
+  return Boolean(
+    seen &&
+      seen.classNames.length === 0 &&
+      seen.vendorNames.length === 0 &&
+      seen.productNames.length === 0,
+  );
+}
+
+/*
  * Whether the project sends what a rule reads: Unknown until the events
  * have been read (seen is null), then whether any of its kind arrived.
  */

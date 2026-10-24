@@ -71,7 +71,7 @@ export const DATA_KIND_HOW_TO_SEND: Record<DetectionRuleDataKind, string> = {
     "Connect Okta to read its System Log.",
   ),
   [DetectionRuleDataKind.ProcessEvents]: translationKey(
-    "Connect an EDR such as CrowdStrike Falcon or Microsoft Defender XDR. On Linux, the commands run with sudo count too: find security events in your logs.",
+    "Connect an EDR such as CrowdStrike Falcon or Microsoft Defender XDR. On Linux servers, finding security events in your logs reads the commands run with sudo.",
   ),
   [DetectionRuleDataKind.SudoLogs]: translationKey(
     "Send your servers' auth logs to OneUptime and find security events in your logs.",
@@ -155,6 +155,11 @@ export const DATA_STATUS_SENTENCES: Record<
 
 export const DATA_STATUS_UNKNOWN: string = translationKey(
   "Could not check which events this project sends.",
+);
+
+// The project sent no security event at all this week: said once, over the list.
+export const NOTHING_SENT: string = translationKey(
+  "No security events arrived in the last 7 days, so no rule has anything to read yet.",
 );
 
 // The filters.

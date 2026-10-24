@@ -57,13 +57,16 @@ import React, { FunctionComponent, ReactElement } from "react";
 export const RULE_LIBRARY_TABLE_ID: string = "rule-library-table";
 
 /*
- * The Rule column: as wide as a name and its description want, up to
- * 34rem, and never narrower than 14rem. Between the two it gives way, so
- * the table fits its card beside the side menu (1024px wide) with Data,
- * Severity and Add in sight, rather than scrolling sideways to reach them.
+ * The Rule column is prose (Column.wrapContent): a name runs onto a second
+ * line rather than being cut short, its description wraps under it. As
+ * wide as they want, up to 34rem, and never narrower than 14rem. Between
+ * the two it gives way, so the table fits its card beside the side menu
+ * (1024px wide) with Data, Severity and Add in sight, rather than
+ * scrolling sideways to reach them.
  */
-export const RULE_LIBRARY_RULE_COLUMN_CLASS_NAME: string =
-  "max-w-[34rem] min-w-[14rem]";
+export const RULE_LIBRARY_RULE_COLUMN_MAX_WIDTH_CLASS_NAME: string =
+  "max-w-[34rem]";
+export const RULE_LIBRARY_RULE_COLUMN_CLASS_NAME: string = "min-w-[14rem]";
 
 /*
  * A row's quieter lines under its name - what it finds, its ATT&CK tags:
@@ -320,6 +323,8 @@ const RuleLibraryTable: FunctionComponent<ComponentProps> = (
       key: "entry",
       disableSort: true,
       hideTitleOnMobile: true,
+      wrapContent: true,
+      wrapMaxWidthClassName: RULE_LIBRARY_RULE_COLUMN_MAX_WIDTH_CLASS_NAME,
       contentClassName: RULE_LIBRARY_RULE_COLUMN_CLASS_NAME,
       getElement: (view: LibraryRuleView): ReactElement => {
         return (

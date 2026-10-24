@@ -12,6 +12,7 @@ import {
   getRecommendedRulesNotAdded,
   getRuleLibraryHeaderActions,
   getRuleLibraryQueryParams,
+  isNothingSent,
   isRuleLibraryFiltered,
   readRuleLibraryFilters,
 } from "../../Components/SecurityEvents/RuleLibraryUtil";
@@ -286,11 +287,17 @@ const RuleLibraryPage: FunctionComponent<
   const existingRules: Array<ExistingRule> = existing || [];
   const isLoading: boolean = existing === null && !loadError;
 
+  /*
+   * A project that sent nothing this week is told so once, over the list:
+   * its rows do not each say "Not receiving".
+   */
+  const isNothingSentThisWeek: boolean = isNothingSent(seen);
+
   const views: Array<LibraryRuleView> = useMemo(() => {
     return getFilteredLibraryRuleViews({
       filters,
       existingRules,
-      seen,
+      seen: isNothingSent(seen) ? null : seen,
     });
   }, [filters, existing, seen]);
 
@@ -638,6 +645,7 @@ const RuleLibraryPage: FunctionComponent<
             shownCount={views.length}
             isDataKnown={seen !== null}
             isDataFailed={isSeenFailed}
+            isNothingSent={isNothingSentThisWeek}
             onRetryData={() => {
               setSeenReadCount((count: number): number => {
                 return count + 1;
