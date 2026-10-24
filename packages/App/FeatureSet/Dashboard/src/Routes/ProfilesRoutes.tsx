@@ -12,6 +12,10 @@ import ProfilesPage from "../Pages/Profiles/Index";
 import ProfilesListPage from "../Pages/Profiles/List";
 import ProfilesDocumentationPage from "../Pages/Profiles/Documentation";
 import ProfileViewPage from "../Pages/Profiles/View/Index";
+import ProfilesAIInsightsPage from "../Pages/Profiles/AI/Insights";
+import ProfilesAIInsightViewPage from "../Pages/Profiles/AI/InsightView";
+import ProfilesAILogsPage from "../Pages/Profiles/AI/Logs";
+import ProfilesAISettingsPage from "../Pages/Profiles/AI/Settings";
 
 const ProfilesRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -43,6 +47,44 @@ const ProfilesRoutes: FunctionComponent<ComponentProps> = (
             <ProfilesDocumentationPage
               {...props}
               pageRoute={RouteMap[PageMap.PROFILES_DOCUMENTATION] as Route}
+            />
+          }
+        />
+
+        {/* The AI section: what OneUptime found, what it did, its settings. */}
+        <PageRoute
+          path={ProfilesRoutePath[PageMap.PROFILES_AI_INSIGHTS] || ""}
+          element={
+            <ProfilesAIInsightsPage
+              {...props}
+              pageRoute={RouteMap[PageMap.PROFILES_AI_INSIGHTS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={ProfilesRoutePath[PageMap.PROFILES_AI_INSIGHT_VIEW] || ""}
+          element={
+            <ProfilesAIInsightViewPage
+              {...props}
+              pageRoute={RouteMap[PageMap.PROFILES_AI_INSIGHT_VIEW] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={ProfilesRoutePath[PageMap.PROFILES_AI_LOGS] || ""}
+          element={
+            <ProfilesAILogsPage
+              {...props}
+              pageRoute={RouteMap[PageMap.PROFILES_AI_LOGS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={ProfilesRoutePath[PageMap.PROFILES_AI_SETTINGS] || ""}
+          element={
+            <ProfilesAISettingsPage
+              {...props}
+              pageRoute={RouteMap[PageMap.PROFILES_AI_SETTINGS] as Route}
             />
           }
         />

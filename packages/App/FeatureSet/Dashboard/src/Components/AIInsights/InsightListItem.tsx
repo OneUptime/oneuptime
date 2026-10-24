@@ -25,6 +25,11 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   insight: AIInsight;
+  /*
+   * Where the row opens: AI Insights' own view, or - in a product's AI
+   * section - that section's (the Profiler's AI insights).
+   */
+  viewPage?: PageMap | undefined;
 }
 
 /*
@@ -70,7 +75,7 @@ const InsightListItem: FunctionComponent<ComponentProps> = (
   const insight: AIInsight = props.insight;
 
   const viewRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.AI_INSIGHT_VIEW] as Route,
+    RouteMap[props.viewPage || PageMap.AI_INSIGHT_VIEW] as Route,
     { modelId: insight.id! },
   );
 

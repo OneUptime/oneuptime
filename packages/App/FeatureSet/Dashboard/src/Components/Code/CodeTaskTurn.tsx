@@ -438,6 +438,20 @@ const TurnDuration: FunctionComponent<{ turn: CodeTaskTurnJSON }> = (props: {
 };
 
 /*
+ * The page a task's origin opens, for the kinds of record it can name: the
+ * exception, the incident, the alert, or the AI insight OneUptime found the
+ * problem in (AI Insights' view of it, whichever product filed it).
+ */
+export const CODE_TASK_ORIGIN_RECORD_PAGES: Partial<
+  Record<CodeTaskOriginType, PageMap>
+> = {
+  [CodeTaskOriginType.Exception]: PageMap.EXCEPTIONS_VIEW,
+  [CodeTaskOriginType.Incident]: PageMap.INCIDENT_VIEW,
+  [CodeTaskOriginType.Alert]: PageMap.ALERT_VIEW,
+  [CodeTaskOriginType.Insight]: PageMap.AI_INSIGHT_VIEW,
+};
+
+/*
  * One turn of a task's conversation: what the person asked (or what started
  * the task, for one OneUptime started) and the AI's side of it - how it
  * stands, the steps it is taking or took, its reply, the files it changed
@@ -457,53 +471,89 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
     (Date.now() - new Date(turn.createdAt).getTime()) / 60000,
   );
 
+  /*
+   * A request nobody typed - OneUptime wrote it from a problem it found
+   * (CodeTaskOrigin.isStartedByOneUptime): what started it comes first, and
+   * the request is OneUptime's, not "Someone"'s.
+   */
+  const isRequestByOneUptime: boolean = Boolean(
+    turn.request &&
+      !turn.requestedBy &&
+      props.origin &&
+      props.origin.type !== CodeTaskOriginType.Request,
+  );
+
   const renderAsk: () => ReactElement = (): ReactElement => {
-    if (turn.request) {
+    if (turn.request && isRequestByOneUptime) {
       return (
-        <li data-testid="code-turn-request" className="flex flex-col items-end">
-          <div className="flex max-w-full items-center gap-2">
+        <>
+          {renderOrigin()}
+          {renderRequest()}
+        </>
+      );
+    }
+
+    if (turn.request) {
+      return renderRequest();
+    }
+
+    if (props.origin) {
+      return renderOrigin();
+    }
+
+    return <></>;
+  };
+
+  const renderRequest: () => ReactElement = (): ReactElement => {
+    if (!turn.request) {
+      return <></>;
+    }
+
+    const name: string = isRequestByOneUptime ? "OneUptime" : personName;
+
+    return (
+      <li data-testid="code-turn-request" className="flex flex-col items-end">
+        <div className="flex max-w-full items-center gap-2">
+          {isRequestByOneUptime ? (
+            <OneUptimeMark />
+          ) : (
             <PersonMark
               name={personName}
               seed={turn.requestedBy?.id || personName}
             />
-            <span className="truncate text-xs font-medium text-gray-700">
-              {personName}
-            </span>
-            <CodeTimeAgo
-              date={turn.createdAt}
-              className={`${BYLINE_FACT_CLASS_NAME} whitespace-nowrap`}
-            />
-          </div>
-          <div
-            data-testid="code-turn-request-message"
-            className="mt-1.5 max-w-[88%] rounded-2xl rounded-tr-md bg-white px-4 py-2.5 shadow-sm ring-1 ring-inset ring-gray-200 sm:max-w-[80%]"
-          >
-            <p className="whitespace-pre-wrap break-words text-sm leading-6 text-gray-900">
-              {turn.request.message}
-            </p>
-          </div>
-          <ContextChips items={turn.request.context} isAlignedEnd={true} />
-        </li>
-      );
-    }
+          )}
+          <span className="truncate text-xs font-medium text-gray-700">
+            {name}
+          </span>
+          <CodeTimeAgo
+            date={turn.createdAt}
+            className={`${BYLINE_FACT_CLASS_NAME} whitespace-nowrap`}
+          />
+        </div>
+        <div
+          data-testid="code-turn-request-message"
+          className="mt-1.5 max-w-[88%] rounded-2xl rounded-tr-md bg-white px-4 py-2.5 shadow-sm ring-1 ring-inset ring-gray-200 sm:max-w-[80%]"
+        >
+          <p className="whitespace-pre-wrap break-words text-sm leading-6 text-gray-900">
+            {turn.request.message}
+          </p>
+        </div>
+        <ContextChips items={turn.request.context} isAlignedEnd={true} />
+      </li>
+    );
+  };
 
+  const renderOrigin: () => ReactElement = (): ReactElement => {
     if (props.origin) {
       const origin: CodeTaskOriginJSON = props.origin;
+      const recordPage: PageMap | undefined = origin.recordId
+        ? CODE_TASK_ORIGIN_RECORD_PAGES[origin.type]
+        : undefined;
       const recordRoute: Route | null =
-        origin.recordId &&
-        (origin.type === CodeTaskOriginType.Exception ||
-          origin.type === CodeTaskOriginType.Incident ||
-          origin.type === CodeTaskOriginType.Alert)
-          ? RouteUtil.populateRouteParams(
-              RouteMap[
-                origin.type === CodeTaskOriginType.Exception
-                  ? PageMap.EXCEPTIONS_VIEW
-                  : origin.type === CodeTaskOriginType.Incident
-                    ? PageMap.INCIDENT_VIEW
-                    : PageMap.ALERT_VIEW
-              ] as Route,
-              { modelId: new ObjectID(origin.recordId) },
-            )
+        recordPage && origin.recordId
+          ? RouteUtil.populateRouteParams(RouteMap[recordPage] as Route, {
+              modelId: new ObjectID(origin.recordId),
+            })
           : null;
 
       const label: ReactElement = recordRoute ? (

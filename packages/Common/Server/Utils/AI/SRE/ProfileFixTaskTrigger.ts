@@ -1,3 +1,4 @@
+import AIInsightService from "../../../Services/AIInsightService";
 import AIService from "../../../Services/AIService";
 import AIRunService from "../../../Services/AIRunService";
 import ServiceService from "../../../Services/ServiceService";
@@ -23,9 +24,12 @@ import CodeTaskContextBuilder from "../CodeTask/CodeTaskContextBuilder";
 import CodeTaskGate from "../CodeTask/CodeTaskGate";
 import CodeTaskRuns from "../CodeTask/CodeTaskRuns";
 import SubjectCodeFixRun from "./SubjectCodeFixRun";
+import AIInsight from "../../../../Models/DatabaseModels/AIInsight";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
 import ProfileSample from "../../../../Models/AnalyticsModels/ProfileSample";
+import AIInsightStatus from "../../../../Types/AI/AIInsightStatus";
+import AIInsightType from "../../../../Types/AI/AIInsightType";
 import Service from "../../../../Models/DatabaseModels/Service";
 import { AIRunStatusHelper } from "../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../Types/AI/AIRunType";
@@ -118,6 +122,12 @@ export const PROFILE_FIX_PICK_REPOSITORY_MESSAGE: string =
 
 export const PROFILE_FIX_REPOSITORY_NOT_AVAILABLE_MESSAGE: string =
   "That repository is not connected through the GitHub App, or you cannot ask AI to work in it.";
+
+export const PROFILE_FIX_INSIGHT_NOT_FOUND_MESSAGE: string =
+  "That finding is not one of this project's slow code findings.";
+
+export const PROFILE_FIX_INSIGHT_HAS_FIX_MESSAGE: string =
+  "A pull request was already asked for this finding. Follow it from the finding.";
 
 export default class ProfileFixTaskTrigger {
   /*
@@ -453,10 +463,25 @@ export default class ProfileFixTaskTrigger {
       message?: string | undefined;
       // The repository the person picked, when none was found for certain.
       repositoryId?: ObjectID | undefined;
+      /*
+       * The slow-code insight the person asked from, when they did - its
+       * rule asks before fixing, so the insight offers the pull request.
+       * The task names it, its pull request says why it was opened, and
+       * the insight links the task.
+       */
+      insightId?: ObjectID | undefined;
     },
   ): Promise<{ taskId: string }> {
     // The project's one AI switch, before the profile is read.
     await AIService.assertProjectAIEnabled(request.projectId);
+
+    if (request.insightId) {
+      await ProfileFixTaskTrigger.assertInsightOffersFix({
+        projectId: request.projectId,
+        insightId: request.insightId,
+        props: request.props,
+      });
+    }
 
     const read: ProfileFixRead | null =
       await ProfileFixTaskTrigger.readEvidence(request);
@@ -574,9 +599,64 @@ export default class ProfileFixTaskTrigger {
       repository,
       message,
       context: [context],
+      ...(request.insightId
+        ? { triggeredByAiInsightId: request.insightId }
+        : {}),
     });
 
+    if (request.insightId) {
+      /*
+       * The insight links its fix, once: a fix linked meanwhile (OneUptime
+       * opened one on its own, or someone else asked) keeps its link, and
+       * a closed insight stays closed.
+       */
+      await AIInsightService.updateOneBy({
+        query: {
+          _id: request.insightId.toString(),
+          projectId: request.projectId,
+          fixAiRunId: QueryHelper.isNull(),
+          status: QueryHelper.any([
+            AIInsightStatus.Detected,
+            AIInsightStatus.ActionRequired,
+          ]),
+        },
+        data: {
+          status: AIInsightStatus.FixOpened,
+          fixAiRunId: run.id!,
+        },
+        props: { isRoot: true },
+      });
+    }
+
     return { taskId: run.id!.toString() };
+  }
+
+  /*
+   * The insight a fix is asked from must be one of the project's slow-code
+   * findings the person may read, with no fix linked yet.
+   */
+  public static async assertInsightOffersFix(data: {
+    projectId: ObjectID;
+    insightId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const insight: AIInsight | null = await AIInsightService.findOneBy({
+      query: {
+        _id: data.insightId.toString(),
+        projectId: data.projectId,
+        insightType: AIInsightType.ProfileHotspot,
+      },
+      select: { _id: true, fixAiRunId: true },
+      props: data.props,
+    });
+
+    if (!insight) {
+      throw new BadDataException(PROFILE_FIX_INSIGHT_NOT_FOUND_MESSAGE);
+    }
+
+    if (insight.fixAiRunId) {
+      throw new BadDataException(PROFILE_FIX_INSIGHT_HAS_FIX_MESSAGE);
+    }
   }
 
   // The service's name, when the person may read it.

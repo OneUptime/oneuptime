@@ -100,6 +100,11 @@ export interface TelemetryAiLaneDefinition {
    * not worked on until it is found again.
    */
   scanEveryMinutes: number;
+  /*
+   * Where its product lives in the Dashboard, under the project: its AI
+   * section is <dashboardPath>/ai/insights, /ai/logs and /ai/settings.
+   */
+  dashboardPath: string;
 }
 
 export const TELEMETRY_AI_LANES: Readonly<
@@ -111,6 +116,7 @@ export const TELEMETRY_AI_LANES: Readonly<
     insightTypes: [AIInsightType.ProfileHotspot],
     switchColumn: "enableAutomaticProfileRemediation",
     scanEveryMinutes: 60,
+    dashboardPath: "profiles",
   },
 };
 
@@ -184,6 +190,25 @@ export function getTelemetryAiLaneOfInsightType(
   }
 
   return null;
+}
+
+/*
+ * Where an insight opens in the Dashboard, after the Dashboard's own
+ * address: in its lane's product (the Profiler's AI section for slow code),
+ * or in AI Insights for every other kind.
+ */
+export function getAiInsightDashboardPath(data: {
+  projectId: string;
+  insightId: string;
+  insightType?: unknown;
+}): string {
+  const lane: TelemetryAiLane | null = getTelemetryAiLaneOfInsightType(
+    data.insightType,
+  );
+
+  return lane
+    ? `/${data.projectId}/${TELEMETRY_AI_LANES[lane].dashboardPath}/ai/insights/${data.insightId}`
+    : `/${data.projectId}/ai/insights/${data.insightId}`;
 }
 
 // The lane of an AI rule's triggerEntityType, or null for incidents and alerts.

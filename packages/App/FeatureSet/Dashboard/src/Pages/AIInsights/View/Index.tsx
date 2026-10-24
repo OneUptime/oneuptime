@@ -15,6 +15,11 @@ import InsightFactsList, {
 } from "../../../Components/AIInsights/InsightFactsList";
 import InsightPanel from "../../../Components/AIInsights/InsightPanel";
 import FixProductionVerdict from "../../../Components/AI/FixProductionVerdict";
+import ProfileFixStrip from "../../../Components/Profiles/ProfileFixStrip";
+import {
+  doesInsightOfferProfileFix,
+  getProfileInsightFixRequest,
+} from "../../../Components/TelemetryAi/ProfileInsightFixRequest";
 import ChatActivityFeed from "../../../Components/AIChat/ChatActivityFeed";
 import ServiceElement from "../../../Components/Service/ServiceElement";
 import {
@@ -535,6 +540,7 @@ const AIInsightViewPage: FunctionComponent<
       metricName: insight.metricName,
       lastSeenAt: insight.lastSeenAt,
       spikeWindowMinutes: insight.evidence?.logSpike?.windowMinutes,
+      profile: insight.evidence?.profile,
     });
   }, [insight, serviceIdString, telemetryExceptionId]);
 
@@ -1065,6 +1071,31 @@ const AIInsightViewPage: FunctionComponent<
         </div>
 
         <div className="min-w-0 space-y-5">
+          {/*
+           * Slow code with no fix yet: "Fix with AI", as the Profiler offers
+           * it for the function - what an AI rule that asks before fixing
+           * leaves to a person. The task names this finding, and the
+           * finding links the task once it starts.
+           */}
+          {doesInsightOfferProfileFix({
+            insightType: insight.insightType,
+            status: status,
+            fixAiRunId: insight.fixAiRunId,
+            evidence: insight.evidence,
+          }) ? (
+            <ProfileFixStrip
+              request={getProfileInsightFixRequest(insight.evidence?.profile)!}
+              insightId={modelId.toString()}
+              onTaskStarted={() => {
+                fetchInsight().catch(() => {
+                  // handled inside fetchInsight
+                });
+              }}
+            />
+          ) : (
+            <></>
+          )}
+
           <InsightPanel title="Details" icon={IconProp.List}>
             <InsightFactsList facts={facts} />
           </InsightPanel>

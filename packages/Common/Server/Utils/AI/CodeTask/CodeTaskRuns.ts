@@ -91,6 +91,11 @@ export default class CodeTaskRuns {
     message: string;
     context: Array<CodeTaskContextItem>;
     baseBranch?: string | null | undefined;
+    /*
+     * The insight the person asked from, when they did: a problem OneUptime
+     * found, whose rule asks before fixing - its pull request says why.
+     */
+    triggeredByAiInsightId?: ObjectID | undefined;
   }): Promise<AIRun> {
     const message: string = CodeTaskRuns.readMessage(data.message);
 
@@ -111,6 +116,10 @@ export default class CodeTaskRuns {
     });
 
     run.title = CodeTaskTitle.fromMessage(message);
+
+    if (data.triggeredByAiInsightId) {
+      run.triggeredByAiInsightId = data.triggeredByAiInsightId;
+    }
 
     return await AIRunService.create({
       data: run,

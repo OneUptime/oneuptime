@@ -47,7 +47,7 @@ export interface CodeTaskOriginSubjects {
   exceptions: Map<string, TelemetryException>;
   incidents: Map<string, Incident>;
   alerts: Map<string, Alert>;
-  // Read only for the requests OneUptime started itself.
+  // Read only for the requests about an insight (isAboutInsight).
   insights?: Map<string, AIInsight> | undefined;
 }
 
@@ -65,7 +65,7 @@ export default class CodeTaskOrigin {
     const insightIds: Set<string> = new Set<string>();
 
     for (const run of data.runs) {
-      if (CodeTaskOrigin.isStartedByOneUptime(run)) {
+      if (CodeTaskOrigin.isAboutInsight(run)) {
         insightIds.add(run.triggeredByAiInsightId!.toString());
       }
 
@@ -162,6 +162,22 @@ export default class CodeTaskOrigin {
       alerts: CodeTaskOrigin.byId(alerts),
       insights: CodeTaskOrigin.byId(insights),
     };
+  }
+
+  /*
+   * A Code request about a problem OneUptime found: one OneUptime started
+   * itself, or one a person started from the problem's insight (a rule that
+   * asks before fixing offers the pull request there). Either names the
+   * insight, and its pull request says why it was opened.
+   */
+  public static isAboutInsight(run: {
+    codeFixTaskType?: CodeFixTaskType | string | null | undefined;
+    triggeredByAiInsightId?: ObjectID | null | undefined;
+  }): boolean {
+    return (
+      CodeFixTaskTypeHelper.isCodeRequest(run.codeFixTaskType) &&
+      Boolean(run.triggeredByAiInsightId)
+    );
   }
 
   /*

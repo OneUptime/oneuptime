@@ -38,6 +38,7 @@ import {
 } from "../../../../Types/AI/CodeTask";
 import ObjectID from "../../../../Types/ObjectID";
 import AIInsight from "../../../../Models/DatabaseModels/AIInsight";
+import { getAiInsightDashboardPath } from "../../../../Types/AI/TelemetryAi";
 
 /*
  * WHAT A RUNNER IS TOLD WHEN IT TAKES A REQUEST FROM CODE.
@@ -235,16 +236,18 @@ export default class CodeTaskAgentBrief {
   }
 
   /*
-   * Why OneUptime started a task nobody asked for - the insight it found -
-   * for the pull request's body to say, and the prompt: nothing for a task a
-   * person asked for.
+   * The problem OneUptime found that a task is about - the insight, whether
+   * OneUptime started the task on its own or a person started it from the
+   * insight - for the pull request's body to say, and the prompt, with a
+   * link to where the Dashboard shows it (its lane's product for slow code).
+   * Nothing for a task that is about no insight.
    */
   public static getStartedBy(data: {
     projectId: ObjectID;
     task: AIRun;
     subjects: CodeTaskOriginSubjects;
   }): Pick<CodeTaskAgentDetails, "startedBy"> {
-    if (!CodeTaskOrigin.isStartedByOneUptime(data.task)) {
+    if (!CodeTaskOrigin.isAboutInsight(data.task)) {
       return {};
     }
 
@@ -258,7 +261,13 @@ export default class CodeTaskAgentBrief {
           CodeTaskAgentBrief.redact(insight?.title || ""),
           MAX_FINDING_LENGTH,
         ),
-        findingUrl: `${DashboardClientUrl.toString()}/${data.projectId.toString()}/ai/insights/${insightId}`,
+        findingUrl: `${DashboardClientUrl.toString()}${getAiInsightDashboardPath(
+          {
+            projectId: data.projectId.toString(),
+            insightId,
+            insightType: insight?.insightType,
+          },
+        )}`,
       },
     };
   }

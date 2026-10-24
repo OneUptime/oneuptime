@@ -17,6 +17,11 @@ export interface ComponentProps {
   typeOptions: Array<InsightFilterOption>;
   typeValue: string;
   onTypeChange: (value: string) => void;
+  /*
+   * Off where the list holds one kind of insight (a product's own AI
+   * insights): a type filter would offer one choice.
+   */
+  isTypeFilterShown?: boolean | undefined;
   severityOptions: Array<InsightFilterOption>;
   severityValue: string;
   onSeverityChange: (value: string) => void;
@@ -148,13 +153,17 @@ const InsightFilterBar: FunctionComponent<ComponentProps> = (
       <div className="max-sm:hidden h-6 w-px flex-shrink-0 bg-gray-200 sm:block" />
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <FilterSelect
-          ariaLabel={translationKey("Filter by insight type")}
-          options={props.typeOptions}
-          value={props.typeValue}
-          onChange={props.onTypeChange}
-          isFiltering={isFilteringByType}
-        />
+        {props.isTypeFilterShown === false ? (
+          <></>
+        ) : (
+          <FilterSelect
+            ariaLabel={translationKey("Filter by insight type")}
+            options={props.typeOptions}
+            value={props.typeValue}
+            onChange={props.onTypeChange}
+            isFiltering={isFilteringByType}
+          />
+        )}
 
         <FilterSelect
           ariaLabel={translationKey("Filter by severity")}

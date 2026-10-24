@@ -84,6 +84,14 @@ import useProfileRequest, { ProfileRequestState } from "./UseProfileRequest";
 
 export interface ComponentProps {
   request: ProfileFixRequestBody;
+  /*
+   * The slow-code finding the strip is drawn on, when it is (an AI rule
+   * that asks before fixing offers the pull request there): the task names
+   * it, and the finding links the task.
+   */
+  insightId?: string | undefined;
+  // Told once a task has started, with its id.
+  onTaskStarted?: ((taskId: string) => void) | undefined;
 }
 
 // The strip's links: quiet, and plain to see under the keyboard.
@@ -220,10 +228,12 @@ const ProfileFixStrip: FunctionComponent<ComponentProps> = (
         ...(needsRepositoryPick && pickedRepositoryId
           ? { repositoryId: pickedRepositoryId }
           : {}),
+        ...(props.insightId ? { insightId: props.insightId } : {}),
       });
 
       if (createdTaskId) {
         setStartedTask({ key, taskId: createdTaskId });
+        props.onTaskStarted?.(createdTaskId);
       }
     } catch (err) {
       const reason: string = API.getFriendlyMessage(err as Error);

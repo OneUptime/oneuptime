@@ -5,6 +5,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import TimeRange from "Common/Types/Time/TimeRange";
 import RouteMap, { RouteUtil } from "./RouteMap";
 import PageMap from "./PageMap";
+import { ProfilesUrlState, buildProfilesRoute } from "./ProfilesUrlState";
 /*
  * Sibling-relative on purpose: the `Common` package specifier resolves
  * through App/node_modules, which may symlink a checkout that predates
@@ -79,7 +80,8 @@ export type InsightExplorerTarget =
   | "metrics"
   | "logs"
   | "traces"
-  | "exceptions";
+  | "exceptions"
+  | "profiles";
 
 /**
  * The insight fields the link builder reads. All optional and
@@ -106,6 +108,20 @@ export interface AIInsightExplorerLinkInput {
   lastSeenAt?: Date | string | undefined;
   /** ErrorLogSpike: evidence.logSpike.windowMinutes when available. */
   spikeWindowMinutes?: number | undefined;
+  /**
+   * ProfileHotspot: the slow function and the window it was read in
+   * (evidence.profile), when the caller has them. Without them the link
+   * opens the service's profiles.
+   */
+  profile?:
+    | {
+        functionName?: string | undefined;
+        fileName?: string | undefined;
+        profileType?: string | undefined;
+        windowStartTime?: string | undefined;
+        windowEndTime?: string | undefined;
+      }
+    | undefined;
 }
 
 export interface AIInsightExplorerLink {
@@ -541,6 +557,68 @@ export const buildInsightInvestigationLink: BuildInsightInvestigationLinkFunctio
           route,
           dropped,
         };
+      }
+
+      case AIInsightType.ProfileHotspot: {
+        /*
+         * The Profiler on the slow function, in the window it was found
+         * in: the service is the one thing it cannot do without.
+         */
+        const serviceId: string | null = trimmedOrNull(input.serviceId);
+
+        if (!serviceId) {
+          return null;
+        }
+
+        const state: ProfilesUrlState = { serviceId };
+        const functionName: string | null = trimmedOrNull(
+          input.profile?.functionName,
+        );
+
+        if (functionName) {
+          state.functionName = functionName;
+
+          const fileName: string | null = trimmedOrNull(
+            input.profile?.fileName,
+          );
+
+          if (fileName) {
+            state.fileName = fileName;
+          }
+        }
+
+        const profileType: string | null = trimmedOrNull(
+          input.profile?.profileType,
+        );
+
+        if (profileType) {
+          state.profileType = profileType;
+        }
+
+        const startTime: Date = new Date(input.profile?.windowStartTime || "");
+        const endTime: Date = new Date(input.profile?.windowEndTime || "");
+
+        if (
+          !Number.isNaN(startTime.getTime()) &&
+          !Number.isNaN(endTime.getTime()) &&
+          startTime.getTime() < endTime.getTime()
+        ) {
+          state.startTime = startTime;
+          state.endTime = endTime;
+        }
+
+        try {
+          return {
+            target: "profiles",
+            label: "Open in Profiler",
+            icon: IconProp.Fire,
+            route: buildProfilesRoute(state),
+            dropped: [],
+          };
+        } catch {
+          // An unroutable value: no action rather than a crash.
+          return null;
+        }
       }
 
       default:
