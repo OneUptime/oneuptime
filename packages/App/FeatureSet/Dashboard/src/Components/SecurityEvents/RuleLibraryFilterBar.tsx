@@ -110,19 +110,22 @@ const RuleLibraryFilterBar: FunctionComponent<ComponentProps> = (
     props.isDataFilterOffered,
   );
 
+  // An option's name in the reader's language: the chip draws it as it is.
+  const optionLabel: (text: string) => string = (text: string): string => {
+    return translator.translateText(text) || text;
+  };
+
   const categoryOptions: Array<FilterChipDropdownOption> = [
     {
       value: RECOMMENDED_FILTER,
-      label: translator.translateText(RECOMMENDED),
+      label: optionLabel(RECOMMENDED),
       icon: IconProp.Star,
     },
     ...DETECTION_RULE_LIBRARY_CATEGORIES.map(
       (category: DetectionRuleLibraryCategory): FilterChipDropdownOption => {
         return {
           value: category,
-          label: translator.translateText(
-            RULE_LIBRARY_CATEGORY_TITLES[category],
-          ),
+          label: optionLabel(RULE_LIBRARY_CATEGORY_TITLES[category]),
           icon: CATEGORY_ICONS[category],
         };
       },
@@ -132,16 +135,12 @@ const RuleLibraryFilterBar: FunctionComponent<ComponentProps> = (
   const dataOptions: Array<FilterChipDropdownOption> = [
     {
       value: LibraryDataFilter.Received,
-      label: translator.translateText(
-        DATA_FILTER_OPTIONS[LibraryDataFilter.Received],
-      ),
+      label: optionLabel(DATA_FILTER_OPTIONS[LibraryDataFilter.Received]),
       color: RECEIVING_DOT_COLOR,
     },
     {
       value: LibraryDataFilter.NotReceived,
-      label: translator.translateText(
-        DATA_FILTER_OPTIONS[LibraryDataFilter.NotReceived],
-      ),
+      label: optionLabel(DATA_FILTER_OPTIONS[LibraryDataFilter.NotReceived]),
       color: NOT_RECEIVING_DOT_COLOR,
     },
   ];
@@ -150,15 +149,11 @@ const RuleLibraryFilterBar: FunctionComponent<ComponentProps> = (
   const statusOptions: Array<FilterChipDropdownOption> = [
     {
       value: LibraryStatusFilter.NotAdded,
-      label: translator.translateText(
-        STATUS_FILTER_OPTIONS[LibraryStatusFilter.NotAdded],
-      ),
+      label: optionLabel(STATUS_FILTER_OPTIONS[LibraryStatusFilter.NotAdded]),
     },
     {
       value: LibraryStatusFilter.Added,
-      label: translator.translateText(
-        STATUS_FILTER_OPTIONS[LibraryStatusFilter.Added],
-      ),
+      label: optionLabel(STATUS_FILTER_OPTIONS[LibraryStatusFilter.Added]),
     },
   ];
 
