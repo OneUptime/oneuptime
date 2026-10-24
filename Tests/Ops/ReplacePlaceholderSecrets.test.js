@@ -17,7 +17,7 @@
  *
  *   - `npm start` runs the script as a step of the start script (not a
  *     prestart hook, which npm skips under ignore-scripts);
- *   - `npm run update` runs it through prerun -> Scripts/Install/configure.sh,
+ *   - `npm run update` ends with `npm run start`; `npm run dev` runs it through prerun -> Scripts/Install/configure.sh,
  *     right after the template merge.
  *
  * The shared keys are ONEUPTIME_SECRET (the cluster key), REGISTER_PROBE_KEY,
@@ -991,7 +991,7 @@ describe("where it runs", () => {
     expect(packageJson.scripts.update).toContain("npm run start");
   });
 
-  test("configure.sh (npm run update, npm run dev) runs it right after the template merge, before config.env is read", () => {
+  test("configure.sh (npm run dev) runs it right after the template merge, before config.env is read", () => {
     const configure = fs.readFileSync(
       path.join(REPO_ROOT, "Scripts", "Install", "configure.sh"),
       "utf8",

@@ -3,7 +3,7 @@
 /**
  * Scripts/Install/MergeEnvTemplate.js and renamed settings.
  *
- * The merge runs on every `npm run update` (Scripts/Install/configure.sh ->
+ * The merge runs on every `npm run update` (Scripts/Install/Update.js ->
  * prerun) and appends any key present in config.example.env but missing from
  * the operator's config.env, TAKING THE TEMPLATE'S VALUE. That is fine for a
  * genuinely new setting and catastrophic for a renamed one: when REDIS_PASSWORD

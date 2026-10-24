@@ -401,7 +401,8 @@ const init = (options = {}) => {
  * the repository root) by `npm start` (a step of the start script, not a
  * prestart hook: npm skips pre- and post-scripts when ignore-scripts is set,
  * as many hardened servers do, and the placeholder keys must be replaced on
- * every install) and by Scripts/Install/configure.sh, which `npm run update`
+ * every install; `npm run update` ends with `npm run start`) and by
+ * Scripts/Install/configure.sh, which `npm run dev`
  * runs. Requiring it, as the tests do, only exports the functions.
  */
 if (require.main === module) {

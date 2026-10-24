@@ -1702,12 +1702,19 @@ describe("npm start", () => {
 describe("the scripts run on an older Node.js", () => {
   const scripts = [];
 
-  for (const match of ROOT_PACKAGE.scripts.start.matchAll(
-    INSTALL_STEP_IN_SCRIPT,
-  )) {
-    scripts.push(match[1]);
+  // npm start's and npm run update's steps, and the modules they require.
+  for (const command of [
+    ROOT_PACKAGE.scripts.start,
+    ROOT_PACKAGE.scripts.update,
+  ]) {
+    for (const match of command.matchAll(INSTALL_STEP_IN_SCRIPT)) {
+      if (scripts.indexOf(match[1]) === -1) {
+        scripts.push(match[1]);
+      }
+    }
   }
   scripts.push("./Scripts/Install/StartOutput.js");
+  scripts.push("./Scripts/Install/MergeEnvTemplate.js");
 
   // Code without its comments and string literals.
   function codeOf(source) {
