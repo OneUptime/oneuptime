@@ -70,16 +70,28 @@ const RuleLibraryAddDialog: FunctionComponent<ComponentProps> = (
                 props.seen,
               );
 
+              /*
+               * The rule's name, and under it the events it reads and
+               * whether they arrive - as a phone draws a rule's row. Side
+               * by side, a German "Anmeldeereignisse · Empfangen" left the
+               * names a third of the dialog, three lines each.
+               */
               return (
                 <li
                   key={entry.id}
-                  className="flex flex-col gap-0.5 px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                  className="flex flex-col gap-0.5 px-3 py-2"
                   data-testid={`rule-library-add-item-${entry.id}`}
                 >
-                  <span className="min-w-0 text-sm font-medium text-gray-900">
+                  <span
+                    className="min-w-0 text-sm font-medium text-gray-900"
+                    data-testid={`rule-library-add-name-${entry.id}`}
+                  >
                     {entry.title}
                   </span>
-                  <span className="flex flex-none items-center gap-2 text-xs text-gray-500">
+                  <span
+                    className="flex flex-wrap items-center gap-x-2 text-xs text-gray-500"
+                    data-testid={`rule-library-add-data-${entry.id}`}
+                  >
                     {translator.translateText(DATA_KIND_TITLES[entry.dataKind])}
                     <RuleLibraryDataStatus status={status} />
                   </span>

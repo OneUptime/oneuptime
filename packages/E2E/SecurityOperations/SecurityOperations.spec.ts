@@ -2671,6 +2671,16 @@ test.describe("detections", () => {
       ).toBeFocused();
       expect(await scrollTopOf(page), `at ${width}`).toBe(0);
 
+      // Each rule it lists has the events it reads under its name.
+      const name: Box = await boxOf(
+        page.getByTestId(`rule-library-add-name-${BRUTE_FORCE_RULE.id}`),
+      );
+      const reads: Box = await boxOf(
+        page.getByTestId(`rule-library-add-data-${BRUTE_FORCE_RULE.id}`),
+      );
+      expect(reads.y).toBeGreaterThanOrEqual(name.y + name.height - 1);
+      expect(Math.abs(reads.x - name.x)).toBeLessThanOrEqual(1);
+
       await page
         .getByTestId("modal")
         .getByRole("button", { name: "Cancel" })
