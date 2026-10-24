@@ -1,134 +1,64 @@
 <!-- markdownlint-disable MD033 MD041 -->
 <p align="center">
-  <a href="/README.md">English</a> ·
-  <a href="/Docs/translations/README.zh-CN.md">简体中文</a> ·
-  <a href="/Docs/translations/README.zh-TW.md">繁體中文</a> ·
-  <a href="/Docs/translations/README.ja.md">日本語</a> ·
-  <a href="/Docs/translations/README.ko.md">한국어</a> ·
-  <a href="/Docs/translations/README.es.md">Español</a> ·
-  <a href="/Docs/translations/README.fr.md">Français</a> ·
-  <a href="/Docs/translations/README.de.md">Deutsch</a> ·
-  <a href="/Docs/translations/README.pt.md">Português</a> ·
-  <a href="/Docs/translations/README.it.md">Italiano</a> ·
-  <a href="/Docs/translations/README.ru.md">Русский</a> ·
-  <a href="/Docs/translations/README.hi.md">हिन्दी</a> ·
-  <a href="/Docs/translations/README.fa.md">فارسی</a> ·
-  <a href="/Docs/translations/README.nl.md">Nederlands</a> ·
-  <a href="/Docs/translations/README.da.md">Dansk</a> ·
-  <a href="/Docs/translations/README.sv.md">Svenska</a> ·
+  <a href="/README.md">English</a>&nbsp;·
+  <a href="/Docs/translations/README.zh-CN.md">简&#8288;体&#8288;中&#8288;文</a>&nbsp;·
+  <a href="/Docs/translations/README.zh-TW.md">繁&#8288;體&#8288;中&#8288;文</a>&nbsp;·
+  <a href="/Docs/translations/README.ja.md">日&#8288;本&#8288;語</a>&nbsp;·
+  <a href="/Docs/translations/README.ko.md">한&#8288;국&#8288;어</a>&nbsp;·
+  <a href="/Docs/translations/README.es.md">Español</a>&nbsp;·
+  <a href="/Docs/translations/README.fr.md">Français</a>&nbsp;·
+  <a href="/Docs/translations/README.de.md">Deutsch</a>&nbsp;·
+  <a href="/Docs/translations/README.pt.md">Português</a>&nbsp;·
+  <a href="/Docs/translations/README.it.md">Italiano</a>&nbsp;·
+  <a href="/Docs/translations/README.ru.md">Русский</a>&nbsp;·
+  <a href="/Docs/translations/README.hi.md">हिन्दी</a>&nbsp;·
+  <a href="/Docs/translations/README.fa.md">فارسی</a>&nbsp;·
+  <a href="/Docs/translations/README.nl.md">Nederlands</a>&nbsp;·
+  <a href="/Docs/translations/README.da.md">Dansk</a>&nbsp;·
+  <a href="/Docs/translations/README.sv.md">Svenska</a>&nbsp;·
   <a href="/Docs/translations/README.no.md">Norsk</a>
 </p>
 
-<div align="center">
-  <a href="https://oneuptime.com">
-    <img alt="OneUptime logo" width="55%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/OneUptimePNG/7.png"/>
-  </a>
+<p align="center">
+  <a href="https://oneuptime.com"><picture><source media="(prefers-color-scheme: dark)" srcset="/packages/App/FeatureSet/Docs/Static/images/logo-dark.svg"><img alt="OneUptime" width="42%" src="/packages/App/FeatureSet/Docs/Static/images/logo-light.svg"></picture></a>
+</p>
 
-  <h3>Agentic observability — one open-source platform for uptime, incidents, on-call, status pages, logs, traces, metrics & APM.</h3>
+<p align="center">
+  <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
+  <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
+</p>
 
-  <p><b>When things go wrong, be the first to know — and the fastest to fix.</b></p>
+OneUptime is an open-source observability platform. It checks that your websites, APIs and servers work, collects the logs, metrics and traces your apps send, pages whoever is on call when something breaks, and tells your customers on a status page. It all happens in one product, so the tool that notices a problem is the one that pages your team.
 
-  <p>OneUptime replaces a whole shelf of SaaS tools with one platform you can self-host for free. It catches the outage, pages the right person, updates your status page, finds the root cause, and even opens the fix PR.</p>
+You can use it on [OneUptime Cloud](https://oneuptime.com) or run it on your own servers.
 
-  <p>
-    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
-    <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
-    <a href="https://github.com/OneUptime/oneuptime/stargazers"><img src="https://img.shields.io/github/stars/OneUptime/oneuptime?style=flat" alt="Stars"></a>
-    <a href="https://artifacthub.io/packages/helm/oneuptime/oneuptime"><img src="https://img.shields.io/badge/Helm-Chart-0f1689" alt="Helm Chart"></a>
-    <a href="https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA"><img src="https://img.shields.io/badge/Slack-Community-4A154B" alt="Slack"></a>
-  </p>
+<p align="center">
+  <img alt="OneUptime during an incident: its timeline, who is on call, the status page and OneUptime AI's investigation" width="100%" src="/packages/Home/Static/img/readme/hero-command-center.png">
+</p>
 
-  <p>
-    <a href="https://oneuptime.com"><b>Website</b></a> &nbsp;•&nbsp;
-    <a href="https://oneuptime.com/docs"><b>Docs</b></a> &nbsp;•&nbsp;
-    <a href="#quick-start"><b>Quick Start</b></a> &nbsp;•&nbsp;
-    <a href="https://oneuptime.com/pricing"><b>Pricing</b></a> &nbsp;•&nbsp;
-    <a href="#contributing"><b>Contribute</b></a>
-  </p>
+## What it does
 
-  <a href="https://oneuptime.com"><b>🚀 Try OneUptime Cloud — free forever plan, no credit card →</b></a>
-</div>
+- **[Monitoring](https://oneuptime.com/docs/monitor/create-monitor)**: Check websites, APIs, ports, DNS and certificates from probes around the world or from inside your own network. OneUptime also watches servers, Kubernetes, Docker, VMware, databases and network devices.
+- **[Incidents and on-call](https://oneuptime.com/docs/incidents/index)**: Work each incident on one timeline. Page whoever is on call by phone, SMS, email, push, Slack or Microsoft Teams, and escalate until someone responds.
+- **[Status pages](https://oneuptime.com/docs/status-pages/index)**: Keep customers informed on public or private status pages, and announce scheduled maintenance there.
+- **[Logs, metrics and traces](https://oneuptime.com/docs/telemetry/open-telemetry)**: Send them with OpenTelemetry, search them and build dashboards. Exceptions, profiles, real user monitoring and security events live in the same place.
+- **[Workflows and runbooks](https://oneuptime.com/docs/workflows/index)**: Automate routine work, and connect Jira, ServiceNow and the other tools your team already uses.
+- **[OneUptime AI](https://oneuptime.com/docs/ai/ai-sre)**: Investigates new incidents and alerts and posts a root cause analysis with citations. When you turn fixing on, it can open a pull request with a fix for your team to review.
+- **[API, CLI and Terraform](https://oneuptime.com/docs/api-reference/api-reference)**: Automate OneUptime from your scripts and CI, and manage monitors, status pages and on-call as code.
 
-<br/>
+Everything else is in the [docs](https://oneuptime.com/docs/introduction/getting-started).
 
-<div align="center">
-  <img alt="OneUptime command center during a live incident" width="92%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/readme/hero-command-center.png"/>
-</div>
+## Get started
 
----
+### OneUptime Cloud
 
-## Replace your whole observability stack
+[Sign up](https://oneuptime.com/accounts/register) and create a project. The free plan needs no credit card.
 
-OneUptime brings monitoring, alerting, incident response, and observability into a single open-source app — so you stop paying for (and stitching together) a dozen separate tools.
+### Self-host with Docker Compose
 
-| Instead of… | Use OneUptime for… |
-|---|---|
-| Pingdom / UptimeRobot | **Uptime Monitoring** — website, API, ping, port, SSL, DNS & synthetic checks from around the world |
-| StatusPage.io | **Status Pages** — branded public & private status pages with subscribers |
-| PagerDuty / Opsgenie | **On-Call & Alerts** — schedules, escalation policies, SMS / call / push / Slack |
-| Incident.io | **Incident Management** — declare, triage, communicate, and post-mortem |
-| Datadog / New Relic | **APM & Metrics** — traces, dashboards, and service performance |
-| Loggly | **Log Management** — collect, search, and alert on logs |
-| Sentry | **Error Tracking** — exceptions with full stack traces and context |
+You need a Linux server with at least 8 GB of memory, and Docker, Docker Compose, Git and Node.js.
 
-All of it is **open source (Apache 2.0)** and free to self-host in the Community Edition.
-
----
-
-<details>
-<summary><b>🌙 One incident, handled end to end</b></summary>
-
-<br/>
-
-It's 2:47 AM. Checkout starts timing out. Here's what OneUptime does before most tools would even fire the first alert — and what the screenshots below actually show.
-
-### 1 · Detect — *know in seconds*
-
-Probes in multiple regions catch checkout latency blowing past your 5s threshold and open an incident automatically — before your customers hit refresh.
-
-![Detect — global monitoring catches the checkout API degrading](/packages/Home/Static/img/readme/detect.png?raw=true)
-
-### 2 · Respond — *the right person, paged*
-
-The on-call engineer for the Payments policy is called, texted, and push-notified, escalating to backup automatically until someone acknowledges.
-
-![Respond — the incident is routed to on-call and acknowledged](/packages/Home/Static/img/readme/respond.png?raw=true)
-
-### 3 · Communicate — *customers in the loop*
-
-Your status page updates itself and every subscriber is notified by email and SMS — no one has to hand-write the update.
-
-![Communicate — the public status page updates and notifies subscribers](/packages/Home/Static/img/readme/communicate.png?raw=true)
-
-### 4 · Diagnose — *root cause, found*
-
-Traces, logs, and metrics are correlated down to the exact span: a slow `SELECT … FOR UPDATE` on `orders`, stuck on a missing index.
-
-![Diagnose — the trace waterfall pinpoints the slow database span](/packages/Home/Static/img/readme/diagnose.png?raw=true)
-
-### 5 · Auto-Fix — *the fix, drafted for you*
-
-The AI agent opens a pull request with the fix, linked to the incident, verified against your repository's configured build and test commands before it opens — you review and merge. Like an SRE that never sleeps.
-
-![Auto-Fix — the AI agent opens a pull request with the fix](/packages/Home/Static/img/readme/autofix.png?raw=true)
-
-</details>
-
----
-
-<a name="quick-start"></a>
-
-## ⚡ Quick Start
-
-### ☁️ OneUptime Cloud — the easy way
-
-Zero setup, always up to date, and it funds the open-source project.
-
-**→ [Sign up free at oneuptime.com](https://oneuptime.com)**
-
-### 🐳 Self-host with Docker Compose
-
-Everything you need on a single server (Debian / Ubuntu / RHEL, Docker + Docker Compose). Great for homelabs and small teams — a Raspberry Pi even works.
+Before step 3, set `HOST` in `config.env` to the domain name or IP address people will use to reach OneUptime, without `http://`. Keep `localhost` only to try OneUptime on your own computer.
 
 ```bash
 # 1. Clone the release branch
@@ -145,110 +75,41 @@ done
 npm start
 ```
 
-OneUptime is now running at **http://localhost** — open it and create your first account.
+When `npm start` prints **OneUptime is up!**, open `http://localhost`, or your server's address, and sign up. The first account becomes the instance's admin.
 
-📖 Full guide: [Docker Compose install](/packages/App/FeatureSet/Docs/Content/en/installation/docker-compose.md) · [Sizing & requirements](/packages/App/FeatureSet/Docs/Content/en/installation/sizing.md)
+The [Docker Compose guide](https://oneuptime.com/docs/installation/docker-compose) covers server sizes, HTTPS, backups and updates.
 
-### ☸️ Kubernetes with Helm — for production
+### Kubernetes with Helm
+
+For production at scale, or high availability, install the Helm chart. Set `host` to the domain name or IP address people will use to reach OneUptime:
 
 ```bash
-helm repo add oneuptime https://helm-chart.oneuptime.com
-helm install oneuptime oneuptime/oneuptime
+helm repo add oneuptime https://helm-chart.oneuptime.com/
+helm install my-oneuptime oneuptime/oneuptime --set host=oneuptime.example.com
 ```
 
-📖 Full install instructions & values on [Artifact Hub →](https://artifacthub.io/packages/helm/oneuptime/oneuptime)
+The [chart's README](/HelmChart/Public/oneuptime/README.md) covers storage, HTTPS, databases and upgrades.
 
-> **Upgrading an existing install?** See the [upgrade guide](/packages/App/FeatureSet/Docs/Content/en/installation/upgrading.md).
+## Community and Enterprise
 
----
+- **Community Edition**: Free and open source, with everything above, including SAML and OIDC single sign-on.
+- **Enterprise Edition**: Adds SCIM provisioning, audit logs, team compliance and instance health dashboards, with priority support. Production use needs a license: [contact sales](mailto:sales@oneuptime.com).
 
-## ✨ Everything in the box
+The docs [compare the two editions](https://oneuptime.com/docs/self-hosted/enterprise).
 
-| | Feature | What it does |
-|---|---|---|
-| 📊 | **Uptime Monitoring** | Website, API, IP, port, SSL, DNS, and synthetic monitors from multiple global regions. |
-| 📋 | **Status Pages** | Beautiful branded status pages, incident history, scheduled maintenance, and subscriber notifications. |
-| 🚨 | **Incident Management** | End-to-end incident workflow: declare, assign, communicate, resolve, and run post-mortems. |
-| 📞 | **On-Call & Alerts** | On-call schedules and escalation policies with SMS, phone call, push, email, and Slack alerts. |
-| 📝 | **Log Management** | Ingest, store, search, and alert on logs via OpenTelemetry. |
-| 🔍 | **APM & Traces** | Distributed traces, spans, and performance dashboards to find slow paths and bottlenecks. |
-| 📈 | **Metrics & Dashboards** | Custom dashboards over your telemetry — build the views your team needs. |
-| 🐛 | **Error Tracking** | Capture exceptions with full stack traces, context, and release tracking. |
-| ⚡ | **Workflows** | Automate and integrate with Slack, Jira, GitHub, Microsoft Teams, and 5,000+ apps. |
-| 🤖 | **AI Copilot** | An always-on agent that finds anomalies across logs, traces & metrics, spots root causes, and opens PRs with fixes. |
+## Get help
 
-<details>
-<summary><b>⚡ Automate the busywork</b></summary>
+- Ask questions in the [OneUptime community on Slack](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA).
+- Report bugs and request features in [GitHub issues](https://github.com/OneUptime/oneuptime/issues).
+- Report a security vulnerability privately, as [SECURITY.md](/.github/SECURITY.md) explains.
+- Email [support@oneuptime.com](mailto:support@oneuptime.com) about anything else.
 
-<br/>
+## Contributing
 
-Wire up escalations, ticketing, and notifications on a visual, no-code canvas — or drop in custom code. The incident above paged on-call, opened a Jira ticket, and posted to Slack without anyone lifting a finger.
+Bug fixes, features, docs and tests are all welcome. The [local development guide](https://oneuptime.com/docs/installation/local-development) shows how to run OneUptime from source, and the [contributing guidelines](/.github/CONTRIBUTING.md) explain how pull requests and licensing work. Issues labeled [good first issue](https://github.com/OneUptime/oneuptime/labels/good%20first%20issue) are a good place to start.
 
-![Workflows — a no-code automation canvas for incident escalation](/packages/Home/Static/img/readme/workflows.png?raw=true)
+If OneUptime is useful to you, star this repository or [sponsor the project](https://github.com/sponsors/OneUptime).
 
-</details>
-
-### 🖥️ Infrastructure Monitoring
-
-Drop in copy-paste, **OpenTelemetry-based** agents to watch everything your services run on — with ready-made alert templates included:
-
-- **Servers & VMs** — CPU, memory, disk, network, processes, and logs from Linux, macOS & Windows. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/host-otel-collector.md)
-- **Kubernetes** — one `helm install` ships node/pod/container/cluster metrics, events, logs, and eBPF traces & service maps. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/kubernetes-agent.md)
-- **Docker** — a single agent auto-discovers every container and ships metrics & logs. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
-- **Podman** — same one-agent auto-discovery via Podman's Docker-compatible socket. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
-- **Proxmox** — nodes, VMs, containers, storage, HA state, backup coverage & replication health. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
-- **VMware** — vCenter, ESXi hosts, virtual machines, datastores, clusters, resource pools & vSAN. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
-- **Ceph** — cluster health, capacity forecasts, and OSD/pool/PG/monitor visibility. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
-- **Storage Arrays** — Pure Storage FlashArray and FlashBlade: capacity, latency, volumes, hosts, replication, hardware health, file systems and buckets. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/storage-arrays.md)
-- **Databases** — PostgreSQL, MySQL, Redis, MongoDB and more, auto-detected from application traces, Kubernetes and Docker, with engine metrics, query samples and logs from a config-only collector agent. [Docs →](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
-
----
-
-## 💼 Community vs. Enterprise
-
-| | **Community** | **Enterprise** |
-|---|---|---|
-| **Best for** | Self-hosters & small teams | Regulated teams needing premium support |
-| **Cost** | Free & open source | [Contact sales](mailto:sales@oneuptime.com) |
-| **License** | Apache 2.0 | Apache 2.0, plus the [OneUptime Enterprise License](/ee/LICENSE) for the `ee/` directory |
-| **Features** | Everything in the box above — monitoring, status pages, incidents, on-call, logs, traces, metrics, error tracking, workflows & AI — plus SAML & OIDC single sign-on | Everything in Community + SCIM provisioning, audit logs, team compliance & instance health dashboards, with priority support, custom features & data residency |
-
-Enterprise features live in the [`ee/`](/ee) directory and ship only in the Enterprise image. See [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md) for the full comparison.
-
----
-
-## 💡 Why OneUptime?
-
-Our mission is simple: **reduce downtime and help more products succeed.** Instead of duct-taping seven vendors together, you get one platform that helps you understand *why* things break, respond to incidents fast, and cut operational toil — open source at its core (Apache 2.0), so you own your data and your stack.
-
----
-
-<a name="contributing"></a>
-
-## 🤝 Contributing
-
-We welcome contributions of every size. Start here:
-
-- 🐛 **[Open issues](https://github.com/OneUptime/oneuptime/issues)** — pick one up, or [file a new one](https://github.com/OneUptime/oneuptime/issues/new)
-- ✅ **[Help write tests](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)** for the codebase
-- 🧑‍💻 **[Local development guide](/packages/App/FeatureSet/Docs/Content/en/installation/local-development.md)** to get set up
-- 📖 Read the **[contributing guidelines](/.github/CONTRIBUTING.md)**
-- 💬 Chat with us in the **[Developer Slack](https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ)** or **[Community Slack](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)**
-
-## ❤️ Support the project
-
-If OneUptime is useful to you:
-
-- ⭐ **Star this repo** — it genuinely helps others find us
-- 💵 **[Sponsor us](https://github.com/sponsors/OneUptime)** — every dollar ships new features
-- 🛍️ **[Grab some merch](https://shop.oneuptime.com)** — all proceeds fund open-source development
-
----
-
-## 📄 License
+## License
 
 OneUptime is open source under the [Apache License 2.0](/LICENSE), except for the [`ee/`](/ee) directory. That directory holds the Enterprise Edition and is licensed under the [OneUptime Enterprise License](/ee/LICENSE). The Community Edition image contains no code from `ee/`. The root [`LICENSE`](/LICENSE) file sets out this split.
-
-<div align="center">
-  <sub>Made with ❤️ by the <a href="https://oneuptime.com">OneUptime</a> team and <a href="https://github.com/OneUptime/oneuptime/graphs/contributors">contributors</a>.</sub>
-</div>
