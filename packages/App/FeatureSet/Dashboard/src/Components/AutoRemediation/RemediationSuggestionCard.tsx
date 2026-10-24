@@ -66,6 +66,13 @@ import {
   RemediationDecisionStatus,
 } from "./RemediationDecisionLines";
 import RemediationDecisionStatusBadge from "./RemediationDecisionStatusBadge";
+import {
+  AiCardFold,
+  getRemediationFoldState,
+  isRemediationFoldedIntoAiCard,
+  isSameRemediationFoldState,
+  RemediationFoldState,
+} from "../AI/AiOffSummaryData";
 import React, {
   Fragment,
   FunctionComponent,
@@ -80,6 +87,21 @@ export interface ComponentProps {
   incidentId?: ObjectID | undefined;
   alertId?: ObjectID | undefined;
   hideIfEmpty?: boolean | undefined;
+  /*
+   * What the card read, for the page's AI card (RemediationFoldState,
+   * AiOffSummaryData): still reading, fixing did something or has
+   * something to say, or it did nothing because it was off - and why.
+   * Called on every change, and afresh for every incident or alert.
+   */
+  onFoldStateChange?: ((state: RemediationFoldState) => void) | undefined;
+  /*
+   * How the page's AI card is drawn. While it is the one-line "AI
+   * investigation is off" summary - or is still deciding whether it is -
+   * that line says why nothing was fixed too, so a card that would only
+   * say so is not drawn. A fix to show, or anything else to say, is drawn
+   * as always.
+   */
+  aiCardFold?: AiCardFold | undefined;
 }
 
 interface StatusVisual {
@@ -861,6 +883,12 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
   const decisionStageRef: React.MutableRefObject<AutoRemediationDecisionStage | null> =
     useRef<AutoRemediationDecisionStage | null>(null);
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
+  /*
+   * The incident or alert what the card holds was read for: the card can
+   * stay on the page while it moves to the next one, and what it tells the
+   * AI card is only ever about the one on the page.
+   */
+  const [loadedSubjectId, setLoadedSubjectId] = useState<string>("");
   const [actionError, setActionError] = useState<string>("");
   const [failedAction, setFailedAction] =
     useState<RemediationSuggestionAction | null>(null);
@@ -882,6 +910,10 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
 
   const incidentIdString: string | undefined = props.incidentId?.toString();
   const alertIdString: string | undefined = props.alertId?.toString();
+  const subjectIdString: string = incidentIdString || alertIdString || "";
+  const currentSubjectIdRef: React.MutableRefObject<string> =
+    useRef<string>(subjectIdString);
+  currentSubjectIdRef.current = subjectIdString;
 
   const load: (options?: { isActionReload?: boolean }) => Promise<void> =
     useCallback(
@@ -893,6 +925,8 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
         if (isActionInFlightRef.current && !options?.isActionReload) {
           return;
         }
+        const requestedSubjectId: string =
+          incidentIdString || alertIdString || "";
         try {
           const query: Record<string, ObjectID> = {};
           if (incidentIdString) {
@@ -900,6 +934,9 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
           } else if (alertIdString) {
             query["alertId"] = new ObjectID(alertIdString);
           } else {
+            // Nothing to read for: nothing to show, and nothing to wait on.
+            setLoadedSubjectId("");
+            setIsLoaded(true);
             return;
           }
 
@@ -965,6 +1002,11 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
               : Promise.resolve(null),
           ]);
 
+          // An answer for the incident or alert the page has moved on from.
+          if (currentSubjectIdRef.current !== requestedSubjectId) {
+            return;
+          }
+
           setSuggestions(result.data);
           if (decisionRows) {
             const picked: RemediationDecision | null = pickRemediationDecision(
@@ -973,10 +1015,14 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
             decisionStageRef.current = picked?.stage || null;
             setDecision(picked);
           }
+          setLoadedSubjectId(requestedSubjectId);
           setIsLoaded(true);
         } catch {
           // Best-effort card — a failed refresh keeps the previous state.
-          setIsLoaded(true);
+          if (currentSubjectIdRef.current === requestedSubjectId) {
+            setLoadedSubjectId(requestedSubjectId);
+            setIsLoaded(true);
+          }
         }
       },
       [incidentIdString, alertIdString],
@@ -1137,7 +1183,63 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
       })
     : [];
 
+  /*
+   * What the page's AI card needs to know to fold into one line: whether
+   * fixing did anything with this incident or alert, or why not. Still
+   * reading until what the card holds was read for this one. Told once per
+   * change, and afresh for each incident or alert.
+   */
+  const foldState: RemediationFoldState = getRemediationFoldState({
+    isLoaded: isLoaded && loadedSubjectId === subjectIdString,
+    suggestionCount: suggestions.length,
+    decision,
+  });
+  const onFoldStateChangeRef: React.MutableRefObject<
+    ((state: RemediationFoldState) => void) | undefined
+  > = useRef<((state: RemediationFoldState) => void) | undefined>(
+    props.onFoldStateChange,
+  );
+  onFoldStateChangeRef.current = props.onFoldStateChange;
+  const reportedFoldStateRef: React.MutableRefObject<{
+    subjectId: string;
+    state: RemediationFoldState;
+  } | null> = useRef<{
+    subjectId: string;
+    state: RemediationFoldState;
+  } | null>(null);
+
+  useEffect(() => {
+    const reported: {
+      subjectId: string;
+      state: RemediationFoldState;
+    } | null = reportedFoldStateRef.current;
+
+    if (
+      reported &&
+      reported.subjectId === subjectIdString &&
+      isSameRemediationFoldState(reported.state, foldState)
+    ) {
+      return;
+    }
+
+    reportedFoldStateRef.current = {
+      subjectId: subjectIdString,
+      state: foldState,
+    };
+    onFoldStateChangeRef.current?.(foldState);
+  });
+
   if (!isLoaded && props.hideIfEmpty) {
+    return <Fragment />;
+  }
+
+  // The AI card's one line says why nothing was fixed.
+  if (
+    isRemediationFoldedIntoAiCard({
+      state: foldState,
+      aiCardFold: props.aiCardFold,
+    })
+  ) {
     return <Fragment />;
   }
 

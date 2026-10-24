@@ -72,6 +72,8 @@ Kortet **AI Investigation** slutar med en konversation, **Ask OneUptime AI**, so
 - **Välj hur den agerar** med reglaget i meddelandefältet, som bredvid berättar vad det valda läget betyder: _Auto-run_ (standard: den agerar direkt på en tydlig begäran), _Ask to act_ (den visar först ett godkännandekort som vem som helst på incidenten kan godkänna eller avvisa) eller _Skrivskyddad_.
 - **En gemensam tråd.** Varje fråga visar vem som ställde den, alla ser samma konversation live och vem som helst kan stoppa ett svar som pågår. Diagram och tabeller i ett svar visas för den som frågade; alla andra ser svaret med källor. Varje svar listar sina **Källor**, och en källa med egen sida (loggar, mätvärden, en monitor) öppnar den. En lång tråd öppnas vid de senaste meddelandena, med en knapp ovanför (till exempel **Show 6 earlier messages**) som hämtar fram resten.
 
+En incident eller ett larm som OneUptime AI varken utredde eller åtgärdade eftersom AI var avstängt för den – avstängt för projektet, _Utred nya incidenter_ (eller larm) avstängt när den skapades, ingen AI-regel som utreder matchade den, eller dess allvarlighetsgrad låg under minimum – får i stället ett kort på en rad: **AI-utredning är avstängd** (eller **AI är avstängt för det här projektet**, så länge det är det), och varför. Pilen, **Det här kan du göra**, öppnar vad som ska slås på, med en länk till där det ändras för dem som får ändra det, och vem som kan ändra det för alla andra; en ändring gäller bara nya incidenter och larm, inte den här. Så länge AI är påslaget öppnar **Ask OneUptime AI** på raden konversationen, och en konversation som någon redan har startat visas av sig själv under raden. Kortet **Åtgärd** utelämnas då: raden säger varför ingenting åtgärdades.
+
 ## Slå på AI-utredningar
 
 Autonoma utredningar är **påslagna som standard för nya projekt**. Det är även utkast till efteranalyser och AI Insights. Åtgärder börjar avslagna, och pull-förfrågningarna som hör till dem öppnas bara så länge åtgärder är på (se [Automatiska kodkorrigeringar](#automatiska-kodkorrigeringar)). Ett projekt som skapades före den här standarden behåller sin inställning; slå på utredningar som i steg 3, eller med **Slå på** på sidan **AI-agent** för ett valfritt Kubernetes-kluster (Project Owner eller Project Admin). Så kontrollerar eller ändrar du dem:
@@ -393,7 +395,7 @@ Varje incident och larm har ett kort **Åtgärd** som berättar vad den automati
 - **AI-reglerna**: med regler uppsatta matchade ingen (och hur många som kontrollerades), eller bara regler som inte åtgärdar, så ingenting åtgärdades; eller vad varje matchande regel gjorde: lät OneUptime AI åtgärda incidenten (med eller utan att fråga först), föreslog eller startade en runbook, lät AI sätta ihop kommandon eller välja en runbook, eller kunde inte, och varför.
 - **Projektet**: **Åtgärda nya incidenter automatiskt** (eller larm) är av; **Aktivera AI** är av, så ingenting körs; incidenten har redan det högsta antalet åtgärder som den kan få; eller bedömningen stoppades av ett fel.
 
-När incidenten inte är kopplad till något kluster och någon infrastrukturresurs alls säger kortet det på en rad (den vanligaste orsaken till att ingenting åtgärdades), med en länk till var och en av dess monitorer, där du kan koppla dem till det de övervakar så att nästa incident som de utlöser blir kopplad. Varje rad länkar till där det ändras: klustrets eller resursens AI-agentsida, incidentens (eller larmets) AI-inställningar, där dess åtgärdsreglage och dess regler finns, **Aktivera AI** eller LLM-leverantörerna. Incidenter och larm som skapades innan detta registrerades visar bara kortet när något föreslogs.
+När incidenten inte är kopplad till något kluster och någon infrastrukturresurs alls säger kortet det på en rad (den vanligaste orsaken till att ingenting åtgärdades), med en länk till var och en av dess monitorer, där du kan koppla dem till det de övervakar så att nästa incident som de utlöser blir kopplad. Varje rad länkar till där det ändras: klustrets eller resursens AI-agentsida, incidentens (eller larmets) AI-inställningar, där dess åtgärdsreglage och dess regler finns, **Aktivera AI** eller LLM-leverantörerna. Incidenter och larm som skapades innan detta registrerades visar bara kortet när något föreslogs. När AI var helt avstängt för en incident säger raden på kortet **AI Investigation** varför ingenting åtgärdades, och kortet **Åtgärd** utelämnas.
 
 ## Vad OneUptime AI har lärt sig, och allt den har gjort
 
@@ -517,7 +519,7 @@ Varje insikt har knapparna **Bekräfta** och **Stäng**: använd dem även när 
 ## Felsökning
 
 :::details En incident utreddes inte
-Dess kort **AI Investigation** säger varför: AI är avslaget för projektet, det finns ingen LLM-leverantör eller ingen AI-kredit, en gräns har nåtts, incidenten låg utanför AI-reglerna eller under den lägsta allvarlighetsgraden, dess monitor utreddes inom vilotiden, den skapades redan löst, eller den löstes under en AI-regels väntetid. Medan en regel låter OneUptime AI vänta säger kortet i stället när den utreder. Be OneUptime AI på kortet att utreda den nu.
+Dess kort **AI Investigation** säger varför: AI är avslaget för projektet, det finns ingen LLM-leverantör eller ingen AI-kredit, en gräns har nåtts, incidenten låg utanför AI-reglerna eller under den lägsta allvarlighetsgraden, dess monitor utreddes inom vilotiden, den skapades redan löst, eller den löstes under en AI-regels väntetid. Medan en regel låter OneUptime AI vänta säger kortet i stället när den utreder. Be OneUptime AI på kortet att utreda den nu. När AI var avstängt för incidenten och ingenting heller åtgärdades är kortet en rad: öppna **Det här kan du göra** på det för att se vad som ska slås på.
 :::
 
 :::details Analysen säger att den inte kunde hitta någon orsak
@@ -525,7 +527,7 @@ Utredningen hittade för lite bevis: den säger vad den kontrollerade. Se till a
 :::
 
 :::details Ingenting åtgärdades
-Incidentens kort **Åtgärd** har en rad för varje sätt som den hade kunnat åtgärdas på, med orsaken till att den inte blev det och en länk till där det ändras: åtgärder av, inget kluster eller ingen värd kopplad till incidenten, åtgärder av på AI-agentens sida, eller ingen matchande AI-regel.
+Incidentens kort **Åtgärd** har en rad för varje sätt som den hade kunnat åtgärdas på, med orsaken till att den inte blev det och en länk till där det ändras: åtgärder av, inget kluster eller ingen värd kopplad till incidenten, åtgärder av på AI-agentens sida, eller ingen matchande AI-regel. När AI var helt avstängt för incidenten säger raden på kortet **AI Investigation** det i stället.
 :::
 
 :::details OneUptime AI slutade arbeta för i dag

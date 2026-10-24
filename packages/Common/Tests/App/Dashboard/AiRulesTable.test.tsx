@@ -495,6 +495,12 @@ describe.each([
       expect(props["cardProps"]).toEqual({
         title: "AI rules",
         description: AI_LANE_RULES_COPY[lane].aiRulesDescription,
+        /*
+         * Its place on the settings page, the More settings item's key: an
+         * incident's or alert's folded AI card links to "#AiRules", which
+         * opens More settings at this table (AdvancedPageSection).
+         */
+        id: "AiRules",
       });
       // A rule's three steps, in their order: which, when, and how.
       expect(AI_LANE_RULES_COPY[lane].aiRulesDescription).toBe(
