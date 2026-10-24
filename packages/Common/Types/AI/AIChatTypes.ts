@@ -1,4 +1,5 @@
 import { JSONObject } from "../JSON";
+import { AiContextActivity } from "./AiContext";
 import { LlmProviderActivity } from "./LlmProviderChoice";
 
 /*
@@ -270,6 +271,14 @@ export interface AIRunEventResultSummary {
    * the run's activity; `message` is the English.
    */
   llmProvider?: LlmProviderActivity | undefined;
+  /*
+   * What the run read of the AI context the project's team wrote for
+   * OneUptime AI - the project's, and the AI rules' that started it - word
+   * for word (ProgressLog events; see Common/Types/AI/AiContext). The
+   * run's activity draws a line that opens to show it, in the reader's
+   * language; `message` is the English.
+   */
+  aiContext?: AiContextActivity | undefined;
 }
 
 // What an investigation read about the changes recorded before its subject.

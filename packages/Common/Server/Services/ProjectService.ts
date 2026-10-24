@@ -107,6 +107,7 @@ import ProjectAiDailyLimits, {
   ProjectAiDailyLimitColumn,
   ProjectAiDailyLimitReachedAtColumn,
 } from "../../Types/AI/ProjectAiDailyLimits";
+import { AiContextOwner, getAiContextProblem } from "../../Types/AI/AiContext";
 import { coerceNumericColumnValue } from "../../Types/Database/NumericColumnValue";
 import NumberPrefixUtil, {
   NUMBER_PREFIX_COLUMNS,
@@ -613,6 +614,33 @@ export class ProjectService extends ProjectReferencesService<Model> {
     }
   }
 
+  /*
+   * Runs on every create and update that writes the project's AI context
+   * (Types/AI/AiContext): text, or nothing, and no more than
+   * PROJECT_AI_CONTEXT_MAX_CHARACTERS - the limit the settings card counts
+   * against as it is written. Refused, never cut: a cut would save notes
+   * someone never wrote. A blank one is stored as null, as clearing the
+   * field means.
+   */
+  public applyAiContextRules(data: { aiContext?: unknown }): void {
+    if (data.aiContext === undefined) {
+      return;
+    }
+
+    const problem: string | null = getAiContextProblem({
+      value: data.aiContext,
+      owner: AiContextOwner.Project,
+    });
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
+
+    if (typeof data.aiContext === "string" && !data.aiContext.trim()) {
+      data.aiContext = null;
+    }
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     data: CreateBy<Model>,
@@ -627,6 +655,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     this.applyNumberPrefixRules(data.data);
     this.applyNextNumberRules(data.data);
     this.applyAiDailyLimitRules(data.data);
+    this.applyAiContextRules(data.data as { aiContext?: unknown });
 
     if (data.props.userId) {
       RelationIdUtil.stamp(
@@ -1246,6 +1275,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     this.applyNumberPrefixRules(updateBy.data);
     this.applyNextNumberRules(updateBy.data);
     this.applyAiDailyLimitRules(updateBy.data);
+    this.applyAiContextRules(updateBy.data as { aiContext?: unknown });
 
     await this.assertAuditLogSettingsChangeIsLicensed({
       requested: updateBy.data as unknown as Record<string, unknown>,

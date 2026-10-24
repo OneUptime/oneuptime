@@ -67,7 +67,15 @@ jest.mock("../../../UI/Config", () => {
   const actual: Record<string, unknown> = jest.requireActual(
     "../../../UI/Config",
   ) as Record<string, unknown>;
-  const mocked: Record<string, unknown> = { ...actual };
+  /*
+   * Self-hosted: billing off, whatever the environment says. CI's
+   * config.env turns billing on for every suite, and with billing on the
+   * page asks the project's plan instead of the edition.
+   */
+  const mocked: Record<string, unknown> = {
+    ...actual,
+    BILLING_ENABLED: false,
+  };
 
   Object.defineProperty(mocked, "IS_ENTERPRISE_EDITION", {
     get: (): boolean => {

@@ -68,6 +68,8 @@ import {
   AIPromptOmissions,
   AIRunEventResultSummary,
 } from "../../../../Types/AI/AIChatTypes";
+import { AiContextRule } from "../../../../Types/AI/AiContext";
+import AiContextReader from "../AiContext/AiContextReader";
 
 /*
  * AI SRE — alert investigation.
@@ -582,6 +584,15 @@ export default class AIAlertInvestigationRunner {
         alertId,
       });
 
+    /*
+     * The AI context of the AI rules that investigate this alert and match
+     * it: read after the project's own, which the engine reads for every
+     * run.
+     */
+    const aiContextRules: Array<AiContextRule> = await AiContextReader.forAlert(
+      { projectId, alertId },
+    );
+
     // Long command output is paged, never cut: offer the reader with the commands.
     if (extraTools.length > 0) {
       extraTools.push(outputPager.buildReadTool());
@@ -619,6 +630,7 @@ export default class AIAlertInvestigationRunner {
         additionalInstructions,
         extraTools,
         codeRepositoryAllowance,
+        aiContextRules,
       });
     } finally {
       // Every session the run opened ends with it.
@@ -641,6 +653,8 @@ export default class AIAlertInvestigationRunner {
     additionalInstructions: Array<string>;
     extraTools: Array<ObservabilityAssistantExtraTool>;
     codeRepositoryAllowance: CodeRepositoryAllowance;
+    // The matching AI rules' AI context, read after the project's.
+    aiContextRules: Array<AiContextRule>;
   }): Promise<void> {
     const {
       aiRunId,
@@ -655,6 +669,7 @@ export default class AIAlertInvestigationRunner {
       additionalInstructions,
       extraTools,
       codeRepositoryAllowance,
+      aiContextRules,
     } = data;
 
     await AIInvestigationEngine.executeRun({
@@ -676,6 +691,7 @@ export default class AIAlertInvestigationRunner {
           : {}),
         ...(extraTools.length > 0 ? { extraTools } : {}),
         codeRepositoryAllowance,
+        ...(aiContextRules.length > 0 ? { aiContextRules } : {}),
         persistCodeFixRecommendation: true,
         persistAnalysisTldr: true,
         postAnalysis: async (postData: {

@@ -11,7 +11,7 @@ Spør AI er OneUptimes chat over dataene i prosjektet ditt. Spør om logger, spo
 
 ## Slik svarer Spør AI
 
-Spør AI svarer bare med det verktøyene returnerer: den kjører spørringer mot prosjektet ditt i stedet for å svare fra hukommelsen. Hvert faktum i et svar har en kildebrikke som viser spørringen bak og åpner dataene den leste. Når du ber den endre noe, avgjør samtalens tillatelsesmodus om den spør deg først.
+Spør AI svarer bare med det verktøyene returnerer: den kjører spørringer mot prosjektet ditt i stedet for å svare fra hukommelsen. Hvert faktum i et svar har en kildebrikke som viser spørringen bak og åpner dataene den leste. Når du ber den endre noe, avgjør samtalens tillatelsesmodus om den spør deg først. Før spørsmålet ditt leser den prosjektets [AI-kontekst](/docs/ai/ai-context): det teamet ditt har skrevet ned for OneUptime AI om deres egne systemer.
 
 ```mermaid title="Fra et spørsmål til et underbygget svar"
 flowchart TB

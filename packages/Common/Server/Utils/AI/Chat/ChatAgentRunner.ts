@@ -60,6 +60,15 @@ import AiTokenCount from "../../../../Types/AI/AiTokenCount";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { codesOf, withoutTrailingRun } from "../../../../Utils/TrailingRuns";
 import { isWhiteSpaceCode } from "../../../../Utils/RegExpCharacterClasses";
+import {
+  AiContextActivity,
+  AiContextRule,
+} from "../../../../Types/AI/AiContext";
+import AiContextReader from "../AiContext/AiContextReader";
+import {
+  getAiContextEventSummary,
+  withAiContext,
+} from "../AiContext/AiContextPrompt";
 
 export interface ChatTurnRequest {
   projectId: ObjectID;
@@ -99,6 +108,14 @@ export interface ChatTurnRequest {
    * Built by the caller from current data for every turn.
    */
   additionalSystemInstructions?: string | undefined;
+  /*
+   * The AI rules whose AI context the turn reads after the project's
+   * (Types/AI/AiContext): for an incident's or alert's shared thread, the
+   * rules that investigate it and match it, as its investigation read
+   * them. Every turn reads the project's own AI context without being
+   * asked.
+   */
+  aiContextRules?: Array<AiContextRule> | undefined;
   /*
    * Run-scoped tools offered to the model in addition to the toolbox (the
    * kubectl and infrastructure command tools, read_tool_output). A
@@ -546,6 +563,24 @@ export default class ChatAgentRunner {
       });
 
       /*
+       * What the project's team wrote for OneUptime AI (issue #5198): read
+       * for every turn, placed first in its system prompt and recorded in
+       * its activity, word for word. A turn resumed after an approval keeps
+       * the prompt it was paused with.
+       */
+      const aiContext: AiContextActivity | null = await AiContextReader.read({
+        projectId: request.projectId,
+        rules: request.aiContextRules,
+      });
+
+      if (aiContext) {
+        await this.emitEvent(request, state, {
+          eventType: AIRunEventType.ProgressLog,
+          resultSummary: getAiContextEventSummary(aiContext),
+        });
+      }
+
+      /*
        * The conversation's subject: a fresh page context is persisted on
        * first use, and turns without one fall back to the persisted subject.
        */
@@ -555,6 +590,7 @@ export default class ChatAgentRunner {
       const messages: Array<LLMMessage> = await this.buildInitialMessages(
         request,
         pageContext,
+        aiContext,
       );
 
       await this.runAgentLoop(request, state, messages, toolContext);
@@ -1503,6 +1539,8 @@ export default class ChatAgentRunner {
   private static async buildInitialMessages(
     request: ChatTurnRequest,
     pageContext: AIChatPageContext | undefined,
+    // What the turn read of the project's AI context; null: none.
+    aiContext: AiContextActivity | null,
   ): Promise<Array<LLMMessage>> {
     /*
      * History is read with the requesting user's props: the privacy pin
@@ -1600,9 +1638,13 @@ export default class ChatAgentRunner {
     const messages: Array<LLMMessage> = [
       {
         role: "system",
-        content: request.additionalSystemInstructions
-          ? `${basePrompt}\n\n${request.additionalSystemInstructions}`
-          : basePrompt,
+        // The project's AI context first, then the chat's own prompt.
+        content: withAiContext(
+          request.additionalSystemInstructions
+            ? `${basePrompt}\n\n${request.additionalSystemInstructions}`
+            : basePrompt,
+          aiContext,
+        ),
       },
     ];
 
