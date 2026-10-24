@@ -4839,6 +4839,51 @@ test.describe("the project's case priorities and statuses", () => {
     expect(await builtInRows(page)).toEqual([true, true, true, true, true]);
   });
 
+  test("both pages read in the reader's language: their own words, and the descriptions a new project's values start with", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASE_STATUSES_PATH, { width: 1280, lang: "de" });
+    await expect(page.getByTestId("state-settings-name").first()).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(page.getByTestId("card-button").first()).toHaveText(
+      "Fallstatus erstellen",
+    );
+    // The built-in statuses' descriptions are OneUptime's words, so they are German too.
+    expect(await cellTexts(page, "state-settings-description")).toEqual([
+      "Noch hat sich niemand den Fall angesehen.",
+      "Jemand findet heraus, was passiert ist.",
+      "Die Bedrohung kann keinen Schaden mehr anrichten; die Bereinigung steht noch aus.",
+      "Erledigt, mit einer Bewertung, was es war.",
+    ]);
+
+    await open(page, CASE_PRIORITIES_PATH, {
+      width: 1280,
+      lang: "de",
+      values: "custom",
+    });
+    await expect(page.getByTestId("state-settings-name").first()).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(page.getByTestId("card-button").first()).toHaveText(
+      "Fallpriorität erstellen",
+    );
+    await expect(page.locator("table").first().locator("thead")).toContainText(
+      "Schweregrad der Erkennung",
+    );
+    // Low keeps the word every German Dashboard page draws for it.
+    expect(await cellTexts(page, "state-settings-built-in-column")).toEqual([
+      "Keine",
+      "Kritisch",
+      "Hoch",
+      "Mittel oder unbekannt",
+      "Low",
+      "Hinweise",
+    ]);
+  });
+
   test("both pages read in both themes, on a laptop and a phone, every name whole and nothing scrolling sideways", async ({
     page,
   }: {
