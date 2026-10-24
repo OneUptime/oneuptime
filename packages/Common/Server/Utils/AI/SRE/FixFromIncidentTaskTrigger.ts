@@ -354,9 +354,7 @@ export default class FixFromIncidentTaskTrigger {
     }
 
     if (!input.hasConnectedRepository) {
-      return skip(
-        "project has no connected repository the AI rules allow",
-      );
+      return skip("project has no connected repository the AI rules allow");
     }
 
     /*
