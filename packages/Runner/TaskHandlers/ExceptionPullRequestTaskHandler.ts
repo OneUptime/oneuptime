@@ -562,8 +562,12 @@ ${(details.startedBy.isStartedByOneUptime
    * The pull request's body with the why section under its heading - the
    * body's first line - or above everything when it has none.
    */
-  public static withWhySection(body: string, details: ExceptionDetails): string {
-    const why: string = ExceptionPullRequestTaskHandler.buildWhySection(details);
+  public static withWhySection(
+    body: string,
+    details: ExceptionDetails,
+  ): string {
+    const why: string =
+      ExceptionPullRequestTaskHandler.buildWhySection(details);
 
     if (!why) {
       return body;
@@ -598,4 +602,3 @@ ${(details.startedBy.isStartedByOneUptime
     }
   }
 }
-

@@ -531,7 +531,6 @@ export function getTelemetryAiFixTaskTypes(): Array<CodeFixTaskType> {
   );
 }
 
-
 // What the decision reads off an AI rule of the lane that matched.
 export interface TelemetryAiRuleFacts {
   _id?: unknown;
@@ -804,7 +803,8 @@ export function getTelemetryAiNextSteps(data: {
   return {
     startInvestigation:
       (data.work.investigate || needsVerdict) && !data.problem.hasInvestigation,
-    startFix: wantsFixWithoutAsking && doesTelemetryAiFixVerdictOpenFix(verdict),
+    startFix:
+      wantsFixWithoutAsking && doesTelemetryAiFixVerdictOpenFix(verdict),
     offerFix: data.work.fix === AiRuleFix.AskFirst && !data.problem.hasFix,
     isWaiting: false,
     isNoLongerFound: false,

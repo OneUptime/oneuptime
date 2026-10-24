@@ -314,7 +314,9 @@ export default class ExceptionInsightFix {
       return { skip: ExceptionInsightFixSkip.NoVerdict };
     }
 
-    if (ExceptionOwnCode.read(exception.stackTrace).ownCodeFrames.length === 0) {
+    if (
+      ExceptionOwnCode.read(exception.stackTrace).ownCodeFrames.length === 0
+    ) {
       return { skip: ExceptionInsightFixSkip.NotOwnCode };
     }
 
@@ -1164,7 +1166,9 @@ export default class ExceptionInsightFix {
       });
 
     if (!repository || !repository.id) {
-      throw new BadDataException(EXCEPTION_FIX_REPOSITORY_NOT_AVAILABLE_MESSAGE);
+      throw new BadDataException(
+        EXCEPTION_FIX_REPOSITORY_NOT_AVAILABLE_MESSAGE,
+      );
     }
 
     const blocker: CodeTaskBlocker | null = await CodeTaskGate.getBlocker({

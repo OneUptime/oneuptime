@@ -169,7 +169,9 @@ export default class TelemetryAiRules {
    * The insight types the lanes work on in the project: AI Insights' own
    * sweeps leave these alone.
    */
-  public static getInsightTypesWorkedOn(project: Project): Array<AIInsightType> {
+  public static getInsightTypesWorkedOn(
+    project: Project,
+  ): Array<AIInsightType> {
     return getTelemetryAiInsightTypesWorkedOn(
       (lane: TelemetryAiLane): boolean => {
         return TelemetryAiRules.isLaneOn(project, lane);

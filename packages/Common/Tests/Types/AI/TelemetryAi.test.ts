@@ -422,7 +422,9 @@ describe("the Exception lane", () => {
       true,
     );
     expect(
-      doesTelemetryAiFixWaitForVerdict(AIInsightType.ExceptionMissingStackTrace),
+      doesTelemetryAiFixWaitForVerdict(
+        AIInsightType.ExceptionMissingStackTrace,
+      ),
     ).toBe(false);
   });
 
@@ -488,18 +490,18 @@ describe("the Exception lane", () => {
   });
 
   test("the verdicts that open a fix on their own", () => {
-    expect(doesTelemetryAiFixVerdictOpenFix(TelemetryAiFixVerdict.NotNeeded)).toBe(
-      true,
-    );
-    expect(doesTelemetryAiFixVerdictOpenFix(TelemetryAiFixVerdict.CodeFault)).toBe(
-      true,
-    );
+    expect(
+      doesTelemetryAiFixVerdictOpenFix(TelemetryAiFixVerdict.NotNeeded),
+    ).toBe(true);
+    expect(
+      doesTelemetryAiFixVerdictOpenFix(TelemetryAiFixVerdict.CodeFault),
+    ).toBe(true);
     expect(
       doesTelemetryAiFixVerdictOpenFix(TelemetryAiFixVerdict.ExpectedError),
     ).toBe(true);
-    expect(doesTelemetryAiFixVerdictOpenFix(TelemetryAiFixVerdict.Pending)).toBe(
-      false,
-    );
+    expect(
+      doesTelemetryAiFixVerdictOpenFix(TelemetryAiFixVerdict.Pending),
+    ).toBe(false);
     expect(
       doesTelemetryAiFixVerdictOpenFix(TelemetryAiFixVerdict.NotCodeFault),
     ).toBe(false);

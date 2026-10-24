@@ -87,7 +87,9 @@ export function isExceptionInsightAboutOneException(
   const kind: ExceptionInsightKind | null =
     getExceptionInsightKind(insightType);
 
-  return kind === ExceptionInsightKind.New || kind === ExceptionInsightKind.Rising;
+  return (
+    kind === ExceptionInsightKind.New || kind === ExceptionInsightKind.Rising
+  );
 }
 
 /*
@@ -242,9 +244,7 @@ function describeOwnCode(data: {
  */
 
 function formatCount(count: number): string {
-  return Math.round(Number.isFinite(count) ? count : 0).toLocaleString(
-    "en-US",
-  );
+  return Math.round(Number.isFinite(count) ? count : 0).toLocaleString("en-US");
 }
 
 /*
@@ -660,7 +660,9 @@ export function getExceptionStackTraceSeverity(
 }
 
 // Whether none of the service's exceptions of the day carried a stack trace.
-function isEveryException(evidence: ExceptionStackTraceInsightEvidence): boolean {
+function isEveryException(
+  evidence: ExceptionStackTraceInsightEvidence,
+): boolean {
   return evidence.withStackTraceCount === 0;
 }
 
