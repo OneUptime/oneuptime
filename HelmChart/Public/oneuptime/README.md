@@ -9,7 +9,7 @@ websites, APIs and servers work, collects the logs, metrics and traces your apps
 send, pages whoever is on call when something breaks, and tells your customers
 on a status page. This Helm chart runs all of OneUptime on Kubernetes.
 
-- **Website:** [oneuptime.com](http://www.oneuptime.com)
+- **Website:** [oneuptime.com](https://oneuptime.com)
 - **Video tutorial:** [youtu.be/Ho5WyPHExTU](https://youtu.be/Ho5WyPHExTU)
 
 ## Quick Start

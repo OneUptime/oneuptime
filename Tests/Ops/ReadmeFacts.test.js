@@ -15,16 +15,24 @@
  *  - every link is a full https URL, a mailto: address or a path from the
  *    repository root, so it lands in the same place from Docs/translations/,
  *    and every path names a file or directory that is there;
+ *  - the top reads well in both of GitHub's themes and at any width: the
+ *    logo has a dark-mode version, and the language switcher never splits a
+ *    name or starts a line with its dot;
  *  - each README says what OneUptime is in the docs' own Getting Started
  *    paragraph, in its language, and the chart's README in the same words;
  *  - the sentences beside the Docker Compose commands say what the commands
  *    do: the line npm start ends with, the address it serves, the first
- *    account, HOST, and the memory the Docker Compose guide asks for;
+ *    account, HOST, and the memory the Docker Compose guide asks for. What
+ *    to set comes BEFORE the commands that need it, HOST before the Docker
+ *    Compose block and host before the Helm one;
  *  - the Helm commands add the repository the chart's own README adds, and
  *    install the chart this repository builds, under the release name that
  *    README upgrades and uninstalls, with a value the chart has;
  *  - the sign-up, Slack, support and sales addresses are the ones the
  *    product, the website and the docs give;
+ *  - the License section names the editions as the editions list does;
+ *  - in Persian, an English phrase that ends in punctuation (OneUptime is
+ *    up!, ee/) keeps it on its own side of a right-to-left line;
  *  - and no README carries an emoji.
  *
  * ReadmeQuickStart pins the Docker Compose block itself, and
@@ -45,9 +53,9 @@ const CHART_DIR = "HelmChart/Public/oneuptime";
 const CHART_README = `${CHART_DIR}/README.md`;
 const README_TRANSLATION = /^README\.([\w-]+)\.md$/;
 const HEADING = /^(#{1,6}) /;
-const HTML_LINK = /\b(?:href|src)="([^"]*)"/g;
+const HTML_LINK = /\b(?:href|src|srcset)="([^"]*)"/g;
 const MARKDOWN_LINK = /\]\(([^()\s]*)\)/g;
-const IMAGE_SOURCE = /\bsrc="([^"]*)"/g;
+const IMAGE_SOURCE = /\b(?:src|srcset)="([^"]*)"/g;
 const ALT_TEXT = /\balt="[^"]*"/g;
 const ALLOWED_LINK = /^(?:https:\/\/|mailto:|\/)/;
 const SLACK_INVITE =
@@ -55,8 +63,31 @@ const SLACK_INVITE =
 const EMOJI = /\p{Extended_Pictographic}/u;
 const WHITESPACE = /\s+/;
 const RIGHT_TO_LEFT_MARK = "\u{200F}";
+const LEFT_TO_RIGHT_MARK = "\u{200E}";
 const GETTING_STARTED = "introduction/getting-started.md";
 const FENCE = "```";
+const STEP_THREE = /[3\u{06F3}]/u;
+
+// The logo pair the docs' header shows, light and dark.
+const LIGHT_LOGO = "packages/App/FeatureSet/Docs/Static/images/logo-light.svg";
+const DARK_LOGO = "packages/App/FeatureSet/Docs/Static/images/logo-dark.svg";
+const LOGO_LINE = `  <a href="https://oneuptime.com"><picture><source media="(prefers-color-scheme: dark)" srcset="/${DARK_LOGO}"><img alt="OneUptime" width="42%" src="/${LIGHT_LOGO}"></picture></a>`;
+const SVG_FILL = /fill="#([0-9a-fA-F]{6})"/g;
+
+// The language switcher: <a href="...">name</a>&nbsp;· on each line.
+const SWITCHER_OPEN = '<p align="center">';
+const SWITCHER_LINK_START = '  <a href="';
+const SWITCHER_SEPARATOR = "&nbsp;\u{00B7}";
+const WORD_JOINER = "\u{2060}";
+const WORD_JOINER_ENTITY = "&#8288;";
+const WIDE_SCRIPT =
+  /[\p{Script=Han}\p{Script=Hangul}\p{Script=Hiragana}\p{Script=Katakana}]/u;
+
+// Inline Markdown a Persian line can carry: `code`, **bold** and [text](link).
+const CODE_SPAN = /`([^`\n]+)`/g;
+const BOLD_SPAN = /\*\*([^*\n]+)\*\*/g;
+const LINK_TEXT = /\[([^\]\n]*)\]\([^)\n]*\)/g;
+const LETTER_OR_DIGIT = /[\p{L}\p{N}]$/u;
 
 const REPO_ADD = "helm repo add oneuptime https://helm-chart.oneuptime.com/";
 const HELM_INSTALL =
@@ -269,6 +300,136 @@ function envValue(contents, key) {
 
 function slackInvitesOf(text) {
   return text.match(SLACK_INVITE) || [];
+}
+
+function withoutLeftToRightMarks(text) {
+  return text.split(LEFT_TO_RIGHT_MARK).join("");
+}
+
+// The line numbers (from 0) of a file's fences, opening and closing.
+function fenceIndexesOf(text) {
+  return text
+    .split("\n")
+    .map((line, index) => {
+      return line.startsWith(FENCE) ? index : -1;
+    })
+    .filter((index) => {
+      return index !== -1;
+    });
+}
+
+// The last line before `index` that is not blank, and the first one after.
+function lineBefore(lines, index) {
+  for (let at = index - 1; at >= 0; at--) {
+    if (lines[at].trim() !== "") {
+      return lines[at];
+    }
+  }
+
+  return "";
+}
+
+function lineAfter(lines, index) {
+  for (let at = index + 1; at < lines.length; at++) {
+    if (lines[at].trim() !== "") {
+      return lines[at];
+    }
+  }
+
+  return "";
+}
+
+/*
+ * The language switcher's links, from the first <p align="center"> block:
+ * each link's address, its name with &#8288; read as the word joiner it
+ * renders, and what follows its </a> on the line.
+ */
+function switcherOf(text) {
+  const lines = text.split("\n");
+  const start = lines.indexOf(SWITCHER_OPEN);
+  const end = lines.indexOf("</p>", start);
+
+  return lines.slice(start + 1, end).map((line) => {
+    const nameStart = line.indexOf('">') + 2;
+    const nameEnd = line.indexOf("</a>");
+
+    return {
+      line,
+      href: line.slice(SWITCHER_LINK_START.length, nameStart - 2),
+      name: line
+        .slice(nameStart, nameEnd)
+        .split(WORD_JOINER_ENTITY)
+        .join(WORD_JOINER),
+      after: line.slice(nameEnd + "</a>".length),
+    };
+  });
+}
+
+/*
+ * Whether a name stays whole on a narrow screen: a browser may break a line
+ * between any two Chinese, Japanese or Korean characters, so each two of
+ * them need a word joiner between them. Other scripts break only at spaces.
+ */
+function nameStaysWhole(name) {
+  const characters = [...name.split(WORD_JOINER).join("")];
+
+  if (!characters.some((character) => WIDE_SCRIPT.test(character))) {
+    return !name.includes(WORD_JOINER);
+  }
+
+  return name === characters.join(WORD_JOINER);
+}
+
+// An SVG colour's relative luminance, from 0 (black) to 1 (white).
+function luminanceOf(hex) {
+  const [red, green, blue] = [0, 2, 4].map((offset) => {
+    return parseInt(hex.slice(offset, offset + 2), 16) / 255;
+  });
+
+  return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+}
+
+function fillsOf(svg) {
+  return [...new Set(matchesOf(svg, SVG_FILL))];
+}
+
+/*
+ * In a right-to-left line, a neutral character (! / : and the like) that
+ * ends an English phrase takes the line's direction and is drawn on the
+ * phrase's other side: "**OneUptime is up!** را" shows as "!OneUptime is up"
+ * and "`ee/`" as "/ee". A left-to-right mark after it keeps it in place:
+ * inside the bold (a mark after the closing ** would stop it closing), or
+ * after the code span and the link it is the text of. Lists the spans of a
+ * line that end in such a character and lack the mark.
+ */
+function unmarkedEnglishEndingsOf(line) {
+  const missing = [];
+
+  for (const match of line.matchAll(CODE_SPAN)) {
+    if (LETTER_OR_DIGIT.test(match[1])) {
+      continue;
+    }
+
+    let rest = line.slice(match.index + match[0].length);
+
+    if (rest.startsWith("](")) {
+      rest = rest.slice(rest.indexOf(")") + 1);
+    }
+
+    if (!rest.startsWith(LEFT_TO_RIGHT_MARK)) {
+      missing.push(match[0]);
+    }
+  }
+
+  for (const match of line.matchAll(BOLD_SPAN)) {
+    const shown = match[1].replace(LINK_TEXT, "$1");
+
+    if (!shown.endsWith(LEFT_TO_RIGHT_MARK) && !LETTER_OR_DIGIT.test(shown)) {
+      missing.push(match[0]);
+    }
+  }
+
+  return missing;
 }
 
 const byLanguage = READMES.map((readme) => {
@@ -495,6 +656,15 @@ describe("what the README says OneUptime is", () => {
       description,
     );
   });
+
+  test("the chart's README links the website over https, as the README does", () => {
+    expect(read(CHART_README)).toContain(
+      "- **Website:** [oneuptime.com](https://oneuptime.com)",
+    );
+    expect(targetsOf(read(CHART_README))).not.toContain(
+      "http://www.oneuptime.com",
+    );
+  });
 });
 
 describe("installing with Docker Compose", () => {
@@ -505,7 +675,11 @@ describe("installing with Docker Compose", () => {
   test.each(byLanguage)(
     "%s quotes the line npm start ends with",
     (_language, readme) => {
-      expect(readme.text).toContain("**OneUptime is up!**");
+      // Persian keeps the "!" beside "up" with a left-to-right mark, which
+      // nobody sees.
+      expect(withoutLeftToRightMarks(readme.text)).toContain(
+        "**OneUptime is up!**",
+      );
     },
   );
 
@@ -539,7 +713,7 @@ describe("installing with Docker Compose", () => {
       "data.user.isMasterAdmin = await this.isInstanceAwaitingFirstUser();",
     );
     expect(ENGLISH.text).toContain(
-      "open `http://localhost` and sign up. The first account becomes the instance's admin.",
+      "open `http://localhost`, or your server's address, and sign up. The first account becomes the instance's admin.",
     );
   });
 
@@ -554,15 +728,59 @@ describe("installing with Docker Compose", () => {
     },
   );
 
-  test("HOST is set before step 3, the step that starts OneUptime", () => {
+  test("HOST is set before step 3, the step that starts OneUptime, in the words of the guide's Set the host name step", () => {
+    const guide = read(`${DOCS_CONTENT}/en/${COMPOSE_GUIDE}`);
+    const hostStep = guide.indexOf("### Set the host name");
+    const startStep = guide.indexOf("### Start OneUptime");
+    const guideWords =
+      "to the domain name or IP address people will use to reach OneUptime, without `http://`. Keep `localhost` only to try OneUptime on your own computer.";
+
     expect(quickStart).toContain("cp config.example.env config.env");
     expect(
       quickStart.slice(quickStart.indexOf("# 3. Start everything")),
     ).toEqual(["# 3. Start everything", "npm start"]);
+    // The guide sets the host name before it starts OneUptime, and so does
+    // the README, in the same words.
+    expect(hostStep).toBeGreaterThan(0);
+    expect(startStep).toBeGreaterThan(hostStep);
+    expect(guide.slice(hostStep, startStep)).toContain(
+      `Open \`config.env\` and set \`HOST\` ${guideWords}`,
+    );
     expect(ENGLISH.text).toContain(
-      "On a server, set `HOST` in `config.env` to the server's domain name or IP address before step 3, and open that address instead.",
+      `Before step 3, set \`HOST\` in \`config.env\` ${guideWords}`,
     );
   });
+
+  test.each(byLanguage)(
+    "%s says to set HOST before the commands, not after them",
+    (_language, readme) => {
+      const lines = readme.text.split("\n");
+      const [open, close] = fenceIndexesOf(readme.text);
+      const before = lineBefore(lines, open);
+      const nextHeading = lines.findIndex((line, index) => {
+        return index > close && HEADING.test(line);
+      });
+      const afterBlock = lines.slice(close + 1, nextHeading);
+
+      // The paragraph right above the block: HOST in config.env, without
+      // http://, localhost only on your own computer, before step 3.
+      for (const words of [
+        "`HOST`",
+        "`config.env`",
+        "`http://`",
+        "`localhost`",
+      ]) {
+        expect({ words, said: before.includes(words) }).toEqual({
+          words,
+          said: true,
+        });
+      }
+      expect(before).toMatch(STEP_THREE);
+      // And the paragraph below it no longer asks for it, after the fact.
+      expect(afterBlock.join("\n")).not.toContain("`HOST`");
+      expect(afterBlock.join("\n")).toContain("`http://localhost`");
+    },
+  );
 
   test.each(byLanguage)(
     "%s asks for the memory its own Docker Compose guide gives as the minimum",
@@ -658,9 +876,18 @@ describe("installing with Helm", () => {
     expect(values.host).toBe("localhost");
   });
 
-  test.each(byLanguage)("%s says what host is for", (_language, readme) => {
-    expect(readme.text).toContain("`host`");
-  });
+  test.each(byLanguage)(
+    "%s says what host is for before the Helm commands, and the chart's README after them",
+    (_language, readme) => {
+      const lines = readme.text.split("\n");
+      const fences = fenceIndexesOf(readme.text);
+
+      expect(fences).toHaveLength(4);
+      expect(lineBefore(lines, fences[2])).toContain("`host`");
+      expect(lineAfter(lines, fences[3])).not.toContain("`host`");
+      expect(lineAfter(lines, fences[3])).toContain(`(/${CHART_README})`);
+    },
+  );
 });
 
 describe("the addresses the README gives", () => {
@@ -744,6 +971,166 @@ describe("the addresses the README gives", () => {
     expect(ENGLISH.text).toContain(
       "the [contributing guidelines](/.github/CONTRIBUTING.md) explain how pull requests and licensing work.",
     );
+  });
+});
+
+describe("the top of the README", () => {
+  test.each(byLanguage)(
+    "%s shows the logo in GitHub's theme: light text on a dark page",
+    (_language, readme) => {
+      expect(readme.text.split("\n")).toContain(LOGO_LINE);
+    },
+  );
+
+  test("the dark logo is the light one drawn in a light colour, the pair the docs' header shows", () => {
+    const light = read(LIGHT_LOGO);
+    const dark = read(DARK_LOGO);
+    const header = read(
+      "packages/App/FeatureSet/Docs/Views/Partials/Header.ejs",
+    );
+
+    // The same drawing, only its colours differ.
+    expect(light.replace(SVG_FILL, 'fill=""')).toBe(
+      dark.replace(SVG_FILL, 'fill=""'),
+    );
+    expect(Math.min(...fillsOf(light).map(luminanceOf))).toBeLessThan(0.2);
+    expect(Math.max(...fillsOf(dark).map(luminanceOf))).toBeGreaterThan(0.8);
+    expect(header).toContain('src="/docs/static/images/logo-light.svg"');
+    expect(header).toContain('src="/docs/static/images/logo-dark.svg"');
+  });
+
+  test.each(byLanguage)(
+    "%s keeps every language's dot with the name before it, so no wrapped line starts with one",
+    (_language, readme) => {
+      const links = switcherOf(readme.text);
+
+      expect(links).toHaveLength(TRANSLATION_LANGUAGES.length + 1);
+      for (const link of links.slice(0, -1)) {
+        expect({ name: link.name, after: link.after }).toEqual({
+          name: link.name,
+          after: SWITCHER_SEPARATOR,
+        });
+      }
+      expect(links[links.length - 1].after).toBe("");
+    },
+  );
+
+  test.each(byLanguage)(
+    "%s keeps every language's name whole on a narrow screen",
+    (_language, readme) => {
+      const broken = switcherOf(readme.text).filter((link) => {
+        return !nameStaysWhole(link.name);
+      });
+
+      expect(broken).toEqual([]);
+    },
+  );
+
+  test("the switcher checks catch a name that can split and a dot that can start a line", () => {
+    const [english, korean] = switcherOf(
+      [
+        SWITCHER_OPEN,
+        '  <a href="/README.md">English</a> \u{00B7}',
+        '  <a href="/Docs/translations/README.ko.md">\u{D55C}\u{AD6D}\u{C5B4}</a>',
+        "</p>",
+      ].join("\n"),
+    );
+
+    expect(english.after).not.toBe(SWITCHER_SEPARATOR);
+    expect(nameStaysWhole(english.name)).toBe(true);
+    expect(korean.href).toBe("/Docs/translations/README.ko.md");
+    expect(nameStaysWhole(korean.name)).toBe(false);
+    expect(
+      nameStaysWhole(["\u{D55C}", "\u{AD6D}", "\u{C5B4}"].join(WORD_JOINER)),
+    ).toBe(true);
+    expect(nameStaysWhole(`Eng${WORD_JOINER}lish`)).toBe(false);
+  });
+});
+
+describe("what the README calls the editions", () => {
+  const englishLines = ENGLISH.text.split("\n");
+  const licenseIndex = englishLines.indexOf("## License") + 2;
+  const communityIndex = englishLines.findIndex((line) => {
+    return line.startsWith("- **Community Edition**: ");
+  });
+  const enterpriseIndex = englishLines.findIndex((line) => {
+    return line.startsWith("- **Enterprise Edition**: ");
+  });
+
+  test("the License paragraph closes the README, after the editions list", () => {
+    // The file ends with a newline, so its last line is empty.
+    expect(licenseIndex).toBe(englishLines.length - 2);
+    expect(communityIndex).toBeGreaterThan(0);
+    expect(enterpriseIndex).toBe(communityIndex + 1);
+    expect(licenseIndex).toBeGreaterThan(enterpriseIndex);
+  });
+
+  test.each(byLanguage)(
+    "%s names the editions in its License section as its editions list does",
+    (_language, readme) => {
+      const lines = readme.text.split("\n");
+
+      expect(lines[communityIndex]).toContain("Community Edition**");
+      expect(lines[enterpriseIndex]).toContain("Enterprise Edition**");
+      expect(lines[licenseIndex]).toContain("Community Edition");
+      expect(lines[licenseIndex]).toContain("Enterprise Edition");
+    },
+  );
+});
+
+describe("Persian keeps English punctuation in place", () => {
+  const persian = TRANSLATIONS.find((readme) => {
+    return readme.language === "fa";
+  });
+
+  test("there is a Persian README to check", () => {
+    expect(persian).toBeDefined();
+  });
+
+  test("every English phrase that ends in punctuation is followed by a left-to-right mark", () => {
+    const unmarked = linesOf(persian.text)
+      .filter((line) => {
+        return !line.code && !shapeOf(line).startsWith("html");
+      })
+      .flatMap((line) => {
+        return unmarkedEnglishEndingsOf(line.text).map((span) => {
+          return `${line.number}: ${span}`;
+        });
+      });
+
+    expect(unmarked).toEqual([]);
+    // The places this matters today.
+    expect(persian.text).toContain(`**OneUptime is up!${LEFT_TO_RIGHT_MARK}**`);
+    expect(persian.text).toContain(`[\`ee/\`](/ee)${LEFT_TO_RIGHT_MARK}`);
+  });
+
+  test("the check catches the spans a right-to-left line would turn around", () => {
+    const up =
+      "\u{067E}\u{06CC}\u{0627}\u{0645} **OneUptime is up!** \u{0631}\u{0627}";
+    const folder =
+      "\u{067E}\u{0648}\u{0634}\u{0647} [`ee/`](/ee). \u{0627}\u{06CC}\u{0646}";
+    const address =
+      "\u{0628}\u{062F}\u{0648}\u{0646} `http://`. \u{0641}\u{0642}\u{0637}";
+
+    expect(unmarkedEnglishEndingsOf(up)).toEqual(["**OneUptime is up!**"]);
+    expect(unmarkedEnglishEndingsOf(folder)).toEqual(["`ee/`"]);
+    expect(unmarkedEnglishEndingsOf(address)).toEqual(["`http://`"]);
+    expect(
+      unmarkedEnglishEndingsOf(
+        up.replace("up!**", `up!${LEFT_TO_RIGHT_MARK}**`),
+      ),
+    ).toEqual([]);
+    expect(
+      unmarkedEnglishEndingsOf(
+        folder.replace("(/ee)", `(/ee)${LEFT_TO_RIGHT_MARK}`),
+      ),
+    ).toEqual([]);
+    // Spans that end in a letter, and labels whose colon is the line's own.
+    expect(
+      unmarkedEnglishEndingsOf(
+        "- **[\u{200F}OneUptime AI](https://oneuptime.com/docs/fa/ai/ai-sre)**: `npm start`",
+      ),
+    ).toEqual([]);
   });
 });
 

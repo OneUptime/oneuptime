@@ -1,26 +1,26 @@
 <!-- markdownlint-disable MD033 MD041 -->
 <p align="center">
-  <a href="/README.md">English</a> ·
-  <a href="/Docs/translations/README.zh-CN.md">简体中文</a> ·
-  <a href="/Docs/translations/README.zh-TW.md">繁體中文</a> ·
-  <a href="/Docs/translations/README.ja.md">日本語</a> ·
-  <a href="/Docs/translations/README.ko.md">한국어</a> ·
-  <a href="/Docs/translations/README.es.md">Español</a> ·
-  <a href="/Docs/translations/README.fr.md">Français</a> ·
-  <a href="/Docs/translations/README.de.md">Deutsch</a> ·
-  <a href="/Docs/translations/README.pt.md">Português</a> ·
-  <a href="/Docs/translations/README.it.md">Italiano</a> ·
-  <a href="/Docs/translations/README.ru.md">Русский</a> ·
-  <a href="/Docs/translations/README.hi.md">हिन्दी</a> ·
-  <a href="/Docs/translations/README.fa.md">فارسی</a> ·
-  <a href="/Docs/translations/README.nl.md">Nederlands</a> ·
-  <a href="/Docs/translations/README.da.md">Dansk</a> ·
-  <a href="/Docs/translations/README.sv.md">Svenska</a> ·
+  <a href="/README.md">English</a>&nbsp;·
+  <a href="/Docs/translations/README.zh-CN.md">简&#8288;体&#8288;中&#8288;文</a>&nbsp;·
+  <a href="/Docs/translations/README.zh-TW.md">繁&#8288;體&#8288;中&#8288;文</a>&nbsp;·
+  <a href="/Docs/translations/README.ja.md">日&#8288;本&#8288;語</a>&nbsp;·
+  <a href="/Docs/translations/README.ko.md">한&#8288;국&#8288;어</a>&nbsp;·
+  <a href="/Docs/translations/README.es.md">Español</a>&nbsp;·
+  <a href="/Docs/translations/README.fr.md">Français</a>&nbsp;·
+  <a href="/Docs/translations/README.de.md">Deutsch</a>&nbsp;·
+  <a href="/Docs/translations/README.pt.md">Português</a>&nbsp;·
+  <a href="/Docs/translations/README.it.md">Italiano</a>&nbsp;·
+  <a href="/Docs/translations/README.ru.md">Русский</a>&nbsp;·
+  <a href="/Docs/translations/README.hi.md">हिन्दी</a>&nbsp;·
+  <a href="/Docs/translations/README.fa.md">فارسی</a>&nbsp;·
+  <a href="/Docs/translations/README.nl.md">Nederlands</a>&nbsp;·
+  <a href="/Docs/translations/README.da.md">Dansk</a>&nbsp;·
+  <a href="/Docs/translations/README.sv.md">Svenska</a>&nbsp;·
   <a href="/Docs/translations/README.no.md">Norsk</a>
 </p>
 
 <p align="center">
-  <a href="https://oneuptime.com"><img alt="OneUptime" width="50%" src="/packages/Home/Static/img/OneUptimePNG/7.png"></a>
+  <a href="https://oneuptime.com"><picture><source media="(prefers-color-scheme: dark)" srcset="/packages/App/FeatureSet/Docs/Static/images/logo-dark.svg"><img alt="OneUptime" width="42%" src="/packages/App/FeatureSet/Docs/Static/images/logo-light.svg"></picture></a>
 </p>
 
 <p align="center">
@@ -58,6 +58,8 @@ OneUptime 是一个开源的可观测性平台。它检查你的网站、API 和
 
 你需要一台内存至少 8 GB 的 Linux 服务器，并装有 Docker、Docker Compose、Git 和 Node.js。
 
+在第 3 步之前，把 `config.env` 中的 `HOST` 设为人们访问 OneUptime 时使用的域名或 IP 地址，不要带 `http://`。只有在自己的电脑上试用 OneUptime 时才保留 `localhost`。
+
 ```bash
 # 1. Clone the release branch
 git clone --depth 1 --single-branch --branch release https://github.com/OneUptime/oneuptime.git
@@ -73,20 +75,20 @@ done
 npm start
 ```
 
-当 `npm start` 输出 **OneUptime is up!** 后，打开 `http://localhost` 并注册。第一个账号会成为该实例的管理员。在服务器上，请在第 3 步之前把 `config.env` 中的 `HOST` 设为服务器的域名或 IP 地址，然后打开那个地址。
+当 `npm start` 输出 **OneUptime is up!** 后，打开 `http://localhost` 或服务器的地址并注册。第一个账号会成为该实例的管理员。
 
 [Docker Compose 指南](https://oneuptime.com/docs/zh-CN/installation/docker-compose)介绍了服务器规格、HTTPS、备份和更新。
 
 ### 用 Helm 部署到 Kubernetes
 
-如需大规模生产环境或高可用，请安装 Helm chart：
+如需大规模生产环境或高可用，请安装 Helm chart。把 `host` 设为人们访问 OneUptime 时使用的域名或 IP 地址：
 
 ```bash
 helm repo add oneuptime https://helm-chart.oneuptime.com/
 helm install my-oneuptime oneuptime/oneuptime --set host=oneuptime.example.com
 ```
 
-把 `host` 设为人们访问 OneUptime 时使用的域名或 IP 地址。[chart 的 README](/HelmChart/Public/oneuptime/README.md) 介绍了存储、HTTPS、数据库和升级。
+[chart 的 README](/HelmChart/Public/oneuptime/README.md) 介绍了存储、HTTPS、数据库和升级。
 
 ## Community 与 Enterprise
 
@@ -110,4 +112,4 @@ helm install my-oneuptime oneuptime/oneuptime --set host=oneuptime.example.com
 
 ## 许可证
 
-OneUptime 基于 [Apache License 2.0](/LICENSE) 开源，[`ee/`](/ee) 目录除外。该目录包含企业版，采用 [OneUptime Enterprise License](/ee/LICENSE) 授权。社区版镜像不包含任何来自 `ee/` 的代码。仓库根目录下的 [`LICENSE`](/LICENSE) 文件规定了这一划分。
+OneUptime 基于 [Apache License 2.0](/LICENSE) 开源，[`ee/`](/ee) 目录除外。该目录包含 Enterprise Edition，采用 [OneUptime Enterprise License](/ee/LICENSE) 授权。Community Edition 镜像不包含任何来自 `ee/` 的代码。仓库根目录下的 [`LICENSE`](/LICENSE) 文件规定了这一划分。

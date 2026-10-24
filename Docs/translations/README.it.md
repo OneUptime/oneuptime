@@ -1,26 +1,26 @@
 <!-- markdownlint-disable MD033 MD041 -->
 <p align="center">
-  <a href="/README.md">English</a> ·
-  <a href="/Docs/translations/README.zh-CN.md">简体中文</a> ·
-  <a href="/Docs/translations/README.zh-TW.md">繁體中文</a> ·
-  <a href="/Docs/translations/README.ja.md">日本語</a> ·
-  <a href="/Docs/translations/README.ko.md">한국어</a> ·
-  <a href="/Docs/translations/README.es.md">Español</a> ·
-  <a href="/Docs/translations/README.fr.md">Français</a> ·
-  <a href="/Docs/translations/README.de.md">Deutsch</a> ·
-  <a href="/Docs/translations/README.pt.md">Português</a> ·
-  <a href="/Docs/translations/README.it.md">Italiano</a> ·
-  <a href="/Docs/translations/README.ru.md">Русский</a> ·
-  <a href="/Docs/translations/README.hi.md">हिन्दी</a> ·
-  <a href="/Docs/translations/README.fa.md">فارسی</a> ·
-  <a href="/Docs/translations/README.nl.md">Nederlands</a> ·
-  <a href="/Docs/translations/README.da.md">Dansk</a> ·
-  <a href="/Docs/translations/README.sv.md">Svenska</a> ·
+  <a href="/README.md">English</a>&nbsp;·
+  <a href="/Docs/translations/README.zh-CN.md">简&#8288;体&#8288;中&#8288;文</a>&nbsp;·
+  <a href="/Docs/translations/README.zh-TW.md">繁&#8288;體&#8288;中&#8288;文</a>&nbsp;·
+  <a href="/Docs/translations/README.ja.md">日&#8288;本&#8288;語</a>&nbsp;·
+  <a href="/Docs/translations/README.ko.md">한&#8288;국&#8288;어</a>&nbsp;·
+  <a href="/Docs/translations/README.es.md">Español</a>&nbsp;·
+  <a href="/Docs/translations/README.fr.md">Français</a>&nbsp;·
+  <a href="/Docs/translations/README.de.md">Deutsch</a>&nbsp;·
+  <a href="/Docs/translations/README.pt.md">Português</a>&nbsp;·
+  <a href="/Docs/translations/README.it.md">Italiano</a>&nbsp;·
+  <a href="/Docs/translations/README.ru.md">Русский</a>&nbsp;·
+  <a href="/Docs/translations/README.hi.md">हिन्दी</a>&nbsp;·
+  <a href="/Docs/translations/README.fa.md">فارسی</a>&nbsp;·
+  <a href="/Docs/translations/README.nl.md">Nederlands</a>&nbsp;·
+  <a href="/Docs/translations/README.da.md">Dansk</a>&nbsp;·
+  <a href="/Docs/translations/README.sv.md">Svenska</a>&nbsp;·
   <a href="/Docs/translations/README.no.md">Norsk</a>
 </p>
 
 <p align="center">
-  <a href="https://oneuptime.com"><img alt="OneUptime" width="50%" src="/packages/Home/Static/img/OneUptimePNG/7.png"></a>
+  <a href="https://oneuptime.com"><picture><source media="(prefers-color-scheme: dark)" srcset="/packages/App/FeatureSet/Docs/Static/images/logo-dark.svg"><img alt="OneUptime" width="42%" src="/packages/App/FeatureSet/Docs/Static/images/logo-light.svg"></picture></a>
 </p>
 
 <p align="center">
@@ -58,6 +58,8 @@ Tutto il resto è nella [documentazione](https://oneuptime.com/docs/it/introduct
 
 Ti serve un server Linux con almeno 8 GB di memoria, e Docker, Docker Compose, Git e Node.js.
 
+Prima del passaggio 3, imposta `HOST` in `config.env` sul nome di dominio o sull'indirizzo IP che verrà usato per raggiungere OneUptime, senza `http://`. Lascia `localhost` solo per provare OneUptime sul tuo computer.
+
 ```bash
 # 1. Clone the release branch
 git clone --depth 1 --single-branch --branch release https://github.com/OneUptime/oneuptime.git
@@ -73,20 +75,20 @@ done
 npm start
 ```
 
-Quando `npm start` stampa **OneUptime is up!**, apri `http://localhost` e registrati. Il primo account diventa l'amministratore dell'istanza. Su un server, prima del passaggio 3 imposta `HOST` in `config.env` sul nome di dominio o sull'indirizzo IP del server, e apri invece quell'indirizzo.
+Quando `npm start` stampa **OneUptime is up!**, apri `http://localhost`, o l'indirizzo del tuo server, e registrati. Il primo account diventa l'amministratore dell'istanza.
 
 La [guida a Docker Compose](https://oneuptime.com/docs/it/installation/docker-compose) copre le dimensioni del server, HTTPS, i backup e gli aggiornamenti.
 
 ### Kubernetes con Helm
 
-Per la produzione su larga scala, o l'alta disponibilità, installa il chart Helm:
+Per la produzione su larga scala, o l'alta disponibilità, installa il chart Helm. Imposta `host` sul nome di dominio o sull'indirizzo IP con cui si raggiungerà OneUptime:
 
 ```bash
 helm repo add oneuptime https://helm-chart.oneuptime.com/
 helm install my-oneuptime oneuptime/oneuptime --set host=oneuptime.example.com
 ```
 
-Imposta `host` sul nome di dominio o sull'indirizzo IP con cui si raggiungerà OneUptime. Il [README del chart](/HelmChart/Public/oneuptime/README.md) copre storage, HTTPS, database e aggiornamenti.
+Il [README del chart](/HelmChart/Public/oneuptime/README.md) copre storage, HTTPS, database e aggiornamenti.
 
 ## Community ed Enterprise
 

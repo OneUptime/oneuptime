@@ -1,26 +1,26 @@
 <!-- markdownlint-disable MD033 MD041 -->
 <p align="center">
-  <a href="/README.md">English</a> ·
-  <a href="/Docs/translations/README.zh-CN.md">简体中文</a> ·
-  <a href="/Docs/translations/README.zh-TW.md">繁體中文</a> ·
-  <a href="/Docs/translations/README.ja.md">日本語</a> ·
-  <a href="/Docs/translations/README.ko.md">한국어</a> ·
-  <a href="/Docs/translations/README.es.md">Español</a> ·
-  <a href="/Docs/translations/README.fr.md">Français</a> ·
-  <a href="/Docs/translations/README.de.md">Deutsch</a> ·
-  <a href="/Docs/translations/README.pt.md">Português</a> ·
-  <a href="/Docs/translations/README.it.md">Italiano</a> ·
-  <a href="/Docs/translations/README.ru.md">Русский</a> ·
-  <a href="/Docs/translations/README.hi.md">हिन्दी</a> ·
-  <a href="/Docs/translations/README.fa.md">فارسی</a> ·
-  <a href="/Docs/translations/README.nl.md">Nederlands</a> ·
-  <a href="/Docs/translations/README.da.md">Dansk</a> ·
-  <a href="/Docs/translations/README.sv.md">Svenska</a> ·
+  <a href="/README.md">English</a>&nbsp;·
+  <a href="/Docs/translations/README.zh-CN.md">简&#8288;体&#8288;中&#8288;文</a>&nbsp;·
+  <a href="/Docs/translations/README.zh-TW.md">繁&#8288;體&#8288;中&#8288;文</a>&nbsp;·
+  <a href="/Docs/translations/README.ja.md">日&#8288;本&#8288;語</a>&nbsp;·
+  <a href="/Docs/translations/README.ko.md">한&#8288;국&#8288;어</a>&nbsp;·
+  <a href="/Docs/translations/README.es.md">Español</a>&nbsp;·
+  <a href="/Docs/translations/README.fr.md">Français</a>&nbsp;·
+  <a href="/Docs/translations/README.de.md">Deutsch</a>&nbsp;·
+  <a href="/Docs/translations/README.pt.md">Português</a>&nbsp;·
+  <a href="/Docs/translations/README.it.md">Italiano</a>&nbsp;·
+  <a href="/Docs/translations/README.ru.md">Русский</a>&nbsp;·
+  <a href="/Docs/translations/README.hi.md">हिन्दी</a>&nbsp;·
+  <a href="/Docs/translations/README.fa.md">فارسی</a>&nbsp;·
+  <a href="/Docs/translations/README.nl.md">Nederlands</a>&nbsp;·
+  <a href="/Docs/translations/README.da.md">Dansk</a>&nbsp;·
+  <a href="/Docs/translations/README.sv.md">Svenska</a>&nbsp;·
   <a href="/Docs/translations/README.no.md">Norsk</a>
 </p>
 
 <p align="center">
-  <a href="https://oneuptime.com"><img alt="OneUptime" width="50%" src="/packages/Home/Static/img/OneUptimePNG/7.png"></a>
+  <a href="https://oneuptime.com"><picture><source media="(prefers-color-scheme: dark)" srcset="/packages/App/FeatureSet/Docs/Static/images/logo-dark.svg"><img alt="OneUptime" width="42%" src="/packages/App/FeatureSet/Docs/Static/images/logo-light.svg"></picture></a>
 </p>
 
 <p align="center">
@@ -58,6 +58,8 @@ OneUptime은 오픈 소스 옵저버빌리티 플랫폼입니다. 웹사이트, 
 
 메모리가 8 GB 이상인 Linux 서버와 Docker, Docker Compose, Git, Node.js가 필요합니다.
 
+3단계 전에 `config.env`의 `HOST`를 사람들이 OneUptime에 접근할 때 쓸 도메인 이름이나 IP 주소로 설정합니다. `http://`는 붙이지 않습니다. `localhost`는 자신의 컴퓨터에서 OneUptime을 시험해 볼 때만 그대로 두세요.
+
 ```bash
 # 1. Clone the release branch
 git clone --depth 1 --single-branch --branch release https://github.com/OneUptime/oneuptime.git
@@ -73,20 +75,20 @@ done
 npm start
 ```
 
-`npm start`에서 **OneUptime is up!** 메시지가 나오면 `http://localhost`를 열고 가입합니다. 첫 계정이 인스턴스의 관리자가 됩니다. 서버에서는 3단계 전에 `config.env`의 `HOST`를 서버의 도메인 이름이나 IP 주소로 설정하고, 그 주소를 엽니다.
+`npm start`에서 **OneUptime is up!** 메시지가 나오면 `http://localhost`나 서버 주소를 열고 가입합니다. 첫 계정이 인스턴스의 관리자가 됩니다.
 
 서버 크기, HTTPS, 백업, 업데이트는 [Docker Compose 가이드](https://oneuptime.com/docs/ko/installation/docker-compose)에서 다룹니다.
 
 ### Helm으로 Kubernetes에 설치
 
-대규모 프로덕션이나 고가용성이 필요하다면 Helm 차트를 설치합니다.
+대규모 프로덕션이나 고가용성이 필요하다면 Helm 차트를 설치합니다. `host`는 사람들이 OneUptime에 접속할 도메인 이름이나 IP 주소로 설정합니다.
 
 ```bash
 helm repo add oneuptime https://helm-chart.oneuptime.com/
 helm install my-oneuptime oneuptime/oneuptime --set host=oneuptime.example.com
 ```
 
-`host`는 사람들이 OneUptime에 접속할 도메인 이름이나 IP 주소로 설정합니다. 스토리지, HTTPS, 데이터베이스, 업그레이드는 [차트의 README](/HelmChart/Public/oneuptime/README.md)에서 다룹니다.
+스토리지, HTTPS, 데이터베이스, 업그레이드는 [차트의 README](/HelmChart/Public/oneuptime/README.md)에서 다룹니다.
 
 ## Community와 Enterprise
 
@@ -110,4 +112,4 @@ OneUptime이 유용하다면 이 저장소에 별을 주거나 [프로젝트를 
 
 ## 라이선스
 
-OneUptime은 [Apache License 2.0](/LICENSE)에 따른 오픈소스이며, [`ee/`](/ee) 디렉터리만 예외입니다. 이 디렉터리에는 엔터프라이즈 에디션이 들어 있으며 [OneUptime Enterprise License](/ee/LICENSE)에 따라 라이선스가 부여됩니다. 커뮤니티 에디션 이미지에는 `ee/`의 코드가 포함되지 않습니다. 이 구분은 저장소 루트의 [`LICENSE`](/LICENSE) 파일에 명시되어 있습니다.
+OneUptime은 [Apache License 2.0](/LICENSE)에 따른 오픈소스이며, [`ee/`](/ee) 디렉터리만 예외입니다. 이 디렉터리에는 Enterprise Edition이 들어 있으며 [OneUptime Enterprise License](/ee/LICENSE)에 따라 라이선스가 부여됩니다. Community Edition 이미지에는 `ee/`의 코드가 포함되지 않습니다. 이 구분은 저장소 루트의 [`LICENSE`](/LICENSE) 파일에 명시되어 있습니다.

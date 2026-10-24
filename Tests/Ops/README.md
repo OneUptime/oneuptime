@@ -197,12 +197,16 @@ block is run on `config.example.env` and leaves no placeholder.
 What the README and its 16 translations say, held to what makes it true.
 Every translation keeps the English layout line for line and links the docs
 in its own language; every link is https, `mailto:` or a repository path that
-exists; each intro is the docs' Getting Started paragraph in its language; the
-sentences beside the install commands match `npm start`, `config.example.env`,
-the compose files and the Docker Compose guide; the Helm commands match the
-chart and its README; the Slack, support and sign-up addresses are the
-product's; and no README carries an emoji. App's `ReadmeDocsLinks` holds the
-docs links to the docs' nav and translations.
+exists; the logo has a dark-mode version and the language switcher never
+splits a name or starts a line with its dot; each intro is the docs' Getting
+Started paragraph in its language; the sentences beside the install commands
+match `npm start`, `config.example.env`, the compose files and the Docker
+Compose guide, and what to set (`HOST`, `host`) comes before the commands; the
+Helm commands match the chart and its README; the Slack, support and sign-up
+addresses are the product's; the License section names the editions as the
+editions list does; Persian keeps the punctuation of an English phrase on its
+side with a left-to-right mark; and no README carries an emoji. App's
+`ReadmeDocsLinks` holds the docs links to the docs' nav and translations.
 
 ### `ContainerAgentLogSeverity.test.js`
 

@@ -1,26 +1,26 @@
 <!-- markdownlint-disable MD033 MD041 -->
 <p align="center">
-  <a href="/README.md">English</a> ·
-  <a href="/Docs/translations/README.zh-CN.md">简体中文</a> ·
-  <a href="/Docs/translations/README.zh-TW.md">繁體中文</a> ·
-  <a href="/Docs/translations/README.ja.md">日本語</a> ·
-  <a href="/Docs/translations/README.ko.md">한국어</a> ·
-  <a href="/Docs/translations/README.es.md">Español</a> ·
-  <a href="/Docs/translations/README.fr.md">Français</a> ·
-  <a href="/Docs/translations/README.de.md">Deutsch</a> ·
-  <a href="/Docs/translations/README.pt.md">Português</a> ·
-  <a href="/Docs/translations/README.it.md">Italiano</a> ·
-  <a href="/Docs/translations/README.ru.md">Русский</a> ·
-  <a href="/Docs/translations/README.hi.md">हिन्दी</a> ·
-  <a href="/Docs/translations/README.fa.md">فارسی</a> ·
-  <a href="/Docs/translations/README.nl.md">Nederlands</a> ·
-  <a href="/Docs/translations/README.da.md">Dansk</a> ·
-  <a href="/Docs/translations/README.sv.md">Svenska</a> ·
+  <a href="/README.md">English</a>&nbsp;·
+  <a href="/Docs/translations/README.zh-CN.md">简&#8288;体&#8288;中&#8288;文</a>&nbsp;·
+  <a href="/Docs/translations/README.zh-TW.md">繁&#8288;體&#8288;中&#8288;文</a>&nbsp;·
+  <a href="/Docs/translations/README.ja.md">日&#8288;本&#8288;語</a>&nbsp;·
+  <a href="/Docs/translations/README.ko.md">한&#8288;국&#8288;어</a>&nbsp;·
+  <a href="/Docs/translations/README.es.md">Español</a>&nbsp;·
+  <a href="/Docs/translations/README.fr.md">Français</a>&nbsp;·
+  <a href="/Docs/translations/README.de.md">Deutsch</a>&nbsp;·
+  <a href="/Docs/translations/README.pt.md">Português</a>&nbsp;·
+  <a href="/Docs/translations/README.it.md">Italiano</a>&nbsp;·
+  <a href="/Docs/translations/README.ru.md">Русский</a>&nbsp;·
+  <a href="/Docs/translations/README.hi.md">हिन्दी</a>&nbsp;·
+  <a href="/Docs/translations/README.fa.md">فارسی</a>&nbsp;·
+  <a href="/Docs/translations/README.nl.md">Nederlands</a>&nbsp;·
+  <a href="/Docs/translations/README.da.md">Dansk</a>&nbsp;·
+  <a href="/Docs/translations/README.sv.md">Svenska</a>&nbsp;·
   <a href="/Docs/translations/README.no.md">Norsk</a>
 </p>
 
 <p align="center">
-  <a href="https://oneuptime.com"><img alt="OneUptime" width="50%" src="/packages/Home/Static/img/OneUptimePNG/7.png"></a>
+  <a href="https://oneuptime.com"><picture><source media="(prefers-color-scheme: dark)" srcset="/packages/App/FeatureSet/Docs/Static/images/logo-dark.svg"><img alt="OneUptime" width="42%" src="/packages/App/FeatureSet/Docs/Static/images/logo-light.svg"></picture></a>
 </p>
 
 <p align="center">
@@ -58,6 +58,8 @@ OneUptime はオープンソースのオブザーバビリティプラットフ�
 
 8 GB 以上のメモリを持つ Linux サーバーと、Docker、Docker Compose、Git、Node.js が必要です。
 
+手順 3 の前に、`config.env` の `HOST` に OneUptime へのアクセスに使うドメイン名または IP アドレスを `http://` なしで設定します。`localhost` のままにするのは、自分のコンピューターで OneUptime を試す場合だけにしてください。
+
 ```bash
 # 1. Clone the release branch
 git clone --depth 1 --single-branch --branch release https://github.com/OneUptime/oneuptime.git
@@ -73,20 +75,20 @@ done
 npm start
 ```
 
-`npm start` が **OneUptime is up!** と表示したら、`http://localhost` を開いてサインアップします。最初のアカウントがインスタンスの管理者になります。サーバーでは、手順 3 の前に `config.env` の `HOST` をサーバーのドメイン名または IP アドレスにして、そのアドレスを開いてください。
+`npm start` が **OneUptime is up!** と表示したら、`http://localhost` またはサーバーのアドレスを開いてサインアップします。最初のアカウントがインスタンスの管理者になります。
 
 サーバーのサイズ、HTTPS、バックアップ、更新については [Docker Compose ガイド](https://oneuptime.com/docs/ja/installation/docker-compose)を参照してください。
 
 ### Helm で Kubernetes にインストールする
 
-大規模な本番環境や高可用性が必要なら、Helm チャートをインストールします。
+大規模な本番環境や高可用性が必要なら、Helm チャートをインストールします。`host` には、OneUptime にアクセスするときに使うドメイン名または IP アドレスを指定します。
 
 ```bash
 helm repo add oneuptime https://helm-chart.oneuptime.com/
 helm install my-oneuptime oneuptime/oneuptime --set host=oneuptime.example.com
 ```
 
-`host` には、OneUptime にアクセスするときに使うドメイン名または IP アドレスを指定します。ストレージ、HTTPS、データベース、アップグレードについては[チャートの README](/HelmChart/Public/oneuptime/README.md) を参照してください。
+ストレージ、HTTPS、データベース、アップグレードについては[チャートの README](/HelmChart/Public/oneuptime/README.md) を参照してください。
 
 ## Community と Enterprise
 
