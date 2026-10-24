@@ -38,7 +38,7 @@ flowchart LR
 | **Geavanceerd** | **Domeinen**, **API-sleutels**, **Functievlaggen**, **Importeren uit een andere tool** | [Eigen domeinen](/docs/status-pages/branding-and-domains#aangepaste-domeinen), [API-sleutels](/docs/permissions/index#api-sleutels), [Functievlaggen](#functievlaggen), [Overstappen van Opsgenie](/docs/moving-to-oneuptime/opsgenie) en de andere overstapgidsen |
 | **Beveiliging** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Facturering en facturen** | **Facturering**, **Gebruiksgeschiedenis**, **Facturen** | [Facturering en gebruik](/docs/configuration/billing) |
-| **Auditlogboeken** | **Auditlogboeken**, **Instellingen** | [Auditlogboeken](/docs/configuration/audit-logs) |
+| **Auditlogboeken** | **Auditlogboeken**, **Instellingen**, **Export** | [Auditlogboeken](/docs/configuration/audit-logs), [Export van auditlogboek](/docs/configuration/audit-log-export) |
 | **Gevarenzone** | **Gevarenzone** | [Het project verwijderen](#het-project-verwijderen) |
 
 **Facturering en facturen** en **AI-tegoeden** bestaan alleen in OneUptime Cloud: een zelf gehoste installatie heeft geen facturering.

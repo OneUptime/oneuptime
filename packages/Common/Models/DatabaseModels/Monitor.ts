@@ -102,7 +102,17 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
   update: true,
   read: true,
 })
-@EnableAuditLog()
+/*
+ * The keys a server agent, an incoming request and an incoming email
+ * present are secrets: the audit log records who changed one, never the key.
+ */
+@EnableAuditLog({
+  redactColumns: [
+    "serverMonitorSecretKey",
+    "incomingRequestSecretKey",
+    "incomingEmailSecretKey",
+  ],
+})
 @CrudApiEndpoint(new Route("/monitor"))
 @SlugifyColumn("name", "slug")
 @Index(

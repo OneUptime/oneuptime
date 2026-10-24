@@ -1,15 +1,29 @@
 import ClickhouseDatabase from "../Infrastructure/ClickhouseDatabase";
-import AnalyticsDatabaseService from "./AnalyticsDatabaseService";
+import AnalyticsDatabaseService, {
+  DbJSONResponse,
+  Results,
+} from "./AnalyticsDatabaseService";
 import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
 import { AuditLogRecorder } from "../Enterprise/EnterpriseServerModule";
 import CreateManyBy from "../Types/AnalyticsDatabase/CreateManyBy";
 import logger from "../Utils/Logger";
+import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
+import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import AuditLog from "../../Models/AnalyticsModels/AuditLog";
+import { AUDIT_LOG_EXPORT_SOURCE_COLUMNS } from "../../Types/AuditLog/Export/AuditLogExportRecord";
+import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+
+/*
+ * How long one export read may run: well under the ClickHouse client's
+ * request timeout, so the server answers (or refuses) first.
+ */
+export const AUDIT_LOG_EXPORT_READ_TIME_LIMIT_IN_SECONDS: number = 45;
 
 // Why a create that is not the recorder's is refused.
 export const AUDIT_LOG_CREATE_REFUSED_MESSAGE: string =
@@ -165,6 +179,119 @@ export class AuditLogService extends AnalyticsDatabaseService<AuditLog> {
       logger.warn("AuditLog: failed to record download event");
       logger.warn(err);
     }
+  }
+
+  /*
+   * The entries an audit log export sends next, oldest first: every entry
+   * recorded from `startsAt` to `until` that comes after the export's
+   * cursor - its project's only, or every project's for an instance export
+   * (no projectId).
+   *
+   * Entries are ordered by when they were recorded and then by id, and the
+   * cursor is the last entry delivered (its createdAt and _id), so entries
+   * recorded in the same second are neither skipped nor sent twice, and a
+   * read after a restart - on any worker - continues exactly where the
+   * last delivery ended. createdAt is whole seconds, so ties are common.
+   *
+   * `until` stays a little behind now (the exporter's settle time), so an
+   * entry still being written when a batch is read is read by the next one
+   * instead of falling behind the cursor.
+   *
+   * Root-only reading, for the exporter: it answers raw rows (JSON), with
+   * the record columns of AUDIT_LOG_EXPORT_SOURCE_COLUMNS.
+   */
+  @CaptureSpan()
+  public async findEntriesForExport(data: {
+    projectId: ObjectID | null;
+    startsAt: Date;
+    until: Date;
+    after: { createdAt: Date; id: ObjectID } | null;
+    limit: number;
+  }): Promise<Array<JSONObject>> {
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const statement: Statement = AuditLogService.toExportReadStatement({
+      databaseName: this.database!.getDatasourceOptions().database!,
+      tableName: this.model.tableName,
+      ...data,
+    });
+
+    const result: Results = await this.executeQuery(statement);
+    const response: DbJSONResponse = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    return response.data || [];
+  }
+
+  // The read findEntriesForExport runs, every value a bound parameter.
+  public static toExportReadStatement(data: {
+    databaseName: string;
+    tableName: string;
+    projectId: ObjectID | null;
+    startsAt: Date;
+    until: Date;
+    after: { createdAt: Date; id: ObjectID } | null;
+    limit: number;
+  }): Statement {
+    const statement: Statement = SQL`SELECT `;
+    statement.append(AUDIT_LOG_EXPORT_SOURCE_COLUMNS.join(", "));
+    statement.append(` FROM ${data.databaseName}.${data.tableName} WHERE `);
+    statement.append(
+      SQL`createdAt >= ${{
+        type: TableColumnType.Date,
+        value: data.startsAt,
+      }} AND createdAt <= ${{
+        type: TableColumnType.Date,
+        value: data.until,
+      }}`,
+    );
+
+    if (data.projectId) {
+      statement.append(
+        SQL` AND projectId = ${{
+          type: TableColumnType.ObjectID,
+          value: data.projectId,
+        }}`,
+      );
+    }
+
+    if (data.after) {
+      statement.append(
+        SQL` AND (createdAt > ${{
+          type: TableColumnType.Date,
+          value: data.after.createdAt,
+        }} OR (createdAt = ${{
+          type: TableColumnType.Date,
+          value: data.after.createdAt,
+        }} AND _id > ${{
+          type: TableColumnType.Text,
+          value: data.after.id.toString(),
+        }}))`,
+      );
+    }
+
+    statement.append(
+      SQL` ORDER BY createdAt ASC, _id ASC LIMIT ${{
+        type: TableColumnType.Number,
+        value: Math.max(1, Math.trunc(data.limit)),
+      }}`,
+    );
+    /*
+     * Stopped at the limit, the read fails rather than breaking off: a
+     * sorted read cut short answers some rows that are not the first ones,
+     * and the cursor would move past entries never sent.
+     */
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: AUDIT_LOG_EXPORT_READ_TIME_LIMIT_IN_SECONDS,
+        timeoutOverflowMode: "throw",
+      }),
+    );
+
+    return statement;
   }
 
   // Null on the Community Edition (the facade also swallows a module's errors).

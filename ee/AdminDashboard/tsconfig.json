@@ -74,6 +74,20 @@
   "include": [
     "./**/*.ts",
     "./**/*.tsx",
+    /*
+     * The audit log export table, form and test both frontends share (the
+     * instance's page renders the project page's), with the license mode
+     * they read, so this type check covers them as this frontend bundles
+     * them. They import Common/... only.
+     */
+    "../Dashboard/AuditLogExport/AuditLogExportCopy.ts",
+    "../Dashboard/AuditLogExport/AuditLogExportForm.ts",
+    "../Dashboard/AuditLogExport/AuditLogExportFormModal.tsx",
+    "../Dashboard/AuditLogExport/AuditLogExportLicenseNotice.tsx",
+    "../Dashboard/AuditLogExport/AuditLogExportTable.tsx",
+    "../Dashboard/AuditLogExport/AuditLogExportTest.tsx",
+    "../Dashboard/Identity/License/EnterpriseLicenseMode.ts",
+    "../Dashboard/Identity/License/UseEnterpriseLicenseMode.ts",
     "../../packages/App/FeatureSet/AdminDashboard/index.d.ts",
     "../../packages/App/FeatureSet/AdminDashboard/src/Enterprise/Plugins.ts"
   ]

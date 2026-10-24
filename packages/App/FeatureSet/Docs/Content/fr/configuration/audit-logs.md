@@ -101,16 +101,17 @@ Les moniteurs, les incidents, les alertes, les pages de statut, les SLO et bien 
 | vCenter | `vCenter` |
 | Captures de paquets, et leurs téléchargements | `Packet Capture` |
 | Dossiers de sécurité, playbooks et leurs exécutions, et entités protégées | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
+| Exports du journal d'audit | `Audit Log Export` |
 
 Un administrateur qui ajoute ou retire une méthode de notification ou une règle d'astreinte personnelle sur le compte de quelqu'un d'autre est aussi enregistré, sans l'adresse ni le numéro lui-même.
 
-Les autres enregistrements ne figurent pas dans le journal d'audit, comme qui fait partie d'une équipe, ou une autorisation ajoutée seule à une équipe. Les champs que personne ne peut lire, comme les clés secrètes, sont omis de chaque entrée.
+Les autres enregistrements ne figurent pas dans le journal d'audit, comme qui fait partie d'une équipe, ou une autorisation ajoutée seule à une équipe. Les champs que personne ne peut lire sont omis de chaque entrée, et les clés, jetons et mots de passe sont enregistrés comme `[REDACTED]` : l'entrée montre qu'ils ont changé, jamais leur valeur.
 
 ## Combien de temps les entrées sont conservées
 
 Chaque entrée est conservée pendant la **Rétention (jours)** qu'avait le projet au moment de son enregistrement, puis supprimée. Une nouvelle rétention s'applique aux nouvelles entrées : les entrées déjà enregistrées gardent leurs dates.
 
-Pour garder des entrées plus de 180 jours, lisez-les par l'API avec une clé API qui détient **Read Audit Log**, et stockez-les là où vous en avez besoin. Voir [Référence de l'API OneUptime](/docs/api-reference/api-reference).
+Pour garder des entrées plus de 180 jours, envoyez-les au fil de leur enregistrement vers votre propre stockage ou votre SIEM : voir [Export du journal d'audit](/docs/configuration/audit-log-export). Vous pouvez aussi les lire par l'API avec une clé API qui détient **Read Audit Log**, et les stocker là où vous en avez besoin. Voir [Référence de l'API OneUptime](/docs/api-reference/api-reference).
 
 ## Quand le forfait ou la licence n'inclut plus les journaux d'audit
 
@@ -130,6 +131,7 @@ Vérifiez que la ressource figure dans [Ce qui est enregistré](#ce-qui-est-enre
 ## Étapes suivantes
 
 :::cards
+- [Export du journal d'audit](/docs/configuration/audit-log-export): Envoyer le journal d'audit vers votre propre stockage ou votre SIEM.
 - [Utilisateurs, équipes et autorisations](/docs/permissions/index): Décider qui peut lire le journal d'audit.
 - [Paramètres du projet](/docs/configuration/project-settings): Les autres paramètres du projet.
 - [Facturation et utilisation](/docs/configuration/billing): Changer le forfait du projet.

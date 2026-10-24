@@ -101,16 +101,17 @@ flowchart TB
 | vCenter サーバー | `vCenter` |
 | パケットキャプチャとそのダウンロード | `Packet Capture` |
 | セキュリティケース、プレイブックとその実行、保護対象のエンティティ | `Security Case`、`Security Playbook`、`Security Playbook Run`、`Protected Entity` |
+| 監査ログのエクスポート | `Audit Log Export` |
 
 管理者が他の人のアカウントで通知方法や個人のオンコールルールを追加または削除したときも記録されます。アドレスや番号そのものは記録されません。
 
-それ以外のデータ、たとえばチームの所属メンバーや、チームに個別に追加された権限は、監査ログに含まれません。シークレットキーのように誰も読めないフィールドは、どのエントリにも含まれません。
+それ以外のデータ、たとえばチームの所属メンバーや、チームに個別に追加された権限は、監査ログに含まれません。誰も読めないフィールドはどのエントリにも含まれず、キー、トークン、パスワードは `[REDACTED]` として記録されます。エントリには変更されたことだけが示され、値は示されません。
 
 ## エントリの保持期間
 
 各エントリは、記録された時点でプロジェクトに設定されていた **保持期間（日）** の間保持され、その後削除されます。新しい保持期間は新しいエントリに適用され、記録済みのエントリの日付は変わりません。
 
-エントリを 180 日より長く保存するには、**Read Audit Log** を持つ API キーで API から読み取り、必要な場所に保存します。[OneUptime API リファレンス](/docs/api-reference/api-reference) を参照してください。
+エントリを 180 日より長く保存するには、記録されるたびに自社のストレージや SIEM に送信します。[監査ログのエクスポート](/docs/configuration/audit-log-export) を参照してください。**Read Audit Log** を持つ API キーで API から読み取り、必要な場所に保存することもできます。[OneUptime API リファレンス](/docs/api-reference/api-reference) を参照してください。
 
 ## プランやライセンスに監査ログが含まれなくなったとき
 
@@ -130,6 +131,7 @@ flowchart TB
 ## 次のステップ
 
 :::cards
+- [監査ログのエクスポート](/docs/configuration/audit-log-export): 監査ログを自社のストレージや SIEM に送信します。
 - [ユーザー、チーム、権限](/docs/permissions/index): 監査ログを読める人を決めます。
 - [プロジェクト設定](/docs/configuration/project-settings): プロジェクトのその他の設定。
 - [請求と使用量](/docs/configuration/billing): プロジェクトのプランを変更します。

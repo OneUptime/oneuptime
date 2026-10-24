@@ -1193,6 +1193,7 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_DANGERZONE]: "danger-zone",
   [PageMap.SETTINGS_AUDIT_LOGS]: "audit-logs",
   [PageMap.SETTINGS_AUDIT_LOGS_SETTINGS]: "audit-logs/settings",
+  [PageMap.SETTINGS_AUDIT_LOGS_EXPORT]: "audit-logs/export",
   [PageMap.SETTINGS_NOTIFICATION_SETTINGS]: "notification-settings",
   [PageMap.SETTINGS_NOTIFICATION_LOGS]: "notification-logs",
   [PageMap.SETTINGS_MOBILE_APPS]: "mobile-apps",
@@ -7275,6 +7276,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_AUDIT_LOGS_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_AUDIT_LOGS_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_AUDIT_LOGS_EXPORT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_AUDIT_LOGS_EXPORT]
     }`,
   ),
 

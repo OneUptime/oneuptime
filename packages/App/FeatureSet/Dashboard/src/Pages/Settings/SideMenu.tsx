@@ -299,6 +299,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Settings,
         },
+        {
+          link: {
+            title: "Export",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_AUDIT_LOGS_EXPORT] as Route,
+            ),
+          },
+          icon: IconProp.DocumentArrowUp,
+        },
       ],
     },
     {

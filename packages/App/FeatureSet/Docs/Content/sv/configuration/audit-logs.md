@@ -101,16 +101,17 @@ Monitorer, incidenter, varningar, statussidor, SLO:er och många andra resurser 
 | vCenter-servrar | `vCenter` |
 | Paketinspelningar och nedladdningarna av dem | `Packet Capture` |
 | Säkerhetsärenden, playbooks och deras körningar samt skyddade entiteter | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
+| Exporter av granskningsloggen | `Audit Log Export` |
 
 Det registreras också när en administratör lägger till eller tar bort en aviseringsmetod eller en personlig jourregel på någon annans konto, utan själva adressen eller numret.
 
-Andra data finns inte i granskningsloggen, som vem som är med i ett team, eller en behörighet som har lagts till ett team för sig. Fält som ingen får läsa, som hemliga nycklar, utelämnas från alla poster.
+Andra data finns inte i granskningsloggen, som vem som är med i ett team, eller en behörighet som har lagts till ett team för sig. Fält som ingen får läsa utelämnas från alla poster, och nycklar, tokens och lösenord registreras som `[REDACTED]`: posten visar att de har ändrats, aldrig deras värde.
 
 ## Hur länge poster behålls
 
 Varje post behålls under den **Lagring (dagar)** som projektet hade när den registrerades, och tas sedan bort. En ny lagringstid gäller för nya poster: redan registrerade poster behåller sina datum.
 
-För att behålla poster i mer än 180 dagar läser du dem via API:et med en API-nyckel som har **Read Audit Log** och sparar dem där du behöver dem. Se [OneUptime API-referens](/docs/api-reference/api-reference).
+För att behålla poster i mer än 180 dagar skickar du dem allt eftersom de registreras till din egen lagring eller ditt SIEM: se [Export av granskningslogg](/docs/configuration/audit-log-export). Du kan också läsa dem via API:et med en API-nyckel som har **Read Audit Log** och spara dem där du behöver dem. Se [OneUptime API-referens](/docs/api-reference/api-reference).
 
 ## När planen eller licensen inte längre omfattar granskningsloggar
 
@@ -130,6 +131,7 @@ Kontrollera att resursen finns under [Vad som registreras](#vad-som-registreras)
 ## Nästa steg
 
 :::cards
+- [Export av granskningslogg](/docs/configuration/audit-log-export): Skicka granskningsloggen till din egen lagring eller ditt SIEM.
 - [Användare, team och behörigheter](/docs/permissions/index): Bestäm vem som får läsa granskningsloggen.
 - [Projektinställningar](/docs/configuration/project-settings): Projektets övriga inställningar.
 - [Fakturering och användning](/docs/configuration/billing): Byt projektets plan.

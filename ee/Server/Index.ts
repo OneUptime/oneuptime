@@ -9,6 +9,7 @@ import { ProductBranding } from "Common/Types/Branding/ProductBranding";
 import EnterpriseArea from "./Types/EnterpriseArea";
 import AdminHealthArea, { getAdminHealthRouter } from "./AdminHealth/Index";
 import AuditLogArea, { getAuditLogRecorder } from "./AuditLog/Index";
+import AuditLogExportArea from "./AuditLogExport/Index";
 import BillingArea, { getBillingProvider } from "./Billing/Index";
 import CloudMarketplaceArea, {
   getProjectBillingHooks,
@@ -45,6 +46,8 @@ export const ENTERPRISE_AREAS: ReadonlyArray<EnterpriseArea> = [
   WorkersArea,
   WhiteLabelArea,
   MarketplaceArea,
+  AuditLogExportArea,
+  // OneUptime Cloud's billing areas stay last: their routers mount after every other area's.
   BillingArea,
   CloudMarketplaceArea,
 ];

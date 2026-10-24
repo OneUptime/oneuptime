@@ -43,6 +43,7 @@ import StatusPageSCIM from "../../../../../Models/DatabaseModels/StatusPageSCIM"
 import StatusPageSSO from "../../../../../Models/DatabaseModels/StatusPageSso";
 import Team from "../../../../../Models/DatabaseModels/Team";
 import TeamComplianceSetting from "../../../../../Models/DatabaseModels/TeamComplianceSetting";
+import AuditLogExport from "../../../../../Models/DatabaseModels/AuditLogExport";
 import CustomRole from "../../../../../Models/DatabaseModels/CustomRole";
 import CustomRolePermission from "../../../../../Models/DatabaseModels/CustomRolePermission";
 import ApiKeyCustomRole from "../../../../../Models/DatabaseModels/ApiKeyCustomRole";
@@ -67,8 +68,9 @@ import { setTestBillingEnabled } from "../../../Enterprise/TestBillingFlag";
 /*
  * EditionPermission is the license gate on enterprise CONFIGURATION: creating
  * or updating the @TableEditionAccessControl({ requiresEnterprise }) models -
- * project SCIM, status page SCIM, team compliance settings, and custom roles
- * (the role, the permissions in it, and the teams it is given to).
+ * project SCIM, status page SCIM, team compliance settings, custom roles
+ * (the role, the permissions in it, and the teams it is given to) and audit
+ * log exports.
  *
  * The rules under test:
  *   - billing on (the cloud): never refuses; plan gates live in
@@ -140,6 +142,7 @@ const ENTERPRISE_MODELS: ReadonlyArray<[string, ModelType, EnterpriseFeature]> =
     ],
     ["TeamCustomRole", TeamCustomRole, EnterpriseFeature.CustomRoles],
     ["ApiKeyCustomRole", ApiKeyCustomRole, EnterpriseFeature.CustomRoles],
+    ["AuditLogExport", AuditLogExport, EnterpriseFeature.AuditLogs],
   ];
 
 // Community Edition configuration: never gated by the edition check.

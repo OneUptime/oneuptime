@@ -95,7 +95,12 @@ import { DEFAULT_STATUS_PAGE_LANGUAGE } from "../../Types/StatusPage/StatusPageL
   update: true,
   read: true,
 })
-@EnableAuditLog()
+/*
+ * The embed token lets anyone who holds it read the page's overall status:
+ * recorded as changed, never with its value. The master password is hashed,
+ * and so redacted already.
+ */
+@EnableAuditLog({ redactColumns: ["embeddedOverallStatusToken"] })
 @CrudApiEndpoint(new Route("/status-page"))
 @SlugifyColumn("name", "slug")
 /*

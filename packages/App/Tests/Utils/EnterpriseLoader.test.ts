@@ -60,6 +60,7 @@ const ENTERPRISE_JOB_NAMES: Array<string> = [
   "PaymentProvider:PopulatePlanNameInProject",
   "PaymentProvider:UpdateTeamMembersIfNull",
   "PaymentProvider:SendDailyEmailsToOwnersIfSubscriptionIsOverdue",
+  "AuditLogExport:ExportAuditLogs",
 ];
 
 const fixture: (name: string) => string = (name: string): string => {
@@ -1087,7 +1088,7 @@ describe("EnterpriseLoader: the request and the edition default to the environme
 });
 
 describe("EnterpriseLoader worker jobs", () => {
-  test("the ee-owned cron names are the five ee used to register from core, the self-hosted marketplace usage job and OneUptime Cloud's billing jobs", async () => {
+  test("the ee-owned cron names are the five ee used to register from core, the self-hosted marketplace usage job, OneUptime Cloud's billing jobs and the audit log export", async () => {
     const { loaderModule } = await loadFresh();
 
     expect([...loaderModule.ENTERPRISE_OWNED_JOB_NAMES]).toEqual(
@@ -1153,6 +1154,8 @@ describe("EnterpriseLoader worker jobs", () => {
       "PaymentProvider:PopulatePlanNameInProject",
       "PaymentProvider:UpdateTeamMembersIfNull",
       "PaymentProvider:SendDailyEmailsToOwnersIfSubscriptionIsOverdue",
+      // Newer than the fixture module, which does not register it.
+      "AuditLogExport:ExportAuditLogs",
     ]);
     expect(getFixtureCalls()).toContain("DefaultExport:registerWorkerJobs");
 
