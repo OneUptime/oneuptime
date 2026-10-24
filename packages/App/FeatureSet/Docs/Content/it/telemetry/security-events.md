@@ -39,7 +39,7 @@ Apri **Prodotti → Security Events**, sotto **Osservabilità**. Il suo menu ha 
 | **Entità** | Eventi | Gli utenti, gli host e gli indirizzi che le tue risultanze nominano più spesso |
 | **Correla** | Eventi | Un grafo degli eventi che condividono un host, un utente o un indirizzo IP |
 | **Detection Rules** | Detections | Regole Sigma che girano secondo una pianificazione e aprono casi |
-| **Rule Library** | Detections | Regole di rilevamento pronte da aggiungere, con quelle consigliate segnalate |
+| **Rule Library** | Detections | Regole di rilevamento pronte da aggiungere, ognuna con gli eventi che legge e se arrivano, con quelle consigliate segnalate |
 | **Threat Intel** | Detections | Feed STIX/TAXII di indicatori malevoli noti |
 | **ATT&CK Coverage** | Detections | Le tecniche MITRE ATT&CK coperte dalle tue regole |
 | **Playbooks** | Playbooks | Passi che vengono eseguiti sui casi, da soli o a mano |

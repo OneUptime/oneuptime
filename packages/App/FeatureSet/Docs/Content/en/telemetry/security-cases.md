@@ -287,8 +287,8 @@ Above them, a strip shows how Security is set up: its sources, detections, cases
 ## Find threats
 
 - **Entities** ranks the users, hosts, addresses and hashes that your findings name most, over the last day, week or month, and looks any value up across 30 days of events.
-- **Rule Library** has ready-made detection rules, for identity, endpoint, cloud, network, web and Kubernetes threats. Each is a Sigma rule written for the fields every connected source is normalized to. **Add Rule** creates it as a detection rule of yours, on, and opening cases rather than alerts; change it under **Detection Rules** like any other. The rules marked **Recommended** find threats in data OneUptime already has, and one button adds the ones you do not have yet.
-- **ATT&CK Coverage** draws the MITRE ATT&CK matrix with the techniques your enabled rules cover lit, and outlines the ones a library rule would cover.
+- **Rule Library** has ready-made detection rules, for identity, endpoint, cloud, network, web and Kubernetes threats. Each is a Sigma rule written for the fields every connected source is normalized to. Its row says what it finds, the MITRE ATT&CK tactics and techniques it is tagged with, the events it reads and whether any arrived in the last 7 days (**Receiving** or **Not receiving**), and its severity. Narrow the list by category, by the data the rules read and by whether you have added them, or search it by name, ATT&CK technique or severity; the page's address keeps the filters. Select a rule for its details: how to start sending the events it reads, how it runs, and its Sigma rule. **Add** creates it as a detection rule of yours, on, and opening cases rather than alerts; change it under **Detection Rules** like any other. The rules marked **Recommended** find threats in data OneUptime already has, and one button adds the ones you do not have yet.
+- **ATT&CK Coverage** draws the MITRE ATT&CK matrix with the techniques your enabled rules cover lit, and outlines the ones a library rule would cover. Select a technique to see the library rules that cover it, and open the **Rule Library** on them.
 
 ## Automate
 

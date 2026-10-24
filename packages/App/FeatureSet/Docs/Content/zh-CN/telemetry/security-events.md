@@ -39,7 +39,7 @@ flowchart TB
 | **实体** | 事件 | 你的检测结果中最常提及的用户、主机和地址 |
 | **关联分析** | 事件 | 共享同一主机、用户或 IP 地址的事件构成的图 |
 | **Detection Rules** | Detections | 按计划运行并打开案例的 Sigma 规则 |
-| **Rule Library** | Detections | 可直接添加的现成检测规则，推荐的规则带有标记 |
+| **Rule Library** | Detections | 可直接添加的现成检测规则，每条都显示它读取的事件以及这些事件是否到达，推荐的规则带有标记 |
 | **Threat Intel** | Detections | 已知恶意指标的 STIX/TAXII 源 |
 | **ATT&CK Coverage** | Detections | 你的规则覆盖的 MITRE ATT&CK 技术 |
 | **Playbooks** | Playbooks | 在案例上自动或手动运行的步骤 |
