@@ -484,6 +484,62 @@ test.describe("Profiler → AI → Insights", () => {
     );
   });
 
+  /*
+   * Beside the side menu at a small laptop's width the filter bar's one row
+   * squeezed the search to its icon and ran the last select past the bar:
+   * the selects now go under the search where they do not fit.
+   */
+  test("at a small laptop's width the search keeps room to type, and no select runs past the bar", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    test.skip(isPhone(testInfo), "A laptop's width.");
+
+    for (const width of [1024, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(`${AI}/insights`);
+
+      const search: Locator = page.getByPlaceholder(
+        "Search insights by title...",
+      );
+
+      await expect(search).toBeVisible({ timeout: 60000 });
+
+      const searchBox: { width: number } | null = await search.boundingBox();
+
+      expect(searchBox!.width).toBeGreaterThanOrEqual(200);
+
+      const overflow: number = await search.evaluate(
+        (element: Element): number => {
+          let bar: Element | null = element;
+
+          // The bar: the rounded box that holds the search and the selects.
+          while (bar && !bar.querySelector("select")) {
+            bar = bar.parentElement;
+          }
+
+          if (!bar) {
+            return 0;
+          }
+
+          const right: number = bar.getBoundingClientRect().right;
+
+          return Math.max(
+            0,
+            ...Array.from(bar.querySelectorAll("select")).map(
+              (select: Element): number => {
+                return select.getBoundingClientRect().right - right;
+              },
+            ),
+          );
+        },
+      );
+
+      expect([width, overflow]).toEqual([width, 0]);
+    }
+  });
+
   test("none found yet: the empty state and the way to AI Settings", async ({
     page,
   }: {
