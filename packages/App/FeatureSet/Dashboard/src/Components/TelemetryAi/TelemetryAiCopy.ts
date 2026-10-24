@@ -310,7 +310,8 @@ export const TELEMETRY_AI_INSIGHTS_SCOPES: Readonly<
     viewPage: TELEMETRY_AI_PAGES[TelemetryAiLane.Trace].insightView,
     settingsPage: TELEMETRY_AI_PAGES[TelemetryAiLane.Trace].settings,
     intro: TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Trace].insightsIntro,
-    emptyTitle: TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Trace].insightsEmptyTitle,
+    emptyTitle:
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Trace].insightsEmptyTitle,
     emptyDescription:
       TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Trace].insightsEmptyDescription,
   },

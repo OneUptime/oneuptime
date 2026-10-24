@@ -356,7 +356,9 @@ describe("the lane's switch", () => {
     expect(TelemetryAiRules.isLaneOn(traces, TelemetryAiLane.Profile)).toBe(
       false,
     );
-    expect(TelemetryAiRules.getLanesOn(traces)).toEqual([TelemetryAiLane.Trace]);
+    expect(TelemetryAiRules.getLanesOn(traces)).toEqual([
+      TelemetryAiLane.Trace,
+    ]);
     expect(TelemetryAiRules.getLanesOn(both)).toEqual([
       TelemetryAiLane.Profile,
       TelemetryAiLane.Trace,

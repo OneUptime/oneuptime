@@ -843,13 +843,11 @@ describe("buildInsightInvestigationLink — Traces' findings", () => {
           }),
         );
 
-      expect(JSON.parse(queryOf(link!.route).get("filters") || "[]")).toEqual(
-        [
-          ["primaryEntityId", SERVICE_ID],
-          ["name", "POST /checkout"],
-          ["statusCode", "2"],
-        ],
-      );
+      expect(JSON.parse(queryOf(link!.route).get("filters") || "[]")).toEqual([
+        ["primaryEntityId", SERVICE_ID],
+        ["name", "POST /checkout"],
+        ["statusCode", "2"],
+      ]);
     }
   });
 

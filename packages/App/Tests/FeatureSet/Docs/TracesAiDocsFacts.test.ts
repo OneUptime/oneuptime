@@ -95,7 +95,8 @@ describe("the Traces Explorer page's section on finding and fixing slow and fail
   });
 
   it("is linked from the opening cards and from the AI tab's row", () => {
-    const anchor: string = "(#find-and-fix-slow-and-failing-operations-with-ai)";
+    const anchor: string =
+      "(#find-and-fix-slow-and-failing-operations-with-ai)";
     const opening: string = page.slice(0, page.indexOf("\n## "));
     const tabRow: string =
       page.split("\n").find((line: string): boolean => {
@@ -246,7 +247,11 @@ describe("the Traces Explorer page's section on finding and fixing slow and fail
       options.map((option: CardSelectOption): string => {
         return option.value;
       }),
-    ).toEqual([AiRuleFix.DoNotFix, AiRuleFix.AskFirst, AiRuleFix.WithoutAsking]);
+    ).toEqual([
+      AiRuleFix.DoNotFix,
+      AiRuleFix.AskFirst,
+      AiRuleFix.WithoutAsking,
+    ]);
 
     for (const title of titles) {
       expect(section).toContain(`**${title}**`);

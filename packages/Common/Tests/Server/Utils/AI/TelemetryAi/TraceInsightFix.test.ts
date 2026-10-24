@@ -73,9 +73,7 @@ const INSIGHT_ID: ObjectID = new ObjectID(
 const REPO_A: string = "5229bbbb-0000-4000-8000-0000000000a1";
 const REPO_B: string = "5229bbbb-0000-4000-8000-0000000000b2";
 const PROVIDER: string = "5229bbbb-0000-4000-8000-0000000000c3";
-const USER_ID: ObjectID = new ObjectID(
-  "5229bbbb-0000-4000-8000-0000000000e5",
-);
+const USER_ID: ObjectID = new ObjectID("5229bbbb-0000-4000-8000-0000000000e5");
 
 const SLOW: TraceInsightEvidence = {
   serviceId: CHECKOUT,
@@ -102,11 +100,17 @@ const SLOW: TraceInsightEvidence = {
       parentSpanName: "GET /orders",
       normalizedDbStatement: "SELECT * FROM orders WHERE id = ?",
       dbSystem: "postgresql",
-      implicatedSpans: [{ spanId: "q0", name: "SELECT orders", durationMs: 40 }],
+      implicatedSpans: [
+        { spanId: "q0", name: "SELECT orders", durationMs: 40 },
+      ],
     },
   ],
   codeLocations: [
-    { filePath: "src/orders/list.ts", functionName: "listOrders", lineNumber: 42 },
+    {
+      filePath: "src/orders/list.ts",
+      functionName: "listOrders",
+      lineNumber: 42,
+    },
   ],
 };
 
@@ -151,7 +155,9 @@ let hasRepository: boolean;
 let resolved: string | null;
 let locatable: Array<LocatableRepositoryWithTree>;
 let askable: Set<string>;
-let resolve: SpyInstance<typeof CodeRepositoryService.resolveRepositoryForException>;
+let resolve: SpyInstance<
+  typeof CodeRepositoryService.resolveRepositoryForException
+>;
 let getBlocker: SpyInstance<typeof CodeTaskGate.getBlocker>;
 let capCheck: SpyInstance<typeof OpenPullRequestCap.checkForRepository>;
 let buildItem: SpyInstance<typeof CodeTaskContextBuilder.buildItem>;
@@ -227,7 +233,8 @@ beforeEach(() => {
     .mockImplementation(async (input: CodeTaskContextInput) => {
       return {
         type: input.type,
-        label: input.type === CodeTaskContextType.Trace ? "Trace 4bf92f35…" : "Note",
+        label:
+          input.type === CodeTaskContextType.Trace ? "Trace 4bf92f35…" : "Note",
         ...(input.traceId ? { traceId: input.traceId } : {}),
         ...(input.text ? { text: input.text } : {}),
       } as CodeTaskContextItem;
@@ -295,15 +302,19 @@ describe("TraceInsightFix.start - OneUptime on its own", () => {
       "OneUptime found this in the service's traces on its own.",
     );
 
-    const context: Array<CodeTaskContextItem> =
-      call["context"] as unknown as Array<CodeTaskContextItem>;
+    const context: Array<CodeTaskContextItem> = call[
+      "context"
+    ] as unknown as Array<CodeTaskContextItem>;
 
-    expect(context.map((item: CodeTaskContextItem) => item.type)).toEqual([
-      CodeTaskContextType.Trace,
-      CodeTaskContextType.Note,
-    ]);
+    expect(
+      context.map((item: CodeTaskContextItem) => {
+        return item.type;
+      }),
+    ).toEqual([CodeTaskContextType.Trace, CodeTaskContextType.Note]);
     expect(context[0]!.traceId).toBe(SLOW.sampleTraceId);
-    expect(context[1]!.text).toContain("Statement: SELECT * FROM orders WHERE id = ?");
+    expect(context[1]!.text).toContain(
+      "Statement: SELECT * FROM orders WHERE id = ?",
+    );
 
     // The trace is read as OneUptime: nobody here carries a person's rights.
     expect(
@@ -322,9 +333,12 @@ describe("TraceInsightFix.start - OneUptime on its own", () => {
 
     await TraceInsightFix.start({ insight: insight(), work });
 
-    const request: JSONObject = resolve.mock.calls[0]![0] as unknown as JSONObject;
+    const request: JSONObject = resolve.mock
+      .calls[0]![0] as unknown as JSONObject;
 
-    expect(request["stackTrace"]).toBe("    at listOrders (src/orders/list.ts:42)");
+    expect(request["stackTrace"]).toBe(
+      "    at listOrders (src/orders/list.ts:42)",
+    );
     expect(request["serviceName"]).toBe("checkout");
     expect(request["allowance"]).toEqual(work.repositories);
   });
@@ -350,7 +364,11 @@ describe("TraceInsightFix.start - OneUptime on its own", () => {
         throw new Error("No spans were found for that trace ID");
       }
 
-      return { type: input.type, label: "Note", text: input.text } as CodeTaskContextItem;
+      return {
+        type: input.type,
+        label: "Note",
+        text: input.text,
+      } as CodeTaskContextItem;
     });
 
     await TraceInsightFix.start({ insight: insight(), work: ANYWHERE });
@@ -359,14 +377,19 @@ describe("TraceInsightFix.start - OneUptime on its own", () => {
       startForOneUptime.mock.calls[0]![0] as unknown as JSONObject
     )["context"] as unknown as Array<CodeTaskContextItem>;
 
-    expect(context.map((item: CodeTaskContextItem) => item.type)).toEqual([
-      CodeTaskContextType.Note,
-    ]);
+    expect(
+      context.map((item: CodeTaskContextItem) => {
+        return item.type;
+      }),
+    ).toEqual([CodeTaskContextType.Note]);
   });
 
   test("no trace evidence: nothing", async () => {
     expect(
-      await TraceInsightFix.start({ insight: insight({}, null), work: ANYWHERE }),
+      await TraceInsightFix.start({
+        insight: insight({}, null),
+        work: ANYWHERE,
+      }),
     ).toEqual({ skip: TraceInsightFixSkip.NoEvidence });
     expect(
       await TraceInsightFix.start({
@@ -472,9 +495,9 @@ describe("TraceInsightFix - a person's Fix with AI", () => {
     });
 
     // The finding is read as the person: one they may not read offers nothing.
-    expect((readInsight.mock.calls[0]![0] as unknown as JSONObject)["props"]).toBe(
-      props,
-    );
+    expect(
+      (readInsight.mock.calls[0]![0] as unknown as JSONObject)["props"],
+    ).toBe(props);
   });
 
   test("with no repository told for certain: the ones the person may ask in, to pick from", async () => {

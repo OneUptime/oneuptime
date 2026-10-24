@@ -340,9 +340,7 @@ export function getFailedPercent(reading: {
     return 0;
   }
 
-  return (
-    (Math.max(0, reading.failedSpanCount || 0) / reading.spanCount) * 100
-  );
+  return (Math.max(0, reading.failedSpanCount || 0) / reading.spanCount) * 100;
 }
 
 function hasName(reading: TraceOperationReading): boolean {
@@ -989,7 +987,8 @@ export function getTraceInsightSeverity(
 ): AIInsightSeverity {
   switch (evidence.kind) {
     case TraceInsightKind.Slow: {
-      const top: number = evidence.performanceFindings?.[0]?.percentOfTrace || 0;
+      const top: number =
+        evidence.performanceFindings?.[0]?.percentOfTrace || 0;
 
       return top >= TRACE_INSIGHT_HIGH_PERCENT_OF_REQUEST ||
         (evidence.p99Ms || 0) >= TRACE_INSIGHT_HIGH_P99_MS

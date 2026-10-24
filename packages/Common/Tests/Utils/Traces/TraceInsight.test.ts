@@ -588,8 +588,28 @@ describe("which operations of a service are read closely", () => {
 
 describe("what counts as a call", () => {
   test("a client or producer span is a call, a server or consumer span never is", () => {
-    expect(isCallSpan(span({ id: "1", name: "x", start: 0, end: 1, kind: "SPAN_KIND_CLIENT" }))).toBe(true);
-    expect(isCallSpan(span({ id: "1", name: "x", start: 0, end: 1, kind: "SPAN_KIND_PRODUCER" }))).toBe(true);
+    expect(
+      isCallSpan(
+        span({
+          id: "1",
+          name: "x",
+          start: 0,
+          end: 1,
+          kind: "SPAN_KIND_CLIENT",
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      isCallSpan(
+        span({
+          id: "1",
+          name: "x",
+          start: 0,
+          end: 1,
+          kind: "SPAN_KIND_PRODUCER",
+        }),
+      ),
+    ).toBe(true);
     expect(
       isCallSpan(
         span({
@@ -602,7 +622,17 @@ describe("what counts as a call", () => {
         }),
       ),
     ).toBe(false);
-    expect(isCallSpan(span({ id: "1", name: "x", start: 0, end: 1, kind: "SPAN_KIND_CONSUMER" }))).toBe(false);
+    expect(
+      isCallSpan(
+        span({
+          id: "1",
+          name: "x",
+          start: 0,
+          end: 1,
+          kind: "SPAN_KIND_CONSUMER",
+        }),
+      ),
+    ).toBe(false);
   });
 
   test("an internal span is a call when it carries a call's attributes", () => {
@@ -633,7 +663,13 @@ describe("what counts as a call", () => {
 
     expect(
       isCallSpan(
-        span({ id: "1", name: "x", start: 0, end: 1, kind: "SPAN_KIND_INTERNAL" }),
+        span({
+          id: "1",
+          name: "x",
+          start: 0,
+          end: 1,
+          kind: "SPAN_KIND_INTERNAL",
+        }),
       ),
     ).toBe(false);
     expect(isCallSpan(span({ id: "1", name: "x", start: 0, end: 1 }))).toBe(
@@ -649,7 +685,13 @@ describe("the request one operation's span stands for", () => {
       ...nPlusOneRequest().map((item: TraceInsightSpan): TraceInsightSpan => {
         return item.spanId === "root" ? { ...item, parentSpanId: "up" } : item;
       }),
-      span({ id: "beside", parent: "up", name: "GET /other", start: 0, end: 10 }),
+      span({
+        id: "beside",
+        parent: "up",
+        name: "GET /other",
+        start: 0,
+        end: 10,
+      }),
     ];
 
     const request: Array<TraceInsightSpan> = getOperationRequestSpans({
@@ -658,9 +700,11 @@ describe("the request one operation's span stands for", () => {
       serviceId: SERVICE_A,
     });
 
-    expect(request.map((item: TraceInsightSpan) => item.spanId)).toHaveLength(
-      41,
-    );
+    expect(
+      request.map((item: TraceInsightSpan) => {
+        return item.spanId;
+      }),
+    ).toHaveLength(41);
     expect(
       request.some((item: TraceInsightSpan) => {
         return item.spanId === "up" || item.spanId === "beside";
@@ -675,17 +719,20 @@ describe("the request one operation's span stands for", () => {
       serviceId: SERVICE_A.toUpperCase(),
     });
 
-    expect(request.map((item: TraceInsightSpan) => item.spanId)).toEqual([
-      "root",
-      "call",
-    ]);
     expect(
-      request.find((item: TraceInsightSpan) => item.spanId === "call")
-        ?.hasTracedCallee,
+      request.map((item: TraceInsightSpan) => {
+        return item.spanId;
+      }),
+    ).toEqual(["root", "call"]);
+    expect(
+      request.find((item: TraceInsightSpan) => {
+        return item.spanId === "call";
+      })?.hasTracedCallee,
     ).toBe(true);
     expect(
-      request.find((item: TraceInsightSpan) => item.spanId === "root")
-        ?.hasTracedCallee,
+      request.find((item: TraceInsightSpan) => {
+        return item.spanId === "root";
+      })?.hasTracedCallee,
     ).toBe(false);
   });
 
@@ -732,7 +779,9 @@ describe("what a slow request says", () => {
     const reading: SlowRequestReading = readSlowRequest(sequentialRequest());
 
     expect(
-      reading.fixable.map((finding: PerformanceFinding) => finding.findingType),
+      reading.fixable.map((finding: PerformanceFinding) => {
+        return finding.findingType;
+      }),
     ).toContain(PerformanceFindingType.SequentialSiblings);
   });
 
@@ -795,7 +844,13 @@ describe("what a slow request says", () => {
   test("a fast request says nothing", () => {
     expect(
       readSlowRequest([
-        span({ id: "root", name: "GET /health", start: 0, end: 300, kind: "SPAN_KIND_SERVER" }),
+        span({
+          id: "root",
+          name: "GET /health",
+          start: 0,
+          end: 300,
+          kind: "SPAN_KIND_SERVER",
+        }),
         span({
           id: "q",
           parent: "root",
@@ -861,9 +916,12 @@ describe("what an operation's recent failures say", () => {
   });
 
   test("described: the error most of them failed with, its stack trace cut", () => {
-    const stackTrace: string = Array.from({ length: 50 }, (_unused, index) => {
-      return `    at frame${index} (src/pay.ts:${index + 1})`;
-    }).join("\n");
+    const stackTrace: string = Array.from(
+      { length: 50 },
+      (_unused: unknown, index: number): string => {
+        return `    at frame${index} (src/pay.ts:${index + 1})`;
+      },
+    ).join("\n");
 
     const reading: FailedSpansReading = readFailedSpans([
       failed({ spanId: "1", statusMessage: "upstream connect error" }),
@@ -994,13 +1052,16 @@ describe("how findings say numbers", () => {
 describe("what a finding is called", () => {
   test("a slow operation, by the pattern its slowest request repeats", () => {
     expect(
-      getTraceInsightTitle({ evidence: slowEvidence(), serviceName: "checkout" }),
+      getTraceInsightTitle({
+        evidence: slowEvidence(),
+        serviceName: "checkout",
+      }),
     ).toBe("GET /orders in checkout runs the same database query 40 times");
   });
 
   test("every pattern has its own words", () => {
-    const base: PerformanceFinding = readSlowRequest(nPlusOneRequest())
-      .fixable[0]!;
+    const base: PerformanceFinding =
+      readSlowRequest(nPlusOneRequest()).fixable[0]!;
 
     expect(describeSlowFinding(base)).toBe(
       "runs the same database query 40 times",
@@ -1116,8 +1177,8 @@ describe("how severe a finding is", () => {
       AIInsightSeverity.High,
     );
 
-    const finding: PerformanceFinding = readSlowRequest(nPlusOneRequest())
-      .fixable[0]!;
+    const finding: PerformanceFinding =
+      readSlowRequest(nPlusOneRequest()).fixable[0]!;
     const small: TraceInsightEvidence = slowEvidence({
       p99Ms: TRACE_INSIGHT_HIGH_P99_MS - 1,
       performanceFindings: [
@@ -1186,8 +1247,12 @@ describe("what OneUptime asks the AI", () => {
     expect(message).toContain(
       "OneUptime found this in the service's traces on its own.",
     );
-    expect(message).toContain("Over the last hour its slowest requests took 2.4 s (p99 of 1,234 requests).");
-    expect(message).toContain("the same database query ran 40 times under GET /orders");
+    expect(message).toContain(
+      "Over the last hour its slowest requests took 2.4 s (p99 of 1,234 requests).",
+    );
+    expect(message).toContain(
+      "the same database query ran 40 times under GET /orders",
+    );
     expect(message).toContain("say why and change nothing");
   });
 
@@ -1210,7 +1275,9 @@ describe("what OneUptime asks the AI", () => {
       isStartedByOneUptime: true,
     });
 
-    expect(message.split("\n")[0]).toBe("Fix why POST /checkout in checkout fails");
+    expect(message.split("\n")[0]).toBe(
+      "Fix why POST /checkout in checkout fails",
+    );
     expect(message).toContain(
       "Over the last hour 340 of its 2,800 requests failed (12%).",
     );
@@ -1237,13 +1304,18 @@ describe("what OneUptime asks the AI", () => {
       });
 
       expect(message).toContain("Do not change what the code does");
-      expect(message).toContain("tracing is set up somewhere other than this repository");
+      expect(message).toContain(
+        "tracing is set up somewhere other than this repository",
+      );
     }
   });
 
   test("every request's first line is its title in Code", () => {
     expect(
-      getTraceFixRequestTitle({ evidence: slowEvidence(), serviceName: "checkout" }),
+      getTraceFixRequestTitle({
+        evidence: slowEvidence(),
+        serviceName: "checkout",
+      }),
     ).toBe("Make GET /orders in checkout faster");
     expect(
       getTraceFixRequestTitle({
@@ -1310,10 +1382,18 @@ describe("what OneUptime asks the AI", () => {
 
   test("errors read as one line", () => {
     expect(
-      describeTraceError({ statusMessage: "boom", sampleMatches: 1, sampleSize: 1 }),
+      describeTraceError({
+        statusMessage: "boom",
+        sampleMatches: 1,
+        sampleSize: 1,
+      }),
     ).toBe("boom");
     expect(
-      describeTraceError({ exceptionType: "E", sampleMatches: 1, sampleSize: 1 }),
+      describeTraceError({
+        exceptionType: "E",
+        sampleMatches: 1,
+        sampleSize: 1,
+      }),
     ).toBe("E");
     expect(describeTraceError({ sampleMatches: 1, sampleSize: 1 })).toBe(
       "an error",
@@ -1321,8 +1401,8 @@ describe("what OneUptime asks the AI", () => {
   });
 
   test("the cost of a pattern is said in time and share", () => {
-    const finding: PerformanceFinding = readSlowRequest(nPlusOneRequest())
-      .fixable[0]!;
+    const finding: PerformanceFinding =
+      readSlowRequest(nPlusOneRequest()).fixable[0]!;
 
     expect(describeSlowFindingCost(finding)).toBe(
       "the same database query ran 40 times under GET /orders: 1.6 s together, 80% of the request",

@@ -46,7 +46,9 @@ describe("Traces' tabs", () => {
     const links: Array<{ label: string; href: string }> = tabLinks();
 
     expect(
-      links.map((link: { label: string; href: string }) => link.label),
+      links.map((link: { label: string; href: string }) => {
+        return link.label;
+      }),
     ).toEqual(["Viewer", "Insights", "AI", "Setup Guide", "Settings"]);
     expect(links[2]!.href).toBe(routeFor(PageMap.TRACES_AI_INSIGHTS));
   });

@@ -165,9 +165,9 @@ describe("the Profile lane", () => {
       expect(getTelemetryAiLaneOfInsightType(type)).toBe(TelemetryAiLane.Trace);
     }
 
-    expect(getTelemetryAiLaneOfTrigger(AutoRemediationTriggerEntity.Trace)).toBe(
-      TelemetryAiLane.Trace,
-    );
+    expect(
+      getTelemetryAiLaneOfTrigger(AutoRemediationTriggerEntity.Trace),
+    ).toBe(TelemetryAiLane.Trace);
   });
 
   test("incident and alert AI rules, and AI Insights' own findings, belong to no lane", () => {

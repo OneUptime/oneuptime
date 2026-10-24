@@ -65,9 +65,9 @@ describe("TelemetryAiFix.countStartedToday", () => {
 
     expect(await TelemetryAiFix.countStartedToday(PROJECT_ID)).toBe(3);
 
-    const query: JSONObject = (count.mock.calls[0]![0] as unknown as JSONObject)[
-      "query"
-    ] as JSONObject;
+    const query: JSONObject = (
+      count.mock.calls[0]![0] as unknown as JSONObject
+    )["query"] as JSONObject;
 
     expect(String(query["projectId"])).toBe(PROJECT_ID.toString());
     expect(query["runType"]).toBe(AIRunType.CodeFix);
@@ -83,7 +83,9 @@ describe("TelemetryAiFix.countStartedToday", () => {
   });
 
   test("the Profiler's own count is the same count", async () => {
-    jest.spyOn(AIRunService, "countBy").mockResolvedValue(new PositiveNumber(4));
+    jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValue(new PositiveNumber(4));
 
     expect(await ProfileInsightFix.countStartedToday(PROJECT_ID)).toBe(4);
   });
@@ -171,8 +173,12 @@ describe("TelemetryAiPersonFix", () => {
   });
 
   test("Traces plans its own; the Profiler's findings keep the Profiler's own", () => {
-    expect(TELEMETRY_AI_PERSON_FIX_PLANNERS[TelemetryAiLane.Profile]).toBeNull();
-    expect(TELEMETRY_AI_PERSON_FIX_PLANNERS[TelemetryAiLane.Trace]).not.toBeNull();
+    expect(
+      TELEMETRY_AI_PERSON_FIX_PLANNERS[TelemetryAiLane.Profile],
+    ).toBeNull();
+    expect(
+      TELEMETRY_AI_PERSON_FIX_PLANNERS[TelemetryAiLane.Trace],
+    ).not.toBeNull();
   });
 
   test("a trace finding is handed to Traces, read as the person", async () => {
@@ -194,9 +200,9 @@ describe("TelemetryAiPersonFix", () => {
       ).offer,
     ).toBe(SuggestionOffer.InProgress);
     expect(suggestion).toHaveBeenCalledTimes(1);
-    expect((readInsight.mock.calls[0]![0] as unknown as JSONObject)["props"]).toBe(
-      props,
-    );
+    expect(
+      (readInsight.mock.calls[0]![0] as unknown as JSONObject)["props"],
+    ).toBe(props);
   });
 
   test("a finding of no lane, of the Profiler's, or one the person may not read: nothing offered, nothing started", async () => {

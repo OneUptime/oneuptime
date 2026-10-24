@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import ServiceService from "../../../../../Server/Services/ServiceService";
 import SpanService from "../../../../../Server/Services/SpanService";
@@ -231,7 +238,9 @@ describe("TraceProblemDetector", () => {
   let traces: Map<string, Array<Span>>;
   let restricted: Array<string>;
   let services: Array<Service>;
-  let readHealth: SpyInstance<typeof TraceAggregationService.getServiceSpanHealth>;
+  let readHealth: SpyInstance<
+    typeof TraceAggregationService.getServiceSpanHealth
+  >;
   let readTable: SpyInstance<typeof TraceAggregationService.getAnalyticsTable>;
   let readSpans: SpyInstance<typeof SpanService.findBy>;
 
@@ -280,11 +289,9 @@ describe("TraceProblemDetector", () => {
           []
         );
       });
-    jest
-      .spyOn(ServiceService, "findBy")
-      .mockImplementation(async () => {
-        return services;
-      });
+    jest.spyOn(ServiceService, "findBy").mockImplementation(async () => {
+      return services;
+    });
     readSpans = jest
       .spyOn(SpanService, "findBy")
       .mockImplementation(async (data: { query: unknown; sort?: unknown }) => {
@@ -337,9 +344,8 @@ describe("TraceProblemDetector", () => {
   test("a slow operation whose slowest request runs the same query 40 times", async () => {
     slowCheckout();
 
-    const found: Array<InsightCandidate> = await TraceProblemDetector.look(
-      context(),
-    );
+    const found: Array<InsightCandidate> =
+      await TraceProblemDetector.look(context());
 
     expect(found).toHaveLength(1);
 
@@ -376,7 +382,9 @@ describe("TraceProblemDetector", () => {
         lineNumber: 42,
       },
     ]);
-    expect(candidate.detailMarkdown).toContain("**Slow operation in checkout**");
+    expect(candidate.detailMarkdown).toContain(
+      "**Slow operation in checkout**",
+    );
     expect(candidate.detailMarkdown).toContain(
       "the same database query ran 40 times under GET /orders",
     );
@@ -394,9 +402,7 @@ describe("TraceProblemDetector", () => {
     expect((request["startTime"] as Date).toISOString()).toBe(
       "2026-10-24T08:00:04.000Z",
     );
-    expect((request["endTime"] as Date).toISOString()).toBe(
-      NOW.toISOString(),
-    );
+    expect((request["endTime"] as Date).toISOString()).toBe(NOW.toISOString());
 
     for (const call of readSpans.mock.calls) {
       const read: JSONObject = call[0] as unknown as JSONObject;
@@ -419,9 +425,8 @@ describe("TraceProblemDetector", () => {
     traces.set(`${REPORTING}:GET /report`, untracedTrace());
     traces.set("4bf92f3577b34da6a3ce929d0e0e4736", untracedTrace());
 
-    const found: Array<InsightCandidate> = await TraceProblemDetector.look(
-      context(),
-    );
+    const found: Array<InsightCandidate> =
+      await TraceProblemDetector.look(context());
 
     expect(found).toHaveLength(1);
     expect(found[0]!.insightType).toBe(AIInsightType.TraceMissingTracing);
@@ -446,23 +451,20 @@ describe("TraceProblemDetector", () => {
       failedSpan({
         spanId: "f1",
         exceptionType: "TimeoutError",
-        exceptionMessage:
-          "payment provider did not answer for ada@example.com",
+        exceptionMessage: "payment provider did not answer for ada@example.com",
         stackTrace: "TimeoutError: x\n    at charge (src/pay.ts:9)",
         attributes: { "http.response.status_code": 503 },
       }),
       failedSpan({
         spanId: "f2",
         exceptionType: "TimeoutError",
-        exceptionMessage:
-          "payment provider did not answer for ada@example.com",
+        exceptionMessage: "payment provider did not answer for ada@example.com",
       }),
       failedSpan({ spanId: "f3", statusMessage: "upstream reset" }),
     ]);
 
-    const found: Array<InsightCandidate> = await TraceProblemDetector.look(
-      context(),
-    );
+    const found: Array<InsightCandidate> =
+      await TraceProblemDetector.look(context());
 
     expect(found).toHaveLength(1);
     expect(found[0]!.insightType).toBe(AIInsightType.TraceFailingOperation);
@@ -492,9 +494,8 @@ describe("TraceProblemDetector", () => {
       failedSpan({ spanId: "f2" }),
     ]);
 
-    const found: Array<InsightCandidate> = await TraceProblemDetector.look(
-      context(),
-    );
+    const found: Array<InsightCandidate> =
+      await TraceProblemDetector.look(context());
 
     expect(found).toHaveLength(1);
     expect(found[0]!.insightType).toBe(AIInsightType.TraceMissingTracing);
@@ -524,12 +525,13 @@ describe("TraceProblemDetector", () => {
       failedSpan({ spanId: "f1", statusMessage: "statement timeout" }),
     ]);
 
-    const found: Array<InsightCandidate> = await TraceProblemDetector.look(
-      context(),
-    );
+    const found: Array<InsightCandidate> =
+      await TraceProblemDetector.look(context());
 
     expect(
-      found.map((candidate: InsightCandidate) => candidate.insightType),
+      found.map((candidate: InsightCandidate) => {
+        return candidate.insightType;
+      }),
     ).toEqual([AIInsightType.TraceFailingOperation]);
   });
 
@@ -546,9 +548,8 @@ describe("TraceProblemDetector", () => {
       tableRow("POST /login", { count: 400 }),
     ]);
 
-    const found: Array<InsightCandidate> = await TraceProblemDetector.look(
-      context(),
-    );
+    const found: Array<InsightCandidate> =
+      await TraceProblemDetector.look(context());
 
     expect(found).toHaveLength(1);
     expect(found[0]!.title).toBe("edge's requests have no spans inside them");
@@ -563,9 +564,7 @@ describe("TraceProblemDetector", () => {
     // The slow drill is not run for it: the finding says it all.
     expect(
       readTable.mock.calls.some((call: Array<unknown>) => {
-        return (
-          (call[0] as TraceAnalyticsRequest).tableSort?.column === "p99"
-        );
+        return (call[0] as TraceAnalyticsRequest).tableSort?.column === "p99";
       }),
     ).toBe(false);
   });
@@ -587,9 +586,7 @@ describe("TraceProblemDetector", () => {
 
   test("an entity that is not one of the project's services is never read", async () => {
     healthRows = [health({ primaryEntityId: HOST, failedSpanCount: 900 })];
-    tables.set(`${HOST}:errorCount`, [
-      tableRow("GET /", { errorCount: 900 }),
-    ]);
+    tables.set(`${HOST}:errorCount`, [tableRow("GET /", { errorCount: 900 })]);
 
     expect(await TraceProblemDetector.look(context())).toEqual([]);
     expect(readTable).not.toHaveBeenCalled();
@@ -621,16 +618,19 @@ describe("TraceProblemDetector", () => {
         throw new Error("too slow");
       }
 
-      return tables.get(`${serviceId}:${request.tableSort?.column || ""}`) || [];
+      return (
+        tables.get(`${serviceId}:${request.tableSort?.column || ""}`) || []
+      );
     });
 
-    const found: Array<InsightCandidate> = await TraceProblemDetector.look(
-      context(),
-    );
+    const found: Array<InsightCandidate> =
+      await TraceProblemDetector.look(context());
 
-    expect(found.map((candidate: InsightCandidate) => candidate.serviceName)).toEqual([
-      "checkout",
-    ]);
+    expect(
+      found.map((candidate: InsightCandidate) => {
+        return candidate.serviceName;
+      }),
+    ).toEqual(["checkout"]);
   });
 
   test("a look that fails finds nothing, and never throws", async () => {
@@ -650,7 +650,11 @@ describe("TraceProblemDetector", () => {
     const detectors: Array<InsightDetector> =
       InsightDetectors.getTelemetryAiDetectors(TelemetryAiLane.Trace);
 
-    expect(detectors.map((detector: InsightDetector) => detector.insightType)).toEqual([
+    expect(
+      detectors.map((detector: InsightDetector) => {
+        return detector.insightType;
+      }),
+    ).toEqual([
       AIInsightType.TraceFailingOperation,
       AIInsightType.TraceSlowOperation,
       AIInsightType.TraceMissingTracing,
@@ -664,11 +668,15 @@ describe("TraceProblemDetector", () => {
       await new TraceMissingTracingDetector().detect(scan);
 
     expect(failing).toEqual([]);
-    expect(slow.map((candidate: InsightCandidate) => candidate.insightType)).toEqual([
-      AIInsightType.TraceSlowOperation,
-    ]);
     expect(
-      missing.map((candidate: InsightCandidate) => candidate.insightType),
+      slow.map((candidate: InsightCandidate) => {
+        return candidate.insightType;
+      }),
+    ).toEqual([AIInsightType.TraceSlowOperation]);
+    expect(
+      missing.map((candidate: InsightCandidate) => {
+        return candidate.insightType;
+      }),
     ).toEqual([AIInsightType.TraceMissingTracing]);
 
     // One look for the three: the aggregates were read once.
@@ -710,9 +718,12 @@ describe("TraceProblemDetector - reading what spans say", () => {
       statusMessage: "user 123e4567-e89b-42d3-a456-426614174000 failed",
       exceptionType: "TypeError",
       exceptionMessage: "x".repeat(5000),
-      stackTrace: Array.from({ length: 80 }, (_unused, index) => {
-        return `    at f${index} (src/a.ts:${index})`;
-      }).join("\n"),
+      stackTrace: Array.from(
+        { length: 80 },
+        (_unused: unknown, index: number): string => {
+          return `    at f${index} (src/a.ts:${index})`;
+        },
+      ).join("\n"),
       fault: true,
       attributes: {
         "rpc.grpc.status_code": 14,

@@ -279,7 +279,8 @@ describe("every description is short", () => {
 });
 
 describe("Traces' AI section", () => {
-  const copy: TelemetryAiLaneCopy = TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Trace];
+  const copy: TelemetryAiLaneCopy =
+    TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Trace];
 
   test("lives under Traces: its four pages are Traces'", () => {
     expect(TELEMETRY_AI_PAGES[TelemetryAiLane.Trace]).toEqual({
@@ -315,7 +316,9 @@ describe("Traces' AI section", () => {
     const off: ReturnType<typeof getTelemetryAiInsightsScope> =
       getTelemetryAiInsightsScope(TelemetryAiLane.Trace, true);
 
-    expect(off).toBe(TELEMETRY_AI_INSIGHTS_SCOPES_WHILE_OFF[TelemetryAiLane.Trace]);
+    expect(off).toBe(
+      TELEMETRY_AI_INSIGHTS_SCOPES_WHILE_OFF[TelemetryAiLane.Trace],
+    );
     expect(off.insightTypes).toBe(
       TELEMETRY_AI_INSIGHTS_SCOPES[TelemetryAiLane.Trace].insightTypes,
     );

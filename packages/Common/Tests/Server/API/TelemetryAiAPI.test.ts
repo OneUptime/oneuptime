@@ -188,7 +188,9 @@ let logsSpy: jest.SpiedFunction<typeof TelemetryAiActivityReader.readLogs>;
 let propsSpy: jest.SpiedFunction<
   typeof CommonAPI.getDatabaseCommonInteractionProps
 >;
-let suggestionSpy: jest.SpiedFunction<typeof TelemetryAiPersonFix.getSuggestion>;
+let suggestionSpy: jest.SpiedFunction<
+  typeof TelemetryAiPersonFix.getSuggestion
+>;
 let fixSpy: jest.SpiedFunction<typeof TelemetryAiPersonFix.createFixTask>;
 
 beforeAll(async () => {
@@ -300,13 +302,16 @@ describe("the telemetry AI routes", () => {
     [TELEMETRY_AI_FIX_PATH, null],
     [TELEMETRY_AI_FIX_PATH, { insightId: INSIGHT_ID, repositoryId: "x" }],
     [TELEMETRY_AI_FIX_PATH, { insightId: INSIGHT_ID, repositoryId: 3 }],
-  ])("%s refuses %j and starts nothing", async (path: string, body: unknown) => {
-    const result: CallResult = await call(path, body);
+  ])(
+    "%s refuses %j and starts nothing",
+    async (path: string, body: unknown) => {
+      const result: CallResult = await call(path, body);
 
-    expect(result.error).toBeInstanceOf(BadDataException);
-    expect(suggestionSpy).not.toHaveBeenCalled();
-    expect(fixSpy).not.toHaveBeenCalled();
-  });
+      expect(result.error).toBeInstanceOf(BadDataException);
+      expect(suggestionSpy).not.toHaveBeenCalled();
+      expect(fixSpy).not.toHaveBeenCalled();
+    },
+  );
 
   test.each([TELEMETRY_AI_FIX_SUGGESTION_PATH, TELEMETRY_AI_FIX_PATH])(
     "%s refuses a request that is not one signed-in user's",

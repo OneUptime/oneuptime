@@ -373,9 +373,7 @@ describe("getAiRuleCriteriaProblem", () => {
         triggerEntityType: Incident,
         criteria: { filters: [{ field: "services" }] },
       }),
-    ).toBe(
-      "Services can only be used by profile AI rules or trace AI rules.",
-    );
+    ).toBe("Services can only be used by profile AI rules or trace AI rules.");
     expect(
       getAiRuleCriteriaProblem({
         triggerEntityType: Alert,

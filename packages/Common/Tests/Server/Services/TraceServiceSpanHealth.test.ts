@@ -69,9 +69,7 @@ describe("TraceAggregationService.getServiceSpanHealth (projection-served SQL sh
     expect(query).toContain(
       "SELECT primaryEntityId, statusCode, isRootSpan, count() AS cnt",
     );
-    expect(query).toContain(
-      "GROUP BY primaryEntityId, statusCode, isRootSpan",
-    );
+    expect(query).toContain("GROUP BY primaryEntityId, statusCode, isRootSpan");
     expect(query).not.toContain("countIf");
     expect(query).not.toContain("quantile");
     expect(query).not.toContain("durationUnixNano");
@@ -156,7 +154,9 @@ describe("TraceAggregationService.toServiceSpanHealth", () => {
           { primaryEntityId: a, statusCode: 0, cnt: 500 },
         ],
         2,
-      ).map((row: ServiceSpanHealthRow) => row.primaryEntityId),
+      ).map((row: ServiceSpanHealthRow) => {
+        return row.primaryEntityId;
+      }),
     ).toEqual([a, b]);
   });
 

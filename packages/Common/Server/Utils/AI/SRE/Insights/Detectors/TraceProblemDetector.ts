@@ -217,19 +217,17 @@ export default class TraceProblemDetector {
       }
     }
 
-    return data.health.map(
-      (row: ServiceSpanHealthRow): TraceServiceReading => {
-        const serviceId: string = row.primaryEntityId.trim().toLowerCase();
+    return data.health.map((row: ServiceSpanHealthRow): TraceServiceReading => {
+      const serviceId: string = row.primaryEntityId.trim().toLowerCase();
 
-        return {
-          serviceId,
-          spanCount: row.spanCount,
-          failedSpanCount: row.failedSpanCount,
-          rootSpanCount: row.rootSpanCount,
-          p99Ms: p99ByService.get(serviceId) || 0,
-        };
-      },
-    );
+      return {
+        serviceId,
+        spanCount: row.spanCount,
+        failedSpanCount: row.failedSpanCount,
+        rootSpanCount: row.rootSpanCount,
+        p99Ms: p99ByService.get(serviceId) || 0,
+      };
+    });
   }
 
   // A row of a service's operations table, as the gates read it. Pure.
@@ -300,10 +298,9 @@ export default class TraceProblemDetector {
       );
     }
 
-    const stackTrace: string | undefined = firstAttribute(
-      exceptionAttributes,
-      ["exception.stacktrace"],
-    );
+    const stackTrace: string | undefined = firstAttribute(exceptionAttributes, [
+      "exception.stacktrace",
+    ]);
 
     if (stackTrace) {
       // Cut before anything reads it: a stack trace can be very long.
@@ -495,7 +492,10 @@ export default class TraceProblemDetector {
         lines.push(
           mdText`- Busiest operations: ${FeedMarkdown.join(
             evidence.topOperations.map(
-              (operation: { name: string; spanCount: number }): MarkdownText => {
+              (operation: {
+                name: string;
+                spanCount: number;
+              }): MarkdownText => {
                 return mdText`\`${operation.name}\` (${operation.spanCount.toLocaleString("en-US")})`;
               },
             ),
@@ -829,8 +829,7 @@ export default class TraceProblemDetector {
       }
 
       if (sampleSpan?.durationUnixNano) {
-        base.sampleDurationMs =
-          Number(sampleSpan.durationUnixNano) / 1_000_000;
+        base.sampleDurationMs = Number(sampleSpan.durationUnixNano) / 1_000_000;
       }
 
       if (reading.error) {

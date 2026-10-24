@@ -508,7 +508,9 @@ describe("AutoRemediationRuleService - what an AI rule matches", () => {
             criteria: criteriaOn("services"),
           })) as Error
         ).message,
-      ).toBe("Services can only be used by profile AI rules or trace AI rules.");
+      ).toBe(
+        "Services can only be used by profile AI rules or trace AI rules.",
+      );
       expect(
         (
           (await createError({
@@ -516,7 +518,9 @@ describe("AutoRemediationRuleService - what an AI rule matches", () => {
             serviceNamePattern: "checkout",
           })) as Error
         ).message,
-      ).toBe("Service Name Pattern can only be used by profile AI rules or trace AI rules.");
+      ).toBe(
+        "Service Name Pattern can only be used by profile AI rules or trace AI rules.",
+      );
     });
 
     it("an edit that writes a service pattern is judged against each rule's kind", async () => {

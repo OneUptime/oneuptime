@@ -923,7 +923,10 @@ describe("AiActivityInsightsReader.read", () => {
       const otherId: string = ObjectID.generate().toString();
 
       const findings: Array<[AIInsightType, string]> = [
-        [AIInsightType.TraceSlowOperation, `trace-slow:${serviceId}:GET /orders`],
+        [
+          AIInsightType.TraceSlowOperation,
+          `trace-slow:${serviceId}:GET /orders`,
+        ],
         [
           AIInsightType.TraceFailingOperation,
           `trace-failing:${serviceId}:POST /checkout`,

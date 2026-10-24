@@ -213,14 +213,17 @@ export function getTelemetryAiDefaultWaitMinutes(
  * The triage verdict that lets a waiting fix open, as the triage writes it
  * onto the insight (ExceptionAIClassification, the same vocabulary).
  */
-export const TELEMETRY_AI_CODE_FAULT_CLASSIFICATION: string = ErrorClass.CodeFault;
+export const TELEMETRY_AI_CODE_FAULT_CLASSIFICATION: string =
+  ErrorClass.CodeFault;
 
 /*
  * Whether OneUptime AI opens the pull request for an insight of this type on
  * its own only after the investigation's verdict (the lane's
  * fixAfterVerdictInsightTypes). False for a type no lane works on.
  */
-export function doesTelemetryAiFixWaitForVerdict(insightType: unknown): boolean {
+export function doesTelemetryAiFixWaitForVerdict(
+  insightType: unknown,
+): boolean {
   const lane: TelemetryAiLane | null =
     getTelemetryAiLaneOfInsightType(insightType);
 
@@ -609,8 +612,7 @@ export function getTelemetryAiNextSteps(data: {
 
   return {
     startInvestigation:
-      (data.work.investigate || needsVerdict) &&
-      !data.problem.hasInvestigation,
+      (data.work.investigate || needsVerdict) && !data.problem.hasInvestigation,
     startFix:
       wantsFixWithoutAsking &&
       (verdict === TelemetryAiFixVerdict.NotNeeded ||

@@ -47,9 +47,9 @@ describe("getTelemetryAiFixOffer", () => {
   });
 
   test("a task already on its way: in progress", () => {
-    expect(
-      getTelemetryAiFixOffer({ ...ready, hasActiveFix: true }).offer,
-    ).toBe(SuggestionOffer.InProgress);
+    expect(getTelemetryAiFixOffer({ ...ready, hasActiveFix: true }).offer).toBe(
+      SuggestionOffer.InProgress,
+    );
   });
 
   test("no repository: the one step, connect one, in words that name no host", () => {
@@ -65,9 +65,7 @@ describe("getTelemetryAiFixOffer", () => {
         message: TELEMETRY_AI_FIX_CONNECT_REPOSITORY_MESSAGE,
       },
     });
-    expect(TELEMETRY_AI_FIX_CONNECT_REPOSITORY_MESSAGE).not.toContain(
-      "GitHub",
-    );
+    expect(TELEMETRY_AI_FIX_CONNECT_REPOSITORY_MESSAGE).not.toContain("GitHub");
   });
 
   test("Code's gate says no: that step, in its words", () => {
@@ -142,7 +140,9 @@ describe("the answer, on the wire", () => {
     for (const suggestion of suggestions) {
       expect(
         parseTelemetryAiFixSuggestion(
-          JSON.parse(JSON.stringify(telemetryAiFixSuggestionToJSON(suggestion))),
+          JSON.parse(
+            JSON.stringify(telemetryAiFixSuggestionToJSON(suggestion)),
+          ),
         ),
       ).toEqual(suggestion);
     }

@@ -467,14 +467,16 @@ test.describe("Traces → AI → Insights", () => {
         ).toBeVisible();
 
         // Three kinds: each row says its own, and the type filter offers them.
-        for (const [title, kind] of [
-          [SLOW_TITLE, "Slow Operation"],
-          [FAILING_TITLE, "Failing Operation"],
-          [UNTRACED_TITLE, "Missing Tracing"],
-        ]) {
+        const kinds: Array<{ title: string; kind: string }> = [
+          { title: SLOW_TITLE, kind: "Slow Operation" },
+          { title: FAILING_TITLE, kind: "Failing Operation" },
+          { title: UNTRACED_TITLE, kind: "Missing Tracing" },
+        ];
+
+        for (const row of kinds) {
           await expect(
-            page.getByRole("link").filter({ hasText: title }),
-          ).toContainText(kind);
+            page.getByRole("link").filter({ hasText: row.title }),
+          ).toContainText(row.kind);
         }
 
         await expect(

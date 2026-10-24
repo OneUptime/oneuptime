@@ -249,7 +249,9 @@ describe("a Traces finding's page", () => {
     expect(
       await screen.findByTestId(TELEMETRY_AI_FIX_TEST_IDS.button),
     ).toBeInTheDocument();
-    expect(screen.getByTestId(TELEMETRY_AI_FIX_TEST_IDS.lead)).toHaveTextContent(
+    expect(
+      screen.getByTestId(TELEMETRY_AI_FIX_TEST_IDS.lead),
+    ).toHaveTextContent(
       TELEMETRY_AI_FIX_LEADS[AIInsightType.TraceSlowOperation]!,
     );
     expect(posted("/telemetry-ai/fix-suggestion")).toEqual([
@@ -272,7 +274,9 @@ describe("a Traces finding's page", () => {
   test("the fix names the finding, and the page then shows the finding's fix task", async () => {
     await renderPage();
 
-    fireEvent.click(await screen.findByTestId(TELEMETRY_AI_FIX_TEST_IDS.button));
+    fireEvent.click(
+      await screen.findByTestId(TELEMETRY_AI_FIX_TEST_IDS.button),
+    );
 
     await waitFor(() => {
       expect(posted("/telemetry-ai/fix")).toEqual([{ insightId: INSIGHT_ID }]);
@@ -358,7 +362,9 @@ describe("a Traces finding's page", () => {
 
     await renderPage();
 
-    fireEvent.click(await screen.findByTestId(TELEMETRY_AI_FIX_TEST_IDS.button));
+    fireEvent.click(
+      await screen.findByTestId(TELEMETRY_AI_FIX_TEST_IDS.button),
+    );
 
     expect(
       await screen.findByTestId(TELEMETRY_AI_FIX_TEST_IDS.error),
