@@ -96,8 +96,6 @@ const ADDRESS_READERS_THAT_DO_NOT_COUNT: Record<string, string> = {
     "records the address of a single sign-on",
   "packages/App/FeatureSet/Identity/API/MicrosoftSignIn.ts":
     "records the address of a Microsoft sign-in",
-  "packages/App/FeatureSet/Identity/API/VercelSignIn.ts":
-    "records the address of a sign-in from Vercel Marketplace",
   "packages/App/FeatureSet/Identity/API/StatusPageSSO.ts":
     "records the address of a status page single sign-on",
   "packages/App/FeatureSet/Identity/API/StatusPageOIDC.ts":
@@ -106,6 +104,8 @@ const ADDRESS_READERS_THAT_DO_NOT_COUNT: Record<string, string> = {
     "hands the address to VerificationCodeRateLimit.consume, which counts through ClientRateLimitCounter",
   "packages/App/FeatureSet/Runbook/API/RunbookWebhook.ts":
     "records the caller of a run; its calls are counted by RunbookWebhookRateLimit",
+  "ee/Server/CloudMarketplace/API/VercelSignIn.ts":
+    "records the address of a sign-in from Vercel Marketplace",
   "packages/Common/Server/API/FormAPI.ts":
     "checks the form's IP allowlist; its requests are counted by FormRateLimit",
   "packages/Common/Server/API/TelemetryAPI.ts":

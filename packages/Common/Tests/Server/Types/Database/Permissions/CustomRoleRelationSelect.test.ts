@@ -68,7 +68,7 @@ function checkRelationSelect<TModel extends BaseModel>(
   );
 }
 
-// Components/Team/TeamCustomRoleTable and Components/ApiKey/ApiKeyCustomRoleTable.
+// ee/Dashboard/CustomRoles: TeamCustomRoleTable and ApiKeyCustomRoleTable.
 const ROLE_LINE_SELECT: Record<string, unknown> = {
   _id: true,
   customRoleId: true,
@@ -78,7 +78,7 @@ const ROLE_LINE_SELECT: Record<string, unknown> = {
   },
 };
 
-// Components/CustomRole/CustomRoleApiKeysTable.
+// ee/Dashboard/CustomRoles/CustomRoleApiKeysTable.
 const KEY_LINE_SELECT: Select<ApiKeyCustomRole> = {
   _id: true,
   apiKeyId: true,

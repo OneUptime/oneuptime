@@ -295,7 +295,7 @@ describe("where they live", () => {
     );
     const channels: number = settingsPage.indexOf("<SubscriberChannelsCard");
     const restrictions: number = settingsPage.indexOf(
-      "<SubscriberRestrictionsCard",
+      "<SubscriberRestrictionsSettings",
     );
 
     expect(warnings).toBeGreaterThan(-1);
@@ -311,7 +311,7 @@ describe("where they live", () => {
     expect(settingsPage).toContain("setNotificationsRevision(");
   });
 
-  test.each(["SubscriberNotificationsCard", "SubscriberRestrictionsCard"])(
+  test.each(["SubscriberNotificationsCard", "SubscriberRestrictionsSettings"])(
     "%s is on that page only",
     (card: string) => {
       const viewDir: string = path.join(DASHBOARD_SRC, "Pages");

@@ -139,7 +139,7 @@ La lista completa está en la [Referencia de permisos](/docs/permissions/referen
 
 ### Roles personalizados
 
-Un rol personalizado es un conjunto de permisos al que pone nombre una vez y que da a equipos y claves de API: por ejemplo, una «Respuesta a incidentes» formada por `IncidentMember`, `AlertMember` y `OnCallViewer`, o un «Líder de equipo». Cada equipo y cada clave a los que se lo da reciben los mismos permisos, y usted los cambia para todos en un solo lugar. En OneUptime Cloud, los roles personalizados requieren el plan Scale, como cambiar los permisos de un equipo.
+Un rol personalizado es un conjunto de permisos al que pone nombre una vez y que da a equipos y claves de API: por ejemplo, una «Respuesta a incidentes» formada por `IncidentMember`, `AlertMember` y `OnCallViewer`, o un «Líder de equipo». Cada equipo y cada clave a los que se lo da reciben los mismos permisos, y usted los cambia para todos en un solo lugar. En OneUptime Cloud, los roles personalizados requieren el plan Scale, como cambiar los permisos de un equipo. En instalaciones autoalojadas forman parte de la Enterprise Edition: en la Community Edition, los roles que sus equipos y claves de API ya tienen siguen aplicándose, y se pueden quitar de un equipo o una clave o eliminar, pero no crear ni cambiar.
 
 :::steps
 1. Abra **Equipos** en el menú **Productos**, en **Ajustes**. Despliegue **Ajustes** en el menú lateral, elija **Roles** y haga clic en **Crear Rol personalizado**.

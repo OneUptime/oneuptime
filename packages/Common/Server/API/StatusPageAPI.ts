@@ -71,6 +71,7 @@ import ArrayUtil from "../../Utils/Array";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import SubscriberContactSql from "../Utils/StatusPage/SubscriberContactSql";
+import { isPoweredByOneUptimeHidden } from "../Utils/StatusPage/StatusPagePoweredBy";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import Dictionary from "../../Types/Dictionary";
@@ -1225,6 +1226,16 @@ export default class StatusPageAPI extends BaseAPI<
 
           // Only images of the page's own project, and no project id.
           keepOwnStatusPageImages(item);
+
+          /*
+           * "Powered by OneUptime" goes only while the Enterprise feature
+           * that removes it is active (StatusPagePoweredBy): the Community
+           * Edition, and a self-hosted install whose license lapsed, show it
+           * on every page, whatever the page's switch says.
+           */
+          item.hidePoweredByOneUptimeBranding = isPoweredByOneUptimeHidden(
+            item.hidePoweredByOneUptimeBranding,
+          );
 
           /*
            * Whether the page asks visitors for the master password, by the

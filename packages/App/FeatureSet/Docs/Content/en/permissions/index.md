@@ -139,7 +139,7 @@ The full list is in the [Permission Reference](/docs/permissions/reference).
 
 ### Custom roles
 
-A custom role is a set of permissions you name once and give to teams and API keys: an Incident Responder made of `IncidentMember`, `AlertMember` and `OnCallViewer`, say, or a Team Lead. Every team and key you give it to gets the same permissions, and you change them for all of them in one place. On OneUptime Cloud, custom roles need the Scale plan, as changing a team's permissions does.
+A custom role is a set of permissions you name once and give to teams and API keys: an Incident Responder made of `IncidentMember`, `AlertMember` and `OnCallViewer`, say, or a Team Lead. Every team and key you give it to gets the same permissions, and you change them for all of them in one place. On OneUptime Cloud, custom roles need the Scale plan, as changing a team's permissions does. Self-hosted, they are part of the Enterprise Edition: on the Community Edition, the roles your teams and API keys already have keep applying, and can be taken from a team or key or deleted, but not created or changed.
 
 :::steps
 1. Open **Teams** from the **Products** menu, under **Settings**. Expand **Settings** in its side menu, choose **Roles**, and click **Create Custom Role**.

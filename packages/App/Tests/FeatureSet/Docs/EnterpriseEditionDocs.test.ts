@@ -15,6 +15,11 @@ import {
 import slugify, {
   slugifyMarkdownHeading,
 } from "Common/Server/Types/MarkdownSlugify";
+import CustomRole from "Common/Models/DatabaseModels/CustomRole";
+import Dashboard from "Common/Models/DatabaseModels/Dashboard";
+import Form from "Common/Models/DatabaseModels/Form";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -118,6 +123,10 @@ const MATRIX_ROW_FOR_FEATURE: Record<EnterpriseFeature, string> = {
   [EnterpriseFeature.AuditLogs]: "Audit logs",
   [EnterpriseFeature.InstanceHealth]: "Admin **Health** dashboards",
   [EnterpriseFeature.TelemetryRetention]: "Retention overrides",
+  [EnterpriseFeature.CustomRoles]: "Custom roles",
+  [EnterpriseFeature.IpAllowlists]: "IP allowlists",
+  [EnterpriseFeature.StatusPageAccessControls]: "Status page access controls",
+  [EnterpriseFeature.StatusPageBranding]: 'Hiding "Powered by OneUptime"',
 };
 
 /*
@@ -911,6 +920,59 @@ describe("Enterprise Edition docs page", () => {
     }
   });
 
+  /*
+   * Custom roles, IP allowlists and a status page's access controls and
+   * branding are settings a record holds: their rows sell them on the plan
+   * their table or columns take to be set on OneUptime Cloud, and the page
+   * says what a lower plan leaves of them.
+   */
+  it("puts the settings a record holds on the plan their columns take, and says what a lower plan leaves of them", () => {
+    const lines: Array<string> = readPage().split("\n");
+    const statusPage: StatusPage = new StatusPage();
+    const plansToSet: Array<PlanType | null | undefined> = [
+      new CustomRole().getCreateBillingPlan(),
+      ...[
+        "ipWhitelist",
+        "privateUserSessionLengthInHours",
+        "limitSubscribersToPrivateUsers",
+        "allowedSubscriberEmailDomains",
+        "hidePoweredByOneUptimeBranding",
+      ].map((column: string): PlanType | null | undefined => {
+        return statusPage.getColumnBillingAccessControl(column)?.create;
+      }),
+      new Dashboard().getColumnBillingAccessControl("ipWhitelist")?.create,
+      new Form().getColumnBillingAccessControl("ipWhitelist")?.create,
+    ];
+
+    expect(Array.from(new Set(plansToSet))).toEqual([PlanType.Scale]);
+
+    for (const feature of [
+      EnterpriseFeature.CustomRoles,
+      EnterpriseFeature.IpAllowlists,
+      EnterpriseFeature.StatusPageAccessControls,
+      EnterpriseFeature.StatusPageBranding,
+    ]) {
+      const row: string | undefined = lines.find((line: string) => {
+        return (
+          line.startsWith("|") && line.includes(MATRIX_ROW_FOR_FEATURE[feature])
+        );
+      });
+
+      expect({ feature: feature, row: row }).toEqual({
+        feature: feature,
+        row: expect.stringMatching(/ \| No \| Yes \| Scale plan and above \|$/),
+      });
+    }
+
+    // The built-in roles stay in every edition; custom roles do not.
+    expect(lines).toContain(
+      "| Password sign-in, two-factor authentication, teams, built-in roles and API keys | Yes | Yes | Every plan |",
+    );
+    expect(normalized(readPage())).toContain(
+      'Custom roles, IP allowlists, status page access controls and a hidden "Powered by OneUptime" line work the same way: whatever a trial or a lower plan left set keeps applying, and its settings show it under the upgrade card with a button to remove it.',
+    );
+  });
+
   it("has no licensable feature for single sign-on, and never reuses its retired claim", () => {
     expect(RETIRED_ENTERPRISE_FEATURE_VALUES).toContain("sso");
 
@@ -1093,6 +1155,10 @@ describe("Enterprise Edition docs page", () => {
       "**Core monitoring is never affected**",
       "**Master admins can always sign in with their password.**",
       "**Nothing is deleted.** SCIM configuration, audit logs and retention overrides stay as they are.",
+      // Powered by OneUptime is runtime: it comes back, and the switch is kept.
+      "**Status pages show Powered by OneUptime again.** A page that hides the line shows it until a license is activated. The setting is kept.",
+      // The settings the server still enforces: they can only be removed.
+      "**Custom roles, IP allowlists and status page access controls keep applying.** You can remove them, but not create or change them.",
       // It all comes back, and an unreadable license state switches nothing off.
       "**Everything resumes as soon as a license is activated**, without a restart",
       "While it cannot read the license state",
@@ -1194,6 +1260,12 @@ describe("Enterprise Edition docs page", () => {
     expect(section).toContain("**Retention overrides stop applying.**");
     expect(section).toContain(
       "The overrides stay in the database and apply again when you switch back.",
+    );
+    expect(section).toContain(
+      "**Status pages show Powered by OneUptime again.** The setting stays in the database and hides the line again when you switch back.",
+    );
+    expect(section).toContain(
+      "**Custom roles, IP allowlists and status page access controls keep applying.** Their settings show an upgrade prompt, with what is still set and a button to remove it.",
     );
     expect(section).toContain("review who has access");
 
@@ -1345,6 +1417,10 @@ describe("Upgrade notes for the Community / Enterprise image split", () => {
       "Single sign-on is not affected: the Community image serves it too.",
     );
     expect(section).toContain("**Community Edition without SCIM:** nothing.");
+    // The settings that moved to the Enterprise Edition after the split.
+    expect(section).toContain(
+      "**Community Edition with custom roles, IP allowlists, status page access controls, or Powered by OneUptime hidden:** custom roles, IP allowlists and status page access controls moved to the Enterprise Edition. The ones you set keep applying, and you can remove them, but not create or change them. Status pages show Powered by OneUptime again.",
+    );
     expect(section).toContain(
       "(/docs/self-hosted/enterprise#switching-from-enterprise-to-community)",
     );

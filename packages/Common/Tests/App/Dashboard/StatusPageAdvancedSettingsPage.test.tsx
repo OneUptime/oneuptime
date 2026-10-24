@@ -62,6 +62,17 @@ jest.mock(
   },
 );
 
+/*
+ * The Powered by OneUptime line has a card of its own: hiding it is an
+ * Enterprise feature, behind a core shell EnterpriseSettingShells holds.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPagePoweredBySettings",
+  () => {
+    return { __esModule: true, default: mockRecorder("powered-by") };
+  },
+);
+
 jest.mock("../../../UI/Components/ImportExport/ExportModelCard", () => {
   return { __esModule: true, default: mockRecorder("export") };
 });
@@ -128,7 +139,7 @@ function propsOf(name: string): Record<string, unknown> {
 }
 
 describe("Advanced Settings", () => {
-  test("is what the page shows, its export, then Archive, in that order", async () => {
+  test("is what the page shows, the Powered by line, its export, then Archive, in that order", async () => {
     await renderPage();
 
     expect(
@@ -137,7 +148,7 @@ describe("Advanced Settings", () => {
         .map((element: HTMLElement): string | null => {
           return element.getAttribute("data-card");
         }),
-    ).toEqual(["display-settings", "export", "archive"]);
+    ).toEqual(["display-settings", "powered-by", "export", "archive"]);
   });
 
   test("the What your status page shows card is for this status page", async () => {
@@ -146,6 +157,14 @@ describe("Advanced Settings", () => {
     expect(
       (propsOf("display-settings")["statusPageId"] as ObjectID).toString(),
     ).toBe(STATUS_PAGE_ID);
+  });
+
+  test("the Powered by OneUptime card, under it, is for this status page", async () => {
+    await renderPage();
+
+    expect((propsOf("powered-by")["statusPageId"] as ObjectID).toString()).toBe(
+      STATUS_PAGE_ID,
+    );
   });
 
   test("exports this status page", async () => {
