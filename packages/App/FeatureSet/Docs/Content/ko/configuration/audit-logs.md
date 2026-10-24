@@ -101,16 +101,17 @@ flowchart TB
 | vCenter 서버 | `vCenter` |
 | 패킷 캡처와 그 다운로드 | `Packet Capture` |
 | 보안 케이스, 플레이북과 그 실행, 보호 대상 엔터티 | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
+| 감사 로그 내보내기 | `Audit Log Export` |
 
 관리자가 다른 사람의 계정에서 알림 방법이나 개인 온콜 규칙을 추가하거나 제거한 경우에도 기록되며, 주소나 번호 자체는 기록되지 않습니다.
 
-팀에 누가 속해 있는지나 팀에 따로 추가된 권한 같은 그 밖의 데이터는 감사 로그에 없습니다. 비밀 키처럼 누구도 읽을 수 없는 필드는 모든 항목에서 빠집니다.
+팀에 누가 속해 있는지나 팀에 따로 추가된 권한 같은 그 밖의 데이터는 감사 로그에 없습니다. 누구도 읽을 수 없는 필드는 모든 항목에서 빠지며, 키, 토큰, 비밀번호는 `[REDACTED]`로 기록됩니다. 항목에는 변경되었다는 사실만 나오고 값은 나오지 않습니다.
 
 ## 항목 보관 기간
 
 각 항목은 기록될 때 프로젝트에 설정되어 있던 **보존 기간(일)** 동안 보관된 뒤 삭제됩니다. 새 보존 기간은 새 항목에 적용되며, 이미 기록된 항목의 날짜는 그대로입니다.
 
-180일보다 오래 보관하려면 **Read Audit Log** 권한이 있는 API 키로 API를 통해 항목을 읽어 필요한 곳에 저장하세요. [OneUptime API 참조](/docs/api-reference/api-reference)를 참조하세요.
+180일보다 오래 보관하려면 항목을 기록되는 대로 자체 스토리지나 SIEM으로 보내세요. [감사 로그 내보내기](/docs/configuration/audit-log-export)를 참조하세요. **Read Audit Log** 권한이 있는 API 키로 API를 통해 항목을 읽어 필요한 곳에 저장할 수도 있습니다. [OneUptime API 참조](/docs/api-reference/api-reference)를 참조하세요.
 
 ## 요금제나 라이선스에 감사 로그가 더 이상 포함되지 않을 때
 
@@ -130,6 +131,7 @@ flowchart TB
 ## 다음 단계
 
 :::cards
+- [감사 로그 내보내기](/docs/configuration/audit-log-export): 감사 로그를 자체 스토리지나 SIEM으로 보냅니다.
 - [사용자, 팀 및 권한](/docs/permissions/index): 감사 로그를 읽을 수 있는 사람을 정합니다.
 - [프로젝트 설정](/docs/configuration/project-settings): 프로젝트의 그 밖의 설정.
 - [결제 및 사용량](/docs/configuration/billing): 프로젝트의 요금제를 변경합니다.

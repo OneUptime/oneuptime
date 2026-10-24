@@ -1,3 +1,4 @@
+import AuditLogExportPlugins from "./AuditLogExport/Plugins";
 import AuditLogsPlugins from "./AuditLogs/Plugins";
 import CustomRolesPlugins from "./CustomRoles/Plugins";
 import IdentityPlugins from "./Identity/Plugins";
@@ -34,6 +35,7 @@ export const ONEUPTIME_EE_DASHBOARD_PLUGIN_SENTINEL: string =
 export default {
   ...IdentityPlugins,
   ...AuditLogsPlugins,
+  ...AuditLogExportPlugins,
   ...TeamCompliancePlugins,
   ...TelemetryRetentionPlugins,
   ...CustomRolesPlugins,

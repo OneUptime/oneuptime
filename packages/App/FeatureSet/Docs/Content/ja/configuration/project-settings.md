@@ -38,7 +38,7 @@ flowchart LR
 | **詳細** | **ドメイン**、**API キー**、**機能フラグ**、**別のツールからインポート** | [カスタムドメイン](/docs/status-pages/branding-and-domains#カスタムドメイン)、[API キー](/docs/permissions/index#api-キー)、[機能フラグ](#機能フラグ)、[Opsgenie からの移行](/docs/moving-to-oneuptime/opsgenie) とその他の移行ガイド |
 | **セキュリティ** | **SSO**、**SCIM** | [SSO](/docs/identity/sso)、[SCIM](/docs/identity/scim) |
 | **請求と請求書** | **請求**、**使用履歴**、**請求書** | [請求と使用量](/docs/configuration/billing) |
-| **監査ログ** | **監査ログ**、**設定** | [監査ログ](/docs/configuration/audit-logs) |
+| **監査ログ** | **監査ログ**、**設定**、**エクスポート** | [監査ログ](/docs/configuration/audit-logs)、[監査ログのエクスポート](/docs/configuration/audit-log-export) |
 | **危険な操作** | **危険な操作** | [プロジェクトを削除する](#プロジェクトを削除する) |
 
 **請求と請求書** と **AI クレジット** は OneUptime Cloud にしかありません。セルフホストのインストールには請求はありません。

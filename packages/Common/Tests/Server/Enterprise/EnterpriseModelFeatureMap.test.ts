@@ -12,6 +12,7 @@ import StatusPageOIDC from "../../../Models/DatabaseModels/StatusPageOidc";
 import StatusPageSCIM from "../../../Models/DatabaseModels/StatusPageSCIM";
 import StatusPageSSO from "../../../Models/DatabaseModels/StatusPageSso";
 import TeamComplianceSetting from "../../../Models/DatabaseModels/TeamComplianceSetting";
+import AuditLogExport from "../../../Models/DatabaseModels/AuditLogExport";
 import CustomRole from "../../../Models/DatabaseModels/CustomRole";
 import CustomRolePermission from "../../../Models/DatabaseModels/CustomRolePermission";
 import TeamCustomRole from "../../../Models/DatabaseModels/TeamCustomRole";
@@ -39,6 +40,8 @@ describe("EnterpriseEdition.getModelFeature against the real models", () => {
     [CustomRole, EnterpriseFeature.CustomRoles],
     [CustomRolePermission, EnterpriseFeature.CustomRoles],
     [TeamCustomRole, EnterpriseFeature.CustomRoles],
+    // An audit log export is part of audit logs: the same license feature.
+    [AuditLogExport, EnterpriseFeature.AuditLogs],
   ] as Array<[ModelType, EnterpriseFeature]>)(
     "%p is gated by the expected feature",
     (modelType: ModelType, feature: EnterpriseFeature) => {
@@ -75,7 +78,7 @@ describe("EnterpriseEdition.getModelFeature against the real models", () => {
     },
   );
 
-  test("the map holds exactly the SCIM, team compliance and custom role tables", () => {
+  test("the map holds exactly the SCIM, team compliance, custom role and audit log export tables", () => {
     expect([...EnterpriseEdition.getMappedTableNames()].sort()).toEqual(
       [
         "ProjectSCIM",
@@ -85,6 +88,7 @@ describe("EnterpriseEdition.getModelFeature against the real models", () => {
         "CustomRolePermission",
         "TeamCustomRole",
         "ApiKeyCustomRole",
+        "AuditLogExport",
       ].sort(),
     );
   });
@@ -153,7 +157,7 @@ describe("EnterpriseEdition.getModelFeature against the real models", () => {
     );
   });
 
-  test("the registered models marked requiresEnterprise are exactly SCIM, team compliance and custom roles", () => {
+  test("the registered models marked requiresEnterprise are exactly SCIM, team compliance, custom roles and audit log export", () => {
     const enterpriseTables: Array<string> = [];
 
     for (const modelType of AllModelTypes as Array<ModelType>) {
@@ -173,6 +177,7 @@ describe("EnterpriseEdition.getModelFeature against the real models", () => {
         "CustomRolePermission",
         "TeamCustomRole",
         "ApiKeyCustomRole",
+        "AuditLogExport",
       ].sort(),
     );
   });

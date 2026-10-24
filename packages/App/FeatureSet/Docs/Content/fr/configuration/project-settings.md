@@ -38,7 +38,7 @@ flowchart LR
 | **Avancé** | **Domaines**, **Clés API**, **Drapeaux de fonctionnalités**, **Importer depuis un autre outil** | [Domaines personnalisés](/docs/status-pages/branding-and-domains#domaines-personnalisés), [Clés API](/docs/permissions/index#clés-dapi), [Drapeaux de fonctionnalités](#drapeaux-de-fonctionnalités), [Quitter Opsgenie](/docs/moving-to-oneuptime/opsgenie) et les autres guides de migration |
 | **Sécurité** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Facturation et factures** | **Facturation**, **Historique d'utilisation**, **Factures** | [Facturation et utilisation](/docs/configuration/billing) |
-| **Journaux d'audit** | **Journaux d'audit**, **Paramètres** | [Journaux d'audit](/docs/configuration/audit-logs) |
+| **Journaux d'audit** | **Journaux d'audit**, **Paramètres**, **Export** | [Journaux d'audit](/docs/configuration/audit-logs), [Export du journal d'audit](/docs/configuration/audit-log-export) |
 | **Zone de danger** | **Zone de danger** | [Supprimer le projet](#supprimer-le-projet) |
 
 **Facturation et factures** et **Crédits IA** n'existent que sur OneUptime Cloud : une installation auto-hébergée n'a pas de facturation.

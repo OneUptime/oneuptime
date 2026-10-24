@@ -451,13 +451,18 @@ function aiMenuSection(): string {
  * folded into it, so auto-remediation and AI commands on Runners are on
  * exactly when Enable AI is.
  */
+// Comments, which may name what the code no longer does.
+const BLOCK_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
+const LINE_COMMENT: RegExp = /(^|[^:])\/\/.*$/gm;
+
 describe("the project's AI switches", () => {
   /*
-   * Enable AI is the switch itself, never a card behind an Edit button. The
-   * page's one card is the project's Daily limits, folded under More
-   * settings, and it edits the daily limit columns alone - never Enable AI.
+   * Enable AI is the switch itself, never a card behind an Edit button.
+   * Under it the project's AI context (#5198), a card of its own that edits
+   * that column alone; then the project's Daily limits, folded under More
+   * settings, editing the daily limit columns alone - never Enable AI.
    */
-  test("AI Features is Enable AI's own switch, saving on flip; its one card is Daily limits, under More settings", () => {
+  test("AI Features is Enable AI's own switch, saving on flip; then the AI context, and Daily limits under More settings", () => {
     // Code only: the comment that says what it replaced may name it.
     const source: string = read("Pages", "Settings", "AIFeatures.tsx")
       .replace(/\/\*[\s\S]*?\*\//g, "")
@@ -484,6 +489,27 @@ describe("the project's AI switches", () => {
     expect(fields).toContain("aiDailyTokenLimit: true");
     expect(fields).toContain("aiDailySpendLimitInUSD: true");
     expect(fields).not.toContain("enableAi");
+
+    // The AI context, between the switch and the fold, edits its column alone.
+    const contextCard: number = source.indexOf("<ProjectAiContextCard />");
+    expect(contextCard).toBeGreaterThan(source.indexOf("<ModelSwitchCard"));
+    expect(contextCard).toBeLessThan(fold);
+
+    const contextSource: string = read(
+      "Components",
+      "AISettings",
+      "ProjectAiContextCard.tsx",
+    )
+      .replace(BLOCK_COMMENT, "")
+      .replace(LINE_COMMENT, "$1");
+    const contextFields: string = contextSource.slice(
+      contextSource.indexOf("const formFields"),
+      contextSource.indexOf("return ("),
+    );
+    expect(contextFields.split("field: {").length - 1).toBe(1);
+    expect(contextFields).toContain("aiContext: true");
+    expect(contextFields).not.toContain("enableAi");
+    expect(contextSource).toContain("fields: [AI_CONTEXT_COLUMN]");
   });
 
   test("AI Features never shows the switches folded into Enable AI", () => {

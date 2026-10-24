@@ -475,56 +475,99 @@ describe("whether a pick takes a scope", () => {
 });
 
 describe("one Scope for every permission table", () => {
-  const COMPONENTS: string = path.resolve(
-    __dirname,
-    "../../../../App/FeatureSet/Dashboard/src/Components",
+  const REPOSITORY_ROOT: string = path.resolve(__dirname, "../../../../..");
+  const COMPONENTS: string = path.join(
+    REPOSITORY_ROOT,
+    "packages/App/FeatureSet/Dashboard/src/Components",
   );
+
+  interface PermissionTable {
+    name: string;
+    file: string;
+    model: string;
+    // How the table imports the shared Scope cell from where it lives.
+    scopeCellImport: string;
+  }
+
+  const TEAM: PermissionTable = {
+    name: "Team/TeamPermissionTable.tsx",
+    file: path.join(COMPONENTS, "Team/TeamPermissionTable.tsx"),
+    model: "TeamPermission",
+    scopeCellImport: "../Permission/PermissionScopeCell",
+  };
+  const API_KEY: PermissionTable = {
+    name: "ApiKey/ApiKeyPermissionTable.tsx",
+    file: path.join(COMPONENTS, "ApiKey/ApiKeyPermissionTable.tsx"),
+    model: "ApiKeyPermission",
+    scopeCellImport: "../Permission/PermissionScopeCell",
+  };
+  /*
+   * Custom roles are the Enterprise Edition's since #5216, so their table
+   * lives in ee/ and reaches the Dashboard by its alias. Common Test removes
+   * ee/ before it runs; the Enterprise Edition workflow runs this suite with
+   * ee/ present, so the table is checked there.
+   */
+  const CUSTOM_ROLE: PermissionTable = {
+    name: "ee CustomRoles/CustomRolePermissionTable.tsx",
+    file: path.join(
+      REPOSITORY_ROOT,
+      "ee/Dashboard/CustomRoles/CustomRolePermissionTable.tsx",
+    ),
+    model: "CustomRolePermission",
+    scopeCellImport:
+      "@oneuptime/dashboard/Components/Permission/PermissionScopeCell",
+  };
+  const isEnterprisePresent: boolean = fs.existsSync(
+    path.join(REPOSITORY_ROOT, "ee"),
+  );
+  const ROLE_TABLES: Array<PermissionTable> = isEnterprisePresent
+    ? [TEAM, CUSTOM_ROLE]
+    : [TEAM];
+
+  const sourceOf: (table: PermissionTable) => string = (
+    table: PermissionTable,
+  ): string => {
+    return fs.readFileSync(table.file, "utf8");
+  };
 
   /*
    * One answer to "does this pick take a scope", asked for the Scope field
    * and for the room the role picker keeps while it is not shown - so the
    * room is there exactly while the More fields line is not.
    */
-  test.each([
-    "Team/TeamPermissionTable.tsx",
-    "CustomRole/CustomRolePermissionTable.tsx",
-  ])(
-    "%s asks one question for the Scope and for the picker's room",
-    (file: string) => {
-      const source: string = fs.readFileSync(
-        path.join(COMPONENTS, file),
-        "utf8",
-      );
+  test.each(ROLE_TABLES)(
+    "$name asks one question for the Scope and for the picker's room",
+    (table: PermissionTable) => {
+      const source: string = sourceOf(table);
 
       expect(source).toContain("isMoreFieldsShownFor: isScopeShownFor,");
       expect(source).toContain('return isScopeShownFor(values["permission"]);');
     },
   );
 
-  test.each([
-    ["Team/TeamPermissionTable.tsx", "TeamPermission"],
-    ["CustomRole/CustomRolePermissionTable.tsx", "CustomRolePermission"],
-  ])("%s asks with the shared fields", (file: string, model: string) => {
-    const source: string = fs.readFileSync(path.join(COMPONENTS, file), "utf8");
+  test.each(ROLE_TABLES)(
+    "$name asks with the shared fields",
+    (table: PermissionTable) => {
+      const source: string = sourceOf(table);
 
-    expect(source).toContain(`getPermissionScopeFields<${model}>({`);
-    expect(source).not.toContain("Owned by this team or its members");
-    expect(source).not.toContain("Restrict by labels (advanced)");
-  });
+      expect(source).toContain(`getPermissionScopeFields<${table.model}>({`);
+      expect(source).not.toContain("Owned by this team or its members");
+      expect(source).not.toContain("Restrict by labels (advanced)");
+    },
+  );
 
-  test.each([
-    "Team/TeamPermissionTable.tsx",
-    "CustomRole/CustomRolePermissionTable.tsx",
-    "ApiKey/ApiKeyPermissionTable.tsx",
-  ])("%s draws the shared Scope cell", (file: string) => {
-    const source: string = fs.readFileSync(path.join(COMPONENTS, file), "utf8");
+  test.each([...ROLE_TABLES, API_KEY])(
+    "$name draws the shared Scope cell",
+    (table: PermissionTable) => {
+      const source: string = sourceOf(table);
 
-    expect(source).toContain(
-      'import PermissionScopeCell from "../Permission/PermissionScopeCell";',
-    );
-    expect(source).toContain("<PermissionScopeCell");
-    expect(source).not.toContain(
-      "No restrictions has been applied to this permission.",
-    );
-  });
+      expect(source).toContain(
+        `import PermissionScopeCell from "${table.scopeCellImport}";`,
+      );
+      expect(source).toContain("<PermissionScopeCell");
+      expect(source).not.toContain(
+        "No restrictions has been applied to this permission.",
+      );
+    },
+  );
 });

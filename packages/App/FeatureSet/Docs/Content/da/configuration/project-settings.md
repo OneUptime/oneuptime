@@ -38,7 +38,7 @@ flowchart LR
 | **Avanceret** | **Domæner**, **API-nøgler**, **Funktionsflag**, **Importér fra et andet værktøj** | [Egne domæner](/docs/status-pages/branding-and-domains#brugerdefinerede-domæner), [API-nøgler](/docs/permissions/index#api-nøgler), [Funktionsflag](#funktionsflag), [Skift fra Opsgenie](/docs/moving-to-oneuptime/opsgenie) og de andre flyttevejledninger |
 | **Sikkerhed** | **SSO**, **SCIM** | [SSO](/docs/identity/sso), [SCIM](/docs/identity/scim) |
 | **Fakturering og fakturaer** | **Fakturering**, **Brugshistorik**, **Fakturaer** | [Fakturering og forbrug](/docs/configuration/billing) |
-| **Auditlogs** | **Auditlogs**, **Indstillinger** | [Auditlogs](/docs/configuration/audit-logs) |
+| **Auditlogs** | **Auditlogs**, **Indstillinger**, **Eksport** | [Auditlogs](/docs/configuration/audit-logs), [Eksport af auditlog](/docs/configuration/audit-log-export) |
 | **Farezone** | **Farezone** | [Slet projektet](#slet-projektet) |
 
 **Fakturering og fakturaer** og **AI-kreditter** findes kun i OneUptime Cloud: en selvhostet installation har ingen fakturering.

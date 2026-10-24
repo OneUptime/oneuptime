@@ -50,6 +50,7 @@ import SettingsMobileApps from "../Pages/Settings/MobileApps";
 
 import SettingsAuditLogs from "../Pages/Settings/AuditLogs";
 import SettingsAuditLogsSettings from "../Pages/Settings/AuditLogsSettings";
+import SettingsAuditLogExport from "../Pages/Settings/AuditLogExport";
 
 import SettingsLlmProviders from "../Pages/Settings/LlmProviders";
 
@@ -178,6 +179,18 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.SETTINGS_AUDIT_LOGS_SETTINGS] as Route
               }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_AUDIT_LOGS_EXPORT,
+            2,
+          )}
+          element={
+            <SettingsAuditLogExport
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_AUDIT_LOGS_EXPORT] as Route}
             />
           }
         />

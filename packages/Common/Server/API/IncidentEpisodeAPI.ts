@@ -24,6 +24,7 @@ import IncidentEpisodeAIContextBuilder, {
   IncidentEpisodeContextData,
 } from "../Utils/AI/IncidentEpisodeAIContextBuilder";
 import { AIGenerationContext } from "../Utils/AI/IncidentAIContextBuilder";
+import AiContextReader from "../Utils/AI/AiContext/AiContextReader";
 import JSONFunctions from "../../Types/JSONFunctions";
 import Permission from "../../Types/Permission";
 import CallerPermission from "../Utils/Permission/CallerPermission";
@@ -144,11 +145,12 @@ export default class IncidentEpisodeAPI extends BaseAPI<
         workspaceMessageLimit: 500,
       });
 
-    // Format context for postmortem generation
+    // Format context for postmortem generation, after the project's AI context.
     const aiContext: AIGenerationContext =
       IncidentEpisodeAIContextBuilder.formatEpisodeContextForPostmortem(
         contextData,
         template,
+        await AiContextReader.read({ projectId: episode.projectId }),
       );
 
     // Generate postmortem using AIService (handles billing and logging)

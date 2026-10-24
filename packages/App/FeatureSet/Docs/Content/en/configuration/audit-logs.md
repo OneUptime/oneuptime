@@ -101,16 +101,17 @@ Monitors, incidents, alerts, status pages, SLOs and many other resources also ha
 | vCenters | `vCenter` |
 | Packet captures, and their downloads | `Packet Capture` |
 | Security cases, playbooks and their runs, and protected entities | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
+| Audit log exports | `Audit Log Export` |
 
 An administrator adding or removing a notification method or a personal on-call rule on someone else's account is recorded too, without the address or number itself.
 
-Other records are not in the audit log, such as who is on a team, or a permission added to a team on its own. Fields nobody may read, such as secret keys, are left out of every entry.
+Other records are not in the audit log, such as who is on a team, or a permission added to a team on its own. Fields nobody may read are left out of every entry, and keys, tokens and passwords are recorded as `[REDACTED]`: the entry shows they changed, never their value.
 
 ## How long entries are kept
 
 Each entry is kept for the **Retention (days)** the project had when it was recorded, then deleted. A new retention applies to new entries: the entries recorded so far keep their dates.
 
-To keep entries longer than 180 days, read them through the API with an API key that holds **Read Audit Log**, and store them where you need them. See [API Reference](/docs/api-reference/api-reference).
+To keep entries longer than 180 days, send them to your own storage or SIEM as they are recorded: see [Audit Log Export](/docs/configuration/audit-log-export). You can also read them through the API with an API key that holds **Read Audit Log**, and store them where you need them. See [API Reference](/docs/api-reference/api-reference).
 
 ## When the plan or license no longer includes audit logs
 
@@ -130,6 +131,7 @@ Check that the resource is in [What is recorded](#what-is-recorded), and that th
 ## Next steps
 
 :::cards
+- [Audit Log Export](/docs/configuration/audit-log-export): Send the audit log to your own storage or SIEM.
 - [Users, Teams & Permissions](/docs/permissions/index): Decide who may read the audit log.
 - [Project Settings](/docs/configuration/project-settings): The rest of the project's settings.
 - [Billing & Usage](/docs/configuration/billing): Change the project's plan.

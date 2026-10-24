@@ -31,6 +31,10 @@ export default (
       config.ignoreColumns = [...enableAuditLogOn.ignoreColumns];
     }
 
+    if (enableAuditLogOn.redactColumns) {
+      config.redactColumns = [...enableAuditLogOn.redactColumns];
+    }
+
     if (enableAuditLogOn.resourceNameRelation) {
       config.resourceNameRelation = enableAuditLogOn.resourceNameRelation;
     }

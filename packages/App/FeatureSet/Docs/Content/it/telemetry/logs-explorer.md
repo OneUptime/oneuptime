@@ -85,7 +85,7 @@ La modalità in diretta si spegne da sola quando cambiate la ricerca, un filtro 
 ## Scegliere le colonne ed esportare
 
 - **Colonne** sceglie che cosa mostra l'elenco. **Ora**, **Servizio**, **Gravità** e **Messaggio** vengono per primi; aggiungete **ID traccia**, **Span ID** o qualsiasi attributo, spostate le colonne su e giù, oppure tornate ai valori predefiniti con **Reimposta**.
-- **Export** scarica i log della pagina che state guardando. **Export as CSV** scrive le colonne mostrate; **Export as JSON** scrive ogni campo di ogni log, con tutti i suoi attributi.
+- **Esporta** scarica i log della pagina che state guardando. **Export as CSV** scrive le colonne mostrate; **Export as JSON** scrive ogni campo di ogni log, con tutti i suoi attributi.
 
 ## Salvare una vista
 

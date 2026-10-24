@@ -22,6 +22,8 @@ import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import CallSummaryContext, {
   IncidentCallForPrompt,
 } from "./CallSummary/CallSummaryContext";
+import { AiContextActivity } from "../../../Types/AI/AiContext";
+import { withAiContext } from "./AiContext/AiContextPrompt";
 
 export interface IncidentContextData {
   incident: Incident;
@@ -240,6 +242,12 @@ export default class IncidentAIContextBuilder {
   public static formatIncidentContextForPostmortem(
     contextData: IncidentContextData,
     template?: string,
+    /*
+     * What the project's team wrote for OneUptime AI (Types/AI/AiContext):
+     * placed first in the system prompt, as every feature that reads it
+     * places it. Left out, or null: the prompt as it always was.
+     */
+    aiContext?: AiContextActivity | null | undefined,
   ): AIGenerationContext {
     const {
       incident,
@@ -429,6 +437,9 @@ Grounding rules (important):
 - A root cause marked as suggested by AI and not confirmed by a responder is a hypothesis: say so, and never present it as the confirmed cause.
 - Never fabricate numbers or state confidence levels.`;
     }
+
+    // The project's AI context, first: the team's notes on its systems.
+    systemPrompt = withAiContext(systemPrompt, aiContext);
 
     // Build user message based on whether template is provided
     const userMessage: string = template

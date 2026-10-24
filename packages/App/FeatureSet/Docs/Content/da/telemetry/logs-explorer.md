@@ -85,7 +85,7 @@ Live-tilstanden slår sig selv fra, når du ændrer søgningen, et filter eller 
 ## Vælg kolonner og eksportér
 
 - **Kolonner** vælger, hvad listen viser. **Tid**, **Tjeneste**, **Alvorlighed** og **Besked** kommer først; tilføj **Spor-ID**, **Span-ID** eller en vilkårlig attribut, flyt kolonner op og ned, eller gå tilbage til standarden med **Nulstil**.
-- **Export** henter protokollerne på den side, du kigger på. **Export as CSV** skriver de kolonner, du viser; **Export as JSON** skriver hvert felt i hver protokol med alle dens attributter.
+- **Eksport** henter protokollerne på den side, du kigger på. **Export as CSV** skriver de kolonner, du viser; **Export as JSON** skriver hvert felt i hver protokol med alle dens attributter.
 
 ## Gem en visning
 

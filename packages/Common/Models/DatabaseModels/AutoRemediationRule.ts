@@ -1455,6 +1455,48 @@ export default class AutoRemediationRule extends RuleBaseModel {
   public llmProviderId?: ObjectID = undefined;
 
   /*
+   * Notes for OneUptime AI about the incidents (or alerts) this rule
+   * matches - one product's or platform's architecture, its owners, where
+   * its logs are (issue #5198). Read after the project's AI context by the
+   * work the rule starts: the investigation of a match, and its fix
+   * (Types/AI/AiContext). At most AI_RULE_AI_CONTEXT_MAX_CHARACTERS
+   * (AutoRemediationRuleService refuses more). Whoever may edit the rule
+   * may edit it; a run shows what it read to everyone who can see the run.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Markdown,
+    title: "AI Context",
+    description:
+      "Notes OneUptime AI reads after the project's AI context when it investigates or fixes what this rule matches. Markdown, at most 5,000 characters.",
+    example: "Checkout runs on the payments cluster; its logs are in Loki.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Markdown,
+  })
+  public aiContext?: string = undefined;
+
+  /*
    * Whether OneUptime AI opens a fix pull request when an investigation of
    * an incident (or alert) this rule matches is confident the cause is in
    * the code. On by default - with no rule at all it is on too - and only

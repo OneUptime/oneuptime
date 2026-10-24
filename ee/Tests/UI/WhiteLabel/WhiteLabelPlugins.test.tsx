@@ -89,12 +89,13 @@ describe("the White Label plugin", () => {
     );
   });
 
+  /*
+   * Merged with the other Enterprise settings pages (Audit Log Export): the
+   * plugin has one key for them all (ee/AdminDashboard/EnterpriseSettings).
+   */
   test("is part of the Enterprise Admin Dashboard plugin", () => {
-    expect(EnterprisePlugins.SettingsPages).toBe(
-      WhiteLabelPlugins.SettingsPages,
-    );
-    expect(EnterprisePlugins.SettingsSideMenuItems).toBe(
-      WhiteLabelSideMenuItem,
+    expect(EnterprisePlugins.SettingsPages).toEqual(
+      expect.arrayContaining([...(WhiteLabelPlugins.SettingsPages || [])]),
     );
   });
 });
@@ -151,7 +152,7 @@ describe("core's Settings side menu with the Enterprise plugin", () => {
     expect(document.querySelector('a[href*="white-label"]')).toBeNull();
   });
 
-  test("shows it in Basic, right after Authentication, when allowed", () => {
+  test("shows it in Basic, after Authentication, when allowed", () => {
     setBrandingEnvironment('{"productName":"Acme"}');
     renderMenu();
 

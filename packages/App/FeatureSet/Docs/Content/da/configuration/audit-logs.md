@@ -101,16 +101,17 @@ Monitorer, hændelser, alarmer, statussider, SLO'er og mange andre ressourcer ha
 | vCentre | `vCenter` |
 | Pakkeopsamlinger og deres downloads | `Packet Capture` |
 | Sikkerhedssager, playbooks og deres kørsler samt beskyttede enheder | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
+| Eksporter af auditloggen | `Audit Log Export` |
 
 Det registreres også, når en administrator tilføjer eller fjerner en notifikationsmetode eller en personlig vagtregel på en andens konto, uden selve adressen eller nummeret.
 
-Andre data er ikke i auditloggen, som hvem der er med i et team, eller en tilladelse, der er føjet til et team for sig. Felter, som ingen må læse, som hemmelige nøgler, udelades af alle poster.
+Andre data er ikke i auditloggen, som hvem der er med i et team, eller en tilladelse, der er føjet til et team for sig. Felter, som ingen må læse, udelades af alle poster, og nøgler, tokens og adgangskoder registreres som `[REDACTED]`: posten viser, at de er ændret, aldrig deres værdi.
 
 ## Hvor længe poster gemmes
 
 Hver post gemmes i den **Opbevaring (dage)**, projektet havde, da den blev registreret, og slettes derefter. En ny opbevaring gælder for nye poster: de allerede registrerede poster beholder deres datoer.
 
-For at gemme poster i mere end 180 dage læser du dem via API'et med en API-nøgle, der har **Read Audit Log**, og gemmer dem, hvor du har brug for dem. Se [OneUptime API-reference](/docs/api-reference/api-reference).
+For at gemme poster i mere end 180 dage sender du dem, efterhånden som de registreres, til dit eget lager eller SIEM: se [Eksport af auditlog](/docs/configuration/audit-log-export). Du kan også læse dem via API'et med en API-nøgle, der har **Read Audit Log**, og gemme dem, hvor du har brug for dem. Se [OneUptime API-reference](/docs/api-reference/api-reference).
 
 ## Når planen eller licensen ikke længere omfatter auditlogs
 
@@ -130,6 +131,7 @@ Tjek, at ressourcen står under [Hvad registreres](#hvad-registreres), og at æn
 ## Næste skridt
 
 :::cards
+- [Eksport af auditlog](/docs/configuration/audit-log-export): Send auditloggen til dit eget lager eller SIEM.
 - [Brugere, teams og tilladelser](/docs/permissions/index): Bestem, hvem der må læse auditloggen.
 - [Projektindstillinger](/docs/configuration/project-settings): Projektets øvrige indstillinger.
 - [Fakturering og forbrug](/docs/configuration/billing): Skift projektets plan.

@@ -172,6 +172,7 @@ import SecurityPlaybook from "./SecurityPlaybook";
 import SecurityPlaybookRun from "./SecurityPlaybookRun";
 import SecurityProtectedEntity from "./SecurityProtectedEntity";
 import SecurityEventDestination from "./SecurityEventDestination";
+import AuditLogExport from "./AuditLogExport";
 import SecurityLogSource from "./SecurityLogSource";
 import LogScrubRule from "./LogScrubRule";
 import MetricPipelineRule from "./MetricPipelineRule";
@@ -601,6 +602,7 @@ const AllModelTypes: Array<{
   SecurityPlaybookRun,
   SecurityProtectedEntity,
   SecurityEventDestination,
+  AuditLogExport,
   SecurityLogSource,
   LogScrubRule,
   MetricPipelineRule,

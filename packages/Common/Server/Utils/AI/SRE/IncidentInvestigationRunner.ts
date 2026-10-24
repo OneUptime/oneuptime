@@ -77,6 +77,8 @@ import IncidentFollowUpCheck, {
 import InvestigationRuleWait from "./InvestigationRuleWait";
 import { getInvestigationWaitUntil } from "../../../../Types/AI/InvestigationRuleWait";
 import SecurityCaseIncidentContext from "../Security/SecurityCaseIncidentContext";
+import { AiContextRule } from "../../../../Types/AI/AiContext";
+import AiContextReader from "../AiContext/AiContextReader";
 
 /*
  * AI SRE — incident investigation.
@@ -873,6 +875,14 @@ export default class AIIncidentInvestigationRunner {
         incidentId,
       });
 
+    /*
+     * The AI context of the AI rules that investigate this incident and
+     * match it: read after the project's own, which the engine reads for
+     * every run.
+     */
+    const aiContextRules: Array<AiContextRule> =
+      await AiContextReader.forIncident({ projectId, incidentId });
+
     // Long command output is paged, never cut: offer the reader with the commands.
     if (extraTools.length > 0) {
       extraTools.push(outputPager.buildReadTool());
@@ -912,6 +922,7 @@ export default class AIIncidentInvestigationRunner {
         additionalInstructions,
         extraTools,
         codeRepositoryAllowance,
+        aiContextRules,
       });
     } finally {
       // Every session the run opened ends with it.
@@ -936,6 +947,8 @@ export default class AIIncidentInvestigationRunner {
     additionalInstructions: Array<string>;
     extraTools: Array<ObservabilityAssistantExtraTool>;
     codeRepositoryAllowance: CodeRepositoryAllowance;
+    // The matching AI rules' AI context, read after the project's.
+    aiContextRules: Array<AiContextRule>;
   }): Promise<void> {
     const {
       aiRunId,
@@ -952,6 +965,7 @@ export default class AIIncidentInvestigationRunner {
       additionalInstructions,
       extraTools,
       codeRepositoryAllowance,
+      aiContextRules,
     } = data;
 
     await AIInvestigationEngine.executeRun({
@@ -974,6 +988,7 @@ export default class AIIncidentInvestigationRunner {
           : {}),
         ...(extraTools.length > 0 ? { extraTools } : {}),
         codeRepositoryAllowance,
+        ...(aiContextRules.length > 0 ? { aiContextRules } : {}),
         persistCodeFixRecommendation: true,
         persistAnalysisTldr: true,
         postAnalysis: async (postData: {
