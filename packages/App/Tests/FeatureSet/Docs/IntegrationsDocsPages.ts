@@ -707,7 +707,10 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
      * language: the form draws a setting's title and options through the
      * locales, so the Security Events form names them the same way. And
      * Waiting for first poll is one too: a threat intel feed's Status words
-     * it in every language, and the Health pill looks its text up.)
+     * it in every language, and the Health pill looks its text up. So is
+     * Okta System Log, since the Rule Library's Data filter names the
+     * events a rule reads (#5233): it reads the same in every language, and
+     * the page names it as drawn.)
      */
     [GOOGLE_SECOPS]: [
       "Data to import",
@@ -821,7 +824,6 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Security event storage",
     ],
     [OKTA]: [
-      "Okta System Log",
       "API token",
       "Okta organization URL",
       "Event filter",
