@@ -6742,6 +6742,49 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
     }
   }
 
+  /*
+   * "KI ist für dieses Projekt ausgeschaltet" takes two lines in a phone's
+   * card: its lines stay close, and the chevron stays level with the first
+   * one rather than dropping between them.
+   */
+  test("on a 390px phone a title that wraps keeps its lines close and its chevron level with its first line (?ai=off-project&lang=de)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openAiOffLine(
+      page,
+      INCIDENT_PATH,
+      "ai=off-project&lang=de",
+      "KI ist für dieses Projekt ausgeschaltet",
+    );
+
+    const title: Box = await documentBox(aiOffTitle(page));
+    const toggle: Locator = aiOffLine(page).getByRole("button", {
+      name: "Was Sie tun können",
+      exact: true,
+    });
+    const chevron: Box = await documentBox(toggle);
+    const mark: Box = await documentBox(
+      aiOffLine(page).getByTestId("ai-off-summary-mark"),
+    );
+    const lineHeight: string = await aiOffTitle(page).evaluate(
+      (element: Element): string => {
+        return window.getComputedStyle(element).lineHeight;
+      },
+    );
+
+    // Two lines of 24px, inside the 2px above and under one.
+    expect(lineHeight).toBe("24px");
+    expect(title.height).toBeGreaterThanOrEqual(2 * 24);
+    expect(title.height).toBeLessThanOrEqual(2 * 24 + 4 + 1);
+    // The chevron and the mark start where the title does.
+    expect(Math.abs(chevron.y - title.y)).toBeLessThanOrEqual(1);
+    expect(Math.abs(mark.y - title.y)).toBeLessThanOrEqual(1);
+    await expectNoHorizontalOverflow(page);
+  });
+
   for (const width of [1280, 390]) {
     test(`reads in German at ${width}px (?lang=de)`, async ({
       page,

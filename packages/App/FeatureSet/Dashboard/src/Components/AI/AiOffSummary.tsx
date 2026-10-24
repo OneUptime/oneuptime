@@ -210,11 +210,17 @@ const AiOffSummary: FunctionComponent<ComponentProps> = (
           <div
             data-testid="ai-off-summary-header"
             onClick={onLineClick}
-            className="group flex cursor-pointer flex-wrap items-center gap-x-1 gap-y-0.5"
+            className="group flex cursor-pointer flex-wrap items-start gap-x-1 gap-y-0.5"
           >
+            {/*
+              One line of it is as tall as the mark, Ask and the chevron
+              beside it (28px), so the four line up; a title that wraps (a
+              long language on a phone) keeps its lines close and its
+              controls level with its first line.
+            */}
             <h2
               data-testid="ai-off-summary-title"
-              className={`${AI_OFF_SUMMARY_LAYOUT_CLASS_NAMES.title} me-2 break-words text-sm font-semibold leading-7 text-gray-900`}
+              className={`${AI_OFF_SUMMARY_LAYOUT_CLASS_NAMES.title} me-2 break-words py-0.5 text-sm font-semibold leading-6 text-gray-900`}
             >
               {summary.title}
             </h2>
