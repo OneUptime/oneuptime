@@ -3,6 +3,7 @@ import ChatActivityFeed, {
 } from "../../AIChat/ChatActivityFeed";
 import { navigateToCitationTarget } from "../../AIChat/CitationTargetNav";
 import { AIInvestigationStage } from "../AIInvestigationStatus";
+import { InvestigationConversationFold } from "../AiOffSummaryData";
 import InvestigationNotice, { noticeFailedIcon } from "../InvestigationNotice";
 import { CITATION_CHIP_CLASS_NAME } from "../InvestigationReport/InvestigationCitationChip";
 import ToolApprovalCard, { ToolDecision } from "../../AIChat/ToolApprovalCard";
@@ -74,6 +75,15 @@ export interface ComponentProps {
    * conversation behaves as it does while one is underway.
    */
   investigationStage?: AIInvestigationStage | undefined;
+  /*
+   * Set while the card is the one-line "AI investigation is off" summary
+   * (InvestigationConversationSlot.fold): the conversation shows only once
+   * it has something in it - a question asked, an answer on its way - or
+   * once the reader asks for it from the line, when its box takes the
+   * focus. Until then it draws nothing, but keeps reading the thread, so a
+   * question someone else asks shows up. Left out, it always shows.
+   */
+  fold?: InvestigationConversationFold | undefined;
 }
 
 /*
@@ -276,6 +286,30 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
       threadRef.current?.focus({ preventScroll: true });
     }
   }, [unfoldedSubjectKey]);
+
+  /*
+   * Folded into the AI card's one line: what it has to show by itself, told
+   * to the card so the line stops offering Ask OneUptime AI once the
+   * conversation is on screen anyway.
+   */
+  const fold: InvestigationConversationFold | undefined = props.fold;
+  const isFoldMode: boolean = Boolean(fold);
+  const hasContent: boolean =
+    conversation.hasLoaded &&
+    (view.messages.length > 0 || isBusy || conversation.isSending);
+  const isAskedFromLine: boolean = Boolean(fold && fold.askRequest > 0);
+  const onHasContentChangeRef: React.MutableRefObject<
+    ((hasContent: boolean) => void) | undefined
+  > = useRef<((hasContent: boolean) => void) | undefined>(
+    fold?.onHasContentChange,
+  );
+  onHasContentChangeRef.current = fold?.onHasContentChange;
+
+  useEffect(() => {
+    if (isFoldMode) {
+      onHasContentChangeRef.current?.(hasContent);
+    }
+  }, [hasContent, isFoldMode]);
 
   // Everyone who has asked something, in order of first question.
   const participants: Array<ThreadAuthor> = useMemo(() => {
@@ -875,6 +909,10 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
     );
   }
 
+  if (isFoldMode && !hasContent && !isAskedFromLine) {
+    return <></>;
+  }
+
   return (
     <section
       aria-label={translator.translateText("Conversation with OneUptime AI")}
@@ -936,6 +974,7 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
         }
         permissionMode={conversation.permissionMode}
         onPermissionModeChange={conversation.setPermissionMode}
+        focusRequest={fold?.askRequest || 0}
       />
     </section>
   );

@@ -165,14 +165,39 @@
  *   ?unknown= the people Slack does not know, as POST .../add answers them
  *            (not found): a comma list of maya, sam, jordan, alex. Alex by
  *            default.
- *   ?role=   owner (default) | alert-member | loading
+ *   ?role=   owner (default) | alert-member | member | loading
  *            Who is signed in. "owner" is a master admin who is also the
  *            Project Owner, so every permission gate is open. "alert-member"
  *            is not a master admin and holds only Alert Member: it may
  *            acknowledge and resolve alerts but not create an incident, so
- *            gated actions show disabled with the reason. "loading" is the
- *            moment before the permission snapshot arrives (no permissions
- *            yet), when gated actions are hidden rather than refused.
+ *            gated actions show disabled with the reason. "member" is not a
+ *            master admin and holds only Project Member: it works incidents
+ *            and alerts but may not change the project's AI settings.
+ *            "loading" is the moment before the permission snapshot arrives
+ *            (no permissions yet), when gated actions are hidden rather
+ *            than refused.
+ *   ?ai=     ... also off-switch | off-project | off-rules | off-severity:
+ *            OneUptime AI did not investigate Incident #1042 or Alert #311
+ *            because something was off for them, as the server records it
+ *            (InvestigationEligibility): automatic investigation was off
+ *            when they were created, Enable AI was, they matched none of
+ *            the AI rules that investigate, or their severity was below the
+ *            minimum. With fixing off too, their AI card is one line
+ *            (AiOffSummary). ?decided=now: the reason is today's settings,
+ *            not one recorded at creation.
+ *   ?fixing= what auto-remediation recorded for #1042 and #311
+ *            (AutoRemediationDecision): with an off ?ai=, by default the
+ *            reason that goes with it - off-switch and off-severity: fixing
+ *            was off; off-project: Enable AI was; off-rules: no AI rule
+ *            matched. Or off | ai-off | no-rule | rules-investigate (the one
+ *            rule that matched, "Checkout investigations", only
+ *            investigates) | acted (OneUptime AI started a fix on
+ *            prod-eu-west-1: the cards stay whole) | none (nothing
+ *            recorded, as for a record from before decisions were).
+ *   ?switches= on: the project's "Investigate new ..." and "Fix new ...
+ *            automatically" switches are on now (and Enable AI). By
+ *            default they are off - and with ?ai=off-project so is Enable
+ *            AI.
  *
  * Every read and write is recorded on window.__eventOverviewFixture:
  *   getItemRequests, listRequests, countRequests, apiRequests, updates,
@@ -395,9 +420,46 @@ const smMode = params.get("sm") || "scheduled";
 const failures = new Set(
   (params.get("fail") || "").split(",").filter((value) => value.length > 0),
 );
-const roleMode = ["alert-member", "loading"].includes(params.get("role"))
+const roleMode = ["alert-member", "member", "loading"].includes(
+  params.get("role"),
+)
   ? params.get("role")
   : "owner";
+/*
+ * ?ai=off-*: not investigated because something was off for the record;
+ * ?fixing=: what auto-remediation recorded beside it; ?switches=: the
+ * project's switches as they are now (see the parameters above).
+ */
+const AI_OFF_CODES = {
+  "off-switch": "automatic_investigation_disabled",
+  "off-project": "ai_disabled",
+  "off-rules": "no_investigation_rule_matched",
+  "off-severity": "severity_below_threshold",
+};
+const isAiOffMode = Object.prototype.hasOwnProperty.call(AI_OFF_CODES, aiMode);
+const decidedMode = params.get("decided") === "now" ? "now" : "recorded";
+const FIXING_MODES = [
+  "off",
+  "ai-off",
+  "no-rule",
+  "rules-investigate",
+  "acted",
+  "none",
+];
+const DEFAULT_FIXING_MODES = {
+  "off-switch": "off",
+  "off-project": "ai-off",
+  "off-rules": "no-rule",
+  "off-severity": "off",
+};
+const fixingMode = FIXING_MODES.includes(params.get("fixing"))
+  ? params.get("fixing")
+  : isAiOffMode
+    ? DEFAULT_FIXING_MODES[aiMode]
+    : "none";
+const switchesMode = params.get("switches") === "on" ? "on" : "off";
+// Enable AI is off now only for off-project while the switches stay off.
+const isProjectAiOff = aiMode === "off-project" && switchesMode !== "on";
 const resourcesMode = ["many", "none"].includes(params.get("resources"))
   ? params.get("resources")
   : "default";
@@ -640,6 +702,9 @@ const fixture = {
     commander: commanderMode,
     what: whatMode,
     lang: language,
+    decided: decidedMode,
+    fixing: fixingMode,
+    switches: switchesMode,
   },
   // What the channel card asked to add: { channelId, userIds, teamIds }.
   channelAdds: [],
@@ -793,9 +858,28 @@ const people = {
   alex: person(4, "Alex Kim", "alex.kim@acme-commerce.example"),
 };
 
+/*
+ * The project the dashboard has selected, and its row: the folded AI card
+ * reads its "Investigate new ..." and "Fix new ... automatically" switches
+ * as they are now (useAiLaneSwitchStates), and every AI action reads Enable
+ * AI off the selected project (useAiOffered).
+ */
+const PROJECT_AI_SWITCHES = {
+  enableAi: !isProjectAiOff,
+  enableAutomaticIncidentInvestigation: switchesMode === "on",
+  enableAutomaticIncidentRemediation: switchesMode === "on",
+  enableAutomaticAlertInvestigation: switchesMode === "on",
+  enableAutomaticAlertRemediation: switchesMode === "on",
+};
 const project = make(Project, {
   _id: PROJECT_ID,
   name: "Acme Commerce",
+  enableAi: PROJECT_AI_SWITCHES.enableAi,
+});
+table(Project).push({
+  _id: PROJECT_ID,
+  name: "Acme Commerce",
+  ...PROJECT_AI_SWITCHES,
 });
 
 const team = insert(Team, {
@@ -3653,6 +3737,63 @@ function defineInvestigation(spec) {
   };
 }
 
+/*
+ * ?fixing=: what auto-remediation recorded for Incident #1042 and Alert #311,
+ * as AutoRemediationDecisionRecorder writes it - one Evaluated record each,
+ * the entries naming each fix path's reason. The Remediation card draws
+ * them, and tells the AI card whether fixing did anything.
+ */
+function remediationDecisionEntries() {
+  if (fixingMode === "off") {
+    return [{ lane: "Project", reason: "RemediationOff" }];
+  }
+  if (fixingMode === "ai-off") {
+    return [{ lane: "Project", reason: "EnableAiOff" }];
+  }
+  if (fixingMode === "no-rule") {
+    return [{ lane: "Rule", reason: "NotMatchedByAnyRule", rulesChecked: 2 }];
+  }
+  if (fixingMode === "rules-investigate") {
+    return [
+      {
+        lane: "Rule",
+        reason: "MatchedRulesDoNotFix",
+        ruleId: uuid("79000000", 1),
+        ruleName: "Checkout investigations",
+        rulesChecked: 1,
+      },
+    ];
+  }
+  if (fixingMode === "acted") {
+    return [
+      {
+        lane: "KubernetesCluster",
+        reason: "ClusterRoundStarted",
+        kubernetesClusterId: ID.kubernetesCluster(1),
+        kubernetesClusterName: "prod-eu-west-1",
+        remediationMode: "ApprovalRequired",
+      },
+      { lane: "Resource", reason: "ResourceSkippedForClusterRound" },
+    ];
+  }
+  return [];
+}
+
+if (fixingMode !== "none") {
+  insert(AutoRemediationDecision, {
+    incidentId: new ObjectID(ID.incident(INCIDENT_NUMBER)),
+    stage: "Evaluated",
+    entries: remediationDecisionEntries(),
+    createdAt: at("18:01", 21),
+  });
+  insert(AutoRemediationDecision, {
+    alertId: new ObjectID(ID.alert(ALERT_NUMBER)),
+    stage: "Evaluated",
+    entries: remediationDecisionEntries(),
+    createdAt: at("18:06", 16),
+  });
+}
+
 const investigations = {
   incident: defineInvestigation({
     subjectType: "incident",
@@ -4232,7 +4373,69 @@ function clusterAccessRows() {
   return clustersMode === "mixed" ? [reachable, unreachable] : [];
 }
 
+/*
+ * Why a record was not investigated, as InvestigationEligibility writes it
+ * for the off modes: the server's own English (the card reads only the code
+ * and whether it was recorded).
+ */
+function aiOffReason(investigation) {
+  const kind = investigation.subjectType;
+  const isRecorded = decidedMode === "recorded";
+  const code = AI_OFF_CODES[aiMode];
+  const words = {
+    ai_disabled: {
+      title: isRecorded
+        ? "Project AI was turned off at creation"
+        : "Project AI is currently turned off",
+      description: isRecorded
+        ? `AI was disabled for this project when this ${kind} was created, so its automatic investigation did not start.`
+        : "AI is currently disabled for this project, so new automatic investigations cannot start.",
+      nextStep:
+        "Review project AI settings (Project Settings → AI → AI Features) for new records. Existing records are not automatically retried when AI is enabled.",
+    },
+    automatic_investigation_disabled: {
+      title: isRecorded
+        ? `Automatic ${kind} investigation was off at creation`
+        : `Automatic ${kind} investigation is currently turned off`,
+      description: `Automatic investigation was not enabled for ${kind}s when this ${kind} was created. Alerts and incidents have separate investigation settings.`,
+      nextStep: `Review automatic ${kind} investigation settings for new ${kind}s. Enabling investigation later does not automatically retry this ${kind}.`,
+    },
+    no_investigation_rule_matched: {
+      title: isRecorded
+        ? `This ${kind} was outside the AI rules that investigate at creation`
+        : `This ${kind} is currently outside the AI rules that investigate`,
+      description: `When this ${kind} was created, AI rules that investigate were set up for ${kind}s, and it matched none of the 2 rules. Only the ${kind}s that match one are investigated automatically.`,
+      nextStep: `Review the AI rules under ${kind === "alert" ? "Alerts" : "Incidents"} → AI → Settings → More settings. Changing them does not retry this ${kind}; to look into it anyway, ask OneUptime AI below.`,
+    },
+    severity_below_threshold: {
+      title: isRecorded
+        ? "Severity was below the investigation threshold at creation"
+        : "Severity is below the current investigation threshold",
+      description: `When this ${kind} was created, its SEV-3 severity did not meet the minimum SEV-2 investigation severity.`,
+      nextStep:
+        "Review the minimum investigation severity in AI settings. Changes apply to new records and do not retry this record.",
+    },
+  }[code];
+  return {
+    code,
+    ...words,
+    source: isRecorded ? "recorded" : "current_configuration",
+    evaluatedAt: iso(investigation.createdAt),
+  };
+}
+
 function investigationPayload(investigation) {
+  if (isAiOffMode) {
+    return {
+      run: null,
+      notInvestigatedReason: aiOffReason(investigation),
+      events: [],
+      analysisMarkdown: null,
+      analysisTldr: null,
+      isAnalysisPending: false,
+    };
+  }
+
   if (aiMode === "none") {
     return {
       run: null,
@@ -4439,6 +4642,9 @@ UserUtil.getEmail = () => people.maya.email;
 PermissionUtil.getAllPermissions = () => {
   if (roleMode === "alert-member") {
     return [Permission.AlertMember];
+  }
+  if (roleMode === "member") {
+    return [Permission.ProjectMember];
   }
   if (roleMode === "loading") {
     return [];

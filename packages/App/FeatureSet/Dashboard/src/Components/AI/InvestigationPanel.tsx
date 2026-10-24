@@ -24,6 +24,18 @@ import InvestigationNotStarted, {
 import InvestigationStatusBadge, {
   InvestigationStatusIndicator,
 } from "./InvestigationStatusBadge";
+import AiOffSummary from "./AiOffSummary";
+import {
+  AiCardFold,
+  AiLaneSwitchStates,
+  AiOffSummary as AiOffSummaryCopy,
+  getAiCardFold,
+  getAiOffSummary,
+  InvestigationConversationFold,
+  isAiOffInvestigationReason,
+  RemediationFoldState,
+} from "./AiOffSummaryData";
+import useAiLaneSwitchStates from "./useAiLaneSwitchStates";
 import ClusterAccessNotice, {
   ClusterAccessNoticeRow,
   getClusterAccessSignature,
@@ -102,6 +114,13 @@ export interface InvestigationConversationSlot {
    * when there is none to read.
    */
   investigationStage: AIInvestigationStage;
+  /*
+   * Set while the card is the one-line "AI investigation is off" summary
+   * (AiOffSummary): an empty conversation is folded into the line's Ask
+   * OneUptime AI, and shows once something is in it or the reader asks for
+   * it there. Left out, the conversation shows as it always does.
+   */
+  fold?: InvestigationConversationFold | undefined;
 }
 
 export interface ComponentProps {
@@ -139,7 +158,30 @@ export interface ComponentProps {
    * while no call's transcript has been read.
    */
   renderCallSummaries?: (() => ReactElement) | undefined;
+  /*
+   * What the page's Remediation card read about this subject
+   * (RemediationFoldState, AiOffSummaryData): whether fixing did anything
+   * with it. The card folds into the one-line "AI investigation is off"
+   * summary only when fixing did nothing for a reason the project chose -
+   * and the investigation did not run for one either. Left out, the card
+   * never folds: it cannot tell that nothing was fixed.
+   */
+  remediationState?: RemediationFoldState | undefined;
+  /*
+   * How the card is drawn - still checking, folded into one line, or whole
+   * - so the page's Remediation card can leave "nothing was fixed" to the
+   * line while the card is folded. Called on every change, and afresh for
+   * every subject.
+   */
+  onCardFoldChange?: ((fold: AiCardFold) => void) | undefined;
 }
+
+/*
+ * Folded, the card has no header: its one line is the header, and takes a
+ * header's room - 20px over and under it, where the body of a card under a
+ * header starts 24px below it and ends 24px above the card's foot.
+ */
+export const FOLDED_CARD_BODY_CLASS_NAME: string = "pt-5 -mb-1";
 
 const POLL_INTERVAL_MS: number = 2500;
 const SETTLED_POLL_INTERVAL_MS: number = 30_000;
@@ -244,6 +286,16 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   const [hasSuccessfulResponse, setHasSuccessfulResponse] =
     useState<boolean>(false);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  /*
+   * The one-line "AI investigation is off" summary: whether its "What you
+   * can do" is open, how many times its Ask OneUptime AI was pressed (the
+   * conversation it folds away shows once it has been), and whether that
+   * conversation has something in it by itself.
+   */
+  const [isOffSummaryOpen, setIsOffSummaryOpen] = useState<boolean>(false);
+  const [askAiRequest, setAskAiRequest] = useState<number>(0);
+  const [conversationHasContent, setConversationHasContent] =
+    useState<boolean>(false);
   const [events, setEvents] = useState<Array<AIRunEvent>>([]);
   const [analysisMarkdown, setAnalysisMarkdown] = useState<string | null>(null);
   /*
@@ -317,6 +369,12 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     props.onVerdictChange,
   );
   onVerdictChangeRef.current = props.onVerdictChange;
+  const onCardFoldChangeRef: React.MutableRefObject<
+    ((fold: AiCardFold) => void) | undefined
+  > = useRef<((fold: AiCardFold) => void) | undefined>(
+    props.onCardFoldChange,
+  );
+  onCardFoldChangeRef.current = props.onCardFoldChange;
   const isMountedRef: React.MutableRefObject<boolean> = useRef<boolean>(true);
   const focusRequestCounterRef: React.MutableRefObject<number> =
     useRef<number>(0);
@@ -433,6 +491,9 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     setIsSavingVerdict(false);
     setVerdictError(null);
     setIsChangingVerdict(false);
+    setIsOffSummaryOpen(false);
+    setAskAiRequest(0);
+    setConversationHasContent(false);
 
     if (isSubjectChange) {
       onStatusChangeRef.current?.(null);
@@ -1111,13 +1172,84 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     onVerdictChangeRef,
   );
 
-  // The card is still asking whether this subject has a run.
-  const isCheckingStatus: boolean =
-    !hasLoadedOnce || loadedSubjectKey !== subjectKey;
+  // The answer about this subject's run has arrived.
+  const isInvestigationLoaded: boolean =
+    hasLoadedOnce && loadedSubjectKey === subjectKey;
+  /*
+   * Not investigated for a reason the project chose (AiOffSummaryData):
+   * the card is one line when fixing did nothing for one either.
+   */
+  const offReason: InvestigationNotStartedReason | null =
+    isInvestigationLoaded &&
+    !runStatus &&
+    !waitingInvestigation &&
+    isAiOffInvestigationReason(notInvestigatedReason)
+      ? notInvestigatedReason
+      : null;
+  const cardFold: AiCardFold = getAiCardFold({
+    isInvestigationLoaded,
+    offReason,
+    remediation: props.remediationState,
+  });
+  const isFolded: boolean = cardFold === "folded";
+  /*
+   * The card is still asking whether this subject has a run - or, with no
+   * run for a reason the project chose, still waiting to know whether
+   * fixing did anything. Until then it cannot tell whether it is one line
+   * or the whole card, and draws its checking state rather than one and
+   * then the other.
+   */
+  const isCheckingStatus: boolean = cardFold === "checking";
   const hasRun: boolean = !isCheckingStatus && Boolean(runStatus);
   // No run yet because an investigation rule waits: the card says until when.
   const isWaiting: boolean =
     !hasRun && !isCheckingStatus && Boolean(waitingInvestigation);
+
+  // The page's Remediation card reads how the card is drawn.
+  useEffect(() => {
+    onCardFoldChangeRef.current?.(cardFold);
+  }, [cardFold, subjectKey]);
+
+  /*
+   * Folded, the line says whether each switch it names is on now, read
+   * only then: most cards never fold.
+   */
+  const laneSwitches: AiLaneSwitchStates = useAiLaneSwitchStates({
+    subjectType,
+    isEnabled: isFolded,
+  });
+  const remediationState: RemediationFoldState | undefined =
+    props.remediationState;
+  const offSummary: AiOffSummaryCopy | null =
+    isFolded && offReason && remediationState?.kind === "off"
+      ? getAiOffSummary({
+          subjectType,
+          reason: offReason,
+          remediationReason: remediationState.reason,
+          ruleName: remediationState.ruleName,
+          isAiOn: isAiOffered,
+          switches: laneSwitches,
+          translator,
+        })
+      : null;
+
+  /*
+   * The conversation, while the card is one line: folded into the line's
+   * Ask OneUptime AI until it has something in it or the reader asks for
+   * it, and offered there only while AI is on - with AI off for the
+   * project, OneUptime AI would refuse the question.
+   */
+  const conversationFold: InvestigationConversationFold | undefined = isFolded
+    ? {
+        askRequest: askAiRequest,
+        onHasContentChange: setConversationHasContent,
+      }
+    : undefined;
+  const isAskAiOnLine: boolean =
+    Boolean(props.renderConversation) &&
+    isAiOffered &&
+    askAiRequest === 0 &&
+    !conversationHasContent;
 
   /*
    * Investigate now: start the investigation the rule makes wait, at once.
@@ -1305,7 +1437,12 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
        * phone too, while the two fit (the default header).
        */
       title="AI Investigation"
-      bodyClassName="mt-6"
+      /*
+       * Folded, the one line is the header: the card draws none of its own,
+       * and the line takes a header's room.
+       */
+      isHeaderHidden={isFolded}
+      bodyClassName={isFolded ? FOLDED_CARD_BODY_CLASS_NAME : "mt-6"}
       description={
         subjectType === "incident"
           ? hasRun && runStatus === AIRunStatus.Completed
@@ -1361,7 +1498,24 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        {isWaiting && waitingInvestigation ? (
+        {offSummary ? (
+          <AiOffSummary
+            summary={offSummary}
+            isOpen={isOffSummaryOpen}
+            onToggle={() => {
+              setIsOffSummaryOpen(!isOffSummaryOpen);
+            }}
+            onAskAi={
+              isAskAiOnLine
+                ? () => {
+                    setAskAiRequest((count: number): number => {
+                      return count + 1;
+                    });
+                  }
+                : undefined
+            }
+          />
+        ) : isWaiting && waitingInvestigation ? (
           <InvestigationWaiting
             subjectType={subjectType}
             waiting={waitingInvestigation}
@@ -1782,7 +1936,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           take it from there.
         */}
         {props.renderConversation ? (
-          props.renderConversation({ investigationStage })
+          props.renderConversation({ investigationStage, fold: conversationFold })
         ) : (
           <></>
         )}
