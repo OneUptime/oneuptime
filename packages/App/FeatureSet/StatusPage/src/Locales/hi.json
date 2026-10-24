@@ -340,7 +340,27 @@
       "title": "निषिद्ध",
       "description": "आपको इस पृष्ठ तक पहुँचने की अनुमति नहीं है।"
     },
-    "generic": "कुछ गलत हो गया। कृपया पुनः प्रयास करें।"
+    "generic": "कुछ गलत हो गया। कृपया पुनः प्रयास करें।",
+    "addressNotSetUp": {
+      "title": "इस पते के लिए OneUptime सेट अप नहीं है",
+      "description": "आपने {{visited}} खोला, लेकिन यह OneUptime {{configured}} पर खुलने के लिए सेट अप है।",
+      "openConfigured": "{{configured}} पर OneUptime खोलें",
+      "hostHeading": "इस पते को OneUptime के लिए इस्तेमाल करें",
+      "hostStep": "config.env में HOST को इस पते पर सेट करें:",
+      "restartStep": "फिर OneUptime को दोबारा शुरू करें:",
+      "helm": "Kubernetes पर, इसके बजाय अपनी Helm values में host को इस पते पर सेट करें, फिर release को अपग्रेड करें।",
+      "domainHeading": "क्या यह किसी स्थिति पृष्ठ का डोमेन है?",
+      "domainSteps": "इसे स्थिति पृष्ठ में कस्टम डोमेन के अंतर्गत जोड़ें, फिर इसे सत्यापित करें। सत्यापित होते ही स्थिति पृष्ठ यहाँ दिखेगा।",
+      "proxyTitle": "आपके प्रॉक्सी ने यह पता आगे नहीं भेजा",
+      "proxyDescription": "आपने {{visited}} खोला, जिस पते के लिए यह OneUptime सेट अप है, लेकिन अनुरोध किसी दूसरे होस्ट नाम से OneUptime तक पहुँचा।",
+      "proxyHeading": "होस्ट नाम आगे भेजें",
+      "proxySteps": "OneUptime के आगे लगे प्रॉक्सी को वही होस्ट नाम आगे भेजना चाहिए जो ब्राउज़र ने माँगा था। Caddy यह अपने आप करता है। Nginx या Apache के लिए यह पंक्ति जोड़ें:",
+      "noPageTitle": "इस पते पर कोई स्थिति पृष्ठ नहीं है",
+      "noPageDescription": "{{visited}} किसी स्थिति पृष्ठ का पता नहीं है।",
+      "copy": "कॉपी करें",
+      "copied": "कॉपी हो गया!",
+      "copyFailed": "आपके ब्राउज़र ने इस पेज को यह पंक्ति कॉपी नहीं करने दी। इसे चुनें और खुद कॉपी करें।"
+    }
   },
   "footer": {
     "poweredBy": "OneUptime द्वारा संचालित"

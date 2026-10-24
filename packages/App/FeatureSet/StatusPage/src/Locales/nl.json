@@ -340,7 +340,27 @@
       "title": "Toegang geweigerd",
       "description": "U heeft geen toegang tot deze pagina."
     },
-    "generic": "Er is iets misgegaan. Probeer het opnieuw."
+    "generic": "Er is iets misgegaan. Probeer het opnieuw.",
+    "addressNotSetUp": {
+      "title": "OneUptime is niet ingesteld voor dit adres",
+      "description": "Je opende {{visited}}, maar deze OneUptime is ingesteld om te openen op {{configured}}.",
+      "openConfigured": "OneUptime openen op {{configured}}",
+      "hostHeading": "Dit adres gebruiken voor OneUptime",
+      "hostStep": "Zet in config.env HOST op dit adres:",
+      "restartStep": "Start OneUptime daarna opnieuw:",
+      "helm": "Zet op Kubernetes in plaats daarvan host op dit adres in je Helm-values en upgrade daarna de release.",
+      "domainHeading": "Is dit het domein van een statuspagina?",
+      "domainSteps": "Voeg het toe aan de statuspagina onder Aangepaste domeinen en verifieer het. De statuspagina verschijnt hier zodra het domein geverifieerd is.",
+      "proxyTitle": "Je proxy heeft dit adres niet doorgegeven",
+      "proxyDescription": "Je opende {{visited}}, het adres waarvoor deze OneUptime is ingesteld, maar het verzoek kwam onder een andere hostnaam bij OneUptime aan.",
+      "proxyHeading": "Geef de hostnaam door",
+      "proxySteps": "De proxy vóór OneUptime moet de hostnaam doorgeven waar de browser om vroeg. Caddy doet dat standaard. Voeg voor Nginx of Apache deze regel toe:",
+      "noPageTitle": "Geen statuspagina op dit adres",
+      "noPageDescription": "{{visited}} is niet het adres van een statuspagina.",
+      "copy": "Kopiëren",
+      "copied": "Gekopieerd!",
+      "copyFailed": "Je browser liet deze pagina de regel niet kopiëren. Selecteer hem en kopieer hem zelf."
+    }
   },
   "footer": {
     "poweredBy": "Mogelijk gemaakt door OneUptime"

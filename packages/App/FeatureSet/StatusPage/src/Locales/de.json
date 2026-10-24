@@ -340,7 +340,27 @@
       "title": "Zugriff verweigert",
       "description": "Sie haben keine Berechtigung, auf diese Seite zuzugreifen."
     },
-    "generic": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut."
+    "generic": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
+    "addressNotSetUp": {
+      "title": "OneUptime ist für diese Adresse nicht eingerichtet",
+      "description": "Sie haben {{visited}} geöffnet, aber dieses OneUptime ist für {{configured}} eingerichtet.",
+      "openConfigured": "OneUptime unter {{configured}} öffnen",
+      "hostHeading": "Diese Adresse für OneUptime verwenden",
+      "hostStep": "Setzen Sie in config.env HOST auf diese Adresse:",
+      "restartStep": "Starten Sie OneUptime danach neu:",
+      "helm": "Unter Kubernetes setzen Sie stattdessen host in Ihren Helm-Values auf diese Adresse und aktualisieren dann das Release.",
+      "domainHeading": "Ist das die Domain einer Statusseite?",
+      "domainSteps": "Fügen Sie sie der Statusseite unter Benutzerdefinierte Domains hinzu und verifizieren Sie sie. Sobald sie verifiziert ist, erscheint die Statusseite hier.",
+      "proxyTitle": "Ihr Proxy hat diese Adresse nicht weitergegeben",
+      "proxyDescription": "Sie haben {{visited}} geöffnet, die Adresse, für die dieses OneUptime eingerichtet ist, aber die Anfrage kam unter einem anderen Hostnamen bei OneUptime an.",
+      "proxyHeading": "Den Hostnamen weitergeben",
+      "proxySteps": "Der Proxy vor OneUptime muss den Hostnamen weitergeben, den der Browser angefragt hat. Caddy tut das standardmäßig. Für Nginx oder Apache fügen Sie diese Zeile hinzu:",
+      "noPageTitle": "Unter dieser Adresse gibt es keine Statusseite",
+      "noPageDescription": "{{visited}} ist nicht die Adresse einer Statusseite.",
+      "copy": "Kopieren",
+      "copied": "Kopiert!",
+      "copyFailed": "Ihr Browser hat das Kopieren der Zeile nicht zugelassen. Markieren Sie sie und kopieren Sie sie selbst."
+    }
   },
   "footer": {
     "poweredBy": "Bereitgestellt von OneUptime"

@@ -340,7 +340,27 @@
       "title": "アクセス禁止",
       "description": "このページへのアクセス権限がありません。"
     },
-    "generic": "問題が発生しました。もう一度お試しください。"
+    "generic": "問題が発生しました。もう一度お試しください。",
+    "addressNotSetUp": {
+      "title": "このアドレスでは OneUptime が設定されていません",
+      "description": "{{visited}} を開きましたが、この OneUptime は {{configured}} で開くように設定されています。",
+      "openConfigured": "{{configured}} で OneUptime を開く",
+      "hostHeading": "このアドレスを OneUptime で使う",
+      "hostStep": "config.env で HOST をこのアドレスに設定します：",
+      "restartStep": "そのあと OneUptime を起動し直します：",
+      "helm": "Kubernetes の場合は、代わりに Helm の values で host をこのアドレスに設定し、リリースをアップグレードしてください。",
+      "domainHeading": "ステータスページのドメインですか？",
+      "domainSteps": "ステータスページの「カスタムドメイン」に追加し、検証してください。検証が済むと、ここにステータスページが表示されます。",
+      "proxyTitle": "プロキシがこのアドレスを渡していません",
+      "proxyDescription": "{{visited}} はこの OneUptime が設定されているアドレスですが、リクエストは別のホスト名で OneUptime に届きました。",
+      "proxyHeading": "ホスト名を渡す",
+      "proxySteps": "OneUptime の前にあるプロキシは、ブラウザーが要求したホスト名をそのまま渡す必要があります。Caddy は既定でそうします。Nginx または Apache では次の行を追加してください：",
+      "noPageTitle": "このアドレスにはステータスページがありません",
+      "noPageDescription": "{{visited}} はステータスページのアドレスではありません。",
+      "copy": "コピー",
+      "copied": "コピーしました",
+      "copyFailed": "ブラウザーでこの行をコピーできませんでした。行を選択して、ご自身でコピーしてください。"
+    }
   },
   "footer": {
     "poweredBy": "OneUptime によって提供"

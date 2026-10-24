@@ -340,7 +340,27 @@
       "title": "禁止存取",
       "description": "您沒有權限存取此頁面。"
     },
-    "generic": "發生錯誤，請重試。"
+    "generic": "發生錯誤，請重試。",
+    "addressNotSetUp": {
+      "title": "此位址未設定 OneUptime",
+      "description": "您開啟的是 {{visited}}，但此 OneUptime 設定為在 {{configured}} 開啟。",
+      "openConfigured": "在 {{configured}} 開啟 OneUptime",
+      "hostHeading": "將此位址用於 OneUptime",
+      "hostStep": "在 config.env 中將 HOST 設為此位址：",
+      "restartStep": "然後重新啟動 OneUptime：",
+      "helm": "在 Kubernetes 上，請改為在 Helm values 中將 host 設為此位址，然後升級該 release。",
+      "domainHeading": "這是狀態頁的網域嗎？",
+      "domainSteps": "在狀態頁的「自訂網域」中加入它，然後完成驗證。驗證通過後，狀態頁會顯示在這裡。",
+      "proxyTitle": "您的代理伺服器沒有傳遞此位址",
+      "proxyDescription": "您開啟的 {{visited}} 正是此 OneUptime 設定的位址，但請求以另一個主機名稱到達了 OneUptime。",
+      "proxyHeading": "傳遞主機名稱",
+      "proxySteps": "OneUptime 前面的代理伺服器必須傳遞瀏覽器要求的主機名稱。Caddy 預設會這樣做。若使用 Nginx 或 Apache，請加入這一行：",
+      "noPageTitle": "此位址沒有狀態頁",
+      "noPageDescription": "{{visited}} 不是狀態頁的位址。",
+      "copy": "複製",
+      "copied": "已複製！",
+      "copyFailed": "您的瀏覽器不允許此頁面複製這一行。請選取它並自行複製。"
+    }
   },
   "footer": {
     "poweredBy": "由 OneUptime 提供"

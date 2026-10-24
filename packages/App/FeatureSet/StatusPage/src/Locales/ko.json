@@ -340,7 +340,27 @@
       "title": "접근 금지",
       "description": "이 페이지에 접근할 권한이 없습니다."
     },
-    "generic": "문제가 발생했습니다. 다시 시도해주세요."
+    "generic": "문제가 발생했습니다. 다시 시도해주세요.",
+    "addressNotSetUp": {
+      "title": "이 주소에는 OneUptime이 설정되어 있지 않습니다",
+      "description": "{{visited}}을(를) 열었지만, 이 OneUptime은 {{configured}}에서 열리도록 설정되어 있습니다.",
+      "openConfigured": "{{configured}}에서 OneUptime 열기",
+      "hostHeading": "이 주소를 OneUptime에 사용하기",
+      "hostStep": "config.env에서 HOST를 이 주소로 설정하세요:",
+      "restartStep": "그런 다음 OneUptime을 다시 시작하세요:",
+      "helm": "Kubernetes에서는 대신 Helm values에서 host를 이 주소로 설정한 다음 릴리스를 업그레이드하세요.",
+      "domainHeading": "상태 페이지의 도메인인가요?",
+      "domainSteps": "상태 페이지의 사용자 정의 도메인에 추가한 다음 확인하세요. 확인이 끝나면 여기에 상태 페이지가 표시됩니다.",
+      "proxyTitle": "프록시가 이 주소를 전달하지 않았습니다",
+      "proxyDescription": "{{visited}}은(는) 이 OneUptime이 설정된 주소이지만, 요청은 다른 호스트 이름으로 OneUptime에 도착했습니다.",
+      "proxyHeading": "호스트 이름 전달하기",
+      "proxySteps": "OneUptime 앞의 프록시는 브라우저가 요청한 호스트 이름을 그대로 전달해야 합니다. Caddy는 기본적으로 그렇게 합니다. Nginx나 Apache에는 이 줄을 추가하세요:",
+      "noPageTitle": "이 주소에는 상태 페이지가 없습니다",
+      "noPageDescription": "{{visited}}은(는) 상태 페이지의 주소가 아닙니다.",
+      "copy": "복사",
+      "copied": "복사됨!",
+      "copyFailed": "브라우저가 이 페이지에서 줄을 복사하도록 허용하지 않았습니다. 줄을 선택해 직접 복사하세요."
+    }
   },
   "footer": {
     "poweredBy": "OneUptime 제공"

@@ -13,11 +13,18 @@ import {
   getPermittedStatusPageCustomization,
   releaseCredentialsBeforeCustomCode,
 } from "../../Utils/StatusPageCustomizations";
+import {
+  AddressNotSetUpError,
+  AddressNotSetUpFacts,
+  getAddressNotSetUpFacts,
+} from "../../Utils/AddressNotSetUp";
+import AddressNotSetUp from "../AddressNotSetUp/AddressNotSetUp";
 import Banner from "../Banner/Banner";
 import Footer from "../Footer/Footer";
 import Header from "../Header/Header";
 import NavBar from "../NavBar/NavBar";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
@@ -29,6 +36,7 @@ import ObjectID from "Common/Types/ObjectID";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { ShellSkeleton } from "../Skeleton/PageSkeletons";
 import MasterPage from "Common/UI/Components/MasterPage/MasterPage";
+import { BILLING_ENABLED, HOST, env } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, {
   FunctionComponent,
@@ -44,7 +52,9 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import { applyStatusPageLanguageSettings } from "../../Utils/i18n";
 import StatusPageThemeUtil from "../../Utils/StatusPageTheme";
-import { parseStatusPageTheme } from "Common/Types/StatusPage/StatusPageTheme";
+import StatusPageTheme, {
+  parseStatusPageTheme,
+} from "Common/Types/StatusPage/StatusPageTheme";
 
 export interface ComponentProps {
   children: ReactElement | Array<ReactElement>;
@@ -66,6 +76,9 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  // Nothing is set up at the address the page was opened at.
+  const [addressNotSetUp, setAddressNotSetUp] =
+    useState<AddressNotSetUpFacts | null>(null);
   const [masterPageData, setMasterPageData] = useState<JSONObject | null>(null);
 
   const [statusPageId, setStatusPageId] = useState<ObjectID | null>(null);
@@ -234,6 +247,18 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
       return new ObjectID(response.data["statusPageId"] as string);
     }
 
+    /*
+     * The API answered that no status page has this domain - an answer, not
+     * a failed request, which keeps the generic error below.
+     */
+    if (
+      response instanceof HTTPErrorResponse &&
+      response.statusCode >= 400 &&
+      response.statusCode < 500
+    ) {
+      throw new AddressNotSetUpError();
+    }
+
     throw new BadDataException("Status Page ID not found");
   };
 
@@ -322,6 +347,24 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
       setIsLoading(false);
     } catch (err) {
+      if (err instanceof AddressNotSetUpError) {
+        /*
+         * No page here to read a theme from: the one the reader's device
+         * asks for, so the explanation is not a white page on a dark screen.
+         */
+        StatusPageThemeUtil.setPageTheme(StatusPageTheme.System);
+        setAddressNotSetUp(
+          getAddressNotSetUpFacts({
+            visitedHost: window.location.host,
+            configuredHost: HOST,
+            configuredProtocol: env("HTTP_PROTOCOL"),
+            isSelfHosted: !BILLING_ENABLED,
+          }),
+        );
+        setIsLoading(false);
+        return;
+      }
+
       setError(API.getFriendlyMessage(err));
       setIsLoading(false);
     }
@@ -329,6 +372,10 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
   if (isLoading) {
     return <ShellSkeleton />;
+  }
+
+  if (addressNotSetUp) {
+    return <AddressNotSetUp facts={addressNotSetUp} />;
   }
 
   if (error) {
