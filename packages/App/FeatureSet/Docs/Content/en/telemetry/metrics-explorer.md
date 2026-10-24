@@ -7,6 +7,7 @@ Metrics are the numbers your services and infrastructure report over time: reque
 - [Chart a metric](#chart-a-metric): Aggregate, filter and group a query.
 - [Combine queries with a formula](#combine-queries-with-a-formula): Error rates and other ratios.
 - [Use what you charted](#use-what-you-charted): A monitor, a dashboard widget or a link.
+- [Improve metrics and add missing ones with AI](#improve-metrics-and-add-missing-ones-with-ai): Pull requests that fix your metrics, and add the ones a service lacks.
 :::
 
 ## How the explorer works
@@ -22,12 +23,13 @@ flowchart TB
     chart --> dash["A dashboard widget"]
 ```
 
-The explorer has four tabs:
+The explorer has five tabs:
 
 | Tab | What it is for |
 | --- | --- |
 | **Viewer** | The list of metrics, each with a small chart and its latest value. It opens on the past hour. |
 | **Insights** | Which services report metrics, and how many. |
+| **AI** | The metrics that record too many values or whose buckets do not fit, and the missing metrics, that OneUptime finds, and what OneUptime AI did about them. See [Improve metrics and add missing ones with AI](#improve-metrics-and-add-missing-ones-with-ai). |
 | **Setup Guide** | How to send metrics with OpenTelemetry, using one of your ingestion keys. |
 | **Settings** | **Pipeline Rules** and **Recording Rules**: what happens to metrics as they arrive. |
 
@@ -107,6 +109,44 @@ Drag across a chart to zoom into a moment, and double-click to zoom back out: se
 ## Metrics Insights
 
 The **Insights** tab counts the metrics in a time range: **Active metrics**, **Reporting services** and the average per service. It groups the metrics into categories, and lists the services that report them.
+
+## Improve metrics and add missing ones with AI
+
+Every hour OneUptime looks through the metrics your services sent in the last hour for ones that record too many values or whose histogram buckets do not fit, and for busy services that send no metrics, and files what it finds as AI insights, with the evidence. OneUptime AI then looks into each one and opens a pull request to fix it. Nothing is ever merged: your team reviews each pull request.
+
+OneUptime reads closely the 10 metrics your services sent the most data points for in the hour, each with at least 1,000 of them, and files three kinds of finding:
+
+| Finding | When OneUptime files it | The pull request |
+| --- | --- | --- |
+| **High Cardinality** | An attribute the code sets on one of those metrics took 1,000 or more values in the hour, such as user IDs or full URLs, so every value is a series of its own. Or 50 or more of a service's metric names are one name with a different ID in it. | Stops recording the value on the metric, or takes the IDs out of its names. |
+| **Wrong Histogram Buckets** | One of those metrics is a histogram that recorded 1,000 or more values, and 90% or more of them fell in its smallest bucket or above its largest one, or it has no buckets, so its percentiles cannot be told apart. | Gives the histogram buckets that fit its values, or fixes its unit. |
+| **Missing Metrics** | A service sent 1,000 or more spans in the hour and has never sent a metric. | Adds the request count, errors and duration of its busiest operations as metrics. |
+
+A finding never stores an attribute's values: only the attribute's name, how many values it took and what they look like.
+
+### Turn it on
+
+**Metrics → AI → Settings** holds the switch **Improve metrics and add missing ones**, on for new projects. With **Enable AI** off, problems in your metrics are still found, but OneUptime AI does nothing with them. To open pull requests, OneUptime AI needs a repository connected in [Code](/docs/ai/ai-agent): the page says what is missing first. Each repository's code is changed on the Runner the repository picks in Code.
+
+OneUptime AI opens at most 5 pull requests on its own each day (UTC), one for each finding, and never more than a repository's limit on open AI pull requests.
+
+### AI rules
+
+With no rule, OneUptime AI looks into every problem it finds in your metrics right away, and opens a pull request for each one it can fix. The **AI rules** under **More settings** narrow that, in three steps:
+
+| Step | What it decides |
+| --- | --- |
+| **Match** | Which services: the ones picked, the ones with certain labels, or the ones whose names match a pattern. |
+| **Investigate** | **Right away**, or **Only if still found after a wait**: a problem that goes away during the wait is not looked into. |
+| **Fix** | **Don't fix**, **Ask before fixing** or **Fix without asking**. Asking first leaves the pull request to a person: the finding offers **Fix with AI**. |
+
+Under **More fields** a rule picks the code repositories, the MCP servers and the LLM provider OneUptime AI may use for it. With none picked, it may use any of them, and the project's default LLM provider.
+
+### See what it did
+
+- **Metrics → AI → Insights** lists what OneUptime found, each finding with its evidence and **Open in Metrics**, which opens its metric for its service, from the hour it was found in. A service with no metrics offers **Open in Traces** instead: the spans its metrics would measure.
+- **Metrics → AI → Logs** lists every investigation and pull request, newest first, with how each one stands.
+- In Code, the task says OneUptime started it, with a link to its finding, and the pull request says why it was opened.
 
 ## What happens to metrics as they arrive
 

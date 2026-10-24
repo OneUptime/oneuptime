@@ -34325,7 +34325,7 @@
   "OneUptime AI opens a pull request that gives this histogram buckets that fit its values, for you to review.": "OneUptime AI åbner en pull request, der giver dette histogram buckets, som passer til dets værdier, så du kan gennemgå den.",
   "OneUptime AI opens a pull request that stops recording these values on the metric, for you to review.": "OneUptime AI åbner en pull request, der holder op med at registrere disse værdier på metrikken, så du kan gennemgå den.",
   "OneUptime is not looking for metric problems": "OneUptime leder ikke efter problemer med metrikker",
-  "Open in Metrics": "Åbn i Metrikker",
+  "Open in Metrics": "Åbn i Målinger",
   "Turn on 'Improve metrics and add missing ones' in AI Settings, and OneUptime looks through your metrics every hour.": "Slå \"Forbedr metrikker og tilføj de manglende\" til i AI-indstillingerne, så gennemgår OneUptime dine metrikker hver time.",
   "Until it has one, problems in your metrics are still found, but none are looked into or fixed.": "Indtil da findes problemer i dine metrikker stadig, men ingen af dem bliver undersøgt eller rettet.",
   "When OneUptime AI looks into a problem in your metrics or opens a pull request for it, it shows up here.": "Når OneUptime AI undersøger et problem i dine metrikker eller åbner en pull request for det, vises det her.",

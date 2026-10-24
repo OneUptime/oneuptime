@@ -7,6 +7,7 @@ Metrieken zijn de getallen die uw services en infrastructuur in de loop van de t
 - [Een metriek in een grafiek zetten](#een-metriek-in-een-grafiek-zetten): Een query aggregeren, filteren en groeperen.
 - [Query's combineren met een formule](#querys-combineren-met-een-formule): Foutpercentages en andere verhoudingen.
 - [Gebruiken wat u in een grafiek zette](#gebruiken-wat-u-in-een-grafiek-zette): Een monitor, een dashboardwidget of een link.
+- [Metrieken verbeteren en ontbrekende toevoegen met AI](#metrieken-verbeteren-en-ontbrekende-toevoegen-met-ai): Pull requests die uw metrieken verbeteren en de metrieken toevoegen die een service mist.
 :::
 
 ## Hoe de verkenner werkt
@@ -22,12 +23,13 @@ flowchart TB
     chart --> dash["Een dashboardwidget"]
 ```
 
-De verkenner heeft vier tabbladen:
+De verkenner heeft vijf tabbladen:
 
 | Tabblad | Waarvoor het dient |
 | --- | --- |
 | **Kijker** | De lijst met metrieken, elk met een kleine grafiek en de laatste waarde. Opent op het afgelopen uur. |
 | **Inzichten** | Welke services metrieken melden, en hoeveel. |
+| **AI** | De metrieken die te veel waarden vastleggen of waarvan de buckets niet passen, en de ontbrekende metrieken, die OneUptime vindt, en wat OneUptime AI eraan deed. Zie [Metrieken verbeteren en ontbrekende toevoegen met AI](#metrieken-verbeteren-en-ontbrekende-toevoegen-met-ai). |
 | **Installatiegids** | Hoe u metrieken verstuurt met OpenTelemetry, met een van uw ingestiesleutels. |
 | **Instellingen** | **Pipelineregels** en **Opnameregels**: wat er met metrieken gebeurt als ze binnenkomen. |
 
@@ -107,6 +109,44 @@ Sleep over een grafiek om op een moment in te zoomen, en dubbelklik om weer uit 
 ## Inzichten in metrieken
 
 Het tabblad **Inzichten** telt de metrieken in een tijdsbereik: **Actieve metrieken**, **Rapportageservices** en het gemiddelde per service. Het deelt de metrieken in categorieën in en toont de services die ze melden.
+
+## Metrieken verbeteren en ontbrekende toevoegen met AI
+
+Elk uur doorzoekt OneUptime de metrieken die uw services in het afgelopen uur hebben verstuurd op metrieken die te veel waarden vastleggen of waarvan de histogram-buckets niet passen, en op drukke services die geen metrieken versturen, en legt wat het vindt vast als AI-inzichten, met het bewijs. Daarna onderzoekt OneUptime AI elk ervan en opent een pull request die het oplost. Er wordt nooit iets samengevoegd: uw team beoordeelt elke pull request.
+
+OneUptime leest de 10 metrieken waarvoor uw services in dat uur de meeste datapunten verstuurden nauwkeurig, elk met minstens 1.000 datapunten, en legt drie soorten bevindingen vast:
+
+| Bevinding | Wanneer OneUptime die vastlegt | De pull request |
+| --- | --- | --- |
+| **Hoge cardinaliteit** | Een attribuut dat de code op een van die metrieken zet, kreeg in het uur 1.000 of meer waarden, zoals gebruikers-ID's of volledige URL's, zodat elke waarde een eigen reeks is. Of 50 of meer metrieknamen van een service zijn één naam met telkens een andere ID erin. | Legt de waarde niet meer vast op de metriek, of haalt de ID's uit de namen. |
+| **Verkeerde histogram-buckets** | Een van die metrieken is een histogram dat 1.000 of meer waarden vastlegde, waarvan 90% of meer in de kleinste bucket viel of boven de grootste, of het heeft geen buckets, zodat de percentielen niet van elkaar te onderscheiden zijn. | Geeft het histogram buckets die bij de waarden passen, of corrigeert de eenheid. |
+| **Ontbrekende metrieken** | Een service verstuurde in het uur 1.000 of meer spans en heeft nog nooit een metriek verstuurd. | Voegt het aantal verzoeken, de fouten en de duur van de drukste bewerkingen toe als metrieken. |
+
+Een bevinding slaat nooit de waarden van een attribuut op: alleen de naam van het attribuut, hoeveel waarden het kreeg en hoe ze eruitzien.
+
+### Inschakelen
+
+**Metrieken → AI → Instellingen** bevat de schakelaar **Metrieken verbeteren en ontbrekende toevoegen**, die voor nieuwe projecten aan staat. Staat **AI inschakelen** uit, dan worden problemen in uw metrieken nog gevonden, maar doet OneUptime AI er niets mee. Om pull requests te openen heeft OneUptime AI een repository nodig die in [Code](/docs/ai/ai-agent) is gekoppeld: de pagina zegt eerst wat ontbreekt. De code van elke repository wordt gewijzigd op de Runner die de repository in Code kiest.
+
+OneUptime AI opent zelf maximaal 5 pull requests per dag (UTC), één per bevinding, en nooit meer dan de limiet van een repository voor open AI-pull requests.
+
+### AI-regels
+
+Zonder regel onderzoekt OneUptime AI elk probleem dat het in uw metrieken vindt meteen en opent een pull request voor elk probleem dat het kan oplossen. De **AI-regels** onder **Meer instellingen** beperken dat, in drie stappen:
+
+| Stap | Wat die beslist |
+| --- | --- |
+| **Overeenkomst** | Welke services: de gekozen services, die met bepaalde labels of die waarvan de naam bij een patroon past. |
+| **Onderzoeken** | **Meteen**, of **Alleen als het na een wachttijd nog gevonden wordt**: een probleem dat tijdens de wachttijd verdwijnt, wordt niet onderzocht. |
+| **Herstel** | **Niet herstellen**, **Eerst om goedkeuring vragen** of **Herstellen zonder te vragen**. Eerst vragen laat de pull request aan een persoon over: de bevinding biedt **Oplossen met AI** aan. |
+
+Onder **Meer velden** kiest een regel de coderepositories, de MCP-servers en de LLM-provider die OneUptime AI ervoor mag gebruiken. Is er niets gekozen, dan mag het ze allemaal gebruiken, en de standaard-LLM-provider van het project.
+
+### Zien wat het deed
+
+- **Metrieken → AI → Inzichten** toont wat OneUptime vond, elke bevinding met haar bewijs en **Openen in Metrieken**, dat haar metriek voor haar service opent, uit het uur waarin ze werd gevonden. Een service zonder metrieken biedt in plaats daarvan **Openen in Traces** aan: de spans die haar metrieken zouden meten.
+- **Metrieken → AI → Logboeken** toont elk onderzoek en elke pull request, nieuwste eerst, met hoe elk ervoor staat.
+- In Code zegt de taak dat OneUptime haar startte, met een link naar haar bevinding, en de pull request zegt waarom hij werd geopend.
 
 ## Wat er met metrieken gebeurt als ze binnenkomen
 

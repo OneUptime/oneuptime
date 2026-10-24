@@ -7,6 +7,7 @@ Le metriche sono i numeri che i vostri servizi e la vostra infrastruttura riport
 - [Rappresentare una metrica](#rappresentare-una-metrica): Aggregare, filtrare e raggruppare una query.
 - [Combinare query con una formula](#combinare-query-con-una-formula): Tassi di errore e altri rapporti.
 - [Usare ciò che avete rappresentato](#usare-ciò-che-avete-rappresentato): Un monitor, un widget di dashboard o un link.
+- [Migliorare le metriche e aggiungere quelle mancanti con l'IA](#migliorare-le-metriche-e-aggiungere-quelle-mancanti-con-lia): Pull request che correggono le vostre metriche e aggiungono quelle che mancano a un servizio.
 :::
 
 ## Come funziona l'esploratore
@@ -22,12 +23,13 @@ flowchart TB
     chart --> dash["Un widget di dashboard"]
 ```
 
-L'esploratore ha quattro schede:
+L'esploratore ha cinque schede:
 
 | Scheda | A cosa serve |
 | --- | --- |
 | **Visualizzatore** | L'elenco delle metriche, ciascuna con un piccolo grafico e il suo ultimo valore. Si apre sull'ultima ora. |
 | **Informazioni** | Quali servizi riportano metriche, e quante. |
+| **IA** | Le metriche che registrano troppi valori o i cui bucket non sono adatti, e le metriche mancanti, che OneUptime trova, e ciò che OneUptime AI ha fatto al riguardo. Vedete [Migliorare le metriche e aggiungere quelle mancanti con l'IA](#migliorare-le-metriche-e-aggiungere-quelle-mancanti-con-lia). |
 | **Guida alla configurazione** | Come inviare metriche con OpenTelemetry, usando una delle vostre chiavi di ingestione. |
 | **Impostazioni** | **Regole pipeline** e **Regole di registrazione**: che cosa succede alle metriche quando arrivano. |
 
@@ -107,6 +109,44 @@ Trascinate su un grafico per ingrandire un momento, e fate doppio clic per torna
 ## Informazioni sulle metriche
 
 La scheda **Informazioni** conta le metriche di un intervallo di tempo: **Metriche attive**, **Servizi di reportistica** e la media per servizio. Raggruppa le metriche in categorie ed elenca i servizi che le riportano.
+
+## Migliorare le metriche e aggiungere quelle mancanti con l'IA
+
+Ogni ora OneUptime esamina le metriche che i vostri servizi hanno inviato nell'ultima ora alla ricerca di quelle che registrano troppi valori o i cui bucket dell'istogramma non sono adatti, e di servizi molto usati che non inviano metriche, e registra ciò che trova come insight IA, con le prove. Poi OneUptime AI analizza ciascuno e apre una pull request per correggerlo. Non viene mai unito nulla: il vostro team revisiona ogni pull request.
+
+OneUptime legge con attenzione le 10 metriche per cui i vostri servizi hanno inviato più punti dati nell'ora, ciascuna con almeno 1.000 punti, e registra tre tipi di rilevamento:
+
+| Rilevamento | Quando OneUptime lo registra | La pull request |
+| --- | --- | --- |
+| **Cardinalità elevata** | Un attributo che il codice imposta su una di queste metriche ha assunto 1.000 o più valori nell'ora, come ID utente o URL completi, così ogni valore è una serie a sé. Oppure 50 o più nomi di metriche di un servizio sono uno stesso nome con un ID diverso al suo interno. | Smette di registrare il valore sulla metrica, o toglie gli ID dai suoi nomi. |
+| **Bucket dell'istogramma errati** | Una di queste metriche è un istogramma che ha registrato 1.000 o più valori, e il 90% o più è caduto nel suo bucket più piccolo o sopra il più grande, oppure non ha bucket, così i suoi percentili non si possono distinguere. | Dà all'istogramma bucket adatti ai suoi valori, o ne corregge l'unità. |
+| **Metriche mancanti** | Un servizio ha inviato 1.000 o più span nell'ora e non ha mai inviato una metrica. | Aggiunge come metriche il numero di richieste, gli errori e la durata delle sue operazioni più usate. |
+
+Un rilevamento non memorizza mai i valori di un attributo: solo il nome dell'attributo, quanti valori ha assunto e che aspetto hanno.
+
+### Attivarlo
+
+**Metriche → IA → Impostazioni** contiene l'interruttore **Migliora le metriche e aggiungi quelle mancanti**, attivo per i nuovi progetti. Con **Abilita IA** disattivato, i problemi nelle vostre metriche vengono ancora trovati, ma OneUptime AI non ne fa nulla. Per aprire pull request, OneUptime AI ha bisogno di un repository collegato in [Codice](/docs/ai/ai-agent): la pagina dice prima cosa manca. Il codice di ogni repository viene modificato sul Runner che il repository sceglie in Codice.
+
+OneUptime AI apre da solo al massimo 5 pull request al giorno (UTC), una per rilevamento, e mai più del limite di pull request IA aperte di un repository.
+
+### Regole IA
+
+Senza regole, OneUptime AI analizza subito ogni problema che trova nelle vostre metriche e apre una pull request per ciascuno che può correggere. Le **Regole IA** in **Altre impostazioni** lo restringono, in tre passaggi:
+
+| Passaggio | Cosa decide |
+| --- | --- |
+| **Corrispondenza** | Quali servizi: quelli scelti, quelli con determinate etichette o quelli il cui nome corrisponde a un modello. |
+| **Indagare** | **Subito**, oppure **Solo se ancora trovato dopo un'attesa**: un problema che scompare durante l'attesa non viene analizzato. |
+| **Correzione** | **Non correggere**, **Chiedi prima di correggere** o **Correggi senza chiedere**. Chiedere prima lascia la pull request a una persona: il rilevamento offre **Correggi con l'IA**. |
+
+In **Altri campi** una regola sceglie i repository di codice, i server MCP e il provider LLM che OneUptime AI può usare per essa. Se non se ne sceglie nessuno, può usarli tutti, e il provider LLM predefinito del progetto.
+
+### Vedere cosa ha fatto
+
+- **Metriche → IA → Informazioni** elenca ciò che OneUptime ha trovato, ogni rilevamento con le sue prove e **Apri in Metriche**, che apre la sua metrica per il suo servizio, dell'ora in cui è stato trovato. Un servizio senza metriche offre invece **Apri in Tracce**: gli span che le sue metriche misurerebbero.
+- **Metriche → IA → Registri** elenca ogni indagine e ogni pull request, dalla più recente, con lo stato di ciascuna.
+- In Codice, l'attività indica che l'ha avviata OneUptime, con un link al suo rilevamento, e la pull request spiega perché è stata aperta.
 
 ## Che cosa succede alle metriche quando arrivano
 

@@ -7,6 +7,7 @@ Metrikker er tallene tjenestene og infrastrukturen din rapporterer over tid: ant
 - [Vis en metrikk i et diagram](#vis-en-metrikk-i-et-diagram): Aggreger, filtrer og grupper en spørring.
 - [Kombiner spørringer med en formel](#kombiner-spørringer-med-en-formel): Feilrater og andre forholdstall.
 - [Bruk det du har vist i diagrammet](#bruk-det-du-har-vist-i-diagrammet): En monitor, en dashbord-widget eller en lenke.
+- [Forbedre målinger og legg til de som mangler med KI](#forbedre-målinger-og-legg-til-de-som-mangler-med-ki): Pull-forespørsler som retter målingene dine og legger til dem en tjeneste mangler.
 :::
 
 ## Slik fungerer utforskeren
@@ -22,12 +23,13 @@ flowchart TB
     chart --> dash["En dashbord-widget"]
 ```
 
-Utforskeren har fire faner:
+Utforskeren har fem faner:
 
 | Fane | Hva den er til |
 | --- | --- |
 | **Viser** | Listen over metrikker, hver med et lite diagram og den siste verdien. Den åpner på siste time. |
 | **Innsikt** | Hvilke tjenester som rapporterer metrikker, og hvor mange. |
+| **KI** | Målingene som registrerer for mange verdier eller der bøttene ikke passer, og de manglende målingene, som OneUptime finner, og hva OneUptime AI gjorde med dem. Se [Forbedre målinger og legg til de som mangler med KI](#forbedre-målinger-og-legg-til-de-som-mangler-med-ki). |
 | **Oppsettveiledning** | Hvordan du sender metrikker med OpenTelemetry med en av inntaksnøklene dine. |
 | **Innstillinger** | **Pipelineregler** og **Opptaksregler**: hva som skjer med metrikker når de kommer inn. |
 
@@ -107,6 +109,44 @@ Dra over et diagram for å zoome inn på et øyeblikk, og dobbeltklikk for å zo
 ## Innsikt i metrikker
 
 Fanen **Innsikt** teller metrikkene i et tidsintervall: **Aktive målinger**, **Rapporteringstjenester** og gjennomsnittet per tjeneste. Den deler metrikkene inn i kategorier og viser tjenestene som rapporterer dem.
+
+## Forbedre målinger og legg til de som mangler med KI
+
+Hver time går OneUptime gjennom målingene tjenestene dine sendte i siste time etter dem som registrerer for mange verdier eller der histogrammets bøtter ikke passer, og etter travle tjenester som ikke sender noen målinger, og registrerer det den finner som KI-innsikt, med bevisene. Deretter undersøker OneUptime AI hvert funn og åpner en pull-forespørsel som retter det. Ingenting flettes noen gang: teamet ditt gjennomgår hver pull-forespørsel.
+
+OneUptime leser nøye de 10 målingene tjenestene dine sendte flest datapunkter for i timen, hver med minst 1 000 av dem, og registrerer tre typer funn:
+
+| Funn | Når OneUptime registrerer det | Pull-forespørselen |
+| --- | --- | --- |
+| **Høy kardinalitet** | Et attributt koden setter på en av disse målingene, fikk 1 000 eller flere verdier i timen, for eksempel bruker-ID-er eller fullstendige URL-er, så hver verdi blir sin egen serie. Eller 50 eller flere av en tjenestes målingsnavn er ett navn med en annen ID i. | Slutter å registrere verdien på målingen, eller tar ID-ene ut av navnene. |
+| **Feil histogrambøtter** | En av disse målingene er et histogram som registrerte 1 000 eller flere verdier, og 90 % eller flere av dem havnet i den minste bøtten eller over den største, eller det har ingen bøtter, så persentilene ikke kan skilles fra hverandre. | Gir histogrammet bøtter som passer til verdiene, eller retter enheten. |
+| **Manglende målinger** | En tjeneste sendte 1 000 eller flere spans i timen og har aldri sendt en måling. | Legger til antall forespørsler, feilene og varigheten for de travleste operasjonene som målinger. |
+
+Et funn lagrer aldri verdiene til et attributt: bare attributtets navn, hvor mange verdier det fikk og hvordan de ser ut.
+
+### Slå det på
+
+**Målinger → KI → Innstillinger** har bryteren **Forbedre målinger og legg til de som mangler**, som er på for nye prosjekter. Når **Aktiver AI** er av, blir problemer i målingene dine fortsatt funnet, men OneUptime AI gjør ingenting med dem. For å åpne pull-forespørsler trenger OneUptime AI et kodelager koblet til i [Kode](/docs/ai/ai-agent): siden sier først hva som mangler. Koden i hvert kodelager endres på Runneren kodelageret velger i Kode.
+
+OneUptime AI åpner selv høyst 5 pull-forespørsler per dag (UTC), én for hvert funn, og aldri flere enn et kodelagers grense for åpne KI-pull-forespørsler.
+
+### KI-regler
+
+Uten regler undersøker OneUptime AI hvert problem den finner i målingene dine med en gang, og åpner en pull-forespørsel for hvert den kan rette. **AI-regler** under **Flere innstillinger** snevrer det inn, i tre trinn:
+
+| Trinn | Hva det avgjør |
+| --- | --- |
+| **Treff** | Hvilke tjenester: de valgte, de med bestemte etiketter eller de der navnet passer til et mønster. |
+| **Undersøke** | **Med en gang**, eller **Bare hvis fortsatt funnet etter en ventetid**: et problem som forsvinner i ventetiden, blir ikke undersøkt. |
+| **Rettelse** | **Ikke rett**, **Spør før retting** eller **Rett uten å spørre**. Å spørre først overlater pull-forespørselen til en person: funnet tilbyr **Fiks med AI**. |
+
+Under **Flere felt** velger en regel kodelagrene, MCP-serverne og LLM-leverandøren OneUptime AI kan bruke for den. Er ingenting valgt, kan den bruke alle, og prosjektets standard LLM-leverandør.
+
+### Se hva den gjorde
+
+- **Målinger → KI → Innsikt** viser hva OneUptime fant, hvert funn med bevisene og **Åpne i Målinger**, som åpner målingen for tjenesten fra timen det ble funnet i. En tjeneste uten målinger tilbyr i stedet **Åpne i Spor**: spansene målingene ville målt.
+- **Målinger → KI → Logger** viser hver undersøkelse og hver pull-forespørsel, nyeste først, med status for hver.
+- I Kode sier oppgaven at OneUptime startet den, med en lenke til funnet, og pull-forespørselen sier hvorfor den ble åpnet.
 
 ## Hva som skjer med metrikker når de kommer inn
 

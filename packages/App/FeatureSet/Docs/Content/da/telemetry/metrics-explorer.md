@@ -7,6 +7,7 @@ Metrikker er de tal, dine tjenester og din infrastruktur rapporterer over tid: a
 - [Vis en metrik i et diagram](#vis-en-metrik-i-et-diagram): Aggregér, filtrér og gruppér en forespørgsel.
 - [Kombinér forespørgsler med en formel](#kombinér-forespørgsler-med-en-formel): Fejlrater og andre forhold.
 - [Brug det, du har vist i diagrammet](#brug-det-du-har-vist-i-diagrammet): En monitor, en dashboard-widget eller et link.
+- [Forbedr metrikker og tilføj de manglende med AI](#forbedr-metrikker-og-tilføj-de-manglende-med-ai): Pull requests, der retter dine metrikker og tilføjer dem, en tjeneste mangler.
 :::
 
 ## Sådan virker udforskeren
@@ -22,12 +23,13 @@ flowchart TB
     chart --> dash["En dashboard-widget"]
 ```
 
-Udforskeren har fire faner:
+Udforskeren har fem faner:
 
 | Fane | Hvad den bruges til |
 | --- | --- |
 | **Seer** | Listen over metrikker, hver med et lille diagram og sin seneste værdi. Den åbner på den seneste time. |
 | **Indsigter** | Hvilke tjenester der rapporterer metrikker, og hvor mange. |
+| **AI** | De metrikker, der registrerer for mange værdier, eller hvis buckets ikke passer, og de manglende metrikker, som OneUptime finder, og hvad OneUptime AI gjorde ved dem. Se [Forbedr metrikker og tilføj de manglende med AI](#forbedr-metrikker-og-tilføj-de-manglende-med-ai). |
 | **Opsætningsvejledning** | Sådan sender du metrikker med OpenTelemetry med en af dine indtagelsesnøgler. |
 | **Indstillinger** | **Pipelineregler** og **Optagelsesregler**: hvad der sker med metrikker, når de ankommer. |
 
@@ -107,6 +109,44 @@ Træk hen over et diagram for at zoome ind på et øjeblik, og dobbeltklik for a
 ## Indsigter i metrikker
 
 Fanen **Indsigter** tæller metrikkerne i et tidsinterval: **Aktive målinger**, **Rapporteringstjenester** og gennemsnittet pr. tjeneste. Den inddeler metrikkerne i kategorier og viser de tjenester, der rapporterer dem.
+
+## Forbedr metrikker og tilføj de manglende med AI
+
+Hver time gennemgår OneUptime de metrikker, dine tjenester har sendt i den seneste time, for dem, der registrerer for mange værdier, eller hvis histogram-buckets ikke passer, og for travle tjenester, der ikke sender nogen metrikker, og gemmer det, den finder, som AI-indsigter med beviserne. Derefter undersøger OneUptime AI hver enkelt og åbner en pull request, der retter det. Intet bliver nogensinde flettet: dit team gennemgår hver pull request.
+
+OneUptime læser nøje de 10 metrikker, dine tjenester sendte flest datapunkter for i den seneste time, hver med mindst 1.000 af dem, og opretter tre slags fund:
+
+| Fund | Hvornår OneUptime opretter det | Pull requesten |
+| --- | --- | --- |
+| **Høj kardinalitet** | En attribut, som koden sætter på en af disse metrikker, fik 1.000 eller flere værdier i timen, såsom bruger-id'er eller fulde URL'er, så hver værdi bliver sin egen serie. Eller 50 eller flere af en tjenestes metriknavne er ét navn med et forskelligt id i. | Holder op med at registrere værdien på metrikken, eller tager id'erne ud af dens navne. |
+| **Forkerte histogram-buckets** | En af disse metrikker er et histogram, der registrerede 1.000 eller flere værdier, og 90 % eller flere af dem faldt i dets mindste bucket eller over dets største, eller det har ingen buckets, så dets percentiler ikke kan skelnes fra hinanden. | Giver histogrammet buckets, der passer til dets værdier, eller retter dets enhed. |
+| **Manglende metrikker** | En tjeneste sendte 1.000 eller flere spans i timen og har aldrig sendt en metrik. | Tilføjer antallet af forespørgsler, fejlene og varigheden af dens travleste operationer som metrikker. |
+
+Et fund gemmer aldrig en attributs værdier: kun attributtens navn, hvor mange værdier den fik, og hvordan de ser ud.
+
+### Slå det til
+
+**Målinger → AI → Indstillinger** rummer kontakten **Forbedr metrikker og tilføj de manglende**, der er slået til for nye projekter. Er **Aktivér AI** slået fra, findes problemer i dine metrikker stadig, men OneUptime AI gør intet med dem. For at åbne pull requests skal OneUptime AI have et repository forbundet i [Kode](/docs/ai/ai-agent): siden siger først, hvad der mangler. Koden i hvert repository ændres på den Runner, som repositoryet vælger i Kode.
+
+OneUptime AI åbner selv højst 5 pull requests om dagen (UTC), én for hvert fund, og aldrig flere end et repositorys grænse for åbne AI-pull requests.
+
+### AI-regler
+
+Uden regler undersøger OneUptime AI straks hvert problem, den finder i dine metrikker, og åbner en pull request for hvert, den kan rette. **AI-regler** under **Yderligere indstillinger** indsnævrer det, i tre trin:
+
+| Trin | Hvad det afgør |
+| --- | --- |
+| **Match** | Hvilke tjenester: de valgte, dem med bestemte etiketter eller dem, hvis navn passer til et mønster. |
+| **Undersøge** | **Med det samme** eller **Kun hvis stadig fundet efter en ventetid**: et problem, der forsvinder i ventetiden, undersøges ikke. |
+| **Rettelse** | **Ret ikke**, **Spørg, før der rettes** eller **Ret uden at spørge**. At spørge først overlader pull requesten til en person: fundet tilbyder **Ret med AI**. |
+
+Under **Flere felter** vælger en regel de koderepositorier, MCP-servere og den LLM-udbyder, som OneUptime AI må bruge for den. Er intet valgt, må den bruge dem alle og projektets standard-LLM-udbyder.
+
+### Se, hvad den gjorde
+
+- **Målinger → AI → Indsigter** viser, hvad OneUptime fandt, hvert fund med sine beviser og **Åbn i Målinger**, som åbner dets metrik for dets tjeneste fra den time, det blev fundet i. En tjeneste uden metrikker tilbyder i stedet **Åbn i Spor**: de spans, dens metrikker ville måle.
+- **Målinger → AI → Protokoller** viser hver undersøgelse og hver pull request, nyeste først, med status for hver.
+- I Kode siger opgaven, at OneUptime startede den, med et link til dens fund, og pull requesten siger, hvorfor den blev åbnet.
 
 ## Hvad der sker med metrikker, når de ankommer
 

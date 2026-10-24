@@ -7,6 +7,7 @@ Las métricas son los números que sus servicios y su infraestructura informan a
 - [Representar una métrica](#representar-una-métrica): Agregar, filtrar y agrupar una consulta.
 - [Combinar consultas con una fórmula](#combinar-consultas-con-una-fórmula): Tasas de error y otras proporciones.
 - [Usar lo que ha representado](#usar-lo-que-ha-representado): Un monitor, un widget de panel o un enlace.
+- [Mejorar las métricas y añadir las que faltan con IA](#mejorar-las-métricas-y-añadir-las-que-faltan-con-ia): Pull requests que corrigen sus métricas y añaden las que le faltan a un servicio.
 :::
 
 ## Cómo funciona el explorador
@@ -22,12 +23,13 @@ flowchart TB
     chart --> dash["Un widget de panel"]
 ```
 
-El explorador tiene cuatro pestañas:
+El explorador tiene cinco pestañas:
 
 | Pestaña | Para qué sirve |
 | --- | --- |
 | **Visor** | La lista de métricas, cada una con un pequeño gráfico y su último valor. Se abre con la última hora. |
 | **Análisis** | Qué servicios informan métricas, y cuántas. |
+| **IA** | Las métricas que registran demasiados valores o cuyos buckets no encajan, y las métricas que faltan, que OneUptime encuentra, y lo que la IA de OneUptime hizo al respecto. Consulte [Mejorar las métricas y añadir las que faltan con IA](#mejorar-las-métricas-y-añadir-las-que-faltan-con-ia). |
 | **Guía de configuración** | Cómo enviar métricas con OpenTelemetry, usando una de sus claves de ingesta. |
 | **Ajustes** | **Reglas de canalización** y **Reglas de grabación**: lo que les pasa a las métricas al llegar. |
 
@@ -107,6 +109,44 @@ Arrastre sobre un gráfico para acercarse a un momento y haga doble clic para al
 ## Análisis de métricas
 
 La pestaña **Análisis** cuenta las métricas de un intervalo de tiempo: **Métricas activas**, **Servicios de informes** y la media por servicio. Agrupa las métricas en categorías y enumera los servicios que las informan.
+
+## Mejorar las métricas y añadir las que faltan con IA
+
+Cada hora OneUptime revisa las métricas que sus servicios enviaron en la última hora en busca de las que registran demasiados valores o cuyos buckets de histograma no encajan, y de servicios con mucho tráfico que no envían métricas, y registra lo que encuentra como hallazgos de IA, con las pruebas. Después, la IA de OneUptime analiza cada uno y abre una pull request para corregirlo. Nunca se fusiona nada: su equipo revisa cada pull request.
+
+OneUptime lee con detalle las 10 métricas para las que sus servicios enviaron más puntos de datos en la hora, cada una con al menos 1,000 de ellos, y registra tres tipos de hallazgo:
+
+| Hallazgo | Cuándo lo registra OneUptime | La pull request |
+| --- | --- | --- |
+| **Alta cardinalidad** | Un atributo que el código pone en una de esas métricas tomó 1,000 o más valores en la hora, como ID de usuario o URL completas, así que cada valor es una serie propia. O 50 o más de los nombres de métricas de un servicio son un mismo nombre con un ID distinto dentro. | Deja de registrar el valor en la métrica, o quita los ID de sus nombres. |
+| **Buckets de histograma incorrectos** | Una de esas métricas es un histograma que registró 1,000 o más valores, y el 90 % o más cayó en su bucket más pequeño o por encima del más grande, o no tiene buckets, así que sus percentiles no se pueden distinguir. | Da al histograma buckets que encajan con sus valores, o corrige su unidad. |
+| **Métricas faltantes** | Un servicio envió 1,000 o más spans en la hora y nunca ha enviado una métrica. | Añade como métricas el número de solicitudes, los errores y la duración de sus operaciones más concurridas. |
+
+Un hallazgo nunca guarda los valores de un atributo: solo el nombre del atributo, cuántos valores tomó y cómo son.
+
+### Activarlo
+
+**Métricas → IA → Ajustes** contiene el interruptor **Mejorar las métricas y añadir las que faltan**, activado en los proyectos nuevos. Con **Habilitar IA** desactivado, los problemas de sus métricas se siguen encontrando, pero la IA de OneUptime no hace nada con ellos. Para abrir pull requests, la IA de OneUptime necesita un repositorio conectado en [Código](/docs/ai/ai-agent): la página indica primero lo que falta. El código de cada repositorio se cambia en el Runner que el repositorio elige en Código.
+
+La IA de OneUptime abre por su cuenta como máximo 5 pull requests al día (UTC), una por hallazgo, y nunca más que el límite de pull requests de IA abiertas de un repositorio.
+
+### Reglas de IA
+
+Sin reglas, la IA de OneUptime analiza de inmediato cada problema que encuentra en sus métricas y abre una pull request para cada uno que pueda corregir. Las **Reglas de IA** de **Más ajustes** lo acotan, en tres pasos:
+
+| Paso | Qué decide |
+| --- | --- |
+| **Coincidencia** | Qué servicios: los elegidos, los que tienen ciertas etiquetas o aquellos cuyo nombre coincide con un patrón. |
+| **Investigar** | **De inmediato**, o **Solo si sigue encontrándose tras una espera**: un problema que desaparece durante la espera no se analiza. |
+| **Corrección** | **No corregir**, **Preguntar antes de corregir** o **Corregir sin preguntar**. Preguntar primero deja la pull request en manos de una persona: el hallazgo ofrece **Corregir con IA**. |
+
+En **Más campos** una regla elige los repositorios de código, los servidores MCP y el proveedor de LLM que la IA de OneUptime puede usar para ella. Si no se elige ninguno, puede usar cualquiera, y el proveedor de LLM predeterminado del proyecto.
+
+### Ver lo que hizo
+
+- **Métricas → IA → Análisis** muestra lo que OneUptime encontró, cada hallazgo con sus pruebas y **Abrir en Métricas**, que abre su métrica para su servicio, de la hora en que se encontró. Un servicio sin métricas ofrece en su lugar **Abrir en Trazas**: los spans que sus métricas medirían.
+- **Métricas → IA → Registros** muestra cada investigación y cada pull request, lo más reciente primero, con el estado de cada una.
+- En Código, la tarea indica que OneUptime la inició, con un enlace a su hallazgo, y la pull request explica por qué se abrió.
 
 ## Qué les pasa a las métricas al llegar
 
