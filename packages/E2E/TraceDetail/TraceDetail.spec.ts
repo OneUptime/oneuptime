@@ -1056,7 +1056,7 @@ test.describe("fix performance with AI", () => {
     await page.getByTestId("trace-fix-performance").click();
 
     await expect(page.getByTestId("trace-fix-performance-error")).toContainText(
-      "Could not start the fix: No GitHub-App-connected repository exists for this project",
+      "Could not start the fix: No connected repository exists for this project",
     );
     await expect(page.getByTestId("trace-fix-performance")).toBeEnabled();
   });

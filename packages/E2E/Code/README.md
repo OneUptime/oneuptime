@@ -88,12 +88,24 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
   `?reviewcomment=Link|ReviewEvenIfPublic`);
 - the old addresses forwarding with their ids, query strings and hashes, and
   GitHub's way back still saying GitHub connected;
+- repositories beyond GitHub (`?hosts=1`): Connect repositories asking where
+  the code is; GitLab with a server and a token - typed once, never shown
+  again - then the repositories it can push to, a token GitLab refuses
+  (`revoked...`), Forgejo or Gitea offering the project's connection again,
+  any Git server asked about first when only a Runner reaches it; each row's
+  host mark and its own server; a GitLab repository's settings (its server,
+  account, token's last characters, Replace access token, what is GitHub's
+  only) and a Git repository's (Branches, the Runner it needs); a refused
+  token (`?token=refused`) or no Runner (`?gitrunner=none`) said with its
+  fix; GitLab's merge request !12, and a Git repository's pushed branch;
 - dark mode (`?theme=dark`: no light surface, and a spinner's arc that keeps
   its own colour) and German (`?lang=de`).
 
 What the pages send is recorded on `window.__fixture` (`creates`, `replies`,
 `retries`, `stops`, `settings`, `deletes`, `navigations`, `branchReads`,
-`lists`, `reviewLists`, `reviewAgains`), so the tests check what was sent as
+`lists`, `reviewLists`, `reviewAgains`, and the connect dialog's
+`connectReads`, `connects`, `gitConnects` and `tokenReplacements`), so the
+tests check what was sent as
 well as what was drawn. The
 query string steers the fixture; `Fixture/Fixture.js` lists every switch.
 Screenshots go to `output/playwright/code-ui/`.
