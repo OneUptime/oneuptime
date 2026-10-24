@@ -32,6 +32,7 @@ import {
   TelemetryAiSkip,
   TelemetryAiWork,
   decideTelemetryAiWork,
+  getAiInsightDashboardPath,
   getStillFoundMinutes,
   getTelemetryAiInsightTypes,
   getTelemetryAiLaneOfInsightType,
@@ -97,7 +98,33 @@ describe("the Profile lane", () => {
       insightTypes: [AIInsightType.ProfileHotspot],
       switchColumn: "enableAutomaticProfileRemediation",
       scanEveryMinutes: 60,
+      dashboardPath: "profiles",
     });
+  });
+
+  test("a lane's insight opens in the lane's product; every other insight in AI Insights", () => {
+    expect(
+      getAiInsightDashboardPath({
+        projectId: "p1",
+        insightId: "i1",
+        insightType: AIInsightType.ProfileHotspot,
+      }),
+    ).toBe("/p1/profiles/ai/insights/i1");
+
+    for (const insightType of [
+      AIInsightType.NewException,
+      AIInsightType.TraceLatencyRegression,
+      undefined,
+      "Unknown",
+    ]) {
+      expect(
+        getAiInsightDashboardPath({
+          projectId: "p1",
+          insightId: "i1",
+          insightType,
+        }),
+      ).toBe("/p1/ai/insights/i1");
+    }
   });
 
   test("every lane is listed, and each one's definition names it", () => {

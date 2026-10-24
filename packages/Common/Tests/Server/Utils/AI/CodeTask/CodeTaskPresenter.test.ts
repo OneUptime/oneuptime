@@ -1166,7 +1166,27 @@ describe("a task OneUptime started from an insight", () => {
     ).toEqual({ type: CodeTaskOriginType.Request, label: "Jane Doe" });
   });
 
-  test("the insights are read as the reader, only for OneUptime's own requests", async () => {
+  test("isAboutInsight: a Code request naming an insight, whoever started it", () => {
+    expect(CodeTaskOrigin.isAboutInsight(oneUptimeRequest())).toBe(true);
+
+    // A person asked it from the finding (a rule that asks before fixing).
+    const asked: AIRun = oneUptimeRequest();
+    asked.userId = USER_ID;
+    expect(CodeTaskOrigin.isAboutInsight(asked)).toBe(true);
+
+    const noInsight: AIRun = oneUptimeRequest();
+    noInsight.triggeredByAiInsightId = undefined as never;
+    expect(CodeTaskOrigin.isAboutInsight(noInsight)).toBe(false);
+
+    const otherRecipe: AIRun = oneUptimeRequest();
+    otherRecipe.codeFixTaskType = CodeFixTaskType.FixException;
+    expect(CodeTaskOrigin.isAboutInsight(otherRecipe)).toBe(false);
+  });
+
+  test("the insights are read as the reader, for every request about one", async () => {
+    const otherInsight: ObjectID = new ObjectID(
+      "4d4e5f6a-7b8c-4d9e-8f0a-1b2c3d4e5f61",
+    );
     const findInsights: jest.SpiedFunction<typeof AIInsightService.findBy> =
       jest
         .spyOn(AIInsightService, "findBy")
@@ -1175,6 +1195,7 @@ describe("a task OneUptime started from an insight", () => {
     const asked: AIRun = oneUptimeRequest();
     asked.userId = USER_ID;
     asked._id = REPLY_ID.toString();
+    asked.triggeredByAiInsightId = otherInsight;
 
     const loaded: Parameters<typeof CodeTaskOrigin.describe>[0]["subjects"] =
       await CodeTaskOrigin.loadSubjects({
@@ -1185,8 +1206,14 @@ describe("a task OneUptime started from an insight", () => {
 
     expect(loaded.insights?.get(INSIGHT_ID.toString())?.title).toBe("Slow");
     expect(findInsights).toHaveBeenCalledTimes(1);
-    expect((findInsights.mock.calls[0]![0] as { props: unknown }).props).toBe(
-      READER,
+
+    const read: { props: unknown; query: Record<string, unknown> } =
+      findInsights.mock.calls[0]![0] as never;
+
+    expect(read.props).toBe(READER);
+    expect(JSON.stringify(read.query["_id"])).toContain(INSIGHT_ID.toString());
+    expect(JSON.stringify(read.query["_id"])).toContain(
+      otherInsight.toString(),
     );
   });
 

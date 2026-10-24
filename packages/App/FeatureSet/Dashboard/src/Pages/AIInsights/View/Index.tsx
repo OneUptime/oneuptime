@@ -788,7 +788,12 @@ const AIInsightViewPage: FunctionComponent<
       {/* Overview: what was found, where it stands, and the one-click actions. */}
       <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="px-5 py-6 md:px-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          {/*
+           * The actions sit beside the title only on a wide screen: beside
+           * the page's side menu at a laptop's width they left a long title
+           * a column a few words wide.
+           */}
+          <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-start 2xl:justify-between">
             <div className="flex min-w-0 items-start gap-4">
               <span
                 className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl ${getSeverityTileClasses(

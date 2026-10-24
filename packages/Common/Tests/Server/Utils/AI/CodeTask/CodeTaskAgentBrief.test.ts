@@ -8,6 +8,7 @@ import AIInsight from "../../../../../Models/DatabaseModels/AIInsight";
 import { DashboardClientUrl } from "../../../../../Server/EnvironmentConfig";
 import AIRun from "../../../../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../../../../Models/DatabaseModels/CodeRepository";
+import AIInsightType from "../../../../../Types/AI/AIInsightType";
 import AIRunStatus from "../../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../../Types/AI/AIRunType";
 import CodeFixTaskType from "../../../../../Types/AI/CodeFixTaskType";
@@ -594,5 +595,42 @@ describe("a task OneUptime started from an insight", () => {
 
     expect(details.startedBy).toBeUndefined();
     expect(details.requestedBy).toBe("Jane Doe");
+  });
+
+  test("slow code's finding is linked where its product shows it: the Profiler's AI section", async () => {
+    startedByOneUptime();
+
+    const subjects: Awaited<ReturnType<typeof CodeTaskOrigin.loadSubjects>> =
+      await CodeTaskOrigin.loadSubjects({
+        projectId: PROJECT_ID,
+        runs: [],
+        props: { isRoot: true },
+      });
+    subjects.insights!.get(INSIGHT_ID.toString())!.insightType =
+      AIInsightType.ProfileHotspot;
+
+    const details: CodeTaskAgentDetails = await brief(0);
+
+    expect(details.startedBy?.findingUrl).toBe(
+      `${DashboardClientUrl.toString()}/${PROJECT_ID.toString()}/profiles/ai/insights/${INSIGHT_ID.toString()}`,
+    );
+  });
+
+  /*
+   * A rule that asks before fixing leaves the pull request to a person, who
+   * starts it from the finding: the request is theirs, and the pull request
+   * still says what was found.
+   */
+  test("a task a person started from the finding: theirs, with what OneUptime found", async () => {
+    startedByOneUptime();
+    turns[0]!.userId = USER_ID;
+
+    const details: CodeTaskAgentDetails = await brief(0);
+
+    expect(details.requestedBy).toBe("Jane Doe");
+    expect(details.startedBy?.finding).toContain(
+      "OrderParser.parse takes 18% of the CPU time in checkout",
+    );
+    expect(details.startedBy?.findingUrl).toContain(INSIGHT_ID.toString());
   });
 });

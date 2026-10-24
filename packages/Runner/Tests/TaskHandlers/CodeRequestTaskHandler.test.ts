@@ -520,6 +520,34 @@ describe("a task OneUptime started on its own", () => {
     expect(body).toContain("Requested by Jane Doe in OneUptime (task #42)");
   });
 
+  /*
+   * A rule that asks before fixing leaves the pull request to a person, who
+   * starts it from the finding: the request is theirs, and its pull request
+   * says what OneUptime found - without claiming OneUptime started it.
+   */
+  test("a task a person started from the finding: theirs, saying what OneUptime found", () => {
+    const value: CodeTaskAgentDetails = startedByOneUptime({
+      requestedBy: "Jane Doe",
+    });
+
+    const section: string = CodeRequestTaskHandler.buildStartedBySection(value);
+
+    expect(section).toContain(
+      "OneUptime found this in your production telemetry: **OrderParser.parse takes 18% of the CPU time in checkout** ([see what it found](" +
+        FINDING_URL +
+        ")).",
+    );
+    expect(section).not.toContain("started this task on its own");
+
+    const body: string = CodeRequestTaskHandler.buildPullRequestBody(
+      value,
+      "Batched the parse.",
+    );
+
+    expect(body).toContain("Requested by Jane Doe in OneUptime (task #42)");
+    expect(body).not.toContain("Started in OneUptime");
+  });
+
   test("a task a person asked for says nothing of OneUptime's reasons", () => {
     expect(CodeRequestTaskHandler.buildStartedBySection(details())).toBe("");
     expect(

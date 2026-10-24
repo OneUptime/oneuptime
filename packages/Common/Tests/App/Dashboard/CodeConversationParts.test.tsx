@@ -97,6 +97,7 @@ const TASK_ID: string = "1d2e3f4a-5b6c-4d7e-8f90-a1b2c3d4e5f6";
 const REPOSITORY_ID: string = "2e3f4a5b-6c7d-4e8f-9a0b-c1d2e3f4a5b6";
 const INCIDENT_ID: string = "3f4a5b6c-7d8e-4f9a-8b1c-d2e3f4a5b6c7";
 const EXCEPTION_ID: string = "4a5b6c7d-8e9f-4a0b-9c2d-e3f4a5b6c7d8";
+const INSIGHT_ID: string = "5a6b7c8d-9e0f-4a1b-8c2d-e3f4a5b6c7d9";
 
 const translation: i18n = createInstance();
 const germanTranslation: i18n = createInstance();
@@ -308,6 +309,81 @@ describe("a turn: what was asked", () => {
         within(origin).getByRole("link", { name: "TypeError: x is undefined" }),
       ),
     ).toBe(`/dashboard/${PROJECT_ID}/exceptions/${EXCEPTION_ID}`);
+  });
+
+  /*
+   * A request nobody typed - OneUptime wrote it from slow code it found in
+   * a service's profiles: the finding that started it comes first, linked
+   * to it, and the request is OneUptime's, not "Someone"'s.
+   */
+  test("a request OneUptime wrote itself: its finding first, linked, and the request OneUptime's", () => {
+    draw(
+      <ol>
+        <CodeTaskTurn
+          isLatest={true}
+          origin={{
+            type: CodeTaskOriginType.Insight,
+            label: "OrderParser.parse takes 18% of the CPU time in checkout",
+            recordId: INSIGHT_ID,
+          }}
+          turn={turn({
+            requestedBy: undefined,
+            request: {
+              message: "Make OrderParser.parse in src/orders/parser.ts faster",
+              context: [],
+            },
+          })}
+        />
+      </ol>,
+    );
+
+    const origin: HTMLElement = screen.getByTestId("code-turn-origin");
+    expect(origin).toHaveTextContent(
+      "OneUptime started this task from an AI insight: OrderParser.parse takes 18% of the CPU time in checkout",
+    );
+    expect(
+      hrefOf(
+        within(origin).getByRole("link", {
+          name: "OrderParser.parse takes 18% of the CPU time in checkout",
+        }),
+      ),
+    ).toBe(`/dashboard/${PROJECT_ID}/ai/insights/${INSIGHT_ID}`);
+
+    const request: HTMLElement = screen.getByTestId("code-turn-request");
+    expect(request).toHaveTextContent("OneUptime");
+    expect(request).not.toHaveTextContent("Someone");
+    expect(request).toHaveTextContent(
+      "Make OrderParser.parse in src/orders/parser.ts faster",
+    );
+
+    // What started it is said before the request.
+    const items: Array<Element> = Array.from(
+      document.querySelectorAll(
+        "[data-testid='code-turn-origin'], [data-testid='code-turn-request']",
+      ),
+    );
+    expect(
+      items.map((element: Element): string | null => {
+        return element.getAttribute("data-testid");
+      }),
+    ).toEqual(["code-turn-origin", "code-turn-request"]);
+  });
+
+  test("a person's request about a finding stays theirs, with no origin beside it", () => {
+    draw(
+      <ol>
+        <CodeTaskTurn
+          isLatest={true}
+          origin={{ type: CodeTaskOriginType.Request, label: "Ada Lovelace" }}
+          turn={turn({})}
+        />
+      </ol>,
+    );
+
+    expect(screen.queryByTestId("code-turn-origin")).toBeNull();
+    expect(screen.getByTestId("code-turn-request")).toHaveTextContent(
+      "Ada Lovelace",
+    );
   });
 
   test("a GitHub issue links to GitHub", () => {
@@ -1242,6 +1318,28 @@ describe("a task row", () => {
       expect(dot).toHaveAttribute("aria-hidden", "true");
     }
     expect(meta.textContent).toMatch(/^Asked by Ada Lovelace·.+·PR #418$/);
+  });
+
+  test("a request OneUptime wrote itself, from a finding: started by OneUptime, nobody asked", () => {
+    draw(
+      <ul>
+        <CodeTaskRow
+          task={summary({
+            title: "Make OrderParser.parse faster",
+            origin: {
+              type: CodeTaskOriginType.Insight,
+              label: "OrderParser.parse takes 18% of the CPU time in checkout",
+              recordId: INSIGHT_ID,
+            },
+          })}
+        />
+      </ul>,
+    );
+
+    const meta: HTMLElement = screen.getByTestId("code-task-row-meta");
+
+    expect(meta).toHaveTextContent("Started by OneUptime");
+    expect(meta).not.toHaveTextContent("Asked by");
   });
 
   /*

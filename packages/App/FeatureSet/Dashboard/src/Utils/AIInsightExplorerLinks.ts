@@ -562,12 +562,20 @@ export const buildInsightInvestigationLink: BuildInsightInvestigationLinkFunctio
       case AIInsightType.ProfileHotspot: {
         /*
          * The Profiler on the slow function, in the window it was found
-         * in: the service is the one thing it cannot do without.
+         * in. The Profiler picks a service by its id alone: a finding with
+         * none (a name it cannot carry) opens the Profiler's overview, and
+         * says the service was dropped.
          */
         const serviceId: string | null = trimmedOrNull(input.serviceId);
 
         if (!serviceId) {
-          return null;
+          return {
+            target: "profiles",
+            label: "Open in Profiler",
+            icon: IconProp.Fire,
+            route: buildProfilesRoute({}),
+            dropped: trimmedOrNull(input.serviceName) ? ["serviceIds"] : [],
+          };
         }
 
         const state: ProfilesUrlState = { serviceId };

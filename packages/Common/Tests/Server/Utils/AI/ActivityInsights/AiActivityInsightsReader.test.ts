@@ -877,6 +877,46 @@ describe("AiActivityInsightsReader.read", () => {
     });
   });
 
+  describe("slow code found in a service's profiles", () => {
+    test("is about the service its fingerprint names, and no other", () => {
+      const serviceId: string = ObjectID.generate().toString();
+      const otherId: string = ObjectID.generate().toString();
+      const fingerprint: string = `profile-hotspot:${serviceId}:cpu:OrderParser.parse:src/orders/parser.ts`;
+
+      expect(
+        isPreventiveInsightAboutScope({
+          insight: {
+            insightType: AIInsightType.ProfileHotspot,
+            fingerprint,
+          } as never,
+          scopeId: serviceId.toUpperCase(),
+          exceptionOwners: new Map<string, string>(),
+        }),
+      ).toBe(true);
+      expect(
+        isPreventiveInsightAboutScope({
+          insight: {
+            insightType: AIInsightType.ProfileHotspot,
+            fingerprint,
+          } as never,
+          scopeId: otherId,
+          exceptionOwners: new Map<string, string>(),
+        }),
+      ).toBe(false);
+      // A name that only holds the service's id is not the service.
+      expect(
+        isPreventiveInsightAboutScope({
+          insight: {
+            insightType: AIInsightType.ProfileHotspot,
+            fingerprint: `profile-hotspot:${otherId}:cpu:${serviceId}:x.ts`,
+          } as never,
+          scopeId: serviceId,
+          exceptionOwners: new Map<string, string>(),
+        }),
+      ).toBe(false);
+    });
+  });
+
   describe("preventive insights", () => {
     function insight(
       overrides: Partial<Record<keyof AIInsight, unknown>>,

@@ -29,6 +29,7 @@ import React, {
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import CodeBlockerNotice from "../Code/CodeBlockerNotice";
+import { ENABLE_AI_COLUMN } from "../AISettings/EnableAiColumn";
 import { fetchTelemetryAiReadiness } from "./TelemetryAiApi";
 import {
   TELEMETRY_AI_READINESS_COPY,
@@ -106,7 +107,7 @@ const TelemetryAiReadinessCard: FunctionComponent<ComponentProps> = (
     }
 
     const unsubscribers: Array<() => void> = [
-      "enableAi",
+      ENABLE_AI_COLUMN,
       TELEMETRY_AI_LANES[props.lane].switchColumn,
     ].map((column: string): (() => void) => {
       return subscribeToModelSwitchSaved({

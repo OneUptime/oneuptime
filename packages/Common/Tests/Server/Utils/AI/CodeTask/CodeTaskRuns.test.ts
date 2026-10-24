@@ -340,6 +340,25 @@ describe("CodeTaskRuns.startForOneUptime", () => {
     expect(created[0]!.triggeredByAiInsightId).toBeUndefined();
     expect(created[0]!.userId?.toString()).toBe(USER_ID.toString());
   });
+
+  test("a person's task asked from a finding names it, and stays theirs", async () => {
+    const insightId: ObjectID = ObjectID.generate();
+
+    await CodeTaskRuns.start({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
+      repository: repository(),
+      message: "Make OrderParser.parse faster",
+      context: [],
+      triggeredByAiInsightId: insightId,
+    });
+
+    expect(created[0]!.triggeredByAiInsightId?.toString()).toBe(
+      insightId.toString(),
+    );
+    expect(created[0]!.userId?.toString()).toBe(USER_ID.toString());
+    expect(created[0]!.codeFixTaskType).toBe(CodeFixTaskType.CodeRequest);
+  });
 });
 
 describe("CodeTaskRuns.reply", () => {
