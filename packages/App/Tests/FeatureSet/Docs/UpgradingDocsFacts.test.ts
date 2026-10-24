@@ -468,7 +468,7 @@ describe("Upgrading from 12 → 13: the cache rename, held to the code", () => {
 
     expect(networks["aliases"]).toContain("redis");
     expect(source("docker-compose.base.yml")).toContain(
-      "VALKEY_HOST: ${VALKEY_HOST:-${REDIS_HOST}}",
+      "VALKEY_HOST: ${VALKEY_HOST:-${REDIS_HOST:-}}",
     );
   });
 

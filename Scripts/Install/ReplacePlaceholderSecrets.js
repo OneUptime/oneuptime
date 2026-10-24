@@ -75,7 +75,7 @@ const GENERATED_SECRETS = [
  * operator is told.
  *
  * Valkey was called Redis: REDIS_PASSWORD and REDIS_HOST are its older names,
- * which Compose falls back to (`${VALKEY_PASSWORD:-${REDIS_PASSWORD}}`), so
+ * which Compose falls back to (`${VALKEY_PASSWORD:-${REDIS_PASSWORD:-}}`), so
  * every name of the password that holds a placeholder gets the one new value.
  */
 const BUNDLED_DATASTORE_PASSWORDS = [

@@ -487,7 +487,7 @@ describe("the passwords of the datastores Docker Compose runs", () => {
     // Valkey takes it on its command line, from either name, keeps nothing on
     // disk, and answers to "redis" as well.
     expect(base.services.valkey.command).toBe(
-      'valkey-server --requirepass "${VALKEY_PASSWORD:-${REDIS_PASSWORD}}" --save "" --appendonly no',
+      'valkey-server --requirepass "${VALKEY_PASSWORD:-${REDIS_PASSWORD:-}}" --save "" --appendonly no',
     );
     expect(base.services.valkey.networks.oneuptime.aliases).toEqual(["redis"]);
 
@@ -496,7 +496,7 @@ describe("the passwords of the datastores Docker Compose runs", () => {
       "${CLICKHOUSE_PASSWORD}",
     );
     expect(base["x-common-runtime-variables"].VALKEY_PASSWORD).toBe(
-      "${VALKEY_PASSWORD:-${REDIS_PASSWORD}}",
+      "${VALKEY_PASSWORD:-${REDIS_PASSWORD:-}}",
     );
   });
 

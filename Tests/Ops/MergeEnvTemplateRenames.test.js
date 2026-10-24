@@ -16,7 +16,7 @@
  * guarding it. The rule it encodes: a renamed key whose OLD name is still set is
  * left alone entirely, so the operator keeps their single copy of the value and
  * docker-compose.base.yml resolves the new name to it via
- * `${VALKEY_PASSWORD:-${REDIS_PASSWORD}}`.
+ * `${VALKEY_PASSWORD:-${REDIS_PASSWORD:-}}`.
  */
 
 const fs = require("fs");
