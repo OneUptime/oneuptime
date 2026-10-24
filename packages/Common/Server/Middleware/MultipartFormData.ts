@@ -49,24 +49,22 @@ export const MAX_MULTIPART_FIELD_ARRAY_INDEX: number = 0;
  * the moment the counter REACHES the limit, so handing it N admits only
  * N-1. Its `files` and `fields` counters are INCLUSIVE -- N admits N.
  *
- * Multer 2.3 normalizes its documented `fileSize` option to an inclusive
- * application limit before it calls busboy. It forwards `fieldSize` and
- * `parts` unchanged, so only those two raw busboy limits are converted here.
- * The constants above stay the INCLUSIVE maxima this app documents and that
+ * Multer 2.5 normalizes `fileSize`, `fieldSize` and `parts` to inclusive
+ * application limits before it calls busboy: it hands busboy each one plus
+ * one. So the INCLUSIVE maxima above - the ones this app documents and that
  * callers range-check against (`file.buffer.length >
- * MAX_SOURCE_MAP_SIZE_IN_BYTES` and friends).
+ * MAX_SOURCE_MAP_SIZE_IN_BYTES` and friends) - go to Multer as they are.
+ * package.json requires multer ^2.5.0 for that reason.
  *
- * Both conversions have caused live boundary bugs. A file of exactly 50 MiB
- * must remain accepted, but adding one here as well as in Multer would admit
- * 50 MiB + 1. And `parts`, whose whole job is to allow the file and field
+ * Each conversion has caused a live boundary bug when it was made twice or
+ * not at all. A file of exactly 50 MiB must remain accepted, but adding one
+ * here as well as in Multer would admit 50 MiB + 1. Multer 2.3 and 2.4
+ * normalized `fileSize` only, and this module added the one to `fieldSize`
+ * and `parts` itself; under 2.5 that admitted a field value one byte over
+ * the limit. And `parts`, whose whole job is to allow the file and field
  * allowances in full, once rejected a body carrying exactly both with
  * LIMIT_PART_COUNT.
  */
-const toExclusiveBusboyLimit: (inclusiveMax: number) => number = (
-  inclusiveMax: number,
-): number => {
-  return inclusiveMax + 1;
-};
 
 /* Installed DefinitelyTyped definitions do not declare these options yet. */
 type HardenedMulterLimits = NonNullable<multer.Options["limits"]> & {
@@ -83,7 +81,7 @@ const buildUploadAny: (maxFiles: number) => RequestHandler = (
 ): RequestHandler => {
   const limits: HardenedMulterLimits = {
     fileSize: MAX_MULTIPART_FILE_BYTES,
-    fieldSize: toExclusiveBusboyLimit(MAX_MULTIPART_FIELD_BYTES),
+    fieldSize: MAX_MULTIPART_FIELD_BYTES,
     files: maxFiles,
     fields: MAX_MULTIPART_FIELDS,
     fieldNestingDepth: MAX_MULTIPART_FIELD_NESTING_DEPTH,
@@ -92,7 +90,7 @@ const buildUploadAny: (maxFiles: number) => RequestHandler = (
      * Parts are files + fields, so this has to allow both in full or it
      * would be the effective limit and the two above would never fire.
      */
-    parts: toExclusiveBusboyLimit(maxFiles + MAX_MULTIPART_FIELDS),
+    parts: maxFiles + MAX_MULTIPART_FIELDS,
   };
 
   const upload: multer.Multer = multer({
