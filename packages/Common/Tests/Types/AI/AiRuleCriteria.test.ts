@@ -373,7 +373,9 @@ describe("getAiRuleCriteriaProblem", () => {
         triggerEntityType: Incident,
         criteria: { filters: [{ field: "services" }] },
       }),
-    ).toBe("Services can only be used by profile AI rules, trace AI rules or exception AI rules.");
+    ).toBe(
+      "Services can only be used by profile AI rules, trace AI rules or exception AI rules.",
+    );
     expect(
       getAiRuleCriteriaProblem({
         triggerEntityType: Alert,
@@ -460,6 +462,54 @@ describe("getAiRuleCriteriaProblem", () => {
         criteria: {
           filters: [null, { field: 3 }, { field: "incidentSeverities" }],
         },
+      }),
+    ).toBe("Incident Severities can only be used by incident AI rules.");
+  });
+});
+
+/*
+ * An exception AI rule (Exceptions' AI section) matches on the service the
+ * exception was raised in, as a profile or trace rule does - and on nothing
+ * of an incident's or an alert's.
+ */
+describe("exception AI rules", () => {
+  const Exception: AutoRemediationTriggerEntity =
+    AutoRemediationTriggerEntity.Exception;
+
+  test("match on the service, as a profile rule does", () => {
+    expect(AI_RULE_CRITERIA_FIELDS_BY_TRIGGER[Exception]).toEqual(
+      AI_RULE_CRITERIA_FIELDS_BY_TRIGGER[Profile],
+    );
+    expect(
+      getAiRuleCriteriaProblem({
+        triggerEntityType: Exception,
+        criteria: {
+          filters: [
+            { field: "services" },
+            { field: "serviceLabels" },
+            { field: "serviceNamePattern" },
+          ],
+        },
+        values: {
+          services: ["a"],
+          serviceLabels: ["b"],
+          serviceNamePattern: "^checkout",
+        },
+      }),
+    ).toBeNull();
+  });
+
+  test("may not match on an incident's or an alert's criteria", () => {
+    expect(
+      getAiRuleCriteriaProblem({
+        triggerEntityType: Exception,
+        criteria: { filters: [{ field: "monitors" }] },
+      }),
+    ).toBe("Monitors can only be used by incident AI rules or alert AI rules.");
+    expect(
+      getAiRuleCriteriaProblem({
+        triggerEntityType: Exception,
+        values: { incidentSeverities: ["x"] },
       }),
     ).toBe("Incident Severities can only be used by incident AI rules.");
   });
