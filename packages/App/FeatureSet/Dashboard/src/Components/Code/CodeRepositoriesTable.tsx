@@ -8,6 +8,8 @@ import {
 import CodeTimeAgo from "./CodeTimeAgo";
 import CodeHostMark from "./CodeHostMark";
 import { getRepositoryHostNote } from "./CodeHostCopy";
+import { CodeHost } from "Common/Types/CodeRepository/CodeHost";
+import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Link from "Common/UI/Components/Link/Link";
 import Table from "Common/UI/Components/Table/Table";
@@ -89,8 +91,8 @@ export const CODE_REPOSITORY_TEXT_CLASS_NAME: string =
 
 /*
  * The facts of one repository's Tasks cell, as text: how many tasks, its
- * open pull requests, and what needs someone. React-free words, so the
- * cell and the tests read the same.
+ * open pull requests - merge requests, on GitLab - and what needs someone.
+ * React-free words, so the cell and the tests read the same.
  */
 export const getRepositoryTaskWords: (
   repository: CodeRepositoryListItem,
@@ -122,10 +124,15 @@ export const getRepositoryTaskWords: (
     pullRequests:
       stats.openPullRequests > 0
         ? translator.translatePlural(
-            {
-              one: "{{count}} open pull request",
-              other: "{{count}} open pull requests",
-            },
+            CodeHost.readType(repository.provider) === CodeRepositoryType.GitLab
+              ? {
+                  one: "{{count}} open merge request",
+                  other: "{{count}} open merge requests",
+                }
+              : {
+                  one: "{{count}} open pull request",
+                  other: "{{count}} open pull requests",
+                },
             stats.openPullRequests,
           )
         : null,

@@ -929,10 +929,7 @@ export const SearchCodeTool: ObservabilityTool = {
 
     const repository: CodeRepository = await resolveTargetRepository(ctx, args);
 
-    const paths: Array<string> = await readRepositoryTreePaths(
-      ctx,
-      repository,
-    );
+    const paths: Array<string> = await readRepositoryTreePaths(ctx, repository);
 
     const needle: string = query.toLowerCase();
 

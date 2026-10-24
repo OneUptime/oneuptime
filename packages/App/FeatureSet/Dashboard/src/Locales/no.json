@@ -33747,5 +33747,12 @@
   "Where is your code?": "Hvor ligger koden din?",
   "{{count}} repositories connected": "{{count}} repositorier tilkoblet",
   "{{count}} repositories connected_one": "{{count}} repository tilkoblet",
-  "{{host}} refused the access token: it may have expired or been revoked. Replace it to connect the repository again.": "{{host}} avviste tilgangstokenet: det kan ha utløpt eller blitt tilbakekalt. Erstatt det for å koble til repositoryet igjen."
+  "{{host}} refused the access token: it may have expired or been revoked. Replace it to connect the repository again.": "{{host}} avviste tilgangstokenet: det kan ha utløpt eller blitt tilbakekalt. Erstatt det for å koble til repositoryet igjen.",
+  "Leave the username and password out of the address. The access token goes in its own field.": "Utelat brukernavn og passord fra adressen. Tilgangstokenet hører hjemme i sitt eget felt.",
+  "That address is too long.": "Den adressen er for lang.",
+  "That is not a web address. Enter it as https://git.example.com.": "Det er ikke en nettadresse. Skriv den inn som https://git.example.com.",
+  "Use the server's https address.": "Bruk serverens https-adresse.",
+  "Needs a repository connected in Code.": "Krever et repository koblet til i Code.",
+  "{{count}} open merge requests": "{{count}} åpne merge requests",
+  "{{count}} open merge requests_one": "{{count}} åpen merge request"
 }

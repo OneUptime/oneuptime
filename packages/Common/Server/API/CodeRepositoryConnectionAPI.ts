@@ -6,7 +6,9 @@ import Express, {
   NextFunction,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
-import GitHubConnectAccess, { GitHubConnectCaller } from "./GitHubConnectAccess";
+import GitHubConnectAccess, {
+  GitHubConnectCaller,
+} from "./GitHubConnectAccess";
 import CodeRepositoryConnector, {
   CodeHostConnectionSource,
 } from "../Utils/CodeRepository/CodeHost/CodeRepositoryConnector";
@@ -52,59 +54,89 @@ export default class CodeRepositoryConnectionAPI {
   }
 
   private initRoutes(): void {
-    this.route("/repositories", async (body: JSONObject, caller: GitHubConnectCaller): Promise<JSONObject> => {
-      const source: CodeHostConnectionSource =
-        CodeRepositoryConnector.readSource(body);
+    this.route(
+      "/repositories",
+      async (
+        body: JSONObject,
+        caller: GitHubConnectCaller,
+      ): Promise<JSONObject> => {
+        const source: CodeHostConnectionSource =
+          CodeRepositoryConnector.readSource(body);
 
-      return (await CodeRepositoryConnector.listRepositories({
-        projectId: caller.projectId,
-        source,
-        search: typeof body["search"] === "string" ? body["search"] : "",
-        page: typeof body["page"] === "number" ? body["page"] : 1,
-      })) as unknown as JSONObject;
-    });
+        return (await CodeRepositoryConnector.listRepositories({
+          projectId: caller.projectId,
+          source,
+          search: typeof body["search"] === "string" ? body["search"] : "",
+          page: typeof body["page"] === "number" ? body["page"] : 1,
+        })) as unknown as JSONObject;
+      },
+    );
 
-    this.route("/connect", async (body: JSONObject, caller: GitHubConnectCaller): Promise<JSONObject> => {
-      const source: CodeHostConnectionSource =
-        CodeRepositoryConnector.readSource(body);
-      const repositoryIds: unknown = body["repositoryIds"];
+    this.route(
+      "/connect",
+      async (
+        body: JSONObject,
+        caller: GitHubConnectCaller,
+      ): Promise<JSONObject> => {
+        const source: CodeHostConnectionSource =
+          CodeRepositoryConnector.readSource(body);
+        const repositoryIds: unknown = body["repositoryIds"];
 
-      if (!Array.isArray(repositoryIds)) {
-        throw new BadDataException("Pick at least one repository to connect.");
-      }
+        if (!Array.isArray(repositoryIds)) {
+          throw new BadDataException(
+            "Pick at least one repository to connect.",
+          );
+        }
 
-      return (await CodeRepositoryConnector.connect({
-        projectId: caller.projectId,
-        userId: caller.userId,
-        source,
-        repositoryIds: repositoryIds.filter((id: unknown): id is string => {
-          return typeof id === "string";
-        }),
-      })) as unknown as JSONObject;
-    });
+        return (await CodeRepositoryConnector.connect({
+          projectId: caller.projectId,
+          userId: caller.userId,
+          source,
+          repositoryIds: repositoryIds.filter((id: unknown): id is string => {
+            return typeof id === "string";
+          }),
+        })) as unknown as JSONObject;
+      },
+    );
 
-    this.route("/connect-git", async (body: JSONObject, caller: GitHubConnectCaller): Promise<JSONObject> => {
-      return (await CodeRepositoryConnector.connectGitRepository({
-        projectId: caller.projectId,
-        userId: caller.userId,
-        url: body["url"],
-        username: body["username"],
-        password: body["password"],
-        connectWithoutCheck: body["connectWithoutCheck"] === true,
-      })) as unknown as JSONObject;
-    });
+    this.route(
+      "/connect-git",
+      async (
+        body: JSONObject,
+        caller: GitHubConnectCaller,
+      ): Promise<JSONObject> => {
+        return (await CodeRepositoryConnector.connectGitRepository({
+          projectId: caller.projectId,
+          userId: caller.userId,
+          url: body["url"],
+          username: body["username"],
+          password: body["password"],
+          connectWithoutCheck: body["connectWithoutCheck"] === true,
+        })) as unknown as JSONObject;
+      },
+    );
 
-    this.route("/list", async (_body: JSONObject, caller: GitHubConnectCaller): Promise<JSONObject> => {
-      return {
-        connections: (await CodeRepositoryConnector.listConnections(
-          caller.projectId,
-        )) as unknown as Array<JSONObject>,
-      };
-    });
+    this.route(
+      "/list",
+      async (
+        _body: JSONObject,
+        caller: GitHubConnectCaller,
+      ): Promise<JSONObject> => {
+        return {
+          connections: (await CodeRepositoryConnector.listConnections(
+            caller.projectId,
+          )) as unknown as Array<JSONObject>,
+        };
+      },
+    );
 
     this.route(
       "/:connectionId/token",
-      async (body: JSONObject, caller: GitHubConnectCaller, req: ExpressRequest): Promise<JSONObject> => {
+      async (
+        body: JSONObject,
+        caller: GitHubConnectCaller,
+        req: ExpressRequest,
+      ): Promise<JSONObject> => {
         return (await CodeRepositoryConnector.replaceToken({
           projectId: caller.projectId,
           connectionId: String(req.params["connectionId"] || ""),

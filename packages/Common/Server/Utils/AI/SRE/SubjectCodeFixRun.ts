@@ -54,8 +54,9 @@ interface SubjectCodeFixRunInput {
  * subject recipes (ImproveInstrumentation, FixFromIncident) and the
  * trace-evidence recipe (FixPerformance). All enqueue AIRun(CodeFix) rows
  * keyed to something other than a telemetry exception, all need a
- * GitHub-App-connected repository the agent can actually clone and push,
- * and all dedupe to at most one non-terminal run per (context, recipe).
+ * connected repository the agent can actually clone and push to - on
+ * GitHub, GitLab, Forgejo, Gitea or any Git server (hasConnectedRepository)
+ * - and all dedupe to at most one non-terminal run per (context, recipe).
  * The triggers differ (automatic-after-inconclusive vs. user button) — the
  * enqueue idiom must not.
  */

@@ -170,12 +170,16 @@ export default class CodeRepositoryConnector {
    * The source a request names: one of the project's connections, or a
    * server's address and a token the person pasted.
    */
-  public static readSource(body: Record<string, unknown>): CodeHostConnectionSource {
+  public static readSource(
+    body: Record<string, unknown>,
+  ): CodeHostConnectionSource {
     const connectionId: unknown = body["connectionId"];
 
     if (typeof connectionId === "string" && connectionId.trim()) {
       if (!ObjectID.isValidUUID(connectionId.trim())) {
-        throw new BadDataException("That connection is not one of this project's.");
+        throw new BadDataException(
+          "That connection is not one of this project's.",
+        );
       }
 
       return { connectionId: connectionId.trim() };
@@ -350,9 +354,9 @@ export default class CodeRepositoryConnector {
         const repository: CodeHostRepository =
           server.provider === CodeRepositoryType.GitLab
             ? await CodeRepositoryConnector.gitLab(server).getRepository(id)
-            : await CodeRepositoryConnector.forgejo(
-                server,
-              ).getRepositoryById(id);
+            : await CodeRepositoryConnector.forgejo(server).getRepositoryById(
+                id,
+              );
 
         if (
           !repository.canPush ||
@@ -401,13 +405,16 @@ export default class CodeRepositoryConnector {
         isReachableFromServer: true,
       }));
 
-    const result: { imported: number; reconnected: number; ids: Array<string> } =
-      await CodeRepositoryConnector.saveRepositories({
-        projectId: data.projectId,
-        provider: server.provider,
-        connection,
-        repositories,
-      });
+    const result: {
+      imported: number;
+      reconnected: number;
+      ids: Array<string>;
+    } = await CodeRepositoryConnector.saveRepositories({
+      projectId: data.projectId,
+      provider: server.provider,
+      connection,
+      repositories,
+    });
 
     return {
       connectionId: connection.id!.toString(),
@@ -535,28 +542,31 @@ export default class CodeRepositoryConnector {
         isReachableFromServer,
       });
 
-    const result: { imported: number; reconnected: number; ids: Array<string> } =
-      await CodeRepositoryConnector.saveRepositories({
-        projectId: data.projectId,
-        provider: CodeRepositoryType.Git,
-        connection,
-        repositories: [
-          {
-            id: "",
-            name: address.repositoryName,
-            ownerPath: address.organizationName,
-            fullName: address.organizationName
-              ? `${address.organizationName}/${address.repositoryName}`
-              : address.repositoryName,
-            description: null,
-            defaultBranch: refs?.defaultBranch || "main",
-            webUrl: address.webUrl,
-            cloneUrl: address.cloneUrl,
-            isPrivate: true,
-            canPush: true,
-          },
-        ],
-      });
+    const result: {
+      imported: number;
+      reconnected: number;
+      ids: Array<string>;
+    } = await CodeRepositoryConnector.saveRepositories({
+      projectId: data.projectId,
+      provider: CodeRepositoryType.Git,
+      connection,
+      repositories: [
+        {
+          id: "",
+          name: address.repositoryName,
+          ownerPath: address.organizationName,
+          fullName: address.organizationName
+            ? `${address.organizationName}/${address.repositoryName}`
+            : address.repositoryName,
+          description: null,
+          defaultBranch: refs?.defaultBranch || "main",
+          webUrl: address.webUrl,
+          cloneUrl: address.cloneUrl,
+          isPrivate: true,
+          canPush: true,
+        },
+      ],
+    });
 
     if (result.ids.length === 0) {
       await CodeRepositoryConnectionService.deleteUnusedConnections(
@@ -602,9 +612,7 @@ export default class CodeRepositoryConnector {
     let username: string = previous?.username || "";
 
     if (provider === CodeRepositoryType.Git) {
-      const typed: string = CodeRepositoryConnector.readUsername(
-        data.username,
-      );
+      const typed: string = CodeRepositoryConnector.readUsername(data.username);
 
       username = typed || username || "git";
       accountLogin = typed || accountLogin;
@@ -780,10 +788,7 @@ export default class CodeRepositoryConnector {
           connection,
         };
       } catch (error) {
-        if (
-          error instanceof CodeHostHttpError &&
-          error.isCredentialRefusal()
-        ) {
+        if (error instanceof CodeHostHttpError && error.isCredentialRefusal()) {
           await CodeRepositoryConnectionService.markRefused(connection);
         }
 
@@ -823,27 +828,28 @@ export default class CodeRepositoryConnector {
     projectId: ObjectID;
     connectionId: string;
   }): Promise<CodeRepositoryConnection> {
-    const connection: CodeRepositoryConnection | null =
-      ObjectID.isValidUUID(data.connectionId)
-        ? await CodeRepositoryConnectionService.findOneBy({
-            query: {
-              _id: data.connectionId,
-              projectId: data.projectId,
-            },
-            select: {
-              _id: true,
-              projectId: true,
-              provider: true,
-              hostUrl: true,
-              hostProduct: true,
-              accountLogin: true,
-              credentials: true,
-              refusedAt: true,
-              isReachableFromServer: true,
-            },
-            props: { isRoot: true },
-          })
-        : null;
+    const connection: CodeRepositoryConnection | null = ObjectID.isValidUUID(
+      data.connectionId,
+    )
+      ? await CodeRepositoryConnectionService.findOneBy({
+          query: {
+            _id: data.connectionId,
+            projectId: data.projectId,
+          },
+          select: {
+            _id: true,
+            projectId: true,
+            provider: true,
+            hostUrl: true,
+            hostProduct: true,
+            accountLogin: true,
+            credentials: true,
+            refusedAt: true,
+            isReachableFromServer: true,
+          },
+          props: { isRoot: true },
+        })
+      : null;
 
     if (!connection || !connection.id) {
       throw new NotFoundException(
@@ -1178,7 +1184,9 @@ export default class CodeRepositoryConnector {
         .filter((repository: CodeRepository): boolean => {
           return Boolean(
             repository.codeRepositoryConnectionId &&
-              connectionIds.has(repository.codeRepositoryConnectionId.toString()),
+              connectionIds.has(
+                repository.codeRepositoryConnectionId.toString(),
+              ),
           );
         })
         .map((repository: CodeRepository): string => {
@@ -1194,9 +1202,11 @@ export default class CodeRepositoryConnector {
   public static isServerId(id: string): boolean {
     const value: number = Number(id);
 
-    return /* a plain number, as the server writes it */ String(value) === id &&
+    return (
+      /* a plain number, as the server writes it */ String(value) === id &&
       Number.isSafeInteger(value) &&
-      value > 0;
+      value > 0
+    );
   }
 
   public static repositoryKey(ownerPath: string, name: string): string {

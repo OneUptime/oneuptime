@@ -117,7 +117,7 @@ describe("TelemetryImprovementTaskTrigger.createTelemetryImprovementTask", () =>
     ).rejects.toThrow(/not found/);
   });
 
-  test("rejects when no GitHub-App-connected repository exists", async () => {
+  test("rejects when no connected repository exists", async () => {
     mockService();
     jest
       .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
@@ -130,7 +130,7 @@ describe("TelemetryImprovementTaskTrigger.createTelemetryImprovementTask", () =>
         taskType: CodeFixTaskType.ImproveLogging,
         userId,
       }),
-    ).rejects.toThrow(/GitHub-App-connected repository/);
+    ).rejects.toThrow(/^No connected repository exists for this project/);
   });
 
   test("per-(service, recipe) dedupe: an active run for the service blocks a second one", async () => {

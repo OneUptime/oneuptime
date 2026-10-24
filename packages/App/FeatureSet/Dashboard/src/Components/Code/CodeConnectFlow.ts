@@ -42,6 +42,23 @@ export const CODE_CONNECT_FORM_ERRORS: {
   ),
 };
 
+/*
+ * What a server's address is refused with before anything is sent
+ * (CodeHostUrl.normalizeHostUrl's own sentences), as keys, so the dialog
+ * says them in the reader's language. A test holds them to the rules' own
+ * words.
+ */
+export const CODE_HOST_URL_REFUSALS: Array<string> = [
+  translationKey("That address is too long."),
+  translationKey(
+    "That is not a web address. Enter it as https://git.example.com.",
+  ),
+  translationKey(
+    "Leave the username and password out of the address. The access token goes in its own field.",
+  ),
+  translationKey("Use the server's https address."),
+];
+
 // A host whose repositories connect with an access token.
 export const isTokenProvider: (provider: CodeRepositoryType) => boolean = (
   provider: CodeRepositoryType,

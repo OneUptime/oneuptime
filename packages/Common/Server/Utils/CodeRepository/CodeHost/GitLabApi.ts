@@ -431,7 +431,8 @@ export default class GitLabApi {
     containing: string;
   }): Promise<boolean> {
     const answer: CodeHostApiAnswer = await this.client.getJson(
-      `${GitLabApi.projectPath(data.project)}/repository/compare?from=${encodeURIComponent(data.containing)}&to=${encodeURIComponent(data.commit)}`,
+      `${GitLabApi.projectPath(data.project)}/repository/compare`,
+      { from: data.containing, to: data.commit },
     );
 
     const compare: JSONObject = GitLabApi.asObject(

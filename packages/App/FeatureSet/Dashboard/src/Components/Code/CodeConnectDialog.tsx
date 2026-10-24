@@ -839,10 +839,16 @@ const CodeConnectDialog: FunctionComponent<ComponentProps> = (
     step === CodeConnectStep.Token
       ? translator.translateText(CODE_CONNECT_COPY.continueButton)
       : step === CodeConnectStep.Pick
-        ? translator.translatePlural(
-            CODE_CONNECT_COPY.connectRepositories,
-            selected.length,
-          )
+        ? /*
+           * How many it connects, once any is picked - not "Connect 0
+           * repositories" on a button that cannot be pressed yet.
+           */
+          selected.length === 0
+          ? translator.translateText(CODE_CONNECT_COPY.dialogTitle)
+          : translator.translatePlural(
+              CODE_CONNECT_COPY.connectRepositories,
+              selected.length,
+            )
         : step === CodeConnectStep.Git
           ? translator.translateText(
               confirmation !== null

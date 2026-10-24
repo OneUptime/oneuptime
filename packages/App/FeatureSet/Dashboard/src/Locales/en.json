@@ -33747,5 +33747,12 @@
   "Where is your code?": "Where is your code?",
   "{{count}} repositories connected": "{{count}} repositories connected",
   "{{count}} repositories connected_one": "{{count}} repository connected",
-  "{{host}} refused the access token: it may have expired or been revoked. Replace it to connect the repository again.": "{{host}} refused the access token: it may have expired or been revoked. Replace it to connect the repository again."
+  "{{host}} refused the access token: it may have expired or been revoked. Replace it to connect the repository again.": "{{host}} refused the access token: it may have expired or been revoked. Replace it to connect the repository again.",
+  "Leave the username and password out of the address. The access token goes in its own field.": "Leave the username and password out of the address. The access token goes in its own field.",
+  "That address is too long.": "That address is too long.",
+  "That is not a web address. Enter it as https://git.example.com.": "That is not a web address. Enter it as https://git.example.com.",
+  "Use the server's https address.": "Use the server's https address.",
+  "Needs a repository connected in Code.": "Needs a repository connected in Code.",
+  "{{count}} open merge requests": "{{count}} open merge requests",
+  "{{count}} open merge requests_one": "{{count}} open merge request"
 }

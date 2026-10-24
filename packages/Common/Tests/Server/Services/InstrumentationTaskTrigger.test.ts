@@ -286,7 +286,7 @@ describe("InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask", () => {
     expect(decision.reason).toMatch(/exactly one/);
   });
 
-  test("does not enqueue without a GitHub-App-connected repository the rules allow", () => {
+  test("does not enqueue without a connected repository the rules allow", () => {
     const decision: GateDecision =
       InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
         project: fakeProject(),

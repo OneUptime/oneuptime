@@ -2238,7 +2238,7 @@ describe("performance fix with AI", () => {
         400,
         {
           message:
-            "No GitHub-App-connected repository exists for this project, so the agent has nowhere to open the performance-fix pull request. Connect one in Code.",
+            "No connected repository exists for this project, so the agent has nowhere to open the performance-fix pull request. Connect one in Code.",
         },
         {},
       );
@@ -2251,7 +2251,7 @@ describe("performance fix with AI", () => {
     expect(
       await within(strip).findByTestId("trace-fix-performance-error"),
     ).toHaveTextContent(
-      "Could not start the fix: No GitHub-App-connected repository exists for this project",
+      "Could not start the fix: No connected repository exists for this project",
     );
     expect(
       within(strip).getByTestId("trace-fix-performance"),
@@ -2304,7 +2304,7 @@ describe("performance fix with AI", () => {
           400,
           {
             message:
-              "No GitHub-App-connected repository exists for this project, so the agent has nowhere to open the performance-fix pull request. Connect one in Code.",
+              "No connected repository exists for this project, so the agent has nowhere to open the performance-fix pull request. Connect one in Code.",
           },
           {},
         );

@@ -33747,5 +33747,12 @@
   "Where is your code?": "코드는 어디에 있나요?",
   "{{count}} repositories connected": "저장소 {{count}}개가 연결됨",
   "{{count}} repositories connected_one": "저장소 {{count}}개가 연결됨",
-  "{{host}} refused the access token: it may have expired or been revoked. Replace it to connect the repository again.": "{{host}}이(가) 접근 토큰을 거부했습니다. 만료되었거나 취소되었을 수 있습니다. 저장소를 다시 연결하려면 교체하세요."
+  "{{host}} refused the access token: it may have expired or been revoked. Replace it to connect the repository again.": "{{host}}이(가) 접근 토큰을 거부했습니다. 만료되었거나 취소되었을 수 있습니다. 저장소를 다시 연결하려면 교체하세요.",
+  "Leave the username and password out of the address. The access token goes in its own field.": "주소에서 사용자 이름과 비밀번호를 빼세요. 접근 토큰은 전용 필드에 입력합니다.",
+  "That address is too long.": "주소가 너무 깁니다.",
+  "That is not a web address. Enter it as https://git.example.com.": "웹 주소가 아닙니다. https://git.example.com 형식으로 입력하세요.",
+  "Use the server's https address.": "서버의 https 주소를 사용하세요.",
+  "Needs a repository connected in Code.": "Code에서 연결된 저장소가 필요합니다.",
+  "{{count}} open merge requests": "열린 머지 리퀘스트 {{count}}개",
+  "{{count}} open merge requests_one": "열린 머지 리퀘스트 {{count}}개"
 }

@@ -33747,5 +33747,12 @@
   "Where is your code?": "आपका कोड कहाँ है?",
   "{{count}} repositories connected": "{{count}} रिपॉजिटरी जुड़ गईं",
   "{{count}} repositories connected_one": "{{count}} रिपॉजिटरी जुड़ गई",
-  "{{host}} refused the access token: it may have expired or been revoked. Replace it to connect the repository again.": "{{host}} ने एक्सेस टोकन अस्वीकार कर दिया: हो सकता है इसकी अवधि खत्म हो गई हो या इसे रद्द कर दिया गया हो। रिपॉजिटरी को फिर से जोड़ने के लिए इसे बदलें।"
+  "{{host}} refused the access token: it may have expired or been revoked. Replace it to connect the repository again.": "{{host}} ने एक्सेस टोकन अस्वीकार कर दिया: हो सकता है इसकी अवधि खत्म हो गई हो या इसे रद्द कर दिया गया हो। रिपॉजिटरी को फिर से जोड़ने के लिए इसे बदलें।",
+  "Leave the username and password out of the address. The access token goes in its own field.": "पते में उपयोगकर्ता नाम और पासवर्ड न डालें। एक्सेस टोकन अपने अलग फ़ील्ड में जाता है।",
+  "That address is too long.": "यह पता बहुत लंबा है।",
+  "That is not a web address. Enter it as https://git.example.com.": "यह वेब पता नहीं है। इसे https://git.example.com के रूप में दर्ज करें।",
+  "Use the server's https address.": "सर्वर का https पता उपयोग करें।",
+  "Needs a repository connected in Code.": "Code में जुड़ी एक रिपॉजिटरी चाहिए।",
+  "{{count}} open merge requests": "{{count}} खुले मर्ज रिक्वेस्ट",
+  "{{count}} open merge requests_one": "{{count}} खुला मर्ज रिक्वेस्ट"
 }

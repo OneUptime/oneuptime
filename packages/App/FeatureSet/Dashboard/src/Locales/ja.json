@@ -33747,5 +33747,12 @@
   "Where is your code?": "コードはどこにありますか？",
   "{{count}} repositories connected": "{{count}} 件のリポジトリを接続しました",
   "{{count}} repositories connected_one": "{{count}} 件のリポジトリを接続しました",
-  "{{host}} refused the access token: it may have expired or been revoked. Replace it to connect the repository again.": "{{host}} がアクセストークンを拒否しました。期限切れか取り消された可能性があります。リポジトリを再接続するには置き換えてください。"
+  "{{host}} refused the access token: it may have expired or been revoked. Replace it to connect the repository again.": "{{host}} がアクセストークンを拒否しました。期限切れか取り消された可能性があります。リポジトリを再接続するには置き換えてください。",
+  "Leave the username and password out of the address. The access token goes in its own field.": "ユーザー名とパスワードはアドレスに含めないでください。アクセストークンは専用の欄に入力します。",
+  "That address is too long.": "そのアドレスは長すぎます。",
+  "That is not a web address. Enter it as https://git.example.com.": "それは Web アドレスではありません。https://git.example.com の形式で入力してください。",
+  "Use the server's https address.": "サーバーの https アドレスを使用してください。",
+  "Needs a repository connected in Code.": "Code で接続されたリポジトリが必要です。",
+  "{{count}} open merge requests": "オープンなマージリクエスト {{count}} 件",
+  "{{count}} open merge requests_one": "オープンなマージリクエスト {{count}} 件"
 }

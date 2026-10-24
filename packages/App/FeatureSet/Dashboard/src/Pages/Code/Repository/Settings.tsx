@@ -202,6 +202,13 @@ const CodeRepositorySettings: FunctionComponent<
   // The settings the repository has, on its host, in the page's order.
   const repositorySettings: Array<CodeRepositorySetting> =
     getRepositorySettingsFor(provider);
+  /*
+   * Where AI's work goes: pull requests it opens - or, on a Git server, a
+   * branch it pushes, so the card asks only the branch it starts from.
+   */
+  const opensPullRequestsHere: boolean = !repositorySettings.includes(
+    CodeRepositorySetting.Branches,
+  );
 
   const rememberSettings: (item: CodeRepository) => void = (
     item: CodeRepository,
@@ -468,226 +475,196 @@ const CodeRepositorySettings: FunctionComponent<
         />
 
         {/*
-         * A Git repository's branches: AI pushes a branch there and opens no
-         * pull request, so the card asks only where it starts from.
+         * Pull Requests: the branch AI starts from and how many fix pull
+         * requests may be open at once. A Git repository's is Branches: AI
+         * pushes a branch there and opens no pull request, so it asks only
+         * where the work starts from. One card either way - the main branch
+         * is edited in one place.
          */}
-        {repositorySettings.includes(CodeRepositorySetting.Branches) ? (
-          <CardModelDetail<CodeRepository>
-            name="Repository > Branches"
-            cardProps={{
-              title: CODE_REPOSITORY_SETTINGS_COPY.branchesCardTitle,
+        <CardModelDetail<CodeRepository>
+          name={
+            opensPullRequestsHere
+              ? "Repository > Pull Requests"
+              : "Repository > Branches"
+          }
+          cardProps={{
+            title: opensPullRequestsHere
+              ? CODE_REPOSITORY_SETTINGS_COPY.pullRequestsCardTitle
+              : CODE_REPOSITORY_SETTINGS_COPY.branchesCardTitle,
+            description: opensPullRequestsHere
+              ? CODE_REPOSITORY_SETTINGS_COPY.pullRequestsCardDescription
+              : CODE_REPOSITORY_SETTINGS_COPY.branchesCardDescription,
+            id: opensPullRequestsHere
+              ? CodeRepositorySetting.PullRequests
+              : CodeRepositorySetting.Branches,
+          }}
+          isEditable={true}
+          editButtonText="Edit"
+          editModalTitle={
+            opensPullRequestsHere
+              ? CODE_REPOSITORY_SETTINGS_COPY.pullRequestsCardTitle
+              : CODE_REPOSITORY_SETTINGS_COPY.branchesCardTitle
+          }
+          formFields={[
+            {
+              field: {
+                mainBranchName: true,
+              },
+              title: CODE_REPOSITORY_SETTINGS_COPY.mainBranchTitle,
               description:
-                CODE_REPOSITORY_SETTINGS_COPY.branchesCardDescription,
-              id: CodeRepositorySetting.Branches,
-            }}
-            isEditable={true}
-            editButtonText="Edit"
-            editModalTitle={CODE_REPOSITORY_SETTINGS_COPY.branchesCardTitle}
-            formFields={[
-              {
-                field: {
-                  mainBranchName: true,
-                },
-                title: CODE_REPOSITORY_SETTINGS_COPY.mainBranchTitle,
-                description:
-                  CODE_REPOSITORY_SETTINGS_COPY.mainBranchFormDescription,
-                fieldType: FormFieldSchemaType.Text,
-                required: true,
-                placeholder: "main",
-              },
-            ]}
-            modelDetailProps={{
-              modelType: CodeRepository,
-              id: "model-detail-code-repository-branches",
-              selectMoreFields: {
-                gitHubTriggerLabel: true,
-                setupCommand: true,
-                buildCommand: true,
-                testCommand: true,
-              },
-              onItemLoaded: rememberSettings,
-              fields: [
-                {
-                  field: {
-                    mainBranchName: true,
-                  },
-                  title: CODE_REPOSITORY_SETTINGS_COPY.mainBranchTitle,
-                  description:
-                    CODE_REPOSITORY_SETTINGS_COPY.mainBranchDetailDescription,
-                  fieldType: FieldType.Text,
-                },
-              ],
-              modelId: modelId,
-            }}
-          />
-        ) : (
-          <></>
-        )}
-
-        {repositorySettings.includes(CodeRepositorySetting.PullRequests) ? (
-          <CardModelDetail<CodeRepository>
-            name="Repository > Pull Requests"
-            cardProps={{
-              title: CODE_REPOSITORY_SETTINGS_COPY.pullRequestsCardTitle,
-              description:
-                CODE_REPOSITORY_SETTINGS_COPY.pullRequestsCardDescription,
-              id: CodeRepositorySetting.PullRequests,
-            }}
-            isEditable={true}
-            editButtonText="Edit"
-            editModalTitle={CODE_REPOSITORY_SETTINGS_COPY.pullRequestsCardTitle}
-            formFields={[
-              {
-                field: {
-                  mainBranchName: true,
-                },
-                title: CODE_REPOSITORY_SETTINGS_COPY.mainBranchTitle,
-                description:
-                  CODE_REPOSITORY_SETTINGS_COPY.mainBranchFormDescription,
-                fieldType: FormFieldSchemaType.Text,
-                required: true,
-                placeholder: "main",
-              },
-              /*
-               * One choice - no limit, a limit or none (FixPullRequestLimit) -
-               * where a number's help explained "Leave empty for no cap, or 0
-               * to block them". Form-only: a pick writes the column below,
-               * which is asked only for a limit.
-               */
-              {
-                overrideField: {
-                  maxOpenFixPullRequests: true,
-                },
-                overrideFieldKey: FIX_PULL_REQUEST_LIMIT_FIELD_KEY,
-                formOnly: true,
-                title: FIX_PULL_REQUEST_LIMIT_FIELD_TITLE,
-                fieldType: FormFieldSchemaType.RadioButton,
-                radioButtonOptions: FIX_PULL_REQUEST_LIMIT_ANSWERS.map(
-                  (limit: FixPullRequestLimit) => {
-                    return {
-                      value: limit,
-                      title: FIX_PULL_REQUEST_LIMIT_COPY[limit].title,
-                      description:
-                        FIX_PULL_REQUEST_LIMIT_COPY[limit].description,
-                    };
-                  },
-                ),
-                required: true,
-                hideColumnDescription: true,
-                dataTestId: "fix-pull-request-limit",
-                getDefaultValue: (
-                  values: FormValues<CodeRepository>,
-                ): string => {
-                  return getFixPullRequestLimit(values);
-                },
-                onChange: (
-                  value: unknown,
-                  currentValues: FormValues<CodeRepository>,
-                  setNewFormValues: (
-                    values: FormValues<CodeRepository>,
-                  ) => void,
-                ): void => {
-                  if (
-                    !(
-                      Object.values(FixPullRequestLimit) as Array<unknown>
-                    ).includes(value)
-                  ) {
-                    return;
-                  }
-
-                  setNewFormValues(
-                    getValuesForFixPullRequestLimit({
-                      values: currentValues,
-                      limit: value as FixPullRequestLimit,
-                    }),
-                  );
-                },
-              } as ModelField<CodeRepository>,
-              {
-                field: {
-                  maxOpenFixPullRequests: true,
-                },
-                title: "Max Open Fix Pull Requests",
-                description: "How many may be open at once.",
-                fieldType: FormFieldSchemaType.Number,
-                showIf: (values: FormValues<CodeRepository>): boolean => {
-                  return (
-                    getPickedFixPullRequestLimit(values) ===
-                    FixPullRequestLimit.Limit
-                  );
-                },
-                required: (values: FormValues<CodeRepository>): boolean => {
-                  return (
-                    getPickedFixPullRequestLimit(values) ===
-                    FixPullRequestLimit.Limit
-                  );
-                },
-                validation: {
-                  minValue: 1,
-                },
-                placeholder: "3",
-              },
-            ]}
-            modelDetailProps={{
-              modelType: CodeRepository,
-              id: "model-detail-code-repository-pull-requests",
-              selectMoreFields: {
-                gitHubTriggerLabel: true,
-                setupCommand: true,
-                buildCommand: true,
-                testCommand: true,
-              },
-              onItemLoaded: rememberSettings,
-              fields: [
-                {
-                  field: {
-                    mainBranchName: true,
-                  },
-                  title: CODE_REPOSITORY_SETTINGS_COPY.mainBranchTitle,
-                  description:
-                    CODE_REPOSITORY_SETTINGS_COPY.mainBranchDetailDescription,
-                  fieldType: FieldType.Text,
-                },
-                {
-                  field: {
-                    maxOpenFixPullRequests: true,
-                  },
+                CODE_REPOSITORY_SETTINGS_COPY.mainBranchFormDescription,
+              fieldType: FormFieldSchemaType.Text,
+              required: true,
+              placeholder: "main",
+            },
+            ...(opensPullRequestsHere
+              ? [
                   /*
-                   * Named as the Edit form's choice is, and shown as its
-                   * answer: No limit, Up to 3 open at once, or None.
+                   * One choice - no limit, a limit or none
+                   * (FixPullRequestLimit) - where a number's help explained
+                   * "Leave empty for no cap, or 0 to block them". Form-only:
+                   * a pick writes the column below, which is asked only for
+                   * a limit.
                    */
-                  title: FIX_PULL_REQUEST_LIMIT_FIELD_TITLE,
-                  description: FIX_PULL_REQUEST_LIMIT_CARD_DESCRIPTION,
-                  fieldType: FieldType.Element,
-                  getElement: (item: CodeRepository): ReactElement => {
-                    const limit: FixPullRequestLimit =
-                      getFixPullRequestLimit(item);
+                  {
+                    overrideField: {
+                      maxOpenFixPullRequests: true,
+                    },
+                    overrideFieldKey: FIX_PULL_REQUEST_LIMIT_FIELD_KEY,
+                    formOnly: true,
+                    title: FIX_PULL_REQUEST_LIMIT_FIELD_TITLE,
+                    fieldType: FormFieldSchemaType.RadioButton,
+                    radioButtonOptions: FIX_PULL_REQUEST_LIMIT_ANSWERS.map(
+                      (limit: FixPullRequestLimit) => {
+                        return {
+                          value: limit,
+                          title: FIX_PULL_REQUEST_LIMIT_COPY[limit].title,
+                          description:
+                            FIX_PULL_REQUEST_LIMIT_COPY[limit].description,
+                        };
+                      },
+                    ),
+                    required: true,
+                    hideColumnDescription: true,
+                    dataTestId: "fix-pull-request-limit",
+                    getDefaultValue: (
+                      values: FormValues<CodeRepository>,
+                    ): string => {
+                      return getFixPullRequestLimit(values);
+                    },
+                    onChange: (
+                      value: unknown,
+                      currentValues: FormValues<CodeRepository>,
+                      setNewFormValues: (
+                        values: FormValues<CodeRepository>,
+                      ) => void,
+                    ): void => {
+                      if (
+                        !(
+                          Object.values(FixPullRequestLimit) as Array<unknown>
+                        ).includes(value)
+                      ) {
+                        return;
+                      }
 
-                    return (
-                      <span>
-                        {limit === FixPullRequestLimit.Limit
-                          ? translator.translateTemplate(
-                              FIX_PULL_REQUEST_LIMIT_SHOWN_COUNT,
-                              {
-                                limit: translator.formatNumber(
-                                  Number(item.maxOpenFixPullRequests),
-                                ),
-                              },
-                            )
-                          : translator.translateText(
-                              FIX_PULL_REQUEST_LIMIT_SHOWN[limit],
-                            )}
-                      </span>
-                    );
+                      setNewFormValues(
+                        getValuesForFixPullRequestLimit({
+                          values: currentValues,
+                          limit: value as FixPullRequestLimit,
+                        }),
+                      );
+                    },
+                  } as ModelField<CodeRepository>,
+                  {
+                    field: {
+                      maxOpenFixPullRequests: true,
+                    },
+                    title: "Max Open Fix Pull Requests",
+                    description: "How many may be open at once.",
+                    fieldType: FormFieldSchemaType.Number,
+                    showIf: (values: FormValues<CodeRepository>): boolean => {
+                      return (
+                        getPickedFixPullRequestLimit(values) ===
+                        FixPullRequestLimit.Limit
+                      );
+                    },
+                    required: (values: FormValues<CodeRepository>): boolean => {
+                      return (
+                        getPickedFixPullRequestLimit(values) ===
+                        FixPullRequestLimit.Limit
+                      );
+                    },
+                    validation: {
+                      minValue: 1,
+                    },
+                    placeholder: "3",
                   },
+                ]
+              : []),
+          ]}
+          modelDetailProps={{
+            modelType: CodeRepository,
+            id: opensPullRequestsHere
+              ? "model-detail-code-repository-pull-requests"
+              : "model-detail-code-repository-branches",
+            selectMoreFields: {
+              gitHubTriggerLabel: true,
+              setupCommand: true,
+              buildCommand: true,
+              testCommand: true,
+            },
+            onItemLoaded: rememberSettings,
+            fields: [
+              {
+                field: {
+                  mainBranchName: true,
                 },
-              ],
-              modelId: modelId,
-            }}
-          />
-        ) : (
-          <></>
-        )}
+                title: CODE_REPOSITORY_SETTINGS_COPY.mainBranchTitle,
+                description:
+                  CODE_REPOSITORY_SETTINGS_COPY.mainBranchDetailDescription,
+                fieldType: FieldType.Text,
+              },
+              ...(opensPullRequestsHere
+                ? [
+                    {
+                      field: {
+                        maxOpenFixPullRequests: true,
+                      },
+                      /*
+                       * Named as the Edit form's choice is, and shown as its
+                       * answer: No limit, Up to 3 open at once, or None.
+                       */
+                      title: FIX_PULL_REQUEST_LIMIT_FIELD_TITLE,
+                      description: FIX_PULL_REQUEST_LIMIT_CARD_DESCRIPTION,
+                      fieldType: FieldType.Element,
+                      getElement: (item: CodeRepository): ReactElement => {
+                        const limit: FixPullRequestLimit =
+                          getFixPullRequestLimit(item);
+
+                        return (
+                          <span>
+                            {limit === FixPullRequestLimit.Limit
+                              ? translator.translateTemplate(
+                                  FIX_PULL_REQUEST_LIMIT_SHOWN_COUNT,
+                                  {
+                                    limit: translator.formatNumber(
+                                      Number(item.maxOpenFixPullRequests),
+                                    ),
+                                  },
+                                )
+                              : translator.translateText(
+                                  FIX_PULL_REQUEST_LIMIT_SHOWN[limit],
+                                )}
+                          </span>
+                        );
+                      },
+                    },
+                  ]
+                : []),
+            ],
+            modelId: modelId,
+          }}
+        />
 
         {repositorySettings.includes(CodeRepositorySetting.TriggerLabel) ? (
           <CardModelDetail<CodeRepository>

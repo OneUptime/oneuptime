@@ -238,10 +238,12 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace", () => {
     },
   );
 
-  test("no GitHub-App repository → reject, nothing enqueued", async () => {
+  test("no connected repository, on any host → reject, nothing enqueued", async () => {
     jest
       .spyOn(CodeRepositoryService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
+    // No repository connected through GitLab, Forgejo, Gitea or Git either.
+    jest.spyOn(CodeRepositoryService, "findBy").mockResolvedValue([]);
     const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
 
     await expect(
@@ -251,7 +253,7 @@ describe("FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace", () => {
         spans: spansWithNPlusOne(),
         userId,
       }),
-    ).rejects.toThrow(/GitHub/);
+    ).rejects.toThrow(/^No connected repository exists for this project/);
 
     expect(create).not.toHaveBeenCalled();
   });

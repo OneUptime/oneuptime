@@ -144,7 +144,7 @@ export default class TelemetryImprovementTaskTrigger {
 
     if (!hasConnectedRepository) {
       throw new BadDataException(
-        "No GitHub-App-connected repository exists for this project, so the agent has nowhere to open the pull request. Connect one in Code.",
+        "No connected repository exists for this project, so the agent has nowhere to open the pull request. Connect one in Code.",
       );
     }
 

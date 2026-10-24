@@ -211,9 +211,7 @@ async function assertMayChangeRepository(data: {
  * Forgejo, Gitea) is changed by asking in Code, where AI works in it on a
  * Runner and opens the pull or merge request - said so, plainly.
  */
-export function assertChatWritesToRepository(
-  repository: CodeRepository,
-): void {
+export function assertChatWritesToRepository(repository: CodeRepository): void {
   const type: CodeRepositoryType = CodeHost.readType(
     repository.repositoryHostedAt,
   );

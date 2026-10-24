@@ -2013,3 +2013,145 @@ describe("Production Review Comment: what a review posts on a pull request", () 
     });
   });
 });
+
+/*
+ * A repository on GitLab, Forgejo, Gitea or a Git server: Repository
+ * Details says how it connects - its server, account and token's last
+ * characters, never the GitHub App - and More settings holds only what its
+ * host has. GitHub commands, the trigger label and production reviews are
+ * GitHub's; a Git repository, which gets a pushed branch and no pull
+ * request, has Branches where the others have Pull Requests.
+ */
+describe("a repository off GitHub: only what its host has", () => {
+  const CONNECTION_ID: string = "ffffffff-0000-4000-8000-0000000000c7";
+
+  function hostedOn(provider: string): void {
+    getJestSpyOn(CodeApi, "getRepository").mockImplementation(
+      async (repositoryId: string): Promise<CodeRepositoryResponse> => {
+        getRepositoryCalls.push(repositoryId);
+
+        return {
+          repository: {
+            id: repositoryId,
+            name: "checkout-api",
+            isConnected: true,
+            provider,
+            connection: {
+              id: CONNECTION_ID,
+              hostUrl: "https://git.example.com",
+              accountLogin: "alice",
+              credentialHint: "ab12",
+              isTokenRefused: false,
+              isReachableFromServer: true,
+            },
+          },
+          stats: {
+            working: 0,
+            waitingForYou: 0,
+            openPullRequests: 0,
+            taskCount: 0,
+          },
+          canAsk: true,
+          blocker: null,
+        };
+      },
+    );
+  }
+
+  // The page has read where the repository is hosted, and drawn for it.
+  async function hostRead(): Promise<void> {
+    await waitFor(() => {
+      expect(document.getElementById("github-commands")).toBeNull();
+    });
+  }
+
+  function connectionField(): DetailField {
+    return (
+      card("Repository > Repository Details")["modelDetailProps"] as {
+        fields: Array<DetailField>;
+      }
+    ).fields.find((field: DetailField): boolean => {
+      return field.title === "Connection";
+    })!;
+  }
+
+  test("GitLab: the Runner and Pull Requests, and nothing of GitHub's", async () => {
+    hostedOn("GitLab");
+    draw();
+    await hostRead();
+
+    for (const gone of [
+      "github-commands",
+      "production-review",
+      "trigger-label",
+      "production-review-comment",
+      "branches",
+    ]) {
+      expect(document.getElementById(gone)).toBeNull();
+    }
+
+    for (const kept of ["runner", "pull-requests"]) {
+      expect(folded()).toContainElement(document.getElementById(kept));
+    }
+
+    expect(
+      screen.queryByRole("switch", { name: "Respond to GitHub Commands" }),
+    ).toBeNull();
+    expect(foldedNames()).toEqual(["Runner", "Pull Requests"]);
+
+    openMoreSettings();
+    expect(folded()).toHaveTextContent(
+      "Where AI works, and where its pull requests open.",
+    );
+  });
+
+  test("GitLab: Repository Details says its server, account and token's last characters", async () => {
+    hostedOn("GitLab");
+    draw();
+    await hostRead();
+
+    render(connectionField().getElement!(new CodeRepository()));
+
+    const block: HTMLElement = screen.getByTestId("code-repository-connection");
+
+    expect(block).toHaveAttribute("data-provider", "GitLab");
+    expect(block).toHaveTextContent("git.example.com");
+    expect(block).toHaveTextContent("Signed in as alice");
+    expect(block).toHaveTextContent("Access token ending in …ab12");
+    expect(block).not.toHaveTextContent("GitHub App");
+  });
+
+  test("a Git repository: Branches where the others have Pull Requests", async () => {
+    hostedOn("Git");
+    draw();
+    await hostRead();
+
+    expect(document.getElementById("pull-requests")).toBeNull();
+    expect(folded()).toContainElement(document.getElementById("branches"));
+    expect(foldedNames()).toEqual(["Runner", "Branches"]);
+
+    // Its card asks only the branch AI starts from.
+    expect(
+      (card("Repository > Branches")["formFields"] as Array<FormField>).map(
+        (field: FormField): Array<string> => {
+          return columnsOf(field);
+        },
+      ),
+    ).toEqual([["mainBranchName"]]);
+
+    openMoreSettings();
+    expect(folded()).toHaveTextContent(
+      "Where AI works, and the branch it starts from.",
+    );
+  });
+
+  test("Forgejo or Gitea: the same as GitLab - Pull Requests, no GitHub switches", async () => {
+    hostedOn("Forgejo");
+    draw();
+    await hostRead();
+
+    expect(document.getElementById("production-review")).toBeNull();
+    expect(folded()).toContainElement(document.getElementById("pull-requests"));
+    expect(foldedNames()).toEqual(["Runner", "Pull Requests"]);
+  });
+});

@@ -364,7 +364,7 @@ describe("FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask", () => {
     expect(decision.reason).toMatch(/exactly one/);
   });
 
-  test("does not enqueue without a GitHub-App-connected repository the rules allow", () => {
+  test("does not enqueue without a connected repository the rules allow", () => {
     const decision: AutoFixTaskGateDecision =
       FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask({
         project: fakeProject(),
@@ -376,7 +376,7 @@ describe("FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask", () => {
 
     expect(decision.enqueue).toBe(false);
     expect(decision.reason).toBe(
-      "project has no GitHub-App-connected repository the auto remediation rules allow",
+      "project has no connected repository the auto remediation rules allow",
     );
   });
 

@@ -321,10 +321,7 @@ export default class CodeHostApiClient {
     }
 
     const base: string = this.options.apiBaseUrl.endsWith("/")
-      ? this.options.apiBaseUrl.substring(
-          0,
-          this.options.apiBaseUrl.length - 1,
-        )
+      ? this.options.apiBaseUrl.substring(0, this.options.apiBaseUrl.length - 1)
       : this.options.apiBaseUrl;
 
     const url: URL = new URL(`${base}${path}`);

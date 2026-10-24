@@ -69,6 +69,10 @@ import {
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType";
+import {
+  CodeHostConnectionState,
+  CodeHostConnectionSummary,
+} from "../../../Server/Utils/CodeRepository/CodeHost/CodeHostAccess";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
@@ -1470,6 +1474,8 @@ describe("the repositories, at a glance", () => {
           repositoryName: "users-api",
           mainBranchName: "main",
           isConnected: true,
+          // Where it is hosted, so each row draws its host's mark.
+          provider: "GitHub",
           stats: {
             working: 1,
             waitingForYou: 2,
@@ -1496,30 +1502,45 @@ describe("the repositories, at a glance", () => {
    * repository connected before the setting existed has it, is off, as the
    * server reads it.
    */
+  // A GitHub repository its project's GitHub App reaches.
+  const CONNECTED_ON_GITHUB: CodeHostConnectionSummary = {
+    connectionId: null,
+    provider: CodeRepositoryType.GitHub,
+    hostUrl: null,
+    hostProduct: null,
+    accountLogin: null,
+    credentialHint: null,
+    state: CodeHostConnectionState.Connected,
+    isReachableFromServer: true,
+  };
+
   test("says whether production review is on: on only when it was turned on", async () => {
     const CodeTaskAPI: typeof import("../../../Server/API/CodeTaskAPI").default =
       (await import("../../../Server/API/CodeTaskAPI")).default;
     const value: CodeRepository = repository();
 
-    expect(CodeTaskAPI.toRepositoryJSON(value, true)).not.toHaveProperty(
-      "isProductionReviewEnabled",
-    );
+    expect(
+      CodeTaskAPI.toRepositoryJSON(value, CONNECTED_ON_GITHUB),
+    ).not.toHaveProperty("isProductionReviewEnabled");
 
     value.isProductionReviewEnabled = true;
     expect(
-      CodeTaskAPI.toRepositoryJSON(value, true).isProductionReviewEnabled,
+      CodeTaskAPI.toRepositoryJSON(value, CONNECTED_ON_GITHUB)
+        .isProductionReviewEnabled,
     ).toBe(true);
 
     value.isProductionReviewEnabled = false;
     expect(
-      CodeTaskAPI.toRepositoryJSON(value, true).isProductionReviewEnabled,
+      CodeTaskAPI.toRepositoryJSON(value, CONNECTED_ON_GITHUB)
+        .isProductionReviewEnabled,
     ).toBe(false);
 
     (
       value as unknown as { isProductionReviewEnabled: null }
     ).isProductionReviewEnabled = null;
     expect(
-      CodeTaskAPI.toRepositoryJSON(value, true).isProductionReviewEnabled,
+      CodeTaskAPI.toRepositoryJSON(value, CONNECTED_ON_GITHUB)
+        .isProductionReviewEnabled,
     ).toBe(false);
   });
 
@@ -1539,9 +1560,9 @@ describe("the repositories, at a glance", () => {
       ).default;
     const value: CodeRepository = repository();
 
-    expect(CodeTaskAPI.toRepositoryJSON(value, true)).not.toHaveProperty(
-      "isGitHubCommandsEnabled",
-    );
+    expect(
+      CodeTaskAPI.toRepositoryJSON(value, CONNECTED_ON_GITHUB),
+    ).not.toHaveProperty("isGitHubCommandsEnabled");
 
     for (const [stored, shown] of [
       [true, true],
@@ -1553,7 +1574,8 @@ describe("the repositories, at a glance", () => {
       ).isGitHubCommandsEnabled = stored;
 
       expect(
-        CodeTaskAPI.toRepositoryJSON(value, true).isGitHubCommandsEnabled,
+        CodeTaskAPI.toRepositoryJSON(value, CONNECTED_ON_GITHUB)
+          .isGitHubCommandsEnabled,
       ).toBe(shown);
       // As the server answers a command.
       expect(GitHubCommandAuthorizer.areCommandsEnabled(value)).toBe(shown);

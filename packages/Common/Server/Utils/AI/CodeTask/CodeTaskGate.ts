@@ -181,10 +181,7 @@ export default class CodeTaskGate {
       })
     ).get(data.repository.id!.toString());
 
-    if (
-      !connection ||
-      connection.state !== CodeHostConnectionState.Connected
-    ) {
+    if (!connection || connection.state !== CodeHostConnectionState.Connected) {
       return {
         type:
           connection?.state === CodeHostConnectionState.TokenRefused

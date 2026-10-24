@@ -23,7 +23,7 @@ import {
 } from "../../Types/CodeRepository/CodeRepositoryAllowance";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import RunnerService, { Service as RunnerServiceClass } from "./RunnerService";
 import Runner from "../../Models/DatabaseModels/Runner";
 import { resolveReferenceId } from "../Utils/Database/ProjectScopedReferenceRefusal";
@@ -34,7 +34,6 @@ import CodeHostAccess, {
 } from "../Utils/CodeRepository/CodeHost/CodeHostAccess";
 import CodeRepositoryConnectionService from "./CodeRepositoryConnectionService";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnDelete } from "../Types/Database/Hooks";
 
 /*
  * Why a repository may not pick an in-cluster Runner the Kubernetes agent
@@ -651,13 +650,11 @@ export class Service extends ProjectReferencesService<Model> {
       });
     }
 
-    const row: Model | null = await CodeRepositoryServiceInstance.findOneById(
-      {
-        id: new ObjectID(repository.id),
-        select: CODE_HOST_REPOSITORY_SELECT,
-        props: { isRoot: true },
-      },
-    );
+    const row: Model | null = await CodeRepositoryServiceInstance.findOneById({
+      id: new ObjectID(repository.id),
+      select: CODE_HOST_REPOSITORY_SELECT,
+      props: { isRoot: true },
+    });
 
     const reader: CodeHostReader | null = row
       ? await CodeHostAccess.getReaderForRepository(row)

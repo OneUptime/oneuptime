@@ -555,7 +555,7 @@ describe("FixPerformanceTaskTrigger refactor invariance (spans path unchanged)",
         findings: [makeFinding()],
         codeLocations: [],
       }),
-    ).rejects.toThrow(/No GitHub-App-connected repository/);
+    ).rejects.toThrow(/^No connected repository exists for this project/);
   });
 
   test("the findings entry point still enforces the per-trace dedupe gate", async () => {

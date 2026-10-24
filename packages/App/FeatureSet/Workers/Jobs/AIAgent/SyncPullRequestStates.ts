@@ -425,8 +425,7 @@ RunCron(
     const taskTypeByRunId: Map<string, CodeFixTaskType> = new Map();
 
     // A reader per repository on another host, for the sweep.
-    const readerByRepositoryId: Map<string, CodeHostReader | null> =
-      new Map();
+    const readerByRepositoryId: Map<string, CodeHostReader | null> = new Map();
 
     for (const pullRequest of openPullRequests) {
       /*

@@ -59,6 +59,12 @@ const MAX_TREE_PAGES: number = 100;
 // At most this many pages of branches are searched by a prefix.
 const MAX_BRANCH_PAGES: number = 6;
 
+/*
+ * At most this many pages of a commit's history are read to find a fix in
+ * it, where the server cannot compare commits: 500 commits.
+ */
+const MAX_HISTORY_PAGES: number = 10;
+
 // What a commit status's state counts as.
 const PENDING_STATES: Array<string> = ["pending"];
 const FAILED_STATES: Array<string> = ["error", "failure"];
@@ -484,9 +490,27 @@ export default class ForgejoApi {
     commit: string;
     containing: string;
   }): Promise<boolean> {
-    const answer: CodeHostApiAnswer = await this.client.getJson(
-      `${ForgejoApi.repositoryPath(data.owner, data.name)}/compare/${CodeHostUrl.encodePath(data.containing)}...${CodeHostUrl.encodePath(data.commit)}`,
-    );
+    let answer: CodeHostApiAnswer;
+
+    try {
+      answer = await this.client.getJson(
+        `${ForgejoApi.repositoryPath(data.owner, data.name)}/compare/${CodeHostUrl.encodePath(data.containing)}...${CodeHostUrl.encodePath(data.commit)}`,
+      );
+    } catch (error) {
+      /*
+       * Gitea before 1.23 compares branches and tags only, and answers a
+       * commit with BaseNotExist: walk the containing commit's history
+       * instead, as far as a deploy's fix sits in it.
+       */
+      if (
+        error instanceof CodeHostHttpError &&
+        error.kind === CodeHostHttpErrorKind.NotFound
+      ) {
+        return await this.historyContains(data);
+      }
+
+      throw error;
+    }
 
     const compare: JSONObject = ForgejoApi.asObject(
       answer.json,
@@ -502,6 +526,56 @@ export default class ForgejoApi {
     }
 
     throw ForgejoApi.badAnswer("how the two commits compare");
+  }
+
+  /*
+   * Whether `commit` is in the history of `containing`, read a page at a
+   * time, newest first, as far as MAX_HISTORY_PAGES pages: a deploy ships
+   * a fix merged days before it, near the top. Past them, not contained -
+   * a deploy that old is no deploy of the fix. A `containing` commit the
+   * repository does not have is a NotFound error.
+   */
+  private async historyContains(data: {
+    owner: string;
+    name: string;
+    commit: string;
+    containing: string;
+  }): Promise<boolean> {
+    const wanted: string = data.commit.trim().toLowerCase();
+
+    for (let page: number = 1; page <= MAX_HISTORY_PAGES; page++) {
+      const answer: CodeHostApiAnswer = await this.client.getJson(
+        `${ForgejoApi.repositoryPath(data.owner, data.name)}/commits`,
+        {
+          sha: data.containing,
+          page,
+          limit: FORGEJO_PAGE_SIZE,
+          stat: false,
+          verification: false,
+          files: false,
+        },
+      );
+
+      const commits: JSONArray = Array.isArray(answer.json)
+        ? (answer.json as JSONArray)
+        : [];
+
+      for (const entry of commits) {
+        const sha: string = CodeHostText.readString(
+          (entry as JSONObject | null)?.["sha"],
+        ).toLowerCase();
+
+        if (sha && wanted && (sha === wanted || sha.startsWith(wanted))) {
+          return true;
+        }
+      }
+
+      if (commits.length < FORGEJO_PAGE_SIZE) {
+        return false;
+      }
+    }
+
+    return false;
   }
 
   /*
