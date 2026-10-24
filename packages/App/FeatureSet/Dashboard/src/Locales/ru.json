@@ -33721,7 +33721,7 @@
   "Not read since {{time}}: the traffic below stops there.": "Не читалось с {{time}}: трафик ниже заканчивается на этом моменте.",
   "Not read yet. Check that OneUptime's Workers are running.": "Ещё не читалось. Проверьте, что Workers OneUptime запущены.",
   "OneUptime could not read the answer to the test.": "OneUptime не удалось прочитать ответ на проверку.",
-  "OneUptime reads the organization's uplink usage, applications and clients through the Meraki dashboard API. Nothing changes in Meraki, and nothing is set up on the devices.": "OneUptime читает использование аплинков, приложения и клиентов организации через API панели Meraki. В Meraki ничего не меняется, а на устройствах ничего не настраивается.",
+  "OneUptime reads uplink usage, applications and clients through the Meraki dashboard API. Nothing changes in Meraki or on the devices.": "OneUptime читает использование аплинков, приложения и клиентов через API панели Meraki. Ни в Meraki, ни на устройствах ничего не меняется.",
   "OneUptime stops reading {{name}}. The traffic it read stays on the Traffic pages until it is 30 days old.": "OneUptime перестанет читать {{name}}. Уже прочитанный трафик останется на страницах Traffic, пока ему не исполнится 30 дней.",
   "Other applications are using the organization's API budget right now. Try again in a minute.": "Сейчас бюджет API организации используют другие приложения. Повторите попытку через минуту.",
   "Read in part": "Прочитано частично",

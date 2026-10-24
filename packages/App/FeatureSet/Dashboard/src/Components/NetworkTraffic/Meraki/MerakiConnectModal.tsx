@@ -267,7 +267,7 @@ const MerakiConnectModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title="Connect Meraki"
-      description="OneUptime reads the organization's uplink usage, applications and clients through the Meraki dashboard API. Nothing changes in Meraki, and nothing is set up on the devices."
+      description="OneUptime reads uplink usage, applications and clients through the Meraki dashboard API. Nothing changes in Meraki or on the devices."
       onClose={props.onClose}
       submitButtonText="Connect"
       onSubmit={footer.onSubmit}
@@ -530,7 +530,7 @@ const MerakiConnectModal: FunctionComponent<ComponentProps> = (
                     value: name.trim() || undefined,
                   },
                   {
-                    key: "interval",
+                    key: "readInterval",
                     title: "Read uplink usage",
                     isSet:
                       interval !==

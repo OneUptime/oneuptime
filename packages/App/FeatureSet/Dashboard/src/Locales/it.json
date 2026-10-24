@@ -33721,7 +33721,7 @@
   "Not read since {{time}}: the traffic below stops there.": "Non letto da {{time}}: il traffico qui sotto si ferma lì.",
   "Not read yet. Check that OneUptime's Workers are running.": "Non ancora letto. Verifica che i Workers di OneUptime siano in esecuzione.",
   "OneUptime could not read the answer to the test.": "OneUptime non è riuscito a leggere la risposta al test.",
-  "OneUptime reads the organization's uplink usage, applications and clients through the Meraki dashboard API. Nothing changes in Meraki, and nothing is set up on the devices.": "OneUptime legge uso degli uplink, applicazioni e client dell'organizzazione tramite l'API della dashboard Meraki. In Meraki non cambia nulla e sui dispositivi non si configura nulla.",
+  "OneUptime reads uplink usage, applications and clients through the Meraki dashboard API. Nothing changes in Meraki or on the devices.": "OneUptime legge uso degli uplink, applicazioni e client tramite l'API della dashboard Meraki. Non cambia nulla in Meraki né sui dispositivi.",
   "OneUptime stops reading {{name}}. The traffic it read stays on the Traffic pages until it is 30 days old.": "OneUptime smette di leggere {{name}}. Il traffico già letto resta nelle pagine Traffic finché non ha 30 giorni.",
   "Other applications are using the organization's API budget right now. Try again in a minute.": "Altre applicazioni stanno usando ora il budget API dell'organizzazione. Riprova tra un minuto.",
   "Read in part": "Letto in parte",

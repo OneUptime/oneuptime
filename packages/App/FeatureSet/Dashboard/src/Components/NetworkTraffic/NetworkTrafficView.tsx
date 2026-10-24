@@ -891,7 +891,7 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
               data-testid={`traffic-source-${option}`}
             >
               {option === TrafficSide.Meraki
-                ? "Meraki"
+                ? translator.translateText("Meraki")
                 : translator.translateText("Flows")}
             </button>
           );

@@ -33721,7 +33721,7 @@
   "Not read since {{time}}: the traffic below stops there.": "自 {{time}} 起未读取：下方流量止于该时刻。",
   "Not read yet. Check that OneUptime's Workers are running.": "尚未读取。请检查 OneUptime 的 Workers 是否在运行。",
   "OneUptime could not read the answer to the test.": "OneUptime 无法读取测试的响应。",
-  "OneUptime reads the organization's uplink usage, applications and clients through the Meraki dashboard API. Nothing changes in Meraki, and nothing is set up on the devices.": "OneUptime 通过 Meraki 控制面板 API 读取组织的上行链路用量、应用和客户端。Meraki 中不会有任何更改，设备上也无需任何设置。",
+  "OneUptime reads uplink usage, applications and clients through the Meraki dashboard API. Nothing changes in Meraki or on the devices.": "OneUptime 通过 Meraki 控制面板 API 读取上行链路用量、应用和客户端。Meraki 和设备上都不会有任何更改。",
   "OneUptime stops reading {{name}}. The traffic it read stays on the Traffic pages until it is 30 days old.": "OneUptime 将停止读取 {{name}}。已读取的流量会保留在 Traffic 页面上，直到满 30 天。",
   "Other applications are using the organization's API budget right now. Try again in a minute.": "其他应用正在使用组织的 API 配额。请一分钟后重试。",
   "Read in part": "部分读取",

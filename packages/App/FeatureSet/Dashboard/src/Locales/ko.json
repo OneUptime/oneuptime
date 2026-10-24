@@ -33721,7 +33721,7 @@
   "Not read since {{time}}: the traffic below stops there.": "{{time}} 이후 읽지 않았습니다: 아래 트래픽은 그 시점에서 멈춥니다.",
   "Not read yet. Check that OneUptime's Workers are running.": "아직 읽지 않았습니다. OneUptime의 Workers가 실행 중인지 확인하세요.",
   "OneUptime could not read the answer to the test.": "OneUptime이 테스트 응답을 읽지 못했습니다.",
-  "OneUptime reads the organization's uplink usage, applications and clients through the Meraki dashboard API. Nothing changes in Meraki, and nothing is set up on the devices.": "OneUptime은 Meraki 대시보드 API로 조직의 업링크 사용량, 애플리케이션, 클라이언트를 읽습니다. Meraki에서 바뀌는 것은 없고, 장치에서 설정할 것도 없습니다.",
+  "OneUptime reads uplink usage, applications and clients through the Meraki dashboard API. Nothing changes in Meraki or on the devices.": "OneUptime은 Meraki 대시보드 API로 업링크 사용량, 애플리케이션, 클라이언트를 읽습니다. Meraki와 장치에서는 아무것도 바뀌지 않습니다.",
   "OneUptime stops reading {{name}}. The traffic it read stays on the Traffic pages until it is 30 days old.": "OneUptime이 {{name}} 읽기를 멈춥니다. 이미 읽은 트래픽은 30일이 될 때까지 Traffic 페이지에 남습니다.",
   "Other applications are using the organization's API budget right now. Try again in a minute.": "지금 다른 애플리케이션이 조직의 API 예산을 쓰고 있습니다. 1분 뒤 다시 시도하세요.",
   "Read in part": "일부 읽음",
