@@ -5,9 +5,13 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import SecurityCaseStatus, {
-  OPEN_SECURITY_CASE_STATUSES,
-} from "Common/Types/SecurityCase/SecurityCaseStatus";
+import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
+import SecurityCaseStage from "Common/Types/SecurityCase/SecurityCaseStage";
+import {
+  TEST_STATUS_IDS,
+  buildDefaultTestStatuses,
+  buildTestStatus,
+} from "Common/Tests/Helpers/SecurityCaseValues";
 import SecurityPlaybookRunStatus from "Common/Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import {
   SECURITY_CASE_QUEUE_VIEWS,
@@ -26,6 +30,18 @@ import {
   SecurityPlaybookRunView,
   getSecurityPlaybookRunView,
 } from "../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunViews";
+
+
+// A new project's case statuses, which open and closed are read off.
+const STATUSES: Array<SecurityCaseStatus> = buildDefaultTestStatuses();
+const OPEN_STATUS_IDS: Array<string> = [
+  TEST_STATUS_IDS[SecurityCaseStage.New],
+  TEST_STATUS_IDS[SecurityCaseStage.Acknowledged],
+  TEST_STATUS_IDS[SecurityCaseStage.Contained],
+];
+// A team's own: Eradicating before Closed, Closed - Duplicate after it.
+const ERADICATING_ID: string = "c2000000-0000-4000-8000-0000000000a2";
+const DUPLICATE_ID: string = "c2000000-0000-4000-8000-0000000000a3";
 
 /*
  * The case queue's pages and the two runs pages, as data: each is a page
@@ -304,22 +320,59 @@ describe("the case queue's pages", () => {
   });
 
   test("offers an open list's Status filter only the open statuses, so it never empties itself", () => {
-    expect(getSecurityCaseQueueStatusOptions("open")).toEqual([
-      ...OPEN_SECURITY_CASE_STATUSES,
+    const optionIds: (view: "open" | "mine" | "unassigned" | "all") => Array<
+      string | undefined
+    > = (
+      view: "open" | "mine" | "unassigned" | "all",
+    ): Array<string | undefined> => {
+      return getSecurityCaseQueueStatusOptions(view, STATUSES).map(
+        (status: SecurityCaseStatus): string | undefined => {
+          return status.id?.toString();
+        },
+      );
+    };
+
+    expect(optionIds("open")).toEqual(OPEN_STATUS_IDS);
+    expect(optionIds("mine")).toEqual(OPEN_STATUS_IDS);
+    expect(optionIds("unassigned")).toEqual(OPEN_STATUS_IDS);
+    expect(optionIds("all")).toEqual([
+      ...OPEN_STATUS_IDS,
+      TEST_STATUS_IDS[SecurityCaseStage.Closed],
     ]);
-    expect(getSecurityCaseQueueStatusOptions("mine")).toEqual([
-      ...OPEN_SECURITY_CASE_STATUSES,
-    ]);
-    expect(getSecurityCaseQueueStatusOptions("unassigned")).toEqual([
-      ...OPEN_SECURITY_CASE_STATUSES,
-    ]);
-    expect(getSecurityCaseQueueStatusOptions("all")).toEqual([
-      ...OPEN_SECURITY_CASE_STATUSES,
-      SecurityCaseStatus.Closed,
-    ]);
-    expect(getSecurityCaseQueueStatusOptions("open")).not.toContain(
-      SecurityCaseStatus.Closed,
+    expect(optionIds("open")).not.toContain(
+      TEST_STATUS_IDS[SecurityCaseStage.Closed],
     );
+  });
+
+  test("reads open and closed off the project's own statuses, wherever each sits", () => {
+    const statuses: Array<SecurityCaseStatus> = buildDefaultTestStatuses();
+    statuses[3]!.order = 5; // Closed
+    statuses.push(
+      buildTestStatus({ id: ERADICATING_ID, name: "Eradicating", order: 4 }),
+      buildTestStatus({ id: DUPLICATE_ID, name: "Closed - Duplicate", order: 6 }),
+    );
+
+    expect(
+      (
+        getSecurityCaseQueueQuery("open", ME, statuses)[
+          "securityCaseStatusId"
+        ] as unknown as Includes
+      ).values,
+    ).toEqual([...OPEN_STATUS_IDS, ERADICATING_ID]);
+    expect(
+      (
+        getSecurityCaseQueueQuery("closed", ME, statuses)[
+          "securityCaseStatusId"
+        ] as unknown as Includes
+      ).values,
+    ).toEqual([TEST_STATUS_IDS[SecurityCaseStage.Closed], DUPLICATE_ID]);
+    expect(
+      getSecurityCaseQueueStatusOptions("open", statuses).map(
+        (status: SecurityCaseStatus): string => {
+          return status.name || "";
+        },
+      ),
+    ).toEqual(["New", "Investigating", "Contained", "Eradicating"]);
   });
 
   test("finds a page's view by its key and by its page, and falls back to Open Cases", () => {
@@ -337,28 +390,32 @@ describe("the case queue's pages", () => {
 });
 
 describe("what each case page asks the server for", () => {
-  test("Open Cases: every status but Closed", () => {
+  test("Open Cases: every status that counts as open, by id", () => {
     const query: JSONObject = getSecurityCaseQueueQuery(
       "open",
       ME,
+      STATUSES,
     ) as unknown as JSONObject;
-    const status: Includes = query["status"] as unknown as Includes;
+    const status: Includes = query[
+      "securityCaseStatusId"
+    ] as unknown as Includes;
 
-    expect(Object.keys(query)).toEqual(["status"]);
+    expect(Object.keys(query)).toEqual(["securityCaseStatusId"]);
     expect(status).toBeInstanceOf(Includes);
-    expect(status.values).toEqual([...OPEN_SECURITY_CASE_STATUSES]);
+    expect(status.values).toEqual(OPEN_STATUS_IDS);
   });
 
   test("Assigned to Me: the open cases of the person signed in", () => {
     const query: JSONObject = getSecurityCaseQueueQuery(
       "mine",
       ME,
+      STATUSES,
     ) as unknown as JSONObject;
 
     expect(query["assignedToUserId"]).toEqual(ME);
-    expect((query["status"] as unknown as Includes).values).toEqual([
-      ...OPEN_SECURITY_CASE_STATUSES,
-    ]);
+    expect(
+      (query["securityCaseStatusId"] as unknown as Includes).values,
+    ).toEqual(OPEN_STATUS_IDS);
   });
 
   test("Assigned to Me with nobody signed in, or an empty id, is nobody's cases, not everybody's", () => {
@@ -366,6 +423,7 @@ describe("what each case page asks the server for", () => {
       const query: JSONObject = getSecurityCaseQueueQuery(
         "mine",
         nobody,
+        STATUSES,
       ) as unknown as JSONObject;
 
       expect(query["assignedToUserId"]).toEqual(ObjectID.getZeroObjectID());
@@ -381,19 +439,32 @@ describe("what each case page asks the server for", () => {
     const query: JSONObject = getSecurityCaseQueueQuery(
       "unassigned",
       ME,
+      STATUSES,
     ) as unknown as JSONObject;
 
     expect(query["assignedToUserId"]).toBeInstanceOf(IsNull);
-    expect((query["status"] as unknown as Includes).values).toEqual([
-      ...OPEN_SECURITY_CASE_STATUSES,
-    ]);
+    expect(
+      (query["securityCaseStatusId"] as unknown as Includes).values,
+    ).toEqual(OPEN_STATUS_IDS);
   });
 
-  test("Closed Cases: Closed; All Cases: nothing", () => {
-    expect(getSecurityCaseQueueQuery("closed", ME)).toEqual({
-      status: SecurityCaseStatus.Closed,
+  test("Closed Cases: the statuses that close a case; All Cases: nothing", () => {
+    expect(getSecurityCaseQueueQuery("closed", ME, STATUSES)).toEqual({
+      securityCaseStatusId: new Includes([
+        TEST_STATUS_IDS[SecurityCaseStage.Closed],
+      ]),
     });
-    expect(getSecurityCaseQueueQuery("all", ME)).toEqual({});
+    expect(getSecurityCaseQueueQuery("all", ME, STATUSES)).toEqual({});
+  });
+
+  test("a project whose statuses are not read yet asks for no case at all, never every case", () => {
+    expect(
+      (
+        getSecurityCaseQueueQuery("open", ME, [])[
+          "securityCaseStatusId"
+        ] as unknown as Includes
+      ).values,
+    ).toEqual([]);
   });
 });
 

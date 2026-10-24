@@ -72,6 +72,23 @@ const SHARED_WITH_OTHER_FEATURES: Array<string> = [
 
 const STRINGS: Array<string> = getStateSettingsStrings();
 
+// Every string of one page's copy, however deep it sits.
+function stringsOf(value: unknown): Array<string> {
+  if (typeof value === "string") {
+    return [value];
+  }
+
+  if (value && typeof value === "object") {
+    return Object.values(value as Record<string, unknown>).flatMap(stringsOf);
+  }
+
+  return [];
+}
+
+const CASE_PRIORITY_STRINGS: Set<string> = new Set(
+  stringsOf(STATE_SETTINGS_COPY[StateListType.SecurityCasePriority]),
+);
+
 const PLACEHOLDER: RegExp = /\{\{[^}]+\}\}/g;
 
 function placeholders(text: string): Array<string> {
@@ -101,7 +118,11 @@ describe("the state settings strings", () => {
   test("never say the order is a number to type", () => {
     for (const text of STRINGS) {
       expect(text).not.toMatch(/\border number\b/i);
-      expect(text).not.toMatch(/\bpriority\b/i);
+
+      // The Case Priorities page lists priorities: there it is the value, not the order.
+      if (!CASE_PRIORITY_STRINGS.has(text)) {
+        expect(text).not.toMatch(/\bpriority\b/i);
+      }
     }
   });
 

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
-import SecurityCasePriority from "Common/Types/SecurityCase/SecurityCasePriority";
+import SecurityCasePriorityLevel from "Common/Types/SecurityCase/SecurityCasePriorityLevel";
 import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
 import {
   CASE_FROM_EVENT_TITLE_LIMIT,
@@ -22,7 +22,7 @@ describe("opening a case from a security event", () => {
     });
 
     expect(draft.title).toBe("Authentication: Logon failed");
-    expect(draft.priority).toBe(SecurityCasePriority.High);
+    expect(draft.priorityLevel).toBe(SecurityCasePriorityLevel.High);
   });
 
   test("falls back to the message, on one line, and to a plain name", () => {
@@ -46,13 +46,13 @@ describe("opening a case from a security event", () => {
 
   test("takes the event's severity as the case's priority, Medium when unknown", () => {
     expect(
-      buildCaseFromSecurityEvent({ severityName: "Critical" }).priority,
-    ).toBe(SecurityCasePriority.Critical);
-    expect(buildCaseFromSecurityEvent({ severityName: "Fatal" }).priority).toBe(
-      SecurityCasePriority.Critical,
+      buildCaseFromSecurityEvent({ severityName: "Critical" }).priorityLevel,
+    ).toBe(SecurityCasePriorityLevel.Critical);
+    expect(buildCaseFromSecurityEvent({ severityName: "Fatal" }).priorityLevel).toBe(
+      SecurityCasePriorityLevel.Critical,
     );
-    expect(buildCaseFromSecurityEvent({}).priority).toBe(
-      SecurityCasePriority.Medium,
+    expect(buildCaseFromSecurityEvent({}).priorityLevel).toBe(
+      SecurityCasePriorityLevel.Medium,
     );
   });
 

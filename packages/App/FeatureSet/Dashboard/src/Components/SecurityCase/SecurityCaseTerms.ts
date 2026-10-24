@@ -12,7 +12,8 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * DEFAULT_SECURITY_CASE_STATUSES) reads in the reader's language - its names
  * and descriptions, drawn on the pills, the status steps and the settings
  * pages - and a name the project gives one of its own reads as written.
- * SecurityCaseTermsI18n holds this list to those defaults.
+ * The case pages' terms test (App/Tests/Dashboard/SecurityOperationsUi)
+ * holds this list to those defaults.
  */
 export const SECURITY_CASE_DISPLAY_TERMS: ReadonlyArray<string> = [
   // A new project's case statuses

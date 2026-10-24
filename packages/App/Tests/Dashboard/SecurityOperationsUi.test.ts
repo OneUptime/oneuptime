@@ -4,10 +4,20 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import SecurityCasePriority from "Common/Types/SecurityCase/SecurityCasePriority";
-import SecurityCaseStatus, {
-  OPEN_SECURITY_CASE_STATUSES,
-} from "Common/Types/SecurityCase/SecurityCaseStatus";
+import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
+import SecurityCaseStage from "Common/Types/SecurityCase/SecurityCaseStage";
+import {
+  DEFAULT_SECURITY_CASE_PRIORITIES,
+  DefaultSecurityCasePriority,
+} from "Common/Utils/SecurityCase/SecurityCasePriorities";
+import {
+  DEFAULT_SECURITY_CASE_STATUSES,
+  DefaultSecurityCaseStatus,
+} from "Common/Utils/SecurityCase/SecurityCaseStatuses";
+import {
+  TEST_STATUS_IDS,
+  buildDefaultTestStatuses,
+} from "Common/Tests/Helpers/SecurityCaseValues";
 import SecurityCaseVerdict from "Common/Types/SecurityCase/SecurityCaseVerdict";
 import SecurityDetectionSource from "Common/Types/SecurityCase/SecurityDetectionSource";
 import {
@@ -48,6 +58,8 @@ import { getRunStepRows } from "../../FeatureSet/Dashboard/src/Components/Securi
 
 describe("the case queue's views", () => {
   const ME: ObjectID = new ObjectID("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+  // A new project's statuses, which open and closed are read off.
+  const STATUSES: Array<SecurityCaseStatus> = buildDefaultTestStatuses();
 
   test("are Open, Assigned to Me, Unassigned, Closed and All, in that order", () => {
     expect(
@@ -57,32 +69,43 @@ describe("the case queue's views", () => {
     ).toEqual(["open", "mine", "unassigned", "closed", "all"]);
   });
 
-  test("Open asks for every status but Closed", () => {
+  test("Open asks for every status that counts as open, never the closed one", () => {
     const query: JSONObject = getSecurityCaseQueueQuery(
       "open",
       ME,
+      STATUSES,
     ) as unknown as JSONObject;
-    const status: Includes = query["status"] as unknown as Includes;
+    const status: Includes = query[
+      "securityCaseStatusId"
+    ] as unknown as Includes;
 
     expect(status).toBeInstanceOf(Includes);
-    expect(status.values).toEqual([...OPEN_SECURITY_CASE_STATUSES]);
-    expect(status.values).not.toContain(SecurityCaseStatus.Closed);
+    expect(status.values).toEqual([
+      TEST_STATUS_IDS[SecurityCaseStage.New],
+      TEST_STATUS_IDS[SecurityCaseStage.Acknowledged],
+      TEST_STATUS_IDS[SecurityCaseStage.Contained],
+    ]);
+    expect(status.values).not.toContain(
+      TEST_STATUS_IDS[SecurityCaseStage.Closed],
+    );
   });
 
   test("Assigned to Me is the open cases of the person signed in", () => {
     const query: JSONObject = getSecurityCaseQueueQuery(
       "mine",
       ME,
+      STATUSES,
     ) as unknown as JSONObject;
 
     expect(query["assignedToUserId"]).toEqual(ME);
-    expect(query["status"]).toBeInstanceOf(Includes);
+    expect(query["securityCaseStatusId"]).toBeInstanceOf(Includes);
   });
 
   test("Assigned to Me with nobody signed in matches nobody's cases, not everybody's", () => {
     const query: JSONObject = getSecurityCaseQueueQuery(
       "mine",
       undefined,
+      STATUSES,
     ) as unknown as JSONObject;
 
     expect(query["assignedToUserId"]).toEqual(ObjectID.getZeroObjectID());
@@ -92,17 +115,20 @@ describe("the case queue's views", () => {
     const query: JSONObject = getSecurityCaseQueueQuery(
       "unassigned",
       ME,
+      STATUSES,
     ) as unknown as JSONObject;
 
     expect(query["assignedToUserId"]).toBeInstanceOf(IsNull);
-    expect(query["status"]).toBeInstanceOf(Includes);
+    expect(query["securityCaseStatusId"]).toBeInstanceOf(Includes);
   });
 
-  test("Closed asks for Closed, and All for nothing", () => {
-    expect(getSecurityCaseQueueQuery("closed", ME)).toEqual({
-      status: SecurityCaseStatus.Closed,
+  test("Closed asks for the statuses that close a case, and All for nothing", () => {
+    expect(getSecurityCaseQueueQuery("closed", ME, STATUSES)).toEqual({
+      securityCaseStatusId: new Includes([
+        TEST_STATUS_IDS[SecurityCaseStage.Closed],
+      ]),
     });
-    expect(getSecurityCaseQueueQuery("all", ME)).toEqual({});
+    expect(getSecurityCaseQueueQuery("all", ME, STATUSES)).toEqual({});
   });
 
   test("every view says what it shows and what an empty one means", () => {
@@ -148,8 +174,17 @@ describe("the case timeline's entries", () => {
 describe("the terms the case pages translate", () => {
   test("every value a case, detection, entity or run shows is registered", () => {
     const values: Array<string> = [
-      ...Object.values(SecurityCaseStatus),
-      ...Object.values(SecurityCasePriority),
+      // A new project's statuses and priorities: their names and what each means.
+      ...DEFAULT_SECURITY_CASE_STATUSES.flatMap(
+        (status: DefaultSecurityCaseStatus): Array<string> => {
+          return [status.name, status.description];
+        },
+      ),
+      ...DEFAULT_SECURITY_CASE_PRIORITIES.flatMap(
+        (priority: DefaultSecurityCasePriority): Array<string> => {
+          return [priority.name, priority.description];
+        },
+      ),
       ...Object.values(SecurityCaseVerdict),
       ...Object.values(SecurityDetectionSource),
       ...Object.values(SecurityEntityType),
@@ -282,6 +317,43 @@ describe("reading the Security API's answers", () => {
     expect(overview.runsWaitingForApproval).toBe(1);
     expect(overview.isTruncated).toBe(true);
     expect(overview.metrics.openCases).toBe(5);
+    // No priorities or statuses sent: none to chart by.
+    expect(overview.priorities).toEqual([]);
+    expect(overview.statuses).toEqual([]);
+  });
+
+  test("reads the project's priorities and statuses the counts are by, defensively", () => {
+    const overview: ReturnType<typeof parseOverview> = parseOverview({
+      metrics: { openCases: 1 },
+      priorities: [
+        {
+          _id: "c1000000-0000-4000-8000-000000000001",
+          name: "Sev 1",
+          color: "#fd625e",
+          order: 1,
+          isArchived: false,
+          isCriticalPriority: true,
+          // Not a flag: dropped.
+          isSomething: "yes",
+        },
+        "not a priority",
+      ],
+      statuses: [{ _id: 7, name: null, color: 3, order: "1" }],
+    } as unknown as JSONObject);
+
+    expect(overview.priorities).toEqual([
+      {
+        _id: "c1000000-0000-4000-8000-000000000001",
+        name: "Sev 1",
+        color: "#fd625e",
+        order: 1,
+        isArchived: false,
+        isCriticalPriority: true,
+      },
+    ]);
+    expect(overview.statuses).toEqual([
+      { _id: "7", name: "", color: "", order: null, isArchived: false },
+    ]);
   });
 });
 

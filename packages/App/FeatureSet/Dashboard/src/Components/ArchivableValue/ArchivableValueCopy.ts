@@ -194,6 +194,32 @@ export const ARCHIVE_LOCKED_REASONS: Array<string> = [
   translationKey(
     "Every new alert needs a severity, so keep at least one that is not archived.",
   ),
+  // A security case's built-in statuses and priorities.
+  translationKey("New cases start in this status, so it can't be archived."),
+  translationKey(
+    "Reopening a case moves it to this status, so it can't be archived.",
+  ),
+  translationKey(
+    "The time to contain is measured to this status, so it can't be archived.",
+  ),
+  translationKey(
+    "Closing a case moves it to this status, so it can't be archived.",
+  ),
+  translationKey(
+    "Critical detections open their cases at this priority, so it can't be archived.",
+  ),
+  translationKey(
+    "High detections open their cases at this priority, so it can't be archived.",
+  ),
+  translationKey(
+    "Medium detections and the cases people open start at this priority, so it can't be archived.",
+  ),
+  translationKey(
+    "Low detections open their cases at this priority, so it can't be archived.",
+  ),
+  translationKey(
+    "Informational detections open their cases at this priority, so it can't be archived.",
+  ),
 ];
 
 // The row actions.

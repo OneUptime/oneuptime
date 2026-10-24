@@ -8,8 +8,16 @@ import {
   DetectionRuleLibraryEntry,
 } from "Common/Types/SecurityEvent/DetectionRuleLibrary";
 import { MITRE_TECHNIQUES } from "Common/Types/SecurityEvent/MitreAttack";
-import SecurityCasePriority from "Common/Types/SecurityCase/SecurityCasePriority";
-import SecurityCaseStatus from "Common/Types/SecurityCase/SecurityCaseStatus";
+import SecurityCasePriorityLevel from "Common/Types/SecurityCase/SecurityCasePriorityLevel";
+import SecurityCaseStage from "Common/Types/SecurityCase/SecurityCaseStage";
+import { SecurityPlaybookTemplateValues } from "Common/Types/SecurityPlaybook/SecurityPlaybookTemplates";
+import { getSecurityPlaybookTemplateValues } from "Common/Utils/SecurityEvent/SecurityTemplateRecords";
+import {
+  TEST_PRIORITY_IDS,
+  TEST_STATUS_IDS,
+  buildDefaultTestPriorities,
+  buildDefaultTestStatuses,
+} from "Common/Tests/Helpers/SecurityCaseValues";
 import SecurityCaseVerdict from "Common/Types/SecurityCase/SecurityCaseVerdict";
 import {
   SECURITY_PLAYBOOK_ACTIONS,
@@ -94,20 +102,28 @@ const ID_A: string = "11111111-1111-4111-8111-111111111111";
 const ID_B: string = "22222222-2222-4222-8222-222222222222";
 const ID_C: string = "33333333-3333-4333-8333-333333333333";
 
+// A new project's priorities and statuses, which the templates' steps name.
+const TEMPLATE_VALUES: SecurityPlaybookTemplateValues =
+  getSecurityPlaybookTemplateValues({
+    priorities: buildDefaultTestPriorities(),
+    statuses: buildDefaultTestStatuses(),
+  });
+
 // A filled-in dialog for every action, as a person would complete it.
 const FILLED: Record<SecurityPlaybookActionType, JSONObject> = {
   [SecurityPlaybookActionType.AssignCase]: { userId: ID_A, teamId: ID_B },
+  // The project's own priority and status, by id.
   [SecurityPlaybookActionType.SetCasePriority]: {
-    priority: SecurityCasePriority.Critical,
+    priorityId: TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Critical],
   },
   [SecurityPlaybookActionType.SetCaseStatus]: {
-    status: SecurityCaseStatus.Closed,
+    statusId: TEST_STATUS_IDS[SecurityCaseStage.Closed],
     verdict: SecurityCaseVerdict.FalsePositive,
   },
   [SecurityPlaybookActionType.AddCaseNote]: { note: "Check {{case.title}}." },
   [SecurityPlaybookActionType.AddCaseLabels]: { labelIds: [ID_A, ID_B] },
   [SecurityPlaybookActionType.CheckThreatIntel]: {
-    raisePriorityTo: SecurityCasePriority.High,
+    raisePriorityToId: TEST_PRIORITY_IDS[SecurityCasePriorityLevel.High],
   },
   [SecurityPlaybookActionType.LookUpEntityActivity]: { lookbackInHours: 48 },
   [SecurityPlaybookActionType.EmailPeople]: {
@@ -452,6 +468,19 @@ describe("a step's one-line summary", () => {
   const lookup: StepNameLookup = emptyStepNameLookup();
   lookup.connections.set(ID_A, "Okta production");
   lookup.onCallPolicies.set(ID_C, "Security on-call");
+  // The project's priorities and statuses, as it names them.
+  lookup.casePriorities.set(
+    TEST_PRIORITY_IDS[SecurityCasePriorityLevel.High],
+    "High",
+  );
+  lookup.casePriorities.set(
+    TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Critical],
+    "Sev 1",
+  );
+  lookup.caseStatuses.set(
+    TEST_STATUS_IDS[SecurityCaseStage.Closed],
+    "Resolved",
+  );
 
   function summary(
     action: SecurityPlaybookActionType,
@@ -485,9 +514,21 @@ describe("a step's one-line summary", () => {
     ).toBe("#soc");
     expect(
       summary(SecurityPlaybookActionType.SetCasePriority, {
-        priority: SecurityCasePriority.High,
+        priorityId: TEST_PRIORITY_IDS[SecurityCasePriorityLevel.High],
       }),
     ).toBe("Priority becomes High");
+    // As the project names them.
+    expect(
+      summary(SecurityPlaybookActionType.CheckThreatIntel, {
+        raisePriorityToId: TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Critical],
+      }),
+    ).toBe("On a match, priority rises to Sev 1");
+    expect(
+      summary(SecurityPlaybookActionType.SetCaseStatus, {
+        statusId: TEST_STATUS_IDS[SecurityCaseStage.Closed],
+        verdict: SecurityCaseVerdict.FalsePositive,
+      }),
+    ).toContain("Resolved");
     expect(
       summary(SecurityPlaybookActionType.LookUpEntityActivity, {
         lookbackInHours: 1,
@@ -504,6 +545,15 @@ describe("a step's one-line summary", () => {
     expect(
       summary(SecurityPlaybookActionType.RunWorkflow, { workflowId: ID_B }),
     ).toBe("a removed workflow");
+    // A priority or status the project has since deleted.
+    expect(
+      summary(SecurityPlaybookActionType.SetCasePriority, {
+        priorityId: ID_B,
+      }),
+    ).toBe("Priority becomes a removed priority");
+    expect(
+      summary(SecurityPlaybookActionType.SetCaseStatus, { statusId: ID_B }),
+    ).toContain("a removed status");
   });
 
   test("shows only the start of a long note, on one line", () => {
@@ -529,7 +579,8 @@ describe("the playbook templates", () => {
   )(
     "%s is a working playbook as it is",
     (_key: string, template: SecurityPlaybookTemplate) => {
-      const steps: Array<SecurityPlaybookStep> = template.getSteps();
+      const steps: Array<SecurityPlaybookStep> =
+        template.getSteps(TEMPLATE_VALUES);
 
       expect(steps.length).toBeGreaterThan(0);
       expect(parseSecurityPlaybookSteps(steps)).toHaveLength(steps.length);
@@ -551,14 +602,44 @@ describe("the playbook templates", () => {
     },
   );
 
+  test("names the project's own priorities and statuses, by what each means", () => {
+    const steps: Array<SecurityPlaybookStep> = SECURITY_PLAYBOOK_TEMPLATES.flatMap(
+      (template: SecurityPlaybookTemplate): Array<SecurityPlaybookStep> => {
+        return template.getSteps(TEMPLATE_VALUES);
+      },
+    );
+    const named: Array<string> = steps.flatMap(
+      (step: SecurityPlaybookStep): Array<string> => {
+        return ["priorityId", "statusId", "raisePriorityToId"]
+          .map((key: string): string => {
+            return String(step.config[key] || "");
+          })
+          .filter(Boolean);
+      },
+    );
+
+    expect(named.length).toBeGreaterThan(0);
+
+    // Every one is the project's: one of its priorities or statuses.
+    for (const id of named) {
+      expect([
+        id,
+        [
+          ...Object.values(TEST_PRIORITY_IDS),
+          ...Object.values(TEST_STATUS_IDS),
+        ].includes(id),
+      ]).toEqual([id, true]);
+    }
+  });
+
   test("gives every template a new set of step ids", () => {
     const first: Array<string> = SECURITY_PLAYBOOK_TEMPLATES[0]!
-      .getSteps()
+      .getSteps(TEMPLATE_VALUES)
       .map((step: SecurityPlaybookStep): string => {
         return step.id;
       });
     const second: Array<string> = SECURITY_PLAYBOOK_TEMPLATES[0]!
-      .getSteps()
+      .getSteps(TEMPLATE_VALUES)
       .map((step: SecurityPlaybookStep): string => {
         return step.id;
       });
@@ -568,7 +649,8 @@ describe("the playbook templates", () => {
 
   test("a step that waits on threat intel comes after a step that checks it", () => {
     for (const template of SECURITY_PLAYBOOK_TEMPLATES) {
-      const steps: Array<SecurityPlaybookStep> = template.getSteps();
+      const steps: Array<SecurityPlaybookStep> =
+        template.getSteps(TEMPLATE_VALUES);
       const firstCheck: number = steps.findIndex(
         (step: SecurityPlaybookStep): boolean => {
           return step.action === SecurityPlaybookActionType.CheckThreatIntel;
