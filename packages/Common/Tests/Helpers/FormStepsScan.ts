@@ -379,6 +379,10 @@ interface Resolution {
 
 const MAX_DEPTH: number = 12;
 
+// The specifiers ee/'s UI imports the Dashboards by (ee/Dashboard and ee/AdminDashboard tsconfig paths).
+const DASHBOARD_ALIAS: string = "@oneuptime/dashboard/";
+const ADMIN_DASHBOARD_ALIAS: string = "@oneuptime/admin-dashboard/";
+
 /*
  * A model class whose Match Criteria step ModelForm draws as one builder: one
  * that extends RuleBaseModel, directly or through one of the rule base models
@@ -716,6 +720,19 @@ export class FormStepsScanner {
         "packages",
         "Common",
         specifier.slice("Common/".length),
+      );
+    } else if (specifier.startsWith(DASHBOARD_ALIAS)) {
+      // ee/'s UI reaches the Dashboard through it (ee/Dashboard/tsconfig.json).
+      base = path.join(
+        this.repositoryRoot,
+        "packages/App/FeatureSet/Dashboard/src",
+        specifier.slice(DASHBOARD_ALIAS.length),
+      );
+    } else if (specifier.startsWith(ADMIN_DASHBOARD_ALIAS)) {
+      base = path.join(
+        this.repositoryRoot,
+        "packages/App/FeatureSet/AdminDashboard/src",
+        specifier.slice(ADMIN_DASHBOARD_ALIAS.length),
       );
     } else {
       return null;

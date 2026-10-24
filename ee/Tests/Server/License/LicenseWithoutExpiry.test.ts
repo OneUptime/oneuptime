@@ -294,14 +294,21 @@ describe("EnterpriseEdition with a token that has no recorded expiry", () => {
     );
   };
 
-  test("SCIM, audit logging and retention overrides keep running through the trial", () => {
+  test("SCIM, audit logging, retention overrides and status pages without Powered by OneUptime keep running through the trial", () => {
     expect(RUNTIME_ENTERPRISE_FEATURES).toEqual([
       EnterpriseFeature.SCIM,
       EnterpriseFeature.AuditLogs,
       EnterpriseFeature.TelemetryRetention,
+      EnterpriseFeature.StatusPageBranding,
     ]);
-    expect(runtimeAnswers(snapshotAt(DAY_IN_MS))).toEqual([true, true, true]);
+    expect(runtimeAnswers(snapshotAt(DAY_IN_MS))).toEqual([
+      true,
+      true,
+      true,
+      true,
+    ]);
     expect(runtimeAnswers(snapshotAt(TRIAL_DAYS * DAY_IN_MS))).toEqual([
+      true,
       true,
       true,
       true,
@@ -310,6 +317,7 @@ describe("EnterpriseEdition with a token that has no recorded expiry", () => {
 
   test("they stop once the trial has ended, exactly as for an unlicensed install", () => {
     expect(runtimeAnswers(snapshotAt(TRIAL_DAYS * DAY_IN_MS + 1))).toEqual([
+      false,
       false,
       false,
       false,
@@ -355,7 +363,7 @@ describe("EnterpriseEdition with a token that has no recorded expiry", () => {
     expect(EnterpriseLicenseSnapshotUtil.isTrialStartUnknown(snapshot)).toBe(
       true,
     );
-    expect(runtimeAnswers(snapshot)).toEqual([true, true, true]);
+    expect(runtimeAnswers(snapshot)).toEqual([true, true, true, true]);
     expect(
       EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SCIM),
     ).toBe(false);

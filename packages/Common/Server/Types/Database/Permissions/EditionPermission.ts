@@ -8,6 +8,7 @@ import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { isPlanGatedColumnDefault } from "../../../../Types/Billing/PlanGatedColumnDefault";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
 // Whether one column value of an update can only tighten security.
@@ -55,7 +56,8 @@ export default class EditionPermissions {
   /*
    * Gates the enterprise CONFIGURATION models, the ones marked with
    * @TableEditionAccessControl({ requiresEnterprise: true }): project and
-   * status page SCIM configurations and team compliance settings.
+   * status page SCIM configurations, team compliance settings, and custom
+   * roles (the role, the permissions in it, and the teams it is given to).
    *
    * Only creating and updating them needs the license. Reading and deleting
    * are always allowed, so an install that dropped to the Community Edition,
@@ -154,16 +156,19 @@ export default class EditionPermissions {
   /*
    * Gates enterprise configuration kept in COLUMNS of core models (see
    * EnterpriseEdition.getEnterpriseColumnsForTableName): the retention
-   * overrides on Project, Service and every telemetry resource.
+   * overrides on Project, Service and every telemetry resource; the IP
+   * allow-lists of status pages, dashboards and forms; and a status page's
+   * "Powered by OneUptime" switch and access controls.
    *
-   * A create or update that writes an override - any value retention would
-   * use - needs the column's feature, like a write to an enterprise model
-   * (checkEditionPermissions). Clearing an override (null, an empty value,
-   * or a retention config with no retention in it) never does, for the same
-   * reason reads and deletes of enterprise models never do: an install that
-   * dropped to the Community Edition, or whose license lapsed, must still be
-   * able to remove what it configured. Every other column of the same write
-   * is left to the usual checks.
+   * A create or update that writes a value that takes effect (see
+   * isEnterpriseColumnWriteSetting) needs the column's feature, like a write
+   * to an enterprise model (checkEditionPermissions). Clearing one - a
+   * retention override with no retention in it, or any other enterprise
+   * column put back to its default: no allow-list, the switch off - never
+   * does, for the same reason reads and deletes of enterprise models never
+   * do: an install that dropped to the Community Edition, or whose license
+   * lapsed, must still be able to remove what it configured. Every other
+   * column of the same write is left to the usual checks.
    *
    * Same rules as checkEditionPermissions otherwise: synchronous, internal
    * root writes are never checked, master admins are, and with billing on
@@ -193,7 +198,7 @@ export default class EditionPermissions {
     }
 
     for (const feature of EditionPermissions.getEnterpriseFeaturesWritten(
-      new modelType().tableName,
+      modelType,
       data,
     )) {
       EnterpriseEdition.assertFeatureAvailableSync(feature);
@@ -202,15 +207,16 @@ export default class EditionPermissions {
 
   /*
    * The features whose enterprise columns this write sets to a value that
-   * takes effect (see isEnterpriseColumnValueSet), without duplicates.
+   * takes effect (see isEnterpriseColumnWriteSetting), without duplicates.
    * Anything that is not a plain object of columns writes none.
    */
   public static getEnterpriseFeaturesWritten(
-    tableName: string | null | undefined,
+    modelType: DatabaseBaseModelType,
     data: unknown,
   ): Array<EnterpriseFeature> {
+    const model: BaseModel = new modelType();
     const columns: Readonly<Record<string, EnterpriseFeature>> | null =
-      EnterpriseEdition.getEnterpriseColumnsForTableName(tableName);
+      EnterpriseEdition.getEnterpriseColumnsForTableName(model.tableName);
 
     if (!columns || !data || typeof data !== "object" || Array.isArray(data)) {
       return [];
@@ -222,7 +228,12 @@ export default class EditionPermissions {
       const value: unknown = (data as Record<string, unknown>)[column];
 
       if (
-        EditionPermissions.isEnterpriseColumnValueSet(value) &&
+        EditionPermissions.isEnterpriseColumnWriteSetting(
+          model,
+          column,
+          feature,
+          value,
+        ) &&
         !features.includes(feature)
       ) {
         features.push(feature);
@@ -233,7 +244,43 @@ export default class EditionPermissions {
   }
 
   /*
-   * Whether a value written to an enterprise column sets something, as
+   * Whether a value written to an enterprise column turns what it holds on
+   * (or changes it), as opposed to clearing it. Not written (undefined)
+   * never does.
+   *
+   *   retention overrides    isEnterpriseColumnValueSet: a positive number
+   *                          anywhere in it.
+   *   every other column     anything but the column's default
+   *                          (Types/Billing/PlanGatedColumnDefault): no
+   *                          allow-list or domain list (null or ""), the
+   *                          switch off, no session limit (null). The same
+   *                          rule OneUptime Cloud's plans apply to these
+   *                          columns, so a value that clears one there clears
+   *                          it here. A column with no metadata has no
+   *                          default, so every value sets it (fail closed).
+   */
+  public static isEnterpriseColumnWriteSetting(
+    model: BaseModel,
+    column: string,
+    feature: EnterpriseFeature,
+    value: unknown,
+  ): boolean {
+    if (value === undefined) {
+      return false;
+    }
+
+    if (feature === EnterpriseFeature.TelemetryRetention) {
+      return EditionPermissions.isEnterpriseColumnValueSet(value);
+    }
+
+    return !isPlanGatedColumnDefault(
+      model.getTableColumnMetadata(column),
+      value,
+    );
+  }
+
+  /*
+   * Whether a value written to a retention override sets something, as
    * opposed to clearing it. Retention only ever uses positive numbers
    * (resolveTelemetryRetentionInDays skips everything else), so a value sets
    * an override when it is, or contains at any depth, a positive number - or

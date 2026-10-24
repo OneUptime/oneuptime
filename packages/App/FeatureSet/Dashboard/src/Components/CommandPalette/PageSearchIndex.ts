@@ -189,6 +189,56 @@ const workspaceSection: (pages: {
 };
 
 /*
+ * The AI section of a telemetry product's menu - the Profiler's first
+ * (Common/Types/AI/TelemetryAi): what OneUptime found in its data
+ * (Insights), what OneUptime AI did with it (Logs), and what it may do on
+ * its own (Settings, with its AI rules).
+ */
+const telemetryAiSection: (pages: {
+  insights: PageMap;
+  logs: PageMap;
+  settings: PageMap;
+  keywords: {
+    insights: Array<string>;
+    logs: Array<string>;
+    settings: Array<string>;
+  };
+}) => PageSearchSection = (pages: {
+  insights: PageMap;
+  logs: PageMap;
+  settings: PageMap;
+  keywords: {
+    insights: Array<string>;
+    logs: Array<string>;
+    settings: Array<string>;
+  };
+}): PageSearchSection => {
+  return {
+    title: "AI",
+    pages: [
+      {
+        page: pages.insights,
+        title: "Insights",
+        icon: IconProp.LightBulb,
+        keywords: ["ai insights", "what ai found", ...pages.keywords.insights],
+      },
+      {
+        page: pages.logs,
+        title: "Logs",
+        icon: IconProp.QueueList,
+        keywords: pages.keywords.logs,
+      },
+      {
+        page: pages.settings,
+        title: "Settings",
+        icon: IconProp.Settings,
+        keywords: pages.keywords.settings,
+      },
+    ],
+  };
+};
+
+/*
  * The AI section of the Incidents and Alerts menus: what OneUptime AI
  * learned (Insights), what it did (Logs), what it may do on its own
  * (Settings) and the rules for its fixes.
@@ -1526,6 +1576,27 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
         ],
       },
+      telemetryAiSection({
+        insights: PageMap.PROFILES_AI_INSIGHTS,
+        logs: PageMap.PROFILES_AI_LOGS,
+        settings: PageMap.PROFILES_AI_SETTINGS,
+        keywords: {
+          insights: [
+            "slow code",
+            "slow functions",
+            "performance problems",
+            "hot functions",
+          ],
+          logs: ["ai logs", "ai activity", "fix pull requests"],
+          settings: [
+            "ai settings",
+            "ai rules",
+            "find and fix slow code",
+            "performance remediation",
+            "auto fix",
+          ],
+        },
+      }),
       {
         title: "Help",
         pages: [

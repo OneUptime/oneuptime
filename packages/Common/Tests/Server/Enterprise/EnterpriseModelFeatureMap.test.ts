@@ -13,6 +13,11 @@ import StatusPageSCIM from "../../../Models/DatabaseModels/StatusPageSCIM";
 import StatusPageSSO from "../../../Models/DatabaseModels/StatusPageSso";
 import TeamComplianceSetting from "../../../Models/DatabaseModels/TeamComplianceSetting";
 import AuditLogExport from "../../../Models/DatabaseModels/AuditLogExport";
+import CustomRole from "../../../Models/DatabaseModels/CustomRole";
+import CustomRolePermission from "../../../Models/DatabaseModels/CustomRolePermission";
+import TeamCustomRole from "../../../Models/DatabaseModels/TeamCustomRole";
+import Team from "../../../Models/DatabaseModels/Team";
+import TeamPermission from "../../../Models/DatabaseModels/TeamPermission";
 import Project from "../../../Models/DatabaseModels/Project";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import EnterpriseEdition from "../../../Server/Enterprise/EnterpriseEdition";
@@ -32,6 +37,9 @@ describe("EnterpriseEdition.getModelFeature against the real models", () => {
     [ProjectSCIM, EnterpriseFeature.SCIM],
     [StatusPageSCIM, EnterpriseFeature.SCIM],
     [TeamComplianceSetting, EnterpriseFeature.TeamCompliance],
+    [CustomRole, EnterpriseFeature.CustomRoles],
+    [CustomRolePermission, EnterpriseFeature.CustomRoles],
+    [TeamCustomRole, EnterpriseFeature.CustomRoles],
     // An audit log export is part of audit logs: the same license feature.
     [AuditLogExport, EnterpriseFeature.AuditLogs],
   ] as Array<[ModelType, EnterpriseFeature]>)(
@@ -70,12 +78,16 @@ describe("EnterpriseEdition.getModelFeature against the real models", () => {
     },
   );
 
-  test("the map holds exactly the SCIM, team compliance and audit log export tables", () => {
+  test("the map holds exactly the SCIM, team compliance, custom role and audit log export tables", () => {
     expect([...EnterpriseEdition.getMappedTableNames()].sort()).toEqual(
       [
         "ProjectSCIM",
         "StatusPageSCIM",
         "TeamComplianceSetting",
+        "CustomRole",
+        "CustomRolePermission",
+        "TeamCustomRole",
+        "ApiKeyCustomRole",
         "AuditLogExport",
       ].sort(),
     );
@@ -85,6 +97,26 @@ describe("EnterpriseEdition.getModelFeature against the real models", () => {
     expect(EnterpriseEdition.getModelFeature(Project)).toBeNull();
     expect(EnterpriseEdition.getModelFeature(Monitor)).toBeNull();
   });
+
+  /*
+   * Teams and their own permissions are role-based access control, which
+   * every edition has. Only custom roles are Enterprise: what a team holds
+   * through one is copied into its own TeamPermission rows, which stay
+   * Community Edition configuration so they keep applying in every edition.
+   */
+  test.each([
+    ["Team", Team],
+    ["TeamPermission", TeamPermission],
+  ] as Array<[string, ModelType]>)(
+    "%s, the base of role-based access control, carries no edition gate",
+    (tableName: string, modelType: ModelType) => {
+      const model: BaseModel = new modelType();
+
+      expect(model.tableName).toBe(tableName);
+      expect(model.requiresEnterprise).toBeFalsy();
+      expect(EnterpriseEdition.getModelFeature(modelType)).toBeNull();
+    },
+  );
 
   test("every model marked requiresEnterprise has a feature", () => {
     const unmapped: Array<string> = [];
@@ -125,7 +157,7 @@ describe("EnterpriseEdition.getModelFeature against the real models", () => {
     );
   });
 
-  test("the registered models marked requiresEnterprise are exactly SCIM, team compliance and audit log export", () => {
+  test("the registered models marked requiresEnterprise are exactly SCIM, team compliance, custom roles and audit log export", () => {
     const enterpriseTables: Array<string> = [];
 
     for (const modelType of AllModelTypes as Array<ModelType>) {
@@ -141,6 +173,10 @@ describe("EnterpriseEdition.getModelFeature against the real models", () => {
         "ProjectSCIM",
         "StatusPageSCIM",
         "TeamComplianceSetting",
+        "CustomRole",
+        "CustomRolePermission",
+        "TeamCustomRole",
+        "ApiKeyCustomRole",
         "AuditLogExport",
       ].sort(),
     );

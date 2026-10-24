@@ -103,6 +103,13 @@ const SOURCES: Record<string, string> = {
   appNodemon: "packages/App/nodemon.json",
   statusCheck: "Tests/Scripts/status-check.sh",
   endpointStatus: "Tests/Scripts/endpoint-status.sh",
+  preflight: "Scripts/Install/Preflight.js",
+  update: "Scripts/Install/Update.js",
+  homeInstaller: "packages/Home/Scripts/Install.sh",
+  homeRoutes: "packages/Home/Routes.ts",
+  homeConfig: "packages/Home/Utils/Config.ts",
+  addressNotSetUp:
+    "packages/App/FeatureSet/StatusPage/src/Utils/AddressNotSetUp.ts",
   backup: "backup.sh",
   restore: "restore.sh",
   ingressConfig: "packages/Nginx/default.conf.template",
@@ -181,6 +188,37 @@ const mergeEnvScript: {
     envContents: string,
   ) => { contents: string };
 } = require(path.join(REPO_DIR, "Scripts", "Install", "MergeEnvTemplate.js"));
+
+// The steps `npm start` runs before Compose starts anything.
+const preflightScript: {
+  SKIP_SETTING: string;
+  DOCKER_MESSAGES: Record<string, string>;
+  dockerFindings: unknown;
+  resourceFindings: unknown;
+  portFindings: unknown;
+  hostFindings: unknown;
+} = require(path.join(REPO_DIR, "Scripts", "Install", "Preflight.js"));
+const databasePasswordScript: {
+  SETTING: string;
+  ENCRYPTION_SECRET_SETTING: string;
+} = require(
+  path.join(REPO_DIR, "Scripts", "Install", "GenerateDatabasePassword.js"),
+);
+const placeholderSecretsScript: {
+  GENERATED_SECRETS: Array<string>;
+  BUNDLED_DATASTORE_PASSWORDS: Array<{ passwordSettings: Array<string> }>;
+  readSettings: (contents: string) => Map<string, string>;
+} = require(
+  path.join(REPO_DIR, "Scripts", "Install", "ReplacePlaceholderSecrets.js"),
+);
+const followIngressScript: {
+  followIngressPort: (contents: string) => {
+    contents: string;
+    moved: Array<string>;
+    url: string | null;
+  };
+  describeMoved: (moved: Array<string>, url: string) => string;
+} = require(path.join(REPO_DIR, "Scripts", "Install", "FollowIngressPort.js"));
 /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 
 // A row of a Markdown table.
@@ -1112,9 +1150,71 @@ describe("Docker Compose, against the compose files and scripts", () => {
     }
   });
 
-  it("the probe and the Runner use the host's network, and reach OneUptime at the URLs the page moves", () => {
+  it("the probe and the Runner use the host's network, and npm start moves their URLs to the ingress the proxy steps publish", () => {
     const base: Record<string, ComposeService> = composeServices("baseCompose");
     const config: Map<string, string> = configExample();
+    const proxyStep: string = blockFrom(
+      page,
+      "#### Move the ingress off ports 80 and 443",
+      "#### Tell OneUptime it is behind a proxy",
+    );
+    const portLines: Array<string> = (
+      fencedBlocks(proxyStep, 'ini title="config.env"')[0] as string
+    ).split("\n");
+    const start: string = scriptsOf("rootPackage")["start"] as string;
+    // config.env with the step's lines, as an operator would edit it.
+    const edited: string = readSource("configExample")
+      .split("\n")
+      .map((line: string): string => {
+        const replacement: string | undefined = portLines.find(
+          (portLine: string): boolean => {
+            return line.startsWith(
+              portLine.slice(0, portLine.indexOf("=") + 1),
+            );
+          },
+        );
+
+        return replacement || line;
+      })
+      .join("\n");
+    const followed: {
+      contents: string;
+      moved: Array<string>;
+      url: string | null;
+    } = followIngressScript.followIngressPort(edited);
+    const after: Map<string, string> = placeholderSecretsScript.readSettings(
+      followed.contents,
+    );
+
+    // The step moves the ingress alone; npm start moves the rest, before Compose starts.
+    expect(portLines).toEqual([
+      "ONEUPTIME_HTTP_PORT=127.0.0.1:8080",
+      "STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443",
+    ]);
+    expect(followed.moved).toEqual([
+      "GLOBAL_PROBE_1_ONEUPTIME_URL",
+      "GLOBAL_PROBE_2_ONEUPTIME_URL",
+      "ONEUPTIME_RUNNER_ONEUPTIME_URL",
+    ]);
+    expect(after.get("GLOBAL_PROBE_1_ONEUPTIME_URL")).toBe(
+      "http://localhost:8080",
+    );
+    expect(after.get("ONEUPTIME_RUNNER_ONEUPTIME_URL")).toBe(
+      "http://localhost:8080",
+    );
+    expect(
+      followIngressScript.describeMoved(followed.moved, followed.url as string),
+    ).toContain("are now http://localhost:8080 in config.env.");
+    expect(start).toContain("node ./Scripts/Install/FollowIngressPort.js");
+    expect(start.indexOf("FollowIngressPort.js")).toBeLessThan(
+      start.indexOf("docker compose up"),
+    );
+    expect(proxyStep).toContain(
+      "`npm start` moves them to the ingress's new port, `http://localhost:8080`, and says so.",
+    );
+    expect(page).toContain(
+      "`npm start` moves it and `ONEUPTIME_RUNNER_ONEUPTIME_URL` to the ingress's port while they point at `localhost`.",
+    );
 
     expect(base["probe-1"]?.["network_mode"]).toBe("host");
     expect(base["runner"]?.["network_mode"]).toBe("host");
@@ -1135,11 +1235,8 @@ describe("Docker Compose, against the compose files and scripts", () => {
     expect(page).toContain(
       "It reaches OneUptime at `GLOBAL_PROBE_1_ONEUPTIME_URL`, which is `http://localhost` (port 80) by default.",
     );
-    expect(page).toContain(
+    expect(page).not.toContain(
       "GLOBAL_PROBE_1_ONEUPTIME_URL=http://localhost:8080",
-    );
-    expect(page).toContain(
-      "ONEUPTIME_RUNNER_ONEUPTIME_URL=http://localhost:8080",
     );
   });
 
@@ -1228,7 +1325,7 @@ describe("Docker Compose, against the compose files and scripts", () => {
     expect(config.get("DATABASE_BACKUP_PORT")).toBe("5400");
   });
 
-  it("the secrets the page fills in are every placeholder config.example.env ships", () => {
+  it("the secrets the page names are every placeholder config.example.env ships, and npm start gives each a value before Compose starts", () => {
     const shipped: Array<string> = [...configExample().entries()]
       .filter(([, value]: [string, string]): boolean => {
         return value.includes(PLACEHOLDER_SECRET);
@@ -1237,19 +1334,136 @@ describe("Docker Compose, against the compose files and scripts", () => {
         return key;
       })
       .sort();
-    const named: Array<string> = tableRows(
-      sectionOf(page, "### Generate random secrets"),
-    )
+    const section: string = sectionOf(page, "### Generate random secrets");
+    const named: Array<string> = tableRows(section)
       .slice(1)
       .flatMap((row: Array<string>): Array<string> => {
         return inlineCodes(row[0] as string);
       })
       .sort();
+    // What GenerateDatabasePassword.js and ReplacePlaceholderSecrets.js set.
+    const setByNpmStart: Array<string> = [
+      databasePasswordScript.SETTING,
+      databasePasswordScript.ENCRYPTION_SECRET_SETTING,
+      ...placeholderSecretsScript.GENERATED_SECRETS,
+      ...placeholderSecretsScript.BUNDLED_DATASTORE_PASSWORDS.map(
+        (entry: { passwordSettings: Array<string> }): string => {
+          return entry.passwordSettings[0] as string;
+        },
+      ),
+    ].sort();
+    const start: string = scriptsOf("rootPackage")["start"] as string;
 
     expect(shipped.length).toBe(10);
     expect(named).toEqual(shipped);
-    expect(page).toContain(`while grep -q "${PLACEHOLDER_SECRET}" config.env`);
-    expect(page).toContain('grep -c "please-change-this" config.env');
+    expect(setByNpmStart).toEqual(shipped);
+    for (const step of [
+      "node ./Scripts/Install/GenerateDatabasePassword.js",
+      "node ./Scripts/Install/ReplacePlaceholderSecrets.js",
+    ]) {
+      expect(start).toContain(step);
+      expect(start.indexOf(step)).toBeLessThan(
+        start.indexOf("docker compose up"),
+      );
+    }
+
+    // No install step makes them by hand; the Docker CLI's loop is in the section.
+    expect(
+      sectionOf(page, "## Install OneUptime").indexOf(
+        "### Generate random secrets",
+      ),
+    ).toBeGreaterThan(
+      sectionOf(page, "## Install OneUptime").lastIndexOf(":::\n"),
+    );
+    expect(section).toContain(
+      "`npm start` gives each one its own random value before it starts anything, and names the settings it filled in:",
+    );
+    expect(section).toContain(
+      "That is why `npm start` sets `DATABASE_PASSWORD` and `ENCRYPTION_SECRET` only on a new install, before PostgreSQL creates its database.",
+    );
+    expect(section).toContain(
+      `while grep -q "${PLACEHOLDER_SECRET}" config.env`,
+    );
+    expect(section).toContain('grep -c "please-change-this" config.env');
+    expect(page).toContain(
+      "Before the first start, replace the placeholder secrets yourself, as [Generate random secrets](#generate-random-secrets) shows: only `npm start` does that for you.",
+    );
+  });
+
+  it("npm start checks the server before anything else, stops on what the page lists, and skips the checks when asked", () => {
+    const start: string = scriptsOf("rootPackage")["start"] as string;
+    const preflight: string = readSource("preflight");
+    const entry: string = blockFrom(
+      page,
+      ":::details npm start stops before it starts OneUptime",
+      "\n:::\n",
+    );
+
+    expect(start.startsWith("node ./Scripts/Install/Preflight.js && ")).toBe(
+      true,
+    );
+    for (const check of [
+      preflightScript.dockerFindings,
+      preflightScript.resourceFindings,
+      preflightScript.portFindings,
+      preflightScript.hostFindings,
+    ]) {
+      expect(typeof check).toBe("function");
+    }
+    expect(preflight).toContain(
+      "OneUptime did not start. Fix what is marked ✗, then run npm start again.",
+    );
+    expect(preflightScript.SKIP_SETTING).toBe("ONEUPTIME_SKIP_PREFLIGHT");
+    expect(fencedBlocks(entry, "bash")).toEqual([
+      `${preflightScript.SKIP_SETTING}=true npm start`,
+    ]);
+    expect(entry).toContain("Each line marked ✗ says what to change.");
+    expect(page).toContain(
+      "`npm start` checks the server first: Docker, memory, disk space, the ports OneUptime uses and `HOST`.",
+    );
+
+    // The permission entry shows the command the check's own line gives.
+    expect(preflightScript.DOCKER_MESSAGES["permission"]).toContain(
+      "sudo usermod -aG docker $USER",
+    );
+    expect(
+      blockFrom(
+        page,
+        ':::details Docker says "permission denied" when you run npm start',
+        "\n:::\n",
+      ),
+    ).toContain("sudo usermod -aG docker $USER");
+  });
+
+  it("the one command the page offers is the installer oneuptime.com serves, which runs the page's steps", () => {
+    const command: string =
+      "curl -fsSL https://oneuptime.com/install.sh | bash";
+    const installer: string = readSource("homeInstaller");
+    const install: string = sectionOf(page, "## Install OneUptime");
+
+    expect(fencedBlocks(install, "bash")[0]).toBe(command);
+    expect(install.indexOf(command)).toBeLessThan(install.indexOf(":::steps"));
+    expect(installer).toContain(`#   ${command}`);
+    expect(readSource("homeRoutes")).toContain('app.get("/install.sh"');
+    expect(readSource("homeConfig")).toContain(
+      'export const InstallScriptPath: string = "/usr/src/app/Scripts/Install.sh";',
+    );
+
+    // What the page says it does: the tools, the release branch into ./oneuptime, HOST, npm start.
+    expect(installer).toContain('BRANCH="${ONEUPTIME_BRANCH:-release}"');
+    expect(installer).toContain('INSTALL_DIR="${ONEUPTIME_DIR:-oneuptime}"');
+    for (const step of [
+      "ensure_git_and_curl",
+      "ensure_node",
+      "install_docker",
+      "configure_host",
+    ]) {
+      expect(installer).toContain(`\n${step}() {`);
+    }
+    expect(installer).toContain('sg docker -c "npm start"');
+    expect(install).toContain(
+      "It installs Docker, Git and Node.js where they are missing, clones the release branch into a `oneuptime` folder, asks for the address people will use and runs `npm start`:",
+    );
   });
 
   it("npm start runs the Docker CLI tab's command, then the status check", () => {
@@ -1258,31 +1472,36 @@ describe("Docker Compose, against the compose files and scripts", () => {
     expect(scripts["start"]).toContain(
       "export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d",
     );
-    expect(scripts["start"]).toContain("&& npm run status-check");
+    expect(scripts["start"]).toMatch(/&& npm run status-check$/);
     expect(scripts["status-check"]).toBe(
-      "bash ./Tests/Scripts/status-check.sh $npm_config_services",
+      "bash ./Tests/Scripts/status-check.sh",
     );
     expect(page).toContain(
       "(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)",
     );
   });
 
-  it("the status check checks localhost unless it is given a host, and ends with the words the page quotes", () => {
+  it("the status check checks the ingress config.env publishes unless it is given an address, and ends with the words the page quotes", () => {
     const check: string = readSource("statusCheck");
 
-    expect(check).toContain('HOST_TO_CHECK="$1"');
-    expect(check).toContain('HOST_TO_CHECK="localhost"');
-    expect(check).toContain("OneUptime is up!");
+    expect(check).toContain('HOST_TO_CHECK="${1-}"');
+    expect(check).toContain("HOST_TO_CHECK=$(ingress_address)");
+    expect(check).toContain("setting=$(read_setting ONEUPTIME_HTTP_PORT)");
+    expect(check).toContain('echo "🚀 OneUptime is up! 🚀"');
     expect(readSource("endpointStatus")).toContain("Maximum retries reached");
 
     expect(page).toContain("ends with **OneUptime is up!**");
     expect(page).toContain(
       ':::details npm start ends with "Maximum retries reached"',
     );
-    expect(page).toContain("bash Tests/Scripts/status-check.sh localhost:8080");
     expect(page).toContain(
-      "`npm start` checks `http://localhost` on port 80, where your proxy will be",
+      "It checks the ingress on the port `ONEUPTIME_HTTP_PORT` sets.",
     );
+    expect(page).toContain(
+      "`npm start` checks OneUptime on its new port, `localhost:8080`, and ends with **OneUptime is up!**",
+    );
+    // The proxy steps restart with npm start; nobody runs the check by hand.
+    expect(page).not.toContain("bash Tests/Scripts/status-check.sh");
   });
 
   it("HTTPS settings ship as plain HTTP behind the ingress alone, and the proxy adds one hop", () => {
@@ -1452,6 +1671,69 @@ describe("Docker Compose, against the compose files and scripts", () => {
     ).toContain("proxy_set_header Host $host;");
   });
 
+  it("the not-set-up entry quotes the status page's title as each language draws it, and says what the page shows", () => {
+    const localesDirectory: string = path.join(
+      REPO_DIR,
+      "packages/App/FeatureSet/StatusPage/src/Locales",
+    );
+    const wordsOf: (language: string) => Record<string, string> = (
+      language: string,
+    ): Record<string, string> => {
+      return JSON.parse(
+        fs.readFileSync(
+          path.join(localesDirectory, `${language}.json`),
+          "utf8",
+        ),
+      ).errors.addressNotSetUp;
+    };
+    const englishWords: Record<string, string> = wordsOf("en");
+    const entry: string = blockFrom(
+      page,
+      `:::details The browser says "${englishWords["title"]}"`,
+      "\n:::\n",
+    );
+
+    expect(DOCS_LANGUAGES.length).toBe(17);
+
+    for (const language of DOCS_LANGUAGES) {
+      const title: string = wordsOf(language)["title"] as string;
+      const details: Array<string> = readPage(language, COMPOSE)
+        .split("\n")
+        .filter((line: string): boolean => {
+          return line.startsWith(":::details ");
+        });
+
+      expect({
+        language,
+        quoted: details.some((line: string): boolean => {
+          return line.includes(`"${title}"`);
+        }),
+      }).toEqual({ language, quoted: true });
+    }
+
+    // The page draws the HOST line for the address opened, with a Copy button.
+    expect(readSource("addressNotSetUp")).toContain(
+      "hostLine: `HOST=${visitedHost}`,",
+    );
+    expect(englishWords["hostStep"]).toBe(
+      "In config.env, set HOST to this address:",
+    );
+    expect(englishWords["copy"]).toBe("Copy");
+    expect(englishWords["proxyTitle"]).toBe(
+      "Your proxy did not pass this address on",
+    );
+    expect(entry).toContain(
+      "The page shows the `HOST` line for the address you opened, with a button that copies it: put that line in `config.env`, then run `npm start`.",
+    );
+    expect(entry).toContain("the page says your proxy did not pass it on");
+    for (const line of [
+      "`proxy_set_header Host $host;`",
+      "`ProxyPreserveHost On`",
+    ]) {
+      expect(entry).toContain(line);
+    }
+  });
+
   it("every container's log is capped at 1000 MB", () => {
     const base: Record<string, ComposeService> = composeServices("baseCompose");
 
@@ -1511,26 +1793,34 @@ describe("Docker Compose, against the compose files and scripts", () => {
     );
   });
 
-  it("npm run update repeats the preparation, pulls the images and starts, keeping your own values", () => {
+  it("npm run update merges new settings, pulls the images and starts, keeping your own values and asking for no sudo password", () => {
     const update: string = scriptsOf("rootPackage")["update"] as string;
     const merged: string = mergeEnvScript.mergeEnvTemplate(
       "HOST=localhost\nNEW_SETTING=its-default\n",
       "HOST=oneuptime.example.com\n",
     ).contents;
 
-    expect(update).toContain("npm run prerun");
+    expect(update.startsWith("node ./Scripts/Install/Update.js && ")).toBe(
+      true,
+    );
+    expect(readSource("update")).toContain("mergeEnvTemplate(");
     expect(update).toContain("docker compose pull");
-    expect(update).toContain("npm run start");
-    expect(update.indexOf("npm run prerun")).toBeLessThan(
+    expect(update).toMatch(/&& npm run start$/);
+    expect(update.indexOf("Update.js")).toBeLessThan(
       update.indexOf("docker compose pull"),
     );
+    // configure.sh, which asks for sudo and installs developer tools, is npm run dev's alone.
+    expect(update).not.toContain("prerun");
+    expect(update).not.toContain("sudo");
+    expect(readSource("update")).not.toContain('"sudo"');
     expect(merged).toContain("HOST=oneuptime.example.com");
     expect(merged).not.toContain("HOST=localhost");
     expect(merged).toContain("NEW_SETTING=its-default");
 
     expect(page).toContain(
-      "`npm run update` asks for your sudo password, adds any new settings from `config.example.env` to your `config.env` (your own values stay), pulls the new images and restarts OneUptime.",
+      "`npm run update` adds any new settings from `config.example.env` to your `config.env` (your own values stay), pulls the new images and restarts OneUptime.",
     );
+    expect(sectionOf(page, "## Update OneUptime")).not.toContain("sudo");
   });
 
   it("APP_TAG picks the image, release by default, with enterprise- in front for the Enterprise Edition", () => {

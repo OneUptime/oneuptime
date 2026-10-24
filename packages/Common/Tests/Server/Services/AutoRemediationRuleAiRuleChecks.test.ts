@@ -7,6 +7,7 @@ import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
+import Label from "../../../Models/DatabaseModels/Label";
 import { AI_RULE_DOES_NOTHING_MESSAGE } from "../../../Types/AI/AiRule";
 import {
   AI_RULE_CRITERIA_FIELDS,
@@ -17,6 +18,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import ObjectID from "../../../Types/ObjectID";
 import RuleCriteria, {
+  RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN,
   RULE_CRITERIA_SCHEMA_VERSION,
   RuleCriteriaOperator,
 } from "../../../Types/Rules/RuleCriteria";
@@ -392,7 +394,7 @@ describe("AutoRemediationRuleService - what an AI rule matches", () => {
         );
 
         expect((error as Error).message).toBe(
-          "Trigger Entity Type must be one of Incident, Alert.",
+          "Trigger Entity Type must be one of Incident, Alert, Profile.",
         );
       }
     });
@@ -443,6 +445,106 @@ describe("AutoRemediationRuleService - what an AI rule matches", () => {
       ).toEqual({ _id: "x", projectId: PROJECT_ID });
       // None of them here: nothing more is read.
       expect(findBy).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * A profile AI rule (the slow code a service's profiles show,
+   * Types/AI/TelemetryAi) matches on the service alone, and nothing else may.
+   */
+  describe("a profile AI rule", () => {
+    const Profile: AutoRemediationTriggerEntity =
+      AutoRemediationTriggerEntity.Profile;
+
+    it("is accepted on its own conditions and columns", async () => {
+      expect(
+        await createError({
+          triggerEntityType: Profile,
+          investigates: true,
+          fixes: true,
+          criteria: criteriaOn("services"),
+        }),
+      ).toBeNull();
+      expect(
+        await createError({
+          triggerEntityType: Profile,
+          investigates: true,
+          serviceNamePattern: "^checkout",
+          serviceLabels: [ref(Label)],
+        }),
+      ).toBeNull();
+    });
+
+    it("is refused an incident's criteria, as a condition or a column", async () => {
+      expect(
+        (
+          (await createError({
+            triggerEntityType: Profile,
+            investigates: true,
+            criteria: criteriaOn("monitors"),
+          })) as Error
+        ).message,
+      ).toBe(
+        "Monitors can only be used by incident AI rules or alert AI rules.",
+      );
+      expect(
+        (
+          (await createError({
+            triggerEntityType: Profile,
+            investigates: true,
+            titlePattern: "database",
+          })) as Error
+        ).message,
+      ).toBe(
+        "Title Pattern can only be used by incident AI rules or alert AI rules.",
+      );
+    });
+
+    it("its service criteria are refused to an incident or alert rule", async () => {
+      expect(
+        (
+          (await createError({
+            triggerEntityType: Incident,
+            criteria: criteriaOn("services"),
+          })) as Error
+        ).message,
+      ).toBe("Services can only be used by profile AI rules.");
+      expect(
+        (
+          (await createError({
+            triggerEntityType: Alert,
+            serviceNamePattern: "checkout",
+          })) as Error
+        ).message,
+      ).toBe("Service Name Pattern can only be used by profile AI rules.");
+    });
+
+    it("an edit that writes a service pattern is judged against each rule's kind", async () => {
+      expect(
+        (
+          await updateError({ serviceNamePattern: "^api" }, [
+            { triggerEntityType: Profile, investigates: true, fixes: true },
+          ])
+        ).error,
+      ).toBeNull();
+
+      const refused: { error: unknown; reads: number } = await updateError(
+        { serviceNamePattern: "^api" },
+        [{ triggerEntityType: Incident, investigates: true, fixes: true }],
+      );
+
+      expect((refused.error as Error).message).toBe(
+        "Service Name Pattern can only be used by profile AI rules.",
+      );
+    });
+
+    it("the never-match pattern the dashboard writes beside conditions reads nothing back", async () => {
+      expect(
+        await updateError(
+          { serviceNamePattern: RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN },
+          [{ triggerEntityType: Incident, investigates: true, fixes: true }],
+        ),
+      ).toEqual({ error: null, reads: 0 });
     });
   });
 

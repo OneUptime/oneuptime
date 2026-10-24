@@ -12,6 +12,11 @@ import AIInvestigationQueue from "../InvestigationQueue";
 import QueryHelper from "../../../../Types/Database/QueryHelper";
 import logger from "../../../Logger";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
+import {
+  TELEMETRY_AI_LANES,
+  TelemetryAiLane,
+  getTelemetryAiLaneOfInsightType,
+} from "../../../../../Types/AI/TelemetryAi";
 
 /*
  * Per-insight LLM triage enqueue: a budgeted, read-only Investigation AIRun
@@ -26,6 +31,12 @@ import CaptureSpan from "../../../Telemetry/CaptureSpan";
  * AIInvestigationEngine.isEnabledForProject: enableAi not disabled,
  * the subject's own switch (Project.enableAiInsights, on for new
  * projects), and a configured LLM provider.
+ *
+ * A problem a telemetry product's AI section works on (Types/AI/TelemetryAi
+ * - slow code in a service's profiles) is that lane's: its switch is the
+ * one that counts, its AI rules decide whether it is investigated (the
+ * lane's look, TelemetryAiRouting, calls this only when they do), and the
+ * LLM provider those rules pick is the run's.
  */
 
 export interface InsightTriageResult {
@@ -42,6 +53,11 @@ export default class InsightTriage {
   @CaptureSpan()
   public static async enqueueInsightTriage(data: {
     insight: AIInsight;
+    /*
+     * The LLM provider the lane's AI rules pick for the problem: the run's
+     * (AIRun.llmProviderId). None: the project's default, else the global.
+     */
+    llmProviderId?: string | undefined;
   }): Promise<InsightTriageResult> {
     const { insight } = data;
 
@@ -52,11 +68,16 @@ export default class InsightTriage {
 
       const projectId: ObjectID = insight.projectId;
 
+      const lane: TelemetryAiLane | null = getTelemetryAiLaneOfInsightType(
+        insight.insightType,
+      );
+
       const project: Project | null = await ProjectService.findOneById({
         id: projectId,
         select: {
           enableAi: true,
           enableAiInsights: true,
+          ...(lane ? { [TELEMETRY_AI_LANES[lane].switchColumn]: true } : {}),
         },
         props: { isRoot: true },
       });
@@ -81,17 +102,29 @@ export default class InsightTriage {
        * exist, so it shares the insights flag; the fix-tasks flag is a
        * separate switch.
        */
-      if (project.enableAiInsights !== true) {
+      const isSwitchOn: boolean = lane
+        ? (project as unknown as Record<string, unknown>)[
+            TELEMETRY_AI_LANES[lane].switchColumn
+          ] === true
+        : project.enableAiInsights === true;
+
+      if (!isSwitchOn) {
         logger.debug(
-          `AI insights: not enqueueing triage for insight ${insight.id.toString()} — project has not opted in to AI insights.`,
+          `AI insights: not enqueueing triage for insight ${insight.id.toString()} — project has not opted in to ${lane ? `${lane} AI` : "AI insights"}.`,
         );
         return {};
       }
 
-      const llmProvider: LlmProvider | null =
-        await LlmProviderService.getLLMProviderForProject(projectId);
+      /*
+       * A provider a rule picks is decided on when the run starts
+       * (AIInvestigationEngine), with its fallbacks; with none, the project
+       * must have one to use.
+       */
+      const llmProvider: LlmProvider | null = data.llmProviderId
+        ? null
+        : await LlmProviderService.getLLMProviderForProject(projectId);
 
-      if (!llmProvider) {
+      if (!data.llmProviderId && !llmProvider) {
         logger.debug(
           `AI insights: not enqueueing triage for insight ${insight.id.toString()} — no LLM provider configured.`,
         );
@@ -131,6 +164,9 @@ export default class InsightTriage {
         {
           projectId,
           subjectAIInsightId: insight.id,
+          ...(data.llmProviderId
+            ? { llmProviderId: new ObjectID(data.llmProviderId) }
+            : {}),
         },
       );
 

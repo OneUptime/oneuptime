@@ -831,6 +831,10 @@ export const ProfilesRoutePath: Dictionary<string> = {
   [PageMap.PROFILES_INSIGHTS]: "insights",
   [PageMap.PROFILE_VIEW]: `view/${RouteParams.ModelID}`,
   [PageMap.PROFILES_DOCUMENTATION]: "documentation",
+  [PageMap.PROFILES_AI_INSIGHTS]: "ai/insights",
+  [PageMap.PROFILES_AI_INSIGHT_VIEW]: `ai/insights/${RouteParams.ModelID}`,
+  [PageMap.PROFILES_AI_LOGS]: "ai/logs",
+  [PageMap.PROFILES_AI_SETTINGS]: "ai/settings",
 };
 
 /*
@@ -7005,6 +7009,30 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.PROFILES_DOCUMENTATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/profiles/${
       ProfilesRoutePath[PageMap.PROFILES_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.PROFILES_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/profiles/${
+      ProfilesRoutePath[PageMap.PROFILES_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.PROFILES_AI_INSIGHT_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/profiles/${
+      ProfilesRoutePath[PageMap.PROFILES_AI_INSIGHT_VIEW]
+    }`,
+  ),
+
+  [PageMap.PROFILES_AI_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/profiles/${
+      ProfilesRoutePath[PageMap.PROFILES_AI_LOGS]
+    }`,
+  ),
+
+  [PageMap.PROFILES_AI_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/profiles/${
+      ProfilesRoutePath[PageMap.PROFILES_AI_SETTINGS]
     }`,
   ),
 

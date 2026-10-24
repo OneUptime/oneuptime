@@ -139,7 +139,7 @@ Den fulde liste står i [Tilladelsesreferencen](/docs/permissions/reference).
 
 ### Brugerdefinerede roller
 
-En brugerdefineret rolle er et sæt tilladelser, du navngiver én gang og giver til teams og API-nøgler: fx en "Hændelsesansvarlig" med `IncidentMember`, `AlertMember` og `OnCallViewer` eller en "Teamleder". Hvert team og hver nøgle, du giver den, får de samme tilladelser, og du ændrer dem for dem alle ét sted. På OneUptime Cloud kræver brugerdefinerede roller Scale-planen, ligesom det at ændre et teams tilladelser.
+En brugerdefineret rolle er et sæt tilladelser, du navngiver én gang og giver til teams og API-nøgler: fx en "Hændelsesansvarlig" med `IncidentMember`, `AlertMember` og `OnCallViewer` eller en "Teamleder". Hvert team og hver nøgle, du giver den, får de samme tilladelser, og du ændrer dem for dem alle ét sted. På OneUptime Cloud kræver brugerdefinerede roller Scale-planen, ligesom det at ændre et teams tilladelser. Ved selvhosting er de en del af Enterprise Edition: på Community Edition gælder de roller, dine teams og API-nøgler allerede har, fortsat, og de kan tages fra et team eller en nøgle eller slettes, men ikke oprettes eller ændres.
 
 :::steps
 1. Åbn **Teams** i menuen **Produkter** under **Indstillinger**. Fold **Indstillinger** ud i sidemenuen, vælg **Roller**, og klik på **Opret Brugerdefineret rolle**.

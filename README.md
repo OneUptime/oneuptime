@@ -65,17 +65,14 @@ Before step 3, set `HOST` in `config.env` to the domain name or IP address peopl
 git clone --depth 1 --single-branch --branch release https://github.com/OneUptime/oneuptime.git
 cd oneuptime
 
-# 2. Create your config, with a random value for every secret
+# 2. Create your config
 cp config.example.env config.env
-while grep -q "please-change-this-to-random-value" config.env; do
-  sed -i "0,/please-change-this-to-random-value/{s/please-change-this-to-random-value/$(openssl rand -hex 32)/}" config.env
-done
 
 # 3. Start everything
 npm start
 ```
 
-When `npm start` prints **OneUptime is up!**, open `http://localhost`, or your server's address, and sign up. The first account becomes the instance's admin.
+`npm start` checks the server, gives every secret in `config.env` its own random value and starts OneUptime. When it prints **OneUptime is up!**, open `http://localhost`, or your server's address, and sign up. The first account becomes the instance's admin.
 
 The [Docker Compose guide](https://oneuptime.com/docs/installation/docker-compose) covers server sizes, HTTPS, backups and updates.
 

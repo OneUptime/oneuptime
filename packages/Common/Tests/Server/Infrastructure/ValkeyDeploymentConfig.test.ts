@@ -12,7 +12,7 @@ import yaml from "js-yaml";
  * What these tests guard is the half of that rename nobody sees until an
  * upgrade goes wrong: every OLD name still has to resolve. A self-hoster who
  * never edits config.env, and an operator whose values.yaml still says `redis:`,
- * must both keep running. So the compose file reads `${VALKEY_X:-${REDIS_X}}`,
+ * must both keep running. So the compose file reads `${VALKEY_X:-${REDIS_X:-}}`,
  * keeps `redis` as a network alias, and emits the deprecated REDIS_* mirrors for
  * an app image pinned to a pre-rename release.
  *
@@ -88,9 +88,15 @@ function readExampleEnvValue(name: string): string | undefined {
   return match?.[1];
 }
 
-/* `${VALKEY_X:-${REDIS_X}}` -- the current name, falling back to the old one. */
+/*
+ * `${VALKEY_X:-${REDIS_X:-}}` -- the current name, falling back to the old
+ * one, and to nothing when neither is set. The old name's own `:-` keeps
+ * Compose from warning that it "is not set" on every command of an install
+ * whose config.env leaves the current name empty (VALKEY_IP_FAMILY and
+ * VALKEY_TLS_CA ship empty): forty such lines opened every `npm start`.
+ */
 function fallbackExpression(suffix: string): string {
-  return `\${VALKEY_${suffix}:-\${REDIS_${suffix}}}`;
+  return `\${VALKEY_${suffix}:-\${REDIS_${suffix}:-}}`;
 }
 
 /* A bare `REDIS_SOMETHING=` line in config.example.env. */

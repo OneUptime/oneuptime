@@ -82,6 +82,54 @@ export interface TelemetryResourceRetentionSettingsProps {
   scopeNote?: string | undefined;
 }
 
+// Props of a team's custom roles card, on the team's Permissions page.
+export interface TeamCustomRolesProps {
+  teamId: ObjectID;
+}
+
+// Props of an API key's custom roles card, on the key's page.
+export interface ApiKeyCustomRolesProps {
+  apiKeyId: ObjectID;
+}
+
+// Props of a status page card that edits one page's settings.
+export interface StatusPageSettingCardProps {
+  statusPageId: ObjectID;
+}
+
+// A status page, public dashboard or form: the records with an IP allow-list.
+export interface IpAllowlistModel extends BaseModel {
+  ipWhitelist?: string | undefined;
+}
+
+/*
+ * Props of the IP allow-list card (Components/IpAllowlist/IpAllowlistSettings).
+ * Each page words it its own way, so the words are props: English, which the
+ * card translates.
+ */
+export interface IpAllowlistCardProps {
+  modelType: { new (): IpAllowlistModel };
+  modelId: ObjectID;
+  // The card's name for ModelDetail, and its id ("model-detail-...").
+  cardName: string;
+  modelDetailId: string;
+  // The allowlist's own name: the form field's title and the list's.
+  title: string;
+  // The card's title, where a page names the card otherwise (a form's Access card).
+  cardTitle?: string | undefined;
+  description: string;
+  editButtonText: string;
+  fieldDescription: string;
+  // Shown while no allow-list is set.
+  emptyText: string;
+  // Shown for an allow-list with no address in it.
+  noAddressText: string;
+  // The test id of the list of entries.
+  entriesTestId: string;
+  // Told the allow-list each time it is read, so the page can say whether one is set.
+  onLoaded?: ((ipAllowlist: string) => void) | undefined;
+}
+
 export interface DashboardEnterprisePlugins {
   /*
    * Set only by the Enterprise plugin, to a fixed sentinel string. The EE
@@ -138,6 +186,48 @@ export interface DashboardEnterprisePlugins {
     | undefined;
 
   /*
+   * Teams > Settings > Roles: the project's custom roles - create, list,
+   * open, delete. The built-in roles under them stay in core, on the same
+   * page.
+   */
+  TeamRoles?: EnterprisePluginComponent<PageComponentProps> | undefined;
+
+  // Teams > Settings > Roles > a role: its permissions and the teams given it.
+  TeamRoleView?: EnterprisePluginComponent<PageComponentProps> | undefined;
+
+  // A team's Permissions page: the custom roles the team is given.
+  TeamCustomRoles?: EnterprisePluginComponent<TeamCustomRolesProps> | undefined;
+
+  // An API key's page: the custom roles the key is given.
+  ApiKeyCustomRoles?:
+    | EnterprisePluginComponent<ApiKeyCustomRolesProps>
+    | undefined;
+
+  /*
+   * The IP allow-list card of a private status page (Security > Access), a
+   * public dashboard (Sharing) and a form (Share).
+   */
+  IpAllowlistCard?: EnterprisePluginComponent<IpAllowlistCardProps> | undefined;
+
+  // A status page's Powered by OneUptime switch (Settings > Display).
+  StatusPagePoweredBy?:
+    | EnterprisePluginComponent<StatusPageSettingCardProps>
+    | undefined;
+
+  // A status page's Reader Sessions card (Security > Access).
+  StatusPageSessionLength?:
+    | EnterprisePluginComponent<StatusPageSettingCardProps>
+    | undefined;
+
+  /*
+   * A status page's subscriber restrictions (Subscribers > Settings): only
+   * private users can subscribe, and the email domains subscribers may use.
+   */
+  StatusPageSubscriberRestrictions?:
+    | EnterprisePluginComponent<StatusPageSettingCardProps>
+    | undefined;
+
+  /*
    * License management (activation, refresh, seat usage, the instances on
    * the license) in the edition dialog of the footer's edition pill. Footer
    * passes it to EditionLabel, which keeps the read-only license status. Not
@@ -166,6 +256,14 @@ const PLUGIN_KEY_SET: Record<DashboardEnterprisePluginKey, true> = {
   AuditLogsTable: true,
   SettingsTelemetryRetentionByType: true,
   TelemetryResourceRetentionSettings: true,
+  TeamRoles: true,
+  TeamRoleView: true,
+  TeamCustomRoles: true,
+  ApiKeyCustomRoles: true,
+  IpAllowlistCard: true,
+  StatusPagePoweredBy: true,
+  StatusPageSessionLength: true,
+  StatusPageSubscriberRestrictions: true,
   LicenseManager: true,
 };
 

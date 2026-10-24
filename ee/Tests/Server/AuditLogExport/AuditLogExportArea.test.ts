@@ -76,16 +76,23 @@ afterAll(() => {
 });
 
 describe("the AuditLogExport area", () => {
-  test("is the assembled module's last area", () => {
-    expect(ENTERPRISE_AREAS[ENTERPRISE_AREAS.length - 1]).toBe(
-      AuditLogExportArea,
+  test("is in the assembled module once, after the Marketplace area, with OneUptime Cloud's billing areas still last", () => {
+    const names: Array<string> = ENTERPRISE_AREAS.map(
+      (area: EnterpriseArea): string => {
+        return area.name;
+      },
     );
+
     expect(AuditLogExportArea.name).toBe("AuditLogExport");
     expect(
       ENTERPRISE_AREAS.filter((area: EnterpriseArea): boolean => {
-        return area.name === "AuditLogExport";
+        return area === AuditLogExportArea;
       }),
     ).toHaveLength(1);
+    expect(names.indexOf("AuditLogExport")).toBe(
+      names.indexOf("Marketplace") + 1,
+    );
+    expect(names.slice(-2)).toEqual(["Billing", "CloudMarketplace"]);
   });
 
   test("hands core one router with the two test routes and nothing else", () => {

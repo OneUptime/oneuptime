@@ -80,6 +80,8 @@ const BOUNDED_DEFAULT_LISTS: Record<string, boolean> = {
   MonitorLogV3: true,
   MutableMetricItem: false,
   NetworkFlowV1: true,
+  // Meraki's usage windows: sorted by project, kind and window, with an _id.
+  NetworkTrafficUsageV1: true,
   ProfileItemV3: true,
   ProfileSampleItemV3: true,
   RumSessionChunkV1: true,

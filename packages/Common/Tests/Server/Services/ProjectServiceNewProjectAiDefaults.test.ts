@@ -78,9 +78,12 @@ const RETIRED_PULL_REQUEST_SWITCHES: Array<string> = [
 const OFF_FOR_NEW_PROJECTS: Array<string> = [...FIX_SWITCHES];
 
 /*
- * The seven switches, written out so a column dropped from the list fails
+ * The eight switches, written out so a column dropped from the list fails
  * here. Triaging new security cases is read-only, like investigating new
- * incidents, so it starts on too.
+ * incidents, so it starts on too. Finding and fixing slow code (Profiles ->
+ * AI -> Settings) starts on as well: its fix is a pull request, which
+ * changes no infrastructure and is never merged - the rule "turned on by
+ * default" (Types/AI/TelemetryAi).
  */
 const AI_SWITCHES: Array<NewProjectAiDefaultColumn> = [
   "enableAutomaticIncidentInvestigation",
@@ -89,6 +92,7 @@ const AI_SWITCHES: Array<NewProjectAiDefaultColumn> = [
   "enableAutomaticPostmortemDraft",
   "enableAiInsights",
   "enableInsightFixTasks",
+  "enableAutomaticProfileRemediation",
   "autoArchiveNonActionableExceptions",
 ];
 
@@ -133,7 +137,7 @@ async function runOnBeforeCreate(
 }
 
 describe("NEW_PROJECT_AI_DEFAULT_COLUMNS", () => {
-  it("lists the seven per-feature AI switches", () => {
+  it("lists the eight per-feature AI switches", () => {
     expect([...NEW_PROJECT_AI_DEFAULT_COLUMNS].sort()).toEqual(
       [...AI_SWITCHES].sort(),
     );

@@ -340,7 +340,27 @@
       "title": "Åtkomst nekad",
       "description": "Du har inte behörighet att komma åt den här sidan."
     },
-    "generic": "Något gick fel. Försök igen."
+    "generic": "Något gick fel. Försök igen.",
+    "addressNotSetUp": {
+      "title": "OneUptime är inte konfigurerat för den här adressen",
+      "description": "Du öppnade {{visited}}, men det här OneUptime är konfigurerat för att öppnas på {{configured}}.",
+      "openConfigured": "Öppna OneUptime på {{configured}}",
+      "hostHeading": "Använd den här adressen för OneUptime",
+      "hostStep": "Sätt HOST till den här adressen i config.env:",
+      "restartStep": "Starta sedan om OneUptime:",
+      "helm": "På Kubernetes sätter du i stället host till den här adressen i dina Helm-värden och uppgraderar sedan releasen.",
+      "domainHeading": "Är det här domänen för en statussida?",
+      "domainSteps": "Lägg till den på statussidan under Anpassade domäner och verifiera den. Statussidan visas här så snart domänen är verifierad.",
+      "proxyTitle": "Din proxy skickade inte vidare den här adressen",
+      "proxyDescription": "Du öppnade {{visited}}, adressen som det här OneUptime är konfigurerat för, men begäran nådde OneUptime under ett annat värdnamn.",
+      "proxyHeading": "Skicka vidare värdnamnet",
+      "proxySteps": "Proxyn framför OneUptime måste skicka vidare värdnamnet som webbläsaren bad om. Caddy gör det som standard. För Nginx eller Apache lägger du till den här raden:",
+      "noPageTitle": "Det finns ingen statussida på den här adressen",
+      "noPageDescription": "{{visited}} är inte adressen till en statussida.",
+      "copy": "Kopiera",
+      "copied": "Kopierat!",
+      "copyFailed": "Din webbläsare lät inte sidan kopiera raden. Den är markerad ovan så att du kan kopiera den själv."
+    }
   },
   "footer": {
     "poweredBy": "Drivs av OneUptime"

@@ -185,6 +185,8 @@ import { AddAiRuleInvestigation1806900000000 } from "./1806900000000-AddAiRuleIn
 import { MergeInvestigationRulesIntoAiRules1806910000000 } from "./1806910000000-MergeInvestigationRulesIntoAiRules";
 import { AddCodeRepositoryConnections1807000000000 } from "./1807000000000-AddCodeRepositoryConnections";
 import { AddCodeRepositoryConnectionIndexAndKey1807010000000 } from "./1807010000000-AddCodeRepositoryConnectionIndexAndKey";
+import { AddNetworkControllerConnection1807020000000 } from "./1807020000000-AddNetworkControllerConnection";
+import { AddProfileAiRules1807030000000 } from "./1807030000000-AddProfileAiRules";
 import { AddAuditLogExport1807100000000 } from "./1807100000000-AddAuditLogExport";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
@@ -1573,5 +1575,7 @@ export default [
   MergeInvestigationRulesIntoAiRules1806910000000,
   AddCodeRepositoryConnections1807000000000,
   AddCodeRepositoryConnectionIndexAndKey1807010000000,
+  AddNetworkControllerConnection1807020000000,
+  AddProfileAiRules1807030000000,
   AddAuditLogExport1807100000000,
 ];

@@ -191,6 +191,12 @@ const ALL_KNOWN_TEST_ROUTES: ReadonlyArray<KnownTestRoute> = [
     why: "Reads a few days of an AI provider account's usage, or counts a company AI tool's newest chats, as whoever may change the connection; imports nothing and sends nobody a message.",
   },
   {
+    file: "packages/Common/Server/API/NetworkControllerConnectionAPI.ts",
+    path: "/test",
+    rule: "check",
+    why: "Signs in to a Meraki organization with a key and counts its networks, as whoever may edit network controller connections (assertCanOperate), through the data source transport; stores nothing and sends nobody a message.",
+  },
+  {
     file: "packages/Common/Server/API/CloudConnectionAPI.ts",
     path: "/test",
     rule: "check",

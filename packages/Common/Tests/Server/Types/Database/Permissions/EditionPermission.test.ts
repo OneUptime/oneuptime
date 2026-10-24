@@ -44,6 +44,11 @@ import StatusPageSSO from "../../../../../Models/DatabaseModels/StatusPageSso";
 import Team from "../../../../../Models/DatabaseModels/Team";
 import TeamComplianceSetting from "../../../../../Models/DatabaseModels/TeamComplianceSetting";
 import AuditLogExport from "../../../../../Models/DatabaseModels/AuditLogExport";
+import CustomRole from "../../../../../Models/DatabaseModels/CustomRole";
+import CustomRolePermission from "../../../../../Models/DatabaseModels/CustomRolePermission";
+import ApiKeyCustomRole from "../../../../../Models/DatabaseModels/ApiKeyCustomRole";
+import TeamCustomRole from "../../../../../Models/DatabaseModels/TeamCustomRole";
+import TeamPermission from "../../../../../Models/DatabaseModels/TeamPermission";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthenticatedException from "../../../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
@@ -62,9 +67,10 @@ import { setTestBillingEnabled } from "../../../Enterprise/TestBillingFlag";
 
 /*
  * EditionPermission is the license gate on enterprise CONFIGURATION: creating
- * or updating the four @TableEditionAccessControl({ requiresEnterprise })
- * models - project SCIM, status page SCIM, team compliance settings and
- * audit log exports.
+ * or updating the @TableEditionAccessControl({ requiresEnterprise }) models -
+ * project SCIM, status page SCIM, team compliance settings, custom roles
+ * (the role, the permissions in it, and the teams it is given to) and audit
+ * log exports.
  *
  * The rules under test:
  *   - billing on (the cloud): never refuses; plan gates live in
@@ -128,6 +134,14 @@ const ENTERPRISE_MODELS: ReadonlyArray<[string, ModelType, EnterpriseFeature]> =
       TeamComplianceSetting,
       EnterpriseFeature.TeamCompliance,
     ],
+    ["CustomRole", CustomRole, EnterpriseFeature.CustomRoles],
+    [
+      "CustomRolePermission",
+      CustomRolePermission,
+      EnterpriseFeature.CustomRoles,
+    ],
+    ["TeamCustomRole", TeamCustomRole, EnterpriseFeature.CustomRoles],
+    ["ApiKeyCustomRole", ApiKeyCustomRole, EnterpriseFeature.CustomRoles],
     ["AuditLogExport", AuditLogExport, EnterpriseFeature.AuditLogs],
   ];
 
@@ -159,10 +173,18 @@ const GLOBAL_SSO_MODELS: ReadonlyArray<[string, ModelType]> = [
   ["GlobalOIDCProject", GlobalOIDCProject],
 ];
 
+/*
+ * Ordinary models, the edition check never gates. Teams and a team's own
+ * permissions are among them: role-based access control is in every
+ * edition, and what a team holds through a custom role is its own
+ * TeamPermission rows, which keep applying when custom roles cannot be
+ * changed.
+ */
 const ORDINARY_MODELS: ReadonlyArray<[string, ModelType]> = [
   ["Project", Project],
   ["Monitor", Monitor],
   ["Team", Team],
+  ["TeamPermission", TeamPermission],
   ["GlobalConfig", GlobalConfig],
 ];
 

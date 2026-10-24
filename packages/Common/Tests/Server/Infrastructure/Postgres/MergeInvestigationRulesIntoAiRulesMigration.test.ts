@@ -19,7 +19,12 @@ import {
 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1806910000000-MergeInvestigationRulesIntoAiRules";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import AutoRemediationRule from "../../../../Models/DatabaseModels/AutoRemediationRule";
+import { TELEMETRY_AI_RULE_CRITERIA_FIELDS } from "../../../../Types/AI/AiRuleCriteria";
 import { AUTOMATIC_FIX_SWITCH_COLUMNS } from "../../../../Types/AI/AutomaticFixPullRequests";
+import {
+  TELEMETRY_AI_LANES,
+  TelemetryAiLaneDefinition,
+} from "../../../../Types/AI/TelemetryAi";
 import AutoRemediationTriggerEntity from "../../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import ColumnLength from "../../../../Types/Database/ColumnLength";
 import { describe, expect, test } from "@jest/globals";
@@ -346,9 +351,27 @@ describe("MergeInvestigationRulesIntoAiRules - up()", () => {
     }
   });
 
-  test("the lanes are the AI rules' kinds of signal", () => {
+  /*
+   * Every kind of AI rule there was when it ran: incidents' and alerts'. A
+   * telemetry product's AI rules (the Profiler's first) came after it, each
+   * with a migration of its own (AddProfileAiRules), with no investigation
+   * rules to move.
+   */
+  test("the lanes are the AI rules' kinds of signal, but the telemetry products' that came after it", () => {
+    const telemetryTriggers: Array<AutoRemediationTriggerEntity> =
+      Object.values(TELEMETRY_AI_LANES).map(
+        (lane: TelemetryAiLaneDefinition): AutoRemediationTriggerEntity => {
+          return lane.triggerEntityType;
+        },
+      );
+
+    expect(telemetryTriggers).toContain(AutoRemediationTriggerEntity.Profile);
     expect([...AI_RULE_LANES].sort()).toEqual(
-      Object.values(AutoRemediationTriggerEntity).sort(),
+      Object.values(AutoRemediationTriggerEntity)
+        .filter((type: AutoRemediationTriggerEntity): boolean => {
+          return !telemetryTriggers.includes(type);
+        })
+        .sort(),
     );
   });
 
@@ -368,9 +391,16 @@ describe("MergeInvestigationRulesIntoAiRules - up()", () => {
     }
   });
 
-  test("the lists it reads are every list the AI rule declares but the runbooks and Runners, which only fixing uses", () => {
+  /*
+   * The telemetry products' lists (a rule's services and their labels)
+   * came after it too, with the telemetry products' AI rules.
+   */
+  test("the lists it reads are every list the AI rule declares but the runbooks and Runners, which only fixing uses, and the telemetry products' that came after it", () => {
     const modelJoinTables: Map<string, string> = getModelJoinTables();
 
+    expect([...modelJoinTables.keys()]).toEqual(
+      expect.arrayContaining(["services", "serviceLabels"]),
+    );
     expect(
       RULE_LIST_TABLES.map((table: RuleListTable): [string, string] => {
         return [table.key, table.aiRuleTable];
@@ -378,7 +408,11 @@ describe("MergeInvestigationRulesIntoAiRules - up()", () => {
     ).toEqual(
       [...modelJoinTables.entries()]
         .filter(([property]: [string, string]): boolean => {
-          return property !== "runbooks" && property !== "commandRunners";
+          return (
+            property !== "runbooks" &&
+            property !== "commandRunners" &&
+            !TELEMETRY_AI_RULE_CRITERIA_FIELDS.includes(property)
+          );
         })
         .sort(([first]: [string, string], [second]: [string, string]) => {
           return (

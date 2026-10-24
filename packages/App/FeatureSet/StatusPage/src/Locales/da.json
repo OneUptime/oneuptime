@@ -340,7 +340,27 @@
       "title": "Adgang nægtet",
       "description": "Du har ikke tilladelse til at få adgang til denne side."
     },
-    "generic": "Noget gik galt. Prøv venligst igen."
+    "generic": "Noget gik galt. Prøv venligst igen.",
+    "addressNotSetUp": {
+      "title": "OneUptime er ikke sat op til denne adresse",
+      "description": "Du åbnede {{visited}}, men denne OneUptime er sat op til at åbne på {{configured}}.",
+      "openConfigured": "Åbn OneUptime på {{configured}}",
+      "hostHeading": "Brug denne adresse til OneUptime",
+      "hostStep": "Sæt HOST til denne adresse i config.env:",
+      "restartStep": "Start derefter OneUptime igen:",
+      "helm": "På Kubernetes skal du i stedet sætte host til denne adresse i dine Helm-values og derefter opgradere releasen.",
+      "domainHeading": "Er det domænet for en statusside?",
+      "domainSteps": "Tilføj det til statussiden under Brugerdefinerede domæner, og bekræft det. Statussiden vises her, så snart domænet er bekræftet.",
+      "proxyTitle": "Din proxy sendte ikke denne adresse videre",
+      "proxyDescription": "Du åbnede {{visited}}, den adresse denne OneUptime er sat op til, men anmodningen nåede OneUptime under et andet værtsnavn.",
+      "proxyHeading": "Send værtsnavnet videre",
+      "proxySteps": "Proxyen foran OneUptime skal sende det værtsnavn videre, som browseren bad om. Caddy gør det som standard. Til Nginx eller Apache skal du tilføje denne linje:",
+      "noPageTitle": "Der er ingen statusside på denne adresse",
+      "noPageDescription": "{{visited}} er ikke adressen på en statusside.",
+      "copy": "Kopiér",
+      "copied": "Kopieret!",
+      "copyFailed": "Din browser lod ikke siden kopiere linjen. Den er markeret ovenfor, så du selv kan kopiere den."
+    }
   },
   "footer": {
     "poweredBy": "Drevet af OneUptime"

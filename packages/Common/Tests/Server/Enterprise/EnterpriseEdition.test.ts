@@ -723,11 +723,12 @@ describe("EnterpriseEdition runtime state (isFeatureActive)", () => {
     }
   });
 
-  test("the runtime features are SCIM, audit logging and retention overrides, in lapse-log order", () => {
+  test("the runtime features are SCIM, audit logging, retention overrides and status pages without Powered by OneUptime, in lapse-log order", () => {
     expect([...RUNTIME_ENTERPRISE_FEATURES]).toEqual([
       EnterpriseFeature.SCIM,
       EnterpriseFeature.AuditLogs,
       EnterpriseFeature.TelemetryRetention,
+      EnterpriseFeature.StatusPageBranding,
     ]);
     expect(RUNTIME_ENTERPRISE_FEATURES as ReadonlyArray<string>).not.toContain(
       "sso",
@@ -753,6 +754,10 @@ describe("EnterpriseEdition model to feature map", () => {
     ["ProjectSCIM", EnterpriseFeature.SCIM],
     ["StatusPageSCIM", EnterpriseFeature.SCIM],
     ["TeamComplianceSetting", EnterpriseFeature.TeamCompliance],
+    ["CustomRole", EnterpriseFeature.CustomRoles],
+    ["CustomRolePermission", EnterpriseFeature.CustomRoles],
+    ["TeamCustomRole", EnterpriseFeature.CustomRoles],
+    ["ApiKeyCustomRole", EnterpriseFeature.CustomRoles],
     // Exporting the audit log is part of audit logging.
     ["AuditLogExport", EnterpriseFeature.AuditLogs],
   ] as Array<[string, EnterpriseFeature]>)(
@@ -762,13 +767,17 @@ describe("EnterpriseEdition model to feature map", () => {
     },
   );
 
-  test("maps exactly the four enterprise configuration tables", () => {
+  test("maps exactly the eight enterprise configuration tables", () => {
     expect(EnterpriseEdition.getMappedTableNames().sort()).toEqual(
       [
         "AuditLogExport",
         "ProjectSCIM",
         "StatusPageSCIM",
         "TeamComplianceSetting",
+        "CustomRole",
+        "CustomRolePermission",
+        "TeamCustomRole",
+        "ApiKeyCustomRole",
       ].sort(),
     );
   });

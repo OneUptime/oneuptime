@@ -111,6 +111,9 @@ import {
 } from "Common/Types/Workspace/WorkspaceChannelLink";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import RemediationSuggestionCard from "../../../Components/AutoRemediation/RemediationSuggestionCard";
+import useAiCardFold, {
+  AiCardFoldWiring,
+} from "../../../Components/AI/useAiCardFold";
 import AlertAffectedResources from "./AffectedResources";
 import MonitorSummarySnapshotCard from "../../../Components/Monitor/MonitorSummarySnapshotCard";
 import ExceptionsViewer from "../../../Components/Exceptions/ExceptionsViewer";
@@ -204,6 +207,14 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
   const modelIdString: string = modelId.toString();
+  /*
+   * The AI card folds into one line - "AI investigation is off", and why -
+   * when OneUptime AI neither investigated nor fixed this alert because
+   * something was off for it. The Remediation card tells it whether fixing
+   * did anything, and it tells the Remediation card when the line says
+   * "nothing was fixed" for both (useAiCardFold).
+   */
+  const aiCardFold: AiCardFoldWiring = useAiCardFold(modelIdString);
 
   const [alertStateTimeline, setAlertStateTimeline] = useState<
     AlertStateTimeline[]
@@ -1046,12 +1057,15 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             onReportSummaryChange={onAIInvestigationReportSummaryChange}
             onVerdictChange={onAIInvestigationVerdictChange}
             onAnalysisAvailable={refreshFeedAfterAnalysisAvailable}
+            remediationState={aiCardFold.remediationState}
+            onCardFoldChange={aiCardFold.onFoldChange}
             renderConversation={(slot: InvestigationConversationSlot) => {
               return (
                 <InvestigationConversation
                   subjectType="alert"
                   subjectId={modelId}
                   investigationStage={slot.investigationStage}
+                  fold={slot.fold}
                 />
               );
             }}
@@ -1212,7 +1226,12 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             seriesLabels={seriesLabels}
           />
 
-          <RemediationSuggestionCard alertId={modelId} hideIfEmpty={true} />
+          <RemediationSuggestionCard
+            alertId={modelId}
+            hideIfEmpty={true}
+            onFoldStateChange={aiCardFold.onRemediationStateChange}
+            aiCardFold={aiCardFold.fold}
+          />
 
           <EntityRunbooks alertId={modelId} hideIfEmpty={true} />
 

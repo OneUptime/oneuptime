@@ -45,7 +45,7 @@ import useAsyncEffect from "use-async-effect";
 import SubscriberNotificationWarnings from "../../../Components/StatusPage/SubscriberNotificationWarnings";
 import SubscriberChannelsCard from "../../../Components/StatusPage/SubscriberChannelsCard";
 import SubscriberNotificationsCard from "../../../Components/StatusPage/SubscriberNotificationsCard";
-import SubscriberRestrictionsCard from "../../../Components/StatusPage/SubscriberRestrictionsCard";
+import SubscriberRestrictionsSettings from "../../../Components/StatusPage/SubscriberRestrictionsSettings";
 import SubscriberChoicesCard from "../../../Components/StatusPage/SubscriberChoicesCard";
 import SubscriberEmailFooterCard from "../../../Components/StatusPage/SubscriberEmailFooterCard";
 import {
@@ -224,7 +224,7 @@ const StatusPageSubscriberSettings: FunctionComponent<
        * Who may be a subscriber, whatever the channel: only the page's
        * private users, only addresses at the page's domains.
        */}
-      <SubscriberRestrictionsCard statusPageId={modelId} />
+      <SubscriberRestrictionsSettings statusPageId={modelId} />
 
       {/*
        * What a visitor picks when they subscribe: which parts of the page,

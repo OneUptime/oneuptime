@@ -340,7 +340,27 @@
       "title": "禁止访问",
       "description": "您没有权限访问此页面。"
     },
-    "generic": "出现错误，请重试。"
+    "generic": "出现错误，请重试。",
+    "addressNotSetUp": {
+      "title": "此地址未设置 OneUptime",
+      "description": "您打开的是 {{visited}}，但此 OneUptime 设置为在 {{configured}} 打开。",
+      "openConfigured": "在 {{configured}} 打开 OneUptime",
+      "hostHeading": "将此地址用于 OneUptime",
+      "hostStep": "在 config.env 中将 HOST 设为此地址：",
+      "restartStep": "然后重新启动 OneUptime：",
+      "helm": "在 Kubernetes 上，请改为在 Helm values 中将 host 设为此地址，然后升级该 release。",
+      "domainHeading": "这是状态页的域名吗？",
+      "domainSteps": "在状态页的“自定义域名”中添加它，然后完成验证。验证通过后，状态页会显示在这里。",
+      "proxyTitle": "您的代理没有传递此地址",
+      "proxyDescription": "您打开的 {{visited}} 正是此 OneUptime 设置的地址，但请求以另一个主机名到达了 OneUptime。",
+      "proxyHeading": "传递主机名",
+      "proxySteps": "OneUptime 前面的代理必须传递浏览器请求的主机名。Caddy 默认会这样做。对于 Nginx 或 Apache，请添加这一行：",
+      "noPageTitle": "此地址没有状态页",
+      "noPageDescription": "{{visited}} 不是状态页的地址。",
+      "copy": "复制",
+      "copied": "已复制！",
+      "copyFailed": "您的浏览器不允许此页面复制这一行。这一行已在上方选中，您可以自行复制。"
+    }
   },
   "footer": {
     "poweredBy": "由 OneUptime 提供"

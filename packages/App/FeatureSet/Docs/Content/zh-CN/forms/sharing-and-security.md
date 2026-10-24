@@ -94,7 +94,7 @@ sequenceDiagram
 
 IPv4 地址必须按 IPv4 的方式书写：如果按 IPv6 的方式书写，例如 `::ffff:203.0.113.7`，会被拒绝。每次保存列表时（无论来自仪表板、API、Terraform 还是工作流）都会检查它，永远无法匹配的行会被拒绝，并显示指明该行的消息。将列表留空即可允许所有网络。一旦列表中有条目，无法确定地址的请求就会被拒绝。
 
-在 OneUptime Cloud 上，设置 IP 允许列表需要 **Scale** 套餐——通过 API 创建带有允许列表的表单时和编辑表单时都是如此——与 [公开仪表板](/docs/dashboards/sharing) 的 IP 允许列表相同。清空列表在任何套餐上都可以进行。
+在 OneUptime Cloud 上，设置 IP 允许列表需要 **Scale** 套餐——通过 API 创建带有允许列表的表单时和编辑表单时都是如此——与 [公开仪表板](/docs/dashboards/sharing) 的 IP 允许列表相同。清空列表在任何套餐上都可以进行。自托管时，更改它属于 Enterprise Edition：在 Community Edition 上，已设置的列表会继续生效，且只能移除。
 
 ### 来自其他网站的请求
 

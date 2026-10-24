@@ -25,6 +25,35 @@ export function getProfilesBreadcrumbs(path: string): Array<Link> | undefined {
       "Profiler",
       "Setup guide",
     ]),
+    /*
+     * The AI section's pages name the side-menu section they live in, as
+     * the Incidents' AI pages do.
+     */
+    ...BuildBreadcrumbLinksByTitles(PageMap.PROFILES_AI_INSIGHTS, [
+      "Project",
+      "Profiler",
+      "AI",
+      "Insights",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PROFILES_AI_INSIGHT_VIEW, [
+      "Project",
+      "Profiler",
+      "AI",
+      "Insights",
+      "Insight",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PROFILES_AI_LOGS, [
+      "Project",
+      "Profiler",
+      "AI",
+      "Logs",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PROFILES_AI_SETTINGS, [
+      "Project",
+      "Profiler",
+      "AI",
+      "Settings",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

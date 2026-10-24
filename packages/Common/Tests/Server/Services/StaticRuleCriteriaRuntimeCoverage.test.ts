@@ -79,6 +79,36 @@ function extractSharedMatcherMethodFields(
   return extractLegacyFields(matcherSource.slice(start, end));
 }
 
+/*
+ * AI rules have a second form: a telemetry product's AI rules
+ * (TelemetryAiRulesTable) - the same model, with the lane's trigger, whose
+ * conditions are about a service and are evaluated by TelemetryAiRules
+ * (Common/Types/AI/TelemetryAi). Between them the two forms offer every
+ * field the model registers; each is held to its own evaluator.
+ */
+interface SecondRuleForm {
+  formFile: string;
+  evaluatorFile: string;
+}
+
+// An evaluator reads a rule's criteria, and hands them to the shared matcher.
+const SELECTS_CRITERIA: RegExp = /criteria\s*:\s*true/;
+const CALLS_SHARED_CRITERIA_MATCHER: RegExp =
+  /RuleCriteriaMatcher\.matchesWithLegacy(?:Sync)?\(/;
+
+const SECOND_RULE_FORMS: Record<string, SecondRuleForm> = {
+  AutoRemediationRule: {
+    formFile: path.join(
+      DASHBOARD_SOURCE_ROOT,
+      "Components/TelemetryAi/TelemetryAiRulesTable.tsx",
+    ),
+    evaluatorFile: path.join(
+      COMMON_ROOT,
+      "Server/Utils/AI/TelemetryAi/TelemetryAiRules.ts",
+    ),
+  },
+};
+
 function listTypescriptReactFiles(directoryPath: string): Array<string> {
   const result: Array<string> = [];
 
@@ -165,6 +195,7 @@ const MATCH_CRITERIA_FORM: RegExp =
 function discoverStaticRuleForms(): {
   formFiles: Array<string>;
   formsByModel: Map<string, FormCoverage>;
+  secondFormsByModel: Map<string, FormCoverage>;
   metricPipelineFile: string;
 } {
   const formFiles: Array<string> = listTypescriptReactFiles(
@@ -179,6 +210,7 @@ function discoverStaticRuleForms(): {
     "Pages/Metrics/Settings/PipelineRules.tsx",
   );
   const formsByModel: Map<string, FormCoverage> = new Map();
+  const secondFormsByModel: Map<string, FormCoverage> = new Map();
   const modelTypePattern: RegExp = /modelType=\{([A-Za-z][A-Za-z0-9]*Rule)\}/g;
 
   for (const filePath of formFiles) {
@@ -202,6 +234,13 @@ function discoverStaticRuleForms(): {
       });
 
       expect(fields.size).toBeGreaterThan(0);
+
+      if (SECOND_RULE_FORMS[modelName]?.formFile === filePath) {
+        expect(secondFormsByModel.has(modelName)).toBe(false);
+        secondFormsByModel.set(modelName, { fields, filePath });
+        continue;
+      }
+
       expect(formsByModel.has(modelName)).toBe(false);
       formsByModel.set(modelName, { fields, filePath });
     }
@@ -210,6 +249,7 @@ function discoverStaticRuleForms(): {
   return {
     formFiles,
     formsByModel,
+    secondFormsByModel,
     metricPipelineFile,
   };
 }
@@ -258,17 +298,21 @@ function getInheritedRuleModelNames(): Array<string> {
 }
 
 describe("static rule criteria runtime coverage", () => {
-  const { formFiles, formsByModel, metricPipelineFile } =
+  const { formFiles, formsByModel, secondFormsByModel, metricPipelineFile } =
     discoverStaticRuleForms();
   const inheritedRuleModelNames: Array<string> = getInheritedRuleModelNames();
 
   /*
-   * 71 forms and 83 models: the investigation rules' form and model went
-   * when they became AI rules - one form, AiRulesTable, for the one model.
+   * 72 forms and 83 models: the investigation rules' form and model went
+   * when they became AI rules - AiRulesTable for incidents and alerts, and
+   * TelemetryAiRulesTable for the telemetry products, for the one model.
    */
-  test("all 71 static match-criteria forms route their 83 rule models through ModelForm", () => {
-    expect(formFiles).toHaveLength(71);
+  test("all 72 static match-criteria forms route their 83 rule models through ModelForm", () => {
+    expect(formFiles).toHaveLength(72);
     expect(formsByModel.size).toBe(83);
+    expect([...secondFormsByModel.keys()]).toEqual(
+      Object.keys(SECOND_RULE_FORMS),
+    );
     expect([...formsByModel.keys()].sort()).toEqual(inheritedRuleModelNames);
     expect(Object.keys(RULE_CRITERIA_FIELDS_BY_MODEL).sort()).toEqual(
       inheritedRuleModelNames,
@@ -284,24 +328,36 @@ describe("static rule criteria runtime coverage", () => {
         throw new Error(`No rule criteria fields registered for ${modelName}`);
       }
 
-      expect([...registeredFields].sort()).toEqual([...form.fields].sort());
+      const secondForm: FormCoverage | undefined =
+        secondFormsByModel.get(modelName);
 
-      const source: string = fs.readFileSync(form.filePath, "utf8");
-      const modelTypeOffset: number = source.indexOf(
-        `modelType={${modelName}}`,
-      );
-      const openingTag: string = source.slice(
-        Math.max(0, modelTypeOffset - 100),
-        modelTypeOffset,
+      expect([...registeredFields].sort()).toEqual(
+        [
+          ...new Set<string>([
+            ...form.fields,
+            ...(secondForm ? [...secondForm.fields] : []),
+          ]),
+        ].sort(),
       );
 
-      /*
-       * RuleTable (and LabelRuleTable, which wraps it) renders a ModelTable
-       * with the same props, so its forms go through ModelForm just the same.
-       */
-      expect(openingTag).toMatch(
-        /<(?:ModelTable|LabelRuleTable|RuleTable)<[^>]+>\s*$/,
-      );
+      for (const coverage of secondForm ? [form, secondForm] : [form]) {
+        const source: string = fs.readFileSync(coverage.filePath, "utf8");
+        const modelTypeOffset: number = source.indexOf(
+          `modelType={${modelName}}`,
+        );
+        const openingTag: string = source.slice(
+          Math.max(0, modelTypeOffset - 100),
+          modelTypeOffset,
+        );
+
+        /*
+         * RuleTable (and LabelRuleTable, which wraps it) renders a ModelTable
+         * with the same props, so its forms go through ModelForm just the same.
+         */
+        expect(openingTag).toMatch(
+          /<(?:ModelTable|LabelRuleTable|RuleTable)<[^>]+>\s*$/,
+        );
+      }
     }
 
     const modelFormSource: string = fs.readFileSync(
@@ -409,6 +465,37 @@ describe("static rule criteria runtime coverage", () => {
       expect([...extractLegacyFields(evaluatorSource)].sort()).toEqual(
         [...form.fields].sort(),
       );
+    },
+  );
+
+  test.each(Object.entries(SECOND_RULE_FORMS))(
+    "%s's second form is evaluated, every field, by its own evaluator",
+    (modelName: string, second: SecondRuleForm) => {
+      const form: FormCoverage | undefined = secondFormsByModel.get(modelName);
+
+      expect(form).toBeDefined();
+
+      const evaluatorSource: string = fs.readFileSync(
+        second.evaluatorFile,
+        "utf8",
+      );
+
+      expect(evaluatorSource).toContain(modelName);
+      expect(evaluatorSource).toMatch(SELECTS_CRITERIA);
+      expect(evaluatorSource).toMatch(CALLS_SHARED_CRITERIA_MATCHER);
+      expect([...extractLegacyFields(evaluatorSource)].sort()).toEqual(
+        [...form!.fields].sort(),
+      );
+
+      // And none of them is a field the first form already offers.
+      const firstForm: FormCoverage | undefined = formsByModel.get(modelName);
+
+      expect(firstForm).toBeDefined();
+      expect(
+        [...form!.fields].filter((field: string): boolean => {
+          return firstForm!.fields.has(field);
+        }),
+      ).toEqual([]);
     },
   );
 

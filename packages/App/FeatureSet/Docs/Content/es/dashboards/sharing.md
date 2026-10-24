@@ -68,7 +68,7 @@ Para un control más estricto (cuentas separadas para cada espectador, un regist
 
 ## Lista de IP permitidas
 
-En **Más ajustes** de la página **Uso compartido**, la sección **Lista de IP permitidas** (la columna `ipWhitelist`) limita el enlace público a las direcciones IP o los rangos IPv4 que enumeres, uno por línea, por ejemplo `203.0.113.7` o `10.0.0.0/8`. Se aplica con o sin contraseña; no afecta a los miembros del proyecto que inician sesión. Déjala vacía para permitir todas las direcciones. Se guarda por separado de la elección, y cambiarla requiere el plan **Scale** en OneUptime Cloud; vaciarla funciona en todos los planes. Mientras hay una lista en vigor, el encabezado plegado de **Más ajustes** muestra **Lista de IP permitidas** con el número de entradas que contiene.
+En **Más ajustes** de la página **Uso compartido**, la sección **Lista de IP permitidas** (la columna `ipWhitelist`) limita el enlace público a las direcciones IP o los rangos IPv4 que enumeres, uno por línea, por ejemplo `203.0.113.7` o `10.0.0.0/8`. Se aplica con o sin contraseña; no afecta a los miembros del proyecto que inician sesión. Déjala vacía para permitir todas las direcciones. Se guarda por separado de la elección, y cambiarla requiere el plan **Scale** en OneUptime Cloud; vaciarla funciona en todos los planes. Mientras hay una lista en vigor, el encabezado plegado de **Más ajustes** muestra **Lista de IP permitidas** con el número de entradas que contiene. En instalaciones autoalojadas, cambiarla forma parte de la Enterprise Edition: en la Community Edition, una lista ya configurada sigue aplicándose y solo se puede quitar.
 
 Úsala cuando:
 

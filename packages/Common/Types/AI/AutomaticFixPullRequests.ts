@@ -1,4 +1,6 @@
-import AutoRemediationTriggerEntity from "../AutoRemediation/AutoRemediationTriggerEntity";
+import AutoRemediationTriggerEntity, {
+  IncidentOrAlertTriggerEntity,
+} from "../AutoRemediation/AutoRemediationTriggerEntity";
 import {
   CodeRepositoryAllowance,
   EVERY_CODE_REPOSITORY,
@@ -81,7 +83,7 @@ export const AUTOMATIC_FIX_PULL_REQUESTS: ReadonlyArray<AutomaticFixPullRequest>
   [AutomaticFixPullRequest.CodeFix, AutomaticFixPullRequest.MissingTelemetry];
 
 export const AUTOMATIC_FIX_SWITCH_COLUMNS: Record<
-  AutoRemediationTriggerEntity,
+  IncidentOrAlertTriggerEntity,
   AutomaticFixSwitchColumn
 > = {
   [AutoRemediationTriggerEntity.Incident]: "enableAutomaticIncidentRemediation",
@@ -106,10 +108,10 @@ export const REMEDIATION_RULE_PULL_REQUEST_DEFAULT: boolean = true;
 export const getAutomaticFixSignal: (subject: {
   incidentId?: unknown;
   alertId?: unknown;
-}) => AutoRemediationTriggerEntity | null = (subject: {
+}) => IncidentOrAlertTriggerEntity | null = (subject: {
   incidentId?: unknown;
   alertId?: unknown;
-}): AutoRemediationTriggerEntity | null => {
+}): IncidentOrAlertTriggerEntity | null => {
   const hasIncident: boolean = Boolean(subject.incidentId);
   const hasAlert: boolean = Boolean(subject.alertId);
 
@@ -196,7 +198,7 @@ export function doesRuleOpenPullRequest(
  */
 export function decideAutomaticFixPullRequest(data: {
   project: AutomaticFixSwitchValues;
-  signal: AutoRemediationTriggerEntity;
+  signal: IncidentOrAlertTriggerEntity;
   pullRequest: AutomaticFixPullRequest;
   // Null when the rules could not be read.
   rules: AutomaticFixPullRequestRules | null;
@@ -255,7 +257,7 @@ export function decideAutomaticFixPullRequest(data: {
  * fixing switch (a ProjectService select).
  */
 export function getAutomaticFixSwitchSelect(
-  signal: AutoRemediationTriggerEntity,
+  signal: IncidentOrAlertTriggerEntity,
 ): Partial<Record<AutomaticFixSwitchColumn, true>> {
   return { [AUTOMATIC_FIX_SWITCH_COLUMNS[signal]]: true };
 }
@@ -280,7 +282,7 @@ export const REMEDIATION_RULE_PULL_REQUEST_SELECT: {
 // Why a pull request did not open, in the words a debug log line ends with.
 export function describeAutomaticFixPullRequestBlocker(data: {
   blocker: AutomaticFixPullRequestBlocker;
-  signal: AutoRemediationTriggerEntity;
+  signal: IncidentOrAlertTriggerEntity;
   pullRequest: AutomaticFixPullRequest;
 }): string {
   const signal: string =

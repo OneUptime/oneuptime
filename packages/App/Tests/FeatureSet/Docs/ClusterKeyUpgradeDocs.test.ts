@@ -25,7 +25,7 @@ import path from "path";
  *     key;
  *   - the commands it says give config.env a random value are the ones
  *     that run Scripts/Install/ReplacePlaceholderSecrets.js (a step of
- *     npm start, and configure.sh, which npm run update runs), and the Helm
+ *     npm start, which npm run update ends with), and the Helm
  *     value it names is the chart's;
  *   - it sits after the note on HTTPS cookies and before the note on the
  *     header the key travels in, and points at the Docker Compose
@@ -193,7 +193,9 @@ describe("the English upgrade note on a placeholder ONEUPTIME_SECRET", () => {
     expect(scripts["start"]).toContain(
       "node ./Scripts/Install/ReplacePlaceholderSecrets.js",
     );
-    expect(scripts["update"]).toContain("npm run prerun");
+    // npm run update ends with npm start, which runs the step itself.
+    expect(scripts["update"]).toMatch(/&& npm run start$/);
+    expect(scripts["update"]).toContain("node ./Scripts/Install/Update.js");
     expect(scripts["prerun"]).toContain("Scripts/Install/configure.sh");
     expect(source("Scripts/Install/configure.sh")).toContain(
       "node ./Scripts/Install/ReplacePlaceholderSecrets.js",

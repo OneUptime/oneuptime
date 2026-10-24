@@ -139,7 +139,7 @@ flowchart TB
 
 ### 自定义角色
 
-自定义角色是一组只需命名一次、即可授予多个团队和 API 密钥的权限：例如由 `IncidentMember`、`AlertMember` 和 `OnCallViewer` 组成的"事件响应人员"，或"团队负责人"。你授予它的每个团队和密钥都获得相同的权限，并且可以在一处统一更改。在 OneUptime Cloud 上，自定义角色与更改团队权限一样需要 Scale 套餐。
+自定义角色是一组只需命名一次、即可授予多个团队和 API 密钥的权限：例如由 `IncidentMember`、`AlertMember` 和 `OnCallViewer` 组成的"事件响应人员"，或"团队负责人"。你授予它的每个团队和密钥都获得相同的权限，并且可以在一处统一更改。在 OneUptime Cloud 上，自定义角色与更改团队权限一样需要 Scale 套餐。自托管时，自定义角色属于 Enterprise Edition：在 Community Edition 上，团队和 API 密钥已有的角色会继续生效，可以从团队或密钥中移除或删除，但不能创建或更改。
 
 :::steps
 1. 从 **产品** 菜单的 **设置** 下打开 **团队**。在侧边菜单中展开 **设置**，选择 **角色**，然后点击 **创建自定义角色**。

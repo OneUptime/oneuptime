@@ -20,6 +20,7 @@ import { getAiRuleShapeProblem } from "../../Types/AI/AiRule";
 import {
   AI_RULE_CRITERIA_FIELDS,
   getAiRuleCriteriaProblem,
+  hasAiRuleCriterionValue,
 } from "../../Types/AI/AiRuleCriteria";
 import { getInvestigationRuleWaitProblem } from "../../Types/AI/InvestigationRuleWait";
 
@@ -148,8 +149,7 @@ export class Service extends ProjectReferencesService<Model> {
     return (
       (data["criteria"] !== undefined && data["criteria"] !== null) ||
       AI_RULE_CRITERIA_FIELDS.some((field: string): boolean => {
-        const value: unknown = data[field];
-        return Array.isArray(value) && value.length > 0;
+        return hasAiRuleCriterionValue(field, data[field]);
       })
     );
   }

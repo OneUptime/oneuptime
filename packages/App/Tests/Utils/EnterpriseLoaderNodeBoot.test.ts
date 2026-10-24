@@ -115,6 +115,15 @@ describe("EnterpriseLoader under real node + ts-node", () => {
         "InstanceHealth:EvaluateRedisHealth",
         // Registered by ee only where a marketplace is named.
         "EnterpriseMarketplace:ReportUsage",
+        // Registered by ee only with billing on (OneUptime Cloud).
+        "Marketplace:ReportUsage",
+        "Marketplace:SyncPurchases",
+        "Marketplace:VercelBilling",
+        "MeteredPlan:ReportTelemetryMeteredPlan",
+        "PaymentProvider:CheckSubscriptionStatus",
+        "PaymentProvider:PopulatePlanNameInProject",
+        "PaymentProvider:UpdateTeamMembersIfNull",
+        "PaymentProvider:SendDailyEmailsToOwnersIfSubscriptionIsOverdue",
         // Newer than the fixture module, which does not register it.
         "AuditLogExport:ExportAuditLogs",
       ],

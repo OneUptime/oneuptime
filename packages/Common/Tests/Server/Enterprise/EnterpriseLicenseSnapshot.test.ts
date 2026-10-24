@@ -34,8 +34,12 @@ describe("EnterpriseFeature", () => {
     expect([...ALL_ENTERPRISE_FEATURES].sort()).toEqual(
       [
         "audit-logs",
+        "custom-roles",
         "instance-health",
+        "ip-allowlists",
         "scim",
+        "status-page-access-controls",
+        "status-page-branding",
         "team-compliance",
         "telemetry-retention",
       ].sort(),

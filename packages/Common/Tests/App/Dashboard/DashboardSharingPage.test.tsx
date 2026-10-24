@@ -31,8 +31,10 @@ import { getJestSpyOn } from "../../Spy";
  * public link, and the IP whitelist. None of them is left: who can view
  * the dashboard is one choice, with the link under it.
  *
- * The allowlist card is recorded rather than drawn (CardModelDetail has
- * suites of its own): what matters is what the page hands it - and what the
+ * The IP allowlist is an Enterprise feature behind a core shell
+ * (IpAllowlistSettings; EnterpriseSettingShells holds it, and
+ * ee/Tests/UI/IpAllowlists the Enterprise card). The shell is recorded
+ * rather than drawn: what matters is what the page hands it - and what the
  * folded section says, which is the real section.
  */
 
@@ -54,7 +56,10 @@ type Recorder = (
 
 const mockRecorder: Recorder = (kind: string) => {
   return (props: Record<string, unknown>): ReactElement => {
-    const name: string = (props["name"] as string | undefined) || kind;
+    const name: string =
+      (props["cardName"] as string | undefined) ||
+      (props["name"] as string | undefined) ||
+      kind;
 
     (
       globalThis as unknown as { __sharingPageRecorded: RecorderStore }
@@ -81,6 +86,13 @@ jest.mock(
   },
 );
 
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/IpAllowlist/IpAllowlistSettings",
+  () => {
+    return { __esModule: true, default: mockRecorder("ip-allowlist-shell") };
+  },
+);
+
 import DashboardSharingPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Dashboards/View/Sharing";
 import DashboardSharingCopy, {
   DASHBOARD_IP_ALLOWLIST_ENTRIES_TEST_ID,
@@ -94,8 +106,6 @@ import SubscriptionPlan, {
   PlanType,
 } from "../../../Types/Billing/SubscriptionPlan";
 import ObjectID from "../../../Types/ObjectID";
-import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
-import FieldType from "../../../UI/Components/Types/FieldType";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 import {
@@ -166,43 +176,14 @@ function propsOf(name: string): Record<string, unknown> {
   return card!.props;
 }
 
-type FieldShape = {
-  field?: Record<string, unknown>;
-  title?: string;
-  fieldType?: string;
-  required?: boolean;
-  description?: string;
-  placeholder?: string;
-  customValidation?: (values: Record<string, unknown>) => string | null;
-  getElement?: (item: Dashboard) => ReactElement;
-};
-
-function formFields(): Array<FieldShape> {
-  return propsOf(ALLOWLIST_CARD)["formFields"] as Array<FieldShape>;
-}
-
-function detailFields(): Array<FieldShape> {
-  return (
-    propsOf(ALLOWLIST_CARD)["modelDetailProps"] as Record<string, unknown>
-  )["fields"] as Array<FieldShape>;
-}
-
-// What the allowlist card reads, handed to the page as the card would.
+// What the allowlist shell reads, handed to the page as the shell would.
 async function loadAllowlist(ipWhitelist: string | undefined): Promise<void> {
-  const item: Dashboard = new Dashboard();
-
-  if (ipWhitelist !== undefined) {
-    item.ipWhitelist = ipWhitelist;
-  }
-
-  const onItemLoaded: (item: Dashboard) => void = (
-    propsOf(ALLOWLIST_CARD)["modelDetailProps"] as {
-      onItemLoaded: (item: Dashboard) => void;
-    }
-  ).onItemLoaded;
+  const onLoaded: (ipAllowlist: string) => void = propsOf(ALLOWLIST_CARD)[
+    "onLoaded"
+  ] as (ipAllowlist: string) => void;
 
   await act(async () => {
-    onItemLoaded(item);
+    onLoaded(ipWhitelist || "");
   });
 }
 
@@ -321,158 +302,23 @@ describe("the folded Advanced section", () => {
   });
 });
 
-describe("the IP allowlist card", () => {
-  test("is the IP Allowlist, with what it does and how to leave it, for this dashboard", async () => {
+describe("the IP allowlist shell", () => {
+  test("is the dashboard's IP Allowlist, in the page's own words", async () => {
     await renderPage();
 
     const props: Record<string, unknown> = propsOf(ALLOWLIST_CARD);
-    const cardProps: Record<string, unknown> = props["cardProps"] as Record<
-      string,
-      unknown
-    >;
 
-    expect(cardProps["title"]).toBe("IP Allowlist");
-    expect(cardProps["description"]).toBe(
-      DashboardSharingCopy.ipAllowlistDescription,
-    );
-    expect(props["editButtonText"]).toBe("Edit IP Allowlist");
-    expect(props["isEditable"]).toBe(true);
-
-    const detail: Record<string, unknown> = props["modelDetailProps"] as Record<
-      string,
-      unknown
-    >;
-
-    expect(detail["modelType"]).toBe(Dashboard);
-    expect(detail["modelId"]).toEqual(new ObjectID(DASHBOARD_ID));
-  });
-
-  test("its form is the one list, not required, with what a line may hold - and nothing of the choice", async () => {
-    await renderPage();
-
-    expect(formFields()).toHaveLength(1);
-
-    const field: FieldShape = formFields()[0]!;
-
-    expect(field.field).toEqual({ ipWhitelist: true });
-    expect(field.title).toBe(IpAllowlistCopy.title);
-    expect(field.fieldType).toBe(FormFieldSchemaType.LongText);
-    expect(field.required).toBe(false);
-    expect(field.description).toBe(IpAllowlistCopy.fieldDescription);
-  });
-
-  test("its form refuses a list the server would misread", async () => {
-    await renderPage();
-
-    const validate: (values: Record<string, unknown>) => string | null =
-      formFields()[0]!.customValidation!;
-
-    expect(validate({ ipWhitelist: "" })).toBeNull();
-    expect(validate({ ipWhitelist: undefined })).toBeNull();
-    expect(validate({ ipWhitelist: "203.0.113.7\n10.0.0.0/8" })).toBeNull();
-    expect(validate({ ipWhitelist: "2001:db8::1" })).toBeNull();
-    expect(validate({ ipWhitelist: "\n \n" })).toBe(IpAllowlistCopy.blank);
-    expect(validate({ ipWhitelist: "office.example.com" })).toBe(
-      "office.example.com is not an IP address or an IPv4 range such as 10.0.0.0/8.",
-    );
-    expect(validate({ ipWhitelist: "10.0.0.0/33" })).toBe(
-      "10.0.0.0/33 is not an IP address or an IPv4 range such as 10.0.0.0/8.",
-    );
-    // The server has no IPv6 ranges.
-    expect(validate({ ipWhitelist: "2001:db8::/32" })).toBe(
-      "2001:db8::/32 is not an IP address or an IPv4 range such as 10.0.0.0/8.",
-    );
-  });
-
-  test.each([PlanType.Free, PlanType.Growth])(
-    "on %s, it names the Scale plan it needs",
-    async (current: PlanType) => {
-      plan = current;
-
-      await renderPage();
-
-      const rightElement: ReactElement = (
-        propsOf(ALLOWLIST_CARD)["cardProps"] as Record<string, unknown>
-      )["rightElement"] as ReactElement;
-
-      expect(rightElement).toBeTruthy();
-
-      render(rightElement);
-
-      expect(screen.getByText("Scale Plan")).toBeInTheDocument();
-    },
-  );
-
-  test.each([PlanType.Scale, PlanType.Enterprise, null])(
-    "on %s, no plan is named",
-    async (current: PlanType | null) => {
-      plan = current;
-
-      await renderPage();
-
-      expect(
-        (propsOf(ALLOWLIST_CARD)["cardProps"] as Record<string, unknown>)[
-          "rightElement"
-        ],
-      ).toBeUndefined();
-    },
-  );
-
-  describe("shows the list", () => {
-    function shown(ipWhitelist: string | undefined): HTMLElement {
-      const field: FieldShape = detailFields()[0]!;
-
-      expect(field.field).toEqual({ ipWhitelist: true });
-      expect(field.title).toBe(IpAllowlistCopy.title);
-      expect(field.fieldType).toBe(FieldType.LongText);
-
-      const item: Dashboard = new Dashboard();
-
-      if (ipWhitelist !== undefined) {
-        item.ipWhitelist = ipWhitelist;
-      }
-
-      const view: ReturnType<typeof render> = render(field.getElement!(item));
-
-      return view.container;
-    }
-
-    test("one address or range a line, as typed", async () => {
-      await renderPage();
-
-      const container: HTMLElement = shown(" 203.0.113.7 \n\n10.0.0.0/8\n");
-      const list: HTMLElement = within(container).getByTestId(
-        DASHBOARD_IP_ALLOWLIST_ENTRIES_TEST_ID,
-      );
-
-      expect(
-        within(list)
-          .getAllByRole("listitem")
-          .map((item: HTMLElement): string => {
-            return item.textContent || "";
-          }),
-      ).toEqual(["203.0.113.7", "10.0.0.0/8"]);
-    });
-
-    test("an empty list says every address may open the public link", async () => {
-      await renderPage();
-
-      expect(shown(undefined)).toHaveTextContent(
-        DashboardSharingCopy.ipAllowlistEmpty,
-      );
-      cleanup();
-      await renderPage();
-      expect(shown("")).toHaveTextContent(
-        DashboardSharingCopy.ipAllowlistEmpty,
-      );
-    });
-
-    test("a list of blank lines says no address may", async () => {
-      await renderPage();
-
-      expect(shown("\n \n")).toHaveTextContent(
-        DashboardSharingCopy.ipAllowlistNoAddress,
-      );
+    expect(props["modelType"]).toBe(Dashboard);
+    expect(props["modelId"]).toEqual(new ObjectID(DASHBOARD_ID));
+    expect(props).toMatchObject({
+      modelDetailId: "model-detail-dashboard-ip-allowlist",
+      title: IpAllowlistCopy.title,
+      description: DashboardSharingCopy.ipAllowlistDescription,
+      editButtonText: IpAllowlistCopy.editButton,
+      fieldDescription: IpAllowlistCopy.fieldDescription,
+      emptyText: DashboardSharingCopy.ipAllowlistEmpty,
+      noAddressText: DashboardSharingCopy.ipAllowlistNoAddress,
+      entriesTestId: DASHBOARD_IP_ALLOWLIST_ENTRIES_TEST_ID,
     });
   });
 });

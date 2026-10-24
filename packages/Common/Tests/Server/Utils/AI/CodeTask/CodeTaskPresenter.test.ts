@@ -1,6 +1,7 @@
 import FixProductionCheck from "../../../../../Types/AI/FixProductionCheck";
 import FixProductionStatus from "../../../../../Types/AI/FixProductionStatus";
 import AIAgentTaskPullRequestService from "../../../../../Server/Services/AIAgentTaskPullRequestService";
+import AIInsightService from "../../../../../Server/Services/AIInsightService";
 import AIRunEventService from "../../../../../Server/Services/AIRunEventService";
 import AIRunService from "../../../../../Server/Services/AIRunService";
 import AlertService from "../../../../../Server/Services/AlertService";
@@ -10,6 +11,7 @@ import UserService from "../../../../../Server/Services/UserService";
 import CodeTaskOrigin from "../../../../../Server/Utils/AI/CodeTask/CodeTaskOrigin";
 import CodeTaskPresenter from "../../../../../Server/Utils/AI/CodeTask/CodeTaskPresenter";
 import AIAgentTaskPullRequest from "../../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
+import AIInsight from "../../../../../Models/DatabaseModels/AIInsight";
 import AIRun from "../../../../../Models/DatabaseModels/AIRun";
 import AIRunEvent from "../../../../../Models/DatabaseModels/AIRunEvent";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
@@ -1056,5 +1058,233 @@ describe("CodeTaskOrigin", () => {
       READER,
     );
     expect(findAlerts).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A task OneUptime started on its own, from slow code it found in a
+ * service's profiles (Types/AI/TelemetryAi): a Code request nobody typed,
+ * stamped with the insight it came from. Code names that insight as what
+ * started it, above the request OneUptime wrote.
+ */
+describe("a task OneUptime started from an insight", () => {
+  const INSIGHT_ID: ObjectID = new ObjectID(
+    "4d4e5f6a-7b8c-4d9e-8f0a-1b2c3d4e5f60",
+  );
+
+  function oneUptimeRequest(): AIRun {
+    const run: AIRun = requestTurn({
+      id: TASK_ID,
+      status: AIRunStatus.Queued,
+      createdAt: "2026-10-24T09:00:10.000Z",
+      message: "Make OrderParser.parse in src/orders/parser.ts faster",
+    });
+    run.userId = undefined as never;
+    run.triggeredByAiInsightId = INSIGHT_ID;
+    return run;
+  }
+
+  function insightNamed(title: string): AIInsight {
+    const insight: AIInsight = new AIInsight();
+    insight._id = INSIGHT_ID.toString();
+    insight.title = title;
+    return insight;
+  }
+
+  test("isStartedByOneUptime: a Code request with no person, naming an insight", () => {
+    expect(CodeTaskOrigin.isStartedByOneUptime(oneUptimeRequest())).toBe(true);
+
+    const asked: AIRun = oneUptimeRequest();
+    asked.userId = USER_ID;
+    expect(CodeTaskOrigin.isStartedByOneUptime(asked)).toBe(false);
+
+    const noInsight: AIRun = oneUptimeRequest();
+    noInsight.triggeredByAiInsightId = undefined as never;
+    expect(CodeTaskOrigin.isStartedByOneUptime(noInsight)).toBe(false);
+
+    const otherRecipe: AIRun = oneUptimeRequest();
+    otherRecipe.codeFixTaskType = CodeFixTaskType.FixException;
+    expect(CodeTaskOrigin.isStartedByOneUptime(otherRecipe)).toBe(false);
+  });
+
+  test("is named by its insight's title, linked to it", () => {
+    expect(
+      CodeTaskOrigin.describe({
+        run: oneUptimeRequest(),
+        subjects: {
+          exceptions: new Map(),
+          incidents: new Map(),
+          alerts: new Map(),
+          insights: new Map([
+            [
+              INSIGHT_ID.toString(),
+              insightNamed(
+                "OrderParser.parse takes 18% of the CPU time in checkout",
+              ),
+            ],
+          ]),
+        },
+      }),
+    ).toEqual({
+      type: CodeTaskOriginType.Insight,
+      label: "OrderParser.parse takes 18% of the CPU time in checkout",
+      recordId: INSIGHT_ID.toString(),
+    });
+  });
+
+  test("an insight the reader may not read keeps its link, without its title", () => {
+    expect(
+      CodeTaskOrigin.describe({
+        run: oneUptimeRequest(),
+        subjects: {
+          exceptions: new Map(),
+          incidents: new Map(),
+          alerts: new Map(),
+        },
+      }),
+    ).toEqual({
+      type: CodeTaskOriginType.Insight,
+      label: "",
+      recordId: INSIGHT_ID.toString(),
+    });
+  });
+
+  test("a request a person asked stays theirs, whatever it names", () => {
+    const asked: AIRun = oneUptimeRequest();
+    asked.userId = USER_ID;
+
+    expect(
+      CodeTaskOrigin.describe({
+        run: asked,
+        subjects: {
+          exceptions: new Map(),
+          incidents: new Map(),
+          alerts: new Map(),
+        },
+        requesterName: "Jane Doe",
+      }),
+    ).toEqual({ type: CodeTaskOriginType.Request, label: "Jane Doe" });
+  });
+
+  test("isAboutInsight: a Code request naming an insight, whoever started it", () => {
+    expect(CodeTaskOrigin.isAboutInsight(oneUptimeRequest())).toBe(true);
+
+    // A person asked it from the finding (a rule that asks before fixing).
+    const asked: AIRun = oneUptimeRequest();
+    asked.userId = USER_ID;
+    expect(CodeTaskOrigin.isAboutInsight(asked)).toBe(true);
+
+    const noInsight: AIRun = oneUptimeRequest();
+    noInsight.triggeredByAiInsightId = undefined as never;
+    expect(CodeTaskOrigin.isAboutInsight(noInsight)).toBe(false);
+
+    const otherRecipe: AIRun = oneUptimeRequest();
+    otherRecipe.codeFixTaskType = CodeFixTaskType.FixException;
+    expect(CodeTaskOrigin.isAboutInsight(otherRecipe)).toBe(false);
+  });
+
+  test("the insights are read as the reader, for every request about one", async () => {
+    const otherInsight: ObjectID = new ObjectID(
+      "4d4e5f6a-7b8c-4d9e-8f0a-1b2c3d4e5f61",
+    );
+    const findInsights: jest.SpiedFunction<typeof AIInsightService.findBy> =
+      jest
+        .spyOn(AIInsightService, "findBy")
+        .mockResolvedValue([insightNamed("Slow")]);
+
+    const asked: AIRun = oneUptimeRequest();
+    asked.userId = USER_ID;
+    asked._id = REPLY_ID.toString();
+    asked.triggeredByAiInsightId = otherInsight;
+
+    const loaded: Parameters<typeof CodeTaskOrigin.describe>[0]["subjects"] =
+      await CodeTaskOrigin.loadSubjects({
+        projectId: PROJECT_ID,
+        runs: [oneUptimeRequest(), asked],
+        props: READER,
+      });
+
+    expect(loaded.insights?.get(INSIGHT_ID.toString())?.title).toBe("Slow");
+    expect(findInsights).toHaveBeenCalledTimes(1);
+
+    const read: { props: unknown; query: Record<string, unknown> } =
+      findInsights.mock.calls[0]![0] as never;
+
+    expect(read.props).toBe(READER);
+    expect(JSON.stringify(read.query["_id"])).toContain(INSIGHT_ID.toString());
+    expect(JSON.stringify(read.query["_id"])).toContain(
+      otherInsight.toString(),
+    );
+  });
+
+  test("an insight the reader may not read names nothing, and fails nothing", async () => {
+    jest
+      .spyOn(AIInsightService, "findBy")
+      .mockRejectedValue(new Error("You do not have permission to read"));
+
+    const loaded: Parameters<typeof CodeTaskOrigin.describe>[0]["subjects"] =
+      await CodeTaskOrigin.loadSubjects({
+        projectId: PROJECT_ID,
+        runs: [oneUptimeRequest()],
+        props: READER,
+      });
+
+    expect(loaded.insights?.size).toBe(0);
+  });
+
+  test("its conversation shows what started it above the request OneUptime wrote", async () => {
+    const task: AIRun = oneUptimeRequest();
+    jest.spyOn(AIRunService, "findOneById").mockResolvedValue(task);
+    jest.spyOn(AIRunService, "findBy").mockResolvedValue([]);
+    jest.spyOn(AIAgentTaskPullRequestService, "findBy").mockResolvedValue([]);
+    jest
+      .spyOn(AIInsightService, "findBy")
+      .mockResolvedValue([
+        insightNamed("OrderParser.parse takes 18% of the CPU time in checkout"),
+      ]);
+
+    const conversation: {
+      task: CodeTaskSummaryJSON;
+      turns: Array<CodeTaskTurnJSON>;
+    } = await CodeTaskPresenter.getConversation({
+      projectId: PROJECT_ID,
+      task,
+      canSeeChanges: true,
+      props: READER,
+    });
+
+    const first: CodeTaskTurnJSON = conversation.turns[0]!;
+
+    expect(first.origin).toEqual({
+      type: CodeTaskOriginType.Insight,
+      label: "OrderParser.parse takes 18% of the CPU time in checkout",
+      recordId: INSIGHT_ID.toString(),
+    });
+    expect(first.request?.message).toBe(
+      "Make OrderParser.parse in src/orders/parser.ts faster",
+    );
+    expect(first.requestedBy).toBeUndefined();
+    expect(conversation.task.origin.type).toBe(CodeTaskOriginType.Insight);
+  });
+
+  test("a person's request shows no origin beside it", async () => {
+    const asked: AIRun = oneUptimeRequest();
+    asked.userId = USER_ID;
+    jest.spyOn(AIRunService, "findOneById").mockResolvedValue(asked);
+    jest.spyOn(AIRunService, "findBy").mockResolvedValue([]);
+    jest.spyOn(AIAgentTaskPullRequestService, "findBy").mockResolvedValue([]);
+
+    const conversation: {
+      task: CodeTaskSummaryJSON;
+      turns: Array<CodeTaskTurnJSON>;
+    } = await CodeTaskPresenter.getConversation({
+      projectId: PROJECT_ID,
+      task: asked,
+      canSeeChanges: true,
+      props: READER,
+    });
+
+    expect(conversation.turns[0]!.origin).toBeUndefined();
+    expect(conversation.turns[0]!.requestedBy?.name).toBe("Jane Doe");
   });
 });

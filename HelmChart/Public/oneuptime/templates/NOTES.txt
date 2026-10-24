@@ -1,14 +1,22 @@
-OneUptime is now installed. Please wait for all the services to spin up. 
+{{- /*
+  What `helm install` and `helm upgrade` print first: where to open OneUptime,
+  and that the first account to sign up becomes its admin. host is the one
+  address OneUptime serves its own pages at - every other address is taken
+  for a status page's custom domain - so while it is still localhost, how to
+  set it is said too (tests/notes-first-run_test.yaml).
+*/ -}}
+OneUptime is installed. Its pods take a few minutes to start; watch them with:
 
-You can check pod status by using this command: 
+  kubectl get pods --namespace {{ $.Release.Namespace }}
 
-kubectl get pods --namespace={{ $.Release.Namespace }}
+Then open {{ $.Values.httpProtocol | default "http" }}://{{ $.Values.host }} and sign up. The first account becomes the admin of this OneUptime.
+{{- if has (lower (toString $.Values.host)) (list "localhost" "127.0.0.1") }}
 
-One all the pods are running. You can check the service status to see if the IP is assigned to the nginx service. 
+host is {{ $.Values.host }}, so only this computer can open OneUptime. To open it from other computers, set host to the address people will use: a domain name that points at the nginx service, or the service's external IP address, which this shows once it has one:
 
-kubectl get svc --namespace={{ $.Release.Namespace }} {{ $.Release.Name }}-nginx 
-
-You should then be able to access OneUptime cluster with that IP. Please make sure your host matches the host set in values.yaml which currently is {{ .Values.host }}. If you would like to change this host to another value, please do a helm upgrade.
+  kubectl get svc --namespace {{ $.Release.Namespace }} {{ $.Release.Name }}-nginx
+  helm upgrade {{ $.Release.Name }} oneuptime/oneuptime --namespace {{ $.Release.Namespace }} --reuse-values --set host=<that address>
+{{- end }}
 {{- $legacyCacheKeys := list }}
 {{- if .Values.redis }}{{- $legacyCacheKeys = append $legacyCacheKeys "redis" }}{{- end }}
 {{- if .Values.externalRedis }}{{- $legacyCacheKeys = append $legacyCacheKeys "externalRedis" }}{{- end }}

@@ -35,7 +35,7 @@ Diese Seite beschreibt, was jede Edition enthält, wie Sie die Enterprise Editio
 | Funktion | Community | Enterprise | OneUptime Cloud |
 | --- | --- | --- | --- |
 | Monitoring, Alarme, Incidents, Bereitschaftsdienst, Statusseiten, Logs, Metriken, Traces, Exceptions, Dashboards, Workflows, KI-Funktionen, API und Terraform | Ja | Ja | Jeder Plan |
-| Anmeldung mit Passwort, Zwei-Faktor-Authentifizierung, Teams, Rollen und API-Schlüssel | Ja | Ja | Jeder Plan |
+| Anmeldung mit Passwort, Zwei-Faktor-Authentifizierung, Teams, integrierte Rollen und API-Schlüssel | Ja | Ja | Jeder Plan |
 | [SAML-SSO und OpenID Connect](/docs/identity/sso) für die Anmeldung bei Projekten | Ja | Ja | Ab dem Plan Scale |
 | SAML-SSO und OpenID Connect für die Anmeldung bei privaten Statusseiten | Ja | Ja | Ab dem Plan Scale |
 | [Globales SSO und OIDC (instanzweit)](/docs/identity/global-sso) | Ja | Ja | Nicht zutreffend |
@@ -43,6 +43,10 @@ Diese Seite beschreibt, was jede Edition enthält, wie Sie die Enterprise Editio
 | Team-Compliance-Einstellungen | Nein | Ja | Ab dem Plan Scale |
 | Audit-Logs | Nein | Ja | Plan Enterprise |
 | Aufbewahrungs-Überschreibungen: Aufbewahrung nach Telemetrietyp (Logs, Traces, Metriken, Profile, mit Regeln nach Log-Schweregrad und Trace-Status) sowie Aufbewahrung pro Dienst und pro Ressource | Nein | Ja | Ab dem Plan Scale |
+| Benutzerdefinierte Rollen: Sätze von Berechtigungen, die Sie einmal benennen und Teams und API-Schlüsseln geben | Nein | Ja | Ab dem Plan Scale |
+| IP-Zulassungslisten für Statusseiten, öffentliche Dashboards und Formulare | Nein | Ja | Ab dem Plan Scale |
+| Zugriffssteuerung für Statusseiten: wie lange Leser einer privaten Statusseite angemeldet bleiben und wer abonnieren kann | Nein | Ja | Ab dem Plan Scale |
+| „Powered by OneUptime“ auf Statusseiten ausblenden | Nein | Ja | Ab dem Plan Scale |
 | Dashboards unter **Health** im Admin-Dashboard: Instanzübersicht, Hintergrund-Warteschlangen, Instanz-Logs, PostgreSQL, Valkey, ClickHouse-Cluster, Diagnose-Logs und Telemetrie-Ingestion | Nein | Ja | Nicht zutreffend |
 | **Query Console** im Admin-Dashboard | Nein | Ja | Nicht verfügbar |
 | Health-Alarme für PostgreSQL und Valkey (Redis) | Nein | Ja | Nicht zutreffend |
@@ -55,6 +59,8 @@ Single Sign-On umfasst „Require SSO for login“ für Projekte, private Status
 Jede Edition hat die Standard-Aufbewahrung des Projekts für Telemetrie unter **Projekteinstellungen > Telemetrie & APM > Datenaufbewahrung**. Aufbewahrungs-Überschreibungen sind das, was die Enterprise Edition darüber hinaus hinzufügt.
 
 In OneUptime Cloud lässt sich eine kostenpflichtige Funktion in jedem Plan jederzeit abschalten. Eine Aufbewahrungs-Überschreibung, die eine Testphase (oder ein Wechsel in einen niedrigeren Plan) gesetzt zurückgelassen hat, gilt weiter für neue Telemetrie; unterhalb des Plans Scale zeigen die Aufbewahrungsseiten sie deshalb unter der Upgrade-Karte mit der Schaltfläche **Überschreibung entfernen**. Das Entfernen funktioniert in jedem Plan; sie erneut zu setzen erfordert den Plan Scale. Bereits gespeicherte Telemetrie behält die Aufbewahrung, mit der sie gespeichert wurde. Ebenso zeigt **Projekteinstellungen > Sicherheit > SSO** den Schalter **SSO für die Anmeldung erzwingen** unter seiner Upgrade-Karte, solange das Projekt noch SSO verlangt, damit er sich abschalten lässt.
+
+Benutzerdefinierte Rollen, IP-Zulassungslisten, die Zugriffssteuerung für Statusseiten und eine ausgeblendete Zeile „Powered by OneUptime“ funktionieren genauso: Was eine Testphase oder ein niedrigerer Plan gesetzt zurückgelassen hat, gilt weiter, und die Einstellungen zeigen es unter der Upgrade-Karte mit einer Schaltfläche zum Entfernen.
 
 Zeilen mit „Nicht zutreffend“ betreffen Funktionen der Instanzverwaltung. In OneUptime Cloud betreibt OneUptime die Instanz für Sie.
 
@@ -185,12 +191,14 @@ Was endet, wenn eine Lizenz ausläuft:
 - **Die SCIM-Provisionierung endet.** Die SCIM-Anfragen Ihres Identity Providers werden abgelehnt, einschließlich der Deprovisionierung, und SCIM-Teamsperren werden aufgehoben, sodass Teams, die von SCIM-Push-Gruppen verwaltet werden, von Hand bearbeitet werden können.
 - **Die Audit-Protokollierung zeichnet nichts mehr auf.** Bisher aufgezeichnete Audit-Logs bleiben erhalten.
 - **Aufbewahrungs-Überschreibungen gelten nicht mehr.** Neue Telemetrie wird für die Standard-Aufbewahrung des Projekts behalten. Bereits gespeicherte Telemetrie behält die Aufbewahrung, mit der sie geschrieben wurde. Über die API können Sie eine Überschreibung weiterhin entfernen, aber keine setzen.
+- **Statusseiten zeigen wieder Powered by OneUptime.** Eine Seite, die die Zeile ausblendet, zeigt sie, bis eine Lizenz aktiviert ist. Die Einstellung bleibt erhalten.
 
 Was **nicht** endet:
 
 - **Single Sign-On.** Die Anmeldung per SAML und OIDC für Projekte, private Statusseiten, die gesamte Instanz (globales SSO) und die mobilen Apps sowie „Require SSO for login“ gehören zu jeder Edition. Eine abgelaufene Lizenz ändert nichts daran, und die Single-Sign-On-Konfiguration bleibt bearbeitbar.
 - **Das Kern-Monitoring ist nie betroffen**: Monitore, Alarme, Incidents, Bereitschaftsdienst, Statusseiten und Telemetrie funktionieren alle weiter.
 - **Master-Admins können sich immer mit ihrem Passwort anmelden.**
+- **Benutzerdefinierte Rollen, IP-Zulassungslisten und die Zugriffssteuerung für Statusseiten gelten weiter.** Sie können sie entfernen, aber nicht anlegen oder ändern.
 - **Nichts wird gelöscht.** SCIM-Konfiguration, Audit-Logs und Aufbewahrungs-Überschreibungen bleiben, wie sie sind.
 
 **Alles läuft wieder, sobald eine Lizenz aktiviert ist**, ohne Neustart: SCIM-Provisionierung, Audit-Protokollierung und Aufbewahrungs-Überschreibungen kehren mit Ihrer bestehenden Konfiguration zurück. OneUptime schaltet sie nur ab, wenn es weiß, dass die Lizenz abgelaufen ist. Solange es den Lizenzzustand nicht lesen kann, etwa einen Moment lang beim Start des Servers, bleiben SCIM, Audit-Protokollierung und Aufbewahrungs-Überschreibungen eingeschaltet.
@@ -206,6 +214,8 @@ Ihre Konfiguration bleibt in der Datenbank. Ein Wechsel zurück auf das Enterpri
 - **SCIM-Teamsperren werden aufgehoben**, sodass Teams, die von SCIM-Push-Gruppen verwaltet wurden, von Hand bearbeitet werden können. Beim Start protokolliert der Server, bei welchen Projekten die SCIM-Teamsperren aufgehoben wurden.
 - **Die Audit-Protokollierung endet.** Bisher aufgezeichnete Audit-Logs bleiben erhalten, aber die Audit-Log-Seiten zeigen einen Upgrade-Hinweis.
 - **Aufbewahrungs-Überschreibungen gelten nicht mehr.** Neue Telemetrie wird für die Standard-Aufbewahrung des Projekts behalten, und die Aufbewahrungskarten unter **Projekteinstellungen > Telemetrie & APM > Datenaufbewahrung** und auf der Einstellungsseite jedes Dienstes und jeder Ressource zeigen einen Upgrade-Hinweis. Die Überschreibungen bleiben in der Datenbank und gelten wieder, wenn Sie zurückwechseln.
+- **Statusseiten zeigen wieder Powered by OneUptime.** Die Einstellung bleibt in der Datenbank und blendet die Zeile wieder aus, wenn Sie zurückwechseln.
+- **Benutzerdefinierte Rollen, IP-Zulassungslisten und die Zugriffssteuerung für Statusseiten gelten weiter.** Ihre Einstellungen zeigen einen Upgrade-Hinweis, mit dem, was noch gesetzt ist, und einer Schaltfläche zum Entfernen.
 - **Enterprise-Einstellungsseiten zeigen einen Upgrade-Hinweis.** Über die API können Sie die Enterprise-Konfiguration weiterhin lesen und löschen und ein SCIM-Bearer-Token zurücksetzen, aber nichts anderes anlegen oder ändern. Die Audit-Protokollierung lässt sich nicht einschalten.
 - **Die Enterprise-Dashboards unter Health, die Query Console sowie die Health-Alarme für PostgreSQL und Valkey enden.** Kapazitätsüberwachung und Bereinigung für ClickHouse, Migrationsstatus und das Support-Bundle funktionieren weiter.
 

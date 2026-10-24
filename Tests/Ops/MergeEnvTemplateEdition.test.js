@@ -5,7 +5,7 @@
  *
  * Before the split, a Docker Compose Enterprise install was APP_TAG=release
  * plus IS_ENTERPRISE_EDITION=true. APP_TAG=release is now the Community image,
- * and `npm run update` (prerun -> Scripts/Install/configure.sh -> this merge,
+ * and `npm run update` (Scripts/Install/Update.js -> this merge,
  * then `docker compose pull`) keeps APP_TAG as it is. Left alone, the upgrade
  * pulls the Community image, and the App refuses to start with
  * IS_ENTERPRISE_EDITION=true (packages/App/Utils/EnterpriseLoader.ts) because

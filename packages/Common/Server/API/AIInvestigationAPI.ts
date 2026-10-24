@@ -1739,8 +1739,10 @@ router.post(
  * "Fix with AI" from the Profiler: a Code task in the repository that holds
  * the function, asking OneUptime AI to make it lighter, with the profile as
  * its context. Body: the suggestion's, plus the person's own words
- * (message) and the repository they picked (repositoryId) when none was
- * found for certain. Response: { taskId } - the task in Code.
+ * (message), the repository they picked (repositoryId) when none was found
+ * for certain, and the slow-code insight they asked from (insightId), when
+ * they did - the task names it and the insight links the task. Response:
+ * { taskId } - the task in Code.
  */
 router.post(
   "/ai-investigation/create-profile-fix-task",
@@ -1766,6 +1768,16 @@ router.post(
         throw new BadDataException("repositoryId must be a repository's ID.");
       }
 
+      const insightId: unknown = body["insightId"];
+
+      if (
+        insightId !== undefined &&
+        insightId !== null &&
+        (typeof insightId !== "string" || !ObjectID.isValidUUID(insightId))
+      ) {
+        throw new BadDataException("insightId must be an insight's ID.");
+      }
+
       const created: { taskId: string } =
         await ProfileFixTaskTrigger.createFixTask({
           ...request,
@@ -1774,6 +1786,9 @@ router.post(
             : {}),
           ...(typeof repositoryId === "string"
             ? { repositoryId: new ObjectID(repositoryId) }
+            : {}),
+          ...(typeof insightId === "string"
+            ? { insightId: new ObjectID(insightId) }
             : {}),
         });
 

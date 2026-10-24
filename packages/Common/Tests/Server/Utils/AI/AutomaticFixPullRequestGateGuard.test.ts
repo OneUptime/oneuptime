@@ -2,7 +2,7 @@ import {
   AUTOMATIC_FIX_SWITCH_COLUMNS,
   REMEDIATION_RULE_PULL_REQUEST_COLUMNS,
 } from "../../../../Types/AI/AutomaticFixPullRequests";
-import AutoRemediationTriggerEntity from "../../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
+import { INCIDENT_AND_ALERT_TRIGGER_ENTITIES } from "../../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import fs from "fs";
 import path from "path";
 import ts from "typescript";
@@ -224,10 +224,7 @@ describe("the rules' pull request switches are read only through the one rule", 
       );
 
       // The fixing switches are never named by hand in a trigger.
-      for (const signal of [
-        AutoRemediationTriggerEntity.Incident,
-        AutoRemediationTriggerEntity.Alert,
-      ]) {
+      for (const signal of INCIDENT_AND_ALERT_TRIGGER_ENTITIES) {
         expect(source).not.toContain(AUTOMATIC_FIX_SWITCH_COLUMNS[signal]);
       }
     },

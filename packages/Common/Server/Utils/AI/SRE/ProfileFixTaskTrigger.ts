@@ -1,3 +1,4 @@
+import AIInsightService from "../../../Services/AIInsightService";
 import AIService from "../../../Services/AIService";
 import AIRunService from "../../../Services/AIRunService";
 import ServiceService from "../../../Services/ServiceService";
@@ -23,9 +24,12 @@ import CodeTaskContextBuilder from "../CodeTask/CodeTaskContextBuilder";
 import CodeTaskGate from "../CodeTask/CodeTaskGate";
 import CodeTaskRuns from "../CodeTask/CodeTaskRuns";
 import SubjectCodeFixRun from "./SubjectCodeFixRun";
+import AIInsight from "../../../../Models/DatabaseModels/AIInsight";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
 import ProfileSample from "../../../../Models/AnalyticsModels/ProfileSample";
+import AIInsightStatus from "../../../../Types/AI/AIInsightStatus";
+import AIInsightType from "../../../../Types/AI/AIInsightType";
 import Service from "../../../../Models/DatabaseModels/Service";
 import { AIRunStatusHelper } from "../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../Types/AI/AIRunType";
@@ -45,7 +49,10 @@ import { ProfileFrameOrigin } from "../../../../Utils/Profiles/ProfileFrames";
 import {
   ProfileCategory,
   formatProfileShare,
+  getProfileCategoryNoun,
+  isProfileCategory,
 } from "../../../../Utils/Profiles/ProfileTypes";
+import { ProfileInsightEvidence } from "../../../../Types/AI/AIInsightEvidence";
 import SuggestionOffer from "../../../../Utils/Suggestions/SuggestionOffer";
 import {
   NO_PROFILE_FIX_SUGGESTION,
@@ -115,6 +122,12 @@ export const PROFILE_FIX_PICK_REPOSITORY_MESSAGE: string =
 
 export const PROFILE_FIX_REPOSITORY_NOT_AVAILABLE_MESSAGE: string =
   "That repository is not connected, or you cannot ask AI to work in it.";
+
+export const PROFILE_FIX_INSIGHT_NOT_FOUND_MESSAGE: string =
+  "That finding is not one of this project's slow code findings.";
+
+export const PROFILE_FIX_INSIGHT_HAS_FIX_MESSAGE: string =
+  "A pull request was already asked for this finding. Follow it from the finding.";
 
 export default class ProfileFixTaskTrigger {
   /*
@@ -432,10 +445,25 @@ export default class ProfileFixTaskTrigger {
       message?: string | undefined;
       // The repository the person picked, when none was found for certain.
       repositoryId?: ObjectID | undefined;
+      /*
+       * The slow-code insight the person asked from, when they did - its
+       * rule asks before fixing, so the insight offers the pull request.
+       * The task names it, its pull request says why it was opened, and
+       * the insight links the task.
+       */
+      insightId?: ObjectID | undefined;
     },
   ): Promise<{ taskId: string }> {
     // The project's one AI switch, before the profile is read.
     await AIService.assertProjectAIEnabled(request.projectId);
+
+    if (request.insightId) {
+      await ProfileFixTaskTrigger.assertInsightOffersFix({
+        projectId: request.projectId,
+        insightId: request.insightId,
+        props: request.props,
+      });
+    }
 
     const read: ProfileFixRead | null =
       await ProfileFixTaskTrigger.readEvidence(request);
@@ -552,9 +580,64 @@ export default class ProfileFixTaskTrigger {
       repository,
       message,
       context: [context],
+      ...(request.insightId
+        ? { triggeredByAiInsightId: request.insightId }
+        : {}),
     });
 
+    if (request.insightId) {
+      /*
+       * The insight links its fix, once: a fix linked meanwhile (OneUptime
+       * opened one on its own, or someone else asked) keeps its link, and
+       * a closed insight stays closed.
+       */
+      await AIInsightService.updateOneBy({
+        query: {
+          _id: request.insightId.toString(),
+          projectId: request.projectId,
+          fixAiRunId: QueryHelper.isNull(),
+          status: QueryHelper.any([
+            AIInsightStatus.Detected,
+            AIInsightStatus.ActionRequired,
+          ]),
+        },
+        data: {
+          status: AIInsightStatus.FixOpened,
+          fixAiRunId: run.id!,
+        },
+        props: { isRoot: true },
+      });
+    }
+
     return { taskId: run.id!.toString() };
+  }
+
+  /*
+   * The insight a fix is asked from must be one of the project's slow-code
+   * findings the person may read, with no fix linked yet.
+   */
+  public static async assertInsightOffersFix(data: {
+    projectId: ObjectID;
+    insightId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const insight: AIInsight | null = await AIInsightService.findOneBy({
+      query: {
+        _id: data.insightId.toString(),
+        projectId: data.projectId,
+        insightType: AIInsightType.ProfileHotspot,
+      },
+      select: { _id: true, fixAiRunId: true },
+      props: data.props,
+    });
+
+    if (!insight) {
+      throw new BadDataException(PROFILE_FIX_INSIGHT_NOT_FOUND_MESSAGE);
+    }
+
+    if (insight.fixAiRunId) {
+      throw new BadDataException(PROFILE_FIX_INSIGHT_HAS_FIX_MESSAGE);
+    }
   }
 
   // The service's name, when the person may read it.
@@ -608,9 +691,96 @@ export default class ProfileFixTaskTrigger {
     serviceName?: string | undefined;
   }): string {
     const evidence: ProfileFunctionEvidence = data.evidence;
-    const name: string = evidence.functionName || "this function";
-    const where: string = evidence.fileName ? ` in ${evidence.fileName}` : "";
-    const category: ProfileCategory | null = evidence.kind.category;
+
+    return ProfileFixTaskTrigger.composeRequestMessage({
+      functionName: evidence.functionName,
+      fileName: evidence.fileName,
+      category: evidence.kind.category,
+      kindNoun: ProfileEvidence.describeKind(evidence.kind),
+      reason: data.reason,
+      serviceName: data.serviceName,
+      ownShare: evidence.ownShare,
+      windowSampleCount: evidence.windowSampleCount,
+      window: evidence.window,
+      ...(evidence.before
+        ? {
+            before: {
+              ownShare: evidence.before.ownShare,
+              window: evidence.before.window,
+            },
+          }
+        : {}),
+    });
+  }
+
+  /*
+   * What OneUptime asks the AI when it starts the task itself, from slow
+   * code it found in a service's profiles (Types/AI/TelemetryAi): the same
+   * request a person's "Fix with AI" sends, said as OneUptime's own, and
+   * with leave to change nothing when there is no clear improvement - nobody
+   * waits on the task to say otherwise.
+   */
+  public static buildRequestMessageForInsight(data: {
+    profile: ProfileInsightEvidence;
+    serviceName?: string | undefined;
+  }): string {
+    const profile: ProfileInsightEvidence = data.profile;
+    const category: ProfileCategory | null = isProfileCategory(profile.category)
+      ? profile.category
+      : null;
+
+    return ProfileFixTaskTrigger.composeRequestMessage({
+      functionName: profile.functionName,
+      fileName: profile.fileName,
+      category,
+      kindNoun: category
+        ? getProfileCategoryNoun(category)
+        : `the "${profile.profileType}" profile`,
+      reason:
+        profile.reason === ProfileFixReason.Grew
+          ? ProfileFixReason.Grew
+          : ProfileFixReason.Hot,
+      serviceName: data.serviceName,
+      ownShare: profile.ownShare,
+      windowSampleCount: profile.windowSampleCount,
+      window: {
+        startTime: new Date(profile.windowStartTime),
+        endTime: new Date(profile.windowEndTime),
+      },
+      ...(profile.ownShareBefore !== undefined &&
+      profile.baselineStartTime &&
+      profile.baselineEndTime
+        ? {
+            before: {
+              ownShare: profile.ownShareBefore,
+              window: {
+                startTime: new Date(profile.baselineStartTime),
+                endTime: new Date(profile.baselineEndTime),
+              },
+            },
+          }
+        : {}),
+      isStartedByOneUptime: true,
+    });
+  }
+
+  private static composeRequestMessage(data: {
+    functionName: string;
+    fileName: string;
+    category: ProfileCategory | null;
+    // What the profile measures, in a sentence: "CPU time".
+    kindNoun: string;
+    reason: ProfileFixReason;
+    serviceName?: string | undefined;
+    ownShare: number;
+    windowSampleCount: number;
+    window: ProfileWindow;
+    before?: { ownShare: number; window: ProfileWindow } | undefined;
+    isStartedByOneUptime?: boolean | undefined;
+  }): string {
+    const name: string = data.functionName || "this function";
+    const where: string = data.fileName ? ` in ${data.fileName}` : "";
+    const category: ProfileCategory | null = data.category;
 
     const goal: string =
       category === ProfileCategory.Memory ||
@@ -621,20 +791,27 @@ export default class ProfileFixTaskTrigger {
           : "faster";
 
     const of: string = data.serviceName
-      ? `${data.serviceName}'s ${ProfileEvidence.describeKind(evidence.kind)}`
-      : ProfileEvidence.describeKind(evidence.kind);
+      ? `${data.serviceName}'s ${data.kindNoun}`
+      : data.kindNoun;
 
     const finding: string =
-      data.reason === ProfileFixReason.Grew && evidence.before
-        ? `Its share of ${of} grew from ${formatProfileShare(evidence.before.ownShare)} to ${formatProfileShare(evidence.ownShare)} (counting the library and runtime code it calls) ${ProfileFixTaskTrigger.describeWindow(evidence.before.window.startTime, evidence.window.endTime)}.`
-        : `It takes ${formatProfileShare(evidence.ownShare)} of ${of} (counting the library and runtime code it calls), in ${evidence.windowSampleCount.toLocaleString("en-US")} samples ${ProfileFixTaskTrigger.describeWindow(evidence.window.startTime, evidence.window.endTime)}.`;
+      data.reason === ProfileFixReason.Grew && data.before
+        ? `Its share of ${of} grew from ${formatProfileShare(data.before.ownShare)} to ${formatProfileShare(data.ownShare)} (counting the library and runtime code it calls) ${ProfileFixTaskTrigger.describeWindow(data.before.window.startTime, data.window.endTime)}.`
+        : `It takes ${formatProfileShare(data.ownShare)} of ${of} (counting the library and runtime code it calls), in ${data.windowSampleCount.toLocaleString("en-US")} samples ${ProfileFixTaskTrigger.describeWindow(data.window.startTime, data.window.endTime)}.`;
+
+    const ask: string =
+      "The profile attached shows who calls it, what it spends its time calling, and its hottest line. Find why it is costly, change the code so it does less work, keep its behaviour the same, and add or update tests that show it still works.";
 
     return [
       `Make ${name}${where} ${goal}`,
       "",
-      finding,
+      data.isStartedByOneUptime
+        ? `OneUptime found this in the service's profiles on its own. ${finding}`
+        : finding,
       "",
-      "The profile attached shows who calls it, what it spends its time calling, and its hottest line. Find why it is costly, change the code so it does less work, keep its behaviour the same, and add or update tests that show it still works.",
+      data.isStartedByOneUptime
+        ? `${ask} If it cannot be made meaningfully faster without changing what it does, or the cost is not in this repository's code, say why and change nothing.`
+        : ask,
     ].join("\n");
   }
 }

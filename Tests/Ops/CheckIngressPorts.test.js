@@ -309,7 +309,7 @@ describe("what it says", () => {
 
   test("the rule, the ports as they are, and the exact values that publish them on the loopback address", () => {
     expect(message).toBe(
-      "WARNING: config.env sets TRUSTED_PROXY_HOPS=2, so OneUptime takes each visitor's address from what your proxy writes, " +
+      "  ! config.env sets TRUSTED_PROXY_HOPS=2, so OneUptime takes each visitor's address from what your proxy writes, " +
         "which holds only while that proxy is the one way in. " +
         "ONEUPTIME_HTTP_PORT=8080 and STATUS_PAGE_HTTPS_PORT=8443 publish OneUptime on every address of this server, around the proxy. " +
         "With the proxy on this server, publish them on the loopback address only: set ONEUPTIME_HTTP_PORT=127.0.0.1:8080 and " +
@@ -329,7 +329,7 @@ describe("what it says", () => {
     );
 
     expect(describeIngressPortsAroundProxy(3, one)).toBe(
-      "WARNING: config.env sets TRUSTED_PROXY_HOPS=3, so OneUptime takes each visitor's address from what your proxy writes, " +
+      "  ! config.env sets TRUSTED_PROXY_HOPS=3, so OneUptime takes each visitor's address from what your proxy writes, " +
         "which holds only while that proxy is the one way in. " +
         "ONEUPTIME_HTTP_PORT=8080 publishes OneUptime on every address of this server, around the proxy. " +
         "With the proxy on this server, publish it on the loopback address only: set ONEUPTIME_HTTP_PORT=127.0.0.1:8080 in config.env, then run npm start. " +
@@ -399,11 +399,11 @@ describe("run as a script", () => {
 
     expect(result.status).toBe(0);
     expect(result.stdout).toBe("");
-    expect(result.stderr.trim()).toBe(
-      describeIngressPortsAroundProxy(
+    expect(result.stderr).toBe(
+      `${describeIngressPortsAroundProxy(
         2,
         ingressPortsAroundProxy(settingsWith(EARLIER_GUIDE_SETTINGS)),
-      ),
+      )}\n`,
     );
   });
 
@@ -536,6 +536,11 @@ describe("npm start runs it", () => {
           path.join(directory, match[1]),
         );
       }
+      // The module every step marks its lines with.
+      fs.copyFileSync(
+        path.join(REPO_ROOT, "Scripts", "Install", "StartOutput.js"),
+        path.join(directory, "Scripts", "Install", "StartOutput.js"),
+      );
       fs.writeFileSync(
         path.join(directory, "config.env"),
         `${TEMPLATE}\n${EARLIER_GUIDE_SETTINGS.join("\n")}\n`,
@@ -575,6 +580,8 @@ describe("npm start runs it", () => {
       }
       env.PATH = `${path.join(directory, "bin")}${path.delimiter}${process.env.PATH}`;
       env.npm_config_update_notifier = "false";
+      // The checks of the server have suites of their own (Preflight.test.js).
+      env.ONEUPTIME_SKIP_PREFLIGHT = "true";
 
       const result = spawnSync("npm", ["start"], {
         cwd: directory,
@@ -587,7 +594,7 @@ describe("npm start runs it", () => {
 
       expect({ status: result.status }).toEqual({ status: 0 });
       expect(output).toContain(
-        "WARNING: config.env sets TRUSTED_PROXY_HOPS=2, so OneUptime takes each visitor's address from what your proxy writes",
+        "  ! config.env sets TRUSTED_PROXY_HOPS=2, so OneUptime takes each visitor's address from what your proxy writes",
       );
       expect(output).toContain(
         "set ONEUPTIME_HTTP_PORT=127.0.0.1:8080 and STATUS_PAGE_HTTPS_PORT=127.0.0.1:8443 in config.env",

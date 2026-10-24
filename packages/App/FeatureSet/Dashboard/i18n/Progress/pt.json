@@ -7,6 +7,7 @@
     "0 (kiss-o'-death {{kissCode}})",
     "Agenda",
     "App",
+    "Appliance {{appliance}}",
     "Apps",
     "CPU Ready {{percent}}",
     "Chats",
@@ -27,13 +28,16 @@
     "PR #{{number}}",
     "PV",
     "PVC",
+    "Pull request",
     "Pull request #{{number}}",
+    "Pull requests",
     "Runbook: {{name}}",
     "Runner",
     "Status",
     "Tokens",
     "Total",
     "Total:",
+    "Uplinks",
     "VMware vCenter",
     "Workspaces",
     "cluster",
@@ -45,6 +49,8 @@
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB",
+    "{{count}} appliance",
+    "{{count}} appliances",
     "{{tokens}} tokens"
   ]
 }

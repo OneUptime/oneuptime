@@ -52,6 +52,36 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 let allPermissionsForTest: Array<string> = [];
 let projectPermissionsForTest: unknown = null;
 
+/*
+ * Giving a custom role is an Enterprise feature: these run on the
+ * Enterprise Edition (self-hosted, billing off), unless a test says
+ * otherwise.
+ */
+let enterpriseEditionForTest: boolean = true;
+
+(
+  globalThis as unknown as { __createAccessEnterprise: () => boolean }
+).__createAccessEnterprise = (): boolean => {
+  return enterpriseEditionForTest;
+};
+
+jest.mock("../../../UI/Config", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "../../../UI/Config",
+  ) as Record<string, unknown>;
+  const mocked: Record<string, unknown> = { ...actual };
+
+  Object.defineProperty(mocked, "IS_ENTERPRISE_EDITION", {
+    get: (): boolean => {
+      return (
+        globalThis as unknown as { __createAccessEnterprise: () => boolean }
+      ).__createAccessEnterprise();
+    },
+  });
+
+  return mocked;
+});
+
 jest.mock("../../../UI/Utils/Permission", () => {
   return {
     __esModule: true,
@@ -223,6 +253,7 @@ function keyRoute(keyId: string): string {
 }
 
 beforeEach(() => {
+  enterpriseEditionForTest = true;
   holding([Permission.ProjectOwner]);
   navigateCalls = [];
   PermissionGate.clearPermissionPropsCache();
@@ -914,6 +945,27 @@ const EVERY_ROLE_CARD: Array<string> = [
 ];
 
 describe("a project's custom roles under Access", () => {
+  test("on the Community Edition, offers no custom role, and reads none", async () => {
+    enterpriseEditionForTest = false;
+    withCustomRoles();
+
+    const modal: HTMLElement = await openCreateForm();
+
+    await act(async (): Promise<void> => {});
+
+    expect(accessCardValues(modal)).toEqual([
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      ROLE_ACCESS_LATER,
+    ]);
+    expect(
+      getListMock.mock.calls.filter((args: Array<any>): boolean => {
+        return args[0]?.modelType === CustomRole;
+      }),
+    ).toEqual([]);
+  });
+
   test("follow the built-in roles, each saying it is a custom role and how much of it a key holds", async () => {
     withCustomRoles();
 

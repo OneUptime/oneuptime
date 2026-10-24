@@ -19,7 +19,7 @@ Statussiden din er den ene skjermen i OneUptime kundene dine ser på, så den b�
 | **Egendefinerte domener** | Ditt eget domene, DNS-posten og det gratis SSL-sertifikatet. |
 | **HTML, CSS og JavaScript** | Topptekst-HTML, bunntekst-HTML, egendefinert CSS, egendefinert JavaScript. |
 
-Tre ting som ligner merkevare, ligger i stedet under **Statussider → siden din → Avansert → Avanserte innstillinger** (`{id}/settings`), fordi de avgjør hva siden viser, og ikke hvordan den ser ut: den samlede oppetidsprosenten, hvilke monitorstatuser som teller mot oppetiden, og linjen «Powered by OneUptime». Alle tre er rader på kortet **Hva statussiden din viser** der.
+Tre ting som ligner merkevare, ligger i stedet under **Statussider → siden din → Avansert → Avanserte innstillinger** (`{id}/settings`), fordi de avgjør hva siden viser, og ikke hvordan den ser ut: den samlede oppetidsprosenten, hvilke monitorstatuser som teller mot oppetiden, og linjen «Powered by OneUptime». De to første er rader på kortet **Hva statussiden din viser** der, og linjen har sitt eget kort rett under.
 
 Merkevaren var tidligere delt på separate skjermer for **Grunnleggende merkevare**, **Topptekst**, **Bunntekst**, **Oversiktsside** og **Språk**. De gamle adressene deres (`{id}/header-style`, `{id}/footer-style`, `{id}/overview-page-branding` og `{id}/languages`) åpner nå siden **Merkevare**, så gamle bokmerker og lenker virker fortsatt.
 
@@ -295,7 +295,7 @@ Det samme gjelder API-nøkler. En nøkkel som bare kan lese statussidedomener, k
 
 ## Powered by OneUptime
 
-Linjen «Powered by OneUptime» er ikke en merkevareinnstilling. Den er den siste bryteren på kortet **Hva statussiden din viser** under **Statussider → siden din → Avansert → Avanserte innstillinger** (`{id}/settings`): **Vis «Powered By OneUptime»-merkevarebygging**, slått på som standard. Slå den av for å skjule linjen; den lagres med en gang. På OneUptime Cloud krever det planen **Scale** å skjule den.
+Linjen «Powered by OneUptime» er ikke en merkevareinnstilling. Den har sitt eget kort, **Powered by OneUptime**, under kortet **Hva statussiden din viser** under **Statussider → siden din → Avansert → Avanserte innstillinger** (`{id}/settings`): **Vis «Powered By OneUptime»-merkevarebygging**, slått på som standard. Slå den av for å skjule linjen; den lagres med en gang. På OneUptime Cloud krever det planen **Scale** å skjule den. Selvhostet er det en del av Enterprise Edition å skjule den: på Community Edition viser alle statussider linjen.
 
 ## Neste steg
 
