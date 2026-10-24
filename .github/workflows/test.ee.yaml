@@ -139,6 +139,14 @@ jobs:
       - name: Run Common's key-carrying requests guard with ee/ present
         working-directory: packages/Common
         run: node node_modules/.bin/jest Tests/Server/Utils/KeyCarryingRequestsGuard.test.ts --forceExit
+      # Common's guard that every route sending a test to an address someone
+      # types asks the rule its table names lists ee/'s test routes too (the
+      # audit log export's, a project's and the instance's). The Common Test
+      # job deletes ee/ first, so only this run holds them to it. It only
+      # reads files.
+      - name: Run Common's test-send routes guard with ee/ present
+        working-directory: packages/Common
+        run: node node_modules/.bin/jest Tests/Server/API/TestSendRoutesAskTheRule.test.ts --forceExit
       - name: Install ee
         uses: ./.github/actions/npm-install
         with:
