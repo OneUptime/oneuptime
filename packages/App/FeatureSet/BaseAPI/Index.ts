@@ -592,6 +592,12 @@ import SecurityEventDestinationAPI from "Common/Server/API/SecurityEventDestinat
 import AuditLogExportService, {
   Service as AuditLogExportServiceType,
 } from "Common/Server/Services/AuditLogExportService";
+import BackupSettingService, {
+  Service as BackupSettingServiceType,
+} from "Common/Server/Services/BackupSettingService";
+import BackupRunService, {
+  Service as BackupRunServiceType,
+} from "Common/Server/Services/BackupRunService";
 import SecurityLogSourceService, {
   Service as SecurityLogSourceServiceType,
 } from "Common/Server/Services/SecurityLogSourceService";
@@ -1628,6 +1634,8 @@ import SecurityEventConnectionRun from "Common/Models/DatabaseModels/SecurityEve
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
 import AuditLogExport from "Common/Models/DatabaseModels/AuditLogExport";
+import BackupSetting from "Common/Models/DatabaseModels/BackupSetting";
+import BackupRun from "Common/Models/DatabaseModels/BackupRun";
 import SecurityCaseFeed from "Common/Models/DatabaseModels/SecurityCaseFeed";
 import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
@@ -3972,6 +3980,29 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<AuditLogExport, AuditLogExportServiceType>(
         AuditLogExport,
         AuditLogExportService,
+      ).getRouter(),
+    );
+
+    /*
+     * The instance's backups (Admin Dashboard > Settings > Backups): their
+     * settings, and each backup and restore. Master admins only; the
+     * settings are enterprise configuration (EditionPermission), and only
+     * OneUptime writes a run - backing up, restoring and deleting are the
+     * Enterprise Edition's routes (ee/Server/Backup).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<BackupSetting, BackupSettingServiceType>(
+        BackupSetting,
+        BackupSettingService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<BackupRun, BackupRunServiceType>(
+        BackupRun,
+        BackupRunService,
       ).getRouter(),
     );
 

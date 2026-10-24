@@ -61,6 +61,7 @@ const ENTERPRISE_JOB_NAMES: Array<string> = [
   "PaymentProvider:UpdateTeamMembersIfNull",
   "PaymentProvider:SendDailyEmailsToOwnersIfSubscriptionIsOverdue",
   "AuditLogExport:ExportAuditLogs",
+  "Backup:RunBackups",
 ];
 
 const fixture: (name: string) => string = (name: string): string => {
@@ -1154,8 +1155,9 @@ describe("EnterpriseLoader worker jobs", () => {
       "PaymentProvider:PopulatePlanNameInProject",
       "PaymentProvider:UpdateTeamMembersIfNull",
       "PaymentProvider:SendDailyEmailsToOwnersIfSubscriptionIsOverdue",
-      // Newer than the fixture module, which does not register it.
+      // Newer than the fixture module, which does not register them.
       "AuditLogExport:ExportAuditLogs",
+      "Backup:RunBackups",
     ]);
     expect(getFixtureCalls()).toContain("DefaultExport:registerWorkerJobs");
 

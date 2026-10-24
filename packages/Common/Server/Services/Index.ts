@@ -379,6 +379,8 @@ import SecurityEventConnectionService from "./SecurityEventConnectionService";
 import SecurityEventConnectionRunService from "./SecurityEventConnectionRunService";
 import SecurityEventDestinationService from "./SecurityEventDestinationService";
 import AuditLogExportService from "./AuditLogExportService";
+import BackupSettingService from "./BackupSettingService";
+import BackupRunService from "./BackupRunService";
 import SecurityLogSourceService from "./SecurityLogSourceService";
 import ThreatIntelFeedService from "./ThreatIntelFeedService";
 import ThreatIntelIndicatorService from "./ThreatIntelIndicatorService";
@@ -883,6 +885,8 @@ const services: Array<BaseService> = [
   SecurityEventConnectionRunService,
   SecurityEventDestinationService,
   AuditLogExportService,
+  BackupSettingService,
+  BackupRunService,
   SecurityLogSourceService,
   ThreatIntelFeedService,
   SecurityCaseService,
