@@ -166,7 +166,9 @@ import MonitorCreate from "../../../../App/FeatureSet/Dashboard/src/Pages/Monito
 import {
   AI_INSIGHT_MONITOR_CUMULATIVE_COUNTER_BLOCKER,
   AI_INSIGHT_MONITOR_LATENCY_BLOCKER,
+  AI_INSIGHT_MONITOR_LOG_MESSAGE_SCOPE_BLOCKER,
   AI_INSIGHT_MONITOR_SLOW_OPERATION_BLOCKER,
+  AI_INSIGHT_MONITOR_UNKNOWN_TYPE_BLOCKER,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/AIInsightMonitorPrefill";
 import { AI_INSIGHT_MONITOR_SELECT } from "../../../../App/FeatureSet/Dashboard/src/Utils/AIInsightMonitorData";
 import Metric, {
@@ -314,6 +316,32 @@ const SLOW_OPERATION: AIInsight = insight({
   serviceName: "checkout",
   telemetryServiceId: SERVICE_ID,
 });
+
+// Logs' findings (Logs → AI): an error log, with and without its words.
+function errorLog(
+  log: Partial<NonNullable<AIInsightEvidence["log"]>> = {},
+): AIInsight {
+  return insight({
+    insightType: AIInsightType.LogErrorPattern,
+    severity: AIInsightSeverity.High,
+    serviceName: "checkout",
+    telemetryServiceId: SERVICE_ID,
+    evidence: {
+      log: {
+        serviceId: SERVICE_ID,
+        kind: "Error",
+        windowStartTime: "2026-10-24T08:00:00.000Z",
+        windowEndTime: "2026-10-24T09:00:00.000Z",
+        logCount: 18400,
+        pattern: "Payment provider returned <num>: card declined",
+        patternCount: 1240,
+        severities: ["Error"],
+        searchText: "Payment provider returned",
+        ...log,
+      },
+    },
+  });
+}
 
 function metricPoint(data: {
   pointType: MetricPointType;
@@ -622,6 +650,84 @@ describe("the monitor create page opened from an AI insight", () => {
       await screen.findByText(AI_INSIGHT_MONITOR_SLOW_OPERATION_BLOCKER),
     ).toBeInTheDocument();
     expect(capturedForm).toBeNull();
+  });
+
+  test("an error log opens on a Logs monitor counting the service's lines of that message", async () => {
+    insightRow = (): Promise<unknown> => {
+      return Promise.resolve(errorLog());
+    };
+    linkTo({ aiInsightId: INSIGHT_ID });
+
+    const form: CapturedFormProps = await openForm();
+
+    expect(form.initialValues["monitorType"]).toBe(MonitorType.Logs);
+    expect(form.initialValues["name"]).toBe("Error log in checkout");
+
+    const logMonitor: NonNullable<MonitorStep["data"]>["logMonitor"] =
+      stepOf(form).data!.logMonitor;
+
+    expect(logMonitor!.body).toBe("Payment provider returned");
+    expect(logMonitor!.severityTexts).toEqual(["Error", "Fatal"]);
+    expect(
+      logMonitor!.telemetryServiceIds.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    ).toEqual([SERVICE_ID]);
+    expect(logMonitor!.lastXSecondsOfLogs).toBe(3600);
+    // The detector's floor: 20 lines of the message in an hour.
+    expect(unhealthyOf(form).data!.filters[0]!.value).toBe(20);
+    // A High insight: the most severe incident.
+    expect(
+      unhealthyOf(form).data!.incidents[0]!.incidentSeverityId?.toString(),
+    ).toBe(CRITICAL_INCIDENT_ID);
+    // No metric read for anything but a drift.
+    expect(analyticsRequests).toHaveLength(0);
+  });
+
+  test("an error log with no words of its message to search for says why instead of opening a form", async () => {
+    insightRow = (): Promise<unknown> => {
+      return Promise.resolve(errorLog({ searchText: undefined }));
+    };
+    linkTo({ aiInsightId: INSIGHT_ID });
+
+    renderCreatePage();
+
+    expect(
+      await screen.findByText(AI_INSIGHT_MONITOR_LOG_MESSAGE_SCOPE_BLOCKER),
+    ).toBeInTheDocument();
+    expect(capturedForm).toBeNull();
+  });
+
+  test("a link to missing logging or a noisy log says no monitor is made from it", async () => {
+    for (const insightType of [
+      AIInsightType.LogMissingLogging,
+      AIInsightType.LogNoisyPattern,
+    ]) {
+      insightRow = (): Promise<unknown> => {
+        return Promise.resolve(
+          insight({
+            insightType: insightType,
+            serviceName: "checkout",
+            telemetryServiceId: SERVICE_ID,
+          }),
+        );
+      };
+      linkTo({ aiInsightId: INSIGHT_ID });
+
+      renderCreatePage();
+
+      expect(
+        await screen.findByText(AI_INSIGHT_MONITOR_UNKNOWN_TYPE_BLOCKER),
+      ).toBeInTheDocument();
+      expect(capturedForm).toBeNull();
+
+      cleanup();
+      jest.restoreAllMocks();
+      jest
+        .spyOn(ProjectUtil, "getCurrentProjectId")
+        .mockReturnValue(PROJECT_ID);
+      getJestSpyOn(Navigation, "navigate").mockImplementation((): void => {});
+    }
   });
 
   test("a link whose id is not an id never reaches the server", async () => {

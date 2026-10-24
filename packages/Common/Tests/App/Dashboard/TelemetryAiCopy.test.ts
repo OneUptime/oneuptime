@@ -399,3 +399,132 @@ describe("Traces' AI section", () => {
     );
   });
 });
+
+describe("Logs' AI section", () => {
+  const copy: TelemetryAiLaneCopy = TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Log];
+
+  /*
+   * Its record of what OneUptime AI did is Activity: inside Logs, a page
+   * called Logs would read as log lines.
+   */
+  test("lives under Logs: its four pages are Logs', its logs page Activity", () => {
+    expect(TELEMETRY_AI_PAGES[TelemetryAiLane.Log]).toEqual({
+      insights: PageMap.LOGS_AI_INSIGHTS,
+      insightView: PageMap.LOGS_AI_INSIGHT_VIEW,
+      logs: PageMap.LOGS_AI_ACTIVITY,
+      settings: PageMap.LOGS_AI_SETTINGS,
+    });
+    expect(RouteMap[PageMap.LOGS_AI_ACTIVITY]?.toString()).toBe(
+      "/dashboard/:projectId/logs/ai/activity",
+    );
+  });
+
+  test("its rules are about services, and its notice about error, missing and noisy logs", () => {
+    expect(copy.ruleCriteriaSubject).toBe(RuleCriteriaSubject.Services);
+    expect(copy.noticeContext).toBe(ProjectAiNoticeContext.Logs);
+    expect(
+      PROJECT_AI_NOTICE_CONTEXT_COPY[ProjectAiNoticeContext.Logs]
+        .aiOffDescription,
+    ).toContain("Error, missing and noisy logs are still found");
+    expect(
+      PROJECT_AI_NOTICE_CONTEXT_COPY[ProjectAiNoticeContext.Logs]
+        .providerConsequence,
+    ).toContain("none are looked into or fixed");
+  });
+
+  test("its inbox lists its three kinds of finding, opened in its own view, apart from the others'", () => {
+    expect(TELEMETRY_AI_INSIGHTS_SCOPES[TelemetryAiLane.Log]).toEqual({
+      insightTypes: TELEMETRY_AI_LANES[TelemetryAiLane.Log].insightTypes,
+      viewPage: PageMap.LOGS_AI_INSIGHT_VIEW,
+      settingsPage: PageMap.LOGS_AI_SETTINGS,
+      intro: copy.insightsIntro,
+      emptyTitle: copy.insightsEmptyTitle,
+      emptyDescription: copy.insightsEmptyDescription,
+    });
+    expect(copy.insightsEmptyTitle).toBe(
+      "No error, missing or noisy logs found",
+    );
+  });
+
+  test("while its switch is off, the inbox says nothing is looked for, and names the switch", () => {
+    const off: ReturnType<typeof getTelemetryAiInsightsScope> =
+      getTelemetryAiInsightsScope(TelemetryAiLane.Log, true);
+
+    expect(off).toBe(
+      TELEMETRY_AI_INSIGHTS_SCOPES_WHILE_OFF[TelemetryAiLane.Log],
+    );
+    expect(off.insightTypes).toBe(
+      TELEMETRY_AI_INSIGHTS_SCOPES[TelemetryAiLane.Log].insightTypes,
+    );
+    expect(off.emptyTitle).toBe(
+      "OneUptime is not looking for error, missing or noisy logs",
+    );
+    expect(copy.insightsOffEmptyDescription).toContain(
+      TELEMETRY_AI_SWITCHES[TelemetryAiLane.Log][0]!.title,
+    );
+    expect(getTelemetryAiInsightsScope(TelemetryAiLane.Log, false)).toBe(
+      TELEMETRY_AI_INSIGHTS_SCOPES[TelemetryAiLane.Log],
+    );
+  });
+
+  /*
+   * An error log's pull request waits for the code to be found at fault,
+   * and a fix may find nothing to change: no line may promise a pull
+   * request for every problem.
+   */
+  test("its summaries promise a pull request for each problem it can fix, not for each problem", () => {
+    for (const line of [
+      copy.advancedDefaultsSummary,
+      copy.rulesCardDescription,
+      copy.noRulesMessage,
+    ]) {
+      expect(line).toContain("can fix");
+      expect(line).not.toMatch(/pull request for each\./u);
+    }
+
+    const [logSwitch] = TELEMETRY_AI_SWITCHES[TelemetryAiLane.Log];
+
+    expect(logSwitch!.description).toContain("fixes what it can");
+  });
+
+  test("its switch is the rule turned on by default, named for the three kinds", () => {
+    const [findAndFix] = TELEMETRY_AI_SWITCHES[TelemetryAiLane.Log];
+
+    expect(findAndFix!.column).toBe("enableAutomaticLogRemediation");
+    expect(findAndFix!.title).toBe(
+      "Find and fix error, missing and noisy logs",
+    );
+    expect(findAndFix!.description).toContain("repeated errors");
+    expect(findAndFix!.description).toContain("unlogged failures");
+    expect(findAndFix!.description).toContain("noisy lines");
+    expect(findAndFix!.note).toBe("Needs a repository connected in Code.");
+  });
+
+  test("its Fix step's answers, in its words: an error log's pull request waits for the code to be found at fault", () => {
+    const options: Array<CardSelectOption> = getTelemetryAiFixOptions(
+      TelemetryAiLane.Log,
+    );
+
+    expect(
+      options.map((option: CardSelectOption) => {
+        return [option.value, option.title, option.icon];
+      }),
+    ).toEqual(
+      AI_RULE_FIX_OPTIONS.map((option: CardSelectOption) => {
+        return [option.value, option.title, option.icon];
+      }),
+    );
+    expect(copy.fixOptionDescriptions[AiRuleFix.WithoutAsking]).toContain(
+      "for an error log once it finds the code at fault",
+    );
+    expect(copy.fixOptionDescriptions[AiRuleFix.WithoutAsking]).toContain(
+      "Nothing is ever merged",
+    );
+  });
+
+  test("its rules table has an id of its own, apart from the other lanes'", () => {
+    expect(getTelemetryAiRulesTableId(TelemetryAiLane.Log)).toBe(
+      "telemetry-ai-rules-table-Log",
+    );
+  });
+});

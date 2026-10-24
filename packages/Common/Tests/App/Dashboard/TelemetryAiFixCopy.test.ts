@@ -31,11 +31,16 @@ import ObjectID from "../../../Types/ObjectID";
 const LINE_LIMIT: number = 150;
 
 describe("which findings draw Fix with AI", () => {
-  test("Traces' kinds, while open and with no fix linked", () => {
-    expect(TELEMETRY_AI_FIX_LANES).toEqual([TelemetryAiLane.Trace]);
+  test("Traces' and Logs' kinds, while open and with no fix linked", () => {
+    expect(TELEMETRY_AI_FIX_LANES).toEqual([
+      TelemetryAiLane.Trace,
+      TelemetryAiLane.Log,
+    ]);
 
-    for (const insightType of TELEMETRY_AI_LANES[TelemetryAiLane.Trace]
-      .insightTypes) {
+    for (const insightType of [
+      ...TELEMETRY_AI_LANES[TelemetryAiLane.Trace].insightTypes,
+      ...TELEMETRY_AI_LANES[TelemetryAiLane.Log].insightTypes,
+    ]) {
       for (const status of [
         AIInsightStatus.Detected,
         AIInsightStatus.ActionRequired,
@@ -72,6 +77,8 @@ describe("which findings draw Fix with AI", () => {
       AIInsightType.ProfileHotspot,
       AIInsightType.TraceLatencyRegression,
       AIInsightType.NewException,
+      // AI Insights' own error-log spike is not a Logs finding.
+      AIInsightType.ErrorLogSpike,
       "Unknown",
       undefined,
     ]) {
@@ -98,6 +105,28 @@ describe("what Fix with AI says", () => {
     }
 
     expect(getTelemetryAiFixLead("Unknown")).toBe(TELEMETRY_AI_FIX_LEAD);
+  });
+
+  test("each of Logs' kinds says what its pull request does", () => {
+    for (const insightType of TELEMETRY_AI_LANES[TelemetryAiLane.Log]
+      .insightTypes) {
+      const lead: string | undefined = TELEMETRY_AI_FIX_LEADS[insightType];
+
+      expect(lead).toBeTruthy();
+      expect(lead!.length).toBeLessThanOrEqual(LINE_LIMIT);
+      expect(lead).toContain("pull request");
+      expect(lead).toContain("for you to review");
+    }
+
+    expect(getTelemetryAiFixLead(AIInsightType.LogErrorPattern)).toBe(
+      "OneUptime AI opens a pull request that fixes why this error is logged, for you to review.",
+    );
+    expect(getTelemetryAiFixLead(AIInsightType.LogMissingLogging)).toBe(
+      "OneUptime AI opens a pull request that adds the logging this lacks, for you to review.",
+    );
+    expect(getTelemetryAiFixLead(AIInsightType.LogNoisyPattern)).toBe(
+      "OneUptime AI opens a pull request that logs this line less, for you to review.",
+    );
   });
 
   test("the button and the rest read as the Profiler's own", () => {

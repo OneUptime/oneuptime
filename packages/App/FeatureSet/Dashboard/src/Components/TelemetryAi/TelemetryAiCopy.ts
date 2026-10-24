@@ -441,7 +441,8 @@ export const TELEMETRY_AI_INSIGHTS_SCOPES_WHILE_OFF: Readonly<
   },
   [TelemetryAiLane.Log]: {
     ...TELEMETRY_AI_INSIGHTS_SCOPES[TelemetryAiLane.Log],
-    emptyTitle: TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Log].insightsOffEmptyTitle,
+    emptyTitle:
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Log].insightsOffEmptyTitle,
     emptyDescription:
       TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Log].insightsOffEmptyDescription,
   },
@@ -494,7 +495,7 @@ export const TELEMETRY_AI_SWITCHES: Readonly<
       column: "enableAutomaticLogRemediation",
       title: translationKey("Find and fix error, missing and noisy logs"),
       description: translationKey(
-        "Every hour OneUptime looks through your logs for repeated errors, unlogged failures and noisy lines. OneUptime AI fixes what it can with pull requests.",
+        "Every hour OneUptime checks your logs for repeated errors, unlogged failures and noisy lines. OneUptime AI fixes what it can with pull requests.",
       ),
       note: translationKey("Needs a repository connected in Code."),
     },

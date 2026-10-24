@@ -169,6 +169,7 @@ import AIInsightViewPage from "../../../../App/FeatureSet/Dashboard/src/Pages/AI
 import {
   AI_INSIGHT_MONITOR_CUMULATIVE_COUNTER_BLOCKER,
   AI_INSIGHT_MONITOR_LATENCY_BLOCKER,
+  AI_INSIGHT_MONITOR_LOG_MESSAGE_SCOPE_BLOCKER,
   AI_INSIGHT_MONITOR_SLOW_OPERATION_BLOCKER,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/AIInsightMonitorPrefill";
 import Metric, {
@@ -310,6 +311,65 @@ const MISSING_TRACING: AIInsight = traceInsight(
   AIInsightType.TraceMissingTracing,
   "checkout's requests have no spans inside them",
   { kind: "MissingTracing", gap: "NoChildSpans" },
+);
+
+// Logs' three kinds of finding (Logs → AI): one of each.
+function logInsight(
+  insightType: AIInsightType,
+  title: string,
+  log: Partial<NonNullable<AIInsightEvidence["log"]>>,
+): AIInsight {
+  return buildInsight({
+    insightType: insightType,
+    title: title,
+    serviceName: "checkout",
+    telemetryServiceId: SERVICE_ID,
+    evidence: {
+      log: {
+        serviceId: SERVICE_ID,
+        kind: "Error",
+        windowStartTime: "2026-10-24T08:00:00.000Z",
+        windowEndTime: "2026-10-24T09:00:00.000Z",
+        logCount: 18400,
+        ...log,
+      },
+    },
+  });
+}
+
+const ERROR_LOG: AIInsight = logInsight(
+  AIInsightType.LogErrorPattern,
+  'checkout logged "Payment provider returned <num>: card declined" 1,240 times in an hour',
+  {
+    kind: "Error",
+    pattern: "Payment provider returned <num>: card declined",
+    patternCount: 1240,
+    severities: ["Error"],
+    searchText: "Payment provider returned",
+  },
+);
+
+const MISSING_LOGGING: AIInsight = logInsight(
+  AIInsightType.LogMissingLogging,
+  "POST /checkout in checkout fails without logging",
+  {
+    kind: "MissingLogging",
+    gap: "SilentFailures",
+    operationName: "POST /checkout",
+    failedSpanCount: 312,
+  },
+);
+
+const NOISY_LOG: AIInsight = logInsight(
+  AIInsightType.LogNoisyPattern,
+  '"cache hit for key <uuid>" is 62% of checkout\'s logs',
+  {
+    kind: "Noisy",
+    pattern: "cache hit for key <uuid>",
+    patternCount: 29760,
+    patternPercent: 62,
+    searchText: "cache hit for key",
+  },
 );
 
 function metricPoint(data: {
@@ -629,6 +689,95 @@ describe("AI insight detail — Create Monitor on Traces' findings", () => {
 
     for (const name of ["Confirm", "Dismiss", "Resolve"]) {
       expect(screen.getByRole("button", { name: name })).toBeEnabled();
+    }
+  });
+});
+
+describe("AI insight detail — Create Monitor on Logs' findings", () => {
+  beforeEach(() => {
+    isMasterAdminForTest = false;
+    permissionsForTest = [Permission.ProjectAdmin];
+    metricShapeRows = [];
+    analyticsListRequests = [];
+    PermissionGate.clearPermissionPropsCache();
+    window.localStorage.clear();
+
+    navigateMock = jest.fn() as jest.Mock<any, any>;
+    getJestSpyOn(Navigation, "navigate").mockImplementation(
+      (...args: Array<unknown>): void => {
+        navigateMock(...args);
+      },
+    );
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+
+  test("an error log offers it - not greyed out - and goes to Monitor Create with the finding", async () => {
+    await renderInsight(ERROR_LOG);
+
+    const button: HTMLButtonElement | null = createMonitorButton();
+
+    expect(button).not.toBeNull();
+    expect(button).toBeEnabled();
+
+    const tooltip: HTMLElement = await tooltipOf(button!);
+
+    expect(tooltip).toHaveTextContent("pre-filled from this insight");
+
+    await act(async () => {
+      fireEvent.click(createMonitorButton()!);
+    });
+
+    const destination: string = String(navigateMock.mock.calls[0]![0]);
+
+    expect(destination).toContain("/monitors/create");
+    expect(
+      new URLSearchParams(destination.substring(destination.indexOf("?"))).get(
+        "aiInsightId",
+      ),
+    ).toBe(INSIGHT_ID);
+    // Only a metric drift reads a metric's shape.
+    expect(analyticsListRequests).toHaveLength(0);
+  });
+
+  test("an error log with no words of its message to search for keeps the button, disabled, and says why", async () => {
+    await renderInsight(
+      logInsight(
+        AIInsightType.LogErrorPattern,
+        'checkout logged "<num> <num>" 1,240 times in an hour',
+        { kind: "Error", pattern: "<num> <num>", patternCount: 1240 },
+      ),
+    );
+
+    const button: HTMLButtonElement | null = createMonitorButton();
+
+    expect(button).not.toBeNull();
+    expect(button).toBeDisabled();
+
+    const tooltip: HTMLElement = await tooltipOf(button!);
+
+    expect(tooltip).toHaveTextContent(
+      AI_INSIGHT_MONITOR_LOG_MESSAGE_SCOPE_BLOCKER,
+    );
+
+    fireEvent.click(button!);
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  test("missing logging and noisy logs draw no Create Monitor - an incident is not the fix - and keep every other action", async () => {
+    for (const insight of [MISSING_LOGGING, NOISY_LOG]) {
+      await renderInsight(insight);
+
+      expect(createMonitorButton()).toBeNull();
+
+      for (const name of ["Confirm", "Dismiss", "Resolve"]) {
+        expect(screen.getByRole("button", { name: name })).toBeEnabled();
+      }
+
+      cleanup();
     }
   });
 });
