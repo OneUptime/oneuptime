@@ -7,6 +7,7 @@ Uitzonderingen volgen verzamelt de fouten die uw code gooit en groepeert elk voo
 - [De lijst beoordelen](#de-lijst-beoordelen): Onopgelost eerst, ruis verborgen.
 - [De pagina van een uitzondering](#de-pagina-van-een-uitzondering): Stacktrace, voorvallen en context.
 - [Verhelpen met AI](#verhelpen-met-ai): Een pull request met de oplossing, of een regressietest.
+- [Nieuwe en stijgende uitzonderingen vinden en oplossen met AI](#nieuwe-en-stijgende-uitzonderingen-vinden-en-oplossen-met-ai): Pull requests voor de uitzonderingen die OneUptime vindt.
 :::
 
 ## Waar uitzonderingen vandaan komen
@@ -116,6 +117,44 @@ De pagina **AI Assistance** biedt drie taken. Elke taak loopt als AI-taak die ee
 | **Foutafhandeling verbeteren** | Voor verwachte fouten: controleert invoer eerder, houdt gebruikersgegevens uit berichten en markeert de fout als afgehandeld. |
 
 AI heeft eerst drie dingen nodig: een LLM-provider, een gekoppelde repository (op GitHub, GitLab, Forgejo of Gitea, of op elke Git-server), en een AI-agent die online is om de taak uit te voeren. De pagina controleert elk van de drie en linkt naar wat ontbreekt. De taken pauzeren zolang de uitzondering opgelost of gearchiveerd is. Zie [Code](/docs/ai/ai-agent).
+
+## Nieuwe en stijgende uitzonderingen vinden en oplossen met AI
+
+Elke 15 minuten doorzoekt OneUptime uw uitzonderingen op nieuwe, op uitzonderingen die plotseling veel vaker optreden en op services waarvan de uitzonderingen geen stacktrace hebben, en legt wat het vindt vast als AI-inzichten, met het bewijs. Daarna onderzoekt OneUptime AI elk ervan en opent er een pull request voor. Er wordt nooit iets samengevoegd: uw team beoordeelt elke pull request.
+
+| Bevinding | Wanneer OneUptime die vastlegt | De pull request |
+| --- | --- | --- |
+| **New Exception** | Een uitzondering die in de afgelopen 24 uur voor het eerst is gezien en al 3 keer of vaker is opgetreden. | Verhelpt de uitzondering, of handelt haar beter af. |
+| **Exception Spike** | Een uitzondering die in het afgelopen uur 10 keer of vaker is opgetreden, met 5 keer of meer haar uurtempo van de 24 uur daarvoor. | Verhelpt de uitzondering, of handelt haar beter af. |
+| **Ontbrekende stack trace** | De uitzonderingen die een service de afgelopen dag vastlegde, hebben geen stacktrace en zijn samen 20 keer of vaker opgetreden. | Laat de service bij elke uitzondering een stacktrace vastleggen. |
+
+De pull request van een nieuwe of stijgende uitzondering is de eigen AI-taak van de uitzondering, die haar pagina **AI Assistance** start, en hij wacht tot OneUptime AI de bevinding heeft onderzocht. Vindt het de schuldige code (`code-fault`), dan verhelpt de pull request die, zoals **Fix this exception with AI** doet. Vindt het een verwachte fout (`user-error` of `expected-denial`), dan handelt de pull request de fout beter af, zoals **Foutafhandeling verbeteren** doet. Elk ander oordeel opent zelf geen pull request.
+
+OneUptime AI opent er alleen zelf een voor een uitzondering die in uw eigen code is opgeworpen: een uitzondering waarvan de stacktrace een frame van uw code bevat, en niet alleen frames van bibliotheken of de runtime. Een pull request die iemand zonder samenvoegen sloot, pauzeert de automatische voor die uitzondering. Iedereen kan er nog steeds elk ervan vragen met **Oplossen met AI** op de bevinding.
+
+### Inschakelen
+
+**Uitzonderingen → AI → Instellingen** bevat de schakelaar **Nieuwe en stijgende uitzonderingen vinden en oplossen**, die voor nieuwe projecten aan staat. Zolang die uit staat, horen nieuwe en stijgende uitzonderingen zoals voorheen bij de AI-inzichten: zie [AI SRE](/docs/ai/ai-sre#inzichten-proactieve-detectie). Staat **AI inschakelen** uit, dan worden ze nog gevonden, maar doet OneUptime AI er niets mee. Om pull requests te openen heeft OneUptime AI een repository nodig die in [Code](/docs/ai/ai-agent) is gekoppeld: de pagina zegt eerst wat ontbreekt. De code van elke repository wordt gewijzigd op de Runner die de repository in Code kiest.
+
+OneUptime AI opent zelf maximaal 5 pull requests per dag (UTC), één per bevinding, en nooit meer dan de limiet van een repository voor open AI-pull requests.
+
+### AI-regels
+
+Zonder regel onderzoekt OneUptime AI elke uitzondering die het vindt meteen en opent een pull request voor elke uitzondering die het kan oplossen. De **AI-regels** onder **Meer instellingen** beperken dat, in drie stappen:
+
+| Stap | Wat die beslist |
+| --- | --- |
+| **Overeenkomst** | Welke services: de gekozen services, die met bepaalde labels of die waarvan de naam bij een patroon past. |
+| **Onderzoeken** | **Meteen**, of **Alleen als het na een wachttijd nog gevonden wordt**: een uitzondering die tijdens de wachttijd verdwijnt, wordt niet onderzocht. |
+| **Herstel** | **Niet herstellen**, **Eerst om goedkeuring vragen** of **Herstellen zonder te vragen**. Eerst vragen laat de pull request aan een persoon over: de bevinding biedt **Oplossen met AI** aan. |
+
+Onder **Meer velden** kiest een regel de coderepositories, de MCP-servers en de LLM-provider die OneUptime AI ervoor mag gebruiken. Is er niets gekozen, dan mag het ze allemaal gebruiken, en de standaard-LLM-provider van het project.
+
+### Zien wat het deed
+
+- **Uitzonderingen → AI → Inzichten** toont wat OneUptime vond, elke bevinding met haar bewijs, de frames van uw code in haar stacktrace inbegrepen. **View Exception Group** opent de uitzondering, en bij de ontbrekende stacktraces van een service opent **Openen in Uitzonderingen** haar niet-opgeloste uitzonderingen van de afgelopen dag.
+- **Uitzonderingen → AI → Logboeken** toont elk onderzoek en elke pull request, nieuwste eerst, met hoe elk ervoor staat.
+- De pull request zegt waarom hij werd geopend, met een link naar zijn bevinding. Die van een nieuwe of stijgende uitzondering linkt ook naar de uitzondering en staat op haar pagina **AI Assistance**. In Code noemt zijn taak de uitzondering die ze verhelpt, of de bevinding waar ze vandaan kwam.
 
 ## Inzichten in uitzonderingen
 

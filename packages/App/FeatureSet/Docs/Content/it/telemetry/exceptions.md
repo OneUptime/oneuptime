@@ -7,6 +7,7 @@ Il tracciamento delle eccezioni raccoglie gli errori che il vostro codice sollev
 - [Smistare l'elenco](#smistare-lelenco): Prima ciò che non è risolto, il rumore nascosto.
 - [La pagina di un'eccezione](#la-pagina-di-uneccezione): Stack trace, occorrenze e contesto.
 - [Correggerla con l'IA](#correggerla-con-lia): Una pull request con la correzione, o un test di regressione.
+- [Trovare e correggere le eccezioni nuove e in aumento con l'IA](#trovare-e-correggere-le-eccezioni-nuove-e-in-aumento-con-lia): Pull request per le eccezioni che OneUptime trova.
 :::
 
 ## Da dove arrivano le eccezioni
@@ -116,6 +117,44 @@ La pagina **AI Assistance** offre tre attività. Ognuna viene eseguita come atti
 | **Migliora la gestione degli errori** | Per gli errori previsti: convalida prima l'input, tiene i dati degli utenti fuori dai messaggi e segna l'errore come gestito. |
 
 Prima l'IA ha bisogno di tre cose: un provider LLM, un repository collegato (su GitHub, GitLab, Forgejo o Gitea, o su qualsiasi server Git) e un agente IA online che esegua l'attività. La pagina controlla ciascuna e rimanda a ciò che manca. Le attività sono in pausa finché l'eccezione è risolta o archiviata. Vedere [Codice](/docs/ai/ai-agent).
+
+## Trovare e correggere le eccezioni nuove e in aumento con l'IA
+
+Ogni 15 minuti OneUptime esamina le vostre eccezioni alla ricerca di quelle nuove, di quelle che all'improvviso si verificano molto più spesso e dei servizi le cui eccezioni non hanno alcuno stack trace, e registra ciò che trova come insight IA, con le prove. Poi OneUptime AI analizza ciascuno e apre una pull request per esso. Non viene mai unito nulla: il vostro team revisiona ogni pull request.
+
+| Rilevamento | Quando OneUptime lo registra | La pull request |
+| --- | --- | --- |
+| **New Exception** | Un'eccezione vista per la prima volta nelle ultime 24 ore che si è già verificata 3 volte o più. | Corregge l'eccezione, o la gestisce meglio. |
+| **Exception Spike** | Un'eccezione che si è verificata 10 volte o più nell'ultima ora, a 5 volte o più il suo ritmo orario delle 24 ore precedenti. | Corregge l'eccezione, o la gestisce meglio. |
+| **Stack trace mancante** | Le eccezioni che un servizio ha registrato nell'ultimo giorno non hanno alcuno stack trace e, insieme, si sono verificate 20 volte o più. | Fa sì che il servizio registri uno stack trace con ogni eccezione. |
+
+La pull request di un'eccezione nuova o in aumento è l'attività IA propria dell'eccezione, quella che avvia la sua pagina **AI Assistance**, e aspetta che OneUptime AI abbia analizzato il rilevamento. Se trova il codice responsabile (`code-fault`), la pull request lo corregge, come fa **Fix this exception with AI**. Se trova un errore previsto (`user-error` o `expected-denial`), la pull request gestisce meglio l'errore, come fa **Migliora la gestione degli errori**. Qualsiasi altro verdetto non apre da solo alcuna pull request.
+
+OneUptime AI ne apre una da solo solo per un'eccezione sollevata nel vostro codice: una il cui stack trace contiene un frame del vostro codice, non solo frame di librerie o del runtime. Una pull request che qualcuno ha chiuso senza unirla mette in pausa quelle automatiche per quell'eccezione. Chiunque può comunque chiederne una qualsiasi con **Correggi con l'IA** sul rilevamento.
+
+### Attivarlo
+
+**Eccezioni → IA → Impostazioni** contiene l'interruttore **Trova e correggi le eccezioni nuove e in aumento**, attivo per i nuovi progetti. Finché è disattivato, le eccezioni nuove e in aumento restano agli insight IA, come prima: vedere [AI SRE](/docs/ai/ai-sre#insight-rilevamento-proattivo). Con **Abilita IA** disattivato, vengono ancora trovate, ma OneUptime AI non ne fa nulla. Per aprire pull request, OneUptime AI ha bisogno di un repository collegato in [Codice](/docs/ai/ai-agent): la pagina dice prima cosa manca. Il codice di ogni repository viene modificato sul Runner che il repository sceglie in Codice.
+
+OneUptime AI apre da solo al massimo 5 pull request al giorno (UTC), una per rilevamento, e mai più del limite di pull request IA aperte di un repository.
+
+### Regole IA
+
+Senza regole, OneUptime AI analizza subito ogni eccezione che trova e apre una pull request per ciascuna che può correggere. Le **Regole IA** in **Altre impostazioni** lo restringono, in tre passaggi:
+
+| Passaggio | Cosa decide |
+| --- | --- |
+| **Corrispondenza** | Quali servizi: quelli scelti, quelli con determinate etichette o quelli il cui nome corrisponde a un modello. |
+| **Indagare** | **Subito**, oppure **Solo se ancora trovato dopo un'attesa**: un'eccezione che scompare durante l'attesa non viene analizzata. |
+| **Correzione** | **Non correggere**, **Chiedi prima di correggere** o **Correggi senza chiedere**. Chiedere prima lascia la pull request a una persona: il rilevamento offre **Correggi con l'IA**. |
+
+In **Altri campi** una regola sceglie i repository di codice, i server MCP e il provider LLM che OneUptime AI può usare per essa. Se non se ne sceglie nessuno, può usarli tutti, e il provider LLM predefinito del progetto.
+
+### Vedere cosa ha fatto
+
+- **Eccezioni → IA → Informazioni** elenca ciò che OneUptime ha trovato, ogni rilevamento con le sue prove, compresi i frame del vostro codice nel suo stack trace. **View Exception Group** apre l'eccezione e, sugli stack trace mancanti di un servizio, **Apri in Eccezioni** apre le sue eccezioni non risolte dell'ultimo giorno.
+- **Eccezioni → IA → Registri** elenca ogni indagine e ogni pull request, dalla più recente, con lo stato di ciascuna.
+- La pull request spiega perché è stata aperta, con un link al suo rilevamento. Quella di un'eccezione nuova o in aumento rimanda anche all'eccezione e compare sulla sua pagina **AI Assistance**. In Codice, la sua attività nomina l'eccezione che corregge, o il rilevamento da cui è nata.
 
 ## Informazioni sulle eccezioni
 

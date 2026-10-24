@@ -7,6 +7,7 @@ Exception Tracking collects the errors your code throws and groups every occurre
 - [Triage the list](#triage-the-list): Unresolved first, noise hidden.
 - [An exception's page](#an-exceptions-page): Stack trace, occurrences and context.
 - [Fix it with AI](#fix-it-with-ai): A pull request with the fix, or a regression test.
+- [Find and fix new and rising exceptions with AI](#find-and-fix-new-and-rising-exceptions-with-ai): Pull requests for the exceptions OneUptime finds.
 :::
 
 ## Where exceptions come from
@@ -116,6 +117,44 @@ The **AI Assistance** page offers three tasks. Each runs as an AI task that open
 | **Improve Error Handling** | For expected errors: validates input earlier, keeps user data out of messages, and marks the error as handled. |
 
 AI needs three things first: an LLM provider, a connected repository (on GitHub, GitLab, Forgejo or Gitea, or any Git server), and an AI agent online to run the task. The page checks each one and links to what is missing. The tasks pause while the exception is resolved or archived. See [Code](/docs/ai/ai-agent).
+
+## Find and fix new and rising exceptions with AI
+
+Every 15 minutes OneUptime looks through your exceptions for new ones, ones that suddenly happen far more often, and services whose exceptions carry no stack trace, and files what it finds as AI insights, with the evidence. OneUptime AI then looks into each one and opens a pull request for it. Nothing is ever merged: your team reviews each pull request.
+
+| Finding | When OneUptime files it | The pull request |
+| --- | --- | --- |
+| **New Exception** | An exception first seen in the last 24 hours that already happened 3 or more times. | Fixes the exception, or handles it better. |
+| **Exception Spike** | An exception that happened 10 or more times in the last hour, at 5 or more times its hourly rate over the 24 hours before. | Fixes the exception, or handles it better. |
+| **Missing Stack Trace** | The exceptions a service recorded in the last day carry no stack trace, and together happened 20 or more times. | Makes the service record a stack trace with each exception. |
+
+A new or rising exception's pull request is the exception's own AI task, the one its **AI Assistance** page starts, and it waits for OneUptime AI to look into the finding. When it finds the code at fault (`code-fault`), the pull request fixes it, as **Fix this exception with AI** does. When it finds an expected error (`user-error` or `expected-denial`), the pull request handles the error better, as **Improve Error Handling** does. Any other verdict opens no pull request on its own.
+
+OneUptime AI opens one on its own only for an exception raised in your own code: one whose stack trace has a frame of your code, not only frames of libraries or the runtime. A pull request someone closed without merging pauses the automatic ones for that exception. Anyone can still ask for any of them with **Fix with AI** on the finding.
+
+### Turn it on
+
+**Exceptions → AI → Settings** holds the switch **Find and fix new and rising exceptions**, on for new projects. While it is off, new and rising exceptions are AI Insights' as before: see [AI SRE](/docs/ai/ai-sre#insights-proactive-detection). With **Enable AI** off, they are still found, but OneUptime AI does nothing with them. To open pull requests, OneUptime AI needs a repository connected in [Code](/docs/ai/ai-agent): the page says what is missing first. Each repository's code is changed on the Runner the repository picks in Code.
+
+OneUptime AI opens at most 5 pull requests on its own each day (UTC), one for each finding, and never more than a repository's limit on open AI pull requests.
+
+### AI rules
+
+With no rule, OneUptime AI looks into every exception it finds right away, and opens a pull request for each one it can fix. The **AI rules** under **More settings** narrow that, in three steps:
+
+| Step | What it decides |
+| --- | --- |
+| **Match** | Which services: the ones picked, the ones with certain labels, or the ones whose names match a pattern. |
+| **Investigate** | **Right away**, or **Only if still found after a wait**: an exception that goes away during the wait is not looked into. |
+| **Fix** | **Don't fix**, **Ask before fixing** or **Fix without asking**. Asking first leaves the pull request to a person: the finding offers **Fix with AI**. |
+
+Under **More fields** a rule picks the code repositories, the MCP servers and the LLM provider OneUptime AI may use for it. With none picked, it may use any of them, and the project's default LLM provider.
+
+### See what it did
+
+- **Exceptions → AI → Insights** lists what OneUptime found, each finding with its evidence, the frames of your code in its stack trace included. **View Exception Group** opens the exception, and on a service's missing stack traces, **Open in Exceptions** opens its unresolved exceptions from the last day.
+- **Exceptions → AI → Logs** lists every investigation and pull request, newest first, with how each one stands.
+- The pull request says why it was opened, with a link to its finding. A new or rising exception's also links the exception, and shows on the exception's **AI Assistance** page. In Code, its task names the exception it fixes, or the finding it came from.
 
 ## Exceptions Insights
 

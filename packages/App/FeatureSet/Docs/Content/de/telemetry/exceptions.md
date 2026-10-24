@@ -7,6 +7,7 @@ Die Ausnahmenverfolgung sammelt die Fehler, die Ihr Code wirft, und fasst jedes 
 - [Die Liste sichten](#die-liste-sichten): Ungelöstes zuerst, Rauschen ausgeblendet.
 - [Die Seite einer Ausnahme](#die-seite-einer-ausnahme): Stack-Trace, Vorkommen und Kontext.
 - [Mit KI beheben](#mit-ki-beheben): Ein Pull Request mit der Korrektur oder einem Regressionstest.
+- [Neue und zunehmende Ausnahmen mit KI finden und beheben](#neue-und-zunehmende-ausnahmen-mit-ki-finden-und-beheben): Pull Requests für die Ausnahmen, die OneUptime findet.
 :::
 
 ## Woher Ausnahmen kommen
@@ -116,6 +117,44 @@ Die Seite **KI-Unterstützung** bietet drei Aufgaben. Jede läuft als KI-Aufgabe
 | **Fehlerbehandlung verbessern** | Für erwartete Fehler: prüft Eingaben früher, hält Benutzerdaten aus Meldungen heraus und markiert den Fehler als behandelt. |
 
 Die KI braucht vorher drei Dinge: einen LLM-Anbieter, ein verbundenes Repository (auf GitHub, GitLab, Forgejo oder Gitea oder einem beliebigen Git-Server) und einen KI-Agenten, der online ist und die Aufgabe ausführt. Die Seite prüft jedes davon und verlinkt, was fehlt. Die Aufgaben pausieren, solange die Ausnahme behoben oder archiviert ist. Siehe [Code](/docs/ai/ai-agent).
+
+## Neue und zunehmende Ausnahmen mit KI finden und beheben
+
+Alle 15 Minuten durchsucht OneUptime Ihre Ausnahmen nach neuen, nach solchen, die plötzlich weit häufiger auftreten, und nach Diensten, deren Ausnahmen keinen Stack-Trace haben, und legt seine Befunde mit den Belegen als KI-Einblicke an. OneUptime AI untersucht dann jeden Befund und öffnet einen Pull Request dafür. Nichts wird je zusammengeführt: Ihr Team prüft jeden Pull Request.
+
+| Befund | Wann OneUptime ihn anlegt | Der Pull Request |
+| --- | --- | --- |
+| **New Exception** | Eine Ausnahme, die in den letzten 24 Stunden zum ersten Mal gesehen wurde und bereits 3 Mal oder öfter aufgetreten ist. | Behebt die Ausnahme oder behandelt sie besser. |
+| **Exception Spike** | Eine Ausnahme, die in der letzten Stunde 10 Mal oder öfter aufgetreten ist, mit dem 5-Fachen oder mehr ihrer stündlichen Rate in den 24 Stunden davor. | Behebt die Ausnahme oder behandelt sie besser. |
+| **Fehlender Stack-Trace** | Die Ausnahmen, die ein Dienst am letzten Tag aufgezeichnet hat, haben keinen Stack-Trace und sind zusammen 20 Mal oder öfter aufgetreten. | Sorgt dafür, dass der Dienst mit jeder Ausnahme einen Stack-Trace aufzeichnet. |
+
+Der Pull Request einer neuen oder zunehmenden Ausnahme ist die eigene KI-Aufgabe der Ausnahme, die ihre Seite **KI-Unterstützung** startet, und er wartet, bis OneUptime AI den Befund untersucht hat. Findet es den schuldigen Code (`code-fault`), behebt der Pull Request ihn, wie es **Diese Ausnahme mit KI beheben** tut. Findet es einen erwarteten Fehler (`user-error` oder `expected-denial`), behandelt der Pull Request den Fehler besser, wie es **Fehlerbehandlung verbessern** tut. Jedes andere Urteil öffnet von sich aus keinen Pull Request.
+
+OneUptime AI öffnet ihn nur dann selbstständig, wenn die Ausnahme in Ihrem eigenen Code ausgelöst wurde: wenn ihr Stack-Trace einen Frame Ihres Codes enthält, nicht nur Frames von Bibliotheken oder der Laufzeitumgebung. Ein Pull Request, den jemand ohne Zusammenführen geschlossen hat, pausiert die automatischen für diese Ausnahme. Jeder kann trotzdem jeden davon mit **Mit KI beheben** am Befund anfordern.
+
+### Einschalten
+
+**Ausnahmen → KI → Einstellungen** enthält den Schalter **Neue und zunehmende Ausnahmen finden und beheben**, der für neue Projekte eingeschaltet ist. Solange er aus ist, gehören neue und zunehmende Ausnahmen wie bisher den KI-Einblicken: siehe [AI SRE](/docs/ai/ai-sre#einblicke-proaktive-erkennung). Ist **KI aktivieren** aus, werden sie weiterhin gefunden, aber OneUptime AI tut nichts damit. Um Pull Requests zu öffnen, braucht OneUptime AI ein in [Code](/docs/ai/ai-agent) verbundenes Repository: Die Seite sagt, was zuerst fehlt. Der Code eines Repositorys wird auf dem Runner geändert, den das Repository in Code auswählt.
+
+OneUptime AI öffnet von sich aus höchstens 5 Pull Requests pro Tag (UTC), einen pro Befund, und nie mehr, als ein Repository an offenen KI-Pull-Requests zulässt.
+
+### KI-Regeln
+
+Ohne Regel untersucht OneUptime AI jede Ausnahme, die es findet, sofort und öffnet für jede, die es beheben kann, einen Pull Request. Die **KI-Regeln** unter **Weitere Einstellungen** schränken das in drei Schritten ein:
+
+| Schritt | Was er entscheidet |
+| --- | --- |
+| **Übereinstimmung** | Welche Dienste: die ausgewählten, die mit bestimmten Labels oder die, deren Namen zu einem Muster passen. |
+| **Untersuchen** | **Sofort** oder **Nur falls nach einer Wartezeit noch gefunden**: Eine Ausnahme, die während der Wartezeit verschwindet, wird nicht untersucht. |
+| **Behebung** | **Nicht beheben**, **Vor dem Beheben fragen** oder **Ohne Nachfrage beheben**. Wer zuerst fragt, überlässt den Pull Request einer Person: Der Befund bietet **Mit KI beheben** an. |
+
+Unter **Weitere Felder** wählt eine Regel die Code-Repositories, die MCP-Server und den LLM-Anbieter, die OneUptime AI für sie verwenden darf. Ist nichts ausgewählt, darf es alle verwenden, und den Standard-LLM-Anbieter des Projekts.
+
+### Sehen, was es getan hat
+
+- **Ausnahmen → KI → Einblicke** listet, was OneUptime gefunden hat, jeden Befund mit seinen Belegen, darunter die Frames Ihres Codes in seinem Stack-Trace. **Ausnahmegruppe anzeigen** öffnet die Ausnahme, und bei fehlenden Stack-Traces eines Dienstes öffnet **In Ausnahmen öffnen** seine nicht behobenen Ausnahmen vom letzten Tag.
+- **Ausnahmen → KI → Protokolle** listet jede Untersuchung und jeden Pull Request, das Neueste zuerst, jeweils mit ihrem Stand.
+- Der Pull Request sagt, warum er geöffnet wurde, mit einem Link zu seinem Befund. Der einer neuen oder zunehmenden Ausnahme verlinkt auch die Ausnahme und erscheint auf ihrer Seite **KI-Unterstützung**. In Code nennt seine Aufgabe die Ausnahme, die sie behebt, oder den Befund, aus dem sie kam.
 
 ## Ausnahmen-Einblicke
 
