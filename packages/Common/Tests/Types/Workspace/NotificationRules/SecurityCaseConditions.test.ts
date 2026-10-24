@@ -9,10 +9,18 @@ import { WorkspaceNotificationRuleUtil } from "../../../../Types/Workspace/Notif
 import NotificationRuleInvites from "../../../../Types/Workspace/NotificationRules/NotificationRuleInvites";
 import IncidentNotificationRule from "../../../../Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
-import SecurityCasePriority, {
-  SECURITY_CASE_PRIORITIES,
-} from "../../../../Types/SecurityCase/SecurityCasePriority";
-import { SECURITY_CASE_STATUSES } from "../../../../Types/SecurityCase/SecurityCaseStatus";
+import SecurityCasePriorityLevel, {
+  SECURITY_CASE_PRIORITY_LEVELS,
+} from "../../../../Types/SecurityCase/SecurityCasePriorityLevel";
+import SecurityCaseStage, {
+  SECURITY_CASE_STAGES,
+} from "../../../../Types/SecurityCase/SecurityCaseStage";
+import {
+  TEST_PRIORITY_IDS,
+  TEST_STATUS_IDS,
+  buildDefaultTestPriorities,
+  buildDefaultTestStatuses,
+} from "../../../Helpers/SecurityCaseValues";
 import SecurityDetectionSource, {
   SECURITY_DETECTION_SOURCES,
 } from "../../../../Types/SecurityCase/SecurityDetectionSource";
@@ -26,9 +34,10 @@ import { describe, expect, it } from "@jest/globals";
  *
  * The chain from "the editor offers it" through "the rule saves" to "the
  * server matches it" is walked for the six Security Case check-ons:
- * priority, status and source are fixed scales every project shares, so
- * their values come from the enums, in their own order; labels are the
- * project's own; title and description are text.
+ * priority and status are the project's own, picked and matched by id like
+ * an incident's severity and state, in the project's order; source is a
+ * fixed scale every project shares, from its enum; labels are the project's
+ * own; title and description are text.
  */
 
 type CheckOnValues = {
@@ -51,9 +60,17 @@ function emptyData(
     scheduledMaintenanceStates: [],
     labels,
     monitors: [],
+    securityCasePriorities: buildDefaultTestPriorities(),
+    securityCaseStatuses: buildDefaultTestStatuses(),
     checkOn: NotificationRuleConditionCheckOn.SecurityCasePriority,
   };
 }
+
+const priorityId: (level: SecurityCasePriorityLevel) => string = (
+  level: SecurityCasePriorityLevel,
+): string => {
+  return TEST_PRIORITY_IDS[level];
+};
 
 function values(partial: Partial<CheckOnValues>): CheckOnValues {
   const base: Partial<CheckOnValues> = {};
@@ -70,9 +87,11 @@ function caseValues(overrides: Partial<CheckOnValues> = {}): CheckOnValues {
       "Brute force against admin",
     [NotificationRuleConditionCheckOn.SecurityCaseDescription]:
       "Ten failed sign-ins in a minute.",
-    [NotificationRuleConditionCheckOn.SecurityCasePriority]:
-      SecurityCasePriority.Critical,
-    [NotificationRuleConditionCheckOn.SecurityCaseStatus]: "New",
+    [NotificationRuleConditionCheckOn.SecurityCasePriority]: priorityId(
+      SecurityCasePriorityLevel.Critical,
+    ),
+    [NotificationRuleConditionCheckOn.SecurityCaseStatus]:
+      TEST_STATUS_IDS[SecurityCaseStage.New],
     [NotificationRuleConditionCheckOn.SecurityCaseSource]:
       SecurityDetectionSource.DetectionRule,
     [NotificationRuleConditionCheckOn.SecurityCaseLabels]: [CASE_LABEL_ID],
@@ -176,7 +195,7 @@ describe("Security Case notification rule conditions", () => {
     );
   });
 
-  it("lists every priority, status and source in their own order, and the project's labels", () => {
+  it("lists the project's priorities and statuses by id, every source in its own order, and the project's labels", () => {
     const options: (
       checkOn: NotificationRuleConditionCheckOn,
     ) => Array<string> = (
@@ -196,10 +215,18 @@ describe("Security Case notification rule conditions", () => {
 
     expect(
       options(NotificationRuleConditionCheckOn.SecurityCasePriority),
-    ).toEqual([...SECURITY_CASE_PRIORITIES]);
+    ).toEqual(
+      SECURITY_CASE_PRIORITY_LEVELS.map((level: SecurityCasePriorityLevel) => {
+        return priorityId(level);
+      }),
+    );
     expect(
       options(NotificationRuleConditionCheckOn.SecurityCaseStatus),
-    ).toEqual([...SECURITY_CASE_STATUSES]);
+    ).toEqual(
+      SECURITY_CASE_STAGES.map((stage: SecurityCaseStage) => {
+        return TEST_STATUS_IDS[stage];
+      }),
+    );
     expect(
       options(NotificationRuleConditionCheckOn.SecurityCaseSource),
     ).toEqual([...SECURITY_DETECTION_SOURCES]);
@@ -208,13 +235,48 @@ describe("Security Case notification rule conditions", () => {
     ).toEqual([CASE_LABEL_ID]);
   });
 
+  it("names each priority and status as the project calls it, renamed or its own", () => {
+    const priorities: ReturnType<typeof buildDefaultTestPriorities> =
+      buildDefaultTestPriorities();
+    priorities[0]!.name = "Sev 1";
+
+    expect(
+      NotificationRuleConditionUtil.getDropdownOptionsByCheckOn({
+        ...emptyData(),
+        securityCasePriorities: priorities,
+        checkOn: NotificationRuleConditionCheckOn.SecurityCasePriority,
+      }).map((option: DropdownOption): string => {
+        return option.label;
+      }),
+    ).toEqual(["Sev 1", "High", "Medium", "Low", "Informational"]);
+    expect(
+      NotificationRuleConditionUtil.getDropdownOptionsByCheckOn({
+        ...emptyData(),
+        checkOn: NotificationRuleConditionCheckOn.SecurityCaseStatus,
+      }).map((option: DropdownOption): string => {
+        return option.label;
+      }),
+    ).toEqual(["New", "Investigating", "Contained", "Closed"]);
+    // Nothing read yet: nothing to offer, never another project's.
+    expect(
+      NotificationRuleConditionUtil.getDropdownOptionsByCheckOn({
+        ...emptyData(),
+        securityCasePriorities: undefined,
+        checkOn: NotificationRuleConditionCheckOn.SecurityCasePriority,
+      }),
+    ).toEqual([]);
+  });
+
   it("a rule for High and Critical matches a Critical case and not a Medium one", () => {
     const highAndCritical: IncidentNotificationRule = rule({
       filters: [
         {
           checkOn: NotificationRuleConditionCheckOn.SecurityCasePriority,
           conditionType: ConditionType.ContainsAny,
-          value: [SecurityCasePriority.Critical, SecurityCasePriority.High],
+          value: [
+            priorityId(SecurityCasePriorityLevel.Critical),
+            priorityId(SecurityCasePriorityLevel.High),
+          ],
         },
       ],
     });
@@ -229,16 +291,23 @@ describe("Security Case notification rule conditions", () => {
       WorkspaceNotificationRuleUtil.isRuleMatching({
         notificationRule: highAndCritical,
         values: caseValues({
-          [NotificationRuleConditionCheckOn.SecurityCasePriority]:
-            SecurityCasePriority.Medium,
+          [NotificationRuleConditionCheckOn.SecurityCasePriority]: priorityId(
+            SecurityCasePriorityLevel.Medium,
+          ),
         }),
       }),
     ).toBe(false);
   });
 
-  it("no priority name is read inside another, so a choice never matches a priority it did not pick", () => {
-    for (const picked of SECURITY_CASE_PRIORITIES) {
-      for (const priority of SECURITY_CASE_PRIORITIES) {
+  it("no priority is read inside another, so a choice never matches a priority it did not pick", () => {
+    const ids: Array<string> = SECURITY_CASE_PRIORITY_LEVELS.map(
+      (level: SecurityCasePriorityLevel): string => {
+        return priorityId(level);
+      },
+    );
+
+    for (const picked of ids) {
+      for (const priority of ids) {
         expect(
           WorkspaceNotificationRuleUtil.isRuleMatching({
             notificationRule: rule({

@@ -685,6 +685,10 @@ export default class SecurityCaseNotifications {
 
     const priorityName: string = priority.name || "";
 
+    // What people were told as read, before this worker claims the rise.
+    const toldAtId: ObjectID | null =
+      securityCase.notifiedSecurityCasePriorityId || null;
+
     /*
      * Claimed in one compare-and-set from what was read: of two workers
      * handed the same rise (the case opened and rose in one batch), one tells
@@ -697,8 +701,7 @@ export default class SecurityCaseNotifications {
           notifiedSecurityCasePriorityId: priority.id,
         },
         expectedData: {
-          notifiedSecurityCasePriorityId: (securityCase.notifiedSecurityCasePriorityId ||
-            null) as unknown as ObjectID,
+          notifiedSecurityCasePriorityId: toldAtId as unknown as ObjectID,
         },
         skipUpdateDateColumn: true,
       });
@@ -707,8 +710,9 @@ export default class SecurityCaseNotifications {
       return [];
     }
 
+    // Told about at no priority yet: news of a case that just opened.
     const isNew: boolean =
-      !securityCase.notifiedSecurityCasePriorityId &&
+      !toldAtId &&
       Boolean(securityCase.createdAt) &&
       OneUptimeDate.getCurrentDate().getTime() -
         new Date(securityCase.createdAt!).getTime() <

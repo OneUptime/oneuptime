@@ -6,6 +6,8 @@ import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import ScheduledMaintenanceState from "../../Models/DatabaseModels/ScheduledMaintenanceState";
+import SecurityCasePriority from "../../Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "../../Models/DatabaseModels/SecurityCaseStatus";
 import { ListOrderSettings } from "../../Types/Database/ListOrderColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import ObjectID from "../../Types/ObjectID";
@@ -57,6 +59,10 @@ const SEVERITY: StateListDefinition =
   STATE_LISTS[StateListType.IncidentSeverity];
 const POSTMORTEM: StateListDefinition =
   STATE_LISTS[StateListType.IncidentPostmortemStatus];
+const CASE_STATUS: StateListDefinition =
+  STATE_LISTS[StateListType.SecurityCaseStatus];
+const CASE_PRIORITY: StateListDefinition =
+  STATE_LISTS[StateListType.SecurityCasePriority];
 
 const row: (
   id: string,
@@ -109,9 +115,27 @@ const MODELS: Record<StateListType, { new (): BaseModel }> = {
   [StateListType.IncidentSeverity]: IncidentSeverity,
   [StateListType.AlertSeverity]: AlertSeverity,
   [StateListType.IncidentPostmortemStatus]: IncidentPostmortemStatus,
+  [StateListType.SecurityCaseStatus]: SecurityCaseStatus,
+  [StateListType.SecurityCasePriority]: SecurityCasePriority,
 };
 
-describe("the seven lists", () => {
+// A project's security case statuses and priorities as it starts with them.
+const SEEDED_CASE_STATUSES: Array<StateListRow> = [
+  row("New", 1, ["isNewStatus"]),
+  row("Investigating", 2, ["isAcknowledgedStatus"]),
+  row("Contained", 3, ["isContainedStatus"]),
+  row("Closed", 4, ["isClosedStatus"]),
+];
+
+const SEEDED_CASE_PRIORITIES: Array<StateListRow> = [
+  row("Critical", 1, ["isCriticalPriority"]),
+  row("High", 2, ["isHighPriority"]),
+  row("Medium", 3, ["isMediumPriority"]),
+  row("Low", 4, ["isLowPriority"]),
+  row("Informational", 5, ["isInformationalPriority"]),
+];
+
+describe("the nine lists", () => {
   test.each(Object.values(StateListType))(
     "%s is defined by the model it is about",
     (type: StateListType) => {
@@ -163,6 +187,9 @@ describe("the seven lists", () => {
     );
     // Not started, then a draft, then completed: in that order.
     expect(POSTMORTEM.keepsBuiltInOrder).toBe(true);
+    // New, acknowledged, contained, closed - and the five severity levels' priorities.
+    expect(CASE_STATUS.keepsBuiltInOrder).toBe(true);
+    expect(CASE_PRIORITY.keepsBuiltInOrder).toBe(true);
   });
 
   test("the built-in states are listed in the order an incident meets them", () => {
@@ -192,6 +219,19 @@ describe("the seven lists", () => {
     ]);
     expect(flags(MONITOR)).toEqual(["isOperationalState", "isOfflineState"]);
     expect(flags(SEVERITY)).toEqual([]);
+    expect(flags(CASE_STATUS)).toEqual([
+      "isNewStatus",
+      "isAcknowledgedStatus",
+      "isContainedStatus",
+      "isClosedStatus",
+    ]);
+    expect(flags(CASE_PRIORITY)).toEqual([
+      "isCriticalPriority",
+      "isHighPriority",
+      "isMediumPriority",
+      "isLowPriority",
+      "isInformationalPriority",
+    ]);
   });
 
   test("a new state goes above the state that closes the list, a new status above offline, a severity to the end", () => {
@@ -199,6 +239,8 @@ describe("the seven lists", () => {
     expect(MAINTENANCE.insertAboveFlag).toBe("isResolvedState");
     expect(MONITOR.insertAboveFlag).toBe("isOfflineState");
     expect(SEVERITY.insertAboveFlag).toBeUndefined();
+    expect(CASE_STATUS.insertAboveFlag).toBe("isClosedStatus");
+    expect(CASE_PRIORITY.insertAboveFlag).toBeUndefined();
   });
 });
 
@@ -829,12 +871,56 @@ describe("the messages", () => {
       'A postmortem is started, drafted and then completed, so the completed status ("Completed") has to stay below the draft status ("Draft").',
     );
     expect(POSTMORTEM.orderReason).toBeTruthy();
-    // Every other list keeps its sentence: its subjects only move down.
+    // Every list of states keeps its sentence: its subjects only move down.
     for (const type of Object.values(StateListType)) {
-      if (type !== StateListType.IncidentPostmortemStatus) {
+      if (
+        type !== StateListType.IncidentPostmortemStatus &&
+        type !== StateListType.SecurityCaseStatus &&
+        type !== StateListType.SecurityCasePriority
+      ) {
         expect(STATE_LISTS[type].orderReason).toBeUndefined();
       }
     }
+  });
+
+  test("a security case one says why: a case is reopened, so it is no path", () => {
+    const statusViolation: StateListOrderViolation = getStateListOrderViolation(
+      CASE_STATUS,
+      [
+        row("New", 1, ["isNewStatus"]),
+        row("Investigating", 2, ["isAcknowledgedStatus"]),
+        row("Closed", 3, ["isClosedStatus"]),
+        row("Contained", 4, ["isContainedStatus"]),
+      ],
+    )!;
+
+    expect(getStateListOrderViolationMessage(CASE_STATUS, statusViolation)).toBe(
+      'A case is opened, taken on, contained and then closed, so the closed status ("Closed") has to stay below the contained status ("Contained").',
+    );
+
+    const priorityViolation: StateListOrderViolation =
+      getStateListOrderViolation(CASE_PRIORITY, [
+        row("High", 1, ["isHighPriority"]),
+        row("Critical", 2, ["isCriticalPriority"]),
+        row("Medium", 3, ["isMediumPriority"]),
+        row("Low", 4, ["isLowPriority"]),
+        row("Informational", 5, ["isInformationalPriority"]),
+      ])!;
+
+    expect(
+      getStateListOrderViolationMessage(CASE_PRIORITY, priorityViolation),
+    ).toBe(
+      'Priorities are ranked most urgent first, and detections open their cases at the built-in priority of their severity, so the high priority ("High") has to stay below the critical priority ("Critical").',
+    );
+
+    expect(
+      getStateListDeleteRefusalMessage(CASE_STATUS, {
+        row: row("Closed", 4, ["isClosedStatus"]),
+        builtIn: { flag: "isClosedStatus", role: "closed status" },
+      }),
+    ).toBe(
+      '"Closed" is the closed status of this project, and security cases need one. It can be renamed, but not deleted.',
+    );
   });
 
   test("a refused delete of a built-in postmortem status names it and what it is", () => {
@@ -998,6 +1084,197 @@ describe("postmortem statuses", () => {
         definition: POSTMORTEM,
         rows: SEEDED_POSTMORTEM_STATUSES,
         idsToDelete: ["Not Needed"],
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("security case statuses", () => {
+  test("a new status with no place goes just above the closed status", () => {
+    expect(getStateListInsertValue(CASE_STATUS, SEEDED_CASE_STATUSES)).toBe(4);
+
+    expect(
+      namesInOrder(
+        getStateListRowsAfterCreate({
+          rows: SEEDED_CASE_STATUSES,
+          newRow: row("Eradicating", 4),
+        }),
+      ),
+    ).toEqual([
+      "New:1",
+      "Investigating:2",
+      "Contained:3",
+      "Eradicating:4",
+      "Closed:5",
+    ]);
+  });
+
+  test("what each status counts as follows from where it sits", () => {
+    const rows: Array<StateListRow> = [
+      row("New", 1, ["isNewStatus"]),
+      row("Queued", 2),
+      row("Investigating", 3, ["isAcknowledgedStatus"]),
+      row("Contained", 4, ["isContainedStatus"]),
+      row("Eradicating", 5),
+      row("Closed", 6, ["isClosedStatus"]),
+      row("Closed - Duplicate", 7),
+    ];
+
+    const reached: (name: string) => string | null = (
+      name: string,
+    ): string | null => {
+      return getStateListReachedBuiltIn(
+        CASE_STATUS,
+        rows,
+        rows.find((candidate: StateListRow) => {
+          return candidate.name === name;
+        })!,
+      );
+    };
+
+    expect(reached("New")).toBe("isNewStatus");
+    expect(reached("Queued")).toBe("isNewStatus");
+    expect(reached("Investigating")).toBe("isAcknowledgedStatus");
+    expect(reached("Contained")).toBe("isContainedStatus");
+    expect(reached("Eradicating")).toBe("isContainedStatus");
+    expect(reached("Closed")).toBe("isClosedStatus");
+    expect(reached("Closed - Duplicate")).toBe("isClosedStatus");
+  });
+
+  test("a move that puts the closed status above the contained one is caught; one of the project's own is not", () => {
+    expect(
+      getStateListOrderViolationIntroduced({
+        definition: CASE_STATUS,
+        rowsBefore: SEEDED_CASE_STATUSES,
+        rowsAfter: getStateListRowsAfterMove({
+          rows: SEEDED_CASE_STATUSES,
+          id: "Closed",
+          requestedValue: 2,
+        }),
+      }),
+    ).not.toBeNull();
+
+    const withDuplicate: Array<StateListRow> = [
+      ...SEEDED_CASE_STATUSES,
+      row("Closed - Duplicate", 5),
+    ];
+
+    expect(
+      getStateListOrderViolationIntroduced({
+        definition: CASE_STATUS,
+        rowsBefore: withDuplicate,
+        rowsAfter: getStateListRowsAfterMove({
+          rows: withDuplicate,
+          id: "Closed - Duplicate",
+          requestedValue: 2,
+        }),
+      }),
+    ).toBeNull();
+  });
+
+  test("the last status of a built-in kind cannot be deleted; one of the project's own can", () => {
+    for (const [name, flag] of [
+      ["New", "isNewStatus"],
+      ["Investigating", "isAcknowledgedStatus"],
+      ["Contained", "isContainedStatus"],
+      ["Closed", "isClosedStatus"],
+    ]) {
+      expect(
+        getStateListDeleteRefusal({
+          definition: CASE_STATUS,
+          rows: SEEDED_CASE_STATUSES,
+          idsToDelete: [name!],
+        })?.builtIn.flag,
+      ).toBe(flag);
+    }
+
+    expect(
+      getStateListDeleteRefusal({
+        definition: CASE_STATUS,
+        rows: [...SEEDED_CASE_STATUSES, row("Eradicating", 5)],
+        idsToDelete: ["Eradicating"],
+      }),
+    ).toBeNull();
+
+    // A second closed status: either one may go, not both.
+    const twoClosed: Array<StateListRow> = [
+      ...SEEDED_CASE_STATUSES,
+      row("Closed - Duplicate", 5, ["isClosedStatus"]),
+    ];
+
+    expect(
+      getStateListDeleteRefusal({
+        definition: CASE_STATUS,
+        rows: twoClosed,
+        idsToDelete: ["Closed"],
+      }),
+    ).toBeNull();
+    expect(
+      getStateListDeleteRefusal({
+        definition: CASE_STATUS,
+        rows: twoClosed,
+        idsToDelete: ["Closed", "Closed - Duplicate"],
+      })?.builtIn.flag,
+    ).toBe("isClosedStatus");
+  });
+});
+
+describe("security case priorities", () => {
+  test("a new priority with no place goes to the end, as a new severity does", () => {
+    // No row to go above: the end of the list.
+    expect(
+      getStateListInsertValue(CASE_PRIORITY, SEEDED_CASE_PRIORITIES),
+    ).toBeNull();
+    expect(getStateListInsertValue(SEVERITY, [row("Sev 1", 1)])).toBeNull();
+  });
+
+  test("the built-in priorities keep their order; the project's own go anywhere", () => {
+    expect(
+      getStateListOrderViolationIntroduced({
+        definition: CASE_PRIORITY,
+        rowsBefore: SEEDED_CASE_PRIORITIES,
+        rowsAfter: getStateListRowsAfterMove({
+          rows: SEEDED_CASE_PRIORITIES,
+          id: "Low",
+          requestedValue: 1,
+        }),
+      }),
+    ).not.toBeNull();
+
+    const withEmergency: Array<StateListRow> = [
+      ...SEEDED_CASE_PRIORITIES,
+      row("Emergency", 6),
+    ];
+
+    expect(
+      getStateListOrderViolationIntroduced({
+        definition: CASE_PRIORITY,
+        rowsBefore: withEmergency,
+        rowsAfter: getStateListRowsAfterMove({
+          rows: withEmergency,
+          id: "Emergency",
+          requestedValue: 1,
+        }),
+      }),
+    ).toBeNull();
+  });
+
+  test("every built-in priority is the last of its kind; the project's own can go", () => {
+    for (const priority of SEEDED_CASE_PRIORITIES) {
+      expect(
+        getStateListDeleteRefusal({
+          definition: CASE_PRIORITY,
+          rows: SEEDED_CASE_PRIORITIES,
+          idsToDelete: [priority.id],
+        })?.builtIn.flag,
+      ).toBe(priority.flags[0]);
+    }
+
+    expect(
+      getStateListDeleteRefusal({
+        definition: CASE_PRIORITY,
+        rows: [...SEEDED_CASE_PRIORITIES, row("Emergency", 6)],
+        idsToDelete: ["Emergency"],
       }),
     ).toBeNull();
   });

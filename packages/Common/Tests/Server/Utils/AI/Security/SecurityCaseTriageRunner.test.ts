@@ -32,7 +32,13 @@ import SecurityDetection from "../../../../../Models/DatabaseModels/SecurityDete
 import { InstructionLikeTextScan } from "../../../../../Utils/AI/InstructionLikeText";
 import ObjectID from "../../../../../Types/ObjectID";
 import SecurityCaseAiVerdict from "../../../../../Types/SecurityCase/SecurityCaseAiVerdict";
-import SecurityCasePriority from "../../../../../Types/SecurityCase/SecurityCasePriority";
+import SecurityCasePriority from "../../../../../Models/DatabaseModels/SecurityCasePriority";
+import SecurityCasePriorityLevel from "../../../../../Types/SecurityCase/SecurityCasePriorityLevel";
+import {
+  buildDefaultTestPriorities,
+  testPriorityId,
+} from "../../../../Helpers/SecurityCaseValues";
+import { stubSecurityCaseValues } from "../../../../Helpers/SecurityCaseValuesStub";
 import SecurityDetectionSource from "../../../../../Types/SecurityCase/SecurityDetectionSource";
 import { SETUP_TEST_SOURCE_IP } from "../../../../../Types/SecurityEvent/SecuritySetupTest";
 import SecurityPlaybookTrigger from "../../../../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
@@ -157,6 +163,8 @@ describe("SecurityCaseTriageRunner.executeTriage", () => {
   let launch: jest.SpyInstance;
 
   beforeEach(() => {
+    // The project's priorities: a new project's.
+    stubSecurityCaseValues();
     jest.spyOn(logger, "error").mockImplementation((): void => {});
     jest.spyOn(logger, "debug").mockImplementation((): void => {});
     jest
@@ -342,9 +350,10 @@ describe("SecurityCaseTriageRunner.executeTriage", () => {
     expect(update.data["aiVerdict"]).toBe(
       SecurityCaseAiVerdict.LikelyMalicious,
     );
-    expect(update.data["aiSuggestedPriority"]).toBe(
-      SecurityCasePriority.Critical,
-    );
+    // The project's priority of the level suggested, by id.
+    expect(
+      (update.data["aiSuggestedSecurityCasePriorityId"] as ObjectID).toString(),
+    ).toBe(testPriorityId(SecurityCasePriorityLevel.Critical).toString());
     expect((update.data["aiSuggestedPlaybookId"] as ObjectID).toString()).toBe(
       playbookId,
     );
@@ -354,7 +363,7 @@ describe("SecurityCaseTriageRunner.executeTriage", () => {
     expect(Object.keys(update.data).sort()).toEqual(
       [
         "aiSuggestedPlaybookId",
-        "aiSuggestedPriority",
+        "aiSuggestedSecurityCasePriorityId",
         "aiTriagePromptInjectionSuspected",
         "aiTriageReport",
         "aiTriagedAt",
@@ -497,6 +506,64 @@ describe("SecurityCaseTriageRunner.executeTriage", () => {
     );
   });
 
+  test("suggests the project's priority of the level, as the project names it", async () => {
+    const priorities: Array<SecurityCasePriority> =
+      buildDefaultTestPriorities();
+    priorities[0]!.name = "Sev 1";
+    stubSecurityCaseValues({ priorities });
+    jest
+      .spyOn(SecurityCaseAIContextBuilder, "read")
+      .mockResolvedValue(triageData());
+    driveEngine({ analysisMarkdown: MALICIOUS_REPORT });
+
+    await SecurityCaseTriageRunner.executeTriage({
+      aiRunId,
+      projectId,
+      securityCaseId,
+      attemptCount: 1,
+    });
+
+    const update: { data: Record<string, unknown> } = updateCase.mock
+      .calls[0]![0] as { data: Record<string, unknown> };
+
+    expect(
+      (update.data["aiSuggestedSecurityCasePriorityId"] as ObjectID).toString(),
+    ).toBe(priorities[0]!.id!.toString());
+    expect(
+      (createFeed.mock.calls[0]![0] as Record<string, unknown>)[
+        "feedInfoInMarkdown"
+      ],
+    ).toBe(
+      "**OneUptime AI triaged this case: Likely Malicious.** It suggests priority **Sev 1** and a playbook.",
+    );
+  });
+
+  test("a project without a priority of the level suggested keeps no suggestion", async () => {
+    stubSecurityCaseValues({
+      priorities: buildDefaultTestPriorities().filter(
+        (priority: SecurityCasePriority): boolean => {
+          return !priority.isCriticalPriority;
+        },
+      ),
+    });
+    jest
+      .spyOn(SecurityCaseAIContextBuilder, "read")
+      .mockResolvedValue(triageData());
+    driveEngine({ analysisMarkdown: MALICIOUS_REPORT });
+
+    await SecurityCaseTriageRunner.executeTriage({
+      aiRunId,
+      projectId,
+      securityCaseId,
+      attemptCount: 1,
+    });
+
+    expect(
+      (updateCase.mock.calls[0]![0] as { data: Record<string, unknown> })
+        .data["aiSuggestedSecurityCasePriorityId"],
+    ).toBeNull();
+  });
+
   test("a playbook that cannot start never fails the triage", async () => {
     launch.mockRejectedValue(new Error("queue down"));
 
@@ -565,7 +632,7 @@ describe("SecurityCaseTriageRunner's report and timeline entry", () => {
       SecurityCaseTriageRunner.buildFeedHeadline(
         decision({
           verdict: SecurityCaseAiVerdict.LikelyFalsePositive,
-          suggestedPriority: SecurityCasePriority.Low,
+          suggestedPriority: SecurityCasePriorityLevel.Low,
         }),
       ).toString(),
     ).toBe(
@@ -586,12 +653,24 @@ describe("SecurityCaseTriageRunner's report and timeline entry", () => {
       SecurityCaseTriageRunner.buildFeedHeadline(
         decision({
           verdict: SecurityCaseAiVerdict.LikelyMalicious,
-          suggestedPriority: SecurityCasePriority.High,
+          suggestedPriority: SecurityCasePriorityLevel.High,
           suggestedPlaybookId: "7c1e8a1e-4a7d-4b8f-9b8e-2f3c4d5e6f70",
         }),
       ).toString(),
     ).toBe(
       "**OneUptime AI triaged this case: Likely Malicious.** It suggests priority **High** and a playbook.",
+    );
+    // By the name the project gives the level.
+    expect(
+      SecurityCaseTriageRunner.buildFeedHeadline(
+        decision({
+          verdict: SecurityCaseAiVerdict.LikelyMalicious,
+          suggestedPriority: SecurityCasePriorityLevel.Critical,
+        }),
+        "Sev 1",
+      ).toString(),
+    ).toBe(
+      "**OneUptime AI triaged this case: Likely Malicious.** It suggests priority **Sev 1**.",
     );
   });
 

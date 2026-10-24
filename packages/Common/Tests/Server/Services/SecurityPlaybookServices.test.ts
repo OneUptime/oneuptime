@@ -47,6 +47,14 @@ import {
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookStepResult";
 import SecurityPlaybookTrigger from "../../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import { getJestSpyOn } from "../../Spy";
+import SecurityCasePriorityLevel from "../../../Types/SecurityCase/SecurityCasePriorityLevel";
+import SecurityCaseStage from "../../../Types/SecurityCase/SecurityCaseStage";
+import SecurityCaseVerdict from "../../../Types/SecurityCase/SecurityCaseVerdict";
+import {
+  TEST_PRIORITY_IDS,
+  TEST_STATUS_IDS,
+} from "../../Helpers/SecurityCaseValues";
+import { stubSecurityCaseValues } from "../../Helpers/SecurityCaseValuesStub";
 import {
   afterEach,
   beforeEach,
@@ -164,6 +172,39 @@ describe("SecurityPlaybookService", () => {
     ]);
   });
 
+  test("names the project's own priorities and statuses a step sets, for the project check", () => {
+    const references: Array<ProjectScopedReference> =
+      SecurityPlaybookServiceType.getStepReferences([
+        {
+          action: SecurityPlaybookActionType.SetCasePriority,
+          config: {
+            priorityId: TEST_PRIORITY_IDS[SecurityCasePriorityLevel.High],
+          },
+        },
+        {
+          action: SecurityPlaybookActionType.SetCaseStatus,
+          config: { statusId: TEST_STATUS_IDS[SecurityCaseStage.Contained] },
+        },
+        {
+          action: SecurityPlaybookActionType.CheckThreatIntel,
+          config: {
+            raisePriorityToId:
+              TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Critical],
+          },
+        },
+      ]);
+
+    expect(
+      references.map((reference: ProjectScopedReference) => {
+        return `${reference.modelName}:${String(reference.id)}`;
+      }),
+    ).toEqual([
+      `Security Case Priority:${TEST_PRIORITY_IDS[SecurityCasePriorityLevel.High]}`,
+      `Security Case Status:${TEST_STATUS_IDS[SecurityCaseStage.Contained]}`,
+      `Security Case Priority:${TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Critical]}`,
+    ]);
+  });
+
   test("reads rule id lists the way they are stored or posted", () => {
     expect(
       readIdList(JSON.stringify([USER_ID.toString(), "x", USER_ID.toString()])),
@@ -182,7 +223,7 @@ describe("SecurityPlaybookService", () => {
         config: { note: "  Check the VPN.  " },
       },
     ] as unknown as JSONArray;
-    (playbook as unknown as JSONObject)["minimumPriority"] = "";
+    (playbook as unknown as JSONObject)["minimumSecurityCasePriorityId"] = "";
 
     await service.checkCreateBeforeReferences({
       data: playbook,
@@ -195,7 +236,8 @@ describe("SecurityPlaybookService", () => {
     expect(playbook.name).toBe("Triage");
     expect(steps[0]!.config).toEqual({ note: "Check the VPN." });
     expect(steps[0]!.id).toBeTruthy();
-    expect(playbook.minimumPriority).toBeNull();
+    // No minimum: every priority.
+    expect(playbook.minimumSecurityCasePriorityId).toBeNull();
   });
 
   test("refuses a step it could not run, and an unknown trigger", async () => {
@@ -252,6 +294,93 @@ describe("SecurityPlaybookService", () => {
       service.onBeforeCreate({ data: playbook, props: { isRoot: true } }),
     ).rejects.toThrow(
       /Step 1 \(Suspend the user in Okta\): the connection "Falcon"/,
+    );
+  });
+
+  test("holds a step's priority and status to the project's own lists, on create", async () => {
+    stubSecurityCaseValues();
+    getJestSpyOn(SecurityEventConnectionService, "findBy").mockResolvedValue(
+      [] as never,
+    );
+
+    const startsOver: SecurityPlaybook = new SecurityPlaybook();
+    startsOver.projectId = PROJECT_ID;
+    startsOver.name = "Back to New";
+    startsOver.steps = [
+      {
+        id: "s1",
+        action: SecurityPlaybookActionType.SetCaseStatus,
+        config: { statusId: TEST_STATUS_IDS[SecurityCaseStage.New] },
+      },
+    ] as unknown as JSONArray;
+
+    await expect(
+      service.onBeforeCreate({ data: startsOver, props: { isRoot: true } }),
+    ).rejects.toThrow(
+      "Step 1 (Set the status): every case starts in this status - choose one a case moves on to.",
+    );
+
+    const contains: SecurityPlaybook = new SecurityPlaybook();
+    contains.projectId = PROJECT_ID;
+    contains.name = "Contain and lower";
+    contains.steps = [
+      {
+        id: "s1",
+        action: SecurityPlaybookActionType.SetCasePriority,
+        config: {
+          priorityId: TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Low],
+        },
+      },
+      {
+        id: "s2",
+        action: SecurityPlaybookActionType.SetCaseStatus,
+        config: {
+          statusId: TEST_STATUS_IDS[SecurityCaseStage.Contained],
+          verdict: SecurityCaseVerdict.FalsePositive,
+        },
+      },
+    ] as unknown as JSONArray;
+
+    await service.onBeforeCreate({ data: contains, props: { isRoot: true } });
+
+    // A verdict on a status that does not close the case is dropped.
+    expect(
+      (contains.steps as unknown as Array<SecurityPlaybookStep>)[1]!.config,
+    ).toEqual({ statusId: TEST_STATUS_IDS[SecurityCaseStage.Contained] });
+  });
+
+  test("holds an update's steps to each row's project's lists", async () => {
+    stubSecurityCaseValues();
+
+    const row: SecurityPlaybook = new SecurityPlaybook();
+    row._id = PLAYBOOK_ID.toString();
+    row.projectId = PROJECT_ID;
+    row.steps = [] as unknown as JSONArray;
+
+    getJestSpyOn(
+      SecurityPlaybookService,
+      "findRowsAndHoldUpdateToThem",
+    ).mockResolvedValue([row] as never);
+
+    await expect(
+      service.onBeforeUpdate({
+        query: { _id: PLAYBOOK_ID.toString() },
+        data: {
+          steps: [
+            {
+              id: "s1",
+              action: SecurityPlaybookActionType.SetCasePriority,
+              // Another project's priority.
+              config: { priorityId: "c9000000-0000-4000-8000-000000000001" },
+            },
+          ],
+        } as never,
+        skip: 0,
+        limit: 1,
+        props: { isRoot: true },
+      }),
+    ).rejects.toThrow(
+      "Step 1 (Set the priority): choose one of this project's case priorities.",
     );
   });
 });

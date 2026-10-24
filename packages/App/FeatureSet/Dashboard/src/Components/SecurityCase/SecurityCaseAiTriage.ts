@@ -311,10 +311,12 @@ export function shouldOfferSuggestedPriority(data: {
   currentPriorityId?: string | undefined;
   isSuggestedPriorityKnown: boolean;
 }): boolean {
+  // Ids compared as Postgres compares them: by value, whatever their case.
   return Boolean(
     data.suggestedPriorityId &&
       data.isSuggestedPriorityKnown &&
-      data.suggestedPriorityId !== data.currentPriorityId,
+      data.suggestedPriorityId.toLowerCase() !==
+        (data.currentPriorityId || "").toLowerCase(),
   );
 }
 

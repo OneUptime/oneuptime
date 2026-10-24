@@ -158,7 +158,12 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import SecurityPlaybookRunStatus from "../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import ObjectID from "../../../Types/ObjectID";
 import SecurityCaseAiVerdict from "../../../Types/SecurityCase/SecurityCaseAiVerdict";
-import SecurityCasePriority from "../../../Types/SecurityCase/SecurityCasePriority";
+import SecurityCasePriority from "../../../Models/DatabaseModels/SecurityCasePriority";
+import SecurityCasePriorityLevel from "../../../Types/SecurityCase/SecurityCasePriorityLevel";
+import {
+  buildDefaultTestPriorities,
+  testPriorityId,
+} from "../../Helpers/SecurityCaseValues";
 import GlobalEvents from "../../../UI/Utils/GlobalEvents";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
@@ -168,6 +173,10 @@ const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const CASE_ID: string = "20000000-0000-4000-8000-000000000042";
 const RUN_ID: string = "30000000-0000-4000-8000-000000000001";
 const PLAYBOOK_ID: string = "40000000-0000-4000-8000-000000000001";
+
+// The project's priorities: a new project's, the critical one renamed.
+const PRIORITIES: Array<SecurityCasePriority> = buildDefaultTestPriorities();
+PRIORITIES[0]!.name = "Sev 1";
 
 const REPORT: string = [
   "## 🧠 AI — Security Case Triage",
@@ -210,7 +219,9 @@ function run(value: AIRunStatus): SecurityCaseTriageStatusView["run"] {
 function securityCase(overrides: Partial<SecurityCase> = {}): SecurityCase {
   const row: SecurityCase = new SecurityCase();
   row._id = CASE_ID;
-  row.priority = SecurityCasePriority.Medium;
+  row.securityCasePriorityId = testPriorityId(
+    SecurityCasePriorityLevel.Medium,
+  );
   Object.assign(row, overrides);
   return row;
 }
@@ -218,7 +229,9 @@ function securityCase(overrides: Partial<SecurityCase> = {}): SecurityCase {
 function triagedCase(overrides: Partial<SecurityCase> = {}): SecurityCase {
   return securityCase({
     aiVerdict: SecurityCaseAiVerdict.LikelyMalicious,
-    aiSuggestedPriority: SecurityCasePriority.Critical,
+    aiSuggestedSecurityCasePriorityId: testPriorityId(
+      SecurityCasePriorityLevel.Critical,
+    ),
     aiSuggestedPlaybookId: new ObjectID(PLAYBOOK_ID),
     aiTriageReport: REPORT,
     aiTriagedAt: new Date(Date.now() - 5 * 60 * 1000),
@@ -284,6 +297,7 @@ function draw(
       <MemoryRouter>
         <SecurityCaseAiCard
           securityCase={row}
+          priorities={PRIORITIES}
           onTriaged={handlers.onTriaged as unknown as () => void}
           onSetPriority={
             handlers.onSetPriority as unknown as (
@@ -648,11 +662,17 @@ describe("triaged", () => {
     ).toBeVisible();
     expect(screen.getByText("Triaged")).toBeInTheDocument();
 
-    // Priority: one click, through the case's own action.
+    // Priority: the project's, as it names it, one click away.
+    expect(
+      screen.getByTestId("security-case-ai-suggested-priority"),
+    ).toHaveTextContent("Sev 1");
     fireEvent.click(screen.getByTestId("security-case-ai-set-priority"));
-    expect(handlers.onSetPriority).toHaveBeenCalledWith(
-      SecurityCasePriority.Critical,
-    );
+    expect(handlers.onSetPriority).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        handlers.onSetPriority.mock.calls[0]![0] as SecurityCasePriority
+      ).id?.toString(),
+    ).toBe(testPriorityId(SecurityCasePriorityLevel.Critical).toString());
 
     // Playbook: one click opens Run Playbook with it picked.
     const playbookRow: HTMLElement = await screen.findByTestId(
@@ -702,11 +722,39 @@ describe("triaged", () => {
       status({ run: run(AIRunStatus.Completed) }),
     );
 
-    draw(triagedCase({ priority: SecurityCasePriority.Critical }));
+    draw(
+      triagedCase({
+        securityCasePriorityId: testPriorityId(
+          SecurityCasePriorityLevel.Critical,
+        ),
+      }),
+    );
 
     expect(
       await screen.findByTestId("security-case-ai-suggested-priority"),
     ).toBeVisible();
+    expect(
+      screen.queryByTestId("security-case-ai-set-priority"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a suggested priority the project has since deleted is not offered", async () => {
+    getAiTriageMock.mockResolvedValue(
+      status({ run: run(AIRunStatus.Completed) }),
+    );
+
+    draw(
+      triagedCase({
+        aiSuggestedSecurityCasePriorityId: new ObjectID(
+          "c1000000-0000-4000-8000-0000000000ff",
+        ),
+      } as Partial<SecurityCase>),
+    );
+
+    expect(await screen.findByTestId("security-case-ai-triaged")).toBeVisible();
+    expect(
+      screen.queryByTestId("security-case-ai-suggested-priority"),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByTestId("security-case-ai-set-priority"),
     ).not.toBeInTheDocument();
@@ -829,7 +877,9 @@ describe("triaged", () => {
     draw(
       securityCase({
         aiVerdict: SecurityCaseAiVerdict.LikelyMalicious,
-        aiSuggestedPriority: SecurityCasePriority.Critical,
+        aiSuggestedSecurityCasePriorityId: testPriorityId(
+          SecurityCasePriorityLevel.Critical,
+        ),
         aiTriageReport: REPORT,
         aiTriagedAt: new Date(Date.now() - 5 * 60 * 1000),
       } as Partial<SecurityCase>),

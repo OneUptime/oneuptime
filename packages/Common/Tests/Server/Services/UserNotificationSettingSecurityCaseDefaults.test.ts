@@ -10,7 +10,9 @@ import { JSONObject } from "../../../Types/JSON";
 import NotificationSettingEventType from "../../../Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
-import SecurityCasePriority from "../../../Types/SecurityCase/SecurityCasePriority";
+import SecurityCasePriorityLevel from "../../../Types/SecurityCase/SecurityCasePriorityLevel";
+import { testPriorityId } from "../../Helpers/SecurityCaseValues";
+import { stubSecurityCaseValues } from "../../Helpers/SecurityCaseValuesStub";
 import {
   afterEach,
   beforeEach,
@@ -31,10 +33,16 @@ import {
  *   2. addDefaultNotificationSettingsForUser - the project-join path -
  *      reaches them, so a new member hears about High and Critical cases
  *      without setting anything up;
- *   3. a setting's priority choice is a priority, and only the New Security
- *      Case setting has one - judged, on an update, by the rows the update
- *      writes (findRowsAndHoldUpdateToThem), never by a read of its query.
+ *   3. a setting's priority choice is one of its project's case priorities,
+ *      and only the New Security Case setting has one - judged, on an
+ *      update, by the rows the update writes (findRowsAndHoldUpdateToThem),
+ *      never by a read of its query.
  */
+
+// A priority no project in these tests has.
+const UNKNOWN_PRIORITY_ID: ObjectID = new ObjectID(
+  "c1000000-0000-4000-8000-0000000000ff",
+);
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -200,6 +208,8 @@ describe("UserNotificationSettingService security case priority choice", () => {
   let eventsWritten: Array<NotificationSettingEventType>;
 
   beforeEach(() => {
+    // The project's priorities: a new project's.
+    stubSecurityCaseValues();
     eventsWritten = [
       NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
     ];
@@ -219,6 +229,7 @@ describe("UserNotificationSettingService security case priority choice", () => {
             const row: UserNotificationSetting = new UserNotificationSetting();
             row._id = ROW_ID.toString();
             row.eventType = eventType;
+            row.projectId = PROJECT_ID;
             return row;
           },
         );
@@ -235,7 +246,9 @@ describe("UserNotificationSettingService security case priority choice", () => {
         createBy({
           eventType:
             NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
-          minimumSecurityCasePriority: SecurityCasePriority.Medium,
+          minimumSecurityCasePriorityId: testPriorityId(
+            SecurityCasePriorityLevel.Medium,
+          ),
         }),
       ),
     ).resolves.toBeDefined();
@@ -250,24 +263,46 @@ describe("UserNotificationSettingService security case priority choice", () => {
     ).resolves.toBeDefined();
   });
 
-  test("a value that is not a priority is refused", async () => {
+  test("a priority that is none of the project's is refused", async () => {
     await expect(
       service.onBeforeCreate(
         createBy({
           eventType:
             NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
-          minimumSecurityCasePriority: "Urgent" as SecurityCasePriority,
+          minimumSecurityCasePriorityId: UNKNOWN_PRIORITY_ID,
         }),
       ),
     ).rejects.toThrow(BadDataException);
 
     await expect(
       service.onBeforeUpdate(
-        updateBy({ minimumSecurityCasePriority: "Urgent" }),
+        updateBy({ minimumSecurityCasePriorityId: UNKNOWN_PRIORITY_ID }),
       ),
-    ).rejects.toThrow(
-      "The priority must be Critical, High, Medium, Low or Informational.",
-    );
+    ).rejects.toThrow("Choose one of this project's security case priorities.");
+
+    // Named by the relation, the same.
+    await expect(
+      service.onBeforeUpdate(
+        updateBy({
+          minimumSecurityCasePriority: { _id: UNKNOWN_PRIORITY_ID.toString() },
+        }),
+      ),
+    ).rejects.toThrow("Choose one of this project's security case priorities.");
+  });
+
+  test("the two spellings of the choice must name one priority", async () => {
+    await expect(
+      service.onBeforeUpdate(
+        updateBy({
+          minimumSecurityCasePriorityId: testPriorityId(
+            SecurityCasePriorityLevel.Low,
+          ),
+          minimumSecurityCasePriority: {
+            _id: testPriorityId(SecurityCasePriorityLevel.High).toString(),
+          },
+        }),
+      ),
+    ).rejects.toThrow(BadDataException);
   });
 
   test("no other setting has a priority to choose", async () => {
@@ -276,7 +311,9 @@ describe("UserNotificationSettingService security case priority choice", () => {
         createBy({
           eventType:
             NotificationSettingEventType.SEND_SECURITY_CASE_ASSIGNED_NOTIFICATION,
-          minimumSecurityCasePriority: SecurityCasePriority.Low,
+          minimumSecurityCasePriorityId: testPriorityId(
+            SecurityCasePriorityLevel.Low,
+          ),
         }),
       ),
     ).rejects.toThrow(
@@ -289,7 +326,11 @@ describe("UserNotificationSettingService security case priority choice", () => {
     ];
     await expect(
       service.onBeforeUpdate(
-        updateBy({ minimumSecurityCasePriority: SecurityCasePriority.Low }),
+        updateBy({
+          minimumSecurityCasePriorityId: testPriorityId(
+            SecurityCasePriorityLevel.Low,
+          ),
+        }),
       ),
     ).rejects.toThrow(
       "Only the New Security Case setting has a priority to choose.",
@@ -302,7 +343,11 @@ describe("UserNotificationSettingService security case priority choice", () => {
     ];
     await expect(
       service.onBeforeUpdate(
-        updateBy({ minimumSecurityCasePriority: SecurityCasePriority.Low }),
+        updateBy({
+          minimumSecurityCasePriorityId: testPriorityId(
+            SecurityCasePriorityLevel.Low,
+          ),
+        }),
       ),
     ).rejects.toThrow(
       "Only the New Security Case setting has a priority to choose.",
@@ -311,7 +356,9 @@ describe("UserNotificationSettingService security case priority choice", () => {
 
   test("judges the rows the update writes: the update itself is handed to findRowsAndHoldUpdateToThem", async () => {
     const update: UpdateBy<UserNotificationSetting> = updateBy({
-      minimumSecurityCasePriority: SecurityCasePriority.High,
+      minimumSecurityCasePriorityId: testPriorityId(
+            SecurityCasePriorityLevel.High,
+          ),
     });
 
     await service.onBeforeUpdate(update);
@@ -327,7 +374,7 @@ describe("UserNotificationSettingService security case priority choice", () => {
     expect(
       jest.mocked(UserNotificationSettingService.findRowsAndHoldUpdateToThem)
         .mock.calls[0]![1],
-    ).toEqual({ eventType: true });
+    ).toEqual({ eventType: true, projectId: true });
     // No count of its own over the update's query.
     expect(UserNotificationSettingService.countBy).not.toHaveBeenCalled();
   });
@@ -337,7 +384,11 @@ describe("UserNotificationSettingService security case priority choice", () => {
 
     await expect(
       service.onBeforeUpdate(
-        updateBy({ minimumSecurityCasePriority: SecurityCasePriority.Low }),
+        updateBy({
+          minimumSecurityCasePriorityId: testPriorityId(
+            SecurityCasePriorityLevel.Low,
+          ),
+        }),
       ),
     ).resolves.toEqual(expect.objectContaining({ carryForward: null }));
   });
@@ -345,7 +396,11 @@ describe("UserNotificationSettingService security case priority choice", () => {
   test("an update of the New Security Case row, or of channels only, goes through", async () => {
     await expect(
       service.onBeforeUpdate(
-        updateBy({ minimumSecurityCasePriority: SecurityCasePriority.Low }),
+        updateBy({
+          minimumSecurityCasePriorityId: testPriorityId(
+            SecurityCasePriorityLevel.Low,
+          ),
+        }),
       ),
     ).resolves.toEqual(expect.objectContaining({ carryForward: null }));
 
