@@ -39,6 +39,9 @@ import {
   CodeTaskOutcomeReport,
 } from "Common/Types/AI/CodeTask";
 
+// A run of whitespace, line breaks included: a finding is quoted on one line.
+const WHITESPACE_RUN: RegExp = /\s+/;
+
 /*
  * CodeRequest: a person asked, in their own words, in a repository's page in
  * Code - or replied in a task's conversation there. The way Claude Code or
@@ -522,7 +525,7 @@ Finish with a reply written for the person who asked: what you changed and why, 
   }
 
   private static oneLine(text: string): string {
-    return (text || "").split(/\s+/).join(" ").trim();
+    return (text || "").split(WHITESPACE_RUN).join(" ").trim();
   }
 
   private static buildConversationSection(
