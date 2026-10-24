@@ -1787,7 +1787,7 @@ describe.each([
         "c2222222-2222-4222-8222-222222222222",
       ]);
 
-      expect(repositories.getFooterElement!().type).toBe(
+      expect(repositories.getFooterElement!(NEW_RULE)!.type).toBe(
         RuleCodeRepositoriesFieldHint,
       );
     });

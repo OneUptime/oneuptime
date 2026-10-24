@@ -20,8 +20,8 @@ import * as React from "react";
 const mockReadLocale: (language: string) => Record<string, string> = (
   language: string,
 ): Record<string, string> => {
-  const nodeFs: typeof fs = jest.requireActual("fs");
-  const nodePath: typeof path = jest.requireActual("path");
+  const nodeFs: typeof fs = jest.requireActual("fs") as typeof fs;
+  const nodePath: typeof path = jest.requireActual("path") as typeof path;
 
   return JSON.parse(
     nodeFs.readFileSync(

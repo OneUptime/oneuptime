@@ -459,7 +459,7 @@ describe("InvestigationRules.getIncidentAiContextRules: the rules a run reads no
     });
     // Only rules with notes are read at all: aiContext IS NOT NULL.
     const aiContextFilter: { getSql: (alias: string) => string } = (
-      findBy.mock.calls[0]![0] as {
+      findBy.mock.calls[0]![0] as unknown as {
         query: { aiContext: { getSql: (alias: string) => string } };
       }
     ).query.aiContext;

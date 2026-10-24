@@ -393,9 +393,11 @@ describe("composeAiContext: what one run reads", () => {
     });
 
     expect(
-      getAiContextRuleParts(activity!).map((part: { ruleName?: string }) => {
-        return part.ruleName;
-      }),
+      getAiContextRuleParts(activity!).map(
+        (part: { ruleName?: string | undefined }) => {
+          return part.ruleName;
+        },
+      ),
     ).toEqual(["A first", "B second", "D fourth"]);
     expect(activity!.leftOutRuleNames).toEqual(["C third"]);
     expect(activity!.characterCount).toBe(AI_CONTEXT_RUN_MAX_CHARACTERS);
