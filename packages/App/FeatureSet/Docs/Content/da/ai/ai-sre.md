@@ -72,6 +72,8 @@ Kortet **AI Investigation** slutter med en samtale, **Ask OneUptime AI**, som de
 - **Vælg, hvordan den handler**, med kontakten i beskedfeltet, som ved siden af fortæller, hvad den valgte tilstand betyder: _Auto-run_ (standarden: den handler med det samme på en klar anmodning), _Ask to act_ (den viser først et godkendelseskort, som alle på hændelsen kan godkende eller afvise) eller _Skrivebeskyttet_.
 - **Én fælles tråd.** Hvert spørgsmål viser, hvem der stillede det, alle ser den samme samtale live, og alle kan stoppe et svar undervejs. Diagrammer og tabeller i et svar vises for den, der spurgte; alle andre ser svaret med kilder. Hvert svar lister sine **Kilder**, og en kilde med sin egen side (logs, metrikker, en monitor) åbner den. En lang tråd åbner ved de nyeste beskeder, med en knap ovenover (for eksempel **Show 6 earlier messages**), der henter resten frem.
 
+En hændelse eller advarsel, som OneUptime AI hverken undersøgte eller rettede, fordi AI var slået fra for den – slået fra for projektet, _Undersøg nye hændelser_ (eller advarsler) slået fra, da den blev oprettet, ingen AI-regel, der undersøger, matchede den, eller dens alvorlighed var under minimum – får i stedet et kort på én linje: **AI-undersøgelse er slået fra** (eller **AI er slået fra for dette projekt**, så længe det er), og hvorfor. Dens pil, **Det kan du gøre**, åbner, hvad der skal slås til, med et link til, hvor det ændres, for dem, der må ændre det, og hvem der kan ændre det, for alle andre; en ændring gælder kun nye hændelser og advarsler, ikke denne. Så længe AI er slået til, åbner **Ask OneUptime AI** på linjen samtalen, og en samtale, som nogen allerede har startet, vises af sig selv under linjen. Kortet **Afhjælpning** udelades så: linjen siger, hvorfor intet blev rettet.
+
 ## Aktivér AI-undersøgelser
 
 Autonome undersøgelser er **slået til som standard for nye projekter**. Det er udkast til postmortems og AI Insights også. Rettelser starter slået fra, og de pull requests, der hører til, åbnes kun, så længe rettelser er slået til (se [Automatiske koderettelser](#automatiske-koderettelser)). Et projekt, der blev oprettet før denne standard, beholder sin indstilling; slå undersøgelser til som i trin 3, eller med **Slå til** på siden **AI-agent** for et hvilket som helst Kubernetes-cluster (Project Owner eller Project Admin). Sådan tjekker eller ændrer du dem:
@@ -393,7 +395,7 @@ Hver hændelse og advarsel har et kort **Afhjælpning**, der fortæller, hvad de
 - **AI-reglerne**: med opsatte regler matchede ingen (og hvor mange der blev tjekket), eller kun regler, der ikke retter, så intet blev rettet; eller hvad hver matchende regel gjorde: lod OneUptime AI rette hændelsen (med eller uden at spørge først), foreslog eller startede en runbook, lod AI sammensætte kommandoer eller vælge en runbook, eller kunne ikke, og hvorfor.
 - **Projektet**: **Ret nye hændelser automatisk** (eller advarsler) er slået fra; **Aktivér AI** er slået fra, så intet kører; hændelsen har allerede det højeste antal rettelser, den kan få; eller vurderingen stoppede ved en fejl.
 
-Når hændelsen slet ikke er knyttet til noget cluster eller nogen infrastrukturressource, siger kortet det i én linje (den mest almindelige årsag til, at intet blev rettet), med et link til hver af dens monitorer, hvor du kan knytte dem til det, de overvåger, så den næste hændelse, de udløser, er knyttet. Hver linje linker til, hvor det ændres: clusterets eller ressourcens AI-agentside, hændelsens (eller advarslens) AI-indstillinger, hvor dens rettelseskontakt og dens regler er, **Aktivér AI** eller LLM-udbyderne. Hændelser og advarsler, der blev oprettet, før dette blev registreret, viser kun kortet, når noget blev foreslået.
+Når hændelsen slet ikke er knyttet til noget cluster eller nogen infrastrukturressource, siger kortet det i én linje (den mest almindelige årsag til, at intet blev rettet), med et link til hver af dens monitorer, hvor du kan knytte dem til det, de overvåger, så den næste hændelse, de udløser, er knyttet. Hver linje linker til, hvor det ændres: clusterets eller ressourcens AI-agentside, hændelsens (eller advarslens) AI-indstillinger, hvor dens rettelseskontakt og dens regler er, **Aktivér AI** eller LLM-udbyderne. Hændelser og advarsler, der blev oprettet, før dette blev registreret, viser kun kortet, når noget blev foreslået. Når AI var helt slået fra for en hændelse, siger linjen på kortet **AI Investigation**, hvorfor intet blev rettet, og kortet **Afhjælpning** udelades.
 
 ## Hvad OneUptime AI har lært, og alt, hvad den har gjort
 
@@ -517,7 +519,7 @@ Hver indsigt har knapperne **Bekræft** og **Luk**: brug dem, også når du ikke
 ## Fejlfinding
 
 :::details En hændelse blev ikke undersøgt
-Dens kort **AI Investigation** siger hvorfor: AI er slået fra for projektet, der er ingen LLM-udbyder eller ingen AI-kredit, en grænse er nået, hændelsen lå uden for AI-reglerne eller under alvorlighedsbunden, dens monitor blev undersøgt inden for pausen, den blev oprettet allerede løst, eller den blev løst under en AI-regels ventetid. Mens en regel får OneUptime AI til at vente, siger kortet i stedet, hvornår den undersøger. Bed OneUptime AI på kortet om at undersøge den nu.
+Dens kort **AI Investigation** siger hvorfor: AI er slået fra for projektet, der er ingen LLM-udbyder eller ingen AI-kredit, en grænse er nået, hændelsen lå uden for AI-reglerne eller under alvorlighedsbunden, dens monitor blev undersøgt inden for pausen, den blev oprettet allerede løst, eller den blev løst under en AI-regels ventetid. Mens en regel får OneUptime AI til at vente, siger kortet i stedet, hvornår den undersøger. Bed OneUptime AI på kortet om at undersøge den nu. Når AI var slået fra for hændelsen, og intet heller blev rettet, er kortet én linje: åbn **Det kan du gøre** på det for at se, hvad der skal slås til.
 :::
 
 :::details Analysen siger, at den ikke kunne finde en årsag
@@ -525,7 +527,7 @@ Undersøgelsen fandt for få beviser: den siger, hvad den tjekkede. Sørg for, a
 :::
 
 :::details Intet blev rettet
-Hændelsens kort **Afhjælpning** har en linje for hver måde, den kunne være blevet rettet på, med årsagen til, at den ikke blev det, og et link til, hvor det ændres: rettelser slået fra, intet cluster eller ingen vært knyttet til hændelsen, rettelser slået fra på AI-agentens side, eller ingen matchende AI-regel.
+Hændelsens kort **Afhjælpning** har en linje for hver måde, den kunne være blevet rettet på, med årsagen til, at den ikke blev det, og et link til, hvor det ændres: rettelser slået fra, intet cluster eller ingen vært knyttet til hændelsen, rettelser slået fra på AI-agentens side, eller ingen matchende AI-regel. Når AI var helt slået fra for hændelsen, siger linjen på kortet **AI Investigation** det i stedet.
 :::
 
 :::details OneUptime AI holdt op med at arbejde for i dag

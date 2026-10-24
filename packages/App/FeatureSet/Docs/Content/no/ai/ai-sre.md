@@ -72,6 +72,8 @@ Kortet **AI Investigation** slutter med en samtale, **Ask OneUptime AI**, som de
 - **Velg hvordan den handler** med bryteren i meldingsfeltet, som ved siden av forteller hva den valgte modusen betyr: _Auto-run_ (standard: den handler med en gang på en tydelig forespørsel), _Ask to act_ (den viser først et godkjenningskort som alle på hendelsen kan godkjenne eller avvise) eller _Skrivebeskyttet_.
 - **Én felles tråd.** Hvert spørsmål viser hvem som stilte det, alle ser den samme samtalen live, og alle kan stoppe et svar underveis. Diagrammer og tabeller i et svar vises for den som spurte; alle andre ser svaret med kilder. Hvert svar lister opp sine **Kilder**, og en kilde med egen side (logger, metrikker, en monitor) åpner den. En lang tråd åpnes ved de nyeste meldingene, med en knapp over dem (for eksempel **Show 6 earlier messages**) som henter frem resten.
 
+En hendelse eller et varsel som OneUptime AI verken undersøkte eller rettet fordi KI var slått av for den – slått av for prosjektet, _Undersøk nye hendelser_ (eller varsler) slått av da den ble opprettet, ingen KI-regel som undersøker samsvarte med den, eller alvorlighetsgraden var under minimum – får i stedet et kort på én linje: **KI-undersøkelse er slått av** (eller **KI er slått av for dette prosjektet**, så lenge det er det), og hvorfor. Pilen, **Dette kan du gjøre**, åpner hva som skal slås på, med en lenke til der det endres for dem som kan endre det, og hvem som kan endre det for alle andre; en endring gjelder bare nye hendelser og varsler, ikke denne. Så lenge KI er slått på, åpner **Ask OneUptime AI** på linjen samtalen, og en samtale som noen allerede har startet, vises av seg selv under linjen. Kortet **Utbedring** utelates da: linjen sier hvorfor ingenting ble rettet.
+
 ## Slå på KI-undersøkelser
 
 Autonome undersøkelser er **slått på som standard for nye prosjekter**. Det er også utkast til etteranalyser og AI Insights. Retting starter avslått, og pull-forespørslene som hører til, åpnes bare så lenge retting er på (se [Automatiske koderettelser](#automatiske-koderettelser)). Et prosjekt som ble opprettet før denne standarden, beholder innstillingen sin; slå på undersøkelser som i trinn 3, eller med **Slå på** på siden **AI-agent** for en hvilken som helst Kubernetes-klynge (Project Owner eller Project Admin). Slik sjekker eller endrer du dem:
@@ -393,7 +395,7 @@ Hver hendelse og hvert varsel har et kort **Utbedring** som sier hva den automat
 - **AI-reglene**: med regler satt opp samsvarte ingen (og hvor mange som ble sjekket), eller bare regler som ikke retter, så ingenting ble rettet; eller hva hver samsvarende regel gjorde: lot OneUptime AI rette hendelsen (med eller uten å spørre først), foreslo eller startet en runbook, lot KI-en sette sammen kommandoer eller velge en runbook, eller klarte det ikke, og hvorfor.
 - **Prosjektet**: **Rett nye hendelser automatisk** (eller varsler) er av; **Aktiver AI** er av, så ingenting kjører; hendelsen har allerede det høyeste antallet rettelser den kan få; eller vurderingen stoppet ved en feil.
 
-Når hendelsen ikke er knyttet til noen klynge eller infrastrukturressurs i det hele tatt, sier kortet det på én linje (den vanligste grunnen til at ingenting ble rettet), med en lenke til hver av monitorene dens, der du kan knytte dem til det de overvåker, så den neste hendelsen de utløser, er knyttet. Hver linje lenker til der det endres: klyngens eller ressursens AI-agentside, KI-innstillingene for hendelsen (eller varselet), der rettingsbryteren og reglene ligger, **Aktiver AI** eller LLM-leverandørene. Hendelser og varsler som ble opprettet før dette ble registrert, viser bare kortet når noe ble foreslått.
+Når hendelsen ikke er knyttet til noen klynge eller infrastrukturressurs i det hele tatt, sier kortet det på én linje (den vanligste grunnen til at ingenting ble rettet), med en lenke til hver av monitorene dens, der du kan knytte dem til det de overvåker, så den neste hendelsen de utløser, er knyttet. Hver linje lenker til der det endres: klyngens eller ressursens AI-agentside, KI-innstillingene for hendelsen (eller varselet), der rettingsbryteren og reglene ligger, **Aktiver AI** eller LLM-leverandørene. Hendelser og varsler som ble opprettet før dette ble registrert, viser bare kortet når noe ble foreslått. Når KI var helt slått av for en hendelse, sier linjen på kortet **AI Investigation** hvorfor ingenting ble rettet, og kortet **Utbedring** utelates.
 
 ## Hva OneUptime AI har lært, og alt den har gjort
 
@@ -517,7 +519,7 @@ Hver innsikt har knappene **Bekreft** og **Lukk**: bruk dem også når du ikke g
 ## Feilsøking
 
 :::details En hendelse ble ikke undersøkt
-Kortet **AI Investigation** sier hvorfor: KI er slått av for prosjektet, det finnes ingen LLM-leverandør eller ingen AI-kreditt, en grense er nådd, hendelsen lå utenfor AI-reglene eller under den nedre grensen for alvorlighetsgrad, monitoren ble undersøkt innenfor pausen, den ble opprettet allerede løst, eller den ble løst i ventetiden til en AI-regel. Mens en regel får OneUptime AI til å vente, sier kortet i stedet når den undersøker. Be OneUptime AI på kortet om å undersøke den nå.
+Kortet **AI Investigation** sier hvorfor: KI er slått av for prosjektet, det finnes ingen LLM-leverandør eller ingen AI-kreditt, en grense er nådd, hendelsen lå utenfor AI-reglene eller under den nedre grensen for alvorlighetsgrad, monitoren ble undersøkt innenfor pausen, den ble opprettet allerede løst, eller den ble løst i ventetiden til en AI-regel. Mens en regel får OneUptime AI til å vente, sier kortet i stedet når den undersøker. Be OneUptime AI på kortet om å undersøke den nå. Når KI var slått av for hendelsen og ingenting heller ble rettet, er kortet én linje: åpne **Dette kan du gjøre** på det for å se hva som skal slås på.
 :::
 
 :::details Analysen sier at den ikke fant noen årsak
@@ -525,7 +527,7 @@ Undersøkelsen fant for lite bevis: den sier hva den sjekket. Sørg for at tjene
 :::
 
 :::details Ingenting ble rettet
-Hendelsens kort **Utbedring** har en linje for hver måte den kunne ha blitt rettet på, med grunnen til at den ikke ble det og en lenke til der det endres: retting av, ingen klynge eller vert knyttet til hendelsen, rettelser av på AI-agentens side, eller ingen samsvarende AI-regel.
+Hendelsens kort **Utbedring** har en linje for hver måte den kunne ha blitt rettet på, med grunnen til at den ikke ble det og en lenke til der det endres: retting av, ingen klynge eller vert knyttet til hendelsen, rettelser av på AI-agentens side, eller ingen samsvarende AI-regel. Når KI var helt slått av for hendelsen, sier linjen på kortet **AI Investigation** det i stedet.
 :::
 
 :::details OneUptime AI sluttet å jobbe for i dag

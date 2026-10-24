@@ -72,6 +72,8 @@ The **AI Investigation** card ends with a conversation — **Ask OneUptime AI** 
 - **Choose how it acts** with the switch in the message box, which says beside it what the chosen mode means: _Auto-run_ (the default — it acts on a clear request right away), _Ask to act_ (it shows an approval card first, which anyone on the incident can approve or deny), or _Read-only_.
 - **One shared thread.** Every question shows who asked it, everyone sees the same conversation live, and anyone can stop an answer in progress. Charts and tables in an answer are shown to the person who asked; everyone else sees the cited answer. Each answer lists its **Sources**, and a source with a page of its own (logs, metrics, a monitor) opens it. A long thread opens on its newest messages, with a button above them (for example **Show 6 earlier messages**) that brings back the rest.
 
+An incident or alert that OneUptime AI neither investigated nor fixed because AI was off for it — off for the project, _Investigate new incidents_ (or alerts) off when it was created, no AI rule that investigates matching it, or its severity below the minimum — gets a one-line card instead: **AI investigation is off** (or **AI is off for this project**, while it is), and why. Its chevron, **What you can do**, opens what to turn on, with a link to where it is changed for those who may change it and who can change it for everyone else; a change applies to new incidents and alerts only, not to this one. While AI is on, **Ask OneUptime AI** on the line opens the conversation, and a conversation someone has already started shows under the line by itself. The **Remediation** card is left out then: the line says why nothing was fixed.
+
 ## Enabling AI investigations
 
 Autonomous investigations are **on by default for new projects**. So are postmortem drafts and AI Insights. Fixing starts off, and the pull requests that are part of it open only while it is on (see [Automatic code fixes](#automatic-code-fixes)). A project created before this default keeps its setting; turn investigations on as in step 3, or with **Turn on** on any Kubernetes cluster's **AI agent** page (Project Owner or Project Admin). To check or change them:
@@ -393,7 +395,7 @@ Every incident and alert has a **Remediation** card that says what auto-remediat
 - **The AI rules** — with rules set up, none matched (and how many were checked), or only rules that don't fix did, so nothing was fixed; or what each matching rule did: had OneUptime AI fix the incident (asking first or not), proposed or started a runbook, had AI compose commands or pick a runbook, or could not, and why.
 - **The project** — **Fix new incidents automatically** (or alerts) is off; **Enable AI** is off, so nothing runs; the incident already has the most fixes it can get; or the evaluation stopped on an error.
 
-When the incident is linked to no cluster and no infrastructure resource at all, the card says so in one line — the most common reason nothing was fixed — with a link to each of its monitors, where you can link them to what they watch so the next incident they raise is linked. Each line links to where it is changed: the cluster's or resource's AI agent page, the incident's (or alert's) AI settings, where its fixing switch and its rules are, **Enable AI**, or the LLM providers. Incidents and alerts created before this was recorded show the card only when something was proposed.
+When the incident is linked to no cluster and no infrastructure resource at all, the card says so in one line — the most common reason nothing was fixed — with a link to each of its monitors, where you can link them to what they watch so the next incident they raise is linked. Each line links to where it is changed: the cluster's or resource's AI agent page, the incident's (or alert's) AI settings, where its fixing switch and its rules are, **Enable AI**, or the LLM providers. Incidents and alerts created before this was recorded show the card only when something was proposed. When AI was off for an incident altogether, the **AI Investigation** card's one line says why nothing was fixed, and the **Remediation** card is left out.
 
 ## What OneUptime AI learned, and everything it did
 
@@ -517,7 +519,7 @@ Every insight has **Confirm** and **Dismiss** buttons — use them even when you
 ## Troubleshooting
 
 :::details An incident was not investigated
-Its **AI Investigation** card says why: AI is off for the project, there is no LLM provider or no AI credit, a limit was reached, the incident was outside the AI rules or below the severity floor, its monitor was investigated within the cooldown, it was created already resolved, or it was resolved during an AI rule's wait. While a rule makes OneUptime AI wait, the card says when it investigates instead. Ask OneUptime AI on the card to investigate it now.
+Its **AI Investigation** card says why: AI is off for the project, there is no LLM provider or no AI credit, a limit was reached, the incident was outside the AI rules or below the severity floor, its monitor was investigated within the cooldown, it was created already resolved, or it was resolved during an AI rule's wait. While a rule makes OneUptime AI wait, the card says when it investigates instead. Ask OneUptime AI on the card to investigate it now. When AI was off for the incident and nothing was fixed either, the card is one line: open **What you can do** on it to see what to turn on.
 :::
 
 :::details The analysis says it could not find a cause
@@ -525,7 +527,7 @@ The investigation found too little evidence: it says what it checked. Make sure 
 :::
 
 :::details Nothing was fixed
-The incident's **Remediation** card has a line for every way it could have been fixed, with the reason it was not and a link to where that is changed: fixing off, no cluster or host linked to the incident, fixes off on the AI agent page, or no AI rule that matched.
+The incident's **Remediation** card has a line for every way it could have been fixed, with the reason it was not and a link to where that is changed: fixing off, no cluster or host linked to the incident, fixes off on the AI agent page, or no AI rule that matched. When AI was off for the incident altogether, the **AI Investigation** card's one line says so instead.
 :::
 
 :::details OneUptime AI stopped working for the day
