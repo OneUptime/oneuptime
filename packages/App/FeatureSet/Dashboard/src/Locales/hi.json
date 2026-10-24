@@ -33834,7 +33834,7 @@
   "Where the audit log is sent. It cannot be changed later.": "ऑडिट लॉग कहाँ भेजा जाता है। इसे बाद में बदला नहीं जा सकता।",
   "How this export appears in the list. Left empty, it is the destination's name.": "यह एक्सपोर्ट सूची में कैसे दिखता है। खाली छोड़ने पर यह गंतव्य का नाम होता है।",
   "e.g. Compliance archive": "उदा. अनुपालन संग्रह",
-  "Export from": "यहाँ से एक्सपोर्ट करें",
+  "Export from": "कब से एक्सपोर्ट करें",
   "Leave empty to send what is recorded from now on. An earlier date also sends the entries still kept since then.": "अब से रिकॉर्ड होने वाली चीज़ें भेजने के लिए खाली छोड़ें। पहले की तारीख चुनने पर तब से अब तक रखी गई एंट्रियाँ भी भेजी जाती हैं।",
   "Change it to send again every entry kept since this date, then carry on. Entries already delivered may arrive twice.": "इसे बदलने पर इस तारीख से रखी गई हर एंट्री दोबारा भेजी जाती है, फिर आगे बढ़ता है। पहले से डिलीवर की गई एंट्रियाँ दो बार पहुँच सकती हैं।",
   "Turned off, nothing is sent. The export keeps its place: turned back on, it sends what was recorded meanwhile.": "बंद करने पर कुछ भी नहीं भेजा जाता। एक्सपोर्ट अपनी जगह याद रखता है: दोबारा चालू करने पर यह बीच में रिकॉर्ड हुई चीज़ें भेजता है।",

@@ -1087,7 +1087,7 @@
   "Paused": "Приостановлено",
   "Nothing is sent while it is turned off. It keeps its place: turned back on, it sends what was recorded meanwhile.": "Пока экспорт выключен, ничего не отправляется. Он сохраняет позицию: после включения отправит то, что было записано за это время.",
   "Failing": "Сбой",
-  "The last delivery failed. Open View Error to see why. It is tried again with a growing wait, up to an hour, and no entry is skipped.": "Последняя доставка не удалась. Откройте «Показать ошибку», чтобы узнать причину. Повторные попытки идут с растущим интервалом, до часа, и ни одна запись не пропускается.",
+  "The last delivery failed. Open View Error to see why. It is tried again with a growing wait, up to an hour, and no entry is skipped.": "Последняя доставка не удалась. Откройте «Просмотреть ошибку», чтобы узнать причину. Повторные попытки идут с растущим интервалом, до часа, и ни одна запись не пропускается.",
   "Exporting": "Экспортируется",
   "Entries are reaching the destination. New ones are sent every minute.": "Записи доходят до места назначения. Новые отправляются каждую минуту.",
   "Waiting for entries": "Ожидание записей",
