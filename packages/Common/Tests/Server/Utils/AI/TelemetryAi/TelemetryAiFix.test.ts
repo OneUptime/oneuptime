@@ -16,6 +16,7 @@ import TelemetryAiPersonFix, {
   TELEMETRY_AI_PERSON_FIX_PLANNERS,
 } from "../../../../../Server/Utils/AI/TelemetryAi/TelemetryAiPersonFix";
 import TraceInsightFix from "../../../../../Server/Utils/AI/TelemetryAi/TraceInsightFix";
+import ExceptionInsightFix from "../../../../../Server/Utils/AI/TelemetryAi/ExceptionInsightFix";
 import AIInsight from "../../../../../Models/DatabaseModels/AIInsight";
 import AIRun from "../../../../../Models/DatabaseModels/AIRun";
 import AIInsightType from "../../../../../Types/AI/AIInsightType";
@@ -286,5 +287,59 @@ describe("TelemetryAiPersonFix", () => {
     expect(
       (create.mock.calls[0]![0] as unknown as JSONObject)["repositoryId"],
     ).toBe(repositoryId);
+  });
+
+  /*
+   * A person's Fix with AI on an exception finding is the person's to ask,
+   * whatever Exceptions' AI switch says: every kind of it - new, rising,
+   * missing stack traces - is handed to Exceptions, never to Traces.
+   */
+  test("an exception finding, of each kind, is handed to Exceptions", async () => {
+    const suggestion: SpyInstance<typeof ExceptionInsightFix.getSuggestion> =
+      jest.spyOn(ExceptionInsightFix, "getSuggestion").mockResolvedValue({
+        ...NO_TELEMETRY_AI_FIX_SUGGESTION,
+        offer: SuggestionOffer.InProgress,
+        taskId: "t",
+      });
+    const create: SpyInstance<typeof ExceptionInsightFix.createFixTask> = jest
+      .spyOn(ExceptionInsightFix, "createFixTask")
+      .mockResolvedValue({ taskId: "task-2" });
+    const traceSuggestion: SpyInstance<typeof TraceInsightFix.getSuggestion> =
+      jest.spyOn(TraceInsightFix, "getSuggestion");
+    const repositoryId: ObjectID = ObjectID.generate();
+
+    for (const type of [
+      AIInsightType.NewException,
+      AIInsightType.ExceptionSpike,
+      AIInsightType.ExceptionMissingStackTrace,
+    ]) {
+      insightType = type;
+
+      expect(
+        (
+          await TelemetryAiPersonFix.getSuggestion({
+            projectId: PROJECT_ID,
+            insightId: INSIGHT_ID,
+            props,
+          })
+        ).offer,
+      ).toBe(SuggestionOffer.InProgress);
+      expect(
+        await TelemetryAiPersonFix.createFixTask({
+          projectId: PROJECT_ID,
+          insightId: INSIGHT_ID,
+          userId: props.userId!,
+          props,
+          repositoryId,
+        }),
+      ).toEqual({ taskId: "task-2" });
+    }
+
+    expect(suggestion).toHaveBeenCalledTimes(3);
+    expect(create).toHaveBeenCalledTimes(3);
+    expect(
+      (create.mock.calls[0]![0] as unknown as JSONObject)["repositoryId"],
+    ).toBe(repositoryId);
+    expect(traceSuggestion).not.toHaveBeenCalled();
   });
 });

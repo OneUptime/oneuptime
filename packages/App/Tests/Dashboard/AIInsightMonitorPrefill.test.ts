@@ -663,14 +663,23 @@ describe("getAIInsightMonitorBlocker", () => {
     );
   });
 
-  test("missing tracing is not offered at all; every other kind is", () => {
+  test("missing tracing and missing stack traces are not offered at all; every other kind is", () => {
     expect(
       Prefill.isAIInsightMonitorOffered(AIInsightType.TraceMissingTracing),
+    ).toBe(false);
+    // What an exception lacks is not a count either.
+    expect(
+      Prefill.isAIInsightMonitorOffered(
+        AIInsightType.ExceptionMissingStackTrace,
+      ),
     ).toBe(false);
 
     for (const insightType of Object.values(AIInsightType).filter(
       (value: AIInsightType): boolean => {
-        return value !== AIInsightType.TraceMissingTracing;
+        return (
+          value !== AIInsightType.TraceMissingTracing &&
+          value !== AIInsightType.ExceptionMissingStackTrace
+        );
       },
     )) {
       expect(Prefill.isAIInsightMonitorOffered(insightType)).toBe(true);

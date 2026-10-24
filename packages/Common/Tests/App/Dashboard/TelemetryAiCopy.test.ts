@@ -399,3 +399,147 @@ describe("Traces' AI section", () => {
     );
   });
 });
+
+/*
+ * Exceptions' AI section: new and rising exceptions, and the ones with no
+ * stack trace. An exception's pull request opens on its own only once the
+ * investigation finds the code at fault - or an expected error to handle
+ * better - so no line promises one for every exception.
+ */
+describe("Exceptions' AI section", () => {
+  const copy: TelemetryAiLaneCopy =
+    TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Exception];
+
+  test("lives under Exceptions: its four pages are Exceptions'", () => {
+    expect(TELEMETRY_AI_PAGES[TelemetryAiLane.Exception]).toEqual({
+      insights: PageMap.EXCEPTIONS_AI_INSIGHTS,
+      insightView: PageMap.EXCEPTIONS_AI_INSIGHT_VIEW,
+      logs: PageMap.EXCEPTIONS_AI_LOGS,
+      settings: PageMap.EXCEPTIONS_AI_SETTINGS,
+    });
+
+    expect(RouteMap[PageMap.EXCEPTIONS_AI_INSIGHTS]?.toString()).toBe(
+      "/dashboard/:projectId/exceptions/ai/insights",
+    );
+    expect(RouteMap[PageMap.EXCEPTIONS_AI_INSIGHT_VIEW]?.toString()).toBe(
+      "/dashboard/:projectId/exceptions/ai/insights/:id",
+    );
+    expect(RouteMap[PageMap.EXCEPTIONS_AI_LOGS]?.toString()).toBe(
+      "/dashboard/:projectId/exceptions/ai/logs",
+    );
+    expect(RouteMap[PageMap.EXCEPTIONS_AI_SETTINGS]?.toString()).toBe(
+      "/dashboard/:projectId/exceptions/ai/settings",
+    );
+  });
+
+  test("its rules are about services, and its notice about new and rising exceptions", () => {
+    expect(copy.ruleCriteriaSubject).toBe(RuleCriteriaSubject.Services);
+    expect(copy.noticeContext).toBe(ProjectAiNoticeContext.Exceptions);
+    expect(
+      PROJECT_AI_NOTICE_CONTEXT_COPY[ProjectAiNoticeContext.Exceptions]
+        .aiOffDescription,
+    ).toContain("New and rising exceptions are still found");
+    expect(
+      PROJECT_AI_NOTICE_CONTEXT_COPY[ProjectAiNoticeContext.Exceptions]
+        .providerConsequence,
+    ).toContain("none are looked into or fixed");
+  });
+
+  test("its inbox lists its three kinds of finding, opened in its own view", () => {
+    expect(TELEMETRY_AI_INSIGHTS_SCOPES[TelemetryAiLane.Exception]).toEqual({
+      insightTypes: TELEMETRY_AI_LANES[TelemetryAiLane.Exception].insightTypes,
+      viewPage: PageMap.EXCEPTIONS_AI_INSIGHT_VIEW,
+      settingsPage: PageMap.EXCEPTIONS_AI_SETTINGS,
+      intro: copy.insightsIntro,
+      emptyTitle: copy.insightsEmptyTitle,
+      emptyDescription: copy.insightsEmptyDescription,
+    });
+    expect(copy.insightsEmptyTitle).toBe("No new or rising exceptions found");
+    expect(copy.insightsIntro).toContain("no stack trace");
+  });
+
+  test("while its switch is off, the inbox says so, and names the switch", () => {
+    const off: ReturnType<typeof getTelemetryAiInsightsScope> =
+      getTelemetryAiInsightsScope(TelemetryAiLane.Exception, true);
+
+    expect(off).toBe(
+      TELEMETRY_AI_INSIGHTS_SCOPES_WHILE_OFF[TelemetryAiLane.Exception],
+    );
+    expect(off.insightTypes).toBe(
+      TELEMETRY_AI_INSIGHTS_SCOPES[TelemetryAiLane.Exception].insightTypes,
+    );
+    expect(off.emptyTitle).toBe("Finding and fixing exceptions is off");
+    expect(copy.insightsOffEmptyDescription).toContain(
+      TELEMETRY_AI_SWITCHES[TelemetryAiLane.Exception][0]!.title,
+    );
+    expect(getTelemetryAiInsightsScope(TelemetryAiLane.Exception, false)).toBe(
+      TELEMETRY_AI_INSIGHTS_SCOPES[TelemetryAiLane.Exception],
+    );
+  });
+
+  test("its summaries promise a pull request for each exception it can fix, not for each exception", () => {
+    for (const line of [
+      copy.advancedDefaultsSummary,
+      copy.rulesCardDescription,
+      copy.noRulesMessage,
+    ]) {
+      expect(line).toContain("can fix");
+      expect(line).not.toMatch(/pull request for each\./u);
+    }
+
+    const [exceptionSwitch] = TELEMETRY_AI_SWITCHES[TelemetryAiLane.Exception];
+
+    expect(exceptionSwitch!.description).toContain("fixes what it can");
+  });
+
+  test("its switch is the rule turned on by default, named for what it does", () => {
+    const [findAndFix] = TELEMETRY_AI_SWITCHES[TelemetryAiLane.Exception];
+
+    expect(findAndFix!.column).toBe("enableAutomaticExceptionRemediation");
+    expect(findAndFix!.title).toBe("Find and fix new and rising exceptions");
+    expect(findAndFix!.description).toContain("no stack trace");
+    expect(findAndFix!.description).toContain("pull request");
+    expect(findAndFix!.note).toBe("Needs a repository connected in Code.");
+  });
+
+  test("its Fix step's answers: on its own, once the code is found at fault or the error expected", () => {
+    const options: Array<CardSelectOption> = getTelemetryAiFixOptions(
+      TelemetryAiLane.Exception,
+    );
+
+    expect(
+      options.map((option: CardSelectOption) => {
+        return [option.value, option.title, option.icon];
+      }),
+    ).toEqual(
+      AI_RULE_FIX_OPTIONS.map((option: CardSelectOption) => {
+        return [option.value, option.title, option.icon];
+      }),
+    );
+    expect(copy.fixOptionDescriptions[AiRuleFix.DoNotFix]).toContain(
+      "opens no pull request",
+    );
+    expect(copy.fixOptionDescriptions[AiRuleFix.AskFirst]).toContain(
+      "one click",
+    );
+    expect(copy.fixOptionDescriptions[AiRuleFix.WithoutAsking]).toContain(
+      "once it finds the code at fault, or an expected error to handle better",
+    );
+    expect(copy.fixOptionDescriptions[AiRuleFix.WithoutAsking]).toContain(
+      "Nothing is ever merged",
+    );
+  });
+
+  test("its rules table has an id of its own, apart from the other lanes'", () => {
+    expect(getTelemetryAiRulesTableId(TelemetryAiLane.Exception)).toBe(
+      "telemetry-ai-rules-table-Exception",
+    );
+    expect(
+      new Set(
+        TELEMETRY_AI_LANE_LIST.map((lane: TelemetryAiLane): string => {
+          return getTelemetryAiRulesTableId(lane);
+        }),
+      ).size,
+    ).toBe(TELEMETRY_AI_LANE_LIST.length);
+  });
+});
