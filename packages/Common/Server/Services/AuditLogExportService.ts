@@ -88,7 +88,9 @@ export class Service extends DatabaseService<Model> {
     props: DatabaseCommonInteractionProps,
   ): void {
     if (!props.isRoot && !props.isMasterAdmin) {
-      throw new NotAuthorizedException(INSTANCE_AUDIT_LOG_EXPORT_REFUSED_MESSAGE);
+      throw new NotAuthorizedException(
+        INSTANCE_AUDIT_LOG_EXPORT_REFUSED_MESSAGE,
+      );
     }
   }
 
@@ -121,7 +123,10 @@ export class Service extends DatabaseService<Model> {
   }
 
   private static parseConfig(value: unknown): JSONObject {
-    return SecurityEventConnectionService.parseJsonObject(value, "Configuration");
+    return SecurityEventConnectionService.parseJsonObject(
+      value,
+      "Configuration",
+    );
   }
 
   private static parseSecrets(value: unknown): JSONObject {
@@ -139,14 +144,13 @@ export class Service extends DatabaseService<Model> {
     secrets: JSONObject;
     isInstanceExport: boolean;
   }): Promise<AuditLogExportSettings> {
-    const settings: AuditLogExportSettings = AuditLogExportSettingsUtil.validate(
-      {
+    const settings: AuditLogExportSettings =
+      AuditLogExportSettingsUtil.validate({
         type: data.type,
         config: data.config,
         secrets: data.secrets,
         requireRequiredSecrets: true,
-      },
-    );
+      });
 
     await AuditLogExportSettingsUtil.assertTargetsAllowed(settings, {
       isInstanceExport: data.isInstanceExport,
@@ -198,11 +202,9 @@ export class Service extends DatabaseService<Model> {
 
     createBy.data.destinationType = definition.type;
     createBy.data.config = settings.config;
-    createBy.data.secrets = (
-      Object.keys(settings.secrets).length > 0
-        ? JSON.stringify(settings.secrets)
-        : null
-    ) as unknown as string;
+    createBy.data.secrets = (Object.keys(settings.secrets).length > 0
+      ? JSON.stringify(settings.secrets)
+      : null) as unknown as string;
 
     // An export saved without saying so is on: that is why it was saved.
     if (createBy.data.isEnabled === undefined) {
@@ -316,11 +318,9 @@ export class Service extends DatabaseService<Model> {
       });
 
       incoming["config"] = settings.config;
-      incoming["secrets"] = (
-        Object.keys(settings.secrets).length > 0
-          ? JSON.stringify(settings.secrets)
-          : null
-      ) as unknown as string;
+      incoming["secrets"] = (Object.keys(settings.secrets).length > 0
+        ? JSON.stringify(settings.secrets)
+        : null) as unknown as string;
       reset.retryNow = true;
     }
 

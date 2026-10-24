@@ -260,17 +260,16 @@ describe("readAuditLogExportDate", () => {
 
 describe("serializeAuditLogExportRecord", () => {
   test("writes the keys in schema order, whatever order the object holds them in", () => {
-    const record: AuditLogExportRecord = toAuditLogExportRecord(
-      clickhouseRow(),
-    )!;
+    const record: AuditLogExportRecord =
+      toAuditLogExportRecord(clickhouseRow())!;
     const shuffled: AuditLogExportRecord = {
       changes: record.changes,
       ...record,
     };
 
-    expect(Object.keys(JSON.parse(serializeAuditLogExportRecord(shuffled)))).toEqual(
-      [...AUDIT_LOG_EXPORT_RECORD_KEYS],
-    );
+    expect(
+      Object.keys(JSON.parse(serializeAuditLogExportRecord(shuffled))),
+    ).toEqual([...AUDIT_LOG_EXPORT_RECORD_KEYS]);
   });
 
   test("is one line even when a value holds line breaks", () => {

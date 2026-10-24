@@ -35,13 +35,20 @@ const records: Array<AuditLogExportRecord> = [
 
 const IN_A_YEAR: Date = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
 
-const withSas: (sasToken: string, config?: Record<string, unknown>) => AuditLogExportSettings = (
+const withSas: (
+  sasToken: string,
+  config?: Record<string, unknown>,
+) => AuditLogExportSettings = (
   sasToken: string,
   config: Record<string, unknown> = {},
 ): AuditLogExportSettings => {
   return settingsOf({
     type: AuditLogExportDestinationType.AzureBlobStorage,
-    config: { accountName: ACCOUNT_NAME, container: "audit-logs", ...config } as never,
+    config: {
+      accountName: ACCOUNT_NAME,
+      container: "audit-logs",
+      ...config,
+    } as never,
     secrets: { sasToken },
   });
 };
@@ -60,17 +67,20 @@ const withAccessKey: (accountKey?: string) => AuditLogExportSettings = (
   });
 };
 
-const failureOf: (run: () => Promise<unknown>) => Promise<AuditLogExportDeliveryError> =
-  async (run: () => Promise<unknown>): Promise<AuditLogExportDeliveryError> => {
-    try {
-      await run();
-    } catch (error) {
-      expect(error).toBeInstanceOf(AuditLogExportDeliveryError);
-      return error as AuditLogExportDeliveryError;
-    }
+const failureOf: (
+  run: () => Promise<unknown>,
+) => Promise<AuditLogExportDeliveryError> = async (
+  run: () => Promise<unknown>,
+): Promise<AuditLogExportDeliveryError> => {
+  try {
+    await run();
+  } catch (error) {
+    expect(error).toBeInstanceOf(AuditLogExportDeliveryError);
+    return error as AuditLogExportDeliveryError;
+  }
 
-    throw new Error("Expected the delivery to fail.");
-  };
+  throw new Error("Expected the delivery to fail.");
+};
 
 describe("Azure Blob Storage with a SAS token", () => {
   test("puts one block blob per batch, as gzip NDJSON", async () => {
@@ -82,9 +92,13 @@ describe("Azure Blob Storage with a SAS token", () => {
       expiresAt: IN_A_YEAR,
     });
 
-    const receipt: { location: string } = await new AzureBlobStorageDestination({
-      transport: azure.transport,
-    }).deliver(deliveryOf({ settings: withSas(token), batch: batchOf(records) }));
+    const receipt: { location: string } = await new AzureBlobStorageDestination(
+      {
+        transport: azure.transport,
+      },
+    ).deliver(
+      deliveryOf({ settings: withSas(token), batch: batchOf(records) }),
+    );
 
     const name: string = `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_${records[0]!.id}.ndjson.gz`;
 
@@ -106,7 +120,9 @@ describe("Azure Blob Storage with a SAS token", () => {
       expiresAt: IN_A_YEAR,
     });
 
-    await new AzureBlobStorageDestination({ transport: azure.transport }).deliver(
+    await new AzureBlobStorageDestination({
+      transport: azure.transport,
+    }).deliver(
       deliveryOf({ settings: withSas(`?${token}`), batch: batchOf(records) }),
     );
 
@@ -125,7 +141,9 @@ describe("Azure Blob Storage with a SAS token", () => {
     const error: AuditLogExportDeliveryError = await failureOf(() => {
       return new AzureBlobStorageDestination({
         transport: azure.transport,
-      }).deliver(deliveryOf({ settings: withSas(token), batch: batchOf(records) }));
+      }).deliver(
+        deliveryOf({ settings: withSas(token), batch: batchOf(records) }),
+      );
     });
 
     expect(error.message).toBe(
@@ -148,7 +166,9 @@ describe("Azure Blob Storage with a SAS token", () => {
     const error: AuditLogExportDeliveryError = await failureOf(() => {
       return new AzureBlobStorageDestination({
         transport: azure.transport,
-      }).deliver(deliveryOf({ settings: withSas(token), batch: batchOf(records) }));
+      }).deliver(
+        deliveryOf({ settings: withSas(token), batch: batchOf(records) }),
+      );
     });
 
     expect(error.message).toBe(
@@ -166,7 +186,9 @@ describe("Azure Blob Storage with a SAS token", () => {
     const error: AuditLogExportDeliveryError = await failureOf(() => {
       return new AzureBlobStorageDestination({
         transport: azure.transport,
-      }).deliver(deliveryOf({ settings: withSas(token), batch: batchOf(records) }));
+      }).deliver(
+        deliveryOf({ settings: withSas(token), batch: batchOf(records) }),
+      );
     });
 
     expect(error.message).toBe(
@@ -232,20 +254,20 @@ describe("Azure Blob Storage with an access key", () => {
       containers: ["audit-logs"],
     });
 
-    await new AzureBlobStorageDestination({ transport: azure.transport }).deliver(
+    await new AzureBlobStorageDestination({
+      transport: azure.transport,
+    }).deliver(
       deliveryOf({ settings: withAccessKey(), batch: batchOf(records) }),
     );
 
     expect(azure.blobs.size).toBe(1);
 
-    const headers: Record<string, string> = azure.requests[0]!.headers as Record<
-      string,
-      string
-    >;
+    const headers: Record<string, string> = azure.requests[0]!
+      .headers as Record<string, string>;
 
-    expect(headers["Authorization"]!.startsWith(`SharedKey ${ACCOUNT_NAME}:`)).toBe(
-      true,
-    );
+    expect(
+      headers["Authorization"]!.startsWith(`SharedKey ${ACCOUNT_NAME}:`),
+    ).toBe(true);
     expect(headers["x-ms-version"]).toBe(AZURE_BLOB_API_VERSION);
     expect(headers["x-ms-blob-type"]).toBe("BlockBlob");
     // No SAS in the address.
@@ -262,7 +284,10 @@ describe("Azure Blob Storage with an access key", () => {
       return new AzureBlobStorageDestination({
         transport: azure.transport,
       }).deliver(
-        deliveryOf({ settings: withAccessKey(otherKey), batch: batchOf(records) }),
+        deliveryOf({
+          settings: withAccessKey(otherKey),
+          batch: batchOf(records),
+        }),
       );
     });
 

@@ -139,9 +139,9 @@ describe("the recommended audit log destinations", () => {
       expect(definition.description.length).toBeGreaterThan(10);
       expect(definition.description.length).toBeLessThanOrEqual(150);
       expect(definition.icon).toBeTruthy();
-      expect(definition.docsPath.startsWith(`${AUDIT_LOG_EXPORT_DOCS_PATH}#`)).toBe(
-        true,
-      );
+      expect(
+        definition.docsPath.startsWith(`${AUDIT_LOG_EXPORT_DOCS_PATH}#`),
+      ).toBe(true);
     },
   );
 
@@ -339,7 +339,11 @@ describe("which fields apply to a config", () => {
     };
 
     expect(
-      isAuditLogExportFieldShown({ definition: azure, field: sasToken, config }),
+      isAuditLogExportFieldShown({
+        definition: azure,
+        field: sasToken,
+        config,
+      }),
     ).toBe(false);
     expect(
       isAuditLogExportFieldShown({
@@ -402,8 +406,8 @@ describe("which fields apply to a config", () => {
       "us-east-1",
     );
     expect(readAuditLogExportConfigValue(null, region)).toBe("us-east-1");
-    expect(
-      readAuditLogExportConfigValue({ region: "eu-west-1" }, region),
-    ).toBe("eu-west-1");
+    expect(readAuditLogExportConfigValue({ region: "eu-west-1" }, region)).toBe(
+      "eu-west-1",
+    );
   });
 });

@@ -18,10 +18,12 @@ import AuditLogExporter, {
  * so a lapse stops exporting and a renewal resumes it, from where it
  * stopped, without a restart.
  */
-export const EXPORT_AUDIT_LOGS_JOB_NAME: string = "AuditLogExport:ExportAuditLogs";
+export const EXPORT_AUDIT_LOGS_JOB_NAME: string =
+  "AuditLogExport:ExportAuditLogs";
 
 export const EXPORT_AUDIT_LOGS_JOB_TIMEOUT_IN_MS: number =
-  AUDIT_LOG_EXPORT_RUN_BUDGET_IN_MS + OneUptimeDate.convertMinutesToMilliseconds(1);
+  AUDIT_LOG_EXPORT_RUN_BUDGET_IN_MS +
+  OneUptimeDate.convertMinutesToMilliseconds(1);
 
 RunCron(
   EXPORT_AUDIT_LOGS_JOB_NAME,

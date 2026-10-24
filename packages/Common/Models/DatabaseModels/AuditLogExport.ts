@@ -252,7 +252,8 @@ export default class AuditLogExport extends BaseModel {
     type: TableColumnType.Boolean,
     canReadOnRelationQuery: true,
     title: "Enabled",
-    description: "Whether entries are exported. A paused export keeps its place.",
+    description:
+      "Whether entries are exported. A paused export keeps its place.",
     defaultValue: true,
     isDefaultValueColumn: true,
   })
@@ -286,7 +287,8 @@ export default class AuditLogExport extends BaseModel {
     type: TableColumnType.Date,
     required: false,
     title: "Exported Up To",
-    description: "When the last entry delivered was recorded: where the next batch starts.",
+    description:
+      "When the last entry delivered was recorded: where the next batch starts.",
   })
   @Column({ type: ColumnType.Date, nullable: true })
   public cursorCreatedAt?: Date = undefined;
@@ -356,7 +358,8 @@ export default class AuditLogExport extends BaseModel {
     type: TableColumnType.Date,
     required: false,
     title: "Failing Since",
-    description: "When deliveries started failing. Cleared by the next delivery that succeeds.",
+    description:
+      "When deliveries started failing. Cleared by the next delivery that succeeds.",
   })
   @Column({ type: ColumnType.Date, nullable: true })
   public failingSince?: Date = undefined;
@@ -366,7 +369,8 @@ export default class AuditLogExport extends BaseModel {
     type: TableColumnType.Number,
     required: true,
     title: "Failures In A Row",
-    description: "How many deliveries in a row have failed. It sets how long the next retry waits.",
+    description:
+      "How many deliveries in a row have failed. It sets how long the next retry waits.",
     defaultValue: 0,
     isDefaultValueColumn: true,
   })

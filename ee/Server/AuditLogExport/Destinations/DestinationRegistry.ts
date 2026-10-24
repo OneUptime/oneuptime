@@ -44,8 +44,9 @@ export default class AuditLogExportDestinationRegistry {
   public static getDestination(
     type: AuditLogExportDestinationType | string | undefined,
   ): AuditLogExportDestination {
-    const destination: AuditLogExportDestination | undefined =
-      destinations.get(type as AuditLogExportDestinationType);
+    const destination: AuditLogExportDestination | undefined = destinations.get(
+      type as AuditLogExportDestinationType,
+    );
 
     if (!destination) {
       throw new BadDataException(

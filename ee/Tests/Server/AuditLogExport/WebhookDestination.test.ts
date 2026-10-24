@@ -125,17 +125,20 @@ const records: Array<AuditLogExportRecord> = [
   auditLogRecord({ createdAt: "2026-10-24T09:15:06.000Z" }),
 ];
 
-const failureOf: (run: () => Promise<unknown>) => Promise<AuditLogExportDeliveryError> =
-  async (run: () => Promise<unknown>): Promise<AuditLogExportDeliveryError> => {
-    try {
-      await run();
-    } catch (error) {
-      expect(error).toBeInstanceOf(AuditLogExportDeliveryError);
-      return error as AuditLogExportDeliveryError;
-    }
+const failureOf: (
+  run: () => Promise<unknown>,
+) => Promise<AuditLogExportDeliveryError> = async (
+  run: () => Promise<unknown>,
+): Promise<AuditLogExportDeliveryError> => {
+  try {
+    await run();
+  } catch (error) {
+    expect(error).toBeInstanceOf(AuditLogExportDeliveryError);
+    return error as AuditLogExportDeliveryError;
+  }
 
-    throw new Error("Expected the delivery to fail.");
-  };
+  throw new Error("Expected the delivery to fail.");
+};
 
 describe("the webhook destination", () => {
   test("posts the batch as a JSON array, in order, each entry in the export schema", async () => {
@@ -206,7 +209,10 @@ describe("the webhook destination", () => {
 
     await new WebhookDestination({ transport: datadog.transport }).deliver(
       deliveryOf({
-        settings: settings({ headerName: "DD-API-KEY" }, { headerValue: "dd-key" }),
+        settings: settings(
+          { headerName: "DD-API-KEY" },
+          { headerValue: "dd-key" },
+        ),
         batch: batchOf(records),
       }),
     );
@@ -239,7 +245,9 @@ describe("the webhook destination", () => {
       deliveryOf({ settings: settings(), batch: batchOf(records) }),
     );
 
-    expect(endpoint.received[0]!.headers["X-OneUptime-Signature"]).toBeUndefined();
+    expect(
+      endpoint.received[0]!.headers["X-OneUptime-Signature"],
+    ).toBeUndefined();
   });
 
   test("a body too large for the endpoint is split in halves until it fits", async () => {
@@ -313,9 +321,11 @@ describe("the webhook destination", () => {
       );
     });
 
-    expect(error.message.startsWith(
-      "The webhook endpoint refused the credential (HTTP 401). Check the Credential, and the Header name it is sent in.",
-    )).toBe(true);
+    expect(
+      error.message.startsWith(
+        "The webhook endpoint refused the credential (HTTP 401). Check the Credential, and the Header name it is sent in.",
+      ),
+    ).toBe(true);
     expect(error.retryable).toBe(false);
     expect(error.message).not.toContain("wrong-token-value");
   });
@@ -350,22 +360,28 @@ describe("the webhook destination", () => {
   });
 
   test.each([
-    [301, "redirected to another address (HTTP 301), and redirects are not followed"],
+    [
+      301,
+      "redirected to another address (HTTP 301), and redirects are not followed",
+    ],
     [404, "Nothing answers at this URL (HTTP 404). Check the URL."],
     [405, "does not take POST requests at this URL (HTTP 405)"],
     [400, "refused the body (HTTP 400). Check that it takes the Body format"],
     [429, "is busy or failing (HTTP 429). It is retried automatically."],
     [418, "did not accept the audit log entries (HTTP 418)."],
-  ])("HTTP %s is worded for the person fixing it", (status: number, words: string) => {
-    expect(
-      describeWebhookFailure({
-        ok: false,
-        status,
-        bodyText: "",
-        bodyJson: undefined,
-      }),
-    ).toContain(words);
-  });
+  ])(
+    "HTTP %s is worded for the person fixing it",
+    (status: number, words: string) => {
+      expect(
+        describeWebhookFailure({
+          ok: false,
+          status,
+          bodyText: "",
+          bodyJson: undefined,
+        }),
+      ).toContain(words);
+    },
+  );
 
   test("the JSON array body is valid JSON even for one entry", () => {
     const body: { body: string; contentType: string } = toWebhookBody({

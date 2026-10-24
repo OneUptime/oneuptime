@@ -26,10 +26,11 @@ import {
 // How long one upload or one batch may take before it counts as no answer.
 export const AUDIT_LOG_EXPORT_REQUEST_TIMEOUT_IN_MS: number = 60 * 1000;
 
-export const defaultAuditLogExportHttpTransport: AuditLogExportHttpTransport =
-  (request: DataSourceHttpRequest) => {
-    return DataSourceHttpFetch.fetch(request);
-  };
+export const defaultAuditLogExportHttpTransport: AuditLogExportHttpTransport = (
+  request: DataSourceHttpRequest,
+) => {
+  return DataSourceHttpFetch.fetch(request);
+};
 
 // A message without any of the secrets in it, and nothing secret-looking.
 export function redactDeliveryMessage(

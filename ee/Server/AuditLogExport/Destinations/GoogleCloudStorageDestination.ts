@@ -132,7 +132,9 @@ export default class GoogleCloudStorageDestination
     return createHash("sha256").update(serviceAccountJson).digest("hex");
   }
 
-  private getTokenClient(serviceAccountJson: string): GoogleServiceAccountToken {
+  private getTokenClient(
+    serviceAccountJson: string,
+  ): GoogleServiceAccountToken {
     const cacheKey: string =
       GoogleCloudStorageDestination.getCacheKey(serviceAccountJson);
     const cached: GoogleServiceAccountToken | undefined =
@@ -197,10 +199,8 @@ export default class GoogleCloudStorageDestination
       settings,
       "bucket",
     );
-    const serviceAccountJson: string = AuditLogExportSettingsUtil.readSecretText(
-      settings,
-      "serviceAccountJson",
-    );
+    const serviceAccountJson: string =
+      AuditLogExportSettingsUtil.readSecretText(settings, "serviceAccountJson");
     const objectName: string = getAuditLogExportObjectKey({
       folder: getAuditLogExportFolder(settings.config),
       batch: delivery.batch,

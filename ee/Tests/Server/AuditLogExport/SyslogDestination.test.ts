@@ -81,21 +81,23 @@ function listen(
 
   openServers.push(server);
 
-  return new Promise<Receiver>((resolve: (receiver: Receiver) => void): void => {
-    server.listen(0, "127.0.0.1", (): void => {
-      resolve({
-        port: (server.address() as net.AddressInfo).port,
-        received,
-        close: (): Promise<void> => {
-          return new Promise<void>((done: () => void): void => {
-            server.close((): void => {
-              done();
+  return new Promise<Receiver>(
+    (resolve: (receiver: Receiver) => void): void => {
+      server.listen(0, "127.0.0.1", (): void => {
+        resolve({
+          port: (server.address() as net.AddressInfo).port,
+          received,
+          close: (): Promise<void> => {
+            return new Promise<void>((done: () => void): void => {
+              server.close((): void => {
+                done();
+              });
             });
-          });
-        },
+          },
+        });
       });
-    });
-  });
+    },
+  );
 }
 
 // Reads until the sender ends, then closes its side, as a syslog receiver does.
@@ -123,7 +125,9 @@ function readOctetCountedFrames(data: Buffer): Array<string> {
 
   while (offset < data.length) {
     const space: number = data.indexOf(0x20, offset);
-    const length: number = Number(data.subarray(offset, space).toString("ascii"));
+    const length: number = Number(
+      data.subarray(offset, space).toString("ascii"),
+    );
 
     frames.push(data.subarray(space + 1, space + 1 + length).toString("utf8"));
     offset = space + 1 + length;
@@ -138,7 +142,9 @@ const toLoopback: SyslogTargetResolver = async (): Promise<
   return [{ address: "127.0.0.1", family: 4 }];
 };
 
-const syslogSettings: (config: Record<string, unknown>) => AuditLogExportSettings = (
+const syslogSettings: (
+  config: Record<string, unknown>,
+) => AuditLogExportSettings = (
   config: Record<string, unknown>,
 ): AuditLogExportSettings => {
   return settingsOf({
@@ -170,17 +176,20 @@ function parseMessage(message: string): {
   };
 }
 
-const failureOf: (run: () => Promise<unknown>) => Promise<AuditLogExportDeliveryError> =
-  async (run: () => Promise<unknown>): Promise<AuditLogExportDeliveryError> => {
-    try {
-      await run();
-    } catch (error) {
-      expect(error).toBeInstanceOf(AuditLogExportDeliveryError);
-      return error as AuditLogExportDeliveryError;
-    }
+const failureOf: (
+  run: () => Promise<unknown>,
+) => Promise<AuditLogExportDeliveryError> = async (
+  run: () => Promise<unknown>,
+): Promise<AuditLogExportDeliveryError> => {
+  try {
+    await run();
+  } catch (error) {
+    expect(error).toBeInstanceOf(AuditLogExportDeliveryError);
+    return error as AuditLogExportDeliveryError;
+  }
 
-    throw new Error("Expected the delivery to fail.");
-  };
+  throw new Error("Expected the delivery to fail.");
+};
 
 describe("syslog over TCP", () => {
   test("one RFC 5424 message per entry, octet counted, facility log audit", async () => {
@@ -200,9 +209,13 @@ describe("syslog over TCP", () => {
       }),
     );
 
-    expect(receipt.location).toBe(`syslog://syslog.example.com:${receiver.port}`);
+    expect(receipt.location).toBe(
+      `syslog://syslog.example.com:${receiver.port}`,
+    );
 
-    const frames: Array<string> = readOctetCountedFrames(await receiver.received);
+    const frames: Array<string> = readOctetCountedFrames(
+      await receiver.received,
+    );
 
     expect(frames).toHaveLength(3);
 
@@ -326,7 +339,11 @@ describe("syslog over TCP", () => {
     const error: AuditLogExportDeliveryError = await failureOf(() => {
       return new SyslogDestination().deliver({
         ...deliveryOf({
-          settings: syslogSettings({ host: "127.0.0.1", port: 514, protocol: "tcp" }),
+          settings: syslogSettings({
+            host: "127.0.0.1",
+            port: 514,
+            protocol: "tcp",
+          }),
           batch: batchOf(records),
         }),
         egress: { targetLabel: "Syslog", blockPrivateAddresses: false },
@@ -388,7 +405,9 @@ describe("syslog over TLS", () => {
       );
     });
 
-    expect(error.message).toContain("The syslog receiver's certificate is not trusted");
+    expect(error.message).toContain(
+      "The syslog receiver's certificate is not trusted",
+    );
     expect(error.message).toContain(
       "If a private CA signed it, paste that CA's certificate in CA certificate.",
     );

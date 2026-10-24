@@ -222,7 +222,8 @@ describe("AuditLogExportService, through the whole write", () => {
   });
 
   function inserted(): StoredRow {
-    const row: StoredRow | undefined = exports.inserts[exports.inserts.length - 1];
+    const row: StoredRow | undefined =
+      exports.inserts[exports.inserts.length - 1];
 
     if (!row) {
       throw new Error("Nothing was inserted.");
@@ -448,9 +449,11 @@ describe("AuditLogExportService, through the whole write", () => {
       usePlanEnvironment();
       process.env["BILLING_ENABLED"] = "true";
 
-      const webhook: (props: DatabaseCommonInteractionProps) => Promise<
-        AuditLogExport
-      > = (props: DatabaseCommonInteractionProps): Promise<AuditLogExport> => {
+      const webhook: (
+        props: DatabaseCommonInteractionProps,
+      ) => Promise<AuditLogExport> = (
+        props: DatabaseCommonInteractionProps,
+      ): Promise<AuditLogExport> => {
         return AuditLogExportService.create({
           data: newS3Export({
             destinationType: AuditLogExportDestinationType.Webhook,

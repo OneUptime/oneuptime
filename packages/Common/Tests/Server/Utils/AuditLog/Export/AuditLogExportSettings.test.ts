@@ -524,7 +524,10 @@ describe("validating an export's settings", () => {
     for (const [config, message] of cases) {
       expect(
         refusal(() => {
-          return validate({ type: AuditLogExportDestinationType.Syslog, config });
+          return validate({
+            type: AuditLogExportDestinationType.Syslog,
+            config,
+          });
         }),
       ).toBe(message);
     }

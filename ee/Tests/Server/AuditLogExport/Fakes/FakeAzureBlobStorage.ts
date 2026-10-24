@@ -52,7 +52,9 @@ function xmlError(status: number, code: string): DataSourceHttpResponse {
   };
 }
 
-function asTransportAnswer(response: DataSourceHttpResponse): DataSourceHttpResponse {
+function asTransportAnswer(
+  response: DataSourceHttpResponse,
+): DataSourceHttpResponse {
   if (response.statusCode >= 200 && response.statusCode < 300) {
     return response;
   }
@@ -145,7 +147,10 @@ export function createFakeAzureBlobStorage(options: {
         return xmlError(403, "AuthenticationFailed");
       }
 
-      if (!token.permissions.includes("c") || !token.permissions.includes("w")) {
+      if (
+        !token.permissions.includes("c") ||
+        !token.permissions.includes("w")
+      ) {
         return xmlError(403, "AuthorizationPermissionMismatch");
       }
     } else {
@@ -185,7 +190,10 @@ export function createFakeAzureBlobStorage(options: {
       ? request.body
       : Buffer.from(String(request.body ?? ""), "utf8");
 
-    if (headers["content-length"] && Number(headers["content-length"]) !== body.length) {
+    if (
+      headers["content-length"] &&
+      Number(headers["content-length"]) !== body.length
+    ) {
       return xmlError(400, "InvalidHeaderValue");
     }
 
@@ -214,7 +222,10 @@ export function createFakeAzureBlobStorage(options: {
     failNext: (status: number, code: string): void => {
       failures.push({ status, code });
     },
-    readBlob: (container: string, name: string): Array<Record<string, unknown>> => {
+    readBlob: (
+      container: string,
+      name: string,
+    ): Array<Record<string, unknown>> => {
       const blob: FakeBlob | undefined = blobs.get(`${container}/${name}`);
 
       if (!blob) {

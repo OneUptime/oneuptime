@@ -55,17 +55,20 @@ const fakeStorage: () => FakeGcs = (): FakeGcs => {
   });
 };
 
-const failureOf: (run: () => Promise<unknown>) => Promise<AuditLogExportDeliveryError> =
-  async (run: () => Promise<unknown>): Promise<AuditLogExportDeliveryError> => {
-    try {
-      await run();
-    } catch (error) {
-      expect(error).toBeInstanceOf(AuditLogExportDeliveryError);
-      return error as AuditLogExportDeliveryError;
-    }
+const failureOf: (
+  run: () => Promise<unknown>,
+) => Promise<AuditLogExportDeliveryError> = async (
+  run: () => Promise<unknown>,
+): Promise<AuditLogExportDeliveryError> => {
+  try {
+    await run();
+  } catch (error) {
+    expect(error).toBeInstanceOf(AuditLogExportDeliveryError);
+    return error as AuditLogExportDeliveryError;
+  }
 
-    throw new Error("Expected the delivery to fail.");
-  };
+  throw new Error("Expected the delivery to fail.");
+};
 
 describe("Google Cloud Storage", () => {
   test("signs in as the service account and uploads one gzip NDJSON file per batch", async () => {
@@ -197,9 +200,9 @@ describe("Google Cloud Storage", () => {
       );
     });
 
-    expect(error.message.startsWith("Google refused the service account key:")).toBe(
-      true,
-    );
+    expect(
+      error.message.startsWith("Google refused the service account key:"),
+    ).toBe(true);
     expect(error.retryable).toBe(false);
     expect(error.message).not.toContain("PRIVATE KEY");
     expect(storage.uploads).toHaveLength(0);

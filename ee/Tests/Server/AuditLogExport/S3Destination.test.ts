@@ -6,6 +6,10 @@ import S3Destination, {
 } from "../../../Server/AuditLogExport/Destinations/S3Destination";
 import { AuditLogExportDeliveryError } from "../../../Server/AuditLogExport/Destinations/Types";
 import { AuditLogExportSettings } from "Common/Server/Utils/AuditLog/Export/AuditLogExportSettings";
+import {
+  DataSourceHttpRequest,
+  DataSourceHttpResponse,
+} from "Common/Server/Utils/DataSource/HttpFetch";
 import AuditLogExportDestinationType from "Common/Types/AuditLog/Export/AuditLogExportDestinationType";
 import { AuditLogExportRecord } from "Common/Types/AuditLog/Export/AuditLogExportRecord";
 import {
@@ -25,7 +29,9 @@ import { createFakeS3, FakeS3 } from "./Fakes/FakeS3";
 const ACCESS_KEY_ID: string = "AKIAIOSFODNN7EXAMPLE";
 const SECRET: string = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY";
 
-const amazonSettings: (config?: Record<string, unknown>) => AuditLogExportSettings = (
+const amazonSettings: (
+  config?: Record<string, unknown>,
+) => AuditLogExportSettings = (
   config: Record<string, unknown> = {},
 ): AuditLogExportSettings => {
   return settingsOf({
@@ -61,17 +67,20 @@ const fakeAmazon: () => FakeS3 = (): FakeS3 => {
   });
 };
 
-const failureOf: (run: () => Promise<unknown>) => Promise<AuditLogExportDeliveryError> =
-  async (run: () => Promise<unknown>): Promise<AuditLogExportDeliveryError> => {
-    try {
-      await run();
-    } catch (error) {
-      expect(error).toBeInstanceOf(AuditLogExportDeliveryError);
-      return error as AuditLogExportDeliveryError;
-    }
+const failureOf: (
+  run: () => Promise<unknown>,
+) => Promise<AuditLogExportDeliveryError> = async (
+  run: () => Promise<unknown>,
+): Promise<AuditLogExportDeliveryError> => {
+  try {
+    await run();
+  } catch (error) {
+    expect(error).toBeInstanceOf(AuditLogExportDeliveryError);
+    return error as AuditLogExportDeliveryError;
+  }
 
-    throw new Error("Expected the delivery to fail.");
-  };
+  throw new Error("Expected the delivery to fail.");
+};
 
 describe("Amazon S3", () => {
   test("writes one gzip NDJSON file per batch, filed by its first entry's hour", async () => {
@@ -87,12 +96,12 @@ describe("Amazon S3", () => {
     const key: string = `oneuptime/audit-logs/2026/10/24/09/20261024T091503Z_${records[0]!.id}.ndjson.gz`;
 
     expect(receipt.location).toBe(`s3://acme-audit-logs/${key}`);
-    expect(Array.from(s3.buckets.get("acme-audit-logs")!.objects.keys())).toEqual(
-      [key],
-    );
-    expect(s3.buckets.get("acme-audit-logs")!.objects.get(key)!.contentType).toBe(
-      "application/gzip",
-    );
+    expect(
+      Array.from(s3.buckets.get("acme-audit-logs")!.objects.keys()),
+    ).toEqual([key]);
+    expect(
+      s3.buckets.get("acme-audit-logs")!.objects.get(key)!.contentType,
+    ).toBe("application/gzip");
     expect(s3.readObject("acme-audit-logs", key)).toEqual(
       records.map((record: AuditLogExportRecord): unknown => {
         return JSON.parse(JSON.stringify(record));
@@ -110,9 +119,9 @@ describe("Amazon S3", () => {
     const url: URL = new URL(s3.requests[0]!.url);
 
     expect(url.host).toBe("acme-audit-logs.s3.eu-west-1.amazonaws.com");
-    expect(url.pathname.startsWith("/oneuptime/audit-logs/2026/10/24/09/")).toBe(
-      true,
-    );
+    expect(
+      url.pathname.startsWith("/oneuptime/audit-logs/2026/10/24/09/"),
+    ).toBe(true);
     expect(s3.requests[0]!.method).toBe("PUT");
     expect(String(s3.requests[0]!.headers!["Authorization"])).toContain(
       `Credential=${ACCESS_KEY_ID}/`,
@@ -187,9 +196,11 @@ describe("Amazon S3", () => {
       );
     }
 
-    expect(Array.from(s3.buckets.get("acme-audit-logs")!.objects.keys())).toEqual(
-      ["oneuptime/audit-logs/oneuptime-audit-log-export-test.ndjson.gz"],
-    );
+    expect(
+      Array.from(s3.buckets.get("acme-audit-logs")!.objects.keys()),
+    ).toEqual([
+      "oneuptime/audit-logs/oneuptime-audit-log-export-test.ndjson.gz",
+    ]);
   });
 
   test("a key in a folder S3 refuses is told how to allow it", async () => {
@@ -318,7 +329,9 @@ describe("Amazon S3", () => {
 
     const error: AuditLogExportDeliveryError = await failureOf(() => {
       return new S3Destination({
-        transport: (request) => {
+        transport: (
+          request: DataSourceHttpRequest,
+        ): Promise<DataSourceHttpResponse> => {
           return s3.transport({ ...request, body: Buffer.from("changed") });
         },
       }).deliver(
@@ -352,7 +365,11 @@ describe("S3-compatible storage", () => {
   };
 
   test.each([
-    ["MinIO on its own port", "https://minio.internal.example:9000", "us-east-1"],
+    [
+      "MinIO on its own port",
+      "https://minio.internal.example:9000",
+      "us-east-1",
+    ],
     ["Cloudflare R2", "https://0123abcd.r2.cloudflarestorage.com", "auto"],
     ["Backblaze B2", "https://s3.us-west-004.backblazeb2.com", "us-west-004"],
     ["Wasabi", "https://s3.eu-central-1.wasabisys.com", "eu-central-1"],
@@ -376,10 +393,12 @@ describe("S3-compatible storage", () => {
       const url: URL = new URL(s3.requests[0]!.url);
 
       expect(url.host).toBe(new URL(endpoint).host);
-      expect(url.pathname.startsWith("/audit/oneuptime/audit-logs/")).toBe(true);
-      expect(receipt.location.startsWith("s3://audit/oneuptime/audit-logs/")).toBe(
+      expect(url.pathname.startsWith("/audit/oneuptime/audit-logs/")).toBe(
         true,
       );
+      expect(
+        receipt.location.startsWith("s3://audit/oneuptime/audit-logs/"),
+      ).toBe(true);
       expect(s3.buckets.get("audit")!.objects.size).toBe(1);
     },
   );

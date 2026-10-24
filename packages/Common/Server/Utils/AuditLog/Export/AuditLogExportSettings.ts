@@ -768,7 +768,12 @@ export default class AuditLogExportSettingsUtil {
       const char: string = value.charAt(index);
       const isPadding: boolean = char === "=" && index >= value.length - 2;
 
-      if (!isLetterOrDigit(char) && char !== "+" && char !== "/" && !isPadding) {
+      if (
+        !isLetterOrDigit(char) &&
+        char !== "+" &&
+        char !== "/" &&
+        !isPadding
+      ) {
         return false;
       }
     }

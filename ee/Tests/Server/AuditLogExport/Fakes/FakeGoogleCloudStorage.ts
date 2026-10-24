@@ -77,10 +77,14 @@ function json(status: number, body: JSONObject): DataSourceHttpResponse {
 }
 
 function googleError(status: number, message: string): DataSourceHttpResponse {
-  return json(status, { error: { code: status, message, errors: [{ message }] } });
+  return json(status, {
+    error: { code: status, message, errors: [{ message }] },
+  });
 }
 
-function asTransportAnswer(response: DataSourceHttpResponse): DataSourceHttpResponse {
+function asTransportAnswer(
+  response: DataSourceHttpResponse,
+): DataSourceHttpResponse {
   if (response.statusCode >= 200 && response.statusCode < 300) {
     return response;
   }
@@ -137,116 +141,124 @@ export function createFakeGoogleCloudStorage(options: {
   const uploadFailures: Array<number> = [];
   const fake: { tokenRequests: number } = { tokenRequests: 0 };
 
-  const handleToken: (request: DataSourceHttpRequest) => DataSourceHttpResponse =
-    (request: DataSourceHttpRequest): DataSourceHttpResponse => {
-      fake.tokenRequests++;
+  const handleToken: (
+    request: DataSourceHttpRequest,
+  ) => DataSourceHttpResponse = (
+    request: DataSourceHttpRequest,
+  ): DataSourceHttpResponse => {
+    fake.tokenRequests++;
 
-      const form: Dictionary<string> =
-        request.body && typeof request.body === "object" && !Buffer.isBuffer(request.body)
-          ? (request.body as Dictionary<string>)
-          : {};
+    const form: Dictionary<string> =
+      request.body &&
+      typeof request.body === "object" &&
+      !Buffer.isBuffer(request.body)
+        ? (request.body as Dictionary<string>)
+        : {};
 
-      if (
-        form["grant_type"] !== "urn:ietf:params:oauth:grant-type:jwt-bearer" ||
-        !request.formUrlEncoded
-      ) {
-        return json(400, { error: "unsupported_grant_type" });
-      }
+    if (
+      form["grant_type"] !== "urn:ietf:params:oauth:grant-type:jwt-bearer" ||
+      !request.formUrlEncoded
+    ) {
+      return json(400, { error: "unsupported_grant_type" });
+    }
 
-      const claims: JSONObject | null = verifyAssertion(
-        form["assertion"] || "",
-        publicKey,
-      );
+    const claims: JSONObject | null = verifyAssertion(
+      form["assertion"] || "",
+      publicKey,
+    );
 
-      if (!claims) {
-        return json(400, {
-          error: "invalid_grant",
-          error_description: "Invalid JWT Signature.",
-        });
-      }
-
-      if (
-        claims["iss"] !== SERVICE_ACCOUNT_EMAIL ||
-        claims["aud"] !== TOKEN_URI ||
-        !String(claims["scope"] || "").includes(
-          "https://www.googleapis.com/auth/devstorage",
-        ) ||
-        Number(claims["exp"]) <= Number(claims["iat"])
-      ) {
-        return json(400, { error: "invalid_grant" });
-      }
-
-      const token: string = `ya29.fake-${tokens.size + 1}`;
-      tokens.set(token, String(claims["iss"]));
-
-      return json(200, {
-        access_token: token,
-        expires_in: 3599,
-        token_type: "Bearer",
+    if (!claims) {
+      return json(400, {
+        error: "invalid_grant",
+        error_description: "Invalid JWT Signature.",
       });
-    };
+    }
 
-  const handleUpload: (request: DataSourceHttpRequest) => DataSourceHttpResponse =
-    (request: DataSourceHttpRequest): DataSourceHttpResponse => {
-      uploads.push(request);
+    if (
+      claims["iss"] !== SERVICE_ACCOUNT_EMAIL ||
+      claims["aud"] !== TOKEN_URI ||
+      !String(claims["scope"] || "").includes(
+        "https://www.googleapis.com/auth/devstorage",
+      ) ||
+      Number(claims["exp"]) <= Number(claims["iat"])
+    ) {
+      return json(400, { error: "invalid_grant" });
+    }
 
-      const failure: number | undefined = uploadFailures.shift();
+    const token: string = `ya29.fake-${tokens.size + 1}`;
+    tokens.set(token, String(claims["iss"]));
 
-      if (failure) {
-        return googleError(failure, "Backend Error");
-      }
+    return json(200, {
+      access_token: token,
+      expires_in: 3599,
+      token_type: "Bearer",
+    });
+  };
 
-      const url: URL = new URL(request.url);
-      const prefix: string = "/upload/storage/v1/b/";
+  const handleUpload: (
+    request: DataSourceHttpRequest,
+  ) => DataSourceHttpResponse = (
+    request: DataSourceHttpRequest,
+  ): DataSourceHttpResponse => {
+    uploads.push(request);
 
-      if (
-        request.method !== "POST" ||
-        !url.pathname.startsWith(prefix) ||
-        !url.pathname.endsWith("/o") ||
-        url.searchParams.get("uploadType") !== "media"
-      ) {
-        return googleError(400, "Invalid upload request.");
-      }
+    const failure: number | undefined = uploadFailures.shift();
 
-      const authorization: string = String(
-        (request.headers || {})["Authorization"] || "",
+    if (failure) {
+      return googleError(failure, "Backend Error");
+    }
+
+    const url: URL = new URL(request.url);
+    const prefix: string = "/upload/storage/v1/b/";
+
+    if (
+      request.method !== "POST" ||
+      !url.pathname.startsWith(prefix) ||
+      !url.pathname.endsWith("/o") ||
+      url.searchParams.get("uploadType") !== "media"
+    ) {
+      return googleError(400, "Invalid upload request.");
+    }
+
+    const authorization: string = String(
+      (request.headers || {})["Authorization"] || "",
+    );
+    const account: string | undefined = tokens.get(
+      authorization.startsWith("Bearer ") ? authorization.slice(7) : "",
+    );
+
+    if (!account) {
+      return googleError(401, "Invalid Credentials");
+    }
+
+    const bucket: string = decodeURIComponent(
+      url.pathname.slice(prefix.length, -"/o".length),
+    );
+    const name: string = url.searchParams.get("name") || "";
+
+    if (!options.buckets[bucket]) {
+      return googleError(404, "The specified bucket does not exist.");
+    }
+
+    if (!options.buckets[bucket]!.creators.includes(account)) {
+      return googleError(
+        403,
+        `${account} does not have storage.objects.create access to the Google Cloud Storage object. Permission 'storage.objects.create' denied on resource (or it may not exist).`,
       );
-      const account: string | undefined = tokens.get(
-        authorization.startsWith("Bearer ") ? authorization.slice(7) : "",
-      );
+    }
 
-      if (!account) {
-        return googleError(401, "Invalid Credentials");
-      }
+    const body: Buffer = Buffer.isBuffer(request.body)
+      ? request.body
+      : Buffer.from(String(request.body ?? ""), "utf8");
 
-      const bucket: string = decodeURIComponent(
-        url.pathname.slice(prefix.length, -"/o".length),
-      );
-      const name: string = url.searchParams.get("name") || "";
+    objects.set(`${bucket}/${name}`, {
+      name,
+      body,
+      contentType: String((request.headers || {})["Content-Type"] || ""),
+    });
 
-      if (!options.buckets[bucket]) {
-        return googleError(404, "The specified bucket does not exist.");
-      }
-
-      if (!options.buckets[bucket]!.creators.includes(account)) {
-        return googleError(
-          403,
-          `${account} does not have storage.objects.create access to the Google Cloud Storage object. Permission 'storage.objects.create' denied on resource (or it may not exist).`,
-        );
-      }
-
-      const body: Buffer = Buffer.isBuffer(request.body)
-        ? request.body
-        : Buffer.from(String(request.body ?? ""), "utf8");
-
-      objects.set(`${bucket}/${name}`, {
-        name,
-        body,
-        contentType: String((request.headers || {})["Content-Type"] || ""),
-      });
-
-      return json(200, { kind: "storage#object", bucket, name });
-    };
+    return json(200, { kind: "storage#object", bucket, name });
+  };
 
   return {
     objects,
@@ -260,8 +272,13 @@ export function createFakeGoogleCloudStorage(options: {
     failNextUpload: (status: number): void => {
       uploadFailures.push(status);
     },
-    readObject: (bucket: string, name: string): Array<Record<string, unknown>> => {
-      const object: FakeGcsObject | undefined = objects.get(`${bucket}/${name}`);
+    readObject: (
+      bucket: string,
+      name: string,
+    ): Array<Record<string, unknown>> => {
+      const object: FakeGcsObject | undefined = objects.get(
+        `${bucket}/${name}`,
+      );
 
       if (!object) {
         throw new Error(`No object ${name} in ${bucket}.`);

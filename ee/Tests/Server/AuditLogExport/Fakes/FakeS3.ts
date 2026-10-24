@@ -64,7 +64,11 @@ export interface FakeS3 {
 
 const AMAZON_SUFFIXES: Array<string> = [".amazonaws.com", ".amazonaws.com.cn"];
 
-function xmlError(status: number, code: string, extra: string = ""): DataSourceHttpResponse {
+function xmlError(
+  status: number,
+  code: string,
+  extra: string = "",
+): DataSourceHttpResponse {
   const bodyText: string = `<?xml version="1.0" encoding="UTF-8"?>\n<Error><Code>${code}</Code><Message>${code} from the fake S3</Message>${extra}<RequestId>FAKE</RequestId></Error>`;
 
   return { statusCode: status, bodyText, bodyJson: undefined };
@@ -79,7 +83,9 @@ function hmac(key: Buffer | string, value: string): Buffer {
 }
 
 // What DataSourceHttpFetch would throw for a non-2xx answer, as the transport contract says.
-function asTransportAnswer(response: DataSourceHttpResponse): DataSourceHttpResponse {
+function asTransportAnswer(
+  response: DataSourceHttpResponse,
+): DataSourceHttpResponse {
   if (response.statusCode >= 200 && response.statusCode < 300) {
     return response;
   }
@@ -89,7 +95,9 @@ function asTransportAnswer(response: DataSourceHttpResponse): DataSourceHttpResp
   );
 }
 
-function lowerHeaders(headers: Dictionary<string> | undefined): Dictionary<string> {
+function lowerHeaders(
+  headers: Dictionary<string> | undefined,
+): Dictionary<string> {
   const lowered: Dictionary<string> = {};
 
   for (const name of Object.keys(headers || {})) {
@@ -191,9 +199,11 @@ export function createFakeS3(options: FakeS3Options): FakeS3 {
     }
 
     // Which bucket, and which key, the request names.
-    const isAmazon: boolean = AMAZON_SUFFIXES.some((suffix: string): boolean => {
-      return url.hostname.endsWith(suffix);
-    });
+    const isAmazon: boolean = AMAZON_SUFFIXES.some(
+      (suffix: string): boolean => {
+        return url.hostname.endsWith(suffix);
+      },
+    );
     const isPathStyle: boolean =
       !isAmazon ||
       (options.pathStyleHosts || []).includes(url.host) ||
@@ -221,7 +231,9 @@ export function createFakeS3(options: FakeS3Options): FakeS3 {
 
     const fields: Dictionary<string> = {};
 
-    for (const part of authorization.slice("AWS4-HMAC-SHA256 ".length).split(", ")) {
+    for (const part of authorization
+      .slice("AWS4-HMAC-SHA256 ".length)
+      .split(", ")) {
       const equals: number = part.indexOf("=");
       fields[part.slice(0, equals)] = part.slice(equals + 1);
     }
@@ -289,7 +301,11 @@ export function createFakeS3(options: FakeS3Options): FakeS3 {
     }
 
     if (!bucket) {
-      return xmlError(404, "NoSuchBucket", `<BucketName>${bucketName}</BucketName>`);
+      return xmlError(
+        404,
+        "NoSuchBucket",
+        `<BucketName>${bucketName}</BucketName>`,
+      );
     }
 
     const mayWrite: boolean = bucket.writablePrefixes.some(
