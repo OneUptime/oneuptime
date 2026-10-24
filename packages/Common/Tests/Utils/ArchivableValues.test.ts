@@ -165,7 +165,10 @@ describe("the rows OneUptime relies on", () => {
         ArchivableValueType.IncidentPostmortemStatus,
         StateListType.IncidentPostmortemStatus,
       ],
-      [ArchivableValueType.SecurityCaseStatus, StateListType.SecurityCaseStatus],
+      [
+        ArchivableValueType.SecurityCaseStatus,
+        StateListType.SecurityCaseStatus,
+      ],
       [
         ArchivableValueType.SecurityCasePriority,
         StateListType.SecurityCasePriority,

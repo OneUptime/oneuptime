@@ -105,8 +105,9 @@ const SecurityCaseViewPage: FunctionComponent<PageComponentProps> = (
     retry: retryValues,
   } = useSecurityCaseValues();
   // The status Close Case (or a closing step) closes the case into.
-  const [closeToStatus, setCloseToStatus] =
-    useState<SecurityCaseStatus | null>(null);
+  const [closeToStatus, setCloseToStatus] = useState<SecurityCaseStatus | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [actionError, setActionError] = useState<string>("");
@@ -446,8 +447,7 @@ const SecurityCaseViewPage: FunctionComponent<PageComponentProps> = (
           closeToStatus={(closeToStatus || projectClosedStatus)!}
           isProjectClosedStatus={
             !closeToStatus ||
-            closeToStatus.id?.toString() ===
-              projectClosedStatus?.id?.toString()
+            closeToStatus.id?.toString() === projectClosedStatus?.id?.toString()
           }
           onClose={() => {
             setDialog(null);

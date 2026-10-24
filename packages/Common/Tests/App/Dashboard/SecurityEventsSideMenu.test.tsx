@@ -495,7 +495,9 @@ describe("Security Events side menu", () => {
         return entry.query as Record<string, unknown>;
       })
       .find((query: Record<string, unknown>): boolean => {
-        return Boolean(query["securityCaseStatusId"]) && !query["assignedToUserId"];
+        return (
+          Boolean(query["securityCaseStatusId"]) && !query["assignedToUserId"]
+        );
       });
 
     expect((open?.["securityCaseStatusId"] as Includes).values).toEqual([

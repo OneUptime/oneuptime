@@ -498,7 +498,9 @@ describe("who is told that a case reached their priority", () => {
 
     // Told about at Medium when it opened.
     securityCase = caseModel({
-      securityCasePriorityId: testPriorityId(SecurityCasePriorityLevel.Critical),
+      securityCasePriorityId: testPriorityId(
+        SecurityCasePriorityLevel.Critical,
+      ),
       notifiedSecurityCasePriorityId: testPriorityId(
         SecurityCasePriorityLevel.Medium,
       ),

@@ -226,13 +226,15 @@ export const SECURITY_CASE_TEMPLATE_PLACEHOLDERS: ReadonlyArray<{
     description: "The case number, like CASE-42",
   },
   { placeholder: "{{case.title}}", description: "The case title" },
+  // The case's priority and status are the project's own, named as it names them.
   {
     placeholder: "{{case.priority}}",
-    description: "Critical, High, Medium, Low or Informational",
+    description: "The case's priority, as your project names it, such as High",
   },
   {
     placeholder: "{{case.status}}",
-    description: "New, Investigating, Contained or Closed",
+    description:
+      "The case's status, as your project names it, such as Investigating",
   },
   {
     placeholder: "{{case.assignee}}",

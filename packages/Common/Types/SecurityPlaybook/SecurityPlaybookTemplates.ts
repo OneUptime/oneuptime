@@ -112,7 +112,9 @@ export const SECURITY_PLAYBOOK_TEMPLATE_DEFINITIONS: ReadonlyArray<SecurityPlayb
           step(SecurityPlaybookActionType.CheckThreatIntel, {}),
           step(
             SecurityPlaybookActionType.SetCasePriority,
-            { priorityId: values.priorityId(SecurityCasePriorityLevel.Critical) },
+            {
+              priorityId: values.priorityId(SecurityCasePriorityLevel.Critical),
+            },
             { onlyIfThreatIntelMatched: true },
           ),
           step(

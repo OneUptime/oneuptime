@@ -312,7 +312,8 @@ export const STATE_SETTINGS_COPY: Record<StateListType, StateSettingsPageCopy> =
         isInformationalPriority:
           "Informational detections open their cases at this priority. It can be renamed, but not deleted.",
       },
-      deleteLockedReason: "Built-in priorities can be renamed, but not deleted.",
+      deleteLockedReason:
+        "Built-in priorities can be renamed, but not deleted.",
       namePlaceholder: "Emergency",
       descriptionPlaceholder: "A confirmed breach. Page the team now.",
     },

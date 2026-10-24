@@ -247,7 +247,9 @@ describe("AddSecurityCaseNotifications migration - up()", () => {
 
   test("adds each nullable, with no default, so no existing row is rewritten", async () => {
     for (const statement of await recordQueries("up")) {
-      expect(statement).toMatch(/^ALTER TABLE "\w+" ADD "\w+" character varying\(100\)$/);
+      expect(statement).toMatch(
+        /^ALTER TABLE "\w+" ADD "\w+" character varying\(100\)$/,
+      );
     }
   });
 

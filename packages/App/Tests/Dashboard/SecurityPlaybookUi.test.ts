@@ -520,7 +520,8 @@ describe("a step's one-line summary", () => {
     // As the project names them.
     expect(
       summary(SecurityPlaybookActionType.CheckThreatIntel, {
-        raisePriorityToId: TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Critical],
+        raisePriorityToId:
+          TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Critical],
       }),
     ).toBe("On a match, priority rises to Sev 1");
     expect(
@@ -603,11 +604,12 @@ describe("the playbook templates", () => {
   );
 
   test("names the project's own priorities and statuses, by what each means", () => {
-    const steps: Array<SecurityPlaybookStep> = SECURITY_PLAYBOOK_TEMPLATES.flatMap(
-      (template: SecurityPlaybookTemplate): Array<SecurityPlaybookStep> => {
-        return template.getSteps(TEMPLATE_VALUES);
-      },
-    );
+    const steps: Array<SecurityPlaybookStep> =
+      SECURITY_PLAYBOOK_TEMPLATES.flatMap(
+        (template: SecurityPlaybookTemplate): Array<SecurityPlaybookStep> => {
+          return template.getSteps(TEMPLATE_VALUES);
+        },
+      );
     const named: Array<string> = steps.flatMap(
       (step: SecurityPlaybookStep): Array<string> => {
         return ["priorityId", "statusId", "raisePriorityToId"]

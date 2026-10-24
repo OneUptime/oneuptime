@@ -129,7 +129,10 @@ export function buildTestStatus(data: {
   }
 
   for (const stage of SECURITY_CASE_STAGES) {
-    status.setColumnValue(SECURITY_CASE_STAGE_FLAGS[stage], stage === data.stage);
+    status.setColumnValue(
+      SECURITY_CASE_STAGE_FLAGS[stage],
+      stage === data.stage,
+    );
   }
 
   return status;

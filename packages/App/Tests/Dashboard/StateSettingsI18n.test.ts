@@ -68,6 +68,17 @@ const SHARED_WITH_OTHER_FEATURES: Array<string> = [
   "Monitor Statuses",
   "Incident Severities",
   "Alert Severities",
+  /*
+   * The Case Priorities page's level names and its Detections column: the
+   * words alert severities, monitor sensitivities and the Security Events
+   * pages draw too, which some locales keep in English. The docs name them
+   * as each locale draws them, so a locale words them for every feature at
+   * once, never for one page.
+   */
+  "High",
+  "Medium",
+  "Low",
+  "Detections",
 ];
 
 const STRINGS: Array<string> = getStateSettingsStrings();

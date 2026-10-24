@@ -8,6 +8,8 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
+import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Project from "../../../Models/DatabaseModels/Project";
 import SecurityCasePriority from "../../../Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "../../../Models/DatabaseModels/SecurityCaseStatus";
@@ -73,11 +75,17 @@ const PROJECT_ID: ObjectID = new ObjectID(
   "45454545-4545-4545-8545-454545454545",
 );
 
-type Hooks<TModel> = {
+type Hooks<TModel extends DatabaseBaseModel> = {
   onBeforeCreate: (createBy: CreateBy<TModel>) => Promise<unknown>;
   onBeforeUpdate: (updateBy: UpdateBy<TModel>) => Promise<unknown>;
   onBeforeDelete: (deleteBy: DeleteBy<TModel>) => Promise<OnDelete<TModel>>;
 };
+
+/*
+ * What a spied guard was called with. The guards are generic over the
+ * model, so their spies are read through their calls alone.
+ */
+type Calls = { mock: { calls: Array<Array<unknown>> } };
 
 const statusHooks: Hooks<SecurityCaseStatus> =
   SecurityCaseStatusService as unknown as Hooks<SecurityCaseStatus>;
@@ -117,15 +125,13 @@ describe("a new project's case priorities and statuses", () => {
         priorityCreates.push(createBy.data);
         return createBy.data;
       }) as never);
-    jest
-      .spyOn(SecurityCaseStatusService, "create")
-      .mockImplementation((async (
-        createBy: CreateBy<SecurityCaseStatus>,
-      ): Promise<SecurityCaseStatus> => {
-        expect(createBy.props.isRoot).toBe(true);
-        statusCreates.push(createBy.data);
-        return createBy.data;
-      }) as never);
+    jest.spyOn(SecurityCaseStatusService, "create").mockImplementation((async (
+      createBy: CreateBy<SecurityCaseStatus>,
+    ): Promise<SecurityCaseStatus> => {
+      expect(createBy.props.isRoot).toBe(true);
+      statusCreates.push(createBy.data);
+      return createBy.data;
+    }) as never);
   });
 
   test("are the five priorities cases always had, top first, each the built-in of its level", async () => {
@@ -142,15 +148,17 @@ describe("a new project's case priorities and statuses", () => {
         ];
       }),
     ).toEqual(
-      DEFAULT_SECURITY_CASE_PRIORITIES.map((value: (typeof DEFAULT_SECURITY_CASE_PRIORITIES)[number]) => {
-        return [
-          PROJECT_ID.toString(),
-          value.name,
-          value.description,
-          value.color.toString(),
-          value.order,
-        ];
-      }),
+      DEFAULT_SECURITY_CASE_PRIORITIES.map(
+        (value: (typeof DEFAULT_SECURITY_CASE_PRIORITIES)[number]) => {
+          return [
+            PROJECT_ID.toString(),
+            value.name,
+            value.description,
+            value.color.toString(),
+            value.order,
+          ];
+        },
+      ),
     );
 
     // Each carries its own level's flag, and no other.
@@ -165,10 +173,7 @@ describe("a new project's case priorities and statuses", () => {
           expect([
             flag,
             (priority as unknown as Record<string, unknown>)[flag],
-          ]).toEqual([
-            flag,
-            other === level,
-          ]);
+          ]).toEqual([flag, other === level]);
         }
       },
     );
@@ -200,10 +205,7 @@ describe("a new project's case priorities and statuses", () => {
         expect([
           flag,
           (status as unknown as Record<string, unknown>)[flag],
-        ]).toEqual([
-          flag,
-          other === stage,
-        ]);
+        ]).toEqual([flag, other === stage]);
       }
     });
   });
@@ -253,20 +255,22 @@ describe("a new project's case priorities and statuses", () => {
     expect(source).toContain(
       "this.addDefaultSecurityCasePriorities(createdItem),",
     );
-    expect(source).toContain("this.addDefaultSecurityCaseStatuses(createdItem),");
+    expect(source).toContain(
+      "this.addDefaultSecurityCaseStatuses(createdItem),",
+    );
   });
 });
 
 describe("a project found with none of a kind", () => {
   test("is given the defaults, then read again", async () => {
     const defaults: Array<SecurityCasePriority> = buildDefaultTestPriorities();
-    const reads: jest.SpiedFunction<
+    const reads: SpyInstance<
       typeof SecurityCasePriorityService.getProjectPriorities
     > = jest
       .spyOn(SecurityCasePriorityService, "getProjectPriorities")
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce(defaults);
-    const seed: jest.SpiedFunction<
+    const seed: SpyInstance<
       typeof SecurityCaseDefaultValues.addDefaultPriorities
     > = jest
       .spyOn(SecurityCaseDefaultValues, "addDefaultPriorities")
@@ -282,7 +286,7 @@ describe("a project found with none of a kind", () => {
     jest
       .spyOn(SecurityCaseStatusService, "getProjectStatuses")
       .mockResolvedValue(statuses);
-    const seed: jest.SpiedFunction<
+    const seed: SpyInstance<
       typeof SecurityCaseDefaultValues.addDefaultStatuses
     > = jest
       .spyOn(SecurityCaseDefaultValues, "addDefaultStatuses")
@@ -317,36 +321,36 @@ describe("each list is held to its order and its built-ins", () => {
   test.each([
     [
       "statuses",
-      statusHooks as Hooks<unknown>,
+      statusHooks as unknown as Hooks<DatabaseBaseModel>,
       StateListType.SecurityCaseStatus,
       ArchivableValueType.SecurityCaseStatus,
     ],
     [
       "priorities",
-      priorityHooks as Hooks<unknown>,
+      priorityHooks as unknown as Hooks<DatabaseBaseModel>,
       StateListType.SecurityCasePriority,
       ArchivableValueType.SecurityCasePriority,
     ],
-  ] as Array<[string, Hooks<unknown>, StateListType, ArchivableValueType]>)(
+  ] as Array<
+    [string, Hooks<DatabaseBaseModel>, StateListType, ArchivableValueType]
+  >)(
     "%s: create and update ask both guards, with the list's own definition",
     async (
       _name: string,
-      hooks: Hooks<unknown>,
+      hooks: Hooks<DatabaseBaseModel>,
       listType: StateListType,
       archivableType: ArchivableValueType,
     ) => {
-      const orderCreate: jest.SpiedFunction<typeof StateOrderGuard.beforeCreate> =
-        jest.spyOn(StateOrderGuard, "beforeCreate").mockResolvedValue(undefined);
-      const orderUpdate: jest.SpiedFunction<typeof StateOrderGuard.beforeUpdate> =
-        jest.spyOn(StateOrderGuard, "beforeUpdate").mockResolvedValue(undefined);
-      const archiveCreate: jest.SpiedFunction<
-        typeof ArchivableValueGuard.beforeCreate
-      > = jest
+      const orderCreate: Calls = jest
+        .spyOn(StateOrderGuard, "beforeCreate")
+        .mockResolvedValue(undefined);
+      const orderUpdate: Calls = jest
+        .spyOn(StateOrderGuard, "beforeUpdate")
+        .mockResolvedValue(undefined);
+      const archiveCreate: Calls = jest
         .spyOn(ArchivableValueGuard, "beforeCreate")
         .mockResolvedValue(undefined);
-      const archiveUpdate: jest.SpiedFunction<
-        typeof ArchivableValueGuard.beforeUpdate
-      > = jest
+      const archiveUpdate: Calls = jest
         .spyOn(ArchivableValueGuard, "beforeUpdate")
         .mockResolvedValue(undefined);
 
@@ -377,13 +381,13 @@ describe("each list is held to its order and its built-ins", () => {
 });
 
 describe("a value in use is never deleted", () => {
-  function deleteBy(isRoot: boolean = false): DeleteBy<unknown> {
+  function deleteBy(isRoot: boolean = false): DeleteBy<DatabaseBaseModel> {
     return {
       query: { _id: testStatusId(SecurityCaseStage.Contained) },
       props: isRoot
         ? { isRoot: true }
         : { userId: ObjectID.generate(), tenantId: PROJECT_ID },
-    } as unknown as DeleteBy<unknown>;
+    } as unknown as DeleteBy<DatabaseBaseModel>;
   }
 
   beforeEach(() => {
@@ -399,7 +403,7 @@ describe("a value in use is never deleted", () => {
     jest
       .spyOn(SecurityCaseStatusService, "findRowsAndHoldDeleteToThem")
       .mockResolvedValue([status] as never);
-    const count: jest.SpiedFunction<typeof SecurityCaseService.countBy> = jest
+    const count: SpyInstance<typeof SecurityCaseService.countBy> = jest
       .spyOn(SecurityCaseService, "countBy")
       .mockResolvedValue(new PositiveNumber(3) as never);
 
@@ -433,17 +437,18 @@ describe("a value in use is never deleted", () => {
     jest
       .spyOn(SecurityCasePriorityService, "findRowsAndHoldDeleteToThem")
       .mockResolvedValue([priority] as never);
-    const cases: jest.SpiedFunction<typeof SecurityCaseService.countBy> = jest
+    const cases: SpyInstance<typeof SecurityCaseService.countBy> = jest
       .spyOn(SecurityCaseService, "countBy")
       .mockResolvedValue(new PositiveNumber(1) as never);
-    const playbooks: jest.SpiedFunction<typeof SecurityPlaybookService.countBy> =
-      jest
-        .spyOn(SecurityPlaybookService, "countBy")
-        .mockResolvedValue(new PositiveNumber(2) as never);
+    const playbooks: SpyInstance<typeof SecurityPlaybookService.countBy> = jest
+      .spyOn(SecurityPlaybookService, "countBy")
+      .mockResolvedValue(new PositiveNumber(2) as never);
 
     await expect(
       priorityHooks.onBeforeDelete(deleteBy() as never),
-    ).rejects.toThrow(/^"P4" can't be deleted: 1 case is at it and 2 playbooks run from it/);
+    ).rejects.toThrow(
+      /^"P4" can't be deleted: 1 case is at it and 2 playbooks run from it/,
+    );
     expect(
       String(
         (playbooks.mock.calls[0]![0] as { query: Record<string, unknown> })

@@ -99,9 +99,11 @@ const NOTHING: SecurityCaseStatusChange = {
 describe("a new project's case statuses", () => {
   test("are the steps cases always went through: the same names, order and colours", () => {
     expect(
-      DEFAULT_SECURITY_CASE_STATUSES.map((status: DefaultSecurityCaseStatus) => {
-        return [status.name, status.order, status.color, status.stage];
-      }),
+      DEFAULT_SECURITY_CASE_STATUSES.map(
+        (status: DefaultSecurityCaseStatus) => {
+          return [status.name, status.order, status.color, status.stage];
+        },
+      ),
     ).toEqual([
       ["New", 1, Red, SecurityCaseStage.New],
       ["Investigating", 2, Yellow, SecurityCaseStage.Acknowledged],
@@ -122,9 +124,9 @@ describe("a new project's case statuses", () => {
       expect(SecurityCaseStatuses.getStage(statuses, testStatusId(stage))).toBe(
         stage,
       );
-      expect(
-        SecurityCaseStatuses.getStatusOfStage(statuses, stage)?._id,
-      ).toBe(TEST_STATUS_IDS[stage]);
+      expect(SecurityCaseStatuses.getStatusOfStage(statuses, stage)?._id).toBe(
+        TEST_STATUS_IDS[stage],
+      );
     }
   });
 });
@@ -185,7 +187,8 @@ describe("what a status counts as", () => {
       order: 0,
       stage: SecurityCaseStage.Closed,
     });
-    (placelessClosed as unknown as { order: number | undefined }).order = undefined;
+    (placelessClosed as unknown as { order: number | undefined }).order =
+      undefined;
 
     expect(
       SecurityCaseStatuses.getStage([...statuses, placeless], QUEUED_ID),

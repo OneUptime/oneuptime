@@ -230,7 +230,8 @@ export default class SecurityCasePriority extends BaseModel {
     required: false,
     type: TableColumnType.LongText,
     title: "Description",
-    description: "How fast a case at this priority needs a person, in a sentence.",
+    description:
+      "How fast a case at this priority needs a person, in a sentence.",
     example: "A confirmed breach. Page the team now.",
   })
   @Column({

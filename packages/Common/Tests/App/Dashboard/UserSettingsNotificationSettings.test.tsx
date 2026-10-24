@@ -772,7 +772,9 @@ describe("user settings > notification settings", () => {
         await findEventRow("New security case"),
       ).findByRole("combobox")) as HTMLSelectElement;
 
-      expect(chosen.value).toBe(TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Low]);
+      expect(chosen.value).toBe(
+        TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Low],
+      );
       expect(
         Array.from(chosen.options).map((option: HTMLOptionElement) => {
           return option.textContent;

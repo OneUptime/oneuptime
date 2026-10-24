@@ -328,20 +328,21 @@ const SecurityOverviewPage: FunctionComponent<
       };
     });
 
-  const openByStatus: Array<RankedBarItem> = SecurityCaseStatuses.getOpenStatuses(
-    overview.statuses,
-  )
-    .filter((status: SecurityOverviewValue): boolean => {
-      return !status.isArchived || (metrics.openByStatus[status._id] || 0) > 0;
-    })
-    .map((status: SecurityOverviewValue): RankedBarItem => {
-      return {
-        key: status._id,
-        label: translator.translateText(status.name) || status.name,
-        count: metrics.openByStatus[status._id] || 0,
-        color: status.color || Gray500.toString(),
-      };
-    });
+  const openByStatus: Array<RankedBarItem> =
+    SecurityCaseStatuses.getOpenStatuses(overview.statuses)
+      .filter((status: SecurityOverviewValue): boolean => {
+        return (
+          !status.isArchived || (metrics.openByStatus[status._id] || 0) > 0
+        );
+      })
+      .map((status: SecurityOverviewValue): RankedBarItem => {
+        return {
+          key: status._id,
+          label: translator.translateText(status.name) || status.name,
+          count: metrics.openByStatus[status._id] || 0,
+          color: status.color || Gray500.toString(),
+        };
+      });
 
   const verdicts: Array<RankedBarItem> = Object.values(SecurityCaseVerdict).map(
     (verdict: SecurityCaseVerdict): RankedBarItem => {

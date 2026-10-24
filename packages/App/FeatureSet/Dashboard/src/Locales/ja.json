@@ -28267,7 +28267,7 @@
   "Microsoft Teams tags": "Microsoft Teams のタグ",
   "Minimum Priority": "Minimum Priority",
   "More case actions": "More case actions",
-  "Move the case to Investigating, Contained or Closed. Closing sets the verdict you choose.": "Move the case to Investigating, Contained or Closed. Closing sets the verdict you choose.",
+  "Move the case to one of the project's statuses, such as Investigating, Contained or Closed. Closing sets the verdict you choose.": "Move the case to one of the project's statuses, such as Investigating, Contained or Closed. Closing sets the verdict you choose.",
   "Needs Approval": "Needs Approval",
   "Needs approval": "承認が必要",
   "Network-contain each host of the case with CrowdStrike Falcon: it can reach only the Falcon cloud until containment is lifted.": "Network-contain each host of the case with CrowdStrike Falcon: it can reach only the Falcon cloud until containment is lifted.",

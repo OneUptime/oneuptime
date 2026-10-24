@@ -53,8 +53,9 @@ export function getSecurityCaseStepIndex(
 
 /*
  * The grid the steps sit on: one row of up to four, then rows of three on a
- * tablet and the whole list on a wide screen, two to a row on a phone. The
- * classes are spelled out so Tailwind finds them.
+ * tablet and the whole list on a wide screen, one to a row on a phone - a
+ * project names its statuses as it likes, and half a phone's width cut
+ * "Investigating" short. The classes are spelled out so Tailwind finds them.
  */
 export function getSecurityCaseStepsGridClassName(count: number): string {
   if (count <= 1) {
@@ -62,26 +63,26 @@ export function getSecurityCaseStepsGridClassName(count: number): string {
   }
 
   if (count === 2) {
-    return "grid-cols-2";
+    return "grid-cols-1 sm:grid-cols-2";
   }
 
   if (count === 3) {
-    return "grid-cols-2 sm:grid-cols-3";
+    return "grid-cols-1 sm:grid-cols-3";
   }
 
   if (count === 4) {
-    return "grid-cols-2 sm:grid-cols-4";
+    return "grid-cols-1 sm:grid-cols-4";
   }
 
   if (count === 5) {
-    return "grid-cols-2 sm:grid-cols-3 xl:grid-cols-5";
+    return "grid-cols-1 sm:grid-cols-3 xl:grid-cols-5";
   }
 
   if (count === 6) {
-    return "grid-cols-2 sm:grid-cols-3 xl:grid-cols-6";
+    return "grid-cols-1 sm:grid-cols-3 xl:grid-cols-6";
   }
 
-  return "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4";
+  return "grid-cols-1 sm:grid-cols-3 lg:grid-cols-4";
 }
 
 /*
@@ -146,7 +147,10 @@ const SecurityCaseStatusStepper: FunctionComponent<ComponentProps> = (
         );
 
         return (
-          <li key={status.id?.toString() || status.name || index} className="min-w-0">
+          <li
+            key={status.id?.toString() || status.name || index}
+            className="min-w-0"
+          >
             <button
               type="button"
               data-testid={`security-case-step-${index}`}
@@ -157,7 +161,7 @@ const SecurityCaseStatusStepper: FunctionComponent<ComponentProps> = (
                   ? props.disabledReason
                   : description || name
               }
-              className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm font-medium transition-colors ${tone} ${
+              className={`flex h-full w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm font-medium transition-colors ${tone} ${
                 canSelect
                   ? "cursor-pointer hover:border-indigo-300 hover:bg-indigo-50/60"
                   : "cursor-default"
@@ -169,7 +173,8 @@ const SecurityCaseStatusStepper: FunctionComponent<ComponentProps> = (
               }}
             >
               {marker}
-              <span className="truncate">{name}</span>
+              {/* A long name wraps rather than being cut short. */}
+              <span className="min-w-0 break-words">{name}</span>
             </button>
           </li>
         );

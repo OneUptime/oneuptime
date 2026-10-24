@@ -330,7 +330,9 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
             <SecurityCaseStatusesPage
               {...props}
               pageRoute={
-                RouteMap[PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES] as Route
+                RouteMap[
+                  PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES
+                ] as Route
               }
             />
           }

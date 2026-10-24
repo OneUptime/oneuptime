@@ -31,7 +31,6 @@ import {
   getSecurityPlaybookRunView,
 } from "../../FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunViews";
 
-
 // A new project's case statuses, which open and closed are read off.
 const STATUSES: Array<SecurityCaseStatus> = buildDefaultTestStatuses();
 const OPEN_STATUS_IDS: Array<string> = [
@@ -320,9 +319,9 @@ describe("the case queue's pages", () => {
   });
 
   test("offers an open list's Status filter only the open statuses, so it never empties itself", () => {
-    const optionIds: (view: "open" | "mine" | "unassigned" | "all") => Array<
-      string | undefined
-    > = (
+    const optionIds: (
+      view: "open" | "mine" | "unassigned" | "all",
+    ) => Array<string | undefined> = (
       view: "open" | "mine" | "unassigned" | "all",
     ): Array<string | undefined> => {
       return getSecurityCaseQueueStatusOptions(view, STATUSES).map(
@@ -349,7 +348,11 @@ describe("the case queue's pages", () => {
     statuses[3]!.order = 5; // Closed
     statuses.push(
       buildTestStatus({ id: ERADICATING_ID, name: "Eradicating", order: 4 }),
-      buildTestStatus({ id: DUPLICATE_ID, name: "Closed - Duplicate", order: 6 }),
+      buildTestStatus({
+        id: DUPLICATE_ID,
+        name: "Closed - Duplicate",
+        order: 6,
+      }),
     );
 
     expect(

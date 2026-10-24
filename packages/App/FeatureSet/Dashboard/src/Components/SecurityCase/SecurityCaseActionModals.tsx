@@ -142,6 +142,28 @@ export const CloseSecurityCaseModal: FunctionComponent<CloseCaseModalProps> = (
     isAiOffered,
   );
 
+  /*
+   * What the verdict's field says first: OneUptime AI's read of the case,
+   * and - closing into a status of the project's own, not its closed one -
+   * the status the case moves to. Both, when both apply.
+   */
+  const closeHints: Array<string> = [
+    ...(aiRead
+      ? [
+          translator.translateTemplate(SecurityCaseAiCopy.closeVerdictHint, {
+            read: translatableTerm(aiRead),
+          }),
+        ]
+      : []),
+    ...(!props.isProjectClosedStatus
+      ? [
+          translator.translateTemplate(CLOSE_INTO_STATUS, {
+            status: translatableTerm(props.closeToStatus.name || ""),
+          }),
+        ]
+      : []),
+  ];
+
   return (
     <BasicFormModal<JSONObject>
       title="Close Case"
@@ -160,25 +182,8 @@ export const CloseSecurityCaseModal: FunctionComponent<CloseCaseModalProps> = (
           {
             field: { verdict: true },
             title: "Verdict",
-            ...(aiRead
-              ? {
-                  description: translator.translateTemplate(
-                    SecurityCaseAiCopy.closeVerdictHint,
-                    { read: translatableTerm(aiRead) },
-                  ),
-                }
-              : {}),
-            ...(!aiRead && !props.isProjectClosedStatus
-              ? {
-                  description: translator.translateTemplate(
-                    CLOSE_INTO_STATUS,
-                    {
-                      status: translatableTerm(
-                        props.closeToStatus.name || "",
-                      ),
-                    },
-                  ),
-                }
+            ...(closeHints.length > 0
+              ? { description: closeHints.join(" ") }
               : {}),
             fieldType: FormFieldSchemaType.CardSelect,
             required: true,

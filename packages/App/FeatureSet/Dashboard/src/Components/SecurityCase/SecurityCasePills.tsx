@@ -68,9 +68,9 @@ const CaseValuePill: FunctionComponent<CaseValuePillProps> = (
   );
 };
 
-export const SecurityCasePriorityPill: FunctionComponent<
-  CaseValuePillProps
-> = (props: CaseValuePillProps): ReactElement => {
+export const SecurityCasePriorityPill: FunctionComponent<CaseValuePillProps> = (
+  props: CaseValuePillProps,
+): ReactElement => {
   return <CaseValuePill {...props} />;
 };
 

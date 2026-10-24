@@ -67,7 +67,10 @@ const PROPS: DatabaseCommonInteractionProps = {
 
 let caseQueries: Array<{ query: JSONObject; props: unknown }>;
 
-function openCase(priority: SecurityCasePriorityLevel, statusId: string): SecurityCase {
+function openCase(
+  priority: SecurityCasePriorityLevel,
+  statusId: string,
+): SecurityCase {
   const model: SecurityCase = new SecurityCase();
   model._id = ObjectID.generate().toString();
   model.createdAt = new Date();
@@ -96,17 +99,16 @@ beforeEach(() => {
 
   let reads: number = 0;
 
-  jest
-    .spyOn(SecurityCaseService, "findBy")
-    .mockImplementation((async (args: { query: JSONObject; props: unknown }) => {
-      caseQueries.push({ query: args.query, props: args.props });
-      reads++;
-      // The open cases first, then the cases opened in the window.
-      return reads === 1 ? open : [];
-    }) as never);
-  jest
-    .spyOn(SecurityDetectionService, "findBy")
-    .mockResolvedValue([] as never);
+  jest.spyOn(SecurityCaseService, "findBy").mockImplementation((async (args: {
+    query: JSONObject;
+    props: unknown;
+  }) => {
+    caseQueries.push({ query: args.query, props: args.props });
+    reads++;
+    // The open cases first, then the cases opened in the window.
+    return reads === 1 ? open : [];
+  }) as never);
+  jest.spyOn(SecurityDetectionService, "findBy").mockResolvedValue([] as never);
   jest
     .spyOn(SecurityCaseService, "countBy")
     .mockResolvedValue(new PositiveNumber(0) as never);
@@ -126,7 +128,9 @@ describe("the overview's answer", () => {
     const open: { query: JSONObject; props: unknown } = caseQueries[0]!;
 
     expect(open.props).toBe(PROPS);
-    expect((open.query["securityCaseStatusId"] as unknown as Includes).values).toEqual([
+    expect(
+      (open.query["securityCaseStatusId"] as unknown as Includes).values,
+    ).toEqual([
       TEST_STATUS_IDS[SecurityCaseStage.New],
       TEST_STATUS_IDS[SecurityCaseStage.Acknowledged],
       TEST_STATUS_IDS[SecurityCaseStage.Contained],
@@ -157,9 +161,12 @@ describe("the overview's answer", () => {
       projectId: PROJECT_ID,
       props: PROPS,
     });
-    const priorities: Array<JSONObject> =
-      overview["priorities"] as Array<JSONObject>;
-    const statuses: Array<JSONObject> = overview["statuses"] as Array<JSONObject>;
+    const priorities: Array<JSONObject> = overview[
+      "priorities"
+    ] as Array<JSONObject>;
+    const statuses: Array<JSONObject> = overview[
+      "statuses"
+    ] as Array<JSONObject>;
 
     expect(
       priorities.map((priority: JSONObject) => {

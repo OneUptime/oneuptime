@@ -189,9 +189,7 @@ export function getStepStatusOptions(
 
   return getSecurityCaseStatusOptions(
     statuses.filter((status: SecurityCaseStatus): boolean => {
-      return (
-        !newStatus || status.id?.toString() !== newStatus.id?.toString()
-      );
+      return !newStatus || status.id?.toString() !== newStatus.id?.toString();
     }),
     { keepId },
   );

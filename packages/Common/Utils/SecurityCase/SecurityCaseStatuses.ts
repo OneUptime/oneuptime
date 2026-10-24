@@ -225,9 +225,7 @@ export default class SecurityCaseStatuses {
      * its own flag says, else New.
      */
     if (!reached) {
-      return (
-        getSecurityCaseStageOfFlag(row.flags[0]) || SecurityCaseStage.New
-      );
+      return getSecurityCaseStageOfFlag(row.flags[0]) || SecurityCaseStage.New;
     }
 
     return getSecurityCaseStageOfFlag(reached) || SecurityCaseStage.New;
@@ -257,10 +255,7 @@ export default class SecurityCaseStatuses {
     statusId: ObjectID | string | null | undefined,
     stage: SecurityCaseStage,
   ): boolean {
-    const reached: SecurityCaseStage | null = this.getStage(
-      statuses,
-      statusId,
-    );
+    const reached: SecurityCaseStage | null = this.getStage(statuses, statusId);
 
     if (reached === null) {
       return false;
@@ -286,7 +281,9 @@ export default class SecurityCaseStatuses {
     });
   }
 
-  public static getOpenStatusIds(statuses: ReadonlyArray<unknown>): Array<string> {
+  public static getOpenStatusIds(
+    statuses: ReadonlyArray<unknown>,
+  ): Array<string> {
     return this.toRows(this.getOpenStatuses(statuses)).map(
       (row: StateListRow): string => {
         return row.id;

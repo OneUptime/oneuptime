@@ -48,9 +48,9 @@ describe("opening a case from a security event", () => {
     expect(
       buildCaseFromSecurityEvent({ severityName: "Critical" }).priorityLevel,
     ).toBe(SecurityCasePriorityLevel.Critical);
-    expect(buildCaseFromSecurityEvent({ severityName: "Fatal" }).priorityLevel).toBe(
-      SecurityCasePriorityLevel.Critical,
-    );
+    expect(
+      buildCaseFromSecurityEvent({ severityName: "Fatal" }).priorityLevel,
+    ).toBe(SecurityCasePriorityLevel.Critical);
     expect(buildCaseFromSecurityEvent({}).priorityLevel).toBe(
       SecurityCasePriorityLevel.Medium,
     );

@@ -323,7 +323,10 @@ export function convertPlaybookSteps(
       stepChanged = true;
     }
 
-    if (step["action"] === "Check Threat Intel" && "raisePriorityTo" in config) {
+    if (
+      step["action"] === "Check Threat Intel" &&
+      "raisePriorityTo" in config
+    ) {
       const id: string | undefined = mapLegacy(
         config["raisePriorityTo"],
         ids.priorities,

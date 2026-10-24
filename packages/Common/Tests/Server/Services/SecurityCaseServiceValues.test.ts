@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
 import SecurityCaseStatus from "../../../Models/DatabaseModels/SecurityCaseStatus";
 import ProjectService from "../../../Server/Services/ProjectService";
@@ -116,11 +117,11 @@ beforeEach(() => {
     .mockImplementation((async (data: { data: JSONObject }) => {
       stamps.push(data.data);
     }) as never);
-  jest
-    .spyOn(SecurityCaseSourceAlerts, "caseClosed")
-    .mockImplementation((async (data: unknown) => {
-      caseClosed.push(data);
-    }) as never);
+  jest.spyOn(SecurityCaseSourceAlerts, "caseClosed").mockImplementation((async (
+    data: unknown,
+  ) => {
+    caseClosed.push(data);
+  }) as never);
   jest
     .spyOn(SecurityCaseNotifications, "caseReachedPriority")
     .mockResolvedValue(undefined as never);
@@ -350,7 +351,7 @@ describe("moving a case between the project's statuses", () => {
   });
 
   test("a rise in the project's order tells people; a fall does not", async () => {
-    const reached: jest.SpiedFunction<
+    const reached: SpyInstance<
       typeof SecurityCaseNotifications.caseReachedPriority
     > = jest
       .spyOn(SecurityCaseNotifications, "caseReachedPriority")

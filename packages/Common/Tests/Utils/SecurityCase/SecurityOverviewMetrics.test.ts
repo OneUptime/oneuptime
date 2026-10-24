@@ -208,7 +208,10 @@ describe("computeSecurityOverviewMetrics", () => {
 
     const metrics: SecurityOverviewMetrics = compute({
       priorities,
-      openCases: [caseRow({ priorityId: CRITICAL }), caseRow({ priorityId: HIGH })],
+      openCases: [
+        caseRow({ priorityId: CRITICAL }),
+        caseRow({ priorityId: HIGH }),
+      ],
     });
 
     expect(metrics.openByPriority[CRITICAL]).toBe(1);

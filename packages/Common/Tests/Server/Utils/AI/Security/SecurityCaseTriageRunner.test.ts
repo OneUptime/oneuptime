@@ -559,8 +559,9 @@ describe("SecurityCaseTriageRunner.executeTriage", () => {
     });
 
     expect(
-      (updateCase.mock.calls[0]![0] as { data: Record<string, unknown> })
-        .data["aiSuggestedSecurityCasePriorityId"],
+      (updateCase.mock.calls[0]![0] as { data: Record<string, unknown> }).data[
+        "aiSuggestedSecurityCasePriorityId"
+      ],
     ).toBeNull();
   });
 

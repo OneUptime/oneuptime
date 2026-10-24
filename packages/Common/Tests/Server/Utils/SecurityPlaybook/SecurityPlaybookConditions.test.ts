@@ -42,7 +42,10 @@ describe("doesPlaybookMatch", () => {
     expect(
       doesPlaybookMatch(
         ANY,
-        event(SecurityPlaybookTrigger.CaseOpened, SecurityCasePriorityLevel.Low),
+        event(
+          SecurityPlaybookTrigger.CaseOpened,
+          SecurityCasePriorityLevel.Low,
+        ),
       ),
     ).toBe(true);
     expect(
@@ -57,7 +60,10 @@ describe("doesPlaybookMatch", () => {
     expect(
       doesPlaybookMatch(
         { ...ANY, isEnabled: false },
-        event(SecurityPlaybookTrigger.CaseOpened, SecurityCasePriorityLevel.Low),
+        event(
+          SecurityPlaybookTrigger.CaseOpened,
+          SecurityCasePriorityLevel.Low,
+        ),
       ),
     ).toBe(false);
   });
@@ -148,7 +154,10 @@ describe("doesPlaybookMatch", () => {
     expect(
       doesPlaybookMatch(
         { ...ANY, minimumPriorityId: "c1000000-0000-4000-8000-0000000000ff" },
-        event(SecurityPlaybookTrigger.CaseOpened, SecurityCasePriorityLevel.Low),
+        event(
+          SecurityPlaybookTrigger.CaseOpened,
+          SecurityCasePriorityLevel.Low,
+        ),
       ),
     ).toBe(true);
     expect(

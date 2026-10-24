@@ -277,7 +277,11 @@ describe("query_security_cases", () => {
     const duplicateId: string = "c2000000-0000-4000-8000-0000000000a3";
     const statuses: Array<SecurityCaseStatus> = [
       ...buildDefaultTestStatuses(),
-      buildTestStatus({ id: duplicateId, name: "Closed - Duplicate", order: 5 }),
+      buildTestStatus({
+        id: duplicateId,
+        name: "Closed - Duplicate",
+        order: 5,
+      }),
     ];
     stubSecurityCaseValues({ statuses });
     const findBy: jest.SpyInstance = jest

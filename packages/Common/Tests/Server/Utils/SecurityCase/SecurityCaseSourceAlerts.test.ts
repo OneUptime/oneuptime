@@ -708,7 +708,9 @@ describe("the case's service", () => {
     test("the job reads a case in a status after Closed as closed", async () => {
       stubSecurityCaseValues({ statuses: teamStatuses() });
       const recorded: Recorded = install();
-      theCase = closedCase({ securityCaseStatusId: new ObjectID(DUPLICATE_ID) });
+      theCase = closedCase({
+        securityCaseStatusId: new ObjectID(DUPLICATE_ID),
+      });
 
       expect(
         await SecurityCaseSourceAlerts.queueConnections({

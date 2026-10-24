@@ -101,8 +101,10 @@ export function validateSecurityPlaybookStepValues(data: {
             );
           }
 
+          // Only a status that closes the case takes a verdict.
           if (stage !== SecurityCaseStage.Closed) {
-            const { verdict: _verdict, ...withoutVerdict } = config;
+            const withoutVerdict: JSONObject = { ...config };
+            delete withoutVerdict["verdict"];
 
             return { ...step, config: withoutVerdict };
           }

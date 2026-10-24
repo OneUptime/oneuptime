@@ -89,7 +89,12 @@ describe("a new project's case priorities", () => {
     expect(
       DEFAULT_SECURITY_CASE_PRIORITIES.map(
         (priority: DefaultSecurityCasePriority) => {
-          return [priority.name, priority.order, priority.color, priority.level];
+          return [
+            priority.name,
+            priority.order,
+            priority.color,
+            priority.level,
+          ];
         },
       ),
     ).toEqual([
@@ -134,8 +139,7 @@ describe("reading a project's priorities", () => {
       "Emergency",
     );
     expect(
-      SecurityCasePriorities.find(priorities, EMERGENCY_ID.toUpperCase())
-        ?.name,
+      SecurityCasePriorities.find(priorities, EMERGENCY_ID.toUpperCase())?.name,
     ).toBe("Emergency");
     expect(SecurityCasePriorities.find(priorities, UNKNOWN_ID)).toBeNull();
     expect(SecurityCasePriorities.find(priorities, "")).toBeNull();
@@ -196,7 +200,9 @@ describe("the built-in priority of each level", () => {
       ),
     ).toBe(SecurityCasePriorityLevel.High);
     // A priority of the project's own is the built-in of no level.
-    expect(SecurityCasePriorities.getLevel(priorities, EMERGENCY_ID)).toBeNull();
+    expect(
+      SecurityCasePriorities.getLevel(priorities, EMERGENCY_ID),
+    ).toBeNull();
     expect(SecurityCasePriorities.getLevel(priorities, UNKNOWN_ID)).toBeNull();
   });
 
@@ -233,18 +239,24 @@ describe("the built-in priority of each level", () => {
         SecurityCasePriorityLevel.Low,
       ),
     ).toBeNull();
-    expect(SecurityCasePriorities.getPriorityOfLevel([], SecurityCasePriorityLevel.High)).toBeNull();
+    expect(
+      SecurityCasePriorities.getPriorityOfLevel(
+        [],
+        SecurityCasePriorityLevel.High,
+      ),
+    ).toBeNull();
   });
 
   test("is where a detection of each severity opens its case", () => {
     const priorities: Array<SecurityCasePriority> = buildRenamedPriorities();
-    const openedAt: (severity: OcsfSeverity | undefined) => string | undefined =
-      (severity: OcsfSeverity | undefined): string | undefined => {
-        return SecurityCasePriorities.getPriorityForSeverity(
-          priorities,
-          severity,
-        )?.name;
-      };
+    const openedAt: (
+      severity: OcsfSeverity | undefined,
+    ) => string | undefined = (
+      severity: OcsfSeverity | undefined,
+    ): string | undefined => {
+      return SecurityCasePriorities.getPriorityForSeverity(priorities, severity)
+        ?.name;
+    };
 
     expect(openedAt(OcsfSeverity.Fatal)).toBe("P1");
     expect(openedAt(OcsfSeverity.Critical)).toBe("P1");

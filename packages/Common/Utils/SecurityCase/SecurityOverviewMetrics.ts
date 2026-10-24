@@ -192,9 +192,7 @@ export function computeSecurityOverviewMetrics(data: {
   const topLimit: number = data.topLimit || 8;
 
   const priorityIds: Array<string> = idsOf(
-    SecurityCasePriorities.toRows(
-      SecurityCasePriorities.sort(data.priorities),
-    ),
+    SecurityCasePriorities.toRows(SecurityCasePriorities.sort(data.priorities)),
   );
   const openStatusIds: Array<string> = SecurityCaseStatuses.getOpenStatusIds(
     data.statuses,

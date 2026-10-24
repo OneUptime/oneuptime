@@ -970,12 +970,14 @@ export default class SecurityCaseAPI extends BaseAPI<
           );
         },
       ),
-      statuses: values.statuses.map((status: SecurityCaseStatus): JSONObject => {
-        return toSecurityCaseValueJson(
-          status,
-          Object.values(SECURITY_CASE_STAGE_FLAGS),
-        );
-      }),
+      statuses: values.statuses.map(
+        (status: SecurityCaseStatus): JSONObject => {
+          return toSecurityCaseValueJson(
+            status,
+            Object.values(SECURITY_CASE_STAGE_FLAGS),
+          );
+        },
+      ),
     } as JSONObject;
   }
 }

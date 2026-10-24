@@ -88,7 +88,10 @@ const ASSIGNED_TEAM_KEYS: Array<string> = [
   "assignedToTeam",
 ];
 // The case's status and priority: one of the project's own, by either spelling.
-const STATUS_KEYS: Array<string> = ["securityCaseStatusId", "securityCaseStatus"];
+const STATUS_KEYS: Array<string> = [
+  "securityCaseStatusId",
+  "securityCaseStatus",
+];
 const PRIORITY_KEYS: Array<string> = [
   "securityCasePriorityId",
   "securityCasePriority",

@@ -77,8 +77,7 @@ const SecurityCasePrioritiesPage: FunctionComponent<
         cardProps={{
           title: STATE_SETTINGS_COPY[StateListType.SecurityCasePriority].title,
           description:
-            STATE_SETTINGS_COPY[StateListType.SecurityCasePriority]
-              .description,
+            STATE_SETTINGS_COPY[StateListType.SecurityCasePriority].description,
         }}
         getDeleteDisabledReason={(
           item: SecurityCasePriority,

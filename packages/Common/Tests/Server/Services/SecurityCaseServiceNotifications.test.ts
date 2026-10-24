@@ -331,9 +331,7 @@ describe("a case that changes", () => {
     await service.onUpdateSuccess(
       onUpdate({
         change: {
-          securityCasePriorityId: testPriorityId(
-            SecurityCasePriorityLevel.Low,
-          ),
+          securityCasePriorityId: testPriorityId(SecurityCasePriorityLevel.Low),
         },
         before: { priority: SecurityCasePriorityLevel.High },
       }),

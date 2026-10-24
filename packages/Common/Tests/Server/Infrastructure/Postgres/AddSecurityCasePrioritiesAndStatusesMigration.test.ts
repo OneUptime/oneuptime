@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import { getMetadataArgsStorage } from "typeorm";
+import { QueryRunner, getMetadataArgsStorage } from "typeorm";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import SecurityCase from "../../../../Models/DatabaseModels/SecurityCase";
 import Migrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
@@ -26,9 +26,7 @@ import {
   quoteLiteral,
 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1807200000000-AddSecurityCasePrioritiesAndStatuses";
 import { AddSecurityCasePriorityAndStatusIndexesAndKeys1807210000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1807210000000-AddSecurityCasePriorityAndStatusIndexesAndKeys";
-import {
-  SECURITY_CASE_PRIORITY_LEVEL_FLAGS,
-} from "../../../../Types/SecurityCase/SecurityCasePriorityLevel";
+import { SECURITY_CASE_PRIORITY_LEVEL_FLAGS } from "../../../../Types/SecurityCase/SecurityCasePriorityLevel";
 import { SECURITY_CASE_STAGE_FLAGS } from "../../../../Types/SecurityCase/SecurityCaseStage";
 import {
   DEFAULT_SECURITY_CASE_PRIORITIES,
@@ -38,7 +36,6 @@ import {
   DEFAULT_SECURITY_CASE_STATUSES,
   DefaultSecurityCaseStatus,
 } from "../../../../Utils/SecurityCase/SecurityCaseStatuses";
-import { QueryRunner } from "typeorm";
 
 /*
  * The two migrations that make a security case's priority and status the
@@ -92,9 +89,12 @@ const registeredNames: Array<string> = (
   return migration.name;
 });
 
+// A migration's two directions, each run on a query runner.
+type MigrationStep = (queryRunner: QueryRunner) => Promise<void>;
+
 // What up() or down() runs, on a database that answers every read with nothing.
 async function recordQueries(
-  migration: { up: Function; down: Function },
+  migration: { up: MigrationStep; down: MigrationStep },
   direction: "up" | "down",
 ): Promise<Array<string>> {
   const statements: Array<string> = [];
@@ -106,17 +106,14 @@ async function recordQueries(
     },
   } as unknown as QueryRunner;
 
-  await (migration as unknown as Record<string, (q: QueryRunner) => Promise<void>>)[
-    direction
-  ]!(queryRunner);
+  await (
+    migration as unknown as Record<string, (q: QueryRunner) => Promise<void>>
+  )[direction]!(queryRunner);
 
   return statements;
 }
 
-function indexOfStatement(
-  statements: Array<string>,
-  part: string,
-): number {
+function indexOfStatement(statements: Array<string>, part: string): number {
   const index: number = statements.findIndex((statement: string): boolean => {
     return statement.includes(part);
   });
@@ -343,7 +340,10 @@ describe("every case's priority and status, by id", () => {
 
     // The playbook's and the setting's minimums are filled before their text goes.
     expect(
-      indexOfStatement(statements, `SET "minimumSecurityCasePriorityId" = v."_id" FROM "SecurityCasePriority" AS v WHERE v."projectId" = r."projectId" AND (CASE r."minimumPriority"`),
+      indexOfStatement(
+        statements,
+        `SET "minimumSecurityCasePriorityId" = v."_id" FROM "SecurityCasePriority" AS v WHERE v."projectId" = r."projectId" AND (CASE r."minimumPriority"`,
+      ),
     ).toBeLessThan(
       indexOfStatement(
         statements,
@@ -351,10 +351,7 @@ describe("every case's priority and status, by id", () => {
       ),
     );
     expect(
-      indexOfStatement(
-        statements,
-        `(CASE r."minimumSecurityCasePriority"`,
-      ),
+      indexOfStatement(statements, `(CASE r."minimumSecurityCasePriority"`),
     ).toBeLessThan(
       indexOfStatement(
         statements,

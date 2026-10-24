@@ -100,7 +100,8 @@ describe("Set the priority", () => {
       validateSecurityPlaybookStepValues({
         steps: [
           step(SecurityPlaybookActionType.SetCasePriority, {
-            priorityId: TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Informational],
+            priorityId:
+              TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Informational],
           }),
         ],
         priorities,
@@ -151,7 +152,9 @@ describe("Set the status", () => {
           statusId: TEST_STATUS_IDS[SecurityCaseStage.Closed],
         }),
       ]);
-    }).toThrow("Step 1 (Set the status): a case is closed with a verdict - choose one.");
+    }).toThrow(
+      "Step 1 (Set the status): a case is closed with a verdict - choose one.",
+    );
   });
 
   test("reads the project's own statuses by where they sit", () => {

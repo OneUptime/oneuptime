@@ -894,7 +894,9 @@ describe("the messages", () => {
       ],
     )!;
 
-    expect(getStateListOrderViolationMessage(CASE_STATUS, statusViolation)).toBe(
+    expect(
+      getStateListOrderViolationMessage(CASE_STATUS, statusViolation),
+    ).toBe(
       'A case is opened, taken on, contained and then closed, so the closed status ("Closed") has to stay below the contained status ("Contained").',
     );
 

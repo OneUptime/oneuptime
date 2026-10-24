@@ -357,8 +357,8 @@ describe("UserNotificationSettingService security case priority choice", () => {
   test("judges the rows the update writes: the update itself is handed to findRowsAndHoldUpdateToThem", async () => {
     const update: UpdateBy<UserNotificationSetting> = updateBy({
       minimumSecurityCasePriorityId: testPriorityId(
-            SecurityCasePriorityLevel.High,
-          ),
+        SecurityCasePriorityLevel.High,
+      ),
     });
 
     await service.onBeforeUpdate(update);

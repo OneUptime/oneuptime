@@ -13,6 +13,8 @@ import MonitorType from "../../Monitor/MonitorType";
 import SecurityCasePriority from "../../../Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "../../../Models/DatabaseModels/SecurityCaseStatus";
 import SecurityDetectionSource from "../../SecurityCase/SecurityDetectionSource";
+import SecurityCasePriorities from "../../../Utils/SecurityCase/SecurityCasePriorities";
+import SecurityCaseStatuses from "../../../Utils/SecurityCase/SecurityCaseStatuses";
 import WorkspaceType, { getWorkspaceTypeDisplayName } from "../WorkspaceType";
 import NotificationRuleEventType from "./EventType";
 import IncidentNotificationRule from "./NotificationRuleTypes/IncidentNotificationRule";
@@ -413,17 +415,22 @@ export class NotificationRuleConditionUtil {
 
     /*
      * A security case's priority and status are the project's own, by id,
-     * in their order: most urgent priority first, statuses as a case moves
-     * through them. Its source is a fixed scale every project shares.
+     * in their order whatever order they are handed in: most urgent priority
+     * first, statuses as a case moves through them. Its source is a fixed
+     * scale every project shares.
      */
     if (
       data.checkOn === NotificationRuleConditionCheckOn.SecurityCasePriority
     ) {
-      return toOptions(data.securityCasePriorities || []);
+      return toOptions(
+        SecurityCasePriorities.sort(data.securityCasePriorities || []),
+      );
     }
 
     if (data.checkOn === NotificationRuleConditionCheckOn.SecurityCaseStatus) {
-      return toOptions(data.securityCaseStatuses || []);
+      return toOptions(
+        SecurityCaseStatuses.sort(data.securityCaseStatuses || []),
+      );
     }
 
     if (data.checkOn === NotificationRuleConditionCheckOn.SecurityCaseSource) {

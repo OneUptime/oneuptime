@@ -462,30 +462,28 @@ describe("each case page asks for its own cases", () => {
       ...OPEN_STATUS_IDS,
       "c2000000-0000-4000-8000-0000000000a2",
     ]);
-    expect((closed.query["securityCaseStatusId"] as Includes).values).toEqual(
-      [
-        TEST_STATUS_IDS[SecurityCaseStage.Closed],
-        "c2000000-0000-4000-8000-0000000000a3",
-      ],
-    );
+    expect((closed.query["securityCaseStatusId"] as Includes).values).toEqual([
+      TEST_STATUS_IDS[SecurityCaseStage.Closed],
+      "c2000000-0000-4000-8000-0000000000a3",
+    ]);
   });
 
   test("Assigned to Me: the open cases of the person signed in", async () => {
     const table: CapturedTable = await capture("mine");
 
     expect(table.query["assignedToUserId"]).toEqual(new ObjectID(ME));
-    expect(
-      (table.query["securityCaseStatusId"] as Includes).values,
-    ).toEqual(OPEN_STATUS_IDS);
+    expect((table.query["securityCaseStatusId"] as Includes).values).toEqual(
+      OPEN_STATUS_IDS,
+    );
   });
 
   test("Unassigned: the open cases with no person on them", async () => {
     const table: CapturedTable = await capture("unassigned");
 
     expect(table.query["assignedToUserId"]).toBeInstanceOf(IsNull);
-    expect(
-      (table.query["securityCaseStatusId"] as Includes).values,
-    ).toEqual(OPEN_STATUS_IDS);
+    expect((table.query["securityCaseStatusId"] as Includes).values).toEqual(
+      OPEN_STATUS_IDS,
+    );
   });
 
   test("Closed Cases: the closed ones; All Cases: every case", async () => {
@@ -505,9 +503,9 @@ describe("each case page asks for its own cases", () => {
     const table: CapturedTable = await capture(undefined);
 
     expect(table.cardProps?.title).toBe("Open Cases");
-    expect(
-      (table.query["securityCaseStatusId"] as Includes).values,
-    ).toEqual(OPEN_STATUS_IDS);
+    expect((table.query["securityCaseStatusId"] as Includes).values).toEqual(
+      OPEN_STATUS_IDS,
+    );
   });
 });
 
@@ -701,9 +699,7 @@ describe("each case page draws the list its question needs", () => {
     };
 
     expect(statusOptions(await capture("open"))).toEqual(OPEN_STATUS_IDS);
-    expect(statusOptions(await capture("unassigned"))).toEqual(
-      OPEN_STATUS_IDS,
-    );
+    expect(statusOptions(await capture("unassigned"))).toEqual(OPEN_STATUS_IDS);
     expect(statusOptions(await capture("all"))).toEqual([
       ...OPEN_STATUS_IDS,
       TEST_STATUS_IDS[SecurityCaseStage.Closed],

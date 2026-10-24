@@ -139,7 +139,10 @@ describe("a security case's workspace rules match", () => {
       rule({
         checkOn: NotificationRuleConditionCheckOn.SecurityCasePriority,
         conditionType: ConditionType.ContainsAny,
-        value: [TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Critical], TEST_PRIORITY_IDS[SecurityCasePriorityLevel.High]],
+        value: [
+          TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Critical],
+          TEST_PRIORITY_IDS[SecurityCasePriorityLevel.High],
+        ],
         channel: "by-priority",
       }),
       rule({

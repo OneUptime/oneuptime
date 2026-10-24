@@ -1643,7 +1643,8 @@ describe("a server that cannot answer the set-up figures", () => {
               isArchived: false,
             },
             ...PRIORITY_VALUES.map((value: SecurityOverviewValue) => {
-              return value._id === priorityId(SecurityCasePriorityLevel.Critical)
+              return value._id ===
+                priorityId(SecurityCasePriorityLevel.Critical)
                 ? { ...value, name: "Sev 1" }
                 : value;
             }),

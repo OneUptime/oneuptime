@@ -50,9 +50,9 @@ describe("the priority a person is told about cases at", () => {
     );
 
     for (const chosen of [undefined, null, ""]) {
-      expect(
-        readSecurityCaseNotificationMinimum(priorities, chosen)?._id,
-      ).toBe(id(SecurityCasePriorityLevel.High));
+      expect(readSecurityCaseNotificationMinimum(priorities, chosen)?._id).toBe(
+        id(SecurityCasePriorityLevel.High),
+      );
     }
 
     // A priority the project no longer has reads as the default too.

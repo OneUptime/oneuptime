@@ -219,9 +219,7 @@ function run(value: AIRunStatus): SecurityCaseTriageStatusView["run"] {
 function securityCase(overrides: Partial<SecurityCase> = {}): SecurityCase {
   const row: SecurityCase = new SecurityCase();
   row._id = CASE_ID;
-  row.securityCasePriorityId = testPriorityId(
-    SecurityCasePriorityLevel.Medium,
-  );
+  row.securityCasePriorityId = testPriorityId(SecurityCasePriorityLevel.Medium);
   Object.assign(row, overrides);
   return row;
 }

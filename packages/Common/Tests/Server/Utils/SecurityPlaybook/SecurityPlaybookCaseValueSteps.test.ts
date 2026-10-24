@@ -100,7 +100,9 @@ beforeEach(() => {
     buildTestStatus({ id: DUPLICATE_ID, name: "Closed - Duplicate", order: 5 }),
   );
   const priorities: Array<SecurityCasePriority> = buildDefaultTestPriorities();
-  priorities.push(buildTestPriority({ id: EMERGENCY_ID, name: "Emergency", order: 0 }));
+  priorities.push(
+    buildTestPriority({ id: EMERGENCY_ID, name: "Emergency", order: 0 }),
+  );
 
   stubSecurityCaseValues({ priorities, statuses });
 
@@ -118,7 +120,9 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-async function runStep(step: PlaybookStepContext): Promise<PlaybookStepOutcome> {
+async function runStep(
+  step: PlaybookStepContext,
+): Promise<PlaybookStepOutcome> {
   return await SecurityPlaybookActions.execute(step);
 }
 
@@ -131,7 +135,9 @@ describe("Set the priority", () => {
     );
 
     expect(outcome.status).toBe(SecurityPlaybookStepStatus.Succeeded);
-    expect(outcome.summary.toString()).toBe("Set the priority to **Critical**.");
+    expect(outcome.summary.toString()).toBe(
+      "Set the priority to **Critical**.",
+    );
     expect(String(updates[0]!.data["securityCasePriorityId"])).toBe(
       TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Critical],
     );
@@ -258,7 +264,8 @@ describe("Check threat intel's raise", () => {
       context(
         SecurityPlaybookActionType.CheckThreatIntel,
         {
-          raisePriorityToId: TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Critical],
+          raisePriorityToId:
+            TEST_PRIORITY_IDS[SecurityCasePriorityLevel.Critical],
         },
         { securityCasePriorityId: new ObjectID(EMERGENCY_ID) },
       ),

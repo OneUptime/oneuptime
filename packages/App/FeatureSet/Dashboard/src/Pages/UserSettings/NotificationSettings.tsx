@@ -176,9 +176,8 @@ const PRIORITY_CHOICE_EVENT_TYPES: ReadonlyArray<NotificationSettingEventType> =
 export const SECURITY_CASE_PRIORITY_CHOICE_TEMPLATES: Readonly<
   Record<SecurityCaseNotificationChoiceKind, string>
 > = {
-  [SecurityCaseNotificationChoiceKind.Only]: translationKey(
-    "{{priority}} only",
-  ),
+  [SecurityCaseNotificationChoiceKind.Only]:
+    translationKey("{{priority}} only"),
   [SecurityCaseNotificationChoiceKind.AndAbove]: translationKey(
     "{{priority}} and above",
   ),
