@@ -52,6 +52,7 @@ const ENTERPRISE_JOB_NAMES: Array<string> = [
   "InstanceHealth:EvaluatePostgresHealth",
   "InstanceHealth:EvaluateRedisHealth",
   "EnterpriseMarketplace:ReportUsage",
+  "AuditLogExport:ExportAuditLogs",
 ];
 
 const fixture: (name: string) => string = (name: string): string => {
@@ -1079,7 +1080,7 @@ describe("EnterpriseLoader: the request and the edition default to the environme
 });
 
 describe("EnterpriseLoader worker jobs", () => {
-  test("the ee-owned cron names are the five ee used to register from core, and the marketplace usage job", async () => {
+  test("the ee-owned cron names are the five ee used to register from core, the marketplace usage job and the audit log export", async () => {
     const { loaderModule } = await loadFresh();
 
     expect([...loaderModule.ENTERPRISE_OWNED_JOB_NAMES]).toEqual(
@@ -1136,6 +1137,8 @@ describe("EnterpriseLoader worker jobs", () => {
       "InstanceHealth:EvaluateRedisHealth",
       // Registered by ee only where a marketplace is named.
       "EnterpriseMarketplace:ReportUsage",
+      // Newer than the fixture module, which does not register it.
+      "AuditLogExport:ExportAuditLogs",
     ]);
     expect(getFixtureCalls()).toContain("DefaultExport:registerWorkerJobs");
 

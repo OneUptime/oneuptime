@@ -66,6 +66,12 @@ export const ENTERPRISE_OWNED_JOB_NAMES: ReadonlyArray<string> = [
    * one (ENTERPRISE_MARKETPLACE).
    */
   "EnterpriseMarketplace:ReportUsage",
+  /*
+   * Sends every audit log export what was recorded since its cursor. An
+   * installation that moves back to the Community Edition keeps the
+   * repeatable definition in Redis.
+   */
+  "AuditLogExport:ExportAuditLogs",
 ];
 
 export const DEFAULT_ENTERPRISE_INIT_TIMEOUT_IN_MS: number = 30 * 1000;

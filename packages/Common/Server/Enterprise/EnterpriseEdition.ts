@@ -33,6 +33,11 @@ const ENTERPRISE_FEATURE_BY_TABLE_NAME: ReadonlyMap<string, EnterpriseFeature> =
     ["ProjectSCIM", EnterpriseFeature.SCIM],
     ["StatusPageSCIM", EnterpriseFeature.SCIM],
     ["TeamComplianceSetting", EnterpriseFeature.TeamCompliance],
+    /*
+     * Where the audit log is exported: part of audit logs, so a license that
+     * includes audit logs includes their export.
+     */
+    ["AuditLogExport", EnterpriseFeature.AuditLogs],
   ]);
 
 /*

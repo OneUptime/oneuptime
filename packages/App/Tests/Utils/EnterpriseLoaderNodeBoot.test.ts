@@ -115,6 +115,8 @@ describe("EnterpriseLoader under real node + ts-node", () => {
         "InstanceHealth:EvaluateRedisHealth",
         // Registered by ee only where a marketplace is named.
         "EnterpriseMarketplace:ReportUsage",
+        // Newer than the fixture module, which does not register it.
+        "AuditLogExport:ExportAuditLogs",
       ],
     });
   }, 180000);
