@@ -322,6 +322,20 @@ export default class BackupRun extends BaseModel {
 
   @ColumnAccessControl({ create: [], read: [], update: [] })
   @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Runner State",
+    description:
+      "What the runner set up along the way (a database it restored into or set aside), so a run that stops is undone.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public runnerState?: JSONObject = undefined;
+
+  @ColumnAccessControl({ create: [], read: [], update: [] })
+  @TableColumn({
     type: TableColumnType.VeryLongText,
     required: false,
     title: "Error",
