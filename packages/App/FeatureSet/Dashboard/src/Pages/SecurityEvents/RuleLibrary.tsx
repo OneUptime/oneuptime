@@ -6,6 +6,7 @@ import {
   RuleLibraryHeaderAction,
   RuleLibraryHeaderActions,
   findLibraryEntryProblem,
+  getEffectiveRuleLibraryFilters,
   getFilteredLibraryRuleViews,
   getLibraryRuleView,
   getNotAddedEntries,
@@ -97,9 +98,10 @@ import React, {
 } from "react";
 
 export {
-  RULE_LIBRARY_CATEGORY_SELECT_TEST_ID,
-  RULE_LIBRARY_DATA_SELECT_TEST_ID,
-  RULE_LIBRARY_STATUS_SELECT_TEST_ID,
+  RULE_LIBRARY_CATEGORY_FILTER_TEST_ID,
+  RULE_LIBRARY_DATA_FILTER_TEST_ID,
+  RULE_LIBRARY_FILTERS_TEST_ID,
+  RULE_LIBRARY_STATUS_FILTER_TEST_ID,
 } from "../../Components/SecurityEvents/RuleLibraryFilterBar";
 
 /*
@@ -123,6 +125,15 @@ export const RULES_OTHERS_ADDED_NOTE: string = translationKey(
 );
 
 export const RULE_LIBRARY_SEARCH_TEST_ID: string = "rule-library-search";
+
+/*
+ * The search opened, with the header's adds still beside it: 20rem from md
+ * up, so on a laptop (1280) the three keep the title's line - at 24rem, as
+ * Session Replay's opens, they no longer left the title its 12rem, and the
+ * whole header jumped under the description at the first letter typed.
+ */
+export const RULE_LIBRARY_OPEN_SEARCH_CLASS_NAME: string =
+  "w-full md:w-[20rem]";
 
 /*
  * What the last Add did not do: the rules it could not add, and why.
@@ -293,6 +304,17 @@ const RuleLibraryPage: FunctionComponent<
    */
   const isNothingSentThisWeek: boolean = isNothingSent(seen);
 
+  /*
+   * The Data filter narrows the list only while the events are read, or
+   * being read, and some arrived: otherwise it is not offered, and one kept
+   * from the address is set aside.
+   */
+  const isDataFilterOffered: boolean = !isSeenFailed && !isNothingSentThisWeek;
+  const effectiveFilters: RuleLibraryFilters = getEffectiveRuleLibraryFilters(
+    filters,
+    isDataFilterOffered,
+  );
+
   const views: Array<LibraryRuleView> = useMemo(() => {
     return getFilteredLibraryRuleViews({
       filters,
@@ -394,7 +416,7 @@ const RuleLibraryPage: FunctionComponent<
     }
   }, [showsSummary, attempt]);
 
-  const isFiltered: boolean = isRuleLibraryFiltered(filters);
+  const isFiltered: boolean = isRuleLibraryFiltered(effectiveFilters);
   const hasSearch: boolean = filters.search.trim().length > 0;
   const recommendedNotAdded: Array<DetectionRuleLibraryEntry> = existing
     ? getRecommendedRulesNotAdded(existingRules)
@@ -479,14 +501,22 @@ const RuleLibraryPage: FunctionComponent<
 
   const isSearchExpanded: boolean = isSearchOpen || hasSearch;
 
+  /*
+   * The header's adds stay beside an opened search: what the search finds
+   * is what Add N Matching Rules (in the ⋯) adds, and a model table's way of
+   * folding its buttons away while its search is open hid it the moment
+   * there was something to match.
+   */
   const headerToolbar: ReactElement = (
     <TableHeaderToolbar
       dataTestId="rule-library-toolbar"
       isSearchOpen={isSearchExpanded}
+      keepButtonsWhileSearching={true}
       search={
         <TableHeaderSearchSlot
           isOpen={isSearchExpanded}
           onOpen={openSearch}
+          openClassName={RULE_LIBRARY_OPEN_SEARCH_CLASS_NAME}
           dataTestId="rule-library-search-slot"
         >
           <div
@@ -561,7 +591,7 @@ const RuleLibraryPage: FunctionComponent<
   };
 
   const hasOtherFilters: boolean = isRuleLibraryFiltered({
-    ...filters,
+    ...effectiveFilters,
     search: "",
   });
 
@@ -642,8 +672,9 @@ const RuleLibraryPage: FunctionComponent<
                 setIsSearchOpen(false);
               }
             }}
-            shownCount={views.length}
-            isDataKnown={seen !== null}
+            // Nothing to count while the rules are read, or could not be.
+            shownCount={isLoading || loadError ? null : views.length}
+            isDataFilterOffered={isDataFilterOffered}
             isDataFailed={isSeenFailed}
             isNothingSent={isNothingSentThisWeek}
             onRetryData={() => {

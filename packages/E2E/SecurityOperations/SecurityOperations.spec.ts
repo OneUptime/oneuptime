@@ -530,6 +530,36 @@ function libraryRows(page: Page): Locator {
   return page.locator('[data-testid^="rule-library-entry-"]');
 }
 
+/*
+ * The Rule Library's filter chips - the ones every list's filter row has
+ * (FacetFilterBar, FilterChipDropdown) - by their place in the row.
+ */
+const CATEGORY_CHIP: string = "rule-library-category";
+const DATA_CHIP: string = "rule-library-data";
+const STATUS_CHIP: string = "rule-library-status";
+
+// A chip's own button - not its clear x - which opens its list.
+function chipButton(page: Page, chip: string): Locator {
+  return page.getByTestId(chip).getByRole("button").first();
+}
+
+// Picks a value from a chip's list, as a reader does: open it, click the value.
+async function pickChip(
+  page: Page,
+  chip: string,
+  option: string,
+): Promise<void> {
+  await chipButton(page, chip).click();
+  await page.getByRole("option", { name: option, exact: true }).click();
+}
+
+// How far the page is scrolled.
+async function scrollTopOf(page: Page): Promise<number> {
+  return page.evaluate((): number => {
+    return window.scrollY;
+  });
+}
+
 // What the Rule Library asked the events for: one grouped count a read.
 async function aggregateRequestsOf(page: Page): Promise<Array<unknown>> {
   return page.evaluate((): Array<unknown> => {
@@ -2291,7 +2321,7 @@ test.describe("detections", () => {
     await screenshot(page, "rule-library-desktop", { fullPage: false });
   });
 
-  test("the rule library narrows by category, data and status in three selects beside each other, which a phone stacks", async ({
+  test("the rule library narrows in the row of chips every list has - Rule category, Data and Status - with how many rules are in sight", async ({
     page,
   }: {
     page: Page;
@@ -2309,45 +2339,34 @@ test.describe("detections", () => {
       });
 
       const filters: Locator = page.getByTestId("rule-library-filters");
-      const category: Box = await boxOf(
-        filters.getByRole("combobox", { name: "Rule categories" }),
-      );
-      const data: Box = await boxOf(
-        filters.getByRole("combobox", { name: "Data the rules read" }),
-      );
-      const status: Box = await boxOf(
-        filters.getByRole("combobox", { name: "Rule status" }),
-      );
+      await expect(filters).toHaveAttribute("role", "group");
+      await expect(chipButton(page, CATEGORY_CHIP)).toHaveText("Rule category");
+      await expect(chipButton(page, DATA_CHIP)).toHaveText("Data");
+      await expect(chipButton(page, STATUS_CHIP)).toHaveText("Status");
 
-      // No row of buttons across the card to read as tabs.
-      await expect(filters.getByRole("button")).toHaveCount(0);
-
-      if (width === 1024) {
-        /*
-         * Beside the side menu the three may take two lines (the fixture's
-         * page is 64px narrower than production's): one height, never on
-         * top of each other.
-         */
-        expect(Math.abs(data.height - category.height)).toBeLessThanOrEqual(1);
-        expect(Math.abs(status.height - category.height)).toBeLessThanOrEqual(
-          1,
+      // The chips: one height, each whole inside the card.
+      const card: Box = await boxOf(cardTitled(page, "Rule Library"));
+      const chips: Array<Box> = [];
+      for (const chip of [CATEGORY_CHIP, DATA_CHIP, STATUS_CHIP]) {
+        chips.push(
+          await boxOf(page.getByTestId(chip).getByTestId("filter-chip")),
         );
-        expect(
-          status.y >= data.y + data.height || status.x >= data.x + data.width,
-        ).toBe(true);
-      } else if (width > 1024) {
-        // One line, side by side, one height.
-        expect(data.x).toBeGreaterThan(category.x + category.width);
-        expect(status.x).toBeGreaterThan(data.x + data.width);
-        expect(Math.abs(data.y - category.y)).toBeLessThanOrEqual(2);
-        expect(Math.abs(status.y - category.y)).toBeLessThanOrEqual(2);
-        expect(Math.abs(data.height - category.height)).toBeLessThanOrEqual(1);
-      } else {
-        // One under the other, each the card's width, so no word is cut short.
-        expect(data.y).toBeGreaterThanOrEqual(category.y + category.height);
-        expect(status.y).toBeGreaterThanOrEqual(data.y + data.height);
-        expect(Math.abs(data.width - category.width)).toBeLessThanOrEqual(1);
-        expect(Math.abs(status.width - category.width)).toBeLessThanOrEqual(1);
+      }
+      for (const box of chips) {
+        expect(Math.abs(box.height - chips[0]!.height)).toBeLessThanOrEqual(1);
+        expect(box.x).toBeGreaterThanOrEqual(card.x);
+        expect(box.x + box.width).toBeLessThanOrEqual(card.x + card.width);
+      }
+
+      if (width >= 1024) {
+        // One line, in order, and how many rules after them.
+        for (const box of chips) {
+          expect(Math.abs(box.y - chips[0]!.y)).toBeLessThanOrEqual(1);
+        }
+        expect(chips[1]!.x).toBeGreaterThan(chips[0]!.x + chips[0]!.width);
+        expect(chips[2]!.x).toBeGreaterThan(chips[1]!.x + chips[1]!.width);
+        const count: Box = await boxOf(page.getByTestId("rule-library-count"));
+        expect(count.x).toBeGreaterThan(chips[2]!.x + chips[2]!.width);
       }
 
       if (width >= 1024) {
@@ -2362,13 +2381,14 @@ test.describe("detections", () => {
         );
       }
 
-      // A category narrows the rows to its own, and says how many.
-      await filters
-        .getByRole("combobox", { name: "Rule categories" })
-        .selectOption("Kubernetes");
+      // A category narrows the rows to its own, says so on its chip, and how many.
+      await pickChip(page, CATEGORY_CHIP, "Kubernetes");
       await expect(libraryRows(page)).toHaveCount(4);
       await expect(page.getByTestId("rule-library-count")).toHaveText(
         "4 rules",
+      );
+      await expect(chipButton(page, CATEGORY_CHIP)).toHaveText(
+        "Rule category · Kubernetes",
       );
       expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
       await screenshot(
@@ -2378,7 +2398,7 @@ test.describe("detections", () => {
       );
 
       // And the way back.
-      await page.getByTestId("rule-library-clear-filters").click();
+      await page.getByTestId("facet-filter-bar-clear-all").click();
       await expect(libraryRows(page)).toHaveCount(
         DETECTION_RULE_LIBRARY.length,
       );
@@ -2394,12 +2414,8 @@ test.describe("detections", () => {
     await expect(libraryRow(page, BRUTE_FORCE_RULE)).toBeVisible({
       timeout: 30000,
     });
-    const filters: Locator = page.getByTestId("rule-library-filters");
-
     // The data the project sends: Okta, Defender XDR's processes, Kubernetes audit logs.
-    await filters
-      .getByRole("combobox", { name: "Data the rules read" })
-      .selectOption("received");
+    await pickChip(page, DATA_CHIP, "Receiving");
     await expect(libraryRow(page, BRUTE_FORCE_RULE)).toBeVisible();
     await expect(libraryRow(page, CLOUDTRAIL_RULE)).toHaveCount(0);
     for (const status of await page
@@ -2409,15 +2425,13 @@ test.describe("detections", () => {
     }
 
     // ... that it lacks: the rules it has not added yet.
-    await filters
-      .getByRole("combobox", { name: "Rule status" })
-      .selectOption("not-added");
+    await pickChip(page, STATUS_CHIP, "Not added");
     await expect(
       page.locator('[data-testid^="rule-library-added-"]'),
     ).toHaveCount(0);
     await expect(libraryRows(page).first()).toBeVisible();
 
-    await page.getByTestId("rule-library-clear-filters").click();
+    await page.getByTestId("facet-filter-bar-clear-all").click();
 
     /*
      * The search finds a technique by its id, and the rules of its
@@ -2453,13 +2467,8 @@ test.describe("detections", () => {
     await expect(libraryRow(page, BRUTE_FORCE_RULE)).toBeVisible({
       timeout: 30000,
     });
-    const filters: Locator = page.getByTestId("rule-library-filters");
-    await filters
-      .getByRole("combobox", { name: "Rule categories" })
-      .selectOption("Cloud");
-    await filters
-      .getByRole("combobox", { name: "Rule status" })
-      .selectOption("not-added");
+    await pickChip(page, CATEGORY_CHIP, "Cloud");
+    await pickChip(page, STATUS_CHIP, "Not added");
 
     await expect
       .poll(() => {
@@ -2472,11 +2481,9 @@ test.describe("detections", () => {
     await expect(page.getByTestId("synthetic-banner")).toBeVisible({
       timeout: 60000,
     });
-    await expect(
-      page
-        .getByTestId("rule-library-filters")
-        .getByRole("combobox", { name: "Rule categories" }),
-    ).toHaveValue("Cloud");
+    await expect(chipButton(page, CATEGORY_CHIP)).toHaveText(
+      "Rule category · Cloud",
+    );
     await expect(libraryRow(page, CLOUDTRAIL_RULE)).toBeVisible();
     await expect(libraryRow(page, BRUTE_FORCE_RULE)).toHaveCount(0);
 
@@ -2606,10 +2613,7 @@ test.describe("detections", () => {
     ).toHaveCount(0);
 
     // A narrowed list: the main add says it adds the matching rules, just those.
-    await page
-      .getByTestId("rule-library-filters")
-      .getByRole("combobox", { name: "Rule categories" })
-      .selectOption("Network");
+    await pickChip(page, CATEGORY_CHIP, "Network");
     await page
       .getByTestId("rule-library-toolbar")
       .getByRole("button", { name: "Add 1 Matching Rule" })
@@ -2636,6 +2640,94 @@ test.describe("detections", () => {
       expect(item.data["isEnabled"]).toBe(true);
       expect(item.data["shouldCreateCase"]).toBe(true);
     }
+  });
+
+  test("asking before it adds several rules leaves the page where it was, behind the dialog and after it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const width of [1280, 390]) {
+      await open(page, RULE_LIBRARY_PATH, { width, height: 900, empty: true });
+      await expect(libraryRow(page, BRUTE_FORCE_RULE)).toBeVisible({
+        timeout: 30000,
+      });
+      expect(await scrollTopOf(page)).toBe(0);
+
+      /*
+       * The first dialog a page opens took its focus before its overlay
+       * was styled, and that focus scrolled the page down to where the
+       * panel was drawn for that moment: 4,500px down the list.
+       */
+      await page
+        .getByTestId("rule-library-toolbar")
+        .getByRole("button", {
+          name: `Add ${RECOMMENDED_RULES} Recommended Rules`,
+        })
+        .click();
+      await expect(page.getByTestId("modal")).toBeVisible();
+      await expect(
+        page.getByTestId("modal").getByRole("button", { name: "Add Rules" }),
+      ).toBeFocused();
+      expect(await scrollTopOf(page), `at ${width}`).toBe(0);
+
+      await page
+        .getByTestId("modal")
+        .getByRole("button", { name: "Cancel" })
+        .click();
+      await expect(page.getByTestId("modal")).toHaveCount(0);
+      expect(await scrollTopOf(page), `at ${width}`).toBe(0);
+    }
+  });
+
+  test("a search keeps the header's adds beside it, on the title's line: the ⋯ adds the rules it finds", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // The fixture's frame is 64px narrower than production's: 1344 here is production's 1280.
+    await open(page, RULE_LIBRARY_PATH, { width: 1344 });
+    await expect(libraryRow(page, BRUTE_FORCE_RULE)).toBeVisible({
+      timeout: 30000,
+    });
+    const title: Box = await boxOf(
+      cardTitled(page, "Rule Library").getByRole("heading", {
+        name: "Rule Library",
+        exact: true,
+      }),
+    );
+
+    await page.keyboard.press("/");
+    await page.keyboard.type("okta");
+    await expect(libraryRows(page)).toHaveCount(10);
+
+    // Not folded away behind the opened search, and still beside the title.
+    const main: Locator = page
+      .getByTestId("rule-library-toolbar")
+      .getByRole("button", {
+        name: `Add ${RECOMMENDED_RULES - RECOMMENDED_RULES_ON} Recommended Rules`,
+      });
+    await expect(main).toBeVisible();
+    await page.waitForTimeout(400);
+    const mainBox: Box = await boxOf(main);
+    expect(
+      Math.abs(mainBox.y + mainBox.height / 2 - (title.y + title.height / 2)),
+    ).toBeLessThanOrEqual(4);
+
+    // Four of the ten are the project's already: the ⋯ adds the other six.
+    await page.getByTestId("rule-library-more").click();
+    await page.getByRole("menuitem", { name: "Add 6 Matching Rules" }).click();
+    await expect(
+      page.getByTestId("modal").getByTestId("modal-title"),
+    ).toHaveText("Add 6 rules?");
+    await page
+      .getByTestId("modal")
+      .getByRole("button", { name: "Add Rules" })
+      .click();
+    await expect(
+      page.locator('[data-testid^="rule-library-added-"]'),
+    ).toHaveCount(10);
+    await expect(page.getByTestId(RULE_LIBRARY_SEARCH)).toHaveValue("okta");
   });
 
   test("an Add that cannot add says why on its row; the recommended adds that cannot add one say so above the rules, in view, and the button offers the one left", async ({
@@ -2753,11 +2845,8 @@ test.describe("detections", () => {
     await expect(
       page.locator('[data-testid^="rule-library-data-status-"]'),
     ).toHaveCount(0);
-    await expect(
-      page
-        .getByTestId("rule-library-filters")
-        .getByRole("combobox", { name: "Data the rules read" }),
-    ).toBeDisabled();
+    // A Data chip would narrow nothing: it is not offered.
+    await expect(page.getByTestId(DATA_CHIP)).toHaveCount(0);
     await screenshot(page, "rule-library-new-project", { fullPage: false });
 
     await open(page, RULE_LIBRARY_PATH, { width: 1280, data: "fail" });
@@ -2770,6 +2859,7 @@ test.describe("detections", () => {
     await expect(
       page.locator('[data-testid^="rule-library-data-status-"]'),
     ).toHaveCount(0);
+    await expect(page.getByTestId(DATA_CHIP)).toHaveCount(0);
     await page.getByTestId("rule-library-data-retry").click();
     // The fixture's read fails every time: asked again, it says so again.
     await expect
@@ -2789,18 +2879,50 @@ test.describe("detections", () => {
      * The fixture's frame is 64px narrower than production's (its page's
      * padding): 1088 here is production's 1024 beside the side menu.
      */
-    for (const [lang, width, recommended, receiving] of [
-      ["de", 1280, "17 empfohlene Regeln hinzufügen", "Empfangen"],
-      ["de", 1088, "17 empfohlene Regeln hinzufügen", "Empfangen"],
-      ["de", 1024, "17 empfohlene Regeln hinzufügen", "Empfangen"],
-      ["de", 390, "17 empfohlene Regeln hinzufügen", "Empfangen"],
-      ["ja", 1280, "おすすめのルールを 17 件追加", "受信中"],
-      ["ja", 390, "おすすめのルールを 17 件追加", "受信中"],
-    ] as Array<["de" | "ja", number, string, string]>) {
+    for (const [lang, width, recommended, receiving, category] of [
+      [
+        "de",
+        1280,
+        "17 empfohlene Regeln hinzufügen",
+        "Empfangen",
+        "Regelkategorie",
+      ],
+      [
+        "de",
+        1088,
+        "17 empfohlene Regeln hinzufügen",
+        "Empfangen",
+        "Regelkategorie",
+      ],
+      [
+        "de",
+        1024,
+        "17 empfohlene Regeln hinzufügen",
+        "Empfangen",
+        "Regelkategorie",
+      ],
+      [
+        "de",
+        390,
+        "17 empfohlene Regeln hinzufügen",
+        "Empfangen",
+        "Regelkategorie",
+      ],
+      [
+        "ja",
+        1280,
+        "おすすめのルールを 17 件追加",
+        "受信中",
+        "ルールのカテゴリ",
+      ],
+      ["ja", 390, "おすすめのルールを 17 件追加", "受信中", "ルールのカテゴリ"],
+    ] as Array<["de" | "ja", number, string, string, string]>) {
       await open(page, RULE_LIBRARY_PATH, { width, height: 900, lang });
       await expect(libraryRow(page, BRUTE_FORCE_RULE)).toBeVisible({
         timeout: 30000,
       });
+      // The filter chips speak the language too.
+      await expect(chipButton(page, CATEGORY_CHIP)).toHaveText(category);
       await expect(
         page
           .getByTestId("rule-library-toolbar")

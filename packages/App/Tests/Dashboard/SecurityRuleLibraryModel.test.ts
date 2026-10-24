@@ -18,6 +18,8 @@ import {
   RuleLibraryFilters,
   RuleLibraryHeaderAction,
   countEntriesWithoutData,
+  countRuleLibraryChipFilters,
+  getEffectiveRuleLibraryFilters,
   getFilteredLibraryRuleViews,
   getLibraryRuleAttack,
   getLibraryRuleDataStatus,
@@ -430,6 +432,60 @@ describe("narrowing the library", () => {
     expect(
       isRuleLibraryFiltered(filters({ status: LibraryStatusFilter.Added })),
     ).toBe(true);
+  });
+
+  test("the chips set: the count beside Filter, the search not among them", () => {
+    expect(countRuleLibraryChipFilters(NO_RULE_LIBRARY_FILTERS, true)).toBe(0);
+    expect(countRuleLibraryChipFilters(filters({ search: "okta" }), true)).toBe(
+      0,
+    );
+    expect(
+      countRuleLibraryChipFilters(
+        filters({
+          category: DetectionRuleLibraryCategory.Cloud,
+          status: LibraryStatusFilter.NotAdded,
+        }),
+        true,
+      ),
+    ).toBe(2);
+    expect(
+      countRuleLibraryChipFilters(
+        filters({
+          category: RECOMMENDED_FILTER,
+          data: LibraryDataFilter.Received,
+          status: LibraryStatusFilter.Added,
+        }),
+        true,
+      ),
+    ).toBe(3);
+  });
+
+  test("a data filter the page cannot offer - the events unread, or none sent - narrows nothing and is not counted", () => {
+    const fromAddress: RuleLibraryFilters = filters({
+      data: LibraryDataFilter.Received,
+      status: LibraryStatusFilter.NotAdded,
+    });
+
+    // Offered: kept as it is.
+    expect(getEffectiveRuleLibraryFilters(fromAddress, true)).toEqual(
+      fromAddress,
+    );
+    expect(countRuleLibraryChipFilters(fromAddress, true)).toBe(2);
+
+    // Not offered: set aside, the rest kept.
+    expect(getEffectiveRuleLibraryFilters(fromAddress, false)).toEqual({
+      ...fromAddress,
+      data: LibraryDataFilter.Any,
+    });
+    expect(countRuleLibraryChipFilters(fromAddress, false)).toBe(1);
+    expect(
+      isRuleLibraryFiltered(
+        getEffectiveRuleLibraryFilters(
+          filters({ data: LibraryDataFilter.NotReceived }),
+          false,
+        ),
+      ),
+    ).toBe(false);
   });
 });
 
@@ -883,8 +939,9 @@ const REUSED_LABELS: Array<string> = [
   "MITRE ATT&CK",
   "AWS CloudTrail",
   "Kubernetes audit logs",
-  "Rule categories",
-  "All categories",
+  // The filter row's name and the Status chip's: every list's words.
+  "Filters",
+  "Status",
   "Add {{count}} Recommended Rules",
   "Add {{count}} Recommended Rules_one",
   "Add All {{count}} Rules",
@@ -899,7 +956,8 @@ describe("the library's words in every language", () => {
       "Rule Library",
       "Receiving",
       "Not receiving",
-      "Data you send",
+      "Rule category",
+      "Not added",
       "Add {{count}} Matching Rules",
       "Add {{count}} Matching Rules_one",
       "Connect Okta to read its System Log.",

@@ -327,21 +327,31 @@ const RuleLibraryRulePanel: FunctionComponent<ComponentProps> = (
             ) : (
               <></>
             )}
-            {view.dataStatus !== LibraryRuleDataStatus.Unknown ? (
+            {view.dataStatus === LibraryRuleDataStatus.Received ? (
               <p className="text-sm text-gray-600">
                 {translator.translateText(
-                  DATA_STATUS_SENTENCES[view.dataStatus],
+                  DATA_STATUS_SENTENCES[LibraryRuleDataStatus.Received],
                 )}
               </p>
             ) : (
               <></>
             )}
+            {/*
+             * Events that do not arrive: what that means and what to do
+             * about it, together in one box - the sentence used to sit
+             * between the rule's events and the box that answered it.
+             */}
             {isNotReceived ? (
               <div
-                className="mt-2 space-y-2 rounded-lg border border-gray-200 px-3 py-2"
+                className="mt-2 space-y-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5"
                 data-testid="rule-library-details-how-to-send"
               >
                 <p className="text-sm text-gray-700">
+                  {translator.translateText(
+                    DATA_STATUS_SENTENCES[LibraryRuleDataStatus.NotReceived],
+                  )}
+                </p>
+                <p className="text-sm text-gray-600">
                   {translator.translateText(
                     DATA_KIND_HOW_TO_SEND[entry.dataKind],
                   )}

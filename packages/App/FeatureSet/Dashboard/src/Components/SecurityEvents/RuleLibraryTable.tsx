@@ -88,6 +88,10 @@ export const RULE_LIBRARY_ROW_FACT_CLASS_NAME: string =
 export const RULE_LIBRARY_ADDED_CLASS_NAME: string =
   "inline-flex h-[30px] items-center gap-1 whitespace-nowrap text-sm font-medium text-gray-700";
 
+// A row's Add that cannot be pressed, faded.
+export const RULE_LIBRARY_ADD_UNAVAILABLE_CLASS_NAME: string =
+  "cursor-not-allowed opacity-50";
+
 /*
  * The Data column wraps between words: "Kubernetes audit logs" runs onto a
  * second line beside the side menu rather than pushing Add out of the card.
@@ -312,6 +316,15 @@ const StatusCell: FunctionComponent<StatusCellProps> = (
     );
   }
 
+  /*
+   * An Add that cannot be pressed - the reader's role cannot add rules, or
+   * another add is on its way - looks it: the outline button has no
+   * disabled look of its own, and read as pressable. Not the one adding,
+   * which shows its spinner.
+   */
+  const isUnavailable: boolean =
+    !props.isAdding && (!props.canAdd || props.isAddDisabled);
+
   return (
     <Button
       title={ADD}
@@ -321,6 +334,7 @@ const StatusCell: FunctionComponent<StatusCellProps> = (
       isLoading={props.isAdding}
       disabled={!props.canAdd || props.isAddDisabled}
       tooltip={props.canAdd ? undefined : props.cannotAddReason}
+      className={isUnavailable ? RULE_LIBRARY_ADD_UNAVAILABLE_CLASS_NAME : ""}
       dataTestId={`rule-library-add-${entry.id}`}
       onClick={() => {
         props.onAdd(entry);

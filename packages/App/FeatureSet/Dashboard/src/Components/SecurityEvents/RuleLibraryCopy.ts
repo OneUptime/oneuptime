@@ -162,21 +162,32 @@ export const NOTHING_SENT: string = translationKey(
   "No security events arrived in the last 7 days, so no rule has anything to read yet.",
 );
 
-// The filters.
-export const CATEGORY_FILTER_LABEL: string = translationKey("Rule categories");
-export const ALL_CATEGORIES: string = translationKey("All categories");
+/*
+ * The filters: a chip each, as every list's filters are (FacetFilterBar).
+ * A chip is named by what it narrows, and says the value picked beside its
+ * name - "Rule category · Cloud", "Data · Not receiving", "Status · Not
+ * added" - in the words the rows use for it. "Rule category", not the
+ * product's "Category": that one is still English in twelve languages,
+ * whose docs quote it as drawn.
+ */
+export const FILTERS_LABEL: string = translationKey("Filters");
+export const CATEGORY_FILTER_LABEL: string = translationKey("Rule category");
 export const RECOMMENDED: string = translationKey("Recommended");
 
-export const DATA_FILTER_LABEL: string = translationKey("Data the rules read");
-export const DATA_FILTER_OPTIONS: Record<LibraryDataFilter, string> = {
-  [LibraryDataFilter.Any]: translationKey("Any data"),
-  [LibraryDataFilter.Received]: translationKey("Data you send"),
-  [LibraryDataFilter.NotReceived]: translationKey("Data you don't send yet"),
+export const DATA_FILTER_LABEL: string = translationKey("Data");
+export const DATA_FILTER_OPTIONS: Record<
+  Exclude<LibraryDataFilter, LibraryDataFilter.Any>,
+  string
+> = {
+  [LibraryDataFilter.Received]: translationKey("Receiving"),
+  [LibraryDataFilter.NotReceived]: translationKey("Not receiving"),
 };
 
-export const STATUS_FILTER_LABEL: string = translationKey("Rule status");
-export const STATUS_FILTER_OPTIONS: Record<LibraryStatusFilter, string> = {
-  [LibraryStatusFilter.Any]: translationKey("Any status"),
+export const STATUS_FILTER_LABEL: string = translationKey("Status");
+export const STATUS_FILTER_OPTIONS: Record<
+  Exclude<LibraryStatusFilter, LibraryStatusFilter.Any>,
+  string
+> = {
   [LibraryStatusFilter.NotAdded]: translationKey("Not added"),
   [LibraryStatusFilter.Added]: translationKey("Added"),
 };

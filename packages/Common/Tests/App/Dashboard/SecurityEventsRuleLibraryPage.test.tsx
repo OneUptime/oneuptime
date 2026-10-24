@@ -19,16 +19,13 @@ import {
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import SecurityCaseApi from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseApi";
-import {
-  LibraryDataFilter,
-  LibraryStatusFilter,
-  RECOMMENDED_FILTER,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/RuleLibraryUtil";
+import { LibraryStatusFilter } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/RuleLibraryUtil";
+import { RULE_LIBRARY_ADD_UNAVAILABLE_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/RuleLibraryTable";
 import RuleLibraryPage, {
-  RULE_LIBRARY_CATEGORY_SELECT_TEST_ID,
-  RULE_LIBRARY_DATA_SELECT_TEST_ID,
+  RULE_LIBRARY_CATEGORY_FILTER_TEST_ID,
+  RULE_LIBRARY_DATA_FILTER_TEST_ID,
   RULE_LIBRARY_SEARCH_TEST_ID,
-  RULE_LIBRARY_STATUS_SELECT_TEST_ID,
+  RULE_LIBRARY_STATUS_FILTER_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/RuleLibrary";
 import SecurityEvent from "../../../Models/AnalyticsModels/SecurityEvent";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -86,6 +83,8 @@ const CLOUDTRAIL_STOPPED: DetectionRuleLibraryEntry = entryTitled(
   "CloudTrail logging stopped",
 );
 const PORT_SCAN: DetectionRuleLibraryEntry = entryTitled("Port scan");
+const MFA_PUSH_FATIGUE: DetectionRuleLibraryEntry =
+  entryTitled("MFA push fatigue");
 const SEQUENCE: DetectionRuleLibraryEntry = entryTitled(
   "Failed sign-ins, then a success from the same address",
 );
@@ -220,14 +219,46 @@ function shownRuleIds(): Array<string> {
   });
 }
 
-function select(testId: string): HTMLSelectElement {
-  return screen.getByTestId(testId) as HTMLSelectElement;
+// A filter chip's place in the filter row.
+function chip(testId: string): HTMLElement {
+  return screen.getByTestId(testId);
 }
 
-async function pick(testId: string, value: string): Promise<void> {
-  await act(async () => {
-    fireEvent.change(select(testId), { target: { value } });
-  });
+// The chip's own button - not its clear x - which opens its list.
+function chipButton(testId: string): HTMLElement {
+  return within(chip(testId)).getAllByRole("button")[0]!;
+}
+
+// The names a chip's list offers, in order; the list is closed again after.
+async function chipOptions(testId: string): Promise<Array<string>> {
+  await click(chipButton(testId));
+
+  const names: Array<string> = screen
+    .getAllByRole("option")
+    .map((option: HTMLElement): string => {
+      return (option.textContent || "").trim();
+    });
+
+  await click(chipButton(testId));
+
+  return names;
+}
+
+// Picks a value from a chip's list, as a reader does: open it, click the value.
+async function pick(testId: string, optionName: string): Promise<void> {
+  await click(chipButton(testId));
+  await click(screen.getByRole("option", { name: optionName }));
+}
+
+// The header's ⋯, opened.
+async function openMoreMenu(): Promise<void> {
+  const trigger: HTMLElement = screen
+    .getAllByTestId("rule-library-more")
+    .find((element: HTMLElement): boolean => {
+      return element.tagName === "BUTTON";
+    })!;
+
+  await click(trigger);
 }
 
 async function search(text: string): Promise<void> {
@@ -476,7 +507,7 @@ describe("whether the project sends what each rule reads", () => {
     );
   });
 
-  test("events that could not be read: said once, the rules listed without it, the Data filter off, and Try again", async () => {
+  test("events that could not be read: said once, the rules listed without it, no Data chip, and Try again", async () => {
     aggregateFailure = new HTTPErrorResponse(500, { message: "x" }, {});
     await renderPage();
 
@@ -493,7 +524,8 @@ describe("whether the project sends what each rule reads", () => {
         `rule-library-data-${BRUTE_FORCE.id}`,
       ),
     ).toHaveTextContent("Sign-in events");
-    expect(select(RULE_LIBRARY_DATA_SELECT_TEST_ID)).toBeDisabled();
+    // A Data chip would narrow nothing: it is not offered.
+    expect(screen.queryByTestId(RULE_LIBRARY_DATA_FILTER_TEST_ID)).toBeNull();
 
     aggregateFailure = null;
     await click(screen.getByTestId("rule-library-data-retry"));
@@ -504,11 +536,11 @@ describe("whether the project sends what each rule reads", () => {
       ).toHaveTextContent("Receiving");
     });
     expect(screen.queryByTestId("rule-library-data-unknown")).toBeNull();
-    expect(select(RULE_LIBRARY_DATA_SELECT_TEST_ID)).not.toBeDisabled();
+    expect(chip(RULE_LIBRARY_DATA_FILTER_TEST_ID)).toBeInTheDocument();
     expect(aggregateRequests).toHaveLength(2);
   });
 
-  test("a project that sent nothing this week is told once, with the way to Connections, not on every rule", async () => {
+  test("a project that sent nothing this week is told once, with the way to Connections, not on every rule - and offered no Data chip", async () => {
     sentRows = [];
     await renderPage();
 
@@ -526,40 +558,67 @@ describe("whether the project sends what each rule reads", () => {
     expect(
       document.querySelectorAll('[data-testid^="rule-library-data-status-"]'),
     ).toHaveLength(0);
-    expect(select(RULE_LIBRARY_DATA_SELECT_TEST_ID)).toBeDisabled();
+    expect(screen.queryByTestId(RULE_LIBRARY_DATA_FILTER_TEST_ID)).toBeNull();
+  });
+
+  test("a data filter kept in the address, while the events could not be read, narrows nothing and is not counted", async () => {
+    aggregateFailure = new HTTPErrorResponse(500, { message: "x" }, {});
+    window.history.replaceState(null, "", "/?data=received");
+    await renderPage();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("rule-library-data-unknown"),
+      ).toBeInTheDocument();
+    });
+    expect(shownRuleIds()).toHaveLength(DETECTION_RULE_LIBRARY.length);
+    expect(screen.queryByTestId("facet-filter-bar-count")).toBeNull();
+    expect(screen.queryByTestId("facet-filter-bar-clear-all")).toBeNull();
+
+    // The header's ⋯ adds all the rules, not "matching" ones.
+    await openMoreMenu();
+    expect(
+      screen.getByRole("menuitem", { name: /^Add All \d+ Rules$/ }),
+    ).toBeInTheDocument();
   });
 });
 
 describe("narrowing the library", () => {
-  test("the Category select offers every rule, the recommended ones, then each category, and opens on every rule", async () => {
+  test("the filters are the chips every list has: Filter, then Rule category, Data and Status, none picked at first", async () => {
     await renderPage();
 
-    const options: Array<HTMLOptionElement> = Array.from(
-      select(RULE_LIBRARY_CATEGORY_SELECT_TEST_ID).options,
-    );
+    const row: HTMLElement = screen.getByTestId("rule-library-filters");
 
+    expect(row).toHaveAttribute("role", "group");
+    expect(row).toHaveAttribute("aria-label", "Filters");
+    expect(row).toHaveTextContent(/^Filter/);
     expect(
-      options.map((option: HTMLOptionElement): string => {
-        return option.textContent || "";
+      [
+        RULE_LIBRARY_CATEGORY_FILTER_TEST_ID,
+        RULE_LIBRARY_DATA_FILTER_TEST_ID,
+        RULE_LIBRARY_STATUS_FILTER_TEST_ID,
+      ].map((testId: string): string => {
+        return (chipButton(testId).textContent || "").trim();
       }),
-    ).toEqual([
-      "All categories",
+    ).toEqual(["Rule category", "Data", "Status"]);
+    expect(within(row).queryAllByTestId("filter-chip-clear")).toHaveLength(0);
+    expect(screen.queryByTestId("facet-filter-bar-count")).toBeNull();
+  });
+
+  test("the Rule category chip offers the recommended rules, then each category", async () => {
+    await renderPage();
+
+    expect(await chipOptions(RULE_LIBRARY_CATEGORY_FILTER_TEST_ID)).toEqual([
       "Recommended",
       ...DETECTION_RULE_LIBRARY_CATEGORIES,
     ]);
-    expect(
-      options.map((option: HTMLOptionElement): string => {
-        return option.value;
-      }),
-    ).toEqual(["", RECOMMENDED_FILTER, ...DETECTION_RULE_LIBRARY_CATEGORIES]);
-    expect(select(RULE_LIBRARY_CATEGORY_SELECT_TEST_ID)).toHaveValue("");
   });
 
   test("a category lists just its rules; Recommended the recommended ones", async () => {
     await renderPage();
 
     for (const category of DETECTION_RULE_LIBRARY_CATEGORIES) {
-      await pick(RULE_LIBRARY_CATEGORY_SELECT_TEST_ID, category);
+      await pick(RULE_LIBRARY_CATEGORY_FILTER_TEST_ID, category);
 
       expect(shownRuleIds()).toEqual(
         DETECTION_RULE_LIBRARY.filter((entry: DetectionRuleLibraryEntry) => {
@@ -570,7 +629,7 @@ describe("narrowing the library", () => {
       );
     }
 
-    await pick(RULE_LIBRARY_CATEGORY_SELECT_TEST_ID, RECOMMENDED_FILTER);
+    await pick(RULE_LIBRARY_CATEGORY_FILTER_TEST_ID, "Recommended");
     expect(shownRuleIds()).toEqual(
       RECOMMENDED.map((entry: DetectionRuleLibraryEntry) => {
         return entry.id;
@@ -578,21 +637,23 @@ describe("narrowing the library", () => {
     );
   });
 
-  test("the Data select lists the rules for the data the project sends, or the others", async () => {
+  test("the Data chip lists the rules whose events arrive, or the others, in the words the rows use", async () => {
     await renderPage();
     await waitFor(() => {
-      expect(select(RULE_LIBRARY_DATA_SELECT_TEST_ID)).not.toBeDisabled();
+      expect(
+        screen.getByTestId(`rule-library-data-status-${BRUTE_FORCE.id}`),
+      ).toBeInTheDocument();
     });
 
-    expect(
-      Array.from(select(RULE_LIBRARY_DATA_SELECT_TEST_ID).options).map(
-        (option: HTMLOptionElement): string => {
-          return option.textContent || "";
-        },
-      ),
-    ).toEqual(["Any data", "Data you send", "Data you don't send yet"]);
+    expect(await chipOptions(RULE_LIBRARY_DATA_FILTER_TEST_ID)).toEqual([
+      "Receiving",
+      "Not receiving",
+    ]);
 
-    await pick(RULE_LIBRARY_DATA_SELECT_TEST_ID, LibraryDataFilter.Received);
+    await pick(RULE_LIBRARY_DATA_FILTER_TEST_ID, "Receiving");
+    expect(chipButton(RULE_LIBRARY_DATA_FILTER_TEST_ID)).toHaveTextContent(
+      "Data · Receiving",
+    );
     expect(shownRuleIds()).toContain(BRUTE_FORCE.id);
     expect(shownRuleIds()).not.toContain(SHADOW_COPIES.id);
     for (const id of shownRuleIds()) {
@@ -601,22 +662,23 @@ describe("narrowing the library", () => {
       ).toHaveAttribute("data-status", "received");
     }
 
-    await pick(RULE_LIBRARY_DATA_SELECT_TEST_ID, LibraryDataFilter.NotReceived);
+    await pick(RULE_LIBRARY_DATA_FILTER_TEST_ID, "Not receiving");
     expect(shownRuleIds()).toContain(SHADOW_COPIES.id);
     expect(shownRuleIds()).not.toContain(BRUTE_FORCE.id);
   });
 
-  test("the Status select lists the rules the project has, or the ones it lacks", async () => {
+  test("the Status chip lists the rules the project has, or the ones it lacks", async () => {
     ruleNames = [BRUTE_FORCE.title, PORT_SCAN.title];
     await renderPage();
 
-    await pick(RULE_LIBRARY_STATUS_SELECT_TEST_ID, LibraryStatusFilter.Added);
+    expect(await chipOptions(RULE_LIBRARY_STATUS_FILTER_TEST_ID)).toEqual([
+      "Not added",
+      "Added",
+    ]);
+    await pick(RULE_LIBRARY_STATUS_FILTER_TEST_ID, "Added");
     expect(shownRuleIds()).toEqual([BRUTE_FORCE.id, PORT_SCAN.id]);
 
-    await pick(
-      RULE_LIBRARY_STATUS_SELECT_TEST_ID,
-      LibraryStatusFilter.NotAdded,
-    );
+    await pick(RULE_LIBRARY_STATUS_FILTER_TEST_ID, "Not added");
     expect(shownRuleIds()).toHaveLength(DETECTION_RULE_LIBRARY.length - 2);
   });
 
@@ -638,9 +700,9 @@ describe("narrowing the library", () => {
   test("a narrowed list says how many rules are in sight and offers the way back", async () => {
     await renderPage();
 
-    expect(screen.queryByTestId("rule-library-clear-filters")).toBeNull();
+    expect(screen.queryByTestId("facet-filter-bar-clear-all")).toBeNull();
     await pick(
-      RULE_LIBRARY_CATEGORY_SELECT_TEST_ID,
+      RULE_LIBRARY_CATEGORY_FILTER_TEST_ID,
       DetectionRuleLibraryCategory.Kubernetes,
     );
 
@@ -653,14 +715,98 @@ describe("narrowing the library", () => {
     expect(screen.getByTestId("rule-library-count")).toHaveTextContent(
       `${kubernetes} rules`,
     );
-    // The select that narrows the list is tinted.
-    expect(select(RULE_LIBRARY_CATEGORY_SELECT_TEST_ID).className).toContain(
-      "bg-indigo-50",
+    /*
+     * The chip that narrows the list says to what, in the indigo of a chip
+     * in use, and Filter counts it.
+     */
+    expect(chipButton(RULE_LIBRARY_CATEGORY_FILTER_TEST_ID)).toHaveTextContent(
+      "Rule category · Kubernetes",
+    );
+    expect(
+      within(chip(RULE_LIBRARY_CATEGORY_FILTER_TEST_ID)).getByTestId(
+        "filter-chip",
+      ).className,
+    ).toContain("bg-indigo-50");
+    expect(screen.getByTestId("facet-filter-bar-count")).toHaveTextContent("1");
+
+    await click(screen.getByTestId("facet-filter-bar-clear-all"));
+    expect(shownRuleIds()).toHaveLength(DETECTION_RULE_LIBRARY.length);
+    expect(
+      (
+        chipButton(RULE_LIBRARY_CATEGORY_FILTER_TEST_ID).textContent || ""
+      ).trim(),
+    ).toBe("Rule category");
+  });
+
+  test("Clear all empties the chips and keeps the search; a chip's x empties just it", async () => {
+    await renderPage();
+    await search("okta");
+    await pick(RULE_LIBRARY_CATEGORY_FILTER_TEST_ID, "Identity");
+    await pick(RULE_LIBRARY_STATUS_FILTER_TEST_ID, "Not added");
+
+    expect(screen.getByTestId("facet-filter-bar-count")).toHaveTextContent("2");
+
+    await click(
+      within(chip(RULE_LIBRARY_STATUS_FILTER_TEST_ID)).getByTestId(
+        "filter-chip-clear",
+      ),
+    );
+    expect(
+      (chipButton(RULE_LIBRARY_STATUS_FILTER_TEST_ID).textContent || "").trim(),
+    ).toBe("Status");
+    expect(chipButton(RULE_LIBRARY_CATEGORY_FILTER_TEST_ID)).toHaveTextContent(
+      "Rule category · Identity",
     );
 
-    await click(screen.getByTestId("rule-library-clear-filters"));
-    expect(shownRuleIds()).toHaveLength(DETECTION_RULE_LIBRARY.length);
-    expect(select(RULE_LIBRARY_CATEGORY_SELECT_TEST_ID)).toHaveValue("");
+    await click(screen.getByTestId("facet-filter-bar-clear-all"));
+    expect(
+      (
+        chipButton(RULE_LIBRARY_CATEGORY_FILTER_TEST_ID).textContent || ""
+      ).trim(),
+    ).toBe("Rule category");
+    expect(screen.getByTestId(RULE_LIBRARY_SEARCH_TEST_ID)).toHaveValue("okta");
+    expect(screen.queryByTestId("facet-filter-bar-clear-all")).toBeNull();
+    expect(new URLSearchParams(window.location.search).get("search")).toBe(
+      "okta",
+    );
+  });
+
+  test("the count waits for the rules, and is not drawn while there is no list to count", async () => {
+    // The project's rules arrive when this says so.
+    let finishRead: (rules: unknown) => void = (): void => {
+      // Replaced below.
+    };
+    jest.spyOn(ModelAPI, "getList").mockImplementation((() => {
+      return new Promise((resolve: (rules: unknown) => void) => {
+        finishRead = resolve;
+      });
+    }) as never);
+    const project: Project = new Project();
+    project.id = PROJECT_ID;
+
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <RuleLibraryPage
+            pageRoute={new Route("/dashboard/security-events/rule-library")}
+            currentProject={project}
+            hasPaymentMethod={true}
+          />
+        </MemoryRouter>,
+      );
+    });
+
+    // Being read: no "47 rules" over an empty list.
+    expect(screen.queryByTestId("rule-library-count")).toBeNull();
+
+    await act(async () => {
+      finishRead({ data: [], count: 0, skip: 0, limit: 100 });
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("rule-library-count")).toHaveTextContent(
+        `${DETECTION_RULE_LIBRARY.length} rules`,
+      );
+    });
   });
 
   test("filters that leave nothing say so, and the way back clears them", async () => {
@@ -674,13 +820,10 @@ describe("narrowing the library", () => {
     await renderPage();
 
     await pick(
-      RULE_LIBRARY_CATEGORY_SELECT_TEST_ID,
+      RULE_LIBRARY_CATEGORY_FILTER_TEST_ID,
       DetectionRuleLibraryCategory.Network,
     );
-    await pick(
-      RULE_LIBRARY_STATUS_SELECT_TEST_ID,
-      LibraryStatusFilter.NotAdded,
-    );
+    await pick(RULE_LIBRARY_STATUS_FILTER_TEST_ID, "Not added");
 
     expect(shownRuleIds()).toEqual([]);
     expect(screen.getByTestId("rule-library-no-match")).toHaveTextContent(
@@ -699,13 +842,10 @@ describe("narrowing the library", () => {
     await renderPage();
 
     await pick(
-      RULE_LIBRARY_CATEGORY_SELECT_TEST_ID,
+      RULE_LIBRARY_CATEGORY_FILTER_TEST_ID,
       DetectionRuleLibraryCategory.Cloud,
     );
-    await pick(
-      RULE_LIBRARY_STATUS_SELECT_TEST_ID,
-      LibraryStatusFilter.NotAdded,
-    );
+    await pick(RULE_LIBRARY_STATUS_FILTER_TEST_ID, "Not added");
     await search("access key");
 
     const params: URLSearchParams = new URLSearchParams(window.location.search);
@@ -723,8 +863,8 @@ describe("narrowing the library", () => {
     expect(screen.getByTestId(RULE_LIBRARY_SEARCH_TEST_ID)).toHaveValue(
       "T1110",
     );
-    expect(select(RULE_LIBRARY_CATEGORY_SELECT_TEST_ID)).toHaveValue(
-      "Identity",
+    expect(chipButton(RULE_LIBRARY_CATEGORY_FILTER_TEST_ID)).toHaveTextContent(
+      "Rule category · Identity",
     );
     for (const id of shownRuleIds()) {
       const entry: DetectionRuleLibraryEntry = DETECTION_RULE_LIBRARY.find(
@@ -788,13 +928,28 @@ describe("a rule's details", () => {
     expect(
       screen.getByTestId("rule-library-details-data-status"),
     ).toHaveTextContent("Not receiving");
-    expect(
-      screen.getByTestId("rule-library-details-how-to-send"),
-    ).toHaveTextContent(
+    /*
+     * What that means and what to do about it, together: the sentence is
+     * in the box that says how to send them, not between it and the
+     * rule's events.
+     */
+    const howToSend: HTMLElement = screen.getByTestId(
+      "rule-library-details-how-to-send",
+    );
+    expect(howToSend).toHaveTextContent(
+      "No events of this kind arrived in the last 7 days. The rule runs, but finds nothing until they do.",
+    );
+    expect(howToSend).toHaveTextContent(
       "Send CloudTrail to OneUptime as logs and find security events in your logs.",
     );
     expect(
-      screen.getByTestId("rule-library-details-send-link"),
+      within(data).getAllByText(/No events of this kind arrived/),
+    ).toHaveLength(1);
+    expect(data).not.toHaveTextContent(
+      "Events of this kind arrived in the last 7 days.",
+    );
+    expect(
+      within(howToSend).getByTestId("rule-library-details-send-link"),
     ).toHaveTextContent("Go to Connections");
     // "AWS CloudTrail events" says nothing "AWS CloudTrail" did not.
     expect(screen.queryByTestId("rule-library-details-data-source")).toBeNull();
@@ -835,6 +990,9 @@ describe("a rule's details", () => {
     expect(
       screen.getByTestId("rule-library-details-data-source"),
     ).toHaveTextContent("Authentication events from any source");
+    expect(screen.getByTestId("rule-library-details-data")).toHaveTextContent(
+      "Events of this kind arrived in the last 7 days.",
+    );
     expect(screen.queryByTestId("rule-library-details-how-to-send")).toBeNull();
   });
 
@@ -982,6 +1140,52 @@ describe("adding from the library", () => {
         within(row(SEQUENCE)).getByTestId(`rule-library-added-${SEQUENCE.id}`),
       ).toBeInTheDocument();
     });
+  });
+
+  test("while a row's Add is on its way, the other rows' Adds look as unavailable as they are", async () => {
+    let finishCreate: () => void = (): void => {
+      // Replaced below.
+    };
+    jest.spyOn(ModelAPI, "create").mockImplementation((() => {
+      return new Promise((resolve: (value: unknown) => void) => {
+        finishCreate = () => {
+          resolve({ data: {} });
+        };
+      });
+    }) as never);
+    await renderPage();
+
+    const portScanAdd: HTMLElement = screen.getByTestId(
+      `rule-library-add-${PORT_SCAN.id}`,
+    );
+    expect(portScanAdd.className).not.toContain(
+      RULE_LIBRARY_ADD_UNAVAILABLE_CLASS_NAME,
+    );
+
+    await click(screen.getByTestId(`rule-library-add-${BRUTE_FORCE.id}`));
+
+    expect(
+      screen.getByTestId(`rule-library-add-${PORT_SCAN.id}`),
+    ).toBeDisabled();
+    expect(
+      screen.getByTestId(`rule-library-add-${PORT_SCAN.id}`).className,
+    ).toContain(RULE_LIBRARY_ADD_UNAVAILABLE_CLASS_NAME);
+    // The one adding is not faded: it shows its spinner.
+    expect(
+      screen.getByTestId(`rule-library-add-${BRUTE_FORCE.id}`).className,
+    ).not.toContain(RULE_LIBRARY_ADD_UNAVAILABLE_CLASS_NAME);
+
+    await act(async () => {
+      finishCreate();
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`rule-library-add-${PORT_SCAN.id}`).className,
+      ).not.toContain(RULE_LIBRARY_ADD_UNAVAILABLE_CLASS_NAME);
+    });
+    expect(
+      screen.getByTestId(`rule-library-add-${PORT_SCAN.id}`),
+    ).not.toBeDisabled();
   });
 
   test("a row's Add that fails says why on that row, as the one alert, and the row still offers Add", async () => {
@@ -1144,7 +1348,7 @@ describe("adding from the library", () => {
     const created: Array<DetectionRule> = recordCreates();
     await renderPage();
     await pick(
-      RULE_LIBRARY_CATEGORY_SELECT_TEST_ID,
+      RULE_LIBRARY_CATEGORY_FILTER_TEST_ID,
       DetectionRuleLibraryCategory.Network,
     );
 
@@ -1243,6 +1447,59 @@ describe("adding from the library", () => {
   });
 });
 
+describe("the header while searching", () => {
+  test("a search keeps the header's adds beside it, and the ⋯ adds the rules it finds", async () => {
+    ruleNames = [MFA_PUSH_FATIGUE.title];
+    const created: Array<DetectionRule> = recordCreates();
+    await renderPage();
+
+    await search("okta");
+
+    // Not folded away behind the opened search, as a model table's are.
+    const toolbar: HTMLElement = screen.getByTestId("rule-library-toolbar");
+    expect(
+      toolbar.querySelectorAll(
+        '[aria-hidden="true"] [data-testid="card-button"]',
+      ),
+    ).toHaveLength(0);
+    expect(
+      headerButton(`Add ${RECOMMENDED.length} Recommended Rules`),
+    ).toBeVisible();
+
+    const okta: Array<DetectionRuleLibraryEntry> =
+      DETECTION_RULE_LIBRARY.filter(
+        (entry: DetectionRuleLibraryEntry): boolean => {
+          return (
+            shownRuleIds().includes(entry.id) &&
+            entry.id !== MFA_PUSH_FATIGUE.id
+          );
+        },
+      );
+    expect(okta.length).toBeGreaterThan(1);
+
+    await openMoreMenu();
+    await click(
+      screen.getByRole("menuitem", {
+        name: `Add ${okta.length} Matching Rules`,
+      }),
+    );
+    expect(within(dialog()).getByTestId("modal-title")).toHaveTextContent(
+      `Add ${okta.length} rules?`,
+    );
+    await click(within(dialog()).getByRole("button", { name: "Add Rules" }));
+
+    expect(
+      created.map((rule: DetectionRule): string => {
+        return rule.name!;
+      }),
+    ).toEqual(
+      okta.map((entry: DetectionRuleLibraryEntry): string => {
+        return entry.title;
+      }),
+    );
+  });
+});
+
 describe("who may add, and a library that cannot be read", () => {
   test("a role that cannot create detection rules sees every add locked, saying why", async () => {
     jest.spyOn(PermissionGate, "check").mockReturnValue({
@@ -1257,6 +1514,10 @@ describe("who may add, and a library that cannot be read", () => {
     expect(
       screen.getByTestId(`rule-library-add-${BRUTE_FORCE.id}`),
     ).toBeDisabled();
+    // And looks it: the outline button has no disabled look of its own.
+    expect(
+      screen.getByTestId(`rule-library-add-${BRUTE_FORCE.id}`).className,
+    ).toContain(RULE_LIBRARY_ADD_UNAVAILABLE_CLASS_NAME);
 
     await click(screen.getByTestId(`rule-library-name-${BRUTE_FORCE.id}`));
 

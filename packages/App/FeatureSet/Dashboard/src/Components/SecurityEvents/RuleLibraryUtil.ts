@@ -172,6 +172,39 @@ export function isRuleLibraryFiltered(filters: RuleLibraryFilters): boolean {
   );
 }
 
+/*
+ * The filters as they narrow the list: the data filter only while the page
+ * offers it - while the project's events are read and some arrived. A data
+ * filter kept from the address while the events could not be read, or
+ * when none arrived this week, narrows nothing, and the page says nothing
+ * of it ("Add N Matching Rules", "Clear all").
+ */
+export function getEffectiveRuleLibraryFilters(
+  filters: RuleLibraryFilters,
+  isDataFilterOffered: boolean,
+): RuleLibraryFilters {
+  return isDataFilterOffered
+    ? filters
+    : { ...filters, data: LibraryDataFilter.Any };
+}
+
+// How many of the filter chips hold a value: the count beside "Filter".
+export function countRuleLibraryChipFilters(
+  filters: RuleLibraryFilters,
+  isDataFilterOffered: boolean,
+): number {
+  const effective: RuleLibraryFilters = getEffectiveRuleLibraryFilters(
+    filters,
+    isDataFilterOffered,
+  );
+
+  return [effective.category, effective.data, effective.status].filter(
+    (value: string): boolean => {
+      return Boolean(value);
+    },
+  ).length;
+}
+
 // What a rule's Sigma header says, read once per rule: the library never changes.
 interface LibraryRuleHeader {
   level: SigmaLevel;
