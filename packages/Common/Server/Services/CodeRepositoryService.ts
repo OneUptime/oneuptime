@@ -3,6 +3,7 @@ import Model from "../../Models/DatabaseModels/CodeRepository";
 import ObjectID from "../../Types/ObjectID";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import CodeRepositoryType from "../../Types/CodeRepository/CodeRepositoryType";
+import { CodeHost } from "../../Types/CodeRepository/CodeHost";
 import URL from "../../Types/API/URL";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -22,11 +23,17 @@ import {
 } from "../../Types/CodeRepository/CodeRepositoryAllowance";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import RunnerService, { Service as RunnerServiceClass } from "./RunnerService";
 import Runner from "../../Models/DatabaseModels/Runner";
 import { resolveReferenceId } from "../Utils/Database/ProjectScopedReferenceRefusal";
 import GlobalRunnerChoice from "../Utils/Runner/GlobalRunnerChoice";
+import CodeHostAccess, {
+  CODE_HOST_REPOSITORY_SELECT,
+  CodeHostReader,
+} from "../Utils/CodeRepository/CodeHost/CodeHostAccess";
+import CodeRepositoryConnectionService from "./CodeRepositoryConnectionService";
+import DeleteBy from "../Types/Database/DeleteBy";
 
 /*
  * Why a repository may not pick an in-cluster Runner the Kubernetes agent
@@ -161,6 +168,71 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * A connection (CodeRepositoryConnection) holds an access token for the
+   * repositories that use it. Once the last of them is deleted, so is it:
+   * a token no repository needs is not kept. The rows the delete removes
+   * are read here, and the delete held to them, as the rows are gone by
+   * the time onDeleteSuccess runs.
+   */
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    await super.onBeforeDelete(deleteBy);
+
+    const rows: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      {
+        _id: true,
+        projectId: true,
+        codeRepositoryConnectionId: true,
+      },
+    );
+
+    const projectIds: Array<string> = Array.from(
+      new Set<string>(
+        rows
+          .filter((row: Model): boolean => {
+            return Boolean(row.codeRepositoryConnectionId && row.projectId);
+          })
+          .map((row: Model): string => {
+            return row.projectId!.toString();
+          }),
+      ),
+    );
+
+    return {
+      deleteBy,
+      carryForward: { connectionProjectIds: projectIds },
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    _itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    const projectIds: Array<string> =
+      (onDelete.carryForward?.connectionProjectIds as Array<string>) || [];
+
+    for (const projectId of projectIds) {
+      try {
+        await CodeRepositoryConnectionService.deleteUnusedConnections(
+          new ObjectID(projectId),
+        );
+      } catch (error) {
+        // The repositories are deleted; a connection left over is harmless.
+        logger.error(
+          `Could not delete project ${projectId}'s unused code repository connections:`,
+        );
+        logger.error(error);
+      }
+    }
+
+    return onDelete;
   }
 
   /*
@@ -492,8 +564,15 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * The project's repositories a fix can be resolved to: every one the
-   * agent could clone and push.
+   * The project's repositories a fix can be resolved to: every one AI can
+   * work in (CodeHostAccess) - a GitHub repository whose installation this
+   * project actually owns, or one whose connection to its Git server is the
+   * project's and was not refused. Resolution probes EVERY candidate's file
+   * tree, so an unbound or foreign row here would have the server read
+   * another tenant's private repository on its own initiative
+   * (GHSA-xx95-gmcf-7q86). A repository whose files OneUptime does not read
+   * (a Git server) is still a candidate: its name, or being the only one,
+   * can still pick it.
    */
   @CaptureSpan()
   public async getResolvableRepositories(
@@ -519,27 +598,25 @@ export class Service extends ProjectReferencesService<Model> {
       },
     });
 
-    /*
-     * Only GitHub-App-connected repos can be cloned/pushed by the agent — and
-     * only ones whose installation this project actually owns. Resolution
-     * probes EVERY candidate's file tree, so an unbound row here would have
-     * the server read another tenant's private repository on its own
-     * initiative (GHSA-xx95-gmcf-7q86).
-     */
-    const boundInstallationId: string | null =
-      await GitHubInstallationBinding.getBoundInstallationId(projectId);
+    const reachable: Set<string> =
+      await CodeHostAccess.getReachableRepositoryIds({
+        projectId,
+        repositoryIds: repositories
+          .filter((repository: Model): boolean => {
+            return Boolean(repository.id);
+          })
+          .map((repository: Model): ObjectID => {
+            return repository.id!;
+          }),
+      });
 
     return repositories
       .filter((repository: Model) => {
         return (
-          repository.repositoryHostedAt === CodeRepositoryType.GitHub &&
-          Boolean(repository.gitHubAppInstallationId) &&
-          Boolean(repository.id) &&
-          Boolean(boundInstallationId) &&
-          repository.gitHubAppInstallationId === boundInstallationId
+          Boolean(repository.id) && reachable.has(repository.id!.toString())
         );
       })
-      .map((repository: Model) => {
+      .map((repository: Model): ResolvableRepository => {
         return {
           id: repository.id!.toString(),
           name: repository.name || "",
@@ -547,21 +624,52 @@ export class Service extends ProjectReferencesService<Model> {
           repositoryName: repository.repositoryName || "",
           mainBranchName: repository.mainBranchName || "main",
           gitHubAppInstallationId: repository.gitHubAppInstallationId || null,
+          repositoryHostedAt: CodeHost.readType(repository.repositoryHostedAt),
         };
       });
   }
 
-  // A resolvable repository's file tree, cached (GitHubUtil).
-  public static getRepositoryTreePaths(
+  /*
+   * A resolvable repository's file tree, cached: GitHub's through the
+   * installation (GitHubUtil), any other host's through its reader. A host
+   * whose files OneUptime does not read throws, and the resolver leaves the
+   * repository out of matching stack traces.
+   */
+  public static async getRepositoryTreePaths(
     repository: ResolvableRepository,
   ): Promise<Array<string>> {
-    return GitHubUtil.getRepositoryTreePaths({
-      installationId: repository.gitHubAppInstallationId!,
-      organizationName: repository.organizationName,
-      repositoryName: repository.repositoryName,
-      branchName: repository.mainBranchName,
+    if (
+      !repository.repositoryHostedAt ||
+      repository.repositoryHostedAt === CodeRepositoryType.GitHub
+    ) {
+      return GitHubUtil.getRepositoryTreePaths({
+        installationId: repository.gitHubAppInstallationId!,
+        organizationName: repository.organizationName,
+        repositoryName: repository.repositoryName,
+        branchName: repository.mainBranchName,
+      });
+    }
+
+    const row: Model | null = await CodeRepositoryServiceInstance.findOneById({
+      id: new ObjectID(repository.id),
+      select: CODE_HOST_REPOSITORY_SELECT,
+      props: { isRoot: true },
     });
+
+    const reader: CodeHostReader | null = row
+      ? await CodeHostAccess.getReaderForRepository(row)
+      : null;
+
+    if (!reader || !reader.canReadCode) {
+      throw new BadDataException(
+        "OneUptime does not read this repository's files.",
+      );
+    }
+
+    return await reader.getTreePaths(repository.mainBranchName);
   }
 }
 
-export default new Service();
+const CodeRepositoryServiceInstance: Service = new Service();
+
+export default CodeRepositoryServiceInstance;

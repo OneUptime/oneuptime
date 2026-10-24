@@ -27,6 +27,12 @@ enum AnalyticsTableName {
   Span = "SpanItemV3",
   MonitorLog = "MonitorLogV3",
   NetworkFlow = "NetworkFlowV1",
+  /*
+   * Traffic a network's controller reported (the Meraki dashboard API):
+   * totals over the windows a NetworkControllerConnection read - uplinks,
+   * applications and destinations, clients - beside the flow records.
+   */
+  NetworkTrafficUsage = "NetworkTrafficUsageV1",
   Profile = "ProfileItemV3",
   ProfileSample = "ProfileSampleItemV3",
   AuditLog = "AuditLogV2",

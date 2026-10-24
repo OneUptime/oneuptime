@@ -116,6 +116,7 @@ describe("parseTelemetryAiLogs", () => {
     requestedBy: "Ada",
     taskId: "5092aaaa-0000-4000-8000-0000000000e1",
     repositoryName: "acme/shop",
+    repositoryHostedAt: "GitHub",
     pullRequest: {
       state: "open",
       number: 812,
@@ -155,6 +156,7 @@ describe("parseTelemetryAiLogs", () => {
           ...ENTRY,
           requestedBy: 42,
           repositoryName: "",
+          repositoryHostedAt: 3,
           insight: { id: "x", title: 7, serviceName: "" },
           pullRequest: { state: "open", number: -3, url: 5 },
         },
@@ -167,6 +169,7 @@ describe("parseTelemetryAiLogs", () => {
 
     expect(first!.requestedBy).toBeUndefined();
     expect(first!.repositoryName).toBeUndefined();
+    expect(first!.repositoryHostedAt).toBeUndefined();
     expect(first!.insight).toEqual({ id: "x", title: "" });
     expect(first!.pullRequest).toEqual({ state: "open" });
     // A pull request with no state is not drawn.

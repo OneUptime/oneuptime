@@ -10,7 +10,7 @@ Abre un issue de [GitLab](https://gitlab.com) por cada incidente de OneUptime, p
 :::
 
 > [!NOTE]
-> La IA de OneUptime solo abre pull requests con correcciones en repositorios conectados mediante la GitHub App, así que todavía no puede trabajar en un repositorio de GitLab. Consulta [GitHub](/docs/integrations/github).
+> La IA de OneUptime también trabaja en repositorios de GitLab: conéctalos en Código con un token de acceso y abrirá un merge request para cada corrección. Consulta [Conectar un repositorio](/docs/ai/ai-agent#conectar-un-repositorio).
 
 ## Cómo funciona
 

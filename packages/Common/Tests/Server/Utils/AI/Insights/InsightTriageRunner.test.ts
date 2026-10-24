@@ -803,15 +803,13 @@ describe("InsightTriageRunner.executeTriage - slow code", () => {
   test("rules that leave it out (or cannot be read) let it read no repository", async () => {
     jest.spyOn(AIInsightService, "findOneById").mockResolvedValue(slowCode());
     jest.spyOn(ProjectService, "findOneById").mockResolvedValue(laneProject());
-    jest
-      .spyOn(TelemetryAiRules, "decideForInsight")
-      .mockResolvedValue(
-        decideTelemetryAiWork({
-          isAiEnabled: true,
-          isLaneOn: true,
-          rules: null,
-        }),
-      );
+    jest.spyOn(TelemetryAiRules, "decideForInsight").mockResolvedValue(
+      decideTelemetryAiWork({
+        isAiEnabled: true,
+        isLaneOn: true,
+        rules: null,
+      }),
+    );
     const executeRun: jest.SpyInstance = jest
       .spyOn(AIInvestigationEngine, "executeRun")
       .mockResolvedValue(undefined);

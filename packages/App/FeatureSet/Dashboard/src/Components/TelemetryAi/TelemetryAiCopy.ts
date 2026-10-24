@@ -211,8 +211,9 @@ export const TELEMETRY_AI_INSIGHTS_SCOPES: Readonly<
 
 /*
  * Each lane's switch: on for new projects, off for projects made before
- * it. A pull request needs a repository connected through the GitHub App;
- * the switch's note says so.
+ * it. A pull request needs a repository connected in Code (through the
+ * GitHub App, or a GitLab, Forgejo or Gitea connection); the switch's note
+ * says so.
  */
 export const TELEMETRY_AI_SWITCHES: Readonly<
   Record<
@@ -227,9 +228,7 @@ export const TELEMETRY_AI_SWITCHES: Readonly<
       description: translationKey(
         "Every hour OneUptime looks through your profiles for slow code. OneUptime AI looks into what it finds and opens a pull request to fix it.",
       ),
-      note: translationKey(
-        "Needs a repository connected through the GitHub App.",
-      ),
+      note: translationKey("Needs a repository connected in Code."),
     },
   ],
 };
@@ -305,7 +304,7 @@ export const TELEMETRY_AI_READINESS_COPY: {
 } = {
   title: translationKey("Pull requests"),
   connectRepository: translationKey(
-    "Connect a repository through the GitHub App so OneUptime AI can open pull requests for what it finds.",
+    "Connect a repository so OneUptime AI can open pull requests for what it finds.",
   ),
   connectRepositoryLink: translationKey("Connect a repository in Code"),
   ready: {
@@ -371,13 +370,6 @@ export const TELEMETRY_AI_LOG_ASKED_BY: string =
   translationKey("Asked by {{name}}");
 
 export const TELEMETRY_AI_LOG_OPEN_TASK: string = translationKey("Open task");
-
-export const TELEMETRY_AI_LOG_PULL_REQUEST: string = translationKey(
-  "Pull request #{{number}}",
-);
-
-export const TELEMETRY_AI_LOG_VIEW_PULL_REQUEST: string =
-  translationKey("View pull request");
 
 export const TELEMETRY_AI_LOGS_SHOWING: PluralTemplate = {
   one: "Showing {{shown}} of {{total}} entry",

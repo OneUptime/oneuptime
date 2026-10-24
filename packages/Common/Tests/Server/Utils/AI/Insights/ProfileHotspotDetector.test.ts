@@ -566,7 +566,11 @@ describe("ProfileHotspotDetector.detect", () => {
   });
 
   test("the function's own reading decides: a list that overstates it files nothing", async () => {
-    wire({ read: () => evidence({ ownShare: 6, ownValue: 600 }) });
+    wire({
+      read: () => {
+        return evidence({ ownShare: 6, ownValue: 600 });
+      },
+    });
 
     await expect(
       new ProfileHotspotDetector().detect({
@@ -577,7 +581,11 @@ describe("ProfileHotspotDetector.detect", () => {
   });
 
   test("a function that took no time when read again files nothing", async () => {
-    wire({ read: () => null });
+    wire({
+      read: () => {
+        return null;
+      },
+    });
 
     await expect(
       new ProfileHotspotDetector().detect({

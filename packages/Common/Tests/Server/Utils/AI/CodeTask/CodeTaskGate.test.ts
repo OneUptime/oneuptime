@@ -16,9 +16,16 @@ import CodeRepositoryRunnerChoice, {
 import { CODE_TASK_ASK_REFUSED_MESSAGE } from "../../../../../Server/Utils/AI/CodeTask/CodeTaskAccess";
 import CodeTaskGate, {
   CODE_TASK_PLAN_REQUIRED_MESSAGE,
+  CODE_TASK_REPOSITORY_CONNECTION_GONE_MESSAGE,
+  CODE_TASK_REPOSITORY_NEEDS_OWN_RUNNER_MESSAGE,
   CODE_TASK_REPOSITORY_NOT_CONNECTED_MESSAGE,
   CODE_TASK_SUBSCRIPTION_UNPAID_MESSAGE,
+  getCodeTaskTokenRefusedMessage,
 } from "../../../../../Server/Utils/AI/CodeTask/CodeTaskGate";
+import CodeHostAccess, {
+  CodeHostConnectionState,
+  CodeHostConnectionSummary,
+} from "../../../../../Server/Utils/CodeRepository/CodeHost/CodeHostAccess";
 import GitHubInstallationBinding from "../../../../../Server/Utils/CodeRepository/GitHub/GitHubInstallationBinding";
 import CodeRepository from "../../../../../Models/DatabaseModels/CodeRepository";
 import Project from "../../../../../Models/DatabaseModels/Project";
@@ -353,10 +360,6 @@ describe("CodeTaskGate.getBlocker", () => {
       "the repository has no installation",
       { repositoryInstallationId: undefined },
     ],
-    [
-      "the repository is not on GitHub",
-      { repositoryHost: CodeRepositoryType.GitLab },
-    ],
   ])(
     "a repository AI cannot reach: %s",
     async (_why: string, change: Partial<World>) => {
@@ -368,6 +371,15 @@ describe("CodeTaskGate.getBlocker", () => {
       });
     },
   );
+
+  test("a repository off GitHub with no connection is told its connection is gone, not to connect GitHub", async () => {
+    world.repositoryHost = CodeRepositoryType.GitLab;
+
+    expect(await blocker()).toEqual({
+      type: CodeTaskBlockerType.RepositoryNotConnected,
+      message: CODE_TASK_REPOSITORY_CONNECTION_GONE_MESSAGE,
+    });
+  });
 
   test("no LLM provider, and used-up AI credits, are told apart", async () => {
     world.llmOk = false;
@@ -602,7 +614,7 @@ describe("CodeTaskGate.getReachableRepositoryIds", () => {
     expect(call.props).toEqual({ isRoot: true });
   });
 
-  test("asks nothing for no repositories, or a project with no installation", async () => {
+  test("asks nothing for no repositories; with no installation, a GitHub repository is not reached", async () => {
     expect(
       Array.from(
         await CodeTaskGate.getReachableRepositoryIds({
@@ -611,7 +623,12 @@ describe("CodeTaskGate.getReachableRepositoryIds", () => {
         }),
       ),
     ).toEqual([]);
+    expect(CodeRepositoryService.findBy).not.toHaveBeenCalled();
 
+    /*
+     * The repositories are read to see where each is hosted: one off
+     * GitHub is reached through its connection, whatever the installation.
+     */
     world.boundInstallationId = null;
 
     expect(
@@ -622,7 +639,6 @@ describe("CodeTaskGate.getReachableRepositoryIds", () => {
         }),
       ),
     ).toEqual([]);
-    expect(CodeRepositoryService.findBy).not.toHaveBeenCalled();
   });
 });
 
@@ -720,5 +736,102 @@ describe("CodeTaskGate.getReachableInstallationId", () => {
         repositoryId: REPOSITORY_ID,
       }),
     ).toBeNull();
+  });
+});
+
+/*
+ * A repository on GitLab, Forgejo, Gitea or a Git server is reached through
+ * its connection: a refused token is said as one - with the host's name and
+ * where to replace it - a connection that is gone as one, and a Git server
+ * only a private network reaches needs one of the project's own Runners.
+ */
+describe("CodeTaskGate.getBlocker, for a repository off GitHub", () => {
+  function summary(
+    overrides: Partial<CodeHostConnectionSummary> = {},
+  ): CodeHostConnectionSummary {
+    return {
+      connectionId: "c0ffee00-0000-4000-8000-000000000001",
+      provider: CodeRepositoryType.GitLab,
+      hostUrl: "https://gitlab.example.com",
+      hostProduct: null,
+      accountLogin: "alice",
+      credentialHint: "ab12",
+      state: CodeHostConnectionState.Connected,
+      isReachableFromServer: true,
+      ...overrides,
+    };
+  }
+
+  function connectedAs(value: CodeHostConnectionSummary): void {
+    jest
+      .spyOn(CodeHostAccess, "getConnectionSummaries")
+      .mockResolvedValue(new Map([[REPOSITORY_ID.toString(), value]]));
+  }
+
+  test("a connection that works lets the work start", async () => {
+    connectedAs(summary());
+
+    expect(await blocker()).toBeNull();
+  });
+
+  test("a token its server refused says so, naming the server's product, and where to replace it", async () => {
+    connectedAs(summary({ state: CodeHostConnectionState.TokenRefused }));
+
+    expect(await blocker()).toEqual({
+      type: CodeTaskBlockerType.RepositoryTokenRefused,
+      message: getCodeTaskTokenRefusedMessage("GitLab"),
+    });
+
+    connectedAs(
+      summary({
+        provider: CodeRepositoryType.Forgejo,
+        hostProduct: "Gitea",
+        state: CodeHostConnectionState.TokenRefused,
+      }),
+    );
+
+    expect((await blocker())!.message).toBe(
+      "Gitea refused this repository's access token, so AI cannot work in it. It may have expired: replace it on the repository's Settings page in Code.",
+    );
+  });
+
+  test("a connection that is gone says to connect it again, not to connect GitHub", async () => {
+    connectedAs(summary({ state: CodeHostConnectionState.NoConnection }));
+
+    expect(await blocker()).toEqual({
+      type: CodeTaskBlockerType.RepositoryNotConnected,
+      message: CODE_TASK_REPOSITORY_CONNECTION_GONE_MESSAGE,
+    });
+  });
+
+  test("a Git server only a private network reaches needs a Runner of the project's own", async () => {
+    connectedAs(
+      summary({
+        provider: CodeRepositoryType.Git,
+        isReachableFromServer: false,
+      }),
+    );
+
+    expect(await blocker()).toEqual({
+      type: CodeTaskBlockerType.RepositoryNeedsOwnRunner,
+      message: CODE_TASK_REPOSITORY_NEEDS_OWN_RUNNER_MESSAGE,
+    });
+
+    // Once the repository picks one, its Runner is what is asked about.
+    world.repositoryRunnerId = RUNNER_ID;
+
+    expect(await blocker()).toBeNull();
+  });
+
+  test("the plan, permission and the AI switch are still asked first", async () => {
+    connectedAs(summary({ state: CodeHostConnectionState.TokenRefused }));
+
+    expect((await blocker({ canAsk: false }))!.type).toBe(
+      CodeTaskBlockerType.NoPermission,
+    );
+
+    world.enableAi = false;
+
+    expect((await blocker())!.type).toBe(CodeTaskBlockerType.AiDisabled);
   });
 });

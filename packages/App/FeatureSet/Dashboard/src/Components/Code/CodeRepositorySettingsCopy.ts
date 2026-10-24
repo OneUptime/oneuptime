@@ -19,6 +19,11 @@ import {
   buildRunnerPickerModel,
 } from "../Runner/RunnerPickerModel";
 import { ProductionReviewPullRequestContent } from "Common/Types/CodeRepository/ProductionReview";
+import {
+  CodeHost,
+  CodeHostCapability,
+} from "Common/Types/CodeRepository/CodeHost";
+import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import RunnerLiveStatus, {
   getRunnerLiveStatusLabel,
 } from "Common/Types/Runner/RunnerLiveStatus";
@@ -55,6 +60,13 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
  *     the repository's own AGENTS.md. Code no longer asks for those
  *     commands: they are shown, run, and can be removed.
  *
+ * A repository that is not on GitHub has no GitHub App to answer commands
+ * or review its pull requests: its More settings hold the Runner, its pull
+ * requests (GitLab, Forgejo, Gitea) or - for a Git server, where AI pushes
+ * a branch and opens no pull request - its Branches, and the commands, with
+ * one plain line saying what works in GitHub repositories only
+ * (getRepositorySettingsFor).
+ *
  * The maintainer, on the page that kept GitHub Commands and Runner in sight
  * above More settings: "GitHub commands and runner should be inside of more
  * settings as well." Production Review followed them, by the same rule: a
@@ -80,6 +92,11 @@ export enum CodeRepositorySetting {
   ProductionReviewComment = "production-review-comment",
   // Only on a repository whose operator set build and test commands.
   Commands = "commands",
+  /*
+   * A Git repository's Pull Requests: AI pushes a branch there and opens no
+   * pull request, so only the branch it starts from is asked.
+   */
+  Branches = "branches",
 }
 
 export const CODE_REPOSITORY_SETTINGS_IN_ORDER: ReadonlyArray<CodeRepositorySetting> =
@@ -92,6 +109,42 @@ export const CODE_REPOSITORY_SETTINGS_IN_ORDER: ReadonlyArray<CodeRepositorySett
     CodeRepositorySetting.ProductionReviewComment,
     CodeRepositorySetting.Commands,
   ];
+
+/*
+ * The settings of a repository on GitHub, and the ones a repository on
+ * another host has: the GitHub App's commands, its trigger label and the
+ * production reviews it posts are GitHub's alone; a Git repository has
+ * Branches where the others have Pull Requests.
+ */
+const GITHUB_ONLY_SETTINGS: ReadonlyArray<CodeRepositorySetting> = [
+  CodeRepositorySetting.GitHubCommands,
+  CodeRepositorySetting.ProductionReview,
+  CodeRepositorySetting.TriggerLabel,
+  CodeRepositorySetting.ProductionReviewComment,
+];
+
+export const getRepositorySettingsFor: (
+  provider: string | null | undefined,
+) => Array<CodeRepositorySetting> = (
+  provider: string | null | undefined,
+): Array<CodeRepositorySetting> => {
+  const type: CodeRepositoryType = CodeHost.readType(provider);
+
+  if (type === CodeRepositoryType.GitHub) {
+    return [...CODE_REPOSITORY_SETTINGS_IN_ORDER];
+  }
+
+  return CODE_REPOSITORY_SETTINGS_IN_ORDER.filter(
+    (setting: CodeRepositorySetting): boolean => {
+      return !GITHUB_ONLY_SETTINGS.includes(setting);
+    },
+  ).map((setting: CodeRepositorySetting): CodeRepositorySetting => {
+    return setting === CodeRepositorySetting.PullRequests &&
+      !CodeHost.can(type, CodeHostCapability.PullRequests)
+      ? CodeRepositorySetting.Branches
+      : setting;
+  });
+};
 
 /*
  * What a repository holds that this page reads - and, for the two switches
@@ -133,7 +186,11 @@ export const CODE_REPOSITORY_SETTINGS_COPY: {
   runnerCardTitle: string;
   runnerCardDescription: string;
   moreSettingsDescription: string;
+  moreSettingsDescriptionPullRequests: string;
+  moreSettingsDescriptionBranches: string;
   noRunnerValue: string;
+  branchesCardTitle: string;
+  branchesCardDescription: string;
   pullRequestsCardTitle: string;
   pullRequestsCardDescription: string;
   mainBranchTitle: string;
@@ -166,11 +223,24 @@ export const CODE_REPOSITORY_SETTINGS_COPY: {
   moreSettingsDescription: translationKey(
     "GitHub commands, production reviews, where AI works, and where its pull requests open.",
   ),
+  // The same, for a repository on GitLab, Forgejo or Gitea.
+  moreSettingsDescriptionPullRequests: translationKey(
+    "Where AI works, and where its pull requests open.",
+  ),
+  // The same, for a repository on a Git server.
+  moreSettingsDescriptionBranches: translationKey(
+    "Where AI works, and the branch it starts from.",
+  ),
   /*
    * More settings' chip for a repository that picks no Runner where there
    * is no global Runner to work on: "Runner: None".
    */
   noRunnerValue: translationKey("None"),
+  // A Git repository's Pull Requests: the branch AI starts from, alone.
+  branchesCardTitle: translationKey("Branches"),
+  branchesCardDescription: translationKey(
+    "AI starts from the main branch and pushes its work to a new branch, for you to open a pull request from on your Git server.",
+  ),
   pullRequestsCardTitle: translationKey("Pull Requests"),
   pullRequestsCardDescription: translationKey(
     "Where AI's pull requests open, and how many may be open at once.",
@@ -351,6 +421,7 @@ export function getRepositoryMoreSettingsItems(
   repository: CodeRepositorySettingsValues | null | undefined,
   translator: Translator,
   runnerChoices?: RunnerChoices | null | undefined,
+  provider?: string | null | undefined,
 ): Array<FoldedSectionItem> {
   const limit: FixPullRequestLimit = getFixPullRequestLimit(repository || {});
   const label: string = (repository?.gitHubTriggerLabel || "").trim();
@@ -426,5 +497,50 @@ export function getRepositoryMoreSettingsItems(
     });
   }
 
-  return items;
+  /*
+   * A repository on another host: only the settings it has, a Git
+   * repository's Branches - named alone, it has nothing set - where the
+   * others have Pull Requests.
+   */
+  const settings: Array<CodeRepositorySetting> =
+    getRepositorySettingsFor(provider);
+
+  if (settings.includes(CodeRepositorySetting.Branches)) {
+    items.push({
+      key: CodeRepositorySetting.Branches,
+      title: CODE_REPOSITORY_SETTINGS_COPY.branchesCardTitle,
+      isSet: false,
+    });
+  }
+
+  return settings
+    .map((setting: CodeRepositorySetting): FoldedSectionItem | undefined => {
+      return items.find((item: FoldedSectionItem): boolean => {
+        return item.key === setting;
+      });
+    })
+    .filter(
+      (item: FoldedSectionItem | undefined): item is FoldedSectionItem => {
+        return Boolean(item);
+      },
+    );
+}
+
+/*
+ * What More settings says it holds, once it is open, for the repository's
+ * host: GitHub's commands and production reviews only on GitHub; a Git
+ * repository's branch where the others' pull requests open.
+ */
+export function getRepositoryMoreSettingsDescription(
+  provider: string | null | undefined,
+): string {
+  const type: CodeRepositoryType = CodeHost.readType(provider);
+
+  if (type === CodeRepositoryType.GitHub) {
+    return CODE_REPOSITORY_SETTINGS_COPY.moreSettingsDescription;
+  }
+
+  return CodeHost.can(type, CodeHostCapability.PullRequests)
+    ? CODE_REPOSITORY_SETTINGS_COPY.moreSettingsDescriptionPullRequests
+    : CODE_REPOSITORY_SETTINGS_COPY.moreSettingsDescriptionBranches;
 }

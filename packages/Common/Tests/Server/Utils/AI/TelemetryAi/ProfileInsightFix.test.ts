@@ -19,9 +19,8 @@ import ProfileInsightFix, {
   ProfileInsightFixResult,
   ProfileInsightFixSkip,
 } from "../../../../../Server/Utils/AI/TelemetryAi/ProfileInsightFix";
-import GitHubUtil from "../../../../../Server/Utils/CodeRepository/GitHub/GitHub";
 import SourceLocator, {
-  LocatableRepository,
+  LocatableRepositoryWithTree,
 } from "../../../../../Server/Utils/CodeRepository/SourceLocator";
 import AIInsight from "../../../../../Models/DatabaseModels/AIInsight";
 import AIRun from "../../../../../Models/DatabaseModels/AIRun";
@@ -38,6 +37,7 @@ import {
   TelemetryAiWork,
   decideTelemetryAiWork,
 } from "../../../../../Types/AI/TelemetryAi";
+import CodeRepositoryType from "../../../../../Types/CodeRepository/CodeRepositoryType";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import PositiveNumber from "../../../../../Types/PositiveNumber";
@@ -87,9 +87,7 @@ function insight(profile: ProfileInsightEvidence | null = PROFILE): AIInsight {
   return value;
 }
 
-function repository(
-  id: string,
-): LocatableRepository & { gitHubAppInstallationId: string } {
+function repository(id: string): LocatableRepositoryWithTree {
   return {
     id,
     name: `acme/${id.substring(id.length - 2)}`,
@@ -97,6 +95,19 @@ function repository(
     repositoryName: id.substring(id.length - 2),
     mainBranchName: "main",
     gitHubAppInstallationId: "42",
+  };
+}
+
+// A repository on a host other than GitHub, read through its connection.
+function gitLabRepository(id: string): LocatableRepositoryWithTree {
+  return {
+    id,
+    name: `acme/${id.substring(id.length - 2)}`,
+    organizationName: "acme",
+    repositoryName: id.substring(id.length - 2),
+    mainBranchName: "main",
+    repositoryHostedAt: CodeRepositoryType.GitLab,
+    projectId: PROJECT_ID.toString(),
   };
 }
 
@@ -110,10 +121,9 @@ const ANYWHERE: TelemetryAiWork = decideTelemetryAiWork({
 describe("ProfileInsightFix.start", () => {
   let startedToday: number;
   let activeTaskId: string | null;
-  let repositories: Array<
-    LocatableRepository & { gitHubAppInstallationId: string }
-  >;
+  let repositories: Array<LocatableRepositoryWithTree>;
   let treePaths: Map<string, Array<string>>;
+  let readTree: SpyInstance<typeof SourceLocator.getTreePaths>;
   let countRuns: SpyInstance<typeof AIRunService.countBy>;
   let getBlocker: SpyInstance<typeof CodeTaskGate.getBlocker>;
   let capCheck: SpyInstance<typeof OpenPullRequestCap.checkForRepository>;
@@ -145,18 +155,10 @@ describe("ProfileInsightFix.start", () => {
       .mockImplementation(async () => {
         return repositories;
       });
-    jest
-      .spyOn(GitHubUtil, "getRepositoryTreePaths")
-      .mockImplementation(async (data: unknown) => {
-        const name: string = (data as JSONObject)["repositoryName"] as string;
-        const match: LocatableRepository | undefined = [
-          repository(REPO_A),
-          repository(REPO_B),
-        ].find((candidate: LocatableRepository): boolean => {
-          return candidate.repositoryName === name;
-        });
-
-        return match ? treePaths.get(match.id) || [] : [];
+    readTree = jest
+      .spyOn(SourceLocator, "getTreePaths")
+      .mockImplementation(async (located: LocatableRepositoryWithTree) => {
+        return treePaths.get(located.id) || [];
       });
     jest
       .spyOn(CodeRepositoryService, "findOneBy")
@@ -186,7 +188,7 @@ describe("ProfileInsightFix.start", () => {
         return {
           type: CodeTaskContextType.Profile,
           label: "Profile: OrderParser.parse in checkout",
-          ...(input as object),
+          ...(input as Record<string, unknown>),
         } as CodeTaskContextItem;
       });
     startTask = jest
@@ -328,7 +330,24 @@ describe("ProfileInsightFix.start", () => {
     expect(startTask).not.toHaveBeenCalled();
   });
 
-  test("no repository connected through the GitHub App: nothing", async () => {
+  test("a repository on any host Code connects is looked in, through its own connection", async () => {
+    repositories = [repository(REPO_A), gitLabRepository(REPO_B)];
+    treePaths = new Map<string, Array<string>>([
+      [REPO_A, ["README.md"]],
+      [REPO_B, ["services/src/orders/parser.ts"]],
+    ]);
+
+    await expect(
+      ProfileInsightFix.start({ insight: insight(), work: ANYWHERE }),
+    ).resolves.toEqual({ taskId: createdTaskId });
+
+    const call: JSONObject = startTask.mock
+      .calls[0]![0] as unknown as JSONObject;
+    expect(String((call["repository"] as CodeRepository).id)).toBe(REPO_B);
+    expect(readTree).toHaveBeenCalledWith(gitLabRepository(REPO_B));
+  });
+
+  test("no repository connected in Code: nothing", async () => {
     repositories = [];
 
     await expect(

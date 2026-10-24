@@ -332,7 +332,7 @@ A function of your own code is filed when its service sent at least 500 samples 
 
 ### Turn it on
 
-**Products → Performance Profiles → AI → Settings** holds the switch **Find and fix slow code**, on for new projects. With **Enable AI** off, slow code is still found, but OneUptime AI does nothing with it. To open pull requests, OneUptime AI needs a repository connected through the GitHub App in [Code](/docs/ai/ai-agent): the page says what is missing first. Each repository's code is changed on the Runner the repository picks in Code.
+**Products → Performance Profiles → AI → Settings** holds the switch **Find and fix slow code**, on for new projects. With **Enable AI** off, slow code is still found, but OneUptime AI does nothing with it. To open pull requests, OneUptime AI needs a repository connected in [Code](/docs/ai/ai-agent): the page says what is missing first. Each repository's code is changed on the Runner the repository picks in Code.
 
 OneUptime AI opens at most 5 pull requests on its own each day (UTC), one for each finding, and never more than a repository's limit on open AI pull requests.
 

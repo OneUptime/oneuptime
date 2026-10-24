@@ -284,7 +284,7 @@ test.describe("Profiler → AI → Settings", () => {
 
     await expect(connect).toBeVisible({ timeout: 60000 });
     await expect(connect).toContainText(
-      "Connect a repository through the GitHub App",
+      "Connect a repository so OneUptime AI can open pull requests",
     );
 
     await connect

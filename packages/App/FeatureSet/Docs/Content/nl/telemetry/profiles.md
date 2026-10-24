@@ -332,7 +332,7 @@ Een functie van uw eigen code wordt vastgelegd als de dienst in het afgelopen uu
 
 ### Inschakelen
 
-**Producten → Prestatieprofielen → AI → Instellingen** bevat de schakelaar **Trage code vinden en oplossen**, die voor nieuwe projecten aan staat. Staat **AI inschakelen** uit, dan wordt trage code nog gevonden, maar doet OneUptime AI er niets mee. Om pull requests te openen heeft OneUptime AI een repository nodig die via de GitHub App is gekoppeld in [Code](/docs/ai/ai-agent): de pagina zegt eerst wat ontbreekt. De code van elke repository wordt gewijzigd op de Runner die de repository in Code kiest.
+**Producten → Prestatieprofielen → AI → Instellingen** bevat de schakelaar **Trage code vinden en oplossen**, die voor nieuwe projecten aan staat. Staat **AI inschakelen** uit, dan wordt trage code nog gevonden, maar doet OneUptime AI er niets mee. Om pull requests te openen heeft OneUptime AI een repository nodig die in [Code](/docs/ai/ai-agent) is gekoppeld: de pagina zegt eerst wat ontbreekt. De code van elke repository wordt gewijzigd op de Runner die de repository in Code kiest.
 
 OneUptime AI opent zelf maximaal 5 pull requests per dag (UTC), één per bevinding, en nooit meer dan de limiet van een repository voor open AI-pull requests.
 

@@ -332,7 +332,7 @@ Eine Funktion Ihres eigenen Codes wird angelegt, wenn ihr Dienst in der letzten 
 
 ### Einschalten
 
-**Produkte → Performance-Profile → KI → Einstellungen** enthält den Schalter **Langsamen Code finden und beheben**, der für neue Projekte eingeschaltet ist. Ist **KI aktivieren** aus, wird langsamer Code weiterhin gefunden, aber OneUptime AI tut nichts damit. Um Pull Requests zu öffnen, braucht OneUptime AI ein über die GitHub-App verbundenes Repository in [Code](/docs/ai/ai-agent): Die Seite sagt, was zuerst fehlt. Der Code eines Repositorys wird auf dem Runner geändert, den das Repository in Code auswählt.
+**Produkte → Performance-Profile → KI → Einstellungen** enthält den Schalter **Langsamen Code finden und beheben**, der für neue Projekte eingeschaltet ist. Ist **KI aktivieren** aus, wird langsamer Code weiterhin gefunden, aber OneUptime AI tut nichts damit. Um Pull Requests zu öffnen, braucht OneUptime AI ein in [Code](/docs/ai/ai-agent) verbundenes Repository: Die Seite sagt, was zuerst fehlt. Der Code eines Repositorys wird auf dem Runner geändert, den das Repository in Code auswählt.
 
 OneUptime AI öffnet von sich aus höchstens 5 Pull Requests pro Tag (UTC), einen pro Befund, und nie mehr, als ein Repository an offenen KI-Pull-Requests zulässt.
 

@@ -137,8 +137,17 @@ PermissionUtil.getGlobalPermissions = () => {
   return null;
 };
 
+/*
+ * One "now" for every reading: a scan stamps all it read with its one
+ * completedAt, and the card says a source once only for readings of the very
+ * same time (isSameAssetFactSource). Reading the clock per call let two
+ * readings of one scan land a millisecond apart on a slow runner, and the
+ * card then named the scan again under one of them.
+ */
+const FIXTURE_NOW = Date.now();
+
 function minutesAgo(minutes) {
-  return new Date(Date.now() - minutes * 60 * 1000).toISOString();
+  return new Date(FIXTURE_NOW - minutes * 60 * 1000).toISOString();
 }
 
 const scan = {

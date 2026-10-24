@@ -241,7 +241,7 @@ function world(change?: {
   };
 
   jest
-    .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
+    .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
     .mockResolvedValue(change?.connected ?? true);
   jest.spyOn(CodeTaskAccess, "getReadableRepository").mockResolvedValue(
     Object.assign(new CodeRepository(), {

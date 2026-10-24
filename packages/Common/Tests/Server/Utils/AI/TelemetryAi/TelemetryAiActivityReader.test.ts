@@ -16,7 +16,7 @@ import CodeTaskThread from "../../../../../Server/Utils/AI/CodeTask/CodeTaskThre
 import ProfileInsightFix from "../../../../../Server/Utils/AI/TelemetryAi/ProfileInsightFix";
 import TelemetryAiActivityReader from "../../../../../Server/Utils/AI/TelemetryAi/TelemetryAiActivityReader";
 import SourceLocator, {
-  LocatableRepository,
+  LocatableRepositoryWithTree,
 } from "../../../../../Server/Utils/CodeRepository/SourceLocator";
 import AIAgentTaskPullRequest from "../../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import AIInsight from "../../../../../Models/DatabaseModels/AIInsight";
@@ -31,6 +31,7 @@ import {
   CodeTaskBlockerType,
   CodeTaskPersonJSON,
 } from "../../../../../Types/AI/CodeTask";
+import CodeRepositoryType from "../../../../../Types/CodeRepository/CodeRepositoryType";
 import PullRequestState from "../../../../../Types/CodeRepository/PullRequestState";
 import {
   TELEMETRY_AI_MAX_AUTOMATIC_FIXES_PER_DAY,
@@ -265,6 +266,8 @@ describe("TelemetryAiActivityReader.toEntry", () => {
     expect(named.kind).toBe(TelemetryAiLogKind.PullRequest);
     expect(named.taskId).toBe(TASK_RUN);
     expect(named.repositoryName).toBe("acme/shop");
+    // A repository that says nothing of its host is on GitHub.
+    expect(named.repositoryHostedAt).toBe(CodeRepositoryType.GitHub);
     expect(named.pullRequest).toEqual({
       state: PullRequestState.Open,
       number: 812,
@@ -283,8 +286,29 @@ describe("TelemetryAiActivityReader.toEntry", () => {
 
     expect(unnamed.taskId).toBe(TASK_RUN);
     expect(unnamed.repositoryName).toBeUndefined();
+    expect(unnamed.repositoryHostedAt).toBeUndefined();
     expect(unnamed.pullRequest).toBeUndefined();
     expect(unnamed.requestedBy).toBe("Ada");
+  });
+
+  test("a pull request says where its repository is hosted, so a merge request is drawn as one", () => {
+    const onGitLab: CodeRepository = repositoryRow(REPO_ID, "acme/shop");
+    onGitLab.repositoryHostedAt = CodeRepositoryType.GitLab;
+
+    const entry: TelemetryAiLogEntryJSON = TelemetryAiActivityReader.toEntry({
+      run: run({
+        id: TASK_RUN,
+        runType: AIRunType.CodeFix,
+        status: AIRunStatus.Completed,
+        insightId: INSIGHT_A,
+        repositoryId: REPO_ID,
+      }),
+      problem: problem(INSIGHT_A, "slow"),
+      repository: onGitLab,
+      pullRequest: pullRequest(TASK_RUN),
+    });
+
+    expect(entry.repositoryHostedAt).toBe(CodeRepositoryType.GitLab);
   });
 });
 
@@ -463,6 +487,11 @@ describe("TelemetryAiActivityReader.readLogs", () => {
     ).toBe(READER);
     expect(
       (
+        readRepositories.mock.calls[0]![0] as unknown as Record<string, unknown>
+      )["select"],
+    ).toEqual({ _id: true, name: true, repositoryHostedAt: true });
+    expect(
+      (
         (readPullRequests.mock.calls[0]![0] as { runIds: Array<ObjectID> })
           .runIds || []
       ).map((id: ObjectID): string => {
@@ -497,9 +526,7 @@ describe("TelemetryAiActivityReader.readLogs", () => {
 
 describe("TelemetryAiActivityReader.readReadiness", () => {
   let project: Project | null;
-  let repositories: Array<
-    LocatableRepository & { gitHubAppInstallationId: string }
-  >;
+  let repositories: Array<LocatableRepositoryWithTree>;
   let getBlocker: SpyInstance<typeof CodeTaskGate.getBlocker>;
   let blocker: {
     type: CodeTaskBlockerType;

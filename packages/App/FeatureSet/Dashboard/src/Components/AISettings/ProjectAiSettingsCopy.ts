@@ -140,9 +140,13 @@ export const getProjectAiSwitchTestId: (column: string) => string = (
   return `ai-switch-${column}`;
 };
 
-// What AI Insights' fix pull request switch needs besides the switch.
-const GITHUB_APP_NOTE: string = translationKey(
-  "Needs a repository connected through the GitHub App.",
+/*
+ * What AI Insights' fix pull request switch needs besides the switch: a
+ * repository connected in Code - on GitHub, GitLab, Forgejo, Gitea or any
+ * Git server (SubjectCodeFixRun.hasConnectedRepository).
+ */
+const CONNECTED_REPOSITORY_NOTE: string = translationKey(
+  "Needs a repository connected in Code.",
 );
 /*
  * Fixing starts off: it changes infrastructure, so a project turns it on
@@ -740,7 +744,7 @@ export const AI_INSIGHTS_SWITCHES: Array<
     description: translationKey(
       "OneUptime AI opens a pull request with a proposed fix for your team to review. Nothing is merged automatically.",
     ),
-    note: GITHUB_APP_NOTE,
+    note: CONNECTED_REPOSITORY_NOTE,
   },
   {
     column: "autoArchiveNonActionableExceptions",

@@ -332,7 +332,7 @@ En funktion i din egen kod registreras när dess tjänst har skickat minst 500 s
 
 ### Slå på det
 
-**Produkter → Prestandaprofiler → AI → Inställningar** har reglaget **Hitta och åtgärda långsam kod**, som är på för nya projekt. När **Aktivera AI** är av hittas långsam kod fortfarande, men OneUptime AI gör ingenting med den. För att öppna pull requests behöver OneUptime AI ett repository anslutet via GitHub App i [Kod](/docs/ai/ai-agent): sidan säger först vad som saknas. Koden i varje repository ändras på den Runner som repositoryt väljer i Kod.
+**Produkter → Prestandaprofiler → AI → Inställningar** har reglaget **Hitta och åtgärda långsam kod**, som är på för nya projekt. När **Aktivera AI** är av hittas långsam kod fortfarande, men OneUptime AI gör ingenting med den. För att öppna pull requests behöver OneUptime AI ett repository anslutet i [Kod](/docs/ai/ai-agent): sidan säger först vad som saknas. Koden i varje repository ändras på den Runner som repositoryt väljer i Kod.
 
 OneUptime AI öppnar själv högst 5 pull requests per dag (UTC), en för varje fynd, och aldrig fler än ett repositorys gräns för öppna AI-pull requests.
 

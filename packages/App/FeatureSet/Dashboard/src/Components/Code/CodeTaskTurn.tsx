@@ -4,6 +4,13 @@ import {
   getInitials,
 } from "../AI/InvestigationConversation/InvestigationConversationData";
 import CodeTaskChangesView from "./CodeTaskChanges";
+import CodeHostMark from "./CodeHostMark";
+import {
+  CODE_VIEW_ON_HOST,
+  CodePullRequestCopy,
+  getCodeHostName,
+  getPullRequestCopy,
+} from "./CodeHostCopy";
 import {
   CODE_TASK_CONTEXT_KINDS,
   CODE_TASK_CONTEXT_RECORD_PAGES,
@@ -119,6 +126,17 @@ export interface ComponentProps {
    * turn that waits long for a Runner links to.
    */
   repositorySettingsRoute?: Route | undefined;
+  /*
+   * Where the task's repository is hosted: its pull request's mark, how
+   * the host names it (a merge request, "!12", on GitLab) and where it is
+   * viewed ("View on GitLab"). Unknown is GitHub.
+   */
+  repositoryHost?: CodeTaskTurnHost | undefined;
+}
+
+export interface CodeTaskTurnHost {
+  provider?: string | undefined;
+  hostProduct?: string | undefined;
 }
 
 // The page a context chip opens, when it names a record.
@@ -319,13 +337,16 @@ const OneUptimeMark: FunctionComponent = (): ReactElement => {
 const PullRequestLine: FunctionComponent<{
   pullRequest: CodeTaskPullRequestJSON;
   isUpdate: boolean;
+  host?: CodeTaskTurnHost | undefined;
 }> = (props: {
   pullRequest: CodeTaskPullRequestJSON;
   isUpdate: boolean;
+  host?: CodeTaskTurnHost | undefined;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const pullRequest: CodeTaskPullRequestJSON = props.pullRequest;
   const number: string = pullRequest.number?.toString() || "";
+  const copy: CodePullRequestCopy = getPullRequestCopy(props.host?.provider);
 
   /*
    * A pull request is open until someone merges or closes it, so only those
@@ -344,18 +365,20 @@ const PullRequestLine: FunctionComponent<{
         data-testid="code-turn-pull-request"
         className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
       >
-        <Icon icon={IconProp.GitHub} className="h-4 w-4 text-gray-700" />
+        <span className="inline-flex text-gray-700">
+          <CodeHostMark
+            provider={props.host?.provider}
+            hostProduct={props.host?.hostProduct}
+            className="h-4 w-4"
+          />
+        </span>
         <span className="font-medium text-gray-900">
-          {props.isUpdate
-            ? translator.translateTemplate(
-                "Pushed to pull request #{{number}}",
-                {
-                  number,
-                },
-              )
-            : translator.translateTemplate("Opened pull request #{{number}}", {
-                number,
-              })}
+          {translator.translateTemplate(
+            props.isUpdate ? copy.pushed : copy.opened,
+            {
+              number,
+            },
+          )}
         </span>
         {stateText ? (
           <span
@@ -378,7 +401,12 @@ const PullRequestLine: FunctionComponent<{
             className="inline-flex items-center gap-1 font-medium text-indigo-600 hover:text-indigo-500"
           >
             <>
-              {translator.translateText("View on GitHub")}
+              {translator.translateTemplate(CODE_VIEW_ON_HOST, {
+                host: getCodeHostName({
+                  provider: props.host?.provider,
+                  hostProduct: props.host?.hostProduct,
+                }),
+              })}
               <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
             </>
           </Link>
@@ -751,6 +779,7 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
                 key={`${pullRequest.number}-${pullRequest.url}`}
                 pullRequest={pullRequest}
                 isUpdate={false}
+                host={props.repositoryHost}
               />
             );
           })}
@@ -765,6 +794,7 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
                 state: "open",
               }}
               isUpdate={turn.outcome.openedPullRequest === false}
+              host={props.repositoryHost}
             />
           ) : (
             <></>

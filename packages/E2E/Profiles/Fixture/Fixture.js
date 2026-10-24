@@ -28,7 +28,7 @@
  *   ?repo=     found (default) | pick | none
  *              found: the function's file is in acme/checkout
  *              pick:  two repositories, neither found to hold it
- *              none:  no repository connected through the GitHub App
+ *              none:  no repository connected in Code
  *   ?fix=      none (default) | running - a fix already on its way
  *   ?blocker=  none (default) | credits - Code's gate says no AI credits
  *   ?fail=     comma separated: types, functions, compare, focus, fix,

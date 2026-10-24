@@ -112,9 +112,7 @@ describe("the Profiler's AI section", () => {
 
     expect(findAndFix!.title).toBe("Find and fix slow code");
     expect(findAndFix!.description).toContain("pull request");
-    expect(findAndFix!.note).toBe(
-      "Needs a repository connected through the GitHub App.",
-    );
+    expect(findAndFix!.note).toBe("Needs a repository connected in Code.");
   });
 
   test("its Fix step asks the one question every AI rule asks, in pull requests", () => {

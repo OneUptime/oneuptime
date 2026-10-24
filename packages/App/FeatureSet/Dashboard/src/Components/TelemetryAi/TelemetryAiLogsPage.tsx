@@ -33,6 +33,12 @@ import React, {
 } from "react";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import {
+  CODE_VIEW_ON_HOST,
+  getCodeHostName,
+  getPullRequestCopy,
+} from "../Code/CodeHostCopy";
+import CodeHostMark from "../Code/CodeHostMark";
 import { fetchTelemetryAiLogs } from "./TelemetryAiApi";
 import {
   TELEMETRY_AI_LANE_COPY,
@@ -42,11 +48,9 @@ import {
   TELEMETRY_AI_LOG_KIND_ICONS,
   TELEMETRY_AI_LOG_KIND_LABELS,
   TELEMETRY_AI_LOG_OPEN_TASK,
-  TELEMETRY_AI_LOG_PULL_REQUEST,
   TELEMETRY_AI_LOG_STARTED_BY_ONEUPTIME,
   TELEMETRY_AI_LOG_STATE_CLASS_NAMES,
   TELEMETRY_AI_LOG_STATE_LABELS,
-  TELEMETRY_AI_LOG_VIEW_PULL_REQUEST,
   TELEMETRY_AI_PAGES,
   TELEMETRY_AI_TEST_IDS,
   TelemetryAiLaneCopy,
@@ -219,16 +223,22 @@ export const TelemetryAiLogRow: FunctionComponent<TelemetryAiLogRowProps> = (
                 openInNewTab={true}
                 className={`inline-flex items-center gap-1 ${LINK_CLASS_NAME}`}
               >
-                <Icon icon={IconProp.GitHub} className="h-4 w-4" />
+                {/* As Code draws it: a merge request, "!12", on GitLab. */}
+                <CodeHostMark
+                  provider={entry.repositoryHostedAt}
+                  className="h-4 w-4"
+                />
                 <span>
                   {entry.pullRequest?.number
                     ? translator.translateTemplate(
-                        TELEMETRY_AI_LOG_PULL_REQUEST,
+                        getPullRequestCopy(entry.repositoryHostedAt).title,
                         { number: entry.pullRequest.number },
                       )
-                    : translator.translateText(
-                        TELEMETRY_AI_LOG_VIEW_PULL_REQUEST,
-                      )}
+                    : translator.translateTemplate(CODE_VIEW_ON_HOST, {
+                        host: getCodeHostName({
+                          provider: entry.repositoryHostedAt,
+                        }),
+                      })}
                 </span>
               </Link>
             ) : (

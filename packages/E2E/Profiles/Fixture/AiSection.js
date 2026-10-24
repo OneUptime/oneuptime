@@ -263,6 +263,7 @@ export function aiLogs(now, skip) {
       ),
       taskId: AI_TASK_IDS.automatic,
       repositoryName: "acme/checkout",
+      repositoryHostedAt: "GitHub",
       pullRequest: {
         state: "open",
         number: 812,

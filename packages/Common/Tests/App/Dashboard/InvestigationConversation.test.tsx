@@ -2563,3 +2563,161 @@ describe("InvestigationConversation — the composer in the card", () => {
     expect(composer().value).toBe("And the node?");
   });
 });
+
+/*
+ * Folded into the AI card's one line ("AI investigation is off", and why):
+ * while the card is that line, an empty conversation draws nothing - the
+ * line offers Ask OneUptime AI instead - and shows once something is in it
+ * (a teammate's question, an answer on its way) or once the reader asks
+ * for it there, when its box takes the focus. It keeps reading the thread
+ * meanwhile, so a question someone else asks still shows up.
+ */
+describe("InvestigationConversation — folded into the AI card's one line", () => {
+  function renderFolded(data: {
+    askRequest: number;
+    onHasContentChange?: (hasContent: boolean) => void;
+  }): ReturnType<typeof render> {
+    return render(
+      <InvestigationConversation
+        subjectType="incident"
+        subjectId={INCIDENT_ID}
+        investigationStage="none"
+        fold={{
+          askRequest: data.askRequest,
+          onHasContentChange: data.onHasContentChange || ((): void => {}),
+        }}
+      />,
+    );
+  }
+
+  test("an empty thread draws nothing, and says it has nothing to show", async () => {
+    const onHasContentChange: MockFunction = getJestMockFunction();
+    routeResponses({});
+
+    const view: ReturnType<typeof render> = renderFolded({
+      askRequest: 0,
+      onHasContentChange: onHasContentChange as unknown as (
+        hasContent: boolean,
+      ) => void,
+    });
+    await flush();
+
+    expect(view.container).toBeEmptyDOMElement();
+    expect(screen.queryByTestId("investigation-conversation")).toBeNull();
+    expect(screen.queryByRole("textbox")).toBeNull();
+    // It read the thread all the same.
+    expect(requests("/ai-investigation/conversation").length).toBeGreaterThan(
+      0,
+    );
+    expect(onHasContentChange).toHaveBeenLastCalledWith(false);
+  });
+
+  test("a thread with questions in it is on screen by itself, and says so", async () => {
+    const onHasContentChange: MockFunction = getJestMockFunction();
+    routeResponses({
+      thread: () => {
+        return threadResponse({
+          messages: [
+            question({
+              id: "88888888-8888-4888-8888-888888888888",
+              content: "Is checkout affected?",
+              userId: PRIYA,
+              name: "Priya Shah",
+            }),
+            answer({
+              content: "Only the EU region.",
+              userId: PRIYA,
+              name: "Priya Shah",
+            }),
+          ],
+        });
+      },
+    });
+
+    renderFolded({
+      askRequest: 0,
+      onHasContentChange: onHasContentChange as unknown as (
+        hasContent: boolean,
+      ) => void,
+    });
+    await flush();
+
+    expect(screen.getByTestId("investigation-conversation")).toBeVisible();
+    expect(screen.getByText("Is checkout affected?")).toBeVisible();
+    expect(onHasContentChange).toHaveBeenLastCalledWith(true);
+    // Shown by itself, it does not take the focus.
+    expect(composer()).not.toHaveFocus();
+  });
+
+  test("a question someone else asks while it is folded brings it on screen", async () => {
+    const onHasContentChange: MockFunction = getJestMockFunction();
+    let messages: Array<JSONObject> = [];
+    routeResponses({
+      thread: () => {
+        return threadResponse({ messages });
+      },
+    });
+
+    renderFolded({
+      askRequest: 0,
+      onHasContentChange: onHasContentChange as unknown as (
+        hasContent: boolean,
+      ) => void,
+    });
+    await flush();
+
+    expect(screen.queryByTestId("investigation-conversation")).toBeNull();
+
+    messages = [
+      question({
+        id: "88888888-8888-4888-8888-888888888888",
+        content: "Who is on call?",
+        userId: PRIYA,
+        name: "Priya Shah",
+      }),
+    ];
+    await tick(THREAD_POLL_IDLE_MS);
+
+    expect(screen.getByText("Who is on call?")).toBeVisible();
+    expect(onHasContentChange).toHaveBeenLastCalledWith(true);
+  });
+
+  test("asked for from the line, it shows its suggestions and its box takes the focus", async () => {
+    routeResponses({});
+
+    const view: ReturnType<typeof render> = renderFolded({ askRequest: 0 });
+    await flush();
+
+    expect(screen.queryByTestId("investigation-conversation")).toBeNull();
+
+    view.rerender(
+      <InvestigationConversation
+        subjectType="incident"
+        subjectId={INCIDENT_ID}
+        investigationStage="none"
+        fold={{ askRequest: 1, onHasContentChange: (): void => {} }}
+      />,
+    );
+    await flush();
+
+    expect(screen.getByTestId("investigation-conversation")).toBeVisible();
+    expect(
+      screen.getByTestId("investigation-conversation-empty"),
+    ).toBeVisible();
+    // The root-cause question leads: nothing was investigated.
+    expect(
+      screen.getByRole("button", { name: "What is the root cause?" }),
+    ).toBeVisible();
+    expect(composer()).toHaveFocus();
+  });
+
+  test("not folded, it shows and reports nothing, as it always has", async () => {
+    routeResponses({});
+
+    renderConversation({ stage: "none" });
+    await flush();
+
+    expect(screen.getByTestId("investigation-conversation")).toBeVisible();
+    expect(composer()).not.toHaveFocus();
+  });
+});

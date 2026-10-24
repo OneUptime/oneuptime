@@ -57,7 +57,7 @@ const LANGUAGES: Array<string> = fs
 const STRIP_ACTION_KEYS: Array<string> = [
   "Fix performance with AI",
   "OneUptime AI opens a pull request that fixes this, for you to review.",
-  "Connect GitHub to fix this with AI",
+  "Connect a repository to fix this with AI",
   "OneUptime AI is working on a fix.",
   "View task progress",
   "Show them",
@@ -185,7 +185,7 @@ describe("the finding strip in the reader's language", () => {
     );
     expect(
       screen.getByTestId("trace-fix-performance-connect"),
-    ).toHaveTextContent("GitHub verbinden, um das mit KI zu beheben");
+    ).toHaveTextContent("Repository verbinden, um das mit KI zu beheben");
     expect(
       screen.getByTestId("trace-performance-show-spans"),
     ).toHaveTextContent("Anzeigen");
@@ -199,7 +199,7 @@ describe("the finding strip in the reader's language", () => {
     );
     expect(
       screen.getByTestId("trace-fix-performance-connect"),
-    ).toHaveTextContent("GitHub を接続して AI で修正");
+    ).toHaveTextContent("リポジトリを接続して AI で修正");
   });
 
   test("Russian: the count-neutral general form", async () => {

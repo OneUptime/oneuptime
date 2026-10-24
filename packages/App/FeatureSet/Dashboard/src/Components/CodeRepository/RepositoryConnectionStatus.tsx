@@ -1,3 +1,6 @@
+import CodeHostMark from "../Code/CodeHostMark";
+import { CodeHost } from "Common/Types/CodeRepository/CodeHost";
+import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -17,6 +20,20 @@ export interface ComponentProps {
    * that failed) says how it connects, as it always did.
    */
   isReachable?: boolean | null | undefined;
+  /*
+   * Where the repository is hosted (CodeRepositoryType). One that is not on
+   * GitHub - GitLab, Forgejo, Gitea, a Git server - connects with an access
+   * token (or a Git password) through its connection, drawn with its
+   * host's mark. Unknown is GitHub, as every repository was before.
+   */
+  provider?: string | undefined;
+  // For a Forgejo-family server: "Forgejo" or "Gitea", for its mark.
+  hostProduct?: string | undefined;
+  /*
+   * Its Git server refused the connection's token: Token refused - replace
+   * it to connect again - rather than Not connected.
+   */
+  isTokenRefused?: boolean | undefined;
 }
 
 const GITHUB_MARK_PATH: string =
@@ -37,6 +54,77 @@ const RepositoryConnectionStatus: FunctionComponent<ComponentProps> = (
       <path fillRule="evenodd" d={GITHUB_MARK_PATH} clipRule="evenodd" />
     </svg>
   );
+
+  const provider: CodeRepositoryType = CodeHost.readType(props.provider);
+
+  /*
+   * A repository on another host: its host's mark, and how its connection
+   * stands - its token refused, its connection gone, or an access token
+   * that works.
+   */
+  if (provider !== CodeRepositoryType.GitHub) {
+    const hostMark: ReactElement = (
+      <CodeHostMark
+        provider={provider}
+        hostProduct={props.hostProduct}
+        className="h-3.5 w-3.5"
+      />
+    );
+
+    if (props.isTokenRefused) {
+      return (
+        <div
+          className="flex items-center space-x-2"
+          data-testid={REPOSITORY_CONNECTION_STATUS_TEST_ID}
+          data-connection="token-refused"
+          data-provider={provider}
+        >
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 text-gray-500">
+            {hostMark}
+          </div>
+          <div className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20">
+            <Icon icon={IconProp.LinkSlash} className="h-3 w-3" />
+            <span>{translator.translateText("Token refused")}</span>
+          </div>
+        </div>
+      );
+    }
+
+    if (props.isReachable === false) {
+      return (
+        <div
+          className="flex items-center space-x-2"
+          data-testid={REPOSITORY_CONNECTION_STATUS_TEST_ID}
+          data-connection="not-connected"
+          data-provider={provider}
+        >
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 text-gray-500">
+            {hostMark}
+          </div>
+          <div className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20">
+            <Icon icon={IconProp.LinkSlash} className="h-3 w-3" />
+            <span>{translator.translateText("Not connected")}</span>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div
+        className="flex items-center space-x-2"
+        data-testid={REPOSITORY_CONNECTION_STATUS_TEST_ID}
+        data-connection="access-token"
+        data-provider={provider}
+      >
+        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-900 text-white">
+          {hostMark}
+        </div>
+        <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+          {translator.translateText("Access Token")}
+        </span>
+      </div>
+    );
+  }
 
   /*
    * The GitHub App does not reach it: the installation that imported it is

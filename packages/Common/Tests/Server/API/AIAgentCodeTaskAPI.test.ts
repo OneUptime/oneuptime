@@ -5,7 +5,16 @@ import CodeFixAgentAuth, {
   CodeFixAgentSource,
 } from "../../../Server/Utils/AI/CodeFix/CodeFixAgentAuth";
 import CodeTaskAgentBrief from "../../../Server/Utils/AI/CodeTask/CodeTaskAgentBrief";
-import CodeTaskGate from "../../../Server/Utils/AI/CodeTask/CodeTaskGate";
+import {
+  CODE_TASK_REPOSITORY_CONNECTION_GONE_MESSAGE,
+  CODE_TASK_REPOSITORY_NOT_CONNECTED_MESSAGE,
+  getCodeTaskTokenRefusedMessage,
+} from "../../../Server/Utils/AI/CodeTask/CodeTaskGate";
+import CodeHostAccess, {
+  CodeHostConnectionState,
+  CodeHostConnectionSummary,
+} from "../../../Server/Utils/CodeRepository/CodeHost/CodeHostAccess";
+import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -36,7 +45,9 @@ import {
  * only the run; the repository, the branch and the text all come from the
  * run's own record, and a run of another project - or of no request - reads
  * exactly like no run at all, so a key cannot probe for them. A repository
- * whose GitHub installation was unbound while the turn waited is refused.
+ * AI can no longer reach - its GitHub installation unbound, its access token
+ * refused by GitLab, Forgejo, Gitea or its Git server, or its connection
+ * gone - while the turn waited is refused, saying which.
  */
 
 jest.mock("../../../Server/Utils/Express", () => {
@@ -70,7 +81,28 @@ const RUN_ID: ObjectID = new ObjectID("5e1f4b3a-7c8d-4e9f-8a0b-2c3d4e5f6a7b");
 let agentProjectId: ObjectID | undefined;
 let storedRun: AIRun | null;
 let storedRepository: CodeRepository | null;
-let reachable: boolean;
+// How the repository connects now, as CodeHostAccess reads it; null: unread.
+let connection: CodeHostConnectionSummary | null;
+
+function connectedOn(
+  provider: CodeRepositoryType,
+  state: CodeHostConnectionState,
+): CodeHostConnectionSummary {
+  return {
+    connectionId:
+      provider === CodeRepositoryType.GitHub
+        ? null
+        : "4d0e3f2a-6b7c-4d8e-9f0a-1b2c3d4e5f6a",
+    provider,
+    hostUrl:
+      provider === CodeRepositoryType.GitHub ? null : "https://gitlab.com",
+    hostProduct: null,
+    accountLogin: null,
+    credentialHint: null,
+    state,
+    isReachableFromServer: true,
+  };
+}
 
 function run(): AIRun {
   const value: AIRun = new AIRun();
@@ -131,7 +163,10 @@ beforeEach(() => {
   agentProjectId = PROJECT_ID;
   storedRun = run();
   storedRepository = repository();
-  reachable = true;
+  connection = connectedOn(
+    CodeRepositoryType.GitHub,
+    CodeHostConnectionState.Connected,
+  );
 
   // CodeFixAgentAuth.authenticate runs on what the credential check proves.
   jest
@@ -155,9 +190,11 @@ beforeEach(() => {
       return storedRepository;
     });
   jest
-    .spyOn(CodeTaskGate, "isRepositoryReachable")
+    .spyOn(CodeHostAccess, "getConnectionSummaries")
     .mockImplementation(async () => {
-      return reachable;
+      return new Map(
+        connection ? [[REPOSITORY_ID.toString(), connection]] : [],
+      );
     });
   jest.spyOn(CodeTaskAgentBrief, "build").mockResolvedValue({
     taskId: RUN_ID.toString(),
@@ -264,13 +301,59 @@ describe("POST /ai-agent-data/get-code-task-details", () => {
   });
 
   test("a repository whose GitHub installation was unbound while it waited is refused", async () => {
-    reachable = false;
+    connection = connectedOn(
+      CodeRepositoryType.GitHub,
+      CodeHostConnectionState.GitHubNotConnected,
+    );
 
     const { error } = await ask(BODY);
 
-    expect(error?.message).toContain(
-      "GitHub App installation is no longer connected",
+    expect(error?.message).toBe(CODE_TASK_REPOSITORY_NOT_CONNECTED_MESSAGE);
+    expect(CodeTaskAgentBrief.build).not.toHaveBeenCalled();
+    // Asked of the repository the run names, in the run's project.
+    expect(
+      (CodeHostAccess.getConnectionSummaries as unknown as jest.Mock).mock
+        .calls[0]![0],
+    ).toEqual({ projectId: PROJECT_ID, repositoryIds: [REPOSITORY_ID] });
+  });
+
+  test("a GitLab repository whose access token was refused while it waited is refused, saying so", async () => {
+    connection = connectedOn(
+      CodeRepositoryType.GitLab,
+      CodeHostConnectionState.TokenRefused,
+    );
+
+    const { error } = await ask(BODY);
+
+    expect(error?.message).toBe(getCodeTaskTokenRefusedMessage("GitLab"));
+    expect(CodeTaskAgentBrief.build).not.toHaveBeenCalled();
+  });
+
+  test("one whose connection is gone, or that cannot be read, is refused too", async () => {
+    connection = connectedOn(
+      CodeRepositoryType.Forgejo,
+      CodeHostConnectionState.NoConnection,
+    );
+
+    expect((await ask(BODY)).error?.message).toBe(
+      CODE_TASK_REPOSITORY_CONNECTION_GONE_MESSAGE,
+    );
+
+    connection = null;
+    jest.clearAllMocks();
+
+    expect((await ask(BODY)).error?.message).toBe(
+      CODE_TASK_REPOSITORY_NOT_CONNECTED_MESSAGE,
     );
     expect(CodeTaskAgentBrief.build).not.toHaveBeenCalled();
+  });
+
+  test("a GitLab repository whose connection works gets the brief", async () => {
+    connection = connectedOn(
+      CodeRepositoryType.GitLab,
+      CodeHostConnectionState.Connected,
+    );
+
+    expect((await ask(BODY)).details).toEqual({ taskId: RUN_ID.toString() });
   });
 });

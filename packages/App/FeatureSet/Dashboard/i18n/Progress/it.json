@@ -7,6 +7,7 @@
     "0 (kiss-o'-death {{kissCode}})",
     "Agenda",
     "App",
+    "Appliance {{appliance}}",
     "Budget",
     "CPU Ready {{percent}}",
     "Client",
@@ -20,6 +21,7 @@
     "Hardware",
     "ICMP (ping)",
     "Marketplace",
+    "Merge request !{{number}}",
     "Monitor",
     "Object Gateway",
     "Offline",
@@ -53,6 +55,7 @@
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB",
+    "{{count}} appliance",
     "{{count}} repository"
   ]
 }

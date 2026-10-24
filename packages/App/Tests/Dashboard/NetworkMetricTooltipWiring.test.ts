@@ -493,6 +493,14 @@ describe("the Traffic pages (device, site, network)", () => {
     );
   });
 
+  /*
+   * TILE_HELP, unless the page says otherwise: the Meraki side of a page
+   * (issue #5140) gives its own texts, its numbers being uplinks', not flow
+   * records'.
+   */
+  const TILE_TEXTS: string =
+    "const help: typeof TILE_HELP = {...TILE_HELP, ...(props.help || )};";
+
   test.each([
     ["Traffic", "traffic"],
     ["Average", "average"],
@@ -501,15 +509,16 @@ describe("the Traffic pages (device, site, network)", () => {
   ])(
     "the %s tile is explained by TILE_HELP.%s",
     (label: string, key: string) => {
+      expect(tiles).toContain(TILE_TEXTS);
       expect(element(tiles, `<TrafficTile label="${label}"`)).toContain(
-        `help={TILE_HELP.${key}}`,
+        `help={help.${key}}`,
       );
     },
   );
 
   test("the four tiles, each with its text, and the sampled note with its own", () => {
     expect(countTag(tiles, "TrafficTile")).toBe(4);
-    expect(count(tiles, "help={TILE_HELP.")).toBe(4);
+    expect(count(tiles, "help={help.")).toBe(4);
     expect(tiles).toContain(
       '<InfoTooltip label="Sampled" text={TILE_HELP.sampled} />',
     );

@@ -187,6 +187,12 @@ describe("Code's words are complete", () => {
       branchDefaultBadge: "Default",
       branchesUnreadable:
         "OneUptime could not read this repository's branches from GitHub.",
+      // A repository on GitLab, Forgejo, Gitea or a Git server.
+      branchesUnreadableAnyHost:
+        "OneUptime could not read this repository's branches from its Git server.",
+      // A Git server only the project's own Runner reaches: never read.
+      branchesNotRead:
+        "OneUptime does not read this repository's branches: only your Runner reaches its Git server. A task starts from its main branch.",
       branchesSearchToFindMore:
         "Type a branch's name to find one that is not listed.",
     });
@@ -314,10 +320,13 @@ describe("Code's words are complete", () => {
       /*
        * A fix on a repository's settings lands on the setting that fixes it
        * - each is folded under More settings, which opens there - and only
-       * such a fix names a setting.
+       * such a fix names a setting. Replacing a refused access token is the
+       * one that names none: the token is in Repository Details, on top of
+       * the page, never folded.
        */
       expect(Boolean(fix!.setting)).toBe(
-        fix!.pageMap === PageMap.CODE_REPOSITORY_VIEW_SETTINGS,
+        fix!.pageMap === PageMap.CODE_REPOSITORY_VIEW_SETTINGS &&
+          type !== CodeTaskBlockerType.RepositoryTokenRefused,
       );
       expect(
         CODE_TASK_REPOSITORY_SETTINGS_FIXES.includes(
@@ -346,6 +355,10 @@ describe("Code's words are complete", () => {
       CodeTaskBlockerType.NoAgent,
       CodeTaskBlockerType.RunnerNotOnline,
       CodeTaskBlockerType.GlobalRunnersOff,
+      // A Git server only the project's own Runner reaches.
+      CodeTaskBlockerType.RepositoryNeedsOwnRunner,
+      // Replacing a token takes what connecting repositories takes.
+      CodeTaskBlockerType.RepositoryTokenRefused,
     ];
 
     for (const type of gated) {
@@ -370,6 +383,7 @@ describe("Code's words are complete", () => {
       CodeTaskBlockerType.NoAgent,
       CodeTaskBlockerType.RunnerNotOnline,
       CodeTaskBlockerType.GlobalRunnersOff,
+      CodeTaskBlockerType.RepositoryNeedsOwnRunner,
     ]) {
       expect(CODE_TASK_BLOCKER_WHO_CAN_FIX[type]).toBe(
         "A project admin can pick this repository's Runner in its settings.",

@@ -93,6 +93,7 @@ const SHARED_RECORD_QUERIES: Dictionary<Dictionary<unknown>> = {
  */
 const CREDENTIAL_SETTINGS: Array<string> = [
   "ApiKey",
+  "CodeRepositoryConnection",
   "ExternalMcpServer",
   "LlmProvider",
   "NetworkSnmpCredentialProfile",
@@ -140,7 +141,8 @@ const CREDENTIAL_SETTINGS: Array<string> = [
  * them, and the reference check answers a record that is not the project's.
  * The settings that hold credentials (SMTP, call and SMS, credentials, SNMP
  * credentials, video call providers, API keys, outside MCP servers,
- * security tool connections, LLM providers) are read as a whole table
+ * security tool connections, LLM providers, Git server connections) are
+ * read as a whole table
  * too, and a write names one only when its caller may read that table
  * (CREDENTIAL_SETTINGS, isHeldToTableRead) - never through a workflow's
  * step, which holds no read of them.

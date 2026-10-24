@@ -226,6 +226,13 @@ describe("the Remediation card in the dark theme", () => {
     const modules: Map<string, string> = getCardModules();
 
     expect(Array.from(modules.keys()).sort()).toEqual([
+      /*
+       * What the card tells the page's AI card - whether fixing did
+       * anything - and whether it leaves saying so to that card's one
+       * line. A rule and its words, no colours.
+       */
+      "AI/AiOffSummaryData.ts",
+      "AI/AiOffSummaryWords.ts",
       "AI/InvestigationStatusBadge.tsx",
       // A fix through MCP servers: its changes, in order.
       "AutoRemediation/McpToolCallList.tsx",

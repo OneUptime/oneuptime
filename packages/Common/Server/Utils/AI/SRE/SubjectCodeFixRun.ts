@@ -25,6 +25,14 @@ import CodeFixRunRepository from "../CodeFix/CodeFixRunRepository";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import InvestigationSubjectLock from "./InvestigationSubjectLock";
+import CodeHostAccess from "../../CodeRepository/CodeHost/CodeHostAccess";
+import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
+
+/*
+ * At most this many of a project's repositories on other hosts are asked
+ * whether they are connected: one that is answers yes.
+ */
+const MAX_CONNECTION_REPOSITORIES_CHECKED: number = 200;
 
 interface SubjectCodeFixRunInput {
   projectId: ObjectID;
@@ -46,8 +54,9 @@ interface SubjectCodeFixRunInput {
  * subject recipes (ImproveInstrumentation, FixFromIncident) and the
  * trace-evidence recipe (FixPerformance). All enqueue AIRun(CodeFix) rows
  * keyed to something other than a telemetry exception, all need a
- * GitHub-App-connected repository the agent can actually clone and push,
- * and all dedupe to at most one non-terminal run per (context, recipe).
+ * connected repository the agent can actually clone and push to - on
+ * GitHub, GitLab, Forgejo, Gitea or any Git server (hasConnectedRepository)
+ * - and all dedupe to at most one non-terminal run per (context, recipe).
  * The triggers differ (automatic-after-inconclusive vs. user button) — the
  * enqueue idiom must not.
  */
@@ -62,14 +71,17 @@ export default class SubjectCodeFixRun {
   }
 
   /*
-   * Only GitHub-App-connected repositories can be cloned and pushed by the
-   * agent (mirrors CodeRepositoryService.resolveRepositoryForException) -
-   * and, for a run the auto remediation rules opened, only one of those the
-   * rules allow (Types/CodeRepository/CodeRepositoryAllowance). Left out,
-   * every connected repository counts.
+   * Whether the project has a repository the agent can clone and push to
+   * (mirrors CodeRepositoryService.resolveRepositoryForException): one
+   * connected through the GitHub App, or one whose connection to its Git
+   * server - GitLab, Forgejo, Gitea or any Git server - is the project's and
+   * was not refused (CodeHostAccess). For a run the auto remediation rules
+   * opened, only one of those the rules allow counts
+   * (Types/CodeRepository/CodeRepositoryAllowance). Left out, every
+   * connected repository counts.
    */
   @CaptureSpan()
-  public static async hasGitHubAppConnectedRepository(
+  public static async hasConnectedRepository(
     projectId: ObjectID,
     allowance?: CodeRepositoryAllowance | undefined,
   ): Promise<boolean> {
@@ -77,21 +89,60 @@ export default class SubjectCodeFixRun {
       return false;
     }
 
+    const allowed: Record<string, unknown> =
+      allowance && !allowance.isEveryRepository
+        ? { _id: QueryHelper.any(allowance.repositoryIds) }
+        : {};
+
     const connectedRepositoryCount: number = (
       await CodeRepositoryService.countBy({
         query: {
           projectId,
           repositoryHostedAt: CodeRepositoryType.GitHub,
           gitHubAppInstallationId: QueryHelper.notNull(),
-          ...(allowance && !allowance.isEveryRepository
-            ? { _id: QueryHelper.any(allowance.repositoryIds) }
-            : {}),
+          ...allowed,
         },
         props: { isRoot: true },
       })
     ).toNumber();
 
-    return connectedRepositoryCount > 0;
+    if (connectedRepositoryCount > 0) {
+      return true;
+    }
+
+    /*
+     * Repositories on other hosts, through their connections: connected
+     * while the connection is the project's and its token was not refused.
+     */
+    const others: Array<CodeRepository> = await CodeRepositoryService.findBy({
+      query: {
+        projectId,
+        codeRepositoryConnectionId: QueryHelper.notNull(),
+        ...allowed,
+      },
+      select: { _id: true },
+      limit: MAX_CONNECTION_REPOSITORIES_CHECKED,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    if (others.length === 0) {
+      return false;
+    }
+
+    const reachable: Set<string> =
+      await CodeHostAccess.getReachableRepositoryIds({
+        projectId,
+        repositoryIds: others
+          .filter((repository: CodeRepository): boolean => {
+            return Boolean(repository.id);
+          })
+          .map((repository: CodeRepository): ObjectID => {
+            return repository.id!;
+          }),
+      });
+
+    return reachable.size > 0;
   }
 
   /*

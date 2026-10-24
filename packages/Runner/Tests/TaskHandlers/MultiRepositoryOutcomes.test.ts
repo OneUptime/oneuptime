@@ -418,8 +418,13 @@ describe("ExceptionPullRequestTaskHandler specifics", () => {
 
     expect(result.success).toBe(false);
     expect(result.data?.["isError"]).toBe(true);
-    // The message tells the operator what to actually do about it.
-    expect(result.message).toContain("GitHub App");
+    /*
+     * The message tells the operator what to actually do about it - in
+     * Code, wherever the repository is hosted (not "through the GitHub
+     * App", which a GitLab or Git repository is not connected through).
+     */
+    expect(result.message).toContain("Connect the right repository in Code");
+    expect(result.message).not.toContain("GitHub App");
   });
 });
 

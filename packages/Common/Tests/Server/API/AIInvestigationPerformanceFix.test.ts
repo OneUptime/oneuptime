@@ -146,7 +146,7 @@ beforeEach(() => {
     .spyOn(SubjectCodeFixRun, "findNonTerminalPerformanceFixRunForTrace")
     .mockResolvedValue(null);
   jest
-    .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
+    .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
     .mockResolvedValue(true);
 });
 
@@ -251,7 +251,7 @@ describe("POST /ai-investigation/performance-fix-suggestion", () => {
       .spyOn(SpanService, "findBy")
       .mockResolvedValue(storedSpans(SLOW_CHECKOUT_WITH_N_PLUS_ONE));
     jest
-      .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
       .mockResolvedValue(false);
 
     const call: Call = await post(SUGGESTION_ROUTE, { traceId: TRACE_ID });

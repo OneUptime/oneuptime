@@ -207,8 +207,12 @@ export const FIX_PERFORMANCE_BUTTON_TOOLTIP: string = translationKey(
   "OneUptime AI opens a pull request that fixes this, for you to review.",
 );
 
+/*
+ * Where a project has no repository AI can work in: a repository on any
+ * host Code connects (GitHub, GitLab, Forgejo or Gitea, any Git server).
+ */
 export const CONNECT_REPOSITORY_TO_FIX: string = translationKey(
-  "Connect GitHub to fix this with AI",
+  "Connect a repository to fix this with AI",
 );
 
 export const AI_IS_WORKING_ON_A_FIX: string = translationKey(

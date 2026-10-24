@@ -302,10 +302,7 @@ const ProfileFixStrip: FunctionComponent<ComponentProps> = (
             dataTestId="profiles-fix-connect"
           >
             <>
-              <Icon
-                icon={IconProp.GitHub}
-                className="mt-0.5 h-4 w-4 flex-none"
-              />
+              <Icon icon={IconProp.Code} className="mt-0.5 h-4 w-4 flex-none" />
               <span>{translator.translateText(FIX_CONNECT_REPOSITORY)}</span>
             </>
           </Link>

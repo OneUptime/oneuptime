@@ -332,7 +332,7 @@ En funksjon i din egen kode registreres når tjenesten har sendt minst 500 sampl
 
 ### Slå det på
 
-**Produkter → Ytelsesprofiler → KI → Innstillinger** har bryteren **Finn og rett treg kode**, som er på for nye prosjekter. Når **Aktiver AI** er av, blir treg kode fortsatt funnet, men OneUptime AI gjør ingenting med den. For å åpne pull-forespørsler trenger OneUptime AI et kodelager koblet til via GitHub-appen i [Kode](/docs/ai/ai-agent): siden sier først hva som mangler. Koden i hvert kodelager endres på Runneren kodelageret velger i Kode.
+**Produkter → Ytelsesprofiler → KI → Innstillinger** har bryteren **Finn og rett treg kode**, som er på for nye prosjekter. Når **Aktiver AI** er av, blir treg kode fortsatt funnet, men OneUptime AI gjør ingenting med den. For å åpne pull-forespørsler trenger OneUptime AI et kodelager koblet til i [Kode](/docs/ai/ai-agent): siden sier først hva som mangler. Koden i hvert kodelager endres på Runneren kodelageret velger i Kode.
 
 OneUptime AI åpner selv høyst 5 pull-forespørsler per dag (UTC), én for hvert funn, og aldri flere enn et kodelagers grense for åpne KI-pull-forespørsler.
 

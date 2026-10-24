@@ -40,7 +40,7 @@ import {
 /*
  * Under a lane's switch on its AI Settings page: whether OneUptime AI can
  * open pull requests for what it finds, and when it cannot, the one thing
- * to do first - connect a repository through the GitHub App, or what Code's
+ * to do first - connect a repository in Code, or what Code's
  * gate says for it (the plan, AI credits, a Runner online), with Code's
  * own words and fix (CodeBlockerNotice). When all is ready it says where
  * the pull requests go, how many OneUptime AI may open on its own a day,
@@ -157,7 +157,7 @@ const TelemetryAiReadinessCard: FunctionComponent<ComponentProps> = (
           data-testid={TELEMETRY_AI_TEST_IDS.readinessConnect}
         >
           <Icon
-            icon={IconProp.GitHub}
+            icon={IconProp.Code}
             className="mt-0.5 h-5 w-5 flex-shrink-0 text-gray-400"
           />
           <div className="min-w-0 space-y-1 text-sm">

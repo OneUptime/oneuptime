@@ -18,6 +18,7 @@ import {
 import React from "react";
 import { MemoryRouter, Route as PageRoute, Routes } from "react-router-dom";
 import ProfilesAILogs from "../../../../App/FeatureSet/Dashboard/src/Pages/Profiles/AI/Logs";
+import { CODE_HOST_MARK_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeHostMark";
 import {
   TELEMETRY_AI_LANE_COPY,
   TELEMETRY_AI_TEST_IDS,
@@ -33,6 +34,7 @@ import {
   TelemetryAiLogKind,
   TelemetryAiLogState,
 } from "../../../Types/AI/TelemetryAiActivity";
+import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType";
 import { JSONObject } from "../../../Types/JSON";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -286,6 +288,73 @@ describe("Profiler → AI → Logs", () => {
     expect(
       within(investigation!).queryByText("Open task"),
     ).not.toBeInTheDocument();
+  });
+
+  test("a pull request is drawn as Code draws it for its host: a merge request on GitLab", async () => {
+    serve(
+      ok({
+        entries: [
+          {
+            ...AUTOMATIC_PULL_REQUEST,
+            repositoryHostedAt: CodeRepositoryType.GitLab,
+            pullRequest: {
+              state: "open",
+              number: 31,
+              url: "https://gitlab.example.com/acme/shop/-/merge_requests/31",
+            },
+          },
+        ],
+        totalCount: 1,
+      }),
+    );
+    openPage();
+
+    const [row] = await shownEntries(1);
+    const link: HTMLAnchorElement | null = within(row!)
+      .getByText("Merge request !31")
+      .closest("a");
+
+    expect(link?.getAttribute("href")).toBe(
+      "https://gitlab.example.com/acme/shop/-/merge_requests/31",
+    );
+    expect(within(link!).getByTestId(CODE_HOST_MARK_TEST_ID)).toHaveAttribute(
+      "data-provider",
+      CodeRepositoryType.GitLab,
+    );
+    expect(
+      within(row!).queryByText("Pull request #31"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a pull request whose number is not known yet links to its host", async () => {
+    serve(
+      ok({
+        entries: [
+          {
+            ...AUTOMATIC_PULL_REQUEST,
+            pullRequest: {
+              state: "open",
+              url: "https://github.com/acme/shop/pull/812",
+            },
+          },
+        ],
+        totalCount: 1,
+      }),
+    );
+    openPage();
+
+    const [row] = await shownEntries(1);
+    const link: HTMLAnchorElement | null = within(row!)
+      .getByText("View on GitHub")
+      .closest("a");
+
+    expect(link?.getAttribute("href")).toBe(
+      "https://github.com/acme/shop/pull/812",
+    );
+    expect(within(link!).getByTestId(CODE_HOST_MARK_TEST_ID)).toHaveAttribute(
+      "data-provider",
+      CodeRepositoryType.GitHub,
+    );
   });
 
   test("a pull request address that is not a web address is not linked", async () => {

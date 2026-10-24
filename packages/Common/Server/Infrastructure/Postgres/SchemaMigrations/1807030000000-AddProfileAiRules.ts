@@ -24,8 +24,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * nothing; the column with a constant default and the nullable column are
  * added without rewriting a row.
  */
-export class AddProfileAiRules1807000000000 implements MigrationInterface {
-  public name: string = "AddProfileAiRules1807000000000";
+export class AddProfileAiRules1807030000000 implements MigrationInterface {
+  public name: string = "AddProfileAiRules1807030000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

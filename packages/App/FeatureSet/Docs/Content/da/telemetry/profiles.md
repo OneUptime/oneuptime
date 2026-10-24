@@ -332,7 +332,7 @@ En funktion i din egen kode gemmes, når dens tjeneste har sendt mindst 500 samp
 
 ### Slå det til
 
-**Produkter → Ydeevneprofiler → AI → Indstillinger** rummer kontakten **Find og ret langsom kode**, der er slået til for nye projekter. Er **Aktivér AI** slået fra, findes langsom kode stadig, men OneUptime AI gør intet med den. For at åbne pull requests skal OneUptime AI have et repository forbundet via GitHub App i [Kode](/docs/ai/ai-agent): siden siger først, hvad der mangler. Koden i hvert repository ændres på den Runner, som repositoryet vælger i Kode.
+**Produkter → Ydeevneprofiler → AI → Indstillinger** rummer kontakten **Find og ret langsom kode**, der er slået til for nye projekter. Er **Aktivér AI** slået fra, findes langsom kode stadig, men OneUptime AI gør intet med den. For at åbne pull requests skal OneUptime AI have et repository forbundet i [Kode](/docs/ai/ai-agent): siden siger først, hvad der mangler. Koden i hvert repository ændres på den Runner, som repositoryet vælger i Kode.
 
 OneUptime AI åbner selv højst 5 pull requests om dagen (UTC), én for hvert fund, og aldrig flere end et repositorys grænse for åbne AI-pull requests.
 

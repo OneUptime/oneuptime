@@ -280,6 +280,7 @@ export const FIX_VIEW_TASK: string = translationKey("View the task");
 export const FIX_COULD_NOT_START: string = translationKey(
   "Could not start the fix: {{reason}}",
 );
+// A repository on any host Code connects, as the trace strip says it.
 export const FIX_CONNECT_REPOSITORY: string = translationKey(
-  "Connect GitHub to fix this with AI",
+  "Connect a repository to fix this with AI",
 );

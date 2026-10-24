@@ -185,7 +185,14 @@ describe("the panel draws the one card", () => {
 
   test("closes the card with the conversation in every state, from one place", () => {
     expect(count(PANEL, /props\.renderConversation\(/g)).toBe(1);
-    expect(PANEL).toContain("props.renderConversation({ investigationStage })");
+    /*
+     * With where the investigation stands, and - while the card is the
+     * one-line "AI investigation is off" summary - the fold that keeps an
+     * empty conversation behind the line's Ask OneUptime AI.
+     */
+    expect(PANEL).toContain(
+      "props.renderConversation({ investigationStage, fold: conversationFold, })",
+    );
     // After the region opens and before it closes: inside the card.
     const region: number = PANEL.indexOf("id={AI_INVESTIGATION_PANEL_ID}");
     const call: number = PANEL.indexOf("props.renderConversation(");
@@ -203,7 +210,7 @@ describe("the panel draws the one card", () => {
      * conversation, and what was being typed, when an investigation started.
      */
     expect(PANEL).toMatch(
-      /\{props\.renderConversation \? \( props\.renderConversation\(\{ investigationStage \}\) \) : \( <><\/> \)\}/,
+      /\{props\.renderConversation \? \( props\.renderConversation\(\{ investigationStage, fold: conversationFold, \}\) \) : \( <><\/> \)\}/,
     );
     expect(PANEL).not.toMatch(/renderConversation\("(card|embedded)"\)/);
   });

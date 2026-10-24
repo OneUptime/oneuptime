@@ -185,6 +185,30 @@ describe("the Profiles page's section on finding and fixing slow code", () => {
     expect(section).toContain("**Open in Profiler**");
   });
 
+  /*
+   * A repository on any host Code connects: the GitHub App, GitLab, Forgejo
+   * or Gitea. The fix finds the function's file through the repository's
+   * own connection, so the section names no one host, as the switch's note
+   * names none.
+   */
+  it("says a pull request needs a repository connected in Code, as the switch's note says", () => {
+    const switches: ReadonlyArray<{ note?: string | undefined }> =
+      TELEMETRY_AI_SWITCHES[TelemetryAiLane.Profile];
+
+    expect(switches[0]!.note).toBe("Needs a repository connected in Code.");
+    expect(section).toContain(
+      "OneUptime AI needs a repository connected in [Code](/docs/ai/ai-agent)",
+    );
+    expect(section).not.toContain("GitHub");
+
+    const fix: string = readSource(
+      "Common/Server/Utils/AI/TelemetryAi/ProfileInsightFix.ts",
+    );
+
+    expect(fix).toContain("SourceLocator.getTreePaths(");
+    expect(fix).not.toContain("GitHubUtil");
+  });
+
   it("says how many pull requests OneUptime AI opens on its own a day", () => {
     expect(section).toContain(
       `OneUptime AI opens at most ${TELEMETRY_AI_MAX_AUTOMATIC_FIXES_PER_DAY} pull requests on its own each day (UTC), one for each finding`,

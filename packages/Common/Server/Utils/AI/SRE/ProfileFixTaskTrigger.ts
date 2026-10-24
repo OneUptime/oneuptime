@@ -16,9 +16,9 @@ import ProfileEvidence, {
 } from "../../Profile/ProfileEvidence";
 import SourceLocator, {
   LocatableRepository,
+  LocatableRepositoryWithTree,
   SourceLink,
 } from "../../CodeRepository/SourceLocator";
-import GitHubUtil from "../../CodeRepository/GitHub/GitHub";
 import CodeTaskAccess from "../CodeTask/CodeTaskAccess";
 import CodeTaskContextBuilder from "../CodeTask/CodeTaskContextBuilder";
 import CodeTaskGate from "../CodeTask/CodeTaskGate";
@@ -121,7 +121,7 @@ export const PROFILE_FIX_PICK_REPOSITORY_MESSAGE: string =
   "Pick the repository that holds this code.";
 
 export const PROFILE_FIX_REPOSITORY_NOT_AVAILABLE_MESSAGE: string =
-  "That repository is not connected through the GitHub App, or you cannot ask AI to work in it.";
+  "That repository is not connected, or you cannot ask AI to work in it.";
 
 export const PROFILE_FIX_INSIGHT_NOT_FOUND_MESSAGE: string =
   "That finding is not one of this project's slow code findings.";
@@ -241,12 +241,8 @@ export default class ProfileFixTaskTrigger {
   private static async locateRepository(data: {
     request: ProfileFixRequest;
     evidence: ProfileFunctionEvidence;
-    repositories: Array<
-      LocatableRepository & { gitHubAppInstallationId: string }
-    >;
-  }): Promise<
-    (LocatableRepository & { gitHubAppInstallationId: string }) | null
-  > {
+    repositories: Array<LocatableRepositoryWithTree>;
+  }): Promise<LocatableRepositoryWithTree | null> {
     if (!data.evidence.fileName) {
       return null;
     }
@@ -262,18 +258,9 @@ export default class ProfileFixTaskTrigger {
       getTreePaths: (
         repository: LocatableRepository,
       ): Promise<Array<string>> => {
-        const withInstallation: LocatableRepository & {
-          gitHubAppInstallationId: string;
-        } = repository as LocatableRepository & {
-          gitHubAppInstallationId: string;
-        };
-
-        return GitHubUtil.getRepositoryTreePaths({
-          installationId: withInstallation.gitHubAppInstallationId,
-          organizationName: withInstallation.organizationName,
-          repositoryName: withInstallation.repositoryName,
-          branchName: withInstallation.mainBranchName,
-        });
+        return SourceLocator.getTreePaths(
+          repository as LocatableRepositoryWithTree,
+        );
       },
     });
 
@@ -357,23 +344,18 @@ export default class ProfileFixTaskTrigger {
       };
     }
 
-    const locatable: Array<
-      LocatableRepository & { gitHubAppInstallationId: string }
-    > = await SourceLocator.getLocatableRepositories({
-      projectId: request.projectId,
-      props: request.props,
-    });
+    const locatable: Array<LocatableRepositoryWithTree> =
+      await SourceLocator.getLocatableRepositories({
+        projectId: request.projectId,
+        props: request.props,
+      });
 
     if (locatable.length === 0) {
       /*
        * Repositories are connected, but none the person may read: nothing
        * they could do here would start the fix.
        */
-      if (
-        await SubjectCodeFixRun.hasGitHubAppConnectedRepository(
-          request.projectId,
-        )
-      ) {
+      if (await SubjectCodeFixRun.hasConnectedRepository(request.projectId)) {
         return NO_PROFILE_FIX_SUGGESTION;
       }
 
@@ -505,12 +487,11 @@ export default class ProfileFixTaskTrigger {
       throw new BadDataException(PROFILE_FIX_ALREADY_RUNNING_MESSAGE);
     }
 
-    const locatable: Array<
-      LocatableRepository & { gitHubAppInstallationId: string }
-    > = await SourceLocator.getLocatableRepositories({
-      projectId: request.projectId,
-      props: request.props,
-    });
+    const locatable: Array<LocatableRepositoryWithTree> =
+      await SourceLocator.getLocatableRepositories({
+        projectId: request.projectId,
+        props: request.props,
+      });
 
     let repositoryId: string | null = null;
 
@@ -540,7 +521,7 @@ export default class ProfileFixTaskTrigger {
         throw new BadDataException(
           locatable.length > 0
             ? PROFILE_FIX_PICK_REPOSITORY_MESSAGE
-            : "No repository connected through the GitHub App holds this code. Connect it in Code.",
+            : "No connected repository whose code OneUptime reads holds this code. Connect it in Code: GitHub, GitLab, Forgejo and Gitea repositories are read.",
         );
       }
 

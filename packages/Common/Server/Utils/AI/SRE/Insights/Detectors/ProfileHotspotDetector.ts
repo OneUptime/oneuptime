@@ -22,11 +22,10 @@ import ProfileEvidence, {
 import LlmConversationPrivacy from "../../../../LlmObservability/LlmConversationPrivacy";
 import logger from "../../../../Logger";
 import CaptureSpan from "../../../../Telemetry/CaptureSpan";
-import {
+import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "../../../../../../Utils/Markdown/FeedMarkdown";
-import FeedMarkdown from "../../../../../../Utils/Markdown/FeedMarkdown";
 import {
   ProfileFrameOrigin,
   getProfileFunctionKey,

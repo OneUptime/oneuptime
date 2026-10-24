@@ -2,9 +2,9 @@ import AIRunService from "../../../Services/AIRunService";
 import CodeRepositoryService from "../../../Services/CodeRepositoryService";
 import ProjectService, { CurrentPlan } from "../../../Services/ProjectService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
-import GitHubUtil from "../../CodeRepository/GitHub/GitHub";
 import SourceLocator, {
   LocatableRepository,
+  LocatableRepositoryWithTree,
   SourceLink,
 } from "../../CodeRepository/SourceLocator";
 import logger from "../../Logger";
@@ -56,8 +56,9 @@ import ObjectID from "../../../../Types/ObjectID";
  *      started on its own in the project today;
  *   2. no Code task for the same function of the same service on its way
  *      (a person's, from the Profiler) - that one is the insight's fix;
- *   3. a repository the rules allow, connected through the GitHub App, that
- *      holds the function's file - or the one such repository there is;
+ *   3. a repository the rules allow, connected in Code, whose files
+ *      OneUptime reads (SourceLocator), that holds the function's file - or
+ *      the one such repository there is;
  *   4. what Code's own gate says for that repository: the plan, the bill,
  *      Enable AI, an LLM provider with credits, the project's daily AI
  *      limits and a Runner online to do the work (CodeTaskGate);
@@ -70,7 +71,7 @@ import ObjectID from "../../../../Types/ObjectID";
 export enum ProfileInsightFixSkip {
   NoEvidence = "the insight holds no profile evidence",
   DailyLimit = "OneUptime already opened its daily share of pull requests for this project",
-  NoRepository = "no repository the rules allow is connected through the GitHub App",
+  NoRepository = "no repository the rules allow is connected in Code",
   RepositoryNotFound = "no repository the rules allow holds the function's file",
   Blocked = "Code cannot start a task in the repository",
   AtPullRequestCap = "the repository is at its cap of open AI pull requests",
@@ -130,9 +131,7 @@ export default class ProfileInsightFix {
    */
   public static async pickRepository(data: {
     profile: ProfileInsightEvidence;
-    repositories: Array<
-      LocatableRepository & { gitHubAppInstallationId: string }
-    >;
+    repositories: Array<LocatableRepositoryWithTree>;
   }): Promise<LocatableRepository | null> {
     if (data.repositories.length === 0) {
       return null;
@@ -147,21 +146,13 @@ export default class ProfileInsightFix {
           },
         ],
         repositories: data.repositories,
+        // Each host's tree, as the Profiler's own Fix with AI reads it.
         getTreePaths: (
           repository: LocatableRepository,
         ): Promise<Array<string>> => {
-          const withInstallation: LocatableRepository & {
-            gitHubAppInstallationId: string;
-          } = repository as LocatableRepository & {
-            gitHubAppInstallationId: string;
-          };
-
-          return GitHubUtil.getRepositoryTreePaths({
-            installationId: withInstallation.gitHubAppInstallationId,
-            organizationName: withInstallation.organizationName,
-            repositoryName: withInstallation.repositoryName,
-            branchName: withInstallation.mainBranchName,
-          });
+          return SourceLocator.getTreePaths(
+            repository as LocatableRepositoryWithTree,
+          );
         },
       });
 
@@ -219,9 +210,7 @@ export default class ProfileInsightFix {
 
     const allowance: CodeRepositoryAllowance = data.work.repositories;
 
-    const repositories: Array<
-      LocatableRepository & { gitHubAppInstallationId: string }
-    > = (
+    const repositories: Array<LocatableRepositoryWithTree> = (
       await SourceLocator.getLocatableRepositories({
         projectId,
         props: { isRoot: true },

@@ -332,7 +332,7 @@ Una función de tu propio código se registra cuando su servicio envió al menos
 
 ### Activarlo
 
-**Productos → Perfiles de rendimiento → IA → Ajustes** contiene el interruptor **Encontrar y corregir código lento**, activado en los proyectos nuevos. Con **Habilitar IA** desactivado, el código lento se sigue encontrando, pero la IA de OneUptime no hace nada con él. Para abrir pull requests, la IA de OneUptime necesita un repositorio conectado mediante la GitHub App en [Código](/docs/ai/ai-agent): la página indica primero lo que falta. El código de cada repositorio se cambia en el Runner que el repositorio elige en Código.
+**Productos → Perfiles de rendimiento → IA → Ajustes** contiene el interruptor **Encontrar y corregir código lento**, activado en los proyectos nuevos. Con **Habilitar IA** desactivado, el código lento se sigue encontrando, pero la IA de OneUptime no hace nada con él. Para abrir pull requests, la IA de OneUptime necesita un repositorio conectado en [Código](/docs/ai/ai-agent): la página indica primero lo que falta. El código de cada repositorio se cambia en el Runner que el repositorio elige en Código.
 
 La IA de OneUptime abre por su cuenta como máximo 5 pull requests al día (UTC), una por hallazgo, y nunca más que el límite de pull requests de IA abiertas de un repositorio.
 

@@ -455,7 +455,7 @@ export class Service extends ProjectReferencesService<Model> {
           : "Repository resolved",
         detail: resolution
           ? ""
-          : "No connected repository could be matched to this exception — its stack-trace files were not found in any connected repository, no repository name matches the service, and the project has more than one repository. Connect the right repository through the GitHub App (installing it imports all its repositories automatically).",
+          : "No connected repository could be matched to this exception — its stack-trace files were not found in any connected repository, no repository name matches the service, and the project has more than one repository. Connect the right repository in Code: through the GitHub App, or from GitLab, Forgejo, Gitea or any Git server.",
       };
     } catch (err) {
       repoCheck = {

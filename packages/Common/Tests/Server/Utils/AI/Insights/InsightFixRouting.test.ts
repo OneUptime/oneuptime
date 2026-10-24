@@ -471,7 +471,7 @@ describe("FixPerformanceTaskTrigger refactor invariance (spans path unchanged)",
     jest.spyOn(SpanTreeAnalyzer, "analyzeTrace").mockReturnValue([]);
     const repoGate: jest.SpyInstance = jest.spyOn(
       SubjectCodeFixRun,
-      "hasGitHubAppConnectedRepository",
+      "hasConnectedRepository",
     );
 
     await expect(
@@ -510,7 +510,7 @@ describe("FixPerformanceTaskTrigger refactor invariance (spans path unchanged)",
     const finding: PerformanceFinding = makeFinding();
     jest.spyOn(SpanTreeAnalyzer, "analyzeTrace").mockReturnValue([finding]);
     jest
-      .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
       .mockResolvedValue(true);
     jest
       .spyOn(SubjectCodeFixRun, "findNonTerminalPerformanceFixRunForTrace")
@@ -545,7 +545,7 @@ describe("FixPerformanceTaskTrigger refactor invariance (spans path unchanged)",
 
   test("the findings entry point still enforces the repository gate", async () => {
     jest
-      .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
       .mockResolvedValue(false);
 
     await expect(
@@ -555,12 +555,12 @@ describe("FixPerformanceTaskTrigger refactor invariance (spans path unchanged)",
         findings: [makeFinding()],
         codeLocations: [],
       }),
-    ).rejects.toThrow(/No GitHub-App-connected repository/);
+    ).rejects.toThrow(/^No connected repository exists for this project/);
   });
 
   test("the findings entry point still enforces the per-trace dedupe gate", async () => {
     jest
-      .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
       .mockResolvedValue(true);
     jest
       .spyOn(SubjectCodeFixRun, "findNonTerminalPerformanceFixRunForTrace")

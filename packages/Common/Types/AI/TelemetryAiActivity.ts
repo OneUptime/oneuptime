@@ -27,8 +27,8 @@ export const TELEMETRY_AI_LOGS_MAX_PROBLEMS: number = 1000;
 /*
  * What stands between a lane and its first pull request, in the order a
  * person fixes them: Enable AI and the lane's switch (the page's own
- * switches say those), a repository connected through the GitHub App, and
- * what Code's own gate says for it (the plan, AI credits, a Runner online).
+ * switches say those), a repository connected in Code, and what Code's own
+ * gate says for it (the plan, AI credits, a Runner online).
  */
 export interface TelemetryAiReadinessBlockerJSON {
   type: string;
@@ -41,7 +41,7 @@ export interface TelemetryAiReadinessJSON {
   lane: TelemetryAiLane;
   isAiEnabled: boolean;
   isLaneOn: boolean;
-  // Repositories connected through the GitHub App, which a fix can open in.
+  // Repositories OneUptime reaches, which a fix can open in.
   connectedRepositoryCount: number;
   /*
    * What Code's gate says for the first of them, when it says anything:
@@ -192,6 +192,11 @@ export interface TelemetryAiLogEntryJSON {
   // PullRequest: the Code task, its repository and its pull request.
   taskId?: string | undefined;
   repositoryName?: string | undefined;
+  /*
+   * Where that repository is hosted (CodeRepositoryType), which says how
+   * its pull request is drawn: a merge request, "!12", on GitLab.
+   */
+  repositoryHostedAt?: string | undefined;
   pullRequest?: TelemetryAiLogPullRequestJSON | undefined;
   // Investigation: the verdict it ended with (ExceptionAIClassification).
   classification?: string | undefined;
@@ -247,6 +252,7 @@ function parseEntry(value: unknown): TelemetryAiLogEntryJSON | null {
     "requestedBy",
     "taskId",
     "repositoryName",
+    "repositoryHostedAt",
     "classification",
   ] as const) {
     const text: string = readText(record[key]);

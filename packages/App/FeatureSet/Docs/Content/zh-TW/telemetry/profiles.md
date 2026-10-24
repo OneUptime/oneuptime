@@ -332,7 +332,7 @@ OneUptime 每小時在每個服務的效能剖析中尋找佔用該服務時間�
 
 ### 開啟
 
-**產品 → 效能設定檔 → 人工智慧 → 設定** 中有 **尋找並修正慢速程式碼** 開關，新專案預設開啟。當 **啟用 AI** 關閉時，仍會發現慢速程式碼，但 OneUptime AI 不會對其做任何事。要開啟 Pull Request，OneUptime AI 需要在 [程式碼](/docs/ai/ai-agent) 中透過 GitHub App 連接的儲存庫：頁面會先說明缺少什麼。每個儲存庫的程式碼都在該儲存庫於「程式碼」中選擇的 Runner 上修改。
+**產品 → 效能設定檔 → 人工智慧 → 設定** 中有 **尋找並修正慢速程式碼** 開關，新專案預設開啟。當 **啟用 AI** 關閉時，仍會發現慢速程式碼，但 OneUptime AI 不會對其做任何事。要開啟 Pull Request，OneUptime AI 需要在 [程式碼](/docs/ai/ai-agent) 中連接的儲存庫：頁面會先說明缺少什麼。每個儲存庫的程式碼都在該儲存庫於「程式碼」中選擇的 Runner 上修改。
 
 OneUptime AI 每天（UTC）最多自行開啟 5 個 Pull Request，每則發現一個，且絕不超過儲存庫對開啟中的 AI Pull Request 的上限。
 

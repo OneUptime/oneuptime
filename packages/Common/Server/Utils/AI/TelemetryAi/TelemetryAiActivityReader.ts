@@ -38,6 +38,7 @@ import {
   TelemetryAiLogsJSON,
   TelemetryAiReadinessJSON,
 } from "../../../../Types/AI/TelemetryAiActivity";
+import { CodeHost } from "../../../../Types/CodeRepository/CodeHost";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../../Types/ObjectID";
@@ -47,7 +48,7 @@ import ObjectID from "../../../../Types/ObjectID";
  *
  *   - its readiness, for the Settings page: whether OneUptime AI can open a
  *     pull request for the lane's problems now, and if not, the first thing
- *     to do - connect a repository through the GitHub App, or what Code's
+ *     to do - connect a repository in Code, or what Code's
  *     own gate says (the plan, AI credits, a Runner online). Enable AI and
  *     the lane's switch are drawn by the page itself. A fact about the
  *     project, read as OneUptime: it is OneUptime that opens the pull
@@ -348,6 +349,12 @@ export default class TelemetryAiActivityReader {
         entry.repositoryName = data.repository.name;
       }
 
+      if (data.repository) {
+        entry.repositoryHostedAt = CodeHost.readType(
+          data.repository.repositoryHostedAt,
+        );
+      }
+
       if (data.repository && data.pullRequest?.pullRequestState) {
         entry.pullRequest = {
           state: data.pullRequest.pullRequestState,
@@ -394,7 +401,7 @@ export default class TelemetryAiActivityReader {
     try {
       return await CodeRepositoryService.findBy({
         query: { projectId: data.projectId, _id: QueryHelper.any(ids) },
-        select: { _id: true, name: true },
+        select: { _id: true, name: true, repositoryHostedAt: true },
         limit: ids.length,
         skip: 0,
         props: data.props,
