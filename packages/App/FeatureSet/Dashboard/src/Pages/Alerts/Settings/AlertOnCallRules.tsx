@@ -65,6 +65,8 @@ When a rule matches, each of its on-call policies pages its people for the episo
 const AlertRulesTable: FunctionComponent = (): ReactElement => {
   return (
     <ModelTable<AlertOnCallRule>
+      // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+      rowSwitch={{ column: "isEnabled" }}
       modelType={AlertOnCallRule}
       id="alert-on-call-rules-table"
       name="Settings > Alert On-Call Rules"
@@ -239,6 +241,8 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
 const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
   return (
     <ModelTable<AlertEpisodeOnCallRule>
+      // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+      rowSwitch={{ column: "isEnabled" }}
       modelType={AlertEpisodeOnCallRule}
       id="alert-episode-on-call-rules-table"
       name="Settings > Alert Episode On-Call Rules"

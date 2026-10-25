@@ -206,6 +206,8 @@ const AlertGroupingRulesPage: FunctionComponent<
   return (
     <Fragment>
       <ModelTable<AlertGroupingRule>
+        // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+        rowSwitch={{ column: "isEnabled" }}
         modelType={AlertGroupingRule}
         id="alert-grouping-rules-table"
         name="Settings > Alert Grouping Rules"

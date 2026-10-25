@@ -58,6 +58,8 @@ const IncidentMeasurementsPage: FunctionComponent<
   return (
     <Fragment>
       <ModelTable<IncidentMeasurement>
+        // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+        rowSwitch={{ column: "isEnabled" }}
         modelType={IncidentMeasurement}
         id="incident-measurements-table"
         name="Settings > Incident Measurements"

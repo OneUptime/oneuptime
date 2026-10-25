@@ -170,6 +170,8 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
       />
 
       <ModelTable<ThreatIntelFeed>
+        // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+        rowSwitch={{ column: "isEnabled" }}
         modelType={ThreatIntelFeed}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,

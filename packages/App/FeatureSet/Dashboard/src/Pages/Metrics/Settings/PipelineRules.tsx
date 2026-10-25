@@ -258,6 +258,8 @@ const MetricPipelineRules: FunctionComponent<
   const translator: Translator = useTranslator();
   return (
     <ModelTable<MetricPipelineRule>
+      // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+      rowSwitch={{ column: "isEnabled" }}
       modelType={MetricPipelineRule}
       query={{
         projectId: ProjectUtil.getCurrentProjectId()!,

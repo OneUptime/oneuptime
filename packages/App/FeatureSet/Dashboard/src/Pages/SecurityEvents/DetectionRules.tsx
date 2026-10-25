@@ -3,8 +3,10 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import useBulkSwitchActions from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
-import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import {
+  SwitchActionsResult,
+  useSwitchActions,
+} from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
@@ -107,11 +109,13 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
    * tuning a project's detections is turning sets of rules on and off -
    * the noisy ones after a burst, a library's worth added at once.
    */
-  const switchBulkActions: Array<BulkActionButtonSchema<DetectionRule>> =
-    useBulkSwitchActions<DetectionRule>({
-      modelType: DetectionRule,
-      column: "isEnabled",
-    });
+  const {
+    bulkActions: switchBulkActions,
+    rowActions: switchRowActions,
+  }: SwitchActionsResult<DetectionRule> = useSwitchActions<DetectionRule>({
+    modelType: DetectionRule,
+    column: "isEnabled",
+  });
 
   /*
    * Same reseller-telemetry gate as every other Security Events page —
@@ -410,6 +414,8 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
         searchableFields={["name", "description"]}
         showViewIdButton={true}
         actionButtons={[
+          // Enable or Disable: the one that changes the row.
+          ...switchRowActions,
           // On a rule whose last run left a message, the row's button.
           getViewErrorActionButton<DetectionRule>({
             getMessages: getDetectionRuleMessages,

@@ -20,9 +20,10 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const NetworkDeviceArchivedPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const { unarchiveBulkActions } = useBulkArchiveActions<NetworkDevice>({
-    modelType: NetworkDevice,
-  });
+  const { unarchiveBulkActions, unarchiveRowActions } =
+    useBulkArchiveActions<NetworkDevice>({
+      modelType: NetworkDevice,
+    });
 
   /*
    * The Owner and Labels chips above the table, as on the live list: an
@@ -51,6 +52,8 @@ const NetworkDeviceArchivedPage: FunctionComponent<
     <Fragment>
       <ModelTable<NetworkDevice>
         modelType={NetworkDevice}
+        // Unarchive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...unarchiveRowActions]}
         id="network-devices-archived-table"
         userPreferencesKey="network-devices-archived-table"
         topContent={filterBar}

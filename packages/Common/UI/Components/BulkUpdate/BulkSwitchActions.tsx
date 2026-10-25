@@ -302,7 +302,18 @@ export const getRowsToChange: <T extends BaseModel>(
 export function useSwitchActions<T extends BaseModel>(
   config: BulkSwitchActionsConfig<T>,
 ): SwitchActionsResult<T> {
-  const translator: Translator = useTranslator();
+  return buildSwitchActions<T>(config, useTranslator());
+}
+
+/*
+ * The same, built with a translator the caller already holds - for the
+ * shared table (ModelTable's rowSwitch), which builds a list's row switch
+ * only when the list asks for one.
+ */
+export function buildSwitchActions<T extends BaseModel>(
+  config: BulkSwitchActionsConfig<T>,
+  translator: Translator,
+): SwitchActionsResult<T> {
   const model: T = new config.modelType();
   const modelAPI: typeof ModelAPI = config.modelAPI || ModelAPI;
 

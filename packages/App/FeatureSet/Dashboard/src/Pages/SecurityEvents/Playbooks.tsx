@@ -33,8 +33,10 @@ import SecurityPlaybookTrigger from "Common/Types/SecurityPlaybook/SecurityPlayb
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import useBulkSwitchActions from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
-import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import {
+  SwitchActionsResult,
+  useSwitchActions,
+} from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
@@ -101,11 +103,15 @@ const SecurityPlaybooksPage: FunctionComponent<
    * Enable and Disable in Bulk Actions: a disabled playbook stops running on
    * its own, and can still be run by hand from a case.
    */
-  const switchBulkActions: Array<BulkActionButtonSchema<SecurityPlaybook>> =
-    useBulkSwitchActions<SecurityPlaybook>({
+  const {
+    bulkActions: switchBulkActions,
+    rowActions: switchRowActions,
+  }: SwitchActionsResult<SecurityPlaybook> = useSwitchActions<SecurityPlaybook>(
+    {
       modelType: SecurityPlaybook,
       column: "isEnabled",
-    });
+    },
+  );
 
   const createGate: PermissionGateResult = PermissionGate.check(
     new SecurityPlaybook(),
@@ -244,6 +250,8 @@ const SecurityPlaybooksPage: FunctionComponent<
 
       <ModelTable<SecurityPlaybook>
         modelType={SecurityPlaybook}
+        // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+        actionButtons={[...switchRowActions]}
         id="security-playbooks-table"
         name="Security Events > Playbooks"
         userPreferencesKey="security-playbooks-table"

@@ -97,7 +97,6 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<AlertEpisode>({ modelType: AlertEpisode });
 
-
   /*
    * The page's saved views and the chips' selections in the address travel
    * under the same key, as on the alerts list; the pages that embed this

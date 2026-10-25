@@ -213,6 +213,8 @@ const LlmConnectionsTable: FunctionComponent<ComponentProps> = (
       )}
 
       <ModelTable<LlmObservabilityConnection>
+        // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+        rowSwitch={{ column: "isEnabled" }}
         modelType={LlmObservabilityConnection}
         refreshToggle={`${props.refreshToggle}-${refreshCounter}`}
         id={`llm-connections-table-${props.kind}`}

@@ -18,7 +18,10 @@ import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintena
 import ScheduledMaintenanceNoteTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceNoteTemplate";
 import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
-import { PluralTemplate, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import { StateMoveList } from "Common/Utils/StateMove";
 import { StateListType } from "Common/Utils/StateOrder";
 import { BulkStateChangeNoteType } from "../../Utils/BulkStateChange";
@@ -97,7 +100,9 @@ export interface EventStateKindDefinition {
    */
   hasPerEventPrivacy: boolean;
   quickMoves: Array<EventStateQuickMove>;
-  quickMoveWords: Partial<Record<EventStateQuickMove, EventStateQuickMoveWords>>;
+  quickMoveWords: Partial<
+    Record<EventStateQuickMove, EventStateQuickMoveWords>
+  >;
   words: {
     // The list's Change State dialog, as it always read.
     changeStateTitle: string;
@@ -121,25 +126,27 @@ export const ROW_CHANGE_STATE_DESCRIPTION: string = translationKey(
 );
 
 // A selection's Acknowledge and Resolve, and a maintenance move.
-export const BULK_QUICK_MOVE_TITLES: Record<EventStateQuickMove, PluralTemplate> =
-  {
-    [EventStateQuickMove.Acknowledge]: {
-      one: "Acknowledge {{count}} {{itemName}}",
-      other: "Acknowledge {{count}} {{itemsName}}",
-    },
-    [EventStateQuickMove.Resolve]: {
-      one: "Resolve {{count}} {{itemName}}",
-      other: "Resolve {{count}} {{itemsName}}",
-    },
-    [EventStateQuickMove.Start]: {
-      one: "Mark {{count}} {{itemName}} as {{state}}",
-      other: "Mark {{count}} {{itemsName}} as {{state}}",
-    },
-    [EventStateQuickMove.End]: {
-      one: "Mark {{count}} {{itemName}} as {{state}}",
-      other: "Mark {{count}} {{itemsName}} as {{state}}",
-    },
-  };
+export const BULK_QUICK_MOVE_TITLES: Record<
+  EventStateQuickMove,
+  PluralTemplate
+> = {
+  [EventStateQuickMove.Acknowledge]: {
+    one: "Acknowledge {{count}} {{itemName}}",
+    other: "Acknowledge {{count}} {{itemsName}}",
+  },
+  [EventStateQuickMove.Resolve]: {
+    one: "Resolve {{count}} {{itemName}}",
+    other: "Resolve {{count}} {{itemsName}}",
+  },
+  [EventStateQuickMove.Start]: {
+    one: "Mark {{count}} {{itemName}} as {{state}}",
+    other: "Mark {{count}} {{itemsName}} as {{state}}",
+  },
+  [EventStateQuickMove.End]: {
+    one: "Mark {{count}} {{itemName}} as {{state}}",
+    other: "Mark {{count}} {{itemsName}} as {{state}}",
+  },
+};
 
 export const BULK_QUICK_MOVE_DESCRIPTIONS: Record<EventStateQuickMove, string> =
   {
@@ -200,222 +207,224 @@ export const QUICK_MOVE_RESULT_LABELS: Partial<
   },
 };
 
-export const EVENT_STATE_KINDS: Record<EventStateKind, EventStateKindDefinition> =
-  {
-    [EventStateKind.Incident]: {
-      kind: EventStateKind.Incident,
-      eventModelType: Incident,
-      timelineModelType: IncidentStateTimeline,
-      noteTemplateModelType: IncidentNoteTemplate,
-      noteModelType: IncidentPublicNote,
-      privateNoteModelType: IncidentInternalNote,
-      eventIdField: "incidentId",
-      stateIdField: "incidentStateId",
-      currentStateColumn: "currentIncidentState",
-      stateList: StateListType.IncidentState,
-      noteType: BulkStateChangeNoteType.Public,
-      notifiesSubscribers: true,
-      hasPerEventPrivacy: true,
-      quickMoves: [EventStateQuickMove.Acknowledge, EventStateQuickMove.Resolve],
-      quickMoveWords: {
-        [EventStateQuickMove.Acknowledge]: {
-          rowTitle: translationKey("Acknowledge Incident"),
-          rowDescription: translationKey(
-            "This records an acknowledgement on the incident timeline and stops any on-call escalation for this incident.",
-          ),
-        },
-        [EventStateQuickMove.Resolve]: {
-          rowTitle: translationKey("Resolve Incident"),
-          rowDescription: translationKey(
-            "This marks the incident as resolved on the incident timeline.",
-          ),
-        },
+export const EVENT_STATE_KINDS: Record<
+  EventStateKind,
+  EventStateKindDefinition
+> = {
+  [EventStateKind.Incident]: {
+    kind: EventStateKind.Incident,
+    eventModelType: Incident,
+    timelineModelType: IncidentStateTimeline,
+    noteTemplateModelType: IncidentNoteTemplate,
+    noteModelType: IncidentPublicNote,
+    privateNoteModelType: IncidentInternalNote,
+    eventIdField: "incidentId",
+    stateIdField: "incidentStateId",
+    currentStateColumn: "currentIncidentState",
+    stateList: StateListType.IncidentState,
+    noteType: BulkStateChangeNoteType.Public,
+    notifiesSubscribers: true,
+    hasPerEventPrivacy: true,
+    quickMoves: [EventStateQuickMove.Acknowledge, EventStateQuickMove.Resolve],
+    quickMoveWords: {
+      [EventStateQuickMove.Acknowledge]: {
+        rowTitle: translationKey("Acknowledge Incident"),
+        rowDescription: translationKey(
+          "This records an acknowledgement on the incident timeline and stops any on-call escalation for this incident.",
+        ),
       },
-      words: {
-        changeStateTitle: translationKey("Change Incident State"),
-        changeStateBulkDescription: translationKey(
-          "Select the state to change incidents to. Incidents already at or past the selected state will be skipped.",
-        ),
-        bulkNoteTitle: translationKey("Public Note"),
-        bulkNoteDescription: translationKey(
-          "Post a public note about this state change to the status page. The same note is added to every incident you selected, as a private note on private incidents.",
-        ),
-        rowNoteDescription: translationKey(
-          "Post a public note about this state change to the status page.",
-        ),
-        rowPrivateNoteDescription: translationKey(
-          "Post a private note about this state change.",
+      [EventStateQuickMove.Resolve]: {
+        rowTitle: translationKey("Resolve Incident"),
+        rowDescription: translationKey(
+          "This marks the incident as resolved on the incident timeline.",
         ),
       },
     },
-    [EventStateKind.Alert]: {
-      kind: EventStateKind.Alert,
-      eventModelType: Alert,
-      timelineModelType: AlertStateTimeline,
-      noteTemplateModelType: AlertNoteTemplate,
-      noteModelType: AlertInternalNote,
-      eventIdField: "alertId",
-      stateIdField: "alertStateId",
-      currentStateColumn: "currentAlertState",
-      stateList: StateListType.AlertState,
-      noteType: BulkStateChangeNoteType.Private,
-      notifiesSubscribers: false,
-      hasPerEventPrivacy: false,
-      quickMoves: [EventStateQuickMove.Acknowledge, EventStateQuickMove.Resolve],
-      quickMoveWords: {
-        [EventStateQuickMove.Acknowledge]: {
-          rowTitle: translationKey("Acknowledge Alert"),
-          rowDescription: translationKey(
-            "This records an acknowledgement on the alert timeline and stops any on-call escalation for this alert.",
-          ),
-        },
-        [EventStateQuickMove.Resolve]: {
-          rowTitle: translationKey("Resolve Alert"),
-          rowDescription: translationKey(
-            "This marks the alert as resolved on the alert timeline.",
-          ),
-        },
+    words: {
+      changeStateTitle: translationKey("Change Incident State"),
+      changeStateBulkDescription: translationKey(
+        "Select the state to change incidents to. Incidents already at or past the selected state will be skipped.",
+      ),
+      bulkNoteTitle: translationKey("Public Note"),
+      bulkNoteDescription: translationKey(
+        "Post a public note about this state change to the status page. The same note is added to every incident you selected, as a private note on private incidents.",
+      ),
+      rowNoteDescription: translationKey(
+        "Post a public note about this state change to the status page.",
+      ),
+      rowPrivateNoteDescription: translationKey(
+        "Post a private note about this state change.",
+      ),
+    },
+  },
+  [EventStateKind.Alert]: {
+    kind: EventStateKind.Alert,
+    eventModelType: Alert,
+    timelineModelType: AlertStateTimeline,
+    noteTemplateModelType: AlertNoteTemplate,
+    noteModelType: AlertInternalNote,
+    eventIdField: "alertId",
+    stateIdField: "alertStateId",
+    currentStateColumn: "currentAlertState",
+    stateList: StateListType.AlertState,
+    noteType: BulkStateChangeNoteType.Private,
+    notifiesSubscribers: false,
+    hasPerEventPrivacy: false,
+    quickMoves: [EventStateQuickMove.Acknowledge, EventStateQuickMove.Resolve],
+    quickMoveWords: {
+      [EventStateQuickMove.Acknowledge]: {
+        rowTitle: translationKey("Acknowledge Alert"),
+        rowDescription: translationKey(
+          "This records an acknowledgement on the alert timeline and stops any on-call escalation for this alert.",
+        ),
       },
-      words: {
-        changeStateTitle: translationKey("Change Alert State"),
-        changeStateBulkDescription: translationKey(
-          "Select the state to change alerts to. Alerts already at or past the selected state will be skipped.",
-        ),
-        bulkNoteTitle: translationKey("Private Note"),
-        bulkNoteDescription: translationKey(
-          "Add an optional private note about this state change. Only your team can see it, and the same note is added to every alert you selected.",
-        ),
-        rowNoteDescription: translationKey(
-          "Add an optional private note about this state change. Only your team can see it.",
+      [EventStateQuickMove.Resolve]: {
+        rowTitle: translationKey("Resolve Alert"),
+        rowDescription: translationKey(
+          "This marks the alert as resolved on the alert timeline.",
         ),
       },
     },
-    [EventStateKind.IncidentEpisode]: {
-      kind: EventStateKind.IncidentEpisode,
-      eventModelType: IncidentEpisode,
-      timelineModelType: IncidentEpisodeStateTimeline,
-      noteTemplateModelType: IncidentNoteTemplate,
-      noteModelType: IncidentEpisodeInternalNote,
-      eventIdField: "incidentEpisodeId",
-      stateIdField: "incidentStateId",
-      currentStateColumn: "currentIncidentState",
-      stateList: StateListType.IncidentState,
-      noteType: BulkStateChangeNoteType.Private,
-      notifiesSubscribers: false,
-      hasPerEventPrivacy: false,
-      quickMoves: [EventStateQuickMove.Acknowledge, EventStateQuickMove.Resolve],
-      quickMoveWords: {
-        [EventStateQuickMove.Acknowledge]: {
-          rowTitle: translationKey("Acknowledge Episode"),
-          rowDescription: translationKey(
-            "This records an acknowledgement on the episode timeline and also updates all incidents in this episode. Any on-call escalation for the episode and its incidents stops.",
-          ),
-        },
-        [EventStateQuickMove.Resolve]: {
-          rowTitle: translationKey("Resolve Episode"),
-          rowDescription: translationKey(
-            "This marks the episode as resolved on the episode timeline and also updates all incidents in this episode.",
-          ),
-        },
+    words: {
+      changeStateTitle: translationKey("Change Alert State"),
+      changeStateBulkDescription: translationKey(
+        "Select the state to change alerts to. Alerts already at or past the selected state will be skipped.",
+      ),
+      bulkNoteTitle: translationKey("Private Note"),
+      bulkNoteDescription: translationKey(
+        "Add an optional private note about this state change. Only your team can see it, and the same note is added to every alert you selected.",
+      ),
+      rowNoteDescription: translationKey(
+        "Add an optional private note about this state change. Only your team can see it.",
+      ),
+    },
+  },
+  [EventStateKind.IncidentEpisode]: {
+    kind: EventStateKind.IncidentEpisode,
+    eventModelType: IncidentEpisode,
+    timelineModelType: IncidentEpisodeStateTimeline,
+    noteTemplateModelType: IncidentNoteTemplate,
+    noteModelType: IncidentEpisodeInternalNote,
+    eventIdField: "incidentEpisodeId",
+    stateIdField: "incidentStateId",
+    currentStateColumn: "currentIncidentState",
+    stateList: StateListType.IncidentState,
+    noteType: BulkStateChangeNoteType.Private,
+    notifiesSubscribers: false,
+    hasPerEventPrivacy: false,
+    quickMoves: [EventStateQuickMove.Acknowledge, EventStateQuickMove.Resolve],
+    quickMoveWords: {
+      [EventStateQuickMove.Acknowledge]: {
+        rowTitle: translationKey("Acknowledge Episode"),
+        rowDescription: translationKey(
+          "This records an acknowledgement on the episode timeline and also updates all incidents in this episode. Any on-call escalation for the episode and its incidents stops.",
+        ),
       },
-      words: {
-        changeStateTitle: translationKey("Change Episode State"),
-        changeStateBulkDescription: translationKey(
-          "Select the state to change episodes to. Episodes already at or past the selected state will be skipped. Member incidents will also be updated.",
-        ),
-        bulkNoteTitle: translationKey("Private Note"),
-        bulkNoteDescription: translationKey(
-          "Add an optional private note about this state change. Only your team can see it, and the same note is added to every episode you selected.",
-        ),
-        rowNoteDescription: translationKey(
-          "Post a private note about this state change.",
-        ),
-        bulkMembersSentence: translationKey(
-          "The incidents in each episode are updated too.",
+      [EventStateQuickMove.Resolve]: {
+        rowTitle: translationKey("Resolve Episode"),
+        rowDescription: translationKey(
+          "This marks the episode as resolved on the episode timeline and also updates all incidents in this episode.",
         ),
       },
     },
-    [EventStateKind.AlertEpisode]: {
-      kind: EventStateKind.AlertEpisode,
-      eventModelType: AlertEpisode,
-      timelineModelType: AlertEpisodeStateTimeline,
-      noteTemplateModelType: AlertNoteTemplate,
-      noteModelType: AlertEpisodeInternalNote,
-      eventIdField: "alertEpisodeId",
-      stateIdField: "alertStateId",
-      currentStateColumn: "currentAlertState",
-      stateList: StateListType.AlertState,
-      noteType: BulkStateChangeNoteType.Private,
-      notifiesSubscribers: false,
-      hasPerEventPrivacy: false,
-      quickMoves: [EventStateQuickMove.Acknowledge, EventStateQuickMove.Resolve],
-      quickMoveWords: {
-        [EventStateQuickMove.Acknowledge]: {
-          rowTitle: translationKey("Acknowledge Episode"),
-          rowDescription: translationKey(
-            "This records an acknowledgement on the episode timeline and also updates all alerts in this episode. Any on-call escalation for the episode and its alerts stops.",
-          ),
-        },
-        [EventStateQuickMove.Resolve]: {
-          rowTitle: translationKey("Resolve Episode"),
-          rowDescription: translationKey(
-            "This marks the episode as resolved on the episode timeline and also updates all alerts in this episode.",
-          ),
-        },
+    words: {
+      changeStateTitle: translationKey("Change Episode State"),
+      changeStateBulkDescription: translationKey(
+        "Select the state to change episodes to. Episodes already at or past the selected state will be skipped. Member incidents will also be updated.",
+      ),
+      bulkNoteTitle: translationKey("Private Note"),
+      bulkNoteDescription: translationKey(
+        "Add an optional private note about this state change. Only your team can see it, and the same note is added to every episode you selected.",
+      ),
+      rowNoteDescription: translationKey(
+        "Post a private note about this state change.",
+      ),
+      bulkMembersSentence: translationKey(
+        "The incidents in each episode are updated too.",
+      ),
+    },
+  },
+  [EventStateKind.AlertEpisode]: {
+    kind: EventStateKind.AlertEpisode,
+    eventModelType: AlertEpisode,
+    timelineModelType: AlertEpisodeStateTimeline,
+    noteTemplateModelType: AlertNoteTemplate,
+    noteModelType: AlertEpisodeInternalNote,
+    eventIdField: "alertEpisodeId",
+    stateIdField: "alertStateId",
+    currentStateColumn: "currentAlertState",
+    stateList: StateListType.AlertState,
+    noteType: BulkStateChangeNoteType.Private,
+    notifiesSubscribers: false,
+    hasPerEventPrivacy: false,
+    quickMoves: [EventStateQuickMove.Acknowledge, EventStateQuickMove.Resolve],
+    quickMoveWords: {
+      [EventStateQuickMove.Acknowledge]: {
+        rowTitle: translationKey("Acknowledge Episode"),
+        rowDescription: translationKey(
+          "This records an acknowledgement on the episode timeline and also updates all alerts in this episode. Any on-call escalation for the episode and its alerts stops.",
+        ),
       },
-      words: {
-        changeStateTitle: translationKey("Change Episode State"),
-        changeStateBulkDescription: translationKey(
-          "Select the state to change episodes to. Episodes already at or past the selected state will be skipped. Member alerts will also be updated.",
-        ),
-        bulkNoteTitle: translationKey("Private Note"),
-        bulkNoteDescription: translationKey(
-          "Add an optional private note about this state change. Only your team can see it, and the same note is added to every episode you selected.",
-        ),
-        rowNoteDescription: translationKey(
-          "Post a private note about this state change.",
-        ),
-        bulkMembersSentence: translationKey(
-          "The alerts in each episode are updated too.",
+      [EventStateQuickMove.Resolve]: {
+        rowTitle: translationKey("Resolve Episode"),
+        rowDescription: translationKey(
+          "This marks the episode as resolved on the episode timeline and also updates all alerts in this episode.",
         ),
       },
     },
-    [EventStateKind.ScheduledMaintenance]: {
-      kind: EventStateKind.ScheduledMaintenance,
-      eventModelType: ScheduledMaintenance,
-      timelineModelType: ScheduledMaintenanceStateTimeline,
-      noteTemplateModelType: ScheduledMaintenanceNoteTemplate,
-      noteModelType: ScheduledMaintenancePublicNote,
-      eventIdField: "scheduledMaintenanceId",
-      stateIdField: "scheduledMaintenanceStateId",
-      currentStateColumn: "currentScheduledMaintenanceState",
-      stateList: StateListType.ScheduledMaintenanceState,
-      noteType: BulkStateChangeNoteType.Public,
-      notifiesSubscribers: true,
-      hasPerEventPrivacy: false,
-      quickMoves: [EventStateQuickMove.Start, EventStateQuickMove.End],
-      quickMoveWords: {
-        [EventStateQuickMove.Start]: {
-          rowTitle: translationKey("Mark Scheduled Maintenance as {{state}}"),
-          rowDescription: translationKey("This updates the event timeline."),
-        },
-        [EventStateQuickMove.End]: {
-          rowTitle: translationKey("Mark Scheduled Maintenance as {{state}}"),
-          rowDescription: translationKey("This updates the event timeline."),
-        },
+    words: {
+      changeStateTitle: translationKey("Change Episode State"),
+      changeStateBulkDescription: translationKey(
+        "Select the state to change episodes to. Episodes already at or past the selected state will be skipped. Member alerts will also be updated.",
+      ),
+      bulkNoteTitle: translationKey("Private Note"),
+      bulkNoteDescription: translationKey(
+        "Add an optional private note about this state change. Only your team can see it, and the same note is added to every episode you selected.",
+      ),
+      rowNoteDescription: translationKey(
+        "Post a private note about this state change.",
+      ),
+      bulkMembersSentence: translationKey(
+        "The alerts in each episode are updated too.",
+      ),
+    },
+  },
+  [EventStateKind.ScheduledMaintenance]: {
+    kind: EventStateKind.ScheduledMaintenance,
+    eventModelType: ScheduledMaintenance,
+    timelineModelType: ScheduledMaintenanceStateTimeline,
+    noteTemplateModelType: ScheduledMaintenanceNoteTemplate,
+    noteModelType: ScheduledMaintenancePublicNote,
+    eventIdField: "scheduledMaintenanceId",
+    stateIdField: "scheduledMaintenanceStateId",
+    currentStateColumn: "currentScheduledMaintenanceState",
+    stateList: StateListType.ScheduledMaintenanceState,
+    noteType: BulkStateChangeNoteType.Public,
+    notifiesSubscribers: true,
+    hasPerEventPrivacy: false,
+    quickMoves: [EventStateQuickMove.Start, EventStateQuickMove.End],
+    quickMoveWords: {
+      [EventStateQuickMove.Start]: {
+        rowTitle: translationKey("Mark Scheduled Maintenance as {{state}}"),
+        rowDescription: translationKey("This updates the event timeline."),
       },
-      words: {
-        changeStateTitle: translationKey("Change Scheduled Maintenance State"),
-        changeStateBulkDescription: translationKey(
-          "Select the state to change scheduled maintenance events to. Events already at or past the selected state will be skipped.",
-        ),
-        bulkNoteTitle: translationKey("Public Note"),
-        bulkNoteDescription: translationKey(
-          "Post a public note about this state change to the status page. The same note is added to every event you selected.",
-        ),
-        rowNoteDescription: translationKey(
-          "Post a public note about this state change to the status page.",
-        ),
+      [EventStateQuickMove.End]: {
+        rowTitle: translationKey("Mark Scheduled Maintenance as {{state}}"),
+        rowDescription: translationKey("This updates the event timeline."),
       },
     },
-  };
+    words: {
+      changeStateTitle: translationKey("Change Scheduled Maintenance State"),
+      changeStateBulkDescription: translationKey(
+        "Select the state to change scheduled maintenance events to. Events already at or past the selected state will be skipped.",
+      ),
+      bulkNoteTitle: translationKey("Public Note"),
+      bulkNoteDescription: translationKey(
+        "Post a public note about this state change to the status page. The same note is added to every event you selected.",
+      ),
+      rowNoteDescription: translationKey(
+        "Post a public note about this state change to the status page.",
+      ),
+    },
+  },
+};

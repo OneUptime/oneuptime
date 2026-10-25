@@ -21,9 +21,10 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const StorageArraysArchivedPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const { unarchiveBulkActions } = useBulkArchiveActions<StorageArray>({
-    modelType: StorageArray,
-  });
+  const { unarchiveBulkActions, unarchiveRowActions } =
+    useBulkArchiveActions<StorageArray>({
+      modelType: StorageArray,
+    });
 
   /*
    * The Owner and Labels chips above the table, as on the live list: an
@@ -52,6 +53,8 @@ const StorageArraysArchivedPage: FunctionComponent<
     <Fragment>
       <ModelTable<StorageArray>
         modelType={StorageArray}
+        // Unarchive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...unarchiveRowActions]}
         id="storage-arrays-archived-table"
         userPreferencesKey="storage-arrays-archived-table"
         topContent={filterBar}

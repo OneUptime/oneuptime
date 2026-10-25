@@ -24,6 +24,8 @@ const LlmPricingPage: FunctionComponent<PageComponentProps> = (
 
   return (
     <ModelTable<LlmModelPrice>
+      // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+      rowSwitch={{ column: "isEnabled" }}
       modelType={LlmModelPrice}
       query={{
         projectId: ProjectUtil.getCurrentProjectId()!,

@@ -177,6 +177,8 @@ const RunbookRulesTable: FunctionComponent<ComponentProps> = (
 
   return (
     <ModelTable<RunbookRule>
+      // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+      rowSwitch={{ column: "isEnabled" }}
       modelType={RunbookRule}
       id={`runbook-rules-table-${props.triggerEntityType}`}
       name={`Settings > Runbook Rules > ${props.triggerEntityType}`}

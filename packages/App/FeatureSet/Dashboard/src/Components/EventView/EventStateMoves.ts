@@ -32,9 +32,9 @@ export interface EventStateLike {
   isArchived?: boolean | null | undefined;
 }
 
-export const getStateId: (state: EventStateLike | null | undefined) => string = (
+export const getStateId: (
   state: EventStateLike | null | undefined,
-): string => {
+) => string = (state: EventStateLike | null | undefined): string => {
   if (!state) {
     return "";
   }

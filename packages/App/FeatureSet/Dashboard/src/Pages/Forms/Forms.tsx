@@ -55,6 +55,8 @@ const Forms: FunctionComponent<PageComponentProps> = (
   return (
     <Fragment>
       <ModelTable<Form>
+        // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+        rowSwitch={{ column: "isEnabled" }}
         modelType={Form}
         id="forms-table"
         userPreferencesKey="forms-table"

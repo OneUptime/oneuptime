@@ -477,7 +477,8 @@ function useEventStateActions<T extends BaseModel>(
       title: title,
       icon: QUICK_MOVE_ICONS[move],
       buttonStyleType: ButtonStyleType.NORMAL,
-      resultLabels: QUICK_MOVE_RESULT_LABELS[move] || VALUE_CHANGE_RESULT_LABELS,
+      resultLabels:
+        QUICK_MOVE_RESULT_LABELS[move] || VALUE_CHANGE_RESULT_LABELS,
       // Nothing to do when every selected row is there already.
       isVisible: (items: Array<T>): boolean => {
         if (items.length === 0) {

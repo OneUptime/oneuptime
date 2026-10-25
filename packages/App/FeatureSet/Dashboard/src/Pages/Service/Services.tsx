@@ -47,9 +47,10 @@ const ServicesPage: FunctionComponent<
       resourceIdField: "serviceId",
     });
 
-  const { archiveBulkActions } = useBulkArchiveActions<Service>({
-    modelType: Service,
-  });
+  const { archiveBulkActions, archiveRowActions } =
+    useBulkArchiveActions<Service>({
+      modelType: Service,
+    });
 
   const {
     getOwnersForResource,
@@ -76,6 +77,8 @@ const ServicesPage: FunctionComponent<
     <Fragment>
       <ModelTable<Service>
         modelType={Service}
+        // Archive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...archiveRowActions]}
         id="service-table"
         userPreferencesKey="service-table"
         topContent={filterBar}

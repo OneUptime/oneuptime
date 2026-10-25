@@ -152,7 +152,6 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
       modelType: ScheduledMaintenance,
     });
 
-
   const scheduledMaintenanceExtraFacets: Array<ResourceFacet> = [
     {
       key: "currentScheduledMaintenanceState",

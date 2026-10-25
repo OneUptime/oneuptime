@@ -65,6 +65,8 @@ When a rule matches, each of its on-call policies pages its people for the episo
 const IncidentRulesTable: FunctionComponent = (): ReactElement => {
   return (
     <ModelTable<IncidentOnCallRule>
+      // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+      rowSwitch={{ column: "isEnabled" }}
       modelType={IncidentOnCallRule}
       id="incident-on-call-rules-table"
       name="Settings > Incident On-Call Rules"
@@ -241,6 +243,8 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
 const EpisodeRulesTable: FunctionComponent = (): ReactElement => {
   return (
     <ModelTable<IncidentEpisodeOnCallRule>
+      // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+      rowSwitch={{ column: "isEnabled" }}
       modelType={IncidentEpisodeOnCallRule}
       id="incident-episode-on-call-rules-table"
       name="Settings > Incident Episode On-Call Rules"

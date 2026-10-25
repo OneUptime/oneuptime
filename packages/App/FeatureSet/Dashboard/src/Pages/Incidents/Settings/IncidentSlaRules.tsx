@@ -109,6 +109,8 @@ const IncidentSlaRulesPage: FunctionComponent<
   return (
     <Fragment>
       <ModelTable<IncidentSlaRule>
+        // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+        rowSwitch={{ column: "isEnabled" }}
         modelType={IncidentSlaRule}
         id="incident-sla-rules-table"
         name="Settings > Incident SLA Rules"

@@ -3,8 +3,10 @@ import PageComponentProps from "../PageComponentProps";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
-import useBulkSwitchActions from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
-import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import {
+  SwitchActionsResult,
+  useSwitchActions,
+} from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import PageMap from "../../Utils/PageMap";
@@ -82,8 +84,11 @@ const IncomingCallPoliciesPage: FunctionComponent<
    * Enable and Disable, as the list already filters by them: a disabled
    * policy answers its number with a short message and pages nobody.
    */
-  const switchBulkActions: Array<BulkActionButtonSchema<IncomingCallPolicy>> =
-    useBulkSwitchActions<IncomingCallPolicy>({
+  const {
+    bulkActions: switchBulkActions,
+    rowActions: switchRowActions,
+  }: SwitchActionsResult<IncomingCallPolicy> =
+    useSwitchActions<IncomingCallPolicy>({
       modelType: IncomingCallPolicy,
       column: "isEnabled",
     });
@@ -220,6 +225,8 @@ const IncomingCallPoliciesPage: FunctionComponent<
     <Fragment>
       <ModelTable<IncomingCallPolicy>
         modelType={IncomingCallPolicy}
+        // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+        actionButtons={[...switchRowActions]}
         id="incoming-call-policy-table"
         userPreferencesKey="incoming-call-policy-table"
         topContent={filterBar}

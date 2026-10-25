@@ -546,6 +546,8 @@ const NetworkAlertPoliciesPage: FunctionComponent<
   return (
     <Fragment>
       <ModelTable<NetworkAlertPolicy>
+        // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+        rowSwitch={{ column: "isEnabled" }}
         modelType={NetworkAlertPolicy}
         id="network-alert-policies-table"
         name="Settings > Network Alert Policies"

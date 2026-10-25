@@ -46,13 +46,15 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
     });
 
   // Archived dashboards leave this list; they are on the Archived page.
-  const { archiveBulkActions } = useBulkArchiveActions<Dashboard>({
-    modelType: Dashboard,
-    singularName: DASHBOARD_ARCHIVE_COPY.singularName,
-    pluralName: DASHBOARD_ARCHIVE_COPY.pluralName,
-    archiveConfirmMessage: DASHBOARD_ARCHIVE_COPY.bulkArchiveConfirmMessage,
-    unarchiveConfirmMessage: DASHBOARD_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
-  });
+  const { archiveBulkActions, archiveRowActions } =
+    useBulkArchiveActions<Dashboard>({
+      modelType: Dashboard,
+      singularName: DASHBOARD_ARCHIVE_COPY.singularName,
+      pluralName: DASHBOARD_ARCHIVE_COPY.pluralName,
+      archiveConfirmMessage: DASHBOARD_ARCHIVE_COPY.bulkArchiveConfirmMessage,
+      unarchiveConfirmMessage:
+        DASHBOARD_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
+    });
 
   const {
     getOwnersForResource,
@@ -99,6 +101,8 @@ const Dashboards: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       <ModelTable<Dashboard>
         modelType={Dashboard}
+        // Archive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...archiveRowActions]}
         enableJsonImportExport={true}
         id="dashboard-table"
         userPreferencesKey="dashboards-table"

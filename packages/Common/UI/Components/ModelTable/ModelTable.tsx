@@ -26,6 +26,11 @@ import {
   BulkActionOnClickProps,
 } from "../BulkUpdate/BulkUpdateForm";
 import ImportModelsModal from "../ImportExport/ImportModelsModal";
+import ActionButtonSchema from "../ActionButton/ActionButtonSchema";
+import {
+  BulkSwitchActionsConfig,
+  buildSwitchActions,
+} from "../BulkUpdate/BulkSwitchActions";
 import { ButtonStyleType } from "../Button/Button";
 import { ComponentProps as CardComponentProps } from "../Card/Card";
 import { AnalyticsBaseModelType } from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
@@ -85,6 +90,18 @@ export interface ComponentProps<TBaseModel extends BaseModel>
    * Every other rule table is named by its model.
    */
   ruleCriteriaSubject?: RuleCriteriaSubject | undefined;
+  /*
+   * The everyday switch of a list of records that are turned on and off -
+   * a rule, a connection, a key: Enable or Disable in each row's ⋯ menu,
+   * the one that changes the row, from the shared switch
+   * (BulkUpdate/BulkSwitchActions), with its permission lock and, where the
+   * change has something to say, its question. The column is read with the
+   * rows. A list that also turns its rows in bulk takes useSwitchActions
+   * instead, which gives both.
+   */
+  rowSwitch?:
+    | Omit<BulkSwitchActionsConfig<TBaseModel>, "modelType" | "modelAPI">
+    | undefined;
 }
 
 const ModelTable: <TBaseModel extends BaseModel>(
@@ -166,6 +183,25 @@ const ModelTable: <TBaseModel extends BaseModel>(
       };
     };
 
+  /*
+   * The row switch (rowSwitch) goes first in each row's ⋯ menu, ahead of
+   * the list's own actions, and its column is read with the rows.
+   */
+  const rowSwitchActions: Array<ActionButtonSchema<TBaseModel>> =
+    props.rowSwitch
+      ? buildSwitchActions<TBaseModel>(
+          {
+            ...props.rowSwitch,
+            modelType: props.modelType,
+            modelAPI: props.modelAPI,
+            singularName: props.rowSwitch.singularName || props.singularName,
+            pluralName: props.rowSwitch.pluralName || props.pluralName,
+            getItemName: props.rowSwitch.getItemName || props.getItemName,
+          },
+          translator,
+        ).rowActions
+      : [];
+
   let bulkActions: BulkActionProps<TBaseModel> | undefined = props.bulkActions;
   let cardProps: CardComponentProps | undefined = props.cardProps;
   let refreshToggle: string | undefined = props.refreshToggle;
@@ -242,6 +278,20 @@ const ModelTable: <TBaseModel extends BaseModel>(
         filters={ruleCriteriaTable.filters}
         {...(ruleCriteriaTable.selectMoreFields
           ? { selectMoreFields: ruleCriteriaTable.selectMoreFields }
+          : {})}
+        {...(props.rowSwitch
+          ? {
+              selectMoreFields: {
+                ...((ruleCriteriaTable.selectMoreFields ||
+                  props.selectMoreFields ||
+                  {}) as Select<TBaseModel>),
+                [props.rowSwitch.column]: true,
+              } as Select<TBaseModel>,
+              actionButtons: [
+                ...rowSwitchActions,
+                ...(props.actionButtons || []),
+              ],
+            }
           : {})}
         helpContent={ruleCriteriaTable.helpContent}
         bulkActions={bulkActions}

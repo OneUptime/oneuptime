@@ -274,6 +274,8 @@ const TelemetryAiRulesTable: FunctionComponent<ComponentProps> = (
 
   return (
     <ModelTable<AutoRemediationRule>
+      // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+      rowSwitch={{ column: "isEnabled" }}
       modelType={AutoRemediationRule}
       id={tableId}
       name="Settings > AI > AI Rules"

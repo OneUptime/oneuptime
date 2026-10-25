@@ -8,8 +8,10 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import useBulkSwitchActions from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
-import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import {
+  SwitchActionsResult,
+  useSwitchActions,
+} from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -87,15 +89,19 @@ const TracePipelines: FunctionComponent<
    * Enable and Disable in Bulk Actions: a disabled pipeline no longer
    * transforms new spans. The list selects isEnabled for its Enabled column.
    */
-  const switchBulkActions: Array<BulkActionButtonSchema<TracePipeline>> =
-    useBulkSwitchActions<TracePipeline>({
-      modelType: TracePipeline,
-      column: "isEnabled",
-    });
+  const {
+    bulkActions: switchBulkActions,
+    rowActions: switchRowActions,
+  }: SwitchActionsResult<TracePipeline> = useSwitchActions<TracePipeline>({
+    modelType: TracePipeline,
+    column: "isEnabled",
+  });
 
   return (
     <ModelTable<TracePipeline>
       modelType={TracePipeline}
+      // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+      actionButtons={[...switchRowActions]}
       query={{
         projectId: ProjectUtil.getCurrentProjectId()!,
       }}

@@ -59,6 +59,8 @@ const ScheduledMaintenanceReminderRulesPage: FunctionComponent<
   return (
     <Fragment>
       <ModelTable<ScheduledMaintenanceReminderRule>
+        // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+        rowSwitch={{ column: "isEnabled" }}
         modelType={ScheduledMaintenanceReminderRule}
         id="scheduled-maintenance-reminder-rules-table"
         name="Settings > Scheduled Maintenance Reminder Rules"

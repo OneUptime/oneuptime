@@ -58,6 +58,8 @@ const ScheduledMaintenanceMeasurementsPage: FunctionComponent<
   return (
     <Fragment>
       <ModelTable<ScheduledMaintenanceMeasurement>
+        // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+        rowSwitch={{ column: "isEnabled" }}
         modelType={ScheduledMaintenanceMeasurement}
         id="scheduled-maintenance-measurements-table"
         name="Settings > Scheduled Maintenance Measurements"

@@ -20,9 +20,10 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const IoTArchivedPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const { unarchiveBulkActions } = useBulkArchiveActions<IoTFleet>({
-    modelType: IoTFleet,
-  });
+  const { unarchiveBulkActions, unarchiveRowActions } =
+    useBulkArchiveActions<IoTFleet>({
+      modelType: IoTFleet,
+    });
 
   /*
    * The Owner and Labels chips above the table, as on the live list: an
@@ -51,6 +52,8 @@ const IoTArchivedPage: FunctionComponent<
     <Fragment>
       <ModelTable<IoTFleet>
         modelType={IoTFleet}
+        // Unarchive in each row's ⋯ menu, as in Bulk Actions.
+        actionButtons={[...unarchiveRowActions]}
         id="iot-archived-table"
         userPreferencesKey="iot-archived-table"
         topContent={filterBar}

@@ -94,7 +94,6 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<IncidentEpisode>({ modelType: IncidentEpisode });
 
-
   /*
    * The page's saved views and the chips' selections in the address travel
    * under the same key, as on the incidents list; the pages that embed this

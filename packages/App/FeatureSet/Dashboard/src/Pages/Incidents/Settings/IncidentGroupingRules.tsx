@@ -214,6 +214,8 @@ const IncidentGroupingRulesPage: FunctionComponent<
   return (
     <Fragment>
       <ModelTable<IncidentGroupingRule>
+        // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+        rowSwitch={{ column: "isEnabled" }}
         modelType={IncidentGroupingRule}
         id="incident-grouping-rules-table"
         name="Settings > Incident Grouping Rules"

@@ -61,6 +61,8 @@ const IncidentReminderRulesPage: FunctionComponent<
   return (
     <Fragment>
       <ModelTable<IncidentReminderRule>
+        // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+        rowSwitch={{ column: "isEnabled" }}
         modelType={IncidentReminderRule}
         id="incident-reminder-rules-table"
         name="Settings > Incident Reminder Rules"

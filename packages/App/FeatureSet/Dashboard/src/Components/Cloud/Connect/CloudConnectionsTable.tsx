@@ -367,6 +367,8 @@ const CloudConnectionsTable: FunctionComponent<ComponentProps> = (
         )}
 
         <ModelTable<CloudConnection>
+          // Enable or Disable in each row's ⋯ menu: the one that changes the row.
+          rowSwitch={{ column: "isEnabled" }}
           modelType={CloudConnection}
           refreshToggle={`${props.refreshToggle}-${refreshCounter}`}
           id="cloud-connections-table"
