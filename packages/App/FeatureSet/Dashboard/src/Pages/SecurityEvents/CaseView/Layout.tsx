@@ -575,7 +575,7 @@ const SecurityCaseViewLayout: FunctionComponent<
           <ConfirmModal
             title="Delete Case"
             description={translator.translateTemplate(
-              "{{case}} and its detections, notes and timeline are deleted for good. To keep the record, close it with a verdict instead.",
+              "{{case}} and its detections, notes, timeline and playbook runs are deleted for good. To keep the record, close it with a verdict instead.",
               {
                 /*
                  * The case by its number, as the header above and the trail

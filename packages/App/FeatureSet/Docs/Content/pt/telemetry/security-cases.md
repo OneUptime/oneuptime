@@ -102,7 +102,7 @@ Cada página mantém no topo o cabeçalho do caso: número, prioridade, status e
 - **Execuções de playbooks**: o que cada playbook fez no caso, etapa por etapa, e as etapas aguardando aprovação. Enquanto houver execuções aguardando, o menu mostra quantas ao lado de **Execuções de playbooks**.
 - **Notas privadas**: o que a equipe escreveu sobre o caso.
 - **Registros de auditoria**: cada alteração feita no caso, e quem a fez. Veja [Registros de auditoria](/docs/configuration/audit-logs).
-- **Excluir caso**: exclui o caso para sempre, com as detecções, notas e linha do tempo dele. Para manter o registro, feche-o com um veredito.
+- **Excluir caso**: exclui o caso para sempre, com as detecções, notas, linha do tempo e execuções de playbooks dele. Para manter o registro, feche-o com um veredito.
 
 Para tratar vários casos de uma vez, selecione-os na fila e use **Assign to Me**, **Change Status** ou **Change Priority**.
 

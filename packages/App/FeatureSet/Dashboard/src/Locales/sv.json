@@ -34458,5 +34458,6 @@
   "{{threshold}} lines in an hour is the AI detector's bar for an error log.": "{{threshold}} rader på en timme är AI-detektorns gräns för en fellogg.",
   "{{threshold}} or more of these error logs in an hour": "{{threshold}} eller fler av dessa felloggar på en timme",
   "Could not load the AI activity: {{error}}": "Det gick inte att läsa in AI-aktiviteten: {{error}}",
-  "OneUptime AI opens a pull request that adds the trace id to this service's logs, for you to review.": "OneUptime AI öppnar en pull request som lägger till trace-id:t i den här tjänstens loggar, för dig att granska."
+  "OneUptime AI opens a pull request that adds the trace id to this service's logs, for you to review.": "OneUptime AI öppnar en pull request som lägger till trace-id:t i den här tjänstens loggar, för dig att granska.",
+  "{{case}} and its detections, notes, timeline and playbook runs are deleted for good. To keep the record, close it with a verdict instead.": "{{case}} och dess detektioner, anteckningar, tidslinje och playbook-körningar raderas permanent. Stäng det i stället med en bedömning för att behålla historiken."
 }

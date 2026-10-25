@@ -34458,5 +34458,6 @@
   "{{threshold}} lines in an hour is the AI detector's bar for an error log.": "{{threshold}} Zeilen pro Stunde sind die Schwelle des KI-Detektors für ein Fehlerprotokoll.",
   "{{threshold}} or more of these error logs in an hour": "{{threshold}} oder mehr dieser Fehlerprotokolle pro Stunde",
   "Could not load the AI activity: {{error}}": "Die KI-Aktivität konnte nicht geladen werden: {{error}}",
-  "OneUptime AI opens a pull request that adds the trace id to this service's logs, for you to review.": "OneUptime AI öffnet einen Pull Request, der die Trace-ID zu den Protokollen dieses Dienstes hinzufügt, damit Sie ihn prüfen können."
+  "OneUptime AI opens a pull request that adds the trace id to this service's logs, for you to review.": "OneUptime AI öffnet einen Pull Request, der die Trace-ID zu den Protokollen dieses Dienstes hinzufügt, damit Sie ihn prüfen können.",
+  "{{case}} and its detections, notes, timeline and playbook runs are deleted for good. To keep the record, close it with a verdict instead.": "{{case}} wird mit seinen Erkennungen, Notizen, seiner Zeitachse und seinen Playbook-Ausführungen endgültig gelöscht. Um ihn als Nachweis zu behalten, schließen Sie ihn stattdessen mit einer Bewertung."
 }

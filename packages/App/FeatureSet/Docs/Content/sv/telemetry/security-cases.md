@@ -102,7 +102,7 @@ Varje sida behåller ärendets sidhuvud överst: nummer, prioritet, status och t
 - **Playbook-körningar**: vad varje playbook gjorde i ärendet, steg för steg, och stegen som väntar på godkännande. Medan körningar väntar visar menyn hur många bredvid **Playbook-körningar**.
 - **Privata anteckningar**: vad teamet skrev om ärendet.
 - **Granskningsloggar**: varje ändring av ärendet, och vem som gjorde den. Se [Granskningsloggar](/docs/configuration/audit-logs).
-- **Ta bort ärende**: tar bort ärendet för gott, med dess detektioner, anteckningar och tidslinje. För att behålla det som dokumentation, stäng det i stället med en bedömning.
+- **Ta bort ärende**: tar bort ärendet för gott, med dess detektioner, anteckningar, tidslinje och playbook-körningar. För att behålla det som dokumentation, stäng det i stället med en bedömning.
 
 För att arbeta med flera ärenden samtidigt markerar du dem i kön och använder **Assign to Me**, **Change Status** eller **Change Priority**.
 

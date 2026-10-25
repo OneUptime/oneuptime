@@ -34458,5 +34458,6 @@
   "{{threshold}} lines in an hour is the AI detector's bar for an error log.": "Порог AI-детектора для ошибки в журналах — {{threshold}} строк за час.",
   "{{threshold}} or more of these error logs in an hour": "{{threshold}} и более таких записей об ошибке за час",
   "Could not load the AI activity: {{error}}": "Не удалось загрузить активность ИИ: {{error}}",
-  "OneUptime AI opens a pull request that adds the trace id to this service's logs, for you to review.": "OneUptime AI откроет пул-реквест, который добавит идентификатор трассировки в журналы этого сервиса, — вам на проверку."
+  "OneUptime AI opens a pull request that adds the trace id to this service's logs, for you to review.": "OneUptime AI откроет пул-реквест, который добавит идентификатор трассировки в журналы этого сервиса, — вам на проверку.",
+  "{{case}} and its detections, notes, timeline and playbook runs are deleted for good. To keep the record, close it with a verdict instead.": "{{case}} вместе с обнаружениями, заметками, хронологией и запусками плейбуков удаляется навсегда. Чтобы сохранить запись, закройте кейс с вердиктом."
 }

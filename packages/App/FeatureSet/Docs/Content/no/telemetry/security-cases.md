@@ -102,7 +102,7 @@ Hver side beholder sakens topptekst øverst: nummer, prioritet, status og tittel
 - **Playbook-kjøringer**: hva hver playbook gjorde på saken, steg for steg, og stegene som venter på godkjenning. Mens kjøringer venter, viser menyen hvor mange ved siden av **Playbook-kjøringer**.
 - **Private notater**: hva teamet skrev om saken.
 - **Revisjonslogger**: hver endring i saken, og hvem som gjorde den. Se [Revisjonslogger](/docs/configuration/audit-logs).
-- **Slett sak**: sletter saken for godt, med deteksjonene, notatene og tidslinjen. For å beholde den som dokumentasjon, lukk den heller med en konklusjon.
+- **Slett sak**: sletter saken for godt, med deteksjonene, notatene, tidslinjen og playbook-kjøringene. For å beholde den som dokumentasjon, lukk den heller med en konklusjon.
 
 For å behandle flere saker samtidig merker du dem i køen og bruker **Assign to Me**, **Change Status** eller **Change Priority**.
 

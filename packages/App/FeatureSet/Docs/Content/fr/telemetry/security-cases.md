@@ -102,7 +102,7 @@ Chaque page garde en haut l'en-tête du dossier : son numéro, sa priorité, son
 - **Exécutions de playbooks** : ce que chaque playbook a fait sur le dossier, étape par étape, et les étapes en attente d'approbation. Tant que des exécutions attendent, le menu indique combien à côté de **Exécutions de playbooks**.
 - **Notes privées** : ce que l'équipe a écrit sur le dossier.
 - **Journaux d'audit** : chaque modification apportée au dossier, et qui l'a faite. Voir [Journaux d'audit](/docs/configuration/audit-logs).
-- **Supprimer le dossier** : supprime définitivement le dossier, avec ses détections, ses notes et sa chronologie. Pour en garder la trace, clôturez-le plutôt avec un verdict.
+- **Supprimer le dossier** : supprime définitivement le dossier, avec ses détections, ses notes, sa chronologie et ses exécutions de playbooks. Pour en garder la trace, clôturez-le plutôt avec un verdict.
 
 Pour traiter plusieurs dossiers à la fois, sélectionnez-les dans la file d'attente et utilisez **Assign to Me**, **Change Status** ou **Change Priority**.
 

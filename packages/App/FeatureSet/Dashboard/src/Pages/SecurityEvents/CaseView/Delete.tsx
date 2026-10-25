@@ -18,9 +18,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 /*
  * Delete Case, where every record's menu keeps its Delete (Advanced). It
  * asks first, with the same question the header's ⋯ asks - the case and
- * everything on it go for good, and closing it with a verdict keeps the
- * record - and only who may delete cases may: anyone else sees the button
- * locked, and why.
+ * everything on it go for good, its playbook runs too, and closing it with
+ * a verdict keeps the record - and only who may delete cases may: anyone
+ * else sees the button locked, and why.
  */
 const SecurityCaseDeletePage: FunctionComponent<
   PageComponentProps
@@ -37,7 +37,7 @@ const SecurityCaseDeletePage: FunctionComponent<
     <Card
       title="Delete Case"
       description={translator.translateTemplate(
-        "{{case}} and its detections, notes and timeline are deleted for good. To keep the record, close it with a verdict instead.",
+        "{{case}} and its detections, notes, timeline and playbook runs are deleted for good. To keep the record, close it with a verdict instead.",
         // By its number, as the header right above names it.
         { case: getSecurityCaseRecordName(securityCase) || "" },
       )}

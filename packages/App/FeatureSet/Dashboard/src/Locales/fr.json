@@ -34458,5 +34458,6 @@
   "{{threshold}} lines in an hour is the AI detector's bar for an error log.": "{{threshold}} lignes en une heure, c'est le seuil du détecteur IA pour un journal d'erreur.",
   "{{threshold}} or more of these error logs in an hour": "{{threshold}} de ces journaux d'erreur ou plus en une heure",
   "Could not load the AI activity: {{error}}": "Impossible de charger l'activité IA : {{error}}",
-  "OneUptime AI opens a pull request that adds the trace id to this service's logs, for you to review.": "OneUptime AI ouvre une pull request qui ajoute l'ID de trace aux journaux de ce service, pour que vous la révisiez."
+  "OneUptime AI opens a pull request that adds the trace id to this service's logs, for you to review.": "OneUptime AI ouvre une pull request qui ajoute l'ID de trace aux journaux de ce service, pour que vous la révisiez.",
+  "{{case}} and its detections, notes, timeline and playbook runs are deleted for good. To keep the record, close it with a verdict instead.": "{{case}} et ses détections, notes, chronologie et exécutions de playbooks sont supprimés définitivement. Pour garder une trace, fermez-le plutôt avec un verdict."
 }

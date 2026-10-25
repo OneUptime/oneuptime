@@ -34458,5 +34458,6 @@
   "{{threshold}} lines in an hour is the AI detector's bar for an error log.": "1 時間に {{threshold}} 行が、エラーログに対する AI 検出器のしきい値です。",
   "{{threshold}} or more of these error logs in an hour": "1 時間に {{threshold}} 件以上のこのエラーログ",
   "Could not load the AI activity: {{error}}": "AI アクティビティを読み込めませんでした: {{error}}",
-  "OneUptime AI opens a pull request that adds the trace id to this service's logs, for you to review.": "OneUptime AI がこのサービスのログにトレース ID を追加するプルリクエストを作成します。内容を確認してください。"
+  "OneUptime AI opens a pull request that adds the trace id to this service's logs, for you to review.": "OneUptime AI がこのサービスのログにトレース ID を追加するプルリクエストを作成します。内容を確認してください。",
+  "{{case}} and its detections, notes, timeline and playbook runs are deleted for good. To keep the record, close it with a verdict instead.": "{{case}} とその検出、メモ、タイムライン、プレイブックの実行は完全に削除されます。記録を残すには、代わりに判定を付けてクローズしてください。"
 }

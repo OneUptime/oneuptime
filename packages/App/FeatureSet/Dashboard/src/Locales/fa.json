@@ -34458,5 +34458,6 @@
   "{{threshold}} lines in an hour is the AI detector's bar for an error log.": "{{threshold}} خط در یک ساعت، آستانه آشکارساز هوش مصنوعی برای یک لاگ خطا است.",
   "{{threshold}} or more of these error logs in an hour": "{{threshold}} مورد یا بیشتر از این لاگ‌های خطا در یک ساعت",
   "Could not load the AI activity: {{error}}": "بارگذاری فعالیت هوش مصنوعی ممکن نشد: {{error}}",
-  "OneUptime AI opens a pull request that adds the trace id to this service's logs, for you to review.": "OneUptime AI یک Pull Request باز می‌کند که شناسه ترِیس را به لاگ‌های این سرویس اضافه می‌کند، تا شما بازبینی کنید."
+  "OneUptime AI opens a pull request that adds the trace id to this service's logs, for you to review.": "OneUptime AI یک Pull Request باز می‌کند که شناسه ترِیس را به لاگ‌های این سرویس اضافه می‌کند، تا شما بازبینی کنید.",
+  "{{case}} and its detections, notes, timeline and playbook runs are deleted for good. To keep the record, close it with a verdict instead.": "{{case}} و تشخیص‌ها، یادداشت‌ها، خط زمانی و اجراهای پلی‌بوک آن برای همیشه حذف می‌شوند. برای نگه داشتن سابقه، به‌جای آن پرونده را با یک حکم ببندید."
 }

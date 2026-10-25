@@ -102,7 +102,7 @@ Every page keeps the case's header on top: its number, priority, status and titl
 - **Playbook Runs**: what each playbook did on the case, step by step, and the steps waiting for approval. While runs wait, the menu shows how many beside **Playbook Runs**.
 - **Private Notes**: what the team wrote about the case.
 - **Audit Logs**: every change made to the case, and who made it. See [Audit Logs](/docs/configuration/audit-logs).
-- **Delete Case**: deletes the case and its detections, notes and timeline for good. To keep the record, close it with a verdict instead.
+- **Delete Case**: deletes the case and its detections, notes, timeline and playbook runs for good. To keep the record, close it with a verdict instead.
 
 To work several cases at once, select them in the queue and use **Assign to Me**, **Change Status** or **Change Priority**.
 

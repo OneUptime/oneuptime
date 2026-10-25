@@ -2359,7 +2359,7 @@ test.describe("a case", () => {
     await menuEntry(page, "Delete Case").click();
     const card: Locator = cardTitled(page, "Delete Case");
     await expect(card).toContainText(
-      "CASE-142 and its detections, notes and timeline are deleted for good.",
+      "CASE-142 and its detections, notes, timeline and playbook runs are deleted for good.",
     );
     await card
       .getByRole("button", { name: "Delete Case", exact: true })

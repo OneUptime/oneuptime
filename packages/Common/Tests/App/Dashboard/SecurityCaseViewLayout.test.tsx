@@ -838,7 +838,7 @@ describe("deleting a case", () => {
 
     // By its number, as the header and the trail name it - not number and title run together.
     expect(dialog).toHaveTextContent(
-      "CASE-142 and its detections, notes and timeline are deleted for good. To keep the record, close it with a verdict instead.",
+      "CASE-142 and its detections, notes, timeline and playbook runs are deleted for good. To keep the record, close it with a verdict instead.",
     );
     expect(dialog).not.toHaveTextContent("CASE-142 Password spray");
     expect(deletes).toEqual([]);

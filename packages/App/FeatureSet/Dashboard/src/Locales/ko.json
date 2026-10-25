@@ -34458,5 +34458,6 @@
   "{{threshold}} lines in an hour is the AI detector's bar for an error log.": "1시간에 {{threshold}}줄이 오류 로그에 대한 AI 감지기의 기준입니다.",
   "{{threshold}} or more of these error logs in an hour": "1시간에 이 오류 로그 {{threshold}}개 이상",
   "Could not load the AI activity: {{error}}": "AI 활동을 불러오지 못했습니다: {{error}}",
-  "OneUptime AI opens a pull request that adds the trace id to this service's logs, for you to review.": "OneUptime AI가 이 서비스의 로그에 트레이스 ID를 추가하는 풀 리퀘스트를 열고 검토를 요청합니다."
+  "OneUptime AI opens a pull request that adds the trace id to this service's logs, for you to review.": "OneUptime AI가 이 서비스의 로그에 트레이스 ID를 추가하는 풀 리퀘스트를 열고 검토를 요청합니다.",
+  "{{case}} and its detections, notes, timeline and playbook runs are deleted for good. To keep the record, close it with a verdict instead.": "{{case}}와(과) 그 탐지, 노트, 타임라인, 플레이북 실행이 영구 삭제됩니다. 기록을 남기려면 대신 판정과 함께 닫으세요."
 }

@@ -34458,5 +34458,6 @@
   "{{threshold}} lines in an hour is the AI detector's bar for an error log.": "一小时内 {{threshold}} 行是 AI 检测器判定错误日志的门槛。",
   "{{threshold}} or more of these error logs in an hour": "一小时内 {{threshold}} 条或更多此类错误日志",
   "Could not load the AI activity: {{error}}": "无法加载 AI 活动：{{error}}",
-  "OneUptime AI opens a pull request that adds the trace id to this service's logs, for you to review.": "OneUptime AI 会创建一个为此服务的日志加上跟踪 ID 的拉取请求，供您审查。"
+  "OneUptime AI opens a pull request that adds the trace id to this service's logs, for you to review.": "OneUptime AI 会创建一个为此服务的日志加上跟踪 ID 的拉取请求，供您审查。",
+  "{{case}} and its detections, notes, timeline and playbook runs are deleted for good. To keep the record, close it with a verdict instead.": "{{case}} 及其检测、备注、时间线和剧本运行记录将被永久删除。如需保留记录，请改为附上结论后关闭。"
 }

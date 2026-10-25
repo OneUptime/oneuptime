@@ -581,7 +581,7 @@ describe("Delete Case", () => {
     // By its number, as the header right above names it.
     expect(
       screen.getByText(
-        "CASE-142 and its detections, notes and timeline are deleted for good. To keep the record, close it with a verdict instead.",
+        "CASE-142 and its detections, notes, timeline and playbook runs are deleted for good. To keep the record, close it with a verdict instead.",
       ),
     ).toBeInTheDocument();
 

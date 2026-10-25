@@ -102,7 +102,7 @@ Cada página mantiene arriba la cabecera del caso: su número, prioridad, estado
 - **Ejecuciones de playbooks**: lo que hizo cada playbook en el caso, paso a paso, y los pasos que esperan aprobación. Mientras haya ejecuciones esperando, el menú muestra cuántas junto a **Ejecuciones de playbooks**.
 - **Notas privadas**: lo que el equipo escribió sobre el caso.
 - **Registros de auditoría**: cada cambio hecho en el caso y quién lo hizo. Consulta [Registros de auditoría](/docs/configuration/audit-logs).
-- **Eliminar caso**: elimina para siempre el caso, con sus detecciones, notas y cronología. Para conservar el registro, ciérralo con un veredicto.
+- **Eliminar caso**: elimina para siempre el caso, con sus detecciones, notas, cronología y ejecuciones de playbooks. Para conservar el registro, ciérralo con un veredicto.
 
 Para gestionar varios casos a la vez, selecciónalos en la cola y usa **Assign to Me**, **Change Status** o **Change Priority**.
 

@@ -525,10 +525,10 @@ describe("Security Cases and Playbooks docs", () => {
     expect(
       flat(source(`${DASHBOARD}/Pages/SecurityEvents/CaseView/Delete.tsx`)),
     ).toContain(
-      "{{case}} and its detections, notes and timeline are deleted for good. To keep the record, close it with a verdict instead.",
+      "{{case}} and its detections, notes, timeline and playbook runs are deleted for good. To keep the record, close it with a verdict instead.",
     );
     expect(page).toContain(
-      "- **Delete Case**: deletes the case and its detections, notes and timeline for good. To keep the record, close it with a verdict instead.",
+      "- **Delete Case**: deletes the case and its detections, notes, timeline and playbook runs for good. To keep the record, close it with a verdict instead.",
     );
   });
 

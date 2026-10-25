@@ -102,7 +102,7 @@ Hver side beholder sagens sidehoved øverst: nummer, prioritet, status og titel,
 - **Playbook-kørsler**: hvad hver playbook gjorde på sagen, trin for trin, og de trin, der venter på godkendelse. Mens kørsler venter, viser menuen, hvor mange de er, ved siden af **Playbook-kørsler**.
 - **Private noter**: hvad teamet skrev om sagen.
 - **Auditlogs**: hver ændring af sagen, og hvem der lavede den. Se [Auditlogs](/docs/configuration/audit-logs).
-- **Slet sag**: sletter sagen for altid, med dens detektioner, noter og tidslinje. Vil du beholde den som dokumentation, så luk den i stedet med en konklusion.
+- **Slet sag**: sletter sagen for altid, med dens detektioner, noter, tidslinje og playbook-kørsler. Vil du beholde den som dokumentation, så luk den i stedet med en konklusion.
 
 For at behandle flere sager på én gang vælger du dem i køen og bruger **Assign to Me**, **Change Status** eller **Change Priority**.
 
