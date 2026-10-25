@@ -84,11 +84,9 @@ Check all of them at once (read-only):
 for app in 0e5480fd-a9c5-4ad3-9c0b-9f6045318daf b7805806-13a4-4ecd-bdfc-8d91944b5a46 c6386dbb-d994-4a14-81ce-5e8a64a79506; do az rest --method get --url "https://graph.microsoft.com/v1.0/applications(appId='$app')?\$select=displayName,publisherDomain,verifiedPublisher"; done
 ```
 
-On 25 October 2026 **OneUptime** (since October 2025) and **OneUptime
-Meetings** were verified. **OneUptime Sign-in** was given its publisher domain
-and URLs that day; its MPN ID step waits for a maintainer to accept the
-Microsoft Platform Policies. A new multitenant Entra app is verified the same
-way before it ships.
+All three are verified (OneUptime since October 2025, OneUptime Meetings
+since 10 October 2026, OneUptime Sign-in since 25 October 2026). A new
+multitenant Entra app is verified the same way before it ships.
 
 ## Releasing a new store package
 
