@@ -192,6 +192,8 @@ describe("the Metrics Explorer page's section on improving metrics and adding mi
     const rows: Record<string, string> = findingRows(section);
 
     expect(fixCopy).toContain("stops recording these values on the metric");
+    // Metric names with IDs in them say their own: the IDs come out.
+    expect(fixCopy).toContain("takes the IDs out of these metric names");
     expect(rows["High Cardinality"]).toContain(
       "| Stops recording the value on the metric, or takes the IDs out of its names. |",
     );

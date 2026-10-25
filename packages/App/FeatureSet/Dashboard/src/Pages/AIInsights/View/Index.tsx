@@ -22,7 +22,10 @@ import {
   getProfileInsightMonitorRoute,
 } from "../../../Components/TelemetryAi/ProfileInsightFixRequest";
 import TelemetryAiFixStrip from "../../../Components/TelemetryAi/TelemetryAiFixStrip";
-import { doesInsightOfferTelemetryAiFix } from "../../../Components/TelemetryAi/TelemetryAiFixCopy";
+import {
+  doesInsightOfferTelemetryAiFix,
+  getTelemetryAiFixLeadOfFinding,
+} from "../../../Components/TelemetryAi/TelemetryAiFixCopy";
 import ChatActivityFeed from "../../../Components/AIChat/ChatActivityFeed";
 import ServiceElement from "../../../Components/Service/ServiceElement";
 import {
@@ -717,9 +720,18 @@ const AIInsightViewPage: FunctionComponent<
       service.id = new ObjectID(serviceIdString);
       service.name = insight.serviceName;
 
+      /*
+       * A long name ("storefront-checkout-service-eu-west-1-production")
+       * is cut at its end, with an ellipsis: pushed to the right edge, it
+       * overflowed to the left and lost its start ("eu-west-1-production").
+       * Whole under the pointer (the fact's title).
+       */
       serviceValue = (
-        <span className="flex justify-end">
-          <ServiceElement service={service} />
+        <span className="flex min-w-0 justify-end [&>*]:min-w-0">
+          <ServiceElement
+            service={service}
+            serviceNameClassName="min-w-0 truncate"
+          />
         </span>
       );
     }
@@ -829,7 +841,15 @@ const AIInsightViewPage: FunctionComponent<
                 />
               </span>
               <div className="min-w-0">
-                <h2 className="text-lg font-semibold leading-6 text-gray-900">
+                {/*
+                 * A title names what the service named - a metric, an
+                 * attribute, an operation - often one long word: it breaks
+                 * anywhere rather than run past the card's edge on a phone.
+                 */}
+                <h2
+                  className="text-lg font-semibold leading-6 text-gray-900 [overflow-wrap:anywhere]"
+                  data-testid="ai-insight-title"
+                >
                   {insight.title}
                 </h2>
                 <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -1143,6 +1163,7 @@ const AIInsightViewPage: FunctionComponent<
             <TelemetryAiFixStrip
               insightId={modelId.toString()}
               insightType={insight.insightType}
+              lead={getTelemetryAiFixLeadOfFinding(insight)}
               onTaskStarted={() => {
                 fetchInsight().catch(() => {
                   // handled inside fetchInsight

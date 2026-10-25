@@ -54,6 +54,7 @@ import {
   buildMetricInsightDetail,
   describeMetricProblem,
   describeMetricValueShape,
+  describeTelemetrySdkLanguage,
   formatMetricNumber,
   formatMetricPercent,
   getDominantMetricValueShape,
@@ -577,10 +578,10 @@ describe("what an attribute's values look like", () => {
         return describeMetricValueShape(shape);
       }),
     ).toEqual([
-      "numbers, such as ids",
+      "numbers, such as IDs",
       "UUIDs",
-      "hex ids",
-      "URLs or paths with ids in them",
+      "hex IDs",
+      "URLs or paths with IDs in them",
       "email addresses",
       "timestamps",
       "free text",
@@ -1316,7 +1317,7 @@ describe("what the problem is, in sentences", () => {
 
   test("names with ids: how many, and that each id is a metric of its own", () => {
     expect(describeMetricProblem(nameEvidence())).toBe(
-      "Over the last hour it sent 1,234 metrics whose names differ only by an id, all named like job.{id}.duration (56,000 data points together). Each id makes a metric of its own.",
+      "Over the last hour it sent 1,234 metrics whose names differ only by an ID, all named like job.{id}.duration (56,000 data points together). Each ID makes a metric of its own.",
     );
   });
 
@@ -1398,11 +1399,11 @@ describe("the evidence a person reads on the finding", () => {
 
   test("names with ids: the pattern, how many names, and why each is a metric", () => {
     expect(lines(nameEvidence())).toEqual([
-      "**Metric names with ids in checkout**",
+      "**Metric names with IDs in checkout**",
       "",
       "- Names like: `job.{id}.duration`",
       "- In the last hour: 1,234 such names, 56,000 data points",
-      "- An id in a metric's name makes a new metric for each value",
+      "- An ID in a metric's name makes a new metric for each value",
     ]);
   });
 
@@ -1415,7 +1416,7 @@ describe("the evidence a person reads on the finding", () => {
       "- In the last hour: 2,400 data points",
       "- 95% of its values were at or below 5, its smallest bucket's bound",
       "- Values recorded: from 0.012 to 4.8",
-      "- Buckets: 15 bucket bounds, the smallest above zero 5 and the largest 10,000 - the OpenTelemetry SDKs' default ones, made for milliseconds",
+      "- Buckets: 15 bounds, from 5 to 10,000 - the OpenTelemetry SDKs' default ones, made for milliseconds",
       "- Its percentiles cannot be told apart: every chart and monitor reads the same number",
     ]);
     expect(
@@ -1442,6 +1443,57 @@ describe("the evidence a person reads on the finding", () => {
     ]);
   });
 
+  test("buckets: a histogram with one bound, or one above zero, says it once", () => {
+    expect(
+      lines(
+        histogramEvidence({
+          boundCount: 1,
+          smallestBound: 5,
+          largestBound: 5,
+          hasDefaultBounds: false,
+        }),
+      ),
+    ).toContain("- Buckets: 1 bound, up to 5");
+    expect(
+      lines(
+        histogramEvidence({
+          boundCount: 2,
+          smallestBound: 0.5,
+          largestBound: 0.5,
+          hasDefaultBounds: false,
+        }),
+      ),
+    ).toContain("- Buckets: 2 bounds, up to 0.5");
+    expect(
+      lines(
+        histogramEvidence({
+          boundCount: 14,
+          smallestBound: 0.005,
+          largestBound: 10,
+          hasDefaultBounds: false,
+        }),
+      ),
+    ).toContain("- Buckets: 14 bounds, from 0.005 to 10");
+  });
+
+  test("the SDK's language is named as Services name it, and an unknown one as it was sent", () => {
+    expect(describeTelemetrySdkLanguage("nodejs")).toBe("Node.js");
+    expect(describeTelemetrySdkLanguage(" Python ")).toBe("Python");
+    expect(describeTelemetrySdkLanguage("dotnet")).toBe(".NET");
+    expect(describeTelemetrySdkLanguage("cpp")).toBe("C++");
+    expect(describeTelemetrySdkLanguage("webjs")).toBe("Browser JS");
+    expect(describeTelemetrySdkLanguage("cobol")).toBe("cobol");
+    expect(describeTelemetrySdkLanguage("")).toBe("");
+
+    // Written as text: whatever the service sent cannot start emphasis.
+    expect(lines(missingEvidence({ sdkLanguage: "my_sdk*" }))).toContain(
+      "- Telemetry SDK: my_sdk\\*",
+    );
+    expect(
+      lines(missingEvidence({ sdkLanguage: undefined })).join("\n"),
+    ).not.toContain("Telemetry SDK");
+  });
+
   test("no metrics: its spans, its busiest operations and its SDK", () => {
     expect(lines(missingEvidence())).toEqual([
       "**Missing metrics in checkout**",
@@ -1449,7 +1501,8 @@ describe("the evidence a person reads on the finding", () => {
       "- In the last hour: 4,200 spans, 12 failed",
       "- No metric has ever arrived from this service",
       "- Busiest operations: `GET /orders` (2,000), `POST /checkout` (900)",
-      "- Telemetry SDK: nodejs",
+      // Named as Services name it, not as the SDK sent it ("nodejs").
+      "- Telemetry SDK: Node.js",
       "- Without metrics, nothing charts or alerts on its request rate, errors or latency over time",
     ]);
   });
@@ -1481,7 +1534,7 @@ describe("what OneUptime asks the AI", () => {
         serviceName: "checkout",
       }),
     ).toBe(
-      "Take the ids out of checkout's metric names like job.{id}.duration",
+      "Take the IDs out of checkout's metric names like job.{id}.duration",
     );
     expect(
       getMetricFixRequestTitle({
@@ -1525,7 +1578,7 @@ describe("what OneUptime asks the AI", () => {
     );
     expect(message[3]).toBe("");
     expect(message[4]).toBe(
-      "Find where the code records this metric and stop putting user.id on it: drop it, or record a value with a few possible values in its place (a tier, a type or a region rather than an id). If the value helps when debugging, put it on the span or the log line instead, where one value per request costs nothing. Keep the metric's name and its other attributes as they are, and update the tests that check its attributes. If this metric is recorded by a library, an agent or a collector configured outside this repository, say where and change nothing.",
+      "Find where the code records this metric and stop putting user.id on it: drop it, or record a value with a few possible values in its place (a tier, a type or a region rather than an ID). If the value helps when debugging, put it on the span or the log line instead, where one value per request costs nothing. Keep the metric's name and its other attributes as they are, and update the tests that check its attributes. If this metric is recorded by a library, an agent or a collector configured outside this repository, say where and change nothing.",
     );
     expect(message).toHaveLength(5);
   });
@@ -1569,7 +1622,7 @@ describe("what OneUptime asks the AI", () => {
       MetricValueShape.Email,
     ]) {
       expect(ask(shape)).toContain(
-        "drop it, or record a value with a few possible values in its place (a tier, a type or a region rather than an id).",
+        "drop it, or record a value with a few possible values in its place (a tier, a type or a region rather than an ID).",
       );
     }
 
@@ -1590,7 +1643,7 @@ describe("what OneUptime asks the AI", () => {
     expect(message).toContain(
       "Find where the code builds these metric names and use one fixed name in their place.",
     );
-    expect(message).toContain("never the id itself");
+    expect(message).toContain("never the ID itself");
     expect(message).toContain(
       "If this metric is recorded by a library, an agent or a collector configured outside this repository, say where and change nothing.",
     );
@@ -1633,7 +1686,7 @@ describe("what OneUptime asks the AI", () => {
     expect(message).toContain(
       "Set up the OpenTelemetry metrics SDK in this service and export its metrics to OneUptime the way its traces are exported now (the same endpoint, headers and service.name).",
     );
-    expect(message).toContain("never ids or full URLs");
+    expect(message).toContain("never IDs or full URLs");
     expect(message).toContain("Do not change what the code does.");
     expect(message).toContain(
       "If this service's metrics are recorded somewhere other than this repository, or reach OneUptime another way, say where and change nothing.",
@@ -1675,7 +1728,7 @@ describe("what the task is given beside the code", () => {
         "Data points in the window: 2,400",
         "95% of its values were at or below 5, its smallest bucket's bound",
         "Values recorded: from 0.012 to 4.8",
-        "Buckets: 15 bucket bounds, the smallest above zero 5 and the largest 10,000 (the OpenTelemetry SDKs' default buckets)",
+        "Buckets: 15 bounds, from 5 to 10,000 (the OpenTelemetry SDKs' default buckets)",
       ],
     );
   });

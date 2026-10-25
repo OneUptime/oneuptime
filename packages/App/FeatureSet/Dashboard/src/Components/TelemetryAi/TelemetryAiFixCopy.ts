@@ -1,6 +1,7 @@
 import AIInsightStatus, {
   AIInsightStatusHelper,
 } from "Common/Types/AI/AIInsightStatus";
+import AIInsightEvidence from "Common/Types/AI/AIInsightEvidence";
 import AIInsightType from "Common/Types/AI/AIInsightType";
 import {
   TelemetryAiLane,
@@ -79,6 +80,34 @@ export const TELEMETRY_AI_FIX_LEADS: Readonly<
 export const TELEMETRY_AI_FIX_LEAD: string = translationKey(
   "OneUptime AI opens a pull request that fixes this, for you to review.",
 );
+
+/*
+ * What Fix with AI does for metric names with IDs in them - High
+ * Cardinality by its names, not by an attribute (Utils/Metrics/
+ * MetricInsight): the pull request takes the IDs out of the names, so its
+ * kind's line ("stops recording these values on the metric") is not true.
+ */
+export const TELEMETRY_AI_FIX_LEAD_METRIC_NAMES: string = translationKey(
+  "OneUptime AI opens a pull request that takes the IDs out of these metric names, for you to review.",
+);
+
+/*
+ * What Fix with AI does for one finding, when its evidence says more than
+ * its kind does; undefined when the kind's own line says it.
+ */
+export function getTelemetryAiFixLeadOfFinding(insight: {
+  insightType?: string | undefined;
+  evidence?: AIInsightEvidence | undefined;
+}): string | undefined {
+  if (
+    insight.insightType === AIInsightType.MetricHighCardinality &&
+    insight.evidence?.metric?.shape === "Name"
+  ) {
+    return TELEMETRY_AI_FIX_LEAD_METRIC_NAMES;
+  }
+
+  return undefined;
+}
 
 export function getTelemetryAiFixLead(insightType: unknown): string {
   return (

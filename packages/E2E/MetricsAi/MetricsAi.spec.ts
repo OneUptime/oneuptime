@@ -45,6 +45,17 @@ const MISSING_TITLE: string = "payments sends traces but no metrics";
 
 const SWITCH_TITLE: string = "Improve metrics and add missing ones";
 
+// ?names=long: the names a large estate gives its services and metrics.
+const LONG_CHECKOUT_SERVICE: string =
+  "storefront-checkout-service-eu-west-1-production";
+const LONG_PAYMENTS_SERVICE: string =
+  "storefront-payments-gateway-eu-west-1-production";
+const LONG_METRIC: string =
+  "com.example.storefront.checkout.http.server.request.count.by.tenant";
+const LONG_ATTRIBUTE: string = "app.storefront.customer.account.identifier";
+const LONG_OPERATION: string =
+  "POST /api/v2/storefront/payments/{paymentId}/authorizations/{authorizationId}/capture";
+
 const SCREENSHOTS: string = path.resolve(
   __dirname,
   "../../../output/playwright/metrics-ai-ui",
@@ -482,9 +493,10 @@ test.describe("Metrics → AI → Insights", () => {
           await expect(page.getByText(title)).toBeVisible({ timeout: 60000 });
         }
 
+        // The three kinds side by side, then where they go and who acts.
         await expect(
           page.getByText(
-            "Every hour OneUptime looks through your metrics for ones that record too many values or whose histogram buckets do not fit",
+            "Every hour OneUptime looks for metrics that record too many values, histograms whose buckets do not fit, and busy services that send no metrics. It files what it finds here with the evidence.",
             { exact: false },
           ),
         ).toBeVisible();
@@ -674,7 +686,7 @@ test.describe("Metrics → AI → a finding", () => {
       "Histogram buckets that do not fit in checkout",
       "95% of its values were at or below 5, its smallest bucket's bound",
       "Values recorded: from 0.012 to 4.8",
-      "Buckets: 15 bucket bounds, the smallest above zero 5 and the largest 10,000 - the OpenTelemetry SDKs' default ones, made for milliseconds",
+      "Buckets: 15 bounds, from 5 to 10,000 - the OpenTelemetry SDKs' default ones, made for milliseconds",
     ]) {
       await expect(page.getByText(line, { exact: true })).toBeVisible({
         timeout: 60000,
@@ -688,7 +700,8 @@ test.describe("Metrics → AI → a finding", () => {
       "Missing metrics in payments",
       "In the last hour: 4,200 spans, 12 failed",
       "No metric has ever arrived from this service",
-      "Telemetry SDK: nodejs",
+      // The SDK's language as people name it, not as the SDK sent it.
+      "Telemetry SDK: Node.js",
     ]) {
       await expect(page.getByText(line, { exact: true })).toBeVisible({
         timeout: 60000,
@@ -741,19 +754,31 @@ test.describe("Metrics → AI → a finding", () => {
     }
   });
 
-  test("metric names with ids: Open in Metrics searches the service's metric list for them", async ({
+  test("metric names with IDs: Fix with AI takes the IDs out of the names, and Open in Metrics searches the service's metric list for them", async ({
     page,
   }: {
     page: Page;
   }, testInfo: TestInfo) => {
     await page.goto(`${AI}/insights/${NAMES_INSIGHT}`);
 
+    // Not the attribute's line: these names carry the IDs, not an attribute.
     await expect(page.getByTestId("telemetry-ai-fix-lead")).toHaveText(
-      "OneUptime AI opens a pull request that stops recording these values on the metric, for you to review.",
+      "OneUptime AI opens a pull request that takes the IDs out of these metric names, for you to review.",
       { timeout: 60000 },
     );
     await expect(
+      page.getByText("Metric names with IDs in worker", { exact: true }),
+    ).toBeVisible();
+    await expect(
       page.getByText("Names like: job.{id}.duration", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(
+        "An ID in a metric's name makes a new metric for each value",
+        {
+          exact: true,
+        },
+      ),
     ).toBeVisible();
 
     if (isPhone(testInfo)) {
@@ -808,6 +833,137 @@ test.describe("Metrics → AI → a finding", () => {
     ]);
     expect(address.searchParams.get("start")).toBe(WINDOW_START);
     expect(address.searchParams.get("end")).toBe(WINDOW_END);
+  });
+
+  test("long names wrap or end in an ellipsis, and never run off the page or lose their start", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    const findings: Array<{ id: string; service: string; code: string }> = [
+      {
+        id: CARDINALITY_INSIGHT,
+        service: LONG_CHECKOUT_SERVICE,
+        code: LONG_ATTRIBUTE,
+      },
+      {
+        id: MISSING_INSIGHT,
+        service: LONG_PAYMENTS_SERVICE,
+        code: LONG_OPERATION,
+      },
+    ];
+
+    for (const finding of findings) {
+      await page.goto(`${AI}/insights/${finding.id}?names=long`);
+
+      const title: Locator = page.getByTestId("ai-insight-title");
+
+      await expect(title).toContainText(finding.service, { timeout: 60000 });
+
+      // The title breaks inside its long words rather than run past its card.
+      expect(
+        await title.evaluate((element: HTMLElement): number => {
+          return element.scrollWidth - element.clientWidth;
+        }),
+      ).toBeLessThanOrEqual(0);
+
+      // Every name in code stays inside its line of evidence.
+      const code: Locator = page.locator("li code").filter({
+        hasText: finding.code,
+      });
+
+      await expect(code).toBeVisible();
+
+      const overflow: Array<number> = await page
+        .locator("li code")
+        .evaluateAll((elements: Array<Element>): Array<number> => {
+          return elements.map((element: Element): number => {
+            const item: Element | null = element.closest("li");
+            return item
+              ? element.getBoundingClientRect().right -
+                  item.getBoundingClientRect().right
+              : 0;
+          });
+        });
+
+      expect(
+        overflow.filter((pixels: number): boolean => {
+          return pixels > 1;
+        }),
+      ).toEqual([]);
+
+      /*
+       * The service's name in Details is cut at its end, never at its start
+       * ("eu-west-1-production" read as another service), and is whole
+       * under the pointer.
+       */
+      const service: Locator = page.locator(`dd[title="${finding.service}"]`);
+
+      await expect(service).toBeVisible();
+
+      const edges: { name: number; row: number; cut: boolean } =
+        await service.evaluate(
+          (
+            element: HTMLElement,
+            name: string,
+          ): { name: number; row: number; cut: boolean } => {
+            const holder: HTMLElement | undefined = Array.from(
+              element.querySelectorAll<HTMLElement>("*"),
+            ).find((candidate: HTMLElement): boolean => {
+              return (
+                candidate.children.length === 0 &&
+                (candidate.textContent || "") === name
+              );
+            });
+
+            return {
+              name: holder ? holder.getBoundingClientRect().left : -1,
+              row: element.getBoundingClientRect().left,
+              cut: holder ? holder.scrollWidth > holder.clientWidth : false,
+            };
+          },
+          finding.service,
+        );
+
+      expect(edges.name).toBeGreaterThanOrEqual(edges.row - 1);
+      // Too long for the rail at either width: it ends in an ellipsis.
+      expect(edges.cut).toBe(true);
+
+      await expectNoSidewaysScroll(page);
+    }
+
+    // The list, and the logs: nothing sideways, and a kind read as one.
+    await page.goto(`${AI}/insights?names=long`);
+    await expect(
+      page.getByText(LONG_METRIC, { exact: false }).first(),
+    ).toBeVisible({ timeout: 60000 });
+    await expectNoSidewaysScroll(page);
+
+    await page.goto(`${AI}/logs?names=long`);
+
+    const kinds: Locator = page.getByTestId("telemetry-ai-log-kind");
+
+    await expect(kinds.first()).toHaveText("Pull request", { timeout: 60000 });
+
+    for (const lines of await kinds.evaluateAll(
+      (elements: Array<Element>): Array<number> => {
+        return elements.map((element: Element): number => {
+          return element.getClientRects().length;
+        });
+      },
+    )) {
+      expect(lines).toBe(1);
+    }
+
+    await expectNoSidewaysScroll(page);
+
+    if (isPhone(testInfo)) {
+      await page.goto(`${AI}/insights/${CARDINALITY_INSIGHT}?names=long`);
+      await expect(page.getByTestId("ai-insight-title")).toBeVisible({
+        timeout: 60000,
+      });
+      await screenshot(page, testInfo, "insight-long-names");
+    }
   });
 
   test("a histogram OneUptime already opened a pull request for: its fix task, and no second offer", async ({

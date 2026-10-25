@@ -25,6 +25,8 @@
  *   ?lane=       on (default) | off - "Improve metrics and add missing ones"
  *   ?ai=         on (default) | off - Enable AI
  *   ?fail=       fix - the fix route refuses
+ *   ?names=      short (default) | long - the names a real estate has:
+ *                long service, metric, attribute and operation names
  */
 import AIInsight from "Common/Models/DatabaseModels/AIInsight";
 import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
@@ -54,6 +56,12 @@ const logsMode = params.get("aiLogs") || "full";
 const offerMode = params.get("offer") || "found";
 const isLaneOn = params.get("lane") !== "off";
 const isAiOn = params.get("ai") !== "off";
+const isLongNames = params.get("names") === "long";
+
+// Each name, as a small project writes it or as a large estate does.
+function named(short, long) {
+  return isLongNames ? long : short;
+}
 
 const MINUTE = 60 * 1000;
 const HOUR = 60 * MINUTE;
@@ -65,9 +73,18 @@ export const SERVICE_IDS = {
 };
 
 export const SERVICE_NAMES = {
-  [SERVICE_IDS.checkout]: "checkout",
-  [SERVICE_IDS.worker]: "worker",
-  [SERVICE_IDS.payments]: "payments",
+  [SERVICE_IDS.checkout]: named(
+    "checkout",
+    "storefront-checkout-service-eu-west-1-production",
+  ),
+  [SERVICE_IDS.worker]: named(
+    "worker",
+    "storefront-background-jobs-worker-eu-west-1",
+  ),
+  [SERVICE_IDS.payments]: named(
+    "payments",
+    "storefront-payments-gateway-eu-west-1-production",
+  ),
 };
 
 export const AI_INSIGHT_IDS = {
@@ -135,10 +152,16 @@ function cardinalityEvidence(now) {
     kind: "HighCardinality",
     shape: "Attribute",
     ...readWindow(now),
-    metricName: "http.server.request.count",
+    metricName: named(
+      "http.server.request.count",
+      "com.example.storefront.checkout.http.server.request.count.by.tenant",
+    ),
     unit: "{request}",
     dataPointCount: 48000,
-    attributeKey: "user.id",
+    attributeKey: named(
+      "user.id",
+      "app.storefront.customer.account.identifier",
+    ),
     attributeValueCount: 12000,
     valueShape: "Uuid",
     otherAttributes: [{ key: "session.id", valueCount: 4000 }],
@@ -150,7 +173,10 @@ function bucketsEvidence(now) {
     serviceId: SERVICE_IDS.checkout,
     kind: "HistogramBuckets",
     ...readWindow(now),
-    metricName: "http.server.duration",
+    metricName: named(
+      "http.server.duration",
+      "com.example.storefront.checkout.http.server.request.duration.seconds",
+    ),
     unit: "s",
     dataPointCount: 2400,
     bucketProblem: "BelowSmallestBucket",
@@ -171,7 +197,10 @@ function namesEvidence(now) {
     kind: "HighCardinality",
     shape: "Name",
     ...readWindow(now),
-    namePattern: "job.{id}.duration",
+    namePattern: named(
+      "job.{id}.duration",
+      "storefront.background.jobs.{id}.queue.processing.duration.seconds",
+    ),
     nameCount: 1234,
     dataPointCount: 56000,
   };
@@ -185,8 +214,20 @@ function missingEvidence(now) {
     spanCount: 4200,
     failedSpanCount: 12,
     topOperations: [
-      { name: "POST /payments", spanCount: 2600 },
-      { name: "GET /payments/:id", spanCount: 1100 },
+      {
+        name: named(
+          "POST /payments",
+          "POST /api/v2/storefront/payments/{paymentId}/authorizations/{authorizationId}/capture",
+        ),
+        spanCount: 2600,
+      },
+      {
+        name: named(
+          "GET /payments/:id",
+          "GET /api/v2/storefront/payments/{paymentId}",
+        ),
+        spanCount: 1100,
+      },
     ],
     sdkLanguage: "nodejs",
   };
@@ -393,17 +434,17 @@ export function aiLogs(now, skip) {
   const buckets = insight(
     AI_INSIGHT_IDS.buckets,
     bucketsEvidence(now),
-    "checkout",
+    SERVICE_NAMES[SERVICE_IDS.checkout],
   );
   const cardinality = insight(
     AI_INSIGHT_IDS.cardinality,
     cardinalityEvidence(now),
-    "checkout",
+    SERVICE_NAMES[SERVICE_IDS.checkout],
   );
   const missing = insight(
     AI_INSIGHT_IDS.missing,
     missingEvidence(now),
-    "payments",
+    SERVICE_NAMES[SERVICE_IDS.payments],
   );
 
   const entries = [

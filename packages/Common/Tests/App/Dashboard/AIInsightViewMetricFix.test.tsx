@@ -97,6 +97,7 @@ jest.mock("react-i18next", () => {
 import AIInsightViewPage from "../../../../App/FeatureSet/Dashboard/src/Pages/AIInsights/View/Index";
 import {
   TELEMETRY_AI_FIX_LEADS,
+  TELEMETRY_AI_FIX_LEAD_METRIC_NAMES,
   TELEMETRY_AI_FIX_TEST_IDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiFixCopy";
 import AIInsight from "../../../Models/DatabaseModels/AIInsight";
@@ -304,6 +305,18 @@ describe("a Metrics finding's page", () => {
     expect(
       await screen.findByTestId(TELEMETRY_AI_FIX_TEST_IDS.lead),
     ).toHaveTextContent(TELEMETRY_AI_FIX_LEADS[type]!);
+  });
+
+  test("names with IDs say the pull request takes the IDs out of the names", async () => {
+    finding.evidence = NAMES;
+    await renderPage();
+
+    const lead: HTMLElement = await screen.findByTestId(
+      TELEMETRY_AI_FIX_TEST_IDS.lead,
+    );
+
+    expect(lead).toHaveTextContent(TELEMETRY_AI_FIX_LEAD_METRIC_NAMES);
+    expect(lead).not.toHaveTextContent("stops recording these values");
   });
 
   test("the fix names the finding, and the page then shows the finding's fix task", async () => {

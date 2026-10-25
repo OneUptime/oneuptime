@@ -10,8 +10,10 @@ import {
   TELEMETRY_AI_FIX_LANES,
   TELEMETRY_AI_FIX_LEAD,
   TELEMETRY_AI_FIX_LEADS,
+  TELEMETRY_AI_FIX_LEAD_METRIC_NAMES,
   doesInsightOfferTelemetryAiFix,
   getTelemetryAiFixLead,
+  getTelemetryAiFixLeadOfFinding,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiFixCopy";
 import AIInsightStatus from "../../../Types/AI/AIInsightStatus";
 import AIInsightType from "../../../Types/AI/AIInsightType";
@@ -133,6 +135,81 @@ describe("what Fix with AI says", () => {
     expect(TELEMETRY_AI_FIX_LEADS[AIInsightType.MetricMissingMetrics]).toBe(
       "OneUptime AI opens a pull request that adds metrics to this service, for you to review.",
     );
+  });
+
+  test("metric names with IDs say their own pull request: the IDs come out of the names", () => {
+    expect(TELEMETRY_AI_FIX_LEAD_METRIC_NAMES).toBe(
+      "OneUptime AI opens a pull request that takes the IDs out of these metric names, for you to review.",
+    );
+    expect(TELEMETRY_AI_FIX_LEAD_METRIC_NAMES.length).toBeLessThanOrEqual(
+      LINE_LIMIT,
+    );
+    // Not the attribute's line: nothing is "recorded on the metric" there.
+    expect(TELEMETRY_AI_FIX_LEAD_METRIC_NAMES).not.toBe(
+      TELEMETRY_AI_FIX_LEADS[AIInsightType.MetricHighCardinality],
+    );
+
+    expect(
+      getTelemetryAiFixLeadOfFinding({
+        insightType: AIInsightType.MetricHighCardinality,
+        evidence: {
+          metric: {
+            serviceId: "s",
+            kind: "HighCardinality",
+            shape: "Name",
+            windowStartTime: "2026-10-24T08:00:00.000Z",
+            windowEndTime: "2026-10-24T09:00:00.000Z",
+            namePattern: "job.{id}.duration",
+          },
+        },
+      }),
+    ).toBe(TELEMETRY_AI_FIX_LEAD_METRIC_NAMES);
+  });
+
+  test("every other finding says its kind's line", () => {
+    const attribute: Parameters<typeof getTelemetryAiFixLeadOfFinding>[0] = {
+      insightType: AIInsightType.MetricHighCardinality,
+      evidence: {
+        metric: {
+          serviceId: "s",
+          kind: "HighCardinality",
+          shape: "Attribute",
+          windowStartTime: "2026-10-24T08:00:00.000Z",
+          windowEndTime: "2026-10-24T09:00:00.000Z",
+          attributeKey: "user.id",
+        },
+      },
+    };
+
+    expect(getTelemetryAiFixLeadOfFinding(attribute)).toBeUndefined();
+    // A finding with no evidence, or of another kind, has nothing to add.
+    expect(
+      getTelemetryAiFixLeadOfFinding({
+        insightType: AIInsightType.MetricHighCardinality,
+      }),
+    ).toBeUndefined();
+
+    for (const insightType of [
+      AIInsightType.MetricHistogramBuckets,
+      AIInsightType.MetricMissingMetrics,
+      AIInsightType.TraceSlowOperation,
+      AIInsightType.MetricDrift,
+    ]) {
+      expect(
+        getTelemetryAiFixLeadOfFinding({
+          insightType,
+          evidence: {
+            metric: {
+              serviceId: "s",
+              kind: "HighCardinality",
+              shape: "Name",
+              windowStartTime: "2026-10-24T08:00:00.000Z",
+              windowEndTime: "2026-10-24T09:00:00.000Z",
+            },
+          },
+        }),
+      ).toBeUndefined();
+    }
   });
 
   test("the button and the rest read as the Profiler's own", () => {

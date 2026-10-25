@@ -501,6 +501,42 @@ describe("a long address wraps inside the text it is in", () => {
   });
 });
 
+/*
+ * A name in inline code is often one long word - a metric's name, a span's,
+ * a configuration key - and on a phone it ran out past the text's edge, cut
+ * off. Like a long link, it may break anywhere when its line has no room
+ * left (packages/E2E/MetricsAi measures it on a phone).
+ */
+describe("a long name in inline code wraps inside the text it is in", () => {
+  const LONG_NAME: string =
+    "com.example.storefront.checkout.http.server.request.count.by.tenant";
+
+  test("inline code breaks anywhere; a timestamp stays on one line", () => {
+    showMarkdown(
+      root(
+        paragraph(text("Metric: "), { type: "inlineCode", value: LONG_NAME }),
+        paragraph(text("At "), {
+          type: "inlineCode",
+          value: "2026-10-24T11:00:00.000Z",
+        }),
+      ),
+    );
+
+    const code: HTMLElement = screen.getByText(LONG_NAME);
+
+    expect(code.tagName).toBe("CODE");
+    expect(code).toHaveClass("font-mono");
+    expect(code).toHaveClass("[overflow-wrap:anywhere]");
+
+    // A timestamp is read as one: localized, and never broken.
+    const time: HTMLElement | null = document.querySelector("time");
+
+    expect(time).not.toBeNull();
+    expect(time).toHaveClass("whitespace-nowrap");
+    expect(time).not.toHaveClass("[overflow-wrap:anywhere]");
+  });
+});
+
 describe("an attachment opens in a new tab", () => {
   test("on the Dashboard, a plain click refreshes the session, then points the tab at the file", async () => {
     const tab: {

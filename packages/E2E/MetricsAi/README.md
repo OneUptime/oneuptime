@@ -37,7 +37,11 @@ The suite covers, on a laptop and on a phone, light and dark:
   request does, a repository picked when none was found to hold the code,
   and every reason it is not offered; and no Create Monitor on any of them;
 - Logs: every investigation and pull request, newest first, a page at a
-  time, nothing yet and a read that failed.
+  time, nothing yet and a read that failed;
+- the names a large estate has (`?names=long`): titles and names in code
+  wrap inside their card, a long service name in Details ends in an
+  ellipsis instead of losing its start, a log entry's kind stays on one
+  line, and nothing scrolls sideways.
 
 ## Run it
 

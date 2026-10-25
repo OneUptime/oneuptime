@@ -68,6 +68,12 @@ export interface ComponentProps {
   insightId: string;
   // Which kind of finding: what Fix with AI does is said for it.
   insightType?: string | undefined;
+  /*
+   * What Fix with AI does, when the finding says more than its kind does
+   * (getTelemetryAiFixLeadOfFinding: metric names with IDs in them), in
+   * English: the strip translates it.
+   */
+  lead?: string | undefined;
   // Told once a task has started, with its id.
   onTaskStarted?: ((taskId: string) => void) | undefined;
 }
@@ -326,7 +332,7 @@ const TelemetryAiFixStrip: FunctionComponent<ComponentProps> = (
   // What Fix with AI does: said while it is offered, not once it is started.
   const lead: string | null =
     suggestion.offer === SuggestionOffer.Act && !taskId
-      ? getTelemetryAiFixLead(props.insightType)
+      ? props.lead || getTelemetryAiFixLead(props.insightType)
       : null;
 
   return (

@@ -5,6 +5,10 @@ import {
   MetricInsightEvidence,
 } from "../../Types/AI/AIInsightEvidence";
 import FeedMarkdown, { mdText, MarkdownText } from "../Markdown/FeedMarkdown";
+import {
+  SERVICE_LANGUAGE_DISPLAY_NAMES,
+  ServiceLanguage,
+} from "../../Types/Service/ServiceLanguage";
 
 /*
  * PROBLEMS IN A SERVICE'S METRICS WORTH TELLING SOMEONE ABOUT - the gates the
@@ -909,13 +913,13 @@ export function formatMetricNumber(value: number): string {
 export function describeMetricValueShape(shape: unknown): string {
   switch (shape) {
     case MetricValueShape.Number:
-      return "numbers, such as ids";
+      return "numbers, such as IDs";
     case MetricValueShape.Uuid:
       return "UUIDs";
     case MetricValueShape.HexId:
-      return "hex ids";
+      return "hex IDs";
     case MetricValueShape.UrlWithIds:
-      return "URLs or paths with ids in them";
+      return "URLs or paths with IDs in them";
     case MetricValueShape.Email:
       return "email addresses";
     case MetricValueShape.Timestamp:
@@ -994,15 +998,40 @@ export function getMetricInsightSeverity(
   }
 }
 
+/*
+ * A histogram's bounds, in a phrase: how many, and from its smallest bucket's
+ * bound (the first above zero, as the gate reads it) to its largest - "15
+ * bounds, from 5 to 10,000".
+ */
 function describeBounds(evidence: MetricInsightEvidence): string {
   if (!evidence.boundCount) {
     return "";
   }
 
+  const bounds: string =
+    evidence.boundCount === 1
+      ? "1 bound"
+      : `${formatCount(evidence.boundCount)} bounds`;
   const smallest: string = formatMetricNumber(evidence.smallestBound || 0);
   const largest: string = formatMetricNumber(evidence.largestBound || 0);
 
-  return `${formatCount(evidence.boundCount)} bucket bounds, the smallest above zero ${smallest} and the largest ${largest}`;
+  return smallest === largest
+    ? `${bounds}, up to ${largest}`
+    : `${bounds}, from ${smallest} to ${largest}`;
+}
+
+/*
+ * The language a service's telemetry SDK reported, as people name it
+ * ("nodejs" is Node.js): the name Services draw it by, or the value as it
+ * was sent when it is not one of the OpenTelemetry SDKs' own.
+ */
+export function describeTelemetrySdkLanguage(language: string): string {
+  const sent: string = (language || "").trim();
+
+  return (
+    SERVICE_LANGUAGE_DISPLAY_NAMES[sent.toLowerCase() as ServiceLanguage] ||
+    sent
+  );
 }
 
 function describeValueRange(evidence: MetricInsightEvidence): string {
@@ -1038,7 +1067,7 @@ export function describeMetricProblem(evidence: MetricInsightEvidence): string {
   switch (evidence.kind) {
     case MetricInsightKind.HighCardinality: {
       if (evidence.shape === MetricCardinalityShape.Name) {
-        return `Over the last hour it sent ${formatCount(evidence.nameCount || 0)} metrics whose names differ only by an id, all named like ${evidence.namePattern || "this"} (${formatCount(evidence.dataPointCount || 0)} data points together). Each id makes a metric of its own.`;
+        return `Over the last hour it sent ${formatCount(evidence.nameCount || 0)} metrics whose names differ only by an ID, all named like ${evidence.namePattern || "this"} (${formatCount(evidence.dataPointCount || 0)} data points together). Each ID makes a metric of its own.`;
       }
 
       const overflow: string = evidence.hasOverflow
@@ -1098,7 +1127,7 @@ export function buildMetricInsightDetail(data: {
     case MetricInsightKind.HighCardinality:
       lines.push(
         evidence.shape === MetricCardinalityShape.Name
-          ? mdText`**Metric names with ids in ${data.serviceName}**`
+          ? mdText`**Metric names with IDs in ${data.serviceName}**`
           : mdText`**High-cardinality metric in ${data.serviceName}**`,
       );
       break;
@@ -1128,7 +1157,7 @@ export function buildMetricInsightDetail(data: {
         mdText`- In the last hour: ${formatCount(evidence.nameCount || 0)} such names, ${formatCount(evidence.dataPointCount || 0)} data points`,
       );
       lines.push(
-        mdText`- An id in a metric's name makes a new metric for each value`,
+        mdText`- An ID in a metric's name makes a new metric for each value`,
       );
     } else {
       lines.push(
@@ -1217,7 +1246,9 @@ export function buildMetricInsightDetail(data: {
     }
 
     if (evidence.sdkLanguage) {
-      lines.push(mdText`- Telemetry SDK: ${evidence.sdkLanguage}`);
+      lines.push(
+        mdText`- Telemetry SDK: ${describeTelemetrySdkLanguage(evidence.sdkLanguage)}`,
+      );
     }
 
     lines.push(
@@ -1246,7 +1277,7 @@ export function getMetricFixRequestTitle(data: {
   switch (evidence.kind) {
     case MetricInsightKind.HighCardinality:
       return evidence.shape === MetricCardinalityShape.Name
-        ? `Take the ids out of ${service}'s metric names like ${evidence.namePattern || "these"}`
+        ? `Take the IDs out of ${service}'s metric names like ${evidence.namePattern || "these"}`
         : `Stop recording ${evidence.attributeKey || "this attribute"} on ${metric}`;
     case MetricInsightKind.HistogramBuckets:
       return `Fix the buckets of ${metric}`;
@@ -1267,7 +1298,7 @@ function getAttributeReplacement(shape: unknown): string {
     case MetricValueShape.Uuid:
     case MetricValueShape.HexId:
     case MetricValueShape.Email:
-      return "drop it, or record a value with a few possible values in its place (a tier, a type or a region rather than an id)";
+      return "drop it, or record a value with a few possible values in its place (a tier, a type or a region rather than an ID)";
     default:
       return "drop it, or bucket it into a few possible values";
   }
@@ -1278,7 +1309,7 @@ function getMetricFixAsk(evidence: MetricInsightEvidence): string {
   switch (evidence.kind) {
     case MetricInsightKind.HighCardinality:
       if (evidence.shape === MetricCardinalityShape.Name) {
-        return "Find where the code builds these metric names and use one fixed name in their place. If the part of the name that changes says something worth grouping by, record it as an attribute with a few possible values (a job's type, not its id) - never the id itself. Update the dashboards, alerts and tests in this repository that read the old names.";
+        return "Find where the code builds these metric names and use one fixed name in their place. If the part of the name that changes says something worth grouping by, record it as an attribute with a few possible values (a job's type, not its ID) - never the ID itself. Update the dashboards, alerts and tests in this repository that read the old names.";
       }
 
       return `Find where the code records this metric and stop putting ${evidence.attributeKey || "this attribute"} on it: ${getAttributeReplacement(evidence.valueShape)}. If the value helps when debugging, put it on the span or the log line instead, where one value per request costs nothing. Keep the metric's name and its other attributes as they are, and update the tests that check its attributes.`;
@@ -1288,7 +1319,7 @@ function getMetricFixAsk(evidence: MetricInsightEvidence): string {
         : `Find where the code creates this histogram, or the view that sets its aggregation, and give it bucket boundaries that fit the values it records - for a duration in seconds, the OpenTelemetry semantic conventions' boundaries (${OTEL_SECONDS_HISTOGRAM_BOUNDS.join(", ")}). If the values are recorded in another unit than the buckets were made for, fix that instead, so the metric's unit, its values and its buckets agree. Keep the metric's name and attributes as they are.`;
     case MetricInsightKind.MissingMetrics:
     default:
-      return "Set up the OpenTelemetry metrics SDK in this service and export its metrics to OneUptime the way its traces are exported now (the same endpoint, headers and service.name). Record the request count, the error count and the request duration (a histogram, in seconds) of its busiest operations, following the OpenTelemetry semantic conventions - prefer the instrumentation packages for the frameworks it uses. Give attributes only values with a few possible values (a route template, a method, a status code), never ids or full URLs. Do not change what the code does.";
+      return "Set up the OpenTelemetry metrics SDK in this service and export its metrics to OneUptime the way its traces are exported now (the same endpoint, headers and service.name). Record the request count, the error count and the request duration (a histogram, in seconds) of its busiest operations, following the OpenTelemetry semantic conventions - prefer the instrumentation packages for the frameworks it uses. Give attributes only values with a few possible values (a route template, a method, a status code), never IDs or full URLs. Do not change what the code does.";
   }
 }
 

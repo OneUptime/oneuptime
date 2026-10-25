@@ -1084,10 +1084,16 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
           return <LocalTime isoValue={content} />;
         }
 
-        // Inline code
+        /*
+         * Inline code. [overflow-wrap:anywhere]: a name in code is often one
+         * long word ("com.example.checkout.http.server.request.count"), and
+         * on a phone it ran out past the text's edge, cut off - it breaks
+         * anywhere instead when its line has no room left, as a long link
+         * does (MarkdownLink).
+         */
         return (
           <code
-            className="text-xs px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-gray-800 font-mono"
+            className="text-xs px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-gray-800 font-mono [overflow-wrap:anywhere]"
             {...rest}
           >
             {children}
