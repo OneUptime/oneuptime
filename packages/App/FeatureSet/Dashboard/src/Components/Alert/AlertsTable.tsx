@@ -3,14 +3,12 @@ import {
   ARCHIVED_FACET_SELECT,
   getArchivableValueFacetOptions,
 } from "../ArchivableValue/ArchivedValueFacetOptions";
-import ArchivedValuePicker from "Common/UI/Utils/ArchivedValuePicker";
 import ResolvedStateUtil from "Common/Utils/ResolvedState";
 import { StateListType } from "Common/Utils/StateOrder";
 import ProjectUtil from "Common/UI/Utils/Project";
 import AlertElement from "./Alert";
 import AppLink from "../AppLink/AppLink";
 import { Black } from "Common/Types/BrandColors";
-import { JSONObject } from "Common/Types/JSON";
 import Dictionary from "Common/Types/Dictionary";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import {
@@ -22,6 +20,11 @@ import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useCustomFieldFacets from "../CustomFields/useCustomFieldFacets";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
+import useValueChangeActions from "Common/UI/Components/BulkUpdate/ValueChangeActions";
+import User from "Common/UI/Utils/User";
+import useEventStateActions from "../EventView/useEventStateActions";
+import { EventStateKind } from "../EventView/EventStateKinds";
+import { isOwnedByViewer } from "../ResourceOwners/OwnedByViewer";
 import useBulkIncidentLinkActions from "./BulkIncidentLinkActions";
 import useBulkAddToEpisodeActions from "../EpisodeMembers/BulkAddToEpisodeActions";
 import { ALERT_EPISODE_MEMBER_KIND } from "../EpisodeMembers/EpisodeMemberKinds";
@@ -30,9 +33,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
 import Search from "Common/Types/BaseDatabase/Search";
 import Alert from "Common/Models/DatabaseModels/Alert";
-import AlertInternalNote from "Common/Models/DatabaseModels/AlertInternalNote";
 import AlertCustomField from "Common/Models/DatabaseModels/AlertCustomField";
-import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
 import AlertOwnerTeam from "Common/Models/DatabaseModels/AlertOwnerTeam";
 import AlertOwnerUser from "Common/Models/DatabaseModels/AlertOwnerUser";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
@@ -65,34 +66,16 @@ import Navigation from "Common/UI/Utils/Navigation";
 import AffectedResourcesCell, {
   ComponentProps as AffectedResourcesCellProps,
 } from "../AffectedResources/AffectedResourcesCell";
-import {
-  BulkActionButtonSchema,
-  BulkActionFailed,
-  BulkActionOnClickProps,
-} from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import API from "Common/UI/Utils/API/API";
 import ObjectID from "Common/Types/ObjectID";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
-import GlobalEvents from "Common/UI/Utils/GlobalEvents";
-import { REFRESH_SIDEBAR_COUNT_EVENT } from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
 import LiveDuration from "../EventView/LiveDuration";
 import useEventTimelineEndDates from "../EventView/useEventTimelineEndDates";
-import useNoteTemplates from "../EventView/useNoteTemplates";
-import BulkChangeStateModal, {
-  BulkChangeStateSubmitData,
-} from "../EventView/BulkChangeStateModal";
-import {
-  BulkStateChangeNoteType,
-  BulkStateChangeSkipDecision,
-  buildBulkStateChangeMiscDataProps,
-  getBulkStateChangeSkipDecision,
-} from "../../Utils/BulkStateChange";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
@@ -172,10 +155,6 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const [error, setError] = useState<string>("");
   const [alertStates, setAlertStates] = useState<AlertState[]>([]);
-  const [showBulkStateChangeModal, setShowBulkStateChangeModal] =
-    useState<boolean>(false);
-  const [bulkActionProps, setBulkActionProps] =
-    useState<BulkActionOnClickProps<Alert> | null>(null);
   const [visibleAlerts, setVisibleAlerts] = useState<Array<Alert>>([]);
 
   /*
@@ -222,19 +201,37 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
     resolvedStateIds: resolvedStateIds,
   });
 
-  const { noteTemplates } = useNoteTemplates<AlertNoteTemplate>({
-    modelType: AlertNoteTemplate,
-  });
-
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Alert>({ modelType: Alert });
 
-  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
-    useBulkOwnerActions<Alert>({
-      ownerUserModelType: AlertOwnerUser,
-      ownerTeamModelType: AlertOwnerTeam,
-      resourceIdField: "alertId",
-    });
+  /*
+   * Acknowledge, Resolve and Change State, in each row's ⋯ menu and in Bulk
+   * Actions, as the alert's own page offers them (EventView/
+   * useEventStateActions).
+   */
+  const {
+    rowActions: stateRowActions,
+    bulkActions: stateBulkActions,
+    modals: stateActionModals,
+  } = useEventStateActions<Alert>({
+    kind: EventStateKind.Alert,
+    states: alertStates,
+  });
+
+  // Change Severity: the alert's Edit form's severity, from the list.
+  const {
+    rowActions: severityRowActions,
+    bulkActions: severityBulkActions,
+    modals: severityModals,
+  } = useValueChangeActions<Alert, AlertSeverity>({
+    modelType: Alert,
+    column: "alertSeverity",
+    idColumn: "alertSeverityId",
+    valueModelType: AlertSeverity,
+    title: "Change Severity",
+    fieldTitle: "Severity",
+    icon: IconProp.Signal,
+  });
 
   const {
     bulkActions: incidentLinkBulkActions,
@@ -525,6 +522,28 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
     areFacetsLoading: areCustomFieldFacetsLoading,
   });
 
+  /*
+   * Assign to Me and Add Owner in each row's ⋯ menu, and Assign to Me in
+   * Bulk Actions beside Add and Remove Owner. A row the viewer owns already
+   * is not offered Assign to Me.
+   */
+  const {
+    bulkActions: ownerBulkActions,
+    rowActions: ownerRowActions,
+    modals: ownerBulkActionModals,
+  } = useBulkOwnerActions<Alert>({
+    ownerUserModelType: AlertOwnerUser,
+    ownerTeamModelType: AlertOwnerTeam,
+    resourceIdField: "alertId",
+    offerAssignToMeInBulk: true,
+    isOwnedByMe: (alert: Alert): boolean | undefined => {
+      return isOwnedByViewer({
+        owners: getOwnersForResource(alert),
+        viewerId: User.getUserId(),
+      });
+    },
+  });
+
   // Fetch alert states on mount
   useEffect(() => {
     const fetchAlertStates: () => Promise<void> = async (): Promise<void> => {
@@ -559,134 +578,6 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
 
     fetchAlertStates();
   }, []);
-
-  const handleBulkStateChange: (
-    data: BulkChangeStateSubmitData,
-  ) => Promise<void> = async (
-    data: BulkChangeStateSubmitData,
-  ): Promise<void> => {
-    if (!bulkActionProps) {
-      return;
-    }
-
-    const targetStateId: ObjectID = data.stateId;
-
-    const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
-      bulkActionProps;
-
-    const targetState: AlertState | undefined = alertStates.find(
-      (s: AlertState) => {
-        return s.id?.toString() === targetStateId.toString();
-      },
-    );
-
-    if (!targetState) {
-      return;
-    }
-
-    const targetOrder: number = targetState.order || 0;
-
-    const miscDataProps: JSONObject = buildBulkStateChangeMiscDataProps({
-      noteType: BulkStateChangeNoteType.Private,
-      note: data.note,
-    });
-
-    onBulkActionStart();
-
-    const inProgressItems: Array<Alert> = [...items];
-    const totalItems: Array<Alert> = [...items];
-    const successItems: Array<Alert> = [];
-    const failedItems: Array<BulkActionFailed<Alert>> = [];
-
-    for (const alert of totalItems) {
-      inProgressItems.splice(inProgressItems.indexOf(alert), 1);
-
-      try {
-        if (!alert.id) {
-          throw new Error("Alert ID not found");
-        }
-
-        // Fetch the alert's current state order since it's not loaded in the table
-        const fetchedAlert: Alert | null = await ModelAPI.getItem<Alert>({
-          modelType: Alert,
-          id: alert.id,
-          select: {
-            currentAlertState: {
-              order: true,
-              name: true,
-            },
-          },
-        });
-
-        const currentOrder: number =
-          fetchedAlert?.currentAlertState?.order || 0;
-
-        // Skip if already at or past the target state
-        const skipDecision: BulkStateChangeSkipDecision =
-          getBulkStateChangeSkipDecision({
-            currentOrder: currentOrder,
-            targetOrder: targetOrder,
-            currentStateName: fetchedAlert?.currentAlertState?.name,
-            targetStateName: targetState.name,
-          });
-
-        if (skipDecision.shouldSkip) {
-          failedItems.push({
-            item: alert,
-            failedMessage: skipDecision.skippedMessage!,
-          });
-        } else {
-          // Create state timeline to change state
-          const stateTimeline: AlertStateTimeline = new AlertStateTimeline();
-          stateTimeline.alertId = alert.id;
-          stateTimeline.alertStateId = targetStateId;
-          stateTimeline.projectId = ProjectUtil.getCurrentProjectId()!;
-
-          await ModelAPI.create<AlertStateTimeline>({
-            model: stateTimeline,
-            modelType: AlertStateTimeline,
-            miscDataProps: miscDataProps,
-          });
-
-          successItems.push(alert);
-        }
-      } catch (err) {
-        failedItems.push({
-          item: alert,
-          failedMessage: API.getFriendlyMessage(err),
-        });
-      }
-
-      onProgressInfo({
-        totalItems: totalItems,
-        failed: failedItems,
-        successItems: successItems,
-        inProgressItems: inProgressItems,
-      });
-    }
-
-    onBulkActionEnd();
-    setShowBulkStateChangeModal(false);
-    setBulkActionProps(null);
-
-    // Trigger sidebar badge count refresh
-    GlobalEvents.dispatchEvent(REFRESH_SIDEBAR_COUNT_EVENT);
-  };
-
-  const getBulkChangeStateAction: () => BulkActionButtonSchema<Alert> =
-    (): BulkActionButtonSchema<Alert> => {
-      return {
-        title: "Change State",
-        buttonStyleType: ButtonStyleType.NORMAL,
-        icon: IconProp.TransparentCube,
-        onClick: async (
-          actionProps: BulkActionOnClickProps<Alert>,
-        ): Promise<void> => {
-          setBulkActionProps(actionProps);
-          setShowBulkStateChangeModal(true);
-        },
-      };
-    };
 
   let cardbuttons: Array<CardButtonSchema> = [];
 
@@ -733,14 +624,20 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
         customFieldsModelType={AlertCustomField}
         bulkActions={{
           buttons: [
-            getBulkChangeStateAction(),
-            ...labelBulkActions,
+            ...stateBulkActions,
+            ...severityBulkActions,
             ...ownerBulkActions,
+            ...labelBulkActions,
             ...incidentLinkBulkActions,
             ...episodeBulkActions,
             ModalTableBulkDefaultActions.Delete,
           ],
         }}
+        actionButtons={[
+          ...stateRowActions,
+          ...severityRowActions,
+          ...ownerRowActions,
+        ]}
         modelType={Alert}
         id="alerts-table"
         isDeleteable={true}
@@ -963,6 +860,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
           {
             field: {
               alertSeverity: {
+                _id: true,
                 name: true,
                 color: true,
               },
@@ -1175,29 +1073,8 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
       {incidentLinkBulkActionModals}
       {episodeBulkActionModals}
 
-      {showBulkStateChangeModal && (
-        <BulkChangeStateModal
-          title="Change Alert State"
-          description="Select the state to change alerts to. Alerts already at or past the selected state will be skipped."
-          stateFieldKey="alertStateId"
-          stateOptions={DropdownUtil.getDropdownOptionsFromEntityArray({
-            // Archived states are never offered as one to move to.
-            array: ArchivedValuePicker.getLiveValues(alertStates),
-            labelField: "name",
-            valueField: "_id",
-          })}
-          noteType={BulkStateChangeNoteType.Private}
-          noteTitle="Private Note"
-          noteDescription="Add an optional private note about this state change. Only your team can see it, and the same note is added to every alert you selected."
-          noteTemplates={noteTemplates}
-          noteModel={new AlertInternalNote()}
-          onClose={() => {
-            setShowBulkStateChangeModal(false);
-            setBulkActionProps(null);
-          }}
-          onSubmit={handleBulkStateChange}
-        />
-      )}
+      {stateActionModals}
+      {severityModals}
     </>
   );
 };

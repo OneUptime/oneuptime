@@ -37,6 +37,12 @@ export interface ComponentProps<T extends GenericObject> {
   formProps: BasicFormComponentProps<T>;
   description?: string | undefined;
   modalWidth?: ModalWidth | undefined;
+  /*
+   * Drawn under the description, above the fields: which records the form
+   * is about - the row a ⋯ action was taken on, or the rows selected for a
+   * bulk one (DeleteItemNames).
+   */
+  beforeFormElement?: ReactElement | undefined;
 }
 
 const BasicFormModal: <T extends GenericObject>(
@@ -112,6 +118,14 @@ const BasicFormModal: <T extends GenericObject>(
          * handed to it above): a red alert at the top of the body. It used
          * to be drawn a second time here, as grey text under the alert.
          */}
+
+        {!isLoading && props.beforeFormElement ? (
+          <div className="mb-4" data-testid="form-modal-before-form">
+            {props.beforeFormElement}
+          </div>
+        ) : (
+          <></>
+        )}
 
         {!isLoading && (
           <BasicForm

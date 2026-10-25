@@ -1,5 +1,4 @@
 import ProjectUtil from "Common/UI/Utils/Project";
-import ArchivedValuePicker from "Common/UI/Utils/ArchivedValuePicker";
 import {
   ARCHIVED_FACET_SELECT,
   getArchivableValueFacetOptions,
@@ -16,14 +15,16 @@ import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useCustomFieldFacets from "../CustomFields/useCustomFieldFacets";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
+import User from "Common/UI/Utils/User";
+import useEventStateActions from "../EventView/useEventStateActions";
+import { EventStateKind } from "../EventView/EventStateKinds";
+import { isOwnedByViewer } from "../ResourceOwners/OwnedByViewer";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
-import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
-import ScheduledMaintenanceNoteTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceNoteTemplate";
 import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
 import ScheduledMaintenanceOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
@@ -72,26 +73,8 @@ import Navigation from "Common/UI/Utils/Navigation";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
-import {
-  BulkActionButtonSchema,
-  BulkActionFailed,
-  BulkActionOnClickProps,
-} from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
-import GlobalEvents from "Common/UI/Utils/GlobalEvents";
-import { REFRESH_SIDEBAR_COUNT_EVENT } from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
 import LiveDuration from "../EventView/LiveDuration";
-import useNoteTemplates from "../EventView/useNoteTemplates";
-import BulkChangeStateModal, {
-  BulkChangeStateSubmitData,
-} from "../EventView/BulkChangeStateModal";
-import {
-  BulkStateChangeNoteType,
-  BulkStateChangeSkipDecision,
-  buildBulkStateChangeMiscDataProps,
-  getBulkStateChangeSkipDecision,
-} from "../../Utils/BulkStateChange";
 import NoTemplatesYetModal from "../Template/NoTemplatesYetModal";
 import ScheduledMaintenanceCalendar from "./ScheduledMaintenanceCalendar";
 import MaintenanceCalendarSubscribeModal from "./MaintenanceCalendarSubscribeModal";
@@ -145,17 +128,23 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
   const [scheduledMaintenanceStates, setScheduledMaintenanceStates] = useState<
     ScheduledMaintenanceState[]
   >([]);
-  const [showBulkStateChangeModal, setShowBulkStateChangeModal] =
-    useState<boolean>(false);
-  const [bulkActionProps, setBulkActionProps] =
-    useState<BulkActionOnClickProps<ScheduledMaintenance> | null>(null);
   const [showSubscribeModal, setShowSubscribeModal] = useState<boolean>(false);
 
   const view: ScheduledMaintenanceView =
     props.view || ScheduledMaintenanceView.List;
 
-  const { noteTemplates } = useNoteTemplates<ScheduledMaintenanceNoteTemplate>({
-    modelType: ScheduledMaintenanceNoteTemplate,
+  /*
+   * Mark as Ongoing, Mark as Ended (the project's own names for them) and
+   * Change State, in each row's ⋯ menu and in Bulk Actions, as the event's
+   * own page offers them (EventView/useEventStateActions).
+   */
+  const {
+    rowActions: stateRowActions,
+    bulkActions: stateBulkActions,
+    modals: stateActionModals,
+  } = useEventStateActions<ScheduledMaintenance>({
+    kind: EventStateKind.ScheduledMaintenance,
+    states: scheduledMaintenanceStates,
   });
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
@@ -163,12 +152,6 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
       modelType: ScheduledMaintenance,
     });
 
-  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
-    useBulkOwnerActions<ScheduledMaintenance>({
-      ownerUserModelType: ScheduledMaintenanceOwnerUser,
-      ownerTeamModelType: ScheduledMaintenanceOwnerTeam,
-      resourceIdField: "scheduledMaintenanceId",
-    });
 
   const scheduledMaintenanceExtraFacets: Array<ResourceFacet> = [
     {
@@ -296,6 +279,28 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     areFacetsLoading: areCustomFieldFacetsLoading,
   });
 
+  /*
+   * Assign to Me and Add Owner in each row's ⋯ menu, and Assign to Me in
+   * Bulk Actions beside Add and Remove Owner: who runs the maintenance. A
+   * row the viewer owns already is not offered Assign to Me.
+   */
+  const {
+    bulkActions: ownerBulkActions,
+    rowActions: ownerRowActions,
+    modals: ownerBulkActionModals,
+  } = useBulkOwnerActions<ScheduledMaintenance>({
+    ownerUserModelType: ScheduledMaintenanceOwnerUser,
+    ownerTeamModelType: ScheduledMaintenanceOwnerTeam,
+    resourceIdField: "scheduledMaintenanceId",
+    offerAssignToMeInBulk: true,
+    isOwnedByMe: (event: ScheduledMaintenance): boolean | undefined => {
+      return isOwnedByViewer({
+        owners: getOwnersForResource(event),
+        viewerId: User.getUserId(),
+      });
+    },
+  });
+
   // Fetch scheduled maintenance states on mount
   useEffect(() => {
     const fetchScheduledMaintenanceStates: () => Promise<void> =
@@ -332,140 +337,6 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
 
     fetchScheduledMaintenanceStates();
   }, []);
-
-  const handleBulkStateChange: (
-    data: BulkChangeStateSubmitData,
-  ) => Promise<void> = async (
-    data: BulkChangeStateSubmitData,
-  ): Promise<void> => {
-    if (!bulkActionProps) {
-      return;
-    }
-
-    const targetStateId: ObjectID = data.stateId;
-
-    const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
-      bulkActionProps;
-
-    const targetState: ScheduledMaintenanceState | undefined =
-      scheduledMaintenanceStates.find((s: ScheduledMaintenanceState) => {
-        return s.id?.toString() === targetStateId.toString();
-      });
-
-    if (!targetState) {
-      return;
-    }
-
-    const targetOrder: number = targetState.order || 0;
-
-    const miscDataProps: JSONObject = buildBulkStateChangeMiscDataProps({
-      noteType: BulkStateChangeNoteType.Public,
-      note: data.note,
-    });
-
-    onBulkActionStart();
-
-    const inProgressItems: Array<ScheduledMaintenance> = [...items];
-    const totalItems: Array<ScheduledMaintenance> = [...items];
-    const successItems: Array<ScheduledMaintenance> = [];
-    const failedItems: Array<BulkActionFailed<ScheduledMaintenance>> = [];
-
-    for (const scheduledMaintenance of totalItems) {
-      inProgressItems.splice(inProgressItems.indexOf(scheduledMaintenance), 1);
-
-      try {
-        if (!scheduledMaintenance.id) {
-          throw new Error("Scheduled Maintenance ID not found");
-        }
-
-        // Fetch the scheduled maintenance's current state order since it's not loaded in the table
-        const fetchedScheduledMaintenance: ScheduledMaintenance | null =
-          await ModelAPI.getItem<ScheduledMaintenance>({
-            modelType: ScheduledMaintenance,
-            id: scheduledMaintenance.id,
-            select: {
-              currentScheduledMaintenanceState: {
-                order: true,
-                name: true,
-              },
-            },
-          });
-
-        const currentOrder: number =
-          fetchedScheduledMaintenance?.currentScheduledMaintenanceState
-            ?.order || 0;
-
-        // Skip if already at or past the target state
-        const skipDecision: BulkStateChangeSkipDecision =
-          getBulkStateChangeSkipDecision({
-            currentOrder: currentOrder,
-            targetOrder: targetOrder,
-            currentStateName:
-              fetchedScheduledMaintenance?.currentScheduledMaintenanceState
-                ?.name,
-            targetStateName: targetState.name,
-          });
-
-        if (skipDecision.shouldSkip) {
-          failedItems.push({
-            item: scheduledMaintenance,
-            failedMessage: skipDecision.skippedMessage!,
-          });
-        } else {
-          // Create state timeline to change state
-          const stateTimeline: ScheduledMaintenanceStateTimeline =
-            new ScheduledMaintenanceStateTimeline();
-          stateTimeline.scheduledMaintenanceId = scheduledMaintenance.id;
-          stateTimeline.scheduledMaintenanceStateId = targetStateId;
-          stateTimeline.projectId = ProjectUtil.getCurrentProjectId()!;
-          stateTimeline.shouldStatusPageSubscribersBeNotified =
-            data.shouldStatusPageSubscribersBeNotified ?? true;
-
-          await ModelAPI.create<ScheduledMaintenanceStateTimeline>({
-            model: stateTimeline,
-            modelType: ScheduledMaintenanceStateTimeline,
-            miscDataProps: miscDataProps,
-          });
-
-          successItems.push(scheduledMaintenance);
-        }
-      } catch (err) {
-        failedItems.push({
-          item: scheduledMaintenance,
-          failedMessage: API.getFriendlyMessage(err),
-        });
-      }
-
-      onProgressInfo({
-        totalItems: totalItems,
-        failed: failedItems,
-        successItems: successItems,
-        inProgressItems: inProgressItems,
-      });
-    }
-
-    onBulkActionEnd();
-    setShowBulkStateChangeModal(false);
-    setBulkActionProps(null);
-
-    // Trigger sidebar badge count refresh
-    GlobalEvents.dispatchEvent(REFRESH_SIDEBAR_COUNT_EVENT);
-  };
-
-  const getBulkChangeStateAction: () => BulkActionButtonSchema<ScheduledMaintenance> =
-    (): BulkActionButtonSchema<ScheduledMaintenance> => {
-      return {
-        title: "Change State",
-        buttonStyleType: ButtonStyleType.NORMAL,
-        icon: IconProp.TransparentCube,
-        onClick: async (
-          actionProps: BulkActionOnClickProps<ScheduledMaintenance>,
-        ): Promise<void> => {
-          setBulkActionProps(actionProps);
-          setShowBulkStateChangeModal(true);
-        },
-      };
-    };
 
   let cardbuttons: Array<CardButtonSchema> = [];
 
@@ -710,12 +581,13 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           customFieldsModelType={ScheduledMaintenanceCustomField}
           bulkActions={{
             buttons: [
-              getBulkChangeStateAction(),
-              ...labelBulkActions,
+              ...stateBulkActions,
               ...ownerBulkActions,
+              ...labelBulkActions,
               ModalTableBulkDefaultActions.Delete,
             ],
           }}
+          actionButtons={[...stateRowActions, ...ownerRowActions]}
           isDeleteable={true}
           topContent={filterBar}
           emptyState={{ ...props.emptyState, ...facetEmptyState }}
@@ -944,6 +816,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             {
               field: {
                 currentScheduledMaintenanceState: {
+                  _id: true,
                   name: true,
                   color: true,
                 },
@@ -1259,32 +1132,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
       {labelBulkActionModals}
       {ownerBulkActionModals}
 
-      {showBulkStateChangeModal && (
-        <BulkChangeStateModal
-          title="Change Scheduled Maintenance State"
-          description="Select the state to change scheduled maintenance events to. Events already at or past the selected state will be skipped."
-          stateFieldKey="scheduledMaintenanceStateId"
-          stateOptions={DropdownUtil.getDropdownOptionsFromEntityArray({
-            // Archived states are never offered as one to move to.
-            array: ArchivedValuePicker.getLiveValues(
-              scheduledMaintenanceStates,
-            ),
-            labelField: "name",
-            valueField: "_id",
-          })}
-          noteType={BulkStateChangeNoteType.Public}
-          noteTitle="Public Note"
-          noteDescription="Post a public note about this state change to the status page. The same note is added to every event you selected."
-          noteTemplates={noteTemplates}
-          noteModel={new ScheduledMaintenancePublicNote()}
-          showNotifyStatusPageSubscribers={true}
-          onClose={() => {
-            setShowBulkStateChangeModal(false);
-            setBulkActionProps(null);
-          }}
-          onSubmit={handleBulkStateChange}
-        />
-      )}
+      {stateActionModals}
     </div>
   );
 };

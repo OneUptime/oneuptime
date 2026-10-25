@@ -1,5 +1,4 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import ArchivedValuePicker from "Common/UI/Utils/ArchivedValuePicker";
 import {
   ARCHIVED_FACET_SELECT,
   getArchivableValueFacetOptions,
@@ -28,6 +27,11 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
+import useValueChangeActions from "Common/UI/Components/BulkUpdate/ValueChangeActions";
+import User from "Common/UI/Utils/User";
+import useEventStateActions from "../EventView/useEventStateActions";
+import { EventStateKind } from "../EventView/EventStateKinds";
+import { isOwnedByViewer } from "../ResourceOwners/OwnedByViewer";
 import useBulkAddToEpisodeActions from "../EpisodeMembers/BulkAddToEpisodeActions";
 import { INCIDENT_EPISODE_MEMBER_KIND } from "../EpisodeMembers/EpisodeMemberKinds";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -38,11 +42,9 @@ import Search from "Common/Types/BaseDatabase/Search";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Incident from "Common/Models/DatabaseModels/Incident";
-import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
-import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
@@ -71,29 +73,10 @@ import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import Route from "Common/Types/API/Route";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import Navigation from "Common/UI/Utils/Navigation";
-import {
-  BulkActionButtonSchema,
-  BulkActionFailed,
-  BulkActionOnClickProps,
-} from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
-import GlobalEvents from "Common/UI/Utils/GlobalEvents";
-import { REFRESH_SIDEBAR_COUNT_EVENT } from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
 import LiveDuration from "../EventView/LiveDuration";
 import useEventTimelineEndDates from "../EventView/useEventTimelineEndDates";
-import useNoteTemplates from "../EventView/useNoteTemplates";
-import BulkChangeStateModal, {
-  BulkChangeStateSubmitData,
-} from "../EventView/BulkChangeStateModal";
-import {
-  BulkStateChangeNoteType,
-  BulkStateChangeSkipDecision,
-  IncidentBulkStateChange,
-  buildIncidentBulkStateChange,
-  getBulkStateChangeSkipDecision,
-} from "../../Utils/BulkStateChange";
-import PrivateRecordPublicNotes from "Common/Types/StatusPage/PrivateRecordPublicNotes";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import Dictionary from "Common/Types/Dictionary";
@@ -136,10 +119,6 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
   const [showIncidentTemplateModal, setShowIncidentTemplateModal] =
     useState<boolean>(false);
   const [incidentStates, setIncidentStates] = useState<IncidentState[]>([]);
-  const [showBulkStateChangeModal, setShowBulkStateChangeModal] =
-    useState<boolean>(false);
-  const [bulkActionProps, setBulkActionProps] =
-    useState<BulkActionOnClickProps<Incident> | null>(null);
   const [visibleIncidents, setVisibleIncidents] = useState<Array<Incident>>([]);
 
   /*
@@ -186,19 +165,37 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
     resolvedStateIds: resolvedStateIds,
   });
 
-  const { noteTemplates } = useNoteTemplates<IncidentNoteTemplate>({
-    modelType: IncidentNoteTemplate,
-  });
-
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Incident>({ modelType: Incident });
 
-  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
-    useBulkOwnerActions<Incident>({
-      ownerUserModelType: IncidentOwnerUser,
-      ownerTeamModelType: IncidentOwnerTeam,
-      resourceIdField: "incidentId",
-    });
+  /*
+   * Acknowledge, Resolve and Change State, in each row's ⋯ menu and in Bulk
+   * Actions, as the incident's own page offers them (EventView/
+   * useEventStateActions).
+   */
+  const {
+    rowActions: stateRowActions,
+    bulkActions: stateBulkActions,
+    modals: stateActionModals,
+  } = useEventStateActions<Incident>({
+    kind: EventStateKind.Incident,
+    states: incidentStates,
+  });
+
+  // Change Severity: the incident's Edit form's severity, from the list.
+  const {
+    rowActions: severityRowActions,
+    bulkActions: severityBulkActions,
+    modals: severityModals,
+  } = useValueChangeActions<Incident, IncidentSeverity>({
+    modelType: Incident,
+    column: "incidentSeverity",
+    idColumn: "incidentSeverityId",
+    valueModelType: IncidentSeverity,
+    title: "Change Severity",
+    fieldTitle: "Severity",
+    icon: IconProp.Signal,
+  });
 
   // Add to Existing Episode / Add to New Episode.
   const { bulkActions: episodeBulkActions, modals: episodeBulkActionModals } =
@@ -408,6 +405,28 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
     areFacetsLoading: areCustomFieldFacetsLoading,
   });
 
+  /*
+   * Assign to Me and Add Owner in each row's ⋯ menu, and Assign to Me in
+   * Bulk Actions beside Add and Remove Owner: the incident's owners are who
+   * is on it. A row the viewer owns already is not offered Assign to Me.
+   */
+  const {
+    bulkActions: ownerBulkActions,
+    rowActions: ownerRowActions,
+    modals: ownerBulkActionModals,
+  } = useBulkOwnerActions<Incident>({
+    ownerUserModelType: IncidentOwnerUser,
+    ownerTeamModelType: IncidentOwnerTeam,
+    resourceIdField: "incidentId",
+    offerAssignToMeInBulk: true,
+    isOwnedByMe: (incident: Incident): boolean | undefined => {
+      return isOwnedByViewer({
+        owners: getOwnersForResource(incident),
+        viewerId: User.getUserId(),
+      });
+    },
+  });
+
   // Fetch incident states on mount
   useEffect(() => {
     const fetchIncidentStates: () => Promise<void> =
@@ -443,147 +462,6 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
 
     fetchIncidentStates();
   }, []);
-
-  const handleBulkStateChange: (
-    data: BulkChangeStateSubmitData,
-  ) => Promise<void> = async (
-    data: BulkChangeStateSubmitData,
-  ): Promise<void> => {
-    if (!bulkActionProps) {
-      return;
-    }
-
-    const targetStateId: ObjectID = data.stateId;
-
-    const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
-      bulkActionProps;
-
-    const targetState: IncidentState | undefined = incidentStates.find(
-      (s: IncidentState) => {
-        return s.id?.toString() === targetStateId.toString();
-      },
-    );
-
-    if (!targetState) {
-      return;
-    }
-
-    const targetOrder: number = targetState.order || 0;
-
-    onBulkActionStart();
-
-    const inProgressItems: Array<Incident> = [...items];
-    const totalItems: Array<Incident> = [...items];
-    const successItems: Array<Incident> = [];
-    const failedItems: Array<BulkActionFailed<Incident>> = [];
-
-    for (const incident of totalItems) {
-      inProgressItems.splice(inProgressItems.indexOf(incident), 1);
-
-      try {
-        if (!incident.id) {
-          throw new Error("Incident ID not found");
-        }
-
-        /*
-         * The incident's current state order, which the table does not
-         * load, and whether it is private: a private incident takes no
-         * public notes (buildIncidentBulkStateChange).
-         */
-        const fetchedIncident: Incident | null =
-          await ModelAPI.getItem<Incident>({
-            modelType: Incident,
-            id: incident.id,
-            select: {
-              currentIncidentState: {
-                order: true,
-                name: true,
-              },
-              isPrivate: true,
-            },
-          });
-
-        const currentOrder: number =
-          fetchedIncident?.currentIncidentState?.order || 0;
-
-        // Skip if already at or past the target state
-        const skipDecision: BulkStateChangeSkipDecision =
-          getBulkStateChangeSkipDecision({
-            currentOrder: currentOrder,
-            targetOrder: targetOrder,
-            currentStateName: fetchedIncident?.currentIncidentState?.name,
-            targetStateName: targetState.name,
-          });
-
-        if (skipDecision.shouldSkip) {
-          failedItems.push({
-            item: incident,
-            failedMessage: skipDecision.skippedMessage!,
-          });
-        } else {
-          // The note: public, or private on a private incident.
-          const change: IncidentBulkStateChange = buildIncidentBulkStateChange({
-            isPrivate:
-              !PrivateRecordPublicNotes.takesPublicNotes(fetchedIncident),
-            note: data.note,
-            shouldStatusPageSubscribersBeNotified:
-              data.shouldStatusPageSubscribersBeNotified,
-          });
-
-          // Create state timeline to change state
-          const stateTimeline: IncidentStateTimeline =
-            new IncidentStateTimeline();
-          stateTimeline.incidentId = incident.id;
-          stateTimeline.incidentStateId = targetStateId;
-          stateTimeline.projectId = ProjectUtil.getCurrentProjectId()!;
-          stateTimeline.shouldStatusPageSubscribersBeNotified =
-            change.shouldStatusPageSubscribersBeNotified;
-
-          await ModelAPI.create<IncidentStateTimeline>({
-            model: stateTimeline,
-            modelType: IncidentStateTimeline,
-            miscDataProps: change.miscDataProps,
-          });
-
-          successItems.push(incident);
-        }
-      } catch (err) {
-        failedItems.push({
-          item: incident,
-          failedMessage: API.getFriendlyMessage(err),
-        });
-      }
-
-      onProgressInfo({
-        totalItems: totalItems,
-        failed: failedItems,
-        successItems: successItems,
-        inProgressItems: inProgressItems,
-      });
-    }
-
-    onBulkActionEnd();
-    setShowBulkStateChangeModal(false);
-    setBulkActionProps(null);
-
-    // Trigger sidebar badge count refresh
-    GlobalEvents.dispatchEvent(REFRESH_SIDEBAR_COUNT_EVENT);
-  };
-
-  const getBulkChangeStateAction: () => BulkActionButtonSchema<Incident> =
-    (): BulkActionButtonSchema<Incident> => {
-      return {
-        title: "Change State",
-        buttonStyleType: ButtonStyleType.NORMAL,
-        icon: IconProp.TransparentCube,
-        onClick: async (
-          actionProps: BulkActionOnClickProps<Incident>,
-        ): Promise<void> => {
-          setBulkActionProps(actionProps);
-          setShowBulkStateChangeModal(true);
-        },
-      };
-    };
 
   const fetchIncidentTemplates: () => Promise<void> =
     async (): Promise<void> => {
@@ -670,13 +548,19 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
         customFieldsModelType={IncidentCustomField}
         bulkActions={{
           buttons: [
-            getBulkChangeStateAction(),
-            ...labelBulkActions,
+            ...stateBulkActions,
+            ...severityBulkActions,
             ...ownerBulkActions,
+            ...labelBulkActions,
             ...episodeBulkActions,
             ModalTableBulkDefaultActions.Delete,
           ],
         }}
+        actionButtons={[
+          ...stateRowActions,
+          ...severityRowActions,
+          ...ownerRowActions,
+        ]}
         modelType={Incident}
         saveFilterProps={props.saveFilterProps}
         urlStateKey={tableUrlStateKey}
@@ -909,6 +793,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           {
             field: {
               incidentSeverity: {
+                _id: true,
                 name: true,
                 color: true,
               },
@@ -1189,30 +1074,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
       {ownerBulkActionModals}
       {episodeBulkActionModals}
 
-      {showBulkStateChangeModal && (
-        <BulkChangeStateModal
-          title="Change Incident State"
-          description="Select the state to change incidents to. Incidents already at or past the selected state will be skipped."
-          stateFieldKey="incidentStateId"
-          stateOptions={DropdownUtil.getDropdownOptionsFromEntityArray({
-            // Archived states are never offered as one to move to.
-            array: ArchivedValuePicker.getLiveValues(incidentStates),
-            labelField: "name",
-            valueField: "_id",
-          })}
-          noteType={BulkStateChangeNoteType.Public}
-          noteTitle="Public Note"
-          noteDescription="Post a public note about this state change to the status page. The same note is added to every incident you selected, as a private note on private incidents."
-          noteTemplates={noteTemplates}
-          noteModel={new IncidentPublicNote()}
-          showNotifyStatusPageSubscribers={true}
-          onClose={() => {
-            setShowBulkStateChangeModal(false);
-            setBulkActionProps(null);
-          }}
-          onSubmit={handleBulkStateChange}
-        />
-      )}
+      {stateActionModals}
+      {severityModals}
     </>
   );
 };

@@ -1146,13 +1146,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   >([]);
 
   /*
-   * The table's own row actions, built with the columns: Show ID before the
-   * list's actions, View, Edit and Delete after them.
+   * The table's own row actions - Show ID, View, Edit and Delete - built
+   * with the columns. The list's own actions go before them.
    */
-  const [builtInRowActions, setBuiltInRowActions] = useState<{
-    leading: Array<ActionButtonSchema<TBaseModel>>;
-    trailing: Array<ActionButtonSchema<TBaseModel>>;
-  }>({ leading: [], trailing: [] });
+  const [builtInRowActions, setBuiltInRowActions] = useState<
+    Array<ActionButtonSchema<TBaseModel>>
+  >([]);
 
   /*
    * A row action that changed its row asks for the rows again
@@ -1172,21 +1171,22 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   }, []);
 
   /*
-   * Every row's actions: the table's, and the list's own in between - read
-   * from the props on every render, so an action that depends on something
-   * the page loaded later (the project's states, the viewer's owners) is
-   * never the one the first render saw. Each of the list's actions is
-   * handed the list's refresh as it runs.
+   * Every row's actions: the list's own first - the everyday actions of its
+   * kind, Acknowledge or Disable, head the ⋯ menu - then the table's: Show
+   * ID, a utility every row carries, View, Edit and Delete. The list's are
+   * read from the props on every render, so an action that depends on
+   * something the page loaded later (the project's states, the viewer's
+   * owners) is never the one the first render saw, and each is handed the
+   * list's refresh as it runs.
    */
   const actionButtonSchema: Array<ActionButtonSchema<TBaseModel>> =
     useMemo(() => {
       return [
-        ...builtInRowActions.leading,
         ...withRowActionContext<TBaseModel>(
           props.actionButtons || [],
           rowActionContext,
         ),
-        ...builtInRowActions.trailing,
+        ...builtInRowActions,
       ];
     }, [builtInRowActions, props.actionButtons, rowActionContext]);
 
@@ -3422,15 +3422,6 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       });
     }
 
-    /*
-     * The list's own actions go between these and the ones below, read
-     * fresh on every render (actionButtonSchema).
-     */
-    const leadingActions: Array<ActionButtonSchema<TBaseModel>> = [
-      ...actionsSchema,
-    ];
-    actionsSchema.length = 0;
-
     if (isViewActionShown) {
       actionsSchema.push({
         title: props.viewButtonText
@@ -3593,10 +3584,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       });
     }
 
-    setBuiltInRowActions({
-      leading: leadingActions,
-      trailing: actionsSchema,
-    });
+    // The list's own go before these, read fresh on every render.
+    setBuiltInRowActions(actionsSchema);
   };
 
   const [filterData, setFilterData] = useState<FilterData<TBaseModel>>(
