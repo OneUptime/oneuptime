@@ -36,6 +36,10 @@ import FieldType from "../../../../UI/Components/Types/FieldType";
 import Label from "../../../../Models/DatabaseModels/Label";
 import Route from "../../../../Types/API/Route";
 import Color from "../../../../Types/Color";
+import {
+  PILL_CLASS_NAME,
+  PillSize,
+} from "../../../../UI/Components/Pill/Pill";
 
 /*
  * What a page hands a detail field to draw - a record's labels, a list of
@@ -637,8 +641,12 @@ describe("values sit on the value's line, level with the values beside them", ()
 
       const pill: HTMLElement = screen.getByTestId("yes-no");
 
-      // text-sm's 20px line and 2px above and below: 24px.
-      expect(pill).toHaveClass("text-sm", "py-0.5", "align-top");
+      /*
+       * The product's one pill (13px: 22.75px with its padding), top to top
+       * on the value's 24px line, so a row holding a yes/no is no taller.
+       */
+      expect(pill).toHaveClass(...PILL_CLASS_NAME.split(" "), "align-top");
+      expect(pill.style.fontSize).toBe(PillSize.Normal);
       expect(pill).not.toHaveClass("py-1");
     }
   });

@@ -4,6 +4,7 @@ import FieldType from "../../../../UI/Components/Types/FieldType";
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
 import Label from "../../../../Models/DatabaseModels/Label";
 import Color from "../../../../Types/Color";
+import { getPillColors } from "../../../../UI/Components/Pill/PillColors";
 import ObjectID from "../../../../Types/ObjectID";
 import { cleanup, render } from "@testing-library/react";
 import React from "react";
@@ -104,7 +105,12 @@ describe("Detail entity fields", () => {
     );
 
     expect(badge.textContent).toContain("Major");
-    expect(badge.classList.contains("bg-indigo-50")).toBe(true);
+    // The product's indigo, painted as a Pill paints a colour.
+    expect(badge).toHaveStyle({
+      color: getPillColors("#6366f1").light.textColor,
+    });
+    expect(badge).toHaveAttribute("data-ou-pill");
+    expect(badge.getAttribute("data-dropdown-value-color")).toBeNull();
   });
 
   test("shows the placeholder when the relation is not set", () => {

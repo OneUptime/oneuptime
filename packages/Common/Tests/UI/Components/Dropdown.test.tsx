@@ -2,6 +2,8 @@ import Dropdown, {
   DropdownOption,
   DropdownOptionGroup,
   DropdownValue,
+  MULTI_SELECT_CHIP_LABEL_CLASS_NAME,
+  SINGLE_SELECT_VALUE_LABEL_CLASS_NAME,
 } from "../../../UI/Components/Dropdown/Dropdown";
 import "@testing-library/jest-dom";
 import {
@@ -378,7 +380,12 @@ describe("Dropdown picked value", () => {
     );
   });
 
-  test("each picked chip of a multi select truncates its name the same way", () => {
+  /*
+   * A chip shows its whole name, wrapping inside the chip: truncated, a
+   * phone's narrow control cut every long pick to a few letters, so the
+   * picks could not be told apart. A single pick still ends in an ellipsis.
+   */
+  test("each picked chip of a multi select shows its whole name, wrapping inside the chip", () => {
     render(
       <Dropdown
         onChange={() => {}}
@@ -405,9 +412,47 @@ describe("Dropdown picked value", () => {
     ).toEqual([LONG_NAME, "Printers"]);
 
     for (const label of labels) {
-      expect(label).toHaveClass("truncate");
+      expect(label.getAttribute("class")).toBe(
+        MULTI_SELECT_CHIP_LABEL_CLASS_NAME,
+      );
+      expect(label).not.toHaveClass("truncate");
+      expect(label).toHaveClass("whitespace-normal", "[overflow-wrap:anywhere]");
       expect(label.parentElement).toHaveClass("min-w-0");
     }
+
+    // Each chip is never wider than the control, and its name may wrap.
+    const chips: Array<HTMLElement> = labels.map(
+      (label: HTMLElement): HTMLElement => {
+        return label.closest(".ou-select__multi-value") as HTMLElement;
+      },
+    );
+
+    // react-select writes its styles as emotion classes the page reads.
+    for (const chip of chips) {
+      expect(chip).not.toBeNull();
+      expect(window.getComputedStyle(chip).maxWidth).toBe("100%");
+    }
+
+    const chipLabel: HTMLElement = labels[0]!.closest(
+      ".ou-select__multi-value__label",
+    ) as HTMLElement;
+
+    expect(window.getComputedStyle(chipLabel).whiteSpace).toBe("normal");
+    expect(window.getComputedStyle(chipLabel).textOverflow).toBe("clip");
+  });
+
+  test("a single pick still ends in an ellipsis when it does not fit", () => {
+    render(
+      <Dropdown
+        onChange={() => {}}
+        options={[{ value: "kds", label: LONG_NAME }]}
+        value={{ value: "kds", label: LONG_NAME }}
+      />,
+    );
+
+    expect(screen.getByTestId("dropdown-value-label").getAttribute("class")).toBe(
+      SINGLE_SELECT_VALUE_LABEL_CLASS_NAME,
+    );
   });
 });
 

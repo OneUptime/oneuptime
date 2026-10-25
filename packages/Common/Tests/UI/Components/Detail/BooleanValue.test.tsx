@@ -1,11 +1,24 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, test } from "@jest/globals";
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import React from "react";
-import BooleanValue from "../../../../UI/Components/Detail/BooleanValue";
+import BooleanValue, {
+  BOOLEAN_NO_COLOR,
+  BOOLEAN_YES_COLOR,
+} from "../../../../UI/Components/Detail/BooleanValue";
 import Detail from "../../../../UI/Components/Detail/Detail";
 import Field from "../../../../UI/Components/Detail/Field";
+import Pill, {
+  PILL_CLASS_NAME,
+  PILL_DOT_CLASS_NAME,
+  PillSize,
+} from "../../../../UI/Components/Pill/Pill";
+import {
+  getPillColors,
+  PillColors,
+} from "../../../../UI/Components/Pill/PillColors";
 import FieldType from "../../../../UI/Components/Types/FieldType";
+import Color from "../../../../Types/Color";
 
 /*
  * BooleanValue: the green "Yes" or grey "No" pill a details view, and a
@@ -15,19 +28,12 @@ import FieldType from "../../../../UI/Components/Types/FieldType";
  * who will be notified under it - can still say whether the box was ticked,
  * exactly as every other box on that step does. Detail draws every boolean
  * with it, so the two never drift apart.
+ *
+ * It is the product's one pill: a card showing a yes/no beside labels and a
+ * choice showed three pill styles (a 14px yes/no, 13px labels, a 12px
+ * rounded-corner choice). Now it is Pill's shape, size and colour work,
+ * green for Yes and grey for No, top to top on the value's 24px line.
  */
-
-/*
- * What Detail draws for a boolean. The pill is as tall as a detail value's
- * line (py-0.5 round text-sm's 20px is 24px), top to top on it (align-top):
- * at py-1, on the line's baseline, it was 28px, so a row holding a yes/no
- * stood 4px taller than one holding text, and its word sat lower than the
- * values beside it.
- */
-const YES_MARKUP: string =
-  '<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-green-50 text-green-700 text-sm font-medium align-top"><span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>Yes</span>';
-const NO_MARKUP: string =
-  '<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-600 text-sm font-medium align-top"><span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>No</span>';
 
 interface Item {
   isOn?: unknown;
@@ -53,6 +59,42 @@ function renderDetail(value: unknown): HTMLElement {
   return container;
 }
 
+function pillOf(container: HTMLElement): HTMLElement {
+  const pill: HTMLElement | null =
+    container.querySelector<HTMLElement>("[data-boolean-value]");
+
+  if (!pill) {
+    throw new Error("No yes/no pill was drawn");
+  }
+
+  return pill;
+}
+
+function expectPainted(pill: HTMLElement, color: Color): void {
+  const colors: PillColors = getPillColors(color);
+
+  expect(pill).toHaveStyle({
+    backgroundColor: colors.light.backgroundColor,
+    color: colors.light.textColor,
+  });
+  expect(pill.style.boxShadow).toBe(`inset 0 0 0 1px ${colors.light.ringColor}`);
+  // The dark theme's colours ride along for Theme.css's [data-ou-pill] rule.
+  expect(pill).toHaveAttribute("data-ou-pill");
+  expect(pill.style.getPropertyValue("--ou-pill-dark-bg")).toBe(
+    colors.dark.backgroundColor,
+  );
+  expect(pill.style.getPropertyValue("--ou-pill-dark-text")).toBe(
+    colors.dark.textColor,
+  );
+
+  const dot: HTMLElement = pill.firstElementChild as HTMLElement;
+
+  expect(dot).toHaveAttribute("aria-hidden", "true");
+  expect(dot).toHaveAttribute("data-ou-pill-dot");
+  expect(dot.getAttribute("class")).toBe(PILL_DOT_CLASS_NAME);
+  expect(dot).toHaveStyle({ backgroundColor: colors.light.dotColor });
+}
+
 afterEach(() => {
   cleanup();
 });
@@ -60,16 +102,63 @@ afterEach(() => {
 describe("BooleanValue", () => {
   test("true is a green Yes", () => {
     const { container } = render(<BooleanValue value={true} />);
+    const pill: HTMLElement = pillOf(container);
 
-    expect(container.innerHTML).toBe(YES_MARKUP);
+    expect(pill).toHaveAttribute("data-boolean-value", "yes");
+    expect(pill.getAttribute("class")).toBe(`${PILL_CLASS_NAME} align-top`);
+    expect(pill.style.fontSize).toBe(PillSize.Normal);
+    expectPainted(pill, BOOLEAN_YES_COLOR);
     expect(container).toHaveTextContent(/^Yes$/);
   });
 
   test("false is a grey No", () => {
     const { container } = render(<BooleanValue value={false} />);
+    const pill: HTMLElement = pillOf(container);
 
-    expect(container.innerHTML).toBe(NO_MARKUP);
+    expect(pill).toHaveAttribute("data-boolean-value", "no");
+    expect(pill.getAttribute("class")).toBe(`${PILL_CLASS_NAME} align-top`);
+    expectPainted(pill, BOOLEAN_NO_COLOR);
     expect(container).toHaveTextContent(/^No$/);
+  });
+
+  test("is green and grey: the colours a state pill gets", () => {
+    expect(BOOLEAN_YES_COLOR.toString().toLowerCase()).toBe("#22c55e");
+    expect(BOOLEAN_NO_COLOR.toString().toLowerCase()).toBe("#6b7280");
+  });
+
+  test("is the same pill a label is: one shape, one size, one colour work", () => {
+    render(
+      <div>
+        <span data-testid="label">
+          <Pill text="Yes" color={BOOLEAN_YES_COLOR} />
+        </span>
+        <span data-testid="yes-no">
+          <BooleanValue value={true} />
+        </span>
+      </div>,
+    );
+
+    const label: HTMLElement = screen
+      .getByTestId("label")
+      .querySelector<HTMLElement>("[data-testid='pill']")!;
+    const yesNo: HTMLElement = pillOf(screen.getByTestId("yes-no"));
+
+    const classesOf: (element: HTMLElement) => Array<string> = (
+      element: HTMLElement,
+    ): Array<string> => {
+      return Array.from(element.classList)
+        .filter((name: string) => {
+          // align-top seats it on a detail value's line.
+          return name !== "align-top";
+        })
+        .sort();
+    };
+
+    expect(classesOf(yesNo)).toEqual(classesOf(label));
+    expect(yesNo.style.fontSize).toBe(label.style.fontSize);
+    expect(yesNo.style.backgroundColor).toBe(label.style.backgroundColor);
+    expect(yesNo.style.color).toBe(label.style.color);
+    expect(yesNo.style.boxShadow).toBe(label.style.boxShadow);
   });
 
   test("takes a test id, and has none without one", () => {
@@ -89,15 +178,16 @@ describe("BooleanValue", () => {
 
 describe("Detail draws its boolean fields with BooleanValue", () => {
   test.each([
-    ["true", true, YES_MARKUP],
-    ["a truthy string", "yes", YES_MARKUP],
-    ["false", false, NO_MARKUP],
-    ["undefined", undefined, NO_MARKUP],
-    ["null", null, NO_MARKUP],
-  ])("%s", (_label: string, value: unknown, markup: string) => {
+    ["true", true, "yes"],
+    ["a truthy string", "yes", "yes"],
+    ["false", false, "no"],
+    ["undefined", undefined, "no"],
+    ["null", null, "no"],
+  ])("%s", (_label: string, value: unknown, shown: string) => {
     const container: HTMLElement = renderDetail(value);
 
-    expect(container.innerHTML).toContain(markup);
-    expect(container.querySelectorAll(".rounded-full.text-sm")).toHaveLength(1);
+    expect(container.querySelectorAll("[data-boolean-value]")).toHaveLength(1);
+    expect(pillOf(container)).toHaveAttribute("data-boolean-value", shown);
+    expect(pillOf(container)).toHaveTextContent(shown === "yes" ? "Yes" : "No");
   });
 });
