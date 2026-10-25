@@ -20,7 +20,6 @@ import { MemoryRouter, Route as PageRoute, Routes } from "react-router-dom";
 import LogsAIActivity from "../../../../App/FeatureSet/Dashboard/src/Pages/Logs/AI/Activity";
 import {
   TELEMETRY_AI_LANE_COPY,
-  TELEMETRY_AI_LOG_FINDINGS,
   TELEMETRY_AI_TEST_IDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiCopy";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -57,9 +56,10 @@ jest.mock("react-i18next", () => {
  * stubbed: everything OneUptime AI did with the problems it found in the
  * project's logs - the section's shared AI logs page, named Activity here
  * (inside Logs, "Logs" would read as log lines). A done investigation says
- * what OneUptime AI found - the verdict its triage ended with - which is
- * why an error log got a pull request on its own, or did not: its pull
- * request waits for a fault of the code.
+ * what OneUptime AI found - the verdict its triage ended with, in the words
+ * Exceptions' Logs say it (TelemetryAiLaneCopy.investigationVerdicts) -
+ * which is why an error log got a pull request on its own, or did not: its
+ * pull request waits for a fault of the code.
  */
 
 const WAIT_TIMEOUT: number = 20000;
@@ -222,26 +222,11 @@ describe("Logs → AI → Activity", () => {
   });
 
   test.each([
-    [
-      ErrorClass.CodeFault,
-      "OneUptime AI found that a change to the code fixes it.",
-    ],
-    [
-      ErrorClass.UserError,
-      "OneUptime AI found the code refusing bad input, as it should.",
-    ],
-    [
-      ErrorClass.ExpectedDenial,
-      "OneUptime AI found a check doing its job, such as a refused sign-in.",
-    ],
-    [
-      ErrorClass.Infrastructure,
-      "OneUptime AI found the cause outside the code, such as a dependency, the environment or its configuration.",
-    ],
-    [
-      ErrorClass.Unknown,
-      "OneUptime AI could not tell the cause from the evidence.",
-    ],
+    [ErrorClass.CodeFault, "Found a fault in the code"],
+    [ErrorClass.UserError, "Found an expected error: invalid input"],
+    [ErrorClass.ExpectedDenial, "Found an expected error: a check doing its job"],
+    [ErrorClass.Infrastructure, "Found a cause outside the code"],
+    [ErrorClass.Unknown, "Could not tell the cause"],
   ])(
     "a done investigation whose verdict is %s says what OneUptime AI found",
     async (classification: ErrorClass, words: string) => {
@@ -250,11 +235,15 @@ describe("Logs → AI → Activity", () => {
 
       const [investigation] = await shownEntries(1);
       const finding: HTMLElement = within(investigation!).getByTestId(
-        TELEMETRY_AI_TEST_IDS.logFinding,
+        TELEMETRY_AI_TEST_IDS.logVerdict,
       );
 
       expect(finding).toHaveTextContent(words);
-      expect(TELEMETRY_AI_LOG_FINDINGS[classification]).toBe(words);
+      expect(
+        TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Log].investigationVerdicts?.[
+          classification
+        ],
+      ).toBe(words);
       /*
        * Marked as OneUptime AI's own words with the AI tab's sparkles, a
        * mark screen readers skip: the sentence says who found it.
@@ -293,7 +282,7 @@ describe("Logs → AI → Activity", () => {
       TelemetryAiLogKind.Investigation,
     );
     expect(investigation!).toHaveTextContent(
-      "OneUptime AI found the cause outside the code",
+      "Found a cause outside the code",
     );
     expect(screen.queryByText("Pull request")).not.toBeInTheDocument();
     expect(screen.queryByText("Open task")).not.toBeInTheDocument();
@@ -329,7 +318,7 @@ describe("Logs → AI → Activity", () => {
     await shownEntries(4);
 
     expect(
-      screen.queryAllByTestId(TELEMETRY_AI_TEST_IDS.logFinding),
+      screen.queryAllByTestId(TELEMETRY_AI_TEST_IDS.logVerdict),
     ).toHaveLength(0);
     expect(screen.getByText("In progress")).toBeInTheDocument();
     expect(screen.getByText("Open task")).toBeInTheDocument();
@@ -398,10 +387,10 @@ describe("Logs → AI → Activity", () => {
     const [newer, older] = await shownEntries(2);
 
     expect(
-      within(newer!).getByTestId(TELEMETRY_AI_TEST_IDS.logFinding),
-    ).toHaveTextContent(TELEMETRY_AI_LOG_FINDINGS[ErrorClass.CodeFault]);
+      within(newer!).getByTestId(TELEMETRY_AI_TEST_IDS.logVerdict),
+    ).toHaveTextContent("Found a fault in the code");
     expect(
-      within(older!).queryByTestId(TELEMETRY_AI_TEST_IDS.logFinding),
+      within(older!).queryByTestId(TELEMETRY_AI_TEST_IDS.logVerdict),
     ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId(TELEMETRY_AI_TEST_IDS.logsLoadMore));
@@ -409,10 +398,10 @@ describe("Logs → AI → Activity", () => {
     const shown: Array<HTMLElement> = await shownEntries(3);
 
     expect(
-      screen.queryAllByTestId(TELEMETRY_AI_TEST_IDS.logFinding),
+      screen.queryAllByTestId(TELEMETRY_AI_TEST_IDS.logVerdict),
     ).toHaveLength(1);
     expect(
-      within(shown[2]!).queryByTestId(TELEMETRY_AI_TEST_IDS.logFinding),
+      within(shown[2]!).queryByTestId(TELEMETRY_AI_TEST_IDS.logVerdict),
     ).not.toBeInTheDocument();
     // Each row is still there, saying how it stands.
     expect(within(shown[2]!).getByText("Done")).toBeInTheDocument();

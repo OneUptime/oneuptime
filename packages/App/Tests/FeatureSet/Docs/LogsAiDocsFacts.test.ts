@@ -42,7 +42,6 @@ import {
 import { InvestigationRuleTiming } from "../../../FeatureSet/Dashboard/src/Components/AISettings/InvestigationRuleTiming";
 import {
   TELEMETRY_AI_LANE_COPY,
-  TELEMETRY_AI_LOG_FINDINGS,
   TELEMETRY_AI_SWITCHES,
   getTelemetryAiFixOptions,
 } from "../../../FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiCopy";
@@ -440,9 +439,9 @@ describe("the Logs Explorer page's section on finding and fixing error, missing 
 
   /*
    * Activity's row of a finished investigation says what OneUptime AI found
-   * (TelemetryAiLogsPage, in TELEMETRY_AI_LOG_FINDINGS' words): for an error
-   * log, why it got a pull request on its own or did not - its pull request
-   * waits for a fault of the code.
+   * (TelemetryAiLogsPage, in the Log lane's investigationVerdicts): for an
+   * error log, why it got a pull request on its own or did not - its pull
+   * request waits for a fault of the code.
    */
   it("says a finished investigation tells what OneUptime AI found, as Activity's row draws it", () => {
     expect(section).toContain(
@@ -450,12 +449,13 @@ describe("the Logs Explorer page's section on finding and fixing error, missing 
     );
 
     // Every verdict has its words, the one outside the code among them.
-    expect(Object.keys(TELEMETRY_AI_LOG_FINDINGS).sort()).toEqual(
+    const verdicts: Readonly<Partial<Record<ErrorClass, string>>> =
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Log].investigationVerdicts || {};
+
+    expect(Object.keys(verdicts).sort()).toEqual(
       Object.values(ErrorClass).sort(),
     );
-    expect(TELEMETRY_AI_LOG_FINDINGS[ErrorClass.Infrastructure]).toContain(
-      "outside the code",
-    );
+    expect(verdicts[ErrorClass.Infrastructure]).toContain("outside the code");
 
     // Only a fault of the code opens an error log's pull request on its own.
     expect(
@@ -468,7 +468,7 @@ describe("the Logs Explorer page's section on finding and fixing error, missing 
       readSource(
         "App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiLogsPage.tsx",
       ),
-    ).toContain("getTelemetryAiLogFinding(entry)");
+    ).toContain("getTelemetryAiLogVerdict(props.lane, entry)");
   });
 
   it("names the rules' answers as their form draws them", () => {

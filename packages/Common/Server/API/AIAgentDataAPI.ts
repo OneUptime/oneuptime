@@ -6,6 +6,9 @@ import AIRunService from "../Services/AIRunService";
 import IncidentService from "../Services/IncidentService";
 import AlertService from "../Services/AlertService";
 import PostedRootCause from "../Utils/AI/SRE/PostedRootCause";
+import ExceptionFixStartedBy, {
+  ExceptionFixStartedByJSON,
+} from "../Utils/AI/CodeFix/ExceptionFixStartedBy";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -417,6 +420,25 @@ export default class AIAgentDataAPI {
           );
 
           /*
+           * Why the task the Runner claimed was started, for its pull request
+           * to say (ExceptionFixStartedBy): only for that task, a code fix of
+           * this exception. Older Runners send no taskId, and older pull
+           * requests say nothing of it.
+           */
+          const taskIdValue: unknown = data["taskId"];
+          const startedBy: ExceptionFixStartedByJSON | null =
+            typeof taskIdValue === "string" &&
+            ObjectID.isValidUUID(taskIdValue) &&
+            exception.projectId &&
+            exception.id
+              ? await ExceptionFixStartedBy.read({
+                  taskId: new ObjectID(taskIdValue),
+                  exceptionId: exception.id,
+                  projectId: exception.projectId,
+                })
+              : null;
+
+          /*
            * primaryEntityId is polymorphic — resolve the Service only when it is
            * a real Service. findOneById returns null for Host / DockerHost /
            * KubernetesCluster / unattributed serviceIds (they aren't
@@ -454,6 +476,14 @@ export default class AIAgentDataAPI {
               exceptionType: exception.exceptionType || "",
               fingerprint: exception.fingerprint,
               aiClassification: exception.aiClassification || null,
+              ...(exception.projectId && exception.id
+                ? {
+                    url: ExceptionFixStartedBy.getExceptionUrl({
+                      projectId: exception.projectId,
+                      exceptionId: exception.id,
+                    }),
+                  }
+                : {}),
             },
             service: exception.primaryEntityId
               ? {
@@ -462,6 +492,7 @@ export default class AIAgentDataAPI {
                   description: exceptionService?.description,
                 }
               : null,
+            startedBy: startedBy as unknown as JSONObject | null,
           });
         } catch (err) {
           next(err);

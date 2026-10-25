@@ -1045,11 +1045,9 @@ test.describe("Logs → AI → Activity", () => {
          */
         const verdict: Locator = entries
           .nth(1)
-          .getByTestId("telemetry-ai-log-finding");
+          .getByTestId("telemetry-ai-log-verdict");
 
-        await expect(verdict).toHaveText(
-          "OneUptime AI found that a change to the code fixes it.",
-        );
+        await expect(verdict).toHaveText("Found a fault in the code");
         await expect(verdict.locator("svg")).toHaveCount(1);
 
         const markBox: { y: number; height: number } | null = await verdict
@@ -1067,7 +1065,7 @@ test.describe("Logs → AI → Activity", () => {
           wordsBox!.y + 24,
         );
         await expect(
-          automatic.getByTestId("telemetry-ai-log-finding"),
+          automatic.getByTestId("telemetry-ai-log-verdict"),
         ).toHaveCount(0);
 
         await expect(entries.nth(2)).toContainText("Asked by Ada Lovelace");
@@ -1094,14 +1092,14 @@ test.describe("Logs → AI → Activity", () => {
     const outside: Locator = page.getByTestId("telemetry-ai-log-entry").nth(3);
 
     await expect(outside).toContainText("Investigation");
-    await expect(outside.getByTestId("telemetry-ai-log-finding")).toHaveText(
-      "OneUptime AI found the cause outside the code, such as a dependency, the environment or its configuration.",
+    await expect(outside.getByTestId("telemetry-ai-log-verdict")).toHaveText(
+      "Found a cause outside the code",
     );
 
     const failed: Locator = page.getByTestId("telemetry-ai-log-entry").nth(4);
 
     await expect(failed).toContainText("Failed");
-    await expect(failed.getByTestId("telemetry-ai-log-finding")).toHaveCount(0);
+    await expect(failed.getByTestId("telemetry-ai-log-verdict")).toHaveCount(0);
 
     if (isPhone(testInfo)) {
       await expectNoSidewaysScroll(page);

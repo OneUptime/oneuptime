@@ -3,6 +3,7 @@ import AIInsightStatus, {
   AIInsightStatusHelper,
 } from "Common/Types/AI/AIInsightStatus";
 import AIInsightType from "Common/Types/AI/AIInsightType";
+import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
 import {
   TelemetryAiLane,
   getTelemetryAiLaneOfInsightType,
@@ -23,12 +24,13 @@ import { LogLoggingGap } from "Common/Utils/Logs/LogInsight";
  */
 
 /*
- * The lanes whose findings draw this strip: Traces. The Profiler's draw the
- * Profiler's own Fix with AI (ProfileFixStrip), which starts from the
- * function rather than the finding.
+ * The lanes whose findings draw this strip: Traces, Exceptions and Logs.
+ * The Profiler's draw the Profiler's own Fix with AI (ProfileFixStrip),
+ * which starts from the function rather than the finding.
  */
 export const TELEMETRY_AI_FIX_LANES: ReadonlyArray<TelemetryAiLane> = [
   TelemetryAiLane.Trace,
+  TelemetryAiLane.Exception,
   TelemetryAiLane.Log,
 ];
 
@@ -66,6 +68,15 @@ export const TELEMETRY_AI_FIX_LEADS: Readonly<
   [AIInsightType.TraceMissingTracing]: translationKey(
     "OneUptime AI opens a pull request that adds the tracing this lacks, for you to review.",
   ),
+  [AIInsightType.NewException]: translationKey(
+    "OneUptime AI opens a pull request that fixes this exception, for you to review.",
+  ),
+  [AIInsightType.ExceptionSpike]: translationKey(
+    "OneUptime AI opens a pull request that fixes this exception, for you to review.",
+  ),
+  [AIInsightType.ExceptionMissingStackTrace]: translationKey(
+    "OneUptime AI opens a pull request that makes this service record stack traces, for you to review.",
+  ),
   [AIInsightType.LogErrorPattern]: translationKey(
     "OneUptime AI opens a pull request that fixes why this error is logged, for you to review.",
   ),
@@ -74,6 +85,19 @@ export const TELEMETRY_AI_FIX_LEADS: Readonly<
   ),
   [AIInsightType.LogNoisyPattern]: translationKey(
     "OneUptime AI opens a pull request that logs this line less, for you to review.",
+  ),
+};
+
+/*
+ * What Fix with AI does when the server says which pull request it starts
+ * (TelemetryAiFixSuggestion.recipe): better handling, for an exception the
+ * investigation found to be an expected error, whatever its kind of finding.
+ */
+export const TELEMETRY_AI_FIX_LEADS_BY_RECIPE: Readonly<
+  Partial<Record<string, string>>
+> = {
+  [CodeFixTaskType.ImproveExceptionHandling]: translationKey(
+    "OneUptime AI opens a pull request that improves how your code handles this expected error, for you to review.",
   ),
 };
 
@@ -94,13 +118,23 @@ export const TELEMETRY_AI_FIX_LEAD: string = translationKey(
 );
 
 /*
- * The lead for a finding: by its kind, and - for missing logging - by what
- * its logs lack, when its evidence says.
+ * The lead for a finding: by the pull request the server says it starts
+ * (its recipe), else by its kind - and, for missing logging, by what its
+ * logs lack, when its evidence says.
  */
 export function getTelemetryAiFixLead(
   insightType: unknown,
+  recipe?: string | undefined,
   evidence?: AIInsightEvidence | null | undefined,
 ): string {
+  const byRecipe: string | undefined = recipe
+    ? TELEMETRY_AI_FIX_LEADS_BY_RECIPE[recipe]
+    : undefined;
+
+  if (byRecipe) {
+    return byRecipe;
+  }
+
   if (
     insightType === AIInsightType.LogMissingLogging &&
     evidence?.log?.gap === LogLoggingGap.NoTraceContext

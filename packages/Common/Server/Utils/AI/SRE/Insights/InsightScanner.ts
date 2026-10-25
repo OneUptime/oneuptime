@@ -25,8 +25,6 @@ import {
   TELEMETRY_AI_LANES,
   TELEMETRY_AI_LANE_LIST,
   TelemetryAiLane,
-  getTelemetryAiInsightTypes,
-  getTelemetryAiLaneOfInsightType,
   isTelemetryAiLaneScanTick,
 } from "../../../../../Types/AI/TelemetryAi";
 
@@ -49,7 +47,10 @@ import {
  * is scanned for that lane's problems whatever enableAiInsights says, and
  * on the lane's own tick its open problems are worked on as its AI rules
  * say (TelemetryAiRouting) - the triage, and the fix pull request. Their
- * insights are never triaged or fixed by the paths below.
+ * insights are never triaged or fixed by the paths below - but for the kinds
+ * a lane shares with AI Insights (new and spiking exceptions, the
+ * Exceptions lane's): those are worked on below as they always were while
+ * the lane's switch is off (TelemetryAiRules.getLaneWorkingOn).
  */
 export default class InsightScanner {
   /*
@@ -133,7 +134,9 @@ export default class InsightScanner {
 
   /*
    * The detectors a project's scan runs at this moment: AI Insights' own
-   * while it is on, and each lane's on its tick while the lane is on.
+   * while it is on, and each lane's on its tick while the lane is on - each
+   * kind of finding once, though AI Insights and a lane that shares its
+   * kinds (Exceptions: new and spiking exceptions) both run its detector.
    */
   public static getDetectorsForProject(
     project: Project,
@@ -150,7 +153,16 @@ export default class InsightScanner {
       }
     }
 
-    return detectors;
+    const types: Set<string> = new Set<string>();
+
+    return detectors.filter((detector: InsightDetector): boolean => {
+      if (types.has(detector.insightType)) {
+        return false;
+      }
+
+      types.add(detector.insightType);
+      return true;
+    });
   }
 
   /*
@@ -313,7 +325,7 @@ export default class InsightScanner {
       }
     }
 
-    await this.resweepUntriagedInsights({ projectId });
+    await this.resweepUntriagedInsights({ projectId, project });
     await this.resweepUnroutedCodeFaults({ projectId, project });
   }
 
@@ -332,15 +344,18 @@ export default class InsightScanner {
    */
   private static async resweepUntriagedInsights(data: {
     projectId: ObjectID;
+    project: Project;
   }): Promise<void> {
-    const { projectId } = data;
+    const { projectId, project } = data;
 
     try {
       const untriaged: Array<AIInsight> = await AIInsightService.findBy({
         query: {
           projectId: projectId,
           // A telemetry lane's problems are triaged as its rules say.
-          insightType: QueryHelper.notIn(getTelemetryAiInsightTypes()),
+          insightType: QueryHelper.notIn(
+            TelemetryAiRules.getInsightTypesWorkedOn(project),
+          ),
           status: AIInsightStatus.ActionRequired,
           triageCompletedAt: QueryHelper.isNull(),
           createdAt: QueryHelper.greaterThanEqualTo(
@@ -430,7 +445,9 @@ export default class InsightScanner {
         query: {
           projectId: projectId,
           // A telemetry lane's problems are fixed as its rules say.
-          insightType: QueryHelper.notIn(getTelemetryAiInsightTypes()),
+          insightType: QueryHelper.notIn(
+            TelemetryAiRules.getInsightTypesWorkedOn(project),
+          ),
           status: AIInsightStatus.ActionRequired,
           classification: ExceptionAIClassification.CodeFault,
           fixAiRunId: QueryHelper.isNull(),
@@ -521,8 +538,10 @@ export default class InsightScanner {
      * A telemetry lane's problem waits, ActionRequired, for its lane's look
      * (TelemetryAiRouting), which runs later in this same tick: its AI rules
      * decide whether it is investigated and fixed - never the paths below.
+     * A kind the lane shares with AI Insights is the lane's only while the
+     * lane's switch is on.
      */
-    if (getTelemetryAiLaneOfInsightType(insight.insightType)) {
+    if (TelemetryAiRules.getLaneWorkingOn(insight.insightType, project)) {
       await AIInsightService.updateOneById({
         id: insight.id!,
         data: {

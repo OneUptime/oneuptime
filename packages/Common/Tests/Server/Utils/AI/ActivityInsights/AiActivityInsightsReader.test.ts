@@ -968,6 +968,46 @@ describe("AiActivityInsightsReader.read", () => {
     });
   });
 
+  describe("a service's exceptions with no stack trace", () => {
+    test("is about the service its fingerprint names, and no other", () => {
+      const serviceId: string = ObjectID.generate().toString();
+      const otherId: string = ObjectID.generate().toString();
+      const fingerprint: string = `exception-missing-stack-trace:${serviceId}`;
+
+      expect(
+        isPreventiveInsightAboutScope({
+          insight: {
+            insightType: AIInsightType.ExceptionMissingStackTrace,
+            fingerprint,
+          } as never,
+          scopeId: serviceId.toUpperCase(),
+          exceptionOwners: new Map<string, string>(),
+        }),
+      ).toBe(true);
+      expect(
+        isPreventiveInsightAboutScope({
+          insight: {
+            insightType: AIInsightType.ExceptionMissingStackTrace,
+            fingerprint,
+          } as never,
+          scopeId: otherId,
+          exceptionOwners: new Map<string, string>(),
+        }),
+      ).toBe(false);
+      // A fingerprint that only ends with the service's id is not the service's.
+      expect(
+        isPreventiveInsightAboutScope({
+          insight: {
+            insightType: AIInsightType.ExceptionMissingStackTrace,
+            fingerprint: `exception-missing-stack-trace:${otherId}:${serviceId}`,
+          } as never,
+          scopeId: serviceId,
+          exceptionOwners: new Map<string, string>(),
+        }),
+      ).toBe(false);
+    });
+  });
+
   describe("problems found in a service's logs", () => {
     test("each kind is about the service its fingerprint names, and no other", () => {
       const serviceId: string = ObjectID.generate().toString();

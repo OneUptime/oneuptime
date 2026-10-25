@@ -12,6 +12,7 @@ import {
 } from "./InvestigationRuleWait";
 import { getRulesLlmProviderId } from "./LlmProviderChoice";
 import AutoRemediationTriggerEntity from "../AutoRemediation/AutoRemediationTriggerEntity";
+import CodeFixTaskType from "./CodeFixTaskType";
 import ErrorClass from "../Telemetry/ErrorClass";
 import {
   CodeRepositoryAllowance,
@@ -39,14 +40,16 @@ import {
  * OneUptime would create PRs for you for that code repo" - the maintainer.
  *
  * Each telemetry product is a lane (TelemetryAiLane): Profiles first, then
- * Traces; Exceptions, Logs and Metrics follow the same way. A lane has:
+ * Traces, then Exceptions; Logs and Metrics follow the same way. A lane has:
  *
  *   - the problems OneUptime finds in its data, filed as AI insights of the
  *     lane's own types (insightTypes) by deterministic detectors - no LLM
  *     decides what is a problem (Server/Utils/AI/SRE/Insights/Detectors).
  *     For Profiles: slow code (AIInsightType.ProfileHotspot). For Traces:
  *     slow operations, failing operations, and the ones whose traces cannot
- *     say why (Utils/Traces/TraceInsight);
+ *     say why (Utils/Traces/TraceInsight). For Exceptions: new and rising
+ *     exceptions, and the services whose exceptions carry no stack trace
+ *     (Utils/Exceptions/ExceptionInsight);
  *   - one project switch (switchColumn), on for new projects: while it is on
  *     OneUptime looks for those problems and OneUptime AI works on them;
  *   - AI rules of its own: the one AI rule (AutoRemediationRule) with the
@@ -83,7 +86,17 @@ import {
  * error) - waits for its investigation before OneUptime AI opens a pull
  * request on its own (fixAfterVerdictInsightTypes): only a problem the
  * investigation classified as a fault of the code is fixed without asking,
- * and a person can still ask for the fix from the insight.
+ * and a person can still ask for the fix from the insight. A lane may open
+ * its fix on other verdicts too (handlingFixClassifications): an exception
+ * the investigation found to be an expected error - a user's bad input, an
+ * intentional denial - gets a pull request that improves how the code
+ * handles it, rather than one that "fixes" a check that fired correctly.
+ *
+ * A lane may share kinds of problem with AI Insights
+ * (sharedWithAiInsightsInsightTypes): new and spiking exceptions were AI
+ * Insights' before Exceptions had an AI section, and are still found and
+ * worked on there, as they always were, in a project whose Exceptions
+ * switch is off. While it is on, the lane works on them, as its rules say.
  *
  * Enable AI, the project's one AI switch, comes first: with it off, nothing
  * here runs. Pure, so the server and the Dashboard import it alike.
@@ -92,6 +105,7 @@ import {
 export enum TelemetryAiLane {
   Profile = "Profile",
   Trace = "Trace",
+  Exception = "Exception",
   Log = "Log",
 }
 
@@ -99,6 +113,7 @@ export enum TelemetryAiLane {
 export type TelemetryAiSwitchColumn =
   | "enableAutomaticProfileRemediation"
   | "enableAutomaticTraceRemediation"
+  | "enableAutomaticExceptionRemediation"
   | "enableAutomaticLogRemediation";
 
 export interface TelemetryAiLaneDefinition {
@@ -126,6 +141,28 @@ export interface TelemetryAiLaneDefinition {
    * (see the module comment).
    */
   fixAfterVerdictInsightTypes: ReadonlyArray<AIInsightType>;
+  /*
+   * The investigation's verdicts, besides a fault of the code, on which a
+   * fix that waits for one opens on its own - a pull request that improves
+   * how the code handles the problem, since it is no defect: for
+   * exceptions, an expected error (user-error, expected-denial). Absent:
+   * only a fault of the code opens the fix.
+   */
+  handlingFixClassifications?: ReadonlyArray<string> | undefined;
+  /*
+   * Its insight types AI Insights' own detectors file too, and that AI
+   * Insights works on as it always did while the lane's switch is off (see
+   * the module comment). Absent: none - its types are the lane's alone.
+   */
+  sharedWithAiInsightsInsightTypes?: ReadonlyArray<AIInsightType> | undefined;
+  /*
+   * The Code recipes its pull requests are (AIRun.codeFixTaskType): what
+   * the day's share and the active-fix lookup count (Server/Utils/AI/
+   * TelemetryAi/TelemetryAiFix). Absent: a request in Code (CodeRequest),
+   * as Profiles' and Traces' are. Exceptions' fixes are the exception's own
+   * AI tasks - the ones its AI Assistance page starts.
+   */
+  fixTaskTypes?: ReadonlyArray<CodeFixTaskType> | undefined;
 }
 
 export const TELEMETRY_AI_LANES: Readonly<
@@ -152,6 +189,47 @@ export const TELEMETRY_AI_LANES: Readonly<
     scanEveryMinutes: 60,
     dashboardPath: "traces",
     fixAfterVerdictInsightTypes: [AIInsightType.TraceFailingOperation],
+  },
+  /*
+   * Exceptions: new and rising exceptions - AI Insights' own findings until
+   * Exceptions had an AI section, so shared with it - and the services
+   * whose exceptions carry no stack trace. Looked for on every look of the
+   * scanner, as AI Insights always looked for exceptions: an exception is
+   * the most urgent of the lanes' problems, and finding one reads only the
+   * exception groups' table. An exception's pull request waits for the
+   * investigation's verdict: a fault of the code is fixed, and an expected
+   * error gets better handling. The pull requests are the exception's own
+   * AI tasks (FixException, ImproveExceptionHandling); a service's missing
+   * stack traces are a request in Code.
+   */
+  [TelemetryAiLane.Exception]: {
+    lane: TelemetryAiLane.Exception,
+    triggerEntityType: AutoRemediationTriggerEntity.Exception,
+    insightTypes: [
+      AIInsightType.NewException,
+      AIInsightType.ExceptionSpike,
+      AIInsightType.ExceptionMissingStackTrace,
+    ],
+    switchColumn: "enableAutomaticExceptionRemediation",
+    scanEveryMinutes: 15,
+    dashboardPath: "exceptions",
+    fixAfterVerdictInsightTypes: [
+      AIInsightType.NewException,
+      AIInsightType.ExceptionSpike,
+    ],
+    handlingFixClassifications: [
+      ErrorClass.UserError,
+      ErrorClass.ExpectedDenial,
+    ],
+    sharedWithAiInsightsInsightTypes: [
+      AIInsightType.NewException,
+      AIInsightType.ExceptionSpike,
+    ],
+    fixTaskTypes: [
+      CodeFixTaskType.FixException,
+      CodeFixTaskType.ImproveExceptionHandling,
+      CodeFixTaskType.CodeRequest,
+    ],
   },
   /*
    * Logs: the errors a service logs again and again, the logging it lacks -
@@ -261,14 +339,42 @@ export function doesTelemetryAiFixWaitForVerdict(
 /*
  * Where a problem's automatic fix stands with the investigation's verdict:
  * it needs none (NotNeeded), the verdict is not in yet (Pending), or the
- * investigation classified the problem as a fault of the code (CodeFault)
- * or as anything else (NotCodeFault - a person may still ask for the fix).
+ * investigation classified the problem as a fault of the code (CodeFault),
+ * as an error the lane opens a handling fix for (ExpectedError - its
+ * handlingFixClassifications), or as anything else (NotCodeFault - a
+ * person may still ask for the fix).
  */
 export enum TelemetryAiFixVerdict {
   NotNeeded = "NotNeeded",
   Pending = "Pending",
   CodeFault = "CodeFault",
   NotCodeFault = "NotCodeFault",
+  ExpectedError = "ExpectedError",
+}
+
+/*
+ * The verdicts, besides a fault of the code, a waiting fix of this insight
+ * type opens on (its lane's handlingFixClassifications): none for a type
+ * no lane works on.
+ */
+export function getTelemetryAiHandlingFixClassifications(
+  insightType: unknown,
+): ReadonlyArray<string> {
+  const lane: TelemetryAiLane | null =
+    getTelemetryAiLaneOfInsightType(insightType);
+
+  return (lane && TELEMETRY_AI_LANES[lane].handlingFixClassifications) || [];
+}
+
+// Whether a verdict lets a waiting fix open on its own.
+export function doesTelemetryAiFixVerdictOpenFix(
+  verdict: TelemetryAiFixVerdict,
+): boolean {
+  return (
+    verdict === TelemetryAiFixVerdict.NotNeeded ||
+    verdict === TelemetryAiFixVerdict.CodeFault ||
+    verdict === TelemetryAiFixVerdict.ExpectedError
+  );
 }
 
 /*
@@ -290,8 +396,15 @@ export function getTelemetryAiFixVerdict(data: {
     return TelemetryAiFixVerdict.Pending;
   }
 
-  return data.classification === TELEMETRY_AI_CODE_FAULT_CLASSIFICATION
-    ? TelemetryAiFixVerdict.CodeFault
+  if (data.classification === TELEMETRY_AI_CODE_FAULT_CLASSIFICATION) {
+    return TelemetryAiFixVerdict.CodeFault;
+  }
+
+  return typeof data.classification === "string" &&
+    getTelemetryAiHandlingFixClassifications(data.insightType).includes(
+      data.classification,
+    )
+    ? TelemetryAiFixVerdict.ExpectedError
     : TelemetryAiFixVerdict.NotCodeFault;
 }
 
@@ -361,6 +474,82 @@ export function getTelemetryAiInsightTypes(): Array<AIInsightType> {
     (lane: TelemetryAiLane): ReadonlyArray<AIInsightType> => {
       return TELEMETRY_AI_LANES[lane].insightTypes;
     },
+  );
+}
+
+/*
+ * Whether AI Insights files and works on this insight type too while its
+ * lane's switch is off (its lane's sharedWithAiInsightsInsightTypes).
+ */
+export function isTelemetryAiInsightTypeSharedWithAiInsights(
+  insightType: unknown,
+): boolean {
+  const lane: TelemetryAiLane | null =
+    getTelemetryAiLaneOfInsightType(insightType);
+
+  return Boolean(
+    lane &&
+      (
+        (TELEMETRY_AI_LANES[lane].sharedWithAiInsightsInsightTypes ||
+          []) as ReadonlyArray<unknown>
+      ).includes(insightType),
+  );
+}
+
+/*
+ * The lane that works on an insight of this type, in a project whose
+ * lanes' switches `isLaneOn` reads: its lane - unless AI Insights shares
+ * the type and the lane's switch is off, when AI Insights works on it as
+ * it always did (null, as for every type no lane has).
+ */
+export function getTelemetryAiLaneWorkingOn(
+  insightType: unknown,
+  isLaneOn: (lane: TelemetryAiLane) => boolean,
+): TelemetryAiLane | null {
+  const lane: TelemetryAiLane | null =
+    getTelemetryAiLaneOfInsightType(insightType);
+
+  if (!lane) {
+    return null;
+  }
+
+  return isTelemetryAiInsightTypeSharedWithAiInsights(insightType) &&
+    !isLaneOn(lane)
+    ? null
+    : lane;
+}
+
+/*
+ * The insight types the lanes work on in such a project: every lane's,
+ * but the shared ones of a lane whose switch is off - AI Insights' then.
+ */
+export function getTelemetryAiInsightTypesWorkedOn(
+  isLaneOn: (lane: TelemetryAiLane) => boolean,
+): Array<AIInsightType> {
+  return getTelemetryAiInsightTypes().filter(
+    (insightType: AIInsightType): boolean => {
+      return getTelemetryAiLaneWorkingOn(insightType, isLaneOn) !== null;
+    },
+  );
+}
+
+// The Code recipes a lane's pull requests are (its fixTaskTypes).
+export function getTelemetryAiLaneFixTaskTypes(
+  lane: TelemetryAiLane,
+): ReadonlyArray<CodeFixTaskType> {
+  return TELEMETRY_AI_LANES[lane].fixTaskTypes || [CodeFixTaskType.CodeRequest];
+}
+
+// Every lane's, once each: what OneUptime's own pull requests may be.
+export function getTelemetryAiFixTaskTypes(): Array<CodeFixTaskType> {
+  return Array.from(
+    new Set(
+      TELEMETRY_AI_LANE_LIST.flatMap(
+        (lane: TelemetryAiLane): ReadonlyArray<CodeFixTaskType> => {
+          return getTelemetryAiLaneFixTaskTypes(lane);
+        },
+      ),
+    ),
   );
 }
 
@@ -598,7 +787,8 @@ export function getStillFoundMinutes(lane: TelemetryAiLane): number {
  * was already done: one triage and one fix per problem, ever - a problem
  * found again refreshes its insight and changes nothing else. A fix that
  * waits for the investigation's verdict opens on its own only once the
- * verdict says the code is at fault, and is investigated for that verdict
+ * verdict says the code is at fault (or, for a lane that opens a handling
+ * fix, that it is an expected error), and is investigated for that verdict
  * even when its rules would only fix.
  */
 export function getTelemetryAiNextSteps(data: {
@@ -636,9 +826,7 @@ export function getTelemetryAiNextSteps(data: {
     startInvestigation:
       (data.work.investigate || needsVerdict) && !data.problem.hasInvestigation,
     startFix:
-      wantsFixWithoutAsking &&
-      (verdict === TelemetryAiFixVerdict.NotNeeded ||
-        verdict === TelemetryAiFixVerdict.CodeFault),
+      wantsFixWithoutAsking && doesTelemetryAiFixVerdictOpenFix(verdict),
     offerFix: data.work.fix === AiRuleFix.AskFirst && !data.problem.hasFix,
     isWaiting: false,
     isNoLongerFound: false,

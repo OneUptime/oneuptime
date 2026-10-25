@@ -23,7 +23,7 @@ import ObjectID from "../../../../../Types/ObjectID";
 import TelemetryAiRules from "../../../../../Server/Utils/AI/TelemetryAi/TelemetryAiRules";
 import { decideTelemetryAiWork } from "../../../../../Types/AI/TelemetryAi";
 import { NO_EXTERNAL_MCP_SERVER } from "../../../../../Types/AI/ExternalMcpServer/ExternalMcpServerAllowance";
-import { describe, expect, test, afterEach } from "@jest/globals";
+import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
  * The insight triage runner — the Preventive lane's quiet-inbox executor.
@@ -93,6 +93,20 @@ function makeConfidence(): ConfidenceSignal {
 }
 
 describe("InsightTriageRunner.executeTriage", () => {
+  /*
+   * New and spiking exceptions are the Exceptions lane's while its switch
+   * is on, and AI Insights' while it is off: the runner reads the project
+   * to tell. By default here it is off - AI Insights' triage, as these
+   * tests were written for; a test that needs the project says so itself.
+   */
+  beforeEach(() => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: projectId,
+      enableAi: true,
+      enableAutomaticExceptionRemediation: false,
+    } as unknown as Project);
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -1007,6 +1021,229 @@ describe("InsightTriageRunner.executeTriage - Traces' findings", () => {
     });
 
     expect(routeFix).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Exceptions' AI section shares new and rising exceptions with AI Insights
+ * (Types/AI/TelemetryAi): while its switch is on, their triage reads what
+ * the exception AI rules allow, and a code-fault verdict routes no fix here
+ * - the lane opens its own pull request - though the verdict still lands on
+ * the exception; while it is off they are AI Insights' as they always were.
+ * A service's missing stack traces are the lane's only, triaged as
+ * observability triage.
+ */
+describe("InsightTriageRunner.executeTriage - Exceptions' AI section", () => {
+  const REPO: string = "5240ffff-0000-4000-8000-0000000000a1";
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function exceptionsProject(isLaneOn: boolean): Project {
+    return {
+      id: projectId,
+      enableAi: true,
+      enableInsightFixTasks: true,
+      autoArchiveNonActionableExceptions: true,
+      enableAutomaticExceptionRemediation: isLaneOn,
+    } as unknown as Project;
+  }
+
+  function laneWork(): ReturnType<typeof decideTelemetryAiWork> {
+    return {
+      ...decideTelemetryAiWork({
+        isAiEnabled: true,
+        isLaneOn: true,
+        rules: { rulesSetUp: false, matchingRules: [] },
+      }),
+      investigationRepositories: {
+        isEveryRepository: false,
+        repositoryIds: [REPO],
+      },
+      mcpServers: NO_EXTERNAL_MCP_SERVER,
+    };
+  }
+
+  async function requestFor(data: {
+    insight: AIInsight;
+    isLaneOn: boolean;
+  }): Promise<{
+    request: InvestigationRequest;
+    decide: jest.SpyInstance;
+  }> {
+    jest.spyOn(AIInsightService, "findOneById").mockResolvedValue(data.insight);
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(exceptionsProject(data.isLaneOn));
+    const decide: jest.SpyInstance = jest
+      .spyOn(TelemetryAiRules, "decideForInsight")
+      .mockResolvedValue(laneWork());
+    const executeRun: jest.SpyInstance = jest
+      .spyOn(AIInvestigationEngine, "executeRun")
+      .mockResolvedValue(undefined);
+
+    await InsightTriageRunner.executeTriage({
+      aiRunId,
+      projectId,
+      sentinelInsightId,
+      attemptCount: 1,
+    });
+
+    return {
+      request: (
+        executeRun.mock.calls[0]![0] as { request: InvestigationRequest }
+      ).request,
+      decide,
+    };
+  }
+
+  test("its switch on: a new exception reads what the exception AI rules allow, framed as the exception's own triage", async () => {
+    const { request, decide } = await requestFor({
+      insight: makeInsight({ insightType: AIInsightType.NewException }),
+      isLaneOn: true,
+    });
+
+    expect(decide).toHaveBeenCalledTimes(1);
+    expect(request.codeRepositoryAllowance).toEqual({
+      isEveryRepository: false,
+      repositoryIds: [REPO],
+    });
+    expect(request.contextSummary).toContain("PREVENTIVE TRIAGE");
+  });
+
+  test("its switch off: AI Insights' triage, as it always was - no rules read, no scope", async () => {
+    const { request, decide } = await requestFor({
+      insight: makeInsight({ insightType: AIInsightType.ExceptionSpike }),
+      isLaneOn: false,
+    });
+
+    expect(decide).not.toHaveBeenCalled();
+    expect(request.codeRepositoryAllowance).toBeUndefined();
+    expect(request.extraTools).toBeUndefined();
+  });
+
+  test("missing stack traces are observability triage, with the evidence", async () => {
+    const { request } = await requestFor({
+      insight: makeInsight({
+        insightType: AIInsightType.ExceptionMissingStackTrace,
+        title: "Exceptions in checkout have no stack trace",
+        evidence: {
+          exceptionStackTrace: {
+            serviceId: "5240ffff-0000-4000-8000-000000000002",
+            windowStartTime: "2026-10-23T09:00:04.000Z",
+            windowEndTime: "2026-10-24T09:00:04.000Z",
+            exceptions: [],
+            exceptionCount: 3,
+            occurrenceCount: 140,
+            withStackTraceCount: 0,
+          },
+        },
+      }),
+      isLaneOn: true,
+    });
+
+    expect(request.contextSummary).toContain("OBSERVABILITY TRIAGE");
+    expect(request.contextSummary).toContain("without a stack trace");
+    expect(request.contextSummary).toContain(
+      "user-error and expected-denial do not apply to this finding",
+    );
+    expect(request.contextSummary).not.toContain("PREVENTIVE TRIAGE,");
+    expect(request.contextSummary).toContain(
+      '- exceptionStackTrace: {"serviceId"',
+    );
+    expect(request.contextSummary).toContain('"withStackTraceCount":0');
+  });
+
+  test("its switch on: a code-fault verdict lands on the exception, and routes no fix here", async () => {
+    const telemetryExceptionId: ObjectID = ObjectID.generate();
+    jest.spyOn(AIInsightService, "findOneById").mockResolvedValue(
+      makeInsight({
+        insightType: AIInsightType.NewException,
+        telemetryExceptionId,
+        status: AIInsightStatus.ActionRequired,
+      }),
+    );
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(exceptionsProject(true));
+    jest
+      .spyOn(TelemetryAiRules, "decideForInsight")
+      .mockResolvedValue(laneWork());
+    jest.spyOn(AIInsightService, "updateOneById").mockResolvedValue(1);
+    jest
+      .spyOn(TelemetryExceptionService, "updateOneBy")
+      .mockResolvedValue(1 as never);
+    const stampException: jest.SpyInstance = jest
+      .spyOn(TelemetryExceptionService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+    const routeFix: jest.SpyInstance = jest
+      .spyOn(InsightFixRouting, "routeInsightFix")
+      .mockResolvedValue({ fixAiRunId: ObjectID.generate() });
+    driveTriageWithAnalysis(
+      "getOrder reads an order that may be missing.\n\nClassification: code-fault",
+    );
+
+    await InsightTriageRunner.executeTriage({
+      aiRunId,
+      projectId,
+      sentinelInsightId,
+      attemptCount: 1,
+    });
+
+    expect(stampException).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: telemetryExceptionId,
+        data: expect.objectContaining({
+          aiClassification: ExceptionAIClassification.CodeFault,
+        }),
+      }),
+    );
+    expect(routeFix).not.toHaveBeenCalled();
+  });
+
+  test("its switch on or off: an expected denial is archived where the project opted in", async () => {
+    for (const isLaneOn of [true, false]) {
+      jest.restoreAllMocks();
+      const telemetryExceptionId: ObjectID = ObjectID.generate();
+      jest.spyOn(AIInsightService, "findOneById").mockResolvedValue(
+        makeInsight({
+          insightType: AIInsightType.NewException,
+          telemetryExceptionId,
+          status: AIInsightStatus.ActionRequired,
+        }),
+      );
+      jest
+        .spyOn(ProjectService, "findOneById")
+        .mockResolvedValue(exceptionsProject(isLaneOn));
+      jest
+        .spyOn(TelemetryAiRules, "decideForInsight")
+        .mockResolvedValue(laneWork());
+      jest.spyOn(AIInsightService, "updateOneById").mockResolvedValue(1);
+      jest
+        .spyOn(TelemetryExceptionService, "updateOneBy")
+        .mockResolvedValue(1 as never);
+      const exceptionWrites: jest.SpyInstance = jest
+        .spyOn(TelemetryExceptionService, "updateOneById")
+        .mockResolvedValue(undefined as never);
+      driveTriageWithAnalysis(
+        "The paywall doing its job.\n\nClassification: expected-denial",
+      );
+
+      await InsightTriageRunner.executeTriage({
+        aiRunId,
+        projectId,
+        sentinelInsightId,
+        attemptCount: 1,
+      });
+
+      expect(exceptionWrites).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: telemetryExceptionId,
+          data: expect.objectContaining({ isArchived: true }),
+        }),
+      );
+    }
   });
 });
 

@@ -693,9 +693,11 @@ describe("getAIInsightMonitorBlocker", () => {
     );
   });
 
-  test("missing tracing, missing logging and noisy logs are not offered at all; every other kind is", () => {
+  test("missing tracing, missing stack traces, missing logging and noisy logs are not offered at all; every other kind is", () => {
     const notOffered: Array<AIInsightType> = [
       AIInsightType.TraceMissingTracing,
+      // What an exception lacks is not a count either.
+      AIInsightType.ExceptionMissingStackTrace,
       AIInsightType.LogMissingLogging,
       AIInsightType.LogNoisyPattern,
     ];

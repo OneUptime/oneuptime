@@ -83,6 +83,7 @@
     "test-cloud-connect-ui": "playwright test --config playwright.cloud-connect-ui.config.ts",
     "test-profiles-ui": "playwright test --config playwright.profiles-ui.config.ts",
     "test-traces-ai-ui": "playwright test --config playwright.traces-ai-ui.config.ts",
+    "test-exceptions-ai-ui": "playwright test --config playwright.exceptions-ai-ui.config.ts",
     "test-logs-ai-ui": "playwright test --config playwright.logs-ai-ui.config.ts",
     "test-dashboard-templates-ui": "playwright test --config playwright.dashboard-templates-ui.config.ts",
     "test-dashboard-time-range-ui": "playwright test --config playwright.dashboard-time-range-ui.config.ts",

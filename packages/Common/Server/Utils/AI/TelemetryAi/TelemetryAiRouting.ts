@@ -3,6 +3,7 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import InsightTriage, { InsightTriageResult } from "../SRE/Insights/Triage";
+import ExceptionInsightFix from "./ExceptionInsightFix";
 import ProfileInsightFix from "./ProfileInsightFix";
 import { TelemetryAiFixResult } from "./TelemetryAiFix";
 import TraceInsightFix from "./TraceInsightFix";
@@ -44,8 +45,9 @@ import ObjectID from "../../../../Types/ObjectID";
  * the day's share opened) is simply looked at again on the next scan, while
  * the problem is still being found; "ask before fixing" leaves the fix to a
  * person, on the insight. A kind of problem whose fix waits for the
- * investigation's verdict (a failing operation) opens its pull request on
- * its own only once the investigation found the code at fault.
+ * investigation's verdict (a failing operation, a new or rising exception)
+ * opens its pull request on its own only once the investigation found the
+ * code at fault - or, for an exception, an expected error to handle better.
  *
  * Never throws: one problem's failure is logged and the look goes on.
  */
@@ -81,6 +83,12 @@ export const TELEMETRY_AI_FIX_STARTERS: Record<
     work: TelemetryAiWork;
   }): Promise<TelemetryAiFixResult> => {
     return TraceInsightFix.start(data);
+  },
+  [TelemetryAiLane.Exception]: (data: {
+    insight: AIInsight;
+    work: TelemetryAiWork;
+  }): Promise<TelemetryAiFixResult> => {
+    return ExceptionInsightFix.start(data);
   },
   [TelemetryAiLane.Log]: (data: {
     insight: AIInsight;

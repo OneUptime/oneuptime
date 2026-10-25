@@ -55,8 +55,8 @@ import {
   TELEMETRY_AI_PAGES,
   TELEMETRY_AI_TEST_IDS,
   TelemetryAiLaneCopy,
-  getTelemetryAiLogFinding,
-  getTelemetryAiLogFindingRunIds,
+  getTelemetryAiLogVerdict,
+  getTelemetryAiLogVerdictRunIds,
 } from "./TelemetryAiCopy";
 
 /*
@@ -65,13 +65,14 @@ import {
  * data, newest first (Common/Server/API/TelemetryAiAPI): each investigation
  * - an insight's triage - and each pull request it opened on its own or was
  * asked to open from a finding, with how it stands, the finding it was
- * for, who started it, and the Code task and pull request it led to. The
- * newest done investigation of each finding says what it found (its
- * verdict, marked as OneUptime AI's): why the finding got a pull request,
- * or did not.
+ * for, who started it, and the Code task and pull request it led to.
  *
  * A page at a time, with Load more. Only about findings the reader may
- * read; a repository they may not read in Code is not named.
+ * read; a repository they may not read in Code is not named. A lane that
+ * words its investigations' verdicts (investigationVerdicts) says under
+ * each investigation what it found - why the finding got a pull request,
+ * or did not - marked as OneUptime AI's, and once per finding: on its
+ * newest investigation.
  */
 
 export interface ComponentProps {
@@ -116,9 +117,9 @@ export interface TelemetryAiLogRowProps {
   /*
    * Whether the row may say what its investigation found: false for an
    * older investigation of a finding a newer one already speaks for
-   * (getTelemetryAiLogFindingRunIds). Absent, it says it.
+   * (getTelemetryAiLogVerdictRunIds). Absent, it says it.
    */
-  isFindingShown?: boolean | undefined;
+  isVerdictShown?: boolean | undefined;
 }
 
 export const TelemetryAiLogRow: FunctionComponent<TelemetryAiLogRowProps> = (
@@ -129,8 +130,11 @@ export const TelemetryAiLogRow: FunctionComponent<TelemetryAiLogRowProps> = (
   const at: Date = new Date(entry.at);
   const hasDate: boolean = !Number.isNaN(at.getTime());
   const pullRequestUrl: URL | null = getPullRequestUrl(entry.pullRequest?.url);
-  const finding: string | null =
-    props.isFindingShown === false ? null : getTelemetryAiLogFinding(entry);
+  // What an investigation found, when its lane says (Exceptions, Logs).
+  const verdict: string | null =
+    props.isVerdictShown === false
+      ? null
+      : getTelemetryAiLogVerdict(props.lane, entry);
 
   const meta: Array<ReactElement> = [];
 
@@ -233,17 +237,17 @@ export const TelemetryAiLogRow: FunctionComponent<TelemetryAiLogRowProps> = (
          * (the sparkles of the AI tab): the row's result, as a pull
          * request's row ends on its links.
          */}
-        {finding ? (
+        {verdict ? (
           <div
             className="mt-1.5 flex items-start gap-1.5 text-sm text-gray-700 [overflow-wrap:anywhere]"
-            data-testid={TELEMETRY_AI_TEST_IDS.logFinding}
+            data-testid={TELEMETRY_AI_TEST_IDS.logVerdict}
             data-classification={entry.classification}
           >
             <Icon
               icon={IconProp.Sparkles}
               className="mt-0.5 h-4 w-4 flex-shrink-0 text-indigo-500"
             />
-            <p className="min-w-0">{translator.translateText(finding)}</p>
+            <p className="min-w-0">{translator.translateText(verdict)}</p>
           </div>
         ) : (
           <></>
@@ -451,8 +455,11 @@ const TelemetryAiLogsPage: FunctionComponent<ComponentProps> = (
       );
     }
 
-    // Each finding's verdict, said once: on its newest done investigation.
-    const findingRunIds: Set<string> = getTelemetryAiLogFindingRunIds(entries);
+    // Each finding's verdict, said once: on its newest investigation.
+    const verdictRunIds: Set<string> = getTelemetryAiLogVerdictRunIds(
+      props.lane,
+      entries,
+    );
 
     return (
       <div className="space-y-3">
@@ -464,7 +471,7 @@ const TelemetryAiLogsPage: FunctionComponent<ComponentProps> = (
                   key={entry.runId}
                   lane={props.lane}
                   entry={entry}
-                  isFindingShown={findingRunIds.has(entry.runId)}
+                  isVerdictShown={verdictRunIds.has(entry.runId)}
                 />
               );
             })}

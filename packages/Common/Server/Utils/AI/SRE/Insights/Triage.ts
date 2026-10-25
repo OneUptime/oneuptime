@@ -17,6 +17,7 @@ import {
   TelemetryAiLane,
   getTelemetryAiLaneOfInsightType,
 } from "../../../../../Types/AI/TelemetryAi";
+import TelemetryAiRules from "../../TelemetryAi/TelemetryAiRules";
 
 /*
  * Per-insight LLM triage enqueue: a budgeted, read-only Investigation AIRun
@@ -36,7 +37,9 @@ import {
  * - slow code in a service's profiles) is that lane's: its switch is the
  * one that counts, its AI rules decide whether it is investigated (the
  * lane's look, TelemetryAiRouting, calls this only when they do), and the
- * LLM provider those rules pick is the run's.
+ * LLM provider those rules pick is the run's. A kind a lane shares with AI
+ * Insights (new and spiking exceptions) is the lane's only while the lane's
+ * switch is on: while it is off, AI Insights' own switch counts, as always.
  */
 
 export interface InsightTriageResult {
@@ -100,17 +103,18 @@ export default class InsightTriage {
        * Strictly === true — the column defaults to false, so unset/legacy
        * rows never enqueue. A triage run only exists because insights
        * exist, so it shares the insights flag; the fix-tasks flag is a
-       * separate switch.
+       * separate switch. A lane's problem counts its lane's switch - a
+       * kind shared with AI Insights only while that switch is on.
        */
-      const isSwitchOn: boolean = lane
-        ? (project as unknown as Record<string, unknown>)[
-            TELEMETRY_AI_LANES[lane].switchColumn
-          ] === true
+      const workingLane: TelemetryAiLane | null =
+        TelemetryAiRules.getLaneWorkingOn(insight.insightType, project);
+      const isSwitchOn: boolean = workingLane
+        ? TelemetryAiRules.isLaneOn(project, workingLane)
         : project.enableAiInsights === true;
 
       if (!isSwitchOn) {
         logger.debug(
-          `AI insights: not enqueueing triage for insight ${insight.id.toString()} — project has not opted in to ${lane ? `${lane} AI` : "AI insights"}.`,
+          `AI insights: not enqueueing triage for insight ${insight.id.toString()} — project has not opted in to ${workingLane ? `${workingLane} AI` : "AI insights"}.`,
         );
         return {};
       }

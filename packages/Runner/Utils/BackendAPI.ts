@@ -31,6 +31,18 @@ interface ExceptionResponse {
   exceptionType: string;
   fingerprint: string;
   aiClassification?: string | null;
+  // The exception's page in OneUptime (servers from the Exceptions AI on).
+  url?: string | null;
+}
+
+/*
+ * Why the task was started, when a finding started it (see ExceptionDetails):
+ * as the wire has it, so any part may be missing.
+ */
+interface ExceptionStartedByResponse {
+  finding?: string | null | undefined;
+  findingUrl?: string | null | undefined;
+  isStartedByOneUptime?: boolean | null | undefined;
 }
 
 interface ServiceResponse {
@@ -42,6 +54,7 @@ interface ServiceResponse {
 interface ExceptionDetailsResponse {
   exception: ExceptionResponse;
   service: ServiceResponse | null;
+  startedBy?: ExceptionStartedByResponse | null;
   message?: string;
 }
 
@@ -127,12 +140,27 @@ export interface ExceptionDetails {
      * not been triaged. Recipes use it to tune their prompt.
      */
     aiClassification?: string | null;
+    // The exception's page in OneUptime, for the pull request to link.
+    url?: string | null;
   };
   service: {
     id: string;
     name: string;
     description: string;
   } | null;
+  /*
+   * Why the task was started, when a finding started it - a new or rising
+   * exception OneUptime found (Exceptions → AI): the finding's title, its
+   * page, and whether OneUptime started it on its own. Null for a task a
+   * person started on the exception's page, and from older servers.
+   */
+  startedBy?: ExceptionStartedBy | null;
+}
+
+export interface ExceptionStartedBy {
+  finding: string;
+  findingUrl: string;
+  isStartedByOneUptime: boolean;
 }
 
 export interface CodeRepositoryInfo {
@@ -406,9 +434,14 @@ export default class BackendAPI {
     this.baseUrl = URL.fromString(ONEUPTIME_BASE_URL.toString());
   }
 
-  // Get exception details with telemetry service info
+  /*
+   * Get exception details with telemetry service info - and, for the task
+   * this Runner claimed (taskId), why it was started, for its pull request
+   * to say.
+   */
   public async getExceptionDetails(
     exceptionId: string,
+    taskId?: string | undefined,
   ): Promise<ExceptionDetails> {
     const url: URL = URL.fromURL(this.baseUrl).addRoute(
       "/api/ai-agent-data/get-exception-details",
@@ -419,6 +452,7 @@ export default class BackendAPI {
       data: {
         ...RunnerAPIRequest.getDefaultRequestBody(),
         exceptionId: exceptionId,
+        ...(taskId ? { taskId } : {}),
       },
       options: RunnerAPIRequest.getDefaultRequestOptions(),
     });
@@ -446,6 +480,7 @@ export default class BackendAPI {
         exceptionType: data.exception.exceptionType,
         fingerprint: data.exception.fingerprint,
         aiClassification: data.exception.aiClassification || null,
+        url: data.exception.url || null,
       },
       service: data.service
         ? {
@@ -454,6 +489,27 @@ export default class BackendAPI {
             description: data.service.description,
           }
         : null,
+      startedBy: BackendAPI.readExceptionStartedBy(data.startedBy),
+    };
+  }
+
+  // Why the task was started, when the answer says so in full.
+  public static readExceptionStartedBy(
+    value: ExceptionStartedByResponse | null | undefined,
+  ): ExceptionStartedBy | null {
+    if (
+      !value ||
+      typeof value.finding !== "string" ||
+      typeof value.findingUrl !== "string" ||
+      !value.findingUrl
+    ) {
+      return null;
+    }
+
+    return {
+      finding: value.finding,
+      findingUrl: value.findingUrl,
+      isStartedByOneUptime: value.isStartedByOneUptime === true,
     };
   }
 

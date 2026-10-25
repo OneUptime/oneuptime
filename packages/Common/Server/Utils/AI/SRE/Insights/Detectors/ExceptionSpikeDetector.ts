@@ -20,6 +20,8 @@ import {
   EXCEPTION_LABEL_MESSAGE_MAX_LENGTH,
   buildExceptionLabel,
 } from "./ExceptionIdentity";
+import ExceptionOwnCode, { ExceptionOwnCodeReading } from "./ExceptionOwnCode";
+import { buildExceptionSpikeDetail } from "../../../../../../Utils/Exceptions/ExceptionInsight";
 import {
   InsightCandidate,
   InsightDetector,
@@ -34,6 +36,11 @@ import {
  * (group table); the actual rates come from two ClickHouse counts per
  * candidate (fingerprint bloom index + time range — the exception-monitor
  * count idiom). Deterministic — no LLM anywhere in this detector.
+ *
+ * A finding also says where in the application's own code the exception
+ * was raised (ExceptionOwnCode), read for the spiking ones only: the
+ * Exceptions product's AI section opens a pull request on its own only for
+ * an exception raised in your own code (Utils/Exceptions/ExceptionInsight).
  */
 
 // The spike window: occurrences in the last hour, compared to...
@@ -208,7 +215,13 @@ export default class ExceptionSpikeDetector implements InsightDetector {
         props: { isRoot: true },
       });
 
-    const candidates: Array<InsightCandidate> = [];
+    // The spiking exceptions, with what the detail and evidence say.
+    const spikes: Array<{
+      exception: TelemetryException;
+      recentCount: number;
+      priorCount: number;
+      decision: ExceptionSpikeDecision;
+    }> = [];
 
     for (const exception of exceptions) {
       if (!exception.id || !exception.fingerprint) {
@@ -256,6 +269,37 @@ export default class ExceptionSpikeDetector implements InsightDetector {
         continue;
       }
 
+      spikes.push({
+        exception,
+        recentCount: recentCount.toNumber(),
+        priorCount: priorCount.toNumber(),
+        decision,
+      });
+    }
+
+    // Where each one's code is: one read of their stack traces.
+    const ownCode: Map<string, ExceptionOwnCodeReading> =
+      spikes.length > 0
+        ? await ExceptionOwnCode.readMany({
+            projectId: context.projectId,
+            telemetryExceptionIds: spikes.map(
+              (spike: { exception: TelemetryException }): ObjectID => {
+                return spike.exception.id!;
+              },
+            ),
+          })
+        : new Map<string, ExceptionOwnCodeReading>();
+
+    const candidates: Array<InsightCandidate> = [];
+
+    for (const spike of spikes) {
+      const exception: TelemetryException = spike.exception;
+      const decision: ExceptionSpikeDecision = spike.decision;
+
+      if (!exception.id) {
+        continue;
+      }
+
       const serviceName: string | null = await this.resolveServiceName(
         exception.primaryEntityId,
       );
@@ -279,24 +323,8 @@ export default class ExceptionSpikeDetector implements InsightDetector {
         ? exception.firstSeenAt.toISOString()
         : undefined;
 
-      const detailLines: Array<string> = [
-        decision.isDormantAwakening
-          ? "**Dormant exception woke up**"
-          : "**Exception spike detected**",
-        "",
-        `- Exception: \`${label}\``,
-      ];
-      if (safeMessage) {
-        detailLines.push(`- Message: ${safeMessage}`);
-      }
-      if (serviceName) {
-        detailLines.push(`- Service: ${serviceName}`);
-      }
-      detailLines.push(
-        `- Occurrences in the last ${EXCEPTION_SPIKE_RECENT_WINDOW_HOURS}h: ${recentCount.toNumber()}`,
-        `- Baseline: ${decision.baselineHourlyAverage.toFixed(2)}/hour over the prior ${EXCEPTION_SPIKE_BASELINE_WINDOW_HOURS}h (${priorCount.toNumber()} total)`,
-        `- Spike multiplier: ${decision.multiplier.toFixed(1)}x`,
-        `- Exception first seen: ${firstSeenAtIso || "unknown"} (lifetime occurrences: ${exception.occuranceCount || 0})`,
+      const code: ExceptionOwnCodeReading | undefined = ownCode.get(
+        exception.id.toString(),
       );
 
       candidates.push({
@@ -305,7 +333,22 @@ export default class ExceptionSpikeDetector implements InsightDetector {
           exception.id.toString(),
         ),
         title: `Exception spike: ${label} at ${decision.multiplier.toFixed(1)}x normal rate${serviceName ? ` in ${serviceName}` : ""}`,
-        detailMarkdown: detailLines.join("\n"),
+        detailMarkdown: buildExceptionSpikeDetail({
+          label,
+          message: safeMessage,
+          serviceName,
+          isDormantAwakening: decision.isDormantAwakening,
+          recentWindowHours: EXCEPTION_SPIKE_RECENT_WINDOW_HOURS,
+          recentOccurrenceCount: spike.recentCount,
+          baselineWindowHours: EXCEPTION_SPIKE_BASELINE_WINDOW_HOURS,
+          baselineHourlyAverage: decision.baselineHourlyAverage,
+          priorWindowCount: spike.priorCount,
+          multiplier: decision.multiplier,
+          firstSeenAt: firstSeenAtIso,
+          totalOccurrenceCount: exception.occuranceCount || 0,
+          stackFrameCount: code?.stackFrameCount,
+          ownCodeFrames: code?.ownCodeFrames,
+        }),
         severity: decision.severity,
         serviceName: serviceName || undefined,
         telemetryServiceId: serviceName ? exception.primaryEntityId : undefined,
@@ -314,11 +357,20 @@ export default class ExceptionSpikeDetector implements InsightDetector {
           exception: {
             exceptionMessage: safeMessage,
             exceptionType: exception.exceptionType,
-            recentOccurrenceCount: recentCount.toNumber(),
+            recentOccurrenceCount: spike.recentCount,
             baselineHourlyAverage: decision.baselineHourlyAverage,
             spikeMultiplier: decision.multiplier,
             totalOccurrenceCount: exception.occuranceCount,
             firstSeenAt: firstSeenAtIso,
+            ...(serviceName && exception.primaryEntityId
+              ? { serviceId: exception.primaryEntityId.toString() }
+              : {}),
+            ...(code
+              ? {
+                  stackFrameCount: code.stackFrameCount,
+                  ownCodeFrames: code.ownCodeFrames,
+                }
+              : {}),
           },
         },
       });

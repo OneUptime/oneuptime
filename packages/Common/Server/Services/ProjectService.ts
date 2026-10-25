@@ -235,7 +235,8 @@ export const MAX_BALANCE_ADJUSTMENT_IN_USD_CENTS: number = 10_000 * 100;
  * turned on by default" - the maintainer (Types/AI/TelemetryAi). So does
  * finding and fixing slow and failing operations in traces
  * (enableAutomaticTraceRemediation, Traces → AI → Settings), for the same
- * reason.
+ * reason, and finding and fixing new and rising exceptions
+ * (enableAutomaticExceptionRemediation, Exceptions → AI → Settings).
  */
 export type NewProjectAiDefaultColumn =
   | "enableAutomaticIncidentInvestigation"
@@ -246,6 +247,7 @@ export type NewProjectAiDefaultColumn =
   | "enableInsightFixTasks"
   | "enableAutomaticProfileRemediation"
   | "enableAutomaticTraceRemediation"
+  | "enableAutomaticExceptionRemediation"
   | "enableAutomaticLogRemediation"
   | "autoArchiveNonActionableExceptions";
 
@@ -259,6 +261,7 @@ export const NEW_PROJECT_AI_DEFAULT_COLUMNS: ReadonlyArray<NewProjectAiDefaultCo
     "enableInsightFixTasks",
     "enableAutomaticProfileRemediation",
     "enableAutomaticTraceRemediation",
+    "enableAutomaticExceptionRemediation",
     "enableAutomaticLogRemediation",
     "autoArchiveNonActionableExceptions",
   ];

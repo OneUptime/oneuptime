@@ -7,6 +7,7 @@ Le suivi des exceptions recueille les erreurs que votre code lève et regroupe c
 - [Trier la liste](#trier-la-liste): Le non résolu d'abord, le bruit masqué.
 - [La page d'une exception](#la-page-dune-exception): Stack trace, occurrences et contexte.
 - [La corriger avec l'IA](#la-corriger-avec-lia): Une pull request avec le correctif, ou un test de régression.
+- [Trouver et corriger les exceptions nouvelles ou en hausse avec l'IA](#trouver-et-corriger-les-exceptions-nouvelles-ou-en-hausse-avec-lia): Des pull requests pour les exceptions qu'OneUptime trouve.
 :::
 
 ## D'où viennent les exceptions
@@ -116,6 +117,44 @@ La page **Assistance IA** propose trois tâches. Chacune s'exécute comme une t�
 | **Améliorer la gestion des erreurs** | Pour les erreurs attendues : valide les saisies plus tôt, garde les données utilisateur hors des messages et marque l'erreur comme gérée. |
 
 L'IA a d'abord besoin de trois choses : un fournisseur LLM, un dépôt connecté (sur GitHub, GitLab, Forgejo ou Gitea, ou tout serveur Git), et un agent IA en ligne pour exécuter la tâche. La page vérifie chacune et renvoie vers ce qui manque. Les tâches sont en pause tant que l'exception est résolue ou archivée. Voir [Code](/docs/ai/ai-agent).
+
+## Trouver et corriger les exceptions nouvelles ou en hausse avec l'IA
+
+Toutes les 15 minutes, OneUptime parcourt vos exceptions à la recherche des nouvelles, de celles qui se produisent soudain bien plus souvent et des services dont les exceptions n'ont aucune stack trace, et enregistre ce qu'il trouve comme analyses IA, avec les preuves. OneUptime AI examine ensuite chacune d'elles et ouvre une pull request pour celles qu'il peut corriger. Rien n'est jamais fusionné : votre équipe relit chaque pull request.
+
+| Constat | Quand OneUptime l'enregistre | La pull request |
+| --- | --- | --- |
+| **New Exception** | Une exception vue pour la première fois au cours des dernières 24 heures et qui s'est déjà produite 3 fois ou plus. | Corrige l'exception, ou la gère mieux. |
+| **Exception Spike** | Une exception qui s'est produite 10 fois ou plus au cours de la dernière heure, à 5 fois ou plus son rythme horaire des 24 heures précédentes. | Corrige l'exception, ou la gère mieux. |
+| **Stack trace manquante** | Les exceptions qu'un service a enregistrées le dernier jour n'ont aucune stack trace et se sont produites, ensemble, 20 fois ou plus. | Fait enregistrer au service une stack trace avec chaque exception. |
+
+La pull request d'une exception nouvelle ou en hausse est la tâche IA propre à l'exception, celle que lance sa page **Assistance IA**, et elle attend qu'OneUptime AI ait examiné le constat. S'il trouve le code en cause (`code-fault`), la pull request le corrige, comme le fait **Corriger cette exception avec l'IA**. S'il trouve une erreur attendue (`user-error` ou `expected-denial`), la pull request gère mieux l'erreur, comme le fait **Améliorer la gestion des erreurs**. Tout autre verdict n'ouvre aucune pull request de lui-même. Avec **Archiver les exceptions attendues** activé, un refus attendu est archivé à la place et n'obtient aucune pull request.
+
+OneUptime AI n'en ouvre une de lui-même que pour une exception levée dans votre propre code : une exception dont la stack trace contient un frame de votre code, et pas seulement des frames de bibliothèques ou de l'environnement d'exécution. Une pull request que quelqu'un a fermée sans la fusionner met en pause les pull requests automatiques pour cette exception. Chacun peut toujours demander n'importe laquelle d'entre elles avec **Corriger avec l'IA** sur le constat.
+
+### L'activer
+
+**Exceptions → IA → Paramètres** contient l'interrupteur **Trouver et corriger les exceptions nouvelles ou en hausse**, activé pour les nouveaux projets. Tant qu'il est désactivé, les exceptions nouvelles ou en hausse restent l'affaire des analyses IA, comme avant : voir [AI SRE](/docs/ai/ai-sre#analyses-détection-proactive). Avec **Activer l'IA** désactivé, elles sont toujours trouvées, mais OneUptime AI n'en fait rien. Pour ouvrir des pull requests, OneUptime AI a besoin d'un dépôt connecté dans [Code](/docs/ai/ai-agent) : la page indique d'abord ce qui manque. Le code de chaque dépôt est modifié sur le Runner que le dépôt choisit dans Code.
+
+OneUptime AI ouvre de lui-même au plus 5 pull requests par jour (UTC), une par constat, et jamais plus que la limite de pull requests IA ouvertes d'un dépôt.
+
+### Règles IA
+
+Sans règle, OneUptime AI examine immédiatement chaque exception qu'il trouve et ouvre une pull request pour chacune de celles qu'il peut corriger. Les **Règles IA** sous **Plus de paramètres** restreignent cela, en trois étapes :
+
+| Étape | Ce qu'elle décide |
+| --- | --- |
+| **Correspondance** | Quels services : ceux choisis, ceux qui portent certaines étiquettes, ou ceux dont le nom correspond à un motif. |
+| **Investiguer** | **Immédiatement**, ou **Seulement s'il est encore trouvé après une attente** : une exception qui disparaît pendant l'attente n'est pas examinée. |
+| **Correction** | **Ne pas corriger**, **Demander avant de corriger** ou **Corriger sans demander**. Demander d'abord laisse la pull request à une personne : le constat propose **Corriger avec l'IA**. |
+
+Sous **Plus de champs**, une règle choisit les dépôts de code, les serveurs MCP et le fournisseur de LLM qu'OneUptime AI peut utiliser pour elle. Si rien n'est choisi, il peut tous les utiliser, ainsi que le fournisseur de LLM par défaut du projet.
+
+### Voir ce qu'il a fait
+
+- **Exceptions → IA → Analyses** liste ce qu'OneUptime a trouvé, chaque constat avec ses preuves, dont les frames de votre code dans sa stack trace. **View Exception Group** ouvre l'exception, et pour les stack traces manquantes d'un service, **Ouvrir dans Exceptions** ouvre ses exceptions non résolues du dernier jour.
+- **Exceptions → IA → Journaux** liste chaque investigation et chaque pull request, de la plus récente à la plus ancienne, avec l'état de chacune et ce que chaque investigation a trouvé.
+- La pull request explique pourquoi elle a été ouverte, avec un lien vers son constat. Celle d'une exception nouvelle ou en hausse renvoie aussi vers l'exception et apparaît sur sa page **Assistance IA**. Dans Code, sa tâche nomme l'exception qu'elle corrige, ou le constat d'où elle vient.
 
 ## Analyses des exceptions
 

@@ -717,6 +717,78 @@ describe("buildInsightInvestigationLink — tilde-bearing content", () => {
 });
 
 /*
+ * A service's exceptions with no stack trace (ExceptionMissingStackTrace,
+ * Exceptions' AI section): its unresolved exceptions over the day the
+ * finding read - what the finding counted.
+ */
+describe("buildInsightInvestigationLink — ExceptionMissingStackTrace", () => {
+  test("opens the service's unresolved exceptions over the day the finding read", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.ExceptionMissingStackTrace,
+          serviceId: SERVICE_ID,
+          serviceName: "checkout",
+        }),
+      );
+
+    expect(link).not.toBeNull();
+    expect(link!.target).toBe("exceptions");
+    expect(link!.label).toBe("Open in Exceptions");
+    expect(link!.dropped).toEqual([]);
+    expect(pathOf(link!.route)).toBe(
+      "/dashboard/:projectId/exceptions/unresolved",
+    );
+
+    const query: URLSearchParams = queryOf(link!.route);
+
+    expect(JSON.parse(query.get("filters")!)).toEqual([
+      ["primaryEntityId", SERVICE_ID],
+    ]);
+    expect(query.get("range")).toBe(TimeRange.CUSTOM);
+    expect(query.get("start")).toBe("2026-08-13T10:00:00.000Z");
+    expect(query.get("end")).toBe("2026-08-14T10:00:00.000Z");
+    // The unresolved ones: what the finding counted.
+    expect(query.get("status")).toBeNull();
+  });
+
+  test("a service name that never resolved to an id is reported dropped", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.ExceptionMissingStackTrace,
+          serviceName: "checkout",
+        }),
+      );
+
+    expect(queryOf(link!.route).get("filters")).toBeNull();
+    expect(link!.dropped).toEqual(["serviceIds"]);
+  });
+
+  test("with no window anchor the list link still builds, with no range", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink({
+        insightType: AIInsightType.ExceptionMissingStackTrace,
+        serviceId: SERVICE_ID,
+      });
+
+    expect(link).not.toBeNull();
+    expect(queryOf(link!.route).get("range")).toBeNull();
+  });
+
+  test("its window is a day back from when the finding was last seen", () => {
+    const window: InsightDetectionWindow | null =
+      Links.getInsightDetectionWindow({
+        insightType: AIInsightType.ExceptionMissingStackTrace,
+        lastSeenAt: LAST_SEEN,
+      });
+
+    expect(window!.startTime.toISOString()).toBe("2026-08-13T10:00:00.000Z");
+    expect(window!.endTime.toISOString()).toBe(LAST_SEEN.toISOString());
+  });
+});
+
+/*
  * Slow code a service's profiles show (ProfileHotspot): the Profiler on the
  * function, in the window it was found in.
  */
@@ -1245,6 +1317,20 @@ describe("buildInsightInvestigationLink — URL-hostile character sweep", () => 
             expect(link!.label).toBe("Open in Profiler");
             expect(link!.target).toBe("profiles");
             expect(query.get("serviceId")).toBeNull();
+            expect(link!.dropped).toEqual(["serviceIds"]);
+            break;
+          }
+
+          case AIInsightType.ExceptionMissingStackTrace: {
+            /*
+             * A service's exceptions with no stack trace: the list scoped
+             * by the service's id, which a name never becomes - a name
+             * with no id is reported dropped, not compiled into a dead
+             * filter.
+             */
+            expect(link!.label).toBe("Open in Exceptions");
+            expect(link!.target).toBe("exceptions");
+            expect(query.get("filters")).toBeNull();
             expect(link!.dropped).toEqual(["serviceIds"]);
             break;
           }

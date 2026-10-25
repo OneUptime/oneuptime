@@ -80,6 +80,11 @@ import RouteMap, { RouteUtil } from "./RouteMap";
  *   TraceMissingTracing -> no Create Monitor at all (isAIInsightMonitorOffered):
  *                     what a trace lacks is not a count a monitor can watch,
  *                     so no button that could never be pressed is drawn.
+ *   ExceptionMissingStackTrace -> no Create Monitor either, for the same
+ *                     reason: an exception without a stack trace is still
+ *                     an exception, watched by an Exceptions monitor on
+ *                     the exceptions themselves; what it lacks is not a
+ *                     count.
  *   LogErrorPattern -> Logs monitor: the service's Error and Fatal lines
  *                     whose body holds the message's own words (the search
  *                     words the detector found as written in a line), in
@@ -494,14 +499,16 @@ export const AI_INSIGHT_TYPES_NOT_MONITORED: ReadonlyArray<AIInsightType> = [
 
 /*
  * Whether Create Monitor is offered on this kind of insight at all. Missing
- * tracing is not: what a trace lacks is not a count a monitor can watch, so
- * a greyed-out button that could never be pressed would only be clutter.
+ * tracing and missing stack traces are not: what a trace or an exception
+ * lacks is not a count a monitor can watch, so a greyed-out button that
+ * could never be pressed would only be clutter.
  */
 export function isAIInsightMonitorOffered(
   insightType: string | undefined,
 ): boolean {
   return (
     insightType !== AIInsightType.TraceMissingTracing &&
+    insightType !== AIInsightType.ExceptionMissingStackTrace &&
     !(AI_INSIGHT_TYPES_NOT_MONITORED as ReadonlyArray<string>).includes(
       insightType || "",
     )

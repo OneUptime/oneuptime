@@ -75,6 +75,15 @@ enum AIInsightType {
    */
   TraceMissingTracing = "TraceMissingTracing",
   /*
+   * Exceptions without a stack trace: a service whose exceptions over the
+   * last day were recorded with no stack trace at all, so nobody - and no
+   * AI - can tell which of its code raised them (Utils/Exceptions/
+   * ExceptionInsight's gates). Filed for the Exceptions product's AI
+   * section (Types/AI/TelemetryAi), whose pull request makes the service
+   * record a stack trace with each exception.
+   */
+  ExceptionMissingStackTrace = "ExceptionMissingStackTrace",
+  /*
    * An error log: one message a service logged again and again at Error or
    * Fatal severity over the last hour (Utils/Logs/LogInsight's gates) that
    * carries no exception - an error that does is the Exceptions product's.
