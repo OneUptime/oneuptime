@@ -159,6 +159,43 @@ export function getApprovalTargets(run: {
   };
 }
 
+/*
+ * A run in one line, for a list of runs that shows each run's steps only on
+ * request: how far it got, and the step it stopped at when one failed or was
+ * turned down.
+ */
+export interface RunStepsSummary {
+  total: number;
+  // Steps that are done: succeeded, or skipped because their condition did not hold.
+  done: number;
+  // The first step that failed or was rejected, which ended the run.
+  stoppedAt: RunStepRow | undefined;
+}
+
+const DONE_STEP_STATUSES: ReadonlyArray<string> = [
+  SecurityPlaybookStepStatus.Succeeded,
+  SecurityPlaybookStepStatus.Skipped,
+];
+
+const STOPPING_STEP_STATUSES: ReadonlyArray<string> = [
+  SecurityPlaybookStepStatus.Failed,
+  SecurityPlaybookStepStatus.Rejected,
+];
+
+export function summarizeRunSteps(
+  rows: ReadonlyArray<RunStepRow>,
+): RunStepsSummary {
+  return {
+    total: rows.length,
+    done: rows.filter((row: RunStepRow): boolean => {
+      return DONE_STEP_STATUSES.includes(row.result?.status || "");
+    }).length,
+    stoppedAt: rows.find((row: RunStepRow): boolean => {
+      return STOPPING_STEP_STATUSES.includes(row.result?.status || "");
+    }),
+  };
+}
+
 // Whether this person started the run: they cannot approve its steps.
 export function didStartRun(
   triggeredByUserId: ObjectID | undefined | null,

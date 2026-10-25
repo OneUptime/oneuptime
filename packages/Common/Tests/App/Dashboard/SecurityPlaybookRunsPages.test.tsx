@@ -226,6 +226,26 @@ describe("the two runs pages", () => {
   });
 });
 
+describe("a run on the runs pages", () => {
+  test.each(["waiting", "all"])(
+    "%s: a finished run is its header and a line, its steps a click away",
+    async (key: string) => {
+      listedRuns = [finishedRun()];
+
+      await renderRuns(key as SecurityPlaybookRunViewKey);
+
+      await screen.findByTestId("security-playbook-run-card");
+
+      expect(
+        screen.getByTestId("security-playbook-run-steps-toggle"),
+      ).toHaveAttribute("aria-expanded", "false");
+      expect(
+        screen.getByTestId("security-playbook-run-summary"),
+      ).toBeInTheDocument();
+    },
+  );
+});
+
 describe("what an empty runs page says", () => {
   test.each(["waiting", "all"])(
     "%s: the empty state says what the page is for, and the card does not say it a second time",

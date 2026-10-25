@@ -54,6 +54,7 @@ import {
 } from "../../Components/SecurityEvents/ThreatIntelIndicatorCells";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -119,6 +120,12 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
    */
   const [feedsVersion, setFeedsVersion] = useState<number>(0);
 
+  /*
+   * How many feeds the project has, as the table first reads them: the
+   * how-it-works card opens by itself only while there is none.
+   */
+  const [feedCount, setFeedCount] = useState<number | null>(null);
+
   const translator: Translator = useTranslator();
 
   const onFeedsChanged: () => void = (): void => {
@@ -162,7 +169,10 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
      * the table under it sit flush against each other.
      */
     <div className="space-y-6">
-      <SecurityEventsHowItWorksCard guide={ThreatIntelGuide} />
+      <SecurityEventsHowItWorksCard
+        guide={ThreatIntelGuide}
+        listItemCount={feedCount}
+      />
 
       <ThreatIntelRecommendedLists
         refreshToggle={String(feedsVersion)}
@@ -198,6 +208,12 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
         emptyState={{
           description:
             "Add a free list above in one click, or create a feed that reads your own list, a TAXII collection or Google SecOps.",
+        }}
+        onFetchSuccess={(_feeds: Array<ThreatIntelFeed>, total: number) => {
+          // The first read decides the card; a search or filter after it does not.
+          setFeedCount((count: number | null): number => {
+            return count === null ? total : count;
+          });
         }}
         refreshToggle={String(feedsVersion)}
         onCreateSuccess={async (item: ThreatIntelFeed) => {
@@ -653,6 +669,8 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             title: "Create Monitor",
             buttonStyleType: ButtonStyleType.NORMAL,
             icon: IconProp.AltGlobe,
+            // In the row's menu, as on Detection Rules: set up once, not what a feed's row is for.
+            placement: ActionButtonPlacement.MoreMenu,
             disabled: !monitorCreateGate.isAllowed,
             tooltip: monitorCreateGate.isAllowed
               ? "Create a Security Events monitor watching this feed's Threat Intel findings — alert on rate, not just occurrence."
@@ -683,6 +701,12 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             title: "Update Credentials",
             buttonStyleType: ButtonStyleType.OUTLINE,
             icon: IconProp.Key,
+            /*
+             * In the row's menu: a token is rotated now and then, and as a
+             * TAXII feed's one button it put Edit in the menu on that row
+             * alone.
+             */
+            placement: ActionButtonPlacement.MoreMenu,
             // Only a TAXII feed signs in: a list is public, Google SecOps signs in with its connection.
             isVisible: (item: ThreatIntelFeed): boolean => {
               return (
