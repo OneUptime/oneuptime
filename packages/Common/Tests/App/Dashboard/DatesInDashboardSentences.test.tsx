@@ -26,6 +26,7 @@ import {
   forgetRememberedDateTexts,
   getEnglishOf,
   setDateDisplayLanguage,
+  withDateDisplayLanguage,
 } from "../../../Types/DateLanguage";
 import Timezone from "../../../Types/Timezone";
 import TranslatedSentence from "../../../UI/Components/TranslatedSentence/TranslatedSentence";
@@ -250,22 +251,50 @@ describe("LoadedAtTime", () => {
     expect(drawn).toMatch(/^\d{1,2}\. /);
   });
 
-  test("in the failed-refresh sentence German has not worded, in English", () => {
+  test("in the failed-refresh sentence, worded in German, in German", () => {
+    const sentence: string =
+      "Couldn't refresh. Showing what loaded at {{time}}. {{error}}";
+    const german: string = (germanLocale as Record<string, string>)[sentence]!;
+
+    expect(german).not.toBe(sentence);
+
+    const drawn: string = text(
+      inLanguage(
+        "de",
+        <TranslatedSentence
+          template={sentence}
+          values={{ error: "Timeout." }}
+          slots={{ time: <LoadedAtTime loadedAt={yesterday} /> }}
+        />,
+      ),
+    );
+    const germanTime: string = withDateDisplayLanguage("de", (): string => {
+      return OneUptimeDate.getDateAsLocalShortDateTimeString(yesterday);
+    }).replace(/\s/g, " ");
+
+    expect(drawn).toBe(
+      german.replace("{{time}}", germanTime).replace("{{error}}", "Timeout."),
+    );
+  });
+
+  test("in a sentence German has not worded, in English, its time too", () => {
     const english: string =
       OneUptimeDate.getDateAsLocalShortDateTimeString(yesterday);
+    // No locale has this sentence.
+    const sentence: string = "Still showing what loaded at {{time}}.";
 
+    expect((germanLocale as Record<string, unknown>)[sentence]).toBeUndefined();
     expect(
       text(
         inLanguage(
           "de",
           <TranslatedSentence
-            template="Couldn't refresh. Showing what loaded at {{time}}. {{error}}"
-            values={{ error: "Timeout." }}
+            template={sentence}
             slots={{ time: <LoadedAtTime loadedAt={yesterday} /> }}
           />,
         ),
       ),
-    ).toBe(`Couldn't refresh. Showing what loaded at ${english}. Timeout.`);
+    ).toBe(`Still showing what loaded at ${english.replace(/\s/g, " ")}.`);
   });
 });
 

@@ -982,6 +982,81 @@ const SAME_AS_ENGLISH: Record<string, ReadonlyArray<string>> = {
   "{{count}} minutes_one": ["fr"],
 };
 
+/*
+ * Labels the translated docs quote as each language's Dashboard draws them
+ * (Tests/FeatureSet/Docs/*DocsTranslations): "Up" and "Down" name an
+ * interface's state on the network pages too, "Manual" the monitor type.
+ * Where a language still draws one in English, its docs pages quote the
+ * English, so the label is translated together with those pages, not here.
+ */
+const QUOTED_BY_THE_DOCS: Record<string, ReadonlyArray<string>> = {
+  Down: [
+    "it",
+    "pt",
+    "da",
+    "no",
+    "sv",
+    "ru",
+    "ko",
+    "zh-CN",
+    "zh-TW",
+    "hi",
+    "fa",
+  ],
+  Manual: [
+    "it",
+    "nl",
+    "da",
+    "no",
+    "sv",
+    "ru",
+    "ko",
+    "zh-CN",
+    "zh-TW",
+    "hi",
+    "fa",
+  ],
+  "Not evaluated yet": [
+    "it",
+    "pt",
+    "nl",
+    "da",
+    "no",
+    "sv",
+    "ru",
+    "ko",
+    "zh-CN",
+    "zh-TW",
+    "hi",
+    "fa",
+  ],
+  Up: [
+    "de",
+    "fr",
+    "it",
+    "pt",
+    "da",
+    "no",
+    "sv",
+    "ru",
+    "ko",
+    "zh-CN",
+    "zh-TW",
+    "hi",
+    "fa",
+  ],
+};
+
+const isLeftInEnglish: (key: string, language: string) => boolean = (
+  key: string,
+  language: string,
+): boolean => {
+  return (
+    (SAME_AS_ENGLISH[key] || []).includes(language) ||
+    (QUOTED_BY_THE_DOCS[key] || []).includes(language)
+  );
+};
+
 beforeEach(() => {
   forgetRememberedDateTexts();
 });
@@ -1054,10 +1129,7 @@ describe("the monitor overview in every locale", () => {
       for (const language of LANGUAGES) {
         const value: unknown = readLocale(language)[key];
 
-        if (
-          value === ENGLISH_LOCALE[key] &&
-          !(SAME_AS_ENGLISH[key] || []).includes(language)
-        ) {
+        if (value === ENGLISH_LOCALE[key] && !isLeftInEnglish(key, language)) {
           untranslated.push(`${language}: ${key}`);
         }
       }
@@ -1114,7 +1186,8 @@ describe("the monitor overview in German", () => {
     expect(presentation.pulse.cadenceText).toBe("Alle 5 Minuten");
     expect(factOf(presentation, "latest-result")).toMatchObject({
       label: "Letztes Ergebnis",
-      value: "Verfügbar · 120 ms · HTTP 200",
+      // "Up" is drawn as the German network pages and docs draw it.
+      value: "Up · 120 ms · HTTP 200",
       secondary: "von London",
     });
     expect(factOf(presentation, "probes")).toMatchObject({

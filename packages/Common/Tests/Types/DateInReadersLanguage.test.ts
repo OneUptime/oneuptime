@@ -222,7 +222,7 @@ const JAPANESE: Record<string, string> = {
 
 describe("English, as it always read", () => {
   test.each(
-    READINGS.map((reading: Reading) => {
+    READINGS.map((reading: Reading): [string, Reading] => {
       return [reading.name, reading];
     }),
   )("%s", (name: string, reading: Reading) => {
@@ -244,7 +244,7 @@ describe("English, as it always read", () => {
 
 describe("German", () => {
   test.each(
-    READINGS.map((reading: Reading) => {
+    READINGS.map((reading: Reading): [string, Reading] => {
       return [reading.name, reading];
     }),
   )("%s", (name: string, reading: Reading) => {
@@ -303,7 +303,7 @@ describe("Japanese, Persian and the other languages", () => {
   test.each(
     READINGS.filter((reading: Reading) => {
       return JAPANESE[reading.name] !== undefined;
-    }).map((reading: Reading) => {
+    }).map((reading: Reading): [string, Reading] => {
       return [reading.name, reading];
     }),
   )("Japanese: %s", (name: string, reading: Reading) => {

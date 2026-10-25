@@ -390,4 +390,10 @@ translated the same locale. Take either side, then run
 - The monitor metric charts' own titles, units and descriptions
   (`MonitorMetricTypeUtil.getTitleByMonitorMetricType` and its siblings) are
   not keys yet; the metric groups' titles and descriptions are.
+- "Up", "Down", "Manual", "Not evaluated yet", "Interfaces" and "Security
+  Events" are still English in some languages, the monitor overview's
+  verdicts among them. The translated docs quote each label as that
+  language's Dashboard draws it, and the `*DocsTranslations` suites in
+  `App/Tests/FeatureSet/Docs` hold the two together, so a label is translated
+  in the same change as the docs pages that quote it.
 - `ee/Dashboard` and documentation markdown are not scanned.
