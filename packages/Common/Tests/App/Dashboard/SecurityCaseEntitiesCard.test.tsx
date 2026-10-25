@@ -61,6 +61,7 @@ import SecurityCaseEntitiesCard, {
   ENTITY_ACTIVITY_HOURS,
   SECURITY_CASE_ENTITIES_TEST_IDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseEntitiesCard";
+import { SECURITY_ENTITY_CHIP_WRAPPED_VALUE_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityEntityChips";
 import OneUptimeDate from "../../../Types/Date";
 import {
   SecurityEntity,
@@ -89,10 +90,19 @@ function rows(): Array<HTMLElement> {
   return screen.getAllByTestId(SECURITY_CASE_ENTITIES_TEST_IDS.row);
 }
 
+// What each cell of the wide table reads: without what only the narrow one draws.
 function cellsOf(row: HTMLElement): Array<string> {
   return Array.from(row.querySelectorAll("td")).map(
     (cell: HTMLTableCellElement): string => {
-      return (cell.textContent || "").trim();
+      const copy: HTMLElement = cell.cloneNode(true) as HTMLElement;
+
+      copy
+        .querySelectorAll(`[class*="${ENTITIES_TABLE_NARROW_ONLY_CLASS_NAME}"]`)
+        .forEach((narrowOnly: Element): void => {
+          narrowOnly.remove();
+        });
+
+      return (copy.textContent || "").trim();
     },
   );
 }
@@ -276,7 +286,7 @@ describe("the case's entities", () => {
 });
 
 describe("on a narrow page", () => {
-  test("the Type, Findings and Last Seen columns step out, and the type and when go under the value", async () => {
+  test("two columns are left: the type and when go under the value, the worst severity under the count", async () => {
     draw();
 
     await waitFor(() => {
@@ -286,8 +296,9 @@ describe("on a narrow page", () => {
     const table: HTMLElement = screen.getByTestId(
       SECURITY_CASE_ENTITIES_TEST_IDS.table,
     );
-    const wideOnly: Array<string> = within(table)
-      .getAllByRole("columnheader")
+    const headers: Array<HTMLElement> =
+      within(table).getAllByRole("columnheader");
+    const wideOnly: Array<string> = headers
       .filter((header: HTMLElement): boolean => {
         return header.className.includes(ENTITIES_TABLE_WIDE_ONLY_CLASS_NAME);
       })
@@ -295,7 +306,24 @@ describe("on a narrow page", () => {
         return (header.textContent || "").trim();
       });
 
-    expect(wideOnly).toEqual(["Type", "Findings", "Last Seen"]);
+    expect(wideOnly).toEqual([
+      "Type",
+      "Findings",
+      "Worst Severity",
+      "Last Seen",
+    ]);
+    // What a phone keeps: the entity and its count.
+    expect(
+      headers
+        .filter((header: HTMLElement): boolean => {
+          return !header.className.includes(
+            ENTITIES_TABLE_WIDE_ONLY_CLASS_NAME,
+          );
+        })
+        .map((header: HTMLElement): string => {
+          return (header.textContent || "").trim();
+        }),
+    ).toEqual(["Entity", "Events"]);
 
     const underTheValue: Element | null = rows()[0]!.querySelector(
       `td:first-child div[class*="${ENTITIES_TABLE_NARROW_ONLY_CLASS_NAME}"]`,
@@ -304,6 +332,42 @@ describe("on a narrow page", () => {
     expect(underTheValue?.textContent).toBe(
       `IP Address · last seen ${OneUptimeDate.fromNow(IP_LAST_SEEN)}`,
     );
+
+    // The worst severity under the count, the column's own cell left out.
+    const underTheCount: HTMLElement = within(rows()[0]!).getByTestId(
+      SECURITY_CASE_ENTITIES_TEST_IDS.severityUnderCount,
+    );
+
+    expect(underTheCount).toHaveTextContent("High");
+    expect(underTheCount.className).toContain(
+      ENTITIES_TABLE_NARROW_ONLY_CLASS_NAME,
+    );
+    expect(underTheCount.closest("td")).toBe(
+      within(rows()[0]!)
+        .getByTestId(SECURITY_CASE_ENTITIES_TEST_IDS.events)
+        .closest("td"),
+    );
+    expect(
+      within(rows()[0]!).getByTestId(SECURITY_CASE_ENTITIES_TEST_IDS.severity)
+        .className,
+    ).toContain(ENTITIES_TABLE_WIDE_ONLY_CLASS_NAME);
+    // An entity with no finding has no severity to put there.
+    expect(
+      within(rows()[2]!).queryByTestId(
+        SECURITY_CASE_ENTITIES_TEST_IDS.severityUnderCount,
+      ),
+    ).toBeNull();
+  });
+
+  test("a long value wraps rather than cut short, so the count keeps its room", () => {
+    draw();
+
+    const value: HTMLElement = within(rows()[1]!).getByText(
+      "k.morgan@acme-commerce.example",
+    );
+
+    expect(value.className).toBe(SECURITY_ENTITY_CHIP_WRAPPED_VALUE_CLASS_NAME);
+    expect(value.className).not.toContain("truncate");
   });
 
   test("the table is a size container keyed to its own width, not the window's", () => {
@@ -314,8 +378,9 @@ describe("on a narrow page", () => {
       .closest("[class*='[container-type:inline-size]']");
 
     expect(container).not.toBeNull();
+    // Shown by default and hidden below the width: never a bare `hidden`.
     expect(ENTITIES_TABLE_WIDE_ONLY_CLASS_NAME).toBe(
-      "hidden [@container(min-width:40rem)]:table-cell",
+      "[@container(max-width:39.99rem)]:hidden",
     );
     expect(ENTITIES_TABLE_NARROW_ONLY_CLASS_NAME).toBe(
       "[@container(min-width:40rem)]:hidden",

@@ -140,9 +140,15 @@ describe("the header is laid out by its own width", () => {
   });
 
   test("on a phone a button leaves its icon out, so two share a row; from the phone width it has it", () => {
+    /*
+     * Shown by default, hidden below the phone width: never a bare `hidden`
+     * a variant shows again, which a page's foreign `.hidden` rule would keep
+     * hidden at every width. Just under the phone width, so the two meet.
+     */
+    expect(SECURITY_CASE_HEADER_PHONE_WIDTH).toBe("36rem");
     expect(classesOf(SECURITY_CASE_HEADER_BUTTON_ICON_CLASS_NAME)).toEqual([
-      "hidden",
-      `${PHONE_WIDTH_VARIANT}inline-flex`,
+      "inline-flex",
+      "[@container(max-width:35.99rem)]:hidden",
     ]);
   });
 

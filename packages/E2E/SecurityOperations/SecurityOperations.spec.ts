@@ -2165,7 +2165,11 @@ test.describe("a case", () => {
       })
       .toBe(`${PRODUCT}/correlate`);
 
-    // On a phone: the type and when under the value, three columns left.
+    /*
+     * On a phone: two columns, the type and when under the value and the
+     * worst severity under the count - all of it inside the card, nothing
+     * left to scroll to sideways.
+     */
     await open(page, `${SPRAY_CASE_PATH}/entities`, {
       width: 390,
       height: 844,
@@ -2177,13 +2181,39 @@ test.describe("a case", () => {
           return header.trim().toLowerCase();
         },
       ),
-    ).toEqual(["entity", "events", "worst severity"]);
+    ).toEqual(["entity", "events"]);
+
+    const phoneAddress: Locator = table
+      .getByTestId("security-case-entity-row")
+      .filter({ hasText: "203.0.113.47" });
     await expect(
-      table
-        .getByTestId("security-case-entity-row")
-        .filter({ hasText: "203.0.113.47" })
-        .getByText("IP Address · last seen", { exact: false }),
+      phoneAddress.getByText("IP Address · last seen", { exact: false }),
     ).toBeVisible();
+    await expect(
+      phoneAddress.getByTestId("security-case-entity-severity-under-count"),
+    ).toHaveText("High");
+    await expect(
+      phoneAddress.getByTestId("security-case-entity-severity"),
+    ).toBeHidden();
+
+    // The table fits the card: its scroller has nothing to scroll.
+    expect(
+      await table.evaluate((element: HTMLElement): number => {
+        const scroller: HTMLElement = element.parentElement as HTMLElement;
+
+        return scroller.scrollWidth - scroller.clientWidth;
+      }),
+    ).toBeLessThanOrEqual(1);
+    // A long value wraps whole inside its chip rather than cut short.
+    const longValue: Locator = table.getByText(
+      "k.morgan@acme-commerce.example",
+      { exact: true },
+    );
+    expect(
+      await longValue.evaluate((element: HTMLElement): number => {
+        return element.scrollWidth - element.clientWidth;
+      }),
+    ).toBeLessThanOrEqual(1);
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
   });
 

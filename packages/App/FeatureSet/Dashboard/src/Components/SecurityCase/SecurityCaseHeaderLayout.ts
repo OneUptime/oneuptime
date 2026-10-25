@@ -57,10 +57,13 @@ export const SECURITY_CASE_HEADER_BUTTON_CLASS_NAME: string =
 /*
  * A button's icon, left out on a phone: the label says it, and without the
  * icon two buttons share a row where with it each took a row of its own
- * (a 360px phone drew three rows of one button each on every page).
+ * (a 360px phone drew three rows of one button each on every page). Shown
+ * by default and hidden below the phone width, never a bare `hidden` shown
+ * again by a variant, which a page's foreign `.hidden` rule would keep
+ * hidden at every width (ForeignHiddenRuleGuard).
  */
 export const SECURITY_CASE_HEADER_BUTTON_ICON_CLASS_NAME: string =
-  "hidden [@container(min-width:36rem)]:inline-flex";
+  "inline-flex [@container(max-width:35.99rem)]:hidden";
 
 // The wrapper a locked button's reason is reached through: laid out as the button is.
 export const SECURITY_CASE_HEADER_LOCKED_WRAPPER_CLASS_NAME: string =

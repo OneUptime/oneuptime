@@ -24,14 +24,20 @@ import React, {
 export const ENTITY_ACTIVITY_HOURS: number = 24 * 7;
 
 /*
- * The table is a size container: from WIDE_TABLE_WIDTH up it has a column
- * for each fact - Type, Findings, Last Seen - and below it (a phone, or a
- * narrow window beside the side menu) the entity's type and when it was
- * last seen go under its value, leaving Entity, Events and Worst Severity.
- * The classes are spelled out whole, so Tailwind finds them.
+ * The table is a size container: from 40rem up it has a column for each
+ * fact - Type, Findings, Worst Severity, Last Seen - and below it (a phone,
+ * or a narrow window beside the side menu) the entity's type and when it
+ * was last seen go under its value and its worst severity under its count,
+ * leaving Entity and Events: two columns a phone holds whole, the value
+ * wrapping once where it is long, where three cut the value to a word a
+ * line.
+ * The classes are spelled out whole, so Tailwind finds them. A wide-only
+ * cell is a cell by default and hidden below the width, never a bare
+ * `hidden` shown again by a variant: a page's foreign `.hidden` rule would
+ * keep that one hidden at every width (ForeignHiddenRuleGuard).
  */
 export const ENTITIES_TABLE_WIDE_ONLY_CLASS_NAME: string =
-  "hidden [@container(min-width:40rem)]:table-cell";
+  "[@container(max-width:39.99rem)]:hidden";
 export const ENTITIES_TABLE_NARROW_ONLY_CLASS_NAME: string =
   "[@container(min-width:40rem)]:hidden";
 
@@ -41,6 +47,7 @@ export const SECURITY_CASE_ENTITIES_TEST_IDS: {
   events: string;
   findings: string;
   severity: string;
+  severityUnderCount: string;
   lastSeen: string;
   activityError: string;
 } = {
@@ -49,6 +56,7 @@ export const SECURITY_CASE_ENTITIES_TEST_IDS: {
   events: "security-case-entity-events",
   findings: "security-case-entity-findings",
   severity: "security-case-entity-severity",
+  severityUnderCount: "security-case-entity-severity-under-count",
   lastSeen: "security-case-entity-last-seen",
   activityError: "security-case-entities-activity-error",
 };
@@ -197,7 +205,10 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                   >
                     {translator.translateText("Findings")}
                   </th>
-                  <th scope="col" className={headerCellClassName}>
+                  <th
+                    scope="col"
+                    className={`${headerCellClassName} ${ENTITIES_TABLE_WIDE_ONLY_CLASS_NAME}`}
+                  >
                     {translator.translateText("Worst Severity")}
                   </th>
                   <th
@@ -224,6 +235,20 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                     const lastSeen: string | undefined = row?.lastSeen
                       ? OneUptimeDate.fromNow(row.lastSeen)
                       : undefined;
+                    // Drawn in its column, or under the count on a narrow table.
+                    const severityPill: ReactElement | null = severity ? (
+                      <span
+                        title={translator.translatePlural(
+                          {
+                            one: "{{count}} finding names it",
+                            other: "{{count}} findings name it",
+                          },
+                          row?.findingCount || 0,
+                        )}
+                      >
+                        <SecurityEventSeverityPill severityName={severity} />
+                      </span>
+                    ) : null;
 
                     return (
                       <tr
@@ -231,8 +256,15 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                         className="hover:bg-gray-50"
                         data-testid={SECURITY_CASE_ENTITIES_TEST_IDS.row}
                       >
-                        <td className="max-w-xs px-3 py-2.5 align-top first:pl-0 last:pr-0">
-                          <SecurityEntityChip entity={entity} />
+                        <td className="px-3 py-2.5 align-top first:pl-0 last:pr-0">
+                          {/*
+                           * Wrapped, not cut short: on a phone the column
+                           * leaves the count room beside it.
+                           */}
+                          <SecurityEntityChip
+                            entity={entity}
+                            isValueWrapped={true}
+                          />
                           {/* The type and when, under the value while their columns are left out. */}
                           <div
                             className={`mt-0.5 pl-0.5 text-xs text-gray-500 ${ENTITIES_TABLE_NARROW_ONLY_CLASS_NAME}`}
@@ -256,14 +288,28 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                         >
                           {type}
                         </td>
-                        <td
-                          className="whitespace-nowrap px-3 py-2.5 first:pl-0 last:pr-0 text-right align-top font-semibold tabular-nums text-gray-900"
-                          data-testid={SECURITY_CASE_ENTITIES_TEST_IDS.events}
-                        >
-                          {isRowLoading ? (
-                            <SkeletonCell />
+                        <td className="whitespace-nowrap px-3 py-2.5 first:pl-0 last:pr-0 text-right align-top font-semibold tabular-nums text-gray-900">
+                          <span
+                            data-testid={SECURITY_CASE_ENTITIES_TEST_IDS.events}
+                          >
+                            {isRowLoading ? (
+                              <SkeletonCell />
+                            ) : (
+                              translator.formatNumber(row?.eventCount || 0)
+                            )}
+                          </span>
+                          {/* The worst severity, under the count while its column is left out. */}
+                          {severityPill && !isRowLoading ? (
+                            <div
+                              className={`mt-1 font-normal ${ENTITIES_TABLE_NARROW_ONLY_CLASS_NAME}`}
+                              data-testid={
+                                SECURITY_CASE_ENTITIES_TEST_IDS.severityUnderCount
+                              }
+                            >
+                              {severityPill}
+                            </div>
                           ) : (
-                            translator.formatNumber(row?.eventCount || 0)
+                            <></>
                           )}
                         </td>
                         <td
@@ -277,25 +323,13 @@ const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
                           )}
                         </td>
                         <td
-                          className="whitespace-nowrap px-3 py-2.5 first:pl-0 last:pr-0 align-top"
+                          className={`whitespace-nowrap px-3 py-2.5 first:pl-0 last:pr-0 align-top ${ENTITIES_TABLE_WIDE_ONLY_CLASS_NAME}`}
                           data-testid={SECURITY_CASE_ENTITIES_TEST_IDS.severity}
                         >
                           {isRowLoading ? (
                             <SkeletonCell />
-                          ) : severity ? (
-                            <span
-                              title={translator.translatePlural(
-                                {
-                                  one: "{{count}} finding names it",
-                                  other: "{{count}} findings name it",
-                                },
-                                row?.findingCount || 0,
-                              )}
-                            >
-                              <SecurityEventSeverityPill
-                                severityName={severity}
-                              />
-                            </span>
+                          ) : severityPill ? (
+                            severityPill
                           ) : (
                             <span className="text-gray-400">-</span>
                           )}
