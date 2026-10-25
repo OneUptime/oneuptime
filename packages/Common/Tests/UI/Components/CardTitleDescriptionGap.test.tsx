@@ -810,7 +810,9 @@ describe("which classes each header draws with", () => {
           description="Reusable response procedures."
           headerLayout="toolbar"
           buttons={[EDIT]}
-        />
+        >
+          <div>The runbooks</div>
+        </Card>
       </CardSections>,
     );
 
@@ -865,7 +867,9 @@ describe("which classes each header draws with", () => {
         description="Reusable response procedures."
         headerLayout="stacked"
         buttons={[EDIT]}
-      />,
+      >
+        <div>The runbooks</div>
+      </Card>,
     );
 
     const actions: string = classOf(screen.getByTestId("card-header-actions"));
