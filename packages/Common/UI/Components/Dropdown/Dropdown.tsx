@@ -58,6 +58,15 @@ export interface DropdownOption {
    */
   isUserContent?: boolean | undefined;
   /*
+   * The label is the product's own words, put together by the picker from
+   * translated parts ("Global Runner · Connected"): picked, it is laid out
+   * in the page's direction. Left out, a picked label reads its own
+   * direction (dir="auto"), which keeps a name's start in view - but turns
+   * a Persian label that starts with a Latin word ("Runner سراسری · متصل")
+   * left to right, its words out of order.
+   */
+  isInPageDirection?: boolean | undefined;
+  /*
    * An archived value a record still has (Common/Utils/ArchivableValues):
    * a picker never lists one, but shows the one already picked, marked
    * Archived, so it can be kept or changed.
@@ -617,7 +626,8 @@ const Dropdown: FunctionComponent<ComponentProps> = (
        * own ellipsis does not reach text inside these rows, so the rows may
        * shrink (min-w-0) and the name truncates itself. dir="auto" keeps a
        * name's start in view whichever way the page reads: an English name
-       * on a Persian page is cut at its end, not its beginning.
+       * on a Persian page is cut at its end, not its beginning. A label of
+       * the product's own words (isInPageDirection) reads the page's way.
        */
       return (
         <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -625,7 +635,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
             {renderOptionColorIndicator(option.color)}
             <span
               className="truncate text-sm font-medium text-gray-900"
-              dir="auto"
+              dir={option.isInPageDirection ? undefined : "auto"}
               data-testid="dropdown-value-label"
             >
               {getOptionLabelText(option)}

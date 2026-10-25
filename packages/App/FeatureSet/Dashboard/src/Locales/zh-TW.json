@@ -32803,7 +32803,6 @@
   "Open Fix Pull Requests": "開啟修正 Pull Request",
   "Open Telemetry Pull Requests": "開啟遙測 Pull Request",
   "Telemetry pull requests": "遙測 Pull Request",
-  "Where OneUptime AI runs Bash commands for this rule, inside your network. Commands on the affected cluster or host go through its AI agent.": "OneUptime AI 為此規則執行 Bash 命令的位置，在您的網路內。受影響叢集或主機上的命令會透過其 AI 代理程式執行。",
   "An indicator's confidence sets its threat level: the severity of its findings, and the alert severity when the feed does not set one.": "指標的信賴度決定其威脅等級：即其發現的嚴重程度，以及在來源未設定時警示的嚴重程度。",
   "Each matched indicator opens or joins a case, opens one alert (deduplicated while it is open), optionally an incident, and records a Threat Intel finding.": "每個比對到的指標都會開啟案例或併入已開啟的案例，開啟一則警示（開啟期間會去除重複），可選擇開啟事件，並記錄一筆威脅情報發現。",
   "Read the source": "讀取來源",
@@ -34627,6 +34626,11 @@
   "This page needs the new version to open. Reloading discards changes you haven't saved.": "此頁面需要新版本才能開啟。重新載入會捨棄未儲存的變更。",
   "Try now": "立即重試",
   "Updating to the new version": "正在更新到新版本",
+  "Where OneUptime AI runs Bash commands for this rule. Commands on the affected cluster or host go through its AI agent.": "OneUptime AI 為此規則執行 Bash 命令的位置。受影響叢集或主機上的命令會透過其 AI 代理程式執行。",
+  "Run by OneUptime for every project. OneUptime AI runs no Bash commands on it.": "由 OneUptime 為所有專案執行。OneUptime AI 不會在其上執行 Bash 命令。",
+  "OneUptime AI runs no Bash commands on the Global Runner, which every project shares. Pick one of your Runners to run them.": "OneUptime AI 不會在所有專案共用的全域 Runner 上執行 Bash 命令。若要執行它們，請選擇您自己的一個 Runner。",
+  "OneUptime AI runs no Bash commands on the Global Runner, which every project shares. Add a Runner under {{location}} to run them.": "OneUptime AI 不會在所有專案共用的全域 Runner 上執行 Bash 命令。若要執行它們，請在 {{location}} 中新增一個 Runner。",
+  "OneUptime AI runs no Bash commands on the Global Runner, which every project shares.": "OneUptime AI 不會在所有專案共用的全域 Runner 上執行 Bash 命令。",
   "You're offline": "你已離線",
   "You're offline. This will load when you're back online.": "你已離線。恢復連線後將載入此內容。"
 }

@@ -32803,7 +32803,6 @@
   "Open Fix Pull Requests": "Открывать pull request с исправлениями",
   "Open Telemetry Pull Requests": "Открывать pull request с телеметрией",
   "Telemetry pull requests": "Pull request с телеметрией",
-  "Where OneUptime AI runs Bash commands for this rule, inside your network. Commands on the affected cluster or host go through its AI agent.": "Где OneUptime AI выполняет команды Bash для этого правила, внутри вашей сети. Команды на затронутом кластере или хосте идут через его ИИ-агент.",
   "An indicator's confidence sets its threat level: the severity of its findings, and the alert severity when the feed does not set one.": "Уверенность индикатора задаёт его уровень угрозы: серьёзность его находок и серьёзность оповещения, когда фид её не задаёт.",
   "Each matched indicator opens or joins a case, opens one alert (deduplicated while it is open), optionally an incident, and records a Threat Intel finding.": "Каждый совпавший индикатор открывает кейс или присоединяется к открытому, открывает одно оповещение (без дубликатов, пока оно открыто), при необходимости инцидент и записывает находку разведки угроз.",
   "Read the source": "Чтение источника",
@@ -34627,6 +34626,11 @@
   "This page needs the new version to open. Reloading discards changes you haven't saved.": "Эта страница открывается только в новой версии. При перезагрузке несохранённые изменения будут потеряны.",
   "Try now": "Попробовать сейчас",
   "Updating to the new version": "Обновление до новой версии",
+  "Where OneUptime AI runs Bash commands for this rule. Commands on the affected cluster or host go through its AI agent.": "Где OneUptime AI выполняет команды Bash для этого правила. Команды на затронутом кластере или хосте идут через его ИИ-агент.",
+  "Run by OneUptime for every project. OneUptime AI runs no Bash commands on it.": "Запускается OneUptime для всех проектов. OneUptime AI не выполняет на нём команды Bash.",
+  "OneUptime AI runs no Bash commands on the Global Runner, which every project shares. Pick one of your Runners to run them.": "OneUptime AI не выполняет команды Bash на глобальном Runner, общем для всех проектов. Чтобы их выполнять, выберите один из своих Runner-ов.",
+  "OneUptime AI runs no Bash commands on the Global Runner, which every project shares. Add a Runner under {{location}} to run them.": "OneUptime AI не выполняет команды Bash на глобальном Runner, общем для всех проектов. Чтобы их выполнять, добавьте Runner в разделе {{location}}.",
+  "OneUptime AI runs no Bash commands on the Global Runner, which every project shares.": "OneUptime AI не выполняет команды Bash на глобальном Runner, общем для всех проектов.",
   "You're offline": "Вы не в сети",
   "You're offline. This will load when you're back online.": "Вы не в сети. Это загрузится, когда подключение восстановится."
 }

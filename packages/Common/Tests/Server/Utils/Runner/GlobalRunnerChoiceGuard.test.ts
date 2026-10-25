@@ -366,10 +366,14 @@ describe("a Runner is picked with one picker", () => {
   /*
    * An AI rule picks the Runner OneUptime AI runs its commands on with the
    * same picker, fed by the loader's choices for a rule
-   * (RunnerChoicesLoader.loadForRemediation): no Runner first - the AI
-   * agent on the affected cluster or host - then the project's own Runners,
-   * never a global one, which never runs OneUptime AI's commands. The
-   * choices are read again when the tab comes back into focus.
+   * (RunnerChoicesLoader.loadForRemediation): the project's own Runners -
+   * never the Kubernetes agent's in-cluster ones - and, as for a step, the
+   * global Runners that run runbook steps and the project's switch, so a
+   * rule that picks none shows the Global Runner: "If there are no runners,
+   * it should use the global runner by default" - the maintainer. Picking
+   * it picks no Runner of the project's own: none of the rule's commands
+   * runs on it (the next block). The choices are read again when the tab
+   * comes back into focus.
    */
   test("an AI rule picks its Runner with the picker", () => {
     const fields: string = read(
@@ -392,14 +396,24 @@ describe("a Runner is picked with one picker", () => {
     );
     expect(table).toMatch(/<AutoRemediationRunnerPicker\b/);
 
-    // The rule's choices hold no global Runner.
+    /*
+     * The rule's choices hold the global Runners a step's do - the ones
+     * that run runbook steps, read from their own route - and the switch.
+     */
     const remediationChoices: string = loader.slice(
       loader.indexOf("public static async loadForRemediation("),
       loader.indexOf("public static async loadProjectRunners("),
     );
     expect(remediationChoices.length).toBeGreaterThan(0);
-    expect(remediationChoices).toContain("globalRunners: [],");
-    expect(remediationChoices).not.toContain("loadGlobalRunners");
+    expect(remediationChoices).toContain(
+      "RunnerChoicesLoader.loadGlobalRunners()",
+    );
+    expect(remediationChoices).toContain(
+      "RunnerChoicesLoader.loadProjectUsesGlobalRunners(projectId)",
+    );
+    expect(remediationChoices).toContain("return runner.runsRunbooks;");
+    // Never the in-cluster Runners: they run kubectl for their cluster only.
+    expect(remediationChoices).toContain("forCodeRepository: true");
 
     for (const source of [fields, table]) {
       expect(RUNNER_LOADS.test(source)).toBe(false);
@@ -425,5 +439,159 @@ describe("a Runner is picked with one picker", () => {
     expect(page).not.toContain("RunnerPicker");
     expect(RUNNER_LOADS.test(page)).toBe(false);
     expect(loader).not.toContain("loadForKubernetesCluster");
+  });
+});
+
+/*
+ * A SHELL NEVER RUNS WHERE PROJECTS CANNOT BE KEPT APART.
+ *
+ * An AI rule that picks no Runner shows the Global Runner, the project's
+ * default where it has none of its own. That changes what the rule shows,
+ * never where its commands run: a global Runner runs JavaScript steps in a
+ * sandbox every project shares, and a shell - a Bash command OneUptime AI
+ * composes - cannot be kept apart from the other projects there. Each layer
+ * between a rule and a shell holds that on its own, and this reads every
+ * one, so none can be dropped by a change that only looked at the picker:
+ *
+ *   - the picker: global Runners never run a rule's work, and the Global
+ *     Runner a rule picks is stored as none - never "global", never an id;
+ *   - the engine: OneUptime AI composes commands for a rule only when it
+ *     picks a Runner;
+ *   - the toolkit: a command's Runner is one of the rule's project's own
+ *     that runs AI commands - a global Runner belongs to no project;
+ *   - the pick: picking lets a project's own Runner run AI commands, never
+ *     a global one;
+ *   - the claim: a global Runner is told it runs no AI commands, and is
+ *     served runbook jobs only;
+ *   - the Runner: a global Runner refuses a command OneUptime AI composed.
+ */
+describe("OneUptime AI's commands never run on a global Runner, whatever a rule shows", () => {
+  function between(source: string, start: string, end: string): string {
+    const from: number = source.indexOf(start);
+    expect(from).toBeGreaterThanOrEqual(0);
+    const to: number = source.indexOf(end, from + start.length);
+    expect(to).toBeGreaterThan(from);
+    return source.slice(from, to);
+  }
+
+  test("the picker: global Runners never run a rule's work, and its Global Runner is stored as none", () => {
+    const model: string = read(
+      "App/FeatureSet/Dashboard/src/Components/Runner/RunnerPickerModel.ts",
+    );
+    const fields: string = read(
+      "App/FeatureSet/Dashboard/src/Components/AutoRemediation/AutoRemediationRuleFields.tsx",
+    );
+
+    const canRun: string = between(
+      model,
+      "export function canGlobalRunnersRunWork(",
+      "\n}\n",
+    );
+    expect(canRun).toContain(
+      "if (facts.work === RunnerPickerWork.AutoRemediation) {\n    return false;\n  }",
+    );
+
+    const ruleModel: string = between(
+      model,
+      "function buildRuleModel(",
+      "\n}\n",
+    );
+    // The Global Runner a rule shows stands for none.
+    expect(ruleModel).toContain("value: GLOBAL_RUNNER_CHOICE_VALUE,");
+    expect(ruleModel).not.toContain("GLOBAL_RUNNER_PICK_VALUE");
+    expect(ruleModel).not.toContain("GLOBAL_RUNNER_CHOICE_ID");
+    expect(model).toContain(
+      'export const GLOBAL_RUNNER_CHOICE_VALUE: string = "";',
+    );
+    // A rule that picked none runs no command: NoRunner, on no Runner.
+    expect(ruleModel).toContain("outcome: RunnerPickerOutcome.NoRunner,");
+
+    // The form saves that choice as none.
+    expect(fields).toContain(
+      "runnerId === GLOBAL_RUNNER_CHOICE_VALUE ? null : runnerId,",
+    );
+  });
+
+  test("the engine: OneUptime AI composes commands for a rule only when it picks a Runner", () => {
+    const engine: string = read(
+      "Common/Server/Services/AutoRemediationRuleEngineService.ts",
+    );
+
+    const skip: number = engine.indexOf(
+      "if (!getRuleRunnerId(rule)) {\n          continue;\n        }",
+    );
+    const compose: number = engine.indexOf(
+      "const isRunnerRunStarted: boolean = await this.startAiCommandRun({",
+    );
+
+    expect(skip).toBeGreaterThan(0);
+    expect(compose).toBeGreaterThan(skip);
+  });
+
+  test("the toolkit: a command runs on one of the rule's project's own Runners that runs AI commands", () => {
+    const tools: string = read(
+      "Common/Server/Utils/AI/Remediation/RemediationCommandTools.ts",
+    );
+
+    const lookup: string = between(
+      tools,
+      "const runner: Runner | null = await RunnerService.findOneBy({\n      query: {\n        _id: runnerId.toString(),",
+      "Runner not found in this project, or it does not accept AI commands.",
+    );
+
+    expect(lookup).toContain("projectId: this.options.projectId,");
+    expect(lookup).toContain("canRunAiCommands: true,");
+  });
+
+  test("the pick: only a project's own Runner is let run AI commands, never a global one", () => {
+    const pick: string = read(
+      "Common/Server/Utils/Runner/RunnerAiCommandsPick.ts",
+    );
+
+    const query: string = between(
+      pick,
+      "await RunnerService.findBy({",
+      "props: { isRoot: true },",
+    );
+
+    expect(query).toContain("projectId: projectId,");
+    expect(query).toContain("isGlobalRunner: false,");
+  });
+
+  test("the claim: a global Runner is told it runs no AI commands, and is served runbook jobs only", () => {
+    const ingress: string = read("App/FeatureSet/Runbook/API/RunnerIngress.ts");
+    const jobs: string = read("Common/Server/Services/RunnerJobService.ts");
+
+    const heartbeat: string = between(
+      ingress,
+      'if (agent.isGlobalRunner) {\n      return {\n        status: "ok",',
+      "};\n    }",
+    );
+    expect(heartbeat).toContain("canRunAiCommands: false,");
+
+    const globalClaim: string = between(
+      jobs,
+      "public async claimNextGlobalJob(",
+      "RETURNING",
+    );
+    expect(globalClaim).toContain('AND j."origin" = $2');
+
+    // The parameters of that statement, in the same method.
+    const globalClaimParameters: string = between(
+      jobs.slice(jobs.indexOf("public async claimNextGlobalJob(")),
+      "await manager.query(sql, [",
+      "]);",
+    );
+    expect(globalClaimParameters).toContain("RunnerJobOrigin.Runbook,");
+    expect(globalClaimParameters).not.toContain("AiRemediation");
+  });
+
+  test("the Runner: a global Runner refuses a command OneUptime AI composed", () => {
+    const mode: string = read("Runner/Utils/GlobalRunnerMode.ts");
+
+    expect(mode).toContain(
+      "if ((job.origin || RunnerJobOrigin.Runbook) !== RunnerJobOrigin.Runbook) {",
+    );
+    expect(mode).toContain("never commands composed by OneUptime AI.");
   });
 });
