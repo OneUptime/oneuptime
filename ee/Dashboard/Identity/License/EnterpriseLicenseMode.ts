@@ -60,6 +60,7 @@ export enum LicensedFeature {
   IpAllowlists = "ip-allowlists",
   StatusPageBranding = "status-page-branding",
   StatusPageAccessControls = "status-page-access-controls",
+  Backups = "backups",
 }
 
 // The features claim value that entitles every feature (ENTERPRISE_FEATURE_WILDCARD).

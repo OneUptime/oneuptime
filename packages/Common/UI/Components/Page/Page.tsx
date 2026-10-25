@@ -8,6 +8,7 @@ import LabelModel from "../../../Models/DatabaseModels/Label";
 import { sortLabels } from "../../../Utils/LabelOrder";
 import useTranslateValue from "../../Utils/Translation";
 import { getProductName } from "../../Utils/ProductBranding";
+import PageTrailEndContext from "./PageTrailEnd";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -220,7 +221,15 @@ const Page: FunctionComponent<ComponentProps> = (
       {props.sideMenu && (
         <div className="mx-auto max-w-full pb-10">
           <div className="flex flex-col md:flex-row md:gap-4 lg:gap-5">
-            {props.sideMenu}
+            <PageTrailEndContext.Provider
+              value={
+                breadcrumbLinks && breadcrumbLinks.length > 0
+                  ? breadcrumbLinks[breadcrumbLinks.length - 1] || null
+                  : null
+              }
+            >
+              {props.sideMenu}
+            </PageTrailEndContext.Provider>
 
             {!props.isLoading && (
               <div className="space-y-6 flex-1 min-w-0">{children}</div>

@@ -397,7 +397,7 @@ npm start
 
 ## 백업과 복원
 
-PostgreSQL에는 모니터, 인시던트, 상태 페이지, 사용자 등 여러분이 구성한 모든 것이 들어 있습니다. `npm run backup`은 이를 `Backups` 폴더의 파일로 덤프합니다.
+PostgreSQL에는 모니터, 인시던트, 상태 페이지, 사용자 등 여러분이 구성한 모든 것이 들어 있습니다. `npm run backup`은 이를 `Backups` 폴더의 파일로 덤프합니다. Enterprise Edition에서는 Admin Dashboard에서 PostgreSQL과 ClickHouse를 일정에 따라 자체 스토리지에 백업할 수도 있습니다. [백업](/docs/installation/backups)을 참조하세요.
 
 :::steps
 ### 백업 스크립트에 데이터베이스 비밀번호 알려 주기

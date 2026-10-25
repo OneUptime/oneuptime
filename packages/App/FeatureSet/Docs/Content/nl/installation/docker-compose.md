@@ -397,7 +397,7 @@ Hebt u `DATABASE_BACKUP_PASSWORD` en `DATABASE_RESTORE_PASSWORD` ingesteld, geef
 
 ## Back-up en herstel
 
-PostgreSQL bevat alles wat u configureert: monitors, incidenten, statuspagina's, gebruikers. `npm run backup` dumpt het naar een bestand in de map `Backups`.
+PostgreSQL bevat alles wat u configureert: monitors, incidenten, statuspagina's, gebruikers. `npm run backup` dumpt het naar een bestand in de map `Backups`. De Enterprise Edition kan PostgreSQL en ClickHouse ook volgens een schema back-uppen naar uw eigen opslag, vanuit het Admin Dashboard: zie [Back-ups](/docs/installation/backups).
 
 :::steps
 ### Geef het back-upscript het databasewachtwoord

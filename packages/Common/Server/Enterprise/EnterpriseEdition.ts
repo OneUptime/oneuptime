@@ -50,6 +50,9 @@ const ENTERPRISE_FEATURE_BY_TABLE_NAME: ReadonlyMap<string, EnterpriseFeature> =
      * includes audit logs includes their export.
      */
     ["AuditLogExport", EnterpriseFeature.AuditLogs],
+    // The instance's backups: where they go, and each backup and restore.
+    ["BackupSetting", EnterpriseFeature.Backups],
+    ["BackupRun", EnterpriseFeature.Backups],
   ]);
 
 /*
@@ -176,6 +179,7 @@ const FEATURE_NAMES: ReadonlyMap<EnterpriseFeature, string> = new Map<
     "removing Powered by OneUptime from status pages",
   ],
   [EnterpriseFeature.StatusPageAccessControls, "status page access controls"],
+  [EnterpriseFeature.Backups, "backups"],
 ]);
 
 /*

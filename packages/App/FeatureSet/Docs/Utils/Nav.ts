@@ -1487,6 +1487,11 @@ const DocsNav: NavGroup[] = [
         title: "Upgrading",
         url: "/docs/installation/upgrading",
       },
+      // The Enterprise Edition's backups of PostgreSQL and ClickHouse, set up in the Admin Dashboard.
+      {
+        title: "Backups",
+        url: "/docs/installation/backups",
+      },
       {
         title: "Kubernetes and Helm",
         url: "https://artifacthub.io/packages/helm/oneuptime/oneuptime",
