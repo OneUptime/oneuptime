@@ -142,6 +142,7 @@ import {
 import { BackupFrequency } from "Common/Types/Backup/BackupSchedule";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import ObjectID from "Common/Types/ObjectID";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import splitActionButtons, {
@@ -611,7 +612,7 @@ describe("setting backups up, through the real form", () => {
       for (const provider of BackupProviderCatalog as Array<BackupProviderDefinition>) {
         expect(
           within(dialog()).getByRole("radio", {
-            name: new RegExp(`^${provider.title}`),
+            name: new RegExp(`^${escapeRegExp(provider.title)}`),
           }),
         ).toBeInTheDocument();
       }

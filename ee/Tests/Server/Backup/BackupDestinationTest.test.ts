@@ -13,6 +13,7 @@ import {
   FakePostgresEngine,
 } from "./Fakes/FakeBackupEngines";
 import MemoryBackupStorage from "./Fakes/MemoryBackupStorage";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * "Test the destination", before anything is saved: what a backup does,
@@ -105,7 +106,7 @@ describe("testBackupDestination", () => {
       }),
     ).toMatch(
       new RegExp(
-        `^put prod/oneuptime-backup-test/[0-9a-f-]+/${BACKUP_TEST_FILE_NAME.split(".").join("\\.")}$`,
+        `^put prod/oneuptime-backup-test/[0-9a-f-]+/${escapeRegExp(BACKUP_TEST_FILE_NAME)}$`,
       ),
     );
   });
