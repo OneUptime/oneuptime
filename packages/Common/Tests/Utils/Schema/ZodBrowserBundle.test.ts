@@ -22,8 +22,10 @@ import path from "path";
  * This bundles every Type that imports Utils/Schema/Zod with the frontends'
  * own esbuild configuration (Common/UI/esbuild-config's createConfig, as a
  * production build), and reads what zod put into it. A second build runs the
- * bundle and asks a Type for its schema, so the zod in a frontend still has
- * zod-to-openapi's .openapi().
+ * bundle as a browser would and asks a Type for its schema: the zod in a
+ * frontend still has zod-to-openapi's .openapi(), and turns no string into
+ * code (zod 4's compiled parsers use new Function, which a status page's
+ * Content-Security-Policy forbids; Zod.ts makes zod jitless in a browser).
  */
 
 const COMMON_DIRECTORY: string = path.resolve(__dirname, "..", "..", "..");
@@ -90,6 +92,8 @@ interface BundleReport {
   zodToOpenApiBytes: number;
   localeFiles: Array<string>;
   emailSchemaMetadata: unknown;
+  // What the bundle turned from a string into code while it loaded and ran.
+  evaluatedCode: Array<string>;
 }
 
 /*
@@ -153,14 +157,45 @@ function bundle(entry: string): BundleReport {
       const code = runnable.outputFiles.find((file) => {
         return file.path.endsWith(".js");
       }).text;
-      new Function("require", "module", "exports", code)(require, { exports: {} }, {});
+      const runBundle = new Function("require", "module", "exports", code);
+
+      /*
+       * Run it as a browser would: the global object is window and self,
+       * with a document, and every string anything turns into code (new
+       * Function, Function()) is written down - what a page whose
+       * Content-Security-Policy has no 'unsafe-eval' refuses and reports.
+       */
+      globalThis.window = globalThis;
+      globalThis.self = globalThis;
+      globalThis.document = {};
+      const RealFunction = globalThis.Function;
+      const evaluatedCode = [];
+      globalThis.Function = new Proxy(RealFunction, {
+        construct(target, args) {
+          evaluatedCode.push(args.map(String).join(", ").slice(0, 200));
+          return Reflect.construct(target, args);
+        },
+        apply(target, thisArg, args) {
+          evaluatedCode.push(args.map(String).join(", ").slice(0, 200));
+          return Reflect.apply(target, thisArg, args);
+        },
+      });
+
+      let emailSchemaMetadata;
+      try {
+        runBundle(require, { exports: {} }, {});
+        emailSchemaMetadata = globalThis.zodBrowserBundleProbe();
+      } finally {
+        globalThis.Function = RealFunction;
+      }
 
       console.log(JSON.stringify({
         error: "",
         zodBytes,
         zodToOpenApiBytes,
         localeFiles: [...localeFiles].sort(),
-        emailSchemaMetadata: globalThis.zodBrowserBundleProbe(),
+        emailSchemaMetadata,
+        evaluatedCode,
       }));
     })().catch((error) => {
       console.log(JSON.stringify({
@@ -169,6 +204,7 @@ function bundle(entry: string): BundleReport {
         zodToOpenApiBytes: 0,
         localeFiles: [],
         emailSchemaMetadata: null,
+        evaluatedCode: [],
       }));
     });
   `;
@@ -205,7 +241,10 @@ function writeEntry(root: string, types: Array<string>): string {
         })
         .join(", ")}];`,
       "(globalThis as any).zodBrowserBundleProbe = () => {",
-      "  return getOpenApiMetadata(Email.getSchema());",
+      "  const schema = Email.getSchema();",
+      "  // A parse too: no frontend parses with zod today, and one that did would not evaluate code either.",
+      '  schema.parse({ _type: "Email", value: "user@example.com" });',
+      "  return getOpenApiMetadata(schema);",
       "};",
       "",
     ].join("\n"),
@@ -265,6 +304,18 @@ describe("zod in the frontends' bundles", () => {
         description: "Email object",
         example: { _type: "Email", value: "user@example.com" },
       });
+    });
+
+    test("in a browser it turns no string into code, so a page that forbids eval reports nothing", () => {
+      /*
+       * zod 4 compiles each object schema's parser with new Function, and
+       * probes whether it may as the first object schema is made - which
+       * the monitor criteria Types do as their modules load. Status pages
+       * forbid eval (StatusPageContentSecurityPolicy has no 'unsafe-eval'),
+       * so every page load reported a refused eval. Zod.ts makes zod
+       * jitless in a browser.
+       */
+      expect(report.evaluatedCode).toEqual([]);
     });
   });
 });

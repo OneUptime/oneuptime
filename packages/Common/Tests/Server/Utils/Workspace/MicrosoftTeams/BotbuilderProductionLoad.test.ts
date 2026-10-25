@@ -1,6 +1,9 @@
 import { describe, expect, test } from "@jest/globals";
-import { spawnSync, SpawnSyncReturns } from "child_process";
 import path from "path";
+import {
+  lastJsonLine,
+  runTranspileOnlyNode,
+} from "../../../../Helpers/TranspileOnlyNode";
 
 /*
  * BOTBUILDER LOADS AS PRODUCTION LOADS IT.
@@ -13,15 +16,13 @@ import path from "path";
  * BotbuilderOnZod4 adds ("z.object(...).nonstrict is not a function"), so if
  * that ever went wrong in production the App would not start at all.
  *
- * Production runs the TypeScript sources through ts-node, transpile-only,
- * as CommonJS (the images' `node --require ts-node/register Index.ts`, with
- * TS_NODE_TRANSPILE_ONLY). This starts a fresh Node that does the same with
- * Common's own TypeScript - every .ts file transpiled on its own to CommonJS
- * as it is required, no jest, no mocks - requires Botbuilder.ts itself, and
- * drives what it hands on: the authentication settings the Teams adapter is
- * made from, and a CloudAdapter answering a message. The other end-to-end
- * suites load botbuilder through Tests/Helpers/RealBotbuilder instead, which
- * does what Botbuilder.ts does; this runs the module production runs.
+ * This starts a fresh Node that loads the TypeScript as production's ts-node
+ * does (Tests/Helpers/TranspileOnlyNode: each file transpiled on its own to
+ * CommonJS, no jest, no mocks), requires Botbuilder.ts itself, and drives
+ * what it hands on: the authentication settings the Teams adapter is made
+ * from, and a CloudAdapter answering a message. The other end-to-end suites
+ * load botbuilder through Tests/Helpers/RealBotbuilder instead, which does
+ * what Botbuilder.ts does; this runs the module production runs.
  */
 
 const COMMON_DIRECTORY: string = path.resolve(
@@ -50,124 +51,88 @@ interface ProductionLoadReport {
   statusCode: number | null;
 }
 
-function loadAsProductionDoes(): ProductionLoadReport {
-  const script: string = `
-    const fs = require("fs");
-    const path = require("path");
-    const ts = require(${JSON.stringify(require.resolve("typescript"))});
+const SCRIPT: string = `
+  const path = require("path");
 
-    // ts-node, transpile-only: each .ts file on its own, to CommonJS.
-    require.extensions[".ts"] = (module, filename) => {
-      const output = ts.transpileModule(fs.readFileSync(filename, "utf8"), {
-        fileName: filename,
-        compilerOptions: {
-          module: ts.ModuleKind.CommonJS,
-          target: ts.ScriptTarget.ES2017,
-          esModuleInterop: true,
-          experimentalDecorators: true,
-          emitDecoratorMetadata: true,
-        },
-      }).outputText;
-      module._compile(output, filename);
+  (async () => {
+    const botbuilder = require(${JSON.stringify(BOTBUILDER_MODULE)});
+    const zodBotbuilderLoads = require(require.resolve("zod", {
+      paths: [path.dirname(require.resolve("botbuilder/package.json"))],
+    }));
+
+    new botbuilder.ConfigurationBotFrameworkAuthentication({
+      MicrosoftAppId: "00000000-0000-0000-0000-000000000001",
+      MicrosoftAppPassword: "app-password",
+      MicrosoftAppType: "SingleTenant",
+      MicrosoftAppTenantId: "00000000-0000-0000-0000-000000000002",
+    });
+
+    const adapter = new botbuilder.CloudAdapter(
+      new botbuilder.ConfigurationBotFrameworkAuthentication({}),
+    );
+    const response = {
+      statusCode: null,
+      body: undefined,
+      status(code) { this.statusCode = code; return this; },
+      send(body) { this.body = body; return this; },
+      header() { return this; },
+      end() { return this; },
     };
 
-    (async () => {
-      const botbuilder = require(${JSON.stringify(BOTBUILDER_MODULE)});
-      const zodBotbuilderLoads = require(require.resolve("zod", {
-        paths: [path.dirname(require.resolve("botbuilder/package.json"))],
-      }));
-
-      new botbuilder.ConfigurationBotFrameworkAuthentication({
-        MicrosoftAppId: "00000000-0000-0000-0000-000000000001",
-        MicrosoftAppPassword: "app-password",
-        MicrosoftAppType: "SingleTenant",
-        MicrosoftAppTenantId: "00000000-0000-0000-0000-000000000002",
-      });
-
-      const adapter = new botbuilder.CloudAdapter(
-        new botbuilder.ConfigurationBotFrameworkAuthentication({}),
-      );
-      const response = {
-        statusCode: null,
-        body: undefined,
-        status(code) { this.statusCode = code; return this; },
-        send(body) { this.body = body; return this; },
-        header() { return this; },
-        end() { return this; },
-      };
-
-      await adapter.process(
-        {
-          method: "POST",
-          headers: {},
-          body: {
-            type: "message",
-            id: "production-load-message",
-            text: "ping",
-            channelId: "msteams",
-            serviceUrl: "https://smba.trafficmanager.net/emea/",
-            deliveryMode: "expectReplies",
-            from: { id: "user-1", name: "A user" },
-            recipient: { id: "bot-1", name: "OneUptime" },
-            conversation: { id: "conversation-1" },
-          },
+    await adapter.process(
+      {
+        method: "POST",
+        headers: {},
+        body: {
+          type: "message",
+          id: "production-load-message",
+          text: "ping",
+          channelId: "msteams",
+          serviceUrl: "https://smba.trafficmanager.net/emea/",
+          deliveryMode: "expectReplies",
+          from: { id: "user-1", name: "A user" },
+          recipient: { id: "bot-1", name: "OneUptime" },
+          conversation: { id: "conversation-1" },
         },
-        response,
-        async (context) => {
-          await context.sendActivity("pong to " + context.activity.text);
-        },
-      );
-
-      console.log(JSON.stringify({
-        error: "",
-        zodHasNonstrict:
-          typeof zodBotbuilderLoads.z.object({}).nonstrict === "function",
-        classes: {
-          CloudAdapter: typeof botbuilder.CloudAdapter,
-          TeamsActivityHandler: typeof botbuilder.TeamsActivityHandler,
-          TurnContext: typeof botbuilder.TurnContext,
-          TeamsInfo: typeof botbuilder.TeamsInfo,
-        },
-        singleTenantAccepted: true,
-        replies: ((response.body && response.body.activities) || []).map(
-          (activity) => activity.text,
-        ),
-        statusCode: response.statusCode,
-      }));
-    })().catch((error) => {
-      console.log(JSON.stringify({
-        error: String((error && error.stack) || error),
-        zodHasNonstrict: false,
-        classes: {},
-        singleTenantAccepted: false,
-        replies: [],
-        statusCode: null,
-      }));
-    });
-  `;
-
-  const result: SpawnSyncReturns<string> = spawnSync(
-    process.execPath,
-    ["-e", script],
-    { cwd: COMMON_DIRECTORY, encoding: "utf8", timeout: 120000 },
-  );
-  const lines: Array<string> = (result.stdout || "")
-    .split("\n")
-    .filter((line: string): boolean => {
-      return line.startsWith("{");
-    });
-
-  if (lines.length === 0) {
-    throw new Error(
-      `The production load printed no report (exit ${String(result.status)}):\n${result.stderr}`,
+      },
+      response,
+      async (context) => {
+        await context.sendActivity("pong to " + context.activity.text);
+      },
     );
-  }
 
-  return JSON.parse(lines[lines.length - 1] as string) as ProductionLoadReport;
-}
+    console.log(JSON.stringify({
+      error: "",
+      zodHasNonstrict:
+        typeof zodBotbuilderLoads.z.object({}).nonstrict === "function",
+      classes: {
+        CloudAdapter: typeof botbuilder.CloudAdapter,
+        TeamsActivityHandler: typeof botbuilder.TeamsActivityHandler,
+        TurnContext: typeof botbuilder.TurnContext,
+        TeamsInfo: typeof botbuilder.TeamsInfo,
+      },
+      singleTenantAccepted: true,
+      replies: ((response.body && response.body.activities) || []).map(
+        (activity) => activity.text,
+      ),
+      statusCode: response.statusCode,
+    }));
+  })().catch((error) => {
+    console.log(JSON.stringify({
+      error: String((error && error.stack) || error),
+      zodHasNonstrict: false,
+      classes: {},
+      singleTenantAccepted: false,
+      replies: [],
+      statusCode: null,
+    }));
+  });
+`;
 
 describe("Botbuilder.ts, loaded as production loads it", () => {
-  const report: ProductionLoadReport = loadAsProductionDoes();
+  const report: ProductionLoadReport = lastJsonLine<ProductionLoadReport>(
+    runTranspileOnlyNode(SCRIPT, { cwd: COMMON_DIRECTORY }),
+  );
 
   test("loads, without zod's 'nonstrict is not a function'", () => {
     expect(report.error).toBe("");

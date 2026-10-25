@@ -3,6 +3,7 @@ import {
   any,
   array,
   boolean,
+  config,
   date,
   enum as zodEnum,
   lazy,
@@ -14,6 +15,20 @@ import {
   type z,
   ZodType,
 } from "zod";
+
+/*
+ * In a browser, zod turns no string into code. zod 4 compiles each object
+ * schema's parser with new Function, and checks that it may by calling new
+ * Function as the first object schema is made - which the monitor criteria
+ * Types do as their modules load, so on every page of every frontend. Status
+ * pages forbid that (StatusPageContentSecurityPolicy has no 'unsafe-eval'),
+ * and the browser refused it and reported a violation on each load. No
+ * frontend parses with zod; jitless zod parses the same, without the
+ * compiled fast path. On the server zod keeps it.
+ */
+if (typeof window !== "undefined" && typeof window.document !== "undefined") {
+  config({ jitless: true });
+}
 
 /*
  * Every frontend bundles this module: Common's Types (Email, ObjectID,
