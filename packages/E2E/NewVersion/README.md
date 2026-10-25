@@ -23,13 +23,16 @@ app keeps what the first load's query set (`audience`, `lang`, `theme`, `firstCh
 version showed, so the spec can read them after the reload that replaced the page.
 
 Desktop (1280px) and phone (390px) Chromium cover: no new version (nothing said); a deploy
-noticed quietly, the notice in its corner and gutters; the next page loading in full in the
+noticed quietly, the notice in its corner and gutters, under a side panel, the AI chat and a
+dialog opened over it (the product's own layer classes, read with `elementFromPoint`) and over
+the page's own bars; the next page loading in full in the
 new version at its address and query, by Common's `Link`, a router link and Back; Reload
 coming back to the same address, hash and scroll; Dismiss; unsaved changes making Reload
 ask first and keeping the next page inside the tab; a page whose code is gone saying it is
 updating and reloading into the same address (and, for a status page's visitor, never
 naming OneUptime); offline; a server answering 503 or dropping the connection; a part gone
-for good after its one reload, never a loop; and one widget's code gone, in its place only.
+for good after its one reload, never a loop; and one widget's code gone, in its place only,
+drawn in the middle of the widget as the widget draws its own states.
 Screenshots of each state, light and dark, in German and in Persian (right to left), are
 under `output/playwright/new-version-ui`.
 

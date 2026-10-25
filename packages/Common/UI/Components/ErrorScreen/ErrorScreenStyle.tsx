@@ -228,6 +228,11 @@ html.dark .oueb-part {
   height: 0.875rem;
 }
 
+/*
+ * A title that wraps (German, Persian, a phone) wraps into even lines rather
+ * than leaving its last word alone on the second, and the message does not
+ * end on a single word. Browsers without text-wrap wrap as before.
+ */
 .oueb-title {
   margin: 1.25rem 0 0;
   font-size: 1.125rem;
@@ -235,6 +240,7 @@ html.dark .oueb-part {
   line-height: 1.5rem;
   letter-spacing: -0.01em;
   color: var(--oueb-text);
+  text-wrap: balance;
 }
 
 .oueb-message {
@@ -242,6 +248,7 @@ html.dark .oueb-part {
   font-size: 0.875rem;
   line-height: 1.375rem;
   color: var(--oueb-text-muted);
+  text-wrap: pretty;
 }
 
 .oueb-actions {

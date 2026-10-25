@@ -378,11 +378,6 @@ const ChunkLoadRecovery: FunctionComponent<ComponentProps> = (
       toneClassName = "oueb-part-icon-warning";
     }
 
-    /*
-     * Small plain buttons, as a widget's own Try again: one part of a page
-     * does not get the page's loudest button.
-     */
-
     return (
       <div
         className="oueb-part"
@@ -410,6 +405,10 @@ const ChunkLoadRecovery: FunctionComponent<ComponentProps> = (
             </span>
           )}
           <p className="oueb-part-text">{text}</p>
+          {/*
+           * Small plain buttons, as a widget's own Try again: one part of a
+           * page does not get the page's loudest button.
+           */}
           {hasRetry || hasReload ? (
             <div className="oueb-part-actions">
               {hasRetry ? (
