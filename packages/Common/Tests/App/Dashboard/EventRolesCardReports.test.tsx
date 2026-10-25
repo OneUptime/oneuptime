@@ -16,8 +16,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * overview's header learns who commands the response: it reports the
  * roles and who holds them each time it reads them - on load and after a
  * change made in it - so the header names the commander without a read of
- * its own, and follows a reassignment at once. On the overview the card
- * also carries the id the header's Assign scrolls to.
+ * its own, and follows a reassignment at once. The header's Assign gives
+ * the commander right where it names them (assignIncidentRole /
+ * assignIncidentEpisodeRole, the card's own way to give a role), and the
+ * card reads its roles again when told (refreshToken) to show the same.
  */
 
 const getListMock: MockFunction = getJestMockFunction();
@@ -74,6 +76,10 @@ jest.mock(
 
 import IncidentMemberRoleAssignment from "../../../../App/FeatureSet/Dashboard/src/Components/Incident/IncidentMemberRoleAssignment";
 import IncidentEpisodeMemberRoleAssignment from "../../../../App/FeatureSet/Dashboard/src/Components/IncidentEpisode/IncidentEpisodeMemberRoleAssignment";
+import {
+  assignIncidentEpisodeRole,
+  assignIncidentRole,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/EventRoleAssignment";
 import { EventRolesSnapshot } from "../../../../App/FeatureSet/Dashboard/src/Utils/EventPeople";
 import IncidentMember from "../../../Models/DatabaseModels/IncidentMember";
 import IncidentEpisodeRoleMember from "../../../Models/DatabaseModels/IncidentEpisodeRoleMember";
@@ -194,38 +200,52 @@ describe.each([
     name: "an incident's roles card",
     recordId: INCIDENT_ID,
     member: incidentMember,
-    renderCard: (
+    memberModel: IncidentMember,
+    recordField: "incidentId",
+    cardElement: (
       onRolesLoaded: (recordId: string, snapshot: EventRolesSnapshot) => void,
-      id?: string,
-      assignRequest?: { roleId: string; requestId: number },
-    ): RenderResult => {
-      return render(
+      refreshToken?: number,
+    ): React.ReactElement => {
+      return (
         <IncidentMemberRoleAssignment
           incidentId={new ObjectID(INCIDENT_ID)}
           onRolesLoaded={onRolesLoaded}
-          id={id}
-          assignRequest={assignRequest}
-        />,
+          refreshToken={refreshToken}
+        />
       );
+    },
+    assignRole: (userId: string, roleId: string): Promise<void> => {
+      return assignIncidentRole({
+        incidentId: new ObjectID(INCIDENT_ID),
+        userId: new ObjectID(userId),
+        roleId: new ObjectID(roleId),
+      });
     },
   },
   {
     name: "an incident episode's roles card",
     recordId: EPISODE_ID,
     member: episodeMember,
-    renderCard: (
+    memberModel: IncidentEpisodeRoleMember,
+    recordField: "incidentEpisodeId",
+    cardElement: (
       onRolesLoaded: (recordId: string, snapshot: EventRolesSnapshot) => void,
-      id?: string,
-      assignRequest?: { roleId: string; requestId: number },
-    ): RenderResult => {
-      return render(
+      refreshToken?: number,
+    ): React.ReactElement => {
+      return (
         <IncidentEpisodeMemberRoleAssignment
           incidentEpisodeId={new ObjectID(EPISODE_ID)}
           onRolesLoaded={onRolesLoaded}
-          id={id}
-          assignRequest={assignRequest}
-        />,
+          refreshToken={refreshToken}
+        />
       );
+    },
+    assignRole: (userId: string, roleId: string): Promise<void> => {
+      return assignIncidentEpisodeRole({
+        incidentEpisodeId: new ObjectID(EPISODE_ID),
+        userId: new ObjectID(userId),
+        roleId: new ObjectID(roleId),
+      });
     },
   },
 ])(
@@ -236,12 +256,24 @@ describe.each([
       roleId: string,
       user: User,
     ) => IncidentMember | IncidentEpisodeRoleMember;
-    renderCard: (
+    memberModel: unknown;
+    recordField: string;
+    cardElement: (
       onRolesLoaded: (recordId: string, snapshot: EventRolesSnapshot) => void,
-      id?: string,
-      assignRequest?: { roleId: string; requestId: number },
-    ) => RenderResult;
+      refreshToken?: number,
+    ) => React.ReactElement;
+    assignRole: (userId: string, roleId: string) => Promise<void>;
   }) => {
+    const renderCard: (
+      onRolesLoaded: (recordId: string, snapshot: EventRolesSnapshot) => void,
+      refreshToken?: number,
+    ) => RenderResult = (
+      onRolesLoaded: (recordId: string, snapshot: EventRolesSnapshot) => void,
+      refreshToken?: number,
+    ): RenderResult => {
+      return render(card.cardElement(onRolesLoaded, refreshToken));
+    };
+
     test("reports the roles and who holds them, stamped with its record", async () => {
       members = [
         card.member(COMMANDER_ROLE_ID, person(MAYA_ID, "Maya Chen", true)),
@@ -249,7 +281,7 @@ describe.each([
       ];
       const reports: Array<[string, EventRolesSnapshot]> = [];
 
-      card.renderCard((recordId: string, snapshot: EventRolesSnapshot) => {
+      renderCard((recordId: string, snapshot: EventRolesSnapshot) => {
         reports.push([recordId, snapshot]);
       });
 
@@ -295,7 +327,7 @@ describe.each([
     test("reports again after a change made in it, so the header follows at once", async () => {
       const reports: Array<EventRolesSnapshot> = [];
 
-      card.renderCard((_recordId: string, snapshot: EventRolesSnapshot) => {
+      renderCard((_recordId: string, snapshot: EventRolesSnapshot) => {
         reports.push(snapshot);
       });
 
@@ -339,7 +371,7 @@ describe.each([
 
       const reports: Array<EventRolesSnapshot> = [];
 
-      card.renderCard((_recordId: string, snapshot: EventRolesSnapshot) => {
+      renderCard((_recordId: string, snapshot: EventRolesSnapshot) => {
         reports.push(snapshot);
       });
 
@@ -352,39 +384,120 @@ describe.each([
       expect(reports).toEqual([]);
     });
 
-    test("on the overview it is the Assign target: an id and a focusable wrapper", async () => {
-      const view: RenderResult = card.renderCard(() => {}, "event-roles-card");
-
-      const wrapper: HTMLElement | null =
-        view.container.querySelector("#event-roles-card");
-
-      expect(wrapper).not.toBeNull();
-      expect(wrapper).toHaveAttribute("tabindex", "-1");
-      expect(wrapper).toContainElement(view.getByTestId("roles-card"));
-      // A focus ring for a keyboard user who arrives with Assign.
-      expect(wrapper!.className).toContain("focus-visible:ring-2");
-      expect(wrapper!.className).toContain("scroll-mt-32");
-    });
-
-    test("elsewhere (the Roles page) it draws no wrapper of its own", () => {
-      const view: RenderResult = card.renderCard(() => {});
+    test("draws no wrapper of its own: nothing takes the reader to it any more", () => {
+      const view: RenderResult = renderCard(() => {});
 
       expect(view.container.firstElementChild).toBe(
         view.getByTestId("roles-card"),
       );
-    });
-
-    test("hands the header's Assign to the card, which opens that role's picker", () => {
-      const request: { roleId: string; requestId: number } = {
-        roleId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
-        requestId: 1,
-      };
-
-      card.renderCard(() => {}, "event-roles-card", request);
-
+      expect(view.container.querySelector("[tabindex]")).toBeNull();
+      // Nor does the card take a request to open a picker from outside it.
       expect(
         memberRoleProps[memberRoleProps.length - 1]!["assignRequest"],
-      ).toBe(request);
+      ).toBeUndefined();
+    });
+
+    test("reads its roles again when the header gave one, and reports what it read", async () => {
+      const reports: Array<EventRolesSnapshot> = [];
+      const onRolesLoaded: (
+        recordId: string,
+        snapshot: EventRolesSnapshot,
+      ) => void = (_recordId: string, snapshot: EventRolesSnapshot): void => {
+        reports.push(snapshot);
+      };
+
+      const view: RenderResult = renderCard(onRolesLoaded, 0);
+
+      await waitFor(() => {
+        expect(reports).toHaveLength(1);
+      });
+
+      expect(reports[0]!.members).toEqual([]);
+
+      // The header gave the commander to Maya.
+      members = [
+        card.member(COMMANDER_ROLE_ID, person(MAYA_ID, "Maya Chen", false)),
+      ];
+      view.rerender(card.cardElement(onRolesLoaded, 1));
+
+      await waitFor(() => {
+        expect(reports).toHaveLength(2);
+      });
+
+      expect(
+        reports[1]!.members.map((member: { name: string }) => {
+          return member.name;
+        }),
+      ).toEqual(["Maya Chen"]);
+
+      // The same token again reads nothing new.
+      view.rerender(card.cardElement(onRolesLoaded, 1));
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 20);
+      });
+      expect(reports).toHaveLength(2);
+    });
+
+    test("gives a role as the card's own Assign does: one row naming the record, the project, the person and the role", async () => {
+      await card.assignRole(SAM_ID, COMMANDER_ROLE_ID);
+
+      expect(createMock).toHaveBeenCalledTimes(1);
+
+      const request: { model: Record<string, unknown>; modelType: unknown } =
+        createMock.mock.calls[0]![0] as {
+          model: Record<string, unknown>;
+          modelType: unknown;
+        };
+
+      expect(request.modelType).toBe(card.memberModel);
+      expect(String(request.model[card.recordField])).toBe(card.recordId);
+      expect(String(request.model["projectId"])).toBe(PROJECT_ID);
+      expect(String(request.model["userId"])).toBe(SAM_ID);
+      expect(String(request.model["incidentRoleId"])).toBe(COMMANDER_ROLE_ID);
+    });
+
+    test("giving a role is refused with the server's reason, and outside a project", async () => {
+      createMock.mockImplementation(() => {
+        return Promise.reject(new Error("This user already has this role."));
+      });
+
+      await expect(card.assignRole(SAM_ID, COMMANDER_ROLE_ID)).rejects.toThrow(
+        "This user already has this role.",
+      );
+
+      jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(null);
+
+      await expect(card.assignRole(SAM_ID, COMMANDER_ROLE_ID)).rejects.toThrow(
+        "Project ID not found",
+      );
+      expect(createMock).toHaveBeenCalledTimes(1);
+    });
+
+    test("the card's own Assign gives the role the same way", async () => {
+      renderCard(() => {});
+
+      await waitFor(() => {
+        expect(memberRoleProps.length).toBeGreaterThan(0);
+      });
+
+      const onAssignMember: (
+        userId: ObjectID,
+        roleId: ObjectID,
+      ) => Promise<void> = memberRoleProps[memberRoleProps.length - 1]![
+        "onAssignMember"
+      ] as (userId: ObjectID, roleId: ObjectID) => Promise<void>;
+
+      await onAssignMember(new ObjectID(SAM_ID), new ObjectID(SCRIBE_ROLE_ID));
+
+      const request: { model: Record<string, unknown>; modelType: unknown } =
+        createMock.mock.calls[0]![0] as {
+          model: Record<string, unknown>;
+          modelType: unknown;
+        };
+
+      expect(request.modelType).toBe(card.memberModel);
+      expect(String(request.model[card.recordField])).toBe(card.recordId);
+      expect(String(request.model["incidentRoleId"])).toBe(SCRIBE_ROLE_ID);
     });
   },
 );

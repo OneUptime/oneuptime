@@ -34622,5 +34622,9 @@
   "You do not have permission to change this alert's state.": "このアラートの状態を変更する権限がありません。",
   "You do not have permission to change this episode's state.": "このエピソードの状態を変更する権限がありません。",
   "You do not have permission to change this event's state.": "このイベントの状態を変更する権限がありません。",
-  "You do not have permission to change this incident's state.": "このインシデントの状態を変更する権限がありません。"
+  "You do not have permission to change this incident's state.": "このインシデントの状態を変更する権限がありません。",
+  "No people available.": "利用できるユーザーがいません。",
+  "You do not have permission to add owners.": "所有者を追加する権限がありません。",
+  "You do not have permission to add people as owners.": "ユーザーを所有者として追加する権限がありません。",
+  "You do not have permission to add teams as owners.": "チームを所有者として追加する権限がありません。"
 }

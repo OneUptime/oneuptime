@@ -34622,5 +34622,9 @@
   "You do not have permission to change this alert's state.": "Sie haben keine Berechtigung, den Status dieser Warnung zu ändern.",
   "You do not have permission to change this episode's state.": "Sie haben keine Berechtigung, den Status dieser Episode zu ändern.",
   "You do not have permission to change this event's state.": "Sie haben keine Berechtigung, den Status dieses Ereignisses zu ändern.",
-  "You do not have permission to change this incident's state.": "Sie haben keine Berechtigung, den Status dieses Vorfalls zu ändern."
+  "You do not have permission to change this incident's state.": "Sie haben keine Berechtigung, den Status dieses Vorfalls zu ändern.",
+  "No people available.": "Keine Personen verfügbar.",
+  "You do not have permission to add owners.": "Sie haben keine Berechtigung, Eigentümer hinzuzufügen.",
+  "You do not have permission to add people as owners.": "Sie haben keine Berechtigung, Personen als Eigentümer hinzuzufügen.",
+  "You do not have permission to add teams as owners.": "Sie haben keine Berechtigung, Teams als Eigentümer hinzuzufügen."
 }

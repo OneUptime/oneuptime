@@ -75,9 +75,8 @@ import useAiCardFold, {
 } from "../../../Components/AI/useAiCardFold";
 import IncidentAffectedResources from "./AffectedResources";
 import MonitorSummarySnapshotCard from "../../../Components/Monitor/MonitorSummarySnapshotCard";
-import IncidentMemberRoleAssignment, {
-  assignIncidentRole,
-} from "../../../Components/Incident/IncidentMemberRoleAssignment";
+import IncidentMemberRoleAssignment from "../../../Components/Incident/IncidentMemberRoleAssignment";
+import { assignIncidentRole } from "../../../Utils/EventRoleAssignment";
 import IncidentMember from "Common/Models/DatabaseModels/IncidentMember";
 import { OwnersChange } from "../../../Components/Owners/AddOwners";
 import { PeoplePickerOption } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";

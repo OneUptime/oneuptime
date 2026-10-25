@@ -4,9 +4,8 @@ import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolic
 import IncidentEpisodeFeedElement from "../../../Components/IncidentEpisode/IncidentEpisodeFeed";
 import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
 import PrivateRecordPublicNotes from "Common/Types/StatusPage/PrivateRecordPublicNotes";
-import IncidentEpisodeMemberRoleAssignment, {
-  assignIncidentEpisodeRole,
-} from "../../../Components/IncidentEpisode/IncidentEpisodeMemberRoleAssignment";
+import IncidentEpisodeMemberRoleAssignment from "../../../Components/IncidentEpisode/IncidentEpisodeMemberRoleAssignment";
+import { assignIncidentEpisodeRole } from "../../../Utils/EventRoleAssignment";
 import IncidentEpisodeRoleMember from "Common/Models/DatabaseModels/IncidentEpisodeRoleMember";
 import { PeoplePickerOption } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";

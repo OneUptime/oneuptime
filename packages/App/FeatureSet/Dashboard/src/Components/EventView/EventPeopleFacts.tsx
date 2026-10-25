@@ -423,10 +423,12 @@ export const OwnersFactValue: FunctionComponent<OwnersFactValueProps> = (
     }
 
     return (
-      <div data-testid="event-owners" className={VALUE_CLASS_NAME}>
-        {getAddControl("event-owners-add")}
+      <>
+        <div data-testid="event-owners" className={VALUE_CLASS_NAME}>
+          {getAddControl("event-owners-add")}
+        </div>
         {addList}
-      </div>
+      </>
     );
   }
 
@@ -435,41 +437,48 @@ export const OwnersFactValue: FunctionComponent<OwnersFactValueProps> = (
     MAX_HEADER_OWNERS,
   );
 
+  /*
+   * The list is the fragment's second child in both shapes - the empty
+   * place alone, and the owners with Add after them - so it stays open,
+   * with what it said, as the first owner takes the empty place's line.
+   */
   return (
-    <div data-testid="event-owners" className={VALUE_CLASS_NAME}>
-      {shown.visible.map((owner: ResourceOwnerEntry, index: number) => {
-        const key: string =
-          owner.kind === "team"
-            ? `team-${owner.team._id?.toString() || index}`
-            : `user-${owner.user._id?.toString() || index}`;
+    <>
+      <div data-testid="event-owners" className={VALUE_CLASS_NAME}>
+        {shown.visible.map((owner: ResourceOwnerEntry, index: number) => {
+          const key: string =
+            owner.kind === "team"
+              ? `team-${owner.team._id?.toString() || index}`
+              : `user-${owner.user._id?.toString() || index}`;
 
-        return (
-          <Person
-            key={key}
-            item={toOwnerAvatar(owner)}
-            dataTestId="event-owner"
-          />
-        );
-      })}
-      {shown.hiddenCount > 0 ? (
-        <AppLink to={props.ownersRoute} className={LINK_CLASS_NAME}>
-          {translator.translatePlural(
-            { one: "+{{count}} more", other: "+{{count}} more" },
-            shown.hiddenCount,
-          )}
-        </AppLink>
-      ) : (
-        <></>
-      )}
-      {/*
-       * The next owner's place, as the list's last line: the empty place
-       * and "Add", the same control as on a record nobody owns yet, so it
-       * reads as one to press on a phone too, where nothing shows under a
-       * pointer.
-       */}
-      {props.addOwners ? getAddControl("event-owners-add-more") : <></>}
+          return (
+            <Person
+              key={key}
+              item={toOwnerAvatar(owner)}
+              dataTestId="event-owner"
+            />
+          );
+        })}
+        {shown.hiddenCount > 0 ? (
+          <AppLink to={props.ownersRoute} className={LINK_CLASS_NAME}>
+            {translator.translatePlural(
+              { one: "+{{count}} more", other: "+{{count}} more" },
+              shown.hiddenCount,
+            )}
+          </AppLink>
+        ) : (
+          <></>
+        )}
+        {/*
+         * The next owner's place, as the list's last line: the empty place
+         * and "Add", the same control as on a record nobody owns yet, so it
+         * reads as one to press on a phone too, where nothing shows under a
+         * pointer.
+         */}
+        {props.addOwners ? getAddControl("event-owners-add-more") : <></>}
+      </div>
       {addList}
-    </div>
+    </>
   );
 };
 

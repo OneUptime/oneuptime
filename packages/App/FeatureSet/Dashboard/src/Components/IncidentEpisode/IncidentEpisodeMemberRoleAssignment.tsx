@@ -27,6 +27,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { CardHeaderLayout } from "Common/UI/Components/Card/Card";
 import { EventRolesSnapshot, toEventRoleMember } from "../../Utils/EventPeople";
+import { assignIncidentEpisodeRole } from "../../Utils/EventRoleAssignment";
 
 export interface ComponentProps {
   incidentEpisodeId: ObjectID;
@@ -50,38 +51,6 @@ export interface ComponentProps {
    */
   refreshToken?: number | undefined;
 }
-
-/*
- * Gives a role on the episode to one of the project's people: the card's
- * own Assign, and the overview header's, which gives the commander right
- * where it names them. Rejects with the server's reason.
- */
-export const assignIncidentEpisodeRole: (data: {
-  incidentEpisodeId: ObjectID;
-  userId: ObjectID;
-  roleId: ObjectID;
-}) => Promise<void> = async (data: {
-  incidentEpisodeId: ObjectID;
-  userId: ObjectID;
-  roleId: ObjectID;
-}): Promise<void> => {
-  const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-
-  if (!projectId) {
-    throw new Error("Project ID not found");
-  }
-
-  const member: IncidentEpisodeRoleMember = new IncidentEpisodeRoleMember();
-  member.incidentEpisodeId = data.incidentEpisodeId;
-  member.projectId = projectId;
-  member.userId = data.userId;
-  member.incidentRoleId = data.roleId;
-
-  await ModelAPI.create({
-    model: member,
-    modelType: IncidentEpisodeRoleMember,
-  });
-};
 
 const IncidentEpisodeMemberRoleAssignment: FunctionComponent<ComponentProps> = (
   props: ComponentProps,

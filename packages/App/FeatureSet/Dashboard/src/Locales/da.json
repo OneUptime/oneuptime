@@ -13431,7 +13431,7 @@
   "No other resources affected by this alert.": "No other resources affected by this alert.",
   "No other session from this person in the 30 days before this one": "No other session from this person in the 30 days before this one",
   "No owner team": "No owner team",
-  "No owners": "No owners",
+  "No owners": "Ingen ejere",
   "No owners.": "No owners.",
   "No page URL is known yet": "No page URL is known yet",
   "No page has fetched this application's replay policy yet.": "No page has fetched this application's replay policy yet.",
@@ -34622,5 +34622,9 @@
   "You do not have permission to change this alert's state.": "Du har ikke tilladelse til at ændre tilstanden for denne advarsel.",
   "You do not have permission to change this episode's state.": "Du har ikke tilladelse til at ændre tilstanden for denne episode.",
   "You do not have permission to change this event's state.": "Du har ikke tilladelse til at ændre tilstanden for denne planlagte vedligeholdelse.",
-  "You do not have permission to change this incident's state.": "Du har ikke tilladelse til at ændre tilstanden for denne hændelse."
+  "You do not have permission to change this incident's state.": "Du har ikke tilladelse til at ændre tilstanden for denne hændelse.",
+  "No people available.": "Ingen personer tilgængelige.",
+  "You do not have permission to add owners.": "Du har ikke tilladelse til at tilføje ejere.",
+  "You do not have permission to add people as owners.": "Du har ikke tilladelse til at tilføje personer som ejere.",
+  "You do not have permission to add teams as owners.": "Du har ikke tilladelse til at tilføje teams som ejere."
 }

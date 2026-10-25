@@ -24,7 +24,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * owners just by clicking on things, and it is basically combined." Its
  * "Add owner" list is now the people picker's own search list (Common's
  * PeopleSearchPopup), so it is driven here as a person would: what it shows,
- * what one click adds, what removing asks first, and what each sends.
+ * what one click adds, what removing asks first, and what each sends. The
+ * list is the shared Add owners list (AddOwnersPopup) that a record's
+ * header, a monitor's, an SLO's and a postmortem open too - one set of
+ * rules wherever an owner is added (AddOwnersPopup.test.tsx).
  */
 
 jest.mock("react-i18next", () => {
@@ -69,6 +72,8 @@ import User from "../../../Models/DatabaseModels/User";
 import Email from "../../../Types/Email";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
+import PermissionUtil from "../../../UI/Utils/Permission";
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const INCIDENT_ID: string = "22222222-2222-4222-8222-222222222221";
@@ -214,6 +219,8 @@ describe("OwnersCard", () => {
 
   afterEach(() => {
     cleanup();
+    // The permission snapshot a test held, never the next test's.
+    jest.restoreAllMocks();
   });
 
   test("shows the people and the teams who own it, in one row, counted", async () => {
@@ -464,6 +471,82 @@ describe("OwnersCard", () => {
     const dialog: HTMLElement = await openAddOwner();
 
     expect(optionNames(dialog)).toEqual([ADA, BOB, DATABASE, PLATFORM]);
+  });
+
+  test("says under the list what a pick did, by name", async () => {
+    renderCard();
+
+    const dialog: HTMLElement = await openAddOwner();
+
+    fireEvent.click(
+      within(dialog)
+        .getAllByRole("option")
+        .find((option: HTMLElement): boolean => {
+          return option.getAttribute("data-id") === DATABASE;
+        })!,
+    );
+
+    const done: HTMLElement = await within(dialog).findByTestId(
+      "people-search-notice-done",
+    );
+
+    expect(done).toHaveTextContent("Added Database.");
+  });
+
+  test("a reader who may add neither people nor teams finds Add owner locked, saying why", async () => {
+    jest
+      .spyOn(PermissionUtil, "getAllPermissions")
+      .mockReturnValue([Permission.IncidentViewer]);
+    jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue(null);
+
+    renderCard();
+
+    await screen.findByRole("button", { name: "Remove Ada Lovelace" });
+
+    // The "+" after the avatars: still there, locked, saying why.
+    const locked: HTMLElement = screen.getByTestId("owners-add-locked");
+    const button: HTMLElement = within(locked).getByRole("button", {
+      name: "Add owner",
+    });
+
+    expect(button).toBeDisabled();
+    expect(button).not.toHaveAttribute("aria-haspopup");
+    expect(locked).toHaveAttribute("tabindex", "0");
+
+    fireEvent.click(locked);
+    expect(screen.queryByRole("dialog", { name: "Add owner" })).toBeNull();
+
+    // With nobody owning it, the empty state's Add owner is locked the same way.
+    cleanup();
+    ownerUserRows = [];
+    ownerTeamRows = [];
+    renderCard();
+
+    expect(await screen.findByText("No owners yet")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("owners-add-locked")).getByRole("button", {
+        name: "Add owner",
+      }),
+    ).toBeDisabled();
+  });
+
+  test("a reader who may add people but not teams finds Teams locked in the list, with why", async () => {
+    jest
+      .spyOn(PermissionUtil, "getAllPermissions")
+      .mockReturnValue([Permission.CreateIncidentOwnerUser]);
+    jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue(null);
+
+    renderCard();
+
+    const dialog: HTMLElement = await openAddOwner();
+
+    // Ada owns it: Bob is the person left; no team is offered.
+    expect(optionNames(dialog)).toEqual([BOB]);
+    expect(
+      within(dialog).getByTestId("people-search-locked-kind"),
+    ).toHaveTextContent(
+      "You do not have permission to add teams as owners.",
+    );
   });
 
   test("says what owning means where it is not 'notified about changes' - a template's owners", async () => {

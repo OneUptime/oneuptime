@@ -145,19 +145,19 @@ const AddOwnersPopup: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement | null => {
   const translator: Translator = useTranslator();
-  const isOpen: boolean = props.popup.isPopupOpen;
   const resourceIdString: string = props.target.resourceId.toString();
 
   /*
-   * Who was added from this opening of the list, left out at once - before
-   * the place has read its owners again - so a row just added cannot be
-   * picked a second time while that read is on its way.
+   * Who was added to this record from here, left out at once - before the
+   * place has read its owners again - so a row just added cannot be picked
+   * a second time while that read is on its way, nor after a read that
+   * failed. Forgotten when the place shows another record.
    */
   const [addedKeys, setAddedKeys] = useState<Set<string>>(new Set<string>());
 
   useEffect(() => {
     setAddedKeys(new Set<string>());
-  }, [isOpen, resourceIdString]);
+  }, [resourceIdString]);
 
   const selectedKeys: Set<string> = useMemo((): Set<string> => {
     return new Set<string>([...props.ownerKeys, ...addedKeys]);

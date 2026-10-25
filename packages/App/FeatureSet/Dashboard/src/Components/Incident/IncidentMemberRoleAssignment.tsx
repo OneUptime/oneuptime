@@ -27,6 +27,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { CardHeaderLayout } from "Common/UI/Components/Card/Card";
 import { EventRolesSnapshot, toEventRoleMember } from "../../Utils/EventPeople";
+import { assignIncidentRole } from "../../Utils/EventRoleAssignment";
 
 export interface ComponentProps {
   incidentId: ObjectID;
@@ -50,38 +51,6 @@ export interface ComponentProps {
    */
   refreshToken?: number | undefined;
 }
-
-/*
- * Gives a role on the incident to one of the project's people: the card's
- * own Assign, and the overview header's, which gives the commander right
- * where it names them. Rejects with the server's reason.
- */
-export const assignIncidentRole: (data: {
-  incidentId: ObjectID;
-  userId: ObjectID;
-  roleId: ObjectID;
-}) => Promise<void> = async (data: {
-  incidentId: ObjectID;
-  userId: ObjectID;
-  roleId: ObjectID;
-}): Promise<void> => {
-  const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-
-  if (!projectId) {
-    throw new Error("Project ID not found");
-  }
-
-  const member: IncidentMember = new IncidentMember();
-  member.incidentId = data.incidentId;
-  member.projectId = projectId;
-  member.userId = data.userId;
-  member.incidentRoleId = data.roleId;
-
-  await ModelAPI.create({
-    model: member,
-    modelType: IncidentMember,
-  });
-};
 
 const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
   props: ComponentProps,

@@ -34622,5 +34622,9 @@
   "You do not have permission to change this alert's state.": "You do not have permission to change this alert's state.",
   "You do not have permission to change this episode's state.": "You do not have permission to change this episode's state.",
   "You do not have permission to change this event's state.": "You do not have permission to change this event's state.",
-  "You do not have permission to change this incident's state.": "You do not have permission to change this incident's state."
+  "You do not have permission to change this incident's state.": "You do not have permission to change this incident's state.",
+  "No people available.": "No people available.",
+  "You do not have permission to add owners.": "You do not have permission to add owners.",
+  "You do not have permission to add people as owners.": "You do not have permission to add people as owners.",
+  "You do not have permission to add teams as owners.": "You do not have permission to add teams as owners."
 }

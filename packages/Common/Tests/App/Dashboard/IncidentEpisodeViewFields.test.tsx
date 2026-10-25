@@ -55,6 +55,8 @@ const getItemMock: MockFunction = getJestMockFunction();
 const getListMock: MockFunction = getJestMockFunction();
 const getCommonHeadersMock: MockFunction = getJestMockFunction();
 const loggerErrorMock: MockFunction = getJestMockFunction();
+// The header's Assign gives the role with a create, as the roles card does.
+const createMock: MockFunction = getJestMockFunction();
 
 // The last props the stubbed header was rendered with.
 const changeStateProps: { current: Record<string, any> | null } = {
@@ -83,6 +85,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       },
       getList: (...args: Array<any>) => {
         return getListMock(...args);
+      },
+      create: (...args: Array<any>) => {
+        return createMock(...args);
       },
       getCommonHeaders: (...args: Array<any>) => {
         return getCommonHeadersMock(...args);
@@ -184,7 +189,9 @@ import IconProp from "../../../Types/Icon/IconProp";
 import { EventStatusFact } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventStatusPanel";
 import { EventRolesSnapshot } from "../../../../App/FeatureSet/Dashboard/src/Utils/EventPeople";
 import { getEventStartTileText } from "../../../../App/FeatureSet/Dashboard/src/Utils/EventOverview";
-import { EVENT_ROLES_CARD_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventPeopleFacts";
+import IncidentEpisodeRoleMember from "../../../Models/DatabaseModels/IncidentEpisodeRoleMember";
+import { PeoplePickerOption } from "../../../UI/Components/PeoplePicker/PeoplePickerTypes";
+import { PeoplePickerKind } from "../../../UI/Components/PeoplePicker/PeoplePickerTypes";
 
 const pageProps: PageComponentProps = {
   pageRoute: new Route("/incidents"),
@@ -477,6 +484,8 @@ beforeEach((): void => {
   getItemMock.mockReset();
   getListMock.mockReset();
   getCommonHeadersMock.mockReset();
+  createMock.mockReset();
+  createMock.mockResolvedValue({} as never);
   loggerErrorMock.mockReset();
   changeStateProps.current = null;
   changeStateHistory.length = 0;
@@ -1226,8 +1235,14 @@ describe("Incident Episode overview: who runs it, and what happened", () => {
       expect(call[0].query.incidentEpisodeId.toString()).toBe(EPISODE_ID);
     }
 
-    // The roles card is where Assign goes, and reports who holds what.
-    expect(rolesProps.current?.["id"]).toBe(EVENT_ROLES_CARD_ID);
+    /*
+     * The roles card reports who holds what; nothing takes the reader to it
+     * any more (the header's Assign gives the role where it is), and it
+     * reads its roles again when the header gave one.
+     */
+    expect(rolesProps.current?.["id"]).toBeUndefined();
+    expect(rolesProps.current?.["assignRequest"]).toBeUndefined();
+    expect(rolesProps.current?.["refreshToken"]).toBe(0);
 
     act((): void => {
       rolesProps.current!["onRolesLoaded"](
@@ -1256,7 +1271,7 @@ describe("Incident Episode overview: who runs it, and what happened", () => {
     expectNoCrash();
   });
 
-  test("an open episode with nobody in command offers Assign, which opens the commander's picker in the roles card", async () => {
+  test("an open episode with nobody in command offers Assign, which gives the role right there and names the person at once", async () => {
     await renderPage({ state: buildState("Created", new Color("#4b5563")) });
 
     act((): void => {
@@ -1268,8 +1283,6 @@ describe("Incident Episode overview: who runs it, and what happened", () => {
     )[0]!;
 
     expect(commander.label).toBe("Incident Commander");
-    // Nothing asked of the roles card yet.
-    expect(rolesProps.current!["assignRequest"]).toBeUndefined();
 
     const rendered: ReturnType<typeof render> = render(<>{commander.value}</>);
     const assign: HTMLElement = within(rendered.container).getByRole("button", {
@@ -1278,16 +1291,124 @@ describe("Incident Episode overview: who runs it, and what happened", () => {
 
     // The empty place and Assign say it: no "Not assigned" beside them.
     expect(within(rendered.container).queryByText("Not assigned")).toBeNull();
+    // It opens a list right where it is, not the roles card.
+    expect(assign).toHaveAttribute("aria-haspopup", "dialog");
+    rendered.unmount();
+
+    const onAssign: (person: PeoplePickerOption) => Promise<void> = (
+      (commander.value as React.ReactElement).props as {
+        onAssign: (person: PeoplePickerOption) => Promise<void>;
+      }
+    ).onAssign;
+
+    await act(async () => {
+      await onAssign({
+        kind: PeoplePickerKind.User,
+        id: "99999999-9999-4999-8999-999999999992",
+        name: "Jordan Patel",
+        description: "jordan.patel@acme-commerce.example",
+      });
+    });
+
+    // The episode's role row: the episode, the project, the person, the role.
+    expect(createMock).toHaveBeenCalledTimes(1);
+
+    const request: { model: Record<string, unknown>; modelType: unknown } =
+      createMock.mock.calls[0]![0] as {
+        model: Record<string, unknown>;
+        modelType: unknown;
+      };
+
+    expect(request.modelType).toBe(IncidentEpisodeRoleMember);
+    expect(String(request.model["incidentEpisodeId"])).toBe(EPISODE_ID);
+    expect(String(request.model["projectId"])).toBe(PROJECT_ID);
+    expect(String(request.model["userId"])).toBe(
+      "99999999-9999-4999-8999-999999999992",
+    );
+    expect(String(request.model["incidentRoleId"])).toBe(
+      "88888888-8888-4888-8888-888888888881",
+    );
+
+    // Named at once, before the roles card has read again...
+    const named: EventStatusFact = (
+      changeStateProps.current!["peopleFacts"] as Array<EventStatusFact>
+    )[0]!;
+    const namedView: ReturnType<typeof render> = render(<>{named.value}</>);
+
+    expect(
+      within(namedView.container)
+        .getAllByTestId("event-person-name")
+        .map((element: HTMLElement): string => {
+          return element.textContent || "";
+        }),
+    ).toEqual(["Jordan Patel"]);
+    namedView.unmount();
+    // ...which it is told to do.
+    expect(rolesProps.current!["refreshToken"]).toBe(1);
+  });
+
+  test("a refused Assign leaves the commander as it was, and the roles card unread", async () => {
+    createMock.mockRejectedValue(new Error("This user already has this role."));
+    await renderPage({ state: buildState("Created", new Color("#4b5563")) });
 
     act((): void => {
-      fireEvent.click(assign);
+      rolesProps.current!["onRolesLoaded"](EPISODE_ID, commanderReport(null));
     });
 
-    // The roles card is asked for the episode's primary role's picker.
-    expect(rolesProps.current!["assignRequest"]).toEqual({
-      roleId: "88888888-8888-4888-8888-888888888881",
-      requestId: 1,
+    const onAssign: (person: PeoplePickerOption) => Promise<void> = (
+      (
+        (changeStateProps.current!["peopleFacts"] as Array<EventStatusFact>)[0]!
+          .value as React.ReactElement
+      ).props as {
+        onAssign: (person: PeoplePickerOption) => Promise<void>;
+      }
+    ).onAssign;
+
+    let refusal: unknown = null;
+
+    await act(async () => {
+      try {
+        await onAssign({
+          kind: PeoplePickerKind.User,
+          id: "99999999-9999-4999-8999-999999999992",
+          name: "Jordan Patel",
+        });
+      } catch (err) {
+        refusal = err;
+      }
     });
+
+    // The list under Assign says why (EventPeopleFacts.test.tsx).
+    expect(String(refusal)).toContain("This user already has this role.");
+    expect(rolesProps.current!["refreshToken"]).toBe(0);
+    expect(
+      (
+        (
+          (changeStateProps.current!["peopleFacts"] as Array<EventStatusFact>)[0]!
+            .value as React.ReactElement
+        ).props as { members: Array<unknown> }
+      ).members,
+    ).toEqual([]);
+  });
+
+  test("a reader who may not give a role is offered no Assign: the header says Not assigned", async () => {
+    jest
+      .spyOn(PermissionUtil, "getAllPermissions")
+      .mockReturnValue([Permission.IncidentViewer]);
+
+    await renderPage({ state: buildState("Created", new Color("#4b5563")) });
+
+    act((): void => {
+      rolesProps.current!["onRolesLoaded"](EPISODE_ID, commanderReport(null));
+    });
+
+    const commander: EventStatusFact = (
+      changeStateProps.current!["peopleFacts"] as Array<EventStatusFact>
+    )[0]!;
+    const rendered: ReturnType<typeof render> = render(<>{commander.value}</>);
+
+    expect(rendered.container).toHaveTextContent(/^Not assigned$/);
+    expect(within(rendered.container).queryByRole("button")).toBeNull();
   });
 
   test("what happened leads the page, with the episode's own description and root cause", async () => {

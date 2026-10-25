@@ -51,6 +51,12 @@ import {
   resolveSection,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/OverviewSection";
 import Team from "../../../Models/DatabaseModels/Team";
+import TeamMember from "../../../Models/DatabaseModels/TeamMember";
+import User from "../../../Models/DatabaseModels/User";
+import MonitorOwnerUser from "../../../Models/DatabaseModels/MonitorOwnerUser";
+import { OwnersChange } from "../../../../App/FeatureSet/Dashboard/src/Components/Owners/AddOwners";
+import Email from "../../../Types/Email";
+import Name from "../../../Types/Name";
 import Route from "../../../Types/API/Route";
 import OneUptimeDate from "../../../Types/Date";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -1025,17 +1031,113 @@ describe("MonitorOverviewHero layout", () => {
   });
 
   describe("owners", () => {
-    test("no owners says so and links to the Owners page", () => {
+    test("no owners says so, and Add owners opens the Add owners list right there - not the Owners page", async () => {
       renderHero({ owners: LOADED_NO_OWNERS });
 
       const owners: HTMLElement = screen.getByTestId(
         "monitor-overview-fact-owners",
       );
       expect(owners).toHaveTextContent("No owners");
-      expect(
-        within(owners).getByRole("link", { name: "Add owners" }),
-      ).toHaveAttribute("href", routeFor(PageMap.MONITOR_VIEW_OWNERS));
+      expect(within(owners).queryByRole("link")).toBeNull();
       expect(owners).not.toHaveTextContent("Unavailable");
+
+      const add: HTMLElement = within(owners).getByRole("button", {
+        name: "Add owners",
+      });
+
+      expect(add).toHaveAttribute("data-testid", "monitor-overview-add-owners");
+      expect(add).toHaveAttribute("aria-haspopup", "dialog");
+      expect(add).toHaveAttribute("aria-expanded", "false");
+
+      await act(async () => {
+        fireEvent.click(add);
+      });
+
+      expect(
+        screen.getByRole("dialog", { name: "Add owners" }),
+      ).toBeInTheDocument();
+      expect(add).toHaveAttribute("aria-expanded", "true");
+    });
+
+    test("a person picked becomes an owner of this monitor, and the page is told to read the owners again", async () => {
+      const jordan: User = new User();
+      jordan._id = "80000000-0000-4000-8000-000000000003";
+      jordan.name = new Name("Jordan Patel");
+      jordan.email = new Email("jordan.patel@acme-commerce.example");
+
+      getJestSpyOn(ModelAPI, "getList").mockImplementation(
+        async (request: unknown): Promise<unknown> => {
+          if ((request as { modelType: unknown }).modelType === TeamMember) {
+            const member: TeamMember = new TeamMember();
+            member.user = jordan;
+            return { data: [member], count: 1, skip: 0, limit: 25 };
+          }
+          return { data: [], count: 0, skip: 0, limit: 25 };
+        },
+      );
+      const create: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+        ModelAPI,
+        "create",
+      ).mockImplementation(async (): Promise<unknown> => {
+        return {};
+      });
+      window.history.replaceState(
+        {},
+        "",
+        "/dashboard/10000000-0000-4000-8000-000000000001/monitors",
+      );
+      const changes: Array<OwnersChange> = [];
+
+      renderHero({
+        owners: LOADED_NO_OWNERS,
+        onOwnersChanged: (change: OwnersChange): void => {
+          changes.push(change);
+        },
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Add owners" }));
+      });
+
+      const list: HTMLElement = screen.getByRole("dialog", {
+        name: "Add owners",
+      });
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      await act(async () => {
+        fireEvent.click(within(list).getByText("Jordan Patel"));
+      });
+
+      expect(create).toHaveBeenCalledTimes(1);
+
+      const request: { model: Record<string, unknown>; modelType: unknown } =
+        create.mock.calls[0]![0] as {
+          model: Record<string, unknown>;
+          modelType: unknown;
+        };
+
+      expect(request.modelType).toBe(MonitorOwnerUser);
+      expect(String(request.model["monitorId"])).toBe(MONITOR_ID.toString());
+      expect(String(request.model["userId"])).toBe(jordan._id);
+      expect(changes).toEqual([{ wasAdded: true }]);
+      expect(within(list).getByText("Added Jordan Patel.")).toBeInTheDocument();
+    });
+
+    test("a reader who may not add owners reads No owners, and nothing offers to add", () => {
+      statusEventGate = { isAllowed: false };
+
+      renderHero({ owners: LOADED_NO_OWNERS });
+
+      const owners: HTMLElement = screen.getByTestId(
+        "monitor-overview-fact-owners",
+      );
+
+      expect(owners).toHaveTextContent(/^OwnersNo owners$/);
+      expect(within(owners).queryByRole("button")).toBeNull();
+      expect(within(owners).queryByRole("link")).toBeNull();
     });
 
     test("owners that could not be read are unavailable, with no invitation to add more", () => {
@@ -1089,6 +1191,35 @@ describe("MonitorOverviewHero layout", () => {
       expect(
         screen.queryByTestId("monitor-overview-owners-partial"),
       ).toBeNull();
+      // After the avatars, the next owner's place: a dashed circle that adds.
+      const place: HTMLElement = within(owners).getByRole("button", {
+        name: "Add owners",
+      });
+      expect(place).toHaveAttribute(
+        "data-testid",
+        "monitor-overview-add-more-owners",
+      );
+      expect(place).toHaveClass("h-6", "w-6", "rounded-full", "border-dashed");
+    });
+
+    test("owners, to a reader who may not add one: the avatars alone", () => {
+      statusEventGate = { isAllowed: false };
+      const team: Team = new Team();
+      team._id = "5f8b7c1e2d3a4b5c6d7e8f91";
+      team.name = "Payments";
+
+      renderHero({
+        owners: resolveSection<Array<ResourceOwnerEntry>>({
+          value: [{ kind: "team", team: team }],
+          subjectId: MONITOR_ID.toString(),
+        }),
+      });
+
+      expect(
+        within(screen.getByTestId("monitor-overview-fact-owners")).queryByRole(
+          "button",
+        ),
+      ).toBeNull();
     });
 
     test("owners from a partial or failed read are shown, but not as the whole list", () => {
@@ -1117,6 +1248,13 @@ describe("MonitorOverviewHero layout", () => {
       expect(
         screen.getByTestId("monitor-overview-fact-owners"),
       ).toContainElement(note);
+      // A list that may be incomplete offers no place to add more.
+      expect(
+        within(screen.getByTestId("monitor-overview-fact-owners")).queryByRole(
+          "button",
+          { name: "Add owners" },
+        ),
+      ).toBeNull();
     });
   });
 

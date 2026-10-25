@@ -226,32 +226,39 @@ const PostmortemOwners: FunctionComponent<ComponentProps> = (
     );
   }
 
+  /*
+   * The list is the fragment's second child whatever the line shows, so it
+   * stays open, with what it said, as the first owner takes "No owners
+   * yet."'s place.
+   */
   if (props.owners.length === 0) {
     return (
-      <div
-        className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
-        data-testid="postmortem-owners"
-      >
-        <span className="text-gray-500">
-          {translator.translateText(POSTMORTEM_NO_OWNERS)}
-        </span>
-        {props.addOwners ? (
-          <div ref={popup.anchorRef} className="inline-flex">
-            <button
-              type="button"
-              data-testid="postmortem-add-owners"
-              {...getAnchoredPopupTriggerProps(popup)}
-              className="inline-flex items-center gap-1 rounded-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline underline-offset-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-            >
-              <Icon icon={IconProp.Add} className="h-4 w-4 flex-shrink-0" />
-              <span>{translator.translateText(ADD_OWNERS_TEXT)}</span>
-            </button>
-          </div>
-        ) : (
-          <></>
-        )}
+      <>
+        <div
+          className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
+          data-testid="postmortem-owners"
+        >
+          <span className="text-gray-500">
+            {translator.translateText(POSTMORTEM_NO_OWNERS)}
+          </span>
+          {props.addOwners ? (
+            <div ref={popup.anchorRef} className="inline-flex">
+              <button
+                type="button"
+                data-testid="postmortem-add-owners"
+                {...getAnchoredPopupTriggerProps(popup)}
+                className="inline-flex items-center gap-1 rounded-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline underline-offset-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              >
+                <Icon icon={IconProp.Add} className="h-4 w-4 flex-shrink-0" />
+                <span>{translator.translateText(ADD_OWNERS_TEXT)}</span>
+              </button>
+            </div>
+          ) : (
+            <></>
+          )}
+        </div>
         {addList}
-      </div>
+      </>
     );
   }
 
@@ -272,22 +279,24 @@ const PostmortemOwners: FunctionComponent<ComponentProps> = (
       : named.join(", ");
 
   return (
-    <div
-      className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm"
-      data-testid="postmortem-owners"
-    >
-      <OwnersCell owners={props.owners} maxVisible={NAMED_OWNERS} />
-      <span className="min-w-0 truncate text-gray-700">{namesText}</span>
-      {props.addOwners ? (
-        <AddOwnersPlaceButton
-          popup={popup}
-          dataTestId="postmortem-add-more-owners"
-        />
-      ) : (
-        <></>
-      )}
+    <>
+      <div
+        className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm"
+        data-testid="postmortem-owners"
+      >
+        <OwnersCell owners={props.owners} maxVisible={NAMED_OWNERS} />
+        <span className="min-w-0 truncate text-gray-700">{namesText}</span>
+        {props.addOwners ? (
+          <AddOwnersPlaceButton
+            popup={popup}
+            dataTestId="postmortem-add-more-owners"
+          />
+        ) : (
+          <></>
+        )}
+      </div>
       {addList}
-    </div>
+    </>
   );
 };
 
