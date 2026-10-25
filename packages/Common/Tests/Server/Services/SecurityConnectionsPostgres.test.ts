@@ -54,7 +54,7 @@ import { DataSource } from "typeorm";
  * SECURITY_CONNECTIONS_TEST_DATABASE_HOST / _PORT (default localhost:5400,
  * Scripts/Dev/docker-compose.dev.yml).
  */
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_SECURITY_CONNECTIONS_TESTS"] === "true"
     ? describe
     : describe.skip;
