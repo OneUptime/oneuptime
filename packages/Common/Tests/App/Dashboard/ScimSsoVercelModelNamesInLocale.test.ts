@@ -121,16 +121,19 @@ function modelTexts(model: BaseModel): Array<string> {
 describe("the SCIM, project SSO and Vercel Marketplace models", () => {
   const english: LocaleFile = readLocale("en");
 
-  test.each(MODELS)("$name's words are keys of en.json", ({ model }) => {
-    const texts: Array<string> = modelTexts(model);
+  test.each(MODELS)(
+    "$name's words are keys of en.json",
+    ({ model }: { name: string; model: BaseModel }) => {
+      const texts: Array<string> = modelTexts(model);
 
-    // Names, a description and at least a few column titles.
-    expect(texts.length).toBeGreaterThanOrEqual(5);
+      // Names, a description and at least a few column titles.
+      expect(texts.length).toBeGreaterThanOrEqual(5);
 
-    for (const text of texts) {
-      expect({ text, key: english[text] }).toEqual({ text, key: text });
-    }
-  });
+      for (const text of texts) {
+        expect({ text, key: english[text] }).toEqual({ text, key: text });
+      }
+    },
+  );
 
   test.each(
     MODELS.flatMap(
