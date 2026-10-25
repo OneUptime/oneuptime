@@ -104,7 +104,7 @@ curl http://localhost:3876/status
 | --- | --- |
 | `This OneUptime server does not have the Kubernetes AI agent API` | Upgrade OneUptime, or install the chart version that matches your server. |
 | `OneUptime refused the agent's API key` | Check `oneuptime.apiKey`: an unpinned telemetry ingestion key of the project. |
-| `Waiting for this cluster's previous AI agent to go offline` | Normal for a minute after a pod restart. If it stays, another install uses the same `clusterName`. |
+| `Waiting for this cluster's previous AI agent to go offline` | Normal after a pod that did not sign off (an OOM kill, a pod deleted with `--force`, a lost node): the new one is let in once the old one has sent nothing for 40 seconds. If it stays, another install uses the same `clusterName`. |
 | `Could not reach OneUptime` | Check `oneuptime.url`, network policies and, behind a proxy, `aiAgent.extraEnv`. |
 | `The proxy settings are not valid` | Fix `HTTPS_PROXY` / `HTTP_PROXY` in `aiAgent.extraEnv`, e.g. `http://proxy.example.com:3128`. |
 | A fix is `Refused by the Kubernetes AI agent: … installed read-only` | Upgrade the chart with `--set aiAgent.remediation.enabled=true`. |

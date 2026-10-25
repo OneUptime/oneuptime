@@ -38,6 +38,7 @@ import {
   RESOURCE_AI_AGENT_INGEST_PATH,
   RESOURCE_AI_AGENT_RESOURCE_NAME_ENV,
   RESOURCE_AI_AGENT_RESOURCE_TYPE_ENV,
+  RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS,
   RESOURCE_AI_ALLOW_WRITES_ENV,
   RESOURCE_AI_WRITE_TARGETS_ENV,
   ResourceCommandTier,
@@ -2148,12 +2149,15 @@ describe("Infrastructure AI Agents docs", (): void => {
       );
     });
 
-    it("says how long a replacement waits after an agent that never signed off: the alive window", (): void => {
-      const minutes: string = `${RESOURCE_AI_AGENT_ALIVE_WINDOW_IN_MINUTES} minutes`;
+    it("says how long a replacement waits after an agent that never signed off: until the old one has been silent for the takeover window", (): void => {
+      const seconds: string = `${RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS} seconds`;
+      const aliveWindow: string = `${RESOURCE_AI_AGENT_ALIVE_WINDOW_IN_MINUTES} minutes`;
 
       /*
-       * An agent that stopped cleanly signed off; one that crashed or was
-       * killed counts as online until its last heartbeat is this old.
+       * An agent that stopped cleanly signed off; one that crashed, was
+       * killed or was removed with rm -f is taken over once it has sent
+       * nothing for the takeover window — not the alive window it still
+       * counts as online for.
        */
       for (const [source, text] of [
         [PAGE, page],
@@ -2167,15 +2171,24 @@ describe("Infrastructure AI Agents docs", (): void => {
 
         expect({
           source,
-          window: row.includes(minutes),
+          takeover: row.includes(`sent nothing for ${seconds}`),
+          aliveWindow: row.includes(aliveWindow),
           aMinute: A_MINUTE.test(row),
-        }).toEqual({ source, window: true, aMinute: false });
+        }).toEqual({
+          source,
+          takeover: true,
+          aliveWindow: false,
+          aMinute: false,
+        });
       }
 
       const flat: string = page.replace(/\s+/g, " ");
 
       expect(flat).not.toContain("which takes about a minute");
-      expect(flat).toContain(`has been quiet for ${minutes}`);
+      expect(flat).not.toContain(`has been quiet for ${aliveWindow}`);
+      expect(flat).toContain(
+        `the replacement takes over once the old one has sent nothing for ${seconds} after the first refusal`,
+      );
     });
 
     it("sends the Host AI agent's operator to /status for what the AI agent page does not show", (): void => {

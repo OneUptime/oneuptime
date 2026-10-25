@@ -217,7 +217,7 @@ docker compose exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/st
 | `ONEUPTIME_AI_AGENT_RESOURCE_TYPE is not set` (or another required setting) | Set it in the `.env` the agent shares with the collector, then `docker compose up -d`. |
 | `This OneUptime server does not have the resource AI agent API` | Upgrade OneUptime, or run the image version that matches your server. |
 | `OneUptime refused the agent's API key` | Use an unpinned telemetry ingestion key of the project. |
-| `Waiting for this <resource>'s previous AI agent to go offline` | The old container did not sign off (it crashed or was killed), so OneUptime counts it online until it has been quiet for 5 minutes; after a clean stop the new one is let in at once. If it lasts longer than 5 minutes, another agent uses the same identity. |
+| `Waiting for this <resource>'s previous AI agent to go offline` | The old container did not sign off (it crashed, or was killed or removed with `docker rm -f`), so OneUptime lets the new one in once the old one has sent nothing for 40 seconds; after a clean stop the new one is let in at once. If it lasts longer than that, another agent uses the same identity. |
 | `Another AI agent has been online as this <resource> … for over 10 minutes` | Two agents register with the same identity (often the collector's default name). Give each resource its own name on the collector and the agent, or stop the other agent; until then this one asks every 5 minutes. |
 | `… the collector's default …` warning | Give the resource a unique name on the collector and the agent. |
 | `The agent cannot reach this <resource> right now` | Check the socket mount, address, credentials or keyring the error names. |
