@@ -154,33 +154,134 @@ export function dependentsOf(
   );
 }
 
-function releaseParts(version: string): Array<number> {
-  return (version.split("-")[0] || "")
-    .split(".")
-    .map((part: string): number => {
+const NUMERIC_IDENTIFIER: RegExp = /^\d+$/;
+
+interface VersionParts {
+  // Major, minor and patch.
+  release: Array<number>;
+  // "7.1.0-beta.1": ["beta", 1]. Empty for a release.
+  prerelease: Array<string | number>;
+}
+
+// A version's parts as semver orders them; build metadata ("+...") orders nothing.
+function versionParts(version: string): VersionParts {
+  const withoutBuild: string = version.split("+")[0] || "";
+  const dash: number = withoutBuild.indexOf("-");
+  const release: string =
+    dash === -1 ? withoutBuild : withoutBuild.slice(0, dash);
+  const prerelease: string = dash === -1 ? "" : withoutBuild.slice(dash + 1);
+
+  return {
+    release: release.split(".").map((part: string): number => {
       return Number(part);
-    });
+    }),
+    prerelease: prerelease
+      ? prerelease.split(".").map((identifier: string): string | number => {
+          return NUMERIC_IDENTIFIER.test(identifier)
+            ? Number(identifier)
+            : identifier;
+        })
+      : [],
+  };
+}
+
+function compareIdentifiers(a: string | number, b: string | number): number {
+  // Numeric identifiers come before alphanumeric ones, and compare as numbers.
+  if (typeof a === "number" && typeof b === "number") {
+    return Math.sign(a - b);
+  }
+
+  if (typeof a === "number") {
+    return -1;
+  }
+
+  if (typeof b === "number") {
+    return 1;
+  }
+
+  if (a === b) {
+    return 0;
+  }
+
+  return a < b ? -1 : 1;
 }
 
 /*
- * Whether `version` is `minimum` or later, by major, minor and patch (a
- * prerelease of a version counts as that version - the advisories these
- * tests read name release versions).
+ * semver's order of two versions: below 0 when `a` comes first, 0 when they
+ * are the same version, above 0 when `b` does. A prerelease comes before its
+ * release (7.1.0-beta.1 is before 7.1.0), so an advisory fixed in 7.1.0 still
+ * covers 7.1.0's betas.
  */
-export function isVersionAtLeast(version: string, minimum: string): boolean {
-  const have: Array<number> = releaseParts(version);
-  const need: Array<number> = releaseParts(minimum);
+export function compareVersions(a: string, b: string): number {
+  const left: VersionParts = versionParts(a);
+  const right: VersionParts = versionParts(b);
 
   for (let index: number = 0; index < 3; index++) {
-    const a: number = have[index] ?? 0;
-    const b: number = need[index] ?? 0;
+    const difference: number =
+      (left.release[index] ?? 0) - (right.release[index] ?? 0);
 
-    if (a !== b) {
-      return a > b;
+    if (difference !== 0) {
+      return Math.sign(difference);
     }
   }
 
-  return true;
+  if (left.prerelease.length === 0 || right.prerelease.length === 0) {
+    // A release is after its prereleases.
+    return Math.sign(right.prerelease.length - left.prerelease.length);
+  }
+
+  const length: number = Math.max(
+    left.prerelease.length,
+    right.prerelease.length,
+  );
+
+  for (let index: number = 0; index < length; index++) {
+    const leftIdentifier: string | number | undefined = left.prerelease[index];
+    const rightIdentifier: string | number | undefined =
+      right.prerelease[index];
+
+    // Of two prereleases that agree as far as both go, the shorter is first.
+    if (leftIdentifier === undefined) {
+      return -1;
+    }
+
+    if (rightIdentifier === undefined) {
+      return 1;
+    }
+
+    const order: number = compareIdentifiers(leftIdentifier, rightIdentifier);
+
+    if (order !== 0) {
+      return order;
+    }
+  }
+
+  return 0;
+}
+
+// Whether `version` is `minimum` or later, in semver's order.
+export function isVersionAtLeast(version: string, minimum: string): boolean {
+  return compareVersions(version, minimum) >= 0;
+}
+
+/*
+ * An advisory's affected range, as GitHub's advisories write one: from the
+ * version it was introduced in (inclusive) to the version that fixed it
+ * (exclusive).
+ */
+export interface AffectedRange {
+  introduced: string;
+  fixed: string;
+}
+
+export function isInAffectedRange(
+  version: string,
+  range: AffectedRange,
+): boolean {
+  return (
+    isVersionAtLeast(version, range.introduced) &&
+    !isVersionAtLeast(version, range.fixed)
+  );
 }
 
 const RANGE_OPERATOR: RegExp = /^[\^~]/;

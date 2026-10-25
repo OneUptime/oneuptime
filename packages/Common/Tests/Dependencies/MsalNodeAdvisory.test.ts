@@ -3,6 +3,8 @@ import http from "http";
 import type { AddressInfo } from "net";
 import path from "path";
 import {
+  AffectedRange,
+  isInAffectedRange,
   isVersionAtLeast,
   LockedCopy,
   lockedCopies,
@@ -44,12 +46,8 @@ const FIXED_IN: string = "7.1.0";
 const lock: PackageLock = readPackageLock(COMMON_DIRECTORY);
 const packageJson: PackageJson = readPackageJson(COMMON_DIRECTORY);
 
-// The advisory's range: >= 5.0.0-beta.0, < 7.1.0.
-function isAffected(version: string): boolean {
-  return (
-    isVersionAtLeast(version, "5.0.0") && !isVersionAtLeast(version, FIXED_IN)
-  );
-}
+// The advisory's range: >= 5.0.0-beta.0, < 7.1.0 (its betas included).
+const AFFECTED: AffectedRange = { introduced: "5.0.0-beta.0", fixed: FIXED_IN };
 
 describe("Common's @azure/msal-node", () => {
   test(`every @azure/identity in the lock loads msal-node ${FIXED_IN} or later`, () => {
@@ -78,7 +76,7 @@ describe("Common's @azure/msal-node", () => {
     expect(copies.length).toBeGreaterThan(0);
     expect(
       copies.filter((copy: LockedCopy): boolean => {
-        return isAffected(copy.version);
+        return isInAffectedRange(copy.version, AFFECTED);
       }),
     ).toEqual([]);
   });

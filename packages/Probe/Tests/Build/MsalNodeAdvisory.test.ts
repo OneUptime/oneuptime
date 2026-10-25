@@ -5,6 +5,8 @@ import http from "http";
 import type { AddressInfo } from "net";
 import path from "path";
 import {
+  AffectedRange,
+  isInAffectedRange,
   isVersionAtLeast,
   LockedCopy,
   lockedCopies,
@@ -36,6 +38,9 @@ import {
 const PROBE_DIRECTORY: string = path.resolve(__dirname, "..", "..");
 const FIXED_IN: string = "7.1.0";
 
+// The advisory's range: >= 5.0.0-beta.0, < 7.1.0 (its betas included).
+const AFFECTED: AffectedRange = { introduced: "5.0.0-beta.0", fixed: FIXED_IN };
+
 const lock: PackageLock = readPackageLock(PROBE_DIRECTORY);
 const packageJson: PackageJson = readPackageJson(PROBE_DIRECTORY);
 
@@ -61,10 +66,7 @@ describe("the Probe's @azure/msal-node", () => {
     expect(
       lockedCopies(lock, "@azure/msal-node").filter(
         (copy: LockedCopy): boolean => {
-          return (
-            isVersionAtLeast(copy.version, "5.0.0") &&
-            !isVersionAtLeast(copy.version, FIXED_IN)
-          );
+          return isInAffectedRange(copy.version, AFFECTED);
         },
       ),
     ).toEqual([]);
