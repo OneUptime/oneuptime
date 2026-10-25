@@ -32,6 +32,9 @@ Picked with query parameters on the Overview's address:
 - `role=owner|member`: a member may add a probe but may not read its key.
 - `alerts=N`: how many alert policies are on.
 - `devices=N`: how many devices the network has (0 shows the first-run path).
+- `lists=busy`: the Overview's lists of a network that has been running for a while, of
+  different lengths (six devices and one site needing attention, three vendors, no scan yet),
+  so its rows of cards are uneven.
 - `server=1`: this server runs a probe of its own (a self-hosted install).
 - `plan=free|growth`: OneUptime Cloud (billing on, with the plans the Cloud configures) and the
   project on that plan. Adding a probe needs Growth, so on `free` the probe step and the dialog

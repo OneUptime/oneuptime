@@ -1507,7 +1507,12 @@ const CephClusterOverview: FunctionComponent<
     }
 
     return (
-      <CardGrid columns={2} cardWidth="narrow" className="!mb-6">
+      <CardGrid
+        columns={2}
+        cardWidth="narrow"
+        className="!mb-6"
+        dataTestId="ceph-top-pools"
+      >
         {renderTopPoolList(
           "Largest Pools",
           "Top pools by stored bytes.",

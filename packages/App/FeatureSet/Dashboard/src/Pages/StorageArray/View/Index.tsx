@@ -1331,7 +1331,12 @@ const StorageArrayOverview: FunctionComponent<
 
     if (isFlashBlade) {
       return (
-        <CardGrid columns={2} cardWidth="narrow" className="!mb-6">
+        <CardGrid
+          columns={2}
+          cardWidth="narrow"
+          className="!mb-6"
+          dataTestId="storage-array-top-objects"
+        >
           {renderTopList({
             title: "Slowest File Systems",
             description: "File systems with the highest read or write latency.",
@@ -1351,7 +1356,12 @@ const StorageArrayOverview: FunctionComponent<
     }
 
     return (
-      <CardGrid columns={2} cardWidth="narrow" className="!mb-6">
+      <CardGrid
+        columns={2}
+        cardWidth="narrow"
+        className="!mb-6"
+        dataTestId="storage-array-top-objects"
+      >
         {renderTopList({
           title: "Slowest Volumes",
           description: "Volumes with the highest read or write latency.",

@@ -521,7 +521,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
            * page has the room, the shorter card as tall as the other
            * (CardGrid).
            */}
-          <CardGrid columns={2}>
+          <CardGrid columns={2} dataTestId="exception-overview-cards">
             <ExceptionDetail {...telemetryException} services={services} />
             <ExceptionLatestOccurrence
               instance={latestInstance}

@@ -84,6 +84,12 @@ const planMode = ["free", "growth"].includes(params.get("plan"))
   ? params.get("plan")
   : "";
 const language = params.get("lang") === "de" ? "de" : "en";
+/*
+ * lists=busy: the Overview's lists of a network that has been running for a
+ * while, of different lengths - six devices and one site needing attention,
+ * three vendors, no discovery scan yet - so its rows of cards are uneven.
+ */
+const hasBusyLists = params.get("lists") === "busy";
 
 const GLOBAL_PERMISSIONS = [
   Permission.Public,
@@ -355,26 +361,64 @@ ModelAPI.create = async (options) => {
   return response;
 };
 
+// The lists=busy Overview's rows, read at one moment.
+const BUSY_READ_AT = Date.now();
+const BUSY_ATTENTION_DEVICES = [
+  ["core-switch-01", true, false, 0],
+  ["edge-router-02", true, false, 0],
+  ["access-switch-14", false, true, 0],
+  ["access-switch-15", false, false, 3],
+  ["firewall-dc-1", false, false, 1],
+  ["wifi-controller", false, true, 0],
+].map(([name, isDown, isSnmpFailing, interfacesDown], index) => {
+  return {
+    _id: uuid("70000000", index + 1),
+    name,
+    lastSeenAt: isDown
+      ? new Date(BUSY_READ_AT - 45 * 60 * 1000).toISOString()
+      : null,
+    interfacesDown,
+    isDown,
+    isMonitorBacked: false,
+    isSnmpFailing,
+  };
+});
+const BUSY_ATTENTION_SITES = [
+  {
+    _id: uuid("71000000", 1),
+    name: "Head office",
+    siteType: "Office",
+    statusName: "Degraded",
+    statusColor: "#f59e0b",
+  },
+];
+const BUSY_VENDORS = [
+  { vendor: "Cisco", count: 3 },
+  { vendor: "Juniper", count: 2 },
+  { vendor: "Ubiquiti", count: 1 },
+];
+
 async function handleApi(method, options) {
   const url = options.url.toString();
   fixture.apiRequests.push({ method, url });
 
   if (method === "POST" && url.endsWith("/network-device/overview")) {
     return ok({
+      // The busy network's counts agree with its lists below.
       fleet: {
         total: deviceCount,
-        up: deviceCount,
-        down: 0,
+        up: hasBusyLists ? deviceCount - 2 : deviceCount,
+        down: hasBusyLists ? 2 : 0,
         pending: 0,
-        interfacesDown: 0,
-        snmpFailing: 0,
+        interfacesDown: hasBusyLists ? 4 : 0,
+        snmpFailing: hasBusyLists ? 2 : 0,
       },
-      siteCount: 0,
-      unhealthySiteCount: 0,
+      siteCount: hasBusyLists ? 1 : 0,
+      unhealthySiteCount: hasBusyLists ? 1 : 0,
       endpointCount: 0,
-      vendors: [],
-      attentionDevices: [],
-      attentionSites: [],
+      vendors: hasBusyLists ? BUSY_VENDORS : [],
+      attentionDevices: hasBusyLists ? BUSY_ATTENTION_DEVICES : [],
+      attentionSites: hasBusyLists ? BUSY_ATTENTION_SITES : [],
     });
   }
 

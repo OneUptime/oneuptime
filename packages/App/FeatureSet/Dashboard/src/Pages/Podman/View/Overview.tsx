@@ -1546,7 +1546,12 @@ const PodmanHostOverview: FunctionComponent<
     };
 
     return (
-      <CardGrid columns={2} cardWidth="narrow" className="!mb-6">
+      <CardGrid
+        columns={2}
+        cardWidth="narrow"
+        className="!mb-6"
+        dataTestId="container-host-top-consumers"
+      >
         {renderList(
           translationKey("Top CPU Consumers"),
           stats.topByCpu,

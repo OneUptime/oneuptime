@@ -1,4 +1,8 @@
 import { expect, Locator, Page, test } from "@playwright/test";
+import {
+  CARD_GRID_GAP_IN_PX,
+  getCardGridColumnsAt,
+} from "Common/UI/Components/Card/CardGridLayout";
 import fs from "fs/promises";
 import path from "path";
 
@@ -165,6 +169,55 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
     return document.documentElement.scrollWidth - window.innerWidth;
   });
   expect(overflow).toBeLessThanOrEqual(1);
+}
+
+/*
+ * A row of cards (CardGrid) as the browser draws it: the grid's box, and each
+ * cell's box with where its card's frame - its border - ends.
+ */
+interface CardRowCell {
+  title: string;
+  top: number;
+  left: number;
+  right: number;
+  bottom: number;
+  frameBottom: number;
+}
+
+interface CardRowBoxes {
+  left: number;
+  right: number;
+  cells: Array<CardRowCell>;
+}
+
+async function cardRowBoxes(page: Page, testId: string): Promise<CardRowBoxes> {
+  return page.getByTestId(testId).evaluate((container: Element): CardRowBoxes => {
+    const grid: Element = container.firstElementChild as Element;
+    const box: DOMRect = grid.getBoundingClientRect();
+
+    return {
+      left: box.left,
+      right: box.right,
+      cells: Array.from(grid.children).map((cell: Element): CardRowCell => {
+        const cellBox: DOMRect = cell.getBoundingClientRect();
+        const frame: Element = cell.querySelector(
+          '[data-testid="card"] > div',
+        ) as Element;
+
+        return {
+          title: (
+            cell.querySelector('[data-testid="card-details-heading"]')
+              ?.textContent || ""
+          ).trim(),
+          top: cellBox.top + window.scrollY,
+          left: cellBox.left,
+          right: cellBox.right,
+          bottom: cellBox.bottom + window.scrollY,
+          frameBottom: frame.getBoundingClientRect().bottom + window.scrollY,
+        };
+      }),
+    };
+  });
 }
 
 test.describe("header", () => {
@@ -486,6 +539,89 @@ test.describe("overview", () => {
     });
 
     await screenshot(page, "overview");
+  });
+
+  /*
+   * "Gap between cards dont look nice. Please fix it." - the maintainer, of
+   * cards of different heights side by side. The exception's details and its
+   * latest occurrence share a row where the page has the room for both
+   * (CardGrid): the shorter card runs to the row's bottom - with long
+   * details, minimal ones, and no occurrence stored - and beside the side
+   * menu of a smaller screen, or on a phone, one is above the other.
+   */
+  test("the details and the latest occurrence end on one line side by side, and stack where there is no room for both", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // Cards side by side at each window width, beside the side menu.
+    const ACROSS: Record<number, number> = {
+      1440: 2,
+      1280: 2,
+      1024: 1,
+      768: 1,
+      390: 1,
+    };
+
+    for (const width of [1440, 1280, 1024, 768, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+
+      for (const query of [
+        "",
+        "exception=long",
+        "exception=minimal",
+        "occurrence=none",
+      ]) {
+        await open(page, "", query);
+        await expect(card(page, "Latest Occurrence")).toBeVisible();
+
+        const label: string = `${width}px ${query || "full"}`;
+        const row: CardRowBoxes = await cardRowBoxes(
+          page,
+          "exception-overview-cards",
+        );
+        const [details, latest] = row.cells as [CardRowCell, CardRowCell];
+        const across: number = getCardGridColumnsAt(
+          { columns: 2, cardWidth: "wide" },
+          row.right - row.left,
+        );
+
+        expect([label, row.cells.map((cell: CardRowCell) => cell.title)]).toEqual(
+          [label, ["Details", "Latest Occurrence"]],
+        );
+        expect([label, across]).toEqual([label, ACROSS[width]]);
+
+        if (across === 2) {
+          // One line, each frame to its bottom, the grid's 20px between them.
+          expect([
+            label,
+            Math.round(latest.top - details.top),
+            Math.round(details.bottom - details.frameBottom),
+            Math.round(latest.bottom - latest.frameBottom),
+            Math.round(details.bottom - latest.bottom),
+            Math.round(latest.left - details.right),
+            Math.round(details.left - row.left),
+            Math.round(row.right - latest.right),
+          ]).toEqual([label, 0, 0, 0, 0, CARD_GRID_GAP_IN_PX, 0, 0]);
+        } else {
+          // One above the other, each the grid's width, the grid's 20px between.
+          expect([
+            label,
+            Math.round(latest.top - details.bottom),
+            Math.round(details.left - row.left),
+            Math.round(row.right - details.right),
+            Math.round(latest.left - row.left),
+            Math.round(row.right - latest.right),
+          ]).toEqual([label, CARD_GRID_GAP_IN_PX, 0, 0, 0, 0]);
+        }
+
+        await expectNoHorizontalOverflow(page);
+      }
+    }
+
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await open(page, "", "exception=long");
+    await screenshot(page, "overview-cards-long");
   });
 
   test("an empty or failed trend degrades inline", async ({

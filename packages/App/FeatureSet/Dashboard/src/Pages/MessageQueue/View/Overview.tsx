@@ -679,7 +679,11 @@ const MessageQueueOverview: FunctionComponent<
        * page has the room: the shorter list's card runs to the row's
        * bottom (CardGrid).
        */}
-      <CardGrid columns={2} className="mt-6">
+      <CardGrid
+        columns={2}
+        className="mt-6"
+        dataTestId="message-queue-services"
+      >
         <MessageQueueServicesCard
           side="producers"
           description={MESSAGE_QUEUE_METRIC_DESCRIPTIONS.producers}

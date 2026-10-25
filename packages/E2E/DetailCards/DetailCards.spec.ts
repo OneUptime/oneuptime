@@ -1,4 +1,10 @@
 import { BrowserContext, expect, Locator, Page, test } from "@playwright/test";
+import {
+  CARD_GRID_GAP_IN_PX,
+  CARD_GRID_MIN_CARD_WIDTH_IN_REM,
+  CardGridLayout,
+  getCardGridColumnsAt,
+} from "Common/UI/Components/Card/CardGridLayout";
 import fs from "fs/promises";
 import path from "path";
 
@@ -1204,5 +1210,253 @@ test.describe("other pages built on detail cards", () => {
       "Zeitzone",
     );
     await expectAlignedRows(card, "German profile at 1280");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Rows of cards (CardGrid)
+ * ---------------------------------------------------------------------------
+ *
+ * "Gap between cards dont look nice. Please fix it." - the maintainer, of a
+ * row of cards of different heights with bare page under the shorter ones.
+ * Cards side by side are drawn with CardGrid (Common/UI/Components/Card):
+ * every card fills its cell, a last row the cards do not fill is shared by
+ * the cards it has, and how many share a row follows the grid's own width.
+ * The gallery (/card-rows) draws its rows in the production Page beside a
+ * side menu, so each grid has the room a product page's has: these measure
+ * the real boxes at every width people use, light and dark.
+ */
+test.describe("rows of cards", () => {
+  const CARD_ROWS: string = `/dashboard/${PROJECT}/card-rows`;
+
+  interface CardRowGrid {
+    testId: string;
+    layout: CardGridLayout;
+    cards: number;
+  }
+
+  const GRIDS: ReadonlyArray<CardRowGrid> = [
+    { testId: "rows-two-wide", layout: { columns: 2, cardWidth: "wide" }, cards: 2 },
+    {
+      testId: "rows-three-narrow",
+      layout: { columns: 3, cardWidth: "narrow" },
+      cards: 3,
+    },
+    {
+      testId: "rows-five-narrow",
+      layout: { columns: 3, cardWidth: "narrow" },
+      cards: 5,
+    },
+    { testId: "rows-three-wide", layout: { columns: 2, cardWidth: "wide" }, cards: 3 },
+    { testId: "rows-nothing", layout: { columns: 2, cardWidth: "wide" }, cards: 2 },
+    { testId: "rows-detail", layout: { columns: 2, cardWidth: "wide" }, cards: 2 },
+  ];
+
+  // Cards across beside the side menu at each window width.
+  const ACROSS: Record<number, Record<CardGridLayout["cardWidth"], number>> = {
+    1440: { narrow: 3, wide: 2 },
+    1280: { narrow: 3, wide: 2 },
+    1024: { narrow: 2, wide: 1 },
+    768: { narrow: 1, wide: 1 },
+    390: { narrow: 1, wide: 1 },
+  };
+
+  interface CellBox {
+    title: string;
+    top: number;
+    left: number;
+    right: number;
+    bottom: number;
+    frameBottom: number;
+  }
+
+  interface GridBoxes {
+    left: number;
+    right: number;
+    cells: Array<CellBox>;
+  }
+
+  async function gridBoxes(page: Page, testId: string): Promise<GridBoxes> {
+    return page
+      .getByTestId(testId)
+      .evaluate((container: Element): GridBoxes => {
+        const grid: Element = container.firstElementChild as Element;
+        const box: DOMRect = grid.getBoundingClientRect();
+
+        return {
+          left: box.left,
+          right: box.right,
+          cells: Array.from(grid.children).map((cell: Element): CellBox => {
+            const cellBox: DOMRect = cell.getBoundingClientRect();
+            const frame: Element = cell.querySelector(
+              '[data-testid="card"] > div',
+            ) as Element;
+
+            return {
+              title: (
+                cell.querySelector('[data-testid="card-details-heading"]')
+                  ?.textContent || ""
+              ).trim(),
+              top: cellBox.top + window.scrollY,
+              left: cellBox.left,
+              right: cellBox.right,
+              bottom: cellBox.bottom + window.scrollY,
+              frameBottom: frame.getBoundingClientRect().bottom + window.scrollY,
+            };
+          }),
+        };
+      });
+  }
+
+  function linesOf(cells: Array<CellBox>): Array<Array<CellBox>> {
+    const lines: Array<Array<CellBox>> = [];
+
+    for (const cell of cells) {
+      const line: Array<CellBox> | undefined = lines.find(
+        (candidate: Array<CellBox>): boolean => {
+          return Math.abs(candidate[0]!.top - cell.top) <= 1;
+        },
+      );
+
+      if (line) {
+        line.push(cell);
+      } else {
+        lines.push([cell]);
+      }
+    }
+
+    return lines;
+  }
+
+  for (const width of [1440, 1280, 1024, 768, 390]) {
+    test(`at ${width}px beside the side menu every row ends on one line and fills its grid, its cards the grid's gap apart, light and dark`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      for (const theme of ["", "?theme=dark"]) {
+        await open(page, `${CARD_ROWS}${theme}`, width);
+
+        for (const grid of GRIDS) {
+          const boxes: GridBoxes = await gridBoxes(page, grid.testId);
+          const lines: Array<Array<CellBox>> = linesOf(boxes.cells);
+          const label: string = `${grid.testId} at ${width}px${theme}`;
+          const across: number = Math.min(
+            ACROSS[width]![grid.layout.cardWidth],
+            grid.layout.columns,
+            grid.cards,
+          );
+
+          // The model the class names come from agrees with the page.
+          expect([
+            label,
+            Math.min(
+              getCardGridColumnsAt(grid.layout, boxes.right - boxes.left),
+              grid.cards,
+            ),
+            lines[0]!.length,
+          ]).toEqual([label, across, across]);
+          expect(boxes.cells).toHaveLength(grid.cards);
+
+          lines.forEach((line: Array<CellBox>, index: number) => {
+            const bottom: number = Math.max(
+              ...line.map((cell: CellBox): number => {
+                return cell.bottom;
+              }),
+            );
+
+            // Every card's frame runs to its row's bottom.
+            for (const cell of line) {
+              expect([label, cell.title, Math.round(bottom - cell.frameBottom)]).toEqual(
+                [label, cell.title, 0],
+              );
+            }
+
+            // The row runs from the grid's left edge to its right: no empty slot.
+            expect([
+              label,
+              index,
+              Math.round(line[0]!.left - boxes.left),
+              Math.round(boxes.right - line[line.length - 1]!.right),
+            ]).toEqual([label, index, 0, 0]);
+
+            for (let next: number = 1; next < line.length; next++) {
+              expect([
+                label,
+                Math.round(line[next]!.left - line[next - 1]!.right),
+              ]).toEqual([label, CARD_GRID_GAP_IN_PX]);
+            }
+
+            // A card beside another has the room its kind needs.
+            if (line.length > 1) {
+              for (const cell of line) {
+                expect([
+                  label,
+                  cell.title,
+                  cell.right - cell.left >=
+                    CARD_GRID_MIN_CARD_WIDTH_IN_REM[grid.layout.cardWidth] * 16 -
+                      1,
+                ]).toEqual([label, cell.title, true]);
+              }
+            }
+
+            if (index > 0) {
+              const above: number = Math.max(
+                ...lines[index - 1]!.map((cell: CellBox): number => {
+                  return cell.bottom;
+                }),
+              );
+              expect([label, Math.round(line[0]!.top - above)]).toEqual([
+                label,
+                CARD_GRID_GAP_IN_PX,
+              ]);
+            }
+          });
+        }
+
+        await expectNothingRunsOff(page, `card rows at ${width}px${theme}`);
+      }
+
+      await open(page, CARD_ROWS, width);
+      await screenshot(page, `card-rows-${width}`);
+    });
+  }
+
+  test("a detail card fills its cell like any card, its fields at the top, and a sentence for nothing to list sits in the middle of its card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CARD_ROWS, 1280);
+
+    // The detail card beside nine rows: one height, on one line.
+    const detail: Box = await box(cardTitled(page, "A detail card"));
+    const beside: Box = await box(cardTitled(page, "Beside it"));
+    expect(Math.round(detail.height)).toBe(Math.round(beside.height));
+    expect(Math.round(detail.y)).toBe(Math.round(beside.y));
+    // Its fields start under its header, as the rows beside it do.
+    const field: Box = await box(
+      cardTitled(page, "A detail card").getByTestId("detail-field").first(),
+    );
+    const row: Box = await box(
+      cardTitled(page, "Beside it").getByTestId("card-rows-list"),
+    );
+    expect(Math.abs(field.y - row.y)).toBeLessThanOrEqual(30);
+
+    // Nothing to list: the sentence in the middle of the card's room, across and down.
+    const empty: Locator = cardTitled(page, "Top detections");
+    const card: Box = await box(empty);
+    const header: Box = await box(empty.getByTestId("card-header"));
+    const words: Box = await box(page.getByTestId("rows-nothing-sentence"));
+    const room: number = (header.y + header.height + card.y + card.height) / 2;
+    expect(Math.abs(words.y + words.height / 2 - room)).toBeLessThanOrEqual(24);
+    expect(
+      Math.abs(words.x + words.width / 2 - (card.x + card.width / 2)),
+    ).toBeLessThanOrEqual(2);
+    // And as tall as the six rows beside it.
+    expect(Math.round(card.height)).toBe(
+      Math.round((await box(cardTitled(page, "Riskiest entities"))).height),
+    );
   });
 });

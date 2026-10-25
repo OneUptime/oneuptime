@@ -1288,7 +1288,11 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
 
           {loaded && summary && isUsageSettled && !needsSetup && hasTraffic ? (
             <Fragment>
-              <CardGrid columns={2} cardWidth="narrow">
+              <CardGrid
+                columns={2}
+                cardWidth="narrow"
+                dataTestId="traffic-top-lists"
+              >
                 {scope.kind === "device" ? (
                   <Fragment>
                     <TrafficTopList

@@ -681,7 +681,11 @@ const MerakiTrafficView: FunctionComponent<ComponentProps> = (
 
       {hasTraffic ? (
         <Fragment>
-          <CardGrid columns={2} cardWidth="narrow">
+          <CardGrid
+            columns={2}
+            cardWidth="narrow"
+            dataTestId="meraki-top-lists"
+          >
             {listsNetworks ? (
               <TrafficTopList
                 title="Top networks"

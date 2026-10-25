@@ -452,7 +452,7 @@ const NetworkOverview: FunctionComponent<
        * Two by two where the page has the room, each row ending on one
        * line however long either list is (CardGrid).
        */}
-      <CardGrid columns={2}>
+      <CardGrid columns={2} dataTestId="network-overview-cards">
         <Card
           title="Devices needing attention"
           description="Down devices first (their probe or monitor cannot reach them), then failing SNMP, then ports down."
