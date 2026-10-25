@@ -3,6 +3,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import React, { FunctionComponent, ReactElement } from "react";
 import { EventStatusFact } from "../EventView/EventStatusPanel";
 import RelativeTime from "./RelativeTime";
+import EventHeaderSkeleton from "../EventView/EventHeaderSkeleton";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   getGlobalTranslator,
@@ -59,51 +60,21 @@ export interface EpisodeHeaderSkeletonProps {
 }
 
 /*
- * Holds the header's place while it loads, at the header's own size, so the
- * stat bar and cards below do not jump when it lands. It replaces the old
- * full-width PageLoader, whose 13rem top margin pushed the page down.
+ * Holds the header's place while it loads, drawn as the loaded header is
+ * (EventHeaderSkeleton), so the stat bar and cards below do not jump when it
+ * lands. It replaces the old full-width PageLoader, whose 13rem top margin
+ * pushed the page down.
  */
 export const EpisodeHeaderSkeleton: FunctionComponent<
   EpisodeHeaderSkeletonProps
 > = (props: EpisodeHeaderSkeletonProps): ReactElement => {
-  const translator: Translator = useTranslator();
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      data-testid="episode-header-skeleton"
-      className="rounded-xl border border-gray-200 bg-white shadow-sm"
-    >
-      <span className="sr-only">
-        {translator.translateText(props.loadingText || "Loading episode")}
-      </span>
-      <div aria-hidden="true" className="motion-safe:animate-pulse">
-        <div className="px-4 py-4 sm:px-5">
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div className="min-w-0 flex-1">
-              <div className="h-5 w-16 rounded-md bg-gray-100" />
-              <div className="mt-2 h-6 w-3/4 max-w-md rounded bg-gray-200" />
-            </div>
-            <div className="flex gap-2">
-              <div className="h-9 w-28 rounded-md bg-gray-100" />
-              <div className="h-9 w-24 rounded-md bg-gray-100" />
-            </div>
-          </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2.5">
-            <div className="h-5 w-20 rounded-full bg-gray-100" />
-            <div className="h-5 w-16 rounded-full bg-gray-100" />
-            <div className="h-5 w-28 rounded bg-gray-100" />
-          </div>
-          <div className="mt-2.5 flex flex-wrap items-center gap-5">
-            <div className="h-4 w-36 max-w-full rounded bg-gray-100" />
-            <div className="h-4 w-28 max-w-full rounded bg-gray-100" />
-          </div>
-        </div>
-        <div className="border-t border-gray-100 px-4 py-2.5 sm:px-5">
-          <div className="h-3 w-2/3 max-w-sm rounded bg-gray-100" />
-        </div>
-      </div>
-    </div>
+    <EventHeaderSkeleton
+      testId="episode-header-skeleton"
+      loadingText={props.loadingText || "Loading episode"}
+      buttonCount={2}
+      factCount={5}
+    />
   );
 };
 
@@ -134,7 +105,8 @@ export interface EpisodeHeaderRefreshErrorProps {
 /*
  * A refresh that fails after the header has loaded keeps the last good data
  * on screen and says so inline, instead of swapping the whole header for an
- * error.
+ * error. It is the words of the header's red band (EventStatusPanel's
+ * "danger" notice), which paints the band itself: no box of its own.
  */
 export const EpisodeHeaderRefreshError: FunctionComponent<
   EpisodeHeaderRefreshErrorProps
@@ -143,7 +115,7 @@ export const EpisodeHeaderRefreshError: FunctionComponent<
   return (
     <div
       role="alert"
-      className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 ring-1 ring-inset ring-red-100"
+      className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-red-700"
     >
       <span className="min-w-0 break-words">
         {translator.translateTemplate(

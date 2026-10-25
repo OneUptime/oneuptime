@@ -8,11 +8,36 @@ import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import MoreMenuSection from "Common/UI/Components/MoreMenu/MoreMenuSection";
 import Pill from "Common/UI/Components/Pill/Pill";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
+import { PermissionGateResult } from "Common/UI/Utils/PermissionGate";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import { StateMoveList } from "Common/Utils/StateMove";
 import React, { FunctionComponent, ReactElement } from "react";
 import LiveDuration from "./LiveDuration";
 import { getEventStateMenuStates } from "./EventStateMenu";
+import EventStateTrack from "./EventStateTrack";
+import {
+  EVENT_HEADER_BUTTONS_CLASS_NAME,
+  EVENT_HEADER_BUTTON_CLASS_NAME,
+  EVENT_HEADER_CLASS_NAME,
+  EVENT_HEADER_FACT_CLASS_NAME,
+  EVENT_HEADER_FACT_LABEL_CLASS_NAME,
+  EVENT_HEADER_FACT_VALUE_CLASS_NAME,
+  EVENT_HEADER_LOCKED_WRAPPER_CLASS_NAME,
+  EVENT_HEADER_MENU_WRAPPER_CLASS_NAME,
+  EVENT_HEADER_MORE_TRIGGER_CLASS_NAME,
+  EVENT_HEADER_NEUTRAL_BUTTON_CLASS_NAME,
+  EVENT_HEADER_NOTICE_CLASS_NAMES,
+  EVENT_HEADER_NUMBER_CLASS_NAME,
+  EVENT_HEADER_PRIMARY_BUTTON_CLASS_NAME,
+  EVENT_HEADER_TEST_IDS,
+  EVENT_HEADER_TOP_SECTION_CLASS_NAME,
+  EventHeaderActionWidthInput,
+  EventHeaderNoticeTone,
+  EventHeaderTopRowClassNames,
+  getEventHeaderActionsBesideWidth,
+  getEventHeaderFactsClassName,
+  getEventHeaderTopRowClassNames,
+} from "./EventHeaderLayout";
 
 export interface EventStateItem {
   id: string;
@@ -74,8 +99,8 @@ export interface EventPanelMenuItem {
 }
 
 /*
- * A short "label value" pair shown under the header pills, e.g.
- * { label: "Declared", value: "Sep 14, 18:01" } or
+ * A labelled fact of the header, e.g.
+ * { label: "Owners", value: <OwnersFactValue ... /> } or
  * { label: "Monitor", value: <Link ...>checkout-api</Link> }.
  */
 export interface EventStatusFact {
@@ -93,18 +118,18 @@ export interface ComponentProps {
    * offers its moves (getEventStateMenuStates).
    */
   stateList: StateMoveList;
-  identifier?: string | undefined; // e.g. "INC-42", "#42" — shown at the start of the panel.
-  /*
-   * When set, the panel renders as a proper header: the identifier becomes a
-   * small eyebrow badge and this title is shown as the prominent heading, with
-   * the state/severity/duration pills on the row below. When omitted, the panel
-   * keeps its compact single-row layout (identifier inline with the pills).
-   */
+  identifier?: string | undefined; // e.g. "INC-42", "#42" — the number chip.
+  // The record's title, on a line of its own under the number and the pills.
   title?: string | undefined;
   currentStateId?: string | undefined;
   severity?: { name: string; color: Color } | undefined;
   isPrivate?: boolean | undefined;
   privateTooltip?: string | undefined;
+  /*
+   * How long, as the first of the facts: its label ("Ongoing for", "Lasted",
+   * "Starts in") over the duration from durationStartsAt to durationEndsAt,
+   * or to now, ticking.
+   */
   durationPrefix?: string | undefined;
   durationStartsAt?: Date | undefined;
   durationEndsAt?: Date | undefined;
@@ -120,16 +145,36 @@ export interface ComponentProps {
   onStateSelect?: ((stateId: string) => void) | undefined;
   moreMenuTitle?: string | undefined;
   isDisabled?: boolean | undefined;
-  /* Optional full-width context shown inside the titled header card. */
-  headerNotice?: ReactElement | undefined;
   /*
-   * Optional context facts for the titled header layout, rendered as one
-   * wrapping row below the pills. Facts with an empty value are skipped, so
-   * callers can pass optional ones without filtering first.
+   * Whether the reader may change the record's state (PermissionGate.check
+   * on the record's state timeline): left out, they may. One who may not
+   * sees the state buttons locked, each saying why, and no menu of other
+   * states; while the permissions are not known yet, neither is shown.
+   */
+  stateChangeGate?: PermissionGateResult | undefined;
+  /*
+   * The band at the foot of the header: OneUptime AI's root cause analysis,
+   * a maintenance event that missed its start, an episode that could not be
+   * refreshed. Its tone colours the band.
+   */
+  headerNotice?: ReactElement | undefined;
+  headerNoticeTone?: EventHeaderNoticeTone | undefined;
+  /*
+   * The labelled facts after how long: who is on it, what it is about.
+   * Facts with an empty value are skipped, so callers can pass optional ones
+   * without filtering first.
    */
   facts?: Array<EventStatusFact> | undefined;
 }
 
+/*
+ * The top of an incident, an alert, an episode or a scheduled maintenance
+ * event: its number, state, severity and title, the moves it takes next,
+ * where it stands on its way through its states, what a reader needs at a
+ * glance, and - in a band of its own - what OneUptime AI made of it. Laid
+ * out by its own width, beside the side menu at every window width
+ * (EventHeaderLayout.ts).
+ */
 const EventStatusPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -152,58 +197,24 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
     },
   );
 
-  const currentStateIndex: number = states.findIndex(
-    (state: EventStateItem) => {
-      return state.id === props.currentStateId;
-    },
-  );
-
-  const getStepRail: () => ReactElement = (): ReactElement => {
-    return (
-      <div className="flex flex-wrap items-center gap-y-1.5">
-        {states.map((state: EventStateItem, index: number) => {
-          const isReached: boolean =
-            currentStateIndex >= 0 && index <= currentStateIndex;
-          const isCurrent: boolean = index === currentStateIndex;
-
-          return (
-            <div key={`${state.id}-${index}`} className="flex items-center">
-              {index > 0 && (
-                <div
-                  className={`mx-2.5 h-px w-5 ${
-                    isReached ? "bg-gray-300" : "bg-gray-200"
-                  }`}
-                />
-              )}
-              <div className="flex items-center gap-1.5">
-                <span
-                  className={`h-2 w-2 rounded-full ${
-                    isReached && !isCurrent ? "opacity-40" : ""
-                  }`}
-                  style={{
-                    backgroundColor: isReached
-                      ? (state.color || Black).toString()
-                      : "#e5e7eb",
-                  }}
-                />
-                <span
-                  className={`text-xs ${
-                    isCurrent
-                      ? "font-semibold text-gray-900"
-                      : isReached
-                        ? "font-medium text-gray-500"
-                        : "font-medium text-gray-400"
-                  }`}
-                >
-                  {state.name}
-                </span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
+  /*
+   * Who may change the state. Unknown (the permissions not read yet) hides
+   * the state buttons and the menu rather than accuse the reader of lacking
+   * a permission they may hold; known and missing locks the buttons, each
+   * saying which permission.
+   */
+  const stateChangeGate: PermissionGateResult = props.stateChangeGate || {
+    isAllowed: true,
   };
+  const isStateChangeHidden: boolean =
+    !stateChangeGate.isAllowed && !stateChangeGate.disabledReason;
+  const stateChangeLockReason: string | undefined = stateChangeGate.isAllowed
+    ? undefined
+    : stateChangeGate.disabledReason;
+
+  const stateActions: Array<EventStateAction> = isStateChangeHidden
+    ? []
+    : props.actions;
 
   /*
    * The overflow menu is for alternative transitions. Primary actions already
@@ -227,39 +238,54 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
     }),
   });
 
-  /*
-   * On a phone the buttons grow from their own width (flex-auto), so two
-   * that do not both fit wrap onto rows of their own instead of being cut
-   * to an even share of the row and truncating their labels.
-   */
-  const actionBaseClassName: string =
-    "inline-flex h-9 min-w-[7rem] max-w-full flex-auto select-none items-center justify-center gap-2 whitespace-nowrap rounded-md border px-3.5 text-sm font-semibold shadow-sm transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:max-w-64 sm:flex-none";
-  const primaryActionClassName: string =
-    "border-indigo-600 bg-indigo-600 text-white hover:border-indigo-700 hover:bg-indigo-700";
-  const neutralActionClassName: string =
-    "border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-900";
+  // A reader who may not change the state gets no menu of states to change it to.
+  const hasMore: boolean = Boolean(
+    props.onStateSelect &&
+      statesForMenu.length > 0 &&
+      stateChangeGate.isAllowed,
+  );
+
+  const secondaryActions: Array<EventPanelAction> =
+    props.secondaryActions || [];
+
+  const translateLabel: (label: string) => string = (
+    label: string,
+  ): string => {
+    return translateString(label) || label;
+  };
 
   const getActionButton: (action: EventStateAction) => ReactElement = (
     action: EventStateAction,
   ): ReactElement => {
     const isPrimary: boolean = action.buttonStyle === ButtonStyleType.PRIMARY;
-    const translatedActionLabel: string =
-      translateString(action.label) || action.label;
-    const variantClassName: string = isPrimary
-      ? primaryActionClassName
-      : neutralActionClassName;
+    const translatedActionLabel: string = translateLabel(action.label);
+    const isDisabled: boolean = Boolean(
+      props.isDisabled || stateChangeLockReason,
+    );
+    const lockReason: string | undefined = stateChangeLockReason
+      ? translateLabel(stateChangeLockReason)
+      : undefined;
 
-    return (
+    const button: ReactElement = (
       <button
         key={action.stateId}
         id={action.id}
         type="button"
-        title={translatedActionLabel}
-        disabled={props.isDisabled}
+        title={lockReason ? undefined : translatedActionLabel}
+        disabled={isDisabled}
+        aria-disabled={isDisabled}
         onClick={() => {
+          if (isDisabled) {
+            return;
+          }
+
           props.onActionClick(action.stateId);
         }}
-        className={`${actionBaseClassName} ${variantClassName}`}
+        className={`${EVENT_HEADER_BUTTON_CLASS_NAME} ${
+          isPrimary
+            ? EVENT_HEADER_PRIMARY_BUTTON_CLASS_NAME
+            : EVENT_HEADER_NEUTRAL_BUTTON_CLASS_NAME
+        }${lockReason ? " pointer-events-none w-full" : ""}`}
       >
         {action.icon && (
           <Icon icon={action.icon} className="h-4 w-4 shrink-0" />
@@ -267,28 +293,47 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
         <span className="truncate">{translatedActionLabel}</span>
       </button>
     );
+
+    if (!lockReason) {
+      return button;
+    }
+
+    /*
+     * A disabled <button> swallows the pointer, and tippy will not show a
+     * tooltip on a disabled trigger, so a locked action hands the pointer
+     * (and keyboard focus) to a wrapper that carries why.
+     */
+    return (
+      <Tooltip key={action.stateId} text={lockReason}>
+        <span
+          className={EVENT_HEADER_LOCKED_WRAPPER_CLASS_NAME}
+          tabIndex={0}
+          data-testid={`${action.id || action.stateId}-disabled-wrapper`}
+        >
+          {button}
+        </span>
+      </Tooltip>
+    );
   };
 
   const getSecondaryActionButton: (action: EventPanelAction) => ReactElement = (
     action: EventPanelAction,
   ): ReactElement => {
-    const translatedActionLabel: string =
-      translateString(action.label) || action.label;
+    const translatedActionLabel: string = translateLabel(action.label);
 
     if (action.menuItems && action.menuItems.length > 0 && !props.isDisabled) {
       /*
        * The menu's own wrapper is what the row lays out, so it grows on a
-       * phone the way the other buttons do (flex-auto), and the button
-       * fills it.
+       * phone the way the other buttons do, and the button fills it. The
+       * menu is drawn over the page: the header is a size container, and a
+       * menu inside it would sit under the cards after it.
        */
       return (
-        <div
-          key={action.id}
-          className="flex min-w-[7rem] max-w-full flex-auto sm:max-w-64 sm:flex-none [&>div]:w-full"
-        >
+        <div key={action.id} className={EVENT_HEADER_MENU_WRAPPER_CLASS_NAME}>
           <MoreMenu
             text={translatedActionLabel}
             dataTestId={action.id}
+            isMenuPortaled={true}
             elementToBeShownInsteadOfButton={
               <span className="inline-flex items-center gap-2">
                 {action.icon && (
@@ -301,7 +346,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
                 />
               </span>
             }
-            triggerClassName={`${actionBaseClassName} ${neutralActionClassName} w-full cursor-pointer`}
+            triggerClassName={`${EVENT_HEADER_BUTTON_CLASS_NAME} ${EVENT_HEADER_NEUTRAL_BUTTON_CLASS_NAME} w-full cursor-pointer`}
           >
             {action.menuItems.map((item: EventPanelMenuItem) => {
               return (
@@ -329,7 +374,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
           href={action.href}
           target="_blank"
           rel="noopener noreferrer"
-          className={`${actionBaseClassName} ${neutralActionClassName}`}
+          className={`${EVENT_HEADER_BUTTON_CLASS_NAME} ${EVENT_HEADER_NEUTRAL_BUTTON_CLASS_NAME}`}
         >
           {action.icon && (
             <Icon icon={action.icon} className="h-4 w-4 shrink-0" />
@@ -350,7 +395,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
     }
 
     const translatedTooltip: string | undefined = action.tooltip
-      ? translateString(action.tooltip) || action.tooltip
+      ? translateLabel(action.tooltip)
       : undefined;
     const isDisabled: boolean = Boolean(props.isDisabled || action.isDisabled);
     /*
@@ -377,7 +422,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
 
           action.onClick();
         }}
-        className={`${actionBaseClassName} ${neutralActionClassName}${
+        className={`${EVENT_HEADER_BUTTON_CLASS_NAME} ${EVENT_HEADER_NEUTRAL_BUTTON_CLASS_NAME}${
           hasReachableTooltip ? " pointer-events-none w-full" : ""
         }`}
       >
@@ -395,7 +440,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
     return (
       <Tooltip key={action.id} text={translatedTooltip}>
         <span
-          className="inline-flex min-w-[7rem] max-w-full flex-auto rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 sm:max-w-64 sm:flex-none"
+          className={EVENT_HEADER_LOCKED_WRAPPER_CLASS_NAME}
           tabIndex={0}
           data-testid={`${action.id}-disabled-wrapper`}
         >
@@ -405,211 +450,284 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
     );
   };
 
-  /*
-   * The action buttons + "change state" overflow menu, shared by both
-   * layouts. `widthClassName` is where the cluster stops taking a full row
-   * of its own - the breakpoint at which its layout puts it beside the
-   * title or the pills.
-   */
-  const getActionsCluster: (widthClassName: string) => ReactElement = (
-    widthClassName: string,
-  ): ReactElement => {
-    return (
-      <div
-        className={`flex w-full flex-wrap items-center justify-end gap-2 ${widthClassName}`}
-        role="group"
-        aria-label={translateString("Event actions")}
-      >
-        {props.actions.map((action: EventStateAction) => {
-          return getActionButton(action);
-        })}
-        {(props.secondaryActions || []).map((action: EventPanelAction) => {
-          return getSecondaryActionButton(action);
-        })}
-        {props.onStateSelect && statesForMenu.length > 0 && (
-          <MoreMenu
-            text="More actions"
-            elementToBeShownInsteadOfButton={
-              <Icon icon={IconProp.EllipsisHorizontal} className="h-4 w-4" />
-            }
-            triggerClassName="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border border-gray-300 bg-white text-gray-500 shadow-sm transition-colors duration-150 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            isDisabled={props.isDisabled}
-          >
-            {[
-              <MoreMenuSection
-                key="states"
-                title={props.moreMenuTitle || "Change state to"}
-              >
-                {statesForMenu.map((state: EventStateItem) => {
-                  return (
-                    <MoreMenuItem
-                      key={state.id}
-                      text={state.name}
-                      color={state.color}
-                      onClick={() => {
-                        props.onStateSelect!(state.id);
-                      }}
-                    />
-                  );
-                })}
-              </MoreMenuSection>,
-            ]}
-          </MoreMenu>
-        )}
-      </div>
-    );
-  };
+  const moreMenu: ReactElement | null = hasMore ? (
+    <MoreMenu
+      text="More actions"
+      elementToBeShownInsteadOfButton={
+        <Icon icon={IconProp.EllipsisHorizontal} className="h-4 w-4" />
+      }
+      triggerClassName={EVENT_HEADER_MORE_TRIGGER_CLASS_NAME}
+      isDisabled={props.isDisabled}
+      /*
+       * Drawn over the page, not inside the header: the header is a size
+       * container, and a menu inside it would sit under the cards after it.
+       */
+      isMenuPortaled={true}
+    >
+      {[
+        <MoreMenuSection
+          key="states"
+          title={props.moreMenuTitle || "Change state to"}
+        >
+          {statesForMenu.map((state: EventStateItem) => {
+            return (
+              <MoreMenuItem
+                key={state.id}
+                text={state.name}
+                color={state.color}
+                onClick={() => {
+                  props.onStateSelect!(state.id);
+                }}
+              />
+            );
+          })}
+        </MoreMenuSection>,
+      ]}
+    </MoreMenu>
+  ) : null;
 
-  // The state / severity / private / duration pills, shared by both layouts.
-  const metaItems: ReactElement = (
-    <React.Fragment>
-      {currentState && (
-        <Pill
-          color={currentState.color || Black}
-          text={currentState.name}
-          tooltip="Current state"
-        />
-      )}
-      {props.severity && (
-        <Pill
-          color={props.severity.color || Black}
-          text={props.severity.name}
-          tooltip="Severity"
-        />
-      )}
-      {props.isPrivate && (
-        <Pill
-          color={Red500}
-          text="Private"
-          icon={IconProp.Lock}
-          tooltip={
-            props.privateTooltip ||
-            "Visible only to owners, owner teams, and project admins."
-          }
-        />
-      )}
-      {props.durationStartsAt && (
-        <span className="inline-flex items-center gap-1.5 text-sm text-gray-500">
-          <Icon icon={IconProp.Clock} className="h-4 w-4 text-gray-400" />
-          <span>{translateString(props.durationPrefix || "Ongoing for")}</span>
-          <span className="font-medium text-gray-700">
+  /*
+   * Where the actions go is worked out from the pills and the buttons as the
+   * reader's language spells them: beside the pills from the width that
+   * holds both, under the title below it.
+   */
+  const pillTexts: Array<string> = [];
+
+  if (currentState) {
+    pillTexts.push(translateLabel(currentState.name));
+  }
+
+  if (props.severity) {
+    pillTexts.push(translateLabel(props.severity.name));
+  }
+
+  if (props.isPrivate) {
+    pillTexts.push(translateLabel("Private"));
+  }
+
+  const actionWidths: Array<EventHeaderActionWidthInput> = [
+    ...stateActions.map(
+      (action: EventStateAction): EventHeaderActionWidthInput => {
+        return {
+          label: translateLabel(action.label),
+          hasIcon: Boolean(action.icon),
+        };
+      },
+    ),
+    ...secondaryActions.map(
+      (action: EventPanelAction): EventHeaderActionWidthInput => {
+        return {
+          label: translateLabel(action.label),
+          hasIcon: Boolean(action.icon),
+          hasMenu: Boolean(action.menuItems && action.menuItems.length > 0),
+        };
+      },
+    ),
+  ];
+
+  const besideWidthRem: number | null = getEventHeaderActionsBesideWidth({
+    identifier: props.identifier,
+    pills: pillTexts,
+    hasPillIcon: Boolean(props.isPrivate),
+    actions: actionWidths,
+    hasMore: hasMore,
+  });
+
+  const topRow: EventHeaderTopRowClassNames = getEventHeaderTopRowClassNames({
+    besideWidthRem: besideWidthRem,
+    hasMore: hasMore,
+  });
+
+  const hasActions: boolean =
+    stateActions.length > 0 || secondaryActions.length > 0 || hasMore;
+
+  /*
+   * How long comes first among the facts, labelled the way the record reads
+   * it: "Ongoing for", "Lasted", "Starts in", "Overrunning by".
+   */
+  const durationFact: EventStatusFact | null = props.durationStartsAt
+    ? {
+        label: props.durationPrefix || "Ongoing for",
+        icon: IconProp.Clock,
+        value: (
+          <span data-testid="event-header-duration">
             <LiveDuration
               startDate={props.durationStartsAt}
               endDate={props.durationEndsAt}
             />
           </span>
-        </span>
-      )}
-    </React.Fragment>
-  );
-
-  const hasMeta: boolean = Boolean(
-    currentState || props.severity || props.isPrivate || props.durationStartsAt,
-  );
-
-  const visibleFacts: Array<EventStatusFact> = (props.facts || []).filter(
-    (fact: EventStatusFact) => {
-      if (!fact || !fact.label) {
-        return false;
+        ),
       }
+    : null;
 
-      if (typeof fact.value === "string") {
-        return fact.value.trim().length > 0;
-      }
+  const visibleFacts: Array<EventStatusFact> = [
+    ...(durationFact ? [durationFact] : []),
+    ...(props.facts || []),
+  ].filter((fact: EventStatusFact) => {
+    if (!fact || !fact.label) {
+      return false;
+    }
 
-      return Boolean(fact.value);
-    },
-  );
+    if (typeof fact.value === "string") {
+      return fact.value.trim().length > 0;
+    }
+
+    return Boolean(fact.value);
+  });
+
+  const noticeTone: EventHeaderNoticeTone = props.headerNoticeTone || "neutral";
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
-      {props.title ? (
-        /*
-         * Header layout: eyebrow number + prominent title, pills on the row
-         * below. The actions sit beside the title only from xl: next to a
-         * side menu, a narrower header squeezed the title down to a few
-         * characters and stacked the actions one per row. Beside it, the
-         * actions keep their width and a long title truncates instead.
-         */
-        <div className="px-4 py-4 sm:px-5">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-            <div className="min-w-0">
-              {props.identifier && (
-                <span
-                  className="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-gray-600"
-                  title={translateString("Number")}
-                >
-                  {props.identifier}
-                </span>
-              )}
-              <Tooltip text={props.title}>
-                <h2 className="mt-1.5 truncate text-lg font-semibold leading-tight text-gray-900 sm:text-xl">
-                  {props.title}
-                </h2>
-              </Tooltip>
-            </div>
-            {getActionsCluster("xl:w-auto xl:shrink-0")}
-          </div>
-          {hasMeta && (
-            <div className="mt-3 flex flex-wrap items-center gap-2.5">
-              {metaItems}
-            </div>
-          )}
-          {visibleFacts.length > 0 && (
-            <dl
-              data-testid="event-status-facts"
-              className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm"
-            >
-              {visibleFacts.map((fact: EventStatusFact, index: number) => {
-                return (
-                  <div
-                    key={`${fact.label}-${index}`}
-                    className="inline-flex min-w-0 max-w-full items-start gap-1.5"
-                  >
-                    <dt className="inline-flex flex-shrink-0 items-center gap-1.5 text-gray-500">
-                      {fact.icon && (
-                        <Icon
-                          icon={fact.icon}
-                          className="h-4 w-4 text-gray-400"
-                        />
-                      )}
-                      <span>{translateString(fact.label) || fact.label}</span>
-                    </dt>
-                    <dd className="min-w-0 break-words font-medium text-gray-900">
-                      {fact.value}
-                    </dd>
-                  </div>
-                );
-              })}
-            </dl>
-          )}
-          {props.headerNotice && (
-            <div className="mt-3">{props.headerNotice}</div>
-          )}
-        </div>
-      ) : (
-        /* Compact layout: identifier inline with the pills (unchanged). */
-        <div className="flex flex-col gap-3 px-4 py-4 sm:px-5 md:flex-row md:items-center md:justify-between">
-          <div className="flex min-w-0 flex-wrap items-center gap-2.5">
+    <section
+      className={EVENT_HEADER_CLASS_NAME}
+      data-testid={EVENT_HEADER_TEST_IDS.header}
+      data-actions-beside-from={
+        besideWidthRem === null ? "never" : `${besideWidthRem}rem`
+      }
+    >
+      <div className={EVENT_HEADER_TOP_SECTION_CLASS_NAME}>
+        <div className={topRow.row} data-testid={EVENT_HEADER_TEST_IDS.top}>
+          <div
+            className={topRow.chips}
+            data-testid={EVENT_HEADER_TEST_IDS.chips}
+          >
             {props.identifier && (
               <span
-                className="text-sm font-semibold text-gray-900"
-                title={translateString("Number")}
+                className={EVENT_HEADER_NUMBER_CLASS_NAME}
+                title={translateLabel("Number")}
+                data-testid={EVENT_HEADER_TEST_IDS.number}
               >
                 {props.identifier}
               </span>
             )}
-            {metaItems}
+            {currentState && (
+              <Pill
+                color={currentState.color || Black}
+                text={currentState.name}
+                tooltip="Current state"
+              />
+            )}
+            {props.severity && (
+              <Pill
+                color={props.severity.color || Black}
+                text={props.severity.name}
+                tooltip="Severity"
+              />
+            )}
+            {props.isPrivate && (
+              <Pill
+                color={Red500}
+                text="Private"
+                icon={IconProp.Lock}
+                tooltip={
+                  props.privateTooltip ||
+                  "Visible only to owners, owner teams, and project admins."
+                }
+              />
+            )}
           </div>
-          {getActionsCluster("md:w-auto")}
+
+          {/*
+           * Before the actions in the page, as it is read and as a screen
+           * reader reads it; on a wide header drawn under the pills and the
+           * actions both.
+           */}
+          {props.title && (
+            <h2
+              className={topRow.title}
+              data-testid={EVENT_HEADER_TEST_IDS.title}
+            >
+              {props.title}
+            </h2>
+          )}
+
+          {hasActions && (
+            <div
+              className={topRow.actions}
+              role="group"
+              aria-label={translateLabel("Event actions")}
+              data-testid={EVENT_HEADER_TEST_IDS.actions}
+            >
+              {stateActions.length > 0 || secondaryActions.length > 0 ? (
+                <div
+                  className={EVENT_HEADER_BUTTONS_CLASS_NAME}
+                  data-testid={EVENT_HEADER_TEST_IDS.buttons}
+                >
+                  {stateActions.map((action: EventStateAction) => {
+                    return getActionButton(action);
+                  })}
+                  {secondaryActions.map((action: EventPanelAction) => {
+                    return getSecondaryActionButton(action);
+                  })}
+                </div>
+              ) : (
+                <></>
+              )}
+              {moreMenu ? (
+                <div
+                  className={topRow.morePlace}
+                  data-testid={EVENT_HEADER_TEST_IDS.morePlace}
+                >
+                  {moreMenu}
+                </div>
+              ) : (
+                <></>
+              )}
+            </div>
+          )}
+        </div>
+
+        {states.length > 1 && (
+          <div className="mt-4">
+            <EventStateTrack
+              states={states}
+              currentStateId={props.currentStateId}
+            />
+          </div>
+        )}
+      </div>
+
+      {visibleFacts.length > 0 && (
+        <dl
+          data-testid={EVENT_HEADER_TEST_IDS.facts}
+          className={getEventHeaderFactsClassName(visibleFacts.length)}
+        >
+          {visibleFacts.map((fact: EventStatusFact, index: number) => {
+            return (
+              <div
+                key={`${fact.label}-${index}`}
+                className={EVENT_HEADER_FACT_CLASS_NAME}
+              >
+                <dt className={EVENT_HEADER_FACT_LABEL_CLASS_NAME}>
+                  {fact.icon && (
+                    <Icon
+                      icon={fact.icon}
+                      className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+                    />
+                  )}
+                  <span className="min-w-0 break-words">
+                    {translateLabel(fact.label)}
+                  </span>
+                </dt>
+                <dd className={EVENT_HEADER_FACT_VALUE_CLASS_NAME}>
+                  {fact.value}
+                </dd>
+              </div>
+            );
+          })}
+        </dl>
+      )}
+
+      {props.headerNotice && (
+        <div
+          className={EVENT_HEADER_NOTICE_CLASS_NAMES[noticeTone]}
+          data-testid={EVENT_HEADER_TEST_IDS.notice}
+          data-tone={noticeTone}
+        >
+          {props.headerNotice}
         </div>
       )}
-      {states.length > 1 && (
-        <div className="border-t border-gray-100 px-4 py-2.5 sm:px-5">
-          {getStepRail()}
-        </div>
-      )}
-    </div>
+    </section>
   );
 };
 

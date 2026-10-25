@@ -6,6 +6,7 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import IncidentInternalNote from "Common/Models/DatabaseModels/IncidentInternalNote";
 import React, {
@@ -30,6 +31,7 @@ import EventStatusPanel, {
   EventStatusFact,
 } from "../EventView/EventStatusPanel";
 import { getStateChangeFormFields } from "../EventView/StateChangeFormFields";
+import EventHeaderSkeleton from "../EventView/EventHeaderSkeleton";
 import {
   BulkStateChangeNoteType,
   toBulkStateChangeNoteTemplate,
@@ -97,45 +99,18 @@ export interface ComponentProps {
 }
 
 /*
- * Holds the header's place while its states and timeline load. Same outline
- * as the loaded panel (and as the page skeleton's hero), so neither the
- * swap from the page skeleton nor the swap to the real header moves the page.
+ * Holds the header's place while its states and timeline load, drawn as the
+ * loaded header is (EventHeaderSkeleton): Acknowledge and Resolve, and how
+ * long, the commander, the owners and the monitors.
  */
 export const IncidentStatePlaceholder: FunctionComponent = (): ReactElement => {
-  const translator: Translator = useTranslator();
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      data-testid="incident-state-placeholder"
-      className="rounded-xl border border-gray-200 bg-white shadow-sm"
-    >
-      <span className="sr-only">
-        {translator.translateText("Loading incident status")}
-      </span>
-      <div aria-hidden="true" className="motion-safe:animate-pulse">
-        <div className="px-4 py-4 sm:px-5">
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div className="min-w-0 flex-1">
-              <div className="h-5 w-16 rounded-md bg-gray-100" />
-              <div className="mt-2 h-6 w-3/4 max-w-md rounded bg-gray-200" />
-            </div>
-            <div className="flex gap-2">
-              <div className="h-9 w-28 rounded-md bg-gray-100" />
-              <div className="h-9 w-24 rounded-md bg-gray-100" />
-            </div>
-          </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2.5">
-            <div className="h-5 w-20 rounded-full bg-gray-100" />
-            <div className="h-5 w-16 rounded-full bg-gray-100" />
-            <div className="h-5 w-28 rounded bg-gray-100" />
-          </div>
-        </div>
-        <div className="border-t border-gray-100 px-4 py-2.5 sm:px-5">
-          <div className="h-3 w-2/3 max-w-sm rounded bg-gray-100" />
-        </div>
-      </div>
-    </div>
+    <EventHeaderSkeleton
+      testId="incident-state-placeholder"
+      loadingText="Loading incident status"
+      buttonCount={2}
+      factCount={4}
+    />
   );
 };
 
@@ -565,6 +540,14 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
           };
         })}
         stateList={StateListType.IncidentState}
+        /*
+         * A state change is a new row on the state timeline: someone who
+         * may not add one sees the buttons locked, each saying why.
+         */
+        stateChangeGate={PermissionGate.check(
+          new IncidentStateTimeline(),
+          ModelAction.Create,
+        )}
         identifier={props.eventNumber}
         title={props.title}
         currentStateId={currentIncidentState?.id?.toString()}
@@ -578,6 +561,7 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
         onStateSelect={openModalForState}
         secondaryActions={props.secondaryActions}
         facts={props.facts}
+        headerNoticeTone="ai"
         headerNotice={
           shouldShowAIInvestigationHeaderStatus(
             props.aiInvestigationStatus,

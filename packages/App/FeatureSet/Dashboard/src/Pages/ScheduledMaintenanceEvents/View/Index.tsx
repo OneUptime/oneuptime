@@ -85,13 +85,28 @@ import useRecordChannelLinks, {
   getOpenInChatActions,
 } from "../../../Components/Workspace/useRecordChannelLinks";
 import RecordChannelMembersCard from "../../../Components/Workspace/RecordChannelMembersCard";
+import EventFactLinks, {
+  EventFactLinkItem,
+} from "../../../Components/EventView/EventFactLinks";
+import {
+  PersonFactValue,
+  getOwnersFact,
+} from "../../../Components/EventView/EventPeopleFacts";
+import useEventOwners, {
+  EventOwnersState,
+} from "../../../Components/EventView/useEventOwners";
+import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
+import ScheduledMaintenanceOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import {
   WorkspaceChannelLink,
   WorkspaceChannelRecordType,
 } from "Common/Types/Workspace/WorkspaceChannelLink";
 
 // How many status page names the header lists before summarising the rest.
-const MAX_STATUS_PAGE_NAMES_IN_HEADER: number = 2;
+export const MAX_STATUS_PAGE_NAMES_IN_HEADER: number = 2;
 
 // The details card's Edit: labels folded under Advanced on Event, as on the create form.
 const detailsAdvancedSection: FormFieldCollapsibleSection<ScheduledMaintenance> =
@@ -99,32 +114,51 @@ const detailsAdvancedSection: FormFieldCollapsibleSection<ScheduledMaintenance> 
 
 type GetStatusPagesFactFunction = (
   statusPages: Array<StatusPage> | undefined,
-) => string;
+  translator: Translator,
+) => ReactElement;
 
+/*
+ * The status pages the event shows on, each a link to its page, one under
+ * another; the first two, then "+N more". An event on none says so.
+ */
 const getStatusPagesFact: GetStatusPagesFactFunction = (
   statusPages: Array<StatusPage> | undefined,
-): string => {
-  const names: Array<string> = (statusPages || [])
-    .map((statusPage: StatusPage): string => {
-      return (statusPage.name || "").trim();
+  translator: Translator,
+): ReactElement => {
+  const items: Array<EventFactLinkItem> = (statusPages || [])
+    .map((statusPage: StatusPage, index: number): EventFactLinkItem => {
+      return {
+        key: statusPage._id?.toString() || `status-page-${index}`,
+        name: (statusPage.name || "").trim(),
+        route: statusPage._id
+          ? RouteUtil.populateRouteParams(
+              RouteMap[PageMap.STATUS_PAGE_VIEW] as Route,
+              { modelId: new ObjectID(statusPage._id.toString()) },
+            )
+          : undefined,
+      };
     })
-    .filter((name: string): boolean => {
-      return name.length > 0;
+    .filter((item: EventFactLinkItem): boolean => {
+      return item.name.length > 0;
     });
 
-  if (names.length === 0) {
-    return "None";
-  }
-
-  if (names.length <= MAX_STATUS_PAGE_NAMES_IN_HEADER) {
-    return names.join(", ");
+  if (items.length === 0) {
+    return (
+      <span
+        data-testid="event-status-page-links"
+        className="font-normal text-gray-500"
+      >
+        {translator.translateText("None")}
+      </span>
+    );
   }
 
   return (
-    names.slice(0, MAX_STATUS_PAGE_NAMES_IN_HEADER).join(", ") +
-    " +" +
-    (names.length - MAX_STATUS_PAGE_NAMES_IN_HEADER) +
-    " more"
+    <EventFactLinks
+      dataTestId="event-status-page-links"
+      maxVisible={MAX_STATUS_PAGE_NAMES_IN_HEADER}
+      items={items}
+    />
   );
 };
 
@@ -444,6 +478,14 @@ const ScheduledMaintenanceView: FunctionComponent<
 
   const isCurrentEventLoaded: boolean = loadedEvent?.modelId === modelIdString;
 
+  // The event's owners, teams first, for its header.
+  const owners: EventOwnersState = useEventOwners({
+    ownerUserModelType: ScheduledMaintenanceOwnerUser,
+    ownerTeamModelType: ScheduledMaintenanceOwnerTeam,
+    resourceIdField: "scheduledMaintenanceId",
+    resourceId: modelId,
+  });
+
   // The event's own Slack and Teams channels: Open in Slack / Teams.
   const channelLinks: Array<WorkspaceChannelLink> = useRecordChannelLinks({
     recordType: WorkspaceChannelRecordType.ScheduledMaintenance,
@@ -514,21 +556,43 @@ const ScheduledMaintenanceView: FunctionComponent<
       scheduledMaintenance,
     );
 
-  const heroFacts: Array<EventStatusFact> = [
-    {
-      label: "Status pages",
-      value: getStatusPagesFact(scheduledMaintenance?.statusPages),
-      icon: IconProp.Globe,
-    },
-    {
+  /*
+   * Who owns the event (teams first), where it shows, and who created it.
+   * Adding owners is offered until the event is over.
+   */
+  const heroFacts: Array<EventStatusFact> = [];
+
+  const ownersFact: EventStatusFact | null = getOwnersFact({
+    owners: owners.owners,
+    ownersRoute: RouteUtil.populateRouteParams(
+      RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS] as Route,
+      { modelId: modelId },
+    ),
+    canAddOwners: !isEventOver,
+  });
+
+  if (ownersFact) {
+    heroFacts.push(ownersFact);
+  }
+
+  heroFacts.push({
+    label: "Status pages",
+    value: getStatusPagesFact(scheduledMaintenance?.statusPages, translator),
+    icon: IconProp.Globe,
+  });
+
+  const createdByName: string =
+    scheduledMaintenance?.createdByUser?.name?.toString() ||
+    scheduledMaintenance?.createdByUser?.email?.toString() ||
+    "";
+
+  if (createdByName) {
+    heroFacts.push({
       label: "Created by",
-      value:
-        scheduledMaintenance?.createdByUser?.name?.toString() ||
-        scheduledMaintenance?.createdByUser?.email?.toString() ||
-        "",
+      value: <PersonFactValue name={createdByName} />,
       icon: IconProp.User,
-    },
-  ];
+    });
+  }
 
   return (
     <Fragment key={modelIdString}>

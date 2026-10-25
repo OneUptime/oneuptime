@@ -6,6 +6,7 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import AlertInternalNote from "Common/Models/DatabaseModels/AlertInternalNote";
 import React, {
   Fragment,
@@ -25,6 +26,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
 import { getStateChangeFormFields } from "../EventView/StateChangeFormFields";
+import EventHeaderSkeleton from "../EventView/EventHeaderSkeleton";
 import {
   BulkStateChangeNoteType,
   toBulkStateChangeNoteTemplate,
@@ -92,42 +94,17 @@ export interface ComponentProps {
  * swap from the page skeleton nor the swap to the real header moves the page.
  */
 export const AlertStatePlaceholder: FunctionComponent = (): ReactElement => {
-  const translator: Translator = useTranslator();
+  /*
+   * Acknowledge, Resolve and Declare Incident; how long, the owners, the
+   * monitor and the episode.
+   */
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      data-testid="alert-state-placeholder"
-      className="rounded-xl border border-gray-200 bg-white shadow-sm"
-    >
-      <span className="sr-only">
-        {translator.translateText("Loading alert status")}
-      </span>
-      <div aria-hidden="true" className="motion-safe:animate-pulse">
-        <div className="px-4 py-4 sm:px-5">
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div className="min-w-0 flex-1">
-              <div className="h-5 w-16 rounded-md bg-gray-100" />
-              <div className="mt-2 h-6 w-3/4 max-w-md rounded bg-gray-200" />
-            </div>
-            {/* Acknowledge, Resolve and Declare Incident. */}
-            <div className="flex gap-2">
-              <div className="h-9 w-28 rounded-md bg-gray-100" />
-              <div className="h-9 w-24 rounded-md bg-gray-100" />
-              <div className="h-9 w-36 rounded-md bg-gray-100" />
-            </div>
-          </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2.5">
-            <div className="h-5 w-20 rounded-full bg-gray-100" />
-            <div className="h-5 w-16 rounded-full bg-gray-100" />
-            <div className="h-5 w-28 rounded bg-gray-100" />
-          </div>
-        </div>
-        <div className="border-t border-gray-100 px-4 py-2.5 sm:px-5">
-          <div className="h-3 w-2/3 max-w-sm rounded bg-gray-100" />
-        </div>
-      </div>
-    </div>
+    <EventHeaderSkeleton
+      testId="alert-state-placeholder"
+      loadingText="Loading alert status"
+      buttonCount={3}
+      factCount={4}
+    />
   );
 };
 
@@ -550,6 +527,14 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
           };
         })}
         stateList={StateListType.AlertState}
+        /*
+         * A state change is a new row on the state timeline: someone who
+         * may not add one sees the buttons locked, each saying why.
+         */
+        stateChangeGate={PermissionGate.check(
+          new AlertStateTimeline(),
+          ModelAction.Create,
+        )}
         identifier={props.eventNumber}
         title={props.title}
         currentStateId={currentAlertState?.id?.toString()}
@@ -567,6 +552,7 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
           openModalForState(stateId);
         }}
         facts={props.facts}
+        headerNoticeTone="ai"
         headerNotice={
           shouldShowAIInvestigationHeaderStatus(
             props.aiInvestigationStatus,

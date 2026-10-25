@@ -278,6 +278,8 @@ import IncidentEpisodeOwnerTeam from "Common/Models/DatabaseModels/IncidentEpiso
 import IncidentEpisodeOwnerUser from "Common/Models/DatabaseModels/IncidentEpisodeOwnerUser";
 import AlertEpisodeOwnerTeam from "Common/Models/DatabaseModels/AlertEpisodeOwnerTeam";
 import AlertEpisodeOwnerUser from "Common/Models/DatabaseModels/AlertEpisodeOwnerUser";
+import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
+import ScheduledMaintenanceOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
 import IncidentMeasurement from "Common/Models/DatabaseModels/IncidentMeasurement";
 import IncidentMeasurementValue from "Common/Models/DatabaseModels/IncidentMeasurementValue";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
@@ -2352,9 +2354,10 @@ for (const [eventType, markdown, color, when] of alertEpisodeFeed) {
  * ---------------------------------------------------------------------------
  * Owners (?owners=)
  * ---------------------------------------------------------------------------
- * The owner teams and owner people of incident #1042, alert #311 and both
- * episodes, which their headers name beside the state (teams first). Every
- * owner table is modelled, so a record nobody owns reads two empty lists.
+ * The owner teams and owner people of incident #1042, alert #311, both
+ * episodes and scheduled maintenance #58, which their headers name among
+ * their facts (teams first). Every owner table is modelled, so a record
+ * nobody owns reads two empty lists.
  */
 for (const modelType of [
   IncidentOwnerTeam,
@@ -2365,6 +2368,8 @@ for (const modelType of [
   IncidentEpisodeOwnerUser,
   AlertEpisodeOwnerTeam,
   AlertEpisodeOwnerUser,
+  ScheduledMaintenanceOwnerTeam,
+  ScheduledMaintenanceOwnerUser,
 ]) {
   table(modelType);
 }
@@ -2453,6 +2458,20 @@ if (ownersMode === "default") {
     [ownerTeams.payments],
     at("17:40", 5),
   );
+  ownTeams(
+    ScheduledMaintenanceOwnerTeam,
+    "scheduledMaintenanceId",
+    smId,
+    [ownerTeams.database],
+    at("17:00", 5),
+  );
+  ownUsers(
+    ScheduledMaintenanceOwnerUser,
+    "scheduledMaintenanceId",
+    smId,
+    [people.jordan],
+    at("17:00", 6),
+  );
 }
 
 if (ownersMode === "many") {
@@ -2494,6 +2513,13 @@ if (ownersMode === "many") {
     alertEpisodeId,
     [ownerTeams.payments],
     at("17:40", 5),
+  );
+  ownTeams(
+    ScheduledMaintenanceOwnerTeam,
+    "scheduledMaintenanceId",
+    smId,
+    [ownerTeams.database],
+    at("17:00", 5),
   );
 }
 

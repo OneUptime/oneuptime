@@ -27,23 +27,22 @@ import {
 import { VisibleItems, splitVisibleItems } from "../../Utils/EventOverview";
 
 /*
- * The people row of an incident's, alert's or episode's header: who commands
- * the response and who owns it, beside its state and severity, so nobody has
- * to open the roles card or the Owners page to find out (the customer's
- * "Easy to see Incident Commander and Team(s)").
+ * Who is on it, in the header of an incident, an alert, an episode or a
+ * scheduled maintenance event: who commands the response and who owns it,
+ * so nobody has to open the roles card or the Owners page to find out (the
+ * customer's "Easy to see Incident Commander and Team(s)").
  *
  * Both are drawn as an avatar and a name, the way the Owners page and the
- * owners column draw people and teams (PeopleAvatar). The avatar is 24px but
- * takes a text line's 20px in the row (-my-0.5), and the value sits at the
- * top of its line (align-top) rather than on the avatar's initials, so a fact
- * with people is as tall as one with words, its name level with its label,
- * and the row never jumps when they arrive.
+ * owners column draw people and teams (PeopleAvatar), under their label in
+ * the header's facts.
  *
  * While the record is open, a role nobody holds and a record nobody owns
  * show the empty place itself - a dashed circle with a plus where the avatar
- * would be, as the Owners page offers its next owner - and the word that
- * fills it: "Assign", "Add". Once the record is over, they say "Not
- * assigned" and "None".
+ * would be, as the Owners page offers its next owner - with the word that
+ * fills it, "Assign" or "Add", the two together one control that lights up
+ * as a whole. A record that has owners ends their list with the same circle,
+ * on its own, to add more. Once the record is over, they say "Not assigned"
+ * and "None", and offer nothing.
  */
 
 /*
@@ -113,29 +112,37 @@ const LINK_CLASS_NAME: string =
 
 /*
  * Assign / Add: the empty place and its word as one control, laid out like
- * a person (avatar, gap, name). The word is the link; hovering anywhere on
- * the control underlines it and inks the circle.
+ * a person (avatar, gap, name), its circle lined up with the avatars of the
+ * facts beside it. The whole control lights up on hover, so it reads as
+ * something to press rather than a word that happens to be blue.
  */
-const EMPTY_PLACE_ACTION_CLASS_NAME: string =
-  "group inline-flex max-w-full items-center gap-1.5 rounded-sm font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
+export const EVENT_EMPTY_PLACE_ACTION_CLASS_NAME: string =
+  "group -my-0.5 -ms-1 inline-flex max-w-full items-center gap-1.5 rounded-full py-0.5 pe-2.5 ps-1 font-medium text-gray-700 transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
+
+/*
+ * The place to add another owner at the end of the list: the circle alone,
+ * its words read to a screen reader and shown under the pointer.
+ */
+export const EVENT_ADD_MORE_ACTION_CLASS_NAME: string =
+  "group inline-flex rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
 
 // A quiet "Not assigned" / "None": a fact with nothing to name.
 const EMPTY_VALUE_CLASS_NAME: string = "font-normal text-gray-500";
 
-// The value's box: at the top of its line, so its name is level with the label.
+// The value's box: people side by side, wrapping onto more lines in a narrow column.
 const VALUE_CLASS_NAME: string =
-  "inline-flex max-w-full flex-wrap items-center gap-x-3 gap-y-1 align-top";
+  "flex max-w-full flex-wrap items-center gap-x-3 gap-y-1.5";
 
 /*
  * Where the avatar would be: a dashed circle with a plus. Decoration - the
- * word beside it says what it does.
+ * word beside it, or the control's name, says what it does.
  */
 const EmptyPlace: FunctionComponent = (): ReactElement => {
   return (
     <span
       aria-hidden="true"
       data-testid="event-empty-place"
-      className="-my-0.5 inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-dashed border-gray-300 text-gray-400 transition-colors group-hover:border-indigo-400 group-hover:text-indigo-500"
+      className="inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border border-dashed border-gray-300 text-gray-400 transition-colors group-hover:border-indigo-400 group-hover:text-indigo-500"
     >
       <Icon icon={IconProp.Add} className="h-3.5 w-3.5" />
     </span>
@@ -157,10 +164,15 @@ const Person: FunctionComponent<PersonProps> = (
       data-kind={props.item.kind}
       className="inline-flex min-w-0 max-w-full items-center gap-1.5"
     >
-      <span aria-hidden="true" className="-my-0.5 inline-flex flex-shrink-0">
+      <span aria-hidden="true" className="inline-flex flex-shrink-0">
         <PeopleAvatar item={props.item} size="chip" />
       </span>
-      <span data-testid="event-person-name" className="min-w-0 truncate">
+      {/*
+       * A long name wraps beside its avatar rather than being cut short: in
+       * a phone's two columns of facts "Database Reliability" had a few
+       * letters and an ellipsis.
+       */}
+      <span data-testid="event-person-name" className="min-w-0 break-words">
         {props.item.name}
       </span>
     </span>
@@ -238,12 +250,10 @@ export const CommanderFactValue: FunctionComponent<CommanderFactValueProps> = (
              */
             role: translator.translateText(props.roleName) || props.roleName,
           })}
-          className={EMPTY_PLACE_ACTION_CLASS_NAME}
+          className={EVENT_EMPTY_PLACE_ACTION_CLASS_NAME}
         >
           <EmptyPlace />
-          <span className="group-hover:underline">
-            {translator.translateText("Assign")}
-          </span>
+          <span>{translator.translateText("Assign")}</span>
         </button>
       </span>
     );
@@ -268,7 +278,7 @@ export interface OwnersFactValueProps {
   owners: Array<ResourceOwnerEntry>;
   // The record's Owners page: the rest of a long list, and where owners are added.
   ownersRoute: Route;
-  // Offered while the record is still open, when it has no owners.
+  // Offered while the record is still open.
   canAddOwners?: boolean | undefined;
 }
 
@@ -276,6 +286,8 @@ export const OwnersFactValue: FunctionComponent<OwnersFactValueProps> = (
   props: OwnersFactValueProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const addOwnersText: string =
+    translator.translateText("Add owners") || "Add owners";
 
   if (props.owners.length === 0) {
     if (!props.canAddOwners) {
@@ -290,20 +302,16 @@ export const OwnersFactValue: FunctionComponent<OwnersFactValueProps> = (
       <span data-testid="event-owners" className={VALUE_CLASS_NAME}>
         <AppLink
           to={props.ownersRoute}
-          className={EMPTY_PLACE_ACTION_CLASS_NAME}
+          className={EVENT_EMPTY_PLACE_ACTION_CLASS_NAME}
         >
           <EmptyPlace />
           {/*
-           * "Add" after "Owners" reads whole; a screen reader, which may
+           * "Add" under "Owners" reads whole; a screen reader, which may
            * list the link on its own, hears "Add owners".
            */}
           <span data-testid="event-owners-add">
-            <span aria-hidden="true" className="group-hover:underline">
-              {translator.translateText("Add")}
-            </span>
-            <span className="sr-only">
-              {translator.translateText("Add owners")}
-            </span>
+            <span aria-hidden="true">{translator.translateText("Add")}</span>
+            <span className="sr-only">{addOwnersText}</span>
           </span>
         </AppLink>
       </span>
@@ -341,6 +349,46 @@ export const OwnersFactValue: FunctionComponent<OwnersFactValueProps> = (
       ) : (
         <></>
       )}
+      {props.canAddOwners ? (
+        <AppLink
+          to={props.ownersRoute}
+          className={EVENT_ADD_MORE_ACTION_CLASS_NAME}
+          title={addOwnersText}
+          dataTestId="event-owners-add-more"
+        >
+          <EmptyPlace />
+          <span className="sr-only">{addOwnersText}</span>
+        </AppLink>
+      ) : (
+        <></>
+      )}
+    </span>
+  );
+};
+
+export interface PersonFactValueProps {
+  // Who: a name, or an email address for someone without one.
+  name: string;
+}
+
+/*
+ * One person by name, drawn as the other people in the header are: an
+ * avatar with their initials, and the name - a maintenance event's
+ * "Created by".
+ */
+export const PersonFactValue: FunctionComponent<PersonFactValueProps> = (
+  props: PersonFactValueProps,
+): ReactElement => {
+  return (
+    <span data-testid="event-person" className={VALUE_CLASS_NAME}>
+      <Person
+        item={{
+          kind: PeoplePickerKind.User,
+          name: props.name,
+          hasProfilePicture: false,
+        }}
+        dataTestId="event-person-entry"
+      />
     </span>
   );
 };

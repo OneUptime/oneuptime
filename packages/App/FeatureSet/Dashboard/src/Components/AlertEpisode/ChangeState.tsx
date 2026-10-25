@@ -10,6 +10,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertEpisodeStateTimeline from "Common/Models/DatabaseModels/AlertEpisodeStateTimeline";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import AlertEpisodeInternalNote from "Common/Models/DatabaseModels/AlertEpisodeInternalNote";
 import React, {
   FunctionComponent,
@@ -468,6 +469,14 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
           };
         })}
         stateList={StateListType.AlertState}
+        /*
+         * A state change is a new row on the state timeline: someone who
+         * may not add one sees the buttons locked, each saying why.
+         */
+        stateChangeGate={PermissionGate.check(
+          new AlertEpisodeStateTimeline(),
+          ModelAction.Create,
+        )}
         identifier={
           episode?.episodeNumberWithPrefix ||
           (episode?.episodeNumber ? "#" + episode.episodeNumber : undefined)
@@ -514,6 +523,7 @@ const ChangeEpisodeState: FunctionComponent<ComponentProps> = (
             translator,
           ),
         ]}
+        headerNoticeTone="danger"
         headerNotice={
           refreshError ? (
             <EpisodeHeaderRefreshError
