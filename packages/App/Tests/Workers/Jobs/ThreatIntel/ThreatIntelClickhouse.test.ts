@@ -109,6 +109,12 @@ import ThreatIntelMatcher, {
 import TaxiiClient, {
   TaxiiObjectsPage,
 } from "Common/Server/Utils/SecurityEvent/ThreatIntel/TaxiiClient";
+import SecurityEntityRiskRecorder from "Common/Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskRecorder";
+import { SecurityRiskFinding } from "Common/Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskFindings";
+import {
+  SecurityEntity,
+  SecurityEntityType,
+} from "Common/Types/SecurityCase/SecurityEntity";
 
 const endpoint: string | undefined = process.env["TEST_CLICKHOUSE_URL"];
 
@@ -450,6 +456,14 @@ integration("threat intel against ClickHouse (issue #5157)", () => {
     jest
       .spyOn(OTelIngestService, "telemetryServiceFromName")
       .mockResolvedValue(serviceMetadata() as never);
+    /*
+     * Postgres and Redis: entity risk, which locks the project in Redis
+     * before it writes the risk rows. What a check hands it is pinned by
+     * the matcher check below.
+     */
+    jest
+      .spyOn(SecurityEntityRiskRecorder, "record")
+      .mockResolvedValue({ entitiesUpdated: 0, riskCasesRaised: 0 } as never);
   });
 
   afterAll(async (): Promise<void> => {
@@ -779,6 +793,17 @@ integration("threat intel against ClickHouse (issue #5157)", () => {
           return Promise.resolve(undefined);
         }) as never);
 
+      const risks: Array<Array<SecurityRiskFinding>> = [];
+      jest.spyOn(SecurityEntityRiskRecorder, "record").mockImplementation(((
+        findings: Array<SecurityRiskFinding>,
+      ) => {
+        risks.push(findings);
+        return Promise.resolve({
+          entitiesUpdated: findings.length,
+          riskCasesRaised: 0,
+        });
+      }) as never);
+
       const checked: ThreatIntelMatchResult =
         await ThreatIntelMatcher.evaluateFeed(feed);
 
@@ -803,6 +828,43 @@ integration("threat intel against ClickHouse (issue #5157)", () => {
         }),
       ).toEqual([FIRST_ADDRESS, SECOND_ADDRESS, COMMAND_HOST].sort());
 
+      // Each address the check matched adds to its own risk; the domain adds none.
+      expect(risks).toHaveLength(1);
+      expect(
+        risks[0]!
+          .map(
+            (
+              finding: SecurityRiskFinding,
+            ): {
+              projectId: string;
+              feedId: string | undefined;
+              entities: Array<SecurityEntity>;
+            } => {
+              return {
+                projectId: finding.projectId.toString(),
+                feedId: finding.threatIntelFeedId?.toString(),
+                entities: finding.entities,
+              };
+            },
+          )
+          .sort(
+            (
+              a: { entities: Array<SecurityEntity> },
+              b: { entities: Array<SecurityEntity> },
+            ): number => {
+              return a.entities[0]!.value.localeCompare(b.entities[0]!.value);
+            },
+          ),
+      ).toEqual(
+        [FIRST_ADDRESS, SECOND_ADDRESS].sort().map((address: string) => {
+          return {
+            projectId: projectId.toString(),
+            feedId: feedId.toString(),
+            entities: [{ type: SecurityEntityType.IpAddress, value: address }],
+          };
+        }),
+      );
+
       // The next window holds only the findings: nothing is matched again.
       feed.lastEvaluatedAt = updates[0]!["lastEvaluatedAt"] as Date;
       updates.length = 0;
@@ -813,6 +875,8 @@ integration("threat intel against ClickHouse (issue #5157)", () => {
       expect(next.matchedIndicators).toBe(0);
       expect(next.findingsWritten).toBe(0);
       expect(updates[0]!["lastMatchError"]).toBeNull();
+      // Nor is any risk added again.
+      expect(risks).toHaveLength(1);
       expect(logger.error).not.toHaveBeenCalled();
     });
   });
