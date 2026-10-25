@@ -20,6 +20,8 @@ import { useTheme } from "../theme";
 import { radius, spacing, typography } from "../theme/tokens";
 import { withAlpha } from "../utils/color";
 import ScreenIntro from "../components/ScreenIntro";
+import { useContentGutters, useWindowLayout } from "../layout/WindowLayout";
+import type { ContentGutters, WindowLayout } from "../layout/windowLayout";
 import IncidentsScreen from "./IncidentsScreen";
 import AlertsScreen from "./AlertsScreen";
 
@@ -54,6 +56,13 @@ const categories: Array<InboxCategory> = [
 /** Incidents and alerts are adjacent views, not competing top-level destinations. */
 export default function InboxScreen(): React.JSX.Element {
   const { theme } = useTheme();
+  const gutters: ContentGutters = useContentGutters();
+  const windowLayout: WindowLayout = useWindowLayout();
+  /*
+   * On a short window - a phone on its side - the page title gives its
+   * height to the list: the tab or rail beside it already says Inbox.
+   */
+  const showTitle: boolean = windowLayout.heightClass !== "compact";
   const navigation: InboxNavigation = useNavigation<InboxNavigation>();
   const route: RouteProp<InboxStackParamList, "InboxList"> =
     useRoute<RouteProp<InboxStackParamList, "InboxList">>();
@@ -85,8 +94,13 @@ export default function InboxScreen(): React.JSX.Element {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}>
-      <View style={{ paddingHorizontal: spacing.xl, paddingTop: spacing.xl }}>
-        <ScreenIntro title="Inbox" compact />
+      <View
+        style={{
+          paddingTop: showTitle ? spacing.xl : spacing.sm,
+          ...gutters,
+        }}
+      >
+        {showTitle ? <ScreenIntro title="Inbox" compact /> : null}
         {/*
          * The category switch is the page's own navigation, so it reads as
          * tabs: a hairline the width of the page with a rounded indicator

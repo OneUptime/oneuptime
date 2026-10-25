@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import {
   View,
   SectionList,
@@ -22,6 +22,15 @@ import IconBadge from "../components/IconBadge";
 import ListFilters from "../components/ListFilters";
 import { getToneColors, type StatusTone } from "../components/StatusPill";
 import { useScreenPadding } from "../hooks/useScreenPadding";
+import { useContentGutters } from "../layout/WindowLayout";
+import type { ContentGutters } from "../layout/windowLayout";
+import {
+  useListPane,
+  usePaneScrollRestoration,
+  usePaneState,
+  type ListPaneState,
+  type PaneScrollRestoration,
+} from "../navigation/paneState";
 import ScreenIntro from "../components/ScreenIntro";
 import SearchField from "../components/SearchField";
 import { matchesSearch } from "../utils/search";
@@ -294,16 +303,45 @@ function HelperNote({
 export default function MonitorsScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const bottomPadding: number = useScreenPadding();
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<MonitorFilter>("all");
+  const gutters: ContentGutters = useContentGutters();
+  const listPane: ListPaneState = useListPane();
+  // Kept in the navigator so a fold or an unfold brings the list back as it was.
+  const [search, setSearch] = usePaneState<string>("monitors.search", "");
+  const [filter, setFilter] = usePaneState<MonitorFilter>(
+    "monitors.filter",
+    "all",
+  );
   const [refreshing, setRefreshing] = useState(false);
   const navigation: NavProp = useNavigation<NavProp>();
   const route: RouteProp<MonitorsStackParamList, "MonitorsList"> =
     useRoute<RouteProp<MonitorsStackParamList, "MonitorsList">>();
 
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [visibleCount, setVisibleCount] = usePaneState<number>(
+    "monitors.visible",
+    PAGE_SIZE,
+  );
+  // The params already applied: seen again after a fold, they must not wipe the search.
+  const [appliedParams, setAppliedParams] = usePaneState<
+    MonitorsStackParamList["MonitorsList"] | null
+  >("monitors.appliedParams", null);
+  const listRef: React.RefObject<SectionList<
+    ProjectMonitorItem,
+    MonitorSection
+  > | null> = useRef<SectionList<ProjectMonitorItem, MonitorSection>>(null);
+  const scroll: PaneScrollRestoration = usePaneScrollRestoration(
+    "monitors.scroll",
+    (offsetY: number): void => {
+      listRef.current
+        ?.getScrollResponder()
+        ?.scrollTo({ x: 0, y: offsetY, animated: false });
+    },
+  );
 
   useEffect(() => {
+    if (route.params === appliedParams || route.params === undefined) {
+      return;
+    }
+    setAppliedParams(route.params);
     if (route.params?.initialFilter) {
       setSearch("");
       setFilter(route.params.initialFilter);
@@ -534,10 +572,13 @@ export default function MonitorsScreen(): React.JSX.Element {
   const scrollContentStyle: {
     padding: number;
     paddingBottom: number;
+    paddingLeft: number;
+    paddingRight: number;
     flexGrow: number;
   } = {
     padding: spacing.xl,
     paddingBottom: bottomPadding,
+    ...gutters,
     flexGrow: 1,
   };
 
@@ -591,8 +632,12 @@ export default function MonitorsScreen(): React.JSX.Element {
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}>
       <SectionList
+        ref={listRef}
         sections={monitorSections}
         style={{ flex: 1 }}
+        onScroll={scroll.onScroll}
+        onContentSizeChange={scroll.onContentSizeChange}
+        scrollEventThrottle={scroll.scrollEventThrottle}
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
@@ -628,6 +673,11 @@ export default function MonitorsScreen(): React.JSX.Element {
             <MonitorCard
               monitor={wrapped.item}
               muted={isOperational}
+              selected={listPane.isOpen("MonitorDetail", {
+                monitorId: wrapped.item._id,
+                projectId: wrapped.projectId,
+              })}
+              showChevron={!listPane.besideDetail}
               onPress={() => {
                 return handlePress(wrapped);
               }}

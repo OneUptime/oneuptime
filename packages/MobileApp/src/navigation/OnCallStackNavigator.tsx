@@ -1,7 +1,8 @@
 import React from "react";
 import { Platform } from "react-native";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { createAdaptiveStackNavigator } from "./createAdaptiveStackNavigator";
 import { useStackScreenOptions } from "./useStackScreenOptions";
+import { OnCallEmptyDetail } from "../screens/EmptyDetailScreens";
 import OnCallOverviewScreen from "../screens/OnCallOverviewScreen";
 import MyOnCallPoliciesScreen from "../screens/MyOnCallPoliciesScreen";
 import WhoIsOnCallScreen from "../screens/WhoIsOnCallScreen";
@@ -11,16 +12,32 @@ import MyOnCallPagesScreen from "../screens/MyOnCallPagesScreen";
 import OnCallCalendarFeedScreen from "../screens/OnCallCalendarFeedScreen";
 import type { OnCallStackParamList } from "./types";
 
+/*
+ * Adaptive: on a wide window the overview stays on the left - am I on call,
+ * my shifts - and the roster, pages, cover and policies open beside it.
+ */
 const Stack: ReturnType<
-  typeof createNativeStackNavigator<OnCallStackParamList>
-> = createNativeStackNavigator<OnCallStackParamList>();
+  typeof createAdaptiveStackNavigator<OnCallStackParamList>
+> = createAdaptiveStackNavigator<OnCallStackParamList>();
+
+/*
+ * The cover form is a sheet over whatever it was opened from, never the
+ * pane's content: opening it beside the roster keeps the roster beneath it.
+ */
+const OVERLAY_ROUTES: ReadonlyArray<keyof OnCallStackParamList> = [
+  "CreateOnCallOverride",
+];
 
 export default function OnCallStackNavigator(): React.JSX.Element {
   const screenOptions: ReturnType<typeof useStackScreenOptions> =
     useStackScreenOptions();
 
   return (
-    <Stack.Navigator screenOptions={screenOptions}>
+    <Stack.Navigator
+      screenOptions={screenOptions}
+      emptyDetail={OnCallEmptyDetail}
+      overlayRouteNames={OVERLAY_ROUTES}
+    >
       <Stack.Screen
         name="OnCallOverview"
         component={OnCallOverviewScreen}

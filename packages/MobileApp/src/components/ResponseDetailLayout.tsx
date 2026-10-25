@@ -96,6 +96,14 @@ export function getResponseStageAppearance(stage: ResponseStage): {
   return stageAppearance[stage];
 }
 
+/*
+ * The narrowest a response action may be before the actions wrap onto rows
+ * of their own: an icon, "Acknowledge" in bold and the button's padding.
+ * At 128 points two actions squeezed onto one row of a 344-point foldable
+ * cover screen (or a 360-point phone), and the label ran out of its button.
+ */
+export const RESPONSE_ACTION_MIN_WIDTH: number = 148;
+
 /** Icons for the two response actions, shared by every detail screen. */
 export const responseActionIcons: Readonly<{
   acknowledge: IconName;
@@ -433,7 +441,7 @@ export function ResponseActions({
                 flex: 1,
                 flexDirection: "row",
                 gap: spacing.sm,
-                minWidth: 128,
+                minWidth: RESPONSE_ACTION_MIN_WIDTH,
                 minHeight: 54,
                 paddingVertical: spacing.md,
                 paddingHorizontal: spacing.lg,
@@ -466,6 +474,9 @@ export function ResponseActions({
                     ...typography.headline,
                     fontWeight: "700",
                     color: contentColor,
+                    // Very large text wraps inside the button rather than out of it.
+                    flexShrink: 1,
+                    textAlign: "center",
                   }}
                 >
                   {action.label}

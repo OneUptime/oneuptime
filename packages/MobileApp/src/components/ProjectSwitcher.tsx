@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { createContext, useContext, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -29,33 +29,72 @@ import IconBadge from "./IconBadge";
 import SearchField from "./SearchField";
 import { getInitials } from "../utils/text";
 
+/** The project sheet: open or closed, and what has been typed into its search. */
+interface ProjectSheetState {
+  visible: boolean;
+  search: string;
+  setSearch: (value: string) => void;
+  open: () => void;
+  close: () => void;
+}
+
+function useProjectSheetState(): ProjectSheetState {
+  const [visible, setVisible] = useState(false);
+  const [search, setSearch] = useState("");
+  return useMemo((): ProjectSheetState => {
+    return {
+      visible,
+      search,
+      setSearch,
+      open: (): void => {
+        setSearch("");
+        setVisible(true);
+      },
+      close: (): void => {
+        setVisible(false);
+        setSearch("");
+      },
+    };
+  }, [visible, search]);
+}
+
+const ProjectSheetContext: React.Context<ProjectSheetState | null> =
+  createContext<ProjectSheetState | null>(null);
+
+/*
+ * One project sheet for the whole app.
+ *
+ * The switcher lives in a header, and on a foldable headers move: the list's
+ * header belongs to the stack on a narrow window and to the list pane on a
+ * wide one, and a detail screen shows the switcher only on a narrow window.
+ * A sheet owned by the button closed the moment its header moved - halfway
+ * through a search, or a choice. Owned here, above the navigation, the sheet
+ * stays open through a fold, and every header's button opens this one.
+ */
+export function ProjectSwitcherHost({
+  children,
+}: {
+  children: React.ReactNode;
+}): React.JSX.Element {
+  const sheet: ProjectSheetState = useProjectSheetState();
+  return (
+    <ProjectSheetContext.Provider value={sheet}>
+      {children}
+      <ProjectSheet sheet={sheet} />
+    </ProjectSheetContext.Provider>
+  );
+}
+
 /** Available in every workspace header; never offers an aggregate project. */
 export default function ProjectSwitcher(): React.JSX.Element {
   const { theme } = useTheme();
-  const {
-    activeProject,
-    projectList,
-    selectProject,
-    isLoadingProjects,
-    projectLoadError,
-    refreshProjects,
-  } = useProject();
-  const [visible, setVisible] = useState(false);
-  const [search, setSearch] = useState("");
-  const insets: EdgeInsets | null = useContext(SafeAreaInsetsContext);
-  const { width, height } = useWindowDimensions();
-  const paddingBottom: number = useScreenPadding({ tabBar: false });
-  const filtered: ProjectItem[] = projectList.filter(
-    (project: ProjectItem): boolean => {
-      return project.name.toLowerCase().includes(search.trim().toLowerCase());
-    },
-  );
+  const { activeProject, isLoadingProjects } = useProject();
+  const hostSheet: ProjectSheetState | null = useContext(ProjectSheetContext);
+  const ownSheet: ProjectSheetState = useProjectSheetState();
+  // Drawn outside the app's host (on its own in a test), it keeps a sheet of its own.
+  const sheet: ProjectSheetState = hostSheet ?? ownSheet;
+  const { width } = useWindowDimensions();
   const activeInitials: string = getInitials(activeProject?.name);
-
-  const close: () => void = (): void => {
-    setVisible(false);
-    setSearch("");
-  };
 
   return (
     <>
@@ -68,13 +107,10 @@ export default function ProjectSwitcher(): React.JSX.Element {
             : "Choose project"
         }
         accessibilityHint="Select the project shown across the app."
-        accessibilityState={{ expanded: visible }}
-        aria-expanded={visible}
+        accessibilityState={{ expanded: sheet.visible }}
+        aria-expanded={sheet.visible}
         hitSlop={4}
-        onPress={() => {
-          setSearch("");
-          setVisible(true);
-        }}
+        onPress={sheet.open}
         style={({ pressed }: { pressed: boolean }): StyleProp<ViewStyle> => {
           return {
             minHeight: 44,
@@ -149,6 +185,36 @@ export default function ProjectSwitcher(): React.JSX.Element {
           color={theme.colors.textSecondary}
         />
       </Pressable>
+      {hostSheet ? null : <ProjectSheet sheet={ownSheet} />}
+    </>
+  );
+}
+
+function ProjectSheet({
+  sheet,
+}: {
+  sheet: ProjectSheetState;
+}): React.JSX.Element {
+  const { theme } = useTheme();
+  const {
+    activeProject,
+    projectList,
+    selectProject,
+    isLoadingProjects,
+    projectLoadError,
+    refreshProjects,
+  } = useProject();
+  const { visible, search, setSearch, close } = sheet;
+  const insets: EdgeInsets | null = useContext(SafeAreaInsetsContext);
+  const { height } = useWindowDimensions();
+  const paddingBottom: number = useScreenPadding({ tabBar: false });
+  const filtered: ProjectItem[] = projectList.filter(
+    (project: ProjectItem): boolean => {
+      return project.name.toLowerCase().includes(search.trim().toLowerCase());
+    },
+  );
+
+  return (
       <Modal
         visible={visible}
         transparent
@@ -461,6 +527,5 @@ export default function ProjectSwitcher(): React.JSX.Element {
           </View>
         </KeyboardAvoidingView>
       </Modal>
-    </>
   );
 }

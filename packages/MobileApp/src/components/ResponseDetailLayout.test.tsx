@@ -11,6 +11,7 @@ import {
 } from "@jest/globals";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
+  RESPONSE_ACTION_MIN_WIDTH,
   ResponseActions,
   ResponseDetailHeader,
   ResponseDetailSkeleton,
@@ -284,7 +285,7 @@ describe("Response actions", () => {
       screen.getByRole("button", { name: "Acknowledge incident" }),
     ).toHaveStyle({
       minHeight: 54,
-      minWidth: 128,
+      minWidth: RESPONSE_ACTION_MIN_WIDTH,
       borderRadius: radius.md,
       backgroundColor: lightColors.actionPrimary,
     });
