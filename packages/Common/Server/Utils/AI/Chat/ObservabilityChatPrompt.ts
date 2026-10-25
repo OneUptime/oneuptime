@@ -7,6 +7,19 @@ import {
   getAIResourceDefinition,
   isAIResourceType,
 } from "../../../../Types/AI/AIResourceContext";
+import { RUN_KUBECTL_TOOL_NAME } from "../../../../Types/Kubernetes/KubernetesClusterAiAccessToolNames";
+import { RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME } from "../ResourceAccess/ResourceAccessToolNames";
+
+/*
+ * How the prompt speaks of commands on the infrastructure itself. Only a
+ * conversation about a resource or cluster whose AI agent may investigate
+ * has the command tools (ChatInfrastructureAccess, the investigations'
+ * toolkits): everywhere else - another page, Slack, Microsoft Teams - the
+ * model said "I don't have a tool that can execute commands on remote
+ * hosts" and stopped there (issue #5259), with nothing on where commands
+ * can run.
+ */
+export const INFRASTRUCTURE_COMMANDS_GUIDANCE: string = `- Commands on the infrastructure itself (a host's uptime, systemctl or journalctl, docker, pvesh, govc, ceph, kubectl, …) run only through ${RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME} and ${RUN_KUBECTL_TOOL_NAME}, which a conversation has only for the resources and clusters it is about whose AI agent is connected and may investigate: the one on the page Ask AI was opened from, or the ones an incident or alert is linked to. If you are asked to run a command and neither tool is offered here, say you cannot run commands on it from this conversation, and that Ask AI opened on that resource's own page in OneUptime can, through its AI agent - never pretend a command ran.`;
 
 /*
  * System prompt for the observability chat agent. The binding rules here
@@ -210,6 +223,7 @@ ${buildActionGuidance(data.permissionMode)}
 - Resolve names first: use lookup_context to turn a service name into its ID before filtering other tools by service, and to discover metric names.
 - For infrastructure (hosts, Docker, Podman, Kubernetes, Docker Swarm, Proxmox, VMware, Ceph, storage arrays, serverless, cloud, IoT and network devices), discover resources with query_telemetry_resources and use query_resource_telemetry for their scoped metric trends, log severity and trace operations. Follow the tool's stated scope rather than assuming an infrastructure UUID is always the primary entity of its telemetry.
 - Host metrics such as system.cpu.utilization and system.memory.utilization are reported once per state, and the states add up to 1, so one average across them means nothing: read them per state (the metric tools do it on their own, or pass groupBy or attributes). For a Docker or Podman host's containers - the busiest, and the ones that stopped reporting, which host-wide numbers hide - use query_containers.
+${INFRASTRUCTURE_COMMANDS_GUIDANCE}
 - For a network device's transceivers (SFP, SFP+, QSFP optics) - whether each is still detected, its readings against the device's own thresholds and its received power over the last weeks - use query_network_transceivers. Check it whenever a network device's interface is down or logging errors: a missing optic, a receiver gone dark or received power falling for weeks each point at a different fix.
 - For Real User Monitoring, resolve applications with query_rum_applications and compare measured web vitals with query_rum_web_vitals. Use returned metric names with query_metrics to chart trends. Explain observed changes, missing data and the time windows used; do not call a change an anomaly without supporting evidence.
 - Prefer aggregations (query_traces, log_histogram, query_metrics, top_exceptions, security_event_summary) to establish the shape of a problem, then drill into raw data (search_logs, get_trace, search_security_events) for evidence.
