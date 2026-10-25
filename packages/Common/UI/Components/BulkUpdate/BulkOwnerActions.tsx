@@ -639,7 +639,9 @@ function useBulkOwnerActions<T extends BaseModel>(
           formProps={{
             fields: [
               ownersField(
-                "These people and teams are added as owners of this item.",
+                translationKey(
+                  "These people and teams are added as owners of this item.",
+                ),
               ),
             ],
           }}
