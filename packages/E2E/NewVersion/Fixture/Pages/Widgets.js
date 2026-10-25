@@ -22,7 +22,8 @@ export default function Widgets() {
     >
       <div className="rounded-xl border border-gray-200 bg-white px-6 py-4">
         <h2 className="text-base font-semibold text-gray-900">p95 latency</h2>
-        <div className="mt-4">
+        {/* A widget's body: as tall as the dashboard made it. */}
+        <div className="mt-4 h-40">
           {showChart ? (
             <ContainedErrorBoundary
               renderFallback={(fallback) => {

@@ -321,6 +321,95 @@ test.describe("a deploy under the open tab", () => {
     await fitsTheScreen(page);
   });
 
+  /*
+   * The product's own layers, with their own classes, mounted where the app
+   * mounts them - inside the app, before the notice in the document - and
+   * made to cover the notice: a side panel (SideOver, z-30), the AI chat
+   * (AIChatPanel, z-40 around a z-50 panel), a dialog (Modal, z-50), and
+   * a bar of the page's own (z-20). The notice must stay under every panel
+   * a reader works in - at z-40 it drew over the AI chat and over a phone's
+   * full-width side panel - and over the page's own bars.
+   */
+  for (const layer of [
+    {
+      name: "a side panel",
+      wrapper: "relative z-30",
+      panel: "pointer-events-none fixed inset-0 flex justify-end",
+      onTop: "panel",
+    },
+    {
+      name: "the AI chat",
+      wrapper: "relative z-40",
+      panel: "fixed inset-y-0 right-0 z-50 flex w-screen",
+      onTop: "panel",
+    },
+    {
+      name: "a dialog",
+      wrapper: "",
+      panel: "fixed inset-0 z-50 overflow-y-auto",
+      onTop: "panel",
+    },
+    {
+      name: "a bar of the page's own",
+      wrapper: "",
+      panel: "fixed inset-0 z-20",
+      onTop: "notice",
+    },
+  ]) {
+    test(`the notice stays ${layer.onTop === "panel" ? "under" : "over"} ${layer.name} that covers its corner`, async ({
+      page,
+      request,
+    }: {
+      page: Page;
+      request: APIRequestContext;
+    }) => {
+      await openThenDeploy(page, request);
+      await atRest(page);
+
+      await page.evaluate(
+        (probe: { wrapper: string; panel: string }): void => {
+          const app: Element | null =
+            document.getElementById("root")!.firstElementChild;
+          const wrapper: HTMLDivElement = document.createElement("div");
+          wrapper.className = probe.wrapper;
+          wrapper.setAttribute("data-testid", "layer-probe");
+          const panel: HTMLDivElement = document.createElement("div");
+          panel.className = probe.panel;
+          const surface: HTMLDivElement = document.createElement("div");
+          surface.className = "pointer-events-auto h-full w-full bg-white";
+          panel.appendChild(surface);
+          wrapper.appendChild(panel);
+          app!.appendChild(wrapper);
+        },
+        { wrapper: layer.wrapper, panel: layer.panel },
+      );
+      await atRest(page);
+
+      await expect
+        .poll(async (): Promise<string> => {
+          return await page.evaluate((): string => {
+            const notice: Element | null = document.querySelector(
+              "[data-testid='new-version-notice']",
+            );
+            const box: DOMRect = notice!.getBoundingClientRect();
+            const top: Element | null = document.elementFromPoint(
+              box.left + box.width / 2,
+              box.top + box.height / 2,
+            );
+
+            if (top?.closest("[data-testid='layer-probe']")) {
+              return "panel";
+            }
+
+            return top?.closest("[data-testid='new-version-notice']")
+              ? "notice"
+              : "page";
+          });
+        })
+        .toBe(layer.onTop);
+    });
+  }
+
   test("the next page opened loads in full, in the new version, at its address and query", async ({
     page,
     request,
@@ -852,6 +941,30 @@ test.describe("one part of a page whose code is gone after a deploy", () => {
     // The rest of the page stays, and the widget's own fallback never shows.
     await expect(page.getByTestId("widgets-note")).toBeVisible();
     await expect(page.getByTestId("widget-fallback")).toHaveCount(0);
+
+    /*
+     * Drawn as a widget draws its own states: the circle above the words,
+     * both in the middle of the widget's place - not a row at its top.
+     */
+    await atRest(page);
+    const place: { x: number; y: number; width: number; height: number } =
+      (await recovery(page).boundingBox())!;
+    const circle: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("chunk-load-recovery-icon").boundingBox())!;
+    const words: { x: number; y: number; width: number; height: number } =
+      (await recovery(page).locator("p").boundingBox())!;
+
+    expect(
+      Math.abs(circle.x + circle.width / 2 - (place.x + place.width / 2)),
+    ).toBeLessThanOrEqual(2);
+    expect(
+      Math.abs(words.x + words.width / 2 - (place.x + place.width / 2)),
+    ).toBeLessThanOrEqual(2);
+    expect(circle.y + circle.height).toBeLessThanOrEqual(words.y);
+    // The pair sits in the middle of the place, top to bottom too.
+    const above: number = circle.y - place.y;
+    const below: number = place.y + place.height - (words.y + words.height);
+    expect(Math.abs(above - below)).toBeLessThanOrEqual(2);
 
     await shoot(page, testInfo, "part-updating");
   });
