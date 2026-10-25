@@ -832,7 +832,7 @@ describe("a build that cannot publish what it would write", () => {
 
     expect(run.report).toBeUndefined();
     expect(run.error).toBe(
-      "Loading the package's modules leaves Node.js running (Timeout), so a script that loads them would never end on its own. More was running after these loaded: Types/KeepsRunning",
+      "Loading the package's modules leaves Node.js running (Timeout), so a script that loads them would never end on its own. It started as these loaded: Types/KeepsRunning",
     );
     // It says so seconds after the modules loaded, not at a timeout.
     expect(Date.now() - started).toBeLessThan(BUILD_TIMEOUT_MS / 2);

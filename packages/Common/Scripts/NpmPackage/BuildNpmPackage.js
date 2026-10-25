@@ -1614,8 +1614,10 @@ function readExportNames(packageDirectory, ids, timeoutMs) {
       throw new Error(
         `Loading the package's modules leaves Node.js running (${
           report.running.join(", ") || "something"
-        }), so a script that loads them would never end on its own. More was running after these loaded: ${
-          report.startedBy.join(", ") || "none of them, as it loaded"
+        }), so a script that loads them would never end on its own.${
+          report.startedBy.length > 0
+            ? ` It started as these loaded: ${report.startedBy.join(", ")}`
+            : ""
         }`,
       );
     }
