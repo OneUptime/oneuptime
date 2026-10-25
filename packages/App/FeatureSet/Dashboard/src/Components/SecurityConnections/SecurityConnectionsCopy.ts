@@ -193,29 +193,27 @@ export const CONNECTION_KIND_ICONS: Readonly<
 export const CONNECTION_REASON_TEXT: Readonly<
   Record<SecurityConnectionReason, string>
 > = {
-  [SecurityConnectionReason.LogSource]: translationKey(
-    "Its events were read from this record's logs.",
-  ),
+  [SecurityConnectionReason.LogSource]: translationKey("Read from its logs."),
   [SecurityConnectionReason.HostName]: translationKey(
-    "Named {{value}}, as it reports itself.",
+    "Named {{value}}, the name it reports.",
   ),
   [SecurityConnectionReason.ShortHostName]: translationKey(
-    "Named {{value}}, the short or full form of its name {{matched}}: another machine may share it.",
+    "Named {{value}}, a short or full form of its name {{matched}}. Another machine may share it.",
   ),
   [SecurityConnectionReason.UntypedValue]: translationKey(
-    "Named {{value}}, its name, but without saying {{value}} is a host: it may be something else of that name.",
+    "Named {{value}} without saying it is a host. Something else may have that name.",
   ),
   [SecurityConnectionReason.ClusterName]: translationKey(
     "Named {{value}}, its cluster name.",
   ),
   [SecurityConnectionReason.DeviceName]: translationKey(
-    "Named {{value}}, as the device is named.",
+    "Named {{value}}, the device's name.",
   ),
   [SecurityConnectionReason.Address]: translationKey(
     "Named by {{value}}, a public address only it holds.",
   ),
   [SecurityConnectionReason.PrivateAddress]: translationKey(
-    "Named by {{value}}, a private address it holds: another network can give it to another machine.",
+    "Named by {{value}}, a private address it holds. Another network can give it to another machine.",
   ),
   [SecurityConnectionReason.SharedAddress]: translationKey(
     "Named by {{value}}, an address more than one of your records holds.",
