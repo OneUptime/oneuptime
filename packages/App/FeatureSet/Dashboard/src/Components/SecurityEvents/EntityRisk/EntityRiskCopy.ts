@@ -252,7 +252,7 @@ export const CRITICALITY_VALUE_DESCRIPTION: string = translationKey(
 );
 
 export const CRITICALITY_TYPE_DESCRIPTION: string = translationKey(
-  "Optional. The kind of entity it is for. Empty is any kind.",
+  "The kind of entity it is for. Empty is any kind.",
 );
 
 export const CRITICALITY_LEVEL_DESCRIPTION: string = translationKey(
@@ -260,7 +260,7 @@ export const CRITICALITY_LEVEL_DESCRIPTION: string = translationKey(
 );
 
 export const CRITICALITY_DESCRIPTION_DESCRIPTION: string = translationKey(
-  "Optional. Why it matters this much.",
+  "Why it matters this much.",
 );
 
 // The Type column of an entry for any kind of entity.

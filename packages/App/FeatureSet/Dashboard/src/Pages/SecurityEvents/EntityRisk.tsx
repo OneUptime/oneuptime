@@ -227,11 +227,11 @@ const SecurityEntityRiskPage: FunctionComponent<
         <></>
       )}
 
+      {/*
+       * Drawn in the quiet panel the product's other notices are (the AI
+       * settings' when Enable AI is off): a card's corners and padding.
+       */}
       {settings.isRiskCaseEnabled === false ? (
-        /*
-         * The quiet panel the product's other notices are drawn in (the AI
-         * settings' when Enable AI is off): a card's corners and padding.
-         */
         <div
           className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-gray-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
           data-testid={RISK_CASES_OFF_TEST_ID}

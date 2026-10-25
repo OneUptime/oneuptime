@@ -643,10 +643,10 @@ describe("Entity Risk docs", () => {
 
     // Each source, with its points, how often it fired and when it last did.
     expect(signal.description).toContain(
-      "**Brute force** (Detection Rule, High): 50 points, once, last",
+      "**Brute force** (Detection Rule, High): 50 points, fired once, last",
     );
     expect(signal.description).toContain(
-      "**Abuse feed** (Threat Intel, High): 50 points, 4 times, last",
+      "**Abuse feed** (Threat Intel, High): 50 points, fired 4 times, last",
     );
 
     // The most first, up to the limit; the rest are on the entity's page.
