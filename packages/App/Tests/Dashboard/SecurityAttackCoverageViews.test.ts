@@ -228,7 +228,11 @@ describe("the tactics' rows", () => {
         },
       );
 
-      expect(ranks).toEqual([...ranks].sort((a: number, b: number) => a - b));
+      expect(ranks).toEqual(
+        [...ranks].sort((a: number, b: number): number => {
+          return a - b;
+        }),
+      );
 
       for (const state of TECHNIQUE_COVERAGE_ORDER) {
         const inGroup: Array<string> = view.techniques

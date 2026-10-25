@@ -30,8 +30,7 @@ import {
   SecurityEntity,
   inferSecurityEntityType,
 } from "Common/Types/SecurityCase/SecurityEntity";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Button from "Common/UI/Components/Button/Button";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Input from "Common/UI/Components/Input/Input";

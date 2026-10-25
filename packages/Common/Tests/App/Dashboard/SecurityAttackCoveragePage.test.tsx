@@ -265,7 +265,11 @@ describe("the tactics", () => {
     const ranks: Array<number> = states.map((state: string | null): number => {
       return order.indexOf(state || "");
     });
-    expect(ranks).toEqual([...ranks].sort((a: number, b: number) => a - b));
+    expect(ranks).toEqual(
+      [...ranks].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    );
 
     // Closing it folds it again.
     await act(async () => {
