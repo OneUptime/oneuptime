@@ -29,6 +29,14 @@ import {
  * infrastructure (a custom Runner), which is also the choice for anyone who
  * wants every step kept on their own hosts.
  *
+ * Nor does a global Runner run a command OneUptime AI composes: that is a
+ * shell too. An AI rule that picks no Runner of its own shows the Global
+ * Runner as its choice - the project's default where it has no Runner of
+ * its own - and OneUptime AI runs no Bash commands for it there; it runs
+ * them only on a Runner the rule picks (AutoRemediation/AutoRemediationFix).
+ * The claim serves a global Runner runbook jobs only, and the Runner refuses
+ * anything else (packages/Runner GlobalRunnerMode).
+ *
  * This is the one list. The server routes a step by it (GlobalRunnerChoice),
  * enqueues and serves global jobs by it (RunnerJobService), the Runner
  * re-checks it before it runs anything (packages/Runner), and the step

@@ -32803,7 +32803,6 @@
   "Open Fix Pull Requests": "Apri pull request di correzione",
   "Open Telemetry Pull Requests": "Apri pull request di telemetria",
   "Telemetry pull requests": "Pull request di telemetria",
-  "Where OneUptime AI runs Bash commands for this rule, inside your network. Commands on the affected cluster or host go through its AI agent.": "Dove OneUptime AI esegue comandi Bash per questa regola, all'interno della tua rete. I comandi sul cluster o sull'host interessato passano dal suo agente IA.",
   "An indicator's confidence sets its threat level: the severity of its findings, and the alert severity when the feed does not set one.": "La confidenza di un indicatore ne stabilisce il livello di minaccia: la gravità dei suoi rilevamenti e la gravità dell'avviso quando il feed non ne imposta una.",
   "Each matched indicator opens or joins a case, opens one alert (deduplicated while it is open), optionally an incident, and records a Threat Intel finding.": "Ogni indicatore corrispondente apre un caso o si aggiunge a quello aperto, apre un avviso (deduplicato finché resta aperto), facoltativamente un incidente, e registra un rilevamento di threat intelligence.",
   "Read the source": "Leggere la fonte",
@@ -34605,5 +34604,10 @@
   "{{done}} of {{count}} steps done_one": "{{done}} passaggio su {{count}} completato",
   "Available in the Rule Library": "Disponibile nella Rule Library",
   "In the Rule Library": "Nella Rule Library",
-  "When set, the playbook runs only on cases whose detection came from one of these rules.": "Se impostato, il playbook viene eseguito solo sui casi il cui rilevamento proviene da una di queste regole."
+  "When set, the playbook runs only on cases whose detection came from one of these rules.": "Se impostato, il playbook viene eseguito solo sui casi il cui rilevamento proviene da una di queste regole.",
+  "Where OneUptime AI runs Bash commands for this rule. Commands on the affected cluster or host go through its AI agent.": "Dove OneUptime AI esegue comandi Bash per questa regola. I comandi sul cluster o sull'host interessato passano dal suo agente IA.",
+  "Run by OneUptime for every project. OneUptime AI runs no Bash commands on it.": "Gestito da OneUptime per ogni progetto. OneUptime AI non vi esegue comandi Bash.",
+  "OneUptime AI runs no Bash commands on the Global Runner, which every project shares. Pick one of your Runners to run them.": "OneUptime AI non esegue comandi Bash sul Runner globale, condiviso da tutti i progetti. Scegli uno dei tuoi Runner per eseguirli.",
+  "OneUptime AI runs no Bash commands on the Global Runner, which every project shares. Add a Runner under {{location}} to run them.": "OneUptime AI non esegue comandi Bash sul Runner globale, condiviso da tutti i progetti. Aggiungi un Runner in {{location}} per eseguirli.",
+  "OneUptime AI runs no Bash commands on the Global Runner, which every project shares.": "OneUptime AI non esegue comandi Bash sul Runner globale, condiviso da tutti i progetti."
 }

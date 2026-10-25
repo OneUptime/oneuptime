@@ -1558,3 +1558,67 @@ test.describe("on every screen", () => {
     );
   });
 });
+
+/*
+ * "If there are no runners, it should use the global runner by default" -
+ * the maintainer. In a project with no Runner of its own, each step's Runner
+ * field as a person sees it, at 1280px and a phone's 390px, light and dark:
+ * the JavaScript step on the Global Runner, saying what runs there; the Bash
+ * step never on it - a shell is never run on a host every project shares -
+ * saying it needs a Runner of your own, and where to add one. Nothing runs
+ * off the screen, and the open menu fits it.
+ */
+test.describe("each step's Runner field in a project with no Runner of its own, at 1280px and 390px, light and dark", () => {
+  for (const width of [1280, 390]) {
+    for (const theme of ["light", "dark"]) {
+      test(`${width}px, ${theme}`, async ({ page }: { page: Page }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await openSteps(
+          page,
+          theme === "dark" ? "custom=0&theme=dark" : "custom=0",
+        );
+        if (theme === "dark") {
+          await expect(page.locator("html")).toHaveClass(/dark/);
+        }
+
+        // The JavaScript step: on the Global Runner, with what it means.
+        await expect(picker(page, 0)).toContainText(GLOBAL_CHOICE);
+        await expect(
+          picker(page, 0).getByTestId("runbook-step-0-runner-help"),
+        ).toHaveText(GLOBAL_HELP);
+
+        // The Bash step: one sentence instead of a box that offers it nothing.
+        const needsOwn: Locator = page.getByTestId(
+          "runbook-step-1-runner-nothing-to-pick",
+        );
+        await expect(needsOwn).toHaveText(
+          "Bash steps run on a Runner of your own, inside your network: the Global Runner runs JavaScript steps only. Add one under Runbooks › Runners, then pick it here.",
+        );
+        await expect(
+          needsOwn.getByRole("link", { name: "Runbooks › Runners" }),
+        ).toHaveAttribute("target", "_blank");
+
+        expect(await noHorizontalScroll(page)).toBeLessThanOrEqual(0);
+        for (const field of [picker(page, 0), needsOwn]) {
+          const box: { x: number; width: number } | null =
+            await field.boundingBox();
+          expect(box).not.toBeNull();
+          expect(box!.x).toBeGreaterThanOrEqual(0);
+          expect(box!.x + box!.width).toBeLessThanOrEqual(width);
+        }
+        await screenshot(page, `steps-no-runners-${width}-${theme}`);
+
+        const options: Locator = await openPicker(page, 0);
+        await expect(options).toHaveCount(1);
+        await expect(options.first()).toContainText(GLOBAL_CHOICE_DESCRIPTION);
+        const option: { x: number; width: number } | null = await options
+          .first()
+          .boundingBox();
+        expect(option).not.toBeNull();
+        expect(option!.x).toBeGreaterThanOrEqual(0);
+        expect(option!.x + option!.width).toBeLessThanOrEqual(width);
+        await screenshot(page, `steps-no-runners-menu-${width}-${theme}`);
+      });
+    }
+  }
+});

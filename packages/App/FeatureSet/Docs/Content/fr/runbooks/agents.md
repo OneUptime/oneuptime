@@ -61,6 +61,7 @@ Les agents Runbook globaux sont les agents qu'OneUptime fait tourner pour chaque
 | Ce qu'une étape peut atteindre | Les adresses publiques d'Internet | Ce que son hôte peut atteindre |
 | Durée maximale d'une étape | 5 minutes | 1 heure |
 | Variables secrètes | Celles que vous laissez utiliser aux agents globaux | Celles qui le listent |
+| Commandes Bash de OneUptime AI | Jamais | Pour les règles IA qui le choisissent |
 
 Un agent Runbook global exécute les étapes de nombreux projets, c'est pourquoi chaque étape est tenue à l'écart de toutes les autres :
 

@@ -32803,7 +32803,6 @@
   "Open Fix Pull Requests": "باز کردن pull requestهای اصلاح",
   "Open Telemetry Pull Requests": "باز کردن pull requestهای تله‌متری",
   "Telemetry pull requests": "pull requestهای تله‌متری",
-  "Where OneUptime AI runs Bash commands for this rule, inside your network. Commands on the affected cluster or host go through its AI agent.": "جایی که OneUptime AI فرمان‌های Bash این قاعده را، درون شبکه شما، اجرا می‌کند. فرمان‌ها روی خوشه یا میزبان آسیب‌دیده از طریق عامل هوش مصنوعی آن اجرا می‌شوند.",
   "An indicator's confidence sets its threat level: the severity of its findings, and the alert severity when the feed does not set one.": "اطمینانِ یک شاخص سطح تهدید آن را تعیین می‌کند: شدت یافته‌هایش، و شدت هشدار وقتی فید شدتی تعیین نکرده باشد.",
   "Each matched indicator opens or joins a case, opens one alert (deduplicated while it is open), optionally an incident, and records a Threat Intel finding.": "هر شاخصِ منطبق یک پرونده باز می‌کند یا به پروندهٔ باز می‌پیوندد، یک هشدار باز می‌کند (تا وقتی باز است تکراری‌ها حذف می‌شوند)، در صورت نیاز یک حادثه، و یک یافتهٔ اطلاعات تهدید ثبت می‌کند.",
   "Read the source": "خواندن منبع",
@@ -34605,5 +34604,10 @@
   "{{done}} of {{count}} steps done_one": "{{done}} از {{count}} گام انجام شد",
   "Available in the Rule Library": "در Rule Library موجود است",
   "In the Rule Library": "در Rule Library",
-  "When set, the playbook runs only on cases whose detection came from one of these rules.": "اگر تعیین شود، پلی‌بوک فقط روی پرونده‌هایی اجرا می‌شود که تشخیصشان از یکی از این قاعده‌ها آمده باشد."
+  "When set, the playbook runs only on cases whose detection came from one of these rules.": "اگر تعیین شود، پلی‌بوک فقط روی پرونده‌هایی اجرا می‌شود که تشخیصشان از یکی از این قاعده‌ها آمده باشد.",
+  "Where OneUptime AI runs Bash commands for this rule. Commands on the affected cluster or host go through its AI agent.": "جایی که OneUptime AI فرمان‌های Bash این قاعده را اجرا می‌کند. فرمان‌ها روی خوشه یا میزبان آسیب‌دیده از طریق عامل هوش مصنوعی آن اجرا می‌شوند.",
+  "Run by OneUptime for every project. OneUptime AI runs no Bash commands on it.": "OneUptime آن را برای همه پروژه‌ها اجرا می‌کند. OneUptime AI روی آن هیچ فرمان Bash اجرا نمی‌کند.",
+  "OneUptime AI runs no Bash commands on the Global Runner, which every project shares. Pick one of your Runners to run them.": "OneUptime AI روی Runner سراسری، که همه پروژه‌ها از آن مشترک استفاده می‌کنند، هیچ فرمان Bash اجرا نمی‌کند. برای اجرای آن‌ها یکی از Runnerهای خودتان را انتخاب کنید.",
+  "OneUptime AI runs no Bash commands on the Global Runner, which every project shares. Add a Runner under {{location}} to run them.": "OneUptime AI روی Runner سراسری، که همه پروژه‌ها از آن مشترک استفاده می‌کنند، هیچ فرمان Bash اجرا نمی‌کند. برای اجرای آن‌ها در {{location}} یک Runner اضافه کنید.",
+  "OneUptime AI runs no Bash commands on the Global Runner, which every project shares.": "OneUptime AI روی Runner سراسری، که همه پروژه‌ها از آن مشترک استفاده می‌کنند، هیچ فرمان Bash اجرا نمی‌کند."
 }
