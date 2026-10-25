@@ -637,10 +637,15 @@ describe.each(METHODS)("the %s guide", (method: PodmanInstallMethod) => {
     if (isCli) {
       /*
        * The AI agent is part of the install, so the one upgrade command
-       * pulls and removes both, and says it only once.
+       * pulls, stops and removes both, and says it only once. Stopped, not
+       * removed with rm -f: the AI agent signs off, so the one started
+       * next is let in at once (issue #5253).
        */
       expect(topic).toContain(
-        `podman pull ${PODMAN_AGENT_IMAGE}\npodman pull ${PODMAN_AI_AGENT_IMAGE}\npodman rm -f ${PODMAN_AGENT_CONTAINER_NAME} ${PODMAN_AI_AGENT_CONTAINER_NAME}`,
+        `podman pull ${PODMAN_AGENT_IMAGE}\npodman pull ${PODMAN_AI_AGENT_IMAGE}\npodman stop ${PODMAN_AGENT_CONTAINER_NAME} ${PODMAN_AI_AGENT_CONTAINER_NAME}\npodman rm ${PODMAN_AGENT_CONTAINER_NAME} ${PODMAN_AI_AGENT_CONTAINER_NAME}`,
+      );
+      expect(topic).not.toContain(
+        `podman rm -f ${PODMAN_AGENT_CONTAINER_NAME} ${PODMAN_AI_AGENT_CONTAINER_NAME}`,
       );
       expect(topic.split(`podman pull ${PODMAN_AI_AGENT_IMAGE}`)).toHaveLength(
         2,

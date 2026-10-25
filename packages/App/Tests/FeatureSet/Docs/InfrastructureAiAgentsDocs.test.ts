@@ -1210,6 +1210,40 @@ describe("Infrastructure AI Agents docs", (): void => {
       }
     });
 
+    it("stops the AI agent before a re-run removes it, so it signs off and the new one is let in at once", (): void => {
+      /*
+       * rm -f is a SIGKILL: the old agent cannot sign off, and its
+       * replacement waits for OneUptime to find it silent (issue #5253).
+       */
+      for (const [installer, runtime] of [
+        ["agents/DockerAgent/install.sh", "docker"],
+        ["agents/PodmanAgent/install.sh", "podman"],
+      ] as Array<[string, string]>) {
+        const container: string = `oneuptime-${runtime}-ai-agent`;
+        const lines: Array<string> = readRepoFile(installer)
+          .split("\n")
+          .map((line: string): string => {
+            return line.trim();
+          });
+        const stop: number = lines.indexOf(
+          `${runtime} stop ${container} >/dev/null || true`,
+        );
+        const remove: number = lines.indexOf(
+          `${runtime} rm -f ${container} || return 1`,
+        );
+
+        expect({ installer, stops: stop >= 0, removes: remove >= 0 }).toEqual({
+          installer,
+          stops: true,
+          removes: true,
+        });
+        expect({ installer, stopsFirst: stop < remove }).toEqual({
+          installer,
+          stopsFirst: true,
+        });
+      }
+    });
+
     it("names every agent's container in the troubleshooting steps", (): void => {
       const logs: string = section(page, "### Logs and status");
 
