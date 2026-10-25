@@ -39,7 +39,13 @@ import { formatCompactDurationInMinutes } from "../../Utils/CompactDuration";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
-import { Cyan, Gray500, Indigo500, Red } from "Common/Types/BrandColors";
+import {
+  Cyan,
+  Gray500,
+  Indigo500,
+  Orange,
+  Red,
+} from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { describeMitreId } from "Common/Types/SecurityEvent/MitreAttack";
@@ -75,6 +81,8 @@ export const DETECTION_SOURCE_COLORS: Record<SecurityDetectionSource, string> =
     [SecurityDetectionSource.ThreatIntel]: Red.toString(),
     [SecurityDetectionSource.ConnectedProduct]: Cyan.toString(),
     [SecurityDetectionSource.Manual]: Gray500.toString(),
+    // An entity's risk reaching the threshold (Security Events > Entity Risk).
+    [SecurityDetectionSource.EntityRisk]: Orange.toString(),
   };
 
 // The rows of cards under the figures, by what each row answers.

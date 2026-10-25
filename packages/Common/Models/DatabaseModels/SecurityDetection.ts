@@ -229,7 +229,7 @@ export default class SecurityDetection extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Source",
     description:
-      "What raised it: a Detection Rule, Threat Intel, a Connected Product, or a person (Manual).",
+      "What raised it: a Detection Rule, Threat Intel, a Connected Product, Entity Risk, or a person (Manual).",
   })
   @Column({
     nullable: false,

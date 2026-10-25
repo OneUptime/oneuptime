@@ -45,6 +45,7 @@ A triage reads:
 - the case: its title, priority, status, entities and ATT&CK mapping;
 - its detections, the latest first, with a sample event of each;
 - the security events and threat intel about its users, hosts and addresses;
+- the risk of its users, hosts and addresses, and what added to it this week;
 - the hosts in OneUptime that its hosts and addresses match, and who owns them;
 - the incident it declared, its notes, its protected entities, and the playbooks that are on.
 

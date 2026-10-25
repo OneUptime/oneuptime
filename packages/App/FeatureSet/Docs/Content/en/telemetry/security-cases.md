@@ -3,7 +3,7 @@
 Security Events turns what your detection rules, threat intelligence and connected security products find into cases: one case for each thing worth looking into, with every detection about the same user, host or address grouped into it. Analysts work the cases in a queue, and playbooks respond to them, by themselves or at a click.
 
 :::cards
-- [Where cases come from](#where-cases-come-from): Detection rules, threat intelligence, connected products and people.
+- [Where cases come from](#where-cases-come-from): Detection rules, threat intelligence, connected products, entity risk and people.
 - [Work a case](#work-a-case): Assign it, investigate its entities, close it with a verdict.
 - [Case priorities and statuses](#case-priorities-and-statuses): Rename, recolor and reorder them, and add your own.
 - [Notifications](#notifications): Who is told about a new case, an assignment and a step waiting for approval.
@@ -49,9 +49,10 @@ Each of these can also be granted on its own, from creating a case to approving 
 | Detection rules | A rule matches | **Open a Case on Match**, on the rule's **On Match** step |
 | Threat intelligence | An event names a known indicator | **Open a Case on Match**, on the feed's **On Match** step |
 | Connected products | A product's own alert is imported at or above the connection's threshold | **Open Cases From** set to **Never**, in the connection's **Polling** step |
+| Entity risk | A user's, host's or address's risk reaches the project's threshold | **Risk Cases**, under **Settings → Risk Scoring** |
 | People | Someone opens one from **Security Cases**, or with **Open Case** in an event's panel | None |
 
-Every source is on by default. A connection opens cases for **High and above** unless you choose another level; the alerts below it are still imported as events.
+Every source opens cases by default, except entity risk on projects created before it existed, which turn on **Risk Cases** first ([Entity Risk](/docs/telemetry/security-entity-risk)). A connection opens cases for **High and above** unless you choose another level; the alerts below it are still imported as events.
 
 ### How detections are grouped
 
@@ -192,7 +193,7 @@ To post to a channel, add a rule under **Products → Security Events → Worksp
 | Security Case Priority | One of the project's case priorities, such as Critical or High |
 | Security Case Title, Security Case Description | Text the case's title or description contains, starts with or ends with |
 | Security Case Status | One of the project's case statuses, such as New or Closed |
-| Security Case Source | Detection Rule, Threat Intel, Connected Product or Manual |
+| Security Case Source | Detection Rule, Threat Intel, Connected Product, Entity Risk or Manual |
 | Security Case Labels | The case's labels |
 
 The three notifications are each posted to the channels of every rule the case matches at that moment. A rule with **Security Case Priority** contains any of **Critical** and **High** posts High and Critical cases as they open, and a Medium case when it rises to High. A security case never gets a channel of its own.

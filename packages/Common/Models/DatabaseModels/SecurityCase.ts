@@ -504,7 +504,7 @@ export default class SecurityCase extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Source",
     description:
-      "What opened the case: a Detection Rule, Threat Intel, a Connected Product, or a person (Manual).",
+      "What opened the case: a Detection Rule, Threat Intel, a Connected Product, Entity Risk, or a person (Manual).",
   })
   @Column({
     nullable: true,

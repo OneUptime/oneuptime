@@ -3219,6 +3219,8 @@ test.describe("a case", () => {
       "findings",
       "worst severity",
       "last seen",
+      // Its risk (Security Events > Entity Risk), where the table has room.
+      "risk",
     ]);
 
     const address: Locator = table

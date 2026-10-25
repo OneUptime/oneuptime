@@ -1,8 +1,9 @@
 /*
  * Offline fixture for the Security Events SOC pages: the overview, the case
  * queue, a case, entities, the detection rules, the rule library, threat
- * intel, ATT&CK coverage, playbooks, a playbook, the playbook runs and the
- * project's case priorities and statuses (Settings) - the production layout
+ * intel, ATT&CK coverage, playbooks, a playbook, the playbook runs, entity
+ * risk and an entity's page, and the project's case priorities, statuses and
+ * risk scoring (Settings) - the production layout
  * (breadcrumbs and side menu) and pages from this branch, mounted under
  * their real RouteMap patterns.
  *
@@ -50,6 +51,10 @@
  *            change to those cases, as a role scoped to labels the reader
  *            lacks does - so a bulk action names the cases it could not
  *            change, and a row's dialog says why.
+ *   ?riskcases= off: the project opens no case from entity risk.
+ *   ?threshold= the project's risk threshold (100 when left out).
+ *   ?riskcase= 1: a.ng's risk reached the threshold and opened CASE-143.
+ *            (EntityRiskFixture.js lays entity risk out.)
  *
  * Every read is recorded on window.__securityOperationsFixture: getItem,
  * list, count and API requests, the writes, and `unhandled` - anything the
@@ -93,6 +98,16 @@ import SecurityProtectedEntitiesPage from "../../../App/FeatureSet/Dashboard/src
 import SecurityEventsAISettingsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/AISettings";
 import SecurityCasePrioritiesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/CasePriorities";
 import SecurityCaseStatusesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/CaseStatuses";
+import SecurityEntityRiskPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/EntityRisk";
+import SecurityEntityRiskViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/EntityRiskView";
+import SecurityRiskScoringPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/RiskScoring";
+import {
+  entityRiskCase,
+  isEntityRiskTable,
+  readRiskScenario,
+  riskActivityRow,
+  seedEntityRisk,
+} from "./EntityRiskFixture";
 import { SECURITY_PLAYBOOK_TEMPLATES } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookTemplates";
 import { SECURITY_CASE_QUEUE_VIEWS } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseQueueViews";
 import { SECURITY_PLAYBOOK_RUN_VIEWS } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunViews";
@@ -130,6 +145,7 @@ import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
+import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
@@ -187,7 +203,9 @@ import SecurityPlaybookTrigger from "Common/Types/SecurityPlaybook/SecurityPlayb
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
 import SecurityCaseAiVerdict from "Common/Types/SecurityCase/SecurityCaseAiVerdict";
 import { computeSecurityOverviewMetrics } from "Common/Utils/SecurityCase/SecurityOverviewMetrics";
+import { getEntityCaseGroupingKey } from "Common/Utils/SecurityCase/SecurityEntityRiskScore";
 import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
+import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -354,6 +372,11 @@ const REFUSED_CASE_NUMBERS = (params.get("refuse") || "")
   });
 const REFUSED_CASE_MESSAGE =
   "You do not have permission to update this Security Case. Your role reaches only cases labelled for your team.";
+/*
+ * ?riskcases=off, ?threshold= and ?riskcase=1: entity risk's scenarios, as
+ * EntityRiskFixture.js describes them.
+ */
+const riskScenario = readRiskScenario(params);
 let statusReads = 0;
 let overviewReads = 0;
 // The recommended rule the partly scenario leaves undone the first time.
@@ -520,6 +543,17 @@ function matches(record, query) {
       }
       continue;
     }
+    if (condition instanceof GreaterThan) {
+      const value = comparable(actual);
+      if (
+        value === null ||
+        value === undefined ||
+        !(value > comparable(condition.value))
+      ) {
+        return false;
+      }
+      continue;
+    }
     if (condition instanceof Search) {
       if (
         !String(actual ?? "")
@@ -593,13 +627,16 @@ const socTeam = make(Team, { _id: ID.team(1), name: "SOC Tier 2" });
 /*
  * The project, with OneUptime AI on (?ai=off turns Enable AI off) and its
  * one Security switch, Triage new cases. The AI settings page and its
- * notices read it like any record.
+ * notices read it like any record. Its risk settings (Settings > Risk
+ * Scoring): risk opens cases (?riskcases=off), at 100 (?threshold=).
  */
 const PROJECT_RECORD = {
   _id: PROJECT_ID,
   name: "Acme Commerce",
   enableAi: !isAiOff,
   enableAutomaticSecurityCaseTriage: triageScenario !== "auto-off",
+  enableSecurityRiskCases: riskScenario.isRiskCaseEnabled,
+  securityRiskCaseThreshold: riskScenario.threshold,
 };
 const project = make(Project, PROJECT_RECORD);
 table(Project).push(PROJECT_RECORD);
@@ -1014,7 +1051,7 @@ if (hasHistory) {
     acknowledgedAt: ago(2 * HOUR + 58 * MINUTE),
     // ?values=custom: past containment, so its time to contain was recorded.
     ...(hasCustomValues ? { containedAt: ago(1 * HOUR + 35 * MINUTE) } : {}),
-    groupingKey: `rule:okta-password-spray:${SPRAY_IP}`,
+    groupingKey: getEntityCaseGroupingKey(SPRAY_IP),
     createdAt: ago(3 * HOUR + 12 * MINUTE),
     createdByUser: undefined,
   });
@@ -1036,6 +1073,7 @@ if (hasHistory) {
     detectionCount: 1,
     firstDetectedAt: ago(48 * MINUTE),
     lastDetectedAt: ago(31 * MINUTE),
+    groupingKey: getEntityCaseGroupingKey("update-sync.bad-cdn.example"),
     createdAt: ago(48 * MINUTE),
   });
   addCase(140, {
@@ -1056,6 +1094,7 @@ if (hasHistory) {
     lastDetectedAt: ago(25 * HOUR),
     acknowledgedAt: ago(25 * HOUR + 40 * MINUTE),
     containedAt: ago(24 * HOUR + 15 * MINUTE),
+    groupingKey: getEntityCaseGroupingKey("fin-ws-112"),
     createdAt: ago(26 * HOUR),
   });
   addCase(139, {
@@ -1075,6 +1114,7 @@ if (hasHistory) {
     firstDetectedAt: ago(7 * HOUR),
     lastDetectedAt: ago(7 * HOUR),
     acknowledgedAt: ago(6 * HOUR),
+    groupingKey: getEntityCaseGroupingKey("k.morgan@acme-commerce.example"),
     createdAt: ago(7 * HOUR),
   });
   addCase(138, {
@@ -1096,6 +1136,7 @@ if (hasHistory) {
     detectionCount: 1,
     firstDetectedAt: ago(2 * HOUR),
     lastDetectedAt: ago(2 * HOUR),
+    groupingKey: getEntityCaseGroupingKey("web-03"),
     createdAt: ago(2 * HOUR),
   });
   addCase(137, {
@@ -1112,6 +1153,7 @@ if (hasHistory) {
     detectionCount: 1,
     firstDetectedAt: ago(5 * HOUR),
     lastDetectedAt: ago(5 * HOUR),
+    groupingKey: getEntityCaseGroupingKey("deploy-bot@acme-commerce.example"),
     createdAt: ago(5 * HOUR),
   });
   addCase(136, {
@@ -2480,9 +2522,10 @@ function entityActivity(body) {
   const values = Array.isArray(body?.values) ? body.values : [];
   return {
     activity: values.map((value, index) => {
-      const known = TOP_ENTITIES.find((item) => {
-        return item[0] === value;
-      });
+      const known =
+        TOP_ENTITIES.find((item) => {
+          return item[0] === value;
+        }) || riskActivityRow(table, value, NOW);
       return {
         value,
         eventCount: known ? known[1] * 13 + 7 : 3 + index,
@@ -2493,6 +2536,47 @@ function entityActivity(body) {
       };
     }),
   };
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Entity risk: each entity's risk and the project's Entity Criticality list
+ * (EntityRiskFixture.js), and with ?riskcase=1 the case a.ng's risk opened,
+ * a case of Entity Risk's own: CASE-143, at the priority of its detection.
+ * ---------------------------------------------------------------------------
+ */
+seedEntityRisk({
+  insert,
+  table,
+  now: NOW,
+  uuid,
+  ids: ID,
+  isEmpty,
+  hasHistory,
+  hasRiskCase: riskScenario.hasRiskCase,
+});
+
+if (hasHistory && riskScenario.hasRiskCase) {
+  const risk = entityRiskCase({
+    ids: ID,
+    now: NOW,
+    threshold: riskScenario.threshold,
+  });
+  addCase(143, {
+    ...risk.securityCase,
+    ...statusOf("New"),
+    ...priorityOf(
+      risk.detection.severity === "Critical"
+        ? SecurityCasePriorityLevel.Critical
+        : SecurityCasePriorityLevel.High,
+    ),
+    ...assignee(undefined),
+  });
+  insert(SecurityDetection, {
+    _id: ID.detection(4),
+    securityCaseId: new ObjectID(ID.case(143)),
+    ...risk.detection,
+  });
 }
 
 /*
@@ -2687,6 +2771,25 @@ ModelAPI.updateById = async (options) => {
 ModelAPI.createOrUpdate = async (options) => {
   const modelName = tableName(options.modelType);
   const data = BaseModel.toJSON(options.model, options.modelType);
+  /*
+   * An edit form saves onto the row it edits, as PUT /<model>/:id does:
+   * the fields it sent, recorded with the other updates.
+   */
+  if (options.formType === FormType.Update) {
+    const id = options.model._id?.toString();
+    fixture.updates.push({ modelName, id, data: serialize(data) });
+    const record = (tables.get(modelName)?.records || []).find((item) => {
+      return String(item._id) === id;
+    });
+    if (record) {
+      for (const [key, value] of Object.entries(options.model)) {
+        if (key !== "_id" && value !== undefined) {
+          record[key] = value;
+        }
+      }
+    }
+    return new HTTPResponse(200, {}, {});
+  }
   fixture.creates.push({ modelName, data: serialize(data) });
   const record = {
     ...options.model,
@@ -2735,6 +2838,15 @@ ModelAPI.create = async (options) => {
 ModelAPI.deleteItem = async (options) => {
   const modelName = tableName(options.modelType);
   fixture.deletes.push({ modelName, id: options.id?.toString() });
+  if (isEntityRiskTable(options.modelType)) {
+    const records = table(options.modelType);
+    const index = records.findIndex((item) => {
+      return String(item._id) === options.id?.toString();
+    });
+    if (index >= 0) {
+      records.splice(index, 1);
+    }
+  }
 };
 
 /*
@@ -3334,6 +3446,8 @@ const PAGES = [
     return [view.page, SecurityCasesPage, view.key];
   }),
   [PageMap.SECURITY_EVENTS_ENTITIES, SecurityEntitiesPage],
+  [PageMap.SECURITY_EVENTS_ENTITY_RISK, SecurityEntityRiskPage],
+  [PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW, SecurityEntityRiskViewPage],
   [PageMap.SECURITY_EVENTS_DETECTION_RULES, DetectionRulesPage],
   [PageMap.SECURITY_EVENTS_RULE_LIBRARY, RuleLibraryPage],
   [PageMap.SECURITY_EVENTS_THREAT_INTEL, ThreatIntelPage],
@@ -3349,6 +3463,7 @@ const PAGES = [
     SecurityCasePrioritiesPage,
   ],
   [PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES, SecurityCaseStatusesPage],
+  [PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING, SecurityRiskScoringPage],
 ];
 const STUB_PAGES = [
   [PageMap.SECURITY_EVENTS, "Events"],
