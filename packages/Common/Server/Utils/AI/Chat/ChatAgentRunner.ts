@@ -1230,13 +1230,17 @@ export default class ChatAgentRunner {
   /*
    * The tools offered this round: the toolbox for the permission mode, then
    * the turn's extra tools (read tools always; mutations only when the mode
-   * can act). A toolbox name always wins over an extra tool's.
+   * can act). A toolbox name always wins over an extra tool's. The toolbox
+   * list is shared by every run of the process, so the turn's tools go on a
+   * copy of it - never on the list itself, where every later turn would
+   * have been offered them, described with this turn's resources.
    */
   public static getToolDefinitions(
     request: Pick<ChatTurnRequest, "permissionMode" | "extraTools">,
   ): Array<LLMToolDefinition> {
-    const definitions: Array<LLMToolDefinition> =
-      AIToolbox.getLlmToolDefinitions(request.permissionMode);
+    const definitions: Array<LLMToolDefinition> = [
+      ...AIToolbox.getLlmToolDefinitions(request.permissionMode),
+    ];
     const names: Set<string> = new Set(
       definitions.map((definition: LLMToolDefinition): string => {
         return definition.name;
