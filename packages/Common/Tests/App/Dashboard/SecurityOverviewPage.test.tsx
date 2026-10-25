@@ -24,6 +24,7 @@ import SecurityCaseApi, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseApi";
 import { SECURITY_GETTING_STARTED_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityOverview/SecurityGettingStarted";
 import {
+  SECURITY_OVERVIEW_SPACING_CLASS_NAME,
   SECURITY_OVERVIEW_STATUS_ID,
   SECURITY_STATUS_HEADLINE_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityOverview/SecurityOverviewStatus";
@@ -1796,6 +1797,7 @@ describe("the rows of cards under the figures", () => {
 
     expect(page).toHaveClass("space-y-5");
     expect(page).not.toHaveClass("space-y-6");
+    expect(page.className).toBe(SECURITY_OVERVIEW_SPACING_CLASS_NAME);
     // space-y-5's 20px, the grid's own gap.
     expect(CARD_GRID_GAP_IN_PX).toBe(20);
   });
@@ -2325,6 +2327,12 @@ describe("before the first reads land, and when they cannot", () => {
     expect(cells).not.toBeNull();
     expect(cells!.children).toHaveLength(4);
     expect(screen.queryByTestId(SECURITY_OVERVIEW_STATUS_ID)).toBeNull();
+    /*
+     * A card's gap apart, as the page's cards are once they land
+     * (SECURITY_OVERVIEW_SPACING_CLASS_NAME), so nothing moves then.
+     */
+    expect(loading.className).toBe(SECURITY_OVERVIEW_SPACING_CLASS_NAME);
+    expect(SECURITY_OVERVIEW_SPACING_CLASS_NAME).toBe("space-y-5");
   });
 
   test("an overview that cannot be read says so in the card's place, in the product's words, and Try again reads it again", async () => {

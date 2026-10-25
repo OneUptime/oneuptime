@@ -16,6 +16,7 @@ import SecurityGettingStarted, {
   isSecurityGetStartedDismissed,
 } from "../../Components/SecurityOverview/SecurityGettingStarted";
 import SecurityOverviewStatus, {
+  SECURITY_OVERVIEW_SPACING_CLASS_NAME,
   SecurityOverviewFailed,
   SecurityOverviewLoading,
 } from "../../Components/SecurityOverview/SecurityOverviewStatus";
@@ -441,10 +442,10 @@ const SecurityOverviewPage: FunctionComponent<
 
   /*
    * The page's cards stand a card's gap apart (20px), as the cards of a row
-   * do and as Home's do.
+   * do and as Home's do - and as its loading shape does.
    */
   return (
-    <div className="space-y-5">
+    <div className={SECURITY_OVERVIEW_SPACING_CLASS_NAME}>
       {showStatusCard && !showGetStarted ? statusCard : <></>}
 
       {status && showGetStarted ? (

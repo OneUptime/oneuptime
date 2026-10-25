@@ -629,6 +629,125 @@ test.describe("overview", () => {
     await screenshot(page, "overview-cards-long");
   });
 
+  /*
+   * With no occurrence stored, the latest occurrence's card is as tall as
+   * the details beside it: its dashed box takes the card's room under its
+   * header, the clock and the words in the middle of it, rather than
+   * sitting at the card's top over blank card. Stacked under the details
+   * (beside the side menu of a smaller screen) the box is as tall as its
+   * words, as it always was.
+   */
+  test("with no occurrence stored, the empty box takes the card's room beside the details, its words in the middle", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    interface EmptyBoxes {
+      contentBottom: number;
+      paddingBottom: number;
+      headerBottom: number;
+      boxTop: number;
+      boxBottom: number;
+      wordsTop: number;
+      wordsBottom: number;
+      boxPaddingY: number;
+      boxBorderY: number;
+    }
+
+    for (const width of [1440, 1280, 1024]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await open(page, "", "occurrence=none");
+
+      const latest: Locator = card(page, "Latest Occurrence");
+      await expect(
+        latest.getByTestId("exception-latest-occurrence-empty"),
+      ).toBeVisible();
+
+      const boxes: EmptyBoxes = await latest.evaluate(
+        (element: Element): EmptyBoxes => {
+          // The card's box > its frame > the padded content: header, then body.
+          const content: Element = element.firstElementChild!
+            .firstElementChild as Element;
+          const header: Element = element.querySelector(
+            '[data-testid="card-header"]',
+          ) as Element;
+          const box: Element = element.querySelector(
+            '[data-testid="exception-latest-occurrence-empty"]',
+          ) as Element;
+          const words: Element = box.querySelector("p") as Element;
+          const boxStyle: CSSStyleDeclaration = getComputedStyle(box);
+
+          return {
+            contentBottom: content.getBoundingClientRect().bottom,
+            paddingBottom: parseFloat(getComputedStyle(content).paddingBottom),
+            headerBottom: header.getBoundingClientRect().bottom,
+            boxTop: box.getBoundingClientRect().top,
+            boxBottom: box.getBoundingClientRect().bottom,
+            wordsTop: words.getBoundingClientRect().top,
+            wordsBottom: words.getBoundingClientRect().bottom,
+            boxPaddingY:
+              parseFloat(boxStyle.paddingTop) +
+              parseFloat(boxStyle.paddingBottom),
+            boxBorderY:
+              parseFloat(boxStyle.borderTopWidth) +
+              parseFloat(boxStyle.borderBottomWidth),
+          };
+        },
+      );
+      const row: CardRowBoxes = await cardRowBoxes(
+        page,
+        "exception-overview-cards",
+      );
+      const across: number = getCardGridColumnsAt(
+        { columns: 2, cardWidth: "wide" },
+        row.right - row.left,
+      );
+      const label: string = `${width}px, ${across} across`;
+
+      if (across === 2) {
+        // The box runs to the card's bottom padding: no blank card under it...
+        expect([
+          label,
+          Math.round(boxes.contentBottom - boxes.paddingBottom - boxes.boxBottom),
+        ]).toEqual([label, 0]);
+        // ...taller than its words need, as tall as the details make the card...
+        expect(boxes.boxBottom - boxes.boxTop).toBeGreaterThan(
+          boxes.wordsBottom -
+            boxes.wordsTop +
+            boxes.boxPaddingY +
+            boxes.boxBorderY +
+            40,
+        );
+        // ...and its words in its middle.
+        expect([
+          label,
+          Math.abs(
+            (boxes.wordsTop + boxes.wordsBottom) / 2 -
+              (boxes.boxTop + boxes.boxBottom) / 2,
+          ) <= 1.5,
+        ]).toEqual([label, true]);
+      } else {
+        // One card above the other: the box is as tall as its words.
+        expect([
+          label,
+          Math.round(
+            boxes.boxBottom -
+              boxes.boxTop -
+              (boxes.wordsBottom - boxes.wordsTop) -
+              boxes.boxPaddingY -
+              boxes.boxBorderY,
+          ),
+        ]).toEqual([label, 0]);
+      }
+      // Under the card's header, wherever the card is.
+      expect(boxes.boxTop).toBeGreaterThan(boxes.headerBottom);
+    }
+
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await open(page, "", "occurrence=none");
+    await screenshot(page, "overview-cards-no-occurrence");
+  });
+
   test("an empty or failed trend degrades inline", async ({
     page,
   }: {
