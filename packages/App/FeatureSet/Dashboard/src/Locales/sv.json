@@ -34421,5 +34421,6 @@
   "Reading security cases takes a Security role, or Project Owner or Admin. Ask a project admin for one.": "För att läsa säkerhetsärenden krävs en Security-roll, eller rollen projektägare eller projektadministratör. Be en projektadministratör om en.",
   "Something went wrong. Try again.": "Något gick fel. Försök igen.",
   "This case could not be found.": "Ärendet hittades inte.",
-  "You cannot open this case.": "Du kan inte öppna det här ärendet."
+  "You cannot open this case.": "Du kan inte öppna det här ärendet.",
+  "Notes for the team working this case: what you found, what you decided and what comes next.": "Anteckningar för teamet som arbetar med det här ärendet: vad ni har hittat, vad ni har beslutat och vad som händer härnäst."
 }

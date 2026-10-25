@@ -34421,5 +34421,6 @@
   "Reading security cases takes a Security role, or Project Owner or Admin. Ask a project admin for one.": "Reading security cases takes a Security role, or Project Owner or Admin. Ask a project admin for one.",
   "Something went wrong. Try again.": "Something went wrong. Try again.",
   "This case could not be found.": "This case could not be found.",
-  "You cannot open this case.": "You cannot open this case."
+  "You cannot open this case.": "You cannot open this case.",
+  "Notes for the team working this case: what you found, what you decided and what comes next.": "Notes for the team working this case: what you found, what you decided and what comes next."
 }

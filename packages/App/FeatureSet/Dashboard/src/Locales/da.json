@@ -34421,5 +34421,6 @@
   "Reading security cases takes a Security role, or Project Owner or Admin. Ask a project admin for one.": "For at læse sikkerhedssager kræves en Security-rolle eller rollen projektejer eller projektadministrator. Bed en projektadministrator om en.",
   "Something went wrong. Try again.": "Noget gik galt. Prøv igen.",
   "This case could not be found.": "Sagen blev ikke fundet.",
-  "You cannot open this case.": "Du kan ikke åbne denne sag."
+  "You cannot open this case.": "Du kan ikke åbne denne sag.",
+  "Notes for the team working this case: what you found, what you decided and what comes next.": "Noter til teamet, der arbejder på denne sag: hvad I har fundet, hvad I har besluttet, og hvad der skal ske nu."
 }

@@ -543,6 +543,14 @@ describe("each other page of a case", () => {
     expect(props["parentIdField"]).toBe("securityCaseId");
     expect((props["parentId"] as ObjectID).toString()).toBe(CASE_ID);
     expect(props["currentProject"]).toBe(PROJECT);
+    /*
+     * What the notes are for, in the case's own words: an incident's
+     * sentence promises they never reach a status page or subscribers, which
+     * a case has neither of.
+     */
+    expect(props["description"]).toBe(
+      "Notes for the team working this case: what you found, what you decided and what comes next.",
+    );
   });
 
   test("the Audit Logs page lists every change made to the case", () => {

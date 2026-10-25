@@ -34421,5 +34421,6 @@
   "Reading security cases takes a Security role, or Project Owner or Admin. Ask a project admin for one.": "Pour lire les dossiers de sécurité, il faut un rôle Security, ou être propriétaire ou administrateur du projet. Demandez-en un à un administrateur du projet.",
   "Something went wrong. Try again.": "Une erreur s'est produite. Réessayez.",
   "This case could not be found.": "Ce dossier est introuvable.",
-  "You cannot open this case.": "Vous ne pouvez pas ouvrir ce dossier."
+  "You cannot open this case.": "Vous ne pouvez pas ouvrir ce dossier.",
+  "Notes for the team working this case: what you found, what you decided and what comes next.": "Notes pour l'équipe qui traite ce dossier : ce que vous avez trouvé, ce que vous avez décidé et la suite."
 }

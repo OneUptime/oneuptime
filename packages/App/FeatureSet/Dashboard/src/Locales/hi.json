@@ -34421,5 +34421,6 @@
   "Reading security cases takes a Security role, or Project Owner or Admin. Ask a project admin for one.": "सुरक्षा केस पढ़ने के लिए Security भूमिका, या प्रोजेक्ट ओनर या एडमिन की भूमिका चाहिए। किसी प्रोजेक्ट एडमिन से माँगें।",
   "Something went wrong. Try again.": "कुछ गलत हो गया। फिर से प्रयास करें।",
   "This case could not be found.": "यह केस नहीं मिला।",
-  "You cannot open this case.": "आप यह केस नहीं खोल सकते।"
+  "You cannot open this case.": "आप यह केस नहीं खोल सकते।",
+  "Notes for the team working this case: what you found, what you decided and what comes next.": "इस केस पर काम कर रही टीम के लिए नोट: आपने क्या पाया, क्या तय किया और आगे क्या करना है।"
 }

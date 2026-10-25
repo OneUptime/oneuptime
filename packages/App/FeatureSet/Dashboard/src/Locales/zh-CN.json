@@ -34421,5 +34421,6 @@
   "Reading security cases takes a Security role, or Project Owner or Admin. Ask a project admin for one.": "读取安全案例需要 Security 角色，或项目所有者或管理员角色。请向项目管理员申请。",
   "Something went wrong. Try again.": "出了点问题。请重试。",
   "This case could not be found.": "找不到此案例。",
-  "You cannot open this case.": "您无法打开此案例。"
+  "You cannot open this case.": "您无法打开此案例。",
+  "Notes for the team working this case: what you found, what you decided and what comes next.": "供处理此案例的团队使用的备注：发现了什么、决定了什么，以及下一步做什么。"
 }

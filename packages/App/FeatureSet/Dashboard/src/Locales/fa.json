@@ -34421,5 +34421,6 @@
   "Reading security cases takes a Security role, or Project Owner or Admin. Ask a project admin for one.": "برای خواندن پرونده‌های امنیتی به نقش Security، یا نقش مالک یا مدیر پروژه نیاز است. آن را از یک مدیر پروژه بخواهید.",
   "Something went wrong. Try again.": "مشکلی پیش آمد. دوباره تلاش کنید.",
   "This case could not be found.": "این پرونده پیدا نشد.",
-  "You cannot open this case.": "نمی‌توانید این پرونده را باز کنید."
+  "You cannot open this case.": "نمی‌توانید این پرونده را باز کنید.",
+  "Notes for the team working this case: what you found, what you decided and what comes next.": "یادداشت‌هایی برای تیمی که روی این پرونده کار می‌کند: چه یافتید، چه تصمیمی گرفتید و قدم بعدی چیست."
 }

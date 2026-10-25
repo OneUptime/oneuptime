@@ -34421,5 +34421,6 @@
   "Reading security cases takes a Security role, or Project Owner or Admin. Ask a project admin for one.": "Voor het lezen van beveiligingszaken is een Security-rol nodig, of de rol projecteigenaar of projectbeheerder. Vraag er een aan een projectbeheerder.",
   "Something went wrong. Try again.": "Er ging iets mis. Probeer het opnieuw.",
   "This case could not be found.": "Deze zaak is niet gevonden.",
-  "You cannot open this case.": "U kunt deze zaak niet openen."
+  "You cannot open this case.": "U kunt deze zaak niet openen.",
+  "Notes for the team working this case: what you found, what you decided and what comes next.": "Notities voor het team dat aan deze zaak werkt: wat er is gevonden, wat er is besloten en wat er nu komt."
 }
