@@ -65,7 +65,7 @@ export const SECURITY_PLAYBOOK_RUN_VIEWS: ReadonlyArray<SecurityPlaybookRunView>
       page: PageMap.SECURITY_PLAYBOOK_RUNS,
       title: translationKey("Playbook Runs"),
       description: translationKey(
-        "Every playbook run, the newest first, with each step and what it did.",
+        "Every playbook run, the newest first. Show a run's steps to see what each did.",
       ),
       emptyTitle: translationKey("No playbook has run yet."),
       emptyDescription: translationKey(

@@ -7,6 +7,7 @@ import SecurityCaseApi, {
 } from "../../Components/SecurityCase/SecurityCaseApi";
 import { SecurityOverviewValue } from "../../Components/SecurityCase/SecurityCaseApiTypes";
 import { getCorrelateRouteForEntity } from "../../Components/SecurityCase/SecurityEntityChips";
+import { ATTACK_COVERAGE_QUERY_KEYS } from "../../Components/SecurityEvents/AttackCoverageCopy";
 import RankedBars, {
   RankedBarItem,
 } from "../../Components/SecurityOverview/RankedBars";
@@ -375,7 +376,10 @@ const SecurityOverviewPage: FunctionComponent<
         label: describeMitreId(tactic.tacticId),
         count: tactic.count,
         color: "#e11d48",
-        to: route(PageMap.SECURITY_EVENTS_ATTACK_COVERAGE),
+        // ATT&CK Coverage, opened on this tactic.
+        to: route(PageMap.SECURITY_EVENTS_ATTACK_COVERAGE).addQueryParams({
+          [ATTACK_COVERAGE_QUERY_KEYS.tactic]: tactic.tacticId,
+        }),
       };
     },
   );

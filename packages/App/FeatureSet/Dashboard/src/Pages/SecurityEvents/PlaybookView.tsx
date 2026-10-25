@@ -522,6 +522,7 @@ const SecurityPlaybookViewPage: FunctionComponent<
                     key={run._id!.toString()}
                     run={run}
                     onChanged={runs.refresh}
+                    isCollapsible={true}
                     caseLink={
                       run.securityCaseId ? (
                         <AppLink

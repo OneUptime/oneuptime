@@ -2,16 +2,38 @@ import PageComponentProps from "../PageComponentProps";
 import AppLink from "../../Components/AppLink/AppLink";
 import EventStatBar from "../../Components/EventView/EventStatBar";
 import EventStatTile from "../../Components/EventView/EventStatTile";
+import ExceptionSegmentedControl, {
+  SegmentedControlOption,
+} from "../../Components/Exceptions/ExceptionSegmentedControl";
 import { getMitreAttackUrl } from "../../Components/SecurityCase/MitreAttackChips";
 import {
   AttackCoverage,
   CoveringRule,
-  TacticCoverageSummary,
+  LibraryCoverageGap,
+  TacticCoverageView,
+  TechniqueCoverageView,
   buildAttackCoverage,
+  buildLibraryCoverage,
   countCoveredTechniques,
-  summarizeTacticCoverage,
+  getLibraryCoverageGap,
+  getTacticCoverageViews,
 } from "../../Components/SecurityEvents/AttackCoverage";
-import { RULE_LIBRARY_QUERY_KEYS } from "../../Components/SecurityEvents/RuleLibraryUtil";
+import { AttackCoverageLegend } from "../../Components/SecurityEvents/AttackCoverageCells";
+import {
+  ATTACK_COVERAGE_DESCRIPTIONS,
+  ATTACK_COVERAGE_QUERY_KEYS,
+  ATTACK_COVERAGE_VIEW_LABELS,
+  AttackCoverageView,
+  LIBRARY_GAP_ACTION,
+  LIBRARY_GAP_SENTENCE,
+  readAttackCoverageView,
+} from "../../Components/SecurityEvents/AttackCoverageCopy";
+import AttackCoverageMatrix from "../../Components/SecurityEvents/AttackCoverageMatrix";
+import AttackCoverageTactics from "../../Components/SecurityEvents/AttackCoverageTactics";
+import {
+  LibraryStatusFilter,
+  RULE_LIBRARY_QUERY_KEYS,
+} from "../../Components/SecurityEvents/RuleLibraryUtil";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
@@ -20,20 +42,18 @@ import ListResult from "Common/Types/BaseDatabase/ListResult";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
-  DETECTION_RULE_LIBRARY,
-  DetectionRuleLibraryEntry,
-} from "Common/Types/SecurityEvent/DetectionRuleLibrary";
-import {
   MITRE_ATTACK_VERSION,
-  MITRE_TACTIC_TECHNIQUES,
   MITRE_TECHNIQUES,
+  getMitreTactic,
 } from "Common/Types/SecurityEvent/MitreAttack";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import Icon from "Common/UI/Components/Icon/Icon";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import Navigation from "Common/UI/Utils/Navigation";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -44,16 +64,33 @@ import React, {
   useState,
 } from "react";
 
-interface SelectedTechnique {
-  id: string;
-  name: string;
+export const ATTACK_COVERAGE_GAP_TEST_ID: string = "attack-coverage-gap";
+
+// The Rule Library's address, on the rules the project has not added (or on a search).
+function getRuleLibraryRoute(params: {
+  status?: LibraryStatusFilter | undefined;
+  search?: string | undefined;
+}): Route {
+  const route: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.SECURITY_EVENTS_RULE_LIBRARY] as Route,
+  );
+
+  return params.search
+    ? route.addQueryParams({ [RULE_LIBRARY_QUERY_KEYS.search]: params.search })
+    : route.addQueryParams({
+        [RULE_LIBRARY_QUERY_KEYS.status]: params.status || "",
+      });
 }
 
 /*
- * The project's detection rules on the MITRE ATT&CK matrix: each column a
- * tactic (the attacker's goal), each cell a technique (how), lit when an
- * enabled rule covers it. Cells only the rule library covers are outlined,
- * so the gaps that are one click from closed stand out.
+ * The project's detection rules against MITRE ATT&CK: which of an
+ * attacker's goals (tactics) and ways (techniques) an enabled rule would
+ * catch.
+ *
+ * It opens on the tactics, in the order an attack moves through them, each
+ * a row with how much of it is covered; a row opens on its techniques. The
+ * matrix - a column per tactic - is one switch away. Above them, the figures,
+ * and the next step while the Rule Library covers what the rules do not.
  */
 const AttackCoveragePage: FunctionComponent<
   PageComponentProps
@@ -62,8 +99,24 @@ const AttackCoveragePage: FunctionComponent<
   const [rules, setRules] = useState<Array<DetectionRule>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [onlyCovered, setOnlyCovered] = useState<boolean>(false);
-  const [selected, setSelected] = useState<SelectedTechnique | null>(null);
+  const [view, setView] = useState<AttackCoverageView>((): AttackCoverageView => {
+    return readAttackCoverageView(
+      Navigation.getQueryStringByName(ATTACK_COVERAGE_QUERY_KEYS.view),
+    );
+  });
+  // The tactic the page was opened on (the Overview links each of its tactics here).
+  const [focusTacticId] = useState<string | undefined>((): string | undefined => {
+    const id: string | null = Navigation.getQueryStringByName(
+      ATTACK_COVERAGE_QUERY_KEYS.tactic,
+    );
+
+    return id && getMitreTactic(id) ? getMitreTactic(id)!.id : undefined;
+  });
+  const [openTacticIds, setOpenTacticIds] = useState<Array<string>>(
+    focusTacticId ? [focusTacticId] : [],
+  );
+  const [isOnlyCovered, setIsOnlyCovered] = useState<boolean>(false);
+  const [selected, setSelected] = useState<TechniqueCoverageView | null>(null);
 
   useEffect(() => {
     const load: () => Promise<void> = async (): Promise<void> => {
@@ -107,42 +160,28 @@ const AttackCoveragePage: FunctionComponent<
     );
   }, [rules]);
 
-  // What the library would add: its rules not yet in the project, by title.
-  const libraryCoverage: AttackCoverage = useMemo(() => {
-    const names: Set<string> = new Set(
-      rules.map((rule: DetectionRule): string => {
-        return (rule.name || "").trim().toLowerCase();
-      }),
-    );
-
-    return buildAttackCoverage(
-      DETECTION_RULE_LIBRARY.filter(
-        (entry: DetectionRuleLibraryEntry): boolean => {
-          return !names.has(entry.title.trim().toLowerCase());
-        },
-      ).map((entry: DetectionRuleLibraryEntry) => {
-        return {
-          id: entry.id,
-          name: entry.title,
-          isEnabled: true,
-          sigmaRuleYaml: entry.sigmaRuleYaml,
-        };
-      }),
-    );
+  /*
+   * What the library would add: its rules the project has none of, known
+   * by their Sigma id however the team renamed them, or by name - as the
+   * Rule Library knows them.
+   */
+  const library: AttackCoverage = useMemo(() => {
+    return buildLibraryCoverage(rules);
   }, [rules]);
 
-  const tactics: Array<TacticCoverageSummary> = useMemo(() => {
-    return summarizeTacticCoverage(coverage);
-  }, [coverage]);
+  const tactics: Array<TacticCoverageView> = useMemo(() => {
+    return getTacticCoverageViews(coverage, library);
+  }, [coverage, library]);
 
   if (error) {
     return <ErrorMessage message={error} />;
   }
 
+  const gap: LibraryCoverageGap = getLibraryCoverageGap(coverage, library);
   const coveredTechniques: number = countCoveredTechniques(coverage);
   const coveredTactics: number = tactics.filter(
-    (summary: TacticCoverageSummary): boolean => {
-      return summary.coveredTechniqueCount > 0;
+    (tactic: TacticCoverageView): boolean => {
+      return tactic.coveredCount > 0;
     },
   ).length;
   const enabledRules: number = rules.filter((rule: DetectionRule): boolean => {
@@ -153,8 +192,29 @@ const AttackCoveragePage: FunctionComponent<
     ? coverage.rulesByTechnique.get(selected.id) || []
     : [];
   const selectedLibrary: Array<CoveringRule> = selected
-    ? libraryCoverage.rulesByTechnique.get(selected.id) || []
+    ? library.rulesByTechnique.get(selected.id) || []
     : [];
+
+  const viewOptions: Array<SegmentedControlOption<AttackCoverageView>> = [
+    AttackCoverageView.Tactics,
+    AttackCoverageView.Matrix,
+  ].map(
+    (
+      option: AttackCoverageView,
+    ): SegmentedControlOption<AttackCoverageView> => {
+      return { value: option, label: ATTACK_COVERAGE_VIEW_LABELS[option] };
+    },
+  );
+
+  const toggleTactic: (tacticId: string) => void = (tacticId: string): void => {
+    setOpenTacticIds((ids: Array<string>): Array<string> => {
+      return ids.includes(tacticId)
+        ? ids.filter((id: string): boolean => {
+            return id !== tacticId;
+          })
+        : [...ids, tacticId];
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -166,7 +226,7 @@ const AttackCoveragePage: FunctionComponent<
           variant="segment"
           icon={IconProp.TableCells}
           label="Techniques Covered"
-          value={`${coveredTechniques} / ${MITRE_TECHNIQUES.length}`}
+          value={`${translator.formatNumber(coveredTechniques)} / ${translator.formatNumber(MITRE_TECHNIQUES.length)}`}
           description={translator.translateTemplate(
             "MITRE ATT&CK Enterprise v{{version}}",
             { version: MITRE_ATTACK_VERSION },
@@ -176,13 +236,13 @@ const AttackCoveragePage: FunctionComponent<
           variant="segment"
           icon={IconProp.Flag}
           label="Tactics Covered"
-          value={`${coveredTactics} / ${tactics.length}`}
+          value={`${translator.formatNumber(coveredTactics)} / ${translator.formatNumber(tactics.length)}`}
         />
         <EventStatTile
           variant="segment"
           icon={IconProp.ShieldCheck}
           label="Enabled Rules"
-          value={String(enabledRules)}
+          value={translator.formatNumber(enabledRules)}
           description={
             coverage.unreadableRuleIds.length > 0
               ? translator.translatePlural(
@@ -197,153 +257,97 @@ const AttackCoveragePage: FunctionComponent<
         />
       </EventStatBar>
 
+      {!isLoading && gap.techniqueCount > 0 ? (
+        <div
+          data-testid={ATTACK_COVERAGE_GAP_TEST_ID}
+          className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 sm:px-5"
+        >
+          <div className="flex min-w-0 items-start gap-2.5 text-sm text-indigo-900">
+            <Icon
+              icon={IconProp.SquareStack3D}
+              className="mt-0.5 h-4 w-4 flex-shrink-0 text-indigo-600"
+            />
+            <span>
+              {translator.translatePlural(
+                LIBRARY_GAP_SENTENCE,
+                gap.techniqueCount,
+              )}
+            </span>
+          </div>
+          <AppLink
+            to={getRuleLibraryRoute({ status: LibraryStatusFilter.NotAdded })}
+            className="ms-auto inline-flex items-center gap-1 text-sm font-semibold text-indigo-700 hover:text-indigo-900 hover:underline"
+          >
+            <>
+              {translator.translateText(LIBRARY_GAP_ACTION) ||
+                LIBRARY_GAP_ACTION}
+              <Icon
+                icon={IconProp.ArrowRight}
+                className="h-4 w-4 flex-shrink-0 rtl:rotate-180"
+              />
+            </>
+          </AppLink>
+        </div>
+      ) : (
+        <></>
+      )}
+
       <Card
         title="MITRE ATT&CK Coverage"
-        description="Columns are tactics and cells techniques. Lit cells are covered by your rules, outlined ones by library rules not added yet."
+        description={ATTACK_COVERAGE_DESCRIPTIONS[view]}
         headerLayout="stacked"
         rightElement={
-          <Toggle
-            title="Only covered techniques"
-            value={onlyCovered}
-            onChange={(value: boolean) => {
-              setOnlyCovered(value);
-            }}
-          />
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            {view === AttackCoverageView.Matrix ? (
+              <Toggle
+                title="Only covered techniques"
+                value={isOnlyCovered}
+                onChange={(value: boolean) => {
+                  setIsOnlyCovered(value);
+                }}
+              />
+            ) : (
+              <></>
+            )}
+            <ExceptionSegmentedControl<AttackCoverageView>
+              label="Coverage view"
+              options={viewOptions}
+              value={view}
+              testId="attack-coverage-view"
+              onChange={(next: AttackCoverageView) => {
+                setView(next);
+                Navigation.setQueryString({
+                  [ATTACK_COVERAGE_QUERY_KEYS.view]:
+                    next === AttackCoverageView.Matrix ? next : null,
+                });
+              }}
+            />
+          </div>
         }
       >
-        {isLoading ? (
-          <div className="h-96 animate-pulse rounded-lg bg-gray-100" />
-        ) : (
-          /*
-           * The matrix scrolls inside the card, both ways: fifteen tactics
-           * are wider than any screen, and the longest column runs to forty
-           * techniques. Each tactic's header stays in view as its column
-           * scrolls under it.
-           */
-          <div className="-mx-1 max-h-[44rem] overflow-auto pb-2">
-            <div className="flex min-w-max items-start gap-2 px-1">
-              {tactics.map((summary: TacticCoverageSummary): ReactElement => {
-                const techniques: ReadonlyArray<readonly [string, string]> =
-                  MITRE_TACTIC_TECHNIQUES[summary.tactic.id] || [];
-                const percent: number =
-                  summary.techniqueCount > 0
-                    ? Math.round(
-                        (summary.coveredTechniqueCount /
-                          summary.techniqueCount) *
-                          100,
-                      )
-                    : 0;
+        <div className="space-y-4">
+          {isLoading ? (
+            <div
+              className="h-96 animate-pulse rounded-lg bg-gray-100"
+              aria-busy="true"
+            />
+          ) : view === AttackCoverageView.Matrix ? (
+            <AttackCoverageMatrix
+              tactics={tactics}
+              isOnlyCovered={isOnlyCovered}
+              onSelectTechnique={setSelected}
+            />
+          ) : (
+            <AttackCoverageTactics
+              tactics={tactics}
+              openTacticIds={openTacticIds}
+              onToggle={toggleTactic}
+              onSelectTechnique={setSelected}
+              focusTacticId={focusTacticId}
+            />
+          )}
 
-                return (
-                  <div key={summary.tactic.id} className="w-40 flex-shrink-0">
-                    <a
-                      href={getMitreAttackUrl(summary.tactic.id) || undefined}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title={summary.tactic.goal}
-                      className="sticky top-0 z-10 block rounded-t-lg bg-gray-900 px-2 py-2 text-white hover:bg-gray-800"
-                    >
-                      <span className="block truncate text-xs font-semibold">
-                        {summary.tactic.name}
-                      </span>
-                      <span className="mt-0.5 block text-[10px] text-gray-300">
-                        {summary.coveredTechniqueCount}/{summary.techniqueCount}
-                        {" · "}
-                        {percent}%
-                      </span>
-                      <span className="mt-1 block h-1 overflow-hidden rounded-full bg-gray-700">
-                        <span
-                          className="block h-full rounded-full bg-emerald-400"
-                          style={{ width: `${percent}%` }}
-                        />
-                      </span>
-                    </a>
-                    <div className="space-y-1 rounded-b-lg border border-t-0 border-gray-200 p-1">
-                      {techniques
-                        .filter(([id]: readonly [string, string]): boolean => {
-                          return (
-                            !onlyCovered ||
-                            (coverage.rulesByTechnique.get(id) || []).length > 0
-                          );
-                        })
-                        .map(
-                          ([id, name]: readonly [
-                            string,
-                            string,
-                          ]): ReactElement => {
-                            const covering: Array<CoveringRule> =
-                              coverage.rulesByTechnique.get(id) || [];
-                            const isCovered: boolean = covering.some(
-                              (rule: CoveringRule): boolean => {
-                                return rule.isEnabled;
-                              },
-                            );
-                            const isDisabledOnly: boolean =
-                              covering.length > 0 && !isCovered;
-                            const inLibrary: boolean =
-                              (libraryCoverage.rulesByTechnique.get(id) || [])
-                                .length > 0;
-
-                            const tone: string = isCovered
-                              ? "border-indigo-300 bg-indigo-50 text-indigo-900"
-                              : isDisabledOnly
-                                ? "border-gray-300 bg-gray-100 text-gray-600"
-                                : inLibrary
-                                  ? "border-dashed border-indigo-300 bg-white text-gray-700"
-                                  : "border-gray-100 bg-gray-50 text-gray-400";
-
-                            return (
-                              <button
-                                key={id}
-                                type="button"
-                                data-testid={`attack-technique-${id}`}
-                                className={`flex w-full items-start justify-between gap-1 rounded border px-1.5 py-1 text-left text-[11px] leading-tight transition-colors hover:border-indigo-400 ${tone}`}
-                                onClick={() => {
-                                  setSelected({ id, name });
-                                }}
-                              >
-                                <span className="min-w-0">
-                                  <span className="block truncate">{name}</span>
-                                  <span className="block font-mono text-[10px] opacity-60">
-                                    {id}
-                                  </span>
-                                </span>
-                                {covering.length > 0 ? (
-                                  <span className="flex-shrink-0 rounded bg-white/80 px-1 text-[10px] font-semibold tabular-nums">
-                                    {covering.length}
-                                  </span>
-                                ) : (
-                                  <></>
-                                )}
-                              </button>
-                            );
-                          },
-                        )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-xs text-gray-600">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded border border-indigo-300 bg-indigo-50" />
-            {translator.translateText("Covered by an enabled rule")}
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded border border-gray-300 bg-gray-100" />
-            {translator.translateText("Covered by disabled rules only")}
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded border border-dashed border-indigo-300 bg-white" />
-            {translator.translateText("Available in the rule library")}
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded border border-gray-100 bg-gray-50" />
-            {translator.translateText("Not covered")}
-          </span>
+          <AttackCoverageLegend />
         </div>
       </Card>
 
@@ -356,7 +360,7 @@ const AttackCoveragePage: FunctionComponent<
           }}
           closeButtonText="Close"
         >
-          <div className="space-y-4">
+          <div className="space-y-4" data-testid="attack-technique-details">
             <div>
               <h4 className="text-sm font-semibold text-gray-900">
                 {translator.translateText("Your rules")}
@@ -374,7 +378,7 @@ const AttackCoveragePage: FunctionComponent<
                       <li key={rule.id} className="text-sm text-gray-700">
                         {rule.name}
                         {!rule.isEnabled ? (
-                          <span className="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">
+                          <span className="ms-2 rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">
                             {translator.translateText("Disabled")}
                           </span>
                         ) : (
@@ -405,11 +409,7 @@ const AttackCoveragePage: FunctionComponent<
                  * technique's id, which finds its rules (sub-techniques too).
                  */}
                 <AppLink
-                  to={RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.SECURITY_EVENTS_RULE_LIBRARY] as Route,
-                  ).addQueryParams({
-                    [RULE_LIBRARY_QUERY_KEYS.search]: selected.id,
-                  })}
+                  to={getRuleLibraryRoute({ search: selected.id })}
                   className="mt-2 inline-block text-sm font-medium text-indigo-600 hover:underline"
                 >
                   {translator.translateText("Open the rule library") || ""}
