@@ -34795,5 +34795,9 @@
   "Named {{value}}, a short or full form of its name {{matched}}. Another machine may share it.": "Nævnt som {{value}}, en kort eller fuld form af dens navn {{matched}}. En anden maskine kan have samme navn.",
   "Named {{value}}, the device's name.": "Nævnt som {{value}}, enhedens navn.",
   "Named {{value}}, the name it reports.": "Nævnt som {{value}}, det navn, den rapporterer.",
-  "Read from its logs.": "Læst fra dens protokoller."
+  "Read from its logs.": "Læst fra dens protokoller.",
+  "Nothing it names was found.": "Intet af det, den nævner, blev fundet.",
+  "OneUptime cannot be sure these are the same records, so they are not counted on their pages or linked to incidents.": "OneUptime kan ikke være sikker på, at det er de samme poster, så de tælles ikke med på deres sider og knyttes ikke til hændelser.",
+  "Possible matches": "Mulige match",
+  "Some kinds of record could not be read, so it may still be in OneUptime.": "Nogle typer poster kunne ikke læses, så det kan stadig findes i OneUptime."
 }

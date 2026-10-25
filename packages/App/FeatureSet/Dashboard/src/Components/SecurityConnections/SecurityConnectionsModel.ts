@@ -725,6 +725,70 @@ export function hasResourceSecurityNews(
 }
 
 /*
+ * What Connected Signals says, before anything else:
+ *   - "records": the records it names, one entry each;
+ *   - "nothing-found": every kind of record was read, and none is what it
+ *     names - the one answer that may call it "not in OneUptime";
+ *   - "partly-read": no record found, but a kind the reader's role cannot
+ *     see, or one that could not be read just now, may still hold it - so
+ *     nothing is said to be missing from OneUptime;
+ *   - "nothing-to-look-up": it names no host, address or user at all.
+ */
+export type ConnectedSignalsState =
+  | "records"
+  | "nothing-found"
+  | "partly-read"
+  | "nothing-to-look-up";
+
+export function getConnectedSignalsState(
+  connections: Pick<
+    SecurityConnectionsJson,
+    "resources" | "unmatched" | "unreadableKinds" | "failedKinds"
+  >,
+): ConnectedSignalsState {
+  if (connections.resources.length > 0) {
+    return "records";
+  }
+
+  if (
+    connections.unreadableKinds.length > 0 ||
+    connections.failedKinds.length > 0
+  ) {
+    return "partly-read";
+  }
+
+  return connections.unmatched.length > 0
+    ? "nothing-found"
+    : "nothing-to-look-up";
+}
+
+/*
+ * The records, exact connections first, as the server sorts them; the
+ * possible ones after, under a heading of their own that says what
+ * "possible" means.
+ */
+export interface ConnectedSignalsGroups {
+  exact: Array<SecurityConnectedResourceJson>;
+  possible: Array<SecurityConnectedResourceJson>;
+}
+
+export function getConnectedSignalsGroups(
+  connections: Pick<SecurityConnectionsJson, "resources">,
+): ConnectedSignalsGroups {
+  const groups: ConnectedSignalsGroups = { exact: [], possible: [] };
+
+  for (const resource of connections.resources) {
+    if (resource.certainty === SecurityConnectionCertainty.Exact) {
+      groups.exact.push(resource);
+    } else {
+      groups.possible.push(resource);
+    }
+  }
+
+  return groups;
+}
+
+/*
  * The match a record's line leads with: an exact one, else the first. Its
  * reason is the sentence under the record's name.
  */

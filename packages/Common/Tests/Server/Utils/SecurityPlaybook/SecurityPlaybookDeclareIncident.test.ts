@@ -142,7 +142,7 @@ describe("SecurityPlaybookActions.declareIncidentForCase", () => {
     expect(incident.kubernetesClusters?.[0]?.id?.toString()).toBe(CLUSTER_ID);
     expect(incident.services).toBeUndefined();
     expect(incidentFeed).toEqual([
-      "\u{1F6E1}\u{FE0F} Declared from security case [SEC-12](https://oneuptime.example/c/12). Linked to what it names: Host **web-1**, Kubernetes cluster **prod**.",
+      "\u{1F6E1}\u{FE0F} Declared from security case [SEC-12](https://oneuptime.example/c/12). Resources affected, as the case names them: Host **web-1**, Kubernetes cluster **prod**.",
     ]);
   });
 

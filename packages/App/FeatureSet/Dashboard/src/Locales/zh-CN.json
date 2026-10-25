@@ -34795,5 +34795,9 @@
   "Named {{value}}, a short or full form of its name {{matched}}. Another machine may share it.": "名为 {{value}}：其名称 {{matched}} 的简称或全称。其他机器也可能使用此名称。",
   "Named {{value}}, the device's name.": "名为 {{value}}：设备名称。",
   "Named {{value}}, the name it reports.": "名为 {{value}}：它上报的名称。",
-  "Read from its logs.": "从其日志中读取。"
+  "Read from its logs.": "从其日志中读取。",
+  "Nothing it names was found.": "未找到它指向的任何内容。",
+  "OneUptime cannot be sure these are the same records, so they are not counted on their pages or linked to incidents.": "OneUptime 无法确定这些是同一记录，因此它们不会计入其页面，也不会关联到事件。",
+  "Possible matches": "可能的匹配",
+  "Some kinds of record could not be read, so it may still be in OneUptime.": "部分类型的记录无法读取，因此它仍可能在 OneUptime 中。"
 }

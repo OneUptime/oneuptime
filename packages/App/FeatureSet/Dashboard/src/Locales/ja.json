@@ -34795,5 +34795,9 @@
   "Named {{value}}, a short or full form of its name {{matched}}. Another machine may share it.": "{{value}} という名前: 名前 {{matched}} の短縮形または完全形です。別のマシンも同じ名前を持つ可能性があります。",
   "Named {{value}}, the device's name.": "{{value}} という名前: デバイス名です。",
   "Named {{value}}, the name it reports.": "{{value}} という名前: 報告されている名前です。",
-  "Read from its logs.": "ログから読み取りました。"
+  "Read from its logs.": "ログから読み取りました。",
+  "Nothing it names was found.": "示されているものは見つかりませんでした。",
+  "OneUptime cannot be sure these are the same records, so they are not counted on their pages or linked to incidents.": "OneUptime では同じレコードだと確信できないため、それぞれのページでは数えられず、インシデントにもリンクされません。",
+  "Possible matches": "一致の可能性があるもの",
+  "Some kinds of record could not be read, so it may still be in OneUptime.": "一部の種類のレコードを読み取れなかったため、OneUptime にある可能性があります。"
 }

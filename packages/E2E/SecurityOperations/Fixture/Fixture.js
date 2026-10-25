@@ -56,10 +56,12 @@
  *   ?threshold= the project's risk threshold (100 when left out).
  *   ?riskcase= 1: a.ng's risk reached the threshold and opened CASE-143.
  *            (EntityRiskFixture.js lays entity risk out.)
- *   ?connections= fail or partial: what a case's Connected Signals and an
- *            entity's page read of the rest of OneUptime - a first read
- *            that fails, or one the role and a failed read keep kinds of
- *            record from. (ConnectionsFixture.js lays the records out.)
+ *   ?connections= fail, partial or busy: what a case's Connected Signals
+ *            and an entity's page read of the rest of OneUptime - a first
+ *            read that fails, one the role and a failed read keep kinds of
+ *            record from, or a case naming one record of every kind with
+ *            every fact and four possible matches. (ConnectionsFixture.js
+ *            lays the records out.)
  *
  * Every read is recorded on window.__securityOperationsFixture: getItem,
  * list, count and API requests, the writes, and `unhandled` - anything the

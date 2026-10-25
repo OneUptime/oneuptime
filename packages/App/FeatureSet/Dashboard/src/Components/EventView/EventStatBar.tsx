@@ -3,6 +3,17 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 
 export type EventStatBarColumns = 1 | 2 | 3 | 4;
 
+/*
+ * How much room a cell keeps before more share a row, when the bar is laid
+ * out by its own width: "regular" is 14rem - "TIME TO ACKNOWLEDGE" on one
+ * line beside its icon - and "compact" 8rem two a row and 9rem when three
+ * or four share one, for cells of a word and a short number (a record's
+ * Security card: Open Cases, Events, Findings, Risk), so four of them share
+ * a row in a card as wide as a laptop's page, and two on any phone, instead
+ * of filling rows of mostly empty cells.
+ */
+export type EventStatBarCellSize = "regular" | "compact";
+
 export interface ComponentProps {
   columns: EventStatBarColumns;
   children: ReactNode;
@@ -21,6 +32,8 @@ export interface ComponentProps {
    * breakpoints, as it always has.
    */
   isLaidOutByOwnWidth?: boolean | undefined;
+  // The room a cell keeps when laid out by the bar's own width: "regular" when left out.
+  cellSize?: EventStatBarCellSize | undefined;
 }
 
 /*
@@ -48,6 +61,21 @@ const OWN_WIDTH_COLUMN_CLASS_NAMES: Record<EventStatBarColumns, string> = {
   4: "[@container(min-width:28rem)]:grid-cols-2 [@container(min-width:56rem)]:grid-cols-4",
 };
 
+/*
+ * The same for compact cells (cellSize "compact"), in whole two-digit rems:
+ * the Tailwind runtime sorts these variants as text, so "36rem" must come
+ * after "16rem" in its stylesheet as it does by number.
+ */
+const COMPACT_OWN_WIDTH_COLUMN_CLASS_NAMES: Record<
+  EventStatBarColumns,
+  string
+> = {
+  1: "",
+  2: "[@container(min-width:16rem)]:grid-cols-2",
+  3: "[@container(min-width:27rem)]:grid-cols-3",
+  4: "[@container(min-width:16rem)]:grid-cols-2 [@container(min-width:36rem)]:grid-cols-4",
+};
+
 export const EVENT_STAT_BAR_OWN_WIDTH_CONTAINER_CLASS_NAME: string =
   "[container-type:inline-size]";
 
@@ -55,10 +83,12 @@ export const getEventStatBarColumnClassName: (
   columns: EventStatBarColumns,
   cellCount: number,
   isLaidOutByOwnWidth?: boolean | undefined,
+  cellSize?: EventStatBarCellSize | undefined,
 ) => string = (
   columns: EventStatBarColumns,
   cellCount: number,
   isLaidOutByOwnWidth?: boolean | undefined,
+  cellSize?: EventStatBarCellSize | undefined,
 ): string => {
   /*
    * A caller that leaves out an optional cell must not end up with an empty
@@ -70,9 +100,16 @@ export const getEventStatBarColumnClassName: (
     Math.min(columns, Math.max(cellCount, 1)),
   );
 
-  return (
-    isLaidOutByOwnWidth ? OWN_WIDTH_COLUMN_CLASS_NAMES : COLUMN_CLASS_NAMES
-  )[effectiveColumns as EventStatBarColumns];
+  let classNames: Record<EventStatBarColumns, string> = COLUMN_CLASS_NAMES;
+
+  if (isLaidOutByOwnWidth) {
+    classNames =
+      cellSize === "compact"
+        ? COMPACT_OWN_WIDTH_COLUMN_CLASS_NAMES
+        : OWN_WIDTH_COLUMN_CLASS_NAMES;
+  }
+
+  return classNames[effectiveColumns as EventStatBarColumns];
 };
 
 /*
@@ -96,6 +133,7 @@ const EventStatBar: FunctionComponent<ComponentProps> = (
     props.columns,
     cellCount,
     props.isLaidOutByOwnWidth,
+    props.cellSize,
   );
 
   const bar: ReactElement = (

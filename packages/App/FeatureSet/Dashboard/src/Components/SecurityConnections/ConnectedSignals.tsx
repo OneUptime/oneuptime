@@ -18,6 +18,10 @@ import {
   CONNECTED_NOTHING_TO_LOOK_UP_DESCRIPTION,
   CONNECTED_NOTHING_TO_LOOK_UP_TITLE,
   CONNECTED_NOT_FOUND_TITLE,
+  CONNECTED_PARTIAL_EMPTY_DESCRIPTION,
+  CONNECTED_PARTIAL_EMPTY_TITLE,
+  CONNECTED_POSSIBLE_GROUP_DESCRIPTION,
+  CONNECTED_POSSIBLE_GROUP_TITLE,
   CONNECTED_POSSIBLE_PILL,
   CONNECTED_POSSIBLE_TOOLTIP,
   CONNECTED_SIGNALS_TITLE,
@@ -34,16 +38,21 @@ import {
   SIGNAL_LINK_LABELS,
 } from "./SecurityConnectionsCopy";
 import {
+  ConnectedSignalsGroups,
+  ConnectedSignalsState,
   SignalLink,
   getAlertRoute,
   getConnectedRecordRoute,
+  getConnectedSignalsGroups,
+  getConnectedSignalsState,
   getIncidentRoute,
   getLeadingMatch,
   getMonitorRoute,
   getSignalLinks,
 } from "./SecurityConnectionsModel";
 import Route from "Common/Types/API/Route";
-import { Yellow } from "Common/Types/BrandColors";
+import { Gray500, Yellow } from "Common/Types/BrandColors";
+import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
@@ -73,6 +82,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
+  ReactNode,
   useEffect,
   useState,
 } from "react";
@@ -81,14 +91,17 @@ import React, {
  * CONNECTED SIGNALS: what a case, an event or an entity names in the rest of
  * OneUptime, and what was happening on each around it.
  *
- * One line per record - a host, a container host, a cluster, a network
+ * One entry per record - a host, a container host, a cluster, a network
  * device, a service, a user - exact connections first: its name, opening its
- * page; why OneUptime connects it, said as a sentence, and when it is only a
- * possible match, a pill that says so; its signals, each opening its
- * explorer (or its own page) on it and the window; and what is going on
- * there: the incidents and alerts open on it, the monitors watching it,
- * what changed on it in the window. Then what OneUptime looked for and did
- * not find, and what the reader's role keeps from them.
+ * page; why OneUptime connects it, said as a sentence; its signals, each
+ * opening its explorer (or its own page) on it and the window; and what is
+ * going on there, one fact a row - the incidents and alerts open on it, the
+ * monitors watching it, what changed on it in the window - each item on a
+ * line of its own, so a long title, another language or a right-to-left page
+ * never runs one item into the next. The possible matches follow under a
+ * heading of their own that says what "possible" means, each still with its
+ * pill. Then what OneUptime looked for and did not find, and what the
+ * reader's role keeps from them.
  *
  * The same answer the case's triage reads, so OneUptime AI and the person
  * reading the case see the same connections.
@@ -112,59 +125,151 @@ const SIGNAL_LINK_CLASS_NAME: string =
   "inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
 
 const FACT_LINK_CLASS_NAME: string =
-  "text-gray-900 hover:text-indigo-700 hover:underline [overflow-wrap:anywhere]";
+  "min-w-0 text-gray-900 hover:text-indigo-700 hover:underline [overflow-wrap:anywhere]";
 
-const RecordList: FunctionComponent<{
+/*
+ * A fact's row: its label above its items in a narrow record (a phone, a
+ * case beside its side menu on a tablet), beside them from 32rem of the
+ * record's own width (the event drawer, a laptop's page) - so the labels
+ * line up down the record and the items read as a column. The record's
+ * text column is the size container.
+ */
+export const CONNECTED_FACT_ROW_CLASS_NAME: string =
+  "grid grid-cols-1 gap-x-4 gap-y-1 [@container(min-width:32rem)]:grid-cols-[11rem_minmax(0,1fr)]";
+
+export const CONNECTED_RECORD_TEXT_CLASS_NAME: string =
+  "min-w-0 flex-1 [container-type:inline-size]";
+
+/*
+ * A change: its time, then what changed - beside the time while the title
+ * keeps 12rem there, under it on a phone, rather than in a column a few
+ * words wide.
+ */
+export const CONNECTED_CHANGE_ITEM_CLASS_NAME: string =
+  "flex min-w-0 flex-wrap gap-x-3";
+
+export const CONNECTED_CHANGE_TITLE_CLASS_NAME: string =
+  "min-w-0 flex-1 basis-48 text-gray-900 [overflow-wrap:anywhere]";
+
+// A section's heading in the card: Possible matches, Not in OneUptime.
+const SECTION_HEADING_CLASS_NAME: string =
+  "text-xs font-medium uppercase tracking-wide text-gray-500";
+
+function readColor(value: string | undefined): Color {
+  return value ? new Color(value) : Gray500;
+}
+
+// One open incident, alert or monitor on a record: its number and title, opening it, and where it stands.
+const FactRecordItem: FunctionComponent<{
+  item: SecurityConnectionRecordJson;
+  route: Route | null;
+}> = (props: {
+  item: SecurityConnectionRecordJson;
+  route: Route | null;
+}): ReactElement => {
+  const item: SecurityConnectionRecordJson = props.item;
+  const text: ReactElement = (
+    <bdi>
+      {item.number ? (
+        <span className="font-medium text-gray-500">{item.number} </span>
+      ) : (
+        <></>
+      )}
+      {item.title}
+    </bdi>
+  );
+
+  return (
+    <li
+      className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5"
+      data-testid={SECURITY_CONNECTIONS_TEST_IDS.factItem}
+    >
+      {props.route ? (
+        <AppLink to={props.route} className={FACT_LINK_CLASS_NAME}>
+          {text}
+        </AppLink>
+      ) : (
+        <span className="min-w-0 text-gray-900 [overflow-wrap:anywhere]">
+          {text}
+        </span>
+      )}
+      {item.stateName ? (
+        <Pill
+          text={item.stateName}
+          color={readColor(item.stateColor)}
+          size={PillSize.Small}
+        />
+      ) : (
+        <></>
+      )}
+    </li>
+  );
+};
+
+// "+2 more", after the items a fact lists.
+const MoreItems: FunctionComponent<{ count: number }> = (props: {
+  count: number;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  if (props.count <= 0) {
+    return <></>;
+  }
+
+  return (
+    <li className="text-gray-500">
+      {translator.translatePlural(CONNECTED_MORE, props.count)}
+    </li>
+  );
+};
+
+const FactRecordList: FunctionComponent<{
   list: SecurityConnectionRecordListJson;
   getRoute: (id: string) => Route | null;
 }> = (props: {
   list: SecurityConnectionRecordListJson;
   getRoute: (id: string) => Route | null;
 }): ReactElement => {
-  const translator: Translator = useTranslator();
-  const more: number = props.list.count - props.list.items.length;
-
   return (
-    <>
+    <ul className="space-y-1">
       {props.list.items.map(
-        (item: SecurityConnectionRecordJson, index: number): ReactElement => {
-          const route: Route | null = props.getRoute(item.id);
-          const text: string = `${item.number ? `${item.number} ` : ""}${item.title}`;
-
+        (item: SecurityConnectionRecordJson): ReactElement => {
           return (
-            <React.Fragment key={item.id}>
-              {index > 0 ? (
-                <span aria-hidden="true" className="text-gray-400">
-                  {" · "}
-                </span>
-              ) : (
-                <></>
-              )}
-              {route ? (
-                <AppLink to={route} className={FACT_LINK_CLASS_NAME}>
-                  {text}
-                </AppLink>
-              ) : (
-                <span className="text-gray-900">{text}</span>
-              )}
-              {item.stateName ? (
-                <span className="text-gray-500"> ({item.stateName})</span>
-              ) : (
-                <></>
-              )}
-            </React.Fragment>
+            <FactRecordItem
+              key={item.id}
+              item={item}
+              route={props.getRoute(item.id)}
+            />
           );
         },
       )}
-      {more > 0 ? (
-        <span className="text-gray-500">
-          {" "}
-          {translator.translatePlural(CONNECTED_MORE, more)}
-        </span>
-      ) : (
-        <></>
-      )}
-    </>
+      <MoreItems count={props.list.count - props.list.items.length} />
+    </ul>
+  );
+};
+
+// One fact of a record: its label, and its items.
+const FactRow: FunctionComponent<{
+  testId: string;
+  label: string;
+  labelClassName: string;
+  children: ReactNode;
+}> = (props: {
+  testId: string;
+  label: string;
+  labelClassName: string;
+  children: ReactNode;
+}): ReactElement => {
+  return (
+    <div className={CONNECTED_FACT_ROW_CLASS_NAME} data-testid={props.testId}>
+      <dt
+        className={`font-medium ${props.labelClassName}`}
+        data-testid={SECURITY_CONNECTIONS_TEST_IDS.factLabel}
+      >
+        {props.label}
+      </dt>
+      <dd className="min-w-0">{props.children}</dd>
+    </div>
   );
 };
 
@@ -197,6 +302,7 @@ const ConnectedRecord: FunctionComponent<{
   const incidents: SecurityConnectionRecordListJson | null =
     resource.activeIncidents;
   const alerts: SecurityConnectionRecordListJson | null = resource.activeAlerts;
+  const monitors: SecurityConnectionRecordListJson | null = resource.monitors;
   const isQuiet: boolean =
     incidents !== null &&
     alerts !== null &&
@@ -204,6 +310,12 @@ const ConnectedRecord: FunctionComponent<{
     alerts.count === 0;
   const changes: Array<SecurityConnectionChangeJson> =
     resource.recentChanges || [];
+  const hasFacts: boolean =
+    isQuiet ||
+    Boolean(incidents && incidents.count > 0) ||
+    Boolean(alerts && alerts.count > 0) ||
+    Boolean(monitors && monitors.count > 0) ||
+    changes.length > 0;
 
   return (
     <li
@@ -219,7 +331,7 @@ const ConnectedRecord: FunctionComponent<{
             className="h-4 w-4 text-gray-600"
           />
         </span>
-        <div className="min-w-0 flex-1">
+        <div className={CONNECTED_RECORD_TEXT_CLASS_NAME}>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             {route ? (
               <AppLink
@@ -227,14 +339,14 @@ const ConnectedRecord: FunctionComponent<{
                 className="min-w-0 text-sm font-semibold text-gray-900 hover:text-indigo-700 hover:underline [overflow-wrap:anywhere]"
                 dataTestId={SECURITY_CONNECTIONS_TEST_IDS.recordName}
               >
-                {name}
+                <bdi>{name}</bdi>
               </AppLink>
             ) : (
               <span
                 className="min-w-0 text-sm font-semibold text-gray-900 [overflow-wrap:anywhere]"
                 data-testid={SECURITY_CONNECTIONS_TEST_IDS.recordName}
               >
-                {name}
+                <bdi>{name}</bdi>
               </span>
             )}
             <span className="text-xs font-medium text-gray-500">
@@ -269,8 +381,14 @@ const ConnectedRecord: FunctionComponent<{
           ) : (
             <></>
           )}
+          {/*
+           * A group of links, named for the record - not a navigation
+           * landmark of its own: ten records would put ten of them in a
+           * screen reader's list of the page's landmarks.
+           */}
           {links.length > 0 ? (
-            <nav
+            <div
+              role="group"
               className="mt-2 flex flex-wrap gap-1.5"
               aria-label={translator.translateTemplate(
                 SIGNAL_LINKS_ARIA_LABEL,
@@ -298,115 +416,157 @@ const ConnectedRecord: FunctionComponent<{
                   </AppLink>
                 );
               })}
-            </nav>
+            </div>
           ) : (
             <></>
           )}
-          <div
-            className="mt-2 space-y-1 text-sm text-gray-600"
-            data-testid={SECURITY_CONNECTIONS_TEST_IDS.facts}
-          >
-            {incidents && incidents.count > 0 ? (
-              <p data-testid={SECURITY_CONNECTIONS_TEST_IDS.incidents}>
-                <span className="font-medium text-red-700">
-                  {translator.translatePlural(
-                    CONNECTED_ACTIVE_INCIDENTS,
-                    incidents.count,
-                  )}
-                </span>
-                <span>: </span>
-                <RecordList list={incidents} getRoute={getIncidentRoute} />
-              </p>
-            ) : (
-              <></>
-            )}
-            {alerts && alerts.count > 0 ? (
-              <p data-testid={SECURITY_CONNECTIONS_TEST_IDS.alerts}>
-                <span className="font-medium text-amber-700">
-                  {translator.translatePlural(
-                    CONNECTED_ACTIVE_ALERTS,
-                    alerts.count,
-                  )}
-                </span>
-                <span>: </span>
-                <RecordList list={alerts} getRoute={getAlertRoute} />
-              </p>
-            ) : (
-              <></>
-            )}
-            {isQuiet ? (
-              <p
-                className="text-gray-500"
-                data-testid={SECURITY_CONNECTIONS_TEST_IDS.nothingActive}
-              >
-                {translator.translateText(CONNECTED_NOTHING_ACTIVE)}
-              </p>
-            ) : (
-              <></>
-            )}
-            {resource.monitors && resource.monitors.count > 0 ? (
-              <p data-testid={SECURITY_CONNECTIONS_TEST_IDS.monitors}>
-                <span className="font-medium text-gray-700">
-                  {translator.translatePlural(
-                    CONNECTED_MONITORS,
-                    resource.monitors.count,
-                  )}
-                </span>
-                <span>: </span>
-                <RecordList
-                  list={resource.monitors}
-                  getRoute={getMonitorRoute}
-                />
-              </p>
-            ) : (
-              <></>
-            )}
-            {changes.length > 0 ? (
-              <div data-testid={SECURITY_CONNECTIONS_TEST_IDS.changes}>
-                <span className="font-medium text-gray-700">
-                  {translator.translateText(CONNECTED_CHANGES_TITLE)}
-                </span>
-                <span>: </span>
-                {changes.map(
-                  (
-                    change: SecurityConnectionChangeJson,
-                    index: number,
-                  ): ReactElement => {
-                    return (
-                      <React.Fragment key={`${change.id}-${index}`}>
-                        {index > 0 ? (
-                          <span aria-hidden="true" className="text-gray-400">
-                            {" · "}
-                          </span>
-                        ) : (
-                          <></>
-                        )}
-                        <span className="text-gray-900 [overflow-wrap:anywhere]">
-                          {change.title || change.eventType}
-                        </span>
-                        <span
-                          className="whitespace-nowrap text-gray-500"
-                          title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                            new Date(change.time),
-                          )}
-                        >
-                          {" "}
-                          {OneUptimeDate.getDateAsLocalShortDateTimeString(
-                            change.time,
-                          )}
-                        </span>
-                      </React.Fragment>
-                    );
-                  },
+          {hasFacts ? (
+            <div
+              className="mt-3 space-y-2 text-sm text-gray-600"
+              data-testid={SECURITY_CONNECTIONS_TEST_IDS.facts}
+            >
+              {isQuiet ? (
+                <p
+                  className="text-gray-500"
+                  data-testid={SECURITY_CONNECTIONS_TEST_IDS.nothingActive}
+                >
+                  {translator.translateText(CONNECTED_NOTHING_ACTIVE)}
+                </p>
+              ) : (
+                <></>
+              )}
+              <dl className="space-y-2">
+                {incidents && incidents.count > 0 ? (
+                  <FactRow
+                    testId={SECURITY_CONNECTIONS_TEST_IDS.incidents}
+                    label={translator.translatePlural(
+                      CONNECTED_ACTIVE_INCIDENTS,
+                      incidents.count,
+                    )}
+                    labelClassName="text-red-700"
+                  >
+                    <FactRecordList
+                      list={incidents}
+                      getRoute={getIncidentRoute}
+                    />
+                  </FactRow>
+                ) : (
+                  <></>
                 )}
-              </div>
-            ) : (
-              <></>
-            )}
-          </div>
+                {alerts && alerts.count > 0 ? (
+                  <FactRow
+                    testId={SECURITY_CONNECTIONS_TEST_IDS.alerts}
+                    label={translator.translatePlural(
+                      CONNECTED_ACTIVE_ALERTS,
+                      alerts.count,
+                    )}
+                    labelClassName="text-amber-700"
+                  >
+                    <FactRecordList list={alerts} getRoute={getAlertRoute} />
+                  </FactRow>
+                ) : (
+                  <></>
+                )}
+                {monitors && monitors.count > 0 ? (
+                  <FactRow
+                    testId={SECURITY_CONNECTIONS_TEST_IDS.monitors}
+                    label={translator.translatePlural(
+                      CONNECTED_MONITORS,
+                      monitors.count,
+                    )}
+                    labelClassName="text-gray-700"
+                  >
+                    <FactRecordList
+                      list={monitors}
+                      getRoute={getMonitorRoute}
+                    />
+                  </FactRow>
+                ) : (
+                  <></>
+                )}
+                {changes.length > 0 ? (
+                  <FactRow
+                    testId={SECURITY_CONNECTIONS_TEST_IDS.changes}
+                    label={
+                      translator.translateText(CONNECTED_CHANGES_TITLE) ||
+                      CONNECTED_CHANGES_TITLE
+                    }
+                    labelClassName="text-gray-700"
+                  >
+                    <ul className="space-y-1">
+                      {changes.map(
+                        (
+                          change: SecurityConnectionChangeJson,
+                          index: number,
+                        ): ReactElement => {
+                          return (
+                            <li
+                              key={`${change.id}-${index}`}
+                              className={CONNECTED_CHANGE_ITEM_CLASS_NAME}
+                              data-testid={
+                                SECURITY_CONNECTIONS_TEST_IDS.factItem
+                              }
+                            >
+                              <time
+                                dateTime={change.time}
+                                className="shrink-0 whitespace-nowrap tabular-nums text-gray-500"
+                                title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                                  new Date(change.time),
+                                )}
+                              >
+                                {OneUptimeDate.getDateAsLocalShortDateTimeString(
+                                  change.time,
+                                )}
+                              </time>
+                              <span
+                                className={CONNECTED_CHANGE_TITLE_CLASS_NAME}
+                              >
+                                <bdi>{change.title || change.eventType}</bdi>
+                              </span>
+                            </li>
+                          );
+                        },
+                      )}
+                    </ul>
+                  </FactRow>
+                ) : (
+                  <></>
+                )}
+              </dl>
+            </div>
+          ) : (
+            <></>
+          )}
         </div>
       </div>
     </li>
+  );
+};
+
+const RecordList: FunctionComponent<{
+  resources: Array<SecurityConnectedResourceJson>;
+  windowStart: string;
+  windowEnd: string;
+}> = (props: {
+  resources: Array<SecurityConnectedResourceJson>;
+  windowStart: string;
+  windowEnd: string;
+}): ReactElement => {
+  return (
+    <ul className="divide-y divide-gray-100">
+      {props.resources.map(
+        (resource: SecurityConnectedResourceJson): ReactElement => {
+          return (
+            <ConnectedRecord
+              key={`${resource.kind}:${resource.id}`}
+              resource={resource}
+              windowStart={props.windowStart}
+              windowEnd={props.windowEnd}
+            />
+          );
+        },
+      )}
+    </ul>
   );
 };
 
@@ -483,21 +643,23 @@ const ConnectedSignals: FunctionComponent<ComponentProps> = (
     body = <ComponentLoader />;
   } else {
     const notFound: Array<SecurityEntity> = connections.unmatched;
-    const hasRecords: boolean = connections.resources.length > 0;
-    const hasLookedUp: boolean =
-      hasRecords ||
-      notFound.length > 0 ||
-      connections.failedKinds.length > 0 ||
-      connections.unreadableKinds.length > 0;
+    const state: ConnectedSignalsState = getConnectedSignalsState(connections);
+    const groups: ConnectedSignalsGroups =
+      getConnectedSignalsGroups(connections);
 
     body = (
       <div className="space-y-4">
-        {connections.windowStart && connections.windowEnd ? (
-          <p
+        {state === "records" &&
+        connections.windowStart &&
+        connections.windowEnd ? (
+          <div
             className="flex items-center gap-1.5 text-xs text-gray-500"
             data-testid={SECURITY_CONNECTIONS_TEST_IDS.window}
           >
-            <Icon icon={IconProp.Clock} className="h-3.5 w-3.5 text-gray-400" />
+            <Icon
+              icon={IconProp.Clock}
+              className="h-3.5 w-3.5 shrink-0 text-gray-400"
+            />
             <span>
               {translator.translateTemplate(CONNECTED_WINDOW, {
                 start: OneUptimeDate.getDateAsLocalShortDateTimeString(
@@ -508,27 +670,45 @@ const ConnectedSignals: FunctionComponent<ComponentProps> = (
                 ),
               })}
             </span>
-          </p>
+          </div>
         ) : (
           <></>
         )}
 
-        {hasRecords ? (
-          <ul className="divide-y divide-gray-100">
-            {connections.resources.map(
-              (resource: SecurityConnectedResourceJson): ReactElement => {
-                return (
-                  <ConnectedRecord
-                    key={`${resource.kind}:${resource.id}`}
-                    resource={resource}
-                    windowStart={connections.windowStart}
-                    windowEnd={connections.windowEnd}
-                  />
-                );
-              },
-            )}
-          </ul>
-        ) : hasLookedUp ? (
+        {groups.exact.length > 0 ? (
+          <RecordList
+            resources={groups.exact}
+            windowStart={connections.windowStart}
+            windowEnd={connections.windowEnd}
+          />
+        ) : (
+          <></>
+        )}
+
+        {groups.possible.length > 0 ? (
+          <section
+            className={
+              groups.exact.length > 0 ? "border-t border-gray-100 pt-4" : ""
+            }
+            data-testid={SECURITY_CONNECTIONS_TEST_IDS.possibleGroup}
+          >
+            <h3 className={SECTION_HEADING_CLASS_NAME}>
+              {translator.translateText(CONNECTED_POSSIBLE_GROUP_TITLE)}
+            </h3>
+            <p className="mb-4 mt-0.5 text-sm text-gray-500 text-pretty">
+              {translator.translateText(CONNECTED_POSSIBLE_GROUP_DESCRIPTION)}
+            </p>
+            <RecordList
+              resources={groups.possible}
+              windowStart={connections.windowStart}
+              windowEnd={connections.windowEnd}
+            />
+          </section>
+        ) : (
+          <></>
+        )}
+
+        {state === "nothing-found" ? (
           <div data-testid={SECURITY_CONNECTIONS_TEST_IDS.empty}>
             <TableEmptyState
               kind={TableEmptyStateKind.Empty}
@@ -541,6 +721,28 @@ const ConnectedSignals: FunctionComponent<ComponentProps> = (
             />
           </div>
         ) : (
+          <></>
+        )}
+
+        {state === "partly-read" ? (
+          <div data-testid={SECURITY_CONNECTIONS_TEST_IDS.partialEmpty}>
+            <TableEmptyState
+              kind={TableEmptyStateKind.Empty}
+              icon={IconProp.Link}
+              title={
+                translator.translateText(CONNECTED_PARTIAL_EMPTY_TITLE) || ""
+              }
+              description={translator.translateText(
+                CONNECTED_PARTIAL_EMPTY_DESCRIPTION,
+              )}
+              isCompact={true}
+            />
+          </div>
+        ) : (
+          <></>
+        )}
+
+        {state === "nothing-to-look-up" ? (
           <div data-testid={SECURITY_CONNECTIONS_TEST_IDS.nothingToLookUp}>
             <TableEmptyState
               kind={TableEmptyStateKind.Empty}
@@ -555,6 +757,8 @@ const ConnectedSignals: FunctionComponent<ComponentProps> = (
               isCompact={true}
             />
           </div>
+        ) : (
+          <></>
         )}
 
         {connections.hasMoreResources ? (
@@ -573,9 +777,9 @@ const ConnectedSignals: FunctionComponent<ComponentProps> = (
             className="border-t border-gray-100 pt-3"
             data-testid={SECURITY_CONNECTIONS_TEST_IDS.notFound}
           >
-            <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-gray-500">
+            <h3 className={`mb-1.5 ${SECTION_HEADING_CLASS_NAME}`}>
               {translator.translateText(CONNECTED_NOT_FOUND_TITLE)}
-            </p>
+            </h3>
             <div className="flex flex-wrap gap-1.5">
               {notFound.map((entity: SecurityEntity, index: number) => {
                 return (
@@ -624,7 +828,7 @@ const ConnectedSignals: FunctionComponent<ComponentProps> = (
             </span>
             <button
               type="button"
-              className="font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+              className="rounded font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               onClick={reread}
             >
               {translator.translateText(CONNECTED_TRY_AGAIN)}

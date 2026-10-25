@@ -34795,5 +34795,9 @@
   "Named {{value}}, a short or full form of its name {{matched}}. Another machine may share it.": "Nombrado {{value}}, una forma corta o completa de su nombre {{matched}}. Otra máquina puede compartirlo.",
   "Named {{value}}, the device's name.": "Nombrado {{value}}, el nombre del dispositivo.",
   "Named {{value}}, the name it reports.": "Nombrado {{value}}, el nombre que informa.",
-  "Read from its logs.": "Leído de sus registros."
+  "Read from its logs.": "Leído de sus registros.",
+  "Nothing it names was found.": "No se encontró nada de lo que nombra.",
+  "OneUptime cannot be sure these are the same records, so they are not counted on their pages or linked to incidents.": "OneUptime no puede estar seguro de que sean los mismos elementos, así que no se cuentan en sus páginas ni se vinculan a incidentes.",
+  "Possible matches": "Posibles coincidencias",
+  "Some kinds of record could not be read, so it may still be in OneUptime.": "No se pudieron leer algunos tipos de elementos, así que puede que aun así esté en OneUptime."
 }

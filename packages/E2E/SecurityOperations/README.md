@@ -314,10 +314,10 @@ address only it holds or the logs it sent, a member by their email, a short form
 possibly; the case's window around its detections, an entity's the hour around its last event; and
 nothing said to be not in OneUptime that a kind of record the reader could not read may hold.
 
-| Parameter       | Values                                                                                                                                                   |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `?connections=` | `fail`: the first read fails (a 500), Try again reads it; `partial`: the role cannot read users and the clusters could not be read, Try again reads them |
-| `?lang=`        | `de`, `ja` or `fa` (right to left): the Dashboard's German, Japanese or Persian words                                                                    |
+| Parameter       | Values                                                                                                                                                                                                                                                                                        |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `?connections=` | `fail`: the first read fails (a 500), Try again reads it; `partial`: the role cannot read users and the clusters could not be read, Try again reads them; `busy`: a case naming one record of every kind, every fact a record can have, four possible matches and more records than are shown |
+| `?lang=`        | `de`, `ja` or `fa` (right to left): the Dashboard's German, Japanese or Persian words                                                                                                                                                                                                         |
 
 `ConnectedSignals.spec.ts` covers: the page under Investigation after Entities, its entry lit and
 its trail named for the case; the spray's member, by their email, with what OneUptime does not know;
@@ -326,8 +326,10 @@ Topology and Inventory on it and the case's window, the alert, monitor and fix o
 possibly the one named, with its pill and why, and nothing open on it; exact connections first; a
 read that fails and its Try again; what the role keeps from it and what failed, with nothing called
 not in OneUptime that may be; a Security Viewer; every record whole inside its card at 1280 and 390
-in both themes and at 1024 and 768 beside the case's menu; German; Persian at 1280 and 390, right to
-left; and an entity's page. Its screenshots are named `case-connected-signals-*` and
+in both themes and at 1024 and 768 beside the case's menu; a busy case's facts, one item a line,
+their labels beside them from 32rem of a record's width and above them below it, the possible
+matches under their own heading, in both themes and in Persian; German; Persian at 1280 and 390,
+right to left; and an entity's page. Its screenshots are named `case-connected-signals-*` and
 `entity-connected-signals-*`.
 
 ## Run it

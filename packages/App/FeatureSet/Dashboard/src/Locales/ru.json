@@ -34795,5 +34795,9 @@
   "Named {{value}}, a short or full form of its name {{matched}}. Another machine may share it.": "Назван {{value}} — краткой или полной формой его имени {{matched}}. Такое имя может быть и у другой машины.",
   "Named {{value}}, the device's name.": "Назван {{value}} — именем устройства.",
   "Named {{value}}, the name it reports.": "Назван {{value}} — именем, которое он сообщает.",
-  "Read from its logs.": "Прочитано из его журналов."
+  "Read from its logs.": "Прочитано из его журналов.",
+  "Nothing it names was found.": "Ничего из того, что он называет, не найдено.",
+  "OneUptime cannot be sure these are the same records, so they are not counted on their pages or linked to incidents.": "OneUptime не может быть уверен, что это те же записи, поэтому они не учитываются на своих страницах и не связываются с инцидентами.",
+  "Possible matches": "Возможные совпадения",
+  "Some kinds of record could not be read, so it may still be in OneUptime.": "Некоторые виды записей прочитать не удалось, поэтому это всё же может быть в OneUptime."
 }

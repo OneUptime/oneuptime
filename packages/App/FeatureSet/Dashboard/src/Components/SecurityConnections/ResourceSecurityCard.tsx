@@ -13,7 +13,7 @@ import {
   RESOURCE_SECURITY_DESCRIPTION,
   RESOURCE_SECURITY_EVENTS,
   RESOURCE_SECURITY_FINDINGS,
-  RESOURCE_SECURITY_IN_WINDOW,
+  RESOURCE_SECURITY_HIGHEST_SEVERITY,
   RESOURCE_SECURITY_LAST_SEEN,
   RESOURCE_SECURITY_MORE_CASES,
   RESOURCE_SECURITY_OPEN_CASES,
@@ -41,9 +41,9 @@ import {
 } from "Common/Types/SecurityCase/SecurityConnection";
 import { ocsfSeverityFromId } from "Common/Types/SecurityEvent/OcsfSeverity";
 import { getEntityRiskLevel } from "Common/Utils/SecurityCase/SecurityEntityRiskScore";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import Navigation from "Common/UI/Utils/Navigation";
+import Icon from "Common/UI/Components/Icon/Icon";
+import { PillSize } from "Common/UI/Components/Pill/Pill";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -97,8 +97,13 @@ const RiskValue: FunctionComponent<{
     props.risk.entityType,
   );
 
+  /*
+   * The level pill's own wrapper is a flex box too, so the pill is centred
+   * on the score as the Findings tile's severity is, not set on the large
+   * number's baseline.
+   */
   return (
-    <span className="inline-flex flex-wrap items-center gap-2">
+    <span className="inline-flex flex-wrap items-center gap-2 [&>span]:inline-flex">
       <AppLink
         to={route}
         className="tabular-nums hover:text-indigo-700 hover:underline"
@@ -108,6 +113,39 @@ const RiskValue: FunctionComponent<{
       <EntityRiskLevelPill
         level={getEntityRiskLevel(props.risk.score, riskSettings.threshold)}
       />
+    </span>
+  );
+};
+
+/*
+ * "Open in Security Events", in the card's header: a real link - an <a
+ * href> that opens in a new tab on a middle or modifier click and is
+ * announced as a link - styled as the card header's other buttons are
+ * across the product (Edit in Settings, Open the AI agent page), built only
+ * from classes Theme.css remaps for dark mode.
+ */
+export const RESOURCE_SECURITY_OPEN_LINK_CLASS_NAME: string =
+  "inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
+
+const OpenInSecurityEventsLink: FunctionComponent<{ to: Route }> = (props: {
+  to: Route;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  return (
+    <span
+      className="inline-flex"
+      data-testid={SECURITY_CONNECTIONS_TEST_IDS.resourceSecurityOpenLink}
+    >
+      <AppLink to={props.to} className={RESOURCE_SECURITY_OPEN_LINK_CLASS_NAME}>
+        <Icon
+          icon={IconProp.ShieldCheck}
+          className="h-4 w-4 flex-shrink-0 text-gray-500"
+        />
+        <span>
+          {translator.translateText(RESOURCE_SECURITY_OPEN_IN_SECURITY)}
+        </span>
+      </AppLink>
     </span>
   );
 };
@@ -167,22 +205,8 @@ const ResourceSecurityCard: FunctionComponent<ComponentProps> = (
   const openRoute: Route | null = security.entity
     ? getEntityRiskRoute(security.entity.value, security.entity.type)
     : eventsRoute;
-  const buttons: Array<{
-    title: string;
-    icon: IconProp;
-    buttonStyle: ButtonStyleType;
-    onClick: () => void;
-  }> = openRoute
-    ? [
-        {
-          title: RESOURCE_SECURITY_OPEN_IN_SECURITY,
-          icon: IconProp.ShieldCheck,
-          buttonStyle: ButtonStyleType.OUTLINE,
-          onClick: () => {
-            Navigation.navigate(openRoute);
-          },
-        },
-      ]
+  const buttons: Array<ReactElement> = openRoute
+    ? [<OpenInSecurityEventsLink key="open" to={openRoute} />]
     : [];
 
   if (!hasResourceSecurityNews(security)) {
@@ -234,6 +258,10 @@ const ResourceSecurityCard: FunctionComponent<ComponentProps> = (
     );
   }
 
+  /*
+   * The card's description says the week, so a tile says only what is its
+   * own: when the record was last named, the worst of its findings.
+   */
   tiles.push(
     <EventStatTile
       key="events"
@@ -253,9 +281,7 @@ const ResourceSecurityCard: FunctionComponent<ComponentProps> = (
           translator.formatNumber(security.eventCount)
         )
       }
-      description={
-        lastSeen || translator.translateText(RESOURCE_SECURITY_IN_WINDOW)
-      }
+      description={lastSeen}
     />,
     <EventStatTile
       key="findings"
@@ -265,10 +291,27 @@ const ResourceSecurityCard: FunctionComponent<ComponentProps> = (
       value={
         <span className="inline-flex flex-wrap items-center gap-2">
           <span>{translator.formatNumber(security.findingCount)}</span>
-          {worst ? <SecurityEventSeverityPill severityName={worst} /> : <></>}
+          {worst ? (
+            <span
+              className="inline-flex"
+              title={translator.translateText(
+                RESOURCE_SECURITY_HIGHEST_SEVERITY,
+              )}
+            >
+              <span className="sr-only">
+                {translator.translateText(RESOURCE_SECURITY_HIGHEST_SEVERITY)}
+              </span>
+              {/* The size of the Risk tile's level pill beside it. */}
+              <SecurityEventSeverityPill
+                severityName={worst}
+                size={PillSize.Small}
+              />
+            </span>
+          ) : (
+            <></>
+          )}
         </span>
       }
-      description={translator.translateText(RESOURCE_SECURITY_IN_WINDOW)}
     />,
   );
 
@@ -305,9 +348,14 @@ const ResourceSecurityCard: FunctionComponent<ComponentProps> = (
         buttons={buttons}
       >
         <div className="space-y-4">
+          {/*
+           * A word and a short number a tile: four share a row from 36rem
+           * of the card's own width, two from 16rem (any phone).
+           */}
           <EventStatBar
             columns={tiles.length as 2 | 3 | 4}
             isLaidOutByOwnWidth={true}
+            cellSize="compact"
             ariaLabel={RESOURCE_SECURITY_TITLE}
           >
             {tiles}

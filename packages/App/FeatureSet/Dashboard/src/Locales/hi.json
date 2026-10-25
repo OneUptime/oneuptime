@@ -34795,5 +34795,9 @@
   "Named {{value}}, a short or full form of its name {{matched}}. Another machine may share it.": "{{value}} नाम से पहचाना गया, इसके नाम {{matched}} का छोटा या पूरा रूप। किसी दूसरी मशीन का भी यह नाम हो सकता है।",
   "Named {{value}}, the device's name.": "{{value}} नाम से पहचाना गया, डिवाइस का नाम।",
   "Named {{value}}, the name it reports.": "{{value}} नाम से पहचाना गया, वह नाम जो यह रिपोर्ट करता है।",
-  "Read from its logs.": "इसके लॉग से पढ़ा गया।"
+  "Read from its logs.": "इसके लॉग से पढ़ा गया।",
+  "Nothing it names was found.": "यह जिनका नाम लेता है, उनमें से कुछ भी नहीं मिला।",
+  "OneUptime cannot be sure these are the same records, so they are not counted on their pages or linked to incidents.": "OneUptime पक्के तौर पर नहीं कह सकता कि ये वही रिकॉर्ड हैं, इसलिए इन्हें इनके पेज पर गिना नहीं जाता और घटनाओं से जोड़ा नहीं जाता।",
+  "Possible matches": "संभावित मिलान",
+  "Some kinds of record could not be read, so it may still be in OneUptime.": "कुछ प्रकार के रिकॉर्ड पढ़े नहीं जा सके, इसलिए यह फिर भी OneUptime में हो सकता है।"
 }

@@ -220,7 +220,7 @@ describe("feed sentences", () => {
         ],
       }).toString(),
     ).toBe(
-      "🛡️ Declared from security case [SEC-12](https://oneuptime.example/c). Linked to what it names: Host **web-1**, Kubernetes cluster **prod**, Service **checkout**.",
+      "🛡️ Declared from security case [SEC-12](https://oneuptime.example/c). Resources affected, as the case names them: Host **web-1**, Kubernetes cluster **prod**, Service **checkout**.",
     );
 
     // A record's name is whatever its agent reported: text, never a link.

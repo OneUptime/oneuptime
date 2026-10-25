@@ -148,6 +148,27 @@ async function securityRead(page: Page): Promise<void> {
     .toBeGreaterThan(0);
 }
 
+/*
+ * The card's figures as the browser lays them out: the bar's own width,
+ * and the tops of its cells - one top for a row of four, two for two rows.
+ */
+async function figureRows(
+  page: Page,
+): Promise<{ width: number; rows: number }> {
+  return card(page)
+    .getByRole("group", { name: "Security" })
+    .evaluate((bar: Element): { width: number; rows: number } => {
+      return {
+        width: bar.getBoundingClientRect().width,
+        rows: new Set(
+          Array.from(bar.children).map((cell: Element): number => {
+            return Math.round(cell.getBoundingClientRect().top);
+          }),
+        ).size,
+      };
+    });
+}
+
 async function pageOverflow(page: Page): Promise<number> {
   return page.evaluate((): number => {
     return (
@@ -247,9 +268,29 @@ test.describe("a host's Security card", () => {
     ).toBe(
       `${DASHBOARD}/security-events/cases/20000000-0000-4000-8000-000000000142`,
     );
+    /*
+     * Open in Security Events: a real link, styled as the product's other
+     * card header links, to the host's page in Security Events.
+     */
+    const openLink: Locator = card(page).getByRole("link", {
+      name: "Open in Security Events",
+    });
+    await expect(openLink).toBeVisible();
     await expect(
       card(page).getByRole("button", { name: "Open in Security Events" }),
-    ).toBeVisible();
+    ).toHaveCount(0);
+    const entity: URL = new URL(
+      (await openLink.getAttribute("href"))!,
+      "http://127.0.0.1:4233",
+    );
+    expect(entity.pathname).toBe(
+      `${DASHBOARD}/security-events/entity-risk/entity`,
+    );
+    expect(entity.searchParams.get("value")).toBe("api-gateway-01");
+    // A tile says only what is its own: the card's description says the week.
+    await expect(
+      card(page).getByRole("group", { name: "Security" }),
+    ).not.toContainText("In the last 7 days");
   });
 
   test("a host nothing named this week says so in one line", async ({
@@ -290,6 +331,15 @@ test.describe("a host's Security card", () => {
 
       expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
       expect(await partsOutsideTheCard(page)).toEqual([]);
+      /*
+       * Four short figures, by the card's own width: one row from 36rem,
+       * two by two from 16rem - on a laptop's page one row, on a phone two.
+       */
+      const figures: { width: number; rows: number } = await figureRows(page);
+      const rowsByWidth: number =
+        figures.width >= 36 * 16 ? 1 : figures.width >= 16 * 16 ? 2 : 4;
+      expect(figures.rows, `${Math.round(figures.width)}px`).toBe(rowsByWidth);
+      expect(figures.rows).toBe(width === 390 ? 2 : 1);
       await screenshot(
         page,
         `host-security-card-${width}${theme ? `-${theme}` : ""}`,

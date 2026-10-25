@@ -27,6 +27,9 @@
  *   partial   the reader's role cannot read users, and the Kubernetes
  *             clusters could not be read this time - so no email or name is
  *             said to be not in OneUptime; the next read answers in full
+ *   busy      a case's page names one of every kind of record, every fact a
+ *             record can have, possible matches, more records than are
+ *             shown and values OneUptime does not know (busyAnswer)
  */
 import {
   canonicalAddress,
@@ -49,7 +52,7 @@ import {
 } from "Common/Types/SecurityCase/SecurityConnection";
 import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
 
-export const CONNECTION_SCENARIOS = ["fail", "partial"];
+export const CONNECTION_SCENARIOS = ["fail", "partial", "busy"];
 
 export function createConnectionsFixture(options) {
   const { now, uuid, MINUTE, findCase, scenario } = options;
@@ -107,12 +110,20 @@ export function createConnectionsFixture(options) {
             number: "ALR-311",
             title: "Outbound DNS to a threat feed domain",
             stateName: "Acknowledged",
+            stateColor: "#ffbf53",
           },
         ],
       },
       monitors: {
         count: 1,
-        items: [{ id: factId(2), title: "build-runner-07 heartbeat" }],
+        items: [
+          {
+            id: factId(2),
+            title: "build-runner-07 heartbeat",
+            stateName: "Operational",
+            stateColor: "#2ab57d",
+          },
+        ],
       },
       recentChanges: [
         {
@@ -132,6 +143,7 @@ export function createConnectionsFixture(options) {
             number: "INC-1042",
             title: "Checkout returns 502s",
             stateName: "Investigating",
+            stateColor: "#f97316",
           },
         ],
       },
@@ -153,6 +165,310 @@ export function createConnectionsFixture(options) {
   };
 
   let reads = 0;
+
+  /*
+   * ?connections=busy: a case that names one of every kind of record, the
+   * exact ones with every fact a record can have - more incidents, alerts
+   * and monitors than are listed, three changes, long titles - and four
+   * possible matches after them, more records than are shown, and four
+   * values OneUptime does not know. What the page must keep readable at
+   * every width: one item a line, the labels beside the items from 36rem of
+   * a record's width and above them below it, nothing past the card.
+   */
+  function busyAnswer(window) {
+    const fact = (n, number, title, stateName, stateColor) => {
+      return {
+        id: factId(100 + n),
+        ...(number ? { number } : {}),
+        title,
+        ...(stateName ? { stateName, stateColor } : {}),
+      };
+    };
+    const record = (kind, n, name, certainty, match, facts) => {
+      return {
+        kind,
+        id: recordId(200 + n),
+        name,
+        certainty,
+        matches: [{ ...match, certainty }],
+        activeIncidents:
+          facts.activeIncidents === undefined ? empty() : facts.activeIncidents,
+        activeAlerts:
+          facts.activeAlerts === undefined ? empty() : facts.activeAlerts,
+        monitors: facts.monitors === undefined ? empty() : facts.monitors,
+        recentChanges:
+          facts.recentChanges === undefined ? [] : facts.recentChanges,
+      };
+    };
+    const change = (n, minutesAgo, title, eventType) => {
+      return {
+        id: factId(150 + n),
+        time: ago(minutesAgo * MINUTE).toISOString(),
+        title,
+        eventType,
+      };
+    };
+    const named = (entityType, value, reason, matchedValue) => {
+      return {
+        entityType,
+        entityValue: value,
+        reason,
+        matchedValue: matchedValue || value,
+      };
+    };
+    const { Exact, Possible } = SecurityConnectionCertainty;
+
+    return {
+      windowStart: window.start.toISOString(),
+      windowEnd: window.end.toISOString(),
+      resources: [
+        record(
+          SecurityConnectionKind.Host,
+          1,
+          "checkout-web-01",
+          Exact,
+          named(
+            SecurityEntityType.Host,
+            "checkout-web-01",
+            SecurityConnectionReason.HostName,
+          ),
+          {
+            activeIncidents: {
+              count: 4,
+              items: [
+                fact(
+                  1,
+                  "INC-1042",
+                  "Checkout returns 502s for every customer paying with a saved card in the EU region",
+                  "Investigating",
+                  "#f97316",
+                ),
+                fact(
+                  2,
+                  "INC-1039",
+                  "Card payments time out",
+                  "Acknowledged",
+                  "#ffbf53",
+                ),
+                fact(
+                  3,
+                  "INC-1031",
+                  "Slow product search",
+                  "Identified",
+                  "#fd625e",
+                ),
+              ],
+            },
+            activeAlerts: {
+              count: 2,
+              items: [
+                fact(
+                  4,
+                  "ALR-311",
+                  "Outbound DNS to a threat feed domain",
+                  "Acknowledged",
+                  "#ffbf53",
+                ),
+                fact(
+                  5,
+                  "ALR-309",
+                  "CPU above 90% for 10 minutes",
+                  "Created",
+                  "#fd625e",
+                ),
+              ],
+            },
+            monitors: {
+              count: 5,
+              items: [
+                fact(6, "", "checkout-web-01 ping", "Operational", "#2ab57d"),
+                fact(7, "", "Checkout API", "Degraded", "#ffbf53"),
+                fact(
+                  8,
+                  "",
+                  "checkout-web-01 disk space",
+                  "Operational",
+                  "#2ab57d",
+                ),
+              ],
+            },
+            recentChanges: [
+              change(1, 95, "Deployed checkout 4.12.0", "deploy"),
+              change(
+                2,
+                60,
+                "Fixed: rotated the payment gateway's API key",
+                "fix",
+              ),
+              change(
+                3,
+                30,
+                "Changed nginx worker_connections from 1024 to 4096 on every web node of the EU checkout pool",
+                "config",
+              ),
+            ],
+          },
+        ),
+        record(
+          SecurityConnectionKind.KubernetesCluster,
+          2,
+          "prod-eu-west-1",
+          Exact,
+          named(
+            SecurityEntityType.Host,
+            "prod-eu-west-1",
+            SecurityConnectionReason.ClusterName,
+          ),
+          {
+            activeIncidents: {
+              count: 1,
+              items: [
+                fact(
+                  9,
+                  "INC-1040",
+                  "Pods restarting in checkout",
+                  "Investigating",
+                  "#f97316",
+                ),
+              ],
+            },
+            recentChanges: [
+              change(4, 70, "Rolled out checkout-api to 4.12.0", "rollout"),
+            ],
+          },
+        ),
+        record(
+          SecurityConnectionKind.Service,
+          3,
+          "checkout-api",
+          Exact,
+          named(
+            SecurityEntityType.Other,
+            "checkout-api",
+            SecurityConnectionReason.LogSource,
+          ),
+          {
+            activeAlerts: {
+              count: 1,
+              items: [
+                fact(
+                  10,
+                  "ALR-312",
+                  "Error rate above 5%",
+                  "Created",
+                  "#fd625e",
+                ),
+              ],
+            },
+            recentChanges: [change(5, 95, "Deployed 4.12.0", "deploy")],
+          },
+        ),
+        record(
+          SecurityConnectionKind.NetworkDevice,
+          4,
+          "edge-fw-01",
+          Exact,
+          named(
+            SecurityEntityType.Host,
+            "edge-fw-01",
+            SecurityConnectionReason.DeviceName,
+          ),
+          {
+            monitors: {
+              count: 1,
+              items: [
+                fact(11, "", "edge-fw-01 SNMP", "Operational", "#2ab57d"),
+              ],
+            },
+          },
+        ),
+        {
+          ...record(
+            SecurityConnectionKind.User,
+            5,
+            "Kai Morgan",
+            Exact,
+            named(
+              SecurityEntityType.User,
+              "k.morgan@acme-commerce.example",
+              SecurityConnectionReason.Email,
+            ),
+            {},
+          ),
+          id: MEMBERS[0].id,
+          activeIncidents: null,
+          activeAlerts: null,
+          monitors: null,
+          recentChanges: null,
+        },
+        record(
+          SecurityConnectionKind.Host,
+          6,
+          "checkout-web-01.staging.acme-commerce.example",
+          Possible,
+          named(
+            SecurityEntityType.Host,
+            "checkout-web-01",
+            SecurityConnectionReason.ShortHostName,
+            "checkout-web-01.staging.acme-commerce.example",
+          ),
+          {},
+        ),
+        record(
+          SecurityConnectionKind.PodmanHost,
+          7,
+          "lab-podman-01",
+          Possible,
+          named(
+            SecurityEntityType.IpAddress,
+            "10.40.3.9",
+            SecurityConnectionReason.PrivateAddress,
+          ),
+          {},
+        ),
+        record(
+          SecurityConnectionKind.Host,
+          8,
+          "db-replica-2",
+          Possible,
+          named(
+            SecurityEntityType.Other,
+            "db-replica-2",
+            SecurityConnectionReason.UntypedValue,
+          ),
+          {},
+        ),
+        record(
+          SecurityConnectionKind.DockerHost,
+          9,
+          "cache-docker-1",
+          Possible,
+          named(
+            SecurityEntityType.IpAddress,
+            "198.51.100.40",
+            SecurityConnectionReason.SharedAddress,
+          ),
+          {},
+        ),
+      ],
+      hasMoreResources: true,
+      unmatched: [
+        {
+          type: SecurityEntityType.Domain,
+          value: "update-sync.bad-cdn.example",
+        },
+        { type: SecurityEntityType.IpAddress, value: "45.33.32.156" },
+        {
+          type: SecurityEntityType.User,
+          value:
+            "svc-payments-reconciliation-batch-runner@acme-commerce-production.example",
+        },
+        { type: SecurityEntityType.Host, value: "kiosk-17" },
+      ],
+      unreadableKinds: [],
+      failedKinds: [],
+    };
+  }
 
   function resolve(entities, logResources) {
     const lookups = getSecurityConnectionLookups(entities);
@@ -365,17 +681,21 @@ export function createConnectionsFixture(options) {
           body: { message: "This case could not be found." },
         };
       }
+      const window = getCaseConnectionWindow({
+        firstDetectedAt: securityCase.firstDetectedAt,
+        lastDetectedAt: securityCase.lastDetectedAt,
+        createdAt: securityCase.createdAt,
+        now,
+      });
+      if (scenario === "busy") {
+        return { status: 200, body: busyAnswer(window) };
+      }
       return {
         status: 200,
         body: build(
           securityCase.entities || [],
           CASE_LOG_RESOURCES[securityCase.caseNumber] || [],
-          getCaseConnectionWindow({
-            firstDetectedAt: securityCase.firstDetectedAt,
-            lastDetectedAt: securityCase.lastDetectedAt,
-            createdAt: securityCase.createdAt,
-            now,
-          }),
+          window,
         ),
       };
     }

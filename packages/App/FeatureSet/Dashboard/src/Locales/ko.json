@@ -34795,5 +34795,9 @@
   "Named {{value}}, a short or full form of its name {{matched}}. Another machine may share it.": "{{value}}(으)로 지정됨: 이름 {{matched}}의 짧은 형식 또는 전체 형식입니다. 다른 머신도 같은 이름을 가질 수 있습니다.",
   "Named {{value}}, the device's name.": "{{value}}(으)로 지정됨: 장치 이름입니다.",
   "Named {{value}}, the name it reports.": "{{value}}(으)로 지정됨: 보고된 이름입니다.",
-  "Read from its logs.": "로그에서 읽었습니다."
+  "Read from its logs.": "로그에서 읽었습니다.",
+  "Nothing it names was found.": "가리키는 대상을 찾지 못했습니다.",
+  "OneUptime cannot be sure these are the same records, so they are not counted on their pages or linked to incidents.": "OneUptime이 같은 레코드라고 확신할 수 없으므로 해당 페이지에서 집계되지 않고 인시던트에 연결되지도 않습니다.",
+  "Possible matches": "일치 가능성이 있는 항목",
+  "Some kinds of record could not be read, so it may still be in OneUptime.": "일부 종류의 레코드를 읽을 수 없어 OneUptime에 있을 수도 있습니다."
 }

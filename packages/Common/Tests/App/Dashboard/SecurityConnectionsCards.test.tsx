@@ -85,9 +85,14 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
-import ConnectedSignals from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityConnections/ConnectedSignals";
+import ConnectedSignals, {
+  CONNECTED_FACT_ROW_CLASS_NAME,
+  CONNECTED_RECORD_TEXT_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityConnections/ConnectedSignals";
 import IncidentSecurityCard from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityConnections/IncidentSecurityCard";
-import ResourceSecurityCard from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityConnections/ResourceSecurityCard";
+import ResourceSecurityCard, {
+  RESOURCE_SECURITY_OPEN_LINK_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityConnections/ResourceSecurityCard";
 import {
   CONNECTED_SIGNALS_CASE_DESCRIPTION,
   SECURITY_CONNECTIONS_TEST_IDS,
@@ -206,6 +211,15 @@ function href(element: Element): string {
   return element.closest("a")?.getAttribute("href") || "";
 }
 
+// A fact's items, each as its link (or text) reads: its number and title.
+function factItems(row: HTMLElement): Array<string> {
+  return within(row)
+    .getAllByTestId(IDS.factItem)
+    .map((item: HTMLElement): string => {
+      return (item.querySelector("bdi")?.textContent || "").trim();
+    });
+}
+
 let isAllowed: boolean = true;
 
 beforeEach(() => {
@@ -259,6 +273,10 @@ describe("Connected Signals", () => {
       "aria-label",
       "Signals of web-1 in this window",
     );
+    // A group named for its record, not a landmark: a case of ten records is not ten navigations.
+    expect(links).toHaveAttribute("role", "group");
+    expect(links.tagName).not.toBe("NAV");
+    expect(screen.queryAllByRole("navigation")).toEqual([]);
     expect(
       within(links)
         .getAllByRole("link")
@@ -278,27 +296,144 @@ describe("Connected Signals", () => {
     ]);
     expect(logs.searchParams.get("range")).toBe("Custom");
 
-    // What is going on there.
-    expect(within(record).getByTestId(IDS.incidents)).toHaveTextContent(
-      "3 active incidents: INC-7 Checkout is down (Investigating) +2 more",
+    /*
+     * What is going on there: one fact a row of a list - its label, then its
+     * items, each on a line of its own, opening its page, with where it
+     * stands; the ones left out counted.
+     */
+    const incidents: HTMLElement = within(record).getByTestId(IDS.incidents);
+
+    expect(within(incidents).getByTestId(IDS.factLabel).tagName).toBe("DT");
+    expect(within(incidents).getByTestId(IDS.factLabel)).toHaveTextContent(
+      "3 active incidents",
     );
-    expect(href(within(record).getByText("INC-7 Checkout is down"))).toBe(
-      `${BASE}/incidents/${INCIDENT_ID}`,
+    expect(factItems(incidents)).toEqual(["INC-7 Checkout is down"]);
+    expect(incidents).toHaveTextContent("+2 more");
+    expect(
+      href(
+        within(incidents).getByRole("link", { name: "INC-7 Checkout is down" }),
+      ),
+    ).toBe(`${BASE}/incidents/${INCIDENT_ID}`);
+    expect(
+      within(within(incidents).getByTestId(IDS.factItem)).getByText(
+        "Investigating",
+      ),
+    ).toBeInTheDocument();
+
+    const alerts: HTMLElement = within(record).getByTestId(IDS.alerts);
+
+    expect(within(alerts).getByTestId(IDS.factLabel)).toHaveTextContent(
+      "1 active alert",
     );
-    expect(within(record).getByTestId(IDS.alerts)).toHaveTextContent(
-      "1 active alert: ALR-3 CPU above 95%",
+    expect(factItems(alerts)).toEqual(["ALR-3 CPU above 95%"]);
+    expect(alerts).not.toHaveTextContent("more");
+
+    const monitors: HTMLElement = within(record).getByTestId(IDS.monitors);
+
+    expect(within(monitors).getByTestId(IDS.factLabel)).toHaveTextContent(
+      "Watched by 1 monitor",
     );
-    expect(within(record).getByTestId(IDS.monitors)).toHaveTextContent(
-      "Watched by 1 monitor: web-1 ping",
+    expect(
+      href(within(monitors).getByRole("link", { name: "web-1 ping" })),
+    ).toBe(`${BASE}/monitors/${MONITOR_ID}`);
+
+    // A change: its time, then what changed - its own line.
+    const changes: HTMLElement = within(record).getByTestId(IDS.changes);
+    const change: HTMLElement = within(changes).getByTestId(IDS.factItem);
+
+    expect(within(changes).getByTestId(IDS.factLabel)).toHaveTextContent(
+      "Changed in this window",
     );
-    expect(href(within(record).getByText("web-1 ping"))).toBe(
-      `${BASE}/monitors/${MONITOR_ID}`,
+    expect(change.querySelector("time")).toHaveAttribute(
+      "datetime",
+      "2026-10-25T09:55:00.000Z",
     );
-    expect(within(record).getByTestId(IDS.changes)).toHaveTextContent(
-      "Changed in this window: Fixed: disk 91% full",
-    );
+    expect(change).toHaveTextContent("Fixed: disk 91% full");
     expect(within(record).queryByTestId(IDS.nothingActive)).toBeNull();
     expect(screen.getByTestId(IDS.window)).toHaveTextContent("Signals from");
+    // No colon run-on sentences any more: a label is a label.
+    expect(record).not.toHaveTextContent("incidents:");
+  });
+
+  test("every fact's items sit in a list of their own, its label a dt laid out beside them by the record's own width", async () => {
+    getConnectionsMock.mockResolvedValue(
+      answer({
+        resources: [
+          host({
+            activeIncidents: {
+              count: 3,
+              items: [
+                {
+                  id: INCIDENT_ID,
+                  number: "INC-7",
+                  title: "Checkout is down",
+                  stateName: "Investigating",
+                  stateColor: "#f97316",
+                },
+                {
+                  id: "40000000-0000-4000-8000-000000000011",
+                  number: "INC-8",
+                  title: "Card payments time out",
+                },
+                {
+                  id: "40000000-0000-4000-8000-000000000012",
+                  title: "Search is slow",
+                },
+              ],
+            },
+          }),
+        ],
+      }) as never,
+    );
+
+    await drawConnectedSignals();
+
+    const record: HTMLElement = await screen.findByTestId(IDS.record);
+    const facts: HTMLElement = within(record).getByTestId(IDS.facts);
+    const incidents: HTMLElement = within(record).getByTestId(IDS.incidents);
+
+    // A description list: each row a label and its items.
+    expect(facts.querySelector("dl")).not.toBeNull();
+    expect(incidents.parentElement?.tagName).toBe("DL");
+    expect(incidents.className).toBe(CONNECTED_FACT_ROW_CLASS_NAME);
+    expect(CONNECTED_FACT_ROW_CLASS_NAME).toContain("grid-cols-1");
+    expect(CONNECTED_FACT_ROW_CLASS_NAME).toContain(
+      "[@container(min-width:32rem)]:grid-cols-[11rem_minmax(0,1fr)]",
+    );
+    // The record's text column is the size container those rows read.
+    expect(
+      within(record).getByTestId(IDS.recordName).closest("div")?.parentElement
+        ?.className,
+    ).toBe(CONNECTED_RECORD_TEXT_CLASS_NAME);
+    expect(CONNECTED_RECORD_TEXT_CLASS_NAME).toContain(
+      "[container-type:inline-size]",
+    );
+
+    // Each item a list item of its own, in the order the server sent them.
+    const items: Array<HTMLElement> = within(incidents).getAllByTestId(
+      IDS.factItem,
+    );
+
+    expect(
+      items.map((item: HTMLElement): string => {
+        return item.tagName;
+      }),
+    ).toEqual(["LI", "LI", "LI"]);
+    expect(factItems(incidents)).toEqual([
+      "INC-7 Checkout is down",
+      "INC-8 Card payments time out",
+      "Search is slow",
+    ]);
+    // Where each stands, when the server says: a pill, in its own colour.
+    expect(within(items[0]!).getByText("Investigating")).toBeInTheDocument();
+    expect(within(items[1]!).queryByText("Investigating")).toBeNull();
+    // A record's name and an item's title are written outside the reader's language: isolated.
+    expect(items[0]!.querySelector("bdi")).toHaveTextContent(
+      "INC-7 Checkout is down",
+    );
+    expect(
+      within(record).getByTestId(IDS.recordName).querySelector("bdi"),
+    ).toHaveTextContent("web-1");
   });
 
   test("a possible match says so; a record with nothing open says that; a fact the role cannot read says nothing", async () => {
@@ -363,6 +498,99 @@ describe("Connected Signals", () => {
     ).toEqual(["Logs", "Traces", "Metrics", "Exceptions"]);
   });
 
+  test("possible matches come after the exact ones, under a heading that says what possible means", async () => {
+    getConnectionsMock.mockResolvedValue(
+      answer({
+        resources: [
+          host(),
+          host({
+            id: "30000000-0000-4000-8000-000000000009",
+            name: "web-1.staging.acme.example",
+            certainty: SecurityConnectionCertainty.Possible,
+            matches: [
+              {
+                entityType: "Host",
+                entityValue: "web-1",
+                certainty: SecurityConnectionCertainty.Possible,
+                reason: SecurityConnectionReason.ShortHostName,
+                matchedValue: "web-1.staging.acme.example",
+              },
+            ],
+          }),
+        ],
+      }) as never,
+    );
+
+    await drawConnectedSignals();
+
+    const group: HTMLElement = await screen.findByTestId(IDS.possibleGroup);
+
+    expect(within(group).getByRole("heading", { level: 3 })).toHaveTextContent(
+      "Possible matches",
+    );
+    expect(group).toHaveTextContent(
+      "OneUptime cannot be sure these are the same records, so they are not counted on their pages or linked to incidents.",
+    );
+    // The exact record outside the group, before it; the possible one inside, with its pill.
+    const [exact, possible] = screen.getAllByTestId(IDS.record);
+
+    expect(group).not.toContainElement(exact!);
+    expect(group).toContainElement(possible!);
+    expect(
+      exact!.compareDocumentPosition(group) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(within(possible!).getByTestId(IDS.possiblePill)).toBeInTheDocument();
+    // Parted from the exact ones by a rule.
+    expect(group).toHaveClass("border-t");
+
+    // All of them possible: the heading still says what that means, with no rule above it.
+    cleanup();
+    getConnectionsMock.mockResolvedValue(
+      answer({
+        resources: [
+          host({
+            certainty: SecurityConnectionCertainty.Possible,
+          }),
+        ],
+      }) as never,
+    );
+
+    await drawConnectedSignals();
+
+    expect(await screen.findByTestId(IDS.possibleGroup)).not.toHaveClass(
+      "border-t",
+    );
+
+    // None possible: no heading.
+    cleanup();
+    getConnectionsMock.mockResolvedValue(answer() as never);
+
+    await drawConnectedSignals();
+
+    await screen.findByTestId(IDS.record);
+    expect(screen.queryByTestId(IDS.possibleGroup)).toBeNull();
+  });
+
+  test("every kind of record read and none is what it names: then, and only then, nothing it names is in OneUptime", async () => {
+    getConnectionsMock.mockResolvedValue(
+      answer({
+        resources: [],
+        unmatched: [{ type: SecurityEntityType.Host, value: "kiosk-17" }],
+      }) as never,
+    );
+
+    await drawConnectedSignals();
+
+    // An empty state's title is a headline: its sentence without the stop.
+    expect(await screen.findByTestId(IDS.empty)).toHaveTextContent(
+      "Nothing it names is in OneUptime",
+    );
+    expect(screen.getByTestId(IDS.notFound)).toHaveTextContent("kiosk-17");
+    expect(screen.queryByTestId(IDS.partialEmpty)).toBeNull();
+    // A window over no record says nothing.
+    expect(screen.queryByTestId(IDS.window)).toBeNull();
+  });
+
   test("what it looked for and did not find, what the role keeps from it, and what could not be read, with a way to read it again", async () => {
     getConnectionsMock.mockResolvedValue(
       answer({
@@ -381,13 +609,21 @@ describe("Connected Signals", () => {
 
     await drawConnectedSignals();
 
-    // An empty state's title is a headline: its sentence without the stop.
-    expect(await screen.findByTestId(IDS.empty)).toHaveTextContent(
+    /*
+     * Kinds the role cannot see, or that could not be read, may still hold
+     * what it names: nothing found, never "not in OneUptime".
+     */
+    expect(await screen.findByTestId(IDS.partialEmpty)).toHaveTextContent(
+      "Nothing it names was found",
+    );
+    expect(screen.getByTestId(IDS.partialEmpty)).toHaveTextContent(
+      "Some kinds of record could not be read, so it may still be in OneUptime.",
+    );
+    expect(screen.queryByTestId(IDS.empty)).toBeNull();
+    expect(document.body).not.toHaveTextContent(
       "Nothing it names is in OneUptime",
     );
-    expect(screen.getByTestId(IDS.empty)).toHaveTextContent(
-      "OneUptime looked for its hosts, addresses and users among your hosts, clusters, devices, services and users, and found none of them.",
-    );
+    expect(document.body).not.toHaveTextContent("found none of them");
     expect(screen.getByTestId(IDS.notFound)).toHaveTextContent(
       "kim@acme.example",
     );
@@ -665,9 +901,57 @@ describe("a record's Security card", () => {
     expect(href(within(cases).getByText("Brute force against web-1"))).toBe(
       `${BASE}/security-events/cases/${CASE_ID}`,
     );
+    /*
+     * Open in Security Events: a real link - a middle click opens a tab -
+     * to the entity's page, styled as the product's other card header links.
+     */
+    const open: HTMLElement = within(card).getByRole("link", {
+      name: "Open in Security Events",
+    });
+
     expect(
-      within(card).getByRole("button", { name: "Open in Security Events" }),
-    ).toBeInTheDocument();
+      within(card).queryByRole("button", { name: "Open in Security Events" }),
+    ).toBeNull();
+    expect(open.className).toContain(RESOURCE_SECURITY_OPEN_LINK_CLASS_NAME);
+    expect(open.closest("[data-testid]")).toHaveAttribute(
+      "data-testid",
+      IDS.resourceSecurityOpenLink,
+    );
+
+    const openUrl: globalThis.URL = new globalThis.URL(
+      href(open),
+      "https://oneuptime.example",
+    );
+
+    expect(openUrl.pathname).toBe(`${BASE}/security-events/entity-risk/entity`);
+    expect(openUrl.searchParams.get("value")).toBe("web-1");
+  });
+
+  test("its figures share a row by the card's own width, each saying only what is its own", async () => {
+    getResourceSecurityMock.mockResolvedValue(security() as never);
+
+    await drawCard();
+
+    const card: HTMLElement = await screen.findByTestId(IDS.resourceSecurity);
+    const bar: HTMLElement = within(card).getByRole("group", {
+      name: "Security",
+    });
+
+    // Four short figures: two a row on a phone, four from 36rem of the card's width.
+    expect(bar).toHaveClass(
+      "[@container(min-width:16rem)]:grid-cols-2",
+      "[@container(min-width:36rem)]:grid-cols-4",
+    );
+    expect(bar).not.toHaveClass("[@container(min-width:56rem)]:grid-cols-4");
+    expect(bar.parentElement).toHaveClass("[container-type:inline-size]");
+
+    // The card's description says the week: no tile says it again.
+    expect(bar).not.toHaveTextContent("In the last 7 days");
+    // The worst finding's pill says what it is to a screen reader and under the pointer.
+    expect(within(bar).getByText("Highest severity")).toHaveClass("sr-only");
+    expect(within(bar).getByTitle("Highest severity")).toHaveTextContent(
+      "High",
+    );
   });
 });
 

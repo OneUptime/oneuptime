@@ -34795,5 +34795,9 @@
   "Named {{value}}, a short or full form of its name {{matched}}. Another machine may share it.": "با نام {{value}} شناسایی شد؛ شکل کوتاه یا کامل نام آن {{matched}}. ممکن است ماشین دیگری هم همین نام را داشته باشد.",
   "Named {{value}}, the device's name.": "با نام {{value}} شناسایی شد؛ نام دستگاه.",
   "Named {{value}}, the name it reports.": "با نام {{value}} شناسایی شد؛ نامی که گزارش می‌کند.",
-  "Read from its logs.": "از لاگ‌های آن خوانده شد."
+  "Read from its logs.": "از لاگ‌های آن خوانده شد.",
+  "Nothing it names was found.": "هیچ‌یک از مواردی که به آن‌ها اشاره می‌کند پیدا نشد.",
+  "OneUptime cannot be sure these are the same records, so they are not counted on their pages or linked to incidents.": "OneUptime نمی‌تواند مطمئن باشد که این‌ها همان رکوردها هستند، پس در صفحه‌هایشان شمرده نمی‌شوند و به حوادث پیوند داده نمی‌شوند.",
+  "Possible matches": "تطابق‌های احتمالی",
+  "Some kinds of record could not be read, so it may still be in OneUptime.": "برخی انواع رکورد خوانده نشدند، پس ممکن است همچنان در OneUptime باشد."
 }

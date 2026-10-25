@@ -131,7 +131,9 @@ export const SECURITY_CONNECTION_KIND_NOUNS: Readonly<
 /*
  * The first line of an incident a case declared, on the incident's feed:
  * which case, and the records of the project the incident was linked to
- * because the case names them exactly.
+ * because the case names them exactly - its resources affected, in the
+ * feed's own words (the incident's first feed item lists them under
+ * "Resources Affected").
  */
 export function incidentDeclaredFromCaseMarkdown(data: {
   caseNumber: string;
@@ -144,7 +146,7 @@ export function incidentDeclaredFromCaseMarkdown(data: {
     return declared;
   }
 
-  return mdText`${declared} Linked to what it names: ${FeedMarkdown.join(
+  return mdText`${declared} Resources affected, as the case names them: ${FeedMarkdown.join(
     data.linked.map(
       (record: {
         kind: SecurityConnectionKind;

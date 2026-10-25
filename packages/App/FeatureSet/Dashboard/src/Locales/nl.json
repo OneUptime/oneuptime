@@ -34795,5 +34795,9 @@
   "Named {{value}}, a short or full form of its name {{matched}}. Another machine may share it.": "Genoemd als {{value}}, een korte of volledige vorm van de naam {{matched}}. Een andere machine kan die naam ook hebben.",
   "Named {{value}}, the device's name.": "Genoemd als {{value}}, de naam van het apparaat.",
   "Named {{value}}, the name it reports.": "Genoemd als {{value}}, de naam die het meldt.",
-  "Read from its logs.": "Gelezen uit de logboeken."
+  "Read from its logs.": "Gelezen uit de logboeken.",
+  "Nothing it names was found.": "Niets wat het noemt is gevonden.",
+  "OneUptime cannot be sure these are the same records, so they are not counted on their pages or linked to incidents.": "OneUptime kan niet zeker weten dat dit dezelfde records zijn, dus ze worden niet meegeteld op hun pagina's en niet aan incidenten gekoppeld.",
+  "Possible matches": "Mogelijke overeenkomsten",
+  "Some kinds of record could not be read, so it may still be in OneUptime.": "Sommige soorten records konden niet worden gelezen, dus het kan toch in OneUptime staan."
 }

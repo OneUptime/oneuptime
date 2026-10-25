@@ -292,6 +292,126 @@ describe("reading Connected Signals' answer", () => {
   });
 });
 
+describe("what Connected Signals says first", () => {
+  function connections(
+    overrides: Partial<SecurityConnectionsJson> = {},
+  ): SecurityConnectionsJson {
+    return {
+      windowStart: WINDOW_START,
+      windowEnd: WINDOW_END,
+      resources: [],
+      hasMoreResources: false,
+      unmatched: [],
+      unreadableKinds: [],
+      failedKinds: [],
+      ...overrides,
+    };
+  }
+
+  const web1: SecurityConnectedResourceJson = connectedRecord(
+    SecurityConnectionCertainty.Exact,
+    HOST_ID,
+  );
+
+  function connectedRecord(
+    certainty: SecurityConnectionCertainty,
+    id: string,
+  ): SecurityConnectedResourceJson {
+    return {
+      kind: SecurityConnectionKind.Host,
+      id,
+      name: id,
+      certainty,
+      matches: [],
+      activeIncidents: null,
+      activeAlerts: null,
+      monitors: null,
+      recentChanges: null,
+    };
+  }
+
+  test("the records, whatever else it says", () => {
+    expect(
+      model.getConnectedSignalsState(
+        connections({
+          resources: [web1],
+          unmatched: [{ type: SecurityEntityType.Host, value: "kiosk-17" }],
+          unreadableKinds: [SecurityConnectionKind.User],
+          failedKinds: [SecurityConnectionKind.Service],
+        }),
+      ),
+    ).toBe("records");
+  });
+
+  test("nothing found is said only when every kind of record was read", () => {
+    const looked: Partial<SecurityConnectionsJson> = {
+      unmatched: [{ type: SecurityEntityType.Host, value: "kiosk-17" }],
+    };
+
+    expect(model.getConnectedSignalsState(connections(looked))).toBe(
+      "nothing-found",
+    );
+    // A kind the role cannot see, or one that failed, may still hold it.
+    expect(
+      model.getConnectedSignalsState(
+        connections({
+          ...looked,
+          unreadableKinds: [SecurityConnectionKind.User],
+        }),
+      ),
+    ).toBe("partly-read");
+    expect(
+      model.getConnectedSignalsState(
+        connections({
+          ...looked,
+          failedKinds: [SecurityConnectionKind.KubernetesCluster],
+        }),
+      ),
+    ).toBe("partly-read");
+    // Nothing was looked up everywhere, and a kind could not be read: partly read, not "nothing to look up".
+    expect(
+      model.getConnectedSignalsState(
+        connections({ unreadableKinds: [SecurityConnectionKind.User] }),
+      ),
+    ).toBe("partly-read");
+  });
+
+  test("a case naming no host, address or user has nothing to look up", () => {
+    expect(model.getConnectedSignalsState(connections())).toBe(
+      "nothing-to-look-up",
+    );
+  });
+
+  test("exact records first, the possible ones in a group of their own, each in the server's order", () => {
+    const exactA: SecurityConnectedResourceJson = connectedRecord(
+      SecurityConnectionCertainty.Exact,
+      HOST_ID,
+    );
+    const exactB: SecurityConnectedResourceJson = connectedRecord(
+      SecurityConnectionCertainty.Exact,
+      CLUSTER_ID,
+    );
+    const possibleA: SecurityConnectedResourceJson = connectedRecord(
+      SecurityConnectionCertainty.Possible,
+      DEVICE_ID,
+    );
+    const possibleB: SecurityConnectedResourceJson = connectedRecord(
+      SecurityConnectionCertainty.Possible,
+      ITEM_ID,
+    );
+
+    expect(
+      model.getConnectedSignalsGroups({
+        resources: [exactA, possibleA, exactB, possibleB],
+      }),
+    ).toEqual({ exact: [exactA, exactB], possible: [possibleA, possibleB] });
+    expect(model.getConnectedSignalsGroups({ resources: [] })).toEqual({
+      exact: [],
+      possible: [],
+    });
+  });
+});
+
 describe("reading a record's and an incident's Security", () => {
   test("a record's: what it was searched for, its counts, its open cases and its risk", () => {
     const security: ResourceSecurityJson = model.parseResourceSecurity({

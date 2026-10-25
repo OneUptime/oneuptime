@@ -54,6 +54,19 @@ export const CONNECTED_EMPTY_DESCRIPTION: string = translationKey(
   "OneUptime looked for its hosts, addresses and users among your hosts, clusters, devices, services and users, and found none of them.",
 );
 
+/*
+ * No record found, and a kind of record the reader's role cannot see, or one
+ * that could not be read just now, may still hold what it names: nothing is
+ * said to be missing from OneUptime.
+ */
+export const CONNECTED_PARTIAL_EMPTY_TITLE: string = translationKey(
+  "Nothing it names was found.",
+);
+
+export const CONNECTED_PARTIAL_EMPTY_DESCRIPTION: string = translationKey(
+  "Some kinds of record could not be read, so it may still be in OneUptime.",
+);
+
 export const CONNECTED_NOTHING_TO_LOOK_UP_TITLE: string = translationKey(
   "It names no host, address or user to look for.",
 );
@@ -80,6 +93,14 @@ export const CONNECTED_FAILED: string = translationKey(
 export const CONNECTED_TRY_AGAIN: string = translationKey("Try again");
 
 export const CONNECTED_POSSIBLE_PILL: string = translationKey("Possible match");
+
+// The heading over the possible matches, after the exact ones, and what it means.
+export const CONNECTED_POSSIBLE_GROUP_TITLE: string =
+  translationKey("Possible matches");
+
+export const CONNECTED_POSSIBLE_GROUP_DESCRIPTION: string = translationKey(
+  "OneUptime cannot be sure these are the same records, so they are not counted on their pages or linked to incidents.",
+);
 
 export const CONNECTED_POSSIBLE_TOOLTIP: string = translationKey(
   "Probably the same thing, but OneUptime cannot be sure. It is not counted on its page or linked to incidents.",
@@ -255,8 +276,9 @@ export const RESOURCE_SECURITY_RISK: string = translationKey("Risk");
 export const RESOURCE_SECURITY_LAST_SEEN: string =
   translationKey("Last seen {{when}}");
 
-export const RESOURCE_SECURITY_IN_WINDOW: string =
-  translationKey("In the last 7 days");
+// Beside a record's findings, the worst of them: "4 [High]".
+export const RESOURCE_SECURITY_HIGHEST_SEVERITY: string =
+  translationKey("Highest severity");
 
 export const RESOURCE_SECURITY_OPEN_IN_SECURITY: string = translationKey(
   "Open in Security Events",
@@ -301,6 +323,10 @@ export const SECURITY_CONNECTIONS_TEST_IDS: {
   possiblePill: string;
   signalLinks: string;
   facts: string;
+  factLabel: string;
+  factItem: string;
+  possibleGroup: string;
+  partialEmpty: string;
   incidents: string;
   alerts: string;
   monitors: string;
@@ -318,6 +344,7 @@ export const SECURITY_CONNECTIONS_TEST_IDS: {
   resourceSecurityCases: string;
   resourceSecurityCase: string;
   resourceSecurityOpen: string;
+  resourceSecurityOpenLink: string;
   incidentSecurity: string;
   incidentSecurityDeclared: string;
   incidentSecurityNaming: string;
@@ -330,6 +357,10 @@ export const SECURITY_CONNECTIONS_TEST_IDS: {
   possiblePill: "security-connected-possible",
   signalLinks: "security-connected-signal-links",
   facts: "security-connected-facts",
+  factLabel: "security-connected-fact-label",
+  factItem: "security-connected-fact-item",
+  possibleGroup: "security-connected-possible-group",
+  partialEmpty: "security-connected-partial-empty",
   incidents: "security-connected-incidents",
   alerts: "security-connected-alerts",
   monitors: "security-connected-monitors",
@@ -347,6 +378,7 @@ export const SECURITY_CONNECTIONS_TEST_IDS: {
   resourceSecurityCases: "resource-security-cases",
   resourceSecurityCase: "resource-security-case",
   resourceSecurityOpen: "resource-security-open",
+  resourceSecurityOpenLink: "resource-security-open-in-security-events",
   incidentSecurity: "incident-security-card",
   incidentSecurityDeclared: "incident-security-declared",
   incidentSecurityNaming: "incident-security-naming",

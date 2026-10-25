@@ -60,7 +60,7 @@ interface OpenOptions {
   theme?: "dark" | undefined;
   lang?: "de" | "fa";
   role?: "viewer";
-  connections?: "fail" | "partial";
+  connections?: "fail" | "partial" | "busy";
 }
 
 test.use({ deviceScaleFactor: 2, actionTimeout: 15000 });
@@ -187,6 +187,121 @@ async function names(page: Page): Promise<Array<string>> {
 
 function hrefOf(locator: Locator): Promise<string | null> {
   return locator.getAttribute("href");
+}
+
+function factRow(scope: Locator, testId: string): Locator {
+  return scope.getByTestId(testId);
+}
+
+// A fact's items, each as its link reads: its number and its title.
+async function factItems(row: Locator): Promise<Array<string>> {
+  return row
+    .getByTestId("security-connected-fact-item")
+    .locator("bdi")
+    .allInnerTexts()
+    .then((texts: Array<string>): Array<string> => {
+      return texts.map((text: string): string => {
+        return text.trim();
+      });
+    });
+}
+
+interface Box {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
+
+interface FactRowLayout {
+  record: string;
+  fact: string;
+  // The width of the record's text column, the size container the row reads.
+  recordWidth: number;
+  label: Box;
+  // The label's words themselves, where they sit on its line.
+  labelText: Box;
+  items: Array<Box>;
+}
+
+// The width from which a fact's label sits beside its items (32rem).
+const FACTS_BESIDE_FROM: number = 32 * 16;
+
+/*
+ * Every fact row of every record, as the browser lays it out: the width of
+ * the record's text column, its label's box and words, and each of its
+ * items' boxes.
+ */
+async function factRowLayouts(page: Page): Promise<Array<FactRowLayout>> {
+  return connected(page).evaluate((root: Element): Array<FactRowLayout> => {
+    const boxOf: (element: Element | Range) => Box = (
+      element: Element | Range,
+    ): Box => {
+      const box: DOMRect = element.getBoundingClientRect();
+      return {
+        left: box.left,
+        right: box.right,
+        top: box.top,
+        bottom: box.bottom,
+      };
+    };
+    const rows: Array<FactRowLayout> = [];
+
+    root
+      .querySelectorAll("[data-testid='security-connected-record']")
+      .forEach((record: Element): void => {
+        const name: string = (
+          record.querySelector("[data-testid='security-connected-record-name']")
+            ?.textContent || ""
+        ).trim();
+
+        record
+          .querySelectorAll("[data-testid='security-connected-facts'] dl > div")
+          .forEach((row: Element): void => {
+            const label: Element | null = row.querySelector(
+              "[data-testid='security-connected-fact-label']",
+            );
+
+            if (!label) {
+              return;
+            }
+
+            const words: Range = document.createRange();
+            words.selectNodeContents(label);
+            const container: Element | null = row.closest(
+              "[class*='container-type']",
+            );
+
+            rows.push({
+              record: name,
+              fact: row.getAttribute("data-testid") || "",
+              recordWidth: container
+                ? container.getBoundingClientRect().width
+                : 0,
+              label: boxOf(label),
+              labelText: boxOf(words),
+              items: Array.from(row.querySelectorAll("li")).map(boxOf),
+            });
+          });
+      });
+
+    return rows;
+  });
+}
+
+// Each item of a fact on a line of its own: none starts above the one before it ends.
+function itemsOnLinesOfTheirOwn(rows: Array<FactRowLayout>): Array<string> {
+  const problems: Array<string> = [];
+
+  for (const row of rows) {
+    for (let index: number = 1; index < row.items.length; index++) {
+      if (row.items[index]!.top < row.items[index - 1]!.bottom - 1) {
+        problems.push(`${row.record} ${row.fact} item ${index}`);
+      }
+    }
+  }
+
+  return problems;
 }
 
 function sideMenu(page: Page): Locator {
@@ -412,20 +527,36 @@ test.describe("a case's Connected Signals", () => {
       ).pathname,
     ).toBe(`${DASHBOARD}/host/${BUILD_RUNNER_ID}/metrics`);
 
-    await expect(runner.getByTestId("security-connected-alerts")).toHaveText(
-      "1 active alert: ALR-311 Outbound DNS to a threat feed domain (Acknowledged)",
-    );
+    // What is going on there: one fact a row, its label and then its items, each with where it stands.
+    const alerts: Locator = factRow(runner, "security-connected-alerts");
+    await expect(
+      alerts.getByTestId("security-connected-fact-label"),
+    ).toHaveText("1 active alert");
+    expect(await factItems(alerts)).toEqual([
+      "ALR-311 Outbound DNS to a threat feed domain",
+    ]);
+    await expect(
+      alerts.getByTestId("security-connected-fact-item"),
+    ).toContainText("Acknowledged");
     await expect(
       runner.getByTestId("security-connected-incidents"),
     ).toHaveCount(0);
-    await expect(runner.getByTestId("security-connected-monitors")).toHaveText(
-      "Watched by 1 monitor: build-runner-07 heartbeat",
-    );
+    const monitors: Locator = factRow(runner, "security-connected-monitors");
     await expect(
-      runner.getByTestId("security-connected-changes"),
-    ).toContainText(
-      "Changed in this window: Fixed: rotated the runner's registration token",
-    );
+      monitors.getByTestId("security-connected-fact-label"),
+    ).toHaveText("Watched by 1 monitor");
+    expect(await factItems(monitors)).toEqual(["build-runner-07 heartbeat"]);
+    await expect(
+      monitors.getByTestId("security-connected-fact-item"),
+    ).toContainText("Operational");
+    const changes: Locator = factRow(runner, "security-connected-changes");
+    await expect(
+      changes.getByTestId("security-connected-fact-label"),
+    ).toHaveText("Changed in this window");
+    expect(await factItems(changes)).toEqual([
+      "Fixed: rotated the runner's registration token",
+    ]);
+    expect(await changes.locator("time").getAttribute("datetime")).toBeTruthy();
     await expect(
       page.getByTestId("security-connected-not-found"),
     ).toContainText("update-sync.bad-cdn.example");
@@ -460,6 +591,17 @@ test.describe("a case's Connected Signals", () => {
     await expect(
       host.getByTestId("security-connected-nothing-active"),
     ).toHaveText("No active incidents or alerts.");
+    // Under the heading that says what possible means.
+    const group: Locator = page.getByTestId(
+      "security-connected-possible-group",
+    );
+    await expect(group.getByRole("heading", { level: 3 })).toHaveText(
+      "Possible matches",
+    );
+    await expect(group).toContainText(
+      "OneUptime cannot be sure these are the same records, so they are not counted on their pages or linked to incidents.",
+    );
+    await expect(group.getByTestId("security-connected-record")).toHaveCount(1);
     // A process is not something OneUptime keys a record by: not looked up, not "not found".
     await expect(
       page.getByTestId("security-connected-not-found"),
@@ -483,25 +625,52 @@ test.describe("a case's Connected Signals", () => {
     ]);
 
     const web: Locator = record(page, "web-03");
-    await expect(web.getByTestId("security-connected-incidents")).toHaveText(
-      "2 active incidents: INC-1042 Checkout returns 502s (Investigating) +1 more",
-    );
+    const incidents: Locator = factRow(web, "security-connected-incidents");
+    await expect(
+      incidents.getByTestId("security-connected-fact-label"),
+    ).toHaveText("2 active incidents");
+    expect(await factItems(incidents)).toEqual([
+      "INC-1042 Checkout returns 502s",
+    ]);
+    await expect(incidents).toContainText("Investigating");
+    await expect(incidents).toContainText("+1 more");
     expect(
       await hrefOf(
         web.getByRole("link", { name: "INC-1042 Checkout returns 502s" }),
       ),
     ).toBe(`${DASHBOARD}/incidents/2e000000-0000-4000-8000-000000000004`);
-    await expect(web.getByTestId("security-connected-monitors")).toHaveText(
-      "Watched by 3 monitors: web-03 ping · Checkout API +1 more",
-    );
+    const monitors: Locator = factRow(web, "security-connected-monitors");
+    await expect(
+      monitors.getByTestId("security-connected-fact-label"),
+    ).toHaveText("Watched by 3 monitors");
+    expect(await factItems(monitors)).toEqual(["web-03 ping", "Checkout API"]);
+    await expect(monitors).toContainText("+1 more");
     expect(
       await hrefOf(web.getByTestId("security-connected-record-name")),
     ).toBe(`${DASHBOARD}/host/${WEB_03_ID}`);
+    const staging: Locator = record(
+      page,
+      "web-03.staging.acme-commerce.example",
+    );
     await expect(
-      record(page, "web-03.staging.acme-commerce.example").getByTestId(
-        "security-connected-possible",
-      ),
+      staging.getByTestId("security-connected-possible"),
     ).toBeVisible();
+    // The exact host before the group of possible ones; the staging host inside it.
+    const group: Locator = page.getByTestId(
+      "security-connected-possible-group",
+    );
+    await expect(group).toBeVisible();
+    await expect(group.getByTestId("security-connected-record")).toHaveCount(1);
+    await expect(
+      group.getByTestId("security-connected-record-name"),
+    ).toHaveText("web-03.staging.acme-commerce.example");
+    expect(
+      await web.evaluate((element: Element): boolean => {
+        return !element.closest(
+          "[data-testid='security-connected-possible-group']",
+        );
+      }),
+    ).toBe(true);
   });
 
   test("a read that fails says so in the product's words, and Try again reads it", async ({
@@ -535,6 +704,18 @@ test.describe("a case's Connected Signals", () => {
     const failed: Locator = page.getByTestId("security-connected-failed");
     await expect(failed).toContainText(
       "Kubernetes Clusters could not be read just now.",
+    );
+    // Nothing found - never "nothing it names is in OneUptime" - while a kind could not be read.
+    const partly: Locator = page.getByTestId(
+      "security-connected-partial-empty",
+    );
+    await expect(partly).toContainText("Nothing it names was found");
+    await expect(partly).toContainText(
+      "Some kinds of record could not be read, so it may still be in OneUptime.",
+    );
+    await expect(page.getByTestId("security-connected-empty")).toHaveCount(0);
+    await expect(connected(page)).not.toContainText(
+      "Nothing it names is in OneUptime",
     );
     // The emails may be members it cannot see, and the domain a cluster it could not read.
     const notFound: Locator = page.getByTestId("security-connected-not-found");
@@ -603,6 +784,154 @@ test.describe("a case's Connected Signals", () => {
       );
     });
   }
+
+  /*
+   * A busy case: one record of every kind, every fact a record can have,
+   * four possible matches. The facts read as a column - their labels beside
+   * their items from 32rem of a record's own width (a laptop's page, the
+   * event drawer), above them below it (a phone, a tablet beside the case's
+   * menu) - one item a line, never run into the next, and nothing past the
+   * card.
+   */
+  for (const [width, theme, isBeside] of [
+    [1280, undefined, true],
+    [1280, "dark", true],
+    [768, undefined, false],
+    [390, undefined, false],
+    [390, "dark", false],
+  ] as Array<[number, "dark" | undefined, boolean]>) {
+    test(`a busy case at ${width}${theme ? `, ${theme}` : ""}: each fact a column of items, its label ${isBeside ? "beside" : "above"} them`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, DOMAIN_CASE, { width, theme, connections: "busy" });
+      await waitForRecords(page);
+
+      expect(await names(page)).toEqual([
+        "checkout-web-01",
+        "prod-eu-west-1",
+        "checkout-api",
+        "edge-fw-01",
+        "Kai Morgan",
+        "checkout-web-01.staging.acme-commerce.example",
+        "lab-podman-01",
+        "db-replica-2",
+        "cache-docker-1",
+      ]);
+      const group: Locator = page.getByTestId(
+        "security-connected-possible-group",
+      );
+      await expect(group.getByTestId("security-connected-record")).toHaveCount(
+        4,
+      );
+      await expect(
+        group.getByTestId("security-connected-possible"),
+      ).toHaveCount(4);
+
+      const rows: Array<FactRowLayout> = await factRowLayouts(page);
+      expect(rows.length).toBeGreaterThanOrEqual(8);
+      expect(itemsOnLinesOfTheirOwn(rows)).toEqual([]);
+
+      for (const row of rows) {
+        const first: Box = row.items[0]!;
+
+        // The rule, by the record's own width: beside from 32rem, above below it.
+        expect(
+          row.recordWidth >= FACTS_BESIDE_FROM,
+          `${row.record} ${row.fact} at ${Math.round(row.recordWidth)}px`,
+        ).toBe(isBeside);
+
+        if (isBeside) {
+          // Beside: the label ends before its first item starts, on the same line.
+          expect(
+            row.label.right,
+            `${row.record} ${row.fact}`,
+          ).toBeLessThanOrEqual(first.left + 1);
+          expect(
+            Math.abs(row.label.top - first.top),
+            `${row.record} ${row.fact}`,
+          ).toBeLessThanOrEqual(4);
+        } else {
+          // Above: the label's line ends before its first item's starts.
+          expect(
+            row.label.bottom,
+            `${row.record} ${row.fact}`,
+          ).toBeLessThanOrEqual(first.top + 1);
+        }
+      }
+
+      // A change's title beside its time while there is room, under it on a phone.
+      const change: Locator = record(page, "checkout-web-01")
+        .getByTestId("security-connected-changes")
+        .getByTestId("security-connected-fact-item")
+        .last();
+      const time: { top: number; bottom: number } = await change
+        .locator("time")
+        .evaluate((element: Element) => {
+          const box: DOMRect = element.getBoundingClientRect();
+          return { top: box.top, bottom: box.bottom };
+        });
+      const title: { top: number } = await change
+        .locator("bdi")
+        .evaluate((element: Element) => {
+          return { top: element.getBoundingClientRect().top };
+        });
+      if (width === 390) {
+        expect(title.top).toBeGreaterThanOrEqual(time.bottom - 1);
+      } else {
+        expect(Math.abs(title.top - time.top)).toBeLessThanOrEqual(4);
+      }
+
+      await expect(
+        page.getByTestId("security-connected-more-records"),
+      ).toBeVisible();
+      await expect(
+        page.getByTestId("security-connected-not-found"),
+      ).toContainText("kiosk-17");
+      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      expect(await partsOutsideTheCard(page)).toEqual([]);
+      await screenshot(
+        page,
+        `case-connected-signals-busy-${width}${theme ? `-${theme}` : ""}`,
+      );
+    });
+  }
+
+  test("a busy case in Persian on a phone: right to left, each item on a line of its own, nothing past the card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DOMAIN_CASE, {
+      width: 390,
+      lang: "fa",
+      connections: "busy",
+    });
+    await waitForRecords(page);
+
+    await expect(
+      page
+        .getByTestId("security-connected-possible-group")
+        .getByRole("heading", { level: 3 }),
+    ).toHaveText(
+      "\u{062A}\u{0637}\u{0627}\u{0628}\u{0642}\u{200C}\u{0647}\u{0627}\u{06CC} \u{0627}\u{062D}\u{062A}\u{0645}\u{0627}\u{0644}\u{06CC}",
+    );
+    const rows: Array<FactRowLayout> = await factRowLayouts(page);
+    expect(itemsOnLinesOfTheirOwn(rows)).toEqual([]);
+    for (const row of rows) {
+      expect(row.label.bottom).toBeLessThanOrEqual(row.items[0]!.top + 1);
+      // Right to left: a label's words start at the record's right edge, where its items start.
+      expect(
+        Math.abs(row.labelText.right - row.items[0]!.right),
+        `${row.record} ${row.fact}`,
+      ).toBeLessThanOrEqual(2);
+      expect(row.labelText.left).toBeGreaterThan(row.items[0]!.left + 8);
+    }
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    expect(await partsOutsideTheCard(page)).toEqual([]);
+    await screenshot(page, "case-connected-signals-busy-fa-390");
+  });
 
   test("in German: the page's own words, each record's reason a whole German sentence", async ({
     page,
