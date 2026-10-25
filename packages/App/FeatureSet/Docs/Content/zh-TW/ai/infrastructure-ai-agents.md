@@ -1,6 +1,6 @@
 # 基礎設施 AI 代理程式
 
-OneUptime AI 在調查事件或警示時，能看到的不只是您的遙測資料。安裝在您某個資源旁邊的小型代理程式——Docker 或 Podman 主機、Docker Swarm 叢集、Proxmox 叢集、VMware vCenter、Ceph 叢集、資料庫伺服器或 Linux 主機——會執行 OneUptime AI 要求的唯讀指令，例如 `docker logs --tail 200 web`、`pvesh get /cluster/status`、`ceph health detail`、`db long-queries --min-seconds 30` 或 `journalctl -u nginx -n 200 --no-pager`，並把輸出傳回，因此根本原因分析會引用資源本身提供的資訊。如果您允許，同一個代理程式也會套用修正——重新啟動容器、啟動虛擬機器、將 OSD 重新標記為 in——每項修正都由指令原則歸入某個層級，而且除非您另作選擇，都要先由人核准。
+OneUptime AI 在調查事件或警示時，能看到的不只是您的遙測資料。安裝在您某個資源旁邊的小型代理程式——Docker 或 Podman 主機、Docker Swarm 叢集、Proxmox 叢集、VMware vCenter、Ceph 叢集、資料庫伺服器或 Linux 主機——會執行 OneUptime AI 要求的唯讀指令，例如 `docker logs --tail 200 web`、`pvesh get /cluster/status`、`ceph health detail`、`db long-queries --min-seconds 30` 或 `journalctl -u nginx -n 200 --no-pager`，並把輸出傳回，因此根本原因分析會引用資源本身提供的資訊。如果您允許，同一個代理程式也會套用修正——重新啟動容器、啟動虛擬機器、將 OSD 重新標記為 in——每項修正都由指令原則歸入某個層級，而且除非您另作選擇，都要先由人核准。在資源頁面上開啟的詢問 AI，也會在您提出要求時執行同樣的唯讀指令（請參閱[詢問 AI](/docs/ai/ask-ai)）。
 
 這些代理程式就是 **資源 AI 代理程式**。每個資源的儀表板頁面都有一個 **人工智慧** 區段，包含三個頁面：
 

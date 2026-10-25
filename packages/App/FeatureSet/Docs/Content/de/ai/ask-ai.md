@@ -58,6 +58,14 @@ Infrastrukturlisten und Ressourcenseiten bieten Fragen zu der Art Ressource an, 
 
 Auf der Seite eines untergeordneten Objekts hält der Kontext zusätzlich den Pod, Container, die VM, den Prozess oder das andere Objekt fest, das Sie ausgewählt haben. Die Infrastrukturwerkzeuge lesen die Telemetrie der übergeordneten Ressource; ein einzelnes untergeordnetes Objekt können sie nicht allein anhand seines Namens messen. KI fragen sagt das und errät keinen Kubernetes-Namespace, den die Seite nicht angibt. Ein Verbindungsstatus ist nicht der Zustand eines Workloads, und fehlende Telemetrie bedeutet nicht, dass eine Ressource gesund ist.
 
+## Befehle auf Ihrer Infrastruktur
+
+Auf der Seite einer Ressource geöffnet, deren KI-Agent verbunden ist (ein Host, ein Docker- oder Podman-Host, ein Docker-Swarm-Cluster, ein Proxmox-Cluster, ein VMware vCenter, ein Ceph-Cluster, ein Datenbankserver oder ein Kubernetes-Cluster), führt KI fragen über diesen Agenten Befehle darauf aus, wenn Sie darum bitten: „führe `uptime` auf diesem Host aus“ oder „zeige die letzten 100 Zeilen von `journalctl -u nginx`“. Die Antwort zeigt, was zurückkam, belegt wie jeder andere Nachweis. Auf einem Vorfall oder einer Warnung geöffnet, erreicht KI fragen die damit verknüpften Ressourcen.
+
+- Ausgeführt werden nur die nur lesenden Befehle, die eine KI-Untersuchung auf dieser Art Ressource ausführen darf (siehe [KI-Agenten für die Infrastruktur](/docs/ai/infrastructure-ai-agents)), geprüft von OneUptime und erneut vom Agenten, in jedem Berechtigungsmodus. Eine Änderung, etwa der Neustart eines Dienstes, wird aus KI fragen nie ausgeführt: Sie erhalten stattdessen den genauen Befehl. Korrekturen laufen nur, wenn OneUptime AI einen Vorfall oder eine Warnung behebt, nach den eigenen Korrektureinstellungen der Ressource.
+- Erreicht werden nur die Ressourcen, die Sie sehen dürfen, und nur, solange die KI-Untersuchung für die Ressource eingeschaltet ist.
+- Kann KI fragen dort keinen Befehl ausführen (kein Agent ist verbunden, der Agent ist offline oder die KI-Untersuchung ist für die Ressource ausgeschaltet), sagt es das, samt dem, was zu ändern ist, und antwortet stattdessen aus den Daten Ihres Projekts.
+
 ## Aktionen und Berechtigungsmodi
 
 Jede Unterhaltung hat einen Berechtigungsmodus, den Sie im Eingabebereich neben dem Textfeld wählen:
