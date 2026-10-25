@@ -247,6 +247,66 @@ describe("TelemetryAiActivityReader.toEntry", () => {
     expect(running.classification).toBeUndefined();
   });
 
+  /*
+   * Its kind: the Logs page says an investigation's verdict in its kind's
+   * words - found in the code is avoidable work for slow code, the tracing
+   * to add for missing tracing.
+   */
+  test("an entry names its finding's kind, an investigation's and a pull request's alike", () => {
+    const slow: AIInsight = problem(INSIGHT_A, "GET /orders is slow");
+    slow.insightType = AIInsightType.TraceSlowOperation;
+    slow.classification = "code-fault";
+
+    const investigation: TelemetryAiLogEntryJSON =
+      TelemetryAiActivityReader.toEntry({
+        run: run({
+          id: TRIAGE_RUN,
+          runType: AIRunType.Investigation,
+          status: AIRunStatus.Completed,
+          insightId: INSIGHT_A,
+        }),
+        problem: slow,
+      });
+
+    expect(investigation.insight).toEqual({
+      id: INSIGHT_A,
+      title: "GET /orders is slow",
+      serviceName: "checkout",
+      type: AIInsightType.TraceSlowOperation,
+    });
+    expect(investigation.classification).toBe("code-fault");
+
+    const pullRequestEntry: TelemetryAiLogEntryJSON =
+      TelemetryAiActivityReader.toEntry({
+        run: run({
+          id: TASK_RUN,
+          runType: AIRunType.CodeFix,
+          status: AIRunStatus.Completed,
+          insightId: INSIGHT_A,
+        }),
+        problem: slow,
+      });
+
+    expect(pullRequestEntry.insight.type).toBe(
+      AIInsightType.TraceSlowOperation,
+    );
+    // A pull request is no verdict, whatever its finding's.
+    expect(pullRequestEntry.classification).toBeUndefined();
+
+    // A finding read without its kind names none.
+    expect(
+      TelemetryAiActivityReader.toEntry({
+        run: run({
+          id: TRIAGE_RUN,
+          runType: AIRunType.Investigation,
+          status: AIRunStatus.Completed,
+          insightId: INSIGHT_A,
+        }),
+        problem: problem(INSIGHT_A, "x"),
+      }).insight.type,
+    ).toBeUndefined();
+  });
+
   test("a pull request names its task, and its repository and link only with a repository given", () => {
     const task: AIRun = run({
       id: TASK_RUN,
@@ -411,6 +471,28 @@ describe("TelemetryAiActivityReader.readLogs", () => {
     expect(JSON.stringify(query["insightType"])).toContain(
       AIInsightType.ProfileHotspot,
     );
+    // Each problem's kind is read, for the words its verdict is said in.
+    expect(call["select"]).toEqual({
+      _id: true,
+      title: true,
+      serviceName: true,
+      classification: true,
+      insightType: true,
+    });
+  });
+
+  test("each entry names its problem's kind, as read", async () => {
+    problems[0]!.insightType = AIInsightType.ProfileHotspot;
+
+    const logs: TelemetryAiLogsJSON = await read();
+
+    for (const entry of logs.entries) {
+      expect(entry.insight.type).toBe(
+        entry.insight.id === INSIGHT_A
+          ? AIInsightType.ProfileHotspot
+          : undefined,
+      );
+    }
   });
 
   test("reads what was done for exactly those problems, as OneUptime: investigations and first turns of tasks, a page at a time", async () => {

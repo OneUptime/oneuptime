@@ -397,7 +397,13 @@ export function aiLogs(now, skip) {
   const insights = aiInsights(now);
   const insight = (id) => {
     const row = insights.find((candidate) => candidate.id.toString() === id);
-    return { id, title: row.title, serviceName: row.serviceName };
+    // Its kind too, as the server sends it: a verdict is said in its words.
+    return {
+      id,
+      title: row.title,
+      serviceName: row.serviceName,
+      type: row.insightType,
+    };
   };
   const silent = insight(AI_INSIGHT_IDS.silent);
   const error = insight(AI_INSIGHT_IDS.error);

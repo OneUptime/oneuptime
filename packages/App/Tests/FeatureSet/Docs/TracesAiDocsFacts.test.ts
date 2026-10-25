@@ -29,6 +29,7 @@ import {
   TELEMETRY_AI_LANE_COPY,
   TELEMETRY_AI_SWITCHES,
   getTelemetryAiFixOptions,
+  getTelemetryAiVerdictWords,
 } from "../../../FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiCopy";
 import { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
 
@@ -230,6 +231,27 @@ describe("the Traces Explorer page's section on finding and fixing slow and fail
     for (const item of ["Insights", "Logs", "Settings"]) {
       expect(sideMenu).toContain(`title: "${item}"`);
       expect(section).toContain(`**Traces → AI → ${item}**`);
+    }
+  });
+
+  /*
+   * Traces' AI → Logs says, under each finished investigation, what it
+   * found - in each kind's words (TelemetryAiLogsPage, the lane's
+   * investigationVerdicts): a failing operation's fault or expected error,
+   * a slow operation's avoidable work, missing tracing's tracing to add.
+   */
+  it("says AI → Logs tells what each investigation found, as the page does for every kind", () => {
+    expect(section).toContain(
+      "- **Traces → AI → Logs** lists every investigation and pull request, newest first, with how each one stands and what each investigation found.",
+    );
+
+    for (const insightType of TELEMETRY_AI_LANES[TelemetryAiLane.Trace]
+      .insightTypes) {
+      expect(
+        getTelemetryAiVerdictWords(TelemetryAiLane.Trace, insightType)[
+          ErrorClass.CodeFault
+        ],
+      ).toBeTruthy();
     }
   });
 

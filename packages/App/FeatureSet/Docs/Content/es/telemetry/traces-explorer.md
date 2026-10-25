@@ -150,7 +150,7 @@ En **Más campos** una regla elige los repositorios de código, los servidores M
 ### Ver lo que hizo
 
 - **Trazas → IA → Análisis** muestra lo que OneUptime encontró, cada hallazgo con sus pruebas y **Abrir en Trazas**, que abre los spans de los que trata, de la hora en que se encontró, en el **Visor**. En una operación que falla, **Crear monitor** configura un monitor de trazas sobre sus spans fallidos.
-- **Trazas → IA → Registros** muestra cada investigación y cada pull request, lo más reciente primero, con el estado de cada una.
+- **Trazas → IA → Registros** muestra cada investigación y cada pull request, lo más reciente primero, con el estado de cada una y lo que encontró cada investigación.
 - En Código, la tarea indica que OneUptime la inició, con un enlace a su hallazgo, y la pull request explica por qué se abrió.
 
 ## Qué les pasa a los spans al llegar

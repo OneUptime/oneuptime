@@ -28,6 +28,7 @@ import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
 import { TelemetryAiLane } from "../../../Types/AI/TelemetryAi";
+import AIInsightType from "../../../Types/AI/AIInsightType";
 import {
   TELEMETRY_AI_LOGS_PATH,
   TelemetryAiLogKind,
@@ -263,6 +264,88 @@ describe("Logs → AI → Activity", () => {
       ).toBeInTheDocument();
     },
   );
+
+  /*
+   * A failure that writes no log line, and a line that floods the logs, are
+   * not faults: found in the code, they say what the code should change -
+   * "Found a fault in the code" read oddly under "POST /charge in payments
+   * fails without logging" - and an expected error is none of theirs.
+   */
+  test.each([
+    [
+      AIInsightType.LogMissingLogging,
+      ErrorClass.CodeFault,
+      "Found logging the code should add",
+    ],
+    [
+      AIInsightType.LogNoisyPattern,
+      ErrorClass.CodeFault,
+      "Found a log line the code can turn down",
+    ],
+    [
+      AIInsightType.LogMissingLogging,
+      ErrorClass.Infrastructure,
+      "Found a cause outside the code",
+    ],
+    [
+      AIInsightType.LogErrorPattern,
+      ErrorClass.CodeFault,
+      "Found a fault in the code",
+    ],
+  ])(
+    "a done investigation of a %s that found %s says it in that kind's words",
+    async (type: AIInsightType, classification: ErrorClass, words: string) => {
+      serve(
+        ok({
+          entries: [
+            entry({
+              classification,
+              insight: {
+                id: INSIGHT_ID,
+                title: "POST /charge in payments fails without logging",
+                serviceName: "payments",
+                type,
+              },
+            }),
+          ],
+          totalCount: 1,
+        }),
+      );
+      openPage();
+
+      const [investigation] = await shownEntries(1);
+
+      expect(
+        within(investigation!).getByTestId(TELEMETRY_AI_TEST_IDS.logVerdict),
+      ).toHaveTextContent(words);
+    },
+  );
+
+  test("missing logging never says an expected error", async () => {
+    serve(
+      ok({
+        entries: [
+          entry({
+            classification: ErrorClass.UserError,
+            insight: {
+              id: INSIGHT_ID,
+              title: "POST /charge in payments fails without logging",
+              serviceName: "payments",
+              type: AIInsightType.LogMissingLogging,
+            },
+          }),
+        ],
+        totalCount: 1,
+      }),
+    );
+    openPage();
+
+    await shownEntries(1);
+
+    expect(
+      screen.queryByTestId(TELEMETRY_AI_TEST_IDS.logVerdict),
+    ).not.toBeInTheDocument();
+  });
 
   /*
    * An error log the investigation found outside the code gets no pull

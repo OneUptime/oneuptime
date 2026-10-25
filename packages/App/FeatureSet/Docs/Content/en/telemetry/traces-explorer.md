@@ -150,7 +150,7 @@ Under **More fields** a rule picks the code repositories, the MCP servers and th
 ### See what it did
 
 - **Traces → AI → Insights** lists what OneUptime found, each finding with its evidence and **Open in Traces**, which opens the spans it is about, from the hour it was found in, in the **Viewer**. On a failing operation, **Create Monitor** sets up a Traces monitor on its failed spans.
-- **Traces → AI → Logs** lists every investigation and pull request, newest first, with how each one stands.
+- **Traces → AI → Logs** lists every investigation and pull request, newest first, with how each one stands and what each investigation found.
 - In Code, the task says OneUptime started it, with a link to its finding, and the pull request says why it was opened.
 
 ## What happens to spans as they arrive

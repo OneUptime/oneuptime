@@ -1015,13 +1015,13 @@ const AIInsightViewPage: FunctionComponent<
         <p className="border-t border-gray-100 bg-gray-50 px-5 py-3 text-xs text-gray-500 md:px-6">
           {isTerminal
             ? translator.translateTemplate(
-                "This insight is closed as {{status}}. No detector will reopen it — a new occurrence files a new insight — but you can reopen it here, or change the verdict, at any time.",
+                "This insight is closed as {{status}}. OneUptime does not reopen it, and files a new one if this happens again, but you can reopen it here, or change your answer, at any time.",
                 {
                   status: translatableTerm(getStatusLabel(status || undefined)),
                 },
               )
             : translator.translateText(
-                "Confirm or dismiss to record whether this insight was worth surfacing — verdicts measure each detector's precision. Resolve it once it has been handled.",
+                "Confirm it if it was worth raising, or dismiss it if not: your answer tells OneUptime which of its findings help. Resolve it once it has been handled.",
               )}
         </p>
       </section>
@@ -1033,10 +1033,17 @@ const AIInsightViewPage: FunctionComponent<
        */}
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
         <div className="min-w-0 space-y-5 xl:col-span-2">
+          {/*
+           * What the finding rests on, in a reader's words: the numbers
+           * OneUptime counted in the telemetry when it filed it (the
+           * detector's own, deterministic - no AI wrote them). It said
+           * "deterministic evidence ... baselines and multipliers written by
+           * the detector at detect time".
+           */}
           <InsightPanel
             title="Evidence"
             icon={IconProp.ClipboardDocumentCheck}
-            description="The deterministic evidence behind this insight — real counts, baselines and multipliers written by the detector at detect time. Not AI output."
+            description="What OneUptime measured in your telemetry when it found this. Not written by AI."
           >
             {insight.detailMarkdown ? (
               /*
@@ -1065,7 +1072,7 @@ const AIInsightViewPage: FunctionComponent<
             <InsightPanel
               title="AI Triage"
               icon={IconProp.Sparkles}
-              description="A budgeted, read-only AI analysis of this insight — probable root cause, blast radius and suggested action, with citations."
+              description="OneUptime AI looked into this without changing anything: the likely cause, what it affects and what to do first, with the evidence for each."
             >
               <div className="space-y-3">
                 {insight.triageSummaryMarkdown ? (

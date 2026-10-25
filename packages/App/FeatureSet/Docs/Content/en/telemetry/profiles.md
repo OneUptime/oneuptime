@@ -351,7 +351,7 @@ Under **More fields** a rule picks the code repositories, the MCP servers and th
 ### See what it did
 
 - **Products → Performance Profiles → AI → Insights** lists the slow code found, each finding with its evidence and **Open in Profiler**.
-- **Products → Performance Profiles → AI → Logs** lists every investigation and pull request, newest first, with how each one stands.
+- **Products → Performance Profiles → AI → Logs** lists every investigation and pull request, newest first, with how each one stands and what each investigation found.
 - In Code, the task says OneUptime started it, with a link to its finding, and the pull request says why it was opened.
 
 ## Data Retention

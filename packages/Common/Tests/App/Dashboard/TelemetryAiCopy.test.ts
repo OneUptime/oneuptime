@@ -18,6 +18,7 @@ import {
   getTelemetryAiLogVerdict,
   getTelemetryAiLogVerdictRunIds,
   getTelemetryAiRulesTableId,
+  getTelemetryAiVerdictWords,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiCopy";
 import { AI_RULE_FIX_OPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AiRuleCopy";
 import { InvestigationRuleTiming } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/InvestigationRuleTiming";
@@ -28,6 +29,7 @@ import {
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import { AiRuleFix } from "../../../Types/AI/AiRule";
+import AIInsightType from "../../../Types/AI/AIInsightType";
 import {
   TELEMETRY_AI_LANES,
   TELEMETRY_AI_LANE_LIST,
@@ -325,10 +327,12 @@ describe("the logs' words", () => {
     expect(
       Array.from(getTelemetryAiLogVerdictRunIds(TelemetryAiLane.Log, entries)),
     ).toEqual(["r2", "r3"]);
-    // A lane that says no verdict says none, once or at all.
+    // Every lane says its verdicts the same way: once, on the newest.
     expect(
-      getTelemetryAiLogVerdictRunIds(TelemetryAiLane.Profile, entries).size,
-    ).toBe(0);
+      Array.from(
+        getTelemetryAiLogVerdictRunIds(TelemetryAiLane.Profile, entries),
+      ),
+    ).toEqual(["r2", "r3"]);
     expect(getTelemetryAiLogVerdictRunIds(TelemetryAiLane.Log, []).size).toBe(
       0,
     );
@@ -798,17 +802,17 @@ describe("Exceptions' AI section", () => {
     }
   });
 
-  test("a lane opts in to saying verdicts: the Profiler's and Traces' Logs say none", () => {
-    for (const lane of [TelemetryAiLane.Profile, TelemetryAiLane.Trace]) {
-      expect(
-        TELEMETRY_AI_LANE_COPY[lane].investigationVerdicts,
-      ).toBeUndefined();
-      expect(
-        getTelemetryAiLogVerdict(lane, {
-          kind: TelemetryAiLogKind.Investigation,
-          classification: ErrorClass.CodeFault,
-        }),
-      ).toBeNull();
+  test("every lane's Logs say what each investigation found - the Profiler's and Traces' too", () => {
+    for (const lane of TELEMETRY_AI_LANE_LIST) {
+      for (const insightType of TELEMETRY_AI_LANES[lane].insightTypes) {
+        expect(
+          getTelemetryAiLogVerdict(lane, {
+            kind: TelemetryAiLogKind.Investigation,
+            classification: ErrorClass.CodeFault,
+            insight: { type: insightType },
+          }),
+        ).toBeTruthy();
+      }
     }
   });
 

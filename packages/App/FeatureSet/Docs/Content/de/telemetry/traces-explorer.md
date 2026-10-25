@@ -150,7 +150,7 @@ Unter **Weitere Felder** wählt eine Regel die Code-Repositories, die MCP-Server
 ### Sehen, was es getan hat
 
 - **Traces → KI → Einblicke** listet, was OneUptime gefunden hat, jeden Befund mit seinen Belegen und **In Traces öffnen**, das die betroffenen Spans aus der Stunde, in der er gefunden wurde, im **Betrachter** öffnet. Bei einem fehlschlagenden Vorgang richtet **Monitor erstellen** einen Traces-Monitor auf seine fehlgeschlagenen Spans ein.
-- **Traces → KI → Protokolle** listet jede Untersuchung und jeden Pull Request, das Neueste zuerst, jeweils mit ihrem Stand.
+- **Traces → KI → Protokolle** listet jede Untersuchung und jeden Pull Request, das Neueste zuerst, jeweils mit ihrem Stand und dem, was jede Untersuchung gefunden hat.
 - In Code sagt die Aufgabe, dass OneUptime sie gestartet hat, mit einem Link zu ihrem Befund, und der Pull Request sagt, warum er geöffnet wurde.
 
 ## Was mit Spans beim Eintreffen geschieht

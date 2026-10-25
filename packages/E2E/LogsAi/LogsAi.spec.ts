@@ -802,6 +802,170 @@ test.describe("Logs → AI → a finding", () => {
     expect(fixRequests).toEqual([{ insightId: ERROR_INSIGHT }]);
   });
 
+  /*
+   * The finding page's Details rail, shared by every lane and AI Insights:
+   * in a narrow rail a value too long for its label's line goes under it,
+   * whole, instead of being cut beside it - German's "Zuletzt gesehen"
+   * left "4 minutes a..." of its value - and right to left the values sit
+   * at the end, each in its own direction ("5 hours ago" read "hours ago 5"
+   * in Persian). The cards' descriptions say what they hold in plain words.
+   */
+  test("Details: every value whole, under its label when it does not fit beside it, at the end in Persian too", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    const valuesOf: () => Promise<
+      Array<{
+        label: string;
+        text: string;
+        isCut: boolean;
+        isUnderLabel: boolean;
+        valueLeft: number;
+        valueRight: number;
+        rowLeft: number;
+        rowRight: number;
+      }>
+    > = async () => {
+      return page.getByTestId("insight-fact").evaluateAll(
+        (
+          rows: Array<Element>,
+        ): Array<{
+          label: string;
+          text: string;
+          isCut: boolean;
+          isUnderLabel: boolean;
+          valueLeft: number;
+          valueRight: number;
+          rowLeft: number;
+          rowRight: number;
+        }> => {
+          return rows.map((row: Element) => {
+            const label: Element = row.querySelector("dt")!;
+            const value: HTMLElement = row.querySelector("dd")!;
+            const labelBox: DOMRect = label.getBoundingClientRect();
+            const valueBox: DOMRect = value.getBoundingClientRect();
+            const rowBox: DOMRect = row.getBoundingClientRect();
+
+            return {
+              label: (label.textContent || "").trim(),
+              text: (value.textContent || "").trim(),
+              isCut: value.scrollWidth > value.clientWidth + 1,
+              isUnderLabel: valueBox.top >= labelBox.bottom - 1,
+              valueLeft: valueBox.left,
+              valueRight: valueBox.right,
+              rowLeft: rowBox.left,
+              rowRight: rowBox.right,
+            };
+          });
+        },
+      );
+    };
+
+    await page.goto(`${AI}/insights/${ERROR_INSIGHT}?lang=de`);
+    await expect(
+      page.getByText("Zuletzt gesehen", { exact: true }),
+    ).toBeVisible({ timeout: 60000 });
+
+    const german: Awaited<ReturnType<typeof valuesOf>> = await valuesOf();
+
+    expect(
+      german.map((fact: { label: string }): string => {
+        return fact.label;
+      }),
+    ).toEqual(["Dienst", "Erkennungen", "Zuerst gesehen", "Zuletzt gesehen"]);
+
+    for (const fact of german) {
+      // Nothing is cut: "4 minutes ago" is whole, wherever it sits.
+      expect(fact.isCut, `${fact.label}: ${fact.text}`).toBe(false);
+      // At the end of its row, under its label or beside it.
+      expect(Math.abs(fact.rowRight - fact.valueRight)).toBeLessThanOrEqual(1);
+    }
+
+    const lastSeen: { isUnderLabel: boolean } = german.find(
+      (fact: { label: string }): boolean => {
+        return fact.label === "Zuletzt gesehen";
+      },
+    )!;
+
+    // In a laptop's 280px rail the value goes under its long label; a
+    // phone's rail is the page's width, and it sits beside it.
+    expect(lastSeen.isUnderLabel).toBe(!isPhone(testInfo));
+
+    // The cards say what they hold, in plain words.
+    await expect(
+      page.getByText(
+        "What OneUptime measured in your telemetry when it found this. Not written by AI.",
+        { exact: true },
+      ),
+    ).toHaveCount(0);
+    await expect(page.getByText(/Belege/).first()).toBeVisible();
+
+    await page.goto(`${AI}/insights/${ERROR_INSIGHT}?lang=fa`);
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(page.getByTestId("insight-fact").first()).toBeVisible({
+      timeout: 60000,
+    });
+
+    for (const fact of await valuesOf()) {
+      expect(fact.isCut, `${fact.label}: ${fact.text}`).toBe(false);
+      // Right to left, the end of a row is its left.
+      expect(Math.abs(fact.valueLeft - fact.rowLeft)).toBeLessThanOrEqual(1);
+    }
+
+    // English text keeps its own order on a Persian page.
+    await expect(
+      page
+        .getByTestId("insight-fact-value")
+        .locator("bdi")
+        .filter({ hasText: "minutes ago" }),
+    ).toHaveText("4 minutes ago");
+
+    if (isPhone(testInfo)) {
+      await expectNoSidewaysScroll(page);
+    }
+
+    await screenshot(page, testInfo, "insight-details-fa");
+  });
+
+  test("the cards say what they hold in plain words: what was measured, what OneUptime AI found, and what an answer does", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${AI}/insights/${ERROR_INSIGHT}`);
+
+    await expect(
+      page.getByText(
+        "What OneUptime measured in your telemetry when it found this. Not written by AI.",
+        { exact: true },
+      ),
+    ).toBeVisible({ timeout: 60000 });
+    await expect(
+      page.getByText(
+        "Confirm it if it was worth raising, or dismiss it if not: your answer tells OneUptime which of its findings help. Resolve it once it has been handled.",
+        { exact: true },
+      ),
+    ).toBeVisible();
+
+    // Nothing a reader has to decode.
+    const words: string = (
+      await page.locator("main, #root").first().innerText()
+    )
+      .toLowerCase()
+      .replace(/\s+/g, " ");
+
+    for (const jargon of [
+      "deterministic",
+      "baselines and multipliers",
+      "at detect time",
+      "detector's precision",
+      "worth surfacing",
+    ]) {
+      expect(words).not.toContain(jargon);
+    }
+  });
+
   test("the evidence is the detector's own: the message as its pattern, how often, and where it was logged", async ({
     page,
   }: {
@@ -1161,13 +1325,15 @@ test.describe("Logs → AI → Activity", () => {
 
         /*
          * A done investigation says what OneUptime AI found, marked with the
-         * AI tab's sparkles, on one line beside its mark.
+         * AI tab's sparkles, on one line beside its mark - in its kind's
+         * words: a failure that writes no log line found logging to add (it
+         * said "a fault in the code").
          */
         const verdict: Locator = entries
           .nth(1)
           .getByTestId("telemetry-ai-log-verdict");
 
-        await expect(verdict).toHaveText("Found a fault in the code");
+        await expect(verdict).toHaveText("Found logging the code should add");
         await expect(verdict.locator("svg")).toHaveCount(1);
 
         const markBox: { y: number; height: number } | null = await verdict

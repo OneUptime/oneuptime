@@ -150,7 +150,7 @@ Under **Flere felter** vælger en regel de koderepositorier, MCP-servere og den 
 ### Se, hvad den gjorde
 
 - **Spor → AI → Indsigter** viser, hvad OneUptime fandt, hvert fund med sine beviser og **Åbn i Spor**, som åbner de spans, det handler om, fra den time, det blev fundet i, i **Seer**. For en fejlende operation opretter **Opret monitor** en spormonitor på dens fejlede spans.
-- **Spor → AI → Protokoller** viser hver undersøgelse og hver pull request, nyeste først, med status for hver.
+- **Spor → AI → Protokoller** viser hver undersøgelse og hver pull request, nyeste først, med status for hver og det, hver undersøgelse fandt.
 - I Kode siger opgaven, at OneUptime startede den, med et link til dens fund, og pull requesten siger, hvorfor den blev åbnet.
 
 ## Hvad der sker med spans, når de ankommer

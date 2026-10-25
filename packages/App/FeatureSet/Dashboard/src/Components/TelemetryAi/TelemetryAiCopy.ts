@@ -126,11 +126,24 @@ export interface TelemetryAiLaneCopy {
   logsEmptyDescription: string;
   /*
    * What an investigation found, said under its entry in Logs: its verdict
-   * (ErrorClass), in the lane's words. Optional: a lane opts in by adding
-   * its words, and one without them says no verdict there.
+   * (ErrorClass), in the lane's words - only the verdicts its triage can
+   * reach (InsightTriageRunner's framings), so a verdict it has no words
+   * for says nothing. Every lane says them.
    */
-  investigationVerdicts?:
-    | Readonly<Partial<Record<ErrorClass, string>>>
+  investigationVerdicts: Readonly<Partial<Record<ErrorClass, string>>>;
+  /*
+   * The same for a kind of finding whose verdicts mean something else -
+   * found in the code, for slow code, is avoidable work, not a fault; for
+   * missing tracing, tracing to add - in place of the lane's words for an
+   * investigation of that kind. Optional: a kind without its own words
+   * takes the lane's.
+   */
+  investigationVerdictsByInsightType?:
+    | Readonly<
+        Partial<
+          Record<AIInsightType, Readonly<Partial<Record<ErrorClass, string>>>>
+        >
+      >
     | undefined;
   /*
    * What the page says when it cannot be read, with {{error}}; absent, the
@@ -164,6 +177,85 @@ export const TELEMETRY_AI_SWITCHES_CARD_TITLE: string = translationKey(
 // The rules card's title, as on every AI settings page.
 export const TELEMETRY_AI_RULES_CARD_TITLE: string = translationKey("AI rules");
 
+/*
+ * WHAT AN INVESTIGATION FOUND, in a lane's AI → Logs (Activity in Logs):
+ * its verdict, the one line under each finished investigation that says
+ * why a pull request followed or did not. One wording for one meaning,
+ * whichever lane says it: the cause outside the code, and no cause told,
+ * read the same everywhere, and so do a fault and the expected errors -
+ * an exception, an error log, a failing operation. What "found in the
+ * code" means depends on the kind of finding: for slow code it is
+ * avoidable work, for missing tracing the tracing to add, and so on, so
+ * those kinds say it their own way (investigationVerdictsByInsightType).
+ * Each set holds only the verdicts its kind's triage may reach: the
+ * expected errors do not apply to slow code or missing logging.
+ */
+const VERDICT_CODE_FAULT: string = translationKey("Found a fault in the code");
+const VERDICT_USER_ERROR: string = translationKey(
+  "Found an expected error: invalid input",
+);
+const VERDICT_EXPECTED_DENIAL: string = translationKey(
+  "Found an expected error: a check doing its job",
+);
+const VERDICT_OUTSIDE_THE_CODE: string = translationKey(
+  "Found a cause outside the code",
+);
+const VERDICT_UNKNOWN: string = translationKey("Could not tell the cause");
+
+// Found in the code, said for what the kind of finding is.
+const VERDICT_AVOIDABLE_WORK: string = translationKey(
+  "Found avoidable work in the code",
+);
+const VERDICT_TRACING_TO_ADD: string = translationKey(
+  "Found tracing the code should add",
+);
+const VERDICT_STACK_TRACE_LOST: string = translationKey(
+  "Found where the code loses the stack trace",
+);
+const VERDICT_LOGGING_TO_ADD: string = translationKey(
+  "Found logging the code should add",
+);
+const VERDICT_LOG_TO_TURN_DOWN: string = translationKey(
+  "Found a log line the code can turn down",
+);
+const VERDICT_TOO_MANY_VALUES: string = translationKey(
+  "Found where the code records too many values",
+);
+const VERDICT_BUCKETS_TO_CHANGE: string = translationKey(
+  "Found buckets the code should change",
+);
+const VERDICT_METRICS_TO_ADD: string = translationKey(
+  "Found metrics the code should add",
+);
+
+/*
+ * An error's verdicts: a fault of the code, an expected error (invalid
+ * input, or a check doing its job), the environment, or no cause told.
+ */
+const ERROR_VERDICTS: Readonly<Partial<Record<ErrorClass, string>>> = {
+  [ErrorClass.CodeFault]: VERDICT_CODE_FAULT,
+  [ErrorClass.UserError]: VERDICT_USER_ERROR,
+  [ErrorClass.ExpectedDenial]: VERDICT_EXPECTED_DENIAL,
+  [ErrorClass.Infrastructure]: VERDICT_OUTSIDE_THE_CODE,
+  [ErrorClass.Unknown]: VERDICT_UNKNOWN,
+};
+
+/*
+ * A finding the code - or something outside it - should change: no
+ * expected error applies, only where the change belongs.
+ */
+const getChangeVerdicts: (
+  foundInTheCode: string,
+) => Readonly<Partial<Record<ErrorClass, string>>> = (
+  foundInTheCode: string,
+): Readonly<Partial<Record<ErrorClass, string>>> => {
+  return {
+    [ErrorClass.CodeFault]: foundInTheCode,
+    [ErrorClass.Infrastructure]: VERDICT_OUTSIDE_THE_CODE,
+    [ErrorClass.Unknown]: VERDICT_UNKNOWN,
+  };
+};
+
 export const TELEMETRY_AI_LANE_COPY: Readonly<
   Record<TelemetryAiLane, TelemetryAiLaneCopy>
 > = {
@@ -192,6 +284,13 @@ export const TELEMETRY_AI_LANE_COPY: Readonly<
     logsEmptyDescription: translationKey(
       "When OneUptime AI looks into slow code or opens a pull request for it, it shows up here.",
     ),
+    /*
+     * Slow code's verdict: work the code could avoid (its pull request
+     * follows), a cost from outside it - CPU limits, the runtime, a slow
+     * dependency - or no cause told. The triage rules the expected errors
+     * out for performance.
+     */
+    investigationVerdicts: getChangeVerdicts(VERDICT_AVOIDABLE_WORK),
 
     switchesCardDescription: translationKey(
       "It works on slow code in your profiles on its own. Turn it off if you do not want it to.",
@@ -271,6 +370,21 @@ export const TELEMETRY_AI_LANE_COPY: Readonly<
     logsEmptyDescription: translationKey(
       "When OneUptime AI looks into a problem in your traces or opens a pull request for it, it shows up here.",
     ),
+    /*
+     * A failing operation's verdict decides its pull request, as an
+     * exception's does: a fault, an expected error, the environment. A
+     * slow operation's is avoidable work, and missing tracing's the
+     * tracing to add - the expected errors do not apply to either.
+     */
+    investigationVerdicts: ERROR_VERDICTS,
+    investigationVerdictsByInsightType: {
+      [AIInsightType.TraceSlowOperation]: getChangeVerdicts(
+        VERDICT_AVOIDABLE_WORK,
+      ),
+      [AIInsightType.TraceMissingTracing]: getChangeVerdicts(
+        VERDICT_TRACING_TO_ADD,
+      ),
+    },
 
     switchesCardDescription: translationKey(
       "It works on slow and failing operations in your traces on its own. Turn it off if you do not want it to.",
@@ -367,20 +481,14 @@ export const TELEMETRY_AI_LANE_COPY: Readonly<
      * What the investigation found decides a new or rising exception's pull
      * request - a fix for a fault of the code, better handling for an
      * expected error, none on its own for the rest - so each investigation
-     * in Logs says it.
+     * in Logs says it. A service's missing stack traces are lost in the
+     * code or outside it: no expected error applies.
      */
-    investigationVerdicts: {
-      [ErrorClass.CodeFault]: translationKey("Found a fault in the code"),
-      [ErrorClass.UserError]: translationKey(
-        "Found an expected error: invalid input",
+    investigationVerdicts: ERROR_VERDICTS,
+    investigationVerdictsByInsightType: {
+      [AIInsightType.ExceptionMissingStackTrace]: getChangeVerdicts(
+        VERDICT_STACK_TRACE_LOST,
       ),
-      [ErrorClass.ExpectedDenial]: translationKey(
-        "Found an expected error: a check doing its job",
-      ),
-      [ErrorClass.Infrastructure]: translationKey(
-        "Found a cause outside the code",
-      ),
-      [ErrorClass.Unknown]: translationKey("Could not tell the cause"),
     },
 
     switchesCardDescription: translationKey(
@@ -475,20 +583,18 @@ export const TELEMETRY_AI_LANE_COPY: Readonly<
      * opens on its own only for a fault of the code - so each investigation
      * in Activity says it, in the words Exceptions' Logs say it: a refused
      * sign-in logged at Error is a check doing its job, a dependency that is
-     * down a cause outside the code.
+     * down a cause outside the code. Missing logging is logging to add, and
+     * a noisy line one the code can turn down: "a fault in the code" read
+     * oddly under "POST /charge fails without logging".
      */
-    investigationVerdicts: {
-      [ErrorClass.CodeFault]: translationKey("Found a fault in the code"),
-      [ErrorClass.UserError]: translationKey(
-        "Found an expected error: invalid input",
+    investigationVerdicts: ERROR_VERDICTS,
+    investigationVerdictsByInsightType: {
+      [AIInsightType.LogMissingLogging]: getChangeVerdicts(
+        VERDICT_LOGGING_TO_ADD,
       ),
-      [ErrorClass.ExpectedDenial]: translationKey(
-        "Found an expected error: a check doing its job",
+      [AIInsightType.LogNoisyPattern]: getChangeVerdicts(
+        VERDICT_LOG_TO_TURN_DOWN,
       ),
-      [ErrorClass.Infrastructure]: translationKey(
-        "Found a cause outside the code",
-      ),
-      [ErrorClass.Unknown]: translationKey("Could not tell the cause"),
     },
 
     switchesCardDescription: translationKey(
@@ -582,14 +688,19 @@ export const TELEMETRY_AI_LANE_COPY: Readonly<
      * change belongs: the code, or a library, an agent or a collector
      * outside it. A metric problem is never an expected error (the triage
      * framings rule those verdicts out), so only these three are worded -
-     * in the words Exceptions' Logs use for them.
+     * and found in the code, each kind its own way.
      */
-    investigationVerdicts: {
-      [ErrorClass.CodeFault]: translationKey("Found a fault in the code"),
-      [ErrorClass.Infrastructure]: translationKey(
-        "Found a cause outside the code",
+    investigationVerdicts: getChangeVerdicts(VERDICT_CODE_FAULT),
+    investigationVerdictsByInsightType: {
+      [AIInsightType.MetricHighCardinality]: getChangeVerdicts(
+        VERDICT_TOO_MANY_VALUES,
       ),
-      [ErrorClass.Unknown]: translationKey("Could not tell the cause"),
+      [AIInsightType.MetricHistogramBuckets]: getChangeVerdicts(
+        VERDICT_BUCKETS_TO_CHANGE,
+      ),
+      [AIInsightType.MetricMissingMetrics]: getChangeVerdicts(
+        VERDICT_METRICS_TO_ADD,
+      ),
     },
 
     switchesCardDescription: translationKey(
@@ -975,13 +1086,35 @@ export const TELEMETRY_AI_LOG_ASKED_BY: string =
 export const TELEMETRY_AI_LOG_OPEN_TASK: string = translationKey("Open task");
 
 /*
- * What an investigation found, in its lane's words, for its Logs entry:
- * null for a pull request, an investigation with no verdict yet, a lane
- * that says no verdict, and a verdict the lane has no words for.
+ * The verdict words an investigation of this kind of finding says: its
+ * kind's own when it has them, else its lane's.
+ */
+export function getTelemetryAiVerdictWords(
+  lane: TelemetryAiLane,
+  insightType?: string | undefined,
+): Readonly<Partial<Record<ErrorClass, string>>> {
+  const copy: TelemetryAiLaneCopy = TELEMETRY_AI_LANE_COPY[lane];
+  const ofKind: Readonly<Partial<Record<ErrorClass, string>>> | undefined =
+    insightType
+      ? copy.investigationVerdictsByInsightType?.[insightType as AIInsightType]
+      : undefined;
+
+  return ofKind || copy.investigationVerdicts;
+}
+
+/*
+ * What an investigation found, in its lane's words for its kind of
+ * finding, for its Logs entry: null for a pull request, an investigation
+ * with no verdict yet, and a verdict its kind's triage cannot reach (the
+ * words have none for it).
  */
 export function getTelemetryAiLogVerdict(
   lane: TelemetryAiLane,
-  entry: { kind: TelemetryAiLogKind; classification?: string | undefined },
+  entry: {
+    kind: TelemetryAiLogKind;
+    classification?: string | undefined;
+    insight?: { type?: string | undefined } | undefined;
+  },
 ): string | null {
   if (
     entry.kind !== TelemetryAiLogKind.Investigation ||
@@ -991,7 +1124,7 @@ export function getTelemetryAiLogVerdict(
   }
 
   return (
-    TELEMETRY_AI_LANE_COPY[lane].investigationVerdicts?.[
+    getTelemetryAiVerdictWords(lane, entry.insight?.type)[
       entry.classification as ErrorClass
     ] || null
   );
@@ -1014,7 +1147,7 @@ export function getTelemetryAiLogVerdictRunIds(
     kind: TelemetryAiLogKind;
     state: TelemetryAiLogState;
     classification?: string | undefined;
-    insight: { id: string };
+    insight: { id: string; type?: string | undefined };
   }>,
 ): Set<string> {
   const saidFor: Set<string> = new Set<string>();

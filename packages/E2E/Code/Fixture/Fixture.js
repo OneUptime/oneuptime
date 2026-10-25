@@ -148,6 +148,7 @@ import Project from "Common/Models/DatabaseModels/Project";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import Service from "Common/Models/DatabaseModels/Service";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
+import AIInsightType from "Common/Types/AI/AIInsightType";
 import AIRunEventType from "Common/Types/AI/AIRunEventType";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
 import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
@@ -1585,6 +1586,8 @@ if (hasInsightTask && !hasNoTasks) {
       type: CodeTaskOriginType.Insight,
       label: "parseOrder takes 34% of the CPU time in checkout",
       recordId: RECORD_IDS.insight,
+      // Slow code the Profiler's AI section filed: it opens there.
+      insightType: AIInsightType.ProfileHotspot,
     },
   });
 }

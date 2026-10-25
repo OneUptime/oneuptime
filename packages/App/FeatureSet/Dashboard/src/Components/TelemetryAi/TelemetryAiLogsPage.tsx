@@ -69,11 +69,11 @@ import {
  * for, who started it, and the Code task and pull request it led to.
  *
  * A page at a time, with Load more. Only about findings the reader may
- * read; a repository they may not read in Code is not named. A lane that
- * words its investigations' verdicts (investigationVerdicts) says under
- * each investigation what it found - why the finding got a pull request,
- * or did not - marked as OneUptime AI's, and once per finding: on its
- * newest investigation.
+ * read; a repository they may not read in Code is not named. Under each
+ * finished investigation it says what OneUptime AI found, in its lane's
+ * words for its kind of finding (investigationVerdicts) - why the finding
+ * got a pull request, or did not - marked as OneUptime AI's, and once per
+ * finding: on its newest investigation.
  */
 
 export interface ComponentProps {
@@ -131,7 +131,7 @@ export const TelemetryAiLogRow: FunctionComponent<TelemetryAiLogRowProps> = (
   const at: Date = new Date(entry.at);
   const hasDate: boolean = !Number.isNaN(at.getTime());
   const pullRequestUrl: URL | null = getPullRequestUrl(entry.pullRequest?.url);
-  // What an investigation found, when its lane says (Exceptions, Logs).
+  // What an investigation found, in its lane's words for its kind.
   const verdict: string | null =
     props.isVerdictShown === false
       ? null

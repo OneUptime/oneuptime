@@ -150,7 +150,7 @@ Under **Fler fält** väljer en regel de kodrepositorier, MCP-servrar och den LL
 ### Se vad den gjorde
 
 - **Spår → AI → Insikter** visar vad OneUptime hittade, varje fynd med sina bevis och **Öppna i Spår**, som öppnar de spans det gäller, från timmen då det hittades, i **Tittare**. För en felande operation skapar **Skapa monitor** en spårmonitor för dess misslyckade spans.
-- **Spår → AI → Loggar** visar varje utredning och varje pull request, nyast först, med hur var och en står.
+- **Spår → AI → Loggar** visar varje utredning och varje pull request, nyast först, med hur var och en står och vad varje utredning hittade.
 - I Kod säger uppgiften att OneUptime startade den, med en länk till dess fynd, och pull requesten säger varför den öppnades.
 
 ## Vad som händer med spans när de kommer in
