@@ -12,6 +12,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
 import { wasPressConsumedByAnAnchoredPopup } from "../../Types/LayeredDismissal";
 import { usePageScrollLock } from "../../Utils/PageScrollLock";
+import { UNSAVED_CHANGES_SCOPE_ATTRIBUTE } from "../../Utils/NewVersion/UnsavedChanges";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -27,6 +28,13 @@ export enum ModalWidth {
   Medium,
   Large,
 }
+
+/*
+ * What a dialog counts as a form when a field draws late: a <form>, or the
+ * root BasicForm marks as a form scope (it draws no <form> element). Every
+ * create and edit dialog is a BasicForm.
+ */
+export const DIALOG_FORM_SELECTOR: string = `form, [${UNSAVED_CHANGES_SCOPE_ATTRIBUTE}="form"]`;
 
 /*
  * A plain button the footer draws between Cancel and the submit button: a
@@ -396,9 +404,12 @@ const Modal: FunctionComponent<ComponentProps> = (
      * A form that draws after the dialog opens - one that reads its record,
      * or the options of a field, first - had no field yet when the focus was
      * placed, so it went to the footer's button (Add a Role's Add Role) and
-     * stayed there once the fields came. Until a field arrives, the dialog
-     * watches its body; the first control of a form drawn there takes the
-     * focus, as it would have had the form drawn at once. Only while the
+     * stayed there once the fields came. A text field focuses itself as it
+     * draws (FormField's autoFocus), but a form that starts on a pick - a
+     * role picker, a dropdown, a switch, cards to choose from - did not.
+     * Until a field arrives, the dialog watches its body; the first control
+     * of a form drawn there (DIALOG_FORM_SELECTOR) takes the focus, as it
+     * would have had the form drawn at once. Only while the
      * focus is still where the dialog put it: a person who has tabbed,
      * clicked or typed keeps their place. Content that is not a form - the
      * list an Archive dialog fills in, a link in a notice - never takes it.
@@ -439,7 +450,7 @@ const Modal: FunctionComponent<ComponentProps> = (
         // The first control of a form in the body.
         const lateField: HTMLElement | undefined = getFocusableElements().find(
           (element: HTMLElement): boolean => {
-            const form: Element | null = element.closest("form");
+            const form: Element | null = element.closest(DIALOG_FORM_SELECTOR);
 
             return Boolean(form && content.contains(form));
           },

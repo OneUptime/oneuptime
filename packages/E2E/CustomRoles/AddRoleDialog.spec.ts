@@ -277,6 +277,32 @@ test.describe("Add a Role on a team's Permissions page", () => {
     ).toBeVisible();
   });
 
+  /*
+   * The dialog's form draws once its roles are read, after the dialog has
+   * placed its first focus: that focus used to land on Add Role in the
+   * footer - the only control there was - and stay there once the picker
+   * came. It now waits for the form and lands on its first control.
+   */
+  test("the first focus waits for the picker: its first control, not Add Role", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTeamPermissions(page);
+    const form: Locator = await openAddRole(page);
+
+    await expect(reach(form, "WholeProject")).toBeFocused();
+    await expect(
+      form.getByTestId("modal-footer-submit-button"),
+    ).not.toBeFocused();
+
+    // From there the keyboard walks the picker in order.
+    await page.keyboard.press("Tab");
+    await expect(reach(form, "OneArea")).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(form.getByTestId("role-picker-search")).toBeFocused();
+  });
+
   test("One area: an area, then its level, the pick named with its line", async ({
     page,
   }: {

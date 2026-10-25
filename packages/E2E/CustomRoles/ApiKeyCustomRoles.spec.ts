@@ -374,6 +374,12 @@ test.describe("an API key's page", () => {
     await expect(form).toContainText(
       "The key gets everything the role allows, except permissions scoped to “Only resources they own”: a key owns nothing.",
     );
+    // Where roles are made is a link, not a page named in plain text.
+    await expect(
+      form
+        .getByTestId("modal-description")
+        .getByRole("link", { name: "Roles", exact: true }),
+    ).toHaveAttribute("href", ROLES_ROUTE);
     expect((await offeredRoleIds(page)).sort()).toEqual(
       [
         ROLE_IDS["responder"]!,

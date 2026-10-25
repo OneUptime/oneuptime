@@ -1,5 +1,6 @@
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import Modal from "../../../UI/Components/Modal/Modal";
+import { UNSAVED_CHANGES_SCOPE_ATTRIBUTE } from "../../../UI/Utils/NewVersion/UnsavedChanges";
 import "@testing-library/jest-dom";
 import {
   act,
@@ -102,6 +103,47 @@ describe("a form that draws after its dialog opened", () => {
     await drawTheForm();
 
     expect(screen.getByLabelText("Search roles")).toHaveFocus();
+  });
+
+  /*
+   * BasicForm - every create and edit dialog's form - draws no <form>: its
+   * root is a div it marks as a form scope. Add a Role's picker sits in one,
+   * and its first control is a switch, which no autoFocus reaches.
+   */
+  test("BasicForm's root, which is no <form> element, counts as the form: its first control takes the focus", async () => {
+    const LateScope: () => ReactElement = (): ReactElement => {
+      const [isDrawn, setIsDrawn] = useState<boolean>(false);
+
+      useEffect(() => {
+        handle.drawForm = (): void => {
+          setIsDrawn(true);
+        };
+      }, []);
+
+      if (!isDrawn) {
+        return <div role="status">Loading...</div>;
+      }
+
+      return (
+        <div className="row" {...{ [UNSAVED_CHANGES_SCOPE_ATTRIBUTE]: "form" }}>
+          <button type="button" aria-pressed="true">
+            Whole project
+          </button>
+          <button type="button" aria-pressed="false">
+            One area
+          </button>
+        </div>
+      );
+    };
+
+    renderDialog(<LateScope />);
+
+    expect(screen.getByTestId("modal-footer-submit-button")).toHaveFocus();
+
+    await drawTheForm();
+
+    expect(screen.getByRole("button", { name: "Whole project" })).toHaveFocus();
+    expect(document.querySelector("form")).toBeNull();
   });
 
   test("a form's first control may be a choice rather than a text field", async () => {

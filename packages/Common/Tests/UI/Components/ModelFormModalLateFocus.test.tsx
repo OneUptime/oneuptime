@@ -1,5 +1,12 @@
 import "@testing-library/jest-dom";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import * as React from "react";
 import ObjectID from "../../../Types/ObjectID";
@@ -176,6 +183,64 @@ describe("an edit dialog that reads its record first", () => {
       expect(name).toHaveFocus();
     });
     expect(screen.getByTestId("modal-footer-submit-button")).not.toHaveFocus();
+  });
+
+  /*
+   * A text field focuses itself as it draws (FormField's autoFocus); a form
+   * that starts on a switch, a dropdown or a picker has nothing that does,
+   * and BasicForm draws no <form> element. The dialog's own watch is what
+   * moves the focus there.
+   */
+  test("an edit dialog that starts on a switch: the switch takes the focus once the read lands", async () => {
+    const read: Deferred = deferred();
+    getItemMock.mockReturnValue(read.promise);
+
+    await act(async () => {
+      render(
+        <ModelFormModal<Probe>
+          title="Edit Probe"
+          modelType={Probe}
+          modelIdToEdit={PROBE_ID}
+          submitButtonText="Save Changes"
+          onClose={(): void => {}}
+          formProps={{
+            id: "edit-probe-switch-first",
+            modelType: Probe,
+            formType: FormType.Update,
+            fields: [
+              {
+                field: { shouldAutoEnableProbeOnNewMonitors: true },
+                title: "Add to new monitors",
+                fieldType: FormFieldSchemaType.Toggle,
+                required: false,
+              },
+              {
+                field: { name: true },
+                title: "Name",
+                fieldType: FormFieldSchemaType.Text,
+                required: true,
+                placeholder: "Probe name",
+              },
+            ],
+          }}
+        />,
+      );
+    });
+
+    expect(screen.getByTestId("modal-footer-submit-button")).toHaveFocus();
+
+    await act(async () => {
+      read.resolve(loadedProbe());
+    });
+
+    const toggle: HTMLElement = await screen.findByRole("switch");
+
+    await waitFor(() => {
+      expect(toggle).toHaveFocus();
+    });
+    expect(screen.getByTestId("modal-footer-submit-button")).not.toHaveFocus();
+    // BasicForm's root is the form scope the dialog looks for, not a <form>.
+    expect(document.querySelector("form")).toBeNull();
   });
 
   test("a create dialog draws its fields at once and starts on the first, as before", async () => {
