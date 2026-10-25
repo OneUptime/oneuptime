@@ -2114,6 +2114,36 @@ test.describe("working cases from the queue", () => {
     expect(
       await labelLines(menu.getByRole("menuitem", { name: "Change Priority" })),
     ).toEqual(["Change Priority"]);
+
+    /*
+     * In either reading direction the 10px gap sits between an item's icon
+     * and its label - in Persian the icon is on the right, and the gap with
+     * it, not on the menu's edge.
+     */
+    const iconGap: () => Promise<number> = (): Promise<number> => {
+      return menu
+        .getByRole("menuitem", { name: "Assign to Me" })
+        .evaluate((item: Element): number => {
+          const icon: DOMRect = item
+            .querySelector("svg")!
+            .getBoundingClientRect();
+          const label: DOMRect = item
+            .querySelector(".font-medium")!
+            .getBoundingClientRect();
+
+          return document.documentElement.dir === "rtl"
+            ? icon.left - label.right
+            : label.left - icon.right;
+        });
+    };
+    expect(await iconGap()).toBeCloseTo(10, 0);
+    await page.evaluate((): void => {
+      document.documentElement.dir = "rtl";
+    });
+    expect(await iconGap()).toBeCloseTo(10, 0);
+    await page.evaluate((): void => {
+      document.documentElement.dir = "";
+    });
     await page.keyboard.press("Escape");
 
     // Maya's own: she hands it on, but never takes it again.

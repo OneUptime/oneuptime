@@ -140,13 +140,18 @@ that list is not empty.
   and the header's search stays inside the card.
 - **Working cases from the queue**: each row's ⋯ offers the moves its case takes - Assign to
   Me, Assign to Someone Else, Change Status and Change Priority beside View, Delete last; none
-  of the assigning on a closed case, no Assign to Me on the reader's own. Assign to Me takes a
+  of the assigning on a closed case, no Assign to Me on the reader's own. "Assign to Someone
+  Else", longer than the 14rem menu, wraps balanced ("Assign to" over "Someone Else"), and in a
+  right-to-left page each item's icon keeps its gap to the label. Assign to Me takes a
   case off Unassigned and the menu counts it at once; Assign to Someone Else picks one person
   or one team in one picker (a team takes the case into its queue and the person comes off it);
   Change Status into a closing status asks what Close Case asks (OneUptime AI's read over the
-  verdict, the closing note) and the case leaves the open list; Change Priority shows the case's
-  own as Current; Bulk Actions' Assign to Someone Else names the case the server refused
-  (`?refuse=138`) with why; a Security Viewer sees every move locked with what it takes; the
+  verdict, the closing note) and the case leaves the open list - the case's own status, first
+  in the list and marked Current, takes the menu's first focus as a quiet grey row, not the
+  indigo of a pick; Change Priority shows the case's own as Current; Bulk Actions' Assign to
+  Someone Else names the case the server refused (`?refuse=138`) with why; a row's Assign to Me
+  the server refuses says "Could not assign CASE-138" in a dialog whose backdrop covers every
+  row's action cells; a Security Viewer sees every move locked with what it takes; the
   case's own header hands it on and moves its status from any of its pages; the row's ⋯, the
   assign dialog and its picker, and the bulk bar at 1280 and 390, in both themes.
 - **A case**: a side menu of its own (Overview: Overview, Timeline; Investigation: Detections,

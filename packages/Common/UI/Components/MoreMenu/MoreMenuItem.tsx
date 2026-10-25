@@ -113,7 +113,7 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
      */
     <button
       type="button"
-      className={`group mx-1 flex w-[calc(100%-0.5rem)] items-center rounded-md px-3 py-2 text-left text-sm transition-colors duration-100 ${colorClassName} ${stateClassName} ${
+      className={`group mx-1 flex w-[calc(100%-0.5rem)] items-center rounded-md px-3 py-2 text-start text-sm transition-colors duration-100 ${colorClassName} ${stateClassName} ${
         props.className || ""
       }`}
       role={props.isChecked === undefined ? "menuitem" : "menuitemradio"}
@@ -135,7 +135,7 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
       {props.icon && (
         <Icon
           icon={props.icon}
-          className={`mr-2.5 h-4 w-4 shrink-0 transition-colors duration-100 ${
+          className={`me-2.5 h-4 w-4 shrink-0 transition-colors duration-100 ${
             isDestructive
               ? `text-red-500 ${isDisabled ? "" : "group-hover:text-red-600"}`
               : `text-gray-400 ${isDisabled ? "" : "group-hover:text-indigo-500"}`
@@ -144,7 +144,7 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
       )}
       {!props.icon && props.iconElement && (
         <span
-          className={`mr-2.5 flex h-4 w-4 shrink-0 items-center justify-center transition-colors duration-100 ${
+          className={`me-2.5 flex h-4 w-4 shrink-0 items-center justify-center transition-colors duration-100 ${
             isDestructive
               ? `text-red-500 ${isDisabled ? "" : "group-hover:text-red-600"}`
               : `text-gray-400 ${isDisabled ? "" : "group-hover:text-indigo-500"}`
@@ -157,7 +157,7 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
       )}
       {!props.icon && !props.iconElement && dotColor && (
         <span
-          className="mr-2.5 flex h-4 w-4 shrink-0 items-center justify-center"
+          className="me-2.5 flex h-4 w-4 shrink-0 items-center justify-center"
           aria-hidden="true"
           data-testid="more-menu-item-color"
         >
@@ -171,7 +171,7 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
         !props.iconElement &&
         !dotColor &&
         props.isIconSpaceReserved && (
-          <span className="mr-2.5 h-4 w-4 shrink-0" aria-hidden="true"></span>
+          <span className="me-2.5 h-4 w-4 shrink-0" aria-hidden="true"></span>
         )}
       <div className="flex w-full justify-between items-center">
         {/*
