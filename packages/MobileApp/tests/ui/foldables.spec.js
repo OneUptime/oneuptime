@@ -174,6 +174,21 @@ test("unfolded, the inbox sits beside the incident, split on the fold, with the 
     0,
   );
   await capture(page, "inner-incident", testInfo);
+
+  // The list can switch to Alerts while the incident stays open beside it.
+  await listPane.getByTestId("inbox-category-alerts").click();
+  await expect(
+    listPane.getByText("Database CPU usage above 80%", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    detailPane
+      .getByText("Background jobs processing slowly", { exact: true })
+      .first(),
+  ).toBeVisible();
+  await expect(listPane.getByTestId("inbox-category-alerts")).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
 });
 
 test("folding and unfolding keep the open incident, a half-written note and the list's search", async ({

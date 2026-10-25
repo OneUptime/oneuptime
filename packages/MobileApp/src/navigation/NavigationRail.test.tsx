@@ -234,6 +234,16 @@ describe("A wide window puts the destinations on a rail", () => {
     expect(Number(item.minHeight)).toBeGreaterThanOrEqual(48);
   });
 
+  test("the rail stays usable while the keyboard is up; only the bottom bar hides for it", async () => {
+    setWindowSize(TEST_WINDOWS.innerScreen);
+    const navigationRef: NavigationContainerRefWithCurrent<MainTabParamList> =
+      await renderTabs();
+    expect(options(navigationRef).tabBarHideOnKeyboard).toBe(false);
+
+    await resizeWindow(TEST_WINDOWS.coverScreen);
+    expect(options(navigationRef).tabBarHideOnKeyboard).toBe(true);
+  });
+
   test("screens beside the rail have no left inset to keep clear: the rail already covers it", async () => {
     setWindowSize(TEST_WINDOWS.phoneOnItsSide);
     await renderTabs();

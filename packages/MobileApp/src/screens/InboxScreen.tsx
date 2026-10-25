@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   Pressable,
   Text,
@@ -73,7 +73,23 @@ export default function InboxScreen(): React.JSX.Element {
     },
   );
 
+  /*
+   * The category follows a record when one is OPENED, not afterwards. On a
+   * phone the list is hidden behind an open record, so nothing can change
+   * the category meanwhile; beside a detail pane it is on screen, and the
+   * reader must be able to look at Alerts while an incident stays open on
+   * the right. Following the open record on every render undid that tap.
+   */
+  const lastFollowedRoute: React.MutableRefObject<string | null> = useRef<
+    string | null
+  >(null);
+
   useEffect((): void => {
+    if (lastFollowedRoute.current === focusedRoute) {
+      return;
+    }
+    lastFollowedRoute.current = focusedRoute;
+
     const detailView: InboxView | null = focusedRoute.startsWith("Incident")
       ? "incidents"
       : focusedRoute.startsWith("Alert")

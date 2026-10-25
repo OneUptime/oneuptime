@@ -252,6 +252,63 @@ describe("Choosing a category", () => {
     });
   });
 
+  test("beside an open incident, the reader can still switch the list to Alerts", async () => {
+    /*
+     * On a wide window the list stays on screen beside the open record.
+     * Switching category there must stick; the category follows a record
+     * only when one is opened.
+     */
+    mockNavigationState.current = {
+      index: 1,
+      routes: [{ name: "InboxList" }, { name: "IncidentDetail" }],
+    };
+    const view: Awaited<ReturnType<typeof render>> = await render(
+      <InboxScreen />,
+    );
+
+    await fireEvent.press(tab("alerts"));
+    expect(mockSetParams).toHaveBeenLastCalledWith({
+      initialView: "alerts",
+      initialSegment: "alerts",
+      initialFilter: "all",
+    });
+
+    // The params land; the open incident must not pull the list back.
+    mockSetParams.mockClear();
+    mockRoute.params = {
+      initialView: "alerts",
+      initialSegment: "alerts",
+      initialFilter: "all",
+    };
+    await view.rerender(<InboxScreen />);
+
+    expect(mockSetParams).not.toHaveBeenCalled();
+    expect(isSelected(tab("alerts"))).toBe(true);
+  });
+
+  test("opening an alert beside the incidents list brings the list to Alerts", async () => {
+    mockNavigationState.current = {
+      index: 1,
+      routes: [{ name: "InboxList" }, { name: "IncidentDetail" }],
+    };
+    const view: Awaited<ReturnType<typeof render>> = await render(
+      <InboxScreen />,
+    );
+    expect(mockSetParams).not.toHaveBeenCalled();
+
+    mockNavigationState.current = {
+      index: 1,
+      routes: [{ name: "InboxList" }, { name: "AlertDetail" }],
+    };
+    await view.rerender(<InboxScreen />);
+
+    expect(mockSetParams).toHaveBeenCalledWith({
+      initialView: "alerts",
+      initialSegment: "alerts",
+      initialFilter: "all",
+    });
+  });
+
   test("a detail page from the same category leaves the params alone", async () => {
     mockNavigationState.current = {
       index: 1,

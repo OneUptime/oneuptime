@@ -143,7 +143,12 @@ export default function MainTabNavigator(): React.JSX.Element {
           tabBarInactiveTintColor: theme.colors.textSecondary,
           tabBarShowLabel: true,
           tabBarLabelPosition: "below-icon",
-          tabBarHideOnKeyboard: true,
+          /*
+           * The bottom bar would ride up on the keyboard, so it hides. A
+           * rail sits beside the keyboard rather than on it, and hiding it
+           * only made it stop answering taps while somebody typed.
+           */
+          tabBarHideOnKeyboard: !rail,
           tabBarButton: (props: BottomTabBarButtonProps) => {
             return (
               <PlatformPressable
