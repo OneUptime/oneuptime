@@ -387,6 +387,8 @@ describe("POST /slack/command: /oneuptime and the words after it", () => {
     jest
       .spyOn(AIService, "getReachedProjectDailyLimit")
       .mockResolvedValue(null);
+    // No AI credits used up: with billing on, as CI runs Common, the real check reads Postgres.
+    jest.spyOn(AIService, "getAiBalanceBlocker").mockResolvedValue(null);
     jest
       .spyOn(ObservabilityAssistant, "answerQuestion")
       .mockImplementation((async (data: { question: string }) => {
