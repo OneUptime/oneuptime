@@ -68,6 +68,19 @@ export interface PeoplePickerOption {
   isUnknown?: boolean | undefined;
 }
 
+/*
+ * A kind a search list would offer that the reader may not pick: a custom
+ * role that may add people as owners of an incident but not teams. The list
+ * names it under its own heading, with a lock and why, after the kinds that
+ * can be picked - instead of leaving the reader to wonder where the teams
+ * went - and never searches it.
+ */
+export interface PeopleSearchLockedKind {
+  kind: PeoplePickerKind;
+  // Why, already in the reader's language: PermissionGate's reason.
+  reason: string;
+}
+
 // The picks, as ids per kind.
 export type PeoplePickerValue = Partial<
   Record<PeoplePickerKind, Array<string>>

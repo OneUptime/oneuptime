@@ -4,7 +4,13 @@ import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolic
 import IncidentEpisodeFeedElement from "../../../Components/IncidentEpisode/IncidentEpisodeFeed";
 import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
 import PrivateRecordPublicNotes from "Common/Types/StatusPage/PrivateRecordPublicNotes";
-import IncidentEpisodeMemberRoleAssignment from "../../../Components/IncidentEpisode/IncidentEpisodeMemberRoleAssignment";
+import IncidentEpisodeMemberRoleAssignment, {
+  assignIncidentEpisodeRole,
+} from "../../../Components/IncidentEpisode/IncidentEpisodeMemberRoleAssignment";
+import IncidentEpisodeRoleMember from "Common/Models/DatabaseModels/IncidentEpisodeRoleMember";
+import { PeoplePickerOption } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import { OwnersChange } from "../../../Components/Owners/AddOwners";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -56,16 +62,14 @@ import { EventStatusFact } from "../../../Components/EventView/EventStatusPanel"
 import { getEventStartedByText } from "../../../Utils/EventOverview";
 import EventStartTileValue from "../../../Components/EventView/EventStartTileValue";
 import {
-  EVENT_ROLES_CARD_ID,
-  RoleAssignRequestState,
   getCommanderFact,
   getOwnersFact,
-  useRoleAssignRequest,
 } from "../../../Components/EventView/EventPeopleFacts";
 import {
   EventRolesSnapshot,
   PrimaryRoleHolding,
   getPrimaryRoleHolding,
+  withRoleGiven,
 } from "../../../Utils/EventPeople";
 import IncidentEpisodeOwnerTeam from "Common/Models/DatabaseModels/IncidentEpisodeOwnerTeam";
 import IncidentEpisodeOwnerUser from "Common/Models/DatabaseModels/IncidentEpisodeOwnerUser";
@@ -170,8 +174,11 @@ const IncidentEpisodeView: FunctionComponent<
     resourceIdField: "incidentEpisodeId",
     resourceId: modelId,
   });
-  // The header's Assign, which opens the commander's picker in the roles card.
-  const roleAssign: RoleAssignRequestState = useRoleAssignRequest();
+  /*
+   * Bumped when the header's Assign gave the commander, so the roles card
+   * reads the episode's roles again and shows the same.
+   */
+  const [rolesRefreshToken, setRolesRefreshToken] = useState<number>(0);
   /*
    * The episode the page is on now. A callback from a card rendered for the
    * previous episode can still fire after the switch (a state change or a
@@ -428,8 +435,9 @@ const IncidentEpisodeView: FunctionComponent<
 
   /*
    * Who runs the episode, first in its header: the commander (the
-   * project's primary incident role) and the owners, teams first. Assign
-   * and Add owners are offered only while the episode is open.
+   * project's primary incident role) and the owners, teams first, each
+   * filled right there - Assign and Add - while the episode is open, by a
+   * reader who may give a role or add an owner.
    */
   const peopleFacts: Array<EventStatusFact> = [];
   const primaryRole: PrimaryRoleHolding | null = getPrimaryRoleHolding(
@@ -437,13 +445,57 @@ const IncidentEpisodeView: FunctionComponent<
       ? rolesSnapshot.value
       : undefined,
   );
+  const mayAssignRoles: boolean = PermissionGate.check(
+    new IncidentEpisodeRoleMember(),
+    ModelAction.Create,
+  ).isAllowed;
   const commanderFact: EventStatusFact | null = getCommanderFact({
     holding: primaryRole,
     onAssign:
-      timing.isResolved || !primaryRole
+      timing.isResolved || !primaryRole || !mayAssignRoles
         ? undefined
-        : () => {
-            roleAssign.requestAssign(primaryRole.role.id);
+        : async (person: PeoplePickerOption): Promise<void> => {
+            const episodeId: string = modelIdString;
+
+            await assignIncidentEpisodeRole({
+              incidentEpisodeId: new ObjectID(episodeId),
+              userId: new ObjectID(person.id),
+              roleId: new ObjectID(primaryRole.role.id),
+            });
+
+            // Named at once; the roles card's read says the same a moment later.
+            setRolesSnapshot(
+              (
+                current: {
+                  subjectId: string;
+                  value: EventRolesSnapshot;
+                } | null,
+              ): {
+                subjectId: string;
+                value: EventRolesSnapshot;
+              } | null => {
+                if (!current || current.subjectId !== episodeId) {
+                  return current;
+                }
+
+                return {
+                  subjectId: episodeId,
+                  value:
+                    withRoleGiven({
+                      snapshot: current.value,
+                      roleId: primaryRole.role.id,
+                      person: person,
+                    }) || current.value,
+                };
+              },
+            );
+            setRolesRefreshToken((token: number): number => {
+              return token + 1;
+            });
+            // Role changes are recorded on the episode feed.
+            setContentRefreshToken((token: number): number => {
+              return token + 1;
+            });
           },
   });
 
@@ -457,7 +509,21 @@ const IncidentEpisodeView: FunctionComponent<
       RouteMap[PageMap.INCIDENT_EPISODE_VIEW_OWNERS] as Route,
       { modelId: modelId },
     ),
-    canAddOwners: !timing.isResolved && owners.canAddOwners,
+    addOwners:
+      !timing.isResolved && owners.canAddOwners
+        ? {
+            target: owners.target,
+            onOwnersChanged: async (change: OwnersChange): Promise<void> => {
+              // An owner added is recorded on the episode feed.
+              if (change.wasAdded) {
+                setContentRefreshToken((token: number): number => {
+                  return token + 1;
+                });
+              }
+              await owners.refresh();
+            },
+          }
+        : undefined,
   });
 
   if (ownersFact) {
@@ -847,10 +913,12 @@ const IncidentEpisodeView: FunctionComponent<
           <IncidentEpisodeMemberRoleAssignment
             incidentEpisodeId={modelId}
             headerLayout="stacked"
-            id={EVENT_ROLES_CARD_ID}
-            // The header names the commander from what this card reads.
+            /*
+             * The header names the commander from what this card reads; a
+             * commander given in the header makes it read again.
+             */
             onRolesLoaded={onRolesLoaded}
-            assignRequest={roleAssign.request}
+            refreshToken={rolesRefreshToken}
             onMemberChange={async () => {
               // Role changes are recorded on the episode feed.
               setContentRefreshToken((token: number): number => {

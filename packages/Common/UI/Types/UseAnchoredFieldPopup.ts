@@ -341,6 +341,34 @@ export interface AnchoredFieldPopup {
   onTriggerKeyDown: (event: React.KeyboardEvent) => void;
 }
 
+// What a control that opens a popup hands its button.
+export interface AnchoredPopupTriggerProps {
+  "aria-haspopup": "dialog";
+  "aria-expanded": boolean;
+  "aria-controls": string | undefined;
+  onClick: () => void;
+  onKeyDown: (event: React.KeyboardEvent) => void;
+}
+
+/*
+ * The props of a button that opens a popup of this hook: it toggles the
+ * popup, opens it from the keyboard (onTriggerKeyDown), and tells a screen
+ * reader that it opens a dialog, whether it is open, and which.
+ */
+export const getAnchoredPopupTriggerProps: (
+  popup: AnchoredFieldPopup,
+) => AnchoredPopupTriggerProps = (
+  popup: AnchoredFieldPopup,
+): AnchoredPopupTriggerProps => {
+  return {
+    "aria-haspopup": "dialog",
+    "aria-expanded": popup.isPopupOpen,
+    "aria-controls": popup.isPopupOpen ? popup.popupId : undefined,
+    onClick: popup.togglePopup,
+    onKeyDown: popup.onTriggerKeyDown,
+  };
+};
+
 /*
  * The keys that open a popup from its trigger. ArrowDown/ArrowUp match the
  * listbox convention every other menu in this codebase follows; Enter and Space

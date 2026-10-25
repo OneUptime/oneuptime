@@ -10,29 +10,21 @@ import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import {
-  getOwnersPeoplePickerConfig,
-  OWNERS_ADD_BUTTON_TEXT,
-} from "Common/UI/Components/PeoplePicker/OwnersFormField";
+import { OWNERS_ADD_BUTTON_TEXT } from "Common/UI/Components/PeoplePicker/OwnersFormField";
 import PeopleAvatar, {
   PeopleAvatarItem,
 } from "Common/UI/Components/PeoplePicker/PeopleAvatar";
-import PeopleSearchPopup, {
-  PEOPLE_SEARCH_POPUP_MAX_HEIGHT_PX,
-  PEOPLE_SEARCH_POPUP_WIDTH_PX,
-} from "Common/UI/Components/PeoplePicker/PeopleSearchPopup";
 import {
-  getPeoplePickerKinds,
   getPeoplePickerOptionKey,
-  PeoplePickerFieldConfig,
   PeoplePickerKind,
-  PeoplePickerOption,
 } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
-import useAnchoredFieldPopup, {
+import {
   AnchoredFieldPopup,
+  getAnchoredPopupTriggerProps,
 } from "Common/UI/Types/UseAnchoredFieldPopup";
 import API from "Common/UI/Utils/API/API";
+import { PermissionGateResult } from "Common/UI/Utils/PermissionGate";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -47,6 +39,8 @@ import {
   ProjectMembershipAnswer,
   ProjectMembershipStatus,
 } from "../../Utils/ProjectMembershipLoader";
+import { getAddOwnersGate, OwnersTarget } from "./AddOwners";
+import AddOwnersPopup, { useAddOwnersPopup } from "./AddOwnersPopup";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -58,13 +52,12 @@ import React, {
 
 /*
  * A record's Owners page: the people and teams who own it, as avatars, and
- * one "Add owner" list of people and teams to add more from - the same list
- * every form that asks for owners opens (Common's PeoplePicker), so owners
- * are picked the same way everywhere.
+ * one "Add owner" list of people and teams to add more from - the Add owners
+ * list (AddOwnersPopup) that a record's header, a monitor's, an SLO's and a
+ * postmortem open right where they name the owners, so an owner is added
+ * the same way, under the same rules, wherever it is added. A reader who
+ * may add no owner finds Add owner locked, saying why.
  */
-
-const OWNERS_PICKER_CONFIG: PeoplePickerFieldConfig =
-  getOwnersPeoplePickerConfig();
 
 interface OwnerCircle extends PeopleAvatarItem {
   rowId: ObjectID;
@@ -231,11 +224,17 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
    * after the avatars; only one is ever on screen. It follows the "+" as
    * owners are added in front of it.
    */
-  const popup: AnchoredFieldPopup = useAnchoredFieldPopup({
-    popupMaxHeight: PEOPLE_SEARCH_POPUP_MAX_HEIGHT_PX,
-    popupWidth: PEOPLE_SEARCH_POPUP_WIDTH_PX,
-    repositionKey: items.length,
-  });
+  const popup: AnchoredFieldPopup = useAddOwnersPopup(items.length);
+
+  const target: OwnersTarget = {
+    ownerUserModelType: props.ownerUserModelType,
+    ownerTeamModelType: props.ownerTeamModelType,
+    resourceIdField: resourceIdField,
+    resourceId: props.resourceId,
+  };
+
+  // Locked, with why, for a reader who may add neither people nor teams.
+  const addGate: PermissionGateResult = getAddOwnersGate(target);
 
   const loadOwners: () => Promise<void> =
     useCallback(async (): Promise<void> => {
@@ -368,55 +367,6 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
     );
   }, [items]);
 
-  const handleAddOwner: (option: PeoplePickerOption) => Promise<void> =
-    useCallback(
-      async (option: PeoplePickerOption): Promise<void> => {
-        if (!projectIdString) {
-          return;
-        }
-
-        const projectId: ObjectID = new ObjectID(projectIdString);
-
-        if (option.kind === PeoplePickerKind.User) {
-          const m: TOwnerUser = new props.ownerUserModelType();
-          const fields: Record<string, unknown> = m as unknown as Record<
-            string,
-            unknown
-          >;
-          fields[resourceIdField] = props.resourceId;
-          fields["projectId"] = projectId;
-          fields["userId"] = new ObjectID(option.id);
-          await ModelAPI.create<TOwnerUser>({
-            model: m,
-            modelType: props.ownerUserModelType,
-          });
-        } else {
-          const m: TOwnerTeam = new props.ownerTeamModelType();
-          const fields: Record<string, unknown> = m as unknown as Record<
-            string,
-            unknown
-          >;
-          fields[resourceIdField] = props.resourceId;
-          fields["projectId"] = projectId;
-          fields["teamId"] = new ObjectID(option.id);
-          await ModelAPI.create<TOwnerTeam>({
-            model: m,
-            modelType: props.ownerTeamModelType,
-          });
-        }
-
-        await loadOwners();
-      },
-      [
-        projectIdString,
-        props.resourceId,
-        props.ownerUserModelType,
-        props.ownerTeamModelType,
-        resourceIdField,
-        loadOwners,
-      ],
-    );
-
   const handleRemoveConfirm: () => Promise<void> = async (): Promise<void> => {
     if (!confirmRemove) {
       return;
@@ -514,20 +464,23 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
     </span>
   );
 
+  /*
+   * The page re-reads its owners after every pick, so the new avatar is
+   * there by the time its row leaves the list.
+   */
   const searchPopup: ReactElement = (
-    <PeopleSearchPopup
+    <AddOwnersPopup
       popup={popup}
-      kinds={getPeoplePickerKinds(OWNERS_PICKER_CONFIG)}
-      selectedKeys={takenKeys}
-      selectionMode="add"
-      onPick={(option: PeoplePickerOption): Promise<void> => {
-        return handleAddOwner(option);
-      }}
-      searchPlaceholder={OWNERS_PICKER_CONFIG.searchPlaceholder}
-      emptyText={OWNERS_PICKER_CONFIG.emptyText}
+      target={target}
+      ownerKeys={takenKeys}
+      onOwnersChanged={loadOwners}
       ariaLabel={OWNERS_ADD_BUTTON_TEXT}
     />
   );
+
+  const lockReason: string = addGate.isAllowed
+    ? ""
+    : addGate.disabledReason || "";
 
   return (
     <Card title={titleNode} description={descriptionNode}>
@@ -557,22 +510,47 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
                   )}
             </div>
             <div ref={popup.anchorRef} className="mt-4 inline-block">
-              <button
-                type="button"
-                onClick={popup.togglePopup}
-                onKeyDown={popup.onTriggerKeyDown}
-                aria-haspopup="dialog"
-                aria-expanded={popup.isPopupOpen}
-                aria-controls={popup.isPopupOpen ? popup.popupId : undefined}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 shadow-sm transition-colors"
-              >
-                <Icon
-                  icon={IconProp.Add}
-                  className="h-3.5 w-3.5"
-                  size={SizeProp.Small}
-                />
-                <span>{addOwnerText}</span>
-              </button>
+              {lockReason ? (
+                <Tooltip text={lockReason}>
+                  {/*
+                   * Locked: still on screen, saying why. A disabled button
+                   * takes no pointer or focus, so the wrapper carries the
+                   * tooltip and the keyboard's stop.
+                   */}
+                  <span
+                    tabIndex={0}
+                    data-testid="owners-add-locked"
+                    className="inline-flex rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
+                  >
+                    <button
+                      type="button"
+                      disabled={true}
+                      aria-disabled={true}
+                      className="pointer-events-none inline-flex cursor-not-allowed items-center gap-1.5 rounded-md bg-indigo-300 px-3 py-1.5 text-sm font-medium text-white shadow-sm"
+                    >
+                      <Icon
+                        icon={IconProp.Lock}
+                        className="h-3.5 w-3.5"
+                        size={SizeProp.Small}
+                      />
+                      <span>{addOwnerText}</span>
+                    </button>
+                  </span>
+                </Tooltip>
+              ) : (
+                <button
+                  type="button"
+                  {...getAnchoredPopupTriggerProps(popup)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 shadow-sm transition-colors"
+                >
+                  <Icon
+                    icon={IconProp.Add}
+                    className="h-3.5 w-3.5"
+                    size={SizeProp.Small}
+                  />
+                  <span>{addOwnerText}</span>
+                </button>
+              )}
             </div>
           </div>
         ) : (
@@ -592,26 +570,44 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
                 );
               })}
               <div ref={popup.anchorRef} className="relative">
-                <Tooltip text={addOwnerText}>
-                  <button
-                    type="button"
-                    onClick={popup.togglePopup}
-                    onKeyDown={popup.onTriggerKeyDown}
-                    aria-label={addOwnerText}
-                    aria-haspopup="dialog"
-                    aria-expanded={popup.isPopupOpen}
-                    aria-controls={
-                      popup.isPopupOpen ? popup.popupId : undefined
-                    }
-                    className="-ml-2 h-11 w-11 rounded-full border-2 border-dashed border-gray-300 bg-white text-gray-400 flex items-center justify-center hover:border-indigo-500 hover:text-white hover:bg-indigo-600 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 transition-all duration-200 hover:scale-105 hover:-translate-y-0.5 relative z-10"
-                  >
-                    <Icon
-                      icon={IconProp.Add}
-                      className="h-5 w-5"
-                      size={SizeProp.Five}
-                    />
-                  </button>
-                </Tooltip>
+                {lockReason ? (
+                  <Tooltip text={lockReason}>
+                    <span
+                      tabIndex={0}
+                      data-testid="owners-add-locked"
+                      className="-ml-2 relative z-10 inline-flex rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-1"
+                    >
+                      <button
+                        type="button"
+                        disabled={true}
+                        aria-disabled={true}
+                        aria-label={addOwnerText}
+                        className="pointer-events-none h-11 w-11 cursor-not-allowed rounded-full border-2 border-dashed border-gray-200 bg-gray-50 text-gray-300 flex items-center justify-center"
+                      >
+                        <Icon
+                          icon={IconProp.Lock}
+                          className="h-4 w-4"
+                          size={SizeProp.Small}
+                        />
+                      </button>
+                    </span>
+                  </Tooltip>
+                ) : (
+                  <Tooltip text={addOwnerText}>
+                    <button
+                      type="button"
+                      {...getAnchoredPopupTriggerProps(popup)}
+                      aria-label={addOwnerText}
+                      className="-ml-2 h-11 w-11 rounded-full border-2 border-dashed border-gray-300 bg-white text-gray-400 flex items-center justify-center hover:border-indigo-500 hover:text-white hover:bg-indigo-600 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 transition-all duration-200 hover:scale-105 hover:-translate-y-0.5 relative z-10"
+                    >
+                      <Icon
+                        icon={IconProp.Add}
+                        className="h-5 w-5"
+                        size={SizeProp.Five}
+                      />
+                    </button>
+                  </Tooltip>
+                )}
               </div>
             </div>
           </div>

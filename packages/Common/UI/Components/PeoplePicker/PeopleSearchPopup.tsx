@@ -20,6 +20,7 @@ import {
   getPeoplePickerOptionKey,
   PeoplePickerKind,
   PeoplePickerOption,
+  PeopleSearchLockedKind,
 } from "./PeoplePickerTypes";
 import React, {
   FunctionComponent,
@@ -47,6 +48,11 @@ import { createPortal } from "react-dom";
  *
  * Keyboard: typing searches, Up and Down move through the list, Enter picks,
  * Escape closes and hands focus back to the button that opened it.
+ *
+ * A kind the reader may not pick (lockedKinds) is named after the ones they
+ * may, under its own heading with a lock and the reason, and never searched:
+ * a custom role that may add people as owners but not teams sees why the
+ * teams are not there.
  */
 
 export const PEOPLE_SEARCH_DEBOUNCE_MS: number = 250;
@@ -93,6 +99,12 @@ export interface ComponentProps {
    */
   excludedKeys?: Set<string> | undefined;
   selectionMode: PeopleSearchSelectionMode;
+  /*
+   * Kinds the list would offer that the reader may not pick, each with why:
+   * drawn after the kinds above, never searched. Leave a kind out of
+   * `kinds` to lock it here.
+   */
+  lockedKinds?: Array<PeopleSearchLockedKind> | undefined;
   /*
    * A row was picked. isPicked says whether it was picked already (in toggle
    * mode, picking it again takes it away). A promise shows the row as busy
@@ -146,6 +158,13 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
 
   // How many records the list leaves out, whatever is searched.
   const excludedCount: number = props.excludedKeys?.size || 0;
+
+  // What the reader may not pick: never searched, named under the list.
+  const lockedKinds: Array<PeopleSearchLockedKind> = (
+    props.lockedKinds || []
+  ).filter((locked: PeopleSearchLockedKind): boolean => {
+    return !props.kinds.includes(locked.kind);
+  });
 
   // A fresh list each time it opens.
   useEffect(() => {
@@ -488,13 +507,20 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
           </div>
         )}
 
-        {!isLoading && !loadError && visibleRows.length === 0 && (
-          <div className="px-3 py-6 text-center text-sm text-gray-500">
-            {trimmedSearch
-              ? translateString("No matches found.")
-              : translateString(emptyText) || emptyText}
-          </div>
-        )}
+        {/*
+         * Nothing to pick says so - unless every kind is locked, which the
+         * locked kinds under the list say better.
+         */}
+        {!isLoading &&
+          !loadError &&
+          visibleRows.length === 0 &&
+          props.kinds.length > 0 && (
+            <div className="px-3 py-6 text-center text-sm text-gray-500">
+              {trimmedSearch
+                ? translateString("No matches found.")
+                : translateString(emptyText) || emptyText}
+            </div>
+          )}
 
         {groups.map((group: RowGroup): ReactElement => {
           const headingId: string = `${baseId}-group-${group.kind}`;
@@ -608,6 +634,55 @@ const PeopleSearchPopup: FunctionComponent<ComponentProps> = (
           );
         })}
       </div>
+
+      {/*
+       * The kinds the reader may not pick, each under its heading with a
+       * lock and why. It scrolls on its own past a few lines, so a long
+       * list of permissions never squeezes out the people.
+       */}
+      {lockedKinds.length > 0 && (
+        <div
+          data-testid="people-search-locked-kinds"
+          className="max-h-32 flex-shrink-0 divide-y divide-gray-100 overflow-y-auto border-t border-gray-100"
+        >
+          {lockedKinds.map((locked: PeopleSearchLockedKind): ReactElement => {
+            const definition: PeoplePickerKindDefinition =
+              getPeoplePickerKindDefinition(locked.kind);
+            const headingId: string = `${baseId}-locked-${locked.kind}`;
+
+            return (
+              <div
+                key={locked.kind}
+                role="group"
+                aria-labelledby={headingId}
+                data-testid="people-search-locked-kind"
+                data-kind={locked.kind}
+                className="px-4 py-2"
+              >
+                <div
+                  id={headingId}
+                  className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400"
+                >
+                  <Icon
+                    icon={IconProp.Lock}
+                    className="h-3 w-3 flex-shrink-0"
+                  />
+                  <span>
+                    {translateString(definition.groupTitle) ||
+                      definition.groupTitle}
+                  </span>
+                </div>
+                <p
+                  data-testid="people-search-locked-reason"
+                  className="mt-1 text-xs leading-5 text-gray-500"
+                >
+                  {locked.reason}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/*
        * What the last pick came to. It scrolls on its own past a few

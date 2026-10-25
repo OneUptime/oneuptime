@@ -3,6 +3,23 @@ import LiveDuration from "../../EventView/LiveDuration";
 import RelativeTime from "../../EpisodeView/RelativeTime";
 import { ResourceOwnerEntry } from "../../ResourceOwners/OwnerEntry";
 import OwnersCell from "../../ResourceOwners/OwnersCell";
+import {
+  ADD_OWNERS_TEXT,
+  canAddOwners,
+  getOwnerKeys,
+  OwnersChange,
+  OwnersTarget,
+} from "../../Owners/AddOwners";
+import AddOwnersPopup, {
+  AddOwnersPlaceButton,
+  useAddOwnersPopup,
+} from "../../Owners/AddOwnersPopup";
+import MonitorOwnerTeam from "Common/Models/DatabaseModels/MonitorOwnerTeam";
+import MonitorOwnerUser from "Common/Models/DatabaseModels/MonitorOwnerUser";
+import {
+  AnchoredFieldPopup,
+  getAnchoredPopupTriggerProps,
+} from "Common/UI/Types/UseAnchoredFieldPopup";
 import SloOverviewActionLink from "../../Slo/SloOverviewActionLink";
 import MonitorOverviewActions, { LoadedAtTime } from "./MonitorOverviewActions";
 import { getMonitorOverviewRoute } from "./MonitorOverviewLinks";
@@ -69,6 +86,11 @@ export interface ComponentProps {
   currentStatusId?: string | undefined;
   // Told after that menu recorded a new status, so the page reads it again.
   onStatusChanged?: (() => void) | undefined;
+  /*
+   * Told after the owners' Add owners list added an owner (or the server
+   * refused one), so the page reads the owners - and its feed - again.
+   */
+  onOwnersChanged?: ((change: OwnersChange) => void) | undefined;
 }
 
 /*
@@ -129,6 +151,29 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
     monitorId: props.monitorId,
     onTurnedOn: props.onMonitoringTurnedOn,
   });
+
+  /*
+   * The owners are added right here: "Add owners" on a monitor nobody owns,
+   * the empty place after the avatars on one that has owners, each opening
+   * the Add owners list under it - offered to a reader who may add one.
+   */
+  const monitorIdString: string = props.monitorId.toString();
+  const ownersTarget: OwnersTarget = useMemo((): OwnersTarget => {
+    return {
+      ownerUserModelType: MonitorOwnerUser,
+      ownerTeamModelType: MonitorOwnerTeam,
+      resourceIdField: "monitorId",
+      resourceId: props.monitorId,
+    };
+  }, [monitorIdString]);
+  const knownOwners: Array<ResourceOwnerEntry> | null = props.owners.value;
+  const ownersPopup: AnchoredFieldPopup = useAddOwnersPopup(
+    knownOwners?.length || 0,
+  );
+  const ownerKeys: Set<string> = useMemo((): Set<string> => {
+    return getOwnerKeys(knownOwners || undefined);
+  }, [knownOwners]);
+  const mayAddOwners: boolean = canAddOwners(ownersTarget);
 
   const typeProps: MonitorTypeProps | undefined = useMemo(() => {
     return MonitorTypeHelper.getAllMonitorTypeProps().find(
@@ -395,20 +440,25 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
 
     if (owners.length === 0) {
       return (
-        <span className="flex flex-wrap items-baseline gap-x-2 text-sm">
+        <div className="flex flex-wrap items-baseline gap-x-2 text-sm">
           <span className="text-gray-500">
             {translator.translateText("No owners")}
           </span>
-          <Link
-            to={getMonitorOverviewRoute({
-              key: "owners",
-              monitorId: props.monitorId,
-            })}
-            className="font-medium text-indigo-600 hover:underline"
-          >
-            {translator.translateText("Add owners")}
-          </Link>
-        </span>
+          {mayAddOwners ? (
+            <div ref={ownersPopup.anchorRef} className="inline-flex">
+              <button
+                type="button"
+                data-testid="monitor-overview-add-owners"
+                {...getAnchoredPopupTriggerProps(ownersPopup)}
+                className="rounded-sm font-medium text-indigo-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1"
+              >
+                {translator.translateText(ADD_OWNERS_TEXT)}
+              </button>
+            </div>
+          ) : (
+            <></>
+          )}
+        </div>
       );
     }
 
@@ -432,7 +482,23 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
       );
     }
 
-    return <OwnersCell owners={owners} maxVisible={3} />;
+    /*
+     * The next owner's place after the avatars. Not after a list that may
+     * be incomplete (above): it would offer whoever the unread half names.
+     */
+    return (
+      <div className="flex items-center gap-1.5">
+        <OwnersCell owners={owners} maxVisible={3} />
+        {mayAddOwners ? (
+          <AddOwnersPlaceButton
+            popup={ownersPopup}
+            dataTestId="monitor-overview-add-more-owners"
+          />
+        ) : (
+          <></>
+        )}
+      </div>
+    );
   };
 
   type GetFactValueFunction = (fact: MonitorOverviewFact) => ReactElement;
@@ -475,7 +541,19 @@ const MonitorOverviewHero: FunctionComponent<ComponentProps> = (
           data-testid="monitor-overview-fact-owners"
         >
           <dt className="text-xs font-medium text-gray-500">{fact.label}</dt>
-          <dd className="mt-1">{getOwners()}</dd>
+          <dd className="mt-1">
+            {getOwners()}
+            {mayAddOwners && knownOwners ? (
+              <AddOwnersPopup
+                popup={ownersPopup}
+                target={ownersTarget}
+                ownerKeys={ownerKeys}
+                onOwnersChanged={props.onOwnersChanged}
+              />
+            ) : (
+              <></>
+            )}
+          </dd>
         </div>
       );
     }

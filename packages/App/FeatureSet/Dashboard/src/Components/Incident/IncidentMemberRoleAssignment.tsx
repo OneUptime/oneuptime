@@ -9,7 +9,6 @@ import React, {
 } from "react";
 import MemberRoleAssignment, {
   MemberRole,
-  MemberRoleAssignRequest,
   AssignedMember,
   AvailableUser,
 } from "Common/UI/Components/MemberRoleAssignment/MemberRoleAssignment";
@@ -45,16 +44,44 @@ export interface ComponentProps {
     | ((recordId: string, snapshot: EventRolesSnapshot) => void)
     | undefined;
   /*
-   * The id of the card's wrapper, which takes focus: the overview's header
-   * scrolls to it when the commander is not assigned yet (Assign).
+   * Changes when a role was given outside the card - the overview's header,
+   * whose Assign gives the commander right where it names them - so the
+   * card reads its roles again and shows the same.
    */
-  id?: string | undefined;
-  /*
-   * The header's Assign: opens that role's picker in this card, with the
-   * cursor in it, so the commander is chosen in one step.
-   */
-  assignRequest?: MemberRoleAssignRequest | undefined;
+  refreshToken?: number | undefined;
 }
+
+/*
+ * Gives a role on the incident to one of the project's people: the card's
+ * own Assign, and the overview header's, which gives the commander right
+ * where it names them. Rejects with the server's reason.
+ */
+export const assignIncidentRole: (data: {
+  incidentId: ObjectID;
+  userId: ObjectID;
+  roleId: ObjectID;
+}) => Promise<void> = async (data: {
+  incidentId: ObjectID;
+  userId: ObjectID;
+  roleId: ObjectID;
+}): Promise<void> => {
+  const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+  if (!projectId) {
+    throw new Error("Project ID not found");
+  }
+
+  const member: IncidentMember = new IncidentMember();
+  member.incidentId = data.incidentId;
+  member.projectId = projectId;
+  member.userId = data.userId;
+  member.incidentRoleId = data.roleId;
+
+  await ModelAPI.create({
+    model: member,
+    modelType: IncidentMember,
+  });
+};
 
 const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -234,7 +261,11 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
       } finally {
         setIsLoading(false);
       }
-    }, [props.incidentId.toString(), projectId?.toString()]);
+    }, [
+      props.incidentId.toString(),
+      projectId?.toString(),
+      props.refreshToken,
+    ]);
 
   useEffect(() => {
     fetchData();
@@ -247,19 +278,10 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
     userId: ObjectID,
     roleId: ObjectID,
   ): Promise<void> => {
-    if (!projectId) {
-      throw new Error("Project ID not found");
-    }
-
-    const member: IncidentMember = new IncidentMember();
-    member.incidentId = props.incidentId;
-    member.projectId = projectId;
-    member.userId = userId;
-    member.incidentRoleId = roleId;
-
-    await ModelAPI.create({
-      model: member,
-      modelType: IncidentMember,
+    await assignIncidentRole({
+      incidentId: props.incidentId,
+      userId: userId,
+      roleId: roleId,
     });
 
     await fetchData();
@@ -303,23 +325,10 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
       emptyStateMessage="Configure incident roles in Incidents → Settings → Incident Roles to start assigning team members."
       className={props.className || ""}
       headerLayout={props.headerLayout}
-      assignRequest={props.assignRequest}
     />
   );
 
-  if (!props.id) {
-    return card;
-  }
-
-  return (
-    <div
-      id={props.id}
-      tabIndex={-1}
-      className="scroll-mt-32 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-4"
-    >
-      {card}
-    </div>
-  );
+  return card;
 };
 
 export default IncidentMemberRoleAssignment;

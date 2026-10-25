@@ -75,7 +75,12 @@ import useAiCardFold, {
 } from "../../../Components/AI/useAiCardFold";
 import IncidentAffectedResources from "./AffectedResources";
 import MonitorSummarySnapshotCard from "../../../Components/Monitor/MonitorSummarySnapshotCard";
-import IncidentMemberRoleAssignment from "../../../Components/Incident/IncidentMemberRoleAssignment";
+import IncidentMemberRoleAssignment, {
+  assignIncidentRole,
+} from "../../../Components/Incident/IncidentMemberRoleAssignment";
+import IncidentMember from "Common/Models/DatabaseModels/IncidentMember";
+import { OwnersChange } from "../../../Components/Owners/AddOwners";
+import { PeoplePickerOption } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
 import EventStatBar from "../../../Components/EventView/EventStatBar";
 import EventOverviewSkeleton from "../../../Components/EventView/EventOverviewSkeleton";
@@ -138,11 +143,8 @@ import EventFactLinks, {
 } from "../../../Components/EventView/EventFactLinks";
 import EventWhatHappenedCard from "../../../Components/EventView/EventWhatHappenedCard";
 import {
-  EVENT_ROLES_CARD_ID,
-  RoleAssignRequestState,
   getCommanderFact,
   getOwnersFact,
-  useRoleAssignRequest,
 } from "../../../Components/EventView/EventPeopleFacts";
 import useEventOwners, {
   EventOwnersState,
@@ -151,6 +153,7 @@ import {
   EventRolesSnapshot,
   PrimaryRoleHolding,
   getPrimaryRoleHolding,
+  withRoleGiven,
 } from "../../../Utils/EventPeople";
 import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
@@ -370,8 +373,11 @@ const IncidentView: FunctionComponent<
     resourceIdField: "incidentId",
     resourceId: modelId,
   });
-  // The header's Assign, which opens the commander's picker in the roles card.
-  const roleAssign: RoleAssignRequestState = useRoleAssignRequest();
+  /*
+   * Bumped when the header's Assign gave the commander, so the roles card
+   * reads the incident's roles again and shows the same.
+   */
+  const [rolesRefreshToken, setRolesRefreshToken] = useState<number>(0);
   const [affectedMonitorsState, setAffectedMonitorsState] =
     useState<SubjectValue<Array<Monitor>> | null>(null);
   const affectedMonitors: Array<Monitor> | undefined =
@@ -993,23 +999,60 @@ const IncidentView: FunctionComponent<
 
   /*
    * Who runs the response, beside its state and severity: the commander
-   * (the project's primary incident role) and the owners, teams first. Assign
-   * and Add owners are offered only while the incident is open (Add owners
-   * to a reader who may add one); a resolved one says who held them, or
-   * that nobody did.
+   * (the project's primary incident role) and the owners, teams first. Both
+   * are filled right there in the header - Assign gives the role to a
+   * person picked under it, Add opens the Add owners list - and offered only
+   * while the incident is open, to a reader who may give a role or add an
+   * owner; a resolved one says who held them, or that nobody did.
    */
   const isResolved: boolean = Boolean(durationEndDate);
   const headerFacts: Array<EventStatusFact> = [];
 
   const primaryRole: PrimaryRoleHolding | null =
     getPrimaryRoleHolding(currentRolesSnapshot);
+  const mayAssignRoles: boolean = PermissionGate.check(
+    new IncidentMember(),
+    ModelAction.Create,
+  ).isAllowed;
   const commanderFact: EventStatusFact | null = getCommanderFact({
     holding: primaryRole,
     onAssign:
-      isResolved || !primaryRole
+      isResolved || !primaryRole || !mayAssignRoles
         ? undefined
-        : () => {
-            roleAssign.requestAssign(primaryRole.role.id);
+        : async (person: PeoplePickerOption): Promise<void> => {
+            const incidentId: string = modelIdString;
+
+            await assignIncidentRole({
+              incidentId: new ObjectID(incidentId),
+              userId: new ObjectID(person.id),
+              roleId: new ObjectID(primaryRole.role.id),
+            });
+
+            // Named at once; the roles card's read says the same a moment later.
+            setRolesSnapshot(
+              (
+                current: SubjectValue<EventRolesSnapshot> | null,
+              ): SubjectValue<EventRolesSnapshot> | null => {
+                if (!current || current.subjectId !== incidentId) {
+                  return current;
+                }
+
+                return {
+                  subjectId: incidentId,
+                  value:
+                    withRoleGiven({
+                      snapshot: current.value,
+                      roleId: primaryRole.role.id,
+                      person: person,
+                    }) || current.value,
+                };
+              },
+            );
+            setRolesRefreshToken((token: number): number => {
+              return token + 1;
+            });
+            // A role given is a new feed entry.
+            refreshFeed();
           },
   });
 
@@ -1023,7 +1066,19 @@ const IncidentView: FunctionComponent<
       RouteMap[PageMap.INCIDENT_VIEW_OWNERS] as Route,
       { modelId: modelId },
     ),
-    canAddOwners: !isResolved && owners.canAddOwners,
+    addOwners:
+      !isResolved && owners.canAddOwners
+        ? {
+            target: owners.target,
+            onOwnersChanged: async (change: OwnersChange): Promise<void> => {
+              // An owner added is a new feed entry too.
+              if (change.wasAdded) {
+                refreshFeed();
+              }
+              await owners.refresh();
+            },
+          }
+        : undefined,
   });
 
   if (ownersFact) {
@@ -1878,13 +1933,13 @@ const IncidentView: FunctionComponent<
           <IncidentMemberRoleAssignment
             incidentId={modelId}
             headerLayout="stacked"
-            id={EVENT_ROLES_CARD_ID}
             /*
              * The header names the commander from what this card reads, and
-             * follows a change made here at once: no read of its own.
+             * follows a change made here at once: no read of its own. A
+             * commander given in the header makes it read again.
              */
             onRolesLoaded={onRolesLoaded}
-            assignRequest={roleAssign.request}
+            refreshToken={rolesRefreshToken}
             onMemberChange={async () => {
               // A member change is also a new feed entry.
               refreshFeed();
