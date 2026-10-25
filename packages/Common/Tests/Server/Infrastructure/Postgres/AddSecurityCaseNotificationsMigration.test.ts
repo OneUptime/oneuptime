@@ -1,8 +1,8 @@
 import { AddSecurityCaseNotifications1805700000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805700000000-AddSecurityCaseNotifications";
+import { AddSecurityCasePrioritiesAndStatuses1807200000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1807200000000-AddSecurityCasePrioritiesAndStatuses";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import SecurityCase from "../../../../Models/DatabaseModels/SecurityCase";
 import UserNotificationSetting from "../../../../Models/DatabaseModels/UserNotificationSetting";
-import ColumnType from "../../../../Types/Database/ColumnType";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -19,12 +19,16 @@ import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArg
  * priority a person chose on their New Security Case setting
  * (UserNotificationSetting.minimumSecurityCasePriority).
  *
- * It pins that the statements add the columns exactly as the models declare
- * them (a mismatch is a red Schema Drift job), that both are nullable with no
- * default - so no existing row is rewritten and an empty choice reads as the
- * default, High - that down() undoes up() in reverse, and that the migration
- * is registered where it runs after everything before it. Fake QueryRunner
- * only.
+ * It pins that the statements add the columns exactly as TypeORM generated
+ * them, that both are nullable with no default - so no existing row is
+ * rewritten and an empty choice reads as the default, High - that down()
+ * undoes up() in reverse, and that the migration is registered where it runs
+ * after everything before it. Fake QueryRunner only.
+ *
+ * Both columns held a priority's text. AddSecurityCasePrioritiesAndStatuses
+ * (1807200000000) replaced each with the id of one of the project's own
+ * priorities, and dropped them: the models declare them no more, and that
+ * migration is what puts them back, as they were here, on its way down.
  */
 
 const OWN_CLASS_NAME: string = "AddSecurityCaseNotifications1805700000000";
@@ -93,6 +97,26 @@ async function recordQueries(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
+// What the later migration that replaced these columns runs, on a database that answers nothing.
+async function recordLaterQueries(
+  direction: "up" | "down",
+): Promise<Array<string>> {
+  const statements: Array<string> = [];
+
+  const queryRunner: QueryRunner = {
+    query: async (statement: string): Promise<Array<unknown>> => {
+      statements.push(statement);
+      return [];
+    },
+  } as unknown as QueryRunner;
+
+  await new AddSecurityCasePrioritiesAndStatuses1807200000000()[direction](
+    queryRunner,
+  );
+
+  return statements;
+}
+
 function declaredColumn(entry: AddedColumn): ColumnMetadataArgs {
   const declared: ColumnMetadataArgs | undefined =
     getMetadataArgsStorage().columns.find(
@@ -108,17 +132,6 @@ function declaredColumn(entry: AddedColumn): ColumnMetadataArgs {
   }
 
   return declared;
-}
-
-// What TypeORM generates to add a nullable short text column with no default.
-function expectedAddStatement(entry: AddedColumn): string {
-  const options: ColumnMetadataArgs["options"] = declaredColumn(entry).options;
-
-  if (String(options.type) !== ColumnType.ShortText) {
-    throw new Error(`This suite does not know how to write ${options.type}.`);
-  }
-
-  return `ALTER TABLE "${entry.table}" ADD "${entry.column}" character varying(${String(options.length)})`;
 }
 
 function expectedDropStatement(entry: AddedColumn): string {
@@ -202,12 +215,27 @@ describe("AddSecurityCaseNotifications migration - identity and registration", (
 });
 
 describe("AddSecurityCaseNotifications migration - up()", () => {
-  test("adds exactly the two columns, in order, each as its model declares it", async () => {
-    expect(await recordQueries("up")).toEqual(
-      COLUMNS.map((entry: AddedColumn): string => {
-        return expectedAddStatement(entry);
-      }),
-    );
+  test("added two columns the models no longer declare: a later migration replaced each with an id", async () => {
+    for (const entry of COLUMNS) {
+      expect(() => {
+        return declaredColumn(entry);
+      }).toThrow(`${entry.table}.${entry.column} is not on the model.`);
+    }
+
+    const later: Array<string> = await recordLaterQueries("up");
+
+    for (const entry of COLUMNS) {
+      expect(later).toContain(expectedDropStatement(entry));
+    }
+  });
+
+  test("the later migration's down() puts each back exactly as it was added here", async () => {
+    const added: Array<string> = await recordQueries("up");
+    const restored: Array<string> = await recordLaterQueries("down");
+
+    for (const statement of added) {
+      expect(restored).toContain(statement);
+    }
   });
 
   test("writes the statements TypeORM generated for these columns", async () => {
@@ -217,15 +245,13 @@ describe("AddSecurityCaseNotifications migration - up()", () => {
     ]);
   });
 
-  test.each(COLUMNS)(
-    "$table.$column is nullable with no default, so no existing row is rewritten",
-    (entry: AddedColumn) => {
-      const declared: ColumnMetadataArgs = declaredColumn(entry);
-
-      expect(declared.options.nullable).toBe(true);
-      expect(declared.options.default).toBeUndefined();
-    },
-  );
+  test("adds each nullable, with no default, so no existing row is rewritten", async () => {
+    for (const statement of await recordQueries("up")) {
+      expect(statement).toMatch(
+        /^ALTER TABLE "\w+" ADD "\w+" character varying\(100\)$/,
+      );
+    }
+  });
 
   test("backfills nothing and builds no index", async () => {
     for (const statement of await recordQueries("up")) {

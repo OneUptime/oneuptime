@@ -100,7 +100,7 @@ Monitor, incidenti, avvisi, pagine di stato, SLO e molte altre risorse hanno anc
 | Configurazioni del collector | `Collector Config` |
 | vCenter | `vCenter` |
 | Catture dei pacchetti, e i loro download | `Packet Capture` |
-| Casi di sicurezza, playbook e le loro esecuzioni, ed entità protette | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
+| Casi di sicurezza con le loro priorità e i loro stati, playbook e le loro esecuzioni, ed entità protette | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
 | Esportazioni del registro di audit | `Audit Log Export` |
 
 Viene registrato anche quando un amministratore aggiunge o rimuove un metodo di notifica o una regola di reperibilità personale sull'account di un'altra persona, senza l'indirizzo o il numero stesso.

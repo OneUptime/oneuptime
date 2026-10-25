@@ -100,7 +100,7 @@ flowchart TB
 | कलेक्टर कॉन्फ़िग | `Collector Config` |
 | vCenter सर्वर | `vCenter` |
 | पैकेट कैप्चर और उनके डाउनलोड | `Packet Capture` |
-| सुरक्षा केस, प्लेबुक और उनके रन, और संरक्षित एंटिटी | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
+| सुरक्षा केस और उनकी प्राथमिकताएँ व स्थितियाँ, प्लेबुक और उनके रन, और संरक्षित एंटिटी | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
 | ऑडिट लॉग एक्सपोर्ट | `Audit Log Export` |
 
 यह भी दर्ज होता है जब कोई एडमिन किसी और के खाते पर सूचना विधि या व्यक्तिगत ऑन-कॉल नियम जोड़ता या हटाता है, बिना खुद पते या नंबर के।

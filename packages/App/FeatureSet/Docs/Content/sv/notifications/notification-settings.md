@@ -71,7 +71,7 @@ Fliken **Jour** handlar om dig, inte om det du äger:
 
 Fliken **Säkerhet** handlar om de säkerhetsärenden du kan se:
 
-- **Nytt säkerhetsärende** har en prioritet under sitt namn: den lägsta prioritet ett ärende ska ha för att du ska aviseras. Den är **Hög och Kritisk** om du inte väljer **Endast Kritisk**, **Medel och högre**, **Låg och högre** eller **Alla ärenden**.
+- **Nytt säkerhetsärende** har en prioritet under sitt namn: den lägsta prioritet ett ärende ska ha för att du ska aviseras. Den är **Hög och högre** om du inte väljer **Endast Kritisk**, **Medel och högre**, **Låg och högre** eller **Alla ärenden**.
 - **Säkerhetsärende tilldelat mig** följer ärendena som tilldelas dig och de team du tillhör.
 - **Playbook-steg väntar på mitt godkännande** ber dig godkänna eller avvisa ett playbook-steg i ett ärende där du får godkänna steg.
 

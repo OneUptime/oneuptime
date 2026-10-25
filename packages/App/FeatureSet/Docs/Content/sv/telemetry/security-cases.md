@@ -5,6 +5,7 @@ Security Events gör det som dina detektionsregler, hotunderrättelser och anslu
 :::cards
 - [Var ärenden kommer ifrån](#var-ärenden-kommer-ifrån): Detektionsregler, hotunderrättelser, anslutna produkter och personer.
 - [Arbeta med ett ärende](#arbeta-med-ett-ärende): Tilldela det, utred dess entiteter och stäng det med en bedömning.
+- [Ärendeprioriteter och ärendestatusar](#ärendeprioriteter-och-ärendestatusar): Byt namn, färg och ordning på dem, och lägg till egna.
 - [Aviseringar](#aviseringar): Vem som får veta om ett nytt ärende, en tilldelning och ett steg som väntar på godkännande.
 - [Playbooks](#playbooks): Steg som körs på ett ärende, med godkännande där det spelar roll.
 - [Översikten](#översikten): Vad som behöver någon just nu, och hur snabbt ärenden hanteras.
@@ -60,7 +61,7 @@ En detektion handlar om en entitet: värdet som dess regel grupperar efter, till
 - När inget öppet ärende gör det öppnas ett nytt ärende, uppkallat efter detektionen, med detektionens prioritet.
 - En detektion som löser ut igen räknas upp på sin rad i stället för att lägga till en ny.
 
-Ett ärendes prioritet kommer från detektionens allvarlighetsgrad:
+Ett ärendes prioritet kommer från detektionens allvarlighetsgrad, som projektets inbyggda prioritet för den nivån, vad du än har döpt den till:
 
 | Allvarlighetsgrad | Prioritet |
 | --- | --- |
@@ -72,7 +73,7 @@ Ett ärendes prioritet kommer från detektionens allvarlighetsgrad:
 
 ## Arbeta med ett ärende
 
-Ett ärende går igenom fyra statusar. Det kan hoppa över en, till exempel när ett falsklarm stängs direkt från New, och det kan öppnas igen.
+Ärendena i ett nytt projekt går igenom fyra statusar, som du kan byta namn på och lägga till fler av (se [Ärendeprioriteter och ärendestatusar](#ärendeprioriteter-och-ärendestatusar)). Ett ärende kan hoppa över en, till exempel när ett falsklarm stängs direkt från New, och det kan öppnas igen.
 
 | Status | Betyder |
 | --- | --- |
@@ -112,6 +113,25 @@ Ett ärende som öppnats från Google SecOps-larm stänger dem också i Google S
 
 **Deklarera incident** öppnar en OneUptime-incident för ärendet, med den allvarlighetsgrad du väljer, och länkar dem åt båda hållen: incidentens beskrivning nämner ärendet, och ärendets rubrik länkar till incidenten. Därifrån tar jour, statussidor och postmortem över. Det kräver en roll som både kan arbeta med ärenden och skapa incidenter.
 
+## Ärendeprioriteter och ärendestatusar
+
+Varje projekt har sina egna ärendeprioriteter och ärendestatusar, under **Produkter → Security Events → Inställningar → Ärendeprioriteter** och **Ärendestatusar**. Byt namn och färg på dem, dra dem i en annan ordning och lägg till egna, till exempel en status "Triage" eller en prioritet "Nödläge" ovanför **Kritisk**. Ett nytt namn syns överallt på en gång: i kön, på ärendesidorna och översikten, i aviseringar, i Slack och Microsoft Teams och i playbook-meddelanden.
+
+Några är inbyggda, eftersom OneUptime läser vad de betyder. De kan byta namn och färg men inte tas bort eller arkiveras, och de behåller sin ordning:
+
+| Inbyggd | Vad OneUptime gör med den |
+| --- | --- |
+| Den nya statusen | Nya ärenden börjar i den |
+| Den kvitterade statusen | När ett ärende når den sparas när det kvitterades, och **Reopen** flyttar tillbaka ett stängt ärende dit |
+| Den begränsade statusen | När ett ärende når den sparas när det begränsades |
+| Den stängda statusen | **Close Case** flyttar ett ärende dit, med en bedömning |
+| Prioriteterna Critical, High, Medium, Low och Informational | En detektion öppnar sitt ärende med prioriteten för sin allvarlighetsgrad, och ett ärende som någon öppnar börjar på Medium |
+
+- Var en status står avgör vad ett ärende i den räknas som, som kolumnen **Räknas som** visar: från den kvitterade statusen och nedåt som kvitterat, från den begränsade statusen och nedåt som begränsat, från den stängda statusen och nedåt som stängt. En status du lägger till hamnar strax ovanför den stängda statusen, och när du flyttar ett ärende till en status som stänger det får du först ange en bedömning.
+- En prioritets plats är hur brådskande den är, den mest brådskande först: **For Cases At Least**, valen för aviseringar och reglerna för Slack och Microsoft Teams läser den här ordningen. En prioritet du lägger till hamnar sist, och kolumnen **Detekteringens allvarlighetsgrad** visar vilka detektioner som öppnar sina ärenden med varje inbyggd prioritet.
+
+För att sluta använda en egen status eller prioritet använder du **Arkivera** på dess rad. Ingen kan välja den igen, och API:t, Terraform och MCP avvisar den, men ärendena som har den behåller den, och du kan fortfarande filtrera på den. Arkiverade värden listas i den hopfällda sektionen **Arkiverade ärendestatusar** eller **Arkiverade ärendeprioriteter** under tabellen, där **Avarkivera** tar tillbaka ett. **Ta bort** avvisas så länge ärenden har värdet eller en playbook körs från prioriteten.
+
 ## Aviseringar
 
 OneUptime berättar för personer om tre saker som händer i ett ärende. Ingen behöver ställa in något: ett projekt som bara har klickat på **Slå på rekommenderat** får veta om sina ärenden med High och Critical via e-post och push.
@@ -136,10 +156,12 @@ Var och en väljer själv, under **Användarinställningar → Aviseringsinstäl
 | Val | Aviserar om ärenden med |
 | --- | --- |
 | Endast Kritisk | Critical |
-| Hög och Kritisk | High och Critical (standard) |
+| Hög och högre | Critical och High (standard) |
 | Medel och högre | Critical, High och Medium |
 | Låg och högre | Alla prioriteter utom Informational |
 | Alla ärenden | Alla prioriteter |
+
+Valen följer projektets ärendeprioriteter, under deras egna namn: det här är ett nytt projekts val.
 
 WhatsApp-meddelanden skickas inte för säkerhetsärenden. En push-avisering öppnar OneUptime-appen, och dess länk öppnar ärendet i webbläsaren.
 
@@ -149,9 +171,9 @@ För att posta i en kanal lägger du till en regel under **Produkter → Securit
 
 | Villkor | Matchar på |
 | --- | --- |
-| Prioritet för säkerhetsärende | Critical, High, Medium, Low eller Informational |
+| Prioritet för säkerhetsärende | En av projektets ärendeprioriteter, till exempel Critical eller High |
 | Titel på säkerhetsärende, Beskrivning av säkerhetsärende | Text som ärendets titel eller beskrivning innehåller, börjar med eller slutar med |
-| Status för säkerhetsärende | New, Investigating, Contained eller Closed |
+| Status för säkerhetsärende | En av projektets ärendestatusar, till exempel New eller Closed |
 | Källa för säkerhetsärende | Detection Rule, Threat Intel, Connected Product eller Manual |
 | Etiketter för säkerhetsärende | Ärendets etiketter |
 
@@ -184,7 +206,7 @@ En inaktiverad playbook körs varken av sig själv eller manuellt.
 | --- | --- | --- |
 | Ärende | Assign the case | Ger ärendet till en person, ett team eller båda |
 | Ärende | Set the priority | Höjer eller sänker ärendets prioritet |
-| Ärende | Set the status | Flyttar ärendet till Investigating, Contained eller Closed, med den bedömning du väljer |
+| Ärende | Set the status | Flyttar ärendet till en annan av projektets statusar, med den bedömning du väljer när den statusen stänger det |
 | Ärende | Add a note | Skriver en anteckning i ärendet, till exempel en checklista för analytikern |
 | Ärende | Add labels | Märker ärendet med etiketter |
 | Utredning | Check entities against threat intel | Slår upp varje entitet i dina hotunderrättelser och kan höja prioriteten vid en träff |
@@ -247,8 +269,8 @@ En anteckning, ett mejl, ett Slack-inlägg och ett Teams-inlägg kan använda ä
 | --- | --- |
 | `{{case.number}}` | Ärendenumret, till exempel CASE-42 |
 | `{{case.title}}` | Ärendets titel |
-| `{{case.priority}}` | Critical, High, Medium, Low eller Informational |
-| `{{case.status}}` | New, Investigating, Contained eller Closed |
+| `{{case.priority}}` | Ärendets prioritet, som ditt projekt kallar den, till exempel High |
+| `{{case.status}}` | Ärendets status, som ditt projekt kallar den, till exempel Investigating |
 | `{{case.assignee}}` | Vem ärendet är tilldelat |
 | `{{case.url}}` | En länk till ärendet i OneUptime |
 | `{{case.entities}}` | Användarna, värdarna och adresserna som ärendet handlar om |
@@ -278,7 +300,7 @@ En körning vars worker slutar höra av sig, till exempel efter en omstart, tas 
 **Produkter → Security Events → Översikt** är där produkten öppnas:
 
 - De öppna ärenden som är tilldelade dig, de öppna ärenden som ingen har tagit sig an, och playbook-stegen som väntar på godkännande; varje tal öppnar sidan som listar dem.
-- **Genomsnittlig tid till kvittering**, **Genomsnittlig tid till begränsning** och **Genomsnittlig tid till stängning**, över ärendena som öppnats under de senaste 30 dagarna: från att ett ärende öppnas till att någon tar sig an det (en person tilldelas, eller det flyttas ut ur New), till Contained och till Closed. Ett ärende som fortfarande väntar räknas inte in i något medelvärde.
+- **Genomsnittlig tid till kvittering**, **Genomsnittlig tid till begränsning** och **Genomsnittlig tid till stängning**, över ärendena som öppnats under de senaste 30 dagarna: från att ett ärende öppnas till att någon tar sig an det (en person tilldelas, eller det flyttas till en status som räknas som kvitterad), till en status som räknas som begränsad och till en som räknas som stängd. Ett ärende som fortfarande väntar räknas inte in i något medelvärde.
 - Ärendena som öppnats varje dag i 30 dagar, efter prioritet, och detektionerna som skapats varje dag i 14 dagar, efter källa.
 - De öppna ärendena efter prioritet och efter status, bedömningarna från de senaste 30 dagarna, ATT&CK-taktikerna bakom ärendena, detektionerna som löste ut oftast, och entiteterna som nämns i flest fynd.
 
@@ -293,8 +315,9 @@ Ovanför visar en remsa hur säkerhet är uppsatt: dess källor, detektioner, ä
 ## Automatisera
 
 - **Arbetsflöden**: ett ärende eller en anteckning kan starta ett arbetsflöde när det skapas, uppdateras eller tas bort. Ett steg **Run a workflow** startar ett arbetsflöde vars utlösare är en webhook.
-- **API**: ärenden, anteckningar, detektioner, playbooks, körningar och skyddade entiteter har samma REST API som resten av OneUptime, under `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run` och `/security-protected-entity`. Se [API-referens](/docs/api-reference/api-reference).
-- AI-agenter: MCP-servern har verktyg för ärenden, anteckningar, detektioner och playbooks. Se [MCP-server](/docs/ai/mcp-server).
+- **API**: ärenden, anteckningar, detektioner, playbooks, körningar, skyddade entiteter och ärendeprioriteter och ärendestatusar har samma REST API som resten av OneUptime, under `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` och `/security-case-status`. Se [API-referens](/docs/api-reference/api-reference).
+- AI-agenter: MCP-servern har verktyg för ärenden, anteckningar, detektioner, playbooks och ärendeprioriteter och ärendestatusar. Se [MCP-server](/docs/ai/mcp-server).
+- Terraform: resurserna `oneuptime_security_case_priority` och `oneuptime_security_case_status` håller ett projekts prioriteter och statusar som kod.
 
 ## Felsökning
 
@@ -303,7 +326,7 @@ Kontrollera **Open a Case on Match** i regelns steg **Vid träff**. En detektion
 :::
 
 :::details Ingen fick veta om ett ärende
-Titta på ärendets **Tidslinje**, som visar vem som aviserades. En avisering om **Nytt säkerhetsärende** går till de personer vars valda prioritet ärendet når, så ett ärende med Medium aviserar ingen som har kvar standardvalet, **Hög och Kritisk**. Kontrollera att de som borde få veta kan se säkerhetsärenden (en Security-roll, eller Project Owner eller Project Admin), och att aviseringen är påslagen för dem under **Användarinställningar → Aviseringsinställningar → Säkerhet**.
+Titta på ärendets **Tidslinje**, som visar vem som aviserades. En avisering om **Nytt säkerhetsärende** går till de personer vars valda prioritet ärendet når, så ett ärende med Medium aviserar ingen som har kvar standardvalet, **Hög och högre**. Kontrollera att de som borde få veta kan se säkerhetsärenden (en Security-roll, eller Project Owner eller Project Admin), och att aviseringen är påslagen för dem under **Användarinställningar → Aviseringsinställningar → Säkerhet**.
 :::
 
 :::details En playbook kördes inte
@@ -316,6 +339,10 @@ Kontrollera att den är aktiverad, att dess inställning **Utlösare** passar (C
 
 :::details Ett begränsningssteg hoppades över
 Ärendet handlar inte om någon användare eller värd, utan till exempel bara om en adress, eller så är alla användare och värdar som det handlar om skyddade. Öppna körningen i ärendet: steget anger vilket.
+:::
+
+:::details En status eller prioritet går inte att ta bort eller arkivera
+En inbyggd kan byta namn och färg, men aldrig tas bort eller arkiveras: dess **Arkivera** är låst, med orsaken. En egen går inte att ta bort så länge ärenden har den eller en playbook körs från den: flytta ärendena till en annan först, eller arkivera den.
 :::
 
 ## Nästa steg

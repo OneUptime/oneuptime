@@ -29,8 +29,13 @@ import ObjectID from "../../../../../Types/ObjectID";
 import PositiveNumber from "../../../../../Types/PositiveNumber";
 import SecurityCaseAiVerdict from "../../../../../Types/SecurityCase/SecurityCaseAiVerdict";
 import { SecurityEntityType } from "../../../../../Types/SecurityCase/SecurityEntity";
-import SecurityCasePriority from "../../../../../Types/SecurityCase/SecurityCasePriority";
-import SecurityCaseStatus from "../../../../../Types/SecurityCase/SecurityCaseStatus";
+import SecurityCasePriorityLevel from "../../../../../Types/SecurityCase/SecurityCasePriorityLevel";
+import SecurityCaseStage from "../../../../../Types/SecurityCase/SecurityCaseStage";
+import {
+  testPriorityId,
+  testStatusId,
+} from "../../../../Helpers/SecurityCaseValues";
+import { stubSecurityCaseValues } from "../../../../Helpers/SecurityCaseValuesStub";
 import SecurityDetectionSource from "../../../../../Types/SecurityCase/SecurityDetectionSource";
 import { SECURITY_CASE_TRIAGE_INJECTION_LEAD_PREFIX } from "../../../../../Utils/AI/InvestigationReport";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -137,8 +142,8 @@ function triageData(): SecurityCaseTriageData {
       id: securityCaseId,
       caseNumberWithPrefix: "CASE-42",
       title: "SSH brute force against web-1",
-      status: SecurityCaseStatus.New,
-      priority: SecurityCasePriority.Medium,
+      securityCaseStatus: { name: "New" },
+      securityCasePriority: { name: "Medium" },
       entities: [{ type: SecurityEntityType.IpAddress, value: ATTACKER_IP }],
       groupingKey: `ip:${ATTACKER_IP}`,
     } as unknown as SecurityCase,
@@ -188,8 +193,8 @@ describe("a security case's triage, end to end on recorded model answers", () =>
       id: securityCaseId,
       caseNumberWithPrefix: "CASE-42",
       title: "SSH brute force against web-1",
-      status: SecurityCaseStatus.New,
-      priority: SecurityCasePriority.Medium,
+      securityCaseStatusId: testStatusId(SecurityCaseStage.New),
+      securityCasePriorityId: testPriorityId(SecurityCasePriorityLevel.Medium),
       entities: [{ type: SecurityEntityType.IpAddress, value: ATTACKER_IP }],
       detectionCount: 1,
     } as unknown as SecurityCase);
@@ -218,6 +223,8 @@ describe("a security case's triage, end to end on recorded model answers", () =>
   }
 
   beforeEach(() => {
+    // The project's priorities and statuses: a new project's.
+    stubSecurityCaseValues();
     modelCalls = [];
     createdEvents = [];
 
@@ -366,7 +373,10 @@ describe("a security case's triage, end to end on recorded model answers", () =>
     );
 
     expect(data["aiVerdict"]).toBe(SecurityCaseAiVerdict.LikelyMalicious);
-    expect(data["aiSuggestedPriority"]).toBe(SecurityCasePriority.High);
+    // The project's high priority, by id.
+    expect(
+      (data["aiSuggestedSecurityCasePriorityId"] as ObjectID).toString(),
+    ).toBe(testPriorityId(SecurityCasePriorityLevel.High).toString());
     expect((data["aiSuggestedPlaybookId"] as ObjectID).toString()).toBe(
       playbookId,
     );
@@ -396,7 +406,7 @@ describe("a security case's triage, end to end on recorded model answers", () =>
     expect(data["aiVerdict"]).toBe(SecurityCaseAiVerdict.Inconclusive);
     expect(data["aiTriagePromptInjectionSuspected"]).toBe(true);
     // Nothing the steered answer suggested is kept: no Low to set in a click.
-    expect(data["aiSuggestedPriority"]).toBeNull();
+    expect(data["aiSuggestedSecurityCasePriorityId"]).toBeNull();
     expect(data["aiSuggestedPlaybookId"]).toBeNull();
     /*
      * The heads-up leads the report, under its heading, in the words the

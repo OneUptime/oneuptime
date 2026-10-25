@@ -194,7 +194,7 @@ oneuptime <resource> count [--query <json>] [-o <format>]
 | 상태 페이지 | `status-page`, `status-page-announcement` |
 | 예약된 유지 관리 | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
 | 팀과 온콜 | `team`, `on-call-policy` |
-| 보안 | `security-case`, `security-case-note`, `security-detection`, `security-playbook` |
+| 보안 | `security-case`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-detection`, `security-playbook` |
 | 레이블 | `label` |
 
 텔레메트리는 `list`, `create`, `count`를 받습니다.

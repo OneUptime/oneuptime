@@ -57,6 +57,12 @@ import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import Project from "Common/Models/DatabaseModels/Project";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
+import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
+import { SECURITY_CASE_PRIORITY_LEVEL_FLAGS } from "Common/Types/SecurityCase/SecurityCasePriorityLevel";
+import { SECURITY_CASE_STAGE_FLAGS } from "Common/Types/SecurityCase/SecurityCaseStage";
+import { DEFAULT_SECURITY_CASE_PRIORITIES } from "Common/Utils/SecurityCase/SecurityCasePriorities";
+import { DEFAULT_SECURITY_CASE_STATUSES } from "Common/Utils/SecurityCase/SecurityCaseStatuses";
 import SecurityEventConnection from "Common/Models/DatabaseModels/SecurityEventConnection";
 import SecurityEventDestination from "Common/Models/DatabaseModels/SecurityEventDestination";
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
@@ -174,7 +180,41 @@ const MODEL_TABLES = [
   tableName(SecurityEventDestination),
   tableName(Service),
   tableName(WorkspaceProjectAuthToken),
+  tableName(SecurityCasePriority),
+  tableName(SecurityCaseStatus),
 ];
+
+/*
+ * The project's case priorities and statuses: a new project's, as every
+ * project has them from its creation. The side menu's case counts read
+ * which statuses count as open.
+ */
+const CASE_VALUES = {
+  [tableName(SecurityCasePriority)]: DEFAULT_SECURITY_CASE_PRIORITIES.map(
+    (value, index) => {
+      return Object.assign(new SecurityCasePriority(), {
+        _id: `2b000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+        name: value.name,
+        color: value.color,
+        order: value.order,
+        isArchived: false,
+        [SECURITY_CASE_PRIORITY_LEVEL_FLAGS[value.level]]: true,
+      });
+    },
+  ),
+  [tableName(SecurityCaseStatus)]: DEFAULT_SECURITY_CASE_STATUSES.map(
+    (value, index) => {
+      return Object.assign(new SecurityCaseStatus(), {
+        _id: `2c000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+        name: value.name,
+        color: value.color,
+        order: value.order,
+        isArchived: false,
+        [SECURITY_CASE_STAGE_FLAGS[value.stage]]: true,
+      });
+    },
+  ),
+};
 const ANALYTICS_TABLES = [tableName(SecurityEvent)];
 // The side menu's badges: open cases, and runs waiting for approval.
 const BADGE_TABLES = [tableName(SecurityCase), tableName(SecurityPlaybookRun)];
@@ -238,6 +278,14 @@ ModelAPI.getList = async (options) => {
   });
   if (!MODEL_TABLES.includes(modelName)) {
     fixture.unhandled.push({ kind: "getList", modelName });
+  }
+  if (CASE_VALUES[modelName]) {
+    return {
+      data: CASE_VALUES[modelName].slice(skip, skip + limit),
+      count: CASE_VALUES[modelName].length,
+      skip,
+      limit,
+    };
   }
   if (modelName === tableName(SecurityLogSource)) {
     return {

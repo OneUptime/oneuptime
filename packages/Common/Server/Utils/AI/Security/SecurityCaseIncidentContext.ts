@@ -42,8 +42,8 @@ export default class SecurityCaseIncidentContext {
         _id: true,
         caseNumberWithPrefix: true,
         title: true,
-        status: true,
-        priority: true,
+        securityCaseStatus: { name: true },
+        securityCasePriority: { name: true },
         entities: true,
         detectionCount: true,
         aiVerdict: true,
@@ -79,7 +79,19 @@ export default class SecurityCaseIncidentContext {
         `- ${securityCase.caseNumberWithPrefix || "Security case"} (securityCaseId "${securityCase.id?.toString() || ""}") ${securityValue(
           securityCase.title,
           { maxLength: VALUE_LENGTH },
-        )} - status ${securityCase.status || "unknown"}, priority ${securityCase.priority || "unknown"}, ${securityCase.detectionCount || 0} detection(s)${
+        )} - status ${
+          securityCase.securityCaseStatus?.name
+            ? securityValue(securityCase.securityCaseStatus.name, {
+                maxLength: VALUE_LENGTH,
+              })
+            : "unknown"
+        }, priority ${
+          securityCase.securityCasePriority?.name
+            ? securityValue(securityCase.securityCasePriority.name, {
+                maxLength: VALUE_LENGTH,
+              })
+            : "unknown"
+        }, ${securityCase.detectionCount || 0} detection(s)${
           entities ? `, about ${entities}` : ""
         }${
           securityCase.aiVerdict

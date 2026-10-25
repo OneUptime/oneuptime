@@ -5,6 +5,7 @@ Security Events gjør det deteksjonsreglene, trusseletterretningen og de tilkobl
 :::cards
 - [Hvor saker kommer fra](#hvor-saker-kommer-fra): Deteksjonsregler, trusseletterretning, tilkoblede produkter og personer.
 - [Behandle en sak](#behandle-en-sak): Tildel den, undersøk entitetene, og lukk den med en konklusjon.
+- [Saksprioriteter og saksstatuser](#saksprioriteter-og-saksstatuser): Gi dem nytt navn, ny farge og ny rekkefølge, og legg til dine egne.
 - [Varslinger](#varslinger): Hvem som får beskjed om en ny sak, en tildeling og et steg som venter på godkjenning.
 - [Playbooks](#playbooks): Steg som kjører på en sak, med godkjenning der det betyr noe.
 - [Oversikten](#oversikten): Det som trenger noen nå, og hvor raskt saker blir håndtert.
@@ -60,7 +61,7 @@ En deteksjon gjelder en entitet: verdien regelen grupperer etter, for eksempel I
 - Når ingen åpen sak gjør det, åpnes en ny sak, oppkalt etter deteksjonen, med deteksjonens prioritet.
 - En deteksjon som slår til igjen, teller opp på sin egen rad i stedet for å legge til en ny.
 
-Prioriteten til en sak kommer fra deteksjonens alvorlighetsgrad:
+Prioriteten til en sak kommer fra deteksjonens alvorlighetsgrad, som prosjektets innebygde prioritet for det nivået, uansett hva du har kalt den:
 
 | Alvorlighetsgrad | Prioritet |
 | --- | --- |
@@ -72,7 +73,7 @@ Prioriteten til en sak kommer fra deteksjonens alvorlighetsgrad:
 
 ## Behandle en sak
 
-En sak går gjennom fire statuser. Den kan hoppe over en, for eksempel en false positive som lukkes rett fra Ny, og den kan åpnes på nytt.
+Sakene i et nytt prosjekt går gjennom fire statuser, som du kan gi nye navn og legge til flere av (se [Saksprioriteter og saksstatuser](#saksprioriteter-og-saksstatuser)). En sak kan hoppe over en, for eksempel en false positive som lukkes rett fra Ny, og den kan åpnes på nytt.
 
 | Status | Betyr |
 | --- | --- |
@@ -112,6 +113,25 @@ En sak som er åpnet fra Google SecOps-varsler, lukker dem også i Google SecOps
 
 **Erklær hendelse** åpner en OneUptime-hendelse (incident) for saken, med alvorlighetsgraden du velger, og kobler de to sammen begge veier: beskrivelsen av hendelsen nevner saken, og toppen av saken lenker til hendelsen. Vaktordningen, statussider og postmortem tar over derfra. Det krever en rolle som både kan behandle saker og opprette hendelser (incidents).
 
+## Saksprioriteter og saksstatuser
+
+Hvert prosjekt har sine egne saksprioriteter og saksstatuser, under **Produkter → Security Events → Innstillinger → Saksprioriteter** og **Saksstatuser**. Gi dem nye navn og farger, dra dem i en annen rekkefølge, og legg til dine egne, for eksempel en status «Triage» eller en prioritet «Nødsituasjon» over **Kritisk**. Et nytt navn vises overalt med én gang: i køen, på sakssidene og oversikten, i varslinger, i Slack og Microsoft Teams og i playbook-meldinger.
+
+Noen er innebygde, fordi OneUptime leser hva de betyr. De kan få nytt navn og ny farge, men ikke slettes eller arkiveres, og de beholder rekkefølgen sin:
+
+| Innebygd | Hva OneUptime gjør med den |
+| --- | --- |
+| Den nye statusen | Nye saker starter i den |
+| Den kvitterte statusen | Når en sak når den, registreres det når saken ble kvittert, og **Reopen** flytter en lukket sak tilbake til den |
+| Den begrensede statusen | Når en sak når den, registreres det når saken ble begrenset |
+| Den lukkede statusen | **Close Case** flytter en sak dit, med en konklusjon |
+| Prioritetene Kritisk, High, Medium, Low og Til orientering | En deteksjon åpner saken sin med prioriteten for alvorlighetsgraden sin, og en sak som noen åpner, starter på Medium |
+
+- Hvor en status står, avgjør hva en sak i den teller som, slik kolonnen **Teller som** viser: fra den kvitterte statusen og ned som kvittert, fra den begrensede statusen og ned som begrenset, fra den lukkede statusen og ned som lukket. En status du legger til, havner rett over den lukkede statusen, og når du flytter en sak til en status som lukker den, blir du først bedt om en konklusjon.
+- Plassen til en prioritet sier hvor mye den haster, den som haster mest først: **For Cases At Least**, valgene for varslinger og reglene for Slack og Microsoft Teams leser denne rekkefølgen. En prioritet du legger til, havner sist, og kolonnen **Deteksjonens alvorlighetsgrad** viser hvilke deteksjoner som åpner sakene sine med hver innebygde prioritet.
+
+For å slutte å bruke en egen status eller prioritet bruker du **Arkiver** i raden dens. Ingen kan velge den igjen, og API-et, Terraform og MCP avviser den, men sakene som har den, beholder den, og du kan fortsatt filtrere på den. Arkiverte verdier står i den sammenslåtte delen **Arkiverte saksstatuser** eller **Arkiverte saksprioriteter** under tabellen, der **Fjern fra arkiv** henter en tilbake. **Slett** avvises så lenge saker har verdien eller en playbook kjører fra prioriteten.
+
 ## Varslinger
 
 OneUptime gir folk beskjed om tre ting på en sak. Ingen trenger å sette opp noe: et prosjekt som bare har klikket på **Slå på anbefalt**, får høre om sakene sine med prioritet High og Kritisk via e-post og push.
@@ -136,10 +156,12 @@ Hver person velger selv, under **Brukerinnstillinger → Varselinnstillinger →
 | Valg | Varsler om saker med |
 | --- | --- |
 | Bare Kritisk | Kritisk |
-| Høy og Kritisk | High og Kritisk (standard) |
+| Høy og høyere | Kritisk og High (standard) |
 | Middels og høyere | Kritisk, High og Medium |
 | Lav og høyere | Alle prioriteter unntatt Til orientering |
 | Alle saker | Alle prioriteter |
+
+Valgene følger prosjektets saksprioriteter, under sine egne navn: dette er valgene i et nytt prosjekt.
 
 Det sendes ikke WhatsApp-meldinger for sikkerhetssaker. Et push-varsel åpner OneUptime-appen, og lenken i det åpner saken i nettleseren.
 
@@ -149,9 +171,9 @@ For å legge ut i en kanal legger du til en regel under **Produkter → Security
 
 | Betingelse | Treffer på |
 | --- | --- |
-| Prioritet for sikkerhetssak | Kritisk, High, Medium, Low eller Til orientering |
+| Prioritet for sikkerhetssak | En av prosjektets saksprioriteter, for eksempel Kritisk eller High |
 | Tittel på sikkerhetssak, Beskrivelse av sikkerhetssak | Tekst som tittelen eller beskrivelsen av saken inneholder, starter med eller slutter med |
-| Status for sikkerhetssak | Ny, Undersøker, Contained eller Lukket |
+| Status for sikkerhetssak | En av prosjektets saksstatuser, for eksempel Ny eller Lukket |
 | Kilde for sikkerhetssak | Detection Rule, Threat Intel, Connected Product eller Manual |
 | Etiketter for sikkerhetssak | Etikettene på saken |
 
@@ -184,7 +206,7 @@ En deaktivert playbook kjører verken av seg selv eller manuelt.
 | --- | --- | --- |
 | Case | Assign the case | Gir saken til en person, et team eller begge |
 | Case | Set the priority | Hever eller senker prioriteten til saken |
-| Case | Set the status | Flytter saken til Undersøker, Contained eller Lukket, med konklusjonen du velger |
+| Case | Set the status | Flytter saken til en annen av prosjektets statuser, med konklusjonen du velger når den statusen lukker den |
 | Case | Add a note | Skriver et notat på saken, for eksempel en sjekkliste for analytikeren |
 | Case | Add labels | Merker saken med etiketter |
 | Investigate | Check entities against threat intel | Slår opp hver entitet i trusseletterretningen din, og kan heve prioriteten ved et treff |
@@ -247,8 +269,8 @@ Et notat, en e-post, et Slack-innlegg og et Teams-innlegg kan bruke verdiene til
 | --- | --- |
 | `{{case.number}}` | Saksnummeret, for eksempel CASE-42 |
 | `{{case.title}}` | Tittelen på saken |
-| `{{case.priority}}` | Critical, High, Medium, Low eller Informational |
-| `{{case.status}}` | New, Investigating, Contained eller Closed |
+| `{{case.priority}}` | Prioriteten til saken, slik prosjektet ditt kaller den, for eksempel High |
+| `{{case.status}}` | Statusen til saken, slik prosjektet ditt kaller den, for eksempel Investigating |
 | `{{case.assignee}}` | Hvem saken er tildelt |
 | `{{case.url}}` | En lenke til saken i OneUptime |
 | `{{case.entities}}` | Brukerne, vertene og adressene saken gjelder |
@@ -278,7 +300,7 @@ En kjøring som slutter å høre fra workeren sin, for eksempel etter en omstart
 **Produkter → Security Events → Oversikt** er der produktet åpner:
 
 - De åpne sakene som er tildelt deg, de åpne sakene ingen har tatt, og playbook-stegene som venter på godkjenning; hvert tall åpner siden som viser dem.
-- **Gjennomsnittlig tid til kvittering**, **Gjennomsnittlig tid til begrensning** og **Gjennomsnittlig tid til lukking**, over sakene som er åpnet de siste 30 dagene: fra en sak åpnes til noen tar den (tildeler en person eller flytter den ut av Ny), til Contained og til Lukket. En sak som fortsatt venter, telles ikke med i et gjennomsnitt.
+- **Gjennomsnittlig tid til kvittering**, **Gjennomsnittlig tid til begrensning** og **Gjennomsnittlig tid til lukking**, over sakene som er åpnet de siste 30 dagene: fra en sak åpnes til noen tar den (tildeler en person eller flytter den til en status som teller som kvittert), til en status som teller som begrenset, og til en som teller som lukket. En sak som fortsatt venter, telles ikke med i et gjennomsnitt.
 - Sakene som er åpnet hver dag i 30 dager, etter prioritet, og deteksjonene som er utløst hver dag i 14 dager, etter kilde.
 - De åpne sakene etter prioritet og etter status, konklusjonene fra de siste 30 dagene, ATT&CK-taktikkene bak sakene, deteksjonene som slo til oftest, og entitetene som flest funn nevner.
 
@@ -293,8 +315,9 @@ Over dem viser en stripe hvordan sikkerhet er satt opp: kildene, deteksjonene, s
 ## Automatiser
 
 - **Arbeidsflyter**: en sak eller et notat kan starte en arbeidsflyt når den opprettes, oppdateres eller slettes. Et steg **Run a workflow** starter en arbeidsflyt som har en webhook som utløser.
-- **API**: saker, notater, deteksjoner, playbooks, kjøringer og beskyttede entiteter har det samme REST-API-et som resten av OneUptime, under `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run` og `/security-protected-entity`. Se [API-referanse](/docs/api-reference/api-reference).
-- AI-agenter: MCP-serveren har verktøy for saker, notater, deteksjoner og playbooks. Se [MCP-server](/docs/ai/mcp-server).
+- **API**: saker, notater, deteksjoner, playbooks, kjøringer, beskyttede entiteter og saksprioriteter og saksstatuser har det samme REST-API-et som resten av OneUptime, under `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` og `/security-case-status`. Se [API-referanse](/docs/api-reference/api-reference).
+- AI-agenter: MCP-serveren har verktøy for saker, notater, deteksjoner, playbooks og saksprioriteter og saksstatuser. Se [MCP-server](/docs/ai/mcp-server).
+- Terraform: ressursene `oneuptime_security_case_priority` og `oneuptime_security_case_status` holder prioritetene og statusene til et prosjekt som kode.
 
 ## Feilsøking
 
@@ -303,7 +326,7 @@ Sjekk **Open a Case on Match** i regelens steg **Ved treff**. En deteksjon om en
 :::
 
 :::details Ingen fikk beskjed om en sak
-Se på **Tidslinje** for saken, som viser hvem som ble varslet. En varsling om **Ny sikkerhetssak** går til personene som har valgt en prioritet saken når, så en sak med Medium varsler ingen som har beholdt standarden, **Høy og Kritisk**. Sjekk at personene som burde få beskjed, kan se sikkerhetssaker (en Security-rolle, Project Owner eller Project Admin), og at varslingen er slått på for dem under **Brukerinnstillinger → Varselinnstillinger → Sikkerhet**.
+Se på **Tidslinje** for saken, som viser hvem som ble varslet. En varsling om **Ny sikkerhetssak** går til personene som har valgt en prioritet saken når, så en sak med Medium varsler ingen som har beholdt standarden, **Høy og høyere**. Sjekk at personene som burde få beskjed, kan se sikkerhetssaker (en Security-rolle, Project Owner eller Project Admin), og at varslingen er slått på for dem under **Brukerinnstillinger → Varselinnstillinger → Sikkerhet**.
 :::
 
 :::details En playbook kjørte ikke
@@ -316,6 +339,10 @@ Sjekk at den er aktivert, at innstillingen **Trigger** passer (Case Opened kjør
 
 :::details Et Contain-steg ble hoppet over
 Saken gjelder ingen bruker eller vert, bare en adresse for eksempel, eller alle brukerne eller vertene den gjelder, er beskyttet. Åpne kjøringen på saken: steget forteller hvilken av de to det er.
+:::
+
+:::details En status eller prioritet kan ikke slettes eller arkiveres
+En innebygd kan få nytt navn og ny farge, men aldri slettes eller arkiveres: **Arkiver** for den er låst, med begrunnelsen. En egen kan ikke slettes så lenge saker har den eller en playbook kjører fra den: flytt sakene til en annen først, eller arkiver den.
 :::
 
 ## Neste steg

@@ -10,9 +10,11 @@ import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledM
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import DropdownUtil from "../../../UI/Utils/Dropdown";
 import MonitorType from "../../Monitor/MonitorType";
-import SecurityCasePriority from "../../SecurityCase/SecurityCasePriority";
-import SecurityCaseStatus from "../../SecurityCase/SecurityCaseStatus";
+import SecurityCasePriority from "../../../Models/DatabaseModels/SecurityCasePriority";
+import SecurityCaseStatus from "../../../Models/DatabaseModels/SecurityCaseStatus";
 import SecurityDetectionSource from "../../SecurityCase/SecurityDetectionSource";
+import SecurityCasePriorities from "../../../Utils/SecurityCase/SecurityCasePriorities";
+import SecurityCaseStatuses from "../../../Utils/SecurityCase/SecurityCaseStatuses";
 import WorkspaceType, { getWorkspaceTypeDisplayName } from "../WorkspaceType";
 import NotificationRuleEventType from "./EventType";
 import IncidentNotificationRule from "./NotificationRuleTypes/IncidentNotificationRule";
@@ -327,6 +329,9 @@ export class NotificationRuleConditionUtil {
     scheduledMaintenanceStates: Array<ScheduledMaintenanceState>;
     labels: Array<Label>;
     monitors: Array<Monitor>;
+    // The project's own case priorities and statuses, in their order.
+    securityCasePriorities?: Array<SecurityCasePriority> | undefined;
+    securityCaseStatuses?: Array<SecurityCaseStatus> | undefined;
     checkOn: NotificationRuleConditionCheckOn;
   }): Array<DropdownOption> {
     type ToOptionsFunction = (rows: Array<BaseModel>) => Array<DropdownOption>;
@@ -409,18 +414,23 @@ export class NotificationRuleConditionUtil {
     }
 
     /*
-     * A security case's priority, status and source are fixed scales every
-     * project shares, listed in their own order: most urgent priority first,
-     * statuses as a case moves through them.
+     * A security case's priority and status are the project's own, by id,
+     * in their order whatever order they are handed in: most urgent priority
+     * first, statuses as a case moves through them. Its source is a fixed
+     * scale every project shares.
      */
     if (
       data.checkOn === NotificationRuleConditionCheckOn.SecurityCasePriority
     ) {
-      return DropdownUtil.getDropdownOptionsFromEnum(SecurityCasePriority);
+      return toOptions(
+        SecurityCasePriorities.sort(data.securityCasePriorities || []),
+      );
     }
 
     if (data.checkOn === NotificationRuleConditionCheckOn.SecurityCaseStatus) {
-      return DropdownUtil.getDropdownOptionsFromEnum(SecurityCaseStatus);
+      return toOptions(
+        SecurityCaseStatuses.sort(data.securityCaseStatuses || []),
+      );
     }
 
     if (data.checkOn === NotificationRuleConditionCheckOn.SecurityCaseSource) {
