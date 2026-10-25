@@ -408,6 +408,45 @@ describe("the Add guide's name", () => {
     expect(screen.queryByTestId("resource-name-taken")).toBeNull();
   });
 
+  test("drops accents for the commands, and says so", async () => {
+    await show(<AddResourceGuide onboarding={KUBERNETES_CLUSTER_ONBOARDING} />);
+
+    await typeName("Zürich Süd");
+
+    expect(pageText()).toContain('--set clusterName="Zurich-Sud"');
+    expect(screen.getByTestId("resource-name-reported-as")).toHaveTextContent(
+      "The agent reports it as Zurich-Sud.",
+    );
+  });
+
+  // Only spaces around it: the name is what was typed, so nothing to say.
+  test("says nothing for the spaces around a name", async () => {
+    await show(<AddResourceGuide onboarding={KUBERNETES_CLUSTER_ONBOARDING} />);
+
+    await typeName("  prod-east  ");
+
+    expect(pageText()).toContain('--set clusterName="prod-east"');
+    expect(screen.queryByTestId("resource-name-reported-as")).toBeNull();
+  });
+
+  test("is labelled, and described by what the commands do with it", async () => {
+    await show(<AddResourceGuide onboarding={KUBERNETES_CLUSTER_ONBOARDING} />);
+    await typeName("Prod East");
+
+    const input: HTMLElement = screen.getByLabelText("Cluster name");
+    const description: HTMLElement | null = document.getElementById(
+      input.getAttribute("aria-describedby") || "",
+    );
+
+    expect(input).toBe(nameInput());
+    expect(description).not.toBeNull();
+    expect(description).toHaveTextContent(RESOURCE_NAME_FIELD_HINT);
+    // The note about the name the agent reports is part of it.
+    expect(description).toContainElement(
+      screen.getByTestId("resource-name-reported-as"),
+    );
+  });
+
   test("falls back to the suggestion while nothing usable is typed", async () => {
     await show(<AddResourceGuide onboarding={KUBERNETES_CLUSTER_ONBOARDING} />);
 
@@ -634,6 +673,47 @@ describe("the Add guide's last step", () => {
 
     expect(screen.getByTestId("connected-resource-name")).toHaveTextContent(
       "my-cluster",
+    );
+  });
+
+  /*
+   * The server's clock ten minutes ahead of the browser's: a cluster that
+   * registered a minute before the guide opened reads as registered after
+   * it, by the browser's clock. It is still not the one the guide adds.
+   */
+  test("does not take one that registered before it opened for new, whatever the browser's clock says", async () => {
+    const serverNow: () => Date = (): Date => {
+      return new Date(Date.now() + 10 * 60 * 1000);
+    };
+    rowsOf(KubernetesCluster).push({
+      _id: idOf(87),
+      name: "my-cluster",
+      clusterIdentifier: "my-cluster",
+      otelCollectorStatus: "connected",
+      createdAt: new Date(serverNow().getTime() - 60 * 1000),
+      lastSeenAt: serverNow(),
+    });
+
+    await show(<AddResourceGuide onboarding={KUBERNETES_CLUSTER_ONBOARDING} />);
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS * 3);
+
+    expect(screen.queryByTestId("resource-connection-connected")).toBeNull();
+    expect(screen.getByTestId("resource-connection-waiting")).toHaveTextContent(
+      "Waiting for my-cluster-2 to connect.",
+    );
+
+    rowsOf(KubernetesCluster).push({
+      _id: idOf(88),
+      name: "my-cluster-2",
+      clusterIdentifier: "my-cluster-2",
+      otelCollectorStatus: "connected",
+      createdAt: serverNow(),
+      lastSeenAt: serverNow(),
+    });
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    expect(screen.getByTestId("connected-resource-name")).toHaveTextContent(
+      "my-cluster-2",
     );
   });
 
