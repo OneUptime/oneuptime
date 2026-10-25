@@ -45,6 +45,9 @@ CLI は OneUptime と一緒にリリースされ、同じバージョン番号�
 npm install -g @oneuptime/cli@<your-oneuptime-version>
 ```
 
+> [!WARNING]
+> 14.0.64 より前の CLI は、起動するとすぐに `Cannot find module 'Common/Models/DatabaseModels/Index'` のようなエラーで止まります。`npm install -g @oneuptime/cli@latest` で 14.0.64 以降をインストールしてください。14.0.64 より古いセルフホストの OneUptime では、先に [OneUptime をアップグレード](/docs/installation/upgrading#アップグレードの方法)してから、アップグレードしたバージョンの CLI をインストールしてください。
+
 ## 最初のコマンドを実行する
 
 :::steps
