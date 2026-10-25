@@ -13,14 +13,17 @@ import useResourceOwners, {
 } from "../../Components/ResourceOwners/useResourceOwners";
 import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
 import IconProp from "Common/Types/Icon/IconProp";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import useFirstRecordWatch, {
@@ -32,7 +35,10 @@ import {
   getFirstRunTopContent,
 } from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import ProxmoxDocumentationCard from "../../Components/Proxmox/DocumentationCard";
+import AddResourceGuide from "../../Components/ResourceOnboarding/AddResourceGuide";
+import AddResourceModal from "../../Components/ResourceOnboarding/AddResourceModal";
+import PROXMOX_CLUSTER_ONBOARDING from "../../Components/Proxmox/ProxmoxClusterOnboarding";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -46,6 +52,9 @@ const ProxmoxClusters: FunctionComponent<
     useFirstRecordWatch<ProxmoxCluster>({
       modelType: ProxmoxCluster,
     });
+  const [isAddClusterOpen, setIsAddClusterOpen] = useState<boolean>(false);
+  // Clusters connected from the Add dialog show in the list at once.
+  const [connectedCount, setConnectedCount] = useState<number>(0);
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<ProxmoxCluster>({ modelType: ProxmoxCluster });
@@ -112,13 +121,20 @@ const ProxmoxClusters: FunctionComponent<
     );
   }
 
+  /*
+   * A Proxmox cluster is added by connecting it (Add Proxmox Cluster): the
+   * guide asks for the cluster's name, writes it into the commands, and the
+   * cluster registers itself under it when its first data arrives. There
+   * is no form: a cluster typed in by hand would only wait for telemetry
+   * that nothing sends.
+   */
   return (
     <Fragment>
       <ModelTable<ProxmoxCluster>
         modelType={ProxmoxCluster}
         // Archive in each row's ⋯ menu, as in Bulk Actions.
         actionButtons={[...archiveRowActions]}
-        refreshToggle={firstRecordWatch.refreshToken}
+        refreshToggle={`${firstRecordWatch.refreshToken}-${connectedCount}`}
         id="proxmox-clusters-table"
         userPreferencesKey="proxmox-clusters-table"
         topContent={getFirstRunTopContent({
@@ -135,14 +151,10 @@ const ProxmoxClusters: FunctionComponent<
         onFetchSuccess={(data: Array<ProxmoxCluster>) => {
           onResourcesFetched(data);
         }}
-        onCreateSuccess={(item: ProxmoxCluster): Promise<ProxmoxCluster> => {
-          firstRecordWatch.onRecordCreated();
-          return Promise.resolve(item);
-        }}
         isDeleteable={true}
         deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
-        isCreateable={true}
+        isCreateable={false}
         showRefreshButton={true}
         bulkActions={{
           buttons: [
@@ -159,31 +171,19 @@ const ProxmoxClusters: FunctionComponent<
           title: "Proxmox Clusters",
           description:
             "Clusters being monitored in this project. Install the OneUptime Proxmox Agent to connect a cluster.",
+          buttons: [
+            {
+              title: PROXMOX_CLUSTER_ONBOARDING.addTitle,
+              icon: IconProp.Add,
+              buttonStyle: ButtonStyleType.NORMAL,
+              onClick: () => {
+                setIsAddClusterOpen(true);
+              },
+            },
+          ],
         }}
         showViewIdButton={true}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "pve-production",
-            description:
-              "This should match the proxmox.cluster.name resource attribute reported by the Proxmox Agent.",
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Production Proxmox cluster running in US East",
-          },
-          getLabelsFormField<ProxmoxCluster>(),
-        ]}
+        formFields={[]}
         columns={[
           {
             field: {
@@ -304,9 +304,30 @@ const ProxmoxClusters: FunctionComponent<
         }}
       />
       {firstRecordWatch.count === 0 && (
-        <ProxmoxDocumentationCard
-          title="Getting Started with Proxmox Monitoring"
+        <AddResourceGuide
+          onboarding={PROXMOX_CLUSTER_ONBOARDING}
+          title={PROXMOX_CLUSTER_ONBOARDING.firstRunTitle}
           description={FIRST_RUN_GUIDE_DESCRIPTION}
+          onConnected={() => {
+            // The guide gives way, and the table reads the new cluster.
+            firstRecordWatch.onRecordCreated();
+            setConnectedCount((count: number): number => {
+              return count + 1;
+            });
+          }}
+        />
+      )}
+      {isAddClusterOpen && (
+        <AddResourceModal
+          onboarding={PROXMOX_CLUSTER_ONBOARDING}
+          onClose={() => {
+            setIsAddClusterOpen(false);
+          }}
+          onConnected={() => {
+            setConnectedCount((count: number): number => {
+              return count + 1;
+            });
+          }}
         />
       )}
       {labelBulkActionModals}

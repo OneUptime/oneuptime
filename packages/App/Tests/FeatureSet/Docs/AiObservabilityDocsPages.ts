@@ -32,6 +32,8 @@ export const SECURITY_GETTING_STARTED: string =
   "telemetry/security-getting-started";
 export const SECURITY_AI: string = "telemetry/security-ai";
 export const SECURITY_ENTITY_RISK: string = "telemetry/security-entity-risk";
+export const SECURITY_CONNECTED_SIGNALS: string =
+  "telemetry/security-connected-signals";
 
 // The AI observability pages of task 24a.
 export const AI_OBSERVABILITY_PAGES: ReadonlyArray<DocsPageEntry> = [
@@ -58,8 +60,10 @@ export const AI_TOOLING_PAGES: ReadonlyArray<DocsPageEntry> = [
 
 /*
  * The Security group's pages, also task 24b, the getting-started page the
- * Security overhaul put first in the group, and OneUptime AI in Security
- * (triage, the AI playbook trigger, Draft with AI and Ask AI on Security).
+ * Security overhaul put first in the group, OneUptime AI in Security
+ * (triage, the AI playbook trigger, Draft with AI and Ask AI on Security),
+ * and Connected Signals (Security Events and the rest of OneUptime, both
+ * ways).
  */
 export const SECURITY_PAGES: ReadonlyArray<DocsPageEntry> = [
   { page: SECURITY_GETTING_STARTED, navTitle: "Get Started with Security" },
@@ -70,5 +74,6 @@ export const SECURITY_PAGES: ReadonlyArray<DocsPageEntry> = [
     page: SECURITY_ENTITY_RISK,
     navTitle: "Entity Risk (Risk-Based Alerting)",
   },
+  { page: SECURITY_CONNECTED_SIGNALS, navTitle: "Connected Signals" },
   { page: SECURITY_AI, navTitle: "OneUptime AI in Security" },
 ];

@@ -1,10 +1,6 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
-import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
-import DatabaseServerEndpoint from "Common/Models/DatabaseModels/DatabaseServerEndpoint";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import React, {
   Fragment,
   FunctionComponent,
@@ -12,7 +8,6 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -22,12 +17,8 @@ import {
   DatabaseDocumentationTarget,
   getDatabaseDocumentationHeading,
 } from "../Utils/DocumentationMarkdown";
-import {
-  DATABASE_NOT_FOUND_MESSAGE,
-  DatabaseRuntimePlatform,
-  getDatabaseRuntimePlatform,
-  isDatabaseServerFound,
-} from "../Utils/DatabaseServerPresentation";
+import { DATABASE_NOT_FOUND_MESSAGE } from "../Utils/DatabaseServerPresentation";
+import { fetchDatabaseDocumentationTarget } from "../Utils/DatabaseDocumentationTarget";
 
 /*
  * The Database Agent guide prefilled for THIS database: its engine, the
@@ -52,60 +43,16 @@ const DatabaseServerDocumentation: FunctionComponent<
     setIsLoading(true);
     setError("");
     try {
-      const [item, endpointResult]: [
-        DatabaseServer | null,
-        ListResult<DatabaseServerEndpoint>,
-      ] = await Promise.all([
-        ModelAPI.getItem<DatabaseServer>({
-          modelType: DatabaseServer,
-          id: modelId,
-          select: {
-            name: true,
-            dbSystem: true,
-            serverAddress: true,
-            serverPort: true,
-            discoverySource: true,
-            kubernetesClusterId: true,
-            kubernetesNamespace: true,
-            dockerHostId: true,
-            podmanHostId: true,
-          },
-        }),
-        ModelAPI.getList<DatabaseServerEndpoint>({
-          modelType: DatabaseServerEndpoint,
-          query: { databaseServerId: modelId },
-          select: { endpoint: true, isPrimary: true },
-          sort: { isPrimary: SortOrder.Descending },
-          skip: 0,
-          limit: LIMIT_PER_PROJECT,
-        }),
-      ]);
+      const found: DatabaseDocumentationTarget | null =
+        await fetchDatabaseDocumentationTarget(modelId);
 
-      // A deleted or unknown id comes back as an empty model, not null.
-      if (!item || !isDatabaseServerFound(item)) {
+      if (!found) {
         setError(DATABASE_NOT_FOUND_MESSAGE);
         setIsLoading(false);
         return;
       }
 
-      setTarget({
-        id: modelId.toString(),
-        name: item.name,
-        dbSystem: item.dbSystem,
-        serverAddress: item.serverAddress,
-        serverPort: item.serverPort,
-        endpoints: (endpointResult.data || [])
-          .map((row: DatabaseServerEndpoint): string => {
-            return (row.endpoint || "").toString();
-          })
-          .filter((value: string): boolean => {
-            return value.trim().length > 0;
-          }),
-        kubernetesNamespace: item.kubernetesNamespace,
-        isKubernetes:
-          getDatabaseRuntimePlatform(item) ===
-          DatabaseRuntimePlatform.Kubernetes,
-      });
+      setTarget(found);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }

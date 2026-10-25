@@ -4,15 +4,15 @@ import type { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Typ
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import type FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getNameAfterPick } from "Common/UI/Components/Forms/Utils/FollowPickName";
-import {
-  getCloudEnvironmentNameFromIdentity,
-  getNameFromIdentity,
-} from "Common/Utils/Telemetry/DiscoveredResourceName";
+import { getNameFromIdentity } from "Common/Utils/Telemetry/DiscoveredResourceName";
 
 /*
- * The create forms of resources that telemetry also discovers: hosts,
- * Docker and Podman hosts, Kubernetes clusters, RUM applications,
- * serverless functions and cloud environments.
+ * The create forms of resources that telemetry also discovers: RUM
+ * applications, whose labels, owners and replay policy can be in place
+ * before the first visitor. Hosts, Docker and Podman hosts, Kubernetes
+ * clusters, serverless functions and cloud environments have no create
+ * form any more: they are added by the commands of their Add guide and
+ * registered when their first data arrives (Components/ResourceOnboarding).
  *
  * "Make software as simple as possible to use and reduce decision
  * paralysis." These forms used to ask for a Name and an "Identifier" that
@@ -50,8 +50,7 @@ import {
  *     getLabelsFormField<Host>({ collapsibleSection: advancedSection }),
  *   ]
  *
- * A resource named after more than one field (a cloud environment: its
- * platform, account and region) gives each of them
+ * A resource named after more than one field gives each of them
  * onChange: followWithDisplayName(...) and hands getDisplayNameFormField
  * the same getDefaultName.
  *
@@ -246,43 +245,4 @@ export const getDisplayNameFormField: <TEntity>(
     getDefaultValue: options.getDefaultName,
     collapsibleSection: options.collapsibleSection,
   };
-};
-
-/*
- * A picked dropdown option can sit in the form values as the option itself
- * ({ label, value }) rather than as its value.
- */
-const readPickedValue: (value: unknown) => unknown = (
-  value: unknown,
-): unknown => {
-  if (
-    value !== null &&
-    typeof value === "object" &&
-    !Array.isArray(value) &&
-    Object.prototype.hasOwnProperty.call(value, "value")
-  ) {
-    return (value as { value: unknown }).value;
-  }
-
-  return value;
-};
-
-/**
- * The name of a cloud environment, read from the form's values: the one
- * ingest gives it ("AWS ECS · us-east-1 · 123456789012"), once a platform
- * is picked. Empty until then.
- */
-export const getCloudEnvironmentNameFromFields: <TEntity>(
-  values: FormValues<TEntity>,
-) => string = <TEntity>(values: FormValues<TEntity>): string => {
-  const fields: Record<string, unknown> = (values || {}) as Record<
-    string,
-    unknown
-  >;
-
-  return getCloudEnvironmentNameFromIdentity({
-    cloudPlatform: readPickedValue(fields["cloudPlatform"]),
-    cloudAccountId: fields["cloudAccountId"],
-    cloudRegion: fields["cloudRegion"],
-  });
 };

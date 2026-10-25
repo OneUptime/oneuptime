@@ -992,9 +992,25 @@ describe("the pages follow the house idioms", () => {
       ),
     );
 
+    /*
+     * The queue's own target, read the same way for the guide that opens
+     * after Add Queue (MessageQueueAddedModal).
+     */
+    const target: string = squash(
+      stripComments(
+        readSource(
+          "Pages",
+          "MessageQueue",
+          "Utils",
+          "MessageQueueDocumentationTarget.ts",
+        ),
+      ),
+    );
+
     // The product's card, handed this queue: no picker, prefilled guide.
     expect(code).toContain("<MessageQueueDocumentationCard");
     expect(code).toContain("queue={target}");
+    expect(code).toContain("await fetchMessageQueueDocumentation(modelId);");
     // Its heading follows the guide's steps, from the guide module.
     expect(code).toContain("getMessageQueueDocumentationHeading(target)");
     expect(code).toContain("title={heading.title}");
@@ -1006,7 +1022,7 @@ describe("the pages follow the house idioms", () => {
       "brokerAddress: true",
       "queueIdentifier: true",
     ]) {
-      expect(code).toContain(column);
+      expect(target).toContain(column);
     }
   });
 
@@ -1031,13 +1047,14 @@ describe("the pages follow the house idioms", () => {
         ),
       ),
     ).toContain(
-      'import SetupGuideCard, { SetupGuideRenderContext, } from "../../../Components/SetupGuide/SetupGuideCard";',
+      'import SetupGuideCard, { SetupGuideFrameProps, SetupGuideRenderContext, } from "../../../Components/SetupGuide/SetupGuideCard";',
     );
     for (const file of [
       ["Pages", "MessageQueue", "Utils", "MessageQueueDocumentationCard.tsx"],
       ["Pages", "MessageQueue", "View", "Documentation.tsx"],
       ["Pages", "MessageQueue", "Documentation.tsx"],
       ["Pages", "MessageQueue", "MessageQueues.tsx"],
+      ["Pages", "MessageQueue", "Utils", "MessageQueueAddedModal.tsx"],
     ]) {
       const source: string = readSource(...file);
       expect(source).not.toMatch(/Markdown\.tsx\/MarkdownViewer/);

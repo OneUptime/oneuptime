@@ -253,7 +253,13 @@ describe("Cloud Environments docs", (): void => {
     it("explains the environment key and where the non-cloud platforms go", (): void => {
       const hub: string = readPage(HUB_PAGE);
 
-      expect(hub).toContain("`platform|account|region`");
+      /*
+       * Platform, account and region, in that order: the key the examples
+       * show. Nothing on the page asks for it to be typed in any more.
+       */
+      expect(hub).toContain(
+        "OneUptime joins the three with `|` into the **environment key**",
+      );
       expect(hub).toContain("aws_ecs|123456789012|us-east-1");
       expect(hub).toContain("aws_ecs||us-east-1");
 

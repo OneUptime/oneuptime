@@ -89,9 +89,9 @@ Within an environment, each running task, instance or replica gets one row under
 
 The platform's own identity comes first on purpose. A sidecar collector and the application's SDK both see it, and it survives restarts. An SDK usually makes up a new `service.instance.id` for every process (the Node.js SDK does by default), so keying on it first would split one ECS task into two rows. `service.instance.id` is used when the platform sets no identity of its own. The **Instance identity** column in [Supported platforms](#supported-platforms) names the attribute a typical setup on each platform uses.
 
-### Environments you create by hand
+### Add an environment
 
-You rarely need to: ingest creates environments for you. To create one ahead of its telemetry, open **Cloud → All Environments** and click **Create Cloud Resource**. Pick the **Cloud Platform**, then type the **Cloud Account ID** and **Cloud Region** exactly as your telemetry reports them. OneUptime builds the key `platform|account|region` from these three, and ingest matches an environment on its key alone. It names the environment as ingest would; to show another name, open **More fields** and type a **Display Name**.
+Ingest creates environments for you, so there is nothing to type in. Open **Cloud → All Environments** and click **Add Cloud Environment**: pick where your app runs, and the guide shows that platform's OpenTelemetry settings, with your OneUptime URL and ingestion key filled in. Its last step, **Wait for it to connect**, says when the environment's first data has arrived and links to it. To show another name, choose **Edit Details** on the **Resource Details** card of the environment's **Settings** page and type a **Display Name**.
 
 ## What is not a cloud environment
 

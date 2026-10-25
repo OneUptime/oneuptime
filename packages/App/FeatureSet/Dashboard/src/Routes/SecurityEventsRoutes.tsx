@@ -31,6 +31,7 @@ import SecurityCaseOverviewPage from "../Pages/SecurityEvents/CaseView/Index";
 import SecurityCaseTimelinePage from "../Pages/SecurityEvents/CaseView/Timeline";
 import SecurityCaseDetectionsPage from "../Pages/SecurityEvents/CaseView/Detections";
 import SecurityCaseEntitiesPage from "../Pages/SecurityEvents/CaseView/Entities";
+import SecurityCaseConnectedSignalsPage from "../Pages/SecurityEvents/CaseView/ConnectedSignals";
 import SecurityCasePlaybookRunsPage from "../Pages/SecurityEvents/CaseView/PlaybookRuns";
 import SecurityCaseNotesPage from "../Pages/SecurityEvents/CaseView/Notes";
 import SecurityCaseAuditLogsPage from "../Pages/SecurityEvents/CaseView/AuditLogs";
@@ -438,6 +439,19 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
             <SecurityCaseEntitiesPage
               {...props}
               pageRoute={RouteMap[PageMap.SECURITY_CASE_VIEW_ENTITIES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SECURITY_CASE_VIEW_CONNECTED_SIGNALS,
+          )}
+          element={
+            <SecurityCaseConnectedSignalsPage
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SECURITY_CASE_VIEW_CONNECTED_SIGNALS] as Route
+              }
             />
           }
         />

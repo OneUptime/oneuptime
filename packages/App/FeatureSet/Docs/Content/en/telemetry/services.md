@@ -53,7 +53,7 @@ Go to **Products → Resources → Services**. **All Services** lists every serv
 - Select several services to add labels or owners to all of them at once, or to archive them.
 - Click a service to open its pages.
 
-To add a service before its telemetry arrives, for example to set its owners first, click **Create Service** and enter its **Name** exactly as its `service.name` will be. Label and owner rules run on it as on a discovered service.
+To add a service before its telemetry arrives, for example to set its owners first, click **Create Service** and enter its **Name** exactly as its `service.name` will be. Label and owner rules run on it as on a discovered service. Once it is saved, the OpenTelemetry setup guide opens with that name in every snippet, and its last step, **Wait for it to connect**, says when the service's first data arrives.
 
 ## A service's pages
 

@@ -48,6 +48,13 @@ export type TelemetryType =
 export interface ComponentProps {
   telemetryType?: TelemetryType | undefined;
   onClose?: (() => void) | undefined;
+  /*
+   * The service the snippets are for (a service Create Service just
+   * saved): its service.name in place of the examples' my-service.
+   */
+  serviceName?: string | undefined;
+  // Only the guide, in a dialog that has its own title.
+  isBare?: boolean | undefined;
 }
 
 /*
@@ -125,6 +132,66 @@ function replacePlaceholders(
     .replace(/<YOUR_ONEUPTIME_PYROSCOPE_URL>/g, pyroscopeUrl)
     .replace(/<YOUR_ONEUPTIME_OTLP_HOST>/g, otlpHost)
     .replace(/<YOUR_ONEUPTIME_TOKEN>/g, token);
+}
+
+/*
+ * A service name the snippets can carry: letters, marks and digits of any
+ * script, spaces, and . _ : / @ + , ( ) & -, as names like "User
+ * Authentication API" or "team/orders.v2" have. Every quote in the snippets
+ * takes such a name as it is. Anything else - a quote, a backslash, a $ -
+ * keeps the examples, for the reader to replace.
+ */
+const SERVICE_NAME_IN_SNIPPETS: RegExp = /^[\p{L}\p{M}\p{N} ._:/@+,()&-]+$/u;
+
+/*
+ * Where a shell reads the name bare (-Dotel.service.name=my-service,
+ * export PYROSCOPE_APPLICATION_NAME=my-service), one with anything else in
+ * it - a space, a bracket, a non-ASCII letter - goes in double quotes.
+ */
+const BARE_SHELL_WORD: RegExp = /^[A-Za-z0-9._:/@+,-]+$/;
+
+// The names the snippets give the service until it is known.
+const EXAMPLE_SERVICE_NAMES: Array<string> = [
+  "my-service",
+  "my-react-app",
+  "my-angular-app",
+];
+
+const EXAMPLE_SERVICE_NAME: RegExp = new RegExp(
+  EXAMPLE_SERVICE_NAMES.join("|"),
+  "g",
+);
+
+// Whether withServiceName writes this name into the snippets.
+export function canCarryServiceName(serviceName: string | undefined): boolean {
+  return SERVICE_NAME_IN_SNIPPETS.test((serviceName || "").trim());
+}
+
+/**
+ * A snippet with the service's own name in place of the examples', when
+ * the guide knows it and the snippets can carry it: as it is inside the
+ * snippets' quotes, and in quotes where a shell reads it bare. In one pass,
+ * so a name with an example in it ("my-react-app-web") is not replaced again.
+ */
+export function withServiceName(
+  code: string,
+  serviceName: string | undefined,
+): string {
+  const name: string = (serviceName || "").trim();
+
+  if (!canCarryServiceName(name)) {
+    return code;
+  }
+
+  return code.replace(
+    EXAMPLE_SERVICE_NAME,
+    (_example: string, offset: number): string => {
+      const before: string = code.charAt(offset - 1);
+      const isQuoted: boolean = before === '"' || before === "'";
+
+      return isQuoted || BARE_SHELL_WORD.test(name) ? name : `"${name}"`;
+    },
+  );
 }
 
 // --- OpenTelemetry code snippets per language ---
@@ -1658,12 +1725,15 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             <div>
               {renderBrowserKeyWarning()}
               <CodeBlock
-                code={replacePlaceholders(
-                  configSnippet.code,
-                  otlpUrlValue,
-                  otlpHostValue,
-                  tokenValue,
-                  pyroscopeUrl,
+                code={withServiceName(
+                  replacePlaceholders(
+                    configSnippet.code,
+                    otlpUrlValue,
+                    otlpHostValue,
+                    tokenValue,
+                    pyroscopeUrl,
+                  ),
+                  props.serviceName,
                 )}
                 language={configSnippet.language}
               />
@@ -1700,12 +1770,15 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                         can configure the exporter without touching code.
                       </p>
                       <CodeBlock
-                        code={replacePlaceholders(
-                          getEnvVarSnippet(),
-                          otlpUrlValue,
-                          otlpHostValue,
-                          tokenValue,
-                          pyroscopeUrl,
+                        code={withServiceName(
+                          replacePlaceholders(
+                            getEnvVarSnippet(),
+                            otlpUrlValue,
+                            otlpHostValue,
+                            tokenValue,
+                            pyroscopeUrl,
+                          ),
+                          props.serviceName,
                         )}
                         language="bash"
                       />
@@ -1728,12 +1801,15 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                         dimension you organize by.
                       </p>
                       <CodeBlock
-                        code={replacePlaceholders(
-                          getOneuptimeServiceLabelsSnippet(),
-                          otlpUrlValue,
-                          otlpHostValue,
-                          tokenValue,
-                          pyroscopeUrl,
+                        code={withServiceName(
+                          replacePlaceholders(
+                            getOneuptimeServiceLabelsSnippet(),
+                            otlpUrlValue,
+                            otlpHostValue,
+                            tokenValue,
+                            pyroscopeUrl,
+                          ),
+                          props.serviceName,
                         )}
                         language="bash"
                       />
@@ -1765,12 +1841,15 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             "Create FluentBit Configuration",
             "Create a fluent-bit.conf file that reads logs and forwards them to OneUptime via the OpenTelemetry output plugin.",
             <CodeBlock
-              code={replacePlaceholders(
-                getFluentBitSnippet(),
-                otlpUrlValue,
-                otlpHostValue,
-                tokenValue,
-                pyroscopeUrl,
+              code={withServiceName(
+                replacePlaceholders(
+                  getFluentBitSnippet(),
+                  otlpUrlValue,
+                  otlpHostValue,
+                  tokenValue,
+                  pyroscopeUrl,
+                ),
+                props.serviceName,
               )}
               language="yaml"
             />,
@@ -1795,12 +1874,15 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                   label: "Docker Compose",
                   content: (
                     <CodeBlock
-                      code={replacePlaceholders(
-                        getFluentBitDockerSnippet(),
-                        otlpUrlValue,
-                        otlpHostValue,
-                        tokenValue,
-                        pyroscopeUrl,
+                      code={withServiceName(
+                        replacePlaceholders(
+                          getFluentBitDockerSnippet(),
+                          otlpUrlValue,
+                          otlpHostValue,
+                          tokenValue,
+                          pyroscopeUrl,
+                        ),
+                        props.serviceName,
                       )}
                       language="yaml"
                     />
@@ -1832,12 +1914,15 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             "Create Fluentd Configuration",
             "Create a fluentd.conf file that collects logs and sends them to OneUptime over HTTP.",
             <CodeBlock
-              code={replacePlaceholders(
-                getFluentdSnippet(),
-                otlpUrlValue,
-                otlpHostValue,
-                tokenValue,
-                pyroscopeUrl,
+              code={withServiceName(
+                replacePlaceholders(
+                  getFluentdSnippet(),
+                  otlpUrlValue,
+                  otlpHostValue,
+                  tokenValue,
+                  pyroscopeUrl,
+                ),
+                props.serviceName,
               )}
               language="yaml"
             />,
@@ -1859,12 +1944,15 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                   label: "Docker Compose",
                   content: (
                     <CodeBlock
-                      code={replacePlaceholders(
-                        getFluentdDockerSnippet(),
-                        otlpUrlValue,
-                        otlpHostValue,
-                        tokenValue,
-                        pyroscopeUrl,
+                      code={withServiceName(
+                        replacePlaceholders(
+                          getFluentdDockerSnippet(),
+                          otlpUrlValue,
+                          otlpHostValue,
+                          tokenValue,
+                          pyroscopeUrl,
+                        ),
+                        props.serviceName,
                       )}
                       language="yaml"
                     />
@@ -1896,12 +1984,15 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             "Create Alloy Configuration",
             "Create an Alloy configuration file that uses eBPF to collect CPU profiles from all processes on your Linux host — no code changes required. Supports Go, Rust, C/C++, Java, Python, Ruby, PHP, Node.js, and .NET.",
             <CodeBlock
-              code={replacePlaceholders(
-                getAlloyEbpfSnippet(),
-                otlpUrlValue,
-                otlpHostValue,
-                tokenValue,
-                pyroscopeUrl,
+              code={withServiceName(
+                replacePlaceholders(
+                  getAlloyEbpfSnippet(),
+                  otlpUrlValue,
+                  otlpHostValue,
+                  tokenValue,
+                  pyroscopeUrl,
+                ),
+                props.serviceName,
               )}
               language="nginx"
             />,
@@ -1917,12 +2008,15 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                   label: "Docker Compose",
                   content: (
                     <CodeBlock
-                      code={replacePlaceholders(
-                        getAlloyDockerSnippet(),
-                        otlpUrlValue,
-                        otlpHostValue,
-                        tokenValue,
-                        pyroscopeUrl,
+                      code={withServiceName(
+                        replacePlaceholders(
+                          getAlloyDockerSnippet(),
+                          otlpUrlValue,
+                          otlpHostValue,
+                          tokenValue,
+                          pyroscopeUrl,
+                        ),
+                        props.serviceName,
                       )}
                       language="yaml"
                     />
@@ -2015,6 +2109,15 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
         return renderOpenTelemetryContent();
     }
   };
+
+  if (props.isBare) {
+    return (
+      <div data-testid="telemetry-documentation">
+        {renderMethodSelector()}
+        {renderActiveContent()}
+      </div>
+    );
+  }
 
   return (
     <div className="mb-5">

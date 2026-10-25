@@ -56,7 +56,7 @@ En el paso siguiente, haga clic en **Probar conexión**. La sonda inicia sesión
 De forma predeterminada, vCenter usa un certificado de su propia autoridad, en el que la sonda no confía. La prueba muestra entonces el certificado: compare su huella con la del propio vCenter y haga clic en **Confiar en este certificado**.
 
 ### Darle un nombre y conectar
-El nombre predeterminado es el nombre de host de vCenter. Haga clic en **Conectar vCenter** para guardar.
+El nombre predeterminado es el nombre de host de vCenter. Haga clic en **Conectar vCenter** para guardar, y se abre la página del vCenter.
 :::
 
 La **Vista general** del vCenter muestra una tarjeta **Recopilación de datos**. Indica **Comprobando** hasta la primera recopilación, que empieza en menos de un minuto, después **Recopilando**, y el inventario se completa.

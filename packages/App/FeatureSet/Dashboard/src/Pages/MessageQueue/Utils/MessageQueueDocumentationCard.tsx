@@ -3,6 +3,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import SetupGuideCard, {
+  SetupGuideFrameProps,
   SetupGuideRenderContext,
 } from "../../../Components/SetupGuide/SetupGuideCard";
 import { SetupGuideContent } from "../../../Components/SetupGuide/SetupGuide";
@@ -28,7 +29,7 @@ import {
  *
  * The guide itself is DocumentationMarkdown's getMessageQueueSetupGuide.
  */
-export interface ComponentProps {
+export interface ComponentProps extends SetupGuideFrameProps {
   title: string;
   description: string;
   queue?: MessageQueueDocumentationTarget | undefined;
@@ -76,6 +77,9 @@ const MessageQueueDocumentationCard: FunctionComponent<ComponentProps> = (
         return TelemetryIngestionKeyType.Server;
       }}
       getContent={getContent}
+      isBare={props.isBare}
+      inputs={props.inputs}
+      lastStep={props.lastStep}
     />
   );
 };

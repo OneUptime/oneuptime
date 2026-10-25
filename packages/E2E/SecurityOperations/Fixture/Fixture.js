@@ -42,7 +42,8 @@
  *   ?data=   none or fail: what the project's events say it sends, as the
  *            Rule Library reads them - nothing this week, or a read that
  *            fails. Otherwise Okta, Defender XDR and Kubernetes audit logs.
- *   ?lang=   de or ja: the Dashboard's German or Japanese locale.
+ *   ?lang=   de, ja or fa: the Dashboard's German, Japanese or Persian
+ *            locale (Persian right to left).
  *   ?values= custom: the project made its case statuses and priorities its
  *            own (CUSTOM_STATUSES below): Triage, an archived Escalated,
  *            Eradicating and Closed - Duplicate among the statuses, and
@@ -55,6 +56,12 @@
  *   ?threshold= the project's risk threshold (100 when left out).
  *   ?riskcase= 1: a.ng's risk reached the threshold and opened CASE-143.
  *            (EntityRiskFixture.js lays entity risk out.)
+ *   ?connections= fail, partial or busy: what a case's Connected Signals
+ *            and an entity's page read of the rest of OneUptime - a first
+ *            read that fails, one the role and a failed read keep kinds of
+ *            record from, or a case naming one record of every kind with
+ *            every fact and four possible matches. (ConnectionsFixture.js
+ *            lays the records out.)
  *
  * Every read is recorded on window.__securityOperationsFixture: getItem,
  * list, count and API requests, the writes, and `unhandled` - anything the
@@ -73,6 +80,7 @@ import {
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import de from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import fa from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import ja from "../../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 import SecurityEventsLayout from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Layout";
 import SecurityOverviewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Overview";
@@ -82,6 +90,7 @@ import SecurityCaseOverviewPage from "../../../App/FeatureSet/Dashboard/src/Page
 import SecurityCaseTimelinePage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Timeline";
 import SecurityCaseDetectionsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Detections";
 import SecurityCaseEntitiesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Entities";
+import SecurityCaseConnectedSignalsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/ConnectedSignals";
 import SecurityCasePlaybookRunsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/PlaybookRuns";
 import SecurityCaseNotesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Notes";
 import SecurityCaseAuditLogsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/AuditLogs";
@@ -108,6 +117,10 @@ import {
   riskActivityRow,
   seedEntityRisk,
 } from "./EntityRiskFixture";
+import {
+  CONNECTION_SCENARIOS,
+  createConnectionsFixture,
+} from "./ConnectionsFixture";
 import { SECURITY_PLAYBOOK_TEMPLATES } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookTemplates";
 import { SECURITY_CASE_QUEUE_VIEWS } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseQueueViews";
 import { SECURITY_PLAYBOOK_RUN_VIEWS } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunViews";
@@ -345,10 +358,11 @@ const dataScenario = DATA_SCENARIOS.includes(params.get("data"))
   ? params.get("data")
   : "";
 /*
- * ?lang=: the Dashboard's German or Japanese locale, loaded and switched to,
- * for the pages that are checked in other languages (the Rule Library).
+ * ?lang=: the Dashboard's German, Japanese or Persian locale, loaded and
+ * switched to, for the pages that are checked in other languages (the Rule
+ * Library, Connected Signals). Persian reads right to left.
  */
-const LANGUAGES = ["de", "ja"];
+const LANGUAGES = ["de", "ja", "fa"];
 const language = LANGUAGES.includes(params.get("lang"))
   ? params.get("lang")
   : "en";
@@ -377,6 +391,12 @@ const REFUSED_CASE_MESSAGE =
  * EntityRiskFixture.js describes them.
  */
 const riskScenario = readRiskScenario(params);
+// ?connections=: ConnectionsFixture.js's scenarios.
+const connectionsScenario = CONNECTION_SCENARIOS.includes(
+  params.get("connections"),
+)
+  ? params.get("connections")
+  : "";
 let statusReads = 0;
 let overviewReads = 0;
 // The recommended rule the partly scenario leaves undone the first time.
@@ -3281,6 +3301,25 @@ const AI_PROVIDERS = {
   ],
 };
 
+/*
+ * What a case, an event or an entity names in the rest of OneUptime - the
+ * project's hosts and members ConnectionsFixture.js lays out - worked out
+ * with the server's own matching rules.
+ */
+const connections = createConnectionsFixture({
+  now: NOW,
+  uuid,
+  MINUTE,
+  scenario: connectionsScenario,
+  findCase: (id) => {
+    return (
+      table(SecurityCase).find((row) => {
+        return String(row._id) === String(id);
+      }) || null
+    );
+  },
+});
+
 async function handleApi(method, options) {
   const url = options.url.toString();
   fixture.apiRequests.push({ method, url, body: serialize(options.data) });
@@ -3319,6 +3358,12 @@ async function handleApi(method, options) {
   }
   if (method === "POST" && path.endsWith("/security-case/entity-activity")) {
     return new HTTPResponse(200, entityActivity(options.data), {});
+  }
+  if (method === "POST" && path.endsWith("/security-case/connections")) {
+    const answer = connections.answer(options.data);
+    return answer.status === 200
+      ? new HTTPResponse(200, answer.body, {})
+      : new HTTPErrorResponse(answer.status, answer.body, {});
   }
   const triage = path.match(
     /\/security-case\/([^/]+)\/ai-triage(?:\/(start|evidence))?$/,
@@ -3380,10 +3425,13 @@ await i18next.use(initReactI18next).init({
   resources: {
     en: { translation: {} },
     de: { translation: de },
+    fa: { translation: fa },
     ja: { translation: ja },
   },
   interpolation: { escapeValue: false },
 });
+document.documentElement.lang = language;
+document.documentElement.dir = language === "fa" ? "rtl" : "ltr";
 
 /*
  * ---------------------------------------------------------------------------
@@ -3486,6 +3534,10 @@ const CASE_PAGES = [
   [PageMap.SECURITY_CASE_VIEW_TIMELINE, SecurityCaseTimelinePage],
   [PageMap.SECURITY_CASE_VIEW_DETECTIONS, SecurityCaseDetectionsPage],
   [PageMap.SECURITY_CASE_VIEW_ENTITIES, SecurityCaseEntitiesPage],
+  [
+    PageMap.SECURITY_CASE_VIEW_CONNECTED_SIGNALS,
+    SecurityCaseConnectedSignalsPage,
+  ],
   [PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS, SecurityCasePlaybookRunsPage],
   [PageMap.SECURITY_CASE_VIEW_NOTES, SecurityCaseNotesPage],
   [PageMap.SECURITY_CASE_VIEW_AUDIT_LOGS, SecurityCaseAuditLogsPage],

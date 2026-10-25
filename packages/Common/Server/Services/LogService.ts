@@ -173,7 +173,7 @@ export class LogService extends AnalyticsDatabaseService<Log> {
     const databaseName: string =
       this.database!.getDatasourceOptions().database!;
 
-    const statement: Statement = SQL`SELECT _id, time, createdAt, primaryEntityId, attributes, substring(body, 1, ${{
+    const statement: Statement = SQL`SELECT _id, time, createdAt, primaryEntityId, primaryEntityType, attributes, substring(body, 1, ${{
       type: TableColumnType.Number,
       value: SECURITY_LOG_SCAN_MAX_BODY_LENGTH,
     }}) AS body FROM `;

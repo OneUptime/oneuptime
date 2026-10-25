@@ -11,6 +11,9 @@ import {
 } from "../../Components/TelemetryResource/serviceGoldenMetrics";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
+import ObjectID from "Common/Types/ObjectID";
+import ServiceAddedModal from "../../Components/Service/ServiceAddedModal";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
@@ -30,7 +33,12 @@ import {
 import Service from "Common/Models/DatabaseModels/Service";
 import ServiceOwnerTeam from "Common/Models/DatabaseModels/ServiceOwnerTeam";
 import ServiceOwnerUser from "Common/Models/DatabaseModels/ServiceOwnerUser";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
 import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 
@@ -51,6 +59,15 @@ const ServicesPage: FunctionComponent<
     useBulkArchiveActions<Service>({
       modelType: Service,
     });
+
+  /*
+   * The service Create Service just saved: the OpenTelemetry guide opens on
+   * its own (ServiceAddedModal), with its service.name in every snippet.
+   */
+  const [addedService, setAddedService] = useState<{
+    id: ObjectID;
+    name: string;
+  } | null>(null);
 
   const {
     getOwnersForResource,
@@ -118,6 +135,18 @@ const ServicesPage: FunctionComponent<
         deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
         isCreateable={true}
+        onCreateSuccess={(
+          item: Service,
+          modalType?: ModalType,
+        ): Promise<Service> => {
+          if (item._id && modalType !== ModalType.Edit) {
+            setAddedService({
+              id: new ObjectID(item._id.toString()),
+              name: item.name || "",
+            });
+          }
+          return Promise.resolve(item);
+        }}
         bulkActions={{
           buttons: [
             ...labelBulkActions,
@@ -283,6 +312,15 @@ const ServicesPage: FunctionComponent<
           },
         ]}
       />
+      {addedService && (
+        <ServiceAddedModal
+          serviceId={addedService.id}
+          name={addedService.name}
+          onClose={() => {
+            setAddedService(null);
+          }}
+        />
+      )}
       {labelBulkActionModals}
       {ownerBulkActionModals}
     </Fragment>

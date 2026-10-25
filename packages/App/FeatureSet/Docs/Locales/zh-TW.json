@@ -396,6 +396,7 @@
     "Security Events (SIEM)": "安全性事件(SIEM)",
     "Security Cases and Playbooks (SOAR)": "安全案件與劇本(SOAR)",
     "Entity Risk (Risk-Based Alerting)": "實體風險（基於風險的警示）",
+    "Connected Signals": "關聯訊號",
     "Threat Intelligence (STIX/TAXII)": "威脅情資(STIX/TAXII)",
     "OneUptime AI in Security": "安全性中的 OneUptime AI",
     "RUM Overview": "RUM 概觀",

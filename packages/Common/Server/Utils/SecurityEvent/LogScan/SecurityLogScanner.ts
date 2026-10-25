@@ -325,6 +325,19 @@ export default class SecurityLogScanner {
               attributes: readAttributes(row["attributes"]),
               time: readClickhouseDate(row["time"]) || now,
               logId: typeof row["_id"] === "string" ? row["_id"] : undefined,
+              /*
+               * The record the log was sent under (a Service, a Host, a
+               * Kubernetes cluster...), so each event is connected to it
+               * exactly, whatever names it carries.
+               */
+              resourceId:
+                typeof row["primaryEntityId"] === "string"
+                  ? row["primaryEntityId"]
+                  : undefined,
+              resourceType:
+                typeof row["primaryEntityType"] === "string"
+                  ? row["primaryEntityType"]
+                  : undefined,
             }),
           );
         }

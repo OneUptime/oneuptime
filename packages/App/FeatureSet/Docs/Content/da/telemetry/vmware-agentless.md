@@ -56,7 +56,7 @@ Klik på **Test forbindelse** i næste trin. Sonden logger på, læser, hvad kon
 vCenter bruger som standard et certifikat fra sin egen udsteder, som sonden ikke har tillid til. Testen viser så certifikatet: sammenlign dets fingeraftryk med vCenters eget, og klik så på **Stol på dette certifikat**.
 
 ### Navngiv og forbind
-Navnet er som standard vCenters værtsnavn. Klik på **Forbind vCenter** for at gemme.
+Navnet er som standard vCenters værtsnavn. Klik på **Forbind vCenter** for at gemme, og vCenterens side åbnes.
 :::
 
 vCenterens **Oversigt** viser et kort **Dataindsamling**. Det viser **Kontrollerer** indtil den første indsamling, som starter inden for et minut, derefter **Indsamler**, og inventaret fyldes ud.

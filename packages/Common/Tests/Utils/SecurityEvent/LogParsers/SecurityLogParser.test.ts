@@ -1,6 +1,12 @@
 import { describe, expect, test } from "@jest/globals";
 import { JSONObject } from "../../../../Types/JSON";
 import {
+  SECURITY_LOG_RESOURCE_ID_ATTRIBUTE,
+  SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE,
+} from "../../../../Types/SecurityCase/SecurityConnection";
+import ServiceType from "../../../../Types/Telemetry/ServiceType";
+import { readSecurityLogResource } from "../../../../Utils/SecurityCase/SecurityConnectionMatch";
+import {
   DETECTION_RULE_LIBRARY,
   DetectionRuleLibraryEntry,
   getRecommendedDetectionRules,
@@ -595,4 +601,45 @@ describe("attributes a parser reads", () => {
     expect(first[0]!.targetHost).toBe("a");
     expect(second[0]!.targetHost).toBe("b");
   });
+
+  test("an event carries the record its log was sent under, what connects it to that host or service exactly", () => {
+    const hostId: string = "0192f1a0-0000-7000-8000-0000000000aa";
+    const events: Array<NormalizedSecurityEvent> = SecurityLogParser.parse({
+      ...logLine(SSH_LINES.failedPasswordRoot),
+      resourceId: ` ${hostId} `,
+      resourceType: ServiceType.Host,
+    });
+
+    expect(events[0]!.attributes?.[SECURITY_LOG_RESOURCE_ID_ATTRIBUTE]).toBe(
+      hostId,
+    );
+    expect(events[0]!.attributes?.[SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE]).toBe(
+      ServiceType.Host,
+    );
+    expect(readSecurityLogResource(events[0]!.attributes)).toEqual({
+      type: ServiceType.Host,
+      id: hostId,
+    });
+  });
+
+  test.each([
+    ["no record", undefined, undefined],
+    ["an id that is not one", "project-1", ServiceType.Host],
+    ["an id without its type", "0192f1a0-0000-7000-8000-0000000000aa", " "],
+  ])(
+    "a log sent under %s connects its event to nothing",
+    (_case: string, resourceId?: string, resourceType?: string) => {
+      const events: Array<NormalizedSecurityEvent> = SecurityLogParser.parse({
+        ...logLine(SSH_LINES.failedPasswordRoot),
+        resourceId,
+        resourceType,
+      });
+
+      expect(events).toHaveLength(1);
+      expect(
+        events[0]!.attributes?.[SECURITY_LOG_RESOURCE_ID_ATTRIBUTE],
+      ).toBeUndefined();
+      expect(readSecurityLogResource(events[0]!.attributes)).toBeNull();
+    },
+  );
 });

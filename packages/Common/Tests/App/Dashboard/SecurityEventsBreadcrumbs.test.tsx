@@ -182,6 +182,10 @@ describe("each trail names the page as the menu does", () => {
       ["Security Events", "Security Cases", "View Case", "Entities"],
     ],
     [
+      PageMap.SECURITY_CASE_VIEW_CONNECTED_SIGNALS,
+      ["Security Events", "Security Cases", "View Case", "Connected Signals"],
+    ],
+    [
       PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS,
       ["Security Events", "Security Cases", "View Case", "Playbook Runs"],
     ],
@@ -414,6 +418,7 @@ describe("each crumb opens what its name says", () => {
     [PageMap.SECURITY_CASE_VIEW_TIMELINE, "timeline"],
     [PageMap.SECURITY_CASE_VIEW_DETECTIONS, "detections"],
     [PageMap.SECURITY_CASE_VIEW_ENTITIES, "entities"],
+    [PageMap.SECURITY_CASE_VIEW_CONNECTED_SIGNALS, "connected-signals"],
     [PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS, "playbook-runs"],
     [PageMap.SECURITY_CASE_VIEW_NOTES, "notes"],
     [PageMap.SECURITY_CASE_VIEW_AUDIT_LOGS, "audit-logs"],

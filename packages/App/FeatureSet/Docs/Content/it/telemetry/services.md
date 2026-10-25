@@ -53,7 +53,7 @@ Aprite **Prodotti → Risorse → Servizi**. **Tutti i servizi** elenca ogni ser
 - Selezionate più servizi per aggiungere a tutti etichette o proprietari in una volta, oppure per archiviarli.
 - Fate clic su un servizio per aprirne le pagine.
 
-Per aggiungere un servizio prima che ne arrivi la telemetria, ad esempio per definire prima i proprietari, fate clic su **Crea: Servizio** e inserite il **Nome** esattamente come sarà il suo `service.name`. Le regole per etichette e proprietari si applicano anche a lui, come a un servizio rilevato.
+Per aggiungere un servizio prima che ne arrivi la telemetria, ad esempio per definire prima i proprietari, fate clic su **Crea: Servizio** e inserite il **Nome** esattamente come sarà il suo `service.name`. Le regole per etichette e proprietari si applicano anche a lui, come a un servizio rilevato. Una volta salvato, si apre la guida di configurazione di OpenTelemetry con quel nome in ogni snippet, e il suo ultimo passaggio, **Attendi che si connetta**, indica quando arrivano i primi dati del servizio.
 
 ## Le pagine di un servizio
 

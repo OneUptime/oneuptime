@@ -53,7 +53,7 @@ Gå till **Produkter → Resurser → Tjänster**. **Alla tjänster** visar varj
 - Markera flera tjänster för att ge alla etiketter eller ägare på en gång, eller för att arkivera dem.
 - Klicka på en tjänst för att öppna dess sidor.
 
-För att lägga till en tjänst innan dess telemetri kommer in, till exempel för att ange dess ägare först, klickar du på **Skapa Tjänst** och anger dess **Namn** exakt som dess `service.name` kommer att vara. Etikett- och ägarregler körs på den som på en upptäckt tjänst.
+För att lägga till en tjänst innan dess telemetri kommer in, till exempel för att ange dess ägare först, klickar du på **Skapa Tjänst** och anger dess **Namn** exakt som dess `service.name` kommer att vara. Etikett- och ägarregler körs på den som på en upptäckt tjänst. När den har sparats öppnas installationsguiden för OpenTelemetry med det namnet i varje kodsnutt, och dess sista steg, **Vänta på anslutningen**, visar när tjänstens första data kommer in.
 
 ## En tjänsts sidor
 

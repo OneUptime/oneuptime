@@ -112,7 +112,7 @@ Open each environment's **Overview**: its **Environment Key** shows which part d
 
 ## A hand-made environment never matches
 
-Ingest matches an environment on its key alone, and the key must be exactly `platform|account|region`, such as `aws_ecs|123456789012|us-east-1`: the same platform value, account ID and region as the telemetry carries. The create form (**Create Cloud Resource** under **Cloud → All Environments**) builds the key from its **Cloud Platform**, **Cloud Account ID** and **Cloud Region** fields, so those three must match the telemetry character for character. If they do not, ingest creates a second environment with the key it worked out, and yours stays empty. Archive the hand-made environment and let ingest create the right one, or create it again with the corrected values.
+Ingest matches an environment on its key alone, and the key must be exactly `platform|account|region`, such as `aws_ecs|123456789012|us-east-1`: the same platform value, account ID and region as the telemetry carries. An environment created through the API, or by hand before **Add Cloud Environment** replaced the dashboard's form, is matched only when its **Cloud Platform**, **Cloud Account ID** and **Cloud Region** equal the telemetry's character for character. If they do not, ingest creates a second environment with the key it worked out, and yours stays empty. Archive the hand-made environment and let ingest create the right one.
 
 ## Still stuck
 
