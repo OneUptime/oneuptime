@@ -995,14 +995,18 @@ describe("the rules (AddOwners)", () => {
       ]),
     );
     expect(new Set(permissions).size).toBe(permissions.length);
-    expect(
-      either.hasCreatePermissions([Permission.CreateIncidentOwnerTeam]),
-    ).toBe(true);
-    expect(
-      either.hasCreatePermissions([Permission.CreateIncidentOwnerUser]),
-    ).toBe(true);
-    expect(either.hasCreatePermissions([Permission.IncidentViewer])).toBe(
-      false,
+    // Every permission of each table, nothing else.
+    expect([...permissions].sort()).toEqual(
+      [
+        ...new Set([
+          ...new IncidentOwnerUser().getCreatePermissions(),
+          ...new IncidentOwnerTeam().getCreatePermissions(),
+        ]),
+      ].sort(),
+    );
+    // The tables themselves are left as they are.
+    expect(new IncidentOwnerUser().getCreatePermissions()).not.toContain(
+      Permission.CreateIncidentOwnerTeam,
     );
     // A monitor's tables name the monitor's permissions, not an incident's.
     expect(

@@ -11,7 +11,6 @@ import {
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
   ModelAction,
-  PermissionCheckableModel,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -146,13 +145,14 @@ export const canAddOwners: (tables: OwnerTables) => boolean = (
  * The record's two owner tables as one, for the reason a control that adds
  * owners of either kind is locked: either table's create permission would
  * open it, so the reason names the permissions of both - a reader asking
- * for "Create Incident Team Owner" may add owners too.
+ * for "Create Incident Team Owner" may add owners too. It is the people
+ * table asked for both tables' create permissions: PermissionGate reads a
+ * model's permissions through getCreatePermissions alone, and the reader's
+ * through the permission snapshot (never a model's flat checks).
  */
-export const getEitherOwnerTable: (
+export const getEitherOwnerTable: (tables: OwnerTables) => BaseModel = (
   tables: OwnerTables,
-) => PermissionCheckableModel = (
-  tables: OwnerTables,
-): PermissionCheckableModel => {
+): BaseModel => {
   const people: BaseModel = new tables.ownerUserModelType();
   const teams: BaseModel = new tables.ownerTeamModelType();
   const createPermissions: Array<Permission> = [];
@@ -166,37 +166,11 @@ export const getEitherOwnerTable: (
     }
   }
 
-  return {
-    singularName: people.singularName,
-    isOperationalResource: people.isOperationalResource,
-    hasCreatePermissions: (permissions: Array<Permission>): boolean => {
-      return (
-        people.hasCreatePermissions(permissions) ||
-        teams.hasCreatePermissions(permissions)
-      );
-    },
-    hasReadPermissions: (permissions: Array<Permission>): boolean => {
-      return people.hasReadPermissions(permissions);
-    },
-    hasUpdatePermissions: (permissions: Array<Permission>): boolean => {
-      return people.hasUpdatePermissions(permissions);
-    },
-    hasDeletePermissions: (permissions: Array<Permission>): boolean => {
-      return people.hasDeletePermissions(permissions);
-    },
-    getCreatePermissions: (): Array<Permission> => {
-      return createPermissions;
-    },
-    getReadPermissions: (): Array<Permission> => {
-      return people.getReadPermissions();
-    },
-    getUpdatePermissions: (): Array<Permission> => {
-      return people.getUpdatePermissions();
-    },
-    getDeletePermissions: (): Array<Permission> => {
-      return people.getDeletePermissions();
-    },
+  people.getCreatePermissions = (): Array<Permission> => {
+    return createPermissions;
   };
+
+  return people;
 };
 
 /*
