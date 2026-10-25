@@ -4,6 +4,7 @@ import AIInsightEvidence, {
   ExceptionInsightEvidence,
   ExceptionStackTraceInsightEvidence,
   LatencyInsightEvidence,
+  LogInsightEvidence,
   LogSpikeInsightEvidence,
   MetricDriftInsightEvidence,
   ProfileInsightEvidence,
@@ -39,6 +40,9 @@ const SECTION_FOR_TYPE: Record<AIInsightType, EvidenceSection> = {
   [AIInsightType.TraceFailingOperation]: "trace",
   [AIInsightType.TraceMissingTracing]: "trace",
   [AIInsightType.ExceptionMissingStackTrace]: "exceptionStackTrace",
+  [AIInsightType.LogErrorPattern]: "log",
+  [AIInsightType.LogMissingLogging]: "log",
+  [AIInsightType.LogNoisyPattern]: "log",
 };
 
 const ALL_SECTIONS: Array<EvidenceSection> = [
@@ -50,6 +54,7 @@ const ALL_SECTIONS: Array<EvidenceSection> = [
   "profile",
   "trace",
   "exceptionStackTrace",
+  "log",
 ];
 
 const setSections: (evidence: AIInsightEvidence) => Array<string> = (
@@ -232,6 +237,21 @@ const traceEvidence: TraceInsightEvidence = {
   ],
 };
 
+const logEvidence: LogInsightEvidence = {
+  serviceId: "7e6a3c1a-1111-4222-8333-944455556666",
+  kind: "Noisy",
+  windowStartTime: "2026-10-24T08:00:00.000Z",
+  windowEndTime: "2026-10-24T09:00:00.000Z",
+  logCount: 48000,
+  errorLogCount: 12,
+  pattern: "cache hit for key <uuid>",
+  patternCount: 29760,
+  patternPercent: 62.5,
+  sampledLogCount: 48000,
+  severities: ["Debug", "Information"],
+  searchText: "cache hit for key",
+};
+
 describe("AIInsightEvidence", () => {
   test("every insight type maps to a known evidence section", () => {
     for (const type of Object.values(AIInsightType)) {
@@ -262,6 +282,7 @@ describe("AIInsightEvidence", () => {
       "exceptionStackTrace",
       { exceptionStackTrace: exceptionStackTraceEvidence },
     ],
+    ["log", { log: logEvidence }],
   ] as Array<[EvidenceSection, AIInsightEvidence]>)(
     "%s evidence survives a JSON round trip with exactly one section set",
     (section: EvidenceSection, evidence: AIInsightEvidence) => {
@@ -399,6 +420,42 @@ describe("AIInsightEvidence", () => {
     expect(Object.keys(roundTrip({ trace: service }).trace!)).not.toContain(
       "operationName",
     );
+  });
+
+  test("log evidence keeps its message's pattern, its share and its severities exactly", () => {
+    const restored: AIInsightEvidence = roundTrip({ log: logEvidence });
+
+    expect(restored.log?.pattern).toBe("cache hit for key <uuid>");
+    expect(restored.log?.patternPercent).toBe(62.5);
+    expect(restored.log?.severities).toEqual(["Debug", "Information"]);
+    expect(restored.log?.searchText).toBe("cache hit for key");
+  });
+
+  test("a missing-logging finding needs no message, and a silent failure keeps its error", () => {
+    const silent: LogInsightEvidence = {
+      serviceId: "7e6a3c1a-1111-4222-8333-944455556666",
+      kind: "MissingLogging",
+      gap: "SilentFailures",
+      windowStartTime: "2026-10-24T08:00:00.000Z",
+      windowEndTime: "2026-10-24T09:00:00.000Z",
+      logCount: 18400,
+      tracedLogCount: 17000,
+      operationName: "POST /checkout",
+      operationSpanCount: 2600,
+      failedSpanCount: 312,
+      failedSampleSize: 20,
+      sampleTraceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+      error: {
+        exceptionType: "TimeoutError",
+        sampleMatches: 18,
+        sampleSize: 20,
+      },
+    };
+    const restored: AIInsightEvidence = roundTrip({ log: silent });
+
+    expect(Object.keys(restored.log!)).not.toContain("pattern");
+    expect(restored.log?.error?.sampleMatches).toBe(18);
+    expect(restored.log?.failedSampleSize).toBe(20);
   });
 
   test("log spike topServices preserves order", () => {

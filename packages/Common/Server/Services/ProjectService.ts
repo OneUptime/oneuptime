@@ -248,6 +248,7 @@ export type NewProjectAiDefaultColumn =
   | "enableAutomaticProfileRemediation"
   | "enableAutomaticTraceRemediation"
   | "enableAutomaticExceptionRemediation"
+  | "enableAutomaticLogRemediation"
   | "autoArchiveNonActionableExceptions";
 
 export const NEW_PROJECT_AI_DEFAULT_COLUMNS: ReadonlyArray<NewProjectAiDefaultColumn> =
@@ -261,6 +262,7 @@ export const NEW_PROJECT_AI_DEFAULT_COLUMNS: ReadonlyArray<NewProjectAiDefaultCo
     "enableAutomaticProfileRemediation",
     "enableAutomaticTraceRemediation",
     "enableAutomaticExceptionRemediation",
+    "enableAutomaticLogRemediation",
     "autoArchiveNonActionableExceptions",
   ];
 

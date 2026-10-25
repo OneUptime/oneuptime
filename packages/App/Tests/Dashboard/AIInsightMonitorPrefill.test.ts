@@ -27,6 +27,7 @@ import MonitorStepTraceMonitor, {
 } from "Common/Types/Monitor/MonitorStepTraceMonitor";
 import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import { TRACE_INSIGHT_MIN_FAILED_SPANS } from "Common/Utils/Traces/TraceInsight";
+import { LOG_INSIGHT_MIN_ERROR_PATTERN_COUNT } from "Common/Utils/Logs/LogInsight";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
@@ -256,6 +257,35 @@ function failingOperation(
           sampleSize: 5,
         },
         ...trace,
+      },
+    },
+    ...overrides,
+  };
+}
+
+// An error log Logs' detector filed (Utils/Logs/LogInsight).
+function errorLog(
+  overrides: Partial<AIInsightMonitorInput> = {},
+  log: Partial<NonNullable<AIInsightEvidence["log"]>> = {},
+): AIInsightMonitorInput {
+  return {
+    insightType: AIInsightType.LogErrorPattern,
+    severity: AIInsightSeverity.High,
+    serviceName: "checkout",
+    telemetryServiceId: SERVICE_ID,
+    evidence: {
+      log: {
+        serviceId: SERVICE_ID,
+        kind: "Error",
+        windowStartTime: "2026-10-24T08:00:00.000Z",
+        windowEndTime: "2026-10-24T09:00:00.000Z",
+        logCount: 18400,
+        errorLogCount: 2100,
+        pattern: "Payment provider returned <num>: card declined",
+        patternCount: 1240,
+        severities: ["Error"],
+        searchText: "Payment provider returned",
+        ...log,
       },
     },
     ...overrides,
@@ -663,29 +693,55 @@ describe("getAIInsightMonitorBlocker", () => {
     );
   });
 
-  test("missing tracing and missing stack traces are not offered at all; every other kind is", () => {
-    expect(
-      Prefill.isAIInsightMonitorOffered(AIInsightType.TraceMissingTracing),
-    ).toBe(false);
-    // What an exception lacks is not a count either.
-    expect(
-      Prefill.isAIInsightMonitorOffered(
-        AIInsightType.ExceptionMissingStackTrace,
-      ),
-    ).toBe(false);
+  test("missing tracing, missing stack traces, missing logging and noisy logs are not offered at all; every other kind is", () => {
+    const notOffered: Array<AIInsightType> = [
+      AIInsightType.TraceMissingTracing,
+      // What an exception lacks is not a count either.
+      AIInsightType.ExceptionMissingStackTrace,
+      AIInsightType.LogMissingLogging,
+      AIInsightType.LogNoisyPattern,
+    ];
+
+    for (const insightType of notOffered) {
+      expect(Prefill.isAIInsightMonitorOffered(insightType)).toBe(false);
+    }
+
+    expect([...Prefill.AI_INSIGHT_TYPES_NOT_MONITORED]).toEqual([
+      AIInsightType.LogMissingLogging,
+      AIInsightType.LogNoisyPattern,
+    ]);
 
     for (const insightType of Object.values(AIInsightType).filter(
       (value: AIInsightType): boolean => {
-        return (
-          value !== AIInsightType.TraceMissingTracing &&
-          value !== AIInsightType.ExceptionMissingStackTrace
-        );
+        return !notOffered.includes(value);
       },
     )) {
       expect(Prefill.isAIInsightMonitorOffered(insightType)).toBe(true);
     }
 
     expect(Prefill.isAIInsightMonitorOffered(undefined)).toBe(true);
+  });
+
+  test("an error log can become a monitor once it has words of its message to search for", () => {
+    expect(Prefill.getAIInsightMonitorBlocker(errorLog())).toBeNull();
+    // A service not known by id still counts the message's lines.
+    expect(
+      Prefill.getAIInsightMonitorBlocker(
+        errorLog({ telemetryServiceId: undefined }),
+      ),
+    ).toBeNull();
+
+    for (const searchText of [undefined, "", "   "]) {
+      expect(
+        Prefill.getAIInsightMonitorBlocker(errorLog({}, { searchText })),
+      ).toBe(Prefill.AI_INSIGHT_MONITOR_LOG_MESSAGE_SCOPE_BLOCKER);
+    }
+
+    expect(
+      Prefill.getAIInsightMonitorBlocker({
+        insightType: AIInsightType.LogErrorPattern,
+      }),
+    ).toBe(Prefill.AI_INSIGHT_MONITOR_LOG_MESSAGE_SCOPE_BLOCKER);
   });
 
   test("an unknown or absent insight type is refused, never a crash", () => {
@@ -923,6 +979,18 @@ describe("every prefill is a monitor the form can save", () => {
       },
     },
     {
+      name: "error log",
+      insight: () => {
+        return errorLog();
+      },
+    },
+    {
+      name: "error log of a service not known by id",
+      insight: () => {
+        return errorLog({ telemetryServiceId: undefined });
+      },
+    },
+    {
       name: "metric drift up",
       insight: () => {
         return metricDrift();
@@ -1060,6 +1128,12 @@ describe("every prefill is a monitor the form can save", () => {
               "GET /pay ![x](https://evil.example/beacon.png) [click](https://evil.example/login)";
           }
 
+          // So are a log message's words.
+          if (hostile.evidence?.log) {
+            hostile.evidence.log.searchText =
+              "Upload failed ![x](https://evil.example/beacon.png) [click](https://evil.example/login)";
+          }
+
           for (const sentence of proseOf(build(hostile))) {
             expect(sentence).not.toContain("evil.example");
             expect(sentence).not.toContain("](");
@@ -1169,6 +1243,114 @@ describe("TraceFailingOperation → Traces monitor", () => {
         build(failingOperation({ severity: AIInsightSeverity.High })),
       ).data?.incidents[0]?.incidentSeverityId?.toString(),
     ).toBe(CRITICAL_INCIDENT_ID);
+  });
+});
+
+describe("LogErrorPattern → Logs monitor", () => {
+  test("watches the service's Error and Fatal lines holding the message's words, over an hour", () => {
+    const prefill: JSONObject = build(errorLog());
+
+    expect(prefill["monitorType"]).toBe(MonitorType.Logs);
+    expect(prefill["name"]).toBe("Error log in checkout");
+
+    const logMonitor: MonitorStepLogMonitor = stepOf(prefill).data!.logMonitor!;
+
+    expect(logMonitor.body).toBe("Payment provider returned");
+    expect(logMonitor.severityTexts).toEqual([
+      LogSeverity.Error,
+      LogSeverity.Fatal,
+    ]);
+    expect(idsOf(logMonitor.telemetryServiceIds)).toEqual([SERVICE_ID]);
+    expect(logMonitor.lastXSecondsOfLogs).toBe(3600);
+    // Nothing the detector does not filter on.
+    expect(logMonitor.attributes).toEqual({});
+
+    for (const key of Object.keys(MonitorStepLogMonitorUtil.getDefault())) {
+      expect(Object.keys(logMonitor)).toContain(key);
+    }
+  });
+
+  test("the threshold is the detector's own floor of lines in an hour", () => {
+    expect(Prefill.LOG_ERROR_PATTERN_MIN_COUNT).toBe(
+      LOG_INSIGHT_MIN_ERROR_PATTERN_COUNT,
+    );
+
+    const prefill: JSONObject = build(errorLog());
+    const unhealthy: CriteriaFilter = onlyFilter(unhealthyOf(prefill));
+
+    expect(unhealthy.checkOn).toBe(CheckOn.LogCount);
+    expect(unhealthy.filterType).toBe(FilterType.GreaterThanOrEqualTo);
+    expect(unhealthy.value).toBe(LOG_INSIGHT_MIN_ERROR_PATTERN_COUNT);
+    expect(unhealthyOf(prefill).data?.name).toBe(
+      `${LOG_INSIGHT_MIN_ERROR_PATTERN_COUNT} or more of these error logs in an hour`,
+    );
+    expect(healthyOf(prefill).data?.description).toBe(
+      `Fewer than ${LOG_INSIGHT_MIN_ERROR_PATTERN_COUNT} of these error logs in the past hour.`,
+    );
+  });
+
+  test("its description says where it came from, when it fires and why at that number", () => {
+    const description: string = String(build(errorLog())["description"]);
+
+    expect(description).toContain(
+      "Created from an AI insight that found an error logged again and again.",
+    );
+    /*
+     * When it fires, in the words the other monitors made from an insight
+     * use: the condition follows, so it is never read as "logged once more".
+     */
+    expect(description).toContain("Opens an incident when this happens again:");
+    expect(description).not.toContain("when it is logged again");
+    expect(description).toContain(
+      `The error was logged ${LOG_INSIGHT_MIN_ERROR_PATTERN_COUNT} or more times within an hour.`,
+    );
+    expect(description).toContain("the AI detector's bar for an error log");
+  });
+
+  test("the incident says what to look at next", () => {
+    const incident: { title: string; description: string } | undefined =
+      unhealthyOf(build(errorLog())).data?.incidents[0];
+
+    expect(incident?.title).toBe("Error log in checkout");
+    expect(incident?.description).toContain(
+      "Open the logs for the past hour to see the lines",
+    );
+  });
+
+  test("the message's words reach the body filter only, never a sentence", () => {
+    const prefill: JSONObject = build(errorLog());
+
+    for (const sentence of proseOf(prefill)) {
+      expect(sentence).not.toContain("Payment provider returned");
+      expect(sentence).not.toContain("card declined");
+    }
+
+    expect(stepOf(prefill).data!.logMonitor!.body).toBe(
+      "Payment provider returned",
+    );
+  });
+
+  test("a service not known by id: named for the error alone, every service's lines counted", () => {
+    const prefill: JSONObject = build(
+      errorLog({ telemetryServiceId: undefined }),
+    );
+
+    expect(prefill["name"]).toBe("Error log");
+    expect(stepOf(prefill).data!.logMonitor!.telemetryServiceIds).toEqual([]);
+  });
+
+  test("missing logging and noisy logs build nothing", () => {
+    for (const insightType of [
+      AIInsightType.LogMissingLogging,
+      AIInsightType.LogNoisyPattern,
+    ]) {
+      expect(
+        Prefill.buildAIInsightMonitorPrefill({
+          insight: errorLog({ insightType }),
+          seeds: seeds(),
+        }),
+      ).toBeNull();
+    }
   });
 });
 

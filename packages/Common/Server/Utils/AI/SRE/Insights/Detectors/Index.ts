@@ -12,6 +12,11 @@ import {
   TraceMissingTracingDetector,
   TraceSlowOperationDetector,
 } from "./TraceProblemDetector";
+import {
+  LogErrorPatternDetector,
+  LogMissingLoggingDetector,
+  LogNoisyPatternDetector,
+} from "./LogProblemDetector";
 import { TelemetryAiLane } from "../../../../../../Types/AI/TelemetryAi";
 
 /*
@@ -63,6 +68,13 @@ export default class InsightDetectors {
           new NewExceptionDetector(),
           new ExceptionSpikeDetector(),
           new ExceptionMissingStackTraceDetector(),
+        ];
+      // Logs: one detector each, sharing one look (LogProblemDetector).
+      case TelemetryAiLane.Log:
+        return [
+          new LogErrorPatternDetector(),
+          new LogMissingLoggingDetector(),
+          new LogNoisyPatternDetector(),
         ];
       default:
         return [];

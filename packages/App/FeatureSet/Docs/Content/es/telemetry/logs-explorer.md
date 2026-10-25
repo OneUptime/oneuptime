@@ -8,6 +8,7 @@ El explorador de registros es donde busca y lee los registros que sus servicios,
 - [Seguir los registros en vivo](#seguir-los-registros-en-vivo): Líneas nuevas cada 10 segundos.
 - [Guardar una vista](#guardar-una-vista): Conservar una búsqueda, sus filtros y sus columnas para todos.
 - [Análisis de registros](#análisis-de-registros): Errores principales, gravedades y quién registra qué.
+- [Encontrar y corregir con IA registros de error, faltantes o ruidosos](#encontrar-y-corregir-con-ia-registros-de-error-faltantes-o-ruidosos): Pull requests que corrigen errores, registran lo que no se registra y silencian las líneas ruidosas.
 :::
 
 ## Cómo reduce el explorador sus registros
@@ -23,12 +24,13 @@ flowchart TB
     list --> details["Un registro: detalles<br/>y contexto"]
 ```
 
-El explorador tiene cuatro pestañas:
+El explorador tiene cinco pestañas:
 
 | Pestaña | Para qué sirve |
 | --- | --- |
 | **Visor** | Buscar, filtrar y leer registros. Se abre con la última hora, los más recientes primero, 100 registros por página. |
 | **Análisis** | Lo que sus servicios registraron en un intervalo de tiempo y lo que salió mal. |
+| **IA** | Los registros de error, el registro faltante y los registros ruidosos que OneUptime encuentra en sus registros, y lo que la IA de OneUptime hizo al respecto. Consulte [Encontrar y corregir con IA registros de error, faltantes o ruidosos](#encontrar-y-corregir-con-ia-registros-de-error-faltantes-o-ruidosos). |
 | **Guía de configuración** | Cómo enviar registros con OpenTelemetry, Fluent Bit o Fluentd, usando una de sus [claves de ingesta](/docs/telemetry/ingestion-keys). |
 | **Ajustes** | Lo que les pasa a los registros al llegar: **Canalizaciones**, **Filtros de descarte**, **Reglas de depuración** y **Reglas de grabación**. |
 
@@ -129,6 +131,46 @@ La pestaña **Análisis** muestra lo que sus servicios registraron en un interva
 | **Orígenes que informan registros** | El volumen y la señal de errores de cada servicio, host u otro origen. |
 
 Seleccione un error principal para ver qué ocurría a su alrededor: cuándo pasó, qué comparten sus ocurrencias, dónde ocurre, las trazas que lo llevan y sus líneas más recientes. **Abrir registros coincidentes** los abre en el **Visor**, y **Explain with AI** abre [Ask AI](/docs/ai/ask-ai) con el error y sus pruebas como un prompt que puede editar.
+
+## Encontrar y corregir con IA registros de error, faltantes o ruidosos
+
+Cada hora OneUptime revisa los registros de la última hora de cada servicio en busca de errores que registra una y otra vez, fallos que no registra y líneas que inundan sus registros, y anota lo que encuentra como hallazgos de IA, con las pruebas. Después, la IA de OneUptime analiza cada uno y abre una pull request para corregirlo. Nunca se fusiona nada: su equipo revisa cada pull request.
+
+OneUptime anota tres tipos de hallazgo:
+
+| Hallazgo | Cuándo lo registra OneUptime | La pull request |
+| --- | --- | --- |
+| **Registro de error** | Un servicio registró un mismo mensaje en Error o Fatal 20 veces o más en la hora, un mensaje con palabras propias y sin excepción. Un mensaje registrado con una excepción, o con un seguimiento de pila dentro, se sigue en [Seguimiento de excepciones](/docs/telemetry/exceptions) en su lugar. | Corrige por qué se registra el error, o lo registra en el nivel que le corresponde. |
+| **Registro faltante** | Al menos 20 spans de una operación fallaron en la hora, el 5 % o más de ellos, mientras al menos 100 registros del servicio llevan un ID de traza, y ninguna de las 20 solicitudes fallidas más recientes de la operación escribió una línea de registro. O un servicio envió 500 registros o más y 100 spans o más en la hora, y menos del 1 % de sus registros llevan un ID de traza. | Registra el fallo donde ocurre, o hace que los registros del servicio lleven el ID de traza. |
+| **Registro ruidoso** | Un mensaje registrado por debajo de Error es el 25 % o más de las líneas de un servicio en la hora, unas 10.000 líneas o más. | Registra la línea menos: en Debug, una vez por lote o nunca. |
+
+Un hallazgo guarda un mensaje como su patrón: las partes que cambian de una línea a otra, como números e ID, se enmascaran. La pull request se pide con ese patrón, nunca con una línea tal como se registró, y a la IA de OneUptime se le indica que nunca registre secretos ni datos personales, ni copie líneas de registro en la pull request.
+
+La IA de OneUptime abre por su cuenta la pull request de un registro de error solo cuando encuentra el código culpable. Un error que viene de otra parte, como una dependencia caída, no recibe ninguna pull request a menos que alguien la pida con **Corregir con IA**.
+
+### Activarlo
+
+**Registros → IA → Ajustes** contiene el interruptor **Encontrar y corregir registros de error, faltantes o ruidosos**, activado en los proyectos nuevos. Con **Habilitar IA** desactivado, los registros de error, faltantes o ruidosos se siguen encontrando, pero la IA de OneUptime no hace nada con ellos. Para abrir pull requests, la IA de OneUptime necesita un repositorio conectado en [Código](/docs/ai/ai-agent): la página indica primero lo que falta. El código de cada repositorio se cambia en el Runner que el repositorio elige en Código.
+
+La IA de OneUptime abre por su cuenta como máximo 5 pull requests al día (UTC), para toda la telemetría que corrige, una por hallazgo, y nunca más que el límite de pull requests de IA abiertas de un repositorio.
+
+### Reglas de IA
+
+Sin reglas, la IA de OneUptime analiza de inmediato cada problema que encuentra en sus registros y abre una pull request para cada uno que pueda corregir. Las **Reglas de IA** de **Más ajustes** lo acotan, en tres pasos:
+
+| Paso | Qué decide |
+| --- | --- |
+| **Coincidencia** | Qué servicios: los elegidos, los que tienen ciertas etiquetas o aquellos cuyo nombre coincide con un patrón. |
+| **Investigar** | **De inmediato**, o **Solo si sigue encontrándose tras una espera**: un problema que desaparece durante la espera no se analiza. |
+| **Corrección** | **No corregir**, **Preguntar antes de corregir** o **Corregir sin preguntar**. Preguntar primero deja la pull request en manos de una persona: el hallazgo ofrece **Corregir con IA**. |
+
+En **Más campos** una regla elige los repositorios de código, los servidores MCP y el proveedor de LLM que la IA de OneUptime puede usar para ella. Si no se elige ninguno, puede usar cualquiera, y el proveedor de LLM predeterminado del proyecto.
+
+### Ver lo que hizo
+
+- **Registros → IA → Análisis** muestra lo que OneUptime encontró, cada hallazgo con sus pruebas y **Abrir en Registros**, que abre las líneas de las que trata, de la hora en que se encontró, en el **Visor**. Un fallo que no escribe ninguna línea de registro no tiene líneas que abrir: **Abrir en Trazas** abre en su lugar sus spans fallidos. En un registro de error, **Crear monitor** configura un monitor de registros que cuenta las líneas del mensaje.
+- **Registros → IA → Actividad** muestra cada investigación y cada pull request, lo más reciente primero, con el estado de cada una. Una investigación terminada también dice lo que encontró la IA de OneUptime, como la causa de un error fuera del código, y por eso ese registro de error no recibió ninguna pull request por su cuenta.
+- En Código, la tarea indica que OneUptime la inició, con un enlace a su hallazgo, y la pull request explica por qué se abrió.
 
 ## Qué les pasa a los registros al llegar
 

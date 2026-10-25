@@ -56,6 +56,7 @@ import {
   TELEMETRY_AI_TEST_IDS,
   TelemetryAiLaneCopy,
   getTelemetryAiLogVerdict,
+  getTelemetryAiLogVerdictRunIds,
 } from "./TelemetryAiCopy";
 
 /*
@@ -69,7 +70,9 @@ import {
  * A page at a time, with Load more. Only about findings the reader may
  * read; a repository they may not read in Code is not named. A lane that
  * words its investigations' verdicts (investigationVerdicts) says under
- * each investigation what it found.
+ * each investigation what it found - why the finding got a pull request,
+ * or did not - marked as OneUptime AI's, and once per finding: on its
+ * newest investigation.
  */
 
 export interface ComponentProps {
@@ -111,6 +114,12 @@ export function getPullRequestUrl(url: string | undefined): URL | null {
 export interface TelemetryAiLogRowProps {
   lane: TelemetryAiLane;
   entry: TelemetryAiLogEntryJSON;
+  /*
+   * Whether the row may say what its investigation found: false for an
+   * older investigation of a finding a newer one already speaks for
+   * (getTelemetryAiLogVerdictRunIds). Absent, it says it.
+   */
+  isVerdictShown?: boolean | undefined;
 }
 
 export const TelemetryAiLogRow: FunctionComponent<TelemetryAiLogRowProps> = (
@@ -121,8 +130,11 @@ export const TelemetryAiLogRow: FunctionComponent<TelemetryAiLogRowProps> = (
   const at: Date = new Date(entry.at);
   const hasDate: boolean = !Number.isNaN(at.getTime());
   const pullRequestUrl: URL | null = getPullRequestUrl(entry.pullRequest?.url);
-  // What an investigation found, when its lane says (Exceptions does).
-  const verdict: string | null = getTelemetryAiLogVerdict(props.lane, entry);
+  // What an investigation found, when its lane says (Exceptions, Logs).
+  const verdict: string | null =
+    props.isVerdictShown === false
+      ? null
+      : getTelemetryAiLogVerdict(props.lane, entry);
 
   const meta: Array<ReactElement> = [];
 
@@ -220,13 +232,23 @@ export const TelemetryAiLogRow: FunctionComponent<TelemetryAiLogRowProps> = (
           })}
         </div>
 
+        {/*
+         * What the investigation found, marked as OneUptime AI's own words
+         * (the sparkles of the AI tab): the row's result, as a pull
+         * request's row ends on its links.
+         */}
         {verdict ? (
-          <p
-            className="mt-1.5 text-sm text-gray-700 [overflow-wrap:anywhere]"
+          <div
+            className="mt-1.5 flex items-start gap-1.5 text-sm text-gray-700 [overflow-wrap:anywhere]"
             data-testid={TELEMETRY_AI_TEST_IDS.logVerdict}
+            data-classification={entry.classification}
           >
-            {translator.translateText(verdict)}
-          </p>
+            <Icon
+              icon={IconProp.Sparkles}
+              className="mt-0.5 h-4 w-4 flex-shrink-0 text-indigo-500"
+            />
+            <p className="min-w-0">{translator.translateText(verdict)}</p>
+          </div>
         ) : (
           <></>
         )}
@@ -297,6 +319,9 @@ const TelemetryAiLogsPage: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const copy: TelemetryAiLaneCopy = TELEMETRY_AI_LANE_COPY[props.lane];
+  // The lane's own words when it names the page otherwise (Logs: Activity).
+  const couldNotLoad: string =
+    copy.logsCouldNotLoad || TELEMETRY_AI_LOGS_COULD_NOT_LOAD;
 
   const [entries, setEntries] = useState<Array<TelemetryAiLogEntryJSON>>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
@@ -382,10 +407,7 @@ const TelemetryAiLogsPage: FunctionComponent<ComponentProps> = (
     if (error && entries.length === 0) {
       return (
         <ErrorMessage
-          message={translator.translateTemplate(
-            TELEMETRY_AI_LOGS_COULD_NOT_LOAD,
-            { error },
-          )}
+          message={translator.translateTemplate(couldNotLoad, { error })}
           onRefreshClick={() => {
             void read({ skip: 0, append: false });
           }}
@@ -433,6 +455,12 @@ const TelemetryAiLogsPage: FunctionComponent<ComponentProps> = (
       );
     }
 
+    // Each finding's verdict, said once: on its newest investigation.
+    const verdictRunIds: Set<string> = getTelemetryAiLogVerdictRunIds(
+      props.lane,
+      entries,
+    );
+
     return (
       <div className="space-y-3">
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -443,6 +471,7 @@ const TelemetryAiLogsPage: FunctionComponent<ComponentProps> = (
                   key={entry.runId}
                   lane={props.lane}
                   entry={entry}
+                  isVerdictShown={verdictRunIds.has(entry.runId)}
                 />
               );
             })}
@@ -488,7 +517,7 @@ const TelemetryAiLogsPage: FunctionComponent<ComponentProps> = (
 
         {loadMoreError ? (
           <p className="text-center text-sm text-red-500" role="alert">
-            {translator.translateTemplate(TELEMETRY_AI_LOGS_COULD_NOT_LOAD, {
+            {translator.translateTemplate(couldNotLoad, {
               error: loadMoreError,
             })}
           </p>

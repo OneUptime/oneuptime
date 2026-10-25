@@ -1246,3 +1246,151 @@ describe("InsightTriageRunner.executeTriage - Exceptions' AI section", () => {
     }
   });
 });
+
+/*
+ * Logs' findings (Utils/Logs/LogInsight) are each triaged for what there is
+ * to establish: why a service logs an error again and again - whose verdict
+ * decides whether its pull request opens on its own (Types/AI/TelemetryAi)
+ * - what its logs fail to say, and why one line floods them. The log
+ * evidence reaches the prompt with the rest of the evidence, the message as
+ * its pattern, and a code-fault verdict routes nothing here: the lane opens
+ * its own pull request.
+ */
+describe("InsightTriageRunner.executeTriage - Logs' findings", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function logFinding(insightType: AIInsightType): AIInsight {
+    return makeInsight({
+      insightType,
+      title:
+        'checkout logged "Payment provider returned <num>: card declined" 1,240 times in an hour',
+      detailMarkdown: "**Error log in checkout**",
+      evidence: {
+        log: {
+          serviceId: "5a440000-0000-4000-8000-000000000002",
+          kind: "Error",
+          windowStartTime: "2026-10-24T08:00:04.000Z",
+          windowEndTime: "2026-10-24T09:00:04.000Z",
+          logCount: 18400,
+          errorLogCount: 2100,
+          pattern: "Payment provider returned <num>: card declined",
+          patternCount: 1240,
+          severities: ["Error"],
+        },
+      },
+    });
+  }
+
+  async function contextSummaryFor(
+    insightType: AIInsightType,
+  ): Promise<string> {
+    jest
+      .spyOn(AIInsightService, "findOneById")
+      .mockResolvedValue(logFinding(insightType));
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: projectId,
+      enableAi: true,
+      enableAutomaticLogRemediation: true,
+    } as unknown as Project);
+    jest.spyOn(TelemetryAiRules, "decideForInsight").mockResolvedValue(
+      decideTelemetryAiWork({
+        isAiEnabled: true,
+        isLaneOn: true,
+        rules: { rulesSetUp: false, matchingRules: [] },
+      }),
+    );
+    const executeRun: jest.SpyInstance = jest
+      .spyOn(AIInvestigationEngine, "executeRun")
+      .mockResolvedValue(undefined);
+
+    await InsightTriageRunner.executeTriage({
+      aiRunId,
+      projectId,
+      sentinelInsightId,
+      attemptCount: 1,
+    });
+
+    return (executeRun.mock.calls[0]![0] as { request: InvestigationRequest })
+      .request.contextSummary;
+  }
+
+  test("an error log is preventive triage, whose verdict gates its pull request", async () => {
+    const summary: string = await contextSummaryFor(
+      AIInsightType.LogErrorPattern,
+    );
+
+    expect(summary).toContain("PREVENTIVE TRIAGE of an error log");
+    expect(summary).toContain("search for the message's own words");
+    expect(summary).toContain(
+      "ONLY code-fault findings may get an automatic fix pull request",
+    );
+    expect(summary).toContain("expected-denial");
+    expect(summary).toContain("Never repeat personal data or secrets");
+  });
+
+  test("missing logging is observability triage", async () => {
+    const summary: string = await contextSummaryFor(
+      AIInsightType.LogMissingLogging,
+    );
+
+    expect(summary).toContain("OBSERVABILITY TRIAGE");
+    expect(summary).toContain("ONE logging change");
+    expect(summary).toContain("fail without writing a single log line");
+  });
+
+  test("a noisy log is log hygiene triage", async () => {
+    const summary: string = await contextSummaryFor(
+      AIInsightType.LogNoisyPattern,
+    );
+
+    expect(summary).toContain("LOG HYGIENE TRIAGE");
+    expect(summary).toContain("logged less");
+    expect(summary).not.toContain("PREVENTIVE TRIAGE,");
+  });
+
+  test("the log evidence is in the prompt, the message as its pattern", async () => {
+    const summary: string = await contextSummaryFor(
+      AIInsightType.LogErrorPattern,
+    );
+
+    expect(summary).toContain('- log: {"serviceId"');
+    expect(summary).toContain(
+      '"pattern":"Payment provider returned <num>: card declined"',
+    );
+    expect(summary).toContain('"patternCount":1240');
+  });
+
+  test("a code-fault verdict on an error log routes nothing here", async () => {
+    jest
+      .spyOn(AIInsightService, "findOneById")
+      .mockImplementation(async (): Promise<AIInsight> => {
+        const insight: AIInsight = logFinding(AIInsightType.LogErrorPattern);
+        insight.status = AIInsightStatus.ActionRequired;
+        return insight;
+      });
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: projectId,
+      enableAi: true,
+      enableAutomaticLogRemediation: true,
+    } as unknown as Project);
+    jest.spyOn(TelemetryAiRules, "decideForInsight").mockResolvedValue(null);
+    jest.spyOn(AIInsightService, "updateOneById").mockResolvedValue(1);
+    const routeFix: jest.SpyInstance = jest
+      .spyOn(InsightFixRouting, "routeInsightFix")
+      .mockResolvedValue({ fixAiRunId: ObjectID.generate() });
+    driveTriageWithAnalysis(
+      "The client retries a refused card.\n\nClassification: code-fault",
+    );
+
+    await InsightTriageRunner.executeTriage({
+      aiRunId,
+      projectId,
+      sentinelInsightId,
+      attemptCount: 1,
+    });
+
+    expect(routeFix).not.toHaveBeenCalled();
+  });
+});

@@ -11,9 +11,11 @@ import {
   TELEMETRY_AI_FIX_LEAD,
   TELEMETRY_AI_FIX_LEADS,
   TELEMETRY_AI_FIX_LEADS_BY_RECIPE,
+  TELEMETRY_AI_FIX_NO_TRACE_CONTEXT_LEAD,
   doesInsightOfferTelemetryAiFix,
   getTelemetryAiFixLead,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiFixCopy";
+import AIInsightEvidence from "../../../Types/AI/AIInsightEvidence";
 import AIInsightStatus from "../../../Types/AI/AIInsightStatus";
 import AIInsightType from "../../../Types/AI/AIInsightType";
 import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
@@ -22,6 +24,7 @@ import {
   TelemetryAiLane,
 } from "../../../Types/AI/TelemetryAi";
 import ObjectID from "../../../Types/ObjectID";
+import { LogLoggingGap } from "../../../Utils/Logs/LogInsight";
 
 /*
  * Which findings draw "Fix with AI" (TelemetryAiFixStrip) and what it says:
@@ -33,15 +36,17 @@ import ObjectID from "../../../Types/ObjectID";
 const LINE_LIMIT: number = 150;
 
 describe("which findings draw Fix with AI", () => {
-  test("Traces' and Exceptions' kinds, while open and with no fix linked", () => {
+  test("Traces', Exceptions' and Logs' kinds, while open and with no fix linked", () => {
     expect(TELEMETRY_AI_FIX_LANES).toEqual([
       TelemetryAiLane.Trace,
       TelemetryAiLane.Exception,
+      TelemetryAiLane.Log,
     ]);
 
     for (const insightType of [
       ...TELEMETRY_AI_LANES[TelemetryAiLane.Trace].insightTypes,
       ...TELEMETRY_AI_LANES[TelemetryAiLane.Exception].insightTypes,
+      ...TELEMETRY_AI_LANES[TelemetryAiLane.Log].insightTypes,
     ]) {
       for (const status of [
         AIInsightStatus.Detected,
@@ -78,6 +83,7 @@ describe("which findings draw Fix with AI", () => {
     for (const insightType of [
       AIInsightType.ProfileHotspot,
       AIInsightType.TraceLatencyRegression,
+      // AI Insights' own error-log spike is not a Logs finding.
       AIInsightType.ErrorLogSpike,
       AIInsightType.MetricDrift,
       "Unknown",
@@ -165,6 +171,111 @@ describe("what Fix with AI says", () => {
         CodeFixTaskType.CodeRequest,
       ),
     ).toBe(TELEMETRY_AI_FIX_LEADS[AIInsightType.ExceptionMissingStackTrace]);
+  });
+
+  test("each of Logs' kinds says what its pull request does", () => {
+    for (const insightType of TELEMETRY_AI_LANES[TelemetryAiLane.Log]
+      .insightTypes) {
+      const lead: string | undefined = TELEMETRY_AI_FIX_LEADS[insightType];
+
+      expect(lead).toBeTruthy();
+      expect(lead!.length).toBeLessThanOrEqual(LINE_LIMIT);
+      expect(lead).toContain("pull request");
+      expect(lead).toContain("for you to review");
+    }
+
+    expect(getTelemetryAiFixLead(AIInsightType.LogErrorPattern)).toBe(
+      "OneUptime AI opens a pull request that fixes why this error is logged, for you to review.",
+    );
+    expect(getTelemetryAiFixLead(AIInsightType.LogMissingLogging)).toBe(
+      "OneUptime AI opens a pull request that adds the logging this lacks, for you to review.",
+    );
+    expect(getTelemetryAiFixLead(AIInsightType.LogNoisyPattern)).toBe(
+      "OneUptime AI opens a pull request that logs this line less, for you to review.",
+    );
+  });
+
+  /*
+   * Missing logging has two gaps: failures that write no line get the
+   * logging they lack, but logs with no trace context lack no line - their
+   * pull request adds the trace id, and the lead says so.
+   */
+  test("missing logging says what its pull request adds, by what the logs lack", () => {
+    expect(TELEMETRY_AI_FIX_NO_TRACE_CONTEXT_LEAD).toBe(
+      "OneUptime AI opens a pull request that adds the trace id to this service's logs, for you to review.",
+    );
+    expect(TELEMETRY_AI_FIX_NO_TRACE_CONTEXT_LEAD.length).toBeLessThanOrEqual(
+      LINE_LIMIT,
+    );
+
+    const logsLacking: (gap: string | undefined) => AIInsightEvidence = (
+      gap: string | undefined,
+    ): AIInsightEvidence => {
+      return {
+        log: {
+          serviceId: ObjectID.generate().toString(),
+          kind: "MissingLogging",
+          ...(gap ? { gap } : {}),
+          windowStartTime: "2026-10-24T08:00:00.000Z",
+          windowEndTime: "2026-10-24T09:00:00.000Z",
+          logCount: 18400,
+        },
+      };
+    };
+
+    expect(
+      getTelemetryAiFixLead(
+        AIInsightType.LogMissingLogging,
+        undefined,
+        logsLacking(LogLoggingGap.NoTraceContext),
+      ),
+    ).toBe(TELEMETRY_AI_FIX_NO_TRACE_CONTEXT_LEAD);
+
+    // The pull request the server says it starts speaks first, as it does for every kind.
+    expect(
+      getTelemetryAiFixLead(
+        AIInsightType.LogMissingLogging,
+        CodeFixTaskType.ImproveExceptionHandling,
+        logsLacking(LogLoggingGap.NoTraceContext),
+      ),
+    ).toBe(
+      TELEMETRY_AI_FIX_LEADS_BY_RECIPE[
+        CodeFixTaskType.ImproveExceptionHandling
+      ],
+    );
+
+    // Failures that write no line, or no gap said: the logging they lack.
+    for (const evidence of [
+      logsLacking(LogLoggingGap.SilentFailures),
+      logsLacking(undefined),
+      {},
+      null,
+      undefined,
+    ]) {
+      expect(
+        getTelemetryAiFixLead(
+          AIInsightType.LogMissingLogging,
+          undefined,
+          evidence,
+        ),
+      ).toBe(TELEMETRY_AI_FIX_LEADS[AIInsightType.LogMissingLogging]);
+    }
+
+    // Only missing logging reads the gap: every other kind keeps its line.
+    for (const insightType of [
+      AIInsightType.LogErrorPattern,
+      AIInsightType.LogNoisyPattern,
+      AIInsightType.TraceMissingTracing,
+      AIInsightType.TraceFailingOperation,
+    ]) {
+      expect(
+        getTelemetryAiFixLead(
+          insightType,
+          undefined,
+          logsLacking(LogLoggingGap.NoTraceContext),
+        ),
+      ).toBe(TELEMETRY_AI_FIX_LEADS[insightType]);
+    }
   });
 
   test("the button and the rest read as the Profiler's own", () => {

@@ -106,13 +106,15 @@ export enum TelemetryAiLane {
   Profile = "Profile",
   Trace = "Trace",
   Exception = "Exception",
+  Log = "Log",
 }
 
 // The project switch of each lane.
 export type TelemetryAiSwitchColumn =
   | "enableAutomaticProfileRemediation"
   | "enableAutomaticTraceRemediation"
-  | "enableAutomaticExceptionRemediation";
+  | "enableAutomaticExceptionRemediation"
+  | "enableAutomaticLogRemediation";
 
 export interface TelemetryAiLaneDefinition {
   lane: TelemetryAiLane;
@@ -228,6 +230,26 @@ export const TELEMETRY_AI_LANES: Readonly<
       CodeFixTaskType.ImproveExceptionHandling,
       CodeFixTaskType.CodeRequest,
     ],
+  },
+  /*
+   * Logs: the errors a service logs again and again, the logging it lacks -
+   * requests that fail without a log line, logs with no trace context - and
+   * the lines that flood its logs (Utils/Logs/LogInsight). An error log may
+   * be logged on purpose (a refused sign-in at Error), so its pull request
+   * opens on its own only once the investigation finds the code at fault.
+   */
+  [TelemetryAiLane.Log]: {
+    lane: TelemetryAiLane.Log,
+    triggerEntityType: AutoRemediationTriggerEntity.Log,
+    insightTypes: [
+      AIInsightType.LogErrorPattern,
+      AIInsightType.LogMissingLogging,
+      AIInsightType.LogNoisyPattern,
+    ],
+    switchColumn: "enableAutomaticLogRemediation",
+    scanEveryMinutes: 60,
+    dashboardPath: "logs",
+    fixAfterVerdictInsightTypes: [AIInsightType.LogErrorPattern],
   },
 };
 
