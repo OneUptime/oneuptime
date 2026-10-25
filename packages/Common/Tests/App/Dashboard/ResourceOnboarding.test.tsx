@@ -66,6 +66,8 @@ import DOCKER_HOST_ONBOARDING from "../../../../App/FeatureSet/Dashboard/src/Com
 import DatabaseAddedModal from "../../../../App/FeatureSet/Dashboard/src/Components/DatabaseServer/DatabaseAddedModal";
 import MessageQueueAddedModal from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Utils/MessageQueueAddedModal";
 import RumApplicationAddedModal from "../../../../App/FeatureSet/Dashboard/src/Components/Rum/RumApplicationAddedModal";
+import ServiceAddedModal from "../../../../App/FeatureSet/Dashboard/src/Components/Service/ServiceAddedModal";
+import { withServiceName } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/Documentation";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DatabaseServerEndpoint from "../../../Models/DatabaseModels/DatabaseServerEndpoint";
@@ -74,6 +76,7 @@ import IoTFleet from "../../../Models/DatabaseModels/IoTFleet";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import MessageQueue from "../../../Models/DatabaseModels/MessageQueue";
 import RumApplication from "../../../Models/DatabaseModels/RumApplication";
+import Service from "../../../Models/DatabaseModels/Service";
 import ServerlessFunction from "../../../Models/DatabaseModels/ServerlessFunction";
 import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryIngestionKey";
 import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
@@ -787,6 +790,82 @@ describe("the guide that opens once a form has added a resource", () => {
     expect(pageText()).toContain('[ATTR_SERVICE_NAME]: "checkout-web"');
     expect(screen.getByTestId("resource-connection-waiting")).toHaveTextContent(
       "Waiting for checkout-web to connect.",
+    );
+  });
+});
+
+describe("the guide that opens once Create Service has saved a service", () => {
+  test("names the service in every snippet, and waits for its first data", async () => {
+    const id: string = idOf(80);
+    rowsOf(Service).push({
+      _id: id,
+      name: "checkout-api",
+      createdAt: new Date(),
+      lastSeenAt: null,
+    });
+
+    await show(
+      <ServiceAddedModal
+        serviceId={new ObjectID(id)}
+        name="checkout-api"
+        onClose={() => {}}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Send telemetry from checkout-api" }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("resource-added-note")).toHaveTextContent(
+      "checkout-api is added.",
+    );
+    expect(pageText()).toContain("serviceName: 'checkout-api'");
+    expect(pageText()).not.toContain("my-service");
+
+    const lastStep: HTMLElement = screen.getByTestId(
+      "resource-added-last-step",
+    );
+
+    expect(lastStep).toHaveTextContent("Wait for it to connect");
+    expect(
+      within(lastStep).getByTestId("resource-connection-waiting"),
+    ).toHaveTextContent("Waiting for checkout-api to connect.");
+
+    rowsOf(Service)[0]!["lastSeenAt"] = new Date();
+    await advance(RESOURCE_CONNECTION_POLL_INTERVAL_MS);
+
+    expect(screen.getByRole("link", { name: "View service" })).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID.toString()}/service/${id}`,
+    );
+  });
+});
+
+describe("a service name in the telemetry guide's snippets", () => {
+  const SNIPPET: string = [
+    "serviceName: 'my-service',",
+    'export OTEL_SERVICE_NAME="my-service"',
+    "-Dotel.service.name=my-service",
+    "'service.name': 'my-react-app',",
+    "'service.name': 'my-angular-app',",
+  ].join("\n");
+
+  test("takes the examples' place everywhere", () => {
+    const filled: string = withServiceName(SNIPPET, "checkout-api");
+
+    expect(filled).not.toMatch(/my-service|my-react-app|my-angular-app/);
+    expect(filled.split("checkout-api").length - 1).toBe(5);
+  });
+
+  test("keeps the examples for a name the snippets cannot carry as written", () => {
+    for (const name of ["", "  ", "checkout api", "it's", 'say "hi"', "a$b"]) {
+      expect(withServiceName(SNIPPET, name)).toBe(SNIPPET);
+    }
+    expect(withServiceName(SNIPPET, undefined)).toBe(SNIPPET);
+  });
+
+  test("takes names with dots, slashes and colons, as service names have", () => {
+    expect(withServiceName("'my-service'", "team/orders.v2:api")).toBe(
+      "'team/orders.v2:api'",
     );
   });
 });

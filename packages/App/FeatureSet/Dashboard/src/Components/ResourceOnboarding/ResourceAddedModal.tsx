@@ -40,6 +40,12 @@ export interface ComponentProps {
   error?: string | undefined;
   onClose: () => void;
   renderGuide: (frame: SetupGuideFrameProps) => ReactElement;
+  /*
+   * The guide draws the last step among its own (a SetupGuideCard does).
+   * False for one that cannot (the telemetry guide a service opens with):
+   * the dialog draws the step under it.
+   */
+  drawsLastStep?: boolean | undefined;
 }
 
 const ResourceAddedModal: FunctionComponent<ComponentProps> = (
@@ -51,6 +57,24 @@ const ResourceAddedModal: FunctionComponent<ComponentProps> = (
   const since: Date = useMemo(() => {
     return new Date();
   }, []);
+
+  const lastStepTitle: string =
+    translator.translateText(RESOURCE_CONNECTION_STEP_TITLE) ||
+    RESOURCE_CONNECTION_STEP_TITLE;
+
+  const watch: ReactElement = (
+    <ResourceConnectionWatch
+      modelType={props.modelType}
+      since={since}
+      name={props.name}
+      recordId={props.recordId}
+      seenField={props.seenField}
+      viewPage={props.viewPage}
+      viewText={props.viewText}
+    />
+  );
+
+  const drawsLastStep: boolean = props.drawsLastStep !== false;
 
   return (
     <Modal
@@ -83,25 +107,22 @@ const ResourceAddedModal: FunctionComponent<ComponentProps> = (
         {props.error ? (
           <></>
         ) : (
-          props.renderGuide({
-            isBare: true,
-            lastStep: {
-              title:
-                translator.translateText(RESOURCE_CONNECTION_STEP_TITLE) ||
-                RESOURCE_CONNECTION_STEP_TITLE,
-              content: (
-                <ResourceConnectionWatch
-                  modelType={props.modelType}
-                  since={since}
-                  name={props.name}
-                  recordId={props.recordId}
-                  seenField={props.seenField}
-                  viewPage={props.viewPage}
-                  viewText={props.viewText}
-                />
-              ),
-            },
-          })
+          <>
+            {props.renderGuide({
+              isBare: true,
+              lastStep: drawsLastStep
+                ? { title: lastStepTitle, content: watch }
+                : undefined,
+            })}
+            {!drawsLastStep && (
+              <div className="mt-6" data-testid="resource-added-last-step">
+                <h3 className="mb-2 text-sm font-semibold text-gray-900">
+                  {lastStepTitle}
+                </h3>
+                {watch}
+              </div>
+            )}
+          </>
         )}
       </div>
     </Modal>

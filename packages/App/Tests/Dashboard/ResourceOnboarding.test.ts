@@ -589,6 +589,28 @@ describe("resources added with a form", () => {
     expect(modal).toContain("appName={props.appIdentifier}");
   });
 
+  test("a service's OpenTelemetry guide opens once it is saved, with its service.name in every snippet", () => {
+    const page: string = code("Pages/Service/Services.tsx");
+    const modal: string = code("Components/Service/ServiceAddedModal.tsx");
+    const guide: string = code("Components/Telemetry/Documentation.tsx");
+
+    expect(page).toContain("isCreateable={true}");
+    expect(page).toContain(
+      "if (item._id && modalType !== ModalType.Edit) { setAddedService({",
+    );
+    expect(page).toContain("<ServiceAddedModal serviceId={addedService.id}");
+    expect(modal).toContain(
+      '<TelemetryDocumentation telemetryType="traces" serviceName={props.name} isBare={true} />',
+    );
+    // The guide cannot take a last step of its own: the dialog draws it.
+    expect(modal).toContain("drawsLastStep={false}");
+    // Every snippet the guide draws goes through the service's name.
+    expect(guide.split("code={replacePlaceholders(").length).toBe(1);
+    expect(
+      guide.split("code={withServiceName( replacePlaceholders(").length,
+    ).toBe(10);
+  });
+
   test("a queue's guide opens once it is saved", () => {
     const page: string = code("Pages/MessageQueue/MessageQueues.tsx");
     const modal: string = code(
