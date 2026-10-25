@@ -60,9 +60,12 @@ npm run test-auto-remediation-rules-ui
   (`?globalRunners=disconnected`) is shown so, and nothing of the rule's
   waits on it; a project that turned global Runners off
   (`?useGlobalRunners=0`), or a server with none (`?globalRunners=0`),
-  reads "No Runner" as before, and a pick clears back to it; the field at
+  reads "No Runner" as before, and a pick clears back to it; the line is
+  drawn like the hints under the rule's other pickers (the Code
+  Repositories hint's size and colour), close under its box; the field at
   1280px and 390px, light and dark, with Runners and without, the menu
-  open, and in German and Persian (`?lang=fa`, right to left);
+  open, and in German and Persian (`?lang=fa`, right to left: the box's
+  words follow each other from the right, as the menu draws them);
 - a Runner picked is always named on the folded line ("Runner:
   prod-eu-runner", with " · Never connected" for one that is not connected);
   the Global Runner, the field's default, is never named there;
