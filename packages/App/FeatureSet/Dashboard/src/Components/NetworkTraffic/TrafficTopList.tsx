@@ -4,6 +4,7 @@ import {
   getSharePercent,
 } from "./NetworkTrafficFormat";
 import Card from "Common/UI/Components/Card/Card";
+import { CARD_GRID_CENTERED_STATE_CLASS_NAME } from "Common/UI/Components/Card/CardGridLayout";
 import Icon from "Common/UI/Components/Icon/Icon";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -66,6 +67,12 @@ export interface ComponentProps {
   dataTestId: string;
 }
 
+// The card's room under its header, which the list or its empty sentence fills.
+export const TRAFFIC_TOP_LIST_BODY_CLASS_NAME: string = "flex flex-1 flex-col";
+
+// Nothing in the window, in the middle of the card's room.
+export const TRAFFIC_TOP_LIST_EMPTY_CLASS_NAME: string = `${CARD_GRID_CENTERED_STATE_CLASS_NAME} py-6 text-sm text-gray-500`;
+
 const TrafficTopList: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -88,10 +95,18 @@ const TrafficTopList: FunctionComponent<ComponentProps> = (
       description={props.description}
       fillHeight={true}
     >
-      <div data-testid={props.dataTestId}>
+      {/*
+       * The room the card has under its header: a list keeps its rows at
+       * the top of it, and a list with nothing says so in its middle, as
+       * every card of a row does (CardGrid).
+       */}
+      <div
+        data-testid={props.dataTestId}
+        className={TRAFFIC_TOP_LIST_BODY_CLASS_NAME}
+      >
         {props.rows.length === 0 ? (
           <p
-            className="py-6 text-center text-sm text-gray-500"
+            className={TRAFFIC_TOP_LIST_EMPTY_CLASS_NAME}
             data-testid={`${props.dataTestId}-empty`}
           >
             {translator.translateText(props.emptyMessage)}

@@ -3,6 +3,7 @@ import { StyleSheet, type StyleProp, type ViewStyle } from "react-native";
 import { act, render, screen, fireEvent } from "@testing-library/react-native";
 import { describe, expect, test, beforeEach } from "@jest/globals";
 import OnCallOverviewScreen from "./OnCallOverviewScreen";
+import { ListPaneProvider } from "../navigation/paneState";
 import { ThemeProvider } from "../theme";
 import { darkColors, lightColors } from "../theme/colors";
 import { radius } from "../theme/tokens";
@@ -718,6 +719,90 @@ describe("OnCallOverviewScreen calendar row", () => {
     await render(<OnCallOverviewScreen />);
 
     expect(screen.getByTestId("row-calendar")).toBeTruthy();
+  });
+});
+
+describe("The overview beside its detail pane, on a wide window", () => {
+  /*
+   * The overview stays on the left and what it opens appears on the right.
+   * Whatever is open there is marked where it was opened from, and the rows
+   * and tiles lose their forward chevrons.
+   */
+  beforeEach(() => {
+    mockDuty.current = {
+      summary: emptySummary(),
+      assignmentsByProject: [],
+      schedules: [],
+      isLoading: false,
+      isError: false,
+      refetch: async (): Promise<void> => {
+        return undefined;
+      },
+    };
+    mockOverrides.current = { active: [] };
+    mockNavigate.calls = [];
+    mockMyShifts.current = emptyMyShifts();
+    mockCalendarFeed.current = { isAvailable: true, isChecking: false };
+  });
+
+  function besideDetail(name: string | null): React.JSX.Element {
+    return (
+      <ListPaneProvider selection={name ? { name } : null}>
+        <OnCallOverviewScreen />
+      </ListPaneProvider>
+    );
+  }
+
+  test.each([
+    ["WhoIsOnCall", "quick-action-roster"],
+    ["MyOnCallPages", "row-pages"],
+    ["OnCallList", "row-policies"],
+    ["OnCallOverrides", "row-overrides"],
+    ["OnCallCalendarFeed", "row-calendar"],
+  ])(
+    "with %s open on the right, %s is the one marked",
+    async (routeName: string, testID: string): Promise<void> => {
+      await render(besideDetail(routeName));
+
+      for (const candidate of [
+        "quick-action-roster",
+        "row-pages",
+        "row-policies",
+        "row-overrides",
+        "row-calendar",
+      ]) {
+        if (candidate === testID) {
+          expect(screen.getByTestId(candidate)).toBeSelected();
+        } else {
+          expect(screen.getByTestId(candidate)).not.toBeSelected();
+        }
+      }
+    },
+  );
+
+  test("the cover sheet is never marked: it opens over the pane, not in it", async (): Promise<void> => {
+    await render(besideDetail("CreateOnCallOverride"));
+
+    expect(screen.getByTestId("quick-action-cover")).not.toBeSelected();
+  });
+
+  test("on a phone nothing is marked", async (): Promise<void> => {
+    await render(<OnCallOverviewScreen />);
+
+    expect(screen.getByTestId("row-pages")).not.toBeSelected();
+    expect(screen.getByTestId("quick-action-roster")).not.toBeSelected();
+  });
+
+  test("opening from the overview still navigates as before", async (): Promise<void> => {
+    await render(besideDetail(null));
+
+    await fireEvent.press(screen.getByTestId("quick-action-roster"));
+    await fireEvent.press(screen.getByTestId("row-pages"));
+
+    expect(mockNavigate.calls).toEqual([
+      ["WhoIsOnCall", undefined],
+      ["MyOnCallPages", undefined],
+    ]);
   });
 });
 

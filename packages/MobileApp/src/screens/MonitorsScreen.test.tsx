@@ -9,6 +9,7 @@ import {
 } from "@testing-library/react-native";
 import { describe, expect, test, beforeEach } from "@jest/globals";
 import MonitorsScreen from "./MonitorsScreen";
+import { ListPaneProvider, PaneStateScope } from "../navigation/paneState";
 import {
   makeMonitor,
   makeNamedEntityWithColor,
@@ -198,6 +199,90 @@ function offlineFleet(count: number): ProjectMonitorItem[] {
     },
   );
 }
+
+describe("Beside a detail pane, on a wide window", () => {
+  test("the monitor open on the right is marked, and rows lose their chevron", async () => {
+    mockMonitors.current = stateWith({
+      items: [
+        wrap(offlineMonitor("monitor-a", "api.example.com")),
+        wrap(healthyMonitor("monitor-b", "www.example.com")),
+      ],
+    });
+    await render(
+      <ListPaneProvider
+        selection={{
+          name: "MonitorDetail",
+          params: { monitorId: "monitor-a", projectId: "project-1" },
+        }}
+      >
+        <MonitorsScreen />
+      </ListPaneProvider>,
+    );
+
+    expect(
+      screen.getByRole("button", { name: /^Monitor api\.example\.com\./ }),
+    ).toBeSelected();
+    expect(
+      screen.getByRole("button", { name: /^Monitor www\.example\.com\./ }),
+    ).not.toBeSelected();
+    expect(screen.queryAllByTestId("response-row-chevron")).toHaveLength(0);
+  });
+
+  test("a monitor in another project with the same id is not the open one", async () => {
+    mockMonitors.current = stateWith({
+      items: [
+        wrap(offlineMonitor("monitor-a", "api.example.com"), "project-2"),
+      ],
+    });
+    await render(
+      <ListPaneProvider
+        selection={{
+          name: "MonitorDetail",
+          params: { monitorId: "monitor-a", projectId: "project-1" },
+        }}
+      >
+        <MonitorsScreen />
+      </ListPaneProvider>,
+    );
+
+    expect(
+      screen.getByRole("button", { name: /^Monitor api\.example\.com\./ }),
+    ).not.toBeSelected();
+  });
+});
+
+describe("Drawn afresh in another pane after a fold", () => {
+  function scoped(showList: boolean): React.JSX.Element {
+    return (
+      <PaneStateScope scope="monitors-list-route">
+        {showList ? <MonitorsScreen /> : null}
+      </PaneStateScope>
+    );
+  }
+
+  test("the search and the filter come back, and a Home shortcut's filter is not applied twice", async () => {
+    mockRoute.params = { initialFilter: "issues" };
+    mockMonitors.current = stateWith({
+      items: [
+        wrap(offlineMonitor("monitor-a", "api.example.com")),
+        wrap(healthyMonitor("monitor-b", "www.example.com")),
+      ],
+    });
+    const view: Awaited<ReturnType<typeof render>> = await render(scoped(true));
+    expect(screen.getByRole("button", { name: "Has issues" })).toBeSelected();
+
+    await fireEvent.press(screen.getByRole("button", { name: "All monitors" }));
+    await fireEvent.changeText(screen.getByLabelText("Search monitors"), "www");
+    await view.rerender(scoped(false));
+    await view.rerender(scoped(true));
+
+    expect(screen.getByRole("button", { name: "All monitors" })).toBeSelected();
+    expect(screen.getByLabelText("Search monitors")).toHaveProp("value", "www");
+    expect(listedMonitors()).toEqual([
+      expect.stringMatching(/^Monitor www\.example\.com\./),
+    ]);
+  });
+});
 
 test("the search limit appears at the fetched cap and survives an empty search", async () => {
   mockMonitors.current = stateWith({ items: offlineFleet(99) });

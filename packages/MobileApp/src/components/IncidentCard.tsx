@@ -10,6 +10,9 @@ interface IncidentCardProps {
   onPress: () => void;
   projectName?: string;
   muted?: boolean;
+  /** Open in the detail pane beside the list. */
+  selected?: boolean;
+  showChevron?: boolean;
 }
 
 export default function IncidentCard({
@@ -17,6 +20,8 @@ export default function IncidentCard({
   onPress,
   projectName,
   muted,
+  selected,
+  showChevron,
 }: IncidentCardProps): React.JSX.Element {
   const { theme } = useTheme();
   const monitorCount: number = incident.monitors?.length ?? 0;
@@ -47,6 +52,8 @@ export default function IncidentCard({
       }
       projectName={projectName}
       muted={muted}
+      selected={selected}
+      showChevron={showChevron}
       accessibilityLabel={`Incident ${incident.incidentNumberWithPrefix || incident.incidentNumber}, ${incident.title}. State: ${incident.currentIncidentState?.name ?? "unknown"}. Severity: ${incident.incidentSeverity?.name ?? "unknown"}.`}
       accessibilityHint="Open details and response actions"
       onPress={onPress}

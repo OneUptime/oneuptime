@@ -18,6 +18,7 @@ import AppText from "./AppText";
 import IconBadge from "./IconBadge";
 import { getInitials } from "./RosterScheduleCard";
 import { useScreenPadding } from "../hooks/useScreenPadding";
+import { SHEET_MAX_WIDTH } from "../layout/windowLayout";
 import getToggleAccessibilityProps from "../utils/getToggleAccessibilityProps";
 
 interface UserPickerModalProps {
@@ -111,6 +112,10 @@ export default function UserPickerModal({
         <View
           testID="user-picker-sheet"
           style={{
+            // Centred and no wider than a sheet should be on a wide window.
+            width: "100%",
+            maxWidth: SHEET_MAX_WIDTH,
+            alignSelf: "center",
             maxHeight: "85%",
             borderTopLeftRadius: radius.xl,
             borderTopRightRadius: radius.xl,

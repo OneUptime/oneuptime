@@ -16,6 +16,17 @@ interface ResponseRowProps {
   contextLabel?: string;
   projectName?: string;
   muted?: boolean;
+  /**
+   * The row whose record is open in the detail pane beside the list, on a
+   * window wide enough for both. Drawn the way the project sheet marks the
+   * current project: an accent border on a soft accent fill.
+   */
+  selected?: boolean;
+  /**
+   * The forward chevron says "this opens a new screen". Beside a detail pane
+   * a row opens on the right instead, so the list leaves it out.
+   */
+  showChevron?: boolean;
   accessibilityLabel: string;
   accessibilityHint: string;
   onPress: () => void;
@@ -37,6 +48,8 @@ export default function ResponseRow({
   contextLabel,
   projectName,
   muted,
+  selected = false,
+  showChevron = true,
   accessibilityLabel,
   accessibilityHint,
   onPress,
@@ -50,16 +63,23 @@ export default function ResponseRow({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityHint={accessibilityHint}
+      accessibilityState={{ selected }}
+      aria-selected={selected}
       style={({ pressed }: { pressed: boolean }): ViewStyle => {
         return {
-          padding: spacing.lg,
+          // The thicker selected border must not shift the row's content.
+          padding: spacing.lg - (selected ? 1 : 0),
           marginBottom: spacing.md,
           borderRadius: radius.lg,
-          borderWidth: 1,
-          borderColor: theme.colors.borderSubtle,
-          backgroundColor: pressed
-            ? theme.colors.backgroundTertiary
-            : theme.colors.backgroundElevated,
+          borderWidth: selected ? 2 : 1,
+          borderColor: selected
+            ? theme.colors.actionPrimary
+            : theme.colors.borderSubtle,
+          backgroundColor: selected
+            ? theme.colors.cardAccent
+            : pressed
+              ? theme.colors.backgroundTertiary
+              : theme.colors.backgroundElevated,
           ...elevation(muted ? "none" : "card", theme.dark),
         };
       }}
@@ -158,12 +178,15 @@ export default function ResponseRow({
         >
           {title}
         </Text>
-        <Ionicons
-          name="chevron-forward"
-          size={18}
-          color={theme.colors.textTertiary}
-          style={{ marginTop: 2 }}
-        />
+        {showChevron ? (
+          <Ionicons
+            testID="response-row-chevron"
+            name="chevron-forward"
+            size={18}
+            color={theme.colors.textTertiary}
+            style={{ marginTop: 2 }}
+          />
+        ) : null}
       </View>
 
       <View style={{ marginTop: spacing.sm, gap: spacing.xs }}>

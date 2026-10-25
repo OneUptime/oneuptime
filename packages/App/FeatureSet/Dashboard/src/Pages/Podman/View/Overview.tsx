@@ -13,6 +13,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Card from "Common/UI/Components/Card/Card";
+import CardGrid from "Common/UI/Components/Card/CardGrid";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -1545,7 +1546,12 @@ const PodmanHostOverview: FunctionComponent<
     };
 
     return (
-      <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <CardGrid
+        columns={2}
+        cardWidth="narrow"
+        className="!mb-6"
+        dataTestId="container-host-top-consumers"
+      >
         {renderList(
           translationKey("Top CPU Consumers"),
           stats.topByCpu,
@@ -1558,7 +1564,7 @@ const PodmanHostOverview: FunctionComponent<
           "memory",
           CONTAINER_HOST_METRIC_DESCRIPTIONS.topMemoryConsumers,
         )}
-      </div>
+      </CardGrid>
     );
   };
 

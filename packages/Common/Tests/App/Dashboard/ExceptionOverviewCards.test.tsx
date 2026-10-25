@@ -19,8 +19,20 @@ import { Mock } from "jest-mock";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import ExceptionOccurrenceTrend from "../../../../App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionOccurrenceTrend";
-import ExceptionLatestOccurrence from "../../../../App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionLatestOccurrence";
+import ExceptionLatestOccurrence, {
+  EXCEPTION_LATEST_OCCURRENCE_EMPTY_CLASS_NAME,
+  EXCEPTION_LATEST_OCCURRENCE_LOADING_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionLatestOccurrence";
 import ExceptionDetail from "../../../../App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionDetail";
+import Card from "../../../UI/Components/Card/Card";
+import CardGrid, {
+  CARD_GRID_CELL_TEST_ID,
+} from "../../../UI/Components/Card/CardGrid";
+import {
+  describeHeightFill,
+  describeHeightFillChain,
+} from "../../ResponsiveHeightFill";
+import { WIDTHS_IN_PX } from "../../RenderedMarkup";
 import ExceptionInstance from "../../../Models/AnalyticsModels/ExceptionInstance";
 import Service from "../../../Models/DatabaseModels/Service";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
@@ -301,6 +313,96 @@ describe("ExceptionLatestOccurrence", () => {
     expect(
       screen.getByTestId("exception-latest-occurrence-empty"),
     ).toBeInTheDocument();
+  });
+
+  /*
+   * Beside the exception's details on the Overview the card is as tall as
+   * they are (CardGrid). With no occurrence stored, or while the latest one
+   * is read, what the card holds takes the room under its header - the
+   * dashed box's clock and words, or the loader, in the middle of it -
+   * rather than sitting at its top over blank card.
+   */
+  test("beside the details, the empty box and the loader take the card's room under its header", () => {
+    for (const [isLoading, testId] of [
+      [false, "exception-latest-occurrence-empty"],
+      [true, "exception-latest-occurrence-loading"],
+    ] as Array<[boolean, string]>) {
+      render(
+        <MemoryRouter>
+          <CardGrid columns={2} dataTestId="exception-overview-cards">
+            <Card title="Details">
+              <p>The exception, its service and its releases.</p>
+            </Card>
+            <ExceptionLatestOccurrence
+              isLoading={isLoading}
+              instance={undefined}
+            />
+          </CardGrid>
+        </MemoryRouter>,
+      );
+
+      const cell: HTMLElement = within(
+        screen.getByTestId("exception-overview-cards"),
+      ).getAllByTestId(CARD_GRID_CELL_TEST_ID)[1]!;
+      const body: HTMLElement = within(cell).getByTestId(testId);
+
+      expect(within(cell).getByTestId("card")).toHaveAttribute(
+        "data-fill-height",
+        "true",
+      );
+      expect(body).toHaveClass(
+        ...(isLoading
+          ? EXCEPTION_LATEST_OCCURRENCE_LOADING_CLASS_NAME
+          : EXCEPTION_LATEST_OCCURRENCE_EMPTY_CLASS_NAME
+        ).split(" "),
+      );
+      // Its middle is the card's: what holds it runs to the cell's bottom.
+      expect(body).toHaveClass("items-center");
+      for (const width of WIDTHS_IN_PX) {
+        expect([
+          testId,
+          width,
+          describeHeightFillChain(body, cell, width),
+        ]).toEqual([testId, width, []]);
+      }
+
+      cleanup();
+    }
+  });
+
+  test("on its own - the Context page - the empty box and the loader are as tall as what they hold", () => {
+    for (const [isLoading, testId] of [
+      [false, "exception-latest-occurrence-empty"],
+      [true, "exception-latest-occurrence-loading"],
+    ] as Array<[boolean, string]>) {
+      render(
+        <MemoryRouter>
+          <ExceptionLatestOccurrence
+            isLoading={isLoading}
+            instance={undefined}
+          />
+        </MemoryRouter>,
+      );
+
+      const card: HTMLElement = screen.getByTestId("card");
+      const body: HTMLElement = screen.getByTestId(testId);
+
+      // No row: the card keeps the height of what it holds, as it always has.
+      expect(card).not.toHaveAttribute("data-fill-height");
+      for (const width of WIDTHS_IN_PX) {
+        expect([testId, width, describeHeightFill(body, width)]).not.toEqual([
+          testId,
+          width,
+          null,
+        ]);
+      }
+      // The loader keeps the 96px it always had to turn in.
+      if (isLoading) {
+        expect(body).toHaveClass("min-h-24");
+      }
+
+      cleanup();
+    }
   });
 });
 
