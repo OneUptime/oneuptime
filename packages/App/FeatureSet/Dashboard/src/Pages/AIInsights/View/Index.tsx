@@ -801,7 +801,7 @@ const AIInsightViewPage: FunctionComponent<
     icon: IconProp.Refresh,
     value:
       insight.occurrenceCount === 1
-        ? translator.translateText("Once")
+        ? translator.translateText("Once") || "Once"
         : translator.translatePlural(
             { one: "{{count}} time", other: "{{count}} times" },
             insight.occurrenceCount || 0,
