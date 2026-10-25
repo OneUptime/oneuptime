@@ -69,6 +69,9 @@ import {
   getAiContextEventSummary,
   withAiContext,
 } from "../AiContext/AiContextPrompt";
+import ChatInfrastructureAccess, {
+  ChatPageInfrastructure,
+} from "./ChatInfrastructureAccess";
 
 export interface ChatTurnRequest {
   projectId: ObjectID;
@@ -122,6 +125,18 @@ export interface ChatTurnRequest {
    * registered toolbox tool always wins over an extra tool of the same name.
    */
   extraTools?: Array<ChatExtraTool> | undefined;
+  /*
+   * Set for a personal Ask AI conversation (the AI chat API): once the turn
+   * knows its subject - the page it was asked from, else the one the
+   * conversation kept - it may run the read-only commands OneUptime AI may
+   * run on the infrastructure that subject is about, through the AI agents
+   * of the resources and clusters the person asking may view, and its
+   * prompt says what it can reach and why not
+   * (ChatInfrastructureAccess.buildForPage). A turn resumed after an
+   * approval gets the tools again, since tools are never persisted. A
+   * shared thread brings its own, in extraTools.
+   */
+  offersPageInfrastructure?: boolean | undefined;
   // LlmLog feature label (defaults to OBSERVABILITY_CHAT_FEATURE).
   feature?: string | undefined;
 }
@@ -551,7 +566,6 @@ export default class ChatAgentRunner {
   public static async runTurn(request: ChatTurnRequest): Promise<void> {
     try {
       const state: TurnState = this.freshState();
-      state.extraTools = request.extraTools;
 
       const toolContext: ToolContext = {
         projectId: request.projectId,
@@ -587,13 +601,20 @@ export default class ChatAgentRunner {
       const pageContext: AIChatPageContext | undefined =
         await this.resolvePageContext(request);
 
-      const messages: Array<LLMMessage> = await this.buildInitialMessages(
+      // The infrastructure that subject is about, when the turn may reach it.
+      const turn: ChatTurnRequest = await this.withPageInfrastructure(
         request,
+        pageContext,
+      );
+      state.extraTools = turn.extraTools;
+
+      const messages: Array<LLMMessage> = await this.buildInitialMessages(
+        turn,
         pageContext,
         aiContext,
       );
 
-      await this.runAgentLoop(request, state, messages, toolContext);
+      await this.runAgentLoop(turn, state, messages, toolContext);
     } catch (error) {
       const message: string =
         error instanceof Error ? error.message : String(error);
@@ -685,7 +706,10 @@ export default class ChatAgentRunner {
       toolActions: paused.toolActions || [],
       egressToolEntries: paused.egressToolEntries || [],
       startedAtMs: Date.now(),
-      // Rebuilt by the caller for the resume: tools are never persisted.
+      /*
+       * Rebuilt by the caller for the resume (and the page's, below): tools
+       * are never persisted.
+       */
       extraTools: request.extraTools,
     };
 
@@ -734,6 +758,18 @@ export default class ChatAgentRunner {
       props: { isRoot: true },
     });
 
+    /*
+     * Tools are never persisted: a personal conversation's command tools
+     * are built again, from current data, for the subject it kept.
+     */
+    const turn: ChatTurnRequest = await this.withPageInfrastructure(
+      request,
+      request.offersPageInfrastructure === true
+        ? await this.resolvePageContext(request)
+        : undefined,
+    );
+    state.extraTools = turn.extraTools;
+
     // Apply the decisions: run approved actions, refuse denied ones.
     for (const toolCall of pendingToolCalls) {
       /*
@@ -761,7 +797,7 @@ export default class ChatAgentRunner {
         );
 
         const resultText: string = await this.executeToolCall(
-          request,
+          turn,
           state,
           toolContext,
           toolCall,
@@ -807,7 +843,43 @@ export default class ChatAgentRunner {
       AIChatMessageStatus.InProgress,
     );
 
-    await this.runAgentLoop(request, state, messages, toolContext);
+    await this.runAgentLoop(turn, state, messages, toolContext);
+  }
+
+  /*
+   * The turn with the infrastructure its subject is about, when it may
+   * reach it (offersPageInfrastructure): the command tools added to its
+   * own, and what they reach - or why nothing can be reached - added to
+   * its prompt. Anything that fails leaves the turn as it was: it still
+   * answers from OneUptime's data.
+   */
+  private static async withPageInfrastructure(
+    request: ChatTurnRequest,
+    pageContext: AIChatPageContext | undefined,
+  ): Promise<ChatTurnRequest> {
+    if (request.offersPageInfrastructure !== true || !pageContext) {
+      return request;
+    }
+
+    const infrastructure: ChatPageInfrastructure | null =
+      await ChatInfrastructureAccess.buildForPage({
+        projectId: request.projectId,
+        aiRunId: request.aiRunId,
+        props: request.props,
+        pageContext,
+      });
+
+    if (!infrastructure) {
+      return request;
+    }
+
+    return {
+      ...request,
+      extraTools: [...(request.extraTools || []), ...infrastructure.extraTools],
+      additionalSystemInstructions: request.additionalSystemInstructions
+        ? `${request.additionalSystemInstructions}\n\n${infrastructure.instructions}`
+        : infrastructure.instructions,
+    };
   }
 
   /*
@@ -1158,13 +1230,17 @@ export default class ChatAgentRunner {
   /*
    * The tools offered this round: the toolbox for the permission mode, then
    * the turn's extra tools (read tools always; mutations only when the mode
-   * can act). A toolbox name always wins over an extra tool's.
+   * can act). A toolbox name always wins over an extra tool's. The toolbox
+   * list is shared by every run of the process, so the turn's tools go on a
+   * copy of it - never on the list itself, where every later turn would
+   * have been offered them, described with this turn's resources.
    */
   public static getToolDefinitions(
     request: Pick<ChatTurnRequest, "permissionMode" | "extraTools">,
   ): Array<LLMToolDefinition> {
-    const definitions: Array<LLMToolDefinition> =
-      AIToolbox.getLlmToolDefinitions(request.permissionMode);
+    const definitions: Array<LLMToolDefinition> = [
+      ...AIToolbox.getLlmToolDefinitions(request.permissionMode),
+    ];
     const names: Set<string> = new Set(
       definitions.map((definition: LLMToolDefinition): string => {
         return definition.name;

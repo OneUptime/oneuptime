@@ -41,6 +41,9 @@
  *                              fails (the Layout's and header's reads do
  *                              not)
  *              refresh-status  every refresh-status request fails
+ *              owner-add       every owner the hero's Add owners list adds
+ *                              is refused, as the server refuses a second
+ *                              row for an owner
  *   ?nav=1     shows links to every fixture monitor in the header, to move
  *              between monitors on the same, still-mounted route.
  *   ?monitorLimit=  the project's limit on active monitors, as
@@ -593,6 +596,20 @@ const people = {
 };
 
 const team = insert(Team, { _id: ID.team(1), name: "Checkout SRE" });
+/*
+ * A second team, and the project's people as its members: what the hero's
+ * Add owners list offers (the people picker reads TeamMember and Team).
+ */
+const platformTeam = insert(Team, { _id: ID.team(2), name: "Platform" });
+for (const member of Object.values(people)) {
+  insert(TeamMember, {
+    teamId: team.id,
+    team,
+    userId: member.id,
+    user: member,
+    hasAcceptedInvitation: true,
+  });
+}
 
 function label(number, name, color) {
   return insert(Label, {
@@ -2453,12 +2470,56 @@ ModelAPI.createOrUpdate = async (options) => {
   if (modelName === tableName(MonitorStatusTimeline)) {
     return createStatusEvent(options.model, data);
   }
+  if (
+    modelName === tableName(MonitorOwnerUser) ||
+    modelName === tableName(MonitorOwnerTeam)
+  ) {
+    return createOwner(modelName, options.model);
+  }
   if (modelName !== tableName(Monitor)) {
     fixture.unhandled.push({ kind: "createOrUpdate", modelName });
     throw fail(400, `Creating a ${modelName} is not modelled.`);
   }
   return new HTTPResponse(200, { ...data, _id: CREATED_MONITOR_ID }, {});
 };
+
+/*
+ * An owner added from the hero's Add owners list, as the server adds one: a
+ * row naming the monitor and the person or the team, which the hero's read
+ * then names. `?fail=owner-add` refuses every one, as the server refuses a
+ * second row for an owner it has already.
+ */
+function createOwner(modelName, model) {
+  const isUser = modelName === tableName(MonitorOwnerUser);
+  if (failures.has("owner-add")) {
+    throw fail(
+      400,
+      isUser
+        ? "This user is already an owner of this monitor."
+        : "This team is already an owner of this monitor.",
+    );
+  }
+  const record = isUser
+    ? {
+        monitorId: new ObjectID(String(model.monitorId)),
+        userId: new ObjectID(String(model.userId)),
+        user: Object.values(people).find((candidate) => {
+          return String(candidate.id) === String(model.userId);
+        }),
+      }
+    : {
+        monitorId: new ObjectID(String(model.monitorId)),
+        teamId: new ObjectID(String(model.teamId)),
+        team: [team, platformTeam].find((candidate) => {
+          return String(candidate.id) === String(model.teamId);
+        }),
+      };
+  const created = insert(isUser ? MonitorOwnerUser : MonitorOwnerTeam, {
+    ...record,
+    createdAt: OneUptimeDate.getCurrentDate(),
+  });
+  return new HTTPResponse(200, { _id: String(created.id) }, {});
+}
 
 /*
  * A status event - a manual monitor's Change status, from the hero's ⋯ -

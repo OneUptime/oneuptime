@@ -558,11 +558,11 @@ describe("an archived role", () => {
 
 /*
  * A role's picker takes the cursor when it opens - its Assign button is gone
- * the moment it is pressed - and somebody outside the card can ask for it:
- * an incident overview's header offers Assign beside "Incident Commander"
- * and opens the commander's picker here, so the role is given in one step.
+ * the moment it is pressed. The card is the only one that opens it: an
+ * incident overview's header gives the commander from a list of its own,
+ * right where it names them, and the card reads its roles again.
  */
-describe("a role's picker, opened by its Assign or from outside the card", () => {
+describe("a role's picker, opened by its Assign", () => {
   type PropsFunction = (overrides?: Partial<ComponentProps>) => ComponentProps;
 
   // Nobody holds Incident Commander; Jordan is the Communications Lead.
@@ -607,175 +607,19 @@ describe("a role's picker, opened by its Assign or from outside the card", () =>
     expect(input).toHaveFocus();
   });
 
-  test("a request opens that role's picker with the cursor in it", () => {
+  test("a card drawn again with new roles opens no picker by itself", () => {
     const view: ReturnType<typeof render> = render(
       <MemberRoleAssignment {...propsWith()} />,
     );
 
-    expect(pickerOf(COMMANDER)).toBeNull();
-
     view.rerender(
       <MemberRoleAssignment
-        {...propsWith({
-          assignRequest: { roleId: COMMANDER.id.toString(), requestId: 1 },
-        })}
+        {...propsWith({ assignedMembers: [JORDAN, MAYA] })}
       />,
     );
 
-    const picker: HTMLElement | null = pickerOf(COMMANDER);
-
-    expect(picker).not.toBeNull();
-    expect(
-      within(picker as HTMLElement).getByRole("combobox", {
-        name: "Incident Commander",
-      }),
-    ).toHaveFocus();
-    // Only that role's picker: the others keep their Assign.
+    expect(pickerOf(COMMANDER)).toBeNull();
     expect(pickerOf(SCRIBE)).toBeNull();
-    expect(
-      within(headerFor("Scribe")).getByRole("button", { name: "Assign" }),
-    ).toBeVisible();
-  });
-
-  test("each new request opens it again, after the reader cancelled it", () => {
-    const view: ReturnType<typeof render> = render(
-      <MemberRoleAssignment {...propsWith()} />,
-    );
-
-    view.rerender(
-      <MemberRoleAssignment
-        {...propsWith({
-          assignRequest: { roleId: COMMANDER.id.toString(), requestId: 1 },
-        })}
-      />,
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-
-    expect(pickerOf(COMMANDER)).toBeNull();
-
-    // The same request drawn again is not a new one.
-    view.rerender(
-      <MemberRoleAssignment
-        {...propsWith({
-          assignRequest: { roleId: COMMANDER.id.toString(), requestId: 1 },
-        })}
-      />,
-    );
-
-    expect(pickerOf(COMMANDER)).toBeNull();
-
-    view.rerender(
-      <MemberRoleAssignment
-        {...propsWith({
-          assignRequest: { roleId: COMMANDER.id.toString(), requestId: 2 },
-        })}
-      />,
-    );
-
-    expect(pickerOf(COMMANDER)).not.toBeNull();
-  });
-
-  test("a request the card is first drawn with opens nothing: it was made for the record before", () => {
-    render(
-      <MemberRoleAssignment
-        {...propsWith({
-          assignRequest: { roleId: COMMANDER.id.toString(), requestId: 3 },
-        })}
-      />,
-    );
-
-    expect(pickerOf(COMMANDER)).toBeNull();
-    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
-  });
-
-  test("a request made while the roles load opens the picker once they are drawn", () => {
-    const view: ReturnType<typeof render> = render(
-      <MemberRoleAssignment {...propsWith({ isLoading: true })} />,
-    );
-
-    view.rerender(
-      <MemberRoleAssignment
-        {...propsWith({
-          isLoading: true,
-          assignRequest: { roleId: COMMANDER.id.toString(), requestId: 1 },
-        })}
-      />,
-    );
-
-    expect(pickerOf(COMMANDER)).toBeNull();
-
-    view.rerender(
-      <MemberRoleAssignment
-        {...propsWith({
-          isLoading: false,
-          assignRequest: { roleId: COMMANDER.id.toString(), requestId: 1 },
-        })}
-      />,
-    );
-
-    const picker: HTMLElement | null = pickerOf(COMMANDER);
-
-    expect(picker).not.toBeNull();
-    expect(
-      within(picker as HTMLElement).getByRole("combobox", {
-        name: "Incident Commander",
-      }),
-    ).toHaveFocus();
-  });
-
-  test("a role that takes nobody more opens nothing: one person already holds it, or it is archived", () => {
-    const roles: Array<MemberRole> = [
-      COMMANDER,
-      COMMUNICATIONS,
-      { ...SCRIBE, isArchived: true },
-    ];
-    const view: ReturnType<typeof render> = render(
-      <MemberRoleAssignment
-        {...propsWith({ assignedMembers: [MAYA, JORDAN], roles: roles })}
-      />,
-    );
-
-    view.rerender(
-      <MemberRoleAssignment
-        {...propsWith({
-          assignedMembers: [MAYA, JORDAN],
-          roles: roles,
-          assignRequest: { roleId: COMMANDER.id.toString(), requestId: 1 },
-        })}
-      />,
-    );
-
-    expect(pickerOf(COMMANDER)).toBeNull();
-
-    view.rerender(
-      <MemberRoleAssignment
-        {...propsWith({
-          assignedMembers: [MAYA, JORDAN],
-          roles: roles,
-          assignRequest: { roleId: SCRIBE.id.toString(), requestId: 2 },
-        })}
-      />,
-    );
-
-    expect(pickerOf(SCRIBE)).toBeNull();
-  });
-
-  test("a request for a role the project does not have opens nothing", () => {
-    const view: ReturnType<typeof render> = render(
-      <MemberRoleAssignment {...propsWith()} />,
-    );
-
-    view.rerender(
-      <MemberRoleAssignment
-        {...propsWith({
-          assignRequest: {
-            roleId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa9",
-            requestId: 1,
-          },
-        })}
-      />,
-    );
-
     expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
   });
 });

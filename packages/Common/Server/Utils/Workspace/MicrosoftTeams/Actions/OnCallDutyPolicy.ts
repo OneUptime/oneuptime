@@ -1,7 +1,7 @@
 import { MicrosoftTeamsOnCallDutyActionType } from "./ActionTypes";
 import logger from "../../../Logger";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
-import { TurnContext } from "botbuilder";
+import { TurnContext } from "../Botbuilder";
 import { JSONObject, JSONValue } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import OnCallDutyPolicyService from "../../../../Services/OnCallDutyPolicyService";

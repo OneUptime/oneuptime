@@ -1597,12 +1597,16 @@ test.describe("other monitor families", () => {
     expect(await factValue(page, "Evaluated")).toBe(
       "On every poll and matching trap",
     );
-    // Nobody owns this one, and the hero says so rather than showing nothing.
+    /*
+     * Nobody owns this one, and the hero says so rather than showing
+     * nothing - with Add owners right there (the owners section below).
+     */
     const owners: Locator = page.getByTestId("monitor-overview-fact-owners");
     await expect(owners).toContainText("No owners");
     await expect(
-      owners.getByRole("link", { name: "Add owners" }),
-    ).toHaveAttribute("href", `${monitorPath("network-device")}/owners`);
+      owners.getByRole("button", { name: "Add owners" }),
+    ).toHaveAttribute("aria-haspopup", "dialog");
+    await expect(owners.getByRole("link")).toHaveCount(0);
 
     await hero(page).getByRole("link", { name: "View device" }).click();
     await expect(page.getByTestId("stub-page")).toHaveAttribute(
@@ -3201,4 +3205,279 @@ test.describe("responsive", () => {
     ).not.toBe(WHITE_RGB);
     await screenshot(page, "monitor-overview-dark");
   });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Owners, added from the hero
+ * ---------------------------------------------------------------------------
+ * "If I click on add owners, I should be able to add owners from this page
+ * directly instead of going to owners page." The hero's Add owners - beside
+ * "No owners", or the circle after the owners' avatars - opens the Owners
+ * page's own list right there: one click adds an owner, the list stays open
+ * for the next, and the hero and the feed read again.
+ */
+
+// The project's people and teams the list offers (Fixture.js).
+const JORDAN_ID: string = uuid("80000000", 3);
+const PLATFORM_TEAM_ID: string = uuid("81000000", 2);
+
+function ownersFact(page: Page): Locator {
+  return page.getByTestId("monitor-overview-fact-owners");
+}
+
+function addOwnersList(page: Page): Locator {
+  return page.getByRole("dialog", { name: "Add owners" });
+}
+
+// The names the list offers, in order: people first, then teams.
+async function listedNames(list: Locator): Promise<Array<string>> {
+  return list
+    .getByTestId("people-search-option")
+    .evaluateAll((options: Array<Element>): Array<string> => {
+      return options.map((option: Element): string => {
+        return (
+          option.querySelector(":scope > .min-w-0 > div")?.textContent || ""
+        ).trim();
+      });
+    });
+}
+
+async function ownerRowsWritten(
+  page: Page,
+  modelName: string,
+): Promise<Array<RecordedCreate>> {
+  return (await fixture(page)).creates.filter(
+    (write: RecordedCreate): boolean => {
+      return write.modelName === modelName;
+    },
+  );
+}
+
+test.describe("owners, added from the hero", () => {
+  test("nobody owns it: Add owners opens the list right there, and one click adds an owner", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, { type: "network-device" });
+
+    const owners: Locator = ownersFact(page);
+    const add: Locator = owners.getByRole("button", { name: "Add owners" });
+    await expect(add).toHaveAttribute(
+      "data-testid",
+      "monitor-overview-add-owners",
+    );
+    await expect(add).toHaveAttribute("aria-expanded", "false");
+    await add.click();
+
+    /*
+     * The Owners page's list, under the hero's Add: the project's people,
+     * then its teams.
+     */
+    const list: Locator = addOwnersList(page);
+    await expect(list).toBeVisible();
+    await expect(add).toHaveAttribute("aria-expanded", "true");
+    await expect(
+      list.getByRole("combobox", { name: "Search people or teams..." }),
+    ).toBeFocused();
+    await expect
+      .poll(async (): Promise<Array<string>> => {
+        return listedNames(list);
+      })
+      .toEqual([
+        "Jordan Patel",
+        "Maya Chen",
+        "Sam Rivera",
+        "Checkout SRE",
+        "Platform",
+      ]);
+    const control: Box = (await add.boundingBox())!;
+    const popup: Box = (await list.boundingBox())!;
+    expect(popup.y, "under Add owners").toBeGreaterThanOrEqual(
+      control.y + control.height - 0.5,
+    );
+    await screenshot(page, "monitor-overview-owners-add-list", {
+      fullPage: false,
+    });
+
+    const ownerReads: number = (
+      await listRequestsFor(page, /^MonitorOwnerTeam$/)
+    ).length;
+    const feedReads: number = (await listRequestsFor(page, /^MonitorFeed$/))
+      .length;
+    await list.getByRole("option", { name: /Platform/ }).click();
+
+    // Named at once: "No owners" gives way to the avatars, the list stays open.
+    await expect(owners).not.toContainText("No owners");
+    await expect(list.getByTestId("people-search-notice-done")).toHaveText(
+      "Added Platform.",
+    );
+    await expect
+      .poll(async (): Promise<Array<string>> => {
+        return listedNames(list);
+      })
+      .not.toContain("Platform");
+    // The list now belongs to the circle after the avatars, lit while open.
+    const more: Locator = owners.getByRole("button", { name: "Add owners" });
+    await expect(more).toHaveAttribute(
+      "data-testid",
+      "monitor-overview-add-more-owners",
+    );
+    await expect(more).toHaveAttribute("aria-expanded", "true");
+
+    const written: Array<RecordedCreate> = await ownerRowsWritten(
+      page,
+      "MonitorOwnerTeam",
+    );
+    expect(written).toHaveLength(1);
+    const row: string = JSON.stringify(written[0]?.data);
+    expect(row).toContain(monitorId("network-device"));
+    expect(row).toContain(PLATFORM_TEAM_ID);
+    expect(row).not.toContain("isOwnerNotified");
+    // The hero's owners and the feed read again.
+    expect(
+      (await listRequestsFor(page, /^MonitorOwnerTeam$/)).length,
+    ).toBeGreaterThan(ownerReads);
+    await expect
+      .poll(async (): Promise<number> => {
+        return (await listRequestsFor(page, /^MonitorFeed$/)).length;
+      })
+      .toBeGreaterThan(feedReads);
+
+    await page.keyboard.press("Escape");
+    await expect(list).toHaveCount(0);
+    await expect(more).toBeFocused();
+    expect(new URL(page.url()).pathname).toBe(monitorPath("network-device"));
+    await expect(page.getByTestId("stub-page")).toHaveCount(0);
+  });
+
+  test("owned: the circle after the avatars offers whoever does not own it yet", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page);
+
+    const owners: Locator = ownersFact(page);
+    const more: Locator = owners.getByRole("button", { name: "Add owners" });
+    await expect(more).toHaveAttribute(
+      "data-testid",
+      "monitor-overview-add-more-owners",
+    );
+    await more.click();
+
+    const list: Locator = addOwnersList(page);
+    // Maya Chen, Sam Rivera and Checkout SRE own it already.
+    await expect
+      .poll(async (): Promise<Array<string>> => {
+        return listedNames(list);
+      })
+      .toEqual(["Jordan Patel", "Platform"]);
+    await list.getByRole("option", { name: /Jordan Patel/ }).click();
+
+    await expect(
+      owners.getByRole("img", { name: "Jordan Patel" }),
+    ).toBeVisible();
+    await expect
+      .poll(async (): Promise<Array<string>> => {
+        return listedNames(list);
+      })
+      .toEqual(["Platform"]);
+    const written: Array<RecordedCreate> = await ownerRowsWritten(
+      page,
+      "MonitorOwnerUser",
+    );
+    expect(written).toHaveLength(1);
+    expect(JSON.stringify(written[0]?.data)).toContain(JORDAN_ID);
+    await screenshot(page, "monitor-overview-owners-added", {
+      fullPage: false,
+    });
+  });
+
+  test("fail=owner-add: a refused owner is said in the list, and nobody is named", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, {
+      type: "network-device",
+      query: "fail=owner-add",
+    });
+
+    const owners: Locator = ownersFact(page);
+    await owners.getByRole("button", { name: "Add owners" }).click();
+    const list: Locator = addOwnersList(page);
+    await list.getByRole("option", { name: /Platform/ }).click();
+
+    await expect(list.getByRole("alert")).toHaveText(
+      "This team is already an owner of this monitor.",
+    );
+    await expect(owners).toContainText("No owners");
+    await expect
+      .poll(async (): Promise<Array<string>> => {
+        return listedNames(list);
+      })
+      .toContain("Platform");
+  });
+
+  test("role=viewer: no Add owners, beside nobody or after the avatars", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, { type: "network-device", query: "role=viewer" });
+    await expect(ownersFact(page)).toContainText("No owners");
+    await expect(ownersFact(page).getByRole("button")).toHaveCount(0);
+
+    await openReady(page, { query: "role=viewer" });
+    await expect(
+      ownersFact(page).getByRole("button", { name: "Add owners" }),
+    ).toHaveCount(0);
+  });
+
+  for (const [width, theme] of [
+    [390, "light"],
+    [1280, "dark"],
+  ] as Array<[number, string]>) {
+    test(`the list opens whole under the hero's Add owners (${width}px, ${theme})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await openReady(page, {
+        type: "network-device",
+        query: theme === "dark" ? "theme=dark" : "",
+      });
+
+      await ownersFact(page)
+        .getByRole("button", { name: "Add owners" })
+        .click();
+      const list: Locator = addOwnersList(page);
+      await expect(list).toBeVisible();
+      await expect
+        .poll(async (): Promise<boolean> => {
+          const box: Box | null = await list.boundingBox();
+          return Boolean(
+            box &&
+              box.x >= 0 &&
+              box.y >= 0 &&
+              box.x + box.width <= width + 0.5 &&
+              box.y + box.height <= 900.5,
+          );
+        }, "the list is whole on screen")
+        .toBe(true);
+      if (theme === "dark") {
+        expect(await backgroundColor(list)).not.toBe(WHITE_RGB);
+      }
+      await screenshot(
+        page,
+        `monitor-overview-owners-add-list-${width}-${theme}`,
+        {
+          fullPage: false,
+        },
+      );
+    });
+  }
 });

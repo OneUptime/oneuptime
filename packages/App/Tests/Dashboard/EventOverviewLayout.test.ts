@@ -578,9 +578,13 @@ describe.each(PAGES)("%s overview layout", (_name: string, page: EventPage) => {
     expect(page.view.slice(ownersFact, ownersFact + 400)).toContain(
       `RouteMap[${page.ownersPage}] as Route`,
     );
-    // Add owners is offered only while the event is open, to a reader who may add one.
-    expect(page.view.slice(ownersFact, ownersFact + 400)).toMatch(
-      /canAddOwners: !(isResolved|durationEndDate) && owners\.canAddOwners,/,
+    /*
+     * Add owners is offered only while the event is open, to a reader who
+     * may add one - right there, in the Add owners list: the owners read
+     * again, and the feed when one was added.
+     */
+    expect(page.view.slice(ownersFact, ownersFact + 600)).toMatch(
+      /addOwners: !(isResolved|durationEndDate) && owners\.canAddOwners \? \{ target: owners\.target, onOwnersChanged: async \(change: OwnersChange\): Promise<void> => \{ if \(change\.wasAdded\) \{ refreshFeed\(\); \} await owners\.refresh\(\); \}, \} : undefined,/,
     );
     // Owners come before the event's own facts (its monitor, its episode).
     expect(
@@ -673,18 +677,27 @@ describe("incident-only layout", () => {
       "rolesSnapshot?.subjectId === modelIdString ? rolesSnapshot.value : undefined;",
     );
     /*
-     * The header's Assign asks the roles card to open the commander's
-     * picker: the card is handed the request.
+     * The header's Assign gives the commander right there, to a reader who
+     * may give a role: the incident's role row, the person named at once
+     * (withRoleGiven), the roles card and the feed read again.
      */
     expect(view).toContain(
-      '<IncidentMemberRoleAssignment incidentId={modelId} headerLayout="stacked" id={EVENT_ROLES_CARD_ID} onRolesLoaded={onRolesLoaded} assignRequest={roleAssign.request}',
+      '<IncidentMemberRoleAssignment incidentId={modelId} headerLayout="stacked" onRolesLoaded={onRolesLoaded} refreshToken={rolesRefreshToken}',
     );
     expect(view).toContain(
-      "const roleAssign: RoleAssignRequestState = useRoleAssignRequest();",
+      "const [rolesRefreshToken, setRolesRefreshToken] = useState<number>(0);",
     );
     expect(view).toContain(
-      "const primaryRole: PrimaryRoleHolding | null = getPrimaryRoleHolding(currentRolesSnapshot); const commanderFact: EventStatusFact | null = getCommanderFact({ holding: primaryRole, onAssign: isResolved || !primaryRole ? undefined : () => { roleAssign.requestAssign(primaryRole.role.id); }, });",
+      "const primaryRole: PrimaryRoleHolding | null = getPrimaryRoleHolding(currentRolesSnapshot); const mayAssignRoles: boolean = PermissionGate.check( new IncidentMember(), ModelAction.Create, ).isAllowed; const commanderFact: EventStatusFact | null = getCommanderFact({ holding: primaryRole, onAssign: isResolved || !primaryRole || !mayAssignRoles ? undefined : async (person: PeoplePickerOption): Promise<void> => { const incidentId: string = modelIdString; await assignIncidentRole({ incidentId: new ObjectID(incidentId), userId: new ObjectID(person.id), roleId: new ObjectID(primaryRole.role.id), });",
     );
+    expect(view).toContain("withRoleGiven({");
+    expect(view).toContain(
+      "setRolesRefreshToken((token: number): number => { return token + 1; }); refreshFeed(); },",
+    );
+    // Nothing takes the reader to the roles card any more.
+    expect(view).not.toContain("useRoleAssignRequest");
+    expect(view).not.toContain("EVENT_ROLES_CARD_ID");
+    expect(view).not.toContain("assignRequest");
     // The commander first, then the owners.
     expect(
       indexOfOrFail(view, "headerFacts.push(commanderFact);"),

@@ -32,7 +32,7 @@ flowchart TB
 :::steps
 ### Öppna efteranalysen
 
-Öppna incidenten och klicka på **Efteranalys** under **Utredning** i dess sidomeny. Kortet **Efteranalys** visar efteranalysens **Status** och **Ägare**, anteckningen, bilagorna och om efteranalysen visas på statussidan.
+Öppna incidenten och klicka på **Efteranalys** under **Utredning** i dess sidomeny. Kortet **Efteranalys** visar efteranalysens **Status** och **Ägare**, anteckningen, bilagorna och om efteranalysen visas på statussidan. **Lägg till ägare** bredvid ägarna gör en person eller ett team i projektet till ägare av incidenten direkt där.
 
 ### Klicka på Skriv efteranalys
 
