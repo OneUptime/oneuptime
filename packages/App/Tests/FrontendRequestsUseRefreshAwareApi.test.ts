@@ -109,6 +109,11 @@ const RAW_TRANSPORT_ALLOWLIST: Array<AllowlistEntry> = [
     reason:
       "Recording chunks are application/octet-stream, which the JSON client cannot return, and the watch-time heartbeat needs fetch keepalive to survive pagehide. The player refreshes through API.refreshSession() on a 401 itself.",
   },
+  {
+    file: "Common/UI/Utils/NewVersion/ServerBuildCheck.ts",
+    reason:
+      "Reads the frontend's own static dist/build.json, not the API: no session is involved, so there is nothing to refresh. It needs the raw answer (the status code, a page served in place of the JSON, a timeout, cache: no-store) to tell a new build from a server that is restarting or out of reach.",
+  },
 ];
 
 function toPackagesPath(filePath: string): string {
