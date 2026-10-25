@@ -75,6 +75,13 @@ export interface AdaptiveStackConfig {
   /** What the detail pane shows while nothing is open in it. */
   emptyDetail: React.ComponentType;
   /**
+   * When the empty pane is one of the stack's own screens rather than a
+   * placeholder - On-Call shows the team's roster beside the overview - that
+   * screen's name, so the list marks its row as the one showing until
+   * something else is opened.
+   */
+  emptyDetailRouteName?: string;
+  /**
    * Screens that open over the detail pane rather than in it - a form
    * presented as a sheet. They push in both layouts, so the screen beneath
    * them stays.
@@ -85,14 +92,20 @@ export interface AdaptiveStackConfig {
 export type AdaptiveStackNavigatorProps = NativeStackNavigatorProps &
   AdaptiveStackConfig;
 
-/** The route the detail pane is showing, as the list should mark it. */
+/**
+ * The route the detail pane is showing, as the list should mark it: the
+ * screen opened from the list, or - while nothing is - the screen the empty
+ * pane stands in for, if it is one.
+ */
 export function getDetailSelection(
   state: StackState,
   overlayRouteNames: ReadonlyArray<string>,
+  emptyDetailRouteName?: string,
 ): DetailSelection | null {
   const open: StackState["routes"][number] | undefined = state.routes[1];
   if (!open || overlayRouteNames.includes(open.name)) {
-    return null;
+    // A sheet opened from the list sits over the empty pane, not in its place.
+    return emptyDetailRouteName ? { name: emptyDetailRouteName } : null;
   }
   return {
     name: open.name,
@@ -100,15 +113,30 @@ export function getDetailSelection(
   };
 }
 
+/*
+ * The bar above whatever the detail pane shows first - its empty state, or
+ * the record opened from the list. No Back button (the list beside it is the
+ * way back) and no title, since every such screen opens on a title of its
+ * own ("INCIDENT · INC-7, Checkout is down"). It is drawn on the canvas with
+ * no hairline, so it reads as space, and it keeps the pane's content level
+ * with the list's, whatever the pane shows.
+ */
+const EMPTY_BAR_OPTIONS: NativeStackNavigationOptions = {
+  headerTitle: "",
+  headerBackVisible: false,
+  headerLeft: (): null => {
+    return null;
+  },
+};
+
 /**
  * The descriptors the stack on the right draws from while there are two
  * panes. Its first screen is the list, which is on the left now, so in its
  * place it shows the empty detail. The screen opened from the list appears
- * without a push animation, as switching rows should feel, and its header is
- * an empty bar level with the list's: no Back button (the list beside it is
- * the way back) and no title, since every such screen opens on a title of
- * its own ("INCIDENT · INC-7, Checkout is down"). The project switcher now
- * heads the list, so screens opened further in are titled with their names.
+ * without a push animation, as switching rows should feel. Both sit under
+ * the same empty bar, level with the list's header, so the pane's content
+ * never jumps when the first record opens. Screens opened further in keep
+ * their Back button and their push, under a bar with no title.
  */
 export function getSplitDescriptors(
   descriptors: StackDescriptorMap,
@@ -128,7 +156,7 @@ export function getSplitDescriptors(
       if (index === 0) {
         next[route.key] = {
           ...descriptor,
-          options: { ...descriptor.options, headerShown: false },
+          options: { ...descriptor.options, ...EMPTY_BAR_OPTIONS },
           /*
            * In the list's place, with the list route's own navigation: what
            * the empty pane opens is opened "from the list", so it fills the
@@ -151,12 +179,17 @@ export function getSplitDescriptors(
 
       const opensThePane: boolean =
         index === 1 && !overlayRouteNames.includes(route.name);
+      /*
+       * Further in - a screen opened inside the pane, or a sheet over it -
+       * the bar keeps its Back button and takes no title either. The project
+       * switcher heads the list now, and every screen opens on a title of
+       * its own, so a title in the bar would only repeat it in other words
+       * ("New Override" above "Arrange coverage"). A phone's bar shows no
+       * page title either.
+       */
       const options: NativeStackNavigationOptions = {
         ...descriptor.options,
-        headerTitle: getHeaderTitle(
-          { title: descriptor.options.title },
-          route.name,
-        ),
+        headerTitle: "",
       };
 
       next[route.key] = {
@@ -164,11 +197,7 @@ export function getSplitDescriptors(
         options: opensThePane
           ? {
               ...options,
-              headerTitle: "",
-              headerBackVisible: false,
-              headerLeft: (): null => {
-                return null;
-              },
+              ...EMPTY_BAR_OPTIONS,
               gestureEnabled: false,
               animation: "none",
             }
@@ -249,6 +278,7 @@ function AdaptiveStackNavigator({
   screenLayout,
   UNSTABLE_router,
   emptyDetail,
+  emptyDetailRouteName,
   overlayRouteNames,
 }: AdaptiveStackNavigatorProps): React.JSX.Element {
   const windowLayout: WindowLayout = useWindowLayout();
@@ -342,7 +372,7 @@ function AdaptiveStackNavigator({
   const rootRoute: StackState["routes"][number] = state.routes[0]!;
   const rootDescriptor: StackDescriptor = descriptors[rootRoute.key]!;
   const selection: DetailSelection | null = split
-    ? getDetailSelection(state, overlays)
+    ? getDetailSelection(state, overlays, emptyDetailRouteName)
     : null;
 
   const stackDescriptors: StackDescriptorMap =

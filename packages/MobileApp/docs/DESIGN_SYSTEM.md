@@ -71,7 +71,7 @@ both palettes by `src/theme/colors.test.ts`.
 | `ResponseRow`                                                                   | Incident, alert, episode and monitor list cards.                                                                          |
 | `ResponseDetailHeader`, `ResponseActions`, `ResponseSection`, `ResponseInfoRow` | Detail page structure.                                                                                                    |
 | `QueryErrorNotice`                                                              | A failed background read with a retry.                                                                                    |
-| `EmptyDetailPane`                                                               | The detail pane beside a list before anything is opened in it.                                                            |
+| `EmptyDetailPane`                                                               | The detail pane beside a list before anything is opened in it: "No incident selected" and how to fill it.                 |
 
 ## Layout
 
@@ -113,6 +113,12 @@ The rows are checked in order; the first that fits the window wins.
 - **Opening from the list replaces the detail.** A row tapped beside an open
   record opens in the pane; it does not stack. Screens opened from inside the
   pane still push. Sheets (`overlayRouteNames`) open over the pane.
+- **Before anything is opened** the pane shows `emptyDetail`. Beside a list of
+  records that is an `EmptyDetailPane` whose title describes the pane ("No
+  incident selected") rather than giving an order, so it stays true beside an
+  empty list. Beside a list that is really a menu, show the destination people
+  want most instead, and name its route in `emptyDetailRouteName` so the list
+  marks its row: On-Call shows the team's roster.
 - **Rows beside a detail** read `useListPane()`: pass `selected` (the open
   record, drawn with an accent border on `cardAccent`, like the project
   sheet's current project) and drop the forward chevron (`showChevron`).

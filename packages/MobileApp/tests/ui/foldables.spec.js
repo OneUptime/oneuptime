@@ -141,7 +141,7 @@ test("unfolded, the inbox sits beside the incident, split on the fold, with the 
     listPane.getByText(INCIDENT_TITLE, { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText("Choose an incident", { exact: true }),
+    page.getByText("No incident selected", { exact: true }),
   ).toBeVisible();
 
   // The divider lies on the window's centre line, where the fold runs.
@@ -272,43 +272,69 @@ test("the project sheet stays open, mid-search, through an unfold", async ({
   ).toContainText(projects[1].name);
 });
 
-test("the iPhone Duo held open: the on-call overview beside the roster it opens", async ({
+test("the iPhone Duo held open: the on-call overview beside the team's roster", async ({
   page,
 }, testInfo) => {
   await openApp(page, WINDOWS.duoOpen);
   await page.getByRole("tab", { name: "On-Call", exact: true }).click();
-  await expect(
-    page.getByText("Your team's on-call", { exact: true }),
-  ).toBeVisible();
-  await capture(page, "duo-oncall", testInfo);
+  const detailPane = page.getByTestId("detail-pane");
+  /*
+   * The roster on screen. Once a screen is opened in the pane, the roster
+   * that stood in for it stays mounted beneath, hidden, so only the visible
+   * one counts.
+   */
+  const roster = detailPane
+    .getByText(/Engineering primary/)
+    .filter({ visible: true })
+    .first();
 
-  await page.getByTestId("detail-pane-shortcut-roster").click();
-  await expect(
-    page
-      .getByTestId("detail-pane")
-      .getByText(/Engineering primary/)
-      .first(),
-  ).toBeVisible();
+  /*
+   * Until something else is opened, the pane answers the responder's next
+   * question - who else is on? - rather than asking them to choose from
+   * tiles that sit right beside it. Its tile is marked as the one showing.
+   */
+  await expect(roster).toBeVisible();
+  await expect(page.getByTestId("detail-pane-empty")).toHaveCount(0);
   await expect(page.getByTestId("quick-action-roster")).toHaveAttribute(
     "aria-selected",
     "true",
   );
-  await capture(page, "duo-oncall-roster", testInfo);
+  await capture(page, "duo-oncall", testInfo);
 
-  // The cover form opens over the pane; Back returns to the roster beneath it.
+  // Another destination opens in its place, and the mark moves to it.
+  await page.getByTestId("row-pages").click();
+  await expect(detailPane.getByText("My pages", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("row-pages")).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(page.getByTestId("quick-action-roster")).toHaveAttribute(
+    "aria-selected",
+    "false",
+  );
+  await capture(page, "duo-oncall-pages", testInfo);
+
+  // The roster's tile brings the roster back.
+  await page.getByTestId("quick-action-roster").click();
+  await expect(roster).toBeVisible();
+  await expect(page.getByTestId("quick-action-roster")).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+
+  /*
+   * The cover form opens over the pane, under a bar with Back and no title of
+   * its own: the form's heading names it, so the bar does not say it again
+   * in other words ("New Override" above "Arrange coverage").
+   */
   await page.getByTestId("quick-action-cover").click();
-  await expect(page.getByText("New Override", { exact: true })).toBeVisible();
-  await page
-    .getByTestId("detail-pane")
-    .getByRole("button", { name: /back/i })
-    .first()
-    .click();
   await expect(
-    page
-      .getByTestId("detail-pane")
-      .getByText(/Engineering primary/)
-      .first(),
+    detailPane.getByText("Arrange coverage", { exact: true }),
   ).toBeVisible();
+  await expect(page.getByText("New Override", { exact: true })).toHaveCount(0);
+  await capture(page, "duo-oncall-cover", testInfo);
+  await detailPane.getByRole("button", { name: /back/i }).first().click();
+  await expect(roster).toBeVisible();
   await expect(page.getByTestId("quick-action-roster")).toHaveAttribute(
     "aria-selected",
     "true",
@@ -402,7 +428,10 @@ test.describe("in dark mode", () => {
     await fold(page, WINDOWS.duoOpen);
     await page.getByRole("tab", { name: "On-Call", exact: true }).click();
     await expect(
-      page.getByText("Your team's on-call", { exact: true }),
+      page
+        .getByTestId("detail-pane")
+        .getByText(/Engineering primary/)
+        .first(),
     ).toBeVisible();
     await capture(page, "duo-oncall-dark", testInfo);
   });

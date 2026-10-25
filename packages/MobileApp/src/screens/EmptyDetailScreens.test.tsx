@@ -1,32 +1,27 @@
 import React from "react";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { render, screen } from "@testing-library/react-native";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
-import {
-  InboxEmptyDetail,
-  MonitorsEmptyDetail,
-  OnCallEmptyDetail,
-} from "./EmptyDetailScreens";
+import { InboxEmptyDetail, MonitorsEmptyDetail } from "./EmptyDetailScreens";
 import EmptyDetailPane from "../components/EmptyDetailPane";
 import { ThemeProvider, darkColors, lightColors } from "../theme";
 
 /*
  * What the detail pane beside a list says before anything is opened in it.
- * One line on what will appear and how, in the list's own words; for the
- * on-call overview, which is as much a menu as a list, the three places
- * people go from it most.
+ *
+ * The title says what the pane holds - nothing selected - rather than giving
+ * an order: it has to stay true beside an empty list, where the old "Choose
+ * an incident" asked for something the list said did not exist. One short
+ * line says how to fill it. On-Call has no placeholder at all: its pane
+ * shows the roster (StackNavigators.test.tsx).
  */
 
-const mockNavigate: jest.Mock = jest.fn();
 const mockRoute: { params: { initialView?: string } | undefined } = {
   params: undefined,
 };
 
 jest.mock("@react-navigation/native", () => {
   return {
-    useNavigation: () => {
-      return { navigate: mockNavigate };
-    },
     useRoute: () => {
       return mockRoute;
     },
@@ -45,83 +40,65 @@ jest.mock("react-native/Libraries/Utilities/useColorScheme", () => {
 });
 
 beforeEach(() => {
-  mockNavigate.mockReset();
   mockRoute.params = undefined;
   mockColorScheme = "light";
 });
 
+// The old titles, which asked for a record whether or not the list had one.
+const AN_ORDER: RegExp = /^Choose an? /;
+
 describe("Beside the Inbox", () => {
-  test("it asks for an incident while the Incidents tab is showing", async () => {
+  test("it says no incident is selected while the Incidents tab is showing", async () => {
     await render(<InboxEmptyDetail />);
 
     expect(
-      screen.getByRole("header", { name: "Choose an incident" }),
+      screen.getByRole("header", { name: "No incident selected" }),
     ).toBeTruthy();
     expect(
-      screen.getByText(
-        "Open an incident or an episode from the list to respond to it here.",
-      ),
+      screen.getByText("Choose one from the list to see it here."),
     ).toBeTruthy();
   });
 
-  test("and for an alert while the Alerts tab is", async () => {
+  test("and no alert while the Alerts tab is", async () => {
     mockRoute.params = { initialView: "alerts" };
     await render(<InboxEmptyDetail />);
 
     expect(
-      screen.getByRole("header", { name: "Choose an alert" }),
+      screen.getByRole("header", { name: "No alert selected" }),
     ).toBeTruthy();
     expect(
-      screen.getByText(
-        "Open an alert or an episode from the list to respond to it here.",
-      ),
+      screen.getByText("Choose one from the list to see it here."),
     ).toBeTruthy();
+  });
+
+  test("it never gives an order the list beside it cannot meet", async () => {
+    // Beside an empty or filtered-out list, "Choose an incident" was a dead end.
+    await render(<InboxEmptyDetail />);
+    expect(screen.queryByText(AN_ORDER)).toBeNull();
+
+    mockRoute.params = { initialView: "alerts" };
+    await render(<InboxEmptyDetail />);
+    expect(screen.queryByText(AN_ORDER)).toBeNull();
   });
 });
 
 describe("Beside the monitors", () => {
-  test("it asks for a monitor", async () => {
+  test("it says no monitor is selected, and what opens here", async () => {
     await render(<MonitorsEmptyDetail />);
 
     expect(
-      screen.getByRole("header", { name: "Choose a monitor" }),
+      screen.getByRole("header", { name: "No monitor selected" }),
     ).toBeTruthy();
     expect(
       screen.getByText(
-        "Open a monitor from the list to see its status and history here.",
+        "Choose one from the list to see its status and history here.",
       ),
     ).toBeTruthy();
   });
 });
 
-describe("Beside the on-call overview", () => {
-  test.each([
-    ["Who's on call", "WhoIsOnCall"],
-    ["Pages sent to me", "MyOnCallPages"],
-    ["Coverage & overrides", "OnCallOverrides"],
-  ])("%s opens on the right", async (label: string, routeName: string) => {
-    await render(<OnCallEmptyDetail />);
-
-    await fireEvent.press(screen.getByRole("button", { name: label }));
-
-    expect(mockNavigate).toHaveBeenCalledWith(routeName);
-  });
-
-  test("it names the three places in the order people need them", async () => {
-    await render(<OnCallEmptyDetail />);
-
-    expect(
-      screen
-        .getAllByRole("button")
-        .map((button: ReturnType<typeof screen.getByRole>) => {
-          return button.props.accessibilityLabel;
-        }),
-    ).toEqual(["Who's on call", "Pages sent to me", "Coverage & overrides"]);
-  });
-});
-
 describe("The pane itself", () => {
-  test("keeps clear of the status bar, since it has no header of its own", async () => {
+  test("sits under the pane's bar, and keeps clear of the window's other edges", async () => {
     await render(
       <SafeAreaInsetsContext.Provider
         value={{ top: 32, right: 12, bottom: 20, left: 0 }}
@@ -133,8 +110,10 @@ describe("The pane itself", () => {
     expect(
       screen.getByTestId("detail-pane-empty").props.contentContainerStyle,
     ).toMatchObject({
-      paddingTop: 32 + 24,
+      // The bar above it already keeps it clear of the status bar.
+      paddingTop: 24,
       paddingBottom: 20 + 24,
+      paddingLeft: 24,
       paddingRight: 12 + 24,
       justifyContent: "center",
     });
@@ -159,7 +138,7 @@ describe("The pane itself", () => {
     });
   });
 
-  test("offers no buttons when it has nothing to offer", async () => {
+  test("offers no buttons: the list beside it is the next step", async () => {
     await render(
       <EmptyDetailPane icon="pulse-outline" title="T" message="M" />,
     );

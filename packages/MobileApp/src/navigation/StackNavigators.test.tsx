@@ -765,11 +765,6 @@ describe("On a window wide enough for two panes", () => {
       <MonitorsStackNavigator key="monitors" />,
       "screen-monitors-list",
     ],
-    [
-      "On-Call",
-      <OnCallStackNavigator key="oncall" />,
-      "screen-on-call-overview",
-    ],
   ])(
     "the %s list sits beside its detail pane",
     async (_name: string, element: React.JSX.Element, listTestID: string) => {
@@ -779,9 +774,44 @@ describe("On a window wide enough for two panes", () => {
       expect(
         within(screen.getByTestId("list-pane")).getByTestId(listTestID),
       ).toBeTruthy();
-      expect(screen.getByTestId("detail-pane-empty")).toBeTruthy();
+      expect(
+        within(screen.getByTestId("detail-pane")).getByTestId(
+          "detail-pane-empty",
+        ),
+      ).toBeTruthy();
     },
   );
+
+  test("the On-Call overview sits beside the team's roster, not a placeholder", async () => {
+    /*
+     * The overview answers "am I on call?" and is a menu as much as a list;
+     * the pane beside it answers the next question, "who else is on?",
+     * until something else is opened - without putting the roster on the
+     * stack, so folding returns to the overview.
+     */
+    setWindowSize(TEST_WINDOWS.innerScreen);
+    const navigationRef: NavigationContainerRefWithCurrent<ParamListBase> =
+      await renderStack(<OnCallStackNavigator />);
+
+    expect(
+      within(screen.getByTestId("list-pane")).getByTestId(
+        "screen-on-call-overview",
+      ),
+    ).toBeTruthy();
+    expect(
+      within(screen.getByTestId("detail-pane")).getByTestId(
+        "screen-who-is-on-call",
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByTestId("detail-pane-empty")).toBeNull();
+    expect(
+      (navigationRef.getRootState()?.routes ?? []).map(
+        (route: { name: string }): string => {
+          return route.name;
+        },
+      ),
+    ).toEqual(["OnCallOverview"]);
+  });
 
   test("Settings stays one column", async () => {
     setWindowSize(TEST_WINDOWS.innerScreen);

@@ -23,7 +23,7 @@ import { useTheme } from "../theme";
 import type { ProjectItem } from "../api/types";
 import { elevation, radius, spacing } from "../theme/tokens";
 import { useWindowLayout } from "../layout/WindowLayout";
-import type { WindowLayout } from "../layout/windowLayout";
+import { SHEET_MAX_WIDTH, type WindowLayout } from "../layout/windowLayout";
 import AppText from "./AppText";
 import Banner from "./Banner";
 import GradientButton from "./GradientButton";
@@ -263,7 +263,7 @@ function ProjectSheet({
             height: Math.min(660, height - (insets?.top ?? 0) - 32),
             flexShrink: 1,
             width: "100%",
-            maxWidth: 640,
+            maxWidth: SHEET_MAX_WIDTH,
             alignSelf: "center",
             backgroundColor: theme.colors.backgroundSecondary,
             borderTopLeftRadius: radius.xl,

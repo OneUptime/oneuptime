@@ -565,6 +565,198 @@ describe("Nothing is lost when the phone folds or unfolds", () => {
   });
 });
 
+/*
+ * On-Call's shape: the first screen is a menu as much as a list, and the
+ * pane beside it shows one of the stack's own screens (the roster) until
+ * something else is opened, rather than a placeholder that repeats the menu.
+ */
+type MenuParamList = {
+  Menu: undefined;
+  Roster: undefined;
+  Pages: undefined;
+  Cover: undefined;
+};
+
+type MenuNavigation = NativeStackNavigationProp<MenuParamList, "Menu">;
+
+const rosterMounts: { count: number } = { count: 0 };
+
+function MenuScreen(): React.JSX.Element {
+  const navigation: MenuNavigation = useNavigation<MenuNavigation>();
+  const listPane: ReturnType<typeof useListPane> = useListPane();
+
+  return (
+    <View testID="menu-screen">
+      {(["Roster", "Pages"] as const).map(
+        (name: "Roster" | "Pages"): React.JSX.Element => {
+          return (
+            <Pressable
+              key={name}
+              testID={`menu-${name}`}
+              accessibilityRole="button"
+              accessibilityState={{ selected: listPane.isOpen(name) }}
+              onPress={(): void => {
+                navigation.navigate(name);
+              }}
+            >
+              <Text>{name}</Text>
+            </Pressable>
+          );
+        },
+      )}
+      <Pressable
+        testID="menu-cover"
+        onPress={(): void => {
+          navigation.navigate("Cover");
+        }}
+      >
+        <Text>Cover</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function RosterScreen(): React.JSX.Element {
+  useEffect((): void => {
+    rosterMounts.count += 1;
+  }, []);
+  return <Text testID="roster">Who is on call</Text>;
+}
+
+function PagesScreen(): React.JSX.Element {
+  return <Text testID="pages">Pages sent to me</Text>;
+}
+
+function CoverScreen(): React.JSX.Element {
+  return <Text testID="cover">Arrange coverage</Text>;
+}
+
+const MenuStack: ReturnType<
+  typeof createAdaptiveStackNavigator<MenuParamList>
+> = createAdaptiveStackNavigator<MenuParamList>();
+
+const MENU_OVERLAYS: ReadonlyArray<string> = ["Cover"];
+
+function TestMenuStack(): React.JSX.Element {
+  return (
+    <MenuStack.Navigator
+      emptyDetail={RosterScreen}
+      emptyDetailRouteName="Roster"
+      overlayRouteNames={MENU_OVERLAYS}
+    >
+      <MenuStack.Screen name="Menu" component={MenuScreen} />
+      <MenuStack.Screen name="Roster" component={RosterScreen} />
+      <MenuStack.Screen name="Pages" component={PagesScreen} />
+      <MenuStack.Screen
+        name="Cover"
+        component={CoverScreen}
+        options={{ presentation: "modal" }}
+      />
+    </MenuStack.Navigator>
+  );
+}
+
+async function renderMenuStack(): Promise<
+  NavigationContainerRefWithCurrent<ParamListBase>
+> {
+  const navigationRef: NavigationContainerRefWithCurrent<ParamListBase> =
+    createNavigationContainerRef<ParamListBase>();
+  await render(
+    <SafeAreaInsetsContext.Provider value={INSETS}>
+      <NavigationContainer ref={navigationRef}>
+        <TestMenuStack />
+      </NavigationContainer>
+    </SafeAreaInsetsContext.Provider>,
+  );
+  return navigationRef;
+}
+
+describe("A pane that shows one of the stack's own screens until something is opened", () => {
+  afterEach(() => {
+    rosterMounts.count = 0;
+  });
+
+  test("beside the menu it shows that screen, and the menu marks its row as the one showing", async () => {
+    setWindowSize(TEST_WINDOWS.innerScreen);
+    const navigationRef: NavigationContainerRefWithCurrent<ParamListBase> =
+      await renderMenuStack();
+
+    expect(
+      within(screen.getByTestId("detail-pane")).getByTestId("roster"),
+    ).toBeTruthy();
+    expect(screen.getByTestId("menu-Roster")).toBeSelected();
+    expect(screen.getByTestId("menu-Pages")).not.toBeSelected();
+    // Drawn, not opened: nothing was put on the stack.
+    expect(stackRouteNames(navigationRef)).toEqual(["Menu"]);
+  });
+
+  test("opening another row moves the mark to it", async () => {
+    setWindowSize(TEST_WINDOWS.innerScreen);
+    const navigationRef: NavigationContainerRefWithCurrent<ParamListBase> =
+      await renderMenuStack();
+
+    await fireEvent.press(screen.getByTestId("menu-Pages"));
+
+    expect(
+      within(screen.getByTestId("detail-pane")).getByTestId("pages"),
+    ).toBeTruthy();
+    expect(screen.getByTestId("menu-Pages")).toBeSelected();
+    expect(screen.getByTestId("menu-Roster")).not.toBeSelected();
+    expect(stackRouteNames(navigationRef)).toEqual(["Menu", "Pages"]);
+  });
+
+  test("its own row opens it for real, so a fold keeps it on screen", async () => {
+    setWindowSize(TEST_WINDOWS.innerScreen);
+    const navigationRef: NavigationContainerRefWithCurrent<ParamListBase> =
+      await renderMenuStack();
+
+    await fireEvent.press(screen.getByTestId("menu-Roster"));
+
+    expect(stackRouteNames(navigationRef)).toEqual(["Menu", "Roster"]);
+    expect(screen.getByTestId("menu-Roster")).toBeSelected();
+
+    await resizeWindow(TEST_WINDOWS.coverScreen);
+
+    expect(navigationRef.getCurrentRoute()?.name).toBe("Roster");
+  });
+
+  test("a sheet opened from the menu covers the screen without taking its mark", async () => {
+    setWindowSize(TEST_WINDOWS.innerScreen);
+    const navigationRef: NavigationContainerRefWithCurrent<ParamListBase> =
+      await renderMenuStack();
+
+    await fireEvent.press(screen.getByTestId("menu-cover"));
+
+    expect(stackRouteNames(navigationRef)).toEqual(["Menu", "Cover"]);
+    expect(screen.getByTestId("cover")).toBeTruthy();
+    expect(screen.getByTestId("menu-Roster")).toBeSelected();
+  });
+
+  test("on a phone the menu is the screen, nothing is marked and the stand-in is never drawn", async () => {
+    setWindowSize(TEST_WINDOWS.coverScreen);
+    const navigationRef: NavigationContainerRefWithCurrent<ParamListBase> =
+      await renderMenuStack();
+
+    expect(screen.getByTestId("menu-screen")).toBeTruthy();
+    expect(screen.queryByTestId("roster")).toBeNull();
+    expect(rosterMounts.count).toBe(0);
+    expect(screen.getByTestId("menu-Roster")).not.toBeSelected();
+    expect(stackRouteNames(navigationRef)).toEqual(["Menu"]);
+  });
+
+  test("folding with nothing opened returns to the menu, not to the screen that stood in", async () => {
+    setWindowSize(TEST_WINDOWS.innerScreen);
+    const navigationRef: NavigationContainerRefWithCurrent<ParamListBase> =
+      await renderMenuStack();
+
+    await resizeWindow(TEST_WINDOWS.coverScreen);
+
+    expect(screen.getByTestId("menu-screen")).toBeTruthy();
+    expect(screen.queryByTestId("roster")).toBeNull();
+    expect(stackRouteNames(navigationRef)).toEqual(["Menu"]);
+  });
+});
+
 describe("Re-tapping the tab", () => {
   test("returns the stack to its list, closing the detail pane", async () => {
     setWindowSize(TEST_WINDOWS.innerScreen);
@@ -681,15 +873,25 @@ describe("What the detail pane draws from", () => {
     "Sheet-key": descriptor("Sheet", { presentation: "modal" }, DETAIL_RENDER),
   };
 
-  test("its first screen shows the empty detail, with no header of its own", () => {
+  test("its first screen shows the empty detail, under the same empty bar as the record the list opens", () => {
     const result: Descriptors = getSplitDescriptors(
       descriptors,
       state([{ key: "List-key", name: "List" }]),
       EmptyDetail,
       OVERLAYS,
     );
+    const options: Record<string, unknown> = result["List-key"]
+      ?.options as Record<string, unknown>;
 
-    expect(result["List-key"]?.options.headerShown).toBe(false);
+    /*
+     * The same bar as the opened record's, so the pane's content sits level
+     * with the list's and does not jump when the first record opens: no
+     * title (the project switcher heads the list now), no Back.
+     */
+    expect(options["headerShown"]).not.toBe(false);
+    expect(options["headerTitle"]).toBe("");
+    expect(options["headerBackVisible"]).toBe(false);
+    expect((options["headerLeft"] as () => unknown)()).toBeNull();
     const element: React.ReactElement<{
       route: unknown;
       navigation: unknown;
@@ -742,8 +944,10 @@ describe("What the detail pane draws from", () => {
     const options: Record<string, unknown> = result["Deeper-key"]
       ?.options as Record<string, unknown>;
 
-    expect(options["headerTitle"]).toBe("Deeper");
+    // No title: the screen opens on its own, and the switcher heads the list.
+    expect(options["headerTitle"]).toBe("");
     expect(options["headerBackVisible"]).toBeUndefined();
+    expect(options["headerLeft"]).toBeUndefined();
     expect(options["animation"]).toBeUndefined();
   });
 
@@ -788,5 +992,38 @@ describe("What the detail pane draws from", () => {
     expect(
       getDetailSelection(state([{ key: "List-key", name: "List" }]), OVERLAYS),
     ).toBeNull();
+  });
+
+  test("while nothing is open, an empty pane that is one of the stack's screens is the selection", () => {
+    // On-Call's pane shows the roster until something else is opened.
+    expect(
+      getDetailSelection(
+        state([{ key: "List-key", name: "List" }]),
+        OVERLAYS,
+        "Roster",
+      ),
+    ).toEqual({ name: "Roster" });
+    // A sheet opened from the list sits over the empty pane, not in its place.
+    expect(
+      getDetailSelection(
+        state([
+          { key: "List-key", name: "List" },
+          { key: "Sheet-key", name: "Sheet" },
+        ]),
+        OVERLAYS,
+        "Roster",
+      ),
+    ).toEqual({ name: "Roster" });
+    // Anything opened from the list takes the selection over.
+    expect(
+      getDetailSelection(
+        state([
+          { key: "List-key", name: "List" },
+          { key: "Detail-key", name: "Detail", params: { id: "a" } },
+        ]),
+        OVERLAYS,
+        "Roster",
+      ),
+    ).toEqual({ name: "Detail", params: { id: "a" } });
   });
 });

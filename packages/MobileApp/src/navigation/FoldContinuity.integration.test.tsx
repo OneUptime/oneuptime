@@ -292,7 +292,7 @@ describe("An unfolded foldable shows the inbox and an incident side by side", ()
     const list: ReturnType<typeof screen.getByTestId> =
       screen.getByTestId("list-pane");
     expect(within(list).getByLabelText(CHECKOUT_LABEL)).toBeTruthy();
-    expect(screen.getByText("Choose an incident")).toBeTruthy();
+    expect(screen.getByText("No incident selected")).toBeTruthy();
 
     await fireEvent.press(within(list).getByLabelText(CHECKOUT_LABEL));
 

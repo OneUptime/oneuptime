@@ -152,7 +152,8 @@ when the window changes while somebody is using it.
 - **A list beside its detail** from 840 points (an unfolded Galaxy Z Fold or
   Pixel Fold, the iPhone Duo held open, a tablet on its side): the Inbox,
   Monitors and On-Call lists stay on the left, and what is opened from them
-  appears on the right, with the open row marked. The panes meet on the fold
+  appears on the right, with the open row marked. Until something is opened,
+  On-Call's right pane shows the team's roster. The panes meet on the fold
   where there is one, so nothing crosses the crease when the phone is half
   open. The destinations move to a rail down the left, as they do on a phone
   on its side.

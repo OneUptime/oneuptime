@@ -39,9 +39,9 @@ own windows and folds them mid-task: the Galaxy Z Fold's cover screen
 (344 × 882) and inner screen (884 × 1104, or 1104 × 884 on its side), the
 iPhone Duo held open (951 × 669) and a phone on its side (852 × 393).
 
-| Cover screen                                           | Unfolded: list beside its detail                       | iPhone Duo held open                                   |
-| ------------------------------------------------------ | ------------------------------------------------------ | ------------------------------------------------------ |
-| ![Cover screen incident](foldables-cover-incident.png) | ![Inner screen incident](foldables-inner-incident.png) | ![iPhone Duo on-call](foldables-duo-oncall-roster.png) |
+| Cover screen                                           | Unfolded: list beside its detail                       | iPhone Duo held open                            |
+| ------------------------------------------------------ | ------------------------------------------------------ | ----------------------------------------------- |
+| ![Cover screen incident](foldables-cover-incident.png) | ![Inner screen incident](foldables-inner-incident.png) | ![iPhone Duo on-call](foldables-duo-oncall.png) |
 
 | Folded mid-note                                            | Unfolded again, nothing lost                               | On its side: Home in two columns                           |
 | ---------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------- |
