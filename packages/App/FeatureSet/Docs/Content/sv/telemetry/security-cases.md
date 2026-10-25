@@ -52,7 +52,7 @@ Var och en av dessa behörigheter kan också ges för sig, från att skapa ett �
 | Entitetsrisk | En användares, värds eller adress risk når projektets tröskel | **Riskärenden** under **Inställningar → Riskbedömning** |
 | Personer | Någon öppnar ett från **Säkerhetsärenden**, eller med **Open Case** i en händelses panel | Går inte |
 
-Alla källor är påslagna som standard. En anslutning öppnar ärenden för **Hög och högre** om du inte väljer en annan nivå; larmen under den nivån importeras ändå som händelser.
+Alla källor öppnar ärenden som standard, utom entitetsrisk i projekt som skapades innan den fanns: slå först på **Riskärenden** där ([Entitetsrisk](/docs/telemetry/security-entity-risk)). En anslutning öppnar ärenden för **Hög och högre** om du inte väljer en annan nivå; larmen under den nivån importeras ändå som händelser.
 
 ### Så grupperas detektioner
 

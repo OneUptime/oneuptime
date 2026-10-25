@@ -96,7 +96,7 @@ Fai clic su **Visualizza** in una riga di **Rischio delle entità**, o sul risch
 | **Rischio degli ultimi 30 giorni** | Il suo punteggio alla fine di ogni giorno, colorato secondo il livello |
 | **Casi che la riguardano** | I casi di sicurezza aperti su di essa, i più recenti per primi |
 
-**Open in Correlate** disegna un grafo dei suoi eventi, e **Cerca i suoi eventi** apre **Eventi** sulla sua settimana. **Azzera il rischio** azzera il punteggio e le fonti, ad esempio dopo un test pianificato: ciò che si trova dopo conta da zero, e i suoi casi non cambiano. Azzerare richiede un ruolo che può eliminare i dati di sicurezza, e il [registro di controllo](/docs/configuration/audit-logs) lo registra.
+**Apri in Correla** disegna un grafo dei suoi eventi, e **Cerca i suoi eventi** apre **Eventi** sulla sua settimana. **Azzera il rischio** azzera il punteggio e le fonti, ad esempio dopo un test pianificato: ciò che si trova dopo conta da zero, e i suoi casi non cambiano. Azzerare richiede un ruolo che può eliminare i dati di sicurezza, e il [registro di controllo](/docs/configuration/audit-logs) lo registra.
 
 OneUptime AI legge il rischio delle entità di un caso quando ne fa il triage. Vedi [OneUptime AI nella sicurezza](/docs/telemetry/security-ai).
 

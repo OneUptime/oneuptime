@@ -96,7 +96,7 @@ Cliquez sur **Voir** dans une ligne de **Risque des entités**, ou sur le risque
 | **Risque des 30 derniers jours** | Son score à la fin de chaque jour, coloré selon son niveau |
 | **Dossiers la concernant** | Les dossiers de sécurité ouverts à son sujet, les plus récents d'abord |
 
-**Open in Correlate** trace un graphe de ses événements, et **Rechercher ses événements** ouvre **Événements** sur sa semaine. **Réinitialiser le risque** efface son score et ses sources, après un test prévu par exemple : ce qui est trouvé ensuite compte à partir de zéro, et ses dossiers ne changent pas. La réinitialisation demande un rôle qui peut supprimer des données de sécurité, et le [journal d'audit](/docs/configuration/audit-logs) l'enregistre.
+**Ouvrir dans Corréler** trace un graphe de ses événements, et **Rechercher ses événements** ouvre **Événements** sur sa semaine. **Réinitialiser le risque** efface son score et ses sources, après un test prévu par exemple : ce qui est trouvé ensuite compte à partir de zéro, et ses dossiers ne changent pas. La réinitialisation demande un rôle qui peut supprimer des données de sécurité, et le [journal d'audit](/docs/configuration/audit-logs) l'enregistre.
 
 OneUptime AI lit le risque des entités d'un dossier quand il le trie. Voir [OneUptime AI dans la sécurité](/docs/telemetry/security-ai).
 

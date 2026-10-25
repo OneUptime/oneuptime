@@ -96,7 +96,7 @@ Klik på **Vis** i en række i **Entitetsrisiko**, eller på risikoen ved siden 
 | **Risiko de sidste 30 dage** | Dens score ved slutningen af hver dag, farvet efter niveau |
 | **Sager om den** | De sikkerhedssager, der er åbnet om den, de nyeste først |
 
-**Open in Correlate** tegner en graf over dens hændelser, og **Søg i dens hændelser** åbner **Begivenheder** på dens uge. **Nulstil risiko** rydder dens score og kilder, fx efter en planlagt test: det, der findes derefter, tæller fra nul, og dens sager ændres ikke. Nulstilling kræver en rolle, der må slette sikkerhedsdata, og [revisionsloggen](/docs/configuration/audit-logs) registrerer den.
+**Åbn i Korrelér** tegner en graf over dens hændelser, og **Søg i dens hændelser** åbner **Begivenheder** på dens uge. **Nulstil risiko** rydder dens score og kilder, fx efter en planlagt test: det, der findes derefter, tæller fra nul, og dens sager ændres ikke. Nulstilling kræver en rolle, der må slette sikkerhedsdata, og [revisionsloggen](/docs/configuration/audit-logs) registrerer den.
 
 OneUptime AI læser risikoen for en sags entiteter, når den triagerer sagen. Se [OneUptime AI i sikkerhed](/docs/telemetry/security-ai).
 

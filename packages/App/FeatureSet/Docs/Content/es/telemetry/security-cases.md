@@ -52,7 +52,7 @@ Cada uno de estos permisos también se puede conceder por separado, desde crear 
 | Riesgo de entidades | El riesgo de un usuario, host o dirección alcanza el umbral del proyecto | **Casos de riesgo**, en **Ajustes → Puntuación de riesgo** |
 | Personas | Alguien abre uno desde **Casos de seguridad**, o con **Open Case** en el panel de un evento | No se puede desactivar |
 
-Todos los orígenes están activados por defecto. Una conexión abre casos para **Alta y superior** salvo que elijas otro nivel; las alertas por debajo de ese nivel se siguen importando como eventos.
+Todos los orígenes abren casos por defecto, salvo el riesgo de entidades en los proyectos creados antes de que existiera: en ellos, activa primero **Casos de riesgo** ([Riesgo de entidades](/docs/telemetry/security-entity-risk)). Una conexión abre casos para **Alta y superior** salvo que elijas otro nivel; las alertas por debajo de ese nivel se siguen importando como eventos.
 
 ### Cómo se agrupan las detecciones
 

@@ -52,7 +52,7 @@ Chacune de ces actions peut aussi être accordée isolément, de la création d'
 | Risque des entités | Le risque d'un utilisateur, d'un hôte ou d'une adresse atteint le seuil du projet | **Dossiers de risque**, dans **Paramètres → Notation du risque** |
 | Personnes | Quelqu'un en ouvre un depuis **Dossiers de sécurité**, ou avec **Open Case** dans le panneau d'un événement | Impossible |
 
-Chaque source est activée par défaut. Une connexion ouvre des dossiers pour **Élevé et au-dessus**, sauf si vous choisissez un autre niveau ; les alertes de niveau inférieur sont tout de même importées comme événements.
+Chaque source ouvre des dossiers par défaut, sauf le risque des entités dans les projets créés avant lui : activez-y d'abord **Dossiers de risque** ([Risque des entités](/docs/telemetry/security-entity-risk)). Une connexion ouvre des dossiers pour **Élevé et au-dessus**, sauf si vous choisissez un autre niveau ; les alertes de niveau inférieur sont tout de même importées comme événements.
 
 ### Comment les détections sont regroupées
 

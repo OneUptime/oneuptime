@@ -96,7 +96,7 @@ Klikk på **Vis** i en rad i **Entitetsrisiko**, eller på risikoen ved siden av
 | **Risiko siste 30 dager** | Poengsummen ved slutten av hver dag, farget etter nivå |
 | **Saker om den** | Sikkerhetssakene som er åpnet om den, de nyeste først |
 
-**Open in Correlate** tegner en graf over hendelsene, og **Søk i hendelsene** åpner **Hendelser** på uken dens. **Tilbakestill risiko** tømmer poengsummen og kildene, for eksempel etter en planlagt test: det som finnes etterpå, teller fra null, og sakene endres ikke. Tilbakestilling krever en rolle som kan slette sikkerhetsdata, og [revisjonsloggen](/docs/configuration/audit-logs) registrerer det.
+**Åpne i Korreler** tegner en graf over hendelsene, og **Søk i hendelsene** åpner **Hendelser** på uken dens. **Tilbakestill risiko** tømmer poengsummen og kildene, for eksempel etter en planlagt test: det som finnes etterpå, teller fra null, og sakene endres ikke. Tilbakestilling krever en rolle som kan slette sikkerhetsdata, og [revisjonsloggen](/docs/configuration/audit-logs) registrerer det.
 
 OneUptime AI leser risikoen for en saks entiteter når den vurderer saken. Se [OneUptime AI i sikkerhet](/docs/telemetry/security-ai).
 

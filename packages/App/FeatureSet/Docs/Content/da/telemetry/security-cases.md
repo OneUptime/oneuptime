@@ -52,7 +52,7 @@ Hver af disse rettigheder kan også tildeles for sig, fra at oprette en sag til 
 | Entitetsrisiko | En brugers, værts eller adresses risiko når projektets tærskel | **Risikosager** under **Indstillinger → Risikoscoring** |
 | Personer | Nogen åbner en fra **Sikkerhedssager** eller med **Open Case** i en begivenheds panel | Ingen |
 
-Alle kilder er slået til som standard. En forbindelse åbner sager for **Høj og højere**, medmindre du vælger et andet niveau; advarslerne under det importeres stadig som begivenheder.
+Alle kilder åbner sager som standard, undtagen entitetsrisiko i projekter, der blev oprettet, før det fandtes: slå først **Risikosager** til dér ([Entitetsrisiko](/docs/telemetry/security-entity-risk)). En forbindelse åbner sager for **Høj og højere**, medmindre du vælger et andet niveau; advarslerne under det importeres stadig som begivenheder.
 
 ### Sådan grupperes detektioner
 

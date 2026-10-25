@@ -96,7 +96,7 @@ Klik op **Bekijken** in een rij van **Entiteitrisico**, of op het risico naast e
 | **Risico in de afgelopen 30 dagen** | De score aan het eind van elke dag, gekleurd naar niveau |
 | **Zaken hierover** | De beveiligingszaken die erover zijn geopend, de nieuwste eerst |
 
-**Open in Correlate** tekent een grafiek van de gebeurtenissen, en **Gebeurtenissen doorzoeken** opent **Gebeurtenissen** op de week ervan. **Risico resetten** wist de score en de bronnen, bijvoorbeeld na een geplande test: wat daarna wordt gevonden, telt vanaf nul, en de zaken veranderen niet. Resetten vraagt een rol die beveiligingsgegevens mag verwijderen, en het [auditlogboek](/docs/configuration/audit-logs) legt het vast.
+**Openen in Correleren** tekent een grafiek van de gebeurtenissen, en **Gebeurtenissen doorzoeken** opent **Gebeurtenissen** op de week ervan. **Risico resetten** wist de score en de bronnen, bijvoorbeeld na een geplande test: wat daarna wordt gevonden, telt vanaf nul, en de zaken veranderen niet. Resetten vraagt een rol die beveiligingsgegevens mag verwijderen, en het [auditlogboek](/docs/configuration/audit-logs) legt het vast.
 
 OneUptime AI leest het risico van de entiteiten van een zaak wanneer het de zaak beoordeelt. Zie [OneUptime AI in beveiliging](/docs/telemetry/security-ai).
 

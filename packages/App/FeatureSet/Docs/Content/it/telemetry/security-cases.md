@@ -52,7 +52,7 @@ Ognuna di queste azioni si può anche concedere singolarmente, dalla creazione d
 | Rischio delle entità | Il rischio di un utente, host o indirizzo raggiunge la soglia del progetto | **Casi di rischio**, in **Impostazioni → Valutazione del rischio** |
 | Persone | Qualcuno ne apre uno da **Casi di sicurezza**, o con **Open Case** nel pannello di un evento | Nessuna impostazione |
 
-Ogni origine è attiva per impostazione predefinita. Una connessione apre casi per **Alta e superiori** a meno che tu non scelga un altro livello; gli avvisi al di sotto vengono comunque importati come eventi.
+Ogni origine apre casi per impostazione predefinita, tranne il rischio delle entità nei progetti creati prima che esistesse: lì attiva prima **Casi di rischio** ([Rischio delle entità](/docs/telemetry/security-entity-risk)). Una connessione apre casi per **Alta e superiori** a meno che tu non scelga un altro livello; gli avvisi al di sotto vengono comunque importati come eventi.
 
 ### Come vengono raggruppati i rilevamenti
 

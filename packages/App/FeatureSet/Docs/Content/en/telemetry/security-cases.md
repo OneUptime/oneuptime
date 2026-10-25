@@ -52,7 +52,7 @@ Each of these can also be granted on its own, from creating a case to approving 
 | Entity risk | A user's, host's or address's risk reaches the project's threshold | **Risk Cases**, under **Settings → Risk Scoring** |
 | People | Someone opens one from **Security Cases**, or with **Open Case** in an event's panel | None |
 
-Every source is on by default. A connection opens cases for **High and above** unless you choose another level; the alerts below it are still imported as events.
+Every source opens cases by default, except entity risk on projects created before it existed, which turn on **Risk Cases** first ([Entity Risk](/docs/telemetry/security-entity-risk)). A connection opens cases for **High and above** unless you choose another level; the alerts below it are still imported as events.
 
 ### How detections are grouped
 

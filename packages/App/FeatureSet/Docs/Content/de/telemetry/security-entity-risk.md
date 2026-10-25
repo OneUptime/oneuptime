@@ -96,7 +96,7 @@ Klicken Sie in einer Zeile von **Entitätsrisiko** auf **Ansehen**, oder auf das
 | **Risiko der letzten 30 Tage** | Ihr Wert am Ende jedes Tages, gefärbt nach ihrer Stufe |
 | **Fälle dazu** | Die zu ihr eröffneten Sicherheitsfälle, die neuesten zuerst |
 
-**Open in Correlate** zeichnet einen Graphen ihrer Ereignisse, und **Seine Ereignisse durchsuchen** öffnet **Ereignisse** auf ihrer Woche. **Risiko zurücksetzen** löscht ihren Wert und ihre Quellen, etwa nach einem geplanten Test: Was danach gefunden wird, zählt ab null, und ihre Fälle bleiben unverändert. Zurücksetzen erfordert eine Rolle, die Sicherheitsdaten löschen darf, und das [Audit-Log](/docs/configuration/audit-logs) zeichnet es auf.
+**In Korrelieren öffnen** zeichnet einen Graphen ihrer Ereignisse, und **Seine Ereignisse durchsuchen** öffnet **Ereignisse** auf ihrer Woche. **Risiko zurücksetzen** löscht ihren Wert und ihre Quellen, etwa nach einem geplanten Test: Was danach gefunden wird, zählt ab null, und ihre Fälle bleiben unverändert. Zurücksetzen erfordert eine Rolle, die Sicherheitsdaten löschen darf, und das [Audit-Log](/docs/configuration/audit-logs) zeichnet es auf.
 
 OneUptime AI liest das Risiko der Entitäten eines Falls, wenn es den Fall triagiert. Siehe [OneUptime AI in der Sicherheit](/docs/telemetry/security-ai).
 

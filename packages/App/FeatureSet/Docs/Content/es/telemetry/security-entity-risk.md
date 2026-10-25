@@ -96,7 +96,7 @@ Haga clic en **Ver** en una fila de **Riesgo de entidades**, o en el riesgo junt
 | **Riesgo de los últimos 30 días** | Su puntuación al final de cada día, coloreada según su nivel |
 | **Casos sobre ella** | Los casos de seguridad abiertos sobre ella, los más recientes primero |
 
-**Open in Correlate** dibuja un grafo de sus eventos, y **Buscar sus eventos** abre **Eventos** en su semana. **Restablecer el riesgo** borra su puntuación y sus fuentes, por ejemplo tras una prueba planificada: lo que se encuentre después cuenta desde cero, y sus casos no cambian. Restablecer requiere un rol que pueda eliminar datos de seguridad, y el [registro de auditoría](/docs/configuration/audit-logs) lo registra.
+**Abrir en Correlacionar** dibuja un grafo de sus eventos, y **Buscar sus eventos** abre **Eventos** en su semana. **Restablecer el riesgo** borra su puntuación y sus fuentes, por ejemplo tras una prueba planificada: lo que se encuentre después cuenta desde cero, y sus casos no cambian. Restablecer requiere un rol que pueda eliminar datos de seguridad, y el [registro de auditoría](/docs/configuration/audit-logs) lo registra.
 
 OneUptime AI lee el riesgo de las entidades de un caso cuando lo evalúa. Consulte [OneUptime AI en la seguridad](/docs/telemetry/security-ai).
 

@@ -52,7 +52,7 @@ Jedes dieser Rechte lässt sich auch einzeln vergeben, vom Erstellen eines Falls
 | Entitätsrisiko | Das Risiko eines Benutzers, Hosts oder einer Adresse den Schwellenwert des Projekts erreicht | **Risikofälle** unter **Einstellungen → Risikobewertung** |
 | Personen | Jemand einen unter **Sicherheitsfälle** eröffnet, oder mit **Open Case** im Panel eines Ereignisses | Nicht abschaltbar |
 
-Jede Quelle ist standardmäßig eingeschaltet. Eine Verbindung eröffnet Fälle für **Hoch und höher**, sofern Sie keine andere Stufe wählen; die Warnungen darunter werden weiterhin als Ereignisse importiert.
+Jede Quelle eröffnet standardmäßig Fälle, außer dem Entitätsrisiko in Projekten, die vor ihm angelegt wurden: Dort schalten Sie zuerst **Risikofälle** ein ([Entitätsrisiko](/docs/telemetry/security-entity-risk)). Eine Verbindung eröffnet Fälle für **Hoch und höher**, sofern Sie keine andere Stufe wählen; die Warnungen darunter werden weiterhin als Ereignisse importiert.
 
 ### Wie Erkennungen gruppiert werden
 

@@ -96,7 +96,7 @@ Klicka på **Visa** på en rad i **Entitetsrisk**, eller på risken bredvid en e
 | **Risk de senaste 30 dagarna** | Dess poäng i slutet av varje dag, färgad efter nivå |
 | **Ärenden om den** | Säkerhetsärendena som öppnats om den, de senaste först |
 
-**Open in Correlate** ritar en graf över dess händelser, och **Sök i dess händelser** öppnar **Händelser** på dess vecka. **Återställ risk** rensar dess poäng och källor, till exempel efter ett planerat test: det som hittas därefter räknas från noll, och dess ärenden ändras inte. Återställning kräver en roll som får ta bort säkerhetsdata, och [granskningsloggen](/docs/configuration/audit-logs) registrerar den.
+**Öppna i Korrelera** ritar en graf över dess händelser, och **Sök i dess händelser** öppnar **Händelser** på dess vecka. **Återställ risk** rensar dess poäng och källor, till exempel efter ett planerat test: det som hittas därefter räknas från noll, och dess ärenden ändras inte. Återställning kräver en roll som får ta bort säkerhetsdata, och [granskningsloggen](/docs/configuration/audit-logs) registrerar den.
 
 OneUptime AI läser risken för ett ärendes entiteter när den bedömer ärendet. Se [OneUptime AI i säkerhet](/docs/telemetry/security-ai).
 

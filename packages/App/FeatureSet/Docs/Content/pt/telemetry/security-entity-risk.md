@@ -96,7 +96,7 @@ Clique em **Visualizar** numa linha de **Risco de entidades**, ou no risco ao la
 | **Risco nos últimos 30 dias** | A sua pontuação no fim de cada dia, colorida pelo nível |
 | **Casos sobre ela** | Os casos de segurança abertos sobre ela, os mais recentes primeiro |
 
-**Open in Correlate** desenha um grafo dos seus eventos, e **Pesquisar seus eventos** abre **Eventos** na sua semana. **Redefinir risco** apaga a sua pontuação e as suas fontes, depois de um teste planejado, por exemplo: o que for encontrado depois conta do zero, e os seus casos não mudam. Redefinir exige uma função que possa excluir dados de segurança, e o [log de auditoria](/docs/configuration/audit-logs) o registra.
+**Abrir em Correlacionar** desenha um grafo dos seus eventos, e **Pesquisar seus eventos** abre **Eventos** na sua semana. **Redefinir risco** apaga a sua pontuação e as suas fontes, depois de um teste planejado, por exemplo: o que for encontrado depois conta do zero, e os seus casos não mudam. Redefinir exige uma função que possa excluir dados de segurança, e o [log de auditoria](/docs/configuration/audit-logs) o registra.
 
 O OneUptime AI lê o risco das entidades de um caso quando faz a triagem do caso. Veja [OneUptime AI na segurança](/docs/telemetry/security-ai).
 

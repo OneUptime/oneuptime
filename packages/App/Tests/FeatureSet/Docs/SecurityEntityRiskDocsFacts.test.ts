@@ -70,13 +70,13 @@ import {
   SECURITY_ENTITY_CRITICALITY_WEIGHTS,
   SECURITY_ENTITY_RISK_LEVELS,
   SecurityEntityCriticality,
-  SecurityEntityCriticalityRule,
   SecurityEntityRiskContribution,
   SecurityEntityRiskLevel,
 } from "Common/Types/SecurityCase/SecurityEntityRisk";
 import { ENTITY_RISK_MARKDOWN_SOURCE_LIMIT } from "Common/Utils/SecurityCase/SecurityCaseMarkdown";
 import {
   ENTITY_RISK_WINDOW_IN_MS,
+  SecurityEntityCriticalityRule,
   SecurityEntityRiskSummary,
   addRiskObservation,
   computeEntityRisk,
@@ -797,6 +797,11 @@ describe("Entity Risk docs", () => {
 
     expect(flat(section(page, "Turn risk cases on or off"))).toContain(
       `${bold(RISK_CASES_CARD_TITLE)}, under ${bold("Settings → Risk Scoring")}, decides whether risk opens cases, and saves as you flip it. New projects start with it on. A project created before Entity Risk keeps it off until someone turns it on, and ${bold("Entity Risk")} says so above its list. Risk is scored and listed either way.`,
+    );
+
+    // Security Cases and Playbooks says the same where it lists the sources.
+    expect(readPage("en", "telemetry/security-cases")).toContain(
+      `Every source opens cases by default, except entity risk on projects created before it existed, which turn on ${bold(RISK_CASES_CARD_TITLE)} first ([Entity Risk](/docs/${PAGE})).`,
     );
   });
 
