@@ -196,9 +196,22 @@ test("folding and unfolding keep the open incident, a half-written note and the 
 }, testInfo) => {
   const { mutations } = await openApp(page, WINDOWS.inner);
   await page.getByRole("tab", { name: "Inbox", exact: true }).click();
+  const listPane = page.getByTestId("list-pane");
+  /*
+   * Search once the list has loaded, as a person would, and see it narrow:
+   * typed while the rows were still loading, the search could land in the
+   * loading view's field just before the loaded list replaced it.
+   */
+  await expect(
+    listPane.getByText(INCIDENT_TITLE, { exact: true }),
+  ).toBeVisible();
   const search = page.getByPlaceholder("Search title or ID");
   await search.fill("checkout");
-  await page.getByText(INCIDENT_TITLE, { exact: true }).click();
+  await expect(search).toHaveValue("checkout");
+  await expect(
+    listPane.getByText("Background jobs processing slowly", { exact: true }),
+  ).toHaveCount(0);
+  await listPane.getByText(INCIDENT_TITLE, { exact: true }).click();
   await expect(page.getByText("Impact", { exact: true })).toBeVisible();
   await page.getByTestId("add-note-button").click();
   const note = page.getByTestId("add-note-input");
