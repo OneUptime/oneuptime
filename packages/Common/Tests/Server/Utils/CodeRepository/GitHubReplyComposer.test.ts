@@ -57,6 +57,10 @@ const SIGNATURE: string =
 const RUN_URL: string = "https://oneuptime.com/dashboard/ai/runs/1e2d3c4b";
 const RUN_URL_BASE: string = "https://oneuptime.com/dashboard/ai/runs";
 
+// A repository's GitHub Commands switch, as the server links it.
+const SETTINGS_URL: string =
+  "https://oneuptime.com/dashboard/0b6f2a1e-4a3c-4f7e-9d1b-2c3d4e5f6a7b/code/repositories/7c1d2e3f-0000-4000-8000-000000000001/settings#github-commands";
+
 function parseComment(
   body: string,
   surface: GitHubCommandSurface,
@@ -287,6 +291,22 @@ function everyComposerOutput(): Array<ComposedComment> {
       scenario: "with a reason that echoes a mention",
       body: GitHubReplyComposer.refusal({
         reason: `I cannot run "@${APP_SLUG} revise this" on a fork.`,
+      }),
+    },
+    {
+      method: "commandsSwitchedOff",
+      scenario: "linking straight to the repository's switch",
+      body: GitHubReplyComposer.commandsSwitchedOff({
+        productName: "OneUptime",
+        settingsUrl: SETTINGS_URL,
+      }),
+    },
+    {
+      method: "commandsSwitchedOff",
+      scenario: "with no link, the way there in words",
+      body: GitHubReplyComposer.commandsSwitchedOff({
+        productName: "OneUptime",
+        settingsUrl: null,
       }),
     },
     {
@@ -1177,6 +1197,70 @@ describe("refusal", () => {
     expect(parseComment(body, GitHubCommandSurface.PullRequest)).toBeNull();
     expect(parseComment(body, GitHubCommandSurface.Issue)).toBeNull();
     expect(linesWhereAMentionWouldCount(body)).toEqual([]);
+  });
+});
+
+describe("commandsSwitchedOff", () => {
+  /*
+   * A collaborator who mentions the app in a repository whose commands are
+   * off is answered, or the integration reads as broken. The answer used to
+   * name the way there ("Code → this repository → Settings → More
+   * settings"); it now links to the switch itself: the repository's Settings
+   * page in the product, which opens its More settings at the switch.
+   */
+  test("says the commands are off and links straight to the switch, in exactly that shape", () => {
+    expect(
+      GitHubReplyComposer.commandsSwitchedOff({
+        productName: "OneUptime",
+        settingsUrl: SETTINGS_URL,
+      }),
+    ).toBe(
+      `🚫 I cannot do that:\n\n> GitHub commands are switched off for this repository.\n\nA project admin can turn them back on in OneUptime: [Respond to GitHub Commands](${SETTINGS_URL}).\n\n${SIGNATURE}`,
+    );
+  });
+
+  test("the link is named as the switch is on the page", () => {
+    const body: string = GitHubReplyComposer.commandsSwitchedOff({
+      productName: "OneUptime",
+      settingsUrl: SETTINGS_URL,
+    });
+
+    expect(body).toContain(`[Respond to GitHub Commands](${SETTINGS_URL})`);
+    // One link, and it is the switch's.
+    expect(body.split("](").length - 1).toBe(1);
+  });
+
+  test("names the product as the installation does", () => {
+    const body: string = GitHubReplyComposer.commandsSwitchedOff({
+      productName: "Acme Reliability",
+      settingsUrl: SETTINGS_URL,
+    });
+
+    expect(body).toContain(
+      "A project admin can turn them back on in Acme Reliability: [Respond to GitHub Commands]",
+    );
+    expect(body).not.toContain("back on in OneUptime");
+  });
+
+  test("without a link it gives the way there in words", () => {
+    const body: string = GitHubReplyComposer.commandsSwitchedOff({
+      productName: "OneUptime",
+      settingsUrl: null,
+    });
+
+    expect(body).toBe(
+      `🚫 I cannot do that:\n\n> GitHub commands are switched off for this repository.\n\nA project admin can turn them back on in OneUptime under Code → this repository → Settings → More settings.\n\n${SIGNATURE}`,
+    );
+    expect(body).not.toContain("](");
+  });
+
+  test("an empty link is no link", () => {
+    expect(
+      GitHubReplyComposer.commandsSwitchedOff({
+        productName: "OneUptime",
+        settingsUrl: "",
+      }),
+    ).toContain("under Code → this repository → Settings → More settings.");
   });
 });
 

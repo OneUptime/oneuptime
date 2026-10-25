@@ -24,6 +24,7 @@ import {
   CodeHostCapability,
 } from "Common/Types/CodeRepository/CodeHost";
 import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
+import { CodeRepositorySetting } from "Common/Types/CodeRepository/CodeRepositorySetting";
 import RunnerLiveStatus, {
   getRunnerLiveStatusLabel,
 } from "Common/Types/Runner/RunnerLiveStatus";
@@ -81,23 +82,11 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The settings of a repository, by their places on its Settings page, in
- * the order the page draws them under More settings.
+ * the order the page draws them under More settings - kept in Common, so
+ * the server's links into the page (the GitHub App's answer when commands
+ * are off) name the same places.
  */
-export enum CodeRepositorySetting {
-  GitHubCommands = "github-commands",
-  ProductionReview = "production-review",
-  Runner = "runner",
-  PullRequests = "pull-requests",
-  TriggerLabel = "trigger-label",
-  ProductionReviewComment = "production-review-comment",
-  // Only on a repository whose operator set build and test commands.
-  Commands = "commands",
-  /*
-   * A Git repository's Pull Requests: AI pushes a branch there and opens no
-   * pull request, so only the branch it starts from is asked.
-   */
-  Branches = "branches",
-}
+export { CodeRepositorySetting };
 
 export const CODE_REPOSITORY_SETTINGS_IN_ORDER: ReadonlyArray<CodeRepositorySetting> =
   [
