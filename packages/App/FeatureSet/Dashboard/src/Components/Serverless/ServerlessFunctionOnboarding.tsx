@@ -19,7 +19,7 @@ const SERVERLESS_FUNCTION_ONBOARDING: ResourceOnboarding = {
   addDescription: translationKey(
     "Instrument the function with OpenTelemetry. It shows up here as soon as its first data arrives.",
   ),
-  firstRunTitle: translationKey("Add your first function"),
+  firstRunTitle: translationKey("Getting Started with Serverless Functions"),
   viewText: translationKey("View function"),
   viewPage: PageMap.SERVERLESS_FUNCTION_VIEW,
   renderGuide: (props: ResourceGuideProps): ReactElement => {

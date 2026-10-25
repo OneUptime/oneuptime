@@ -400,12 +400,17 @@ beforeEach(() => {
       }): Promise<ListResult<BaseModel>> => {
         /*
          * Hosts' guide (AddHostGuide, #5137) waits for a host whose collector
-         * registered since it opened - its own check, not the table's. No
-         * collector registers here: the first-record watch is what finds
-         * the first one.
+         * registered since it opened, and every other list's Add guide
+         * (Components/ResourceOnboarding) for one created since it opened,
+         * after looking up whether the name it starts with is taken - their
+         * own checks, not the table's. Nothing registers here: the
+         * first-record watch is what finds the first one.
          */
+        const query: string = JSON.stringify(options.query || {});
         if (
-          JSON.stringify(options.query || {}).includes("collectorRegisteredAt")
+          query.includes("collectorRegisteredAt") ||
+          query.includes('"createdAt"') ||
+          query.includes('"_type":"Search"')
         ) {
           return {
             data: [],

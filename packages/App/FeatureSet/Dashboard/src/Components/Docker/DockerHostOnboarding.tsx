@@ -20,7 +20,7 @@ const DOCKER_HOST_ONBOARDING: ResourceOnboarding = {
   addDescription: translationKey(
     "Run the OneUptime Docker agent on the host. The host shows up here as soon as the agent connects.",
   ),
-  firstRunTitle: translationKey("Add your first Docker host"),
+  firstRunTitle: translationKey("Getting Started with Docker Monitoring"),
   viewText: translationKey("View host"),
   viewPage: PageMap.DOCKER_HOST_VIEW,
   name: {

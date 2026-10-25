@@ -20,7 +20,9 @@ const STORAGE_ARRAY_ONBOARDING: ResourceOnboarding = {
   addDescription: translationKey(
     "Point the OneUptime Storage Array Agent at the array. The array shows up here as soon as the agent connects.",
   ),
-  firstRunTitle: translationKey("Add your first storage array"),
+  firstRunTitle: translationKey(
+    "Getting Started with Storage Array Monitoring",
+  ),
   viewText: translationKey("View array"),
   viewPage: PageMap.STORAGE_ARRAY_VIEW,
   name: {

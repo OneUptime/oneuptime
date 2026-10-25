@@ -62,19 +62,22 @@ export const RESOURCE_NAME_MAX_LENGTH: number = 100;
 const NAME_CHARACTER: RegExp = /^[A-Za-z0-9._-]$/;
 
 /**
- * The name as every command carries it: what was typed, with each run of
- * anything else (spaces, quotes, commas, `$`) made one dash, and no dash or
- * dot at either end. Helm's --set, a shell word, an env file and a YAML
- * list all take such a name as it is, so no command needs quoting it and
- * no agent reads it differently. Empty when nothing usable was typed.
+ * The name as every command carries it: what was typed, its accents
+ * dropped ("Zürich" is "Zurich"), with each run of anything else (spaces,
+ * quotes, commas, `$`) made one dash, and no dash or dot at either end.
+ * Helm's --set, a shell word, an env file and a YAML list all take such a
+ * name as it is, so no command needs quoting it and no agent reads it
+ * differently. Empty when nothing usable was typed.
  *
- * A loop, not a regular expression: a paste can be long (AGENTS.md,
- * "Megabyte-long values").
+ * A loop, not a regular expression, over a paste cut short first: a paste
+ * can be long (AGENTS.md, "Megabyte-long values").
  */
 export function toResourceName(typed: string): string {
   const characters: Array<string> = Array.from(
-    typed.slice(0, RESOURCE_NAME_MAX_LENGTH * 4),
-  );
+    typed.slice(0, RESOURCE_NAME_MAX_LENGTH * 4).normalize("NFKD"),
+  ).filter((character: string): boolean => {
+    return !isCombiningMark(character);
+  });
   let name: string = "";
   /*
    * Something was left out since the last character kept: a dash goes in
@@ -121,6 +124,12 @@ function trimNameEnds(name: string): string {
 
 function isEndCharacter(character: string): boolean {
   return character === "-" || character === ".";
+}
+
+// An accent NFKD split off its letter (U+0300 to U+036F).
+function isCombiningMark(character: string): boolean {
+  const code: number = character.charCodeAt(0);
+  return character.length === 1 && code >= 0x0300 && code <= 0x036f;
 }
 
 /**

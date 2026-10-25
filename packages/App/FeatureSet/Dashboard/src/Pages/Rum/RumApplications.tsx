@@ -1,5 +1,7 @@
 import PageMap from "../../Utils/PageMap";
 import { ARCHIVE_INSTEAD_OF_DELETE } from "../../Components/Archive/ResourceArchiveCopy";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -8,54 +10,52 @@ import RumApplicationOwnerTeam from "Common/Models/DatabaseModels/RumApplication
 import RumApplicationOwnerUser from "Common/Models/DatabaseModels/RumApplicationOwnerUser";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
 import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
-import {
-  FIRST_RUN_GUIDE_DESCRIPTION,
-  getFirstRunEmptyState,
-  getFirstRunTopContent,
-} from "../../Components/Infrastructure/FirstRecordWatch";
-import useFirstRecordWatch, {
-  FirstRecordWatch,
-} from "../../Components/Infrastructure/UseFirstRecordWatch";
+import { getFirstRunTopContent } from "../../Components/Infrastructure/FirstRecordWatch";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useEffect,
   useState,
 } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import getLabelsFormField from "../../Utils/Form/LabelsFormField";
+import {
+  getDisplayNameFormField,
+  getIdentityFormField,
+  getNameFromIdentityField,
+} from "../../Utils/Form/DiscoveredResourceFormFields";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import AddResourceGuide from "../../Components/ResourceOnboarding/AddResourceGuide";
-import AddResourceModal from "../../Components/ResourceOnboarding/AddResourceModal";
-import RUM_APPLICATION_ONBOARDING from "../../Components/Rum/RumApplicationOnboarding";
-import IconProp from "Common/Types/Icon/IconProp";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import RumDocumentationCard from "../../Components/Rum/RumDocumentationCard";
+import RumApplicationAddedModal from "../../Components/Rum/RumApplicationAddedModal";
 
 const RumApplications: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const [count, setCount] = useState<number | null>(null);
+  const [error, setError] = useState<string>("");
   /*
-   * While the project has no application the list shows the Add guide
-   * under the empty table and watches for the first one, as every
-   * infrastructure list does.
+   * The application Create RUM Application just saved: its guide opens on
+   * its own (RumApplicationAddedModal), with its name in the snippet.
    */
-  const firstRecordWatch: FirstRecordWatch =
-    useFirstRecordWatch<RumApplication>({
-      modelType: RumApplication,
-    });
-  const [isAddApplicationOpen, setIsAddApplicationOpen] =
-    useState<boolean>(false);
-  // Applications connected from the Add dialog show in the list at once.
-  const [connectedCount, setConnectedCount] = useState<number>(0);
+  const [addedApplication, setAddedApplication] = useState<{
+    id: ObjectID;
+    appIdentifier: string;
+  } | null>(null);
 
   const { archiveBulkActions, archiveRowActions } =
     useBulkArchiveActions<RumApplication>({
@@ -99,26 +99,34 @@ const RumApplications: FunctionComponent<
     showLabelsFacet: true,
   });
 
-  if (firstRecordWatch.isLoading) {
+  useEffect(() => {
+    ModelAPI.count({
+      modelType: RumApplication,
+      query: {},
+    })
+      .then(setCount)
+      .catch((err: Error) => {
+        setError(API.getFriendlyMessage(err));
+      });
+  }, []);
+
+  if (error) {
+    return <ErrorMessage message={error} />;
+  }
+
+  if (count === null) {
     return <PageLoader isVisible={true} />;
   }
 
-  if (firstRecordWatch.error) {
-    return (
-      <ErrorMessage
-        message={firstRecordWatch.error}
-        onRefreshClick={firstRecordWatch.retry}
-      />
-    );
-  }
-
   /*
-   * An application is added by putting the snippet in it (Add RUM
-   * Application): the guide asks for the app's name, writes it into the
-   * snippet as service.name, and the application registers itself under it
-   * when its first data arrives. There is no form: an application typed in
-   * by hand would only wait for telemetry that nothing sends.
+   * The create form asks for the one thing an application cannot be created
+   * without: the service.name its SDK reports. The display name follows it
+   * - an application added here is named like a discovered one - and folds
+   * under Advanced with the description and the labels, so the form is two
+   * rows (DiscoveredResourceFormFields).
    */
+  const advancedSection: FormFieldCollapsibleSection<RumApplication> =
+    getAdvancedFormSection<RumApplication>();
 
   return (
     <Fragment>
@@ -126,17 +134,13 @@ const RumApplications: FunctionComponent<
         modelType={RumApplication}
         // Archive in each row's ⋯ menu, as in Bulk Actions.
         actionButtons={[...archiveRowActions]}
-        refreshToggle={`${firstRecordWatch.refreshToken}-${connectedCount}`}
         id="rum-applications-table"
         userPreferencesKey="rum-applications-table"
         topContent={getFirstRunTopContent({
           topContent: filterBar,
-          count: firstRecordWatch.count,
+          count: count,
         })}
-        emptyState={getFirstRunEmptyState({
-          emptyState: facetEmptyState,
-          count: firstRecordWatch.count,
-        })}
+        emptyState={facetEmptyState}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({
@@ -145,10 +149,25 @@ const RumApplications: FunctionComponent<
         onFetchSuccess={(data: Array<RumApplication>) => {
           onResourcesFetched(data);
         }}
+        onCreateSuccess={(
+          item: RumApplication,
+          modalType?: ModalType,
+        ): Promise<RumApplication> => {
+          setCount((currentCount: number | null): number => {
+            return (currentCount || 0) + 1;
+          });
+          if (item._id && modalType !== ModalType.Edit) {
+            setAddedApplication({
+              id: new ObjectID(item._id.toString()),
+              appIdentifier: item.appIdentifier || item.name || "",
+            });
+          }
+          return Promise.resolve(item);
+        }}
         isDeleteable={true}
         deleteConfirmationWarning={ARCHIVE_INSTEAD_OF_DELETE}
         isEditable={false}
-        isCreateable={false}
+        isCreateable={true}
         isViewable={true}
         bulkActions={{
           buttons: [
@@ -173,18 +192,39 @@ const RumApplications: FunctionComponent<
           title: "RUM Applications",
           description:
             "Your web and mobile apps, as their real users see them. Each app appears here once it sends telemetry.",
-          buttons: [
-            {
-              title: RUM_APPLICATION_ONBOARDING.addTitle,
-              icon: IconProp.Add,
-              buttonStyle: ButtonStyleType.NORMAL,
-              onClick: () => {
-                setIsAddApplicationOpen(true);
-              },
-            },
-          ],
         }}
-        formFields={[]}
+        formFields={[
+          getIdentityFormField<RumApplication>({
+            field: {
+              appIdentifier: true,
+            },
+            title: "App Name (service.name)",
+            placeholder: "storefront-web",
+            description:
+              "The service.name your browser or mobile OpenTelemetry SDK reports, exactly. Telemetry is matched to this application by it.",
+          }),
+          getDisplayNameFormField<RumApplication>({
+            getDefaultName:
+              getNameFromIdentityField<RumApplication>("appIdentifier"),
+            placeholder: "Storefront",
+            description:
+              "Starts as the app name. Type your own name to show instead; telemetry is still matched by the app name.",
+            collapsibleSection: advancedSection,
+          }),
+          {
+            field: {
+              description: true,
+            },
+            title: "Description",
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            placeholder: "Customer-facing storefront web app",
+            collapsibleSection: advancedSection,
+          },
+          getLabelsFormField<RumApplication>({
+            collapsibleSection: advancedSection,
+          }),
+        ]}
         filters={[
           {
             field: {
@@ -336,30 +376,18 @@ const RumApplications: FunctionComponent<
           );
         }}
       />
-      {firstRecordWatch.count === 0 && (
-        <AddResourceGuide
-          onboarding={RUM_APPLICATION_ONBOARDING}
-          title={RUM_APPLICATION_ONBOARDING.firstRunTitle}
-          description={FIRST_RUN_GUIDE_DESCRIPTION}
-          onConnected={() => {
-            // The guide gives way, and the table reads the new application.
-            firstRecordWatch.onRecordCreated();
-            setConnectedCount((count: number): number => {
-              return count + 1;
-            });
-          }}
+      {count === 0 && (
+        <RumDocumentationCard
+          title="Getting Started with Real User Monitoring"
+          description="Pick what you are instrumenting and follow the steps. Your app appears in the list above once its first telemetry arrives."
         />
       )}
-      {isAddApplicationOpen && (
-        <AddResourceModal
-          onboarding={RUM_APPLICATION_ONBOARDING}
+      {addedApplication && (
+        <RumApplicationAddedModal
+          applicationId={addedApplication.id}
+          appIdentifier={addedApplication.appIdentifier}
           onClose={() => {
-            setIsAddApplicationOpen(false);
-          }}
-          onConnected={() => {
-            setConnectedCount((count: number): number => {
-              return count + 1;
-            });
+            setAddedApplication(null);
           }}
         />
       )}

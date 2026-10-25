@@ -20,7 +20,7 @@ const CEPH_CLUSTER_ONBOARDING: ResourceOnboarding = {
   addDescription: translationKey(
     "Run the OneUptime Ceph agent next to the cluster. The cluster shows up here as soon as the agent connects.",
   ),
-  firstRunTitle: translationKey("Add your first Ceph cluster"),
+  firstRunTitle: translationKey("Getting Started with Ceph Monitoring"),
   viewText: translationKey("View cluster"),
   viewPage: PageMap.CEPH_CLUSTER_VIEW,
   name: {

@@ -22,10 +22,11 @@ import Permission from "../../../Types/Permission";
 import type { Mock } from "jest-mock";
 
 /*
- * Creating a Docker or Podman host, a Kubernetes cluster, a RUM
- * application, a serverless function or a cloud environment by hand - and
- * a host, which is not created by hand any more: Add Host's one command
- * adds it (#5137), so the Hosts list has no create form.
+ * Creating a RUM application by hand - and the resources that are not
+ * created by hand any more: a host is added by Add Host's one command
+ * (#5137), and a Docker or Podman host, a Kubernetes cluster, a serverless
+ * function and a cloud environment by the commands of their Add guide
+ * (Components/ResourceOnboarding), so their lists have no create form.
  *
  * "Make software as simple as possible to use and reduce decision
  * paralysis." These forms asked for a Name and an "Identifier" that "should
@@ -199,6 +200,33 @@ jest.mock(
 );
 
 /*
+ * A list's Add dialog, as its page opens it: the guide in it (the name,
+ * the key, the commands, the wait) is ResourceOnboarding's and the
+ * ResourceOnboarding browser suite's.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/ResourceOnboarding/AddResourceModal",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: {
+        onboarding: { addTitle: string };
+        onClose: () => void;
+      }) => {
+        return (
+          <div data-testid="add-resource-dialog">
+            {props.onboarding.addTitle}
+            <button type="button" onClick={props.onClose}>
+              Done
+            </button>
+          </div>
+        );
+      },
+    };
+  },
+);
+
+/*
  * Add Host's dialog, as the Hosts page opens it: its guide (the command,
  * the key, the wait for the host) is AddHostGuideInLocale's and the
  * HostCollectors browser suite's.
@@ -232,20 +260,14 @@ import ServerlessFunctions from "../../../../App/FeatureSet/Dashboard/src/Pages/
 import {
   DISPLAY_NAME_KEY,
   followWithDisplayName,
-  getCloudEnvironmentNameFromFields,
   getDisplayNameAfterChange,
   getDisplayNameFormField,
   getIdentityFormField,
   getNameFromIdentityField,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/DiscoveredResourceFormFields";
-import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import Host from "../../../Models/DatabaseModels/Host";
-import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
-import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import RumApplication from "../../../Models/DatabaseModels/RumApplication";
-import ServerlessFunction from "../../../Models/DatabaseModels/ServerlessFunction";
 import ModelForm, {
   FormType,
   ModelField,
@@ -418,42 +440,6 @@ describe("followWithDisplayName", () => {
   });
 });
 
-describe("the name a cloud environment's form fills in", () => {
-  test("is the one ingest gives it, once a platform is picked", () => {
-    expect(getCloudEnvironmentNameFromFields<CloudResource>({})).toBe("");
-    expect(
-      getCloudEnvironmentNameFromFields<CloudResource>({
-        cloudAccountId: "123456789012",
-        cloudRegion: "us-east-1",
-      }),
-    ).toBe("");
-    expect(
-      getCloudEnvironmentNameFromFields<CloudResource>({
-        cloudPlatform: "aws_ecs",
-      }),
-    ).toBe("AWS ECS");
-    expect(
-      getCloudEnvironmentNameFromFields<CloudResource>({
-        cloudPlatform: "aws_ecs",
-        cloudAccountId: "123456789012",
-        cloudRegion: "us-east-1",
-      }),
-    ).toBe("AWS ECS · us-east-1 · 123456789012");
-  });
-
-  test("reads a platform held as the option that was picked", () => {
-    expect(
-      getCloudEnvironmentNameFromFields<CloudResource>({
-        cloudPlatform: {
-          label: "Google Cloud Run (gcp_cloud_run)",
-          value: "gcp_cloud_run",
-        },
-        cloudRegion: "us-central1",
-      } as unknown as FormValues<CloudResource>),
-    ).toBe("GCP Cloud Run · us-central1");
-  });
-});
-
 describe("the shared fields", () => {
   const advanced: FormFieldCollapsibleSection<Host> =
     getAdvancedFormSection<Host>();
@@ -573,45 +559,12 @@ interface IdentityPage {
   submitButtonText: string;
 }
 
-const HOST_DISPLAY_NAME_HELP: string =
-  "Starts as the host name. Type your own name to show instead; telemetry is still matched by the host name.";
-
-// Hosts are not here: Add Host's one command adds them (see below).
+/*
+ * Hosts, Docker and Podman hosts, Kubernetes clusters, serverless functions
+ * and cloud environments are not here: their lists add them with a guide,
+ * not a form (see below).
+ */
 const IDENTITY_PAGES: Array<IdentityPage> = [
-  {
-    label: "Docker Hosts",
-    page: DockerHosts,
-    modelType: DockerHost,
-    identityKey: "hostIdentifier",
-    identityTitle: "Host Name (host.name)",
-    identityPlaceholder: "docker-host-prod-1",
-    displayNamePlaceholder: "Production Docker host",
-    displayNameHelp: HOST_DISPLAY_NAME_HELP,
-    submitButtonText: "Create Docker Host",
-  },
-  {
-    label: "Podman Hosts",
-    page: PodmanHosts,
-    modelType: PodmanHost,
-    identityKey: "hostIdentifier",
-    identityTitle: "Host Name (host.name)",
-    identityPlaceholder: "podman-host-prod-1",
-    displayNamePlaceholder: "Production Podman host",
-    displayNameHelp: HOST_DISPLAY_NAME_HELP,
-    submitButtonText: "Create Podman Host",
-  },
-  {
-    label: "Kubernetes Clusters",
-    page: KubernetesClusters,
-    modelType: KubernetesCluster,
-    identityKey: "clusterIdentifier",
-    identityTitle: "Cluster Name (clusterName)",
-    identityPlaceholder: "production-us-east-1",
-    displayNamePlaceholder: "Production US East",
-    displayNameHelp:
-      "Starts as the cluster name. Type your own name to show instead; telemetry is still matched by the cluster name.",
-    submitButtonText: "Create Kubernetes Cluster",
-  },
   {
     label: "RUM Applications",
     page: RumApplications,
@@ -623,18 +576,6 @@ const IDENTITY_PAGES: Array<IdentityPage> = [
     displayNameHelp:
       "Starts as the app name. Type your own name to show instead; telemetry is still matched by the app name.",
     submitButtonText: "Create RUM Application",
-  },
-  {
-    label: "Serverless Functions",
-    page: ServerlessFunctions,
-    modelType: ServerlessFunction,
-    identityKey: "functionIdentifier",
-    identityTitle: "Function Name (faas.name)",
-    identityPlaceholder: "checkout-handler",
-    displayNamePlaceholder: "Checkout handler",
-    displayNameHelp:
-      "Starts as the function name. Type your own name to show instead; telemetry is still matched by the function name.",
-    submitButtonText: "Create Serverless Function",
   },
 ];
 
@@ -905,118 +846,86 @@ describe("Create on the Hosts page", () => {
   });
 });
 
-describe("Create on the Cloud Environments page", () => {
-  let table: CapturedTable;
+interface AddGuidePage {
+  label: string;
+  page: React.FunctionComponent<PageComponentProps>;
+  // The list's button, and the title of the dialog it opens.
+  addTitle: string;
+}
 
-  beforeEach(async () => {
-    table = await captureTable(CloudResources);
-  });
+/*
+ * The resources that register themselves when their first data arrives,
+ * under the name their agent reports: a record typed in by hand would only
+ * wait for data nothing sends, so the list's one way in is the Add guide.
+ */
+const ADD_GUIDE_PAGES: Array<AddGuidePage> = [
+  {
+    label: "Kubernetes Clusters",
+    page: KubernetesClusters,
+    addTitle: "Add Kubernetes Cluster",
+  },
+  { label: "Docker Hosts", page: DockerHosts, addTitle: "Add Docker Host" },
+  { label: "Podman Hosts", page: PodmanHosts, addTitle: "Add Podman Host" },
+  {
+    label: "Serverless Functions",
+    page: ServerlessFunctions,
+    addTitle: "Add Serverless Function",
+  },
+  {
+    label: "Cloud Environments",
+    page: CloudResources,
+    addTitle: "Add Cloud Environment",
+  },
+];
 
-  const displayNameInput: () => HTMLInputElement = (): HTMLInputElement => {
-    return screen.getByPlaceholderText(
-      "AWS ECS · us-east-1 · 123456789012",
-    ) as HTMLInputElement;
-  };
+describe.each(ADD_GUIDE_PAGES)(
+  "Add on the $label page",
+  (addGuidePage: AddGuidePage) => {
+    test("hands its table no create form", async () => {
+      const table: CapturedTable = await captureTable(addGuidePage.page);
 
-  test("hands its table one page: platform, account and region, then the folded rest", () => {
-    expect(table.formSteps).toBeUndefined();
-    expect(
-      table.formFields.map((field: ModelField<BaseModel>): string => {
-        return Object.keys(field.field || {})[0]!;
-      }),
-    ).toEqual([
-      "cloudPlatform",
-      "cloudAccountId",
-      "cloudRegion",
-      "name",
-      "description",
-      "labels",
-    ]);
-  });
-
-  test("names the environment as its platform, region and account are filled in, and creates it with its key", async () => {
-    const user: ReturnType<typeof userEvent.setup> = await renderCreateForm({
-      modelType: CloudResource,
-      table,
-      submitButtonText: "Create Cloud Environment",
+      expect(table.isCreateable).toBe(false);
+      expect(table.formFields).toEqual([]);
+      expect(table.formSteps).toBeUndefined();
+      expect(table.onBeforeCreate).toBeUndefined();
     });
 
-    // One page: the Details step is gone.
-    expect(screen.queryByRole("navigation", { name: "Progress" })).toBeNull();
-    expect(advancedButton()).toHaveAttribute("aria-expanded", "false");
+    test("offers its Add button instead, which opens the Add dialog and closes it again", async () => {
+      modelTableCalls = [];
 
-    await user.click(screen.getByRole("combobox", { name: "Cloud Platform" }));
-    await user.click(
-      await screen.findByRole("option", {
-        name: "AWS ECS / Fargate (aws_ecs)",
-      }),
-    );
+      render(<addGuidePage.page {...PAGE_PROPS} />);
+      await flush();
 
-    await user.click(advancedButton());
+      const table: CapturedTable = modelTableCalls[
+        modelTableCalls.length - 1
+      ] as unknown as CapturedTable;
 
-    await waitFor(() => {
-      expect(displayNameInput().value).toBe("AWS ECS");
-    });
+      const buttons: Array<{
+        title: string;
+        onClick?: (() => void) | undefined;
+      }> = table.cardProps?.buttons || [];
 
-    await user.type(screen.getByPlaceholderText("us-east-1"), "us-east-1");
+      // The list's one way to add one.
+      expect(
+        buttons.map((button: { title: string }): string => {
+          return button.title;
+        }),
+      ).toEqual([addGuidePage.addTitle]);
+      expect(screen.queryByTestId("add-resource-dialog")).toBeNull();
 
-    await waitFor(() => {
-      expect(displayNameInput().value).toBe("AWS ECS · us-east-1");
-    });
+      await act(async (): Promise<void> => {
+        buttons[0]!.onClick!();
+      });
 
-    await user.type(
-      screen.getByPlaceholderText("123456789012"),
-      "123456789012",
-    );
-
-    await waitFor(() => {
-      expect(displayNameInput().value).toBe(
-        "AWS ECS · us-east-1 · 123456789012",
+      expect(screen.getByTestId("add-resource-dialog")).toHaveTextContent(
+        addGuidePage.addTitle,
       );
+
+      await act(async (): Promise<void> => {
+        fireEvent.click(screen.getByRole("button", { name: "Done" }));
+      });
+
+      expect(screen.queryByTestId("add-resource-dialog")).toBeNull();
     });
-
-    await act(async (): Promise<void> => {
-      fireEvent.click(
-        screen.getByRole("button", { name: "Create Cloud Environment" }),
-      );
-    });
-
-    await waitFor(() => {
-      expect(capturedSaves).toHaveLength(1);
-    });
-
-    const saved: JSONObject = capturedSaves[0]!.model;
-
-    expect(saved["name"]).toBe("AWS ECS · us-east-1 · 123456789012");
-    expect(saved["resourceIdentifier"]).toBe("aws_ecs|123456789012|us-east-1");
-    expect(saved["cloudProvider"]).toBe("aws");
-  });
-
-  test("keeps a display name of one's own when the region changes", async () => {
-    const user: ReturnType<typeof userEvent.setup> = await renderCreateForm({
-      modelType: CloudResource,
-      table,
-      submitButtonText: "Create Cloud Environment",
-    });
-
-    await user.click(screen.getByRole("combobox", { name: "Cloud Platform" }));
-    await user.click(
-      await screen.findByRole("option", {
-        name: "AWS ECS / Fargate (aws_ecs)",
-      }),
-    );
-    await user.click(advancedButton());
-
-    await waitFor(() => {
-      expect(displayNameInput().value).toBe("AWS ECS");
-    });
-
-    fireEvent.change(displayNameInput(), {
-      target: { value: "Checkout production" },
-    });
-
-    await user.type(screen.getByPlaceholderText("us-east-1"), "eu-west-1");
-
-    expect(displayNameInput().value).toBe("Checkout production");
-  });
-});
+  },
+);

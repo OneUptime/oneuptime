@@ -174,12 +174,25 @@ describe("the first-run rules", () => {
 });
 
 /*
- * A list whose rows also arrive another way reads them again then too: the
- * Hosts list, when the Add Host dialog sees a host connect.
+ * A list whose rows also arrive another way reads them again then too: a
+ * list with an Add dialog (Add Host, Add Kubernetes Cluster, ...), when the
+ * dialog sees one connect (Components/ResourceOnboarding).
  */
+const ADD_DIALOG_REFRESH_TOGGLE: string =
+  "refreshToggle={`${firstRecordWatch.refreshToken}-${connectedCount}`}";
+
 const REFRESH_TOGGLES: Record<string, string> = {
-  "Pages/Host/Hosts.tsx":
-    "refreshToggle={`${firstRecordWatch.refreshToken}-${connectedCount}`}",
+  "Pages/Host/Hosts.tsx": ADD_DIALOG_REFRESH_TOGGLE,
+  "Pages/Kubernetes/Clusters.tsx": ADD_DIALOG_REFRESH_TOGGLE,
+  "Pages/Docker/Hosts.tsx": ADD_DIALOG_REFRESH_TOGGLE,
+  "Pages/Podman/Hosts.tsx": ADD_DIALOG_REFRESH_TOGGLE,
+  "Pages/DockerSwarm/Clusters.tsx": ADD_DIALOG_REFRESH_TOGGLE,
+  "Pages/Proxmox/Clusters.tsx": ADD_DIALOG_REFRESH_TOGGLE,
+  "Pages/Ceph/Clusters.tsx": ADD_DIALOG_REFRESH_TOGGLE,
+  "Pages/StorageArray/StorageArrays.tsx": ADD_DIALOG_REFRESH_TOGGLE,
+  "Pages/IoT/Fleets.tsx": ADD_DIALOG_REFRESH_TOGGLE,
+  "Pages/Serverless/ServerlessFunctions.tsx": ADD_DIALOG_REFRESH_TOGGLE,
+  "Pages/Cloud/CloudResources.tsx": ADD_DIALOG_REFRESH_TOGGLE,
 };
 
 describe.each(LIST_PAGES)("%s", (page: string) => {

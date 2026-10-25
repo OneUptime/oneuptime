@@ -11,8 +11,9 @@ import path from "path";
  *
  *   - each card is a thin wrapper around the shared SetupGuideCard, which
  *     owns the picker, the ingestion key step and the folded sections;
- *   - the product pages and the Documentation tabs render those cards, not
- *     the old single-document ResourceDocumentationCard;
+ *   - the product pages (serverless functions through their Add guide,
+ *     Components/ResourceOnboarding) and the Documentation tabs render those
+ *     cards, not the old single-document ResourceDocumentationCard;
  *   - a Documentation tab passes what it knows about its resource — the
  *     function's identifier and platform, the application's identifier and
  *     client type — so the guide opens on the right option with the right
@@ -64,6 +65,13 @@ interface GuideCase {
    * infrastructure list, counted by the shared first-record watch.
    */
   readonly countState: string;
+  /*
+   * The Add guide the list draws the card through, and where it is: a
+   * function is added by instrumenting it, not with a form.
+   */
+  readonly onboarding?:
+    | { readonly constant: string; readonly path: string }
+    | undefined;
   readonly documentationPage: string;
   readonly model: string;
   readonly selectedColumns: ReadonlyArray<string>;
@@ -79,6 +87,10 @@ const GUIDES: ReadonlyArray<GuideCase> = [
     listPage: "Pages/Serverless/ServerlessFunctions.tsx",
     listTitle: "Getting Started with Serverless Functions",
     countState: "firstRecordWatch.count",
+    onboarding: {
+      constant: "SERVERLESS_FUNCTION_ONBOARDING",
+      path: "Components/Serverless/ServerlessFunctionOnboarding.tsx",
+    },
     documentationPage: "Pages/Serverless/View/Documentation.tsx",
     model: "serverlessFunction",
     selectedColumns: ["functionIdentifier: true", "cloudPlatform: true"],
@@ -129,10 +141,23 @@ describe.each(GUIDES)("the $label guide", (guide: GuideCase) => {
   });
 
   test("the product page shows the card in its empty state", () => {
-    expect(listPage).toContain(`<${guide.card} title="${guide.listTitle}"`);
+    if (!guide.onboarding) {
+      expect(listPage).toContain(`<${guide.card} title="${guide.listTitle}"`);
+      expect(listPage).toContain(
+        `{${guide.countState} === 0 && ( <${guide.card}`,
+      );
+      return;
+    }
+
+    const onboarding: string = readCode(guide.onboarding.path);
+
     expect(listPage).toContain(
-      `{${guide.countState} === 0 && ( <${guide.card}`,
+      `{${guide.countState} === 0 && ( <AddResourceGuide onboarding={${guide.onboarding.constant}} title={${guide.onboarding.constant}.firstRunTitle}`,
     );
+    expect(onboarding).toContain(
+      `firstRunTitle: translationKey( "${guide.listTitle}", ),`,
+    );
+    expect(onboarding).toContain(`<${guide.card} title={props.title}`);
   });
 
   test("the Documentation tab passes what it knows about the resource", () => {
