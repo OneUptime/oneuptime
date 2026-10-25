@@ -77,6 +77,7 @@ import AttackCoveragePage from "../../../App/FeatureSet/Dashboard/src/Pages/Secu
 import SecurityPlaybooksPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Playbooks";
 import SecurityPlaybookViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/PlaybookView";
 import SecurityPlaybookRunsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/PlaybookRuns";
+import SecurityProtectedEntitiesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/ProtectedEntities";
 import SecurityEventsAISettingsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/AISettings";
 import SecurityCasePrioritiesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/CasePriorities";
 import SecurityCaseStatusesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/CaseStatuses";
@@ -104,6 +105,7 @@ import SecurityEventConnection from "Common/Models/DatabaseModels/SecurityEventC
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
+import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import Team from "Common/Models/DatabaseModels/Team";
@@ -341,6 +343,7 @@ const ID = {
   rule: (n) => uuid("26000000", n),
   connection: (n) => uuid("27000000", n),
   intel: (n) => uuid("28000000", n),
+  protectedEntity: (n) => uuid("2b000000", n),
 };
 
 let rowCounter = 9000;
@@ -1949,6 +1952,36 @@ const INDICATORS = isEmpty
       };
     });
 
+/*
+ * ---------------------------------------------------------------------------
+ * Protected entities: the users and hosts no playbook contains - the
+ * break-glass account, every service account, the domain controller.
+ * ---------------------------------------------------------------------------
+ */
+if (!isEmpty) {
+  insert(SecurityProtectedEntity, {
+    _id: ID.protectedEntity(1),
+    entityType: SecurityEntityType.User,
+    value: "breakglass@acme-commerce.example",
+    description: "The admin account for when single sign-on is down.",
+    createdAt: ago(60 * DAY),
+  });
+  insert(SecurityProtectedEntity, {
+    _id: ID.protectedEntity(2),
+    entityType: SecurityEntityType.User,
+    value: "svc-*",
+    description: "Every service account: suspending one stops the job it runs.",
+    createdAt: ago(45 * DAY),
+  });
+  insert(SecurityProtectedEntity, {
+    _id: ID.protectedEntity(3),
+    entityType: SecurityEntityType.Host,
+    value: "dc-01",
+    description: "The domain controller.",
+    createdAt: ago(45 * DAY),
+  });
+}
+
 // What a playbook's steps can name: policies, severities, labels, workflows.
 insert(OnCallDutyPolicy, { name: "Security on-call" });
 insert(IncidentSeverity, { name: "SEV1", color: "#dc2626", order: 1 });
@@ -1981,6 +2014,7 @@ for (const modelType of [
   SecurityLogSource,
   DetectionRule,
   ThreatIntelFeed,
+  SecurityProtectedEntity,
   Team,
   WorkspaceProjectAuthToken,
 ]) {
@@ -3214,6 +3248,7 @@ const PAGES = [
   ...SECURITY_PLAYBOOK_RUN_VIEWS.map((view) => {
     return [view.page, SecurityPlaybookRunsPage, view.key];
   }),
+  [PageMap.SECURITY_PROTECTED_ENTITIES, SecurityProtectedEntitiesPage],
   [PageMap.SECURITY_EVENTS_SETTINGS_AI, SecurityEventsAISettingsPage],
   [
     PageMap.SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES,

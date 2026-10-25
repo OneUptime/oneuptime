@@ -184,7 +184,7 @@ const SecurityPlaybooksPage: FunctionComponent<
             field: { minimumSecurityCasePriorityId: true },
             stepId: "when",
             title: "For Cases At Least",
-            description: "Optional. Only cases of this priority or higher.",
+            description: "Only cases of this priority or higher.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: getSecurityCasePriorityOptions(
               values?.priorities || [],
@@ -196,7 +196,7 @@ const SecurityPlaybooksPage: FunctionComponent<
             stepId: "when",
             title: "Only For Detections From",
             description:
-              "Optional. Only when the detection behind the case came from this source.",
+              "Only when the detection behind the case came from this source.",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
               SecurityDetectionSource,
