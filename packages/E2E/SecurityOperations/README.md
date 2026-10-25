@@ -314,8 +314,8 @@ address only it holds or the logs it sent, a member by their email, a short form
 possibly; the case's window around its detections, an entity's the hour around its last event; and
 nothing said to be not in OneUptime that a kind of record the reader could not read may hold.
 
-| Parameter       | Values                                                                                                                                                     |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Parameter       | Values                                                                                                                                                   |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `?connections=` | `fail`: the first read fails (a 500), Try again reads it; `partial`: the role cannot read users and the clusters could not be read, Try again reads them |
 | `?lang=`        | `de`, `ja` or `fa` (right to left): the Dashboard's German, Japanese or Persian words                                                                    |
 
