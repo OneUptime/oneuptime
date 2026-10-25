@@ -891,9 +891,7 @@ describe("the word-and-plus Add owners (AddOwnersTextButton)", () => {
 
     expect(add).toHaveAttribute("aria-expanded", "true");
     expect(add).toHaveAttribute("aria-controls", dialog.id);
-    for (const className of ADD_OWNERS_TEXT_BUTTON_OPEN_CLASS_NAME.split(
-      " ",
-    )) {
+    for (const className of ADD_OWNERS_TEXT_BUTTON_OPEN_CLASS_NAME.split(" ")) {
       expect(add).toHaveClass(className);
     }
     // One colour set or the other, never both: the later rule would win.
@@ -997,13 +995,15 @@ describe("the rules (AddOwners)", () => {
       ]),
     );
     expect(new Set(permissions).size).toBe(permissions.length);
-    expect(either.hasCreatePermissions([Permission.CreateIncidentOwnerTeam])).toBe(
-      true,
+    expect(
+      either.hasCreatePermissions([Permission.CreateIncidentOwnerTeam]),
+    ).toBe(true);
+    expect(
+      either.hasCreatePermissions([Permission.CreateIncidentOwnerUser]),
+    ).toBe(true);
+    expect(either.hasCreatePermissions([Permission.IncidentViewer])).toBe(
+      false,
     );
-    expect(either.hasCreatePermissions([Permission.CreateIncidentOwnerUser])).toBe(
-      true,
-    );
-    expect(either.hasCreatePermissions([Permission.IncidentViewer])).toBe(false);
     // A monitor's tables name the monitor's permissions, not an incident's.
     expect(
       getEitherOwnerTable(MONITOR_TARGET).getCreatePermissions(),

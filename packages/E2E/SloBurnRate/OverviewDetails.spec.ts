@@ -333,6 +333,23 @@ test("the hero adds owners right there, from the Owners page's list", async ({
   await expect(add).toHaveAttribute("aria-haspopup", "dialog");
   // Nothing sends the reader to the Owners page to add one.
   await expect(owners.getByRole("link")).toHaveCount(0);
+  /*
+   * "No owners", then "+ Add owners" - as the monitor overview says it, so
+   * the two heroes read alike (UI review).
+   */
+  await expect(owners.getByText("No owners", { exact: true })).toBeVisible();
+  const noOwners: Awaited<ReturnType<typeof bounds>> = await bounds(
+    owners.getByText("No owners", { exact: true }),
+  );
+  const addBox: Awaited<ReturnType<typeof bounds>> = await bounds(add);
+  expect(addBox.x, "Add owners after No owners").toBeGreaterThan(
+    noOwners.x + noOwners.width,
+  );
+  expect(
+    Math.abs(addBox.y + addBox.height / 2 - (noOwners.y + noOwners.height / 2)),
+    "on one line",
+  ).toBeLessThanOrEqual(2);
+  await expect(add.locator("svg")).toHaveCount(1);
   await add.click();
 
   const list: Locator = page.getByRole("dialog", { name: "Add owners" });
