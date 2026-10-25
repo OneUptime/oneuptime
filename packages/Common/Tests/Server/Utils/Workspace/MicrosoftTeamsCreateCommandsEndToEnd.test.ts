@@ -2893,7 +2893,11 @@ describe("controls: commands that always worked still answer once with HTTP 200"
     expect(view.bubbles).toHaveLength(1);
     // A card that mentions whoever asked: the words Slack's /oneuptime takes.
     const reply: string = answerOf(view.bubbles[0]!);
-    expect(reply.split("\n")[0]).toBe(
+    expect(
+      reply.split("\n").find((line: string): boolean => {
+        return line.startsWith("👋");
+      }),
+    ).toBe(
       "👋 **Here's what I can do.** In a channel or a group chat, mention @OneUptime first.",
     );
     // Both create commands take the form's title after them.

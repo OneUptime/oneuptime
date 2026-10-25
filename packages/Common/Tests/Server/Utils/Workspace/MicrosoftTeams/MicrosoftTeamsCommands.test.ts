@@ -37,6 +37,7 @@ import WorkspaceCommands, {
   WorkspaceCommandName,
 } from "../../../../../Server/Utils/Workspace/WorkspaceCommands";
 import { JSONObject } from "../../../../../Types/JSON";
+import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import ObjectID from "../../../../../Types/ObjectID";
 
 /*
@@ -216,10 +217,15 @@ describe("MicrosoftTeamsCommands.getBotName: the name to @mention the bot by", (
       const turnContext: TurnContext = turnTo(recipient);
 
       expect(MicrosoftTeamsCommands.getBotName(turnContext)).toBe("");
+      // The help's own first line, after what the app is for.
       expect(
         MicrosoftTeamsCommands.getHelpAnswer(
           MicrosoftTeamsCommands.getBotName(turnContext),
-        ).markdown.split("\n")[0],
+        )
+          .markdown.split("\n")
+          .find((line: string): boolean => {
+            return line.startsWith("👋");
+          }),
       ).toBe(
         "👋 **Here's what I can do.** In a channel or a group chat, mention @OneUptime first.",
       );
@@ -474,5 +480,193 @@ describe("the welcome a team or a group chat gets", () => {
     ).toBe(false);
     expect(JSON.stringify(card).toLowerCase()).not.toContain("create incident");
     expect(texts(card)).toHaveLength(2);
+  });
+});
+
+/*
+ * The help (MicrosoftTeamsCommands.replyHelp). Microsoft's store refused the
+ * app (policy 1140.4.3.4) while "help" from an organization not connected
+ * yet was answered "Sorry, I couldn't find your project configuration": the
+ * help must say what the app is for, list what it does, and lead somewhere
+ * - how to get started before the organization is connected, where to learn
+ * more once it is - on the installation's own address, never OneUptime
+ * Cloud's.
+ */
+describe("the help, before and after the organization is connected", () => {
+  beforeEach(() => {
+    jest
+      .spyOn(ProductBrandingText, "getProductName")
+      .mockReturnValue("Acme Ops");
+    jest
+      .spyOn(DatabaseConfig, "getHomeUrl")
+      .mockResolvedValue(URL.fromString("https://status.acme.test"));
+    jest
+      .spyOn(DatabaseConfig, "getDashboardUrl")
+      .mockResolvedValue(URL.fromString("https://status.acme.test/dashboard"));
+    jest
+      .spyOn(DatabaseConfig, "getAccountsUrl")
+      .mockResolvedValue(URL.fromString("https://status.acme.test/accounts"));
+    jest.spyOn(DatabaseConfig, "shouldDisableSignup").mockResolvedValue(false);
+  });
+
+  function paragraphs(markdown: string): Array<string> {
+    return markdown.split("\n\n");
+  }
+
+  test("it says what the app is for first, then the commands, then the example", () => {
+    const markdown: string =
+      MicrosoftTeamsCommands.getHelpAnswer("Acme Ops").markdown;
+
+    expect(paragraphs(markdown)[0]).toBe(
+      "**Acme Ops** is an observability and incident management platform. In Microsoft Teams, I post your project's incidents, alerts and scheduled maintenance to the channels and chats you pick, and your team acts on them right here.",
+    );
+    expect(paragraphs(markdown)[1]).toMatch(
+      /^👋 \*\*Here's what I can do\.\*\* In a channel or a group chat, mention @Acme Ops first\.\n- \*\*incident \[title or number\]\*\*: /,
+    );
+    expect(markdown).toContain(
+      'For example: "incident Checkout is down". Anything else you type is a question for Acme Ops AI too',
+    );
+  });
+
+  test("before the organization is connected: how to get started, last", () => {
+    const markdown: string = MicrosoftTeamsCommands.getHelpAnswer("Acme Ops", {
+      isConnected: false,
+    }).markdown;
+
+    expect(paragraphs(markdown).pop()).toBe(
+      "**To get started,** a project admin connects your organization in Acme Ops, under **Project Settings → Workspace → Microsoft Teams**. Then everyone connects their own Microsoft Teams account the first time they use a command.",
+    );
+  });
+
+  test("once it is: that each person connects their own account, last", () => {
+    for (const options of [undefined, { isConnected: true }]) {
+      const markdown: string = MicrosoftTeamsCommands.getHelpAnswer(
+        "Acme Ops",
+        options,
+      ).markdown;
+
+      expect(paragraphs(markdown).pop()).toBe(
+        "The first time you use a command, I ask you to connect your Microsoft Teams account to Acme Ops, so that I act as you, with your permissions.",
+      );
+    }
+  });
+
+  test("the commands are listed whole, either way: every line of the shared help", () => {
+    for (const isConnected of [true, false]) {
+      const lines: Array<string> = MicrosoftTeamsCommands.getHelpAnswer(
+        "Acme Ops",
+        { isConnected: isConnected },
+      )
+        .markdown.split("\n")
+        .filter((line: string): boolean => {
+          return line.startsWith("- ");
+        });
+
+      expect(lines).toHaveLength(
+        WorkspaceCommands.getHelpAnswer({
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          extraCommands: [...MICROSOFT_TEAMS_LIST_COMMANDS_IN_HELP],
+        })
+          .markdown.split("\n")
+          .filter((line: string): boolean => {
+            return line.startsWith("- ");
+          }).length,
+      );
+      expect(lines.length).toBeGreaterThanOrEqual(8);
+    }
+  });
+
+  test("before the organization is connected, the buttons get started: the guide's connect steps, and sign-up", async () => {
+    expect(
+      await MicrosoftTeamsCommands.getHelpLinks({ isConnected: false }),
+    ).toEqual([
+      {
+        title: "Get started",
+        url: URL.fromString(
+          "https://status.acme.test/docs/workspace-connections/microsoft-teams#connect-microsoft-teams",
+        ),
+      },
+      {
+        title: "Sign up",
+        url: URL.fromString("https://status.acme.test/accounts/register"),
+      },
+    ]);
+  });
+
+  test("an installation that takes no sign-ups offers none", async () => {
+    jest.spyOn(DatabaseConfig, "shouldDisableSignup").mockResolvedValue(true);
+
+    const titles: Array<string> = (
+      await MicrosoftTeamsCommands.getHelpLinks({ isConnected: false })
+    ).map((link: { title: string }): string => {
+      return link.title;
+    });
+
+    expect(titles).toEqual(["Get started"]);
+  });
+
+  test("once it is connected, the buttons lead to the guide's commands, and to the product", async () => {
+    const links: Array<{ title: string; url: URL }> =
+      await MicrosoftTeamsCommands.getHelpLinks({ isConnected: true });
+
+    expect(
+      links.map((link: { title: string; url: URL }): Array<string> => {
+        return [link.title, link.url.toString()];
+      }),
+    ).toEqual([
+      [
+        "Learn more",
+        "https://status.acme.test/docs/workspace-connections/microsoft-teams#talking-to-the-oneuptime-bot",
+      ],
+      ["Open Acme Ops", "https://status.acme.test/dashboard"],
+    ]);
+  });
+
+  test("no address for the installation: no buttons, never a link to OneUptime Cloud", async () => {
+    jest
+      .spyOn(DatabaseConfig, "getHomeUrl")
+      .mockRejectedValue(new Error("no host"));
+
+    for (const isConnected of [true, false]) {
+      expect(
+        await MicrosoftTeamsCommands.getHelpLinks({ isConnected: isConnected }),
+      ).toEqual([]);
+    }
+  });
+
+  test("replyHelp sends it as a card that mentions whoever asked, with its buttons under it", async () => {
+    const turn: FakeTurn = fakeTurn({
+      type: "message",
+      text: "help",
+      from: { id: "29:alice", name: "Alice", aadObjectId: "aad-alice" },
+      recipient: { id: "28:bot", name: "Acme Ops" },
+      conversation: { conversationType: "personal", id: "a:1chat" },
+    });
+
+    await MicrosoftTeamsCommands.replyHelp({
+      turnContext: turn.turnContext,
+      isConnected: false,
+    });
+
+    expect(turn.replies).toHaveLength(1);
+    const card: JSONObject = (
+      (turn.replies[0] as JSONObject)["attachments"] as Array<JSONObject>
+    )[0]!["content"] as JSONObject;
+    const text: string = String(
+      (card["body"] as Array<JSONObject>)[0]!["text"],
+    );
+
+    expect(
+      text.startsWith("<at>Alice</at> **Acme Ops** is an observability"),
+    ).toBe(true);
+    expect(text).toContain("**To get started,**");
+    expect(
+      (card["actions"] as Array<JSONObject>).map(
+        (action: JSONObject): unknown => {
+          return action["title"];
+        },
+      ),
+    ).toEqual(["Get started", "Sign up"]);
+    expect(JSON.stringify(card)).not.toContain("oneuptime.com");
   });
 });

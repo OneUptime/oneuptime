@@ -553,6 +553,9 @@ describe("help: one card that mentions whoever asked, with the words Slack's /on
     const delivery: Delivery = await deliver(message("help"));
 
     expect(answerOf(delivery.posts[0]).split("\n")).toEqual([
+      // What the app is for, first (Microsoft's store requires it).
+      "**OneUptime** is an observability and incident management platform. In Microsoft Teams, I post your project's incidents, alerts and scheduled maintenance to the channels and chats you pick, and your team acts on them right here.",
+      "",
       "👋 **Here's what I can do.** In a channel or a group chat, mention @OneUptime first.",
       "- **incident [title or number]**: declare an incident, or act on one by its number",
       "- **maintenance [title]**: schedule maintenance",
@@ -564,7 +567,18 @@ describe("help: one card that mentions whoever asked, with the words Slack's /on
       "- **help**: list every command",
       "",
       'For example: "incident Checkout is down". Anything else you type is a question for OneUptime AI too, such as "which monitors are down right now?"',
+      "",
+      // And the way forward, last.
+      "The first time you use a command, I ask you to connect your Microsoft Teams account to OneUptime, so that I act as you, with your permissions.",
     ]);
+    // With where to learn more, on this server's own address.
+    expect(
+      (cardOf(delivery.posts[0])["actions"] as Array<JSONObject>).map(
+        (action: JSONObject): unknown => {
+          return action["title"];
+        },
+      ),
+    ).toEqual(["Learn more", "Open OneUptime"]);
   });
 
   test("the help names the bot as Teams shows it - the name the message was sent to - for the @mention a channel needs", async () => {
@@ -573,7 +587,13 @@ describe("help: one card that mentions whoever asked, with the words Slack's /on
 
     const delivery: Delivery = await deliver(activity);
 
-    expect(answerOf(delivery.posts[0]).split("\n")[0]).toBe(
+    expect(
+      answerOf(delivery.posts[0])
+        .split("\n")
+        .find((line: string): boolean => {
+          return line.startsWith("👋");
+        }),
+    ).toBe(
       "👋 **Here's what I can do.** In a channel or a group chat, mention @OneUptime Staging first.",
     );
   });

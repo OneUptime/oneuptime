@@ -42,6 +42,12 @@ export interface MicrosoftTeamsMention {
   name: string;
 }
 
+// A button under an answer that opens a page: the help's way forward.
+export interface MicrosoftTeamsAnswerLink {
+  title: string;
+  url: URL;
+}
+
 // Characters a mention's name drops: the <at> tag's, and the card Markdown's.
 const MENTION_NAME_UNSAFE_CHARACTERS: RegExp = /[<>&*_`~[\]\\|#]/g;
 
@@ -92,12 +98,13 @@ export default class MicrosoftTeamsActionAnswer {
 
   /*
    * The answer as a card: the mention, then the answer, in one text block,
-   * and the Connect button when there is one.
+   * and the Connect button when there is one, then the answer's links.
    */
   public static buildCard(data: {
     answer: WorkspaceAnswer;
     mention?: MicrosoftTeamsMention | null | undefined;
     connectUrl?: URL | undefined;
+    links?: Array<MicrosoftTeamsAnswerLink> | undefined;
   }): JSONObject {
     const mentionText: string = data.mention
       ? `<at>${data.mention.name}</at>`
@@ -120,17 +127,29 @@ export default class MicrosoftTeamsActionAnswer {
       ],
     };
 
+    const actions: Array<JSONObject> = [];
+
     if (data.connectUrl) {
-      card["actions"] = [
-        {
-          type: "Action.OpenUrl",
-          title: WorkspaceActionAnswers.getConnectButtonTitle(
-            WorkspaceType.MicrosoftTeams,
-          ),
-          url: data.connectUrl.toString(),
-          style: "positive",
-        },
-      ];
+      actions.push({
+        type: "Action.OpenUrl",
+        title: WorkspaceActionAnswers.getConnectButtonTitle(
+          WorkspaceType.MicrosoftTeams,
+        ),
+        url: data.connectUrl.toString(),
+        style: "positive",
+      });
+    }
+
+    for (const link of data.links || []) {
+      actions.push({
+        type: "Action.OpenUrl",
+        title: link.title,
+        url: link.url.toString(),
+      });
+    }
+
+    if (actions.length > 0) {
+      card["actions"] = actions;
     }
 
     if (data.mention) {
@@ -161,6 +180,7 @@ export default class MicrosoftTeamsActionAnswer {
     turnContext: TurnContext;
     answer: WorkspaceAnswer;
     connectUrl?: URL | undefined;
+    links?: Array<MicrosoftTeamsAnswerLink> | undefined;
   }): Promise<boolean> {
     const card: JSONObject = MicrosoftTeamsActionAnswer.buildCard({
       answer: data.answer,
@@ -168,6 +188,7 @@ export default class MicrosoftTeamsActionAnswer {
         data.turnContext.activity as unknown as JSONObject,
       ),
       connectUrl: data.connectUrl,
+      links: data.links,
     });
 
     return await MicrosoftTeamsReplies.sendBestEffort(data.turnContext, {
