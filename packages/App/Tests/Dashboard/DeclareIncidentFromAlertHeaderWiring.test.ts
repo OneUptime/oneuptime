@@ -513,7 +513,7 @@ describe("EventStatusPanel secondary actions", () => {
       "consttranslatedActionLabel:string=translateLabel(action.label);",
     );
     expect(dense(EVENT_STATUS_PANEL)).toContain(
-      "consttranslateLabel:(label:string)=>string=(label:string,):string=>{returntranslateString(label)||label;};",
+      "consttranslateLabel:(label:string)=>string=(label:string):string=>{returntranslateString(label)||label;};",
     );
     expect(button).toContain(
       "constisDisabled:boolean=Boolean(props.isDisabled||action.isDisabled);",

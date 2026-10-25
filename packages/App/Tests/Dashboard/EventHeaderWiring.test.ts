@@ -146,7 +146,7 @@ describe("the placeholders", () => {
     expect(
       readCode("Components/ScheduledMaintenance/ChangeState.tsx"),
     ).toContain(
-      'exportconstSCHEDULED_MAINTENANCE_STATE_LOADING_TEXT:string=translationKey("Loadingscheduledmaintenancestatus");',
+      'exportconstSCHEDULED_MAINTENANCE_STATE_LOADING_TEXT:string=translationKey("Loadingscheduledmaintenancestatus",);',
     );
     expect(readCode("Components/EventView/EventHeaderSkeleton.tsx")).toContain(
       "{translator.translateText(props.loadingText)}",
