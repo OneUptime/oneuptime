@@ -767,7 +767,7 @@ describe("EnterpriseEdition model to feature map", () => {
     },
   );
 
-  test("maps exactly the eight enterprise configuration tables", () => {
+  test("maps exactly the ten enterprise configuration tables", () => {
     expect(EnterpriseEdition.getMappedTableNames().sort()).toEqual(
       [
         "AuditLogExport",
@@ -778,6 +778,8 @@ describe("EnterpriseEdition model to feature map", () => {
         "CustomRolePermission",
         "TeamCustomRole",
         "ApiKeyCustomRole",
+        "BackupSetting",
+        "BackupRun",
       ].sort(),
     );
   });
