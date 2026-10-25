@@ -901,13 +901,6 @@
   "Test passed, with a warning": "Test geslaagd, met een waarschuwing",
   "Test failed": "Test mislukt",
   "Opens in a new tab": "Opent in een nieuw tabblad",
-  "Note": "Opmerking",
-  "Tip": "Tip",
-  "Info": "Info",
-  "Important": "Belangrijk",
-  "Warning": "Waarschuwing",
-  "Caution": "Let op",
-  "Danger": "Gevaar",
   "Such as your company or team name. You can change it later.": "Bijvoorbeeld de naam van uw bedrijf of team. U kunt deze later wijzigen.",
   "If you have one, from an offer or a reseller.": "Als u er een hebt, van een aanbieding of een wederverkoper.",
   "Plan": "Abonnement",
@@ -1470,5 +1463,14 @@
   "This couldn't be loaded.": "Dit kon niet worden geladen.",
   "Try again": "Opnieuw proberen",
   "Dismiss": "Sluiten",
-  "Loading": "Laden"
+  "Loading": "Laden",
+  "markdownCallouts": {
+    "caution": "Let op",
+    "danger": "Gevaar",
+    "important": "Belangrijk",
+    "info": "Info",
+    "note": "Opmerking",
+    "tip": "Tip",
+    "warning": "Waarschuwing"
+  }
 }

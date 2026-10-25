@@ -1,5 +1,10 @@
 import moment from "moment-timezone";
 import OneUptimeDate from "../../../Types/Date";
+import {
+  getDateLocale,
+  isEnglishDateLanguage,
+  rememberEnglishOf,
+} from "../../../Types/DateLanguage";
 import Timezone from "../../../Types/Timezone";
 
 /*
@@ -54,6 +59,32 @@ const ALLOWED_CLOCK_SKEW_IN_SECONDS: number = 120;
 const FALLBACK_LANGUAGE: string = "en";
 
 /*
+ * A text written in another language, remembered with its English - what it
+ * reads as inside a sentence still in English (Common/Types/DateLanguage).
+ */
+const rememberedWithEnglish: (data: {
+  text: string | undefined;
+  clock: FeedClock;
+  english: (clock: FeedClock) => string | undefined;
+}) => string | undefined = (data: {
+  text: string | undefined;
+  clock: FeedClock;
+  english: (clock: FeedClock) => string | undefined;
+}): string | undefined => {
+  if (data.text && !isEnglishDateLanguage(data.clock.language)) {
+    rememberEnglishOf(data.text, (): string => {
+      return (
+        data.english({ ...data.clock, language: FALLBACK_LANGUAGE }) ||
+        data.text ||
+        ""
+      );
+    });
+  }
+
+  return data.text;
+};
+
+/*
  * The parts of Intl.RelativeTimeFormat used here. Typed structurally: Common
  * compiles against the ES2017 library, which does not declare it, while
  * every browser the Dashboard supports has it.
@@ -85,43 +116,18 @@ const getRelativeTimeFormatConstructor: () =>
   ).RelativeTimeFormat;
 };
 
-const localeCache: Map<string, string> = new Map<string, string>();
-
 /*
  * The Intl locale for a Dashboard language: its own words and order, the
  * Gregorian calendar and Latin digits ("fa" alone would give the Solar Hijri
  * calendar in Persian digits). A language Intl does not know falls back to
  * English rather than to the browser's own default, so a page never mixes
- * two languages.
+ * two languages. The same locale every date in the product is written in
+ * (Common/Types/DateLanguage).
  */
 export const getFeedLocale: (language: string | undefined) => string = (
   language: string | undefined,
 ): string => {
-  const requested: string = (language || FALLBACK_LANGUAGE).trim();
-  const cached: string | undefined = localeCache.get(requested);
-
-  if (cached) {
-    return cached;
-  }
-
-  let locale: string = `${FALLBACK_LANGUAGE}-u-ca-gregory-nu-latn`;
-
-  try {
-    const supported: Array<string> = Intl.DateTimeFormat.supportedLocalesOf([
-      requested,
-    ]);
-
-    if (supported.length > 0 && supported[0]) {
-      locale = `${supported[0]}-u-ca-gregory-nu-latn`;
-      // Throws on a tag Intl cannot take an extension on.
-      new Intl.DateTimeFormat(locale);
-    }
-  } catch {
-    locale = `${FALLBACK_LANGUAGE}-u-ca-gregory-nu-latn`;
-  }
-
-  localeCache.set(requested, locale);
-  return locale;
+  return getDateLocale(language);
 };
 
 const formatterCache: Map<string, Intl.DateTimeFormat> = new Map<
@@ -191,6 +197,21 @@ export const formatFeedDay: (date: Date, clock: FeedClock) => string = (
   date: Date,
   clock: FeedClock,
 ): string => {
+  return (
+    rememberedWithEnglish({
+      text: writeFeedDay(date, clock),
+      clock,
+      english: (englishClock: FeedClock): string => {
+        return writeFeedDay(date, englishClock);
+      },
+    }) || ""
+  );
+};
+
+const writeFeedDay: (date: Date, clock: FeedClock) => string = (
+  date: Date,
+  clock: FeedClock,
+): string => {
   const format: Intl.DateTimeFormat | null = getDateTimeFormat({
     locale: getFeedLocale(clock.language),
     timezone: clock.timezone,
@@ -256,6 +277,21 @@ export const getFeedZoneName: (date: Date, timezone: string) => string = (
  * <time> element: "Tuesday, October 13, 2026, 3:25:42 PM GMT+8".
  */
 export const formatFeedFullTime: (date: Date, clock: FeedClock) => string = (
+  date: Date,
+  clock: FeedClock,
+): string => {
+  return (
+    rememberedWithEnglish({
+      text: writeFeedFullTime(date, clock),
+      clock,
+      english: (englishClock: FeedClock): string => {
+        return writeFeedFullTime(date, englishClock);
+      },
+    }) || ""
+  );
+};
+
+const writeFeedFullTime: (date: Date, clock: FeedClock) => string = (
   date: Date,
   clock: FeedClock,
 ): string => {
@@ -518,6 +554,19 @@ export const formatFeedTimeAgo: (
   date: Date,
   clock: FeedClock,
 ) => string | undefined = (
+  date: Date,
+  clock: FeedClock,
+): string | undefined => {
+  return rememberedWithEnglish({
+    text: writeFeedTimeAgo(date, clock),
+    clock,
+    english: (englishClock: FeedClock): string | undefined => {
+      return writeFeedTimeAgo(date, englishClock);
+    },
+  });
+};
+
+const writeFeedTimeAgo: (date: Date, clock: FeedClock) => string | undefined = (
   date: Date,
   clock: FeedClock,
 ): string | undefined => {

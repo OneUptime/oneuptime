@@ -901,13 +901,6 @@
   "Test passed, with a warning": "테스트 통과(경고 있음)",
   "Test failed": "테스트 실패",
   "Opens in a new tab": "새 탭에서 열림",
-  "Note": "참고",
-  "Tip": "팁",
-  "Info": "정보",
-  "Important": "중요",
-  "Warning": "경고",
-  "Caution": "주의",
-  "Danger": "위험",
   "Such as your company or team name. You can change it later.": "예: 회사 또는 팀 이름. 나중에 변경할 수 있습니다.",
   "If you have one, from an offer or a reseller.": "프로모션이나 리셀러에게 받은 코드가 있다면 입력하세요.",
   "Plan": "요금제",
@@ -1470,5 +1463,14 @@
   "This couldn't be loaded.": "로드할 수 없습니다.",
   "Try again": "다시 시도",
   "Dismiss": "닫기",
-  "Loading": "로드 중"
+  "Loading": "로드 중",
+  "markdownCallouts": {
+    "caution": "주의",
+    "danger": "위험",
+    "important": "중요",
+    "info": "정보",
+    "note": "참고",
+    "tip": "팁",
+    "warning": "경고"
+  }
 }

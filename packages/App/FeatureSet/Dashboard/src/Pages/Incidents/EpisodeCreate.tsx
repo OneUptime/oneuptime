@@ -3,7 +3,6 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
-import MarkdownUtil from "Common/UI/Utils/Markdown";
 import React, {
   Fragment,
   FunctionComponent,
@@ -142,9 +141,7 @@ const EpisodeCreate: FunctionComponent<
                 stepId: "episode-details",
                 fieldType: FormFieldSchemaType.Markdown,
                 required: false,
-                description: MarkdownUtil.getMarkdownCheatsheet(
-                  "Describe the episode details here",
-                ),
+                description: "Describe the episode details here.",
               },
               /*
                * Left empty, the episode starts in the project's starting

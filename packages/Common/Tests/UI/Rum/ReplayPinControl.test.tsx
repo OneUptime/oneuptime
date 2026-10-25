@@ -9,6 +9,7 @@ import {
 import * as React from "react";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import ObjectID from "../../../Types/ObjectID";
+import { setDateDisplayLanguage } from "../../../Types/DateLanguage";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { REPLAY_CONTROL_HEIGHT_CLASS } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayUi";
@@ -180,6 +181,37 @@ describe("ReplayPinControl initial load", () => {
     expect(status).toHaveTextContent("Pinned");
     expect(status.getAttribute("title")).toContain("pinned retention until");
     expectReplayActionButton(screen.getByTestId("replay-unpin-button"));
+  });
+
+  /*
+   * The pin's other states and the replay's words are still English, so
+   * its lapse date is too on a German page: one German state among English
+   * ones would read as a mistake.
+   */
+  it("keeps the protected pin's lapse date in English on a German page", async () => {
+    setDateDisplayLanguage("de");
+
+    try {
+      getListMock.mockResolvedValue(
+        listResult([
+          pinRow({
+            materializedAt: new Date("2026-09-01T10:00:00Z"),
+            expiresAt: new Date("2028-09-01T10:00:00Z"),
+          }),
+        ]),
+      );
+
+      renderControl();
+
+      const status: HTMLElement =
+        await screen.findByTestId("replay-pin-status");
+      const title: string = status.getAttribute("title") || "";
+
+      expect(title).toContain("pinned retention until Sep");
+      expect(title).not.toContain("Sept.");
+    } finally {
+      setDateDisplayLanguage(null);
+    }
   });
 });
 

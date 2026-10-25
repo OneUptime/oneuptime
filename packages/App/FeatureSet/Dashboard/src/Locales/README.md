@@ -46,6 +46,33 @@ a language, and the rules the guard test enforces.
   are keys of their own (`"{{first}}, {{second}} or {{third}}"`).
 - **Numbers** in a plural `{{count}}` are written the reader's way (`1.234` in
   German). Pass your own `count` value to override.
+- **Dates, times and durations** are written in the reader's language too:
+  every frontend hands its i18next instance to `followLanguageForDates`
+  (`Common/UI/Utils/DateDisplayLanguage`), and `OneUptimeDate` writes month
+  and weekday names, "vor 5 Stunden", "2 Tage, 3 Stunden" and a decimal comma
+  in that language, from the browser's Intl data, in Latin digits and the
+  Gregorian calendar (`Common/Types/DateLanguage`). English, and anything
+  nothing set (the server, emails, workers), reads exactly as it always did.
+  A date put into a sentence follows the sentence: while a locale has not
+  worded "Checked {{time}}" yet, the reader sees the English sentence with
+  the English date, never "Checked vor 5 Stunden". Pass dates as values of a
+  looked-up sentence (`translateTemplate("Added {{time}}", { time:
+OneUptimeDate.fromNow(date) })`), or draw a time component in a
+  `TranslatedSentence` slot - `RelativeTime`, `LiveDuration` and the others
+  read the sentence's language (`useWriteDatesInSentenceLanguage`,
+  `useSentenceLanguage`). Never glue a date into English text in the code
+  (`` `Added ${OneUptimeDate.fromNow(date)}` ``): text that has to stay
+  English - an export, a prompt for OneUptime AI - writes its dates inside
+  `inEnglishDates(() => ...)`. So does a sentence in a component whose
+  other words are still English: look the sentence up when the component
+  is translated, so the reader never meets one German line among English
+  ones. `App/Tests/Dashboard/DatesInEnglishTextGuard` holds every frontend
+  to this, and reads `Common/Types/Date.ts` for the helpers that write in
+  the reader's language.
+- **Durations in a sentence.** Intl writes a duration in the case a
+  sentence's subject takes ("3 Tage"). Word a translation so the duration
+  stands where that case is right: German "{{headline}} · {{duration}}",
+  never "seit {{duration}}", which needs "3 Tagen".
 - **What ships.** The files here keep every key, so the tooling can track
   what is left to translate. The bundle carries only what a reader can tell
   apart (`Common/UI/esbuild-locales.js`, wired in the Dashboard's
@@ -99,11 +126,11 @@ import {
 const translator: Translator = useTranslator();
 
 // Fixed text.
-<p>{translator.translateText("No monitors yet.")}</p>
+<p>{translator.translateText("No monitors yet.")}</p>;
 
 // A sentence with values. Never glue pieces together.
 translator.translateTemplate("Monitor {{name}} is {{status}}.", {
-  name: monitor.name,                               // inserted as is
+  name: monitor.name, // inserted as is
   status: translatableTerm(statusName, { inSentence: true }), // translated
 });
 
@@ -138,7 +165,9 @@ so the locale can move the element:
 ```tsx
 <TranslatedSentence
   template="Read the {{guide}} before you enable SSO."
-  slots={{ guide: <Link to={GUIDE}>{translator.translateText("setup guide")}</Link> }}
+  slots={{
+    guide: <Link to={GUIDE}>{translator.translateText("setup guide")}</Link>,
+  }}
 />
 ```
 
@@ -160,12 +189,30 @@ where you render them. A template kept in a constant must be wrapped in
 `translationKey()` so the extractor finds it:
 
 ```ts
-export const NO_MATCH: string = translationKey("No {{itemsName}} match these filters.");
+export const NO_MATCH: string = translationKey(
+  "No {{itemsName}} match these filters.",
+);
 ```
 
 The extractor does not read a label map keyed by an enum
 (`{ [MonitorType.API]: "API Monitor" }`). Wrap each label in
 `translationKey()`, and look the label up where you render it.
+
+A shared helper that writes many sentences takes the reader's `Translator`
+as an argument instead of reading the global instance: the monitor
+overview's `MonitorOverviewPresentationUtil` (`input.translator`), the
+uptime windows (`MonitorUptimeSummaryUtil.getWindowPresentation`), a
+monitor's interval (`MonitorCheckScheduleUtil.describeInterval`) and a cron
+schedule in words (`Common/Utils/CronScheduleText`). The page passes
+`useTranslator()`. Each sentence is then looked up whole with that one
+translator, so it is wholly in the reader's language or wholly in English,
+and a test can hand it any locale. Without a translator such a helper writes
+English, word for word as before, which is what the server and a unit test
+get. A value built from other translated pieces - an interval inside "This
+monitor is evaluated {{interval}} once saved." - is a `composedValue()`, so
+it takes the sentence's language. A duration that goes into a sentence is
+written with `formatDurationCompactInLanguage(seconds, translator.language)`
+("12 Min." in German), which an English sentence turns back into "12m".
 
 ### What to leave alone
 
@@ -196,11 +243,16 @@ three columns are element text (`text`), plain HTML attributes such as `title`,
 with template literals or `+` (`composed`). Some of these are not copy, such as
 a unit, a code sample or a format string. The list is a work list, not a test.
 
-The extractor reads `Dashboard/src`, `Common/UI` and the database and
-analytics models' names and column titles. To route strings that live
-elsewhere, add the directory to `SOURCE_ROOTS` in
+The extractor reads `Dashboard/src`, `Common/UI`, the database and
+analytics models' names and column titles, a few `Common/Types` catalogs,
+the shared monitor helpers in `Common/Utils/Monitor` and
+`Common/Utils/CronScheduleText.ts`. To route strings that live elsewhere, add
+the directory - or a single file - to `SOURCE_ROOTS` in
 `scripts/i18n/ExtractStrings.ts`. Examples: `Common/Types` catalogs such as
 permission descriptions, monitor-type descriptions and workflow components.
+Adding all of `Common/Utils` at once would bring in some 840 strings, most of
+them for the server, so route a directory when its strings are put on
+screen.
 
 ## Filling in a language (stage 3)
 
@@ -319,21 +371,37 @@ translated the same locale. Take either side, then run
 
 ## Files
 
-| Path | What it is |
-| --- | --- |
-| `src/Locales/en.json` | Every key. It is written by `i18n:extract`. Do not edit it by hand, except to fix a nested key's English. |
-| `src/Locales/<code>.json` | One language. It mirrors `en.json` key for key. |
-| `i18n/SameAsEnglish.json` | English that reads the same in every language. |
-| `i18n/Progress/<code>.json` | The locale's baseline and its own same-as-English list. |
-| `scripts/i18n/ExtractStrings.ts` | Finds user-facing strings in the TypeScript syntax tree. |
-| `scripts/i18n/LocaleFiles.ts` | Reads, orders, aligns and merges locale files. |
-| `scripts/i18n/LocaleStatus.ts` | What counts as untranslated, problems, and baselines. |
-| `scripts/i18n/I18n.ts` | The `npm run i18n:*` commands. |
-| `Common/UI/esbuild-locales.js` | The build plugin that ships each locale without what the English fallback already shows. |
+| Path                             | What it is                                                                                                |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `src/Locales/en.json`            | Every key. It is written by `i18n:extract`. Do not edit it by hand, except to fix a nested key's English. |
+| `src/Locales/<code>.json`        | One language. It mirrors `en.json` key for key.                                                           |
+| `i18n/SameAsEnglish.json`        | English that reads the same in every language.                                                            |
+| `i18n/Progress/<code>.json`      | The locale's baseline and its own same-as-English list.                                                   |
+| `scripts/i18n/ExtractStrings.ts` | Finds user-facing strings in the TypeScript syntax tree.                                                  |
+| `scripts/i18n/LocaleFiles.ts`    | Reads, orders, aligns and merges locale files.                                                            |
+| `scripts/i18n/LocaleStatus.ts`   | What counts as untranslated, problems, and baselines.                                                     |
+| `scripts/i18n/I18n.ts`           | The `npm run i18n:*` commands.                                                                            |
+| `Common/UI/esbuild-locales.js`   | The build plugin that ships each locale without what the English fallback already shows.                  |
 
 ## Not covered yet
 
-- Dates and relative times are formatted by Moment in English.
 - The `Common/Types` catalogs are not scanned: permissions, monitor-type and
   workflow-component descriptions.
+- `formatDurationCompact` stays English ("2h 5m"): the SLO pages still glue
+  it into English sentences of their own. A duration inside a translated
+  sentence uses `formatDurationCompactInLanguage`. Durations in seconds keep
+  their unit symbol ("1,72 s"); only their figures are written the reader's
+  way.
+- A cron schedule on given days of given months ("On the 1st of January at
+  00:00 (UTC)") and one only described field by field ("minute 5, 35, hour 3
+  (UTC)") read in English in every language (`Common/Utils/CronScheduleText`).
+- The monitor metric charts' own titles, units and descriptions
+  (`MonitorMetricTypeUtil.getTitleByMonitorMetricType` and its siblings) are
+  not keys yet; the metric groups' titles and descriptions are.
+- "Up", "Down", "Manual", "Not evaluated yet", "Interfaces" and "Security
+  Events" are still English in some languages, the monitor overview's
+  verdicts among them. The translated docs quote each label as that
+  language's Dashboard draws it, and the `*DocsTranslations` suites in
+  `App/Tests/FeatureSet/Docs` hold the two together, so a label is translated
+  in the same change as the docs pages that quote it.
 - `ee/Dashboard` and documentation markdown are not scanned.

@@ -30,9 +30,23 @@
  */
 
 export interface CronPreset {
+  /*
+   * In English: a key of the Dashboard's locales, which the picker's
+   * dropdown looks up as it draws it.
+   */
   label: string;
   value: string;
 }
+
+/*
+ * Marks an English label as a key of the Dashboard's locales, so its
+ * extractor (scripts/i18n/ExtractStrings.ts, which reads this file) finds
+ * it - the same marker as Common/UI/Utils/TranslateTemplate's, kept here so
+ * CronTab stays free of every dependency. It returns the text unchanged.
+ */
+const translationKey: (text: string) => string = (text: string): string => {
+  return text;
+};
 
 /*
  * One field of a parsed expression, as parseFields hands it out: the values
@@ -61,6 +75,39 @@ export interface CronExpressionFields {
   // Six fields were given, the first being seconds.
   readonly hasSeconds: boolean;
 }
+
+/*
+ * What a schedule's description says, before it is put in words: the shapes
+ * CronTab describes as a sentence ("Every 5 minutes", "Every week on Monday
+ * at 09:00 (UTC)"), each with its numbers. Common/Utils/CronScheduleText
+ * words them in a reader's language; getHumanReadableDescription in English.
+ * Any other schedule is "fieldByField": described one cron field at a time.
+ * Hours and minutes are UTC; weekdays 0 (Sunday) - 6, months 1 - 12.
+ */
+export type CronScheduleShape =
+  | { kind: "everyMinute" }
+  | { kind: "everyMinutes"; step: number }
+  | { kind: "everyHourOnTheHour" }
+  // `step` 1 is every hour; `minute` 0 says no minute.
+  | { kind: "everyHours"; step: number; minute: number }
+  | { kind: "daily"; hour: number; minute: number }
+  | { kind: "weekly"; weekdays: Array<number>; hour: number; minute: number }
+  // `monthStep` 1 is every month.
+  | {
+      kind: "monthly";
+      daysOfMonth: Array<number>;
+      monthStep: number;
+      hour: number;
+      minute: number;
+    }
+  | {
+      kind: "yearly";
+      daysOfMonth: Array<number>;
+      months: Array<number>;
+      hour: number;
+      minute: number;
+    }
+  | { kind: "fieldByField" };
 
 interface ParsedField {
   // Sorted, de-duplicated allowed values for this field.
@@ -141,24 +188,39 @@ export default class CronTab {
    * is a valid 5-field cron expression.
    */
   public static readonly PRESETS: Array<CronPreset> = [
-    { label: "Every minute", value: "* * * * *" },
-    { label: "Every 5 minutes", value: "*/5 * * * *" },
-    { label: "Every 10 minutes", value: "*/10 * * * *" },
-    { label: "Every 15 minutes", value: "*/15 * * * *" },
-    { label: "Every 30 minutes", value: "*/30 * * * *" },
-    { label: "Every hour", value: "0 * * * *" },
-    { label: "Every 2 hours", value: "0 */2 * * *" },
-    { label: "Every 3 hours", value: "0 */3 * * *" },
-    { label: "Every 6 hours", value: "0 */6 * * *" },
-    { label: "Every 12 hours", value: "0 */12 * * *" },
-    { label: "Every day at midnight", value: "0 0 * * *" },
-    { label: "Every day at 9:00 AM", value: "0 9 * * *" },
-    { label: "Every Monday at 9:00 AM", value: "0 9 * * 1" },
-    { label: "Every week (Sunday at midnight)", value: "0 0 * * 0" },
-    { label: "Every month (1st at midnight)", value: "0 0 1 * *" },
-    { label: "Every 3 months (1st at midnight)", value: "0 0 1 */3 *" },
-    { label: "Every 6 months (1st at midnight)", value: "0 0 1 */6 *" },
-    { label: "Every year (Jan 1st at midnight)", value: "0 0 1 1 *" },
+    { label: translationKey("Every minute"), value: "* * * * *" },
+    { label: translationKey("Every 5 minutes"), value: "*/5 * * * *" },
+    { label: translationKey("Every 10 minutes"), value: "*/10 * * * *" },
+    { label: translationKey("Every 15 minutes"), value: "*/15 * * * *" },
+    { label: translationKey("Every 30 minutes"), value: "*/30 * * * *" },
+    { label: translationKey("Every hour"), value: "0 * * * *" },
+    { label: translationKey("Every 2 hours"), value: "0 */2 * * *" },
+    { label: translationKey("Every 3 hours"), value: "0 */3 * * *" },
+    { label: translationKey("Every 6 hours"), value: "0 */6 * * *" },
+    { label: translationKey("Every 12 hours"), value: "0 */12 * * *" },
+    { label: translationKey("Every day at midnight"), value: "0 0 * * *" },
+    { label: translationKey("Every day at 9:00 AM"), value: "0 9 * * *" },
+    { label: translationKey("Every Monday at 9:00 AM"), value: "0 9 * * 1" },
+    {
+      label: translationKey("Every week (Sunday at midnight)"),
+      value: "0 0 * * 0",
+    },
+    {
+      label: translationKey("Every month (1st at midnight)"),
+      value: "0 0 1 * *",
+    },
+    {
+      label: translationKey("Every 3 months (1st at midnight)"),
+      value: "0 0 1 */3 *",
+    },
+    {
+      label: translationKey("Every 6 months (1st at midnight)"),
+      value: "0 0 1 */6 *",
+    },
+    {
+      label: translationKey("Every year (Jan 1st at midnight)"),
+      value: "0 0 1 1 *",
+    },
   ];
 
   /**
@@ -217,6 +279,19 @@ export default class CronTab {
     }
 
     return this.describe(parsed);
+  }
+
+  /*
+   * The shape getHumanReadableDescription puts in words, for a caller that
+   * words it in another language (Common/Utils/CronScheduleText). Null when
+   * the expression cannot be parsed.
+   */
+  public static getScheduleShape(expression: string): CronScheduleShape | null {
+    try {
+      return this.getShapeOf(this.parse(expression));
+    } catch {
+      return null;
+    }
   }
 
   /**
@@ -604,7 +679,7 @@ export default class CronTab {
 
   // ----- Human-readable description --------------------------------------
 
-  private static describe(parsed: ParsedCron): string {
+  private static getShapeOf(parsed: ParsedCron): CronScheduleShape {
     const minute: ParsedField = parsed.minute;
     const hour: ParsedField = parsed.hour;
     const dom: ParsedField = parsed.dayOfMonth;
@@ -629,7 +704,7 @@ export default class CronTab {
         month.isWildcard &&
         dow.isWildcard
       ) {
-        return "Every minute";
+        return { kind: "everyMinute" };
       }
 
       // Every N minutes.
@@ -641,8 +716,8 @@ export default class CronTab {
         dow.isWildcard
       ) {
         return minuteStep === 1
-          ? "Every minute"
-          : `Every ${minuteStep} minutes`;
+          ? { kind: "everyMinute" }
+          : { kind: "everyMinutes", step: minuteStep };
       }
 
       // Every hour (on the hour).
@@ -654,7 +729,7 @@ export default class CronTab {
         month.isWildcard &&
         dow.isWildcard
       ) {
-        return "Every hour, on the hour";
+        return { kind: "everyHourOnTheHour" };
       }
 
       // Every N hours (at minute M).
@@ -665,63 +740,117 @@ export default class CronTab {
         month.isWildcard &&
         dow.isWildcard
       ) {
-        const atMinute: string =
-          minute.values[0] === 0
-            ? ""
-            : ` at minute ${this.pad(minute.values[0]!)}`;
-        return hourStep === 1
-          ? `Every hour${atMinute}`
-          : `Every ${hourStep} hours${atMinute}`;
+        return {
+          kind: "everyHours",
+          step: hourStep,
+          minute: minute.values[0]!,
+        };
       }
 
       const isSingleTime: boolean =
         minute.values.length === 1 && hour.values.length === 1;
 
       if (isSingleTime) {
-        const time: string = `${this.pad(hour.values[0]!)}:${this.pad(
-          minute.values[0]!,
-        )}`;
+        const at: { hour: number; minute: number } = {
+          hour: hour.values[0]!,
+          minute: minute.values[0]!,
+        };
 
         // Every day at HH:MM.
         if (dom.isWildcard && month.isWildcard && dow.isWildcard) {
-          return `Every day at ${time} (UTC)`;
+          return { kind: "daily", ...at };
         }
 
         // Every week on <days> at HH:MM.
         if (dom.isWildcard && month.isWildcard && !dow.isWildcard) {
-          return `Every week on ${this.describeWeekdays(
-            dow.values,
-          )} at ${time} (UTC)`;
+          return { kind: "weekly", weekdays: [...dow.values], ...at };
         }
 
         // Every month on the <day> at HH:MM.
         if (!dom.isWildcard && month.isWildcard && dow.isWildcard) {
-          return `Every month on the ${this.describeDaysOfMonth(
-            dom.values,
-          )} at ${time} (UTC)`;
+          return {
+            kind: "monthly",
+            daysOfMonth: [...dom.values],
+            monthStep: 1,
+            ...at,
+          };
         }
 
         // Every N months on the <day> at HH:MM.
         const monthStep: number | null = this.detectStep(month, 1, 12);
         if (!dom.isWildcard && monthStep !== null && dow.isWildcard) {
-          const everyMonths: string =
-            monthStep === 1 ? "month" : `${monthStep} months`;
-          return `Every ${everyMonths} on the ${this.describeDaysOfMonth(
-            dom.values,
-          )} at ${time} (UTC)`;
+          return {
+            kind: "monthly",
+            daysOfMonth: [...dom.values],
+            monthStep: monthStep,
+            ...at,
+          };
         }
 
         // Specific month(s) on the <day> at HH:MM (e.g. yearly).
         if (!dom.isWildcard && !month.isWildcard && dow.isWildcard) {
-          return `On the ${this.describeDaysOfMonth(
-            dom.values,
-          )} of ${this.describeMonths(month.values)} at ${time} (UTC)`;
+          return {
+            kind: "yearly",
+            daysOfMonth: [...dom.values],
+            months: [...month.values],
+            ...at,
+          };
         }
       }
     }
 
-    // Generic fallback: list only the constrained fields.
-    return this.describeGeneric(parsed);
+    return { kind: "fieldByField" };
+  }
+
+  // A shape's time of day: "09:30".
+  public static describeTimeOfDay(hour: number, minute: number): string {
+    return `${this.pad(hour)}:${this.pad(minute)}`;
+  }
+
+  private static describe(parsed: ParsedCron): string {
+    const shape: CronScheduleShape = this.getShapeOf(parsed);
+
+    switch (shape.kind) {
+      case "everyMinute":
+        return "Every minute";
+      case "everyMinutes":
+        return `Every ${shape.step} minutes`;
+      case "everyHourOnTheHour":
+        return "Every hour, on the hour";
+      case "everyHours": {
+        const atMinute: string =
+          shape.minute === 0 ? "" : ` at minute ${this.pad(shape.minute)}`;
+        return shape.step === 1
+          ? `Every hour${atMinute}`
+          : `Every ${shape.step} hours${atMinute}`;
+      }
+      case "daily":
+        return `Every day at ${this.describeTimeOfDay(
+          shape.hour,
+          shape.minute,
+        )} (UTC)`;
+      case "weekly":
+        return `Every week on ${this.describeWeekdays(
+          shape.weekdays,
+        )} at ${this.describeTimeOfDay(shape.hour, shape.minute)} (UTC)`;
+      case "monthly": {
+        const everyMonths: string =
+          shape.monthStep === 1 ? "month" : `${shape.monthStep} months`;
+        return `Every ${everyMonths} on the ${this.describeDaysOfMonth(
+          shape.daysOfMonth,
+        )} at ${this.describeTimeOfDay(shape.hour, shape.minute)} (UTC)`;
+      }
+      case "yearly":
+        return `On the ${this.describeDaysOfMonth(
+          shape.daysOfMonth,
+        )} of ${this.describeMonths(shape.months)} at ${this.describeTimeOfDay(
+          shape.hour,
+          shape.minute,
+        )} (UTC)`;
+      default:
+        // Generic fallback: list only the constrained fields.
+        return this.describeGeneric(parsed);
+    }
   }
 
   private static describeGeneric(parsed: ParsedCron): string {
@@ -819,7 +948,8 @@ export default class CronTab {
     return step;
   }
 
-  private static describeWeekdays(values: Array<number>): string {
+  // "Monday, Wednesday and Friday": weekdays 0 (Sunday) - 6, in English.
+  public static describeWeekdays(values: Array<number>): string {
     return this.joinList(
       values.map((v: number) => {
         return DAY_NAMES_LONG[v] || `day ${v}`;
@@ -827,7 +957,8 @@ export default class CronTab {
     );
   }
 
-  private static describeMonths(values: Array<number>): string {
+  // "January and July": months 1 - 12, in English.
+  public static describeMonths(values: Array<number>): string {
     return this.joinList(
       values.map((v: number) => {
         return MONTH_NAMES_LONG[v - 1] || `month ${v}`;
@@ -835,7 +966,8 @@ export default class CronTab {
     );
   }
 
-  private static describeDaysOfMonth(values: Array<number>): string {
+  // "1st and 15th", in English.
+  public static describeDaysOfMonth(values: Array<number>): string {
     return this.joinList(
       values.map((v: number) => {
         return this.ordinal(v);

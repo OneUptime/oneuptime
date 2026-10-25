@@ -52,7 +52,7 @@ import {
   within,
 } from "@testing-library/react";
 import React, { ReactElement } from "react";
-import i18next from "i18next";
+import i18next, { TFunction } from "i18next";
 import { initReactI18next } from "react-i18next";
 import remarkGfm from "remark-gfm";
 import MarkdownViewer from "../../../UI/Components/Markdown.tsx/MarkdownViewer";
@@ -68,6 +68,7 @@ import {
   MARKDOWN_QUOTED_TEXT_CLASS_NAME,
   MARKDOWN_QUOTE_CLASS_NAME,
   MARKDOWN_TEXT_CLASS_NAME,
+  getMarkdownCalloutName,
 } from "../../../UI/Components/Markdown.tsx/MarkdownQuote";
 import {
   MARKDOWN_LINK_CLASS_NAME,
@@ -315,8 +316,18 @@ beforeAll(async () => {
       de: {
         translation: {
           "Opens in a new tab": "Öffnet in einem neuen Tab",
-          Warning: "Warnung",
-          Tip: "Tipp",
+          /*
+           * The shared words, as the Dashboard words them for other things
+           * (a note somebody wrote, a status): a callout never reads them.
+           */
+          Note: "Notiz",
+          Warning: "Warnstufe",
+          // A callout's own names, as the docs name their callouts.
+          markdownCallouts: {
+            note: "Hinweis",
+            warning: "Warnung",
+            tip: "Tipp",
+          },
         },
       },
     },
@@ -983,6 +994,47 @@ describe("a callout is only what asks to be one", () => {
       "data-callout",
       "tip",
     );
+  });
+
+  test("its name is a key of its own, never the shared word", async () => {
+    await i18next.changeLanguage("de");
+
+    showMarkdown(
+      root(
+        blockquote(paragraph(text("[!NOTE]\nnote"))),
+        blockquote(paragraph(text("[!WARNING]\nwarning"))),
+        blockquote(paragraph(text("[!DANGER]\ndanger"))),
+      ),
+    );
+
+    // "Hinweis", not the Dashboard's "Notiz"; "Warnung", not "Warnstufe".
+    expect(screen.getByRole("note", { name: "Hinweis" })).toHaveAttribute(
+      "data-callout",
+      "note",
+    );
+    expect(screen.getByRole("note", { name: "Warnung" })).toHaveAttribute(
+      "data-callout",
+      "warning",
+    );
+    expect(screen.queryByRole("note", { name: "Notiz" })).toBeNull();
+    expect(screen.queryByRole("note", { name: "Warnstufe" })).toBeNull();
+    // A kind the language has no name for yet reads the English.
+    expect(screen.getByRole("note", { name: "Danger" })).toHaveAttribute(
+      "data-callout",
+      "danger",
+    );
+  });
+
+  test("a stand-in t() that hands keys back reads the English", () => {
+    const keysBack: TFunction = ((key: string): string => {
+      return key;
+    }) as unknown as TFunction;
+
+    for (const kind of MARKDOWN_CALLOUT_KINDS) {
+      expect(getMarkdownCalloutName(keysBack, kind)).toBe(
+        MARKDOWN_CALLOUT_STYLES[kind].label,
+      );
+    }
   });
 });
 

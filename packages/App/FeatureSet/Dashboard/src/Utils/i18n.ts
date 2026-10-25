@@ -10,6 +10,7 @@ import {
 } from "Common/Types/Dashboard/DashboardLanguage";
 
 import { loadLocaleResource, LocaleResource } from "./I18nLocaleLoader";
+import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import {
   getProductNamePostProcess,
   productNamePostProcessor,
@@ -154,5 +155,8 @@ export const i18nReady: Promise<void> = i18n
   .then((): void => {
     // Resolve with void — callers only care about readiness, not `t`.
   });
+
+// Dates, times and durations in the reader's language too.
+followLanguageForDates(i18n);
 
 export default i18n;

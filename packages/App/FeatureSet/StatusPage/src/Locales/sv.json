@@ -396,13 +396,6 @@
   "Email is not valid.": "E-postadressen är ogiltig.",
   "Next": "Nästa",
   "Opens in a new tab": "Öppnas i en ny flik",
-  "Note": "Obs",
-  "Tip": "Tips",
-  "Info": "Info",
-  "Important": "Viktigt",
-  "Warning": "Varning",
-  "Caution": "Försiktighet",
-  "Danger": "Fara",
   "Loading the latest version": "Laddar den senaste versionen",
   "A newer version of this page is available. It's loading now.": "En nyare version av den här sidan finns tillgänglig. Den laddas nu.",
   "You're offline": "Du är offline",
@@ -422,5 +415,14 @@
   "This couldn't be loaded.": "Det här kunde inte laddas.",
   "Try again": "Försök igen",
   "Loading...": "Laddar...",
-  "Loading": "Laddar"
+  "Loading": "Laddar",
+  "markdownCallouts": {
+    "caution": "Försiktighet",
+    "danger": "Fara",
+    "important": "Viktigt",
+    "info": "Info",
+    "note": "Obs",
+    "tip": "Tips",
+    "warning": "Varning"
+  }
 }

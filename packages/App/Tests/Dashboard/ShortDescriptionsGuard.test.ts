@@ -174,6 +174,13 @@ describe("descriptions across the product are short", () => {
     expect(textsOfKind(found, "switch")).toContain(
       "Off: subscribers are sent nothing, not even reports. They are kept, and visitors can still subscribe.",
     );
+    // Both forms of a count-dependent sentence (translatePlural).
+    expect(textsOfKind(found, "dialog")).toEqual(
+      expect.arrayContaining([
+        "Whether the {{count}} person this level notifies can actually be paged.",
+        "Whether the {{count}} people this level notifies can actually be paged.",
+      ]),
+    );
     // A TranslatedSentence template beside the sentences around it.
     expect(textsOfKind(found, "dialog")).toContain(
       "This monitor gets a new random address, and {{address}} stops working at once. Your custom address is removed. Update everything that emails it.",
@@ -247,6 +254,14 @@ describe("the short descriptions guard", () => {
     mediumField: sentenceOf("A field that runs a little long", 180),
     // A column line a field asks for by name (hideColumnDescription: false).
     shownColumn: sentenceOf("Explains the depth column for the API", 182),
+    // Count-dependent sentences: each form a reader can see is measured.
+    pluralOne: sentenceOf("Archives {{count}} widget and explains it", 160),
+    pluralOther: sentenceOf("Archives {{count}} widgets and explains it", 158),
+    pluralConstant: sentenceOf("No {{count}} widgets match, and why", 163),
+    pluralSentence: sentenceOf(
+      "Moves {{count}} widgets to {{place}} and why",
+      171,
+    ),
   };
 
   const SHORT: Record<string, string> = {
@@ -255,6 +270,8 @@ describe("the short descriptions guard", () => {
     card: "Widgets you added.",
     mediumCard: sentenceOf("A card can run a little longer", 180),
     nested: "Invites them to the team.",
+    pluralOne: "Pauses {{count}} widget.",
+    pluralOther: "Pauses {{count}} widgets.",
   };
 
   const NEVER_MEASURED: Record<string, string> = {
@@ -270,7 +287,7 @@ describe("the short descriptions guard", () => {
 import React from "react";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Widget from "Common/Models/DatabaseModels/Widget";
-import { WIDGET_LIMIT_DESCRIPTION } from "./WidgetCopy";
+import { WIDGET_LIMIT_DESCRIPTION, NO_MATCHING_WIDGETS } from "./WidgetCopy";
 
 export default function Widgets() {
   return (
@@ -303,6 +320,28 @@ export default function Widgets() {
         onClose={() => {}}
       />
       <EmptyState id="no-widgets" title="No widgets" description="${LONG["emptyState"]}" />
+      <ConfirmModal
+        title="Archive widgets?"
+        description={translator.translatePlural({ one: "${LONG["pluralOne"]}", other: "${LONG["pluralOther"]}" }, count)}
+        submitButtonText="Archive"
+        onSubmit={() => {}}
+        onClose={() => {}}
+      />
+      <ConfirmModal
+        title="Pause widgets?"
+        description={translator.translatePlural({ one: "${SHORT["pluralOne"]}", other: "${SHORT["pluralOther"]}" }, count)}
+        submitButtonText="Pause"
+        onSubmit={() => {}}
+        onClose={() => {}}
+      />
+      <EmptyState id="no-matching-widgets" title="No matches" description={translator.translatePlural(NO_MATCHING_WIDGETS, count)} />
+      <ConfirmModal
+        title="Move widgets?"
+        description={<span><TranslatedSentence template={{ one: "Moves {{count}} widget to {{place}}.", other: "${LONG["pluralSentence"]}" }} count={count} slots={{ place: <b>p</b> }} /></span>}
+        submitButtonText="Move"
+        onSubmit={() => {}}
+        onClose={() => {}}
+      />
       <InfoTooltip description="${NEVER_MEASURED["tooltip"]}" />
       <ConfirmModal
         title="How it works"
@@ -317,6 +356,11 @@ export default function Widgets() {
 `,
     [path.join(ROOT, DASHBOARD, "Pages", "WidgetCopy.ts")]: `
 export const WIDGET_LIMIT_DESCRIPTION: string = "${LONG["constant"]}";
+
+export const NO_MATCHING_WIDGETS: PluralTemplate = {
+  one: "No widget matches.",
+  other: "${LONG["pluralConstant"]}",
+};
 `,
     [path.join(
       ROOT,
@@ -395,6 +439,14 @@ export default function Users() {
     expect(kindOf(LONG["nested"]!)).toEqual(["dialog"]);
     expect(kindOf(LONG["mediumField"]!)).toEqual(["field"]);
     expect(kindOf(LONG["shownColumn"]!)).toEqual(["column"]);
+    /*
+     * Both forms of a plural written in place, the long form of a plural
+     * constant, and the longer form of a plural TranslatedSentence.
+     */
+    expect(kindOf(LONG["pluralOne"]!)).toEqual(["dialog"]);
+    expect(kindOf(LONG["pluralOther"]!)).toEqual(["dialog"]);
+    expect(kindOf(LONG["pluralConstant"]!)).toEqual(["empty"]);
+    expect(kindOf(LONG["pluralSentence"]!)).toEqual(["dialog"]);
 
     const reported: Array<string> = tooLong(found, []);
 
@@ -447,6 +499,10 @@ export default function Users() {
     expect(kindOf(SHORT["switch"]!)).toEqual(["switch"]);
     expect(kindOf(SHORT["card"]!)).toEqual(["card"]);
     expect(kindOf(SHORT["nested"]!)).toEqual(["dialog"]);
+    expect(kindOf(SHORT["pluralOne"]!)).toEqual(["dialog"]);
+    expect(kindOf(SHORT["pluralOther"]!)).toEqual(["dialog"]);
+    // A plural constant's short form is read too, and lets the guard pass it.
+    expect(kindOf("No widget matches.")).toEqual(["empty"]);
     // 180 characters: within a card's limit, past a field's.
     expect(kindOf(SHORT["mediumCard"]!)).toEqual(["card"]);
     expect(SHORT["mediumCard"]!.length).toBe(LONG["mediumField"]!.length);
