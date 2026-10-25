@@ -160,7 +160,7 @@ Un episodio creato da voi non ha una regola di raggruppamento, quindi l'elenco m
 | **Sviluppatori** | **Terraform**, **API**, **Assistenti IA** |
 | **Avanzato** | **Registri di audit**, **Elimina episodio** |
 
-**Sviluppatori** e **Avanzato** partono compresse. Nella **Panoramica**, l'intestazione indica i **Proprietari** dell'episodio, prima i team, e il primo riquadro, **Creato**, dice quando è stato creato l'episodio — **Automaticamente**, quando l'ha aperto una regola di raggruppamento. La scheda **Cosa è successo** apre la pagina — la descrizione dell'episodio e la sua **Causa principale** — poi **Alerts in this episode** e il **Feed episodio**, accanto alla scheda **Dettagli episodio**: il suo numero, stato, gravità, numero di avvisi, regola di raggruppamento e policy di reperibilità. La sua intestazione ha **Riconosci** e **Risolvi**, e **Move episode to** nel menu **⋯**.
+**Sviluppatori** e **Avanzato** partono compresse. Nella **Panoramica**, l'intestazione indica i **Proprietari** dell'episodio, prima i team, e il primo riquadro, **Creato**, dice quando è stato creato l'episodio — **Automaticamente**, quando l'ha aperto una regola di raggruppamento. La scheda **Cosa è successo** apre la pagina — la descrizione dell'episodio e la sua **Causa principale** — poi **Alerts in this episode** e il **Feed episodio**, accanto alla scheda **Dettagli episodio**: il suo numero, stato, gravità, numero di avvisi, regola di raggruppamento e policy di reperibilità. La sua intestazione ha **Riconosci** e **Risolvi**, e **Sposta l'episodio in** nel menu **⋯**.
 
 **Avvisi → Episodi attivi** elenca gli episodi non ancora risolti, e il badge accanto li conta.
 

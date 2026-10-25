@@ -92,7 +92,7 @@ Medan en händelse pågår behandlar OneUptime avbrottet den planerar som vänta
 
 **Översikt**, **Team** och **Anteckningar** är öppna; de andra avsnitten förblir hopfällda tills du klickar på dem.
 
-- **Översikt** — sidhuvudet visar händelsens nummer, titel och tillstånd, hur länge det är kvar tills den börjar eller hur länge den har pågått, och knapparna som flyttar den vidare. Under det visar **Börjar**, **Slutar** och **Varaktighet** det planerade fönstret i din tidszon. **Schemalagd Underhåll Flöde** registrerar allt som har hänt med händelsen, bredvid korten **Maintenance Details** och **Berörda resurser**, och korten **Mätningar** och **Anpassade fält** när ditt projekt har några.
+- **Översikt** — sidhuvudet visar händelsens nummer, titel och tillstånd, hur länge det är kvar tills den börjar eller hur länge den har pågått, vem som äger den, vilka statussidor den visas på och vem som skapade den, och knapparna som flyttar den vidare. Under det visar **Börjar**, **Slutar** och **Varaktighet** det planerade fönstret i din tidszon. **Schemalagd Underhåll Flöde** registrerar allt som har hänt med händelsen, bredvid korten **Maintenance Details** och **Berörda resurser**, och korten **Mätningar** och **Anpassade fält** när ditt projekt har några.
 - **Tillståndstidslinje** — varje tillstånd händelsen har varit i, när och hur länge. Se [Underhållsstatusar](/docs/scheduled-maintenance/states#tillståndstidslinjen).
 - **Offentliga anteckningar** — uppdateringar till dina statussidor och deras prenumeranter. **Privata anteckningar** är bara för ditt team.
 - **Inställningar** — **Synlig på statussidan**, som visar eller döljer händelsen på dess statussidor, och **Skicka påminnelser**, som påminner dess ägare om den tills den är slutförd. Varje reglage sparas i samma stund som du slår om det.
@@ -100,7 +100,7 @@ Medan en händelse pågår behandlar OneUptime avbrottet den planerar som vänta
 ## Felsökning
 
 :::details En händelse började inte vid sitt Börjar den
-Jobbet som startar händelser körs varje minut, så ge det en minut. Om sidhuvudet visar **Start overdue** har händelsen missat sin start med mer än två minuter: starta den med knappen i sidhuvudet, som gör allt jobbet gör, och öppna dess **Tillståndstidslinje** för att se var den stod.
+Jobbet som startar händelser körs varje minut, så ge det en minut. Om sidhuvudet visar **Start försenad** har händelsen missat sin start med mer än två minuter: starta den med knappen i sidhuvudet, som gör allt jobbet gör, och öppna dess **Tillståndstidslinje** för att se var den stod.
 :::
 
 :::details En monitor kontrollerades fortfarande under underhållet

@@ -34605,9 +34605,22 @@
   "Available in the Rule Library": "Available in the Rule Library",
   "In the Rule Library": "In the Rule Library",
   "When set, the playbook runs only on cases whose detection came from one of these rules.": "When set, the playbook runs only on cases whose detection came from one of these rules.",
+  "Completed in": "Completed in",
+  "In progress for": "In progress for",
+  "Loading scheduled maintenance status": "Loading scheduled maintenance status",
+  "Overrunning by": "Overrunning by",
+  "Planned to end at {{time}}, but it has not been marked as {{state}} yet.": "Planned to end at {{time}}, but it has not been marked as {{state}} yet.",
+  "Planned to start at {{time}}, but it has not been marked as {{state}} yet.": "Planned to start at {{time}}, but it has not been marked as {{state}} yet.",
+  "Start overdue by": "Start overdue by",
+  "Starts in": "Starts in",
+  "State progress": "State progress",
   "Where OneUptime AI runs Bash commands for this rule. Commands on the affected cluster or host go through its AI agent.": "Where OneUptime AI runs Bash commands for this rule. Commands on the affected cluster or host go through its AI agent.",
   "Run by OneUptime for every project. OneUptime AI runs no Bash commands on it.": "Run by OneUptime for every project. OneUptime AI runs no Bash commands on it.",
   "OneUptime AI runs no Bash commands on the Global Runner, which every project shares. Pick one of your Runners to run them.": "OneUptime AI runs no Bash commands on the Global Runner, which every project shares. Pick one of your Runners to run them.",
   "OneUptime AI runs no Bash commands on the Global Runner, which every project shares. Add a Runner under {{location}} to run them.": "OneUptime AI runs no Bash commands on the Global Runner, which every project shares. Add a Runner under {{location}} to run them.",
-  "OneUptime AI runs no Bash commands on the Global Runner, which every project shares.": "OneUptime AI runs no Bash commands on the Global Runner, which every project shares."
+  "OneUptime AI runs no Bash commands on the Global Runner, which every project shares.": "OneUptime AI runs no Bash commands on the Global Runner, which every project shares.",
+  "You do not have permission to change this alert's state.": "You do not have permission to change this alert's state.",
+  "You do not have permission to change this episode's state.": "You do not have permission to change this episode's state.",
+  "You do not have permission to change this event's state.": "You do not have permission to change this event's state.",
+  "You do not have permission to change this incident's state.": "You do not have permission to change this incident's state."
 }

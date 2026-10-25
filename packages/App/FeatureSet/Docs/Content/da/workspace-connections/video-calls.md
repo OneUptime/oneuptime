@@ -31,7 +31,7 @@ Gå til **Projektindstillinger** > **Arbejdsområde** > **Video Calls**, og forb
 
 ### Deltag med ét klik
 
-Når reglen udløses, starter OneUptime ét opkald for hændelsen og slår det op med en **Join call**-knap i de kanaler, hændelsens opdateringer går til, og i hændelsens feed. Hændelsens side viser opkaldet i sit **Video Call**-kort og en **Join call**-knap i sin overskrift.
+Når reglen udløses, starter OneUptime ét opkald for hændelsen og slår det op med en **Join call**-knap i de kanaler, hændelsens opdateringer går til, og i hændelsens feed. Hændelsens side viser opkaldet i sit **Video Call**-kort og en **Deltag i opkald**-knap i sin overskrift.
 :::
 
 Reglens betingelser bestemmer, hvilke hændelser der får et opkald. For en bro kun ved Sev1-hændelser skal du give reglen en **Alvorlighed**-betingelse. Opkald starter for hændelser og advarsler, der oprettes som igangværende. En hændelse, der oprettes allerede løst, får intet opkald.
@@ -234,7 +234,7 @@ Hver hændelse og hver advarsel, der startes med denne forbindelse, deler rummet
 
 En Slack-regel kan i stedet starte huddlen i hændelsens Slack-kanal. Der er intet at forbinde: vælg **Slack huddle** i reglens trin **Video Call**.
 
-Huddlen holdes i den kanal, reglen opretter for hændelsen, eller, når reglen i stedet slår op i eksisterende kanaler, i den første af dem. Reglen skal altså oprette en kanal eller slå op i en eksisterende. Knappen **Join huddle** åbner kanalens huddle i Slack. Den første responder, der åbner den, starter huddlen, og alle efter deltager i den. Slack giver ikke en app nogen måde at starte en huddle på, så der er ingen i huddlen, før nogen åbner den.
+Huddlen holdes i den kanal, reglen opretter for hændelsen, eller, når reglen i stedet slår op i eksisterende kanaler, i den første af dem. Reglen skal altså oprette en kanal eller slå op i en eksisterende. Knappen **Deltag i huddle** åbner kanalens huddle i Slack. Den første responder, der åbner den, starter huddlen, og alle efter deltager i den. Slack giver ikke en app nogen måde at starte en huddle på, så der er ingen i huddlen, før nogen åbner den.
 
 En Slack-huddle er kun til Slack-regler. En Microsoft Teams-regel starter sine opkald med en af projektets forbindelser til videoopkald.
 

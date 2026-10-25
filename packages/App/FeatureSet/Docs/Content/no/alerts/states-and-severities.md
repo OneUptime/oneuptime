@@ -78,7 +78,7 @@ Dra en rad etter håndtaket for å flytte den; den nye rekkefølgen lagres når 
 
 En tilstand du legger til, har ikke noe flagg, så plassen er betydningen. Sett et begrensningstrinn mellom **Bekreftet** og **Løst** og et triagetrinn over **Bekreftet**. En tilstand under **Løst** teller som løst overalt.
 
-Du flytter et varsel til en egen tilstand fra menyen **⋯** i toppen av varselet, under **Change state to**, som viser hver tilstand etter den nåværende. Bekreftelsen har tittelen **Merk varsel som {{state}}**, med navnet på tilstanden i.
+Du flytter et varsel til en egen tilstand fra menyen **⋯** i toppen av varselet, under **Endre tilstand til**, som viser hver tilstand etter den nåværende. Bekreftelsen har tittelen **Merk varsel som {{state}}**, med navnet på tilstanden i.
 
 > [!NOTE]
 > På OneUptime Cloud krever det planen **Growth** eller høyere å legge til eller endre varseltilstander og alvorlighetsgrader. Alle planer kan lese dem, bruke dem og slette en tilstand du har lagt til.
@@ -128,13 +128,13 @@ Arkiver en status eller alvorlighetsgrad som teamet ditt ikke lenger skal bruke,
 
 | Måte                 | Hvor                                                                                      | Hva det spørres om                                                                                                                   |
 | -------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Knapper i toppen** | Toppen av varselet: **Bekreft**, **Løs** og **Change state to** i menyen **⋯**            | En kort bekreftelse, **Bekreft varsel**, **Løs varsel** eller **Merk varsel som {{state}}**, med et valgfritt notat under **Legg til et privat notat**. |
+| **Knapper i toppen** | Toppen av varselet: **Bekreft**, **Løs** og **Endre tilstand til** i menyen **⋯**            | En kort bekreftelse, **Bekreft varsel**, **Løs varsel** eller **Merk varsel som {{state}}**, med et valgfritt notat under **Legg til et privat notat**. |
 | **State timeline**   | **Tilstandstidslinje** i varselets sidemeny                                               | En rad du legger til manuelt, med **Varselstatus** og **Begynner den**.                                                               |
 | **Rad i listen** | Menyen **⋯** på et varsels rad i varsellisten: **Bekreft**, **Løs** og **Endre tilstand** | Bekreftelsen fra toppen, som nevner varselet. Et varsel som en annen endring har flyttet i mellomtiden, blir latt være, og dialogen sier hvorfor. |
 | **Masseendring**     | **Bekreft**, **Løs** eller **Endre tilstand** på et utvalg i varsellisten                                            | Tilstanden og ett privat notat som legges til hvert varsel. Varsler som allerede er i eller etter tilstanden, hoppes over.            |
 | **Automatisk**       | En monitor, en episode, en tilknyttet hendelse eller din egen kode                        | **Løs varsel automatisk** i kriteriene til en monitor, en episodes tilstandsendring, hendelsesbryterne på [Koblede varsler](/docs/incidents/linked-alerts) eller en rad som opprettes på `/api/alert-state-timeline`. |
 
-Toppen tilbyr **Bekreft** og **Løs** så lenge varselet ikke er bekreftet ennå, og bare **Løs** når det er det. Et løst varsel viser ingen av dem.
+Toppen tilbyr **Bekreft** og **Løs** så lenge varselet ikke er bekreftet ennå, og bare **Løs** når det er det. Et løst varsel viser ingen av dem. Den som ikke kan endre varselets tilstand med rollen sin, ser knappene låst og ingen meny med andre tilstander: peker du på en, nevner den tillatelsene som ville gitt lov.
 
 ## Hva bekreftelse gjør
 

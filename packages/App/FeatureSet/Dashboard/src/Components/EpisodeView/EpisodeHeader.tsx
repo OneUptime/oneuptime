@@ -1,8 +1,10 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import Icon from "Common/UI/Components/Icon/Icon";
 import React, { FunctionComponent, ReactElement } from "react";
 import { EventStatusFact } from "../EventView/EventStatusPanel";
 import RelativeTime from "./RelativeTime";
+import EventHeaderSkeleton from "../EventView/EventHeaderSkeleton";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   getGlobalTranslator,
@@ -59,51 +61,21 @@ export interface EpisodeHeaderSkeletonProps {
 }
 
 /*
- * Holds the header's place while it loads, at the header's own size, so the
- * stat bar and cards below do not jump when it lands. It replaces the old
- * full-width PageLoader, whose 13rem top margin pushed the page down.
+ * Holds the header's place while it loads, drawn as the loaded header is
+ * (EventHeaderSkeleton), so the stat bar and cards below do not jump when it
+ * lands. It replaces the old full-width PageLoader, whose 13rem top margin
+ * pushed the page down.
  */
 export const EpisodeHeaderSkeleton: FunctionComponent<
   EpisodeHeaderSkeletonProps
 > = (props: EpisodeHeaderSkeletonProps): ReactElement => {
-  const translator: Translator = useTranslator();
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      data-testid="episode-header-skeleton"
-      className="rounded-xl border border-gray-200 bg-white shadow-sm"
-    >
-      <span className="sr-only">
-        {translator.translateText(props.loadingText || "Loading episode")}
-      </span>
-      <div aria-hidden="true" className="motion-safe:animate-pulse">
-        <div className="px-4 py-4 sm:px-5">
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div className="min-w-0 flex-1">
-              <div className="h-5 w-16 rounded-md bg-gray-100" />
-              <div className="mt-2 h-6 w-3/4 max-w-md rounded bg-gray-200" />
-            </div>
-            <div className="flex gap-2">
-              <div className="h-9 w-28 rounded-md bg-gray-100" />
-              <div className="h-9 w-24 rounded-md bg-gray-100" />
-            </div>
-          </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2.5">
-            <div className="h-5 w-20 rounded-full bg-gray-100" />
-            <div className="h-5 w-16 rounded-full bg-gray-100" />
-            <div className="h-5 w-28 rounded bg-gray-100" />
-          </div>
-          <div className="mt-2.5 flex flex-wrap items-center gap-5">
-            <div className="h-4 w-36 max-w-full rounded bg-gray-100" />
-            <div className="h-4 w-28 max-w-full rounded bg-gray-100" />
-          </div>
-        </div>
-        <div className="border-t border-gray-100 px-4 py-2.5 sm:px-5">
-          <div className="h-3 w-2/3 max-w-sm rounded bg-gray-100" />
-        </div>
-      </div>
-    </div>
+    <EventHeaderSkeleton
+      testId="episode-header-skeleton"
+      loadingText={props.loadingText || "Loading episode"}
+      buttonCount={2}
+      factCount={5}
+    />
   );
 };
 
@@ -132,9 +104,19 @@ export interface EpisodeHeaderRefreshErrorProps {
 }
 
 /*
+ * Try again, as the header's bands draw their own controls (the AI band's
+ * Show more): a soft button in the band's colour, its words whole.
+ */
+export const EPISODE_HEADER_RETRY_CLASS_NAME: string =
+  "-my-1 -ms-1.5 inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-1.5 py-1 font-medium text-red-700 transition-colors hover:bg-red-100 hover:text-red-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2";
+
+/*
  * A refresh that fails after the header has loaded keeps the last good data
  * on screen and says so inline, instead of swapping the whole header for an
- * error.
+ * error. It is the words of the header's red band (EventStatusPanel's
+ * "danger" notice), which paints the band itself: no box of its own. Laid
+ * out as the other bands are - a mark on a tile of the band's colour, then
+ * what happened, then what to do - so the three read as one header's.
  */
 export const EpisodeHeaderRefreshError: FunctionComponent<
   EpisodeHeaderRefreshErrorProps
@@ -143,21 +125,31 @@ export const EpisodeHeaderRefreshError: FunctionComponent<
   return (
     <div
       role="alert"
-      className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 ring-1 ring-inset ring-red-100"
+      data-testid="episode-header-refresh-error"
+      className="flex items-start gap-2.5"
     >
-      <span className="min-w-0 break-words">
-        {translator.translateTemplate(
-          "Couldn't refresh this episode: {{message}}",
-          { message: props.message },
-        )}
-      </span>
-      <button
-        type="button"
-        onClick={props.onRetry}
-        className="font-medium underline underline-offset-2 hover:text-red-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 rounded-sm"
+      <span
+        aria-hidden="true"
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-red-100 text-red-700"
       >
-        {translator.translateText("Try again")}
-      </button>
+        <Icon icon={IconProp.Alert} className="h-4 w-4" />
+      </span>
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 pt-0.5 text-sm">
+        <span className="min-w-0 break-words font-medium text-red-800">
+          {translator.translateTemplate(
+            "Couldn't refresh this episode: {{message}}",
+            { message: props.message },
+          )}
+        </span>
+        <button
+          type="button"
+          onClick={props.onRetry}
+          className={EPISODE_HEADER_RETRY_CLASS_NAME}
+        >
+          <Icon icon={IconProp.Refresh} className="h-3.5 w-3.5" />
+          {translator.translateText("Try again")}
+        </button>
+      </div>
     </div>
   );
 };
