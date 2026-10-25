@@ -32,7 +32,7 @@ flowchart TB
 :::steps
 ### Open the postmortem
 
-Open the incident, then click **Postmortem** under **Investigation** in its side menu. The **Postmortem** card shows the postmortem's **Status** and **Owners**, the note, the attachments and whether the postmortem is on the status page.
+Open the incident, then click **Postmortem** under **Investigation** in its side menu. The **Postmortem** card shows the postmortem's **Status** and **Owners**, the note, the attachments and whether the postmortem is on the status page. **Add owners**, beside the owners, makes one of your project's people or teams an owner of the incident right there.
 
 ### Click Write Postmortem
 

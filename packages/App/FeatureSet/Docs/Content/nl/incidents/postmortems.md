@@ -32,7 +32,7 @@ flowchart TB
 :::steps
 ### Het postmortem openen
 
-Open het incident en klik in het zijmenu onder **Onderzoek** op **Postmortem**. De kaart **Postmortem** toont de **Status** en de **Eigenaren** van het postmortem, de notitie, de bijlagen en of het postmortem op de statuspagina staat.
+Open het incident en klik in het zijmenu onder **Onderzoek** op **Postmortem**. De kaart **Postmortem** toont de **Status** en de **Eigenaren** van het postmortem, de notitie, de bijlagen en of het postmortem op de statuspagina staat. **Eigenaren toevoegen**, naast de eigenaren, maakt een persoon of team uit je project daar meteen eigenaar van het incident.
 
 ### Op Postmortem schrijven klikken
 
