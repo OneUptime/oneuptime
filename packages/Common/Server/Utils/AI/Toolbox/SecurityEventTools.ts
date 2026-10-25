@@ -8,6 +8,7 @@ import Permission from "../../../../Types/Permission";
 import {
   AIChatCitationTarget,
   AIChatCitationTargetType,
+  AIChatWidgetColumn,
 } from "../../../../Types/AI/AIChatTypes";
 import SecurityEventService from "../../../Services/SecurityEventService";
 import ToolResultSerializer, {
@@ -53,10 +54,162 @@ const resolveReadPermissions: () => Array<Permission> =
     return cachedReadPermissions;
   };
 
+/*
+ * What a row says of an event, in the order a responder reads it: what
+ * happened and whether it worked, who did it - the user, the machine and
+ * the process that acted - the process it is about with its path, command
+ * line and parent, what it touched, and who reported it. Without the
+ * process fields an endpoint detection (an encoded PowerShell command, a
+ * credential dump) could not be judged: the message of a process launch is
+ * often only its class.
+ */
+const SEARCH_SELECT: JSONObject = {
+  time: true,
+  severityName: true,
+  className: true,
+  activityName: true,
+  statusName: true,
+  message: true,
+  principalUser: true,
+  principalHost: true,
+  principalIp: true,
+  principalProcess: true,
+  processName: true,
+  processPath: true,
+  processCommandLine: true,
+  parentProcessName: true,
+  parentProcessPath: true,
+  parentProcessCommandLine: true,
+  targetUser: true,
+  targetHost: true,
+  targetIp: true,
+  targetPort: true,
+  targetResource: true,
+  vendorName: true,
+  ruleName: true,
+  mitreTechniques: true,
+};
+
+function text(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+/*
+ * principalProcess - the process that acted - when it says something the
+ * event's own process fields do not: in an open, an injection or an end it
+ * is another process than the one acted on, and a row stored before
+ * OneUptime read process fields knows its process only by it. In a launch
+ * it is the parent, and in any other event the process itself, which the
+ * row already names.
+ */
+function actingProcessIfNew(event: SecurityEvent): string {
+  const acting: string = text(event.principalProcess);
+
+  if (!acting) {
+    return "";
+  }
+
+  const named: Array<string> = [
+    event.processName,
+    event.processPath,
+    event.processCommandLine,
+    event.parentProcessName,
+    event.parentProcessPath,
+    event.parentProcessCommandLine,
+  ].map((value: unknown): string => {
+    return text(value).toLowerCase();
+  });
+
+  return named.includes(acting.toLowerCase()) ? "" : acting;
+}
+
+/*
+ * One event as the model reads it: only what the event says. Every column
+ * is non-nullable with a '' (or 0, or []) default, and a row of blanks
+ * costs tokens and reads as if the source had said "nothing".
+ */
+export function securityEventSearchRow(event: SecurityEvent): JSONObject {
+  const row: JSONObject = {};
+
+  const put: (key: string, value: unknown) => void = (
+    key: string,
+    value: unknown,
+  ): void => {
+    if (value instanceof Date) {
+      row[key] = value;
+      return;
+    }
+
+    if (typeof value === "number") {
+      if (Number.isFinite(value) && value > 0) {
+        row[key] = value;
+      }
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      const values: Array<string> = value
+        .map((item: unknown): string => {
+          return text(item);
+        })
+        .filter((item: string): boolean => {
+          return item.length > 0;
+        });
+
+      if (values.length > 0) {
+        row[key] = values.join(", ");
+      }
+      return;
+    }
+
+    const written: string = text(value);
+
+    if (written) {
+      row[key] = written;
+    }
+  };
+
+  put("time", event.time);
+  put("severity", event.severityName);
+  put("class", event.className);
+  put("activity", event.activityName);
+  put("status", event.statusName);
+  put("message", event.message);
+  put("principalUser", event.principalUser);
+  put("principalHost", event.principalHost);
+  put("principalIp", event.principalIp);
+  put("principalProcess", actingProcessIfNew(event));
+  put("process", event.processName);
+  put("processPath", event.processPath);
+  put("commandLine", event.processCommandLine);
+  put("parentProcess", event.parentProcessName);
+  put("parentProcessPath", event.parentProcessPath);
+  put("parentCommandLine", event.parentProcessCommandLine);
+  put("targetUser", event.targetUser);
+  put("targetHost", event.targetHost);
+  put("targetIp", event.targetIp);
+  put("targetPort", event.targetPort);
+  put("targetResource", event.targetResource);
+  put("vendor", event.vendorName);
+  put("rule", event.ruleName);
+  put("techniques", event.mitreTechniques);
+
+  return row;
+}
+
+// The process a person reads in the table: its command line, else its name.
+function processShown(row: JSONObject): string {
+  return (
+    text(row["commandLine"]) ||
+    text(row["process"]) ||
+    text(row["principalProcess"])
+  );
+}
+
 export const SearchSecurityEventsTool: ObservabilityTool = {
   name: "search_security_events",
   description:
-    "Search SIEM security events (normalized to OCSF). Filter by time range, severity, event class, message text, user, host, or any observable (IP, hostname, username). Use this to investigate what security activity involved a given entity, or what fired recently.",
+    "Search SIEM security events (normalized to OCSF). Filter by time range, severity, event class, message text, user, host, process name, command line, or any observable (IP, hostname, username). Each event says what was done (its class, activity and status), who did it (user, host, IP and the process that acted, principalProcess), the process it is about with its path, command line and parent (in a process launch the process started; in an open, an injection or an end the process acted on), and what it touched. Use this to investigate what security activity involved a given entity, what ran on a host, or what fired recently.",
   inputSchema: {
     type: "object",
     properties: {
@@ -89,6 +242,16 @@ export const SearchSecurityEventsTool: ObservabilityTool = {
         type: "string",
         description:
           "Only events mentioning this observable anywhere (user, hostname, IP, domain). Broader than principalUser/principalHost.",
+      },
+      processName: {
+        type: "string",
+        description:
+          "Only events whose process name contains this text, in any case, such as powershell or mimikatz.exe: the process started, opened, injected into or ended in a process event, the process that acted in any other. A case's Process entity is searched with it.",
+      },
+      commandLineSearchText: {
+        type: "string",
+        description:
+          "Only events whose process command line contains this text, in any case, such as -enc or sekurlsa.",
       },
       limit: {
         type: "number",
@@ -165,20 +328,25 @@ export const SearchSecurityEventsTool: ObservabilityTool = {
       query["observables"] = new Includes([observable]);
     }
 
+    const processName: string | undefined = ToolArgs.getString(
+      args,
+      "processName",
+    );
+    if (processName) {
+      query["processName"] = new Search(processName);
+    }
+
+    const commandLineSearchText: string | undefined = ToolArgs.getString(
+      args,
+      "commandLineSearchText",
+    );
+    if (commandLineSearchText) {
+      query["processCommandLine"] = new Search(commandLineSearchText);
+    }
+
     const events: Array<SecurityEvent> = await SecurityEventService.findBy({
       query: query as never,
-      select: {
-        time: true,
-        severityName: true,
-        className: true,
-        message: true,
-        principalUser: true,
-        principalHost: true,
-        principalIp: true,
-        targetHost: true,
-        vendorName: true,
-        ruleName: true,
-      } as never,
+      select: SEARCH_SELECT as never,
       sort: {
         time: SortOrder.Descending,
       } as never,
@@ -187,22 +355,7 @@ export const SearchSecurityEventsTool: ObservabilityTool = {
       props: ctx.props,
     });
 
-    const rows: Array<JSONObject> = events.map(
-      (event: SecurityEvent): JSONObject => {
-        return {
-          time: event.time,
-          severity: event.severityName,
-          class: event.className,
-          message: event.message,
-          principalUser: event.principalUser,
-          principalHost: event.principalHost,
-          principalIp: event.principalIp,
-          targetHost: event.targetHost,
-          vendor: event.vendorName,
-          rule: event.ruleName,
-        };
-      },
-    );
+    const rows: Array<JSONObject> = events.map(securityEventSearchRow);
 
     const serialized: SerializedResult = ToolResultSerializer.serializeRows(
       rows,
@@ -213,6 +366,27 @@ export const SearchSecurityEventsTool: ObservabilityTool = {
     const securityEventsLink: AIChatCitationTarget = {
       type: AIChatCitationTargetType.SecurityEvents,
     };
+
+    /*
+     * The table a person reads beside the answer: a Process column - the
+     * command line, else the name - only when an event names a process, so
+     * sign-ins and connections keep the table they had.
+     */
+    const widgetRows: Array<JSONObject> = rows.map(
+      (row: JSONObject): JSONObject => {
+        const shown: string = processShown(row);
+
+        return shown ? { ...row, processShown: shown } : row;
+      },
+    );
+    const showsProcess: boolean = widgetRows.some(
+      (row: JSONObject): boolean => {
+        return Boolean(row["processShown"]);
+      },
+    );
+    const processColumns: Array<AIChatWidgetColumn> = showsProcess
+      ? [{ key: "processShown", title: "Process", type: "text" }]
+      : [];
 
     return {
       dataForLlm: serialized.text,
@@ -231,9 +405,10 @@ export const SearchSecurityEventsTool: ObservabilityTool = {
                 { key: "severity", title: "Severity", type: "text" },
                 { key: "class", title: "Class", type: "text" },
                 { key: "message", title: "Message", type: "text" },
+                ...processColumns,
                 { key: "principalHost", title: "Host", type: "text" },
               ],
-              rows: rows,
+              rows: widgetRows,
               link: securityEventsLink,
             })
           : undefined,

@@ -6,6 +6,7 @@ import AIToolbox, {
 import {
   SearchSecurityEventsTool,
   SecurityEventSummaryTool,
+  securityEventSearchRow,
 } from "../../../../../Server/Utils/AI/Toolbox/SecurityEventTools";
 import {
   ObservabilityTool,
@@ -119,13 +120,27 @@ describe("search_security_events", () => {
       time: true,
       severityName: true,
       className: true,
+      activityName: true,
+      statusName: true,
       message: true,
       principalUser: true,
       principalHost: true,
       principalIp: true,
+      principalProcess: true,
+      processName: true,
+      processPath: true,
+      processCommandLine: true,
+      parentProcessName: true,
+      parentProcessPath: true,
+      parentProcessCommandLine: true,
+      targetUser: true,
       targetHost: true,
+      targetIp: true,
+      targetPort: true,
+      targetResource: true,
       vendorName: true,
       ruleName: true,
+      mitreTechniques: true,
     });
 
     const query: JSONObject = call["query"] as JSONObject;
@@ -169,6 +184,8 @@ describe("search_security_events", () => {
         principalUser: " alice ",
         principalHost: "web-01",
         observable: " 203.0.113.9 ",
+        processName: " PowerShell ",
+        commandLineSearchText: "-enc",
       },
       context(),
     );
@@ -185,6 +202,23 @@ describe("search_security_events", () => {
     expect(query["principalHost"]).toBe("web-01");
     expect(query["observables"]).toBeInstanceOf(Includes);
     expect((query["observables"] as Includes).values).toEqual(["203.0.113.9"]);
+    // A process by part of its name and a command line by part of it, in any case.
+    expect(query["processName"]).toBeInstanceOf(Search);
+    expect((query["processName"] as Search<string>).value).toBe("PowerShell");
+    expect(query["processCommandLine"]).toBeInstanceOf(Search);
+    expect((query["processCommandLine"] as Search<string>).value).toBe("-enc");
+  });
+
+  test("describes the process filters to the model, and what each event carries", () => {
+    const properties: JSONObject = (
+      SearchSecurityEventsTool.inputSchema as JSONObject
+    )["properties"] as JSONObject;
+
+    expect(Object.keys(properties)).toEqual(
+      expect.arrayContaining(["processName", "commandLineSearchText"]),
+    );
+    expect(SearchSecurityEventsTool.description).toContain("command line");
+    expect(SearchSecurityEventsTool.description).toContain("principalProcess");
   });
 
   test("ignores blank and wrongly-typed filters", async () => {
@@ -200,6 +234,8 @@ describe("search_security_events", () => {
         principalUser: 42,
         principalHost: null,
         observable: ["1.2.3.4"],
+        processName: "   ",
+        commandLineSearchText: 42,
       } as unknown as JSONObject,
       context(),
     );
@@ -326,6 +362,367 @@ describe("search_security_events", () => {
     await expect(
       SearchSecurityEventsTool.execute({}, context()),
     ).rejects.toThrow("clickhouse timeout");
+  });
+});
+
+/*
+ * What the model reads of an event decides what it can judge. A process
+ * launch's message is often only its class ("Process Activity"): without
+ * the command line and the parent, an encoded PowerShell command or a
+ * credential dump read as nothing at all.
+ */
+describe("search_security_events rows", () => {
+  const time: Date = new Date("2026-09-17T11:00:00.000Z");
+
+  async function search(
+    events: Array<JSONObject>,
+    args: JSONObject = {},
+  ): Promise<ToolExecutionResult> {
+    jest
+      .spyOn(SecurityEventService, "findBy")
+      .mockResolvedValue(events.map(securityEvent));
+
+    return SearchSecurityEventsTool.execute(args, context());
+  }
+
+  const ENCODED_POWERSHELL: JSONObject = {
+    time: time,
+    severityName: "High",
+    className: "Process Activity",
+    activityName: "Launch",
+    statusName: "Success",
+    message: "Process Activity",
+    principalUser: "CORP\\alice",
+    principalHost: "wkstn-042",
+    principalIp: "10.0.4.42",
+    principalProcess: "WINWORD.EXE",
+    processName: "powershell.exe",
+    processPath:
+      "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    processCommandLine: "powershell.exe -nop -enc JABzAD0A",
+    parentProcessName: "WINWORD.EXE",
+    parentProcessPath:
+      "C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE",
+    parentProcessCommandLine: '"WINWORD.EXE" /n "C:\\Users\\a\\invoice.docm"',
+    targetUser: "",
+    targetHost: "",
+    targetIp: "",
+    targetPort: 0,
+    targetResource: "",
+    vendorName: "Microsoft",
+    ruleName: "",
+    mitreTechniques: ["T1059.001", "T1027"],
+  };
+
+  test("a launch carries what ran: its activity, status, process, command line and parent", async () => {
+    const result: ToolExecutionResult = await search([ENCODED_POWERSHELL]);
+
+    expect(result.dataForLlm).toBe(
+      [
+        `- time=${time.toISOString()}`,
+        "severity=High",
+        "class=Process Activity",
+        "activity=Launch",
+        "status=Success",
+        "message=Process Activity",
+        "principalUser=CORP\\alice",
+        "principalHost=wkstn-042",
+        "principalIp=10.0.4.42",
+        "process=powershell.exe",
+        "processPath=C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "commandLine=powershell.exe -nop -enc JABzAD0A",
+        "parentProcess=WINWORD.EXE",
+        "parentProcessPath=C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE",
+        'parentCommandLine="WINWORD.EXE" /n "C:\\Users\\a\\invoice.docm"',
+        "vendor=Microsoft",
+        "techniques=T1059.001, T1027",
+      ].join(" | "),
+    );
+  });
+
+  test("in a launch the process that acted is the parent, named once", async () => {
+    const result: ToolExecutionResult = await search([ENCODED_POWERSHELL]);
+
+    expect(result.dataForLlm).not.toContain("principalProcess=");
+  });
+
+  test("in an open the process that acted is another one, and is named", async () => {
+    const result: ToolExecutionResult = await search([
+      {
+        ...ENCODED_POWERSHELL,
+        activityName: "Open",
+        principalProcess: "mimikatz.exe sekurlsa::logonpasswords",
+        processName: "lsass.exe",
+        processPath: "C:\\Windows\\System32\\lsass.exe",
+        processCommandLine: "",
+        parentProcessName: "wininit.exe",
+        parentProcessPath: "",
+        parentProcessCommandLine: "",
+      },
+    ]);
+
+    expect(result.dataForLlm).toContain("activity=Open");
+    expect(result.dataForLlm).toContain(
+      "principalProcess=mimikatz.exe sekurlsa::logonpasswords | process=lsass.exe",
+    );
+    expect(result.dataForLlm).toContain("parentProcess=wininit.exe");
+    expect(result.dataForLlm).not.toContain("commandLine=");
+  });
+
+  test("any other event names the process that acted once: as its process", async () => {
+    const result: ToolExecutionResult = await search([
+      {
+        time: time,
+        className: "Network Activity",
+        principalProcess: "POWERSHELL.EXE",
+        processName: "powershell.exe",
+        targetIp: "203.0.113.7",
+        targetPort: 443,
+      },
+    ]);
+
+    expect(result.dataForLlm).toBe(
+      `- time=${time.toISOString()} | class=Network Activity | process=powershell.exe | targetIp=203.0.113.7 | targetPort=443`,
+    );
+  });
+
+  test("an event stored before OneUptime read process fields keeps its process as principalProcess", async () => {
+    const result: ToolExecutionResult = await search([
+      {
+        time: time,
+        className: "Process Activity",
+        principalProcess: "/usr/bin/cat /etc/shadow",
+      },
+    ]);
+
+    expect(result.dataForLlm).toBe(
+      `- time=${time.toISOString()} | class=Process Activity | principalProcess=/usr/bin/cat /etc/shadow`,
+    );
+  });
+
+  test("what the event touched is named: the user, host, address, port and resource", async () => {
+    const result: ToolExecutionResult = await search([
+      {
+        time: time,
+        className: "Authentication",
+        statusName: "Failure",
+        principalIp: "203.0.113.9",
+        targetUser: "root",
+        targetHost: "web-03",
+        targetIp: "192.0.2.10",
+        targetPort: 22,
+        targetResource: "sshd",
+      },
+    ]);
+
+    expect(result.dataForLlm).toBe(
+      `- time=${time.toISOString()} | class=Authentication | status=Failure | principalIp=203.0.113.9 | targetUser=root | targetHost=web-03 | targetIp=192.0.2.10 | targetPort=22 | targetResource=sshd`,
+    );
+  });
+
+  test("blanks, a 0 port and empty lists are left out", async () => {
+    const result: ToolExecutionResult = await search([
+      {
+        time: time,
+        className: "Base Event",
+        message: "   ",
+        targetPort: 0,
+        mitreTechniques: [],
+        processName: "",
+        activityName: "",
+      },
+    ]);
+
+    expect(result.dataForLlm).toBe(
+      `- time=${time.toISOString()} | class=Base Event`,
+    );
+  });
+
+  test("a command line's secrets are redacted, its addresses kept", async () => {
+    const result: ToolExecutionResult = await search([
+      {
+        ...ENCODED_POWERSHELL,
+        processCommandLine:
+          "curl -H 'Authorization: Bearer abcdefghijklmnop0123456789' http://203.0.113.7/x password=hunter2hunter2",
+      },
+    ]);
+
+    expect(result.dataForLlm).toContain("http://203.0.113.7/x");
+    expect(result.dataForLlm).toContain("[redacted-token]");
+    expect(result.dataForLlm).toContain("password=[redacted]");
+    expect(result.dataForLlm).not.toContain("hunter2hunter2");
+    expect(result.dataForLlm).not.toContain("abcdefghijklmnop0123456789");
+  });
+
+  test("a very long command line is cut, and says so", async () => {
+    const result: ToolExecutionResult = await search([
+      {
+        ...ENCODED_POWERSHELL,
+        processCommandLine: `powershell.exe -enc ${"A".repeat(10000)}`,
+      },
+    ]);
+
+    expect(result.isTruncated).toBe(true);
+    expect(result.dataForLlm).toContain("… [truncated]");
+  });
+
+  describe("the table beside the answer", () => {
+    function columnKeys(result: ToolExecutionResult): Array<string> {
+      return (result.widget?.data.columns || []).map(
+        (column: AIChatWidgetColumn) => {
+          return column.key;
+        },
+      );
+    }
+
+    test("shows a Process column when an event names a process, its command line first", async () => {
+      const result: ToolExecutionResult = await search([
+        ENCODED_POWERSHELL,
+        { time: time, className: "Authentication", principalHost: "web-01" },
+      ]);
+
+      expect(columnKeys(result)).toEqual([
+        "time",
+        "severity",
+        "class",
+        "message",
+        "processShown",
+        "principalHost",
+      ]);
+      expect(
+        (result.widget?.data.columns || []).find(
+          (column: AIChatWidgetColumn) => {
+            return column.key === "processShown";
+          },
+        )?.title,
+      ).toBe("Process");
+
+      const rows: Array<JSONObject> = result.widget?.data.rows || [];
+      expect(rows[0]!["processShown"]).toBe(
+        "powershell.exe -nop -enc JABzAD0A",
+      );
+      expect(rows[1]!["processShown"]).toBeUndefined();
+    });
+
+    test("names a process by its name when there is no command line, else by the process that acted", async () => {
+      const result: ToolExecutionResult = await search([
+        { time: time, className: "Process Activity", processName: "lsass.exe" },
+        {
+          time: time,
+          className: "Process Activity",
+          principalProcess: "/usr/bin/cat /etc/shadow",
+        },
+      ]);
+
+      const rows: Array<JSONObject> = result.widget?.data.rows || [];
+      expect(rows[0]!["processShown"]).toBe("lsass.exe");
+      expect(rows[1]!["processShown"]).toBe("/usr/bin/cat /etc/shadow");
+    });
+
+    test("keeps the table it had when no event names a process", async () => {
+      const result: ToolExecutionResult = await search([
+        { time: time, className: "Authentication", principalHost: "web-01" },
+      ]);
+
+      expect(columnKeys(result)).toEqual([
+        "time",
+        "severity",
+        "class",
+        "message",
+        "principalHost",
+      ]);
+    });
+
+    test("never shows the model the table's own column", async () => {
+      const result: ToolExecutionResult = await search([ENCODED_POWERSHELL]);
+
+      expect(result.dataForLlm).not.toContain("processShown");
+    });
+  });
+});
+
+describe("securityEventSearchRow", () => {
+  test("is a row of only what the event says, in the order a responder reads it", () => {
+    expect(
+      Object.keys(
+        securityEventSearchRow(
+          securityEvent({
+            time: new Date("2026-09-17T11:00:00.000Z"),
+            severityName: "High",
+            className: "Process Activity",
+            activityName: "Inject",
+            statusName: "Success",
+            message: "Injected",
+            principalUser: "alice",
+            principalHost: "wkstn-042",
+            principalIp: "10.0.4.42",
+            principalProcess: "loader.exe",
+            processName: "explorer.exe",
+            processPath: "C:\\Windows\\explorer.exe",
+            processCommandLine: "explorer.exe",
+            parentProcessName: "userinit.exe",
+            parentProcessPath: "C:\\Windows\\System32\\userinit.exe",
+            parentProcessCommandLine: "userinit.exe",
+            targetUser: "bob",
+            targetHost: "dc-01",
+            targetIp: "10.0.0.5",
+            targetPort: 445,
+            targetResource: "C$",
+            vendorName: "Microsoft",
+            ruleName: "Injection into explorer",
+            mitreTechniques: ["T1055"],
+          }),
+        ),
+      ),
+    ).toEqual([
+      "time",
+      "severity",
+      "class",
+      "activity",
+      "status",
+      "message",
+      "principalUser",
+      "principalHost",
+      "principalIp",
+      "principalProcess",
+      "process",
+      "processPath",
+      "commandLine",
+      "parentProcess",
+      "parentProcessPath",
+      "parentCommandLine",
+      "targetUser",
+      "targetHost",
+      "targetIp",
+      "targetPort",
+      "targetResource",
+      "vendor",
+      "rule",
+      "techniques",
+    ]);
+  });
+
+  test("reads the process that acted as the same one whatever its case", () => {
+    expect(
+      securityEventSearchRow(
+        securityEvent({
+          principalProcess: " C:\\WINDOWS\\SYSTEM32\\CMD.EXE ",
+          parentProcessPath: "C:\\Windows\\System32\\cmd.exe",
+        }),
+      )["principalProcess"],
+    ).toBeUndefined();
+  });
+
+  test("leaves out values that are not text, a number or a list", () => {
+    expect(
+      securityEventSearchRow(
+        securityEvent({
+          message: { nested: true },
+          targetPort: Number.NaN,
+          mitreTechniques: ["", "  ", 7],
+        } as unknown as JSONObject),
+      ),
+    ).toEqual({});
   });
 });
 
