@@ -1,5 +1,10 @@
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import {
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react-native";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import {
   PlaybookApprovalCard,
@@ -280,9 +285,13 @@ describe("approving a step that acts on one user", () => {
     );
 
     expect(screen.getByRole("header", { name: "Act on" })).toBeTruthy();
+    const row: RenderedElement = screen.getByTestId(
+      "playbook-target-fixed-alice@acme.test",
+    );
+    expect(within(row).getByText("alice@acme.test")).toBeTruthy();
     expect(
-      screen.getByTestId("playbook-target-fixed-alice@acme.test"),
-    ).toHaveTextContent(/alice@acme\.test.*User · What the case is grouped on/);
+      within(row).getByText("User · What the case is grouped on"),
+    ).toBeTruthy();
     expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
     expect(
       screen.queryByText(
