@@ -1,7 +1,10 @@
 import {
+  INFRASTRUCTURE_COMMANDS_GUIDANCE,
   buildObservabilityChatSystemPrompt,
   buildPageContextSection,
 } from "../../../../Server/Utils/AI/Chat/ObservabilityChatPrompt";
+import { RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME } from "../../../../Server/Utils/AI/ResourceAccess/ResourceAccessToolNames";
+import { RUN_KUBECTL_TOOL_NAME } from "../../../../Types/Kubernetes/KubernetesClusterAiAccessToolNames";
 import AIChatPageContextType, {
   AIChatPageContext,
   AIChatPageContextHelper,
@@ -880,5 +883,73 @@ describe("container host and split-metric guidance (issues #4784, #4785)", () =>
     );
     expect(line).toContain("use query_containers");
     expect(TOOLBOX_TOOL_NAMES.has("query_containers")).toBe(true);
+  });
+});
+
+/*
+ * Issue #5259: asked to run a command on a host, the model answered "I
+ * don't have a tool that can execute commands on remote hosts" and stopped
+ * there. The command tools exist only in a conversation about a resource
+ * whose AI agent may investigate; everywhere else - another page, Slack,
+ * Microsoft Teams - the prompt says where commands can run.
+ */
+describe("infrastructure commands guidance (issue #5259)", () => {
+  test.each(Object.values(AIChatPermissionMode))(
+    "the %s prompt says where commands on infrastructure run",
+    (permissionMode: AIChatPermissionMode) => {
+      const prompt: string = buildObservabilityChatSystemPrompt({
+        currentTime: new Date("2026-10-25T00:00:00Z"),
+        permissionMode,
+      });
+
+      expect(prompt).toContain(INFRASTRUCTURE_COMMANDS_GUIDANCE);
+    },
+  );
+
+  test("names both command tools, the agent behind them, and never pretends a command ran", () => {
+    expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).toContain(
+      RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME,
+    );
+    expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).toContain(RUN_KUBECTL_TOOL_NAME);
+    expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).toContain(
+      "whose AI agent is connected and may investigate",
+    );
+    expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).toContain(
+      "Ask AI opened on that resource's own page in OneUptime can",
+    );
+    expect(INFRASTRUCTURE_COMMANDS_GUIDANCE).toContain(
+      "never pretend a command ran",
+    );
+  });
+
+  test("the guidance sits with the other infrastructure lines of How to investigate", () => {
+    const prompt: string = buildObservabilityChatSystemPrompt({
+      currentTime: new Date("2026-10-25T00:00:00Z"),
+      permissionMode: AIChatPermissionMode.ReadOnly,
+    });
+    const lines: Array<string> = prompt.split("\n");
+    const hostMetricsLine: number = lines.findIndex(
+      (line: string): boolean => {
+        return line.startsWith("- Host metrics such as system.cpu.utilization");
+      },
+    );
+
+    expect(lines[hostMetricsLine + 1]).toBe(INFRASTRUCTURE_COMMANDS_GUIDANCE);
+    expect(prompt.indexOf(INFRASTRUCTURE_COMMANDS_GUIDANCE)).toBeGreaterThan(
+      prompt.indexOf("## How to investigate"),
+    );
+  });
+
+  test("a page section names neither command tool: a page alone never offers them", () => {
+    for (const resourceType of Object.values(AIResourceType)) {
+      const section: string = buildPageContextSection({
+        type: AIChatPageContextType.Resource,
+        resourceType,
+        entityId: ENTITY_ID,
+      });
+
+      expect(section).not.toContain(RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME);
+      expect(section).not.toContain(RUN_KUBECTL_TOOL_NAME);
+    }
   });
 });
