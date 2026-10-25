@@ -177,8 +177,11 @@ ${getPodmanAiAgentComposeService(data)}`;
  * Moving an installed agent to the newest image. The guide's "Upgrade or
  * uninstall the agent" topic and the upgrade dialog beside an outdated agent
  * version (Components/AgentVersion) both show this command, so the two never
- * drift. With the Podman CLI it pulls the image and removes the running
- * container; the `podman run` command then starts it again on the new image.
+ * drift. With the Podman CLI it pulls both images and stops and removes both
+ * containers; the `podman run` commands then start them again on the new
+ * images. Stopped, not removed with rm -f: the AI agent signs off when it
+ * stops, so the new one is let in at once rather than once the old one has
+ * gone silent.
  */
 export function getPodmanAgentUpgradeCommand(
   method: PodmanInstallMethod,
@@ -186,7 +189,8 @@ export function getPodmanAgentUpgradeCommand(
   if (method === "podman-cli") {
     return `podman pull ${PODMAN_AGENT_IMAGE}
 podman pull ${PODMAN_AI_AGENT_IMAGE}
-podman rm -f ${PODMAN_AGENT_CONTAINER_NAME} ${PODMAN_AI_AGENT_CONTAINER_NAME}`;
+podman stop ${PODMAN_AGENT_CONTAINER_NAME} ${PODMAN_AI_AGENT_CONTAINER_NAME}
+podman rm ${PODMAN_AGENT_CONTAINER_NAME} ${PODMAN_AI_AGENT_CONTAINER_NAME}`;
   }
   return "podman compose pull\npodman compose up -d";
 }

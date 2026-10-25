@@ -3,7 +3,7 @@
 Security Events turns what your detection rules, threat intelligence and connected security products find into cases: one case for each thing worth looking into, with every detection about the same user, host or address grouped into it. Analysts work the cases in a queue, and playbooks respond to them, by themselves or at a click.
 
 :::cards
-- [Where cases come from](#where-cases-come-from): Detection rules, threat intelligence, connected products and people.
+- [Where cases come from](#where-cases-come-from): Detection rules, threat intelligence, connected products, entity risk and people.
 - [Work a case](#work-a-case): Assign it, investigate its entities, close it with a verdict.
 - [Case priorities and statuses](#case-priorities-and-statuses): Rename, recolor and reorder them, and add your own.
 - [Notifications](#notifications): Who is told about a new case, an assignment and a step waiting for approval.
@@ -49,9 +49,10 @@ Each of these can also be granted on its own, from creating a case to approving 
 | Detection rules | A rule matches | **Open a Case on Match**, on the rule's **On Match** step |
 | Threat intelligence | An event names a known indicator | **Open a Case on Match**, on the feed's **On Match** step |
 | Connected products | A product's own alert is imported at or above the connection's threshold | **Open Cases From** set to **Never**, in the connection's **Polling** step |
+| Entity risk | A user's, host's or address's risk reaches the project's threshold | **Risk Cases**, under **Settings → Risk Scoring** |
 | People | Someone opens one from **Security Cases**, or with **Open Case** in an event's panel | None |
 
-Every source is on by default. A connection opens cases for **High and above** unless you choose another level; the alerts below it are still imported as events.
+Every source opens cases by default, except entity risk on projects created before it existed, which turn on **Risk Cases** first ([Entity Risk](/docs/telemetry/security-entity-risk)). A connection opens cases for **High and above** unless you choose another level; the alerts below it are still imported as events.
 
 ### How detections are grouped
 
@@ -192,7 +193,7 @@ To post to a channel, add a rule under **Products → Security Events → Worksp
 | Security Case Priority | One of the project's case priorities, such as Critical or High |
 | Security Case Title, Security Case Description | Text the case's title or description contains, starts with or ends with |
 | Security Case Status | One of the project's case statuses, such as New or Closed |
-| Security Case Source | Detection Rule, Threat Intel, Connected Product or Manual |
+| Security Case Source | Detection Rule, Threat Intel, Connected Product, Entity Risk or Manual |
 | Security Case Labels | The case's labels |
 
 The three notifications are each posted to the channels of every rule the case matches at that moment. A rule with **Security Case Priority** contains any of **Critical** and **High** posts High and Critical cases as they open, and a Medium case when it rises to High. A security case never gets a channel of its own.
@@ -320,7 +321,7 @@ A run that stops hearing from its worker, after a restart for example, is picked
 - The open cases assigned to you, the open cases nobody has picked up, and the playbook steps waiting for approval, each opening the page that lists them.
 - **Mean Time to Acknowledge**, **Mean Time to Contain** and **Mean Time to Close**, over the cases opened in the last 30 days: from a case opening to someone taking it on (assigning a person, or moving it to a status that counts as acknowledged), to a status that counts as contained, and to one that counts as closed. A case still waiting is not counted in a mean.
 - The cases opened each day for 30 days, by priority, and the detections raised each day for 14 days, by source.
-- The open cases by priority and by status, the verdicts of the last 30 days, the ATT&CK tactics behind the cases, the detections that fired most, and the entities named by the most findings.
+- The open cases by priority and by status, the entities named by the most findings, the detections that fired most, the ATT&CK tactics behind the cases, and the verdicts of the last 30 days.
 
 Above them, a strip shows how Security is set up: its sources, detections, cases and playbooks, each with its figures. A project that has not set it up yet sees **Turn on recommended** and **Send a test attack** there; see [Get Started with Security](/docs/telemetry/security-getting-started). When nothing needs anybody, the page says **All quiet**, and the charts show once there is something to chart.
 

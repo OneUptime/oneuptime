@@ -22,7 +22,9 @@ import ObjectID from "../ObjectID";
  *     rule picks one (AutoRemediationRule.runnerId). With none, it uses the
  *     AI agents above: the global Runners never run OneUptime AI's commands
  *     - they run JavaScript steps in a sandbox shared by every project, and
- *     could not reach a project's systems anyway.
+ *     could not reach a project's systems anyway. The rule's form shows a
+ *     rule that picks none on the Global Runner, where the project uses
+ *     one, and says no Bash command runs there: that is still none.
  *
  * One older shape stays a choice, folded away: a rule that starts every
  * runbook it names, every time, without OneUptime AI deciding

@@ -578,9 +578,9 @@ describe.each(PAGES)("%s overview layout", (_name: string, page: EventPage) => {
     expect(page.view.slice(ownersFact, ownersFact + 400)).toContain(
       `RouteMap[${page.ownersPage}] as Route`,
     );
-    // Add owners is offered only while the event is open.
+    // Add owners is offered only while the event is open, to a reader who may add one.
     expect(page.view.slice(ownersFact, ownersFact + 400)).toMatch(
-      /canAddOwners: !(isResolved|durationEndDate),/,
+      /canAddOwners: !(isResolved|durationEndDate) && owners\.canAddOwners,/,
     );
     // Owners come before the event's own facts (its monitor, its episode).
     expect(

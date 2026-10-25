@@ -135,11 +135,15 @@ describe.each(EVENT_PAGES)(
 );
 
 describe("shared header and panel contracts", () => {
-  test("the titled header card renders the notice under the pills", () => {
+  test("the header draws the notice as a band at its foot, in the notice's tone", () => {
     expect(EVENT_STATUS_PANEL).toContain("props.headerNotice &&");
     expect(EVENT_STATUS_PANEL).toContain(
-      '<div className="mt-3">{props.headerNotice}</div>',
+      "<div className={EVENT_HEADER_NOTICE_CLASS_NAMES[noticeTone]} data-testid={EVENT_HEADER_TEST_IDS.notice} data-tone={noticeTone} > {props.headerNotice} </div>",
     );
+    // The AI's band is indigo, on the incident's header and the alert's.
+    for (const changeState of [CHANGE_INCIDENT_STATE, CHANGE_ALERT_STATE]) {
+      expect(changeState).toContain('headerNoticeTone="ai" headerNotice={');
+    }
   });
 
   test("reuses one stable, focusable target for the progress action", () => {

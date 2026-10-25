@@ -3,7 +3,7 @@
 Security Events gör det som dina detektionsregler, hotunderrättelser och anslutna säkerhetsprodukter hittar till ärenden: ett ärende för varje sak som är värd att titta närmare på, med alla detektioner om samma användare, värd eller adress samlade i det. Analytiker arbetar med ärendena i en kö, och playbooks reagerar på dem, av sig själva eller med ett klick.
 
 :::cards
-- [Var ärenden kommer ifrån](#var-ärenden-kommer-ifrån): Detektionsregler, hotunderrättelser, anslutna produkter och personer.
+- [Var ärenden kommer ifrån](#var-ärenden-kommer-ifrån): Detektionsregler, hotunderrättelser, anslutna produkter, entitetsrisk och personer.
 - [Arbeta med ett ärende](#arbeta-med-ett-ärende): Tilldela det, utred dess entiteter och stäng det med en bedömning.
 - [Ärendeprioriteter och ärendestatusar](#ärendeprioriteter-och-ärendestatusar): Byt namn, färg och ordning på dem, och lägg till egna.
 - [Aviseringar](#aviseringar): Vem som får veta om ett nytt ärende, en tilldelning och ett steg som väntar på godkännande.
@@ -49,9 +49,10 @@ Var och en av dessa behörigheter kan också ges för sig, från att skapa ett �
 | Detektionsregler | En regel träffar | **Open a Case on Match**, i regelns steg **Vid träff** |
 | Hotunderrättelser | En händelse nämner en känd indikator | **Open a Case on Match**, i flödets steg **Vid träff** |
 | Anslutna produkter | Ett larm från produkten själv importeras på eller över anslutningens tröskel | **Open Cases From** satt till **Aldrig**, i anslutningens steg **Polling** |
+| Entitetsrisk | En användares, värds eller adress risk når projektets tröskel | **Riskärenden** under **Inställningar → Riskbedömning** |
 | Personer | Någon öppnar ett från **Säkerhetsärenden**, eller med **Open Case** i en händelses panel | Går inte |
 
-Alla källor är påslagna som standard. En anslutning öppnar ärenden för **Hög och högre** om du inte väljer en annan nivå; larmen under den nivån importeras ändå som händelser.
+Alla källor öppnar ärenden som standard, utom entitetsrisk i projekt som skapades innan den fanns: slå först på **Riskärenden** där ([Entitetsrisk](/docs/telemetry/security-entity-risk)). En anslutning öppnar ärenden för **Hög och högre** om du inte väljer en annan nivå; larmen under den nivån importeras ändå som händelser.
 
 ### Så grupperas detektioner
 
@@ -192,7 +193,7 @@ För att posta i en kanal lägger du till en regel under **Produkter → Securit
 | Prioritet för säkerhetsärende | En av projektets ärendeprioriteter, till exempel Critical eller High |
 | Titel på säkerhetsärende, Beskrivning av säkerhetsärende | Text som ärendets titel eller beskrivning innehåller, börjar med eller slutar med |
 | Status för säkerhetsärende | En av projektets ärendestatusar, till exempel New eller Closed |
-| Källa för säkerhetsärende | Detection Rule, Threat Intel, Connected Product eller Manual |
+| Källa för säkerhetsärende | Detection Rule, Threat Intel, Connected Product, Entitetsrisk eller Manual |
 | Etiketter för säkerhetsärende | Ärendets etiketter |
 
 Var och en av de tre aviseringarna postas i kanalerna för varje regel som ärendet matchar just då. En regel där **Prioritet för säkerhetsärende** innehåller någon av **Kritisk** och **High** postar ärenden med High och Critical när de öppnas, och ett ärende med Medium när det stiger till High. Ett säkerhetsärende får aldrig en egen kanal.
@@ -320,7 +321,7 @@ En körning vars worker slutar höra av sig, till exempel efter en omstart, tas 
 - De öppna ärenden som är tilldelade dig, de öppna ärenden som ingen har tagit sig an, och playbook-stegen som väntar på godkännande; varje tal öppnar sidan som listar dem.
 - **Genomsnittlig tid till kvittering**, **Genomsnittlig tid till begränsning** och **Genomsnittlig tid till stängning**, över ärendena som öppnats under de senaste 30 dagarna: från att ett ärende öppnas till att någon tar sig an det (en person tilldelas, eller det flyttas till en status som räknas som kvitterad), till en status som räknas som begränsad och till en som räknas som stängd. Ett ärende som fortfarande väntar räknas inte in i något medelvärde.
 - Ärendena som öppnats varje dag i 30 dagar, efter prioritet, och detektionerna som skapats varje dag i 14 dagar, efter källa.
-- De öppna ärendena efter prioritet och efter status, bedömningarna från de senaste 30 dagarna, ATT&CK-taktikerna bakom ärendena, detektionerna som löste ut oftast, och entiteterna som nämns i flest fynd.
+- De öppna ärendena efter prioritet och efter status, entiteterna som nämns i flest fynd, detektionerna som löste ut oftast, ATT&CK-taktikerna bakom ärendena och bedömningarna från de senaste 30 dagarna.
 
 Ovanför visar en remsa hur säkerhet är uppsatt: dess källor, detektioner, ärenden och playbooks, var och en med sina siffror. Ett projekt som ännu inte har satt upp det ser **Slå på rekommenderat** och **Skicka en testattack** där; se [Kom igång med säkerhet](/docs/telemetry/security-getting-started). När inget behöver någon säger sidan **Allt är lugnt**, och diagrammen visas så snart det finns något att visa.
 

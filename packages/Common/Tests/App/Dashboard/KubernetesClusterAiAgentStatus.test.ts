@@ -1032,6 +1032,54 @@ describe("the refused-registration warning", () => {
       ),
     ).toBeNull();
   });
+
+  test("warns only while two pods run at once: refused after this agent registered, and this agent heard from since", () => {
+    expect(
+      getRefusedRegistrationWarning(
+        makeAgent({
+          lastRegisteredAt: minutesAgo(60),
+          lastRefusedRegistrationAt: minutesAgo(2),
+          lastAliveAt: minutesAgo(1.9),
+        }),
+        NOW,
+      ),
+    ).not.toBeNull();
+  });
+
+  test("a pod that took the old one's place, or one still waiting for a pod that stopped, is no warning", () => {
+    // OOM-killed and restarted: refused, then let in once the old one was silent.
+    expect(
+      getRefusedRegistrationWarning(
+        makeAgent({
+          lastRefusedRegistrationAt: minutesAgo(2),
+          lastRegisteredAt: minutesAgo(1.3),
+          lastAliveAt: minutesAgo(0.5),
+        }),
+        NOW,
+      ),
+    ).toBeNull();
+    // Still waiting: the old pod was not heard from after the refusal.
+    expect(
+      getRefusedRegistrationWarning(
+        makeAgent({
+          lastRegisteredAt: minutesAgo(60),
+          lastAliveAt: minutesAgo(0.5),
+          lastRefusedRegistrationAt: minutesAgo(0.2),
+        }),
+        NOW,
+      ),
+    ).toBeNull();
+    // Nothing known about when the agent was last heard from.
+    expect(
+      getRefusedRegistrationWarning(
+        makeAgent({
+          lastRefusedRegistrationAt: minutesAgo(2),
+          lastAliveAt: undefined,
+        }),
+        NOW,
+      ),
+    ).toBeNull();
+  });
 });
 
 describe("the Needs attention card", () => {

@@ -16,6 +16,7 @@ import {
   toLineRanges,
 } from "../../../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewDiff";
 import { PRODUCTION_REVIEW_LIMITS } from "../../../../../Types/CodeRepository/ProductionReview";
+import { fastestRun } from "../../../../Helpers/FastestRun";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -474,10 +475,14 @@ describe("matchChangedFile", () => {
 });
 
 describe("time in line with what the author wrote", () => {
+  /*
+   * How long the work takes: the fastest of up to three attempts, counted
+   * as it would have run on a usual runner when every attempt overran on a
+   * slow one (Tests/Helpers/FastestRun). One attempt in a busy run took
+   * 2,106 ms for the 100,000 short lines.
+   */
   function timeOf(work: () => void): number {
-    const started: number = Date.now();
-    work();
-    return Date.now() - started;
+    return fastestRun({ run: work, limitInMs: 2000 }).inMs;
   }
 
   test("a 400,000-character patch line of declaration-like text", () => {

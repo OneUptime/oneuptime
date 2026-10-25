@@ -964,6 +964,162 @@ describe("the refused-registration warning", () => {
       ),
     ).toBeNull();
   });
+
+  /*
+   * Issue #5253: an agent upgraded with docker rm -f and docker run is
+   * refused until it takes the old one's place, and the page warned for a
+   * day that two agents shared DOCKER_HOST_NAME. Only two agents running
+   * at once is worth that warning.
+   */
+  test("warns while two agents run at once: refused after this agent registered, and this agent heard from since", () => {
+    expect(
+      getResourceAiRefusedRegistrationWarning(
+        makeAgent({
+          lastRegisteredAt: minutesBefore(60),
+          lastRefusedRegistrationAt: minutesBefore(2),
+          lastAliveAt: minutesBefore(1.9),
+        }),
+        DOCKER,
+        NOW,
+      ),
+    ).toContain("Another agent tried to register for this Docker host at");
+  });
+
+  test("says nothing once the refused agent took the old one's place (it registered after the refusal)", () => {
+    expect(
+      getResourceAiRefusedRegistrationWarning(
+        makeAgent({
+          lastRefusedRegistrationAt: minutesBefore(2),
+          lastRegisteredAt: minutesBefore(1.3),
+          lastAliveAt: minutesBefore(0.5),
+        }),
+        DOCKER,
+        NOW,
+      ),
+    ).toBeNull();
+
+    // Its own refusals, a moment before it was let in, are no warning a day long.
+    expect(
+      getResourceAiRefusedRegistrationWarning(
+        makeAgent({
+          lastRefusedRegistrationAt: minutesBefore(23 * 60),
+          lastRegisteredAt: minutesBefore(23 * 60 - 1),
+          lastAliveAt: minutesBefore(0.5),
+        }),
+        DOCKER,
+        NOW,
+      ),
+    ).toBeNull();
+  });
+
+  test("says nothing while the refused agent waits for one that stopped (not heard from since the refusal)", () => {
+    expect(
+      getResourceAiRefusedRegistrationWarning(
+        makeAgent({
+          lastRegisteredAt: minutesBefore(60),
+          lastAliveAt: minutesBefore(0.5),
+          lastRefusedRegistrationAt: minutesBefore(0.2),
+        }),
+        DOCKER,
+        NOW,
+      ),
+    ).toBeNull();
+  });
+
+  test("a registration at the very moment of the refusal is the refused agent's own; an answer at that moment counts", () => {
+    const refusedAt: string = minutesBefore(5);
+
+    expect(
+      getResourceAiRefusedRegistrationWarning(
+        makeAgent({
+          lastRefusedRegistrationAt: refusedAt,
+          lastRegisteredAt: refusedAt,
+          lastAliveAt: minutesBefore(0.5),
+        }),
+        DOCKER,
+        NOW,
+      ),
+    ).toBeNull();
+    expect(
+      getResourceAiRefusedRegistrationWarning(
+        makeAgent({
+          lastRefusedRegistrationAt: refusedAt,
+          lastRegisteredAt: minutesBefore(60),
+          lastAliveAt: refusedAt,
+        }),
+        DOCKER,
+        NOW,
+      ),
+    ).not.toBeNull();
+  });
+
+  test("without a registration time it is judged by the answer alone; without a last-seen time nothing was answered", () => {
+    expect(
+      getResourceAiRefusedRegistrationWarning(
+        makeAgent({
+          lastRefusedRegistrationAt: minutesBefore(2),
+          lastRegisteredAt: null,
+          lastAliveAt: minutesBefore(1),
+        }),
+        DOCKER,
+        NOW,
+      ),
+    ).not.toBeNull();
+    expect(
+      getResourceAiRefusedRegistrationWarning(
+        makeAgent({
+          lastRefusedRegistrationAt: minutesBefore(2),
+          lastAliveAt: null,
+        }),
+        DOCKER,
+        NOW,
+      ),
+    ).toBeNull();
+    expect(
+      getResourceAiRefusedRegistrationWarning(
+        makeAgent({
+          lastRefusedRegistrationAt: minutesBefore(2),
+          lastAliveAt: "not a date",
+        }),
+        DOCKER,
+        NOW,
+      ),
+    ).toBeNull();
+  });
+
+  test("the issue's upgrade, poll by poll: never a warning on the way", () => {
+    // 14.0.88 heartbeat 10 seconds before docker rm -f.
+    const registeredAt: string = minutesBefore(60);
+    const lastHeartbeat: string = minutesBefore(1);
+    // docker run of 14.0.89: refused 5 seconds after the kill.
+    const refusedAt: string = minutesBefore(0.75);
+
+    const polls: Array<Partial<ResourceAiAgentSummary>> = [
+      // Before the upgrade.
+      { lastRegisteredAt: registeredAt, lastAliveAt: lastHeartbeat },
+      // While the new agent waits: the old row is silent since the refusal.
+      {
+        lastRegisteredAt: registeredAt,
+        lastAliveAt: lastHeartbeat,
+        lastRefusedRegistrationAt: refusedAt,
+        lastRefusedRegistrationReason: "previous_instance_online",
+      },
+      // The new agent took over.
+      {
+        agentVersion: "14.0.89",
+        lastRegisteredAt: minutesBefore(0.05),
+        lastAliveAt: minutesBefore(0.05),
+        lastRefusedRegistrationAt: refusedAt,
+        lastRefusedRegistrationReason: "previous_instance_online",
+      },
+    ];
+
+    for (const poll of polls) {
+      expect(
+        getResourceAiRefusedRegistrationWarning(makeAgent(poll), DOCKER, NOW),
+      ).toBeNull();
+    }
+  });
 });
 
 describe("Needs attention", () => {

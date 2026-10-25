@@ -549,6 +549,7 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           props.refreshTick,
           props.dashboardStartAndEndDate,
         ]}
+        isCompact={isCompactFallback}
         renderFallback={(fallback: ContainedErrorFallbackProps) => {
           return (
             <DashboardWidgetFallback

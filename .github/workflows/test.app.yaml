@@ -495,7 +495,13 @@ jobs:
           # minutes on master's run of 2026-10-24 10:57, so Traces AI went to
           # group 1 instead. Security Operations moved on to a group of its
           # own (11) on 2026-10-25, when this group took 26.1 and 26.7 minutes
-          # on master's runs of the day before: about 14 for the eight.
+          # on master's runs of the day before: about 14 for the eight. New
+          # Version (about 1.7 minutes locally with its two builds, Chromium
+          # only: a deploy under an open tab - the notice, the next page loading
+          # the new version, a page whose code is gone updating into the same
+          # address, unsaved changes, offline, a server restarting, a part gone
+          # for good - at 1280 and 390 pixels, dark, German and Persian) joined
+          # them the same day, the lightest group: about 16.
           - group: 8
             browsers: chromium
             suites: >-
@@ -507,6 +513,7 @@ jobs:
               test-public-addresses-ui
               test-security-events-empty-states-ui
               test-meraki-traffic-ui
+              test-new-version-ui
           # Added on 2026-10-21, when every group took 20 to 26 minutes on one
           # run (groups 1 and 5 near 25) and Resource Topology would have
           # taken group 7 past 22: Code (6.4 minutes on that run, a laptop
@@ -775,6 +782,8 @@ jobs:
             output/playwright/exceptions-ai-ui/test-results
             output/playwright/logs-ai-ui/*.png
             output/playwright/logs-ai-ui/test-results
+            output/playwright/new-version-ui/*.png
+            output/playwright/new-version-ui/test-results
             output/playwright/metrics-ai-ui/*.png
             output/playwright/metrics-ai-ui/test-results
             output/playwright/dashboard-templates-ui/*.png

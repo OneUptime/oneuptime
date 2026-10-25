@@ -2,6 +2,7 @@ import OneUptimeDate from "Common/Types/Date";
 import ScheduledMaintenanceStartUtil, {
   ScheduledMaintenancePhaseOfState,
 } from "Common/Utils/ScheduledMaintenanceStart";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Timing for a scheduled maintenance event: which part of its window it is
@@ -61,6 +62,10 @@ export enum ScheduledMaintenancePhase {
   Unknown = "unknown",
 }
 
+/*
+ * What the header's first fact is labelled, over the duration: "Starts in"
+ * over "2 hours". The header looks each one up in the reader's language.
+ */
 export const SCHEDULED_MAINTENANCE_DURATION_PREFIX: {
   startsIn: string;
   startOverdueBy: string;
@@ -68,11 +73,11 @@ export const SCHEDULED_MAINTENANCE_DURATION_PREFIX: {
   overrunningBy: string;
   completedIn: string;
 } = {
-  startsIn: "Starts in",
-  startOverdueBy: "Start overdue by",
-  inProgressFor: "In progress for",
-  overrunningBy: "Overrunning by",
-  completedIn: "Completed in",
+  startsIn: translationKey("Starts in"),
+  startOverdueBy: translationKey("Start overdue by"),
+  inProgressFor: translationKey("In progress for"),
+  overrunningBy: translationKey("Overrunning by"),
+  completedIn: translationKey("Completed in"),
 };
 
 /*

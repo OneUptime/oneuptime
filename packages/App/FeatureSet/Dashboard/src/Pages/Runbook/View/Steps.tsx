@@ -129,6 +129,7 @@ import {
   DropResult,
 } from "react-beautiful-dnd";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { useUnsavedChanges } from "Common/UI/Utils/NewVersion/UnsavedChanges";
 import {
   composedValue,
   TemplateValue,
@@ -605,6 +606,10 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<boolean>(false);
   const [hasUnsaved, setHasUnsaved] = useState<boolean>(false);
+
+  // Steps moved or edited and not saved yet: nothing reloads under them.
+  useUnsavedChanges(hasUnsaved);
+
   /*
    * Who can run the steps: the project's own Runners, the global Runners
    * OneUptime runs for every project, and whether the project uses them.

@@ -5,6 +5,7 @@ import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import useTranslateValue from "../../Utils/Translation";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import UnsavedChanges from "../../Utils/NewVersion/UnsavedChanges";
 import Alert, { AlertType } from "../Alerts/Alert";
 import Button, { ButtonStyleType } from "../Button/Button";
 import ButtonTypes from "../Button/ButtonTypes";
@@ -179,6 +180,14 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     const { translateString } = useTranslateValue();
     const translator: Translator = useTranslator();
     const isSubmitting: MutableRefObject<boolean> = useRef(false);
+
+    /*
+     * The form's root, marked as one scope of unsaved changes: what the
+     * reader changes in it counts as unsaved until the form is saved, so
+     * nothing reloads the page under it (Utils/NewVersion/UnsavedChanges).
+     */
+    const formRootRef: MutableRefObject<HTMLDivElement | null> =
+      useRef<HTMLDivElement | null>(null);
 
     const [didSomethingChange, setDidSomethingChange] =
       useState<boolean>(false);
@@ -683,6 +692,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
       props.onSubmit(values, () => {
         setDidSomethingChange(false);
+        UnsavedChanges.markSaved(formRootRef.current);
       });
     };
 
@@ -1071,7 +1081,12 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     );
 
     return (
-      <div className="row" id={props.id}>
+      <div
+        className="row"
+        id={props.id}
+        ref={formRootRef}
+        data-unsaved-changes-scope="form"
+      >
         <div className="col-lg-1">
           <div>
             {props.title && (

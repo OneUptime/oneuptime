@@ -104,7 +104,10 @@ import {
   isOlderAutoRemediationRule,
   isRunbooksEveryTime,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/AutoRemediationRuleCopy";
-import { AUTO_REMEDIATION_OLDER_RULE_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/AutoRemediationRuleFields";
+import {
+  AUTO_REMEDIATION_OLDER_RULE_TEST_ID,
+  AutoRemediationRunnerPicker,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/AutoRemediationRuleFields";
 import { getInvestigationRuleMoreFieldsSummary } from "../../../../App/FeatureSet/Dashboard/src/Components/ExternalMcpServer/ExternalMcpServerCopy";
 import { RULE_CODE_REPOSITORIES_FIELD_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/RuleCodeRepositoriesCopy";
 import {
@@ -1536,17 +1539,20 @@ describe.each([
       ).toBe(false);
     });
 
-    test("Runner: none is no Runner, the field says the AI agent is used anyway, and only a rule OneUptime AI fixes for has one", () => {
+    test("Runner: the field says where Bash commands run and that the AI agent is used anyway, and only a rule OneUptime AI fixes for has one", () => {
       const runner: CapturedField = fieldNamed(tableFor(lane), "runnerId");
 
       expect(runner.title).toBe("Runner");
       /*
        * The one line that says the AI agent on the affected cluster or host
-       * is not a Runner choice: it is used whatever the rule picks.
+       * is not a Runner choice: it is used whatever the rule picks. Not
+       * "inside your network": a rule that picks none shows the Global
+       * Runner, on which no Bash command runs.
        */
       expect(runner.description).toBe(
-        "Where OneUptime AI runs Bash commands for this rule, inside your network. Commands on the affected cluster or host go through its AI agent.",
+        "Where OneUptime AI runs Bash commands for this rule. Commands on the affected cluster or host go through its AI agent.",
       );
+      expect(runner.description).not.toContain("inside your network");
       expect(runner.fieldType).toBe(FormFieldSchemaType.CustomComponent);
       expect(runner.required).toBe(false);
       expect(runner.hideOptionalLabel).toBe(true);
@@ -1565,6 +1571,47 @@ describe.each([
       expect(runner.showIf!(OLDER_PICKS)).toBe(false);
       // An investigation runs nothing on a Runner.
       expect(runner.showIf!(DOES_NOT_FIX)).toBe(false);
+    });
+
+    /*
+     * "If there are no runners, it should use the global runner by
+     * default" - the maintainer. The field draws the rule's picker, which
+     * shows a rule that picks none on the Global Runner - except an older
+     * rule that composes commands: it runs them on the Command Runners it
+     * names too, so none here reads "No Runner", as it did.
+     */
+    test("Runner: the picker may show the Global Runner for every rule but an older one that composes commands, and hands back what it picks", () => {
+      const runner: CapturedField = fieldNamed(tableFor(lane), "runnerId");
+      const onChange: Mock<(value: unknown) => void> = jest.fn();
+
+      const element: React.ReactElement = runner.getCustomElement!(
+        withValues(NEW_RULE, { runnerId: RUNNER_ID }),
+        { onChange, ariaLabelledby: "runner-label" },
+      );
+
+      expect(element.type).toBe(AutoRemediationRunnerPicker);
+      expect(element.props["value"]).toBe(RUNNER_ID);
+      expect(element.props["ariaLabelledby"]).toBe("runner-label");
+      expect(element.props["isGlobalRunnerShown"]).toBe(true);
+
+      // The Global Runner is no Runner of the project's own: none.
+      (element.props["onChange"] as (value: string | null) => void)(null);
+      expect(onChange).toHaveBeenCalledWith(null);
+      (element.props["onChange"] as (value: string | null) => void)(RUNNER_ID);
+      expect(onChange).toHaveBeenLastCalledWith(RUNNER_ID);
+
+      for (const [rule, isShown] of [
+        [NEW_RULE, true],
+        [ONLY_FIXES, true],
+        [withValues(NEW_RULE, { runbooks: PICKED_RUNBOOKS }), true],
+        [OLDER_COMMANDS, false],
+      ] as Array<[Values, boolean]>) {
+        expect(
+          runner.getCustomElement!(rule, { onChange }).props[
+            "isGlobalRunnerShown"
+          ],
+        ).toBe(isShown);
+      }
     });
 
     test("MCP servers: none picked is all of them, for every rule OneUptime AI investigates or fixes for", () => {
@@ -2638,7 +2685,7 @@ describe("the choices", () => {
         "Start every runbook above for every match, instead of OneUptime AI deciding.",
       runnerTitle: "Runner",
       runnerDescription:
-        "Where OneUptime AI runs Bash commands for this rule, inside your network. Commands on the affected cluster or host go through its AI agent.",
+        "Where OneUptime AI runs Bash commands for this rule. Commands on the affected cluster or host go through its AI agent.",
       codeFixTitle: "Fix pull requests",
       codeFixDescription:
         "When an investigation finds the cause in your code, OneUptime AI opens a pull request with the fix for review. Nothing is merged.",

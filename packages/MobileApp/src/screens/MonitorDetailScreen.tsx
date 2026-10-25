@@ -9,6 +9,8 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import { spacing } from "../theme/tokens";
 import { useScreenPadding } from "../hooks/useScreenPadding";
+import { useContentGutters } from "../layout/WindowLayout";
+import type { ContentGutters } from "../layout/windowLayout";
 import { useRefresh } from "../hooks/useRefresh";
 import QueryErrorNotice from "../components/QueryErrorNotice";
 import {
@@ -230,6 +232,7 @@ export default function MonitorDetailScreen({
   const { monitorId, projectId } = route.params;
   const { theme } = useTheme();
   const bottomPadding: number = useScreenPadding();
+  const gutters: ContentGutters = useContentGutters();
 
   const {
     data: monitor,
@@ -284,6 +287,7 @@ export default function MonitorDetailScreen({
         style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
         contentContainerStyle={{
           padding: spacing.xl,
+          ...gutters,
           paddingBottom: bottomPadding,
           flexGrow: 1,
         }}
@@ -323,6 +327,7 @@ export default function MonitorDetailScreen({
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={{
         padding: spacing.xl,
+        ...gutters,
         paddingBottom: bottomPadding,
       }}
       refreshControl={

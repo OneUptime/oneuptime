@@ -96,7 +96,10 @@ install_ai_agent() {
     podman pull "$AI_IMAGE" || return 1
 
     if podman ps -a --format '{{.Names}}' | grep -q '^oneuptime-podman-ai-agent$'; then
-        echo "Removing existing oneuptime-podman-ai-agent container..."
+        # podman stop first, not rm -f alone: the agent signs off, so the new
+        # one is let in at once instead of after the old one goes silent.
+        echo "Stopping and removing the existing oneuptime-podman-ai-agent container..."
+        podman stop oneuptime-podman-ai-agent >/dev/null || true
         podman rm -f oneuptime-podman-ai-agent || return 1
     fi
 

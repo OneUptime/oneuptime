@@ -318,6 +318,7 @@ describe("Security Cases and Playbooks docs", () => {
       "Detection rules",
       "Threat intelligence",
       "Connected products",
+      "Entity risk",
       "People",
     ]);
 
@@ -357,6 +358,20 @@ describe("Security Cases and Playbooks docs", () => {
         /^\*\*Open a Case on Match\*\*, on the (rule|feed)'s \*\*On Match\*\* step$/,
       );
     }
+
+    // Entity risk opens cases from Settings > Risk Scoring's one switch.
+    const riskCopy: string = flat(
+      source(
+        `${DASHBOARD}/Components/SecurityEvents/EntityRisk/EntityRiskCopy.ts`,
+      ),
+    );
+
+    expect(riskCopy).toContain(
+      'export const RISK_CASES_CARD_TITLE: string = translationKey("Risk Cases");',
+    );
+    expect(sourceRows[3]?.[2]).toBe(
+      "**Risk Cases**, under **Settings → Risk Scoring**",
+    );
 
     expect(connections).toContain('title: "Open Cases From",');
     expect(connections).toContain(
@@ -675,6 +690,8 @@ describe("Security Cases and Playbooks docs", () => {
     ).toEqual([
       STATE_SETTINGS_COPY[StateListType.SecurityCasePriority].title,
       STATE_SETTINGS_COPY[StateListType.SecurityCaseStatus].title,
+      // When an entity's risk opens a case (Entity Risk's docs page).
+      "Risk Scoring",
     ]);
     expect(settings?.startsCollapsed).toBe(true);
     expect(flat(section(page, "Case priorities and statuses"))).toContain(
@@ -1006,6 +1023,68 @@ describe("Security Cases and Playbooks docs", () => {
       "The cases opened each day for 30 days, by priority, and the detections raised each day for 14 days, by source.",
     );
     expect(boldSpans(overview)).toContain("Mean Time to Acknowledge");
+  });
+
+  /*
+   * The Overview draws its ranked lists the most urgent first, in rows of
+   * cards of a size (Pages/SecurityEvents/Overview.tsx): what is open now
+   * and who it touches, then what raised detections, the attacker goals and
+   * how the month's closed cases turned out. The page lists them in that
+   * order too.
+   */
+  it("lists the overview's ranked lists in the order the Overview draws them", () => {
+    const overviewPage: string = source(
+      `${DASHBOARD}/Pages/SecurityEvents/Overview.tsx`,
+    );
+    const phrases: Array<[string, string]> = [
+      // The card's title on the page, the docs' words for it.
+      ["Open Cases", "The open cases by priority and by status"],
+      ["Riskiest Entities", "the entities named by the most findings"],
+      ["Top Detections", "the detections that fired most"],
+      ["MITRE ATT&CK Tactics", "the ATT&CK tactics behind the cases"],
+      ["Verdicts", "the verdicts of the last 30 days"],
+    ];
+    const positionsIn: (
+      text: string,
+      needles: Array<string>,
+    ) => Array<number> = (
+      text: string,
+      needles: Array<string>,
+    ): Array<number> => {
+      return needles.map((needle: string): number => {
+        return text.indexOf(needle);
+      });
+    };
+    const ascending: (positions: Array<number>) => boolean = (
+      positions: Array<number>,
+    ): boolean => {
+      return positions.every((position: number, index: number): boolean => {
+        return (
+          position >= 0 && (index === 0 || position > positions[index - 1]!)
+        );
+      });
+    };
+
+    const titles: Array<number> = positionsIn(
+      overviewPage,
+      phrases.map(([title]: [string, string]): string => {
+        return `title="${title}"`;
+      }),
+    );
+    const words: Array<number> = positionsIn(
+      section(page, "The overview"),
+      phrases.map(([, words]: [string, string]): string => {
+        return words;
+      }),
+    );
+
+    expect({ titles: ascending(titles), words: ascending(words) }).toEqual({
+      titles: true,
+      words: true,
+    });
+    expect(section(page, "The overview")).toContain(
+      "- The open cases by priority and by status, the entities named by the most findings, the detections that fired most, the ATT&CK tactics behind the cases, and the verdicts of the last 30 days.",
+    );
   });
 
   it("names the three notifications as Notification Settings lists them, on by email and push", () => {

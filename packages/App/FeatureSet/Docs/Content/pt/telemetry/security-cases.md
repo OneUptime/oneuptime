@@ -3,7 +3,7 @@
 O Security Events transforma o que as suas regras de detecção, a inteligência de ameaças e os produtos de segurança conectados encontram em casos: um caso para cada coisa que vale a pena investigar, com todas as detecções sobre o mesmo usuário, host ou endereço agrupadas nele. Os analistas tratam os casos em uma fila, e os playbooks respondem a eles, sozinhos ou com um clique.
 
 :::cards
-- [De onde vêm os casos](#de-onde-vêm-os-casos): Regras de detecção, inteligência de ameaças, produtos conectados e pessoas.
+- [De onde vêm os casos](#de-onde-vêm-os-casos): Regras de detecção, inteligência de ameaças, produtos conectados, risco de entidades e pessoas.
 - [Tratar um caso](#tratar-um-caso): Atribua-o, investigue as entidades dele e feche-o com um veredito.
 - [Prioridades e status dos casos](#prioridades-e-status-dos-casos): Renomeie, mude a cor e a ordem, e adicione os seus.
 - [Notificações](#notificações): Quem fica sabendo de um novo caso, de uma atribuição e de uma etapa aguardando aprovação.
@@ -49,9 +49,10 @@ Cada uma dessas ações também pode ser concedida separadamente, de criar um ca
 | Regras de detecção | Uma regra corresponde | **Open a Case on Match**, na etapa **Ao corresponder** da regra |
 | Inteligência de ameaças | Um evento cita um indicador conhecido | **Open a Case on Match**, na etapa **Ao corresponder** do feed |
 | Produtos conectados | Um alerta do próprio produto é importado no limite da conexão ou acima dele | **Open Cases From** definido como **Nunca**, na etapa **Polling** da conexão |
+| Risco de entidades | O risco de um usuário, host ou endereço atinge o limite do projeto | **Casos de risco**, em **Configurações → Pontuação de risco** |
 | Pessoas | Alguém abre um em **Casos de segurança**, ou com **Open Case** no painel de um evento | Não há como |
 
-Todas as origens vêm ativadas por padrão. Uma conexão abre casos para **Alta e acima**, a menos que você escolha outro nível; os alertas abaixo dele continuam sendo importados como eventos.
+Todas as origens abrem casos por padrão, exceto o risco de entidades em projetos criados antes de ele existir: neles, ative primeiro **Casos de risco** ([Risco de entidades](/docs/telemetry/security-entity-risk)). Uma conexão abre casos para **Alta e acima**, a menos que você escolha outro nível; os alertas abaixo dele continuam sendo importados como eventos.
 
 ### Como as detecções são agrupadas
 
@@ -192,7 +193,7 @@ Para publicar em um canal, adicione uma regra em **Produtos → Security Events 
 | Prioridade do caso de segurança | Uma das prioridades de caso do projeto, como Crítico ou High |
 | Título do caso de segurança, Descrição do caso de segurança | Um texto que o título ou a descrição do caso contém, com que começa ou com que termina |
 | Status do caso de segurança | Um dos status de caso do projeto, como Novo ou Fechado |
-| Origem do caso de segurança | Detection Rule, Threat Intel, Connected Product ou Manual |
+| Origem do caso de segurança | Detection Rule, Threat Intel, Connected Product, Risco de entidades ou Manual |
 | Rótulos do caso de segurança | Os rótulos do caso |
 
 Cada uma das três notificações é publicada nos canais de todas as regras a que o caso corresponde naquele momento. Uma regra em que **Prioridade do caso de segurança** contém qualquer um de **Crítico** e **High** publica os casos High e Crítico assim que abrem, e um caso Medium quando ele sobe para High. Um caso de segurança nunca ganha um canal próprio.
@@ -320,7 +321,7 @@ Uma execução que deixa de receber sinais do worker dela, depois de uma reinici
 - Os casos abertos atribuídos a você, os casos abertos que ninguém assumiu, e as etapas de playbooks aguardando aprovação, cada um abrindo a página que os lista.
 - **Tempo médio para reconhecer**, **Tempo médio para conter** e **Tempo médio para fechar**, sobre os casos abertos nos últimos 30 dias: da abertura de um caso até alguém assumi-lo (atribuindo-o a uma pessoa, ou levando-o para um status que conta como reconhecido), até um status que conta como contido e até um que conta como fechado. Um caso que ainda está esperando não entra na média.
 - Os casos abertos a cada dia, nos últimos 30 dias, por prioridade, e as detecções geradas a cada dia, nos últimos 14 dias, por origem.
-- Os casos abertos por prioridade e por status, os vereditos dos últimos 30 dias, as táticas ATT&CK por trás dos casos, as detecções que mais dispararam e as entidades citadas pelo maior número de achados.
+- Os casos abertos por prioridade e por status, as entidades citadas pelo maior número de achados, as detecções que mais dispararam, as táticas ATT&CK por trás dos casos e os vereditos dos últimos 30 dias.
 
 Acima, uma faixa mostra como a segurança está configurada: suas origens, detecções, casos e playbooks, cada um com seus números. Um projeto que ainda não a configurou vê ali **Ativar o recomendado** e **Enviar um ataque de teste**; consulte [Primeiros passos com a segurança](/docs/telemetry/security-getting-started). Quando nada precisa de ninguém, a página diz **Tudo tranquilo**, e os gráficos aparecem assim que há algo para mostrar.
 

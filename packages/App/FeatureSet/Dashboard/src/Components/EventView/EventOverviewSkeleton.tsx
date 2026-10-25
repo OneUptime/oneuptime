@@ -1,5 +1,6 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import EventStatBar, { EventStatBarColumns } from "./EventStatBar";
+import EventHeaderSkeleton from "./EventHeaderSkeleton";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -78,31 +79,11 @@ const EventOverviewSkeleton: FunctionComponent<ComponentProps> = (
         {translator.translateText(props.loadingText || "Loading")}
       </span>
       <div aria-hidden="true" className="space-y-5 motion-safe:animate-pulse">
-        <div
-          data-testid="event-overview-skeleton-hero"
-          className="rounded-xl border border-gray-200 bg-white shadow-sm"
-        >
-          <div className="px-4 py-4 sm:px-5">
-            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-              <div className="min-w-0 flex-1">
-                <div className="h-5 w-16 rounded-md bg-gray-100" />
-                <div className="mt-2 h-6 w-3/4 max-w-md rounded bg-gray-200" />
-              </div>
-              <div className="flex gap-2">
-                <div className="h-9 w-28 rounded-md bg-gray-100" />
-                <div className="h-9 w-24 rounded-md bg-gray-100" />
-              </div>
-            </div>
-            <div className="mt-3 flex flex-wrap items-center gap-2.5">
-              <div className="h-5 w-20 rounded-full bg-gray-100" />
-              <div className="h-5 w-16 rounded-full bg-gray-100" />
-              <div className="h-5 w-28 rounded bg-gray-100" />
-            </div>
-          </div>
-          <div className="border-t border-gray-100 px-4 py-2.5 sm:px-5">
-            <div className="h-3 w-2/3 max-w-sm rounded bg-gray-100" />
-          </div>
-        </div>
+        {/*
+         * The header, as the header's own placeholder draws it. The page's
+         * status above already says what loads, so it says nothing more.
+         */}
+        <EventHeaderSkeleton testId="event-overview-skeleton-hero" />
 
         <div data-testid="event-overview-skeleton-stats">
           <EventStatBar columns={statCount}>

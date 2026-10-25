@@ -3,7 +3,7 @@
 Security Events trasforma ciò che trovano le tue regole di rilevamento, la threat intelligence e i prodotti di sicurezza collegati in casi: un caso per ogni cosa che merita un'indagine, con tutti i rilevamenti sullo stesso utente, host o indirizzo raggruppati al suo interno. Gli analisti gestiscono i casi in una coda, e i playbook vi rispondono, da soli o con un clic.
 
 :::cards
-- [Da dove arrivano i casi](#da-dove-arrivano-i-casi): Regole di rilevamento, threat intelligence, prodotti collegati e persone.
+- [Da dove arrivano i casi](#da-dove-arrivano-i-casi): Regole di rilevamento, threat intelligence, prodotti collegati, rischio delle entità e persone.
 - [Gestire un caso](#gestire-un-caso): Assegnalo, indaga sulle sue entità e chiudilo con un verdetto.
 - [Priorità e stati dei casi](#priorità-e-stati-dei-casi): Rinominali, cambiane colore e ordine, e aggiungi i tuoi.
 - [Notifiche](#notifiche): Chi viene avvisato di un nuovo caso, di un'assegnazione e di un passo in attesa di approvazione.
@@ -49,9 +49,10 @@ Ognuna di queste azioni si può anche concedere singolarmente, dalla creazione d
 | Regole di rilevamento | Una regola corrisponde | **Open a Case on Match**, nel passo **In caso di corrispondenza** della regola |
 | Threat intelligence | Un evento nomina un indicatore noto | **Open a Case on Match**, nel passo **In caso di corrispondenza** del feed |
 | Prodotti collegati | Un avviso proprio del prodotto viene importato a un livello pari o superiore alla soglia della connessione | **Open Cases From** impostato su **Mai**, nel passo **Polling** della connessione |
+| Rischio delle entità | Il rischio di un utente, host o indirizzo raggiunge la soglia del progetto | **Casi di rischio**, in **Impostazioni → Valutazione del rischio** |
 | Persone | Qualcuno ne apre uno da **Casi di sicurezza**, o con **Open Case** nel pannello di un evento | Nessuna impostazione |
 
-Ogni origine è attiva per impostazione predefinita. Una connessione apre casi per **Alta e superiori** a meno che tu non scelga un altro livello; gli avvisi al di sotto vengono comunque importati come eventi.
+Ogni origine apre casi per impostazione predefinita, tranne il rischio delle entità nei progetti creati prima che esistesse: lì attiva prima **Casi di rischio** ([Rischio delle entità](/docs/telemetry/security-entity-risk)). Una connessione apre casi per **Alta e superiori** a meno che tu non scelga un altro livello; gli avvisi al di sotto vengono comunque importati come eventi.
 
 ### Come vengono raggruppati i rilevamenti
 
@@ -192,7 +193,7 @@ Per pubblicare in un canale, aggiungi una regola in **Prodotti → Security Even
 | Priorità del caso di sicurezza | Una delle priorità dei casi del progetto, come Critico o High |
 | Titolo del caso di sicurezza, Descrizione del caso di sicurezza | Un testo che il titolo o la descrizione del caso contiene, con cui inizia o con cui finisce |
 | Stato del caso di sicurezza | Uno degli stati dei casi del progetto, come Nuovo o Chiuso |
-| Origine del caso di sicurezza | Detection Rule, Threat Intel, Connected Product o Manual |
+| Origine del caso di sicurezza | Detection Rule, Threat Intel, Connected Product, Rischio delle entità o Manual |
 | Etichette del caso di sicurezza | Le etichette del caso |
 
 Le tre notifiche vengono pubblicate ciascuna nei canali di ogni regola a cui il caso corrisponde in quel momento. Una regola in cui **Priorità del caso di sicurezza** contiene uno tra **Critico** e **High** pubblica i casi con priorità High e Critico appena si aprono, e un caso Medium quando sale a High. Un caso di sicurezza non ha mai un canale tutto suo.
@@ -320,7 +321,7 @@ Un'esecuzione che smette di ricevere segnali dal suo worker, per esempio dopo un
 - I casi aperti assegnati a te, i casi aperti che nessuno ha preso in carico, e i passi dei playbook in attesa di approvazione, ognuno con un collegamento alla pagina che li elenca.
 - **Tempo medio di presa in carico**, **Tempo medio di contenimento** e **Tempo medio di chiusura**, sui casi aperti negli ultimi 30 giorni: dall'apertura di un caso fino a quando qualcuno lo prende in carico (assegnandolo a una persona, o spostandolo in uno stato che conta come preso in carico), fino a uno stato che conta come contenuto e fino a uno che conta come chiuso. Un caso ancora in attesa non entra nel calcolo della media.
 - I casi aperti ogni giorno negli ultimi 30 giorni, per priorità, e i rilevamenti generati ogni giorno negli ultimi 14 giorni, per origine.
-- I casi aperti per priorità e per stato, i verdetti degli ultimi 30 giorni, le tattiche ATT&CK alla base dei casi, i rilevamenti scattati più spesso e le entità nominate dal maggior numero di risultanze.
+- I casi aperti per priorità e per stato, le entità nominate dal maggior numero di risultanze, i rilevamenti scattati più spesso, le tattiche ATT&CK alla base dei casi e i verdetti degli ultimi 30 giorni.
 
 Sopra, una striscia mostra come è configurata la sicurezza: le sue origini, i rilevamenti, i casi e i playbook, ciascuno con i suoi numeri. Un progetto che non l'ha ancora configurata vede lì **Attiva quanto consigliato** e **Invia un attacco di prova**; vedi [Primi passi con la sicurezza](/docs/telemetry/security-getting-started). Quando nulla richiede qualcuno, la pagina dice **Tutto tranquillo**, e i grafici compaiono non appena c'è qualcosa da mostrare.
 

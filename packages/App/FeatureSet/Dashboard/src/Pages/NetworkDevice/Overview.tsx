@@ -40,6 +40,8 @@ import NetworkDeviceDiscoveryScan from "Common/Models/DatabaseModels/NetworkDevi
 import ScanNameUtil from "Common/Utils/NetworkDiscovery/ScanNameUtil";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
+import CardGrid from "Common/UI/Components/Card/CardGrid";
+import { CARD_GRID_CENTERED_STATE_CLASS_NAME } from "Common/UI/Components/Card/CardGridLayout";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -62,6 +64,14 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 const RECENT_SCAN_LIMIT: number = 5;
 
 const FLEET_BY_VENDOR_TITLE: string = "Fleet by vendor";
+
+/*
+ * A list card with nothing in it says so in the middle of the room it has:
+ * the four cards share their rows, and the one beside a longer list is as
+ * tall as it.
+ */
+const EMPTY_LIST_CLASS_NAME: string =
+  CARD_GRID_CENTERED_STATE_CLASS_NAME + " py-6 text-sm text-gray-500";
 
 /*
  * Network Overview — the mission-control landing page for the whole
@@ -438,13 +448,17 @@ const NetworkOverview: FunctionComponent<
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+      {/*
+       * Two by two where the page has the room, each row ending on one
+       * line however long either list is (CardGrid).
+       */}
+      <CardGrid columns={2} dataTestId="network-overview-cards">
         <Card
           title="Devices needing attention"
           description="Down devices first (their probe or monitor cannot reach them), then failing SNMP, then ports down."
         >
           {attentionDevices.length === 0 ? (
-            <p className="py-6 text-center text-sm text-gray-500">
+            <p className={EMPTY_LIST_CLASS_NAME}>
               {translator.translateText(
                 "Every device answers, its details are being read and no interface is down. Nothing needs you here.",
               )}
@@ -526,7 +540,7 @@ const NetworkOverview: FunctionComponent<
           description="Sites whose health is not operational: the worst status of any device in them."
         >
           {attentionSites.length === 0 ? (
-            <p className="py-6 text-center text-sm text-gray-500">
+            <p className={EMPTY_LIST_CLASS_NAME}>
               {translator.translateText(
                 "Every site with devices in it is healthy.",
               )}
@@ -589,7 +603,7 @@ const NetworkOverview: FunctionComponent<
           description="What your network is made of, from SNMP-discovered vendor identity."
         >
           {vendors.length === 0 ? (
-            <p className="py-6 text-center text-sm text-gray-500">
+            <p className={EMPTY_LIST_CLASS_NAME}>
               {translator.translateText(
                 "Vendor identity appears after a device's first successful SNMP walk — pinged-only devices have none.",
               )}
@@ -647,7 +661,7 @@ const NetworkOverview: FunctionComponent<
           }
         >
           {recentScans.length === 0 ? (
-            <p className="py-6 text-center text-sm text-gray-500">
+            <p className={EMPTY_LIST_CLASS_NAME}>
               {translator.translateText(
                 "No scans yet. Scan a subnet to find the devices on it, then pick the ones to add.",
               )}
@@ -738,7 +752,7 @@ const NetworkOverview: FunctionComponent<
             </div>
           )}
         </Card>
-      </div>
+      </CardGrid>
     </Fragment>
   );
 };

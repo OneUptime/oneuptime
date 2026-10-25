@@ -160,7 +160,7 @@ En episode, du opretter, har ingen grupperingsregel, så listen viser dens **Gru
 | **Udvikler** | **Terraform**, **API**, **AI-assistenter** |
 | **Avanceret** | **Auditlogs**, **Slet episode** |
 
-**Udvikler** og **Avanceret** er foldet sammen fra start. På **Oversigt** nævner hovedet episodens **Ejere**, teams først, og det første felt, **Oprettet**, siger, hvornår episoden blev oprettet — **Automatisk**, når en grupperingsregel åbnede den. Kortet **Hvad der skete** står øverst på siden — episodens beskrivelse og dens **Grundårsag** — derefter **Alerts in this episode** og **Episodefeed**, ved siden af kortet **Episodedetaljer**: dens nummer, tilstand, alvorsgrad, antal advarsler, grupperingsregel og vagtpolitikker. Dens hoved har **Bekræft** og **Løs** og **Move episode to** i menuen **⋯**.
+**Udvikler** og **Avanceret** er foldet sammen fra start. På **Oversigt** nævner hovedet episodens **Ejere**, teams først, og det første felt, **Oprettet**, siger, hvornår episoden blev oprettet — **Automatisk**, når en grupperingsregel åbnede den. Kortet **Hvad der skete** står øverst på siden — episodens beskrivelse og dens **Grundårsag** — derefter **Alerts in this episode** og **Episodefeed**, ved siden af kortet **Episodedetaljer**: dens nummer, tilstand, alvorsgrad, antal advarsler, grupperingsregel og vagtpolitikker. Dens hoved har **Bekræft** og **Løs** og **Flyt episode til** i menuen **⋯**.
 
 **Advarsler → Aktive episoder** viser de episoder, der endnu ikke er løst, og mærket ved siden af tæller dem.
 

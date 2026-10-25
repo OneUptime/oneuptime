@@ -1896,6 +1896,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             keywords: ["risky users", "risky hosts", "ueba", "entity lookup"],
           },
           {
+            page: PageMap.SECURITY_EVENTS_ENTITY_RISK,
+            title: "Entity Risk",
+            icon: IconProp.Fire,
+            keywords: [
+              "risk score",
+              "risk based alerting",
+              "rba",
+              "user risk",
+              "host risk",
+            ],
+          },
+          {
             page: PageMap.SECURITY_EVENTS_CORRELATE,
             title: "Correlate",
             icon: IconProp.Share,
@@ -2031,6 +2043,17 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "case states",
               "custom case status",
               "case workflow",
+            ],
+          },
+          {
+            page: PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING,
+            title: "Risk Scoring",
+            icon: IconProp.Gauge,
+            keywords: [
+              "risk threshold",
+              "entity criticality",
+              "asset criticality",
+              "risk cases",
             ],
           },
         ],

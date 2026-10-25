@@ -177,7 +177,7 @@ Un incidente cambia de estado de cinco formas:
 | **Cambio masivo**           | **Reconocer**, **Resolver** o **Cambiar estado** sobre una selección en la lista de incidentes                            | Una página con el estado, **Notificar a suscriptores de la página de estado** y el mismo **Añadir una nota pública** plegado.                                                                               |
 | **Automáticamente**         | Un criterio de monitor, o tu propio código                                                  | Un criterio con **Resolver incidente automáticamente** activado resuelve su incidente cuando el criterio deja de cumplirse. La API cambia el estado creando una fila en `/api/incident-state-timeline`.      |
 
-Si el estado actual está antes del estado reconocido, la cabecera ofrece **Reconocer** y **Resolver**; si está entre los dos, solo **Resolver**. Reconocer también detiene cualquier escalado de guardia del incidente.
+Si el estado actual está antes del estado reconocido, la cabecera ofrece **Reconocer** y **Resolver**; si está entre los dos, solo **Resolver**. Reconocer también detiene cualquier escalado de guardia del incidente. Quien, por su rol, no puede cambiar el estado del incidente ve los botones bloqueados y ningún menú de otros estados: al señalar uno, se nombran los permisos que se lo permitirían.
 
 Cada una de estas formas escribe una fila de cronología. Un cambio de estado también hace algunas cosas que no tienes que pedir: publica una entrada en el feed del incidente, asigna un Comandante de incidente si el incidente aún no lo tiene, y actualiza el reloj del SLA. Reabrir un incidente resuelto inicia un registro de SLA nuevo desde la hora de reapertura.
 

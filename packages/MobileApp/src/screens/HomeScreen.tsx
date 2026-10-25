@@ -12,6 +12,17 @@ import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useTheme } from "../theme";
 import { spacing } from "../theme/tokens";
 import { useScreenPadding } from "../hooks/useScreenPadding";
+import {
+  useContentGutters,
+  usePane,
+  type PaneLayout,
+} from "../layout/WindowLayout";
+import {
+  READABLE_CONTENT_WIDTH,
+  TWO_COLUMN_READABLE_WIDTH,
+  hasRoomForTwoColumns,
+  type ContentGutters,
+} from "../layout/windowLayout";
 import { useAllProjectCounts } from "../hooks/useAllProjectCounts";
 import { useActiveProject } from "../hooks/useProject";
 import { useHaptics } from "../hooks/useHaptics";
@@ -251,6 +262,16 @@ export default function HomeScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const { fontScale } = useWindowDimensions();
   const bottomPadding: number = useScreenPadding();
+  /*
+   * On a wide window - an unfolded foldable on its side, a tablet - the
+   * response queue and service health sit side by side, rather than one
+   * long column of cards stretched across the screen.
+   */
+  const pane: PaneLayout = usePane();
+  const twoColumns: boolean = hasRoomForTwoColumns(pane);
+  const gutters: ContentGutters = useContentGutters(
+    twoColumns ? TWO_COLUMN_READABLE_WIDTH : READABLE_CONTENT_WIDTH,
+  );
   const [refreshing, setRefreshing] = useState(false);
   const { projectList, isLoadingProjects, projectLoadError, refreshProjects } =
     useActiveProject();
@@ -497,6 +518,7 @@ export default function HomeScreen(): React.JSX.Element {
       style={{ flex: 1, backgroundColor: theme.colors.backgroundPrimary }}
       contentContainerStyle={{
         padding: spacing.xl,
+        ...gutters,
         paddingBottom: bottomPadding,
         gap: spacing.xxl,
       }}
@@ -529,207 +551,226 @@ export default function HomeScreen(): React.JSX.Element {
           }}
         />
       ) : null}
-      <View>
-        <SectionHeader title="Needs attention" iconName="flash-outline" />
-        {countsError ? (
-          <QueryErrorNotice
-            message="Counts are unavailable. Open a list or retry to check the latest status."
-            retryLabel="Retry counts"
-            onRetry={refetch}
-          />
-        ) : null}
-        <View
-          style={{
-            flexDirection: stackTiles ? "column" : "row",
-            gap: spacing.md,
-          }}
-        >
-          <AttentionTile
-            testID="home-tile-incidents"
-            count={incidentCount}
-            label="Active Incidents"
-            accentColor={theme.colors.severityCritical}
-            iconName="warning-outline"
-            known={countIsKnown}
-            checking={countsChecking}
-            stacked={stackTiles}
-            accessibilityHint="Opens active incidents in the inbox"
-            onPress={() => {
-              return navigation.navigate("Inbox", {
-                screen: "InboxList",
-                params: {
-                  initialView: "incidents",
-                  initialSegment: "incidents",
-                  initialFilter: "active",
-                },
-              });
-            }}
-          />
-          <AttentionTile
-            testID="home-tile-alerts"
-            count={alertCount}
-            label="Active Alerts"
-            accentColor={theme.colors.severityMajor}
-            iconName="notifications-outline"
-            known={countIsKnown}
-            checking={countsChecking}
-            stacked={stackTiles}
-            accessibilityHint="Opens active alerts in the inbox"
-            onPress={() => {
-              return navigation.navigate("Inbox", {
-                screen: "InboxList",
-                params: {
-                  initialView: "alerts",
-                  initialSegment: "alerts",
-                  initialFilter: "active",
-                },
-              });
-            }}
-          />
-        </View>
-      </View>
-      <Card
-        testID="home-oncall-card"
-        accessibilityLabel={`${onCallSpokenStatus}. ${onCallDetailLine}. Tap to open the on-call tab.`}
-        onPress={() => {
-          lightImpact();
-          navigation.navigate("OnCall");
+      <View
+        testID="home-columns"
+        style={{
+          flexDirection: twoColumns ? "row" : "column",
+          alignItems: twoColumns ? "flex-start" : "stretch",
+          gap: spacing.xxl,
         }}
       >
         <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: spacing.md,
-          }}
+          testID="home-column-response"
+          style={{ flex: twoColumns ? 1 : undefined, gap: spacing.xxl }}
         >
-          <IconBadge
-            testID="home-oncall-icon"
-            name={dutyActive ? "call" : "call-outline"}
-            color={onCallIconColor}
-            size="lg"
-            shape="circle"
-          />
-          <View style={{ flex: 1, gap: spacing.xs }}>
-            <StatusPill
-              testID="home-oncall-status"
-              label={onCallBadgeLabel}
-              tone={onCallTone}
-              dotColor={dutyActive ? theme.colors.oncallActive : undefined}
-              size="sm"
-            />
-            <AppText variant="title3">{onCallHeadline}</AppText>
-            <AppText variant="subhead" tone="secondary">
-              {onCallDetailLine}
-            </AppText>
+          <View>
+            <SectionHeader title="Needs attention" iconName="flash-outline" />
+            {countsError ? (
+              <QueryErrorNotice
+                message="Counts are unavailable. Open a list or retry to check the latest status."
+                retryLabel="Retry counts"
+                onRetry={refetch}
+              />
+            ) : null}
+            <View
+              style={{
+                flexDirection: stackTiles ? "column" : "row",
+                gap: spacing.md,
+              }}
+            >
+              <AttentionTile
+                testID="home-tile-incidents"
+                count={incidentCount}
+                label="Active Incidents"
+                accentColor={theme.colors.severityCritical}
+                iconName="warning-outline"
+                known={countIsKnown}
+                checking={countsChecking}
+                stacked={stackTiles}
+                accessibilityHint="Opens active incidents in the inbox"
+                onPress={() => {
+                  return navigation.navigate("Inbox", {
+                    screen: "InboxList",
+                    params: {
+                      initialView: "incidents",
+                      initialSegment: "incidents",
+                      initialFilter: "active",
+                    },
+                  });
+                }}
+              />
+              <AttentionTile
+                testID="home-tile-alerts"
+                count={alertCount}
+                label="Active Alerts"
+                accentColor={theme.colors.severityMajor}
+                iconName="notifications-outline"
+                known={countIsKnown}
+                checking={countsChecking}
+                stacked={stackTiles}
+                accessibilityHint="Opens active alerts in the inbox"
+                onPress={() => {
+                  return navigation.navigate("Inbox", {
+                    screen: "InboxList",
+                    params: {
+                      initialView: "alerts",
+                      initialSegment: "alerts",
+                      initialFilter: "active",
+                    },
+                  });
+                }}
+              />
+            </View>
           </View>
-          <Ionicons
-            name="chevron-forward"
-            size={18}
-            color={theme.colors.textTertiary}
-          />
+          <Card
+            testID="home-oncall-card"
+            accessibilityLabel={`${onCallSpokenStatus}. ${onCallDetailLine}. Tap to open the on-call tab.`}
+            onPress={() => {
+              lightImpact();
+              navigation.navigate("OnCall");
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: spacing.md,
+              }}
+            >
+              <IconBadge
+                testID="home-oncall-icon"
+                name={dutyActive ? "call" : "call-outline"}
+                color={onCallIconColor}
+                size="lg"
+                shape="circle"
+              />
+              <View style={{ flex: 1, gap: spacing.xs }}>
+                <StatusPill
+                  testID="home-oncall-status"
+                  label={onCallBadgeLabel}
+                  tone={onCallTone}
+                  dotColor={dutyActive ? theme.colors.oncallActive : undefined}
+                  size="sm"
+                />
+                <AppText variant="title3">{onCallHeadline}</AppText>
+                <AppText variant="subhead" tone="secondary">
+                  {onCallDetailLine}
+                </AppText>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={theme.colors.textTertiary}
+              />
+            </View>
+          </Card>
         </View>
-      </Card>
-      <View>
-        <SectionHeader title="Service health" iconName="pulse-outline" />
-        <ListGroup testID="home-service-health">
-          <CountRow
-            testID="home-row-monitor-issues"
-            count={inoperationalMonitorCount}
-            label="Monitor issues"
-            iconColor={theme.colors.statusError}
-            highlightColor={theme.colors.statusError}
-            iconName="alert-circle-outline"
-            known={countIsKnown}
-            accessibilityHint="Opens monitors that report a problem"
-            onPress={() => {
-              return navigation.navigate("Monitors", {
-                screen: "MonitorsList",
-                params: { initialFilter: "issues" },
-              });
-            }}
-          />
-          <CountRow
-            testID="home-row-all-monitors"
-            count={monitorCount}
-            label="All monitors"
-            iconColor={theme.colors.statusSuccess}
-            iconName="pulse-outline"
-            known={countIsKnown}
-            accessibilityHint="Opens every monitor"
-            onPress={() => {
-              return navigation.navigate("Monitors", {
-                screen: "MonitorsList",
-                params: { initialFilter: "all" },
-              });
-            }}
-          />
-          <CountRow
-            testID="home-row-disabled-monitors"
-            count={disabledMonitorCount}
-            label="Disabled monitors"
-            iconColor={theme.colors.textSecondary}
-            iconName="pause-circle-outline"
-            known={countIsKnown}
-            accessibilityHint="Opens monitors whose checks are switched off"
-            onPress={() => {
-              return navigation.navigate("Monitors", {
-                screen: "MonitorsList",
-                params: { initialFilter: "disabled" },
-              });
-            }}
-          />
-        </ListGroup>
-      </View>
-      <View>
-        <SectionHeader title="Grouped events" iconName="layers-outline" />
-        <AppText
-          variant="subhead"
-          tone="secondary"
-          style={{ marginTop: -spacing.xs, marginBottom: spacing.md }}
+        <View
+          testID="home-column-health"
+          style={{ flex: twoColumns ? 1 : undefined, gap: spacing.xxl }}
         >
-          Episodes bring related incidents or alerts together.
-        </AppText>
-        <ListGroup testID="home-grouped-events">
-          <CountRow
-            testID="home-row-incident-episodes"
-            count={incidentEpisodeCount}
-            label="Incident Episodes"
-            iconColor={theme.colors.severityCritical}
-            iconName="layers-outline"
-            known={countIsKnown}
-            accessibilityHint="Opens active incident episodes in the inbox"
-            onPress={() => {
-              return navigation.navigate("Inbox", {
-                screen: "InboxList",
-                params: {
-                  initialView: "incidents",
-                  initialSegment: "episodes",
-                  initialFilter: "active",
-                },
-              });
-            }}
-          />
-          <CountRow
-            testID="home-row-alert-episodes"
-            count={alertEpisodeCount}
-            label="Alert Episodes"
-            iconColor={theme.colors.severityMajor}
-            iconName="layers-outline"
-            known={countIsKnown}
-            accessibilityHint="Opens active alert episodes in the inbox"
-            onPress={() => {
-              return navigation.navigate("Inbox", {
-                screen: "InboxList",
-                params: {
-                  initialView: "alerts",
-                  initialSegment: "episodes",
-                  initialFilter: "active",
-                },
-              });
-            }}
-          />
-        </ListGroup>
+          <View>
+            <SectionHeader title="Service health" iconName="pulse-outline" />
+            <ListGroup testID="home-service-health">
+              <CountRow
+                testID="home-row-monitor-issues"
+                count={inoperationalMonitorCount}
+                label="Monitor issues"
+                iconColor={theme.colors.statusError}
+                highlightColor={theme.colors.statusError}
+                iconName="alert-circle-outline"
+                known={countIsKnown}
+                accessibilityHint="Opens monitors that report a problem"
+                onPress={() => {
+                  return navigation.navigate("Monitors", {
+                    screen: "MonitorsList",
+                    params: { initialFilter: "issues" },
+                  });
+                }}
+              />
+              <CountRow
+                testID="home-row-all-monitors"
+                count={monitorCount}
+                label="All monitors"
+                iconColor={theme.colors.statusSuccess}
+                iconName="pulse-outline"
+                known={countIsKnown}
+                accessibilityHint="Opens every monitor"
+                onPress={() => {
+                  return navigation.navigate("Monitors", {
+                    screen: "MonitorsList",
+                    params: { initialFilter: "all" },
+                  });
+                }}
+              />
+              <CountRow
+                testID="home-row-disabled-monitors"
+                count={disabledMonitorCount}
+                label="Disabled monitors"
+                iconColor={theme.colors.textSecondary}
+                iconName="pause-circle-outline"
+                known={countIsKnown}
+                accessibilityHint="Opens monitors whose checks are switched off"
+                onPress={() => {
+                  return navigation.navigate("Monitors", {
+                    screen: "MonitorsList",
+                    params: { initialFilter: "disabled" },
+                  });
+                }}
+              />
+            </ListGroup>
+          </View>
+          <View>
+            <SectionHeader title="Grouped events" iconName="layers-outline" />
+            <AppText
+              variant="subhead"
+              tone="secondary"
+              style={{ marginTop: -spacing.xs, marginBottom: spacing.md }}
+            >
+              Episodes bring related incidents or alerts together.
+            </AppText>
+            <ListGroup testID="home-grouped-events">
+              <CountRow
+                testID="home-row-incident-episodes"
+                count={incidentEpisodeCount}
+                label="Incident Episodes"
+                iconColor={theme.colors.severityCritical}
+                iconName="layers-outline"
+                known={countIsKnown}
+                accessibilityHint="Opens active incident episodes in the inbox"
+                onPress={() => {
+                  return navigation.navigate("Inbox", {
+                    screen: "InboxList",
+                    params: {
+                      initialView: "incidents",
+                      initialSegment: "episodes",
+                      initialFilter: "active",
+                    },
+                  });
+                }}
+              />
+              <CountRow
+                testID="home-row-alert-episodes"
+                count={alertEpisodeCount}
+                label="Alert Episodes"
+                iconColor={theme.colors.severityMajor}
+                iconName="layers-outline"
+                known={countIsKnown}
+                accessibilityHint="Opens active alert episodes in the inbox"
+                onPress={() => {
+                  return navigation.navigate("Inbox", {
+                    screen: "InboxList",
+                    params: {
+                      initialView: "alerts",
+                      initialSegment: "episodes",
+                      initialFilter: "active",
+                    },
+                  });
+                }}
+              />
+            </ListGroup>
+          </View>
+        </View>
       </View>
     </ScrollView>
   );

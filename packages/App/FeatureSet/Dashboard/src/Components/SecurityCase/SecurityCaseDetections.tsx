@@ -177,7 +177,7 @@ const SecurityCaseDetections: FunctionComponent<ComponentProps> = (
         cardProps={{
           title: "Detections",
           description:
-            "What fired to open this case or join it: detection rules, threat intelligence matches and alerts from connected products. A detection that fires again counts up on its row.",
+            "What fired to open this case or join it: detection rules, threat intelligence matches, alerts from connected products and entity risk. A detection that fires again counts up on its row.",
         }}
         noItemsMessage="No detections on this case. It was opened by hand."
         showRefreshButton={true}

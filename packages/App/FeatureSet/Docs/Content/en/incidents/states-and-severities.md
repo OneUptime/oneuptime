@@ -183,7 +183,7 @@ There are five ways an incident changes state:
 | **Bulk change**     | **Acknowledge**, **Resolve** or **Change State** on a selection in the incidents list                                       | One page with the state, **Notify Status Page Subscribers** and the same folded **Add a public note**.                                                                                                      |
 | **Automatically**   | A monitor criterion, or your own code                                                       | A criterion with **Auto Resolve Incident** enabled resolves its incident when the criterion is no longer met. The API changes the state by creating a row at `/api/incident-state-timeline`.               |
 
-If the current state is before the acknowledged state, the header offers **Acknowledge** and **Resolve**; if it is between the two, only **Resolve**. Acknowledging also stops any on-call escalation for the incident.
+If the current state is before the acknowledged state, the header offers **Acknowledge** and **Resolve**; if it is between the two, only **Resolve**. Acknowledging also stops any on-call escalation for the incident. Someone whose role may not change the incident's state sees them locked, with no menu of other states: pointing at one names the permissions that would let them.
 
 Every one of these writes a timeline row. A state change also does a few things you do not have to ask for: it posts an entry to the incident feed, assigns an Incident Commander if the incident does not have one yet, and updates the SLA clock. Reopening a resolved incident starts a fresh SLA record from the reopen time.
 

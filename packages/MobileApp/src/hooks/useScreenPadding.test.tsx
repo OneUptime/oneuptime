@@ -4,6 +4,13 @@ import { render, screen } from "@testing-library/react-native";
 import { SafeAreaInsetsContext } from "react-native-safe-area-context";
 import { useScreenPadding } from "./useScreenPadding";
 import { getScreenBottomPadding } from "../theme/layout";
+import { afterEach, describe, expect, test } from "@jest/globals";
+import {
+  TEST_WINDOWS,
+  resetWindowSize,
+  resizeWindow,
+  setWindowSize,
+} from "../__tests__/windowSize";
 
 function Content({ tabBar = true }: { tabBar?: boolean }): React.JSX.Element {
   const padding: number = useScreenPadding({ tabBar });
@@ -48,4 +55,60 @@ test("auth and modal content reserves safe area without a tab bar", async () => 
     </SafeAreaInsetsContext.Provider>,
   );
   expect(screen.getByTestId("padding")).toHaveTextContent("74");
+});
+
+describe("Beside a navigation rail", () => {
+  afterEach(() => {
+    resetWindowSize();
+  });
+
+  test("an unfolded foldable has no bar along the bottom to clear, only the safe area", async () => {
+    /*
+     * The rail sits down the side, so nothing floats over the bottom of the
+     * page: 72 points of empty space there would only push the last card
+     * further from the reader's thumb.
+     */
+    setWindowSize(TEST_WINDOWS.innerScreen);
+    await render(
+      <SafeAreaInsetsContext.Provider
+        value={{ top: 24, bottom: 16, left: 0, right: 0 }}
+      >
+        <Content />
+      </SafeAreaInsetsContext.Provider>,
+    );
+    expect(screen.getByTestId("padding")).toHaveTextContent(String(16 + 40));
+  });
+
+  test("a phone on its side gets the rail, and the same clearance", async () => {
+    setWindowSize(TEST_WINDOWS.phoneOnItsSide);
+    await render(
+      <SafeAreaInsetsContext.Provider
+        value={{ top: 0, bottom: 21, left: 59, right: 59 }}
+      >
+        <Content />
+      </SafeAreaInsetsContext.Provider>,
+    );
+    expect(screen.getByTestId("padding")).toHaveTextContent(String(21 + 40));
+  });
+
+  test("folding back to the cover screen brings the bar's clearance back at once", async () => {
+    setWindowSize(TEST_WINDOWS.innerScreen);
+    await render(
+      <SafeAreaInsetsContext.Provider
+        value={{ top: 24, bottom: 16, left: 0, right: 0 }}
+      >
+        <Content />
+      </SafeAreaInsetsContext.Provider>,
+    );
+    await resizeWindow(TEST_WINDOWS.coverScreen);
+    expect(screen.getByTestId("padding")).toHaveTextContent(
+      String(72 + 16 + 40),
+    );
+  });
+
+  test("a tablet held upright keeps its bottom bar and its clearance", async () => {
+    setWindowSize(TEST_WINDOWS.tabletUpright);
+    await render(<Content />);
+    expect(screen.getByTestId("padding")).toHaveTextContent("124");
+  });
 });

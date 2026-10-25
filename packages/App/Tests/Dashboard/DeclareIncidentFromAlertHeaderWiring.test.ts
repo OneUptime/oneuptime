@@ -22,7 +22,8 @@ const TEST_FILE_PATTERN: RegExp = /\.test\.tsx?$/;
  *     the event's video call - but only the alert header builds one;
  *   - EventStatusPanel renders non-state actions after the state actions and
  *     before "More actions", neutral, never counted as state actions, and
- *     only puts the actions beside a title once there is room (xl);
+ *     counts them in the room the actions need beside the pills (the header
+ *     lays itself out by its own width);
  *   - the create page only asks the server to acknowledge the alerts when it
  *     is also linking them and the box is offered, allowed and ticked, its
  *     two extra reads can never take the page down, and the incidents an
@@ -315,15 +316,14 @@ describe("Declare Incident in the alert header", () => {
       "exportconstAlertStatePlaceholder:",
       "constChangeAlertState:",
     );
-    const buttonRow: string = sectionBetween(
-      placeholder,
-      '<divclassName="flexgap-2">',
-      "</div></div>",
-    );
 
-    expect(countOf(buttonRow, '<divclassName="h-9')).toBe(3);
-    expect(buttonRow).toContain(
-      '<divclassName="h-9w-36rounded-mdbg-gray-100"/>',
+    // The shared header skeleton, at the alert header's own size.
+    expect(placeholder).toContain(
+      '<EventHeaderSkeletontestId="alert-state-placeholder"loadingText="Loadingalertstatus"buttonCount={3}factCount={4}/>',
+    );
+    // Its third button is as wide as Declare Incident.
+    expect(dense("Components/EventView/EventHeaderSkeleton.tsx")).toContain(
+      'constBUTTON_WIDTHS:Array<string>=["w-32","w-24","w-36","w-28"];',
     );
   });
 
@@ -454,17 +454,25 @@ describe("EventStatusPanel secondary actions", () => {
   });
 
   test("render after the state actions and before the More actions menu, whatever the state", () => {
-    const cluster: string = sectionBetween(
-      dense(EVENT_STATUS_PANEL),
-      'aria-label={translateString("Eventactions")}>',
-      "</MoreMenu>",
+    const code: string = dense(EVENT_STATUS_PANEL);
+    const group: string = sectionBetween(
+      code,
+      'aria-label={translateLabel("Eventactions")}',
+      "</section>",
     );
 
     // Unconditional: shown even when no state action is left (a resolved alert).
-    expect(cluster).toContain(
-      "{props.actions.map((action:EventStateAction)=>{returngetActionButton(action);})}{(props.secondaryActions||[]).map((action:EventPanelAction)=>{returngetSecondaryActionButton(action);})}{props.onStateSelect&&statesForMenu.length>0&&(<MoreMenu",
+    expect(code).toContain(
+      "constsecondaryActions:Array<EventPanelAction>=props.secondaryActions||[];",
     );
-    expect(countOf(cluster, "getSecondaryActionButton(")).toBe(1);
+    expect(group).toContain(
+      "{stateActions.map((action:EventStateAction)=>{returngetActionButton(action);})}{secondaryActions.map((action:EventPanelAction)=>{returngetSecondaryActionButton(action);})}</div>):(<></>)}{moreMenu?(",
+    );
+    expect(countOf(code, "getSecondaryActionButton(action)")).toBe(1);
+    // The state actions are only held back by who may change the state.
+    expect(code).toContain(
+      "conststateActions:Array<EventStateAction>=isStateChangeHidden?[]:props.actions;",
+    );
   });
 
   test("never hide a state from the More actions menu", () => {
@@ -486,7 +494,7 @@ describe("EventStatusPanel secondary actions", () => {
     const menuRules: string = sectionBetween(
       code,
       "conststatesForMenu:",
-      "constactionBaseClassName:",
+      "constsecondaryActions:",
     );
 
     expect(menuRules).not.toContain("secondaryActions");
@@ -502,7 +510,10 @@ describe("EventStatusPanel secondary actions", () => {
     );
 
     expect(button).toContain(
-      "consttranslatedActionLabel:string=translateString(action.label)||action.label;",
+      "consttranslatedActionLabel:string=translateLabel(action.label);",
+    );
+    expect(dense(EVENT_STATUS_PANEL)).toContain(
+      "consttranslateLabel:(label:string)=>string=(label:string):string=>{returntranslateString(label)||label;};",
     );
     expect(button).toContain(
       "constisDisabled:boolean=Boolean(props.isDisabled||action.isDisabled);",
@@ -510,8 +521,12 @@ describe("EventStatusPanel secondary actions", () => {
     expect(button).toContain(
       "onClick={()=>{if(isDisabled){return;}action.onClick();}}",
     );
-    expect(button).toContain("${actionBaseClassName}${neutralActionClassName}");
-    expect(button).not.toContain("primaryActionClassName");
+    expect(button).toContain(
+      "${EVENT_HEADER_BUTTON_CLASS_NAME}${EVENT_HEADER_NEUTRAL_BUTTON_CLASS_NAME}",
+    );
+    expect(button).not.toContain("EVENT_HEADER_PRIMARY_BUTTON_CLASS_NAME");
+    // Locked only by itself or the panel, never by who may change the state.
+    expect(button).not.toContain("stateChangeLockReason");
     expect(button).not.toContain("onActionClick");
     expect(button).not.toContain("onStateSelect");
   });
@@ -536,73 +551,50 @@ describe("EventStatusPanel secondary actions", () => {
 });
 
 /*
- * The alert header now holds three actions beside a title. Next to a side
- * menu, a header that put them beside the title from md squeezed the title
- * down to a few characters, so the titled layout waits for xl; the compact
- * layout (no title, just pills) keeps md.
+ * The alert header holds three actions. Beside a side menu how wide the
+ * header is says nothing about the window, so the header is a size
+ * container: its actions sit beside the pills from the width they need -
+ * worked out from every action's words, Declare Incident's included - and
+ * under the title below it, never squeezing the title (EventHeaderLayout).
  */
-describe("EventStatusPanel layouts", () => {
-  test("build one actions cluster, whose full-width breakpoint each layout chooses", () => {
+describe("EventStatusPanel layout by its own width", () => {
+  test("builds one actions group, placed by the top row's classes", () => {
+    const code: string = dense(EVENT_STATUS_PANEL);
+
+    expect(countOf(code, 'aria-label={translateLabel("Eventactions")}')).toBe(
+      1,
+    );
+    expect(code).toContain(
+      '<divclassName={topRow.actions}role="group"aria-label={translateLabel("Eventactions")}data-testid={EVENT_HEADER_TEST_IDS.actions}>',
+    );
+    expect(code).not.toContain("getActionsCluster");
+  });
+
+  test("counts Declare Incident in the room the actions need beside the pills", () => {
     const code: string = dense(EVENT_STATUS_PANEL);
 
     expect(code).toContain(
-      'constgetActionsCluster:(widthClassName:string)=>ReactElement=(widthClassName:string,):ReactElement=>{return(<divclassName={`flexw-fullflex-wrapitems-centerjustify-endgap-2${widthClassName}`}role="group"aria-label={translateString("Eventactions")}>',
+      "...secondaryActions.map((action:EventPanelAction):EventHeaderActionWidthInput=>{return{label:translateLabel(action.label),hasIcon:Boolean(action.icon),hasMenu:Boolean(action.menuItems&&action.menuItems.length>0),};},)",
     );
-    // One call per layout, and no shared, fixed-width cluster left behind.
-    expect(countOf(code, "getActionsCluster(")).toBe(2);
-    expect(code).not.toContain("{actionsCluster}");
-    expect(countOf(code, 'aria-label={translateString("Eventactions")}')).toBe(
-      1,
+    expect(code).toContain(
+      "constbesideWidthRem:number|null=getEventHeaderActionsBesideWidth({identifier:props.identifier,pills:pillTexts,hasPillIcon:Boolean(props.isPrivate),actions:actionWidths,hasMore:hasMore,});",
     );
-  });
-
-  test("put the actions beside the title only from xl in the titled header", () => {
-    const code: string = dense(EVENT_STATUS_PANEL);
-    const titled: string = sectionBetween(
-      code,
-      "{props.title?(",
-      "{hasMeta&&(",
-    );
-
-    expect(
-      titled.startsWith(
-        '<divclassName="px-4py-4sm:px-5"><divclassName="flexflex-colgap-3xl:flex-rowxl:items-startxl:justify-between"><divclassName="min-w-0">',
-      ),
-    ).toBe(true);
-    expect(
-      titled.endsWith(
-        '</div>{getActionsCluster("xl:w-autoxl:shrink-0")}</div>',
-      ),
-    ).toBe(true);
-    expect(titled).not.toContain("md:");
-
-    // The exact classes, spaces and all, as Tailwind reads them.
-    const source: string = readCode(EVENT_STATUS_PANEL);
-
-    expect(source).toContain(
-      'className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between"',
-    );
-    expect(source).toContain('{getActionsCluster("xl:w-auto xl:shrink-0")}');
-    expect(source).toContain(
-      "className={`flex w-full flex-wrap items-center justify-end gap-2 ${widthClassName}`}",
+    expect(code).toContain(
+      "consttopRow:EventHeaderTopRowClassNames=getEventHeaderTopRowClassNames({besideWidthRem:besideWidthRem,hasMore:hasMore,});",
     );
   });
 
-  test("keep the compact layout's actions beside the pills from md", () => {
-    const code: string = dense(EVENT_STATUS_PANEL);
-    const compact: string = sectionBetween(
-      code,
-      '):(<divclassName="flexflex-colgap-3px-4py-4sm:px-5md:flex-rowmd:items-centermd:justify-between">',
-      "{states.length>1&&(",
+  test("lays nothing out by the window's breakpoints", () => {
+    const panel: string = readCode(EVENT_STATUS_PANEL);
+    const layout: string = readCode(
+      "Components/EventView/EventHeaderLayout.ts",
     );
+    const windowBreakpoint: RegExp = /(^|[\s"`])(md|lg|xl|2xl):/;
 
-    expect(compact.endsWith('{getActionsCluster("md:w-auto")}</div>)}')).toBe(
-      true,
-    );
-    expect(compact).not.toContain("xl:");
-    expect(readCode(EVENT_STATUS_PANEL)).toContain(
-      'className="flex flex-col gap-3 px-4 py-4 sm:px-5 md:flex-row md:items-center md:justify-between"',
-    );
+    expect(windowBreakpoint.test(panel)).toBe(false);
+    expect(windowBreakpoint.test(layout)).toBe(false);
+    // The phone gutter is the only window width the header follows.
+    expect(layout).toContain('"px-4 py-4 sm:px-5"');
   });
 });
 

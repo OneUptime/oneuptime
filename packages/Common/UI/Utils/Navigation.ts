@@ -4,6 +4,7 @@ import URL from "../../Types/API/URL";
 import Dictionary from "../../Types/Dictionary";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import NewVersion from "./NewVersion/NewVersion";
 import {
   Location,
   NavigateFunction,
@@ -404,6 +405,18 @@ abstract class Navigation {
     }
   }
 
+  // Whether an address in this app is on another path than the one shown.
+  private static opensAnotherPage(address: string): boolean {
+    try {
+      return (
+        new window.URL(address, window.location.href).pathname !==
+        window.location.pathname
+      );
+    } catch {
+      return false;
+    }
+  }
+
   public static navigate(
     to: Route | URL,
     options?: {
@@ -449,6 +462,20 @@ abstract class Navigation {
       to instanceof Route &&
       !this.isCurrentRoute(to, { caseSensitive: true })
     ) {
+      /*
+       * A new version of OneUptime is out: another page opens in full, in
+       * the new version, instead of inside this tab's old one, which would
+       * ask the server for code the new version no longer has
+       * (Utils/NewVersion). A query on the same page stays inside the tab.
+       */
+      if (
+        this.opensAnotherPage(finalUrl) &&
+        NewVersion.shouldLoadNavigationInFull()
+      ) {
+        NewVersion.openInFull(finalUrl, { replace: Boolean(options?.replace) });
+        return;
+      }
+
       if (options?.replace) {
         this.navigateHook(finalUrl, { replace: true });
       } else {

@@ -295,6 +295,12 @@ const PROVIDER_CONSOLES: Array<string> = [
 // Brand names.
 const BRANDS: Array<string> = ["Zoom", "Google Meet"];
 
+/*
+ * The button OneUptime posts with a call in a Slack or Microsoft Teams
+ * message, in English in every language (VideoCallMessages).
+ */
+const CALL_MESSAGE_BUTTONS: Array<string> = ["Join call"];
+
 const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   [SLACK]: [
     "Growth",
@@ -319,7 +325,7 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     ...CHAT_HOME_BUTTONS,
     ...TEAMS_HOME_BUTTONS,
   ],
-  [VIDEO]: [...PROVIDER_CONSOLES, ...BRANDS],
+  [VIDEO]: [...PROVIDER_CONSOLES, ...BRANDS, ...CALL_MESSAGE_BUTTONS],
   [BUILDING]: [],
   [ON_SUBMIT]: [
     // A workflow component, as the workflow builder names it.
@@ -340,8 +346,11 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
  * translation names it the Dashboard's way at least once.
  */
 const ALSO_DRAWN: Record<string, Array<string>> = {
-  // Zoom's App Credentials field, and the connection form's field.
-  [VIDEO]: ["Client secret"],
+  /*
+   * Zoom's App Credentials field, and the connection form's field; the
+   * chat message's Join call, and the one in the incident's header.
+   */
+  [VIDEO]: ["Client secret", "Join call"],
   // The public page's button, and the preview's.
   [BUILDING]: ["Submit"],
 };
@@ -1185,6 +1194,7 @@ describe("the lists this test keeps", () => {
       ...TEAMS_HOME_BUTTONS,
       ...PROVIDER_CONSOLES,
       ...BRANDS,
+      ...CALL_MESSAGE_BUTTONS,
       ...listed(KEPT_IN_ENGLISH, ON_SUBMIT),
     ];
 

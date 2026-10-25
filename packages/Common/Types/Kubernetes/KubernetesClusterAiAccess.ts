@@ -701,6 +701,17 @@ export const KUBERNETES_AI_AGENT_DISPLAY_NAME: string = "Kubernetes AI agent";
 export const KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES: number = 5;
 
 /*
+ * How long an agent that still counts as online has to show it is running
+ * once another pod was refused its place (previous_instance_online). Any
+ * request it makes after the refusal answers it: a live agent asks for work
+ * every 3 seconds, renews a running command's lease every 10 and heartbeats
+ * every 30. One that sends nothing for this long stopped without signing
+ * off (a pod deleted with --force, an OOM kill, a lost node), so the next
+ * registration takes its place instead of waiting out the alive window.
+ */
+export const KUBERNETES_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS: number = 40;
+
+/*
  * Why POST /runner-ingest/register-kubernetes-agent refused a registration
  * (HTTP 403). The server sends it as `reason` in the JSON error body so the
  * Runner can tell a wait that clears on its own from one that needs an
@@ -757,7 +768,10 @@ export function isTransientKubernetesAgentRegistrationRefusal(
  *                           request did not present its current key (a
  *                           second install with the same clusterName, or a
  *                           pod replaced without a clean shutdown). Clears
- *                           on its own once the old instance goes quiet.
+ *                           on its own once the old instance signs off, or
+ *                           sends nothing for
+ *                           KUBERNETES_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS
+ *                           after the first refusal.
  * legacy_runner_online:     this cluster's previous in-cluster Runner is
  *                           still online — for a few seconds during a helm
  *                           upgrade, while the old pod terminates. Clears on

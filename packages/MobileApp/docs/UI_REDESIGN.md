@@ -57,6 +57,11 @@ server totals, so they can exceed the matching rows in these recent lists.
 
 ## Layout rules
 
+- Lay screens out by the window, never the device: one pane and a bottom bar
+  below 600 points, a rail from 600 points on a window wider than tall, and a
+  list beside its detail from 840 points. The full rules, and how a screen
+  keeps its state through a fold, are under _Windows, panes and foldables_ in
+  [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md).
 - Build screens from the shared components listed in
   [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md): `ScreenIntro` for the page title,
   `Card`/`ListGroup` for grouped content, `SearchField` and `ListFilters` for
@@ -118,7 +123,19 @@ do not depend on a live OneUptime server or real account data.
 
 The configured Chromium viewports are 320 × 740, 390 × 844, 412 × 915 and
 768 × 1024. Their names (`small-phone`, `iphone-size`, `android-size`, `tablet`)
-describe dimensions, not native device emulation. These screenshots show the
+describe dimensions, not native device emulation.
+
+A fifth project, `foldables`, runs `tests/ui/foldables.spec.js` once. Each test
+sets its own windows - the Galaxy Z Fold's cover screen (344 × 882) and inner
+screen (884 × 1104, and 1104 × 884 on its side), the iPhone Duo held open
+(951 × 669) and a phone on its side (852 × 393), light and dark - and resizes
+the window mid-task the way a fold does: an incident open with a note
+half-written in its sheet keeps both through a fold and an unfold, the list
+keeps its search, and the project sheet stays open. It also checks the
+divider sits on the fold, the rail and the bar, the readable width and that
+nothing scrolls sideways. Run it alone with
+`npx playwright test --project=foldables`. The layout rules themselves are
+unit-tested in `src/layout/windowLayout.test.ts`. These screenshots show the
 real React Native Web rendering, not screenshots from an iOS simulator or
 Android emulator. Native keyboards, safe-area behavior, gestures, notifications,
 SSO handoffs and calendar subscriptions still require device or simulator checks.

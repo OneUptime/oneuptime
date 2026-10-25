@@ -10,6 +10,9 @@ interface AlertCardProps {
   onPress: () => void;
   projectName?: string;
   muted?: boolean;
+  /** Open in the detail pane beside the list. */
+  selected?: boolean;
+  showChevron?: boolean;
 }
 
 export default function AlertCard({
@@ -17,6 +20,8 @@ export default function AlertCard({
   onPress,
   projectName,
   muted,
+  selected,
+  showChevron,
 }: AlertCardProps): React.JSX.Element {
   const { theme } = useTheme();
   return (
@@ -36,6 +41,8 @@ export default function AlertCard({
       contextLabel={alert.monitor ? "Linked monitor" : undefined}
       projectName={projectName}
       muted={muted}
+      selected={selected}
+      showChevron={showChevron}
       accessibilityLabel={`Alert ${alert.alertNumberWithPrefix || alert.alertNumber}, ${alert.title}. State: ${alert.currentAlertState?.name ?? "unknown"}. Severity: ${alert.alertSeverity?.name ?? "unknown"}.`}
       accessibilityHint="Open details and response actions"
       onPress={onPress}

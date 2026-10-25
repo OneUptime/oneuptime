@@ -31,7 +31,7 @@ Abra uma regra de notificação do Slack ou do Microsoft Teams para incidentes o
 
 ### Entrar com um clique
 
-Quando a regra dispara, o OneUptime inicia uma chamada para o incidente e a publica com um botão **Join call** nos canais para onde vão as atualizações do incidente e no feed do incidente. A página do incidente mostra a chamada no cartão **Video Call** e um botão **Join call** no cabeçalho.
+Quando a regra dispara, o OneUptime inicia uma chamada para o incidente e a publica com um botão **Join call** nos canais para onde vão as atualizações do incidente e no feed do incidente. A página do incidente mostra a chamada no cartão **Video Call** e um botão **Entrar na chamada** no cabeçalho.
 :::
 
 As condições da regra decidem quais incidentes recebem uma chamada. Para uma sala apenas para incidentes Sev1, dê à regra uma condição de **Gravidade**. As chamadas começam para incidentes e alertas declarados em andamento. Um incidente criado já resolvido não recebe chamada.
@@ -234,7 +234,7 @@ Todo incidente e todo alerta iniciados com essa conexão compartilham a sala, en
 
 Uma regra do Slack pode, em vez disso, iniciar o huddle do canal do Slack do incidente. Não há nada a conectar: escolha **Slack huddle** na etapa **Video Call** da regra.
 
-O huddle acontece no canal que a regra cria para o incidente ou, quando a regra publica em canais existentes, no primeiro deles. Então a regra precisa criar um canal ou publicar em um existente. O botão **Join huddle** abre o huddle do canal no Slack. O primeiro responder a abri-lo inicia o huddle, e todos depois dele entram nele. O Slack não oferece a um app nenhuma forma de iniciar um huddle, então ninguém está no huddle até que alguém o abra.
+O huddle acontece no canal que a regra cria para o incidente ou, quando a regra publica em canais existentes, no primeiro deles. Então a regra precisa criar um canal ou publicar em um existente. O botão **Entrar no huddle** abre o huddle do canal no Slack. O primeiro responder a abri-lo inicia o huddle, e todos depois dele entram nele. O Slack não oferece a um app nenhuma forma de iniciar um huddle, então ninguém está no huddle até que alguém o abra.
 
 Um huddle do Slack é só para regras do Slack. Uma regra do Microsoft Teams inicia as suas chamadas com uma das conexões de videochamada do projeto.
 

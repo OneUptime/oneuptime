@@ -11,6 +11,8 @@ import { useTheme } from "../theme";
 import { radius, spacing, touchTarget } from "../theme/tokens";
 import getToggleAccessibilityProps from "../utils/getToggleAccessibilityProps";
 import { useScreenPadding } from "../hooks/useScreenPadding";
+import { useContentGutters } from "../layout/WindowLayout";
+import type { ContentGutters } from "../layout/windowLayout";
 import { useNow } from "../hooks/useNow";
 import { useRefresh } from "../hooks/useRefresh";
 import ScreenIntro from "../components/ScreenIntro";
@@ -98,6 +100,7 @@ export function readPrefilledWindow(
 export default function CreateOnCallOverrideScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const bottomPadding: number = useScreenPadding();
+  const gutters: ContentGutters = useContentGutters();
   const now: number = useNow();
   const { successFeedback, errorFeedback, selectionFeedback } = useHaptics();
   const navigation: CreateOverrideNavProp =
@@ -248,6 +251,7 @@ export default function CreateOnCallOverrideScreen(): React.JSX.Element {
         style={{ backgroundColor: theme.colors.backgroundPrimary }}
         contentContainerStyle={{
           padding: spacing.xl,
+          ...gutters,
           paddingBottom: bottomPadding,
         }}
         keyboardShouldPersistTaps="handled"

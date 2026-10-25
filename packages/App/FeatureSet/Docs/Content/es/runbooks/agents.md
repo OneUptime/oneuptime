@@ -61,6 +61,7 @@ Los Runners globales son los Runners que OneUptime ejecuta para todos los proyec
 | Lo que un paso puede alcanzar | Direcciones públicas de internet | Lo que alcanza su host |
 | Lo más que dura un paso | 5 minutos | 1 hora |
 | Variables secretas | Las que dejas usar a los Runners globales | Las que lo incluyen |
+| Comandos Bash de OneUptime AI | Nunca | Para las reglas de IA que lo eligen |
 
 Un Runner global ejecuta los pasos de muchos proyectos, así que cada paso se mantiene aparte de todos los demás:
 

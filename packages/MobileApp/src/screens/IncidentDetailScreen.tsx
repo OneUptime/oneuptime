@@ -9,6 +9,8 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTheme } from "../theme";
 import { spacing } from "../theme/tokens";
 import { useScreenPadding } from "../hooks/useScreenPadding";
+import { useContentGutters } from "../layout/WindowLayout";
+import type { ContentGutters } from "../layout/windowLayout";
 import { useRefresh } from "../hooks/useRefresh";
 import QueryErrorNotice from "../components/QueryErrorNotice";
 import {
@@ -62,6 +64,7 @@ export default function IncidentDetailScreen({
   const { incidentId, projectId } = route.params;
   const { theme } = useTheme();
   const bottomPadding: number = useScreenPadding();
+  const gutters: ContentGutters = useContentGutters();
   const queryClient: QueryClient = useQueryClient();
 
   const {
@@ -197,6 +200,7 @@ export default function IncidentDetailScreen({
    */
   const placeholderContainerStyle: ViewStyle = {
     padding: spacing.xl,
+    ...gutters,
     paddingBottom: bottomPadding,
     flexGrow: 1,
   };
@@ -337,6 +341,7 @@ export default function IncidentDetailScreen({
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={{
         padding: spacing.xl,
+        ...gutters,
         paddingBottom: bottomPadding,
       }}
       refreshControl={

@@ -202,7 +202,8 @@ services:
 ```bash
 docker pull oneuptime/docker-agent:release
 docker pull oneuptime/resource-ai-agent:release
-docker rm -f oneuptime-docker-agent oneuptime-docker-ai-agent
+docker stop oneuptime-docker-agent oneuptime-docker-ai-agent
+docker rm oneuptime-docker-agent oneuptime-docker-ai-agent
 ```
 
 Затем снова выполните обе команды `docker run` из раздела [Запустите агент](#запустите-агент).
