@@ -1,4 +1,6 @@
-import ActionButtonSchema from "./ActionButtonSchema";
+import ActionButtonSchema, {
+  RowActionConfirmation,
+} from "./ActionButtonSchema";
 import splitActionButtons, {
   ActionButtonLock,
   getActionButtonLock,
@@ -13,6 +15,7 @@ import MoreMenu from "../MoreMenu/MoreMenu";
 import MoreMenuDivider from "../MoreMenu/Divider";
 import MoreMenuItem from "../MoreMenu/MoreMenuItem";
 import GenericObject from "../../../Types/GenericObject";
+import { VoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
 import React, { ReactElement, useRef, useState } from "react";
@@ -73,6 +76,20 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
   const [error, setError] = useState<string>("");
 
   /*
+   * The action whose question is open (getConfirmation), what it asks, and
+   * whether the action it confirms is running - the dialog stays open, its
+   * button busy, until the action is done, and shows in place why it could
+   * not be.
+   */
+  const [confirming, setConfirming] = useState<{
+    entry: IndexedActionButton<T>;
+    confirmation: RowActionConfirmation;
+  } | null>(null);
+  const [isConfirmedActionRunning, setIsConfirmedActionRunning] =
+    useState<boolean>(false);
+  const [confirmationError, setConfirmationError] = useState<string>("");
+
+  /*
    * Which actions are mid-flight, by their index in props.actionButtons. Held
    * in a ref, as the rows always have: it is read whenever the row renders but
    * never forces a render of its own. Plenty of action handlers navigate away
@@ -94,18 +111,32 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
     ? getActionButtonLock(primary.button, props.item)
     : null;
 
-  if (!primary && moreMenu.length === 0 && !error) {
+  if (!primary && moreMenu.length === 0 && !error && !confirming) {
     return <></>;
   }
 
   type RunActionFunction = (entry: IndexedActionButton<T>) => void;
 
+  /*
+   * An action that asks first opens its question; any other runs at once.
+   * A locked action does neither.
+   */
   const runAction: RunActionFunction = (
     entry: IndexedActionButton<T>,
   ): void => {
     const { button, index } = entry;
 
     if (getActionButtonLock(button, props.item).isDisabled || !button.onClick) {
+      return;
+    }
+
+    const confirmation: RowActionConfirmation | undefined =
+      button.getConfirmation?.(props.item);
+
+    if (confirmation) {
+      setConfirmationError("");
+      setIsConfirmedActionRunning(false);
+      setConfirming({ entry: entry, confirmation: confirmation });
       return;
     }
 
@@ -119,6 +150,37 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
       (err: Error) => {
         loadingActionIndexes.current[index] = false;
         setError((err as Error).message);
+      },
+    );
+  };
+
+  // The question was answered yes: run the action it asked about.
+  const runConfirmedAction: VoidFunction = (): void => {
+    if (!confirming || isConfirmedActionRunning) {
+      return;
+    }
+
+    const { button, index } = confirming.entry;
+
+    loadingActionIndexes.current[index] = true;
+    setConfirmationError("");
+    setIsConfirmedActionRunning(true);
+
+    button.onClick(
+      props.item,
+      () => {
+        loadingActionIndexes.current[index] = false;
+        setIsConfirmedActionRunning(false);
+        setConfirming(null);
+      },
+      (err: Error) => {
+        loadingActionIndexes.current[index] = false;
+        setIsConfirmedActionRunning(false);
+        setConfirmationError(
+          (err as Error).message ||
+            translateString("Something went wrong. Please try again.") ||
+            "Something went wrong. Please try again.",
+        );
       },
     );
   };
@@ -188,6 +250,31 @@ const RowActions: RowActionsFunction = <T extends GenericObject>(
               return setError("");
             }}
           />
+        </div>
+      )}
+
+      {confirming && (
+        <div className="text-align-left">
+          <ConfirmModal
+            title={confirming.confirmation.title}
+            description={confirming.confirmation.description}
+            submitButtonText={confirming.confirmation.submitButtonText}
+            submitButtonType={confirming.confirmation.submitButtonType}
+            isLoading={isConfirmedActionRunning}
+            error={confirmationError || undefined}
+            onClose={() => {
+              // An action already running finishes either way.
+              if (isConfirmedActionRunning) {
+                return;
+              }
+
+              setConfirming(null);
+              setConfirmationError("");
+            }}
+            onSubmit={runConfirmedAction}
+          >
+            {confirming.confirmation.details}
+          </ConfirmModal>
         </div>
       )}
 

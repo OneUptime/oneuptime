@@ -35,7 +35,9 @@ import ProjectUtil from "../../Utils/Project";
 import User from "../../Utils/User";
 import ActionButtonSchema, {
   ActionButtonPlacement,
+  RowActionContext,
 } from "../ActionButton/ActionButtonSchema";
+import { withRowActionContext } from "../ActionButton/RowActionContext";
 import {
   BulkActionButtonSchema,
   BulkActionFailed,
@@ -1143,9 +1145,50 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     Array<CardButtonSchema | ReactElement>
   >([]);
 
-  const [actionButtonSchema, setActionButtonSchema] = useState<
-    Array<ActionButtonSchema<TBaseModel>>
-  >([]);
+  /*
+   * The table's own row actions, built with the columns: Show ID before the
+   * list's actions, View, Edit and Delete after them.
+   */
+  const [builtInRowActions, setBuiltInRowActions] = useState<{
+    leading: Array<ActionButtonSchema<TBaseModel>>;
+    trailing: Array<ActionButtonSchema<TBaseModel>>;
+  }>({ leading: [], trailing: [] });
+
+  /*
+   * A row action that changed its row asks for the rows again
+   * (RowActionContext.refresh): counted here, and read by the fetch below,
+   * so the read goes out with the page, sort and filters of the moment.
+   */
+  const [rowActionRefreshCount, setRowActionRefreshCount] = useState<number>(0);
+
+  const rowActionContext: RowActionContext = useMemo(() => {
+    return {
+      refresh: (): void => {
+        setRowActionRefreshCount((count: number): number => {
+          return count + 1;
+        });
+      },
+    };
+  }, []);
+
+  /*
+   * Every row's actions: the table's, and the list's own in between - read
+   * from the props on every render, so an action that depends on something
+   * the page loaded later (the project's states, the viewer's owners) is
+   * never the one the first render saw. Each of the list's actions is
+   * handed the list's refresh as it runs.
+   */
+  const actionButtonSchema: Array<ActionButtonSchema<TBaseModel>> =
+    useMemo(() => {
+      return [
+        ...builtInRowActions.leading,
+        ...withRowActionContext<TBaseModel>(
+          props.actionButtons || [],
+          rowActionContext,
+        ),
+        ...builtInRowActions.trailing,
+      ];
+    }, [builtInRowActions, props.actionButtons, rowActionContext]);
 
   useEffect(() => {
     if (props.showCreateForm) {
@@ -3023,6 +3066,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     debouncedSearchText,
     selectedLabelIdsKey,
     props.refreshToggle,
+    rowActionRefreshCount,
   ]);
 
   type ShouldDisableSortFunction = (
@@ -3378,12 +3422,14 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       });
     }
 
-    // add actions buttons from props.
-    if (props.actionButtons) {
-      for (const moreSchema of props.actionButtons) {
-        actionsSchema.push(moreSchema);
-      }
-    }
+    /*
+     * The list's own actions go between these and the ones below, read
+     * fresh on every render (actionButtonSchema).
+     */
+    const leadingActions: Array<ActionButtonSchema<TBaseModel>> = [
+      ...actionsSchema,
+    ];
+    actionsSchema.length = 0;
 
     if (isViewActionShown) {
       actionsSchema.push({
@@ -3547,7 +3593,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       });
     }
 
-    setActionButtonSchema(actionsSchema);
+    setBuiltInRowActions({
+      leading: leadingActions,
+      trailing: actionsSchema,
+    });
   };
 
   const [filterData, setFilterData] = useState<FilterData<TBaseModel>>(

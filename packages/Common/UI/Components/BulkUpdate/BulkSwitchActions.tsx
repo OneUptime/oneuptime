@@ -18,8 +18,16 @@ import {
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import API from "../../Utils/API/API";
+import ActionButtonSchema, {
+  ActionButtonPlacement,
+  RowActionConfirmation,
+  RowActionContext,
+} from "../ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "../Button/Button";
 import DeleteItemNames from "../DeleteConfirmation/DeleteItemNames";
+import NamedSentence from "../DeleteConfirmation/NamedSentence";
+import { ErrorFunction, VoidFunction } from "../../../Types/FunctionTypes";
 import {
   BULK_ITEM_CHANGED,
   BulkItemOutcome,
@@ -59,6 +67,15 @@ import {
  * Rows are written one at a time: a switch's server-side work can read
  * shared state (a plan's limits, the next run's schedule), and each write
  * must see the one before it finished.
+ *
+ * The same switch is in each row's ⋯ menu (useSwitchActions' rowActions):
+ * the one action that changes that row - Disable on an enabled workflow,
+ * Enable on a disabled one - locked the same way for someone who may not
+ * change the column. It writes at once, as the record's own switch does,
+ * unless the change has something to say (BulkSwitchConsequences, or the
+ * list's own question - a monitor asks before monitoring is turned off, as
+ * its Settings page does): then it asks first, naming the row and saying
+ * what the change does. The list reads its rows again once it is saved.
  */
 
 export interface BulkSwitchAction {
@@ -87,6 +104,13 @@ export interface BulkSwitchAction {
   };
   // A danger style puts the item below the divider in Bulk Actions.
   buttonStyleType?: ButtonStyleType | undefined;
+  /*
+   * A row's question, when the change has one to ask: its title, named for
+   * the kind of record ("Disable {{itemName}}"), and its sentence, naming
+   * the row in bold ("Are you sure you want to disable {{name}}?").
+   */
+  rowConfirmTitle: string;
+  rowQuestion: string;
 }
 
 export const ENABLE_SWITCH_ACTION: BulkSwitchAction = {
@@ -116,6 +140,8 @@ export const ENABLE_SWITCH_ACTION: BulkSwitchAction = {
       other: "{{count}} {{itemsName}} not enabled",
     },
   },
+  rowConfirmTitle: translationKey("Enable {{itemName}}"),
+  rowQuestion: translationKey("Are you sure you want to enable {{name}}?"),
 };
 
 export const DISABLE_SWITCH_ACTION: BulkSwitchAction = {
@@ -145,6 +171,8 @@ export const DISABLE_SWITCH_ACTION: BulkSwitchAction = {
       other: "{{count}} {{itemsName}} not disabled",
     },
   },
+  rowConfirmTitle: translationKey("Disable {{itemName}}"),
+  rowQuestion: translationKey("Are you sure you want to disable {{name}}?"),
 };
 
 /*
@@ -181,6 +209,8 @@ export const UNSUBSCRIBE_SWITCH_ACTION: BulkSwitchAction = {
       other: "{{count}} {{itemsName}} not unsubscribed",
     },
   },
+  rowConfirmTitle: translationKey("Unsubscribe {{itemName}}"),
+  rowQuestion: translationKey("Are you sure you want to unsubscribe {{name}}?"),
 };
 
 export interface BulkSwitchActionsConfig<T extends BaseModel> {
@@ -203,7 +233,48 @@ export interface BulkSwitchActionsConfig<T extends BaseModel> {
   getItemName?: ((item: T) => string) | undefined;
   // The API the writes go through: the Admin Dashboard's has no project.
   modelAPI?: typeof ModelAPI | undefined;
+  /*
+   * A row's question, for a list whose record page asks one of its own -
+   * a monitor's Monitoring switch asks before monitoring is turned off: the
+   * dialog for the value the action writes, or undefined to write at once.
+   * Left out, a row asks when the change has a sentence in
+   * BulkSwitchConsequences, and writes at once otherwise.
+   */
+  getRowConfirmation?:
+    | ((data: {
+        value: boolean;
+        item: T;
+        name: string;
+      }) => RowActionConfirmation | undefined)
+    | undefined;
 }
+
+export interface SwitchActionsResult<T extends BaseModel> {
+  // For Bulk Actions.
+  bulkActions: Array<BulkActionButtonSchema<T>>;
+  // For each row's ⋯ menu: the one that changes the row.
+  rowActions: Array<ActionButtonSchema<T>>;
+}
+
+/*
+ * Whether a row's action is the one that changes it: the row says where its
+ * switch is, and it is not where the action would put it. A row that does
+ * not say is offered neither - its list does not read the column, which is
+ * a list's mistake, and a menu offering both Enable and Disable would guess.
+ */
+export const isRowSwitchActionOffered: <T extends BaseModel>(
+  item: T,
+  column: string,
+  value: boolean,
+) => boolean = <T extends BaseModel>(
+  item: T,
+  column: string,
+  value: boolean,
+): boolean => {
+  const current: unknown = (item as unknown as JSONObject)[column];
+
+  return typeof current === "boolean" && current !== value;
+};
 
 // The rows whose column does not hold `value` (a row that does not say is one).
 export const getRowsToChange: <T extends BaseModel>(
@@ -222,9 +293,15 @@ export const getRowsToChange: <T extends BaseModel>(
   });
 };
 
-function useBulkSwitchActions<T extends BaseModel>(
+/*
+ * The bulk switch and its row counterparts, from one declaration: a list
+ * spreads bulkActions into its Bulk Actions and rowActions into its
+ * actionButtons, so the two can never disagree about which column they
+ * write or what they say.
+ */
+export function useSwitchActions<T extends BaseModel>(
   config: BulkSwitchActionsConfig<T>,
-): Array<BulkActionButtonSchema<T>> {
+): SwitchActionsResult<T> {
   const translator: Translator = useTranslator();
   const model: T = new config.modelType();
   const modelAPI: typeof ModelAPI = config.modelAPI || ModelAPI;
@@ -395,11 +472,146 @@ function useBulkSwitchActions<T extends BaseModel>(
     return schema;
   };
 
-  return (config.actions || [ENABLE_SWITCH_ACTION, DISABLE_SWITCH_ACTION]).map(
-    (action: BulkSwitchAction): BulkActionButtonSchema<T> => {
-      return buildAction(action);
-    },
-  );
+  /*
+   * The question a row asks before it writes `action`'s value, if any: the
+   * list's own, else what the change does (BulkSwitchConsequences), naming
+   * the row.
+   */
+  const getRowConfirmation: (
+    action: BulkSwitchAction,
+    item: T,
+  ) => RowActionConfirmation | undefined = (
+    action: BulkSwitchAction,
+    item: T,
+  ): RowActionConfirmation | undefined => {
+    const name: string =
+      nameOf(item) ||
+      translator.translateTerm(
+        config.singularName || model.singularName || "item",
+      );
+
+    if (config.getRowConfirmation) {
+      return config.getRowConfirmation({
+        value: action.value,
+        item: item,
+        name: name,
+      });
+    }
+
+    const consequence: string = getBulkSwitchConsequence({
+      tableName: model.tableName,
+      column: config.column,
+      value: action.value,
+    });
+
+    if (!consequence) {
+      return undefined;
+    }
+
+    return {
+      title: translator.translateTemplate(action.rowConfirmTitle, {
+        itemName: nounValues(false)["itemName"]!,
+      }),
+      description: (
+        <NamedSentence
+          template={action.rowQuestion}
+          name={name}
+          dataTestId="row-switch-name"
+        />
+      ),
+      details: (
+        <p
+          data-testid="row-switch-consequence"
+          className="text-sm leading-6 text-gray-600"
+        >
+          {translator.translateText(consequence) || consequence}
+        </p>
+      ),
+      submitButtonText: action.title,
+      submitButtonType: ButtonStyleType.PRIMARY,
+    };
+  };
+
+  const buildRowAction: (action: BulkSwitchAction) => ActionButtonSchema<T> = (
+    action: BulkSwitchAction,
+  ): ActionButtonSchema<T> => {
+    const rowAction: ActionButtonSchema<T> = {
+      title: action.title,
+      icon: action.icon,
+      buttonStyleType: ButtonStyleType.OUTLINE,
+      /*
+       * Never the row's button: opening the record (View) or editing it
+       * stays the row's one button, and the switch sits in the ⋯ menu.
+       */
+      placement: ActionButtonPlacement.MoreMenu,
+      isVisible: (item: T): boolean => {
+        return isRowSwitchActionOffered(item, config.column, action.value);
+      },
+      getConfirmation: (item: T): RowActionConfirmation | undefined => {
+        return getRowConfirmation(action, item);
+      },
+      onClick: async (
+        item: T,
+        onCompleteAction: VoidFunction,
+        onError: ErrorFunction,
+        context?: RowActionContext | undefined,
+      ): Promise<void> => {
+        try {
+          if (!item.id) {
+            throw new BadDataException("Item ID not found");
+          }
+
+          await modelAPI.updateById<T>({
+            modelType: config.modelType,
+            id: item.id as ObjectID,
+            data: {
+              [config.column]: action.value,
+            },
+          });
+
+          context?.refresh();
+          onCompleteAction();
+        } catch (err) {
+          onError(new Error(API.getFriendlyMessage(err)));
+        }
+      },
+    };
+
+    if (!gate.isAllowed && gate.disabledReason) {
+      return {
+        ...rowAction,
+        disabled: true,
+        tooltip: gate.disabledReason,
+      };
+    }
+
+    return rowAction;
+  };
+
+  const actions: Array<BulkSwitchAction> = config.actions || [
+    ENABLE_SWITCH_ACTION,
+    DISABLE_SWITCH_ACTION,
+  ];
+
+  return {
+    bulkActions: actions.map(
+      (action: BulkSwitchAction): BulkActionButtonSchema<T> => {
+        return buildAction(action);
+      },
+    ),
+    rowActions: actions.map(
+      (action: BulkSwitchAction): ActionButtonSchema<T> => {
+        return buildRowAction(action);
+      },
+    ),
+  };
+}
+
+// The bulk switch alone, for a list that keeps its rows' actions as they are.
+function useBulkSwitchActions<T extends BaseModel>(
+  config: BulkSwitchActionsConfig<T>,
+): Array<BulkActionButtonSchema<T>> {
+  return useSwitchActions<T>(config).bulkActions;
 }
 
 export default useBulkSwitchActions;
