@@ -917,12 +917,13 @@ describe("the Kubernetes AI agent card", () => {
     );
   });
 
-  test("warns when another agent tried to register for the cluster", async () => {
+  test("warns when another agent tried to register for the cluster while this one kept running", async () => {
     serve(
       makeStatus(
         {},
         makeAgent({
-          lastRefusedRegistrationAt: new Date().toISOString(),
+          // Refused a minute ago; this agent was heard from since.
+          lastRefusedRegistrationAt: minutesAgo(1),
           lastRefusedRegistrationReason: "previous_instance_online",
         }),
       ),
@@ -932,6 +933,25 @@ describe("the Kubernetes AI agent card", () => {
     expect(await findTestId("ai-agent-refused-registration")).toHaveTextContent(
       "Another agent tried to register for this cluster at",
     );
+  });
+
+  test("a pod that took the place of one that stopped without signing off is no warning", async () => {
+    serve(
+      makeStatus(
+        {},
+        makeAgent({
+          lastRefusedRegistrationAt: minutesAgo(2),
+          lastRefusedRegistrationReason: "previous_instance_online",
+          lastRegisteredAt: minutesAgo(1.3),
+        }),
+      ),
+    );
+    openAgentPage();
+
+    expect(await findTestId("ai-agent-status")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("ai-agent-refused-registration"),
+    ).not.toBeInTheDocument();
   });
 
   test("an older server's status without the agent field still renders", async () => {

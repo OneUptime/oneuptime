@@ -202,7 +202,8 @@ services:
 ```bash
 docker pull oneuptime/docker-agent:release
 docker pull oneuptime/resource-ai-agent:release
-docker rm -f oneuptime-docker-agent oneuptime-docker-ai-agent
+docker stop oneuptime-docker-agent oneuptime-docker-ai-agent
+docker rm oneuptime-docker-agent oneuptime-docker-ai-agent
 ```
 
 然后再次运行 [启动代理](#启动代理) 中的两条 `docker run` 命令。

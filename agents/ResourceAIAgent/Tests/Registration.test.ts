@@ -26,6 +26,7 @@ import {
   AgentIdentity,
   AgentSession,
   DUPLICATE_AGENT_AFTER_MS,
+  MAX_SERVER_RETRY_HINT_MS,
   OPERATOR_ACTION_RETRY_MS,
   REREGISTER_AFTER_REJECTIONS,
   RegistrationAttempt,
@@ -41,6 +42,7 @@ import FakeOneUptime, {
   TEST_RESOURCE_ID,
 } from "./Helpers/FakeOneUptime";
 import AiResourceType from "../Common/Types/ResourceAiAgent/AiResourceType";
+import { RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS } from "../Common/Types/ResourceAiAgent/ResourceAiAccess";
 
 const POSTURE: AgentPosture = {
   resourceType: AiResourceType.DockerHost,
@@ -134,6 +136,28 @@ describe("the retry schedule", () => {
       assert.strictEqual(plan(refusal).reason, reason);
     });
   }
+
+  test("the server's takeover wait (its takeover window plus a second) is honoured as is, well before a duplicate is suspected", () => {
+    /*
+     * A replaced agent that never signed off (docker rm -f) is refused once
+     * and told to come back when the old one has had its time to answer;
+     * the retry is then let in. Waiting any less only asks again in vain.
+     */
+    const retryAfterSeconds: number =
+      RESOURCE_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS + 1;
+    const waiting: RegistrationRetryPlan = plan({
+      kind: "auth",
+      status: 403,
+      body: { reason: "previous_instance_online", retryAfterSeconds },
+      message: "Another Docker AI agent is online.",
+      retryAfterSeconds,
+    });
+
+    assert.strictEqual(waiting.category, "waiting");
+    assert.strictEqual(waiting.delayMs, retryAfterSeconds * 1000);
+    assert.ok(retryAfterSeconds * 1000 <= MAX_SERVER_RETRY_HINT_MS);
+    assert.ok(2 * retryAfterSeconds * 1000 < DUPLICATE_AGENT_AFTER_MS);
+  });
 
   test("the wait names the resource it is waiting on", () => {
     assert.match(

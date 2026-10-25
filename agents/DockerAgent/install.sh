@@ -95,7 +95,10 @@ install_ai_agent() {
     docker pull "$AI_IMAGE" || return 1
 
     if docker ps -a --format '{{.Names}}' | grep -q '^oneuptime-docker-ai-agent$'; then
-        echo "Removing existing oneuptime-docker-ai-agent container..."
+        # docker stop first, not rm -f alone: the agent signs off, so the new
+        # one is let in at once instead of after the old one goes silent.
+        echo "Stopping and removing the existing oneuptime-docker-ai-agent container..."
+        docker stop oneuptime-docker-ai-agent >/dev/null || true
         docker rm -f oneuptime-docker-ai-agent || return 1
     fi
 

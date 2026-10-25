@@ -25,6 +25,7 @@ import {
   API_MISSING_RETRY_MS,
   AgentIdentity,
   AgentSession,
+  MAX_SERVER_RETRY_HINT_MS,
   OPERATOR_ACTION_RETRY_MS,
   REREGISTER_AFTER_REJECTIONS,
   RegistrationAttempt,
@@ -37,6 +38,7 @@ import FakeOneUptime, {
   FakeReply,
   RecordedRequest,
 } from "./Helpers/FakeOneUptime";
+import { KUBERNETES_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS } from "../Common/Types/Kubernetes/KubernetesClusterAiAccess";
 
 const POSTURE: AgentPosture = {
   clusterIdentifier: "prod-us",
@@ -69,6 +71,26 @@ function plan(
 }
 
 describe("the retry schedule", () => {
+  test("the server's takeover wait (its takeover window plus a second) is honoured as is", () => {
+    /*
+     * A pod replaced without signing off (an OOM kill, --force) is refused
+     * once and told to come back when the old one has had its time to
+     * answer; the retry is then let in.
+     */
+    const retryAfterSeconds: number =
+      KUBERNETES_AI_AGENT_TAKEOVER_AFTER_SILENT_SECONDS + 1;
+    const waiting: RegistrationRetryPlan = plan({
+      kind: "auth",
+      status: 403,
+      body: { reason: "previous_instance_online", retryAfterSeconds },
+      message: "Another Kubernetes AI agent is online.",
+      retryAfterSeconds,
+    });
+
+    assert.strictEqual(waiting.delayMs, retryAfterSeconds * 1000);
+    assert.ok(retryAfterSeconds * 1000 <= MAX_SERVER_RETRY_HINT_MS);
+  });
+
   test("transient failures: 30s, then 60s, capped at 60s", () => {
     const delays: Array<number> = [1, 2, 3, 4, 10].map((n: number): number => {
       return plan({ kind: "transient", status: 503, message: "HTTP 503" }, n)
