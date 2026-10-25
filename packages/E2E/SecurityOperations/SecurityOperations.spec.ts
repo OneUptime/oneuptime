@@ -11,6 +11,7 @@ import {
   getRecommendedDetectionRules,
 } from "Common/Types/SecurityEvent/DetectionRuleLibrary";
 import { RECOMMENDED_THREAT_INTEL_LISTS } from "Common/Types/SecurityEvent/ThreatIntelFeedType";
+import { MITRE_TACTIC_TECHNIQUES } from "Common/Types/SecurityEvent/MitreAttack";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs/promises";
 import path from "path";
@@ -61,6 +62,7 @@ const CONTAIN_PLAYBOOK_PATH: string = `${PRODUCT}/playbooks/24000000-0000-4000-8
 // The runs held for an approval keep the runs page's old address.
 const RUNS_PATH: string = `${PRODUCT}/playbook-runs`;
 const ALL_RUNS_PATH: string = `${PRODUCT}/playbook-runs/all`;
+const PROTECTED_ENTITIES_PATH: string = `${PRODUCT}/protected-entities`;
 const DETECTION_RULES_PATH: string = `${PRODUCT}/detection-rules`;
 const THREAT_INTEL_PATH: string = `${PRODUCT}/threat-intel`;
 // The known-bad domain case nobody has picked up, and OneUptime AI has not read.
@@ -190,6 +192,9 @@ interface OpenOptions {
   lang?: "de" | "ja";
   // "custom": the project's own case statuses and priorities.
   values?: "custom";
+  // ATT&CK Coverage's address: the view, and the tactic it opens on.
+  view?: "matrix";
+  tactic?: string;
 }
 
 test.use({ deviceScaleFactor: 2, actionTimeout: 15000 });
@@ -299,6 +304,12 @@ async function open(
   }
   if (options.values) {
     params.set("values", options.values);
+  }
+  if (options.view) {
+    params.set("view", options.view);
+  }
+  if (options.tactic) {
+    params.set("tactic", options.tactic);
   }
   const query: string = params.toString();
   await page.goto(query ? `${pathname}?${query}` : pathname);
@@ -1953,9 +1964,10 @@ test.describe("playbooks", () => {
     page: Page;
   }) => {
     await open(page, PLAYBOOKS_PATH);
-    await expect(
-      page.getByText("Showing 1-4 of 4 security playbooks"),
-    ).toBeVisible({ timeout: 30000 });
+    // The list's own names: playbooks, not the model's "security playbooks".
+    await expect(page.getByText("Showing 1-4 of 4 playbooks")).toBeVisible({
+      timeout: 30000,
+    });
 
     const rows: Array<string> = await rowTexts(page);
     const contain: string = rows.find((row: string): boolean => {
@@ -1966,10 +1978,10 @@ test.describe("playbooks", () => {
     expect(contain).toContain("Case Opened");
     expect(contain).toContain("Critical and up");
 
-    // Three templates to start from.
-    await expect(
-      page.getByTestId("security-playbook-template-enrich"),
-    ).toBeVisible();
+    // The list leads the page: no card of templates above it.
+    await expect(page.getByTestId("security-playbook-templates")).toHaveCount(
+      0,
+    );
 
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
     const scroller: Locator = page
@@ -1983,12 +1995,62 @@ test.describe("playbooks", () => {
     await screenshot(page, "playbooks-desktop");
   });
 
-  test("a template becomes a working playbook in one click, built as Turn on recommended builds Enrich New Cases", async ({
+  test("Create from Template lists the templates, the ones the project has Added with View", async ({
     page,
   }: {
     page: Page;
   }) => {
     await open(page, PLAYBOOKS_PATH);
+    await expect(page.getByText("Showing 1-4 of 4 playbooks")).toBeVisible({
+      timeout: 30000,
+    });
+
+    await cardTitled(page, "Playbooks")
+      .getByRole("button", { name: "More options" })
+      .click();
+    await page.getByRole("menuitem", { name: "Create from Template" }).click();
+
+    const dialog: Locator = page.getByTestId("modal");
+    await expect(dialog).toBeVisible();
+    // The project has a playbook of every template: each says Added, none offers a copy.
+    for (const key of ["enrich", "known-bad", "imported-alerts"]) {
+      await expect(
+        dialog.getByTestId(`security-playbook-template-added-${key}`),
+      ).toHaveText("Added");
+      await expect(
+        dialog.getByTestId(`security-playbook-template-${key}`),
+      ).toHaveCount(0);
+    }
+    await pageAtRest(page);
+    await screenshot(page, "playbooks-templates-dialog");
+
+    await dialog
+      .getByTestId("security-playbook-template-view-known-bad")
+      .click();
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(`${PLAYBOOKS_PATH}/24000000-0000-4000-8000-000000000002`);
+  });
+
+  test("a template becomes a working playbook in one click, built as Turn on recommended builds Enrich New Cases", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // A project with no playbook: the templates are its empty list.
+    await open(page, PLAYBOOKS_PATH, { empty: true });
+    await expect(page.getByTestId("security-playbook-templates")).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(
+      page.getByRole("heading", { name: "Start from a template" }),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("security-playbook-create-blank"),
+    ).toBeVisible();
+    await screenshot(page, "playbooks-empty");
     await page.getByTestId("security-playbook-template-known-bad").click();
 
     // It opens on the new playbook's page.
@@ -2016,7 +2078,7 @@ test.describe("playbooks", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, PLAYBOOKS_PATH, { setup: "partly" });
+    await open(page, PLAYBOOKS_PATH, { setup: "partly", empty: true });
     await page.getByTestId("security-playbook-template-known-bad").click();
 
     // Why, in the product's words - never the server's sentence centred in grey.
@@ -2069,6 +2131,28 @@ test.describe("playbooks", () => {
       "Add a note",
     );
     await expect(page.getByText("Latest Runs")).toBeVisible();
+
+    // The trail and the tab name the playbook, not "View Playbook".
+    expect(await breadcrumbs(page)).toEqual([
+      "Project",
+      "Security Events",
+      "Playbooks",
+      "Contain Compromised Okta Users",
+    ]);
+    expect(await page.title()).toContain("Contain Compromised Okta Users");
+
+    // Its runs fold to a line: the one waiting for approval opens.
+    const runs: Locator = page.getByTestId("security-playbook-run-card");
+    await expect(runs).toHaveCount(2);
+    await expect(
+      runs.first().getByTestId("security-playbook-run-steps-toggle"),
+    ).toHaveAttribute("aria-expanded", "true");
+    await expect(
+      runs.nth(1).getByTestId("security-playbook-run-steps-toggle"),
+    ).toHaveAttribute("aria-expanded", "false");
+    await expect(
+      runs.nth(1).getByTestId("security-playbook-run-summary"),
+    ).toHaveText("4 of 4 steps done");
 
     await screenshot(page, "playbook-desktop");
   });
@@ -2131,11 +2215,28 @@ test.describe("playbooks", () => {
       })
       .toBe(ALL_RUNS_PATH);
     await expect(page.getByTestId("security-playbook-run-card")).toHaveCount(5);
+
+    // Each run is a line; the one waiting for approval opens, the rest fold.
     await expect(
-      page.getByTestId("security-playbook-run-card").filter({
-        hasText: "Failed",
-      }),
-    ).toContainText("The events store did not answer within 30 seconds.");
+      page.locator(
+        '[data-testid="security-playbook-run-steps-toggle"][aria-expanded="true"]',
+      ),
+    ).toHaveCount(1);
+    const failed: Locator = page
+      .getByTestId("security-playbook-run-card")
+      .filter({ hasText: "Failed" });
+    await expect(
+      failed.getByTestId("security-playbook-run-summary"),
+    ).toHaveText("Stopped at step 2: Look up entity activity");
+    await expect(failed).not.toContainText(
+      "The events store did not answer within 30 seconds.",
+    );
+
+    // Show steps opens the failed run on its reason.
+    await failed.getByTestId("security-playbook-run-steps-toggle").click();
+    await expect(failed).toContainText(
+      "The events store did not answer within 30 seconds.",
+    );
     expect(await litEntries(page)).toEqual(["Playbook Runs"]);
 
     await screenshot(page, "playbook-runs-desktop");
@@ -2205,14 +2306,85 @@ test.describe("playbooks", () => {
  */
 
 test.describe("detections", () => {
-  test("ATT&CK coverage counts what the enabled rules cover, and the matrix scrolls in its card", async ({
+  test("ATT&CK Coverage opens on the tactics: how much of each is covered, what the Rule Library adds, and each one's techniques", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ATTACK_COVERAGE_PATH, { width: 1344 });
+    await expect(page.getByText("2 / 227")).toBeVisible({ timeout: 30000 });
+    await expect(page.getByText("1 / 15")).toBeVisible();
+
+    // A row per tactic, in the order an attack moves through them.
+    await expect(page.locator('[data-testid^="attack-tactic-TA"]')).toHaveCount(
+      15,
+    );
+    const credentialAccess: Locator = page.getByTestId("attack-tactic-TA0006");
+    await expect(credentialAccess).toContainText(
+      "Steal account names and passwords.",
+    );
+    await expect(
+      credentialAccess.getByTestId("attack-tactic-covered"),
+    ).toHaveText(`2 of ${(MITRE_TACTIC_TECHNIQUES["TA0006"] || []).length}`);
+    // No tactic is open, and nothing scrolls sideways: the matrix waits behind its switch.
+    await expect(page.getByTestId("attack-tactic-techniques")).toHaveCount(0);
+    await expect(page.getByTestId("attack-coverage-matrix")).toHaveCount(0);
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+
+    // The next step: what the Rule Library covers that the rules do not.
+    const gap: Locator = page.getByTestId("attack-coverage-gap");
+    await expect(gap).toContainText(
+      /The Rule Library covers \d+ techniques your rules do not\./,
+    );
+    await screenshot(page, "attack-coverage-desktop");
+
+    // A tactic opens on its techniques, the covered first.
+    await credentialAccess.getByRole("button").first().click();
+    const techniques: Locator = credentialAccess.getByTestId(
+      "attack-tactic-techniques",
+    );
+    await expect(techniques).toBeVisible();
+    await expect(techniques.locator("[data-coverage]").first()).toHaveAttribute(
+      "data-coverage",
+      "covered",
+    );
+    await expect(
+      techniques.getByTestId("attack-technique-T1110"),
+    ).toHaveAttribute("data-coverage", "covered");
+    await screenshot(page, "attack-coverage-tactic-open");
+
+    // The gap's link opens the Rule Library on the rules not added.
+    await gap.getByRole("link").click();
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(RULE_LIBRARY_PATH);
+    expect(new URL(page.url()).searchParams.get("status")).toBe("not-added");
+    await expect(libraryRow(page, CLOUDTRAIL_RULE)).toBeVisible({
+      timeout: 30000,
+    });
+    // The recommended brute force rule is the project's: not listed.
+    await expect(libraryRow(page, BRUTE_FORCE_RULE)).toHaveCount(0);
+  });
+
+  test("ATT&CK Coverage's matrix is one switch away, scrolls in its card, and the address keeps it; the page fits a phone and the dark theme", async ({
     page,
   }: {
     page: Page;
   }) => {
     await open(page, ATTACK_COVERAGE_PATH);
     await expect(page.getByText("2 / 227")).toBeVisible({ timeout: 30000 });
-    await expect(page.getByText("1 / 15")).toBeVisible();
+
+    await page
+      .getByTestId("attack-coverage-view")
+      .getByRole("radio", { name: "Matrix" })
+      .click();
+    await expect
+      .poll(() => {
+        return new URL(page.url()).searchParams.get("view");
+      })
+      .toBe("matrix");
 
     const technique: Locator = page
       .getByTestId("attack-technique-T1110")
@@ -2232,8 +2404,39 @@ test.describe("detections", () => {
       });
     expect(sizes.scrollHeight).toBeGreaterThan(sizes.clientHeight);
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await screenshot(page, "attack-coverage-matrix");
 
-    await screenshot(page, "attack-coverage-desktop");
+    // A reload keeps the matrix.
+    await page.reload();
+    await expect(page.getByTestId("attack-coverage-matrix")).toBeVisible({
+      timeout: 60000,
+    });
+
+    // A phone opens on the tactics, a tactic's techniques one to a line, nothing sideways.
+    await open(page, ATTACK_COVERAGE_PATH, {
+      width: 390,
+      height: 844,
+      tactic: "TA0006",
+    });
+    await expect(
+      page
+        .getByTestId("attack-tactic-TA0006")
+        .getByTestId("attack-tactic-techniques"),
+    ).toBeVisible({ timeout: 30000 });
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await screenshot(page, "attack-coverage-phone");
+
+    await open(page, ATTACK_COVERAGE_PATH, {
+      width: 1280,
+      theme: "dark",
+      tactic: "TA0006",
+    });
+    await expect(
+      page
+        .getByTestId("attack-tactic-TA0006")
+        .getByTestId("attack-tactic-techniques"),
+    ).toBeVisible({ timeout: 30000 });
+    await screenshot(page, "attack-coverage-dark");
   });
 
   test("the rule library is a list to scan: what each rule finds, its ATT&CK tags, the events it reads and whether they arrive, its severity, and Add or Added", async ({
@@ -2503,7 +2706,7 @@ test.describe("detections", () => {
     await expect(libraryRow(page, BRUTE_FORCE_RULE)).toHaveCount(0);
 
     // ATT&CK Coverage: a technique's rules in the library, one click away.
-    await open(page, ATTACK_COVERAGE_PATH, { width: 1280 });
+    await open(page, ATTACK_COVERAGE_PATH, { width: 1280, tactic: "TA0006" });
     await expect(page.getByText("2 / 227")).toBeVisible({ timeout: 30000 });
     await page.getByTestId("attack-technique-T1110").first().click();
     await page.getByRole("link", { name: "Open the rule library" }).click();
@@ -3174,19 +3377,64 @@ test.describe("detections", () => {
     await expect(toggle).toContainText("Security Cases / Open Cases");
   });
 
-  test("entities ranks what the findings name most", async ({
+  test("entities ranks what the findings name most, each one click from Correlate, over the window picked", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await open(page, ENTITIES_PATH);
-    await expect(page.getByText("203.0.113.47").first()).toBeVisible({
-      timeout: 30000,
-    });
+    await open(page, ENTITIES_PATH, { width: 1344 });
+    const first: Locator = page.getByTestId("security-entity-row-203.0.113.47");
+    await expect(first).toBeVisible({ timeout: 30000 });
     await expect(
-      page.getByText("k.morgan@acme-commerce.example").first(),
+      page.getByTestId("security-entity-row-k.morgan@acme-commerce.example"),
     ).toBeVisible();
+    // Riskiest Entities leads the page, the lookup under it.
+    const ranking: Box = await boxOf(cardTitled(page, "Riskiest Entities"));
+    const lookup: Box = await boxOf(cardTitled(page, "Look Up an Entity"));
+    expect(ranking.y).toBeLessThan(lookup.y);
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
     await screenshot(page, "entities-desktop");
+
+    // The window switch reads the ranking again over a month.
+    await page
+      .getByTestId("security-entities-window")
+      .getByRole("radio", { name: "30 days" })
+      .click();
+    await expect
+      .poll(async () => {
+        return (await fixture(page)).apiRequests.filter(
+          (request: { url: string; body: unknown }): boolean => {
+            return (
+              new URL(request.url).pathname.endsWith(
+                "/security-case/top-entities",
+              ) && JSON.stringify(request.body).includes('"days":30')
+            );
+          },
+        ).length;
+      })
+      .toBe(1);
+
+    // Open in Correlate takes the entity there.
+    await page
+      .getByTestId("security-entity-row-fin-ws-112")
+      .getByRole("button", { name: "Open in Correlate" })
+      .click();
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(`${PRODUCT}/correlate`);
+    expect(new URL(page.url()).searchParams.get("observable")).toBe(
+      "fin-ws-112",
+    );
+
+    // A phone's card: the entity, its facts in a line, nothing sideways.
+    await open(page, ENTITIES_PATH, { width: 390, height: 844 });
+    await expect(
+      page.getByTestId("security-entity-card-facts").first(),
+    ).toBeVisible({ timeout: 30000 });
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await screenshot(page, "entities-phone");
   });
 });
 
@@ -3253,6 +3501,23 @@ test.describe("detection rules and threat intel", () => {
     await expect(
       rowNamed(page, SEQUENCE_RULE).getByTestId("detection-rule-type"),
     ).toHaveAttribute("title", /match in order/);
+
+    // A project with rules opens on them: the how-it-works card is its title row.
+    await expect(page.getByTestId("how-it-works-toggle")).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    await expect(page.getByTestId("how-it-works-step")).toHaveCount(0);
+    // A rule's button is Edit; Create Monitor, set up once, waits in its menu.
+    const sequence: Locator = rowNamed(page, SEQUENCE_RULE);
+    await expect(
+      sequence.getByTestId("row-actions").getByRole("button", { name: "Edit" }),
+    ).toBeVisible();
+    await sequence.getByTestId("row-actions-more-button").click();
+    await expect(
+      page.getByRole("menuitem", { name: "Create Monitor" }),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
 
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
     await screenshot(page, "detection-rules-desktop", { fullPage: false });
@@ -3552,6 +3817,22 @@ test.describe("detection rules and threat intel", () => {
       const box: Box = await boxOf(row);
       expect(box.height).toBeLessThanOrEqual(64);
     }
+
+    // Every feed's button is Edit; a TAXII feed's Update Credentials and Create Monitor wait in its menu.
+    const misp: Locator = feeds
+      .locator("tbody tr")
+      .filter({ hasText: "Corporate MISP" });
+    await expect(
+      misp.getByTestId("row-actions").getByRole("button", { name: "Edit" }),
+    ).toBeVisible();
+    await misp.getByTestId("row-actions-more-button").click();
+    await expect(
+      page.getByRole("menuitem", { name: "Update Credentials" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("menuitem", { name: "Create Monitor" }),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
   });
 
   test("a Security Viewer reads the lists but cannot add one", async ({
@@ -5107,7 +5388,12 @@ test.describe("every page fits the screen", () => {
     ["playbooks", PLAYBOOKS_PATH, "Enrich New Cases"],
     ["playbook", CONTAIN_PLAYBOOK_PATH, "Latest Runs"],
     ["runs", RUNS_PATH, "CASE-142"],
-    ["all runs", ALL_RUNS_PATH, "The events store did not answer"],
+    ["all runs", ALL_RUNS_PATH, "Stopped at step 2"],
+    [
+      "protected entities",
+      PROTECTED_ENTITIES_PATH,
+      "breakglass@acme-commerce.example",
+    ],
     ["ai settings", AI_SETTINGS_PATH, "Triage new cases"],
     ["case priorities", CASE_PRIORITIES_PATH, "Informational"],
     ["case statuses", CASE_STATUSES_PATH, "Investigating"],
