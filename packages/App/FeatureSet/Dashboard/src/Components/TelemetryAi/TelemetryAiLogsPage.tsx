@@ -40,6 +40,7 @@ import {
   getPullRequestCopy,
 } from "../Code/CodeHostCopy";
 import CodeHostMark from "../Code/CodeHostMark";
+import InsightTitleText from "../AIInsights/InsightTitleText";
 import { fetchTelemetryAiLogs } from "./TelemetryAiApi";
 import {
   TELEMETRY_AI_LANE_COPY,
@@ -198,7 +199,14 @@ export const TelemetryAiLogRow: FunctionComponent<TelemetryAiLogRowProps> = (
 
       <div className="min-w-0 flex-1">
         <p className="text-sm text-gray-900 [overflow-wrap:anywhere]">
-          <span className="font-medium text-gray-500">
+          {/*
+           * The kind is read as one: beside a title that is one long word (a
+           * metric's name) a phone split "Pull request" across two lines.
+           */}
+          <span
+            className="whitespace-nowrap font-medium text-gray-500"
+            data-testid={TELEMETRY_AI_TEST_IDS.logKind}
+          >
             {translator.translateText(TELEMETRY_AI_LOG_KIND_LABELS[entry.kind])}
           </span>
           <span aria-hidden="true" className="px-1.5 text-gray-300">
@@ -208,10 +216,11 @@ export const TelemetryAiLogRow: FunctionComponent<TelemetryAiLogRowProps> = (
             to={getTelemetryAiInsightRoute(props.lane, entry.insight.id)}
             className={LINK_CLASS_NAME}
           >
-            {entry.insight.title ||
-              translator.translateText(
-                TELEMETRY_AI_LOG_KIND_LABELS[entry.kind],
-              )}
+            {entry.insight.title ? (
+              <InsightTitleText text={entry.insight.title} />
+            ) : (
+              translator.translateText(TELEMETRY_AI_LOG_KIND_LABELS[entry.kind])
+            )}
           </Link>
         </p>
 

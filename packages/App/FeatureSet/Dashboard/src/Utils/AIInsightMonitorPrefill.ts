@@ -93,6 +93,12 @@ import RouteMap, { RouteUtil } from "./RouteMap";
  *   LogMissingLogging / LogNoisyPattern -> no Create Monitor at all: a log
  *                     line that is not written cannot be counted, and a
  *                     noisy line is fixed, not paged on.
+ *   MetricHighCardinality / MetricHistogramBuckets / MetricMissingMetrics ->
+ *                     no Create Monitor either: how many values a metric
+ *                     records, whether a histogram's buckets fit its values
+ *                     and the metrics a service does not send are facts
+ *                     about its code, not numbers a monitor watches - the
+ *                     pull request is their fix.
  *
  * Pure (no network, no React) for the same reason as AIInsightExplorerLinks
  * and SecurityEventsMonitorPrefill: what it builds is a contract with the step
@@ -488,20 +494,27 @@ function getMetricDriftDirection(
 }
 
 /*
- * The Logs findings no monitor could ever watch: a line a service does not
- * write cannot be counted, and a noisy line is a cost to fix, not a reason
- * to page anyone.
+ * The Logs and Metrics findings no monitor could ever watch: a line a
+ * service does not write cannot be counted, and a noisy line is a cost to
+ * fix, not a reason to page anyone; how many values a metric records,
+ * whether a histogram's buckets fit its values and the metrics a service
+ * does not send are facts about its code, not numbers that go up and
+ * down. The pull request is their fix.
  */
 export const AI_INSIGHT_TYPES_NOT_MONITORED: ReadonlyArray<AIInsightType> = [
   AIInsightType.LogMissingLogging,
   AIInsightType.LogNoisyPattern,
+  AIInsightType.MetricHighCardinality,
+  AIInsightType.MetricHistogramBuckets,
+  AIInsightType.MetricMissingMetrics,
 ];
 
 /*
  * Whether Create Monitor is offered on this kind of insight at all. Missing
  * tracing and missing stack traces are not: what a trace or an exception
  * lacks is not a count a monitor can watch, so a greyed-out button that
- * could never be pressed would only be clutter.
+ * could never be pressed would only be clutter - nor are the Logs and
+ * Metrics findings above (AI_INSIGHT_TYPES_NOT_MONITORED).
  */
 export function isAIInsightMonitorOffered(
   insightType: string | undefined,

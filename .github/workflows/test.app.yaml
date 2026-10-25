@@ -232,7 +232,13 @@ jobs:
           # finding's evidence, Fix with AI, Create Monitor and Open in
           # Traces, Logs and Settings - at 1280 and 390 pixels, light and
           # dark) joined them on 2026-10-24, when this group took 14.9 minutes
-          # and group 8 22.4: about 16.5.
+          # and group 8 22.4: about 16.5. Metrics AI (1.5 minutes with its
+          # bundle locally, Chromium only: Metrics' AI tab - Insights, a
+          # finding's evidence, Fix with AI, Open in Metrics and Open in
+          # Traces, Logs and Settings - at 1280 and 390 pixels, light and dark)
+          # joined them on 2026-10-25, when this group took 18.5 and 19.1
+          # minutes on master's last two runs with Traces AI, and group 9,
+          # where Exceptions AI was going, 16.3 to 18.4: about 20.5.
           - group: 1
             browsers: chromium
             event_overview_shard: 1/2
@@ -241,6 +247,7 @@ jobs:
               test-snmp-walk-ui
               test-asset-details-ui
               test-traces-ai-ui
+              test-metrics-ai-ui
           # The Alerts suite also runs in Firefox, and so do Code Editor (the
           # editor's text layers must line up in both) and Diagrams. Diagrams
           # and Navigation Search (about 8 minutes together) moved here from
@@ -754,6 +761,8 @@ jobs:
             output/playwright/exceptions-ai-ui/test-results
             output/playwright/logs-ai-ui/*.png
             output/playwright/logs-ai-ui/test-results
+            output/playwright/metrics-ai-ui/*.png
+            output/playwright/metrics-ai-ui/test-results
             output/playwright/dashboard-templates-ui/*.png
             output/playwright/dashboard-templates-ui/test-results
             output/playwright/dashboard-time-range-ui/*.png

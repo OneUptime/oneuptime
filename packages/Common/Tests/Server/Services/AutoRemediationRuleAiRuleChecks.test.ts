@@ -394,7 +394,7 @@ describe("AutoRemediationRuleService - what an AI rule matches", () => {
         );
 
         expect((error as Error).message).toBe(
-          "Trigger Entity Type must be one of Incident, Alert, Profile, Trace, Exception, Log.",
+          "Trigger Entity Type must be one of Incident, Alert, Profile, Trace, Exception, Log, Metric.",
         );
       }
     });
@@ -509,7 +509,7 @@ describe("AutoRemediationRuleService - what an AI rule matches", () => {
           })) as Error
         ).message,
       ).toBe(
-        "Services can only be used by profile AI rules, trace AI rules, exception AI rules or log AI rules.",
+        "Services can only be used by profile AI rules, trace AI rules, exception AI rules, log AI rules or metric AI rules.",
       );
       expect(
         (
@@ -519,7 +519,7 @@ describe("AutoRemediationRuleService - what an AI rule matches", () => {
           })) as Error
         ).message,
       ).toBe(
-        "Service Name Pattern can only be used by profile AI rules, trace AI rules, exception AI rules or log AI rules.",
+        "Service Name Pattern can only be used by profile AI rules, trace AI rules, exception AI rules, log AI rules or metric AI rules.",
       );
     });
 
@@ -538,7 +538,7 @@ describe("AutoRemediationRuleService - what an AI rule matches", () => {
       );
 
       expect((refused.error as Error).message).toBe(
-        "Service Name Pattern can only be used by profile AI rules, trace AI rules, exception AI rules or log AI rules.",
+        "Service Name Pattern can only be used by profile AI rules, trace AI rules, exception AI rules, log AI rules or metric AI rules.",
       );
     });
 
@@ -649,6 +649,80 @@ describe("AutoRemediationRuleService - what an AI rule matches", () => {
           ])
         ).error,
       ).toBeNull();
+    });
+  });
+
+  /*
+   * Metrics' AI rules match on the service as well: the same columns and
+   * conditions a profile or trace rule uses, refused to incident and alert
+   * rules, and refused an incident's or an alert's criteria in turn.
+   */
+  describe("a metric AI rule", () => {
+    const Metric: AutoRemediationTriggerEntity =
+      AutoRemediationTriggerEntity.Metric;
+
+    it("is accepted on the service's conditions and columns", async () => {
+      expect(
+        await createError({
+          triggerEntityType: Metric,
+          investigates: true,
+          fixes: true,
+          criteria: criteriaOn("services"),
+        }),
+      ).toBeNull();
+      expect(
+        await createError({
+          triggerEntityType: Metric,
+          investigates: true,
+          serviceNamePattern: "^checkout",
+          serviceLabels: [ref(Label)],
+        }),
+      ).toBeNull();
+    });
+
+    it("is refused an incident's or an alert's criteria", async () => {
+      expect(
+        (
+          (await createError({
+            triggerEntityType: Metric,
+            investigates: true,
+            criteria: criteriaOn("incidentSeverities"),
+          })) as Error
+        ).message,
+      ).toBe("Incident Severities can only be used by incident AI rules.");
+      expect(
+        (
+          (await createError({
+            triggerEntityType: Metric,
+            investigates: true,
+            titlePattern: "database",
+          })) as Error
+        ).message,
+      ).toBe(
+        "Title Pattern can only be used by incident AI rules or alert AI rules.",
+      );
+    });
+
+    it("an edit that writes a service pattern is accepted on a metric rule, and refused on an incident rule beside it", async () => {
+      expect(
+        (
+          await updateError({ serviceNamePattern: "^api" }, [
+            { triggerEntityType: Metric, investigates: true, fixes: true },
+          ])
+        ).error,
+      ).toBeNull();
+
+      const refused: { error: unknown; reads: number } = await updateError(
+        { serviceNamePattern: "^api" },
+        [
+          { triggerEntityType: Metric, investigates: true, fixes: true },
+          { triggerEntityType: Incident, investigates: true, fixes: true },
+        ],
+      );
+
+      expect((refused.error as Error).message).toBe(
+        "Service Name Pattern can only be used by profile AI rules, trace AI rules, exception AI rules, log AI rules or metric AI rules.",
+      );
     });
   });
 

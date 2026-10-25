@@ -17,6 +17,7 @@ import TelemetryAiPersonFix, {
 } from "../../../../../Server/Utils/AI/TelemetryAi/TelemetryAiPersonFix";
 import TraceInsightFix from "../../../../../Server/Utils/AI/TelemetryAi/TraceInsightFix";
 import ExceptionInsightFix from "../../../../../Server/Utils/AI/TelemetryAi/ExceptionInsightFix";
+import MetricInsightFix from "../../../../../Server/Utils/AI/TelemetryAi/MetricInsightFix";
 import AIInsight from "../../../../../Models/DatabaseModels/AIInsight";
 import AIRun from "../../../../../Models/DatabaseModels/AIRun";
 import AIInsightType from "../../../../../Types/AI/AIInsightType";
@@ -341,5 +342,114 @@ describe("TelemetryAiPersonFix", () => {
       (create.mock.calls[0]![0] as unknown as JSONObject)["repositoryId"],
     ).toBe(repositoryId);
     expect(traceSuggestion).not.toHaveBeenCalled();
+  });
+});
+
+describe("TelemetryAiPersonFix - Metrics' findings", () => {
+  const props: DatabaseCommonInteractionProps = {
+    userId: ObjectID.generate(),
+    tenantId: PROJECT_ID,
+  };
+  let insightType: AIInsightType;
+
+  beforeEach(() => {
+    insightType = AIInsightType.MetricHighCardinality;
+    jest.spyOn(AIInsightService, "findOneBy").mockImplementation(async () => {
+      const insight: AIInsight = new AIInsight();
+      insight.id = INSIGHT_ID;
+      insight.insightType = insightType;
+      return insight;
+    });
+  });
+
+  test("Metrics plans its own", () => {
+    expect(
+      TELEMETRY_AI_PERSON_FIX_PLANNERS[TelemetryAiLane.Metric],
+    ).not.toBeNull();
+  });
+
+  test("each kind of metric finding is handed to Metrics, never to Traces", async () => {
+    const suggestion: SpyInstance<typeof MetricInsightFix.getSuggestion> = jest
+      .spyOn(MetricInsightFix, "getSuggestion")
+      .mockResolvedValue({
+        ...NO_TELEMETRY_AI_FIX_SUGGESTION,
+        offer: SuggestionOffer.InProgress,
+        taskId: "t",
+      });
+    const traces: SpyInstance<typeof TraceInsightFix.getSuggestion> =
+      jest.spyOn(TraceInsightFix, "getSuggestion");
+
+    for (const type of [
+      AIInsightType.MetricHighCardinality,
+      AIInsightType.MetricHistogramBuckets,
+      AIInsightType.MetricMissingMetrics,
+    ]) {
+      insightType = type;
+
+      expect(
+        (
+          await TelemetryAiPersonFix.getSuggestion({
+            projectId: PROJECT_ID,
+            insightId: INSIGHT_ID,
+            props,
+          })
+        ).offer,
+      ).toBe(SuggestionOffer.InProgress);
+    }
+
+    expect(suggestion).toHaveBeenCalledTimes(3);
+    expect(
+      (suggestion.mock.calls[0]![0] as unknown as JSONObject)["props"],
+    ).toBe(props);
+    expect(traces).not.toHaveBeenCalled();
+  });
+
+  test("a drift finding is AI Insights' own: nothing offered, nothing started", async () => {
+    const suggestion: SpyInstance<typeof MetricInsightFix.getSuggestion> =
+      jest.spyOn(MetricInsightFix, "getSuggestion");
+    const create: SpyInstance<typeof MetricInsightFix.createFixTask> =
+      jest.spyOn(MetricInsightFix, "createFixTask");
+
+    insightType = AIInsightType.MetricDrift;
+
+    expect(
+      await TelemetryAiPersonFix.getSuggestion({
+        projectId: PROJECT_ID,
+        insightId: INSIGHT_ID,
+        props,
+      }),
+    ).toEqual(NO_TELEMETRY_AI_FIX_SUGGESTION);
+    await expect(
+      TelemetryAiPersonFix.createFixTask({
+        projectId: PROJECT_ID,
+        insightId: INSIGHT_ID,
+        userId: props.userId!,
+        props,
+      }),
+    ).rejects.toThrow(TELEMETRY_AI_FIX_NOT_OFFERED_MESSAGE);
+    expect(suggestion).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  test("a metric finding's fix is started by Metrics, with the repository picked", async () => {
+    const create: SpyInstance<typeof MetricInsightFix.createFixTask> = jest
+      .spyOn(MetricInsightFix, "createFixTask")
+      .mockResolvedValue({ taskId: "task-2" });
+    const repositoryId: ObjectID = ObjectID.generate();
+
+    insightType = AIInsightType.MetricMissingMetrics;
+
+    expect(
+      await TelemetryAiPersonFix.createFixTask({
+        projectId: PROJECT_ID,
+        insightId: INSIGHT_ID,
+        userId: props.userId!,
+        props,
+        repositoryId,
+      }),
+    ).toEqual({ taskId: "task-2" });
+    expect(
+      (create.mock.calls[0]![0] as unknown as JSONObject)["repositoryId"],
+    ).toBe(repositoryId);
   });
 });

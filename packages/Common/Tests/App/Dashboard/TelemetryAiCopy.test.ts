@@ -756,6 +756,48 @@ describe("Exceptions' AI section", () => {
     ).toBeNull();
   });
 
+  test("Metrics' Logs say what each investigation found, in Exceptions' words, for the three verdicts a metric problem can reach", () => {
+    const verdicts: Readonly<Partial<Record<ErrorClass, string>>> =
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Metric].investigationVerdicts ||
+      {};
+    const exceptions: Readonly<Partial<Record<ErrorClass, string>>> =
+      TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Exception].investigationVerdicts ||
+      {};
+
+    expect(Object.keys(verdicts).sort()).toEqual(
+      [
+        ErrorClass.CodeFault,
+        ErrorClass.Infrastructure,
+        ErrorClass.Unknown,
+      ].sort(),
+    );
+
+    for (const verdict of [
+      ErrorClass.CodeFault,
+      ErrorClass.Infrastructure,
+      ErrorClass.Unknown,
+    ]) {
+      // One wording for one verdict, whichever lane's Logs say it.
+      expect(verdicts[verdict]).toBe(exceptions[verdict]);
+      expect(
+        getTelemetryAiLogVerdict(TelemetryAiLane.Metric, {
+          kind: TelemetryAiLogKind.Investigation,
+          classification: verdict,
+        }),
+      ).toBe(verdicts[verdict]);
+    }
+
+    // The expected errors are not a metric problem's: nothing is said.
+    for (const verdict of [ErrorClass.UserError, ErrorClass.ExpectedDenial]) {
+      expect(
+        getTelemetryAiLogVerdict(TelemetryAiLane.Metric, {
+          kind: TelemetryAiLogKind.Investigation,
+          classification: verdict,
+        }),
+      ).toBeNull();
+    }
+  });
+
   test("a lane opts in to saying verdicts: the Profiler's and Traces' Logs say none", () => {
     for (const lane of [TelemetryAiLane.Profile, TelemetryAiLane.Trace]) {
       expect(
@@ -926,6 +968,131 @@ describe("Logs' AI section", () => {
   test("its rules table has an id of its own, apart from the other lanes'", () => {
     expect(getTelemetryAiRulesTableId(TelemetryAiLane.Log)).toBe(
       "telemetry-ai-rules-table-Log",
+    );
+  });
+});
+
+describe("Metrics' AI section", () => {
+  const copy: TelemetryAiLaneCopy =
+    TELEMETRY_AI_LANE_COPY[TelemetryAiLane.Metric];
+
+  test("lives under Metrics: its four pages are Metrics'", () => {
+    expect(TELEMETRY_AI_PAGES[TelemetryAiLane.Metric]).toEqual({
+      insights: PageMap.METRICS_AI_INSIGHTS,
+      insightView: PageMap.METRICS_AI_INSIGHT_VIEW,
+      logs: PageMap.METRICS_AI_LOGS,
+      settings: PageMap.METRICS_AI_SETTINGS,
+    });
+
+    for (const page of Object.values(
+      TELEMETRY_AI_PAGES[TelemetryAiLane.Metric],
+    )) {
+      expect(RouteMap[page]?.toString()).toMatch(
+        /^\/dashboard\/:projectId\/metrics\/ai\//u,
+      );
+    }
+  });
+
+  test("its rules are about services, and its notice about problems in metrics", () => {
+    expect(copy.ruleCriteriaSubject).toBe(RuleCriteriaSubject.Services);
+    expect(copy.noticeContext).toBe(ProjectAiNoticeContext.Metrics);
+    expect(
+      PROJECT_AI_NOTICE_CONTEXT_COPY[ProjectAiNoticeContext.Metrics]
+        .aiOffDescription,
+    ).toBe(
+      "OneUptime AI is off for this project. Problems in your metrics are still found, but none are looked into and no pull requests are opened.",
+    );
+  });
+
+  test("its inbox lists its three kinds of finding, opened in its own view, apart from Traces'", () => {
+    expect(TELEMETRY_AI_INSIGHTS_SCOPES[TelemetryAiLane.Metric]).toEqual({
+      insightTypes: TELEMETRY_AI_LANES[TelemetryAiLane.Metric].insightTypes,
+      viewPage: PageMap.METRICS_AI_INSIGHT_VIEW,
+      settingsPage: PageMap.METRICS_AI_SETTINGS,
+      intro: copy.insightsIntro,
+      emptyTitle: copy.insightsEmptyTitle,
+      emptyDescription: copy.insightsEmptyDescription,
+    });
+    expect(copy.insightsEmptyTitle).toBe("No metric problems found");
+  });
+
+  test("while its switch is off, the inbox says nothing is looked for, and names the switch", () => {
+    const off: ReturnType<typeof getTelemetryAiInsightsScope> =
+      getTelemetryAiInsightsScope(TelemetryAiLane.Metric, true);
+
+    expect(off).toBe(
+      TELEMETRY_AI_INSIGHTS_SCOPES_WHILE_OFF[TelemetryAiLane.Metric],
+    );
+    expect(off.insightTypes).toBe(
+      TELEMETRY_AI_INSIGHTS_SCOPES[TelemetryAiLane.Metric].insightTypes,
+    );
+    expect(off.emptyTitle).toBe("OneUptime is not looking for metric problems");
+    expect(copy.insightsOffEmptyDescription).toContain(
+      TELEMETRY_AI_SWITCHES[TelemetryAiLane.Metric][0]!.title,
+    );
+  });
+
+  test("its summaries promise a pull request for each problem it can fix, not for each problem", () => {
+    for (const line of [
+      copy.advancedDefaultsSummary,
+      copy.rulesCardDescription,
+      copy.noRulesMessage,
+    ]) {
+      expect(line).toContain("can fix");
+      expect(line).not.toMatch(/pull request for each\./u);
+    }
+
+    const [metricSwitch] = TELEMETRY_AI_SWITCHES[TelemetryAiLane.Metric];
+
+    expect(metricSwitch!.description).toContain("fixes what it can");
+  });
+
+  test("its switch is the rule turned on by default, named for what it does", () => {
+    const [improve] = TELEMETRY_AI_SWITCHES[TelemetryAiLane.Metric];
+
+    expect(TELEMETRY_AI_SWITCHES[TelemetryAiLane.Metric]).toHaveLength(1);
+    expect(improve!.column).toBe("enableAutomaticMetricRemediation");
+    expect(improve!.title).toBe("Improve metrics and add missing ones");
+    expect(improve!.description).toBe(
+      "Every hour OneUptime looks for metrics to improve and for metrics that are missing. OneUptime AI fixes what it can with pull requests.",
+    );
+    expect(improve!.note).toBe("Needs a repository connected in Code.");
+  });
+
+  test("its Fix step's answers: none waits for a verdict, nothing is merged", () => {
+    const options: Array<CardSelectOption> = getTelemetryAiFixOptions(
+      TelemetryAiLane.Metric,
+    );
+
+    expect(
+      options.map((option: CardSelectOption) => {
+        return [option.value, option.title, option.icon];
+      }),
+    ).toEqual(
+      AI_RULE_FIX_OPTIONS.map((option: CardSelectOption) => {
+        return [option.value, option.title, option.icon];
+      }),
+    );
+    expect(copy.fixOptionDescriptions[AiRuleFix.DoNotFix]).toContain(
+      "opens no pull request",
+    );
+    expect(copy.fixOptionDescriptions[AiRuleFix.AskFirst]).toContain(
+      "one click",
+    );
+    expect(copy.fixOptionDescriptions[AiRuleFix.WithoutAsking]).toBe(
+      "OneUptime AI opens the pull request on its own. Nothing is ever merged: your team reviews it.",
+    );
+    expect(copy.fixOptionDescriptions[AiRuleFix.WithoutAsking]).not.toContain(
+      "at fault",
+    );
+  });
+
+  test("its rules table has an id of its own, apart from the other lanes'", () => {
+    expect(getTelemetryAiRulesTableId(TelemetryAiLane.Metric)).toBe(
+      "telemetry-ai-rules-table-Metric",
+    );
+    expect(getTelemetryAiRulesTableId(TelemetryAiLane.Metric)).not.toBe(
+      getTelemetryAiRulesTableId(TelemetryAiLane.Trace),
     );
   });
 });
