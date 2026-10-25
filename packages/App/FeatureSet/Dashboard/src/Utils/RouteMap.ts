@@ -782,6 +782,18 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
   [PageMap.SECURITY_CASES_CLOSED]: "cases/closed",
   [PageMap.SECURITY_CASES_ALL]: "cases/all",
   [PageMap.SECURITY_CASE_VIEW]: `cases/${RouteParams.ModelID}`,
+  /*
+   * A case's own pages, one level under it, as an incident's are under
+   * incidents/:id. The case's address stays its Overview, so every link
+   * to a case lands where it always did.
+   */
+  [PageMap.SECURITY_CASE_VIEW_TIMELINE]: `cases/${RouteParams.ModelID}/timeline`,
+  [PageMap.SECURITY_CASE_VIEW_DETECTIONS]: `cases/${RouteParams.ModelID}/detections`,
+  [PageMap.SECURITY_CASE_VIEW_ENTITIES]: `cases/${RouteParams.ModelID}/entities`,
+  [PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS]: `cases/${RouteParams.ModelID}/playbook-runs`,
+  [PageMap.SECURITY_CASE_VIEW_NOTES]: `cases/${RouteParams.ModelID}/notes`,
+  [PageMap.SECURITY_CASE_VIEW_AUDIT_LOGS]: `cases/${RouteParams.ModelID}/audit-logs`,
+  [PageMap.SECURITY_CASE_VIEW_DELETE]: `cases/${RouteParams.ModelID}/delete`,
   [PageMap.SECURITY_PLAYBOOKS]: "playbooks",
   [PageMap.SECURITY_PLAYBOOK_VIEW]: `playbooks/${RouteParams.ModelID}`,
   /*
@@ -6834,6 +6846,48 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SECURITY_CASE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_CASE_VIEW]
+    }`,
+  ),
+
+  [PageMap.SECURITY_CASE_VIEW_TIMELINE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_CASE_VIEW_TIMELINE]
+    }`,
+  ),
+
+  [PageMap.SECURITY_CASE_VIEW_DETECTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_CASE_VIEW_DETECTIONS]
+    }`,
+  ),
+
+  [PageMap.SECURITY_CASE_VIEW_ENTITIES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_CASE_VIEW_ENTITIES]
+    }`,
+  ),
+
+  [PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_CASE_VIEW_PLAYBOOK_RUNS]
+    }`,
+  ),
+
+  [PageMap.SECURITY_CASE_VIEW_NOTES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_CASE_VIEW_NOTES]
+    }`,
+  ),
+
+  [PageMap.SECURITY_CASE_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_CASE_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
+  [PageMap.SECURITY_CASE_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_CASE_VIEW_DELETE]
     }`,
   ),
 
