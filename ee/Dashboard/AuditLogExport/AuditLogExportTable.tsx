@@ -221,8 +221,6 @@ const AuditLogExportTable: FunctionComponent<ComponentProps> = (
   return (
     <Fragment>
       <ModelTable<AuditLogExport>
-        // Enable or Disable in each row's ⋯ menu: the one that changes the row.
-        rowSwitch={{ column: "isEnabled" }}
         modelType={AuditLogExport}
         modelAPI={props.modelAPI}
         refreshToggle={String(refreshCounter)}

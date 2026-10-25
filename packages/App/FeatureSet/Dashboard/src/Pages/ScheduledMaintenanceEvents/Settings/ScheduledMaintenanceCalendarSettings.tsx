@@ -178,8 +178,6 @@ const ScheduledMaintenanceCalendarSettings: FunctionComponent<
   return (
     <Fragment>
       <ModelTable<ScheduledMaintenanceExternalCalendar>
-        // Enable or Disable in each row's ⋯ menu: the one that changes the row.
-        rowSwitch={{ column: "isEnabled" }}
         modelType={ScheduledMaintenanceExternalCalendar}
         id={EXTERNAL_CALENDARS_TABLE_ID}
         name="Settings > Scheduled Maintenance External Calendars"
