@@ -88,6 +88,8 @@ test("the open cases, the most urgent first, and a case waiting for an approval 
   const homeRow = page.getByTestId("home-row-security-cases");
   await expect(homeRow).toContainText("Open security cases");
   await expect(homeRow).toContainText("Approval needed on 1 case");
+  await homeRow.scrollIntoViewIfNeeded();
+  await capture(page, "security-home", testInfo);
 
   await openSecurity(page);
   await expect(caseRows(page)).toHaveCount(4);
