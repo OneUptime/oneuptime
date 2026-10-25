@@ -281,13 +281,16 @@ const StartAndEndDate: DateFilterFunction = (
               }
               buttonSize={ButtonSize.Small}
               onClick={() => {
-                // set it to past 1 day
+                /*
+                 * set it to past 1 day: 24 hours, which is1Day reads back,
+                 * not a calendar day (25 hours on the day the clocks go back).
+                 */
                 const endDate: Date = OneUptimeDate.resetSecondsAndMilliseconds(
                   OneUptimeDate.getCurrentDate(),
                 );
-                const startDate: Date = OneUptimeDate.addRemoveDays(
+                const startDate: Date = OneUptimeDate.addRemoveHours(
                   endDate,
-                  -1,
+                  -24,
                 );
 
                 props.onValueChanged?.(new InBetween<Date>(startDate, endDate));
@@ -301,13 +304,13 @@ const StartAndEndDate: DateFilterFunction = (
               }
               buttonSize={ButtonSize.Small}
               onClick={() => {
-                // set it to past 1 week
+                // set it to past 1 week, in hours as above
                 const endDate: Date = OneUptimeDate.resetSecondsAndMilliseconds(
                   OneUptimeDate.getCurrentDate(),
                 );
-                const startDate: Date = OneUptimeDate.addRemoveDays(
+                const startDate: Date = OneUptimeDate.addRemoveHours(
                   endDate,
-                  -7,
+                  -7 * 24,
                 );
 
                 props.onValueChanged?.(new InBetween<Date>(startDate, endDate));
@@ -321,13 +324,13 @@ const StartAndEndDate: DateFilterFunction = (
               }
               buttonSize={ButtonSize.Small}
               onClick={() => {
-                // set it to past 2 weeks
+                // set it to past 2 weeks, in hours as above
                 const endDate: Date = OneUptimeDate.resetSecondsAndMilliseconds(
                   OneUptimeDate.getCurrentDate(),
                 );
-                const startDate: Date = OneUptimeDate.addRemoveDays(
+                const startDate: Date = OneUptimeDate.addRemoveHours(
                   endDate,
-                  -14,
+                  -14 * 24,
                 );
 
                 props.onValueChanged?.(new InBetween<Date>(startDate, endDate));
@@ -342,13 +345,13 @@ const StartAndEndDate: DateFilterFunction = (
               }
               buttonSize={ButtonSize.Small}
               onClick={() => {
-                // set it to past 3 weeks
+                // set it to past 3 weeks, in hours as above
                 const endDate: Date = OneUptimeDate.resetSecondsAndMilliseconds(
                   OneUptimeDate.getCurrentDate(),
                 );
-                const startDate: Date = OneUptimeDate.addRemoveDays(
+                const startDate: Date = OneUptimeDate.addRemoveHours(
                   endDate,
-                  -21,
+                  -21 * 24,
                 );
 
                 props.onValueChanged?.(new InBetween<Date>(startDate, endDate));

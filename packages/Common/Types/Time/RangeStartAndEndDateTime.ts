@@ -60,9 +60,16 @@ export class RangeStartAndEndDateTimeUtil {
       );
     }
 
+    /*
+     * Days and weeks are fixed lengths, 24 hours a day, not calendar days:
+     * a calendar day in the viewer's time zone is 23 or 25 hours long on the
+     * day its clocks change, so "Past 1 Day" read an hour too few or too
+     * many there, and a different window from the same range resolved in
+     * UTC. Months stay calendar months.
+     */
     if (dashboardStartAndEndDate.range === TimeRange.PAST_ONE_DAY) {
       return new InBetween<Date>(
-        OneUptimeDate.addRemoveDays(currentDate, -1),
+        OneUptimeDate.addRemoveHours(currentDate, -24),
         currentDate,
       );
     }
@@ -70,14 +77,14 @@ export class RangeStartAndEndDateTimeUtil {
     // two days .
     if (dashboardStartAndEndDate.range === TimeRange.PAST_TWO_DAYS) {
       return new InBetween<Date>(
-        OneUptimeDate.addRemoveDays(currentDate, -2),
+        OneUptimeDate.addRemoveHours(currentDate, -2 * 24),
         currentDate,
       );
     }
 
     if (dashboardStartAndEndDate.range === TimeRange.PAST_ONE_WEEK) {
       return new InBetween<Date>(
-        OneUptimeDate.addRemoveDays(currentDate, -7),
+        OneUptimeDate.addRemoveHours(currentDate, -7 * 24),
         currentDate,
       );
     }
@@ -85,7 +92,7 @@ export class RangeStartAndEndDateTimeUtil {
     // two weeks.
     if (dashboardStartAndEndDate.range === TimeRange.PAST_TWO_WEEKS) {
       return new InBetween<Date>(
-        OneUptimeDate.addRemoveDays(currentDate, -14),
+        OneUptimeDate.addRemoveHours(currentDate, -14 * 24),
         currentDate,
       );
     }
