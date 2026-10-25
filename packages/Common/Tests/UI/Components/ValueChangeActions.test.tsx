@@ -168,7 +168,8 @@ const SEVERITY_CHANGE: ValueChangeActionsConfig<Incident, IncidentSeverity> = {
   valueModelType: IncidentSeverity,
   title: "Change Severity",
   fieldTitle: "Severity",
-  icon: IconProp.Signal,
+  placeholder: "Choose a severity",
+  icon: IconProp.Fire,
 };
 
 const writes: () => Array<{
@@ -359,7 +360,7 @@ describe("the actions", () => {
         return [action.title, action.icon, action.placement];
       }),
     ).toEqual([
-      ["Change Severity", IconProp.Signal, ActionButtonPlacement.MoreMenu],
+      ["Change Severity", IconProp.Fire, ActionButtonPlacement.MoreMenu],
     ]);
     expect(result.current.bulkActions[0]!.title).toBe("Change Severity");
     expect(result.current.bulkActions[0]!.resultLabels).toBe(
@@ -597,7 +598,7 @@ describe("a row's Change Severity", () => {
     expect(refreshCount).toBe(1);
   });
 
-  test("opens on the severity the row has now, and sending it unchanged changes nothing", async () => {
+  test("opens on nothing picked: the row's own severity is listed Current and cannot be picked again, so nothing unchanged is ever sent", async () => {
     render(
       <RowHarness
         item={incident(INCIDENT_ONE_ID, "Checkout API down", MAJOR_ID)}
@@ -606,21 +607,38 @@ describe("a row's Change Severity", () => {
 
     const modal: HTMLElement = await openRowDialog();
 
-    // The picker shows the row's own severity before anything is picked.
+    // The empty picker says what to do, as a case's Change Priority does.
     await waitFor(() => {
-      expect(modal.querySelector(".ou-select__single-value")?.textContent).toBe(
-        "Major",
+      expect(modal.querySelector(".ou-select__placeholder")?.textContent).toBe(
+        "Choose a severity",
       );
     });
+    expect(modal.querySelector(".ou-select__single-value")).toBeNull();
 
-    fireEvent.click(within(modal).getByTestId("modal-footer-submit-button"));
-
-    await waitFor(
-      () => {
-        expect(screen.queryByTestId("modal")).toBeNull();
+    const options: Array<HTMLElement> = await openValues(modal);
+    const current: HTMLElement = options.find(
+      (option: HTMLElement): boolean => {
+        return (option.textContent || "").startsWith("Major");
       },
-      { timeout: WAIT_TIMEOUT },
-    );
+    )!;
+
+    expect(current).toHaveTextContent(VALUE_CHANGE_CURRENT);
+    expect(current).toHaveAttribute("aria-disabled", "true");
+
+    // Pressed, the Current one is not picked.
+    fireEvent.click(current);
+
+    expect(modal.querySelector(".ou-select__single-value")).toBeNull();
+
+    // Sent with nothing picked, the dialog asks for one and writes nothing.
+    await act(async () => {
+      fireEvent.click(within(modal).getByTestId("modal-footer-submit-button"));
+    });
+
+    await waitFor(() => {
+      expect(modal).toHaveTextContent("Severity is required");
+    });
+    expect(screen.getByTestId("modal")).toBeInTheDocument();
     expect(updateByIdMock).not.toHaveBeenCalled();
     expect(refreshCount).toBe(0);
   });

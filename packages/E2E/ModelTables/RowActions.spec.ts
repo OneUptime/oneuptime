@@ -315,7 +315,7 @@ test.describe("an incident's row", () => {
     expect((await fixture(page)).creates).toEqual([]);
   });
 
-  test("Change Severity offers the project's severities in their order, the row's own marked Current, and writes the pick", async ({
+  test("Change Severity offers the project's severities in their order, the row's own marked Current and not picked again, and writes the pick", async ({
     page,
   }: {
     page: Page;
@@ -331,6 +331,10 @@ test.describe("an incident's row", () => {
     await expect(dialog).toContainText(
       `Pick the new severity for ${INCIDENT_TITLE}.`,
     );
+    // Nothing is picked as it opens, as a case's Change Priority.
+    await expect(dialog.locator(".ou-select__placeholder")).toHaveText(
+      "Choose a severity",
+    );
 
     await dialog.getByRole("combobox").first().click();
 
@@ -341,6 +345,8 @@ test.describe("an incident's row", () => {
     await expect(options).toHaveCount(3);
     await expect(options.nth(0)).toContainText("Critical Incident");
     await expect(options.nth(0)).toContainText("Current");
+    // Listed, so the reader sees where the row stands, but never picked.
+    await expect(options.nth(0)).toHaveAttribute("aria-disabled", "true");
     await expect(options.nth(1)).toHaveText("Major Incident");
     await expect(options.nth(2)).toHaveText("Minor Incident");
 
@@ -508,6 +514,27 @@ test.describe("an incident's row", () => {
       expect(severityBox!.x + severityBox!.width).toBeLessThanOrEqual(390);
       expect(await scrollsSideways(page)).toBe(false);
       await screenshot(severity, `change-severity-390-${theme}`);
+
+      // Open, its list fits the screen: the row's own severity, Current.
+      await severity.getByRole("combobox").click();
+
+      const list: Locator = page.locator(".ou-select__menu");
+
+      await expect(list.getByRole("option").first()).toContainText("Current");
+
+      const listBox: { x: number; width: number } | null =
+        await list.boundingBox();
+
+      expect(listBox!.x).toBeGreaterThanOrEqual(0);
+      expect(listBox!.x + listBox!.width).toBeLessThanOrEqual(390);
+      await fs.mkdir(SCREENSHOTS, { recursive: true });
+      await page.screenshot({
+        path: path.join(
+          SCREENSHOTS,
+          `row-actions-change-severity-open-390-${theme}.png`,
+        ),
+        animations: "disabled",
+      });
     });
   }
 });

@@ -62,7 +62,9 @@ import {
  *     archived ones left out (nobody can pick one again: ArchivedValuePicker);
  *     read when the dialog opens, never before, so a list that offers the
  *     action costs no request until it is used;
- *   - the row's dialog marks the value it has now ("Current");
+ *   - the row's dialog lists the value it has now, marked Current, where it
+ *     cannot be picked again - as a security case's Change Priority and
+ *     Change Status do - so the dialog never sends what the row has;
  *   - the action is gated on the column's own update permission, locked for
  *     someone who may not change it, with the permission it takes;
  *   - in bulk, a row that has the value already is left alone and listed
@@ -89,6 +91,8 @@ export interface ValueChangeActionsConfig<
   title: string;
   // The field's title in the dialog, in English: "Severity".
   fieldTitle: string;
+  // What the empty field says, in English: "Choose a severity".
+  placeholder?: string | undefined;
   icon: IconProp;
   /*
    * Narrows the values offered beyond the project's live ones - a list
@@ -184,7 +188,8 @@ export const getCurrentValueId: <T extends BaseModel>(
 
 /*
  * The dialog's options: every value, in order, the one the row has now
- * marked Current (a row's dialog only).
+ * marked Current and not offered again (a row's dialog only): listed, so
+ * the reader sees where the row stands, but never the one picked.
  */
 export const getValueChoiceOptions: (data: {
   values: Array<ValueChoice>;
@@ -209,6 +214,7 @@ export const getValueChoiceOptions: (data: {
       option.description =
         data.translator.translateText(VALUE_CHANGE_CURRENT) ||
         VALUE_CHANGE_CURRENT;
+      option.isDisabled = true;
     }
 
     return option;
@@ -572,19 +578,10 @@ function useValueChangeActions<T extends BaseModel, V extends BaseModel>(
       }
       formProps={{
         name: `change-${config.idColumn}`,
-        // A row's dialog opens on the value the row has now.
-        ...(dialog.kind === "row" && dialog.items[0]
-          ? {
-              initialValues: {
-                [PICKED_VALUE_KEY]:
-                  getCurrentValueId(
-                    dialog.items[0],
-                    config.column,
-                    config.idColumn,
-                  ) || undefined,
-              },
-            }
-          : {}),
+        /*
+         * Nothing is picked as it opens: the row's own value is listed,
+         * Current, and cannot be picked again.
+         */
         fields: [
           {
             field: {
@@ -593,6 +590,7 @@ function useValueChangeActions<T extends BaseModel, V extends BaseModel>(
             title: config.fieldTitle,
             fieldType: FormFieldSchemaType.Dropdown,
             required: true,
+            ...(config.placeholder ? { placeholder: config.placeholder } : {}),
             dropdownOptions: getValueChoiceOptions({
               values: dialog.values,
               currentValueId:
