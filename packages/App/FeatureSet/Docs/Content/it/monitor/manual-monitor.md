@@ -56,7 +56,7 @@ Inserite un **Nome** — e una **Descrizione** sotto **Altri campi**, se volete 
 ### Nella dashboard
 
 :::steps
-1. Aprite il monitor. In alto a destra nella sua panoramica, accanto a **Aggiorna**, fate clic su **More actions** (⋯).
+1. Aprite il monitor. In alto a destra nella sua panoramica, accanto a **Aggiorna**, fate clic su **Altre azioni** (⋯).
 2. In **Cambia lo stato in**, scegliete il nuovo stato.
 3. Fate clic su **Cambia stato**. Il nuovo stato inizia adesso e compare subito sul monitor, e su ogni pagina di stato che lo elenca.
 :::

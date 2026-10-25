@@ -116,11 +116,11 @@ Le sue regole, i suoi proprietari, il suo feed e il suo primo stato avvengono co
 
 ## Rispondere a un avviso
 
-Aprite l'avviso. La sua intestazione mostra il suo stato, la sua gravità, quando è stato creato e il monitor e l'episodio a cui appartiene, con i pulsanti che servono al vostro prossimo passo:
+Aprite l'avviso. La sua intestazione mostra il suo stato, la sua gravità, da quanto tempo dura, i suoi proprietari e il monitor e l'episodio a cui appartiene, con i pulsanti che servono al vostro prossimo passo:
 
 - **Riconosci** dice che qualcuno se ne sta occupando. Impedisce alle policy di reperibilità dell'avviso di chiamare il livello successivo.
 - **Risolvi** lo chiude. L'avviso lascia **Avvisi attivi**, e i suoi promemoria si fermano.
-- **Change state to**, nel menu **⋯** accanto, lo porta in uno stato vostro, come «In analisi».
+- **Cambia stato in**, nel menu **⋯** accanto, lo porta in uno stato vostro, come «In analisi».
 - **Dichiara incidente** apre un nuovo incidente precompilato dall'avviso, quando il problema si rivela tale da colpire gli utenti. Vedere [Avvisi collegati](/docs/incidents/linked-alerts).
 
 Il passaggio a un altro stato chiede una conferma, con una nota privata facoltativa compressa sotto **Aggiungi una nota privata**. Che cosa fa ogni stato è spiegato in [Stati e gravità degli avvisi](/docs/alerts/states-and-severities).
@@ -141,7 +141,7 @@ Mentre ci lavorate, annotate ciò che scoprite come **Note private**, compilate 
 
 **Panoramica**, **Indagine**, **Team** e **Note** sono aperte; le altre sezioni restano compresse finché non ci fate clic.
 
-- **Panoramica** — l'intestazione indica i **Proprietari** dell'avviso, prima i team, accanto al suo monitor e al suo episodio. Il riquadro **Creato** mostra quando e da che cosa è stato creato, altri due il tempo impiegato per riconoscerlo e risolverlo; la durata si trova accanto al suo stato. La scheda **Cosa è successo** apre la pagina — la descrizione dell'avviso e la sua **Causa principale** — poi la scheda **AI Investigation**, con **Ask OneUptime AI** in fondo, e **Avviso Feed** registra tutto ciò che è successo all'avviso. Accanto si trovano la scheda **Risorse interessate**, la scheda **Dettagli dell'avviso** e le misurazioni dell'avviso.
+- **Panoramica** — l'intestazione indica i **Proprietari** dell'avviso, prima i team, accanto al suo monitor e al suo episodio. Il riquadro **Creato** mostra quando e da che cosa è stato creato, altri due il tempo impiegato per riconoscerlo e risolverlo; la durata è il primo dato dell'intestazione. La scheda **Cosa è successo** apre la pagina — la descrizione dell'avviso e la sua **Causa principale** — poi la scheda **AI Investigation**, con **Ask OneUptime AI** in fondo, e **Avviso Feed** registra tutto ciò che è successo all'avviso. Accanto si trovano la scheda **Risorse interessate**, la scheda **Dettagli dell'avviso** e le misurazioni dell'avviso.
 - **Cronologia stato** — ogni stato in cui è stato l'avviso, quando e per quanto tempo. Vedere [La cronologia degli stati](/docs/alerts/states-and-severities#la-cronologia-degli-stati).
 - **Incidenti collegati** — gli incidenti di cui fa parte questo avviso, con **Collega incidente** e **Dichiara incidente**.
 - **Impostazioni** — **Chi può vedere questo avviso**, con l'interruttore **Avviso privato**, e **Promemoria**, con **Invia promemoria**. Ogni interruttore salva nel momento in cui lo azionate.

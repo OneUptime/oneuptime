@@ -43,7 +43,7 @@ Het scherm is in tweeën verdeeld:
 | ---- | ------------- |
 | **Groepsnavigator** (links) | Elke groep op de pagina, als boom, met een vak **Search groups...** erboven en een telling eronder, zoals `3 groups · 12 resources`. Een lange lijst eindigt met een knop **Show N more of M**. |
 | **Top of page** | De eerste rij van de navigator: resources zonder groep, die bezoekers als eerste zien, boven elke groep. Op een pagina zonder groepen heet het rechterdeelvenster in plaats daarvan **All resources**. |
-| **Resourcedeelvenster** (rechts) | De resources van de geselecteerde groep. De kop ervan bevat **Edit Group**, de primaire knop **Monitor toevoegen** en een menu **More actions**. |
+| **Resourcedeelvenster** (rechts) | De resources van de geselecteerde groep. De kop ervan bevat **Edit Group**, de primaire knop **Monitor toevoegen** en een menu **Meer acties**. |
 | Kaartkop | **New Group**, en een menu met drie puntjes met **Import groups from CSV** en **Vernieuwen**. |
 
 **Lege toestanden vertellen u wat u moet doen.** Een lege groep toont **No monitors here yet** met **Monitor toevoegen**, **Add Multiple** en, alleen zolang de pagina helemaal geen groepen heeft, **Create a Group**. Een zoekopdracht zonder resultaat toont **No resources match your search**.
@@ -79,7 +79,7 @@ In een rastergroep vraagt het dialoogvenster boven **Meer velden** ook om de rij
 
 ### Meerdere tegelijk toevoegen
 
-**Add Multiple** (ook **Add multiple monitors** in het menu **More actions**) opent **Add Multiple Monitors**. Ook dat is één pagina: een meervoudige selectie **Monitoren**, dan dezelfde ingeklapte **Meer velden**, waarvan de weergaveopties gelden voor elke monitor die u kiest. Elke resource neemt de weergavenaam en beschrijving van zijn monitor over, en **Monitoren toevoegen** voegt ze allemaal toe. Zo vult u het snelst een nieuwe pagina.
+**Add Multiple** (ook **Add multiple monitors** in het menu **Meer acties**) opent **Add Multiple Monitors**. Ook dat is één pagina: een meervoudige selectie **Monitoren**, dan dezelfde ingeklapte **Meer velden**, waarvan de weergaveopties gelden voor elke monitor die u kiest. Elke resource neemt de weergavenaam en beschrijving van zijn monitor over, en **Monitoren toevoegen** voegt ze allemaal toe. Zo vult u het snelst een nieuwe pagina.
 
 De meervoudige selectie heeft een tabblad **Labels**: klik op een label en elke monitor met dat label wordt in één keer geselecteerd.
 
@@ -153,7 +153,7 @@ Om een groep te wijzigen, gebruikt u **Edit Group** in de kop van het deelvenste
 | Waar | Acties |
 | ----- | ------- |
 | Het rijmenu van de navigator | **Edit group**, **Omhoog**, **Omlaag**, **ID weergeven**, **Delete group** |
-| Het menu **More actions** van het deelvenster | **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Vernieuwen**, **Delete this group** |
+| Het menu **Meer acties** van het deelvenster | **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Vernieuwen**, **Delete this group** |
 
 Een groep die zonder naam is opgeslagen, verschijnt als **Untitled group**, een goed teken dat u iets wilde typen.
 
@@ -195,7 +195,7 @@ De volgorde bepaalt u zelf, niet het alfabet:
 | Wat | Hoe u het herschikt |
 | ---- | ----------------- |
 | Resources binnen een groep | Sleep een rij. Het deelvenster zegt het: **Drag a row to change the order visitors see**. |
-| Groepen ten opzichte van elkaar | **Omhoog** / **Omlaag** in het rijmenu van de navigator, of **Move group up** / **Move group down** in **More actions**. |
+| Groepen ten opzichte van elkaar | **Omhoog** / **Omlaag** in het rijmenu van de navigator, of **Move group up** / **Move group down** in **Meer acties**. |
 | Resources zonder groep | Die staan in **Top of page** en verschijnen altijd boven elke groep, dus zet daar wat iedereen als eerste controleert. |
 
 **Twee gevallen waarin slepen uit staat.** Zoeken met het vak **Search in {group}...** zet herschikken uit (het deelvenster zegt `N of M shown · drag to reorder is off while filtering`), dus maak eerst de zoekopdracht leeg. En rastergroepen worden nooit door slepen herschikt, omdat de plaats van een monitor uit zijn rij en kolom volgt.

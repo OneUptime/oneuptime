@@ -66,7 +66,7 @@ Les quatre états marqués portent l'étiquette **Intégré** sur la page des pa
 | **Le chat**      | Les boutons des messages Slack et Microsoft Teams de l'événement                            | Le même changement, fait en votre nom. Voir [Slack](/docs/workspace-connections/slack#agir-sur-les-incidents-alertes-et-événements-depuis-slack). |
 | **L'API**        | Une ligne créée sous `/api/scheduled-maintenance-state-timeline`                            | L'état, et si les abonnés sont prévenus.                                                                        |
 
-Les boutons de l'en-tête portent le nom de vos états. Tant que l'événement attend, il en propose deux : l'un qui le démarre, nommé d'après votre état en cours, et l'autre qui le termine, nommé d'après votre état terminé. Tant que l'événement est en cours, seulement le second. Le menu **⋯** liste chaque autre état après l'état actuel.
+Les boutons de l'en-tête portent le nom de vos états. Tant que l'événement attend, il en propose deux : l'un qui le démarre, nommé d'après votre état en cours, et l'autre qui le termine, nommé d'après votre état terminé. Tant que l'événement est en cours, seulement le second. Le menu **⋯** liste chaque autre état après l'état actuel. Une personne dont le rôle ne permet pas de changer l'état de l'événement voit les boutons verrouillés, sans menu des autres états : en pointant l'un d'eux, elle voit les autorisations qui le lui permettraient.
 
 ## Ce que font le démarrage et la fin
 
@@ -84,8 +84,8 @@ Passer de **En cours** à « Vérification », ou de **Terminé** à **Achevé**
 
 Avant le début, l'en-tête fait un compte à rebours ; pendant que l'événement se déroule, il compte depuis combien de temps il dure ; une fois passé, il indique combien de temps il a pris. Quand l'événement manque une limite de plus de deux minutes, un avis orange le signale :
 
-- **Start overdue** : l'événement attend toujours après son **Commence le**.
-- **Overrunning** : l'événement est toujours en cours après son **Se termine le**.
+- **Début en retard** : l'événement attend toujours après son **Commence le**.
+- **Dépassement** : l'événement est toujours en cours après son **Se termine le**.
 
 L'avis indique l'heure prévue et l'état que l'événement n'a pas encore atteint. Juste après une limite, la tâche qui fait avancer les événements ne s'est peut-être pas encore exécutée, donc pendant les minutes suivantes l'en-tête vérifie de nouveau tout seul, et affiche le nouvel état sans rechargement.
 

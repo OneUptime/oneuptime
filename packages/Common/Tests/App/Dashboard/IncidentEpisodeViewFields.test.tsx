@@ -17,7 +17,7 @@ import {
   within,
 } from "@testing-library/react";
 import React from "react";
-import { Location } from "react-router-dom";
+import { Location, MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -1241,7 +1241,10 @@ describe("Incident Episode overview: who runs it, and what happened", () => {
     const owners: EventStatusFact = (
       changeStateProps.current!["peopleFacts"] as Array<EventStatusFact>
     )[1]!;
-    const rendered: ReturnType<typeof render> = render(<>{owners.value}</>);
+    // An open episode's owners end with the place to add more: a link.
+    const rendered: ReturnType<typeof render> = render(
+      <MemoryRouter>{owners.value}</MemoryRouter>,
+    );
 
     expect(
       within(rendered.container)

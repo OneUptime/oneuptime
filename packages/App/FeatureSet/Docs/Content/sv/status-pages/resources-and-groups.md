@@ -43,7 +43,7 @@ Skärmen är delad i två:
 | ---- | ------------- |
 | **Gruppnavigator** (till vänster) | Alla sidans grupper som ett träd, med rutan **Search groups...** ovanför och en räkning nedanför, som `3 groups · 12 resources`. En lång lista slutar med knappen **Show N more of M**. |
 | **Top of page** | Navigatorns första rad: resurser utan grupp, som besökare ser först, ovanför alla grupper. På en sida utan grupper heter den högra panelen i stället **All resources**. |
-| **Resurspanel** (till höger) | Den valda gruppens resurser. Dess rubrik innehåller **Edit Group**, huvudknappen **Lägg till monitor** och menyn **More actions**. |
+| **Resurspanel** (till höger) | Den valda gruppens resurser. Dess rubrik innehåller **Edit Group**, huvudknappen **Lägg till monitor** och menyn **Fler åtgärder**. |
 | Kortets rubrik | **New Group** och en meny med tre punkter med **Import groups from CSV** och **Uppdatera**. |
 
 **Tomma lägen berättar vad du ska göra.** En tom grupp visar **No monitors here yet** med **Lägg till monitor**, **Add Multiple** och, bara så länge sidan inte har några grupper alls, **Create a Group**. En sökning utan träffar visar **No resources match your search**.
@@ -79,7 +79,7 @@ I en rutnätsgrupp ber dialogrutan också om raden och kolumnen som monitorn ska
 
 ### Lägg till flera på en gång
 
-**Add Multiple** (även **Add multiple monitors** i menyn **More actions**) öppnar **Add Multiple Monitors**. Den är också en sida: en flervalslista **Monitorer**, sedan samma hopfällda **Fler fält**, vars visningsalternativ gäller för varje monitor som du väljer. Varje resurs får sitt visningsnamn och sin beskrivning från sin monitor, och **Lägg till monitorer** lägger till alla. Det är det snabbaste sättet att fylla en ny sida.
+**Add Multiple** (även **Add multiple monitors** i menyn **Fler åtgärder**) öppnar **Add Multiple Monitors**. Den är också en sida: en flervalslista **Monitorer**, sedan samma hopfällda **Fler fält**, vars visningsalternativ gäller för varje monitor som du väljer. Varje resurs får sitt visningsnamn och sin beskrivning från sin monitor, och **Lägg till monitorer** lägger till alla. Det är det snabbaste sättet att fylla en ny sida.
 
 Flervalslistan har fliken **Etiketter**: klicka på en etikett så väljs alla monitorer med den på en gång.
 
@@ -153,7 +153,7 @@ För att ändra en grupp använder du **Edit Group** i panelens rubrik, eller **
 | Var | Åtgärder |
 | ----- | ------- |
 | Navigatorns radmeny | **Edit group**, **Flytta upp**, **Flytta ned**, **Visa ID**, **Delete group** |
-| Panelens meny **More actions** | **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Uppdatera**, **Delete this group** |
+| Panelens meny **Fler åtgärder** | **Edit this group**, **Add a sub group**, **Move group up**, **Move group down**, **Show group ID**, **Uppdatera**, **Delete this group** |
 
 En grupp som sparats utan namn visas som **Untitled group**, ett gott tecken på att du tänkte skriva något.
 
@@ -195,7 +195,7 @@ Ordningen bestämmer du själv, inte alfabetet:
 | Vad | Så ändrar du ordningen |
 | ---- | ----------------- |
 | Resurser i en grupp | Dra en rad. Panelen säger det: **Drag a row to change the order visitors see**. |
-| Grupper i förhållande till varandra | **Flytta upp** / **Flytta ned** i navigatorns radmeny, eller **Move group up** / **Move group down** i **More actions**. |
+| Grupper i förhållande till varandra | **Flytta upp** / **Flytta ned** i navigatorns radmeny, eller **Move group up** / **Move group down** i **Fler åtgärder**. |
 | Resurser utan grupp | De står i **Top of page** och visas alltid ovanför alla grupper, så lägg det som alla kontrollerar först där. |
 
 **Två fall där dragning är avstängd.** En sökning i rutan **Search in {group}...** stänger av omordning (panelen säger `N of M shown · drag to reorder is off while filtering`), så rensa sökningen först. Och rutnätsgrupper ordnas aldrig om genom att dra, eftersom en monitors plats kommer från dess rad och kolumn.

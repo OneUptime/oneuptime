@@ -78,7 +78,7 @@ Dra en rad i dess handtag för att flytta den; den nya ordningen sparas när du 
 
 Ett tillstånd som du lägger till har ingen flagga, så var det står är vad det betyder. Placera ett begränsningssteg mellan **Bekräftad** och **Löst**, och ett triagesteg ovanför **Bekräftad**. Ett tillstånd som placeras under **Löst** räknas som löst överallt.
 
-Du flyttar ett larm till ett eget tillstånd från menyn **⋯** i larmets sidhuvud, under **Change state to**, som listar varje tillstånd efter det nuvarande. Dess bekräftelse har rubriken **Markera larm som {{state}}**, med tillståndets namn i.
+Du flyttar ett larm till ett eget tillstånd från menyn **⋯** i larmets sidhuvud, under **Ändra tillstånd till**, som listar varje tillstånd efter det nuvarande. Dess bekräftelse har rubriken **Markera larm som {{state}}**, med tillståndets namn i.
 
 > [!NOTE]
 > På OneUptime Cloud krävs planen **Growth** eller högre för att lägga till eller ändra larmtillstånd och allvarlighetsgrader. Alla planer kan läsa dem, använda dem och ta bort ett tillstånd som du har lagt till.
@@ -128,13 +128,13 @@ Arkivera en status eller allvarlighetsgrad som ditt team inte längre ska använ
 
 | Sätt                 | Var                                                                                       | Vad det frågar efter                                                                                                                 |
 | -------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **Knappar i sidhuvudet** | Larmets sidhuvud: **Bekräfta**, **Lös** och **Change state to** i dess meny **⋯**     | En kort bekräftelse, **Bekräfta larm**, **Lös larm** eller **Markera larm som {{state}}**, med en valfri anteckning under **Lägg till en privat anteckning**. |
+| **Knappar i sidhuvudet** | Larmets sidhuvud: **Bekräfta**, **Lös** och **Ändra tillstånd till** i dess meny **⋯**     | En kort bekräftelse, **Bekräfta larm**, **Lös larm** eller **Markera larm som {{state}}**, med en valfri anteckning under **Lägg till en privat anteckning**. |
 | **State timeline**   | **Tillståndstidslinje** i larmets sidomeny                                                | En rad som du lägger till manuellt, med **Larmstatus** och **Börjar den**.                                                            |
 | **Rad i listan** | Menyn **⋯** på ett larms rad i larmlistan: **Bekräfta**, **Lös** och **Ändra tillstånd** | Bekräftelsen från sidhuvudet, med larmets namn. Ett larm som en annan ändring har flyttat under tiden lämnas som det är, och dialogen säger varför. |
 | **Massändring**      | **Bekräfta**, **Lös** eller **Ändra tillstånd** på ett urval i larmlistan                                             | Tillståndet, och en privat anteckning som läggs till på varje larm. Larm som redan är i eller efter tillståndet hoppas över.           |
 | **Automatiskt**      | En monitor, en episod, en länkad incident eller din egen kod                              | **Lös larm automatiskt** i en monitors kriterier, en episods tillståndsändring, incidentreglagen på [Länkade larm](/docs/incidents/linked-alerts) eller en rad som skapas på `/api/alert-state-timeline`. |
 
-Sidhuvudet erbjuder **Bekräfta** och **Lös** medan larmet inte är bekräftat ännu, och bara **Lös** när det är det. Ett löst larm visar ingen av dem.
+Sidhuvudet erbjuder **Bekräfta** och **Lös** medan larmet inte är bekräftat ännu, och bara **Lös** när det är det. Ett löst larm visar ingen av dem. Den som med sin roll inte får ändra larmets tillstånd ser knapparna låsta och ingen meny med andra tillstånd: pekar du på en nämner den behörigheterna som skulle tillåta det.
 
 ## Vad bekräftelse gör
 

@@ -134,7 +134,7 @@ Archive un estado o una gravedad que su equipo ya no deba usar, en lugar de elim
 | **Cambio masivo**           | **Reconocer**, **Resolver** o **Cambiar estado** sobre una selección en la lista de alertas                              | El estado y una nota privada que se añade a cada alerta. Las alertas que ya están en ese estado o después se omiten.                  |
 | **Automáticamente**         | Un monitor, un episodio, un incidente vinculado o tu propio código                        | **Resolver alerta automáticamente** en los criterios de un monitor, el cambio de estado de un episodio, los interruptores de incidente de [Alertas vinculadas](/docs/incidents/linked-alerts) o una fila creada en `/api/alert-state-timeline`. |
 
-La cabecera ofrece **Reconocer** y **Resolver** mientras la alerta aún no está reconocida, y solo **Resolver** cuando ya lo está. Una alerta resuelta no muestra ninguno de los dos.
+La cabecera ofrece **Reconocer** y **Resolver** mientras la alerta aún no está reconocida, y solo **Resolver** cuando ya lo está. Una alerta resuelta no muestra ninguno de los dos. Quien, por su rol, no puede cambiar el estado de la alerta ve los botones bloqueados y ningún menú de otros estados: al señalar uno, se nombran los permisos que se lo permitirían.
 
 ## Qué hace reconocer
 
