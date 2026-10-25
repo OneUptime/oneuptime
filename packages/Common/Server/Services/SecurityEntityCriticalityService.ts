@@ -299,8 +299,14 @@ export class Service extends ProjectReferencesService<Model> {
 
     return rows
       .filter((row: Model): boolean => {
+        /*
+         * An entry for a kind that carries no risk (written by hand, past
+         * the checks above) names nobody, rather than everybody.
+         */
         return (
-          Boolean(row.value) && isSecurityEntityCriticality(row.criticality)
+          Boolean(row.value) &&
+          isSecurityEntityCriticality(row.criticality) &&
+          (!row.entityType || isRiskEntityType(row.entityType))
         );
       })
       .map((row: Model): SecurityEntityCriticalityRule => {
