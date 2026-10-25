@@ -22,8 +22,9 @@ import { isSaidInLocale, readDashboardLocale } from "./SecurityLocaleSentences";
  * React-free parts that decide it, and the words the picker shows.
  */
 
+// A playbook as the model holds it: its name may be missing (exactOptionalPropertyTypes).
 interface NamedPlaybook {
-  name?: string | undefined;
+  name?: string;
   id: string;
 }
 
@@ -56,9 +57,8 @@ describe("which templates the project has a playbook of", () => {
 
   test("no playbook of that name, no template's playbook", () => {
     expect(findPlaybookOfTemplate([], ENRICH)).toBeUndefined();
-    expect(
-      findPlaybookOfTemplate([{ id: "1", name: undefined }], ENRICH),
-    ).toBeUndefined();
+    const unnamed: Array<NamedPlaybook> = [{ id: "1" }];
+    expect(findPlaybookOfTemplate(unnamed, ENRICH)).toBeUndefined();
   });
 
   test("each template is known by its own name only", () => {

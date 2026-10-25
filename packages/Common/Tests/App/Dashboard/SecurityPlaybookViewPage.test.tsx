@@ -141,7 +141,7 @@ function finishedRun(): SecurityPlaybookRun {
   run.securityCase = {
     caseNumberWithPrefix: "CASE-140",
     title: "CrowdStrike: credential dumping on fin-ws-112",
-  } as unknown as SecurityPlaybookRun["securityCase"];
+  } as unknown as NonNullable<SecurityPlaybookRun["securityCase"]>;
   run.steps = [
     {
       id: "note",

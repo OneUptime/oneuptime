@@ -220,6 +220,30 @@ describe("the tactics' rows", () => {
     expect(techniqueIn(persistence, "T1098").ruleCount).toBe(1);
   });
 
+  /*
+   * Only a rule that is off covers it, and a library rule not added yet
+   * would: the row counts it among what the library would add, as the box
+   * above the rows does (getLibraryCoverageGap), so the two agree.
+   */
+  test("count a technique only a rule that is off covers as one the library would add, as the box above them does", () => {
+    const offOnly: AttackCoverage = buildAttackCoverage([
+      rule("r2", ["attack.t1098"], false),
+    ]);
+    const libraryOfIt: AttackCoverage = buildAttackCoverage([
+      rule("lib-1", ["attack.t1098"]),
+    ]);
+    const persistence: TacticCoverageView = tacticView(
+      getTacticCoverageViews(offOnly, libraryOfIt),
+      "TA0003",
+    );
+
+    expect(techniqueIn(persistence, "T1098").coverage).toBe(
+      TechniqueCoverage.DisabledOnly,
+    );
+    expect(persistence.libraryCount).toBe(1);
+    expect(getLibraryCoverageGap(offOnly, libraryOfIt).techniqueCount).toBe(1);
+  });
+
   test("list a tactic's techniques covered first, then off, then in the library, each group in the matrix's order", () => {
     for (const view of views) {
       const ranks: Array<number> = view.techniques.map(

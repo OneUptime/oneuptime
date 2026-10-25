@@ -647,10 +647,11 @@ describe("the Playbooks page", () => {
   test("a disabled playbook reads Disabled in red, as every list in the Dashboard draws a switch", async () => {
     await renderPage();
 
-    const status: { getElement?: (item: unknown) => React.ReactElement } =
-      capturedTable!.columns!.find((column: { title: string }): boolean => {
-        return column.title === "Status";
-      })!;
+    const status: {
+      getElement?: ((item: unknown) => React.ReactElement) | undefined;
+    } = capturedTable!.columns!.find((column: { title: string }): boolean => {
+      return column.title === "Status";
+    })!;
 
     const on: SecurityPlaybook = new SecurityPlaybook();
     on.isEnabled = true;
