@@ -252,12 +252,7 @@ jobs:
           # Runbook Variables, had reached 25 and group 7 about 18. Navigation
           # Search (2.9 to 3.5 minutes) moved to group 10 on 2026-10-22, when
           # this group took 26.2 minutes on a slow runner and 20.9 on a fast
-          # one. Logs AI (1.7 minutes locally, about 2.5 with its bundle,
-          # Chromium only: Logs' AI tab - Insights, a finding's evidence, Fix
-          # with AI, Create Monitor, Open in Logs and Open in Traces, Activity
-          # and Settings - at 1280 and 390 pixels, light and dark) joined it
-          # on 2026-10-24, when it took 17.8 minutes, the lightest of the ten
-          # on master's run of 12:19: about 20.5.
+          # one.
           - group: 2
             browsers: chromium firefox
             suites: >-
@@ -269,7 +264,6 @@ jobs:
               test-color-picker-ui
               test-diagrams-ui
               test-runbook-steps-ui
-              test-logs-ai-ui
           # Value Picker also runs in Firefox (the chip editor's caret handling
           # differs in each). Discovery (about 5 minutes) moved to group 6
           # when this group took 23.5 minutes. Global Runners (about a
@@ -433,7 +427,14 @@ jobs:
           # role's API keys, at 1280 and 390 pixels, dark): 4.1 minutes with
           # its bundle locally, about 1.2 more. This group had taken 21.5
           # minutes on master without them, so Archivable Values moved on to
-          # group 9 the same day: about 21 for the seven.
+          # group 9 the same day: about 21 for the seven. Logs AI (1.7 minutes
+          # locally, about 2.5 with its bundle, Chromium only: Logs' AI tab -
+          # Insights, a finding's evidence, Fix with AI, Create Monitor, Open
+          # in Logs and Open in Traces, Activity with what each investigation
+          # found, and Settings - at 1280 and 390 pixels, light and dark)
+          # joined it beside Profiles on 2026-10-25, when this group took 14.0
+          # minutes on master's run of 2026-10-24 15:00, the lightest of the
+          # ten (group 2, where it was first placed, took 21.2): about 16.5.
           - group: 7
             browsers: chromium
             suites: >-
@@ -444,6 +445,7 @@ jobs:
               test-public-dashboard-theme-ui
               test-dashboard-templates-ui
               test-external-mcp-servers-ui
+              test-logs-ai-ui
           # Dashboard Time Range (about 3.5 minutes with its bundle locally: a
           # dashboard's default time range and auto-refresh inside OneUptime
           # and on its public page, at a laptop's width and, for what a phone
