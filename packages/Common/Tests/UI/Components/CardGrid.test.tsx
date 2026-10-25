@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { cleanup, render, screen, within } from "@testing-library/react";
+import type { SpyInstance } from "jest-mock";
 import * as React from "react";
 import Card, {
   CARD_FILL_HEIGHT_CLASS_NAME,
@@ -362,7 +363,7 @@ describe("CardGrid", () => {
 
   test("a card left out takes no cell: null, false, an empty fragment and stray text leave no hole, and a fragment's cards are cards of their own", () => {
     const isShown: boolean = false;
-    const consoleError: jest.SpiedFunction<typeof console.error> = jest
+    const consoleError: SpyInstance<typeof console.error> = jest
       .spyOn(console, "error")
       .mockImplementation((): void => {});
 
