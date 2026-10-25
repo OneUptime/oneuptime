@@ -3,7 +3,13 @@ import Dropdown, {
   getDropdownOptionStyle,
 } from "../../../../UI/Components/Dropdown/Dropdown";
 import "@testing-library/jest-dom";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { CSSObjectWithLabel } from "react-select";
 import { afterEach, describe, expect, test } from "@jest/globals";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
@@ -163,9 +169,7 @@ describe("a disabled first option in the open menu", () => {
     expect(optionNamed("Investigating")).toHaveClass(
       "ou-select__option--is-focused",
     );
-    expect(optionNamed("New")).not.toHaveClass(
-      "ou-select__option--is-focused",
-    );
+    expect(optionNamed("New")).not.toHaveClass("ou-select__option--is-focused");
 
     await act(async () => {
       fireEvent.keyDown(screen.getByRole("combobox"), {

@@ -641,9 +641,9 @@ describe("Change Status", () => {
     );
 
     // What to pick, as Change Priority says it; the verdict says what closing does.
-    expect(
-      within(dialog()).getByTestId("modal-description"),
-    ).toHaveTextContent(/^Pick the new status for the 2 selected cases\.$/);
+    expect(within(dialog()).getByTestId("modal-description")).toHaveTextContent(
+      /^Pick the new status for the 2 selected cases\.$/,
+    );
     expect(dialog()).not.toHaveTextContent("Each case this closes");
     expect(
       openDropdown().map((option: { text: string; isDisabled: boolean }) => {
