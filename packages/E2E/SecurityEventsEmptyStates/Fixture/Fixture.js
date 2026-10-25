@@ -25,6 +25,11 @@
  *            calls window.__securityEventsEmptyStatesFixture
  *            .resolveLatestEvent(). old: the newest event arrived at
  *            OLD_EVENT_TIME, outside the default one-day window.
+ *   ?events= one: the window holds one event (EVENT), so a row opens its
+ *            drawer, and the drawer's Connected tab reads what the event
+ *            names in the rest of OneUptime (POST /security-case/connections),
+ *            answered from Security Operations' records with the server's own
+ *            matching rules (../../SecurityOperations/Fixture/ConnectionsFixture.js).
  *
  * The side menu counts the open cases and the playbook runs waiting for
  * approval beside Cases and Playbook Runs; both answer 0.
@@ -69,6 +74,7 @@ import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
 import Service from "Common/Models/DatabaseModels/Service";
 import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
@@ -79,6 +85,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
+import { createConnectionsFixture } from "../../SecurityOperations/Fixture/ConnectionsFixture.js";
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 const USER_ID = "80000000-0000-4000-8000-000000000001";
@@ -94,6 +101,58 @@ const latest = ["pending", "old"].includes(params.get("latest"))
 const OLD_EVENT_TIME = "2026-09-01T09:30:00.000Z";
 // ?siem=rows: three SIEMs in the Send to your SIEM table.
 const siem = params.get("siem") === "rows" ? "rows" : "none";
+// ?events=one: one event in the window, and its drawer's Connected tab.
+const events = params.get("events") === "one" ? "one" : "none";
+
+/*
+ * ?events=one's event, twenty minutes before the spec's pinned clock: a
+ * detection naming a user by email, a host by name and an address, the
+ * three kinds of value Connected Signals looks for.
+ */
+const NOW = new Date("2026-09-22T12:00:00.000Z");
+const MINUTE = 60 * 1000;
+const EVENT = {
+  _id: "b0000000-0000-4000-8000-000000000001",
+  projectId: PROJECT_ID,
+  time: new Date(NOW.getTime() - 20 * MINUTE),
+  eventUid: "defender-7f3a2c91",
+  severityName: "High",
+  severityId: 4,
+  categoryName: "Findings",
+  categoryUid: 2,
+  className: "Detection Finding",
+  classUid: 2004,
+  activityName: "Create",
+  statusName: "New",
+  message: "Encoded PowerShell started by a web worker on web-03",
+  vendorName: "Microsoft",
+  productName: "Defender for Endpoint",
+  ruleName: "Encoded PowerShell command line",
+  principalUser: "k.morgan@acme-commerce.example",
+  principalHost: "web-03",
+  principalIp: "203.0.113.30",
+  processName: "powershell.exe",
+  processCommandLine: "powershell.exe -NoProfile -EncodedCommand SQBFAFgA",
+  observables: [],
+  attributes: {},
+};
+
+/*
+ * What the event names among the project's hosts and members, the records
+ * Security Operations' fixture lays out (web-03 and its staging namesake,
+ * Kai Morgan), worked out with the server's own matching rules.
+ */
+const connections = createConnectionsFixture({
+  now: NOW,
+  uuid: (prefix, number) => {
+    return `${prefix}-0000-4000-8000-${String(number).padStart(12, "0")}`;
+  },
+  MINUTE,
+  scenario: null,
+  findCase: () => {
+    return null;
+  },
+});
 
 /*
  * Sending, failing and not sent yet, by name: what each is sent reads under
@@ -142,6 +201,7 @@ const fixture = {
   role,
   latest,
   siem,
+  events,
   listRequests: [],
   countRequests: [],
   aggregateRequests: [],
@@ -381,6 +441,21 @@ AnalyticsModelAPI.getList = async (options) => {
       limit,
     };
   }
+  // ?events=one: the list's read of the window, on its first page.
+  if (
+    events === "one" &&
+    modelName === tableName(SecurityEvent) &&
+    options.query &&
+    options.query.time &&
+    skip === 0
+  ) {
+    return {
+      data: [Object.assign(new SecurityEvent(), EVENT)],
+      count: 1,
+      skip,
+      limit,
+    };
+  }
   return { data: [], count: 0, skip, limit };
 };
 
@@ -420,6 +495,18 @@ async function handleApi(method, options) {
     parsed.pathname.endsWith("/telemetry/security-events/get-attributes")
   ) {
     return new HTTPResponse(200, { attributes: [] }, {});
+  }
+
+  // ?events=one's drawer, its Connected tab: what the event names.
+  if (
+    events === "one" &&
+    method === "POST" &&
+    parsed.pathname.endsWith("/security-case/connections")
+  ) {
+    const answer = connections.answer(options.data);
+    return answer.status === 200
+      ? new HTTPResponse(200, answer.body, {})
+      : new HTTPErrorResponse(answer.status, answer.body, {});
   }
 
   fixture.unhandled.push({ kind: "api", method, url });

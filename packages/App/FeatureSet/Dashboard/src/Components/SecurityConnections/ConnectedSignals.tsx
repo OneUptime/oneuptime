@@ -133,7 +133,13 @@ const RecordList: FunctionComponent<{
 
           return (
             <React.Fragment key={item.id}>
-              {index > 0 ? <span className="text-gray-400"> · </span> : <></>}
+              {index > 0 ? (
+                <span aria-hidden="true" className="text-gray-400">
+                  {" · "}
+                </span>
+              ) : (
+                <></>
+              )}
               {route ? (
                 <AppLink to={route} className={FACT_LINK_CLASS_NAME}>
                   {text}
@@ -308,7 +314,7 @@ const ConnectedRecord: FunctionComponent<{
                     incidents.count,
                   )}
                 </span>
-                <span className="text-gray-400">: </span>
+                <span>: </span>
                 <RecordList list={incidents} getRoute={getIncidentRoute} />
               </p>
             ) : (
@@ -322,7 +328,7 @@ const ConnectedRecord: FunctionComponent<{
                     alerts.count,
                   )}
                 </span>
-                <span className="text-gray-400">: </span>
+                <span>: </span>
                 <RecordList list={alerts} getRoute={getAlertRoute} />
               </p>
             ) : (
@@ -346,7 +352,7 @@ const ConnectedRecord: FunctionComponent<{
                     resource.monitors.count,
                   )}
                 </span>
-                <span className="text-gray-400">: </span>
+                <span>: </span>
                 <RecordList
                   list={resource.monitors}
                   getRoute={getMonitorRoute}
@@ -360,7 +366,7 @@ const ConnectedRecord: FunctionComponent<{
                 <span className="font-medium text-gray-700">
                   {translator.translateText(CONNECTED_CHANGES_TITLE)}
                 </span>
-                <span className="text-gray-400">: </span>
+                <span>: </span>
                 {changes.map(
                   (
                     change: SecurityConnectionChangeJson,
@@ -369,7 +375,9 @@ const ConnectedRecord: FunctionComponent<{
                     return (
                       <React.Fragment key={`${change.id}-${index}`}>
                         {index > 0 ? (
-                          <span className="text-gray-400"> · </span>
+                          <span aria-hidden="true" className="text-gray-400">
+                            {" · "}
+                          </span>
                         ) : (
                           <></>
                         )}

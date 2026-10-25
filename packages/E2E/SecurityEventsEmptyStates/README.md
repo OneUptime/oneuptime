@@ -54,18 +54,20 @@ Query parameters, parsed once per page load:
 | `?theme=`  | `dark` adds `html.dark` (done in `server.js`, before the bundle runs)                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `?latest=` | Once its time window comes back empty, the Security Events page looks up the project's newest event (one row, no time window) to tell "nothing ever arrived" from "nothing in this window". `none` (default): there is no event at all, so the page shows its empty state. `pending`: the lookup does not answer until the spec calls `window.__securityEventsEmptyStatesFixture.resolveLatestEvent()`. `old`: the newest event arrived at `2026-09-01T09:30:00Z`, outside the default one-day window. |
 | `?siem=`   | `rows`: three SIEMs in the Send to your SIEM table - sending, failing (with its last error) and not sent yet. Without it the table is empty.                                                                                                                                                                                                                                                                                                                                                           |
+| `?events=` | `one`: the window holds one event - Defender's encoded PowerShell on `web-03`, by `k.morgan@acme-commerce.example` from `203.0.113.30`, twenty minutes before the pinned clock - so its row opens the event's drawer. The drawer's Connected tab asks `POST /security-case/connections` what the event names, answered from Security Operations' records (`web-03`, its staging namesake, Kai Morgan) with the server's own matching rules (`../SecurityOperations/Fixture/ConnectionsFixture.js`).    |
 
 ## What the fixture records
 
-`window.__securityEventsEmptyStatesFixture` holds `role`, `latest`, `siem`, `listRequests`
-(analytics lists carry `analytics: true`), `countRequests`, `aggregateRequests`,
-`apiRequests`, `creates` and `unhandled`. Anything a page reads that the fixture does not
+`window.__securityEventsEmptyStatesFixture` holds `role`, `latest`, `siem`, `events`,
+`listRequests` (analytics lists carry `analytics: true`), `countRequests`,
+`aggregateRequests`, `apiRequests` (each with the body it sent), `creates` and `unhandled`.
+Anything a page reads that the fixture does not
 model (a model table, an analytics query or an API URL), and any create, answers empty and
 is listed in `unhandled`; the spec's `afterEach` fails when that list is not empty.
 
 ## What the spec covers
 
-`SecurityEventsEmptyStates.spec.ts` (39 tests):
+`SecurityEventsEmptyStates.spec.ts` (44 tests):
 
 - **Connections, top to bottom**: Your logs, Your security tools, Send to your SIEM; the Your
   logs switch turns the logs on in one press and says when the first check runs, and a
@@ -118,6 +120,12 @@ is listed in `unhandled`; the spec's `afterEach` fails when that list is not emp
 - **Security Events layout**: dark theme on the list surface; 768 without sideways scroll;
   390, where the facet sidebar folds behind a "Filters" toggle and stacks above the list, so
   the list and its empty state get the page's full width and nothing scrolls sideways.
+- **An event's Connected tab** (`?events=one`): the drawer opens on Overview having looked
+  nothing up; the Connected tab reads once, with the event's user, host and address and its
+  time; `web-03` by the name it reports, its signals on the host and the hour around the
+  event (ending by now), its open incidents and monitors; Kai Morgan by email; the staging
+  host as a possible match, with why; at 1280 and 390, light and dark, every record whole
+  inside the drawer, nothing cut off, every text AA-readable and no white surface in the dark.
 
 Every test pins the clock and puts up a network fence that aborts anything leaving the
 fixture server. `afterEach` fails a test on an uncaught page error, on any request the fence
@@ -158,6 +166,10 @@ Screenshots (2x) land in `output/playwright/security-events-empty-states-ui/`, n
 | `events-desktop`                  | Security Events at 1440                                                           |
 | `events-dark`                     | Security Events in the dark theme                                                 |
 | `events-mobile`                   | Security Events at 390, full page                                                 |
+| `events-connected-tab-1280`       | An event's drawer on its Connected tab, at 1280                                   |
+| `events-connected-tab-1280-dark`  | The same in the dark theme                                                        |
+| `events-connected-tab-390`        | The same at 390                                                                   |
+| `events-connected-tab-390-dark`   | The same at 390, dark                                                             |
 
 ## Poke at it by hand
 
@@ -169,13 +181,14 @@ node SecurityEventsEmptyStates/Fixture/server.js --watch
 then open
 `http://127.0.0.1:4232/dashboard/10000000-0000-4000-8000-000000000001/security-events` or
 `.../security-events/connections`, adding the scenario parameters above
-(`?role=viewer`, `?theme=dark`, `?latest=old`). `--watch` rebuilds the bundle when a source
-file changes; refresh the browser. A browser outside Playwright uses the real clock, not the
-pinned one, and nothing stops a Setup guide link from trying to reach the made-up docs host.
+(`?role=viewer`, `?theme=dark`, `?latest=old`, `?events=one`). `--watch` rebuilds the bundle
+when a source file changes; refresh the browser. A browser outside Playwright uses the real
+clock, not the pinned one, and nothing stops a Setup guide link from trying to reach the
+made-up docs host.
 
 ## Not modelled
 
 - Saving a connection: the fixture records a create and lists it as unhandled, so a test that
   submitted the form would fail. The spec only opens, steps through and cancels the form.
-- Security events themselves: no list, histogram or facet data, so the populated pages are
-  covered elsewhere.
+- Security events themselves, beyond `?events=one`'s one row: no histogram or facet data,
+  so the populated pages are covered elsewhere.
