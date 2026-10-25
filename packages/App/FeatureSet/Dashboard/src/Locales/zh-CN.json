@@ -34570,5 +34570,9 @@
   "Planned to start at {{time}}, but it has not been marked as {{state}} yet.": "原计划于 {{time}} 开始，但尚未标记为{{state}}。",
   "Start overdue by": "开始已延迟",
   "Starts in": "距开始还有",
-  "State progress": "状态进度"
+  "State progress": "状态进度",
+  "You do not have permission to change this alert's state.": "您没有更改此警报状态的权限。",
+  "You do not have permission to change this episode's state.": "您没有更改此片段状态的权限。",
+  "You do not have permission to change this event's state.": "您没有更改此计划维护状态的权限。",
+  "You do not have permission to change this incident's state.": "您没有更改此事件状态的权限。"
 }

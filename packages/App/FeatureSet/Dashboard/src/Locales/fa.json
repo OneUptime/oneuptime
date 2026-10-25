@@ -34570,5 +34570,9 @@
   "Planned to start at {{time}}, but it has not been marked as {{state}} yet.": "قرار بود در {{time}} شروع شود، اما هنوز به‌عنوان {{state}} علامت‌گذاری نشده است.",
   "Start overdue by": "تأخیر در شروع",
   "Starts in": "زمان تا شروع",
-  "State progress": "پیشرفت وضعیت"
+  "State progress": "پیشرفت وضعیت",
+  "You do not have permission to change this alert's state.": "مجوز تغییر وضعیت این هشدار را ندارید.",
+  "You do not have permission to change this episode's state.": "مجوز تغییر وضعیت این اپیزود را ندارید.",
+  "You do not have permission to change this event's state.": "مجوز تغییر وضعیت این رویداد را ندارید.",
+  "You do not have permission to change this incident's state.": "مجوز تغییر وضعیت این حادثه را ندارید."
 }

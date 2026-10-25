@@ -34570,5 +34570,9 @@
   "Planned to start at {{time}}, but it has not been marked as {{state}} yet.": "{{time}}에 시작할 예정이었지만 아직 {{state}}(으)로 표시되지 않았습니다.",
   "Start overdue by": "시작 지연 시간",
   "Starts in": "시작까지",
-  "State progress": "상태 진행"
+  "State progress": "상태 진행",
+  "You do not have permission to change this alert's state.": "이 경고의 상태를 변경할 권한이 없습니다.",
+  "You do not have permission to change this episode's state.": "이 에피소드의 상태를 변경할 권한이 없습니다.",
+  "You do not have permission to change this event's state.": "이 이벤트의 상태를 변경할 권한이 없습니다.",
+  "You do not have permission to change this incident's state.": "이 인시던트의 상태를 변경할 권한이 없습니다."
 }

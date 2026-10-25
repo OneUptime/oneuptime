@@ -691,11 +691,17 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
         stateList={StateListType.ScheduledMaintenanceState}
         /*
          * A state change is a new row on the state timeline: someone who
-         * may not add one sees the buttons locked, each saying why.
+         * may not add one sees the buttons locked, each saying why - in
+         * the words of what they pressed, not the timeline's.
          */
         stateChangeGate={PermissionGate.check(
           new ScheduledMaintenanceStateTimeline(),
           ModelAction.Create,
+          {
+            sentence: translationKey(
+              "You do not have permission to change this event's state.",
+            ),
+          },
         )}
         identifier={props.eventNumber}
         title={props.title}

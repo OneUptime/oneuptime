@@ -43,9 +43,10 @@ import { VisibleItems, splitVisibleItems } from "../../Utils/EventOverview";
  * show the empty place itself - a dashed circle with a plus where the avatar
  * would be, as the Owners page offers its next owner - with the word that
  * fills it, "Assign" or "Add", the two together one control that lights up
- * as a whole. A record that has owners ends their list with the same circle,
- * on its own, to add more. Once the record is over, they say "Not assigned"
- * and "None", and offer nothing.
+ * as a whole. A record that has owners ends their list with the same "Add",
+ * on a line of its own, to add more - offered only to a reader who may add
+ * an owner. Once the record is over, they say "Not assigned" and "None", and
+ * offer nothing.
  */
 
 /*
@@ -122,22 +123,17 @@ const LINK_CLASS_NAME: string =
 export const EVENT_EMPTY_PLACE_ACTION_CLASS_NAME: string =
   "group -my-0.5 -ms-1 inline-flex max-w-full items-center gap-1.5 rounded-full py-0.5 pe-2.5 ps-1 font-medium text-gray-700 transition-colors hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
 
-/*
- * The place to add another owner at the end of the list: the circle alone,
- * its words read to a screen reader and shown under the pointer.
- */
-export const EVENT_ADD_MORE_ACTION_CLASS_NAME: string =
-  "group inline-flex rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
-
 // A quiet "Not assigned" / "None": a fact with nothing to name.
 const EMPTY_VALUE_CLASS_NAME: string = "font-normal text-gray-500";
 
 /*
- * The value's box: people side by side, wrapping onto more lines in a
- * narrow column, their avatars 4px apart from line to line.
+ * The value's box: one person a line, as the header lists monitors and
+ * status pages, their avatars 4px apart from line to line - so a list reads
+ * the same at every width, never two names side by side on one line and a
+ * third under them, and the place to add another owner is the list's last
+ * line, never a circle left alone after a wrap.
  */
-const VALUE_CLASS_NAME: string =
-  "flex max-w-full flex-wrap items-center gap-x-3 gap-y-2";
+const VALUE_CLASS_NAME: string = "flex max-w-full flex-col items-start gap-2";
 
 /*
  * Where the avatar would be: a dashed circle with a plus. Decoration - the
@@ -355,14 +351,21 @@ export const OwnersFactValue: FunctionComponent<OwnersFactValueProps> = (
       ) : (
         <></>
       )}
+      {/*
+       * The next owner's place, as the list's last line: the empty place
+       * and "Add", the same control as on a record nobody owns yet, so it
+       * reads as one to press on a phone too, where nothing shows under a
+       * pointer.
+       */}
       {props.canAddOwners ? (
         <AppLink
           to={props.ownersRoute}
-          className={EVENT_ADD_MORE_ACTION_CLASS_NAME}
+          className={EVENT_EMPTY_PLACE_ACTION_CLASS_NAME}
           title={addOwnersText}
           dataTestId="event-owners-add-more"
         >
           <EmptyPlace />
+          <span aria-hidden="true">{translator.translateText("Add")}</span>
           <span className="sr-only">{addOwnersText}</span>
         </AppLink>
       ) : (

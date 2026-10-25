@@ -34570,5 +34570,9 @@
   "Planned to start at {{time}}, but it has not been marked as {{state}} yet.": "Skulle starte {{time}}, men er endnu ikke markeret som {{state}}.",
   "Start overdue by": "Start forsinket med",
   "Starts in": "Starter om",
-  "State progress": "Tilstandsforløb"
+  "State progress": "Tilstandsforløb",
+  "You do not have permission to change this alert's state.": "Du har ikke tilladelse til at ændre tilstanden for denne advarsel.",
+  "You do not have permission to change this episode's state.": "Du har ikke tilladelse til at ændre tilstanden for denne episode.",
+  "You do not have permission to change this event's state.": "Du har ikke tilladelse til at ændre tilstanden for denne planlagte vedligeholdelse.",
+  "You do not have permission to change this incident's state.": "Du har ikke tilladelse til at ændre tilstanden for denne hændelse."
 }

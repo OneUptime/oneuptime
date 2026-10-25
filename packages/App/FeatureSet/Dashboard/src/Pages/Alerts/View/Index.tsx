@@ -852,7 +852,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   /*
    * Who owns the alert, teams first, beside its state and severity. Add
-   * owners is offered only while the alert is open.
+   * owners is offered only while the alert is open, to a reader who may
+   * add one.
    */
   const headerFacts: Array<EventStatusFact> = [];
 
@@ -862,7 +863,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       RouteMap[PageMap.ALERT_VIEW_OWNERS] as Route,
       { modelId: modelId },
     ),
-    canAddOwners: !durationEndDate,
+    canAddOwners: !durationEndDate && owners.canAddOwners,
   });
 
   if (ownersFact) {

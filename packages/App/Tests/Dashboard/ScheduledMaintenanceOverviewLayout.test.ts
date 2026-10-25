@@ -206,7 +206,10 @@ describe("scheduled maintenance overview: header", () => {
     expect(page).toContain(
       "RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS] as Route",
     );
-    expect(page).toContain("canAddOwners: !isEventOver,");
+    // Until it is over, to a reader who may add an owner.
+    expect(page).toContain(
+      "canAddOwners: !isEventOver && owners.canAddOwners,",
+    );
     expect(page).toContain("statusPages: { _id: true, name: true, },");
     expect(page).toContain("createdByUser: { name: true, email: true, },");
     expect(changeState).toContain("facts={props.facts}");

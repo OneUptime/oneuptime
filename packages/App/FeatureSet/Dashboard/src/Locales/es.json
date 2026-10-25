@@ -34570,5 +34570,9 @@
   "Planned to start at {{time}}, but it has not been marked as {{state}} yet.": "Debía comenzar el {{time}}, pero aún no se ha marcado como {{state}}.",
   "Start overdue by": "Inicio retrasado por",
   "Starts in": "Comienza en",
-  "State progress": "Progreso del estado"
+  "State progress": "Progreso del estado",
+  "You do not have permission to change this alert's state.": "No tienes permiso para cambiar el estado de esta alerta.",
+  "You do not have permission to change this episode's state.": "No tienes permiso para cambiar el estado de este episodio.",
+  "You do not have permission to change this event's state.": "No tienes permiso para cambiar el estado de este evento.",
+  "You do not have permission to change this incident's state.": "No tienes permiso para cambiar el estado de este incidente."
 }

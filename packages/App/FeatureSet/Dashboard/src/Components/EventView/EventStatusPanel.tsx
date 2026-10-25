@@ -21,6 +21,7 @@ import {
   EVENT_HEADER_CLASS_NAME,
   EVENT_HEADER_FACT_CLASS_NAME,
   EVENT_HEADER_FACT_LABEL_CLASS_NAME,
+  EVENT_HEADER_FACT_LABEL_ICON_CLASS_NAME,
   EVENT_HEADER_FACT_VALUE_CLASS_NAME,
   EVENT_HEADER_LOCKED_WRAPPER_CLASS_NAME,
   EVENT_HEADER_MENU_WRAPPER_CLASS_NAME,
@@ -700,7 +701,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
                   {fact.icon && (
                     <Icon
                       icon={fact.icon}
-                      className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+                      className={EVENT_HEADER_FACT_LABEL_ICON_CLASS_NAME}
                     />
                   )}
                   <span className="min-w-0 break-words">

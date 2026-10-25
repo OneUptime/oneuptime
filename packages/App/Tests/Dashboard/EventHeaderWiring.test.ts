@@ -30,6 +30,8 @@ function readCode(relativePath: string): string {
     .replace(/\s+/g, "");
 }
 
+const WHITESPACE: RegExp = /\s+/g;
+
 function countOf(source: string, needle: string): number {
   return source.split(needle).length - 1;
 }
@@ -39,6 +41,8 @@ interface HeaderKind {
   changeState: string;
   timeline: string;
   tone: "ai" | "warning" | "danger";
+  // What a locked state button says first, in the words of what was pressed.
+  lockSentence: string;
 }
 
 const KINDS: Array<HeaderKind> = [
@@ -47,30 +51,35 @@ const KINDS: Array<HeaderKind> = [
     changeState: "Components/Incident/ChangeState.tsx",
     timeline: "IncidentStateTimeline",
     tone: "ai",
+    lockSentence: "You do not have permission to change this incident's state.",
   },
   {
     name: "alert",
     changeState: "Components/Alert/ChangeState.tsx",
     timeline: "AlertStateTimeline",
     tone: "ai",
+    lockSentence: "You do not have permission to change this alert's state.",
   },
   {
     name: "incident episode",
     changeState: "Components/IncidentEpisode/ChangeState.tsx",
     timeline: "IncidentEpisodeStateTimeline",
     tone: "danger",
+    lockSentence: "You do not have permission to change this episode's state.",
   },
   {
     name: "alert episode",
     changeState: "Components/AlertEpisode/ChangeState.tsx",
     timeline: "AlertEpisodeStateTimeline",
     tone: "danger",
+    lockSentence: "You do not have permission to change this episode's state.",
   },
   {
     name: "scheduled maintenance event",
     changeState: "Components/ScheduledMaintenance/ChangeState.tsx",
     timeline: "ScheduledMaintenanceStateTimeline",
     tone: "warning",
+    lockSentence: "You do not have permission to change this event's state.",
   },
 ];
 
@@ -82,8 +91,16 @@ describe.each(KINDS)("the $name header", (kind: HeaderKind) => {
   });
 
   test("asks who may add to its own state timeline before offering a state change", () => {
+    /*
+     * A locked button says, first, that the reader may not change this
+     * record's state - not that they may not "create this State Timeline" -
+     * and then which permissions would let them.
+     */
     expect(code).toContain(
-      `stateChangeGate={PermissionGate.check(new${kind.timeline}(),ModelAction.Create,)}`,
+      `stateChangeGate={PermissionGate.check(new${kind.timeline}(),ModelAction.Create,{sentence:translationKey("${kind.lockSentence.replace(
+        WHITESPACE,
+        "",
+      )}",),},)}`,
     );
     expect(code).toContain(
       `import${kind.timeline}from"Common/Models/DatabaseModels/${kind.timeline}";`,
@@ -198,7 +215,8 @@ describe("each kind keeps its own facts", () => {
     expect(page).toContain(
       'useEventOwners({ownerUserModelType:ScheduledMaintenanceOwnerUser,ownerTeamModelType:ScheduledMaintenanceOwnerTeam,resourceIdField:"scheduledMaintenanceId",resourceId:modelId,});',
     );
-    expect(page).toContain("canAddOwners:!isEventOver,");
+    // Add owners until it is over, to a reader who may add one.
+    expect(page).toContain("canAddOwners:!isEventOver&&owners.canAddOwners,");
     expect(page).toContain(
       '<EventFactLinksdataTestId="event-status-page-links"',
     );

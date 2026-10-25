@@ -994,8 +994,9 @@ const IncidentView: FunctionComponent<
   /*
    * Who runs the response, beside its state and severity: the commander
    * (the project's primary incident role) and the owners, teams first. Assign
-   * and Add owners are offered only while the incident is open; a resolved
-   * one says who held them, or that nobody did.
+   * and Add owners are offered only while the incident is open (Add owners
+   * to a reader who may add one); a resolved one says who held them, or
+   * that nobody did.
    */
   const isResolved: boolean = Boolean(durationEndDate);
   const headerFacts: Array<EventStatusFact> = [];
@@ -1022,7 +1023,7 @@ const IncidentView: FunctionComponent<
       RouteMap[PageMap.INCIDENT_VIEW_OWNERS] as Route,
       { modelId: modelId },
     ),
-    canAddOwners: !isResolved,
+    canAddOwners: !isResolved && owners.canAddOwners,
   });
 
   if (ownersFact) {

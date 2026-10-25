@@ -31,6 +31,10 @@ export function getEventStateTrackStep(
   return index === currentIndex ? "current" : "reached";
 }
 
+// A state's segment of the track, under its name.
+export const EVENT_STATE_TRACK_SEGMENT_CLASS_NAME: string =
+  "mt-1.5 block h-1 rounded-full";
+
 const LABEL_CLASS_NAMES: Record<EventStateTrackStep, string> = {
   // At most half the header (a size container), so its share never crowds the others out.
   current: "max-w-[50cqw] font-semibold text-gray-900",
@@ -119,10 +123,14 @@ const EventStateTrack: FunctionComponent<ComponentProps> = (
               >
                 {name}
               </span>
+              {/*
+               * 4px: a line to read the progress by, quieter than the
+               * header's main button, whatever the state's colour.
+               */}
               <span
                 aria-hidden="true"
                 data-testid="event-state-track-segment"
-                className={`mt-1.5 block h-1.5 rounded-full ${
+                className={`${EVENT_STATE_TRACK_SEGMENT_CLASS_NAME} ${
                   step === "upcoming" ? "bg-gray-200" : ""
                 }`}
                 style={

@@ -34570,5 +34570,9 @@
   "Planned to start at {{time}}, but it has not been marked as {{state}} yet.": "{{time}} に開始する予定でしたが、まだ{{state}}になっていません。",
   "Start overdue by": "開始の遅れ",
   "Starts in": "開始まで",
-  "State progress": "状態の進捗"
+  "State progress": "状態の進捗",
+  "You do not have permission to change this alert's state.": "このアラートの状態を変更する権限がありません。",
+  "You do not have permission to change this episode's state.": "このエピソードの状態を変更する権限がありません。",
+  "You do not have permission to change this event's state.": "このイベントの状態を変更する権限がありません。",
+  "You do not have permission to change this incident's state.": "このインシデントの状態を変更する権限がありません。"
 }

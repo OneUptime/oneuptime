@@ -1,4 +1,11 @@
-import EventHeaderSkeleton from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventHeaderSkeleton";
+import EventHeaderSkeleton, {
+  EVENT_HEADER_SKELETON_BUTTON_LABELS,
+  getEventHeaderSkeletonBesideWidth,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventHeaderSkeleton";
+import {
+  getEventHeaderActionsBesideWidth,
+  getEventHeaderTopRowClassNames,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventHeaderLayout";
 import EventOverviewSkeleton from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventOverviewSkeleton";
 import "@testing-library/jest-dom";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -139,8 +146,89 @@ describe("EventHeaderSkeleton", () => {
 
     expect(track.children).toHaveLength(3);
     for (const step of Array.from(track.children)) {
-      expect(step.querySelector(".h-1\\.5.rounded-full")).not.toBeNull();
+      // The loaded track's 4px line.
+      expect(step.querySelector(".h-1.rounded-full")).not.toBeNull();
     }
+  });
+
+  /*
+   * The top row is the loaded header's: the pills, the title on a line of
+   * its own, then the buttons - beside the pills from the width that many
+   * of the usual buttons need, under the title below it, growing to share
+   * their row on a phone - so the swap to the loaded header moves nothing.
+   */
+  test("lays its pills, title and buttons out as the loaded header lays out an incident's", () => {
+    render(<EventHeaderSkeleton testId="placeholder" buttonCount={2} />);
+
+    const placeholder: HTMLElement = screen.getByTestId("placeholder");
+    const besideWidth: number | null = getEventHeaderSkeletonBesideWidth(
+      2,
+      (text: string): string => {
+        return text;
+      },
+    );
+
+    // An incident's Acknowledge and Resolve beside its Created and SEV-2.
+    expect(besideWidth).toBe(
+      getEventHeaderActionsBesideWidth({
+        identifier: "#1042",
+        pills: ["Created", "SEV-2"],
+        actions: [
+          { label: "Acknowledge", hasIcon: true },
+          { label: "Resolve", hasIcon: true },
+        ],
+        hasMore: false,
+      }),
+    );
+
+    const row: string = getEventHeaderTopRowClassNames({
+      besideWidthRem: besideWidth,
+      hasMore: false,
+    }).row;
+    const top: Element = placeholder.querySelector('[class~="gap-x-4"]')!;
+
+    expect(top.className).toBe(row);
+    // The pills, the title, then the buttons, in the loaded header's order.
+    expect(top.children).toHaveLength(3);
+    expect(top.children[2]!.querySelectorAll(".h-9.rounded-md")).toHaveLength(
+      2,
+    );
+    // On a phone each button grows to share the row; wider, each keeps its width.
+    for (const button of Array.from(
+      top.children[2]!.querySelectorAll(".h-9.rounded-md"),
+    )) {
+      expect(button).toHaveClass(
+        "flex-auto",
+        "min-w-[7rem]",
+        "[@container(min-width:36rem)]:flex-none",
+      );
+    }
+  });
+
+  test("works out the width for more buttons from the usual ones, in the reader's words", () => {
+    const translated: Array<string> = [];
+    const wide: number | null = getEventHeaderSkeletonBesideWidth(
+      3,
+      (text: string): string => {
+        translated.push(text);
+        return text + text;
+      },
+    );
+
+    // Created, SEV-2, then Acknowledge, Resolve and Declare Incident.
+    expect(translated).toEqual([
+      "Created",
+      "SEV-2",
+      ...EVENT_HEADER_SKELETON_BUTTON_LABELS.slice(0, 3),
+    ]);
+    // Longer words need a wider header, or never fit beside the pills.
+    expect(
+      wide === null ||
+        wide >
+          (getEventHeaderSkeletonBesideWidth(3, (text: string): string => {
+            return text;
+          }) || 0),
+    ).toBe(true);
   });
 
   test("pulses only for a reader who has not asked for less motion, and offers nothing to press", () => {

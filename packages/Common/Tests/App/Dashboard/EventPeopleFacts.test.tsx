@@ -238,7 +238,7 @@ describe("the commander", () => {
     expect(screen.queryByTestId("event-empty-place")).toBeNull();
   });
 
-  test("lays people side by side under the label, wrapping in a narrow column", () => {
+  test("lists people one a line under the label, as the header lists monitors", () => {
     const people: RenderResult = render(
       <CommanderFactValue
         members={[
@@ -253,15 +253,24 @@ describe("the commander", () => {
       />,
     );
 
-    expect(people.getByTestId("event-commander")).toHaveClass(
+    const commander: HTMLElement = people.getByTestId("event-commander");
+
+    expect(commander).toHaveClass(
       "flex",
       "max-w-full",
-      "flex-wrap",
-      "items-center",
-      "gap-x-3",
-      "gap-y-2",
+      "flex-col",
+      "items-start",
+      "gap-2",
     );
+    // Never side by side, so a list never wraps two to a line and one under.
+    expect(commander).not.toHaveClass("flex-wrap");
     expect(shownNames(people.container)).toEqual(["Maya Chen", "Sam Rivera"]);
+    // Each person is a line of the list.
+    expect(
+      Array.from(commander.children).map((line: Element): string | null => {
+        return line.getAttribute("data-testid");
+      }),
+    ).toEqual(["event-commander-person", "event-commander-person"]);
     people.unmount();
 
     const open: RenderResult = render(
@@ -272,10 +281,7 @@ describe("the commander", () => {
       />,
     );
 
-    expect(open.getByTestId("event-commander")).toHaveClass(
-      "flex",
-      "flex-wrap",
-    );
+    expect(open.getByTestId("event-commander")).toHaveClass("flex", "flex-col");
   });
 
   test("an avatar and the empty place take a text line's 20px in the row, so a name sits level with the words beside it", () => {
@@ -468,7 +474,7 @@ describe("the owners", () => {
     expectEmptyPlaceControl(add);
     // Said once: no "None" beside the place that says it.
     expect(screen.queryByText("None")).toBeNull();
-    expect(screen.getByTestId("event-owners")).toHaveClass("flex-wrap");
+    expect(screen.getByTestId("event-owners")).toHaveClass("flex-col");
     // The one place to add owners: no second one at the end of an empty list.
     expect(screen.queryByTestId("event-owners-add-more")).toBeNull();
   });
@@ -481,7 +487,7 @@ describe("the owners", () => {
     expect(screen.queryByTestId("event-empty-place")).toBeNull();
   });
 
-  test("owners sit side by side under the label, wrapping in a narrow column", () => {
+  test("owners are listed one a line under the label, as the header lists monitors", () => {
     render(
       <OwnersFactValue
         owners={[team("Checkout SRE", 1), person("Sam Rivera", 2)]}
@@ -489,13 +495,15 @@ describe("the owners", () => {
       />,
     );
 
-    expect(screen.getByTestId("event-owners")).toHaveClass(
-      "flex",
-      "flex-wrap",
-      "items-center",
-      "gap-x-3",
-      "gap-y-2",
-    );
+    const owners: HTMLElement = screen.getByTestId("event-owners");
+
+    expect(owners).toHaveClass("flex", "flex-col", "items-start", "gap-2");
+    expect(owners).not.toHaveClass("flex-wrap");
+    expect(
+      Array.from(owners.children).map((line: Element): string | null => {
+        return line.getAttribute("data-testid");
+      }),
+    ).toEqual(["event-owner", "event-owner"]);
   });
 
   test("an open record's owners end with the empty place, to add more from the Owners page", () => {
@@ -514,10 +522,20 @@ describe("the owners", () => {
     expect(addMore).toBe(screen.getByRole("link", { name: "Add owners" }));
     expect(addMore).toHaveAttribute("title", "Add owners");
     expect(addMore).toHaveAttribute("href", OWNERS_ROUTE.toString());
+    /*
+     * The same control as on a record nobody owns: the empty place and the
+     * word "Add", so it reads as one to press on a phone too, where nothing
+     * shows under a pointer.
+     */
     expectEmptyPlace(addMore);
-    expect(addMore).toHaveClass("group", "inline-flex", "rounded-full");
-    // Last, after the people.
+    expectEmptyPlaceControl(addMore);
+    expect(within(addMore).getByText("Add")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+    // The list's last line, after the people.
     expect(owners.lastElementChild).toBe(addMore);
+    expect(owners).toHaveClass("flex-col");
     expect(shownNames(owners)).toEqual(["Checkout SRE", "Sam Rivera"]);
   });
 
@@ -535,13 +553,14 @@ describe("the owners", () => {
       />,
     );
 
-    const links: Array<HTMLElement> = screen.getAllByRole("link");
+    const owners: HTMLElement = screen.getByTestId("event-owners");
+    const more: HTMLElement = screen.getByRole("link", { name: "+1 more" });
+    const add: HTMLElement = screen.getByRole("link", { name: "Add owners" });
 
-    expect(
-      links.map((link: HTMLElement): string => {
-        return link.textContent || "";
-      }),
-    ).toEqual(["+1 more", "Add owners"]);
+    expect(screen.getAllByRole("link")).toEqual([more, add]);
+    // Each a line of its own, Add the last.
+    expect(more.parentElement).toBe(owners);
+    expect(owners.lastElementChild).toBe(add);
   });
 
   test("a record that is over offers no place to add owners", () => {
@@ -565,7 +584,7 @@ describe("a person by name", () => {
     const value: HTMLElement = screen.getByTestId("event-person");
     const entry: HTMLElement = screen.getByTestId("event-person-entry");
 
-    expect(value).toHaveClass("flex", "flex-wrap");
+    expect(value).toHaveClass("flex", "flex-col");
     expect(entry).toHaveAttribute("data-kind", "user");
     expect(shownNames(value)).toEqual(["Jordan Patel"]);
     // The avatar is decoration: the name is read once.

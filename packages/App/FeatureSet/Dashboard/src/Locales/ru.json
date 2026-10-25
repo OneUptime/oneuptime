@@ -34570,5 +34570,9 @@
   "Planned to start at {{time}}, but it has not been marked as {{state}} yet.": "Должно было начаться {{time}}, но ещё не отмечено как «{{state}}».",
   "Start overdue by": "Начало задерживается на",
   "Starts in": "Начнётся через",
-  "State progress": "Ход состояний"
+  "State progress": "Ход состояний",
+  "You do not have permission to change this alert's state.": "У вас нет прав на изменение состояния этого оповещения.",
+  "You do not have permission to change this episode's state.": "У вас нет прав на изменение состояния этого эпизода.",
+  "You do not have permission to change this event's state.": "У вас нет прав на изменение состояния этого события.",
+  "You do not have permission to change this incident's state.": "У вас нет прав на изменение состояния этого инцидента."
 }

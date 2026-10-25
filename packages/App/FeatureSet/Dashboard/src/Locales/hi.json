@@ -34570,5 +34570,9 @@
   "Planned to start at {{time}}, but it has not been marked as {{state}} yet.": "इसे {{time}} पर शुरू होना था, लेकिन इसे अभी तक {{state}} के रूप में चिह्नित नहीं किया गया है।",
   "Start overdue by": "शुरुआत में देरी",
   "Starts in": "शुरू होने में",
-  "State progress": "स्थिति की प्रगति"
+  "State progress": "स्थिति की प्रगति",
+  "You do not have permission to change this alert's state.": "आपको इस अलर्ट की स्थिति बदलने की अनुमति नहीं है।",
+  "You do not have permission to change this episode's state.": "आपको इस एपिसोड की स्थिति बदलने की अनुमति नहीं है।",
+  "You do not have permission to change this event's state.": "आपको इस इवेंट की स्थिति बदलने की अनुमति नहीं है।",
+  "You do not have permission to change this incident's state.": "आपको इस घटना की स्थिति बदलने की अनुमति नहीं है।"
 }

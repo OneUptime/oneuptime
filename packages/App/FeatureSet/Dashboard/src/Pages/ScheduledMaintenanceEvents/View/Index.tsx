@@ -558,7 +558,8 @@ const ScheduledMaintenanceView: FunctionComponent<
 
   /*
    * Who owns the event (teams first), where it shows, and who created it.
-   * Adding owners is offered until the event is over.
+   * Adding owners is offered until the event is over, to a reader who
+   * may add one.
    */
   const heroFacts: Array<EventStatusFact> = [];
 
@@ -568,7 +569,7 @@ const ScheduledMaintenanceView: FunctionComponent<
       RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_OWNERS] as Route,
       { modelId: modelId },
     ),
-    canAddOwners: !isEventOver,
+    canAddOwners: !isEventOver && owners.canAddOwners,
   });
 
   if (ownersFact) {

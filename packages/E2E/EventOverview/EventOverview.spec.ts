@@ -9160,8 +9160,9 @@ test.describe("the header, by its own width", () => {
     ]);
     await loadProductionFont(page);
 
+    // What they pressed, in their words - not "create this Incident State Timeline".
     const reason: string =
-      "You do not have permission to create this Incident State Timeline. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident State Timeline.";
+      "You do not have permission to change this incident's state. You need one of these permissions: Project Owner, Project Admin, Project Member, Incident Admin, Incident Member, Create Incident State Timeline.";
     await expect(heroActions(page).getByRole("button")).toHaveText([
       "Acknowledge",
       "Resolve",
@@ -9193,6 +9194,168 @@ test.describe("the header, by its own width", () => {
     // Locked, they still lay out as the buttons they would be.
     await expectHeaderAtItsWidth(page, "locked 1280px");
     expect((await fixture(page)).creates).toEqual([]);
+    // Nor is Add owners offered: an Alert Member may not add an incident's owners.
+    await expect(ownersFact(page).getByTestId("event-person-name")).toHaveText([
+      "Checkout SRE",
+      "Sam Rivera",
+    ]);
+    await expect(ownersFact(page).getByRole("link")).toHaveCount(0);
+  });
+
+  /*
+   * The facts side by side share their rows: a label that wraps makes the
+   * row's label line taller for all of them, every value of the row starts
+   * on one line and each label sits right above its value. On a phone
+   * "INCIDENT COMMANDER" wraps, and the commander's name sat a line lower
+   * than "19 minutes" beside it.
+   */
+  for (const language of ["en", "de"]) {
+    test(`the facts of a row start on one line even where a label wraps (${language}, 390px)`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: 390, height: 900 });
+      await open(
+        page,
+        INCIDENT_PATH,
+        language === "de" ? "state=ongoing&lang=de" : "state=ongoing",
+      );
+      await expect(
+        commanderFact(page).getByTestId("event-person-name"),
+      ).toHaveText(["Maya Chen"], { timeout: 30000 });
+      await expect(
+        hero(page).getByTestId("event-header-duration"),
+      ).toBeVisible();
+      await loadProductionFont(page);
+
+      const duration: { label: number; value: number; height: number } =
+        await factTextTops(hero(page).getByTestId("event-header-duration"));
+      const commander: Locator = commanderFact(page);
+      const tops: { label: number; value: number; height: number } =
+        await factTextTops(commander);
+      const labels: Array<{ height: number; bottom: number }> = await hero(page)
+        .getByTestId("event-status-facts")
+        .locator("dt")
+        .evaluateAll(
+          (
+            elements: Array<Element>,
+          ): Array<{ height: number; bottom: number }> => {
+            return elements.slice(0, 2).map((element: Element) => {
+              const box: DOMRect = element.getBoundingClientRect();
+              return { height: box.height, bottom: box.bottom };
+            });
+          },
+        );
+
+      // The commander's label takes two lines; how long's, one.
+      expect(labels[1]!.height).toBeGreaterThan(labels[0]!.height + 8);
+      // Each label right above its value, at the foot of the shared row.
+      expect(
+        Math.abs(labels[0]!.bottom - labels[1]!.bottom),
+      ).toBeLessThanOrEqual(0.5);
+      // And the values on one line.
+      expect(
+        Math.abs(tops.value - duration.value),
+        "the name is level with how long",
+      ).toBeLessThanOrEqual(0.5);
+      await page.mouse.move(0, 0);
+      await screenshotElement(
+        hero(page),
+        `event-header-facts-row-${language}-390`,
+      );
+    });
+  }
+
+  /*
+   * People are listed one a line, as monitors are, at every width - never
+   * two names side by side and a third under them - and on an open record
+   * the list ends with Add, the same control as on a record nobody owns.
+   */
+  for (const width of [1280, 1024, 390]) {
+    test(`an open incident's owners, one a line, end with Add (${width}px)`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await openReady(page, INCIDENT_PAGE, "state=ongoing&owners=many");
+      await loadProductionFont(page);
+
+      const owners: Locator = ownersFact(page);
+      const lines: Array<{ left: number; top: number }> = await owners
+        .locator(":scope > *")
+        .evaluateAll(
+          (elements: Array<Element>): Array<{ left: number; top: number }> => {
+            return elements.map((element: Element) => {
+              const box: DOMRect = element.getBoundingClientRect();
+              return { left: box.left, top: box.top };
+            });
+          },
+        );
+
+      // Three people, +3 more, then Add: five lines, one under another.
+      expect(lines).toHaveLength(5);
+      for (let index: number = 1; index < lines.length; index++) {
+        expect(lines[index]!.top, `line ${index + 1}`).toBeGreaterThan(
+          lines[index - 1]!.top + 16,
+        );
+      }
+
+      const add: Locator = owners.getByRole("link", { name: "Add owners" });
+      await expect(add).toHaveAttribute("href", INCIDENT_OWNERS_PATH);
+      await expect(add).toHaveAttribute("title", "Add owners");
+      // Visibly "Add", as on a record nobody owns; heard as "Add owners".
+      await expect(
+        add.locator(":scope > [aria-hidden='true']").last(),
+      ).toHaveText("Add");
+      await expectEmptyPlace(add);
+      // The list's last line, its circle under the avatars.
+      expect(
+        await owners.evaluate((element: Element): string | null => {
+          return element.lastElementChild?.getAttribute("data-testid") || null;
+        }),
+      ).toBe("event-owners-add-more");
+      const avatar: Box = await documentBox(
+        owners
+          .getByTestId("event-owner")
+          .first()
+          .locator(":scope > span")
+          .first(),
+      );
+      const place: Box = await documentBox(
+        add.getByTestId("event-empty-place"),
+      );
+      expect(Math.abs(place.x - avatar.x)).toBeLessThanOrEqual(1);
+
+      await page.mouse.move(0, 0);
+      await screenshotElement(hero(page), `event-header-owners-add-${width}`);
+
+      await add.click();
+      await expect(page.getByTestId("stub-page")).toHaveAttribute(
+        "data-page",
+        "INCIDENT_VIEW_OWNERS",
+      );
+    });
+  }
+
+  test("the state track is a 4px line under the states' names", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openReady(page, INCIDENT_PAGE, "state=created");
+
+    const heights: Array<number> = await hero(page)
+      .getByTestId("event-state-track-segment")
+      .evaluateAll((segments: Array<Element>): Array<number> => {
+        return segments.map((segment: Element): number => {
+          return segment.getBoundingClientRect().height;
+        });
+      });
+
+    expect(heights).toEqual([4, 4, 4]);
   });
 });
 
@@ -15957,10 +16120,14 @@ test.describe("at a glance: who is on it", () => {
         ).toBeLessThanOrEqual(0.5);
       }
 
-      // One person, or an empty place, is one 20px line: the 24px avatar does not grow it.
+      /*
+       * One person, or an empty place, is one 20px line: the 24px avatar
+       * does not grow it. (The value's own box: the fact's dd also holds
+       * the space under it, before the next row of facts.)
+       */
       const commanderHeight: number = await commanderFact(page).evaluate(
         (value: Element): number => {
-          return value.closest("dd")!.getBoundingClientRect().height;
+          return value.getBoundingClientRect().height;
         },
       );
       expect(

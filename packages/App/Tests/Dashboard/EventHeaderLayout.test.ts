@@ -3,8 +3,11 @@ import {
   EVENT_HEADER_BESIDE_WIDTHS_REM,
   EVENT_HEADER_BUTTON_CLASS_NAME,
   EVENT_HEADER_CLASS_NAME,
+  EVENT_HEADER_FACT_CLASS_NAME,
   EVENT_HEADER_FACT_COLUMN_STEPS,
   EVENT_HEADER_FACT_LABEL_CLASS_NAME,
+  EVENT_HEADER_FACT_LABEL_ICON_CLASS_NAME,
+  EVENT_HEADER_FACT_VALUE_CLASS_NAME,
   EVENT_HEADER_LOCKED_WRAPPER_CLASS_NAME,
   EVENT_HEADER_MENU_WRAPPER_CLASS_NAME,
   EVENT_HEADER_NEUTRAL_BUTTON_CLASS_NAME,
@@ -710,6 +713,58 @@ describe("the facts", () => {
       expect(getEventHeaderFactColumns(count, allowed)).toBe(columns);
     },
   );
+
+  /*
+   * A fact spans two rows of the grid - its label's, then its value's - and
+   * lays the two on them (a subgrid), so the facts of one row share their
+   * rows: a label that wraps ("INCIDENT COMMANDER" in a phone's column,
+   * "START OVERDUE BY") makes the label line taller for the whole row, every
+   * value of the row starts on one line, and each label sits right above
+   * its value. On a phone the commander's name sat a line lower than "19
+   * minutes" beside it before.
+   */
+  test("lay each fact's label and value on two rows of the grid, shared by the facts beside it", () => {
+    expect(classesOf(EVENT_HEADER_FACT_CLASS_NAME)).toEqual(
+      expect.arrayContaining([
+        "row-span-2",
+        "grid",
+        "grid-rows-subgrid",
+        "min-w-0",
+      ]),
+    );
+    // The label at the foot of its row, 6px over its value.
+    expect(classesOf(EVENT_HEADER_FACT_LABEL_CLASS_NAME)).toEqual(
+      expect.arrayContaining(["self-end", "pb-1.5"]),
+    );
+    // Its icon keeps to the first line of a label that wraps.
+    expect(classesOf(EVENT_HEADER_FACT_LABEL_CLASS_NAME)).toContain(
+      "items-start",
+    );
+    expect(classesOf(EVENT_HEADER_FACT_LABEL_ICON_CLASS_NAME)).toEqual(
+      expect.arrayContaining(["mt-px", "h-3.5", "w-3.5", "flex-shrink-0"]),
+    );
+    // The space under each value parts the rows, and closes the grid.
+    expect(classesOf(EVENT_HEADER_FACT_VALUE_CLASS_NAME)).toContain("pb-4");
+    expect(classesOf(EVENT_HEADER_FACT_VALUE_CLASS_NAME)).not.toContain(
+      "mt-1.5",
+    );
+
+    for (let count: number = 1; count <= 7; count++) {
+      const classes: Array<string> = classesOf(
+        getEventHeaderFactsClassName(count),
+      );
+
+      expect(classes).toContain("pt-4");
+      expect(classes).not.toContain("py-4");
+      expect(classes).not.toContain("pb-4");
+      // No row gap: it would part a label from its own value too.
+      expect(
+        classes.filter((name: string): boolean => {
+          return name.includes("gap-y-") || name.startsWith("gap-");
+        }),
+      ).toEqual(["gap-x-6"]);
+    }
+  });
 
   test("label each fact as the stat tiles do: small grey capitals", () => {
     expect(classesOf(EVENT_HEADER_FACT_LABEL_CLASS_NAME)).toEqual(

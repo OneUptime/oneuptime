@@ -34570,5 +34570,9 @@
   "Planned to start at {{time}}, but it has not been marked as {{state}} yet.": "Skulle starta {{time}}, men har ännu inte markerats som {{state}}.",
   "Start overdue by": "Start försenad med",
   "Starts in": "Startar om",
-  "State progress": "Tillståndsförlopp"
+  "State progress": "Tillståndsförlopp",
+  "You do not have permission to change this alert's state.": "Du har inte behörighet att ändra tillståndet för det här larmet.",
+  "You do not have permission to change this episode's state.": "Du har inte behörighet att ändra tillståndet för den här episoden.",
+  "You do not have permission to change this event's state.": "Du har inte behörighet att ändra tillståndet för den här händelsen.",
+  "You do not have permission to change this incident's state.": "Du har inte behörighet att ändra tillståndet för den här incidenten."
 }

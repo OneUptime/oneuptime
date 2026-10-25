@@ -57,8 +57,9 @@ function recordProps(key: string, props: Record<string, unknown>): void {
 function currentOwnersState(): {
   owners: Array<ResourceOwnerEntry> | undefined;
   error: string;
+  canAddOwners: boolean;
 } {
-  return { owners: ownersAnswer, error: "" };
+  return { owners: ownersAnswer, error: "", canAddOwners: mayAddOwners };
 }
 
 function stubModule(key: string): {
@@ -881,6 +882,8 @@ let currentPermissions: Array<Permission> = [Permission.ProjectMember];
 
 // What the owners hook answers: not read yet, unless a test says so.
 let ownersAnswer: Array<ResourceOwnerEntry> | undefined = undefined;
+// Whether the reader may add an owner, as useEventOwners reads the permissions.
+let mayAddOwners: boolean = true;
 
 function ownerTeam(name: string, id: string): ResourceOwnerEntry {
   const team: Team = new Team();
@@ -956,6 +959,7 @@ beforeEach(() => {
   currentEventId = EVENT_ID;
   currentPermissions = [Permission.ProjectMember];
   ownersAnswer = undefined;
+  mayAddOwners = true;
 
   jest
     .spyOn(Navigation, "getLastParamAsObjectID")
@@ -1179,6 +1183,30 @@ describe.each([
       expect(factValueProps(owners).owners).toEqual([]);
       // Open (reopened), so Add owners is offered.
       expect(factValueProps(owners).canAddOwners).toBe(true);
+    });
+
+    test("offers Add owners only to a reader who may add one, open or not", async () => {
+      serve(pageCase, { timeline: REOPENED_TIMELINE, title: "Checkout slow" });
+      ownersAnswer = [
+        ownerTeam("Checkout SRE", "ffffffff-ffff-4fff-8fff-fffffffffff1"),
+      ];
+      mayAddOwners = false;
+
+      pageCase.renderPage();
+      await waitForPage();
+
+      const owners: EventStatusFact | undefined = factNamed(pageCase, "Owners");
+
+      // Still named, open as the record is - but nothing to add them with.
+      expect(factValueProps(owners).owners).toHaveLength(1);
+      expect(factValueProps(owners).canAddOwners).toBe(false);
+
+      const rendered: RenderResult = render(<>{owners!.value}</>);
+
+      expect(
+        within(rendered.container).queryByTestId("event-owners-add-more"),
+      ).toBeNull();
+      expect(within(rendered.container).queryByRole("link")).toBeNull();
     });
 
     test("lifts the investigation status, summary and verdict into the header", async () => {

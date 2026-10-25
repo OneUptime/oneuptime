@@ -529,11 +529,17 @@ const ChangeAlertState: FunctionComponent<ComponentProps> = (
         stateList={StateListType.AlertState}
         /*
          * A state change is a new row on the state timeline: someone who
-         * may not add one sees the buttons locked, each saying why.
+         * may not add one sees the buttons locked, each saying why - in
+         * the words of what they pressed, not the timeline's.
          */
         stateChangeGate={PermissionGate.check(
           new AlertStateTimeline(),
           ModelAction.Create,
+          {
+            sentence: translationKey(
+              "You do not have permission to change this alert's state.",
+            ),
+          },
         )}
         identifier={props.eventNumber}
         title={props.title}

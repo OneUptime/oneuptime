@@ -23,6 +23,8 @@ import { StateListType } from "../../../Utils/StateOrder";
 
 // React's warning for list items without a (unique) key.
 const KEY_WARNING_PATTERN: RegExp = /unique "key"|same key/;
+// A row gap on the facts' grid, at any width ("gap-y-4", "...:gap-y-2").
+const GAP_Y_CLASS: RegExp = /(^|\s|:)gap-y-/;
 
 jest.mock("react-i18next", () => {
   return {
@@ -1067,7 +1069,9 @@ describe("EventStatusPanel state track", () => {
     expect(segments[3]).toHaveClass("bg-gray-200");
     for (const segment of segments) {
       expect(segment).toHaveAttribute("aria-hidden", "true");
-      expect(segment).toHaveClass("h-1.5", "rounded-full");
+      // A 4px line, quieter than the header's main button.
+      expect(segment).toHaveClass("h-1", "rounded-full");
+      expect(segment).not.toHaveClass("h-1.5");
     }
   });
 
@@ -1643,11 +1647,46 @@ describe("EventStatusPanel header facts", () => {
       "text-gray-500",
     );
     expect(facts.querySelector("dd")).toHaveClass(
-      "mt-1.5",
       "text-sm",
       "font-medium",
       "text-gray-900",
     );
+  });
+
+  /*
+   * Each fact spans two rows of the facts' grid and lays its label and value
+   * on them, so a label that wraps ("INCIDENT COMMANDER" in a phone's
+   * column) makes the row's label line taller for every fact in it: the
+   * values of a row start on one line, each label right above its value.
+   */
+  test("lays every fact's label and value on two rows the facts beside it share", () => {
+    renderPanel({
+      title: "Checkout latency",
+      facts: [
+        { label: "Incident Commander", value: "Maya Chen" },
+        { label: "Monitor", value: "checkout-api" },
+      ],
+    });
+
+    const facts: HTMLElement = getFacts() as HTMLElement;
+
+    // No row gap of its own: each value's own space below it parts the rows.
+    expect(facts).toHaveClass("pt-4");
+    expect(facts).not.toHaveClass("py-4");
+    expect(facts.className).not.toMatch(GAP_Y_CLASS);
+
+    for (const fact of Array.from(facts.children)) {
+      expect(fact).toHaveClass("row-span-2", "grid", "grid-rows-subgrid");
+      expect(
+        Array.from(fact.children).map((part: Element) => {
+          return part.tagName;
+        }),
+      ).toEqual(["DT", "DD"]);
+      // The label at the foot of its row, right above its value.
+      expect(fact.querySelector("dt")).toHaveClass("self-end", "pb-1.5");
+      expect(fact.querySelector("dd")).toHaveClass("pb-4");
+      expect(fact.querySelector("dd")).not.toHaveClass("mt-1.5");
+    }
   });
 
   test("renders an element value such as a link", () => {

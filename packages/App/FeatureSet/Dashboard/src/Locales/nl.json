@@ -34570,5 +34570,9 @@
   "Planned to start at {{time}}, but it has not been marked as {{state}} yet.": "Zou beginnen op {{time}}, maar is nog niet als {{state}} gemarkeerd.",
   "Start overdue by": "Start te laat met",
   "Starts in": "Begint over",
-  "State progress": "Statusverloop"
+  "State progress": "Statusverloop",
+  "You do not have permission to change this alert's state.": "U hebt geen toestemming om de status van deze waarschuwing te wijzigen.",
+  "You do not have permission to change this episode's state.": "U hebt geen toestemming om de status van deze episode te wijzigen.",
+  "You do not have permission to change this event's state.": "U hebt geen toestemming om de status van deze gebeurtenis te wijzigen.",
+  "You do not have permission to change this incident's state.": "U hebt geen toestemming om de status van dit incident te wijzigen."
 }

@@ -54,6 +54,8 @@ const detailItemsByCardName: Record<string, unknown> = {};
  */
 const useEventOwnersMock: MockFunction = getJestMockFunction();
 let ownersForTest: Array<unknown> | undefined = undefined;
+// Whether the reader may add an owner, as useEventOwners reads the permissions.
+let mayAddOwnersForTest: boolean = true;
 
 jest.mock("react-i18next", () => {
   return {
@@ -90,9 +92,15 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: (options: unknown): { owners: unknown; error: string } => {
+      default: (
+        options: unknown,
+      ): { owners: unknown; error: string; canAddOwners: boolean } => {
         useEventOwnersMock(options);
-        return { owners: ownersForTest, error: "" };
+        return {
+          owners: ownersForTest,
+          error: "",
+          canAddOwners: mayAddOwnersForTest,
+        };
       },
     };
   },
@@ -646,6 +654,7 @@ describe("Scheduled maintenance overview page", () => {
   beforeEach(() => {
     currentEventId = EVENT_ID;
     ownersForTest = undefined;
+    mayAddOwnersForTest = true;
     useEventOwnersMock.mockReset();
     jest.spyOn(Navigation, "getLastParamAsObjectID").mockImplementation(() => {
       return new ObjectID(currentEventId);
@@ -1254,6 +1263,19 @@ describe("Scheduled maintenance overview page", () => {
       await flush();
 
       expect(renderFact("Owners")).toHaveTextContent(/^None$/);
+    });
+
+    test("offers no Add owners to a reader who may not add one", async () => {
+      ownersForTest = [];
+      mayAddOwnersForTest = false;
+      getItemMock.mockResolvedValue(makeEvent({ isEnded: false }) as never);
+
+      await renderPage();
+
+      const owners: HTMLElement = renderFact("Owners");
+
+      expect(within(owners).queryByRole("link")).toBeNull();
+      expect(owners).toHaveTextContent(/^None$/);
     });
   });
 

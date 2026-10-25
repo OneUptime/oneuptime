@@ -246,8 +246,17 @@ export const EVENT_HEADER_FACT_COLUMN_STEPS: ReadonlyArray<{
   { columns: 5, widthRem: 64 },
 ];
 
+/*
+ * Each fact is two rows of the grid - its label's, then its value's - and
+ * lays its label and value on them (a subgrid), so the facts side by side
+ * share their rows: a label that wraps ("INCIDENT COMMANDER" on a phone,
+ * "VORFALL-KOMMANDANT") makes its row taller for all of them, every value
+ * of the row starts on the same line, and every label sits right above its
+ * value. The space between the rows of facts is the values' own (pb-4), so
+ * the grid has no row gap and no bottom padding of its own.
+ */
 const EVENT_HEADER_FACTS_BASE_CLASS_NAME: string =
-  "grid grid-cols-1 gap-x-6 gap-y-4 border-t border-gray-100 px-4 py-4 sm:px-5";
+  "grid grid-cols-1 gap-x-6 border-t border-gray-100 px-4 pt-4 sm:px-5";
 
 /*
  * The columns `count` facts take where at most `allowed` fit: the fewest
@@ -280,14 +289,27 @@ export function getEventHeaderFactsClassName(factCount: number): string {
   return classNames.join(" ");
 }
 
-// A fact: its label over its value, as a security case's facts and the stat tiles say theirs.
-export const EVENT_HEADER_FACT_CLASS_NAME: string = "min-w-0";
+/*
+ * A fact: its label over its value, as a security case's facts and the stat
+ * tiles say theirs - on the two rows of the facts' grid it spans.
+ */
+export const EVENT_HEADER_FACT_CLASS_NAME: string =
+  "row-span-2 grid min-w-0 grid-rows-subgrid";
 
+/*
+ * The label, at the foot of its row: right above its value whether or not
+ * the label beside it wraps. Its icon keeps to the first line of a label
+ * that wraps.
+ */
 export const EVENT_HEADER_FACT_LABEL_CLASS_NAME: string =
-  "flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-gray-500";
+  "flex items-start gap-1.5 self-end pb-1.5 text-xs font-medium uppercase tracking-wide text-gray-500";
 
+export const EVENT_HEADER_FACT_LABEL_ICON_CLASS_NAME: string =
+  "mt-px h-3.5 w-3.5 flex-shrink-0 text-gray-400";
+
+// The value, and under it the space before the next row of facts.
 export const EVENT_HEADER_FACT_VALUE_CLASS_NAME: string =
-  "mt-1.5 min-w-0 break-words text-sm font-medium text-gray-900";
+  "min-w-0 break-words pb-4 text-sm font-medium text-gray-900";
 
 /*
  * The band at the foot of the header, by what it says: OneUptime AI's
