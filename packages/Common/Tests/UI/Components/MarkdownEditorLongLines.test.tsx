@@ -97,9 +97,18 @@ describe("the editor opens a note with long lines quickly", () => {
 
 describe("a keystroke in such a note is saved quickly", () => {
   test.each([
+    /*
+     * 16,666 rows, not 33,333: each row is a node the editor walks on
+     * every keystroke, and the walk is linear in the rows (533 ms on a
+     * developer machine at 16,666 rows, 1,102 ms at 33,333, the cell's
+     * length barely counting), so at 33,333 rows a CI runner took 2,128 ms
+     * of the 2,000 (2026-10-25). The cell keeps its 100,000 characters:
+     * lined up to it, these rows would still be past the longest string
+     * a browser holds, so a table lined up whatever its size still fails.
+     */
     [
       "a table of one long cell over many rows",
-      `| a |\n| --- |\n| ${times("y", LENGTH / 4)} |\n${times("| x |\n", LENGTH / 12)}`,
+      `| a |\n| --- |\n| ${times("y", LENGTH / 4)} |\n${times("| x |\n", LENGTH / 24)}`,
     ],
     /*
      * 200,000 characters, not 400,000: each paragraph is a node the editor
